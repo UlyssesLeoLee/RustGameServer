@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-016 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-REQ-019 需求定义书（ARC-033） |
 | 制定日 | 2026-08-16 |
 | 最终更新日 | 2026-08-16 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-019§8 ARC-033展开为工单组件设计、对账批处理时序、数据模型 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充工单状态机迁移条件表与去重字段（FR-SUP-002、FR-SUP-007）②补充SLA分级数值基准表（FR-SUP-003）③补充`SupportTicket`/`PaymentOrder`索引与唯一性约束④补充对账批处理异常分支（服务商侧数据延迟/不可用）与"比对条件写反"防护（RSK-SUP-002） | FR-SUP-002、FR-SUP-003、FR-SUP-007、RSK-SUP-002 |
+| 0.3 | 2026-08-16 | 架构师 | — | **补齐跨文档字段清单同步**（RGS-BAS-010 PAT-CR-004处置）：`PaymentOrder`表补入RGS-BAS-020§2.5此前单向追加、未同步回本表的`payment_channel`/`platform_type`/`platform_environment`/`refund_status`四字段，本表重申为该逻辑表的唯一权威字段清单 | FR-PLT-003〜005 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -110,8 +111,14 @@
 | `state` | enum(`待支付`／`已支付`／`已发货`／`发货失败`／`待补偿`／`已补偿`) | 状态机 |
 | `amount` | decimal | 金额 |
 | `updated_at` | timestamp | 最近状态变更时间，供对账任务判断"待支付"是否超过合理时长（异常分支参考） |
+| `payment_channel` | enum(`platform_iap`／`direct_gateway`) | 区分平台内购与本文档既定直连支付，决定对账/退款处理走哪条子流程（RGS-REQ-023 FR-PLT-005跨文档扩展字段，本表为权威定义处，2026-08-16纳入） |
+| `platform_type` | enum，可选（仅`payment_channel=platform_iap`时非空） | `app_store`／`google_play`（同上扩展，RGS-BAS-020§2.5） |
+| `platform_environment` | enum(`sandbox`／`production`)，可选（仅平台内购适用） | 沙盒/生产环境标记，须与收据校验时平台返回的环境一致（同上扩展，RGS-BAS-020§2.5 FR-PLT-004） |
+| `refund_status` | enum(`none`／`refunded`／`clawback_pending`／`clawback_done`)，默认`none` | 退款处理状态（同上扩展，RGS-BAS-020§2.5 FR-PLT-003） |
 
-索引/约束：`order_id`为主键；`(provider_txn_id)`唯一索引（允许NULL，`待支付`阶段可能尚无服务商侧交易ID）——该唯一索引是幂等键（NFR-SUP-004）与对账关联键的双重保证，比对逻辑**必须**以此索引做`UPSERT`/条件更新而非应用层先查后写，避免RSK-SUP-002"比对条件写反"类缺陷绕过数据库层面的唯一性保护；`(state, updated_at)`复合索引支撑异常分支扫描长时间停留在非终态的订单。
+> **跨文档字段扩展声明**：`payment_channel`〜`refund_status`四字段由RGS-REQ-023/BAS-020（平台内购合规）在本表基础上追加，**本表是`PaymentOrder`的唯一权威字段清单**——任何文档若需扩展本表结构，**必须**同步在此处登记（同RGS-BAS-010§7.1新增检查项"跨限界上下文表结构扩展须同步更新原表文档"），不得仅在扩展方文档单向记录导致字段清单分散、失去单一真相来源。
+
+索引/约束：`order_id`为主键；`(provider_txn_id)`唯一索引（允许NULL，`待支付`阶段可能尚无服务商侧交易ID）——该唯一索引是幂等键（NFR-SUP-004）与对账关联键的双重保证，比对逻辑**必须**以此索引做`UPSERT`/条件更新而非应用层先查后写，避免RSK-SUP-002"比对条件写反"类缺陷绕过数据库层面的唯一性保护；`(state, updated_at)`复合索引支撑异常分支扫描长时间停留在非终态的订单；`(platform_type, provider_txn_id)`复合唯一索引（RGS-BAS-020§2.5扩展）确保跨平台交易标识不产生误关联。
 
 ## 3.2 对账批处理时序
 
