@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-014 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-REQ-017 需求定义书（ARC-031） |
 | 制定日 | 2026-08-16 |
 | 最终更新日 | 2026-08-16 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响需求ID |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-017§11 ARC-031展开为：派生排行视图的组件设计与更新时序、任务/成就的配置化触发引擎设计、邮件系统的数据模型、举报/黑名单的字段级设计、赛季重置的时序图 | 全部 |
+| 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①新增`RankingDimensionConfig`维度可配置表（FR-GSM-001）②补充`RankingViewUpdater`消费失败/死信分支与视图重建路径（FR-GSM-003、NFR-GSM-002）③新增举报者信誉度字段与降权机制设计（FR-GSM-033、RSK-GSM-002）④补充`MailMessage`/`PlayerReport`/`PlayerBlocklist`索引与唯一性约束（复用RGS-BAS-007标准） | FR-GSM-001、FR-GSM-003、FR-GSM-033、NFR-GSM-002、RSK-GSM-002 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -67,6 +68,21 @@
 
 复用ARC-012既定缓存基础设施的有序集合能力（如有序集合类型的键值存储）作为默认方案，键为`ranking:{维度}:{赛季ID}`，成员为玩家ID，分值为对应维度分数。选型最终确定见TBD-GSM-001（ISS-046）。
 
+### 2.2.1 排行维度可配置扩展（FR-GSM-001字段级设计）
+
+新增维度不得硬编码，须通过配置表`RankingDimensionConfig`声明（复用ARC-016数值表热更新分发机制，不修改`RankingViewUpdater`代码路径）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `dimension_id` | string | 唯一标识，如`player_level`／`season_score`／`guild_prestige`（PH-6+） |
+| `source_context` | enum(`EC`／`GD`／`MT`) | 权威分数来源的限界上下文，决定`RankingSource`订阅哪个事件流 |
+| `source_event` | string | 触发分数变更的事件类型（如`PlayerLevelUp`、`SeasonScoreSettled`），须为ARC-010既定事件流中已存在的事件 |
+| `score_field_path` | string | 从事件载荷中提取分数值的字段路径 |
+| `season_scoped` | bool | 是否随赛季重置（`season_score`为`true`，`player_level`为`false`） |
+| `enabled` | bool | 是否对外暴露查询，用于灰度上线新维度而不影响既有维度 |
+
+新增一种排行维度仅需新增一行`RankingDimensionConfig`配置并声明其`source_event`订阅，`RankingSource`/`RankingViewUpdater`按配置驱动，不需为新维度编写专属分支代码，满足FR-GSM-001"应当可配置扩展"要求。
+
 ## 2.3 更新时序（增量式，FR-GSM-003）
 
 ```
@@ -78,6 +94,16 @@
 ```
 
 > 消费失败重试与死信处理复用ARC-009既定的事件消费者标准模式，不新增专属基础设施。
+
+### 2.3.1 异常分支
+
+```
+RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时不可用）
+  → 按ARC-009标准重试策略重试N次
+  → 仍失败 → 投递至既有死信队列（复用ARC-009死信处理），记录告警（RGS-BAS-003§6）
+  → 死信事件不阻塞后续事件消费（幂等键保证乱序到达也不产生错误覆盖：仅当new_score对应的事件时间戳晚于视图当前记录的最后更新时间时才写入，防止死信重放导致的乱序覆盖新数据）
+  → 运维/告警响应后，可触发"视图重建"（从权威表按`RankingDimensionConfig.source_event`对应的权威数据全量重算一次目标维度的派生视图，作为NFR-GSM-002滞后超限或死信事件堆积后的兜底恢复手段，重建期间该维度查询**应当**降级提示"数据更新中"而非报错）
+```
 
 ## 2.4 一致性边界的落地规则（ARC-031核心约束）
 
@@ -139,6 +165,8 @@
 | `claim_status` | enum(`unclaimed`／`claimed`) | 附件是否已领取 |
 | `expire_at` | timestamp | 保留期截止（默认90天，NFR-GSM-006，可配置） |
 
+索引：`(recipient_id, read_status, expire_at)`复合索引支撑玩家收件箱列表的高频查询（按收件人过滤未读/未过期）；`(expire_at)`单列索引支撑§4.3按月度分区的到期清理批处理扫描。`mail_id`为主键，物理DDL细节遵循RGS-BAS-007命名规范。
+
 ## 4.2 批量发送
 
 `MailBatchSender`接受目标条件（全服/玩家列表/满足特定条件的群体），**异步**逐条生成`MailMessage`（FR-GSM-024，复用RGS-BAS-003控制平面既有异步工单处理模式，不阻塞GM操作的即时响应）。
@@ -162,8 +190,26 @@
 | `report_type` | enum(`cheating`／`harassment`／`inappropriate_name`／`other`) | FR-GSM-030 |
 | `context_ref` | 可选，对局ID/聊天记录ID | 上下文引用 |
 | `dedup_key` | `reporter_id`+`target_id`+滚动时间窗口的哈希 | 用于FR-GSM-033去重统计，防止重复举报虚增信号强度 |
+| `signal_weight` | decimal，默认1.0 | 该条举报计入信号强度的权重，受`ReporterReputation.weight_multiplier`折算（见下） |
+| `created_at` | timestamp | 举报提交时间，参与滚动时间窗口计算与RSK-GSM-002持续追踪 |
+
+索引：`(target_id, created_at)`复合索引支撑GM后台按被举报者聚合查询（RGS-BAS-003§3.4只读查询模式）；`(dedup_key)`唯一索引直接在数据库层面阻止同一滚动窗口内的重复计数写入，不依赖应用层去重逻辑单独兜底（FR-GSM-033）。
 
 审计留痕复用RGS-BAS-003§7审计设计（存储结构与保留期一致），GM后台查询复用RGS-BAS-003§3.4只读查询模式。**处置路径**：举报仅产生信号，`PlayerReport`记录**不直接**触发任何`AdminService`调用；处罚必须由GM人工或RGS-REQ-014智能层（若启用，经ARC-030确定性闸门）显式调用既有`BanAccount`/`MuteChat`（FR-GSM-032）。
+
+### 5.1.1 举报者信誉度（RSK-GSM-002缓解机制字段级设计）
+
+`ReporterReputation`（依附既有GD/AD上下文数据库，不新建独立库）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `reporter_id` | 玩家ID | 主键，一个玩家一条信誉度记录 |
+| `substantiated_count` | int | 经GM/闸门判定为"举报属实并触发处罚"的历史次数 |
+| `unsubstantiated_count` | int | 经GM判定为"举报不实/恶意"的历史次数 |
+| `weight_multiplier` | decimal，范围[0.1, 1.5] | 该举报者未来举报计入信号强度的折算系数，按`substantiated_count`/`unsubstantiated_count`比例周期性重算（详细算法留待详细设计，本表仅定义数据结构与边界） |
+| `updated_at` | timestamp | 最近一次信誉度重算时间 |
+
+信誉度更新时机：GM在`AdminService`对举报作出处置决定（处罚或标记不实）时，**异步**触发`ReporterReputation`重算（复用ARC-009事件消费幂等机制，不阻塞GM操作），**不得**影响FR-GSM-032"举报本身不自动触发处罚"的既定原则——信誉度仅调节未来举报的信号权重，不构成对被举报者的处罚依据。
 
 ## 5.2 黑名单
 
@@ -174,6 +220,8 @@
 | `owner_id` | 玩家ID | 黑名单所有者 |
 | `blocked_id` | 玩家ID | 被拉黑者 |
 | `created_at` | timestamp | 生效时间（即时生效） |
+
+主键/唯一性约束：`(owner_id, blocked_id)`复合唯一索引，防止同一玩家对同一目标重复拉黑产生冗余行；`(owner_id)`单列索引支撑"查询自己的黑名单列表"（NFR-GSM-005唯一允许的查询路径）；**不得**在`blocked_id`上建立可被反查`owner_id`集合的索引/接口，避免NFR-GSM-005"不向第三方暴露谁拉黑了谁"被索引可用性间接绕过。
 
 查询边界（NFR-GSM-005）：仅`owner_id`本人可查询自己的`PlayerBlocklist`，**不对**`blocked_id`（含被拉黑者本人）暴露该记录的存在性。
 
@@ -217,6 +265,11 @@
 - [ ] 举报路径验证：单次举报不触发`AdminService`自动调用
 - [ ] 赛季继承规则（TBD-GSM-002）已与策划评审确定并写入配置
 - [ ] 举报处理SLA（TBD-GSM-003）已与运营团队评审确定
+- [ ] 新增排行维度已通过`RankingDimensionConfig`配置验证，未修改`RankingViewUpdater`代码路径（FR-GSM-001）
+- [ ] 派生视图死信/重建路径（§2.3.1）已具备可操作的运维手册，重建期间查询降级提示已实现
+- [ ] `PlayerReport.dedup_key`唯一索引已在DDL中落地，未仅依赖应用层去重（FR-GSM-033）
+- [ ] `PlayerBlocklist(owner_id, blocked_id)`唯一约束已落地，`blocked_id`侧无可反查`owner_id`的索引/接口（NFR-GSM-005）
+- [ ] 注：`RankingViewUpdater`死信处理、`ReporterReputation`异步重算为本批新增的常态运维面，OLU运维负荷未核算，见ISS-065
 
 ## 7.2 代码评审检查清单
 
@@ -231,10 +284,10 @@
 
 | 需求ID | 本设计书章节 |
 |---|---|
-| ARC-031、FR-GSM-001〜006 | §2 |
+| ARC-031、FR-GSM-001〜006 | §2、§2.2.1（FR-GSM-001维度配置）、§2.3.1（死信/重建异常分支） |
 | FR-GSM-010〜015 | §3 |
 | FR-GSM-020〜024 | §4 |
-| FR-GSM-030〜035 | §5 |
+| FR-GSM-030〜035 | §5、§5.1.1（RSK-GSM-002信誉度机制） |
 | FR-GSM-040〜044 | §6 |
 | NFR-GSM-001〜006 | §2.5、§3.3、§6.2 |
 | AC-GSM-001〜005 | §7.1 |
