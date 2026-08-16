@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-003 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-REQ-007 需求定义书 第7章（ARC-019） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -17,6 +17,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-007 ARC-019展开为控制平面组件图、`AdminService`字段级API扩展、运行时受限控制通道设计、维护模式传播时序、告警推送设计、RBAC角色矩阵扩展、运维工单设计 | 全部 |
+| 0.2 | 2026-08-16 | 架构师 | 补充遗漏：FR-OPS-001（健康视图聚合API）此前未在字段级API中展开，新增`AdminService.QueryHealthView`方法及设计要点；追溯性表补齐AC-OPS-001〜005验收标准与设计章节的映射（此前追溯性表未覆盖AC条目） | §3.4、§13 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -128,6 +129,7 @@ classDiagram
         +QuerySceneMetrics(sceneId) SceneMetrics
         +QueryAuditLog(filter, page) AuditLogPage
         +CreateOpsTicket(opType, payload, operatorId) OpsTicket
+        +QueryHealthView() HealthView
     }
     GMBackendCaller ..> AdminService : 调用（RBAC+审计+限流,ARC-019唯一入口）
     AdminService ..> RuntimeControlService : 转发(KickSession/MuteChat/场景重启/场景指标)
@@ -162,6 +164,9 @@ classDiagram
 |---|---|---|---|
 | `QueryOnlineStatus` | `filter`（可选：`player_id`／`scene_id`／分页参数） | `players[]`（`character_id`／`scene_id`／`connected_at`／`session_epoch`） | FR-GM-003 |
 | `QueryAuditLog` | `filter`（操作者／操作类型／时间范围）／`page` | `entries[]`（同`OPERATION_AUDIT`表字段，RGS-BAS-001§5.7）／`has_more` | FR-OPS-004 |
+| `QueryHealthView` | 无（全局聚合，暂不支持按限界上下文过滤，详细设计阶段视GM后台需要再扩展） | `services[]`（`service_name`／`ready`（布尔，取自既有`/readyz`）／`queue_depth`（关键队列积压，取自ARC-017既有OTel指标）／`db_pool_usage`（连接池水位百分比）／`checked_at`） | FR-OPS-001 |
+
+**设计要点**：`QueryHealthView`不直接探活各服务（避免形成又一条跨限界上下文的同步依赖链），而是从既有OTel Collector（§6.1数据流中的`METRIC`指标存储）读取各服务最近一次上报的`/readyz`快照与队列/连接池指标做聚合展示，本身为**只读、无侧作用**的查询，与FR-GM-020场景级`QuerySceneMetrics`同属"运维只读视图"范畴但聚合粒度不同（前者服务级，后者场景级）。
 
 ---
 
@@ -363,6 +368,11 @@ flowchart LR
 | FR-GM-040〜041 | 异常检测与风控联动 | §7（复用既有FR-AD-004数据） |
 | FR-OPS-001〜004 | 运维功能（健康视图、告警、审计） | §6、§7 |
 | NFR-OPS-001〜008 | 性能/安全/可审计/可用/幂等/限流 | §3、§4.2、§6.2、§8、§9 |
+| AC-OPS-001（六类操作+审计） | §3全体方法均产生`OPERATION_AUDIT`记录 | §3、§7 |
+| AC-OPS-002（故障注入,控制平面不影响实时路径） | §9故障隔离设计，`AdminService`不参与移动/战斗同步调用链 | §9 |
+| AC-OPS-003（GM后台凭证无法直连业务DB/K8s API） | §2.1组件图拓扑（GM后台仅一入一出路径）＋§4.4 NetworkPolicy | §2、§4.4 |
+| AC-OPS-004（高危操作二次确认留痕） | §8.2流程＋§7"二次确认留痕"设计 | §7、§8.2 |
+| AC-OPS-005（告警p99时延演练） | §6告警数据流与Webhook重试退避设计，具体压测方案留待详细设计 | §6 |
 
 ---
 
