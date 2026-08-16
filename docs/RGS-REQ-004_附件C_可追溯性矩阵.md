@@ -219,7 +219,7 @@
 | DBS | RGS-REQ-011 | 全体 | NFR-OP | FR-DBS-001〜041 | NFR-DBS-001〜004 | 2026-08-16 |
 | SDK | RGS-REQ-012 | **CS**（新增子系统，见下方注记） | NFR-MI、NFR-OP | FR-SDK-001〜021 | NFR-SDK-001〜005 | 2026-08-16 |
 | GOV | RGS-REQ-013 | 全体 | NFR-OP | FR-GOV-001〜040 | （无独立NFR，规则以GOV-*系表述） | 2026-08-16 |
-| NEURO | RGS-REQ-014 | RT、EV（智能层为新增独立组件，暂挂靠事件消费侧） | NFR-OP、NFR-SE | FR-NEURO-001〜038 | NFR-NEURO-001〜008 | 2026-08-16 |
+| NEURO | RGS-REQ-014 | RT、EV（智能层为新增独立组件，暂挂靠事件消费侧） | NFR-OP、NFR-SE | FR-NEURO-001〜041 | NFR-NEURO-001〜008 | 2026-08-16 |
 | TST | RGS-REQ-015 | 全体（测试基础设施） | NFR-OP、NFR-MI | FR-TST-001〜042 | NFR-TST-001〜005 | 2026-08-16 |
 | LBY | RGS-REQ-016 | RT、GD、EC（大厅/社交/内购均依附既有上下文，ARC-029） | NFR-PE、NFR-SE | FR-LBY-001〜054 | NFR-LBY-001〜005 | 2026-08-16 |
 | PAT | RGS-BAS-010 | 全体（无独立REQ，纯基本设计归纳，见§2.2.1读法） | NFR-OP | （无独立FR，以G-nnn补强条目表述） | （无独立NFR） | 2026-08-16 |
