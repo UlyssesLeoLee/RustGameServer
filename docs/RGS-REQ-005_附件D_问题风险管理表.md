@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-REQ-005 |
-| 版本 | 1.4 |
+| 版本 | 1.5 |
 | 父文档 | RGS-REQ-001 需求定义书 第14章 |
 | 更新频率 | **每周**（进度・问题确认会议） |
 | 制定日 | 2026-08-15 |
@@ -18,6 +18,7 @@
 | 1.2 | 2026-08-15 | 架构师 | 正文由日文改写为中文；修正Redis 8.0+／Elasticsearch 8.16+的AGPLv3许可判定；OSS许可表增加时效性声明 |
 | 1.3 | 2026-08-16 | 架构师 | 反映RGS-REV-001横断审查结果（F-002／F-003／F-004／F-008的处置）：新增§1.3领域文档问题一览、§2.3领域文档风险一览、§5运维负荷预算台账；§3 ADR适用范围扩展至全部ARC并新增ADR-0017〜0025；RSK-002追加量化确认。详见§6更新历史末行 |
 | 1.4 | 2026-08-16 | 架构师 | 登记RGS-REQ-014〜016（智能层/测试基础设施/大厅社交运营，ARC-027〜029）：新增ISS-035〜043、TBD-029〜036、RSK-023〜028、ADR-0026〜0028；新增§5.4智能层OLU核算（确认当前不得上线）。详见§6更新历史末行 |
+| 1.5 | 2026-08-16 | 架构师 | **开源合规专项审查**：新增ADR-0029登记、修正TBD-SEC-002的Vault引用（BSL 1.1非OSI认可，改为OpenBao）；§4.1新增Rhai／cbindgen／CloudNativePG／OpenBao／LangGraph核心库／k6／Playwright七项候选组件登记；§4.2新增HashiCorp Vault、`langgraph-api`两项禁止采用登记；新增ISS-044（LLM选型）、ISS-045（langgraph-api发现记录，已修正）。详见§6更新历史末行 |
 
 ---
 
@@ -69,7 +70,7 @@
 | ISS-021 | TBD-018 | TBD-PLG-001 | 沙箱脚本引擎的选型 | ①Rhai ②Lua子集 ③自研DSL ④**不引入**（仅用特性开关形态）。须评估沙箱逃逸风险与性能开销，经ARC-014＋ARC-026双重判定 | 未着手 | 详细设计阶段前 | 架构师＋安全负责人 | ARC-021、NFR-PLG-004 |
 | ISS-022 | TBD-019 | TBD-PLG-002 | 特性开关插件的配置驱动机制 | **依FR-GOV-020／021已收敛为"复用ARC-016既有分发通道"**，本项转为该复用方案的实施细节确认 | 探讨中 | PH-6前 | 实时负责人 | FR-GOV-020〜023 |
 | ISS-023 | TBD-020 | TBD-SEC-001 | DDoS防护与WAF的选型 | ①云服务商边缘防护 ②自建限速＋黑名单。**须澄清与CON-002（不得依赖付费SaaS）的边界**——基础设施层防护是否属"核心组件"，需专项决议 | 未着手 | PH-4前 | SRE＋安全负责人＋项目负责人 | FR-SEC-001／002、CON-002 |
-| ISS-024 | TBD-021 | TBD-SEC-002 | 密钥管理是否引入独立Secrets中间件 | ①K8s原生Secret＋自动轮换（默认）②Vault等。须经ARC-014＋ARC-026判定 | 未着手 | PH-4前 | SRE | FR-SEC-021、NFR-SEC-002 |
+| ISS-024 | TBD-021 | TBD-SEC-002 | 密钥管理是否引入独立Secrets中间件 | ①K8s原生Secret＋自动轮换（默认）②**OpenBao**（HashiCorp Vault的MPL-2.0开源分支，Linux Foundation托管）。须经ARC-014＋ARC-026判定。**HashiCorp Vault本身自2023-08起改为BSL 1.1许可（非OSI认可），依CON-001不得采用，已于4.2节登记为禁止采用项** | 未着手 | PH-4前 | SRE | FR-SEC-021、NFR-SEC-002 |
 | ISS-025 | TBD-022 | TBD-DBS-001 | 各表的分区键选择与分区粒度 | 依各限界上下文数据特征逐表确定，在RGS-DBS-001中落地 | 未着手 | PH-2 | DBA＋各服务负责人 | FR-DBS-011、NFR-DBS-003 |
 | ISS-026 | TBD-023 | TBD-DBS-002 | 备份恢复的自动化工具选型 | 须经ARC-014＋ARC-026判定 | 未着手 | PH-2前 | SRE | FR-DBS-030／031 |
 | ISS-027 | TBD-024 | TBD-SDK-001 | Unity／UE的FFI绑定生成方式 | ①手写绑定 ②`cbindgen`＋代码生成（倾向）。影响SDK维护成本 | 未着手 | 详细设计阶段 | 客户端SDK负责人 | FR-SDK-020／021 |
@@ -89,6 +90,8 @@
 | ISS-041 | TBD-035 | TBD-LBY-002 | 大厅独立于战斗场景的容量/性能目标值 | 当前复用ARC-002既有目标，需策划确认大厅预期并发密度 | 未着手 | PH-2〜PH-6间 | 策划＋架构师 | NFR-LBY-001 |
 | ISS-042 | TBD-036 | TBD-PAT-001 | G-011 Admission Webhook是否引入 | 需独立ARC-014＋ARC-026双重判定评审，与ARC-022同批 | 未着手 | PH-4前，与ARC-022同批评审 | SRE＋安全负责人 | RGS-BAS-010 G-011 |
 | ISS-043 | — | — | **智能层OLU核算显示上线将使运维负荷预算由既有+2转为−14（RSK-NEURO-001）**，是否批准上线、以何种节奏回收额度 | ①暂缓智能层上线，待既有回收项（附件D§5.3 R-2〜R-6）到位后再评估②优先自动化部分智能层运维面以降低估算③批准延后上线时间表 | **待决议** | PH-1 | 项目负责人＋SRE负责人＋架构师 | ARC-026、ARC-027、RGS-BAS-011§3 |
+| ISS-044 | TBD-037 | TBD-NEURO-003 | 自托管开放权重LLM的具体选型与推理引擎，及模型权重许可核实 | 须在"不依赖付费API"约束下评估可达到的分析质量，与ISS-035（部署形态）联动 | 未着手 | 详细设计阶段前 | 架构师＋安全负责人 | FR-NEURO-040／041 |
+| ISS-045 | — | — | **开源合规自审发现：`langgraph-api`（Elastic License 2.0）与LangGraph Platform/Cloud（付费SaaS）此前未与MIT核心库区分，若未加约束直接使用官方"快速开始"指引（`langgraph dev`），将直接违反CON-001/CON-002** | 已修正：RGS-REQ-014 v0.3新增FR-NEURO-039〜041明确技术栈边界；RGS-BAS-011 v0.3新增CI静态扫描强制要求 | **决议完毕**（2026-08-16，已修正） | — | 架构师 | ARC-027、CON-001、CON-002 |
 
 > **规则**：正文中记载`【TBD-nnn】`或域内ID`TBD-<域>-nnn`时，须同时登记至本表（§1.2或§1.3）。**不得**遗留未登记的TBD（需求定义书1.5.4节、ARC-025 GOV-ID-003）。该规则自RGS-BAS-009§4起由CI机械校验强制。
 
@@ -222,6 +225,13 @@
 | 可观测性（指标） | Prometheus | Apache-2.0 | ○ | **合规** | NFR-OP-003 |
 | 可观测性（可视化） | Grafana | AGPL-3.0 | ○ | **合规（需留意）** | 可自主托管使用。若改动后向外部提供，将产生源码公开义务。**不得作为库并入源码**（LC-006） |
 | 可观测性（日志） | Loki | AGPL-3.0 | ○ | **合规（需留意）** | 同上 |
+| 沙箱脚本引擎（候选，ISS-021） | Rhai | MIT / Apache-2.0 | ○ | **合规** | ARC-021、TBD-PLG-001 |
+| FFI绑定生成（候选，ISS-027） | cbindgen | MPL-2.0 | ○ | **合规（需留意）** | Mozilla Public License 2.0为文件级弱copyleft，但cbindgen是**构建期工具**（生成C头文件后不随产物分发/不链接进最终二进制），不触发LC-005"代码并入源码"的适用场景。**仅生成的头文件本身**（非cbindgen工具本体）随SDK分发，头文件不含cbindgen源码，不产生许可继承 |
+| DB Provisioning Operator（候选，ISS-013／TBD-MNT-002） | CloudNativePG | Apache-2.0 | ○ | **合规** | ARC-018 |
+| Secrets管理中间件（候选，ISS-024／TBD-SEC-002） | **OpenBao**（Linux Foundation，Vault的MPL-2.0分支） | MPL-2.0 | ○ | **合规** | 替代HashiCorp Vault，见4.2节 |
+| 智能层编排框架（候选，RGS-REQ-014 ARC-027） | **LangGraph核心库**（`langgraph`／`langgraph-core`／`langchain-core`Python包） | MIT | ○ | **合规（范围受限，见备注）** | **仅**MIT许可的核心库合规；`langgraph-api`（承载持久化/任务队列/流式传输的服务器运行时，由`langgraph dev`／`langgraph build`／LangGraph Platform触发使用）为**Elastic License 2.0**，非OSI认可且生产自托管需商业授权，**不得**采用（见4.2节）。智能层的实现**必须**仅依赖MIT核心库，自行承载编排循环的持久化与调度（复用本系统既有的K8s部署与既有数据库/缓存基础设施），**不得**引入`langgraph-api`或LangGraph Platform/Cloud |
+| 性能测试工具（RGS-REQ-015 ARC-028） | k6 | AGPL-3.0 | ○ | **合规（需留意）** | 与Grafana／Loki同类处置（LC-006）：k6**作为独立进程/CLI工具调用**（读取版本化的`.js`测试脚本作为外部输入），**不将k6源码或其库以静态/动态链接方式并入本仓库任何交付产物**，故不触发LC-005"copyleft代码并入源码"的适用范围。测试脚本本身（`tests/perf/k6/`下的`.js`文件）为本项目自研内容，Apache-2.0覆盖，与k6许可无关 |
+| UAT自动化工具（RGS-REQ-015 ARC-028） | Playwright | Apache-2.0 | ○ | **合规** | 微软出品，无需LC-006同类特别处置 |
 
 ### 4.2 禁止采用（不合规）
 
@@ -235,6 +245,8 @@
 | MongoDB 4.0以降 | SSPL | 非OSI认可 | PostgreSQL |
 | Elasticsearch 7.11〜8.15 | SSPL / Elastic License v2 | 非OSI认可 | OpenSearch（Apache-2.0）。但现阶段无必要性 |
 | Elasticsearch 8.16以降 | SSPL / ELv2 / **AGPLv3** | 选择AGPLv3时满足CON-001。但现阶段无必要性 | 同上 |
+| **HashiCorp Vault**（**本次新增登记**） | **Business Source License 1.1**（2023-08起，此前版本为MPL-2.0） | 非OSI认可，BSL禁止用于"竞争性产品/服务"（HashiCorp单方定义，可随时变更），且**并非发布4年后才转为开源**——转换时限本身即构成对"当前可用性"的实质限制，不满足CON-001"核心组件须为OSI认可开源许可"的当期判定要求 | **OpenBao**（Linux Foundation治理的MPL-2.0分支，已于4.1节登记为采用候选） |
+| **`langgraph-api`（LangGraph Platform/Cloud运行时，本次新增登记）** | **Elastic License 2.0** | 非OSI认可，生产环境自托管需商业授权（Enterprise Plan） | 仅使用MIT许可的LangGraph核心库自行承载编排循环，**不得**通过`langgraph dev`／`langgraph build`触发`langgraph-api` |
 
 ### 4.3 盘点的运维方式
 

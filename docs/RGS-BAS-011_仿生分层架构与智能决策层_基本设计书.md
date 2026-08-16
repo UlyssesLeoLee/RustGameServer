@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-011 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-REQ-014 需求定义书 第7章（ARC-027・ARC-030） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -18,6 +18,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-014 ARC-027展开为智能层组件图、LangGraph图结构设计范式、事件订阅与建议呈现接口、OLU预算核算 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | 新增§7A确定性闸门设计（ARC-030落地）：确定性分级L0〜L4在本系统组件上的落位、三重闸门（枚举白名单全等匹配／值域校验不截断／人工审批risk_tier自动继承）的组件设计与**部署位置约束**（须部署于AdminService侧而非智能层内，否则闸门自身即成为L4的一部分）、五类禁止泄漏路径的对应防护、可复核性设计、闸门自身的质量要求 | §7A新增、§9、§10 |
+| 0.3 | 2026-08-16 | 架构师 | 开源合规自审修正（同步RGS-REQ-014 v0.3）：§2.2新增技术栈边界约束——部署镜像仅安装MIT核心库，禁止`langgraph-api`／`langgraph dev`／`langgraph build`／LangGraph Platform；新增LLM推理后端约束——必须自托管，NetworkPolicy出站白名单不得含商业LLM API端点。两条约束均要求CI静态扫描强制 | §2.2、§9、§10 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -96,6 +97,8 @@ flowchart TB
 | K8s部署 | 独立Deployment，无状态（分析队列可持久化于智能层专属的轻量存储，但不承载权威数据，故复用RGS-BAS-002§5.1判定原则默认Deployment） |
 | Namespace/NetworkPolicy | 独立Namespace，NetworkPolicy默认拒绝（复用RGS-BAS-006§4基线），出站**仅**允许：事件基础设施（订阅）、`AdminService`（呈现建议）、OTel Collector（可观测性）。**入站不接受任何连接**（纯拉取/订阅模型，无需暴露服务端口给内部其他组件；若需人工调试接口，走既有跳板机制而非常驻暴露端口） |
 | 依赖库许可 | LangGraph及其Python依赖须逐一核对OSI许可（复用附件D§4 OSS许可盘点表流程，同CON-001约束），纳入RGS-BAS-006§6供应链安全流水线（依RSK-NEURO-002） |
+| **技术栈边界（FR-NEURO-039，安装期强制）** | 部署镜像**仅**安装MIT许可的`langgraph`／`langgraph-core`／`langchain-core`包，**不得**安装`langgraph-api`包，**不得**在CI/CD中出现`langgraph dev`／`langgraph build`命令，**不得**配置任何指向LangGraph Platform/Cloud的连接凭证。编排循环的状态持久化**必须**自行实现（复用本组件既有的轻量存储，见§2.1分析队列同一存储介质），**不得**依赖`langgraph-api`提供的等价能力。该约束**应当**通过依赖清单静态扫描（CI阶段，复用RGS-BAS-006§6供应链安全流水线）强制，检出`langgraph-api`即视为构建失败 |
+| **LLM推理后端（FR-NEURO-040）** | 底层LLM**必须**为自托管推理（详细设计阶段选定推理引擎与模型），**不得**配置任何指向商业LLM API（如按调用量计费的云端推理服务）的凭证或端点。该约束的验证方式：NetworkPolicy出站白名单（复用RGS-BAS-006§4基线）**不得**包含任何已知商业LLM API服务商的域名/端点 |
 
 ---
 
@@ -302,6 +305,9 @@ flowchart LR
 - [ ] 建议呈现已验证：`suggested_action`白名单校验生效，非法动作被拒绝
 - [ ] 故障注入试验（智能层全停止）已验证既有实时/业务路径无影响
 - [ ] LangGraph及Python依赖已完成OSS许可盘点（附件D§4）与漏洞扫描接入
+- [ ] **依赖清单静态扫描确认部署镜像不含`langgraph-api`包**，CI/CD配置中不含`langgraph dev`／`langgraph build`命令（FR-NEURO-039）
+- [ ] **NetworkPolicy出站白名单确认不含任何商业LLM API端点**，LLM推理配置指向自托管端点（FR-NEURO-040）
+- [ ] LLM模型权重的许可条款已核实允许商用，并登记至附件D§4（FR-NEURO-041）
 
 ## 9.2 确定性闸门检查清单（ARC-030，安全关键）
 
@@ -334,6 +340,7 @@ flowchart LR
 | FR-NEURO-035〜036 | L0/L1无L4同步依赖、不得调控事件流 | §7A.1、§7A.3 |
 | FR-NEURO-037 | 置信度阈值过滤 | §6.1（`confidence`字段） |
 | FR-NEURO-038 | 推理输入快照与离线重放 | §7A.4 |
+| FR-NEURO-039〜041 | 技术栈边界（禁用langgraph-api）、LLM自托管、模型权重许可核实 | §2.2 |
 | NFR-NEURO-006〜008 | 确定性隔离/可复核性/埋点无副作用 | §7A.3、§7A.4、§7A.5 |
 
 ---
