@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-001 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-001 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -19,7 +19,8 @@
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
-| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"推进制作更新详细设计"）。本项目此前26个域全部止步于需求+基本设计两层，本文档是**第一份详细设计文档**，作为后续其余域详细设计的模板与先例。范围：RGS-BAS-001§5物理数据库设计的两个最核心限界上下文（player_db／economy_db）落实为具体DDL、§6接口设计落实为具体协议线格式（.proto风格）、§4.2 tick循环与§4.3 AOI算法落实为可直接翻译为Rust实现的伪代码级算法。**本版本不覆盖BAS-001全部章节**，其余限界上下文（match_db／social_db／admin_db）与MT/GD/EV/WF/OB/AD模块详细设计留待后续版本或独立DTL文档补充，见§7 | 全部 |
+| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"推进制作更新详细设计"）。本项目此前26个域全部止步于需求+基本设计两层，本文档是**第一份详细设计文档**，作为后续其余域详细设计的模板与先例。范围：RGS-BAS-001§5物理数据库设计的两个最核心限界上下文（player_db／economy_db）落实为具体DDL、§6接口设计落实为具体协议线格式（.proto风格）、§4.2 tick循环与§4.3 AOI算法落实为可直接翻译为Rust实现的伪代码级算法。**本版本不覆盖BAS-001全部章节**，其余限界上下文（match_db／social_db／admin_db）与MT/GD/EV/WF/OB/AD模块详细设计留待后续版本或独立DTL文档补充，见§7 |
+| 0.2 | 2026-08-17 | 架构师 | — | 续接详细设计阶段，补齐本文档v0.1自己在§7声明的遗留缺口：新增match_db／social_db／admin_db核心表物理DDL（§6〜§8）、MatchService／SocialService／AdminService协议线格式（§9）、RGS-BAS-001§4.6〜4.8（对局状态机、社交并发控制、事件工作流Outbox分发器、购买Saga补偿路径、可观测性Trace传播）算法详细设计（§10）。**触发原因**：RGS-DTL-025（反作弊）已扩展`admin_db`新增三表、RGS-DTL-026（匹配）已扩展`match_db`新增三表，两文档均在其覆盖范围声明中指出"核心架构自身的DTL-001不尽快补齐，将出现业务域DTL引用的库由谁最终定义全貌的文档权责模糊风险"——本次修订补齐该两库（及social_db）各自的核心表，消除该权责模糊。原§6/§7章节相应重编号为§11/§12，新增§13追溯性表 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -39,8 +40,14 @@
 3. [物理数据库设计：economy_db](#3-物理数据库设计economy_db)
 4. [协议线格式：PlayerService／EconomyService](#4-协议线格式playerserviceeconomyservice)
 5. [核心算法详细设计](#5-核心算法详细设计)
-6. [错误码一览](#6-错误码一览)
-7. [本文档的覆盖范围与后续计划](#7-本文档的覆盖范围与后续计划)
+6. [物理数据库设计：match_db核心表](#6-物理数据库设计match_db核心表)
+7. [物理数据库设计：social_db](#7-物理数据库设计social_db)
+8. [物理数据库设计：admin_db核心表](#8-物理数据库设计admin_db核心表)
+9. [协议线格式：MatchService／SocialService／AdminService](#9-协议线格式matchservicesocialserviceadminservice)
+10. [§4.6〜4.8算法详细设计](#10-46-48算法详细设计)
+11. [错误码一览](#11-错误码一览)
+12. [本文档的覆盖范围与后续计划](#12-本文档的覆盖范围与后续计划)
+13. [追溯性](#13-追溯性)
 
 ---
 
@@ -348,7 +355,383 @@ fn aoi_update_system(scene: &mut SceneState) {
 
 ---
 
-# 6. 错误码一览
+# 6. 物理数据库设计：match_db核心表
+
+对应RGS-BAS-001§5.5 `MATCH`/`MATCH_PARTICIPANT`/`MATCH_RESULT`逻辑ER图与需求定义书§8.3 ST-002对局状态机。`match_db`同库内已由RGS-DTL-026§2新增`queue_entries`/`match_ratings`/`match_quality_metrics`三表（匹配侧），本节补齐对局侧核心表——两份文档合并起来才是`match_db`的完整物理设计，RGS-DTL-026§2的`queue_entries.match_ref BIGINT`已隐含约定`matches.match_id`为`BIGINT`（非本文档§2 `player_db`/`economy_db`使用的`UUID`风格），本节DDL遵循该已发布约定，不引入第三种不一致的主键风格（详见§12"已知的跨文档类型不一致"）。
+
+```sql
+-- 对局主表，落实需求定义书§8.3 ST-002状态机
+CREATE TABLE matches (
+    match_id     BIGSERIAL PRIMARY KEY,   -- 与RGS-DTL-026 queue_entries.match_ref的BIGINT假设保持一致
+    status       TEXT NOT NULL DEFAULT 'Created'
+                   CHECK (status IN ('Created', 'Waiting', 'Running', 'Finished', 'Archived', 'Cancelled')),
+    mode         TEXT NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    started_at   TIMESTAMPTZ,
+    finished_at  TIMESTAMPTZ,
+    version      BIGINT NOT NULL DEFAULT 0   -- OCC，同RGS-DTL-001§3.2/RGS-DTL-026§5既定模式
+);
+CREATE INDEX idx_matches_active ON matches (status) WHERE status IN ('Waiting', 'Running');
+    -- 支撑§10.1状态机驱动逻辑的"当前活跃对局"扫描路径
+
+-- 对局参与者表
+CREATE TABLE match_participants (
+    match_id      BIGINT NOT NULL REFERENCES matches(match_id),
+    character_id  BIGINT NOT NULL,   -- 与RGS-DTL-026 match_ratings.character_id的BIGINT假设保持一致（同§12已知不一致说明）
+    team          TEXT NOT NULL,
+    joined_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (match_id, character_id)
+);
+CREATE INDEX idx_match_participants_character ON match_participants (character_id);
+    -- 支撑"某角色参与过哪些对局"查询（GM工具/玩家历史）
+
+-- 对局结果表
+CREATE TABLE match_results (
+    match_id         BIGINT PRIMARY KEY REFERENCES matches(match_id),
+    outcome          TEXT NOT NULL,
+    rewards_granted  BOOLEAN NOT NULL DEFAULT FALSE,   -- 是否已经过§4.5.1确定请求授予奖励
+    finalized_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**状态迁移与物理更新的对应**（落实需求定义书§8.3表格与RGS-BAS-001§4.8.4触发来源表为可执行SQL，OCC模式同§3.2）：
+
+```sql
+-- 例：Running → Finished（场景Actor判定结束条件成立后调用，§10.1详述触发点）
+UPDATE matches
+SET status = 'Finished', finished_at = now(), version = version + 1
+WHERE match_id = $match_id AND status = 'Running' AND version = $expected_version;
+-- 影响行数=0：并发的重复结束判定或版本已被其他路径变更，调用方按OCC_CONFLICT处理（不视为异常，重新读取当前状态即可）
+```
+
+不允许的迁移（如`Archived`之后的任何写入、`Terminating`阶段之外直接写`Cancelled → Running`）由`CHECK`约束保证的取值集合与应用层状态机共同兜底：`CHECK`约束只保证落在合法状态取值集合内，**不保证**迁移路径合法（PostgreSQL `CHECK`无法表达"仅允许从X迁移到Y"），故迁移路径的合法性校验职责在应用层（§10.1伪代码），这是本文档必须明确记录的物理约束局限，避免实现者误以为数据库层已完整兜底。
+
+---
+
+# 7. 物理数据库设计：social_db
+
+对应RGS-BAS-001§5.6 `FRIEND_LINK`/`GUILD`/`GUILD_MEMBER`逻辑ER图。`social_db`目前尚无任何其他DTL文档扩展，本节是该库的首次物理落地，沿用本文档§2/§3已确立的`UUID`主键风格（`player_db`/`economy_db`同源，`character_id`逻辑引用`player_db.characters.character_id`）。
+
+```sql
+-- 好友关系表：无向关系以有序对(a,b)存储避免重复行，插入前由应用层规范化"较小UUID排在a"
+CREATE TABLE friend_links (
+    character_id_a  UUID NOT NULL,
+    character_id_b  UUID NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (character_id_a, character_id_b),
+    CONSTRAINT chk_friend_links_ordered CHECK (character_id_a < character_id_b)
+    -- 应用层规范化职责：写入前必须按UUID字节序排序两端，数据库仅做事后校验兜底，防止(a,b)与(b,a)重复行
+);
+CREATE INDEX idx_friend_links_b ON friend_links (character_id_b);
+    -- PRIMARY KEY(a,b)已提供以a为前缀的索引；本索引提供"以b查询"方向，满足双向好友列表查询
+
+CREATE TABLE guilds (
+    guild_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         VARCHAR(32) NOT NULL,
+    version      BIGINT NOT NULL DEFAULT 0,   -- OCC，成员变更等操作的并发控制
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_guilds_name UNIQUE (name)   -- 公会名全局唯一，同RGS-DTL-001§2.2 characters.name唯一性判定原则
+);
+
+CREATE TABLE guild_members (
+    guild_id      UUID NOT NULL REFERENCES guilds(guild_id) ON DELETE RESTRICT,
+    -- ON DELETE RESTRICT而非CASCADE：公会解散走应用层编排流程（成员清退通知等），
+    -- 不由数据库外键级联静默删除，理由同RGS-DTL-001§2.1 characters.player_id外键设计
+    character_id  UUID NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'officer', 'leader')),
+    joined_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (guild_id, character_id)
+);
+CREATE INDEX idx_guild_members_character ON guild_members (character_id);
+    -- 支撑"某角色所属公会"查询（单角色同时只能属于一个公会由应用层规则保证，非本表约束职责——
+    -- 若需要数据库层强制"每角色至多一个公会"，须额外加character_id上的UNIQUE约束，
+    -- 本文档未见RGS-BAS-001明确该业务规则，故不擅自添加，留待§12后续确认）
+```
+
+---
+
+# 8. 物理数据库设计：admin_db核心表
+
+对应RGS-BAS-001§5.7 `OPERATION_AUDIT`/`COMPENSATION_BATCH`逻辑ER图。`admin_db`同库内已由RGS-DTL-025§2新增`detection_signals`/`anticheat_cases`/`case_signal_links`三表（反作弊侧，`player_id BIGINT REFERENCES accounts(account_id)`），本节补齐运营治理核心表，沿用RGS-DTL-025已确立的`BIGINT`主键/外键风格，不在同一库内引入第三种不一致的类型约定（同§6对`match_db`的处理原则，跨库不一致本身见§12说明）。
+
+```sql
+-- 操作审计表，NFR-SE-010"仅追加不可变"是RGS-BAS-001§5.7已明确标注的唯一强约束
+CREATE TABLE operation_audits (
+    audit_id           BIGSERIAL PRIMARY KEY,
+    operator_id         BIGINT NOT NULL,     -- 逻辑引用运营/GM账号，非玩家account_id体系，跨库不建物理FK
+    action_type          TEXT NOT NULL,
+    target_player_id       BIGINT,           -- 可空：部分操作类型（如系统级维护开关）不针对特定玩家
+    detail                  JSONB NOT NULL DEFAULT '{}',
+    occurred_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+) PARTITION BY RANGE (occurred_at);
+-- 月度分区，复用RGS-DTL-025§2已使用的admin_db既有分区管理脚本(G-005模式)，不新建另一套分区机制
+
+CREATE INDEX idx_operation_audits_target_player
+    ON operation_audits (target_player_id, occurred_at) WHERE target_player_id IS NOT NULL;
+CREATE INDEX idx_operation_audits_operator
+    ON operation_audits (operator_id, occurred_at);
+    -- 两个查询方向：按被操作玩家追溯("谁对该玩家做过什么") / 按操作者追溯("该GM做过什么")，均为运营审计常见查询路径
+
+-- 补偿批次表
+CREATE TABLE compensation_batches (
+    batch_id      BIGSERIAL PRIMARY KEY,
+    created_by     BIGINT NOT NULL,          -- 逻辑引用运营/GM账号，同operator_id体系
+    reason           TEXT NOT NULL,
+    item_grants        JSONB NOT NULL,        -- {character_ids: [...], item_template_id, quantity}结构，对应§9.3 GrantCompensation请求体
+    status               TEXT NOT NULL DEFAULT '待执行'
+                            CHECK (status IN ('待执行', '执行中', '已完成', '部分失败')),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+`compensation_batches`与`operation_audits`是"一对多生成"关系（RGS-BAS-001§5.7 ER图`COMPENSATION_BATCH ||--o{ OPERATION_AUDIT : generates`）：每个批次实际执行时，对批次内每个受益角色各生成一条`operation_audits`记录（`action_type='COMPENSATION_GRANT'`，`detail`内含`batch_id`），而非用物理外键关联——`operation_audits.detail`是`JSONB`，`batch_id`作为其中一个键存在，不建独立外键列，理由是`operation_audits`已经是全`admin_db`范围内单一的追加日志表，各类操作生成审计记录的关联信息结构不同（`detail`本身即为承载该差异的字段，同RGS-DTL-025§2`detection_signals.context_ref`语义随`signal_type`变体的设计精神一致）。
+
+---
+
+# 9. 协议线格式：MatchService／SocialService／AdminService
+
+对应RGS-BAS-001§6.3.3/§6.3.4的字段级设计（`SocialService`此前仅有UML接口图§6.3类图，无独立字段表，本节按同一图上已列出的三个方法一并落实字段编号）。字段编号规则沿用§1.3/§4.1既定纪律。
+
+## 9.1 MatchService
+
+```protobuf
+message EnqueueMatchRequest {
+  string character_id = 1;
+  string mode          = 2;
+}
+message EnqueueMatchResponse {
+  string queue_ticket_id = 1;   // 对应RGS-DTL-026 queue_entries.entry_id的字符串形式
+  ResultCode result_code  = 2;
+}
+
+message GetMatchStatusRequest {
+  int64 match_id = 1;   // 与§6 matches.match_id物理类型一致(BIGINT)
+}
+message GetMatchStatusResponse {
+  string status = 1;    // 取值同§6 matches.status CHECK约束(ST-002状态机)
+  repeated MatchParticipant participants = 2;
+}
+message MatchParticipant {
+  string character_id = 1;
+  string team          = 2;
+}
+```
+
+## 9.2 SocialService
+
+```protobuf
+message AddFriendRequest {
+  string from_character_id = 1;
+  string to_character_id    = 2;
+}
+message AddFriendResponse {
+  ResultCode result_code = 1;
+}
+
+message JoinGuildRequest {
+  string character_id = 1;
+  string guild_id       = 2;
+}
+message JoinGuildResponse {
+  ResultCode result_code = 1;
+  int64 new_version        = 2;   // 对应§7 guilds.version，加入后成员数变化不改动guilds.version本身，
+                                   -- 此字段实为guild_members写入后的确认回执，非OCC校验字段(加入操作本身非OCC路径)
+}
+
+message SendChatRequest {
+  string channel              = 1;   // 取值：world｜guild｜whisper，对应RGS-BAS-001§6.2.2 ChatMessage.channel语义
+  string sender_character_id   = 2;
+  string text                    = 3;
+  int64 sent_at_ms                = 4;
+}
+message SendChatResponse {
+  ResultCode result_code = 1;
+}
+```
+
+## 9.3 AdminService
+
+```protobuf
+message BanAccountRequest {
+  string player_id    = 1;
+  string reason         = 2;
+  int64 expires_at_ms    = 3;   // 0表示永久封禁(proto3不区分未设置与0，与RGS-DTL-001§4.3 CommitTransactionRequest raw_value同款约定)
+  string operator_id      = 4;
+}
+message BanAccountResponse {
+  string ban_id           = 1;
+  ResultCode result_code   = 2;
+}
+
+message GrantCompensationRequest {
+  repeated string character_ids = 1;
+  string item_template_id        = 2;
+  int32 quantity                   = 3;
+  string reason                     = 4;
+}
+message GrantCompensationResponse {
+  int64 batch_id            = 1;   // 对应§8 compensation_batches.batch_id
+  ResultCode result_code     = 2;
+}
+
+message SetMaintenanceModeRequest {
+  bool enabled          = 1;
+  string message          = 2;
+  string operator_id       = 3;
+}
+message SetMaintenanceModeResponse {
+  ResultCode result_code = 1;
+}
+```
+
+`ResultCode`枚举复用§4.4已定义的全服务通用枚举，不为三个新服务另行定义。
+
+---
+
+# 10. §4.6〜4.8算法详细设计
+
+对应RGS-BAS-001§4.6（MT／GD概要）、§4.7（EV／WF）、§4.8（OB／AD），落实为可翻译为Rust实现的伪代码。RGS-BAS-001§4.6原文声明"仅模块划分，处理时序留PH-5/PH-6开始前补充"——本节仅落实**已经在§8.3 ST-002状态机与RGS-BAS-001§4.7〜4.8流程图/时序图中给出的部分**，不越权替BAS-001做§4.6尚未做出的处理时序决策（社交模块聊天/公会的完整处理时序仍留待，见§12）。
+
+## 10.1 对局状态机驱动逻辑（落实ST-002与RGS-BAS-001附§4.8.4触发来源表）
+
+```rust
+// 场景Actor判定对局结束条件成立后调用(Running→Finished)，对应§6状态迁移SQL
+fn on_match_finished(match_id: MatchId, expected_version: i64) -> Result<(), MatchError> {
+    let rows = exec_occ_update(
+        "UPDATE matches SET status='Finished', finished_at=now(), version=version+1
+         WHERE match_id=$1 AND status='Running' AND version=$2",
+        (match_id, expected_version),
+    )?;
+    if rows == 0 {
+        // 并发的重复结束判定，或已被其他路径(如强制终止)修改状态：重新读取当前状态，
+        // 若已是Finished/Archived则视为幂等成功，不重复报错；否则记录异常供人工核查
+        return reconcile_unexpected_state(match_id);
+    }
+    Ok(())
+}
+
+// Finished→Archived，须等待§4.5.1确定请求机制完成奖励发放后才可迁移(match_results.rewards_granted=true)
+fn on_settlement_completed(match_id: MatchId, expected_version: i64) -> Result<(), MatchError> {
+    // 前置校验：结算与奖励发放是两个独立事务(match_results写入 vs matches状态迁移)，
+    // 顺序不可颠倒——必须先确认match_results.rewards_granted=true，再迁移matches.status，
+    // 避免"已归档但奖励未发"的不可挽回状态(同RGS-BAS-001§4.5.2"不得虚构已确定结果"精神)
+    if !query_rewards_granted(match_id)? {
+        return Err(MatchError::RewardsNotYetGranted);
+    }
+    let rows = exec_occ_update(
+        "UPDATE matches SET status='Archived', version=version+1
+         WHERE match_id=$1 AND status='Finished' AND version=$2",
+        (match_id, expected_version),
+    )?;
+    if rows == 0 { return reconcile_unexpected_state(match_id); }
+    Ok(())
+}
+```
+
+## 10.2 事件工作流：Outbox分发器（落实RGS-BAS-001§4.7.1流程图）
+
+```rust
+// 分发器周期性调用，对应ARC-009/010
+fn outbox_dispatch_cycle(db: &OutboxTable) -> Result<(), DispatchError> {
+    let pending = db.select_pending();  // WHERE published_at IS NULL
+
+    // 按aggregate_id分组，组内保序发布(ARC-010)，组间可并行
+    let groups = group_by_aggregate_id(pending);
+    for (aggregate_id, events) in groups {
+        for event in events {  // 组内严格按序，不并行发同一aggregate的事件
+            match publish_to_event_bus(&event, /*partition_key=*/&aggregate_id) {
+                Ok(()) => db.mark_published(event.outbox_id, now()),
+                Err(_) => {
+                    // 保留published_at=NULL，本轮不再处理该aggregate后续事件(保序要求)，
+                    // 下一轮重试；消费者侧幂等吸收因重试产生的重复投递(ARC-009)
+                    break;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+```
+
+## 10.3 购买工作流Saga状态转移（落实RGS-BAS-001§4.7.2时序图）
+
+```rust
+enum PurchaseState { Initiated, PaymentPending, PaymentCompleted, PaymentFailed,
+                      Delivered, DeliveryFailed, Refunding, Refunded, Completed }
+
+fn purchase_saga_step(wf: &mut PurchaseWorkflow, event: PurchaseEvent) -> Result<(), SagaError> {
+    match (wf.state, event) {
+        (PurchaseState::Initiated, PurchaseEvent::Start) => {
+            wf.state = PurchaseState::PaymentPending;
+            request_payment(wf.request_id, wf.amount)?;
+        }
+        (PurchaseState::PaymentPending, PurchaseEvent::PaymentSucceeded) => {
+            wf.state = PurchaseState::PaymentCompleted;
+            // 发货请求携带同一request_id体系(幂等)，复用§4.5.1确定请求机制
+            request_delivery(wf.request_id, &wf.item)?;
+        }
+        (PurchaseState::PaymentPending, PurchaseEvent::PaymentFailedOrExpired) => {
+            wf.state = PurchaseState::PaymentFailed;   // 终态，无需补偿(未曾发货)
+        }
+        (PurchaseState::PaymentCompleted, PurchaseEvent::DeliverySucceeded) => {
+            wf.state = PurchaseState::Delivered;
+            wf.state = PurchaseState::Completed;
+        }
+        (PurchaseState::PaymentCompleted, PurchaseEvent::DeliveryFailed) => {
+            wf.state = PurchaseState::DeliveryFailed;
+            if wf.delivery_retry_count < MAX_DELIVERY_RETRIES {
+                wf.delivery_retry_count += 1;
+                request_delivery(wf.request_id, &wf.item)?;   // Activity级重试，状态不变
+            } else {
+                // 重试耗尽：进入补偿路径，发货最终判定失败，必须退款
+                wf.state = PurchaseState::Refunding;
+                request_refund(wf.request_id, wf.amount)?;
+            }
+        }
+        (PurchaseState::Refunding, PurchaseEvent::RefundCompleted) => {
+            wf.state = PurchaseState::Refunded;   // 终态：购买失败已退款
+        }
+        (state, event) => {
+            // 非法迁移(如已Completed状态收到DeliveryFailed)：拒绝并告警，不静默忽略，
+            // 这类情况意味着上游事件重复投递到了已终结的工作流实例，需人工核查而非自动吞掉
+            return Err(SagaError::IllegalTransition { state, event });
+        }
+    }
+    Ok(())
+}
+```
+
+## 10.4 可观测性：Trace传播字段的具体落位（落实RGS-BAS-001§4.8.1表格为可执行结构）
+
+```rust
+// 各阶段trace_id的具体读写点，对应§4.8.1表格逐行落实
+struct TraceContext {
+    trace_id: TraceId,
+    span_id: SpanId,
+}
+
+// 网关→内部gRPC：标准W3C Trace Context header，不新增自定义头（复用既有otel库，不重新实现propagator）
+fn propagate_grpc(ctx: &TraceContext, req: &mut GrpcRequest) {
+    req.metadata.insert("traceparent", ctx.to_w3c_traceparent());
+}
+
+// 业务服务→PostgreSQL：trace_id作为outbox表列持久化，随事件继续传播(DR-013)
+fn build_outbox_row(ctx: &TraceContext, aggregate_id: &str, payload: &[u8]) -> OutboxRow {
+    OutboxRow { trace_id: ctx.trace_id, aggregate_id: aggregate_id.into(), payload: payload.into(), published_at: None }
+}
+
+// 事件消费者：从事件header取出trace_id延续span，而非开启全新根span(否则链路断裂)
+fn consume_event(event: &BusEvent) -> TraceContext {
+    TraceContext { trace_id: event.header.trace_id, span_id: SpanId::new_child_of(event.header.trace_id) }
+}
+```
+
+指标采集拓扑（§4.8.2）本身不含算法级细节（OTLP推送/暴露是标准库行为，非本项目自定义逻辑），故本节不重复展开为伪代码，仅在此明确：`emit_metric`（本文档§5.1 tick循环已使用的既有调用点）与本节`TraceContext`共享同一OTel SDK实例，两者不是两套独立的可观测性接入路径。
+
+---
+
+# 11. 错误码一览
 
 | `ResultCode` | 触发条件 | 对应既有设计 |
 |---|---|---|
@@ -357,16 +740,49 @@ fn aoi_update_system(scene: &mut SceneState) {
 | `ACCOUNT_BANNED` | `accounts.status`处于封禁态且存在生效中的`ban_records` | FR-AD-001 |
 | `INSUFFICIENT_BALANCE` | `ConsumeCurrency`请求的扣减量超过当前`wallets.balance` | FR-EC-002 |
 | `DUPLICATE_REQUEST_ID` | 幂等键已存在但**请求内容与首次不一致**（正常重放应命中相同`payload`，直接返回原`ledger_id`而非此错误——本错误码专指内容冲突这一异常情形） | §3.2确定请求物理执行语义 |
+| `REWARDS_NOT_YET_GRANTED` | `on_settlement_completed`调用时`match_results.rewards_granted`仍为`false` | §10.1，防止"已归档但奖励未发"不可挽回状态 |
+| `ILLEGAL_SAGA_TRANSITION` | 购买工作流收到与当前状态不匹配的事件（如已`Completed`收到`DeliveryFailed`） | §10.3，通常意味着事件重复投递到已终结的工作流实例 |
 
 ---
 
-# 7. 本文档的覆盖范围与后续计划
+# 12. 本文档的覆盖范围与后续计划
 
-本文档是本项目**第一份详细设计文档**，作为模板与先例，覆盖范围**刻意限定**在核心架构中最基础的两个限界上下文（player_db／economy_db）与最核心的两个算法（tick循环／AOI计算），未覆盖：
+本文档v0.1是本项目**第一份详细设计文档**，覆盖范围曾**刻意限定**在核心架构中最基础的两个限界上下文（player_db／economy_db）与最核心的两个算法（tick循环／AOI计算）。本次v0.2补齐了v0.1自己声明的遗留缺口：
 
-- match_db／social_db／admin_db的物理DDL
-- MatchService／SocialService／AdminService的协议线格式细化
-- §4.6〜4.8（对局/社交、事件工作流、可观测性）的详细算法设计
-- 全部其余25个域（RGS-REQ-006〜030对应的BAS-002〜027）的详细设计，目前**均未开始**
+- match_db核心表（`matches`/`match_participants`/`match_results`，§6）／social_db（`friend_links`/`guilds`/`guild_members`，§7）／admin_db核心表（`operation_audits`/`compensation_batches`，§8）物理DDL
+- MatchService／SocialService／AdminService协议线格式细化（§9）
+- §4.6〜4.8中**已有明确流程图/时序图/状态机依据**的部分：对局状态机（ST-002）、事件工作流Outbox分发器、购买Saga补偿路径、Trace传播字段落位（§10）
 
-**后续计划**（留待负责人确认优先级排期，本文档不代为决定）：按既有RGS-REQ-001§11.2.1"领域文档工作的阶段归属表"的PH-1〜PH-8顺序，逐域产出对应DTL文档，命名规则为`RGS-DTL-<与BAS同编号>`，与本文档同一documentclass与记述规则。核心架构（本文档覆盖之外的部分）与挂载架构（RGS-BAS-002）建议优先于其余业务域，因其余域的详细设计普遍依赖核心架构的物理设计已经落地（如全部限界上下文的DDL都遵循本文档§2/§3确立的命名与索引纪律）。
+**v0.2之后仍明确不覆盖、留待后续**：
+
+- RGS-BAS-001§4.6原文本身声明"社交模块（好友/聊天/公会）仅模块划分，处理时序留PH-6开始前补充"——BAS-001尚未给出该部分的流程图/时序图，本文档不能在父文档未决策的情况下自行编造处理时序，故§7的social_db DDL仅是数据结构落地，**不含**好友申请/聊天/公会权限变更的算法级处理逻辑，须等RGS-BAS-001自身先补充§4.6社交处理时序后，本文档再跟进一版
+- §8.1指标采集拓扑（RGS-BAS-001§4.8.2）本身不含本项目自定义算法，故未展开为伪代码，见§10.4末尾说明
+- 已知的跨文档类型不一致（记录供后续处理，不在本文档内静默修正）：RGS-DTL-001（本文档）§2/§3的`player_db`/`economy_db`采用`UUID`主键风格；RGS-DTL-025新增的`admin_db`三表与RGS-DTL-026新增的`match_db`三表均采用`BIGINT`主键/外键风格（如`accounts(account_id)`、`character_id BIGINT`），与本文档§2`accounts.player_id UUID`/`characters.character_id UUID`不一致。本次v0.2新增的§6/§8核心表为避免在同一物理库内引入**第三种**风格，选择跟随各自库内已发布的RGS-DTL-025/026约定（`BIGINT`），但这意味着`player_db`（UUID）与`match_db`/`admin_db`（BIGINT）之间的`character_id`/`player_id`语义对应关系目前只能靠应用层显式转换维持，物理类型本身不直接可比。该不一致源头是RGS-DTL-025/026成文时各自独立选型、未回头核对RGS-DTL-001既有风格，**建议**负责人评估是否值得专项修订统一（成本较高，涉及已上线三份文档），本文档不代为决定，仅如实记录
+- 全部其余业务域（RGS-REQ-006〜030对应的BAS-002〜027中，尚无对应DTL文档者）的详细设计
+
+**后续计划**（留待负责人确认优先级排期，本文档不代为决定）：按既有RGS-REQ-001§11.2.1"领域文档工作的阶段归属表"的PH-1〜PH-8顺序，逐域产出对应DTL文档。跨文档类型不一致的统一化建议与RGS-BAS-001§4.6社交处理时序的补齐，建议作为本文档下一版本（或独立ADR）的优先输入。
+
+---
+
+# 13. 追溯性
+
+| 需求/设计来源 | 本文档章节 |
+|---|---|
+| RGS-BAS-001§5.3 player_db逻辑模型 | §2 |
+| RGS-BAS-001§5.4 economy_db逻辑模型 | §3 |
+| RGS-BAS-001§6.3.1〜6.3.2 PlayerService/EconomyService字段设计 | §4 |
+| RGS-BAS-001§4.2.2 tick循环流程图 | §5.1 |
+| RGS-BAS-001§4.3.1 AOI算法（G-003无饿死性） | §5.2 |
+| RGS-BAS-001§5.5 match_db逻辑ER图 | §6 |
+| RGS-REQ-001§8.3 ST-002对局状态机 | §6、§10.1 |
+| RGS-BAS-001§5.6 social_db逻辑ER图 | §7 |
+| RGS-BAS-001§5.7 admin_db逻辑ER图（NFR-SE-010仅追加约束） | §8 |
+| RGS-BAS-001§6.3.3 MatchService字段占位 | §9.1 |
+| RGS-BAS-001§6.3类图 SocialService方法签名 | §9.2 |
+| RGS-BAS-001§6.3.4 AdminService字段设计 | §9.3 |
+| RGS-BAS-001§4.7.1 Outbox分发器流程图 | §10.2 |
+| RGS-BAS-001§4.7.2 购买工作流时序（含补偿路径） | §10.3 |
+| RGS-BAS-001§4.8.1 Trace传播载体设计表 | §10.4 |
+| RGS-BAS-001§4.8.2 指标采集拓扑 | §10.4（声明不展开为伪代码的理由） |
+| RGS-DTL-025§2 admin_db反作弊三表（本文档§8核心表与其同库） | §8、§12（类型不一致说明） |
+| RGS-DTL-026§2 match_db匹配三表（本文档§6核心表与其同库） | §6、§12（类型不一致说明） |
