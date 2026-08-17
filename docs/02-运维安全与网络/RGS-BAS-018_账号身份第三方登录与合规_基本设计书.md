@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-018 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-REQ-021 需求定义书（ARC-036） |
 | 制定日 | 2026-08-16 |
 | 最终更新日 | 2026-08-16 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-021§8 ARC-036展开为身份联合组件设计、第三方登录时序、合规规则引擎设计 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充解绑"至少保留一种登录方式"的字段级校验逻辑（FR-IDN-005）②补充绑定/解绑审计日志字段与实名认证信息独立访问权限设计（FR-IDN-007、FR-IDN-013）③补充第三方IdP不可用时的降级时序（RSK-IDN-002） | FR-IDN-005、FR-IDN-007、FR-IDN-013、RSK-IDN-002 |
+| 0.3 | 2026-08-17 | 架构师 | — | 审计发现FR-IDN-014（未成年人保护限制的触发与解除留痕）此前仅在§4.1提及`restriction_flags`写入，无独立审计留痕设计，与FR-IDN-007/§2.4已有的绑定/解绑审计留痕待遇不一致。新增§4.3 `MinorRestrictionAuditLog`设计，复用既有独立权限域治理思想 | FR-IDN-014 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -159,6 +160,21 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 
 访问权限：`IdentityVerificationVault`的解密访问权限**独立**评审分配，**不**与日常运营查询权限（如GM后台的一般客服角色）复用同一角色定义，仅限专设的合规/法务角色访问，访问前须记录申请理由（同RGS-BAS-017§3.5"分析管线独立访问权限"同类治理思想的应用）。
 
+## 4.3 未成年人保护限制触发/解除留痕（FR-IDN-014落地）
+
+`ComplianceRuleEngine`每次变更`ComplianceProfile.restriction_flags`（无论是因认证得到年龄信息后首次判定、达到`minor_playtime_limit_minutes`时长上限触发、还是周期重置解除）**必须**同步写入`MinorRestrictionAuditLog`（复用RGS-BAS-003§7审计设计存储结构；与§2.4`IdentityBindingAuditLog`记录对象不同——一个是身份绑定操作、一个是合规限制状态变更，**不得**合并入同一张表混淆审计对象）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `log_id` | uuid | 唯一标识 |
+| `account_id` | 玩家账号ID | 受限账号 |
+| `action` | enum(`restriction_triggered`／`restriction_lifted`) | 触发或解除 |
+| `restriction_type` | 对应`restriction_flags`位标志 | 具体限制类型（如`playtime_limit`／`payment_disabled`） |
+| `trigger_reason` | string，简述 | 如"当日游玩时长达到配置上限""周期重置解除" |
+| `occurred_at` | timestamp | 触发/解除时间 |
+
+`MinorRestrictionAuditLog`的访问权限**复用**本节既定的`IdentityVerificationVault`同等独立权限域（仅限专设合规/法务角色访问），**不得**与日常运营查询权限混同，供合规审计使用（FR-IDN-014、NFR-IDN-003同类要求的延伸）。
+
 ---
 
 # 5. 标准化检查清单
@@ -186,7 +202,7 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 | 需求ID | 本设计书章节 |
 |---|---|
 | ARC-036、FR-IDN-001〜007 | §2、§2.3（解绑校验）、§2.4（审计字段）、§3 |
-| FR-IDN-010〜014 | §4、§4.2（独立访问权限） |
+| FR-IDN-010〜014 | §4、§4.2（独立访问权限）、§4.3（未成年人限制触发/解除留痕） |
 | NFR-IDN-001〜004 | §3、§4.1 |
 | AC-IDN-001〜004 | §5.1 |
 | TBD-IDN-001〜002、RSK-IDN-001〜002 | §5.1、§3.2（IdP降级） |
