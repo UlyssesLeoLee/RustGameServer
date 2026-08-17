@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-002 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-002 功能挂载架构 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑/结构设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"按顺序和你的建议推进"，本文档为推荐的下一份详细设计文档，先于其余业务域是因为其余域挂载均依赖本文档确立的物理脚手架）。细化RGS-BAS-002§4.2 CI/CD流水线为具体流水线定义、§5.2 Helm chart模板文件列表为具体YAML内容、§10.1 Mount Record字段表为具体物理存储格式（Markdown frontmatter + Appendix C行）、§12检查清单为可脚本化的自动化检查逻辑。**本版本不覆盖**：实际admission-webhook实现代码、实际migration工具选型的完整对比评审（仅给出所选工具与用法）、跨云厂商Helm差异适配。见§7 | 全部 |
+| 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"详细设计应充分体现以热插拔为主的App集群的原子化低耦合高内聚特性，妥善调和回滚和生命周期幂等排他问题"。发现§6.4退场安全网与§4挂载CI流水线各自独立触发、互不感知对方状态，同一限界上下文的挂载与退场可被并发触发产生竞态——新增§6.5生命周期排他锁：Mount Record frontmatter新增`lifecycle_state`字段驱动显式状态机（MOUNTING/ACTIVE/DECOMMISSIONING/DECOMMISSIONED），CI新增`lifecycle-lock-check`前置阶段强制互斥，并阐明该机制与RGS-DTL-024§2集群级排他约束是同一类问题在不同物理介质（Git提交串行性 vs. 数据库唯一索引）上的对应实现 | §6.1、§6.5（新增）、§7 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -330,6 +331,7 @@ mount_record:
   deployment_form: Deployment   # 或 StatefulSet，取自RGS-BAS-002§5.1判定
   completed_at: 2026-08-17
   owning_team: <team-name>
+  lifecycle_state: active       # v0.2新增：MOUNTING / ACTIVE / DECOMMISSIONING / DECOMMISSIONED，见§6.5排他锁
 ---
 
 # <Context> Service
@@ -358,11 +360,41 @@ mount_record:
 
 对应RGS-BAS-002§11.2退场安全网（"删除前只读冻结"）。物理落地为：退场脚本先将§2.1 Deployment的容器环境变量`READ_ONLY_MODE=true`滚动更新（触发应用层拒绝写请求，具体拒绝逻辑属各业务域自身实现范围），观察期满（RGS-BAS-002§11.1流程图规定的时长）后才执行DB删除与Helm release卸载；Mount Record的frontmatter在冻结时新增`decommission_started_at`字段，实际删除后整个README.md连同frontmatter一并移至`docs/09-归档/decommissioned/<context>-service.md`存档，不直接从仓库中物理删除记录本身（保留历史可追溯性，与Mount Record"归档位置"设计的初衷一致）。
 
+### 6.5 生命周期排他锁（v0.2新增）
+
+对应负责人指示"App集群应妥善调和回滚和生命周期幂等排他问题"——§4 CI流水线与§6.4退场流程各自独立触发，若同一限界上下文的挂载流水线与退场流水线被并发触发（如CI重放、误操作双击），会出现"挂载CI正在创建资源的同时，退场CI正在删除同一资源"的竞态，单看各自流程内部（Helm `--atomic`回滚、只读冻结观察期）均是幂等的，但**跨流程**的互斥此前未被约束。落实为§6.1 frontmatter新增的`lifecycle_state`字段驱动的显式状态机：
+
+| 当前`lifecycle_state` | 允许触发 | 目标状态 | 拒绝条件 |
+|---|---|---|---|
+| （不存在Mount Record） | 挂载CI流水线 | `MOUNTING` | — |
+| `MOUNTING` | 挂载CI流水线完成 | `ACTIVE` | 挂载CI流水线本身失败：保留`MOUNTING`，人工介入（不允许期间发起退场） |
+| `ACTIVE` | 退场CI流水线（§6.4只读冻结） | `DECOMMISSIONING` | — |
+| `ACTIVE` | 挂载CI流水线（版本升级类重复挂载） | `MOUNTING`（复用挂载流程处理版本升级，同ARC-018既定"挂载脚手架同样承载升级"精神） | — |
+| `MOUNTING`／`DECOMMISSIONING` | 任何流水线（挂载或退场） | — | **直接拒绝**：`lifecycle_state`已处于非稳态（`MOUNTING`/`DECOMMISSIONING`），不允许叠加另一个生命周期操作，须等当前操作完成（转为`ACTIVE`或`DECOMMISSIONED`）后才可发起新操作 |
+| `DECOMMISSIONING` | 退场CI流水线完成 | `DECOMMISSIONED` | — |
+
+CI层面的具体强制机制：§4 CI流水线新增一个前置阶段`lifecycle-lock-check`（置于`boundary-check`之前），读取当前Mount Record frontmatter的`lifecycle_state`，若为`MOUNTING`或`DECOMMISSIONING`（且不是本次流水线自己发起的那次操作）则直接`exit 1`，不进入后续阶段：
+
+```yaml
+lifecycle-lock-check:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - name: 检查Mount Record当前生命周期状态是否允许本次操作
+      run: scripts/check-lifecycle-lock.sh <context> <intended-operation>  # intended-operation: mount | decommission
+      # 逻辑: 读取frontmatter.lifecycle_state；若为MOUNTING/DECOMMISSIONING且非本次run触发，exit 1；
+      # 否则(不存在/ACTIVE)将lifecycle_state原子更新为对应中间态(MOUNTING/DECOMMISSIONING)，
+      # 更新本身通过对README.md文件的Git提交完成(Git本身的分支保护/PR合并串行化即天然提供了此处所需的
+      # 排他语义，不需要额外引入分布式锁——同RGS-BAS-002"不引入新部署执行机制"精神一致，复用既有工具链)
+```
+
+该机制与RGS-DTL-024§2 `uq_deploy_runs_cluster_running`部分唯一索引是**同一类问题的两种物理实现**：前者（集群编排）状态存于PostgreSQL，用数据库层唯一索引做排他；后者（单App挂载/退场）状态存于Git版本控制的Markdown frontmatter，用Git提交的天然串行性做排他——两者共同体现"App级/单流程内部OCC幂等"与"跨流程/跨集群操作排他"是两个不同层次的问题，缺一不可，本项目对两个层次分别在合适的物理介质上给出了对应机制。
+
 ---
 
 ## 7. 本文档的覆盖范围与后续计划
 
-本文档覆盖：Helm chart四个核心模板文件的具体YAML内容（Deployment/StatefulSet骨架、NetworkPolicy两段式default-deny+allow-list、ServiceMonitor、ExternalSecret）、CI/CD六阶段流水线的GitHub Actions具体定义、数据库开通SQL脚本格式、Mount Record的物理存储格式（README frontmatter为事实来源，Appendix C为索引视图）及其一致性校验脚本、退场安全网的物理落地方式。
+本文档覆盖：Helm chart四个核心模板文件的具体YAML内容（Deployment/StatefulSet骨架、NetworkPolicy两段式default-deny+allow-list、ServiceMonitor、ExternalSecret）、CI/CD六阶段流水线的GitHub Actions具体定义、数据库开通SQL脚本格式、Mount Record的物理存储格式（README frontmatter为事实来源，Appendix C为索引视图）及其一致性校验脚本、退场安全网的物理落地方式、**生命周期排他锁（§6.5，`lifecycle_state`状态机+CI前置阶段，防止同一限界上下文的挂载与退场流水线并发触发产生竞态）**。
 
 本版本明确不覆盖、留待后续：
 
@@ -371,6 +403,7 @@ mount_record:
 - `check-mount-record-consistency.sh`的完整实现代码（本文档只给出脚本职责与调用点，非逐行实现）。
 - 托管云K8s（非自托管）环境下Helm chart的差异适配——按ARC-018/ARC-045一致的"自托管优先"原则，此项被有意推迟，需要时应先有独立ADR。
 - Admission Webhook等更强的准入时校验机制（当前一致性校验落在CI阶段而非准入时点，属于已知的"CI通过后到实际部署前仍有窗口"限制，暂未设计缓解措施，建议登记为新TBD交由后续版本处理）。
+- `check-lifecycle-lock.sh`的完整实现代码（本文档§6.5只给出状态机规则与调用点，非逐行实现）；`lifecycle_state`状态迁移依赖Git提交串行性这一假设在"CI Runner并发数>1且未对同一文件路径加互斥"的极端场景下的边界情况，未做进一步压力验证。
 
 后续详细设计建议顺序：本文档确立的物理脚手架落地后，建议按RGS-REQ-001§11.2.1既定的PH阶段映射表，优先推进各PH-1/PH-2阶段业务域（如ANT反作弊、MM匹配系统，两者均已完成基本设计且是本会话最新补齐的域）的详细设计，以尽快验证本文档给出的CI/YAML模板在真实业务域挂载中的可用性；核心架构自身遗留的match_db／social_db／admin_db物理设计（RGS-DTL-001§7遗留项）可与之并行推进。
 

@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-024 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-024 App集群自动化部署脚本 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定。细化RGS-BAS-024§4编排状态表为具体PostgreSQL DDL、§3依赖图构建与校验规则为可直接翻译为Rust实现的伪代码（含DFS环检测/Kahn拓扑排序）、§4编排主循环伪代码为完整并发处理与错误路径、§6.2回滚流程为具体伪代码、§7强制联动检查脚本为具体校验逻辑、§8 CLI子命令为具体参数/退出码规范。**本版本不覆盖**：`cluster-manifest.yaml`的完整JSON Schema校验实现代码、与具体CI平台（如GitHub Actions/GitLab CI）绑定的触发API细节（RGS-BAS-024§10已声明"留待实施阶段的技术评审最终确定"）。见§8 | 全部 |
+| 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"详细设计应充分体现以热插拔为主的App集群的原子化低耦合高内聚特性，妥善调和回滚和生命周期幂等排他问题"。发现§4编排主循环只有App级OCC（防止同一App被并发调度两次），缺少集群级排他（防止同一`cluster_id`被两个不同`run_id`并发编排）——新增§2 `uq_deploy_runs_cluster_running`部分唯一索引堵上该缺口，§8 `apply`退出码表补充冲突时的具体行为（直接拒绝，不排队不覆盖） | §2、§8、§9 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -98,6 +99,15 @@ CREATE TABLE deploy_run_apps (
 );
 CREATE INDEX idx_deploy_run_apps_run_level ON deploy_run_apps (run_id, level);
     -- 支撑§4主循环"按层级遍历"的核心查询路径
+
+-- 集群级排他约束：同一cluster_id同一时刻至多一个RUNNING run，防止两次独立`deploy-cluster apply`
+-- 调用（如运维误触发两次、CI并发触发）对同一集群产生交叉的拓扑序操作，是§4 App级OCC之外的更高一层
+-- 互斥保护——App级OCC只防止"同一App被并发调度两次"，不防止"两个不同run_id各自完整地对同一cluster_id
+-- 编排"（App级OCC视角下两者互不冲突，因为它们操作的是不同run_id下的行，但对底层K8s资源而言仍是竞态）
+CREATE UNIQUE INDEX uq_deploy_runs_cluster_running
+    ON deploy_runs (cluster_id) WHERE status = 'RUNNING';
+    -- 部分唯一索引：仅约束RUNNING态，COMPLETED/FAILED/ROLLED_BACK的历史run不受此索引限制，
+    -- 允许同一cluster_id有任意多条历史记录，只禁止"同时存在两条RUNNING记录"这一冲突状态
 
 -- 状态变更审计记录：对应§9"每条状态迁移记录写入既有审计留痕存储"，
 -- 本表是该要求的物理落地，复用RGS-BAS-003§7既定审计设计的表结构范式(不新建独立审计机制)
@@ -407,7 +417,7 @@ async fn rollback_single_app(run_id: RunId, app_id: &AppId) -> Result<(), Orches
 |---|---|---|---|
 | `deploy-cluster validate <manifest>` | `manifest`路径 | 校验全部通过 | 打印全部`ManifestViolation`（§3.2），逐条列出 |
 | `deploy-cluster plan <manifest> --env <env>` | `manifest`路径、`--env` | 输出§6.1 `DryRunReport`（层级顺序+diff），不接触实际环境 | 校验失败（先执行§3.2校验，同`validate`） |
-| `deploy-cluster apply <manifest> --env <env>` | 同上，额外`--triggered-by <operator>` | 全部App达`SUCCEEDED`，打印生成的`run_id` | 任一层级失败，打印`run_id`与失败App列表，供后续`resume`使用 |
+| `deploy-cluster apply <manifest> --env <env>` | 同上，额外`--triggered-by <operator>` | 全部App达`SUCCEEDED`，打印生成的`run_id` | 任一层级失败，打印`run_id`与失败App列表，供后续`resume`使用；**若该`cluster_id`已存在一条`RUNNING`态run（`uq_deploy_runs_cluster_running`唯一索引冲突），本次`apply`直接拒绝并打印冲突中的`run_id`，不排队等待、不静默覆盖**（对应§2排他约束，同一集群同一时刻只允许一条编排在进行） |
 | `deploy-cluster resume <run_id>` | `run_id` | 续跑后全部达`SUCCEEDED` | 同上，可重复调用直至成功或人工判定需要`rollback` |
 | `deploy-cluster status <run_id>` | `run_id` | 打印状态表当前快照（每App的`state`/`retry_count`/`updated_at`） | `run_id`不存在 |
 | `deploy-cluster rollback <run_id>` | `run_id` | 全部已成功App均已回滚，状态迁移`ROLLED_BACK` | 回滚过程中途失败（§6.2串行执行，某一步失败即停止，不继续回滚下一个App，避免在不确定状态下扩大操作面） |
@@ -418,7 +428,7 @@ async fn rollback_single_app(run_id: RunId, app_id: &AppId) -> Result<(), Orches
 
 ## 9. 本文档的覆盖范围与后续计划
 
-本文档覆盖：编排状态表（`deploy_runs`/`deploy_run_apps`/`deploy_run_state_changes`）物理DDL、依赖图构建/三条校验规则（孤儿引用/DFS环检测/基础设施前置）/Kahn拓扑排序的完整伪代码、编排主循环（含OCC并发防护与重试边界）、幂等续跑逻辑、Dry-run与回滚（含逆拓扑序正确性说明）的完整伪代码、集群清单强制联动检查脚本的校验规则、CLI六个子命令的参数与退出码具体规范。
+本文档覆盖：编排状态表（`deploy_runs`/`deploy_run_apps`/`deploy_run_state_changes`）物理DDL、依赖图构建/三条校验规则（孤儿引用/DFS环检测/基础设施前置）/Kahn拓扑排序的完整伪代码、编排主循环（含OCC并发防护与重试边界）、**集群级排他约束（`uq_deploy_runs_cluster_running`，同一`cluster_id`同一时刻至多一个`RUNNING` run，App级OCC之外的更高一层互斥保护）**、幂等续跑逻辑、Dry-run与回滚（含逆拓扑序正确性说明）的完整伪代码、集群清单强制联动检查脚本的校验规则、CLI六个子命令的参数与退出码具体规范。
 
 本版本明确不覆盖、留待后续：
 
