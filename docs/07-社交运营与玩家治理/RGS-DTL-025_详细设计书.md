@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-025 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-025 反作弊与作弊治理体系 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档为RGS-DTL-002挂载脚手架落地后第一份业务域详细设计，用于验证RGS-DTL-002模板在真实域挂载中的可用性）。细化RGS-BAS-025§3.1逻辑数据模型为`admin_db`内`detection_signals`／`anticheat_cases`／`case_signal_links`三表具体DDL、§2.2/§4.2的事件为具体线格式、§3.4案件聚合逻辑为可直接翻译为Rust实现的伪代码级算法（含TBD-ANT-001聚合窗口/阈值参数的具体默认值提案）。**本版本不覆盖**：GM后台UI的具体交互细节、`anticheat-fusion`分析图内部LangGraph节点级实现。见§6 | 全部 |
+| 0.2 | 2026-08-17 | 架构师 | — | 最终审核发现并修正：§2 `detection_signals`/`anticheat_cases`的`player_id`原写作`REFERENCES accounts(account_id)`，但`account_id`这一列名在`player_db.accounts`中**从不存在**（该表主键为`player_id UUID`），属成文时未核对上游DDL产生的幽灵列引用；且跨库本就不应出现物理FK子句。现改为无FK的`BIGINT`列，并注明其逻辑对应`player_db.accounts.player_seq`（RGS-DTL-001 v0.3§12新增的跨库标识映射列） | §2 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -69,7 +70,7 @@ RGS-BAS-025给出了`DetectionSignal`/`AntiCheatCase`/`CaseSignalLink`的逻辑�
 -- 检测信号表：RT/SY既有校验判定的异步旁路记录，对应FR-ANT-001〜003
 CREATE TABLE detection_signals (
     signal_id       BIGSERIAL PRIMARY KEY,
-    player_id       BIGINT NOT NULL REFERENCES accounts(account_id),  -- 跨库逻辑外键：player_db，此处不设物理FK，仅注释语义
+    player_id       BIGINT NOT NULL,   -- 跨库逻辑外键：player_db.accounts.player_seq（RGS-DTL-001§12跨库标识映射），此处不设物理FK，仅注释语义
     signal_type     TEXT NOT NULL CHECK (signal_type IN (
                         'SPEED_VIOLATION', 'COLLISION_VIOLATION',
                         'INPUT_ANOMALY', 'REPLAY_ANOMALY', 'PLAYER_REPORT')),
@@ -90,7 +91,7 @@ CREATE INDEX idx_detection_signals_case
 -- 反作弊案件表，对应FR-ANT-010
 CREATE TABLE anticheat_cases (
     case_id          BIGSERIAL PRIMARY KEY,
-    player_id        BIGINT NOT NULL REFERENCES accounts(account_id),
+    player_id        BIGINT NOT NULL,   -- 同上，逻辑引用player_db.accounts.player_seq，跨库不设物理FK
     status           TEXT NOT NULL DEFAULT '待审核'
                         CHECK (status IN ('待审核', '已处置', '已驳回')),
     confidence_score DOUBLE PRECISION NOT NULL DEFAULT 0,
