@@ -3,9 +3,11 @@
 #
 # 检查项：
 #   1. ARC-001〜N 序列无缺号/重号
-#   2. 每个ARC-018及以后的决定均有对应ADR记录（附件D §3）
+#   2. 每个ARC-018及以后的决定均在附件D§3有ADR登记行（**仅登记行，不校验ADR是否已制定**；
+#      另输出ADR实际制定进度，避免"全部通过"被误读为ADR体系完备）
 #   3. 领域文档正文中出现的 TBD-<域>-nnn／RSK-<域>-nnn 均已在附件D登记主编号
 #   4. docs/README.md 中的相对路径链接均指向实际存在的文件
+#   5. 跨文档引用有效性（文档编号/章节号/SQL列名/proto字段编号），见 check-cross-references.py
 #
 # 用法：./scripts/check-docs-consistency.sh
 # 退出码：0=全部通过；1=发现问题（详情见stdout）
@@ -35,18 +37,32 @@ else
   echo "  已检查 ARC-001〜$(printf '%03d' "$max_arc")"
 fi
 
-echo "=== 2. ADR记录完整性检查（ARC-018起，ADR-025治理框架落地对象） ==="
+echo "=== 2. ADR**登记**完整性检查（ARC-018起，ADR-025治理框架落地对象） ==="
+# 注意：本项只校验"附件D§3中是否存在对应行"，**不**校验该ADR是否真的写出来了。
+# 二者是不同的事——见本项末尾输出的制定进度统计。历史上本项曾在44/44 ADR全部
+# "未制定"的情况下报告"全部通过"，属于给出虚假保证，2026-08-17修正为同时输出进度。
 if [ -f "$APPENDIX_D" ]; then
   for n in $(seq 18 "$max_arc"); do
     padded=$(printf "%03d" "$n")
     if grep -qE "ARC-$padded\b" "$DOCS_DIR"/*/*.md 2>/dev/null; then
       if ! grep -qE "\| ARC-$padded \|" "$APPENDIX_D"; then
-        echo "  [FAIL] ARC-$padded 未在附件D §3找到对应ADR记录"
+        echo "  [FAIL] ARC-$padded 未在附件D §3找到对应ADR记录行"
         fail=1
       fi
     fi
   done
-  echo "  已核对 ARC-018〜$(printf '%03d' "$max_arc") 的ADR登记"
+  echo "  已核对 ARC-018〜$(printf '%03d' "$max_arc") 的ADR登记行存在性"
+
+  # 制定进度：登记 ≠ 制定。此处如实统计，不并入fail（未制定是已知待办，非一致性缺陷），
+  # 但必须显式打印，避免"全部检查通过"被误读为"ADR体系已完备"。
+  adr_total=$(grep -cE "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" || true)
+  adr_todo=$(grep -E "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" | grep -c "未制定" || true)
+  adr_done=$((adr_total - adr_todo))
+  echo "  [进度] ADR实际制定：${adr_done}/${adr_total} 份（未制定 ${adr_todo} 份）"
+  if [ "$adr_done" -eq 0 ] && [ "$adr_total" -gt 0 ]; then
+    echo "  [WARN] 全部ADR均为\"未制定\"——架构决策目前只有登记行、无决策记录正文。"
+    echo "         本脚本无法代替ADR本身，此项不计入FAIL，但不应据此认为治理闭环已完成。"
+  fi
 else
   echo "  [FAIL] 未找到附件D：$APPENDIX_D"
   fail=1
@@ -92,9 +108,20 @@ else
   fail=1
 fi
 
+echo "=== 5. 跨文档引用有效性检查（文档编号/章节号/SQL列名/proto字段编号） ==="
+if command -v python3 >/dev/null 2>&1; then
+  if ! python3 scripts/check-cross-references.py; then
+    fail=1
+  fi
+else
+  echo "  [跳过] 未找到python3"
+fi
+
 echo ""
 if [ "$fail" -eq 0 ]; then
   echo "全部检查通过。"
+  echo "（注意：本脚本校验的是文档间的机械一致性，不校验设计内容本身的正确性，"
+  echo "  也不代表文档已获批准——截至目前全部文档仍为0.x待评审状态。）"
 else
   echo "存在问题，见上方[FAIL]标记。"
 fi

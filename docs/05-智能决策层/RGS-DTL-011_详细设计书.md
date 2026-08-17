@@ -19,7 +19,7 @@
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
-| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档是继RGS-DTL-001/002/025/026/027之后的一批详细设计文档之一，与RGS-DTL-012/013/014/019并行产出）。细化RGS-BAS-011§4.1/§4.1.1全局开关设计为具体配置存储行格式与双层（IAM＋NetworkPolicy）只读强制的具体机制、§5A分析图生命周期管理的逻辑数据模型为`AnalysisGraphDefinition`／`AnalysisGraphAuditLog`具体DDL（RGS-DTL-025§1.2此前已引用本框架为"anticheat-fusion"图的注册载体但本框架自身此前无物理schema，本文档补齐）、§7A.2确定性闸门的组件设计为`AdminService`入口侧具体校验代码路径。**本版本不覆盖**：LangGraph分析图内部的节点图结构本身、Prompt设计、各`feature_domain`具体业务分析逻辑——均属各业务域自身范围，非本框架（基础设施）职责。见§7 | 全部 |
+| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档是继RGS-DTL-001/002/025/026/027之后的一批详细设计文档之一，与RGS-DTL-012/013/014/019并行产出）。细化RGS-BAS-011§4.1/§4.1.1全局开关设计为具体配置存储行格式与双层（IAM＋NetworkPolicy）只读强制的具体机制、§5A分析图生命周期管理的逻辑数据模型为`AnalysisGraphDefinition`／`AnalysisGraphAuditLog`具体DDL（RGS-DTL-025§1.2此前已引用本框架为"anticheat-fusion"图的注册载体但本框架自身此前无物理schema，本文档补齐）、§7A.2确定性闸门的组件设计为`AdminService`入口侧具体校验代码路径。**本版本不覆盖**：LangGraph分析图内部的节点图结构本身、Prompt设计、各`feature_domain`具体业务分析逻辑——均属各业务域自身范围，非本框架（基础设施）职责。见§5 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -52,7 +52,7 @@ RGS-BAS-011给出了智能层的组件图、OLU核算、事件订阅边界、Lan
 
 - **不重新决定**RGS-BAS-011已确定的任何结构性选择（智能层旁路观察者定位、闸门必须部署于`AdminService`侧而非智能层内、开关默认关闭且写权限唯一收口于`AdminService`、双态OLU核算口径）。
 - **不设计LangGraph图内部实现**——节点图结构、边的条件转移、Prompt模板、各`feature_domain`（异常行为识别／经济健康度／匹配质量评估／GM决策辅助，以及RGS-DTL-025已引用的`anticheat-fusion`）具体分析逻辑，均属各业务域自身范围。本文档只给出这些图**如何被注册、版本化、审计**这一治理层，不涉及图跑什么。RGS-DTL-025§1.2已明确将"`anticheat-fusion`分析图内部LangGraph节点图结构"排除在其自身范围之外并指向本框架——本文档正是那个被指向的注册载体，二者此前的引用关系至此闭环。
-- **不覆盖**GM后台"分析图目录"查询页的前端UI细节（属参考GM后台/前端自身设计范围，同RGS-DTL-012§7参考GM后台最小实现范围思想）。
+- **不覆盖**GM后台"分析图目录"查询页的前端UI细节（属参考GM后台/前端自身设计范围，同RGS-DTL-012§6参考GM后台最小实现范围思想）。
 
 ### 1.3 记述规则
 
@@ -102,7 +102,7 @@ GRANT SELECT ON config_entries TO neuro_service_role;
 # charts/neuro-service/values.yaml 片段（对应RGS-DTL-002§3模板的.Values.allowedEgressTo取值）
 allowedEgressTo:
   - event-bus-consumer-endpoint   # §4.1订阅端点，仅只读订阅
-  - admin-service                  # §6.2唯一出口：提交Recommendation
+  - admin-service                  # RGS-BAS-011§6.2唯一出口：提交Recommendation
   - otel-collector                 # 可观测性
   - config-store-read-endpoint     # 配置存储只读端点（若配置存储对读/写分别暴露不同端点，仅放行读端点）
 # 显式声明不出现于本列表（供RGS-DTL-002§6.3一致性校验脚本核对时的负向断言基准）：
@@ -254,7 +254,7 @@ fn handle_recommendation(rec: RecommendationSubmission) -> Result<GateOutcome, G
     let risk_tier = risk_tier_for_action(&rec.suggested_action);  // 查询RGS-BAS-003§8既定高危操作分类表，忽略rec中若携带的任何risk_tier字段
     // 低风险只读例外(RGS-BAS-011§6.2"补齐设计缺口"条目落地): 该判定同样查表决定，不接受rec自行声明"我是低风险"
     if is_low_risk_read_only(&rec.suggested_action) {
-        present_as_notification(&rec);  // 直接通知呈现，跳过审批门槛，但仍不触发任何写操作(§6.2既定)
+        present_as_notification(&rec);  // 直接通知呈现，跳过审批门槛，但仍不触发任何写操作(RGS-BAS-011§6.2既定)
         return Ok(GateOutcome::NotifiedOnly);
     }
 

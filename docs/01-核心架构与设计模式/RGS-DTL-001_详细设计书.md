@@ -457,7 +457,7 @@ CREATE INDEX idx_guild_members_character ON guild_members (character_id);
 
 # 8. 物理数据库设计：admin_db核心表
 
-对应RGS-BAS-001§5.7 `OPERATION_AUDIT`/`COMPENSATION_BATCH`逻辑ER图。`admin_db`同库内已由RGS-DTL-025§2新增`detection_signals`/`anticheat_cases`/`case_signal_links`三表（反作弊侧，`player_id BIGINT REFERENCES accounts(account_id)`），本节补齐运营治理核心表，沿用RGS-DTL-025已确立的`BIGINT`主键/外键风格，不在同一库内引入第三种不一致的类型约定（同§6对`match_db`的处理原则，跨库映射机制见§12）。
+对应RGS-BAS-001§5.7 `OPERATION_AUDIT`/`COMPENSATION_BATCH`逻辑ER图。`admin_db`同库内已由RGS-DTL-025§2新增`detection_signals`/`anticheat_cases`/`case_signal_links`三表（反作弊侧，`player_id BIGINT`，逻辑对应`player_db.accounts.player_seq`，跨库不设物理FK，见§12），本节补齐运营治理核心表，沿用RGS-DTL-025已确立的`BIGINT`主键/外键风格，不在同一库内引入第三种不一致的类型约定（同§6对`match_db`的处理原则，跨库映射机制见§12）。
 
 ```sql
 -- 操作审计表，NFR-SE-010"仅追加不可变"是RGS-BAS-001§5.7已明确标注的唯一强约束
