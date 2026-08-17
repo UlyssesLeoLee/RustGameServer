@@ -55,13 +55,20 @@ if [ -f "$APPENDIX_D" ]; then
 
   # 制定进度：登记 ≠ 制定。此处如实统计，不并入fail（未制定是已知待办，非一致性缺陷），
   # 但必须显式打印，避免"全部检查通过"被误读为"ADR体系已完备"。
+  # 2026-08-17起ADR分三态：已制定 / 决策显然·不单独立ADR / 未制定（见附件D§3政策说明）。
   adr_total=$(grep -cE "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" || true)
-  adr_todo=$(grep -E "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" | grep -c "未制定" || true)
-  adr_done=$((adr_total - adr_todo))
-  echo "  [进度] ADR实际制定：${adr_done}/${adr_total} 份（未制定 ${adr_todo} 份）"
-  if [ "$adr_done" -eq 0 ] && [ "$adr_total" -gt 0 ]; then
-    echo "  [WARN] 全部ADR均为\"未制定\"——架构决策目前只有登记行、无决策记录正文。"
-    echo "         本脚本无法代替ADR本身，此项不计入FAIL，但不应据此认为治理闭环已完成。"
+  adr_done=$(grep -E "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" | grep -c "已制定" || true)
+  adr_obvious=$(grep -E "^\| ADR-[0-9]{4} \|" "$APPENDIX_D" | grep -c "决策显然" || true)
+  adr_todo=$((adr_total - adr_done - adr_obvious))
+  echo "  [进度] ADR：已制定 ${adr_done} ／ 决策显然不立ADR ${adr_obvious} ／ 未处理 ${adr_todo}（合计 ${adr_total}）"
+  # 已制定的ADR必须真的存在对应文件，否则状态列在说谎
+  adr_missing=0
+  while IFS= read -r rel; do
+    [ -e "docs/$rel" ] || { echo "  [FAIL] 附件D§3标记为已制定，但文件不存在：$rel"; adr_missing=1; fail=1; }
+  done < <(grep -oE "\(\.\./08-[^)]+\.md\)" "$APPENDIX_D" | sed -E 's/^\(\.\.\/(.*)\)$/\1/' | sort -u)
+  [ "$adr_missing" -eq 0 ] && echo "  [OK] 标记为已制定的ADR均有对应文件"
+  if [ "$adr_todo" -gt 0 ]; then
+    echo "  [WARN] 仍有 ${adr_todo} 项ARC既未制定ADR、也未标注决策显然，属未处理状态。"
   fi
 else
   echo "  [FAIL] 未找到附件D：$APPENDIX_D"
