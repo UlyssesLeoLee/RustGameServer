@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-006 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-006 网络安全 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档与RGS-DTL-003／004／005同批次产出，是02-运维安全与网络域四份详细设计中的最后一份）。细化RGS-BAS-006§4 NetworkPolicy基线原则为具体YAML模板、§7A.1未信任输入解析安全落实为具体Rust模式与CI lint配置、§7A.2多层速率限制落实为可直接翻译为Rust实现的伪代码（含Redis key设计与TBD-SEC-003阈值默认值提案）、§7A.3资源配额落实为具体算法、§6供应链安全流水线的漏洞扫描/SBOM/构建溯源落实为CI阶段配置骨架。**本版本不覆盖**：DDoS/WAF具体选型（TBD-SEC-001）、密钥管理中间件选型（TBD-SEC-002）、构建溯源签名的具体密码学方案。见§7 | 全部 |
+| 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型TBD收尾）。新增§7解决TBD-SEC-001（DDoS/WAF最终选型：OpenResty+Coraza+OWASP CRS，均OSI许可）与§8解决TBD-SEC-002（密钥管理中间件最终选型：OpenBao，HashiCorp Vault的Linux Foundation治理MPL-2.0开源分支，因Vault主线已转为非开源BSL许可故不选用Vault本体）。原§7覆盖范围章节顺延为§9并更新内容 | §1.2、§7（新增）、§8（新增）、原§7→§9 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -40,7 +41,9 @@
 4. [多层速率限制算法详细设计](#4-多层速率限制算法详细设计)
 5. [游戏内资源配额算法详细设计](#5-游戏内资源配额算法详细设计)
 6. [供应链安全CI阶段配置骨架](#6-供应链安全ci阶段配置骨架)
-7. [本文档的覆盖范围与后续计划](#7-本文档的覆盖范围与后续计划)
+7. [DDoS/WAF选型（TBD-SEC-001）](#7-ddoswaf选型tbd-sec-001最终决定)
+8. [密钥管理中间件选型（TBD-SEC-002）](#8-密钥管理中间件选型tbd-sec-002最终决定)
+9. [本文档的覆盖范围与后续计划](#9-本文档的覆盖范围与后续计划)
 
 ---
 
@@ -53,7 +56,7 @@ RGS-BAS-006给出了分层安全架构总览、NetworkPolicy基线原则的文�
 ### 1.2 本文档不做什么
 
 - 不重新决定RGS-BAS-006已确定的任何结构性选择（默认拒绝的零信任网络基线、纵深防御分层架构、配额校验寄生于既有确定请求路径而非独立机制、QUIC地址验证复用协议自身Retry机制）。
-- 不选定DDoS/WAF具体产品（TBD-SEC-001）与密钥管理中间件（TBD-SEC-002）——两者均为独立技术选型评审事项，RGS-BAS-006已明确留待详细设计阶段确定，本文档不越权先行决定，仅在涉及处固定接口契约（如§2 NetworkPolicy模板中DDoS/WAF作为外部前置层的既有拓扑位置不变）。
+- DDoS/WAF具体选型（TBD-SEC-001）与密钥管理中间件选型（TBD-SEC-002）已于v0.2在§7/§8给出最终决定（OpenResty+Coraza+OWASP CRS；OpenBao），不再是本文档遗留缺口。
 - 不覆盖构建溯源签名的具体密码学方案（签名算法/密钥管理）——RGS-BAS-006§6已注明"具体实现留详细设计"，本文档只固定CI流水线中该阶段的位置与校验触点（§6），不选定签名算法本身。
 - 不覆盖RGS-DTL-003/004/005中已详细设计的内容（如GM指令强制全采集判定、维护模式收敛算法）——本文档聚焦网络安全域自身职责范围，跨域复用点仅标注引用关系不重复展开。
 
@@ -376,14 +379,37 @@ fn spawn_entity_with_quota(scene: &mut SceneState, spawner_id: EntityId, entity_
 
 ---
 
-## 7. 本文档的覆盖范围与后续计划
+## 7. DDoS/WAF选型（TBD-SEC-001，最终决定）
 
-本文档覆盖：NetworkPolicy基线模板的具体YAML结构（Namespace级默认拒绝+服务级显式声明模板+CI覆盖率检查实现）、未信任输入解析安全的具体CI lint配置与四类禁止操作的Rust替代实现模式、模糊测试CI接入骨架、账号级速率限制的Redis数据结构与判定算法（含TBD-SEC-003 API类别划分与阈值初始提案）、经济类/场景类资源配额校验的TOCTOU-free算法实现、供应链安全CI阶段的具体配置骨架。
+按"全部采用开源免费策略"约束，选型为**OpenResty（nginx+LuaJIT，BSD-2-Clause）前置层 ＋ Coraza WAF引擎（Apache-2.0，OWASP CRS兼容）**，取代此前未定的商业WAF假设：
+
+- **DDoS抗性层**：OpenResty作为边界反向代理，接入既有`limit_req`/`limit_conn`模块做连接级速率整形（早于本文档§4账号级限流生效，对应§4.3边界条件说明既定的L3拓扑位置），SYN flood等L3/L4层攻击依赖既有云基础设施/自托管BGP黑洞或`iptables`+`fail2ban`组合，不额外引入商业清洗服务。
+- **WAF层**：Coraza（Apache-2.0，Go编写，可编译为独立模块接入OpenResty或作为standalone反向代理）加载OWASP Core Rule Set（CRS，Apache-2.0）作为规则基线，覆盖SQL注入/XSS/已知CVE模式等通用Web攻击特征——本系统客户端-服务端主协议为自定义二进制/gRPC而非HTTP表单，故WAF主要防护面是GM后台Web界面与§3清单查询等HTTP接口（RGS-DTL-027§3），非游戏主协议本身（游戏主协议的滥用防护由本文档§4/§5账号级限流与资源配额承担，两者互补而非重叠）。
+- **部署位置**：OpenResty+Coraza部署于RGS-BAS-006§2既有边界层（NetworkPolicy拓扑中DDoS/WAF既定位置不变，本次只是给该位置填入具体产品），随集群Ingress一并管理，不改变§2模板结构本身。
+
+license确认：OpenResty（BSD-2-Clause）、Coraza（Apache-2.0）、OWASP CRS（Apache-2.0）均为OSI认可宽松许可，无CON-001顾虑，无需与MinIO类AGPL场景一样额外论证。
+
+## 8. 密钥管理中间件选型（TBD-SEC-002，最终决定）
+
+选型为**OpenBao**（HashiCorp Vault的Linux Foundation治理开源分支，MPL-2.0，2023年HashiCorp将Vault改为BSL非开源许可后由社区fork延续的开源版本），而非HashiCorp Vault本体（其当前主线许可BSL-1.1不满足CON-001开源要求）。
+
+- **接入方式**：OpenBao作为RGS-DTL-002§2.4`ExternalSecret`资源指向的`ClusterSecretStore`后端实现，其K8s Secrets同步能力通过External Secrets Operator既有的Vault-provider适配器直接兼容（OpenBao保持与Vault API的向后兼容，无需额外适配层）。
+- **密钥轮换落地**：RGS-BAS-006§5既有轮换时序图中"密钥管理系统"角色由OpenBao承担，轮换动作通过OpenBao的动态密钥引擎（database secrets engine等）或版本化KV存储配合既有轮换调度触发，具体轮换脚本留待实现阶段。
+- **自托管形态**：OpenBao以自身的Raft存储后端自托管（不依赖外部KV如Consul），随集群一并部署，符合"全部采用开源免费策略"与"不假设付费SaaS"两项约束。
+
+license确认：OpenBao MPL-2.0（弱copyleft，仅约束对OpenBao自身源码文件的修改需开源，不影响调用方/本项目其余代码许可），OSI认可，无CON-001顾虑。
+
+---
+
+## 9. 本文档的覆盖范围与后续计划
+
+本文档覆盖：NetworkPolicy基线模板的具体YAML结构（Namespace级默认拒绝+服务级显式声明模板+CI覆盖率检查实现）、未信任输入解析安全的具体CI lint配置与四类禁止操作的Rust替代实现模式、模糊测试CI接入骨架、账号级速率限制的Redis数据结构与判定算法（含TBD-SEC-003 API类别划分与阈值初始提案）、经济类/场景类资源配额校验的TOCTOU-free算法实现、供应链安全CI阶段的具体配置骨架、**DDoS/WAF最终选型（TBD-SEC-001：OpenResty+Coraza+OWASP CRS）**、**密钥管理中间件最终选型（TBD-SEC-002：OpenBao）**。
 
 本版本明确不覆盖、留待后续：
 
-- DDoS/WAF具体选型（TBD-SEC-001）——独立技术选型评审事项，本文档未预先决定，§2/§4.2仅声明其既有拓扑位置不变。
-- 密钥管理中间件选型（TBD-SEC-002）——RGS-BAS-006§5密钥轮换时序图本身已是逻辑设计终点，本文档未展开物理选型（如HashiCorp Vault等具体产品比较），因该项独立于本文档聚焦的NetworkPolicy/输入安全/限流/配额四个主题，留待专项详细设计或ADR。
+- TBD-SEC-003限流阈值的最终校准数值——本文档§4.3给出的是初始提案，需PH-4/PH-5实测数据支撑最终校准，本次选型解决的是TBD-SEC-001/002而非TBD-SEC-003。
+- OpenResty/Coraza/OpenBao的具体K8s部署manifest（Helm values细节）——本文档只确定选型与接入契约，具体部署配置留待实现阶段按RGS-DTL-002§2既定模板套用。
+- OpenBao轮换脚本的具体实现代码。
 - 构建溯源签名的具体密码学方案与准入控制机制的最终选型（§6骨架中的`cosign`/`ValidatingAdmissionPolicy`均为示例，非最终工具选型结论）。
 - §4.3速率限制阈值与§6模糊测试运行周期/时长的正式校准值——均为初始提案，需PH-4/PH-5实测数据支撑校准。
 - 安全事件响应流程骨架（RGS-BAS-006§7）人工判断标准与升级路径——RGS-BAS-006原文已明确该部分属RGS-OPS-001运维手顺书职责范围，本文档不涉及。
@@ -399,9 +425,10 @@ fn spawn_entity_with_quota(scene: &mut SceneState, spawner_id: EntityId, entity_
 | RGS-BAS-006§2 分层安全架构总览 | 前提依赖，本文档假定分层拓扑不变 |
 | RGS-BAS-006§3 边界防护设计 | §4.2（IP级限流复用点，不重复展开） |
 | RGS-BAS-006§4 NetworkPolicy基线模板 | §2 |
-| RGS-BAS-006§5 密钥与证书轮换设计 | §7（明确排除物理选型） |
+| RGS-BAS-006§5 密钥与证书轮换设计 | §8（TBD-SEC-002最终选型：OpenBao） |
 | RGS-BAS-006§6 供应链安全流水线设计 | §6 |
-| RGS-BAS-006§7 安全事件响应流程骨架 | §7（明确排除，属RGS-OPS-001） |
+| RGS-BAS-006§7 安全事件响应流程骨架 | §9（明确排除，属RGS-OPS-001） |
+| RGS-BAS-006§3 边界防护设计（DDoS/WAF拓扑位置） | §7（TBD-SEC-001最终选型：OpenResty+Coraza+OWASP CRS） |
 | RGS-BAS-006§7A.1 未信任输入解析安全 | §3 |
 | RGS-BAS-006§7A.2 多层速率限制设计 | §4 |
 | RGS-BAS-006§7A.3 游戏内资源配额设计 | §5 |

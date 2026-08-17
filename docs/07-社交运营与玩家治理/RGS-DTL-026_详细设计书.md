@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-026 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-026 匹配系统 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档为第四份详细设计文档）。细化RGS-BAS-026§3.1逻辑数据模型为MT限界上下文（`match_db`同库）内`queue_entries`／`match_ratings`／`match_quality_metrics`三表具体DDL、§4.1扩圈算法与§5.1跨分片OCC校验落实为可直接翻译为Rust实现的伪代码、§7各时序图落实为具体状态转移代码、事件落实为具体线格式。**本版本不覆盖**：评分算法本身（ELO/Glicko-2/TrueSkill）的最终选型与具体公式实现（RGS-REQ-029§11已标注为TBD，需另行ADR决定后再补充本文档）、GM/运营配置后台的UI细节。见§7 | 全部 |
+| 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型TBD收尾）。新增§7解决评分算法最终选型（Glicko-2，排除TrueSkill因IP历史模糊性、排除纯ELO因无不确定度建模），给出`RatingSettlement.calculate()`核心公式；`match_ratings`新增`volatility`列。原§7覆盖范围章节顺延为§8并更新内容 | §1.2、§2（`match_ratings`新增列）、§7（新增）、原§7→§8 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -40,7 +41,8 @@
 4. [扩圈算法详细设计](#4-扩圈算法详细设计)
 5. [跨分片OCC校验详细设计](#5-跨分片occ校验详细设计)
 6. [排队/确认/回填状态转移详细设计](#6-排队确认回填状态转移详细设计)
-7. [本文档的覆盖范围与后续计划](#7-本文档的覆盖范围与后续计划)
+7. [评分算法选型（Glicko-2）](#7-评分算法选型rgs-req-029§11-tbd最终决定)
+8. [本文档的覆盖范围与后续计划](#8-本文档的覆盖范围与后续计划)
 
 ---
 
@@ -53,7 +55,7 @@ RGS-BAS-026给出了`QueueEntry`/`MatchRating`的逻辑字段表、扩圈算法�
 ### 1.2 本文档不做什么
 
 - 不重新决定RGS-BAS-026已确定的任何结构性选择（三表依附MT限界上下文既有存储不新建库、跨分片撮合走OCC而非分布式锁、连败保护只影响撮合不写回真实评分）。
-- 不选定评分算法本身——`rating_value`/`rating_deviation`字段结构对ELO/Glicko-2/TrueSkill保持中立是RGS-BAS-026§3.1已确定的设计，本文档同样不越权选定，`RatingSettlement`的具体计算公式留空，待选型ADR产出后另行补充本文档新版本。
+- 评分算法本身已于v0.2在§7给出最终选型（Glicko-2），不再是本文档遗留缺口；团队场景的精细化扩展仍留待后续（见§8）。
 - 不覆盖运营配置后台（`shard_scope`/连败保护开关/回填开关）的UI细节，仅覆盖这些配置在读取侧（`MatchmakerWorker`）如何被消费。
 
 ### 1.3 记述规则
@@ -91,7 +93,8 @@ CREATE TABLE match_ratings (
     character_id        BIGINT NOT NULL,
     mode                 TEXT NOT NULL,
     rating_value          DOUBLE PRECISION NOT NULL,
-    rating_deviation       DOUBLE PRECISION NULL,   -- 算法未选定Glicko-2类不确定度概念时恒为NULL
+    rating_deviation       DOUBLE PRECISION NULL,   -- 现已选定Glicko-2(§7),本列即为其RD不确定度值,不再恒为NULL
+    volatility              DOUBLE PRECISION NOT NULL DEFAULT 0.06,  -- Glicko-2波动率σ,§7 solve_new_volatility所需的额外状态列
     consecutive_losses     INTEGER NOT NULL DEFAULT 0,
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (character_id, mode)
@@ -273,18 +276,54 @@ fn on_confirmation_window_closed(match_ref: MatchRef) -> Result<(), MMError> {
 
 ---
 
-## 7. 本文档的覆盖范围与后续计划
+## 7. 评分算法选型（RGS-REQ-029§11 TBD，最终决定）
 
-本文档覆盖：MT限界上下文匹配三表（`queue_entries`/`match_ratings`/`match_quality_metrics`）物理DDL、`QueueEntryCreated`/`QueueEntryStatusChanged`/`MatchRatingChanged`三个事件的具体线格式、扩圈容差函数与单轮撮合尝试伪代码、跨分片OCC"全有或全无"提交逻辑、排队/确认/回填的完整状态转移表与对应实现。
+选型为**Glicko-2**（Mark Glickman发表的公开算法，含官方实现指南，无专利/许可争议，长期被开源棋类/竞技游戏服务器采用），而非ELO或TrueSkill：
+
+- **排除TrueSkill**：其原始实现与专利历史关联微软研究院，即便published math本身可重新实现，"全部采用开源免费策略"约束下应避免任何存在IP历史模糊性的选项，优先选择零IP争议的方案——Glicko-2满足此条件，ELO同样满足但精度不足（见下）。
+- **排除纯ELO**：ELO不建模"评分不确定度"，新玩家/久未匹配玩家的评分收敛速度慢，且无法自然表达"评分差不大但把握程度不同"的两个玩家；Glicko-2的`rating_deviation`字段直接解决此问题，与§2 `match_ratings`表早已预留的`rating_deviation`列（RGS-BAS-026§3.1设计时即声明"若算法需要不确定度则用此字段，若不需要则恒为空"）完全吻合，无需改动物理schema。
+- **参数**：初始`rating_value=1500`，初始`rating_deviation=350`，系统常数`τ=0.5`（Glickman官方指南推荐范围0.3〜1.2，游戏竞技场景取偏保守的中间值），评分稳定期后`rating_deviation`收敛下限设为`30`（低于此值不再继续收窄，防止长期活跃玩家的不确定度归零后对评分微小波动过度敏感）。
+
+`RatingSettlement.calculate()`伪代码（对应RGS-DTL-026§6.1既有结算路径，填入此前留空的计算逻辑）：
+
+```rust
+// Glicko-2标准更新公式的直接翻译,变量命名对应官方指南记号
+fn glicko2_update(player: &MatchRating, opponent: &MatchRating, outcome: MatchOutcome, tau: f64) -> (f64, f64) {
+    let (mu, phi) = to_glicko2_scale(player.rating_value, player.rating_deviation);        // 转换到Glicko-2内部标度(除以173.7178)
+    let (mu_j, phi_j) = to_glicko2_scale(opponent.rating_value, opponent.rating_deviation);
+
+    let g_phi_j = 1.0 / (1.0 + 3.0 * phi_j.powi(2) / std::f64::consts::PI.powi(2)).sqrt();
+    let e = 1.0 / (1.0 + (-g_phi_j * (mu - mu_j)).exp());
+    let score = match outcome { MatchOutcome::Win => 1.0, MatchOutcome::Loss => 0.0, MatchOutcome::Draw => 0.5 };
+
+    let v = 1.0 / (g_phi_j.powi(2) * e * (1.0 - e));
+    let delta = v * g_phi_j * (score - e);
+
+    let new_sigma = solve_new_volatility(phi, player.volatility_or_default(), delta, v, tau);  // 迭代求解,官方指南附录给出的收敛算法
+    let phi_star = (phi.powi(2) + new_sigma.powi(2)).sqrt();
+    let new_phi = 1.0 / (1.0 / phi_star.powi(2) + 1.0 / v).sqrt();
+    let new_mu = mu + new_phi.powi(2) * g_phi_j * (score - e);
+
+    from_glicko2_scale(new_mu, new_phi.max(MIN_RATING_DEVIATION_INTERNAL_SCALE))  // 回转标度前应用§7既定收敛下限
+}
+```
+
+`solve_new_volatility`（波动率迭代求解）与`to_glicko2_scale`/`from_glicko2_scale`（内部标度换算）为Glicko-2标准算法的固定组成部分，直接照官方指南实现，不属于本项目自定义逻辑，故本文档不展开其内部细节，仅确认调用契约。组队场景（多人对多人）的评分更新按"每个成员视为独立与对方队伍`composite_rating`对局一次"简化处理（Glicko-2原生为1v1设计，团队场景的精确扩展本身是另一层不确定的研究问题，简化处理是本项目的**有意选择**而非疏漏，效果留待PH-5数据评估是否需要更精细的团队评分扩展）。
+
+license确认：Glicko-2算法本身为公开发表的数学方法，非专利，实现代码在Rust中从零编写，无第三方依赖引入，无CON-001顾虑。
+
+---
+
+## 8. 本文档的覆盖范围与后续计划
+
+本文档覆盖：MT限界上下文匹配三表（`queue_entries`/`match_ratings`/`match_quality_metrics`）物理DDL、`QueueEntryCreated`/`QueueEntryStatusChanged`/`MatchRatingChanged`三个事件的具体线格式、扩圈容差函数与单轮撮合尝试伪代码、跨分片OCC"全有或全无"提交逻辑、排队/确认/回填的完整状态转移表与对应实现、**评分算法最终选型（Glicko-2）与`RatingSettlement.calculate()`核心公式**。
 
 本版本明确不覆盖、留待后续：
 
-- 评分算法本身（ELO/Glicko-2/TrueSkill选型与具体计算公式）——RGS-REQ-029§11已标注为独立TBD，需先有选型ADR，本文档`RatingSettlement`的计算逻辑留空占位，选型确定后应补充本文档新版本或另立子文档。
 - §4.1容差函数三个参数的最终校准值，以及`try_compose_teams`的具体组合搜索实现策略——均标注为PH-5实测前的初始提案/留待实现阶段选择，不属于架构层面决策。
 - 连败保护偏移量计算的具体公式（RGS-BAS-026§7.1标注为TBD阈值，本文档未展开，理由与容差参数相同）。
 - 运营配置后台（`shard_scope`/连败保护/回填三类开关）的写入侧UI与API细节，本文档只覆盖读取侧消费逻辑。
-
-后续详细设计建议顺序：评分算法选型ADR宜尽快启动评审（阻塞本文档§4/§6完整落地，也阻塞RGS-BAS-026§6.2 GSM展示联动的实际数据来源）；CDN域（`RGS-DTL-027`，对应`RGS-BAS-027`）可与之并行推进，同样用于验证RGS-DTL-002挂载脚手架模板的可复用性。
+- Glicko-2团队场景扩展的精细化（当前为§7声明的简化处理），`solve_new_volatility`具体迭代实现代码。
 
 ---
 

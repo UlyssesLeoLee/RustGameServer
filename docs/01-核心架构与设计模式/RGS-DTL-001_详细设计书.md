@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-001 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-BAS-001 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"推进制作更新详细设计"）。本项目此前26个域全部止步于需求+基本设计两层，本文档是**第一份详细设计文档**，作为后续其余域详细设计的模板与先例。范围：RGS-BAS-001§5物理数据库设计的两个最核心限界上下文（player_db／economy_db）落实为具体DDL、§6接口设计落实为具体协议线格式（.proto风格）、§4.2 tick循环与§4.3 AOI算法落实为可直接翻译为Rust实现的伪代码级算法。**本版本不覆盖BAS-001全部章节**，其余限界上下文（match_db／social_db／admin_db）与MT/GD/EV/WF/OB/AD模块详细设计留待后续版本或独立DTL文档补充，见§7 |
 | 0.2 | 2026-08-17 | 架构师 | — | 续接详细设计阶段，补齐本文档v0.1自己在§7声明的遗留缺口：新增match_db／social_db／admin_db核心表物理DDL（§6〜§8）、MatchService／SocialService／AdminService协议线格式（§9）、RGS-BAS-001§4.6〜4.8（对局状态机、社交并发控制、事件工作流Outbox分发器、购买Saga补偿路径、可观测性Trace传播）算法详细设计（§10）。**触发原因**：RGS-DTL-025（反作弊）已扩展`admin_db`新增三表、RGS-DTL-026（匹配）已扩展`match_db`新增三表，两文档均在其覆盖范围声明中指出"核心架构自身的DTL-001不尽快补齐，将出现业务域DTL引用的库由谁最终定义全貌的文档权责模糊风险"——本次修订补齐该两库（及social_db）各自的核心表，消除该权责模糊。原§6/§7章节相应重编号为§11/§12，新增§13追溯性表 | 全部 |
+| 0.3 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型/遗留不一致收尾）。新增§12解决v0.2自述的`player_db`（UUID）与`match_db`/`admin_db`（BIGINT，RGS-DTL-025/026既定）主键风格不一致：决定保留`player_db`自身UUID主键不变（新增`accounts.player_seq`/`characters.character_seq`两个BIGSERIAL列作为跨库权威数值身份，供BIGINT风格的库直接引用，避免额外维护影子映射表）。原§12/§13章节相应重编号为§13/§14 | §2.1（新增两列）、§12（新增）、原§12→§13、原§13→§14 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -46,8 +47,9 @@
 9. [协议线格式：MatchService／SocialService／AdminService](#9-协议线格式matchservicesocialserviceadminservice)
 10. [§4.6〜4.8算法详细设计](#10-46-48算法详细设计)
 11. [错误码一览](#11-错误码一览)
-12. [本文档的覆盖范围与后续计划](#12-本文档的覆盖范围与后续计划)
-13. [追溯性](#13-追溯性)
+12. [跨库标识映射](#12-跨库标识映射v03新增解决与rgs-dtl-025026的主键风格不一致)
+13. [本文档的覆盖范围与后续计划](#13-本文档的覆盖范围与后续计划)
+14. [追溯性](#14-追溯性)
 
 ---
 
@@ -78,6 +80,7 @@ IPA SLCP-JCF2013将设计工程分为**基本设计（システム外部から�
 
 CREATE TABLE accounts (
     player_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_seq      BIGSERIAL NOT NULL UNIQUE,      -- v0.3新增,跨库标识映射的权威数值ID,见§12"跨库标识映射"
     credential_hash TEXT NOT NULL,
     status          SMALLINT NOT NULL DEFAULT 0,  -- 0=Registered 1=Active 2=Suspended 3=Banned 4=Deleted（枚举值见ST-005，故意用SMALLINT而非TEXT：高频WHERE条件，避免字符串比较开销）
     version         BIGINT NOT NULL DEFAULT 0,     -- OCC，DR-007
@@ -87,6 +90,7 @@ CREATE TABLE accounts (
 
 CREATE TABLE characters (
     character_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    character_seq    BIGSERIAL NOT NULL UNIQUE,     -- v0.3新增,跨库标识映射的权威数值ID,见§12"跨库标识映射"
     player_id        UUID NOT NULL REFERENCES accounts(player_id) ON DELETE RESTRICT,
     -- ON DELETE RESTRICT而非CASCADE：账号删除走FR-GOV-010〜013既定的跨库编排流程
     -- （RGS-BAS-009§5.2），不得由数据库外键级联静默删除，避免绕过审计留痕
@@ -357,7 +361,7 @@ fn aoi_update_system(scene: &mut SceneState) {
 
 # 6. 物理数据库设计：match_db核心表
 
-对应RGS-BAS-001§5.5 `MATCH`/`MATCH_PARTICIPANT`/`MATCH_RESULT`逻辑ER图与需求定义书§8.3 ST-002对局状态机。`match_db`同库内已由RGS-DTL-026§2新增`queue_entries`/`match_ratings`/`match_quality_metrics`三表（匹配侧），本节补齐对局侧核心表——两份文档合并起来才是`match_db`的完整物理设计，RGS-DTL-026§2的`queue_entries.match_ref BIGINT`已隐含约定`matches.match_id`为`BIGINT`（非本文档§2 `player_db`/`economy_db`使用的`UUID`风格），本节DDL遵循该已发布约定，不引入第三种不一致的主键风格（详见§12"已知的跨文档类型不一致"）。
+对应RGS-BAS-001§5.5 `MATCH`/`MATCH_PARTICIPANT`/`MATCH_RESULT`逻辑ER图与需求定义书§8.3 ST-002对局状态机。`match_db`同库内已由RGS-DTL-026§2新增`queue_entries`/`match_ratings`/`match_quality_metrics`三表（匹配侧），本节补齐对局侧核心表——两份文档合并起来才是`match_db`的完整物理设计，RGS-DTL-026§2的`queue_entries.match_ref BIGINT`已隐含约定`matches.match_id`为`BIGINT`（非本文档§2 `player_db`/`economy_db`使用的`UUID`风格），本节DDL遵循该已发布约定，不引入第三种不一致的主键风格（`match_db`/`admin_db`与`player_db`间的BIGINT/UUID跨库映射机制见§12）。
 
 ```sql
 -- 对局主表，落实需求定义书§8.3 ST-002状态机
@@ -377,7 +381,7 @@ CREATE INDEX idx_matches_active ON matches (status) WHERE status IN ('Waiting', 
 -- 对局参与者表
 CREATE TABLE match_participants (
     match_id      BIGINT NOT NULL REFERENCES matches(match_id),
-    character_id  BIGINT NOT NULL,   -- 与RGS-DTL-026 match_ratings.character_id的BIGINT假设保持一致（同§12已知不一致说明）
+    character_id  BIGINT NOT NULL,   -- 与RGS-DTL-026 match_ratings.character_id的BIGINT假设保持一致（跨库映射机制见§12）
     team          TEXT NOT NULL,
     joined_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (match_id, character_id)
@@ -446,14 +450,14 @@ CREATE TABLE guild_members (
 CREATE INDEX idx_guild_members_character ON guild_members (character_id);
     -- 支撑"某角色所属公会"查询（单角色同时只能属于一个公会由应用层规则保证，非本表约束职责——
     -- 若需要数据库层强制"每角色至多一个公会"，须额外加character_id上的UNIQUE约束，
-    -- 本文档未见RGS-BAS-001明确该业务规则，故不擅自添加，留待§12后续确认）
+    -- 本文档未见RGS-BAS-001明确该业务规则，故不擅自添加，留待RGS-BAS-001后续确认）
 ```
 
 ---
 
 # 8. 物理数据库设计：admin_db核心表
 
-对应RGS-BAS-001§5.7 `OPERATION_AUDIT`/`COMPENSATION_BATCH`逻辑ER图。`admin_db`同库内已由RGS-DTL-025§2新增`detection_signals`/`anticheat_cases`/`case_signal_links`三表（反作弊侧，`player_id BIGINT REFERENCES accounts(account_id)`），本节补齐运营治理核心表，沿用RGS-DTL-025已确立的`BIGINT`主键/外键风格，不在同一库内引入第三种不一致的类型约定（同§6对`match_db`的处理原则，跨库不一致本身见§12说明）。
+对应RGS-BAS-001§5.7 `OPERATION_AUDIT`/`COMPENSATION_BATCH`逻辑ER图。`admin_db`同库内已由RGS-DTL-025§2新增`detection_signals`/`anticheat_cases`/`case_signal_links`三表（反作弊侧，`player_id BIGINT REFERENCES accounts(account_id)`），本节补齐运营治理核心表，沿用RGS-DTL-025已确立的`BIGINT`主键/外键风格，不在同一库内引入第三种不一致的类型约定（同§6对`match_db`的处理原则，跨库映射机制见§12）。
 
 ```sql
 -- 操作审计表，NFR-SE-010"仅追加不可变"是RGS-BAS-001§5.7已明确标注的唯一强约束
@@ -591,7 +595,7 @@ message SetMaintenanceModeResponse {
 
 # 10. §4.6〜4.8算法详细设计
 
-对应RGS-BAS-001§4.6（MT／GD概要）、§4.7（EV／WF）、§4.8（OB／AD），落实为可翻译为Rust实现的伪代码。RGS-BAS-001§4.6原文声明"仅模块划分，处理时序留PH-5/PH-6开始前补充"——本节仅落实**已经在§8.3 ST-002状态机与RGS-BAS-001§4.7〜4.8流程图/时序图中给出的部分**，不越权替BAS-001做§4.6尚未做出的处理时序决策（社交模块聊天/公会的完整处理时序仍留待，见§12）。
+对应RGS-BAS-001§4.6（MT／GD概要）、§4.7（EV／WF）、§4.8（OB／AD），落实为可翻译为Rust实现的伪代码。RGS-BAS-001§4.6原文声明"仅模块划分，处理时序留PH-5/PH-6开始前补充"——本节仅落实**已经在§8.3 ST-002状态机与RGS-BAS-001§4.7〜4.8流程图/时序图中给出的部分**，不越权替BAS-001做§4.6尚未做出的处理时序决策（社交模块聊天/公会的完整处理时序仍留待，见§13）。
 
 ## 10.1 对局状态机驱动逻辑（落实ST-002与RGS-BAS-001附§4.8.4触发来源表）
 
@@ -745,26 +749,60 @@ fn consume_event(event: &BusEvent) -> TraceContext {
 
 ---
 
-# 12. 本文档的覆盖范围与后续计划
+# 12. 跨库标识映射（v0.3新增，解决与RGS-DTL-025/026的主键风格不一致）
 
-本文档v0.1是本项目**第一份详细设计文档**，覆盖范围曾**刻意限定**在核心架构中最基础的两个限界上下文（player_db／economy_db）与最核心的两个算法（tick循环／AOI计算）。本次v0.2补齐了v0.1自己声明的遗留缺口：
+`player_db`（§2/§3使用`UUID`主键，`player_id`/`character_id`）与`match_db`/`admin_db`（RGS-DTL-025/026独立选型均为`BIGINT`）之间的类型差异，最终决定为：**保留`player_db`自身的`UUID`主键不变**（不做迁移——`UUID`作为对外暴露标识符已有其自身价值：不因枚举而泄露账号规模、可在客户端本地生成幂等操作的关联ID等），同时在`accounts`/`characters`表新增`player_seq`/`character_seq`两个`BIGSERIAL`列（§2.1已加入）作为**权威数值身份**，供`match_db`/`admin_db`等以`BIGINT`为主键风格的库直接引用。
+
+**决策依据**：本项目尚处需求/设计阶段，无生产数据，"迁移`player_db`本身DDL到BIGINT"不涉及真实数据迁移风险——但即便如此，仍选择"新增映射列"而非"改类型"，因为：(a) `UUID`主键在`player_db`内部已被大量FK/索引依赖（`characters.player_id`、`ban_records.player_id`等），全面改型影响面大于新增一列；(b) `match_db`/`admin_db`两份文档已发布，反过来改它们的`BIGINT`风格成本相同甚至更高（两份文档、更多下游引用）；(c) `UUID`对外暴露、`BIGINT`内部高频关联各有其适用场景，允许两者并存、以显式映射衔接，是比强行统一为单一类型更贴合实际需求的设计。
+
+**映射机制**（具体、非"应用层处理"式的空泛表述）：
+
+```sql
+-- player_db.accounts.player_seq 与 characters.character_seq 已是BIGSERIAL UNIQUE(§2.1)，
+-- match_db/admin_db的BIGINT外键(如RGS-DTL-025 detection_signals.player_id、
+-- RGS-DTL-026 match_ratings.character_id)在语义上直接对应这两列的值，
+-- 而非另建一张独立的跨库映射表——BIGSERIAL本身就是权威映射源，无需额外维护一份影子映射数据
+```
+
+```rust
+// 应用层在任何跨库写入路径中，统一从player_db查询获得*_seq值后再写入match_db/admin_db，
+// 不在match_db/admin_db内部自行生成或猜测BIGINT值
+async fn resolve_character_seq(character_id: Uuid, player_db: &PlayerDbPool) -> Result<i64, DbError> {
+    sqlx::query_scalar!("SELECT character_seq FROM characters WHERE character_id = $1", character_id)
+        .fetch_one(player_db)
+        .await
+}
+// RGS-DTL-025/026涉及character_id/player_id写入admin_db/match_db的路径，均在写入前调用本函数
+// （或等价的批量版本），确保BIGINT值的唯一权威来源始终是player_db，杜绝"两边各自维护一份编号"的分叉风险
+```
+
+**反向查询**（`match_db`/`admin_db`记录关联回`player_db`的`UUID`，如GM后台按`BIGINT`案件记录查询玩家详情时）：`character_seq`/`player_seq`列已建`UNIQUE`索引（§2.1`BIGSERIAL NOT NULL UNIQUE`隐含唯一索引），反向查询`SELECT character_id FROM characters WHERE character_seq = $1`同样是O(1)索引查询，无需额外维护反向映射表。
+
+---
+
+# 13. 本文档的覆盖范围与后续计划
+
+本文档v0.1是本项目**第一份详细设计文档**，覆盖范围曾**刻意限定**在核心架构中最基础的两个限界上下文（player_db／economy_db）与最核心的两个算法（tick循环／AOI计算）。v0.2补齐了v0.1自己声明的遗留缺口：
 
 - match_db核心表（`matches`/`match_participants`/`match_results`，§6）／social_db（`friend_links`/`guilds`/`guild_members`，§7）／admin_db核心表（`operation_audits`/`compensation_batches`，§8）物理DDL
 - MatchService／SocialService／AdminService协议线格式细化（§9）
 - §4.6〜4.8中**已有明确流程图/时序图/状态机依据**的部分：对局状态机（ST-002）、事件工作流Outbox分发器、购买Saga补偿路径、Trace传播字段落位（§10）
 
-**v0.2之后仍明确不覆盖、留待后续**：
+v0.3（负责人指示"开子代理完成剩余的"）补齐：
+
+- 跨库标识映射机制（§12），解决v0.2自述的UUID/BIGINT风格不一致遗留问题
+
+**仍明确不覆盖、留待后续**：
 
 - RGS-BAS-001§4.6原文本身声明"社交模块（好友/聊天/公会）仅模块划分，处理时序留PH-6开始前补充"——BAS-001尚未给出该部分的流程图/时序图，本文档不能在父文档未决策的情况下自行编造处理时序，故§7的social_db DDL仅是数据结构落地，**不含**好友申请/聊天/公会权限变更的算法级处理逻辑，须等RGS-BAS-001自身先补充§4.6社交处理时序后，本文档再跟进一版
 - §8.1指标采集拓扑（RGS-BAS-001§4.8.2）本身不含本项目自定义算法，故未展开为伪代码，见§10.4末尾说明
-- 已知的跨文档类型不一致（记录供后续处理，不在本文档内静默修正）：RGS-DTL-001（本文档）§2/§3的`player_db`/`economy_db`采用`UUID`主键风格；RGS-DTL-025新增的`admin_db`三表与RGS-DTL-026新增的`match_db`三表均采用`BIGINT`主键/外键风格（如`accounts(account_id)`、`character_id BIGINT`），与本文档§2`accounts.player_id UUID`/`characters.character_id UUID`不一致。本次v0.2新增的§6/§8核心表为避免在同一物理库内引入**第三种**风格，选择跟随各自库内已发布的RGS-DTL-025/026约定（`BIGINT`），但这意味着`player_db`（UUID）与`match_db`/`admin_db`（BIGINT）之间的`character_id`/`player_id`语义对应关系目前只能靠应用层显式转换维持，物理类型本身不直接可比。该不一致源头是RGS-DTL-025/026成文时各自独立选型、未回头核对RGS-DTL-001既有风格，**建议**负责人评估是否值得专项修订统一（成本较高，涉及已上线三份文档），本文档不代为决定，仅如实记录
 - 全部其余业务域（RGS-REQ-006〜030对应的BAS-002〜027中，尚无对应DTL文档者）的详细设计
 
-**后续计划**（留待负责人确认优先级排期，本文档不代为决定）：按既有RGS-REQ-001§11.2.1"领域文档工作的阶段归属表"的PH-1〜PH-8顺序，逐域产出对应DTL文档。跨文档类型不一致的统一化建议与RGS-BAS-001§4.6社交处理时序的补齐，建议作为本文档下一版本（或独立ADR）的优先输入。
+**后续计划**（留待负责人确认优先级排期，本文档不代为决定）：按既有RGS-REQ-001§11.2.1"领域文档工作的阶段归属表"的PH-1〜PH-8顺序，逐域产出对应DTL文档。RGS-BAS-001§4.6社交处理时序的补齐，建议作为本文档下一版本的优先输入。
 
 ---
 
-# 13. 追溯性
+# 14. 追溯性
 
 | 需求/设计来源 | 本文档章节 |
 |---|---|
@@ -784,5 +822,5 @@ fn consume_event(event: &BusEvent) -> TraceContext {
 | RGS-BAS-001§4.7.2 购买工作流时序（含补偿路径） | §10.3 |
 | RGS-BAS-001§4.8.1 Trace传播载体设计表 | §10.4 |
 | RGS-BAS-001§4.8.2 指标采集拓扑 | §10.4（声明不展开为伪代码的理由） |
-| RGS-DTL-025§2 admin_db反作弊三表（本文档§8核心表与其同库） | §8、§12（类型不一致说明） |
-| RGS-DTL-026§2 match_db匹配三表（本文档§6核心表与其同库） | §6、§12（类型不一致说明） |
+| RGS-DTL-025§2 admin_db反作弊三表（本文档§8核心表与其同库） | §8、§12（跨库标识映射机制） |
+| RGS-DTL-026§2 match_db匹配三表（本文档§6核心表与其同库） | §6、§12（跨库标识映射机制） |
