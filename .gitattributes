@@ -1,0 +1,2 @@
+# Shell checks run on Linux in CI; retain LF locally as well.
+*.sh text eol=lf
