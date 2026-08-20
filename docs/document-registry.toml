@@ -1,0 +1,137 @@
+# RGS 文档登记册（目录及计划文档的唯一机器可读来源）。
+# 已存在的正式文档由校验器从文件名和文档头发现；此处只维护物理分类
+# 以及可以被引用、但尚未形成正文的受控文档。
+
+[metadata]
+schema_version = "1.0"
+updated = "2026-08-20"
+purpose = "目录导航、跨文档引用及计划状态的受控来源"
+
+[[category]]
+id = "00"
+path = "00-基准与治理"
+title = "基准与治理"
+readme_section = "1.0"
+
+[[category]]
+id = "01"
+path = "01-核心架构与设计模式"
+title = "核心架构与设计模式"
+readme_section = "1.1"
+
+[[category]]
+id = "02"
+path = "02-运维安全与网络"
+title = "运维安全与网络"
+readme_section = "1.2"
+
+[[category]]
+id = "03"
+path = "03-数据经济与交易"
+title = "数据经济与交易"
+readme_section = "1.3"
+
+[[category]]
+id = "04"
+path = "04-客户端与SDK"
+title = "客户端与SDK"
+readme_section = "1.4"
+
+[[category]]
+id = "05"
+path = "05-智能决策层"
+title = "智能决策层"
+readme_section = "1.5"
+
+[[category]]
+id = "06"
+path = "06-测试与质量保障"
+title = "测试与质量保障"
+readme_section = "1.6"
+
+[[category]]
+id = "07"
+path = "07-社交运营与玩家治理"
+title = "社交运营与玩家治理"
+readme_section = "1.7"
+
+[[category]]
+id = "08"
+path = "08-架构决策记录"
+title = "架构决策记录"
+readme_section = "1.13"
+
+[[category]]
+id = "09"
+path = "09-部署运维"
+title = "部署运维"
+readme_section = "1.8"
+
+[[category]]
+id = "10"
+path = "10-技术选型"
+title = "技术选型"
+readme_section = "1.9"
+
+[[category]]
+id = "11"
+path = "11-实施QA"
+title = "实施QA"
+readme_section = "1.10"
+
+[[category]]
+id = "12"
+path = "12-工作流"
+title = "工作流"
+readme_section = "1.11"
+
+[[category]]
+id = "13"
+path = "13-智能体与Agent工程"
+title = "智能体与Agent工程"
+readme_section = "1.12"
+
+# `allow_reference = true` 仅允许受控正文引用且仅限 `planned` 文档，正文必须明确标成“待制定”。
+# `retired` 记录只保留沿革和迁移说明，正文不得引用；它不表示批准、实现或可作为实施前置已满足。
+[[planned_document]]
+id = "RGS-IFS-001"
+title = "外部接口规格书"
+status = "planned"
+owner = "架构负责人"
+allow_reference = true
+
+[[planned_document]]
+id = "RGS-TST-001"
+title = "试验计划书"
+status = "planned"
+owner = "质量负责人"
+allow_reference = true
+
+[[planned_document]]
+id = "RGS-DTL-031"
+title = "ClusterOpsService 详细设计"
+status = "planned"
+owner = "平台负责人"
+allow_reference = true
+
+[[planned_document]]
+id = "RGS-PLAN-001"
+title = "项目实施计划"
+status = "planned"
+owner = "项目负责人"
+allow_reference = true
+
+[[planned_document]]
+id = "RGS-LIC-001"
+title = "许可证风险表"
+status = "planned"
+owner = "法务负责人"
+allow_reference = true
+
+[[planned_document]]
+id = "RGS-DBS-001"
+title = "集中数据库设计书"
+status = "retired"
+owner = "架构负责人"
+allow_reference = false
+note = "由各业务域 DTL 承接；不得再新建集中正文。"
