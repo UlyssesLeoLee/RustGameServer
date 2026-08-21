@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""验证 RGS-WF-001 v0.4 的工程编号、章节与审核矩阵。"""
+"""验证 RGS-WF-001 v0.5 的工程编号、章节与审核矩阵。"""
 import os
 from pathlib import Path
 import re
@@ -14,7 +14,7 @@ os.chdir(ROOT)
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-wf = 'docs/12-工作流/RGS-WF-001_系统工程工作流_v0.4.md'
+wf = 'docs/12-工作流/RGS-WF-001_系统工程工作流_v0.5.md'
 with open(wf, 'r', encoding='utf-8') as f:
     content = f.read()
 lines = content.splitlines()
