@@ -5,9 +5,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-PLAN-001 |
-| 版本 | 0.3 |
+| 版本 | 0.4 |
 | 状态 | **开发前就绪计划・Gate 未闭合・NO-GO（禁止业务编码、迁移与部署）** |
-| 依据 | DEC-001～004、RGS-QA-001 v0.6、RGS-ADR-0052、RGS-DTL-031 v0.1、RGS-SPEC-000、RGS-IMPL-001 |
+| 依据 | DEC-001～004、RGS-QA-001 v0.7、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 |
 | 范围 | player / economy / match / social / admin 五域；ARC-018/021/042/051 |
 | 计划窗口 | 8～12 周规划假设，须以 Gate、OLU 和演练证据校准 |
 | 制定日 | 2026-08-21 |
@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-21 | 架构师 | — | 首版草案。采用“全域契约先行、单域纵向实现”，把 workspace、cluster manifest、插件边界和 Gate 放到首周。 |
 | 0.2 | 2026-08-21 | 架构师 | — | 绑定 RGS-SPEC-000 与 36 份子 SPEC；新增开发前 Go/No-Go 门禁、SPEC 变更追踪、当前工具链差距和授权证据清单。 |
 | 0.3 | 2026-08-21 | 架构师 | — | 绑定 RGS-IMPL-001，收敛 Q-101～Q-405 的工程答案；将 Q-003/Q-025 从“缺少方案”改为“方案已定、待具名 Gate/证据”。Rust 1.98 stable 为用户目标，GA 前 Gate 保持 Open。 |
+| 0.4 | 2026-08-21 | 架构师 + PM | — | 同步 handoff §5 Step 1-2 进展：① 升级 RGS-QA-001 v0.7 引用（Q-021 治理闭环落地 + Q-027 文档版本同步 + Q-031 WBS 主题重定义）② DTL-031 v0.1 → v0.2 ③ 新增 §3.4 RGS-REV-003 联合评审组织 + §3.5 RGS-ENV-001 环境核验 ④ 审批栏扩 5 域 Lead + SRE + DBA + Platform Engineer。**本计划不把 v0.3→v0.4 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字关闭后解除。** |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -31,7 +32,12 @@
 | SRE/运维负责人 | 待指定 | — | 确认 Active-Active、all-reachable、演练和 OLU |
 | 安全/DBA 负责人 | 待指定 | — | 确认 DB 隔离、Saga 补偿、凭证和审计 |
 | QA 负责人 | 待指定 | — | 确认 SPEC 验收项、testkit 前置与测试证据路径 |
+| 平台负责人（Platform Engineer）| 待指定 | — | 确认 Rust 1.98 / Cargo.lock / 镜像构建链路 |
+| 5 域 Lead（player / economy / match / social / admin）| 待指定 | — | 确认各自 DTL 字段级 Review、testkit 责任、依赖矩阵签字 |
+| 评审主持人（RGS-REV-003）| 架构师（兼任）| — | 主持联合评审流程与异议闭环 |
 | 项目负责人 | 待指定 | — | 确认范围、风险接受、资源和实施授权 |
+
+> **v0.4 扩列说明**：原 5 类签字方扩为 9 类（5 域 Lead 单列 + 平台工程师 + 评审主持人单列）。具体责任矩阵见 [RGS-REV-003 §3](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) 与 [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md)。
 
 ---
 
@@ -124,17 +130,106 @@ Gate approvals
 
 本表是进入 PH-1 前唯一的编码授权清单。状态为 `Open`、`Blocked` 或 `N/A 未具名接受` 时，结论一律为 NO-GO；不得用计划日期、AI 候选结论或“代码先写起来”替代证据。
 
-| ID | 必须关闭的门禁 | 当前状态（2026-08-21） | 关闭证据 | 责任人 |
-|---|---|---|---|---|
-| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 文档机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 |
-| G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | **Open / Blocker** | 接口、状态机、fencing、CEM/PFAU、测试映射和审批栏具名签署 | 架构负责人 + 平台负责人 |
-| G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | **Open** | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 |
-| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | **Open / Q-003 Blocker**：技术方案已载入 RGS-IMPL-001 §3，尚无具名批准 | Saga/Outbox/补偿边界、四层原子状态机合并图、至少三个业务场景验收计划 | 架构负责人 + DBA + 经济系统 Lead |
-| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | **Open**：工程目录/依赖规则已定义，DD Review 未签署 | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | 五域 Lead + 架构负责人 |
-| G-CODE-06 | 工具链与开发环境达到目标基线 | **Open**：当前 `rustc/cargo 1.95.0`、`psql 15.3`；未发现 Cargo workspace；Rust 1.98 stable 尚待 GA/核验 | Rust 1.98 stable、Actix Web 4.14.1 锁定方案、PostgreSQL 18.4 实测、workspace/CI bootstrap 设计核验 | 平台负责人 + DBA |
-| G-CODE-07 | OLU 与测试基础前置获批准 | **Open**：Q-015、Q-016 待具名审批 | OLU 重算、`crates/testkit` 范围/复用指标、首条测试设计落地方案 | SRE 负责人 + QA 负责人 |
+| ID | 必须关闭的门禁 | 当前状态（2026-08-21 v0.4） | 关闭证据 | 责任人 | 评审 checklist |
+|---|---|---|---|---|---|
+| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 🟣 机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 | [REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) §2.4 |
+| G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | 🟠 **Open / Blocker**（DTL-031 v0.2 已存在 21 KB） | 接口、状态机、fencing、CEM/PFAU、测试映射和审批栏具名签署 | 架构负责人 + 平台负责人 + DBA | [REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) §A.6 |
+| G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | 🟠 **Open**（ADR-0052 已起草 5.7 KB） | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 | REV-003 §2.3 + ADR-0052 联审 |
+| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | 🟠 **Open / Q-003 Blocker**（技术方案已固定在 RGS-IMPL-001 §3 + RGS-QA-001 v0.7） | Saga/Outbox/补偿边界、四层原子状态机合并图、6 个业务场景验收计划 | 架构负责人 + DBA + Economy 域 Lead | [REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) 6 场景 |
+| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | 🟠 **Open**：工程目录/依赖规则已定义，DD Review 未签署 | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | 5 域 Lead + 架构负责人 | REV-004 附件A §A.2-A.6 |
+| G-CODE-06 | 工具链与开发环境达到目标基线 | 🟠 **Open**：Rust 1.98 stable GA 已发 (2026-08-20) ✅；待"可安装 + 完整 CI 通过"实测 | Rust 1.98 实测、Actix Web 4.14.1 锁定、PostgreSQL 18.4 migration 演练、K3s 能力核验、锁定依赖 CI | 平台负责人 + DBA + SRE | [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板.md) 全部签字 |
+| G-CODE-07 | OLU 与测试基础前置获批准 | 🟠 **Open**：Q-015 待具名审批；Q-031 WBS 候选答案 v0.7 起草 | OLU 重算、Q-031 5 层 WBS 实施、`crates/testkit` 范围/复用指标 | SRE 负责人 + QA 负责人 + PM | REV-003 §3 + RGS-PLAN-001 v0.4 |
 
-**当前结论：NO-GO。** 本计划 v0.2 已完成“开发前就绪”文档化和 SPEC 绑定；它没有关闭任何需人类审批、环境实测或故障演练的门禁。
+**当前结论：NO-GO。** v0.4 同步了 handoff §5 Step 1-2 进展（评审草稿 + 环境核验模板就绪），但 7 个 G-CODE-* 仍 **Open / Blocker**。解除 NO-GO 条件：
+
+1. RGS-REV-003 §7.3 全部 7 类签字栏签署（架构师 + 5 域 Lead + Platform + DBA + SRE + QA + PM）
+2. RGS-ENV-001 §6 全部 5 类签字栏签署（Platform + DBA + SRE + 架构师 + PM）
+3. 7 个 G-CODE 全部 "🟢 Closed" 状态
+
+**3 项全部满足后**，§3.3 状态由 NO-GO 切到 GO，PM 可按 handoff §5 Step 4 启动 53。
+
+---
+
+## 3.4 联合评审组织（per handoff §5 Step 1）
+
+53 启动前置的 7 个 G-CODE 中，6 个依赖**人审签字**（G-CODE-01/02/03/04/05/07），1 个依赖**环境实测**（G-CODE-06）。联合评审是签字流程的组织载体。
+
+### §3.4.1 评审工具集
+
+| 文档 | 用途 | 路径 |
+|---|---|---|
+| [RGS-REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) | 联合评审主文（agenda + 责任矩阵 + 签字栏）| `docs/00-基准与治理/reviews/` |
+| [RGS-REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) | 5 域 DTL 字段级 Review Checklist（14 通用 + 5 域特定 + 跨域一致性） | 同上 |
+| [RGS-REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) | G-CODE-04 Saga 演练场景（6 场景：正常 / 补偿 / 超时 / 人工升级 / 去重 / PFAU+Saga） | 同上 |
+| [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md) | 完整 RACI 矩阵 + 签字流程（按依赖顺序，不可跳签）| 同上 |
+| [签字提案邮件](../00-基准与治理/reviews/签字提案邮件_模板.md) | Step 3 沟通：评审启动邮件 | 同上 |
+| [评审会议议程通知](../00-基准与治理/reviews/评审会议议程通知_模板.md) | Step 3 沟通：阶段 2 现场会议通知 | 同上 |
+
+### §3.4.2 评审流程（12 天硬上限）
+
+| 阶段 | 时长 | 活动 | 责任方 |
+|---|---|---|---|
+| **阶段 1 预读** | 第 0-3 天 | 责任人阅读 RGS-REV-003 + 3 附件 + 关联 DTL/SPEC/ADR | 5 域 Lead + 架构 + SRE + DBA + Platform + QA + PM |
+| **阶段 2 会议** | 第 5 天 14:00-16:00 | 现场/视频会议，2 小时硬上限 | 架构师主持 |
+| **阶段 3 闭环** | 第 5-12 天 | 异议以文档/ADR 修订闭环 | 各责任人 |
+| **签字** | 第 12 天 23:59 截止 | 按 REV-006 附件 C §C.2.2 顺序签字 | 全 9 类责任人 |
+
+### §3.4.3 签字顺序（不可跳签）
+
+DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead（Q-003） → Platform → PM
+
+### §3.4.4 异议处理
+
+- 🔴 Blocker：评审后 3 天内闭环
+- 🟠 重要：7 天内闭环
+- 🟡 应当：14 天内闭环
+- 🟢 Nice：Phase 1 内闭环，不阻塞 53
+- 闭环方式：A 文档修订 / B ADR 修订 / C 升级 NO-GO
+- 第 2 轮未闭环 → 升级 NO-GO，53 不可启动
+
+### §3.4.5 评审失败后果
+
+按 handoff §1 + 本计划 §3.3，**任何 G-CODE 状态不是 "🟢 Closed" 都保持 NO-GO**。评审失败不构成"带条件进入实施"的口子。
+
+---
+
+## 3.5 环境核验（per handoff §5 Step 2）
+
+环境核验是 G-CODE-06 关闭的前置。
+
+### §3.5.1 核验工具
+
+| 文档 | 用途 | 路径 |
+|---|---|---|
+| [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板.md) | 环境核验 checklist（工具链 / PG 18.4 / K3s / 锁定依赖 / 跨工具集成）| `docs/00-基准与治理/reviews/` |
+
+### §3.5.2 核验范围（5 层）
+
+1. **工具链**：rustc/cargo 1.98 + clippy + rustfmt + sqlx-cli + cargo-deny/audit/llvm-cov
+2. **PostgreSQL 18.4**：psql + 服务器连接 + 5 DB 划分 + sqlx 编译期 + migration 双向演练
+3. **K3s / Kubernetes**：kubectl + 节点就绪 + CoreDNS/Traefik + Helm + 镜像仓库
+4. **锁定依赖 CI**：`Cargo.lock` 入仓 + `--locked` 构建 + fmt/clippy/deny/audit/llvm-cov
+5. **跨工具集成**：sqlx 编译期 + tonic gRPC + tracing + distroless 容器
+
+### §3.5.3 签字路径
+
+Platform Engineer（§1/§4/§5） → DBA（§2） → SRE Lead（§3） → 架构师（§5） → **PM**（总签字）
+
+### §3.5.4 时效
+
+核验通过后 **30 天内**必须启动 53；超时重新核验。
+
+---
+
+## 3.6 §3.4-§3.5 与 §3.3 G-CODE 的关系
+
+```
+G-CODE-01 ~ 05, 07 ── 依赖 ──> RGS-REV-003 联合评审
+   ↓
+G-CODE-06 ── 依赖 ──> RGS-ENV-001 环境核验
+   ↓
+§3.3 NO-GO 解锁 = (RGS-REV-003 7 类签字齐) AND (RGS-ENV-001 5 类签字齐) AND (7 G-CODE 全 Closed)
+```
 
 ---
 
