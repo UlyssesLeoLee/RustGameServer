@@ -11,7 +11,7 @@
 | 制定者 | 架构师 |
 | 适用范围 | 53 开发环境构筑及其后的全部 Rust workspace、服务、契约、迁移、CI 与部署制品 |
 | 规范真源 | RGS-REQ / RGS-BAS / RGS-DTL / RGS-SPEC；本文件只固化工程实现约定，不重定义业务语义 |
-| 关联 | RGS-TS-001、RGS-QA-001 v0.6、RGS-PLAN-001 v0.3、RGS-DTL-031、RGS-SPEC-000 |
+| 关联 | RGS-TS-001 v0.4、RGS-QA-001 v0.7、RGS-PLAN-001 v0.4、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001 v0.1、RGS-REV-003、RGS-ENV-001、RGS-HANDOFF-001 v0.1 |
 
 > 本文件把实施前 Q-101～Q-405 的技术答案固定为一套可审查约定。`待具名批准`是 Gate 证据状态，**不是技术问题仍未作答**；任何例外必须更新本文件、对应 ADR/DTL/SPEC，并经同级 Gate 批准。
 
