@@ -4,13 +4,13 @@
 |---|---|
 | 文档编号 | RGS-DEPLOY-00-01 |
 | 版本 | 0.1（引用 + 不重复内容）|
-| 依据 | RGS-ENV-001 v0.2 + RGS-ENV-CALIB-001 v0.1 |
+| 依据 | RGS-ENV-001 v0.3 + RGS-ENV-CALIB-001 v0.1 |
 | 状态 | **🟠 NO-GO 状态** |
 | 保密级别 | 内部限定（Internal Use Only）|
 
 ---
 
-> **本文件不重复 RGS-ENV-001 v0.2 内容**——所有核验项、命令、通过标准均在主文档。本文件仅作引用 + 部署前置视角。
+> **本文件不重复 RGS-ENV-001 v0.3 内容**——所有核验项、命令、通过标准均在主文档。本文件仅作引用 + 部署前置视角。
 
 ## §1 主文档
 
@@ -27,7 +27,7 @@
 | §4 锁定依赖 CI | Cargo.lock 入仓 + --locked 构建 + fmt/clippy/deny/audit/llvm-cov | Platform Engineer | 🟡 占位 |
 | §5 跨工具集成 | sqlx 编译期 + tonic gRPC + tracing + distroless 容器 | 架构师 | 🟡 占位 |
 
-## §3 12 类签字栏（per RGS-ENV-001 v0.2 §6）
+## §3 12 类签字栏（per RGS-ENV-001 v0.3 §6）
 
 | # | 角色 | 责任方 | Ulysses 状态 |
 |---|---|---|---|
@@ -58,4 +58,4 @@
 
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。引用 RGS-ENV-001 v0.2 + RGS-ENV-CALIB-001 v0.1；不重复内容。 |
+| 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。引用 RGS-ENV-001 v0.3 + RGS-ENV-CALIB-001 v0.1；不重复内容。 |

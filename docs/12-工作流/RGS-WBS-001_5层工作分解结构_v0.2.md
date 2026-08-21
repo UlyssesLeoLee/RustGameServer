@@ -4,13 +4,13 @@
 |---|---|
 | 文档编号 | RGS-WBS-001 |
 | 版本 | 0.2（草稿 + 5 域 Lead L4 任务补全）|
-| 依据 | RGS-PLAN-001 v0.7 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.9 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
+| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.10 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
 | 范围 | first slice 14-18 周 / 5 域 + foundation + cluster-ops + shared-platform / ARC-018/021/042/051 |
-| 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.7 §3.1 PH 阶段表；RGS-ENV-001 v0.2 环境核验 12 类签字 |
+| 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.8 §3.1 PH 阶段表；RGS-ENV-001 v0.3 环境核验 12 类签字 |
 | 保密级别 | 内部限定（Internal Use Only）|
 
 > **核心约束**：
-> - **L1 阶段**：8 PH（per RGS-PLAN-001 v0.7 §3.1 14-18 周重排）
+> - **L1 阶段**：8 PH（per RGS-PLAN-001 v0.8 §3.1 14-18 周重排）
 > - **L2 域**：5 域 + foundation + cluster-ops + shared-platform = 8 域簇
 > - **L3 任务簇**：每域每 PH 8 个任务簇（API Spec / 业务逻辑 / DB migration / UT / IT / ST / Helm chart / observability）
 > - **L4 任务**：每任务簇 4 个具体任务
@@ -28,7 +28,7 @@
 
 ---
 
-## §1 L1 阶段（8 PH，per RGS-PLAN-001 v0.7 §3.1）
+## §1 L1 阶段（8 PH，per RGS-PLAN-001 v0.8 §3.1）
 
 | L1 | 阶段 | 规划窗口（v0.6 14-18 周）| 阶段出口 |
 |---|---|---|---|
@@ -385,5 +385,5 @@
 
 ---
 
-> **本 WBS 与 RGS-PLAN-001 v0.7 §3.1 PH 表 / RGS-TS-001 v0.6 §6.2 双轨制 / RGS-ENV-CALIB-001 校准模板 三方一致**。
+> **本 WBS 与 RGS-PLAN-001 v0.8 §3.1 PH 表 / RGS-TS-001 v0.6 §6.2 双轨制 / RGS-ENV-CALIB-001 校准模板 三方一致**。
 > **5 域 Lead L4 任务清单补全由各 Lead 在 PH-0.5 前出**。

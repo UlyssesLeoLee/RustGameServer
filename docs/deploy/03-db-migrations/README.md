@@ -1,6 +1,6 @@
 # 03-db-migrations — PostgreSQL 18.4 数据库迁移占位
 
-> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`）
+> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`）
 >
 > 本目录所有 `.sql` 文件在 **53 開発環境構築 启动条件**全部满足前**不得执行迁移**。
 >
@@ -61,7 +61,7 @@
 | flyway | JVM 工具，跨语言 | 备选（需 JVM 运行时） |
 | golang-migrate | 跨语言，但 Go 生态优先 | 备选 |
 
-> **实际选型由 DBA + SRE 联合签字后确定**，写在 `RGS-ENV-001 v0.2` 实际核验记录中。
+> **实际选型由 DBA + SRE 联合签字后确定**，写在 `RGS-ENV-001 v0.3` 实际核验记录中。
 
 ---
 
@@ -102,9 +102,9 @@
 
 本目录从占位升级为实际迁移，必须满足：
 
-1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.2`），特别：
+1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.3`），特别：
    - G-CODE-03 DBA 具名 + 5 独立 DB 拓扑图签字
-2. **RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
+2. **RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
 3. **DBA 联合 5 域 Lead 完成 6 个 DB 的 schema 设计**（DTL → DDL 落地）
 4. **迁移工具选型确定**（DBA + SRE 联合签字）
 
@@ -117,6 +117,6 @@
 - 上游：`RGS-TS-001 v0.6 §5.2`（PG 18.4 选型）+ `RGS-TS-001 v0.6 §5.1`（sqlx 选型）
 - 并行：`01-k8s-manifests/`（Secret 引用）+ `02-helm-charts/`（values 引用）
 - 设计：`ARC-008 5 独立 DB 原则` + `DTL-015/016/018/019/020/026/031`
-- 治理：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`
+- 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`
 - SOP：`../05-deploy-sop.md` §3（DB 迁移步骤）
-- 自检表：`../07-no-go-checklist.md`
+- 自检表：`../07-no-go-checklist_v0.2.md`

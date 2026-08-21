@@ -2,7 +2,7 @@
 
 > **🔴 NO-GO 占位**（生成时间：2026-08-21）
 >
-> 任何对本目录下文件的实际内容替换（镜像 tag、副本数、resources、env、Secret values）**必须等 `../07-no-go-checklist.md` 全部 ✅ 后**，由 SRE + 5 域 Lead 联合发起，架构师审批。
+> 任何对本目录下文件的实际内容替换（镜像 tag、副本数、resources、env、Secret values）**必须等 `../07-no-go-checklist_v0.2.md` 全部 ✅ 后**，由 SRE + 5 域 Lead 联合发起，架构师审批。
 
 ## 当前清单
 
@@ -22,15 +22,15 @@
 
 ## 状态变更条件
 
-🔴 → 🟡：7 G-CODE 全部 Closed（per `RGS-EXEC-001 v0.2`）
-🟡 → 🟢：RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字 + RGS-REV-003 §7.3 12 类签字栏全部具名签字
+🔴 → 🟡：7 G-CODE 全部 Closed（per `RGS-EXEC-001 v0.3`）
+🟡 → 🟢：RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字 + RGS-REV-003 §7.3 12 类签字栏全部具名签字
 
 ## 责任人占位
 
 - 架构师：Ulysses（已实际签，per RGS-EXEC-001 §2.4 / §3.4 / §4.4）
-- SRE：待具名（per RGS-EXEC-001 v0.2 §4.4 所有者背书）
-- DBA：待具名（per RGS-EXEC-001 v0.2 §3.4 所有者背书）
-- Platform 架构师：待具名（per RGS-EXEC-001 v0.2 §5 所有者背书）
-- QA Lead：待具名（per RGS-EXEC-001 v0.2 §6 所有者背书）
+- SRE：待具名（per RGS-EXEC-001 v0.3 §4.4 所有者背书）
+- DBA：待具名（per RGS-EXEC-001 v0.3 §3.4 所有者背书）
+- Platform 架构师：待具名（per RGS-EXEC-001 v0.3 §5 所有者背书）
+- QA Lead：待具名（per RGS-EXEC-001 v0.3 §6 所有者背书）
 - 5 域 Lead：待具名（per DEC-005 独立配置，不兼任）
-- 业务方代表：待具名（per RGS-EXEC-001 v0.2 §7 所有者背书）
+- 业务方代表：待具名（per RGS-EXEC-001 v0.3 §7 所有者背书）

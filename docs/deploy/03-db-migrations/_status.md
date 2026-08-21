@@ -35,6 +35,6 @@
 ## 责任人占位
 
 - 架构师：Ulysses（已实际签，per RGS-EXEC-001 §2.4）
-- DBA：待具名（per RGS-EXEC-001 v0.2 §3.4 所有者背书）
-- SRE：待具名（per RGS-EXEC-001 v0.2 §4.4 所有者背书）
+- DBA：待具名（per RGS-EXEC-001 v0.3 §3.4 所有者背书）
+- SRE：待具名（per RGS-EXEC-001 v0.3 §4.4 所有者背书）
 - 5 域 Lead：待具名（per DEC-005 独立配置，不兼任）

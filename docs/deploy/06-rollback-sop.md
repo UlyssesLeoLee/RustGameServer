@@ -4,7 +4,7 @@
 > **版本**：v0.1（NO-GO 状态）
 > **生效日期**：2026-08-21
 > **状态**：🔴 NO-GO 占位
-> **关联**：`05-deploy-sop.md` + `RGS-PLAN-001 v0.7 §3.3` + `RGS-EXEC-001 v0.2`
+> **关联**：`05-deploy-sop.md` + `RGS-PLAN-001 v0.8 §3.3` + `RGS-EXEC-001 v0.3`
 
 ---
 
@@ -73,7 +73,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=PLACEHOLDER_DOM
 ```
 
 **责任人**：该域 Lead
-**回滚后必做**：在 `RGS-EXEC-001 v0.2` 新增 incident entry + 通知 admin 域 Lead（COC 记录）
+**回滚后必做**：在 `RGS-EXEC-001 v0.3` 新增 incident entry + 通知 admin 域 Lead（COC 记录）
 
 **特殊：cluster-ops 域 L1 回滚**
 
@@ -120,7 +120,7 @@ kubectl exec -it PLACEHOLDER_ADMIN_POD_NAME -- \
 ```
 
 **责任人**：admin 域 Lead + SRE + 架构师 + economy 域 Lead + Economy 域 Lead Q-003 二次
-**签字栏**：`RGS-ENV-001 v0.2 §6` admin/SRE/架构师/economy/Q-003 5 类联合签字
+**签字栏**：`RGS-ENV-001 v0.3 §6` admin/SRE/架构师/economy/Q-003 5 类联合签字
 **特别约束**：per DEC-005，Q-003 二次签字不可跳过
 
 ### 3.3 L3 全量回滚
@@ -151,7 +151,7 @@ kubectl exec -it PLACEHOLDER_ADMIN_POD_NAME -- \
 ```
 
 **责任人**：PM + 架构师 + 业务方代表 + DBA
-**签字栏**：`RGS-ENV-001 v0.2 §6` PM/架构师/业务方/DBA 4 类联合签字
+**签字栏**：`RGS-ENV-001 v0.3 §6` PM/架构师/业务方/DBA 4 类联合签字
 **特别约束**：DB schema 回滚需 DBA 单独二次确认（per DEC-005 延伸：DB 是 DBA 独立控制面）
 
 ### 3.4 L4 灾难恢复
@@ -176,7 +176,7 @@ kubectl exec -it PLACEHOLDER_ADMIN_POD_NAME -- \
 
 ### 4.1 立即（5 分钟内）
 
-- [ ] 在 `RGS-EXEC-001 v0.2` 新增 incident entry（含时间 / 触发指标 / 决策人 / 操作步骤）
+- [ ] 在 `RGS-EXEC-001 v0.3` 新增 incident entry（含时间 / 触发指标 / 决策人 / 操作步骤）
 - [ ] 通知业务方代表（admin 域 Lead 通过 COC 操作）
 - [ ] 检查 Saga 状态机（economy 域）是否完全回退
 - [ ] 检查 COC 审计日志（admin_db）
@@ -186,7 +186,7 @@ kubectl exec -it PLACEHOLDER_ADMIN_POD_NAME -- \
 - [ ] 召开根因分析会议（架构师召集）
 - [ ] 更新 5-deploy-sop.md（如 SOP 有缺陷）
 - [ ] 更新 ADR（如架构决策有缺陷）
-- [ ] 更新 RGS-ENV-001 v0.2 §6 签字栏（如责任人需要补强）
+- [ ] 更新 RGS-ENV-001 v0.3 §6 签字栏（如责任人需要补强）
 
 ### 4.3 中期（1 周内）
 
@@ -208,7 +208,7 @@ kubectl exec -it PLACEHOLDER_ADMIN_POD_NAME -- \
 ## 6. 关联文档
 
 - 部署 SOP：`../05-deploy-sop.md`
-- NO-GO 自检表：`../07-no-go-checklist.md`
+- NO-GO 自检表：`../07-no-go-checklist_v0.2.md`
 - ADR：`RGS-ADR-0052`（Active-Active + all-reachable）
 - 决策：`DEC-005`（5 域 Lead 独立）
 - 设计：`RGS-ARC-051`（COC/CEM/PFAU）+ Q-003 Saga（DTL-015/016）

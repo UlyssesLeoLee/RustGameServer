@@ -4,7 +4,7 @@
 > **版本**：v0.1（NO-GO 状态）
 > **生效日期**：2026-08-21
 > **状态**：🔴 NO-GO 占位
-> **关联**：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6` + `RGS-EXEC-001 v0.2`
+> **关联**：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3`
 
 ---
 
@@ -12,7 +12,7 @@
 
 > ⚠️ **本 SOP 在 53 開発環境構築 启动条件全部满足前**（7 G-CODE Closed + 12 类签字栏齐全 + 12 类环境核验全通过）**禁止执行任何步骤。**
 >
-> 执行部署前必须先通过 `../07-no-go-checklist.md` 全部 ✅。
+> 执行部署前必须先通过 `../07-no-go-checklist_v0.2.md` 全部 ✅。
 
 ---
 
@@ -20,11 +20,11 @@
 
 ### 1.1 NO-GO 状态
 
-- [ ] `../07-no-go-checklist.md` 全部 ✅
-- [ ] `../00-prerequisites/00-no-go-checklist.md` 全部 ✅
-- [ ] `RGS-ENV-001 v0.2 §6` 12 类签字栏全部具名签字（**当前 2/12 实际签 + 10/12 所有者背书占位**）
+- [ ] `../07-no-go-checklist_v0.2.md` 全部 ✅
+- [ ] `../00-prerequisites/00-no-go-checklist_v0.2.md` 全部 ✅
+- [ ] `RGS-ENV-001 v0.3 §6` 12 类签字栏全部具名签字（**当前 2/12 实际签 + 10/12 所有者背书占位**）
 - [ ] `RGS-REV-003 §7.3` 12 类签字栏全部具名签字（**当前 8/12 实际签 + 10+ 所有者背书占位**）
-- [ ] `RGS-EXEC-001 v0.2` 7 G-CODE 全部 Closed（**当前 7/7 Open**）
+- [ ] `RGS-EXEC-001 v0.3` 7 G-CODE 全部 Closed（**当前 7/7 Open**）
 
 ### 1.2 责任人到位
 
@@ -48,7 +48,7 @@
 
 ### 1.4 环境核验
 
-- [ ] RGS-ENV-001 v0.2 §1-§5 12 类核验全部通过
+- [ ] RGS-ENV-001 v0.3 §1-§5 12 类核验全部通过
 - [ ] Rust 1.98 + CI 全绿（G-CODE-06 满足）
 - [ ] PG 18.4 5 独立 DB 已就绪（DBA 签字）
 - [ ] QUIC edge 证书已注入 Secret（加密仓管理）
@@ -116,7 +116,7 @@ kubectl port-forward svc/PLACEHOLDER_ADMIN_SVC_NAME PLACEHOLDER_ADMIN_COC_WEB_PO
 ```
 
 **责任人**：admin 域 Lead + SRE
-**签字栏**：`RGS-ENV-001 v0.2 §6` admin 域 / SRE 类别
+**签字栏**：`RGS-ENV-001 v0.3 §6` admin 域 / SRE 类别
 
 ### 步骤 2：cluster-ops 域（Active-Active，固定 3 副本）
 
@@ -140,7 +140,7 @@ kubectl exec -it PLACEHOLDER_CLUSTER_OPS_POD_NAME -n PLACEHOLDER_NAMESPACE -- \
 ```
 
 **责任人**：SRE + 架构师
-**签字栏**：`RGS-ENV-001 v0.2 §6` SRE / 架构师 类别
+**签字栏**：`RGS-ENV-001 v0.3 §6` SRE / 架构师 类别
 **特别约束**：per ADR-0052，**禁 HPA**，固定 3 副本 + topologySpreadConstraints 跨节点
 
 ### 步骤 3：player 域 / social 域（可并行部署，无 Saga 依赖）
@@ -153,7 +153,7 @@ kubectl apply -f deploy/01-k8s-manifests/04-social-service.yaml
 ```
 
 **责任人**：player 域 Lead / social 域 Lead
-**签字栏**：`RGS-ENV-001 v0.2 §6` 对应域 Lead 类别
+**签字栏**：`RGS-ENV-001 v0.3 §6` 对应域 Lead 类别
 
 ### 步骤 4：economy 域（Q-003 Saga 核心，**最敏感**）
 
@@ -176,7 +176,7 @@ kubectl apply -f deploy/01-k8s-manifests/02-economy-service.yaml
 ```
 
 **责任人**：economy 域 Lead + Economy 域 Lead Q-003 二次签字 + QA Lead
-**签字栏**：`RGS-ENV-001 v0.2 §6` economy 域 Lead + Q-003 二次 + QA 类别（**3 重签字**）
+**签字栏**：`RGS-ENV-001 v0.3 §6` economy 域 Lead + Q-003 二次 + QA 类别（**3 重签字**）
 
 ### 步骤 5：match 域（实时匹配，最后部署）
 
@@ -185,7 +185,7 @@ kubectl apply -f deploy/01-k8s-manifests/03-match-service.yaml
 ```
 
 **责任人**：match 域 Lead
-**签字栏**：`RGS-ENV-001 v0.2 §6` match 域 Lead 类别
+**签字栏**：`RGS-ENV-001 v0.3 §6` match 域 Lead 类别
 
 ### 步骤 6：shared-platform（QUIC edge / OTel collector）
 
@@ -194,7 +194,7 @@ kubectl apply -f deploy/01-k8s-manifests/07-shared-platform.yaml
 ```
 
 **责任人**：Platform 架构师
-**签字栏**：`RGS-ENV-001 v0.2 §6` Platform 类别
+**签字栏**：`RGS-ENV-001 v0.3 §6` Platform 类别
 
 ### 步骤 7：灰度切流
 
@@ -225,7 +225,7 @@ kubectl apply -f deploy/01-k8s-manifests/07-shared-platform.yaml
 ## 5. 关联文档
 
 - 回滚 SOP：`../06-rollback-sop.md`
-- NO-GO 自检表：`../07-no-go-checklist.md` + `../00-prerequisites/00-no-go-checklist.md`
-- 治理：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`
+- NO-GO 自检表：`../07-no-go-checklist_v0.2.md` + `../00-prerequisites/00-no-go-checklist_v0.2.md`
+- 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`
 - 架构：`RGS-ARC-051`（COC/CEM/PFAU）+ `RGS-ADR-0052`（Active-Active）
 - 设计：5 域 DTL（015/016/018/019/020/026/031）
