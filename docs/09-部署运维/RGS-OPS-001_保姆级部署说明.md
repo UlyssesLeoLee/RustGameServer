@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-OPS-001 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 制定日 | 2026-08-19 |
 | 制定者 | 架构师 |
 | 依据标准 | RGS-REQ-027 App集群自动化部署脚本 + RGS-BAS-024 集群部署基本设计 + RGS-DTL-024 详细设计 |
@@ -20,6 +20,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版。覆盖本地→CI→预发布→生产 全链路 |
 | **0.2** | 2026-08-20 | 架构师 | CI 示例改为不可变 Action SHA、最小权限与仅受保护主分支的发布/签名；多区域 runbook 增加独立 context、复制仲裁、fencing、DNS 切流及演练证据要求 |
+| **0.3** | 2026-08-21 | 架构师 | 同步 RGS-IMPL-001：Rust 1.98 stable 目标与 GA Gate、PostgreSQL 18.4、cargo-llvm-cov、域 migration owner、distroless nonroot、不可变镜像标签、Helm/Argo/OTel 约定。 |
 
 ## 审批栏
 
@@ -28,6 +29,10 @@
 | 制定 | 架构师 | 2026-08-19 | — |
 | 评审（SRE） |  |  |  |
 | 审批（负责人） |  |  |  |
+
+---
+
+> **实施前限制**：本文件中的命令和模板是获 PH-0.5 书面授权后的执行说明，不授权当前仓库创建 workspace、迁移、Kubernetes/Helm 制品或发布。版本、目录、密钥与发布边界以 [RGS-IMPL-001](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md) 为准；Rust 1.98 必须在 stable GA 且 CI 核验后才可使用。
 
 ---
 
@@ -75,8 +80,8 @@
 | 软件 | 版本 | 安装方式 | 用途 |
 |---|---|---|---|
 | **Git** | 2.40+ | `apt install git` | 代码管理 |
-| **Rust toolchain** | 1.80+ stable | `rustup` | 编译 |
-| **PostgreSQL** | 16.x | 官方源 | 5 个独立 DB |
+| **Rust toolchain** | 1.98 stable（用户目标；GA 前不可用） | `rustup` | 编译 |
+| **PostgreSQL** | 18.4 | 官方源 | 5 个独立 DB |
 | **Redis** | 7.2+ | 官方源 | 缓存 / 限流 / 会话 |
 | **Docker** | 24+ | 官方源 | 容器化（CI / 预发布） |
 | **Kubernetes** | 1.28+ | kubeadm / EKS / GKE | 生产编排 |
@@ -138,18 +143,17 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 
 # 2. 验证
-rustc --version    # 期望：rustc 1.80.0+
-cargo --version    # 期望：cargo 1.80.0+
+rustc --version    # 期望：经 CI 核验的 rustc 1.98.x stable
+cargo --version    # 期望：与 rustc 1.98.x 配套；GA 前本步骤不得宣告通过
 
 # 3. 安装组件
 rustup component add clippy rustfmt
 cargo install sqlx-cli --version 0.8
-cargo install cargo-tarpaulin   # 覆盖率
-cargo install cargo-llvm-cov    # 备选覆盖率
+cargo install cargo-llvm-cov    # 覆盖率
 cargo install k6                # 负载测试
 ```
 
-> **为什么这些组件**：`clippy`/`rustfmt` 是 CI 必跑；`sqlx-cli` 跑 DB 迁移；`tarpaulin`/`llvm-cov` 计算覆盖率（QA-001）；`k6` 跑 TL-6 负载（AC-005）。
+> **为什么这些组件**：`clippy`/`rustfmt` 是 CI 必跑；`sqlx-cli` 仅由 DB owner 的受控 migration runner 使用；`llvm-cov` 计算覆盖率；`k6` 跑 TL-6 负载。实际执行须在 Gate 关闭后进行。
 
 ## 2.3 启动 PostgreSQL + Redis（Docker 方式）
 
@@ -159,11 +163,11 @@ cat > docker-compose.dev.yml <<'EOF'
 version: '3.8'
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.4
     container_name: rgs-postgres
     environment:
       POSTGRES_USER: rgs
-      POSTGRES_PASSWORD: rgs_dev_password
+      POSTGRES_PASSWORD: ${RGS_DEV_POSTGRES_PASSWORD:?set_in_local_env}
       POSTGRES_DB: rgs
     ports:
       - "5432:5432"
@@ -307,12 +311,12 @@ cargo test --workspace --test '*'
 # 耗时：< 12 min
 
 # 3. 覆盖率报告
-cargo tarpaulin --workspace --out Html --output-dir coverage/
+cargo llvm-cov --workspace --html --output-dir coverage/
 # 打开 coverage/index.html
 # 期望：核心区域 ≥ 80%（QA-001）
 
 # 4. 静态检查
-cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
 
 # 5. 文档生成（可选）
@@ -530,7 +534,9 @@ jobs:
 
 ```dockerfile
 # ===== 阶段 1: builder =====
-FROM rust:1.80-slim-bookworm AS builder
+# 仅由已通过 G-CODE-06 的 CI 注入已发布、已核验的 stable 版本。
+ARG RUST_VERSION=1.98
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -541,37 +547,25 @@ RUN apt-get update && apt-get install -y \
 
 # 复制 manifests（缓存优化）
 COPY Cargo.toml Cargo.lock ./
+COPY proto proto
 COPY crates crates
 COPY services services
 
 # 编译（release 模式）
-RUN cargo build --release --bin rgs-gateway
+RUN cargo build --locked --release -p rgs-gateway-service
 
 # ===== 阶段 2: runtime =====
-FROM debian:bookworm-slim AS runtime
-
-# 安全：非 root 用户
-RUN groupadd -r rgs && useradd -r -g rgs rgs
-
-# 仅安装运行时依赖
-RUN apt-get update && apt-get install -y \
-    ca-certificates libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 
 # 复制二进制
-COPY --from=builder /app/target/release/rgs-gateway /usr/local/bin/
+COPY --from=builder /app/target/release/rgs-gateway-service /usr/local/bin/rgs-gateway-service
 
-USER rgs
 EXPOSE 7000/udp 7001/tcp
 
-# 健康检查
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
-    CMD ["/usr/local/bin/rgs-gateway", "--healthcheck"]
-
-ENTRYPOINT ["/usr/local/bin/rgs-gateway"]
+ENTRYPOINT ["/usr/local/bin/rgs-gateway-service"]
 ```
 
-> **为什么多阶段构建**：builder 阶段 1.5 GB → runtime 阶段 < 100 MB。生产镜像更小、更安全（非 root、最小依赖）。
+> **为什么多阶段构建**：运行时镜像必须按 digest 固定并以 nonroot 运行；健康检查由 Kubernetes probe 执行。生产制品只能使用 Git SHA/digest 与 OCI revision/version labels，dirty worktree 只能生成本地开发镜像。
 
 ## 3.3 触发条件总览
 
@@ -1087,7 +1081,7 @@ cargo flamegraph --bin rgs-gateway
 |---|---|
 | 父 Cargo manifest | `Cargo.toml` |
 | 工作空间 member | `crates/*/Cargo.toml`, `services/*/Cargo.toml` |
-| 数据库迁移 | `migrations/<db>/V*__*.sql` |
+| 数据库迁移 | `crates/rgs-<domain>/migrations/YYYYMMDDHHMMSS_description.sql`（仅 DB owner 执行） |
 | Helm charts | `charts/<service>/` |
 | K8s manifests | `k8s/` |
 | 监控配置 | `k8s/monitoring/` |
@@ -1119,7 +1113,7 @@ cargo flamegraph --bin rgs-gateway
 | 任务 | 命令 |
 |---|---|
 | 跑全部测试 | `cargo test --workspace` |
-| 看覆盖率 | `cargo tarpaulin --workspace --out Html` |
+| 看覆盖率 | `cargo llvm-cov --workspace --html` |
 | 跑 1k CCU 负载 | `cargo run -p load-mock-client -- --instance-count 1000` |
 | 看实时日志 | `kubectl logs -f -l app=rgs-gateway` |
 | 数据库迁移 | `sqlx migrate run --database-url <url> --source migrations/<db>` |

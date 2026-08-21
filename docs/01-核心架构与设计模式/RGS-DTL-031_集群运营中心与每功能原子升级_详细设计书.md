@@ -5,12 +5,12 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-031 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 状态 | **草案・待具名人类审批・不得作为实施授权** |
 | 父文档 | RGS-BAS-031（addendum）集群运营中心与每功能原子升级基本设计书 |
 | 需求依据 | RGS-REQ-031（ARC-051）、RGS-REQ-027（ARC-042） |
 | 决策依据 | RGS-ADR-0051、RGS-ADR-0052、RGS-ADR-0015、RGS-ADR-0020 |
-| 协同文档 | RGS-BAS-002、RGS-BAS-005、RGS-BAS-024、RGS-QA-001 v0.5 |
+| 协同文档 | RGS-BAS-002、RGS-BAS-005、RGS-BAS-024、RGS-QA-001 v0.6、RGS-IMPL-001 |
 | 制定日 | 2026-08-21 |
 | 制定者 | 架构师 |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -22,6 +22,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | — | 首版草案。将 ARC-018/021/042/051 收束为 Feature 控制面，并落地 all-reachable、Active-Active、DAG 与插件边界。 | 全文 |
+| 0.2 | 2026-08-21 | 架构师 | — | 同步 RGS-IMPL-001：固定 ClusterOps crate/service 位置、域版本 proto、admin_db migration owner、Saga 非目标、错误与 CI/部署边界；Q-025 转为字段级 DD Review Gate。 | §8、§10、§11、§12 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -319,10 +320,10 @@ apps:
 
 ## 8.2 Q-003 跨 DB Saga 边界
 
-Q-003 当前仍待具名人类审批。本 DTL 只冻结边界，不把候选方案伪装成最终批准：
+Q-003 的技术方案已由 RGS-IMPL-001 固定，仍待架构、DBA 与经济 Lead 的具名 Gate 批准：
 
-- 每个业务 DB 只执行自己的本地事务；跨 DB 流程采用候选的 Saga + Outbox 方案；
-- 补偿由业务域服务执行并写入本域审计，不由 ClusterOpsService 代替；
+- 每个业务 DB 只执行自己的本地事务，并在同一事务写 Outbox；跨 DB 流程由唯一 Saga 调解者持久化状态、以 `request_id`/inbox 去重并执行明确补偿；
+- 补偿由业务域服务执行并写入本域审计，不由 ClusterOpsService 代替；禁止 2PC/XA、跨 DB FK 与由 `admin_db` 充当业务协调库；
 - ClusterOpsService 只负责 Feature/PFAU 控制面，不协调购买、转账或跨域奖励的业务事务；
 - Q-003 审批前，经济域不得实现跨 DB 业务写入，也不得用 `admin_db` 充当业务事务协调库。
 
@@ -344,15 +345,18 @@ Q-003 当前仍待具名人类审批。本 DTL 只冻结边界，不把候选方
 
 实际代码仓库当前尚无 Cargo workspace。获 Gate 批准后，第一版骨架必须从以下边界开始：
 
-- 工具链：Rust stable（2026-08-21 核验为 1.97.1）、Edition 2024、Cargo resolver 3；创建 workspace 时写入 `rust-toolchain.toml` 与 `Cargo.lock`。
+- 工具链：Rust 1.98 stable 是用户指定目标、Edition 2024、Cargo resolver 3；在 1.98 GA 且全量 CI 核验前不写入 `rust-toolchain.toml`，`G-CODE-06` 保持 Open。根 `Cargo.lock` 是唯一锁文件且必须入仓。
 - HTTP：Actix Web 4.14.1 + Tokio；内部 gRPC 仍使用 tonic，hyper 只作为底层协议依赖，不作为业务 HTTP 框架。
 - 数据库：PostgreSQL 18.4；五个独立 DB 均按 PostgreSQL 18.4 migration/备份/回退矩阵验证。后续 18.x 补丁升级必须重新灰度验证，PostgreSQL 19 Beta 不得进入生产基线。
 
 ```text
 Cargo.toml                 # virtual workspace；显式 members；resolver = "3"
+Cargo.lock                 # 唯一根锁文件，必须入仓
+proto/rgs/cluster_ops/v1/  # ClusterOps protobuf；按域/版本隔离
 crates/
-  contracts/               # proto/event/error/ID 契约，不依赖业务 DB
-  testkit/                 # 五域共用契约、DAG、Saga 与插件隔离夹具
+  rgs-cluster-ops/         # 控制面领域逻辑；不承载 HTTP、K8s 凭证或业务 Saga
+  rgs-contracts-cluster-ops/ # ClusterOps 生成契约，不依赖业务 DB
+  rgs-testkit/             # 五域共用契约、DAG、Saga 与插件隔离夹具
 services/
   cluster-ops-service/
   player-service/
@@ -364,7 +368,7 @@ deploy/
   cluster-manifest/
 ```
 
-每个服务拥有自己的 `Cargo.toml`、`src/`、`proto/`、`migrations/` 和 `deploy/helm/`。领域 `domain/` 层不得依赖其他限界上下文 crate；跨边界只能经 `contracts`、gRPC client 或事件封装。
+每个服务拥有自己的 `Cargo.toml`、`src/` 与 `deploy/helm/`。领域 crate 的 migration 位于 `crates/rgs-{domain}/migrations/`，以时间戳命名且只改本域 DB；ClusterOps 使用 `admin_db`，由 admin 的单一 migration runner 执行。领域层不得依赖其他限界上下文 crate；跨边界只能经按域 contracts、gRPC client 或事件封装。
 
 ## 10.2 实现顺序
 
@@ -381,9 +385,9 @@ deploy/
 ## 11.1 第一行代码前必须完成
 
 - [ ] RGS-QA-001 四类具名人类审批，或明确记录“接受风险、带条件进入实施”。
-- [ ] Q-003 跨 DB Saga 方案获架构/经济系统负责人批准。
+- [ ] Q-003 的 Saga/Outbox/补偿方案获架构、DBA 与经济系统负责人批准，并完成三个真实场景验证。
 - [ ] Q-004 ARC-018/021/042/051 组合方式获批准。
-- [ ] Q-025 DTL-031 优先级与时间窗口获批准。
+- [ ] Q-025 的 DTL-031 字段级 DD Review 完成并获架构、平台、SRE、DBA 与项目负责人签署。
 - [ ] ADR-0052 具名审批完成，Active-Active/all-reachable 进入基线。
 - [ ] 5 域 DTL 契约评审完成，cluster manifest 与依赖矩阵冻结。
 
@@ -397,9 +401,9 @@ deploy/
 | Plugin isolation | panic/脚本超限/连续异常不影响宿主与其他插件 |
 | Active-Active chaos | 双副本并发写、租约丢失、DB failover、跨 AZ 切换与回切 |
 
-## 11.3 仍待决事项
+## 11.3 待 Gate 证据（技术答案已固定）
 
-- Q-003：跨 DB Saga 的具体补偿上限、失败升级路径和真实场景清单。
+- Q-003：补偿延迟 SLO、失败升级路径和三个真实场景的具名批准/测试证据。
 - Q-004：四个 ARC 的组合矩阵与冲突判定。
 - TBD-COC-001/002：无限画布实现和补丁 Feature 金丝雀门禁。
 - OLU：DEC-001/003/004 叠加后的实际工时，不得以 Agent 规划收益替代实测。
@@ -417,3 +421,4 @@ deploy/
 | RGS-BAS-002 / ARC-018 | §6、§10 的独立 App、Cargo workspace 与挂载脚手架 |
 | RGS-BAS-005 / ARC-021 | §6、§9 的插件宿主、生命周期与隔离 |
 | RGS-QA-001 Q-003/Q-004/Q-025 | §8、§11 的审批阻断与开放项 |
+| RGS-IMPL-001 | §8、§10、§11 的 Saga、workspace、contracts、migration、CI 与 Gate 约定 |
