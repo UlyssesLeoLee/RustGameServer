@@ -154,3 +154,116 @@ git worktree prune --dry-run
 | 版本 | 日期 | 内容 |
 |---|---|---|
 | 0.1 | 2026-08-21 | 初版：定义仓库外受管 worktree、分支、锁、端口块、Compose/数据库 namespace、密钥边界与安全回收脚本。 |
+| 0.2 | 2026-08-21 | **WBS L4 任务 worktree 模式**（per RGS-WBS-001 v0.3 §6.1 + §6.3 + §13）：① 新增 `wbs/<L4-ID>` 分支命名规则（替代通用 `codex/wt-<task>`）② 新增 4 个 WBS 脚本（wbs_list / wbs_create_worktree / wbs_task_progress / wbs_merge）③ 新增 `.wbs-task-marker` 跨会话恢复机制 ④ 显式 PowerShell 7.0+ 依赖声明 ⑤ 5 域 DTL 边界 + 跨域 DTL-021~025 / shared-platform DTL-032~040 的 worktree 分配规则。 |
+
+---
+
+## 11. WBS L4 任务 worktree 模式（v0.2 新增，per RGS-WBS-001 v0.3 §6.1 + §6.3 + §13）
+
+### 11.1 分支命名
+
+L4 任务 worktree 的分支命名规则（**替代 §2 通用 `codex/wt-<task>` 规则**）：
+
+```
+分支名：wbs/<L4-ID>
+示例：wbs/WF-1-54.1、wbs/WF-1-54.2、wbs/WF-0.5-1、wbs/WF-0.5-7
+```
+
+**L4-ID 格式**（per RGS-WBS-001 v0.3 §6.1）：
+- `WF-<L1>-<L3>-<L4>`（实施阶段，如 `WF-1-54.1`）
+- `WF-<L1>.<L2>-<L4>`（跨阶段，如 `WF-0.5-1`）
+- L1 = 阶段（0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 6 / 7）
+- L3 = 工程号（53 / 54 / 55 / 56 / 57 / 58），L2 = 子阶段（仅 0.5 用）
+- L4 = 任务序号（1-15）
+
+**worktree 目录名**（L4 ID 的 `.` → `-`）：
+
+```
+D:\RustGameServer-worktrees\
+  WF-1-54-1\                    # 分支 wbs/WF-1-54.1
+  WF-1-54-2\                    # 分支 wbs/WF-1-54.2
+  WF-0-5-1\                     # 分支 wbs/WF-0.5-1
+  WF-0-5-7\                     # 分支 wbs/WF-0.5-7
+```
+
+### 11.2 4 个 WBS 专用脚本（per RGS-WBS-001 v0.3 §6.4）
+
+| 脚本 | 作用 | 命令 |
+|---|---|---|
+| `scripts/wbs_list.ps1` | 列出 WBS L4 任务 + 按 stage/domain/status 过滤 | `pwsh -File scripts/wbs_list.ps1 [-Stage WF-1] [-Domain player] [-Status pending] [-Summary]` |
+| `scripts/wbs_create_worktree.ps1` | 为 L4 任务创建 worktree + 写 `.wbs-task-marker` | `pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-1-54.1` |
+| `scripts/wbs_task_progress.ps1` | 进度追踪（start / progress / done / blocked）| `pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-1-54.1 -Status progress -Progress 50` |
+| `scripts/wbs_merge.ps1` | 跑 3 脚本验证 + 合并回 main + 清理 worktree | `pwsh -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1` |
+
+**与通用 `scripts/worktree.ps1` 的关系**：
+- 通用 `worktree.ps1`：自由 task 名 + `codex/wt-<task>` 分支 + 端口块管理
+- WBS 专用 `wbs_*.ps1`：固定 L4 ID → `wbs/<L4-ID>` 分支 + 自带 `.wbs-task-marker` + 跨会话恢复
+- 两者并行存在，**WBS L4 任务优先用 `wbs_*.ps1`**，非 WBS 自由探索任务仍可用 `worktree.ps1`
+
+### 11.3 `.wbs-task-marker` 跨会话恢复机制（per §13）
+
+每个 WBS L4 worktree 根目录写一个 `.wbs-task-marker` JSON 文件（含 7 字段）：
+
+```json
+{
+  "l4_id": "WF-1-54.1",
+  "task": "5 域 Cargo crate 骨架（7 个）",
+  "owner": "5 域",
+  "tokens": "400K",
+  "spec": "RGS-SPEC-000 §2.1 + RGS-IMPL-001 §2",
+  "dtl": "DTL-018/015/016/026/019/020/031 §2",
+  "branch": "wbs/WF-1-54.1",
+  "status": "in_progress",
+  "progress": 50,
+  "started_at": "2026-08-21T10:30:00+09:00",
+  "updated_at": "2026-08-21T14:15:00+09:00",
+  "worktree": "D:\\RustGameServer-worktrees\\WF-1-54-1"
+}
+```
+
+**跨会话恢复**：
+- 重新打开 worktree 时，agent 先读 `.wbs-task-marker` 知道当前 status / progress
+- 修改后调 `wbs_task_progress.ps1` 更新 marker
+- 同时维护 `.wbs-task-log.txt` 追加历史记录
+- **RGS-WBS-001_L4任务进度表_v0.3.md** 汇总所有 marker 状态（agent / 人类 review 用）
+
+### 11.4 5 域 DTL 边界 + 跨域/平台 DTL 分配规则（per RGS-WBS-001 v0.3 §2A.6.1 + §2A.7）
+
+WBS L4 任务按 owner 分配 worktree：
+
+| 域 / 类型 | owner | L4 任务示例 | worktree 命名 |
+|---|---|---|---|
+| 5 业务域 DTL §1-§3（player / economy / match / social / admin）| 5 域 Lead（DEC-008 = Ulysses）| WF-0.5-1 / WF-0.5-2 / WF-0.5-3 | wbs/WF-0.5-1 等 |
+| 跨域 DTL-021~025 | **Platform 域 Lead**（Ulysses）| WF-0.5-4 | wbs/WF-0.5-4 |
+| shared-platform DTL-032~040 | **Platform 域 Lead**（Ulysses）| WF-0.5-5 | wbs/WF-0.5-5 |
+| 7 份 RGS-SPEC-CROSS-001~007 | 各主题 owner（Platform 6/7 + cluster-ops 1/7）| WF-0.5-6 | wbs/WF-0.5-6 |
+| 5 域 DTL §1-§3 联检 | 架构师（Ulysses）| WF-0.5-7 | wbs/WF-0.5-7 |
+| 54 编码实现（5 域 + Platform）| 各自域 Lead | WF-1-54.1 ~ WF-1-54.15 | wbs/WF-1-54.X |
+| 53 開発環境構築 | Platform | WF-1-53.1 ~ WF-1-53.15 | wbs/WF-1-53.X |
+| 55-58 静态分析/CR/构建/CI | Platform | WF-1-55.X ~ WF-1-58.X | wbs/WF-1-55.X 等 |
+
+**冲突检测规则**：
+- 同一 owner 在同一时间只能 worktree 1 个 L4 任务（避免 1 人多 worktree 状态混淆）
+- 跨域 DTL-021~025 的 L4 任务必须等 5 域 DTL §1-§3 联检（WF-0.5-7）通过后才能 start
+- shared-platform DTL-032~040 的 L4 任务必须等 CROSS-001~007（WF-0.5-6）v0.2 填完
+
+### 11.5 PowerShell 7.0+ 依赖声明
+
+WBS 脚本（`wbs_*.ps1`）**必须**用 PowerShell 7.0+ 跑（中文路径支持）：
+
+```bash
+# 检测 PS 7
+where.exe pwsh
+# 期望: C:\Program Files\PowerShell\7\pwsh.exe
+
+# 跑 WBS 脚本
+pwsh -NoProfile -File scripts/wbs_list.ps1 -Summary
+pwsh -NoProfile -File scripts/wbs_create_worktree.ps1 -L4Id WF-1-54.1
+pwsh -NoProfile -File scripts/wbs_task_progress.ps1 -L4Id WF-1-54.1 -Status start
+pwsh -NoProfile -File scripts/wbs_task_progress.ps1 -L4Id WF-1-54.1 -Status done
+pwsh -NoProfile -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
+```
+
+**不**兼容 PowerShell 5.1（Windows 默认）— 因为 §2 通用 `worktree.ps1` 用 ANSI 系统编码解析中文路径，PS 5.1 解析中文目录名失败（GBK vs UTF-8 冲突）。
+
+如果只有 PS 5.1：用 `chcp 65001` + 重启 PS，但建议升级 PS 7（Ulysses 环境已装 PS 7.6.3）。
