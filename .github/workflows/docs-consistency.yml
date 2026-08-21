@@ -1,23 +1,39 @@
 name: 文档体系一致性检查
 
-# 处置RSK-PAT-001／TBD-PAT-002：ARC/ADR序列、域内TBD/RSK登记、README链接的
-# 机械一致性校验，避免RGS-BAS-010式的"归纳范围滞后11份文档才被发现"重演。
-# 归属：RGS-BAS-002§4.2既有CI/CD流水线骨架的lint阶段（同GOV-OLU-003"不新建
-# 独立流水线"原则），仅在docs/路径发生变更时触发。
-
-on:
+# 文档、登记册与校验器任一变更都必须运行同一组阻断检查。
+"on":
   pull_request:
     paths:
       - "docs/**"
+      - "scripts/check-docs-consistency.sh"
+      - "scripts/check-cross-references.py"
+      - "scripts/verify_docs.py"
+      - ".gitattributes"
+      - ".github/workflows/docs-consistency.yml"
+      - ".github/workflows/docs-verify.yml"
   push:
     branches: [main]
     paths:
       - "docs/**"
+      - "scripts/check-docs-consistency.sh"
+      - "scripts/check-cross-references.py"
+      - "scripts/verify_docs.py"
+      - ".gitattributes"
+      - ".github/workflows/docs-consistency.yml"
+      - ".github/workflows/docs-verify.yml"
+
+permissions:
+  contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: 运行文档一致性检查脚本
-        run: ./scripts/check-docs-consistency.sh
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: 运行文档完整性与一致性检查
+        run: |
+          python scripts/verify_docs.py
+          bash scripts/check-docs-consistency.sh

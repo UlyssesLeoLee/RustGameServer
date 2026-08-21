@@ -1,14 +1,15 @@
 # 技术选型报告（技術選定レポート / Technology Selection Report）
 
-**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.1**
+**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.3**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TS-001 |
-| 版本 | 0.1 |
+| 版本 | 0.3 |
 | 父文档 | RGS-REQ-001 需求定义书（贯穿 22+ 域） |
-| 配套文档 | 14 份 ADR（RGS-ADR-0001～0051）、RGS-OPS-001 部署运维说明、各域 BAS/DTL |
+| 配套文档 | 18 份 ADR（RGS-ADR-0001～0054）、RGS-OPS-001 部署运维说明、各域 BAS/DTL |
 | 制定日 | 2026-08-19 |
+| 最终更新日 | 2026-08-21 |
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -20,6 +21,8 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。覆盖 16 个分层领域、60+ 技术组件、版本号与许可证状态；每条选型给出理由 + 备选 + 关联 ADR/TBD；按 ARC-014 判定基准确认"确有取舍"项与"决策显然"项分类 |
+| 0.2 | 2026-08-20 | 架构师 | 修正按状态统计口径；新增长期记忆向量存储 TBD-MEM-001（待附件 D 登记及具名人类审批），不新增或伪造 ADR。 |
+| 0.3 | 2026-08-21 | 架构师 | 按最新官方发布核验并更新 Rust stable 1.97.1、PostgreSQL 18.4、Actix Web 4.14.1；明确 PostgreSQL 19 Beta 不进入生产基线。 |
 
 ## 审批栏
 
@@ -30,6 +33,8 @@
 | 评审（SRE／运维） | | | 与 RGS-OPS-001 部署说明的版本对齐 |
 | 评审（安全） | | | 许可证合规（CON-001/002）；漏洞面与升级路径 |
 | 审批（负责人） | | | 本文档的基准化 |
+
+> **基线状态说明**：本报告中的“已决/一致”描述技术选型语义或已有 ADR 关系，不等于本报告已经完成基准化审批。Rust 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4 是当前目标版本基线；在审批栏补齐、CI/预发核验和回归证据形成前，不得把它们写成已批准的生产环境完成事实。
 
 > 本文档**不替代**各 ADR 的逐项决定——ADR 是"确有取舍"的单点决定记录，本文档是"全栈选型一览"，便于评审、招聘、新成员上手。每条选型**必须**可追溯到对应 ADR 或 TBD；ARC-014 判定基准要求"未证明需要不引入"——故"暂未选型"也是合法状态，本文档**显式标注**哪些领域**未**引入中间件。
 
@@ -53,6 +58,7 @@
    3.6 事件总线与消息
    3.7 沙箱脚本引擎（插件热插拔）
    3.8 智能层（不确定层 L4）
+      3.8.4 长期记忆向量存储（待决）
    3.9 可观测性
    3.10 边缘与网络
    3.11 部署与编排
@@ -71,7 +77,7 @@
 
 ## 1.1 目的
 
-本系统（RustGameServer）从 2026-08-15 立项至本报告制定时点，已演进至 22+ 域、~33 份 REQ、~27 份 BAS、~26 份 DTL、14 份 ADR。技术选型散落在 14 份 ADR、各 DTL 的"组件选型"段、RGS-OPS-001 部署说明等位置，**没有一份统一的"全栈一览"文档**。
+本系统（RustGameServer）从 2026-08-15 立项至本报告制定时点，已演进至多域需求、基本/详细设计与 18 份 ADR。技术选型散落在 ADR、各 DTL 的"组件选型"段、RGS-OPS-001 部署说明等位置，**没有一份统一的"全栈一览"文档**。
 
 本文档的目的：
 
@@ -120,6 +126,7 @@
 |---|---|
 | **【已决】** | 已有 ADR 支撑（ADR 编号在引用栏） |
 | **【一致】** | 与既有 ADR 隐含选择一致，无需单独立 ADR（理由在备注栏） |
+| **【目标基线·待审批】** | 版本已核验并作为当前工程目标，但技术选型报告/环境尚未完成具名基准化审批 |
 | **【待决 TBD-NNN】** | 选型尚未完成，登记至附件 D §1.3 |
 | **【否决】** | 此前曾考虑但已明确否决（理由附后，避免重提） |
 
@@ -129,14 +136,14 @@
 
 | 层级 | 数量 | 主要选型 |
 |---|---|---|
-| 3.1 语言与工具链 | 5 | Rust 1.80+、Cargo workspace、rustc、cargo-generate、Clippy/rustfmt |
-| 3.2 异步运行时与网络 | 4 | Tokio 1.x、hyper、quinn（QUIC）、tokio-rustls |
+| 3.1 语言与工具链 | 5 | Rust stable（核验基线 1.97.1）、Cargo workspace、rustc、cargo-generate、Clippy/rustfmt |
+| 3.2 异步运行时与网络 | 4 | Tokio 1.x、Actix Web 4.14.1、quinn（QUIC）、tokio-rustls |
 | 3.3 RPC 与序列化 | 4 | tonic（gRPC）、prost（Protobuf codegen）、Connect（HTTP/gRPC 桥接，可选） |
-| 3.4 数据库 | 3 | PostgreSQL 16、sqlx、Redis 7.2+ |
+| 3.4 数据库 | 3 | PostgreSQL 18.4、sqlx、Redis 7.2+ |
 | 3.5 缓存与会话 | 1 | Redis 7.2+（同 3.4） |
 | 3.6 事件总线 | 1 | NATS JetStream 2.10+ |
 | 3.7 沙箱脚本引擎 | 1 | Rhai 1.x |
-| 3.8 智能层（不确定层） | 3 | Python 3.11+、LangGraph、LiteLLM（或自托管 vLLM/TGI） |
+| 3.8 智能层（不确定层） | 4 | Python 3.11+、LangGraph、LiteLLM（或自托管 vLLM/TGI）、向量存储（待决） |
 | 3.9 可观测性 | 4 | OpenTelemetry SDK + Collector 0.96+、Prometheus 2.48+、Grafana 10+、tracing/tracing-subscriber |
 | 3.10 边缘与网络 | 2 | OpenResty 1.21+、CloudNative-PG Operator（PH-2 起） |
 | 3.11 部署与编排 | 4 | Ubuntu 22.04 LTS、Kubernetes 1.28+、Helm 3.13+、Docker 24+ |
@@ -146,7 +153,7 @@
 | 3.15 性能与负载测试 | 2 | k6 0.49+、playwright（仅 UI 自动化） |
 | 3.16 安全与密钥 | 3 | HashiCorp Vault（或自托管 OpenBao，可选）、ring / RustCrypto、rustls |
 
-合计 ~44 项主选型 + ~20 项辅助库。
+本表共列出 44 个分层条目（含待决项）；已决、待决与明确否决的去重统计以 §5 为准，避免将 ADR 引用重复计数。
 
 ---
 
@@ -154,15 +161,15 @@
 
 ## 3.1 语言与工具链
 
-### 3.1.1 主语言：Rust 1.80+ stable
+### 3.1.1 主语言：Rust stable（核验基线 1.97.1）
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【一致】Rust 1.80+ stable（最低线） |
-| **理由** | 项目命名即"RustGameServer"——内存安全 + 零成本抽象 + 生态（tokio/tonic/sqlx/axum）已成熟；与 ARC-005 权威边界、ARC-021 拒绝动态库加载、ARC-022 业务逻辑不入库三道防线均依赖 Rust 的编译期保证 |
+| **决定** | 【目标基线·待审批】跟随 Rust stable；截至 2026-08-21 的验证基线为 Rust 1.97.1 |
+| **理由** | 项目命名即"RustGameServer"——内存安全 + 零成本抽象 + 生态（Tokio/Actix Web/tonic/sqlx）已成熟；与 ARC-005 权威边界、ARC-021 拒绝动态库加载、ARC-022 业务逻辑不入库三道防线均依赖 Rust 的编译期保证 |
 | **备选** | C++（否决：内存安全保证弱、与 ARC-005 冲突）、Go（否决：GC 暂停对 20Hz tick 路径不可接受、RGS-REQ-001 NFR-PE-002 排除）、Zig（否决：生态不成熟） |
-| **版本策略** | 跟随 stable 双月发布；每年 1 月与 7 月升级主版本；MSRV 升级需经 ADR |
-| **引用** | RGS-REQ-001 §6.1 编程语言约束；RGS-ADR-0022 业务逻辑不入库（依赖 Rust 类型系统）；RGS-ADR-0020 拒绝动态库加载（依赖 Rust ABI 稳定性） |
+| **版本策略** | CI/生产构建跟随 stable；`rust-toolchain.toml` 与 `Cargo.lock` 固定每次已验证构建，升级 stable 必须通过全量 CI、迁移/回滚和性能回归后再更新基线 |
+| **引用** | RGS-REQ-001 §6.1 编程语言约束；RGS-ADR-0022 业务逻辑不入库（依赖 Rust 类型系统）；RGS-ADR-0020 拒绝动态库加载（依赖 Rust ABI 稳定性）；Rust 官方 release announcements |
 
 ### 3.1.2 编译与包管理：Cargo workspace
 
@@ -213,13 +220,14 @@
 | **版本策略** | 跟随 1.x 主线（破坏性变更罕见） |
 | **引用** | RGS-BAS-001 §3 部署构成（5 服务 + 网关的并发模型） |
 
-### 3.2.2 HTTP 服务器：hyper
+### 3.2.2 HTTP 服务框架：Actix Web
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【一致】hyper 1.x（直接使用，或经 axum 间接使用） |
-| **理由** | Tokio 团队自维护；与 tonic 共享 HTTP/2 栈；作为底层被 axum / tonic 同时使用，减少依赖 |
-| **引用** | RGS-BAS-001 §3.2 API 网关；RGS-REQ-024 VIZ 无限画布 BFF |
+| **决定** | 【目标基线·待审批】Actix Web 4.14.1（运行于 Tokio；Cargo manifest 声明 4.14.1，锁文件固定实际解析版本） |
+| **理由** | 提供稳定的 HTTP/1.x、HTTP/2、路由、中间件、WebSocket 与 streaming 能力；与 Tokio 生态兼容，适合五域 App/AdminService 的 HTTP ingress。tonic/hyper 仍只作为内部 gRPC/HTTP 底层依赖，不再作为业务 HTTP 框架。 |
+| **版本策略** | 跟随 Actix Web 4.x 最新稳定版本；每次升级必须核对 MSRV、Tokio/hyper 兼容性并通过 API/契约/负载回归。 |
+| **引用** | RGS-BAS-001 §3.2 API 网关；RGS-REQ-024 VIZ 无限画布 BFF；Actix Web 官方 crate 文档 |
 
 ### 3.2.3 QUIC 协议栈：quinn
 
@@ -250,7 +258,7 @@
 | **决定** | 【已决】tonic 0.10+（含 prost 0.12+） |
 | **理由** | Rust 生态事实标准 gRPC 实现；与 Tokio / hyper 同源；protobuf 强类型契约与 ARC-005 权威边界契合 |
 | **备选** | Apache Thrift（否决：Rust 工具链成熟度低于 gRPC）、Cap'n Proto（否决：跨语言客户端覆盖不足）、JSON-RPC（否决：性能与类型安全不满足 ARC-005）、REST + JSON（否决：除 OpenAPI 文档外弱契约；仅供 COC UI 外部 API 使用） |
-| **引用** | RGS-BAS-001 §3.2 5 服务 gRPC 协议；RGS-BAS-003 §6.3.4 AdminService 协议 |
+| **引用** | RGS-BAS-001 §6.3 5 服务 gRPC 协议；RGS-BAS-003 §3 AdminService 扩展模式 |
 
 ### 3.3.2 协议缓冲区：Protobuf 3（通过 prost）
 
@@ -282,14 +290,15 @@
 
 ## 3.4 数据库（OLTP）
 
-### 3.4.1 主数据库：PostgreSQL 16
+### 3.4.1 主数据库：PostgreSQL 18.4
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【已决】PostgreSQL 16.x（5 个独立 DB：player_db / economy_db / match_db / social_db / admin_db） |
-| **理由** | 满足 ARC-008 独立 DB 原则；Mature ACID + 强类型 + JSONB + 部分索引 + 物化视图 + 分区表 + LISTEN/NOTIFY（用于 Outbox 替代方案）；与 Rust 的 sqlx 集成最佳；开源（PostgreSQL License） |
+| **决定** | 【目标基线·待审批】PostgreSQL 18.4（5 个独立 DB：player_db / economy_db / match_db / social_db / admin_db） |
+| **理由** | 满足 ARC-008 独立 DB 原则；提供 ACID、强类型、JSONB、部分索引、物化视图、分区表和 LISTEN/NOTIFY；与 Rust 的 sqlx 集成成熟；开源（PostgreSQL License）。PostgreSQL 19 截至本次核验仍为 Beta，不作为生产基线。 |
 | **备选** | MySQL 8.x（否决：ACID 语义弱于 PG、JSON 支持弱、Outbox 实现需更多绕路；RGS-ADR-0007 已决），TiDB（否决：分布式事务对单机 5 DB 架构过剩；OLU 成本不划算；ARC-014 排除），CockroachDB（否决：同上），SQLite（否决：单进程，多副本机制不成熟） |
-| **引用** | RGS-REQ-001 §5.2 DB 论理设计；RGS-ADR-0007 道具与货币统合；RGS-ADR-0008 §3.2 备选；RGS-OPS-001 §1.3 PostgreSQL 16 |
+| **版本策略** | 开发/预发/生产基线固定 PostgreSQL 18.4；后续 18.x 补丁只能在预发灰度、备份恢复与迁移回退演练通过后升级；19.x 仅在 GA 后重新进行兼容性、OLU、迁移和回退评审 |
+| **引用** | RGS-REQ-001 §5.2 DB 论理设计；RGS-ADR-0007 道具与货币统合；RGS-ADR-0008 §3.2 备选；RGS-OPS-001 §1.3 PostgreSQL；PostgreSQL 官方 release notes |
 
 ### 3.4.2 数据库访问：sqlx（异步 + 编译期校验）
 
@@ -307,7 +316,7 @@
 | **决定** | 【待决 TBD-MNT-002】生产环境由人工/脚本切主备，开发/预发由 CloudNative-PG Operator 自管理；最终选型待 PH-2 前评审 |
 | **理由** | CNPG 是 PostgreSQL 在 K8s 上的事实标准 Operator；自动备份、PITR、流复制均开箱；与本项目 RGS-BAS-026 备份 RTO 目标契合 |
 | **备选** | Zalando Postgres Operator（否决：维护节奏慢于 CNPG、社区活跃度下降），自建 pg_basebackup + repmgr（否决：OLU 成本高） |
-| **引用** | RGS-REQ-027 §10 ARC-042 编排层与 DB 协同；RGS-REQ-031 §9.2 联动点 |
+| **引用** | RGS-REQ-027 §10 ARC-042 编排层与 DB 协同；RGS-REQ-031 §8.2（DB侧约束）及 RGS-REQ-031 §9（FR-INT-003） |
 
 ---
 
@@ -394,6 +403,16 @@
 | **备选** | 直接调 OpenAI / Anthropic API（否决：CON-002；数据合规风险），llama.cpp（否决：性能不足，仅适合边缘场景） |
 | **引用** | RGS-REQ-014 §3 推理后端；RGS-ADR-0026 治理闭环 |
 
+### 3.8.4 长期记忆向量存储：待决 pgvector vs Milvus
+
+| 项目 | 内容 |
+|---|---|
+| **决定** | 【待决 TBD-MEM-001】候选为 `pgvector`（随 PostgreSQL 运维）与 `Milvus`（独立向量服务）；当前未选择任一方案。 |
+| **理由** | RGS-BAS-033 需要长期记忆检索能力，但两方案在容量、隔离、备份、许可和 OLU 上的代价不同，不能以架构图中的并列名称替代选型。 |
+| **负责人** | 架构师、DBA、SRE Lead。 |
+| **截止** | PH-3 前；在附件 D 登记、完成许可/OLU/容量评估并经具名人类审批前，不得作为生产依赖。 |
+| **引用** | RGS-BAS-033 §2；RGS-REQ-033 FR-AGP-003。 |
+
 ---
 
 ## 3.9 可观测性
@@ -403,7 +422,7 @@
 | 项目 | 内容 |
 |---|---|
 | **决定** | 【已决】OpenTelemetry（OTel）Rust SDK 0.24+ + OTel Collector 0.96+ |
-| **理由** | RGS-ARC-017 可观测性自 PH-1 起必须具备；OTel 是 CNCF 毕业项目，跨语言、跨后端的标准；黄金指标（延迟/流量/错误/饱和度）由 ARC-017 既定；Protobuf over OTLP 协议 |
+| **理由** | ARC-017 可观测性自 PH-1 起必须具备；OTel 是 CNCF 毕业项目，跨语言、跨后端的标准；黄金指标（延迟/流量/错误/饱和度）由 ARC-017 既定；Protobuf over OTLP 协议 |
 | **备选** | OpenTracing + OpenCensus 旧 API（否决：已合并到 OTel），自研 trace SDK（否决：违反 ARC-014），Datadog APM（否决：商业 SaaS + 资源外送） |
 | **引用** | RGS-REQ-008 埋点与日志规范；RGS-REQ-001 §10 ARC-017 |
 
@@ -527,7 +546,7 @@
 | 项目 | 内容 |
 |---|---|
 | **决定** | 【已决】三引擎薄适配，**不**重写核心逻辑 |
-| **理由** | 适配层仅做"调用 C ABI + 引擎特定事件循环绑定 + 引擎特定资源管理"；行为一致由 RGS-VF-015 三引擎一致性重放验证 |
+| **理由** | 适配层仅做"调用 C ABI + 引擎特定事件循环绑定 + 引擎特定资源管理"；行为一致由 VF-015 三引擎一致性重放验证 |
 | **引用** | RGS-REQ-012 SDK；RGS-BAS-007 §3 适配层 |
 
 ### 3.13.3 客户端网络：QUIC via quinn（共享服务端运行时）
@@ -651,14 +670,14 @@
 
 | ID | 主题 | 状态 |
 |---|---|---|
-| TBD-VERSION-001 | Rust 1.83 → 1.84 升级窗口（2025-Q1 窗口） | 待 PH 节点评审 |
-| TBD-VERSION-002 | PostgreSQL 16 → 17 升级时机（PG17 GA 2024-09；本项目尚未启动升级） | PH-2 前评估 |
+| TBD-VERSION-001 | Rust stable 基线升级窗口（当前核验 1.97.1） | 每次 stable 发布后由 CI 验证 |
+| TBD-VERSION-002 | PostgreSQL 18.4 基线的后续 18.x 补丁跟随与 19.x GA 升级窗口（19 当前为 Beta） | PH-2 前建立升级/回退演练 |
 
 ---
 
 # 5. 已决 vs 未决选型（TBD 集中列表）
 
-## 5.1 已决选型（合计 44 项 + 8 项 ADR 引用 = 52 项）
+## 5.1 已决选型（分类计数合计 42 项；ADR 引用不重复计数）
 
 | 类别 | 数量 | ADR 引用 |
 |---|---|---|
@@ -680,19 +699,20 @@
 | 安全 | 2 | RGS-REQ-010 |
 | 其他（一致性引用） | 4 | RGS-ADR-0025 / RGS-ADR-0029 / RGS-ADR-0051 |
 
-## 5.2 未决选型（合计 5 项 TBD，登记至附件 D §1.3）
+## 5.2 未决选型（共 8 条：6 项组件/工具决策与 2 项升级计划）
 
 | TBD ID | 主题 | 待决时间 | 关联 |
 |---|---|---|---|
 | TBD-077 | Connect 协议桥（HTTP/1.1 互操作） | 出现外部对接需求时 | §3.3.4 |
 | TBD-MNT-002 | CloudNative-PG Operator vs 自建 | PH-2 前 | §3.4.3 |
 | TBD-NEURO-002 | LLM 后端选型 vLLM vs TGI | PH-5 前 | §3.8.3 |
+| TBD-MEM-001 | 长期记忆向量存储 pgvector vs Milvus（负责人：架构师、DBA、SRE Lead；待附件 D 登记） | PH-3 前 | §3.8.4 / RGS-BAS-033 |
 | TBD-LOG-001 | 日志后端 Loki vs 商业 SaaS | PH-3 前 | §3.9.4 |
 | TBD-SEC-003 | HashiCorp Vault vs OpenBao vs 云 KMS | PH-4 前 | §3.16.1 |
 | TBD-VERSION-001 | Rust 主版本升级窗口 | PH 节点评审 | §4.3 |
 | TBD-VERSION-002 | PostgreSQL 主版本升级 | PH-2 前 | §4.3 |
 
-## 5.3 明确否决（合计 8 项 + 历史否决 N 项）
+## 5.3 明确否决（表内 12 项）
 
 | 否决项 | 否决理由 | 关联 |
 |---|---|---|
@@ -746,7 +766,7 @@ NFR-OP-010 上限为 2 SRE 团队（≤ 20 人·天/周），**已逼近上限**
 ---
 
 > 配套文档：
-> - RGS-ADR-0001～0051（14 份单点决定）
+> - RGS-ADR-0001～0054（18 份单点决定）
 > - RGS-REQ-001（总需求）
 > - RGS-OPS-001（部署运维说明）
 > - 附件 D §3 决议登记 / §4 OSS 许可 / §5 OLU 台账

@@ -39,7 +39,7 @@
 
 1. [前言](#1-前言)
 2. [ClusterOpsService 组件图与限界上下文归属](#2-clusteropsservice-组件图与限界上下文归属)
-3. [`admin_db` 新增 Schema](#3-admin_db-新增-schema)
+3. [`admin_db` 新增 Schema](#3-admindb-新增-schema)
 4. [Feature 元数据与 PFAU 状态机](#4-feature-元数据与-pfau-状态机)
 5. [CEM 探针订阅器设计](#5-cem-探针订阅器设计)
 6. [API 契约字段级定义](#6-api-契约字段级定义)
@@ -694,7 +694,7 @@ message DlqEvent {
 | ARC-018 新挂载 | 新限界上下文挂载完成时, 自动在 `feature_registry` 创建"限界上下文型"Feature (FR-INT-001) | RGS-BAS-002 §4 脚手架检查清单追加"自动调用 ClusterOpsService.RegisterFeature"步骤 | ARC-018 Mount Record 含 COC UI 可读元数据字段 |
 | ARC-021 插件注册 | 新插件注册时, 自动在 `feature_registry` 创建"插件型"Feature (FR-INT-002) | RGS-BAS-005 §3 插件注册表追加"自动调用 ClusterOpsService.RegisterFeature"步骤 | CI 校验: 插件注册表行数 == feature_registry.feature_type=PLUGIN 行数 |
 | ARC-042 集群部署 | 集群级部署执行时, 为每个被部署 Feature 创建 PFAU 实例 (FR-INT-003) | RGS-BAS-024 §4 编排状态机追加"为被部署 Feature 启动 PFAU"步骤 | ARC-042 一次 run 的 App 部署完成 == 对应 Feature PFAU 进入 active |
-| ARC-019 GM 后台 | COC UI 写操作全部经 AdminService 转发 (FR-COC-020) | RGS-BAS-003 §6.3.4 AdminService 扩展新增转发方法 | 渗透测试: COC UI 凭证不持有 K8s/DB 直连凭证 |
+| ARC-019 GM 后台 | COC UI 写操作全部经 AdminService 转发 (FR-COC-020) | RGS-BAS-003 §3（既有 AdminService 扩展模式）；COC 转发方法字段级定义待 RGS-DTL-031 | 渗透测试: COC UI 凭证不持有 K8s/DB 直连凭证 |
 | ARC-039 VIZ 只读边界 | COC UI 是写操作控制台, **不**作为 VIZ 的子页面; 但复用 VIZ 渲染能力 (FR-COC-003) | RGS-BAS-021 §4 渲染器抽离为独立组件库, COC UI 引用 | 静态检查: VIZ 路由不出现 COC 写操作入口 |
 
 ## 9.1 与 ARC-018 挂载检查清单的强制联动
@@ -755,4 +755,4 @@ RGS-BAS-024 §4 编排状态机追加:
 
 ---
 
-> 本文档配套 RGS-REQ-031 需求定义书与 RGS-ADR-0051 架构决定, 完成 ARC-051 全部功能需求到设计的落地。后续将产出 RGS-DTL-031 详细设计 (ClusterOpsService 内部模块接口、探针订阅器实现细节、gRPC 客户端 SDK) 与三份测试设计书 RGS-TST-UT-31/RGS-TST-IT-31/RGS-TST-ST-31。
+> 本文档配套 RGS-REQ-031 需求定义书与 RGS-ADR-0051 架构决定，完成 ARC-051 的基本设计落地。RGS-DTL-031 v0.1 草案已形成，下一步是 ClusterOpsService 内部模块接口、探针订阅器、gRPC 客户端 SDK 的字段级映射、具名 DD Review 与实现前 Gate；三份测试设计书 RGS-TST-UT-31/RGS-TST-IT-31/RGS-TST-ST-31 仍须同步补充 DTL 映射并取得执行证据。

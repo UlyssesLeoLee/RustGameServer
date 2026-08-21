@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-026 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-BAS-026 匹配系统 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档为第四份详细设计文档）。细化RGS-BAS-026§3.1逻辑数据模型为MT限界上下文（`match_db`同库）内`queue_entries`／`match_ratings`／`match_quality_metrics`三表具体DDL、§4.1扩圈算法与§5.1跨分片OCC校验落实为可直接翻译为Rust实现的伪代码、§7各时序图落实为具体状态转移代码、事件落实为具体线格式。**本版本不覆盖**：评分算法本身（ELO/Glicko-2/TrueSkill）的最终选型与具体公式实现（RGS-REQ-029§11已标注为TBD，需另行ADR决定后再补充本文档）、GM/运营配置后台的UI细节。见§7 | 全部 |
 | 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型TBD收尾）。新增§7解决评分算法最终选型（Glicko-2，排除TrueSkill因IP历史模糊性、排除纯ELO因无不确定度建模），给出`RatingSettlement.calculate()`核心公式；`match_ratings`新增`volatility`列。原§7覆盖范围章节顺延为§8并更新内容 | §1.2、§2（`match_ratings`新增列）、§7（新增）、原§7→§8 |
+| **0.3** | 2026-08-20 | 架构师 | — | 修正 Glicko-2 结算只返回/持久化 rating、RD 而遗漏 volatility 的不一致：`RatingUpdate` 现返回三项状态；新增结算幂等回执表，并规定 rating/RD/volatility、回执和 Outbox 在同一事务提交 | §2、§3、§7、§8 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -36,12 +37,12 @@
 ## 目录
 
 1. [前言](#1-前言)
-2. [物理数据库设计：MT限界上下文匹配三表](#2-物理数据库设计mt限界上下文匹配三表)
+2. [物理数据库设计：MT限界上下文匹配三表及结算幂等表](#2-物理数据库设计mt限界上下文匹配三表及结算幂等表)
 3. [事件线格式](#3-事件线格式)
 4. [扩圈算法详细设计](#4-扩圈算法详细设计)
 5. [跨分片OCC校验详细设计](#5-跨分片occ校验详细设计)
 6. [排队/确认/回填状态转移详细设计](#6-排队确认回填状态转移详细设计)
-7. [评分算法选型（Glicko-2）](#7-评分算法选型rgs-req-029§11-tbd最终决定)
+7. [评分算法选型（Glicko-2）](#7-评分算法选型rgs-req-02911-tbd最终决定)
 8. [本文档的覆盖范围与后续计划](#8-本文档的覆盖范围与后续计划)
 
 ---
@@ -64,9 +65,9 @@ RGS-BAS-026给出了`QueueEntry`/`MatchRating`的逻辑字段表、扩圈算法�
 
 ---
 
-## 2. 物理数据库设计：MT限界上下文匹配三表
+## 2. 物理数据库设计：MT限界上下文匹配三表及结算幂等表
 
-对应RGS-BAS-026§3.1/§3.2。三表与`match_db`同库（同一MT限界上下文事务边界），本文档只新增表结构。
+对应RGS-BAS-026§3.1/§3.2。业务三表与结算幂等回执表均位于`match_db`（同一MT限界上下文事务边界），本文档只新增表结构。
 
 ```sql
 -- 队列条目表，对应FR-MM-010/013，短生命周期表
@@ -93,8 +94,8 @@ CREATE TABLE match_ratings (
     character_id        BIGINT NOT NULL,
     mode                 TEXT NOT NULL,
     rating_value          DOUBLE PRECISION NOT NULL,
-    rating_deviation       DOUBLE PRECISION NULL,   -- 现已选定Glicko-2(§7),本列即为其RD不确定度值,不再恒为NULL
-    volatility              DOUBLE PRECISION NOT NULL DEFAULT 0.06,  -- Glicko-2波动率σ,§7 solve_new_volatility所需的额外状态列
+    rating_deviation       DOUBLE PRECISION NOT NULL DEFAULT 350.0 CHECK (rating_deviation > 0), -- Glicko-2 RD，不允许空值
+    volatility              DOUBLE PRECISION NOT NULL DEFAULT 0.06 CHECK (volatility > 0), -- Glicko-2波动率σ，见§7
     consecutive_losses     INTEGER NOT NULL DEFAULT 0,
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (character_id, mode)
@@ -107,6 +108,19 @@ CREATE TABLE match_quality_metrics (
     total_wait_seconds      INTEGER NOT NULL,       -- 取参与条目等待时长最大值,同§4.3
     used_backfill           BOOLEAN NOT NULL DEFAULT FALSE,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 评分结算幂等回执：同一对局、角色、模式只允许写入一次；保存首次计算的三项状态供安全重试返回
+CREATE TABLE rating_settlement_receipts (
+    match_ref           BIGINT NOT NULL,
+    character_id        BIGINT NOT NULL,
+    mode                TEXT NOT NULL,
+    input_hash          BYTEA NOT NULL,       -- 对局结果、对手集合和算法参数的规范化摘要
+    rating_value        DOUBLE PRECISION NOT NULL,
+    rating_deviation    DOUBLE PRECISION NOT NULL CHECK (rating_deviation > 0),
+    volatility          DOUBLE PRECISION NOT NULL CHECK (volatility > 0),
+    settled_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (match_ref, character_id, mode)
 );
 ```
 
@@ -143,6 +157,8 @@ message MatchRatingChanged {
   double rating_value      = 3;
   int64  match_ref          = 4;
   int64  settled_at_ms        = 5;
+  double rating_deviation     = 6;
+  double volatility           = 7;
 }
 ```
 
@@ -231,7 +247,7 @@ fn commit_proposed_match(proposal: &ProposedMatch) -> Result<MatchCreated, MMErr
             _ => unreachable!(),
         }
     }
-    Ok(finalize_match(proposal))  // 全部条目OCC通过后才真正进入§6.1 MATCH创建路径
+    Ok(finalize_match(proposal))  // 全部条目OCC通过后才真正进入§6 MATCH创建路径
 }
 ```
 
@@ -272,7 +288,7 @@ fn on_confirmation_window_closed(match_ref: MatchRef) -> Result<(), MMError> {
 }
 ```
 
-回填（§7.4）在既有对局参与者提前退出事件触发后，`BackfillWorker`按§4扩圈算法同一套`tolerance`/撮合尝试逻辑在匹配池中寻找候选，唯一差异是撮合目标不是"创建新`MATCH`"而是"追加进已存在`MATCH_PARTICIPANT`"，故本文档不重复给出伪代码，仅声明复用关系：`BackfillWorker`调用与§4.2相同的`try_compose_teams`（`roster_size=1`，即只需补齐一个空位而非整队），成功后写入`MATCH_PARTICIPANT`而非走§6.1创建路径。
+回填（§7.4）在既有对局参与者提前退出事件触发后，`BackfillWorker`按§4扩圈算法同一套`tolerance`/撮合尝试逻辑在匹配池中寻找候选，唯一差异是撮合目标不是"创建新`MATCH`"而是"追加进已存在`MATCH_PARTICIPANT`"，故本文档不重复给出伪代码，仅声明复用关系：`BackfillWorker`调用与§4.2相同的`try_compose_teams`（`roster_size=1`，即只需补齐一个空位而非整队），成功后写入`MATCH_PARTICIPANT`而非走§6创建路径。
 
 ---
 
@@ -284,11 +300,17 @@ fn on_confirmation_window_closed(match_ref: MatchRef) -> Result<(), MMError> {
 - **排除纯ELO**：ELO不建模"评分不确定度"，新玩家/久未匹配玩家的评分收敛速度慢，且无法自然表达"评分差不大但把握程度不同"的两个玩家；Glicko-2的`rating_deviation`字段直接解决此问题，与§2 `match_ratings`表早已预留的`rating_deviation`列（RGS-BAS-026§3.1设计时即声明"若算法需要不确定度则用此字段，若不需要则恒为空"）完全吻合，无需改动物理schema。
 - **参数**：初始`rating_value=1500`，初始`rating_deviation=350`，系统常数`τ=0.5`（Glickman官方指南推荐范围0.3〜1.2，游戏竞技场景取偏保守的中间值），评分稳定期后`rating_deviation`收敛下限设为`30`（低于此值不再继续收窄，防止长期活跃玩家的不确定度归零后对评分微小波动过度敏感）。
 
-`RatingSettlement.calculate()`伪代码（对应RGS-DTL-026§6.1既有结算路径，填入此前留空的计算逻辑）：
+`RatingSettlement.calculate()`伪代码（对应RGS-DTL-026§7.1的幂等结算与原子持久化路径，填入此前留空的计算逻辑）：
 
 ```rust
-// Glicko-2标准更新公式的直接翻译,变量命名对应官方指南记号
-fn glicko2_update(player: &MatchRating, opponent: &MatchRating, outcome: MatchOutcome, tau: f64) -> (f64, f64) {
+// Glicko-2 标准更新公式的直接翻译；调用者必须持久化全部三项状态。
+struct RatingUpdate {
+    rating_value: f64,
+    rating_deviation: f64,
+    volatility: f64,
+}
+
+fn glicko2_update(player: &MatchRating, opponent: &MatchRating, outcome: MatchOutcome, tau: f64) -> RatingUpdate {
     let (mu, phi) = to_glicko2_scale(player.rating_value, player.rating_deviation);        // 转换到Glicko-2内部标度(除以173.7178)
     let (mu_j, phi_j) = to_glicko2_scale(opponent.rating_value, opponent.rating_deviation);
 
@@ -304,11 +326,39 @@ fn glicko2_update(player: &MatchRating, opponent: &MatchRating, outcome: MatchOu
     let new_phi = 1.0 / (1.0 / phi_star.powi(2) + 1.0 / v).sqrt();
     let new_mu = mu + new_phi.powi(2) * g_phi_j * (score - e);
 
-    from_glicko2_scale(new_mu, new_phi.max(MIN_RATING_DEVIATION_INTERNAL_SCALE))  // 回转标度前应用§7既定收敛下限
+    let (rating_value, rating_deviation) =
+        from_glicko2_scale(new_mu, new_phi.max(MIN_RATING_DEVIATION_INTERNAL_SCALE));
+    RatingUpdate { rating_value, rating_deviation, volatility: new_sigma }
 }
 ```
 
 `solve_new_volatility`（波动率迭代求解）与`to_glicko2_scale`/`from_glicko2_scale`（内部标度换算）为Glicko-2标准算法的固定组成部分，直接照官方指南实现，不属于本项目自定义逻辑，故本文档不展开其内部细节，仅确认调用契约。组队场景（多人对多人）的评分更新按"每个成员视为独立与对方队伍`composite_rating`对局一次"简化处理（Glicko-2原生为1v1设计，团队场景的精确扩展本身是另一层不确定的研究问题，简化处理是本项目的**有意选择**而非疏漏，效果留待PH-5数据评估是否需要更精细的团队评分扩展）。
+
+### 7.1 幂等结算与三项状态原子持久化
+
+`RatingSettlement` 的幂等键为 `(match_ref, character_id, mode)`，并绑定对局结果、对手集合和算法参数的 `input_hash`。计算、`match_ratings` 行锁更新、`rating_settlement_receipts` 插入、`MatchRatingChanged` Outbox 写入必须在同一个 `match_db` 事务中完成；不得先发布事件再写波动率，也不得在事务外单独保存 RD/σ。
+
+```rust
+async fn settle_rating_once(
+    tx: &mut Transaction<'_>, match_ref: MatchRef, player_id: CharacterId, mode: &str, input: SettlementInput,
+) -> Result<RatingUpdate, SettlementError> {
+    let input_hash = input.canonical_sha256();
+    if let Some(receipt) = tx.find_rating_settlement(match_ref, player_id, mode).await? {
+        ensure!(receipt.input_hash == input_hash, SettlementError::ConflictingReplay);
+        return Ok(RatingUpdate::from(receipt)); // 安全重试返回首次的 rating/RD/volatility
+    }
+
+    let player = tx.lock_match_rating(player_id, mode).await?; // SELECT ... FOR UPDATE
+    let opponent = tx.lock_match_rating(input.opponent_id, mode).await?;
+    let update = glicko2_update(&player, &opponent, input.outcome, GLICKO_TAU);
+    tx.update_match_rating(player_id, mode, update.rating_value, update.rating_deviation, update.volatility).await?;
+    tx.insert_rating_settlement(match_ref, player_id, mode, input_hash, &update).await?;
+    tx.append_match_rating_changed_outbox(match_ref, player_id, mode, &update).await?;
+    Ok(update)
+} // 由调用方在此处提交；任一步失败整笔事务回滚
+```
+
+对同一幂等键但不同 `input_hash` 的请求，事务必须拒绝并记录结算冲突审计，不能重算或覆盖既有评分。新建评分行使用 §2 的 `1500/350/0.06` 初始状态；迁移存量 NULL RD 前必须回填为 `350.0` 并通过约束校验，再启用 `NOT NULL`。
 
 license确认：Glicko-2算法本身为公开发表的数学方法，非专利，实现代码在Rust中从零编写，无第三方依赖引入，无CON-001顾虑。
 
@@ -316,7 +366,7 @@ license确认：Glicko-2算法本身为公开发表的数学方法，非专利�
 
 ## 8. 本文档的覆盖范围与后续计划
 
-本文档覆盖：MT限界上下文匹配三表（`queue_entries`/`match_ratings`/`match_quality_metrics`）物理DDL、`QueueEntryCreated`/`QueueEntryStatusChanged`/`MatchRatingChanged`三个事件的具体线格式、扩圈容差函数与单轮撮合尝试伪代码、跨分片OCC"全有或全无"提交逻辑、排队/确认/回填的完整状态转移表与对应实现、**评分算法最终选型（Glicko-2）与`RatingSettlement.calculate()`核心公式**。
+本文档覆盖：MT限界上下文匹配三表及`rating_settlement_receipts`幂等表物理DDL、`QueueEntryCreated`/`QueueEntryStatusChanged`/`MatchRatingChanged`三个事件的具体线格式、扩圈容差函数与单轮撮合尝试伪代码、跨分片OCC"全有或全无"提交逻辑、排队/确认/回填的完整状态转移表与对应实现、**评分算法最终选型（Glicko-2）、`RatingSettlement.calculate()`核心公式以及 rating/RD/volatility 的同事务幂等持久化**。
 
 本版本明确不覆盖、留待后续：
 
@@ -338,7 +388,7 @@ license确认：Glicko-2算法本身为公开发表的数学方法，非专利�
 | RGS-BAS-026§4.3 匹配质量度量 | §2（`match_quality_metrics`表） |
 | RGS-BAS-026§5.1 跨分片边界判定落地 | §3、§5 |
 | RGS-BAS-026§5.2 模式启用配置 | §7（明确排除写入侧UI） |
-| RGS-BAS-026§6.1 结算路径 | §7（明确排除评分算法本身） |
+| RGS-BAS-026§6.1 结算路径 | §7（Glicko-2 计算与三项状态的幂等持久化） |
 | RGS-BAS-026§6.2 与GSM展示排行联动 | §3（`MatchRatingChanged`） |
 | RGS-BAS-026§7.1〜7.5 连败保护/放弃/确认/回填/组队信号 | §6 |
 | RGS-DTL-002（挂载脚手架物理落地） | 前提依赖，本文档假定MT域已按RGS-DTL-002完成挂载 |

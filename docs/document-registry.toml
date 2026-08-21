@@ -4,7 +4,7 @@
 
 [metadata]
 schema_version = "1.0"
-updated = "2026-08-20"
+updated = "2026-08-21"
 purpose = "目录导航、跨文档引用及计划状态的受控来源"
 
 [[category]]
@@ -39,8 +39,8 @@ readme_section = "1.4"
 
 [[category]]
 id = "05"
-path = "05-智能决策层"
-title = "智能决策层"
+path = "05-智能体与Agent"
+title = "智能决策层与Agent工程"
 readme_section = "1.5"
 
 [[category]]
@@ -87,8 +87,8 @@ readme_section = "1.11"
 
 [[category]]
 id = "13"
-path = "13-智能体与Agent工程"
-title = "智能体与Agent工程"
+path = "13-实现规格"
+title = "实现规格"
 readme_section = "1.12"
 
 # `allow_reference = true` 仅允许受控正文引用且仅限 `planned` 文档，正文必须明确标成“待制定”。
@@ -105,20 +105,6 @@ id = "RGS-TST-001"
 title = "试验计划书"
 status = "planned"
 owner = "质量负责人"
-allow_reference = true
-
-[[planned_document]]
-id = "RGS-DTL-031"
-title = "ClusterOpsService 详细设计"
-status = "planned"
-owner = "平台负责人"
-allow_reference = true
-
-[[planned_document]]
-id = "RGS-PLAN-001"
-title = "项目实施计划"
-status = "planned"
-owner = "项目负责人"
 allow_reference = true
 
 [[planned_document]]

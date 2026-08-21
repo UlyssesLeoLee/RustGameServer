@@ -36,7 +36,7 @@
 ## 目录
 
 1. [前言](#1-前言)
-2. [物理数据库设计：PLUGIN_REGISTRY与PLUGIN_AUDIT](#2-物理数据库设计plugin_registry与plugin_audit)
+2. [物理数据库设计：PLUGIN_REGISTRY与PLUGIN_AUDIT](#2-物理数据库设计pluginregistry与pluginaudit)
 3. [沙箱脚本白名单API接口设计与永久事实强制路由](#3-沙箱脚本白名单api接口设计与永久事实强制路由)
 4. [生命周期状态转移详细设计](#4-生命周期状态转移详细设计)
 5. [经济类插件单点判定与跨节点分发算法详细设计](#5-经济类插件单点判定与跨节点分发算法详细设计)

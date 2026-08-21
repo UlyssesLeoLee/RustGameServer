@@ -38,7 +38,7 @@
 4. [商品目录与购买设计](#4-商品目录与购买设计)
 5. [运营活动与经济系统交互设计](#5-运营活动与经济系统交互设计)
 6. [标准化检查清单](#6-标准化检查清单)
-7. [追溯性（ARC-029 → 本设计书章节）](#7-追溯性arc-029--本设计书章节)
+7. [追溯性（ARC-029 → 本设计书章节）](#7-追溯性arc-029-本设计书章节)
 
 ---
 
@@ -145,7 +145,7 @@ GD服务在处理任意`ChatMessage`前，查询该`character_id`的禁言状态
 
 对应FR-LBY-030〜042。
 
-## 4.1 商品目录数据模型（`economy_db`新增表，逻辑级，物理DDL属RGS-DBS-001）
+## 4.1 商品目录数据模型（`economy_db`新增表，逻辑级；物理DDL见RGS-DTL-013§3）
 
 ```mermaid
 erDiagram
@@ -270,4 +270,4 @@ sequenceDiagram
 
 ---
 
-> 本文档所定义的规范为详细设计与实现阶段的输入基准。`team`/`PRODUCT_CATALOG`/`PURCHASE_RECORD`表的物理DDL留待RGS-DBS-001按RGS-REQ-011/BAS-007既定标准确定。
+> 本文档所定义的规范为详细设计与实现阶段的输入基准。`team`/`team_members`表的物理DDL见RGS-DTL-013§2；`product_catalog`/`purchase_records`表见RGS-DTL-013§3，均遵循RGS-REQ-011/RGS-BAS-007既定标准。
