@@ -168,6 +168,8 @@
 | 文档编号 | 文档名 | 类别 | 状态 | 备注 |
 |---|---|---|---|---|
 | RGS-TS-001 | [主要技术选型报告](10-技术选型/RGS-TS-001_主要技术选型报告.md) | 技术选型 | 待评审 | v0.6：Rust 1.98 stable 为用户目标（GA/CI Gate）、PostgreSQL 18.4、Actix Web 4.14.1；**§6.2 OLU 双轨制**（人·天/周 + token/周，per AI 协作开发场景；5 域独立 Lead × 14-18 周双轨估算：人·天 ~266-540 / token ~196M-468M，待 SRE Lead + PM 校准）；选型、许可证与 Gate 追溯。 |
+| RGS-WBS-001 | [5 层工作分解结构](12-工作流/RGS-WBS-001_5层工作分解结构_v0.1.md) | WBS | v0.1 / 5 域 Lead PH-0.5 前补全 L4 | 5 层（L1 阶段 / L2 域 / L3 任务簇 / L4 任务 / L5 工作包）；1,280 L4（5 域）+ 288 配套（foundation/cluster-ops/shared-platform）；周均 ~19-30 人·天 / ~14M-26M tokens；与 RGS-TS-001 v0.6 §6.2 双轨估算一致。 |
+| RGS-ENV-CALIB-001 | [OLU 校准记录模板](00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md) | 校准 | v0.1 / PH-0.5 前 5 域 Lead 实测 | 5 域 Lead × 1-2 周 人·天 + token 双轨采集；偏差 < 30% 接受 / 30-50% 升 v0.7 / > 50% NO-GO 升级。 |
 
 ### 1.10 实施QA（[`11-实施QA/`](11-实施QA/)）
 
