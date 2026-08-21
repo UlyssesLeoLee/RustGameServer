@@ -11,7 +11,7 @@
 | 制定者 | 架构师 |
 | 适用范围 | 53 开发环境构筑及其后的全部 Rust workspace、服务、契约、迁移、CI 与部署制品 |
 | 规范真源 | RGS-REQ / RGS-BAS / RGS-DTL / RGS-SPEC；本文件只固化工程实现约定，不重定义业务语义 |
-| 关联 | RGS-TS-001 v0.6、RGS-QA-001 v0.9、RGS-PLAN-001 v0.6、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001 v0.1、RGS-REV-003、RGS-REV-004/005/006、RGS-ENV-001、RGS-HANDOFF-001 v0.1 |
+| 关联 | RGS-TS-001 v0.6、RGS-QA-001 v0.9、RGS-PLAN-001 v0.7、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001 v0.1、RGS-REV-003、RGS-REV-004/005/006、RGS-ENV-001、RGS-HANDOFF-001 v0.1 |
 | 资源约束 | **DEC-005（5 域独立 Lead）**：player / economy / match / social / admin 各自配独立 Lead 签字栏；架构师不兼任 player 域 Lead；SRE 不兼任 admin 域 Lead。**5 域独立 Lead 必然突破 NFR-OP-010 人·天硬约束**（2 SRE ≤ 20 人·天/周；5 域独立 Lead 周均 ~19-30 = 接近或超限）。**v0.6 OLU 双轨制**（per user preference 2026-08-21）：①§6.2.1 人·天/周算法（v0.4 active，主用纯人类开发 / HR 编制 / 工时审计）②§6.2.2 token/周算法（v0.5 active，主用 AI 协作 / AI 算力预算）。5 域独立 Lead × 14-18 周双轨估算：人·天 ~266-540 / token ~196M-468M（待 SRE Lead + PM 校准），详见 RGS-TS-001 v0.6 §6.2 / RGS-QA-001 v0.9 §9.5.3 |
 
 > 本文件把实施前 Q-101～Q-405 的技术答案固定为一套可审查约定。`待具名批准`是 Gate 证据状态，**不是技术问题仍未作答**；任何例外必须更新本文件、对应 ADR/DTL/SPEC，并经同级 Gate 批准。

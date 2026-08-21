@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD1 |
 | 版本 | 0.1（占位框架）|
-| 依据 | RGS-WBS-001 v0.2 §4.3 + RGS-PLAN-001 v0.6 §3.1 PH 表 |
+| 依据 | RGS-WBS-001 v0.2 §4.3 + RGS-PLAN-001 v0.7 §3.1 PH 表 |
 | 配套 | RGS-WBS-001 v0.2 主文件 / RGS-TS-001 v0.6 §6.2 OLU 双轨制 / RGS-ENV-CALIB-001 |
 | 保密级别 | 内部限定（Internal Use Only）|
 
