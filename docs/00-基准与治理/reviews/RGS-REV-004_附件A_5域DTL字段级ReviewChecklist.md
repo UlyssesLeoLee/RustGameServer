@@ -29,15 +29,16 @@
 
 ---
 
-## §A.2 Player 域（player 域 Lead：架构师兼任）
+## §A.2 Player 域（Player 域 Lead：独立，per DEC-005）
 
 > 文件：RGS-DTL-018 / RGS-SPEC-DTL-018
 > 检查项：§A.1 全部 + 以下域特定
+> **v0.5 调整**：原"架构师兼任"取消；Player 域 Lead 独立配置，架构师不签字此节
 
 - [ ] **A2.1 玩家档案表**：`players` 表的所有字段（含 PII：邮箱/手机号/实名认证状态）定义完整
 - [ ] **A2.2 角色表**：`player_characters` / `player_inventory` 索引策略（按 player_id 分区）
 - [ ] **A2.3 登录态**：JWT / session 字段与 RGS-REQ-007（GM 后台管控）一致
-- [ ] **A2.4 Player Lead 签字**：_______ 日期：_______
+- [ ] **A2.4 Player 域 Lead 签字**（独立，不可代签）：_______ 日期：_______
 
 ---
 
@@ -83,10 +84,11 @@
 
 ---
 
-## §A.6 Admin 域（SRE Lead 兼任 / COC 域）
+## §A.6 Admin 域（Admin 域 Lead：独立 / COC 域，per DEC-005）
 
 > 文件：RGS-DTL-031 / RGS-SPEC-DTL-031
 > 检查项：§A.1 全部 + 以下域特定
+> **v0.5 调整**：原"SRE Lead 兼任"取消；Admin 域 Lead 独立配置。SRE Lead 只签 §A.6 涉及 K3s 容量 / 集群集成部分（属于 G-CODE-06 环境核验范围），不签 DTL-031 字段级 / 状态机 / 错误码
 
 - [ ] **A6.1 ClusterOps 表**：`cluster_nodes` / `feature_activations` / `pfa_operations` 表
 - [ ] **A6.2 状态机**：feature 状态（declared → canary → confirm → done / rolled_back）转移图
@@ -94,7 +96,7 @@
 - [ ] **A6.4 ADR-0052 贯穿**：all-reachable 确认语义 + Active-Active 写入路径在每个 gRPC 方法中体现
 - [ ] **A6.5 DLQ 处理**：DiscardDlqEvent / ListDlqEvents（per f0b2432 self-review 补强）
 - [ ] **A6.6 监控**：PFAU 完成时延指标（按 handoff §4.3 R1 估算 ~13 分钟）
-- [ ] **A6.7 SRE Lead 签字**：_______ 日期：_______
+- [ ] **A6.7 Admin 域 Lead 签字**（独立，不可代签）：_______ 日期：_______
 
 ---
 

@@ -32,33 +32,36 @@
 |---|---|---|---|
 | Q-003 / G-CODE-04 (Saga 真实场景) | **架构师** | Saga 方案 | R+A |
 | | DBA | DB 事务 / Outbox | C |
-| | **Economy 域 Lead** | Saga 跨域核心 | R（业务侧）|
-| | Match 域 Lead | match 域步骤 | C |
-| | Player 域 Lead（架构师兼任）| player 域步骤 | C |
-| | Social 域 Lead | social 域步骤 | C |
+| | **Economy 域 Lead**（独立）| Saga 跨域核心 | R（业务侧）|
+| | **Match 域 Lead**（独立）| match 域步骤 | C |
+| | **Player 域 Lead**（独立，**不兼任** per DEC-005）| player 域步骤 | C |
+| | **Social 域 Lead**（独立）| social 域步骤 | C |
 | | SRE Lead | 监控 / 告警 | I |
 | | PM | 签字 | I |
 
 ### §C.1.3 5 域 DTL 字段级 Review
 
+> **DEC-005 落地（v0.5 升版）**：5 域 DTL 字段级 Review 的"主评审"必须由该域**独立 Lead** 担任。架构师不兼任 player 域 Lead；SRE Lead 不兼任 admin 域 Lead。
+
 | Gate | 责任人 | 角色分配 | RACI |
 |---|---|---|---|
-| G-CODE-02 (Player 域字段级) | **架构师**（兼任）| 实体表 / 索引 | R+A |
+| G-CODE-02 (Player 域字段级) | **Player 域 Lead**（独立，**不兼任** per DEC-005）| 实体表 / 索引 | R+A |
+| | 架构师 | Saga 集成 | C |
 | | QA Lead | 测试覆盖 | C |
 | | SRE Lead | 容量 | C |
-| G-CODE-02 (Economy 域字段级) | **Economy 域 Lead** | 事务 / Outbox | R+A |
+| G-CODE-02 (Economy 域字段级) | **Economy 域 Lead**（独立）| 事务 / Outbox | R+A |
 | | 架构师 | Saga 集成 | C |
 | | DBA | Schema | C |
 | | QA Lead | 测试 | C |
-| G-CODE-02 (Match 域字段级) | **Match 域 Lead** | 状态机 / 算法 | R+A |
+| G-CODE-02 (Match 域字段级) | **Match 域 Lead**（独立）| 状态机 / 算法 | R+A |
 | | 架构师 | 跨域 | C |
 | | SRE Lead | 性能 NFR-PT | C |
 | | QA Lead | 性能测试 | C |
-| G-CODE-02 (Social 域字段级) | **Social 域 Lead** | 消息 / 通知 | R+A |
+| G-CODE-02 (Social 域字段级) | **Social 域 Lead**（独立）| 消息 / 通知 | R+A |
 | | 架构师 | 跨域 | C |
 | | SRE Lead | 异步路径 | C |
 | | QA Lead | 测试 | C |
-| G-CODE-02 (Admin / COC 域字段级) | **SRE Lead** | COC 接口 | R+A |
+| G-CODE-02 (Admin / COC 域字段级) | **Admin 域 Lead**（独立，**不兼任** per DEC-005）| COC 接口 / RBAC / 审计 | R+A |
 | | 架构师 | ADR-0052 集成 | C |
 | | DBA | Schema | C |
 | | QA Lead | 测试 | C |
@@ -78,7 +81,7 @@
 | | Platform Engineer | 集成 | C |
 | | DBA | 存储 | C |
 | G-CODE-05 / G-CODE-07 (5 域依赖 + testkit) | **架构师** | 依赖图 | R+A |
-| | 5 域 Lead | 各域 testkit 需求 | R（域侧）|
+| | **5 域独立 Lead**（per DEC-005）| 各域 testkit 需求 / 依赖关系 | R（域侧，各自签字）|
 | | QA Lead | testkit 实现 | C |
 | | SRE Lead | CI 集成 | C |
 
@@ -97,15 +100,16 @@
 
 ### §C.2.2 签字顺序
 
-按依赖关系顺序签字（不可跳签）：
+按依赖关系顺序签字（**不可跳签**；**v0.5 DEC-005 调整**）：
 
 1. **DBA** 先签 G-CODE-06 PG 18.4 部分
-2. **SRE Lead** 再签 G-CODE-06 K3s + G-CODE-02 Admin 域
-3. **5 域 Lead** 各自签 G-CODE-02 域 DTL
+2. **SRE Lead** 再签 G-CODE-06 K3s 部分（**不签 G-CODE-02 Admin 域，由 Admin 域独立 Lead 签** per DEC-005）
+3. **5 域独立 Lead** 顺序签 G-CODE-02 域 DTL（**player → economy → match → social → admin 各自独立签字，不可委托代签** per DEC-005）
 4. **架构师** 签 G-CODE-02 DTL-031 + G-CODE-03 ADR-0052 + G-CODE-04 Saga + G-CODE-05 依赖
-5. **Economy 域 Lead** 签 G-CODE-04 Saga 经济域
+5. **Economy 域 Lead**（独立）Q-003 二次确认签 G-CODE-04 Saga 经济域（不仅是 5 域 Lead 之一签，还需专项签 Q-003 决策）
 6. **Platform Engineer** 签 G-CODE-06 Rust 1.98
-7. **PM** 最后总签字
+7. **QA Lead** 签 G-CODE-07 testkit
+8. **PM** 最后总签字
 
 ### §C.2.3 签字格式
 
@@ -151,17 +155,19 @@ Gate ID：_______
 
 ### §C.4.1 Gate 签字
 
+> **v0.5 DEC-005 调整**：架构师不兼任 player 域 Lead；SRE Lead 不兼任 admin 域 Lead；5 域 Lead 各自签各自的栏位。
+
 | Gate ID | 责任人 | 签字 | 日期 |
 |---|---|---|---|
 | G-CODE-02 (DTL-031 字段级) | 架构师 | | |
-| G-CODE-02 (Player 域) | 架构师（兼任）| | |
-| G-CODE-02 (Economy 域) | Economy 域 Lead | | |
-| G-CODE-02 (Match 域) | Match 域 Lead | | |
-| G-CODE-02 (Social 域) | Social 域 Lead | | |
-| G-CODE-02 (Admin / COC 域) | SRE Lead（兼任）| | |
+| G-CODE-02 (Player 域) | **Player 域 Lead**（独立，per DEC-005）| | |
+| G-CODE-02 (Economy 域) | **Economy 域 Lead**（独立）| | |
+| G-CODE-02 (Match 域) | **Match 域 Lead**（独立）| | |
+| G-CODE-02 (Social 域) | **Social 域 Lead**（独立）| | |
+| G-CODE-02 (Admin / COC 域) | **Admin 域 Lead**（独立，per DEC-005）| | |
 | G-CODE-03 (ADR-0052 联审) | 架构师 | | |
-| G-CODE-04 (Saga 真实场景) | 架构师 + DBA + Economy 域 Lead | | |
-| G-CODE-05 (5 域依赖图) | 架构师 | | |
+| G-CODE-04 (Saga 真实场景) | 架构师 + DBA + **Economy 域 Lead**（独立）+ Economy 域 Lead（Q-003 二次确认）| | |
+| G-CODE-05 (5 域依赖图) | 架构师 + 5 域独立 Lead 各自签字 | | |
 | G-CODE-06 (Rust 1.98) | Platform Engineer | | |
 | G-CODE-06 (PG 18.4) | DBA | | |
 | G-CODE-06 (K3s) | SRE Lead | | |
