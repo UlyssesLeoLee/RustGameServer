@@ -153,7 +153,7 @@ Gate approvals
 | G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | 🟠 **Open**（ADR-0052 已起草 5.7 KB） | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 | REV-003 §2.3 + ADR-0052 联审 |
 | G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | 🟠 **Open / Q-003 Blocker**（技术方案已固定在 RGS-IMPL-001 §3 + RGS-QA-001 v0.8） | Saga/Outbox/补偿边界、四层原子状态机合并图、6 个业务场景验收计划 | 架构负责人 + DBA Lead + **Economy 域 Lead（独立）** | [REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) 6 场景 |
 | G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | 🟠 **Open**：工程目录/依赖规则已定义，DD Review 未签署 | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | **5 域独立 Lead**（player / economy / match / social / admin 各自签字，不可合并）+ 架构负责人 | REV-004 附件A §A.2-A.6 |
-| G-CODE-06 | 工具链与开发环境达到目标基线 | 🟠 **Open**：Rust 1.98 stable GA 已发 (2026-08-20) ✅；待"可安装 + 完整 CI 通过"实测 | Rust 1.98 实测、Actix Web 4.14.1 锁定、PostgreSQL 18.4 migration 演练、K3s 能力核验、锁定依赖 CI | Platform Engineer + DBA Lead + SRE Lead | [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.2.md) 全部签字 |
+| G-CODE-06 | 工具链与开发环境达到目标基线 | 🟠 **Open**：Rust 1.98 stable GA 已发 (2026-08-20) ✅；待"可安装 + 完整 CI 通过"实测 | Rust 1.98 实测、Actix Web 4.14.1 锁定、PostgreSQL 18.4 migration 演练、K3s 能力核验、锁定依赖 CI | Platform Engineer + DBA Lead + SRE Lead | [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) 全部签字 |
 | G-CODE-07 | OLU 与测试基础前置获批准 | 🟠 **Open / DEC-005 影响**：Q-015 待具名审批；Q-031 WBS 候选答案 v0.7 起草；**5 域独立 Lead 必突破 NFR-OP-010** | OLU 重算（含 5 域独立 Lead 编制）、Q-031 5 层 WBS 实施、`crates/testkit` 范围/复用指标 | SRE Lead + QA Lead + PM | REV-003 §3 + RGS-PLAN-001 v0.5 + RGS-QA-001 v0.8 §9.4 |
 
 **当前结论：NO-GO。** v0.7 落地 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ **所有者背书机制**（per §3.4.4）：8 项 Ulysses 实际签（架构师 / 评审主持人 / PM），5 项标"所有者背书 + 待具名责任人"占位。但 7 个 G-CODE-* 仍 **Open / Blocker**——**所有者背书不构成 G-CODE Closed 的证据**。解除 NO-GO 条件：
@@ -270,7 +270,7 @@ DBA Lead → SRE Lead → **5 域独立 Lead（player → economy → match → 
 
 | 文档 | 用途 | 路径 |
 |---|---|---|
-| [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.2.md) | 环境核验 checklist（工具链 / PG 18.4 / K3s / 锁定依赖 / 跨工具集成）| `docs/00-基准与治理/reviews/` |
+| [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) | 环境核验 checklist（工具链 / PG 18.4 / K3s / 锁定依赖 / 跨工具集成）| `docs/00-基准与治理/reviews/` |
 
 ### §3.5.2 核验范围（5 层）
 
