@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-ENV-001 |
 | 版本 | 0.3（v0.8 撤销所有者背书，Ulysses 12 类全签 per DEC-008）|
-| 依据 | RGS-HANDOFF-001 §5 Step 2 + §4 G-CODE-06 + RGS-PLAN-001 v0.8 §3.4.3 签字顺序（DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead（Q-003 二次确认） → Platform → QA → PM）+ RGS-QA-001 v0.10 DEC-005（5 域独立 Lead） |
+| 依据 | RGS-HANDOFF-001 §5 Step 2 + §4 G-CODE-06 + RGS-PLAN-001 v0.8 §3.4.3 签字顺序（DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead（Q-003 二次确认） → Platform → QA → PM）+ RGS-QA-001 v0.11 DEC-005（5 域独立 Lead） |
 | 目的 | 在 53 開発環境構築 启动前，对工具链 / 数据库 / 容器编排 / CI 4 层环境做"无业务实现"的核验 |
 | 输出 | 已签名的核验记录（不签 → 53 仍为 NO-GO）|
 | 频次 | 1 次（环境首次就绪时）；后续重大变更时复跑 |
@@ -17,8 +17,8 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | 初版。覆盖工具链 / PostgreSQL / K3s / CI / 跨工具集成 5 层核验；5 类签字栏（Platform / DBA / SRE / 架构师 / PM）。 |
-| 0.2 | 2026-08-21 | 架构师 | **§6 签字栏 5 类 → 12 类扩**（per RGS-PLAN-001 v0.8 §3.4.3 + RGS-QA-001 v0.10 DEC-005）：新增 5 域独立 Lead 签字（player / economy / match / social / admin）+ Economy 域 Lead Q-003 二次确认 + QA Lead = 12 类；签字顺序不可跳签（DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead 二次 → Platform → QA → PM）；新增"5 域 Lead 不享有代表同意机制"说明。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明。 |
-| 0.3 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.10 §9.5.7）：撤销 v0.2 所有者背书机制 + Ulysses 12 类全签（一人公司 12 角色兼任 = 真实人真实职责）。**接受代价**：Q-003 跨域事务"1 人自审自批"已知风险，流程化补偿（CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路）。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明 + 12 类签字顺序（DBA→SRE→5 域 Lead→架构师→Q-003 二次→Platform→QA→PM，**Ulysses 1 人按顺序走完 12 步**）。**注意**：§1-§5 12 类环境核验仍需 Ulysses 实际跑过才算 ✅ 通（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）。 |
+| 0.2 | 2026-08-21 | 架构师 | **§6 签字栏 5 类 → 12 类扩**（per RGS-PLAN-001 v0.8 §3.4.3 + RGS-QA-001 v0.11 DEC-005）：新增 5 域独立 Lead 签字（player / economy / match / social / admin）+ Economy 域 Lead Q-003 二次确认 + QA Lead = 12 类；签字顺序不可跳签（DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead 二次 → Platform → QA → PM）；新增"5 域 Lead 不享有代表同意机制"说明。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明。 |
+| 0.3 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.11 §9.5.7）：撤销 v0.2 所有者背书机制 + Ulysses 12 类全签（一人公司 12 角色兼任 = 真实人真实职责）。**接受代价**：Q-003 跨域事务"1 人自审自批"已知风险，流程化补偿（CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路）。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明 + 12 类签字顺序（DBA→SRE→5 域 Lead→架构师→Q-003 二次→Platform→QA→PM，**Ulysses 1 人按顺序走完 12 步**）。**注意**：§1-§5 12 类环境核验仍需 Ulysses 实际跑过才算 ✅ 通（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）。 |
 
 ---
 
@@ -76,26 +76,26 @@ $ cargo install --list | grep -E 'cargo-deny|cargo-audit|cargo-llvm-cov|sqlx-cli
 
 ---
 
-## §2 PostgreSQL 18.4 核验
+## §2 PostgreSQL 18.6 核验
 
 ### §2.1 客户端版本
 
 ```bash
 $ psql --version
-# 期望输出: psql (PostgreSQL) 18.4
+# 期望输出: psql (PostgreSQL) 18.6
 ```
 
-- [ ] **2.1.1** psql = 18.4
+- [ ] **2.1.1** psql = 18.6
 - [ ] **2.1.2** libpq 与 psql 版本一致
 
 ### §2.2 服务器连接
 
 ```bash
 $ psql -h <host> -p 5432 -U <user> -c "SELECT version();"
-# 期望输出: PostgreSQL 18.4 ...
+# 期望输出: PostgreSQL 18.6 ...
 ```
 
-- [ ] **2.2.1** 服务器版本 = 18.4
+- [ ] **2.2.1** 服务器版本 = 18.6
 - [ ] **2.2.2** SSL/TLS 连接（per ADR-0052 容错哲学）
 - [ ] **2.2.3** pg_hba.conf 配置核验（md5/scram-sha-256）
 
@@ -315,7 +315,7 @@ $ buildctl build ... -f Dockerfile.rgs
 
 | # | 角色 | 责任人 | 签字 | 日期 | 核验范围 | 结论 |
 |---|---|---|---|---|---|---|
-| 1 | **DBA Lead** | **Ulysses 实际签**（一人公司 12 角色兼任）| Ulysses（一人公司 12 角色兼任） | 2026-08-21 | §2 PostgreSQL 18.4（5 DB 划分 + 双向迁移演练）| ☐ 通过 / ☐ 有条件 / ☐ 不通过 |
+| 1 | **DBA Lead** | **Ulysses 实际签**（一人公司 12 角色兼任）| Ulysses（一人公司 12 角色兼任） | 2026-08-21 | §2 PostgreSQL 18.6（5 DB 划分 + 双向迁移演练）| ☐ 通过 / ☐ 有条件 / ☐ 不通过 |
 | 2 | **SRE Lead** | **Ulysses 实际签**（一人公司 12 角色兼任）| Ulysses（一人公司 12 角色兼任） | 2026-08-21 | §3 K3s / Kubernetes（节点就绪 + CoreDNS + Traefik + Helm + 镜像仓库）| ☐ 通过 / ☐ 有条件 / ☐ 不通过 |
 | 3 | **Player 域 Lead**（独立）| **Ulysses 实际签**（一人公司 12 角色兼任）| Ulysses（一人公司 12 角色兼任） | 2026-08-21 | §1 工具链 + §5 跨工具集成（player 域相关）| ☐ 通过 / ☐ 有条件 / ☐ 不通过 |
 | 4 | **Economy 域 Lead**（独立）| **Ulysses 实际签**（一人公司 12 角色兼任）| Ulysses（一人公司 12 角色兼任） | 2026-08-21 | §1 + §5（economy 域相关）| ☐ 通过 / ☐ 有条件 / ☐ 不通过 |

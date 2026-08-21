@@ -77,7 +77,7 @@ WF-1-53.2 (Cargo workspace)
   ├─→ WF-1-53.3 (rgs-testkit)
 WF-1-53.4-7 (4 个 CI workflow)
   ↓
-WF-1-53.10 (5 独立 PG 18.4 DB)
+WF-1-53.10 (5 独立 PG 18.6 DB)
   ↓
 WF-1-54.4 (sqlx 集成) ── 依赖 WF-1-54.1 + WF-1-53.10
 WF-1-54.2 (5 域 gRPC Proto)
@@ -187,4 +187,4 @@ WF-0.5-1 (5 域 DTL §1 冻结)
 - worktree 规范：RGS-WT-001 v0.2 §11
 - 进度表：RGS-WBS-001_L4任务进度表_v0.3.md
 - freeze 节点：RGS-WBS-001 v0.3 §2A.6.8
-- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.10 §9.5.7
+- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.11 §9.5.7

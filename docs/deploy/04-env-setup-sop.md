@@ -23,7 +23,7 @@
 | # | 组件 | 触发 G-CODE / ENV § | 优先级 | 预计耗时 |
 |---|---|---|---|---|
 | 1 | Rust 1.98 stable | G-CODE-06 + ENV-§1 | 🔴 必填 | 5 分钟 |
-| 2 | PostgreSQL 18.4 + 5 独立 DB | G-CODE-03 + ENV-§2 | 🔴 必填 | 10 分钟 |
+| 2 | PostgreSQL 18.6 + 5 独立 DB | G-CODE-03 + ENV-§2 | 🔴 必填 | 10 分钟 |
 | 3 | Docker Desktop（含 WSL2）| ENV-§3.3 / §5.3 | 🟡 高 | 5 分钟（已装跳过）|
 | 4 | K3s（用 k3d 在 Docker 内跑）| ENV-§3 | 🟡 高 | 10 分钟 |
 | 5 | kubectl + Helm | ENV-§3.4 | 🟡 高 | 5 分钟 |
@@ -113,13 +113,13 @@ test result: ok. 0 passed; 0 failed; 0 ignored
 
 ---
 
-## 2. PostgreSQL 18.4 + 5 独立 DB（触发 G-CODE-03）
+## 2. PostgreSQL 18.6 + 5 独立 DB（触发 G-CODE-03）
 
 **安装**（per RGS-OPS-001 §1.3 官方源 + RGS-ENV-001 v0.3 §2）：
 
 **方案 A（推荐，Windows 原生）**：
 ```powershell
-# 1. 下载 PostgreSQL 18.4 Windows installer
+# 1. 下载 PostgreSQL 18.6 Windows installer
 #    来自 https://www.postgresql.org/download/windows/
 #    或 EnterpriseDB 安装包
 
@@ -140,8 +140,8 @@ cat > docs/deploy/pg-compose.yml <<'EOF'
 version: "3.8"
 services:
   postgres:
-    image: postgres:18.4
-    container_name: rgs-pg-184
+    image: postgres:18.6
+    container_name: rgs-pg-186
     environment:
       POSTGRES_PASSWORD: ulysses_local
     ports:
@@ -154,16 +154,16 @@ EOF
 
 docker compose -f docs/deploy/pg-compose.yml up -d
 sleep 5
-docker exec rgs-pg-184 psql -U postgres -c "SELECT version();"
+docker exec rgs-pg-186 psql -U postgres -c "SELECT version();"
 ```
 
 **5 独立 DB 创建**（per ARC-008 + RGS-SPEC-CROSS-005）：
 ```bash
 # 选 B 方案继续
 for db in player_db economy_db match_db social_db admin_db cluster_ops_db; do
-  docker exec rgs-pg-184 psql -U postgres -c "CREATE DATABASE $db;"
+  docker exec rgs-pg-186 psql -U postgres -c "CREATE DATABASE $db;"
 done
-docker exec rgs-pg-184 psql -U postgres -c "\l" | grep -E 'player_db|economy_db|match_db|social_db|admin_db|cluster_ops_db'
+docker exec rgs-pg-186 psql -U postgres -c "\l" | grep -E 'player_db|economy_db|match_db|social_db|admin_db|cluster_ops_db'
 ```
 
 **预期输出**（6 个 DB 都存在）：
@@ -396,10 +396,10 @@ cat > docs/deploy/07-env-verification.log <<'EOF'
 [✅] 1.3.4 sqlx-cli 安装
 [✅] 1.3.5 protoc 工具可用
 
-§2 PostgreSQL 18.4 核验
-[✅] 2.1.1 psql = 18.4
+§2 PostgreSQL 18.6 核验
+[✅] 2.1.1 psql = 18.6
 [✅] 2.1.2 libpq 与 psql 版本一致
-[✅] 2.2.1 服务器版本 = 18.4
+[✅] 2.2.1 服务器版本 = 18.6
 [✅] 2.2.2 SSL/TLS 连接
 [✅] 2.2.3 pg_hba.conf 配置核验
 [✅] 2.3.1-5 5 独立 DB（player_db / economy_db / match_db / social_db / admin_db）

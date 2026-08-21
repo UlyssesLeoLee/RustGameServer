@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-WBS-001 |
 | 版本 | 0.3（瀑布式 9 阶段 + worktree + agent 并行）|
-| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.10 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
+| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.11 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
 | 范围 | first slice 14-18 周 / 5 域 + foundation + cluster-ops + shared-platform / ARC-018/021/042/051 |
 | 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.8 §3.1 PH 阶段表；RGS-ENV-001 v0.3 环境核验 12 类签字 |
 | 保密级别 | 内部限定（Internal Use Only）|
@@ -74,7 +74,7 @@
 | WF-1-53.7 | CI workflow 4: docker-build（占位 trigger 注释） | Platform | 1.0 | 200K | WF-1-53.6 | Rust 工具链 / Cargo workspace | 关 / 闭 等 10 步 | `wbs/WF-1-53.7` | ⬜ 未启动 |
 | WF-1-53.8 | 本地 docker-compose dev 环境（5 DB + 5 域服务） | Platform | 2.0 | 450K | WF-1-53.7 | Rust 工具链 / workspace / workflow 1 | d / o 等 22 步 | `wbs/WF-1-53.8` | ⬜ 未启动 |
 | WF-1-53.9 | 本地 k3s 集群（或 kind）单节点 dev 集群 | Platform | 1.5 | 350K | WF-1-53.8 | Rust 工具链 / docker-compose | k / 3 等 13 步 | `wbs/WF-1-53.9` | ⬜ 未启动 |
-| WF-1-53.10 | 5 独立 PG 18.4 DB 容器（player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db） | Platform | 1.5 | 350K | WF-1-53.9 | docker-compose / PG 18.4 镜像 | d / o 等 22 步 | `wbs/WF-1-53.10` | ⬜ 未启动 |
+| WF-1-53.10 | 5 独立 PG 18.6 DB 容器（player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db） | Platform | 1.5 | 350K | WF-1-53.9 | docker-compose / PG 18.6 镜像 | d / o 等 22 步 | `wbs/WF-1-53.10` | ⬜ 未启动 |
 | WF-1-53.11 | QUIC 证书生成脚本（rustls + rcgen） | Platform | 1.0 | 200K | WF-1-53.10 | Rust 工具链 / 证书生成库 | r / m 等 7 步 | `wbs/WF-1-53.11` | ⬜ 未启动 |
 | WF-1-53.12 | OTel Collector 容器 + Prometheus + Grafana 集成 | Platform | 2.0 | 500K | WF-1-53.11 | docker-compose / OTel 镜像 | d / o 等 22 步 | `wbs/WF-1-53.12` | ⬜ 未启动 |
 | WF-1-53.13 | distroless base image Dockerfile（dev/staging/prod 三个 tag） | Platform | 1.0 | 200K | WF-1-53.12 | Rust 工具链 / docker buildx | 删 / 除 等 8 步 | `wbs/WF-1-53.13` | ⬜ 未启动 |
@@ -180,7 +180,7 @@
 | 58 | CI | 12 | 11.0 | 2,550K |
 | **合计** | **WF-1 实施** | **72** | **69.5 人·天** | **15960K tokens/周** |
 
-**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.10 §9.5.7）。
+**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.11 §9.5.7）。
 
 ### §2A.4 agent 协作模式
 
@@ -256,7 +256,7 @@
 | WF-1-53.7 | CI workflow docker-build | RGS-IMPL-005 §3 + RGS-IMPL-006 §4 | — |
 | WF-1-53.8 | docker-compose dev | RGS-SPEC-000 §2.4 + RGS-OPS-001 §2.3 | DTL-018/015/016/026/019/020/031 §3 |
 | WF-1-53.9 | k3s 集群 | RGS-SPEC-000 §2.4 + RGS-OPS-001 §4.1 | — |
-| WF-1-53.10 | 5 独立 PG 18.4 DB | RGS-SPEC-000 §2.2 + ARC-008 5 独立 DB 原则 + RGS-TS-001 v0.6 §5.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| WF-1-53.10 | 5 独立 PG 18.6 DB | RGS-SPEC-000 §2.2 + ARC-008 5 独立 DB 原则 + RGS-TS-001 v0.6 §5.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
 | WF-1-53.11 | QUIC 证书 | RGS-SPEC-000 §2.1 + RGS-IMPL-001 §4 | — |
 | WF-1-53.12 | OTel + Prometheus | RGS-SPEC-000 §2.3 + RGS-GOBS-004 §3 | RGS-SPEC-DTL-021~025 §4 / 032~040 §4 |
 | WF-1-53.13 | distroless base image | RGS-IMPL-005 §3 + RGS-OPS-001 §3.2 Dockerfile 模板 | — |
@@ -489,7 +489,7 @@
 | L4 # | 任务 | owner | 人·天 | token | 前置 | 验收项 | 回滚路径 |
 |---|---|---|---:|---:|---|---|---|
 | 1.5.1 | IT：player_service 启动 + health | Player Lead | 1.0 | 200K | 1.4 | Cargo build + health check 200 | git revert |
-| 1.5.2 | IT：DB 集成（testcontainers PG 18.4）| Player Lead | 1.0 | 250K | 1.5.1 | testcontainers PG 启动 + migration | git revert |
+| 1.5.2 | IT：DB 集成（testcontainers PG 18.6）| Player Lead | 1.0 | 250K | 1.5.1 | testcontainers PG 启动 + migration | git revert |
 | 1.5.3 | IT：登录态端到端 | Player Lead | 1.5 | 300K | 1.5.2 | JWT 创建 + 验证 + 刷新 | git revert |
 | 1.5.4 | IT：跨域契约测试（player 事件被 social 订阅）| Social Lead | 1.5 | 300K | 1.5.3 | gRPC event 发送 + 接收 | git revert |
 
@@ -824,7 +824,7 @@ cat .wbs-task-marker
 - L4 任务的 owner 字段 = `Ulysses`（1 人 12 角色）
 - 进度签字 = Ulysses 1 人（自审自批，流程化补偿：CI + 自动化 + 自我 PR review + OTel）
 - worktree 分支并行 = 1 个 Ulysses 可在多个 worktree 间切换（不是多人协作，但 1 人多任务并行）
-- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.10 §9.5.7）
+- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.11 §9.5.7）
 
 **未变更**：5 域 Lead 配置（仍可独立，Ulysses = 1 人 12 角色兼任）
 

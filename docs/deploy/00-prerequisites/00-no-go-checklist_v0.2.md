@@ -15,7 +15,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。7 G-CODE + 12 类签字栏 + 5 域 Lead 到位 checklist。NO-GO 维持。 |
-| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.10 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 5 个 Closed + 2 个待实测（G-CODE-06 Rust 1.98 / G-CODE-03 5 独立 DB 拓扑图）。**最终 NO-GO 解除条件**：G-CODE-06 + G-CODE-03 实测通过 → 53 起動。 |
+| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.11 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 5 个 Closed + 2 个待实测（G-CODE-06 Rust 1.98 / G-CODE-03 5 独立 DB 拓扑图）。**最终 NO-GO 解除条件**：G-CODE-06 + G-CODE-03 实测通过 → 53 起動。 |
 
 ## §1 三大联合条件（per RGS-PLAN-001 v0.8 §3.3）
 
@@ -30,7 +30,7 @@
 | G-CODE-03 | ADR-0052 联审 | 🟠 Open | ADR 审批栏 + 拓扑核验 + 故障注入 + 风险接受 | 架构 + SRE + DBA + Platform | [RGS-EXEC-001 §2](../../00-基准与治理/reviews/RGS-EXEC-001_G-CODE专题突破操作手册_v0.3.md) |
 | G-CODE-04 | Q-003 Saga 6 场景 | 🟠 Open / Blocker | Saga/Outbox/补偿 + 6 业务场景验收 | 架构 + DBA + Economy 域 Lead | [RGS-EXEC-001 §3](../../00-基准与治理/reviews/RGS-EXEC-001_G-CODE专题突破操作手册_v0.3.md) |
 | G-CODE-05 | 5 域 DTL 边界冻结 | 🟠 Open | 5 域 DD Review + 接口/事件/DB/插件依赖矩阵 | 5 域独立 Lead + 架构 | [RGS-REV-004](../../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) |
-| G-CODE-06 | 工具链 + 开发环境基线 | 🟠 Open | Rust 1.98 实测 + PG 18.4 + K3s + 锁定 CI | Platform + DBA + SRE | [RGS-ENV-001 v0.3](../../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) |
+| G-CODE-06 | 工具链 + 开发环境基线 | 🟠 Open | Rust 1.98 实测 + PG 18.6 + K3s + 锁定 CI | Platform + DBA + SRE | [RGS-ENV-001 v0.3](../../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) |
 | G-CODE-07 | OLU + 测试基础前置 | 🟠 Open | OLU 重算 + Q-031 WBS + testkit | SRE + QA + PM | [RGS-TS-001 v0.6 §6.2](../../10-技术选型/RGS-TS-001_主要技术选型报告.md) |
 
 ### §1.2 RGS-ENV-001 v0.3 12 类签字齐全

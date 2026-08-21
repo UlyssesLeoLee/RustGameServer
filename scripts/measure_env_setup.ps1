@@ -94,15 +94,15 @@ function Test-Rust {
 # Section 2: PostgreSQL 18.4
 # ============================================================
 function Test-Postgres {
-    Write-Log '=== Section 2: PostgreSQL 18.4 ===' 'SECTION'
+    Write-Log '=== Section 2: PostgreSQL 18.6 (per DEC-009) ===' 'SECTION'
     $pgVer = Get-CmdVersion 'psql'
     Write-Log "psql: $pgVer"
-    if ($pgVer -match '18\.4') {
+    if ($pgVer -match '18\.[46]') {
         $Results.Postgres.Status = 'pass'
         $Results.Postgres.Output = "psql=$pgVer"
     } else {
         $Results.Postgres.Status = 'fail'
-        $Results.Postgres.Output = "psql=$pgVer (需要 18.4)"
+        $Results.Postgres.Output = "psql=$pgVer (需要 18.4 或 18.6)"
     }
 }
 
@@ -112,7 +112,7 @@ function Test-Postgres {
 function Test-5Databases {
     Write-Log '=== Section 3: 5 独立 DB 创建 ===' 'SECTION'
     $pgVer = Get-CmdVersion 'psql'
-    if ($pgVer -notmatch '18\.4') {
+    if ($pgVer -notmatch '18\.[46]') {
         Write-Log 'psql 未就位或版本不对，跳过 DB 创建' 'WARN'
         $Results.DB.Status = 'fail'
         $Results.DB.Output = 'psql 未装或版本不对'
@@ -387,7 +387,7 @@ function Test-12Class {
 [$(Get-Mark ($protocVer -ne 'NOT_INSTALLED'))] 1.3.5 protoc  (实际: $protocVer)
 
 §2 PostgreSQL 18.4
-[$(Get-Mark ($pgVer -match '18\.4'))] 2.1.1 psql = 18.4  (实际: $pgVer)
+[$(Get-Mark ($pgVer -match '18\.[46]'))] 2.1.1 psql = 18.6  (实际: $pgVer)
 [$(Get-Mark ($Results.DB.Status -eq 'pass'))] 2.3 5 独立 DB
 [$(Get-Mark ($Results.Build.Status -eq 'pass'))] 2.4 cargo check
 [$(Get-Mark (Test-Path -LiteralPath (Join-Path $RepoRoot '.sqlx')))] 2.4.2 .sqlx/ 目录

@@ -14,7 +14,7 @@
 
 ## §1 主文档
 
-- **[RGS-ENV-001 v0.3 环境核验记录模板](../../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md)**：5 层核验（工具链 / PG 18.4 / K3s / 锁定依赖 CI / 跨工具集成）+ 12 类签字栏
+- **[RGS-ENV-001 v0.3 环境核验记录模板](../../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md)**：5 层核验（工具链 / PG 18.6 / K3s / 锁定依赖 CI / 跨工具集成）+ 12 类签字栏
 - **[RGS-ENV-CALIB-001 v0.1 OLU 校准记录模板](../../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md)**：5 域 Lead × 1-2 周 人·天 + token 双轨实测
 
 ## §2 5 层核验范围
@@ -22,7 +22,7 @@
 | 层 | 核验内容 | 责任方 | 当前状态 |
 |---|---|---|---|
 | §1 工具链 | rustc/cargo 1.98 + clippy + rustfmt + sqlx-cli + cargo-deny/audit/llvm-cov | Platform Engineer | 🟡 占位 |
-| §2 PG 18.4 | psql + 服务器连接 + 5 DB 划分 + sqlx 编译期 + migration 双向演练 | DBA Lead | 🟡 占位 |
+| §2 PG 18.6 | psql + 服务器连接 + 5 DB 划分 + sqlx 编译期 + migration 双向演练 | DBA Lead | 🟡 占位 |
 | §3 K3s | kubectl + 节点就绪 + CoreDNS/Traefik + Helm + 镜像仓库 | SRE Lead | 🟡 占位 |
 | §4 锁定依赖 CI | Cargo.lock 入仓 + --locked 构建 + fmt/clippy/deny/audit/llvm-cov | Platform Engineer | 🟡 占位 |
 | §5 跨工具集成 | sqlx 编译期 + tonic gRPC + tracing + distroless 容器 | 架构师 | 🟡 占位 |

@@ -13,7 +13,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。NO-GO 状态表 + 7 G-CODE + 12 类签字栏 + 5 G-CODE 工具链。 |
-| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.10 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 状态部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 部分 Closed（G-CODE-06 / G-CODE-03 仍需实测）。**7 G-CODE 当前状态**（一人公司 1 人 12 角色声明）：G-CODE-01 ✅ Closed（业务方=PM=Ulysses 声明接受）/ G-CODE-02 ✅ Closed（5 域 Lead 1 人串行，Ulysses 声明接受）/ G-CODE-03 ⚠️ 待实测（5 独立 DB 拓扑图需 Ulysses 实际画过）/ G-CODE-04 ✅ Closed（Q-003 Saga Ulysses 自设计 + 流程化校验）/ G-CODE-05 ✅ Closed（5 域 DTL 边界 Ulysses 自冻结 + 流程化校验）/ G-CODE-06 ⚠️ 待实测（Rust 1.98 + CI 全绿需 Ulysses 实际跑过 cargo build + cargo test）/ G-CODE-07 ✅ Closed（OLU 双轨制 + 5 域 Lead L4 Ulysses 1 人补全 = token/周串行）。**最终 53 起動条件**：G-CODE-03 + G-CODE-06 实测通过 → NO-GO 解除。 |
+| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.11 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 状态部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 部分 Closed（G-CODE-06 / G-CODE-03 仍需实测）。**7 G-CODE 当前状态**（一人公司 1 人 12 角色声明）：G-CODE-01 ✅ Closed（业务方=PM=Ulysses 声明接受）/ G-CODE-02 ✅ Closed（5 域 Lead 1 人串行，Ulysses 声明接受）/ G-CODE-03 ⚠️ 待实测（5 独立 DB 拓扑图需 Ulysses 实际画过）/ G-CODE-04 ✅ Closed（Q-003 Saga Ulysses 自设计 + 流程化校验）/ G-CODE-05 ✅ Closed（5 域 DTL 边界 Ulysses 自冻结 + 流程化校验）/ G-CODE-06 ⚠️ 待实测（Rust 1.98 + CI 全绿需 Ulysses 实际跑过 cargo build + cargo test）/ G-CODE-07 ✅ Closed（OLU 双轨制 + 5 域 Lead L4 Ulysses 1 人补全 = token/周串行）。**最终 53 起動条件**：G-CODE-03 + G-CODE-06 实测通过 → NO-GO 解除。 |
 
 ## 0. 重要声明
 
@@ -105,7 +105,7 @@
 | 类别 | 状态 |
 |---|---|
 | §1 Rust 1.98 安装 | 🟠 部分满足（GA 已发，待 CI 验证 = G-CODE-06） |
-| §2 PG 18.4 5 独立 DB | 🟠 未启动（DBA 待具名） |
+| §2 PG 18.6 5 独立 DB | 🟠 未启动（DBA 待具名） |
 | §3 K8s 集群 | 🟠 未启动（SRE 待具名） |
 | §4 QUIC 证书 | 🟠 未启动（SRE 待具名） |
 | §5 OTel 链路 | 🟠 未启动（Platform 架构师待具名） |

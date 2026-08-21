@@ -20,7 +20,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版。覆盖本地→CI→预发布→生产 全链路 |
 | **0.2** | 2026-08-20 | 架构师 | CI 示例改为不可变 Action SHA、最小权限与仅受保护主分支的发布/签名；多区域 runbook 增加独立 context、复制仲裁、fencing、DNS 切流及演练证据要求 |
-| **0.3** | 2026-08-21 | 架构师 | 同步 RGS-IMPL-001：Rust 1.98 stable 目标与 GA Gate、PostgreSQL 18.4、cargo-llvm-cov、域 migration owner、distroless nonroot、不可变镜像标签、Helm/Argo/OTel 约定。 |
+| **0.3** | 2026-08-21 | 架构师 | 同步 RGS-IMPL-001：Rust 1.98 stable 目标与 GA Gate、PostgreSQL 18.6、cargo-llvm-cov、域 migration owner、distroless nonroot、不可变镜像标签、Helm/Argo/OTel 约定。 |
 
 ## 审批栏
 
@@ -81,7 +81,7 @@
 |---|---|---|---|
 | **Git** | 2.40+ | `apt install git` | 代码管理 |
 | **Rust toolchain** | 1.98 stable（用户目标；GA 前不可用） | `rustup` | 编译 |
-| **PostgreSQL** | 18.4 | 官方源 | 5 个独立 DB |
+| **PostgreSQL** | 18.6 | 官方源 | 5 个独立 DB |
 | **Redis** | 7.2+ | 官方源 | 缓存 / 限流 / 会话 |
 | **Docker** | 24+ | 官方源 | 容器化（CI / 预发布） |
 | **Kubernetes** | 1.28+ | kubeadm / EKS / GKE | 生产编排 |
@@ -163,7 +163,7 @@ cat > docker-compose.dev.yml <<'EOF'
 version: '3.8'
 services:
   postgres:
-    image: postgres:18.4
+    image: postgres:18.6
     container_name: rgs-postgres
     environment:
       POSTGRES_USER: rgs

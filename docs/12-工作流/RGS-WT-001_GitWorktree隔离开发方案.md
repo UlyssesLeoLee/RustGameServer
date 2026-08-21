@@ -9,7 +9,7 @@
 | 状态 | 工程约定 / 可执行；不授予业务编码、数据库迁移或部署授权 |
 | 制定日 | 2026-08-21 |
 | 适用范围 | RustGameServer 的 Git worktree、本地开发依赖、Compose、测试数据库与本地密钥注入 |
-| 关联 | RGS-WF-001 v0.5、RGS-PLAN-001 v0.8、RGS-IMPL-001、RGS-OPS-001、RGS-QA-001 v0.10 |
+| 关联 | RGS-WF-001 v0.5、RGS-PLAN-001 v0.8、RGS-IMPL-001、RGS-OPS-001、RGS-QA-001 v0.11 |
 
 > 本文只定义并行工作的物理隔离与回收方式。它不替代 `RGS-WF-001` §9 Gate，亦不将目前的实施 NO-GO 改为 GO。任何 worktree 在开始业务代码、迁移、集群部署前，仍须满足 `RGS-PLAN-001` 的 `G-CODE-*` 条件与具名审批。
 
@@ -125,7 +125,7 @@ git worktree prune --dry-run
 | `COMPOSE_PROJECT_NAME` | `rgs_player-first-slice` | Docker Compose 的容器、网络、卷隔离 |
 | `RGS_DATABASE_NAMESPACE` | `rgs_player-first-slice` | PostgreSQL 数据库/Schema、Redis 与事件资源前缀 |
 
-对于 PostgreSQL 18.4，每一个域仍遵守自身数据库边界；`RGS_DATABASE_NAMESPACE` 只是在本地运行时对数据库实例/名称再分区，不能被解释成跨域共享数据库。对 Saga + Outbox 的测试，产生者、消费者和 outbox 表必须均处在同一 task namespace 中，避免测试读取其他 worktree 的事件残留。
+对于 PostgreSQL 18.6，每一个域仍遵守自身数据库边界；`RGS_DATABASE_NAMESPACE` 只是在本地运行时对数据库实例/名称再分区，不能被解释成跨域共享数据库。对 Saga + Outbox 的测试，产生者、消费者和 outbox 表必须均处在同一 task namespace 中，避免测试读取其他 worktree 的事件残留。
 
 对于 Actix Web 与 Plugin 宿主，监听地址和 socket/IPC 临时路径也必须由 `RGS_WORKTREE_ID` 和 `RGS_PORT_OFFSET` 派生。禁止固定使用 `localhost:8080`、固定 Unix socket 名称或全局临时文件名。
 

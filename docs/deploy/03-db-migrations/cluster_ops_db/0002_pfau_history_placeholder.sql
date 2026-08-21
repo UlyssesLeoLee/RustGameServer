@@ -14,7 +14,7 @@
 --
 -- 关联文档：
 --   - ARC-008 5 独立 DB 原则
---   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 选型
+--   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 / 18.6 选型
 --   - RGS-TS-001 v0.6 §5.1 sqlx 选型
 --   - RGS-IMPL-001 §3.4 Secret 管理
 --   - DTL-015/016/018/019/020/026/031 5 域 DTL

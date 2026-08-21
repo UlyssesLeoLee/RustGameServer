@@ -8,7 +8,7 @@
 | 审查对象 | 附件日本 SI 九阶段工作流标准、RGS-WF-001 v0.5、RGS-REQ/BAS/DTL/TS/IMPL/OPS/QA/PLAN 相关文档 |
 | 审查方式 | 九阶段覆盖审查、交付物/Review/Gate 交叉核对、状态真实性检查、引用与文档一致性检查 |
 | 审查结论 | **文档结构有条件通过；53 開発環境構築及后续实施 NO-GO** |
-| 适用版本基线 | Rust 1.98 stable（用户目标；GA/CI Gate）、Edition 2024/resolver 3、Actix Web 4.14.1、PostgreSQL 18.4 |
+| 适用版本基线 | Rust 1.98 stable（用户目标；GA/CI Gate）、Edition 2024/resolver 3、Actix Web 4.14.1、PostgreSQL 18.6 |
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 
@@ -30,7 +30,7 @@
 | 阶段 | 必审范围 | 当前证据 | 结果 |
 |---|---|---|---|
 | 1. 超上流 | 立项、范围、体制、风险、日程、Kick-off | RGS-REQ-001 §1–4、RGS-REQ-005、RGS-PLAN-001 | 🟡 基线签字待补 |
-| 2. 要件定義 | UR/BR/SR/FR/NFR、数据、IF、安全、运维、迁移、验收标准 | RGS-REQ-001～035、RGS-REQ-004、RGS-QA-001 v0.10、RGS-IMPL-001 | 🟡 RD Review、Q-003 等具名 Gate 待闭环 |
+| 2. 要件定義 | UR/BR/SR/FR/NFR、数据、IF、安全、运维、迁移、验收标准 | RGS-REQ-001～035、RGS-REQ-004、RGS-QA-001 v0.11、RGS-IMPL-001 | 🟡 RD Review、Q-003 等具名 Gate 待闭环 |
 | 3. 基本設計 | 方式、架构、功能、API、DB、权限、安全、基础设施、运维、备份、迁移 | RGS-BAS-001～035、BAS-031、BAS-024、TS-001、ADR | 🟡 DEC-001/003 与 BD Review 待签 |
 | 4. 詳細設計 | 程序/模块/类/逻辑、API/DB/SQL、错误/日志、插件和集群运行控制 | DTL-031、DTL-036～040 及既有 DTL | 🟡 骨架已补齐；字段级 DD Review 待签 |
 | 5. 実装 | 环境、编码、SAST、评审、构建、CI、版本、插件热插拔与 App 集群最小切片 | 目标工具链已在 TS-001 / WF-001 固化；实现证据尚无 | **NO-GO** |
@@ -45,7 +45,7 @@
 |---|---|---|
 | R-01 | 将 RGS-WF-001 从“16 阶段总览”改为“9 个顶层阶段 + 16 个内部工作包 + 150 个工程” | 附件结构与 RGS 追踪关系同时保留 |
 | R-02 | 更新 DTL-031、DTL-036～040、PLAN-001、QA v0.7 与 RGS-IMPL-001 的状态引用 | 消除已生成文档仍被标记为“缺失/待起草”或“候选未定”的矛盾 |
-| R-03 | 固化 Rust 1.98 stable（用户目标）、Actix Web 4.14.1、PostgreSQL 18.4 目标基线 | Rust 1.98 仅在 GA 且锁定依赖完整 CI 核验后可作为环境完成证据；预发布和本机旧版本均不可替代 |
+| R-03 | 固化 Rust 1.98 stable（用户目标）、Actix Web 4.14.1、PostgreSQL 18.6 目标基线 | Rust 1.98 仅在 GA 且锁定依赖完整 CI 核验后可作为环境完成证据；预发布和本机旧版本均不可替代 |
 | R-04 | 补充 9 阶段审核矩阵、入口/出口、交付物、评审点和 NO-GO 结论 | 防止“文档存在”被误报为“阶段完成” |
 | R-05 | 将 DTL-031 blocker 改为“设计已补齐、具名 DD Review / Gate 证据待闭环” | 保持 Q-025 的阻塞语义，不重复报告已解决的缺失 |
 
@@ -53,11 +53,11 @@
 
 | 优先级 | 必须动作 | 通过证据 | 进入下一阶段条件 |
 |---|---|---|---|
-| 🔴 | 具名审批 RGS-QA-001 v0.10，至少闭合 Q-003/Q-025 等 Gate 证据；DEC-005 5 域独立 Lead + DEC-006 路径 B（14-18 周）已选 | 签字记录、决策版本和责任人 | QA Gate 可审计 |
+| 🔴 | 具名审批 RGS-QA-001 v0.11，至少闭合 Q-003/Q-025 等 Gate 证据；DEC-005 5 域独立 Lead + DEC-006 路径 B（14-18 周）已选 | 签字记录、决策版本和责任人 | QA Gate 可审计 |
 | 🔴 | ADR-0052、REQ-031、BAS-031、DTL-031 联合评审 | Review 报告、问题清单、修订基线 | DD/BD 语义一致 |
 | 🟠 | 五域 DTL 字段级补全与签字 | player/economy/match/social/admin 五域逐域 Review | 53 的详细设计入口成立 |
 | 🟠 | PLAN-001 补 WBS、资源、OLU、里程碑并审批 | 计划基线、WBS、容量/工数核算 | 项目管理 Gate 成立 |
-| 🟠 | 对齐开发/CI 环境 | Rust 1.98 stable GA 后的 `rustc --version`、Cargo lock、Actix Web 构建和 PostgreSQL 18.4 服务/容器核验 | 53 開発環境構築出口可审计 |
+| 🟠 | 对齐开发/CI 环境 | Rust 1.98 stable GA 后的 `rustc --version`、Cargo lock、Actix Web 构建和 PostgreSQL 18.6 服务/容器核验 | 53 開発環境構築出口可审计 |
 | 🟡 | 建立 testkit 与 UT/IT/ST/UAT 执行证据链 | 测试运行、报告、缺陷/复测/签字 | 6–9 阶段可进入执行/验收 |
 
 ## 5. 最终结论
@@ -66,4 +66,4 @@
 
 因此，当前唯一允许的下一步是完成 Gate 审批、字段级设计复核和环境对齐；在此之前，**不得宣告 53 開発環境構築完成，不得进入业务实现，不得以文档数量计算项目完成度**。
 
-关联导航：[RGS-WF-001 系统工程工作流](../12-工作流/RGS-WF-001_系统工程工作流_v0.5.md)、[RGS-PLAN-001 项目实施计划 v0.8](../12-工作流/RGS-PLAN-001_项目实施计划_v0.8.md)、[RGS-QA-001 实施前 QA 表 v0.10](../11-实施QA/RGS-QA-001_实施前QA表_v0.10.md)、[RGS-IMPL-001 实施约定](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md)。
+关联导航：[RGS-WF-001 系统工程工作流](../12-工作流/RGS-WF-001_系统工程工作流_v0.5.md)、[RGS-PLAN-001 项目实施计划 v0.8](../12-工作流/RGS-PLAN-001_项目实施计划_v0.8.md)、[RGS-QA-001 实施前 QA 表 v0.10](../11-实施QA/RGS-QA-001_实施前QA表_v0.11.md)、[RGS-IMPL-001 实施约定](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md)。

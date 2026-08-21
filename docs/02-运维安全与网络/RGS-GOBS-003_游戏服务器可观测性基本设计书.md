@@ -248,9 +248,9 @@ Tokio Console 需要 tokio_unstable、Tokio tracing feature 和 console subscrib
 
 ## 9. 依赖和平台观测
 
-### 9.1 PostgreSQL 18.4
+### 9.1 PostgreSQL 18.6
 
-PostgreSQL 18.4 是 RGS-TS-001 的目标版本，须在环境门核验。应用侧至少观测 pool acquired/idle/wait、transaction duration、commit/rollback、query class duration、timeout、deadlock、replica lag（如有）。数据库侧使用已批准的 exporter/scrape，避免在每条 SQL 日志记录参数和个人数据。
+PostgreSQL 18.6 是 RGS-TS-001 的目标版本，须在环境门核验。应用侧至少观测 pool acquired/idle/wait、transaction duration、commit/rollback、query class duration、timeout、deadlock、replica lag（如有）。数据库侧使用已批准的 exporter/scrape，避免在每条 SQL 日志记录参数和个人数据。
 
 ### 9.2 Cache
 
@@ -367,7 +367,7 @@ PostgreSQL 18.4 是 RGS-TS-001 的目标版本，须在环境门核验。应用�
 
 - OpenTelemetry Rust：Resource metadata、W3C TraceContext、BatchSpanProcessor、force_flush/shutdown 和绑定 instrument 的官方文档。
 - Tokio Console：官方文档对 tokio_unstable、tracing feature 和 console subscriber 的要求。
-- Actix Web、Rust stable、PostgreSQL 18.4 的版本目标以 RGS-TS-001 为准；版本是否真正落地必须由 GOBS-GATE-01/GATE-03 核验。
+- Actix Web、Rust stable、PostgreSQL 18.6 的版本目标以 RGS-TS-001 为准；版本是否真正落地必须由 GOBS-GATE-01/GATE-03 核验。
 
 ## 17. Revision 1 → Revision 2 自审
 
