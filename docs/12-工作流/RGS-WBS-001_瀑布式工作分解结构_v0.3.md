@@ -203,54 +203,60 @@
 
 #### §2A.6.1 6 工程 → SPEC 文档映射
 
+> **修复说明（per check-cross-references.py 审计 2026-08-21）**：原版章节号（3.2/3.4/4/6 子节）与 RGS-SPEC-000 实际章节（1 规格化规则 / 2 统一实现契约 / 2.1~2.4 子节 / 3 规格模板 / 4 详细设计映射 / 5 统一 DoD）对齐修正。RGS-IMPL-001 中"2.1"实为第 2 章（实际只有 2.2 子节）；RGS-SPEC-000 中 3.2/3.4 等子节不存在，已映射到 2.1/2.2。
+
 | 工程 | 名称 | 主要关联 SPEC 文档 | 次要关联 SPEC |
 |---|---|---|---|
-| 53 | 開発環境構築 | RGS-IMPL-001 §2.1 工具链 + RGS-SPEC-000 §3 总体架构 + RGS-IMPL-006 CI 规范 | RGS-SPEC-DTL-018/015/016/026/019/020/031（5 域 DTL 边界）|
-| 54 | 编码实现 | **RGS-SPEC-DTL-018**（player 域）+ **RGS-SPEC-DTL-015/016**（economy 域）+ **RGS-SPEC-DTL-026**（match 域）+ **RGS-SPEC-DTL-019/020**（social 域）+ **RGS-SPEC-DTL-031**（admin 域）| RGS-SPEC-000 §3.2 gRPC + §3.4 DB + RGS-SPEC-DTL-021~025/032~040（跨域 + shared-platform） |
-| 55 | 静态分析 | RGS-IMPL-003 静态分析规范（per §6.3） | RGS-SPEC-000 §4 编码约束 |
-| 56 | 代码审查 | RGS-IMPL-004 代码审查规范（per §6.4） | RGS-SPEC-000 §4 编码约束 |
-| 57 | 构建 | RGS-IMPL-005 构建规范（per §6.5） | RGS-SPEC-000 §6 部署约束 |
-| 58 | CI | RGS-IMPL-006 CI 规范（per §6.6） | RGS-SPEC-000 §4 编码约束 |
+| 53 | 開発環境構築 | RGS-IMPL-001 §2 workspace + RGS-SPEC-000 §2 统一实现契约 + RGS-IMPL-006 CI 规范 | RGS-SPEC-DTL-018/015/016/026/019/020/031（5 域 DTL 边界）|
+| 54 | 编码实现 | **RGS-SPEC-DTL-018**（player 域）+ **RGS-SPEC-DTL-015/016**（economy 域）+ **RGS-SPEC-DTL-026**（match 域）+ **RGS-SPEC-DTL-019/020**（social 域）+ **RGS-SPEC-DTL-031**（admin 域）| RGS-SPEC-000 §2.1 Cargo 与代码边界 + §2.2 API 数据与错误 + RGS-SPEC-DTL-021~025/032~040（跨域 + shared-platform） |
+| 55 | 静态分析 | RGS-IMPL-003 静态分析规范（per §6.3） | RGS-SPEC-000 §2 统一实现契约 |
+| 56 | 代码审查 | RGS-IMPL-004 代码审查规范（per §6.4） | RGS-SPEC-000 §2 统一实现契约 |
+| 57 | 构建 | RGS-IMPL-005 构建规范（per §6.5） | RGS-SPEC-000 §2.4 K3s/Kubernetes 与发布 |
+| 58 | CI | RGS-IMPL-006 CI 规范（per §6.6） | RGS-SPEC-000 §2 统一实现契约 |
 
 #### §2A.6.2 54 编码实现任务 ↔ 5 域 SPEC 详细映射
 
+> **修复说明（per check-cross-references.py 审计 2026-08-21）**：DTL 章节映射按 RGS-SPEC-DTL-XXX 实际章节对齐（§1 使用规则 / §2 实现单元 / §3 实现契约 / §4 可观测性规格 / §5 安全容错发布 / §6 测试规格 / §7 DoD / §8 Gate 证据）。原版 "DTL-XXX §4" 多处指代 sqlx 集成但 §4 实为可观测性，已全部改 §3（实现契约）；Q-003 Saga §6 改 §3；Outbox §7 不存在改 §5；CEM §9/§10 不存在改 §3/§5；RBAC §8 OK（Gate 证据）；OTel/Prom/tracing 跨域 DTL §4 可观测性规格 ✓。
+
 | L4 # | 任务 | owner | 主要 SPEC | 关联 DTL |
 |---|---|---|---|---|
-| WF-1-54.1 | 5 域 Cargo crate 骨架 | 5 域 | RGS-SPEC-000 §3 + RGS-IMPL-001 §2.3 | DTL-018/015/016/026/019/020/031（7 个）|
-| WF-1-54.2 | 5 域 gRPC Proto 定义 | 5 域 | RGS-SPEC-000 §3.2 + §3.3 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §6 |
-| WF-1-54.3 | tonic-build 配置 | Platform | RGS-SPEC-000 §3.2 + RGS-IMPL-001 §2.4 | — |
-| WF-1-54.4 | sqlx 集成 | 5 域 | RGS-SPEC-000 §3.4 + RGS-IMPL-001 §4 | DTL-018 §4 / DTL-015 §4 / DTL-016 §4 / DTL-026 §4 / DTL-019 §4 / DTL-020 §4 / DTL-031 §7 |
-| WF-1-54.5 | error 类型定义 | 5 域 | RGS-IMPL-001 §3 + RGS-SPEC-000 §3.5 | DTL-018 §5 / DTL-015 §5 / DTL-016 §5 / DTL-026 §5 / DTL-019 §5 / DTL-020 §5 / DTL-031 §8 |
-| WF-1-54.6 | domain entity + Repository trait | 5 域 | RGS-SPEC-000 §3.4 | DTL-018 §2 / DTL-015 §2 / DTL-016 §2 / DTL-026 §2 / DTL-019 §2 / DTL-020 §2 / DTL-031 §2 |
-| WF-1-54.7 | Service 层业务逻辑 | 5 域 | RGS-SPEC-000 §3.5 | DTL-018 §4 / DTL-015 §4 / DTL-016 §4 / DTL-026 §4 / DTL-019 §4 / DTL-020 §4 / DTL-031 §4 |
-| **WF-1-54.8** | **Q-003 Saga 状态机** | **economy** | **RGS-SPEC-DTL-015 §6 + RGS-SPEC-DTL-016 §6** | **DTL-015/016（Q-003 跨域核心）** |
-| **WF-1-54.9** | **Outbox pattern** | **economy** | **RGS-SPEC-DTL-015 §7** | **DTL-015（Outbox 模式）** |
-| **WF-1-54.10** | **CEM 事件订阅 + 转发** | **cluster-ops** | **RGS-SPEC-DTL-031 §9** | **DTL-031（CEM + COC + admin 域）** |
-| **WF-1-54.11** | **PFAU 每功能原子升级** | **cluster-ops** | **RGS-SPEC-DTL-031 §10 + RGS-ADR-0052** | **DTL-031（PFAU + all-reachable）** |
-| **WF-1-54.12** | **RBAC 中间件** | **admin** | **RGS-SPEC-DTL-031 §8** | **DTL-031（RBAC + 角色）** |
-| WF-1-54.13 | OTel span 注入 | Platform | RGS-SPEC-000 §5.1 | RGS-SPEC-DTL-021~025 跨域 + RGS-SPEC-DTL-032~040 shared-platform |
-| WF-1-54.14 | Prometheus metrics | Platform | RGS-SPEC-000 §5.2 | RGS-SPEC-DTL-021~025/032~040 |
-| WF-1-54.15 | tracing 日志 | Platform | RGS-SPEC-000 §5.3 | RGS-SPEC-DTL-021~025/032~040 |
+| WF-1-54.1 | 5 域 Cargo crate 骨架 | 5 域 | RGS-SPEC-000 §2.1 + RGS-IMPL-001 §2 | DTL-018 §2 / DTL-015 §2 / DTL-016 §2 / DTL-026 §2 / DTL-019 §2 / DTL-020 §2 / DTL-031 §2 |
+| WF-1-54.2 | 5 域 gRPC Proto 定义 | 5 域 | RGS-SPEC-000 §2.1 + §2.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| WF-1-54.3 | tonic-build 配置 | Platform | RGS-SPEC-000 §2.1 + RGS-IMPL-001 §2.2 | — |
+| WF-1-54.4 | sqlx 集成 | 5 域 | RGS-SPEC-000 §2.2 + RGS-IMPL-001 §4 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| WF-1-54.5 | error 类型定义 | 5 域 | RGS-IMPL-001 §3 + RGS-SPEC-000 §2.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| WF-1-54.6 | domain entity + Repository trait | 5 域 | RGS-SPEC-000 §2.2 | DTL-018 §2 / DTL-015 §2 / DTL-016 §2 / DTL-026 §2 / DTL-019 §2 / DTL-020 §2 / DTL-031 §2 |
+| WF-1-54.7 | Service 层业务逻辑 | 5 域 | RGS-SPEC-000 §2.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| **WF-1-54.8** | **Q-003 Saga 状态机** | **economy** | **RGS-SPEC-DTL-015 §3 + RGS-SPEC-DTL-016 §3** | **DTL-015/016（Q-003 跨域核心）** |
+| **WF-1-54.9** | **Outbox pattern** | **economy** | **RGS-SPEC-DTL-015 §5** | **DTL-015（Outbox 模式，§5 安全容错发布）** |
+| **WF-1-54.10** | **CEM 事件订阅 + 转发** | **cluster-ops** | **RGS-SPEC-DTL-031 §3** | **DTL-031（CEM + COC + admin 域）** |
+| **WF-1-54.11** | **PFAU 每功能原子升级** | **cluster-ops** | **RGS-SPEC-DTL-031 §5 + RGS-ADR-0052** | **DTL-031（PFAU + all-reachable，§5 安全容错发布）** |
+| **WF-1-54.12** | **RBAC 中间件** | **admin** | **RGS-SPEC-DTL-031 §3** | **DTL-031（RBAC + 角色，§3 实现契约）** |
+| WF-1-54.13 | OTel span 注入 | Platform | RGS-SPEC-000 §2.3 | RGS-SPEC-DTL-021~025 §4 跨域 + RGS-SPEC-DTL-032~040 §4 shared-platform |
+| WF-1-54.14 | Prometheus metrics | Platform | RGS-SPEC-000 §2.3 | RGS-SPEC-DTL-021~025 §4 / 032~040 §4 |
+| WF-1-54.15 | tracing 日志 | Platform | RGS-SPEC-000 §2.3 | RGS-SPEC-DTL-021~025 §4 / 032~040 §4 |
 
 #### §2A.6.3 53 開発環境構築任务 ↔ SPEC 映射
 
+> **修复说明（per check-cross-references.py 审计 2026-08-21）**：RGS-IMPL-001 中 2.1/2.5 子节不存在（实际只有第 2 章 + 2.2 子节 Q-107~108）→ 改 2/2.2；RGS-SPEC-000 中 4.5/5/6 不存在 → 改 2.3 可观测性 / 2.4 K3s；RGS-IMPL-001 第 6 章实为"尚需具名 Gate 事项"非 testkit → 改第 3 章 Phase 1 跨服务工程约定；RGS-OPS-001 第 3 章实际是 CI/CD 配置（非 docker-compose）→ 改 2.3 启动 PG+Redis；RGS-OPS-001 第 6 章不存在 → 改 3.2 Dockerfile 模板；RGS-IMPL-003 第 5 章不存在 → 改第 3 章工具链；ARC-008 原则命名空间下无独立 RGS-ARC-NNN 文件 → 改 ARC-008 5 独立 DB 原则（命名空间引用，无文档 ID 前缀）。
+
 | L4 # | 任务 | 主要 SPEC | 关联 DTL |
 |---|---|---|---|
-| WF-1-53.1 | Rust 1.98 工具链 | RGS-IMPL-001 §2.1 + RGS-IMPL-002 §2 | — |
-| WF-1-53.2 | Cargo workspace | RGS-IMPL-001 §2.2 + RGS-SPEC-000 §3 | DTL-018/015/016/026/019/020/031 |
-| WF-1-53.3 | rgs-testkit | RGS-IMPL-001 §6 + RGS-SPEC-000 §4.5 | DTL-018/015/016/026/019/020/031 |
-| WF-1-53.4 | CI workflow rust-ci | RGS-IMPL-006 §3 + RGS-IMPL-001 §2.5 | — |
+| WF-1-53.1 | Rust 1.98 工具链 | RGS-IMPL-001 §2 + RGS-IMPL-002 §2 规范范围 | — |
+| WF-1-53.2 | Cargo workspace | RGS-IMPL-001 §2.2 + RGS-SPEC-000 §2.1 | DTL-018/015/016/026/019/020/031 §2 |
+| WF-1-53.3 | rgs-testkit | RGS-IMPL-001 §3 + RGS-SPEC-000 §2.4 | DTL-018/015/016/026/019/020/031 §6 测试规格 |
+| WF-1-53.4 | CI workflow rust-ci | RGS-IMPL-006 §4 + RGS-IMPL-001 §2.2 | — |
 | WF-1-53.5 | CI workflow docs-ci | RGS-IMPL-006 §4 | — |
 | WF-1-53.6 | CI workflow verify-docs-ci | RGS-IMPL-006 §5 + RGS-EXEC-001 v0.3 §3.4 | — |
-| WF-1-53.7 | CI workflow docker-build | RGS-IMPL-005 + RGS-IMPL-006 §6 | — |
-| WF-1-53.8 | docker-compose dev | RGS-SPEC-000 §6 + RGS-OPS-001 §3 | DTL-018/015/016/026/019/020/031 |
-| WF-1-53.9 | k3s 集群 | RGS-SPEC-000 §6 + RGS-OPS-001 §4 | — |
-| WF-1-53.10 | 5 独立 PG 18.4 DB | RGS-SPEC-000 §3.4 + RGS-ARC-008 | DTL-018 §4 / DTL-015 §4 / DTL-016 §4 / DTL-026 §4 / DTL-019 §4 / DTL-020 §4 / DTL-031 §4 |
-| WF-1-53.11 | QUIC 证书 | RGS-SPEC-000 §3.6 + RGS-IMPL-001 §5 | — |
-| WF-1-53.12 | OTel + Prometheus | RGS-SPEC-000 §5 + RGS-GOBS-004 | RGS-SPEC-DTL-021~025/032~040 |
-| WF-1-53.13 | distroless base image | RGS-IMPL-005 + RGS-OPS-001 §6 | — |
-| WF-1-53.14 | cargo-deny + cargo-audit | RGS-IMPL-003 §5 | — |
-| WF-1-53.15 | devcontainer | RGS-IMPL-001 §2.1 | — |
+| WF-1-53.7 | CI workflow docker-build | RGS-IMPL-005 §3 + RGS-IMPL-006 §4 | — |
+| WF-1-53.8 | docker-compose dev | RGS-SPEC-000 §2.4 + RGS-OPS-001 §2.3 | DTL-018/015/016/026/019/020/031 §3 |
+| WF-1-53.9 | k3s 集群 | RGS-SPEC-000 §2.4 + RGS-OPS-001 §4.1 | — |
+| WF-1-53.10 | 5 独立 PG 18.4 DB | RGS-SPEC-000 §2.2 + ARC-008 5 独立 DB 原则 + RGS-TS-001 v0.6 §5.2 | DTL-018 §3 / DTL-015 §3 / DTL-016 §3 / DTL-026 §3 / DTL-019 §3 / DTL-020 §3 / DTL-031 §3 |
+| WF-1-53.11 | QUIC 证书 | RGS-SPEC-000 §2.1 + RGS-IMPL-001 §4 | — |
+| WF-1-53.12 | OTel + Prometheus | RGS-SPEC-000 §2.3 + RGS-GOBS-004 §3 | RGS-SPEC-DTL-021~025 §4 / 032~040 §4 |
+| WF-1-53.13 | distroless base image | RGS-IMPL-005 §3 + RGS-OPS-001 §3.2 Dockerfile 模板 | — |
+| WF-1-53.14 | cargo-deny + cargo-audit | RGS-IMPL-003 §3 工具链 | — |
+| WF-1-53.15 | devcontainer | RGS-IMPL-001 §2 | — |
 
 #### §2A.6.4 55-58 工程 ↔ RGS-IMPL 规范映射
 
