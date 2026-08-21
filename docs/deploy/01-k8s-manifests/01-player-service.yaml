@@ -1,0 +1,120 @@
+# 01-player-service.yaml
+# 角色：player 域 Deployment + Service
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：player 域 Lead 具名签字 + 5 域 Lead 联合校准（resources/HPA/镜像 tag）
+# 关联：
+#   - DTL-018 player 域详细设计
+#   - SP-018 player 域实现规格
+#   - BAS-018 player 域 BAS（V 模型右侧）
+#   - REQ-018 player 域 REQ
+#   - ARC-008 5 独立 DB 原则
+#   - ADR-0052 Active-Active（不适用 player 域 — 单实例即可，cluster-ops 才需 Active-Active）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PLACEHOLDER_PLAYER_DEPLOY_NAME    # 实际值：player-service
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: player
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  replicas: PLACEHOLDER_PLAYER_REPLICAS    # 实际值：2（per README §3）
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: player
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: player
+        app.kubernetes.io/component: domain-service
+    spec:
+      serviceAccountName: PLACEHOLDER_PLAYER_SA  # 实际值：player-service-account
+      containers:
+        - name: player
+          image: PLACEHOLDER_PLAYER_IMAGE         # 实际值：待 CI 产物（per 04-ci-cd/）
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: PLACEHOLDER_PLAYER_GRPC_PORT  # 实际值：待 5 域 Lead 约定
+              protocol: TCP
+            - name: quic
+              containerPort: PLACEHOLDER_PLAYER_QUIC_PORT  # QUIC 边缘
+              protocol: UDP
+            - name: metrics
+              containerPort: PLACEHOLDER_PLAYER_METRICS_PORT  # OTel exporter
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: PLACEHOLDER_PLAYER_LOG_LEVEL   # 实际值：info（per RGS-IMPL-001）
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: PLACEHOLDER_PLAYER_DB_SECRET
+                  key: PLACEHOLDER_PLAYER_DB_KEY
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: PLACEHOLDER_OTEL_ENDPOINT
+          resources:
+            requests:
+              cpu: PLACEHOLDER_PLAYER_CPU_REQ       # 500m
+              memory: PLACEHOLDER_PLAYER_MEM_REQ    # 512Mi
+            limits:
+              cpu: PLACEHOLDER_PLAYER_CPU_LIM       # 2000m
+              memory: PLACEHOLDER_PLAYER_MEM_LIM    # 2Gi
+          # NO-GO 解除前不得替换 livenessProbe / readinessProbe 实际值
+          livenessProbe:
+            grpc:
+              port: PLACEHOLDER_PLAYER_GRPC_PORT
+            initialDelaySeconds: PLACEHOLDER_PLAYER_LIVENESS_DELAY
+            periodSeconds: PLACEHOLDER_PLAYER_LIVENESS_PERIOD
+          readinessProbe:
+            grpc:
+              port: PLACEHOLDER_PLAYER_GRPC_PORT
+            initialDelaySeconds: PLACEHOLDER_PLAYER_READINESS_DELAY
+            periodSeconds: PLACEHOLDER_PLAYER_READINESS_PERIOD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: PLACEHOLDER_PLAYER_SVC_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: player
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: player
+  ports:
+    - name: grpc
+      port: PLACEHOLDER_PLAYER_GRPC_PORT
+      targetPort: PLACEHOLDER_PLAYER_GRPC_PORT
+      protocol: TCP
+    - name: quic
+      port: PLACEHOLDER_PLAYER_QUIC_PORT
+      targetPort: PLACEHOLDER_PLAYER_QUIC_PORT
+      protocol: UDP
+    - name: metrics
+      port: PLACEHOLDER_PLAYER_METRICS_PORT
+      targetPort: PLACEHOLDER_PLAYER_METRICS_PORT
+      protocol: TCP
+---
+# HPA — 实际 min/max/指标由 player 域 Lead + SRE 联合压测后校准
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: PLACEHOLDER_PLAYER_HPA_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: PLACEHOLDER_PLAYER_DEPLOY_NAME
+  minReplicas: PLACEHOLDER_PLAYER_HPA_MIN       # 2
+  maxReplicas: PLACEHOLDER_PLAYER_HPA_MAX       # 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: PLACEHOLDER_PLAYER_CPU_TARGET  # 实际值：70（待校准）

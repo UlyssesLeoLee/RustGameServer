@@ -1,0 +1,54 @@
+# economy values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：economy 域 Lead 具名签字 + 7 G-CODE Closed + 12 类签字栏全部具名签字
+
+enabled: true
+
+image:
+  repository: PLACEHOLDER_ECONOMY_IMAGE
+  tag: PLACEHOLDER
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  name: PLACEHOLDER_ECONOMY_SA
+
+service:
+  type: ClusterIP
+  grpcPort: PLACEHOLDER_ECONOMY_GRPC_PORT
+  metricsPort: PLACEHOLDER_ECONOMY_METRICS_PORT
+
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "1Gi"
+  limits:
+    cpu: "4000m"
+    memory: "4Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: PLACEHOLDER_ECONOMY_CPU_TARGET
+
+
+# 域内 ConfigMap 配置（实际值由 economy 域 Lead 校准）
+config:
+  ECONOMY_SAGA_TIMEOUT_SEC: "PLACEHOLDER_ECONOMY_SAGA_TIMEOUT"
+  ECONOMY_TX_RETRY_MAX: "PLACEHOLDER_ECONOMY_TX_RETRY"
+  ECONOMY_CURRENCY_DECIMALS: "PLACEHOLDER_ECONOMY_CURRENCY_DECIMALS"
+
+# Secret 引用（**仅 reference，不存值** — Secret values 由 SRE 通过加密仓管理）
+secretRefs:
+  - name: PLACEHOLDER_ECONOMY_DB_SECRET
+    key: PLACEHOLDER_ECONOMY_DB_KEY
+
+# 标签
+labels:
+  app.kubernetes.io/name: economy
+  app.kubernetes.io/component: domain-service
+  app.kubernetes.io/part-of: rust-game-server
+ 标签：rust-game-server.io/saga-critical: "true"

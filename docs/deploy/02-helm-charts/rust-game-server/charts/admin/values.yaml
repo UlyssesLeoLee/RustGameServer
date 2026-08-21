@@ -1,0 +1,54 @@
+# admin values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：admin 域 Lead 具名签字 + 7 G-CODE Closed + 12 类签字栏全部具名签字
+
+enabled: true
+
+image:
+  repository: PLACEHOLDER_ADMIN_IMAGE
+  tag: PLACEHOLDER
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+serviceAccount:
+  create: true
+  name: PLACEHOLDER_ADMIN_SA
+
+service:
+  type: ClusterIP
+  grpcPort: PLACEHOLDER_ADMIN_GRPC_PORT
+  metricsPort: PLACEHOLDER_ADMIN_METRICS_PORT
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: PLACEHOLDER_ADMIN_CPU_TARGET
+
+
+# 域内 ConfigMap 配置（实际值由 admin 域 Lead 校准）
+config:
+  ADMIN_AUDIT_LOG_RETENTION_DAYS: "PLACEHOLDER_ADMIN_AUDIT_RETENTION"
+  COC_OPERATOR_REQUIRE_MFA: "PLACEHOLDER_COC_MFA_REQUIRED"
+  PFAU_CONFIRM_DUAL_OPERATOR: "PLACEHOLDER_PFAU_DUAL_CONFIRM"
+
+# Secret 引用（**仅 reference，不存值** — Secret values 由 SRE 通过加密仓管理）
+secretRefs:
+  - name: PLACEHOLDER_ADMIN_DB_SECRET
+    key: PLACEHOLDER_ADMIN_DB_KEY
+
+# 标签
+labels:
+  app.kubernetes.io/name: admin
+  app.kubernetes.io/component: domain-service
+  app.kubernetes.io/part-of: rust-game-server
+ 标签：rust-game-server.io/coc: "true"

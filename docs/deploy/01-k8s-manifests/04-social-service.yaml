@@ -1,0 +1,87 @@
+# 04-social-service.yaml
+# 角色：social 域 Deployment + Service
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：social 域 Lead 具名签字
+# 关联：DTL-019/020 + SP-019/020
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PLACEHOLDER_SOCIAL_DEPLOY_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: social
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  replicas: PLACEHOLDER_SOCIAL_REPLICAS        # 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: social
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: social
+    spec:
+      serviceAccountName: PLACEHOLDER_SOCIAL_SA
+      containers:
+        - name: social
+          image: PLACEHOLDER_SOCIAL_IMAGE
+          ports:
+            - name: grpc
+              containerPort: PLACEHOLDER_SOCIAL_GRPC_PORT
+            - name: metrics
+              containerPort: PLACEHOLDER_SOCIAL_METRICS_PORT
+          env:
+            - name: RUST_LOG
+              value: PLACEHOLDER_SOCIAL_LOG_LEVEL
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: PLACEHOLDER_SOCIAL_DB_SECRET
+                  key: PLACEHOLDER_SOCIAL_DB_KEY
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: PLACEHOLDER_OTEL_ENDPOINT
+          resources:
+            requests:
+              cpu: PLACEHOLDER_SOCIAL_CPU_REQ
+              memory: PLACEHOLDER_SOCIAL_MEM_REQ
+            limits:
+              cpu: PLACEHOLDER_SOCIAL_CPU_LIM
+              memory: PLACEHOLDER_SOCIAL_MEM_LIM
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: PLACEHOLDER_SOCIAL_SVC_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: social
+  ports:
+    - name: grpc
+      port: PLACEHOLDER_SOCIAL_GRPC_PORT
+      targetPort: PLACEHOLDER_SOCIAL_GRPC_PORT
+    - name: metrics
+      port: PLACEHOLDER_SOCIAL_METRICS_PORT
+      targetPort: PLACEHOLDER_SOCIAL_METRICS_PORT
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: PLACEHOLDER_SOCIAL_HPA_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: PLACEHOLDER_SOCIAL_DEPLOY_NAME
+  minReplicas: PLACEHOLDER_SOCIAL_HPA_MIN       # 2
+  maxReplicas: PLACEHOLDER_SOCIAL_HPA_MAX       # 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: PLACEHOLDER_SOCIAL_CPU_TARGET

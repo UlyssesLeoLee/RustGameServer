@@ -1,0 +1,184 @@
+# 10-rbac-template.yaml
+# 角色：ServiceAccount + Role + RoleBinding（5 域 + cluster-ops + shared-platform）
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：SRE + Platform 联合签字
+# 重要约束（per ARC-008 + DEC-005 + ADR-0052）：
+#   - 5 域共用 namespace，**通过 RBAC + NetworkPolicy 隔离**
+#   - cluster-ops 域独立 SA（Active-Active 跨节点调谐权限，per ADR-0052）
+#   - admin 域独立 SA（COC 控制面高权限）
+#   - **5 域 Lead 不享有"代表同意"机制** — 任一域 Lead 异议即该域 Blocker（per DEC-005 延伸）
+---
+# player 域
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_PLAYER_SA
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_PLAYER_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  # player 域 pod 只读访问自身 configmap / secret（不允许访问其他域资源）
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_PLAYER_CONFIG_NAME", "PLACEHOLDER_PLAYER_DB_SECRET", "PLACEHOLDER_RGS_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: PLACEHOLDER_PLAYER_ROLE_BINDING
+  namespace: PLACEHOLDER_NAMESPACE
+subjects:
+  - kind: ServiceAccount
+    name: PLACEHOLDER_PLAYER_SA
+    namespace: PLACEHOLDER_NAMESPACE
+roleRef:
+  kind: Role
+  name: PLACEHOLDER_PLAYER_ROLE
+  apiGroup: rbac.authorization.k8s.io
+---
+# economy 域（Saga 关键域）
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_ECONOMY_SA
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    rust-game-server.io/saga-critical: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_ECONOMY_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_ECONOMY_CONFIG_NAME", "PLACEHOLDER_ECONOMY_DB_SECRET", "PLACEHOLDER_RGS_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: PLACEHOLDER_ECONOMY_ROLE_BINDING
+  namespace: PLACEHOLDER_NAMESPACE
+subjects:
+  - kind: ServiceAccount
+    name: PLACEHOLDER_ECONOMY_SA
+    namespace: PLACEHOLDER_NAMESPACE
+roleRef:
+  kind: Role
+  name: PLACEHOLDER_ECONOMY_ROLE
+  apiGroup: rbac.authorization.k8s.io
+---
+# match 域
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_MATCH_SA
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_MATCH_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_MATCH_CONFIG_NAME", "PLACEHOLDER_MATCH_DB_SECRET", "PLACEHOLDER_RGS_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
+---
+# social 域
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_SOCIAL_SA
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_SOCIAL_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_SOCIAL_CONFIG_NAME", "PLACEHOLDER_SOCIAL_DB_SECRET", "PLACEHOLDER_RGS_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
+---
+# admin 域（COC 控制面） — 高权限
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_ADMIN_SA
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    rust-game-server.io/coc: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_ADMIN_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  # admin 域可访问所有域 configmap（**只读**，COC 监控需要）
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_RGS_CONFIG_NAME", "PLACEHOLDER_ADMIN_CONFIG_NAME", "PLACEHOLDER_ADMIN_DB_SECRET"]
+    verbs: ["get", "watch", "list"]
+  # admin 域可对其他 5 域 configmap 只读
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["PLACEHOLDER_PLAYER_CONFIG_NAME", "PLACEHOLDER_ECONOMY_CONFIG_NAME", "PLACEHOLDER_MATCH_CONFIG_NAME", "PLACEHOLDER_SOCIAL_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
+---
+# cluster-ops 域（Active-Active 跨节点调谐，per ADR-0052）
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_CLUSTER_OPS_SA
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    rust-game-server.io/active-active: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_CLUSTER_OPS_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  # cluster-ops 可读所有 configmap（PFAU 操作需要）
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "watch", "list"]
+  # PFAU 操作需要 patch deployments
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "watch", "list", "patch"]
+  # 节点异常时调谐需要
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "events"]
+    verbs: ["get", "watch", "list"]
+---
+# shared-platform（QUIC edge / OTel collector）
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: PLACEHOLDER_SHARED_PLATFORM_SA
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: PLACEHOLDER_SHARED_PLATFORM_ROLE
+  namespace: PLACEHOLDER_NAMESPACE
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    resourceNames: ["PLACEHOLDER_RGS_CONFIG_NAME"]
+    verbs: ["get", "watch", "list"]
