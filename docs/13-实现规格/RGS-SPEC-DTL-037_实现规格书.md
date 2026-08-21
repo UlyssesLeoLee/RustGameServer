@@ -9,7 +9,7 @@
 | 状态 | 规格草案，待 RGS-DTL-037 具名 DD Review |
 | 源详细设计 | RGS-DTL-037 |
 | 实现范围 | Economy 域 App 与 economy_db |
-| 目标基线 | Rust stable 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4；环境需先核验 |
+| 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.4；环境需先核验 |
 | 规格真源 | 源 DTL 的接口、字段、状态机、错误码、SQL/proto 和非目标 |
 
 ## 1. 使用规则
@@ -80,6 +80,6 @@
 - 对应 App/Plugin 有稳定 version、owner、dashboard、alert、runbook 和恢复路径。
 - 当前无实现文件时保持“待实现/待评审”，不得标记生产完成。
 
-## 8. 未决项
+## 8. Gate 证据与实测参数
 
-本规格不替源 DTL 关闭未决问题。进入实现前必须登记并关闭：详细设计具名审批、实际 Cargo workspace、K3s 能力、PostgreSQL 18.4 实测、物理 telemetry backend、阈值/采样率/保留期、资源预算和 OLU 口径。
+RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI、镜像与可观测性后端边界；本规格不再保留这些工程选择的平行候选。进入实现前必须取得：① 源 DTL 的具名 DD Review；② Rust 1.98 stable 的锁定依赖完整 CI、PostgreSQL 18.4 迁移演练、K3s 能力的核验证据；③ 针对本实现范围，以 PH 基线和测试结果确定的阈值、采样率、保留期、资源预算与 OLU 记录。上述第三项是实测参数和具名 Gate 证据，不是尚未选择的技术方案。
