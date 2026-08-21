@@ -5,13 +5,20 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-SPEC-000 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 状态 | 规格包草案，待详细设计评审通过后进入实现 |
 | 制定日 | 2026-08-21 |
 | 制定者 | 架构师 |
 | 适用范围 | 当前仓库全部 36 份 RGS-DTL 详细设计 |
 | 规范真源 | 对应 RGS-DTL 文档；本规格不得与其字段、状态机、错误码、接口和安全约束冲突 |
-| 实现边界 | Rust stable 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4；实际环境须通过 Gate 核验 |
+| 实现边界 | Rust 1.98 stable（用户目标、GA 前不可核验）、Actix Web 4.14.1、PostgreSQL 18.4；实际环境须通过 Gate 核验 |
+
+## 修订历史
+
+| 版本 | 修订日 | 修订者 | 内容 |
+|---|---|---|---|
+| 0.1 | 2026-08-21 | 架构师 | 首版：36 份 DTL 与同号 SPEC 一对一映射。 |
+| 0.2 | 2026-08-21 | 架构师 | 绑定 RGS-IMPL-001；将 workspace、contracts、错误、Saga、测试与部署工程约定集中引用，避免 SPEC 间平行解释。 |
 
 ## 1. 规格化规则
 
@@ -21,13 +28,14 @@
 2. 将本规格的实现模块、配置、部署、观测和验收项登记到对应源码/manifest/CI。
 3. 若本规格与 DTL 冲突，停止实现，提交 DTL 变更评审；不得在代码中自行解释。
 4. 若 DTL 仍有 TBD、待审批或未核验依赖，本规格保持 blocked，不得标记为 Done。
+5. 实现目录、依赖方向、CI、错误/序列化、Saga、测试与部署必须遵循 [RGS-IMPL-001](RGS-IMPL-001_实施约定与工程边界.md)；该文件不替代源 DTL。
 
 ## 2. 统一实现契约
 
 ### 2.1 Cargo 与代码边界
 
-- Cargo workspace 使用显式 members、resolver = 3；公共契约进入 crates，业务能力进入 services。
-- 服务只依赖自己声明的 domain contract、shared contract、数据库/缓存/事件 adapter 和 crates/observability。
+- Cargo workspace 使用显式 members、resolver = 3；根 `Cargo.lock` 入仓。领域逻辑位于 `crates/rgs-{domain}`，部署二进制位于 `services/rgs-{domain}-service`，contracts 按域生成。
+- 禁止泛化 `rgs-common`；服务只依赖自己声明的 domain contract、按域 contract、数据库/缓存/事件 adapter 和 observability façade。
 - 不允许跨域直接读写其他域数据库；跨域使用既定 API、Outbox/event 或 workflow。
 - 每个 Atomic App/Plugin 必须有 app_id、plugin_id、version、manifest、health、lifecycle、rollback 和 owner。
 - 观测能力先于业务埋点：crates/observability-contract → crates/observability → redaction/runtime → testkit → service middleware。
@@ -35,10 +43,10 @@
 ### 2.2 API、数据与错误
 
 - API 请求保留 request_id、operator_id、trace_id；写操作遵守 approval_ref、expected_version、幂等键和 fencing/OCC 约束。
-- 字段名、枚举、状态机转移、错误码、SQL 列名和 proto 编号以源 DTL 为准。
+- 字段名、枚举、状态机转移、错误码、SQL 列名和 proto 编号以源 DTL 为准；错误同时有稳定符号码和域号段数字码，transport 使用 gRPC canonical status/HTTP problem details。
 - 所有外部输入必须经过认证、授权、限流、校验、幂等、脱敏、埋点和审计的既定管道。
 - retry 必须有上限、退避、超时、幂等和 dead-letter/人工介入出口；禁止无限重试。
-- migration、配置、manifest 和 event schema 必须可回滚或满足 expand-contract。
+- migration、配置、manifest 和 event schema 必须可回滚或满足 expand-contract；migration 只由 DB owner 执行，禁止跨 DB FK。
 
 ### 2.3 可观测性
 
@@ -115,11 +123,11 @@
 一个 SPEC 只有同时满足以下条件才可标记 Done：
 
 - 对应 DTL 的审批状态允许实现；所有 TBD/待人类决策项有已批准处置。
-- Cargo workspace 可构建；cargo fmt、cargo clippy、cargo test、cargo deny 和 schema/proto 检查通过。
+- Cargo workspace 可构建；`cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --workspace --locked`、`cargo deny check`、`cargo audit`、`cargo llvm-cov --workspace` 和 schema/proto 检查通过。
 - migration、manifest、ConfigMap/Secret、NetworkPolicy、health probe 和 rollback dry-run 通过。
 - API/event/error/ID/DB 字段与 DTL 逐项一致；无跨域数据库旁路。
 - metrics/logs/traces/审计满足 RGS-GOBS-002/003；高基数和脱敏负例通过。
 - UT/IT/ST/load/security/chaos/rollback 证据已归档，并回填 RGS-REQ-004 追踪矩阵。
 - 变更有 owner、版本、审批、dashboard、alert、runbook 和恢复路径。
 
-**结论：本索引使 36 份 DTL 都有明确 SPEC 交付物；实现仍受既有 Gate 和各 DTL 审批状态约束。**
+**结论：本索引使 36 份 DTL 都有明确 SPEC 交付物；工程约定的唯一索引为 [RGS-IMPL-001](RGS-IMPL-001_实施约定与工程边界.md)，实现仍受既有 Gate 和各 DTL 审批状态约束。**
