@@ -167,7 +167,7 @@
 
 | 文档编号 | 文档名 | 类别 | 状态 | 备注 |
 |---|---|---|---|---|
-| RGS-TS-001 | [主要技术选型报告](10-技术选型/RGS-TS-001_主要技术选型报告.md) | 技术选型 | 待评审 | v0.5：Rust 1.98 stable 为用户目标（GA/CI Gate）、PostgreSQL 18.4、Actix Web 4.14.1；**§6.2 OLU token 重算**（per AI 协作开发场景，单位人·天 → token，5 域独立 Lead × 14-18 周 ~196M-468M tokens，待 SRE Lead + PM 校准）；选型、许可证与 Gate 追溯。 |
+| RGS-TS-001 | [主要技术选型报告](10-技术选型/RGS-TS-001_主要技术选型报告.md) | 技术选型 | 待评审 | v0.6：Rust 1.98 stable 为用户目标（GA/CI Gate）、PostgreSQL 18.4、Actix Web 4.14.1；**§6.2 OLU 双轨制**（人·天/周 + token/周，per AI 协作开发场景；5 域独立 Lead × 14-18 周双轨估算：人·天 ~266-540 / token ~196M-468M，待 SRE Lead + PM 校准）；选型、许可证与 Gate 追溯。 |
 
 ### 1.10 实施QA（[`11-实施QA/`](11-实施QA/)）
 
