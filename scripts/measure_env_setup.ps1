@@ -66,6 +66,12 @@ function Get-Mark {
     if ($Cond) { '✅' } else { '❌' }
 }
 
+function Test-CommandInstalled {
+    param([string]$Name)
+    $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+    return ($null -ne $cmd)
+}
+
 # ============================================================
 # Section 1: Rust 1.98
 # ============================================================
@@ -171,6 +177,17 @@ function Test-5Databases {
 function Test-RustBuild {
     Write-Log '=== Section 4: Rust 1.98 build (G-CODE-06) ===' 'SECTION'
 
+    # 切到仓库根（重要：cargo 找 Cargo.toml 用当前工作目录）
+    Push-Location $RepoRoot
+    try {
+        Run-RustBuildInternal
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Run-RustBuildInternal {
     $rustVer = Get-CmdVersion 'rustc'
     if ($rustVer -notmatch '1\.98') {
         Write-Log 'Rust 1.98 未就位，跳过 build' 'WARN'
@@ -360,9 +377,9 @@ function Test-12Class {
 [$(Get-Mark ($rustVer -match '1\.98'))] 1.1.1 rustc = 1.98.0  (实际: $rustVer)
 [$(Get-Mark ($rustVer -match '1\.98'))] 1.1.2 cargo = 1.98.0  (实际: $cargoVer)
 [$(Get-Mark (Test-Path -LiteralPath (Join-Path $RepoRoot 'rust-toolchain.toml')))] 1.1.3 MSRV 锁定
-[$(Get-Mark (Get-Command rustfmt -ErrorAction SilentlyContinue))] 1.2.1 rustfmt
-[$(Get-Mark (Get-Command clippy -ErrorAction SilentlyContinue))] 1.2.2 clippy
-[$(Get-Mark (Get-Command rust-src -ErrorAction SilentlyContinue))] 1.2.3 rust-src
+[$(Get-Mark (Test-CommandInstalled 'rustfmt'))] 1.2.1 rustfmt
+[$(Get-Mark (Test-CommandInstalled 'clippy'))] 1.2.2 clippy
+[$(Get-Mark (Test-CommandInstalled 'rust-src'))] 1.2.3 rust-src
 [$(Get-Mark ($denyVer -ne 'NOT_INSTALLED'))] 1.3.1 cargo-deny  (实际: $denyVer)
 [$(Get-Mark ($auditVer -ne 'NOT_INSTALLED'))] 1.3.2 cargo-audit  (实际: $auditVer)
 [$(Get-Mark ($llvmCovVer -ne 'NOT_INSTALLED'))] 1.3.3 cargo-llvm-cov  (实际: $llvmCovVer)
