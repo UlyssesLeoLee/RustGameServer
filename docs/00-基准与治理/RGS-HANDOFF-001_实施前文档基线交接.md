@@ -27,7 +27,7 @@
 | 发布 / 观测 | nonroot 的 digest 固定 `distroless/cc-debian12`；Git SHA/OCI label 作为发布身份；服务级 Helm + library chart、Argo Rollouts canary；Prometheus/Grafana/Loki/Tempo 经 OTel Collector 和 façade 接入。 |
 | 版本 | 用户目标为 Rust **1.98 stable**、Actix Web 4.14.1、PostgreSQL 18.4。Rust 1.98 在正式 GA、可安装且完整 CI 通过前不能写入完成基线，也不可用 beta/nightly 或旧版本替代。 |
 
-完整约束和例外处理见 [RGS-IMPL-001](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md)、[RGS-TS-001](../10-技术选型/RGS-TS-001_主要技术选型报告.md)、[RGS-WBS-001](../12-工作流/RGS-WBS-001_5层工作分解结构_v0.2.md)、[RGS-ENV-CALIB-001](../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md) 与 [RGS-SPEC-000](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md)。
+完整约束和例外处理见 [RGS-IMPL-001](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md)、[RGS-TS-001](../10-技术选型/RGS-TS-001_主要技术选型报告.md)、[RGS-WBS-001](../12-工作流/RGS-WBS-001_5层工作分解结构_v0.2.md)、[RGS-ENV-CALIB-001](../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md)、[RGS-EXEC-001](../00-基准与治理/reviews/RGS-EXEC-001_G-CODE专题突破操作手册_v0.1.md) 与 [RGS-SPEC-000](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md)。
 
 ## 3. 已交接的文档资产
 

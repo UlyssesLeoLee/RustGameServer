@@ -11,7 +11,7 @@
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
-| 配套文档 | RGS-TS-001（技术选型）、RGS-ADR-0008（中间件导入判定）、RGS-ADR-0025（OLU 预算）、RGS-REQ-031（ARC-051）、RGS-REV-001（横断审查）、RGS-PLAN-001 v0.6、RGS-REV-003 联合评审、RGS-ENV-001 环境核验、RGS-WBS-001（5 层 WBS）、RGS-ENV-CALIB-001（OLU 校准模板）|
+| 配套文档 | RGS-TS-001（技术选型）、RGS-ADR-0008（中间件导入判定）、RGS-ADR-0025（OLU 预算）、RGS-REQ-031（ARC-051）、RGS-REV-001（横断审查）、RGS-PLAN-001 v0.6、RGS-REV-003 联合评审、RGS-ENV-001 v0.2 环境核验、RGS-WBS-001 v0.2（5 层 WBS）、RGS-ENV-CALIB-001（OLU 校准模板）、RGS-EXEC-001（G-CODE 专题突破操作手册）|
 
 ---
 
