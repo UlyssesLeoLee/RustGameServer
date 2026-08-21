@@ -7,7 +7,7 @@
 | 文档编号 | RGS-PLAN-001 |
 | 版本 | 0.6 |
 | 状态 | **开发前就绪计划・Gate 未闭合・NO-GO（禁止业务编码、迁移与部署）** |
-| 依据 | DEC-001～006、RGS-QA-001 v0.9、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 |
+| 依据 | DEC-001～006、RGS-QA-001 v0.9、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001、RGS-WBS-001（5 层 WBS）、RGS-ENV-CALIB-001（OLU 校准模板）|
 | 范围 | player / economy / match / social / admin 五域；ARC-018/021/042/051 |
 | 计划窗口 | **14-18 周**（**per DEC-006 路径 B**：原 DEC-004 8-12 周窗口已修订；范围不变） |
 | 制定日 | 2026-08-21 |
