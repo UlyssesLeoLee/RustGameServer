@@ -48,7 +48,7 @@
 
 | # | 文档 | 主题 | 当前状态 |
 |---|---|---|---|
-| 1 | [00-no-go-checklist.md](00-no-go-checklist.md) | NO-GO 解除 7+12 checklist | 🟡 实时更新 |
+| 1 | [00-no-go-checklist_v0.2.md](00-no-go-checklist_v0.2.md) | NO-GO 解除 7+12 checklist | 🟡 实时更新 |
 | 2 | [01-environment-verification.md](01-environment-verification.md) | RGS-ENV-001 v0.2 引用 | 🟡 工具就位 |
 | 3 | [02-domain-leads-onboard.md](02-domain-leads-onboard.md) | 5 域 Lead 到位 checklist | 🟡 占位 |
 | 4 | [03-rust-198-environment.md](03-rust-198-environment.md) | Rust 1.98 + Cargo.lock + CI 基线 | 🟡 占位 |
