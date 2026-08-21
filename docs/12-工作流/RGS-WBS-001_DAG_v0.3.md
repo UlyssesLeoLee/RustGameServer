@@ -187,4 +187,4 @@ WF-0.5-1 (5 域 DTL §1 冻结)
 - worktree 规范：RGS-WT-001 v0.2 §11
 - 进度表：RGS-WBS-001_L4任务进度表_v0.3.md
 - freeze 节点：RGS-WBS-001 v0.3 §2A.6.8
-- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.11 §9.5.7
+- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.12 §9.5.7

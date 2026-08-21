@@ -1,10 +1,10 @@
 === RGS-ENV-001 v0.3 §1-§5 12 类环境核验 log ===
 核验人：Ulysses（一人公司 12 角色兼任 per DEC-008）
-核验日期：2026-08-22 06:07:36
+核验日期：2026-08-22 06:20:54
 环境：Windows 11 + PowerShell 7.6+
 
 §1 工具链核验
-[✅] 1.1.1 rustc = 1.98.0  (实际: info: syncing channel updates for 1.98-x86_64-pc-windows-msvc)
+[✅] 1.1.1 rustc = 1.98.0  (实际: rustc 1.98.0 (88d9e12ae 2026-08-18))
 [✅] 1.1.2 cargo = 1.98.0  (实际: cargo 1.98.0 (797e8a9bc 2026-08-05))
 [✅] 1.1.3 MSRV 锁定
 [✅] 1.2.1 rustfmt
@@ -17,7 +17,7 @@
 [✅] 1.3.5 protoc  (实际: libprotoc 33.4)
 
 §2 PostgreSQL 18.4
-[❌] 2.1.1 psql = 18.4  (实际: psql (PostgreSQL) 15.3)
+[❌] 2.1.1 psql = 18.6  (实际: psql (PostgreSQL) 15.3)
 [❌] 2.3 5 独立 DB
 [❌] 2.4 cargo check
 [❌] 2.4.2 .sqlx/ 目录

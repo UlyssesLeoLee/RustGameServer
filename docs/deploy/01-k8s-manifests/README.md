@@ -23,6 +23,11 @@
 | `08-configmap-template.yaml` | ConfigMap 模板（含 5 域配置 + CEM topic 路由） | 平台 | 占位 |
 | `09-secret-template.yaml` | Secret 模板（**仅占位结构，values 全部 `PLACEHOLDER_*`**） | 平台 | 占位 |
 | `10-rbac-template.yaml` | ServiceAccount + Role + RoleBinding（5 域 + cluster-ops + shared-platform） | 平台 | 占位 |
+| `20-postgres-secret.yaml` | PostgreSQL 18.6 超级用户 + 5 域 DB 用户凭证（per DEC-009 + DEC-010 + ARC-008 5 独立 DB）| 数据 | 占位（per DEC-010 增）|
+| `21-postgres-pvc.yaml` | PostgreSQL 18.6 数据持久化（PVC + local-path StorageClass）| 数据 | 占位（per DEC-010 增）|
+| `22-postgres-configmap.yaml` | postgresql.conf + pg_hba.conf + 5 DB initdb.sql（per RGS-SPEC-CROSS-005）| 数据 | 占位（per DEC-010 增）|
+| `23-postgres-statefulset.yaml` | PostgreSQL 18.6 Deployment（k3s pod 部署，per DEC-010）| 数据 | 占位（per DEC-010 增）|
+| `24-postgres-service.yaml` | PostgreSQL 18.6 ClusterIP Service（5 域内部访问）| 数据 | 占位（per DEC-010 增）|
 
 ---
 
@@ -91,3 +96,7 @@
 - 兄弟目录：`02-helm-charts/`（Chart 包装层）、`03-db-migrations/`（DB schema）
 - 顶层：`../README.md`、`../07-no-go-checklist_v0.2.md`
 - 前置：`../00-prerequisites/00-no-go-checklist_v0.2.md`
+- **PG 部署 SOP（per DEC-010）**：`../04-env-setup-sop.md` v0.2 §2（k3s pod apply 流程，WSL2 k3s native）
+- **PG 拓扑约束**：`../05-db-topology.mmd`（5 DB + k3s pod 边界框）
+- **PG 实测脚本**：`../../scripts/measure_env_setup.ps1` Section 2/3（WSL2 kubectl 检测）
+- **DEC 引用**：`RGS-QA-001 v0.12` §0.12 DEC-010 落条（k3d → k3s native in WSL2）

@@ -9,7 +9,7 @@
 | 状态 | 工程约定 / 可执行；不授予业务编码、数据库迁移或部署授权 |
 | 制定日 | 2026-08-21 |
 | 适用范围 | RustGameServer 的 Git worktree、本地开发依赖、Compose、测试数据库与本地密钥注入 |
-| 关联 | RGS-WF-001 v0.5、RGS-PLAN-001 v0.8、RGS-IMPL-001、RGS-OPS-001、RGS-QA-001 v0.11 |
+| 关联 | RGS-WF-001 v0.5、RGS-PLAN-001 v0.8、RGS-IMPL-001、RGS-OPS-001、RGS-QA-001 v0.12 |
 
 > 本文只定义并行工作的物理隔离与回收方式。它不替代 `RGS-WF-001` §9 Gate，亦不将目前的实施 NO-GO 改为 GO。任何 worktree 在开始业务代码、迁移、集群部署前，仍须满足 `RGS-PLAN-001` 的 `G-CODE-*` 条件与具名审批。
 

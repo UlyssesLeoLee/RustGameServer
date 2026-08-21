@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DEPLOY-00-04 |
-| 版本 | 0.1（占位 + 文档化）|
+| 版本 | 0.2（per DEC-010：k3d → k3s native in WSL2）|
 | 依据 | RGS-TS-001 v0.6 §3.4 PG + ARC-008 5 DB 划分 + RGS-IMPL-001 §3 + RGS-PLAN-001 v0.8 §3.3 G-CODE-06 |
 | 状态 | **🟠 NO-GO 状态** |
 | 保密级别 | 内部限定（Internal Use Only）|
@@ -88,3 +88,4 @@ crates/rgs-{player,economy,match,social,admin}/
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。PG 18.6 + 5 DB 划分 + sqlx 编译期占位（不实际创建）。 |
+| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-010 落地**：PG 部署形态从 docker compose 修订为 k3s pod 部署（WSL2 native k3s）。**新增** 01-k8s-manifests/20-24 5 个 PG manifest（Secret / PVC / ConfigMap / Deployment / Service）。**关联 SOP**：`04-env-setup-sop.md` v0.2 §2（per DEC-010 已重写）+ `scripts/measure_env_setup.ps1` Section 2/3（WSL2 kubectl 检测）。**未变更**：PG 18.6 基线（per DEC-009）+ 5 独立 DB 原则（ARC-008）+ sqlx 编译期占位 + G-CODE-06 实测路径。 |

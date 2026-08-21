@@ -1,6 +1,6 @@
 === RGS Rust 1.98 build + test (G-CODE-06 关闭证据) ===
 执行人：Ulysses（一人公司 12 角色兼任 per DEC-008）
-执行时间：2026-08-22 06:04:08
+执行时间：2026-08-22 06:20:50
 环境：Windows 11 + PowerShell 7.6+ + Rust rustc 1.98.0 (88d9e12ae 2026-08-18)
 
 --- rustc --version ---
@@ -15,24 +15,27 @@ rustup home:  E:\DevCache\rustup
 
 installed toolchains
 --------------------
-stable-x86_64-pc-windows-msvc (active, default)
+stable-x86_64-pc-windows-msvc (default)
 nightly-x86_64-pc-windows-msvc
 nightly-2026-04-02-x86_64-pc-windows-msvc
 1.89.0-x86_64-pc-windows-msvc
 1.91.1-x86_64-pc-windows-msvc
 1.95.0-x86_64-pc-windows-msvc
+1.98-x86_64-pc-windows-msvc (active)
 
 active toolchain
 ----------------
-name: stable-x86_64-pc-windows-msvc
-active because: it's the default toolchain
+name: 1.98-x86_64-pc-windows-msvc
+active because: overridden by 'D:\RustGameServer\rust-toolchain.toml'
 installed targets:
   x86_64-pc-windows-msvc
 
 --- cargo build --locked ---
-error: could not find `Cargo.toml` in `C:\Users\leo19` or any parent directory
+error: cannot create the lock file D:\RustGameServer\Cargo.lock because --locked was passed to prevent this
+help: to generate the lock file without accessing the network, remove the --locked flag and use --offline instead.
 
 --- cargo test --locked --workspace ---
-error: could not find `Cargo.toml` in `C:\Users\leo19` or any parent directory
+error: cannot create the lock file D:\RustGameServer\Cargo.lock because --locked was passed to prevent this
+help: to generate the lock file without accessing the network, remove the --locked flag and use --offline instead.
 
 === 完成 ===

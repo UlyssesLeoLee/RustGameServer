@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
   <text x="20" y="30" font-size="20" font-weight="bold">RGS 5 独立 DB 拓扑图 (G-CODE-03)</text>
   <text x="20" y="60" font-size="14">per ARC-008 5 独立 DB 原则 + RGS-ADR-0051 CEM + RGS-ADR-0052 Active-Active</text>
-  <text x="20" y="90" font-size="12">生成于 2026-08-22 06:04:17</text>
+  <text x="20" y="90" font-size="12">生成于 2026-08-22 06:20:53</text>
   <text x="20" y="120" font-size="12">完整 Mermaid 源: 05-db-topology.mmd</text>
   <text x="20" y="150" font-size="12">5 业务 DB: player_db / economy_db / match_db / social_db / admin_db</text>
   <text x="20" y="170" font-size="12">集群控制面: cluster_ops_db (COC + PFAU + all-reachable)</text>
