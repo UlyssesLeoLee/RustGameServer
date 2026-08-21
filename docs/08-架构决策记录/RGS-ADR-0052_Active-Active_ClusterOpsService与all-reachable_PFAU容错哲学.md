@@ -44,7 +44,9 @@
 ### 2.3 ClusterOpsService 采用 Active-Active 双副本
 - **拟定规则**：控制面采用双实例无状态对等部署（Multi-leader），底层基于 PostgreSQL 乐观并发控制（`version` 字段 CAS）与 Redis 分布式租约。目标是降低单 Pod 崩溃或重启对运维画布与事件流的影响；实际中断情况须经故障注入验证，不得预先宣称为 0。
 
-### 2.4 First Slice 候选范围：5 域全开架构（8~12 周）
+### 2.4 First Slice 候选范围：5 域全开架构（**14-18 周，per DEC-006 路径 B**）
+
+> **v0.6 修订**：first slice 窗口 8-12 周 → **14-18 周**（per RGS-QA-001 v0.9 DEC-006；用户决策 2026-08-21）。**DEC-004 范围不变**（5 域全开 + 完整 ARC-018/021/042），**仅时间窗口修订**（5 域独立 Lead 配置后，OLU 必突破 NFR-OP-010；路径 B = 调低 OLU 期望 = 拉长窗口）。
 - **拟定范围**：首期交付不削减领域完整性，一次性打通 Player、Economy、Match、Social、Admin 五大领域限界上下文及 ARC-018 挂载脚手架、ARC-021 Wasm 插件接口、ARC-042 部署自动化。
 
 ---

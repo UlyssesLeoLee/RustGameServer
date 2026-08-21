@@ -5,15 +5,15 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-PLAN-001 |
-| 版本 | 0.5 |
+| 版本 | 0.6 |
 | 状态 | **开发前就绪计划・Gate 未闭合・NO-GO（禁止业务编码、迁移与部署）** |
-| 依据 | DEC-001～005、RGS-QA-001 v0.8、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 |
+| 依据 | DEC-001～006、RGS-QA-001 v0.9、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 |
 | 范围 | player / economy / match / social / admin 五域；ARC-018/021/042/051 |
-| 计划窗口 | 8～12 周规划假设，须以 Gate、OLU 和演练证据校准 |
+| 计划窗口 | **14-18 周**（**per DEC-006 路径 B**：原 DEC-004 8-12 周窗口已修订；范围不变） |
 | 制定日 | 2026-08-21 |
 | 制定者 | 架构师 + 项目负责人 |
 
-> 本计划只定义依赖、交付物和验收门槛。它不替代 RGS-QA-001 的具名审批，不把 AI 估算、RPO/RTO、OLU 改善或 8～12 周窗口写成已批准承诺。v0.2 将全部 36 份 DTL 对应的 SPEC 绑定为实施输入；在 §3.3 的全部 `G-CODE-*` 门禁关闭前，本计划不是编码、数据库迁移、集群部署或排期承诺的授权。
+> 本计划只定义依赖、交付物和验收门槛。它不替代 RGS-QA-001 的具名审批，不把 AI 估算、RPO/RTO、OLU 改善或 **14-18 周**窗口写成已批准承诺。v0.2 将全部 36 份 DTL 对应的 SPEC 绑定为实施输入；在 §3.3 的全部 `G-CODE-*` 门禁关闭前，本计划不是编码、数据库迁移、集群部署或排期承诺的授权。
 
 ## 修订历史（改訂履歴 / Revision History）
 
@@ -24,6 +24,7 @@
 | 0.3 | 2026-08-21 | 架构师 | — | 绑定 RGS-IMPL-001，收敛 Q-101～Q-405 的工程答案；将 Q-003/Q-025 从“缺少方案”改为“方案已定、待具名 Gate/证据”。Rust 1.98 stable 为用户目标，GA 前 Gate 保持 Open。 |
 | 0.4 | 2026-08-21 | 架构师 + PM | — | 同步 handoff §5 Step 1-2 进展：① 升级 RGS-QA-001 v0.7 引用（Q-021 治理闭环落地 + Q-027 文档版本同步 + Q-031 WBS 主题重定义）② DTL-031 v0.1 → v0.2 ③ 新增 §3.4 RGS-REV-003 联合评审组织 + §3.5 RGS-ENV-001 环境核验 ④ 审批栏扩 5 域 Lead + SRE + DBA + Platform Engineer。**本计划不把 v0.3→v0.4 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字关闭后解除。** |
 | 0.5 | 2026-08-21 | 架构师 + PM | — | **DEC-005 落地**：5 域 Lead 从"合并 1 行"拆为 5 行**独立** Lead 签字栏；审批栏从 9 类扩为 13 类（5 域独立 Lead + 架构师 + SRE + DBA + Platform + QA + 评审主持人 + PM）；§3.4.3 签字顺序由"DBA→SRE→5 域 Lead"改为"DBA→SRE→5 域独立 Lead（player / economy / match / social / admin 顺序签）→架构师→Economy 域 Lead（Q-003 二次确认）→Platform→QA→PM"；§6 风险账本 Q-015 状态由"超 2 SRE 上限则暂停范围扩张"改为"5 域独立 Lead 必突破 NFR-OP-010，需 PM + SRE Lead 重算编制，详见 RGS-QA-001 v0.8 §9.4 OLU 决策影响"。**本计划不把 v0.4→v0.5 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字关闭后解除。** |
+| 0.6 | 2026-08-21 | 架构师 + PM | — | **DEC-006 落地**：first slice 窗口 8-12 周 → **14-18 周**（per RGS-QA-001 v0.9 §9.5.3 路径 B 选定；用户决策 2026-08-21）。DEC-004 范围不变（5 域全开 + 完整 ARC-018/021/042），**仅时间窗口修订**。AC-PLAN-007 验收标准更新（"8-12 周"→"14-18 周"）。**未变更**：5 域范围、5 域独立 Lead 配置、Active-Active、all-reachable、5 DB 划分、ADR-0052 容错哲学。**本计划不把 v0.5→v0.6 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字关闭后解除。** |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -102,19 +103,21 @@ SPEC 版本、源 DTL 版本、关联 ADR/QA、实现分支、测试证据和部
 
 ## 3.1 阶段表
 
-| 阶段 | 规划窗口 | 主要工作 | 前置 | 阶段出口 |
-|---|---:|---|---|---|
-| PH-0 Gate、设计与 SPEC 冻结 | 第 1 周 | DTL-031；PLAN-001 v0.2；Q-003/Q-004/Q-015/Q-016/Q-025；ADR-0052；五域 DTL/SPEC 契约评审 | 无 | 形成 §3.3 开发前 Go/No-Go 证据包；不允许创建实现分支 |
-| PH-0.5 开发前授权评审 | PH-0 后 | 核对全部 `G-CODE-*`、审批栏、环境核验记录、追踪矩阵和风险接受 | PH-0 | 全部门禁关闭后，项目负责人书面授权进入 PH-1；未授权即 NO-GO |
-| PH-1 工程基础 | 第 2 周 | Cargo workspace、按域 contracts、`rgs-testkit`、CI 基线、manifest schema/DAG validator | PH-0.5 书面授权 | 负例测试全通过，五域均可登记 |
-| PH-2 集群基础 | 第 3 周 | gateway/event-bus/config/observability/secrets；五域空壳；AdminService/ClusterOpsService health | PH-1 | 开发环境 dry-run 与独立 DB 开通通过 |
-| PH-3 控制面 | 第 4～5 周 | Feature registry、CEM、PFAU、AdminService 转发、OCC/fencing、all-reachable | PH-2 | 单节点故障可暂停/回滚；不自动跳过 |
-| PH-4 第一业务切片 | 第 5～7 周 | player 端到端；economy 仅实现已批准的 Saga 契约；其余域完成契约接入 | PH-3；Q-003 | 五域 manifest 一致，player 路径可重复部署 |
-| PH-5 五域联调 | 第 7～9 周 | economy/match/social/admin 业务路径、事件、插件隔离与回滚 | PH-4 | 领域集成测试与数据隔离通过 |
-| PH-6 故障/容量/运维 | 第 9～11 周 | Active-Active、跨 AZ、network partition、100k CCU 计划、OLU、灾备 | PH-5 | 证据包满足验收矩阵 |
-| PH-7 发布 Gate | 第 11～12 周 | 供应链、许可证、发布/回滚、RPO/RTO、最终签署 | PH-6 | 仅在负责人签署后进入目标环境 |
+> **v0.6 调整（per DEC-006 路径 B）**：总窗口由 8-12 周修订为 14-18 周（+50%）。PH 阶段数保持 8 阶段，**每阶段周数按比例扩展**。
 
-以上窗口是排期假设；任一阶段出口未通过时，后续阶段不自动顺延为“已开始”。
+| 阶段 | 规划窗口（v0.5）| 规划窗口（**v0.6 14-18 周**）| 主要工作 | 前置 | 阶段出口 |
+|---|---:|---:|---|---|---|
+| PH-0 Gate、设计与 SPEC 冻结 | 第 1 周 | **第 1-2 周** | DTL-031；PLAN-001 v0.2；Q-003/Q-004/Q-015/Q-016/Q-025；ADR-0052；五域 DTL/SPEC 契约评审 | 无 | 形成 §3.3 开发前 Go/No-Go 证据包；不允许创建实现分支 |
+| PH-0.5 开发前授权评审 | PH-0 后 | PH-0 后 | 核对全部 `G-CODE-*`、审批栏、环境核验记录、追踪矩阵和风险接受 | PH-0 | 全部门禁关闭后，项目负责人书面授权进入 PH-1；未授权即 NO-GO |
+| PH-1 工程基础 | 第 2 周 | **第 3-4 周** | Cargo workspace、按域 contracts、`rgs-testkit`、CI 基线、manifest schema/DAG validator | PH-0.5 书面授权 | 负例测试全通过，五域均可登记 |
+| PH-2 集群基础 | 第 3 周 | **第 5-6 周** | gateway/event-bus/config/observability/secrets；五域空壳；AdminService/ClusterOpsService health | PH-1 | 开发环境 dry-run 与独立 DB 开通通过 |
+| PH-3 控制面 | 第 4～5 周 | **第 7-9 周** | Feature registry、CEM、PFAU、AdminService 转发、OCC/fencing、all-reachable | PH-2 | 单节点故障可暂停/回滚；不自动跳过 |
+| PH-4 第一业务切片 | 第 5～7 周 | **第 9-12 周** | player 端到端；economy 仅实现已批准的 Saga 契约；其余域完成契约接入 | PH-3；Q-003 | 五域 manifest 一致，player 路径可重复部署 |
+| PH-5 五域联调 | 第 7～9 周 | **第 12-14 周** | economy/match/social/admin 业务路径、事件、插件隔离与回滚 | PH-4 | 领域集成测试与数据隔离通过 |
+| PH-6 故障/容量/运维 | 第 9～11 周 | **第 14-16 周** | Active-Active、跨 AZ、network partition、100k CCU 计划、OLU、灾备 | PH-5 | 证据包满足验收矩阵 |
+| PH-7 发布 Gate | 第 11～12 周 | **第 17-18 周** | 供应链、许可证、发布/回滚、RPO/RTO、最终签署 | PH-6 | 仅在负责人签署后进入目标环境 |
+
+以上窗口是排期假设（per DEC-006 路径 B，14-18 周总窗口）；任一阶段出口未通过时，后续阶段不自动顺延为"已开始"。v0.7 之前不接受 PM 之外的窗口修订。
 
 ## 3.2 关键 DAG
 
@@ -348,7 +351,7 @@ deploy/cluster-manifest/
 | AC-PLAN-004 | 单节点失联使 PFAU 暂停或按明确规则回滚，不自动跳过版本不兼容 |
 | AC-PLAN-005 | 插件异常、脚本超限或禁用不影响宿主进程与其他 Feature |
 | AC-PLAN-006 | 五域跨边界调用均经 gRPC/event contract，无跨 DB 直连 |
-| AC-PLAN-007 | 8～12 周、OLU、RPO/RTO 结论均有真实测量和具名签署，不能由计划文字推定 |
+| AC-PLAN-007 | **14-18 周**（per DEC-006 路径 B）、OLU、RPO/RTO 结论均有真实测量和具名签署，不能由计划文字推定 |
 | AC-PLAN-008 | 任一实现单元均可由 RGS-SPEC-000 反查源 DTL、SPEC、ADR/QA、owner、测试证据和回滚路径；DTL/SPEC 变更会使旧证据失效并触发复核 |
 | AC-PLAN-009 | 进入 PH-1 前，§3.3 全部 `G-CODE-*` 有关闭证据和具名授权；否则计划状态保持 NO-GO |
 
