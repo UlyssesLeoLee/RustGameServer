@@ -1,6 +1,6 @@
 # 01-k8s-manifests — Kubernetes 清单占位
 
-> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6` 12 类签字栏）
+> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` 12 类签字栏）
 >
 > 本目录所有 yaml 在 **53 開発環境構築 启动条件**（7 G-CODE Closed + 12 类签字齐全）**全部满足前**不得替换为实际业务配置。
 >
@@ -69,7 +69,7 @@
 
 本目录从占位升级为实际清单，必须满足：
 
-1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.2`）
+1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.3`）
    - G-CODE-01 业务方代表具名签字
    - G-CODE-02 5 域 Lead 独立具名（不兼任，per DEC-005）
    - G-CODE-03 DBA 具名 + 5 独立 DB 拓扑图签字
@@ -77,7 +77,7 @@
    - G-CODE-05 Platform 架构师具名 + CI/CD 签字
    - G-CODE-06 Rust 1.98 + Cargo.lock + CI 全绿
    - G-CODE-07 QA Lead 具名 + 验收矩阵签字
-2. **RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
+2. **RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
 3. **RGS-REV-003 §7.3 12 类签字栏全部具名签字**（当前 8/12 实际签 + 10+ 所有者背书占位）
 
 满足后由架构师出 v0.8 删除"所有者背书"占位 → 本目录 `_status.md` 升 `🟢 GO` → 由 SRE 主导替换为实际配置。
@@ -86,8 +86,8 @@
 
 ## 6. 关联文档
 
-- 上游：`RGS-PLAN-001 v0.7` §3.3（NO-GO 强约束）+ `RGS-ENV-001 v0.2` §6（12 类签字）
-- 并行：`RGS-EXEC-001 v0.2`（G-CODE 突破手册）+ `RGS-REV-003`（联合评审）
+- 上游：`RGS-PLAN-001 v0.8` §3.3（NO-GO 强约束）+ `RGS-ENV-001 v0.3` §6（12 类签字）
+- 并行：`RGS-EXEC-001 v0.3`（G-CODE 突破手册）+ `RGS-REV-003`（联合评审）
 - 兄弟目录：`02-helm-charts/`（Chart 包装层）、`03-db-migrations/`（DB schema）
-- 顶层：`../README.md`、`../07-no-go-checklist.md`
-- 前置：`../00-prerequisites/00-no-go-checklist.md`
+- 顶层：`../README.md`、`../07-no-go-checklist_v0.2.md`
+- 前置：`../00-prerequisites/00-no-go-checklist_v0.2.md`

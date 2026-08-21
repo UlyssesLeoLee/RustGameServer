@@ -1,6 +1,6 @@
 # 04-ci-cd — GitHub Actions CI/CD 占位
 
-> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6` + G-CODE-06）
+> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + G-CODE-06）
 >
 > 本目录所有 `.yaml` workflow 在 **53 開発環境構築 启动条件**全部满足前**不得激活为可执行 workflow**。
 >
@@ -65,7 +65,7 @@
 1. **7 G-CODE 全部 Closed**，特别：
    - G-CODE-05 Platform 架构师具名 + CI/CD 签字
    - G-CODE-06 Rust 1.98 + Cargo.lock + CI 全绿
-2. **RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
+2. **RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
 3. **3 验证脚本通过**（已在 eb2fffa 验证过，状态保留）
 4. **Runner + registry 实际配置**（Platform 架构师签字）
 
@@ -75,8 +75,8 @@
 
 ## 6. 关联文档
 
-- 上游：`RGS-EXEC-001 v0.2`（G-CODE 突破手册）+ `RGS-TS-001 v0.6 §5.2`（PG 选型）
+- 上游：`RGS-EXEC-001 v0.3`（G-CODE 突破手册）+ `RGS-TS-001 v0.6 §5.2`（PG 选型）
 - 并行：`01-k8s-manifests/` + `02-helm-charts/` + `03-db-migrations/`
-- 治理：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`
+- 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`
 - 验证：`scripts/verify_docs.py` + `scripts/check-cross-references.py` + `scripts/verify_wf_v05.py`
-- 自检表：`../07-no-go-checklist.md` + `../00-prerequisites/00-no-go-checklist.md`
+- 自检表：`../07-no-go-checklist_v0.2.md` + `../00-prerequisites/00-no-go-checklist_v0.2.md`

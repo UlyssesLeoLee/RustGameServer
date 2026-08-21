@@ -4,15 +4,15 @@
 |---|---|
 | 文档编号 | RGS-DEPLOY-00 |
 | 版本 | 0.1（占位 + 文档化）|
-| 依据 | RGS-PLAN-001 v0.7 §3 + RGS-ENV-001 v0.2 + RGS-ENV-CALIB-001 v0.1 + handoff §5 |
-| 状态 | **🟠 NO-GO 状态（per RGS-PLAN-001 v0.7 §3.3）** |
+| 依据 | RGS-PLAN-001 v0.8 §3 + RGS-ENV-001 v0.3 + RGS-ENV-CALIB-001 v0.1 + handoff §5 |
+| 状态 | **🟠 NO-GO 状态（per RGS-PLAN-001 v0.8 §3.3）** |
 | 保密级别 | 内部限定（Internal Use Only）|
 
 ---
 
 ## §1 部署前置条件总览
 
-> **53 启动前必须满足的 4 大类前置条件**（per RGS-PLAN-001 v0.7 §1.2 不可变约束）：
+> **53 启动前必须满足的 4 大类前置条件**（per RGS-PLAN-001 v0.8 §1.2 不可变约束）：
 
 ### §1.1 7 G-CODE 全部 Closed
 
@@ -26,7 +26,7 @@
 | G-CODE-06 | 工具链 + 开发环境基线 | 🟠 Open | Rust 1.98 实测 + PG 18.4 + K3s + 锁定 CI | Platform + DBA + SRE |
 | G-CODE-07 | OLU + 测试基础前置 | 🟠 Open | OLU 重算（含 5 域独立 Lead）+ Q-031 WBS + testkit | SRE + QA + PM |
 
-### §1.2 RGS-ENV-001 v0.2 12 类签字齐全
+### §1.2 RGS-ENV-001 v0.3 12 类签字齐全
 
 - **2 项 Ulysses 实际签**（架构师 #8 + PM #12）
 - **10 项所有者背书 + 待具名责任人**（DBA / SRE / 5 域 Lead / Platform / QA / Q-003 二次）
@@ -49,7 +49,7 @@
 | # | 文档 | 主题 | 当前状态 |
 |---|---|---|---|
 | 1 | [00-no-go-checklist_v0.2.md](00-no-go-checklist_v0.2.md) | NO-GO 解除 7+12 checklist | 🟡 实时更新 |
-| 2 | [01-environment-verification.md](01-environment-verification.md) | RGS-ENV-001 v0.2 引用 | 🟡 工具就位 |
+| 2 | [01-environment-verification.md](01-environment-verification.md) | RGS-ENV-001 v0.3 引用 | 🟡 工具就位 |
 | 3 | [02-domain-leads-onboard.md](02-domain-leads-onboard.md) | 5 域 Lead 到位 checklist | 🟡 占位 |
 | 4 | [03-rust-198-environment.md](03-rust-198-environment.md) | Rust 1.98 + Cargo.lock + CI 基线 | 🟡 占位 |
 | 5 | [04-postgresql-184-setup.md](04-postgresql-184-setup.md) | PG 18.4 + 5 DB 划分 | 🟡 占位 |
@@ -61,7 +61,7 @@
 > **NO-GO 解除前的所有"部署"动作 = 文档化 + 占位骨架**，不实际执行。
 
 1. **PH-0**（W1-2）：架构师 + PM 实际签 + 5 域 Lead 招聘启动
-2. **PH-0.5**（W2 末）：RGS-ENV-001 v0.2 §6 12 类签字 100% 具名责任人补全
+2. **PH-0.5**（W2 末）：RGS-ENV-001 v0.3 §6 12 类签字 100% 具名责任人补全
 3. **PH-1**（W3-4）：Rust 1.98 实测 + Cargo workspace 占位 + Cargo.lock 锁定
 4. **PH-2**（W5-6）：PG 18.4 + 5 DB 划分 + K3s cluster 占位
 5. **PH-3**（W7-9）：ClusterOpsService + CEM/PFAU + AdminService 占位

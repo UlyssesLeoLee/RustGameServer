@@ -18,7 +18,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | 初版。覆盖工具链 / PostgreSQL / K3s / CI / 跨工具集成 5 层核验；5 类签字栏（Platform / DBA / SRE / 架构师 / PM）。 |
 | 0.2 | 2026-08-21 | 架构师 | **§6 签字栏 5 类 → 12 类扩**（per RGS-PLAN-001 v0.8 §3.4.3 + RGS-QA-001 v0.10 DEC-005）：新增 5 域独立 Lead 签字（player / economy / match / social / admin）+ Economy 域 Lead Q-003 二次确认 + QA Lead = 12 类；签字顺序不可跳签（DBA → SRE → 5 域 Lead → 架构师 → Economy 域 Lead 二次 → Platform → QA → PM）；新增"5 域 Lead 不享有代表同意机制"说明。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明。 |
-| 0.3 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.10 §9.5.7）：撤销 v0.2 所有者背书机制 + Ulysses 12 类全签（一人公司 12 角色兼任 = 真实人真实职责）。**接受代价**：Q-003 跨域事务"1 人自审自批"已知风险，流程化补偿（CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路）。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明 + 12 类签字顺序（DBA→SRE→5 域 Lead→架构师→Q-003 二次→Platform→QA→PM，**Ulysses 1 人按顺序走完 12 步**）。**注意**：§1-§5 12 类环境核验仍需 Ulysses 实际跑过才算 ✅ 通（签字不构成证据，per RGS-EXEC-001 v0.2 §3.4）。 |
+| 0.3 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.10 §9.5.7）：撤销 v0.2 所有者背书机制 + Ulysses 12 类全签（一人公司 12 角色兼任 = 真实人真实职责）。**接受代价**：Q-003 跨域事务"1 人自审自批"已知风险，流程化补偿（CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路）。**未变更**：§1-§5 核验项 + §7 异常处理 + §8 完成声明 + 12 类签字顺序（DBA→SRE→5 域 Lead→架构师→Q-003 二次→Platform→QA→PM，**Ulysses 1 人按顺序走完 12 步**）。**注意**：§1-§5 12 类环境核验仍需 Ulysses 实际跑过才算 ✅ 通（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）。 |
 
 ---
 
@@ -307,7 +307,7 @@ $ buildctl build ... -f Dockerfile.rgs
 > **签字顺序（per RGS-PLAN-001 v0.8 §3.4.3，不可跳签）**：
 > **DBA → SRE → 5 域 Lead（player → economy → match → social → admin）→ 架构师 → Economy 域 Lead（Q-003 二次确认）→ Platform → QA → PM**
 >
-> **v0.2 所有者背书机制**（per RGS-PLAN-001 v0.8 §3.4.4 + RGS-EXEC-001 v0.2 §8，user decision 2026-08-21 折中方案 C）：
+> **v0.2 所有者背书机制**（per RGS-PLAN-001 v0.8 §3.4.4 + RGS-EXEC-001 v0.3 §8，user decision 2026-08-21 折中方案 C）：
 > - **2 项 Ulysses 实际签**（架构师 / PM 角色）
 > - **10 项所有者背书 + 待具名责任人**（DBA / SRE / 5 域 Lead / Platform / QA / Q-003 二次 具名责任人位）
 > - **风险声明**：所有者背书**不替代具名责任人签字**；NO-GO 仍由 7 G-CODE 全部 Closed 解除
@@ -330,7 +330,7 @@ $ buildctl build ... -f Dockerfile.rgs
 
 > **联合评审主持人**（per RGS-REV-003）：架构师（兼）作为评审主持人，主持环境核验联合评审；不单独占签字栏（架构师已在 #8 签字）。
 > **5 域 Lead 不享有"代表同意"机制**（per DEC-005 不兼任原则延伸）：任一域 Lead 异议即该域核验不通过。
-> **所有者背书风险**（per RGS-EXEC-001 v0.2 §8.3）：#1-#7、#9-#11 标"所有者背书"的 10 项**不构成 G-CODE Closed 的证据**；具名责任人到位后升 v0.3 移除背书占位。
+> **所有者背书风险**（per RGS-EXEC-001 v0.3 §8.3）：#1-#7、#9-#11 标"所有者背书"的 10 项**不构成 G-CODE Closed 的证据**；具名责任人到位后升 v0.3 移除背书占位。
 
 ---
 

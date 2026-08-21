@@ -1,6 +1,6 @@
 # 02-helm-charts — Helm Chart 占位
 
-> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`）
+> **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`）
 >
 > 本目录所有 Chart 在 **53 開発環境構築 启动条件**全部满足前**不得升级为可 helm install 的实际 chart**。
 >
@@ -101,8 +101,8 @@
 
 本目录从占位升级为可 helm install 的实际 Chart，必须满足：
 
-1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.2`）
-2. **RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
+1. **7 G-CODE 全部 Closed**（per `RGS-EXEC-001 v0.3`）
+2. **RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
 3. **RGS-REV-003 §7.3 12 类签字栏全部具名签字**（当前 8/12 实际签 + 10+ 所有者背书占位）
 4. **01-k8s-manifests/ 实际配置完成**（SRE + 5 域 Lead 联合校准）
 5. **03-db-migrations/ 实际 schema 完成**（DBA + 5 域 Lead 联合校准）
@@ -113,7 +113,7 @@
 
 ## 6. 关联文档
 
-- 上游：`RGS-PLAN-001 v0.7` §3.3（NO-GO 强约束）
+- 上游：`RGS-PLAN-001 v0.8` §3.3（NO-GO 强约束）
 - 并行：`01-k8s-manifests/`（裸 manifest）+ `03-db-migrations/`（schema）+ `04-ci-cd/`（CI）
 - SOP：`../05-deploy-sop.md` + `../06-rollback-sop.md`
-- 自检表：`../07-no-go-checklist.md` + `../00-prerequisites/00-no-go-checklist.md`
+- 自检表：`../07-no-go-checklist_v0.2.md` + `../00-prerequisites/00-no-go-checklist_v0.2.md`

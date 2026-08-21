@@ -4,7 +4,7 @@
 > **版本**：v0.1
 > **生效日期**：2026-08-21
 > **状态**：🔴 当前状态 NO-GO（多类签字栏未到位）
-> **关联**：`../00-prerequisites/00-no-go-checklist.md`（详细 12 类 + 7 G-CODE 拆解）+ `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3`
+> **关联**：`../00-prerequisites/00-no-go-checklist_v0.2.md`（详细 12 类 + 7 G-CODE 拆解）+ `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3`
 
 ---
 
@@ -19,7 +19,7 @@
 
 > ⚠️ **本表是部署启动前必查的顶层 summary**。本表 0 项 ✅ 之前**禁止执行** `../05-deploy-sop.md` 任何步骤、**禁止在 production 跑任何 deployment 命令**、**禁止在 production 执行任何 DB migration**。
 >
-> 详细分解见 `../00-prerequisites/00-no-go-checklist.md`。
+> 详细分解见 `../00-prerequisites/00-no-go-checklist_v0.2.md`。
 
 ---
 
@@ -125,7 +125,7 @@
 | `../04-ci-cd/` | ✅ 占位就位（6 文件） | 4 workflow + README + _status，trigger 全部占位/注释 |
 | `../05-deploy-sop.md` | ✅ 已就位 | 详细部署步骤（NO-GO 状态保留） |
 | `../06-rollback-sop.md` | ✅ 已就位 | L1-L4 回滚分级（NO-GO 状态保留） |
-| `../07-no-go-checklist.md` | ✅ 当前文件 | 顶层 summary（本文件） |
+| `../07-no-go-checklist_v0.2.md` | ✅ 当前文件 | 顶层 summary（本文件） |
 
 ---
 
@@ -147,7 +147,7 @@
 
 ## 9. 关联文档
 
-- 详细 NO-GO checklist：`../00-prerequisites/00-no-go-checklist.md`
+- 详细 NO-GO checklist：`../00-prerequisites/00-no-go-checklist_v0.2.md`
 - 部署 SOP：`../05-deploy-sop.md`
 - 回滚 SOP：`../06-rollback-sop.md`
 - 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3 §3.4/§4.4`

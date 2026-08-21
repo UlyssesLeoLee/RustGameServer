@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-DEPLOY-00-04 |
 | 版本 | 0.1（占位 + 文档化）|
-| 依据 | RGS-TS-001 v0.6 §3.4 PG + ARC-008 5 DB 划分 + RGS-IMPL-001 §3 + RGS-PLAN-001 v0.7 §3.3 G-CODE-06 |
+| 依据 | RGS-TS-001 v0.6 §3.4 PG + ARC-008 5 DB 划分 + RGS-IMPL-001 §3 + RGS-PLAN-001 v0.8 §3.3 G-CODE-06 |
 | 状态 | **🟠 NO-GO 状态** |
 | 保密级别 | 内部限定（Internal Use Only）|
 

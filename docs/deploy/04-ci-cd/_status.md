@@ -19,6 +19,6 @@
 ## 责任人占位
 
 - 架构师：Ulysses（已实际签，per RGS-EXEC-001 §2.4）
-- Platform 架构师：待具名（per RGS-EXEC-001 v0.2 §5 所有者背书）
-- SRE：待具名（per RGS-EXEC-001 v0.2 §4.4 所有者背书）
-- QA Lead：待具名（per RGS-EXEC-001 v0.2 §6 所有者背书）
+- Platform 架构师：待具名（per RGS-EXEC-001 v0.3 §5 所有者背书）
+- SRE：待具名（per RGS-EXEC-001 v0.3 §4.4 所有者背书）
+- QA Lead：待具名（per RGS-EXEC-001 v0.3 §6 所有者背书）
