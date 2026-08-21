@@ -126,7 +126,7 @@ docs/deploy/
 - [RGS-TS-001 v0.6](../10-技术选型/RGS-TS-001_主要技术选型报告.md) — §3.11 部署与编排
 - [RGS-WBS-001 v0.2](../12-工作流/RGS-WBS-001_5层工作分解结构_v0.2.md) — L4 任务清单（部署步骤补全）
 - [RGS-EXEC-001 v0.2](../00-基准与治理/reviews/RGS-EXEC-001_G-CODE专题突破操作手册_v0.2.md) — §8 所有者背书机制
-- [RGS-ENV-001 v0.2](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.2.md) — 12 类签字栏（含 2 项 Ulysses 实际签 + 10 项所有者背书）
+- [RGS-ENV-001 v0.3](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) — 12 类签字栏（含 2 项 Ulysses 实际签 + 10 项所有者背书）
 - [RGS-ENV-CALIB-001 v0.1](../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md) — OLU 校准
 
 ## §5 修订历史
