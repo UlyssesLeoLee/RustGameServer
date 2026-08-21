@@ -49,7 +49,7 @@
 | 11 | 评审主持人（RGS-REV-003）| **Ulysses**（架构师兼）| **2026-08-21** | ✅ **Ulysses（评审主持人）实际签**：主持联合评审流程与异议闭环 |
 | 12 | 项目负责人（PM）| **Ulysses** | **2026-08-21** | ✅ **Ulysses（PM）实际签**：确认范围、风险接受、资源（含 5 域独立 Lead 编制）和实施授权（**含 §3.4.4 所有者背书 5 项**）|
 
-> **v0.7 扩列说明**：12 类审批栏中 8 项 Ulysses 实际签（架构师 / 评审主持人 / PM），5 项标"所有者背书 + 待具名责任人"占位。具体责任矩阵见 [RGS-REV-003 §3](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) 与 [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md)。**具名责任人到位后**升 v0.8，移除"所有者背书"占位，全部转为具名责任人实际签字。
+> **v0.7 扩列说明**：12 类审批栏中 8 项 Ulysses 实际签（架构师 / 评审主持人 / PM），5 项标"所有者背书 + 待具名责任人"占位。具体责任矩阵见 [RGS-REV-003 §3](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) 与 [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md)。**具名责任人到位后**升 v0.8，移除"所有者背书"占位，全部转为具名责任人实际签字。
 >
 > **不兼任原则（DEC-005 核心）**：架构师不兼任 player 域 Lead；SRE 不兼任 admin 域 Lead。Q-003 跨域核心问题需 Economy 域 Lead 独立决策权；COC 控制面属 admin 域独立控制面，SRE 兼任会与 admin 域 Lead 责任重叠。**5 域独立 Lead 必然突破 NFR-OP-010（2 SRE ≤ 20 人·天/周）的人天预算，详见 RGS-QA-001 v0.10 §9.5 OLU 决策影响**。
 
@@ -148,7 +148,7 @@ Gate approvals
 
 | ID | 必须关闭的门禁 | 当前状态（2026-08-21 v0.4） | 关闭证据 | 责任人 | 评审 checklist |
 |---|---|---|---|---|---|
-| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 🟣 机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 | [REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) §2.4 |
+| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 🟣 机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 | [REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) §2.4 |
 | G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | 🟠 **Open / Blocker**（DTL-031 v0.2 已存在 21 KB） | 接口、状态机、fencing、CEM/PFAU、测试映射和审批栏具名签署 | 架构负责人 + 平台负责人 + DBA | [REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) §A.6 |
 | G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | 🟠 **Open**（ADR-0052 已起草 5.7 KB） | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 | REV-003 §2.3 + ADR-0052 联审 |
 | G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | 🟠 **Open / Q-003 Blocker**（技术方案已固定在 RGS-IMPL-001 §3 + RGS-QA-001 v0.8） | Saga/Outbox/补偿边界、四层原子状态机合并图、6 个业务场景验收计划 | 架构负责人 + DBA Lead + **Economy 域 Lead（独立）** | [REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) 6 场景 |
@@ -176,7 +176,7 @@ Gate approvals
 
 | 文档 | 用途 | 路径 |
 |---|---|---|
-| [RGS-REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL.md) | 联合评审主文（agenda + 责任矩阵 + 签字栏）| `docs/00-基准与治理/reviews/` |
+| [RGS-REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) | 联合评审主文（agenda + 责任矩阵 + 签字栏）| `docs/00-基准与治理/reviews/` |
 | [RGS-REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) | 5 域 DTL 字段级 Review Checklist（14 通用 + 5 域特定 + 跨域一致性） | 同上 |
 | [RGS-REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) | G-CODE-04 Saga 演练场景（6 场景：正常 / 补偿 / 超时 / 人工升级 / 去重 / PFAU+Saga） | 同上 |
 | [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md) | 完整 RACI 矩阵 + 签字流程（按依赖顺序，不可跳签）| 同上 |
