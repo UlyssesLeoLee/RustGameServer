@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-WBS-001 |
 | 版本 | 0.3（瀑布式 9 阶段 + worktree + agent 并行）|
-| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.11 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
+| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.12 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
 | 范围 | first slice 14-18 周 / 5 域 + foundation + cluster-ops + shared-platform / ARC-018/021/042/051 |
 | 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.8 §3.1 PH 阶段表；RGS-ENV-001 v0.3 环境核验 12 类签字 |
 | 保密级别 | 内部限定（Internal Use Only）|
@@ -180,7 +180,7 @@
 | 58 | CI | 12 | 11.0 | 2,550K |
 | **合计** | **WF-1 实施** | **72** | **69.5 人·天** | **15960K tokens/周** |
 
-**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.11 §9.5.7）。
+**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.12 §9.5.7）。
 
 ### §2A.4 agent 协作模式
 
@@ -824,7 +824,7 @@ cat .wbs-task-marker
 - L4 任务的 owner 字段 = `Ulysses`（1 人 12 角色）
 - 进度签字 = Ulysses 1 人（自审自批，流程化补偿：CI + 自动化 + 自我 PR review + OTel）
 - worktree 分支并行 = 1 个 Ulysses 可在多个 worktree 间切换（不是多人协作，但 1 人多任务并行）
-- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.11 §9.5.7）
+- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.12 §9.5.7）
 
 **未变更**：5 域 Lead 配置（仍可独立，Ulysses = 1 人 12 角色兼任）
 

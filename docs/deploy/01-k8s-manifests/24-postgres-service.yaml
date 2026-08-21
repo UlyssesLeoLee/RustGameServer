@@ -1,0 +1,41 @@
+# 24-postgres-service.yaml
+# 角色：PostgreSQL 18.6 ClusterIP Service（5 域 + cluster-ops 内部访问）
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：SRE 具名 + 端口号由 DBA 确认
+# 关联：
+#   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 / 18.6 选型
+#   - RGS-SPEC-CROSS-005 §1 数据库命名约定
+#   - 09-secret-template.yaml（DATABASE_URL 引用此 Service 名）
+#   - ARC-008 5 独立 DB 原则
+apiVersion: v1
+kind: Service
+metadata:
+  name: PLACEHOLDER_POSTGRES_SVC_NAME  # 实际值：postgres
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP            # 内部访问，外部通过 kubectl port-forward 或 NodePort 暴露
+  clusterIP: None            # Headless 风格（PG 单实例不需要 LB）
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+---
+# Headless Endpoints（PG 单实例时无 selector 路由显式列）
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: PLACEHOLDER_POSTGRES_SVC_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+subsets:
+  - addresses:
+      - ip: PLACEHOLDER_POSTGRES_POD_IP  # 实际值：kubectl get pod -l app.kubernetes.io/name=postgres -o jsonpath='{.items[0].status.podIP}'
+    ports:
+      - port: 5432
+        name: postgres

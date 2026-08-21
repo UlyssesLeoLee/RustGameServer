@@ -1,0 +1,88 @@
+# 22-postgres-configmap.yaml
+# 角色：postgresql.conf + pg_hba.conf + 5 域 DB init SQL
+# 状态：🔴 NO-GO 占位（实际 init SQL 由 03-db-migrations/ 注入，per RGS-SPEC-CROSS-005）
+# 关联：
+#   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 / 18.6 选型
+#   - RGS-SPEC-CROSS-005 §1 数据库命名约定
+#   - RGS-SPEC-CROSS-006 §日志 trace_id 传播
+#   - RGS-OPS-001 §1.3 依赖表
+#   - 03-db-migrations/*/0001_initial_placeholder.sql
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME  # 实际值：postgres-config
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: rust-game-server
+data:
+  # postgresql.conf — 5 域 + cluster_ops 单实例调优（dev 起始值）
+  # 生产值由 DBA + SRE 压测后校准（per RGS-ENV-CALIB-001 v0.1）
+  postgresql.conf: |
+    # === 连接 ===
+    listen_addresses = '*'
+    max_connections = 200
+    superuser_reserved_connections = 5
+
+    # === 内存 ===
+    shared_buffers = 256MB
+    effective_cache_size = 768MB
+    work_mem = 4MB
+    maintenance_work_mem = 128MB
+
+    # === WAL ===
+    wal_level = replica
+    max_wal_size = 1GB
+    min_wal_size = 80MB
+    wal_compression = on
+    synchronous_commit = on
+
+    # === 日志（per RGS-SPEC-CROSS-006 trace_id 传播）===
+    logging_collector = on
+    log_directory = 'pg_log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_duration_statement = 1000   # >1s 慢查询
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0
+    log_autovacuum_min_duration = 0
+
+    # === 时区 ===
+    timezone = 'UTC'
+
+    # === 字符集 ===
+    lc_messages = 'en_US.UTF-8'
+    lc_monetary = 'en_US.UTF-8'
+    lc_numeric = 'en_US.UTF-8'
+    lc_time = 'en_US.UTF-8'
+
+  # pg_hba.conf — 5 域 + cluster_ops 全部从 rust-game-server namespace 内访问
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             postgres                                peer
+    host    all             postgres        127.0.0.1/32            md5
+    host    all             postgres        ::1/128                 md5
+    # 5 域 DB 用户从同 namespace Pod 访问
+    host    player_db       player_user     10.42.0.0/16            md5
+    host    economy_db      economy_user    10.42.0.0/16            md5
+    host    match_db        match_user      10.42.0.0/16            md5
+    host    social_db       social_user     10.42.0.0/16            md5
+    host    admin_db        admin_user      10.42.0.0/16            md5
+    host    cluster_ops_db  cluster_ops_user 10.42.0.0/16           md5
+    # 兜底
+    host    all             all             0.0.0.0/0               reject
+
+  # 5 域 DB + cluster_ops_db init SQL（per ARC-008 5 独立 DB 原则）
+  # 实际表结构由 03-db-migrations/{db_name}/ 注入，本 ConfigMap 仅负责 CREATE DATABASE
+  initdb.sql: |
+    -- per ARC-008 5 独立 DB 原则 + ADR-0052 cluster_ops 独立
+    -- 顺序：先建 DB，再用 sqlx-cli migrate 注入 schema
+    SELECT 'CREATE DATABASE player_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'player_db')\gexec
+    SELECT 'CREATE DATABASE economy_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'economy_db')\gexec
+    SELECT 'CREATE DATABASE match_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'match_db')\gexec
+    SELECT 'CREATE DATABASE social_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'social_db')\gexec
+    SELECT 'CREATE DATABASE admin_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'admin_db')\gexec
+    SELECT 'CREATE DATABASE cluster_ops_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cluster_ops_db')\gexec

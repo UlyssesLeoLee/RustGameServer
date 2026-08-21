@@ -2,14 +2,17 @@
 <#
 .SYNOPSIS
     RGS 53 起動实测脚本（幂等 + 自动检测）— 一键跑完 6 大组件实测 + 自动生成 G-CODE-03/06 证据。
+    per DEC-010：PG 18.6 检测从 docker compose 改为 k3s pod (WSL2 native)。
 .PARAMETER SkipInstall
     跳过安装步骤（仅检测 + 验证）。
 .PARAMETER OnlySection
     只跑某个 section：Rust / Postgres / DB / Build / Topology / Verify / All。
 .EXAMPLE
     pwsh -NoProfile -File scripts/measure_env_setup.ps1
+.EXAMPLE
+    pwsh -NoProfile -File scripts/measure_env_setup.ps1 -OnlySection Postgres
 .NOTES
-    要求：PowerShell 7.0+
+    要求：PowerShell 7.0+ + WSL2 + k3s (per DEC-010)
 #>
 
 [CmdletBinding()]
@@ -66,6 +69,61 @@ function Get-Mark {
     if ($Cond) { '✅' } else { '❌' }
 }
 
+# ============================================================
+# WSL2 / k3s helper（per DEC-010：k3d → k3s native in WSL2）
+# ============================================================
+function Test-WSLAvailable {
+    try {
+        $out = & wsl --status 2>&1
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch { return $false }
+}
+
+function Run-WSL {
+    param(
+        [string]$Command,
+        [string]$Distro = 'Ubuntu-22.04'
+    )
+    if (-not (Test-WSLAvailable)) { return 'WSL_NOT_AVAILABLE' }
+    try {
+        $out = & wsl -d $Distro -- bash -c $Command 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            return ($out | Where-Object { $_ -ne $null } | ForEach-Object { $_.ToString() }) -join "`n"
+        }
+        return "WSL_ERROR: $($out -join "`n")"
+    }
+    catch { return "WSL_EXCEPTION: $_" }
+}
+
+function Test-K3sRunning {
+    $nodeOut = Run-WSL 'sudo kubectl get nodes --no-headers 2>/dev/null | head -1'
+    if ($nodeOut -match 'Ready') { return $true }
+    return $false
+}
+
+function Get-KubectlVersion {
+    return Run-WSL 'kubectl version --client --short 2>/dev/null || kubectl version --client 2>/dev/null | head -1'
+}
+
+function Get-PostgresPodStatus {
+    return Run-WSL 'sudo kubectl get pod -l app.kubernetes.io/name=postgres -n rust-game-server --no-headers 2>/dev/null | head -1'
+}
+
+function Get-PostgresVersion {
+    return Run-WSL 'sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT version();" 2>/dev/null'
+}
+
+function Get-PostgresDatabases {
+    return Run-WSL 'sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datistemplate=false;" 2>/dev/null'
+}
+
+function New-PostgresDatabase {
+    param([string]$DbName)
+    $sql = "SELECT 'CREATE DATABASE $DbName' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DbName')\\\\gexec"
+    return Run-WSL "sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -c `"$sql`" 2>/dev/null"
+}
+
 function Test-CommandInstalled {
     param([string]$Name)
     $cmd = Get-Command $Name -ErrorAction SilentlyContinue
@@ -91,31 +149,69 @@ function Test-Rust {
 }
 
 # ============================================================
-# Section 2: PostgreSQL 18.4
+# Section 2: PostgreSQL 18.6（k3s pod 部署，per DEC-010）
+# 检测路径：WSL2 → k3s kubectl → postgres pod → psql 版本
 # ============================================================
 function Test-Postgres {
-    Write-Log '=== Section 2: PostgreSQL 18.6 (per DEC-009) ===' 'SECTION'
-    $pgVer = Get-CmdVersion 'psql'
-    Write-Log "psql: $pgVer"
-    if ($pgVer -match '18\.[46]') {
+    Write-Log '=== Section 2: PostgreSQL 18.6 in k3s pod (per DEC-010) ===' 'SECTION'
+
+    # Step 1: WSL2 可用？
+    if (-not (Test-WSLAvailable)) {
+        Write-Log 'WSL2 不可用。请先装 WSL2 + Ubuntu 22.04（per §3 SOP）' 'WARN'
+        $Results.Postgres.Status = 'fail'
+        $Results.Postgres.Output = 'WSL2 not available'
+        return
+    }
+    Write-Log 'WSL2 可用'
+
+    # Step 2: k3s running？
+    if (-not (Test-K3sRunning)) {
+        Write-Log 'k3s 节点未 Ready。请先装 k3s（per §4 SOP）' 'WARN'
+        $Results.Postgres.Status = 'fail'
+        $Results.Postgres.Output = 'k3s not running'
+        return
+    }
+    $k3sVer = Get-KubectlVersion
+    Write-Log "k3s 节点 Ready，kubectl: $k3sVer"
+
+    # Step 3: postgres pod running？
+    $podStatus = Get-PostgresPodStatus
+    Write-Log "postgres pod: $podStatus"
+    if ($podStatus -notmatch 'Running' -or $podStatus -notmatch '1/1') {
+        Write-Log 'postgres pod 未 Running + Ready 1/1。请 kubectl apply 01-k8s-manifests/20-24' 'WARN'
+        $Results.Postgres.Status = 'fail'
+        $Results.Postgres.Output = "pod=$podStatus (需要 Running + 1/1)"
+        return
+    }
+
+    # Step 4: postgres 版本 = 18.6？
+    $pgVer = Get-PostgresVersion
+    Write-Log "postgres version: $pgVer"
+    if ($pgVer -match '18\.6') {
         $Results.Postgres.Status = 'pass'
-        $Results.Postgres.Output = "psql=$pgVer"
+        $Results.Postgres.Output = "pod=$($podStatus.Split()[0]), version=$pgVer"
     } else {
         $Results.Postgres.Status = 'fail'
-        $Results.Postgres.Output = "psql=$pgVer (需要 18.4 或 18.6)"
+        $Results.Postgres.Output = "version=$pgVer (需要 18.6)"
     }
 }
 
 # ============================================================
-# Section 3: 5 独立 DB
+# Section 3: 5 独立 DB（k3s pod 内 psql，per DEC-010）
 # ============================================================
 function Test-5Databases {
-    Write-Log '=== Section 3: 5 独立 DB 创建 ===' 'SECTION'
-    $pgVer = Get-CmdVersion 'psql'
-    if ($pgVer -notmatch '18\.[46]') {
-        Write-Log 'psql 未就位或版本不对，跳过 DB 创建' 'WARN'
+    Write-Log '=== Section 3: 5 独立 DB 创建 (k3s pod, per DEC-010) ===' 'SECTION'
+
+    if (-not (Test-WSLAvailable)) {
+        Write-Log 'WSL2 不可用，跳过 5 DB 检测' 'WARN'
         $Results.DB.Status = 'fail'
-        $Results.DB.Output = 'psql 未装或版本不对'
+        $Results.DB.Output = 'WSL2 not available'
+        return
+    }
+    if (-not (Test-K3sRunning)) {
+        Write-Log 'k3s 节点未 Ready，跳过 5 DB 检测' 'WARN'
+        $Results.DB.Status = 'fail'
+        $Results.DB.Output = 'k3s not running'
         return
     }
 
@@ -123,51 +219,31 @@ function Test-5Databases {
     $created = 0
     $already = 0
 
-    # 优先用 Docker 容器（rgs-pg），否则直连
-    $useDocker = $false
-    $container = & docker ps --format '{{.Names}}' 2>&1 | Where-Object { $_ -match 'rgs-pg' } | Select-Object -First 1
-    if ($container) {
-        $useDocker = $true
-    } else {
-        # 尝试启动 rgs-pg 容器
-        Write-Log '未找到 rgs-pg 容器，尝试启动 postgres:18.4 容器...' 'INFO'
-        $existing = & docker ps -a --format '{{.Names}}' 2>&1 | Where-Object { $_ -match 'rgs-pg' } | Select-Object -First 1
-        if ($existing) {
-            & docker start rgs-pg 2>&1 | Out-Null
-        } else {
-            & docker run -d --name rgs-pg -p 5432:5432 -e POSTGRES_PASSWORD=ulysses_local postgres:18.4 2>&1 | Out-Null
-        }
-        Start-Sleep -Seconds 5
-        $container = & docker ps --format '{{.Names}}' 2>&1 | Where-Object { $_ -match 'rgs-pg' } | Select-Object -First 1
-        if ($container) { $useDocker = $true }
-    }
+    # 获取当前 DB 列表
+    $currentDbs = Get-PostgresDatabases
+    Write-Log "现有 DB: $($currentDbs -replace "`n", ', ')"
 
     foreach ($db in $databases) {
-        if ($useDocker) {
-            $check = & docker exec rgs-pg psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$db';" 2>&1
-            if ($LASTEXITCODE -eq 0 -and $check.Trim() -eq '1') {
-                $already++
-                Write-Log "  [已存在] $db"
-            } else {
-                $create = & docker exec rgs-pg psql -U postgres -c "CREATE DATABASE $db;" 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    $created++
-                    Write-Log "  [已创建] $db"
-                } else {
-                    Write-Log "  [失败] $db" 'ERROR'
-                }
-            }
+        if ($currentDbs -match "(?m)^$db$") {
+            $already++
+            Write-Log "  [已存在] $db"
         } else {
-            Write-Log "  [跳过] $db (Docker 未运行 psql 直连需要密码)" 'WARN'
+            $create = New-PostgresDatabase -DbName $db
+            if ($LASTEXITCODE -eq 0) {
+                $created++
+                Write-Log "  [已创建] $db"
+            } else {
+                Write-Log "  [失败] $db ($create)" 'ERROR'
+            }
         }
     }
 
     if (($created + $already) -eq $databases.Count) {
         $Results.DB.Status = 'pass'
-        $Results.DB.Output = "已建 $created + 已存在 $already / 共 $($databases.Count)"
+        $Results.DB.Output = "k3s pod 内已建 $created + 已存在 $already / 共 $($databases.Count)"
     } else {
         $Results.DB.Status = 'fail'
-        $Results.DB.Output = "创建失败 $(($databases.Count - $created - $already)) / $($databases.Count)"
+        $Results.DB.Output = "k3s pod 内 DB 创建失败 $(($databases.Count - $created - $already)) / $($databases.Count)"
     }
 }
 
@@ -273,16 +349,27 @@ function Generate-Topology {
 
     $mermaid = @'
 graph TB
-    subgraph "5 独立业务 DB (per ARC-008)"
-        player_db["player_db<br/>player schema<br/>(player-service)"]
-        economy_db["economy_db<br/>economy schema<br/>(economy-service)<br/>Q-003 Saga + Outbox"]
-        match_db["match_db<br/>match schema<br/>(match-service)"]
-        social_db["social_db<br/>social schema<br/>(social-service)"]
-        admin_db["admin_db<br/>admin schema<br/>(admin-service)<br/>RBAC + CEM + event_schema_registry"]
-    end
+    subgraph k3s["k3s pod (per DEC-010: WSL2 native)"]
+        postgres_pod["postgres pod<br/>postgres:18.6 image<br/>1 PVC + 1 Service (ClusterIP)"]
 
-    subgraph "集群控制面 DB"
-        cluster_ops_db["cluster_ops_db<br/>cluster_ops schema<br/>(cluster-ops-service)<br/>COC + PFAU + all-reachable"]
+        subgraph "5 独立业务 DB (per ARC-008)"
+            player_db["player_db<br/>player schema<br/>(player-service)"]
+            economy_db["economy_db<br/>economy schema<br/>(economy-service)<br/>Q-003 Saga + Outbox"]
+            match_db["match_db<br/>match schema<br/>(match-service)"]
+            social_db["social_db<br/>social schema<br/>(social-service)"]
+            admin_db["admin_db<br/>admin schema<br/>(admin-service)<br/>RBAC + CEM + event_schema_registry"]
+        end
+
+        subgraph "集群控制面 DB"
+            cluster_ops_db["cluster_ops_db<br/>cluster_ops schema<br/>(cluster-ops-service)<br/>COC + PFAU + all-reachable"]
+        end
+
+        postgres_pod --> player_db
+        postgres_pod --> economy_db
+        postgres_pod --> match_db
+        postgres_pod --> social_db
+        postgres_pod --> admin_db
+        postgres_pod --> cluster_ops_db
     end
 
     subgraph "跨域协调 (禁用 JOIN, 用 Outbox + CEM 异步)"
@@ -305,9 +392,12 @@ graph TB
     classDef db fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef cluster fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef coord fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef k3sbox fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef pod fill:#c8e6c9,stroke:#1b5e20,stroke-width:1px
     class player_db,economy_db,match_db,social_db,admin_db db
     class cluster_ops_db cluster
     class outbox,cem coord
+    class postgres_pod pod
 '@
 
     $mermaidPath = Join-Path $DeployDir '05-db-topology.mmd'
@@ -357,21 +447,23 @@ function Test-12Class {
     $verifyLog = Join-Path $DeployDir '07-env-verification.log'
     $rustVer = Get-CmdVersion 'rustc'
     $cargoVer = Get-CmdVersion 'cargo'
-    $pgVer = Get-CmdVersion 'psql'
-    $dockerVer = Get-CmdVersion 'docker'
-    $kubectlVer = Get-CmdVersion 'kubectl'
-    $helmVer = Get-CmdVersion 'helm'
+    $pgVer = Get-PostgresVersion
+    $wslOk = Test-WSLAvailable
+    $k3sOk = Test-K3sRunning
+    $kubectlVer = Get-KubectlVersion
     $sqlxVer = Get-CmdVersion 'sqlx'
     $denyVer = Get-CmdVersion 'cargo-deny'
     $auditVer = Get-CmdVersion 'cargo-audit'
     $llvmCovVer = Get-CmdVersion 'cargo-llvm-cov'
     $protocVer = Get-CmdVersion 'protoc'
+    $podStatus = Get-PostgresPodStatus
+    $helmVer = Run-WSL 'helm version --short 2>/dev/null'
 
     $report = @"
 === RGS-ENV-001 v0.3 §1-§5 12 类环境核验 log ===
 核验人：Ulysses（一人公司 12 角色兼任 per DEC-008）
 核验日期：$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-环境：Windows 11 + PowerShell 7.6+
+环境：Windows 11 + PowerShell 7.6+ + WSL2 (Ubuntu 22.04) + k3s native（per DEC-010）
 
 §1 工具链核验
 [$(Get-Mark ($rustVer -match '1\.98'))] 1.1.1 rustc = 1.98.0  (实际: $rustVer)
@@ -386,16 +478,19 @@ function Test-12Class {
 [$(Get-Mark ($sqlxVer -ne 'NOT_INSTALLED'))] 1.3.4 sqlx-cli  (实际: $sqlxVer)
 [$(Get-Mark ($protocVer -ne 'NOT_INSTALLED'))] 1.3.5 protoc  (实际: $protocVer)
 
-§2 PostgreSQL 18.4
-[$(Get-Mark ($pgVer -match '18\.[46]'))] 2.1.1 psql = 18.6  (实际: $pgVer)
-[$(Get-Mark ($Results.DB.Status -eq 'pass'))] 2.3 5 独立 DB
+§2 PostgreSQL 18.6 (k3s pod 部署, per DEC-010)
+[$(Get-Mark ($pgVer -match '18\.6'))] 2.1.1 postgres pod version = 18.6  (实际: $pgVer)
+[$(Get-Mark ($podStatus -match '1/1'))] 2.2.1 postgres pod Running + Ready 1/1  (实际: $podStatus)
+[$(Get-Mark ($Results.DB.Status -eq 'pass'))] 2.3 5 独立 DB (player / economy / match / social / admin / cluster_ops)
 [$(Get-Mark ($Results.Build.Status -eq 'pass'))] 2.4 cargo check
 [$(Get-Mark (Test-Path -LiteralPath (Join-Path $RepoRoot '.sqlx')))] 2.4.2 .sqlx/ 目录
 
-§3 K3s / Kubernetes
-[$(Get-Mark ($dockerVer -ne 'NOT_INSTALLED'))] 3.x Docker 可用  (实际: $dockerVer)
-[$(Get-Mark ($kubectlVer -ne 'NOT_INSTALLED'))] 3.1 kubectl  (实际: $kubectlVer)
-[$(Get-Mark ($helmVer -ne 'NOT_INSTALLED'))] 3.4 helm  (实际: $helmVer)
+§3 K3s / Kubernetes (WSL2 native, per DEC-010)
+[$(Get-Mark $wslOk)] 3.0 WSL2 + Ubuntu 22.04 可用
+[$(Get-Mark $k3sOk)] 3.1 k3s 节点 Ready
+[$(Get-Mark ($kubectlVer -match 'v1\.30|v1\.31|v1\.32'))] 3.2 kubectl client ≥ v1.30  (实际: $kubectlVer)
+[$(Get-Mark ($helmVer -match 'v3\.'))] 3.3 helm ≥ v3.10  (实际: $helmVer)
+[$(Get-Mark ($podStatus -match '1/1'))] 3.4 postgres pod 部署成功 (per 01-k8s-manifests/20-24)
 
 §4 锁定依赖 CI
 [$(Get-Mark (Test-Path -LiteralPath (Join-Path $RepoRoot 'Cargo.lock')))] 4.1.1 Cargo.lock
@@ -466,8 +561,9 @@ if ($rustOk -and $pgOk) {
     Write-Host ''
     Write-Host '🎉 G-CODE-03 + G-CODE-06 关闭条件全部满足！' -ForegroundColor Green
     Write-Host '下一步：把这些文件发给我：' -ForegroundColor Cyan
-    Write-Host '  - docs/deploy/05-db-topology.png/svg/mmd'
-    Write-Host '  - docs/deploy/06-rust-198-build.log'
-    Write-Host '  - docs/deploy/07-env-verification.log'
+    Write-Host '  - docs/deploy/05-db-topology.png/svg/mmd (G-CODE-03 证据)'
+    Write-Host '  - docs/deploy/06-rust-198-build.log (G-CODE-06 证据)'
+    Write-Host '  - docs/deploy/07-env-verification.log (12 类核验总览)'
+    Write-Host '  - docs/deploy/08-measure-env-setup.log (本脚本运行 log)'
     Write-Host '我帮你升 07-no-go-checklist v0.4 GO + 启动 53'
 }

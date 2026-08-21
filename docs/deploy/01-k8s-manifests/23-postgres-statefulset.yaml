@@ -1,0 +1,103 @@
+# 23-postgres-statefulset.yaml
+# 角色：PostgreSQL 18.6 单实例 Deployment（有状态工作负载用 Deployment + PVC 简化）
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：DBA 具名 + 5 域 Lead 联合校准（resources / replicas / probes）
+# 关联：
+#   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 / 18.6 选型
+#   - RGS-IMPL-001 §3.5 存储
+#   - RGS-OPS-001 §1.3 依赖表
+#   - ARC-008 5 独立 DB 原则
+#   - ADR-0052 cluster_ops_db 独立
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PLACEHOLDER_POSTGRES_DEPLOY_NAME  # 实际值：postgres
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/tier: data
+spec:
+  replicas: 1  # 单实例 PG（dev 起点；prod 由 DBA 评估主从）
+  strategy:
+    type: Recreate  # PG 不支持多实例共享 PVC，必须 Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/component: database
+    spec:
+      serviceAccountName: PLACEHOLDER_POSTGRES_SA  # 实际值：postgres-service-account
+      securityContext:
+        fsGroup: 999         # postgres 用户 UID
+        runAsUser: 999
+      containers:
+        - name: postgres
+          image: postgres:18.6                       # per DEC-009
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: PLACEHOLDER_POSTGRES_SUPERUSER_SECRET
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: PLACEHOLDER_POSTGRES_SUPERUSER_SECRET
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_INITDB_ARGS
+              value: "--encoding=UTF8 --locale=C"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: postgres-config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+            - name: postgres-config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+            - name: postgres-initdb
+              mountPath: /docker-entrypoint-initdb.d/initdb.sql
+              subPath: initdb.sql
+          resources:
+            requests:
+              cpu: PLACEHOLDER_POSTGRES_CPU_REQ     # 实际值：500m
+              memory: PLACEHOLDER_POSTGRES_MEM_REQ  # 实际值：1Gi
+            limits:
+              cpu: PLACEHOLDER_POSTGRES_CPU_LIM     # 实际值：2000m
+              memory: PLACEHOLDER_POSTGRES_MEM_LIM  # 实际值：4Gi
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: PLACEHOLDER_POSTGRES_PVC_NAME
+        - name: postgres-config
+          configMap:
+            name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME
+        - name: postgres-initdb
+          configMap:
+            name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME
