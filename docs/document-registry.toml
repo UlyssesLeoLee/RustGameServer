@@ -91,6 +91,12 @@ path = "13-实现规格"
 title = "实现规格"
 readme_section = "1.12"
 
+[[category]]
+id = "14"
+path = "14-项目管理"
+title = "项目管理"
+readme_section = "1.14"
+
 # `allow_reference = true` 仅允许受控正文引用且仅限 `planned` 文档，正文必须明确标成“待制定”。
 # `retired` 记录只保留沿革和迁移说明，正文不得引用；它不表示批准、实现或可作为实施前置已满足。
 [[planned_document]]
