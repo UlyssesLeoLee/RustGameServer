@@ -145,7 +145,7 @@ BAS-031 (§2 组件图, §3 Schema, §4 状态机, §5 探针, §6 API, §9 联�
 
 ### 2.2 测试方法
 
-- 集成框架：`testcontainers-rs` 启动 PostgreSQL 18.4 + 事件总线（nats-jetstream）
+- 集成框架：`testcontainers-rs` 启动 PostgreSQL 18.6 + 事件总线（nats-jetstream）
 - 假依赖：假 Helm Release、假 App（mock runtime PFAU 确认接口）
 - 端到端模拟：使用 `wiremock` 模拟外部 AdminService 调用方
 - 覆盖率门禁：IT 集成路径 100% 覆盖（与 UT 不同, IT 关注接口契约而非行覆盖）

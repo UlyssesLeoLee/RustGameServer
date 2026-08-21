@@ -40,7 +40,7 @@
 | Runner | `ubuntu-22.04`（GitHub-hosted） | 待 Platform 架构师确认 |
 | Rust toolchain | `1.98.0` | **G-CODE-06 部分满足**（GA 已发，待 CI 验证） |
 | Cargo 缓存 | `Swatinem/rust-cache@v2` | 占位 |
-| PG 版本（CI 测试） | `postgres:18.4` | 占位（per RGS-TS-001 v0.6 §5.2） |
+| PG 版本（CI 测试） | `postgres:18.6` | 占位（per RGS-TS-001 v0.6 §5.2） |
 | 容器 registry | `PLACEHOLDER_REGISTRY` | 占位 |
 | Deploy key | `PLACEHOLDER_DEPLOY_KEY` | 占位（NO-GO 解除前不得提交实际 key） |
 

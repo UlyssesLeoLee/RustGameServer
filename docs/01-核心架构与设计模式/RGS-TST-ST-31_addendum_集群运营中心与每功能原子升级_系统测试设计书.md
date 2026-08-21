@@ -158,7 +158,7 @@ REQ-031 (§12 验收标准 AC-COC-001~010, §10 NFR)
 本 ST 设计书 ────► 验证 AC 与 NFR 端到端
   │
   ▼
-预发布/生产环境（完整集群：K8s + PostgreSQL 18.4 + Redis 7 + 事件总线 + 全部 Atomic App）
+预发布/生产环境（完整集群：K8s + PostgreSQL 18.6 + Redis 7 + 事件总线 + 全部 Atomic App）
 ```
 
 ### 2.2 测试方法

@@ -1,0 +1,38 @@
+=== RGS Rust 1.98 build + test (G-CODE-06 关闭证据) ===
+执行人：Ulysses（一人公司 12 角色兼任 per DEC-008）
+执行时间：2026-08-22 06:04:08
+环境：Windows 11 + PowerShell 7.6+ + Rust rustc 1.98.0 (88d9e12ae 2026-08-18)
+
+--- rustc --version ---
+rustc 1.98.0 (88d9e12ae 2026-08-18)
+
+--- cargo --version ---
+cargo 1.98.0 (797e8a9bc 2026-08-05)
+
+--- rustup show ---
+Default host: x86_64-pc-windows-msvc
+rustup home:  E:\DevCache\rustup
+
+installed toolchains
+--------------------
+stable-x86_64-pc-windows-msvc (active, default)
+nightly-x86_64-pc-windows-msvc
+nightly-2026-04-02-x86_64-pc-windows-msvc
+1.89.0-x86_64-pc-windows-msvc
+1.91.1-x86_64-pc-windows-msvc
+1.95.0-x86_64-pc-windows-msvc
+
+active toolchain
+----------------
+name: stable-x86_64-pc-windows-msvc
+active because: it's the default toolchain
+installed targets:
+  x86_64-pc-windows-msvc
+
+--- cargo build --locked ---
+error: could not find `Cargo.toml` in `C:\Users\leo19` or any parent directory
+
+--- cargo test --locked --workspace ---
+error: could not find `Cargo.toml` in `C:\Users\leo19` or any parent directory
+
+=== 完成 ===

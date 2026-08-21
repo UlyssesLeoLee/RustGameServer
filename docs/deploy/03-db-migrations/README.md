@@ -1,4 +1,4 @@
-# 03-db-migrations — PostgreSQL 18.4 数据库迁移占位
+# 03-db-migrations — PostgreSQL 18.6 数据库迁移占位
 
 > **状态：🔴 NO-GO 占位**（per `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`）
 >
@@ -88,7 +88,7 @@
 
 ---
 
-## 5. PG 18.4 关键特性利用（per RGS-TS-001 §5.2）
+## 5. PG 18.6 关键特性利用（per RGS-TS-001 §5.2）
 
 - **逻辑复制**：cluster_ops_db 订阅各域 CDC，驱动 PFAU all-reachable
 - **分区表**：match_db 房间状态按时间分区（高频写入）
@@ -114,7 +114,7 @@
 
 ## 7. 关联文档
 
-- 上游：`RGS-TS-001 v0.6 §5.2`（PG 18.4 选型）+ `RGS-TS-001 v0.6 §5.1`（sqlx 选型）
+- 上游：`RGS-TS-001 v0.6 §5.2`（PG 18.6 选型）+ `RGS-TS-001 v0.6 §5.1`（sqlx 选型）
 - 并行：`01-k8s-manifests/`（Secret 引用）+ `02-helm-charts/`（values 引用）
 - 设计：`ARC-008 5 独立 DB 原则` + `DTL-015/016/018/019/020/026/031`
 - 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`

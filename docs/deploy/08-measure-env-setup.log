@@ -15,3 +15,64 @@
 [2026-08-22 05:55:36] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
 [2026-08-22 05:55:36] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
 [2026-08-22 05:55:36] [END] === 实测结束 ===
+[2026-08-22 06:01:50] [START] === RGS 53 起動实测开始 (OnlySection=All SkipInstall=False) ===
+[2026-08-22 06:01:50] [INFO] Repository: D:\RustGameServer
+[2026-08-22 06:01:50] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 06:01:50] [SECTION] === Section 1: Rust 1.98 stable ===
+[2026-08-22 06:04:07] [INFO] rustc: rustc 1.98.0 (88d9e12ae 2026-08-18)
+[2026-08-22 06:04:07] [INFO] cargo: cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 06:04:07] [SECTION] === Section 2: PostgreSQL 18.4 ===
+[2026-08-22 06:04:07] [INFO] psql: psql (PostgreSQL) 15.3
+[2026-08-22 06:04:07] [SECTION] === Section 3: 5 独立 DB 创建 ===
+[2026-08-22 06:04:07] [WARN] psql 未就位或版本不对，跳过 DB 创建
+[2026-08-22 06:04:07] [SECTION] === Section 4: Rust 1.98 build (G-CODE-06) ===
+[2026-08-22 06:04:08] [INFO] 已写 rust-toolchain.toml
+[2026-08-22 06:04:08] [INFO] Cargo.toml 不存在，创建最小 workspace
+[2026-08-22 06:04:08] [INFO] 已建 rgs-hello crate
+[2026-08-22 06:04:17] [INFO] 已写 D:\RustGameServer\docs\deploy\06-rust-198-build.log
+[2026-08-22 06:04:17] [SECTION] === Section 5: 5 独立 DB 拓扑图 (G-CODE-03) ===
+[2026-08-22 06:04:17] [INFO] 已写 Mermaid 源: D:\RustGameServer\docs\deploy\05-db-topology.mmd
+[2026-08-22 06:04:17] [INFO] mmdc 未安装，PNG 未生成。可手动用 https://mermaid.live/ 渲染
+[2026-08-22 06:04:17] [INFO] 已写 SVG 占位: D:\RustGameServer\docs\deploy\05-db-topology.svg
+[2026-08-22 06:04:17] [SECTION] === Section 6: 12 类环境核验 ===
+[2026-08-22 06:04:22] [INFO] 已写 D:\RustGameServer\docs\deploy\07-env-verification.log
+[2026-08-22 06:04:22] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 06:04:22] [INFO]   Rust : pass - rustc=rustc 1.98.0 (88d9e12ae 2026-08-18) cargo=cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 06:04:22] [INFO]   Postgres : fail - psql=psql (PostgreSQL) 15.3 (需要 18.4)
+[2026-08-22 06:04:22] [INFO]   DB : fail - psql 未装或版本不对
+[2026-08-22 06:04:22] [INFO]   Build : fail - build=False, test=False
+[2026-08-22 06:04:22] [INFO]   Topology : pass - Mermaid+SVG 已写, PNG 可选
+[2026-08-22 06:04:22] [INFO]   Verify : fail - 
+[2026-08-22 06:04:22] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 06:04:22] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 06:04:22] [END] === 实测结束 ===
+[2026-08-22 06:05:44] [START] === RGS 53 起動实测开始 (OnlySection=Verify SkipInstall=False) ===
+[2026-08-22 06:05:44] [INFO] Repository: D:\RustGameServer
+[2026-08-22 06:05:44] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 06:05:44] [SECTION] === Section 6: 12 类环境核验 ===
+[2026-08-22 06:07:36] [INFO] 已写 D:\RustGameServer\docs\deploy\07-env-verification.log
+[2026-08-22 06:07:36] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 06:07:36] [INFO]   Rust : pending - 
+[2026-08-22 06:07:36] [INFO]   Postgres : pending - 
+[2026-08-22 06:07:36] [INFO]   DB : pending - 
+[2026-08-22 06:07:36] [INFO]   Build : pending - 
+[2026-08-22 06:07:36] [INFO]   Topology : pending - 
+[2026-08-22 06:07:36] [INFO]   Verify : fail - 
+[2026-08-22 06:07:36] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 06:07:36] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 06:07:36] [END] === 实测结束 ===
+[2026-08-22 06:11:37] [START] === RGS 53 起動实测开始 (OnlySection=Postgres SkipInstall=False) ===
+[2026-08-22 06:11:37] [INFO] Repository: D:\RustGameServer
+[2026-08-22 06:11:37] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 06:11:37] [SECTION] === Section 2: PostgreSQL 18.4 ===
+[2026-08-22 06:11:37] [INFO] psql: psql (PostgreSQL) 15.3
+[2026-08-22 06:11:37] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 06:11:37] [INFO]   Rust : pending - 
+[2026-08-22 06:11:37] [INFO]   Postgres : fail - psql=psql (PostgreSQL) 15.3 (需要 18.4 或 18.6)
+[2026-08-22 06:11:37] [INFO]   DB : pending - 
+[2026-08-22 06:11:37] [INFO]   Build : pending - 
+[2026-08-22 06:11:37] [INFO]   Topology : pending - 
+[2026-08-22 06:11:37] [INFO]   Verify : pending - 
+[2026-08-22 06:11:37] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 06:11:37] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 06:11:37] [END] === 实测结束 ===

@@ -9,14 +9,14 @@
 | 状态 | 规格草案，待 RGS-DTL-037 具名 DD Review |
 | 源详细设计 | RGS-DTL-037 |
 | 实现范围 | Economy 域 App 与 economy_db |
-| 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.4；环境需先核验 |
+| 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.6；环境需先核验 |
 | 规格真源 | 源 DTL 的接口、字段、状态机、错误码、SQL/proto 和非目标 |
 
 ## 1. 使用规则
 
 本规格把 RGS-DTL-037 从详细设计转成可执行的实现清单，不替代源 DTL。若本规格与 RGS-DTL-037 不一致，以 DTL 评审变更为准；不得在代码中自行调和冲突。当前工作区没有对应实现源码，本文件不代表功能已完成。
 
-实现货币/物品一致性、事务、幂等、Outbox、审计、补偿和 PostgreSQL 18.4 migration；禁止运行时 tick 直写。
+实现货币/物品一致性、事务、幂等、Outbox、审计、补偿和 PostgreSQL 18.6 migration；禁止运行时 tick 直写。
 
 ## 2. 实现单元
 
@@ -82,4 +82,4 @@
 
 ## 8. Gate 证据与实测参数
 
-RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI、镜像与可观测性后端边界；本规格不再保留这些工程选择的平行候选。进入实现前必须取得：① 源 DTL 的具名 DD Review；② Rust 1.98 stable 的锁定依赖完整 CI、PostgreSQL 18.4 迁移演练、K3s 能力的核验证据；③ 针对本实现范围，以 PH 基线和测试结果确定的阈值、采样率、保留期、资源预算与 OLU 记录。上述第三项是实测参数和具名 Gate 证据，不是尚未选择的技术方案。
+RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI、镜像与可观测性后端边界；本规格不再保留这些工程选择的平行候选。进入实现前必须取得：① 源 DTL 的具名 DD Review；② Rust 1.98 stable 的锁定依赖完整 CI、PostgreSQL 18.6 迁移演练、K3s 能力的核验证据；③ 针对本实现范围，以 PH 基线和测试结果确定的阈值、采样率、保留期、资源预算与 OLU 记录。上述第三项是实测参数和具名 Gate 证据，不是尚未选择的技术方案。

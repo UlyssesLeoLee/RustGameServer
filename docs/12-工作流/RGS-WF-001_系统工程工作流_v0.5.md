@@ -22,7 +22,7 @@
 | 0.1 | 2026-08-19 | 架构师 | 初版。覆盖日本 SI 业界标准 150 工程 × 16 阶段 × RGS 文档体系映射；附当前项目状态仪表板 |
 | 0.2 | 2026-08-20 | 架构师 | 同步 RGS-QA-001 v0.3 的候选分析状态、033–035 Agent 文档和现有 ADR；明确实施仍待具名人类审批。 |
 | 0.3 | 2026-08-20 | 架构师 | 补强工程级可执行内容：新增 §8 工程间依赖、§9 Gate 准则、§10 V-model 详细配对、§11 Per-工程 RACI、§12 工程级交付物清单、§13 Review Checklists；从"全景图"升级为"可执行工作流"。 |
-| 0.4 | 2026-08-21 | 架构师 | 按附件日本 SI 九阶段标准完成最终审核：将 16 个内部工作包归并至 9 个顶层阶段；同步 DTL-031、5 域 DTL、PLAN-001、QA v0.5、Rust 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4；补充九阶段审核矩阵并明确实施 NO-GO 条件。 |
+| 0.4 | 2026-08-21 | 架构师 | 按附件日本 SI 九阶段标准完成最终审核：将 16 个内部工作包归并至 9 个顶层阶段；同步 DTL-031、5 域 DTL、PLAN-001、QA v0.5、Rust 1.97.1、Actix Web 4.14.1、PostgreSQL 18.6；补充九阶段审核矩阵并明确实施 NO-GO 条件。 |
 | 0.5 | 2026-08-21 | 架构师 | 将 Q-101～Q-405 的工程选择收敛至 RGS-IMPL-001；同步 QA v0.6、PLAN v0.3、TS v0.4 与 Rust 1.98 stable 用户目标。Rust 1.98 在 GA 且完整 CI 核验前仍是 Gate 证据项，不以预发布或本机旧版本替代。 |
 
 ## 文档目的
@@ -45,7 +45,7 @@
 | 2. 要件定義（要件定義） | §2.2 / 10–21 | RGS-REQ-001～035、RGS-REQ-004 追踪矩阵、RGS-QA-001 | 🟡 需求文档集已形成；RD Review / baseline 尚未签字 |
 | 3. 基本設計（基本設計） | §2.3 / 22–41 | RGS-BAS-001～035、RGS-BAS-031、RGS-BAS-024、RGS-TS-001、ADR | 🟡 设计基线已形成；BD Review 待执行，DEC-001/003 仍须人工确认 |
 | 4. 詳細設計（詳細設計） | §2.4 / 42–52 | RGS-DTL-001～040（含 DTL-031、036–040 五域骨架） | 🟡 关键详细设计已补齐骨架；字段级审查、ADR-0052 评审和 DD Review 待完成 |
-| 5. 実装（実装） | §2.5 / 53–58 | 虚拟 Cargo workspace、Rust 1.98 stable（GA/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.4、原子插件/应用集群代码 | ☐ 未启动；受 §9 Gate 阻塞，禁止以文档完成替代代码证据 |
+| 5. 実装（実装） | §2.5 / 53–58 | 虚拟 Cargo workspace、Rust 1.98 stable（GA/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.6、原子插件/应用集群代码 | ☐ 未启动；受 §9 Gate 阻塞，禁止以文档完成替代代码证据 |
 | 6. テスト工程（UT / IT / ST / UAT） | §2.6–2.9 / 59–95 | RGS-TST-UT-*、RGS-TST-IT-*、RGS-TST-ST-*、UAT 计划/报告 | 🟡 设计书存在；无实现后的执行、缺陷、复测和签字证据 |
 | 7. 移行・リリース（迁移・发布） | §2.10–2.11 / 96–108 | RGS-OPS-001、RGS-DTL-024、Migration/Release Plan、Go/No-Go、回滚报告 | 🟡 操作设计已形成；未演练、未部署、未 Go-Live |
 | 8. 運用・保守（运维・维护） | §2.12–2.13 / 109–126 | RGS-OPS-001、ADR / CR / CM / incident / regression records | 🟡 Runbook 和治理入口存在；无生产运行和维护闭环证据 |
@@ -134,7 +134,7 @@
 
 | # | 工程（中文／日本語） | 略称 | 输入 | 输出 | 对应 RGS 文档 | 当前状态 |
 |---|---|---|---|---|---|---|
-| 53 | 開発環境構築 | — | Infra 设计 | dev 环境 | 虚拟 Cargo workspace + Rust 1.98 stable（GA/CI Gate）+ Actix Web 4.14.1 + PostgreSQL 18.4 | 🟡 工程约定已定；Rust 1.98 GA 和完整工具链核验前不得宣告完成 → RGS-IMPL-001 §2.1 + docs/deploy/00-prerequisites/03 |
+| 53 | 開発環境構築 | — | Infra 设计 | dev 环境 | 虚拟 Cargo workspace + Rust 1.98 stable（GA/CI Gate）+ Actix Web 4.14.1 + PostgreSQL 18.6 | 🟡 工程约定已定；Rust 1.98 GA 和完整工具链核验前不得宣告完成 → RGS-IMPL-001 §2.1 + docs/deploy/00-prerequisites/03 |
 | 54 | コーディング | PG | DD | 源代码 | （`crates/*` `services/*`） | ☐ 未启动 → RGS-IMPL-002 |
 | 55 | 静的解析 | SAST | 源代码 | SAST 报告 | （CI 配 `cargo clippy`） | ☐ CI 未配 → RGS-IMPL-003 |
 | 56 | コードレビュー | CR | 源代码 | CR 通过 | （PR 流程） | ☐ 未启动 → RGS-IMPL-004 |
@@ -356,7 +356,7 @@
 | 🟠 | **RGS-BAS-031 §2/§10** 改写 multi-leader 拓扑 | DEC-003 落地 | RGS-QA-001 §0 |
 | 🟡 | **RGS-TS-001 §6.2** OLU 重新核算 | DEC-003+004 叠加 | RGS-QA-001 §0 |
 | 🟡 | **5 域 DTL 字段级补全与签字**（player / economy / match / social / admin）| DEC-004 first slice | RGS-QA-001 Q-036 |
-| 🟡 | **Rust 1.98 stable（GA/CI）/ Actix Web 4.14.1 / PostgreSQL 18.4 环境对齐** | 53 开发环境构筑入口；不得以 beta/nightly 或旧版本代替 | RGS-TS-001 §3 / RGS-PLAN-001 §5.1 / RGS-IMPL-001 §2.1 |
+| 🟡 | **Rust 1.98 stable（GA/CI）/ Actix Web 4.14.1 / PostgreSQL 18.6 环境对齐** | 53 开发环境构筑入口；不得以 beta/nightly 或旧版本代替 | RGS-TS-001 §3 / RGS-PLAN-001 §5.1 / RGS-IMPL-001 §2.1 |
 | 🟡 | **测试执行证据尚无**（UT / IT / ST / UAT） | 6–9 顶层阶段不可宣告完成 | RGS-QA-001 §9 |
 | 🟡 | **遗留未跟踪文档**入仓 | 治理闭环 | RGS-QA-001 Q-021 |
 
@@ -1094,9 +1094,9 @@ PH-0 立项 (本周)        ──DEC 已记录，待具名确认──→ PH-1 
 |---|---|---|---|---|
 | 1. 超上流 | 经营要求、系统化构想/计划、企画、立项、As-Is、课题、To-Be、范围、体制、风险、日程、Kick-off | RGS-REQ-001 §1–4、RGS-REQ-005、RGS-PLAN-001 | 入口：项目目标与责任人明确；出口：Charter、范围、风险台账、计划和 Kick-off 记录具名确认 | 🟡 文档输入已形成；基线签字待补 |
 | 2. 要件定義 | UR/BR/SR、FR/NFR、数据、外部 IF、安全、运维、迁移、验收标准、需求评审与基线化 | RGS-REQ-001～035、RGS-REQ-004、RGS-QA-001 v0.6、RGS-IMPL-001 | 入口：To-Be；出口：双向追踪、NFR 量化、5 DB/跨 DB 约束、IF/安全/运维/迁移需求和 RD Review 签字 | 🟡 技术路径已定；RD Review / Q-003 等具名审批待闭环 |
-| 3. 基本設計 | 系统/软件/架构、功能、画面/报表、API/外部 IF、DB/数据模型、批处理、权限、安全、基础设施、网络、运维、监控、备份、迁移、BD Review | RGS-BAS-001～035、RGS-BAS-031、RGS-BAS-024、RGS-TS-001、相关 ADR | 入口：需求基线；出口：设计间一致、Active-Active/fencing、all-reachable、PostgreSQL 18.4、部署/回滚和 BD Review 记录 | 🟡 设计草案已形成；DEC-001/003 与 BD Review 待签 |
+| 3. 基本設計 | 系统/软件/架构、功能、画面/报表、API/外部 IF、DB/数据模型、批处理、权限、安全、基础设施、网络、运维、监控、备份、迁移、BD Review | RGS-BAS-001～035、RGS-BAS-031、RGS-BAS-024、RGS-TS-001、相关 ADR | 入口：需求基线；出口：设计间一致、Active-Active/fencing、all-reachable、PostgreSQL 18.6、部署/回滚和 BD Review 记录 | 🟡 设计草案已形成；DEC-001/003 与 BD Review 待签 |
 | 4. 詳細設計 | 程序结构、模块、类、逻辑、API 字段、DB/SQL、批处理、错误、日志、参数、实例、UI/报表详细设计、DD Review | RGS-DTL-001～040；重点为 DTL-031、DTL-036～040、ADR-0052 | 入口：BAS 基线；出口：每个实现单元可追踪到需求/基本设计，原子插件生命周期、热插拔边界、集群操作、事务与故障路径字段级审查通过 | 🟡 关键文档已补齐骨架；DD Review 与五域签字待补 |
-| 5. 実装 | 环境构筑、源码、编码规范、SAST、单体设计评审、代码评审、构建、CI、版本/配置管理、实现文档 | 目标基线：Rust 1.98 stable（GA/CI Gate）、Edition 2024/resolver 3、Actix Web 4.14.1、PostgreSQL 18.4、虚拟 Cargo workspace；实现代码尚无 | 入口：§9.4 DD Review、QA/ADR/PLAN Gate、工具链对齐；出口：可重复构建、clippy/rustfmt/cargo-deny、插件原子装载/卸载和 App 集群最小切片通过 | ☐ NO-GO；不得先写业务代码绕过入口 |
+| 5. 実装 | 环境构筑、源码、编码规范、SAST、单体设计评审、代码评审、构建、CI、版本/配置管理、实现文档 | 目标基线：Rust 1.98 stable（GA/CI Gate）、Edition 2024/resolver 3、Actix Web 4.14.1、PostgreSQL 18.6、虚拟 Cargo workspace；实现代码尚无 | 入口：§9.4 DD Review、QA/ADR/PLAN Gate、工具链对齐；出口：可重复构建、clippy/rustfmt/cargo-deny、插件原子装载/卸载和 App 集群最小切片通过 | ☐ NO-GO；不得先写业务代码绕过入口 |
 | 6. テスト工程 | UT/IT/ST/UAT 的计划、规格、用例、数据、环境、执行、记录、缺陷、修正、复测、完成确认、批准 | RGS-TST-UT-*、RGS-TST-IT-*、RGS-TST-ST-* 设计书；无执行报告 | 入口：实现可构建；出口：需求/设计双向覆盖、UT/IT/ST/UAT 报告、缺陷关闭、回归和业务验收签字 | ☐ 未执行；不得以测试设计书代替测试结果 |
 | 7. 移行・リリース | 移行计划/步骤/演练、数据迁移、系统切换、结果确认、Release Plan、Go/No-Go、生产构筑、部署、Smoke、Go-Live、Hypercare | RGS-OPS-001、RGS-DTL-024、§2.10–2.11 工程清单 | 入口：ST/UAT 与迁移演练通过；出口：数据/系统切换报告、回滚演练、Go 决议、Smoke、服务开始和初期稳定记录 | ☐ 未演练 / 未发布 |
 | 8. 運用・保守 | 运维移交、监控、Job、备份、容量、Incident/Problem/Inquiry、变更/配置/补丁/漏洞、Hotfix、恢复、回归、定期评审与运维报告 | RGS-OPS-001、RGS-REQ-005、ADR / QA / CR 入口；无生产运行证据 | 入口：Go-Live + 运维移交；出口：KPI/SLA、备份恢复、故障/变更/回归记录和周期性运维报告 | 🟡 Runbook 已形成；未进入生产闭环 |
@@ -1108,7 +1108,7 @@ PH-0 立项 (本周)        ──DEC 已记录，待具名确认──→ PH-1 
 |---|---|---|
 | 九阶段覆盖 | ✅ 通过（文档结构） | 9 个顶层阶段与附件一致；16 个 RGS 内部工作包作为子阶段/横切控制保留 |
 | 设计前置材料 | 🟡 有条件通过 | DTL-031、五域 DTL 骨架、PLAN-001、ADR-0052 已形成；尚需具名 Review / Approval |
-| 版本基线 | 🟡 待环境核验 | 用户目标为 Rust 1.98 stable；仅在其 GA 后，以锁定依赖的完整 CI 核验作为“环境完成”证据。Actix Web 4.14.1、PostgreSQL 18.4 同步核验 |
+| 版本基线 | 🟡 待环境核验 | 用户目标为 Rust 1.98 stable；仅在其 GA 后，以锁定依赖的完整 CI 核验作为“环境完成”证据。Actix Web 4.14.1、PostgreSQL 18.6 同步核验 |
 | 53 開発環境構築 | **NO-GO** | §9 Gate、Q-003/Q-025 等具名审批、Rust 1.98 GA/CI、工具链对齐和 testkit 前置尚未形成可审计证据 |
 | 实施与发布 | **NO-GO** | 无代码、测试执行、迁移演练、Go/No-Go、生产运维和结项证据 |
 

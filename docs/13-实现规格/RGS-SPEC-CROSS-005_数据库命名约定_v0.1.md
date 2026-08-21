@@ -30,7 +30,7 @@
 - 5 域 DTL §3 实现契约（DTL-015/016/018/019/020/026/031）
 - RGS-IMPL-002 PG 编码规范
 - ARC-008 5 独立 DB 原则（**与团队规模无关，是架构原则**）
-- PostgreSQL 18.4 + sqlx（per RGS-TS-001 v0.6 §5.1/§5.2）
+- PostgreSQL 18.6 + sqlx（per RGS-TS-001 v0.6 §5.1/§5.2）
 
 ### §2.2 输出
 
@@ -57,7 +57,7 @@
 
 ## 3. 工具链
 
-- **PostgreSQL 18.4**（per RGS-TS-001 v0.6 §5.2）
+- **PostgreSQL 18.6**（per RGS-TS-001 v0.6 §5.2）
 - **sqlx**（Rust 端 query 宏 + 编译期校验）
 - **sqruff**（SQL lint 强制命名 + 风格）
 - **atlas**（schema migration 工具）
@@ -99,6 +99,6 @@
 - 父文档：RGS-SPEC-000 详细设计规格化总表
 - 强制并行：CROSS-004 DTO 映射 / RGS-IMPL-002 PG 编码规范
 - 上游：RGS-WF-001 v0.5 §2 150 工程 54 + ARC-008 5 独立 DB 原则 + RGS-TS-001 v0.6 §5.1/§5.2
-- 5 域引用方：DTL-015/016/018/019/020/026/031 §3 + WF-1-53.10 5 独立 PG 18.4 DB
+- 5 域引用方：DTL-015/016/018/019/020/026/031 §3 + WF-1-53.10 5 独立 PG 18.6 DB
 - 部署：docs/deploy/03-db-migrations/
 - worktree：可单独 worktree 分支执行

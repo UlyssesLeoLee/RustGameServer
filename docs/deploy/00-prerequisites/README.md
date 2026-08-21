@@ -23,7 +23,7 @@
 | G-CODE-03 | ADR-0052 联审 | 🟠 Open | ADR 审批栏 + 拓扑核验 + 故障注入 + 风险接受 | 架构 + SRE + DBA + Platform |
 | G-CODE-04 | Q-003 Saga 6 场景 | 🟠 Open / Blocker | Saga/Outbox/补偿 + 6 业务场景验收 | 架构 + DBA + Economy 域 Lead |
 | G-CODE-05 | 5 域 DTL 边界冻结 | 🟠 Open | 5 域 DD Review + 接口/事件/DB/插件依赖矩阵 | 5 域独立 Lead + 架构 |
-| G-CODE-06 | 工具链 + 开发环境基线 | 🟠 Open | Rust 1.98 实测 + PG 18.4 + K3s + 锁定 CI | Platform + DBA + SRE |
+| G-CODE-06 | 工具链 + 开发环境基线 | 🟠 Open | Rust 1.98 实测 + PG 18.6 + K3s + 锁定 CI | Platform + DBA + SRE |
 | G-CODE-07 | OLU + 测试基础前置 | 🟠 Open | OLU 重算（含 5 域独立 Lead）+ Q-031 WBS + testkit | SRE + QA + PM |
 
 ### §1.2 RGS-ENV-001 v0.3 12 类签字齐全
@@ -52,7 +52,7 @@
 | 2 | [01-environment-verification.md](01-environment-verification.md) | RGS-ENV-001 v0.3 引用 | 🟡 工具就位 |
 | 3 | [02-domain-leads-onboard.md](02-domain-leads-onboard.md) | 5 域 Lead 到位 checklist | 🟡 占位 |
 | 4 | [03-rust-198-environment.md](03-rust-198-environment.md) | Rust 1.98 + Cargo.lock + CI 基线 | 🟡 占位 |
-| 5 | [04-postgresql-184-setup.md](04-postgresql-184-setup.md) | PG 18.4 + 5 DB 划分 | 🟡 占位 |
+| 5 | [04-postgresql-186-setup.md](04-postgresql-186-setup.md) | PG 18.6 + 5 DB 划分 | 🟡 占位 |
 
 ---
 
@@ -63,7 +63,7 @@
 1. **PH-0**（W1-2）：架构师 + PM 实际签 + 5 域 Lead 招聘启动
 2. **PH-0.5**（W2 末）：RGS-ENV-001 v0.3 §6 12 类签字 100% 具名责任人补全
 3. **PH-1**（W3-4）：Rust 1.98 实测 + Cargo workspace 占位 + Cargo.lock 锁定
-4. **PH-2**（W5-6）：PG 18.4 + 5 DB 划分 + K3s cluster 占位
+4. **PH-2**（W5-6）：PG 18.6 + 5 DB 划分 + K3s cluster 占位
 5. **PH-3**（W7-9）：ClusterOpsService + CEM/PFAU + AdminService 占位
 6. **PH-4**（W9-12）：player 端到端 + Saga 契约
 7. **PH-5**（W12-14）：5 域联调

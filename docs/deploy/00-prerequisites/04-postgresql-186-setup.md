@@ -1,4 +1,4 @@
-# 04-PostgreSQL 18.4 + 5 DB 划分
+# 04-PostgreSQL 18.6 + 5 DB 划分
 
 | 项目 | 内容 |
 |---|---|
@@ -10,12 +10,12 @@
 
 ---
 
-## §1 PostgreSQL 18.4 基线
+## §1 PostgreSQL 18.6 基线
 
 | 项 | 目标 | 当前 | 责任方 |
 |---|---|---|---|
-| PostgreSQL | 18.4 | 待实测 | DBA Lead |
-| psql | 18.4 | 待实测 | DBA Lead |
+| PostgreSQL | 18.6 | 待实测 | DBA Lead |
+| psql | 18.6 | 待实测 | DBA Lead |
 | libpq | 与 psql 一致 | 待实测 | DBA Lead |
 
 ## §2 5 DB 独立划分（per ARC-008）
@@ -87,4 +87,4 @@ crates/rgs-{player,economy,match,social,admin}/
 
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。PG 18.4 + 5 DB 划分 + sqlx 编译期占位（不实际创建）。 |
+| 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。PG 18.6 + 5 DB 划分 + sqlx 编译期占位（不实际创建）。 |

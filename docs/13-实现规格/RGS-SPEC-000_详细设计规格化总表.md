@@ -11,7 +11,7 @@
 | 制定者 | 架构师 |
 | 适用范围 | 当前仓库全部 36 份 RGS-DTL 详细设计 |
 | 规范真源 | 对应 RGS-DTL 文档；本规格不得与其字段、状态机、错误码、接口和安全约束冲突 |
-| 实现边界 | Rust 1.98 stable（用户目标、GA 前不可核验）、Actix Web 4.14.1、PostgreSQL 18.4；实际环境须通过 Gate 核验 |
+| 实现边界 | Rust 1.98 stable（用户目标、GA 前不可核验）、Actix Web 4.14.1、PostgreSQL 18.6；实际环境须通过 Gate 核验 |
 
 ## 修订历史
 

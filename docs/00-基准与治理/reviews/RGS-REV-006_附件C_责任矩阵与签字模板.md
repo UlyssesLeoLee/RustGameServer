@@ -71,10 +71,10 @@
 | Gate | 责任人 | 角色分配 | RACI |
 |---|---|---|---|
 | G-CODE-06 (Rust 1.98 stable) | **Platform Engineer** | 工具链 | R+A |
-| | DBA | PG 18.4 | C |
+| | DBA | PG 18.6 | C |
 | | SRE Lead | K3s 集成 | C |
 | | 架构师 | 跨工具链 | C |
-| G-CODE-06 (PG 18.4 migration 演练) | **DBA** | 迁移演练 | R+A |
+| G-CODE-06 (PG 18.6 migration 演练) | **DBA** | 迁移演练 | R+A |
 | | Platform Engineer | 工具链 | C |
 | | SRE Lead | 部署集成 | C |
 | G-CODE-06 (K3s 能力核验) | **SRE Lead** | 集群 | R+A |
@@ -102,7 +102,7 @@
 
 按依赖关系顺序签字（**不可跳签**；**v0.5 DEC-005 调整**）：
 
-1. **DBA** 先签 G-CODE-06 PG 18.4 部分
+1. **DBA** 先签 G-CODE-06 PG 18.6 部分
 2. **SRE Lead** 再签 G-CODE-06 K3s 部分（**不签 G-CODE-02 Admin 域，由 Admin 域独立 Lead 签** per DEC-005）
 3. **5 域独立 Lead** 顺序签 G-CODE-02 域 DTL（**player → economy → match → social → admin 各自独立签字，不可委托代签** per DEC-005）
 4. **架构师** 签 G-CODE-02 DTL-031 + G-CODE-03 ADR-0052 + G-CODE-04 Saga + G-CODE-05 依赖
@@ -169,7 +169,7 @@ Gate ID：_______
 | G-CODE-04 (Saga 真实场景) | 架构师 + DBA + **Economy 域 Lead**（独立）+ Economy 域 Lead（Q-003 二次确认）| | |
 | G-CODE-05 (5 域依赖图) | 架构师 + 5 域独立 Lead 各自签字 | | |
 | G-CODE-06 (Rust 1.98) | Platform Engineer | | |
-| G-CODE-06 (PG 18.4) | DBA | | |
+| G-CODE-06 (PG 18.6) | DBA | | |
 | G-CODE-06 (K3s) | SRE Lead | | |
 | G-CODE-07 (testkit) | 架构师 + QA Lead | | |
 

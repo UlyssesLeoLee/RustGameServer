@@ -38,7 +38,7 @@
 |---|---|---|
 | GOBS-GATE-01 | 实际 Cargo workspace、crate/service、CI、Rust 1.98 stable（GA 后）和 Actix Web 4.14.1 版本已取得 | 仓库、CI、toolchain 输出；不得以 beta/nightly 或旧版本替代 |
 | GOBS-GATE-02 | K3s/K8s 节点、网络、Ingress、存储、RBAC、NetworkPolicy 能力已核验 | 集群只读诊断 |
-| GOBS-GATE-03 | PostgreSQL 18.4、cache、event role、workflow 拓扑已核验 | 版本、连接、拓扑和备份证据 |
+| GOBS-GATE-03 | PostgreSQL 18.6、cache、event role、workflow 拓扑已核验 | 版本、连接、拓扑和备份证据 |
 | GOBS-GATE-04 | GOBS-001～004、RGS-BAS-004、RGS-DTL-004 无冲突且完成签字 | 评审记录 |
 | GOBS-GATE-05 | tick/login/match/settlement/CCU 基线和 OLU/容量预算已获得 | PH-0 基线报告 |
 | GOBS-GATE-06 | 统一 façade、Atomic App/Plugin manifest contract、测试骨架先于业务埋点 | 设计评审与负例测试 |
@@ -58,7 +58,7 @@
 | 项目 | 内容 |
 |---|---|
 | 工作包 | GOBS-WBS-000 |
-| 主要动作 | 真实仓库/集群/中间件 inventory；清理“设计对象=现状”的误读；确认 K3s、PG 18.4、cache、event role、OTel/Prom/Grafana 目标；统一 metric registry、health contract、retention 和 OLU 统计口径 |
+| 主要动作 | 真实仓库/集群/中间件 inventory；清理“设计对象=现状”的误读；确认 K3s、PG 18.6、cache、event role、OTel/Prom/Grafana 目标；统一 metric registry、health contract、retention 和 OLU 统计口径 |
 | 交付物 | E0/E1/E2 证据表、服务/依赖清单、玩家体验基线、容量/OLU 初算、保留基线确认、指标/健康契约决策记录 |
 | 依赖 | RGS-GOBS-001、RGS-TS-001、RGS-PLAN-001 |
 | 入口 | GOBS-GATE-01～03 |
@@ -105,7 +105,7 @@
 | 工作包 | GOBS-WBS-040 |
 | 主要动作 | PL/EC/MT/GD/AD 的 HTTP/gRPC、repository/DB pool/transaction、cache、Outbox、event consumer、workflow transition 接入 |
 | 交付物 | dashboard 20/30；request/DB/cache/outbox/event/workflow 指标；W3C trace 和异步 trace link；业务事件 |
-| 依赖 | 五域 DTL、RGS-REQ-001 ARC-014、PG 18.4/cache/event 实际证据 |
+| 依赖 | 五域 DTL、RGS-REQ-001 ARC-014、PG 18.6/cache/event 实际证据 |
 | 出口 | 登录、匹配、结算和故障路径可通过 trace_id/event_id/workflow_id 联查；不假定 Kafka 产品 |
 | 回滚 | 按服务/插件版本灰度回退；Outbox/业务数据不因 telemetry 回滚而改变 |
 
@@ -274,7 +274,7 @@ Requirement → Architecture → Code Module → K3s Component → Metric/Log/Tr
 | 需求完整性 | 已覆盖玩家体验、runtime、service、middleware、平台、基础设施、业务事件、安全和运维 |
 | 原子化解耦 | façade、contract、manifest、plugin lifecycle 和 backend adapter 先于业务埋点 |
 | 热插拔正确性 | 版本化配置/受控 provider 可切换；不在 tick 上动态卸载任意代码 |
-| Rust/Actix/PG | 目标版本以 RGS-TS-001 为准；Rust workspace、Actix、PostgreSQL 18.4 仍需环境核验 |
+| Rust/Actix/PG | 目标版本以 RGS-TS-001 为准；Rust workspace、Actix、PostgreSQL 18.6 仍需环境核验 |
 | K3s | 使用 K8s-compatible 设计；K3s 适配门未通过前不得宣称已部署 |
 | 实现入口 | GOBS-GATE-01～06 未全部通过前，不进入大规模编程和安装 |
 

@@ -347,7 +347,7 @@ Q-003 的技术方案已由 RGS-IMPL-001 固定，仍待架构、DBA 与经济 L
 
 - 工具链：Rust 1.98 stable 是用户指定目标、Edition 2024、Cargo resolver 3；在 1.98 GA 且全量 CI 核验前不写入 `rust-toolchain.toml`，`G-CODE-06` 保持 Open。根 `Cargo.lock` 是唯一锁文件且必须入仓。
 - HTTP：Actix Web 4.14.1 + Tokio；内部 gRPC 仍使用 tonic，hyper 只作为底层协议依赖，不作为业务 HTTP 框架。
-- 数据库：PostgreSQL 18.4；五个独立 DB 均按 PostgreSQL 18.4 migration/备份/回退矩阵验证。后续 18.x 补丁升级必须重新灰度验证，PostgreSQL 19 Beta 不得进入生产基线。
+- 数据库：PostgreSQL 18.6；五个独立 DB 均按 PostgreSQL 18.6 migration/备份/回退矩阵验证。后续 18.x 补丁升级必须重新灰度验证，PostgreSQL 19 Beta 不得进入生产基线。
 
 ```text
 Cargo.toml                 # virtual workspace；显式 members；resolver = "3"

@@ -41,7 +41,7 @@ docs/deploy/
 │   ├── 01-environment-verification.md  # RGS-ENV-001 v0.3 引用
 │   ├── 02-domain-leads-onboard.md      # 5 域 Lead + 3 配套到位 checklist
 │   ├── 03-rust-198-environment.md       # Rust 1.98 + Cargo.lock + CI 基线
-│   └── 04-postgresql-184-setup.md       # PG 18.4 + 5 DB 划分
+│   └── 04-postgresql-186-setup.md       # PG 18.6 + 5 DB 划分
 ├── 01-k8s-manifests/                   # K8s 占位 manifest（不含真实镜像 / namespace）
 │   ├── README.md
 │   ├── namespace.yaml                  # 5 域 namespace 占位
@@ -109,7 +109,7 @@ docs/deploy/
 | 架构师（Ulysses）| 架构师 | ✅ **Ulysses 实际签** | 整体架构 + 跨工具集成 |
 | PM（Ulysses）| 项目负责人 | ✅ **Ulysses 实际签** | 资源决策 + 范围 + 53 启动授权 |
 | SRE Lead | K3s / chaos / OLU | ⏳ 所有者背书 + 待具名 | 01-k8s-manifests + 05-deploy-sop + 06-rollback-sop |
-| DBA Lead | PG 18.4 / 5 DB | ⏳ 所有者背书 + 待具名 | 03-db-migrations + 04-prerequisites |
+| DBA Lead | PG 18.6 / 5 DB | ⏳ 所有者背书 + 待具名 | 03-db-migrations + 04-prerequisites |
 | Platform Engineer | Rust / Cargo / 镜像 | ⏳ 所有者背书 + 待具名 | 02-helm-charts + 04-ci-cd + Dockerfile |
 | Player 域 Lead | player 域 | ⏳ 所有者背书 + 待具名 | player-service + 03-db-migrations/player_db |
 | Economy 域 Lead | economy + Q-003 | ⏳ 所有者背书 + 待具名 | economy-service + 03-db-migrations/economy_db |

@@ -32,7 +32,7 @@ Grafana → 指标 → trace → 结构化日志 → 游戏运营事件，
 当前不能确认的事项包括：
 
 - 是否已经有 K3s 集群、节点池、Ingress、Service、Deployment、StatefulSet、ConfigMap 或 Secret。
-- 是否实际运行 PostgreSQL 18.4、Redis/Valkey、NATS JetStream 或任何事件总线。
+- 是否实际运行 PostgreSQL 18.6、Redis/Valkey、NATS JetStream 或任何事件总线。
 - 是否存在 Gateway、Runtime、Player、Economy、Match、Social、Admin 等可执行服务。
 - OTel Collector、Prometheus、Grafana、日志存储、trace 存储是否已部署。
 - Rust、Actix Web、数据库客户端和 exporter 的实际版本。
@@ -175,7 +175,7 @@ flowchart LR
 
 | 对象 | 设计资料中的信息 | 当前可确认度 | 本调查结论 |
 |---|---|---|---|
-| PostgreSQL | RGS-TS-001 目标为 18.4；旧 OPS 文档仍有 16.x 描述 | E1 | 18.4 是目标基线，需在环境中核验 |
+| PostgreSQL | RGS-TS-001 目标为 18.6；旧 OPS 文档仍有 16.x 描述 | E1 | 18.6 是目标基线，需在环境中核验 |
 | Rust/Actix Web | RGS-TS-001 v0.4（2026-08-21）目标为 Rust 1.98 stable（GA/CI Gate）/ Actix Web 4.14.1 | E1 | Rust 1.98 GA 与锁定依赖的 CI/toolchain 核验前，目标基线不是本机实测，也不得以 beta/nightly 或旧版本替代 |
 | Cache | 需求使用 generic cache；TS-001 目标 Redis 7.2+ Cluster | E1 | 不能断言实际运行 Redis/Valkey |
 | Event | RGS-REQ-001 ARC-014 默认 Outbox polling；TS-001 目标 NATS JetStream | E1 | 不能断言 Kafka；先用角色抽象与证据门 |
@@ -220,7 +220,7 @@ ARC-014 的中间件引入门禁仍然有效：不得因为“可观测性”直
 |---|---|---|---|
 | GOBS-RSK-001 | 设计对象未映射到源码/manifest | 可能把不存在的组件当成已存在 | PH-0 建立实际 inventory 和 owner |
 | GOBS-RSK-002 | K3s 未证实 | Collector、存储、Ingress 方案可能不可部署 | K3s 适配门；失败则保留 K8s-compatible |
-| GOBS-RSK-003 | PG 18.4 与旧 OPS 16.x 冲突 | 环境和迁移验证误用版本 | 以 TS-001 目标为候选，环境核验后锁定 |
+| GOBS-RSK-003 | PG 18.6 与旧 OPS 16.x 冲突 | 环境和迁移验证误用版本 | 以 TS-001 目标为候选，环境核验后锁定 |
 | GOBS-RSK-004 | Outbox/NATS/Kafka 语义混淆 | 引入不必要中间件或错误指标 | 先使用 event role；按 ARC-014 选型 |
 | GOBS-RSK-005 | 过度埋点污染 tick | 玩家体验和容量目标受损 | 采用窗口聚合、有限标签、错误强制采样 |
 | GOBS-RSK-006 | 物理后端未选定 | dashboard/retention/成本无法落地 | 在导入计划 PH-0/PH-1 设决策门 |
@@ -237,7 +237,7 @@ ARC-014 的中间件引入门禁仍然有效：不得因为“可观测性”直
 |---|---|---|
 | GOBS-GATE-01 | 实际 Cargo workspace、crate/service 清单、Rust toolchain 输出 | 代码边界可追踪 |
 | GOBS-GATE-02 | K3s/K8s 集群、节点、Ingress、存储、网络策略证据 | 平台边界可追踪 |
-| GOBS-GATE-03 | PostgreSQL 18.4、缓存、event role 的实际版本/拓扑 | 中间件边界可追踪 |
+| GOBS-GATE-03 | PostgreSQL 18.6、缓存、event role 的实际版本/拓扑 | 中间件边界可追踪 |
 | GOBS-GATE-04 | crates/observability API、Collector 接收/导出契约、日志 schema 评审通过 | 统一抽象可实现 |
 | GOBS-GATE-05 | tick/登录/匹配/结算基线与容量预算 | 采样和指标阈值可计算 |
 | GOBS-GATE-06 | RGS-GOBS-002/003/004 技术评审签字；与 RGS-BAS-004、RGS-DTL-004 无冲突 | 可进入实现 |
@@ -249,7 +249,7 @@ ARC-014 的中间件引入门禁仍然有效：不得因为“可观测性”直
 - 仓库源码或至少一个可构建的 Cargo workspace。
 - CI 日志、Rust toolchain、Actix Web、sqlx/数据库客户端版本。
 - K3s 集群只读诊断：节点、namespace、workload、service、ingress、storage、network policy。
-- PostgreSQL 18.4、缓存、Outbox/event、workflow 的连接和拓扑（凭证脱敏）。
+- PostgreSQL 18.6、缓存、Outbox/event、workflow 的连接和拓扑（凭证脱敏）。
 - 现有日志样例、指标列表、trace 样例、告警规则和一条故障演练记录。
 - 100/1k/10k/目标 CCU 下 tick、连接、登录、匹配、结算的基线。
 - 现有保留基线（原始指标 15 天、聚合指标 400 天、行为日志 400 天、审计日志 3 年）及其数据分类审批；若要改变，必须给出成本、合规和恢复理由。
@@ -261,7 +261,7 @@ ARC-014 的中间件引入门禁仍然有效：不得因为“可观测性”直
 
 - 增加 E0/E1/E2/E3 证据分级，明确当前工作区缺少实现文件。
 - 不再假定 K3s、Kafka、Redis、OTel Collector 或 Grafana 已部署。
-- 将 Rust/Actix/PostgreSQL 18.4 标为目标基线，要求环境核验后才锁定。
+- 将 Rust/Actix/PostgreSQL 18.6 标为目标基线，要求环境核验后才锁定。
 - 把 tick、packet、entity 的高频路径设为明确的侵入禁区。
 - 把物理后端、K3s 适配和容量预算设置为导入门，而不是在调查阶段预先宣称完成。
 

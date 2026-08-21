@@ -11,7 +11,7 @@
 
 ## §B.1 演练环境前置
 
-- [ ] **B1.1 PostgreSQL 18.4 已就绪**（per handoff §5 step 2，K3s 集成 + 5 DB 划分）
+- [ ] **B1.1 PostgreSQL 18.6 已就绪**（per handoff §5 step 2，K3s 集成 + 5 DB 划分）
 - [ ] **B1.2 K3s 集群就绪**（per handoff §5 step 2，能力核验通过）
 - [ ] **B1.3 5 个 DB** 部署到位（player_db / economy_db / match_db / social_db / admin_db，per ARC-008）
 - [ ] **B1.4 Inbox/Outbox 表** 在 5 个 DB 全部建表
