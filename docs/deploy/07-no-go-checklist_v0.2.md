@@ -27,15 +27,15 @@
 
 | G-CODE | 内容 | 当前状态 | 责任人 | 关闭条件 |
 |---|---|---|---|---|
-| **G-CODE-01** | 业务方代表具名签字 | 🟠 Open | 业务方代表 | 业务方代表具名 + 在 REV-003 §7.3 签字 |
-| **G-CODE-02** | 5 域 Lead 独立具名（per DEC-005） | 🟠 Open Blocker | 5 域 Lead | 5 域 Lead 各自具名 + 独立签字（**不接受兼任**） |
-| **G-CODE-03** | DBA 具名 + 5 独立 DB 拓扑图签字 | 🟠 Open Blocker | DBA | DBA 具名 + 03-db-migrations/ 拓扑图签字 |
-| **G-CODE-04** | SRE 具名 + 部署 SOP 签字 | 🟠 Open | SRE | SRE 具名 + 05-deploy-sop.md 签字 |
-| **G-CODE-05** | Platform 架构师具名 + CI/CD 签字 | 🟠 Open | Platform 架构师 | Platform 架构师具名 + 04-ci-cd/ 签字 |
-| **G-CODE-06** | Rust 1.98 + Cargo.lock + CI 全绿 | 🟠 Open | Platform 架构师 + QA Lead | Rust 1.98 GA 已发 + CI 全绿 + 4-ci-cd/rust-ci.yaml 通过 |
-| **G-CODE-07** | QA Lead 具名 + 验收矩阵签字 | 🟠 Open | QA Lead | QA Lead 具名 + 验收矩阵签字 |
+| **G-CODE-01** | 业务方代表具名签字 | ✅ **Closed** | Ulysses（业务方=PM 一人公司兼任）| Ulysses 实际签 2026-08-21（一人公司 12 角色兼任，per DEC-008）|
+| **G-CODE-02** | 5 域 Lead 独立具名（per DEC-005 → DEC-008 撤销）| ✅ **Closed** | Ulysses（5 域 Lead 1 人串行兼任）| Ulysses 实际签 2026-08-21（一人公司 12 角色兼任，per DEC-008 撤销 DEC-005 独立要求）|
+| **G-CODE-03** | DBA 具名 + 5 独立 DB 拓扑图签字 | ⚠️ **待实测** | Ulysses（DBA 一人公司兼任）| 5 独立 DB 拓扑图需 Ulysses 实际画过（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）|
+| **G-CODE-04** | SRE 具名 + 部署 SOP 签字 | ✅ **Closed** | Ulysses（SRE 一人公司兼任）| Ulysses 实际签 2026-08-21 + 05-deploy-sop.md 签字 |
+| **G-CODE-05** | Platform 架构师具名 + CI/CD 签字 | ✅ **Closed** | Ulysses（Platform 一人公司兼任）| Ulysses 实际签 2026-08-21 + 04-ci-cd/ 签字 |
+| **G-CODE-06** | Rust 1.98 + Cargo.lock + CI 全绿 | ⚠️ **待实测** | Ulysses（Platform + QA 一人公司兼任）| Rust 1.98 GA 已发 + 需 Ulysses 实际跑过 cargo build + cargo test 全绿（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）|
+| **G-CODE-07** | QA Lead 具名 + 验收矩阵签字 | ✅ **Closed** | Ulysses（QA 一人公司兼任）| Ulysses 实际签 2026-08-21 + 验收矩阵签字 |
 
-**当前汇总**：🟠 7/7 Open（其中 2 个 Blocker = G-CODE-02 / G-CODE-03）
+**当前汇总**（v0.2 per DEC-008）：✅ 5/7 Closed（Ulysses 实际签声明） + ⚠️ 2/7 待实测（G-CODE-03 5 独立 DB 拓扑图 + G-CODE-06 Rust 1.98 + CI 全绿）
 
 ---
 
