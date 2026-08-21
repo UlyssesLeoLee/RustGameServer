@@ -35,7 +35,7 @@
 |---|---|
 | 36 份 DTL → SPEC | 每份 `RGS-SPEC-DTL-*` 已具备目标基线、实现单元、契约、可观测性、安全/测试、DoD 与 Gate 证据章节。 |
 | ClusterOps | [DTL-031](../01-核心架构与设计模式/RGS-DTL-031_集群运营中心与每功能原子升级_详细设计书.md)、[ADR-0052](../08-架构决策记录/RGS-ADR-0052_Active-Active_ClusterOpsService与all-reachable_PFAU容错哲学.md) 和 [SPEC-DTL-031](../13-实现规格/RGS-SPEC-DTL-031_实现规格书.md) 已对齐。 |
-| 实施治理 | [QA v0.9](../11-实施QA/RGS-QA-001_实施前QA表_v0.9.md)、[PLAN v0.6](../12-工作流/RGS-PLAN-001_项目实施计划_v0.7.md)、[WF v0.5](../12-工作流/RGS-WF-001_系统工程工作流_v0.5.md)、[WBS-001 v0.2](../12-工作流/RGS-WBS-001_5层工作分解结构_v0.2.md)、[ENV-CALIB-001 v0.1](../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md) 已绑定至实施约定和 Gate（QA v0.9 = DEC-005 + DEC-006 路径 B 落地 + §9.5.3 路径 B 标记已选；PLAN v0.6 = 14-18 周窗口；WBS-001 = 5 层 L4 任务模板；ENV-CALIB-001 = PH-0.5 校准模板）。 |
+| 实施治理 | [QA v0.10](../11-实施QA/RGS-QA-001_实施前QA表_v0.10.md)、[PLAN v0.6](../12-工作流/RGS-PLAN-001_项目实施计划_v0.7.md)、[WF v0.5](../12-工作流/RGS-WF-001_系统工程工作流_v0.5.md)、[WBS-001 v0.2](../12-工作流/RGS-WBS-001_5层工作分解结构_v0.2.md)、[ENV-CALIB-001 v0.1](../00-基准与治理/reviews/RGS-ENV-CALIB-001_OLU校准记录模板_v0.1.md) 已绑定至实施约定和 Gate（QA v0.9 = DEC-005 + DEC-006 路径 B 落地 + §9.5.3 路径 B 标记已选；PLAN v0.6 = 14-18 周窗口；WBS-001 = 5 层 L4 任务模板；ENV-CALIB-001 = PH-0.5 校准模板）。 |
 | 运维与观测 | [OPS v0.3](../09-部署运维/RGS-OPS-001_保姆级部署说明.md)、[GOBS-004 v0.2](../12-工作流/RGS-GOBS-004_Observability导入计划.md) 已采用统一的镜像、版本和 observability façade 边界。 |
 
 ## 4. 开始 53 前必须取得的证据
