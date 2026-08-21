@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-022 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-022 弹性容量规划与超大规模并发架构 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定。细化RGS-BAS-022§2.3三类组件扩容手段判定表为可执行的评审判定伪代码、§3.2跨分片能力清单为具体的能力注册与校验协议格式、§4.1弹性预留为具体调度算法、§5.1插件注册表分片维度扩展为具体DDL与生命周期状态机代码、§5.2跨节点同步机制为具体协议格式与规模验证算法。**本版本不覆盖**：T3多区域拓扑触发后的具体设计（RGS-BAS-022明确留给RGS-BAS-017§2.3另行评审）、TBD-CAP-001弹性预留系数的最终校准值。见§7 | 全部 |
+| 0.2 | 2026-08-20 | 架构师 | — | 纳入RGS-REQ-025-ADD1：定义版本化 `jump_consistent_hash_v1` 库内路由、同物理DB原子操作和五阶段 rebalance，消除取模与泛称一致性哈希的歧义，并补齐需求→设计→测试追溯。 | §3.1〜§3.2、§7、追溯性 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -141,6 +142,41 @@ fn validate_capability_declaration(decl: &CrossShardCapabilityDeclaration) -> Re
 ```
 
 全局排行榜聚合、账号身份跨分片唯一、客服工单/支付对账三项既有能力（RGS-BAS-022§3.2表格已批准）在部署时以`CrossShardCapabilityDeclaration`形式预注册（`review_ticket_ref`指向RGS-BAS-022本身的批准记录），使新增能力与既有能力走同一套声明式校验路径，不区分"历史遗留白名单"与"新增审批"两套机制。
+
+### 3.1 RGS-REQ-025-ADD1：版本化库内路由契约
+
+库内路由以**逻辑** `shard_id` 为边界；主从选择只在同一逻辑 shard 的副本组内进行，应用不得因主 shard 故障把请求改路由到其他逻辑 shard。每个数据库保存且由所有路由调用方共享以下不可歧义的配置：
+
+| 字段 | 约束 | 用途 |
+|---|---|---|
+| `routing_version` | 单调递增；仅在 CUTOVER 原子切换 | 将一次请求/任务绑定到唯一的路由视图 |
+| `hash_algorithm` | 固定为 `jump_consistent_hash_v1` | 防止实现以泛称 `consistent_hash` 替换算法 |
+| `active_shard_ids` | 非空、唯一、升序排列的逻辑 shard ID 列表 | 将 hash bucket 映射到稳定的逻辑归属 |
+| `state` | `PREPARE`／`DUAL_WRITE`／`VERIFY`／`CUTOVER`／`RETIRE` | 限制配置变更只能走受控迁移流程 |
+
+```text
+key       = stable_hash_v1(player_id)
+bucket    = jump_consistent_hash_v1(key, active_shard_ids.len())
+shard_id  = active_shard_ids[bucket]
+```
+
+`stable_hash_v1` 与 `jump_consistent_hash_v1` 必须封装在共享路由库；跨 DB 与库内调用复用相同的字节序、种子和实现版本。配置加载时若算法名不匹配、列表为空/重复/非升序，或请求未携带已声明的 `routing_version`，路由器必须拒绝请求并告警。**不得**以 `player_id % num_shards`、动态改写 `num_shards` 或无版本的容器数量作为路由决策。
+
+同一物理 DB 内的跨 shard 原子操作由一个 PostgreSQL 连接和一个事务边界承载；跨 DB 或跨限界上下文的事务在进入协调器前拒绝，因而不引入 2PC/XA。
+
+### 3.2 RGS-REQ-025-ADD1：Rebalance 控制面与状态机
+
+配置变更维护当前与候选 `active_shard_ids`；候选集合只有在完成校验后才取得新的 `routing_version`。迁移按下表推进，任一阶段失败均停留在当前版本或回退，禁止以人工直接改表切流：
+
+| 状态 | 读写行为 | 进入条件／退出证据 |
+|---|---|---|
+| PREPARE | 仍按当前版本读写 | 候选集合通过唯一性/排序校验，目标 shard 与同 shard 副本就绪 |
+| DUAL_WRITE | 读取当前版本；写入携带幂等操作 ID，同时写当前与候选归属 | 存量迁移任务已登记可重试水位 |
+| VERIFY | 读取当前版本；继续双写 | 逐 shard 行数、校验和、最大复制滞后与双写失败队列均达阈值 |
+| CUTOVER | 原子发布新的 `routing_version`；新请求按候选集合读写 | 发布事件与配置快照持久化，可将未完成请求按其旧版本重放 |
+| RETIRE | 新版本服务；旧副本仅在保留窗口内只读用于核验/回退 | 保留窗口结束且回退门禁关闭后才清理旧数据 |
+
+每次阶段转换必须记录 `routing_version`、迁移水位、校验结果和操作者；测试在同一套记录上验证零中断、幂等重试与回退。主 shard 故障时，端点解析器只可选择该 `shard_id` 的健康副本；其他 `shard_id` 的路由计算保持不变。
 
 ---
 
@@ -308,7 +344,7 @@ fn validate_sync_latency(trial: &SyncLatencyTrial, measured_p99_ms: u64, ac_cap_
 
 ## 7. 本文档的覆盖范围与后续计划
 
-本文档覆盖：三类组件扩容手段判定的可执行代码、跨分片能力声明与校验的具体协议格式、弹性预留调度算法（含readinessGate状态机与预留Pod交还逻辑）、预测性预热的调度伪代码、插件注册表分片维度扩展的DDL增量与生命周期状态机代码、跨节点同步的分片内广播协议格式与规模验证算法。
+本文档覆盖：三类组件扩容手段判定的可执行代码、跨分片能力声明与校验的具体协议格式、RGS-REQ-025-ADD1 的版本化 `jump_consistent_hash_v1` 库内路由与五阶段 rebalance、弹性预留调度算法（含readinessGate状态机与预留Pod交还逻辑）、预测性预热的调度伪代码、插件注册表分片维度扩展的DDL增量与生命周期状态机代码、跨节点同步的分片内广播协议格式与规模验证算法。
 
 本版本明确不覆盖、留待后续：
 
@@ -335,3 +371,5 @@ fn validate_sync_latency(trial: &SyncLatencyTrial, measured_p99_ms: u64, ac_cap_
 | TBD-CAP-001〜002 | §4.1（初始提案） |
 | RGS-BAS-005（插件热插拔机制，本文档§5前提依赖） | §5 |
 | RGS-BAS-020§3（分片路由，本文档§2/§3前提依赖） | §2、§3 |
+| RGS-REQ-025-ADD1 FR-CAP-004〜009、NFR-CAP-101〜105 | §3.1〜§3.2 |
+| RGS-REQ-025-ADD1 AC-CAP-101〜105 | §3.1〜§3.2、§6.2 |

@@ -73,7 +73,7 @@
           不存在 → 写入PaymentOrder + 复用FR-EC-003确定请求路径发放权益
 ```
 
-## 2.4 平台校验接口不可用的待重试队列（RSK-PLT-001落地）
+## 2.3 平台校验接口不可用的待重试队列（RSK-PLT-001落地）
 
 `PendingReceiptVerification`（依附既有PL/EC上下文数据库，不新建独立库）：
 
@@ -88,7 +88,7 @@
 
 `ReceiptVerifier`定时任务扫描`status=pending AND next_retry_at<=now()`的记录重新发起验证，成功后进入§2.2正常发放路径并将本记录标记`resolved`；超过最大重试次数（详细设计确定阈值）标记`abandoned`并转人工复核，**不得**因平台接口持续不可用而无限期悬挂玩家的合法收据。
 
-## 2.5 `PaymentOrder`平台内购扩展字段（FR-PLT-004、FR-PLT-005）
+## 2.4 `PaymentOrder`平台内购扩展字段（FR-PLT-004、FR-PLT-005）
 
 复用RGS-BAS-016§3.1既定`PaymentOrder`结构，新增以下字段以承载平台内购特有信息（不新建独立表，遵循FR-PLT-005"共享同一套数据模型"）：
 
@@ -101,7 +101,7 @@
 
 索引：`(platform_type, provider_txn_id)`复合唯一索引（`provider_txn_id`复用RGS-BAS-016既定字段承载平台交易标识），确保跨平台交易标识不产生误关联。
 
-## 2.3 退款处理时序
+## 2.5 退款处理时序
 
 ```
 平台异步推送退款/撤销通知（App Store Server Notifications / Google Play RTDN）

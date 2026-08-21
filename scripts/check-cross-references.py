@@ -1,4 +1,56 @@
 #!/usr/bin/env python3
+"""cypher
+CREATE
+  (file:File {name: "check-cross-references.py", type: "file", language: "python"}),
+  (load_registry:Function {name: "load_allowed_missing_ids", type: "function", signature: "() -> set[str] | None"}),
+  (document:Class {name: "Document", type: "class", signature: "Document(document_id: str, path: str, text: str)"}),
+  (extract_id:Function {name: "document_id_from_header", type: "function", signature: "(path: str, content: str) -> str"}),
+  (load_docs:Function {name: "load_docs", type: "function", signature: "() -> list[Document]"}),
+  (sections:Function {name: "top_level_sections", type: "function", signature: "(text: str) -> set[str]"}),
+  (section_sort:Function {name: "section_sort_key", type: "function", signature: "(section: str) -> tuple[int, ...]"}),
+  (sql:Function {name: "sql_blocks", type: "function", signature: "(text: str) -> str"}),
+  (tables:Function {name: "parse_tables", type: "function", signature: "(text: str) -> dict"}),
+  (all_tables:Function {name: "all_tables", type: "function", signature: "(docs: list[Document]) -> dict"}),
+  (check:Function {name: "check", type: "function", signature: "(docs: list[Document], allowed_missing_ids: set[str]) -> list[str]"}),
+  (main:Function {name: "main", type: "function", signature: "() -> int"}),
+  (registry_path:Variable {name: "REGISTRY_PATH", type: "variable"}),
+  (document_id_pattern:Variable {name: "DOCUMENT_ID_PATTERN", type: "variable"}),
+  (filename_document_id_pattern:Variable {name: "FILENAME_DOCUMENT_ID_PATTERN", type: "variable"}),
+  (document_id_field_pattern:Variable {name: "DOCUMENT_ID_FIELD_PATTERN", type: "variable"}),
+  (sql_reserved:Variable {name: "SQL_RESERVED", type: "variable"}),
+  (file)-[:CONTAINS]->(load_registry),
+  (file)-[:CONTAINS]->(document),
+  (file)-[:CONTAINS]->(extract_id),
+  (file)-[:CONTAINS]->(load_docs),
+  (file)-[:CONTAINS]->(sections),
+  (file)-[:CONTAINS]->(section_sort),
+  (file)-[:CONTAINS]->(sql),
+  (file)-[:CONTAINS]->(tables),
+  (file)-[:CONTAINS]->(all_tables),
+  (file)-[:CONTAINS]->(check),
+  (file)-[:CONTAINS]->(main),
+  (file)-[:CONTAINS]->(registry_path),
+  (file)-[:CONTAINS]->(document_id_pattern),
+  (file)-[:CONTAINS]->(filename_document_id_pattern),
+  (file)-[:CONTAINS]->(document_id_field_pattern),
+  (file)-[:CONTAINS]->(sql_reserved),
+  (load_registry)-[:USES]->(registry_path),
+  (extract_id)-[:USES]->(filename_document_id_pattern),
+  (extract_id)-[:USES]->(document_id_field_pattern),
+  (load_docs)-[:CALLS]->(extract_id),
+  (check)-[:USES]->(document_id_pattern),
+  (check)-[:USES]->(sql_reserved),
+  (all_tables)-[:CALLS]->(sql),
+  (all_tables)-[:CALLS]->(tables),
+  (check)-[:CALLS]->(all_tables),
+  (check)-[:CALLS]->(sql),
+  (check)-[:CALLS]->(tables),
+  (check)-[:CALLS]->(sections),
+  (check)-[:CALLS]->(section_sort),
+  (main)-[:CALLS]->(load_registry),
+  (main)-[:CALLS]->(load_docs),
+  (main)-[:CALLS]->(check);
+"""
 """跨文档引用有效性检查（由 check-docs-consistency.sh 第5项调用）
 
 背景：2026-08-17最终审核中，仅靠"结构性检查"（版本号同步、标题层级、链接有效性）
@@ -21,25 +73,76 @@ import sys
 import glob
 import os
 import collections
+import tomllib
+from dataclasses import dataclass
 
-# 尚未制定、仅在README§2"后续制定文档"表中预留编号的文档类别，引用它们不算死链
-PLANNED_PREFIXES = ("RGS-IFS-", "RGS-DBS-", "RGS-TST-", "RGS-OPS-", "RGS-ADR-")
+REGISTRY_PATH = "docs/document-registry.toml"
+DOCUMENT_ID_PATTERN = r"RGS-[A-Z]+(?:-[A-Z]+)*-\d+(?:-ADD\d+)?(?![A-Za-z0-9-])"
+FILENAME_DOCUMENT_ID_PATTERN = r"RGS-[A-Z]+(?:-[A-Z]+)*-\d+(?![A-Za-z0-9-])"
+DOCUMENT_ID_FIELD_PATTERN = re.compile(
+    r"^\|\s*(?:文档|决策|ADR)(?:编号|ID)\s*\|\s*(.*?)\s*\|",
+    re.M | re.I,
+)
 
 SQL_RESERVED = {"DESC", "ASC", "NULLS", "LAST", "FIRST", "WHERE", "AND", "OR", "NOT", "IS", "NULL"}
 
 
-def load_docs():
-    docs = {}
+def load_allowed_missing_ids():
+    """读取可受控引用的计划文档；前缀通配不再掩盖拼写或编号错误。"""
+    try:
+        with open(REGISTRY_PATH, "rb") as registry_file:
+            registry = tomllib.load(registry_file)
+    except (FileNotFoundError, tomllib.TOMLDecodeError) as exc:
+        print(f"  [FAIL] 无法读取文档登记册 {REGISTRY_PATH}: {exc}", file=sys.stderr)
+        return None
+    return {
+        entry["id"]
+        for entry in registry.get("planned_document", [])
+        if entry.get("allow_reference") is True and entry.get("status") == "planned"
+    }
+
+
+@dataclass(frozen=True)
+class Document:
+    document_id: str
+    path: str
+    text: str
+
+
+def document_id_from_header(path: str, content: str) -> str:
+    """以文件名基准ID核对文档头，并保留头中声明的 -ADDn 补遗后缀。"""
+    filename_match = re.search(FILENAME_DOCUMENT_ID_PATTERN, os.path.basename(path))
+    if not filename_match:
+        raise ValueError(f"{path}: 文件名缺少可解析的正式文档编号")
+    filename_id = filename_match.group(0)
+    field_match = DOCUMENT_ID_FIELD_PATTERN.search(content[:1600])
+    if not field_match:
+        raise ValueError(f"{path}: 文档头缺少可解析的正式文档/决策编号字段")
+    field = field_match.group(1)
+    declared_match = re.search(DOCUMENT_ID_PATTERN, field)
+    document_id = declared_match.group(0) if declared_match else filename_id
+    if re.sub(r"-ADD\d+$", "", document_id) != filename_id:
+        raise ValueError(f"{path}: 文件名编号 {filename_id} 与文档头编号 {field} 不一致")
+    if document_id == filename_id and filename_id.removeprefix("RGS-") not in field:
+        raise ValueError(f"{path}: 文档头编号 {field} 与文件名编号 {filename_id} 不一致")
+    return document_id
+
+
+def load_docs() -> list[Document]:
+    docs: list[Document] = []
     for path in sorted(glob.glob("docs/**/RGS-*.md", recursive=True)):
-        m = re.search(r"(RGS-[A-Z]+-\d+)", os.path.basename(path))
-        if m:
-            docs[m.group(1)] = open(path, encoding="utf-8").read()
+        text = open(path, encoding="utf-8").read()
+        docs.append(Document(document_id_from_header(path, text), path, text))
     return docs
 
 
 def top_level_sections(text):
-    """文档的顶级章节号集合（# N. / ## N. 两种写法并存于本仓库）"""
-    return set(re.findall(r"^#{1,2} (\d+)\.", text, re.M))
+    """文档中所有 Markdown 标题的章节号（含 §0、二级与三级章节）。"""
+    return set(re.findall(r"^#{1,6}\s+(?:§\s*)?(\d+(?:\.\d+)*)\.?\s", text, re.M))
+
+
+def section_sort_key(section: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in section.split("."))
 
 
 def sql_blocks(text):
@@ -88,51 +191,56 @@ def parse_tables(text):
     return tables
 
 
-def all_tables(docs):
+def all_tables(docs: list[Document]):
     """全仓库 表名 -> (列集合, 定义所在文档)。同名表在多文档定义时以首次出现为准。"""
     registry = {}
-    for did, text in docs.items():
-        for name, cols in parse_tables(sql_blocks(text)).items():
-            registry.setdefault(name, (cols, did))
+    for doc in docs:
+        for name, cols in parse_tables(sql_blocks(doc.text)).items():
+            registry.setdefault(name, (cols, doc.path))
     return registry
 
 
-def check(docs):
+def check(docs: list[Document], allowed_missing_ids: set[str]) -> list[str]:
     issues = []
     global_tables = all_tables(docs)
+    docs_by_id: dict[str, list[Document]] = collections.defaultdict(list)
+    for doc in docs:
+        docs_by_id[doc.document_id].append(doc)
 
     # 5e 跨文档 REFERENCES：引用别的文档定义的表时，列名必须真实存在。
     # 这是引发2026-08-17审核的原始bug类型（RGS-DTL-025 引用 accounts(account_id)，
     # 而 accounts 表定义在 RGS-DTL-001 且并无 account_id 这一列），5c 只查本文档内定义的表，
     # 覆盖不到，故单列一项。
-    for did, text in docs.items():
-        for m in re.finditer(r"REFERENCES (\w+)\s*\((\w+)\)", sql_blocks(text)):
+    for doc in docs:
+        for m in re.finditer(r"REFERENCES (\w+)\s*\((\w+)\)", sql_blocks(doc.text)):
             table, col = m.group(1), m.group(2)
             if table not in global_tables:
-                issues.append(f"{did}: REFERENCES 了全仓库均未定义的表 {table}")
+                issues.append(f"{doc.path}: REFERENCES 了全仓库均未定义的表 {table}")
                 continue
             cols, owner = global_tables[table]
             if col not in cols:
                 have = ", ".join(sorted(cols))
                 issues.append(
-                    f"{did}: REFERENCES {table}({col})，但 {table}（定义于 {owner}）无此列；现有列：{have}"
+                    f"{doc.path}: REFERENCES {table}({col})，但 {table}（定义于 {owner}）无此列；现有列：{have}"
                 )
 
-    for did, text in docs.items():
+    for doc in docs:
+        did, text = doc.document_id, doc.text
         # 5a 文档编号死引用
-        # 末尾 \b 用于排除 RGS-REQ-0xx / RGS-BAS-00n 这类模板占位符写法（数字后紧跟字母时不成立）
-        for ref in sorted(set(re.findall(r"\bRGS-[A-Z]+-\d+\b", text))):
-            if ref not in docs and not ref.startswith(PLANNED_PREFIXES):
-                issues.append(f"{did}: 引用了不存在的文档 {ref}")
+        # 负向前瞻排除 RGS-REQ-0xx / RGS-BAS-00n 等模板占位符。
+        for ref in sorted(set(re.findall(DOCUMENT_ID_PATTERN, text))):
+            if ref not in docs_by_id and ref not in allowed_missing_ids:
+                issues.append(f"{doc.path}: 引用了不存在的文档 {ref}")
 
         # 5b 跨文档章节引用
-        for ref, sec in sorted(set(re.findall(r"(RGS-(?:REQ|BAS|DTL)-\d+)\s*§\s*(\d+)", text))):
-            if ref not in docs:
+        for ref, sec in sorted(set(re.findall(rf"({DOCUMENT_ID_PATTERN})\s*§\s*(\d+(?:\.\d+)*)", text))):
+            targets = docs_by_id.get(ref, [])
+            if not targets:
                 continue
-            secs = top_level_sections(docs[ref])
+            secs = set().union(*(top_level_sections(target.text) for target in targets))
             if secs and sec not in secs:
-                have = ",".join(sorted(secs, key=int))
-                issues.append(f"{did}: 引用 {ref}§{sec}，但该文档只有 §{have}")
+                have = ",".join(sorted(secs, key=section_sort_key))
+                issues.append(f"{doc.path}: 引用 {ref}§{sec}，但该文档只有 §{have}")
 
         # 5c SQL 索引列不存在于建表语句
         sql = sql_blocks(text)
@@ -145,23 +253,33 @@ def check(docs):
                 if col.upper() in SQL_RESERVED or col.isdigit():
                     continue
                 if col not in tables[table]:
-                    issues.append(f"{did}: 索引引用了 {table} 中不存在的列 {col}")
+                    issues.append(f"{doc.path}: 索引引用了 {table} 中不存在的列 {col}")
 
         # 5d protobuf 字段编号重复
         for m in re.finditer(r"message (\w+) \{(.*?)\n\}", text, re.S):
             nums = re.findall(r"=\s*(\d+)\s*;", m.group(2))
             dup = sorted({n for n, c in collections.Counter(nums).items() if c > 1}, key=int)
             if dup:
-                issues.append(f"{did}: message {m.group(1)} 字段编号重复 {dup}")
+                issues.append(f"{doc.path}: message {m.group(1)} 字段编号重复 {dup}")
 
     return issues
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     if not os.path.isdir("docs"):
         print("  [FAIL] 未找到 docs/ 目录", file=sys.stderr)
         return 1
-    issues = check(load_docs())
+    allowed_missing_ids = load_allowed_missing_ids()
+    if allowed_missing_ids is None:
+        return 1
+    try:
+        docs = load_docs()
+    except ValueError as exc:
+        print(f"  [FAIL] {exc}", file=sys.stderr)
+        return 1
+    issues = check(docs, allowed_missing_ids)
     if issues:
         for line in issues:
             print(f"  [FAIL] {line}")

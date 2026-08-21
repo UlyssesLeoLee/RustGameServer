@@ -19,7 +19,7 @@
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
-| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档与RGS-DTL-011/012/014/019并行产出）。细化RGS-BAS-013§2.2队伍表逻辑字段为`social_db`具体DDL、§4.1商品目录逻辑ER图为`economy_db`具体DDL（RGS-BAS-013原文末尾已声明"物理DDL属RGS-DBS-001"，本文档在DTL体系下承接该职责，与RGS-DBS-001系列文档的关系见§6）、§3.1/§3.4频道消息与滥用检测落实为具体协议线格式、§3.4滥用检测规则落实为可直接翻译为Rust实现的伪代码、§4.2/§5.1购买与活动奖励时序落实为具体确定请求事务边界（复用RGS-DTL-001§3.2既定OCC+幂等模式）。**本版本不覆盖**：客户端UI渲染细节、活动插件沙箱脚本本身的执行引擎设计（属RGS-BAS-005/009既有范围）。见§6 | 全部 |
+| 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档与RGS-DTL-011/012/014/019并行产出）。细化RGS-BAS-013§2.2队伍表逻辑字段为`social_db`具体DDL、§4.1商品目录逻辑ER图为`economy_db`具体DDL（原文将物理DDL留待未来集中设计；本文档在DTL体系下以分域方式完成该职责，权威边界见§6）、§3.1/§3.4频道消息与滥用检测落实为具体协议线格式、§3.4滥用检测规则落实为可直接翻译为Rust实现的伪代码、§4.2/§5.1购买与活动奖励时序落实为具体确定请求事务边界（复用RGS-DTL-001§3.2既定OCC+幂等模式）。**本版本不覆盖**：客户端UI渲染细节、活动插件沙箱脚本本身的执行引擎设计（属RGS-BAS-005/009既有范围）。见§6 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -35,8 +35,8 @@
 ## 目录
 
 1. [前言](#1-前言)
-2. [物理数据库设计：social_db队伍与滥用信号](#2-物理数据库设计social_db队伍与滥用信号)
-3. [物理数据库设计：economy_db商品目录与购买记录](#3-物理数据库设计economy_db商品目录与购买记录)
+2. [物理数据库设计：social_db队伍与滥用信号](#2-物理数据库设计socialdb队伍与滥用信号)
+3. [物理数据库设计：economy_db商品目录与购买记录](#3-物理数据库设计economydb商品目录与购买记录)
 4. [协议线格式：频道消息与在线状态](#4-协议线格式频道消息与在线状态)
 5. [算法详细设计](#5-算法详细设计)
 6. [本文档的覆盖范围与后续计划](#6-本文档的覆盖范围与后续计划)
@@ -112,7 +112,7 @@ CREATE INDEX idx_chat_abuse_signals_character_time
 
 ## 3. 物理数据库设计：economy_db商品目录与购买记录
 
-对应RGS-BAS-013§4.1。RGS-BAS-013原文末尾已声明"`PRODUCT_CATALOG`/`PURCHASE_RECORD`物理DDL属RGS-DBS-001"；本文档在DTL详细设计工程体系下承接该落地职责（说明见§6"与RGS-DBS-001系列的关系"），两表落位于既有`economy_db`（同RGS-DTL-001§3已挂载的库），本文档只新增表结构。
+对应RGS-BAS-013§4.1。RGS-BAS-013原文曾将`PRODUCT_CATALOG`/`PURCHASE_RECORD`物理DDL留待未来集中设计；本文档在DTL详细设计工程体系下以分域方式完成该落地职责（说明见§6的权威边界），两表落位于既有`economy_db`（同RGS-DTL-001§3已挂载的库），本文档只新增表结构。
 
 ```sql
 -- 商品目录表，对应RGS-BAS-013§4.1 PRODUCT_CATALOG
@@ -301,7 +301,7 @@ fn grant_activity_reward(player_id: PlayerId, activity_id: ActivityId, milestone
 
 本文档覆盖：`social_db`新增`teams`/`team_members`/`chat_abuse_signals`三表物理DDL、`economy_db`新增`product_catalog`/`purchase_records`两表物理DDL、`PresenceEntry`/`ChatMessage`的具体协议线格式（含隐私字段的schema层面排除设计）、频道路由主流程与`ChatAbuseGuard`滚动窗口检测的完整伪代码、购买确定请求事务边界与活动奖励幂等键构造的具体实现。
 
-**与RGS-DBS-001系列的关系**：RGS-BAS-013原文末尾声明"物理DDL属RGS-DBS-001"，该表述写于本仓库尚未确立DTL详细设计工程独立分支之前（RGS-DTL-001是本仓库第一份DTL文档，晚于RGS-BAS-013的制定）。本文档在DTL体系确立后承接该职责，`product_catalog`/`purchase_records`/`teams`/`team_members`/`chat_abuse_signals`的物理DDL即视为已通过本文档交付，若RGS-DBS-001系列文档独立存在或后续被创建，两者关于这五张表的DDL定义**须**保持一致，不得各自维护互相冲突的版本——本文档不代为决定RGS-DBS-001系列的存废，仅记录本次实际交付的落位。
+**分域物理 DDL 的权威边界**：RGS-BAS-013原文将物理DDL留待未来集中设计，该表述写于本仓库尚未确立DTL详细设计工程独立分支之前（RGS-DTL-001是本仓库第一份DTL文档，晚于RGS-BAS-013的制定）。本文档在DTL体系确立后完成该职责，`product_catalog`/`purchase_records`/`teams`/`team_members`/`chat_abuse_signals`的物理DDL以本文档为唯一权威；不再新建集中正文。跨域表结构扩展须按RGS-BAS-016§3.1回写原表权威文档，避免并行维护冲突版本。
 
 本版本明确不覆盖、留待后续：
 

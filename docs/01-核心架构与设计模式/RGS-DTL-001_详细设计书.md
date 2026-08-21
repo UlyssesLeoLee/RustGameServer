@@ -37,15 +37,15 @@
 ## 目录
 
 1. [前言](#1-前言)
-2. [物理数据库设计：player_db](#2-物理数据库设计player_db)
-3. [物理数据库设计：economy_db](#3-物理数据库设计economy_db)
+2. [物理数据库设计：player_db](#2-物理数据库设计playerdb)
+3. [物理数据库设计：economy_db](#3-物理数据库设计economydb)
 4. [协议线格式：PlayerService／EconomyService](#4-协议线格式playerserviceeconomyservice)
 5. [核心算法详细设计](#5-核心算法详细设计)
-6. [物理数据库设计：match_db核心表](#6-物理数据库设计match_db核心表)
-7. [物理数据库设计：social_db](#7-物理数据库设计social_db)
-8. [物理数据库设计：admin_db核心表](#8-物理数据库设计admin_db核心表)
+6. [物理数据库设计：match_db核心表](#6-物理数据库设计matchdb核心表)
+7. [物理数据库设计：social_db](#7-物理数据库设计socialdb)
+8. [物理数据库设计：admin_db核心表](#8-物理数据库设计admindb核心表)
 9. [协议线格式：MatchService／SocialService／AdminService](#9-协议线格式matchservicesocialserviceadminservice)
-10. [§4.6〜4.8算法详细设计](#10-46-48算法详细设计)
+10. [§4.6〜4.8算法详细设计](#10-4648算法详细设计)
 11. [错误码一览](#11-错误码一览)
 12. [跨库标识映射](#12-跨库标识映射v03新增解决与rgs-dtl-025026的主键风格不一致)
 13. [本文档的覆盖范围与后续计划](#13-本文档的覆盖范围与后续计划)
@@ -398,7 +398,7 @@ CREATE TABLE match_results (
 );
 ```
 
-**状态迁移与物理更新的对应**（落实需求定义书§8.3表格与RGS-BAS-001§4.8.4触发来源表为可执行SQL，OCC模式同§3.2）：
+**状态迁移与物理更新的对应**（落实需求定义书§8.3表格与RGS-BAS-001§8状态迁移详细设计中的触发来源表为可执行SQL，OCC模式同§3.2）：
 
 ```sql
 -- 例：Running → Finished（场景Actor判定结束条件成立后调用，§10.1详述触发点）
@@ -597,7 +597,7 @@ message SetMaintenanceModeResponse {
 
 对应RGS-BAS-001§4.6（MT／GD概要）、§4.7（EV／WF）、§4.8（OB／AD），落实为可翻译为Rust实现的伪代码。RGS-BAS-001§4.6原文声明"仅模块划分，处理时序留PH-5/PH-6开始前补充"——本节仅落实**已经在§8.3 ST-002状态机与RGS-BAS-001§4.7〜4.8流程图/时序图中给出的部分**，不越权替BAS-001做§4.6尚未做出的处理时序决策（社交模块聊天/公会的完整处理时序仍留待，见§13）。
 
-## 10.1 对局状态机驱动逻辑（落实ST-002与RGS-BAS-001附§4.8.4触发来源表）
+## 10.1 对局状态机驱动逻辑（落实ST-002与RGS-BAS-001§8状态迁移详细设计中的触发来源表）
 
 ```rust
 // 场景Actor判定对局结束条件成立后调用(Running→Finished)，对应§6状态迁移SQL
@@ -739,7 +739,7 @@ fn consume_event(event: &BusEvent) -> TraceContext {
 
 | `ResultCode` | 触发条件 | 对应既有设计 |
 |---|---|---|
-| `OCC_CONFLICT` | `expected_version`与数据库当前`version`不一致 | RGS-BAS-001§3.6.2 ST-004状态迁移 |
+| `OCC_CONFLICT` | `expected_version`与数据库当前`version`不一致 | RGS-BAS-001§4.5.1（OCC更新，受影响行数=0） |
 | `STALE_SESSION_EPOCH` | 请求携带的`session_epoch`低于该角色当前生效值 | ARC-005 Single-Writer保证 |
 | `ACCOUNT_BANNED` | `accounts.status`处于封禁态且存在生效中的`ban_records` | FR-AD-001 |
 | `INSUFFICIENT_BALANCE` | `ConsumeCurrency`请求的扣减量超过当前`wallets.balance` | FR-EC-002 |
