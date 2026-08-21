@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """历史生成器（仅供审计追溯，不得运行）：原用于生成 RGS-WF-001 v0.3。
 
-当前受控文档为 RGS-WF-001 v0.4；本脚本保留历史变更记录，避免误覆盖 v0.4。
+当前受控文档为 RGS-WF-001 v0.5；本脚本保留历史变更记录，避免误覆盖 v0.5。
 
    - §8 工程间依赖关系（前驱/后继）
    - §9 Gate 准则（入口/出口条件）
@@ -18,7 +18,7 @@ os.chdir(ROOT)
 SRC = r'docs/12-工作流/RGS-WF-001_系统工程工作流_v0.2.md'
 DST = r'docs/12-工作流/RGS-WF-001_系统工程工作流_v0.3.md'
 
-raise RuntimeError('legacy generator disabled: use RGS-WF-001 v0.4 as the controlled document')
+raise RuntimeError('legacy generator disabled: use RGS-WF-001 v0.5 as the controlled document')
 
 with io.open(SRC, 'r', encoding='utf-8') as f:
     v02 = f.read()
