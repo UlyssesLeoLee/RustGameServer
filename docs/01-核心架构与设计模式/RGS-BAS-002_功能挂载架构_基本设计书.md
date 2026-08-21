@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-002 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-REQ-006 需求定义书 第7章（ARC-018） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -18,6 +18,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-006 ARC-018展开为脚手架结构、Helm chart模板、DB开通流程、网关/事件登记流程、可观测性接入、标准化挂载/退场检查清单 | 全部 |
 | 0.2 | 2026-08-17 | 架构师 | 补齐设计缺口：FR-MNT-011（横切能力以库/SDK形式被各App引用时须提供独立版本发布流程）此前仅在§13追溯性表以区间形式带过，无具体设计；新增§3.3给出简化路径下横切库/SDK的版本发布流程、兼容性方针与判定表 | §3.3、§13 |
+| 0.3 | 2026-08-21 | 架构师 | 同步 RGS-IMPL-001：明确 virtual workspace、领域库/服务 bin 分离、按域 versioned proto、migration owner、根 Cargo.lock 与 CI/部署边界；禁止泛化 common crate。 | §4、§6、§12、§13 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -179,33 +180,29 @@ flowchart LR
 
 ## 4.1 脚手架产出的目录结构（Rust / Cargo workspace）
 
-```
+```text
+Cargo.toml                              # virtual workspace；显式 members；resolver = "3"
+Cargo.lock                              # 唯一根锁文件，必须入仓
+proto/rgs/<context>/v1/*.proto          # 按域/版本管理的接口真源
+crates/
+  rgs-<context>/                        # 领域逻辑、port 与本域 migrations/
+  rgs-contracts-<context>/              # 从本域 proto 生成的契约 crate
+  rgs-testkit/                          # fixture、fake、契约与故障注入夹具
 services/
-  <context>-service/           # 例: mail-service
-    Cargo.toml                 # 加入根workspace members
+  rgs-<context>-service/                # 独立部署 bin：main、HTTP/gRPC adapter、配置、DB/事件 adapter
+    Cargo.toml
     src/
-      main.rs                  # 启动: 配置加载、OTel初始化、gRPC server bootstrap
-      api/                     # gRPC handler实现，仅依赖proto生成代码
-      domain/                  # 领域模型（聚合根/值对象），无框架依赖
-      infra/
-        db.rs                  # 数据库连接池初始化（独立DSN，来自Secret）
-        events.rs               # 事件Producer/Consumer封装
-      health.rs                # /healthz、/readyz
-    migrations/                 # 数据库迁移脚本（独立于其他App）
-    proto/                      # 本服务gRPC接口定义（.proto）
-    deploy/
-      helm/                     # 见§5.2
-      ci/                        # 见§4.2
-    README.md                   # 挂载记录摘要（见§10.2）
+    deploy/helm/
+    README.md                           # 挂载记录摘要（见§10.2）
 ```
 
-**设计原则**：`domain/`层不得`use`任何其他限界上下文的crate（workspace内以`#[deny]`静态检查强制，防止编译期意外产生跨库耦合），跨上下文交互只能经`infra/`层的gRPC client或事件封装完成——这是ARC-018"gRPC/事件为唯一跨边界通信方式"在代码结构上的落地。
+**设计原则**：禁止泛化 `rgs-common`；`rgs-<context>` 的领域层不得 `use` 其他限界上下文 crate，服务 bin 不得把业务规则反向塞入 adapter。跨上下文交互只能经按域 contracts、gRPC client 或事件封装完成。migration 位于 `crates/rgs-<context>/migrations/`，以时间戳命名且只改本域 DB；不允许跨 DB FK 或由非 owner 并行执行 migration。
 
 ## 4.2 CI/CD流水线骨架
 
 | 阶段 | 内容 |
 |---|---|
-| lint/test | `cargo fmt --check`、`cargo clippy`、单元测试 |
+| lint/test | `cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --workspace --locked` |
 | 契约测试 | 对既有依赖服务（如PL/EC）的gRPC接口按已发布proto版本做契约校验，防止破坏性变更（对应ARC-015） |
 | migrations校验 | 对`migrations/`执行"向前迁移+回滚"演练，确保幂等（对应§6.2） |
 | 镜像构建 | 复用既有共享Runner与镜像仓库，镜像标签规则`<context>-service:<git-sha>` |
@@ -213,6 +210,8 @@ services/
 | 部署（预发布→灰度→全量） | 复用既有GitOps/Helm Release流程，不新建独立部署工具链 |
 
 新App**不得**引入与既有CI/CD不同的构建工具链（如另一门语言的独立打包体系），除非经ARC-014判定基准评审通过并形成ADR。
+
+依赖与质量 Gate 统一增加 `cargo deny check`、`cargo audit`、`cargo llvm-cov --workspace`、proto/schema 校验以及 migration 前进/回退演练。`clippy::pedantic` 不作为全局强制组，仅允许逐条经 review 启用。
 
 ---
 

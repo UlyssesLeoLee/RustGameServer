@@ -5,9 +5,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-PLAN-001 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 状态 | **开发前就绪计划・Gate 未闭合・NO-GO（禁止业务编码、迁移与部署）** |
-| 依据 | DEC-001～004、RGS-QA-001 v0.5、RGS-ADR-0052、RGS-DTL-031 v0.1、RGS-SPEC-000 |
+| 依据 | DEC-001～004、RGS-QA-001 v0.6、RGS-ADR-0052、RGS-DTL-031 v0.1、RGS-SPEC-000、RGS-IMPL-001 |
 | 范围 | player / economy / match / social / admin 五域；ARC-018/021/042/051 |
 | 计划窗口 | 8～12 周规划假设，须以 Gate、OLU 和演练证据校准 |
 | 制定日 | 2026-08-21 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | — | 首版草案。采用“全域契约先行、单域纵向实现”，把 workspace、cluster manifest、插件边界和 Gate 放到首周。 |
 | 0.2 | 2026-08-21 | 架构师 | — | 绑定 RGS-SPEC-000 与 36 份子 SPEC；新增开发前 Go/No-Go 门禁、SPEC 变更追踪、当前工具链差距和授权证据清单。 |
+| 0.3 | 2026-08-21 | 架构师 | — | 绑定 RGS-IMPL-001，收敛 Q-101～Q-405 的工程答案；将 Q-003/Q-025 从“缺少方案”改为“方案已定、待具名 Gate/证据”。Rust 1.98 stable 为用户目标，GA 前 Gate 保持 Open。 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -66,7 +67,7 @@
 | 治理 | RGS-ADR-0052、RGS-DTL-031、RGS-PLAN-001、Q-003/Q-004/Q-015/Q-016/Q-025 审批包 | 具名审批或带条件风险接受；适用 `G-CODE-*` 均关闭 |
 | 实现规格 | [RGS-SPEC-000](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md) 与全部 36 份 RGS-SPEC-DTL-* | DTL↔SPEC 一对一、源文档可追溯、SPEC DoD/未决项已纳入计划和测试证据 |
 | 契约 | RGS-DTL-036～040、protobuf/event/error/ID 契约 | 五域接口、DB、插件和依赖矩阵冻结 |
-| 工程骨架 | virtual Cargo workspace、`contracts`、`testkit`、manifest validator | `cargo fmt/check/clippy/test` 与 DAG 负例通过 |
+| 工程骨架 | virtual Cargo workspace、按域 `rgs-contracts-*`、`rgs-testkit`、manifest validator | `cargo fmt/check/clippy/test` 与 DAG 负例通过 |
 | 集群骨架 | foundation Apps、五域空壳、Helm/GitOps/NetworkPolicy、独立 DB | dry-run、部署、续跑、逆拓扑回滚通过 |
 | 控制面 | AdminService 转发、ClusterOpsService、CEM/PFAU | request_id/OCC/fencing/all-reachable 集成测试通过 |
 | 业务切片 | player 首条路径；economy/match/social/admin 契约接入 | 端到端业务路径、审计和回滚通过 |
@@ -92,7 +93,7 @@ SPEC 版本、源 DTL 版本、关联 ADR/QA、实现分支、测试证据和部
 |---|---:|---|---|---|
 | PH-0 Gate、设计与 SPEC 冻结 | 第 1 周 | DTL-031；PLAN-001 v0.2；Q-003/Q-004/Q-015/Q-016/Q-025；ADR-0052；五域 DTL/SPEC 契约评审 | 无 | 形成 §3.3 开发前 Go/No-Go 证据包；不允许创建实现分支 |
 | PH-0.5 开发前授权评审 | PH-0 后 | 核对全部 `G-CODE-*`、审批栏、环境核验记录、追踪矩阵和风险接受 | PH-0 | 全部门禁关闭后，项目负责人书面授权进入 PH-1；未授权即 NO-GO |
-| PH-1 工程基础 | 第 2 周 | Cargo workspace、`contracts`、`testkit`、CI 基线、manifest schema/DAG validator | PH-0.5 书面授权 | 负例测试全通过，五域均可登记 |
+| PH-1 工程基础 | 第 2 周 | Cargo workspace、按域 contracts、`rgs-testkit`、CI 基线、manifest schema/DAG validator | PH-0.5 书面授权 | 负例测试全通过，五域均可登记 |
 | PH-2 集群基础 | 第 3 周 | gateway/event-bus/config/observability/secrets；五域空壳；AdminService/ClusterOpsService health | PH-1 | 开发环境 dry-run 与独立 DB 开通通过 |
 | PH-3 控制面 | 第 4～5 周 | Feature registry、CEM、PFAU、AdminService 转发、OCC/fencing、all-reachable | PH-2 | 单节点故障可暂停/回滚；不自动跳过 |
 | PH-4 第一业务切片 | 第 5～7 周 | player 端到端；economy 仅实现已批准的 Saga 契约；其余域完成契约接入 | PH-3；Q-003 | 五域 manifest 一致，player 路径可重复部署 |
@@ -128,9 +129,9 @@ Gate approvals
 | G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 文档机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 |
 | G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | **Open / Blocker** | 接口、状态机、fencing、CEM/PFAU、测试映射和审批栏具名签署 | 架构负责人 + 平台负责人 |
 | G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | **Open** | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 |
-| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | **Open / Q-003 Blocker** | Saga/Outbox/补偿边界、四层原子状态机合并图、至少三个业务场景验收计划 | 架构负责人 + DBA + 经济系统 Lead |
-| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | **Open** | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | 五域 Lead + 架构负责人 |
-| G-CODE-06 | 工具链与开发环境达到目标基线 | **Open**：当前 `rustc/cargo 1.95.0`、`psql 15.3`；未发现 Cargo workspace | Rust 1.97.1、Actix Web 4.14.1 锁定方案、PostgreSQL 18.4 实测、workspace/CI bootstrap 设计核验 | 平台负责人 + DBA |
+| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | **Open / Q-003 Blocker**：技术方案已载入 RGS-IMPL-001 §3，尚无具名批准 | Saga/Outbox/补偿边界、四层原子状态机合并图、至少三个业务场景验收计划 | 架构负责人 + DBA + 经济系统 Lead |
+| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | **Open**：工程目录/依赖规则已定义，DD Review 未签署 | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | 五域 Lead + 架构负责人 |
+| G-CODE-06 | 工具链与开发环境达到目标基线 | **Open**：当前 `rustc/cargo 1.95.0`、`psql 15.3`；未发现 Cargo workspace；Rust 1.98 stable 尚待 GA/核验 | Rust 1.98 stable、Actix Web 4.14.1 锁定方案、PostgreSQL 18.4 实测、workspace/CI bootstrap 设计核验 | 平台负责人 + DBA |
 | G-CODE-07 | OLU 与测试基础前置获批准 | **Open**：Q-015、Q-016 待具名审批 | OLU 重算、`crates/testkit` 范围/复用指标、首条测试设计落地方案 | SRE 负责人 + QA 负责人 |
 
 **当前结论：NO-GO。** 本计划 v0.2 已完成“开发前就绪”文档化和 SPEC 绑定；它没有关闭任何需人类审批、环境实测或故障演练的门禁。
@@ -157,21 +158,25 @@ Gate approvals
 
 | 组件 | 基线 | 约束 |
 |---|---|---|
-| Rust | stable；当前核验版本 1.97.1 | workspace 使用 Edition 2024、resolver 3；`rust-toolchain.toml` 与 `Cargo.lock` 固定已验证构建，升级需通过全量 CI |
+| Rust | 1.98 stable（用户目标；GA 前不可验证） | workspace 使用 Edition 2024、resolver 3；`rust-toolchain.toml` 与根 `Cargo.lock` 固定已验证构建，升级需通过全量 CI；不得用 beta/nightly 绕过 Gate |
 | HTTP 服务框架 | Actix Web 4.14.1 | 运行于 Tokio；五域 App/AdminService 的 HTTP ingress 统一使用 Actix Web，tonic/hyper 仅用于内部 RPC/底层协议 |
 | PostgreSQL | 18.4 | 五个独立 DB；开发/预发/生产统一以 18.4 为基线，后续 18.x 补丁须经灰度与回退验证，PostgreSQL 19 在 GA 前不得进入生产基线 |
 
-本基线以官方发布资料为准：Rust release announcements、PostgreSQL release notes、Actix Web crate documentation。版本“最新版”不等于跳过锁定、迁移、回滚与兼容性验证。
+本基线以官方发布资料为准：Rust release announcements、PostgreSQL release notes、Actix Web crate documentation。版本“最新版”不等于跳过锁定、迁移、回滚与兼容性验证；Rust 1.98 在 GA 前只是用户目标，不得伪造为已验证 stable。
 
-当前开发机实测为 `rustc/cargo 1.95.0`、`psql 15.3`，且尚未建立 Cargo workspace；与目标基线不一致。此事实记录对应 `G-CODE-06`，不构成“升级已完成”的承诺。PH-1 在获得 PH-0.5 书面授权后，必须先由 CI/开发环境镜像完成 Rust 1.97.1 与 PostgreSQL 18.4 的工具链对齐；未对齐前不得宣称环境构建完成。
+当前开发机实测为 `rustc/cargo 1.95.0`、`psql 15.3`，且尚未建立 Cargo workspace；与目标基线不一致。此事实记录对应 `G-CODE-06`，不构成“升级已完成”的承诺。PH-1 在获得 PH-0.5 书面授权且 Rust 1.98 stable GA 后，必须先由 CI/开发环境镜像完成 Rust 1.98、Actix Web 4.14.1 与 PostgreSQL 18.4 的工具链对齐；未对齐前不得宣称环境构建完成。
 
 获 PH-0.5 书面授权后创建 virtual workspace：
 
 ```text
-Cargo.toml
-crates/contracts/
-crates/testkit/
-services/cluster-ops-service/
+Cargo.toml                         # virtual workspace / resolver = "3"
+Cargo.lock                         # 唯一根锁文件，必须入仓
+proto/rgs/{domain}/v1/*.proto
+crates/rgs-{player,economy,match,social,admin}/
+crates/rgs-cluster-ops/
+crates/rgs-contracts-{domain}/
+crates/rgs-testkit/
+services/rgs-cluster-ops-service/
 services/player-service/
 services/economy-service/
 services/match-service/
@@ -180,14 +185,14 @@ services/admin-service/
 deploy/cluster-manifest/
 ```
 
-最低 CI 阶段：
+完整的目录、错误、Saga、测试、配置、密钥和制品约定见 [RGS-IMPL-001](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md)。最低 CI 阶段：
 
 1. `cargo fmt --check`；
-2. `cargo clippy --all-targets --all-features -- -D warnings`；
+2. `cargo clippy --all-targets --all-features -- -D warnings`（不全局启用 `clippy::pedantic`）；
 3. 单元测试、契约测试、DAG 负例和插件隔离测试；
 4. migrations 向前迁移/回滚演练；
 5. Helm lint/render/dry-run；
-6. `cargo deny`/许可证/供应链门禁；
+6. `cargo deny`、`cargo audit`、`cargo llvm-cov` 与许可证/供应链门禁；
 7. 文档交叉引用与 manifest/Feature registry 登记一致性校验。
 
 实际工具版本须在 workspace 建立时锁定并写入 CI，不以本计划中的命令替代版本评审。
@@ -198,14 +203,14 @@ deploy/cluster-manifest/
 
 | ID | 风险/未决 | 处理时点 | 阻断条件 |
 |---|---|---|---|
-| Q-003 | 跨 5 DB Saga、补偿与延迟上限 | PH-0 | 未批准则 economy 跨 DB 写禁止 |
+| Q-003 | 跨 5 DB Saga、补偿与延迟上限 | PH-0 | 技术方案已定为 Saga + Outbox + 补偿；未获具名批准则 economy 跨 DB 写禁止 |
 | Q-004 | ARC-018/021/042/051 组合矩阵 | PH-0 | 未批准则 Feature/App 映射不冻结 |
 | Q-015 | OLU 重新核算 | PH-0/每周 | 超过 2 SRE 上限则暂停范围扩张 |
 | Q-016 | `crates/testkit` 共用骨架 | PH-1 | 未通过则五域并行开发禁止 |
-| Q-025 | DTL-031 优先级与审批窗口 | PH-0 | 未完成则 ClusterOpsService 代码禁止 |
+| Q-025 | DTL-031 字段级 DD Review 与审批窗口 | PH-0 | 设计已完成，未完成具名 DD Review 则 ClusterOpsService 代码禁止 |
 | Q-036 | 五域 DTL 同步起草与可视化 | PH-0/每周 | 任一域契约滞后阻断纵向切片扩展 |
 | GATE-SPEC-001 | 源 DTL、SPEC 与实现证据发生漂移 | 持续 | 未完成 DTL/SPEC 同步评审、追踪矩阵回填和回归测试前禁止合并 |
-| GATE-ENV-001 | Rust/PostgreSQL 实际版本低于目标基线，且 workspace 未建立 | PH-0.5/PH-1 | `G-CODE-06` 未关闭前禁止声明开发环境或 CI 已构建完成 |
+| GATE-ENV-001 | Rust/PostgreSQL 实际版本低于目标基线，Rust 1.98 尚未 GA，且 workspace 未建立 | PH-0.5/PH-1 | `G-CODE-06` 未关闭前禁止声明开发环境或 CI 已构建完成 |
 | RSK-DEP-001 | manifest 与挂载脚手架脱节 | PH-1 起 | CI 必须阻断未登记 App/Feature |
 | OLU-001 | Agent 缓解收益未验证 | 每周 CIR | 不得计入可用工时预算 |
 
@@ -251,7 +256,7 @@ deploy/cluster-manifest/
 | SPEC 规格包 | 已绑定，未获 DD 实施授权 | [RGS-SPEC-000](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md)；36 份 DTL↔SPEC 机械映射有效 |
 | 架构与详细设计 | 未获具名授权 | RGS-ADR-0052、RGS-DTL-031、五域 DTL 均须按 §3.3 关闭相应门禁 |
 | 事务与原子组合 | 未获具名授权 | Q-003 为 Blocker；Q-004 未决；不得以实现代码替代架构决策 |
-| 工具链与环境 | 未就绪 | 当前 Rust/Cargo 1.95.0、PostgreSQL 客户端 15.3；目标为 Rust 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4 |
+| 工具链与环境 | 未就绪 | 当前 Rust/Cargo 1.95.0、PostgreSQL 客户端 15.3；目标为 Rust 1.98 stable（GA 前不可核验）、Actix Web 4.14.1、PostgreSQL 18.4 |
 | 编码授权 | **NO-GO** | 项目负责人只能在 §3.3 门禁全部关闭后填写具名授权；本表不得由 AI 或未具名记录代签 |
 
 本版本完成实施编程之前的计划基线：实现范围、SPEC 追踪、门禁、证据和责任归属已经明确。下一项工作是收集并核验 `G-CODE-*` 的关闭证据，而不是开始 Rust、SQL 或部署代码。

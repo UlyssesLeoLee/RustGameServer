@@ -5,13 +5,20 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-GOBS-004 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 状态 | 草案，待 RGS-GOBS-001～003 评审与入口签字 |
 | 制定日 | 2026-08-21 |
 | 制定者 | 架构师 |
 | 适用流程 | 日本式 SI 九阶段：基本设计 → 详细设计 → 实装 → 测试 → 移行/发布 → 运维 |
-| 先决条件 | RGS-ADR-0052、RGS-DTL-031、RGS-PLAN-001、五域 DTL、RGS-TS-001 与既有 Gate |
+| 先决条件 | RGS-ADR-0052、RGS-DTL-031、RGS-PLAN-001、五域 DTL、RGS-TS-001、RGS-IMPL-001 与既有 Gate |
 | 现实边界 | 当前工作区没有 Rust workspace、服务源码、K3s manifest 或实际 telemetry backend |
+
+## 修订历史
+
+| 版本 | 修订日 | 修订内容 |
+|---|---|---|
+| 0.1 | 2026-08-21 | 初版：以现有游戏服务器架构为对象的可观测性增强导入计划。 |
+| 0.2 | 2026-08-21 | 对齐 RGS-IMPL-001、Rust 1.98 stable 的 GA/CI Gate、`rgs-testkit` 命名及 façade 边界。 |
 
 ## 1. 计划目标
 
@@ -29,7 +36,7 @@
 
 | 门 | 条件 | 证据 |
 |---|---|---|
-| GOBS-GATE-01 | 实际 Cargo workspace、crate/service、CI、Rust stable 1.97.1 和 Actix Web 4.14.1 版本已取得 | 仓库、CI、toolchain 输出 |
+| GOBS-GATE-01 | 实际 Cargo workspace、crate/service、CI、Rust 1.98 stable（GA 后）和 Actix Web 4.14.1 版本已取得 | 仓库、CI、toolchain 输出；不得以 beta/nightly 或旧版本替代 |
 | GOBS-GATE-02 | K3s/K8s 节点、网络、Ingress、存储、RBAC、NetworkPolicy 能力已核验 | 集群只读诊断 |
 | GOBS-GATE-03 | PostgreSQL 18.4、cache、event role、workflow 拓扑已核验 | 版本、连接、拓扑和备份证据 |
 | GOBS-GATE-04 | GOBS-001～004、RGS-BAS-004、RGS-DTL-004 无冲突且完成签字 | 评审记录 |
@@ -63,7 +70,7 @@
 | 项目 | 内容 |
 |---|---|
 | 工作包 | GOBS-WBS-010 |
-| 主要动作 | 先创建 crates/observability-contract、crates/observability、redaction、runtime、testkit；建立 Cargo workspace、CI、rustfmt/clippy/cargo-deny、非法 label/secret 负例 |
+| 主要动作 | 在 RGS-IMPL-001 定义的虚拟 workspace 内创建 `crates/rgs-observability-contract`、`crates/rgs-observability`、redaction、runtime、`crates/rgs-testkit`；建立 CI、rustfmt/clippy/cargo-deny、非法 label/secret 负例 |
 | 交付物 | init_observability、Correlation、finite attributes、bounded queue、shutdown、redaction/schema、fake sink |
 | 依赖 | PH-0；RGS-DTL-004 |
 | 出口 | 空服务/示例 App 可通过统一 façade 启动、记录、导出、降级和关闭；业务 crate 无 backend import |

@@ -1,13 +1,13 @@
 # 技术选型报告（技術選定レポート / Technology Selection Report）
 
-**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.3**
+**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.4**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TS-001 |
-| 版本 | 0.3 |
+| 版本 | 0.4 |
 | 父文档 | RGS-REQ-001 需求定义书（贯穿 22+ 域） |
-| 配套文档 | 18 份 ADR（RGS-ADR-0001～0054）、RGS-OPS-001 部署运维说明、各域 BAS/DTL |
+| 配套文档 | 18 份 ADR（RGS-ADR-0001～0054）、RGS-OPS-001 部署运维说明、RGS-IMPL-001 实施约定、各域 BAS/DTL |
 | 制定日 | 2026-08-19 |
 | 最终更新日 | 2026-08-21 |
 | 制定者 | 架构师 |
@@ -23,6 +23,7 @@
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。覆盖 16 个分层领域、60+ 技术组件、版本号与许可证状态；每条选型给出理由 + 备选 + 关联 ADR/TBD；按 ARC-014 判定基准确认"确有取舍"项与"决策显然"项分类 |
 | 0.2 | 2026-08-20 | 架构师 | 修正按状态统计口径；新增长期记忆向量存储 TBD-MEM-001（待附件 D 登记及具名人类审批），不新增或伪造 ADR。 |
 | 0.3 | 2026-08-21 | 架构师 | 按最新官方发布核验并更新 Rust stable 1.97.1、PostgreSQL 18.4、Actix Web 4.14.1；明确 PostgreSQL 19 Beta 不进入生产基线。 |
+| 0.4 | 2026-08-21 | 架构师 | 收敛 RGS-IMPL-001：固定 virtual workspace、领域/服务分离、proto 与 migration 所有权、CI、错误/序列化/OTel、Saga、测试、运行时、安全和部署约定；Rust 1.98 为用户指定的 stable 目标，GA 与 CI 核验前不得宣称环境可用。 |
 
 ## 审批栏
 
@@ -34,7 +35,7 @@
 | 评审（安全） | | | 许可证合规（CON-001/002）；漏洞面与升级路径 |
 | 审批（负责人） | | | 本文档的基准化 |
 
-> **基线状态说明**：本报告中的“已决/一致”描述技术选型语义或已有 ADR 关系，不等于本报告已经完成基准化审批。Rust 1.97.1、Actix Web 4.14.1、PostgreSQL 18.4 是当前目标版本基线；在审批栏补齐、CI/预发核验和回归证据形成前，不得把它们写成已批准的生产环境完成事实。
+> **基线状态说明**：本报告中的“已决/一致”描述技术选型语义或已有 ADR 关系，不等于本报告已经完成基准化审批。Rust 1.98 stable 是用户指定的目标；截至本文制定日可核验的 stable 仍为 1.97.1，因此 1.98 在正式 GA、可安装并通过 CI 前不是可用环境基线。Actix Web 4.14.1、PostgreSQL 18.4 同样须经 CI/预发核验和回归证据后才能成为生产完成事实。
 
 > 本文档**不替代**各 ADR 的逐项决定——ADR 是"确有取舍"的单点决定记录，本文档是"全栈选型一览"，便于评审、招聘、新成员上手。每条选型**必须**可追溯到对应 ADR 或 TBD；ARC-014 判定基准要求"未证明需要不引入"——故"暂未选型"也是合法状态，本文档**显式标注**哪些领域**未**引入中间件。
 
@@ -136,7 +137,7 @@
 
 | 层级 | 数量 | 主要选型 |
 |---|---|---|
-| 3.1 语言与工具链 | 5 | Rust stable（核验基线 1.97.1）、Cargo workspace、rustc、cargo-generate、Clippy/rustfmt |
+| 3.1 语言与工具链 | 6 | Rust 1.98 stable（用户目标、待 GA/核验）、virtual Cargo workspace、Cargo lock、cargo-generate、Clippy/rustfmt、工程约定 |
 | 3.2 异步运行时与网络 | 4 | Tokio 1.x、Actix Web 4.14.1、quinn（QUIC）、tokio-rustls |
 | 3.3 RPC 与序列化 | 4 | tonic（gRPC）、prost（Protobuf codegen）、Connect（HTTP/gRPC 桥接，可选） |
 | 3.4 数据库 | 3 | PostgreSQL 18.4、sqlx、Redis 7.2+ |
@@ -149,7 +150,7 @@
 | 3.11 部署与编排 | 4 | Ubuntu 22.04 LTS、Kubernetes 1.28+、Helm 3.13+、Docker 24+ |
 | 3.12 对象存储 | 1 | MinIO RELEASE.2024-08+ |
 | 3.13 客户端与 SDK | 3 | Rust 核心 + C ABI FFI、Unity / Unreal / Godot 三个薄适配 |
-| 3.14 CI/CD | 2 | GitHub Actions、cargo-deny / cargo-audit / cargo-tarpaulin |
+| 3.14 CI/CD | 2 | GitHub Actions、cargo-deny / cargo-audit / cargo-llvm-cov |
 | 3.15 性能与负载测试 | 2 | k6 0.49+、playwright（仅 UI 自动化） |
 | 3.16 安全与密钥 | 3 | HashiCorp Vault（或自托管 OpenBao，可选）、ring / RustCrypto、rustls |
 
@@ -161,24 +162,24 @@
 
 ## 3.1 语言与工具链
 
-### 3.1.1 主语言：Rust stable（核验基线 1.97.1）
+### 3.1.1 主语言：Rust stable（目标 1.98）
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【目标基线·待审批】跟随 Rust stable；截至 2026-08-21 的验证基线为 Rust 1.97.1 |
+| **决定** | 【目标基线·待审批】用户指定 Rust 1.98 stable；正式 GA、可安装和全量 CI 核验前，不得把它写为当前已验证版本。 |
 | **理由** | 项目命名即"RustGameServer"——内存安全 + 零成本抽象 + 生态（Tokio/Actix Web/tonic/sqlx）已成熟；与 ARC-005 权威边界、ARC-021 拒绝动态库加载、ARC-022 业务逻辑不入库三道防线均依赖 Rust 的编译期保证 |
 | **备选** | C++（否决：内存安全保证弱、与 ARC-005 冲突）、Go（否决：GC 暂停对 20Hz tick 路径不可接受、RGS-REQ-001 NFR-PE-002 排除）、Zig（否决：生态不成熟） |
-| **版本策略** | CI/生产构建跟随 stable；`rust-toolchain.toml` 与 `Cargo.lock` 固定每次已验证构建，升级 stable 必须通过全量 CI、迁移/回滚和性能回归后再更新基线 |
+| **版本策略** | CI/生产构建只接受 stable；1.98 GA 后以 `rust-toolchain.toml` 与根 `Cargo.lock` 固定已验证构建。任何 stable 升级必须通过全量 CI、迁移/回滚和性能回归；不得以 beta/nightly 绕过 Gate。 |
 | **引用** | RGS-REQ-001 §6.1 编程语言约束；RGS-ADR-0022 业务逻辑不入库（依赖 Rust 类型系统）；RGS-ADR-0020 拒绝动态库加载（依赖 Rust ABI 稳定性）；Rust 官方 release announcements |
 
 ### 3.1.2 编译与包管理：Cargo workspace
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【一致】Cargo workspace 多 crate 组织（`crates/*` + `services/*`） |
-| **理由** | 官方工具链、零配置；workspace 支持共享 `Cargo.lock`、共享 `target/`、shared dev-deps |
+| **决定** | 【一致】根 virtual Cargo workspace，显式 members 为 `crates/*` 与 `services/*`，`resolver = "3"`；`proto/` 与 `deploy/` 不作为 Cargo member。 |
+| **理由** | 官方工具链、零配置；workspace 支持唯一根 `Cargo.lock`、共享 `target/`、shared dev-deps，并保持业务库、contracts 与部署二进制的依赖方向清晰。 |
 | **备选** | Bazel（否决：构建图复杂度对中小团队不划算；RGS-ADR-0025 OLU 预算下维护成本高）、Nix（否决：NixOS-only 假定，与 Ubuntu LTS 22.04 主力冲突） |
-| **引用** | RGS-BAS-002 §3 脚手架目录结构 |
+| **引用** | RGS-BAS-002 §3 脚手架目录结构；RGS-IMPL-001 §2 |
 
 ### 3.1.3 脚手架生成器：cargo-generate
 
@@ -193,7 +194,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【一致】`cargo clippy --all-targets -- -D warnings`（CI 必跑）+ `cargo fmt --check`（CI 必跑） |
+| **决定** | 【一致】`cargo clippy --all-targets --all-features -- -D warnings`（CI 必跑）+ `cargo fmt --check`（CI 必跑）；`clippy::pedantic` 仅逐条经 review 启用。 |
 | **理由** | 官方工具，与 rustc 同源；`-D warnings` 将 lint 警告视为错误，避免"lint 洪水" |
 | **备选** | 自定义 lint crate（否决：维护成本不划算） |
 | **引用** | RGS-BAS-009 §4 CI 校验脚本 |
@@ -205,6 +206,14 @@
 | **决定** | 【一致】cargo-deny（许可证 + 重复依赖 + 已知漏洞）+ cargo-audit（RustSec 公告） |
 | **理由** | 满足 ARC-014 导入判定的"开源 OSI 认可"（CON-001）；CI 中日构建必跑，违规阻断合并 |
 | **引用** | RGS-ADR-0008 §4 落地；RGS-REQ-001 §12.2 AC-015 许可盘点 |
+
+### 3.1.6 实施约定与依赖边界
+
+| 项目 | 内容 |
+|---|---|
+| **决定** | 【一致】RGS-IMPL-001 是 workspace、crate、proto、migration、CI、错误、测试与部署的唯一工程约定索引。 |
+| **边界** | 禁止泛化 `rgs-common`；领域库与服务 bin 分离；contracts 按域生成；共享 testkit 只用于测试；根 `Cargo.lock` 必须入仓并由 CI `--locked` 校验。 |
+| **引用** | [RGS-IMPL-001](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md) §2～§6。 |
 
 ---
 

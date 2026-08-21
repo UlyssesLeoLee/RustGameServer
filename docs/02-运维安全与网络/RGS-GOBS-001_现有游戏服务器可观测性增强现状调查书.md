@@ -176,7 +176,7 @@ flowchart LR
 | 对象 | 设计资料中的信息 | 当前可确认度 | 本调查结论 |
 |---|---|---|---|
 | PostgreSQL | RGS-TS-001 目标为 18.4；旧 OPS 文档仍有 16.x 描述 | E1 | 18.4 是目标基线，需在环境中核验 |
-| Rust/Actix Web | RGS-TS-001（2026-08-21）目标为 Rust stable 1.97.1 / Actix Web 4.14.1 | E1 | 目标基线不是本机实测；CI/toolchain 核验后才可用于实现 |
+| Rust/Actix Web | RGS-TS-001 v0.4（2026-08-21）目标为 Rust 1.98 stable（GA/CI Gate）/ Actix Web 4.14.1 | E1 | Rust 1.98 GA 与锁定依赖的 CI/toolchain 核验前，目标基线不是本机实测，也不得以 beta/nightly 或旧版本替代 |
 | Cache | 需求使用 generic cache；TS-001 目标 Redis 7.2+ Cluster | E1 | 不能断言实际运行 Redis/Valkey |
 | Event | RGS-REQ-001 ARC-014 默认 Outbox polling；TS-001 目标 NATS JetStream | E1 | 不能断言 Kafka；先用角色抽象与证据门 |
 | Workflow | service state machine + retry 为默认 | E1 | 需要与实际消费者、补偿路径对账 |

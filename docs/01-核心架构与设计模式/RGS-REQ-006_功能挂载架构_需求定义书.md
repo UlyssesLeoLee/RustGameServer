@@ -5,10 +5,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-REQ-006 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-REQ-001 需求定义书（本文档为其架构方针ARC-008／ARC-014的展开与补充，新增ARC-018） |
 | 制定日 | 2026-08-16 |
-| 最终更新日 | 2026-08-16 |
+| 最终更新日 | 2026-08-21 |
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。定义"新功能（新限界上下文/新Atomic App）挂载至现有原子化App群组・多DB・Kubernetes架构"的标准流程与验收标准 | 全部 |
 | 0.1（自审修订） | 2026-08-16 | 架构师 | — | 自审：修正FR-MNT-001/007对RGS-BAS-002章节的错误引用（§7.3→§4，§4→§10）；修正NFR-MNT-004误用NFR-AV-007（该编号语义为"计划停止无停机"而非"驱逐恢复"）为正确的目标定义；修正§1.3关联文档表中RGS-BAS-001行与RGS-BAS-002行内容重复混淆的问题 | FR-MNT-001、FR-MNT-002、FR-MNT-007、NFR-MNT-004、§1.3 |
+| 0.2 | 2026-08-21 | 架构师 | — | 将脚手架、workspace、crate、契约、迁移、CI、容器和可观测性工程边界与 RGS-IMPL-001 对齐；TBD-MNT-001 已收敛为实施约定，不再保留平行候选。 | FR-MNT-001、FR-MNT-005、FR-MNT-007、TBD-MNT-001 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -78,6 +79,7 @@ RustGameServer（以下称"本系统"）已在RGS-REQ-001／RGS-BAS-001中确立
 | RGS-REQ-001 | 需求定义书 | 本文档遵循其第10章全部架构方针，新增ARC-018不得与既有ARC-001〜017冲突 |
 | RGS-BAS-001 | 基本设计书 | 既有整体架构基准（部署构成§3、数据库论理设计§5、事件与可观测性设计§4.7〜4.8）。本文档§7 ARC-018须与其完全一致，不得引入新的架构决定 |
 | RGS-BAS-002 | 功能挂载架构 基本设计书 | 本文档的基本设计展开（本次同步制定） |
+| RGS-IMPL-001 | 实施约定与工程边界 | 标准脚手架的唯一工程约定真源：虚拟 workspace、窄共享 crate、domain contract/service 拆分、迁移、CI、镜像与可观测性边界 |
 | RGS-REQ-004 | 附件C 可追溯性矩阵 | 挂载完成后的新功能需求须补录至该矩阵 |
 
 ---
@@ -122,11 +124,11 @@ RustGameServer（以下称"本系统"）已在RGS-REQ-001／RGS-BAS-001中确立
 
 | ID | 需求 |
 |---|---|
-| FR-MNT-001 | 挂载流程**必须**由标准化脚手架生成初始代码结构（骨架结构见RGS-BAS-002§4），**不得**从零手写CI/CD与K8s manifest |
+| FR-MNT-001 | 挂载流程**必须**由标准化脚手架生成初始代码结构（骨架结构见RGS-BAS-002§4，工程约定见RGS-IMPL-001§2），**不得**从零手写CI/CD与K8s manifest |
 | FR-MNT-002 | 新App的数据库**必须**是独立的PostgreSQL `database`（或经容量评审后的独立`schema`，判定精神同ARC-008，容量判定原则见BAS-001§5.1），**不得**与既有App共享数据库连接串，**不得**跨库直接`JOIN`或外键引用其他限界上下文的表 |
 | FR-MNT-003 | 新App**必须**通过gRPC对外暴露接口；如需被客户端直接访问，须经由API网关路由表登记（不得让客户端直连内部服务） |
 | FR-MNT-004 | 新App若需产生/消费事件，**必须**遵循ARC-010既有的Topic命名与`partition_key`规范；新增事件族须登记Schema Registry并标注`schema_version` |
-| FR-MNT-005 | 新App**必须**接入既有可观测性基础设施（OTel埋点、统一日志格式、trace贯通），不得使用独立的监控方案 |
+| FR-MNT-005 | 新App**必须**经统一 observability façade 接入 OTel、结构化日志和 trace 关联；不得让业务 crate 直连 Grafana/Loki/Tempo 或使用独立监控方案 |
 | FR-MNT-006 | 新App的K8s部署形态（Deployment或StatefulSet）**必须**按BAS-001§3.2既有判定准则确定：默认无状态Deployment；仅当存在ARC-001同等的"进程内常驻状态且不可迁移"理由时，才可选StatefulSet，并须经架构评审 |
 | FR-MNT-007 | 新App挂载**必须**产出挂载记录（Mount Record，见RGS-BAS-002§10），记入RGS-REQ-004可追溯性矩阵 |
 | FR-MNT-008 | 涉及跨限界上下文的业务流程（如新功能需要读取经济服务的数据），**必须**通过既有gRPC/事件机制实现，**不得**新增数据库层面的跨库依赖（同ARC-008、ARC-009） |
@@ -192,7 +194,7 @@ RustGameServer（以下称"本系统"）已在RGS-REQ-001／RGS-BAS-001中确立
 
 | ID | 内容 | 处理阶段 |
 |---|---|---|
-| TBD-MNT-001 | 脚手架工具的具体实现形式（Cargo workspace模板 + `cargo-generate` / 内部CLI / Helm chart仓库）待PH-5前确定 | PH-5前 |
+| DEC-MNT-001 | 脚手架采用根虚拟 Cargo workspace（`crates/*`、`services/*`）+ `cargo-generate` 模板；每个可部署服务使用 Helm chart（共享 library chart），由 RGS-IMPL-001 §2 约束。内部 CLI 只有在模板无法表达的重复操作出现并经 ADR 评估后才可新增。 | 实施前 Gate；无需另行选择 |
 | TBD-MNT-002 | 新App的DB自动开通（provisioning）是否需要引入独立的DBaaS/Operator（如CloudNativePG），须依ARC-014判定基准评审 | PH-5前 |
 | RSK-MNT-001 | 若挂载流程本身耗时过长，业务团队可能绕过流程直接手工部署，导致规范形同虚设 | 持续跟踪，纳入附件D问题风险管理表 |
 

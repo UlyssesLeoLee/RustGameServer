@@ -338,7 +338,7 @@ PostgreSQL 18.4 是 RGS-TS-001 的目标版本，须在环境门核验。应用�
 | 高 | crates/observability* | 统一 contract、facade、redaction、runtime aggregator |
 | 高 | services/gateway、services/runtime | 边界 middleware、session、network、tick window |
 | 中 | services/player/economy/match/social/admin | 请求、DB、Outbox、业务事件 |
-| 中 | crates/testkit、CI | 负例、cardinality、redaction、trace fixture、deny checks |
+| 中 | crates/rgs-testkit、CI | 负例、cardinality、redaction、trace fixture、deny checks |
 | 高 | deploy/helm 或 k3s manifests | Collector、ServiceMonitor-compatible、NetworkPolicy、RBAC、resource |
 | 中 | dashboards/alerts/runbooks | Grafana、SLO、burn-rate、故障操作 |
 | 低至中 | 文档/registry | traceability、版本、审批和变更记录 |
