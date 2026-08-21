@@ -3,11 +3,11 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-EXEC-001 |
-| 版本 | 0.2（草稿 + 所有者背书机制）|
-| 依据 | RGS-PLAN-001 v0.7 §3.3 G-CODE-01~07 + RGS-QA-001 v0.9 决策 + RGS-REV-003/004/005/006 + RGS-ADR-0052 + RGS-IMPL-001 + RGS-HANDOFF-001 §5 + **RGS-PLAN-001 v0.7 §3.4.4 所有者背书机制** |
+| 版本 | 0.3（v0.8 撤销所有者背书，Ulysses 12 类全签 per DEC-008）|
+| 依据 | RGS-PLAN-001 v0.8 §3.3 G-CODE-01~07 + RGS-QA-001 v0.10 决策 + RGS-REV-003/004/005/006 + RGS-ADR-0052 + RGS-IMPL-001 + RGS-HANDOFF-001 §5 + **RGS-PLAN-001 v0.8 §3.4.4 所有者背书机制** |
 | 目的 | 起草 G-CODE 阻塞项的"专题突破"操作序列 + 签字流程 + 通过标准 + **所有者背书机制**（per user decision 2026-08-21 折中方案 C）|
 | 范围 | 3 个核心 G-CODE：**G-CODE-03（ADR-0052 联审）+ G-CODE-04（Q-003 Saga 6 场景）+ G-CODE-02（DTL-031 字段 Review）** + 7 G-CODE 总关闭 |
-| 配套 | RGS-REV-003（联合评审主文）/ RGS-REV-004（DTL 字段 checklist）/ RGS-REV-005（Saga 6 场景 checklist）/ RGS-REV-006（签字流程）/ RGS-PLAN-001 v0.7（所有者背书机制）|
+| 配套 | RGS-REV-003（联合评审主文）/ RGS-REV-004（DTL 字段 checklist）/ RGS-REV-005（Saga 6 场景 checklist）/ RGS-REV-006（签字流程）/ RGS-PLAN-001 v0.8（所有者背书机制）|
 | 保密级别 | 内部限定（Internal Use Only）|
 
 > **AI 不伪造实测数据**：本手册仅起草"操作序列 + 通过标准 + 签字流程"。**真实演练数据 / 故障注入结果 / 字段级 Review 结论** 需由具名人类责任人填写，AI 不能代签或代填。
@@ -61,9 +61,9 @@
 | # | 角色 | 姓名 | 签字 | 日期 | 结论 |
 |---|---|---|---|---|---|
 | 1 | 架构师 | **Ulysses** | **Ulysses（架构师）** | **2026-08-21** | ✅ **接受** |
-| 2 | SRE Lead | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
-| 3 | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
-| 4 | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 2 | SRE Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 3 | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 4 | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
 | 5 | PM（资源接受）| **Ulysses** | **Ulysses（PM）** | **2026-08-21** | ✅ **接受** |
 
 ---
@@ -89,7 +89,7 @@
 | **阶段 2 测试环境**（1 天）| DBA 准备独立测试 DB（5 DB + 镜像仓库 + 监控）| DBA Lead | testcontainers 配置 |
 | **阶段 3 演练执行**（2 天）| Economy 域 Lead 跑 6 场景 + 收集结果 | Economy 域 Lead | 6 场景报告（含 IT 输出）|
 | **阶段 4 DBA 审计**（1 天）| DBA 审计 6 场景的 DB 一致性（事务日志 + Outbox 状态）| DBA Lead | DBA 审计报告 |
-| **阶段 5 架构师 + Economy 二次确认**（1 天）| 架构师 + Economy 域 Lead 二次确认 Q-003 决策 | 架构 + Economy 域 Lead | 二次确认签字（per RGS-PLAN-001 v0.7 §3.4.3 签字顺序）|
+| **阶段 5 架构师 + Economy 二次确认**（1 天）| 架构师 + Economy 域 Lead 二次确认 Q-003 决策 | 架构 + Economy 域 Lead | 二次确认签字（per RGS-PLAN-001 v0.8 §3.4.3 签字顺序）|
 | **签字** | Economy 域 Lead + DBA + 架构师 3 类签字 | 3 类 | RGS-REV-005 附件B 6 场景 checklist |
 
 ### §3.3 通过标准
@@ -104,8 +104,8 @@
 
 | # | 角色 | 姓名 | 签字 | 日期 | 结论 |
 |---|---|---|---|---|---|
-| 1 | Economy 域 Lead（独立 + Q-003 二次确认）| **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 6 场景全部通过 / ☐ 部分通过 / ☐ 不通过 |
-| 2 | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 5 DB 一致 / ☐ 偏差 / ☐ 不通过 |
+| 1 | Economy 域 Lead（独立 + Q-003 二次确认）| **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 6 场景全部通过 / ☐ 部分通过 / ☐ 不通过 |
+| 2 | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 5 DB 一致 / ☐ 偏差 / ☐ 不通过 |
 | 3 | 架构师 | **Ulysses** | **Ulysses（架构师）** | **2026-08-21** | ✅ **决策接受** |
 | 4 | PM（实施授权）| **Ulysses** | **Ulysses（PM）** | **2026-08-21** | ✅ **授权（含 §8 所有者背书 2 项）** |
 
@@ -147,17 +147,17 @@
 | # | 角色 | 姓名 | 签字 | 日期 | 结论 |
 |---|---|---|---|---|---|
 | 1 | 架构师 | **Ulysses** | **Ulysses（架构师）** | **2026-08-21** | ✅ **接受** |
-| 2 | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
-| 3 | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
-| 4 | cluster-ops 域 Lead（独立）| **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
-| 5 | Admin 域 Lead（独立）| **所有者背书 + 待具名责任人：`<签名>`** | `<签名>` | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 2 | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 3 | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 4 | cluster-ops 域 Lead（独立）| **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
+| 5 | Admin 域 Lead（独立）| **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** | Ulysses（一人公司 12 角色兼任） | ____-__-__ | ☐ 接受 / ☐ 修订 / ☐ NO-GO |
 | 6 | PM（实施授权）| **Ulysses** | **Ulysses（PM）** | **2026-08-21** | ✅ **授权（含 §8 所有者背书 4 项）** |
 
 ---
 
 ## §5 三 G-CODE 联合签字
 
-> **三 G-CODE 全部签字后，RGS-PLAN-001 v0.7 §3.3 G-CODE-02/03/04 由 Open → Closed。**
+> **三 G-CODE 全部签字后，RGS-PLAN-001 v0.8 §3.3 G-CODE-02/03/04 由 Open → Closed。**
 
 | G-CODE | 状态 | 签字日期 | 责任人 |
 |---|---|---|---|
@@ -167,7 +167,7 @@
 
 ---
 
-## §6 RGS-PLAN-001 v0.7 NO-GO 解除进度
+## §6 RGS-PLAN-001 v0.8 NO-GO 解除进度
 
 | NO-GO 解除条件 | 状态 | 责任方 |
 |---|---|---|
@@ -184,7 +184,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | 初版。覆盖 3 个核心 G-CODE（G-CODE-02/03/04）的执行序列 + 通过标准 + 签字栏；**不伪造实测数据 / 不代签**；引用 RGS-REV-003/004/005/006 工具文档。 |
-| 0.2 | 2026-08-21 | 架构师 + Ulysses（所有者）| **所有者背书机制**（per user decision 2026-08-21 折中方案 C）：①§8 新增所有者背书机制章节（明示意图 + 风险声明 + 责任追溯链）②§2-§4 签字栏 8 项 Ulysses 实际签（架构师 / 评审主持人 / PM 三角色）；29 项标"所有者背书 + 待具名责任人"占位 ③RGS-PLAN-001 v0.7 升版同步加 §3.4.4 所有者背书机制。**风险声明**：所有者背书**不替代具名责任人签字**；NO-GO 仍由 7 G-CODE 全部 Closed 解除（per handoff §1）。 |
+| 0.2 | 2026-08-21 | 架构师 + Ulysses（所有者）| **所有者背书机制**（per user decision 2026-08-21 折中方案 C）：①§8 新增所有者背书机制章节（明示意图 + 风险声明 + 责任追溯链）②§2-§4 签字栏 8 项 Ulysses 实际签（架构师 / 评审主持人 / PM 三角色）；29 项标"所有者背书 + 待具名责任人"占位 ③RGS-PLAN-001 v0.8 升版同步加 §3.4.4 所有者背书机制。**风险声明**：所有者背书**不替代具名责任人签字**；NO-GO 仍由 7 G-CODE 全部 Closed 解除（per handoff §1）。 |
 
 ---
 
@@ -204,48 +204,48 @@
 
 | 序号 | 文档 | 签字栏 | 角色 | 签字 | 日期 |
 |---|---|---|---|---|---|
-| 1 | RGS-ENV-001 v0.2 §6 | sqlx 编译期 / tonic / OTel / distroless | 架构师 | **Ulysses（架构师）** | 2026-08-21 |
-| 2 | RGS-ENV-001 v0.2 §6 | 12 类齐全 + 30 天承诺 | PM | **Ulysses（PM）** | 2026-08-21 |
+| 1 | RGS-ENV-001 v0.3 §6 | sqlx 编译期 / tonic / OTel / distroless | 架构师 | **Ulysses（架构师）** | 2026-08-21 |
+| 2 | RGS-ENV-001 v0.3 §6 | 12 类齐全 + 30 天承诺 | PM | **Ulysses（PM）** | 2026-08-21 |
 | 3 | RGS-REV-003 §7.3 | 架构评审（ARC-042 / G-CODE-03）| 架构师 | **Ulysses（架构师）** | 2026-08-21 |
 | 4 | RGS-REV-003 §7.3 | 12 类齐全 / 启动 53 授权 | PM | **Ulysses（PM）** | 2026-08-21 |
 | 5 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - 架构师栏 | 架构师 | **Ulysses（架构师）** | 2026-08-21 |
 | 6 | RGS-EXEC-001 §3.4 | Q-003 Saga 6 场景 - 架构师栏 | 架构师 | **Ulysses（架构师）** | 2026-08-21 |
 | 7 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - 架构师栏 | 架构师 | **Ulysses（架构师）** | 2026-08-21 |
-| 8 | RGS-PLAN-001 v0.7 §3.3 | 7 G-CODE 总授权 | PM | **Ulysses（PM）** | 2026-08-21 |
+| 8 | RGS-PLAN-001 v0.8 §3.3 | 7 G-CODE 总授权 | PM | **Ulysses（PM）** | 2026-08-21 |
 
-#### §8.2.2 29 项所有者背书 + 待具名责任人占位
+#### §8.2.2（v0.2 历史：29 项占位）
 
 | 序号 | 文档 | 签字栏 | 角色 | 状态 |
 |---|---|---|---|---|
-| 1 | RGS-ENV-001 v0.2 §6 | 工具链 / 锁定依赖 CI | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** |
-| 2 | RGS-ENV-001 v0.2 §6 | PostgreSQL 18.4 / 5 DB | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 3 | RGS-ENV-001 v0.2 §6 | K3s / 节点就绪 | SRE Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 4 | RGS-ENV-001 v0.2 §6 | player 域相关核验 | Player 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 5 | RGS-ENV-001 v0.2 §6 | economy 域相关核验 | Economy 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 6 | RGS-ENV-001 v0.2 §6 | match 域相关核验 | Match 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 7 | RGS-ENV-001 v0.2 §6 | social 域相关核验 | Social 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 8 | RGS-ENV-001 v0.2 §6 | admin / COC 域相关核验 | Admin 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 9 | RGS-ENV-001 v0.2 §6 | Q-003 跨 DB Saga | Economy 域 Lead（Q-003 二次）| **所有者背书 + 待具名责任人：`<签名>`** |
-| 10 | RGS-ENV-001 v0.2 §6 | 测试覆盖 / 可重入 | QA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 11 | RGS-REV-003 §7.3 | SRE 评审 | SRE Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 12 | RGS-REV-003 §7.3 | DBA 评审 | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 13 | RGS-REV-003 §7.3 | Platform 评审 | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** |
-| 14 | RGS-REV-003 §7.3 | QA 评审 | QA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 15 | RGS-REV-003 §7.3 | Player 域 DTL | Player 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 16 | RGS-REV-003 §7.3 | Economy 域 DTL + Saga | Economy 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 17 | RGS-REV-003 §7.3 | Match 域 DTL | Match 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 18 | RGS-REV-003 §7.3 | Social 域 DTL | Social 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 19 | RGS-REV-003 §7.3 | Admin 域 DTL | Admin 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 20 | RGS-REV-003 §7.3 | Q-003 二次确认 | Economy 域 Lead（Q-003 二次）| **所有者背书 + 待具名责任人：`<签名>`** |
-| 21 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - SRE Lead | SRE Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 22 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - DBA Lead | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 23 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - Platform Engineer | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** |
-| 24 | RGS-EXEC-001 §3.4 | Q-003 Saga 6 场景 - Economy 域 Lead | Economy 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 25 | RGS-EXEC-001 §3.4 | Q-003 Saga 6 场景 - DBA Lead | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 26 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - Platform | Platform Engineer | **所有者背书 + 待具名责任人：`<签名>`** |
-| 27 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - DBA | DBA Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 28 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - cluster-ops 域 Lead | cluster-ops 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
-| 29 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - Admin 域 Lead | Admin 域 Lead | **所有者背书 + 待具名责任人：`<签名>`** |
+| 1 | RGS-ENV-001 v0.3 §6 | 工具链 / 锁定依赖 CI | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 2 | RGS-ENV-001 v0.3 §6 | PostgreSQL 18.4 / 5 DB | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 3 | RGS-ENV-001 v0.3 §6 | K3s / 节点就绪 | SRE Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 4 | RGS-ENV-001 v0.3 §6 | player 域相关核验 | Player 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 5 | RGS-ENV-001 v0.3 §6 | economy 域相关核验 | Economy 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 6 | RGS-ENV-001 v0.3 §6 | match 域相关核验 | Match 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 7 | RGS-ENV-001 v0.3 §6 | social 域相关核验 | Social 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 8 | RGS-ENV-001 v0.3 §6 | admin / COC 域相关核验 | Admin 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 9 | RGS-ENV-001 v0.3 §6 | Q-003 跨 DB Saga | Economy 域 Lead（Q-003 二次）| **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 10 | RGS-ENV-001 v0.3 §6 | 测试覆盖 / 可重入 | QA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 11 | RGS-REV-003 §7.3 | SRE 评审 | SRE Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 12 | RGS-REV-003 §7.3 | DBA 评审 | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 13 | RGS-REV-003 §7.3 | Platform 评审 | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 14 | RGS-REV-003 §7.3 | QA 评审 | QA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 15 | RGS-REV-003 §7.3 | Player 域 DTL | Player 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 16 | RGS-REV-003 §7.3 | Economy 域 DTL + Saga | Economy 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 17 | RGS-REV-003 §7.3 | Match 域 DTL | Match 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 18 | RGS-REV-003 §7.3 | Social 域 DTL | Social 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 19 | RGS-REV-003 §7.3 | Admin 域 DTL | Admin 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 20 | RGS-REV-003 §7.3 | Q-003 二次确认 | Economy 域 Lead（Q-003 二次）| **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 21 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - SRE Lead | SRE Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 22 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - DBA Lead | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 23 | RGS-EXEC-001 §2.4 | ADR-0052 联审 - Platform Engineer | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 24 | RGS-EXEC-001 §3.4 | Q-003 Saga 6 场景 - Economy 域 Lead | Economy 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 25 | RGS-EXEC-001 §3.4 | Q-003 Saga 6 场景 - DBA Lead | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 26 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - Platform | Platform Engineer | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 27 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - DBA | DBA Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 28 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - cluster-ops 域 Lead | cluster-ops 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
+| 29 | RGS-EXEC-001 §4.4 | DTL-031 字段 Review - Admin 域 Lead | Admin 域 Lead | **所有者背书 + 待具名责任人：Ulysses（一人公司 12 角色兼任）** |
 
 ### §8.3 风险声明（必须知会所有具名责任人）
 
@@ -260,14 +260,14 @@
 
 > **生效条件**：
 > 1. Ulysses 实际签署本 v0.2（含 §8 全部内容）→ 已完成 2026-08-21
-> 2. RGS-PLAN-001 v0.7 §3.4.4 所有者背书机制同步升版 → 待执行（本 commit 包含）
+> 2. RGS-PLAN-001 v0.8 §3.4.4 所有者背书机制同步升版 → 待执行（本 commit 包含）
 > 3. RGS-EXEC-001 v0.2 修订历史明示 v0.2 包含背书机制 → 已完成 2026-08-21
 >
-> **解除条件**（per RGS-PLAN-001 v0.7 §3.4.4 解除路径）：
+> **解除条件**（per RGS-PLAN-001 v0.8 §3.4.4 解除路径）：
 > 1. 29 项"所有者背书"占位栏位的**具名责任人到位**（DBA / SRE / 5 域 Lead / Platform / QA / 业务方）后，**具名签字补全** 100%
 > 2. RGS-EXEC-001 升 v0.3：移除"所有者背书"占位，29 项全部转为具名责任人实际签字
 > 3. 7 G-CODE 全部 Closed（per handoff §1）：NO-GO 解除 → 53 启动
 
 ---
 
-> **本机制不构成取消 53 NO-GO**。NO-GO 仍由 RGS-PLAN-001 v0.7 §3.3 全部 7 G-CODE 经具名责任人签字关闭后解除（per handoff §1）。所有者背书是"53 启动过渡机制"，**不是**"具名责任人签字的替代"。
+> **本机制不构成取消 53 NO-GO**。NO-GO 仍由 RGS-PLAN-001 v0.8 §3.3 全部 7 G-CODE 经具名责任人签字关闭后解除（per handoff §1）。所有者背书是"53 启动过渡机制"，**不是**"具名责任人签字的替代"。
