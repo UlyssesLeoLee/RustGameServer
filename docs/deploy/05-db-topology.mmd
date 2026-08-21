@@ -1,0 +1,36 @@
+graph TB
+    subgraph "5 独立业务 DB (per ARC-008)"
+        player_db["player_db<br/>player schema<br/>(player-service)"]
+        economy_db["economy_db<br/>economy schema<br/>(economy-service)<br/>Q-003 Saga + Outbox"]
+        match_db["match_db<br/>match schema<br/>(match-service)"]
+        social_db["social_db<br/>social schema<br/>(social-service)"]
+        admin_db["admin_db<br/>admin schema<br/>(admin-service)<br/>RBAC + CEM + event_schema_registry"]
+    end
+
+    subgraph "集群控制面 DB"
+        cluster_ops_db["cluster_ops_db<br/>cluster_ops schema<br/>(cluster-ops-service)<br/>COC + PFAU + all-reachable"]
+    end
+
+    subgraph "跨域协调 (禁用 JOIN, 用 Outbox + CEM 异步)"
+        outbox[("Outbox Pattern<br/>(economy 域)")]
+        cem["CEM<br/>中心事件管理<br/>(admin 域)"]
+    end
+
+    player_db -.->|HTTP/gRPC| economy_db
+    economy_db -.->|Q-003 Saga| match_db
+    economy_db -.->|Outbox| outbox
+    outbox -.->|异步事件| cem
+    cem -.->|事件订阅| player_db
+    cem -.->|事件订阅| social_db
+    cluster_ops_db -.->|all-reachable| player_db
+    cluster_ops_db -.->|all-reachable| economy_db
+    cluster_ops_db -.->|all-reachable| match_db
+    cluster_ops_db -.->|all-reachable| social_db
+    cluster_ops_db -.->|all-reachable| admin_db
+
+    classDef db fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef cluster fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef coord fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    class player_db,economy_db,match_db,social_db,admin_db db
+    class cluster_ops_db cluster
+    class outbox,cem coord

@@ -1,0 +1,17 @@
+[2026-08-22 05:55:35] [START] === RGS 53 起動实测开始 (OnlySection=Topology SkipInstall=False) ===
+[2026-08-22 05:55:35] [INFO] Repository: D:\RustGameServer
+[2026-08-22 05:55:35] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 05:55:35] [SECTION] === Section 5: 5 独立 DB 拓扑图 (G-CODE-03) ===
+[2026-08-22 05:55:35] [INFO] 已写 Mermaid 源: D:\RustGameServer\docs\deploy\05-db-topology.mmd
+[2026-08-22 05:55:36] [INFO] mmdc 未安装，PNG 未生成。可手动用 https://mermaid.live/ 渲染
+[2026-08-22 05:55:36] [INFO] 已写 SVG 占位: D:\RustGameServer\docs\deploy\05-db-topology.svg
+[2026-08-22 05:55:36] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 05:55:36] [INFO]   Rust : pending - 
+[2026-08-22 05:55:36] [INFO]   Postgres : pending - 
+[2026-08-22 05:55:36] [INFO]   DB : pending - 
+[2026-08-22 05:55:36] [INFO]   Build : pending - 
+[2026-08-22 05:55:36] [INFO]   Topology : pass - Mermaid+SVG 已写, PNG 可选
+[2026-08-22 05:55:36] [INFO]   Verify : pending - 
+[2026-08-22 05:55:36] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 05:55:36] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 05:55:36] [END] === 实测结束 ===
