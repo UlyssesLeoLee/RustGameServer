@@ -3,10 +3,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001 |
-| 版本 | 0.1（草稿）|
-| 依据 | RGS-PLAN-001 v0.6 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.9 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 |
+| 版本 | 0.2（草稿 + 5 域 Lead L4 任务补全）|
+| 依据 | RGS-PLAN-001 v0.6 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.9 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
 | 范围 | first slice 14-18 周 / 5 域 + foundation + cluster-ops + shared-platform / ARC-018/021/042/051 |
-| 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.6 §3.1 PH 阶段表 |
+| 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.6 §3.1 PH 阶段表；RGS-ENV-001 v0.2 环境核验 12 类签字 |
 | 保密级别 | 内部限定（Internal Use Only）|
 
 > **核心约束**：
@@ -16,6 +16,15 @@
 > - **L4 任务**：每任务簇 4 个具体任务
 > - **L5 工作包**：最小可分配单元，**≤ 2 人·天 或 ≤ 500K tokens**
 > - **L4+ 强制项**：每任务有 owner / 人·天估算 / token 估算 / 前置依赖 / 验收项 / 回滚路径
+
+---
+
+## 修订历史
+
+| 版本 | 修订日 | 修订者 | 修订内容 |
+|---|---|---|---|
+| 0.1 | 2026-08-21 | 架构师 | 初版。L1-L5 框架 + 关键示例（player / economy PH-1 完整 32 L4 任务 × 2 域）。 |
+| 0.2 | 2026-08-21 | 架构师 + 5 域 Lead（待补）| **§4.3 完整 L4 任务占位框架**（per user decision 2026-08-21 补全 5 域 Lead L4 任务清单）：通过 `scripts/build_wbs_v02.py` 生成 **2,048 L4 任务占位**（5 域 + 3 配套 × 8 PH × 32 L4），独立文档 `RGS-WBS-001_L4任务占位清单_v0.1.md`（2071 行 / 297 KB）；5 域 Lead + foundation + cluster-ops + shared-platform 各自补全 256 L4 × 8 域 = 2,048 L4，PH-0.5 前完成；新增配套 `scripts/build_wbs_v02.py`（生成脚本，可重跑保持结构）。
 
 ---
 
@@ -232,6 +241,44 @@
 | 2.8.4 | Loki 日志（事务 + 补偿 + 人工升级）| Economy Lead | 0.5 | 100K | 2.8.1 | 3 类日志 | git revert |
 
 **economy 域 PH-1 L4 任务合计**：32 任务 / **~38 人·天** / **~8.5M tokens**（per §6.2.1.2 + §6.2.2.3 估算上限）
+
+### §4.3 完整 L4 任务占位清单（5 域 + 3 配套 × 8 PH × 32 L4 = 2,048 行）
+
+> **v0.2 升版**（per user decision 2026-08-21）：v0.1 仅给 player / economy PH-1 完整 64 L4 任务示例；v0.2 通过 `scripts/build_wbs_v02.py` 生成完整 **2,048 L4 任务占位清单**（5 域 + foundation + cluster-ops + shared-platform × 8 PH × 8 任务簇 × 4 任务）。
+>
+> **占位清单独立文档**：[RGS-WBS-001_L4任务占位清单_v0.1.md](RGS-WBS-001_L4任务占位清单_v0.1.md)（**2071 行 / 297 KB**）
+>
+> **5 域 + 3 配套 Lead 补全责任**（PH-0.5 前）：
+>
+> | 责任人 | 补全量 | 截止 |
+> |---|---|---|
+> | Player 域 Lead | 256 L4（player 域 × 8 PH）| PH-0.5 |
+> | Economy 域 Lead | 256 L4 + Q-003 二次确认 | PH-0.5 |
+> | Match 域 Lead | 256 L4 | PH-0.5 |
+> | Social 域 Lead | 256 L4 | PH-0.5 |
+> | Admin 域 Lead | 256 L4 | PH-0.5 |
+> | cluster-ops 域 Lead | 256 L4 | PH-0.5 |
+> | foundation（架构师）| 256 L4 | PH-0.5 |
+> | shared-platform（Platform）| 256 L4 | PH-0.5 |
+> | **合计** | **2,048 L4** | — |
+>
+> **每行 6 字段补全**（人·天 / Tokens / 前置 / 验收 / 回滚 5 字段 + 签字 1 字段）：
+>
+> | 字段 | 单位 | 来源 |
+> |---|---|---|
+> | 人·天 | 0.1-5.0 | per RGS-TS-001 v0.6 §6.2.1.2 估算 |
+> | Tokens | 50K-1M | per RGS-TS-001 v0.6 §6.2.2.3 估算 |
+> | 前置 | L4 # 引用 | 同域前置 PH 任务 |
+> | 验收 | 文字 | per RGS-IMPL-001 §3 质量门禁 |
+> | 回滚 | git/helm revert | per RGS-IMPL-001 §5 部署约定 |
+> | 签字 | 域 Lead / 架构 | PH-0.5 联合评审 |
+>
+> **维护方式**：
+> 1. **编辑**：`docs/12-工作流/RGS-WBS-001_L4任务占位清单_v0.1.md`（5 域 Lead 各自编辑自己的域行；可用 Excel / VS Code 多列编辑）
+> 2. **重生成**：`python scripts/build_wbs_v02.py`（保持结构一致；如已补全的行被覆盖，需手动合并）
+> 3. **PH-0.5 签字**：5 域 Lead + SRE + 架构 + PM 按域签字
+> 4. **PH-1 末**：每域 Lead 出 L5 工作包完整清单（per §5）
+> 5. **PH-3 / PH-7 校准**：per RGS-TS-001 v0.6 §6.2.5 校准节点
 
 ---
 
