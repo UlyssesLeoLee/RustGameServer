@@ -205,10 +205,15 @@
 
 > **修复说明（per check-cross-references.py 审计 2026-08-21）**：原版章节号（3.2/3.4/4/6 子节）与 RGS-SPEC-000 实际章节（1 规格化规则 / 2 统一实现契约 / 2.1~2.4 子节 / 3 规格模板 / 4 详细设计映射 / 5 统一 DoD）对齐修正。RGS-IMPL-001 中"2.1"实为第 2 章（实际只有 2.2 子节）；RGS-SPEC-000 中 3.2/3.4 等子节不存在，已映射到 2.1/2.2。
 
+> **owner 归口规则（per §2A.6.7-§2A.6.10 补全 2026-08-21）**：
+> - **5 业务域 DTL**（DTL-018 player / DTL-015/016 economy / DTL-026 match / DTL-019/020 social / DTL-031 admin）→ 5 域 Lead 各自负责
+> - **跨域 DTL-021~025**（5 份）+ **shared-platform DTL-032~040**（9 份，共 14 份）→ **Platform 域 Lead 负责冻结**（per §2A.6.7 §2.1）
+> - **横向规范 RGS-SPEC-CROSS-001~007**（7 份）→ 各主题 owner（Platform 主导 6/7，cluster-ops 主导 1/7），per §2A.6.10
+
 | 工程 | 名称 | 主要关联 SPEC 文档 | 次要关联 SPEC |
 |---|---|---|---|
 | 53 | 開発環境構築 | RGS-IMPL-001 §2 workspace + RGS-SPEC-000 §2 统一实现契约 + RGS-IMPL-006 CI 规范 | RGS-SPEC-DTL-018/015/016/026/019/020/031（5 域 DTL 边界）|
-| 54 | 编码实现 | **RGS-SPEC-DTL-018**（player 域）+ **RGS-SPEC-DTL-015/016**（economy 域）+ **RGS-SPEC-DTL-026**（match 域）+ **RGS-SPEC-DTL-019/020**（social 域）+ **RGS-SPEC-DTL-031**（admin 域）| RGS-SPEC-000 §2.1 Cargo 与代码边界 + §2.2 API 数据与错误 + RGS-SPEC-DTL-021~025/032~040（跨域 + shared-platform） |
+| 54 | 编码实现 | **RGS-SPEC-DTL-018**（player 域）+ **RGS-SPEC-DTL-015/016**（economy 域）+ **RGS-SPEC-DTL-026**（match 域）+ **RGS-SPEC-DTL-019/020**（social 域）+ **RGS-SPEC-DTL-031**（admin 域）| RGS-SPEC-000 §2.1 Cargo 与代码边界 + §2.2 API 数据与错误 + RGS-SPEC-DTL-021~025/032~040（**Platform 域冻结**）+ 7 份 RGS-SPEC-CROSS-001~007（横向规范） |
 | 55 | 静态分析 | RGS-IMPL-003 静态分析规范（per §6.3） | RGS-SPEC-000 §2 统一实现契约 |
 | 56 | 代码审查 | RGS-IMPL-004 代码审查规范（per §6.4） | RGS-SPEC-000 §2 统一实现契约 |
 | 57 | 构建 | RGS-IMPL-005 构建规范（per §6.5） | RGS-SPEC-000 §2.4 K3s/Kubernetes 与发布 |
@@ -278,6 +283,114 @@
 #### §2A.6.6 RGS-IMPL-001 父文档引用规则
 
 **所有 6 工程的 L4 任务前置**都隐含引用 `RGS-IMPL-001 实施约定与工程边界`（项目基线），但不在每行重复——在 `RGS-WBS-001 v0.3 §2 L2 域 / 域簇` 中 foundation 域是"workspace / testkit / CI / DAG validator / manifest"基线。
+
+#### §2A.6.7 5 域 DTL §1-§3 预冻结节点（WF-0.5 阶段）
+
+> **补救项❸**（per §2A.6 不足分析 2026-08-21）：当前 36 份 DTL + 1 份 SPEC-000 全是 4-6KB 占位文档，NO-GO 解除后所有 DTL 同时开工会并发失控。
+
+**目标**：在 WF-0.5（NO-GO 解除前）阶段完成 **5 业务域 DTL §1 使用规则 / §2 实现单元 / §3 实现契约**的预冻结，作为 54 编码实现 54.1-54.7 L4 任务的强制前置。
+
+**L4 任务清单**（新增 7 个 L4，全部归 WF-0.5 阶段）：
+
+| L4 # | 任务 | owner | 主要 SPEC | 关联 DTL | 前置 |
+|---|---|---|---|---|---|
+| **WF-0.5-1** | 5 域 DTL §1 使用规则冻结 | 5 域 Lead | RGS-SPEC-000 §1 | DTL-018/015/016/026/019/020/031 §1 | — |
+| **WF-0.5-2** | 5 域 DTL §2 实现单元冻结（domain entity / Repository trait 列表）| 5 域 Lead | RGS-SPEC-000 §2.2 | DTL-018/015/016/026/019/020/031 §2 | WF-0.5-1 |
+| **WF-0.5-3** | 5 域 DTL §3 实现契约冻结（Proto 风格 + 错误码 + DTO 映射 + 事件 schema + RBAC）| 5 域 Lead | RGS-SPEC-000 §2.1~2.4 | DTL-018/015/016/026/019/020/031 §3 | WF-0.5-1, 2 + RGS-SPEC-CROSS-001~007 v0.2 |
+| **WF-0.5-4** | 跨域 DTL-021~025 §1-§3 冻结（**Platform 域 Lead**）| Platform | RGS-SPEC-000 §2 | DTL-021~025 §1-§3 | RGS-SPEC-CROSS-001~003/006 v0.2 |
+| **WF-0.5-5** | shared-platform DTL-032~040 §1-§3 冻结（**Platform 域 Lead**）| Platform | RGS-SPEC-000 §2 | DTL-032~040 §1-§3 | RGS-SPEC-CROSS-001~007 v0.2 |
+| **WF-0.5-6** | 7 份 RGS-SPEC-CROSS-001~007 v0.2 占位填充（5 域 DTL §3 引用的横向规范）| 各主题 owner | RGS-SPEC-000 §2 | CROSS-001~007 | — |
+| **WF-0.5-7** | 5 域 DTL §1-§3 联检节点（per §2A.6.8 freeze review）| 架构师 | RGS-SPEC-000 §4 | 全部 36 份 DTL | WF-0.5-1~6 |
+
+**强制约束**：
+
+- ❌ **WF-0.5-7 联检未通过** → 禁止 WF-1 启动 54.1 Cargo crate 骨架
+- ❌ **RGS-SPEC-CROSS-001~007 任一未 v0.2** → 禁止 WF-0.5-3 / -4 / -5 启动
+- ❌ **跨域 DTL-021~025 / shared-platform DTL-032~040 未冻结** → 禁止 5 域 DTL §3 引用
+
+**激活条件**：G-CODE-03（5 独立 DB 拓扑图实测）+ G-CODE-06（Rust 1.98 实测）+ NO-GO 完全解除 → 7 个 WF-0.5 L4 任务进入 Ready 状态。
+
+#### §2A.6.8 跨 DTL freeze review 节点
+
+> **补救项❹**（per §2A.6 不足分析 2026-08-21）：5 域 DTL §5/§6/§7/§8 跨域协调缺 review。
+
+**目标**：5 域 DTL §5 安全容错 / §6 测试 / §7 DoD / §8 Gate 章节的**跨域一致性**强制 review。
+
+**新增 4 个 freeze 节点**（WF-2 阶段插点，全部归架构师评审）：
+
+| Freeze # | 触发条件 | 评审范围 | 强制约束 |
+|---|---|---|---|
+| **F-§5** | 任一 5 域 DTL §5 写完 | DTL-015 §5（Outbox）+ DTL-016 §5（跨域事务补偿）必须配套；DTL-031 §5（PFAU + all-reachable）必须配套 | 缺一则 DTL §5 章节无效 |
+| **F-§6** | 任一 5 域 DTL §6 写完 | rgs-testkit fixture 所有权标记（Platform 持有 rgs-testkit-core；5 域持有 domain-testkit）| 测试 fixture 不允许 5 域重复实现 |
+| **F-§7** | 任一 5 域 DTL §7 写完 | 5 域 DoD 模板必须一致（统一覆盖率门槛 80% + clippy 0 warning + 文档同步更新）| DoD 不一致则 DTL §7 章节无效 |
+| **F-§8** | 任一 5 域 DTL §8 写完 | Gate 证据矩阵（per G-CODE-01~07 + G-CODE-08~12 待补）必须 5 域对齐 | Gate 缺证据则 DTL §8 章节无效 |
+
+**强制约束**：
+
+- 任一 F-§x 失败 → 对应 DTL §x 章节必须重写
+- 5 域 DTL §5/§6/§7/§8 **不能并行写**——必须等前一个 5 域 DTL 章节通过 F-§x 后再启动下一个 5 域 DTL 的同一章节
+- 4 个 F-§x 节点的 owner 都是架构师（DEC-008 下 = Ulysses）
+
+**激活条件**：5 域 DTL §1-§3 预冻结（per §2A.6.7 WF-0.5-7 联检通过）→ F-§5/§6/§7/§8 节点进入 Ready。
+
+#### §2A.6.9 L4 前置链接矩阵（带 #anchor）
+
+> **补救项❻**（per §2A.6 不足分析 2026-08-21）：L4 任务"前置依赖"字段只写文档名 + 章节号，无 #anchor → agent 拿到 L4 任务后仍要自己查文档。
+
+**目标**：为 WF-1 实施阶段 72 个 L4 任务（前 5 域 + 6 工程）补全**带 #anchor 的具体章节链接**，让 worktree 切分支时直接打开锚点。
+
+**L4 前置锚点矩阵**（核心 15 个 L4，全部带 #anchor）：
+
+| L4 # | 前置文档 | 锚点 | 验证 |
+|---|---|---|---|
+| WF-1-54.1 | RGS-SPEC-000 | [§2.1 Cargo 与代码边界](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) | §2.1 标题存在 |
+| WF-1-54.2 | RGS-SPEC-000 + CROSS-002 | [§2.1](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) + [CROSS-002 §2 Proto 命名](../13-实现规格/RGS-SPEC-CROSS-002_gRPC_Proto风格指南_v0.1.md#2-规范范围) | 两个 anchor 都存在 |
+| WF-1-54.3 | RGS-SPEC-000 | [§2.1 Cargo](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) | anchor 存在 |
+| WF-1-54.4 | RGS-SPEC-000 + CROSS-005 | [§2.2](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) + [CROSS-005 §2.2 字段类型](../13-实现规格/RGS-SPEC-CROSS-005_数据库命名约定_v0.1.md#2-规范范围) | 两个 anchor 都存在 |
+| WF-1-54.5 | RGS-IMPL-001 + CROSS-001 | [§3 Phase 1](../13-实现规格/RGS-IMPL-001_实施约定与工程边界.md#3-phase-1跨服务工程约定) + [CROSS-001 §2.2](../13-实现规格/RGS-SPEC-CROSS-001_错误码字典_v0.1.md#2-规范范围) | anchor 存在 |
+| WF-1-54.6 | RGS-SPEC-000 + 5 域 DTL | [§2.2](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) + DTL-018 [§2](../13-实现规格/RGS-SPEC-DTL-018_实现规格书.md#2-实现单元) / DTL-015 [§2](../13-实现规格/RGS-SPEC-DTL-015_实现规格书.md#2-实现单元) / ... | 7 个 DTL §2 全部存在 |
+| WF-1-54.7 | RGS-SPEC-000 + 5 域 DTL §3 | [§2.2](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) + DTL §3 | 7 个 DTL §3 全部存在 |
+| WF-1-54.8 | DTL-015/016 | [§3](../13-实现规格/RGS-SPEC-DTL-015_实现规格书.md#3-实现契约) + [§3](../13-实现规格/RGS-SPEC-DTL-016_实现规格书.md#3-实现契约) | Q-003 Saga 跨域 |
+| WF-1-54.9 | DTL-015 + CROSS-003 | [§5](../13-实现规格/RGS-SPEC-DTL-015_实现规格书.md#5-安全容错与发布) + [CROSS-003 §2.2](../13-实现规格/RGS-SPEC-CROSS-003_跨域事件Schema字典_v0.1.md#2-规范范围) | Outbox 模式 |
+| WF-1-54.10 | DTL-031 + CROSS-003 | [§3](../13-实现规格/RGS-SPEC-DTL-031_实现规格书.md#3-实现契约) + [CROSS-003 §2.2](../13-实现规格/RGS-SPEC-CROSS-003_跨域事件Schema字典_v0.1.md#2-规范范围) | CEM 订阅 |
+| WF-1-54.11 | DTL-031 + ADR-0052 | [§5](../13-实现规格/RGS-SPEC-DTL-031_实现规格书.md#5-安全容错与发布) + [RGS-ADR-0052 §2.1](../08-架构决策记录/RGS-ADR-0052_Active-Active_ClusterOpsService与all-reachable_PFAU容错哲学.md#2-决策内容) | PFAU all-reachable |
+| WF-1-54.12 | DTL-031 + CROSS-007 | [§3](../13-实现规格/RGS-SPEC-DTL-031_实现规格书.md#3-实现契约) + [CROSS-007 §2.2](../13-实现规格/RGS-SPEC-CROSS-007_5域RBAC角色矩阵_v0.1.md#2-规范范围) | RBAC 中间件 |
+| WF-1-54.13 | RGS-SPEC-000 + 跨域 DTL-021~025 | [§2.3](../13-实现规格/RGS-SPEC-000_详细设计规格化总表.md#2-统一实现契约) + DTL-021~025 [§4](../13-实现规格/RGS-SPEC-DTL-021_实现规格书.md#4-可观测性规格) | OTel span |
+| WF-1-54.14 | 同 54.13 | 同上 + [CROSS-006 §2.2](../13-实现规格/RGS-SPEC-CROSS-006_日志trace_id传播规范_v0.1.md#2-规范范围) | Prometheus |
+| WF-1-54.15 | 同 54.13 | 同上 + [CROSS-006 §2.2](../13-实现规格/RGS-SPEC-CROSS-006_日志trace_id传播规范_v0.1.md#2-规范范围) | tracing 日志 |
+
+**强制约束**：
+
+- ❌ 任一 #anchor 失效（章节被删除/重命名）→ 对应 L4 任务的 verify_docs.py 必须 FAIL
+- ❌ anchor 缺失 L4 任务**不能进入 Ready 状态**——必须补全 anchor 才能 Ready
+
+**维护责任**：anchor 矩阵由 Platform 域 Lead 维护（DEC-008 下 = Ulysses），anchor 失效时同步更新 §2A.6.9 表格。
+
+#### §2A.6.10 7 份横向规范 RGS-SPEC-CROSS-001~007 引用表
+
+> **补救项❺**（per §2A.6 不足分析 2026-08-21）：横向规范文档缺失共 7 类，L4 任务没把这些横向规范纳入前置。
+
+**目标**：7 份 RGS-SPEC-CROSS-001~007 占位文档（v0.1，4-6KB）已建，**WF-0.5 阶段填至 v0.2**（15-25KB 实际内容）作为 54.x 编码实现的强制前置。
+
+**横向规范 → L4 任务前置矩阵**：
+
+| 横向规范 | owner | L4 前置任务数 | 强制度 |
+|---|---|---|---|
+| [RGS-SPEC-CROSS-001 错误码字典](../13-实现规格/RGS-SPEC-CROSS-001_错误码字典_v0.1.md) | Platform | 9（54.5/54.7/54.8/54.10/54.11/54.12/53.2/53.6/53.10）| 强制 |
+| [RGS-SPEC-CROSS-002 gRPC Proto 风格指南](../13-实现规格/RGS-SPEC-CROSS-002_gRPC_Proto风格指南_v0.1.md) | Platform | 8（54.2/54.3/54.4/54.5/54.7/54.10/53.4/53.7）| 强制 |
+| [RGS-SPEC-CROSS-003 跨域事件 schema 字典](../13-实现规格/RGS-SPEC-CROSS-003_跨域事件Schema字典_v0.1.md) | cluster-ops | 5（54.9/54.10/54.11/53.12/53.13）| 强制 |
+| [RGS-SPEC-CROSS-004 DTO ↔ 领域实体映射规则](../13-实现规格/RGS-SPEC-CROSS-004_DTO领域实体映射规则_v0.1.md) | Platform | 6（54.2/54.4/54.5/54.6/54.7/54.12）| 强制 |
+| [RGS-SPEC-CROSS-005 数据库命名 / 字段类型统一约定](../13-实现规格/RGS-SPEC-CROSS-005_数据库命名约定_v0.1.md) | DBA | 7（54.1/54.4/54.6/53.2/53.3/53.10/53.14）| 强制 |
+| [RGS-SPEC-CROSS-006 日志 trace_id 传播规范](../13-实现规格/RGS-SPEC-CROSS-006_日志trace_id传播规范_v0.1.md) | Platform | 5（54.13/54.14/54.15/53.12/53.14）| 强制 |
+| [RGS-SPEC-CROSS-007 5 域 RBAC 角色矩阵](../13-实现规格/RGS-SPEC-CROSS-007_5域RBAC角色矩阵_v0.1.md) | admin | 3（54.12/53.6/53.10）| 强制 |
+
+**强制约束**：
+
+- ❌ 任一 CROSS-xxx v0.2 未填完 → 引用它的 L4 任务**禁止 Ready**
+- ❌ 同一 L4 任务的所有强制 CROSS 前置未齐备 → 禁止 Ready
+- 7 份 CROSS-001~007 必须在 **WF-0.5-6** 一次性填到 v0.2
+
+**激活条件**：G-CODE-03 + G-CODE-06 + NO-GO 完全解除 → WF-0.5-6 进入 Ready 状态。
 
 ---
 
