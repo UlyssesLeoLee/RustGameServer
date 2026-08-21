@@ -2,8 +2,19 @@
 <#
 .SYNOPSIS
     合并 WBS L4 任务的 worktree 分支回 main。
+.PARAMETER L4Id
+    L4 任务 ID。
+.PARAMETER SkipVerify
+    跳过 3 脚本验证。
+.PARAMETER KeepWorktree
+    保留 worktree。
+.EXAMPLE
+    pwsh -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
+.NOTES
+    要求：PowerShell 7.0+
 #>
 
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$L4Id,
@@ -13,6 +24,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw 'wbs_merge.ps1 需要 PowerShell 7.0+。请使用: pwsh -File scripts/wbs_merge.ps1 -L4Id WF-X-XX.X'
+}
 
 function Get-WbsRoot {
     $scriptRoot = Split-Path -Parent $PSCommandPath
@@ -62,25 +77,25 @@ function Test-VerifyScriptsPass {
 
 function Merge-TaskBranch {
     param($Root, $Branch, $L4Id, $WorktreePath)
-    Write-Host "切回 main 分支..." -ForegroundColor Cyan
+    Write-Host '切回 main 分支...' -ForegroundColor Cyan
     & git -C $Root checkout main 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "git checkout main 失败" }
+    if ($LASTEXITCODE -ne 0) { throw 'git checkout main 失败' }
 
     Write-Host "合并 $Branch -> main (--no-ff)..." -ForegroundColor Cyan
     $commitMsg = "[wbs] $L4Id merge into main"
     & git -C $Root merge --no-ff -m $commitMsg $Branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "git merge 失败" }
-    Write-Host "  合并成功" -ForegroundColor Green
+    if ($LASTEXITCODE -ne 0) { throw 'git merge 失败' }
+    Write-Host '  合并成功' -ForegroundColor Green
 }
 
 function Remove-TaskWorktree {
     param($Root, $WorktreePath, $Branch)
     Write-Host "删除 worktree: $WorktreePath" -ForegroundColor Cyan
     & git -C $Root worktree remove --force $WorktreePath 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Host "  worktree remove 失败" -ForegroundColor Yellow; return }
+    if ($LASTEXITCODE -ne 0) { Write-Host '  worktree remove 失败' -ForegroundColor Yellow; return }
     Write-Host "删除分支: $Branch" -ForegroundColor Cyan
     & git -C $Root branch -D $Branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Host "  branch -D 失败" -ForegroundColor Yellow }
+    if ($LASTEXITCODE -ne 0) { Write-Host '  branch -D 失败' -ForegroundColor Yellow }
 }
 
 try {
@@ -91,7 +106,7 @@ try {
     $branch = $marker.Content.branch
     $wtPath = $marker.Path
     Write-Host ''
-    Write-Host "=== WBS L4 合并 ===" -ForegroundColor Cyan
+    Write-Host '=== WBS L4 合并 ===' -ForegroundColor Cyan
     Write-Host "  L4: $L4Id"
     Write-Host "  分支: $branch"
     Write-Host "  Worktree: $wtPath"

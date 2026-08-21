@@ -2,8 +2,17 @@
 <#
 .SYNOPSIS
     为指定 WBS L4 任务创建 worktree（含 .wbs-task-marker）。
+.PARAMETER L4Id
+    L4 任务 ID（如 WF-1-54.1）。
+.PARAMETER Base
+    基准分支（默认 main）。
+.EXAMPLE
+    pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-1-54.1
+.NOTES
+    要求：PowerShell 7.0+
 #>
 
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^WF-[\d\.]+(?:\.[\d]+)?$')]
@@ -14,6 +23,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw 'wbs_create_worktree.ps1 需要 PowerShell 7.0+。请使用: pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-X-XX.X'
+}
 
 function Get-WbsRoot {
     $scriptRoot = Split-Path -Parent $PSCommandPath
@@ -88,7 +101,7 @@ try {
     $branchName = "wbs/$L4Id"
 
     Write-Host ''
-    Write-Host "=== WBS L4 Worktree 创建 ===" -ForegroundColor Cyan
+    Write-Host '=== WBS L4 Worktree 创建 ===' -ForegroundColor Cyan
     Write-Host "  L4 任务: $L4Id"
     Write-Host "  任务: $($task.Task)"
     Write-Host "  Owner: $($task.Owner)"
@@ -105,21 +118,21 @@ try {
     New-Item -ItemType Directory -Path $managedRoot -Force | Out-Null
 
     & git -C $root worktree add --lock --reason "wbs-task: $L4Id" -b $branchName $targetPath $Base 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "git worktree add 失败" }
+    if ($LASTEXITCODE -ne 0) { throw 'git worktree add 失败' }
 
     Write-WbsTaskMarker -TargetPath $targetPath -L4Id $L4Id -Task $task.Task -Owner $task.Owner -Tokens $task.Tokens -Spec $task.Spec -DTL $task.DTL -Branch $branchName
 
     Write-Host ''
-    Write-Host "Worktree 创建成功" -ForegroundColor Green
+    Write-Host 'Worktree 创建成功' -ForegroundColor Green
     Write-Host "  路径: $targetPath"
     Write-Host "  分支: $branchName"
     Write-Host ''
     Write-Host '下一步：' -ForegroundColor Yellow
     Write-Host "  cd $targetPath"
-    Write-Host "  # 修改代码..."
-    Write-Host "  .\scripts\wbs_task_progress.ps1 -L4Id $L4Id -Status progress -Progress 50"
-    Write-Host "  .\scripts\wbs_task_progress.ps1 -L4Id $L4Id -Status done"
-    Write-Host "  .\scripts\wbs_merge.ps1 -L4Id $L4Id"
+    Write-Host '  # 修改代码...'
+    Write-Host "  pwsh -File scripts/wbs_task_progress.ps1 -L4Id $L4Id -Status progress -Progress 50"
+    Write-Host "  pwsh -File scripts/wbs_task_progress.ps1 -L4Id $L4Id -Status done"
+    Write-Host "  pwsh -File scripts/wbs_merge.ps1 -L4Id $L4Id"
 }
 catch {
     Write-Error "wbs_create_worktree.ps1 失败: $($_.Exception.Message)"

@@ -2,11 +2,30 @@
 <#
 .SYNOPSIS
     列出 RGS-WBS-001 v0.3 中的 L4 任务及其状态。
+.PARAMETER Stage
+    过滤阶段（WF-0 / WF-0.5 / WF-1 / WF-2 / ...）。
+.PARAMETER Domain
+    过滤域（player / economy / match / social / admin / cluster-ops / shared-platform / platform）。
+.PARAMETER Status
+    过滤状态（pending / in_progress / done / blocked）。
+.PARAMETER WbsDoc
+    WBS 文档路径（默认 = docs/12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md）。
+.PARAMETER Summary
+    显示状态汇总（按 stage 分组）。
+.EXAMPLE
+    pwsh -File scripts/wbs_list.ps1
+    pwsh -File scripts/wbs_list.ps1 -Stage WF-1
+    pwsh -File scripts/wbs_list.ps1 -Domain player
+    pwsh -File scripts/wbs_list.ps1 -Summary
+.NOTES
+    依据：RGS-WBS-001 v0.3 §2A L4 任务清单 + §6 任务字段
+    要求：PowerShell 7.0+（中文路径支持）
 #>
 
+[CmdletBinding()]
 param(
-    $Stage,
-    $Domain,
+    [string]$Stage,
+    [string]$Domain,
     [ValidateSet('pending', 'in_progress', 'done', 'blocked')]
     [string]$Status,
     [string]$WbsDoc,
@@ -15,6 +34,12 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# 版本检查
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Warning 'wbs_list.ps1 需要 PowerShell 7.0+（中文路径支持）。请使用: pwsh -File scripts/wbs_list.ps1'
+    Write-Warning "当前 PowerShell 版本: $($PSVersionTable.PSVersion)"
+}
 
 function Get-WbsRoot {
     $scriptRoot = Split-Path -Parent $PSCommandPath
@@ -26,7 +51,7 @@ function Get-WbsDocPath {
     $root = Get-WbsRoot
     if ($Override) { return $Override }
     $default = Join-Path $root 'docs/12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md'
-    if (-not (Test-Path -LiteralPath $default)) { throw "WBS 文档不存在" }
+    if (-not (Test-Path -LiteralPath $default)) { throw "WBS 文档不存在: $default" }
     return $default
 }
 
@@ -52,45 +77,20 @@ function Parse-L4TaskRow {
     }
 }
 
-function Parse-WFRow {
-    param([string]$Line)
-    if ($Line -notmatch '^\|\s*(WF-[0-9]+)\s*\|') { return $null }
-    $parts = $Line -split '\|' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
-    if ($parts.Count -lt 2) { return $null }
-    return [PSCustomObject]@{
-        Id    = $parts[0]
-        Name  = $parts[1]
-    }
-}
-
 function Get-AllL4Tasks {
     param([string]$Content)
     $tasks = @()
-    $wfGroups = @{}
-    $currentWF = $null
     $currentEng = $null
     foreach ($line in ($Content -split "`n")) {
-        # 检测大类标题行：#### §2A.2.XX 工程 XX ...
         if ($line -match '#### §2A\.2\.(\d+)\s') {
-            $currentEng = 'WF-1-' + $matches[1]
-            $currentWF = 'WF-1'
-            if (-not $wfGroups.ContainsKey($currentEng)) {
-                $wfGroups[$currentEng] = "工程 $($matches[1])"
-            }
-            continue
-        }
-        # 检测 §2A.7 之后的 WF-0.5
-        if ($line -match '#### §2A\.7' -or $line -match '## §2A\.6') {
-            $currentWF = 'WF-0.5'
+            $currentEng = $matches[1]
         }
         $l4 = Parse-L4TaskRow -Line $line
         if ($l4) {
-            # 从 L4 ID 推断 group：WF-1-53.1 → WF-1
             $group = $null
             if ($l4.Id -match '^(WF-[\d]+)') { $group = $matches[1] }
-            if (-not $group) { $group = $currentWF }
             $l4 | Add-Member -NotePropertyName 'WFGroup' -NotePropertyValue $group -Force
-            $l4 | Add-Member -NotePropertyName 'WFName' -NotePropertyValue $wfGroups[$currentEng] -Force
+            $l4 | Add-Member -NotePropertyName 'WFEng' -NotePropertyValue $currentEng -Force
             $tasks += $l4
         }
     }
@@ -126,18 +126,18 @@ function Render-L4Table {
         [PSCustomObject]@{
             L4      = $t.Id
             Stage   = $t.WFGroup
+            Eng     = $t.WFEng
             Task    = if ($t.Task.Length -gt 50) { $t.Task.Substring(0, 47) + '...' } else { $t.Task }
             Owner   = $t.Owner
-            Branch  = $t.Branch
         }
     }
-    $rows | Format-Table -AutoSize -Property L4, Stage, Task, Owner, Branch
+    $rows | Format-Table -AutoSize -Property L4, Stage, Eng, Task, Owner
 }
 
 function Render-Summary {
     param($Tasks)
     Write-Host ''
-    Write-Host '=== WBS 状态汇总 ===' -ForegroundColor Cyan
+    Write-Host '=== WBS 状态汇总（per stage）===' -ForegroundColor Cyan
     $byStage = @{}
     foreach ($t in $Tasks) {
         $key = $t.WFGroup
@@ -152,7 +152,7 @@ function Render-Summary {
     }
     Write-Host ''
     Write-Host ("  总任务数: {0}" -f $Tasks.Count)
-    Write-Host "  （注：进度追踪在 .wbs-task-marker 中，本脚本仅静态解析文档）" -ForegroundColor Gray
+    Write-Host '  （注：进度追踪在 .wbs-task-marker 中，本脚本仅静态解析文档）' -ForegroundColor Gray
 }
 
 try {
@@ -163,11 +163,11 @@ try {
     $filtered = Filter-L4Tasks -Tasks $allTasks -Stage $Stage -Domain $Domain -Status $Status
 
     Write-Host ''
-    Write-Host "=== WBS L4 任务列表（per RGS-WBS-001 v0.3）===" -ForegroundColor Cyan
+    Write-Host '=== WBS L4 任务列表（per RGS-WBS-001 v0.3）===' -ForegroundColor Cyan
     if ($Stage) { Write-Host "  阶段过滤: $Stage" }
     if ($Domain) { Write-Host "  域过滤: $Domain" }
     if ($Status) { Write-Host "  状态过滤: $Status" }
-    Write-Host "  共 $(@($filtered).Count) 个任务"
+    Write-Host ("  共 {0} 个任务" -f @($filtered).Count)
     Write-Host ''
 
     if ($Summary) {

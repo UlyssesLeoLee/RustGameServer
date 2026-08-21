@@ -2,8 +2,22 @@
 <#
 .SYNOPSIS
     更新 WBS L4 任务进度（start / progress / done / blocked）。
+.PARAMETER L4Id
+    L4 任务 ID。
+.PARAMETER Status
+    新状态：start / progress / done / blocked。
+.PARAMETER Progress
+    进度百分比（0-100）。
+.PARAMETER Message
+    备注信息。
+.EXAMPLE
+    pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-1-54.1 -Status start
+    pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-1-54.1 -Status progress -Progress 50
+.NOTES
+    要求：PowerShell 7.0+
 #>
 
+[CmdletBinding()]
 param(
     [string]$L4Id,
     [ValidateSet('start', 'progress', 'done', 'blocked')]
@@ -16,6 +30,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw 'wbs_task_progress.ps1 需要 PowerShell 7.0+。请使用: pwsh -File scripts/wbs_task_progress.ps1'
+}
 
 function Get-WbsRoot {
     $scriptRoot = Split-Path -Parent $PSCommandPath
@@ -31,7 +49,7 @@ function Find-TaskMarker {
         }
         return $null
     }
-    if (-not $L4Id) { throw "必须指定 -L4Id 或 -WorktreePath" }
+    if (-not $L4Id) { throw '必须指定 -L4Id 或 -WorktreePath' }
     $worktrees = & git -C $Root worktree list --porcelain 2>&1
     foreach ($line in $worktrees) {
         if ($line -match '^worktree (.+)$') {
