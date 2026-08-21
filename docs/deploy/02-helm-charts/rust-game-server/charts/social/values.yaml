@@ -1,0 +1,52 @@
+# social values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：social 域 Lead 具名签字 + 7 G-CODE Closed + 12 类签字栏全部具名签字
+
+enabled: true
+
+image:
+  repository: PLACEHOLDER_SOCIAL_IMAGE
+  tag: PLACEHOLDER
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  name: PLACEHOLDER_SOCIAL_SA
+
+service:
+  type: ClusterIP
+  grpcPort: PLACEHOLDER_SOCIAL_GRPC_PORT
+  metricsPort: PLACEHOLDER_SOCIAL_METRICS_PORT
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: PLACEHOLDER_SOCIAL_CPU_TARGET
+
+
+# 域内 ConfigMap 配置（实际值由 social 域 Lead 校准）
+config:
+  SOCIAL_FRIEND_LIST_CACHE_TTL_SEC: "PLACEHOLDER_SOCIAL_FRIEND_TTL"
+  SOCIAL_MESSAGE_BATCH_SIZE: "PLACEHOLDER_SOCIAL_MSG_BATCH"
+
+# Secret 引用（**仅 reference，不存值** — Secret values 由 SRE 通过加密仓管理）
+secretRefs:
+  - name: PLACEHOLDER_SOCIAL_DB_SECRET
+    key: PLACEHOLDER_SOCIAL_DB_KEY
+
+# 标签
+labels:
+  app.kubernetes.io/name: social
+  app.kubernetes.io/component: domain-service
+  app.kubernetes.io/part-of: rust-game-server

@@ -1,0 +1,88 @@
+# 06-cluster-ops-service.yaml
+# 角色：cluster-ops 域 Deployment + Service
+# 状态：🔴 NO-GO 占位
+# 实际值写入条件：SRE 具名 + ADR-0052 复核 + 架构师审批
+# 重要约束（per ADR-0052）：
+#   - Active-Active 固定 3 副本
+#   - **禁 HPA**（弹性扩缩会破坏 all-reachable 假设）
+#   - all-reachable PFAU 容错哲学：每个节点都能响应 PFAU 操作
+# 关联：
+#   - ADR-0052 Active-Active ClusterOpsService 与 all-reachable PFAU 容错哲学
+#   - ARC-051 集群运营中心
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PLACEHOLDER_CLUSTER_OPS_DEPLOY_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+  labels:
+    app.kubernetes.io/name: cluster-ops
+    app.kubernetes.io/component: cluster-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/active-active: "true"   # ADR-0052 标识
+spec:
+  replicas: PLACEHOLDER_CLUSTER_OPS_REPLICAS     # 3（固定，**禁 HPA**）
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-ops
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cluster-ops
+        app.kubernetes.io/component: cluster-control-plane
+        rust-game-server.io/active-active: "true"
+    spec:
+      # 强制分布到不同节点（per ADR-0052 — Active-Active 需跨节点）
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: cluster-ops
+      serviceAccountName: PLACEHOLDER_CLUSTER_OPS_SA  # 独立 SA — 跨节点调谐权限
+      containers:
+        - name: cluster-ops
+          image: PLACEHOLDER_CLUSTER_OPS_IMAGE
+          ports:
+            - name: grpc
+              containerPort: PLACEHOLDER_CLUSTER_OPS_GRPC_PORT
+            - name: pfau
+              containerPort: PLACEHOLDER_CLUSTER_OPS_PFAU_PORT
+            - name: metrics
+              containerPort: PLACEHOLDER_CLUSTER_OPS_METRICS_PORT
+          env:
+            - name: RUST_LOG
+              value: PLACEHOLDER_CLUSTER_OPS_LOG_LEVEL
+            - name: PFAU_REACHABILITY_MODE
+              value: "all-reachable"   # per ADR-0052
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: PLACEHOLDER_OTEL_ENDPOINT
+          resources:
+            requests:
+              cpu: PLACEHOLDER_CLUSTER_OPS_CPU_REQ
+              memory: PLACEHOLDER_CLUSTER_OPS_MEM_REQ
+            limits:
+              cpu: PLACEHOLDER_CLUSTER_OPS_CPU_LIM
+              memory: PLACEHOLDER_CLUSTER_OPS_MEM_LIM
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: PLACEHOLDER_CLUSTER_OPS_SVC_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: cluster-ops
+  ports:
+    - name: grpc
+      port: PLACEHOLDER_CLUSTER_OPS_GRPC_PORT
+      targetPort: PLACEHOLDER_CLUSTER_OPS_GRPC_PORT
+    - name: pfau
+      port: PLACEHOLDER_CLUSTER_OPS_PFAU_PORT
+      targetPort: PLACEHOLDER_CLUSTER_OPS_PFAU_PORT
+    - name: metrics
+      port: PLACEHOLDER_CLUSTER_OPS_METRICS_PORT
+      targetPort: PLACEHOLDER_CLUSTER_OPS_METRICS_PORT
+# 注：cluster-ops 域**禁 HPA**（per ADR-0052 — 固定 3 副本，破坏 all-reachable 假设）
+# 若需横向扩缩，须先修改 ADR-0052 并经架构师 + SRE 联合签字

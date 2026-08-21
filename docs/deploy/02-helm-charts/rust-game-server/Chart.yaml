@@ -1,0 +1,46 @@
+apiVersion: v2
+name: rust-game-server
+description: |
+  Rust 分布式游戏服务器 — Umbrella Chart（5 域 + cluster-ops + shared-platform）
+  ⚠️ 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3 + RGS-ENV-001 v0.2 §6 12 类签字栏）
+  ⚠️ NO-GO 解除前禁止 helm install 实际部署
+type: application
+version: 0.0.0
+appVersion: "PLACEHOLDER"
+keywords:
+  - rust
+  - game-server
+  - distributed
+  - grpc
+  - quic
+home: https://github.com/UlyssesLeoLee/RustGameServer
+sources:
+  - https://github.com/UlyssesLeoLee/RustGameServer
+maintainers:
+  - name: Ulysses
+    email: ulysses@PLACEHOLDER_DOMAIN
+dependencies:
+  - name: player
+    version: 0.0.0
+    condition: player.enabled
+    alias: player
+  - name: economy
+    version: 0.0.0
+    condition: economy.enabled
+    alias: economy
+  - name: match
+    version: 0.0.0
+    condition: match.enabled
+    alias: match
+  - name: social
+    version: 0.0.0
+    condition: social.enabled
+    alias: social
+  - name: admin
+    version: 0.0.0
+    condition: admin.enabled
+    alias: admin
+  - name: cluster-ops
+    version: 0.0.0
+    condition: clusterOps.enabled
+    alias: cluster-ops

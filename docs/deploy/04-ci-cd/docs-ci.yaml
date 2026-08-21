@@ -1,0 +1,48 @@
+# docs-ci.yaml
+# 角色：文档变更预览 / 链接检查（GitHub Pages 占位 / lychee）
+# 状态：🔴 NO-GO 占位
+# 激活条件：7 G-CODE Closed + Platform 架构师具名签字
+name: docs-ci
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'scripts/**'
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-link-check:
+    runs-on: PLACEHOLDER_RUNNER     # 实际值：ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Link check (lychee)
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --no-progress --exclude-loopback --exclude 'https://PLACEHOLDER_INTERNAL_DOMAIN' docs/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # NO-GO 解除前此步骤可能因链接未收敛而失败，**预期行为**
+
+  docs-preview:
+    runs-on: PLACEHOLDER_RUNNER
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Build Pages
+        # 实际值：待定（mkdocs / mdbook / 自建）
+        run: echo "PLACEHOLDER_DOCS_BUILD_STEP"
+        # NO-GO 解除前此步骤为占位 echo

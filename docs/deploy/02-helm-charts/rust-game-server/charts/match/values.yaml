@@ -1,0 +1,52 @@
+# match values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：match 域 Lead 具名签字 + 7 G-CODE Closed + 12 类签字栏全部具名签字
+
+enabled: true
+
+image:
+  repository: PLACEHOLDER_MATCH_IMAGE
+  tag: PLACEHOLDER
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+serviceAccount:
+  create: true
+  name: PLACEHOLDER_MATCH_SA
+
+service:
+  type: ClusterIP
+  grpcPort: PLACEHOLDER_MATCH_GRPC_PORT
+  metricsPort: PLACEHOLDER_MATCH_METRICS_PORT
+
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "1Gi"
+  limits:
+    cpu: "4000m"
+    memory: "4Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 12
+  targetCPUUtilizationPercentage: PLACEHOLDER_MATCH_CPU_TARGET
+
+
+# 域内 ConfigMap 配置（实际值由 match 域 Lead 校准）
+config:
+  MATCH_QUEUE_TIMEOUT_SEC: "PLACEHOLDER_MATCH_QUEUE_TIMEOUT"
+  MATCH_TICK_RATE_HZ: "PLACEHOLDER_MATCH_TICK_RATE"
+
+# Secret 引用（**仅 reference，不存值** — Secret values 由 SRE 通过加密仓管理）
+secretRefs:
+  - name: PLACEHOLDER_MATCH_DB_SECRET
+    key: PLACEHOLDER_MATCH_DB_KEY
+
+# 标签
+labels:
+  app.kubernetes.io/name: match
+  app.kubernetes.io/component: domain-service
+  app.kubernetes.io/part-of: rust-game-server

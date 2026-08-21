@@ -1,0 +1,231 @@
+# 05-deploy-sop.md — 部署标准操作程序
+
+> **文档 ID**：`RGS-DEPLOY-SOP-001`
+> **版本**：v0.1（NO-GO 状态）
+> **生效日期**：2026-08-21
+> **状态**：🔴 NO-GO 占位
+> **关联**：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6` + `RGS-EXEC-001 v0.2`
+
+---
+
+## 0. 重要前提
+
+> ⚠️ **本 SOP 在 53 開発環境構築 启动条件全部满足前**（7 G-CODE Closed + 12 类签字栏齐全 + 12 类环境核验全通过）**禁止执行任何步骤。**
+>
+> 执行部署前必须先通过 `../07-no-go-checklist.md` 全部 ✅。
+
+---
+
+## 1. 部署前置 checklist
+
+### 1.1 NO-GO 状态
+
+- [ ] `../07-no-go-checklist.md` 全部 ✅
+- [ ] `../00-prerequisites/00-no-go-checklist.md` 全部 ✅
+- [ ] `RGS-ENV-001 v0.2 §6` 12 类签字栏全部具名签字（**当前 2/12 实际签 + 10/12 所有者背书占位**）
+- [ ] `RGS-REV-003 §7.3` 12 类签字栏全部具名签字（**当前 8/12 实际签 + 10+ 所有者背书占位**）
+- [ ] `RGS-EXEC-001 v0.2` 7 G-CODE 全部 Closed（**当前 7/7 Open**）
+
+### 1.2 责任人到位
+
+- [ ] 架构师具名（Ulysses 实际签 ✅）
+- [ ] PM 具名（Ulysses 实际签 ✅）
+- [ ] 评审主持人具名（Ulysses 实际签 ✅）
+- [ ] DBA 具名（**待具名**）
+- [ ] SRE 具名（**待具名**）
+- [ ] Platform 架构师具名（**待具名**）
+- [ ] QA Lead 具名（**待具名**）
+- [ ] 5 域 Lead 独立具名（per DEC-005，**全部待具名**）
+- [ ] 业务方代表具名（**待具名**）
+- [ ] Economy 域 Lead Q-003 二次签字（**待具名**）
+
+### 1.3 制品就位
+
+- [ ] 5 域 + cluster-ops + shared-platform 镜像已 push 到 registry
+- [ ] Cargo.lock 已 commit
+- [ ] Helm chart 已 `helm dependency update` 通过
+- [ ] DB migrations 已通过 staging 验证
+
+### 1.4 环境核验
+
+- [ ] RGS-ENV-001 v0.2 §1-§5 12 类核验全部通过
+- [ ] Rust 1.98 + CI 全绿（G-CODE-06 满足）
+- [ ] PG 18.4 5 独立 DB 已就绪（DBA 签字）
+- [ ] QUIC edge 证书已注入 Secret（加密仓管理）
+
+---
+
+## 2. 部署架构概览
+
+```
+┌────────────────────────────────────────────────────┐
+│                CI/CD Pipeline (04-ci-cd)           │
+│  push → 镜像构建 → SBOM → push to registry         │
+└────────────────────────────────────────────────────┘
+                       ↓
+┌────────────────────────────────────────────────────┐
+│            Staging 环境（先部署）                    │
+│  - 5 域 + cluster-ops + shared-platform             │
+│  - 5 独立 DB（player/economy/match/social/admin）    │
+│  - cluster_ops_db（PFAU 历史）                      │
+└────────────────────────────────────────────────────┘
+                       ↓
+       集成测试 + 性能压测（QA Lead 签字）
+                       ↓
+┌────────────────────────────────────────────────────┐
+│            Production 环境（按域分批灰度）           │
+│  - 灰度顺序：admin (COC) → cluster-ops → player →   │
+│               social → economy → match             │
+│  - 灰度比例：10% → 50% → 100%                      │
+└────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. 部署步骤（按域独立）
+
+### 步骤 1：admin 域（COC 控制面，最先部署）
+
+> **理由**：COC 控制面需最先就位，以便监控后续 5 域部署
+
+```bash
+# 1.1 DB 迁移
+psql -h PLACEHOLDER_ADMIN_DB_HOST -U admin_user -d admin_db \
+  -f deploy/03-db-migrations/admin_db/0001_initial.sql
+psql -h PLACEHOLDER_ADMIN_DB_HOST -U admin_user -d admin_db \
+  -f deploy/03-db-migrations/admin_db/0002_coc_audit_log.sql
+
+# 1.2 Namespace + RBAC
+kubectl apply -f deploy/01-k8s-manifests/00-namespace.yaml
+kubectl apply -f deploy/01-k8s-manifests/10-rbac-template.yaml   # admin SA
+
+# 1.3 Secret 注入（加密仓）
+kubectl apply -f deploy/secrets/admin-db-secret.yaml
+kubectl apply -f deploy/secrets/coc-ops-secret.yaml
+
+# 1.4 ConfigMap
+kubectl apply -f deploy/01-k8s-manifests/08-configmap-template.yaml
+
+# 1.5 admin 域 Deployment
+kubectl apply -f deploy/01-k8s-manifests/05-admin-service.yaml
+
+# 1.6 验收
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=admin -n PLACEHOLDER_NAMESPACE --timeout=300s
+kubectl port-forward svc/PLACEHOLDER_ADMIN_SVC_NAME PLACEHOLDER_ADMIN_COC_WEB_PORT:PLACEHOLDER_ADMIN_COC_WEB_PORT -n PLACEHOLDER_NAMESPACE &
+# 浏览器访问 COC Web UI 确认
+```
+
+**责任人**：admin 域 Lead + SRE
+**签字栏**：`RGS-ENV-001 v0.2 §6` admin 域 / SRE 类别
+
+### 步骤 2：cluster-ops 域（Active-Active，固定 3 副本）
+
+> **理由**：cluster-ops 域为 PFAU 控制面，需在业务域前就位
+
+```bash
+# 2.1 DB 迁移
+psql -h PLACEHOLDER_CLUSTER_OPS_DB_HOST -U cluster_ops_user -d cluster_ops_db \
+  -f deploy/03-db-migrations/cluster_ops_db/0001_initial.sql
+psql -h PLACEHOLDER_CLUSTER_OPS_DB_HOST -U cluster_ops_user -d cluster_ops_db \
+  -f deploy/03-db-migrations/cluster_ops_db/0002_pfau_history.sql
+
+# 2.2 cluster-ops 域 Deployment（**禁 HPA**）
+kubectl apply -f deploy/01-k8s-manifests/06-cluster-ops-service.yaml
+
+# 2.3 验收
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cluster-ops -n PLACEHOLDER_NAMESPACE --timeout=300s
+# 验证 all-reachable：每个副本都能响应 PFAU 操作
+kubectl exec -it PLACEHOLDER_CLUSTER_OPS_POD_NAME -n PLACEHOLDER_NAMESPACE -- \
+  curl http://localhost:PLACEHOLDER_CLUSTER_OPS_PFAU_PORT/health
+```
+
+**责任人**：SRE + 架构师
+**签字栏**：`RGS-ENV-001 v0.2 §6` SRE / 架构师 类别
+**特别约束**：per ADR-0052，**禁 HPA**，固定 3 副本 + topologySpreadConstraints 跨节点
+
+### 步骤 3：player 域 / social 域（可并行部署，无 Saga 依赖）
+
+```bash
+# player
+kubectl apply -f deploy/01-k8s-manifests/01-player-service.yaml
+# social
+kubectl apply -f deploy/01-k8s-manifests/04-social-service.yaml
+```
+
+**责任人**：player 域 Lead / social 域 Lead
+**签字栏**：`RGS-ENV-001 v0.2 §6` 对应域 Lead 类别
+
+### 步骤 4：economy 域（Q-003 Saga 核心，**最敏感**）
+
+> **理由**：Q-003 Saga 跨域核心，事务最密集，部署失败影响最大
+
+```bash
+# 4.1 DB 迁移（含 Q-003 Saga 状态机）
+psql -h PLACEHOLDER_ECONOMY_DB_HOST -U economy_user -d economy_db \
+  -f deploy/03-db-migrations/economy_db/0001_initial.sql
+psql -h PLACEHOLDER_ECONOMY_DB_HOST -U economy_user -d economy_db \
+  -f deploy/03-db-migrations/economy_db/0002_q003_saga_state.sql
+
+# 4.2 economy 域 Deployment
+kubectl apply -f deploy/01-k8s-manifests/02-economy-service.yaml
+
+# 4.3 Q-003 Saga 集成测试（QA Lead 必在场）
+#   - 跨域事务：player → economy → social 三方
+#   - 异常注入：网络分区 / DB 短暂不可用
+#   - 回滚验证：Saga 状态机回退
+```
+
+**责任人**：economy 域 Lead + Economy 域 Lead Q-003 二次签字 + QA Lead
+**签字栏**：`RGS-ENV-001 v0.2 §6` economy 域 Lead + Q-003 二次 + QA 类别（**3 重签字**）
+
+### 步骤 5：match 域（实时匹配，最后部署）
+
+```bash
+kubectl apply -f deploy/01-k8s-manifests/03-match-service.yaml
+```
+
+**责任人**：match 域 Lead
+**签字栏**：`RGS-ENV-001 v0.2 §6` match 域 Lead 类别
+
+### 步骤 6：shared-platform（QUIC edge / OTel collector）
+
+```bash
+kubectl apply -f deploy/01-k8s-manifests/07-shared-platform.yaml
+```
+
+**责任人**：Platform 架构师
+**签字栏**：`RGS-ENV-001 v0.2 §6` Platform 类别
+
+### 步骤 7：灰度切流
+
+| 阶段 | 比例 | 持续时间 | 监控指标 |
+|---|---|---|---|
+| 灰度 1 | 10% | 24h | error rate / p99 latency |
+| 灰度 2 | 50% | 24h | 同上 + Q-003 Saga 成功率 |
+| 全量 | 100% | — | 全监控 |
+
+**责任人**：SRE + admin 域 Lead（COC 监控）
+**触发回滚条件**：error rate > 0.5% / p99 > SLA / Q-003 Saga 失败率 > 0.1%
+
+---
+
+## 4. 部署验收
+
+- [ ] 所有域 pod ready
+- [ ] 所有域 health check 通过
+- [ ] Q-003 Saga 集成测试通过（QA Lead 签字）
+- [ ] 5 独立 DB schema 落地正确（DBA 签字）
+- [ ] 灰度阶段无异常（SRE 签字）
+- [ ] COC Web UI 正常显示（admin 域 Lead 签字）
+- [ ] 7 G-CODE 全部 Closed 状态保留
+- [ ] 12 类签字栏全部具名签字
+
+---
+
+## 5. 关联文档
+
+- 回滚 SOP：`../06-rollback-sop.md`
+- NO-GO 自检表：`../07-no-go-checklist.md` + `../00-prerequisites/00-no-go-checklist.md`
+- 治理：`RGS-PLAN-001 v0.7 §3.3` + `RGS-ENV-001 v0.2 §6`
+- 架构：`RGS-ARC-051`（COC/CEM/PFAU）+ `RGS-ADR-0052`（Active-Active）
+- 设计：5 域 DTL（015/016/018/019/020/026/031）

@@ -1,0 +1,31 @@
+-- 0001_initial_placeholder.sql
+-- DB：cluster_ops_db（cluster-ops 域 — 集群状态 / PFAU 记录 / 节点调谐（per ADR-0052））
+-- 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3 + RGS-ENV-001 v0.2 §6 12 类签字栏）
+-- 描述：初始 schema：cluster_nodes / cluster_state / topology 表
+--
+-- ⚠️ 重要：本文件为占位迁移，**未包含任何 DDL**。
+-- ⚠️ NO-GO 解除前禁止执行此迁移。
+-- ⚠️ 实际 DDL 写入条件：
+--    1. 7 G-CODE 全部 Closed（per RGS-EXEC-001 v0.2）
+--    2. RGS-ENV-001 v0.2 §6 12 类签字栏全部具名签字
+--    3. cluster-ops 域 Lead 具名签字 + DBA 联合签字
+--    4. 关联 DTL（详细设计）通过联合评审
+--    5. staging 环境验证通过
+--
+-- 关联文档：
+--   - ARC-008 5 独立 DB 原则
+--   - RGS-TS-001 v0.6 §5.2 PostgreSQL 18.4 选型
+--   - RGS-TS-001 v0.6 §5.1 sqlx 选型
+--   - RGS-IMPL-001 §3.4 Secret 管理
+--   - DTL-015/016/018/019/020/026/031 5 域 DTL
+--
+-- 责任人（占位）：
+--   - 架构师：Ulysses（已实际签）
+--   - DBA：待具名（per RGS-EXEC-001 v0.2 §3.4 所有者背书）
+--   - cluster-ops 域 Lead：待具名（per DEC-005 独立配置）
+--   - SRE：待具名（per RGS-EXEC-001 v0.2 §4.4 所有者背书）
+
+-- ===== NO-GO 占位：以下无 DDL =====
+-- 实际 schema 在 NO-GO 解除后由 DBA + cluster-ops 域 Lead 联合编写
+-- 命名规范：{domain}_v{major}（如 player_v1）
+-- 后续升级用新 schema + 视图切换（不破坏在线）

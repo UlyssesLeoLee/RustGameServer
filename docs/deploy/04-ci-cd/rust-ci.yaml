@@ -1,0 +1,55 @@
+# rust-ci.yaml
+# 角色：Rust 编译 + 测试 + clippy + fmt
+# 状态：🔴 NO-GO 占位
+# 激活条件：7 G-CODE Closed（G-CODE-06 必关） + Platform 架构师具名签字
+# 关联：RGS-TS-001 v0.6 §5（Rust 栈选型）+ G-CODE-06（Rust 1.98 + CI 全绿）
+name: rust-ci
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+# 默认禁止并发（per RGS-EXEC-001 v0.2 §5）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  rust-check:
+    runs-on: PLACEHOLDER_RUNNER     # 实际值：ubuntu-22.04（待 Platform 架构师确认）
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@PLACEHOLDER_TOOLCHAIN_VERSION   # 实际值：1.98.0（per G-CODE-06）
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            target
+            .cargo
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+        # NO-GO 解除前此步骤可能因代码未到位而失败，**预期行为**
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        # NO-GO 解除前此步骤可能因代码未到位而失败，**预期行为**
+
+      - name: Build
+        run: cargo build --all-targets --all-features
+        # NO-GO 解除前此步骤可能因代码未到位而失败，**预期行为**
+
+      - name: Test
+        run: cargo test --all-features --no-fail-fast
+        # NO-GO 解除前此步骤可能因代码未到位而失败，**预期行为**

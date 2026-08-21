@@ -1,0 +1,55 @@
+# cluster-ops values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：cluster-ops 域 Lead 具名签字 + 7 G-CODE Closed + 12 类签字栏全部具名签字
+
+enabled: true
+
+image:
+  repository: PLACEHOLDER_CLUSTER-OPS_IMAGE
+  tag: PLACEHOLDER
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+serviceAccount:
+  create: true
+  name: PLACEHOLDER_CLUSTER-OPS_SA
+
+service:
+  type: ClusterIP
+  grpcPort: PLACEHOLDER_CLUSTER-OPS_GRPC_PORT
+  metricsPort: PLACEHOLDER_CLUSTER-OPS_METRICS_PORT
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+# 重要：cluster-ops 域**禁 HPA**（per ADR-0052 — Active-Active 固定 3 副本，破坏 all-reachable 假设）
+# minReplicas == maxReplicas == 3
+autoscaling:
+  enabled: false   # 必须保持 false
+  minReplicas: 3
+  maxReplicas: 3
+
+
+# 域内 ConfigMap 配置（实际值由 cluster-ops 域 Lead 校准）
+config:
+  PFAU_ATOMIC_TIMEOUT_SEC: "PLACEHOLDER_PFAU_ATOMIC_TIMEOUT"
+  PFAU_ROLLBACK_TIMEOUT_SEC: "PLACEHOLDER_PFAU_ROLLBACK_TIMEOUT"
+  PFAU_REACHABILITY_MODE: "all-reachable"
+
+# Secret 引用（**仅 reference，不存值** — Secret values 由 SRE 通过加密仓管理）
+secretRefs:
+  - name: PLACEHOLDER_CLUSTER-OPS_DB_SECRET
+    key: PLACEHOLDER_CLUSTER-OPS_DB_KEY
+
+# 标签
+labels:
+  app.kubernetes.io/name: cluster-ops
+  app.kubernetes.io/component: domain-service
+  app.kubernetes.io/part-of: rust-game-server
+ 标签：rust-game-server.io/active-active: "true"

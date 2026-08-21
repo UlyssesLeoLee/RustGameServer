@@ -1,0 +1,36 @@
+# Umbrella values.yaml
+# 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3）
+# 实际值写入条件：7 G-CODE Closed + 12 类签字栏全部具名签字
+
+global:
+  imageRegistry: PLACEHOLDER_REGISTRY
+  imagePullSecrets:
+    - name: PLACEHOLDER_PULL_SECRET
+
+  # 5 域共用 namespace，RBAC + NetworkPolicy 隔离（per ARC-008）
+  namespace: PLACEHOLDER_NAMESPACE
+
+  # OTel exporter 端点
+  otel:
+    endpoint: PLACEHOLDER_OTEL_ENDPOINT
+
+  # Rhai 沙箱脚本路径（per ARC-020：拒动态库加载，仅 Rhai）
+  rhai:
+    scriptPath: PLACEHOLDER_RHAI_SCRIPT_PATH
+
+  # 日志级别（per RGS-IMPL-001）
+  logLevel: info
+
+# 各子 chart 启用开关
+player:
+  enabled: true
+economy:
+  enabled: true
+match:
+  enabled: true
+social:
+  enabled: true
+admin:
+  enabled: true
+clusterOps:
+  enabled: true

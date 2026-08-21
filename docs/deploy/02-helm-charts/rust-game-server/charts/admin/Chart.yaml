@@ -1,0 +1,18 @@
+apiVersion: v2
+name: admin
+description: |
+  admin 域 — COC 集群运营中心 + 中心事件管理 + 每功能原子升级控制面
+  ⚠️ 状态：🔴 NO-GO 占位（per RGS-PLAN-001 v0.7 §3.3 + RGS-ENV-001 v0.2 §6 12 类签字栏）
+  ⚠️ NO-GO 解除前禁止 helm install 实际部署
+type: application
+version: 0.0.0
+appVersion: "PLACEHOLDER"
+keywords:
+  - admin
+  - rust
+  - game-server
+home: https://github.com/UlyssesLeoLee/RustGameServer
+maintainers:
+  - name: Ulysses
+    email: ulysses@PLACEHOLDER_DOMAIN
+  - coc

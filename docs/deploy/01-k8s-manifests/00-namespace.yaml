@@ -1,0 +1,45 @@
+# 00-namespace.yaml
+# 状态：🔴 NO-GO 占位
+# NO-GO 解除条件：SRE 具名 + DBA 具名 + RGS-ENV-001 v0.2 §6 12 类签字栏齐全
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: PLACEHOLDER_NAMESPACE     # 实际值：rust-game-server（待 SRE + DBA 确认）
+  labels:
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/managed-by: PLACEHOLDER_TOOLING   # 实际值：待定（helm 或 kustomize）
+    # NO-GO 状态标签 — 解除 NO-GO 后删除
+    rust-game-server.io/no-go: "true"
+---
+# ResourceQuota — 配额待 SRE 联合 DBA 校准
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: PLACEHOLDER_QUOTA_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  hard:
+    requests.cpu: PLACEHOLDER_CPU_QUOTA       # 实际值待 SRE 校准
+    requests.memory: PLACEHOLDER_MEM_QUOTA
+    limits.cpu: PLACEHOLDER_CPU_LIMIT
+    limits.memory: PLACEHOLDER_MEM_LIMIT
+    pods: PLACEHOLDER_POD_COUNT
+---
+# LimitRange — 5 域 + cluster-ops + shared-platform 各自范围
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: PLACEHOLDER_LIMITRANGE_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: PLACEHOLDER_DEFAULT_CPU
+        memory: PLACEHOLDER_DEFAULT_MEM
+      defaultRequest:
+        cpu: PLACEHOLDER_REQUEST_CPU
+        memory: PLACEHOLDER_REQUEST_MEM
+      max:
+        cpu: PLACEHOLDER_MAX_CPU
+        memory: PLACEHOLDER_MAX_MEM

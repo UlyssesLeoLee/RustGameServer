@@ -1,0 +1,49 @@
+# verify-docs-ci.yaml
+# 角色：3 验证脚本必跑（per handoff §5 + RGS-WF-001 v0.5）
+# 状态：🔴 NO-GO 占位
+# 激活条件：7 G-CODE Closed + Platform 架构师具名签字
+# 重要：3 脚本在 commit eb2fffa 时已在本机验证 PASS（227 文件），本 workflow 仅为 CI 化包装
+name: verify-docs
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'scripts/verify_docs.py'
+      - 'scripts/check-cross-references.py'
+      - 'scripts/verify_wf_v05.py'
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-docs-all:
+    runs-on: PLACEHOLDER_RUNNER     # 实际值：ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run verify_docs.py
+        run: python scripts/verify_docs.py
+        # 必跑：doc ID 唯一性 + FILENAME 规范
+
+      - name: Run check-cross-references.py
+        run: python scripts/check-cross-references.py
+        # 必跑：跨文档引用闭环
+
+      - name: Run verify_wf_v05.py
+        run: python scripts/verify_wf_v05.py
+        # 必跑：工作流 v0.5 一致性
+
+      - name: All passed
+        if: success()
+        run: echo "✅ 3 验证脚本全 PASS"
