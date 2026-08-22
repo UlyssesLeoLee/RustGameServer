@@ -37,7 +37,8 @@ async fn main() -> anyhow::Result<()> {
 
     // 54.4 PgRepository wiring 留 55.x：先用 InMemory 让 binary 可启动
     let players: Arc<dyn PlayerRepository> = Arc::new(InMemoryPlayerRepository::new());
-    let sessions: Arc<dyn PlayerSessionRepository> = Arc::new(InMemoryPlayerSessionRepository::new());
+    let sessions: Arc<dyn PlayerSessionRepository> =
+        Arc::new(InMemoryPlayerSessionRepository::new());
 
     // 健康检查：尝试连 DB 失败不影响 binary 启动
     if let Err(e) = db::pool_from_env().await {
