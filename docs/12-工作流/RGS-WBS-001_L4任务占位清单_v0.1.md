@@ -2072,3 +2072,59 @@
 | 2046 | PH-7 | 第 17-18 周 | shared-platform | 灾备 | 恢复演练 | Platform Engineer（独立） | _人·天 | _tokens | _ | _ | _ | _ |
 | 2047 | PH-7 | 第 17-18 周 | shared-platform | 灾备 | 跨 AZ 复制 | Platform Engineer（独立） | _人·天 | _tokens | _ | _ | _ | _ |
 | 2048 | PH-7 | 第 17-18 周 | shared-platform | 灾备 | RTO/RPO 验证 | Platform Engineer（独立） | _人·天 | _tokens | _ | _ | _ | _ |
+
+---
+
+## v0.4 manual_addition（2026-08-21 手动追加，待脚本重生成时合入）
+
+> **本节为手动追加**，`scripts/build_wbs_v02.py` 后续重生成 v0.4 时应将这些 L4 任务并入对应域/任务簇。v0.3 主体 2048 L4 + v0.4 增量 26 = **2074 L4**。
+
+### 14 份新文档对应 L4（document_task，状态 = done）
+
+| L4 # | PH | 窗口 | 域 | L3 任务簇 | L4 任务 | Owner | 人·天 | Tokens | 前置 | 验收 | 回滚 | 签字 | 文档编号 | 状态 |
+|---:|---|---|---|---|---|---|---|---:|---:|---|---|---|---|---|
+| 2049 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 需求定义 | 架构师（兼） | _人·天 | _tokens | _ | RGS-REQ-036 §10~§12 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-REQ-036 | done |
+| 2050 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 基本设计 | 架构师（兼） | _人·天 | _tokens | L4 #2049 | RGS-BAS-036 §12 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-BAS-036 | done |
+| 2051 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 详细设计 | 架构师（兼） | _人·天 | _tokens | L4 #2050 | RGS-DTL-041 §12 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-DTL-041 | done |
+| 2052 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 实现规格 | 架构师（兼） | _人·天 | _tokens | L4 #2051 | RGS-SPEC-DTL-041 §7 Definition of Done | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-SPEC-DTL-041 | done |
+| 2053 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 单元测试 | 架构师（兼） | _人·天 | _tokens | L4 #2051 | RGS-TST-UT-04-ADD2 50 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-UT-04-ADD2 | done |
+| 2054 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 系统测试 | 架构师（兼） | _人·天 | _tokens | L4 #2051 | RGS-TST-ST-04-ADD2 13 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-ST-04-ADD2 | done |
+| 2055 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 集成测试 | 架构师（兼） | _人·天 | _tokens | L4 #2051 | RGS-TST-IT-04-ADD2 16 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-IT-04-ADD2 | done |
+| 2056 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 需求定义 | Admin 域 Lead（独立） | _人·天 | _tokens | _ | RGS-REQ-037 §10~§12 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-REQ-037 | done |
+| 2057 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 基本设计 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2056 | RGS-BAS-037 §14 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-BAS-037 | done |
+| 2058 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 详细设计 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2057 | RGS-DTL-042 §12 验收 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-DTL-042 | done |
+| 2059 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 实现规格 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2058 | RGS-SPEC-DTL-042 §7 Definition of Done | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-SPEC-DTL-042 | done |
+| 2060 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 单元测试 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2058 | RGS-TST-UT-02-ADD3 56 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-UT-02-ADD3 | done |
+| 2061 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 系统测试 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2058 | RGS-TST-ST-02-ADD3 15 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-ST-02-ADD3 | done |
+| 2062 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 集成测试 | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2058 | RGS-TST-IT-02-ADD3 33 条用例 | _ | Ulysses(per DEC-008, see WBS-001 §17) | RGS-TST-IT-02-ADD3 | done |
+
+### 12 项后续实施 L4（implementation_task，状态 = pending）
+
+| L4 # | PH | 窗口 | 域 | L3 任务簇 | L4 任务 | Owner | 人·天 | Tokens | 前置 | 验收 | 回滚 | 签字 | 状态 |
+|---:|---|---|---|---|---|---|---|---:|---:|---|---|---|---|
+| 2063 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | rgs-asset-download crate 骨架（Cargo.toml + 模块目录 + 公开 API） | 架构师（兼） | _人·天 | _tokens | L4 #2051 + L4 #2052 | `cargo build -p rgs-asset-download` 通过 | `git revert` + 依赖移除 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2064 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | DownloadStateMachine + ResumeTokenStore（SQLite + JSON 原子写） | 架构师（兼） | _人·天 | _tokens | L4 #2063 | AC-CDN-110/111 + UT 50 条 PASS | feature flag 关闭 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2065 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | RangeClient + ChunkOrchestrator + IntegrityGate + 4 平台 pre-allocate | 架构师（兼） | _人·天 | _tokens | L4 #2063 | AC-CDN-112~118 + IT 16 条 PASS | feature flag 关闭 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2066 | PH-3 | 第 7-9 周 | admin | 6 阶段操作器编码 | RealmLifecycleService 6 操作器骨架（NewRealm/Split/Merge/Retire/Archive） | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2058 + L4 #2059 | `cargo build -p rgs-cluster-ops` 通过 + 6 阶段状态机 UT PASS | feature flag 关闭 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2067 | PH-3 | 第 7-9 周 | admin | Saga 编排 | SagaOrchestrator + 6 阶段 Saga 步骤实现（含反向补偿） | Admin 域 Lead（独立） | _人·天 | _tokens | L4 #2066 | UT 56 条 PASS + Saga 补偿 100% 正确 | 降级为单步手动执行 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2068 | PH-3 | 第 7-9 周 | admin | admin_db 迁移 | 6 张新表 migration 上线（Expand-Contract 双向演练） | DBA + Admin 域 Lead | _人·天 | _tokens | L4 #2058 | 双向迁移演练 100% 通过 + 索引 / 外键校验 | `sqlx migrate revert` | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2069 | PH-4 | 第 9-12 周 | shared-platform | Range 实测 | MinIO 自托管 Range 行为 4 平台端到端实测（AC-CDN-110~118 9 项全通过） | SRE + 架构师 | _人·天 | _tokens | L4 #2065 | AC-CDN-110~118 全部 9 项 | 切回全量 GET fallback | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2070 | PH-4 | 第 9-12 周 | admin | LCM 实测 | 6 阶段操作器演练环境 5 类各执行 1 次（AC-LCM-001~010 10 项全通过） | SRE + Admin Lead | _人·天 | _tokens | L4 #2067 + L4 #2068 | AC-LCM-001~010 全部 10 项 | 演练环境隔离无影响 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2071 | PH-4 | 第 9-12 周 | admin | LCM 集成 | ClusterOpsService `realm_lifecycle` Feature 7 子类 + OLU 上报集成 | Admin Lead | _人·天 | _tokens | L4 #2067 + L4 #2068 | 7 子类注册 + OLU 上报 100% 命中 | feature flag 关闭 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2072 | PH-5 | 第 12-14 周 | shared-platform | CDN 边缘集成 | 商业 CDN（Cloudflare 可选）Range 边缘命中实测 + 切流验证 | SRE | _人·天 | _tokens | L4 #2069 | 边缘命中 ≥ 80% + 切流 ≤ 30s | 关闭商业 CDN 走自托管 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2073 | PH-5 | 第 12-14 周 | admin | 跨域联动 | LCM 与业务 service gRPC 集成（player/economy/social）+ 退场后 RBAC 通道开启 | Admin Lead + 各域 Lead | _人·天 | _tokens | L4 #2071 | IT 33 条 PASS | LCM 关闭走人工 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+| 2074 | PH-6 | 第 14-16 周 | admin | 归档实测 | 归档冷热分层 + N+2 冗余 + GDPR "被遗忘权"删除通路实测 | DBA + 法务 | _人·天 | _tokens | L4 #2071 | AC-LCM-005 通过 + GDPR 删除 100% 命中 | 保留现有归档策略 | Ulysses(per DEC-008, see WBS-001 §17) | pending |
+
+### 合计
+
+- v0.3 主体：2048 L4
+- v0.4 manual_addition：26 L4（14 document_task done + 12 implementation_task pending）
+- **总计：2074 L4**
+
+### v0.4 manual_addition 责任分配（per DEC-008 一人公司 12 角色兼任）
+
+| 责任域 | 任务数 | owner | 备注 |
+|---|---|---|---|
+| shared-platform（断点续传 7 项） | 7 | 架构师（兼） | 设计 4 + 实施 3 |
+| admin（LCM 9 项 + 实施 9 项 + 1 实施）| 19 | Admin 域 Lead（独立） | 设计 4 + 实施 15 |
+| **合计 v0.4** | 26 | — | — |
