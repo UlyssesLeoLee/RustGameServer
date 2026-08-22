@@ -1,18 +1,22 @@
-//! match-service 入口（54.1 占位二进制）
+//! match-service 入口（54.7 业务实施后 binary）
 //!
-//! 启动 tonic gRPC server（占位 health check service）+ 读取 DATABASE_URL。
-//! 54.7 业务实施后接入实际 gRPC method。
+//! 启动 tonic gRPC server 接 MatchService（HealthCheck + GetMatch）+ tracing 初始化。
 
 use anyhow::Context;
 use std::env;
+use std::sync::Arc;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
-use match_service::service::{MatchService, MatchServiceImpl};
+use match_service::repository::{
+    InMemoryMatchParticipantRepository, InMemoryMatchRepository, MatchParticipantRepository,
+    MatchRepository,
+};
+use match_service::service::grpc_service::MatchGrpcService;
+use match_service::service::MatchServiceImpl;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // tracing 初始化
     fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -20,23 +24,25 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let addr = env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:50051".to_string());
+    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
+        .unwrap_or_else(|_| "0.0.0.0:50053".to_string())
+        .parse()
+        .context("invalid GRPC_ADDR")?;
     let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
 
     tracing::info!(target: "match-service", "starting service at {}, db={}", addr, database_url);
 
-    let service = MatchServiceImpl::new();
+    let matches: Arc<dyn MatchRepository> = Arc::new(InMemoryMatchRepository::new());
+    let participants: Arc<dyn MatchParticipantRepository> = Arc::new(InMemoryMatchParticipantRepository::new());
+    let service_impl = Arc::new(MatchServiceImpl::new(matches, participants));
+    let grpc = MatchGrpcService::new(service_impl);
 
-    // 54.1 占位：仅 health check；54.7 业务实施后加实际 gRPC method
-    let svc_health = service.health_check().await?;
-    tracing::info!(target: "match-service", "health check: {}", svc_health);
-
-    // 54.1 占位：tonic server 不实际 bind（待 54.2 proto + 54.3 tonic-build）
-    tracing::warn!(target: "match-service", "54.1 骨架：tonic server 占位不 bind；待 54.2-54.3 启用");
-
-    // 阻塞 1 秒后退出（占位行为）
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    tracing::info!(target: "match-service", "exiting (54.1 placeholder)");
-
+    tracing::info!(target: "match-service", "binding gRPC server at {}", addr);
+    let svc = match_service::proto::v1::match_service_server::MatchServiceServer::new(grpc);
+    tonic::transport::Server::builder()
+        .add_service(svc)
+        .serve(addr)
+        .await
+        .context("tonic server failed")?;
     Ok(())
 }

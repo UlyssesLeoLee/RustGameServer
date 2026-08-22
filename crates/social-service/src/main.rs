@@ -1,18 +1,21 @@
-//! social-service 入口（54.1 占位二进制）
+//! social-service 入口（54.7 业务实施后 binary）
 //!
-//! 启动 tonic gRPC server（占位 health check service）+ 读取 DATABASE_URL。
-//! 54.7 业务实施后接入实际 gRPC method。
+//! 启动 tonic gRPC server 接 SocialService（HealthCheck + GetGuild）+ tracing 初始化。
 
 use anyhow::Context;
 use std::env;
+use std::sync::Arc;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
-use social_service::service::{SocialService, SocialServiceImpl};
+use social_service::repository::{
+    GuildMemberRepository, GuildRepository, InMemoryGuildMemberRepository, InMemoryGuildRepository,
+};
+use social_service::service::grpc_service::SocialGrpcService;
+use social_service::service::SocialServiceImpl;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // tracing 初始化
     fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -20,23 +23,25 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let addr = env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:50051".to_string());
+    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
+        .unwrap_or_else(|_| "0.0.0.0:50054".to_string())
+        .parse()
+        .context("invalid GRPC_ADDR")?;
     let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
 
     tracing::info!(target: "social-service", "starting service at {}, db={}", addr, database_url);
 
-    let service = SocialServiceImpl::new();
+    let guilds: Arc<dyn GuildRepository> = Arc::new(InMemoryGuildRepository::new());
+    let members: Arc<dyn GuildMemberRepository> = Arc::new(InMemoryGuildMemberRepository::new());
+    let service_impl = Arc::new(SocialServiceImpl::new(guilds, members));
+    let grpc = SocialGrpcService::new(service_impl);
 
-    // 54.1 占位：仅 health check；54.7 业务实施后加实际 gRPC method
-    let svc_health = service.health_check().await?;
-    tracing::info!(target: "social-service", "health check: {}", svc_health);
-
-    // 54.1 占位：tonic server 不实际 bind（待 54.2 proto + 54.3 tonic-build）
-    tracing::warn!(target: "social-service", "54.1 骨架：tonic server 占位不 bind；待 54.2-54.3 启用");
-
-    // 阻塞 1 秒后退出（占位行为）
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    tracing::info!(target: "social-service", "exiting (54.1 placeholder)");
-
+    tracing::info!(target: "social-service", "binding gRPC server at {}", addr);
+    let svc = social_service::proto::v1::social_service_server::SocialServiceServer::new(grpc);
+    tonic::transport::Server::builder()
+        .add_service(svc)
+        .serve(addr)
+        .await
+        .context("tonic server failed")?;
     Ok(())
 }
