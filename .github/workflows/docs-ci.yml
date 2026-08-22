@@ -1,0 +1,71 @@
+# docs-ci —— CI workflow 2（per WBS v0.3 §2A.5 WF-1-53.5）
+# 触发：push to main, pull_request to main, workflow_dispatch
+# 范围：markdownlint + lychee 链接检查
+# 规范：RGS-IMPL-006 §4
+
+name: docs-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 53.5 单平台起步；58.7 跨平台扩展
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  markdownlint:
+    name: markdownlint on ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint-cli2
+        run: npm install -g markdownlint-cli2
+
+      - name: Run markdownlint
+        # 53.5 起步：仅检查 docs/ 目录（排除 deploy 目录里的笔记/草稿）
+        # 55.4 升 v0.4 时把 config 提到 .markdownlint-cli2.yamlc
+        run: |
+          markdownlint-cli2 \
+            "docs/**/*.md" \
+            "#docs/deploy/README.md" \
+            --config '{"default":true,"MD013":false,"MD033":false,"MD041":false}'
+
+  lychee:
+    name: lychee link check on ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lychee link checker (Docker)
+        # 用 lychee Docker 镜像，无需 Rust toolchain
+        # 53.5 起步：仅检查 docs/**/*.md 文件里的链接
+        # 55.x 加 .lychee.toml 配置排除
+        run: |
+          docker run --rm -v "${GITHUB_WORKSPACE}:/input" \
+            lycheeverse/lychee:latest \
+            --offline \
+            --exclude-loopback \
+            --exclude-mail \
+            --no-progress \
+            "/input/docs/**/*.md"
+
+      - name: Show lychee summary
+        if: always()
+        run: echo "lychee check completed (failure handled in step above)"
