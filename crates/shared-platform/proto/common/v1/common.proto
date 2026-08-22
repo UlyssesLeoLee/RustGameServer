@@ -1,0 +1,51 @@
+syntax = "proto3";
+package common.v1;
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/common/v1;commonv1";
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OK = 1;
+  STATUS_PENDING = 2;
+  STATUS_FAILED = 3;
+  STATUS_CANCELLED = 4;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_NOT_FOUND = 1;
+  ERROR_CODE_VALIDATION = 2;
+  ERROR_CODE_INTERNAL = 3;
+  ERROR_CODE_CONFLICT = 4;
+  ERROR_CODE_UNAUTHORIZED = 5;
+  ERROR_CODE_SAGA_COMPENSATION_REQUIRED = 6;
+}
+
+message EntityId {
+  string id = 1;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+
+message PageRequest {
+  uint32 page = 1;
+  uint32 page_size = 2;
+  string cursor = 3;
+}
+
+message PageResponse {
+  uint32 total = 1;
+  bool has_next = 2;
+  string next_cursor = 3;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  Status status = 1;
+  string message = 2;
+}
