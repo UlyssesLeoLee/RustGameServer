@@ -29,6 +29,9 @@ prost = { workspace = true }
 sqlx = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+# 55.13 启用：audit_log hash 升级 FNV-1a → SHA-256（per RGS-REV-007 AC5 / DEC-015 P1）
+sha2 = "0.10"
+hex = "0.4"
 
 [build-dependencies]
 tonic-build = { workspace = true }

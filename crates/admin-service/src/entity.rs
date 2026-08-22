@@ -3,9 +3,13 @@
 //! 54.6 实化：2 个核心 entity（per RGS-DTL-019 §3 + ARC-051 COC/CEM）
 //! - AdminUser：管理员账号（per COC RBAC）
 //! - AuditLogEntry：审计日志（per RGS-SEC-100 §7 hash 链 + UPDATE/DELETE 触发器禁）
+//!
+//! 55.13 实化：audit_log hash 升级 FNV-1a → SHA-256 + 长度前缀防 separator 碰撞
+//! （per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 /// 管理员角色（per ARC-051 COC RBAC）
@@ -124,6 +128,10 @@ impl AuditLogEntry {
 }
 
 /// sha256 hash 链（per RGS-SEC-100 §7）
+///
+/// 55.13 升级：FNV-1a 64-bit → SHA-256（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
+/// 每段前先写 `len.to_le_bytes()` 再写数据，长度前缀保证域边界明确，构造攻击
+/// （`action="a|" target="b"` vs `action="a" target="b|"`）无法产生同一 hash。
 fn compute_hash(
     actor_id: Uuid,
     action: &str,
@@ -132,26 +140,17 @@ fn compute_hash(
     prev_hash: &str,
     created_at: DateTime<Utc>,
 ) -> String {
-    use std::fmt::Write;
-    let mut s = String::with_capacity(256);
-    write!(
-        &mut s,
-        "{}|{}|{}|{}|{}|{}",
-        actor_id,
-        action,
-        target,
-        payload,
-        prev_hash,
-        created_at.timestamp_millis()
-    )
-    .unwrap();
-    // 简单 FNV-1a 64-bit hash（生产环境用 sha2::Sha256；这里保持无外部依赖）
-    let mut h: u64 = 0xcbf29ce484222325;
-    for b in s.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x100000001b3);
-    }
-    format!("{:016x}", h)
+    let mut hasher = Sha256::new();
+    hasher.update(actor_id.as_bytes());
+    hasher.update((action.len() as u64).to_le_bytes());
+    hasher.update(action.as_bytes());
+    hasher.update((target.len() as u64).to_le_bytes());
+    hasher.update(target.as_bytes());
+    hasher.update((payload.len() as u64).to_le_bytes());
+    hasher.update(payload.as_bytes());
+    hasher.update(prev_hash.as_bytes());
+    hasher.update(created_at.timestamp_millis().to_le_bytes());
+    hex::encode(hasher.finalize())
 }
 
 #[cfg(test)]
@@ -197,5 +196,45 @@ mod tests {
         );
         assert_ne!(e1.hash, e2.hash);
         assert_eq!(e2.prev_hash, e1.hash);
+    }
+
+    /// 55.13 AC5=CC1：1000 随机输入验证 hash 全部不同（防碰撞基本性质）。
+    /// SHA-256 在 32 字节输出上生日攻击需 2^128 次，1000 条全不同概率上确近乎 1。
+    #[test]
+    fn compute_hash_collision_resistance_basic() {
+        use std::collections::HashSet;
+        let actor = Uuid::nil();
+        let fixed_ts = chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        let mut seen: HashSet<String> = HashSet::with_capacity(1024);
+        for i in 0..1000u32 {
+            // 在 action / target / payload 三个域内变化以制造不同输入
+            let h = compute_hash(
+                actor,
+                &format!("action.{i}"),
+                &format!("target.{i}"),
+                &format!("{{\"i\":{i}}}"),
+                "0".repeat(64).as_str(),
+                fixed_ts,
+            );
+            assert_eq!(h.len(), 64, "SHA-256 hex 应为 64 字符");
+            assert!(seen.insert(h.clone()), "碰撞 i={i}: hash={h}");
+        }
+        assert_eq!(seen.len(), 1000);
+    }
+
+    /// 55.13 AC5=CH3：构造 action/target 拼接碰撞（FNV-1a 旧版缺陷）。
+    /// `action="a|" target="b"` vs `action="a" target="b|"` —— 旧版 `"|"` 分隔
+    /// 会产生同一字符串，因此旧 FNV-1a 给出同一 hash。SHA-256 + 长度前缀下两
+    /// 个输入 hash 必不同。
+    #[test]
+    fn compute_hash_separator_independence() {
+        let actor = Uuid::nil();
+        let fixed_ts = chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        let h1 = compute_hash(actor, "a|", "b", "p", "0".repeat(64).as_str(), fixed_ts);
+        let h2 = compute_hash(actor, "a", "|b", "p", "0".repeat(64).as_str(), fixed_ts);
+        assert_ne!(
+            h1, h2,
+            "action/target 边界变化必须产生不同 hash（55.13 AC5=CH3 separator 碰撞防御）"
+        );
     }
 }

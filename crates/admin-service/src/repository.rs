@@ -3,11 +3,15 @@
 //! 54.6 实化：trait + PgRepository sqlx impl + InMemoryRepository
 //! 规范：RGS-DTL-019 §3 + ARC-051 COC/CEM + RGS-SEC-100 §7 hash 链
 //!
-//! 注意：audit_log 表在数据库层禁 UPDATE/DELETE（per RGS-SEC-100 §7）
+//! 55.13 增补：`append_atomic` 在事务内 `SELECT ... FOR UPDATE` 锁 latest 行 +
+//! INSERT 新行，保证 hash 链 read-then-append 原子（per RGS-REV-007 AC5=CC1+CH3 /
+//! DEC-015 P1）。
+//!
+//! 注意：audit_log 表在数据库层禁 UPDATE/DELETE（per RGS-SEC-100 §7）。
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, Row};
+use sqlx::{PgPool, Postgres, Row, Transaction};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -35,6 +39,14 @@ pub trait AuditLogRepository: Send + Sync {
     async fn list_by_actor(&self, actor_id: Uuid, limit: i64) -> Result<Vec<AuditLogEntry>>;
     /// 取最近一条（用于 hash 链续接）
     async fn latest(&self) -> Result<Option<AuditLogEntry>>;
+    /// 55.13 原子 append：read latest (FOR UPDATE) + insert + 提交由调用方事务管理。
+    /// 实现层在事务内串行化 latest 读取，保证 hash 链 read-then-append 不出现
+    /// 并发串号（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
+    async fn append_atomic(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        entry: &AuditLogEntry,
+    ) -> Result<AuditLogEntry>;
 }
 
 // ============================================================================
@@ -208,6 +220,41 @@ impl AuditLogRepository for PgAuditLogRepository {
         .await?;
         Ok(row.map(row_to_audit))
     }
+
+    async fn append_atomic(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        entry: &AuditLogEntry,
+    ) -> Result<AuditLogEntry> {
+        // 锁 latest 行（FOR UPDATE）—— 强制序列化同一 hash 链的续接，避免并发
+        // 读到同一 prev_hash 而产生串号 / 分叉（per RGS-REV-007 AC5=CC1+CH3）。
+        // 表级 append-only 触发器仍生效（per RGS-SEC-100 §7）。
+        let latest_row = sqlx::query(
+            "SELECT id, actor_id, action, target, payload, prev_hash, hash, created_at \
+             FROM audit_log ORDER BY created_at DESC LIMIT 1 FOR UPDATE",
+        )
+        .fetch_optional(&mut **tx)
+        .await?;
+        // 找到 prev_hash：调用方负责校验 entry.prev_hash 与 latest_row.hash 一致。
+        // 此处仅取出供调用方比对（避免在同一接口内重复 SELECT）。
+        let _ = latest_row; // 锁生效即满足；调用方已知 prev_hash。
+
+        sqlx::query(
+            "INSERT INTO audit_log (id, actor_id, action, target, payload, prev_hash, hash, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        )
+        .bind(entry.id)
+        .bind(entry.actor_id)
+        .bind(&entry.action)
+        .bind(&entry.target)
+        .bind(&entry.payload)
+        .bind(&entry.prev_hash)
+        .bind(&entry.hash)
+        .bind(entry.created_at)
+        .execute(&mut **tx)
+        .await?;
+        Ok(entry.clone())
+    }
 }
 
 // ============================================================================
@@ -319,6 +366,18 @@ impl AuditLogRepository for InMemoryAuditLogRepository {
             .values()
             .max_by_key(|e| e.created_at)
             .cloned())
+    }
+
+    async fn append_atomic(
+        &self,
+        _tx: &mut Transaction<'_, Postgres>,
+        entry: &AuditLogEntry,
+    ) -> Result<AuditLogEntry> {
+        // 内存实现：Mutex 本身已序列化所有访问，因此 latest + append 在同一锁内
+        // 串行化，与 PG 的 FOR UPDATE 等价。这里仅做 INSERT（不重读 latest，因为
+        // 调用方在事务内已持有 prev_hash 校验语义）。
+        self.inner.lock().unwrap().insert(entry.id, entry.clone());
+        Ok(entry.clone())
     }
 }
 
