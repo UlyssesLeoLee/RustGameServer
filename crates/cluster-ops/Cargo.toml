@@ -6,5 +6,26 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+description = "5 域集群运营微服务（per DTL-020 §3 / ARC-008 5 独立 DB 原则 / DEC-005 5 域 Lead）"
+
+[[bin]]
+name = "cluster-ops"
+path = "src/main.rs"
 
 [dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# 54.1 启用：gRPC server
+tonic = { workspace = true }
+prost = { workspace = true }
+# 54.1 启用：DB
+sqlx = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
