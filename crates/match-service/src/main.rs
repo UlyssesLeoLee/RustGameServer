@@ -33,7 +33,8 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(target: "match-service", "starting service at {}, db={}", addr, database_url);
 
     let matches: Arc<dyn MatchRepository> = Arc::new(InMemoryMatchRepository::new());
-    let participants: Arc<dyn MatchParticipantRepository> = Arc::new(InMemoryMatchParticipantRepository::new());
+    let participants: Arc<dyn MatchParticipantRepository> =
+        Arc::new(InMemoryMatchParticipantRepository::new());
     let service_impl = Arc::new(MatchServiceImpl::new(matches, participants));
     let grpc = MatchGrpcService::new(service_impl);
 
