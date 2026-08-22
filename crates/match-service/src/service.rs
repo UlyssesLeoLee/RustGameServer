@@ -1,43 +1,303 @@
-//! match-service Service trait 定义
+//! match-service 域 Service 业务实施（per RGS-DTL-016 §3）
 //!
-//! 54.1 占位：1 个 health_check + 1 个 ping 占位方法。
-//! 实际 gRPC method 实现待 WF-1-54.5-54.7 业务实施。
+//! 54.7 实化：4 Service 业务方法（create_match / join_match / start_match / finish_match）
+//! + gRPC 桥接 HealthCheck + GetMatch
 
+use crate::entity::{Match, MatchMode, MatchParticipant, MatchStatus, Team};
+use crate::error::Error;
+use crate::repository::{MatchParticipantRepository, MatchRepository};
 use crate::Result;
-use async_trait::async_trait;
 
-/// match-service 域 Service trait
+use async_trait::async_trait;
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
+use uuid::Uuid;
+
 #[async_trait]
 pub trait MatchService: Send + Sync {
-    /// 健康检查（per gRPC health checking standard）
     async fn health_check(&self) -> Result<bool>;
 
-    /// Ping 占位（54.1 骨架；54.7 业务实施时移除）
-    async fn ping(&self) -> Result<String> {
-        Ok("match-service pong".to_string())
-    }
+    /// 创建对局
+    async fn create_match(&self, room_id: String, mode: MatchMode) -> Result<Match>;
+
+    /// 玩家加入对局
+    async fn join_match(
+        &self,
+        match_id: Uuid,
+        player_id: Uuid,
+        team: Team,
+    ) -> Result<MatchParticipant>;
+
+    /// 开始对局
+    async fn start_match(&self, match_id: Uuid) -> Result<Match>;
+
+    /// 结束对局
+    async fn finish_match(&self, match_id: Uuid, winner: Option<Team>) -> Result<Match>;
 }
 
-/// match-service 域默认 Service 实现（54.1 占位）
-pub struct MatchServiceImpl;
+pub struct MatchServiceImpl {
+    matches: Arc<dyn MatchRepository>,
+    participants: Arc<dyn MatchParticipantRepository>,
+}
 
 impl MatchServiceImpl {
-    pub fn new() -> Self {
-        Self
+    pub fn new(
+        matches: Arc<dyn MatchRepository>,
+        participants: Arc<dyn MatchParticipantRepository>,
+    ) -> Self {
+        Self {
+            matches,
+            participants,
+        }
     }
-}
 
-impl Default for MatchServiceImpl {
-    fn default() -> Self {
-        Self::new()
+    pub async fn find_match_by_id(&self, id: Uuid) -> Result<Option<Match>> {
+        self.matches.find_by_id(id).await
     }
 }
 
 #[async_trait]
 impl MatchService for MatchServiceImpl {
     async fn health_check(&self) -> Result<bool> {
-        // 54.1 占位：仅返回 true
-        // 54.13 OTel span 注入后改为 health check + DB ping
         Ok(true)
+    }
+
+    async fn create_match(&self, room_id: String, mode: MatchMode) -> Result<Match> {
+        if room_id.is_empty() {
+            return Err(Error::Validation("room_id must not be empty".to_string()));
+        }
+        if self.matches.find_by_room_id(&room_id).await?.is_some() {
+            return Err(Error::Conflict(format!(
+                "room_id {} already in use",
+                room_id
+            )));
+        }
+        let m = Match::new(room_id, mode);
+        self.matches.save(&m).await?;
+        Ok(m)
+    }
+
+    async fn join_match(
+        &self,
+        match_id: Uuid,
+        player_id: Uuid,
+        team: Team,
+    ) -> Result<MatchParticipant> {
+        let m = self
+            .matches
+            .find_by_id(match_id)
+            .await?
+            .ok_or_else(|| Error::NotFound {
+                entity: "Match",
+                id: match_id.to_string(),
+            })?;
+        if m.status != MatchStatus::Waiting {
+            return Err(Error::MatchAlreadyStarted(match_id.to_string()));
+        }
+        // 检查是否已加入
+        let existing = self.participants.list_by_match(match_id).await?;
+        if existing.iter().any(|p| p.player_id == player_id) {
+            return Err(Error::Conflict(format!(
+                "player {} already in match",
+                player_id
+            )));
+        }
+        let p = MatchParticipant::new(match_id, player_id, team);
+        self.participants.save(&p).await?;
+        Ok(p)
+    }
+
+    async fn start_match(&self, match_id: Uuid) -> Result<Match> {
+        let mut m = self
+            .matches
+            .find_by_id(match_id)
+            .await?
+            .ok_or_else(|| Error::NotFound {
+                entity: "Match",
+                id: match_id.to_string(),
+            })?;
+        if m.status != MatchStatus::Waiting {
+            return Err(Error::MatchAlreadyStarted(match_id.to_string()));
+        }
+        m.start();
+        self.matches.save(&m).await?;
+        Ok(m)
+    }
+
+    async fn finish_match(&self, match_id: Uuid, winner: Option<Team>) -> Result<Match> {
+        let mut m = self
+            .matches
+            .find_by_id(match_id)
+            .await?
+            .ok_or_else(|| Error::NotFound {
+                entity: "Match",
+                id: match_id.to_string(),
+            })?;
+        if m.status != MatchStatus::InProgress {
+            return Err(Error::Validation(format!(
+                "match {} is not in progress",
+                match_id
+            )));
+        }
+        m.finish(winner);
+        self.matches.save(&m).await?;
+        Ok(m)
+    }
+}
+
+pub mod grpc_service {
+    use super::*;
+    use crate::common::v1 as common_proto;
+    use crate::proto::v1 as match_proto;
+
+    pub struct MatchGrpcService {
+        pub impl_: Arc<MatchServiceImpl>,
+    }
+
+    impl MatchGrpcService {
+        pub fn new(impl_: Arc<MatchServiceImpl>) -> Self {
+            Self { impl_ }
+        }
+    }
+
+    #[tonic::async_trait]
+    impl match_proto::match_service_server::MatchService for MatchGrpcService {
+        async fn health_check(
+            &self,
+            _request: Request<common_proto::HealthCheckRequest>,
+        ) -> std::result::Result<Response<common_proto::HealthCheckResponse>, Status> {
+            let healthy = self
+                .impl_
+                .health_check()
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(common_proto::HealthCheckResponse {
+                status: if healthy {
+                    common_proto::Status::Ok as i32
+                } else {
+                    common_proto::Status::Failed as i32
+                },
+                message: if healthy {
+                    "ok".to_string()
+                } else {
+                    "degraded".to_string()
+                },
+            }))
+        }
+
+        async fn get_match(
+            &self,
+            request: Request<common_proto::EntityId>,
+        ) -> std::result::Result<Response<match_proto::Match>, Status> {
+            let id_str = request.get_ref().id.clone();
+            let match_id = Uuid::parse_str(&id_str)
+                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", id_str)))?;
+            let m = self
+                .impl_
+                .find_match_by_id(match_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?
+                .ok_or_else(|| Status::not_found(format!("match {}", id_str)))?;
+            Ok(Response::new(match_proto::Match {
+                id: Some(common_proto::EntityId {
+                    id: m.id.to_string(),
+                }),
+                status: m.status as i32,
+                created_at: Some(common_proto::Timestamp {
+                    seconds: m.created_at.timestamp(),
+                    nanos: m.created_at.timestamp_subsec_nanos() as i32,
+                }),
+                display_name: m.room_id,
+            }))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repository::{InMemoryMatchParticipantRepository, InMemoryMatchRepository};
+
+    fn svc() -> MatchServiceImpl {
+        MatchServiceImpl::new(
+            Arc::new(InMemoryMatchRepository::new()),
+            Arc::new(InMemoryMatchParticipantRepository::new()),
+        )
+    }
+
+    #[tokio::test]
+    async fn create_and_get_match() {
+        let s = svc();
+        let m = s
+            .create_match("r1".to_string(), MatchMode::TwoVsTwo)
+            .await
+            .unwrap();
+        assert_eq!(m.status, MatchStatus::Waiting);
+        let loaded = s.find_match_by_id(m.id).await.unwrap().unwrap();
+        assert_eq!(loaded.room_id, "r1");
+    }
+
+    #[tokio::test]
+    async fn create_duplicate_room_fails() {
+        let s = svc();
+        s.create_match("r1".to_string(), MatchMode::TwoVsTwo)
+            .await
+            .unwrap();
+        let err = s
+            .create_match("r1".to_string(), MatchMode::TwoVsTwo)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Conflict(_)));
+    }
+
+    #[tokio::test]
+    async fn join_then_start_then_finish() {
+        let s = svc();
+        let m = s
+            .create_match("r2".to_string(), MatchMode::FiveVsFive)
+            .await
+            .unwrap();
+        let p_id = Uuid::new_v4();
+        s.join_match(m.id, p_id, Team::Blue).await.unwrap();
+
+        let started = s.start_match(m.id).await.unwrap();
+        assert_eq!(started.status, MatchStatus::InProgress);
+
+        let finished = s.finish_match(m.id, Some(Team::Blue)).await.unwrap();
+        assert_eq!(finished.status, MatchStatus::Finished);
+        assert_eq!(finished.winner_team, Some(Team::Blue));
+    }
+
+    #[tokio::test]
+    async fn start_already_started_fails() {
+        let s = svc();
+        let m = s
+            .create_match("r3".to_string(), MatchMode::TwoVsTwo)
+            .await
+            .unwrap();
+        s.start_match(m.id).await.unwrap();
+        let err = s.start_match(m.id).await.unwrap_err();
+        assert!(matches!(err, Error::MatchAlreadyStarted(_)));
+    }
+
+    #[tokio::test]
+    async fn join_after_start_fails() {
+        let s = svc();
+        let m = s
+            .create_match("r4".to_string(), MatchMode::TwoVsTwo)
+            .await
+            .unwrap();
+        s.start_match(m.id).await.unwrap();
+        let err = s
+            .join_match(m.id, Uuid::new_v4(), Team::Blue)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::MatchAlreadyStarted(_)));
+    }
+
+    #[tokio::test]
+    async fn health_check() {
+        let s = svc();
+        assert!(s.health_check().await.unwrap());
     }
 }
