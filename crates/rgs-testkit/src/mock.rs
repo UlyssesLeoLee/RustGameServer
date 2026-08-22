@@ -11,7 +11,7 @@
 //! 53.4 CI 修正：clippy 1.98 的 `async_fn_in_trait` / `manual_async_fn` 互相对立
 //! （async fn 触发前者，impl Future 触发后者），53.4 选择 `async fn` 形式
 //! + 在 rust-ci.yml 用 `-A clippy::async_fn_in_trait` 抑制该 pedantic 警告。
-//! 54.x 接入 sqlx-mock / mockito / async-nats-mock 时再决定最终 API 形式。
+//!   54.x 接入 sqlx-mock / mockito / async-nats-mock 时再决定最终 API 形式。
 
 /// PostgreSQL 连接池 mock 标记 trait
 pub trait DbMock: Send + Sync {
