@@ -4,6 +4,7 @@
 //! - tracing 初始化（OpenTelemetry OTLP 导出，per WF-1-54.12）
 //! - gRPC 链路追踪（traceparent 注入，per WF-1-54.12）
 //! - 业务 span helper（saga / repository / service，per WF-1-54.12）
+//! - Prometheus metrics 导出 + scrape endpoint（per WF-1-54.13）
 //! - config 加载（基于 envy / figment + .env 读取 per RGS-SEC-100 §7）
 //! - error 类型（thiserror + 各域 error 集中转换）
 //! - mTLS 工具（rustls + rcgen 证书生成 per WF-1-53.11）
@@ -12,12 +13,12 @@
 //! - NATS JetStream 消息总线（per WF-1-54.10）
 //! - Outbox pattern 事务性消息（per WF-1-54.11）
 //!
-//! 规范：RGS-SPEC-CROSS-001~007 横向规范
+//! 规范：RGS-SPEC-CROSS-001~008 横向规范
 //!       RGS-IMPL-001 §3 / RGS-IMPL-003 §3 工具链
 //!
 //! 不持有 DB（per ARC-008 5 独立 DB 原则）。
 //!
-//! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox → 54.12 observability。
+//! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox → 54.12 observability → 54.13 metrics.
 
 pub mod channel;
 pub mod client;
@@ -25,6 +26,8 @@ pub mod consumer;
 pub mod dlq;
 pub mod grpc_tracing;
 pub mod messaging;
+pub mod metrics;
+pub mod metrics_endpoint;
 pub mod outbox;
 pub mod outbox_relay;
 pub mod producer;
@@ -46,6 +49,8 @@ pub use grpc_tracing::{
     server_interceptor_layer, TRACEPARENT_HEADER,
 };
 pub use messaging::{build_messaging_client, MessagingConfig, MessagingError};
+pub use metrics::{encode_to_text, metrics, Metrics, MetricsError};
+pub use metrics_endpoint::{scrape_metrics, MetricsResponse};
 pub use outbox::{
     InMemoryOutboxRepository, OutboxEntry, OutboxError, OutboxRepository, OutboxStatus,
     PgOutboxRepository, MIGRATION_TEMPLATE,
