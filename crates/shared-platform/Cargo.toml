@@ -32,6 +32,8 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 base64 = "0.22"
 bytes = "1"
+# 54.11 启用：PgOutboxRepository
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
 
 [build-dependencies]
 tonic-build = { workspace = true }
