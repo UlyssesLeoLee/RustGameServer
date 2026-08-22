@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-EXEC-001 |
 | 版本 | 0.3（v0.8 撤销所有者背书，Ulysses 12 类全签 per DEC-008）|
-| 依据 | RGS-PLAN-001 v0.8 §3.3 G-CODE-01~07 + RGS-QA-001 v0.12 决策 + RGS-REV-003/004/005/006 + RGS-ADR-0052 + RGS-IMPL-001 + RGS-HANDOFF-001 §5 + **RGS-PLAN-001 v0.8 §3.4.4 所有者背书机制** |
+| 依据 | RGS-PLAN-001 v0.8 §3.3 G-CODE-01~07 + RGS-QA-001 v0.13 决策 + RGS-REV-003/004/005/006 + RGS-ADR-0052 + RGS-IMPL-001 + RGS-HANDOFF-001 §5 + **RGS-PLAN-001 v0.8 §3.4.4 所有者背书机制** |
 | 目的 | 起草 G-CODE 阻塞项的"专题突破"操作序列 + 签字流程 + 通过标准 + **所有者背书机制**（per user decision 2026-08-21 折中方案 C）|
 | 范围 | 3 个核心 G-CODE：**G-CODE-03（ADR-0052 联审）+ G-CODE-04（Q-003 Saga 6 场景）+ G-CODE-02（DTL-031 字段 Review）** + 7 G-CODE 总关闭 |
 | 配套 | RGS-REV-003（联合评审主文）/ RGS-REV-004（DTL 字段 checklist）/ RGS-REV-005（Saga 6 场景 checklist）/ RGS-REV-006（签字流程）/ RGS-PLAN-001 v0.8（所有者背书机制）|
