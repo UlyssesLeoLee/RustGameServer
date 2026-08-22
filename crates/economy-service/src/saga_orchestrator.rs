@@ -68,17 +68,36 @@ impl SagaOrchestrator {
     }
 
     /// 执行 Saga（步进式）
+    ///
+    /// 接受 3 个入口状态（per verify-C CC-2 修复）：
+    /// - Pending: 新建 saga，正常 start() + 步进
+    /// - Running: 崩溃恢复 resume，跳过 start() 直接续跑当前 step
+    /// - Compensating: 崩溃恢复 resume 补偿未完成 step
     pub async fn execute(&self, saga: &mut Saga) -> Result<()> {
-        if saga.status != SagaStatus::Pending {
-            return Err(Error::Validation(format!(
-                "saga {} status is not Pending ({:?})",
-                saga.id, saga.status
-            )));
+        match saga.status {
+            SagaStatus::Pending => {
+                // 启动
+                saga.start();
+                self.sagas.save(saga).await?;
+            }
+            SagaStatus::Running | SagaStatus::Compensating => {
+                // 崩溃恢复入口: 跳过 start(), 后续循环按 current step 续跑
+                tracing::info!(
+                    target: "saga",
+                    saga_id = %saga.id,
+                    status = ?saga.status,
+                    current_step = saga.current_step,
+                    "resuming saga from {:?}",
+                    saga.status
+                );
+            }
+            SagaStatus::Completed | SagaStatus::Failed | SagaStatus::Aborted => {
+                return Err(Error::Validation(format!(
+                    "saga {} already in terminal state ({:?})",
+                    saga.id, saga.status
+                )));
+            }
         }
-
-        // 启动
-        saga.start();
-        self.sagas.save(saga).await?;
 
         // 步进
         while let Some(current) = saga.current().cloned() {
