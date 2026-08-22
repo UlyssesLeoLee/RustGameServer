@@ -41,8 +41,10 @@ pub mod subject;
 pub mod tls;
 pub mod tracing_init;
 
-pub use channel::{build_channel, retry_backoff, ChannelError, RpcChannelConfig};
-pub use client::{build_service_channel, ServiceId};
+pub use channel::{build_channel, mtls_bypassed_total, retry_backoff, ChannelError, RpcChannelConfig};
+pub use client::{
+    build_insecure_channel, build_secure_channel, build_secure_channel_with_tls, ServiceId,
+};
 pub use consumer::{
     deserialize_envelope, nak_with_delay, process_with_retry, ConsumerConfig, ConsumerError,
     ConsumerHandler, DeserializedMessage,
@@ -73,7 +75,9 @@ pub use span_helpers::{
     service_call_span,
 };
 pub use subject::{parse, SubjectBuilder, SubjectDomain, SubjectError};
-pub use tls::{load_client_tls, load_server_identity, ClientTlsConfigInput, TlsError};
+pub use tls::{
+    load_client_tls, load_server_identity, load_server_tls_config, ClientTlsConfigInput, TlsError,
+};
 pub use tracing_init::{
     init_tracing, init_tracing_with_otel, shutdown_tracing, OtelConfig, TracingError,
 };

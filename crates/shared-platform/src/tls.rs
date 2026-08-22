@@ -11,7 +11,7 @@ use std::fs;
 use std::path::Path;
 
 use thiserror::Error;
-use tonic::transport::{Certificate, ClientTlsConfig, Identity};
+use tonic::transport::{Certificate, ClientTlsConfig, Identity, ServerTlsConfig};
 
 /// mTLS 错误
 #[derive(Debug, Error)]
@@ -78,6 +78,45 @@ pub fn load_server_identity(cert_path: &Path, key_path: &Path) -> Result<Identit
     Ok(Identity::from_pem(cert, key))
 }
 
+/// 加载服务端 mTLS 配置（强制客户端证书校验，per RGS-REV-007 CH4 + DEC-015 P1）
+///
+/// 与 [`load_server_identity`] 的区别：
+/// - 本函数额外要求客户端 CA 证书（`client_ca_cert_path`）
+/// - 设置 `client_ca_root` 后，tonic 0.12 的 `ServerTlsConfig` 默认
+///   `client_auth_optional = false`，即 **强制要求客户端出示证书**
+/// - 缺失客户端证书的连接会被 rustls 拒绝，防中间人
+///
+/// 调用方将返回值传给 `tonic::transport::Server::tls_config(...)`。
+///
+/// 错误：任何 PEM 文件读取失败都会返回 [`TlsError::FileRead`] 并附带路径。
+pub fn load_server_tls_config(
+    server_cert_path: &Path,
+    server_key_path: &Path,
+    client_ca_cert_path: &Path,
+) -> Result<ServerTlsConfig, TlsError> {
+    let server_cert = fs::read_to_string(server_cert_path).map_err(|e| TlsError::FileRead {
+        path: server_cert_path.display().to_string(),
+        source: e,
+    })?;
+    let server_key = fs::read_to_string(server_key_path).map_err(|e| TlsError::FileRead {
+        path: server_key_path.display().to_string(),
+        source: e,
+    })?;
+    let ca_cert = fs::read_to_string(client_ca_cert_path).map_err(|e| TlsError::FileRead {
+        path: client_ca_cert_path.display().to_string(),
+        source: e,
+    })?;
+
+    let server_identity = Identity::from_pem(server_cert, server_key);
+    let client_ca_root = Certificate::from_pem(ca_cert);
+
+    // tonic 0.12: 不调用 client_auth_optional(true) 即保持 required (default)
+    // 设置 client_ca_root 即启用 mutual TLS 客户端证书校验
+    Ok(ServerTlsConfig::new()
+        .identity(server_identity)
+        .client_ca_root(client_ca_root))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,5 +136,41 @@ mod tests {
             client_key_path: "/client.key".to_string(),
         };
         assert_eq!(input.domain, "player.local");
+    }
+
+    #[test]
+    fn load_server_tls_config_missing_file_returns_err() {
+        // 任何缺失 PEM 文件都应返回 TlsError::FileRead 并附带路径
+        let result = load_server_tls_config(
+            Path::new("/nonexistent/server-cert.pem"),
+            Path::new("/nonexistent/server-key.pem"),
+            Path::new("/nonexistent/client-ca.pem"),
+        );
+        assert!(matches!(result, Err(TlsError::FileRead { .. })));
+        if let Err(TlsError::FileRead { path, .. }) = result {
+            assert!(path.contains("server-cert.pem"));
+        }
+    }
+
+    #[test]
+    fn load_server_tls_config_missing_server_key_returns_err() {
+        // 缺 server key：第一个文件读成功，但 cert_path 缺失也应被检测
+        // 这里反过来用：第一个文件就不存在，验证短路
+        let result = load_server_tls_config(
+            Path::new("/nonexistent/missing.pem"),
+            Path::new("/also/missing.pem"),
+            Path::new("/still/missing.pem"),
+        );
+        assert!(matches!(result, Err(TlsError::FileRead { .. })));
+    }
+
+    #[test]
+    fn load_server_identity_missing_file_returns_err() {
+        // 同 family 已有 helper 的错误行为保持一致
+        let result = load_server_identity(
+            Path::new("/nonexistent/cert.pem"),
+            Path::new("/nonexistent/key.pem"),
+        );
+        assert!(matches!(result, Err(TlsError::FileRead { .. })));
     }
 }
