@@ -100,17 +100,17 @@ impl EconomyService for EconomyServiceImpl {
             return Err(Error::AccountFrozen(account_id.to_string()));
         }
         account.credit(amount);
-        let updated = self.accounts.update_with_version(&account).await?;
+        // 原子事务：OCC 更新账户 + 写入账目（per RGS-REV-007 AC3 修复）
         let mut entry = TransactionLedger::new(
-            updated.id,
+            account.id,
             amount,
-            updated.currency,
+            account.currency,
             TransactionKind::Deposit,
             idempotency_key,
         );
         entry.status = TransactionStatus::Confirmed;
-        self.ledger.save(&entry).await?;
-        Ok(entry)
+        let (_, saved_entry) = self.accounts.apply_atomic(&account, &entry).await?;
+        Ok(saved_entry)
     }
 
     async fn debit(
@@ -148,17 +148,17 @@ impl EconomyService for EconomyServiceImpl {
                 required: amount,
             });
         }
-        let updated = self.accounts.update_with_version(&account).await?;
+        // 原子事务：OCC 更新账户 + 写入账目（per RGS-REV-007 AC3 修复）
         let mut entry = TransactionLedger::new(
-            updated.id,
+            account.id,
             -amount,
-            updated.currency,
+            account.currency,
             TransactionKind::Spend,
             idempotency_key,
         );
         entry.status = TransactionStatus::Confirmed;
-        self.ledger.save(&entry).await?;
-        Ok(entry)
+        let (_, saved_entry) = self.accounts.apply_atomic(&account, &entry).await?;
+        Ok(saved_entry)
     }
 
     async fn get_balance(&self, account_id: Uuid) -> Result<Account> {
@@ -270,27 +270,28 @@ mod tests {
     use super::*;
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
 
-    async fn make_service() -> EconomyServiceImpl {
-        EconomyServiceImpl::new(
-            Arc::new(InMemoryAccountRepository::new()),
-            Arc::new(InMemoryTransactionLedgerRepository::new()),
-        )
+    /// 构造带共享 ledger 的 service（per RGS-REV-007 AC3 修复）
+    /// 共享 ledger HashMap 让 apply_atomic 可原子写两侧
+    fn make_service_paired() -> (EconomyServiceImpl, Arc<InMemoryAccountRepository>, Arc<InMemoryTransactionLedgerRepository>) {
+        let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
+        let acc_repo = Arc::new(
+            InMemoryAccountRepository::new()
+                .with_shared_ledger(led_repo.inner.clone()),
+        );
+        let svc = EconomyServiceImpl::new(
+            acc_repo.clone() as Arc<dyn AccountRepository>,
+            led_repo.clone() as Arc<dyn TransactionLedgerRepository>,
+        );
+        (svc, acc_repo, led_repo)
     }
 
     #[tokio::test]
     async fn credit_increases_balance() {
-        let _ = make_service().await;
+        let (svc, acc_repo, _led_repo) = make_service_paired();
         let player_id = Uuid::new_v4();
         let account = Account::new(player_id, Currency::Gold);
         let account_id = account.id;
-        // 注入账户到 service 的 repo
-        let acc_repo = Arc::new(InMemoryAccountRepository::new());
         acc_repo.save(&account).await.unwrap();
-        let svc = EconomyServiceImpl::new(
-            acc_repo as Arc<dyn AccountRepository>,
-            Arc::new(InMemoryTransactionLedgerRepository::new())
-                as Arc<dyn TransactionLedgerRepository>,
-        );
 
         let entry = svc
             .credit(account_id, 100, "key-1".to_string())
@@ -301,19 +302,15 @@ mod tests {
 
         let acc = svc.get_balance(account_id).await.unwrap();
         assert_eq!(acc.balance, 100);
+        // per RGS-REV-007 AC3: ledger 同步写入（apply_atomic 原子性）
+        assert_eq!(acc_repo.inner.lock().unwrap().get(&account_id).unwrap().balance, 100);
     }
 
     #[tokio::test]
     async fn credit_idempotency_conflict() {
-        let _ = make_service().await;
+        let (svc, acc_repo, _led_repo) = make_service_paired();
         let acc = Account::new(Uuid::new_v4(), Currency::Gold);
-        let acc_repo = Arc::new(InMemoryAccountRepository::new());
         acc_repo.save(&acc).await.unwrap();
-        let svc = EconomyServiceImpl::new(
-            acc_repo as Arc<dyn AccountRepository>,
-            Arc::new(InMemoryTransactionLedgerRepository::new())
-                as Arc<dyn TransactionLedgerRepository>,
-        );
 
         svc.credit(acc.id, 100, "dup-key".to_string())
             .await
@@ -327,31 +324,40 @@ mod tests {
 
     #[tokio::test]
     async fn debit_insufficient_funds() {
-        let _ = make_service().await;
-        let acc_repo = Arc::new(InMemoryAccountRepository::new());
+        let (svc, acc_repo, _led_repo) = make_service_paired();
         let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
         acc.credit(50);
         acc_repo.save(&acc).await.unwrap();
-        let svc = EconomyServiceImpl::new(
-            acc_repo as Arc<dyn AccountRepository>,
-            Arc::new(InMemoryTransactionLedgerRepository::new())
-                as Arc<dyn TransactionLedgerRepository>,
-        );
 
         let err = svc.debit(acc.id, 100, "k".to_string()).await.unwrap_err();
         assert!(matches!(err, Error::InsufficientFunds { .. }));
     }
 
     #[tokio::test]
+    async fn debit_atomic_balance_and_ledger() {
+        // 验证 RGS-REV-007 AC3 修复：debit 成功时 balance 和 ledger 同步更新
+        let (svc, acc_repo, led_repo) = make_service_paired();
+        let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+        acc.credit(100);
+        acc_repo.save(&acc).await.unwrap();
+
+        let entry = svc.debit(acc.id, 30, "spend-1".to_string()).await.unwrap();
+        assert_eq!(entry.amount, -30);
+        assert_eq!(entry.status, TransactionStatus::Confirmed);
+
+        let balance = svc.get_balance(acc.id).await.unwrap().balance;
+        assert_eq!(balance, 70, "balance should be 100 - 30 = 70");
+
+        // ledger 同步写入（apply_atomic 原子性）
+        let led_count = led_repo.inner.lock().unwrap().len();
+        assert_eq!(led_count, 1, "ledger should have exactly 1 entry");
+    }
+
+    #[tokio::test]
     async fn freeze_account() {
-        let acc_repo = Arc::new(InMemoryAccountRepository::new());
+        let (svc, acc_repo, _led_repo) = make_service_paired();
         let acc = Account::new(Uuid::new_v4(), Currency::Gold);
         acc_repo.save(&acc).await.unwrap();
-        let svc = EconomyServiceImpl::new(
-            acc_repo as Arc<dyn AccountRepository>,
-            Arc::new(InMemoryTransactionLedgerRepository::new())
-                as Arc<dyn TransactionLedgerRepository>,
-        );
 
         let frozen = svc
             .freeze_account(acc.id, "fraud".to_string())
@@ -362,7 +368,7 @@ mod tests {
 
     #[tokio::test]
     async fn health_check() {
-        let svc = make_service().await;
+        let (svc, _acc_repo, _led_repo) = make_service_paired();
         assert!(svc.health_check().await.unwrap());
     }
 }
