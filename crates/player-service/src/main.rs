@@ -1,14 +1,21 @@
-//! player-service 入口（54.1 占位二进制）
+//! player-service 入口（54.7 业务实施后 binary）
 //!
-//! 启动 tonic gRPC server（占位 health check service）+ 读取 DATABASE_URL。
-//! 54.7 业务实施后接入实际 gRPC method。
+//! 启动 tonic gRPC server 接 PlayerService（HealthCheck + GetPlayer）+ tracing 初始化。
+//! 54.4 PgRepository wiring 留 55.x；当前用 InMemoryRepository 让 binary 可启动。
 
 use anyhow::Context;
 use std::env;
+use std::sync::Arc;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
-use player_service::service::{PlayerService, PlayerServiceImpl};
+use player_service::db;
+use player_service::repository::{
+    InMemoryPlayerRepository, InMemoryPlayerSessionRepository, PlayerRepository,
+    PlayerSessionRepository,
+};
+use player_service::service::grpc_service::PlayerGrpcService;
+use player_service::service::PlayerServiceImpl;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,23 +27,33 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let addr = env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:50051".to_string());
+    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
+        .unwrap_or_else(|_| "0.0.0.0:50051".to_string())
+        .parse()
+        .context("invalid GRPC_ADDR")?;
     let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
 
     tracing::info!(target: "player-service", "starting service at {}, db={}", addr, database_url);
 
-    let service = PlayerServiceImpl::new();
+    // 54.4 PgRepository wiring 留 55.x：先用 InMemory 让 binary 可启动
+    let players: Arc<dyn PlayerRepository> = Arc::new(InMemoryPlayerRepository::new());
+    let sessions: Arc<dyn PlayerSessionRepository> = Arc::new(InMemoryPlayerSessionRepository::new());
 
-    // 54.1 占位：仅 health check；54.7 业务实施后加实际 gRPC method
-    let svc_health = service.health_check().await?;
-    tracing::info!(target: "player-service", "health check: {}", svc_health);
+    // 健康检查：尝试连 DB 失败不影响 binary 启动
+    if let Err(e) = db::pool_from_env().await {
+        tracing::warn!(target: "player-service", "DB pool init failed (using in-memory fallback): {}", e);
+    }
 
-    // 54.1 占位：tonic server 不实际 bind（待 54.2 proto + 54.3 tonic-build）
-    tracing::warn!(target: "player-service", "54.1 骨架：tonic server 占位不 bind；待 54.2-54.3 启用");
+    let service_impl = Arc::new(PlayerServiceImpl::new(players, sessions));
+    let grpc = PlayerGrpcService::new(service_impl);
 
-    // 阻塞 1 秒后退出（占位行为）
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    tracing::info!(target: "player-service", "exiting (54.1 placeholder)");
-
+    // 启动 tonic server
+    tracing::info!(target: "player-service", "binding gRPC server at {}", addr);
+    let svc = player_service::proto::v1::player_service_server::PlayerServiceServer::new(grpc);
+    tonic::transport::Server::builder()
+        .add_service(svc)
+        .serve(addr)
+        .await
+        .context("tonic server failed")?;
     Ok(())
 }
