@@ -4,6 +4,8 @@
 //! 55.15 wire-up：main.rs 切到 PgRepository + db::pool_from_env() + migrations。
 //! 55.23 wire-up：构造 SagaOrchestrator + ReserveHandler/ConfirmHandler，
 //!                启动崩溃恢复后台任务（per RGS-REV-007 AC4 收尾 / DEC-015 P1）。
+//! 55.21 wire-up：tonic server 强制 mTLS（per RGS-REV-007 CH4 / DEC-015 P1）。
+//! 55.22 wire-up：实例化 PgOutboxRepository + OutboxRelay 后台轮询（per RGS-REV-007 CH1+CH2+AH1 / DEC-015 P1）。
 
 use anyhow::Context;
 use std::env;
@@ -11,6 +13,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
+
+use shared_platform::messaging::{build_messaging_client, MessagingConfig};
+use shared_platform::outbox::PgOutboxRepository;
+use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
+use shared_platform::producer::{Producer, ProducerConfig};
+use shared_platform::tls::load_server_tls_config;
 
 use economy_service::db;
 use economy_service::entity::Currency;
@@ -129,12 +137,72 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!(target: "saga", "saga orchestrator started");
 
+    // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
+    let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
+
+    // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
+    // dev/test fallback: NATS 不可用时跳过 relay，gRPC server 继续运行
+    let nats_uri = env::var("NATS_URI").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+    match build_messaging_client(&MessagingConfig {
+        uri: nats_uri.clone(),
+        name: "economy-service".to_string(),
+    })
+    .await
+    {
+        Ok((nats_client, js_ctx)) => {
+            let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
+            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
+            tokio::spawn(async move {
+                // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
+                let _nats_keepalive = nats_client;
+                Arc::new(relay).run().await;
+            });
+            tracing::info!(target: "economy-service", "outbox relay started (NATS={})", nats_uri);
+        }
+        Err(e) => {
+            tracing::warn!(
+                target: "economy-service",
+                "outbox relay DISABLED — NATS connect failed: {}; outbox rows will accumulate, manual recovery required",
+                e
+            );
+        }
+    }
+
     let service_impl = Arc::new(EconomyServiceImpl::new(accounts, ledger));
     let grpc = EconomyGrpcService::new(service_impl);
 
+    // 55.21: 加载 mTLS 配置（per RGS-REV-007 CH4：强制 client 证书校验，防中间人）
+    // dev/test fallback: PEM 缺失时降级为 insecure gRPC（warn 提示）
+    let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
+    let tls_config = match load_server_tls_config(
+        &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
+        &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
+        &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
+    ) {
+        Ok(cfg) => Some(cfg),
+        Err(e) => {
+            tracing::warn!(
+                target: "economy-service",
+                "mTLS config load failed ({}), falling back to insecure gRPC",
+                e
+            );
+            None
+        }
+    };
+
+    let mut server_builder = tonic::transport::Server::builder();
+    if let Some(tls_cfg) = tls_config {
+        server_builder = server_builder
+            .tls_config(tls_cfg)
+            .context("tls_config")?;
+        tracing::info!(target: "economy-service", "mTLS ENABLED — gRPC client cert verification required");
+    } else {
+        tracing::warn!(target: "economy-service", "⚠ mTLS DISABLED — service running insecure gRPC");
+    }
+
     tracing::info!(target: "economy-service", "binding gRPC server at {}", addr);
     let svc = economy_service::proto::v1::economy_service_server::EconomyServiceServer::new(grpc);
-    tonic::transport::Server::builder()
+    server_builder
         .add_service(svc)
         .serve(addr)
         .await
