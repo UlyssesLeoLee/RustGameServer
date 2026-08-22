@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 #![allow(clippy::doc_overindented_list_items, clippy::doc_lazy_continuation)]
 
 //! economy-service —— 5 域经济微服务业务骨架。
@@ -18,6 +19,8 @@ pub mod service;
 pub use error::{Error, Result};
 
 pub mod proto;
+
+pub mod db;
 
 pub mod common {
     pub mod v1 {

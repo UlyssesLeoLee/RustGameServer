@@ -6,9 +6,10 @@ use thiserror::Error;
 
 /// economy-service 域统一错误类型
 #[derive(Debug, Error)]
+#[allow(clippy::result_large_err)]
 pub enum Error {
     #[error("database error: {0}")]
-    Database(#[from] sqlx::Error),
+    Database(#[source] Box<sqlx::Error>),
 
     #[error("not found: {entity} with id {id}")]
     NotFound { entity: &'static str, id: String },
@@ -25,3 +26,9 @@ pub enum Error {
 
 /// 域统一 Result 类型
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<sqlx::Error> for Error {
+    fn from(e: sqlx::Error) -> Self {
+        Error::Database(Box::new(e))
+    }
+}
