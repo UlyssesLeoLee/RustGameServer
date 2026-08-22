@@ -40,6 +40,8 @@ opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.17", features = ["grpc-tonic", "metrics"] }
 opentelemetry-semantic-conventions = "0.16"
 tracing-opentelemetry = "0.25"
+# 54.13 启用：Prometheus metrics (per ARC-051 观测)
+prometheus = "0.13"
 
 [build-dependencies]
 tonic-build = { workspace = true }
