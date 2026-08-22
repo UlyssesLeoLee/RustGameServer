@@ -1,13 +1,18 @@
 //! gRPC Channel 工厂（per RGS-SPEC-CROSS-002 mTLS + 跨域 RPC 规范）
 //!
 //! 54.9 实化：RpcChannel 工厂 + mTLS + 超时 + retry 拦截器
+//! 55.18 实化：mTLS fail-closed（`require_tls: true` 默认） + bypass 计数
 //!
 //! 设计：
 //! - tonic::transport::Channel 是多路复用（HTTP/2），1 个 Channel 可并发处理 N 个 RPC
 //! - mTLS 用 rustls 加载（per 53.11 rgs-certgen）
 //! - timeout 用 tonic Request<...>::set_timeout（per-call）
 //! - retry 通过包装 invoke（per RGS-SPEC-CROSS-006 草案）
+//! - 默认 fail-closed：未配置 TLS 时 `require_tls=true` 返 `TlsRequired` 错误
+//!   （per RGS-REV-007 CH4 + DEC-015 P1 审计建议）
+//! - 显式 `require_tls=false` 时打 warn 日志 + `mtls_bypassed_total++` 计数
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use thiserror::Error;
@@ -27,6 +32,12 @@ pub enum ChannelError {
 
     #[error("connection error: {0}")]
     Connect(String),
+
+    /// fail-closed 触发：cfg.tls 为 None 且 require_tls=true（per RGS-REV-007 CH4）
+    #[error(
+        "TLS required but cfg.tls is None (fail-closed); set require_tls=false to explicitly opt-out"
+    )]
+    TlsRequired,
 }
 
 /// RpcChannel 配置
@@ -38,10 +49,15 @@ pub struct RpcChannelConfig {
     pub connect_timeout: Duration,
     /// 单次 RPC 超时
     pub request_timeout: Duration,
-    /// TLS 配置（None = 明文）
+    /// TLS 配置（None = 明文；需配合 `require_tls=false` 才允许）
     pub tls: Option<ClientTlsConfigInput>,
     /// 重试配置
     pub retry: RetryConfig,
+    /// TLS 强制开关（per RGS-REV-007 CH4 fail-closed）
+    ///
+    /// - `true`（默认）：`cfg.tls = None` 时返 `TlsRequired` 错误
+    /// - `false`：允许明文连接，但打 warn 日志并 +1 `mTLS_bypassed_total`
+    pub require_tls: bool,
 }
 
 impl Default for RpcChannelConfig {
@@ -52,22 +68,58 @@ impl Default for RpcChannelConfig {
             request_timeout: Duration::from_secs(30),
             tls: None,
             retry: RetryConfig::default(),
+            // fail-closed by default（per RGS-REV-007 CH4 + DEC-015 P1）
+            require_tls: true,
         }
     }
 }
 
-/// 构造 RpcChannel（带 mTLS + 超时）
+/// mTLS bypass 计数（per RGS-REV-007 CH4 监控项）
+///
+/// 每次 `build_channel` 因 `require_tls=false` 走明文路径时 +1。
+/// 调用方应通过 `mtls_bypassed_total()` 读取当前值（Prometheus exporter
+/// 或 scrape handler 暴露为 `mTLS_bypassed_total`）。
+static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);
+
+/// 获取 mTLS bypass 累计计数
+pub fn mtls_bypassed_total() -> u64 {
+    MTLS_BYPASSED_TOTAL.load(Ordering::Relaxed)
+}
+
+/// 构造 RpcChannel（带 mTLS + 超时 + fail-closed）
+///
+/// 行为矩阵（per RGS-REV-007 CH4 + DEC-015 P1）：
+///
+/// | `cfg.tls` | `require_tls` | 行为 |
+/// |-----------|---------------|------|
+/// | `Some(_)` | 任意          | mTLS 连接 |
+/// | `None`    | `true`（默认）| 返 `TlsRequired` 错误（fail-closed） |
+/// | `None`    | `false`       | 明文 + `tracing::warn!` + `mTLS_bypassed_total++` |
 pub async fn build_channel(cfg: &RpcChannelConfig) -> Result<Channel, ChannelError> {
     let mut endpoint = Endpoint::from_shared(cfg.uri.clone())
         .map_err(|e| ChannelError::InvalidUri(e.to_string()))?
         .connect_timeout(cfg.connect_timeout)
         .timeout(cfg.request_timeout);
 
-    if let Some(tls_input) = &cfg.tls {
-        let tls_config = load_client_tls(tls_input)?;
-        endpoint = endpoint
-            .tls_config(tls_config)
-            .map_err(|e| ChannelError::Connect(format!("tls config: {}", e)))?;
+    match (&cfg.tls, cfg.require_tls) {
+        (Some(tls_input), _) => {
+            let tls_config = load_client_tls(tls_input)?;
+            endpoint = endpoint
+                .tls_config(tls_config)
+                .map_err(|e| ChannelError::Connect(format!("tls config: {}", e)))?;
+        }
+        (None, true) => {
+            // fail-closed：未配置 TLS 且未显式 opt-out → 直接拒绝
+            return Err(ChannelError::TlsRequired);
+        }
+        (None, false) => {
+            // 显式 opt-out：明文 + 告警 + 计数
+            tracing::warn!(
+                uri = %cfg.uri,
+                "building plaintext channel (mTLS explicitly disabled via require_tls=false)"
+            );
+            MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
+        }
     }
 
     let channel = endpoint
@@ -101,6 +153,65 @@ mod tests {
         };
         let result = build_channel(&cfg).await;
         assert!(matches!(result, Err(ChannelError::InvalidUri(_))));
+    }
+
+    #[tokio::test]
+    async fn build_channel_no_tls_returns_tls_required_error() {
+        // 默认 require_tls=true + tls=None → TlsRequired（fail-closed）
+        let cfg = RpcChannelConfig {
+            uri: "https://127.0.0.1:50051".to_string(),
+            ..Default::default()
+        };
+        assert!(cfg.require_tls, "default should be fail-closed");
+        let result = build_channel(&cfg).await;
+        assert!(
+            matches!(result, Err(ChannelError::TlsRequired)),
+            "expected TlsRequired, got {:?}",
+            result
+        );
+    }
+
+    #[tokio::test]
+    async fn build_channel_with_require_tls_false_increments_bypass_counter() {
+        // 显式 opt-out：counter +1（即使连接最终失败）
+        let before = mtls_bypassed_total();
+        let cfg = RpcChannelConfig {
+            uri: "http://127.0.0.1:50051".to_string(),
+            connect_timeout: Duration::from_millis(50),
+            require_tls: false,
+            ..Default::default()
+        };
+        let _ = build_channel(&cfg).await; // 连接预期失败（无服务监听）
+        let after = mtls_bypassed_total();
+        assert!(
+            after > before,
+            "expected mtls_bypassed_total to increment, before={} after={}",
+            before,
+            after
+        );
+    }
+
+    #[tokio::test]
+    async fn build_channel_with_tls_returns_tls_error_not_tls_required() {
+        // 配 TLS 时不走 fail-closed 路径，错误是 Tls（证书文件不存在）而非 TlsRequired
+        let cfg = RpcChannelConfig {
+            uri: "https://127.0.0.1:50051".to_string(),
+            connect_timeout: Duration::from_millis(50),
+            require_tls: true,
+            tls: Some(crate::tls::ClientTlsConfigInput {
+                domain: "player.local".to_string(),
+                ca_cert_path: "/nonexistent/ca.pem".to_string(),
+                client_cert_path: "/nonexistent/client.pem".to_string(),
+                client_key_path: "/nonexistent/client.key".to_string(),
+            }),
+            ..Default::default()
+        };
+        let result = build_channel(&cfg).await;
+        assert!(
+            matches!(result, Err(ChannelError::Tls(_))),
+            "expected Tls error (placeholder cert paths missing), got {:?}",
+            result
+        );
     }
 
     #[tokio::test]
