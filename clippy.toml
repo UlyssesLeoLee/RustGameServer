@@ -1,6 +1,4 @@
-# clippy 配置（per WBS v0.3 §2A.5 WF-1-55.7 计划）
-# 53.4 临时禁用 doc-overindented-list-items 和 doc-lazy-continuation：
-# cargo fmt 跟 clippy doc 列表规则拉扯（4 空格 vs 8 空格），
-# 53.4 接受现状；55.x 改单行段落或 markdown 表格后移除这两条。
-# 注：clippy.toml 没有"allow lint 集合"字段，所以下面用 lint 专用字段；
-#     实际生效在 rust-ci.yml 的 cargo clippy 命令里加 -A 参数。
+# clippy 配置
+# 53.4 result_large_err：sqlx::Error + anyhow::Error + tonic::Status
+# 三个大类型组合 Result > 256 字节；54.4 接受；55.x 优化 error.rs
+large-error-ignored = ["Database", "Internal", "Transport", "Error"]
