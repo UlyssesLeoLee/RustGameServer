@@ -6,9 +6,12 @@
 //!                启动崩溃恢复后台任务（per RGS-REV-007 AC4 收尾 / DEC-015 P1）。
 //! 55.21 wire-up：tonic server 强制 mTLS（per RGS-REV-007 CH4 / DEC-015 P1）。
 //! 55.22 wire-up：实例化 PgOutboxRepository + OutboxRelay 后台轮询（per RGS-REV-007 CH1+CH2+AH1 / DEC-015 P1）。
+//! 55.26 fail-closed mTLS：默认强制 mTLS；RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out
+//!                       (per RGS-REV-008 AC-1 / verify-A+C)。
 
 use anyhow::Context;
 use std::env;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing_subscriber::fmt;
@@ -31,6 +34,16 @@ use economy_service::saga::{PgSagaRepository, SagaRepository};
 use economy_service::saga_orchestrator::{ConfirmHandler, ReserveHandler, SagaOrchestrator};
 use economy_service::service::grpc_service::EconomyGrpcService;
 use economy_service::service::EconomyServiceImpl;
+
+/// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C）
+///
+/// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
+/// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
+/// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
+///
+/// 注：shared-platform 已有同名 private static（`MTLS_BYPASSED_TOTAL` for client side）；
+/// 因任务约束禁止改 shared-platform，本地定义与现有 client 端语义一致（per-process counter）。
+static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);
 
 /// 单次 Saga 预留金额（最小单位：分/钻/代币）
 ///
@@ -171,33 +184,31 @@ async fn main() -> anyhow::Result<()> {
     let service_impl = Arc::new(EconomyServiceImpl::new(accounts, ledger));
     let grpc = EconomyGrpcService::new(service_impl);
 
-    // 55.21: 加载 mTLS 配置（per RGS-REV-007 CH4：强制 client 证书校验，防中间人）
-    // dev/test fallback: PEM 缺失时降级为 insecure gRPC（warn 提示）
-    let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
-    let tls_config = match load_server_tls_config(
-        &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
-        &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
-        &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
-    ) {
-        Ok(cfg) => Some(cfg),
-        Err(e) => {
-            tracing::warn!(
-                target: "economy-service",
-                "mTLS config load failed ({}), falling back to insecure gRPC",
-                e
-            );
-            None
-        }
-    };
+    // 55.26 fail-closed mTLS（per RGS-REV-008 AC-1 / verify-A+C）
+    // 默认强制 mTLS；仅 RGS_ALLOW_INSECURE_GRPC=1 / "true" 显式 opt-out 才允许 insecure gRPC（dev/test only）。
+    // 不设置 / 0 / 任意其他值 → 任何 TLS 加载失败都通过 .context() 上抛 → main 返 Err → 进程退出 1。
+    let allow_insecure = env::var("RGS_ALLOW_INSECURE_GRPC")
+        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
 
     let mut server_builder = tonic::transport::Server::builder();
-    if let Some(tls_cfg) = tls_config {
+    if allow_insecure {
+        tracing::warn!(
+            target: "economy-service",
+            "⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)"
+        );
+        MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
+    } else {
+        let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
+        let tls_config = load_server_tls_config(
+            &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
+            &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
+            &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
+        )
+        .context("mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)")?;
         server_builder = server_builder
-            .tls_config(tls_cfg)
+            .tls_config(tls_config)
             .context("tls_config")?;
         tracing::info!(target: "economy-service", "mTLS ENABLED — gRPC client cert verification required");
-    } else {
-        tracing::warn!(target: "economy-service", "⚠ mTLS DISABLED — service running insecure gRPC");
     }
 
     tracing::info!(target: "economy-service", "binding gRPC server at {}", addr);
