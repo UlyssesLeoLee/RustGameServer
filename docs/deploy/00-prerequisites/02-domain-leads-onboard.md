@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-DEPLOY-00-02 |
 | 版本 | 0.1（占位 + 文档化）|
-| 依据 | RGS-QA-001 v0.12 DEC-005 + RGS-PLAN-001 v0.8 §3.4.4 + RGS-WBS-001 v0.2 §2 |
+| 依据 | RGS-QA-001 v0.13 DEC-005 + RGS-PLAN-001 v0.8 §3.4.4 + RGS-WBS-001 v0.2 §2 |
 | 状态 | **🟠 5 域 Lead 待具名到位** |
 | 保密级别 | 内部限定（Internal Use Only）|
 

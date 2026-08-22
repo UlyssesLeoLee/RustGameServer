@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-WBS-001 |
 | 版本 | 0.3（瀑布式 9 阶段 + worktree + agent 并行）|
-| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.12 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
+| 依据 | RGS-PLAN-001 v0.8 §3.1 PH 表（14-18 周窗口）+ RGS-QA-001 v0.13 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ RGS-TS-001 v0.6 §6.2 OLU 双轨制 + RGS-IMPL-001 工程约定 + RGS-SPEC-000 详细设计规格化总表 + RGS-REV-004 5 域 DTL 字段级 Review Checklist |
 | 范围 | first slice 14-18 周 / 5 域 + foundation + cluster-ops + shared-platform / ARC-018/021/042/051 |
 | 配套 | RGS-TS-001 v0.6 §6.2 OLU 双轨（人·天 + token）；RGS-ENV-CALIB-001 OLU 校准模板；RGS-PLAN-001 v0.8 §3.1 PH 阶段表；RGS-ENV-001 v0.3 环境核验 12 类签字 |
 | 保密级别 | 内部限定（Internal Use Only）|
@@ -180,7 +180,7 @@
 | 58 | CI | 12 | 11.0 | 2,550K |
 | **合计** | **WF-1 实施** | **72** | **69.5 人·天** | **15960K tokens/周** |
 
-**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.12 §9.5.7）。
+**一人公司约束**（per DEC-008）：Ulysses 1 人 12 角色，按 14 周窗口 5 工作日/周 = 70 人·天总容量。WF-1 阶段 69.5 人·天 **几乎占满全部容量**。已知代价（per RGS-QA-001 v0.13 §9.5.7）。
 
 ### §2A.4 agent 协作模式
 
@@ -824,9 +824,73 @@ cat .wbs-task-marker
 - L4 任务的 owner 字段 = `Ulysses`（1 人 12 角色）
 - 进度签字 = Ulysses 1 人（自审自批，流程化补偿：CI + 自动化 + 自我 PR review + OTel）
 - worktree 分支并行 = 1 个 Ulysses 可在多个 worktree 间切换（不是多人协作，但 1 人多任务并行）
-- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.12 §9.5.7）
+- 风险：1 人串行可能比 14-18 周更长（per RGS-QA-001 v0.13 §9.5.7）
 
 **未变更**：5 域 Lead 配置（仍可独立，Ulysses = 1 人 12 角色兼任）
+
+---
+
+## 16. v0.4 增量追加（2026-08-21，待脚本重生成时合入 v0.3 主体）
+
+> **本节为手动追加**，`scripts/build_wbs_v02.py` 后续重生成 v0.4 时应将这些 L4 任务并入对应域/任务簇。追加内容如下 14 份新文档对应的 L4 任务 + 6 项后续实施任务。
+
+### 16.1 新文档对应 L4 任务（文档已落盘，文档产出任务 = done）
+
+| L4 # | PH | 窗口 | 域 | L3 任务簇 | L4 任务 | Owner | 状态 | 文档编号 |
+|---:|---|---|---|---|---|---|---|---|
+| 2049 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 需求定义 | 架构师（兼） | **done** | RGS-REQ-036 |
+| 2050 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 基本设计 | 架构师（兼） | **done** | RGS-BAS-036 |
+| 2051 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 详细设计 | 架构师（兼） | **done** | RGS-DTL-041 |
+| 2052 | PH-0.5 | 第 1-2 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 实现规格 | 架构师（兼） | **done** | RGS-SPEC-DTL-041 |
+| 2053 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 单元测试 | 架构师（兼） | **done** | RGS-TST-UT-04-ADD2 |
+| 2054 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 系统测试 | 架构师（兼） | **done** | RGS-TST-ST-04-ADD2 |
+| 2055 | PH-2 | 第 5-6 周 | shared-platform | CDN 资源分发扩展 | 客户端断点续传 集成测试 | 架构师（兼） | **done** | RGS-TST-IT-04-ADD2 |
+| 2056 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 需求定义 | Admin 域 Lead（独立） | **done** | RGS-REQ-037 |
+| 2057 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 基本设计 | Admin 域 Lead（独立） | **done** | RGS-BAS-037 |
+| 2058 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 详细设计 | Admin 域 Lead（独立） | **done** | RGS-DTL-042 |
+| 2059 | PH-0.5 | 第 1-2 周 | admin | LCM 全生命周期 | 服务器全生命周期 实现规格 | Admin 域 Lead（独立） | **done** | RGS-SPEC-DTL-042 |
+| 2060 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 单元测试 | Admin 域 Lead（独立） | **done** | RGS-TST-UT-02-ADD3 |
+| 2061 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 系统测试 | Admin 域 Lead（独立） | **done** | RGS-TST-ST-02-ADD3 |
+| 2062 | PH-2 | 第 5-6 周 | admin | LCM 全生命周期 | 服务器全生命周期 集成测试 | Admin 域 Lead（独立） | **done** | RGS-TST-IT-02-ADD3 |
+
+### 16.2 后续实施 L4 任务（文档完成后的编码 + 实测，状态 = pending）
+
+| L4 # | PH | 窗口 | 域 | L3 任务簇 | L4 任务 | Owner | 状态 | 前置 |
+|---:|---|---|---|---|---|---|---|---|
+| 2063 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | rgs-asset-download crate 骨架（含 Cargo.toml、模块目录、公开 API） | 架构师（兼） | pending | L4 #2051（详细设计） + L4 #2052（实现规格） |
+| 2064 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | DownloadStateMachine + ResumeTokenStore 实现（含 SQLite + JSON 原子写） | 架构师（兼） | pending | L4 #2063 |
+| 2065 | PH-3 | 第 7-9 周 | shared-platform | 客户端 SDK 编码 | RangeClient + ChunkOrchestrator + IntegrityGate 实现（含 4 平台 pre-allocate） | 架构师（兼） | pending | L4 #2063 |
+| 2066 | PH-3 | 第 7-9 周 | admin | 6 阶段操作器编码 | RealmLifecycleService 6 操作器骨架（NewRealm/Split/Merge/Retire/Archive） | Admin 域 Lead（独立） | pending | L4 #2058（详细设计） + L4 #2059（实现规格） |
+| 2067 | PH-3 | 第 7-9 周 | admin | Saga 编排 | SagaOrchestrator + 6 阶段 Saga 步骤实现（含反向补偿） | Admin 域 Lead（独立） | pending | L4 #2066 |
+| 2068 | PH-3 | 第 7-9 周 | admin | admin_db 迁移 | 6 张新表 migration 上线（含 Expand-Contract 双向演练） | DBA + Admin 域 Lead | pending | L4 #2058 |
+| 2069 | PH-4 | 第 9-12 周 | shared-platform | Range 实测 | MinIO 自托管 Range 行为 4 平台端到端实测（AC-CDN-110~118 全部 9 项） | SRE + 架构师 | pending | L4 #2065 |
+| 2070 | PH-4 | 第 9-12 周 | admin | LCM 实测 | 6 阶段操作器演练环境 5 类各执行 1 次（AC-LCM-001~010 全部 10 项） | SRE + Admin Lead | pending | L4 #2067 + L4 #2068 |
+| 2071 | PH-4 | 第 9-12 周 | admin | LCM 集成 | ClusterOpsService `realm_lifecycle` Feature 7 子类 + OLU 上报集成 | Admin Lead | pending | L4 #2067 + L4 #2068 |
+| 2072 | PH-5 | 第 12-14 周 | shared-platform | CDN 边缘集成 | 商业 CDN（Cloudflare 可选）Range 边缘命中实测 + 切流验证 | SRE | pending | L4 #2069 |
+| 2073 | PH-5 | 第 12-14 周 | admin | 跨域联动 | LCM 与业务 service gRPC 集成（player/economy/social）+ 退场后 RBAC 通道开启 | Admin Lead + 各域 Lead | pending | L4 #2071 |
+| 2074 | PH-6 | 第 14-16 周 | admin | 归档实测 | 归档冷热分层 + N+2 冗余 + GDPR "被遗忘权"删除通路实测 | DBA + 法务 | pending | L4 #2071 |
+
+**合计**：v0.4 增量追加 26 项 L4 任务（14 文档 + 12 实施），总 L4 任务数 = 2048（v0.3 占位）+ 26（v0.4 增量）= **2074**。
+
+### 16.3 v0.4 增量对 OLU 的影响（per RGS-TS-001 §6.2 OLU 双轨制）
+
+| 任务 | 人·天（占位） | Tokens（占位） | 备注 |
+|---|---|---|---|
+| 14 份文档产出（v0.4 已完成） | _人·天 | _tokens | 实际已落盘，OLU 由 5 域 + 3 配套 Lead 在 PH-0.5 签字时回填 |
+| 12 项实施任务（v0.4 pending） | _人·天 | _tokens | PH-3~PH-6 跨度 6~9 周，按 RGS-TS-001 §6.2 token-OLU 框架核算 |
+
+> **OLU 上报时机**：v0.4 增量任务正式纳入 ARC-026 预算门禁**前**，需由 5 域 + 3 配套 Lead 在 PH-0.5 签字栏补全"人·天"与"Tokens"两列字段（NFR-LCM-007 硬约束适用 12 项实施任务中的 LCM 段）。
+
+### 16.4 v0.4 增量追溯性
+
+| 增量 | 出处文档 | 责任域 |
+|---|---|---|
+| RGS-REQ-036 + RGS-BAS-036 + RGS-DTL-041 + RGS-SPEC-DTL-041 | ARC-045 客户端资源分发与热更新（断点续传子扩展）| shared-platform（架构师兼） |
+| RGS-REQ-037 + RGS-BAS-037 + RGS-DTL-042 + RGS-SPEC-DTL-042 | ARC-038 服区边界原子迁移（服务器全生命周期治理扩展）| admin（Admin 域 Lead） |
+| 6 份 TST addendum | RGS-REQ-004 §3.7 登记（AC-CDN-110~118 + AC-LCM-001~010）| 各域 Lead |
+| 14 份已知文档登记 | `docs/document-registry.toml` 12 份 `known_existing_draft` | 架构师 |
+| RGS-DTL-031 §1.1 Feature 类型扩 | 5 类 Feature（含 `realm_lifecycle`）| 架构师（兼） |
+| RGS-REQ-004 §3.6+§3.7 修订行 + 30 域 175 项 AC | 可追溯性矩阵 | 架构师（兼） |
 
 ---
 

@@ -101,4 +101,4 @@ pending → in_progress (start) → done (done)
 - worktree 规范：RGS-WT-001 v0.2 §11（WBS L4 任务模式）
 - 脚本：`scripts/wbs_list.ps1` / `wbs_create_worktree.ps1` / `wbs_task_progress.ps1` / `wbs_merge.ps1`
 - DAG 依赖：RGS-WBS-001_DAG_v0.3.md
-- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.12
+- 治理：RGS-PLAN-001 v0.8 §3.4.4 + RGS-QA-001 v0.13

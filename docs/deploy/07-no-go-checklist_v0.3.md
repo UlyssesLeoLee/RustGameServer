@@ -14,7 +14,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。NO-GO 状态表 + 7 G-CODE + 12 类签字栏 + 5 G-CODE 工具链。 |
-| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.12 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 状态部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 部分 Closed（G-CODE-06 / G-CODE-03 仍需实测）。 |
+| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.13 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 状态部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 部分 Closed（G-CODE-06 / G-CODE-03 仍需实测）。 |
 | 0.3 | 2026-08-21 | 架构师（Ulysses）| **NO-GO 起動準備就绪**（per 用户决策 2026-08-21 "跳到 53 起動准备，不等实测"）：① WBS v0.3 5 域 DTL 7+1 L4 任务 + 7 份 RGS-SPEC-CROSS-001~007 占位文档 + 4 个 WBS 工具脚本（`wbs_list` / `wbs_create_worktree` / `wbs_task_progress` / `wbs_merge`）就位 ② RGS-WT-001 v0.2 §11（WBS L4 任务 worktree 模式）升版 ③ RGS-WBS-001 v0.3 §2A.7（激活条件）已就绪 ④ RGS-WBS-001_L4任务进度表 v0.3 + RGS-WBS-001_DAG v0.3 占位已建。**NO-GO 仍维持**——G-CODE-03（5 独立 DB 拓扑图实测）+ G-CODE-06（Rust 1.98 + cargo build + cargo test 全绿实测）任一未实测前禁止 53 起動。 |
 
 ---
@@ -61,7 +61,7 @@
 | RGS-WT-001 v0.2（WBS L4 任务 worktree 模式）| ✅ 就位 | commit 待定（v0.3）|
 | 7 份 RGS-SPEC-CROSS-001~007 占位 | ✅ 就位 | commit `0f9af88`（v0.1）|
 | 36 份 RGS-SPEC-DTL 占位 | ✅ 就位 | per `f198270`（v0.x）|
-| RGS-EXEC-001 v0.3 + RGS-ENV-001 v0.3 + RGS-REV-003 v0.3 + RGS-PLAN-001 v0.8 + RGS-QA-001 v0.12（5 治理核心）| ✅ 就位 | per commits |
+| RGS-EXEC-001 v0.3 + RGS-ENV-001 v0.3 + RGS-REV-003 v0.3 + RGS-PLAN-001 v0.8 + RGS-QA-001 v0.13（5 治理核心）| ✅ 就位 | per commits |
 
 ### 2.2 工具脚本就位
 
