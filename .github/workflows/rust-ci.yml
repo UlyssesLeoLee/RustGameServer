@@ -1,0 +1,80 @@
+# rust-ci —— CI workflow 1（per WBS v0.3 §2A.5 WF-1-53.4）
+# 触发：push to main, pull_request to main, workflow_dispatch（手动触发）
+# 范围：fmt + clippy + test + llvm-cov
+# 规范：RGS-IMPL-006 §4 + RGS-IMPL-001 §2.2
+
+name: rust-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 必跑（required by branch protection per WF-1-58.5）
+# 53.4 单平台；58.7 跨平台扩展 macos-latest
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+
+jobs:
+  rust-ci:
+    name: fmt + clippy + test on ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ->~/.rustup
+            ->target
+          cache-on-failure: true
+
+      - name: Show rustc + cargo version
+        run: |
+          rustc --version
+          cargo --version
+          cargo fmt --version
+          cargo clippy --version
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy (workspace, all targets, deny warnings)
+        # 53.4 接受 doc-overindented-list-items / doc-lazy-continuation pedantic 警告
+        # （cargo fmt 跟 clippy doc 列表规则拉扯），55.x 改单行段落或 markdown 表格后移除 -A
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings -A clippy::doc_overindented_list_items -A clippy::doc_lazy_continuation
+
+      - name: cargo test (workspace)
+        run: cargo test --workspace --locked --all-features
+
+      - name: cargo llvm-cov (LCOV report)
+        # 53.4 骨架：仅当 cargo-llvm-cov 安装时跑
+        # 57.10 / 55.10 时由 CI 安装 + 上传 codecov.io
+        run: |
+          if command -v cargo-llvm-cov >/dev/null 2>&1; then
+            cargo llvm-cov --workspace --locked --lcov --output-path lcov.info
+          else
+            echo "::warning::cargo-llvm-cov not installed; skipping coverage"
+          fi
+
+      - name: Upload LCOV (if exists)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-${{ github.run_id }}
+          path: lcov.info
+          if-no-files-found: ignore
