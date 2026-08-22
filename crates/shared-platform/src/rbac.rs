@@ -12,9 +12,19 @@
 //! 用法：
 //! ```no_run
 //! use shared_platform::rbac::*;
+//! use uuid::Uuid;
 //! let authorizer = SimpleAuthorizer::new();
-//! let result = authorizer.check(&subject, "player:ban", "player:123");
-//! match result { CheckResult::Allow => ..., CheckResult::Deny { reason } => ... }
+//! let subject = Subject {
+//!     id: Uuid::new_v4(),
+//!     subject_type: SubjectType::Admin,
+//!     roles: vec![Role::SuperAdmin],
+//!     domain_scope: None,
+//! };
+//! let result = authorizer.check(&subject, "player:ban", "player/123");
+//! match result {
+//!     CheckResult::Allow => println!("allowed"),
+//!     CheckResult::Deny { reason } => println!("denied: {}", reason),
+//! }
 //! ```
 
 use std::collections::HashMap;
@@ -155,14 +165,22 @@ impl Authorizer for SimpleAuthorizer {
     fn check(&self, subject: &Subject, permission: &str, resource: &str) -> CheckResult {
         for role in &subject.roles {
             // DomainAdmin scope check 优先（即使有 *:* 也要 scope 限定）
+            // 缺 scope 显式 deny（per RGS-REV-007 AC6=CM5 / DEC-015 P1）：
+            //   此前版本中 None 时直接跳过 scope 校验，落到 *:* → 全权绕过。
+            //   现在若 subject 拥有 DomainAdmin 角色但未携带 domain_scope，
+            //   必须立即拒绝，禁止"无 scope 也允许"这条路径。
             if matches!(role, Role::DomainAdmin) {
-                if let Some(scope) = &subject.domain_scope {
-                    if !resource.starts_with(scope) {
-                        return CheckResult::deny_if(format!(
-                            "domain_admin scope {} not match resource {}",
-                            scope, resource
-                        ));
+                let scope = match subject.domain_scope.as_ref() {
+                    Some(s) => s,
+                    None => {
+                        return CheckResult::deny_if("domain_admin requires domain_scope");
                     }
+                };
+                if !resource_in_scope(resource, scope) {
+                    return CheckResult::deny_if(format!(
+                        "domain_admin scope {} not match resource {}",
+                        scope, resource
+                    ));
                 }
             }
 
@@ -191,6 +209,21 @@ impl Authorizer for SimpleAuthorizer {
             permission, resource
         ))
     }
+}
+
+/// Scope 边界匹配：避免 `resource.starts_with(scope)` 误匹配兄弟前缀。
+///
+/// 规则（per RGS-REV-007 AC6 / DEC-015 P1）：
+///   `scope="player"` 不应匹配 `player_secret/1`，仅匹配
+///   - `player`（完全相等）
+///   - `player/...`（`scope + "/"` 之后接子路径）
+///
+/// 返回 `true` 当且仅当 `resource == scope` 或 `resource` 以 `<scope>/` 开头。
+fn resource_in_scope(resource: &str, scope: &str) -> bool {
+    if resource == scope {
+        return true;
+    }
+    resource.starts_with(&format!("{}/", scope))
 }
 
 /// 简单通配符匹配（支持 * 通配符）
@@ -266,12 +299,13 @@ mod tests {
     #[test]
     fn domain_admin_scoped() {
         let a = SimpleAuthorizer::new();
+        // scope 内 `player/...` 路径（边界 = `/`）→ 允许
         assert!(a
-            .check(&player_admin(), "player:ban", "player:123")
+            .check(&player_admin(), "player:ban", "player/123")
             .is_allow());
         // economy 不在 scope 内 → deny
         assert!(!a
-            .check(&player_admin(), "economy:grant", "economy:1")
+            .check(&player_admin(), "economy:grant", "economy/1")
             .is_allow());
     }
 
@@ -313,5 +347,115 @@ mod tests {
     fn role_from_str() {
         assert_eq!("super_admin".parse::<Role>().unwrap(), Role::SuperAdmin);
         assert!("unknown".parse::<Role>().is_err());
+    }
+
+    // ---- WF-1-55.14 新增：DomainAdmin 缺 scope 显式 deny + scope 边界 ----
+    // (per RGS-REV-007 AC6=CM5 / DEC-015 P1)
+
+    /// DomainAdmin 带 scope，访问自己域的资源 → 允许
+    #[test]
+    fn domain_admin_with_scope_allows_own_resource() {
+        let a = SimpleAuthorizer::new();
+        assert!(a
+            .check(&player_admin(), "player:ban", "player/123")
+            .is_allow());
+        // 完全等于 scope 也允许
+        assert!(a.check(&player_admin(), "player:read", "player").is_allow());
+    }
+
+    /// DomainAdmin 带 scope，访问域外资源 → 拒绝
+    #[test]
+    fn domain_admin_with_scope_denies_other_resource() {
+        let a = SimpleAuthorizer::new();
+        // 域外资源
+        assert!(!a
+            .check(&player_admin(), "economy:grant", "economy/1")
+            .is_allow());
+        // 空 scope 不允许（完全空字符串 vs "player"）
+        assert!(!a
+            .check(&player_admin(), "player:read", "economy/abc")
+            .is_allow());
+    }
+
+    /// DomainAdmin 缺 domain_scope → 显式 deny（关键修复）
+    /// 此前此路径落到 *:* → 全权绕过，现在必须立即拒绝
+    #[test]
+    fn domain_admin_without_scope_denied() {
+        let a = SimpleAuthorizer::new();
+        let mut s = super_admin();
+        s.roles = vec![Role::DomainAdmin];
+        s.domain_scope = None; // 关键：缺 scope
+        // 即使资源看起来合法，DomainAdmin 没有 scope 必须 deny
+        let result = a.check(&s, "player:read", "player/123");
+        assert!(!result.is_allow());
+        match result {
+            CheckResult::Deny { reason } => {
+                assert!(
+                    reason.contains("domain_scope"),
+                    "deny reason should mention domain_scope, got: {}",
+                    reason
+                );
+            }
+            _ => panic!("expected deny"),
+        }
+    }
+
+    /// Scope 边界：scope="player" 不应匹配 `player_secret/1`（兄弟前缀）
+    /// 同时验证：scope="player" 正确匹配 `player/...` 子路径
+    #[test]
+    fn domain_admin_scope_boundary_does_not_match_prefix() {
+        let a = SimpleAuthorizer::new();
+        let mut s = super_admin();
+        s.roles = vec![Role::DomainAdmin];
+        s.domain_scope = Some("player".to_string());
+
+        // 兄弟前缀 `player_secret/1` 不应在 `player` scope 内 → deny
+        assert!(!a
+            .check(&s, "player:read", "player_secret/1")
+            .is_allow());
+        // `players`（无 / 后缀）也不应在 `player` scope 内 → deny
+        assert!(!a
+            .check(&s, "player:read", "players")
+            .is_allow());
+        // `player/123` 正确匹配（`player/` 是边界）→ allow
+        assert!(a
+            .check(&s, "player:read", "player/123")
+            .is_allow());
+        // 完全相等 `player` → allow
+        assert!(a.check(&s, "player:read", "player").is_allow());
+    }
+
+    /// 回归：SuperAdmin 不受 scope 限制，仍能跨域
+    #[test]
+    fn superadmin_still_works() {
+        let a = SimpleAuthorizer::new();
+        // SuperAdmin 无 domain_scope，跨域允许
+        assert!(a
+            .check(&super_admin(), "player:ban", "player/1")
+            .is_allow());
+        assert!(a
+            .check(&super_admin(), "economy:transfer", "economy/1")
+            .is_allow());
+        assert!(a
+            .check(&super_admin(), "match:create", "match/abc")
+            .is_allow());
+    }
+
+    /// 资源 `resource_in_scope` helper 单元测试
+    #[test]
+    fn resource_in_scope_helper() {
+        // 完全相等 → true
+        assert!(resource_in_scope("player", "player"));
+        // 严格边界 → true
+        assert!(resource_in_scope("player/123", "player"));
+        assert!(resource_in_scope("player/123/sub", "player"));
+        // 兄弟前缀 → false
+        assert!(!resource_in_scope("player_secret/1", "player"));
+        assert!(!resource_in_scope("players", "player"));
+        assert!(!resource_in_scope("playerx", "player"));
+        // 域外 → false
+        assert!(!resource_in_scope("economy/1", "player"));
+        // 空 resource 不会等于非空 scope
+        assert!(!resource_in_scope("", "player"));
     }
 }
