@@ -2,6 +2,7 @@
 //!
 //! 域职责：
 //! - tracing 初始化（OpenTelemetry OTLP 导出，per WF-1-54.12）
+//! - JSON 结构化日志（per WF-1-54.14）
 //! - gRPC 链路追踪（traceparent 注入，per WF-1-54.12）
 //! - 业务 span helper（saga / repository / service，per WF-1-54.12）
 //! - Prometheus metrics 导出 + scrape endpoint（per WF-1-54.13）
@@ -18,13 +19,14 @@
 //!
 //! 不持有 DB（per ARC-008 5 独立 DB 原则）。
 //!
-//! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox → 54.12 observability → 54.13 metrics.
+//! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox → 54.12 observability → 54.13 metrics → 54.14 json logging.
 
 pub mod channel;
 pub mod client;
 pub mod consumer;
 pub mod dlq;
 pub mod grpc_tracing;
+pub mod json_logging;
 pub mod messaging;
 pub mod metrics;
 pub mod metrics_endpoint;
@@ -47,6 +49,9 @@ pub use dlq::DlqEntry;
 pub use grpc_tracing::{
     client_interceptor, client_interceptor_layer, extract_trace_id, server_interceptor,
     server_interceptor_layer, TRACEPARENT_HEADER,
+};
+pub use json_logging::{
+    init_json_logging, with_actor, with_request_id, with_saga_id, JsonLogError,
 };
 pub use messaging::{build_messaging_client, MessagingConfig, MessagingError};
 pub use metrics::{encode_to_text, metrics, Metrics, MetricsError};
