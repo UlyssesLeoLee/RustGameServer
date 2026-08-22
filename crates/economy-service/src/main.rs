@@ -2,20 +2,38 @@
 //!
 //! 启动 tonic gRPC server 接 EconomyService（HealthCheck + GetAccount）+ tracing 初始化。
 //! 55.15 wire-up：main.rs 切到 PgRepository + db::pool_from_env() + migrations。
+//! 55.23 wire-up：构造 SagaOrchestrator + ReserveHandler/ConfirmHandler，
+//!                启动崩溃恢复后台任务（per RGS-REV-007 AC4 收尾 / DEC-015 P1）。
 
 use anyhow::Context;
 use std::env;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
 use economy_service::db;
+use economy_service::entity::Currency;
 use economy_service::repository::{
     AccountRepository, PgAccountRepository, PgTransactionLedgerRepository,
     TransactionLedgerRepository,
 };
+use economy_service::reservation::{PgReservationRepository, ReservationRepository};
+use economy_service::saga::{PgSagaRepository, SagaRepository};
+use economy_service::saga_orchestrator::{ConfirmHandler, ReserveHandler, SagaOrchestrator};
 use economy_service::service::grpc_service::EconomyGrpcService;
 use economy_service::service::EconomyServiceImpl;
+
+/// 单次 Saga 预留金额（最小单位：分/钻/代币）
+///
+/// 与 55.12 saga_orchestrator.rs 测试默认值对齐（per TEST_AMOUNT）
+const SAGA_RESERVE_AMOUNT: i64 = 100;
+
+/// Saga 恢复轮询间隔（秒）
+const SAGA_RECOVER_INTERVAL_SECS: u64 = 30;
+
+/// 单次恢复扫描上限（防列表爆炸）
+const SAGA_RECOVER_BATCH: i64 = 100;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -50,8 +68,66 @@ async fn main() -> anyhow::Result<()> {
     let accounts: Arc<dyn AccountRepository> = Arc::new(PgAccountRepository::new(pool.clone()));
     let ledger: Arc<dyn TransactionLedgerRepository> =
         Arc::new(PgTransactionLedgerRepository::new(pool.clone()));
+    let reservations: Arc<dyn ReservationRepository> =
+        Arc::new(PgReservationRepository::new(pool.clone()));
+    let sagas: Arc<dyn SagaRepository> = Arc::new(PgSagaRepository::new(pool.clone()));
 
     tracing::info!(target: "economy-service", "economy-service started, DB pool size: {}", pool.size());
+
+    // 55.23: 构造 SagaOrchestrator + ReserveHandler/ConfirmHandler（per RGS-REV-007 AC4 收尾）
+    let reserve_handler: Arc<dyn economy_service::saga_orchestrator::SagaStepHandler> =
+        Arc::new(ReserveHandler::new(
+            reservations.clone(),
+            accounts.clone(),
+            SAGA_RESERVE_AMOUNT,
+            Currency::Gold,
+        ));
+    let confirm_handler: Arc<dyn economy_service::saga_orchestrator::SagaStepHandler> =
+        Arc::new(ConfirmHandler::new(
+            reservations.clone(),
+            accounts.clone(),
+        ));
+    let orchestrator = Arc::new(SagaOrchestrator::new(
+        sagas.clone(),
+        reservations.clone(),
+        vec![reserve_handler, confirm_handler],
+    ));
+
+    // 55.23: 启动崩溃恢复后台任务（per RGS-DTL-100 §3 Saga 决策与执行）
+    // 周期扫描 sagas.status IN ('running', 'compensating') 并 resume
+    {
+        let orch = orchestrator.clone();
+        let sagas_for_recover = sagas.clone();
+        tokio::spawn(async move {
+            loop {
+                match sagas_for_recover.list_running(SAGA_RECOVER_BATCH).await {
+                    Ok(running) => {
+                        for saga in running {
+                            let id = saga.id;
+                            if let Err(e) = orch.resume(id).await {
+                                tracing::warn!(
+                                    target: "saga",
+                                    saga_id = %id,
+                                    "saga resume failed: {}",
+                                    e
+                                );
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            target: "saga",
+                            "saga list_running failed: {}",
+                            e
+                        );
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(SAGA_RECOVER_INTERVAL_SECS)).await;
+            }
+        });
+    }
+
+    tracing::info!(target: "saga", "saga orchestrator started");
 
     let service_impl = Arc::new(EconomyServiceImpl::new(accounts, ledger));
     let grpc = EconomyGrpcService::new(service_impl);
