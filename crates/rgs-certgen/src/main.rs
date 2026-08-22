@@ -20,7 +20,11 @@ use std::path::PathBuf;
 use time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "rgs-certgen", version, about = "RustGameServer QUIC/TLS 证书生成工具")]
+#[command(
+    name = "rgs-certgen",
+    version,
+    about = "RustGameServer QUIC/TLS 证书生成工具"
+)]
 struct Cli {
     /// 输出目录
     #[arg(short, long, default_value = "./certs")]
@@ -76,7 +80,9 @@ fn generate_ca(output: &PathBuf, validity_days: u32) -> Result<(Certificate, Key
     params
         .distinguished_name
         .push(DnType::CommonName, "RustGameServer Dev CA");
-    params.distinguished_name.push(DnType::OrganizationName, "Ulysses");
+    params
+        .distinguished_name
+        .push(DnType::OrganizationName, "Ulysses");
     params.not_before = time::OffsetDateTime::now_utc();
     params.not_after = params.not_before + Duration::days(validity_days as i64);
 
@@ -99,14 +105,14 @@ fn generate_server_cert(
 ) -> Result<()> {
     let mut params = CertificateParams::default();
     params.distinguished_name = DistinguishedName::new();
-    params
-        .distinguished_name
-        .push(DnType::CommonName, domain);
+    params.distinguished_name.push(DnType::CommonName, domain);
     params
         .distinguished_name
         .push(DnType::OrganizationName, "RustGameServer");
     params.subject_alt_names.push(SanType::DnsName(
-        domain.try_into().with_context(|| format!("SAN 转换失败: {}", domain))?,
+        domain
+            .try_into()
+            .with_context(|| format!("SAN 转换失败: {}", domain))?,
     ));
     params.not_before = time::OffsetDateTime::now_utc();
     params.not_after = params.not_before + Duration::days(validity_days as i64);
@@ -115,7 +121,10 @@ fn generate_server_cert(
     let cert = params.signed_by(&key, ca_cert, ca_key)?;
 
     fs::write(output.join(format!("{}.crt.pem", domain)), cert.pem())?;
-    fs::write(output.join(format!("{}.key.pem", domain)), key.serialize_pem())?;
+    fs::write(
+        output.join(format!("{}.key.pem", domain)),
+        key.serialize_pem(),
+    )?;
 
     Ok(())
 }
