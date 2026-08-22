@@ -1,0 +1,276 @@
+# docker-compose dev profile（per WBS v0.3 §2A.5 WF-1-53.8）
+# 6 独立 PG 18.6 容器（per ARC-008 5 独立 DB + cluster_ops_db 第 6）
+# 5 域服务占位（53.8 接受：用 rust:1.98-slim 跑 cargo run --release 占位）
+# 规范：RGS-SPEC-000 §2.4 + RGS-OPS-001 §2.3
+
+name: rgs-dev
+
+# 53.8 dev profile；57.x 加 staging / prod profile
+profiles:
+  - dev
+
+# 默认 bridge 网络 + 子网
+networks:
+  rgs-dev-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据卷：6 DB 各自持久化 + 5 域 cargo cache
+volumes:
+  player_db_data:
+  economy_db_data:
+  match_db_data:
+  social_db_data:
+  admin_db_data:
+  cluster_ops_db_data:
+  cargo-cache-player:
+  cargo-cache-economy:
+  cargo-cache-match:
+  cargo-cache-social:
+  cargo-cache-admin:
+
+services:
+  # ============ 6 独立 PostgreSQL 18.6 DB（per ARC-008 + DEC-009）============
+
+  player-db:
+    image: postgres:18.6
+    container_name: rgs-player-db
+    environment:
+      POSTGRES_DB: ${PLAYER_DB_NAME:-player_db}
+      POSTGRES_USER: ${PLAYER_DB_USER:-player_user}
+      POSTGRES_PASSWORD: ${PLAYER_DB_PASSWORD:?PLAYER_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - player_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - player-db.local
+    ports:
+      - "${PLAYER_DB_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PLAYER_DB_USER:-player_user} -d ${PLAYER_DB_NAME:-player_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  economy-db:
+    image: postgres:18.6
+    container_name: rgs-economy-db
+    environment:
+      POSTGRES_DB: ${ECONOMY_DB_NAME:-economy_db}
+      POSTGRES_USER: ${ECONOMY_DB_USER:-economy_user}
+      POSTGRES_PASSWORD: ${ECONOMY_DB_PASSWORD:?ECONOMY_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - economy_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - economy-db.local
+    ports:
+      - "${ECONOMY_DB_PORT:-15433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ECONOMY_DB_USER:-economy_user} -d ${ECONOMY_DB_NAME:-economy_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  match-db:
+    image: postgres:18.6
+    container_name: rgs-match-db
+    environment:
+      POSTGRES_DB: ${MATCH_DB_NAME:-match_db}
+      POSTGRES_USER: ${MATCH_DB_USER:-match_user}
+      POSTGRES_PASSWORD: ${MATCH_DB_PASSWORD:?MATCH_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - match_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - match-db.local
+    ports:
+      - "${MATCH_DB_PORT:-15434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MATCH_DB_USER:-match_user} -d ${MATCH_DB_NAME:-match_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  social-db:
+    image: postgres:18.6
+    container_name: rgs-social-db
+    environment:
+      POSTGRES_DB: ${SOCIAL_DB_NAME:-social_db}
+      POSTGRES_USER: ${SOCIAL_DB_USER:-social_user}
+      POSTGRES_PASSWORD: ${SOCIAL_DB_PASSWORD:?SOCIAL_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - social_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - social-db.local
+    ports:
+      - "${SOCIAL_DB_PORT:-15435}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SOCIAL_DB_USER:-social_user} -d ${SOCIAL_DB_NAME:-social_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  admin-db:
+    image: postgres:18.6
+    container_name: rgs-admin-db
+    environment:
+      POSTGRES_DB: ${ADMIN_DB_NAME:-admin_db}
+      POSTGRES_USER: ${ADMIN_DB_USER:-admin_user}
+      POSTGRES_PASSWORD: ${ADMIN_DB_PASSWORD:?ADMIN_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - admin_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - admin-db.local
+    ports:
+      - "${ADMIN_DB_PORT:-15436}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ADMIN_DB_USER:-admin_user} -d ${ADMIN_DB_NAME:-admin_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  cluster-ops-db:
+    image: postgres:18.6
+    container_name: rgs-cluster-ops-db
+    environment:
+      POSTGRES_DB: ${CLUSTER_OPS_DB_NAME:-cluster_ops_db}
+      POSTGRES_USER: ${CLUSTER_OPS_DB_USER:-cluster_ops_user}
+      POSTGRES_PASSWORD: ${CLUSTER_OPS_DB_PASSWORD:?CLUSTER_OPS_DB_PASSWORD required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - cluster_ops_db_data:/var/lib/postgresql/data
+    networks:
+      rgs-dev-net:
+        aliases:
+          - cluster-ops-db.local
+    ports:
+      - "${CLUSTER_OPS_DB_PORT:-15437}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CLUSTER_OPS_DB_USER:-cluster_ops_user} -d ${CLUSTER_OPS_DB_NAME:-cluster_ops_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ============ 5 域服务占位（53.8 接受：暂用 rust:1.98-slim 跑 cargo run --release）============
+  # 54.5/54.6/54.7 业务实现后改为具体 distroless image（53.13 后）
+
+  player-service:
+    image: rust:1.98-slim
+    container_name: rgs-player-service
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - cargo-cache-player:/usr/local/cargo/registry
+    command: bash -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && cargo run --release -p player-service"
+    environment:
+      DATABASE_URL: postgres://${PLAYER_DB_USER:-player_user}:${PLAYER_DB_PASSWORD}@player-db:5432/${PLAYER_DB_NAME:-player_db}
+      RUST_LOG: info
+    networks:
+      - rgs-dev-net
+    depends_on:
+      player-db:
+        condition: service_healthy
+    ports:
+      - "${PLAYER_SERVICE_PORT:-50051}:50051"
+    restart: unless-stopped
+
+  economy-service:
+    image: rust:1.98-slim
+    container_name: rgs-economy-service
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - cargo-cache-economy:/usr/local/cargo/registry
+    command: bash -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && cargo run --release -p economy-service"
+    environment:
+      DATABASE_URL: postgres://${ECONOMY_DB_USER:-economy_user}:${ECONOMY_DB_PASSWORD}@economy-db:5432/${ECONOMY_DB_NAME:-economy_db}
+      RUST_LOG: info
+    networks:
+      - rgs-dev-net
+    depends_on:
+      economy-db:
+        condition: service_healthy
+    ports:
+      - "${ECONOMY_SERVICE_PORT:-50052}:50052"
+    restart: unless-stopped
+
+  match-service:
+    image: rust:1.98-slim
+    container_name: rgs-match-service
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - cargo-cache-match:/usr/local/cargo/registry
+    command: bash -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && cargo run --release -p match-service"
+    environment:
+      DATABASE_URL: postgres://${MATCH_DB_USER:-match_user}:${MATCH_DB_PASSWORD}@match-db:5432/${MATCH_DB_NAME:-match_db}
+      RUST_LOG: info
+    networks:
+      - rgs-dev-net
+    depends_on:
+      match-db:
+        condition: service_healthy
+    ports:
+      - "${MATCH_SERVICE_PORT:-50053}:50053"
+    restart: unless-stopped
+
+  social-service:
+    image: rust:1.98-slim
+    container_name: rgs-social-service
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - cargo-cache-social:/usr/local/cargo/registry
+    command: bash -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && cargo run --release -p social-service"
+    environment:
+      DATABASE_URL: postgres://${SOCIAL_DB_USER:-social_user}:${SOCIAL_DB_PASSWORD}@social-db:5432/${SOCIAL_DB_NAME:-social_db}
+      RUST_LOG: info
+    networks:
+      - rgs-dev-net
+    depends_on:
+      social-db:
+        condition: service_healthy
+    ports:
+      - "${SOCIAL_SERVICE_PORT:-50054}:50054"
+    restart: unless-stopped
+
+  admin-service:
+    image: rust:1.98-slim
+    container_name: rgs-admin-service
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - cargo-cache-admin:/usr/local/cargo/registry
+    command: bash -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && cargo run --release -p admin-service"
+    environment:
+      DATABASE_URL: postgres://${ADMIN_DB_USER:-admin_user}:${ADMIN_DB_PASSWORD}@admin-db:5432/${ADMIN_DB_NAME:-admin_db}
+      RUST_LOG: info
+    networks:
+      - rgs-dev-net
+    depends_on:
+      admin-db:
+        condition: service_healthy
+    ports:
+      - "${ADMIN_SERVICE_PORT:-50055}:50055"
+    restart: unless-stopped
