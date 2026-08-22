@@ -1,0 +1,42 @@
+{
+  "name": "RustGameServer Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/rust:1.98-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates",
+        "DavidAnson.vscode-markdownlint",
+        "redhat.vscode-yaml",
+        "ms-python.python",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "rust-analyzer.checkOnSave.command": "clippy",
+        "rust-analyzer.cargo.features": "all",
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "files.associations": {
+          "*.toml": "toml"
+        }
+      }
+    }
+  },
+  "postCreateCommand": "rustup component add clippy rustfmt && cargo install --locked cargo-deny cargo-audit cargo-chef",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localEnv:HOME}/.cargo,target=/home/vscode/.cargo,type=bind,consistency=cached"
+  ],
+  "containerUser": "vscode",
+  "remoteEnv": {
+    "CARGO_HOME": "/home/vscode/.cargo",
+    "RUSTUP_HOME": "/home/vscode/.rustup"
+  },
+  "// 注释": "53.15 接受：dev container 包含 docker-in-docker + kubectl-helm-minikube（per 53.8 / 53.9），rust 工具链 + clippy/rustfmt/cargo-deny/cargo-audit/cargo-chef；VS Code rust-analyzer + crates + Even Better TOML + markdownlint 扩展。/home/vscode/.cargo 绑定本地以加速 build。"
+}
