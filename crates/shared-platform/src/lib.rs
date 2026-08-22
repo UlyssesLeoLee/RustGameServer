@@ -8,19 +8,22 @@
 //! - sqlx 公共 connection pool helper
 //! - gRPC client 工厂（mTLS + retry + timeout，per WF-1-54.9）
 //! - NATS JetStream 消息总线（per WF-1-54.10）
+//! - Outbox pattern 事务性消息（per WF-1-54.11）
 //!
 //! 规范：RGS-SPEC-CROSS-001~007 横向规范
 //!       RGS-IMPL-001 §3 / RGS-IMPL-003 §3 工具链
 //!
 //! 不持有 DB（per ARC-008 5 独立 DB 原则）。
 //!
-//! 53.2 占位 → 54.9 启用 client → 54.10 启用 messaging。
+//! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox。
 
 pub mod channel;
 pub mod client;
 pub mod consumer;
 pub mod dlq;
 pub mod messaging;
+pub mod outbox;
+pub mod outbox_relay;
 pub mod producer;
 pub mod retry;
 pub mod subject;
@@ -34,6 +37,11 @@ pub use consumer::{
 };
 pub use dlq::DlqEntry;
 pub use messaging::{build_messaging_client, MessagingConfig, MessagingError};
+pub use outbox::{
+    InMemoryOutboxRepository, OutboxEntry, OutboxRepository, OutboxStatus, PgOutboxRepository,
+    MIGRATION_TEMPLATE,
+};
+pub use outbox_relay::{OutboxRelay, RelayConfig, RelayStats};
 pub use producer::{MessageEnvelope, Producer, ProducerConfig, ProducerError};
 pub use retry::{backoff_duration, is_retryable, RetryConfig};
 pub use subject::{parse, SubjectBuilder, SubjectDomain, SubjectError};
