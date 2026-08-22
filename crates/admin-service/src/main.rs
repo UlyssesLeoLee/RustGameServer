@@ -9,7 +9,8 @@ use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
 use admin_service::repository::{
-    AdminUserRepository, AuditLogRepository, InMemoryAdminUserRepository, InMemoryAuditLogRepository,
+    AdminUserRepository, AuditLogRepository, InMemoryAdminUserRepository,
+    InMemoryAuditLogRepository,
 };
 use admin_service::service::grpc_service::AdminGrpcService;
 use admin_service::service::AdminServiceImpl;

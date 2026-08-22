@@ -34,7 +34,8 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(target: "economy-service", "starting service at {}, db={}", addr, database_url);
 
     let accounts: Arc<dyn AccountRepository> = Arc::new(InMemoryAccountRepository::new());
-    let ledger: Arc<dyn TransactionLedgerRepository> = Arc::new(InMemoryTransactionLedgerRepository::new());
+    let ledger: Arc<dyn TransactionLedgerRepository> =
+        Arc::new(InMemoryTransactionLedgerRepository::new());
     let service_impl = Arc::new(EconomyServiceImpl::new(accounts, ledger));
     let grpc = EconomyGrpcService::new(service_impl);
 
