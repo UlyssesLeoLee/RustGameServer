@@ -7,7 +7,7 @@ members = [
     "crates/social-service",
     "crates/admin-service",
     "crates/cluster-ops",
-    "crates/shared-platform", "crates/rgs-testkit",
+    "crates/shared-platform", "crates/rgs-testkit", "crates/rgs-certgen",
 ]
 resolver = "2"
 

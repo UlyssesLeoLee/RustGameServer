@@ -1,0 +1,24 @@
+[package]
+name = "rgs-certgen"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "RustGameServer QUIC/TLS 证书生成工具（rustls + rcgen）"
+
+[[bin]]
+name = "rgs-certgen"
+path = "src/main.rs"
+
+[dependencies]
+# 证书生成（用 ring backend，避开 aws-lc-sys 依赖 NASM）
+rcgen = "0.13"
+rustls-pemfile = "2"
+# CLI
+clap = { version = "4", features = ["derive"] }
+# 时间戳
+time = { version = "0.3", features = ["formatting", "macros"] }
+# 错误
+anyhow = { workspace = true }
