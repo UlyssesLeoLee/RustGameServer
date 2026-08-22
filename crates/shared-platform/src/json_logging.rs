@@ -9,9 +9,7 @@
 //!
 //! 用法：
 //! ```no_run
-//! fn main() {
-//!     shared_platform::json_logging::init_json_logging("info").unwrap();
-//! }
+//! shared_platform::json_logging::init_json_logging("info").unwrap();
 //! ```
 //!
 //! **互斥约束**：init_json_logging 与 init_tracing（tracing_init 模块）
