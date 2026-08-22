@@ -4,12 +4,12 @@
 //! + Saga Reservation 接口（reserve / confirm / compensate）
 //! + gRPC 桥接 HealthCheck + GetAccount
 
-use crate::entity::{
-    Account, AccountStatus, TransactionKind, TransactionLedger, TransactionStatus,
-};
 #[cfg(test)]
 #[allow(unused_imports)]
 use crate::entity::Currency;
+use crate::entity::{
+    Account, AccountStatus, TransactionKind, TransactionLedger, TransactionStatus,
+};
 use crate::error::Error;
 use crate::repository::{AccountRepository, TransactionLedgerRepository};
 use crate::Result;

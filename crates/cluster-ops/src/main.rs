@@ -38,7 +38,8 @@ async fn main() -> anyhow::Result<()> {
     let grpc = ClusterOpsGrpcService::new(service_impl);
 
     tracing::info!(target: "cluster-ops", "binding gRPC server at {}", addr);
-    let svc = cluster_ops::proto::v1::cluster_ops_service_server::ClusterOpsServiceServer::new(grpc);
+    let svc =
+        cluster_ops::proto::v1::cluster_ops_service_server::ClusterOpsServiceServer::new(grpc);
     tonic::transport::Server::builder()
         .add_service(svc)
         .serve(addr)
