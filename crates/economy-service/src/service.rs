@@ -3,15 +3,18 @@
 //! 54.7 实化：4 Service 业务方法（credit / debit / get_balance / freeze_account）
 //! + Saga Reservation 接口（reserve / confirm / compensate）
 //! + gRPC 桥接 HealthCheck + GetAccount
+//!
+//! 55.12 实化（per RGS-REV-007 AC4 / DEC-015 P1）：
+//! + `apply_atomic_with_reservation` 内部 helper —— 给 SagaOrchestrator 的
+//!   ReserveHandler/ConfirmHandler 用，集中封装「持久化 reservation + 原子账户更新 +
+//!   写账目」三步语义。
 
-#[cfg(test)]
-#[allow(unused_imports)]
-use crate::entity::Currency;
 use crate::entity::{
-    Account, AccountStatus, TransactionKind, TransactionLedger, TransactionStatus,
+    Account, AccountStatus, Currency, TransactionKind, TransactionLedger, TransactionStatus,
 };
 use crate::error::Error;
 use crate::repository::{AccountRepository, TransactionLedgerRepository};
+use crate::reservation::{Reservation, ReservationRepository};
 use crate::Result;
 
 use async_trait::async_trait;
@@ -61,6 +64,65 @@ impl EconomyServiceImpl {
 
     pub async fn find_account_by_id(&self, id: Uuid) -> Result<Option<Account>> {
         self.accounts.find_by_id(id).await
+    }
+
+    /// Saga step handler 内部 helper（per RGS-REV-007 AC4 / DEC-015 P1）：
+    /// 一次性完成「持久化 reservation + 扣减余额 + 原子账户 OCC 更新 + 写账目」四步。
+    ///
+    /// 业务语义：handler 调它做 ReserveHandler.execute / ConfirmHandler.execute 的核心动作。
+    /// 失败语义：调用方负责根据返回的 Error 决定是否触发补偿（confirm 失败 → reserve 补偿）。
+    ///
+    /// 顺序保证：
+    /// 1. 先 reservation.save —— 失败时不进入下一步
+    /// 2. 再 try_debit —— 余额不足时返回 InsufficientFunds（不写账目）
+    /// 3. 再 apply_atomic —— OCC + 账目原子更新（per AC3 修复）
+    /// 4. 若 apply_atomic 失败，调用方需补偿 reservation（reservation 仍在表里）
+    ///
+    /// 返回 (更新后 Account, 写后 Ledger, 持久化后 Reservation)。
+    #[allow(clippy::too_many_arguments)]
+    pub async fn apply_atomic_with_reservation(
+        &self,
+        account: &Account,
+        amount: i64,
+        currency: Currency,
+        kind: TransactionKind,
+        saga_id: Uuid,
+        command_id: Uuid,
+        idempotency_key: String,
+        reservations: &Arc<dyn ReservationRepository>,
+    ) -> Result<(Account, TransactionLedger, Reservation)> {
+        if amount <= 0 {
+            return Err(Error::Validation("amount must be > 0".to_string()));
+        }
+        // 1. 构造并持久化 reservation
+        let reservation = Reservation::new(saga_id, account.id, amount, currency);
+        let saved_reservation = reservations.save(&reservation).await?;
+
+        // 2. 扣减余额（OCC 前本地校验）
+        let mut debited = account.clone();
+        if !debited.try_debit(amount) {
+            // 注意：reservation 已持久化，调用方负责补偿（delete_by_id 或 mark Compensated）
+            return Err(Error::InsufficientFunds {
+                account_id: account.id.to_string(),
+                balance: account.balance,
+                required: amount,
+            });
+        }
+
+        // 3. 原子 OCC 更新账户 + 写账目
+        let mut entry = TransactionLedger::new(
+            account.id,
+            -amount,
+            currency,
+            kind,
+            idempotency_key,
+        );
+        entry.saga_id = Some(saga_id);
+        entry.command_id = Some(command_id);
+        entry.status = TransactionStatus::Confirmed;
+        let (updated_account, saved_entry) = self.accounts.apply_atomic(&debited, &entry).await?;
+
+        Ok((updated_account, saved_entry, saved_reservation))
     }
 }
 
@@ -269,6 +331,7 @@ mod tests {
     #[allow(unused_imports)]
     use super::*;
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
+    use crate::reservation::{InMemoryReservationRepository, ReservationRepository};
 
     /// 构造带共享 ledger 的 service（per RGS-REV-007 AC3 修复）
     /// 共享 ledger HashMap 让 apply_atomic 可原子写两侧
@@ -370,5 +433,84 @@ mod tests {
     async fn health_check() {
         let (svc, _acc_repo, _led_repo) = make_service_paired();
         assert!(svc.health_check().await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn apply_atomic_with_reservation_persists_all_three() {
+        // 验证 55.12 新 helper：reservations + accounts.apply_atomic 一并完成
+        let (svc, acc_repo, led_repo) = make_service_paired();
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+
+        let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+        acc.credit(500);
+        let account_id = acc.id;
+        acc_repo.save(&acc).await.unwrap();
+
+        let saga_id = Uuid::new_v4();
+        let cmd_id = Uuid::new_v4();
+        let (updated, entry, reservation) = svc
+            .apply_atomic_with_reservation(
+                &acc,
+                100,
+                Currency::Gold,
+                TransactionKind::Transfer,
+                saga_id,
+                cmd_id,
+                "k-saga-1".to_string(),
+                &res_repo_dyn,
+            )
+            .await
+            .unwrap();
+
+        // 1. account: balance = 500 - 100 = 400, version + 1
+        assert_eq!(updated.balance, 400);
+        assert_eq!(updated.version, acc.version + 1);
+
+        // 2. ledger: 1 entry, -100, saga_id 关联
+        assert_eq!(entry.amount, -100);
+        assert_eq!(entry.saga_id, Some(saga_id));
+        assert_eq!(entry.command_id, Some(cmd_id));
+        assert_eq!(entry.status, TransactionStatus::Confirmed);
+        assert_eq!(led_repo.inner.lock().unwrap().len(), 1);
+
+        // 3. reservation: 已持久化，saga_id + account_id 正确
+        let from_repo = res_repo
+            .find_by_id(reservation.id)
+            .await
+            .unwrap()
+            .expect("reservation persisted");
+        assert_eq!(from_repo.saga_id, saga_id);
+        assert_eq!(from_repo.account_id, account_id);
+        assert_eq!(from_repo.amount, 100);
+        assert_eq!(from_repo.currency, Currency::Gold);
+
+        // 4. account 也确实被 OCC 更新了
+        let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(reloaded.balance, 400);
+    }
+
+    #[tokio::test]
+    async fn apply_atomic_with_reservation_rejects_non_positive_amount() {
+        let (svc, acc_repo, _led_repo) = make_service_paired();
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+        let acc = Account::new(Uuid::new_v4(), Currency::Gold);
+        acc_repo.save(&acc).await.unwrap();
+
+        let err = svc
+            .apply_atomic_with_reservation(
+                &acc,
+                0,
+                Currency::Gold,
+                TransactionKind::Transfer,
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "k-zero".to_string(),
+                &res_repo_dyn,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
     }
 }
