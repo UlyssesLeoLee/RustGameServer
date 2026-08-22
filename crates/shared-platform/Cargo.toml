@@ -34,6 +34,12 @@ base64 = "0.22"
 bytes = "1"
 # 54.11 启用：PgOutboxRepository
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
+# 54.12 启用：OpenTelemetry SDK 0.24 + OTLP exporter (per DTL-100 §7 tracing/OTel)
+opentelemetry = "0.24"
+opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.17", features = ["grpc-tonic", "metrics"] }
+opentelemetry-semantic-conventions = "0.16"
+tracing-opentelemetry = "0.25"
 
 [build-dependencies]
 tonic-build = { workspace = true }
