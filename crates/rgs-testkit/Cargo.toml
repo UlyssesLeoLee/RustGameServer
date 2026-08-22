@@ -1,0 +1,30 @@
+[package]
+name = "rgs-testkit"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "RustGameServer 测试套件骨架（mock + helper + fixture）"
+
+[dependencies]
+# 公共能力（5 域 + cluster-ops + shared-platform 共用）
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# DB 测试 fixture
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+pretty_assertions = "1"
+tracing-test = "0.2"
+mockall = "0.13"
