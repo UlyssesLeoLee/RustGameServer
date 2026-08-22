@@ -2,3 +2,10 @@
 .serena/
 __pycache__/
 .worktree.env
+
+# Local env files（含 DB 密码 / NATS / K8s 等敏感信息，per RGS-SEC-100 §7 Secret 管理）
+.env
+.env.local
+.env.*.local
+
+# .env.example 模板（无敏感值）应入 git
