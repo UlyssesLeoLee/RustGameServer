@@ -20,7 +20,12 @@ tracing-subscriber = { workspace = true }
 async-trait = { workspace = true }
 # 54.3 启用：common.proto 编译
 prost = { workspace = true }
-# tonic 不需要 runtime（shared-platform 不跑 server）
+# 54.9 启用：gRPC client 运行时（tonic transport）
+tonic = { workspace = true }
+# 54.9 启用：mTLS 证书（直接版本，不靠 workspace.dependencies）
+rustls = "0.23"
+# 54.9 启用：异步重试
+backoff = { version = "0.4", features = ["tokio"] }
 
 [build-dependencies]
 tonic-build = { workspace = true }
