@@ -26,6 +26,12 @@ tonic = { workspace = true }
 rustls = "0.23"
 # 54.9 启用：异步重试
 backoff = { version = "0.4", features = ["tokio"] }
+# 54.10 启用：NATS JetStream 消息总线（per DTL-100 §5 + ARC-051 CEM）
+async-nats = "0.42"
+uuid = { workspace = true }
+chrono = { workspace = true }
+base64 = "0.22"
+bytes = "1"
 
 [build-dependencies]
 tonic-build = { workspace = true }
