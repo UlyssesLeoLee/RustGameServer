@@ -60,6 +60,8 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(target: "admin-service", "admin-service started, DB pool size: {}", pool.size());
 
     // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
+
+    // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
     let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
 
     // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
@@ -90,7 +92,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let service_impl = Arc::new(AdminServiceImpl::new(users, audit));
+    // 55.13 (per verify-C CC-1): 注入 PgPool 让 audit_log 走事务化路径
+    // 不调 with_pool 时 admin-service.audit_log() 会走 InMemory fallback,
+    // 导致 55.13 SHA-256 hash 链 + 事务化 + UNIQUE(prev_hash) 全部失效
+    let service_impl = Arc::new(
+        AdminServiceImpl::new(users, audit).with_pool(pool.clone())
+    );
     let grpc = AdminGrpcService::new(service_impl);
 
     // 55.21: 加载 mTLS 配置（per RGS-REV-007 CH4：强制 client 证书校验，防中间人）
