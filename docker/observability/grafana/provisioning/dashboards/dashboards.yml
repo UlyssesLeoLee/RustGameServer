@@ -1,0 +1,12 @@
+# Grafana dashboards provider（per WBS v0.3 §2A.5 WF-1-53.12）
+apiVersion: 1
+providers:
+  - name: 'rgs-dashboards'
+    orgId: 1
+    folder: 'RGS'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards
