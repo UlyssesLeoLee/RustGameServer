@@ -8,8 +8,7 @@
 //! DB：独立 social_db（per ARC-008 5 独立 DB 原则）。
 //! gRPC API：social/v1/social.proto（per WF-1-54.2 Proto 定义 + WF-1-54.3 tonic-build）。
 //!
-//! 54.1 骨架：4 子模块（error / service / repository / entity）；
-//! 实际业务逻辑待 WF-1-54.5-54.7。
+//! 54.6 实化：entity 2 个 + Repository trait + PgRepository sqlx impl + InMemoryRepository 测用。
 
 pub mod entity;
 pub mod error;
@@ -17,6 +16,10 @@ pub mod repository;
 pub mod service;
 
 pub use error::{Error, Result};
+pub use repository::{
+    GuildMemberRepository, GuildRepository, InMemoryGuildMemberRepository, InMemoryGuildRepository,
+    PgGuildMemberRepository, PgGuildRepository,
+};
 
 pub mod proto;
 
