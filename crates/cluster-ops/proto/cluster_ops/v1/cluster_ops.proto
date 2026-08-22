@@ -1,0 +1,16 @@
+syntax = "proto3";
+package cluster_ops.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/cluster_ops/v1;cluster_opsv1";
+
+service ClusterOpsService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+  rpc GetNode(common.v1.EntityId) returns (Node);
+}
+
+message Node {
+  common.v1.EntityId id = 1;
+  common.v1.Status status = 2;
+  common.v1.Timestamp created_at = 3;
+  string display_name = 4;
+}

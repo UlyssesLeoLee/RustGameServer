@@ -1,0 +1,16 @@
+syntax = "proto3";
+package match.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/match/v1;matchv1";
+
+service MatchService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+  rpc GetMatch(common.v1.EntityId) returns (Match);
+}
+
+message Match {
+  common.v1.EntityId id = 1;
+  common.v1.Status status = 2;
+  common.v1.Timestamp created_at = 3;
+  string display_name = 4;
+}

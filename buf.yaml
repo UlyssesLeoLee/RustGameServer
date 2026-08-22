@@ -1,0 +1,17 @@
+# buf.yaml —— 5 域 gRPC Proto 集中管理（per WBS v0.3 §2A.5 WF-1-54.2）
+# 规范：buf.build v1 配置
+# 54.3 启用 tonic-build 时配 buf generate
+
+version: v1
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX
+    - FIELD_LOWER_SNAKE_CASE
+    - SERVICE_SUFFIX
+    - PACKAGE_DIRECTORY_MATCH
+breaking:
+  use:
+    - FILE
+'
