@@ -1,0 +1,63 @@
+# cargo-deny 配置（per WBS v0.3 §2A.5 WF-1-53.14）
+# 范围：licenses（许可）+ bans（重复 / 已知 bad crate）+ sources（来源）+ advisories（漏洞）
+# 规范：RGS-IMPL-003 §3 工具链
+
+[graph]
+# 53.14 接受：全 workspace；54.x 业务实施后用 --workspace 跑
+all-features = true
+
+[output]
+# 退出码非 0 时打印到 stdout/stderr
+feature-depth = 1
+
+[advisories]
+# 漏洞检查：cargo-deny 自动拉 RustSec advisory-db
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "warn"
+ignore = []
+
+[licenses]
+# 53.14 接受：workspace 许可 = Apache-2.0（per root Cargo.toml workspace.package.license）
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "MPL-2.0",
+    "Zlib",
+    "OpenSSL",
+    "CC0-1.0",
+]
+confidence-threshold = 0.8
+# 53.14 接受：未知许可 warn（不强 fail，让 54.x 业务实施时细化）
+
+[bans]
+# 重复 crate 检查（不同版本同一 crate）
+multiple-versions = "warn"
+# 53.14 接受：deny 仅 warn；workspace 0.5.x → 1.0 transition 期间不强行 ban
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+deny = []
+skip = []
+skip-tree = []
+# 注意：53.14 接受，54.x 业务实施时按需加 deny 列表（如 deny = [{ name = "openssl", reason = "用 rustls" }]）
+
+[sources]
+# crate 来源：crates.io 官方源
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+# 53.14 验收：
+# - cargo install cargo-deny --locked（一次性）
+# - cargo deny check（本地手动模拟 CI）
+# - rust-ci.yml 启用 cargo deny step（55.5 升 v0.4 时）
