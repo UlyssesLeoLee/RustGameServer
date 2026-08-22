@@ -120,3 +120,121 @@
 [2026-08-22 06:25:13] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
 [2026-08-22 06:25:13] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
 [2026-08-22 06:25:13] [END] === 实测结束 ===
+[2026-08-22 11:57:32] [START] === RGS 53 起動实测开始 (OnlySection=All SkipInstall=False) ===
+[2026-08-22 11:57:32] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:57:32] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 11:57:32] [SECTION] === Section 1: Rust 1.98 stable ===
+[2026-08-22 11:57:35] [INFO] rustc: rustc 1.98.0 (88d9e12ae 2026-08-18)
+[2026-08-22 11:57:35] [INFO] cargo: cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:57:35] [SECTION] === Section 2: PostgreSQL 18.6 in k3s pod (per DEC-010) ===
+[2026-08-22 11:57:35] [INFO] WSL2 可用
+[2026-08-22 11:57:35] [WARN] k3s 节点未 Ready。请先装 k3s（per §4 SOP）
+[2026-08-22 11:57:35] [SECTION] === Section 3: 5 独立 DB 创建 (k3s pod, per DEC-010) ===
+[2026-08-22 11:57:35] [WARN] k3s 节点未 Ready，跳过 5 DB 检测
+[2026-08-22 11:57:35] [SECTION] === Section 4: Rust 1.98 build (G-CODE-06) ===
+[2026-08-22 11:57:36] [INFO] 已写 D:\RustGameServer\docs\deploy\06-rust-198-build.log
+[2026-08-22 11:57:36] [SECTION] === Section 5: 5 独立 DB 拓扑图 (G-CODE-03) ===
+[2026-08-22 11:57:36] [INFO] 已写 Mermaid 源: D:\RustGameServer\docs\deploy\05-db-topology.mmd
+[2026-08-22 11:57:36] [INFO] mmdc 未安装，PNG 未生成。可手动用 https://mermaid.live/ 渲染
+[2026-08-22 11:57:36] [INFO] 已写 SVG 占位: D:\RustGameServer\docs\deploy\05-db-topology.svg
+[2026-08-22 11:57:36] [SECTION] === Section 6: 12 类环境核验 ===
+[2026-08-22 11:57:37] [INFO] 已写 D:\RustGameServer\docs\deploy\07-env-verification.log
+[2026-08-22 11:57:37] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 11:57:37] [INFO]   Rust : pass - rustc=rustc 1.98.0 (88d9e12ae 2026-08-18) cargo=cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:57:37] [INFO]   Postgres : fail - k3s not running
+[2026-08-22 11:57:37] [INFO]   DB : fail - k3s not running
+[2026-08-22 11:57:37] [INFO]   Build : fail - build=False, test=False
+[2026-08-22 11:57:37] [INFO]   Topology : pass - Mermaid+SVG 已写, PNG 可选
+[2026-08-22 11:57:37] [INFO]   Verify : fail - 
+[2026-08-22 11:57:37] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 11:57:37] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 11:57:37] [END] === 实测结束 ===
+[2026-08-22 11:57:55] [START] === RGS 53 起動实测开始 (OnlySection=All SkipInstall=False) ===
+[2026-08-22 11:57:55] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:57:55] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 11:57:55] [SECTION] === Section 1: Rust 1.98 stable ===
+[2026-08-22 11:57:55] [INFO] rustc: rustc 1.98.0 (88d9e12ae 2026-08-18)
+[2026-08-22 11:57:55] [INFO] cargo: cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:57:55] [SECTION] === Section 2: PostgreSQL 18.6 in k3s pod (per DEC-010) ===
+[2026-08-22 11:57:55] [INFO] WSL2 可用
+[2026-08-22 11:57:57] [INFO] k3s 节点 Ready，kubectl: 
+[2026-08-22 11:57:58] [INFO] postgres pod: postgres-5bb9bb647d-6wfv4   1/1   Running   0     3m59s
+[2026-08-22 11:57:59] [INFO] postgres version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:57:59] [SECTION] === Section 3: 5 独立 DB 创建 (k3s pod, per DEC-010) ===
+[2026-08-22 11:58:01] [INFO] 现有 DB: postgres, player_db, economy_db, match_db, social_db, admin_db, cluster_ops_db
+[2026-08-22 11:58:01] [INFO]   [已存在] player_db
+[2026-08-22 11:58:01] [INFO]   [已存在] economy_db
+[2026-08-22 11:58:01] [INFO]   [已存在] match_db
+[2026-08-22 11:58:01] [INFO]   [已存在] social_db
+[2026-08-22 11:58:01] [INFO]   [已存在] admin_db
+[2026-08-22 11:58:01] [INFO]   [已存在] cluster_ops_db
+[2026-08-22 11:58:01] [SECTION] === Section 4: Rust 1.98 build (G-CODE-06) ===
+[2026-08-22 11:58:02] [INFO] 已写 D:\RustGameServer\docs\deploy\06-rust-198-build.log
+[2026-08-22 11:58:02] [SECTION] === Section 5: 5 独立 DB 拓扑图 (G-CODE-03) ===
+[2026-08-22 11:58:02] [INFO] 已写 Mermaid 源: D:\RustGameServer\docs\deploy\05-db-topology.mmd
+[2026-08-22 11:58:02] [INFO] mmdc 未安装，PNG 未生成。可手动用 https://mermaid.live/ 渲染
+[2026-08-22 11:58:02] [INFO] 已写 SVG 占位: D:\RustGameServer\docs\deploy\05-db-topology.svg
+[2026-08-22 11:58:02] [SECTION] === Section 6: 12 类环境核验 ===
+[2026-08-22 11:58:05] [INFO] 已写 D:\RustGameServer\docs\deploy\07-env-verification.log
+[2026-08-22 11:58:05] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 11:58:05] [INFO]   Rust : pass - rustc=rustc 1.98.0 (88d9e12ae 2026-08-18) cargo=cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:58:05] [INFO]   Postgres : pass - pod=postgres-5bb9bb647d-6wfv4, version=PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:58:05] [INFO]   DB : pass - k3s pod 内已建 0 + 已存在 6 / 共 6
+[2026-08-22 11:58:05] [INFO]   Build : fail - build=False, test=False
+[2026-08-22 11:58:05] [INFO]   Topology : pass - Mermaid+SVG 已写, PNG 可选
+[2026-08-22 11:58:05] [INFO]   Verify : fail - 
+[2026-08-22 11:58:05] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 11:58:05] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ✅ 满足关闭条件
+[2026-08-22 11:58:05] [END] === 实测结束 ===
+[2026-08-22 11:58:35] [START] === RGS 53 起動实测开始 (OnlySection=Build SkipInstall=False) ===
+[2026-08-22 11:58:35] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:58:35] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 11:58:35] [SECTION] === Section 4: Rust 1.98 build (G-CODE-06) ===
+[2026-08-22 11:59:01] [INFO] 已写 D:\RustGameServer\docs\deploy\06-rust-198-build.log
+[2026-08-22 11:59:01] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 11:59:01] [INFO]   Rust : pending - 
+[2026-08-22 11:59:01] [INFO]   Postgres : pending - 
+[2026-08-22 11:59:01] [INFO]   DB : pending - 
+[2026-08-22 11:59:01] [INFO]   Build : pass - build OK + test OK
+[2026-08-22 11:59:01] [INFO]   Topology : pending - 
+[2026-08-22 11:59:01] [INFO]   Verify : pending - 
+[2026-08-22 11:59:02] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ❌ 未满足
+[2026-08-22 11:59:02] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ❌ 未满足
+[2026-08-22 11:59:02] [END] === 实测结束 ===
+[2026-08-22 11:59:13] [START] === RGS 53 起動实测开始 (OnlySection=All SkipInstall=False) ===
+[2026-08-22 11:59:13] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:59:13] [INFO] Deploy dir: D:\RustGameServer\docs\deploy
+[2026-08-22 11:59:13] [SECTION] === Section 1: Rust 1.98 stable ===
+[2026-08-22 11:59:13] [INFO] rustc: rustc 1.98.0 (88d9e12ae 2026-08-18)
+[2026-08-22 11:59:13] [INFO] cargo: cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:59:13] [SECTION] === Section 2: PostgreSQL 18.6 in k3s pod (per DEC-010) ===
+[2026-08-22 11:59:13] [INFO] WSL2 可用
+[2026-08-22 11:59:15] [INFO] k3s 节点 Ready，kubectl: 
+[2026-08-22 11:59:16] [INFO] postgres pod: postgres-5bb9bb647d-6wfv4   1/1   Running   0     5m17s
+[2026-08-22 11:59:17] [INFO] postgres version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:59:17] [SECTION] === Section 3: 5 独立 DB 创建 (k3s pod, per DEC-010) ===
+[2026-08-22 11:59:18] [INFO] 现有 DB: postgres, player_db, economy_db, match_db, social_db, admin_db, cluster_ops_db
+[2026-08-22 11:59:18] [INFO]   [已存在] player_db
+[2026-08-22 11:59:18] [INFO]   [已存在] economy_db
+[2026-08-22 11:59:18] [INFO]   [已存在] match_db
+[2026-08-22 11:59:18] [INFO]   [已存在] social_db
+[2026-08-22 11:59:18] [INFO]   [已存在] admin_db
+[2026-08-22 11:59:18] [INFO]   [已存在] cluster_ops_db
+[2026-08-22 11:59:18] [SECTION] === Section 4: Rust 1.98 build (G-CODE-06) ===
+[2026-08-22 11:59:19] [INFO] 已写 D:\RustGameServer\docs\deploy\06-rust-198-build.log
+[2026-08-22 11:59:19] [SECTION] === Section 5: 5 独立 DB 拓扑图 (G-CODE-03) ===
+[2026-08-22 11:59:19] [INFO] 已写 Mermaid 源: D:\RustGameServer\docs\deploy\05-db-topology.mmd
+[2026-08-22 11:59:19] [INFO] mmdc 未安装，PNG 未生成。可手动用 https://mermaid.live/ 渲染
+[2026-08-22 11:59:19] [INFO] 已写 SVG 占位: D:\RustGameServer\docs\deploy\05-db-topology.svg
+[2026-08-22 11:59:19] [SECTION] === Section 6: 12 类环境核验 ===
+[2026-08-22 11:59:23] [INFO] 已写 D:\RustGameServer\docs\deploy\07-env-verification.log
+[2026-08-22 11:59:23] [SUMMARY] === 实测完成汇总 ===
+[2026-08-22 11:59:23] [INFO]   Rust : pass - rustc=rustc 1.98.0 (88d9e12ae 2026-08-18) cargo=cargo 1.98.0 (797e8a9bc 2026-08-05)
+[2026-08-22 11:59:23] [INFO]   Postgres : pass - pod=postgres-5bb9bb647d-6wfv4, version=PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:59:23] [INFO]   DB : pass - k3s pod 内已建 0 + 已存在 6 / 共 6
+[2026-08-22 11:59:23] [INFO]   Build : pass - build OK + test OK
+[2026-08-22 11:59:23] [INFO]   Topology : pass - Mermaid+SVG 已写, PNG 可选
+[2026-08-22 11:59:23] [INFO]   Verify : pass - 
+[2026-08-22 11:59:23] [INFO] G-CODE-06 (Rust 1.98 + CI 全绿): ✅ 满足关闭条件
+[2026-08-22 11:59:23] [INFO] G-CODE-03 (5 独立 DB 拓扑图): ✅ 满足关闭条件
+[2026-08-22 11:59:23] [END] === 实测结束 ===

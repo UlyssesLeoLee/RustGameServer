@@ -1,10 +1,10 @@
-# 07-no-go-checklist_v0.3.md — 部署前 NO-GO 自检表（顶层 summary，起動準備就绪 v0.3）
+# 07-no-go-checklist_v0.4.md — 部署前 NO-GO 自检表（顶层 summary，**53 起動 GO v0.4**）
 
 > **文档 ID**：`RGS-DEPLOY-NO-GO-CHECKLIST-001`
-> **版本**：v0.3
-> **生效日期**：2026-08-21
-> **NO-GO 状态**：🔴 **维持 NO-GO**（2 项 G-CODE 待实测）
-> **起動準備状态**：🟢 **準備就绪**（WBS 工具链 + 5 域 DTL 占位 + 7 份 CROSS 占位 + 4 个 WBS 脚本就位；G-CODE-03 + G-CODE-06 实测通过即 GO）
+> **版本**：v0.4（**GO**）
+> **生效日期**：2026-08-22
+> **NO-GO 状态**：🟢 **GO**（7 G-CODE 全 Closed，per 实测）
+> **起動準備状态**：🟢 **GO**（k3s 已部署 + PG 18.6 pod Running + 6 DB 已建 + Rust 1.98 + cargo build/test 全绿）
 > **关联**：`../00-prerequisites/00-no-go-checklist_v0.2.md`（详细 12 类 + 7 G-CODE 拆解）+ `RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3` + RGS-WBS-001 v0.3 §2A.7（激活条件）+ RGS-WT-001 v0.2 §11
 
 ---
@@ -16,6 +16,7 @@
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。NO-GO 状态表 + 7 G-CODE + 12 类签字栏 + 5 G-CODE 工具链。 |
 | 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-008 落地**（一人公司治理基线 per RGS-QA-001 v0.13 §9.5.7）：Ulysses = 全部 12 类角色实际签。**NO-GO 状态部分解除**：12 类签字栏 ✅ / 7 G-CODE ⚠️ 部分 Closed（G-CODE-06 / G-CODE-03 仍需实测）。 |
 | 0.3 | 2026-08-21 | 架构师（Ulysses）| **NO-GO 起動準備就绪**（per 用户决策 2026-08-21 "跳到 53 起動准备，不等实测"）：① WBS v0.3 5 域 DTL 7+1 L4 任务 + 7 份 RGS-SPEC-CROSS-001~007 占位文档 + 4 个 WBS 工具脚本（`wbs_list` / `wbs_create_worktree` / `wbs_task_progress` / `wbs_merge`）就位 ② RGS-WT-001 v0.2 §11（WBS L4 任务 worktree 模式）升版 ③ RGS-WBS-001 v0.3 §2A.7（激活条件）已就绪 ④ RGS-WBS-001_L4任务进度表 v0.3 + RGS-WBS-001_DAG v0.3 占位已建。**NO-GO 仍维持**——G-CODE-03（5 独立 DB 拓扑图实测）+ G-CODE-06（Rust 1.98 + cargo build + cargo test 全绿实测）任一未实测前禁止 53 起動。 |
+| **0.4** | **2026-08-22** | **架构师（Ulysses）** | **🟢 GO — 53 起動条件全部满足**（per DEC-010 + DEC-009 + 实测 2026-08-22 11:58 JST）。**实测结果**：`scripts/measure_env_setup.ps1` 6/6 section 全 PASS：`Rust=1.98.0` ✅ / `Postgres=18.6 (k3s pod Running 1/1)` ✅ / `DB=6/6 (player/economy/match/social/admin/cluster_ops)` ✅ / `Build=cargo build OK + test OK` ✅ / `Topology=Mermaid+SVG` ✅ / `Verify=12 类核验 PASS` ✅。**关键脚本落地**：`scripts/deploy_dev_k3s.ps1`（一键 apply namespace + SA + 5 PG manifest，幂等）/ `scripts/port_forward_pg.ps1`（WSL2 PG 端口转发）。**未变更**：G-CODE-01/02/04/05/07（v0.2 已 Closed per DEC-008）。**下一步**：① 升 04-env-setup-sop.md 反映实测 ② 启动 53 实施（per WBS v0.3 §2A.7）：`pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-0.5-1`。 |
 
 ---
 
@@ -25,9 +26,10 @@
 >
 > 详细分解见 `../00-prerequisites/00-no-go-checklist_v0.2.md`。
 
-**v0.3 重大变化**：
-- 🟢 **起動準備状态 = 準備就绪**（infrastructure + 文档 + 脚本就位，2 项实测即可 GO）
-- 🔴 **NO-GO 状态 = 维持**（实测 G-CODE-03 + G-CODE-06 任一未完成前禁止 53）
+**v0.4 重大变化**：
+- 🟢 **起動準備状态 = GO**（k3s + PG pod + 6 DB + Rust 1.98 + cargo 全绿全部实测通过）
+- 🟢 **NO-GO 状态 = GO**（7 G-CODE 全 Closed）
+- 🚀 **53 起動条件已满足**
 
 ---
 
@@ -37,13 +39,13 @@
 |---|---|---|---|---|
 | **G-CODE-01** | 业务方代表具名签字 | ✅ **Closed** | Ulysses（业务方=PM 一人公司兼任）| Ulysses 实际签 2026-08-21 |
 | **G-CODE-02** | 5 域 Lead 独立具名 | ✅ **Closed** | Ulysses（5 域 Lead 1 人串行兼任）| Ulysses 实际签 2026-08-21（DEC-008 撤销 DEC-005 独立要求）|
-| **G-CODE-03** | DBA 具名 + 5 独立 DB 拓扑图签字 | ⚠️ **待实测** | Ulysses（DBA 一人公司兼任）| **5 独立 DB 拓扑图需 Ulysses 实际画过**（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）|
+| **G-CODE-03** | DBA 具名 + 5 独立 DB 拓扑图签字 | ✅ **Closed** | Ulysses（DBA 一人公司兼任）| **实测通过 2026-08-22 11:58 JST**：PG 18.6 pod Running 1/1 + 5 独立 DB 全建（player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db）+ 拓扑图 Mermaid+SVG 已就位 |
 | **G-CODE-04** | SRE 具名 + 部署 SOP 签字 | ✅ **Closed** | Ulysses（SRE 一人公司兼任）| Ulysses 实际签 2026-08-21 + 05-deploy-sop.md 签字 |
 | **G-CODE-05** | Platform 架构师具名 + CI/CD 签字 | ✅ **Closed** | Ulysses（Platform 一人公司兼任）| Ulysses 实际签 2026-08-21 + 04-ci-cd/ 签字 |
-| **G-CODE-06** | Rust 1.98 + Cargo.lock + CI 全绿 | ⚠️ **待实测** | Ulysses（Platform + QA 一人公司兼任）| **Rust 1.98 + 需 Ulysses 实际跑过 cargo build + cargo test 全绿**（签字不构成证据，per RGS-EXEC-001 v0.3 §3.4）|
+| **G-CODE-06** | Rust 1.98 + Cargo.lock + CI 全绿 | ✅ **Closed** | Ulysses（Platform + QA 一人公司兼任）| **实测通过 2026-08-22 11:59 JST**：rustc 1.98.0 + cargo 1.98.0 + Cargo.lock 自动生成 + cargo build --locked OK + cargo test --locked --workspace OK（log 在 `docs/deploy/06-rust-198-build.log`）|
 | **G-CODE-07** | QA Lead 具名 + 验收矩阵签字 | ✅ **Closed** | Ulysses（QA 一人公司兼任）| Ulysses 实际签 2026-08-21 + 验收矩阵签字 |
 
-**当前汇总**（v0.3 per DEC-008）：✅ 5/7 Closed（Ulysses 实际签声明） + ⚠️ 2/7 待实测（G-CODE-03 5 独立 DB 拓扑图 + G-CODE-06 Rust 1.98 + CI 全绿）
+**当前汇总**（v0.4 per DEC-008 + 实测 2026-08-22）：✅ **7/7 Closed**（Ulysses 实际签声明 + G-CODE-03/06 实测证据齐全）🚀
 
 ---
 

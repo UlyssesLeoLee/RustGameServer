@@ -1,6 +1,6 @@
 === RGS Rust 1.98 build + test (G-CODE-06 关闭证据) ===
 执行人：Ulysses（一人公司 12 角色兼任 per DEC-008）
-执行时间：2026-08-22 06:20:50
+执行时间：2026-08-22 11:59:19
 环境：Windows 11 + PowerShell 7.6+ + Rust rustc 1.98.0 (88d9e12ae 2026-08-18)
 
 --- rustc --version ---
@@ -30,12 +30,18 @@ active because: overridden by 'D:\RustGameServer\rust-toolchain.toml'
 installed targets:
   x86_64-pc-windows-msvc
 
+--- Cargo.lock 已存在 ---
+
 --- cargo build --locked ---
-error: cannot create the lock file D:\RustGameServer\Cargo.lock because --locked was passed to prevent this
-help: to generate the lock file without accessing the network, remove the --locked flag and use --offline instead.
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
 
 --- cargo test --locked --workspace ---
-error: cannot create the lock file D:\RustGameServer\Cargo.lock because --locked was passed to prevent this
-help: to generate the lock file without accessing the network, remove the --locked flag and use --offline instead.
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\rgs_hello-82e0c0ff14743c5b.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
 
 === 完成 ===
