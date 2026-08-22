@@ -1,0 +1,259 @@
+[2026-08-22 11:45:41] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:45:41] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:45:41] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:45:41] [INFO] Temp dir: C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev
+[2026-08-22 11:45:41] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:45:45] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 17m v1.36.3+k3s1
+[2026-08-22 11:45:45] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（临时目录 C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev）
+[2026-08-22 11:45:45] [INFO]   20-postgres-secret.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\20-postgres-secret.yaml (已替换 19 个占位符)
+[2026-08-22 11:45:45] [INFO]   21-postgres-pvc.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\21-postgres-pvc.yaml (已替换 19 个占位符)
+[2026-08-22 11:45:45] [INFO]   22-postgres-configmap.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\22-postgres-configmap.yaml (已替换 19 个占位符)
+[2026-08-22 11:45:45] [INFO]   23-postgres-statefulset.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\23-postgres-statefulset.yaml (已替换 19 个占位符)
+[2026-08-22 11:45:45] [INFO]   24-postgres-service.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\24-postgres-service.yaml (已替换 19 个占位符)
+[2026-08-22 11:45:45] [WARN] Step 3: --SkipApply 模式，跳过 kubectl apply
+[2026-08-22 11:45:45] [END] === 部署完成 ===
+[2026-08-22 11:45:45] [INFO] Log: D:\RustGameServer\docs\deploy\09-deploy-dev-k3s.log
+[2026-08-22 11:45:45] [INFO] 
+[2026-08-22 11:46:00] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:46:00] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:46:01] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:46:01] [INFO] Temp dir: C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev
+[2026-08-22 11:46:01] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:46:04] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 17m v1.36.3+k3s1
+[2026-08-22 11:46:04] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（临时目录 C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev）
+[2026-08-22 11:46:04] [INFO]   20-postgres-secret.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\20-postgres-secret.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:04] [INFO]   21-postgres-pvc.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\21-postgres-pvc.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:04] [INFO]   22-postgres-configmap.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\22-postgres-configmap.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:04] [INFO]   23-postgres-statefulset.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\23-postgres-statefulset.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:05] [INFO]   24-postgres-service.yaml → C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev\24-postgres-service.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:05] [INFO] Step 3: kubectl apply namespace + 5 PG manifest
+[2026-08-22 11:46:06] [ERROR] k3s kubectl apply -f C:\Users\leo19\AppData\Local\Temp\rgs-deploy-dev/00-namespace.yaml FAILED: error: the path "C:Usersleo19AppDataLocalTemprgs-deploy-dev/00-namespace.yaml" does not exist
+[2026-08-22 11:46:47] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:46:47] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:46:47] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:46:47] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:46:47] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:46:51] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 18m v1.36.3+k3s1
+[2026-08-22 11:46:51] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:46:51] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml
+[2026-08-22 11:46:52] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:52] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:52] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:53] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:53] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 19 个占位符)
+[2026-08-22 11:46:53] [INFO] Step 3: kubectl apply namespace + 5 PG manifest
+[2026-08-22 11:46:55] [ERROR] k3s kubectl apply -f /tmp/rgs-deploy-dev/00-namespace.yaml FAILED: Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/00-namespace.yaml": Namespace "PLACEHOLDER_NAMESPACE" is invalid: metadata.name: Invalid value: "PLACEHOLDER_NAMESPACE": a lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?') Error from server (BadRequest): error when creating "/tmp/rgs-deploy-dev/00-namespace.yaml": ResourceQuota in version "v1" cannot be handled as a ResourceQuota: quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$' Error from server (BadRequest): error when creating "/tmp/rgs-deploy-dev/00-namespace.yaml": LimitRange in version "v1" cannot be handled as a LimitRange: quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+[2026-08-22 11:47:38] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:47:38] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:47:38] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:47:38] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:47:38] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:47:42] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 19m v1.36.3+k3s1
+[2026-08-22 11:47:42] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:47:43] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:47:43] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 34 个占位符)
+[2026-08-22 11:47:44] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 34 个占位符)
+[2026-08-22 11:47:44] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 34 个占位符)
+[2026-08-22 11:47:44] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 34 个占位符)
+[2026-08-22 11:47:44] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 34 个占位符)
+[2026-08-22 11:47:44] [INFO] Step 3: kubectl apply namespace + 5 PG manifest
+[2026-08-22 11:47:46] [INFO]   namespace applied
+[2026-08-22 11:47:48] [ERROR] k3s kubectl apply -f /tmp/rgs-deploy-dev/20-postgres-secret.yaml FAILED: secret/postgres-superuser created Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_PLAYER_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_PLAYER_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*') Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_ECONOMY_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_ECONOMY_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*') Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_MATCH_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_MATCH_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*') Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_SOCIAL_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_SOCIAL_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*') Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_ADMIN_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_ADMIN_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*') Error from server (Invalid): error when creating "/tmp/rgs-deploy-dev/20-postgres-secret.yaml": Secret "PLACEHOLDER_CLUSTER_OPS_DB_SECRET" is invalid: metadata.name: Invalid value: "PLACEHOLDER_CLUSTER_OPS_DB_SECRET": a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+[2026-08-22 11:48:19] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:48:19] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:48:19] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:48:19] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:48:19] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:48:23] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 19m v1.36.3+k3s1
+[2026-08-22 11:48:23] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:48:23] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:48:23] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:23] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:23] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:23] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:24] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:24] [INFO] Step 3: kubectl apply namespace + 5 PG manifest
+[2026-08-22 11:48:26] [INFO]   namespace applied
+[2026-08-22 11:48:28] [INFO]   20-postgres-secret.yaml applied: secret/postgres-superuser configured secret/player-db-credentials created secret/economy-db-credentials created secret/match-db-credentials created secret/social-db-credentials created secret/admin-db-credentials created secret/cluster-ops-db-credentials created
+[2026-08-22 11:48:29] [INFO]   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc created
+[2026-08-22 11:48:30] [INFO]   22-postgres-configmap.yaml applied: configmap/postgres-config created
+[2026-08-22 11:48:32] [INFO]   23-postgres-statefulset.yaml applied: deployment.apps/postgres created
+[2026-08-22 11:48:32] [ERROR] k3s kubectl apply -f /tmp/rgs-deploy-dev/24-postgres-service.yaml FAILED: service/postgres created Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice The Endpoints "postgres" is invalid: subsets[0].addresses[0].ip: Invalid value: "127.0.0.1": may not be in the loopback range (127.0.0.0/8, ::1/128)
+[2026-08-22 11:48:51] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:48:51] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:48:51] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:48:51] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:48:51] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:48:53] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 20m v1.36.3+k3s1
+[2026-08-22 11:48:53] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:48:54] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:48:54] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:54] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:54] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:54] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:54] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 40 个占位符)
+[2026-08-22 11:48:54] [INFO] Step 3: kubectl apply namespace + 5 PG manifest
+[2026-08-22 11:48:55] [INFO]   namespace applied
+[2026-08-22 11:48:56] [INFO]   20-postgres-secret.yaml applied: secret/postgres-superuser configured secret/player-db-credentials configured secret/economy-db-credentials configured secret/match-db-credentials configured secret/social-db-credentials configured secret/admin-db-credentials configured secret/cluster-ops-db-credentials configured
+[2026-08-22 11:48:58] [INFO]   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc unchanged
+[2026-08-22 11:49:00] [INFO]   22-postgres-configmap.yaml applied: configmap/postgres-config unchanged
+[2026-08-22 11:49:01] [INFO]   23-postgres-statefulset.yaml applied: deployment.apps/postgres configured
+[2026-08-22 11:49:01] [INFO]   24-postgres-service.yaml applied: service/postgres configured
+[2026-08-22 11:49:02] [INFO] Step 4: 等待 postgres pod Ready (timeout 180s)
+[2026-08-22 11:49:09] [INFO]   waiting... (5s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:16] [INFO]   waiting... (10s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:23] [INFO]   waiting... (15s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:30] [INFO]   waiting... (20s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:36] [INFO]   waiting... (25s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:43] [INFO]   waiting... (30s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:51] [INFO]   waiting... (35s): No resources found in rust-game-server namespace.
+[2026-08-22 11:49:58] [INFO]   waiting... (40s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:05] [INFO]   waiting... (45s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:12] [INFO]   waiting... (50s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:19] [INFO]   waiting... (55s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:27] [INFO]   waiting... (60s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:34] [INFO]   waiting... (65s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:41] [INFO]   waiting... (70s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:48] [INFO]   waiting... (75s): No resources found in rust-game-server namespace.
+[2026-08-22 11:50:54] [INFO]   waiting... (80s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:00] [INFO]   waiting... (85s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:05] [INFO]   waiting... (90s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:12] [INFO]   waiting... (95s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:17] [INFO]   waiting... (100s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:23] [INFO]   waiting... (105s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:29] [INFO]   waiting... (110s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:34] [INFO]   waiting... (115s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:40] [INFO]   waiting... (120s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:46] [INFO]   waiting... (125s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:51] [INFO]   waiting... (130s): No resources found in rust-game-server namespace.
+[2026-08-22 11:51:58] [INFO]   waiting... (135s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:03] [INFO]   waiting... (140s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:09] [INFO]   waiting... (145s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:15] [INFO]   waiting... (150s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:20] [INFO]   waiting... (155s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:26] [INFO]   waiting... (160s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:32] [INFO]   waiting... (165s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:38] [INFO]   waiting... (170s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:43] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:52:43] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:52:43] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:52:43] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:52:43] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:52:44] [INFO]   waiting... (175s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:45] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 24m v1.36.3+k3s1
+[2026-08-22 11:52:45] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:52:45] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:52:45] [INFO]   00-postgres-sa.yaml (ServiceAccount for postgres pod)
+[2026-08-22 11:52:45] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 40 个占位符)
+[2026-08-22 11:52:45] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 40 个占位符)
+[2026-08-22 11:52:45] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 40 个占位符)
+[2026-08-22 11:52:45] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 40 个占位符)
+[2026-08-22 11:52:46] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 40 个占位符)
+[2026-08-22 11:52:46] [INFO] Step 3: kubectl apply namespace + SA + 5 PG manifest
+[2026-08-22 11:52:46] [INFO]   namespace applied
+[2026-08-22 11:52:47] [INFO]   ServiceAccount applied
+[2026-08-22 11:52:48] [INFO]   20-postgres-secret.yaml applied: secret/postgres-superuser configured secret/player-db-credentials configured secret/economy-db-credentials configured secret/match-db-credentials configured secret/social-db-credentials configured secret/admin-db-credentials configured secret/cluster-ops-db-credentials configured
+[2026-08-22 11:52:49] [INFO]   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc unchanged
+[2026-08-22 11:52:49] [INFO]   22-postgres-configmap.yaml applied: configmap/postgres-config unchanged
+[2026-08-22 11:52:50] [INFO]   waiting... (180s): No resources found in rust-game-server namespace.
+[2026-08-22 11:52:50] [ERROR] postgres pod 未在 180s 内 Ready
+[2026-08-22 11:52:50] [INFO]   23-postgres-statefulset.yaml applied: deployment.apps/postgres configured
+[2026-08-22 11:52:50] [ERROR] events: LAST SEEN   TYPE      REASON                 OBJECT                                    MESSAGE 4m18s       Normal    ScalingReplicaSet      deployment/postgres                       Scaled up replica set postgres-5bb9bb647d from 0 to 1 95s         Warning   FailedCreate           replicaset/postgres-5bb9bb647d            Error creating: pods "postgres-5bb9bb647d-" is forbidden: error looking up service account rust-game-server/postgres-service-account: serviceaccount "postgres-service-account" not found 11s         Normal    WaitForFirstConsumer   persistentvolumeclaim/postgres-data-pvc   waiting for first consumer to be created before binding
+[2026-08-22 11:52:51] [INFO]   24-postgres-service.yaml applied: service/postgres unchanged
+[2026-08-22 11:52:51] [INFO] Step 4: 等待 postgres pod Ready (timeout 180s)
+[2026-08-22 11:52:57] [INFO]   waiting... (5s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:03] [INFO]   waiting... (10s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:09] [INFO]   waiting... (15s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:15] [INFO]   waiting... (20s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:21] [INFO]   waiting... (25s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:26] [INFO]   waiting... (30s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:32] [INFO]   waiting... (35s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:38] [INFO]   waiting... (40s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:44] [INFO]   waiting... (45s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:49] [INFO]   waiting... (50s): No resources found in rust-game-server namespace.
+[2026-08-22 11:53:55] [INFO]   waiting... (55s): No resources found in rust-game-server namespace.
+[2026-08-22 11:54:01] [INFO]   waiting... (60s): postgres-5bb9bb647d-6wfv4   0/1   Pending   0     2s
+[2026-08-22 11:54:06] [INFO]   waiting... (65s): postgres-5bb9bb647d-6wfv4   0/1   Pending   0     7s
+[2026-08-22 11:54:12] [INFO]   waiting... (70s): postgres-5bb9bb647d-6wfv4   0/1   Pending   0     13s
+[2026-08-22 11:54:18] [INFO]   waiting... (75s): postgres-5bb9bb647d-6wfv4   0/1   Pending   0     19s
+[2026-08-22 11:54:23] [INFO]   waiting... (80s): postgres-5bb9bb647d-6wfv4   0/1   Pending   0     24s
+[2026-08-22 11:54:29] [INFO]   waiting... (85s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     30s
+[2026-08-22 11:54:35] [INFO]   waiting... (90s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     35s
+[2026-08-22 11:54:40] [INFO]   waiting... (95s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     41s
+[2026-08-22 11:54:46] [INFO]   waiting... (100s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     47s
+[2026-08-22 11:54:51] [INFO]   waiting... (105s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     52s
+[2026-08-22 11:54:57] [INFO]   waiting... (110s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     58s
+[2026-08-22 11:55:03] [INFO]   waiting... (115s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     64s
+[2026-08-22 11:55:09] [INFO]   waiting... (120s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     70s
+[2026-08-22 11:55:15] [INFO]   waiting... (125s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     76s
+[2026-08-22 11:55:22] [INFO]   waiting... (130s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     83s
+[2026-08-22 11:55:28] [INFO]   waiting... (135s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     89s
+[2026-08-22 11:55:33] [INFO]   waiting... (140s): postgres-5bb9bb647d-6wfv4   0/1   ContainerCreating   0     94s
+[2026-08-22 11:55:39] [INFO]   waiting... (145s): postgres-5bb9bb647d-6wfv4   0/1   Running   0     100s
+[2026-08-22 11:55:45] [INFO]   pod Ready: postgres-5bb9bb647d-6wfv4   1/1   Running   0     106s
+[2026-08-22 11:55:45] [INFO] Step 5: 验证 PG 版本
+[2026-08-22 11:55:46] [INFO] PG version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:55:46] [SUCCESS] ✅ PG 18.6 验证通过
+[2026-08-22 11:55:46] [END] === 部署完成 ===
+[2026-08-22 11:55:46] [INFO] Log: D:\RustGameServer\docs\deploy\09-deploy-dev-k3s.log
+[2026-08-22 11:55:46] [INFO] 
+[2026-08-22 11:56:25] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:56:25] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:56:25] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:56:25] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:56:25] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:56:26] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 28m v1.36.3+k3s1
+[2026-08-22 11:56:26] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:56:26] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:56:27] [INFO]   00-postgres-sa.yaml (ServiceAccount for postgres pod)
+[2026-08-22 11:56:27] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:27] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:27] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:27] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:27] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:27] [INFO] Step 3: kubectl apply namespace + SA + 5 PG manifest
+[2026-08-22 11:56:29] [INFO]   namespace applied
+[2026-08-22 11:56:30] [INFO]   ServiceAccount applied
+[2026-08-22 11:56:31] [INFO]   20-postgres-secret.yaml applied: secret/postgres-superuser configured secret/player-db-credentials configured secret/economy-db-credentials configured secret/match-db-credentials configured secret/social-db-credentials configured secret/admin-db-credentials configured secret/cluster-ops-db-credentials configured
+[2026-08-22 11:56:32] [INFO]   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc unchanged
+[2026-08-22 11:56:32] [INFO]   22-postgres-configmap.yaml applied: configmap/postgres-config unchanged
+[2026-08-22 11:56:33] [INFO]   23-postgres-statefulset.yaml applied: deployment.apps/postgres configured
+[2026-08-22 11:56:34] [INFO]   24-postgres-service.yaml applied: service/postgres unchanged
+[2026-08-22 11:56:34] [INFO] Step 4: 等待 postgres pod Ready (timeout 360s, image pull 慢)
+[2026-08-22 11:56:39] [INFO]   pod Ready: postgres-5bb9bb647d-6wfv4   1/1   Running   0     2m40s
+[2026-08-22 11:56:39] [INFO] Step 5: 验证 PG 版本
+[2026-08-22 11:56:40] [INFO] PG version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:56:40] [SUCCESS] ✅ PG 18.6 验证通过
+[2026-08-22 11:56:40] [END] === 部署完成 ===
+[2026-08-22 11:56:40] [INFO] Log: D:\RustGameServer\docs\deploy\09-deploy-dev-k3s.log
+[2026-08-22 11:56:40] [INFO] 
+[2026-08-22 11:56:47] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-22 11:56:47] [INFO] Repository: D:\RustGameServer
+[2026-08-22 11:56:47] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-22 11:56:47] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-22 11:56:47] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-22 11:56:48] [INFO] k3s 节点 Ready: ulyssespc Ready control-plane 28m v1.36.3+k3s1
+[2026-08-22 11:56:48] [INFO] Step 2: 替换 PLACEHOLDER_* 为 dev 值（WSL2 临时目录 /tmp/rgs-deploy-dev）
+[2026-08-22 11:56:49] [INFO]   00-namespace.yaml → /tmp/rgs-deploy-dev/00-namespace.yaml (已替换占位符)
+[2026-08-22 11:56:49] [INFO]   00-postgres-sa.yaml (ServiceAccount for postgres pod)
+[2026-08-22 11:56:49] [INFO]   20-postgres-secret.yaml → /tmp/rgs-deploy-dev/20-postgres-secret.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:49] [INFO]   21-postgres-pvc.yaml → /tmp/rgs-deploy-dev/21-postgres-pvc.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:49] [INFO]   22-postgres-configmap.yaml → /tmp/rgs-deploy-dev/22-postgres-configmap.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:49] [INFO]   23-postgres-statefulset.yaml → /tmp/rgs-deploy-dev/23-postgres-statefulset.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:49] [INFO]   24-postgres-service.yaml → /tmp/rgs-deploy-dev/24-postgres-service.yaml (已替换 40 个占位符)
+[2026-08-22 11:56:49] [INFO] Step 3: kubectl apply namespace + SA + 5 PG manifest
+[2026-08-22 11:56:50] [INFO]   namespace applied
+[2026-08-22 11:56:51] [INFO]   ServiceAccount applied
+[2026-08-22 11:56:52] [INFO]   20-postgres-secret.yaml applied: secret/postgres-superuser configured secret/player-db-credentials configured secret/economy-db-credentials configured secret/match-db-credentials configured secret/social-db-credentials configured secret/admin-db-credentials configured secret/cluster-ops-db-credentials configured
+[2026-08-22 11:56:52] [INFO]   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc unchanged
+[2026-08-22 11:56:53] [INFO]   22-postgres-configmap.yaml applied: configmap/postgres-config unchanged
+[2026-08-22 11:56:53] [INFO]   23-postgres-statefulset.yaml applied: deployment.apps/postgres configured
+[2026-08-22 11:56:54] [INFO]   24-postgres-service.yaml applied: service/postgres unchanged
+[2026-08-22 11:56:54] [INFO] Step 4: 等待 postgres pod Ready (timeout 360s, image pull 慢)
+[2026-08-22 11:57:00] [INFO]   pod Ready: postgres-5bb9bb647d-6wfv4   1/1   Running   0     3m1s
+[2026-08-22 11:57:00] [INFO] Step 5: 验证 PG 版本
+[2026-08-22 11:57:01] [INFO] PG version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+[2026-08-22 11:57:01] [SUCCESS] ✅ PG 18.6 验证通过
+[2026-08-22 11:57:01] [END] === 部署完成 ===
+[2026-08-22 11:57:01] [INFO] Log: D:\RustGameServer\docs\deploy\09-deploy-dev-k3s.log
+[2026-08-22 11:57:01] [INFO] 

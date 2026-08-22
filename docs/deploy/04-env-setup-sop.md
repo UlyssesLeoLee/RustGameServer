@@ -1,12 +1,14 @@
 # 环境部署实测 SOP（Windows 11 + WSL2 + k3s native，RGS-ENV-001 v0.3 §1-§5 + G-CODE-03/06）
 
 > **文档 ID**：`RGS-DEPLOY-ENV-SETUP-001`
-> **版本**：v0.2（per DEC-010：k3d → k3s native in WSL2）
-> **生效日期**：2026-08-21
-> **目标**：NO-GO 解除（per RGS-PLAN-001 v0.8 §3.3 + 07-no-go-checklist_v0.3）
-> **平台**：Windows 11 + PowerShell 7.6+ + WSL2（Ubuntu 22.04 LTS）+ k3s native
+> **版本**：v0.3（实测 2026-08-22 后更新：Ubuntu 24.04 + k3s v1.36.3 + k3s 自带 kubectl + 一键 deploy 脚本）
+> **生效日期**：2026-08-22
+> **目标**：**🟢 GO — 53 起動条件已满足**（per 07-no-go-checklist_v0.4）
+> **平台**：Windows 11 + PowerShell 7.6+ + WSL2（**Ubuntu 24.04 LTS 实测**）+ k3s native
 > **实测人**：Ulysses（一人公司 12 角色兼任 per DEC-008）
-> **总耗时**：~60-90 分钟（含 k3s 安装 5-10 分钟 + PG pod ready 3-5 分钟）
+> **实测日期**：2026-08-22 11:58 JST
+> **实测结果**：**6/6 section PASS**（Rust / Postgres / DB / Build / Topology / Verify）
+> **总耗时**：~30-60 分钟（k3s 首次安装 5-10 分钟 + PG image pull 60-90 秒 + 实测 5 秒）
 
 ---
 
@@ -15,23 +17,30 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。Windows 11 + Docker Desktop + k3d 流程（PG 用 docker compose）。 |
+| 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-010 落地**：k3d → k3s native in WSL2。PG 从 docker compose 升为 k3s pod 部署（per 01-k8s-manifests/20-24 清单）。§0/§2/§3/§4/§5/§7/§8 全面重写。 |
+| 0.3 | 2026-08-22 | 架构师（Ulysses）| **实测后更新**：Ulysses 在 WSL2（Ubuntu 24.04）实测装 k3s v1.36.3 + apply PG manifest + 跑 measure_env_setup.ps1，6/6 section PASS。**新增** 关键脚本：`scripts/deploy_dev_k3s.ps1`（一键 apply namespace + SA + 5 PG manifest，幂等）/ `scripts/port_forward_pg.ps1`（WSL2 PG 端口转发）。**实测发现**：(1) OS 实测为 Ubuntu 24.04 LTS（SOP 写 22.04，**两者均可**——WSL2 支持 20.04+）；(2) k3s 实测版本 v1.36.3+k3s1（SOP 写 v1.30+，**实际装到 v1.36+**——k3s 当前主版本）；(3) kubectl 路径：实测用 k3s 自带 `k3s kubectl`（**用户未装 standalone kubectl**，原 SOP 写 `kubectl` 已修正为 `k3s kubectl`）；(4) 24-postgres-service.yaml 原含手动 Endpoints + clusterIP:None + selector 三者冲突，**修正为仅 Service + selector**（Endpoints 由 k8s 自动创建）；(5) postgres pod 需 ServiceAccount，**新增** 00-postgres-sa.yaml（dev 用，生产用 RBAC）。 |
 | 0.2 | 2026-08-21 | 架构师（Ulysses）| **DEC-010 落地**：k3d → k3s native in WSL2。PG 从 docker compose 升为 k3s pod 部署（per 01-k8s-manifests/20-24 清单）。§0 总览 / §2 PG / §3 WSL2 / §4 k3s / §5 kubectl / §7 OTel / §8 核验 log 全面重写。**未变更**：Rust 1.98 / cargo 工具链 / 5 独立 DB 原则 / ARC-008 / ADR-0052 / 53 起動条件。 |
 
 ---
 
 ## 0. 总览（7 大组件）
 
-| # | 组件 | 触发 G-CODE / ENV § | 优先级 | 预计耗时 | 平台 |
-|---|---|---|---|---|---|
-| 1 | Rust 1.98 stable | G-CODE-06 + ENV-§1 | 🔴 必填 | 5 分钟 | Windows (pwsh) |
-| 2 | PostgreSQL 18.6 + 5 独立 DB（k3s pod）| G-CODE-03 + ENV-§2 | 🔴 必填 | 15 分钟 | WSL2 (kubectl) |
-| 3 | WSL2 + Ubuntu 22.04 | ENV-§3.1 | 🟡 高 | 10 分钟（已装跳过）| Windows |
-| 4 | k3s native（WSL2 内 systemd 模式）| ENV-§3 | 🟡 高 | 10 分钟 | WSL2 |
-| 5 | kubectl + Helm（WSL2 内）| ENV-§3.4 | 🟡 高 | 5 分钟 | WSL2 |
-| 6 | sqlx-cli + cargo-deny + cargo-audit + cargo-llvm-cov + protoc | ENV-§1.3 + §5.1 | 🟡 中 | 15 分钟 | Windows (pwsh) |
-| 7 | OTel Collector + Prometheus + Grafana（k3s Helm chart）| ENV-§5 | 🟢 低 | 10 分钟 | WSL2 (helm) |
+| # | 组件 | 触发 G-CODE / ENV § | 优先级 | 预计耗时 | 实测耗时 | 实测状态 |
+|---|---|---|---|---|---|---|
+| 1 | Rust 1.98 stable | G-CODE-06 + ENV-§1 | 🔴 必填 | 5 分钟 | 5 分钟 | ✅ pass |
+| 2 | PostgreSQL 18.6 + 5 独立 DB（k3s pod）| G-CODE-03 + ENV-§2 | 🔴 必填 | 15 分钟 | 2 分钟（用 deploy_dev_k3s.ps1）| ✅ pass |
+| 3 | WSL2 + Ubuntu 22.04 / 24.04 | ENV-§3.1 | 🟡 高 | 10 分钟 | 已装跳过 | ✅ pass |
+| 4 | k3s native（WSL2 内 systemd 模式）| ENV-§3 | 🟡 高 | 10 分钟 | 5 分钟 | ✅ pass |
+| 5 | kubectl + Helm（WSL2 内）| ENV-§3.4 | 🟡 高 | 5 分钟 | 1 分钟（用 k3s 自带 kubectl）| ✅ pass |
+| 6 | sqlx-cli + cargo-deny + cargo-audit + cargo-llvm-cov + protoc | ENV-§1.3 + §5.1 | 🟡 中 | 15 分钟 | 跳过（待 53 启动后补）| ⚠️ pending |
+| 7 | OTel Collector + Prometheus + Grafana（k3s Helm chart）| ENV-§5 | 🟢 低 | 10 分钟 | 跳过（待 53 启动后补）| ⚠️ pending |
 
 **串行依赖**：1 → 6（cargo 工具链需 Rust 1.98）→ 3 → 4 → 5 → 2（PG pod 需 k3s ready）→ 7
+
+> **实测后优化**（v0.3 per 2026-08-22 Ulysses 实测）：
+> - ✅ 关键 1-5 项 + §2（PG pod 部署）已实测通过，6/6 measure script section 全 PASS
+> - ⚠️ 6-7 项（cargo 工具链 + OTel/Helm）跳过，待 53 起動后 + 5 域微服务实施前补
+> - ✅ **实测关键脚本**：`scripts/deploy_dev_k3s.ps1`（一键 apply PG，幂等，30s 内完成）/ `scripts/port_forward_pg.ps1`（WSL2 → Windows 5432 端口转发）/ `scripts/measure_env_setup.ps1`（幂等实测，已支持 k3s kubectl）
 
 > **DEC-010 关键变更**：
 > - ❌ 移除：Docker Desktop 强制依赖（k3s native in WSL2 不需要 Docker 引擎）
@@ -89,101 +98,121 @@ test result: ok. 0 passed; 0 failed; 0 ignored
 
 > **DEC-010 变更**：从 docker compose 改为 k3s pod 部署（per `01-k8s-manifests/20-24-*.yaml`）。
 > **优势**：与生产 5 域 Deployment 部署路径一致；Volume/PVC/ConfigMap/Secret 全部标准化；一次 SOP 适用 dev/prod。
+> **v0.3 实测优化**：Ulysses 已实测一键脚本 `scripts/deploy_dev_k3s.ps1` 完成本节全部流程（30s 内）。
 
 ### §2.1 前置条件
 
 - WSL2 + k3s 已就位（§3 + §4）
-- kubectl context 已指向 rgs-dev 集群（§5）
+- k3s 自带 kubectl（`k3s kubectl`）即可，无须独立装 kubectl
+- 在 Windows 端能跑 `pwsh` 7.0+
 
-### §2.2 应用 PG manifest（WSL2 内执行）
+### §2.2 一键部署 PG（推荐 per v0.3 实测）
 
-```bash
-# 在 WSL2 内（Ubuntu 22.04），假设 /mnt/d/RustGameServer 已挂载 Windows D 盘
-wsl -d Ubuntu-22.04
+```powershell
+# Windows pwsh（推荐）
+pwsh -NoProfile -File scripts/deploy_dev_k3s.ps1
 
-cd /mnt/d/RustGameServer/docs/deploy/01-k8s-manifests
-
-# 1. 替换 PLACEHOLDER_* 为实际值（首次部署）
-#    推荐：kustomize patch 或 sed 一次性替换
-#    - PLACEHOLDER_NAMESPACE -> rust-game-server
-#    - PLACEHOLDER_POSTGRES_* -> postgres / postgres-data-pvc / postgres-config 等
-#    - PLACEHOLDER_POSTGRES_STORAGE_CLASS -> local-path（k3s 默认）
-#    - PLACEHOLDER_POSTGRES_STORAGE_SIZE -> 5Gi
-#    - REPLACE_BEFORE_DEPLOY_* -> 实际密码（用 openssl rand -base64 24 生成）
-#    - PLACEHOLDER_POSTGRES_SA -> postgres-service-account
-#    - PLACEHOLDER_POSTGRES_SVC_NAME -> postgres
-
-# 2. 创建命名空间
-kubectl apply -f 00-namespace.yaml
-
-# 3. 应用 PG 5 个 manifest（顺序：secret → pvc → configmap → statefulset → service）
-kubectl apply -f 20-postgres-secret.yaml -n rust-game-server
-kubectl apply -f 21-postgres-pvc.yaml -n rust-game-server
-kubectl apply -f 22-postgres-configmap.yaml -n rust-game-server
-kubectl apply -f 23-postgres-statefulset.yaml -n rust-game-server
-kubectl apply -f 24-postgres-service.yaml -n rust-game-server
+# 预期输出（实测 2026-08-22 11:58 JST）：
+#   namespace applied
+#   ServiceAccount applied
+#   20-postgres-secret.yaml applied: secret/postgres-superuser configured + 6 个 DB secret created
+#   21-postgres-pvc.yaml applied: persistentvolumeclaim/postgres-data-pvc created
+#   22-postgres-configmap.yaml applied: configmap/postgres-config created
+#   23-postgres-statefulset.yaml applied: deployment.apps/postgres configured
+#   24-postgres-service.yaml applied: service/postgres configured
+#   waiting... (5s): pod Ready
+#   PG version: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) ...
+#   ✅ PG 18.6 验证通过
 ```
 
-### §2.3 等待 PG pod ready
+**脚本自动完成**：
+1. 检查 WSL2 + k3s 节点 Ready
+2. 把 `01-k8s-manifests/` 的 `00-namespace.yaml` + 5 个 PG manifest 复制到 WSL2 `/tmp/rgs-deploy-dev/`（避免 Windows 路径问题）
+3. 替换所有 `PLACEHOLDER_*` 为 dev 值（namespace / SA / SVC / PVC / ConfigMap / 资源 request/limit / 密码）
+4. 注入一个 dev 用的 `postgres-service-account`（生产由 helm RBAC 接管）
+5. apply 全部 manifest 到 k3s
+6. 等待 pod Running + Ready 1/1（timeout 360s，足够 image pull 60-90s）
+7. `kubectl exec` 进 pod 跑 `psql SELECT version()` 验证 18.6
+
+### §2.3 手动部署（备选 / 调试用）
+
+如果脚本失败或要手动执行：
 
 ```bash
-# 等待 pod Running + Ready 1/1（PG 启动 ~30s）
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=postgres -n rust-game-server --timeout=120s
+# 在 WSL2 内（默认 distro，per wsl -l -q）
+wsl
+
+# 1. 创建命名空间
+k3s kubectl apply -f 01-k8s-manifests/00-namespace.yaml
+
+# 2. 创建 ServiceAccount（dev 用，prod 由 RBAC 接管）
+cat <<EOF | k3s kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-service-account
+  namespace: rust-game-server
+EOF
+
+# 3. sed 替换 PLACEHOLDER_* 后 apply 5 个 PG manifest
+cd /mnt/d/RustGameServer/docs/deploy/01-k8s-manifests
+for f in 20-postgres-secret.yaml 21-postgres-pvc.yaml 22-postgres-configmap.yaml 23-postgres-statefulset.yaml 24-postgres-service.yaml; do
+  sed -e 's/PLACEHOLDER_NAMESPACE/rust-game-server/g' \
+      -e 's/PLACEHOLDER_POSTGRES_SA/postgres-service-account/g' \
+      -e 's/PLACEHOLDER_POSTGRES_SVC_NAME/postgres/g' \
+      -e 's/PLACEHOLDER_POSTGRES_PVC_NAME/postgres-data-pvc/g' \
+      -e 's/PLACEHOLDER_POSTGRES_CONFIGMAP_NAME/postgres-config/g' \
+      -e 's/PLACEHOLDER_POSTGRES_DEPLOY_NAME/postgres/g' \
+      -e 's/PLACEHOLDER_POSTGRES_STORAGE_CLASS/local-path/g' \
+      -e 's/PLACEHOLDER_POSTGRES_STORAGE_SIZE/5Gi/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_SUPERUSER_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_PLAYER_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_ECONOMY_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_MATCH_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_SOCIAL_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_ADMIN_PASSWORD/ulysses_local/g' \
+      -e 's/REPLACE_BEFORE_DEPLOY_CLUSTER_OPS_PASSWORD/ulysses_local/g' \
+      "$f" | k3s kubectl apply -f -
+done
+```
+
+### §2.4 等待 PG pod ready + 验证
+
+```bash
+# 等待 pod Running + Ready 1/1
+k3s kubectl wait --for=condition=ready pod -n rust-game-server -l app.kubernetes.io/name=postgres --timeout=300s
 
 # 验证 pod
-kubectl get pod -l app.kubernetes.io/name=postgres -n rust-game-server
+k3s kubectl get pod -n rust-game-server -l app.kubernetes.io/name=postgres
+
+# 验证 PG 版本
+k3s kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT version();"
+# 预期: PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) ...
+
+# 验证 5 独立 DB
+k3s kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datistemplate=false;"
+# 预期: admin_db / cluster_ops_db / economy_db / match_db / player_db / postgres / social_db
 ```
 
-**预期输出**：
-```
-NAME                      READY   STATUS    RESTARTS   AGE
-postgres-xxxxxxxxxx-xxxxx   1/1     Running   0          90s
-```
+### §2.5 端口转发（供 Windows 端 sqlx-cli / psql 用）
 
-### §2.4 验证 PG 版本 + 5 独立 DB
+```powershell
+# Windows pwsh（另开一个 shell，保持运行）
+pwsh -NoProfile -File scripts/port_forward_pg.ps1
 
-```bash
-# 进入 PG pod 跑 psql
-kubectl exec -it deploy/postgres -n rust-game-server -- psql -U postgres
-
-# 在 psql 内
-\dx
-SELECT version();
-\l
-```
-
-**预期输出**：
-```
-                                                   version
-----------------------------------------------------------------------------------------------------------
- PostgreSQL 18.6 (Ubuntu 18.6-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) ...
-(1 row)
-
-                              List of databases
-   Name           |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
-------------------+----------+----------+-------------+-------------+-----------------------
- admin_db          | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- cluster_ops_db    | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- economy_db        | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- match_db          | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- player_db         | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- postgres          | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
- social_db         | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
-(7 rows)
-```
-
-### §2.5 端口转发（供 Windows 端 sqlx-cli 用）
-
-```bash
-# 在 WSL2 单独开一个 shell 跑 port-forward（保持运行）
-kubectl port-forward svc/postgres -n rust-game-server 5432:5432
+# 预期: port-forward 启动后，Windows 端 5432 端口可连
+# 验证：
+Test-NetConnection -ComputerName 127.0.0.1 -Port 5432
+# 预期: TcpTestSucceeded = True
 ```
 
 ```powershell
-# 在 Windows pwsh 内验证（另开一个 pwsh 窗口）
-pwsh -NoProfile -Command "& { \$env:PGPASSWORD='postgres 密码'; & 'C:\Program Files\PostgreSQL\18\bin\psql.exe' -h localhost -U postgres -c 'SELECT version();' }"
-# 或用 sqlx-cli：
-$env:DATABASE_URL = "postgres://postgres:密码@localhost:5432/player_db"
+# Windows pwsh（连 PG）
+pwsh -NoProfile -Command "& { \$env:PGPASSWORD='ulysses_local'; & 'C:\Program Files\PostgreSQL\18\bin\psql.exe' -h localhost -U postgres -c 'SELECT version();' }"
+# 预期: PostgreSQL 18.6
+
+# sqlx-cli 用法
+$env:DATABASE_URL = "postgres://postgres:ulysses_local@localhost:5432/player_db"
 sqlx database create
 ```
 
@@ -191,10 +220,15 @@ sqlx database create
 
 - 工具：draw.io / Excalidraw / Mermaid / 手画 PNG 均可
 - 提交到：`docs/deploy/05-db-topology.png`（或 .svg / .drawio / .mmd）
-- 必备元素：6 个 DB 框 + Schema 命名（per RGS-SPEC-CROSS-005） + 跨 DB 访问箭头（标"禁止 JOIN"） + Outbox + CEM 跨域协调路径 + **新增 k3s pod 边界框**（per DEC-010）
-- Mermaid 源已就位：`docs/deploy/05-db-topology.mmd`
+- 必备元素：6 个 DB 框 + Schema 命名（per RGS-SPEC-CROSS-005） + 跨 DB 访问箭头（标"禁止 JOIN"） + Outbox + CEM 跨域协调路径 + **k3s pod 边界框**（per DEC-010）
+- Mermaid 源已就位：`docs/deploy/05-db-topology.mmd`（脚本 `measure_env_setup.ps1` 自动生成）
 
-**关闭 G-CODE-03 条件**：6 个 DB 全部创建 + k3s pod running + 拓扑图存档到 `docs/deploy/05-db-topology.png` ✓
+**关闭 G-CODE-03 条件**（v0.3 实测更新）：
+- ✅ k3s pod Running + Ready 1/1（`kubectl get pod -l app.kubernetes.io/name=postgres` 显示 `1/1`）
+- ✅ PG 18.6 验证（`SELECT version()` 包含 `18.6`）
+- ✅ 5 独立 DB 全建（`player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db`）
+- ✅ 拓扑图存档到 `docs/deploy/05-db-topology.png`（或 .svg / .mmd）
+- ✅ Ulysses **实际跑过**（非签字声明，per RGS-EXEC-001 v0.3 §3.4）— 2026-08-22 11:58 JST 实测
 
 ---
 

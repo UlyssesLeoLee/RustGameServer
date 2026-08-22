@@ -87,7 +87,7 @@ function Run-WSL {
     )
     if (-not (Test-WSLAvailable)) { return 'WSL_NOT_AVAILABLE' }
     try {
-        $out = & wsl -d $Distro -- bash -c $Command 2>&1
+        $out = & wsl -- bash -c $Command 2>&1
         if ($LASTEXITCODE -eq 0) {
             return ($out | Where-Object { $_ -ne $null } | ForEach-Object { $_.ToString() }) -join "`n"
         }
@@ -97,7 +97,7 @@ function Run-WSL {
 }
 
 function Test-K3sRunning {
-    $nodeOut = Run-WSL 'sudo kubectl get nodes --no-headers 2>/dev/null | head -1'
+    $nodeOut = Run-WSL 'k3s kubectl get nodes --no-headers 2>/dev/null | head -1'
     if ($nodeOut -match 'Ready') { return $true }
     return $false
 }
@@ -107,21 +107,21 @@ function Get-KubectlVersion {
 }
 
 function Get-PostgresPodStatus {
-    return Run-WSL 'sudo kubectl get pod -l app.kubernetes.io/name=postgres -n rust-game-server --no-headers 2>/dev/null | head -1'
+    return Run-WSL 'k3s kubectl get pod -l app.kubernetes.io/name=postgres -n rust-game-server --no-headers 2>/dev/null | head -1'
 }
 
 function Get-PostgresVersion {
-    return Run-WSL 'sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT version();" 2>/dev/null'
+    return Run-WSL 'k3s kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT version();" 2>/dev/null'
 }
 
 function Get-PostgresDatabases {
-    return Run-WSL 'sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datistemplate=false;" 2>/dev/null'
+    return Run-WSL 'k3s kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datistemplate=false;" 2>/dev/null'
 }
 
 function New-PostgresDatabase {
     param([string]$DbName)
     $sql = "SELECT 'CREATE DATABASE $DbName' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DbName')\\\\gexec"
-    return Run-WSL "sudo kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -c `"$sql`" 2>/dev/null"
+    return Run-WSL "k3s kubectl exec deploy/postgres -n rust-game-server -- psql -U postgres -c `"$sql`" 2>/dev/null"
 }
 
 function Test-CommandInstalled {
@@ -301,7 +301,25 @@ function Run-RustBuildInternal {
     }
 
     # 跑 cargo build + test
+    # 首次：先 cargo generate-lockfile（创建 Cargo.lock），然后用 --locked build
     $buildLog = Join-Path $DeployDir '06-rust-198-build.log'
+    Push-Location $RepoRoot
+    try {
+        $lockFile = Join-Path $RepoRoot 'Cargo.lock'
+        $lockGen = if (-not (Test-Path -LiteralPath $lockFile)) {
+            # 首次：跑 cargo generate-lockfile（不下载 deps，生成 lock 即可）
+            & cargo generate-lockfile 2>&1 | Out-Null
+            'cargo generate-lockfile (首次生成 Cargo.lock)'
+        } else { 'Cargo.lock 已存在' }
+
+        $buildOutput = & cargo build --locked 2>&1
+        $buildOk = $LASTEXITCODE -eq 0 -and ($buildOutput -join "`n") -match 'Finished `dev` profile|Finished `release` profile'
+
+        $testOutput = & cargo test --locked --workspace 2>&1
+        $testOk = $LASTEXITCODE -eq 0 -and ($testOutput -join "`n") -match 'test result: ok'
+    }
+    finally { Pop-Location }
+
     $logContent = @"
 === RGS Rust 1.98 build + test (G-CODE-06 关闭证据) ===
 执行人：Ulysses（一人公司 12 角色兼任 per DEC-008）
@@ -317,11 +335,13 @@ $((& cargo --version 2>&1) -join "`n")
 --- rustup show ---
 $((& rustup show 2>&1) -join "`n")
 
+--- $lockGen ---
+
 --- cargo build --locked ---
-$((& cargo build --locked 2>&1) -join "`n")
+$($buildOutput -join "`n")
 
 --- cargo test --locked --workspace ---
-$((& cargo test --locked --workspace 2>&1) -join "`n")
+$($testOutput -join "`n")
 
 === 完成 ===
 "@

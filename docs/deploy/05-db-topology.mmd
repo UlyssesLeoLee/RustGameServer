@@ -1,14 +1,25 @@
 graph TB
-    subgraph "5 独立业务 DB (per ARC-008)"
-        player_db["player_db<br/>player schema<br/>(player-service)"]
-        economy_db["economy_db<br/>economy schema<br/>(economy-service)<br/>Q-003 Saga + Outbox"]
-        match_db["match_db<br/>match schema<br/>(match-service)"]
-        social_db["social_db<br/>social schema<br/>(social-service)"]
-        admin_db["admin_db<br/>admin schema<br/>(admin-service)<br/>RBAC + CEM + event_schema_registry"]
-    end
+    subgraph k3s["k3s pod (per DEC-010: WSL2 native)"]
+        postgres_pod["postgres pod<br/>postgres:18.6 image<br/>1 PVC + 1 Service (ClusterIP)"]
 
-    subgraph "集群控制面 DB"
-        cluster_ops_db["cluster_ops_db<br/>cluster_ops schema<br/>(cluster-ops-service)<br/>COC + PFAU + all-reachable"]
+        subgraph "5 独立业务 DB (per ARC-008)"
+            player_db["player_db<br/>player schema<br/>(player-service)"]
+            economy_db["economy_db<br/>economy schema<br/>(economy-service)<br/>Q-003 Saga + Outbox"]
+            match_db["match_db<br/>match schema<br/>(match-service)"]
+            social_db["social_db<br/>social schema<br/>(social-service)"]
+            admin_db["admin_db<br/>admin schema<br/>(admin-service)<br/>RBAC + CEM + event_schema_registry"]
+        end
+
+        subgraph "集群控制面 DB"
+            cluster_ops_db["cluster_ops_db<br/>cluster_ops schema<br/>(cluster-ops-service)<br/>COC + PFAU + all-reachable"]
+        end
+
+        postgres_pod --> player_db
+        postgres_pod --> economy_db
+        postgres_pod --> match_db
+        postgres_pod --> social_db
+        postgres_pod --> admin_db
+        postgres_pod --> cluster_ops_db
     end
 
     subgraph "跨域协调 (禁用 JOIN, 用 Outbox + CEM 异步)"
@@ -31,6 +42,9 @@ graph TB
     classDef db fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef cluster fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef coord fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef k3sbox fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef pod fill:#c8e6c9,stroke:#1b5e20,stroke-width:1px
     class player_db,economy_db,match_db,social_db,admin_db db
     class cluster_ops_db cluster
     class outbox,cem coord
+    class postgres_pod pod
