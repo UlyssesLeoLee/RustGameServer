@@ -1,0 +1,28 @@
+# Prometheus 配置（per WBS v0.3 §2A.5 WF-1-53.12）
+# scrape 5 域 + cluster-ops /metrics + OTel Collector 内部 metrics
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: rgs-dev
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  - job_name: rgs-services
+    static_configs:
+      - targets:
+          - "player-service:50051"
+          - "economy-service:50052"
+          - "match-service:50053"
+          - "social-service:50054"
+          - "admin-service:50055"
+          - "cluster-ops.service:50056"
+    metrics_path: /metrics
