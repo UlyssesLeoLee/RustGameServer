@@ -1,0 +1,13 @@
+# cargo-audit 配置（per WBS v0.3 §2A.5 WF-1-53.14）
+# 范围：漏洞检查（RustSec advisory-db）
+# 规范：RGS-IMPL-003 §3 工具链
+# 注意：cargo-audit 配置项比 cargo-deny 少；主要靠命令行参数 + RustSec db
+
+[advisories]
+# 53.14 接受：默认 RustSec advisory-db；54.x 业务实施时按需 ignore
+ignore = []
+
+# 53.14 验收：
+# - cargo install cargo-audit --locked（一次性）
+# - cargo audit（本地手动模拟 CI）
+# - rust-ci.yml 启用 cargo audit step（55.5 升 v0.4 时）
