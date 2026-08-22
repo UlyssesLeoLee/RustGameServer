@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS outbox (
     last_error TEXT,
     lease_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    sent_at TIMESTAMPTZ
+    sent_at TIMESTAMPTZ,
+    CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox (created_at) WHERE status = 'pending';
