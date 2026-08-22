@@ -454,7 +454,7 @@ mod tests {
     use crate::repository::{
         InMemoryAccountRepository, InMemoryTransactionLedgerRepository,
     };
-    use crate::reservation::{InMemoryReservationRepository, ReservationStatus};
+    use crate::reservation::{InMemoryReservationRepository, Reservation, ReservationStatus};
     use crate::saga::{InMemorySagaRepository, Saga, SagaType};
     use std::sync::Mutex;
 
@@ -837,5 +837,183 @@ mod tests {
 
         let recorded = *last.lock().unwrap();
         assert_eq!(recorded, Some(Some(target)), "compensate must pass step's resource_id");
+    }
+
+    // ============================================================================
+    // DC-1: SagaOrchestrator::resume() 测试 (per RGS-REV-008 verify-D CRITICAL)
+    //
+    // 背景: 55.23 economy main.rs:104-136 的 30s 崩溃恢复轮询
+    //   `list_running(100)` + `orchestrator.resume(id).await`
+    // 是 5 域 / economy 的核心崩溃恢复主路径, 但 resume() 函数本身无任何 test.
+    //
+    // 覆盖 4 个入口场景:
+    //   1. Pending  → start() + 步进完成
+    //   2. Running  → 跳过 start(), 从 current step 续跑
+    //   3. Compensating → 重新跑失败步, 触发补偿链, handler.compensate 被调
+    //   4. None (saga_id 不存在) → NotFound
+    // ============================================================================
+
+    /// DC-1.1: resume(Pending) → start() + 步进至 Completed
+    #[tokio::test]
+    async fn resume_pending_saga_starts_and_advances() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+
+        // 构造 Pending saga 并持久化（未执行）
+        let saga = make_transfer_saga(account_id);
+        env.sagas.save(&saga).await.unwrap();
+        let saga_id = saga.id;
+
+        // resume: 重新加载 Pending saga 并执行
+        env.orch.resume(saga_id).await.unwrap();
+
+        // 验证: 重新加载后 saga 已 Completed（reserve + confirm 都过）
+        let loaded = env.sagas.find_by_id(saga_id).await.unwrap().unwrap();
+        assert_eq!(loaded.status, SagaStatus::Completed);
+        assert_eq!(loaded.steps[0].status, SagaStepStatus::Completed);
+        assert_eq!(loaded.steps[1].status, SagaStepStatus::Completed);
+    }
+
+    /// DC-1.2: resume(Running, current_step=1) → 跳过 start() 续跑 confirm 步, 无 double-debit
+    #[tokio::test]
+    async fn resume_running_saga_continues_current_step() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+
+        // 构造 2 步 saga, step 0 (reserve) 已 Completed, current_step=1, status=Running
+        // 模拟"reserve 步已成功完成 (在另一进程/重启前), 进程崩了,
+        // 重启后用 resume 续跑 confirm 步"
+        let mut saga = Saga::new(
+            SagaType::Transfer,
+            Uuid::new_v4(),
+            "k-resume-running".to_string(),
+            vec!["reserve".to_string(), "confirm".to_string()],
+        );
+        saga.steps[0].resource_id = Some(account_id);
+        saga.steps[1].resource_id = Some(account_id);
+        saga.steps[0].mark_completed();
+        saga.current_step = 1;
+        saga.status = SagaStatus::Running;
+
+        // 预存 reservation（confirm 步需要它来查找）
+        let r = Reservation::new(saga.id, account_id, TEST_AMOUNT, Currency::Gold);
+        env.reservations.save(&r).await.unwrap();
+
+        // 预扣账户余额（模拟 reserve 阶段已成功扣款）
+        let mut account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
+        account.try_debit(TEST_AMOUNT);
+        env.accounts.save(&account).await.unwrap();
+
+        env.sagas.save(&saga).await.unwrap();
+        let saga_id = saga.id;
+
+        // resume: 跳过 start()（status=Running）, 从 current step (1) 续跑
+        env.orch.resume(saga_id).await.unwrap();
+
+        // 验证: saga 终态 = Completed
+        let loaded = env.sagas.find_by_id(saga_id).await.unwrap().unwrap();
+        assert_eq!(loaded.status, SagaStatus::Completed);
+        // step 0 保持 Completed（未被重跑）
+        assert_eq!(loaded.steps[0].status, SagaStepStatus::Completed);
+        // step 1 已 Completed
+        assert_eq!(loaded.steps[1].status, SagaStepStatus::Completed);
+
+        // 关键: 余额只扣一次（step 0 未被重跑, 无 double-debit）
+        let final_account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(
+            final_account.balance,
+            TEST_INITIAL_BALANCE - TEST_AMOUNT,
+            "step 0 (reserve) must not be re-executed, otherwise double-debit"
+        );
+    }
+
+    /// DC-1.3: resume(Compensating) → 重新跑失败步, 触发补偿链, handler.compensate 被调
+    ///
+    /// 这是 55.12 pre-existing bug 修复的回归点：
+    /// 旧实现中 ReserveHandler/ConfirmHandler 补偿路径全 no-op, bug 静默未暴露;
+    /// 新实现要求 saga 进入 Compensating 后 resume 必须真正调用 handler.compensate() 链.
+    #[tokio::test]
+    async fn resume_compensating_saga_triggers_compensation() {
+        // 自定义 handler: 记录 compensate 是否被调
+        struct CompensateRecorder {
+            name: String,
+            compensate_called: Arc<Mutex<bool>>,
+        }
+        #[async_trait::async_trait]
+        impl SagaStepHandler for CompensateRecorder {
+            fn name(&self) -> &str {
+                &self.name
+            }
+            async fn execute(&self, _saga: &mut Saga) -> Result<()> {
+                Ok(())
+            }
+            async fn compensate(&self, _saga: &mut Saga, _rid: Option<Uuid>) -> Result<()> {
+                *self.compensate_called.lock().unwrap() = true;
+                Ok(())
+            }
+        }
+
+        let sag_repo = Arc::new(InMemorySagaRepository::new());
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let compensate_flag = Arc::new(Mutex::new(false));
+
+        let step_a = Arc::new(CompensateRecorder {
+            name: "step_a".to_string(),
+            compensate_called: compensate_flag.clone(),
+        });
+        let step_b = Arc::new(FailingHandler {
+            name: "step_b".to_string(),
+        });
+
+        let orch = SagaOrchestrator::new(
+            sag_repo.clone() as Arc<dyn SagaRepository>,
+            res_repo.clone() as Arc<dyn ReservationRepository>,
+            vec![step_a, step_b],
+        );
+
+        // 构造: 2 步 saga, step_a 已 Completed, current_step=1, status=Compensating
+        // 模拟"补偿中断, 重启后用 resume 续跑"
+        let mut saga = Saga::new(
+            SagaType::Transfer,
+            Uuid::new_v4(),
+            "k-resume-compensating".to_string(),
+            vec!["step_a".to_string(), "step_b".to_string()],
+        );
+        saga.steps[0].mark_completed();
+        saga.current_step = 1;
+        saga.status = SagaStatus::Compensating;
+        sag_repo.save(&saga).await.unwrap();
+        let saga_id = saga.id;
+
+        // resume(Compensating) → 跳过 start() → 跑 step_b → 失败 → 触发 compensate
+        // 预期 Err (step_b 失败), 但补偿应已触发
+        let _ = orch.resume(saga_id).await;
+
+        // 验证: step_a.compensate 被调
+        assert!(
+            *compensate_flag.lock().unwrap(),
+            "step_a.compensate must be called when resume(Compensating) re-runs the failed step"
+        );
+
+        // 验证: saga 终态 = Failed
+        let loaded = sag_repo.find_by_id(saga_id).await.unwrap().unwrap();
+        assert_eq!(loaded.status, SagaStatus::Failed);
+        // step_a 已被补偿, step_b 已 Failed
+        assert_eq!(loaded.steps[0].status, SagaStepStatus::Compensated);
+        assert_eq!(loaded.steps[1].status, SagaStepStatus::Failed);
+    }
+
+    /// DC-1.4: resume(不存在的 saga_id) → NotFound("Saga", ...)
+    #[tokio::test]
+    async fn resume_nonexistent_saga_returns_not_found() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let phantom_id = Uuid::new_v4();
+
+        let err = env.orch.resume(phantom_id).await.unwrap_err();
+        assert!(
+            matches!(err, Error::NotFound { entity: "Saga", .. }),
+            "resume(non-existent) should return NotFound(Saga), got: {:?}",
+            err
+        );
     }
 }
