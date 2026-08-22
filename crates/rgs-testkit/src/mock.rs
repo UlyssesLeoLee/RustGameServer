@@ -7,6 +7,11 @@
 //!
 //! 53.3 骨架版：3 个 trait 占位 + 1 个空实现，让 5 域 DTL §6 测试规格
 //! 引用时不报"unresolved import"。
+//!
+//! 53.4 CI 修正：clippy 1.98 的 `async_fn_in_trait` / `manual_async_fn` 互相对立
+//! （async fn 触发前者，impl Future 触发后者），53.4 选择 `async fn` 形式
+//! + 在 rust-ci.yml 用 `-A clippy::async_fn_in_trait` 抑制该 pedantic 警告。
+//! 54.x 接入 sqlx-mock / mockito / async-nats-mock 时再决定最终 API 形式。
 
 /// PostgreSQL 连接池 mock 标记 trait
 pub trait DbMock: Send + Sync {
@@ -17,12 +22,14 @@ pub trait DbMock: Send + Sync {
 /// tonic gRPC server mock 标记 trait
 pub trait GrpcMock: Send + Sync {
     /// 启动 mock server（占位）
+    #[allow(async_fn_in_trait)]
     async fn serve(&self) -> anyhow::Result<()>;
 }
 
 /// NATS JetStream subject mock 标记 trait
 pub trait NatsMock: Send + Sync {
     /// 模拟 subject publish（占位）
+    #[allow(async_fn_in_trait)]
     async fn publish(&self, subject: &str, payload: &[u8]) -> anyhow::Result<()>;
 }
 
@@ -30,13 +37,19 @@ pub trait NatsMock: Send + Sync {
 pub struct NoopMock;
 
 impl DbMock for NoopMock {
-    fn mock_url(&self) -> &str { "postgres://mock@localhost:5432/mock" }
+    fn mock_url(&self) -> &str {
+        "postgres://mock@localhost:5432/mock"
+    }
 }
 
 impl GrpcMock for NoopMock {
-    async fn serve(&self) -> anyhow::Result<()> { Ok(()) }
+    async fn serve(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 impl NatsMock for NoopMock {
-    async fn publish(&self, _subject: &str, _payload: &[u8]) -> anyhow::Result<()> { Ok(()) }
+    async fn publish(&self, _subject: &str, _payload: &[u8]) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

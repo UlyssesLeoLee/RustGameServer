@@ -1,7 +1,7 @@
 //! rgs-testkit self-test：验证 3 个子模块基本 API 可用
 
-use rgs_testkit::{fixture, helper, mock};
 use rgs_testkit::mock::{DbMock, GrpcMock, NatsMock};
+use rgs_testkit::{fixture, helper, mock};
 
 #[test]
 fn fixture_player_basic() {
@@ -37,7 +37,7 @@ fn helper_init_tracing_idempotent() {
 #[test]
 fn helper_load_test_env_empty() {
     let env = helper::load_test_env();
-    for (k, _) in env.iter() {
+    for k in env.keys() {
         assert!(!k.is_empty());
     }
 }
