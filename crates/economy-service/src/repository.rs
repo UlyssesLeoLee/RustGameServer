@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 use crate::entity::{
@@ -27,6 +27,19 @@ pub trait AccountRepository: Send + Sync {
     async fn update_with_version(&self, account: &Account) -> Result<Account>;
     async fn save(&self, entity: &Account) -> Result<Account>;
     async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
+    /// 原子事务：OCC 更新账户余额 + 写入账目（per RGS-REV-007 AC3 / RGS-DTL-015 §3）
+    ///
+    /// 实现要求：
+    /// - Pg: 同一 sqlx::Transaction 内先 UPDATE accounts (OCC) 再 INSERT transaction_ledger
+    /// - InMemory: 用 Mutex 模拟事务隔离，保证两步不被并发交错
+    ///
+    /// 入参：account 包含新 balance + 新 version；ledger 包含完整 entry
+    /// 返回：(更新后 account, 保存后 ledger) — 若 OCC 冲突返 Error::Validation
+    async fn apply_atomic(
+        &self,
+        account: &Account,
+        ledger: &TransactionLedger,
+    ) -> Result<(Account, TransactionLedger)>;
 }
 
 /// TransactionLedger Repository trait
@@ -151,6 +164,60 @@ impl AccountRepository for PgAccountRepository {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    async fn apply_atomic(
+        &self,
+        account: &Account,
+        ledger: &TransactionLedger,
+    ) -> Result<(Account, TransactionLedger)> {
+        // 单事务：OCC 更新账户 + 插入账目（per RGS-REV-007 AC3 修复）
+        let mut tx = self.pool.begin().await?;
+        let result = sqlx::query(
+            "UPDATE accounts SET balance = $1, version = version + 1, status = $2, updated_at = $3 \
+             WHERE id = $4 AND version = $5",
+        )
+        .bind(account.balance)
+        .bind(account_status_to_str(account.status))
+        .bind(account.updated_at)
+        .bind(account.id)
+        .bind(account.version)
+        .execute(&mut *tx)
+        .await?;
+        if result.rows_affected() == 0 {
+            // 显式回滚（虽然 tx 离开作用域自动 rollback，但显式调用更清晰）
+            tx.rollback().await?;
+            return Err(crate::Error::Validation(format!(
+                "OCC conflict: account {} version {} stale",
+                account.id, account.version
+            )));
+        }
+        sqlx::query(
+            "INSERT INTO transaction_ledger \
+             (id, account_id, idempotency_key, saga_id, command_id, amount, currency, kind, status, memo, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        )
+        .bind(ledger.id)
+        .bind(ledger.account_id)
+        .bind(&ledger.idempotency_key)
+        .bind(ledger.saga_id)
+        .bind(ledger.command_id)
+        .bind(ledger.amount)
+        .bind(currency_to_str(ledger.currency))
+        .bind(transaction_kind_to_str(ledger.kind))
+        .bind(transaction_status_to_str(ledger.status))
+        .bind(&ledger.memo)
+        .bind(ledger.created_at)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok((
+            Account {
+                version: account.version + 1,
+                ..account.clone()
+            },
+            ledger.clone(),
+        ))
+    }
 }
 
 pub struct PgTransactionLedgerRepository {
@@ -247,14 +314,27 @@ impl TransactionLedgerRepository for PgTransactionLedgerRepository {
 // ============================================================================
 
 pub struct InMemoryAccountRepository {
-    inner: Mutex<HashMap<Uuid, Account>>,
+    pub(crate) inner: Mutex<HashMap<Uuid, Account>>,
+    /// 可选共享 ledger HashMap（per RGS-REV-007 AC3 修复：apply_atomic 需要原子写两侧）
+    /// None 时 apply_atomic 退化为仅更新 account（向后兼容简单测试）
+    ledger: Option<Arc<Mutex<HashMap<Uuid, TransactionLedger>>>>,
 }
 
 impl InMemoryAccountRepository {
     pub fn new() -> Self {
         Self {
             inner: Mutex::new(HashMap::new()),
+            ledger: None,
         }
+    }
+
+    /// 绑定共享 ledger HashMap（用于 apply_atomic 原子双写）
+    pub fn with_shared_ledger(
+        mut self,
+        ledger: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
+    ) -> Self {
+        self.ledger = Some(ledger);
+        self
     }
 }
 
@@ -307,16 +387,59 @@ impl AccountRepository for InMemoryAccountRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
         Ok(self.inner.lock().unwrap().remove(&id).is_some())
     }
+
+    async fn apply_atomic(
+        &self,
+        account: &Account,
+        ledger: &TransactionLedger,
+    ) -> Result<(Account, TransactionLedger)> {
+        // Mutex 模拟事务隔离：lock account 与 ledger HashMap 同时持锁完成两步
+        let mut acc_guard = self.inner.lock().unwrap();
+        let occ_ok = match acc_guard.get(&account.id) {
+            Some(existing) if existing.version == account.version => {
+                let updated = Account {
+                    version: account.version + 1,
+                    ..account.clone()
+                };
+                acc_guard.insert(account.id, updated);
+                true
+            }
+            Some(_) => {
+                return Err(crate::Error::Validation(format!(
+                    "OCC conflict: account {} version {} stale",
+                    account.id, account.version
+                )));
+            }
+            None => {
+                return Err(crate::Error::NotFound {
+                    entity: "Account",
+                    id: account.id.to_string(),
+                });
+            }
+        };
+        if occ_ok {
+            if let Some(ledger_map) = &self.ledger {
+                ledger_map.lock().unwrap().insert(ledger.id, ledger.clone());
+            }
+        }
+        Ok((
+            Account {
+                version: account.version + 1,
+                ..account.clone()
+            },
+            ledger.clone(),
+        ))
+    }
 }
 
 pub struct InMemoryTransactionLedgerRepository {
-    inner: Mutex<HashMap<Uuid, TransactionLedger>>,
+    pub(crate) inner: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
 }
 
 impl InMemoryTransactionLedgerRepository {
     pub fn new() -> Self {
         Self {
-            inner: Mutex::new(HashMap::new()),
+            inner: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
