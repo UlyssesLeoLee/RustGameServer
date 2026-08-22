@@ -67,8 +67,8 @@ pub fn deserialize_envelope<T: serde::de::DeserializeOwned>(
     _subject: &str,
     payload: Vec<u8>,
 ) -> Result<DeserializedMessage<T>, ConsumerError> {
-    let envelope: MessageEnvelope<T> = serde_json::from_slice(&payload)
-        .map_err(ConsumerError::Serialization)?;
+    let envelope: MessageEnvelope<T> =
+        serde_json::from_slice(&payload).map_err(ConsumerError::Serialization)?;
     Ok(DeserializedMessage {
         envelope,
         original_payload: payload,
