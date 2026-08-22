@@ -66,7 +66,7 @@ impl EconomyServiceImpl {
         self.accounts.find_by_id(id).await
     }
 
-    /// Saga step handler 内部 helper（per RGS-REV-007 AC4 / DEC-015 P1）：
+    /// Saga step handler 内部 helper（per RGS-REV-007 AC4 / DEC-015 P1 / RGS-REV-008 CC-4）：
     /// 一次性完成「持久化 reservation + 扣减余额 + 原子账户 OCC 更新 + 写账目」四步。
     ///
     /// 业务语义：handler 调它做 ReserveHandler.execute / ConfirmHandler.execute 的核心动作。
@@ -74,9 +74,12 @@ impl EconomyServiceImpl {
     ///
     /// 顺序保证：
     /// 1. 先 reservation.save —— 失败时不进入下一步
-    /// 2. 再 try_debit —— 余额不足时返回 InsufficientFunds（不写账目）
-    /// 3. 再 apply_atomic —— OCC + 账目原子更新（per AC3 修复）
-    /// 4. 若 apply_atomic 失败，调用方需补偿 reservation（reservation 仍在表里）
+    /// 2. 再 try_debit —— 余额不足时返回 InsufficientFunds（不写账目），
+    ///    并**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复）
+    /// 3. 再 apply_atomic —— OCC + 账目原子更新（per AC3 修复）；
+    ///    失败时**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复），
+    ///    避免 dangling reservation 堆积
+    /// 4. happy path：返 (updated_account, saved_entry, saved_reservation) 三元组
     ///
     /// 返回 (更新后 Account, 写后 Ledger, 持久化后 Reservation)。
     #[allow(clippy::too_many_arguments)]
@@ -101,7 +104,19 @@ impl EconomyServiceImpl {
         // 2. 扣减余额（OCC 前本地校验）
         let mut debited = account.clone();
         if !debited.try_debit(amount) {
-            // 注意：reservation 已持久化，调用方负责补偿（delete_by_id 或 mark Compensated）
+            // 补偿：清理 dangling reservation（per RGS-REV-008 CC-4 / verify-C 修复）
+            // try_debit 失败时本地扣减未发生，但 reservation 已落库。
+            // 必须 delete_by_id 防止表堆积 + 避免后续 compensate 误触发 +amount 退款。
+            if let Err(cleanup_err) = reservations.delete_by_id(saved_reservation.id).await {
+                tracing::warn!(
+                    target: "economy-service",
+                    reservation_id = %saved_reservation.id,
+                    saga_id = %saga_id,
+                    account_id = %account.id,
+                    "failed to cleanup dangling reservation after insufficient funds: {}",
+                    cleanup_err
+                );
+            }
             return Err(Error::InsufficientFunds {
                 account_id: account.id.to_string(),
                 balance: account.balance,
@@ -120,7 +135,26 @@ impl EconomyServiceImpl {
         entry.saga_id = Some(saga_id);
         entry.command_id = Some(command_id);
         entry.status = TransactionStatus::Confirmed;
-        let (updated_account, saved_entry) = self.accounts.apply_atomic(&debited, &entry).await?;
+        // 分离 Ok/Err：失败时也清理 reservation（per RGS-REV-008 CC-4 / verify-C 修复）
+        // 防止 apply_atomic OCC 冲突 / DB 异常路径下 dangling reservation 堆积，
+        // 避免后续 reserve 补偿误触发（per RGS-REV-008 CC-4 资金幻影风险的核心 patch）。
+        let apply_result = self.accounts.apply_atomic(&debited, &entry).await;
+        let (updated_account, saved_entry) = match apply_result {
+            Ok(v) => v,
+            Err(e) => {
+                if let Err(cleanup_err) = reservations.delete_by_id(saved_reservation.id).await {
+                    tracing::warn!(
+                        target: "economy-service",
+                        reservation_id = %saved_reservation.id,
+                        saga_id = %saga_id,
+                        account_id = %account.id,
+                        "failed to cleanup dangling reservation after apply_atomic failure: {}",
+                        cleanup_err
+                    );
+                }
+                return Err(e);
+            }
+        };
 
         Ok((updated_account, saved_entry, saved_reservation))
     }
@@ -512,5 +546,155 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn apply_atomic_with_reservation_insufficient_funds_cleans_reservation() {
+        // 验证 RGS-REV-008 CC-4 / verify-C 修复：
+        // try_debit 失败时, 已持久化的 reservation 必须被 delete_by_id 清理,
+        // 避免 dangling reservation 堆积 + 误触发后续 compensate 退款。
+        let (svc, acc_repo, led_repo) = make_service_paired();
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+
+        let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+        acc.credit(50); // 余额 50
+        let account_id = acc.id;
+        acc_repo.save(&acc).await.unwrap();
+
+        let saga_id = Uuid::new_v4();
+        let cmd_id = Uuid::new_v4();
+
+        // 预写入 1 个 dummy reservation 用不同 saga_id, 用于验证 cleanup 不影响其它记录
+        let dummy = Reservation::new(
+            Uuid::new_v4(),
+            account_id,
+            1,
+            Currency::Gold,
+        );
+        let dummy_id = dummy.id;
+        res_repo.save(&dummy).await.unwrap();
+
+        // 触发 try_debit 失败路径：扣 100 > 余额 50
+        let err = svc
+            .apply_atomic_with_reservation(
+                &acc,
+                100,
+                Currency::Gold,
+                TransactionKind::Transfer,
+                saga_id,
+                cmd_id,
+                "k-isf".to_string(),
+                &res_repo_dyn,
+            )
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::InsufficientFunds { .. }),
+            "expected InsufficientFunds, got {:?}",
+            err
+        );
+
+        // 关键断言：apply_atomic_with_reservation 内部产生的 saved_reservation
+        // 已被 cleanup 清理。list_by_saga(saga_id) 应返回 0 条。
+        let for_saga = res_repo.list_by_saga(saga_id).await.unwrap();
+        assert_eq!(
+            for_saga.len(),
+            0,
+            "dangling reservation must be cleaned up after insufficient funds; got {:?}",
+            for_saga
+        );
+
+        // dummy 未受影响
+        let still_dummy = res_repo.find_by_id(dummy_id).await.unwrap();
+        assert!(still_dummy.is_some(), "dummy reservation should be untouched");
+
+        // 账户余额未变（未被扣）
+        let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(reloaded.balance, 50);
+
+        // ledger 无任何条目
+        assert_eq!(led_repo.inner.lock().unwrap().len(), 0);
+
+        // account version 未变 (无 apply_atomic 调用)
+        assert_eq!(reloaded.version, acc.version);
+    }
+
+    #[tokio::test]
+    async fn apply_atomic_with_reservation_occ_conflict_cleans_reservation() {
+        // 验证 RGS-REV-008 CC-4 / verify-C 修复：
+        // apply_atomic OCC 失败时, 已持久化的 reservation 必须被 delete_by_id 清理,
+        // 防止 dangling reservation 堆积 + 后续 compensate 误触发凭空 +amount 退款。
+        let (svc, acc_repo, led_repo) = make_service_paired();
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+
+        let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+        acc.credit(500); // 余额足够, 走 try_debit 成功路径
+        let account_id = acc.id;
+        let original_version = acc.version;
+        acc_repo.save(&acc).await.unwrap();
+
+        // 模拟 OCC 冲突：直接修改 acc_repo 里的 account.version, 让传入的 acc (旧 version) 触发冲突。
+        {
+            let mut guard = acc_repo.inner.lock().unwrap();
+            let stored = guard.get_mut(&account_id).expect("account saved");
+            stored.version = original_version + 99; // bump version -> 传入的 acc 旧 version 必冲突
+        }
+
+        // 预写入 1 个 dummy reservation 用不同 saga_id, 用于验证 cleanup 不影响其它记录
+        let dummy = Reservation::new(
+            Uuid::new_v4(),
+            account_id,
+            1,
+            Currency::Gold,
+        );
+        let dummy_id = dummy.id;
+        res_repo.save(&dummy).await.unwrap();
+
+        let saga_id = Uuid::new_v4();
+        let cmd_id = Uuid::new_v4();
+
+        // 触发 apply_atomic 失败路径 (OCC 冲突)
+        let err = svc
+            .apply_atomic_with_reservation(
+                &acc,
+                100,
+                Currency::Gold,
+                TransactionKind::Transfer,
+                saga_id,
+                cmd_id,
+                "k-occ".to_string(),
+                &res_repo_dyn,
+            )
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(ref msg) if msg.contains("OCC conflict")),
+            "expected OCC conflict Validation error, got {:?}",
+            err
+        );
+
+        // 关键断言：dangling reservation 已被清理。list_by_saga(saga_id) 应返回 0 条。
+        let for_saga = res_repo.list_by_saga(saga_id).await.unwrap();
+        assert_eq!(
+            for_saga.len(),
+            0,
+            "dangling reservation must be cleaned up after apply_atomic OCC failure; got {:?}",
+            for_saga
+        );
+
+        // dummy 未受影响
+        let still_dummy = res_repo.find_by_id(dummy_id).await.unwrap();
+        assert!(still_dummy.is_some(), "dummy reservation should be untouched");
+
+        // ledger 无任何条目（apply_atomic 失败, ledger INSERT 未发生）
+        assert_eq!(led_repo.inner.lock().unwrap().len(), 0);
+
+        // 账户余额未变（apply_atomic 失败回滚）
+        let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(reloaded.balance, 500);
+        // version 是我们之前 bump 后的值（apply_atomic 失败未影响）
+        assert_eq!(reloaded.version, original_version + 99);
     }
 }
