@@ -1,0 +1,63 @@
+# verify-docs-ci —— CI workflow 3（per WBS v0.3 §2A.5 WF-1-53.6）
+# 触发：push to main, pull_request, workflow_dispatch
+# 范围：3 脚本必跑（verify_docs.py + check-cross-references.py + check-docs-consistency.sh）
+# 规范：RGS-IMPL-006 §5 + RGS-EXEC-001 v0.3 §3.4
+
+name: verify-docs-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/verify_docs.py"
+      - "scripts/check-cross-references.py"
+      - "scripts/check-docs-consistency.sh"
+      - ".gitattributes"
+      - ".github/workflows/verify-docs-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/verify_docs.py"
+      - "scripts/check-cross-references.py"
+      - "scripts/check-docs-consistency.sh"
+      - ".gitattributes"
+      - ".github/workflows/verify-docs-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-docs:
+    name: 3 脚本必跑（verify_docs + check-cross-references + check-docs-consistency）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run verify_docs.py
+        # 验证文档 ID 唯一性 + 锚点解析 + 命名规范
+        run: python scripts/verify_docs.py
+
+      - name: Run check-cross-references.py
+        # 验证 cross-document 引用一致性（per §2A.6 WBS 关联表）
+        # 注：当前 7 项 pre-existing FAIL（BOM 中文 anchor + TOML）由 55.x 修，
+        # 53.6 仅把 3 脚本纳入必跑；55.x 升 v0.4 时把 -SkipVerify 移除
+        run: python scripts/check-cross-references.py
+
+      - name: Run check-docs-consistency.sh
+        # 验证文档登记 + 一致性
+        run: bash scripts/check-docs-consistency.sh
+
+      - name: Summary
+        if: always()
+        run: echo "3 脚本必跑完成（per RGS-EXEC-001 v0.3 §3.4）"
