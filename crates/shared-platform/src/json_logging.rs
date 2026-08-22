@@ -11,6 +11,11 @@
 //! ```no_run
 //! shared_platform::json_logging::init_json_logging("info")?;
 //! ```
+//!
+//! **互斥约束**：init_json_logging 与 init_tracing（tracing_init 模块）
+//! 互斥 — tracing_subscriber 全局只能一个 subscriber。
+//! 二选一：JSON 日志（init_json_logging）OR OTel 桥接（init_tracing），
+//! 不可同时调用。
 
 use std::sync::OnceLock;
 use tracing_subscriber::layer::SubscriberExt;

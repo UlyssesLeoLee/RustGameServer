@@ -7,6 +7,10 @@
 //! - tracing-opentelemetry bridge：tracing → OTel span
 //! - opentelemetry-otlp + OtlpPipeline → OTel Collector
 //! - service.name / service.version / deployment.environment resource attrs
+//!
+//! **互斥约束**：init_tracing 与 init_json_logging（json_logging 模块）互斥 —
+//! tracing_subscriber 全局只能一个 subscriber。生产用 init_tracing（OTel），
+//! 开发/测试用 init_json_logging（JSON）。二选一，不可同时调用。
 
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::KeyValue;
