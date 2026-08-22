@@ -35,7 +35,8 @@ tonic = { version = "0.12", features = ["transport", "tls", "tls-roots"] }
 prost = "0.13"
 prost-types = "0.13"
 # 54.1 sqlx 0.8：5 域各自独立 DATABASE_URL（per ARC-008 5 独立 DB 原则）
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "json"] }
+# 54.4 加 migrate feature（sqlx::migrate! 宏）
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "uuid", "chrono", "json"] }
 # 时间戳 + UUID
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }

@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 #![allow(clippy::doc_overindented_list_items, clippy::doc_lazy_continuation)]
 
 //! player-service —— 5 域玩家微服务业务骨架。
@@ -24,3 +25,5 @@ pub mod common {
         tonic::include_proto!("common.v1");
     }
 }
+
+pub mod db;
