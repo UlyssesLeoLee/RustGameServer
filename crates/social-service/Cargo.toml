@@ -29,6 +29,8 @@ prost = { workspace = true }
 sqlx = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+# 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
+shared-platform = { path = "../shared-platform" }
 
 [build-dependencies]
 tonic-build = { workspace = true }
