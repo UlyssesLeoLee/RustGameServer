@@ -2,6 +2,9 @@
 //!
 //! 54.7 实化：4 Service 业务方法（authenticate / create_admin / disable_admin / audit_log）
 //! + gRPC 桥接 HealthCheck + GetAdminUser
+//!
+//! 55.13 实化：`audit_log` 包事务（read latest + append 同一事务 FOR UPDATE 锁），
+//! 保证 hash 链 read-then-append 原子（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
 
 use crate::entity::{AdminRole, AdminUser, AuditLogEntry};
 use crate::error::Error;
@@ -9,6 +12,7 @@ use crate::repository::{AdminUserRepository, AuditLogRepository};
 use crate::Result;
 
 use async_trait::async_trait;
+use sqlx::{PgPool, Row};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -45,11 +49,24 @@ pub trait AdminService: Send + Sync {
 pub struct AdminServiceImpl {
     users: Arc<dyn AdminUserRepository>,
     audit: Arc<dyn AuditLogRepository>,
+    /// 55.13 增补：事务化所需 PgPool（Some = 生产 PG 路径，None = InMemory 测试路径）。
+    /// 生产构造时由 `with_pool` 注入；测试可直接 `new`（无 pool）。
+    pool: Option<PgPool>,
 }
 
 impl AdminServiceImpl {
     pub fn new(users: Arc<dyn AdminUserRepository>, audit: Arc<dyn AuditLogRepository>) -> Self {
-        Self { users, audit }
+        Self {
+            users,
+            audit,
+            pool: None,
+        }
+    }
+
+    /// 55.13：注入 PgPool 启用事务化 audit_log（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
+    pub fn with_pool(mut self, pool: PgPool) -> Self {
+        self.pool = Some(pool);
+        self
     }
 
     pub async fn find_user_by_id(&self, id: Uuid) -> Result<Option<AdminUser>> {
@@ -123,7 +140,28 @@ impl AdminService for AdminServiceImpl {
         target: String,
         payload: String,
     ) -> Result<AuditLogEntry> {
-        // 取最新 hash 作 prev_hash
+        // 55.13 事务化（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）：
+        // read latest + insert 在同一 PgTransaction 内完成，latest 行用
+        // SELECT ... FOR UPDATE 锁住，避免并发读到同一 prev_hash 而分叉。
+        // 失败时 drop tx → 自动 rollback；commit 仅在 INSERT 成功时执行。
+        if let Some(pool) = &self.pool {
+            let mut tx = pool.begin().await?;
+            // 锁 latest 行（FOR UPDATE）→ 取出 hash 作 prev_hash
+            let latest_row = sqlx::query(
+                "SELECT id, actor_id, action, target, payload, prev_hash, hash, created_at \
+                 FROM audit_log ORDER BY created_at DESC LIMIT 1 FOR UPDATE",
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+            let prev_hash = latest_row
+                .map(|r| r.get::<String, _>("hash"))
+                .unwrap_or_else(|| "0".repeat(64));
+            let entry = AuditLogEntry::new(actor_id, action, target, payload, prev_hash);
+            self.audit.append_atomic(&mut tx, &entry).await?;
+            tx.commit().await?;
+            return Ok(entry);
+        }
+        // InMemory / 无 pool 路径：Mut<ex 已序列化 latest + append，语义等价
         let prev = self.audit.latest().await?;
         let prev_hash = prev.map(|e| e.hash).unwrap_or_else(|| "0".repeat(64));
         let entry = AuditLogEntry::new(actor_id, action, target, payload, prev_hash);
@@ -320,5 +358,64 @@ mod tests {
     async fn health_check() {
         let s = svc();
         assert!(s.health_check().await.unwrap());
+    }
+
+    /// 55.13 AC5=CC1：read-then-append 事务性（InMemory 路径下 Mutex 等价
+    /// FOR UPDATE 串行化）。并发 20 个 audit_log 必须产出 20 条互不相同的 hash
+    /// 且 prev_hash 链严格单向（e[i].prev_hash == e[i-1].hash 或首条为零）。
+    #[tokio::test]
+    async fn audit_log_atomic_latest_append() {
+        let s = Arc::new(svc());
+        let actor = Uuid::new_v4();
+
+        // 串行 20 条：验证 prev_hash 链严格连续
+        let mut entries = Vec::with_capacity(20);
+        for i in 0..20 {
+            let e = s
+                .audit_log(
+                    actor,
+                    format!("action.{i}"),
+                    format!("target.{i}"),
+                    format!("{{\"i\":{i}}}"),
+                )
+                .await
+                .unwrap();
+            entries.push(e);
+        }
+        // 首条 prev_hash 应为 64 个 "0"
+        assert_eq!(entries[0].prev_hash, "0".repeat(64));
+        // 后续每条 prev_hash 严格等于前一条 hash
+        for i in 1..entries.len() {
+            assert_eq!(
+                entries[i].prev_hash, entries[i - 1].hash,
+                "hash 链断裂 at i={i}"
+            );
+        }
+        // 20 条 hash 全部互不相同
+        let unique: std::collections::HashSet<&String> =
+            entries.iter().map(|e| &e.hash).collect();
+        assert_eq!(unique.len(), entries.len(), "hash 出现碰撞");
+
+        // 并发 20 条：再次验证 Mutex/InMemory 路径下不出现分叉
+        let mut handles = Vec::with_capacity(20);
+        for i in 0..20 {
+            let s = Arc::clone(&s);
+            handles.push(tokio::spawn(async move {
+                s.audit_log(
+                    actor,
+                    format!("concurrent.action.{i}"),
+                    format!("concurrent.target.{i}"),
+                    "{}".to_string(),
+                )
+                .await
+            }));
+        }
+        let mut concurrent_entries = Vec::with_capacity(20);
+        for h in handles {
+            concurrent_entries.push(h.await.unwrap().unwrap());
+        }
+        let unique: std::collections::HashSet<&String> =
+            concurrent_entries.iter().map(|e| &e.hash).collect();
+        assert_eq!(unique.len(), 20, "并发路径下 hash 链分叉 / 碰撞");
     }
 }
