@@ -16,3 +16,11 @@ pub mod repository;
 pub mod service;
 
 pub use error::{Error, Result};
+
+pub mod proto;
+
+pub mod common {
+    pub mod v1 {
+        tonic::include_proto!("common.v1");
+    }
+}

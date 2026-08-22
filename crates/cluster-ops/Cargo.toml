@@ -29,3 +29,6 @@ prost = { workspace = true }
 sqlx = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+
+[build-dependencies]
+tonic-build = { workspace = true }
