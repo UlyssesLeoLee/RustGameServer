@@ -1,6 +1,7 @@
 //! match-service 入口（54.7 业务实施后 binary）
 //!
 //! 启动 tonic gRPC server 接 MatchService（HealthCheck + GetMatch）+ tracing 初始化。
+//! 55.15 wire-up：main.rs 切到 PgRepository + db::pool_from_env() + migrations。
 
 use anyhow::Context;
 use std::env;
@@ -8,9 +9,9 @@ use std::sync::Arc;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
+use match_service::db;
 use match_service::repository::{
-    InMemoryMatchParticipantRepository, InMemoryMatchRepository, MatchParticipantRepository,
-    MatchRepository,
+    MatchParticipantRepository, MatchRepository, PgMatchParticipantRepository, PgMatchRepository,
 };
 use match_service::service::grpc_service::MatchGrpcService;
 use match_service::service::MatchServiceImpl;
@@ -32,9 +33,25 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!(target: "match-service", "starting service at {}, db={}", addr, database_url);
 
-    let matches: Arc<dyn MatchRepository> = Arc::new(InMemoryMatchRepository::new());
+    // 55.15: 真实 DB pool + migrations（InMemory 留作测试用）
+    let pool = match db::pool_from_env().await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::error!(target: "match-service", "DB pool init failed: {}", e);
+            std::process::exit(1);
+        }
+    };
+    if let Err(e) = db::run_migrations(&pool).await {
+        tracing::error!(target: "match-service", "DB migrations failed: {}", e);
+        std::process::exit(1);
+    }
+
+    let matches: Arc<dyn MatchRepository> = Arc::new(PgMatchRepository::new(pool.clone()));
     let participants: Arc<dyn MatchParticipantRepository> =
-        Arc::new(InMemoryMatchParticipantRepository::new());
+        Arc::new(PgMatchParticipantRepository::new(pool.clone()));
+
+    tracing::info!(target: "match-service", "match-service started, DB pool size: {}", pool.size());
+
     let service_impl = Arc::new(MatchServiceImpl::new(matches, participants));
     let grpc = MatchGrpcService::new(service_impl);
 
