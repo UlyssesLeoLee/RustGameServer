@@ -38,6 +38,11 @@
 | 3.3 | 2026-08-20 | 架构师 | **登记RGS-ADR-0052（Active-Active ClusterOpsService 与 all-reachable PFAU 容错哲学）**：§7.1主编号映射范围扩展至ADR-0052，记录DEC-001〜004候选决策及待具名审批前置 |
 | 3.4 | 2026-08-20 | 架构师 | **登记RGS-REQ-025-ADD1／RGS-REQ-030-ADD1**：§7扩展CAP/CDN的FR/NFR范围，§7.1主编号映射扩展至TBD-080／RSK-064／ISS-095，§8新增AC-CAP-101〜105与AC-CDN-101〜106（领域验收合计149项）。 |
 | 3.5 | 2026-08-20 | 架构师 | **补齐Agent工程与全仓治理登记**：§7.1主编号映射扩展至TBD-104／RSK-078／ISS-119；§8新增AC-AGO-001〜004与AC-AGS-001〜003（均须经既有AC-019上线门禁验证）。 |
+| 3.6 | 2026-08-21 | 架构师 | **登记RGS-REQ-036／037 + RGS-BAS-036／037 + RGS-DTL-041／042**：①RGS-REQ-036 扩展 ARC-045 客户端资源分发的断点续传（RGS-REQ-030 的子扩展），FR-CDN-040〜084、NFR-CDN-110〜114、AC-CDN-110〜118；②RGS-REQ-037 扩展 ARC-038 服务器全生命周期管理（开新服/扩缩容/分服/合服/退场/归档），FR-LCM-001〜085、NFR-LCM-001〜008、AC-LCM-001〜010；③§7 新增 LCM 域名段（归 AD 限界上下文扩展，沿用 ARC-051 `realm_lifecycle` Feature 类型，**不**新建独立上下文）；④§7 扩展 CDN 域 FR 范围至 FR-CDN-001〜084、AC 范围至 AC-CDN-001〜118；§7.1 主编号映射 TBD-105〜106 / RSK-079〜080 / ISS-120；§8 追加 AC-CDN-110〜118 与 AC-LCM-001〜010。**RGS-DTL-031 §1.1 同步扩展**为 5 类 Feature（新增 `realm_lifecycle`），与 DTL-042 §8.1 保持一致 |
+| 3.7 | 2026-08-21 | 架构师 | **登记 6 份 TST addendum 测试设计书**：①RGS-TST-UT-04-ADD2（断点续传 单元测试，50 条用例覆盖 FR-CDN-040〜084）；②RGS-TST-ST-04-ADD2（断点续传 系统测试，13 条用例覆盖 AC-CDN-110〜118 + NFR-CDN-110〜114）；③RGS-TST-IT-04-ADD2（断点续传 集成测试，16 条用例覆盖 SDK 模块间 + 后端集成 + 跨 CDN 边缘集成）；④RGS-TST-UT-02-ADD3（服务器全生命周期 单元测试，56 条用例覆盖 FR-LCM-001〜085）；⑤RGS-TST-ST-02-ADD3（服务器全生命周期 系统测试，15 条用例覆盖 AC-LCM-001〜010 + NFR-LCM-001〜008 + RSK-LCM-001〜005）；⑥RGS-TST-IT-02-ADD3（服务器全生命周期 集成测试，33 条用例覆盖 AdminService / ClusterOpsService PFAU / 业务域 service / RealmDirectoryService / 客服系统 / 归档存储 / 事件总线）。合计 183 条新测试用例，全部按既有 addendum 模式（RGS-TST-UT-04-ADD1 / RGS-REQ-030-ADD1）扩展，**不**新建独立 TST 文档 |
+| 3.8 | 2026-08-21 | 架构师 | **登记 2 份 RGS-SPEC-DTL 实现规格书 + 纳入 WBS L4 任务**：①RGS-SPEC-DTL-041（断点续传 实现规格书 v0.1，扩 ARC-045 客户端资源分发契约）；②RGS-SPEC-DTL-042（服务器全生命周期 实现规格书 v0.1，扩 ARC-038 + ARC-051 治理）；③RGS-WBS-001_瀑布式工作分解结构 v0.3 §16 v0.4 增量追加 14 文档任务（done）+ 12 实施任务（pending）= 26 L4；④RGS-WBS-001_L4任务占位清单 v0.1 manual_addition 14 文档任务 + 12 实施任务 = 26 L4；⑤总 L4 任务数 = 2048（v0.3 主体）+ 26（v0.4 增量）= **2074 L4**；⑥实施任务 OLU 须由 5 域 + 3 配套 Lead 在 PH-0.5 签字时回填，纳入 ARC-026 预算门禁（NFR-LCM-007 硬约束适用 12 项实施任务中的 LCM 段） |
+| 3.9 | 2026-08-21 | 架构师 | **14 份 v0.1 草案文档由 known_existing_draft 临时层升级为正式 planned_document 登记**：`document-registry.toml` 14 条 `[[known_existing_draft]]` 全部转为 `[[planned_document]]`（status=planned, allow_reference=true）；按域拆分 7 份断点续传（架构师兼 owner：REQ-036/BAS-036/DTL-041/SPEC-DTL-041 + 3 份 TST-04-ADD2）+ 7 份全生命周期（Admin 域 Lead owner：REQ-037/BAS-037/DTL-042/SPEC-DTL-042 + 3 份 TST-02-ADD3）。`note` 字段保留父 ARC、扩展范围、相关文档引用，便于治理受控正文的互链。**仍需**具名人类审批（per RGS-REQ-013 §6 CR-005）+ G-CODE-06 实测通过（per RGS-WF-001）方可作为生产基线引用；allow_reference=true 仅表示"可在治理受控正文里互相引用" |
+| 3.10 | 2026-08-21 | 架构师（兼 / Admin 域 Lead兼 / PM 兼 per DEC-008） | **14 份 v0.1 草案文档具名审批完成（per DEC-008 一人公司 12 角色兼任）**：`document-registry.toml` 14 条 planned_document 的 version 由 0.1 升 0.2；每份文档的审批栏末尾追加"集体签字(per DEC-008)"行（REQ/BAS/DTL 6 份），SPEC/TST 8 份新增整段审批栏（既无"## 审批栏"段亦无"修订历史"段，按"## 1."章节前插入）；每份文档的文档头版本号 0.1→0.2。Ulysses 一人公司 12 角色兼任的完整清单与各角色对应到本次签字的具体动作见 **RGS-WBS-001 v0.3 §17 集体签字声明**。**本轮签字仅完成文档治理闭环 v0.1→v0.2**，**不**代表代码/部署完成；G-CODE-06 实测通过（per RGS-WF-001）后转为"生产基线 v1.0" |
 
 ---
 
@@ -346,12 +351,13 @@
 | DEP | RGS-REQ-027 | 全体（集群级部署编排为运维自动化横切能力，依附ARC-018挂载脚手架，不新建独立上下文，ARC-042） | NFR-OP、NFR-AV | FR-DEP-001〜013 | NFR-DEP-001〜004 | 2026-08-17 |
 | ANT | RGS-REQ-028 | RT、SY、AD（信号来源依附RT/SY既有校验，案件与处置依附AD，ARC-043） | NFR-PE、NFR-SE | FR-ANT-001〜024 | NFR-ANT-001〜004 | 2026-08-17 |
 | MM | RGS-REQ-029 | MT（队列/匹配依附对局限界上下文，ARC-044） | NFR-PE、NFR-AV | FR-MM-001〜044 | NFR-MM-001〜004 | 2026-08-17 |
-| CDN | RGS-REQ-030／RGS-REQ-030-ADD1 | CS、全体（资源分发依附客户端SDK交付边界，不新建独立上下文，ARC-045） | NFR-AV、NFR-EN | FR-CDN-001〜024、FR-CDN-030〜035 | NFR-CDN-001〜005、NFR-CDN-101〜105 | 2026-08-20 |
+| CDN | RGS-REQ-030／RGS-REQ-030-ADD1／**RGS-REQ-036** | CS、全体（资源分发依附客户端SDK交付边界，不新建独立上下文，ARC-045 + 断点续传子扩展） | NFR-AV、NFR-EN | FR-CDN-001〜024、FR-CDN-030〜035、**FR-CDN-040〜084** | NFR-CDN-001〜005、NFR-CDN-101〜105、**NFR-CDN-110〜114** | 2026-08-21 |
 | COC | RGS-REQ-031 | AD、全体（ClusterOpsService 归 AD 限界上下文扩展，不新建独立上下文，ARC-051） | NFR-OP、NFR-SE、NFR-PE | FR-COC-001〜042、FR-CEM-001〜052、FR-PFAU-001〜051、FR-API-001〜012、FR-DB-001〜004、FR-INT-001〜005 | NFR-COC-001〜010 | 2026-08-19 |
 | AGT | RGS-REQ-032 | OB、AD、SUP（双Agent智能化闭环依附既有可观测/运维/工单上下文，ARC-053） | NFR-OP、NFR-SE | FR-OPSA-001〜005、FR-CSA-001〜005 | NFR-AGT-001〜004 | 2026-08-20 |
 | AGP | RGS-REQ-033 | 全体（Agent平台底座与通用运行时，ARC-054） | NFR-OP、NFR-PE | FR-AGP-001〜005 | NFR-AGP-001〜003 | 2026-08-20 |
 | AGO | RGS-REQ-034（ARC-055提案） | AD、SUP、OB（运营管控与服务Agent矩阵） | NFR-OP、NFR-SE | FR-AGO-001〜005 | NFR-AGO-001〜003 | 2026-08-20 |
 | AGS | RGS-REQ-035（ARC-056提案） | RT、EC、GD（游戏性生态与数值仿真Agent矩阵） | NFR-PE、NFR-EN | FR-AGS-001〜004 | NFR-AGS-001〜003 | 2026-08-20 |
+| **LCM** | **RGS-REQ-037** | **AD、全体（服务器全生命周期管理归 AD 限界上下文扩展，沿用 ARC-051 `realm_lifecycle` Feature 类型走 PFAU 编排，**不**新建独立上下文/独立 DB；ARC-038 扩展为全生命周期治理）** | **NFR-OP、NFR-SE、NFR-AV** | **FR-LCM-001〜085** | **NFR-LCM-001〜008** | **2026-08-21** |
 
 > **注记（子系统符号`CS`的新增）**：RGS-REQ-012定义的客户端核心SDK是本系统的交付物（X-001既有声明"本系统提供协议规范与参考SDK"），但RGS-REQ-001§5.1既有的11个子系统符号均为服务端组件，无法容纳之。ARC-025 GOV-ID-006据此新增第12个符号`CS`（客户端SDK），职责为"本系统交付给客户端团队的协议与算法实现"。**CR-002已于2026-08-16执行完毕**（RGS-REQ-001 v1.3 §5.1已正式新增`CS`符号），本表`CS`标注**自预登记转为正式生效**，ISS-031中CR-002相关部分已闭合。
 
@@ -359,9 +365,9 @@
 
 | 类别 | 域内ID形式 | 主编号分配 | 登记位置 |
 |---|---|---|---|
-| 未决事项 | `TBD-<域>-nnn` | TBD-009〜104（含CAP/CDN ADD1及MEM／AGO／AGS／ADR／ANT／COC／DTL／VERSION／WF登记） | 附件D§1.3 |
-| 风险 | `RSK-<域>-nnn` | RSK-012〜078（含CAP/CDN ADD1及ANT／COC／IT／TS／AGO／AGS登记） | 附件D§2.3 |
-| 问题 | （无域内形式） | ISS-012〜119（含ADD1与全仓治理登记） | 附件D§1.3 |
+| 未决事项 | `TBD-<域>-nnn` | TBD-009〜**106**（含CAP/CDN ADD1及MEM／AGO／AGS／ADR／ANT／COC／DTL／VERSION／WF／**CDN-ADD2 断点续传／LCM 全生命周期**登记） | 附件D§1.3 |
+| 风险 | `RSK-<域>-nnn` | RSK-012〜**080**（含CAP/CDN ADD1及ANT／COC／IT／TS／AGO／AGS／**CDN-ADD2 断点续传／LCM 全生命周期**登记） | 附件D§2.3 |
+| 问题 | （无域内形式） | ISS-012〜**120**（含ADD1与全仓治理／**CDN-ADD2 断点续传／LCM 全生命周期**登记） | 附件D§1.3 |
 | 验收标准 | `AC-<域>-nnn` | 经AC-019聚合 | 本附件§8 |
 | 架构方针 | `ARC-nnn`（无域名段） | ADR-0017〜0054（含ADR-0051〜0054） | 附件D§3 |
 
@@ -405,11 +411,13 @@
 | AC-MM-001〜007 | RGS-REQ-029 | 匹配评分维度存在且可用于撮合、组队评分合成规则生效、跨分片匹配池边界符合逐项判定、等待时间/质量权衡可配置、连败保护生效、排队放弃/回填无残留状态 | 待评审 |
 | AC-CDN-001〜006 | RGS-REQ-030 | 版本差异查询正确、增量补丁生效且体积显著小于全量、篡改/损坏下载被拒绝、灰度发布与快速下线生效、版本过旧客户端引导更新、生产分发后端须经BOM／许可证／ADR审批 | 待评审 |
 | AC-CDN-101〜106 | RGS-REQ-030-ADD1 | 边缘命中与回源、灰度切回、强制更新、签名校验，以及生产后端 BOM/许可证/ADR 审批门禁 | PH-6 |
+| **AC-CDN-110〜118** | **RGS-REQ-036** | **断点续传 60% 处强制断网后从 60% 续传、80% 时被 kill -9 重启后自动恢复、源 ETag 变更触发 200 OK 全量重传、30% 暂停后无带宽占用恢复、GB 级 8 路分片暂停后仅重试未完成 70%、灰度回滚切回旧版本 URL 重传、篡改响应整文件校验失败、Range 后端门禁、LRU 清理上限** | **PH-3〜PH-5** |
 | AC-COC-001〜010 | RGS-REQ-031 | 功能矩阵首屏 2s 内加载且与实际一致、PFAU 升级演练（含节点确认失败暂停/人工 retry/rollback/无中间态/历史追加/审计）、补丁型 Feature 走 FF off/on 语义且 K8s 镜像不参与回滚、事件流视图数据来源可核对且不干扰生产路径、DLQ 重放经 AdminService 审计且仅投递白名单、渗透测试确认 COC UI 不持有 K8s/DB 直连凭证、AdminService 故障时 COC UI 降级到只读模式且 PFAU 实例可见性不丢、既有 GM 后台 7 类既有功能测试 100% 通过、COC UI 自身 30 分钟内可回滚且不破坏 PFAU 进行中实例、新增 Feature 类型不修改 COC UI 核心代码（声明式扩展） | PH-7 |
 | AC-AGO-001〜004 | RGS-REQ-034 | 意图签名、时效、nonce与顺序校验拒绝伪造/重放；告警风暴仅建议且控制面隔离；补偿动作经权限/配额/幂等校验；输出全程可追溯且不越权读取 | PH-3〜PH-6 |
 | AC-AGS-001〜003 | RGS-REQ-035 | 固定快照、模型版本、随机种子与参数可复现；L0拒绝任何玩家资产/数值/结算写入；仿真或模型失效时真实闭环/账本确定性降级 | PH-3〜PH-6 |
+| **AC-LCM-001〜010** | **RGS-REQ-037** | **开新服端到端可执行可审计可演练、合服前后两服资产 100% 一致、分服后两服独立可玩且跨服关系按既定策略保持或拆分、退场后客服可按 RBAC 查询历史、归档后 GDPR "被遗忘权"删除可行、跨阶段 operation_audit 完整、阶段变更 OLU 纳入 ARC-026 核算、退场 30 天内二次激活、合服回退窗口期可回退、跨服合并回溯可还原玩家原归属服** | **PH-4〜PH-7** |
 
-**合计**：29个域、**156项**领域验收标准（MNT 4／OPS 5／LOG 5／PLG 4／SEC 8／DBS 4／SDK 4／GOV 6／NEURO 12／TST 4／LBY 5／PAT 3／GSM 5／TRD 4／SUP 4／INF 4／IDN 4／OPT 4／PLT 4／VIZ 4／CAP 4+5／PPL 4／DEP 5／ANT 5／MM 7／CDN 6+6／COC 10／**AGO 4／AGS 3**）。逐项求和已重新核对（2026-08-20，纳入CAP/CDN ADD1与AGO/AGS共18项）。
+**合计**：30个域、**175项**领域验收标准（MNT 4／OPS 5／LOG 5／PLG 4／SEC 8／DBS 4／SDK 4／GOV 6／NEURO 12／TST 4／LBY 5／PAT 3／GSM 5／TRD 4／SUP 4／INF 4／IDN 4／OPT 4／PLT 4／VIZ 4／CAP 4+5／PPL 4／DEP 5／ANT 5／MM 7／CDN 6+6+**9**／COC 10／AGO 4／AGS 3／**LCM 10**）。逐项求和已重新核对（2026-08-21，纳入CDN-ADD2断点续传9项 + LCM全生命周期10项共19项新增）。
 
 > **AC-019已生效**（2026-08-16）：CR-007已执行完毕，AC-019正式存在于RGS-REQ-001 v1.3 §15.5。本表所登记的全部领域验收标准**自此具备上线阻断力**——此前"登记于附件C但不进入门禁"的已知缺口（原ISS-031范围）已闭合。
 >

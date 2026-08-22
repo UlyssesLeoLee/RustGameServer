@@ -4,8 +4,159 @@
 
 [metadata]
 schema_version = "1.0"
-updated = "2026-08-21"
+updated = \"2026-08-21 (v3.10 集体签字)\"
 purpose = "目录导航、跨文档引用及计划状态的受控来源"
+
+# v3.9 阶段：14 份文档由 known_existing_draft 升级为正式 planned 登记
+# 14 份文档（6 份设计 + 6 份测试 + 2 份实现规格）已落盘 v0.1 草案，
+# 由 known_existing_draft 临时层转为正式 planned 登记，进入受控引用体系。
+# 依据 RGS-REQ-004 §3.6+§3.7+§3.8 修订行 + WBS L4 #2049-2074。
+# 待具名人类审批完成 RGS-REQ-013 治理闭环后，status 保持 "planned" 不变
+# （planned 文档允许受控引用 + 待具名审批 + 实施门禁，不存在"已批准"状态），
+# 实施门禁由 RGS-QA-001 v0.12 + RGS-IMPL-001 独立控制。
+# ----------------------------------------------------------------------------
+# 断点续传（ARC-045 扩展）— 7 份
+[[planned_document]]
+id = "RGS-REQ-036"
+title = "客户端资源分发的断点续传与可恢复下载 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-REQ-036_客户端资源分发的断点续传与可恢复下载_需求定义书.md"
+version = "0.2"
+note = "ARC-045 扩展；FR-CDN-040~084 / NFR-CDN-110~114 / AC-CDN-110~118；相关：RGS-REQ-030 / RGS-REQ-030-ADD1 / RGS-BAS-036 / RGS-DTL-041 / RGS-SPEC-DTL-041 / RGS-TST-*-04-ADD2"
+
+[[planned_document]]
+id = "RGS-BAS-036"
+title = "客户端资源分发的断点续传与可恢复下载 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-BAS-036_客户端资源分发的断点续传与可恢复下载_基本设计书.md"
+version = "0.2"
+note = "ARC-045 扩展；扩 RGS-BAS-027 §6.1 DistributionBackend 契约；相关：RGS-REQ-036 / RGS-BAS-027 / RGS-DTL-041"
+
+[[planned_document]]
+id = "RGS-DTL-041"
+title = "客户端资源分发的断点续传与可恢复下载 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-DTL-041_客户端资源分发的断点续传与可恢复下载_详细设计书.md"
+version = "0.2"
+note = "ARC-045 扩展；Rust crate 级别：rgs-asset-download + 5 子模块 + 4 平台 pre-allocate；相关：RGS-REQ-036 / RGS-BAS-036"
+
+[[planned_document]]
+id = "RGS-SPEC-DTL-041"
+title = "断点续传 实现规格书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/13-实现规格/RGS-SPEC-DTL-041_实现规格书.md"
+version = "0.2"
+note = "ARC-045 扩展；统一 8 节模板（规则/单元/契约/可观测性/安全/测试/DoD/Gate 证据）；相关：RGS-REQ-036 / RGS-BAS-036 / RGS-DTL-041"
+
+[[planned_document]]
+id = "RGS-TST-UT-04-ADD2"
+title = "断点续传 单元测试设计书（addendum）"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-TST-UT-04_addendum_断点续传_单元测试设计书.md"
+version = "0.2"
+note = "ARC-045 扩展；50 条 UT 用例覆盖 FR-CDN-040~084；相关：RGS-REQ-036 / RGS-DTL-041 / RGS-TST-UT-04 / RGS-TST-UT-04-ADD1"
+
+[[planned_document]]
+id = "RGS-TST-ST-04-ADD2"
+title = "断点续传 系统测试设计书（addendum）"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-TST-ST-04_addendum_断点续传_系统测试设计书.md"
+version = "0.2"
+note = "ARC-045 扩展；13 条 ST 用例覆盖 AC-CDN-110~118 + NFR-CDN-110~114；4 平台 × 1000 客户端 × 1000 资源样本；相关：RGS-REQ-036 / RGS-DTL-041 / RGS-TST-ST-04 / RGS-TST-ST-04-ADD1"
+
+[[planned_document]]
+id = "RGS-TST-IT-04-ADD2"
+title = "断点续传 集成测试设计书（addendum）"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/04-客户端与SDK/RGS-TST-IT-04_addendum_断点续传_集成测试设计书.md"
+version = "0.2"
+note = "ARC-045 扩展；16 条 IT 用例覆盖 SDK 内部模块 + 后端 MinIO/Cloudflare + 跨 CDN 边缘集成；相关：RGS-REQ-036 / RGS-DTL-041 / RGS-TST-IT-04 / RGS-TST-IT-04-ADD1"
+
+# ----------------------------------------------------------------------------
+# 服务器全生命周期管理（ARC-038 扩展 + ARC-051 `realm_lifecycle` Feature 类型扩展）— 7 份
+[[planned_document]]
+id = "RGS-REQ-037"
+title = "服务器全生命周期管理 需求定义书"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-REQ-037_服务器全生命周期管理_需求定义书.md"
+version = "0.2"
+note = "ARC-038 扩展为服务器全生命周期治理；6 阶段（开新服/扩缩容/分服/合服/退场/归档）；FR-LCM-001~085 / NFR-LCM-001~008 / AC-LCM-001~010；归 AD 限界上下文扩展不新建独立上下文；相关：RGS-REQ-023 / RGS-REQ-025 / RGS-REQ-031 / RGS-BAS-037 / RGS-DTL-042 / RGS-SPEC-DTL-042 / RGS-TST-*-02-ADD3"
+
+[[planned_document]]
+id = "RGS-BAS-037"
+title = "服务器全生命周期管理 基本设计书"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-BAS-037_服务器全生命周期管理_基本设计书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle` Feature 类型；扩 RGS-BAS-020 §4 + RGS-BAS-022 §3.3；6 阶段操作器 + 6 张 Plan 表；相关：RGS-REQ-037 / RGS-BAS-020 / RGS-BAS-022 / RGS-BAS-031 / RGS-DTL-042"
+
+[[planned_document]]
+id = "RGS-DTL-042"
+title = "服务器全生命周期管理 详细设计书"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-DTL-042_服务器全生命周期管理_详细设计书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle` Feature 类型；rgs-realm-lifecycle 作为 rgs-cluster-ops 子模块；6 阶段操作器 + Saga 编排（分服 6 步 / 合服 5 步 / 退场 4 步 / 归档 3 步）+ 6 张 DDL migration + 演练执行器 + OLU 上报；相关：RGS-REQ-037 / RGS-BAS-037 / RGS-DTL-031 / RGS-DTL-040 / RGS-ADR-0015"
+
+[[planned_document]]
+id = "RGS-SPEC-DTL-042"
+title = "服务器全生命周期 实现规格书"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/13-实现规格/RGS-SPEC-DTL-042_实现规格书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle`；统一 8 节模板（规则/单元/契约/可观测性/安全/测试/DoD/Gate 证据）；相关：RGS-REQ-037 / RGS-BAS-037 / RGS-DTL-042 / RGS-DTL-031 / RGS-DTL-040"
+
+[[planned_document]]
+id = "RGS-TST-UT-02-ADD3"
+title = "服务器全生命周期 单元测试设计书（addendum）"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-TST-UT-02_addendum_服务器全生命周期_单元测试设计书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle`；56 条 UT 用例覆盖 FR-LCM-001~085；相关：RGS-REQ-037 / RGS-DTL-042 / RGS-TST-UT-02 / RGS-TST-UT-02-ADD1 / RGS-TST-UT-02-ADD2"
+
+[[planned_document]]
+id = "RGS-TST-ST-02-ADD3"
+title = "服务器全生命周期 系统测试设计书（addendum）"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-TST-ST-02_addendum_服务器全生命周期_系统测试设计书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle`；15 条 ST 用例覆盖 AC-LCM-001~010 + NFR-LCM-001~008 + RSK-LCM-001~005；相关：RGS-REQ-037 / RGS-DTL-042 / RGS-TST-ST-02 / RGS-TST-ST-02-ADD1 / RGS-TST-ST-02-ADD2"
+
+[[planned_document]]
+id = "RGS-TST-IT-02-ADD3"
+title = "服务器全生命周期 集成测试设计书（addendum）"
+status = "planned"
+owner = "Admin 域 Lead（独立）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-TST-IT-02_addendum_服务器全生命周期_集成测试设计书.md"
+version = "0.2"
+note = "ARC-038 扩展 + ARC-051 `realm_lifecycle`；33 条 IT 用例覆盖 AdminService / ClusterOpsService PFAU / 业务域 service / RealmDirectoryService / 客服系统 / 归档存储 / 事件总线；相关：RGS-REQ-037 / RGS-DTL-042 / RGS-TST-IT-02 / RGS-TST-IT-02-ADD1 / RGS-TST-IT-02-ADD2"
 
 [[category]]
 id = "00"
@@ -97,8 +248,11 @@ path = "14-项目管理"
 title = "项目管理"
 readme_section = "1.14"
 
-# `allow_reference = true` 仅允许受控正文引用且仅限 `planned` 文档，正文必须明确标成“待制定”。
+# `allow_reference = true` 仅允许受控正文引用且仅限 `planned` 文档，正文必须明确标成"待制定"。
 # `retired` 记录只保留沿革和迁移说明，正文不得引用；它不表示批准、实现或可作为实施前置已满足。
+# 注：v3.9 升级后，14 份 v0.1 草案文档由 known_existing_draft 转 planned_document，
+# 但**仍需**具名人类审批（per RGS-REQ-013 §6 CR-005）+ G-CODE-06 实测通过（per RGS-WF-001）
+# 方可作为生产基线引用。allowed_reference = true 仅表示"可在治理受控正文里互相引用"。
 [[planned_document]]
 id = "RGS-IFS-001"
 title = "外部接口规格书"
