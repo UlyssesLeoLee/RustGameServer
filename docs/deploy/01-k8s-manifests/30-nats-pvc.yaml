@@ -1,0 +1,27 @@
+# 30-nats-pvc.yaml
+# 角色：NATS JetStream 数据持久化（PVC + StorageClass）
+# 关联：
+#   - RGS-DTL-100 §5 消息总线
+#   - RGS-SPEC-CROSS-005 §2 NATS Stream 命名约定
+#   - RGS-INC-001 v0.2 §1.2 shared-platform async_nats client 已就位
+# 备注：
+#   - JetStream 存储路径：/data/jetstream（与 nats:2.10-alpine 镜像默认一致）
+#   - dev 阶段 1 副本即可；prod HA 由 SRE 评估 3 副本 + Raft consensus
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nats-jetstream-data
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/component: message-bus
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+  volumeMode: Filesystem

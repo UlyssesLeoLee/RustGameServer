@@ -1,0 +1,42 @@
+# 40-otel-collector-sa.yaml
+# 角色：OTel Collector ServiceAccount + Role（仅读 configmap，无集群写权限）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector-service-account
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: otel-collector-role
+  namespace: rgs
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["otel-collector-config"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: otel-collector-role-binding
+  namespace: rgs
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector-service-account
+    namespace: rgs
+roleRef:
+  kind: Role
+  name: otel-collector-role
+  apiGroup: rbac.authorization.k8s.io

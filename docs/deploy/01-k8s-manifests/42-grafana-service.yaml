@@ -1,0 +1,22 @@
+# 42-grafana-service.yaml
+# 角色：Grafana Service（ClusterIP；外部访问通过 kubectl port-forward 或后续 Ingress）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: web
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
