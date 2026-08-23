@@ -1,19 +1,36 @@
 # 04-social-service.yaml
-# 角色：social 域 Deployment + Service
-# 状态：🔴 NO-GO 占位
-# 实际值写入条件：social 域 Lead 具名签字
+# 角色：social 域 Deployment + Service + HPA + PDB
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - social 域 Lead：Ulysses（per DEC-008 兼任 + DEC-005 独立配置）
+#   - binary size：8,375,808 bytes（per `cargo build --release --workspace` 2026-08-24 实测）
+#   - service.rs：309 行（per src/service.rs 2026-08-23）
+#   - 校准依据：RGS-INC-002 §4（social 2 副本 / 中等流量 / 失败影响"中"）
 # 关联：DTL-019/020 + SP-019/020
-apiVersion: apps/v1
-kind: Deployment
+---
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: PLACEHOLDER_SOCIAL_DEPLOY_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: social-service-account
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: social
     app.kubernetes.io/component: domain-service
     app.kubernetes.io/part-of: rust-game-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: social
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0"
+    rust-game-server.io/domain: social
 spec:
-  replicas: PLACEHOLDER_SOCIAL_REPLICAS        # 2
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: social
@@ -21,67 +38,165 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: social
+        app.kubernetes.io/component: domain-service
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0"
+        rust-game-server.io/domain: social
     spec:
-      serviceAccountName: PLACEHOLDER_SOCIAL_SA
+      serviceAccountName: social-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: social
-          image: PLACEHOLDER_SOCIAL_IMAGE
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-social
+          imagePullPolicy: IfNotPresent
           ports:
             - name: grpc
-              containerPort: PLACEHOLDER_SOCIAL_GRPC_PORT
+              containerPort: 50054
+              protocol: TCP
             - name: metrics
-              containerPort: PLACEHOLDER_SOCIAL_METRICS_PORT
+              containerPort: 9464
+              protocol: TCP
           env:
             - name: RUST_LOG
-              value: PLACEHOLDER_SOCIAL_LOG_LEVEL
+              value: "info,social-service=debug,sqlx=warn,tonic=warn"
+            - name: GRPC_ADDR
+              value: "0.0.0.0:50054"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: PLACEHOLDER_SOCIAL_DB_SECRET
-                  key: PLACEHOLDER_SOCIAL_DB_KEY
+                  name: social-db-secret
+                  key: DATABASE_URL
+            - name: NATS_URI
+              value: "nats://nats:4222"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: PLACEHOLDER_OTEL_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "social-service"
+            - name: RGS_DOMAIN
+              value: "social"
+            - name: SOCIAL_FRIEND_LIST_CACHE_TTL_SEC
+              value: "300"
+            - name: SOCIAL_MESSAGE_BATCH_SIZE
+              value: "50"
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "0"
           resources:
             requests:
-              cpu: PLACEHOLDER_SOCIAL_CPU_REQ
-              memory: PLACEHOLDER_SOCIAL_MEM_REQ
+              cpu: 500m
+              memory: 512Mi
             limits:
-              cpu: PLACEHOLDER_SOCIAL_CPU_LIM
-              memory: PLACEHOLDER_SOCIAL_MEM_LIM
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            grpc:
+              port: 50054
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            grpc:
+              port: 50054
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          secret:
+            secretName: rgs-tls-social
+            items:
+              - key: tls.crt
+                path: server.pem
+              - key: tls.key
+                path: server.key
+              - key: ca.crt
+                path: ca.pem
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: PLACEHOLDER_SOCIAL_SVC_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: social-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: social
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
 spec:
   type: ClusterIP
   selector:
     app.kubernetes.io/name: social
   ports:
     - name: grpc
-      port: PLACEHOLDER_SOCIAL_GRPC_PORT
-      targetPort: PLACEHOLDER_SOCIAL_GRPC_PORT
+      port: 50054
+      targetPort: 50054
+      protocol: TCP
     - name: metrics
-      port: PLACEHOLDER_SOCIAL_METRICS_PORT
-      targetPort: PLACEHOLDER_SOCIAL_METRICS_PORT
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: PLACEHOLDER_SOCIAL_HPA_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: social-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: social
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: PLACEHOLDER_SOCIAL_DEPLOY_NAME
-  minReplicas: PLACEHOLDER_SOCIAL_HPA_MIN       # 2
-  maxReplicas: PLACEHOLDER_SOCIAL_HPA_MAX       # 6
+    name: social-service
+  minReplicas: 2
+  maxReplicas: 6
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: PLACEHOLDER_SOCIAL_CPU_TARGET
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: social-service-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: social
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: social

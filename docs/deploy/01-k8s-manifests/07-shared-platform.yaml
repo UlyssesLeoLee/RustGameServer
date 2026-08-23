@@ -1,87 +1,41 @@
 # 07-shared-platform.yaml
-# 角色：shared-platform（QUIC edge / gRPC ingress / OTel collector / 共享 sidecar）
-# 状态：🔴 NO-GO 占位
-# 实际值写入条件：Platform 架构师具名签字 + SRE 联合
+# 角色：shared-platform（QUIC edge + OTel collector 共置）
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - Platform 架构师：Ulysses（per DEC-008 兼任 + SRE 联合签字）
+#   - 校准依据：RGS-TS-001 §5.4 quinn QUIC + §5.3 tonic gRPC + §5.8 OpenTelemetry
 # 关联：
 #   - RGS-TS-001 §5.4 quinn QUIC 选型
 #   - RGS-TS-001 §5.3 tonic gRPC 选型
 #   - RGS-TS-001 §5.8 OpenTelemetry 选型
-apiVersion: apps/v1
-kind: Deployment
+#   - ARC-051 中心事件管理（CEM）
+#   - ARC-008 5 独立 DB 拓扑
+# 注：shared-platform 不部署业务服务，仅作 QUIC edge + OTel collector 共享层
+#     实际 QUIC edge 在业务域 Pod 内 sidecar 部署（NFR-AV-008）；
+#     此处共享层仅 OTel collector + NATS（Phase 2 后）+ Prometheus
+---
+# ==================== OTel Collector ====================
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: PLACEHOLDER_QUIC_EDGE_DEPLOY_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: shared-platform-service-account
+  namespace: rust-game-server
   labels:
-    app.kubernetes.io/name: quic-edge
     app.kubernetes.io/component: shared-platform
     app.kubernetes.io/part-of: rust-game-server
-spec:
-  replicas: PLACEHOLDER_QUIC_EDGE_REPLICAS       # 2
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: quic-edge
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: quic-edge
-    spec:
-      serviceAccountName: PLACEHOLDER_SHARED_PLATFORM_SA
-      containers:
-        - name: quic-edge
-          image: PLACEHOLDER_QUIC_EDGE_IMAGE
-          ports:
-            - name: quic
-              containerPort: PLACEHOLDER_QUIC_EDGE_PORT
-              protocol: UDP
-            - name: metrics
-              containerPort: PLACEHOLDER_QUIC_EDGE_METRICS_PORT
-          env:
-            - name: RUST_LOG
-              value: PLACEHOLDER_QUIC_EDGE_LOG_LEVEL
-            - name: QUIC_TLS_CERT_PATH
-              value: PLACEHOLDER_QUIC_TLS_CERT_PATH
-            - name: QUIC_TLS_KEY_PATH
-              value: PLACEHOLDER_QUIC_TLS_KEY_PATH
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: PLACEHOLDER_OTEL_ENDPOINT
-          resources:
-            requests:
-              cpu: PLACEHOLDER_QUIC_EDGE_CPU_REQ
-              memory: PLACEHOLDER_QUIC_EDGE_MEM_REQ
-            limits:
-              cpu: PLACEHOLDER_QUIC_EDGE_CPU_LIM
-              memory: PLACEHOLDER_QUIC_EDGE_MEM_LIM
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: PLACEHOLDER_QUIC_EDGE_SVC_NAME
-  namespace: PLACEHOLDER_NAMESPACE
-spec:
-  type: LoadBalancer
-  selector:
-    app.kubernetes.io/name: quic-edge
-  ports:
-    - name: quic
-      port: PLACEHOLDER_QUIC_EDGE_PORT
-      targetPort: PLACEHOLDER_QUIC_EDGE_PORT
-      protocol: UDP
-    - name: metrics
-      port: PLACEHOLDER_QUIC_EDGE_METRICS_PORT
-      targetPort: PLACEHOLDER_QUIC_EDGE_METRICS_PORT
----
-# OTel Collector — 共享 sidecar 形式或独立 Deployment
-# 实际拓扑由 Platform 架构师 + SRE 决定
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: PLACEHOLDER_OTEL_COLLECTOR_DEPLOY_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: otel-collector
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: otel-collector
     app.kubernetes.io/component: shared-platform
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.102.0"
 spec:
-  replicas: PLACEHOLDER_OTEL_COLLECTOR_REPLICAS
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: otel-collector
@@ -89,19 +43,94 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: otel-collector
+        app.kubernetes.io/component: shared-platform
+        app.kubernetes.io/part-of: rust-game-server
     spec:
+      serviceAccountName: shared-platform-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: otel-collector
-          image: PLACEHOLDER_OTEL_COLLECTOR_IMAGE
+          image: otel/opentelemetry-collector-contrib:0.102.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config=/etc/otelcol/config.yaml"
           ports:
             - name: otlp-grpc
-              containerPort: PLACEHOLDER_OTEL_OTLP_GRPC_PORT
+              containerPort: 4317
+              protocol: TCP
             - name: otlp-http
-              containerPort: PLACEHOLDER_OTEL_OTLP_HTTP_PORT
+              containerPort: 4318
+              protocol: TCP
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+          env:
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=rust-game-server,deployment.environment=dev"
           resources:
             requests:
-              cpu: PLACEHOLDER_OTEL_CPU_REQ
-              memory: PLACEHOLDER_OTEL_MEM_REQ
+              cpu: 200m
+              memory: 256Mi
             limits:
-              cpu: PLACEHOLDER_OTEL_CPU_LIM
-              memory: PLACEHOLDER_OTEL_MEM_LIM
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otelcol
+              readOnly: true
+      volumes:
+        - name: otel-config
+          configMap:
+            name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: shared-platform
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: metrics
+      port: 8888
+      targetPort: 8888
+      protocol: TCP
+---
+# ==================== QUIC edge 占位 ====================
+# 业务 QUIC 端口已在 5 业务域 manifest 内 sidecar 形式（per RGS-INC-001 §3.1 §3.2）
+# 此处仅保留 QUIC_TLS_CERT_PATH 占位说明
+# 实际 QUIC edge 部署在 player / match 域 Pod 内（UDP 7000），不在 shared-platform 共享层独立部署
+# per RGS-INC-002 §3 Step 3：OTel collector 优先，QUIC edge 走业务 Pod sidecar
