@@ -53,7 +53,7 @@ use crate::error::{FunctionPlaneError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use wasmtime::{Config, Engine, Extern, Instance, Linker, Module, ResourceLimiter, Store, Val};
+use wasmtime::{Config, Engine, Extern, Linker, Module, ResourceLimiter, Store};
 
 /// In-process WASM runtime: one engine + a module cache keyed by
 /// `(function_id, version)`.
