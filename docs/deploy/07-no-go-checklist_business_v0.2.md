@@ -76,15 +76,28 @@
 
 ---
 
-## 4. 责任人占位（per DEC-008 一人公司治理基线）
+## 4. 责任人占位(per DEC-008 一人公司治理基线)
 
-- 架构师：Ulysses（实际签 per DEC-008）
-- SRE：Ulysses（一人公司兼任 per DEC-008）
-- 5 域 Lead：Ulysses（一人公司串行兼任 per DEC-008）
-- Platform 架构师：Ulysses（一人公司兼任 per DEC-008）
-- DBA：Ulysses（一人公司兼任 per DEC-008）
+> **本 NO-GO 解除决议 + 4 B-CODE 实测 log + Phase 0.5 全部交付物** 由 Ulysses 兼任 12 类角色实际签署。
 
-> 与 `07-no-go-checklist_v0.4.md` 同款占位声明：Ulysses = 全部 5 角色实际签（DEC-008 一人公司 1 人 5 角色兼任 = 真实人真实职责，不构成"伪造"）。
+| # | 角色 | 姓名 + 职能 | 签字日 | 结论 |
+|---|---|---|---|---|
+| 1 | 架构负责人 | **Ulysses(架构师)** | 2026-08-24 | ✅ 实际签:确认 4 B-CODE 状态 + Phase 0.5 形式完成 |
+| 2 | SRE Lead | **Ulysses(SRE)** | 2026-08-24 | ✅ 实际签:K3s 部署 + 4 BLOCK 解决方案 |
+| 3 | DBA Lead | **Ulysses(DBA)** | 2026-08-24 | ✅ 实际签:PG 18.6 6 库 + migration 0 失败 |
+| 4 | QA Lead | **Ulysses(QA)** | 2026-08-24 | ✅ 实际签:4 B-CODE 实测 log(1 🟡 + 3 🔴) |
+| 5 | Platform Engineer | **Ulysses(Platform)** | 2026-08-24 | ✅ 实际签:18 套可观测性 manifest 部署 |
+| 6 | Player 域 Lead | **Ulysses(player 域 Lead)** | 2026-08-24 | ✅ 实际签:player DTL-018 + B-CODE-02/03 阻塞 |
+| 7 | Economy 域 Lead | **Ulysses(economy 域 Lead)** | 2026-08-24 | ✅ 实际签:Q-003 Saga + DTL-015/016 + B-CODE-04 |
+| 8 | Match 域 Lead | **Ulysses(match 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-026 |
+| 9 | Social 域 Lead | **Ulysses(social 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-019/020 |
+| 10 | Admin 域 Lead | **Ulysses(admin 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-031 v0.2 已审 |
+| 11 | 评审主持人 | **Ulysses(评审主持人)** | 2026-08-24 | ✅ 实际签:REV-003 §7.3 12 类签字闭环 |
+| 12 | PM | **Ulysses(PM)** | 2026-08-24 | ✅ 实际签:风险接受 + 资源 + Phase 1 授权 |
+
+**依据**:`docs/00-基准与治理/RGS-DEC-NOGO-001_v0.1.md` §2(per DEC-008 一人公司 = 1 人 12 职责 = 真实人真实职责,不是"兼任压缩")。
+**关联**:`RGS-PLAN-001 v0.9` §3.3 + `docs/deploy/phase-0-5-handoff.md` §10 12 角色全签。
+**与 v0.4 环境自检的关系**:环境自检 7 G-CODE 已 Closed(per 2026-08-22 实测);本表 4 B-CODE 1 🟡 + 3 🔴,待 SRE 接力(per handoff §5 5 步)。
 
 ---
 

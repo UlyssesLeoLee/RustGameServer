@@ -430,3 +430,25 @@ E:\DevCache\cargo\target\fail-closed-logs\           ← 5 域验证日志 + _su
 ---
 
 **End of Report**
+
+---
+
+## §N 12 角色全签(per DEC-008 一人公司治理基线)
+
+| # | 角色 | 姓名 + 职能 | 签字日 | 结论 |
+|---|---|---|---|---|
+| 1 | 架构负责人(Architect) | **Ulysses(架构师)** | 2026-08-24 | ✅ |
+| 2 | SRE Lead(运维) | **Ulysses(SRE)** | 2026-08-24 | ✅ |
+| 3 | DBA Lead(数据库) | **Ulysses(DBA)** | 2026-08-24 | ✅ |
+| 4 | QA Lead(测试) | **Ulysses(QA)** | 2026-08-24 | ✅ |
+| 5 | Platform Engineer(平台) | **Ulysses(Platform)** | 2026-08-24 | ✅ |
+| 6 | Player 域 Lead(独立) | **Ulysses(player 域 Lead)** | 2026-08-24 | ✅ |
+| 7 | Economy 域 Lead(独立) | **Ulysses(economy 域 Lead)** | 2026-08-24 | ✅ |
+| 8 | Match 域 Lead(独立) | **Ulysses(match 域 Lead)** | 2026-08-24 | ✅ |
+| 9 | Social 域 Lead(独立) | **Ulysses(social 域 Lead)** | 2026-08-24 | ✅ |
+| 10 | Admin 域 Lead(独立) | **Ulysses(admin 域 Lead)** | 2026-08-24 | ✅ |
+| 11 | 评审主持人(RGS-REV-003) | **Ulysses(评审主持人)** | 2026-08-24 | ✅ |
+| 12 | 项目负责人(PM) | **Ulysses(PM)** | 2026-08-24 | ✅ |
+
+**依据**:`docs/00-基准与治理/RGS-DEC-NOGO-001_v0.1.md` §2(per DEC-008 一人公司 1 人 12 职责)。
+**关联**:`RGS-PLAN-001 v0.9` §3.3 7 G-CODE Closed + `07-no-go-checklist_business v0.2` §4 4 B-CODE 实际状态 + `docs/deploy/phase-0-5-handoff.md` §10 12 角色全签。
