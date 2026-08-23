@@ -16,7 +16,7 @@ use rcgen::{
     KeyUsagePurpose, SanType,
 };
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use time::Duration;
 
 #[derive(Parser, Debug)]
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
     // 2. 为每个域名生成服务证书
     for domain in &cli.domains {
-        let _ = generate_server_cert(&cli.output, domain, &ca_cert, &ca_key, cli.validity_days)?;
+        generate_server_cert(&cli.output, domain, &ca_cert, &ca_key, cli.validity_days)?;
         println!("[rgs-certgen] 服务证书已生成: {}.crt.pem", domain);
     }
 
@@ -71,7 +71,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn generate_ca(output: &PathBuf, validity_days: u32) -> Result<(Certificate, KeyPair)> {
+fn generate_ca(output: &Path, validity_days: u32) -> Result<(Certificate, KeyPair)> {
     let mut params = CertificateParams::default();
     params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
     params.key_usages.push(KeyUsagePurpose::KeyCertSign);
@@ -97,7 +97,7 @@ fn generate_ca(output: &PathBuf, validity_days: u32) -> Result<(Certificate, Key
 }
 
 fn generate_server_cert(
-    output: &PathBuf,
+    output: &Path,
     domain: &str,
     ca_cert: &Certificate,
     ca_key: &KeyPair,
