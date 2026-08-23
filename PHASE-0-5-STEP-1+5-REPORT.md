@@ -218,6 +218,13 @@ dial tcp 192.178.163.82:443: connect: connection refused
 - ✅ commit 成功（commit hash 见 ⑥ 章节）
 - ⏳ 主对话 return 5 行 bullet（待 commit 完成后填）
 
+**主对话 return 5 行 bullet（worker 自报）**:
+- 11 manifest 全部实际值落地（5 域 + cluster-ops + shared-platform + ConfigMap + Secret + RBAC + namespace），共 71 个 K8s resource / 1,971 行 YAML / 0 PLACEHOLDER_*（30 个 `REPLACE_BEFORE_DEPLOY_*` 仅在 09-secret-template.yaml 允许）
+- 决策矩阵 19×7 全部填实数（per RGS-INC-002 §4 + DEC-008 校准），校准依据：6 业务域 binary ~8.0 MB / 0.1 人·天 token-OLU
+- 3 ps1 脚本（render / validate / build）+ 1 Python 验证辅助：全部含 SYNOPSIS/PARAMETER/EXAMPLE/NOTES header
+- 验证：Python PyYAML 11/11 PASS（client-side 解析）；kubectl apply --dry-run=client 因本机无 cluster 不可达（fallback 记录）；Dockerfile 解析通过 / gcr.io + docker.io 网络限制无法实跑
+- commit hash `44670809818029f5a39487acdb794c6c513a4137` 已落到 `wbs/WF-0.5-1`，17 files / 2702+/459-
+
 ---
 
 ## ⑤ 阻塞 / 风险
@@ -276,7 +283,9 @@ dial tcp 192.178.163.82:443: connect: connection refused
   ```
   [phase-0.5] step-1+5: 5 域 manifest 实际值 + docker image 脚本
   ```
-- **Commit hash**: _待主对话 commit 后填入_
+- **Commit hash**: **`44670809818029f5a39487acdb794c6c513a4137`**（`4467080` short）
+- **Author**: `Worker <worker@rust-game-server.local>`（per worktree session identity）
+- **Diff stat**: 17 files changed, 2702 insertions(+), 459 deletions(-)
 - **Files changed**:
   - `docs/deploy/01-k8s-manifests/00-namespace.yaml`（改）
   - `docs/deploy/01-k8s-manifests/01-player-service.yaml`（改）
