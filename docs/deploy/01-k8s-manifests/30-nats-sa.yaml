@@ -1,0 +1,48 @@
+# 30-nats-sa.yaml
+# 角色：NATS JetStream ServiceAccount
+# 关联：
+#   - RGS-DTL-100 §5 消息总线
+#   - ARC-008 5 独立 DB 原则延伸（共享基础设施独立 SA）
+# 设计：
+#   - 仅允许自身访问 configmap/secret（不授予集群级权限）
+#   - 业务域通过 Service + NetworkPolicy 访问，**不直接绑定 SA**
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nats-service-account
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/component: message-bus
+    app.kubernetes.io/part-of: rust-game-server
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nats-server-role
+  namespace: rgs
+rules:
+  # NATS 自身只读 configmap（含 nats.conf）
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["nats-server-config"]
+    verbs: ["get", "watch", "list"]
+  # events 写权限（Pod 事件）
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nats-server-role-binding
+  namespace: rgs
+subjects:
+  - kind: ServiceAccount
+    name: nats-service-account
+    namespace: rgs
+roleRef:
+  kind: Role
+  name: nats-server-role
+  apiGroup: rbac.authorization.k8s.io

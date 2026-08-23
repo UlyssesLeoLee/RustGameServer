@@ -1,0 +1,98 @@
+# 30-nats-statefulset.yaml
+# 角色：NATS JetStream StatefulSet（1 副本 + PVC + 资源 requests/limits）
+# 关联：
+#   - RGS-DTL-100 §5 消息总线
+#   - RGS-SPEC-CROSS-005 §2 NATS Stream 命名约定
+#   - RGS-INC-001 v0.2 §1.2 NATS server side 缺失（本次填补）
+# 设计：
+#   - 单实例 dev 起点；HA 阶段由 SRE 评估 3 副本 Raft consensus
+#   - 持久化路径 /data/jetstream（PVC 挂载）
+#   - 健康检查 8222 /healthz（HTTP monitoring）
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/component: message-bus
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/tier: data
+spec:
+  serviceName: nats-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/component: message-bus
+    spec:
+      serviceAccountName: nats-service-account
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: nats
+          image: nats:2.10-alpine
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "/etc/nats/nats.conf"
+          ports:
+            - name: client
+              containerPort: 4222
+              protocol: TCP
+            - name: monitoring
+              containerPort: 8222
+              protocol: TCP
+            - name: cluster
+              containerPort: 6222
+              protocol: TCP
+          volumeMounts:
+            - name: nats-config
+              mountPath: /etc/nats
+              readOnly: true
+            - name: nats-jetstream-data
+              mountPath: /data/jetstream
+            - name: nats-logs
+              mountPath: /var/log/nats
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: monitoring
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: monitoring
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: nats-config
+          configMap:
+            name: nats-server-config
+            items:
+              - key: nats.conf
+                path: nats.conf
+        - name: nats-jetstream-data
+          persistentVolumeClaim:
+            claimName: nats-jetstream-data
+        - name: nats-logs
+          emptyDir: {}
+  # volumeClaimTemplates 不使用：PVC 由 30-nats-pvc.yaml 独立声明（单实例 + RWO 简化）

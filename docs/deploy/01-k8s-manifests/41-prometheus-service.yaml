@@ -1,0 +1,23 @@
+# 41-prometheus-service.yaml
+# 角色：Prometheus Service（ClusterIP 内部访问；外部通过 kubectl port-forward 暴露）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+#   - Grafana datasource URL: http://prometheus.rgs.svc.cluster.local:9090
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      protocol: TCP

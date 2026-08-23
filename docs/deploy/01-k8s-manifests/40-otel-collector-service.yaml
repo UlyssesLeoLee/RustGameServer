@@ -1,0 +1,38 @@
+# 40-otel-collector-service.yaml
+# 角色：OTel Collector Service（4 端口暴露）
+#   - 4317 OTLP gRPC（业务域 traces/metrics/logs 上报）
+#   - 4318 OTLP HTTP（同上 HTTP 协议）
+#   - 8889 Prometheus exporter（Prometheus 反向 scrape）
+#   - 13133 health（运维/探针）
+# 关联：
+#   - shared-platform tracing_init.rs: OtlpConfig.endpoint = "http://otel-collector:4317"
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: prometheus-exporter
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
+    - name: health
+      port: 13133
+      targetPort: 13133
+      protocol: TCP
