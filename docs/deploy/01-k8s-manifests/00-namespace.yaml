@@ -1,45 +1,158 @@
 # 00-namespace.yaml
-# 状态：🔴 NO-GO 占位
-# NO-GO 解除条件：SRE 具名 + DBA 具名 + RGS-ENV-001 v0.2 §6 12 类签字栏齐全
+# 角色：命名空间 + ResourceQuota + LimitRange + NetworkPolicy 兜底
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - SRE 具名：Ulysses（per DEC-008 兼任）
+#   - DBA 具名：Ulysses（per DEC-008 兼任）
+#   - 校准依据：RGS-INC-002 §3 资源约束 + 5 业务域 + cluster-ops + shared-platform 总和
+# 关联：
+#   - RGS-PLAN-001 v0.8 §3.3
+#   - RGS-ENV-001 v0.3 §6 12 类签字栏
+#   - RGS-INC-001 v0.2 §17 deny-all default NetworkPolicy
+#   - ARC-008 5 独立 DB 拓扑
+---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: PLACEHOLDER_NAMESPACE     # 实际值：rust-game-server（待 SRE + DBA 确认）
+  name: rust-game-server
   labels:
     app.kubernetes.io/part-of: rust-game-server
-    app.kubernetes.io/managed-by: PLACEHOLDER_TOOLING   # 实际值：待定（helm 或 kustomize）
-    # NO-GO 状态标签 — 解除 NO-GO 后删除
-    rust-game-server.io/no-go: "true"
+    app.kubernetes.io/managed-by: kubectl
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
 ---
-# ResourceQuota — 配额待 SRE 联合 DBA 校准
+# ResourceQuota — 5 业务域 + cluster-ops + shared-platform 全部资源总和 + 缓冲
+# 合计估算（per §1 决策矩阵 实际值）:
+#   requests.cpu = (500+1000+1000+500+250+500)*2-3 + 200*2 = ~7,250m
+#   requests.memory = (512+1024+1024+512+256+512)*2-3 MiB + 256*2 = ~7,168 MiB
+#   limits.cpu = (2000+4000+4000+2000+1000+2000)*2-3 + 1000*2 = ~30,000m
+#   limits.memory = (2+4+4+2+1+2)*1024*2-3 MiB + 1*1024*2 = ~30,720 MiB
+# 配额给 1.5x 缓冲；超过 1.5x 必须 ADR 评审
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: PLACEHOLDER_QUOTA_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: rust-game-server-quota
+  namespace: rust-game-server
 spec:
   hard:
-    requests.cpu: PLACEHOLDER_CPU_QUOTA       # 实际值待 SRE 校准
-    requests.memory: PLACEHOLDER_MEM_QUOTA
-    limits.cpu: PLACEHOLDER_CPU_LIMIT
-    limits.memory: PLACEHOLDER_MEM_LIMIT
-    pods: PLACEHOLDER_POD_COUNT
+    requests.cpu: "12"
+    requests.memory: "12Gi"
+    limits.cpu: "48"
+    limits.memory: "48Gi"
+    pods: "60"
+    persistentvolumeclaims: "20"
+    services: "30"
+    services.loadbalancers: "4"
+    services.nodeports: "0"
+    secrets: "40"
+    configmaps: "30"
 ---
-# LimitRange — 5 域 + cluster-ops + shared-platform 各自范围
+# LimitRange — 域内默认 + 上下限
 apiVersion: v1
 kind: LimitRange
 metadata:
-  name: PLACEHOLDER_LIMITRANGE_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: rust-game-server-limitrange
+  namespace: rust-game-server
 spec:
   limits:
     - type: Container
       default:
-        cpu: PLACEHOLDER_DEFAULT_CPU
-        memory: PLACEHOLDER_DEFAULT_MEM
+        cpu: 2000m
+        memory: 2Gi
       defaultRequest:
-        cpu: PLACEHOLDER_REQUEST_CPU
-        memory: PLACEHOLDER_REQUEST_MEM
+        cpu: 500m
+        memory: 512Mi
       max:
-        cpu: PLACEHOLDER_MAX_CPU
-        memory: PLACEHOLDER_MAX_MEM
+        cpu: 4000m
+        memory: 4Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi
+      min:
+        storage: 1Gi
+---
+# deny-all default NetworkPolicy — 强制显式 allow（per RGS-INC-001 §17）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: rust-game-server
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # 无 ingress/egress 规则 = 拒绝所有（deny-all 兜底）
+---
+# 同 namespace 内 DNS + k8s API allow
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-and-api
+  namespace: rust-game-server
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS（kube-system UDP 53）
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # K8s API（10.43.0.1:443 per K3s default）
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.1/32
+      ports:
+        - protocol: TCP
+          port: 443
+    # 同 namespace pod-to-pod（解决 deny-all 后 5 域互通问题）
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 50051
+        - protocol: TCP
+          port: 50052
+        - protocol: TCP
+          port: 50053
+        - protocol: TCP
+          port: 50054
+        - protocol: TCP
+          port: 50055
+        - protocol: TCP
+          port: 50056
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 9464
+    # PostgreSQL（per 24-postgres-service）
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # NATS（Phase 2 接入）
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nats
+      ports:
+        - protocol: TCP
+          port: 4222
