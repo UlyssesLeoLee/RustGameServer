@@ -28,3 +28,11 @@ tokio-test = "0.4"
 pretty_assertions = "1"
 tracing-test = "0.2"
 mockall = "0.13"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros"] }
+
+[features]
+# 默认关: 不编译 PG 集成 test, CI 跑普通 test 不需要 DATABASE_URL.
+# 启用: cargo test -p rgs-testkit --features pg-integration -- --include-ignored
+#       (需先 docker compose up postgres + export DATABASE_URL)
+default = []
+pg-integration = []
