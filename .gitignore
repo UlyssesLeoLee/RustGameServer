@@ -14,3 +14,8 @@ __pycache__/
 # + RGS-REV-010 _total §11: V1-V5 verifier 落盘的 cargo log 不入 commit,
 # 留作临时调试材料, 避免污染 review 报告 diff）
 docs/00-**/reviews/**/cargo-*.log
+
+# Agent session 临时工作目录(per 2026-08-24 主对话决策)
+# 内容: session 内的 grep extract / b1 evidence copy / regression log 等
+# 这些是过程产物,不进 git 也不归档
+.run-logs/
