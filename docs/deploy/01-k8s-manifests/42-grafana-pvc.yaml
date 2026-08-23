@@ -1,0 +1,24 @@
+# 42-grafana-pvc.yaml
+# 角色：Grafana 持久化（dashboards + sqlite db）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+# 设计：
+#   - 5Gi（dev 单实例够用；prod 由 SRE 校准）
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+  volumeMode: Filesystem

@@ -1,0 +1,61 @@
+# 30-nats-networkpolicy.yaml
+# 角色：NATS JetStream NetworkPolicy（限制只允许 5 业务域 + shared-platform 访问）
+# 关联：
+#   - ARC-008 5 域隔离
+#   - RGS-DTL-100 §5.4 NATS 安全策略
+#   - DEC-005 5 域独立 Lead（5 域均需访问 NATS 消息总线）
+# 设计：
+#   - 入站：仅允许 5 业务域 + shared-platform Pod 访问 client:4222
+#   - monitoring:8222 仅 OTel Collector Pod 可访问（metrics 抓取场景可走 Prometheus）
+#   - 出站：默认拒绝（per ARC-008 默认 deny-all）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nats-ingress
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/component: message-bus
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/component: message-bus
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # 业务域 5 个 + shared-platform 访问 client:4222
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: domain-service
+              app.kubernetes.io/part-of: rust-game-server
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: shared-platform
+              app.kubernetes.io/part-of: rust-game-server
+      ports:
+        - protocol: TCP
+          port: 4222
+    # OTel Collector / Prometheus 抓取 monitoring:8222（可选）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 8222
+  egress:
+    # DNS 解析（k3s kube-dns）
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
