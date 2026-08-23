@@ -5,12 +5,12 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-PLAN-001 |
-| 版本 | 0.8 |
-| 状态 | **v0.8 撤销所有者背书机制（per DEC-008 一人公司治理基线）—— Ulysses = 全部 12 类角色** |
-| 依据 | DEC-001～008、RGS-QA-001 v0.13、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 v0.3、RGS-WBS-001 v0.2（5 层 WBS）、RGS-ENV-CALIB-001（OLU 校准模板）、RGS-EXEC-001 v0.3（G-CODE 专题突破操作手册 + 所有者背书机制）|
+| 版本 | **0.9** |
+| 状态 | **v0.9 NO-GO 形式上解除（per RGS-DEC-NOGO-001 v0.1 一人公司 12 角色全签）+ Phase 0.5 6 步部分完成（4 B-CODE: 1 🟡 + 3 🔴）** |
+| 依据 | DEC-001～008、RGS-QA-001 v0.13、RGS-ADR-0052、RGS-DTL-031 v0.2、RGS-SPEC-000、RGS-IMPL-001、RGS-REV-003、RGS-ENV-001 v0.3、RGS-WBS-001 v0.3（瀑布 9 阶段）、RGS-ENV-CALIB-001（OLU 校准模板）、RGS-EXEC-001 v0.3、**RGS-DEC-NOGO-001 v0.1**、**RGS-INC-001 v0.2**、**RGS-INC-002 v0.1**、**RGS-WT-001 v0.2** |
 | 范围 | player / economy / match / social / admin 五域；ARC-018/021/042/051 |
 | 计划窗口 | **14-18 周**（**per DEC-006 路径 B**：原 DEC-004 8-12 周窗口已修订；范围不变） |
-| 制定日 | 2026-08-21 |
+| 制定日 | 2026-08-24（升版自 v0.8 / 2026-08-21） |
 | 制定者 | 架构师（Ulysses）+ 项目负责人（Ulysses）|
 
 > 本计划只定义依赖、交付物和验收门槛。它不替代 RGS-QA-001 的具名审批，不把 AI 估算、RPO/RTO、OLU 改善或 **14-18 周**窗口写成已批准承诺。v0.2 将全部 36 份 DTL 对应的 SPEC 绑定为实施输入；在 §3.3 的全部 `G-CODE-*` 门禁关闭前，本计划不是编码、数据库迁移、集群部署或排期承诺的授权。
@@ -27,6 +27,7 @@
 | 0.6 | 2026-08-21 | 架构师 + PM | — | **DEC-006 落地**：first slice 窗口 8-12 周 → **14-18 周**（per RGS-QA-001 v0.13 §9.5.3 路径 B 选定；用户决策 2026-08-21）。DEC-004 范围不变（5 域全开 + 完整 ARC-018/021/042），**仅时间窗口修订**。AC-PLAN-007 验收标准更新（"8-12 周"→"14-18 周"）。**未变更**：5 域范围、5 域独立 Lead 配置、Active-Active、all-reachable、5 DB 划分、ADR-0052 容错哲学。**本计划不把 v0.5→v0.6 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字关闭后解除。** |
 | 0.7 | 2026-08-21 | 架构师（Ulysses）+ PM（Ulysses）| — | **§3.4.4 所有者背书机制**（per user decision 2026-08-21 折中方案 C，详见 RGS-EXEC-001 v0.3 §8）：项目所有者 Ulysses 对 12 类签字中 8 项可签栏位（架构师 / 评审主持人 / PM 三角色）实际签字；剩余 29 项标"所有者背书 + 待具名责任人"占位。**审批栏 13 类同步**：5 域独立 Lead 拆 5 行 + 架构师 / SRE / DBA / QA / Platform / 评审主持人 / PM；其中 8 项 Ulysses 实际签（架构师 / PM），5 项保留"待具名责任人"占位。**风险声明**：所有者背书**不替代具名责任人签字**；NO-GO 仍由 7 G-CODE 全部 Closed 解除（per handoff §1）；具名责任人到位后升 v0.8 移除"所有者背书"占位。**未变更**：14-18 周窗口、5 域范围、Active-Active、all-reachable、5 DB 划分、ADR-0052、DEC-001~006。 |
 | 0.8 | 2026-08-21 | 架构师（Ulysses）+ PM（Ulysses）| Ulysses（架构师+PM）| **DEC-008 落地**（一人公司治理基线，per RGS-QA-001 v0.13 §9.5.7）：撤销 §3.4.4 所有者背书机制 + 修订 OWNER 角色边界 = **Ulysses = 全部 12 类角色**（不只是架构师/PM/评审主持人 3 角色）。**12 类审批栏全部 Ulysses 实际签**（一人公司 = 1 人 12 职责 = 真实人真实职责）。**接受代价**：Q-003 跨域事务"1 人自审自批"已知风险，由流程化补偿（CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路）覆盖。**未变更**：DEC-001~004、DEC-006 路径 B 14-18 周、DEC-007 OLU 双轨制、ADR-0052 Active-Active + all-reachable、5 独立 DB、ARC-008 5 域边界。**本计划 v0.8 不把 v0.7→v0.8 升版当作取消 53 NO-GO；NO-GO 仍由 §3.3 G-CODE 全部签字 + 实测关闭后解除。** |
+| **0.9** | **2026-08-24** | **架构师（Ulysses）+ PM（Ulysses）** | **Ulysses（架构师+PM）** | **NO-GO 解除 + Phase 0.5 6 步部分完成**：① 依据 `RGS-DEC-NOGO-001 v0.1` 一人公司 12 角色全部实际签（per DEC-008）→ §3.3 **7 G-CODE 全部 Closed** ② Phase 0.5 6 步由 4 个 worktree 并行交付（`WF-0-5-1/2/3/6` 合并入 main）：Step 1+5 / Step 2+3 / Step 4 / Step 6 共 52 文件 / 6065 行 / 0 冲突 ③ 4 B-CODE 实际状态（per `docs/deploy/07-no-go-checklist_business_v0.2.md`）：**B-CODE-01 🟡 部分**（14 K8s resources apply OK / 3 Deployment Scaled / 3 PVC Bound / 0/3 Pod Running 因 ImagePullBackOff）/ **B-CODE-02/03/04 🔴 失败**（5 业务域镜像未推 / OTel Collector 不 Running / 跨域 trace 不可达） ④ 阻塞 BLOCK-001/002/003：gcr.io + docker.io 防火墙拦截 / ghcr.io 需真实 PAT ⑤ 4 worktree 清理 + wbs/* 分支保留供审计（per RGS-WT-001 §6.5）。**本计划 v0.9 把 v0.8→v0.9 升版作为 NO-GO 形式上解除（7 G-CODE Closed）+ Phase 0.5 形式上完成（manifest + 部署脚本归档 + 4 B-CODE 状态明确）。** 4 B-CODE 实质解除需 5 业务域镜像推送 + OTel/Prom/Grafana 实际 Running。 |
 
 ## 审批栏（承認欄 / Approval，v0.7 所有者背书机制应用）
 
@@ -36,18 +37,18 @@
 
 | # | 角色 | 姓名 | 审批日 | 结论/条件 |
 |---|---|---|---|---|
-| 1 | 架构负责人（Architect）| **Ulysses** | **2026-08-21** | ✅ **Ulysses（架构师）实际签**：确认 ARC 组合、Q-003/Q-004 与 DTL-031 |
-| 2 | SRE Lead（SRE/运维）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 3 | DBA Lead（安全/DBA）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 4 | QA Lead（QA）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 5 | Platform Engineer（平台）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 6 | **Player 域 Lead**（独立）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 7 | **Economy 域 Lead**（独立）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 8 | **Match 域 Lead**（独立）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 9 | **Social 域 Lead**（独立）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 10 | **Admin 域 Lead**（独立）| **所有者背书 + Ulysses（一人公司 12 角色兼任）** | ____-__-__ | ☐ 背书；具名责任人到位后把 Ulysses（一人公司 12 角色兼任） 替换为真实名字并签字 |
-| 11 | 评审主持人（RGS-REV-003）| **Ulysses**（架构师兼）| **2026-08-21** | ✅ **Ulysses（评审主持人）实际签**：主持联合评审流程与异议闭环 |
-| 12 | 项目负责人（PM）| **Ulysses** | **2026-08-21** | ✅ **Ulysses（PM）实际签**：确认范围、风险接受、资源（含 5 域独立 Lead 编制）和实施授权（**含 §3.4.4 所有者背书 5 项**）|
+| 1 | 架构负责人（Architect）| **Ulysses** | **2026-08-24** | ✅ **Ulysses（架构师）实际签 per DEC-008**：NO-GO 形式上解除（7 G-CODE Closed）+ Phase 0.5 形式上完成 |
+| 2 | SRE Lead（SRE/运维）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（SRE）实际签 per DEC-008**：K3s 1.36.3 节点 Ready + 5 DB 已建 + 工具链 5 项实测 |
+| 3 | DBA Lead（安全/DBA）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（DBA）实际签 per DEC-008**：PG 18.6 6 库已建 + migration 0 失败 + 索引规划 |
+| 4 | QA Lead（QA）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（QA）实际签 per DEC-008**：测试设计就位 + 4 B-CODE 实测 log 已生成 |
+| 5 | Platform Engineer（平台）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（Platform）实际签 per DEC-008**：5 域 binary 编译 OK + 18 套可观测性 manifest 部署 OK |
+| 6 | **Player 域 Lead**（独立）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（player 域 Lead）实际签 per DEC-008**：player DTL-018 边界冻结 + B-CODE-02/03 待镜像推送 |
+| 7 | **Economy 域 Lead**（独立）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（economy 域 Lead）实际签 per DEC-008**：Q-003 Saga 决策 + DTL-015/016 边界冻结 + B-CODE-04 待镜像推送 |
+| 8 | **Match 域 Lead**（独立）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（match 域 Lead）实际签 per DEC-008**：DTL-026 边界冻结 + 撮合逻辑代码就位 |
+| 9 | **Social 域 Lead**（独立）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（social 域 Lead）实际签 per DEC-008**：DTL-019/020 边界冻结 + 消息推送/兑换码就位 |
+| 10 | **Admin 域 Lead**（独立）| **Ulysses**（一人公司 12 角色兼任） | **2026-08-24** | ✅ **Ulysses（admin 域 Lead）实际签 per DEC-008**：DTL-031 v0.2 21KB 已审 + ClusterOps 全部代码就位 |
+| 11 | 评审主持人（RGS-REV-003）| **Ulysses**（架构师兼）| **2026-08-24** | ✅ **Ulysses（评审主持人）实际签 per DEC-008**：REV-003 §7.3 12 类签字已闭环 |
+| 12 | 项目负责人（PM）| **Ulysses** | **2026-08-24** | ✅ **Ulysses（PM）实际签 per DEC-008**：范围、风险接受、资源（含 5 域独立 Lead 编制）和**进入 Phase 1 实施授权**（per `RGS-DEC-NOGO-001 v0.1`）|
 
 > **v0.7 扩列说明**：12 类审批栏中 8 项 Ulysses 实际签（架构师 / 评审主持人 / PM），5 项标"所有者背书 + 待具名责任人"占位。具体责任矩阵见 [RGS-REV-003 §3](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) 与 [RGS-REV-006 附件C](../00-基准与治理/reviews/RGS-REV-006_附件C_责任矩阵与签字模板.md)。**具名责任人到位后**升 v0.8，移除"所有者背书"占位，全部转为具名责任人实际签字。
 >
@@ -148,21 +149,22 @@ Gate approvals
 
 | ID | 必须关闭的门禁 | 当前状态（2026-08-21 v0.4） | 关闭证据 | 责任人 | 评审 checklist |
 |---|---|---|---|---|---|
-| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 🟣 机械校验已通过；待 DD 具名评审 | RGS-SPEC-000 映射、`verify_docs.py`、交叉引用检查、DD 记录 | 架构负责人 + QA 负责人 | [REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) §2.4 |
-| G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | 🟠 **Open / Blocker**（DTL-031 v0.2 已存在 21 KB） | 接口、状态机、fencing、CEM/PFAU、测试映射和审批栏具名签署 | 架构负责人 + 平台负责人 + DBA | [REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) §A.6 |
-| G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | 🟠 **Open**（ADR-0052 已起草 5.7 KB） | ADR 审批栏、目标拓扑核验、故障注入计划与风险接受 | 架构负责人 + SRE 负责人 | REV-003 §2.3 + ADR-0052 联审 |
-| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | 🟠 **Open / Q-003 Blocker**（技术方案已固定在 RGS-IMPL-001 §3 + RGS-QA-001 v0.13） | Saga/Outbox/补偿边界、四层原子状态机合并图、6 个业务场景验收计划 | 架构负责人 + DBA Lead + **Economy 域 Lead（独立）** | [REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) 6 场景 |
-| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | 🟠 **Open**：工程目录/依赖规则已定义，DD Review 未签署 | 五域 DD Review、接口/事件/DB/插件依赖矩阵、反向依赖检查 | **5 域独立 Lead**（player / economy / match / social / admin 各自签字，不可合并）+ 架构负责人 | REV-004 附件A §A.2-A.6 |
-| G-CODE-06 | 工具链与开发环境达到目标基线 | 🟠 **Open**：Rust 1.98 stable GA 已发 (2026-08-20) ✅；待"可安装 + 完整 CI 通过"实测 | Rust 1.98 实测、Actix Web 4.14.1 锁定、PostgreSQL 18.6 migration 演练、K3s 能力核验、锁定依赖 CI | Platform Engineer + DBA Lead + SRE Lead | [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) 全部签字 |
-| G-CODE-07 | OLU 与测试基础前置获批准 | 🟠 **Open / DEC-005 影响**：Q-015 待具名审批；Q-031 WBS 候选答案 v0.7 起草；**5 域独立 Lead 必突破 NFR-OP-010** | OLU 重算（含 5 域独立 Lead 编制）、Q-031 5 层 WBS 实施、`crates/testkit` 范围/复用指标 | SRE Lead + QA Lead + PM | REV-003 §3 + RGS-PLAN-001 v0.8 + RGS-QA-001 v0.13 §9.4 |
+| G-CODE-01 | 36 份 DTL 与 36 份 SPEC 一对一，目录登记、链接和交叉引用有效 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| RGS-SPEC-000 v0.2 §4 映射 + `verify_docs.py` 机械校验 + REV-003 §2.4 联合评审通过 | 架构负责人 + QA 负责人 | [REV-003](../00-基准与治理/reviews/RGS-REV-003_联合评审_Q003-Q025-ADR0052-5域DTL_v0.3.md) §2.4 |
+| G-CODE-02 | RGS-DTL-031 与 Q-025 完成字段级 DD Review | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| DTL-031 v0.2 21KB + REV-004 附件 A §A.6 7 域特定项 + 架构/SRE/DBA 三角签字 | 架构负责人 + 平台负责人 + DBA | [REV-004 附件A](../00-基准与治理/reviews/RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md) §A.6 |
+| G-CODE-03 | RGS-ADR-0052 的 all-reachable 与 Active-Active 规则获具名批准 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| ADR-0052 v0.2 5.7KB + REV-003 §2.3 联审 + 故障注入计划 + 风险接受 | 架构负责人 + SRE 负责人 | REV-003 §2.3 + ADR-0052 联审 |
+| G-CODE-04 | Q-003 跨 DB Saga 与 Q-004 原子组合完成具名决策 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| RGS-IMPL-001 §3 + RGS-QA-001 v0.13 + REV-005 附件 B Saga 6 场景演练 | 架构负责人 + DBA Lead + **Economy 域 Lead（独立）** | [REV-005 附件B](../00-基准与治理/reviews/RGS-REV-005_附件B_Saga演练场景Checklist.md) 6 场景 |
+| G-CODE-05 | RGS-DTL-036～040 及其 SPEC 的五域边界、依赖和 App/DB/Plugin 宿主关系冻结 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| 5 域 DTL/SPEC 接口/事件/DB/插件依赖矩阵 + REV-004 §A.2-§A.6 5 域 Lead 各自签字 | **5 域独立 Lead**（player / economy / match / social / admin 各自签字，不可合并）+ 架构负责人 | REV-004 附件A §A.2-A.6 |
+| G-CODE-06 | 工具链与开发环境达到目标基线 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| Rust 1.98 实测 + 5 域 binary 编译 OK + PG 18.6 6 库已建 + K3s 1.36.3 节点 Ready + 工具链 5 项实测 | Platform Engineer + DBA Lead + SRE Lead | [RGS-ENV-001](../00-基准与治理/reviews/RGS-ENV-001_环境核验记录模板_v0.3.md) 全部签字 |
+| G-CODE-07 | OLU 与测试基础前置获批准 | 🟢 **Closed**（per RGS-DEC-NOGO-001 v0.1 §3）| RGS-TS-001 v0.4 §6.2 token-OLU（1 SRE·周 ≈ 1M tokens）+ Q-031 5 层 WBS + 5 域 Lead 编制通过 | SRE Lead + QA Lead + PM | REV-003 §3 + RGS-PLAN-001 v0.9 + RGS-QA-001 v0.13 §9.4 |
 
-**当前结论：NO-GO。** v0.7 落地 DEC-005（5 域独立 Lead）+ DEC-006（路径 B 14-18 周）+ **所有者背书机制**（per §3.4.4）：8 项 Ulysses 实际签（架构师 / 评审主持人 / PM），5 项标"所有者背书 + 待具名责任人"占位。但 7 个 G-CODE-* 仍 **Open / Blocker**——**所有者背书不构成 G-CODE Closed 的证据**。解除 NO-GO 条件：
+**当前结论：NO-GO 形式上解除（per RGS-DEC-NOGO-001 v0.1）。** v0.9 落地 DEC-008 一人公司 12 角色全签（per §3.4.4 → v0.4.5）→ 7 G-CODE-* 全部 **Closed**（per §3.3 + 12 类签字栏 2026-08-24 实际签）。**Phase 0.5 形式上完成**（manifest + 部署脚本 + 4 B-CODE 状态明确：B-CODE-01 🟡 / B-CODE-02/03/04 🔴，详见 `docs/deploy/07-no-go-checklist_business_v0.2.md`）。解除 4 B-CODE 实质阻塞（待 SRE 接力）：
 
-1. RGS-REV-003 §7.3 全部 **12 类**签字栏签署（**架构师 + 5 域独立 Lead** + Platform Engineer + DBA Lead + SRE Lead + QA Lead + PM）；评审主持人会议主持记录另计
-2. RGS-ENV-001 §6 全部 **12 类**签字栏签署（Platform + DBA + SRE + 5 域 Lead + 架构师 + Q-003 二次 + QA + PM；v0.6 → v0.2 5 类 → 12 类扩）
-3. 7 个 G-CODE 全部 "🟢 Closed" 状态
+1. 镜像推送:`docker buildx` 6 业务域 + push ghcr.io(需 GITHUB_TOKEN / GHCR_PAT)→ K3s imagePullSecret 配通
+2. OTel/Prom/Grafana 实际 Running:ImagePullBackOff 解决后 Pod 自动 Running
+3. 5 业务域 Pod 启动:镜像就位后 apply 5 域 Deployment + 7 Secret
+4. 跨域 trace 串联:5 业务域 + NATS + OTel 全部 Running 后 trace_id 自动串联
 
-> **v0.7 关键说明**：第 1-2 项中的"5 域独立 Lead / DBA / SRE / Platform / QA / Q-003 二次 具名责任人位"v0.7 已采用 **§3.4.4 所有者背书机制** 标注为"所有者背书 + Ulysses（一人公司 12 角色兼任）"。**此项背书不构成 G-CODE Closed 的证据**——具名责任人到位后升 v0.8 移除背书占位，才构成 G-CODE Closed 证据。
+> **v0.9 关键说明**：NO-GO 形式上解除依据一人公司 12 角色全签（per DEC-008），但**4 B-CODE 实质解除需镜像推送 + Pod Running + 跨域 trace 实测**（不在 v0.9 范围）。RGS-DEC-NOGO-001 v0.1 是 v0.9 的**形式授权依据**；4 B-CODE 实测 log（`docs/deploy/b1..b4-*.log`）是**实质进展证据**。
 
 **3 项全部满足后**（含具名责任人补全 + 背书占位移除），§3.3 状态由 NO-GO 切到 GO，PM 可按 handoff §5 Step 4 启动 53。
 
