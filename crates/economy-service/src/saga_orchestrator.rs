@@ -1214,4 +1214,78 @@ mod tests {
             err
         );
     }
+
+    // ============================================================================
+    // RGS-REV-009 HI-D: DC-1 补 3 个终态 test
+    //
+    // 背景: 0434ada (RGS-REV-008 DC-1) 测了 4 个状态 (Pending/Running/Compensating/NotFound),
+    //       漏了 3 个终态 (Completed/Failed/Aborted)。终态的 resume() 应返
+    //       Error::Validation("...already in terminal state...")，不能再次执行。
+    //       本组 test 锚定该 invariant。
+    // ============================================================================
+
+    /// DC-1.5: resume(Completed) → Validation("...already in terminal state (Completed)...")
+    #[tokio::test]
+    async fn resume_completed_saga_returns_validation_err() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+        let mut saga = make_transfer_saga(account_id);
+
+        // 跑完 saga 终态 = Completed（execute 内部已 sagas.save）
+        env.orch.execute(&mut saga).await.unwrap();
+        assert_eq!(saga.status, SagaStatus::Completed);
+
+        // resume(Completed) 应拒：终态不可逆
+        let err = env.orch.resume(saga.id).await.unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(ref msg) if msg.contains("terminal") || msg.contains("Completed")),
+            "expected Validation error mentioning terminal/Completed, got {:?}",
+            err
+        );
+    }
+
+    /// DC-1.6: resume(Failed) → Validation（终态不可逆）
+    ///
+    /// 直接构造 Failed 终态保存（不依赖 compensate 完整路径，以保持 test 聚焦于 resume 终态检查）。
+    #[tokio::test]
+    async fn resume_failed_saga_returns_validation_err() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+        let mut saga = make_transfer_saga(account_id);
+
+        // 直接设终态 Failed 并持久化
+        saga.status = SagaStatus::Failed;
+        env.sagas.save(&saga).await.unwrap();
+
+        // resume(Failed) 应拒
+        let err = env.orch.resume(saga.id).await.unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(ref msg) if msg.contains("terminal") || msg.contains("Failed")),
+            "expected Validation error mentioning terminal/Failed, got {:?}",
+            err
+        );
+    }
+
+    /// DC-1.7: resume(Aborted) → Validation（终态不可逆）
+    ///
+    /// 直接构造 Aborted 终态保存。Aborted 在 saga_orchestrator.rs:94-99 与 Failed/Completed
+    /// 同属 terminal 状态，execute() 进入即返 Validation。
+    #[tokio::test]
+    async fn resume_aborted_saga_returns_validation_err() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+        let mut saga = make_transfer_saga(account_id);
+
+        // 直接设终态 Aborted 并持久化
+        saga.status = SagaStatus::Aborted;
+        env.sagas.save(&saga).await.unwrap();
+
+        // resume(Aborted) 应拒
+        let err = env.orch.resume(saga.id).await.unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(ref msg) if msg.contains("terminal") || msg.contains("Aborted")),
+            "expected Validation error mentioning terminal/Aborted, got {:?}",
+            err
+        );
+    }
 }
