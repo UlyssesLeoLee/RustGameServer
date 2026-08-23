@@ -81,9 +81,22 @@ impl Default for RpcChannelConfig {
 /// 或 scrape handler 暴露为 `mTLS_bypassed_total`）。
 static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);
 
-/// 获取 mTLS bypass 累计计数
+/// 获取 mTLS bypass 累计计数（client 端）
 pub fn mtls_bypassed_total() -> u64 {
     MTLS_BYPASSED_TOTAL.load(Ordering::Relaxed)
+}
+
+/// 服务端 mTLS bypass 计数（per RGS-REV-009 HI-1）
+///
+/// 与 client 端 `MTLS_BYPASSED_TOTAL` 对称，但独立 per-process：
+/// 6 域 main.rs 启动时若 `RGS_ALLOW_INSECURE_GRPC=1` 则 `fetch_add(1)`。
+/// 调用方应通过 `server_mtls_bypassed_total()` 读取（Prometheus exporter
+/// 或 scrape handler 暴露为 `server_mTLS_bypassed_total`）。
+pub static SERVER_MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);
+
+/// 获取服务端 mTLS bypass 累计计数
+pub fn server_mtls_bypassed_total() -> u64 {
+    SERVER_MTLS_BYPASSED_TOTAL.load(Ordering::Relaxed)
 }
 
 /// 构造 RpcChannel（带 mTLS + 超时 + fail-closed）
