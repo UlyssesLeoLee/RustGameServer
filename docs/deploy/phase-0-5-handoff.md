@@ -308,4 +308,61 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ---
 
-**handoff 结束。SRE 接力 5 步清单预计 2-3 小时,完成后 Phase 0.5 实质闭环 → 进 PH-1(WF-1 实施)。**
+## 10. 已知未完成事项(per 2026-08-24 主对话盘点 + 历史盘点)
+
+> **SRE 接力完 §5 后,这些事项仍需 SRE 或后续 Phase 单独处理**。
+
+### 10.1 数据/evidence 丢失
+
+- **`D:\RustGameServer-worktrees\WF-0-5-6\b1-evidence\` 原始 `kubectl describe/get` 11 个文件已丢**:worktree 清理时(因 untracked `.wbs-task-marker` + `.recon/`,违反 RGS-WT-001 §6.6 用 `--force` 强删),Step 6 留下的原始 evidence 一并删除。**摘要已写入 `b1-otel-pod-up.log` 头部**(`get-pods.txt` + `describe-{otel,prometheus,grafana}.txt` 关键内容已摘)。**重跑补回**:在 WSL2 K3s apply 3 套可观测性 manifest 后,跑 `kubectl describe` 重新生成 evidence 到 `docs/deploy/b1-evidence/`
+- **dev 证书 `E:\DevCache\cargo\target\dev-certs\` 不在 git**:workspace 用了 `E:\DevCache\cargo\target\`(per Step 4 worker 实测),证书生成在 workspace 之外,天然不入仓。**SRE 在 WSL2 需重跑** `pwsh -File phase-0-5-step-4-gen-certs.ps1` 重新生成(预计 5 秒)
+- **4 份 B-CODE log 在 handoff 完成日(2026-08-24)实际反映 1 🟡 + 3 🔴,非全 🟢**:SRE 跑完 §5 后必须**重写 4 份 log**(删旧 + 跑 4 实测),否则 NO-GO 实质状态不会被新证据覆盖
+
+### 10.2 WBS 任务进度表未更新
+
+- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.3.md` 仍显示 128/128 pending
+- 实际状态:**WF-0.5-1/2/3 已在 Phase 0.5 期间作为"Phase 0.5 部署 worktree"重定向使用,3 个 worktree 已合并入 main;WF-0.5-6 worker 失败,主对话接手补完 4 B-CODE log + 总报告**
+- **L4 任务标 done 的正确做法**:G-CODE-06 实测通过后由 `wbs_task_progress.ps1 -Status done` 自动填充;当前 NO-GO 形式上解除但实质未闭环,WBS 进度表更新是后续 Phase 0.5 实质完成后的工作
+- **SRE 完成 §5 后**:`pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-0.5-1 -Status done` 等 3 个
+
+### 10.3 Saga CRITICAL 修复未做(per RGS-REV-009 13 issue 共识矩阵)
+
+- `no-merge-pending-wf-1-55-27` git tag 仍存在
+- 实际状态:WF-1-55.27/28/29(P0 merge-blocker)实际未修复(commit `62d62cb` LO-4 已合 main,但 CR-1/2/3 修复仅 mock 验证)
+- **Phase 0.5 不依赖 Saga 修复**(Phase 0.5 只到 manifest 部署,业务逻辑修复在 PH-4 economy 域)
+- **后续 Phase 1+ 必做**:WF-1-55.27(CR-1 真修 OCC cleanup)+ WF-1-55.28(CR-2 6 域 outbox CHECK 幂等 migration)+ WF-1-55.31(CR-3 PgTestDatabase fixture,已 commit `ec1f992` 但需 `#[sqlx::test]` 强约束)
+
+### 10.4 git 工具链 bug 遗留(per RGS-TS-001 待登记)
+
+- `scripts/wbs_create_worktree.ps1` L4Id 正则 `^WF-[\d\.]+(?:\.[\d]+)?$` **不识别 `WF-0.5-X`** 格式(本次手动 `git worktree add` 绕开)
+- 影响:Phase 0.5 部署 worktree 走的手动流程,违反 RGS-WT-001 §11 自动化规范
+- 修复:加个 issue 到 `RGS-TS-001` §3 工具脚本章节,正则改 `^WF-(\d+(\.\d+)?)-(\d+)(?:\.(\d+))?$`(同时支持 `WF-1-53.1` + `WF-0.5-1` + `WF-1.5-7` 多种格式)
+
+### 10.5 RGS-WBS-001 文档 §11.4 引用错位(per PoC explorer 发现)
+
+- 主对话之前给你的 §11.4 引用是错的——WF-0.5-X 实际在 §2A.6.7(行 326-350),不在 §11.4
+- §11.4 表格是别的元信息(5 域 DTL 边界 + 跨域/平台 DTL 分配规则)
+- 修复:文档本身没错,引用需要更正(无文档修改,只主对话下次引用时用 §2A.6.7)
+
+### 10.6 worktree 清理违规(一次性特殊场景)
+
+- 4 个 Phase 0.5 worktree 删除时**违反 RGS-WT-001 §6.6**(`git worktree remove --force` 强删因 untracked 文件)
+- 不可恢复(已删),但 SRE 不应重复此操作
+- **建议**:RGS-WT-001 §6.6 加例外条款"已合并入 main 的 worktree 可 --force",或加个"pre-clean 检查:worktree 状态必须全 untracked 都可重建"脚本
+
+### 10.7 3 个 rev-010 detached worktree 保留(per 之前决定)
+
+- `D:\rev-010-V{1..3}` 仍存在,detached at `f31ca6c`(REV-010 V1-V3 留下的 verifier 副产物)
+- per 之前决定**保留**(用户未指示清理)
+- 不影响 git 状态,可后续手动清理:`git worktree remove D:\rev-010-V1 --force`(再走 §6.6 例外)或物理删除
+
+### 10.8 RGS-INC-001 文档名/版本不一致(per 文档本身)
+
+- 文件名:`RGS-INC-001_..._v0.1.md`
+- 文件内头部:"v0.2(v0.1 勘误)"
+- 不一致(类似 `RGS-INC-002` 实际是 v0.1 启动计划草案)
+- 修复:`git mv ..._v0.1.md ..._v0.2.md` + commit
+
+---
+
+**handoff 结束。SRE 接力 §5 5 步清单预计 2-3 小时,完成后 Phase 0.5 实质闭环 → 进 PH-1(WF-1 实施)。后续按 §10 事项清单逐项收尾。**
