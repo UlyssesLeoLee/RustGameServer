@@ -27,6 +27,13 @@ pub trait EconomyService: Send + Sync {
     async fn health_check(&self) -> Result<bool>;
 
     /// 存款（idempotent）
+    ///
+    /// **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
+    /// helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
+    /// 详见 RGS-REV-009 V3 M-1。
+    #[deprecated(
+        note = "考虑用 apply_atomic_with_reservation 走 saga 路径, 该 helper 实现完整 reservation cleanup 防止 dangling reservation. 详情见 RGS-REV-009 V3 M-1."
+    )]
     async fn credit(
         &self,
         account_id: Uuid,
@@ -35,6 +42,13 @@ pub trait EconomyService: Send + Sync {
     ) -> Result<TransactionLedger>;
 
     /// 取款（OCC + 幂等）
+    ///
+    /// **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
+    /// helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
+    /// 详见 RGS-REV-009 V3 M-1。
+    #[deprecated(
+        note = "考虑用 apply_atomic_with_reservation 走 saga 路径, 该 helper 实现完整 reservation cleanup 防止 dangling reservation. 详情见 RGS-REV-009 V3 M-1."
+    )]
     async fn debit(
         &self,
         account_id: Uuid,
@@ -362,6 +376,10 @@ pub mod grpc_service {
 
 #[cfg(test)]
 mod tests {
+    // 内部测试直接调用 deprecated 的 EconomyService::credit/debit 是合理的
+    // (这些 trait method 仍被现有测试覆盖, migration 到 saga 路径由后续 task 处理)
+    #![allow(deprecated)]
+
     #[allow(unused_imports)]
     use super::*;
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
