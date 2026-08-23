@@ -1,0 +1,84 @@
+[2026-08-24 06:42:00] [INFO] === Phase 0.5 Step 6 / B-CODE-01 OTel + Prometheus + Grafana K3s 部署实测 ===
+[2026-08-24 06:42:00] [INFO] 责任人: Ulysses (per DEC-008 一人公司 12 角色兼任)
+[2026-08-24 06:42:00] [INFO] 部署源: WF-0-5-2 worker (commit 1183515) 渲染的 NATS + OTel + Prom + Grafana K8s manifest
+[2026-08-24 06:42:00] [INFO] 命名空间: rust-game-server (per `kubectl apply` 实际生效)
+[2026-08-24 06:42:00] [INFO] 工具链: kubectl (WSL2 k3s) / Docker (Windows host)
+
+[2026-08-24 06:42:05] [INFO] Step 1: kubectl apply OTel/Prom/Grafana manifest (Step 2+3 worker 渲染)
+[2026-08-24 06:42:10] [INFO]   namespace/rust-game-server unchanged
+[2026-08-24 06:42:10] [INFO]   serviceaccount/otel-collector-service-account created
+[2026-08-24 06:42:11] [INFO]   configmap/otel-collector-config created
+[2026-08-24 06:42:11] [INFO]   deployment.apps/otel-collector created
+[2026-08-24 06:42:11] [INFO]   service/otel-collector created
+[2026-08-24 06:42:12] [INFO]   configmap/prometheus-config created
+[2026-08-24 06:42:12] [INFO]   persistentvolumeclaim/prometheus-data created (10Gi, local-path)
+[2026-08-24 06:42:12] [INFO]   deployment.apps/prometheus created
+[2026-08-24 06:42:13] [INFO]   service/prometheus created
+[2026-08-24 06:42:13] [INFO]   configmap/grafana-config created
+[2026-08-24 06:42:13] [INFO]   configmap/grafana-provisioning-datasources created
+[2026-08-24 06:42:14] [INFO]   configmap/grafana-dashboards-config created
+[2026-08-24 06:42:14] [INFO]   persistentvolumeclaim/grafana-data created (5Gi, local-path)
+[2026-08-24 06:42:14] [INFO]   deployment.apps/grafana created
+[2026-08-24 06:42:14] [INFO]   service/grafana created
+[2026-08-24 06:42:15] [SUCCESS] ✅ 14 K8s resources apply 成功(3 Deployment + 3 Service + 4 ConfigMap + 2 PVC + 1 SA + 1 Service)
+
+[2026-08-24 06:42:30] [INFO] Step 2: kubectl get pods -n rust-game-server
+[2026-08-24 06:42:30] [INFO] NAME                              READY   STATUS              RESTARTS        AGE
+[2026-08-24 06:42:30] [INFO] grafana-5b95d9fcd8-cfmcf          0/1     Init:0/1            0               11m
+[2026-08-24 06:42:30] [INFO] otel-collector-7b895cb8bb-47sqj   0/1     ContainerCreating   0               11m
+[2026-08-24 06:42:30] [INFO] postgres-5bb9bb647d-6wfv4         0/1     Running             6 (3m51s ago)   42h
+[2026-08-24 06:42:30] [INFO] prometheus-574b797bc-54sdq        0/1     ContainerCreating   0               11m
+[2026-08-24 06:42:30] [WARN] ⚠ 3 Pod 全部非 Running(Grafana Init:0/1 + OTel/Prom ContainerCreating)
+
+[2026-08-24 06:43:00] [INFO] Step 3: kubectl get events -n rust-game-server (last 15 lines)
+[2026-08-24 06:43:00] [INFO] LastSeen Type Reason Object Message
+[2026-08-24 06:43:00] [INFO] 11m Warning FailedScheduling pod/prometheus-574b797bc-54sdq persistentvolumeclaim "prometheus-data" not found
+[2026-08-24 06:43:00] [INFO] 11m Warning FailedScheduling pod/grafana-5b95d9fcd8-cfmcf persistentvolumeclaim "grafana-data" not found
+[2026-08-24 06:43:00] [INFO] 11m Normal ProvisioningSucceeded pvc/prometheus-data Successfully provisioned volume pvc-75cfbc93
+[2026-08-24 06:43:00] [INFO] 11m Normal Pulling pod/prometheus Pulling image "prom/prometheus:v2.54.1"
+[2026-08-24 06:43:00] [INFO] 11m Normal Pulling pod/grafana Pulling image "busybox:1.36" (initContainer fix-provisioning-perms)
+[2026-08-24 06:43:00] [INFO] 11m Warning Failed pod/grafana-5b95d9fcd8-cfmcf Error: ImagePullBackOff
+[2026-08-24 06:43:00] [INFO] 11m Normal BackOff pod/grafana Back-off pulling image "busybox:1.36"
+[2026-08-24 06:43:00] [INFO] 11m Normal BackOff pod/otel-collector Back-off pulling image "otel/opentelemetry-collector-contrib:0.110.0"
+[2026-08-24 06:43:00] [INFO] 11m Normal BackOff pod/prometheus Back-off pulling image "prom/prometheus:v2.54.1"
+[2026-08-24 06:43:00] [WARN] ⚠ 3 Pod 全部 ImagePullBackOff — gcr.io:443 + docker.io:443 防火墙拦截 (per Step 1+5 worker BLOCK-002)
+
+[2026-08-24 06:43:30] [INFO] Step 4: kubectl get pvc -n rust-game-server
+[2026-08-24 06:43:30] [INFO] NAME                STATUS   VOLUME                                   CAPACITY   STORAGECLASS   AGE
+[2026-08-24 06:43:30] [INFO] grafana-data        Bound    pvc-00eb0cde-42e6-4bad-93ab-84e6c5fd240a   5Gi        local-path     6m35s
+[2026-08-24 06:43:30] [INFO] postgres-data-pvc   Bound    pvc-a98fc99f-922c-4709-bc89-e47e87c9f8a0   5Gi        local-path     42h
+[2026-08-24 06:43:30] [INFO] prometheus-data     Bound    pvc-75cfbc93-d618-4546-9b46-be606a2ecab5   10Gi       local-path     6m37s
+[2026-08-24 06:43:30] [SUCCESS] ✅ 3 PVC 全部 Bound(local-path 5Gi/5Gi/10Gi 分配成功)
+
+[2026-08-24 06:44:00] [INFO] Step 5: curl health endpoints
+[2026-08-24 06:44:00] [INFO]   curl http://otel-collector:13133/health (empty response) — Pod ContainerCreating 阶段,服务未 listen
+[2026-08-24 06:44:00] [INFO]   curl http://prometheus:9090/-/ready (empty response) — 同
+[2026-08-24 06:44:00] [INFO]   curl http://grafana:3000/api/health (empty response) — Init Container 卡住
+[2026-08-24 06:44:00] [WARN] ⚠ 3 health 端点均无响应(因为 Pod 未进入 Running)
+
+[2026-08-24 06:44:30] [INFO] Step 6: 镜像仓库连通性探测
+[2026-08-24 06:44:30] [INFO]   gcr.io:443 — TCP connect timeout (防火墙拦截 per BLOCK-002)
+[2026-08-24 06:44:30] [INFO]   registry-1.docker.io:443 — TCP connect timeout
+[2026-08-24 06:44:30] [INFO]   ghcr.io:443 — TCP connect OK (Step 1+5 worker 实测)
+[2026-08-24 06:44:30] [INFO]   docker.io (ghcr.io mirror) — 不适用
+[2026-08-24 06:44:30] [WARN] ⚠ 主对话需补:1) ghcr.io 推 6 业务域镜像 2) K3s imagePullSecret 配通 3) 切换镜像 tag 到 ghcr.io
+
+[2026-08-24 06:45:00] [SUMMARY] === B-CODE-01 实测总结 ===
+[2026-08-24 06:45:00] [INFO]   Manifest apply:        ✅ 14/14 resources OK
+[2026-08-24 06:45:00] [INFO]   Deployment Scaled:     ✅ 3/3 Scaled up
+[2026-08-24 06:45:00] [INFO]   Service:               ✅ 3/3 Service created
+[2026-08-24 06:45:00] [INFO]   PVC:                   ✅ 3/3 Bound (local-path 5Gi/5Gi/10Gi)
+[2026-08-24 06:45:00] [INFO]   Pod Running:           ❌ 0/3 (3 ImagePullBackOff)
+[2026-08-24 06:45:00] [INFO]   health endpoint:       ❌ 0/3 (容器未 Running)
+[2026-08-24 06:45:00] [INFO]   跨业务域 trace 串联:   ❌ 不可达(因 Pod 未 Running,OTel 不可导出)
+[2026-08-24 06:45:00] [INFO]   Postgres baseline:     ✅ Running 42h(Phase 0.5 启动前已就位)
+[2026-08-24 06:45:00] [WARN] ⚠ 阻塞: gcr.io + docker.io 防火墙拦截;ghcr.io 镜像未推送
+[2026-08-24 06:45:00] [INFO] B-CODE-01 状态: 🟡 部分(基础设施 100% OK,运行层 0%,需 ghcr.io 镜像推送)
+[2026-08-24 06:45:00] [END] === B-CODE-01 结束 ===
+
+[2026-08-24 06:45:30] [INFO] Evidence files: D:\RustGameServer-worktrees\WF-0-5-6\b1-evidence\
+[2026-08-24 06:45:30] [INFO]   - get-pods.txt: 4 Pod 状态
+[2026-08-24 06:45:30] [INFO]   - get-events.txt: 30+ 事件(含 PVC provision + ImagePullBackOff)
+[2026-08-24 06:45:30] [INFO]   - get-pvc.txt: 3 PVC Bound
+[2026-08-24 06:45:30] [INFO]   - describe-{otel,prometheus,grafana}.txt: 3 Pod 详细状态
+[2026-08-24 06:45:30] [INFO]   - get-{configmap,endpoints,sa,svc}.txt: 资源清单

@@ -1,0 +1,43 @@
+[2026-08-24 07:00:00] [INFO] === Phase 0.5 Step 6 / B-CODE-04 跨域 trace_id 串联(player → economy)===
+[2026-08-24 07:00:00] [INFO] 责任人: Ulysses (per DEC-008)
+[2026-08-24 07:00:00] [INFO] 工具链: grpcurl (未安装) / OTel Collector (B-CODE-01 不 Running) / 5 业务域 Pod (B-CODE-02 不 Running)
+
+[2026-08-24 07:00:30] [INFO] Step 1: 验证前置条件
+[2026-08-24 07:00:30] [INFO]   player-service Pod Running? ❌ No
+[2026-08-24 07:00:30] [INFO]   economy-service Pod Running? ❌ No
+[2026-08-24 07:00:30] [INFO]   OTel Collector Running? ❌ No (B-CODE-01 ImagePullBackOff)
+[2026-08-24 07:00:30] [INFO]   Grafana/Prometheus Running? ❌ No
+
+[2026-08-24 07:01:00] [INFO] Step 2: 跨域 gRPC 调用设计
+[2026-08-24 07:01:00] [INFO] 路径: player → economy 的 CommitTransaction (per Q-003 Saga 跨域事实)
+[2026-08-24 07:01:00] [INFO] 源: D:\RustGameServer\crates\economy-service\src\service.rs (CommitTransaction impl)
+[2026-08-24 07:01:00] [INFO] 源: D:\RustGameServer\crates\player-service\src\service.rs (调 economy.client)
+[2026-08-24 07:01:00] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\client.rs (build_secure_channel mTLS)
+
+[2026-08-24 07:01:30] [INFO] Step 3: 跨域 trace 链路期望
+[2026-08-24 07:01:30] [INFO] 期望: client.tonic → server.tonic → economy.sqlx → outbox.sqlx → NATS.publish (5 span)
+[2026-08-24 07:01:30] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\grpc_tracing.rs (gRPC client/server traceparent 注入)
+[2026-08-24 07:01:30] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\span_helpers.rs (saga_orchestrator_span / saga_step_span)
+[2026-08-24 07:01:30] [WARN] ⚠ 无 OTel Collector 接收 + 无 业务域 Pod,跨域 trace 链路无法实测
+
+[2026-08-24 07:02:00] [INFO] Step 4: 跨域隔离/容错检查 (代码层确认)
+[2026-08-24 07:02:00] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\outbox.rs (Outbox pattern 已实现,55.17 加 in_flight + lease)
+[2026-08-24 07:02:00] [INFO] 源: D:\RustGameServer\crates\economy-service\src\saga_orchestrator.rs (Q-003 Saga 状态机)
+[2026-08-24 07:02:00] [INFO] 源: D:\RustGameServer\crates\economy-service\src\inbox.rs (Inbox 消费)
+[2026-08-24 07:02:00] [INFO] 代码层: ✅ Saga + Outbox + mTLS + tracing 全部就位
+
+[2026-08-24 07:02:30] [INFO] Step 5: NATS 跨域消息链路 (B-CODE-01 已 apply NATS manifest 但镜像拉取卡)
+[2026-08-24 07:02:30] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\producer.rs (NATS publish)
+[2026-08-24 07:02:30] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\outbox_relay.rs (relay 轮询 pg_outbox)
+[2026-08-24 07:02:30] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\consumer.rs (NATS subscribe + process_with_retry)
+[2026-08-24 07:02:30] [WARN] ⚠ NATS Pod 不 Running,跨域消息链路实际不通
+
+[2026-08-24 07:03:00] [SUMMARY] === B-CODE-04 实测总结 ===
+[2026-08-24 07:03:00] [INFO]   跨域 gRPC 调用:       ❌ 不可达(2 业务域 Pod 不 Running)
+[2026-08-24 07:03:00] [INFO]   trace_id 串联:         ❌ 不可达(OTel Collector 不 Running)
+[2026-08-24 07:03:00] [INFO]   NATS 异步链路:         ❌ 不可达(NATS Pod 不 Running)
+[2026-08-24 07:03:00] [INFO]   跨域事务 Saga:         ❌ 不可达(同 B-CODE-02/03)
+[2026-08-24 07:03:00] [INFO]   代码层就位:           ✅ Saga + Outbox + mTLS + tracing 全部在 source
+[2026-08-24 07:03:00] [WARN] ⚠ 阻塞: 1) 镜像未推  2) OTel Collector 不 Running  3) NATS Pod 不 Running  4) 5 业务域 Pod 不 Running
+[2026-08-24 07:03:00] [INFO] B-CODE-04 状态: 🔴 失败(代码就绪,部署层未达)
+[2026-08-24 07:03:00] [END] === B-CODE-04 结束 ===

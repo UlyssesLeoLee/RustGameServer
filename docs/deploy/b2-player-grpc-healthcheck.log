@@ -1,0 +1,38 @@
+[2026-08-24 06:50:00] [INFO] === Phase 0.5 Step 6 / B-CODE-02 player-service gRPC HealthCheck 实测 ===
+[2026-08-24 06:50:00] [INFO] 责任人: Ulysses (per DEC-008)
+[2026-08-24 06:50:00] [INFO] 部署源: WF-0-5-1 worker (commit 4467080) 渲染的 5 业务域 K8s manifest
+[2026-08-24 06:50:00] [INFO] 命名空间: rust-game-server
+[2026-08-24 06:50:00] [INFO] 工具链: kubectl (WSL2 k3s) / grpcurl (未安装) / 5 业务域 release binary (已编译)
+
+[2026-08-24 06:50:30] [INFO] Step 1: kubectl apply player-service Deployment + Service
+[2026-08-24 06:50:30] [INFO]   渲染源: D:\RustGameServer-worktrees\WF-0-5-1\docs\deploy\01-k8s-manifests\01-player-deployment.yaml
+[2026-08-24 06:50:30] [INFO]   Secret: 50-secret-player-tls.yaml (per WF-0-5-3 worker commit 2b70b0b)
+[2026-08-24 06:50:30] [WARN] ⚠ worker (bg_a00b2e0a) 在 B-CODE-02 准备阶段 Request timed out,实际 apply 未执行
+
+[2026-08-24 06:51:00] [INFO] Step 2: kubectl get pods -n rust-game-server -l app=player-service
+[2026-08-24 06:51:00] [INFO] No resources found in rust-game-server namespace.
+[2026-08-24 06:51:00] [INFO] 备注: Step 6 worker timeout 之前,B-CODE-01 阶段 kubectl apply OTel/Prom/Grafana 成功;B-CODE-02 阶段未执行 apply
+[2026-08-24 06:51:00] [INFO] 备注: 即使 apply,5 业务域镜像未推(ghcr.io 无 PAT),Pod 会立即 ImagePullBackOff (per B-CODE-01 同因)
+
+[2026-08-24 06:51:30] [INFO] Step 3: 替代验证 — 5 业务域 release binary fail-closed 验证 (per WF-0-5-3 worker 实测)
+[2026-08-24 06:51:30] [INFO] 源: D:\RustGameServer-worktrees\WF-0-5-3\PHASE-0-5-STEP-4-REPORT.md §4 fail-closed 验证
+[2026-08-24 06:51:30] [INFO]   工具: pwsh -File phase-0-5-step-4-validate-fail-closed.ps1
+[2026-08-24 06:51:30] [INFO]   实测: 5/5 业务域 binary 启动,缺 PEM 时 exit=1 不静默降级 ✅ PASS
+[2026-08-24 06:51:30] [INFO]   实测: 5/5 opt-out 场景 (RGS_ALLOW_INSECURE_GRPC=1) 本机无 DB SKIP(待 K3s 终验)
+[2026-08-24 06:51:30] [INFO]   详细 log: D:\RustGameServer-worktrees\WF-0-5-3\PHASE-0-5-STEP-4-REPORT.md §4.4
+
+[2026-08-24 06:52:00] [INFO] Step 4: gRPC HealthCheck 端点验证 (无可用 Pod,本机 fallback)
+[2026-08-24 06:52:00] [INFO]   grpcurl 未安装,本机 binary 启动需 DATABASE_URL(K3s 内才能用 cluster service)
+[2026-08-24 06:52:00] [INFO]   替代: 5 业务域 binary 已编译 (`target/release/{player,economy,match,social,admin}-service.exe` ~8MB each)
+[2026-08-24 06:52:00] [INFO]   替代: rgs-certgen 证书生成 PASS (per Step 4 worker 实测 6 域 + CA)
+[2026-08-24 06:52:00] [WARN] ⚠ 真正的 player gRPC HealthCheck 需在 K3s Pod 内跑 — 镜像未推,Pod 不可 Running,无法跑
+
+[2026-08-24 06:52:30] [SUMMARY] === B-CODE-02 实测总结 ===
+[2026-08-24 06:52:30] [INFO]   Manifest apply:        ❌ 未执行(Step 6 worker timeout)
+[2026-08-24 06:52:30] [INFO]   Pod Running:           ❌ 0/1 (镜像未推)
+[2026-08-24 06:52:30] [INFO]   gRPC HealthCheck:      ❌ 不可达(无 Pod)
+[2026-08-24 06:52:30] [INFO]   5 业务域 fail-closed:  ✅ 5/5 PASS (per Step 4 worker)
+[2026-08-24 06:52:30] [INFO]   证书生成:             ✅ 6 域 + CA PASS (per Step 4 worker)
+[2026-08-24 06:52:30] [WARN] ⚠ 阻塞: 1) 镜像未推 (ghcr.io 无 PAT)  2) 缺 grpcurl 工具  3) Step 6 worker timeout 中断
+[2026-08-24 06:52:30] [INFO] B-CODE-02 状态: 🔴 失败(实际 gRPC HealthCheck 未跑;binary fail-closed 间接证明 mTLS 启动逻辑 OK)
+[2026-08-24 06:52:30] [END] === B-CODE-02 结束 ===
