@@ -9,7 +9,7 @@
 
 use anyhow::Context;
 use std::env;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
@@ -27,15 +27,15 @@ use player_service::repository::{
 use player_service::service::grpc_service::PlayerGrpcService;
 use player_service::service::PlayerServiceImpl;
 
-/// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C）
-///
-/// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
-/// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
-/// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
-///
-/// 注：shared-platform 已有同名 private static（`MTLS_BYPASSED_TOTAL` for client side）；
-/// 因任务约束禁止改 shared-platform，本地定义与现有 client 端语义一致（per-process counter）。
-static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);
+// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C / RGS-REV-009 HI-1）
+//
+// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
+// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
+// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
+//
+// RGS-REV-009 HI-1：server 端 mTLS bypass 计数已迁移到 shared-platform
+// `SERVER_MTLS_BYPASSED_TOTAL`（与 client 端 `MTLS_BYPASSED_TOTAL` 对称），
+// 通过 `server_mtls_bypassed_total()` getter 读取。
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -120,7 +120,7 @@ async fn main() -> anyhow::Result<()> {
             target: "player-service",
             "⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)"
         );
-        MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
+        shared_platform::channel::SERVER_MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
     } else {
         let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
         let tls_config = load_server_tls_config(
