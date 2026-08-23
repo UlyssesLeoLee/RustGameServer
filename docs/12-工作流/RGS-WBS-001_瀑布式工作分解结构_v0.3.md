@@ -119,6 +119,45 @@
 | WF-1-55.10 | code coverage 报告（cargo-llvm-cov + codecov.io 上传） | Platform | 1.0 | 250K | WF-1-55.9 | CI workflow 1 / testkit | 关 / 闭 等 13 步 | `wbs/WF-1-55.10` | ⬜ 未启动 |
 
 
+#### §2A.2.55B 工程 55 收尾 — RGS-REV-009 修复（11 L4 任务 / ~6 人·天 / ~1.2M tokens）
+
+> **来源**: RGS-REV-009 WF-1-55.26 5 commit 3 轮对抗性审查（5 verifier 子代理 + V4 仲裁）。
+> **基线 commit**: 13dec2d..0434ada（5 commit 标 `no-merge-pending-wf-1-55-27` tag，**NO MERGE**）。
+> **共识矩阵**: 13 issue (3 CRITICAL / 3 HIGH / 4 MEDIUM / 3 LOW)，V1+V2+V4+V5 共识，反驳 V3 CONDITIONAL PASS。
+> **关键 CRITICAL**:
+> - CR-1: CC-4 修复打偏靶 — `apply_atomic_with_reservation` 死代码（0 生产调用），`saga_orchestrator.rs:248-289` 未触及
+> - CR-2: CC-3 outbox migration 静默失效 — 6 域 CHECK 写在 `CREATE TABLE IF NOT EXISTS` 块内，55.17 已部署环境无效
+> - CR-3: 5 commit 自我标榜 PASS 但 209 test 全过只覆盖死代码/InMemory repo/stub handler（"test pass ≠ correct"）
+> **报告位置**: `docs/00-基准与治理/reviews/adversarial-55-26/`
+> **任务清单**: `docs/00-基准与治理/reviews/adversarial-55-26/issues-55-27-catalog.md`
+
+| L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
+|---|---|---|---:|---:|---|---|---|---|---|
+| **P0 (merge-blocker, 必先修才能重新走对抗审查)** ||||||
+| WF-1-55.27 | CR-1: CC-4 真修 `ReserveHandler::execute` OCC cleanup | economy | 1.0 | 200K | RGS-REV-009 报告 | 真 PG 集成 (a) reservation cleanup (b) 账户余额未减 (c) ledger 无 +amount entry | revert service.rs/saga_orchestrator.rs | `wbs/WF-1-55.27` | ⬜ 未启动 |
+| WF-1-55.28 | CR-2: 6 域 outbox CHECK 幂等 migration（fresh DB + 已部署环境都生效） | Platform | 0.3 | 60K | WF-1-55.31 | 6 域新 migration 文件 + 真 PG 验证两种环境 | revert 新 migration 文件 | `wbs/WF-1-55.28` | ⬜ 未启动 |
+| WF-1-55.29 | HI-2-stub: DC-1.3 stub handler 改真 `ReserveHandler.compensate`（55.12 回归点） | economy | 0.3 | 60K | WF-1-55.31 | 真实 ReserveHandler + ConfirmHandler 触发 OCC 失败，断言 `account.credit` 不被调 | revert saga_orchestrator.rs test 段 | `wbs/WF-1-55.29` | ⬜ 未启动 |
+| **P1 (merge-with-follow-up, 56.x 中期补完)** ||||||
+| WF-1-55.30 | HI-1: shared-platform server 端 mTLS bypass getter（与 client 端对称） | Platform | 0.5 | 100K | 工程基础 | 6 域 main.rs 通过 `server_mtls_bypassed_total()` 暴露 | revert channel.rs getter + 6 域 static | `wbs/WF-1-55.30` | ⬜ 未启动 |
+| WF-1-55.31 | HI-2-pg: rgs-testkit 加 `PgTestDatabase` fixture（防 209 test pass 假象复发） | Platform | 1.0 | 200K | 工程基础 | `pub async fn pg_pool() -> PgPool` + 强制新代码用 `#[sqlx::test]` | revert rgs-testkit | `wbs/WF-1-55.31` | ⬜ 未启动 |
+| WF-1-55.32 | HI-3: 6 域 fail-closed 启动 integration test（assert_cmd 验证退 1 + stderr） | Platform | 0.5 | 100K | 工程基础 | 6 域 binary 各 1 个 test，缺 PEM 时 fail-closed 退 1 | revert 各 test 文件 | `wbs/WF-1-55.32` | ⬜ 未启动 |
+| WF-1-55.33 | HI-D: DC-1 补 3 个终态 test（Completed/Failed/Aborted） | economy | 0.3 | 60K | 工程基础 | 3 终态 test 全 pass + 验证 `execute()` L94-99 终态返 Validation err | revert 新 test | `wbs/WF-1-55.33` | ⬜ 未启动 |
+| **P2 (Defer to 工程 56+, 非阻断)** ||||||
+| WF-1-55.34 | ME-1: `apply_atomic` 裸调用加 `#[deprecated]` 提示新代码用 `apply_atomic_with_reservation` | economy | 0.1 | 10K | WF-1-55.27 | service.rs:141/208/256 3 处加 `#[deprecated]` | revert deprecation marker | `wbs/WF-1-55.34` | ⬜ 未启动 |
+| WF-1-55.35 | ME-2/3: admin migration 注释改 0003 + clippy 1.98 弃用 lint 名升级 | Platform | 0.1 | 10K | 工程基础 | admin 注释 + clippy 脚本一致 | revert | `wbs/WF-1-55.35` | ⬜ 未启动 |
+| WF-1-55.36 | ME-4 + LO-1/2/3: 静默吞错 + doctest 密度 + pre-existing 收尾（含 rgs-certgen 3 clippy err） | Platform | 0.5 | 100K | 工程基础 | L259 改 `if let Err` tracing、doctest 增强、rgs-certgen 3 err 修 | revert 各 | `wbs/WF-1-55.36` | ⬜ 未启动 |
+| WF-1-55.37 | LO-4: V1 CC-4-COMPENSATION-CRASH 补偿半途崩溃 → 资金丢失（55.12 引入） | economy | 1.0 | 200K | WF-1-55.27 | 调换 handler.compensate + saga.save 顺序 + reconciliation cron | revert saga_orchestrator.rs + cron 删 | `wbs/WF-1-55.37` | ⬜ 未启动 |
+
+**小计**: 11 L4 / ~6.1 人·天 / ~1.2M tokens
+**关键依赖**: WF-1-55.31 (PgTestDatabase) 是 WF-1-55.27/28/29 真 DB 集成测试的前置
+**完成判定** (merge 准入):
+1. P0 全部完成（WF-1-55.27/28/29）
+2. 2 轮对抗性审查通过（4+ verifier + 仲裁轮）
+3. `cargo test --workspace` 含 `#[sqlx::test]` 真 DB 集成全过
+4. `cargo clippy --workspace --all-targets -D warnings` 0 error
+5. 解锁 `no-merge-pending-wf-1-55-27` tag + 重新发起 WF-1-55.26 走完整合并流程
+
+
 #### §2A.2.56 工程 56 — 代码审查（10 L4 任务 / 3.6 人·天 / 660K tokens）
 
 | L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
