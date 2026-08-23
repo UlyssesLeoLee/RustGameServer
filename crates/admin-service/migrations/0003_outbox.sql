@@ -1,4 +1,4 @@
--- admin-service migration 0002_outbox（per RGS-REV-007 CH1+AH1 / DEC-015 P1 / WF-1-55.17）
+-- admin-service migration 0003_outbox（per RGS-REV-007 CH1+AH1 / DEC-015 P1 / WF-1-55.17）
 -- 事务性消息 outbox 表（per RGS-DTL-100 §5.3 + RGS-SPEC-CROSS-005）
 -- 状态机：pending → in_flight → sent / failed
 -- 多 relay 副本并发：FOR UPDATE SKIP LOCKED 防重复消费 + lease_until 防死锁
