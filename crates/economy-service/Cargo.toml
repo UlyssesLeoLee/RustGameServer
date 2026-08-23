@@ -34,3 +34,7 @@ shared-platform = { path = "../shared-platform" }
 
 [build-dependencies]
 tonic-build = { workspace = true }
+
+[dev-dependencies]
+# WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
+assert_cmd = "2"
