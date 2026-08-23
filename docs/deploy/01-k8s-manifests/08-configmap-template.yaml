@@ -1,108 +1,186 @@
 # 08-configmap-template.yaml
-# 角色：ConfigMap 模板（含 5 域配置 + CEM topic 路由 + OTel exporter 配置）
-# 状态：🔴 NO-GO 占位
-# 实际值写入条件：5 域 Lead 联合校准 + Platform 架构师审批
+# 角色：ConfigMap（5 域 endpoint + CEM topic + OTel + PFAU + Rhai 沙箱路径 + 5 域各自配置）
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - 5 域 Lead 联合校准：Ulysses（per DEC-008 兼任）
+#   - Platform 架构师：Ulysses（per DEC-008 兼任）
 # 关联：
 #   - ARC-051 CEM（中心事件管理）topic 路由
 #   - ARC-008 5 独立 DB 拓扑
+#   - ARC-020 Rhai 沙箱脚本路径
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_RGS_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: rgs-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/part-of: rust-game-server
 data:
   # 5 域 gRPC endpoint（DNS 形式，Service 名称由 01-06 Service yaml 决定）
-  RGS_PLAYER_GRPC_ENDPOINT: "PLACEHOLDER_PLAYER_SVC_NAME:PLACEHOLDER_PLAYER_GRPC_PORT"
-  RGS_ECONOMY_GRPC_ENDPOINT: "PLACEHOLDER_ECONOMY_SVC_NAME:PLACEHOLDER_ECONOMY_GRPC_PORT"
-  RGS_MATCH_GRPC_ENDPOINT: "PLACEHOLDER_MATCH_SVC_NAME:PLACEHOLDER_MATCH_GRPC_PORT"
-  RGS_SOCIAL_GRPC_ENDPOINT: "PLACEHOLDER_SOCIAL_SVC_NAME:PLACEHOLDER_SOCIAL_GRPC_PORT"
-  RGS_ADMIN_GRPC_ENDPOINT: "PLACEHOLDER_ADMIN_SVC_NAME:PLACEHOLDER_ADMIN_GRPC_PORT"
-  RGS_CLUSTER_OPS_GRPC_ENDPOINT: "PLACEHOLDER_CLUSTER_OPS_SVC_NAME:PLACEHOLDER_CLUSTER_OPS_GRPC_PORT"
+  RGS_PLAYER_GRPC_ENDPOINT: "player-service:50051"
+  RGS_ECONOMY_GRPC_ENDPOINT: "economy-service:50052"
+  RGS_MATCH_GRPC_ENDPOINT: "match-service:50053"
+  RGS_SOCIAL_GRPC_ENDPOINT: "social-service:50054"
+  RGS_ADMIN_GRPC_ENDPOINT: "admin-service:50055"
+  RGS_CLUSTER_OPS_GRPC_ENDPOINT: "cluster-ops:50056"
 
-  # CEM（中心事件管理）topic 路由
-  # per ARC-051：所有 5 域事件统一通过 CEM 转发
-  CEM_TOPIC_PLAYER_EVENTS: "PLACEHOLDER_CEM_PLAYER_TOPIC"
-  CEM_TOPIC_ECONOMY_EVENTS: "PLACEHOLDER_CEM_ECONOMY_TOPIC"
-  CEM_TOPIC_MATCH_EVENTS: "PLACEHOLDER_CEM_MATCH_TOPIC"
-  CEM_TOPIC_SOCIAL_EVENTS: "PLACEHOLDER_CEM_SOCIAL_TOPIC"
-  CEM_TOPIC_ADMIN_EVENTS: "PLACEHOLDER_CEM_ADMIN_TOPIC"
-  CEM_TOPIC_PFAU_OPS: "PLACEHOLDER_CEM_PFAU_OPS_TOPIC"
+  # CEM（中心事件管理）topic 路由 — per ARC-051
+  CEM_TOPIC_PLAYER_EVENTS: "rgs.cem.player.events"
+  CEM_TOPIC_ECONOMY_EVENTS: "rgs.cem.economy.events"
+  CEM_TOPIC_MATCH_EVENTS: "rgs.cem.match.events"
+  CEM_TOPIC_SOCIAL_EVENTS: "rgs.cem.social.events"
+  CEM_TOPIC_ADMIN_EVENTS: "rgs.cem.admin.events"
+  CEM_TOPIC_PFAU_OPS: "rgs.cem.pfau.operations"
 
   # OTel exporter 端点
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://PLACEHOLDER_OTEL_COLLECTOR_SVC_NAME:PLACEHOLDER_OTEL_OTLP_GRPC_PORT"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
   OTEL_SERVICE_NAME: "rust-game-server"
-  OTEL_RESOURCE_ATTRIBUTES: "service.namespace=rust-game-server,deployment.environment=PLACEHOLDER_ENV"
+  OTEL_RESOURCE_ATTRIBUTES: "service.namespace=rust-game-server,deployment.environment=dev"
 
-  # PFAU（每功能原子升级）配置
-  PFAU_ATOMIC_TIMEOUT_SEC: "PLACEHOLDER_PFAU_ATOMIC_TIMEOUT"     # 实际值待定
-  PFAU_ROLLBACK_TIMEOUT_SEC: "PLACEHOLDER_PFAU_ROLLBACK_TIMEOUT" # 实际值待定
-  PFAU_REACHABILITY_MODE: "all-reachable"                        # per ADR-0052
+  # PFAU（每功能原子升级）配置 — per ADR-0052
+  PFAU_ATOMIC_TIMEOUT_SEC: "60"
+  PFAU_ROLLBACK_TIMEOUT_SEC: "30"
+  PFAU_REACHABILITY_MODE: "all-reachable"
 
-  # Rhai 沙箱脚本路径（per ARC-020：拒动态库加载，仅 Rhai）
-  RHAI_SCRIPT_PATH: "PLACEHOLDER_RHAI_SCRIPT_PATH"
+  # Rhai 沙箱脚本路径 — per ARC-020 拒动态库加载，仅 Rhai
+  RHAI_SCRIPT_PATH: "/etc/rgs/rhai"
 
   # 日志级别（per RGS-IMPL-001）
   RUST_LOG: "info,sqlx=warn,tonic=warn,quinn=warn"
+
+  # mTLS 状态
+  RGS_ALLOW_INSECURE_GRPC: "0"
 ---
-# 5 域各自 ConfigMap — 域内配置（限流、缓存、路由等）
+# player 域 ConfigMap — 域内配置（限流、缓存、路由等）
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_PLAYER_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: player-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: player
+    app.kubernetes.io/part-of: rust-game-server
 data:
-  PLAYER_SESSION_TTL_SEC: "PLACEHOLDER_PLAYER_SESSION_TTL"
-  PLAYER_CACHE_SIZE: "PLACEHOLDER_PLAYER_CACHE_SIZE"
-  PLAYER_RATE_LIMIT_RPS: "PLACEHOLDER_PLAYER_RATE_LIMIT"
+  PLAYER_SESSION_TTL_SEC: "3600"
+  PLAYER_CACHE_SIZE: "10000"
+  PLAYER_RATE_LIMIT_RPS: "1000"
+  PLAYER_MAX_CONCURRENT_SESSIONS: "50000"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_ECONOMY_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: economy-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: economy
+    app.kubernetes.io/part-of: rust-game-server
     rust-game-server.io/saga-critical: "true"
 data:
-  ECONOMY_SAGA_TIMEOUT_SEC: "PLACEHOLDER_ECONOMY_SAGA_TIMEOUT"
-  ECONOMY_TX_RETRY_MAX: "PLACEHOLDER_ECONOMY_TX_RETRY"
-  ECONOMY_CURRENCY_DECIMALS: "PLACEHOLDER_ECONOMY_CURRENCY_DECIMALS"
+  ECONOMY_SAGA_TIMEOUT_SEC: "30"
+  ECONOMY_TX_RETRY_MAX: "3"
+  ECONOMY_CURRENCY_DECIMALS: "2"
+  ECONOMY_OCC_STRICT_MODE: "true"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_MATCH_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: match-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: match
+    app.kubernetes.io/part-of: rust-game-server
 data:
-  MATCH_QUEUE_TIMEOUT_SEC: "PLACEHOLDER_MATCH_QUEUE_TIMEOUT"
-  MATCH_TICK_RATE_HZ: "PLACEHOLDER_MATCH_TICK_RATE"
+  MATCH_QUEUE_TIMEOUT_SEC: "60"
+  MATCH_TICK_RATE_HZ: "30"
+  MATCH_MAX_PLAYERS_PER_SCENE: "100"
+  MATCH_SKILL_RANK_DECAY_DAYS: "30"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_SOCIAL_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: social-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: social
+    app.kubernetes.io/part-of: rust-game-server
 data:
-  SOCIAL_FRIEND_LIST_CACHE_TTL_SEC: "PLACEHOLDER_SOCIAL_FRIEND_TTL"
-  SOCIAL_MESSAGE_BATCH_SIZE: "PLACEHOLDER_SOCIAL_MSG_BATCH"
+  SOCIAL_FRIEND_LIST_CACHE_TTL_SEC: "300"
+  SOCIAL_MESSAGE_BATCH_SIZE: "50"
+  SOCIAL_MAX_FRIENDS_PER_PLAYER: "500"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_ADMIN_CONFIG_NAME
-  namespace: PLACEHOLDER_NAMESPACE
+  name: admin-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: admin
+    app.kubernetes.io/part-of: rust-game-server
     rust-game-server.io/coc: "true"
 data:
-  ADMIN_AUDIT_LOG_RETENTION_DAYS: "PLACEHOLDER_ADMIN_AUDIT_RETENTION"
-  COC_OPERATOR_REQUIRE_MFA: "PLACEHOLDER_COC_MFA_REQUIRED"
-  PFAU_CONFIRM_DUAL_OPERATOR: "PLACEHOLDER_PFAU_DUAL_CONFIRM"
+  ADMIN_AUDIT_LOG_RETENTION_DAYS: "365"
+  COC_OPERATOR_REQUIRE_MFA: "true"
+  PFAU_CONFIRM_DUAL_OPERATOR: "true"
+  COC_BIND_ADDR: "0.0.0.0:8080"
+---
+# OTel Collector 配置（per docker/observability/otel-collector-config.yaml）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/part-of: rust-game-server
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 20
+      resourcedetection:
+        detectors: [env, system, k8s]
+        timeout: 5s
+
+    exporters:
+      otlphttp:
+        endpoint: http://jaeger:4318
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8888
+        namespace: rust-game-server
+        const_labels:
+          cluster: dev
+          part_of: rust-game-server
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [otlphttp]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [prometheus]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [otlphttp]
+      telemetry:
+        logs:
+          level: info

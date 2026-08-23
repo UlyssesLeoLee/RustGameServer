@@ -1,0 +1,46 @@
+[VALIDATE] === Phase 0.5 Step 1 — manifest 验证 ===
+[VALIDATE] 目录: D:\RustGameServer-worktrees\WF-0-5-1\docs\deploy/01-k8s-manifests
+
+[VALIDATE] 11/11 文件存在 ?
+
+[VALIDATE] 00-namespace.yaml                 PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 01-player-service.yaml            PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 02-economy-service.yaml           PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 03-match-service.yaml             PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 04-social-service.yaml            PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 05-admin-service.yaml             PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 06-cluster-ops-service.yaml       PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 07-shared-platform.yaml           PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 08-configmap-template.yaml        PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+[VALIDATE] 09-secret-template.yaml           PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY=30
+[VALIDATE] 10-rbac-template.yaml             PLACEHOLDER= 0  REPLACE_BEFORE_DEPLOY= 0
+
+
+[VALIDATE] 0 PLACEHOLDER_* 占位 ?
+
+[VALIDATE] === Python PyYAML 客户端侧 YAML 解析 (kubectl 不可用 fallback) ===
+    [PASS       ] 00-namespace.yaml                 docs=5  kinds=['Namespace', 'ResourceQuota', 'LimitRange', 'NetworkPolicy', 'NetworkPolicy']
+    [PASS       ] 01-player-service.yaml            docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'HorizontalPodAutoscaler', 'PodDisruptionBudget']
+    [PASS       ] 02-economy-service.yaml           docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'HorizontalPodAutoscaler', 'PodDisruptionBudget']
+    [PASS       ] 03-match-service.yaml             docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'HorizontalPodAutoscaler', 'PodDisruptionBudget']
+    [PASS       ] 04-social-service.yaml            docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'HorizontalPodAutoscaler', 'PodDisruptionBudget']
+    [PASS       ] 05-admin-service.yaml             docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'HorizontalPodAutoscaler', 'PodDisruptionBudget']
+    [PASS       ] 06-cluster-ops-service.yaml       docs=5  kinds=['ServiceAccount', 'Deployment', 'Service', 'PodDisruptionBudget']
+    [PASS       ] 07-shared-platform.yaml           docs=4  kinds=['ServiceAccount', 'Deployment', 'Service']
+    [PASS       ] 08-configmap-template.yaml        docs=7  kinds=['ConfigMap', 'ConfigMap', 'ConfigMap', 'ConfigMap', 'ConfigMap', 'ConfigMap', 'ConfigMap']
+    [PASS       ] 09-secret-template.yaml           docs=15  kinds=['Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret', 'Secret']
+    [PASS       ] 10-rbac-template.yaml             docs=14  kinds=['Role', 'RoleBinding', 'Role', 'RoleBinding', 'Role', 'RoleBinding', 'Role', 'RoleBinding', 'Role', 'RoleBinding', 'Role', 'RoleBinding', 'Role', 'RoleBinding']
+  
+  OVERALL: PASS (11/11 files)
+
+[VALIDATE] Python PyYAML 11/11 PASS ?（client-side YAML 解析，schema 验证需 cluster）
+[VALIDATE] 提示: 实际 cluster 接入后跑 kubectl apply --dry-run=server -f <dir> 复测
+
+[VALIDATE] === 摘要 ===
+  目录: D:\RustGameServer-worktrees\WF-0-5-1\docs\deploy/01-k8s-manifests
+  文件: 11/11 存在
+  PLACEHOLDER_*: 0
+  REPLACE_BEFORE_DEPLOY_*: 0 (仅在 09-secret-template.yaml，允许)
+  kubectl apply --dry-run: 11/11 PASS
+
+[VALIDATE] DONE
