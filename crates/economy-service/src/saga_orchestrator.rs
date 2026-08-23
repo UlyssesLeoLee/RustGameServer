@@ -256,7 +256,18 @@ impl SagaStepHandler for ReserveHandler {
         let mut account = load_active_account(&self.accounts, account_id).await?;
         if !account.try_debit(self.amount) {
             // 清理 dangling reservation
-            let _ = self.reservations.delete_by_id(r.id).await;
+            // per RGS-REV-009 CR-1: 静默吞错会让 DB 故障时 reservation 永久 dangling 无告警
+            // 改为 if let Err + tracing::warn，与 service.rs::apply_atomic_with_reservation 一致
+            if let Err(cleanup_err) = self.reservations.delete_by_id(r.id).await {
+                tracing::warn!(
+                    target: "saga",
+                    reservation_id = %r.id,
+                    saga_id = %saga.id,
+                    account_id = %account_id,
+                    "failed to cleanup dangling reservation after insufficient funds: {}",
+                    cleanup_err
+                );
+            }
             return Err(Error::InsufficientFunds {
                 account_id: account_id.to_string(),
                 balance: account.balance,
@@ -274,7 +285,22 @@ impl SagaStepHandler for ReserveHandler {
         );
         entry.saga_id = Some(saga.id);
         entry.status = TransactionStatus::Confirmed;
-        self.accounts.apply_atomic(&account, &entry).await?;
+        // per RGS-REV-009 CR-1: OCC 失败路径必须清理 reservation，否则后续 compensate 误触发 +amount
+        // 之前 ? 直接传播错误，reservation 永久 dangling → ReserveHandler.compensate 凭空 +amount
+        let apply_result = self.accounts.apply_atomic(&account, &entry).await;
+        if let Err(apply_err) = apply_result {
+            if let Err(cleanup_err) = self.reservations.delete_by_id(r.id).await {
+                tracing::warn!(
+                    target: "saga",
+                    reservation_id = %r.id,
+                    saga_id = %saga.id,
+                    account_id = %account_id,
+                    "failed to cleanup dangling reservation after apply_atomic failure: {}",
+                    cleanup_err
+                );
+            }
+            return Err(apply_err);
+        }
 
         tracing::info!(
             target: "saga",
@@ -540,6 +566,64 @@ mod tests {
         saga
     }
 
+    /// AccountRepository wrapper：模拟 apply_atomic OCC 失败（per RGS-REV-009 CR-1 真测试需要）
+    ///
+    /// 用法：构造 wrapper 包 InMemoryAccountRepository，occ_fail_remaining > 0 时
+    /// apply_atomic 直接返 Error::Validation("simulated OCC conflict")，其他方法委托 inner。
+    /// 这样能在不依赖 PG 集成测试的前提下，验证 ReserveHandler.execute 真实生产路径
+    /// 在 OCC 失败时确实清理 reservation（修复 CR-1 资金幻影 bug）。
+    struct OccFailingAccountRepository {
+        inner: Arc<InMemoryAccountRepository>,
+        occ_fail_remaining: tokio::sync::Mutex<usize>,
+    }
+
+    impl OccFailingAccountRepository {
+        fn new(inner: Arc<InMemoryAccountRepository>, fail_count: usize) -> Self {
+            Self {
+                inner,
+                occ_fail_remaining: tokio::sync::Mutex::new(fail_count),
+            }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl AccountRepository for OccFailingAccountRepository {
+        async fn find_by_id(&self, id: Uuid) -> Result<Option<Account>> {
+            self.inner.find_by_id(id).await
+        }
+        async fn find_by_player_and_currency(
+            &self,
+            player_id: Uuid,
+            currency: Currency,
+        ) -> Result<Option<Account>> {
+            self.inner.find_by_player_and_currency(player_id, currency).await
+        }
+        async fn update_with_version(&self, account: &Account) -> Result<Account> {
+            self.inner.update_with_version(account).await
+        }
+        async fn save(&self, entity: &Account) -> Result<Account> {
+            self.inner.save(entity).await
+        }
+        async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
+            self.inner.delete_by_id(id).await
+        }
+        async fn apply_atomic(
+            &self,
+            account: &Account,
+            ledger: &TransactionLedger,
+        ) -> Result<(Account, TransactionLedger)> {
+            let mut count = self.occ_fail_remaining.lock().await;
+            if *count > 0 {
+                *count -= 1;
+                return Err(Error::Validation(
+                    "simulated OCC conflict from OccFailingAccountRepository".to_string(),
+                ));
+            }
+            drop(count);
+            self.inner.apply_atomic(account, ledger).await
+        }
+    }
+
     fn account_id_in_env(env: &TestEnv) -> Uuid {
         let map = env.accounts.inner.lock().unwrap();
         *map.keys().next().expect("env must have one account")
@@ -783,6 +867,120 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(account.balance, TEST_AMOUNT - 1);
+    }
+
+    /// RGS-REV-009 CR-1 真测试: 真实 ReserveHandler.execute 路径 OCC 失败时清理 reservation
+    ///
+    /// 之前 service.rs 内的 `apply_atomic_with_reservation_occ_conflict_cleans_reservation`
+    /// (RGS-REV-008 CC-4) 测的是**死代码 helper** — 0 生产调用。V1+V2 共识 CC-4 修复打偏靶。
+    ///
+    /// 本 test 用 OccFailingAccountRepository wrapper 强制第一次 apply_atomic 返 OCC 失败，
+    /// 直接驱动真实生产路径 ReserveHandler.execute (saga_orchestrator.rs:248-289)，
+    /// 验证修复后 dangling reservation 被清理 — 这是 CR-1 修复的回归锚定。
+    #[tokio::test]
+    async fn reserve_handler_cleans_reservation_on_occ_failure() {
+        let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
+        let inner_acc_repo = Arc::new(
+            InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
+        );
+        let res_repo = Arc::new(InMemoryReservationRepository::new());
+        let sag_repo = Arc::new(InMemorySagaRepository::new());
+
+        // OccFailingAccountRepository：第一次 apply_atomic 强制返 OCC 失败
+        let occ_failing = Arc::new(OccFailingAccountRepository::new(
+            inner_acc_repo.clone(),
+            1, // 失败 1 次
+        ));
+        let acc_repo: Arc<dyn AccountRepository> = occ_failing.clone();
+
+        // 预存账户（balance 充足, version=2）
+        let mut account = Account::new(Uuid::new_v4(), Currency::Gold);
+        account.credit(TEST_INITIAL_BALANCE);
+        inner_acc_repo.save(&account).await.unwrap();
+        let account_id = account.id;
+
+        // 构造 ReserveHandler（绕过 orchestrator，直接测试 handler）
+        let reserve_handler = ReserveHandler::new(
+            res_repo.clone() as Arc<dyn ReservationRepository>,
+            acc_repo.clone(),
+            TEST_AMOUNT,
+            Currency::Gold,
+        );
+
+        // 构造 saga (status=Running, current_step=0 准备跑 reserve)
+        let mut saga = Saga::new(
+            SagaType::Transfer,
+            Uuid::new_v4(),
+            "k-test-occ-failure".to_string(),
+            vec!["reserve".to_string()],
+        );
+        saga.steps[0].resource_id = Some(account_id);
+        saga.start();
+        sag_repo.save(&saga).await.unwrap();
+
+        // 触发: reserve_handler.execute 内部 reservation.save → try_debit 成功 →
+        //   apply_atomic 第一次调用 → OccFailingAccountRepository 强制返 OCC 失败 →
+        //   RGS-REV-009 CR-1 修复路径触发 reservation cleanup
+        let err = reserve_handler.execute(&mut saga).await.unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(ref msg) if msg.contains("OCC conflict")),
+            "expected OCC conflict Validation error, got {:?}",
+            err
+        );
+
+        // 关键断言: 真实生产路径 reservation cleanup（不依赖 helper）
+        let reservations_for_saga = res_repo.list_by_saga(saga.id).await.unwrap();
+        assert_eq!(
+            reservations_for_saga.len(),
+            0,
+            "real ReserveHandler.execute must clean up dangling reservation on OCC failure; got {:?}",
+            reservations_for_saga
+        );
+
+        // 关键断言: apply_atomic 失败回滚, 余额未变
+        let reloaded = inner_acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(
+            reloaded.balance, TEST_INITIAL_BALANCE,
+            "apply_atomic OCC failure must not commit the debit; balance should be untouched"
+        );
+
+        // 关键断言: ledger 无任何条目（apply_atomic 失败, ledger INSERT 未发生）
+        assert_eq!(
+            led_repo.inner.lock().unwrap().len(),
+            0,
+            "apply_atomic OCC failure must not write ledger entry"
+        );
+    }
+
+    /// RGS-REV-009 CR-1 补充测试: 验证修复后 happy path 不受影响
+    ///
+    /// 第二个 apply_atomic 调用（OccFailingAccountRepository occ_fail_remaining=0 后）
+    /// 应该走 inner.apply_atomic 成功路径，reservation 仍被 save 成功（不误清理）。
+    #[tokio::test]
+    async fn reserve_handler_occ_fail_then_success_does_not_over_cleanup() {
+        // 验证: 第一次 OCC 失败 cleanup, 第二次成功路径 reservation 正常持久化
+        // 这是 CR-1 修复的"无副作用"保证
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+        let mut saga = make_transfer_saga(account_id);
+
+        // happy path: env.orch.execute 完整跑完 2 步 reserve+confirm
+        env.orch.execute(&mut saga).await.unwrap();
+        assert_eq!(saga.status, SagaStatus::Completed);
+
+        // 验证 reservation 正常存在（status=Confirmed, 非 dangling）
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
+        assert_eq!(reservations.len(), 1);
+        assert_eq!(reservations[0].status, ReservationStatus::Confirmed);
+
+        // 验证余额正确扣减
+        let final_account = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(final_account.balance, TEST_INITIAL_BALANCE - TEST_AMOUNT);
     }
 
     #[tokio::test]
