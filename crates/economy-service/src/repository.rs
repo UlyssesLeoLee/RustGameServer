@@ -40,6 +40,16 @@ pub trait AccountRepository: Send + Sync {
         account: &Account,
         ledger: &TransactionLedger,
     ) -> Result<(Account, TransactionLedger)>;
+
+    /// 幂等键查 ledger（per RGS-DTL-100 §6 / RGS-REV-009 V1 LO-4 修复）
+    ///
+    /// handler.compensate 崩溃恢复时使用：调 apply_atomic 退款前先查,
+    /// 若 idempotency_key 已存在, 则跳过 apply_atomic (避免重复 +amount 资金幻影).
+    /// 返回 Some 表示该补偿账目已写入, None 表示尚未写入.
+    async fn find_ledger_by_idempotency_key(
+        &self,
+        key: &str,
+    ) -> Result<Option<TransactionLedger>>;
 }
 
 /// TransactionLedger Repository trait
@@ -217,6 +227,20 @@ impl AccountRepository for PgAccountRepository {
             },
             ledger.clone(),
         ))
+    }
+
+    async fn find_ledger_by_idempotency_key(
+        &self,
+        key: &str,
+    ) -> Result<Option<TransactionLedger>> {
+        let row = sqlx::query(
+            "SELECT id, account_id, idempotency_key, saga_id, command_id, amount, currency, kind, status, memo, created_at \
+             FROM transaction_ledger WHERE idempotency_key = $1",
+        )
+        .bind(key)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(row_to_ledger))
     }
 }
 
@@ -429,6 +453,22 @@ impl AccountRepository for InMemoryAccountRepository {
             },
             ledger.clone(),
         ))
+    }
+
+    async fn find_ledger_by_idempotency_key(
+        &self,
+        key: &str,
+    ) -> Result<Option<TransactionLedger>> {
+        // InMemoryAccountRepository 持有可选的 ledger HashMap.
+        // - Some: 与 InMemoryTransactionLedgerRepository 共享同一 HashMap, 直接 lookup
+        // - None: 测试退化为仅操作 account, ledger 不可见, 返回 None (与"无 apply_atomic"语义一致)
+        match &self.ledger {
+            Some(ledger_map) => {
+                let guard = ledger_map.lock().unwrap();
+                Ok(guard.values().find(|t| t.idempotency_key == key).cloned())
+            }
+            None => Ok(None),
+        }
     }
 }
 

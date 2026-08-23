@@ -139,10 +139,22 @@ impl SagaOrchestrator {
     }
 
     /// 反向补偿
+    ///
+    /// 顺序（per RGS-REV-009 V1 LO-4 修复，WF-1-55.37）：
+    /// 1. 收集 Completed step 列表（在 saga.compensate() 改 status 前）
+    /// 2. **先**调 handler.compensate (实际退款 + 写 ledger) — handler 自身幂等性保证
+    /// 3. 再 saga.compensate() 标 status=Compensating
+    /// 4. 持久化 Compensating 状态
+    /// 5. saga.fail() 标终态 + 持久化
+    ///
+    /// 修复动机（旧版 bug）：旧顺序为 saga.compensate → save → handler.compensate。
+    /// 若系统在 save 后、handler.compensate 前崩溃，则 step 标 Compensated (filter 排除)
+    /// 但实际退款未发生 → resume(Compensating) 不再调 handler.compensate → 资金丢失。
+    /// 新顺序：handler.compensate 崩溃 → step 仍 Completed → resume 重跑 handler.compensate
+    /// （handler 用 saga_idem_key 查 ledger, 已存在则跳过 apply_atomic, 防止 +amount 重复）。
     pub async fn compensate(&self, saga: &mut Saga) -> Result<()> {
-        // 先收集已完成 step 的 (name, resource_id) —— 必须在 saga.compensate() 修改
-        // step.status 之前做，否则 filter 永远为空（这是 per RGS-REV-007 AC4 实化中发现的
-        // 旧 bug：旧 ReserveHandler/ConfirmHandler 补偿路径全 no-op，所以 bug 未暴露）
+        // 1. 收集 Completed step 列表 — 必须在 saga.compensate() 修改 step.status 之前做,
+        //    否则 filter 永远为空 (per RGS-REV-007 AC4 实化发现的旧 bug)
         let completed: Vec<(String, Option<Uuid>)> = saga
             .steps
             .iter()
@@ -151,15 +163,20 @@ impl SagaOrchestrator {
             .map(|s| (s.name.clone(), s.resource_id))
             .collect();
 
-        saga.compensate();
-        self.sagas.save(saga).await?;
-
+        // 2. 先调 handler.compensate (实际退款 + 写 ledger)
+        //    若 handler.compensate 崩溃, step 仍 Completed, 状态机还在 Running/Compensating
+        //    下次 resume(Compensating) 会重跑 handler.compensate (idempotent by saga_idem_key)
         for (name, resource_id) in completed {
             if let Some(handler) = self.handlers.iter().find(|h| h.name() == name) {
                 handler.compensate(saga, resource_id).await?;
             }
         }
 
+        // 3. 所有 handler 补偿成功后才标 saga.status = Compensating
+        saga.compensate();
+        self.sagas.save(saga).await?;
+
+        // 4. 标终态 Failed + 持久化
         saga.fail();
         self.sagas.save(saga).await?;
         Ok(())
@@ -328,7 +345,37 @@ impl SagaStepHandler for ReserveHandler {
                 id: format!("saga={}-acct={}", saga.id, account_id),
             })?;
 
-        // 2. 退款（读取最新账户，OCC 更新 +amount）
+        // 2. 幂等性检查 (per RGS-REV-009 V1 LO-4 修复):
+        //    若 ledger 已有同 idempotency_key 的补偿账目, 说明 apply_atomic 上次已成功
+        //    (退款已发生), 跳过本次 apply_atomic 避免重复 +amount 资金幻影.
+        //    这种情况发生在: handler.compensate 在 apply_atomic 之后、reservation.save
+        //    之前崩溃 → resume 重跑 handler.compensate, ledger 已写但 reservation 仍
+        //    Reserved/Confirmed. 此路径只更新 reservation status, 不动账户余额.
+        let idem_key = saga_idem_key(saga.id, "compensate-reserve");
+        if self
+            .accounts
+            .find_ledger_by_idempotency_key(&idem_key)
+            .await?
+            .is_some()
+        {
+            tracing::info!(
+                target: "saga",
+                saga_id = %saga.id,
+                account_id = %account_id,
+                reservation_id = %r.id,
+                idempotency_key = %idem_key,
+                "ReserveHandler.compensate idempotent skip: ledger entry already exists, \
+                 refund already applied; only updating reservation status"
+            );
+            // 仍要更新 reservation 状态, 保证一致性
+            if !matches!(r.status, crate::reservation::ReservationStatus::Compensated) {
+                r.compensate();
+                self.reservations.save(&r).await?;
+            }
+            return Ok(());
+        }
+
+        // 3. 退款（读取最新账户，OCC 更新 +amount）
         let mut account = self
             .accounts
             .find_by_id(account_id)
@@ -346,13 +393,13 @@ impl SagaStepHandler for ReserveHandler {
             refund_amount,
             refund_currency,
             TransactionKind::Compensation,
-            saga_idem_key(saga.id, "compensate-reserve"),
+            idem_key,
         );
         entry.saga_id = Some(saga.id);
         entry.status = TransactionStatus::Confirmed;
         self.accounts.apply_atomic(&account, &entry).await?;
 
-        // 3. 标记 reservation 为已补偿
+        // 4. 标记 reservation 为已补偿
         r.compensate();
         self.reservations.save(&r).await?;
 
@@ -433,6 +480,31 @@ impl SagaStepHandler for ConfirmHandler {
                 id: format!("saga={}-acct={}", saga.id, account_id),
             })?;
 
+        // 幂等性检查 (per RGS-REV-009 V1 LO-4 修复, 与 ReserveHandler 同样的 idempotent skip):
+        //   若 ledger 已有同 idempotency_key 的补偿账目, 跳过 apply_atomic (避免 +amount 资金幻影).
+        let idem_key = saga_idem_key(saga.id, "compensate-confirm");
+        if self
+            .accounts
+            .find_ledger_by_idempotency_key(&idem_key)
+            .await?
+            .is_some()
+        {
+            tracing::info!(
+                target: "saga",
+                saga_id = %saga.id,
+                account_id = %account_id,
+                reservation_id = %r.id,
+                idempotency_key = %idem_key,
+                "ConfirmHandler.compensate idempotent skip: ledger entry already exists, \
+                 refund already applied; only updating reservation status"
+            );
+            if !matches!(r.status, crate::reservation::ReservationStatus::Compensated) {
+                r.compensate();
+                self.reservations.save(&r).await?;
+            }
+            return Ok(());
+        }
+
         // 退款
         let mut account = self
             .accounts
@@ -451,7 +523,7 @@ impl SagaStepHandler for ConfirmHandler {
             refund_amount,
             refund_currency,
             TransactionKind::Compensation,
-            saga_idem_key(saga.id, "compensate-confirm"),
+            idem_key,
         );
         entry.saga_id = Some(saga.id);
         entry.status = TransactionStatus::Confirmed;
@@ -621,6 +693,13 @@ mod tests {
             }
             drop(count);
             self.inner.apply_atomic(account, ledger).await
+        }
+        async fn find_ledger_by_idempotency_key(
+            &self,
+            key: &str,
+        ) -> Result<Option<TransactionLedger>> {
+            // 测试 wrapper: 委托给 inner (不模拟失败)
+            self.inner.find_ledger_by_idempotency_key(key).await
         }
     }
 
@@ -1360,6 +1439,180 @@ mod tests {
             matches!(err, Error::Validation(ref msg) if msg.contains("terminal") || msg.contains("Aborted")),
             "expected Validation error mentioning terminal/Aborted, got {:?}",
             err
+        );
+    }
+
+    // ============================================================================
+    // RGS-REV-009 V1 LO-4: compete() 调换 handler.compensate 与 saga.save 顺序
+    //
+    // 旧 bug: 旧 compete() 顺序为
+    //     saga.compensate() → sagas.save() → handler.compensate()
+    //   若在 sagas.save() 之后, handler.compensate() 之前崩溃:
+    //     - DB: step 标 Compensated (filter "Completed" 排除)
+    //     - 实际: 退款 + ledger 写入未发生
+    //   resume(Compensating) 重跑 compensate: filter 空 → 不再调 handler.compensate
+    //     → 资金丢失 (账户已 debit, refund side effect 永久丢失)
+    //
+    // 修复后: 顺序调换为
+    //     handler.compensate() → saga.compensate() → sagas.save()
+    //   handler.compensate 崩溃 → step 仍 Completed → resume 重跑 handler.compensate
+    //   handler 自身幂等性: 用 saga_idem_key 查 ledger, 已存在则跳过 apply_atomic
+    //   (无 +amount 重复, 无资金幻影).
+    //
+    // 本 test 锚定该 invariant 的 3 个关键行为:
+    //   1. handler.compensate 第一次崩溃 → saga 仍 Completed/Compensating → 余额已 debit
+    //   2. resume 重新触发 compensate → handler.compensate 重跑 (idempotent skip)
+    //   3. 关键断言: 账户余额只 +100 一次 (回到 500), 不 +200 二次 (变成 600 = 资金幻影)
+    // ============================================================================
+
+    /// LO-4: compete() crash retry 行为 — handler.compensate 第一次崩溃 + resume 重跑 idempotent
+    ///
+    /// 模拟崩溃窗口: handler.compensate 第一次调用时 (在旧实现中) 完成了
+    /// 实际退款 (account +100, ledger write), 但进程在 saga.compensate() 标
+    /// step=Compensated 之前崩了 → 持久化状态: step 仍 Completed, 余额已 refund
+    /// 部分完成. 修复后, 重新调 orch.compensate():
+    ///   - collect Completed: step 0 仍 Completed (旧版会被标 Compensated, 但我们
+    ///     模拟的是崩溃在 saga.save 之前的状态, 所以 step 仍 Completed)
+    ///   - 调 handler.compensate: 内部 find_ledger_by_idempotency_key 命中 → 跳过
+    //      apply_atomic → 无 +amount 重复
+    ///   - 标 saga.compensate() + save → 终态 Failed
+    #[tokio::test]
+    async fn compete_recovery_after_handler_crash_retries_handler() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+        let saga_id = {
+            let saga = make_transfer_saga(account_id);
+            env.sagas.save(&saga).await.unwrap();
+            saga.id
+        };
+
+        // ========================================================================
+        // 第 1 阶段: 模拟"reserve 步成功完成" + "confirm 步失败触发 compensate 链"
+        //   真实生产路径: ReserveHandler.execute → account debit -100, reservation Reserved
+        // ========================================================================
+        let reserve_handler = ReserveHandler::new(
+            env.reservations.clone() as Arc<dyn ReservationRepository>,
+            env.accounts.clone() as Arc<dyn AccountRepository>,
+            TEST_AMOUNT,
+            Currency::Gold,
+        );
+        // 用 saga_id 重新加载 (saga_id 来自第 0 阶段, 但 env.sagas 里的 saga 还未 save)
+        let mut saga = env.sagas.find_by_id(saga_id).await.unwrap().unwrap();
+        reserve_handler.execute(&mut saga).await.unwrap();
+        // 模拟"reserve 步完成, 推进到 confirm 步"
+        saga.steps[0].mark_completed();
+        saga.advance();
+        saga.status = SagaStatus::Running;
+        env.sagas.save(&saga).await.unwrap();
+
+        // 验证: 账户已 debit -100
+        let account_after_debit = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            account_after_debit.balance,
+            TEST_INITIAL_BALANCE - TEST_AMOUNT,
+            "reserve step should debit TEST_AMOUNT (500 -> 400) before compensation"
+        );
+
+        // ========================================================================
+        // 第 2 阶段: 模拟"handler.compensate 第一次执行成功, 但 saga.save Compensated
+        // 之前崩溃"的中间状态
+        //
+        //   真实生产 (旧实现) 顺序:
+        //     a. saga.compensate()         → step 0 标 Compensated, status=Compensating
+        //     b. reserve.compensate()      → 账户 +100 (400 -> 500), reservation Compensated
+        //     c. **CRASH** before sagas.save → DB 仍: step 0 Completed, status=Running
+        //                                        内存: step 0 Compensated, balance 500
+        //
+        //   我们的 setup: 直接调 reserve.compensate (实际退款发生), 但**不**调
+        //   saga.compensate()/sagas.save, 模拟 c 崩溃状态.
+        // ========================================================================
+        reserve_handler
+            .compensate(&mut saga, Some(account_id))
+            .await
+            .unwrap();
+        // 验证: reserve.compensate 已完成, 账户已 +100, reservation 已 Compensated
+        //   (saga 状态字段仍是 Running + step 0 Completed — 因为我们没调 saga.compensate)
+        let account_after_first_refund = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            account_after_first_refund.balance, TEST_INITIAL_BALANCE,
+            "after first reserve.compensate, balance should be back to TEST_INITIAL_BALANCE (500)"
+        );
+        let reservations = env.reservations.list_by_saga(saga_id).await.unwrap();
+        assert_eq!(reservations.len(), 1);
+        assert_eq!(
+            reservations[0].status,
+            ReservationStatus::Compensated,
+            "reservation must be Compensated after first reserve.compensate"
+        );
+
+        // ========================================================================
+        // 第 3 阶段: 重新调 orch.compensate() (模拟崩溃恢复后 resume 触发)
+        //   修复后行为: handler.compensate 重跑, 内部 find_ledger_by_idempotency_key
+        //   命中 → 跳过 apply_atomic → 无 +100 二次退款
+        // ========================================================================
+        env.orch.compensate(&mut saga).await.unwrap();
+
+        // ========================================================================
+        // 关键断言 1: 账户余额仍 = TEST_INITIAL_BALANCE (500), 不是 +100 二次
+        // ========================================================================
+        let final_account = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            final_account.balance, TEST_INITIAL_BALANCE,
+            "no double refund: handler.compensate must be idempotent via saga_idem_key, \
+             account balance must remain at TEST_INITIAL_BALANCE (500), not 600. \
+             This is the 55.37 LO-4 phantom-fund regression point."
+        );
+
+        // ========================================================================
+        // 关键断言 2: ledger 中"compensate-reserve" 账目仍只 1 条 (无重复 entry)
+        //   限制 ledger_guard 作用域在同步块内, 避免跨 await 持锁 (clippy::await_holding_lock)
+        // ========================================================================
+        let compensate_entries: Vec<_> = {
+            let ledger_guard = env.ledger.inner.lock().unwrap();
+            ledger_guard
+                .values()
+                .filter(|t| {
+                    t.idempotency_key
+                        == format!("saga:{}-compensate-reserve", saga_id)
+                })
+                .cloned()
+                .collect()
+        };
+        assert_eq!(
+            compensate_entries.len(),
+            1,
+            "idempotency_key 'compensate-reserve' must appear exactly once in ledger; got {}",
+            compensate_entries.len()
+        );
+
+        // ========================================================================
+        // 关键断言 3: saga 终态 = Failed (orch.compensate() 走完完整流程)
+        // ========================================================================
+        let loaded = env.sagas.find_by_id(saga_id).await.unwrap().unwrap();
+        assert_eq!(
+            loaded.status,
+            SagaStatus::Failed,
+            "saga must end in Failed state after second compensate() completes"
+        );
+        assert_eq!(
+            loaded.steps[0].status,
+            SagaStepStatus::Compensated,
+            "step 0 must be Compensated after orch.compensate() finishes"
         );
     }
 }
