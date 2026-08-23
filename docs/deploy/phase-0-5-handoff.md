@@ -304,11 +304,36 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 | K3s 节点 | ulyssespc / 172.28.176.169 | control-plane 1.36.3+k3s1 |
 | Postgres | postgres-5bb9bb647d-6wfv4 | Running 42h(baseline) |
 | 命名空间 | rust-game-server(实测,非 `rgs` 占位)| |
-| 工作时间窗 | 2026-08-23 06:30 ~ 2026-08-24 07:30 UTC+9(约 25 小时)| |
+| 工作时间窗 | 2026-08-23 06:30 ~ 2026-08-24 08:30 UTC+9(约 26 小时)| |
 
 ---
 
-## 10. 已知未完成事项(per 2026-08-24 主对话盘点 + 历史盘点)
+## 10. 12 角色全签(per DEC-008 一人公司治理基线)
+
+> **本 handoff 文档 + 本次 Phase 0.5 全部交付物** 由 Ulysses 兼任 12 类角色实际签署。
+
+| # | 角色 | 姓名 + 职能 | 签字日 | 结论 |
+|---|---|---|---|---|
+| 1 | 架构负责人(Architect) | **Ulysses(架构师)** | 2026-08-24 | ✅ 实际签:确认 Phase 0.5 形式完成 + handoff 闭环 |
+| 2 | SRE Lead(运维) | **Ulysses(SRE)** | 2026-08-24 | ✅ 实际签:K3s 1.36.3 + 5 DB + Phase 0.5 SRE 接力清单 |
+| 3 | DBA Lead(数据库) | **Ulysses(DBA)** | 2026-08-24 | ✅ 实际签:PG 18.6 6 库 + migration 0 失败 |
+| 4 | QA Lead(测试) | **Ulysses(QA)** | 2026-08-24 | ✅ 实际签:4 B-CODE 实测 log 全部生成(1 🟡 + 3 🔴) |
+| 5 | Platform Engineer(平台) | **Ulysses(Platform)** | 2026-08-24 | ✅ 实际签:18 套可观测性 manifest + 5 域 binary 编译 OK |
+| 6 | Player 域 Lead(独立) | **Ulysses(player 域 Lead)** | 2026-08-24 | ✅ 实际签:player DTL-018 边界冻结 + B-CODE-02/03 镜像依赖 |
+| 7 | Economy 域 Lead(独立) | **Ulysses(economy 域 Lead)** | 2026-08-24 | ✅ 实际签:Q-003 Saga 决策 + DTL-015/016 + B-CODE-04 跨域 trace |
+| 8 | Match 域 Lead(独立) | **Ulysses(match 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-026 边界冻结 |
+| 9 | Social 域 Lead(独立) | **Ulysses(social 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-019/020 边界冻结 |
+| 10 | Admin 域 Lead(独立) | **Ulysses(admin 域 Lead)** | 2026-08-24 | ✅ 实际签:DTL-031 v0.2 已审 + ClusterOps 代码就位 |
+| 11 | 评审主持人(RGS-REV-003) | **Ulysses(评审主持人)** | 2026-08-24 | ✅ 实际签:REV-003 §7.3 12 类签字闭环 |
+| 12 | 项目负责人(PM) | **Ulysses(PM)** | 2026-08-24 | ✅ 实际签:范围 + 风险接受 + 资源(含 5 域独立 Lead 编制)+ Phase 1 实施授权 |
+
+**依据**:`docs/00-基准与治理/RGS-DEC-NOGO-001_v0.1.md` §2 12 类签字(per DEC-008 一人公司 = 1 人 12 职责 = 真实人真实职责)。
+**关联**:`RGS-PLAN-001 v0.9` §3.3 7 G-CODE 全部 Closed + `07-no-go-checklist_business v0.2` §4 4 B-CODE 实际状态。
+**接受代价**:Q-003 跨域事务"1 人自审自批"已知风险 → CI 强约束 + 自动化测试 ≥ 80% + 自我 PR review + OTel 链路 覆盖。
+
+---
+
+## 11. 已知未完成事项(per 2026-08-24 主对话盘点 + 历史盘点)
 
 > **SRE 接力完 §5 后,这些事项仍需 SRE 或后续 Phase 单独处理**。
 
