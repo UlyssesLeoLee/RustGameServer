@@ -1,0 +1,39 @@
+[2026-08-24 06:55:00] [INFO] === Phase 0.5 Step 6 / B-CODE-03 login → session_epoch → player_db 落库 + 3 span trace ===
+[2026-08-24 06:55:00] [INFO] 责任人: Ulysses (per DEC-008)
+[2026-08-24 06:55:00] [INFO] 工具链: psql (待验证) / curl / OTel Collector (B-CODE-01 未 Running)
+
+[2026-08-24 06:55:30] [INFO] Step 1: 验证前置条件
+[2026-08-24 06:55:30] [INFO]   player-service Pod Running? ❌ No (镜像未推 + B-CODE-02 失败)
+[2026-08-24 06:55:30] [INFO]   player_db 库 + sessions 表 + migration 跑过? 部分(migration 文件 0001_init/0002_outbox/0003_outbox_check 已就位,实际执行需 `sqlx migrate run`)
+[2026-08-24 06:55:30] [INFO]   Postgres pod Running? ✅ 是(postgres-5bb9bb647d-6wfv4 42h Running)
+[2026-08-24 06:55:30] [INFO]   OTel Collector Pod Running? ❌ No (B-CODE-01 ImagePullBackOff)
+
+[2026-08-24 06:56:00] [INFO] Step 2: player_db 库 + sessions 表结构(源 DTL)
+[2026-08-24 06:56:00] [INFO] 源: D:\RustGameServer\crates\player-service\migrations\0001_init.sql (per DTL-018 §2 五表:players / characters / sessions / ...)
+[2026-08-24 06:56:00] [INFO] 源: D:\RustGameServer\crates\player-service\src\repository.rs (Session trait / impl)
+[2026-08-24 06:56:00] [INFO] 源: D:\RustGameServer\crates\player-service\src\service.rs (login → create_session 业务方法)
+[2026-08-24 06:56:00] [WARN] ⚠ migration 在 Pod 启动时跑(`sqlx::migrate!()` 宏),Pod 不 Running 永远跑不到
+
+[2026-08-24 06:56:30] [INFO] Step 3: 模拟 login 流程 (本机 fallback,无 K3s Pod)
+[2026-08-24 06:56:30] [INFO] 工具: cargo run --bin player-service --release (需 DATABASE_URL + RGS_TLS_DIR)
+[2026-08-24 06:56:30] [INFO] 设: $env:DATABASE_URL = "postgresql://player:***@localhost:5432/player_db" (WSL2 port-forward 可行,但需 kubectl + wsl)
+[2026-08-24 06:56:30] [INFO] 设: $env:RGS_TLS_DIR = "E:\DevCache\cargo\target\dev-certs" (per Step 4 worker 生成路径)
+[2026-08-24 06:56:30] [WARN] ⚠ 实际跑需 DB 可达 + 镜像/二进制 OK;本机无 K3s 端口转发 → 跳到 Step 4
+
+[2026-08-24 06:57:00] [INFO] Step 4: trace_id 验证 (前置 OTel Collector 不 Running,不可达)
+[2026-08-24 06:57:00] [INFO] 期望: gRPC client → server → sqlx → response 全程一个 trace_id
+[2026-08-24 06:57:00] [INFO] 源: D:\RustGameServer\crates\shared-platform\src\grpc_tracing.rs (traceparent 注入)
+[2026-08-24 06:57:00] [INFO] 源: D:\RustGameServer\crates\player-service\src\main.rs (tonic + tracing_init 启动)
+[2026-08-24 06:57:00] [WARN] ⚠ 无 OTel Collector Running,trace 无法导出,无法验证 3 span (gRPC + sqlx + response)
+
+[2026-08-24 06:57:30] [SUMMARY] === B-CODE-03 实测总结 ===
+[2026-08-24 06:57:30] [INFO]   player-service Pod:    ❌ 不 Running(镜像未推)
+[2026-08-24 06:57:30] [INFO]   login gRPC 调用:       ❌ 不可达
+[2026-08-24 06:57:30] [INFO]   session_epoch 写入:    ❌ 不可达
+[2026-08-24 06:57:30] [INFO]   player_db 落库:        ❌ 不可达
+[2026-08-24 06:57:30] [INFO]   3 span trace:          ❌ 不可达(OTel Collector 不 Running)
+[2026-08-24 06:57:30] [INFO]   代码层就位:           ✅ login / create_session / sqlx::migrate 全部在 source
+[2026-08-24 06:57:30] [INFO]   migration 文件:        ✅ 0001_init/0002_outbox/0003_outbox_check 已写
+[2026-08-24 06:57:30] [WARN] ⚠ 阻塞: 1) 镜像未推  2) OTel Collector 不 Running  3) K3s 端口转发未配
+[2026-08-24 06:57:30] [INFO] B-CODE-03 状态: 🔴 失败(代码就绪,部署层未达)
+[2026-08-24 06:57:30] [END] === B-CODE-03 结束 ===
