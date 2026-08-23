@@ -9,3 +9,8 @@ __pycache__/
 .env.*.local
 
 # .env.example 模板（无敏感值）应入 git
+
+# Reviewer worktree cargo 输出（per RGS-REV-009 COMMIT_PROPOSAL §65
+# + RGS-REV-010 _total §11: V1-V5 verifier 落盘的 cargo log 不入 commit,
+# 留作临时调试材料, 避免污染 review 报告 diff）
+docs/00-**/reviews/**/cargo-*.log
