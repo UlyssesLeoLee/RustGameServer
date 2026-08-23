@@ -1,0 +1,25 @@
+# 41-prometheus-pvc.yaml
+# 角色：Prometheus TSDB 持久化（PVC + StorageClass）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+# 设计：
+#   - 10Gi（dev 单实例保留 7 天数据约 6Gi；prod 由 SRE 校准）
+#   - 存储路径 /prometheus（与 prometheus 镜像默认一致）
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+  volumeMode: Filesystem

@@ -1,0 +1,62 @@
+# 30-nats-configmap.yaml
+# 角色：NATS Server 配置文件（jetstream 启用 + 存储路径 + 端口）
+# 关联：
+#   - RGS-DTL-100 §5 消息总线
+#   - RGS-SPEC-CROSS-005 §2 NATS Stream 命名约定
+# 备注：
+#   - dev 阶段单实例无集群（cluster {} 注释保留，HA 时启用）
+#   - jetstream 存储目录 /data/jetstream（与 PVC 挂载点一致）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-server-config
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/component: message-bus
+    app.kubernetes.io/part-of: rust-game-server
+data:
+  nats.conf: |
+    # NATS Server 配置（per RGS-DTL-100 §5 + RGS-SPEC-CROSS-005）
+    # 端口：4222 client / 8222 monitoring / 6222 cluster（intra-only, dev 注释）
+    # 模式：dev 单实例；HA 阶段启用 cluster{} + 3 副本 Raft consensus
+
+    http_port: 8222
+    log_file: "/var/log/nats/nats.log"
+    logtime: true
+    debug: false
+    trace: false
+
+    # JetStream 持久化
+    jetstream {
+      store_dir: "/data/jetstream"
+      # dev 阶段单实例；HA 时 max_mem / max_file 校准
+      max_mem: 1G
+      max_file: 5G
+    }
+
+    # 客户端端口
+    port: 4222
+
+    # 集群（dev 注释；HA 阶段启用 + 3 副本）
+    # cluster {
+    #   name: rgs-nats
+    #   listen: 0.0.0.0:6222
+    #   routes: [
+    #     nats://nats-0.nats-headless.rgs.svc.cluster.local:6222,
+    #     nats://nats-1.nats-headless.rgs.svc.cluster.local:6222,
+    #     nats://nats-2.nats-headless.rgs.svc.cluster.local:6222
+    #   ]
+    # }
+
+    # 授权（per RGS-SPEC-CROSS-005 §3 安全）
+    # dev 阶段无鉴权；prod 启用 accounts + token
+    # authorization {
+    #   user: rgs
+    #   password: $NATS_PASSWORD
+    # }
+
+    # 资源限制
+    max_payload: 1MB
+    max_pending: 64MB
+    max_connections: 1000

@@ -1,0 +1,58 @@
+# 42-grafana-configmap.yaml
+# 角色：Grafana 配置（datasource + dashboard provider + 53.12 占位 dashboard）
+# 关联：
+#   - RGS-DTL-100 §7 可观测性
+#   - docker/observability/grafana/provisioning/* 源文件
+#   - docker/observability/grafana/dashboards/rgs-services-overview.json 占位 dashboard
+# 设计：
+#   - Datasource: Prometheus URL = http://prometheus.rgs.svc.cluster.local:9090
+#   - Dashboard provider 扫描 /etc/grafana/dashboards
+#   - 53.12 dashboard 占位保留（仅 schema，无 panel；5 域 Lead 后续填充）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: rgs
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: rust-game-server
+data:
+  # Datasource provisioning（per WBS v0.3 §2A.5 WF-1-53.12）
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.rgs.svc.cluster.local:9090
+        isDefault: true
+        editable: true
+  # Dashboard provider
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'rgs-dashboards'
+        orgId: 1
+        folder: 'RGS'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/dashboards
+  # 53.12 dashboard 占位（per docker/observability/grafana/dashboards/rgs-services-overview.json）
+  rgs-services-overview.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "graphTooltip": 0,
+      "title": "RGS Services Overview (53.12 placeholder)",
+      "panels": [],
+      "schemaVersion": 38,
+      "tags": ["rgs", "53.12"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "refresh": "15s",
+      "uid": "rgs-services-overview"
+    }
