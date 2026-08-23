@@ -10,6 +10,7 @@ members = [
     "crates/shared-platform",
     "crates/rgs-testkit",
     "crates/rgs-certgen",
+    "crates/function-plane",
 ]
 resolver = "2"
 
@@ -46,6 +47,9 @@ tonic-build = { version = "0.12", features = ["prost"] }
 opentelemetry = "0.24"
 opentelemetry-otlp = { version = "0.17", features = ["tonic"] }
 opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
+# RGS-INC-001 v0.2 §8/§9/§15 mock: WASM runtime + WAT text format
+wasmtime = "19"
+wat = "1"
 
 [profile.release]
 lto = "thin"
