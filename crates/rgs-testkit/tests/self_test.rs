@@ -1,7 +1,7 @@
-//! rgs-testkit self-test：验证 3 个子模块基本 API 可用
+//! rgs-testkit self-test：验证 4 个子模块基本 API 可用
 
 use rgs_testkit::mock::{DbMock, GrpcMock, NatsMock};
-use rgs_testkit::{fixture, helper, mock};
+use rgs_testkit::{fixture, helper, mock, pg_test_db};
 
 #[test]
 fn fixture_player_basic() {
@@ -69,4 +69,53 @@ async fn fixture_init_test_db_returns_url() {
     assert!(url.is_ok());
     let url = url.unwrap();
     assert!(url.contains("rgs_test_self"));
+}
+
+// --- pg_test_db 子模块 (per RGS-REV-009 V3 H-1 / WF-1-55.31) ---
+
+#[test]
+fn pg_test_db_database_url_env_name_matches_sqlx() {
+    // 防 fixture env var 名与 sqlx 默认脱节
+    assert_eq!(pg_test_db::DATABASE_URL_ENV, "DATABASE_URL");
+}
+
+#[tokio::test]
+async fn pg_test_db_pg_available_false_without_url() {
+    // 显式 unset DATABASE_URL, 验证 pg_available() 不 panic 且返回 false
+    let prev = std::env::var(pg_test_db::DATABASE_URL_ENV).ok();
+    std::env::remove_var(pg_test_db::DATABASE_URL_ENV);
+    let ok = pg_test_db::pg_available().await;
+    if let Some(v) = prev {
+        std::env::set_var(pg_test_db::DATABASE_URL_ENV, v);
+    }
+    assert!(!ok, "pg_available() must be false when DATABASE_URL unset");
+}
+
+#[tokio::test]
+async fn pg_test_db_pg_pool_err_without_url() {
+    let prev = std::env::var(pg_test_db::DATABASE_URL_ENV).ok();
+    std::env::remove_var(pg_test_db::DATABASE_URL_ENV);
+    let result = pg_test_db::pg_pool().await;
+    if let Some(v) = prev {
+        std::env::set_var(pg_test_db::DATABASE_URL_ENV, v);
+    }
+    assert!(result.is_err(), "pg_pool() must err when DATABASE_URL unset");
+}
+
+/// PG 集成 smoke test (feature-gated, 需真 PG)
+/// 启用: `cargo test -p rgs-testkit --features pg-integration -- --include-ignored`
+/// 前置: `docker compose -f docker/compose/docker-compose.yml up -d postgres`
+///       + `export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres`
+#[cfg(feature = "pg-integration")]
+#[sqlx::test]
+async fn pg_test_db_smoke_connects_and_selects_one(pool: sqlx::PgPool) {
+    use rgs_testkit::pg_test_db::pg_pool;
+    // 验证 sqlx::test 提供的 pool 与 fixture 提供的 pool 都活
+    let row: (i32,) = sqlx::query_as("SELECT 1").fetch_one(&pool).await.unwrap();
+    assert_eq!(row.0, 1);
+
+    // fixture pg_pool() 用同一 DATABASE_URL 起第二个池, 验 fixture API 也通
+    let pool2 = pg_pool().await.expect("fixture pg_pool() must succeed when DATABASE_URL set");
+    let row2: (i32,) = sqlx::query_as("SELECT 1").fetch_one(&pool2).await.unwrap();
+    assert_eq!(row2.0, 1);
 }
