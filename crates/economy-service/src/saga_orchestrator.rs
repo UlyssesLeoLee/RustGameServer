@@ -1125,80 +1125,154 @@ mod tests {
         );
     }
 
-    /// DC-1.3: resume(Compensating) → 重新跑失败步, 触发补偿链, handler.compensate 被调
+    /// DC-1.3 (RGS-REV-009 HI-2-stub): resume(Compensating) 用真实 ReserveHandler + ConfirmHandler
     ///
-    /// 这是 55.12 pre-existing bug 修复的回归点：
-    /// 旧实现中 ReserveHandler/ConfirmHandler 补偿路径全 no-op, bug 静默未暴露;
-    /// 新实现要求 saga 进入 Compensating 后 resume 必须真正调用 handler.compensate() 链.
+    /// 这是 55.12 真实资金幻影回归点（per RGS-REV-009 V1 HIGH DC-1-TEST-NO-DOUBLE-COMP）：
+    /// 旧 DC-1.3 test 用 stub `CompensateRecorder` + `FailingHandler`, 仅验证"handler.compensate 被调一次",
+    /// 没覆盖真实生产路径. 新实现验证：
+    ///
+    /// 1. step 0 (reserve) 真实执行: account -100, reservation Reserved
+    /// 2. 模拟崩溃场景: reserve.compensate 部分执行（账户 +100, reservation Compensated,
+    ///    step 0 标 Compensated, status=Compensating）, 但 saga.fail() 未持久化
+    /// 3. resume(saga_id) → 跳过 start() → 重跑 step 1 (confirm) → 假设再次失败
+    /// 4. 再次触发 compensate() → step 0 已是 Compensated (不是 Completed) → filter 为空
+    /// 5. **不会**再次调 reserve.compensate → 不会凭空 +100 二次退款
+    ///
+    /// 关键断言: account balance 整轮只 +100 一次 (回到 500), 不是 +100 二次 (变成 600 = 资金幻影).
     #[tokio::test]
-    async fn resume_compensating_saga_triggers_compensation() {
-        // 自定义 handler: 记录 compensate 是否被调
-        struct CompensateRecorder {
-            name: String,
-            compensate_called: Arc<Mutex<bool>>,
-        }
-        #[async_trait::async_trait]
-        impl SagaStepHandler for CompensateRecorder {
-            fn name(&self) -> &str {
-                &self.name
-            }
-            async fn execute(&self, _saga: &mut Saga) -> Result<()> {
-                Ok(())
-            }
-            async fn compensate(&self, _saga: &mut Saga, _rid: Option<Uuid>) -> Result<()> {
-                *self.compensate_called.lock().unwrap() = true;
-                Ok(())
-            }
-        }
+    async fn resume_compensating_saga_does_not_double_refund_with_real_handlers() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
 
-        let sag_repo = Arc::new(InMemorySagaRepository::new());
-        let res_repo = Arc::new(InMemoryReservationRepository::new());
-        let compensate_flag = Arc::new(Mutex::new(false));
-
-        let step_a = Arc::new(CompensateRecorder {
-            name: "step_a".to_string(),
-            compensate_called: compensate_flag.clone(),
-        });
-        let step_b = Arc::new(FailingHandler {
-            name: "step_b".to_string(),
-        });
-
-        let orch = SagaOrchestrator::new(
-            sag_repo.clone() as Arc<dyn SagaRepository>,
-            res_repo.clone() as Arc<dyn ReservationRepository>,
-            vec![step_a, step_b],
-        );
-
-        // 构造: 2 步 saga, step_a 已 Completed, current_step=1, status=Compensating
-        // 模拟"补偿中断, 重启后用 resume 续跑"
-        let mut saga = Saga::new(
-            SagaType::Transfer,
-            Uuid::new_v4(),
-            "k-resume-compensating".to_string(),
-            vec!["step_a".to_string(), "step_b".to_string()],
-        );
-        saga.steps[0].mark_completed();
-        saga.current_step = 1;
-        saga.status = SagaStatus::Compensating;
-        sag_repo.save(&saga).await.unwrap();
+        // ========================================================================
+        // 第 1 阶段: 构造 "reserve 步真实成功" 状态（直接调 ReserveHandler.execute,
+        //   模拟"reserve 步先于 confirm 步崩前已完成"）
+        // ========================================================================
+        let mut saga = make_transfer_saga(account_id);
+        env.sagas.save(&saga).await.unwrap();
         let saga_id = saga.id;
 
-        // resume(Compensating) → 跳过 start() → 跑 step_b → 失败 → 触发 compensate
-        // 预期 Err (step_b 失败), 但补偿应已触发
-        let _ = orch.resume(saga_id).await;
+        let reserve_handler = ReserveHandler::new(
+            env.reservations.clone() as Arc<dyn ReservationRepository>,
+            env.accounts.clone() as Arc<dyn AccountRepository>,
+            TEST_AMOUNT,
+            Currency::Gold,
+        );
+        reserve_handler.execute(&mut saga).await.unwrap();
+        // 模拟"reserve 步成功完成, saga 推进到 current_step=1, status=Running"
+        saga.steps[0].mark_completed();
+        saga.advance();
+        saga.status = SagaStatus::Running;
+        env.sagas.save(&saga).await.unwrap();
 
-        // 验证: step_a.compensate 被调
-        assert!(
-            *compensate_flag.lock().unwrap(),
-            "step_a.compensate must be called when resume(Compensating) re-runs the failed step"
+        // 验证 reserve 步真实扣款
+        let account_after_reserve = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            account_after_reserve.balance,
+            TEST_INITIAL_BALANCE - TEST_AMOUNT,
+            "reserve step should debit TEST_AMOUNT (500 -> 400)"
         );
 
-        // 验证: saga 终态 = Failed
-        let loaded = sag_repo.find_by_id(saga_id).await.unwrap().unwrap();
-        assert_eq!(loaded.status, SagaStatus::Failed);
-        // step_a 已被补偿, step_b 已 Failed
-        assert_eq!(loaded.steps[0].status, SagaStepStatus::Compensated);
-        assert_eq!(loaded.steps[1].status, SagaStepStatus::Failed);
+        // ========================================================================
+        // 第 2 阶段: 模拟 "confirm 步失败 → 补偿链部分执行后崩溃" 的中间状态
+        //
+        //   真实 compensate() 内部时序:
+        //     a. saga.compensate()         → step 0 标 Compensated, status=Compensating
+        //     b. reserve.compensate()      → 账户 +100 退款 (400 -> 500), reservation 标 Compensated
+        //     c. **CRASH** before saga.fail() 持久化 → status 仍为 Compensating
+        //
+        //   我们手动复现 a + b + 中间持久化状态, 然后 save.
+        // ========================================================================
+        reserve_handler
+            .compensate(&mut saga, Some(account_id))
+            .await
+            .unwrap();
+        saga.steps[0].mark_compensated();
+        saga.status = SagaStatus::Compensating;
+        env.sagas.save(&saga).await.unwrap();
+
+        // 验证部分补偿后状态
+        let account_after_partial = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            account_after_partial.balance, TEST_INITIAL_BALANCE,
+            "partial compensation should refund +100, balance back to TEST_INITIAL_BALANCE (500)"
+        );
+        let reservations = env.reservations.list_by_saga(saga_id).await.unwrap();
+        assert_eq!(reservations.len(), 1, "1 reservation per saga");
+        assert_eq!(
+            reservations[0].status,
+            ReservationStatus::Compensated,
+            "reservation must be Compensated after reserve.compensate"
+        );
+
+        // ========================================================================
+        // 第 3 阶段: 模拟 "resume 后 confirm 步再次失败" → 触发第二次 compensate()
+        //
+        //   删除 reservation (模拟"DB 中 reservation 不可见"或"已过期清理"),
+        //   ConfirmHandler.execute 会 list_by_saga 返回空 → NotFound Err.
+        //
+        //   然后再次 compensate():
+        //     - collect Completed: step 0 是 Compensated (不是 Completed) → filter 为空
+        //     - 不再调 reserve.compensate → 不 +100 二次退款 ← 关键回归点
+        // ========================================================================
+        for r in &reservations {
+            env.reservations.delete_by_id(r.id).await.unwrap();
+        }
+
+        // resume: 跳过 start (Compensating) → 跑 step 1 (confirm) → NotFound Err → 再次 compensate
+        let resume_result = env.orch.resume(saga_id).await;
+        assert!(
+            resume_result.is_err(),
+            "confirm step should fail again (reservation gone); got {:?}",
+            resume_result
+        );
+
+        // ========================================================================
+        // 关键断言 1: 账户余额仍 = TEST_INITIAL_BALANCE (500), 不是 TEST_INITIAL_BALANCE + TEST_AMOUNT (600)
+        //   → reserve.compensate 没被调第二次 → 无资金幻影
+        // ========================================================================
+        let final_account = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            final_account.balance, TEST_INITIAL_BALANCE,
+            "no double refund: account balance must remain at TEST_INITIAL_BALANCE (500), \
+             not TEST_INITIAL_BALANCE + TEST_AMOUNT (600) which would indicate phantom +100 refund. \
+             This is the 55.12 phantom-fund regression point: orchestrator.compensate() must \
+             filter out already-Compensated steps so reserve.compensate is not re-invoked."
+        );
+
+        // ========================================================================
+        // 关键断言 2: step 0 状态保持 Compensated (没被重跑, 也没被错误地重置)
+        // ========================================================================
+        let loaded = env.sagas.find_by_id(saga_id).await.unwrap().unwrap();
+        assert_eq!(
+            loaded.steps[0].status,
+            SagaStepStatus::Compensated,
+            "step 0 must remain Compensated after second compensation (orchestrator filters Compensated, not Completed)"
+        );
+
+        // ========================================================================
+        // 关键断言 3: saga 终态 = Failed (compensate() 完成后 saga.fail() 标 Failed)
+        // ========================================================================
+        assert_eq!(
+            loaded.status,
+            SagaStatus::Failed,
+            "saga must end in Failed state after second compensation completes"
+        );
     }
 
     /// DC-1.4: resume(不存在的 saga_id) → NotFound("Saga", ...)
