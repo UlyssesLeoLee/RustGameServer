@@ -67,13 +67,29 @@ impl Reservation {
         }
     }
 
-    /// 确认
+    /// 确认（业务侧调用，表示资金预留已最终生效）
     pub fn confirm(&mut self) {
         self.status = ReservationStatus::Confirmed;
     }
 
-    /// 补偿（释放）
+    /// 补偿（业务侧调用，saga compensate 阶段释放占用）
     pub fn compensate(&mut self) {
+        self.status = ReservationStatus::Compensated;
+    }
+
+    /// 释放（per RGS-REV-009 CR-1: handler 失败路径专用, 防止 dangling reservation）
+    ///
+    /// 与 `compensate()` 的语义区别:
+    /// - `compensate()`: saga compensate 阶段由 handler.compensate 主动调用,
+    ///   配套 account.credit(refund_amount) 退款, 是业务"反向操作"语义.
+    /// - `release()`: handler.execute **失败路径**上的兜底清理(eg. 账户冻结 /
+    ///   OCC 冲突 / InsufficientFunds), **没有任何账户侧操作**, reservation
+    ///   是"没参与业务"的状态, 直接标记 Compensated + 让后续 compensate
+    ///   走 idempotent skip 路径, 避免凭空 +amount 资金幻影.
+    ///
+    /// 调用后 reserve_id 对应的 reservation 进入 Compensated 终态, 不应被再次
+    /// `confirm()` / `compensate()` / `release()`(幂等性由调用方保证).
+    pub fn release(&mut self) {
         self.status = ReservationStatus::Compensated;
     }
 
