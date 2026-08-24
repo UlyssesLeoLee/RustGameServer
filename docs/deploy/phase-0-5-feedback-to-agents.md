@@ -181,14 +181,14 @@
 
 ## 主对话 merge 路径建议
 
-`phase-0-5/feedback-handler-clean` 分支(HEAD = `e85a044`)已 ready，待主对话 merge 进 main:
+`phase-0-5/feedback-handler-clean` 分支(HEAD = `95e310b`)已 ready，待主对话 merge 进 main:
 
 ```bash
 # 1. 复审
 cd D:/RustGameServer
 git fetch
 git log --oneline c9fec8b..phase-0-5/feedback-handler-clean
-# 应看到 4 commit: b3ca43a / 6ae469b / 5a6bde1 / e85a044
+# 应看到 5 commit: b3ca43a / 6ae469b / 5a6bde1 / e85a044 / 95e310b
 
 # 2. Merge(预期 0 冲突，因为 rebase 已解决 handoff §10.3 vs §11.3)
 git merge phase-0-5/feedback-handler-clean --no-ff -m "[feedback] phase-0.5 反馈单 5 条处理 + 流程升级(RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 + WBS v0.5)"
@@ -204,7 +204,7 @@ git tag -d phase-0-5/feedback-handler-pre-rebase
 git stash drop stash@{0}  # = ad702ee, 内容无害
 ```
 
-**预期合并结果**: main 增 4 commit,加 4 个新文件/段落：
+**预期合并结果**: main 增 5 commit,加 4 个新文件/段落：
 - `RGS-WT-001` §6.7/§11.7 新节
 - `RGS-TS-001` §7「工具链 Bug 登记」新章
 - `RGS-WBS-001` v0.4 → v0.5(WF-1-55.27 done + §8 SOP)
