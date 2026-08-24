@@ -6,7 +6,7 @@
     输入:
       - E:\DevCache\cargo\target\dev-certs\ca.crt.pem
       - E:\DevCache\cargo\target\dev-certs\<domain>.service.crt.pem / .key.pem
-      - 7 个 Secret yaml 模板(D:\RustGameServer-worktrees\WF-0-5-3\docs\deploy\01-k8s-manifests\50-secret-*.yaml)
+      - 7 个 Secret yaml 模板(脚本同目录的 01-k8s-manifests/50-secret-*.yaml,默认由 $PSScriptRoot 动态解析)
 
     输出:
       - E:\DevCache\cargo\target\rendered-secrets\50-secret-<domain>-tls.yaml(带真实 base64)
@@ -32,7 +32,7 @@
     dev 证书目录。默认 E:\DevCache\cargo\target\dev-certs\
 
 .PARAMETER TemplateDir
-    Secret 模板目录。默认 D:\RustGameServer-worktrees\WF-0-5-3\docs\deploy\01-k8s-manifests
+    Secret 模板目录。默认 = 脚本同目录 + '01-k8s-manifests'(由 $PSScriptRoot 动态解析,跨 worktree/克隆皆可用,不再硬编码到具体 worktree 路径)
 
 .PARAMETER OutputDir
     渲染后产物目录。默认 E:\DevCache\cargo\target\rendered-secrets\
@@ -57,7 +57,7 @@
 [CmdletBinding()]
 param(
     [string]$CertDir     = 'E:\DevCache\cargo\target\dev-certs',
-    [string]$TemplateDir = 'D:\RustGameServer-worktrees\WF-0-5-3\docs\deploy\01-k8s-manifests',
+    [string]$TemplateDir = (Join-Path $PSScriptRoot '01-k8s-manifests'),
     [string]$OutputDir   = 'E:\DevCache\cargo\target\rendered-secrets',
     [string]$Namespace   = 'rgs'
 )
