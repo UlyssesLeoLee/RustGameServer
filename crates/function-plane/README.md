@@ -8,7 +8,7 @@
 > services and the PoC CLI can wire up invocations without a real gRPC front,
 > NATS bridge, or capability manager.
 >
-> Design source: `docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.1.md` §8 / §9 / §15 (RGS-INC-001 v0.2).
+> Design source: `docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.2.md` §8 / §9 / §15.
 
 ## Scope at a Glance
 
