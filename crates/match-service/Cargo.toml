@@ -24,6 +24,7 @@ tracing-subscriber = { workspace = true }
 async-trait = { workspace = true }
 # 54.1 启用：gRPC server
 tonic = { workspace = true }
+tonic-health = { workspace = true }
 prost = { workspace = true }
 # 54.1 启用：DB
 sqlx = { workspace = true }

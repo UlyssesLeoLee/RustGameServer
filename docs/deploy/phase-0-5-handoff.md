@@ -8,6 +8,8 @@
 
 **NO-GO 形式上解除(per `RGS-DEC-NOGO-001 v0.1` 一人公司 12 角色全签),Phase 0.5 形式上完成(52 文件 / 6065 行入 main),4 B-CODE 实质 1 🟡 + 3 🔴,需 SRE 接力完成镜像推送 + K3s 实际部署。**
 
+**2026-08-24 追加(主对话)**:部署验证中发现的 CrashLoopBackOff 结构性根因(k8s 原生 `grpc:` 探针无法出示 mTLS 客户端证书 + Health 服务未注册)已定位并修复,详见 §12。**修复代码尚未 commit**,SRE 接力前请先确认 §12 改动已入库(或由主对话在你接手前补 commit)。
+
 ---
 
 ## 1. 你接手时的 git 状态(2026-08-24 07:30 main HEAD)
@@ -293,6 +295,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 | Pod CrashLoopBackOff | migration 失败 / DB 连接错误 | `kubectl logs -n rust-game-server <pod> --previous` + `kubectl describe pod` |
 | OTel 链路断裂 | traceparent 注入失败 | 检查 `shared_platform::grpc_tracing` + OTel Collector logs |
 | mTLS fail-closed 误拦合法流量 | PEM 文件不匹配 | 重跑 `phase-0-5-step-4-gen-certs.ps1` + 重新 `phase-0-5-step-4-render-secrets.ps1` |
+| Pod 起了但探针一直不过(CrashLoopBackOff,非 migration/DB 原因) | k8s 原生 `grpc:` 探针无法出示 mTLS 客户端证书,与 fail-closed mTLS 结构性冲突 | **已于 2026-08-24 修复**,见 §12(`RGS-OPS-101`)。若 SRE 拉到的代码没有这次修复,现象是:日志显示 `binding gRPC server` 成功但探针始终超时——按 §12 方案重新应用即可,勿误判为证书或 DB 问题 |
 
 ---
 
@@ -309,6 +312,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - **本次 handoff 提示词**:`docs/deploy/phase-0-5-handoff.md`(本文件)
 - **WBS 任务进度表**:`docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.3.md`
 - **worktree 规范**:`docs/12-工作流/RGS-WT-001_GitWorktree隔离开发方案.md` §11
+- **gRPC 健康探针 mTLS 兼容性修复设计**(2026-08-24 追加):`docs/09-部署运维/RGS-OPS-101_gRPC健康探针mTLS兼容性修复设计_v0.1.md`(需求/基本设计/详细设计/实装规格/实施计划,见 §12)
 
 ---
 
@@ -407,4 +411,42 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ---
 
-**handoff 结束。SRE 接力 §5 5 步清单预计 2-3 小时,完成后 Phase 0.5 实质闭环 → 进 PH-1(WF-1 实施)。后续按 §10 事项清单逐项收尾。**
+## 12. gRPC 健康探针 mTLS 兼容性修复(2026-08-24 追加,主对话完成)
+
+### 12.1 根因
+
+部署验证过程中定位到 6 服务(player/economy/match/social/admin/cluster-ops)Pod 会 `CrashLoopBackOff` 的**结构性**原因(与 DB/migration/证书内容无关),两个缺陷叠加:
+
+1. 6 个服务的 `main.rs` 从未注册 `grpc.health.v1.Health` 服务(全仓 `grep -rn "tonic_health\|health_reporter"` 命中 0),任何 Health RPC 都会收到 `UNIMPLEMENTED`。
+2. k8s 原生 `grpc:` 探针(kubelet 内建,stable since 1.27)在 PodSpec 层面**没有 TLS/客户端证书配置项**,恒为明文连接;而各服务通过 `shared_platform::tls::load_server_tls_config` 强制 mTLS fail-closed(per `RGS-DEC-015` P1),服务端在 TLS 握手阶段直接拒绝无证书连接——探针表现为超时,而非快速的 RPC 错误。
+
+详细方案见 `docs/09-部署运维/RGS-OPS-101_gRPC健康探针mTLS兼容性修复设计_v0.1.md`(需求定义 / 基本设计 / 详细设计 / 实装规格 / 实施计划全套)。
+
+### 12.2 方案(Option A,已实施)
+
+**不新增任何明文 gRPC 端点**,保持 fail-closed mTLS 全链路不变式:
+
+1. 6 服务 `main.rs` 注册 `tonic-health` 的 `grpc.health.v1.Health` 服务,挂载在原 mTLS 端口上(不新增端口)。
+2. `Dockerfile` 内置静态编译的 `grpc_health_probe`(v0.4.56,linux-amd64,SHA-256 pin,已校验)二进制到 `runtime-base` 镜像。
+3. 6 份 k8s manifest 的 `livenessProbe` / `readinessProbe` 从 `grpc:` 改为 `exec:`,执行 `grpc_health_probe` 并携带 `-tls` 系列参数,**复用各服务自己挂载的 mTLS server 证书**(`/etc/rgs/certs/server.pem` + `.key`)作为探针的 client 身份(`rgs-certgen` 生成证书未设 `ExtendedKeyUsage`,可同时充当 serverAuth/clientAuth,无需新证书/新 Secret)。
+
+### 12.3 已变更文件(**尚未 commit**,SRE 接力前请确认已入库)
+
+- `Cargo.toml`(workspace)+ 6 服务 `Cargo.toml`:加 `tonic-health = "0.12"`
+- `crates/{player,economy,match,social,admin}-service/src/main.rs` + `crates/cluster-ops/src/main.rs`:注册 `health_reporter` / `health_service`,`add_service` 挂载
+- `Dockerfile`:新增 `health-probe` 构建阶段(pin 版本 + sha256 校验)+ `runtime-base` 内置二进制
+- `docs/deploy/01-k8s-manifests/01~06-*.yaml`:6 份探针 `grpc:` → `exec:`(已验证无残留 `grpc:` 探针,`grpc_health_probe` 命中 2×6=12 处)
+- `docs/09-部署运维/RGS-OPS-101_gRPC健康探针mTLS兼容性修复设计_v0.1.md`(新增设计文档)
+
+**已验证**:`cargo build --workspace` 全绿(6 服务 + shared-platform 编译通过)。**未验证**:`docker build` 实际产出 + K3s 实测(受限于本地无 docker/K3s 直连环境,留给 SRE 在 §5 Step 2/4 一并验证)。
+
+### 12.4 对 SRE §5 接力清单的影响
+
+- **Step 2(镜像构建)**:无需额外操作,`phase-0-5-step-5-build-images.ps1` 沿用即可——`grpc_health_probe` 已固化进 `Dockerfile`,build 时自动带上。**但请在 Step 2 验证时补一项**:`docker run --rm --entrypoint /bin/grpc_health_probe <image> -h` 应返回用法说明(确认二进制可执行,非 glibc/静态链接问题)。
+- **Step 4(apply Deployment)**:6 份 manifest 已是 `exec:` 探针,直接 apply 即可,无需手改。
+- **Step 5(4 B-CODE 验证)**:若 6 Pod 仍 `CrashLoopBackOff` 且不是本文档描述的 mTLS 探针问题,才需要按 §7 风险表的"Pod CrashLoopBackOff / migration 失败"分支排查(`kubectl logs --previous` + `kubectl describe pod`)。
+- 若发现探针仍失败:优先检查 `-tls-server-name` 是否与该服务证书的 SAN(`rgs-certgen` 生成,`CN=<domain>` 如 `player.service`)一致,以及 `/etc/rgs/certs/` 挂载是否就位(与业务流量共用同一 `rgs-tls` projected volume,理论上不会单独出问题)。
+
+---
+
+**handoff 结束。SRE 接力 §5 5 步清单预计 2-3 小时,完成后 Phase 0.5 实质闭环 → 进 PH-1(WF-1 实施)。后续按 §11 事项清单 + §12 探针修复逐项收尾。**

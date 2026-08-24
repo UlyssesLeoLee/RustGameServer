@@ -76,7 +76,8 @@ pub use span_helpers::{
 };
 pub use subject::{parse, SubjectBuilder, SubjectDomain, SubjectError};
 pub use tls::{
-    load_client_tls, load_server_identity, load_server_tls_config, ClientTlsConfigInput, TlsError,
+    install_default_crypto_provider, load_client_tls, load_server_identity,
+    load_server_tls_config, ClientTlsConfigInput, TlsError,
 };
 pub use tracing_init::{
     init_tracing, init_tracing_with_otel, shutdown_tracing, OtelConfig, TracingError,

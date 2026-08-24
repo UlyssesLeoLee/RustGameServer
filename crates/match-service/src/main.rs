@@ -39,6 +39,8 @@ use match_service::service::MatchServiceImpl;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    shared_platform::install_default_crypto_provider();
+
     fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -107,6 +109,16 @@ async fn main() -> anyhow::Result<()> {
     let service_impl = Arc::new(MatchServiceImpl::new(matches, participants));
     let grpc = MatchGrpcService::new(service_impl);
 
+    // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
+    // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<match_service::proto::v1::match_service_server::MatchServiceServer<MatchGrpcService>>()
+        .await;
+    health_reporter
+        .set_service_status("", tonic_health::ServingStatus::Serving)
+        .await;
+
     // 55.26 fail-closed mTLS（per RGS-REV-008 AC-1 / verify-A+C）
     // 默认强制 mTLS；仅 RGS_ALLOW_INSECURE_GRPC=1 / "true" 显式 opt-out 才允许 insecure gRPC（dev/test only）。
     // 不设置 / 0 / 任意其他值 → 任何 TLS 加载失败都通过 .context() 上抛 → main 返 Err → 进程退出 1。
@@ -138,6 +150,7 @@ async fn main() -> anyhow::Result<()> {
     let svc = match_service::proto::v1::match_service_server::MatchServiceServer::new(grpc);
     server_builder
         .add_service(svc)
+        .add_service(health_service)
         .serve(addr)
         .await
         .context("tonic server failed")?;
