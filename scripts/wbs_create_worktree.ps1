@@ -3,19 +3,22 @@
 .SYNOPSIS
     为指定 WBS L4 任务创建 worktree（含 .wbs-task-marker）。
 .PARAMETER L4Id
-    L4 任务 ID（如 WF-1-54.1）。
+    L4 任务 ID（支持 WF-0.5-X / WF-1-X-Y / WF-1.5-X / WF-X-Y 格式）。
 .PARAMETER Base
     基准分支（默认 main）。
 .EXAMPLE
     pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-1-54.1
+.EXAMPLE
+    pwsh -File scripts/wbs_create_worktree.ps1 -L4Id WF-0.5-1
 .NOTES
     要求：PowerShell 7.0+
+    v0.4 变更：L4Id 正则升级以支持 Phase 0.5 / 1.5 阶段任务 ID（per Phase 0.5 本地修复）。
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^WF-[\d\.]+(?:\.[\d]+)?$')]
+    [ValidatePattern('^WF-(\d+(\.\d+)?)-(\d+)(\.\d+)?$')]
     [string]$L4Id,
     [string]$Base = 'main',
     [int]$PortBlock = 0
