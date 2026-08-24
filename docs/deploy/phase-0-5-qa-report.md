@@ -237,27 +237,81 @@ Exit Code: 137 (SIGKILL)
 
 ## 4. 未验证事项（明确声明，避免以偏概全）
 
+> 编号与 §5 行动登记区对齐；`（→ §5 #X）` 表示对应行动项，未标注的条目无对应 §5 行动（如纯观察项）。
+
 以下内容本报告**未验证**，不要把「本报告没提」误读为「已通过」：
 
-1. match / social / admin / cluster-ops 四个域的探针根因，仅做了部署时间线层面的推断，未逐一重复 §2.1 三步验证。
-2. 未构建、未推送新镜像，也未实际执行 `kubectl apply` 应用 `66ff53b` 修复后的 manifest 到集群——即"修复后探针能过"这件事**没有被证实**，只证实了"当前失败的原因是什么"。**具体未验证点**：`66ff53b` 同时改了 Dockerfile（新增 grpc_health_probe 构建阶段），当前 6 个域使用的镜像 tag 内是否已包含该二进制**未确认**（尝试用临时 debug pod 验证时命名空间配额已耗尽，无法调度，见 §2.4）。
-3. 未检查 otel/prometheus 是否配置了针对 CrashLoopBackOff 的告警规则。
-4. B-CODE 验证 log（4 份，handoff 记录 1 🟡 + 3 🔴）未重新核对，鉴于 §0 结论（0 服务 Available），这些 log **不可能**在当前集群状态下变绿，只能等 §2.1 修复后重跑。
-5. NATS 日志时效性（见 §2.2）。
+1. match / social / admin / cluster-ops 四个域的探针根因，仅做了部署时间线层面的推断，未逐一重复 §2.1 三步验证。**（→ §5 #2）**
+2. 未构建、未推送新镜像，也未实际执行 `kubectl apply` 应用 `66ff53b` 修复后的 manifest 到集群——即"修复后探针能过"这件事**没有被证实**，只证实了"当前失败的原因是什么"。**具体未验证点**：`66ff53b` 同时改了 Dockerfile（新增 grpc_health_probe 构建阶段），当前 6 个域使用的镜像 tag 内是否已包含该二进制**未确认**（尝试用临时 debug pod 验证时命名空间配额已耗尽，无法调度，见 §2.4）。**（→ §5 #1）**
+3. 未检查 otel/prometheus 是否配置了针对 CrashLoopBackOff 的告警规则。**无对应 §5 行动项**；属 §5 #1 治理前置观察项（若 6 域长期 CrashLoopBackOff 但告警未触发，运行时观测闭环本身就有缺口），建议在 #1 收尾前补查。
+4. B-CODE 验证 log（4 份，handoff 记录 1 🟡 + 3 🔴）未重新核对，鉴于 §0 结论（0 服务 Available），这些 log **不可能**在当前集群状态下变绿，只能等 §2.1 修复后重跑。**（→ §5 #5）**
+5. NATS 日志时效性（见 §2.2）。**（→ §5 #3）**
 
 ---
 
 ## 5. 行动登记区（要求接手 agent 逐项处理并回填）
 
-| # | 问题 | 要求 | 处理 agent | commit/依据 | 状态 |
-|---|---|---|---|---|---|
-| 1 | 6 域探针配置停留在 `4467080`/`c6a4bef`，`66ff53b` 修复未 apply（§2.1）；镜像内是否含 `grpc_health_probe` 二进制未验证（§3）；命名空间配额已打满，滚动更新可能卡 Pending（§2.4） | **子步骤，按序**：① 确认镜像已按 `66ff53b` 后的 Dockerfile 重新 build+push（或重新触发一次），② 先处理 #3 释放部分配额空间（或申请调高 quota），③ 逐域执行 `kubectl apply -f docs/deploy/01-k8s-manifests/0{1..6}-*.yaml`，④ `kubectl rollout status` 确认收敛，⑤ `kubectl get pods` 确认 READY=N/N，全程若探针失败症状从"超时"变为"exec 找不到文件"，立即停止批量 apply，回到步骤①排查镜像 | | | ⬜ |
-| 2 | match/social/admin/cluster-ops 根因未逐一验证（§2.1 末尾） | 对这 4 个域重复 §2.1 三步（spec 比对 + git 历史 + 崩溃时间戳），确认是否为同因 | | | ⬜ |
-| 3 | NATS 未部署，outbox relay 长期 DISABLED（§2.2） | 部署 NATS manifest（若已存在于 18 个可观测性/消息 manifest 中，定位并 apply；若不存在，先补齐再 apply），确认 economy-service 等日志里 outbox relay 状态转为 ENABLED | | | ⬜ |
-| 4 | 孤儿 ReplicaSet 累积（§2.3），不会被自动 GC（`revisionHistoryLimit=10` 未达上限） | 待 #1 收敛后用 `kubectl rollout status` 确认，再手工 `kubectl delete rs` 清理 replicas=0 的历史 RS | | | ⬜ |
-| 5 | 4 份 B-CODE log 状态过时（未反映 0 Available 的现实） | 待 #1-#3 完成、服务实际 Ready 后重新执行 B-CODE 验证，更新 log 到实测结果（不要凭"代码已 merge"推定为通过） | | | ⬜ |
-| 6 | handoff §0/结论 层面未区分"代码入 main"与"运行时验证通过"，导致"12 角色全签 + NO-GO 解除"被误读为运行时已验证 | 在 handoff 文档补充运行时验证章节，或至少加一条免责声明：当前签字仅覆盖代码评审，不覆盖集群运行时状态 | | | ⬜ |
-| 7 | 本报告以外，`phase-0-5-feedback-to-agents.md` #1-#5（并发覆盖 / 4 worker 0 产出 / marker 缺失 / WF-1-55.27 未合并 / WBS 长期脱节）| 按该文档逐条处理，本报告不重复登记 | | | ⬜ |
+> ⚠️ §5 与 §4 编号已对齐；item X 的未验证性是该 item 的前置阻塞而非"已知风险"。
+
+| # | Pri | 问题 | 要求 | 处理 agent | commit/依据 | 状态 | Risk if not done | Acceptance criteria | Depends on |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | P0 | 6 域探针配置停留在 `4467080`/`c6a4bef`，`66ff53b` 修复未 apply（§2.1）；镜像内是否含 `grpc_health_probe` 二进制未验证（§3）；命名空间配额已打满，滚动更新可能卡 Pending（§2.4） | **子步骤，按序**：① 确认镜像已按 `66ff53b` 后的 Dockerfile 重新 build+push（或重新触发一次），② 先处理 #3 释放部分配额空间（或申请调高 quota），③ 逐域执行 `kubectl apply -f docs/deploy/01-k8s-manifests/0{1..6}-*.yaml`，④ `kubectl rollout status` 确认收敛，⑤ `kubectl get pods` 确认 READY=N/N，全程若探针失败症状从"超时"变为"exec 找不到文件"，立即停止批量 apply，回到步骤①排查镜像 | | | ⬜ | 0/6 业务域仍不可用 | `kubectl get deploy -n rust-game-server -o wide \| awk 'NR>1 && $1 ~ /(admin\|cluster-ops\|economy\|match\|player\|social)-service/ {print $1, $2}'` 6 行全部 `READY=N/N`；`kubectl get pods -n rust-game-server --no-headers \| awk '$3 !~ /N\/N/ {print}'` 无输出；`kubectl rollout status deployment/<name> -n rust-game-server` 6 域均返回 `successfully rolled out` | — |
+| 2 | P1 | match/social/admin/cluster-ops 根因未逐一验证（§2.1 末尾） | 对这 4 个域重复 §2.1 三步（spec 比对 + git 历史 + 崩溃时间戳），确认是否为同因 | | | ⬜ | 修复可能不彻底 | 对 match/social/admin/cluster-ops 4 域各跑一遍 `kubectl get deploy <name> -n rust-game-server -o yaml \| grep -A 6 livenessProbe` + `git show 4467080:docs/deploy/0N-*.yaml` + `kubectl describe pod -n rust-game-server -l app=<name> \| grep -E 'Started\|Finished\|Exit Code'`，输出 4 域比对表，每行均确认"探针明文 + mTLS 服务端 + 150s 崩溃窗口"同因 | 无（建议 #1 前完成）|
+| 3 | P0 | NATS 未部署，outbox relay 长期 DISABLED（§2.2） | 部署 NATS manifest（若已存在于 18 个可观测性/消息 manifest 中，定位并 apply；若不存在，先补齐再 apply），确认 economy-service 等日志里 outbox relay 状态转为 ENABLED | | | ⬜ | outbox 累积/数据风险 | `kubectl get pods -n rust-game-server -l app=nats -o wide` 全部 `READY=1/1` 且 `RESTARTS=0`；`kubectl logs -n rust-game-server deploy/economy-service --since=10m \| grep -i 'outbox relay'` 输出 `ENABLED`；`kubectl get statefulset -n rust-game-server \| grep -c nats` ≥ 1 | — |
+| 4 | P2 | 孤儿 ReplicaSet 累积（§2.3），不会被自动 GC（`revisionHistoryLimit=10` 未达上限） | 待 #1 收敛后用 `kubectl rollout status` 确认，再手工 `kubectl delete rs` 清理 replicas=0 的历史 RS | | | ⬜ | 集群资源视图失真 | `kubectl get rs -n rust-game-server --no-headers \| awk '{print $1}'` 列表中每个业务 Deployment 对应的 RS 数量 ≤ 2（current + 1 historical）；`kubectl describe deploy -n rust-game-server <name> \| grep -E 'OldReplicaSets\|NewReplicaSet'` 仅出现 `NewReplicaSet` 一行 | #1 |
+| 5 | P1 | 4 份 B-CODE log 状态过时（未反映 0 Available 的现实） | 待 #1-#3 完成、服务实际 Ready 后重新执行 B-CODE 验证，更新 log 到实测结果（不要凭"代码已 merge"推定为通过） | | | ⬜ | 验证依据失真 | 4 份 B-CODE log 文件 `git log -1 --format=%ct -- wbs/B-CODE-*/log/*.log` mtime > 4800308 commit time；handoff §X.Y 对应章节引用本批 log 路径（`grep -l B-CODE phase-0-5-handoff.md` 输出可定位）；新 log 中 🔴 数量 ≤ 0（除非业务预期 fail） | #1, #3 |
+| 6 | P1 | handoff §0/结论 层面未区分"代码入 main"与"运行时验证通过"，导致"12 角色全签 + NO-GO 解除"被误读为运行时已验证 | 在 handoff 文档补充运行时验证章节，或至少加一条免责声明：当前签字仅覆盖代码评审，不覆盖集群运行时状态 | | | ⬜ | 下阶段再次误判 | handoff 文档新增「运行时验证」章节并显式引用本 QA 报告 §2/§3/§5；12 角色签字栏增加"代码评审通过 / 运行时验证见 §X"行；`grep -c '运行时' phase-0-5-handoff.md` ≥ 3 | — |
+| 7 | P1 | 本报告以外，`phase-0-5-feedback-to-agents.md` #1-#5（并发覆盖 / 4 worker 0 产出 / marker 缺失 / WF-1-55.27 未合并 / WBS 长期脱节）| 按该文档逐条处理，本报告不重复登记 | | | ⬜ | 流程缺陷跨阶段 | feedback #1-#5 5 条全部处理完成（每条 PR 合并或 issue 关闭），合并到 `main` 后 handoff §11.7 反映处理结果；`grep -E '#1\|#2\|#3\|#4\|#5' phase-0-5-handoff.md \| wc -l` 与 feedback.md 条目数一致 | — |
+
+**优先级判定（按"是否阻塞 Phase 0.5 done 声明"分配 P0/P1/P2）**：
+
+- **P0 = #1 探针 apply**：`kubectl get pods` 实测 0/6 业务域 Available（§0），且 §0 已用"代码入 main ≠ 运行时验证通过"作为本报告核心论点——若 #1 不闭合，"Phase 0.5 done" 在任何意义上都不成立。
+- **P0 = #3 NATS 部署**：`outbox relay DISABLED` + 业务日志自报 `outbox rows will accumulate, manual recovery required`（§2.2）属于数据完整性风险；与 #1 同为本期必须解决的运行时缺口。
+- **P1 = #2 4 域根因逐一验证**：player+economy 已三重验证（§2.1），剩余 4 域仅做"同批次 apply"推断。严格来说 #1 可以在不做 #2 的情况下推进（manifest 是同一份 6 域批量），但若任意一个域根因不同（如证书 SAN 错配、端口不匹配），#1 批量 apply 后会出现"5 域过 / 1 域仍挂"现象，需要再开一个 #2 类型的工单。**#2 不是 #1 的硬阻塞，但跳过 #2 等于放弃"早失败"机会**，故 P1 而非 P0——不阻塞 done 声明，但关 Phase 0.5 之前必须 closed。
+- **P1 = #5 B-CODE 重跑**：验证依据必须反映实际集群状态；现 4 份 log 是在"0 Available"现实下写就的旧版本（§4 #4），不能再作为签字依据。但 #5 必须在 #1+#3 之后才能产出有意义的结果（依赖项中已标注），所以 P1 而非 P0——它不能更早闭合。
+- **P1 = #6 handoff 文档区分**："代码 vs 运行时"误读是 §0 结论指出的最大文档缺陷，下阶段签字时若不修，会复制本期的所有问题。这条 P1 是过程性修复，不需要集群操作，下一 phase 启动前必须闭合。
+- **P1 = #7 feedback #1-#5**：5 条流程类问题（并发覆盖 / marker 缺失 / WF-1-55.27 未合并 / WBS 脱节）直接关系"下阶段能不能跑顺"；4 worker 0 产出、并发覆盖尤其会污染下一 phase。P1 而非 P0：Phase 0.5 done 声明不依赖这些流程项关闭，但下一 phase 启动依赖。
+- **P2 = #4 孤儿 ReplicaSet 清理**：纯资源视图卫生问题；不影响业务可用性，不影响验证依据，不影响过程签字。`revisionHistoryLimit=10` 也不至于把 namespace 撑爆。P2 表明它"做完更好，但不影响 done 声明"。
+
+### 5.1 依赖图
+
+> 严格依赖（实线）：某 item 必须在依赖项 closed 后才能开始。  
+> 建议依赖（虚线）：并行可做，但建议先于依赖项以减少回滚成本。
+
+```mermaid
+graph LR
+  N2["#2 4 域根因<br/>P1"] -.建议.-> N1["#1 探针 apply<br/>P0"]
+  N1 --> N4["#4 RS 清理<br/>P2"]
+  N1 --> N5["#5 B-CODE 重跑<br/>P1"]
+  N3["#3 NATS 部署<br/>P0"] --> N5
+  N6["#6 handoff 文档<br/>P1"]
+  N7["#7 feedback 处理<br/>P1"]
+  classDef p0 fill:#fdd,stroke:#900,stroke-width:2px
+  classDef p1 fill:#ffe,stroke:#a80,stroke-width:1px
+  classDef p2 fill:#efe,stroke:#080,stroke-width:1px
+  class N1,N3 p0
+  class N2,N5,N6,N7 p1
+  class N4 p2
+```
+
+**关键路径**：`#1 + #3`（P0 并行） → `#5`（P1 验证收尾）；`#6 / #7` 全程并行；`#2` 建议在 `#1` 启动前完成；`#4` 串在 `#1` 之后任意时点。图中无环——#6 / #7 独立于 #1-#5，不形成反馈；#2 指向 #1 但 #1 不指回 #2，单向成立。
+
+### 5.2 风险热力图
+
+行=优先级（Pri），列=根因/现状验证度（玩家/经济两侧已实测=高；剩余 4 域仅推断=低）。**单元内列出 item #**——同一格多个 item 表示同 quadrant 风险等价。
+
+| Pri \ 验证度 | **高**（root cause 已三重验证） | **低**（仅推断，待逐项核实） |
+|---|---|---|
+| **P0** | **#1 探针 apply**（player/economy 三重验证）、**#3 NATS 部署**（manifest 缺失 + 日志佐证） | （无） |
+| **P1** | **#5 B-CODE 重跑**（仅需在 #1+#3 后重跑即可产出绿 log）、**#6 handoff 文档**（文档对比明确）、**#7 feedback 处理**（5 条内容明确） | **#2 4 域根因逐一验证**（同批次推断，未逐域实测） |
+| **P2** | **#4 孤儿 ReplicaSet 清理**（已点清 4-5 个历史 RS） | （无） |
+
+**热力解读**：
+
+- P0 × 高验证度（#1 #3）：是"最高确定性 / 最高紧迫度" quadrant——根因已查清，路径已写明，唯一缺口是"按序执行"。优先攻克。
+- P1 × 低验证度（#2）：唯一落入"低验证度"象限的 item，说明**这是 P1 中信息最不全的**。如果不先闭合 #2 就启动 #1，存在"5 域过 / 1 域仍挂"的回滚风险——这就是 §0 把 #2 标 P1 而非 P2 的核心理由。
+- P0 × 低验证度：（无）= 好消息，没有任何 P0 item 还停在"根因不明"状态。
+- P1/P2 × 高验证度：剩余 4 个 item 根因/内容都已查清，做就是。
 
 ---
 
