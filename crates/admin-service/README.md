@@ -69,6 +69,30 @@ cargo test -p admin-service --features pg-integration
 cargo test -p admin-service --features pg-integration -- --include-ignored
 ```
 
+### 54.x fixture (新增)
+
+```rust
+use rgs_testkit::fixture::{self, FixtureBuilder};
+
+#[test]
+fn my_admin_test() {
+    let a = fixture::admin_action("admin1", "ban", "bad_player");
+    assert_eq!(a.admin_id, "admin1");
+    assert_eq!(a.action, "ban");
+    assert_eq!(a.target_id, "bad_player");
+}
+
+#[test]
+fn my_admin_test_with_builder() {
+    let a = FixtureBuilder::new(fixture::admin_action("admin1", "promote", "alice"))
+        .with_action("demote")
+        .with_target("bob")
+        .build();
+    assert_eq!(a.action, "demote");
+    assert_eq!(a.target_id, "bob");
+}
+```
+
 ### 强约束 (per RGS-REV-009 V3 H-1)
 
 - **新加的** admin 域 DB / RBAC / 审计 / outbox 测试**必须**用 `#[rgs_testkit::pg_test]`

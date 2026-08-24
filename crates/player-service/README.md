@@ -51,6 +51,22 @@ fn my_player_test() {
 }
 ```
 
+### 54.x FixtureBuilder 链式 API (新增)
+
+```rust
+use rgs_testkit::fixture::{self, FixtureBuilder};
+
+#[test]
+fn my_player_test_with_builder() {
+    let p = FixtureBuilder::new(fixture::player())
+        .with_name("Alice the Brave")
+        .with_level(50)
+        .build();
+    assert_eq!(p.name, "Alice the Brave");
+    assert_eq!(p.level, 50);
+}
+```
+
 ### 跑测试
 
 ```bash
