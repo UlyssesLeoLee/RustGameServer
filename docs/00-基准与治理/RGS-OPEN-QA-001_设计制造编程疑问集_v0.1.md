@@ -156,7 +156,7 @@
 | 现状 | DTL-019/020/026 跨域引用隐含（§3 事件线 / §4.1 推送 / §4.4 退款）；**未显式声明事件订阅关系与契约**（谁发布 → 谁订阅 → NATS subject 命名）|
 | 疑问 | (1) NATS subject 命名规则（per RGS-SPEC-CROSS-003）是否需要按"域.事件.动作"形式（如 `economy.trade.completed` / `player.session.created`）？<br>(2) 跨域事件是否要求至少一次 + 幂等消费，还是精确一次？<br>(3) DTL-026 §3 `MatchRatingChanged` 是否会同时触发 player 域 `PlayerRatingUpdated` 缓存失效？ |
 | 期望答复 | NATS subject 命名 + 投递语义 + 跨域事件清单 |
-| 答复栏 | 🟢 **已核实代码现状**：`async-nats` 已在 5 域生产代码使用，`shared-platform/src/{producer,consumer,messaging,outbox_relay}.rs` 已实现发布/消费基础设施。(1) 采用 **"域.对象.动作"命名**（`economy.trade.completed`/`player.session.created`），域名用现有短名（player/economy/match/social/admin/cluster_ops）；实际分隔符按 `producer.rs` 现有实现为准,不推翻已落地代码。(2) **至少一次 + 幂等消费**：JetStream 天然 at-least-once,精确一次代价过高；Outbox 幂等 check migration 已在 5 域落地（`000X_outbox_check_idempotent.sql`），消费侧用事件 ID 做幂等键即可，这是既有能力的确认而非新增工作。(3) **是**，`MatchRatingChanged` 应触发 player 域 `PlayerRatingUpdated` 缓存失效，这类订阅关系需要显式登记。下游动作：补全 RGS-SPEC-CROSS-003 跨域事件 Schema 字典（列出已知发布者→订阅者关系，含此例）。 |
+| 答复栏 | 🟢 **已核实代码现状**：`async-nats` 已在 5 域生产代码使用，`shared-platform/src/{producer,consumer,messaging,outbox_relay}.rs` 已实现发布/消费基础设施。(1) 采用 **"域.对象.动作"命名**（`economy.trade.completed`/`player.session.created`），域名用现有短名（player/economy/match/social/admin/cluster_ops）；实际分隔符按 `producer.rs` 现有实现为准,不推翻已落地代码。(2) **至少一次 + 幂等消费**：JetStream 天然 at-least-once,精确一次代价过高；Outbox 幂等 check migration 已在 5 域落地（`000X_outbox_check_idempotent.sql`），消费侧用事件 ID 做幂等键即可，这是既有能力的确认而非新增工作。(3) **是**，`MatchRatingChanged` 应触发 player 域 `PlayerRatingUpdated` 缓存失效，这类订阅关系需要显式登记。下游动作：补全 RGS-SPEC-CROSS-003 跨域事件 Schema 字典（列出已知发布者→订阅者关系，含此例）。⚠️ 见 RGS-OPEN-QA-001-ACTIONS-v0.3.md §5 修正 #7：应沿用 RGS-SPEC-CROSS-003 v0.1 §2.2 已有的 `rgs.events.<domain>.<aggregate>.<action>.<version>` 命名（如 `rgs.events.economy.wallet.committed.v1`），不要新造"域.对象.动作"方案。 |
 
 ---
 
@@ -316,7 +316,7 @@
 | 现状 | REV-011 §3 提议 8 个 L4 任务（WF-1-55.32~41）owner 全是 Ulysses（player/economy/match/social/admin 域 Lead）+ Platform Lead（Ulysses）；总 ~64K tokens（0.5-1 人·周 AI 协作）|
 | 疑问 | (1) 8 个 L4 任务是**串行** Ulysses 自做，还是**并行**派 worker 子代理（per user profile 偏好）？<br>(2) 如果派子代理，子代理在 worktree 内的权限范围（写 DTL / 改 SPEC / 跑 cargo test）？<br>(3) Ulysses "实际签" 与 worker 子代理 "实做" 的责任矩阵如何区分（per DEC-008 一人公司治理）？ |
 | 期望答复 | 串行/并行决策 + 子代理权限 + 责任矩阵补充 |
-| 答复栏 | 🟢 (1) **并行派 worker 子代理**（采纳已知偏好，user profile 2026-08-21 记录的派发子代理偏好）——串行 8 个任务对一人公司是不必要的时间瓶颈，worktree 隔离机制（RGS-WT-001）本来就是为此设计。但并行度建议控制在 **3-4 个同时进行**（受限于 Ulysses 本人作为最终审核瓶颈的吞吐——审核比生产慢，并行太多只会堆积待审核积压）。(2) 子代理在 worktree 内**可以**写 DTL/改 SPEC/跑 cargo test（本地验证循环需完整），但**不能**自主合并到 main（必须走 PR + 至少一次独立 review 关卡）、不能改 CI 配置本身、不能执行有资金/生产影响的操作——与 phase-0-5 反馈单里观察到的实际执行模式一致。(3) 责任矩阵：**子代理 = R（执行），Ulysses = A（批准/最终合并决策权）**，与 Q-G-01 的 RACI 矩阵是同一份不需另立。下游动作：Q-G-01 的 RACI 矩阵补一行覆盖 WF-1-55.32~41 这 8 个任务。 |
+| 答复栏 | 🟢 (1) **并行派 worker 子代理**（采纳已知偏好，user profile 2026-08-21 记录的派发子代理偏好）——串行 8 个任务对一人公司是不必要的时间瓶颈，worktree 隔离机制（RGS-WT-001）本来就是为此设计。但并行度建议控制在 **3-4 个同时进行**（受限于 Ulysses 本人作为最终审核瓶颈的吞吐——审核比生产慢，并行太多只会堆积待审核积压）。(2) 子代理在 worktree 内**可以**写 DTL/改 SPEC/跑 cargo test（本地验证循环需完整），但**不能**自主合并到 main（必须走 PR + 至少一次独立 review 关卡）、不能改 CI 配置本身、不能执行有资金/生产影响的操作——与 phase-0-5 反馈单里观察到的实际执行模式一致。(3) 责任矩阵：**子代理 = R（执行），Ulysses = A（批准/最终合并决策权）**，与 Q-G-01 的 RACI 矩阵是同一份不需另立。下游动作：Q-G-01 的 RACI 矩阵补一行覆盖 WF-1-55.32~41 这 8 个任务。⚠️ 见 RGS-OPEN-QA-001-ACTIONS-v0.3.md §5 修正 #5：REV-011 §3 实际是 10 个任务（WF-1-55.32~41），且 55.32~37 已被 `RGS-WBS-001_瀑布式工作分解结构_v0.3.md` 既有任务占用，新 L4 任务需从 WF-1-55.38 起重新编号。 |
 
 ---
 
@@ -328,7 +328,7 @@
 | 现状 | token-OLU 框架：1 人·天 ≈ 100K-300K tokens；1 SRE 上限 = 1 人·周 ≈ 1M tokens；5 域独立 Lead × 14-18 周 = 80-120M tokens（待 SRE Lead + PM 校准）|
 | 疑问 | (1) token 是否按 worktree 独立计数（每个 worktree 1M tokens 独立）还是共享计数（总池 5M tokens 跨 worktree）？<br>(2) 跨 worktree 的决策对话（不在 worktree 内的会话）是否计入 token？<br>(3) "AI 上下文窗口" 与 "单次会话成本" 哪个是硬约束？ |
 | 期望答复 | worktree 独立/共享 + 跨会话决策计入 + 硬约束优先级 |
-| 答复栏 | 🟡 (1) **共享总池计数，但每个 worktree 设软上限告警**（不做硬隔离）：完全独立计数会导致 8 个任务各自不知道全局预算消耗到哪（信息孤岛）；共享总池 + 单任务软上限（如预估 8K token，超 150% 触发告警但不强制中断）更符合总预算约束下动态调配的实际管理需求。(2) **跨 worktree 决策对话计入**（比如本次这种"审核 24 个问题"的主对话，就是跨 worktree 协调成本，理应计入，不能假装免费——这是一人公司里 Ulysses 扮演"管理层"角色消耗的真实成本）。(3) 硬约束优先级：**AI 上下文窗口 > 单次会话成本**。上下文窗口是物理约束（超限直接失败/被压缩丢信息，不可逆）；会话成本是经济约束（可通过预算调整容忍，比如多花 20% token 换正确性），应优先保护不可逆约束。下游动作：RGS-TS-001 §6.2 补充"worktree 共享池 + 软上限告警"具体阈值参数（本答复给出原则，具体数字待 PH-1 首轮实测后校准）。 |
+| 答复栏 | 🟡 (1) **共享总池计数，但每个 worktree 设软上限告警**（不做硬隔离）：完全独立计数会导致 8 个任务各自不知道全局预算消耗到哪（信息孤岛）；共享总池 + 单任务软上限（如预估 8K token，超 150% 触发告警但不强制中断）更符合总预算约束下动态调配的实际管理需求。(2) **跨 worktree 决策对话计入**（比如本次这种"审核 24 个问题"的主对话，就是跨 worktree 协调成本，理应计入，不能假装免费——这是一人公司里 Ulysses 扮演"管理层"角色消耗的真实成本）。(3) 硬约束优先级：**AI 上下文窗口 > 单次会话成本**。上下文窗口是物理约束（超限直接失败/被压缩丢信息，不可逆）；会话成本是经济约束（可通过预算调整容忍，比如多花 20% token 换正确性），应优先保护不可逆约束。下游动作：RGS-TS-001 §6.2 补充"worktree 共享池 + 软上限告警"具体阈值参数（本答复给出原则，具体数字待 PH-1 首轮实测后校准）。⚠️ 见 RGS-OPEN-QA-001-ACTIONS-v0.3.md §5 修正 #8：RGS-TS-001 v0.6 §6.2 已经是双轨制（人·天/周 + token/周）框架，本动作只是补一段参数，不是重新定义框架。 |
 
 ---
 
@@ -340,7 +340,7 @@
 | 现状 | phase-0-5 反馈单 Issue 4 描述："已合并进 main"但"任务实质未完成"是反模式；WBS-001 v0.6 §8.3 明令禁止"合并 ≠ 任务完成"；当前 B-CODE log 重写（11 份）算"实质完成"还是"形式完成"？|
 | 疑问 | (1) B-CODE log 重写 11 份算 done 100% 还是仅 partial？<br>(2) "实际跑通"vs"文档通过"的判定边界在哪里？<br>(3) PH-1 期间是否需要新增 B-CODE / C-CODE log 模板（per Issue 5 anti-pattern）？ |
 | 期望答复 | B-CODE log 重写完成度 + 边界判定 + 新 log 模板时序 |
-| 答复栏 | 🟡 (1) 现有 11 份 B-CODE log 重写**需逐份核实**，不能一刀切判定 done——一刀切正是本疑问要防止的反模式本身。按 WBS-001 §8.3 SOP 判定标准（是否有可运行验证 + 测试通过记录）对每份 log 打标签：已按 SOP 验证=完全 done / 仅文档重写未附验证证据=partial 需补验证。(2) "实际跑通" vs "文档通过"边界：以是否存在**可重复执行的自动化验证**（cargo test / CI pipeline 记录 / 集成测试日志）为唯一硬指标，纯文字"已完成"不算数——与本次审核 phase-0-5 反馈单的方法一致（不轻信自陈，回 git/CI 记录交叉验证）。(3) **需要新增** B-CODE/C-CODE log 模板（per Issue 5 反模式），强制包含"验证证据"字段（commit hash / 测试输出摘要 / CI run 链接）,不允许只填"已完成"了事。下游动作：WBS-001 §8 补新模板 + 对现有 11 份 log 做一次逐份核验（可作独立 L4 任务）。 |
+| 答复栏 | 🟡 (1) 现有 11 份 B-CODE log 重写**需逐份核实**，不能一刀切判定 done——一刀切正是本疑问要防止的反模式本身。按 WBS-001 §8.3 SOP 判定标准（是否有可运行验证 + 测试通过记录）对每份 log 打标签：已按 SOP 验证=完全 done / 仅文档重写未附验证证据=partial 需补验证。(2) "实际跑通" vs "文档通过"边界：以是否存在**可重复执行的自动化验证**（cargo test / CI pipeline 记录 / 集成测试日志）为唯一硬指标，纯文字"已完成"不算数——与本次审核 phase-0-5 反馈单的方法一致（不轻信自陈，回 git/CI 记录交叉验证）。(3) **需要新增** B-CODE/C-CODE log 模板（per Issue 5 反模式），强制包含"验证证据"字段（commit hash / 测试输出摘要 / CI run 链接）,不允许只填"已完成"了事。下游动作：WBS-001 §8 补新模板 + 对现有 11 份 log 做一次逐份核验（可作独立 L4 任务）。⚠️ 见 RGS-OPEN-QA-001-ACTIONS-v0.3.md §5 修正 #6："11 份"实际构成是 7 份 G-CODE + 4 份 B-CODE = 11 份，逐份核验需按此口径分类，不是清一色 B-CODE。 |
 
 ---
 
