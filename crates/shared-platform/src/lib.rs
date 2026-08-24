@@ -80,5 +80,6 @@ pub use tls::{
     load_server_tls_config, ClientTlsConfigInput, TlsError,
 };
 pub use tracing_init::{
-    init_tracing, init_tracing_with_otel, shutdown_tracing, OtelConfig, TracingError,
+    init_otel_exporter_optional, init_tracing, init_tracing_with_otel, shutdown_tracing,
+    OtelConfig, OtelExporterGuard, TracingError,
 };
