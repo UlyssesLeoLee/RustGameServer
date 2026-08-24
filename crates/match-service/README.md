@@ -60,6 +60,30 @@ cargo test -p match-service --features pg-integration
 cargo test -p match-service --features pg-integration -- --include-ignored
 ```
 
+### 54.x fixture (新增)
+
+```rust
+use rgs_testkit::fixture::{self, FixtureBuilder};
+
+#[test]
+fn my_match_test() {
+    let m = fixture::match_game("alice");
+    assert!(m.match_id.starts_with("match-test-"));
+    assert_eq!(m.status, "Pending");
+    assert_eq!(m.score, 0);
+}
+
+#[test]
+fn my_match_test_with_builder() {
+    let m = FixtureBuilder::new(fixture::match_game("alice"))
+        .with_score(100)
+        .with_status("Active")
+        .build();
+    assert_eq!(m.score, 100);
+    assert_eq!(m.status, "Active");
+}
+```
+
 ### 强约束 (per RGS-REV-009 V3 H-1)
 
 - **新加的** match 域 DB / OCC / 状态机 / outbox 测试**必须**用 `#[rgs_testkit::pg_test]`
