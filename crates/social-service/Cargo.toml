@@ -39,3 +39,5 @@ tonic-build = { workspace = true }
 [dev-dependencies]
 # WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
 assert_cmd = "2"
+# WF-1-55.44: 4 域 rgs-testkit dev-dep 接入 + 集成测试骨架 (per RGS-OPEN-QA-001 Q-M-02)
+rgs-testkit = { path = "../rgs-testkit" }
