@@ -1,9 +1,9 @@
-# RGS-WBS-001 L4 任务进度表 v0.5
+# RGS-WBS-001 L4 任务进度表 v0.6
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD3 |
-| 版本 | 0.5（v0.4 → v0.5：WF-1-55.27 真修经 phase-0-5/feedback-handler worktree 合并入 main，§3 + §4 同步更新；新增 §8 WBS 状态维护 SOP 锁定 anti-pattern）|
+| 版本 | 0.6（v0.5 → v0.6：WF-0.5-8 handoff state sync 经 codex/wt-handoff-state-sync worktree 合并入 main，§3 + §4 同步更新；§3 汇总 L4 总数 128 → 129，done 4 → 5；§4 详细表新增 WF-0.5-8 done 100% 行；修订历史加本版记录。本版本不重命名文件名（保留 v0.4.md 文件名，只是 head 升 v0.6），避免 git mv 触发无关 diff。→ v0.6：WF-0.5-8 新增(handoff state sync done)+ §3/§4 同步；1 个 L4 任务标 done）|
 | 依据 | RGS-WBS-001 v0.3 §2A L4 任务清单 + §6.3 进度字段 + §13 跨会话恢复 |
 | 状态 | 🟠 **占位**（NO-GO 未解除前为空表；G-CODE-06 实测通过后由 wbs_task_progress.ps1 自动填充）|
 | 责任人 | Ulysses（一人公司 12 角色兼任 per DEC-008）|
@@ -19,6 +19,7 @@
 | 0.3 | 2026-08-21 | Ulysses | **占位初版**：per RGS-WBS-001 v0.3 §6.3 + §13 跨会话恢复。状态为占位，等 G-CODE-06 实测通过后由 `wbs_task_progress.ps1` 自动填充。 |
 | 0.4 | 2026-08-24 | Ulysses（一人公司 12 角色全签 per DEC-008）| **NO-GO 形式上解除后手工补登**：§3 WF-0.5 阶段 7→4 pending + 3 done；§4 手工补登 WF-0.5-1/2/3（Phase 0.5 Step 1+5 / 2+3 / 4 部署）三行 done。WF-0.5-6（worker 失败）由主对话接手，状态仍为 pending（不计入 done）。 |
 | 0.5 | 2026-08-24 | worker-self（per DEC-008 一人公司治理基线，phase-0-5/feedback-handler worktree commit 见行末）| **WF-1-55.27 真修合并入 main**（per phase-0-5 反馈单 Issue 4）：① §3 汇总 WF-1 113 pending → 112 pending + 1 done；合计 125 pending → 124 pending + 4 done ② §4 任务表加 1 行 WF-1-55.27 done 100%，commit 是 merge 后 hash（保留 c96efe8 + a80fa94 + f6a6f3f + 14036d6 4 个原始 commit 的关联）③ 新增 §8 WBS 状态维护 SOP（per 反馈单 Issue 5）锁定「手工编辑 v0.X 进度表写 done 100%」与「攒到后续 Phase 再补」两个 anti-pattern。 |
+| 0.6 | 2026-08-24 | worker-self（per DEC-008）| **WF-0.5-8 handoff state sync done**（per handoff §11.6/§11.7/§11.8 状态同步 commit，4 B-CODE 等 SRE 接力后 v0.7 升版）：① §3 汇总 128 → 129 L4 任务，4 done → 5 done（WF-0.5-8 done），124 pending 不变 ② §4 详细表加 1 行 WF-0.5-8 done 100%，commit 是 merge hash ③ 修订历史加本行。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.6），避免 git mv 触发无关 diff。 |
 
 ---
 
@@ -61,14 +62,14 @@ pending → in_progress (start) → done (done)
 | Stage | 任务数 | pending | in_progress | done | blocked |
 |---|---|---|---|---|---|
 | WF-0 | 2 | 2 | 0 | 0 | 0 |
-| WF-0.5 | 7 | 4 | 0 | 3 | 0 |
+| WF-0.5 | 8 | 4 | 0 | 4 | 0 |
 | WF-1 | 113 | 112 | 0 | 1 | 0 |
 | WF-2 ~ WF-7 | 6 | 6 | 0 | 0 | 0 |
-| **合计** | **128** | **124** | **0** | **4** | **0** |
+| **合计** | **129** | **124** | **0** | **5** | **0** |
 
-> **注**：WF-0 / WF-7 等 9 个 stage 大类行不计入 L4 任务数；实际 L4 任务数 = 128 - 7（阶段占位）= 121。详见 `wbs_list.ps1 -Summary` 输出。
+> **注**：WF-0 / WF-7 等 9 个 stage 大类行不计入 L4 任务数；实际 L4 任务数 = 129 - 7（阶段占位）= 122。详见 `wbs_list.ps1 -Summary` 输出。
 >
-> **v0.5 变化**：WF-1-55.27 由 113 pending → 112 pending + 1 done（合计 -1 pending, +1 done）。
+> **v0.6 变化**：WF-0.5 阶段 3 done → 4 done（WF-0.5-8 新增 done），合计 4 done → 5 done。
 
 ## 4. L4 任务详细进度表
 
@@ -80,6 +81,7 @@ pending → in_progress (start) → done (done)
 | WF-0.5-2 | Phase 0.5 Step 2+3 部署（NATS + OTel/Prom/Grafana） | Ulysses（per DEC-008）| done | 100% | 2026-08-24T07:30:00+09:00 | commit c5a0c9f（per 1897 行 + 1183515）|
 | WF-0.5-3 | Phase 0.5 Step 4 部署（mTLS + Secret + fail-closed） | Ulysses（per DEC-008）| done | 100% | 2026-08-24T07:30:00+09:00 | commit 765930a（per 1457 行 + 2b70b0b）|
 | **WF-1-55.27** | **ReserveHandler OCC cleanup + reservation release 失败路径真修（per RGS-REV-009 CR-1）** | **Ulysses（per DEC-008）** | **done** | **100%** | **2026-08-24T18:00:00+09:00** | **merge commit 49d93b5（per phase-0-5/feedback-handler worktree `--no-ff` merge）**；原 branch commit `c96efe8` 真修（reservation.rs + saga_orchestrator.rs +159/-4）+ `a80fa94` 6 域 outbox migration（CR-2）一并合并；`f6a6f3f` PgTestDatabase fixture（CR-3，#[sqlx::test] 强约束）+ `14036d6` tag/marker 收尾同时入 main。**与原 branch 验证一致**：`cargo test -p economy-service --lib` 50/50 pass。 |
+| **WF-0.5-8** | **handoff §11 状态同步（§11.6/§11.7/§11.8 标 Closed + 修订历史加 1 行，per phase-0-5 反馈单 Issue 5 anti-pattern 修复）** | **Ulysses（per DEC-008）** | **done** | **100%** | **2026-08-24T20:42:00+09:00** | **merge commit `<to-be-filled-by-worker-1>`（per codex/wt-handoff-state-sync worktree `--no-ff` merge，3 段改 Closed + 加 commit 引用 + 修订历史）** |
 | _（其余 WF-0.5-4/5/6/7 + WF-1 其余 112 个仍 pending，等 G-CODE-06 实测通过后由 wbs_task_progress.ps1 填充）_ | | | | | | |
 
 ## 5. 跨会话恢复 SOP（per RGS-WBS-001 v0.3 §13）
