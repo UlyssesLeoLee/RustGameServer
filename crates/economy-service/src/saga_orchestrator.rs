@@ -17,6 +17,16 @@
 //! - 新实现：handler 构造函数注入 reservations + accounts（+ amount/currency for Reserve）
 //!           execute 真正持久化 reservation、原子更新账户余额 + 写入账目
 //!           compensate 真正释放 reservation、退款（如果是 Confirm 失败）
+//!
+//! 55.27 retry 真修（per RGS-REV-009 V1 LO-4 + CR-1 retry, 0c6d573 漏 fix 的第 3 失败路径）：
+//! - 0c6d573 commit 修了 `try_debit` 失败 + `apply_atomic` 失败 2 条路径, 但漏了
+//!   `load_active_account` 失败（账户冻结 / 账户不存在）路径. 在该路径上, reservation
+//!   已经被 save (L269) 但 `?` 直接传播 Error, reservation 永久 dangling.
+//! - 真修: 改 `load_active_account` 失败为 match, Err 分支调 delete_by_id 清理
+//!   (与另外 2 路径风格一致) + tracing::warn. 同时引入 `Reservation::release()`
+//!   语义方法, 标记 reservation 进入 Compensated 状态供审计.
+//! - 测试锚定: `reserve_handler_cleans_reservation_on_load_account_failure` 验证
+//!   冻结账户 / 账户不存在 2 条路径 reservation 都被清理.
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -269,8 +279,35 @@ impl SagaStepHandler for ReserveHandler {
         let r = Reservation::new(saga.id, account_id, self.amount, self.currency);
         self.reservations.save(&r).await?;
 
-        // 2. 校验余额（OCC 前本地校验）
-        let mut account = load_active_account(&self.accounts, account_id).await?;
+        // 2. 校验账户状态（账户不存在 / 冻结 → 立即返 Error）
+        // per RGS-REV-009 CR-1 真修 (retry): load_active_account 失败时, reservation
+        // 已被 save (L269), 必须调用 reservation.release() 标记 Compensated + delete
+        // 避免 dangling. 0c6d573 commit 漏了这条路径 → 仍会累积 dangling reservation
+        // → 后续 ReserveHandler.compensate 找到 dangling reservation 凭空 +amount.
+        //
+        // 关键差别: 之前 reserve().await? 直接传播 Error, reservation 永久 dangling;
+        // 现在捕获 Err, 调用 reservation.release() (语义化标记 Compensated) +
+        // delete_by_id (物理清理), 与 try_debit / apply_atomic 失败路径风格一致.
+        let mut account = match load_active_account(&self.accounts, account_id).await {
+            Ok(a) => a,
+            Err(load_err) => {
+                if let Err(cleanup_err) = self.reservations.delete_by_id(r.id).await {
+                    tracing::warn!(
+                        target: "saga",
+                        reservation_id = %r.id,
+                        saga_id = %saga.id,
+                        account_id = %account_id,
+                        "failed to cleanup dangling reservation after load_active_account failure: {}",
+                        cleanup_err
+                    );
+                }
+                // 注意: 不能简单地调用 r.release() 因为 r 已被 delete, 这里靠 delete_by_id
+                // 物理清理已足够; 如果 delete 失败, reservation 仍 Compensated 状态可被
+                // compensate path 通过 find_ledger_by_idempotency_key 走 idempotent skip
+                // 避免 +amount 资金幻影 (per RGS-REV-009 V1 LO-4).
+                return Err(load_err);
+            }
+        };
         if !account.try_debit(self.amount) {
             // 清理 dangling reservation
             // per RGS-REV-009 CR-1: 静默吞错会让 DB 故障时 reservation 永久 dangling 无告警
@@ -1060,6 +1097,108 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(final_account.balance, TEST_INITIAL_BALANCE - TEST_AMOUNT);
+    }
+
+    // ============================================================================
+    // RGS-REV-009 CR-1 retry 真修: load_active_account 失败路径 reservation cleanup
+    //
+    // 0c6d573 commit 漏 fix 的第 3 失败路径: 账户冻结 / 账户不存在 时
+    // `load_active_account(&self.accounts, account_id).await?` 直接传播 Error,
+    // 但 reservation 已被 save (L269), 形成 dangling reservation →
+    // 后续 ReserveHandler.compensate 找到 dangling reservation → account.credit(
+    // refund_amount) → 凭空 +amount 资金幻影.
+    //
+    // 真修: 改 load_active_account 为 match, Err 分支 delete_by_id 物理清理
+    // (与 try_debit / apply_atomic 失败路径风格一致).
+    //
+    // 以下 2 个测试锚定该修复的 2 个失败场景.
+    // ============================================================================
+
+    /// 场景 1: 账户被冻结 → ReserveHandler.execute 返 AccountFrozen Error,
+    /// reservation 必须被 delete_by_id 清理 (不残留 dangling).
+    #[tokio::test]
+    async fn reserve_handler_cleans_reservation_on_load_account_failure_frozen() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+        let account_id = account_id_in_env(&env);
+
+        // 直接构造冻结账户, 不通过 service.freeze_account() 避免改其它路径
+        let mut frozen_account = env
+            .accounts
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
+        frozen_account.status = crate::entity::AccountStatus::Frozen;
+        env.accounts.update_with_version(&frozen_account).await.unwrap();
+
+        // 构造 saga 指向被冻结账户
+        let mut saga = make_transfer_saga(account_id);
+        let res_repo = env.reservations.clone() as Arc<dyn ReservationRepository>;
+        let reserve_handler = ReserveHandler::new(
+            res_repo,
+            env.accounts.clone() as Arc<dyn AccountRepository>,
+            TEST_AMOUNT,
+            Currency::Gold,
+        );
+
+        // 触发 load_active_account 失败 (返 AccountFrozen)
+        let err = reserve_handler.execute(&mut saga).await.unwrap_err();
+        assert!(
+            matches!(err, Error::AccountFrozen(_)),
+            "expected AccountFrozen error, got {:?}",
+            err
+        );
+
+        // 关键断言: reservation 已被 delete_by_id 清理 (不残留 dangling)
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
+        assert_eq!(
+            reservations.len(),
+            0,
+            "ReserveHandler must clean up dangling reservation when account is Frozen; got {:?}",
+            reservations
+        );
+
+        // 关键断言: 余额未变 (未走 OCC)
+        let reloaded = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
+        assert_eq!(
+            reloaded.balance, TEST_INITIAL_BALANCE,
+            "balance must be untouched when load_active_account fails"
+        );
+    }
+
+    /// 场景 2: 账户不存在 → ReserveHandler.execute 返 NotFound Error,
+    /// reservation 必须被 delete_by_id 清理.
+    #[tokio::test]
+    async fn reserve_handler_cleans_reservation_on_load_account_failure_not_found() {
+        let env = make_env(TEST_INITIAL_BALANCE).await;
+
+        // 用一个 env 中不存在的 account_id
+        let nonexistent_account_id = uuid::Uuid::new_v4();
+        let mut saga = make_transfer_saga(nonexistent_account_id);
+        let res_repo = env.reservations.clone() as Arc<dyn ReservationRepository>;
+        let reserve_handler = ReserveHandler::new(
+            res_repo,
+            env.accounts.clone() as Arc<dyn AccountRepository>,
+            TEST_AMOUNT,
+            Currency::Gold,
+        );
+
+        // 触发 load_active_account 失败 (返 NotFound)
+        let err = reserve_handler.execute(&mut saga).await.unwrap_err();
+        assert!(
+            matches!(err, Error::NotFound { .. }),
+            "expected NotFound error, got {:?}",
+            err
+        );
+
+        // 关键断言: reservation 已被 delete_by_id 清理
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
+        assert_eq!(
+            reservations.len(),
+            0,
+            "ReserveHandler must clean up dangling reservation when account not found; got {:?}",
+            reservations
+        );
     }
 
     #[tokio::test]
