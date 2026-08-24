@@ -80,15 +80,22 @@ livenessProbe:
 
 原生 k8s `grpc:` 探针类型——**无 TLS 参数，明文 gRPC 健康检查协议**。`economy-service` 部署核实为同一模式（`grpc.port: 50052`，无 TLS）。
 
+> **复现命令**:
+> - `kubectl -n rust-game-server get deploy player-service -o yaml | yq '.spec.template.spec.containers[0].livenessProbe'`
+> - `kubectl -n rust-game-server get deploy economy-service -o yaml | yq '.spec.template.spec.containers[0].livenessProbe'`
+> - 详细归档路径见 §2.5。
+
 **第二步：与 git 历史逐 commit 比对**（`git show <sha>:docs/deploy/01-k8s-manifests/01-player-service.yaml`）：
 
-| commit | 探针类型 | 与集群实测是否一致 |
+| commit | 探针类型（锚定 `path:line`） | 与集群实测是否一致 |
 |---|---|---|
-| `4467080`（step-1+5，最早） | 原生 `grpc: port: 50051`，无 TLS | ✅ **完全一致** |
-| `c6a4bef`（SRE 前置修复） | 同上（未改探针） | ✅ 一致 |
-| `66ff53b`（mTLS 探针修复，当前 main） | `exec: grpc_health_probe -tls -addr=127.0.0.1:50051 -tls-server-name=player.service ...` | ❌ **与集群实测不一致** |
+| `4467080`（step-1+5，最早） | `docs/deploy/01-k8s-manifests/01-player-service.yaml:L102-L108` — 原生 `grpc: port: 50051` (L103-L104)，无 TLS | ✅ **完全一致** |
+| `c6a4bef`（SRE 前置修复） | `docs/deploy/01-k8s-manifests/01-player-service.yaml:L104-L110` — 同上（未改探针） | ✅ 一致 |
+| `66ff53b`（mTLS 探针修复，当前 main） | `docs/deploy/01-k8s-manifests/01-player-service.yaml:L109-L123` — `exec: grpc_health_probe` (L110-L119) 含 `-tls` (L114) + `-tls-server-name=player.service` (L118) | ❌ **与集群实测不一致** |
 
-**结论**：集群里运行的 spec 停留在 `4467080`/`c6a4bef` 版本，`66ff53b` 修复已进 main 但**从未 apply**。
+> **SHA 验证命令**: `git -C D:/RustGameServer-worktrees/qa-evidence log --all --oneline | Select-String -Pattern '^<sha>'`（替换 `<sha>` 为上表 7 位短 SHA），返回非空即代表该 commit 在历史中存在；用 `git -C D:/RustGameServer-worktrees/qa-evidence show <sha>:docs/deploy/01-k8s-manifests/01-player-service.yaml` 拉取该 SHA 下的 manifest 全文，再用 `Select-String -Pattern 'livenessProbe|grpc_health_probe'` 定位锚定行号。
+
+**结论**：集群里运行的 spec 停留在 `4467080` (`01-player-service.yaml:L102-L108`) / `c6a4bef` (`01-player-service.yaml:L104-L110`) 版本，`66ff53b` 修复已进 main (`01-player-service.yaml:L109-L123`) 但**从未 apply**。
 
 **第三步：崩溃时间戳交叉验证**（`kubectl describe pod` economy-service）：
 
@@ -100,7 +107,9 @@ Exit Code: 137 (SIGKILL)
 
 150s = `initialDelaySeconds(30) + periodSeconds(30) × failureThreshold(3) + 探测开销` ——与"探针在 initialDelay 后开始探测，连续 3 次失败后判定失活"的时间线完全吻合，排除"OOM/panic 等其他崩溃原因"的可能性。
 
-**验证程度**：player / economy 两个域为**直接实测三重验证**（spec 比对 + git 历史 + 崩溃时间戳）。match / social / admin / cluster-ops 未逐一重复以上三步，仅确认了 `kubectl get deploy -o wide` 层面的 0/N 状态和相同的部署时间线（同批次 apply），**推断同因**，标记为**推断，非逐一实测**——接手 agent 若要在 §6 打钩关闭该条，需对剩余 4 个域各跑一遍 §2.1 的三步核验。
+> **复现命令**: `kubectl -n rust-game-server describe pod -l app.kubernetes.io/name=economy | Select-String -Pattern 'Started|Finished|Exit Code'`（按 Restart Count 倒序取最近一次崩溃的容器时间戳）。需对应 §2.1 表格中 `01-player-service.yaml:L102-L108` 的 `failureThreshold: 3` (L108) 才能完成公式验证。
+
+**验证程度**：player / economy 两个域为**直接实测三重验证**（spec 比对 + git 历史 + 崩溃时间戳）。**⚠️ 推断** match / social / admin / cluster-ops 未逐一重复以上三步，仅确认了 `kubectl get deploy -o wide` 层面的 0/N 状态和相同的部署时间线（同批次 apply），**推断同因**，标记为**推断，非逐一实测**——接手 agent 若要在 §6 打钩关闭该条，需对剩余 4 个域各跑一遍 §2.1 的三步核验（按 §2.5 复现命令清单逐条跑）。
 
 ### 2.2 NATS / 消息基座缺失
 
@@ -109,6 +118,10 @@ Exit Code: 137 (SIGKILL)
 - handoff 文档记录 Step 2 交付 18 个 NATS/可观测性 manifest，但 NATS 一半未落地到集群。
 - **证据强度**：Deployment 列表为**直接实测**；日志内容为**引用上轮 session 记录**，本报告未重新拉取确认时效性（NATS 部署状态本身在 §2.1 集群快照中已确认仍缺失，间接佐证日志记录未过期）。
 
+> **复现命令**:
+> - `kubectl -n rust-game-server get deploy` — 全量 Deployment 列表（应可见 player / economy / match / social / admin / cluster-ops / grafana / otel-collector / prometheus / postgres，但无 NATS 相关条目）。
+> - **⚠️ 推断** `kubectl -n rust-game-server logs -l app.kubernetes.io/name=economy --tail=200 | Select-String -Pattern 'outbox|NATS'` — 用于重新拉取 §2.2 中 "outbox relay DISABLED" 日志原文以核验时效性；本 session **未执行**此命令（上轮 session 已采集，本报告引用不重跑，标 ⚠️ 推断 / 时效性未复核）。
+
 ### 2.3 孤儿 ReplicaSet 累积
 
 `kubectl get rs` 实测：
@@ -116,7 +129,12 @@ Exit Code: 137 (SIGKILL)
 - `economy-service` 存在 **4 个** ReplicaSet（`646cd7c549` `65b79dbf8` `6bc9c57dc4` `769b8cc9f6`），仅最新两个有存活 Pod（且均 0 Ready）。
 - `player-service` 存在 **5 个** ReplicaSet（`546594c968` `56cccb99db` `5d6f59c79c` `6f7557645b` `9789cf4b5`）。
 
-这是同一 Deployment 反复被不同版本 spec `apply` → 滚动更新从未 converge（新 Pod 从未 Ready）→ controller 又建下一版 ReplicaSet 的痕迹，与 §2.1「探针配置几经变动、集群状态从未追上」的结论互相印证。**建议**：待 §2.1 根因修复并验证 Ready 后，用 `kubectl rollout status` 确认收敛。**注意**：自动 GC 依赖 `revisionHistoryLimit`（当前设为 10），`player-service` 目前只有 5 个历史 RS，未达上限，**不会**被自动清理——如需清理需手工 `kubectl delete rs`，不是"等等就会自己消失"。
+这是同一 Deployment 反复被不同版本 spec `apply` → 滚动更新从未 converge（新 Pod 从未 Ready）→ controller 又建下一版 ReplicaSet 的痕迹，与 §2.1「探针配置几经变动、集群状态从未追上」的结论互相印证。**建议**：待 §2.1 根因修复并验证 Ready 后，用 `kubectl rollout status` 确认收敛。**注意**：自动 GC 依赖 `revisionHistoryLimit`（**⚠️ 推断** 当前设为 10 — 本期 6 域 manifest 内**未显式设置**该字段，按 k8s API 默认值推断；集群实测值未通过 `kubectl get deploy -o yaml | yq '.spec.revisionHistoryLimit'` 验证），`player-service` 目前只有 5 个历史 RS，未达上限，**不会**被自动清理——如需清理需手工 `kubectl delete rs`，不是"等等就会自己消失"。
+
+> **复现命令**:
+> - `kubectl -n rust-game-server get rs -l app.kubernetes.io/part-of=rust-game-server` — 提取全 6 域孤儿 ReplicaSet 列表（按域归类：player=5, economy=4, match/social/admin/cluster-ops 同法）。
+> - `kubectl -n rust-game-server get deploy player-service -o yaml | yq '.spec.revisionHistoryLimit'` — **复核 `revisionHistoryLimit` 集群实测值**（本报告未实测，按 k8s 默认推断）。
+> - 手工清理：`kubectl -n rust-game-server delete rs <rs-name>`（仅当 replicas=0 时才安全）。
 
 ### 2.4 命名空间资源配额已耗尽——影响后续滚动更新能否成功
 
@@ -130,6 +148,81 @@ Exit Code: 137 (SIGKILL)
 | `requests.memory` | 12Gi | 12Gi | **100%** |
 
 配额已被现有的 19 个（多为 CrashLoopBackOff 循环重启中的）Pod 占满。这意味着：即便 §5 行动 #1 的 manifest 修复本身完全正确，`RollingUpdate`（`maxSurge: 1`）需要在旧 Pod 终止前先调度出新 Pod，若配额没有腾出空间，新 Pod 会卡在 `Pending`（配额不足），滚动更新无法收敛——这是**独立于探针根因的第二个会阻塞收敛的因素**，必须一并处理，不能假设"探针配置一改，Pod 自然就 Ready 了"。
+
+> **复现命令**:
+> - `kubectl -n rust-game-server describe quota rust-game-server-quota` — 拉取上表 4 行 `Used/Hard` 配对数据。
+> - `kubectl -n rust-game-server get pods -o json | jq '[.items[] | .metadata.namespace + "/" + .metadata.name + " status=" + .status.phase] | length'` — 复核 "19 个 Pod" 计数（按 namespace+name+phase 列出）。
+
+### 2.5 证据归档与复现
+
+本节汇总 §2.1–§2.4 中每条证据的**复现前提、复现命令、归档位置、推断标记**，供接手 agent 独立验证。**本节不引入新证据**，只把已有证据的复现路径完整化。
+
+#### 2.5.1 复现集群上下文（接手 agent 跑前必须确认）
+
+| 项 | 值 | 备注 |
+|---|---|---|
+| 目标 namespace | `rust-game-server` | 6 域 manifest + 配额均在该 ns 下 |
+| 目标集群 | 本地 kind/k3d（具体 kubeconfig 路径**本报告未列出**，接手 agent 用 `kubectl config current-context` 自查） | 不得在生产集群跑本报告复现命令 |
+| kubectl 版本 | ≥ 1.27 | 需支持 `apps/v1` Deployment、`policy/v1` PDB、`autoscaling/v2` HPA |
+| 工具依赖 | `yq` (mikefarah/yq v4+)、`openssl` (证书 SAN/CN 核对)、`jq` (JSON 字段提取) | 缺哪个装哪个；**不得**为此类工具引入新依赖进项目 |
+| 权限要求 | 集群 `get`/`describe` 权限（**只读**） | 本报告所有命令均为只读，未对集群做任何变更（见 §6） |
+
+#### 2.5.2 kubectl 复现命令清单（按 §2.x 顺序）
+
+| 节 | 命令 | 锚定数据 | 备注 |
+|---|---|---|---|
+| §2.1 step-1 | `kubectl -n rust-game-server get deploy player-service -o yaml \| yq '.spec.template.spec.containers[0].livenessProbe'` | 集群 livenessProbe 完整 spec（与 `01-player-service.yaml:L102-L108` 对比） | 直接实测 |
+| §2.1 step-1 | `kubectl -n rust-game-server get deploy economy-service -o yaml \| yq '.spec.template.spec.containers[0].livenessProbe'` | economy 域同模式确认 | 直接实测 |
+| §2.1 step-3 | `kubectl -n rust-game-server describe pod -l app.kubernetes.io/name=economy \| Select-String -Pattern 'Started\|Finished\|Exit Code'` | 崩溃时间戳，配合 `01-player-service.yaml:L108 failureThreshold: 3` 公式验证 | 直接实测 |
+| §2.2 | `kubectl -n rust-game-server get deploy` | 全量 Deployment 列表（应无 NATS 条目） | 直接实测 |
+| §2.2 | `kubectl -n rust-game-server logs -l app.kubernetes.io/name=economy --tail=200 \| Select-String -Pattern 'outbox\|NATS'` | NATS 应用日志原文 | **⚠️ 推断**（上轮 session 记录，本报告未重跑） |
+| §2.3 | `kubectl -n rust-game-server get rs -l app.kubernetes.io/part-of=rust-game-server` | 6 域孤儿 ReplicaSet 列表 | 直接实测 |
+| §2.3 | `kubectl -n rust-game-server get deploy player-service -o yaml \| yq '.spec.revisionHistoryLimit'` | `revisionHistoryLimit` 集群实测值 | **⚠️ 推断**（manifest 未显式设置，按 k8s 默认推断） |
+| §2.4 | `kubectl -n rust-game-server describe quota rust-game-server-quota` | 4 行 `Used/Hard` 配额数据 | 直接实测 |
+| §2.4 | `kubectl -n rust-game-server get pods -o json \| jq '[.items[] \| .metadata.namespace + "/" + .metadata.name + " status=" + .status.phase] \| length'` | "19 个 Pod" 计数复核 | 直接实测 |
+
+#### 2.5.3 git 验证命令（核对 §2.1 表格中每个 SHA 及其对应 manifest 行号）
+
+| 验证目的 | 命令 | 期望输出 |
+|---|---|---|
+| 列出 5 个 SHA 全链路 | `git -C D:/RustGameServer-worktrees/qa-evidence log --all --oneline \| Select-String -Pattern '4467080\|c6a4bef\|66ff53b\|c96efe8\|8117ea3'` | 5 条 commit 行（含短 SHA + 标题） |
+| 单 SHA 存在性 | `git -C D:/RustGameServer-worktrees/qa-evidence log --all --oneline \| Select-String -Pattern '^<sha>'` | 替换 `<sha>` 为 7 位短 SHA，**非空即存在** |
+| 取该 SHA 的 manifest 全文 | `git -C D:/RustGameServer-worktrees/qa-evidence show <sha>:docs/deploy/01-k8s-manifests/01-player-service.yaml` | 该 SHA 下 player 域完整 YAML |
+| 探针字段定位 | 上述输出 + `Select-String -Pattern 'livenessProbe\|grpc_health_probe'` | 返回行号应与 §2.1 表格锚定一致（4467080:L102 / c6a4bef:L104 / 66ff53b:L109） |
+
+**SHA 验证结果（2026-08-24 主对话实测，本报告引用）**：
+
+| SHA | 存在? | 该 SHA 触及 `docs/deploy/01-k8s-manifests/01-player-service.yaml` | 探针配置 |
+|---|---|---|---|
+| `4467080` | ✅ | ✅ 是（该文件在 `1269af8` 首次添加，`4467080` 首次实质修改其探针/资源/ServiceAccount 配置） | 原生 `grpc: port: 50051` (L102-L108) |
+| `c6a4bef` | ✅ | ✅ 是（仅修改 `namespace` + `imagePullSecrets`，未改探针） | 原生 `grpc: port: 50051` (L104-L110) |
+| `66ff53b` | ✅ | ✅ 是（替换探针为 `exec: grpc_health_probe -tls`） | `exec: grpc_health_probe` (L109-L123) |
+| `c96efe8` | ✅ | ❌ 否（该 SHA 改 `src/`，不涉及 manifest；§3 引用，不在 §2 范围） | N/A |
+| `8117ea3` | ✅ | ❌ 否（仅写报告） | N/A |
+
+#### 2.5.4 原始证据归档位置（建议）
+
+- **建议归档根目录**: `docs/deploy/.run-logs/qa-evidence-2026-08-24/`
+- **本 session 不创建该目录**（per 任务约束，避免无证据产物的空目录污染仓库）；接手 agent 跑完 §2.5.2 复现命令后归档
+- **建议子文件**:
+  - `cluster-deploy-list.txt` — `kubectl get deploy` 全量列表（§2.2 锚定）
+  - `cluster-pod-list.txt` — `kubectl get pods -o wide` 全量列表（§0 表格锚定）
+  - `cluster-rs-list.txt` — `kubectl get rs` 6 域孤儿 RS 列表（§2.3 锚定）
+  - `cluster-quota.txt` — `kubectl describe quota` 输出（§2.4 锚定）
+  - `player-deploy-yaml.yaml` — `kubectl get deploy player-service -o yaml` 完整输出（§2.1 step-1 锚定）
+  - `economy-pod-describe.txt` — `kubectl describe pod -l app.kubernetes.io/name=economy` 输出（§2.1 step-3 锚定）
+
+#### 2.5.5 本节未实测/未验证声明汇总
+
+为防止「本节没提 = 已通过」误读，下列项目**本报告未实测/未验证**，均标 ⚠️ 推断 或列入 §4：
+
+| 标记位置 | 声明 | 状态 |
+|---|---|---|
+| §2.1 末尾 | match / social / admin / cluster-ops 同因判定 | **⚠️ 推断**（仅部署时间线同批次 apply 推断，未逐一重复三步） |
+| §2.2 第二条 | NATS 应用日志 "outbox relay DISABLED" 原文 | **⚠️ 推断**（上轮 session 记录，本报告未重跑，时效性未复核） |
+| §2.3 「`revisionHistoryLimit=10`」 | 6 域 manifest 未显式设置该字段 | **⚠️ 推断**（按 k8s API 默认值 10 推断；集群实测值未通过 `kubectl get deploy -o yaml \| yq '.spec.revisionHistoryLimit'` 验证） |
+| §2.1 step-1 中 `0.1.0-player` 镜像 tag | 镜像内是否含 `grpc_health_probe` 二进制 | 未实测（详见 §3，调试 pod 被 ResourceQuota 拒绝） |
+| §2.5.3 表格中 `c96efe8` 触达 manifest 列 | 该 SHA 触达 manifest 文件列表 | **未验证**（git show 全文未逐行比对，仅日志 `--stat` 未列该路径，本报告**推断**未触及，列入 §4） |
 
 ---
 
