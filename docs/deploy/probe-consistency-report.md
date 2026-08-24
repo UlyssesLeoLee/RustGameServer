@@ -1,7 +1,7 @@
 # Kubernetes Manifest Probe 段一致性核对报告
 
 > **任务**：WF-1-55.46 verify_probe_consistency.ps1 + 6 份 manifest probe 段全核对
-> **生成时间**：2026-08-24 22:59:32 +09:00
+> **生成时间**：2026-08-25 06:14:59 +09:00
 > **脚本入口**：scripts/verify_probe_consistency.ps1
 > **关联疑问**：RGS-OPEN-QA-001 v0.2 Q-M-04 + ACTIONS-v0.3 §3 B-05
 > **基线 manifest**：01-player-service.yaml（作为 canonical reference）
@@ -10,7 +10,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 报告生成时间 | 2026-08-24 22:59:32 +09:00 |
+| 报告生成时间 | 2026-08-25 06:14:59 +09:00 |
 | 脚本 | `scripts/verify_probe_consistency.ps1` |
 | Manifest 根目录 | docs/deploy/01-k8s-manifests |
 | 报告输出路径 | docs/deploy/probe-consistency-report.md |
