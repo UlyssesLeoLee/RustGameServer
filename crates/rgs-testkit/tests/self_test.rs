@@ -1,5 +1,10 @@
 //! rgs-testkit self-test：验证 4 个子模块基本 API 可用
+//!
+//! 注: mock::NoopMock / DbMock 已 `#[deprecated]` (per WF-1-55.31 retry, RGS-REV-009
+//! V3 H-1 强约束), 本 self_test.rs 是最后允许引用 deprecated 形式的合法场合
+//! (用于向后兼容验证). 新业务 test crate **禁止** 引用 mock PG 模拟.
 
+#[allow(deprecated)]
 use rgs_testkit::mock::{DbMock, GrpcMock, NatsMock};
 use rgs_testkit::{fixture, helper, mock, pg_test_db};
 
@@ -44,13 +49,18 @@ fn helper_load_test_env_empty() {
 
 #[test]
 fn mock_noop_db_url_format() {
+    // mock::NoopMock 已 deprecated; 本 self_test 是允许的最后合法引用场合
+    #[allow(deprecated)]
     let m = mock::NoopMock;
+    #[allow(deprecated)]
     let url = m.mock_url();
     assert!(url.starts_with("postgres://"));
 }
 
 #[tokio::test]
 async fn mock_noop_grpc_serve_ok() {
+    // mock::NoopMock 已 deprecated; 本 self_test 是允许的最后合法引用场合
+    #[allow(deprecated)]
     let m = mock::NoopMock;
     let result = m.serve().await;
     assert!(result.is_ok());
@@ -58,6 +68,8 @@ async fn mock_noop_grpc_serve_ok() {
 
 #[tokio::test]
 async fn mock_noop_nats_publish_ok() {
+    // mock::NoopMock 已 deprecated; 本 self_test 是允许的最后合法引用场合
+    #[allow(deprecated)]
     let m = mock::NoopMock;
     let result = m.publish("test.subject", b"{}").await;
     assert!(result.is_ok());
@@ -118,4 +130,16 @@ async fn pg_test_db_smoke_connects_and_selects_one(pool: sqlx::PgPool) {
     let pool2 = pg_pool().await.expect("fixture pg_pool() must succeed when DATABASE_URL set");
     let row2: (i32,) = sqlx::query_as("SELECT 1").fetch_one(&pool2).await.unwrap();
     assert_eq!(row2.0, 1);
+}
+
+/// WF-1-55.31 retry: 验证 `rgs_testkit::pg_test` macro 强约束别名
+///
+/// 通过 `#[rgs_testkit::pg_test]` (内部 re-export 的 `#[sqlx::test]`) 起真 PG
+/// test, 验证 re-export path 编译 + 跑通, 同时 锚定"56.x 起新代码必须用
+/// `pg_test` 而非裸 `#[sqlx::test]`"的强约束.
+#[cfg(feature = "pg-integration")]
+#[rgs_testkit::pg_test]
+async fn pg_test_macro_re_export_works(pool: sqlx::PgPool) {
+    let row: (i32,) = sqlx::query_as("SELECT 42").fetch_one(&pool).await.unwrap();
+    assert_eq!(row.0, 42, "rgs_testkit::pg_test macro must work identically to #[sqlx::test]");
 }

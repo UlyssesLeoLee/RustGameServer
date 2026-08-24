@@ -19,7 +19,8 @@ async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 # DB 测试 fixture
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono"] }
+# migrate feature required for #[sqlx::test] macro (per WF-1-55.31 retry)
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "uuid", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 
@@ -28,7 +29,7 @@ tokio-test = "0.4"
 pretty_assertions = "1"
 tracing-test = "0.2"
 mockall = "0.13"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate"] }
 
 [features]
 # 默认关: 不编译 PG 集成 test, CI 跑普通 test 不需要 DATABASE_URL.
