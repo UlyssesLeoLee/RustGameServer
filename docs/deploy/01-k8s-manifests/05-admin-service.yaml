@@ -60,7 +60,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: admin
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-admin
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
           imagePullPolicy: IfNotPresent
           command: ["/app/bin/admin-service"]
           securityContext:

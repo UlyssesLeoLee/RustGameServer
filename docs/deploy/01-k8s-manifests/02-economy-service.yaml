@@ -65,7 +65,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: economy
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-economy
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
           imagePullPolicy: IfNotPresent
           command: ["/app/bin/economy-service"]
           securityContext:
