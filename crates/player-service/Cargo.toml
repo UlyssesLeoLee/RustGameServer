@@ -12,6 +12,13 @@ description = "5 域玩家微服务（per DTL-018 §3 / ARC-008 5 独立 DB 原�
 name = "player-service"
 path = "src/main.rs"
 
+[features]
+# 55.45 sqlx-tracing feature（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45）
+# 注：sqlx 0.8.6 已硬依赖 tracing（emit query span 默认开启，无需显式 feature）
+# 此 feature flag 作为域级总开关，预留 PH-1/53.12 完成后启用全链路 OTel 时的策略隔离
+default = ["tracing"]
+tracing = []
+
 [dependencies]
 # workspace 公共服务
 tokio = { workspace = true }
@@ -27,6 +34,9 @@ tonic = { workspace = true }
 tonic-health = { workspace = true }
 prost = { workspace = true }
 # 54.1 启用：DB
+# 55.45 注释：sqlx 0.8.6 已硬依赖 tracing（query 自动 emit tracing::Span）
+# 采样率 10-20% 通过 db::sqlx_tracing_sample_ratio() 读取 SQLX_TRACING_SAMPLE_RATIO env
+# per Q-M-03 答复"建议 PH-1 先 10-20% 采样" + WBS WF-1-55.45 §3.2
 sqlx = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
