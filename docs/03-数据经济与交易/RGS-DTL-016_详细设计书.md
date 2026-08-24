@@ -5,13 +5,19 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-016 |
-| 版本 | 0.1 |
+| 标题 | 客服工单与支付对账详细设计 |
+| 版本 | 0.2 |
+| **状态** | **🟢 v1.0**（per RGS-OPEN-QA-001 v0.2 Q-M-01 答复"先 DTL 升版，后 RGS-DEC-Q003"——状态标记 1.0/1.5 与版本号 v0.2 是两个独立维度，不要混淆） |
 | 父文档 | RGS-BAS-016 客服工单与支付对账 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
+| 依据 | RGS-OPEN-QA-001 v0.2 Q-M-01（先 DTL 升版 §3.4 步骤编号映射，后 RGS-DEC-Q003 审批包）+ RGS-OPEN-QA-001-ACTIONS-v0.3 §3 B-01 + RGS-REV-005 附件 B Saga 演练 6 场景 + RGS-IMPL-001 §3 Saga 编排伪代码 + DTL-001§3.2 物理执行语义 + DTL-031 §8.2 Q-003 跨 DB Saga 边界 |
+| 关联 | RGS-DEC-Q003 跨 DB Saga 审批 v0.1（DTL 升版后该 DEC 引用本节编号作为审批基础）/ RGS-REV-005 附件 B 6 场景演练 / RGS-SPEC-CROSS-003 事件 Schema v0.2（含 payment_order / support_ticket 事件）|
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
-| 制定日 | 2026-08-17 |
-| 制定者 | 架构师 |
+| 制定日 | 2026-08-17（v0.1）→ 2026-08-25（v0.2 升版） |
+| 制定者 | 架构师（v0.1）→ economy 域 Lead（Ulysses per DEC-008 一人公司 12 角色兼任）（v0.2 升版）|
+| 修订历史 | 0.1（2026-08-17）：初版制定 / 0.2（2026-08-25）：WF-1-55.43 L4 任务升版——per Q-M-01 答复新增 §3.4「Saga 步骤编号映射」（1.0~6.0 对应 REV-005 附件 B 6 场景，场景内子步骤 1.1/1.2/1.3 嵌套），原 v0.1 §3.4「异常分支」在 v0.2 升版时改名为 §3.5（章节序号调整，已在修订历史显式声明），为后续 RGS-DEC-Q003 跨 DB Saga 审批包提供引用基础 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
+| 责任人 | economy 域 Lead（Ulysses per DEC-008）|
 
 ---
 
@@ -20,6 +26,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档接续RGS-DTL-001/002/025/026/027批次，与RGS-DTL-007/015同批次产出）。细化RGS-BAS-016§2.2数据模型与§2.3状态机为AD限界上下文内`support_tickets`表具体DDL、§3.1数据模型为AD/EC共用`payment_orders`表具体DDL（含RGS-BAS-016 v0.3已确认的跨文档权威字段清单四字段）、§3.2对账批处理时序与§3.3异常分支落实为可直接翻译为Rust实现的伪代码（含RSK-SUP-002"比对条件写反"防护的具体双重校验实现）、SLA超时检测落实为具体扫描算法（含TBD-SUP-001/002两项参数默认值提案沿用RGS-BAS-016原文既定建议值）。**本版本不覆盖**：`TicketEscalationNotifier`告警推送的具体消息模板、支付服务商对账文件/API的具体解析适配代码（因服务商各异，属实现阶段各自适配范畴）。见§5 | 全部 |
+| 0.2 | 2026-08-25 | economy 域 Lead（Ulysses per DEC-008 一人公司 12 角色兼任）| Ulysses（per DEC-008 12 角色全签，见§6 审批栏 v0.2 补） | **WF-1-55.43 L4 任务升版**（per RGS-OPEN-QA-001 v0.2 Q-M-01 答复"先 DTL 升版，后 RGS-DEC-Q003"+ ACTIONS-v0.3 §3 B-01）：① **新增 §3.4「Saga 步骤编号映射」**（1.0~6.0 对应 REV-005 附件 B 6 场景，场景内子步骤用 1.1/1.2/1.3 嵌套；为后续 RGS-DEC-Q003 跨 DB Saga 审批包提供引用基础；本文档侧重对账场景的子步骤切分，与 DTL-015 §3.4 整数段保持一致、小数段按本文档侧重展开）；② **v0.1 §3.4「异常分支：服务商侧数据延迟/不可用」在 v0.2 升版时改名为 §3.5「异常分支：服务商侧数据延迟/不可用」**（章节序号调整，章节标题不变，章节内容不变；本调整是为 §3.4 腾出整数段位置以承载跨场景的"编号映射"横切说明，序号调整已在修订历史显式声明，不影响既有引用——任何对 v0.1 §3.4 的引用在 v0.2 起应改为 §3.5）；③ §3.1~§3.3 正文不变（v0.1 已含 `reconciliation_job_run` 主流程 + `resolve_pending_compensation` 双重校验实现 + `dispatch_compensation` 阈值判定，结构与本文档不冲突）；④ 头表加 v0.2 升版行 + 🟢 v1.0 状态标注（per Q-D-01 答复"v0.1 + 🟢 v1.0 双维度"范式）；⑤ 引用同步 checklist（per Q-M-09 答复）：全仓 grep `DTL-016` 引用见§7 修订清单，未发现 v0.1→v0.2 必改引用（DTL-007/001 等只引用 §2 DDL 句法模板不需改；DTL-031 §8.2 阻断解除由 RGS-DEC-Q003 + DTL-031 v0.3 后续处理，本版本不直接动 DTL-031）。**本版本不覆盖**：RGS-DEC-Q003 审批包正文（另一 L4 任务 WF-1-55.43 B-02 产出）。 | §3.4（新增）+ §3.4→§3.5（重编号）+ 头表 + 修订历史 + 追溯性 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +44,11 @@
 1. [前言](#1-前言)
 2. [物理数据库设计：AD/EC限界上下文工单与订单两表](#2-物理数据库设计adec限界上下文工单与订单两表)
 3. [对账批处理算法详细设计](#3-对账批处理算法详细设计)
+   - 3.1 [主流程](#31-主流程)
+   - 3.2 [比对条件（RSK-SUP-002"写反"防护的具体实现）](#32-比对条件rsk-sup-002写反防护的具体实现)
+   - 3.3 [补偿分发（含TBD-SUP-002阈值判定）](#33-补偿分发含tbd-sup-002阈值判定)
+   - 3.4 [Saga 步骤编号映射（v0.2 新增）](#34-saga-步骤编号映射v02-新增per-rgs-open-qa-001-v02-q-m-01--actions-v03--3-b-01)
+   - 3.5 [异常分支：服务商侧数据延迟/不可用](#35-异常分支服务商侧数据延迟不可用v02-升版时由原-34-改名为-35章节内容不变)
 4. [SLA超时检测与工单状态机详细设计](#4-sla超时检测与工单状态机详细设计)
 5. [TBD-SUP参数默认值提案](#5-tbd-sup参数默认值提案)
 6. [本文档的覆盖范围与后续计划](#6-本文档的覆盖范围与后续计划)
@@ -232,7 +244,102 @@ fn dispatch_compensation(order: &PaymentOrder, threshold: Money) -> Result<(), R
 }
 ```
 
-### 3.4 异常分支：服务商侧数据延迟/不可用
+### 3.4 Saga 步骤编号映射（v0.2 新增，per RGS-OPEN-QA-001 v0.2 Q-M-01 + ACTIONS-v0.3 §3 B-01）
+
+> **本节定位**：per Q-M-01 答复"整数段=场景，小数段=场景内步骤"，将本 DTL §3.1~§3.3 各伪代码片段中的物理步骤与 **RGS-REV-005 附件 B Saga 6 场景**（§B.2~§B.7）做**唯一稳定映射**。该映射是后续 RGS-DEC-Q003 跨 DB Saga 审批包的引用基础（DEC-Q003 §2 6 场景决议直接引用 `1.0~6.0` 编号指代 REV-005 附件 B 演练结果），不在 §3.1~§3.3 内部插入以保持正文步骤图无扰。
+>
+> **本 DTL 编号映射侧重**：DTL-015 §3.4 侧重交易补偿（`TradeSettlementSaga`），DTL-016 §3.4（本节）侧重**对账补偿**（`reconciliation_job_run` / `dispatch_compensation` / `SupportTicket` 联动）；整数段编号（1.0~6.0）**完全一致**以保证跨 DTL 引用稳定性，小数段子步骤按 DTL 自身侧重不同（如本节 1.1~1.5 子步骤强调"对账 + 补偿"链路，与 DTL-015 §3.4 1.1~1.5 子步骤强调"价值转移 + OCC"链路不同）。
+>
+> **不替代 REV-005 附件 B**：本节是**编号到文档位置的反向索引**，不是新一轮场景演练；具体输入/状态机/DB/验证/边界细节全部以 REV-005 附件 B v0.1 为权威源。
+
+#### 3.4.1 编号总览
+
+| 编号 | 场景名 | 对应 REV-005 附件 B 章节 | 本 DTL 中物理步骤对应位置 | 涉及 DDL/对象 | 跨域范围 |
+|---|---|---|---|---|---|
+| **1.0** | 单事务单 DB 路径（场景 1:正常 Saga 路径）| §B.2 | §3.1 `reconciliation_job_run` 主流程 + §3.3 `execute_atomic_grant_via_fr_ec_003` 单 DB 价值发放 | `economy_db.payment_orders`（per §2 RGS-BAS-016 v0.3 权威字段清单）| 单 DB（economy_db）|
+| **2.0** | 跨域单 Saga（含 admin 域 audit_log）| §B.5 + §B.2 衍生 | §3.3 补偿分发 + `create_support_ticket` 跨域写 admin_db | `economy_db.payment_orders` + `admin_db.support_tickets`（§2）| 2 域（EC + AD）|
+| **3.0** | 跨 DB Saga（5 域独立 DB 拓扑，Q-003 核心场景）| §B.2 + §B.7 | §3.1 入口 + DTL-031 §8.2 边界 + RGS-IMPL-001 §3 saga_orchestrator | 5 域全部 DB + `economy_db.sagas` 协调表 | 5 域 |
+| **4.0** | Saga 失败补偿（场景 2:中途失败 → Failed）| §B.3 | §3.3 `dispatch_compensation` 阈值判定 + §3.2 `resolve_pending_compensation` 双重校验 | `economy_db.payment_orders.state='待补偿'` + `transaction_ledger` 补偿 credit 行 | 最低 1 域（EC）最高 5 域 |
+| **5.0** | Saga 超时 + DLQ（场景 3:步进超 deadline）| §B.4 | §3.5（原 v0.1 §3.4）异常分支 + DLQ 落库（per Q-M-06 答复）| `economy_db.payment_orders` 长时间停留在非终态 + `admin_db.dlq` | 同 4.0 |
+| **6.0** | 人工介入恢复（场景 4:GM 审批 + 场景 6:PFAU 联动）| §B.5 + §B.7 | §3.3 `create_support_ticket` 转人工 + §4 SLA 升级 + DTL-031 §10 PFAU 联动 | `admin_db.support_tickets` + `admin_db.review_queue` + `admin_db.pfau_state` | 5 域全栈 |
+
+#### 3.4.2 场景 1.0 子步骤（单事务单 DB 路径，对账主流程）
+
+| 子步骤 | 物理动作 | 本 DTL §3.1 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **1.1** | 定时任务触发（周期 per NFR-SUP-002）| §3.1 `reconciliation_job_run(window)` 入口 | （不变更 DDL，靠 cron）| 周期错位 → 重复拉取（依赖幂等键 §1.2）|
+| **1.2** | 服务商侧记录拉取（具体解析适配不在本文档范围，见§1.2）| §3.1 `fetch_provider_records(window)` | 隐式涉及 `payment_orders.provider_txn_id` 唯一索引（§2）| 拉取失败 → 5.0 异常分支（走原 v0.1 §3.4，现 §3.5）|
+| **1.3** | 关联比对（`resolve_pending_compensation`，per §3.2 双重校验）| §3.2 第 7-25 行 | `payment_orders.uq_payment_orders_provider_txn_id` 唯一索引 | 条件写反（RSK-SUP-002）→ §3.2 具名 bool 变量防护 |
+| **1.4** | 单 DB 价值发放（`execute_atomic_grant_via_fr_ec_003`，未超阈值）| §3.3 第 18-22 行 | `economy_db.accounts`（per RGS-DTL-001 §3.1）+ `transaction_ledger` | 发放失败 → 4.0 补偿（回滚到"待补偿"等待人工）|
+| **1.5** | 订单 state 终态迁移（`已补偿`）+ audit_log 写入 | §3.3 第 23 行 | `payment_orders.state='已补偿'` + `payment_orders.updated_at` 刷新 | 终态迁移失败 → 4.0 兜底补偿（per §3.2 同类）|
+
+#### 3.4.3 场景 2.0 子步骤（跨域单 Saga 含 admin 域 audit_log + 工单）
+
+| 子步骤 | 物理动作 | 本 DTL §3.3 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **2.1** | 同 1.1~1.4（对账 + 单 DB 价值发放完成）| §3.1 + §3.3 | 同 1.0 子步骤 | 同 1.0 |
+| **2.2** | 跨域写 admin_db.support_tickets（per RGS-BAS-016 §2.2 跨文档权威字段清单）| §3.3 第 25-32 行 `create_support_ticket` | `admin_db.support_tickets`（§2 + 唯一索引 `dedup_key`）| 跨域写失败 → 不允许掩盖（per RGS-IMPL-001 §3.4）|
+| **2.3** | 跨域 1PC 兜底（admin 域延迟降级为本地缓冲 + Outbox 重试）| §3.3 隐式 | `admin_db.support_tickets_outbox`（per 0003_outbox.sql 类精神，需补具体表）| 缓冲失败 → 走 4.0 补偿（撤销 1.4 价值发放）|
+
+#### 3.4.4 场景 3.0 子步骤（跨 DB Saga，Q-003 核心场景，对账域侧重）
+
+| 子步骤 | 物理动作 | 本 DTL 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **3.1** | 5 域 DB 拓扑确认 | DTL-031 §10 + ARC-008 | 5 域 DB 各自 `0001_init.sql` | 拓扑不匹配 → 阻断（per DTL-031 §8.2 Q-003 审批前阻断）|
+| **3.2** | 跨域对账 Saga 入口（player → economy 支付 → admin 对账 → economy 补偿）| §3.1 + RGS-IMPL-001 §3 | `economy_db.sagas` + 各域 inbox/outbox | 入口失败 → 4.0 补偿 |
+| **3.3** | 跨域 step 1：economy 域 `payment_orders` 写入（per §2 + RGS-BAS-016 v0.3 权威字段清单）| §3.3 | `economy_db.payment_orders` | 写入失败 → 4.0 补偿 |
+| **3.4** | 跨域 step 2：admin 域 `support_tickets`（超阈值转工单）或 audit_log | §3.3 | `admin_db.support_tickets` / `admin_db.audit_log` | admin 域不可达 → 4.0 补偿 |
+| **3.5** | 跨域 step 3：player 域回写（如 `player_account_audit` 引用，per DTL-001 §3.1）| 不在本 DTL 范围 | `player_db.account_audit` | player 域不可达 → 4.0 整体补偿 |
+| **3.6** | 跨域 step 4：social 域通知（支付完成通知）| 不在本 DTL 范围（social 域 DTL-043 负责）| `social_db.notifications` | 通知失败 → 业务可接受，不触发补偿（per DTL-016 §1.2）|
+| **3.7** | Saga 协调者持久化状态（`sagas.status='completed'`）| RGS-IMPL-001 §3 | `economy_db.sagas` | 协调者 crash → `saga_orchestrator.resume(saga_id)` 重入 |
+
+#### 3.4.5 场景 4.0 子步骤（Saga 失败补偿，对账域侧重）
+
+| 子步骤 | 物理动作 | 本 DTL §3.3 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **4.1** | 阈值判定失败（`order.amount > threshold`，per TBD-SUP-002 默认 10000）：转人工工单 | §3.3 第 24-32 行 | `admin_db.support_tickets.category='payment_issue'` | 工单创建失败 → 监控告警（`AlertSeverity::High`）|
+| **4.2** | 双重校验失败（`provider_side_paid && local_side_not_fulfilled` 条件写反防护）| §3.2 第 16-30 行 | （不变更 DDL，靠具名 bool 变量）| RSK-SUP-002 防护，代码评审必查 |
+| **4.3** | 单 DB 价值发放失败（`execute_atomic_grant_via_fr_ec_003` 失败）：订单 state 保持"待补偿"，不迁终态 | §3.3 第 26 行 | `economy_db.payment_orders.state='待补偿'` | 终态误迁移 → 资产被双重发放（per RSK-SUP-002 同类）|
+| **4.4** | 5 域跨 DB 拓扑下的补偿顺序：按 saga `steps` 倒序 | RGS-IMPL-001 §3 + REV-005 §B.3 验证 | `economy_db.sagas.steps[i].status` | 顺序错乱 → 资产状态不一致 |
+| **4.5** | 异常分支兜底（服务商侧延迟，原 v0.1 §3.4，现 §3.5）：`handle_fetch_failure` 跳过本轮 + 下一周期补齐窗口 | §3.5 | （不变更 DDL，靠游标未推进）| 游标错位 → 漏单（per §3.5 注释）|
+
+#### 3.4.6 场景 5.0 子步骤（Saga 超时 + DLQ，对账域侧重）
+
+| 子步骤 | 物理动作 | 本 DTL 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **5.1** | 协调者发现对账 step 超过 30s deadline（per RGS-IMPL-001 §3 deadline 策略）| §3.1 隐式 | （不新增表，靠协调者内存）| 协调者 crash → 由 5.6 续跑 |
+| **5.2** | 强制 `mark_failed` 触发回滚 | §3.3 + REV-005 §B.4 | `economy_db.sagas.steps[failed].error='deadline exceeded'` | 错误信息丢失 → 排查困难 |
+| **5.3** | DLQ 落库（per Q-M-06 答复）：失败对账任务写入 `admin_db.dlq`（**不**留在 `economy_db.payment_orders` 防污染业务表）| DTL-031 §8.2 引用 + 新增 DLQ 表约定 | `admin_db.dlq`（per Q-M-06 答复新增表）| DLQ 写入失败 → 重试 + 监控告警 |
+| **5.4** | 30s 触发人工升级（per REV-005 §B.4.5 边界）| §3.3 `create_support_ticket` 兜底 | `admin_db.support_tickets` | 60s 仍未处理 → critical 告警 |
+| **5.5** | 整体对账超 5 分钟（reservation 过期阈值）→ 强制 Failed + 全量补偿 | RGS-IMPL-001 §3 + REV-005 §B.4 边界 E3.4 | `economy_db.reservations.status='expired'` | reservation 已过期 → 跳过释放（per E2.2 同类）|
+| **5.6** | 协调者 crash 后续跑（`saga_orchestrator.resume(saga_id)`）| RGS-IMPL-001 §3 | `economy_db.sagas.version` 字段 CAS | version CAS 冲突 → 释放锁重新加载 |
+
+#### 3.4.7 场景 6.0 子步骤（人工介入恢复，对账域侧重）
+
+| 子步骤 | 物理动作 | 本 DTL 对应 | 涉及 DDL | 失败模式 |
+|---|---|---|---|---|
+| **6.1** | 金额 > `REVIEW_THRESHOLD=10000`（per RGS-IMPL-100 §3.4）→ `PendingReview` 暂停态 | §3.3 + REV-005 §B.5 | `economy_db.sagas.status='pending_review'` | 阈值调整后存量 saga 不回溯（per E5.5）|
+| **6.2** | admin 域 `support_tickets` 入队（GM 审批，category=payment_issue）| §3.3 第 24-32 行 | `admin_db.support_tickets` + 唯一索引 `dedup_key` | 队列不可达 → 监控告警 |
+| **6.3** | GM 审批通过（`admin.v1.AdminService/ReviewDecision`）→ 触发 saga 续跑 | RGS-IMPL-100 §3.4 | `admin_db.audit_log` + `economy_db.sagas` | 审批后协调者 crash → 由 5.6 续跑 |
+| **6.4** | GM 拒绝（`PendingReview → Aborted`，**不**进 `Failed`）| §3.3 | `economy_db.sagas.status='aborted'` + payment_orders state 保持"待补偿" | 拒绝后玩家资产被错误释放 → 走 6.6 人工兜底 |
+| **6.5** | PFAU 联动（per handoff §10）：admin 域 canary 升级期间，saga 涉及 admin 域步骤暂停 | DTL-031 §10 PFAU 联动 | `admin_db.pfau_state` + `admin_db.pfau_kubernetes_pod_state` | 升级期间节点掉线 → `paused_permanently` 触发 6.6 人工介入 |
+| **6.6** | 人工兜底（Ulysses 一身 12 角色 per DEC-008）：当 saga 处于 `paused_permanently` 或 `compensation_failed` 时，由 Ulysses 决策 `retry`/`rollback`/`abort` | DTL-031 §8 + DEC-008 | `admin_db.audit_log` GM 决策记录 | GM 决策与 saga 当前状态不一致 → 双签校验 |
+| **6.7** | SLA 升级（per §4.1）：`ticket_escalation_scan` 超过 80% SLA 时长 → `notify_escalation` | §4.1 | `support_tickets.state_sla` 部分索引 | 通知失败 → 重试 + 监控告警 |
+
+#### 3.4.8 编号稳定性约束（v0.2 本节新增的硬约束，与 DTL-015 §3.4.8 完全对齐）
+
+为确保本节编号作为 RGS-DEC-Q003 跨 DB Saga 审批包的稳定引用基础，v0.2 起以下**编号稳定性约束**生效：
+
+1. **整数段（1.0~6.0）不重定义**：未来新增场景需用 7.0+ 整数段，不允许覆盖 1.0~6.0；如有场景归类调整，须在 DEC 审批包中显式声明"旧编号 → 新编号"映射并保留旧编号 6 个月。
+2. **小数段子步骤**（1.1~6.7 等）：允许在同一整数场景内**追加**新子步骤（如 1.6），不允许**重定义**已有子步骤的物理动作或 DDL 引用；如需重定义，须升 v0.3 + DEC 审批。
+3. **跨 DTL 引用一致性**：DTL-015 §3.4 Saga 步骤编号映射（v0.2 升版）使用**完全相同的整数段编号**（1.0~6.0）；DTL-015 侧重交易补偿子步骤，DTL-016（本节）侧重对账补偿子步骤，两者整数段 1.0~6.0 一致即可保证跨 DTL 引用的整数段语义稳定。
+4. **DEC-Q003 引用形式**：RGS-DEC-Q003 v0.1 §2 6 场景决议直接使用 `1.0~6.0` 整数段（不展开小数段），小数段在 DEC-Q003 §3 风险接受 / §4 补偿策略中按需引用；本 DTL §3.4 1.x/2.x/3.x/4.x/5.x/6.x 子步骤可被 DEC-Q003 §4 补偿策略直接引用作为具体补偿步骤的物理落点。
+
+> **本节非权威源**：具体场景演练的输入/状态机/DB/验证/边界细节以 **RGS-REV-005 附件 B v0.1** 为权威源；本节仅做"编号 → REV-005 章节 + 本 DTL 物理步骤"反向索引。如本节与 REV-005 附件 B v0.1 冲突，**以 REV-005 附件 B 为准**并升 DTL-016 v0.3 修正本节。
+>
+> **v0.1 §3.4 → v0.2 §3.5 章节序号变更声明**：v0.1 §3.4「异常分支：服务商侧数据延迟/不可用」在 v0.2 升版时改名为 §3.5，章节标题、章节内容、伪代码均无变化，仅章节序号变更。任何对 v0.1 §3.4 的引用在 v0.2 起应改为 §3.5。本调整不构成 v0.1 读者的认知障碍（v0.1 文档已固定），但后续 reviewer / 维护者请注意：v0.2 起 §3.4 不再是"异常分支"，而是"Saga 步骤编号映射"；§3.5 才是"异常分支"。
+
+### 3.5 异常分支：服务商侧数据延迟/不可用（v0.2 升版时由原 §3.4 改名为 §3.5，章节内容不变）
 
 ```rust
 fn handle_fetch_failure(window: TimeRange, err: FetchError) -> Result<ReconciliationSummary, ReconError> {
