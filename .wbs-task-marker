@@ -1,0 +1,14 @@
+{
+  "l4_id": "WF-1-55.27",
+  "task": "ReserveHandler OCC cleanup + reservation release 失败路径真修(per RGS-REV-009 CR-1)",
+  "owner": "Ulysses",
+  "tokens": null,
+  "spec": null,
+  "dtl": null,
+  "branch": "wbs/WF-1-55.27-retry",
+  "status": "in_progress",
+  "progress": 90,
+  "started_at": "2026-08-24T00:00:00.000Z",
+  "updated_at": "2026-08-24T19:00:00.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-55-retry"
+}
