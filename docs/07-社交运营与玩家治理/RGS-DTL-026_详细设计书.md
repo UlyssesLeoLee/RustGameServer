@@ -5,11 +5,11 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-026 |
-| 版本 | 0.3 |
+| 版本 | 0.4 |
 | 父文档 | RGS-BAS-026 匹配系统 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
-| 制定日 | 2026-08-17 |
-| 制定者 | 架构师 |
+| 制定日 | 2026-08-17（v0.1）/ 2026-08-25（v0.4 升版） |
+| 制定者 | 架构师（v0.4 由 Ulysses per DEC-008 派生子代理 WF-1-55.42 升版） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
 
@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档为第四份详细设计文档）。细化RGS-BAS-026§3.1逻辑数据模型为MT限界上下文（`match_db`同库）内`queue_entries`／`match_ratings`／`match_quality_metrics`三表具体DDL、§4.1扩圈算法与§5.1跨分片OCC校验落实为可直接翻译为Rust实现的伪代码、§7各时序图落实为具体状态转移代码、事件落实为具体线格式。**本版本不覆盖**：评分算法本身（ELO/Glicko-2/TrueSkill）的最终选型与具体公式实现（RGS-REQ-029§11已标注为TBD，需另行ADR决定后再补充本文档）、GM/运营配置后台的UI细节。见§7 | 全部 |
 | 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型TBD收尾）。新增§7解决评分算法最终选型（Glicko-2，排除TrueSkill因IP历史模糊性、排除纯ELO因无不确定度建模），给出`RatingSettlement.calculate()`核心公式；`match_ratings`新增`volatility`列。原§7覆盖范围章节顺延为§8并更新内容 | §1.2、§2（`match_ratings`新增列）、§7（新增）、原§7→§8 |
 | **0.3** | 2026-08-20 | 架构师 | — | 修正 Glicko-2 结算只返回/持久化 rating、RD 而遗漏 volatility 的不一致：`RatingUpdate` 现返回三项状态；新增结算幂等回执表，并规定 rating/RD/volatility、回执和 Outbox 在同一事务提交 | §2、§3、§7、§8 |
+| **0.4** | 2026-08-25 | Ulysses（per DEC-008 派生子代理 WF-1-55.42） | — | per RGS-OPEN-QA-001 Q-D-10 + ACTIONS-v0.3 A-10：§4.1 补三段（n≤500 临时占位 / 降级策略 / benchmark 子任务），落实 O(n²) 撮合复杂度的性能边界与降级/熔断路径；`RatingSettlement.calculate()` 公式与 `match_ratings` schema 未变（v0.3 已稳定），不重复修改 | §4.1（新增 §4.1.1/§4.1.2/§4.1.3） |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -187,6 +188,107 @@ fn tolerance(waiting_seconds: u32, params: &ToleranceParams) -> f64 {
 ```
 
 `ToleranceParams`三个数值（`initial_tolerance`/`widen_rate_per_sec`/`max_tolerance`）与RGS-DTL-025§5同类做法一致，标注为初始提案，随PH-5数据校准，不属于本文档最终交付值。
+
+### 4.1.1 n≤500 临时占位（per RGS-OPEN-QA-001 Q-D-10 + ACTIONS-v0.3 A-10）
+
+§4.2 单轮撮合 `matchmaker_tick` 的候选筛选为 O(n²)（`candidates.iter().filter(...).collect()` 全表扫描 + 双重循环），在 n 较大时存在性能风险，但本文档不规定架构层面的硬上限。**占位上限 n≤500** 仅供 PH-1 编码完成、benchmark 跑通前作为实现侧的临时门禁使用，**不**是性能承诺，也不**是**最终交付值。推导如下：
+
+- NFR-PT 单局撮合决策延迟 p99 < 100ms（per RGS-REQ-029 §NFR + RGS-BAS-026 §4.1 既定）。
+- 占位 n=500 折算：100ms / 500² ≈ 0.4μs/pair，对纯内存 candidate scan + tolerance 过滤 + `try_compose_teams` 组合搜索（仅算术比较 + HashSet 插入）属于宽松量级；该上限在现代 x86_64 / ARM64 CPU 上有 1〜2 个数量级的 headroom。
+- 但**实际** n 上限取决于：CPU 微架构、Cache 命中率（500 个 `QueueEntry` 实体大小约 8-16KB 总集，冷启动时 L2 命中率高；>2000 时开始 L3 miss）、`try_compose_teams` 内部组合搜索的复杂度（贪心 vs 回溯未指定）、Rust 编译参数（`opt-level=3` + LTO 与否）、共享平台 tokio runtime 调度抖动。
+- 因此**n≤500 是占位，PH-1 实测后用 benchmark 数据替换为实测值**。Q-D-10 答复明确"PH-1 启动后跑 benchmark 才能给出可信 n 上限，不应拍脑袋定数字"——本占位严格遵循此原则，仅在 benchmark 数据未出前为实现侧提供最坏情况下限。
+- 占位 n 写入 `config/match-service.toml` 字段 `matchmaking.max_candidates_per_tick: 500`，实现侧启动期加载；benchmark 报告（`docs/deploy/matchmaking-bench-report.md`）出实测值后，由实现侧按 §8 后续计划触发 `config` 调整。
+- 占位 n 的**作用域**仅是"单轮撮合 tick"维度（§4.2 `matchmaker_tick` 调用范围），不涉及跨 tick 累积、跨分片全局候选池大小。跨分片 POOL_SHARED 模式下，单分片承担的 `candidates` 由 NATS 广播带宽与 origin_shard 路由策略决定，另行评估，**不**在本文档 n≤500 占位的覆盖范围。
+- 修订历史将追踪占位 → 实测的切换事件：v0.5 之后若 benchmark 给出 n=1200 p99 < 100ms，则更新 v0.5 字段为 `max_candidates_per_tick: 1200` 并在修订历史注明"per benchmark 报告 YYYY-MM-DD 实测 n=1200"。
+
+**占位 n 的数值依据（量级推导）**：
+
+- 100ms / 500² ≈ 0.4μs/pair 是**单对候选对比**的理论上限，不是端到端 `matchmaker_tick` 函数的全部耗时。实际端到端耗时还需叠加：(a) `candidates` 排序（O(n log n)），n=500 时 ~4.5K 比较，约 5-10μs；(b) `tolerance()` 重复调用（每个 entry 调一次，共 500 次），每次 ~1-2μs；(c) `try_compose_teams` 内部组合搜索（贪心策略下约 O(n×k)，k 是兼容候选数，O(n²) 最坏），500 entry 时最坏 ~125K 操作，约 200-500μs；(d) `consumed: HashSet` 插入/查询，500 次约 50-100μs。合计：1ms 量级，距 100ms 阈值有 100× headroom。
+- 但 1ms 是**冷启动 + 完美 cache 命中**的乐观估计。生产环境共享平台 tokio runtime 调度抖动 + L2/L3 cache 抖动 + DB 连接池等待（即便 `candidates` 已从 DB 拉到内存）通常额外增加 5-20ms。**实际** 单轮 `matchmaker_tick` 端到端 100ms 上限对应的纯算法时间是 80-95ms。
+- 因此 0.4μs/pair 的"宽松量级"判断成立，但**仅**对纯算法路径成立；含调度 + cache + GC（无 GC，但 tokio 调度抖动类似）后 0.4μs/pair 退化为 ~160μs/pair（80ms / 500²），仍是宽松量级。**仅**当 n=2000 时 0.4μs/pair → 1.6ms/pair × 4M pair = 6.4s，**远远**超 100ms——这就是 §4.1.2 降级策略必须存在的工程原因。
+
+**与 NFR-PT 既定值的对照**：
+
+- NFR-PT 单局决策 ≤ 100ms 包含**两段**：①撮合计算（本文档 §4 `matchmaker_tick`）≤ 80ms（实测经验值，给下游 DB 写留 20ms）；②DB OCC 校验 + 状态机更新（§5 + §6）≤ 20ms。两者合计 100ms 上限。
+- §4.1.1 占位 n≤500 针对**第①段**（撮合计算），不含 DB；DB 段不在本节讨论。
+- 当 n=500 时 ①段实测若 < 50ms，则 ②段 50ms 预算足够，NFR-PT 通过；当 n=1000 时 ①段若仍 < 50ms（线性外推不成立，实际可能 80-150ms），则 ②段被挤占 0-30ms，需降级到拆分撮合轮（§4.1.2）以确保 ①段始终 ≤ 50ms。
+- 因此 §4.1.1 占位 500 是"①段 50ms headroom 对应的 n 值"的**保守选择**，不是"100ms 总预算对应的 n 值"的极限值。**保守**意味着：若实测 n=700 时 ①段仍 50ms headroom，可放心扩到 700；若实测 n=300 时 ①段已超 50ms（说明 `try_compose_teams` 内部策略较重），应缩到 300 并触发 §4.1.2 拆分撮合轮路径。
+
+**与既有 G-005 清理模式的交互**：
+
+- §2 `queue_entries` 短生命周期表的清理策略遵循 G-005，谓词 `status IN ('CONFIRMED', 'ABANDONED') AND enqueued_at < now() - retention_period`。
+- `max_candidates_per_tick=500` 占位对 G-005 无直接依赖：G-005 控制"已结束条目归档"，§4.1.1 控制"单 tick 处理 WAITING 条目数"，两者作用域正交。
+- 但 `WAITING` 条目数长期 > 500 时（业务侧短时间无撮合匹配成功），§4.1.2 拆分撮合轮可降低单轮压力，配合 G-005 不能解决"长时间 WAITING"问题（WAITING 不在 G-005 清理谓词内）。**若生产监控发现 `WAITING` 队列长期 > 500**，需另行考虑：(a) 缩短 `tolerance()` 的 `grace_period_secs`（§4.1 既定 30s）让容差更快扩宽，撮合成功率上升；(b) 提升 `MatchmakerWorker` tick 频率（当前 TBD，留待实现阶段调优）。两者均不修改 §4.1.1 占位本身。
+
+### 4.1.2 降级策略（per RGS-OPEN-QA-001 Q-D-10 + ACTIONS-v0.3 A-10）
+
+n 超占位上限（500）时**优先降级**而非熔断，降级路径如下，按顺序执行：
+
+1. **第一步：拆分撮合轮（分桶降级）**
+   - 单轮 `candidates` 按 `composite_rating` 排序后，按桶大小 `n'` 切片为 `ceil(n / n')` 个子轮。
+   - 每个子轮独立调用 `matchmaker_tick`，互不共享 `consumed: HashSet<EntryId>`，避免桶间跨边界误撮合。
+   - 桶大小 `n'` 初值取 `500`（与 §4.1.1 占位一致），每子轮 p99 仍应 < 100ms；子轮之间无强延迟预算（总延迟 = 子轮数 × 单子轮延迟）。
+   - **降级触发条件**：`candidates.len() > max_candidates_per_tick`（500 占位）。
+   - **降级退出条件**：n' 自适应调小到 §4.1.1 上限的 1/4（125）仍不满足时，进入第二步熔断；n' 自适应调大到上限的 2 倍（1000）且实测满足时，回写 §4.1.1 配置。
+
+2. **第二步：熔断（仅降级后仍超时才触发）**
+   - 单个子轮执行超过 NFR-PT 100ms 阈值（10% 滑动窗口内连续 3 次超阈），判定该子轮 O(n²) 实际不可承受。
+   - 熔断动作：
+     - 返回 `MMError::CircuitOpen { retry_after_ms }` 给 `MatchmakerWorker` 调用方。
+     - `retry_after_ms` 初值 = 子轮耗时实测 p99 × 4（背压值，避免立即重试再次熔断），上限 30s（避免客户端长时间空等）。
+     - 已分配的 `consumed` 条目**不释放**（避免被其他 tick 重复撮合）；熔断恢复后该子轮从断点继续。
+   - 熔断期间产生的客户端错误：上游 gateway 返回 HTTP 503 + `Retry-After: <retry_after_ms>`，客户端遵循标准退避；不直接返回 500，避免客户端立即重试放大压力。
+
+3. **降级优先于熔断的工程理由**
+   - 熔断对客户端可见，是 SLO 破坏事件（HTTP 503），需要事后 SRE 介入排查。
+   - 拆分撮合轮对客户端透明（仍返回撮合结果，只是延迟从 100ms 变成 n×100ms ≈ 200-400ms），属于内部降级而非 SLO 破坏。
+   - 拆分撮合轮的延迟增长（n/500 倍）远低于熔断+重试的雪崩成本，符合 RGS-NFR §可降级原则。
+
+4. **降级与 PH-5 数据回写的耦合**
+   - 拆分撮合轮的桶大小 `n'` 在 benchmark 报告出实测 n 上限后重写：若实测 n=2000，则 `n' = 2000`，单子轮仍 100ms 上限；总延迟 = ceil(n/2000) × 100ms，n=10000 时总延迟 ≤ 500ms（5 子轮）。
+   - 若实测 n=200，则 `n' = 200`，单子轮仍 100ms 上限；n=1000 时需 5 子轮，总延迟 500ms；此时考虑引入 §4.1.3 benchmark 子任务的"预过滤"（按 `composite_rating` 直方图先粗筛 top-K）作为 n' 自适应外的第二道降级路径，但**当前 v0.4 不引入预过滤**，留待 v0.5+ 视 benchmark 数据决定。
+
+5. **降级路径与本文档其他章节的接口边界**
+   - 不修改 §4.2 `matchmaker_tick` 签名（业务实现侧加 `matchmaker_tick_with_bucket_size(mode, scope, n')` 重载）。
+   - 不修改 §5 OCC 校验（拆分撮合轮的子轮各自独立跑完 OCC，不共享 `consumed`）。
+   - 不修改 §6 状态机（拆分撮合轮对 `queue_entries.status` 的写入与单轮一致）。
+   - 仅在 `MatchmakerWorker` 调度层加降级逻辑（split-by-bucket），属于实现层细节，不在本文档详细化。
+
+### 4.1.3 benchmark 子任务（per RGS-OPEN-QA-001 Q-D-10 + ACTIONS-v0.3 A-10）
+
+**Q-D-10 答复的硬性约束**：可信 n 上限只能由 benchmark 实测给出，不应拍脑袋定数字。本节落实该约束为 benchmark 任务的契约。
+
+1. **测试目标**
+   - 被测对象：match-service 撮合核心函数（per §4.2 `matchmaker_tick` 的 O(n²) 候选筛选路径）。
+   - 测试输入：n ∈ {100, 200, 500, 1000, 2000} 共 5 档，各档生成 100 iteration 的随机 `composite_rating` 分布（高斯分布，μ=1500，σ=200，模拟真实玩家评分散布）。
+   - 测试输出：每档 p50 / p95 / p99 延迟（criterion.rs 原生支持，无需手写分位数计算）。
+
+2. **方法**
+   - 工具：criterion.rs（Rust 标准 benchmark 框架，per `crates/match-service/benches/matchmaking_bench.rs`）。
+   - 执行命令：`cargo bench -p match-service --bench matchmaking_bench`。
+   - 报告输出：criterion 自动生成 HTML 报告到 `target/criterion/matchmaking_tick/`，Markdown 摘要由实现侧人工整理到 `docs/deploy/matchmaking-bench-report.md`。
+   - 环境：单线程 + `opt-level=3` + LTO（per workspace `[profile.release]` 配置），冷启动 + 热身 3s 后采样。
+
+3. **断言**
+   - n ≤ 500 时 p99 < 100ms（per NFR-PT 单局决策 ≤ 100ms）—— **硬性断言**；失败时 CI 拒绝合入 benchmark 重写。
+   - n > 500 时**不**做硬性断言，**仅**记录实测 p50/p95/p99，作为 §4.1.1 占位 → 实测切换的数据来源。
+   - 测试通过标准：所有 5 档 benchmark 跑完无 panic、criterion 报告生成成功、`docs/deploy/matchmaking-bench-report.md` 包含 5 档 p99 实测值。
+
+4. **任务边界**
+   - 本任务（v0.4）**仅搭 benchmark 框架**：写 `matchmaking_bench.rs` 占位实现（自包含的 §4.2 算法 stand-in），加 criterion dev-dep，确保 `cargo check -p match-service` pass。**不**实跑 `cargo bench`——理由是 `matchmaker_tick` 实际实现要到 PH-1 编码完成后才有，PH-1 之前跑出的数据无意义（测的是 stand-in，不是真实实现）。
+   - 实跑任务挂到 PH-1 之后的 L4 任务（`WF-?-??.??` 编号预留，per WBS v0.7+），不在本任务（WF-1-55.42）范围内。
+   - 本任务交付的 `docs/deploy/matchmaking-bench-report.md` 标注"待 PH-1 实跑后填入实测值"为占位报告，**不**构成性能数据；引用此报告前必须确认状态从"待实跑"切换为"已实跑"。
+
+5. **不覆盖范围**
+   - 不覆盖 `try_compose_teams` 内部组合搜索策略（贪心 vs 回溯）的 benchmark；该策略在 §4.2 已声明"留待实现阶段按性能实测选择"，不在本任务边界。
+   - 不覆盖跨分片 POOL_SHARED 模式下的 NATS 广播 + 多分片并行撮合 benchmark；该场景在 §5 跨分片 OCC 校验中涉及，单独留待 WF-?-??.?? 任务。
+   - 不覆盖真实玩家流量回放 benchmark（需生产数据脱敏后导入，PH-2 之后才有可能）。
+
+6. **与降级策略的耦合**
+   - benchmark 给出 n=1200 p99 < 100ms → §4.1.1 占位扩到 1200，§4.1.2 桶大小 `n'` 同步扩到 1200，§4.1.3 断言阈值保持 n ≤ 1200。
+   - benchmark 给出 n=300 p99 > 100ms → §4.1.1 占位缩到 300，§4.1.2 桶大小 `n'` 缩到 300，**且** §4.1.2 第一步降级（拆分撮合轮）成为默认路径而非"超限才触发"，即 `max_candidates_per_tick` 与 `n'` 同值时无降级，n > `n'` 时降级——这是占位和实测一致时的边界情况，无需额外处理。
+   - benchmark 给出 n=2000 p99 > 100ms → §4.1.1 占位缩到 1000（p99 < 100ms 的最大 n），§4.1.2 桶大小 `n'` 同步，n > 2000 触发第一步降级拆分。
+   - 三种情况均在 `docs/deploy/matchmaking-bench-report.md` 结论部分给出"工程推荐 n 上限"与"降级路径是否需要调整"两栏。
 
 ### 4.2 单轮撮合尝试
 
