@@ -50,5 +50,12 @@ tonic-build = { workspace = true }
 # WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
 assert_cmd = "2"
 # WF-1-55.28: 6 域 outbox CHECK 幂等 migration 集成测试 (per RGS-REV-009 CR-2)
+# WF-1-55.47: reservation 端到端 IT + 混沌测试 + OTel span 断言 (per RGS-OPEN-QA-001 Q-M-07)
+#  - integration_reservation.rs: 3 个 IT (create_success / conflict_releases / cleanup_on_failure)
+#  - chaos_reservation.rs: 2 P1 (DB 断开 / 死锁) + 1 P2 stub (row 外部 DELETE)
+#  - span_assertion.rs: reservation.create → saga.step → reservation.release/cleanup 三层 span 树
 # 跑前需设置 DATABASE_URL 指向真 PG; 跳过机制: test 内部检查 env, 不设置则 skip
 rgs-testkit = { path = "../rgs-testkit" }
+# WF-1-55.47: span 断言收集用 (per RGS-OPEN-QA-001 Q-M-07 答复: tracing 仍可用, OTel SDK 未启用
+# 不影响 tracing::span! 宏的本地 subscriber 捕获). tracing-subscriber 在 [dependencies] 已引入,
+# dev-dep 不用重复声明.
