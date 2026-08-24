@@ -133,6 +133,117 @@ pub fn shutdown_tracing() {
     opentelemetry::global::shutdown_tracer_provider();
 }
 
+/// 55.45 OTLP exporter 条件初始化（env-gated, 53.12 任务未完成时 = no-op）
+///
+/// 设计：
+/// - 环境变量 `OTEL_SDK_DISABLED=true` → 跳过 OTel 初始化（默认行为，53.12 任务未完成时）
+/// - 环境变量 `OTEL_SDK_DISABLED=false` / 未设置 → 实际初始化 OTLP exporter
+/// - 端点：`OTEL_EXPORTER_OTLP_ENDPOINT` env，默认 `http://otel-collector:4317`
+/// - 采样率：`OTEL_TRACES_SAMPLER_ARG` env，默认 0.10（10%，per Q-M-03 答复）
+/// - Resource attributes：service.name / service.version / deployment.environment
+/// - Batch span processor（install_batch → opentelemetry_sdk::runtime::Tokio）
+/// - 返回 Drop guard 用于 graceful shutdown（drop 时 flush 残余 span）
+///
+/// 容错：
+/// - 初始化失败 → 记 warn，返回空 guard（不 panic，OTel 不可用不影响业务）
+/// - 端点不可达 → 仍可调用（OTel SDK 内部 retry + buffer）
+pub struct OtelExporterGuard {
+    /// 是否实际初始化（false = no-op guard）
+    enabled: bool,
+}
+
+impl Drop for OtelExporterGuard {
+    fn drop(&mut self) {
+        if self.enabled {
+            // 53.12 任务完成 + feature flag 启用时，shutdown 真正 flush 残余 span
+            opentelemetry::global::shutdown_tracer_provider();
+        }
+    }
+}
+
+/// 55.45 条件初始化 OTLP exporter
+///
+/// 用法（per 5 域 main.rs）：
+/// ```ignore
+/// let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
+///     "player-service",
+///     "0.1.0",
+///     "dev",
+/// );
+/// ```
+pub fn init_otel_exporter_optional(
+    service_name: &str,
+    service_version: &str,
+    deployment_env: &str,
+) -> OtelExporterGuard {
+    // 53.12 任务未完成时默认 disabled
+    if std::env::var("OTEL_SDK_DISABLED")
+        .is_ok_and(|v| v == "true" || v == "1" || v.eq_ignore_ascii_case("yes"))
+    {
+        tracing::info!(
+            target: "otel",
+            service = service_name,
+            "OTEL_SDK_DISABLED=true — OTel exporter NOT initialized (53.12 任务未完成)"
+        );
+        return OtelExporterGuard { enabled: false };
+    }
+
+    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+        .unwrap_or_else(|_| "http://otel-collector:4317".to_string());
+    let sample_ratio: f64 = std::env::var("OTEL_TRACES_SAMPLER_ARG")
+        .ok()
+        .and_then(|s| s.trim().parse::<f64>().ok())
+        .filter(|v| (0.0..=1.0).contains(v))
+        .unwrap_or(0.10);
+
+    let resource = Resource::new(vec![
+        KeyValue::new("service.name", service_name.to_string()),
+        KeyValue::new("service.version", service_version.to_string()),
+        KeyValue::new("deployment.environment", deployment_env.to_string()),
+    ]);
+
+    // 53.12 任务未完成：OTel SDK 链路未启用（tracing-opentelemetry bridge 缺失）。
+    // 本函数仅"占位 + env 解析 + 校验 + log 告警"，等 53.12 完成后
+    // 改回 opentelemetry_otlp::new_pipeline().install_batch 即可生效。
+    //
+    // 55.45 临时：直接返回 noop guard（避免 OTLP exporter 启动但 bridge 未挂导致 span 静默丢失）
+    tracing::info!(
+        target: "otel",
+        service = service_name,
+        endpoint = %endpoint,
+        sample_ratio = sample_ratio,
+        "OTel exporter env detected (endpoint={}, sample={}) — awaiting 53.12 OTel SDK 启用",
+        endpoint,
+        sample_ratio
+    );
+
+    // 53.12 完成后：把以下行注释去掉即可真正启用
+    //
+    // match opentelemetry_otlp::new_pipeline()
+    //     .tracing()
+    //     .with_exporter(
+    //         opentelemetry_otlp::new_exporter()
+    //             .tonic()
+    //             .with_endpoint(&endpoint),
+    //     )
+    //     .with_trace_config(
+    //         sdktrace::Config::default()
+    //             .with_resource(resource)
+    //             .with_sampler(sdktrace::Sampler::TraceIdRatioBased(sample_ratio)),
+    //     )
+    //     .install_batch(opentelemetry_sdk::runtime::Tokio)
+    // {
+    //     Ok(_) => OtelExporterGuard { enabled: true },
+    //     Err(e) => {
+    //         tracing::warn!(...);
+    //         OtelExporterGuard { enabled: false }
+    //     }
+    // }
+
+    let _ = (resource, endpoint, sample_ratio); // suppress unused warnings
+    OtelExporterGuard { enabled: false }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
