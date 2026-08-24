@@ -58,6 +58,28 @@ cargo test -p social-service --features pg-integration
 cargo test -p social-service --features pg-integration -- --include-ignored
 ```
 
+### 54.x fixture (新增)
+
+```rust
+use rgs_testkit::fixture::{self, FixtureBuilder};
+
+#[test]
+fn my_social_test() {
+    let s = fixture::social_message("alice", "bob");
+    assert_eq!(s.player_id, "alice");
+    assert_eq!(s.friend_id, "bob");
+    assert_eq!(s.message, "Hello from test");
+}
+
+#[test]
+fn my_social_test_with_builder() {
+    let s = FixtureBuilder::new(fixture::social_message("alice", "bob"))
+        .with_message("Hello from test fixture!")
+        .build();
+    assert_eq!(s.message, "Hello from test fixture!");
+}
+```
+
 ### 强约束 (per RGS-REV-009 V3 H-1)
 
 - **新加的** social 域 DB / 关系 / 事务 / outbox 测试**必须**用 `#[rgs_testkit::pg_test]`

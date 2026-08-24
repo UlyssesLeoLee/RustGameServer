@@ -59,6 +59,22 @@ fn my_saga_test() {
 }
 ```
 
+### 54.x FixtureBuilder 链式 API (新增)
+
+```rust
+use rgs_testkit::fixture::{self, FixtureBuilder};
+
+#[test]
+fn my_economy_test_with_builder() {
+    let e = FixtureBuilder::new(fixture::economy("alice"))
+        .with_currency(9999)
+        .with_gold(500)
+        .build();
+    assert_eq!(e.currency, 9999);
+    assert_eq!(e.gold, 500);
+}
+```
+
 ### 跑测试
 
 ```bash
