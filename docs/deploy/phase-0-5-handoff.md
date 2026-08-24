@@ -303,14 +303,14 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 - **NO-GO 形式解除依据**:`docs/00-基准与治理/RGS-DEC-NOGO-001_一人公司NO-GO解除决议_v0.1.md`
 - **Phase 0.5 启动计划**:`docs/01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md`
-- **现状基线 v0.2 勘误**:`docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.2.md` §1.4/§1.5/§2
+- **现状基线 v0.2 勘误**:`docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.1.md` §1.4/§1.5/§2
 - **业务 NO-GO 现状**:`docs/deploy/07-no-go-checklist_business_v0.2.md`
 - **Step 1+5 报告**(5 域 manifest 实际值 + docker image 脚本):`docs/deploy/01-k8s-manifests/` 17 文件 + `phase-0-5-step-1+5-*.ps1` + `PHASE-0-5-STEP-1+5-REPORT.md`(worktree 清理时已 commit 进 main)
 - **Step 2+3 报告**(NATS + OTel/Prom/Grafana):`PHASE-0-5-STEP-2+3-REPORT.md` + 18 manifest
 - **Step 4 报告**(mTLS + Secret + fail-closed):`PHASE-0-5-STEP-4-REPORT.md` + 7 Secret + 4 ps1
 - **Step 6 总报告**:`docs/deploy/phase-0-5-step-6-report.md`
 - **本次 handoff 提示词**:`docs/deploy/phase-0-5-handoff.md`(本文件)
-- **WBS 任务进度表**:`docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md`
+- **WBS 任务进度表**:`docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.3.md`
 - **worktree 规范**:`docs/12-工作流/RGS-WT-001_GitWorktree隔离开发方案.md` §11
 - **gRPC 健康探针 mTLS 兼容性修复设计**(2026-08-24 追加):`docs/09-部署运维/RGS-OPS-101_gRPC健康探针mTLS兼容性修复设计_v0.1.md`(需求/基本设计/详细设计/实装规格/实施计划,见 §12)
 
@@ -354,9 +354,14 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ---
 
-## 11. 已知未完成事项(per 2026-08-24 18:00 phase-0-5/local-fixes merge 后部分闭环)
+## 11. 已知未完成事项(per 2026-08-24 18:25 主对话盘点后)
 
-> **per 2026-08-24 18:00 `phase-0-5/local-fixes` merge commit `65ea750` 后状态**。当前 open 事项 5 项,closed 5 项。
+> **当前状态**(per 2026-08-24 19:00 4 worker 全 succeeded + 2 分支并入 main):**12 项子事项(11.1~11.12)**,其中 **3 项 closed**(11.3 Saga 修复 per 195bfae + 11.4 git 工具链 per 7c2db70 + 11.5 引用错位无文档错)+ **9 项仍 open**。
+>
+> **修订历史**:
+> - 2026-08-24 19:00 修订:①§11.3 关闭(Saga CRITICAL 修复 3 L4 全真修 + 271 test passed,per merge `195bfae`)②新增 §11.9 / §11.10 / §11.11 / §11.12 反映 4 worker 实际产出(Phase 0.5 retrospective / 5 域 DTL Review / 引用扫雷 / Saga 修复)
+> - 2026-08-24 18:25 修订:①§11 子章节编号 10.1~10.8 → 11.1~11.8(commit 6d985d6 仅改 §11 标题未改子编号)②11.4 关闭(7c2db70 已修正则)③11.5 关闭(无文档错)④§12.3 改"未 commit" → "已 commit 66ff53b"
+> - 2026-08-24 18:00 首次盘点:e293b98 §10 8 项 + 6d985d6 §11 标题
 
 ### 11.1 数据/evidence 丢失
 
@@ -364,50 +369,104 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - **dev 证书 `E:\DevCache\cargo\target\dev-certs\` 不在 git**:workspace 用了 `E:\DevCache\cargo\target\`(per Step 4 worker 实测),证书生成在 workspace 之外,天然不入仓。**SRE 在 WSL2 需重跑** `pwsh -File phase-0-5-step-4-gen-certs.ps1` 重新生成(预计 5 秒)
 - **4 份 B-CODE log 在 handoff 完成日(2026-08-24)实际反映 1 🟡 + 3 🔴,非全 🟢**:SRE 跑完 §5 后必须**重写 4 份 log**(删旧 + 跑 4 实测),否则 NO-GO 实质状态不会被新证据覆盖
 
-### 10.2 WBS 任务进度表未更新
+### 11.2 WBS 任务进度表未更新
 
-- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md` 仍显示 128/128 pending
+- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md`(注:7c2db70 已升 v0.3 → v0.4,WF-0.5-1/2/3 三行已标 done,§3 汇总同步 7 pending → 4 pending + 3 done)仍显示 128/128 整体 pending
 - 实际状态:**WF-0.5-1/2/3 已在 Phase 0.5 期间作为"Phase 0.5 部署 worktree"重定向使用,3 个 worktree 已合并入 main;WF-0.5-6 worker 失败,主对话接手补完 4 B-CODE log + 总报告**
 - **L4 任务标 done 的正确做法**:G-CODE-06 实测通过后由 `wbs_task_progress.ps1 -Status done` 自动填充;当前 NO-GO 形式上解除但实质未闭环,WBS 进度表更新是后续 Phase 0.5 实质完成后的工作
 - **SRE 完成 §5 后**:`pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-0.5-1 -Status done` 等 3 个
 
-### 10.3 Saga CRITICAL 修复未做(per RGS-REV-009 13 issue 共识矩阵)
+### 11.3 Saga CRITICAL 修复 ✅ Closed(per merge `195bfae` + tag 收尾 `14036d6`)
 
-- `no-merge-pending-wf-1-55-27` git tag 仍存在
-- 实际状态:WF-1-55.27/28/29(P0 merge-blocker)实际未修复(commit `62d62cb` LO-4 已合 main,但 CR-1/2/3 修复仅 mock 验证)
-- **Phase 0.5 不依赖 Saga 修复**(Phase 0.5 只到 manifest 部署,业务逻辑修复在 PH-4 economy 域)
-- **后续 Phase 1+ 必做**:WF-1-55.27(CR-1 真修 OCC cleanup)+ WF-1-55.28(CR-2 6 域 outbox CHECK 幂等 migration)+ WF-1-55.31(CR-3 PgTestDatabase fixture,已 commit `ec1f992` 但需 `#[sqlx::test]` 强约束)
+- ✅ **Closed 2026-08-24 19:00**:`wbs/WF-1-55.27-retry` 分支并入 main(`195bfae`),`no-merge-pending-wf-1-55-27` git tag 已删(`14036d6`)
+- ✅ **3 个 L4 任务全真修 + 真 PG 验证**(非 mock,经 K3s postgres-5bb9bb647d-6wfv4 port-forward 验证):
+  - **WF-1-55.27 CR-1**(`c96efe8`):`ReserveHandler::execute` 修第 3 失败路径 `load_active_account` + 加 `Reservation::release()` 语义,2 个新测试锚定
+  - **WF-1-55.28 CR-2**(`a80fa94`):6 域 migration 改名为 `*_outbox_check_idempotent.sql` + 加 `crates/economy-service/tests/integration_outbox.rs` 220 行真 PG 测试
+  - **WF-1-55.31 CR-3**(`f6a6f3f`):`rgs_testkit::pg_pool()` + `rgs_testkit::pg_test` 强约束 re-export,`DbMock` / `NoopMock` / `mock_url` 全部 `#[deprecated]`,加 `pg_test_macro_re_export_works` doctest 真 PG 验证
+- ✅ **验证结果**:`cargo test --workspace` **271 passed / 0 failed**,含 2 个真 PG integration test + deprecation 警告机制(use DbMock x2 / NoopMock x1 / mock_url x1 触发 4 个 warning)
+- ✅ **worktree**:`D:\RustGameServer-worktrees\WF-1-55-retry\` 收尾后清理(保留分支 `wbs/WF-1-55.27-retry` 供审计)
 
-### 10.4 git 工具链 bug 遗留(per RGS-TS-001 待登记)
+### 11.4 git 工具链 bug 已修 ✅ Closed(per 7c2db70)
 
-- `scripts/wbs_create_worktree.ps1` L4Id 正则 `^WF-[\d\.]+(?:\.[\d]+)?$` **不识别 `WF-0.5-X`** 格式(本次手动 `git worktree add` 绕开)
-- 影响:Phase 0.5 部署 worktree 走的手动流程,违反 RGS-WT-001 §11 自动化规范
-- 修复:加个 issue 到 `RGS-TS-001` §3 工具脚本章节,正则改 `^WF-(\d+(\.\d+)?)-(\d+)(?:\.(\d+))?$`(同时支持 `WF-1-53.1` + `WF-0.5-1` + `WF-1.5-7` 多种格式)
+- ✅ **Closed 2026-08-24 18:17(commit `7c2db70`)**:`scripts/wbs_create_worktree.ps1` L4Id 正则 `^WF-[\d\.]+(?:\.[\d]+)?$` → `^WF-(\d+(\.\d+)?)-(\d+)(\.\d+)?$`,同时支持 `WF-1-53.1` / `WF-0.5-1` / `WF-1.5-X` 多种格式
+- ✅ 新增 `scripts/test-l4id-regex.ps1` 回归测试 10/10 case pass
+- ✅ handoff §11.4 之前标"未修复"是过时的——已 commit 7c2db70 第 2 项任务交付
 
-### 10.5 RGS-WBS-001 文档 §11.4 引用错位(per PoC explorer 发现)
+### 11.5 RGS-WBS-001 文档 §11.4 vs §2A.6.7 引用错位 ✅ Closed(无文档错)
 
-- 主对话之前给你的 §11.4 引用是错的——WF-0.5-X 实际在 §2A.6.7(行 326-350),不在 §11.4
-- §11.4 表格是别的元信息(5 域 DTL 边界 + 跨域/平台 DTL 分配规则)
-- 修复:文档本身没错,引用需要更正(无文档修改,只主对话下次引用时用 §2A.6.7)
+- ✅ **Closed 2026-08-24 18:25(主对话盘点)**:WF-0.5-X 实际位置在 `RGS-WBS-001_瀑布式工作分解结构_v0.3.md` §2A.6.7(行 326-350),不是 §11.4
+- §11.4 表格内容是别的元信息(5 域 DTL 边界 + 跨域/平台 DTL 分配规则),与 WF-0.5-X 无关
+- **修复:文档本身没错,只是主对话之前引用章节号写错**。后续引用统一改用 §2A.6.7(已在 §11.2 注中修正)
+- **本项无代码/文档变更**,只主对话的引用习惯修正
 
-### 10.6 worktree 清理违规(一次性特殊场景)
+### 11.6 worktree 清理违规(一次性特殊场景)
 
 - 4 个 Phase 0.5 worktree 删除时**违反 RGS-WT-001 §6.6**(`git worktree remove --force` 强删因 untracked 文件)
 - 不可恢复(已删),但 SRE 不应重复此操作
 - **建议**:RGS-WT-001 §6.6 加例外条款"已合并入 main 的 worktree 可 --force",或加个"pre-clean 检查:worktree 状态必须全 untracked 都可重建"脚本
 
-### 10.7 3 个 rev-010 detached worktree 保留(per 之前决定)
+### 11.7 3 个 rev-010 detached worktree 保留(per 之前决定)
 
 - `D:\rev-010-V{1..3}` 仍存在,detached at `f31ca6c`(REV-010 V1-V3 留下的 verifier 副产物)
 - per 之前决定**保留**(用户未指示清理)
 - 不影响 git 状态,可后续手动清理:`git worktree remove D:\rev-010-V1 --force`(再走 §6.6 例外)或物理删除
 
-### 10.8 RGS-INC-001 文档名/版本不一致(per 文档本身)
+### 11.8 RGS-INC-001 文档名/版本不一致(per 文档本身)
 
 - 文件名:`RGS-INC-001_..._v0.1.md`
 - 文件内头部:"v0.2(v0.1 勘误)"
 - 不一致(类似 `RGS-INC-002` 实际是 v0.1 启动计划草案)
 - 修复:`git mv ..._v0.1.md ..._v0.2.md` + commit
+
+### 11.9 Phase 0.5 经验教训沉淀 ✅ Closed(per merge `7d68f73`)
+
+- ✅ **Closed 2026-08-24 18:38(commit `7d68f73`)**:`docs/14-项目管理/RGS-PM-008_Phase_0.5_Retrospective_v0.1.md` 入仓
+- ✅ 8 章节齐全:§0 元信息 / §1 范围与窗口 / §2 17 commit 时间线 + 2 补充 / §3 8 修复 + 3 commit + 4 B-CODE / §4 16 经验教训 / §5 6 风险 / §6 12 角色全签 per DEC-008 / §7 PH-1 后续 / §8 修订历史
+- **worktree**:`D:\RustGameServer-worktrees\WF-0-5-retro\` 收尾后清理(保留分支 `phase-0-5/retro` 供审计)
+
+### 11.10 5 域 DTL 字段级 Review 扫雷 ✅ Closed(per merge `452c3b2` 经 `77d06c2` 上链)
+
+- ✅ **Closed 2026-08-24 18:30(commit `452c3b2` 在 `phase-0-5/review` 分支,merge `77d06c2` 不涉及此 commit)**
+- ✅ 交付:`5-DOMAIN-DTL-REVIEW-REPORT.md` 26 KB,含 §1 状态矩阵(§A.1 跨 5 域 70 行 + §A.2-§A.7 域特定 125 行 = 195+ 行带具体行号引用)+ §2 6 行签字栏(per DEC-008 Ulysses 兼任)+ §3 3 处歧义占位 + §4 完成度自评
+- ✅ `RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md` 末尾加 §A.8(5 域 Lead + 架构师 6 行)+ §A.9(3 处歧义 `[WF-0-5-7 联检前需统一] [域 Lead 决议]` 占位)
+- ⚠️ **5 域完成度**:Admin 89% > Match 68% > Economy 57% > Player 53% > Social 43%,跨域 40%,**总体 ~58%**。**6 项关键缺口**:
+  1. A1.9 监控 + A1.10 容量 — 6/7 DTL 缺指标、0/7 DTL 有 DAU 100k/QPS 10k 数字
+  2. A1.13 DoD — 6/7 DTL 列入"不覆盖"(仅 DTL-031 §11.1 完整)
+  3. A2.1/A2.2 — `players` / `player_characters` / `player_inventory` 主表在 DTL-018+DTL-036 均无字段级 DDL
+  4. A5.1 — `messages`/`message_recipients`/`conversations` 消息分发主表在 DTL-019 缺失(DTL-019 实际是推送+兑换码,不是消息分发)
+  5. A7.3 — 跨域 Saga 步骤编号缺失 + Q-003 跨 DB Saga 审批未完成(DTL-031 §8.2 阻断)
+  6. A7.5 — 5 域监控指标命名一致性核查无基线
+- ⚠️ **G-CODE-05 完全关闭(field-level DD Review Gate)前需**:架构师决议 + Q-003/ADR-0052 具名 Gate 通过 + DTL-036 §6 待补齐项 4 条落地
+- **worktree**:`D:\RustGameServer-worktrees\WF-0-5-review\` 收尾后清理(保留分支 `phase-0-5/review` 供审计)
+
+### 11.11 引用扫雷 + render-secrets.ps1 路径修复 ✅ Closed(per merge `77d06c2`)
+
+- ✅ **Closed 2026-08-24 19:00(merge `77d06c2` + 2 commit `32333d2` + `f9512cc`)**
+- ✅ **v0.3 → v0.4 引用扫雷**:4 行 / 4 文件已替换(`RGS-WBS-001_DAG_v0.3.md:188` + `RGS-WT-001_GitWorktree隔离开发方案.md:228` + `docs/deploy/phase-0-5-handoff.md:313/369`)
+- ✅ **v0.1 → v0.2 引用扫雷**:2 行 / 2 文件已替换(`crates/function-plane/README.md:11` + `docs/deploy/phase-0-5-handoff.md:306`)
+- ✅ **`render-secrets.ps1` 路径修复**:`TemplateDir` 默认从硬编码 `D:\RustGameServer-worktrees\WF-0-5-3\...` 改为 `Join-Path $PSScriptRoot '01-k8s-manifests'`,跨 worktree/克隆通用
+- ✅ 2 份扫雷报告入仓:`docs/00-基本与治理/reviews/phase-0-5-citation-sweep/{v0.1,v0.3}-引用-扫雷-报告.md`
+- ⚠️ **3 处未决**(保守不改):
+  1. WBS 主文档 `RGS-WBS-001_瀑布式工作分解结构_v0.3.md:826, 1003` 内部 2 处 v0.3 引用(主文档不能改)
+  2. handoff §10.8 第 407 行(历史快照,保留)
+  3. WBS 主文档应升 v0.4 时统一改(单开下一个 worktree)
+- ⚠️ **顺手发现 2 处断链**(不在本任务范围,仅记录):`07-no-go-checklist_v0.4.md:96` 自指断链 + `phase-0-5-handoff.md:263/265/285` 引用不存在的 `07-no-go-checklist_business_v0.3.md`(handoff 自己写的 Step 5 重跑后升 v0.3)
+- **worktree**:`D:\RustGameServer-worktrees\WF-0-5-citation\` 收尾后清理(保留分支 `phase-0-5/citation` 供审计)
+
+### 11.12 4 worker 并行结果总览(2026-08-24 18:25 ~ 19:00)
+
+- **结果**:**4/4 succeeded**(0 失败,此前主对话误判"4/4 error 0 产出"已修正,见 §11 修订历史)
+- **worktree 清理**:WF-1-55-retry / WF-0-5-review / WF-0-5-citation / WF-0-5-retro 4 个 worktree 收尾后清理(保留分支供审计)
+- **commit 落地 7 个**:
+  - `452c3b2` [phase-0-5/review] 5 域 DTL 字段级 Review 扫雷(2 文件 / 244 行)
+  - `7d68f73` [retro] Phase 0.5 经验教训沉淀(1 文件 / 248 行)
+  - `e4c084e` [saga-drill] G-CODE-04 Saga 6 场景详细演练(1 文件 / 881 行)
+  - `32333d2` [phase-0.5] 引用扫雷:RGS-WBS-001 L4 进度表 v0.3→v0.4 + RGS-INC-001 v0.1→v0.2(6 文件 / 206 ins / 6 del)
+  - `f9512cc` [fix] render-secrets.ps1:TemplateDir 默认值由硬编码 worktree 路径改为动态(1 文件 / 3 ins / 3 del)
+  - `c96efe8` / `a80fa94` / `f6a6f3f` / `14036d6` Saga 修复 3 L4 + tag 收尾(30 文件 / 801 行 / 97 删)
+- **merge 落地 2 个**:
+  - `77d06c2` [merge] phase-0-5/citation(7 文件 / 209 行 / 9 删)
+  - `195bfae` [merge] wbs/WF-1-55.27-retry(30 文件 / 801 行 / 97 删)
 
 ---
 
@@ -430,7 +489,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 2. `Dockerfile` 内置静态编译的 `grpc_health_probe`(v0.4.56,linux-amd64,SHA-256 pin,已校验)二进制到 `runtime-base` 镜像。
 3. 6 份 k8s manifest 的 `livenessProbe` / `readinessProbe` 从 `grpc:` 改为 `exec:`,执行 `grpc_health_probe` 并携带 `-tls` 系列参数,**复用各服务自己挂载的 mTLS server 证书**(`/etc/rgs/certs/server.pem` + `.key`)作为探针的 client 身份(`rgs-certgen` 生成证书未设 `ExtendedKeyUsage`,可同时充当 serverAuth/clientAuth,无需新证书/新 Secret)。
 
-### 12.3 已变更文件(**尚未 commit**,SRE 接力前请确认已入库)
+### 12.3 已变更文件(已 commit `66ff53b`,26 文件 / 685 行 / 96 删)
 
 - `Cargo.toml`(workspace)+ 6 服务 `Cargo.toml`:加 `tonic-health = "0.12"`
 - `crates/{player,economy,match,social,admin}-service/src/main.rs` + `crates/cluster-ops/src/main.rs`:注册 `health_reporter` / `health_service`,`add_service` 挂载
