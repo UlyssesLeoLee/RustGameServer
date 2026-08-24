@@ -1,9 +1,9 @@
-# RGS-WBS-001 L4 任务进度表 v0.3
+# RGS-WBS-001 L4 任务进度表 v0.4
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD3 |
-| 版本 | 0.3（per RGS-WBS-001 v0.3 §6.3 + §13 跨会话恢复）|
+| 版本 | 0.4（v0.3 → v0.4：NO-GO 形式上解除后补登 WF-0.5-1/2/3 三行 done；§3 同步更新）|
 | 依据 | RGS-WBS-001 v0.3 §2A L4 任务清单 + §6.3 进度字段 + §13 跨会话恢复 |
 | 状态 | 🟠 **占位**（NO-GO 未解除前为空表；G-CODE-06 实测通过后由 wbs_task_progress.ps1 自动填充）|
 | 责任人 | Ulysses（一人公司 12 角色兼任 per DEC-008）|
@@ -17,6 +17,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.3 | 2026-08-21 | Ulysses | **占位初版**：per RGS-WBS-001 v0.3 §6.3 + §13 跨会话恢复。状态为占位，等 G-CODE-06 实测通过后由 `wbs_task_progress.ps1` 自动填充。 |
+| 0.4 | 2026-08-24 | Ulysses（一人公司 12 角色全签 per DEC-008）| **NO-GO 形式上解除后手工补登**：§3 WF-0.5 阶段 7→4 pending + 3 done；§4 手工补登 WF-0.5-1/2/3（Phase 0.5 Step 1+5 / 2+3 / 4 部署）三行 done。WF-0.5-6（worker 失败）由主对话接手，状态仍为 pending（不计入 done）。 |
 
 ---
 
@@ -54,25 +55,28 @@ pending → in_progress (start) → done (done)
 
 ## 3. 进度汇总（实时表）
 
-> **本节由 `wbs_list.ps1 -Summary` 自动生成**。当前 NO-GO 状态，所有任务为 `pending`。
+> **本节由 `wbs_list.ps1 -Summary` 自动生成**。v0.4 状态：NO-GO 形式上解除，WF-0.5 阶段 3 个 done 已手工补登（其余仍 pending，等 wbs_task_progress.ps1 实测通过后自动覆盖）。
 
 | Stage | 任务数 | pending | in_progress | done | blocked |
 |---|---|---|---|---|---|
 | WF-0 | 2 | 2 | 0 | 0 | 0 |
-| WF-0.5 | 7 | 7 | 0 | 0 | 0 |
+| WF-0.5 | 7 | 4 | 0 | 3 | 0 |
 | WF-1 | 113 | 113 | 0 | 0 | 0 |
 | WF-2 ~ WF-7 | 6 | 6 | 0 | 0 | 0 |
-| **合计** | **128** | **128** | **0** | **0** | **0** |
+| **合计** | **128** | **125** | **0** | **3** | **0** |
 
 > **注**：WF-0 / WF-7 等 9 个 stage 大类行不计入 L4 任务数；实际 L4 任务数 = 128 - 7（阶段占位）= 121。详见 `wbs_list.ps1 -Summary` 输出。
 
 ## 4. L4 任务详细进度表
 
-> **本节由 `wbs_task_progress.ps1` 调用时自动更新**。当前 NO-GO 状态，所有任务为 `pending`。G-CODE-06 实测通过后开始填充。
+> **本节由 `wbs_task_progress.ps1` 调用时自动更新**。v0.4 状态：NO-GO 形式上解除，WF-0.5-1/2/3 三行 done 已手工补登（其余仍 pending，等 G-CODE-06 实测通过 + wbs_task_progress.ps1 调用后开始自动覆盖）。
 
 | L4 # | 任务摘要 | owner | status | progress | 启动时间 | 备注 |
 |---|---|---|---|---|---|---|
-| _（NO-GO 解除后由 wbs_task_progress.ps1 填充）_ | | | | | | |
+| WF-0.5-1 | Phase 0.5 Step 1+5 部署（5 域 manifest + docker image） | Ulysses（per DEC-008）| done | 100% | 2026-08-24T07:30:00+09:00 | commit 7046936（per 1190 行 + 4467080）|
+| WF-0.5-2 | Phase 0.5 Step 2+3 部署（NATS + OTel/Prom/Grafana） | Ulysses（per DEC-008）| done | 100% | 2026-08-24T07:30:00+09:00 | commit c5a0c9f（per 1897 行 + 1183515）|
+| WF-0.5-3 | Phase 0.5 Step 4 部署（mTLS + Secret + fail-closed） | Ulysses（per DEC-008）| done | 100% | 2026-08-24T07:30:00+09:00 | commit 765930a（per 1457 行 + 2b70b0b）|
+| _（其余 WF-0.5-4/5/6/7 + WF-1 全部仍 pending，等 G-CODE-06 实测通过后由 wbs_task_progress.ps1 填充）_ | | | | | | |
 
 ## 5. 跨会话恢复 SOP（per RGS-WBS-001 v0.3 §13）
 
