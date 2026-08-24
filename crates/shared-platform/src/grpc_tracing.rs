@@ -23,12 +23,17 @@ pub const TRACEPARENT_HEADER: &str = "traceparent";
 ///
 /// `span_id` 入参用 16-byte UUID：高位 8 字节填 0、低位 8 字节承载真实 span_id。
 /// 这样 simple() 输出 32 hex chars 与原 traceparent 格式兼容。
-fn build_traceparent(trace_id: Uuid, span_id: Uuid) -> String {
+///
+/// 55.45 升级：从 `fn` 升为 `pub(crate)`，让 producer/consumer 同级模块复用，
+///         避免 NATS 端重复实现（DRY）+ 保持 traceparent 格式与 gRPC 端完全一致。
+pub(crate) fn build_traceparent(trace_id: Uuid, span_id: Uuid) -> String {
     format!("00-{}-{}-01", trace_id.simple(), span_id.simple())
 }
 
 /// parse traceparent header → (trace_id, span_id)
-fn parse_traceparent(value: &str) -> Option<(Uuid, Uuid)> {
+///
+/// 55.45 升级：从 `fn` 升为 `pub(crate)`，让 consumer 模块直接复用解析逻辑。
+pub(crate) fn parse_traceparent(value: &str) -> Option<(Uuid, Uuid)> {
     let parts: Vec<&str> = value.split('-').collect();
     if parts.len() != 4 {
         return None;

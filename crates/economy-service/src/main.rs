@@ -67,6 +67,15 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
+    // 55.45 OTLP exporter 条件初始化（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45 §3.3）
+    // 默认 OTEL_SDK_DISABLED=true（53.12 任务未完成），即不真正启用
+    // 53.12 完成后：去掉 OTEL_SDK_DISABLED env → 实际初始化
+    let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
+        "economy-service",
+        env!("CARGO_PKG_VERSION"),
+        "dev",
+    );
+
     let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:50052".to_string())
         .parse()
