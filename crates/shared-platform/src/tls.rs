@@ -13,6 +13,19 @@ use std::path::Path;
 use thiserror::Error;
 use tonic::transport::{Certificate, ClientTlsConfig, Identity, ServerTlsConfig};
 
+/// 安装进程级默认 rustls CryptoProvider（per rustls 0.23 要求）。
+///
+/// aws-lc-rs 与 ring 两个 provider 同时被依赖树间接启用时，rustls 无法自动选择，
+/// 首次建立 TLS 连接会 panic。各服务 main() 入口需在任何 TLS 操作前调用一次本函数。
+/// 重复调用（如测试并发）是安全的：`install_default` 失败仅代表已被安装过，忽略即可。
+///
+/// 选用 ring 而非 aws-lc-rs：aws-lc-rs 的 C 编译产物在 builder 镜像（较新 glibc）
+/// 下链接后，在 distroless Debian 12 运行时镜像（glibc 2.36）里报
+/// `GLIBC_2.38 not found`；ring 是纯 Rust + 手写汇编实现，无此跨镜像 glibc 版本依赖。
+pub fn install_default_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// mTLS 错误
 #[derive(Debug, Error)]
 pub enum TlsError {

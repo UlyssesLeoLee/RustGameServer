@@ -62,6 +62,11 @@ spec:
         - name: match
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-match
           imagePullPolicy: IfNotPresent
+          command: ["/app/bin/match-service"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: grpc
               containerPort: 50053
@@ -80,8 +85,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: match-db-secret
-                  key: DATABASE_URL
+                  name: match-db-credentials
+                  key: url
             - name: NATS_URI
               value: "nats://nats:4222"
             - name: RGS_TLS_DIR
@@ -106,15 +111,31 @@ spec:
               cpu: 4000m
               memory: 4Gi
           livenessProbe:
-            grpc:
-              port: 50053
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50053
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=match.service
+                - -connect-timeout=2s
             initialDelaySeconds: 20
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 3
           readinessProbe:
-            grpc:
-              port: 50053
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50053
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=match.service
+                - -connect-timeout=2s
             initialDelaySeconds: 5
             periodSeconds: 5       # 实时 — readiness 5s 频次
             timeoutSeconds: 2
@@ -125,15 +146,20 @@ spec:
               readOnly: true
       volumes:
         - name: rgs-tls
-          secret:
-            secretName: rgs-tls-match
-            items:
-              - key: tls.crt
-                path: server.pem
-              - key: tls.key
-                path: server.key
-              - key: ca.crt
-                path: ca.pem
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-match-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
 ---
 apiVersion: v1
 kind: Service

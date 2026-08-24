@@ -62,6 +62,11 @@ spec:
         - name: admin
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-admin
           imagePullPolicy: IfNotPresent
+          command: ["/app/bin/admin-service"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: grpc
               containerPort: 50055
@@ -80,8 +85,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: admin-db-secret
-                  key: DATABASE_URL
+                  name: admin-db-credentials
+                  key: url
             - name: NATS_URI
               value: "nats://nats:4222"
             - name: RGS_TLS_DIR
@@ -110,15 +115,31 @@ spec:
               cpu: 1000m
               memory: 1Gi
           livenessProbe:
-            grpc:
-              port: 50055
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50055
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=admin.service
+                - -connect-timeout=2s
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
-            grpc:
-              port: 50055
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50055
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=admin.service
+                - -connect-timeout=2s
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -132,15 +153,20 @@ spec:
               readOnly: true
       volumes:
         - name: rgs-tls
-          secret:
-            secretName: rgs-tls-admin
-            items:
-              - key: tls.crt
-                path: server.pem
-              - key: tls.key
-                path: server.key
-              - key: ca.crt
-                path: ca.pem
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-admin-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
         - name: coc-tls
           secret:
             secretName: coc-ops-secret
