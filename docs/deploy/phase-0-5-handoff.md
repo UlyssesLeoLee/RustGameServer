@@ -112,10 +112,27 @@ kubectl get nodes  # 期望 ulyssespc Ready
 
 ### Step 2:6 业务域镜像推送 ghcr.io(1 小时)
 
+**Step 2.1:获取 GHCR_PAT(5 分钟)**
+
 ```bash
-# 登录 ghcr.io
-docker login ghcr.io -u <github-username> -p <GHCR_PAT>
-# 或:echo $GHCR_PAT | docker login ghcr.io -u <user> --password-stdin
+# 1. 打开 https://github.com/settings/tokens
+# 2. 点 "Generate new token" → "Generate new token (classic)"
+# 3. 配置:
+#    Note:        rgs-phase-0.5-image-push
+#    Expiration:  90 days
+#    Scopes:      ✅ write:packages  (push 镜像)
+#                 ✅ read:packages   (K3s node pull)
+# 4. 点 "Generate token" → 立即复制(只显示一次!)
+#    token 格式: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**Step 2.2:登录 ghcr.io + 跑 build 脚本**
+
+```bash
+# 登录 ghcr.io(在 WSL2 内,不是 Windows)
+export GHCR_PAT='ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+echo $GHCR_PAT | docker login ghcr.io -u <github-username> --password-stdin
+# 期望: Login Succeeded
 
 # 跑 build 脚本
 cd /d/RustGameServer
