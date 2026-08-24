@@ -10,7 +10,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nats-server-config
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: nats
     app.kubernetes.io/component: message-bus
@@ -43,9 +43,9 @@ data:
     #   name: rgs-nats
     #   listen: 0.0.0.0:6222
     #   routes: [
-    #     nats://nats-0.nats-headless.rgs.svc.cluster.local:6222,
-    #     nats://nats-1.nats-headless.rgs.svc.cluster.local:6222,
-    #     nats://nats-2.nats-headless.rgs.svc.cluster.local:6222
+    #     nats://nats-0.nats-headless.rust-game-server.svc.cluster.local:6222,
+    #     nats://nats-1.nats-headless.rust-game-server.svc.cluster.local:6222,
+    #     nats://nats-2.nats-headless.rust-game-server.svc.cluster.local:6222
     #   ]
     # }
 

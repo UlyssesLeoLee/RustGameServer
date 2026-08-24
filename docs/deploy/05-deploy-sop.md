@@ -187,10 +187,14 @@ kubectl apply -f deploy/01-k8s-manifests/03-match-service.yaml
 **责任人**：match 域 Lead
 **签字栏**：`RGS-ENV-001 v0.3 §6` match 域 Lead 类别
 
-### 步骤 6：shared-platform（QUIC edge / OTel collector）
+### 步骤 6：shared-platform（QUIC edge 占位）+ OTel collector
+
+> 2026-08-24 架构复核：`07-shared-platform.yaml` 内原有的 otel-collector 定义与
+> Step 3 的 `40-otel-collector-*.yaml` 重复，已从 07 中移除。OTel Collector 改用
+> Step 3 脚本部署（见下），07 现仅保留 QUIC edge 占位说明。
 
 ```bash
-kubectl apply -f deploy/01-k8s-manifests/07-shared-platform.yaml
+pwsh -File docs/deploy/phase-0-5-step-3-render-observability.ps1
 ```
 
 **责任人**：Platform 架构师

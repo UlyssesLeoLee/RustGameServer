@@ -15,7 +15,7 @@
         configmap, pvc, deployment, service  (4 files)
 
     Pre-flight:
-      - Verify namespace `rgs` exists
+      - Verify namespace `rust-game-server` exists
       - Verify Grafana admin Secret exists (operator-created before apply)
       - Verify StorageClass `local-path` is available
 
@@ -46,7 +46,7 @@
     Per RGS-DTL-100 §7 + ARC-051 CEM
     Author: Phase 0.5 Step 3 deploy worker (WF-0.5-2)
     Pre-req: Grafana admin Secret must exist (kubectl create secret generic
-    grafana-admin-secret --from-literal=admin-password=... -n rgs)
+    grafana-admin-secret --from-literal=admin-password=... -n rust-game-server)
 #>
 
 [CmdletBinding()]
@@ -59,7 +59,7 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
 $ManifestDir = Join-Path $PSScriptRoot "01-k8s-manifests"
-$Namespace = "rgs"
+$Namespace = "rust-game-server"
 
 # Order matters: ConfigMap/SA/PVC first, then Deployment/Service
 $Files = @(

@@ -12,7 +12,7 @@
       30-nats-networkpolicy.yaml  (NetworkPolicy: 5 domain ingress only)
 
     Pre-flight:
-      - Verify namespace `rgs` exists (else fail-fast)
+      - Verify namespace `rust-game-server` exists (else fail-fast)
       - Verify kubeconfig context is reachable
       - Verify PVCs StorageClass `local-path` is available (k3s default)
 
@@ -50,7 +50,7 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
 $ManifestDir = Join-Path $PSScriptRoot "01-k8s-manifests"
-$Namespace = "rgs"
+$Namespace = "rust-game-server"
 $Files = @(
     "30-nats-pvc.yaml",
     "30-nats-configmap.yaml",

@@ -12,7 +12,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/component: observability
@@ -45,7 +45,7 @@ spec:
               mountPath: /etc/grafana/dashboards
       containers:
         - name: grafana
-          image: grafana/grafana:11.2.0
+          image: grafana/grafana:13.2.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: web

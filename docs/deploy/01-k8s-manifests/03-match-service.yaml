@@ -51,6 +51,8 @@ spec:
         rust-game-server.io/real-time: "true"
     spec:
       serviceAccountName: match-service-account
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

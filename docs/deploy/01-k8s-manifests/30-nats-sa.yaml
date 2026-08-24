@@ -10,7 +10,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nats-service-account
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: nats
     app.kubernetes.io/component: message-bus
@@ -21,7 +21,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: nats-server-role
-  namespace: rgs
+  namespace: rust-game-server
 rules:
   # NATS 自身只读 configmap（含 nats.conf）
   - apiGroups: [""]
@@ -37,11 +37,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: nats-server-role-binding
-  namespace: rgs
+  namespace: rust-game-server
 subjects:
   - kind: ServiceAccount
     name: nats-service-account
-    namespace: rgs
+    namespace: rust-game-server
 roleRef:
   kind: Role
   name: nats-server-role

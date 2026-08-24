@@ -11,7 +11,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/component: observability

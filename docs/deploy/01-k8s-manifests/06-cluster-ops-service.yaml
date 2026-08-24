@@ -64,6 +64,8 @@ spec:
             matchLabels:
               app.kubernetes.io/name: cluster-ops
       serviceAccountName: cluster-ops-service-account
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

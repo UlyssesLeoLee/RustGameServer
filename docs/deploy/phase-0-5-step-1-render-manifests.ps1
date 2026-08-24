@@ -12,6 +12,16 @@
     - 备份原文件到 docs/deploy/01-k8s-manifests/.bak/<timestamp>/
     - 渲染完成后输出 SHA256 哈希便于审计
 
+    ⚠️ 已知缺口（2026-08-24 架构复核发现，尚未修复）：
+    Render-DomainDeployment 只生成 Deployment 这一个 K8s object，但
+    docs/deploy/01-k8s-manifests/{01..06}-*-service.yaml 目前实际包含 5 个 object
+    （ServiceAccount + Deployment + Service + HPA + PodDisruptionBudget）。
+    重跑本脚本会用 -Force 整体覆盖每个文件，只留下 Deployment 一个 object，
+    等于删除已提交的 SA/Service/HPA/PDB 定义。在这一缺口补齐（把另外 4 个
+    object 也纳入渲染函数）之前，禁止在已有 SA/Service/HPA/PDB 内容的环境
+    重跑本脚本；如只需改 Deployment 字段（如本次新增的 imagePullSecrets），
+    请直接手改对应 yaml 文件。
+
     硬约束（per 主对话 NO-GO 解除决议 + DEC-008 12 角色签字）：
     - **仅修改** docs/deploy/01-k8s-manifests/*.yaml
     - **不修改** 业务代码（crates/**/src/*.rs）
@@ -155,6 +165,8 @@ spec:
 $deploymentLabels
     spec:
       serviceAccountName: $sa
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
