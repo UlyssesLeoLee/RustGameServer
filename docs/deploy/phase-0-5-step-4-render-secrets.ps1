@@ -121,8 +121,9 @@ foreach ($item in $renderOrder) {
         $crtB64 = Get-Base64File -Path $crtPem
         $keyB64 = Get-Base64File -Path $keyPem
 
-        $content = $content -replace [regex]::Escape('REPLACE_BEFORE_DEPLOY_' + ($item.Domain.ToUpper()) + '_TLS_CRT'), $crtB64
-        $content = $content -replace [regex]::Escape('REPLACE_BEFORE_DEPLOY_' + ($item.Domain.ToUpper()) + '_TLS_KEY'), $keyB64
+        $domainToken = $item.Domain.ToUpper().Replace('-', '_')
+        $content = $content -replace [regex]::Escape('REPLACE_BEFORE_DEPLOY_' + $domainToken + '_TLS_CRT'), $crtB64
+        $content = $content -replace [regex]::Escape('REPLACE_BEFORE_DEPLOY_' + $domainToken + '_TLS_KEY'), $keyB64
     }
     else {
         # CA Secret:Opaque, 字段 ca.pem
@@ -132,7 +133,7 @@ foreach ($item in $renderOrder) {
     }
 
     # namespace 注入(per Phase 0.5 部署约定 rgs;若 SRE 改 rgs-game 自行覆盖)
-    $content = $content -replace '(?m)^  namespace: rgs$', "  namespace: $Namespace"
+    $content = $content -replace '(?m)^  namespace: rgs\r?$', "  namespace: $Namespace"
 
     [System.IO.File]::WriteAllText($outPath, $content, [System.Text.Encoding]::UTF8)
     Write-Host "[OK] 渲染 $($item.Output) ($((Get-Item $outPath).Length) bytes)"

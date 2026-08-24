@@ -28,7 +28,7 @@ spec:
       port: 4318
       targetPort: 4318
       protocol: TCP
-    - name: prometheus-exporter
+    - name: prom-exporter
       port: 8889
       targetPort: 8889
       protocol: TCP
