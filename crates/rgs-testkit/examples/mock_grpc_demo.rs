@@ -1,46 +1,66 @@
-//! `GrpcMock` trait 完整使用示例 (53.3 占位形态)
+//! `TonicGrpcMock` 完整使用示例 (54.x 实质化版本)
 //!
 //! Run: `cargo run -p rgs-testkit --example mock_grpc_demo`
 //!
-//! 54.x 接入计划 (per §3.2):
-//! - `TonicGrpcMock` (mockito 集成) —— `expect("POST", "/path", 200, body)`
-//! - 5 域跨域 gRPC 单元/集成 test
+//! 演示 `mockito` 集成的 gRPC mock, 用于 5 域跨域测试 fixture:
+//! - `TonicGrpcMock::new().await` 启动 mock server
+//! - `mock.expect(method, path, status, body)` 注册 expectation
+//! - `mock.url()` 给 tonic client connect 用
 //!
-//! 当前 53.3 形态: `GrpcMock` trait 仅 `serve()` 占位方法 + `NoopMock` 空实现.
-//! 本 example 演示 trait 当前形态 + 54.x 演进方向.
-//!
-//! 注: 故意允许 deprecation 警告以演示 53.3 NoopMock 占位形态,
-//! 与 `test_deprecated_warns.rs` 一致. 业务 test 禁止用 NoopMock 替代真 PG.
+//! 关联: `RGS-SPEC-000 §2.4` + `RGS-IMPL-001 §3` + WF-1 mock-grpc (per 53.3 骨架 → 54.x 接入)
 
-#![allow(deprecated)]
-
-use rgs_testkit::mock::{GrpcMock, NoopMock};
+use rgs_testkit::mock::{GrpcMock, TonicGrpcMock};
 
 #[tokio::main]
 async fn main() {
-    println!("=== GrpcMock 完整使用示例 (53.3 形态) ===\n");
+    println!("=== TonicGrpcMock 完整使用示例 (54.x 实质化) ===\n");
 
-    // 1. 53.3 当前 API: NoopMock 实现 GrpcMock::serve() 占位
-    let m = NoopMock;
-    println!("[1] GrpcMock::serve() (53.3 占位, 返回 Ok)");
-    let result = m.serve().await;
-    println!("    result = {:?}\n", result);
+    // 1. 启动 mock server 拿 url
+    println!("[1] TonicGrpcMock::new().await 启动 mock server");
+    let mut mock = TonicGrpcMock::new().await;
+    let url = mock.url().to_string();  // owned String, 避免与 expect() 的 &mut self 借用冲突
+    println!("    mock server url = {}\n", url);
+    assert!(url.starts_with("http://127.0.0.1:") || url.starts_with("http://localhost:"));
 
-    // 2. 54.x 计划 API (待接入, 编译期不可用)
-    println!("[2] 54.x 计划 API (尚未接入):");
-    println!("    use rgs_testkit::mock::{{GrpcMock, TonicGrpcMock}};");
-    println!("    let mut mock = TonicGrpcMock::new().await;");
-    println!("    mock.expect(\"POST\", \"/player.v1.PlayerService/Login\", 200, br#\"{{\"session_epoch\":\"e1\"}}\"#);");
-    println!("    let url = mock.url();");
-    println!("    // 给 tonic client connect 用");
-    println!("    assert!(url.starts_with(\"http://\"));");
-    println!();
+    // 2. 注册 1 个 expectation (player 域 Login RPC)
+    println!("[2] mock.expect() 注册 1 个 expectation");
+    mock.expect(
+        "POST",
+        "/player.v1.PlayerService/Login",
+        200,
+        br#"{"session_epoch":"e1","player_id":"p1"}"#,
+    );
+    println!("    POST /player.v1.PlayerService/Login → 200\n");
 
-    // 3. 跨域场景: 5 域 DTL §6 测试规格引用
-    println!("[3] 5 域跨域 gRPC 测试 (54.x 接入后可用):");
-    println!("    player-service → economy-service (登录后扣费)");
-    println!("    player-service → social-service (登录后推送通知)");
-    println!("    match-service → admin-service (异常比赛上报)");
+    // 3. 用 std::net::TcpStream 端到端验证(不引 reqwest/ureq)
+    println!("[3] 端到端验证 (raw HTTP/1.1 request)");
+    use std::io::{Read, Write};
+    use std::net::TcpStream;
+    let host_port = url.trim_start_matches("http://");
+    let mut stream = TcpStream::connect(host_port).expect("connect mock server");
+    let request = format!(
+        "POST /player.v1.PlayerService/Login HTTP/1.1\r\n\
+         Host: {}\r\n\
+         Content-Type: application/json\r\n\
+         Content-Length: 0\r\n\
+         Connection: close\r\n\
+         \r\n",
+        host_port
+    );
+    stream.write_all(request.as_bytes()).expect("write request");
+    let mut response = String::new();
+    stream.read_to_string(&mut response).expect("read response");
+    let status_line = response.lines().next().unwrap_or("");
+    println!("    response status = {}", status_line);
+    assert!(status_line.contains("200"), "expected 200 OK");
+    assert!(response.contains("session_epoch"));
+    println!("    ✓ status=200 + body contains session_epoch\n");
+
+    // 4. 5 域跨域 gRPC 场景
+    println!("[4] 5 域跨域 gRPC 测试场景 (per DTL-021~025):");
+    println!("    player-service  → economy-service (TransferCredits, 登录后扣费)");
+    println!("    player-service  → social-service  (PushNotify, 登录后推送通知)");
+    println!("    match-service   → admin-service   (AuditReport, 异常比赛上报)");
 
     println!("\n=== Demo complete ===");
 }
