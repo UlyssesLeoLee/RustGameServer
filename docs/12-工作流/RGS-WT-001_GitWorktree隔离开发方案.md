@@ -138,6 +138,38 @@ git worktree prune --dry-run
 5. 合并或停止后，确保 worktree 干净，运行 `doctor`，再用 `remove` 回收。保留 `codex/wt-<task>` 分支直到 PR、评审证据与变更管理允许删除。
 6. 发现目录已被人为删除、Git 报告 `prunable` 或元数据不一致时，先运行 `git worktree prune --dry-run` 并保留输出；由仓库管理员确认后再处理。不得直接执行强制清理。
 
+### 6.7 多 session 协调与禁止静默 stash（per phase-0-5 反馈单 Issue 1，2026-08-24 加）
+
+> 背景：2026-08-24 Phase 0.5 期间，并发 2 个 session 改 main（handoff 维护 + 8 类本地修复），第 2 个 session 完成后主对话为不丢失本 session 进度执行 `git stash`，但 stash 内容在另一个 session 的 working tree 中"凭空消失"，第 2 个 session 重新加载时已无法定位。事件是"运气好没丢东西"，但不是流程保证。
+
+**强制规则**（明文违反 = 视为本方案违规）：
+
+1. **改动前协调**：多 session 并发操作同一仓库时，**改动前**必须跑：
+   ```bash
+   git fetch --all
+   git status --short
+   git log --oneline -5
+   ```
+   任一命令输出不符合预期（本地有非本 session 改动 / main 推进 / stash 列表非空）时，**先**：
+   - 在 `docs/deploy/<phase>-handoff.md`（或本项目当前活跃 handoff 文档）登记"本 session 正在编辑：文件列表 + 时间戳"，**或**
+   - 在主对话 channel 同步"本 session 接管了哪些文件 / 时间窗口"
+
+2. **禁止静默 stash 别人未提交改动**：
+   - ❌ **不允许**对 working tree 中有非本 session 改动的文件执行 `git stash`（含 `git stash --include-untracked`）而不在 handoff 留底
+   - ❌ **不允许**stash 后 drop 别人 worktree 中正在用的改动而不通知
+   - ✅ **必须**的 stash 写法（明文记原因 + 接手人）：
+     ```bash
+     git stash push -m "原因: <具体原因，例如"handoff §11 修订已被 6d985d6 包含，避免重复"> 接手: <session-id 或 'main' 或 'drop 计划'> $(date -Iseconds)"
+     ```
+   - ✅ **优先**的替代：保留在 working tree（让别的 session 看见并显式 merge），不要用 stash 当"临时回收站"
+
+3. **违反处置**：
+   - 本规则违反事件应作为 `RGS-INC-*`（incident）登记，**不**作为普通 bug 静默处理
+   - 复盘 handoff 必须含"本事件被哪条规则覆盖"+"避免下次的具体改动"
+   - 复盘人签字 = Ulysses（一人公司 12 角色兼任 per DEC-008）
+
+**与 RGS-WT-001 §6.6 的关系**：本节不替代 §6.6（worktree 清理不用 `--force`）；本节是 §6.6 的**前置**——"在清理别人 worktree 之前先确认别人未提交改动不被你 stash 走"。
+
 ## 7. 进入实施前的验收
 
 本方案在以下条件全部满足时，视为“并行开发环境隔离已就绪”；它仍只是 53 開発環境構築 的一项环境证据：
@@ -267,3 +299,42 @@ pwsh -NoProfile -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
 **不**兼容 PowerShell 5.1（Windows 默认）— 因为 §2 通用 `worktree.ps1` 用 ANSI 系统编码解析中文路径，PS 5.1 解析中文目录名失败（GBK vs UTF-8 冲突）。
 
 如果只有 PS 5.1：用 `chcp 65001` + 重启 PS，但建议升级 PS 7（Ulysses 环境已装 PS 7.6.3）。
+
+### 11.6 多 session 协调 / 禁止静默 stash（per §6.7，2026-08-24 加）
+
+> 详见 §6.7。本节是 §6.7 的**索引**——L4 任务 worktree 模式下，所有 4 个 `wbs_*.ps1` 脚本**必须**遵守 §6.7 规则：
+> 1. 改动前 `git fetch` + `git status`，检查无他人在途改动
+> 2. stash 必须 `git stash push -m "原因: ... 接手: ..."` 明文记录，不允许静默 stash
+
+**WBS 脚本对 §6.7 的合规检查**（手工 review 用，`wbs_*.ps1` **不**自动检查——避免脚本复杂化）：
+- `wbs_create_worktree.ps1` 创建前应输出 `git fetch --all; git status --short` 结果（≥ 1 行）
+- `wbs_merge.ps1` 合并前应输出 `git stash list` 结果，**如非空**应 human-in-the-loop 确认
+- `wbs_task_progress.ps1` 标 done 前应输出 `git log --oneline <branch>..main` 结果，**如非 0**应 human-in-the-loop 确认
+
+### 11.7 worktree 清理违规例外条款（per phase-0-5 反馈单 §11.6 案例，2026-08-24 加）
+
+> 背景：2026-08-24 Phase 0.5 期间，主对话 4 次 `git worktree remove --force` 强删 worktree，**违反**本方案 §6.6 不用 `--force` 的规则。事后盘点：因 WF-0-5-6 worker 失败留下 untracked `.wbs-task-marker` + `.recon/`，标准 `git worktree remove` 会拒绝（"worktree contains modified or untracked files"），主对话选择 `--force` 是**偷懒路径**。
+
+**修正条款**（替代 §6.6 末段「不得对 worktree 执行 `git worktree remove --force`」）：
+
+- ❌ **不允许**：`git worktree remove --force <path>` 无前置 clean 的强删（**这是反模式**）
+- ✅ **允许**的清理流程（已合并入 main 的 worktree）：
+  ```bash
+  # 1. 在目标 worktree 内手动 clean
+  cd D:/RustGameServer-worktrees/<name>
+  git status --short                 # 应为空（commit 全部已合并 / 未提交改动已 stash）
+  # 2. untracked 文件 / 残留 marker 单独处理
+  rm -f .wbs-task-marker             # 已 merge 的 marker 在合并阶段已被 wbs_merge.ps1 清理
+  rm -rf .run-logs/                   # per .gitignore
+  # 3. 走标准 remove
+  cd D:/RustGameServer
+  git worktree remove D:/RustGameServer-worktrees/<name>   # 不加 --force
+  git branch -d <branch>                                    # 不加 -D
+  ```
+- 🔁 **如标准 remove 失败**（"worktree contains modified or untracked files"）：
+  - 第 1 步：人审签字（一人公司 = Ulysses per DEC-008），明确"接受丢失 untracked 文件"
+  - 第 2 步：备份 untracked 到 `D:/RustGameServer/.git-trash/<worktree>-<timestamp>/`
+  - 第 3 步：**才**允许 `git worktree remove --force <path>`
+  - 第 4 步：登记 `RGS-INC-*` incident，**不**视为合规清理
+
+**本节登记目的**：明确"标准流程"是**先 clean 再 remove"，`--force` 是**已签名 incident 的应急**"，不是"日常快捷键"。
