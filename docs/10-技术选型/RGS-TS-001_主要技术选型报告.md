@@ -1,15 +1,15 @@
 # 技术选型报告（技術選定レポート / Technology Selection Report）
 
-**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.6**
+**RustGameServer 分布式游戏服务器 — 主要技术选型 v0.7**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TS-001 |
-| 版本 | 0.6 |
+| 版本 | 0.7 |
 | 父文档 | RGS-REQ-001 需求定义书（贯穿 22+ 域） |
 | 配套文档 | 19 份 ADR（RGS-ADR-0001～0054）、RGS-OPS-001 部署运维说明、RGS-IMPL-001 实施约定、各域 BAS/DTL、RGS-QA-001 v0.13、RGS-PLAN-001 v0.8 |
 | 制定日 | 2026-08-19 |
-| 最终更新日 | 2026-08-21 |
+| 最终更新日 | 2026-08-24 |
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -26,6 +26,7 @@
 | 0.4 | 2026-08-21 | 架构师 | 收敛 RGS-IMPL-001：固定 virtual workspace、领域/服务分离、proto 与 migration 所有权、CI、错误/序列化/OTel、Saga、测试、运行时、安全和部署约定；Rust 1.98 为用户指定的 stable 目标，GA 与 CI 核验前不得宣称环境可用。 |
 | 0.5 | 2026-08-21 | 架构师 | **§6.2 OLU token 重算**（per user preference 2026-08-21：AI 辅助开发场景下用 token 而非人天算 OLU；人天单位在 AI 协作下失去精度）。**引入 token-OLU 框架**：①1 人·天 ≈ 100K-300K tokens（含输入 + 输出 + 决策对话 + 验证往返）②1 人·周 ≈ 500K-1.5M tokens ③1 SRE 上限 = 1 人·周 ≈ 1M tokens。**§6.2 OLU 估算表重算**：原 v0.4 19 人·天/周 ≈ 4 SRE 改为 token 估算（按 AI 协作基线）。**5 域独立 Lead × 14-18 周 token 估算**：80-120M tokens（per RGS-PLAN-001 v0.8 + RGS-QA-001 v0.13 DEC-005 + DEC-006 路径 B），由 SRE Lead + PM 校准。**NFR-OP-010 软化**：原"2 SRE ≤ 20 人·天/周"硬上限在 AI 协作场景下不再适用；token 单位的实际约束是"上下文窗口" / "单次会话成本" / "决策质量（多轮对话）"。**下游级联**：RGS-QA-001 v0.13 §9.5.3 路径 B 标记 "OLU 校准待 SRE Lead + PM" 由本节 v0.5 校准取代；RGS-PLAN-001 v0.8 §6 Q-015 / RGS-IMPL-001 资源约束栏 / RGS-ADR-0025 OLU 预算 ADR（如果存在）需同步对齐。**未变更**：16 个分层领域选型、60+ 技术组件、版本号、许可证、ADR 关系、TBD 列表。 |
 | 0.6 | 2026-08-21 | 架构师 | **§6.2 双轨制 OLU**（per user decision 2026-08-21：人·天/周 + token/周 **两种算法都要**，不是 token 取代人·天）：①§6.2.1 人·天/周算法（v0.4 算法，**保留 active**，主用于纯人类开发场景 / SRE Lead + PM 工时核算 / HR 编制申请 / 工时审计）②§6.2.2 token/周算法（v0.5 新增算法，**active**，主用于 AI 协作开发场景 / AI 算力预算 / 决策质量评估）③§6.2.3 双轨对比与切换条件（按开发模式选算法；不允许混算）④§6.2.4 5 域独立 Lead × 14-18 周 **双算法估算**（人·天 ~28-35 / token ~196M-468M）⑤§6.2.5 NFR-OP-010 双轨（人·天 ≤ 20 / token ≤ 20M）⑥§6.2.6 校准路径 4 节点（PH-0.5 / PH-1 / PH-3 / PH-7）。**算法选择原则**：纯人类开发用人·天；AI 协作开发用 token；混合开发按主导模式选 + 双轨并报。**下游级联**：RGS-IMPL-001 资源约束栏加双轨说明；RGS-QA-001 v0.13 §9.5.3 路径 B 标记 OLU 双轨已就位。 |
+| 0.7 | 2026-08-24 | Worker (WF-1-55.48) | **§3.6.1 + §5.1 + §5.2 事件总线决策状态**（per RGS-OPEN-QA-001 v0.2 Q-M-10 答复 + ACTIONS-v0.3 B-09）：① §3.6.1 状态从【一致】升为**【已决策：NATS JetStream】**（强化显式决策语义，去除任何"未决/待决"误读空间）② §3.6.1 加 per Q-M-10 答复确认小注（说明 NATS JetStream 已在 `docs/deploy/01-k8s-manifests/30-nats-*.yaml` 落地 + `async-nats` 是 5 域生产代码实际使用库）③ §5.1 已决选型表中"NATS JetStream 2.10+" 显式列出（此前仅按"事件总线 1 项"统计，未在表内单列）；§5.2 未决选型表保持 8 条不变（NATS 不在其中）④ **未变更**：16 个分层领域选型、60+ 技术组件、版本号、许可证、ADR 关系、§6.2 双轨制 OLU 段（不属本任务）、TBD 列表。**关联任务**：WF-1-55.48（建跟踪脚本 + 改 TS-001 状态）。 |
 
 ## 审批栏
 
@@ -357,10 +358,19 @@
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | 【一致】NATS JetStream 2.10+（含 `nats` Rust client + JetStream 持久化模式） |
+| **决定** | **【已决策：NATS JetStream】** 2.10+（含 `nats` Rust client + JetStream 持久化模式） |
 | **理由** | 满足 ARC-010（事件命名 + partition_key 规则）+ ARC-011（Saga 边界）；单一二进制（Go 实现），运维简单；持久化 + 重放 + 消费者组 + DLQ 一站式；比 Kafka 资源占用低一个量级 |
 | **备选** | Apache Kafka（否决：JVM 资源开销、运维复杂度；RGS-ADR-0008 §3.2 备选），RabbitMQ（否决：吞吐/分区能力低于 NATS JetStream；与 ARC-010 partition_key 设计契合度低），Redis Streams（否决：可靠性 + 复制能力弱于 NATS），Apache Pulsar（否决：生态复杂度高） |
 | **引用** | RGS-BAS-001 §4.7 事件与可观测性设计；RGS-ADR-0015 Saga 边界；RGS-REQ-031 CEM 中心事件管理 |
+
+> **per Q-M-10 答复确认（2026-08-24, ACTIONS-v0.3 B-09, WF-1-55.48）**：
+> NATS JetStream **已落地且为生产实际使用**，不再是"未决/待决"状态。证据：
+> ① K8s manifest：`docs/deploy/01-k8s-manifests/30-nats-{configmap,networkpolicy,pvc,sa,service,statefulset}.yaml` 6 份均已合并
+> ② 5 域 binary 代码：`async-nats` 是 5 域 `main.rs` 实际使用的库（不是 `InMemoryNatsMock`，mock 已合并为测试夹具）
+> ③ Outbox schema：稳定（`000X_outbox.sql` + idempotent check 5 域联检通过）
+> ④ msg header 格式：随 RGS-SPEC-CROSS-003 v0.2 冻结（per B-09 Q-D-09 + Q-M-10 合并动作）
+>
+> 状态变更：v0.6 §3.6.1 标"【一致】"（命名约定的"已隐含决策"档）；v0.7 升为"**【已决策：NATS JetStream】**"，显式消除任何"未决/待决"误读空间，与 §5.1 决策登记保持口径一致。
 
 ### 3.6.2 暂未引入：Schema Registry（独立服务）
 
@@ -697,7 +707,7 @@
 | RPC/序列化 | 3 | RGS-ADR-0008 |
 | 数据库 | 2 | RGS-ADR-0007 / RGS-ADR-0008 |
 | 缓存 | 1 | RGS-ADR-0008 |
-| 事件总线 | 1 | RGS-ADR-0015 |
+| 事件总线 | 1 | RGS-ADR-0015（**NATS JetStream 2.10+**，per v0.7 §3.6.1 + Q-M-10 答复确认，状态"**已决策**"） |
 | 沙箱脚本 | 1 | RGS-ADR-0020 |
 | 智能层 | 2 | RGS-ADR-0026 / RGS-ADR-0029 |
 | 可观测性 | 4 | RGS-REQ-001 §10 ARC-017 |
@@ -722,6 +732,8 @@
 | TBD-SEC-003 | HashiCorp Vault vs OpenBao vs 云 KMS | PH-4 前 | §3.16.1 |
 | TBD-VERSION-001 | Rust 主版本升级窗口 | PH 节点评审 | §4.3 |
 | TBD-VERSION-002 | PostgreSQL 主版本升级 | PH-2 前 | §4.3 |
+
+> **v0.7 注脚（per Q-M-10 + ACTIONS-v0.3 B-09, 2026-08-24）**：事件总线选型 **NATS JetStream 不在上述 8 条未决列表中**，已迁入 §5.1 已决选型表。v0.6 §5.2 没有 NATS 显式条目；v0.7 在 §3.6.1 + §5.1 双处标注"已决策"语义，彻底去除"未决"标注的误读空间。
 
 ## 5.3 明确否决（表内 12 项）
 
