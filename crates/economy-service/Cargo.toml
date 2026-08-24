@@ -39,3 +39,6 @@ tonic-build = { workspace = true }
 [dev-dependencies]
 # WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
 assert_cmd = "2"
+# WF-1-55.28: 6 域 outbox CHECK 幂等 migration 集成测试 (per RGS-REV-009 CR-2)
+# 跑前需设置 DATABASE_URL 指向真 PG; 跳过机制: test 内部检查 env, 不设置则 skip
+rgs-testkit = { path = "../rgs-testkit" }

@@ -890,6 +890,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "prost",
+ "rgs-testkit",
  "serde",
  "serde_json",
  "shared-platform",
