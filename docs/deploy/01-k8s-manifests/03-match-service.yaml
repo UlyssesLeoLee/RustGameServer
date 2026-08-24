@@ -60,7 +60,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: match
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-match
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
           imagePullPolicy: IfNotPresent
           command: ["/app/bin/match-service"]
           securityContext:

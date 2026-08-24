@@ -1,7 +1,7 @@
 # docker-build —— CI workflow 4（per WBS v0.3 §2A.5 WF-1-53.7）
 # 触发：push to main（path 过滤 Dockerfiles）/ tag v*.*.* / workflow_dispatch
-# 范围：53.7 占位 trigger 框架 + buildx + ghcr.io 登录
-#       实际 docker build 等 53.13 distroless base image 完成后启用
+# 范围：build prod target 一次（6 域共用同一镜像，靠 k8s command 分流），
+#       push 到 ghcr.io，tag 0.1.0 + latest
 # 规范：RGS-IMPL-005 §3（distroless Dockerfile）+ RGS-IMPL-006 §4（CI 编排）
 
 name: docker-build
@@ -77,25 +77,23 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=0.1.0,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push（53.7 占位注释）
-        # 53.7 接受：distroless base image Dockerfile 待 53.13 实施；
-        #           镜像推送待 57.8 cosign keyless 签名配套。
-        # 启用时把 use 改为：
-        #   uses: docker/build-push-action@v5
-        #   with:
-        #     context: .
-        #     file: ./Dockerfile
-        #     platforms: linux/amd64  # 53.7 单平台；57.5 加 linux/arm64
-        #     push: ${{ github.event_name != 'pull_request' }}
-        #     tags: ${{ steps.meta.outputs.tags }}
-        #     labels: ${{ steps.meta.outputs.labels }}
-        #     cache-from: type=gha
-        #     cache-to: type=gha,mode=max
-        run: |
-          echo "::notice::docker-build 占位 trigger 框架（per WBS v0.3 §2A.5 WF-1-53.7）"
-          echo "::notice::实际 docker build 待 WF-1-53.13 distroless base image 完成后启用"
-          echo "::notice::镜像推送待 WF-1-57.8 cosign keyless 签名配套"
-          echo "::notice::跨架构待 WF-1-57.5 docker buildx 跨架构（amd64 + arm64）"
-          echo "OK docker-build 占位 trigger 已就绪（53.7 范围内）"
+      # 6 个域（player/economy/match/social/admin/cluster-ops）共用同一个
+      # prod target 镜像：cargo build --workspace 把 6 个 binary 都打进
+      # /app/bin/，k8s manifest 用 command: ["/app/bin/xxx-service"] 挑选
+      # 实际启动的进程，因此这里只 build 一次、打一个版本 tag（0.1.0），
+      # 不需要 6 个 type=raw tag。
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: prod
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.push_to_registry == 'true') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
