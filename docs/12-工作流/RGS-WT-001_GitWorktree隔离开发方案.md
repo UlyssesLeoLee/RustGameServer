@@ -225,7 +225,7 @@ D:\RustGameServer-worktrees\
 - 重新打开 worktree 时，agent 先读 `.wbs-task-marker` 知道当前 status / progress
 - 修改后调 `wbs_task_progress.ps1` 更新 marker
 - 同时维护 `.wbs-task-log.txt` 追加历史记录
-- **RGS-WBS-001_L4任务进度表_v0.3.md** 汇总所有 marker 状态（agent / 人类 review 用）
+- **RGS-WBS-001_L4任务进度表_v0.4.md** 汇总所有 marker 状态（agent / 人类 review 用）
 
 ### 11.4 5 域 DTL 边界 + 跨域/平台 DTL 分配规则（per RGS-WBS-001 v0.3 §2A.6.1 + §2A.7）
 

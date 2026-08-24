@@ -303,14 +303,14 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 - **NO-GO 形式解除依据**:`docs/00-基准与治理/RGS-DEC-NOGO-001_一人公司NO-GO解除决议_v0.1.md`
 - **Phase 0.5 启动计划**:`docs/01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md`
-- **现状基线 v0.2 勘误**:`docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.1.md` §1.4/§1.5/§2
+- **现状基线 v0.2 勘误**:`docs/01-核心架构与设计模式/RGS-INC-001_增量式架构升级_Function与WASM演进方案_v0.2.md` §1.4/§1.5/§2
 - **业务 NO-GO 现状**:`docs/deploy/07-no-go-checklist_business_v0.2.md`
 - **Step 1+5 报告**(5 域 manifest 实际值 + docker image 脚本):`docs/deploy/01-k8s-manifests/` 17 文件 + `phase-0-5-step-1+5-*.ps1` + `PHASE-0-5-STEP-1+5-REPORT.md`(worktree 清理时已 commit 进 main)
 - **Step 2+3 报告**(NATS + OTel/Prom/Grafana):`PHASE-0-5-STEP-2+3-REPORT.md` + 18 manifest
 - **Step 4 报告**(mTLS + Secret + fail-closed):`PHASE-0-5-STEP-4-REPORT.md` + 7 Secret + 4 ps1
 - **Step 6 总报告**:`docs/deploy/phase-0-5-step-6-report.md`
 - **本次 handoff 提示词**:`docs/deploy/phase-0-5-handoff.md`(本文件)
-- **WBS 任务进度表**:`docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.3.md`
+- **WBS 任务进度表**:`docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md`
 - **worktree 规范**:`docs/12-工作流/RGS-WT-001_GitWorktree隔离开发方案.md` §11
 - **gRPC 健康探针 mTLS 兼容性修复设计**(2026-08-24 追加):`docs/09-部署运维/RGS-OPS-101_gRPC健康探针mTLS兼容性修复设计_v0.1.md`(需求/基本设计/详细设计/实装规格/实施计划,见 §12)
 
@@ -366,7 +366,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ### 10.2 WBS 任务进度表未更新
 
-- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.3.md` 仍显示 128/128 pending
+- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md` 仍显示 128/128 pending
 - 实际状态:**WF-0.5-1/2/3 已在 Phase 0.5 期间作为"Phase 0.5 部署 worktree"重定向使用,3 个 worktree 已合并入 main;WF-0.5-6 worker 失败,主对话接手补完 4 B-CODE log + 总报告**
 - **L4 任务标 done 的正确做法**:G-CODE-06 实测通过后由 `wbs_task_progress.ps1 -Status done` 自动填充;当前 NO-GO 形式上解除但实质未闭环,WBS 进度表更新是后续 Phase 0.5 实质完成后的工作
 - **SRE 完成 §5 后**:`pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-0.5-1 -Status done` 等 3 个
