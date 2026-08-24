@@ -359,6 +359,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 > **当前状态**(per 2026-08-24 19:00 4 worker 全 succeeded + 2 分支并入 main):**12 项子事项(11.1~11.12)**,其中 **3 项 closed**(11.3 Saga 修复 per 195bfae + 11.4 git 工具链 per 7c2db70 + 11.5 引用错位无文档错)+ **9 项仍 open**。
 >
 > **修订历史**:
+> - 2026-08-24 20:42 主对话盘点:§11.6/§11.7/§11.8 标 Closed(per 6ae469b + 7c2db70 + 32333d2,3 项已在 phase-0-5 期间完成但 handoff 文档未同步);剩余 §11.1/§11.2 真阻塞,等 SRE 接力 + G-CODE-06 实测
 > - 2026-08-24 19:00 修订:①§11.3 关闭(Saga CRITICAL 修复 3 L4 全真修 + 271 test passed,per merge `195bfae`)②新增 §11.9 / §11.10 / §11.11 / §11.12 反映 4 worker 实际产出(Phase 0.5 retrospective / 5 域 DTL Review / 引用扫雷 / Saga 修复)
 > - 2026-08-24 18:25 修订:①§11 子章节编号 10.1~10.8 → 11.1~11.8(commit 6d985d6 仅改 §11 标题未改子编号)②11.4 关闭(7c2db70 已修正则)③11.5 关闭(无文档错)④§12.3 改"未 commit" → "已 commit 66ff53b"
 > - 2026-08-24 18:00 首次盘点:e293b98 §10 8 项 + 6d985d6 §11 标题
@@ -399,24 +400,23 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - **修复:文档本身没错,只是主对话之前引用章节号写错**。后续引用统一改用 §2A.6.7(已在 §11.2 注中修正)
 - **本项无代码/文档变更**,只主对话的引用习惯修正
 
-### 11.6 worktree 清理违规(一次性特殊场景)
+### 11.6 worktree 清理违规例外条款 ✅ Closed(per 6ae469b)
 
-- 4 个 Phase 0.5 worktree 删除时**违反 RGS-WT-001 §6.6**(`git worktree remove --force` 强删因 untracked 文件)
-- 不可恢复(已删),但 SRE 不应重复此操作
-- **建议**:RGS-WT-001 §6.6 加例外条款"已合并入 main 的 worktree 可 --force",或加个"pre-clean 检查:worktree 状态必须全 untracked 都可重建"脚本
+- ✅ **Closed 2026-08-24(commit `6ae469b`)**:RGS-WT-001 v0.2 §11.7 已加例外条款,允许"已合并入 main 的 worktree 可 --force"但需走 4 步流程(人审 → 备份 untracked → 才允许 --force → 登记 RGS-INC-*);明确 --force 是 incident 应急而非日常快捷键
+- **关联**:phase-0-5 反馈单 Issue 1 + RGS-WT-001 §6.7 协调规则
+- **本项无新代码变更**(handoff §11.6 写"应加例外条款"已被 6ae469b 实现,只是 handoff 文档没同步)
 
-### 11.7 3 个 rev-010 detached worktree 保留(per 之前决定)
+### 11.7 3 个 rev-010-V detached worktree 清理 ✅ Closed(per 7c2db70)
 
-- `D:\rev-010-V{1..3}` 仍存在,detached at `f31ca6c`(REV-010 V1-V3 留下的 verifier 副产物)
-- per 之前决定**保留**(用户未指示清理)
-- 不影响 git 状态,可后续手动清理:`git worktree remove D:\rev-010-V1 --force`(再走 §6.6 例外)或物理删除
+- ✅ **Closed 2026-08-24(commit `7c2db70` + merge `65ea750`)**:3 个 D:\rev-010-V{1..3} detached worktree 已清理(per phase-0-5/local-fixes merge commit message "3 rev-010 清理")
+- 验证: `git worktree list` 当前 2026-08-24 20:42 仅主工作区,无 D:\rev-010-V* 残留
+- **本项无新代码变更**
 
-### 11.8 RGS-INC-001 文档名/版本不一致(per 文档本身)
+### 11.8 RGS-INC-001 文档名/版本不一致 ✅ Closed(per 32333d2)
 
-- 文件名:`RGS-INC-001_..._v0.1.md`
-- 文件内头部:"v0.2(v0.1 勘误)"
-- 不一致(类似 `RGS-INC-002` 实际是 v0.1 启动计划草案)
-- 修复:`git mv ..._v0.1.md ..._v0.2.md` + commit
+- ✅ **Closed 2026-08-24(commit `32333d2`)**:文件已 `git mv ..._v0.1.md → ..._v0.2.md`,文件头 v0.2 标记与文件名 v0.2 一致
+- 验证: `glob docs/**/RGS-INC-001*.md` 当前 2026-08-24 20:42 仅返回 `RGS-INC-001_..._v0.2.md`
+- **本项无新代码变更**
 
 ### 11.9 Phase 0.5 经验教训沉淀 ✅ Closed(per merge `7d68f73`)
 
