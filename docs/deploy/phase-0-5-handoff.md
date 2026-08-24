@@ -354,11 +354,11 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ---
 
-## 11. 已知未完成事项(per 2026-08-24 主对话盘点 + 历史盘点)
+## 11. 已知未完成事项(per 2026-08-24 18:00 phase-0-5/local-fixes merge 后部分闭环)
 
-> **SRE 接力完 §5 后,这些事项仍需 SRE 或后续 Phase 单独处理**。
+> **per 2026-08-24 18:00 `phase-0-5/local-fixes` merge commit `65ea750` 后状态**。当前 open 事项 5 项,closed 5 项。
 
-### 10.1 数据/evidence 丢失
+### 11.1 数据/evidence 丢失
 
 - **`D:\RustGameServer-worktrees\WF-0-5-6\b1-evidence\` 原始 `kubectl describe/get` 11 个文件已丢**:worktree 清理时(因 untracked `.wbs-task-marker` + `.recon/`,违反 RGS-WT-001 §6.6 用 `--force` 强删),Step 6 留下的原始 evidence 一并删除。**摘要已写入 `b1-otel-pod-up.log` 头部**(`get-pods.txt` + `describe-{otel,prometheus,grafana}.txt` 关键内容已摘)。**重跑补回**:在 WSL2 K3s apply 3 套可观测性 manifest 后,跑 `kubectl describe` 重新生成 evidence 到 `docs/deploy/b1-evidence/`
 - **dev 证书 `E:\DevCache\cargo\target\dev-certs\` 不在 git**:workspace 用了 `E:\DevCache\cargo\target\`(per Step 4 worker 实测),证书生成在 workspace 之外,天然不入仓。**SRE 在 WSL2 需重跑** `pwsh -File phase-0-5-step-4-gen-certs.ps1` 重新生成(预计 5 秒)
