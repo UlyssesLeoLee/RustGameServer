@@ -897,6 +897,47 @@
 
 ---
 
+## 7. 工具链 Bug 登记（per RGS-REV-009 + phase-0-5 反馈单 Issue 2，2026-08-24 加）
+
+> **范围**：本节登记**本仓库内脚本/工具链**的 bug，**不**登记外部依赖（Rust 编译器、PostgreSQL、K3s 等）的 bug——后者在各自上游 issue tracker。
+>
+> **登记原则**：① 现象 + 重现步骤 ② 根因（已知/未知）+ workaround ③ 严重度 ④ 修责任人 ⑤ 关联 ADR/SOP/INC。
+
+### 7.1 BUG-001（2026-08-24 登记，per phase-0-5 反馈单 Issue 2）
+
+| 项目 | 内容 |
+|---|---|
+| **ID** | BUG-001 |
+| **登记日** | 2026-08-24 |
+| **登记人** | worker-self（per feedback-handler worktree `phase-0-5/feedback-handler` commit 见行末）|
+| **严重度** | 🔴 P0（4/4 worker 0 产出，WF-1-55.27/28/29 P0 merge-blocker 长期挂起）|
+| **状态** | **OPEN**（根因待 mavis 维护方定位；workaround 已落地）|
+| **现象** | mavis 框架 worker 自动派发路径（`session send` → worktree 创建）4/4 session 在创建后立即被 mavis 标 error，错误字符串 `"Canonical history target is missing after migration"`。受影响 worktree：4/4（HIT count = 100%）。|
+| **重现步骤** | 1. 主对话 `mavis` 命令发起 `session send`（含 worktree 派发指令）<br>2. worktree 创建后 session 内 `git rev-parse HEAD` 返回 main tip（与 mavis 期望的「在分支 base 上」不符）<br>3. mavis 内部 state 触发检查失败 → session 立即 error |
+| **根因（已知）** | mavis worktree 派发层 internal state（per session tree migration）检查失败，**根因定位需 mavis 维护方**——本仓库 worker agent 无法看到 mavis 源码。可能的根因方向：① worktree 派发时没正确 apply base commit ② session tree migration 步骤未跑 ③ worktree 文件系统状态与 mavis 缓存不一致（per git porcelain 字段）。**不在本节下定论。** |
+| **Workaround（已落地）** | 1. **手工 `git worktree add -b <branch> <path> <base>`** 替代 mavis 派发（已在 phase-0-5 4/4 case 验证可用）<br>2. **`scripts/wbs_create_worktree.ps1 -L4Id <id>`** 走项目内脚本（per RGS-WT-001 v0.2 §11.2）<br>3. **主对话直接处理**（不派发 worker，Ulysses 一人公司兼任 per DEC-008）<br>4. 任何需要 `mavis session send` + worktree 派发的任务，**先**在主对话 manual sanity check 1 次，确认 `git worktree list` 输出符合预期**再**派发 |
+| **关联** | `docs/deploy/phase-0-5-feedback-to-agents.md` §2 Issue 2<br>`docs/deploy/phase-0-5-handoff.md` §11.3（已记录「4/4 session 0 产出」事件）<br>RGS-REV-009 13 issue 共识矩阵（WF-1-55.27/28/29 长期挂起） |
+| **修责任人** | mavis 维护方（**不**是本项目）；workaround 维护 = Ulysses |
+| **修复路径** | 待 mavis 维护方提供根因 + fix；修复后本节状态 → CLOSED。**Phase 1+ 启动前必须 close**（否则 Phase 1+ 派发仍 0 产出） |
+| **未做项** | ❌ 不在本项目内尝试 mavis 代码 patch（不在 scope）<br>❌ 不在本节登记外部依赖 bug（per §7 范围） |
+
+### 7.2 后续登记模板（per BUG-001 案例）
+
+新增 bug 登记须按 BUG-001 表格 9 字段填齐（ID / 登记日 / 登记人 / 严重度 / 状态 / 现象 / 重现步骤 / 根因 / workaround / 关联 / 修责任人 / 修复路径），缺 1 字段视为登记不合规。
+
+**登记触发条件**（任一即登记）：
+- 4 任务同 session 派发 0 产出（per BUG-001）
+- `wbs_*.ps1` 脚本 throw 后主对话手工兜底 ≥ 1 次
+- handoff §11「已知未完成事项」出现「worker 失败」字样 ≥ 1 次
+- `git worktree list --porcelain` 出现 `prunable` 标记
+
+**不登记触发条件**（避免噪音）：
+- 业务代码 bug（→ RGS-INC-* incident）
+- 文档引用错位（→ handoff §11 修订）
+- 决策变更（→ RGS-DEC-* decision）
+
+---
+
 > 配套文档：
 > - RGS-ADR-0001～0054（18 份单点决定）
 > - RGS-REQ-001（总需求）
