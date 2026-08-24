@@ -6,7 +6,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: otel-collector-service-account
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: otel-collector
     app.kubernetes.io/component: observability
@@ -17,7 +17,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: otel-collector-role
-  namespace: rgs
+  namespace: rust-game-server
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -31,11 +31,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: otel-collector-role-binding
-  namespace: rgs
+  namespace: rust-game-server
 subjects:
   - kind: ServiceAccount
     name: otel-collector-service-account
-    namespace: rgs
+    namespace: rust-game-server
 roleRef:
   kind: Role
   name: otel-collector-role

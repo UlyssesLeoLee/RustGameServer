@@ -1,7 +1,7 @@
 # 30-nats-service.yaml
 # 角色：NATS JetStream Service 集
-#   - Headless Service：StatefulSet 内部 DNS 寻址（nats-0.nats-headless.rgs.svc.cluster.local）
-#   - ClusterIP Service：业务域访问（nats.rgs.svc.cluster.local:4222 client / 8222 monitoring）
+#   - Headless Service：StatefulSet 内部 DNS 寻址（nats-0.nats-headless.rust-game-server.svc.cluster.local）
+#   - ClusterIP Service：业务域访问（nats.rust-game-server.svc.cluster.local:4222 client / 8222 monitoring）
 # 关联：
 #   - RGS-DTL-100 §5 消息总线
 #   - RGS-SPEC-CROSS-005 §2 NATS Stream 命名约定
@@ -10,7 +10,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nats-headless
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: nats
     app.kubernetes.io/component: message-bus
@@ -34,7 +34,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nats
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: nats
     app.kubernetes.io/component: message-bus

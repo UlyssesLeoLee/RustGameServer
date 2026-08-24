@@ -5,14 +5,14 @@
 #   - docker/observability/grafana/provisioning/* 源文件
 #   - docker/observability/grafana/dashboards/rgs-services-overview.json 占位 dashboard
 # 设计：
-#   - Datasource: Prometheus URL = http://prometheus.rgs.svc.cluster.local:9090
+#   - Datasource: Prometheus URL = http://prometheus.rust-game-server.svc.cluster.local:9090
 #   - Dashboard provider 扫描 /etc/grafana/dashboards
 #   - 53.12 dashboard 占位保留（仅 schema，无 panel；5 域 Lead 后续填充）
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-config
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/component: observability
@@ -25,7 +25,7 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus.rgs.svc.cluster.local:9090
+        url: http://prometheus.rust-game-server.svc.cluster.local:9090
         isDefault: true
         editable: true
   # Dashboard provider

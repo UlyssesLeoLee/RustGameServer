@@ -12,7 +12,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: nats
-  namespace: rgs
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: nats
     app.kubernetes.io/component: message-bus
@@ -37,7 +37,7 @@ spec:
         runAsGroup: 1000
       containers:
         - name: nats
-          image: nats:2.10-alpine
+          image: nats:2.14.5-alpine
           imagePullPolicy: IfNotPresent
           args:
             - "--config"

@@ -50,6 +50,8 @@ spec:
         rust-game-server.io/domain: player
     spec:
       serviceAccountName: player-service-account
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

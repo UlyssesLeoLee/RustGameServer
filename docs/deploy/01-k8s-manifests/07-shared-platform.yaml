@@ -1,133 +1,24 @@
 # 07-shared-platform.yaml
-# 角色：shared-platform（QUIC edge + OTel collector 共置）
-# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
-# 实际值校准：
-#   - Platform 架构师：Ulysses（per DEC-008 兼任 + SRE 联合签字）
-#   - 校准依据：RGS-TS-001 §5.4 quinn QUIC + §5.3 tonic gRPC + §5.8 OpenTelemetry
+# 角色：shared-platform（QUIC edge 占位说明）
+# 状态：🟡 DEPRECATED（2026-08-24 架构复核发现与 40-otel-collector-*.yaml 重复,已下线)
+#
+# 复核发现：本文件原内置一份 otel-collector ServiceAccount + Deployment + Service
+# （image otel/opentelemetry-collector-contrib:0.102.0,namespace rust-game-server),
+# 与 Step 3 (`phase-0-5-step-3-render-observability.ps1`) 实际管理的
+# `40-otel-collector-{configmap,sa,deployment,service}.yaml`(image 已同步为最新版)
+# 是同名 `otel-collector` Deployment 的两份独立定义。
+# 只有 40-* 这一套在实际部署流水线（Step 3 脚本 + Prometheus 41-prometheus-configmap.yaml
+# 的 scrape target）中被引用和维护，07 这一套从未被任何 .ps1 脚本 apply 过，只有
+# 已过时的 docs/deploy/05-deploy-sop.md 步骤 6 手动引用过它（该引用已一并修正为指向 40-*)。
+# 若两份同时 apply，会产生同名 Deployment 互相覆盖 / 镜像版本漂移的风险。
+# 结论：本文件的 otel-collector SA/Deployment/Service 定义已删除,以 40-otel-collector-*.yaml 为唯一权威来源。
+#
 # 关联：
 #   - RGS-TS-001 §5.4 quinn QUIC 选型
 #   - RGS-TS-001 §5.3 tonic gRPC 选型
 #   - RGS-TS-001 §5.8 OpenTelemetry 选型
 #   - ARC-051 中心事件管理（CEM）
 #   - ARC-008 5 独立 DB 拓扑
-# 注：shared-platform 不部署业务服务，仅作 QUIC edge + OTel collector 共享层
-#     实际 QUIC edge 在业务域 Pod 内 sidecar 部署（NFR-AV-008）；
-#     此处共享层仅 OTel collector + NATS（Phase 2 后）+ Prometheus
----
-# ==================== OTel Collector ====================
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: shared-platform-service-account
-  namespace: rust-game-server
-  labels:
-    app.kubernetes.io/component: shared-platform
-    app.kubernetes.io/part-of: rust-game-server
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: otel-collector
-  namespace: rust-game-server
-  labels:
-    app.kubernetes.io/name: otel-collector
-    app.kubernetes.io/component: shared-platform
-    app.kubernetes.io/part-of: rust-game-server
-    app.kubernetes.io/version: "0.102.0"
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: otel-collector
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: otel-collector
-        app.kubernetes.io/component: shared-platform
-        app.kubernetes.io/part-of: rust-game-server
-    spec:
-      serviceAccountName: shared-platform-service-account
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-        - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.102.0
-          imagePullPolicy: IfNotPresent
-          args:
-            - "--config=/etc/otelcol/config.yaml"
-          ports:
-            - name: otlp-grpc
-              containerPort: 4317
-              protocol: TCP
-            - name: otlp-http
-              containerPort: 4318
-              protocol: TCP
-            - name: metrics
-              containerPort: 8888
-              protocol: TCP
-          env:
-            - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "service.namespace=rust-game-server,deployment.environment=dev"
-          resources:
-            requests:
-              cpu: 200m
-              memory: 256Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 13133
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 13133
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 3
-            failureThreshold: 3
-          volumeMounts:
-            - name: otel-config
-              mountPath: /etc/otelcol
-              readOnly: true
-      volumes:
-        - name: otel-config
-          configMap:
-            name: otel-collector-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: otel-collector
-  namespace: rust-game-server
-  labels:
-    app.kubernetes.io/name: otel-collector
-    app.kubernetes.io/component: shared-platform
-spec:
-  type: ClusterIP
-  selector:
-    app.kubernetes.io/name: otel-collector
-  ports:
-    - name: otlp-grpc
-      port: 4317
-      targetPort: 4317
-      protocol: TCP
-    - name: otlp-http
-      port: 4318
-      targetPort: 4318
-      protocol: TCP
-    - name: metrics
-      port: 8888
-      targetPort: 8888
-      protocol: TCP
 ---
 # ==================== QUIC edge 占位 ====================
 # 业务 QUIC 端口已在 5 业务域 manifest 内 sidecar 形式（per RGS-INC-001 §3.1 §3.2）
