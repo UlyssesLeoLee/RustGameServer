@@ -30,23 +30,20 @@ spec:
     spec:
       # Phase 0.5 不分配独立 SA，使用 default SA
       securityContext:
+        runAsNonRoot: true
         runAsUser: 472  # grafana user
         runAsGroup: 472
         fsGroup: 472
-      initContainers:
-        # 设置 provisioning 目录权限（Grafana 启动要求）
-        - name: fix-provisioning-perms
-          image: busybox:1.36
-          command: ["sh", "-c", "chown -R 472:472 /etc/grafana/provisioning /etc/grafana/dashboards"]
-          volumeMounts:
-            - name: grafana-provisioning
-              mountPath: /etc/grafana/provisioning
-            - name: grafana-dashboards
-              mountPath: /etc/grafana/dashboards
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: grafana
           image: grafana/grafana:13.2.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: web
               containerPort: 3000

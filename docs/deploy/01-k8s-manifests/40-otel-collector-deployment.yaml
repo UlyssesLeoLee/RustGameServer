@@ -29,13 +29,20 @@ spec:
     spec:
       serviceAccountName: otel-collector-service-account
       securityContext:
+        runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.159.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args:
             - "--config=/etc/otelcol/config.yaml"
           ports:
@@ -45,7 +52,7 @@ spec:
             - name: otlp-http
               containerPort: 4318
               protocol: TCP
-            - name: prometheus-exporter
+            - name: prom-exporter
               containerPort: 8889
               protocol: TCP
             - name: health
