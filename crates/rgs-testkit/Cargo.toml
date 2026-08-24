@@ -18,6 +18,8 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+# gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
+mockito = "1"
 # DB 测试 fixture
 # migrate feature required for #[sqlx::test] macro (per WF-1-55.31 retry)
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "uuid", "chrono"] }
