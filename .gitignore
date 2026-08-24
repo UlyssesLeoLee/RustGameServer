@@ -19,3 +19,6 @@ docs/00-**/reviews/**/cargo-*.log
 # 内容: session 内的 grep extract / b1 evidence copy / regression log 等
 # 这些是过程产物,不进 git 也不归档
 .run-logs/
+
+# 隔离 0 字节误建文件 + session 临时删除缓冲
+.git-trash/
