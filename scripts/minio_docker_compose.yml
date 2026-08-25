@@ -1,0 +1,88 @@
+# MinIO 单节点 docker-compose（per RGS-IMPL-PLAN-CDN-001 v0.1 §3.4 M-2069.1）
+#
+# 用途：PH-4 实测环境（WBS L4 #2069）—— 启动 MinIO 单节点用于 AC-CDN-110~118
+#       9 项 IT 实测。
+#
+# 启动方式（在 host 上，需 docker daemon 权限）：
+#   docker compose -f scripts/minio_docker_compose.yml up -d
+#
+# 端点：
+#   - S3 API:      http://127.0.0.1:9000
+#   - Console UI:  http://127.0.0.1:9001  (root / rustgameserver)
+#
+# 数据卷：
+#   - minio-data  /data   MinIO 数据持久化（开发环境）
+#
+# 资源限制：
+#   - 2 vCPU + 2GB RAM   单节点基准配置；PH-4 ST 用 4 节点分布式
+#
+# 网络：
+#   - host 网络可访问，便于 RangeClient wiremock 替代测
+#
+# 验证：
+#   curl -I http://127.0.0.1:9000/minio/health/live
+#   # 期望：HTTP/1.1 200 OK
+#
+# 清理：
+#   docker compose -f scripts/minio_docker_compose.yml down -v
+
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+    container_name: rgs-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: rustgameserver
+      MINIO_ROOT_PASSWORD: rustgameserver
+      # 默认 region（per NFR-CDN-114：DistributionBackend 必须支持 HTTP Range）
+      MINIO_REGION: us-east-1
+      # 大文件 multipart 上限（per R4：单 chunk ≤ 5GiB）
+      MINIO_API_REQUESTS_MAX: 5000
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console UI
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # 资源限制（PH-4 单节点基准；ST 改 4 节点分布式）
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    restart: unless-stopped
+
+  # 初始化 bucket（asset-bundle） + 5 域 manifest 占位
+  # 用一次性 container 跑 mc client
+  minio-init:
+    image: minio/mc:RELEASE.2024-08-26T15-33-02Z
+    container_name: rgs-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5 &&
+      mc alias set local http://minio:9000 rustgameserver rustgameserver &&
+      mc mb -p local/asset-bundle &&
+      mc mb -p local/asset-bundle/player &&
+      mc mb -p local/asset-bundle/economy &&
+      mc mb -p local/asset-bundle/match &&
+      mc mb -p local/asset-bundle/social &&
+      mc mb -p local/asset-bundle/admin &&
+      mc anonymous set download local/asset-bundle &&
+      echo 'MinIO init done' &&
+      mc ls local/asset-bundle
+      "
+    restart: "no"
+
+volumes:
+  minio-data:
+    driver: local
