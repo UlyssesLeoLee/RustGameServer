@@ -1,0 +1,34 @@
+[package]
+name = "rgs-asset-download"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "RustGameServer 客户端资源分发的断点续传与可恢复下载（per RGS-DTL-041 / RGS-SPEC-DTL-041 v0.2）"
+
+# —— 公开 API 入口模块（per RGS-SPEC-DTL-041 §2 + RGS-IMPL-PLAN-CDN-001 §2.2）——
+[lib]
+name = "rgs_asset_download"
+path = "src/lib.rs"
+
+[dependencies]
+# 既有公共服务（per RGS-IMPL-001 §2 workspace）
+thiserror = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+
+# 新增：HTTP Range 客户端基座（与既有 rgs-asset-update 同款，避免双实现）
+# 显式锁定 default-features = false + rustls-tls + stream（per DTL §2.3 依赖收敛原则）
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+
+# dev-dependencies 留待 M-2064 / M-2065 任务接入（wiremock / tempfile / proptest）
+
+# —— 平台特定：sparse file 预分配（per M-2065.6 / R6 风险）——
+# 4 平台分支由 src/platform/mod.rs 编译期选择；目标平台之外的 .rs 文件不参与编译
+[target.'cfg(windows)'.dependencies]
+# 暂不在骨架中引入；M-2065.7 实测 SetFileValidData 权限评估时按需追加 windows-sys
+# windows-sys = { version = "0.52", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
