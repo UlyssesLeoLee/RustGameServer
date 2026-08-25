@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-003 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-003 运维与GM后台管控 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"继续"推进详细设计，本文档是继RGS-DTL-001／002／025／026／027之后新一批详细设计中的一份，覆盖02-运维安全与网络域首个文档）。细化RGS-BAS-003§3新增`AdminService`方法为具体协议线格式、§7审计设计新增操作类型落实为`admin_db.ops_ticket`表DDL、§5维护模式传播收敛判定落实为可直接翻译为Rust实现的Quorum-based Ack Counting伪代码、§8.2高危操作阈值（TBD-OPS-003）给出初始默认值提案。**本版本不覆盖**：Webhook签名算法具体实现、告警规则引擎选型、RTC(RuntimeControlService)内部命令队列的具体数据结构。见§7 | 全部 |
+| 0.2 | 2026-08-25 | 架构师（Mavis 接手 agent per DEC-008） | — | 同步父 BAS-003 升版至 v0.2 + 补 AC-OPS-001〜005 验收标准追溯表。覆盖度复查：BAS-003 v0.2 影响章节为 §3.4（新增`QueryHealthView`）与 §13（追溯性表补齐 AC-OPS-001〜005）。DTL-003 v0.1 §3.4 已落实 `QueryHealthView` 协议线格式（无字段请求 + `ServiceHealthEntry` 重复字段），本次仅做 v0.2 升版，不重写 v0.1 已落实内容；新增"验收标准追溯"子节落实 §13 5 条 AC 映射（`OPERATION_AUDIT` 覆盖／故障隔离拓扑／唯一入口留痕／高危操作双人确认+阈值／告警p99压测边界）。**不引入新设计**：补的 5 行追溯表完全对应 BAS-003 §13 既有内容，未新增任何结构性决定；AC-OPS-005 压测方案在 BAS 原文中即注明"留待详细设计"，本文档不越权先行确定。 | §3.4（已落实,无变更）、追溯性§验收标准追溯（新增子节） |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -433,3 +434,15 @@ RGS-BAS-003§8.2标注"批量`BanAccount`/`GrantCompensation`触发二次确认�
 | RGS-BAS-003§10 K8s层运维工单设计 | §2（`ops_ticket`表）、§3.3 |
 | RGS-DTL-001§4.4 通用ResultCode | §3、§5（复用，追加OVERLOADED枚举值） |
 | RGS-DTL-025§5 / RGS-DTL-026§4.1（TBD默认值提案先例） | §6 |
+
+### 验收标准追溯（同步RGS-BAS-003 v0.2 §13 AC-OPS-001〜005 补强）
+
+| 验收标准 | 决定摘要 | 本文档落实章节 |
+|---|---|---|
+| AC-OPS-001 | 六类GM管控操作均产生`OPERATION_AUDIT`审计记录 | §2（`action_type`枚举扩展值）、§3.1〜3.3 全部方法线格式均通过`AdminService`统一入口（与`OPERATION_AUDIT`写入路径一致） |
+| AC-OPS-002 | 故障注入下控制平面不影响实时路径 | §3.2（场景级方法经`RuntimeControlService`转发，与tick循环解耦，命令队列背压拒绝时返回`OVERLOADED`而非阻塞）、§5 tick边界消费设计 |
+| AC-OPS-003 | GM后台凭证无法直连业务DB/K8s API | §3.1〜3.4 全部方法仅经`AdminService`唯一入口（与RGS-BAS-003§2.1组件图拓扑一致，本文档不引入新路径） |
+| AC-OPS-004 | 高危操作二次确认留痕 | §3.2（`RequestSceneRestart`/`ConfirmSceneRestart`独立审计，关联`ticket_id`）、§6（TBD-OPS-003阈值提案：批量`BanAccount`≥50、批量`GrantCompensation`≥100人或道具总值≥高价值基准线10倍触发二次确认） |
+| AC-OPS-005 | 告警p99时延达标 | §4.2（收敛算法`evaluate_convergence`超时兜底发`maintenance_propagation_incomplete`告警，触发链路经既有OTel Collector→告警规则引擎→Webhook，不引入新路径）、§5 运行时命令通道（命令队列`OVERLOADED`与正常处理均通过`ResultCode`上抛，沿既有告警埋点） |
+
+**注**：AC-OPS-005 告警p99时延的具体压测方案在BAS-003 §13 原文中即注明"留待详细设计"，本文档不越权先行确定压测方案；本表只映射"验收标准→本文档已落实的逻辑/接口章节"，不补压测方案本身。
