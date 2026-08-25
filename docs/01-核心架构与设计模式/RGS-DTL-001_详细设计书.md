@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-001 |
-| 版本 | 0.5 |
+| 版本 | 0.6 |
 | 父文档 | RGS-BAS-001 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -24,6 +24,7 @@
 | 0.3 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型/遗留不一致收尾）。新增§12解决v0.2自述的`player_db`（UUID）与`match_db`/`admin_db`（BIGINT，RGS-DTL-025/026既定）主键风格不一致：决定保留`player_db`自身UUID主键不变（新增`accounts.player_seq`/`characters.character_seq`两个BIGSERIAL列作为跨库权威数值身份，供BIGINT风格的库直接引用，避免额外维护影子映射表）。原§12/§13章节相应重编号为§13/§14 | §2.1（新增两列）、§12（新增）、原§12→§13、原§13→§14 |
 | 0.4 | 2026-08-25 | 架构师 | — | 补记与 RGS-DTL-044 的交叉引用（§2.1 前置段落） + economy_db 实际实现与本节 DDL 的差异说明（§3.1 前置段落），并将上述两处悬置状态登记为附件D ISS-127、ISS-128/TBD-111。**不改变本文档任何既有 DDL 定义、章节编号或既有 ADR 关联**——本版本仅作为"既有应然设计与现行实现/反向文档并存"的双重描述基线 | §2.1（前置说明）、§3.1（前置说明） |
 | 0.5 | 2026-08-25 | 架构师 | — | 项目负责人就 ISS-128/TBD-111 拍板方案(a)（沿 DTL-044 模式，以代码为现行基线）：RGS-DTL-037 v0.2 §7 已完成 economy_db `accounts`/`transaction_ledger` 现行 DDL 反向登记，本版本同步更新 §3.1 前置段落指向该反向文档。**不改变本文档任何既有 DDL 定义**——`wallets`/`inventory_items`/`transaction_ledger` 仍为原始应然设计记录，不删除、不修改 | §3.1（前置说明） |
+| 0.6 | 2026-08-25 | 架构师（Mavis 接手 agent per DEC-008） | — | 同步父 BAS-001 升版至 v1.4 + 补 §7.2.1 ARC-013 死锁防止/背压八边界落实 + §3.4 ADR-0057 权威源分级 Tier-1/Tier-2 落实。**不引入新设计**：仅落实 BAS-001 v1.3（§7.2.1 背压设置点八边界一览 + 死锁防止调用图证明）和 v1.4（§5.4.3 Tier-1 强一致不可逆资产 = economy_db 权威源；Tier-2 最终一致过程态 = SceneActor 内存权威源）已确定的内容至详细设计层级；BAS-001 v1.0〜v1.2 涉及章节（§1.1/§1.2/§1.3/§4/§4.5.1/§5.2/§5.3/§5.7/§6.3/§10/§11）已在 v0.1〜v0.5 落实，本版本不重写 | §3.4（新增）、§7.2.1（新增）、§14（追溯性表追加行） |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -41,8 +42,14 @@
 1. [前言](#1-前言)
 2. [物理数据库设计：player_db](#2-物理数据库设计playerdb)
 3. [物理数据库设计：economy_db](#3-物理数据库设计economydb)
+3.1 DDL
+3.2 确定请求API的物理执行语义
+3.4 权威源分级落实（v0.6 新增）
 4. [协议线格式：PlayerService／EconomyService](#4-协议线格式playerserviceeconomyservice)
 5. [核心算法详细设计](#5-核心算法详细设计)
+5.1 tick循环算法
+5.2 AOI计算算法
+5.3 死锁防止与背压八边界（v0.6 新增）
 6. [物理数据库设计：match_db核心表](#6-物理数据库设计matchdb核心表)
 7. [物理数据库设计：social_db](#7-物理数据库设计socialdb)
 8. [物理数据库设计：admin_db核心表](#8-物理数据库设计admindb核心表)
@@ -209,6 +216,38 @@ BEGIN;
 COMMIT;
 ```
 
+## 3.4 权威源分级落实（per RGS-BAS-001 §5.4.3 / RGS-ADR-0057 §2.1，v0.6 同步父 BAS-001 v1.4）
+
+RGS-BAS-001 v1.4 在 §5.4.3 将 `economy_db` 与 SceneActor 内存的权威源分两级，本节将这两级权威源在详细设计层的具体落位落实——**不引入新设计**，仅落实 BAS 已确定的分级语义到具体表/字段/恢复路径。
+
+### 3.4.1 Tier-1：economy_db 权威（强一致不可逆资产）
+
+`wallets.balance`（§3.1）、`transaction_ledger`（§3.1，含 `Wallet`/`Inventory` 操作流水）、`inventory_items`（§3.1，保留事件溯源语义下的当前持有快照）：
+
+- **权威源**：`economy_db`。SceneActor 侧持有的 `Wallet` / `Inventory` 字段仅为**读缓存**（tick 内高频读取避免跨服务往返）。
+- **写路径**：依 BAS-001 §4.5.2 确定请求，SceneActor 通过 `Out2` 异步调用 economy-service，**不阻塞当前 tick**（不改变 §5.1 tick 阶段预算，NFR-PE-002 25ms 总预算）。
+- **客户端确认时序**：SceneActor 在收到 `economy_db` 提交成功回执之前，**不得**向客户端下发该操作成功确认——这是 Tier-1 权威源语义的物理表现：DB 未提交的资产变更对客户端不可见。
+- **崩溃恢复语义**：`economy_db` 自身崩溃恢复时，Tier-1 字段天然完整（事务日志/WAL 保证），**不依赖**任何 SceneActor 侧 Checkpoint 机制。
+
+### 3.4.2 Tier-2：SceneActor 内存权威（最终一致过程态）
+
+坐标、技能冷却、任务计数、临时 Buff 等——**不落于** `economy_db`，而是 SceneActor 内存独有：
+
+- **权威源**：SceneActor 内存。DB 仅作周期性 Checkpoint（暂定 ≤30 秒，per 附件 D ISS-010 探讨中，RPO 上界 30 秒）。
+- **崩溃恢复语义**：SceneActor 崩溃后从最近一次 Checkpoint 恢复，可能丢失至多一个 Checkpoint 周期内的 Tier-2 状态变化——这是 BAS-001 v1.4 §5.4.3 既定的可接受代价。
+- **与 Tier-1 的零冲突声明**：两者区别落在"权威源在哪"（DB 权威 vs Actor 权威），**而非**"写入时机是否落在同一 tick"——写路径均为异步、均不阻塞 tick，与 §5.1 tick 循环结构、CON-007、ARC-007 三项既有约束零冲突（落实 BAS-001 v1.4 修订历史声明）。
+
+### 3.4.3 详细设计层不引入的内容
+
+- 不为 Tier-1/Tier-2 设计独立的数据通路——两者复用 §3.1 既定 DDL + §4 既定协议线格式 + §5.1 既定 tick 阶段，只是写路径时序与崩溃恢复语义按本节分级落实。
+- 不修改 `wallets` / `inventory_items` / `transaction_ledger` 任何既有 DDL 定义。
+- 不在 `economy_db` 新增 Checkpoint 表（Tier-2 的 Checkpoint 属 SceneActor 进程内机制，不落 economy_db）。
+
+### 3.4.4 待跟进项
+
+- Tier-2 Checkpoint 周期 ≤30 秒的初始值在详细设计阶段提供可配置参数项（便于 PH-4 调参，NFR-PE-002 与 BAS-001 §7.2 背压参数表风格一致），具体数值由运行时实现阶段给出。
+- 附件 D ISS-010（RPO 30 秒）仍由架构师跟进，本节不替父文档决定具体数值。
+
 ---
 
 # 4. 协议线格式：PlayerService／EconomyService
@@ -366,6 +405,93 @@ fn aoi_update_system(scene: &mut SceneState) {
 ```
 
 **无饿死性证明要点**：`aging_score`是`ticks_since_update`的严格单调递增函数且下限为`AGING_BASE_WEIGHT > 0`，故任一实体若持续未被选中，其`ticks_since_update`持续增长，`final_score`最终必然超过任何"新近更新过"的竞争实体的得分上限（`W_DISTANCE + W_IMPORTANCE`为常数上界），保证有限时间内必被选中——这是G-003"老化机制"要求的形式化落实，而非仅停留在文字描述。
+
+## 5.3 死锁防止与背压八边界（per RGS-BAS-001 §7.2.1 / ARC-013，v0.6 同步父 BAS-001 v1.3）
+
+RGS-BAS-001 v1.3 在 §7.2.1 给出"背压设置点一览（八边界）"与"死锁防止的具体证明"。本节将这两部分从系统级设计落实为**可执行的边界配置表 + 可重跑的调用图核查代码**——**不引入新设计**，仅将 BAS 既定机制落位到具体配置项与可验证算法。
+
+### 5.3.1 背压八边界配置表（落实 BAS-001 §7.2.1 八边界一览）
+
+ARC-013 要求在"客户端连接、网关、场景mailbox、gRPC、事件消费者、数据库连接池、工作流Activity、日志路径"八处边界均须设置上限。本节给出每条边界的**配置项定义**与**初始默认值**（PH-4 负载试验后调整）：
+
+| 背压边界 | 配置项 | 类型 | 初始默认值 | 拒绝策略 | 落位位置 |
+|---|---|---|---|---|---|
+| 客户端连接 | `gw.max_conns_per_ip` | u32 | 8 | 超限拒绝新连接 | gateway-service |
+| 客户端连接 | `gw.input_rate_per_conn_hz` | u32 | 60 | 超出降级为心跳 | gateway-service |
+| 网关 | `gw.route_pending_max` | u32 | 4096 | 满则返回重连提示 | gateway-service（§4.1.4输入路由） |
+| 网关 | `gw.hpa_max_replicas` | u32 | 32 | HPA 上限 | K8s HPA 配置（BAS-001 §3.2） |
+| 场景mailbox | `rt.scene_actor_mailbox_cap` | u32 | 256 | 满则按 BAS-001 §4.1.4 step4 直接拒绝 | runtime SceneActor（ARC-001） |
+| gRPC（东西向） | `rpc.pool_max_per_target` | u32 | 16 | 排队等待；超时则 fail-fast | tonic client pool |
+| gRPC（东西向） | `rpc.request_timeout_ms` | u64 | 500 | 超时则取消 | tonic client |
+| 事件消费者 | `evt.dispatcher_retry_backoff_ms` | u64 | 1000 | 下轮重试，不无限堆积 | outbox 分发器（§10.2） |
+| 事件消费者 | `evt.consumer_concurrency` | u32 | 32 | 消费者并发度上限 | 工作流 Activity 容器 |
+| 数据库连接池 | `db.pool_max_conns`（per service） | u32 | 32 | 满则排队；超时则 fail | sqlx pool |
+| 工作流Activity | `wf.activity_max_retries` | u32 | 3 | 超出后进补偿（§10.3） | Temporal Activity |
+| 工作流Activity | `wf.activity_timeout_ms` | u64 | 3000 | 超时则 Activity 重试 | Temporal Activity |
+| 日志路径 | `log.error_sampling = 1.0` | f64 | 1.0 | 错误全量 | observability |
+| 日志路径 | `log.normal_sampling = 0.01` | f64 | 0.01 | 正常路径 1% 采样 | observability（BAS-001 §7.2 引 RGS-BAS-004） |
+
+**表的使用约束**（落实 BAS-001 §7.2.1 背压参数"须可配置"要求）：上表所有项**均**通过 `crates/<service>/src/config.rs` 的 `serde::Deserialize` 加载，PH-1 阶段交付具体数值，PH-4 负载试验后调参。本节不替实现阶段决定具体生产值（除"必须存在的配置项"本身）。
+
+### 5.3.2 死锁防止的可重跑核查代码（落实 BAS-001 §7.2.1 死锁防止证明）
+
+BAS-001 §7.2.1 在系统级给出"对全部东西向调用边核查反向是否存在同步等待边"的方法。本节将其落实为**可在测试/CI 阶段重跑的 Rust 函数**——输入为系统调用图（从 build 期的依赖注入 + tonic service 描述静态生成），输出为"是否存在环"的布尔结论。
+
+```rust
+/// 死锁防止核查：对调用图所有"等待应答"边，逐一验证其反向不存在同步等待边
+/// 落实 RGS-BAS-001 §7.2.1 ARC-013 死锁防止证明方法为可重跑算法
+///
+/// 关键不变量：调用图中"调用方在发起后未收到应答前阻塞"的边（wait_for_reply=true）
+/// 集合中，任意一条边的反向若存在 wait_for_reply=true 的另一条边，则形成环——违反 ARC-013。
+fn assert_no_deadlock_cycle(call_graph: &CallGraph) -> Result<(), DeadlockError> {
+    use std::collections::HashMap;
+
+    // 1. 提取所有"等待应答"边
+    let wait_edges: Vec<&Edge> = call_graph.edges.iter()
+        .filter(|e| e.wait_for_reply)
+        .collect();
+
+    // 2. 按"目标节点"分组：同一被调用方有多个调用方在等待时，按 ARC-013 须为优先级
+    //    不同的独立通道；本检查仅做环检测，优先级由各服务的并发度配置保证（不属本节范围）
+    let mut by_target: HashMap<&str, Vec<&Edge>> = HashMap::new();
+    for e in &wait_edges {
+        by_target.entry(&e.to).or_default().push(*e);
+    }
+
+    // 3. 逐条等待边的反向核查：对每条 (A→B, wait)，检查是否存在 (B→A, wait)
+    for e in &wait_edges {
+        let reverse_exists = wait_edges.iter().any(|other| {
+            other.from == e.to && other.to == e.from && other.wait_for_reply
+        });
+        if reverse_exists {
+            return Err(DeadlockError::Cycle {
+                edge_a: (e.from.clone(), e.to.clone()),
+                edge_b: (e.to.clone(), e.from.clone()),
+            });
+        }
+    }
+
+    // 4. 调用图整体环路检测（DFS），覆盖多跳环
+    if let Some(cycle) = call_graph.detect_cycle_dfs() {
+        return Err(DeadlockError::Cycle { edge_a: (cycle[0].clone(), cycle[1].clone()), edge_b: (String::new(), String::new()) });
+    }
+
+    Ok(())
+}
+```
+
+**对当前系统调用图的核查结论**（按 BAS-001 §7.2.1 表格逐行落实为代码可验证事实）：
+
+| 调用方向 | `wait_for_reply` | 状态 |
+|---|---|---|
+| 网关 → 运行时（§4.1.4 输入路由） | `false`（fire-and-forward，mailbox 满则直接拒绝，不阻塞） | ✅ |
+| 网关 → 玩家服务（§4.1.2 鉴权） | `true`（单向请求-应答） | ✅（玩家服务不反向调用网关） |
+| 运行时 → 经济服务（§4.5.2 确定请求） | `false`（不阻塞 tick，结果在后续 tick 反映） | ✅ |
+| 经济服务 → 运行时 | 不存在（BAS-001 §6.3 接口图无 `EconomyService → RuntimeCaller`） | ✅ |
+| 业务服务 → 事件基础设施（§4.7.1 Outbox） | `false`（事务提交后立即返回，不等待消费） | ✅ |
+| 事件基础设施 → 消费者 | `false`（消费者不产生反向同步应答） | ✅ |
+
+**若详细设计阶段新增任何服务间同步调用**（wait_for_reply=true 的边），须在新增的 DTL 文档中以同款表格核查并附 `assert_no_deadlock_cycle` 的测试用例通过证据，否则不得合并——这是 ARC-013 在详细设计层留下的可执行检查方法，对应 BAS-001 §7.2.1"重新执行本表的核查并更新本节"要求。
 
 ---
 
@@ -834,3 +960,5 @@ v0.3（负责人指示"开子代理完成剩余的"）补齐：
 | RGS-BAS-001§4.8.2 指标采集拓扑 | §10.4（声明不展开为伪代码的理由） |
 | RGS-DTL-025§2 admin_db反作弊三表（本文档§8核心表与其同库） | §8、§12（跨库标识映射机制） |
 | RGS-DTL-026§2 match_db匹配三表（本文档§6核心表与其同库） | §6、§12（跨库标识映射机制） |
+| RGS-BAS-001§5.4.3 权威源分级 Tier-1/Tier-2（per RGS-ADR-0057 §2.1，v0.6 同步父 BAS-001 v1.4） | §3.4 |
+| RGS-BAS-001§7.2.1 背压设置点八边界 + 死锁防止证明（ARC-013，v0.6 同步父 BAS-001 v1.3） | §5.3 |
