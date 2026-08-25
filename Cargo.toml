@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/rgs-hello",
+    "crates/rgs-asset-download",
     "crates/player-service",
     "crates/economy-service",
     "crates/match-service",
