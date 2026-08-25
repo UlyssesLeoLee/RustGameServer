@@ -3,9 +3,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-100 |
-| 版本 | 0.1（初版） |
+| 版本 | 0.2 |
 | 制定日 | 2026-08-21 |
-| 最终更新日 | 2026-08-21 |
+| 最终更新日 | 2026-08-25 |
 | 制定者 | 架构师（Ulysses 兼，per DEC-008 一人公司） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -19,6 +19,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。Purchase Saga / Character Creation Saga / Reward Saga / Compensation Flow / Outbox+Inbox 详细时序 + 状态机 + Schema + Reservation 流程。 |
+| 0.2 | 2026-08-25 | 架构师（Ulysses）| 反映RGS-ADR-0057（Accepted）§2.3：§3.3末尾补充交叉引用，确认Reward Saga既有设计语义等价于Outbox+幂等消费者；不改变本节设计本身，不改变Purchase/Character Creation Saga补偿编排，不触发RGS-SPEC-DTL-100/101/102重新版本化（per RGS-ADR-0057§3.3） |
 
 ---
 
@@ -394,6 +395,8 @@ graph TB
 - GM 通过 Saga Console 介入
 - 必要时发 **Corrective Event**（如手工补发货币 + 通知玩家）
 - 不要发 "CancelReward" 类事件
+
+Reward Saga 语义等价于 Outbox + 幂等消费者（无补偿状态机，仅保证至少一次投递 + 去重），per RGS-ADR-0057 §2.3。该等价关系为**确认既有设计**，不改变本节设计本身，也不改变 Purchase Saga（§1.3）与 Character Creation Saga（§2）的补偿编排。
 
 ---
 
