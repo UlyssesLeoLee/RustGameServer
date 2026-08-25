@@ -1,0 +1,47 @@
+[package]
+name = "rgs-asset-download"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "客户端资源分发的断点续传与可恢复下载（per RGS-DTL-041 + SPEC-DTL-041 v0.2）"
+
+[lib]
+name = "rgs_asset_download"
+path = "src/lib.rs"
+
+[dependencies]
+# 公共能力
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+# HTTP Range 客户端（per SPEC §2.2 + DTL §4）
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+# 整文件 hash（NFR-CDN-002 不可绕过）
+sha2 = "0.10"
+hex = "0.4"
+# 客户端断点记录 store（per SPEC §3）
+rusqlite = { version = "0.31", features = ["bundled"] }
+# 时间戳
+chrono = { workspace = true }
+# 资源 ID
+uuid = { workspace = true }
+# 配置路径解析
+dirs = "5"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.52", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util"] }
+wiremock = "0.6"
+tempfile = "3"
+# rgs-testkit（InMemoryNatsMock + helper）
+rgs-testkit = { path = "../rgs-testkit" }
+# 统计 + 直方图
+statrs = "0.17"
