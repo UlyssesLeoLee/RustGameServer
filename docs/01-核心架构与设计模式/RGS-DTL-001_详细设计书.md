@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"推进制作更新详细设计"）。本项目此前26个域全部止步于需求+基本设计两层，本文档是**第一份详细设计文档**，作为后续其余域详细设计的模板与先例。范围：RGS-BAS-001§5物理数据库设计的两个最核心限界上下文（player_db／economy_db）落实为具体DDL、§6接口设计落实为具体协议线格式（.proto风格）、§4.2 tick循环与§4.3 AOI算法落实为可直接翻译为Rust实现的伪代码级算法。**本版本不覆盖BAS-001全部章节**，其余限界上下文（match_db／social_db／admin_db）与MT/GD/EV/WF/OB/AD模块详细设计留待后续版本或独立DTL文档补充，见§7 |
 | 0.2 | 2026-08-17 | 架构师 | — | 续接详细设计阶段，补齐本文档v0.1自己在§7声明的遗留缺口：新增match_db／social_db／admin_db核心表物理DDL（§6〜§8）、MatchService／SocialService／AdminService协议线格式（§9）、RGS-BAS-001§4.6〜4.8（对局状态机、社交并发控制、事件工作流Outbox分发器、购买Saga补偿路径、可观测性Trace传播）算法详细设计（§10）。**触发原因**：RGS-DTL-025（反作弊）已扩展`admin_db`新增三表、RGS-DTL-026（匹配）已扩展`match_db`新增三表，两文档均在其覆盖范围声明中指出"核心架构自身的DTL-001不尽快补齐，将出现业务域DTL引用的库由谁最终定义全貌的文档权责模糊风险"——本次修订补齐该两库（及social_db）各自的核心表，消除该权责模糊。原§6/§7章节相应重编号为§11/§12，新增§13追溯性表 | 全部 |
 | 0.3 | 2026-08-17 | 架构师 | — | 负责人指示"开子代理完成剩余的"（技术选型/遗留不一致收尾）。新增§12解决v0.2自述的`player_db`（UUID）与`match_db`/`admin_db`（BIGINT，RGS-DTL-025/026既定）主键风格不一致：决定保留`player_db`自身UUID主键不变（新增`accounts.player_seq`/`characters.character_seq`两个BIGSERIAL列作为跨库权威数值身份，供BIGINT风格的库直接引用，避免额外维护影子映射表）。原§12/§13章节相应重编号为§13/§14 | §2.1（新增两列）、§12（新增）、原§12→§13、原§13→§14 |
+| 0.4 | 2026-08-25 | 架构师 | — | 补记与 RGS-DTL-044 的交叉引用（§2.1 前置段落） + economy_db 实际实现与本节 DDL 的差异说明（§3.1 前置段落），并将上述两处悬置状态登记为附件D ISS-127、ISS-128/TBD-111。**不改变本文档任何既有 DDL 定义、章节编号或既有 ADR 关联**——本版本仅作为"既有应然设计与现行实现/反向文档并存"的双重描述基线 | §2.1（前置说明）、§3.1（前置说明） |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -73,6 +74,10 @@ IPA SLCP-JCF2013将设计工程分为**基本设计（システム外部から�
 # 2. 物理数据库设计：player_db
 
 ## 2.1 DDL
+
+> **与 RGS-DTL-044 的关系（2026-08-25 补记）**：本节 `accounts` / `characters` DDL 为初版"应然"设计（2026-08-17 v0.1 起，v0.3 仅新增 `player_seq` / `character_seq` 两列）。实际实现中，`player-service` 落地为 `players` / `player_characters` / `player_inventory`（表名、主键命名风格、`status` 物理类型、是否存在 `session_epoch` 等均与本节不同），该实现已由 **`RGS-DTL-044_player主表_v0.1.md`**（2026-08-24，状态 🟢 v1.0，A-02 偿还技术债的反向文档）正式登记为现行设计基线，逐列标注来源 `entity.rs`。
+>
+> 本节下述 `player_seq` / `credential_hash` / `session_epoch` / OCC `version` / `ban_records` 等字段／表，DTL-044 未覆盖，在 `crates/player-service/migrations/0001_init.sql` 与 `crates/player-service/src/entity.rs` 中亦**尚未存在**，视为本节仍为有效设计意图但**尚未实现**的部分（其中 `player_seq` / `character_seq` 作为 v0.3 新增的跨库权威数值身份，本身就需待 `accounts` / `characters` 表最终被实现后才有意义——与 DTL-044 的反向登记并存于同一文档体系，形成"应然 vs 现行"双重描述）。该悬置状态已登记至附件D **ISS-127**，由架构师跟进实现路径决策；本文档不修改任何既有 DDL 定义，仅在此处补记与 DTL-044 的关系以消除两份设计文档对同一张表给出不同表名／主键／字段的治理缺口。
 
 ```sql
 -- 复用RGS-BAS-007既定命名规范：表名snake_case复数、主键统一为<entity>_id、
@@ -137,6 +142,10 @@ CREATE INDEX idx_ban_records_player_id_active ON ban_records (player_id)
 # 3. 物理数据库设计：economy_db
 
 ## 3.1 DDL
+
+> **与 economy-service 实际实现的关系（2026-08-25 补记）**：本节 `wallets` / `inventory_items` / `transaction_ledger` DDL 为初版"应然"设计（2026-08-17 v0.1 起）。实际实现 `crates/economy-service/migrations/0001_init.sql` 落地为 `accounts`（PK `id`、列 `player_id`，货币作为**行**而非独立表）+ `transaction_ledger`（字段 `idempotency_key` / `kind TEXT` / `amount BIGINT`，**无** `payload JSONB`），且**未实现** `inventory_items` 表。两套表名／主键／字段命名／角色级 vs 玩家级＋币种行的整体模型均存在结构性分歧。
+>
+> 与 player_db 不同，economy_db **尚无**类似 DTL-044 的"反向文档"（per RGS-OPEN-QA-001 v0.2 + ACTIONS-v0.3 §3 A-02 的偿还模式）来吸收上述差异以"代码为现行基线"收敛。本节与实现的差异亦**未**有具名人类决策：(a) 沿 DTL-044 模式为 economy_db 写一份反向 DTL 文档以代码为准，还是 (b) 排期让代码回向本节靠拢。该悬置状态已登记至附件D **ISS-128 / TBD-111**，由架构师与 economy 域 Lead 共同跟进；本文档不修改任何既有 DDL 定义、不替人类决策收敛方向，仅在此处补记与实际实现的关系。
 
 ```sql
 CREATE TABLE wallets (
