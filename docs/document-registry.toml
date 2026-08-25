@@ -4,7 +4,7 @@
 
 [metadata]
 schema_version = "1.0"
-updated = \"2026-08-21 (v3.10 集体签字)\"
+updated = "2026-08-21 (v3.10 集体签字)"
 purpose = "目录导航、跨文档引用及计划状态的受控来源"
 
 # v3.9 阶段：14 份文档由 known_existing_draft 升级为正式 planned 登记
