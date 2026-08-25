@@ -1,0 +1,40 @@
+[package]
+name = "rgs-asset-download"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "客户端资源分发的断点续传与可恢复下载（rgs-asset-download crate，per RGS-SPEC-DTL-041 v0.2 + RGS-IMPL-PLAN-CDN-001 v0.1）"
+
+[dependencies]
+# 公共能力（与 workspace.dependencies 对齐）
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# 客户端侧存储（per RGS-IMPL-PLAN-CDN-001 §2.3）
+# rusqlite 0.31 bundled：客户端侧 SQLite，不连 PG
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# 整文件 hash（per SPEC §3 NFR-CDN-002）
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+# 测试 fixture
+tempfile = "3"
+tokio = { version = "1", features = ["full", "test-util", "macros"] }
+
+[features]
+default = []
+# 启用 sqlite store（默认开）；关闭时仅 JSON file store 可用
+# 占位字段：未来可能切分 feature 门禁
+sqlite = []
