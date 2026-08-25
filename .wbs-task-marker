@@ -6,9 +6,40 @@
   "spec": "SPEC-DTL-041",
   "dtl": "DTL-041",
   "branch": "wbs/WF-1-2064",
-  "status": "in_progress",
-  "progress": 0,
+  "status": "done",
+  "progress": 100,
   "started_at": "2026-08-25T03:29:38.765Z",
-  "updated_at": "2026-08-25T03:29:38.765Z",
+  "updated_at": "2026-08-25T03:32:00.000Z",
+  "completed_at": "2026-08-25T03:32:00.000Z",
+  "commit": "8d55fbdd47441d1ce1b9d0fa924bdbd2e06f9513",
+  "m_tasks_completed": [
+    "M-2064.PREREQ",
+    "M-2064.1",
+    "M-2064.2",
+    "M-2064.3",
+    "M-2064.4",
+    "M-2064.5",
+    "M-2064.6",
+    "M-2064.7"
+  ],
+  "deliverables": [
+    "crates/rgs-asset-download/Cargo.toml",
+    "crates/rgs-asset-download/src/lib.rs",
+    "crates/rgs-asset-download/src/error.rs",
+    "crates/rgs-asset-download/src/api.rs",
+    "crates/rgs-asset-download/src/state_machine.rs",
+    "crates/rgs-asset-download/src/resume_token.rs",
+    "crates/rgs-asset-download/src/resume_token_store.rs",
+    "crates/rgs-asset-download/tests/ut_state_machine.rs",
+    "crates/rgs-asset-download/tests/ut_resume_token_store.rs",
+    "crates/rgs-asset-download/migrations/0001_resume_token_index.sql"
+  ],
+  "verification": {
+    "cargo_check": "0 error",
+    "cargo_test": "86 passed (32 lib + 24 store + 30 state_machine)",
+    "cargo_clippy": "0 warning",
+    "fr_cdn_064_pii_grep": "empty (PASS)",
+    "8_states_grep": "140 matches (>= 8 required, PASS)"
+  },
   "worktree": "D:/RustGameServer-worktrees/WF-1-2064"
 }
