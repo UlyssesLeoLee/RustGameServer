@@ -1,44 +1,37 @@
 {
-  "l4_id": "WF-1-55.27",
-  "task": "ReserveHandler OCC cleanup + reservation release 失败路径真修(per RGS-REV-009 CR-1)",
-  "owner": "Ulysses",
-  "tokens": null,
-  "spec": null,
-  "dtl": null,
-  "branch": "wbs/WF-1-55.27-retry",
-  "status": "completed",
+  "l4_id": "WF-1-2072",
+  "task": "商业 CDN（Cloudflare 可选）Range 边缘命中实测 + 切流验证（CDN PH-5 可选项）",
+  "owner": "SRE",
+  "tokens": "210K",
+  "spec": "SPEC-DTL-041",
+  "dtl": "DTL-041",
+  "branch": "wbs/WF-1-2072",
+  "status": "done",
   "progress": 100,
-  "started_at": "2026-08-24T00:00:00.000Z",
-  "updated_at": "2026-08-24T19:30:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-55-retry",
-  "l4_commits": [
-    {
-      "id": "WF-1-55.27",
-      "commit": "c96efe8",
-      "subject": "[wbs] WF-1-55.27: 真修 ReserveHandler OCC cleanup + reservation release 失败路径(per RGS-REV-009 CR-1)"
-    },
-    {
-      "id": "WF-1-55.28",
-      "commit": "a80fa94",
-      "subject": "[wbs] WF-1-55.28: 6 域 outbox CHECK 幂等 migration(per RGS-REV-009 CR-2)"
-    },
-    {
-      "id": "WF-1-55.31",
-      "commit": "f6a6f3f",
-      "subject": "[wbs] WF-1-55.31: PgTestDatabase fixture #[sqlx::test] 强约束(per RGS-REV-009 CR-3, 防 209 test 假阳性)"
-    }
-  ],
-  "tag_deleted": "no-merge-pending-wf-1-55-27",
-  "tag_deleted_was": "038661e",
-  "tag_deleted_at": "2026-08-24T19:30:00.000Z",
-  "verification": {
-    "cargo_build_workspace": "0 error / 0 warning",
-    "cargo_test_workspace": "271 passed / 0 failed (含 53 economy + 2 PG integration + 16 rgs-testkit self_test + ...)",
-    "cargo_test_economy_lib": "50 passed / 0 failed",
-    "cargo_test_economy_integration_outbox": "2 passed (真 PG 验证 CHECK 约束 + 幂等性)",
-    "cargo_test_rgs_testkit_pg_integration": "14 passed / 0 failed (含 pg_test_macro_re_export_works 强约束 macro 验证)",
-    "cargo_test_player_service": "24 unit + 1 fail_closed / 0 failed (其他域未破)",
-    "deprecation_warnings_on_mock_pg_use": "4 warnings (use DbMock x2 + use NoopMock x1 + call mock_url x1)"
+  "started_at": "2026-08-25T03:29:38.765Z",
+  "updated_at": "2026-08-25T03:33:53.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2072",
+  "deliverables": {
+    "M-2072.PREREQ": "crates/rgs-asset-download/{Cargo.toml,src/lib.rs}（最小 crate 骨架 + workspace member 登记）",
+    "M-2072.1": "scripts/cloudflare_r2_setup.sh（7.7KB, 6 步流水线, R2 endpoint JSON 输出契约）",
+    "M-2072.2": "crates/rgs-asset-download/tests/it_cloudflare_edge.rs（8 tests / 4 #[ignore], 4 region × N probe 契约）",
+    "M-2072.3": "crates/rgs-asset-download/tests/it_cloudflare_canary.rs（11 tests / 5 #[ignore], 5%→25%→100% 三阶段契约）",
+    "M-2072.4": "docs/deploy/cdn-cloudflare-report.md（14.6KB, 9 章 + 2 附录）"
   },
-  "remaining_blockers": []
+  "validation": {
+    "cargo_test_no_run": "0 error（unittests + it_cloudflare_edge + it_cloudflare_canary 全部 0 error / 0 warning）",
+    "cargo_test_default_runs": "13 passed / 0 failed / 9 ignored（契约测试全过；IT 全部 #[ignore]）",
+    "grep_check_1": "Test-Path docs/deploy/cdn-cloudflare-report.md → True",
+    "grep_check_2": "Select-String ... canary → 100 matches (>= 3 required)"
+  },
+  "degraded_strategies": {
+    "cloudflare_unavailable": "IT 全部 #[ignore]; 跑法 (--ignored) + 4-5 env vars 写在每个 IT 顶部; SRE 接力 + Cloudflare 账号就位后真跑",
+    "ph5_skip_safeguard": "R6 风险表 + NFR-CDN-114 门禁: 未通过 AC-CDN-117 的候选不得启用 (per 实施计划 §6)"
+  },
+  "next_steps": [
+    "SRE 接力 + Cloudflare 账号就位",
+    "跑 scripts/cloudflare_r2_setup.sh --env staging 产出 R2 endpoint",
+    "跑 M-2072.2 / M-2072.3 真 IT（cargo test -- --ignored）",
+    "回填报告 §3.3 / §4.4 数据"
+  ]
 }
