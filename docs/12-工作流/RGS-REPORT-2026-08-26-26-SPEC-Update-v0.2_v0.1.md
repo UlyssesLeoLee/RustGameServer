@@ -117,7 +117,7 @@ docs/13-实现规格/RGS-SPEC-DTL-038_实现规格书.md
 docs/13-实现规格/RGS-SPEC-000_详细设计规格化总表.md  ← v0.1/v0.2 + v0.3(本日 26 份批量调整记录)
 ```
 
-`git diff --stat docs/13-实现规格/`:**27 files changed, 1280 insertions(+), 26 deletions(-)**(0 行实质删除;26 行是 036 SPEC §A.3 中 1 处笔误修正"FR-DTL-006"→"FR-PL-006")。
+`git diff --stat docs/13-实现规格/` + `git diff --stat docs/12-工作流/`:合计 **28 files changed, 1539 insertions(+), 104 deletions(-)**(27 份实现规格 + 1 份总报告;约 100 行删除主要是 26 份 SPEC 头表"版本/状态/源详细设计/实施范围"4 字段一对一替换的旧 0.1 行被整体替换为 v0.2 行,每份约 -4/+4;036 SPEC 因自审修了 §A.3 5+1 写法 + 软化路径,实际为 -4/+10)。
 
 ---
 
@@ -173,6 +173,9 @@ docs/13-实现规格/RGS-SPEC-000_详细设计规格化总表.md  ← v0.1/v0.2 
 
 **报告字数**:约 4500 字 / 27 文件影响 / 0 行实质删除
 
-**生成 commit**:本批 27 文件改动**未 commit**(per Mavis 接手 agent 习惯 + Ulysses 4-域 Lead 5-域独立 Lead 工作模式,等 Ulysses 决定 commit 策略:单 commit / 4 commit 按域分 / 1 commit 总额 + 1 综述 commit)。
+**生成 commit**:
+- `2557a8c` (2026-08-26 06:59 JST, Mavis): `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本报告 28 文件一起 commit
+- `fed8d9d` (2026-08-26 07:25 JST, Mavis): `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` —— 独立复核 2557a8c 后定位 7 项问题(P1/P2a/P2b/P3~P7)+ 1 项非阻断卫生项,建议 Ulysses 签字前处置
+- v0.1 报告原稿里"未 commit"表述已过时,实际已在 2557a8c 落地;v0.2 校正于本修订更新
 
-**报告生成时间**:2026-08-26 06:25 JST
+**报告生成时间**:2026-08-26 06:25 JST(初版)→ 07:36 JST(校正 v0.2,与 RGS-OPEN-QA-2026-08-26-SPEC-v0.2_v0.1.md 同期)

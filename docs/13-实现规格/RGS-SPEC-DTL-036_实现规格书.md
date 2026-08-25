@@ -122,11 +122,11 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 
 源 RGS-DTL-036 v1.4.2 §3 末尾"已知缺口(DDD Review 阶段必查项)"清单 **5 项**(per v1.4.2 hotfix commit `2c81361` §3 修订)必须由本 SPEC 在编码阶段配套处置(per RGS-DTL-036-REVIEW-2026-08-26 §P3 处置要求 1/2/3):
 
-1. **gRPC 方法名与父 BAS-001 §6.3.1 PlayerService 现有方法名对账**——当前 DTL-036 §3 占位名 `GetPlayer`/`CreatePlayer`/`UpdatePlayerState` vs 父 BAS 现行 `Authenticate`/`SelectCharacter`/`GetCharacterList`,两者**不一致**。本 SPEC 待 DDD Review 阶段配套 player.proto 字段号/错误枚举/兼容窗口一起重写,实现期 **不得** 直接以 DTL-036 §3 占位名落到 crates/contracts/player.proto。
+1. **gRPC 方法名与父 BAS-001 §6.3.1 PlayerService 现有方法名对账**——当前 DTL-036 §3 占位名 `GetPlayer`/`CreatePlayer`/`UpdatePlayerState` vs 父 BAS 现行 `Authenticate`/`SelectCharacter`/`GetCharacterList`,两者**不一致**。本 SPEC 待 DDD Review 阶段配套 player.proto 字段号/错误枚举/兼容窗口一起重写;**具体 proto 路径 / crate 路径 / 中间件层由 DDD Review 阶段决定,本 SPEC 不预设**;实现期 **不得** 直接以 DTL-036 §3 占位名落到未经 DDD Review 决定的任一具体位置。
 2. **与 REQ-001 §FR-PL-004(玩家永久状态读写, PH-1 ◎)/ FR-PL-005(封禁/制裁)/ FR-PL-006(在线状态)三条业务规则对账**——当前 DTL-036 §3 未覆盖,见源 DTL §8 评审(业务)栏备注。本 SPEC §3 实现单元的 "API/event" 行暂不补充这三类方法,留待 DDD Review 阶段以基础方法名(本节缺口 1)对齐后,按 FR-PL-004/005/006 业务边界追加,实现期不得自行决定命名。
 3. **`session_epoch` 必填规则的具体强制落点**(中间件 / 拦截层)——本版本不预设实现文件路径,留 DDD Review 阶段从 BAS-001 §6.1 ARC-005 既有原则反推具体层。
 4. **`PlayerRegistered` 事件的字段组成**——待与 REQ-001 §FR-PL-001 对账,本版本不预设具体字段名。
-5. **错误枚举**——DDD Review 阶段从零设计,本版本不预设具体枚举值。本 SPEC §3 "公共契约" 与 §4 "实现契约" 在 DDD Review 阶段给出落点(中间件/拦截层/事件 Schema 字段名/错误码字典)后才能落到 crates/contracts/player.proto + crates/observability/ + crates/rgs-player 错误码映射。
+5. **错误枚举**——DDD Review 阶段从零设计,本版本不预设具体枚举值。本 SPEC §3 "公共契约" 与 §4 "实现契约" 在 DDD Review 阶段给出落点(中间件/拦截层/事件 Schema 字段名/错误码字典)后才能落到对应 crate 路径;**具体 crate 路径由 DDD Review 阶段决定,本 SPEC 不预设**。
 
 > **本 SPEC v0.2 自身元缺口**(非源 DTL 缺口,SPEC 内部决策项):
 > 6. **审批栏 DDD Review 必查**(per 源 DTL §8 评审(业务)栏 v1.4.1 改写):实现期不得在上述 5 项缺口未处置前标 Done。审批栏姓名字段仍 = "—",由 Ulysses 在字段级 DD Review 后补签。若 DDD Review 阶段发现本 §A.3 自身遗漏,按 v0.3 升版补,不在 v0.2 hotfix 链上叠加。
