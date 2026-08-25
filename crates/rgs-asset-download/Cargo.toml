@@ -6,29 +6,35 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "RustGameServer 客户端资源分发的断点续传与可恢复下载（per RGS-DTL-041 / RGS-SPEC-DTL-041 v0.2）"
-
-# —— 公开 API 入口模块（per RGS-SPEC-DTL-041 §2 + RGS-IMPL-PLAN-CDN-001 §2.2）——
-[lib]
-name = "rgs_asset_download"
-path = "src/lib.rs"
+description = "客户端资源分发的断点续传与可恢复下载（rgs-asset-download crate，per RGS-SPEC-DTL-041 v0.2 + RGS-IMPL-PLAN-CDN-001 v0.1）"
 
 [dependencies]
-# 既有公共服务（per RGS-IMPL-001 §2 workspace）
-thiserror = { workspace = true }
-chrono = { workspace = true }
-async-trait = { workspace = true }
-tracing = { workspace = true }
+# 公共能力（与 workspace.dependencies 对齐）
+tokio = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
 
-# 新增：HTTP Range 客户端基座（与既有 rgs-asset-update 同款，避免双实现）
-# 显式锁定 default-features = false + rustls-tls + stream（per DTL §2.3 依赖收敛原则）
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+# 客户端侧存储（per RGS-IMPL-PLAN-CDN-001 §2.3）
+# rusqlite 0.31 bundled：客户端侧 SQLite，不连 PG
+rusqlite = { version = "0.31", features = ["bundled"] }
 
-# dev-dependencies 留待 M-2064 / M-2065 任务接入（wiremock / tempfile / proptest）
+# 整文件 hash（per SPEC §3 NFR-CDN-002）
+sha2 = "0.10"
+hex = "0.4"
 
-# —— 平台特定：sparse file 预分配（per M-2065.6 / R6 风险）——
-# 4 平台分支由 src/platform/mod.rs 编译期选择；目标平台之外的 .rs 文件不参与编译
-[target.'cfg(windows)'.dependencies]
-# 暂不在骨架中引入；M-2065.7 实测 SetFileValidData 权限评估时按需追加 windows-sys
-# windows-sys = { version = "0.52", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+[dev-dependencies]
+# 测试 fixture
+tempfile = "3"
+tokio = { version = "1", features = ["full", "test-util", "macros"] }
+
+[features]
+default = []
+# 启用 sqlite store（默认开）；关闭时仅 JSON file store 可用
+# 占位字段：未来可能切分 feature 门禁
+sqlite = []
