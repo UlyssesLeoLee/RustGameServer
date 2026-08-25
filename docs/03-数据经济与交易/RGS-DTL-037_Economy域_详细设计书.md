@@ -51,7 +51,8 @@ health: [/healthz, /readyz]
 
 ## 6. 待补齐项
 
-- [x] 账本/库存物理 DDL：`accounts`/`transaction_ledger` 已反向登记于 §7（per ISS-128/TBD-111，2026-08-25）；订单物理 DDL 与分区策略**仍未补齐**。
+- [x] 账本物理 DDL：`accounts`/`transaction_ledger` 已反向登记于 §7（per ISS-128/TBD-111，2026-08-25）。
+- [ ] 库存物理 DDL：`inventory_items` 在 economy-service **未实现**（见 §7.4 缺口说明，非已登记状态）；订单物理 DDL 与分区策略**仍未补齐**。
 - [ ] Q-003 审批材料和补偿延迟 p99 指标。
 - [ ] 跨域 ID 与 event schema 权威清单。
 - [ ] Economy 与 Player/Match/Social 的契约测试。
@@ -99,7 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts (status);
 
 **索引**：`idx_accounts_player_id`（FK 等效索引，按玩家查全部币种账户）、`idx_accounts_status`（风控/冻结账户筛选）、`UNIQUE(player_id, currency)`（隐式索引，防重复开户）。
 
-### 7.2 `transaction_ledger` 表（per `0001_init.sql` + `0002_saga_init.sql`）
+### 7.2 `transaction_ledger` 表（per `0001_init.sql`；`saga_id`/`command_id` 字段随表一并在 0001 建立，`0002_saga_init.sql` 仅新增 `sagas`/`reservations`/`inbox` 三表，未 ALTER 本表）
 
 > **状态**：✅ **已存在**
 
