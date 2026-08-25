@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-009 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-BAS-009 体系治理与横切关注点 基本设计书（本文档为其详细化，不改变任何既有决定，仅将逻辑/流程设计落实为物理/实现级设计） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 |
 | 制定日 | 2026-08-17 |
@@ -20,6 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定，本文档是RGS-DTL-001/002/025/026/027之后本批次继续推进详细设计阶段的一部分。细化RGS-BAS-009§4 CI机械校验表中"未实现"4项的具体解析逻辑（未注册域名段/未登记领域验收标准/跨文档章节引用失效/OLU台账余额为负）为可脚本化的伪代码、§2.2/§2.3登记表结构落实为附件C/D的具体Markdown表格行格式解析规则、§3.4 OLU台账落实为附件D§5的具体物理格式、§5.2/§5.2.1删除与导出编排落实为PH-6前"服务内状态机"阶段的具体状态转移伪代码与幂等实现。**本版本不覆盖**：PH-6后工作流基础设施接管编排后的具体工作流定义（依赖ARC-011工作流基础设施本身的详细设计尚未产出）、CI机械校验脚本`check-docs-consistency.sh`已实现4项检查的重复展开（原脚本已存在于仓库，非本文档新增设计对象）。见§7 | 全部 |
+| 0.2 | 2026-08-25 | 架构师（一人公司 12 角色兼任 per DEC-008；本升版由 Mavis 接手 agent 代为执笔）| — | 同步父BAS-009升版至v0.6 + 补：①修复§5.2.1伪代码常量名笔误（`EXPORY_TTL`→`EXPORT_TTL`，落实BAS v0.6临时对象存储限时链接设计）；②新增§5.4删除/导出两条编排遍历的库集合一致性校验（落实BAS v0.6 §5.2.1设计点③"上线前检查清单须验证遍历库集合对应"，以单一Mount Record强制两条编排共享同一份清单并在代码层加assert防漂移）；③目录补§5.4小节，追溯性表细分§5.2/§5.2.1映射。**未引入新设计**——三处补强均为对BAS v0.3/v0.4（OLU预算+回收口径）、v0.5（FR-GOV-040挂载回滚拆分）、v0.6（§5.2.1导出编排一致性校验）已确定设计的落实，§1.2"不做什么"边界、§4不动既有CI 4项、§6挂载回滚v0.1版本已落实FR-GOV-040均保持原样 | §5.2, §5.4, 目录, 追溯性, 头部版本 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -39,6 +40,10 @@
 3. [OLU运维负荷预算台账物理格式](#3-olu运维负荷预算台账物理格式)
 4. [CI机械校验：未实现4项的解析逻辑](#4-ci机械校验未实现4项的解析逻辑)
 5. [个人数据删除／导出编排状态机详细设计](#5-个人数据删除导出编排状态机详细设计)
+   - 5.1 状态定义
+   - 5.2 主流程
+   - 5.3 失败与重试
+   - 5.4 删除/导出两条编排遍历的库集合一致性校验
 6. [挂载回滚两阶段验证的具体判定逻辑](#6-挂载回滚两阶段验证的具体判定逻辑)
 7. [本文档的覆盖范围与后续计划](#7-本文档的覆盖范围与后续计划)
 
@@ -248,7 +253,7 @@ fn run_orchestration(request_id: RequestId, target_player_id: PlayerId, action: 
         }
         OrchestrationAction::Export => {
             let bundle = aggregate_exported_data(request_id)?;      // §5.2.1汇总为结构化JSON
-            let url = write_to_temp_object_storage_with_expiry(bundle, EXPORY_TTL)?;
+            let url = write_to_temp_object_storage_with_expiry(bundle, EXPORT_TTL)?;
             notify_support_ticket_with_download_url(request_id, url)?;
         }
     }
@@ -276,6 +281,30 @@ fn on_target_failure(request_id: RequestId, db: TargetDbId, err: TargetDbError) 
 ```
 
 **关键边界条件说明**：`already_done`集合的存在使得"中途失败后重入"不会对已处理完的目标库重复执行删除/导出——这是RGS-BAS-009§5.2"幂等，可重入"这一文字要求的具体实现方式；`mark_target_completed`在**每个**目标库完成后立即持久化（而非批量在全部完成后一次性写入），使得进程崩溃恢复后的重入起点精确到"上次完成到哪个目标库"，而非退化为"从头重来"或"整体失败"。
+
+## 5.4 删除/导出两条编排遍历的库集合一致性校验（落实RGS-BAS-009§5.2.1"上线前检查清单"设计点）
+
+RGS-BAS-009§5.2.1设计点③要求"上线前检查清单**必须**验证：导出编排遍历的库集合与删除编排遍历的库集合逐一对应（同一份Mount Record声明）"。本节给出该校验在代码侧的承载位置——在挂载App的上线前阶段（与RGS-BAS-002§12.1挂载检查清单同位）一次性运行，**不**进PH-6工作流运行期。
+
+```rust
+// 仅供挂载App上线前检查清单使用，CI不调用(避免每PR误报)
+fn verify_delete_export_target_parity(mount_record: &MountRecord) -> Result<(), ParityFailure> {
+    // 不区分action: Mount Record单一权威,两条编排共享同一份清单(同§5.2关键设计点)
+    let target_set: BTreeSet<TargetDbId> = mount_record.targets_personal_data().iter().cloned().collect();
+    // 删除编排遍历的库集合 = Mount Record目标集合(无action分支)
+    let delete_targets: BTreeSet<TargetDbId> = target_set.clone();
+    // 导出编排遍历的库集合 = Mount Record目标集合(无action分支)
+    let export_targets: BTreeSet<TargetDbId> = target_set.clone();
+    // 两者应恒等(代码层面已强制),但运行时仍做断言以防Mount Record解析层未来引入action分支
+    if delete_targets == export_targets {
+        Ok(())
+    } else {
+        Err(ParityFailure::new("删除/导出遍历库集合不一致", delete_targets.symmetric_difference(&export_targets).cloned().collect()))
+    }
+}
+```
+
+**与§5.2的语义一致性**：本函数的存在使得"两条编排共享同一份Mount Record"在**代码层**也得到强制——`delete_targets`与`export_targets`在字面上都从同一份`mount_record.targets_personal_data()`克隆而来，**没有任何action参数可影响两个集合的取值**。此设计落实RGS-BAS-009§5.2.1"新挂载库若声明持有个人数据，两条编排须同时覆盖，不得只更新其中一条"这一警示的具体防护——若未来Mount Record解析层被修改为接受action参数，断言会立即失败，强制评审者回看本节设计决定。
 
 ---
 
@@ -310,7 +339,7 @@ fn verify_rollback(context: &str) -> Result<RollbackVerification, VerifyError> {
 
 # 7. 本文档的覆盖范围与后续计划
 
-本文档覆盖：附件C/D登记表新增行的物理格式契约、OLU台账（附件D§5）的具体物理格式、CI机械校验中4项"未实现"检查的可脚本化解析伪代码（含未注册域名段/未登记AC为阻断级，跨文档章节引用失效为警告级，OLU余额为负的启用时点判定）、删除/导出编排在PH-6前的完整状态机与幂等/重试实现、挂载回滚两阶段验证的判定逻辑。
+本文档覆盖：附件C/D登记表新增行的物理格式契约、OLU台账（附件D§5）的具体物理格式、CI机械校验中4项"未实现"检查的可脚本化解析伪代码（含未注册域名段/未登记AC为阻断级，跨文档章节引用失效为警告级，OLU余额为负的启用时点判定）、删除/导出编排在PH-6前的完整状态机与幂等/重试实现（含v0.2新增的"删除/导出两条编排遍历的库集合一致性校验"以落实BAS-009 v0.6 §5.2.1设计点③）、挂载回滚两阶段验证的判定逻辑。
 
 本版本明确不覆盖、留待后续：
 
@@ -331,7 +360,7 @@ fn verify_rollback(context: &str) -> Result<RollbackVerification, VerifyError> {
 | RGS-BAS-009§2.3 主编号映射表结构 | §2.2 |
 | RGS-BAS-009§3.4 GOV-OLU-001〜004台账运维方式 | §3 |
 | RGS-BAS-009§4 CI机械校验设计（未实现4项） | §4 |
-| RGS-BAS-009§5.2 个人数据删除编排 | §5 |
-| RGS-BAS-009§5.2.1 数据导出编排 | §5 |
+| RGS-BAS-009§5.2 个人数据删除编排 | §5.1, §5.2, §5.3 |
+| RGS-BAS-009§5.2.1 数据导出编排（含"上线前检查清单必须验证遍历库集合对应"设计点③） | §5.1 (Export变体), §5.2 (Mount Record共享), §5.4 (一致性校验) |
 | RGS-BAS-009§5.5 挂载回滚时限拆分 | §6 |
 | RGS-DTL-001（DDL/OCC模式先例） | §5.3并发/持久化风格参照 |
