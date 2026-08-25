@@ -1,44 +1,54 @@
 {
-  "l4_id": "WF-1-55.27",
-  "task": "ReserveHandler OCC cleanup + reservation release 失败路径真修(per RGS-REV-009 CR-1)",
-  "owner": "Ulysses",
-  "tokens": null,
-  "spec": null,
-  "dtl": null,
-  "branch": "wbs/WF-1-55.27-retry",
-  "status": "completed",
+  "l4_id": "WF-1-2066",
+  "task": "RealmLifecycleService 6 操作器骨架",
+  "owner": "Admin 域 Lead（独立）",
+  "tokens": "1150K",
+  "spec": "SPEC-DTL-042",
+  "dtl": "DTL-042",
+  "branch": "wbs/WF-1-2066",
+  "status": "done",
   "progress": 100,
-  "started_at": "2026-08-24T00:00:00.000Z",
-  "updated_at": "2026-08-24T19:30:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-55-retry",
+  "started_at": "2026-08-25T03:29:38.765Z",
+  "updated_at": "2026-08-25T03:55:00.000Z",
+  "completed_at": "2026-08-25T03:55:00.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2066",
   "l4_commits": [
     {
-      "id": "WF-1-55.27",
-      "commit": "c96efe8",
-      "subject": "[wbs] WF-1-55.27: 真修 ReserveHandler OCC cleanup + reservation release 失败路径(per RGS-REV-009 CR-1)"
-    },
-    {
-      "id": "WF-1-55.28",
-      "commit": "a80fa94",
-      "subject": "[wbs] WF-1-55.28: 6 域 outbox CHECK 幂等 migration(per RGS-REV-009 CR-2)"
-    },
-    {
-      "id": "WF-1-55.31",
-      "commit": "f6a6f3f",
-      "subject": "[wbs] WF-1-55.31: PgTestDatabase fixture #[sqlx::test] 强约束(per RGS-REV-009 CR-3, 防 209 test 假阳性)"
+      "id": "WF-1-2066",
+      "commit": "698d92b",
+      "subject": "[wbs] WF-1-2066: RealmLifecycleService 6 操作器骨架（M-2066.1~10）"
     }
   ],
-  "tag_deleted": "no-merge-pending-wf-1-55-27",
-  "tag_deleted_was": "038661e",
-  "tag_deleted_at": "2026-08-24T19:30:00.000Z",
   "verification": {
-    "cargo_build_workspace": "0 error / 0 warning",
-    "cargo_test_workspace": "271 passed / 0 failed (含 53 economy + 2 PG integration + 16 rgs-testkit self_test + ...)",
-    "cargo_test_economy_lib": "50 passed / 0 failed",
-    "cargo_test_economy_integration_outbox": "2 passed (真 PG 验证 CHECK 约束 + 幂等性)",
-    "cargo_test_rgs_testkit_pg_integration": "14 passed / 0 failed (含 pg_test_macro_re_export_works 强约束 macro 验证)",
-    "cargo_test_player_service": "24 unit + 1 fail_closed / 0 failed (其他域未破)",
-    "deprecation_warnings_on_mock_pg_use": "4 warnings (use DbMock x2 + use NoopMock x1 + call mock_url x1)"
+    "cargo_check_cluster_ops": "0 error",
+    "cargo_build_cluster_ops": "0 error",
+    "cargo_test_cluster_ops_lib": "81 passed / 0 failed",
+    "cargo_test_cluster_ops_ut_state_machine": "16 passed / 0 failed",
+    "cargo_test_cluster_ops_fail_closed_start": "1 passed / 0 failed (per RGS-REV-009 V3 L-2, 既有未破)",
+    "fr_lcm_004_grep": "empty (cluster-ops/src/lib.rs no 'realm_lifecycle.*Service.*tonic::include_proto' pattern)",
+    "state_machine_6_stages_grep": "236 occurrences of NewRealm|Scale|Split|Merge|Retire|Archive in ut_state_machine.rs"
+  },
+  "files_delivered": {
+    "src/realm_lifecycle/mod.rs": "子模块入口 + 公开类型 re-export",
+    "src/realm_lifecycle/service.rs": "RealmLifecycleService trait + 6 操作器 trait + 6 阶段状态机（含二次激活负例）",
+    "src/realm_lifecycle/error.rs": "LcmError + LcmErrorKind（11 类语义错误）",
+    "src/realm_lifecycle/operations/mod.rs": "6 操作器子模块入口 + 共享校验工具",
+    "src/realm_lifecycle/operations/new_realm.rs": "NewRealmOperator（FR-LCM-010~033）",
+    "src/realm_lifecycle/operations/scale.rs": "ScaleOperator（FR-LCM-040~044，扩缩容双向）",
+    "src/realm_lifecycle/operations/split.rs": "SplitOperator（FR-LCM-050~055）",
+    "src/realm_lifecycle/operations/merge.rs": "MergeOperator + MergeRollbackOperator（FR-LCM-060~064）",
+    "src/realm_lifecycle/operations/retire.rs": "RetireOperator（FR-LCM-070~075）",
+    "src/realm_lifecycle/operations/archive.rs": "ArchiveOperator（FR-LCM-080~085，冷热分层占位）",
+    "src/realm_lifecycle/tests/mod.rs": "测试子模块入口",
+    "src/realm_lifecycle/tests/ut_state_machine.rs": "6 阶段状态机 + 非法跳转 + 二次激活负例 UT（474 行）",
+    "tests/ut_state_machine.rs": "集成测试镜像（per 'cargo test --test ut_state_machine' 命令格式）",
+    "src/lib.rs": "+6 行（pub mod realm_lifecycle + FR-LCM-004 注释）"
+  },
+  "next_l4_handoff": {
+    "M-2067.x": "SagaOrchestrator + 6 阶段 Saga 步骤（per 实施计划 §3.2）",
+    "M-2068.x": "6 张新表 migration（per 实施计划 §3.3）",
+    "M-2070.x": "DrillExecutor + 沙箱 PG/K8s（per 实施计划 §3.4）",
+    "M-2071.x": "Feature 7 子类 + OLU 上报（per 实施计划 §3.5）"
   },
   "remaining_blockers": []
 }
