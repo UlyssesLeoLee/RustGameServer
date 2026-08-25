@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-036 |
-| 版本 | 1.4.1 |
+| 版本 | 1.4.2 |
 | 状态 | **契约骨架・待评审・不得作为实施授权** |
 | 父文档 | RGS-REQ-001、RGS-BAS-001（v1.4）、RGS-DTL-031 |
 | App/DB | `player-service` / `player_db` |
@@ -52,9 +52,9 @@ Player 是五域中第一条业务纵向切片，但其依赖必须从集群 man
 **§3 已知缺口**（DDD Review 阶段必查项）：
 - gRPC 方法名与 BAS-001 §6.3.1 PlayerService 现有方法名对账（当前是 `GetPlayer`/`CreatePlayer`/`UpdatePlayerState`，父 BAS 是 `Authenticate`/`SelectCharacter`/`GetCharacterList`，**两者不一致**）
 - 与 REQ-001 §FR-PL-004（玩家永久状态读写，PH-1 ◎）、FR-PL-005（封禁/制裁）、FR-PL-006（在线状态）三条业务规则对账（**当前 §3 未覆盖**，见 §8 评审（业务）栏备注）
-- `session_epoch` 必填规则的伪代码级强制（`unary.rs` 中间件层校验），与 BAS-001 §6.1 + ARC-005 一致性
-- `PlayerRegistered` 事件应包含 `player_id` / `account_id` / `initial_session_epoch` 三字段（per FR-PL-001）
-- 错误枚举（`StaleSessionEpoch` / `ExpectedVersionMismatch` / `PlayerNotFound` 等）由 DDD Review 阶段定义
+- `session_epoch` 必填规则的具体强制落点（中间件/拦截层）待 DDD Review 阶段确定，本版本不预设实现文件路径
+- `PlayerRegistered` 事件的字段组成待与 REQ-001 §FR-PL-001 对账后在 DDD Review 阶段确定，本版本不预设具体字段名
+- 错误枚举待 DDD Review 阶段从零设计，本版本不预设具体枚举值
 
 ## 4. 插件边界
 
@@ -82,6 +82,8 @@ Player 是五域中第一条业务纵向切片，但其依赖必须从集群 man
 | 0.1 | 2026-08-21 | 架构师 | 初版制定：建立 Player 域 Atomic App 契约骨架（领域职责、集群契约、API/事件骨架、插件边界、迁移回滚、待补齐项） | 全部 §1〜§6 |
 | 1.4 | 2026-08-26 | 架构师 | 同步父 BAS-001 升版（v1.0〜v1.4）：§1 补 `player_db` 持久化语义遵循 BAS-001 §5.3 聚合根/聚合边界，并澄清 §5.4.3 权威源分级（Tier-1/Tier-2）作用域不覆盖业务域持久化；§2 补 player-service 背压配置遵循 BAS-001 §7.2.1（ARC-013 死锁防止）引用；§3 补字段级契约遵循 BAS-001 §6 引用，明确字段级 IDL 在 `crates/contracts/player.proto` + DDD Review 阶段产出；头部版本 0.1 → 1.4 对齐父 BAS 最终版本；新增§7 修订历史、§8 审批栏。本文档仍为契约骨架，未膨胀为完整详细设计（属 DTL-001 职责） | §1、§2、§3、头部元数据、§7、§8 |
 | 1.4.1 | 2026-08-26 | 架构师 | **hotfix**：用户 review 反馈指出 v1.4 升版存在 3 项治理基线违规，立即撤回并修正：（1）§3 第 50 行原文 "per BAS-001 v1.1 接口目录升版前的形态" 属**伪造出处**——`GetPlayer`/`CreatePlayer`/`UpdatePlayerState` 这三个方法名在 BAS-001 全部 git 历史中 0 次出现，父 BAS 自始是 `Authenticate`/`SelectCharacter`/`GetCharacterList`（per `git log --all -p --follow RGS-BAS-001_基本设计书.md` 实证）。已替换为"占位 + 显式声明 §3 与父 BAS 现状未对齐"诚实表述；（2）§3 规则列漏 `session_epoch`，违反 BAS-001 §6.1 ARC-005 强制要求（"凡受 Single-Writer 保护的方法，请求必须携带 session_epoch"），已补回；（3）§3 表格方法名/事件名与 REQ-001 §FR-PL-004/005/006 三条业务规则未对账（§8 评审（业务）栏自身备注"待对账"），已显式列入 §3 末尾"已知缺口"清单。**触发根因复盘**：v1.4 升版在 worker 授权范围"不引入新设计、只引用 BAS 已确定内容"下，§3 引用处"per BAS-001 v1.1 接口目录升版前的形态"是 worker 在 BAS 升版脉络未充分求证时编造的回溯叙事，违反 DEC-008 真实性原则。**修正式**: 升版一律禁止使用"per X 历史形态""per X 升版前/后"这类**无 git 历史证据**的回溯叙事，统一改为"待 DDD Review 与父文档 X.Y §Z 对齐"的诚实缺标。| §3（修正引用+补规则列+列已知缺口） |
+
+| 1.4.2 | 2026-08-26 | 架构师 | **hotfix**：独立复核发现 v1.4.1"§3 已知缺口"清单第 3〜5 项自相矛盾且引用了仓库中不存在的内容——(1) 断言 `PlayerRegistered` 事件"应包含 `player_id`/`account_id`/`initial_session_epoch` 三字段"，但 REQ-001 §FR-PL-001 并未规定这三个具体字段名，仓库内任何其他文档也未出现过这三个字段名；(2) 列出错误枚举 `StaleSessionEpoch`/`ExpectedVersionMismatch`/`PlayerNotFound` 三个具体值，同时又说"由 DDD Review 阶段定义"——已经点名即非"待定义"，自相矛盾，且这三个值在仓库任何其他地方未出现过；(3) 引用 `unary.rs` 作为 `session_epoch` 校验的实现文件，但该文件在整个仓库（含 `crates/player-service/src/`）中不存在，`player-service` 实际源文件为 `db.rs`/`entity.rs`/`error.rs`/`lib.rs`/`main.rs`/`proto.rs`/`repository.rs`/`service.rs`。三项均为 v1.4.1 hotfix 撤回"编造历史出处"（P1）时，又以"已知缺口清单"的形式重新引入了同类"编造具体内容"问题，且与同段落"避免在证据不足时细化（ARC-014）"自相矛盾。**修正**：三项均改写为纯缺口描述，不再预设具体字段名/错误枚举值/实现文件路径。 | §3（已知缺口清单后 3 项改写为纯缺口描述） |
 
 > **不可代签声明**：本表"修订者"列为本次升版的实际执行人。审批栏（§8）须由对应评审/审批角色在字段级 DD Review 之后补签，本升版不代签任何审批。
 
