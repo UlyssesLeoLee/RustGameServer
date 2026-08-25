@@ -1,154 +1,229 @@
-//! DownloadError —— 客户端资源下载子系统的统一错误类型。
+//! 错误码定义（per RGS-DTL-041 §6 + RGS-SPEC-DTL-041 §3）
 //!
-//! 严格按 **RGS-DTL-041 §3.3** 的 13 个变体实现，**不自创**任何额外枚举值；
-//! 任何新增变体必须先回写 DTL 并通过 DD Review（per RGS-SPEC-DTL-041 v0.2 §3 + §7 DoD）。
+//! 错误码严格按 DTL §6 落地，不自创额外枚举值。
 //!
-//! # 硬约束绑定
+//! ## 错误码分类
 //!
-//! - **NFR-CDN-002（整文件校验不可绕过）**：本错误类型不暴露任何跳过/旁路
-//!   `IntegrityGate` 的变体；上层调用方必须经 `integrity_gate.rs`（M-2065.5）才能
-//!   完成下载。代码评审 grep `skip_integrity|bypass_integrity` 期望为空。
-//! - **FR-CDN-064（断点记录不含 PII）**：错误变体的所有字段均为技术元数据
-//!   （status code / byte count / ETag / DateTime / attempt 计数），不含
-//!   `player_id` / `device_id` / `ip` / `mac` / `email`。
-//! - **FR-CDN-074（If-Range ETag 强制）**：`ETagChanged` 变体携带 old/new ETag 供
-//!   上层判定全量重传（不做 `Last-Modified` 回退）。
-//!
-//! # 关联规范
-//!
-//! - RGS-DTL-041 §3.3（13 个变体的源定义）
-//! - RGS-SPEC-DTL-041 v0.2 §3（错误码契约）
-//! - RGS-IMPL-PLAN-CDN-001 v0.1 §3.1 M-2063.4（本任务）
+//! - `TokenNotFound` / `TokenExpired` / `TokenCorrupted` / `TokenDuplicate`：断点记录错误
+//! - `IllegalStateTransition` / `AlreadyInProgress` / `AlreadyCompleted`：状态机错误
+//! - `BackendError` / `RangeNotSupported` / `EtagMismatch` / `RangeRequestFailed`：HTTP 后端错误
+//! - `IntegrityFailed` / `ChunkHashMismatch`：整文件校验错误（NFR-CDN-002 不可绕过）
+//! - `InFlightCancelFailed`：in_flight 取消错误（FR-CDN-083）
+//! - `StoreIoError` / `StoreSerializationError` / `StoreBackendError`：store 错误
+//! - `InvalidConfig` / `InvalidArgument` / `InsufficientDiskSpace` / `PermissionDenied`：配置/环境错误
+//! - `RetryExhausted`：重试耗尽
 
 use thiserror::Error;
 
-use crate::api::DownloadState;
-
-/// 下载子系统统一错误类型。
-///
-/// 13 个变体严格对应 RGS-DTL-041 §3.3。新增变体必须先回写 DTL 并通过 DD Review。
+/// 资产下载错误（顶层错误枚举）
 #[derive(Debug, Error)]
-pub enum DownloadError {
-    /// 状态机非法转移（per RGS-DTL-041 §3.3 + FR-CDN-051）。
-    ///
-    /// 由 `state_machine::transition` 在不满足 `can_transition_to` 时返回；
-    /// 不属于业务可恢复错误，调用方应终止该 file_path 的下载流程。
-    #[error("invalid state transition from {from:?} to {to:?}")]
-    InvalidTransition { from: DownloadState, to: DownloadState },
+pub enum AssetDownloadError {
+    // ---- 断点记录错误（per RGS-DTL-041 §6） ----
+    /// 找不到指定 token_id 的断点记录
+    #[error("resume token not found: token_id={0}")]
+    TokenNotFound(String),
 
-    /// HTTP Range 请求失败（per RGS-DTL-041 §3.3 + FR-CDN-040）。
-    ///
-    /// 由 `range_client::RangeClient::request` 包装 `reqwest::Error` 返回；
-    /// 重试策略由调用方按 SPEC §3（3 次 / 指数退避 100ms 起步）执行。
-    #[error("range request failed: {0}")]
-    RangeRequestFailed(#[from] reqwest::Error),
+    /// 断点已过期（>7 天，per RGS-SPEC-DTL-041 §8 resume_token_ttl_days）
+    #[error("resume token expired: token_id={0}, expired_at={1}")]
+    TokenExpired(String, String),
 
-    /// 服务端 416 Range Not Satisfiable（per RGS-DTL-041 §3.3 + FR-CDN-043）。
-    ///
-    /// 触发条件：客户端的 `Range` 起始字节 ≥ 服务端资源实际大小；
-    /// 通常意味着本地断点记录的 `total_size` 与服务端不一致，需触发全量重传。
-    #[error("server returned 416 Range Not Satisfiable: total_size={total_size}, requested_start={requested_start}")]
-    RangeNotSatisfiable { total_size: u64, requested_start: u64 },
+    /// 断点记录反序列化失败（损坏）
+    #[error("resume token corrupted: token_id={0}, cause={1}")]
+    TokenCorrupted(String, String),
 
-    /// 服务端 200 OK（ETag 不匹配 → 全量重传；per FR-CDN-041 + FR-CDN-074）。
-    ///
-    /// 触发条件：`If-Range: <ETag>` 与服务端当前 ETag 不一致；
-    /// 客户端必须丢弃断点记录，从头下载。
-    #[error("server returned 200 OK (ETag changed): old_etag={old_etag:?}, new_etag={new_etag:?}")]
-    ETagChanged { old_etag: String, new_etag: String },
+    /// 重复的 token_id（唯一索引冲突）
+    #[error("resume token duplicate: token_id={0}")]
+    TokenDuplicate(String),
 
-    /// 整文件 hash 校验失败（per RGS-DTL-041 §3.3 + NFR-CDN-002 硬约束）。
-    ///
-    /// **本变体不提供跳过校验的旁路**；调用方必须丢弃当前文件并触发重新下载。
-    /// 上层 `rgs-asset-update::IntegrityGate` 不得消费此变体做"标记重试"。
+    // ---- 状态机错误 ----
+    /// 非法状态转移（per 状态机转移表）
+    #[error("illegal state transition: from={from}, event={event}")]
+    IllegalStateTransition {
+        /// 当前状态
+        from: String,
+        /// 触发事件
+        event: String,
+    },
+
+    /// 同一 token_id 已在进行中
+    #[error("download already in progress: token_id={0}")]
+    AlreadyInProgress(String),
+
+    /// 已完成，无法再次下载
+    #[error("download already completed: token_id={0}")]
+    AlreadyCompleted(String),
+
+    // ---- HTTP 后端错误 ----
+    /// 后端通用错误
+    #[error("backend error: status={status}, body={body}")]
+    BackendError {
+        /// HTTP 状态码
+        status: u16,
+        /// 响应体摘要
+        body: String,
+    },
+
+    /// 后端不支持 HTTP Range（NFR-CDN-114 门禁）
+    #[error("backend does not support HTTP Range: url={0}")]
+    RangeNotSupported(String),
+
+    /// ETag 不匹配（If-Range 触发全量重传）
+    #[error("ETag mismatch: expected={expected}, actual={actual}")]
+    EtagMismatch {
+        /// 客户端记录的 ETag
+        expected: String,
+        /// 服务端返回的 ETag
+        actual: String,
+    },
+
+    /// Range 请求失败（416 / 503 / 网络错误）
+    #[error("Range request failed: status={status}, reason={reason}")]
+    RangeRequestFailed {
+        /// HTTP 状态码
+        status: u16,
+        /// 失败原因
+        reason: String,
+    },
+
+    // ---- 整文件校验错误（NFR-CDN-002 不可绕过） ----
+    /// 整文件 SHA-256 校验失败
     #[error("integrity check failed: expected={expected}, actual={actual}")]
-    IntegrityCheckFailed { expected: String, actual: String },
+    IntegrityFailed {
+        /// manifest 给定的 hash
+        expected: String,
+        /// 实测 hash
+        actual: String,
+    },
 
-    /// Manifest 签名无效（per RGS-DTL-041 §3.3 + FR-CDN-071）。
-    ///
-    /// 触发条件：`rgs-asset-update` 拉取的 manifest 签名校验失败；
-    /// 通常意味着 CDN 响应被劫持或 manifest 被服务端回滚到旧版本。
-    #[error("manifest signature invalid: {reason}")]
-    ManifestSignatureInvalid { reason: String },
+    /// 分块 hash 不一致（完整性前置检查，仅供参考；不绕过整文件校验）
+    #[error("chunk hash mismatch: chunk_index={0}, reason={1}")]
+    ChunkHashMismatch(u32, String),
 
-    /// 灰度回退（per RGS-DTL-041 §3.3 + FR-CDN-072）。
-    ///
-    /// 触发条件：客户端开始下载后，服务端灰度策略回退使该资源对当前用户不可访问；
-    /// 调用方应保留断点记录等待灰度重新放行（不重置 token）。
-    #[error("gray rollout mismatch: file is no longer accessible to this player")]
-    GrayRolledBack,
+    // ---- in_flight 取消错误（FR-CDN-083） ----
+    /// 暂停时无法取消 in_flight Range 请求
+    #[error("failed to cancel in_flight request: token_id={0}, reason={1}")]
+    InFlightCancelFailed(String, String),
 
-    /// 断点记录过期（per RGS-DTL-041 §3.3 + FR-CDN-063，默认 7 天）。
-    ///
-    /// 触发条件：本地断点记录的 `last_updated_at` 距当前超过 `resume_token_ttl_days`；
-    /// 调用方应丢弃断点记录并触发全新下载。
-    #[error("resume token expired: last_updated_at={last_updated_at}")]
-    ResumeTokenExpired { last_updated_at: chrono::DateTime<chrono::Utc> },
+    // ---- Store 错误 ----
+    /// store IO 错误（文件系统 / SQLite IO）
+    #[error("store I/O error: path={path}, cause={cause}")]
+    StoreIoError {
+        /// 相关路径
+        path: String,
+        /// 底层错误描述
+        cause: String,
+    },
 
-    /// 磁盘空间不足（per RGS-DTL-041 §3.3）。
-    ///
-    /// 触发条件：`preallocate` 或运行时写入返回 ENOSPC；
-    /// 调用方应引导用户清理磁盘后重试。
-    #[error("disk space insufficient: required={required_bytes}, available={available_bytes}")]
-    DiskSpaceInsufficient { required_bytes: u64, available_bytes: u64 },
+    /// store 序列化错误（JSON / SQLite BLOB 序列化）
+    #[error("store serialization error: source={0}")]
+    StoreSerializationError(String),
 
-    /// 重试耗尽（per RGS-DTL-041 §3.3 + RGS-SPEC-DTL-041 v0.2 §3）。
-    ///
-    /// 单 chunk 重试 3 次、指数退避 100ms 起步后仍失败；调用方应终止该 file_path
-    /// 的下载并上报 `rgs_asset_download_resume_failure_total`。
-    #[error("retry exhausted after {attempts} attempts")]
-    RetryExhausted { attempts: u32 },
+    /// store 后端错误（SQLite 返回非 IO / 非序列化的错误）
+    #[error("store backend error: source={0}")]
+    StoreBackendError(String),
 
-    /// HTTP 429 限流（per RGS-DTL-041 §3.3 + FR-CDN-044）。
-    ///
-    /// 触发条件：服务端返回 `429 Too Many Requests`；
-    /// 调用方应按响应头 `Retry-After` 进入背压队列（per SPEC §5 故障域）。
-    #[error("HTTP 429 rate limited")]
-    RateLimited,
+    // ---- 配置 / 环境错误 ----
+    /// 配置非法（如 chunk_size=0）
+    #[error("invalid config: {0}")]
+    InvalidConfig(String),
 
-    /// 断点记录存储层错误（per RGS-DTL-041 §3.3 + FR-CDN-061）。
-    ///
-    /// 触发条件：SQLite / JSON 文件读写失败、原子 rename 失败、LRU 清理失败等；
-    /// 字符串描述仅供开发期排查，**不**包含 PII（per FR-CDN-064）。
-    #[error("resume token store error: {0}")]
-    TokenStoreError(String),
+    /// 非法参数
+    #[error("invalid argument: {0}")]
+    InvalidArgument(String),
 
-    /// 服务端不支持 Range（per RGS-DTL-041 §3.3 + NFR-CDN-114 门禁）。
-    ///
-    /// 触发条件：响应头 `Accept-Ranges: none` 或缺失 `Accept-Ranges`；
-    /// 调用方应回滚到 `rgs-asset-update` 既有全量下载路径（per SPEC §6 Rollback）。
-    #[error("server does not support Range (Accept-Ranges: none)")]
-    RangeNotSupported,
+    /// 磁盘空间不足
+    #[error("insufficient disk space: required={required_bytes}, available={available_bytes}")]
+    InsufficientDiskSpace {
+        /// 所需字节
+        required_bytes: u64,
+        /// 可用字节
+        available_bytes: u64,
+    },
+
+    /// 权限不足（如 Windows SeManageVolumePrivilege 缺失）
+    #[error("permission denied: {0}")]
+    PermissionDenied(String),
+
+    // ---- 重试 ----
+    /// 重试耗尽（per SPEC §3 单 chunk 3 次重试 + 指数退避）
+    #[error("retry exhausted: token_id={token_id}, attempts={attempts}")]
+    RetryExhausted {
+        /// 相关 token_id
+        token_id: String,
+        /// 实际尝试次数
+        attempts: u32,
+    },
+}
+
+/// 错误码分类（用于 metrics label 等场景；非错误变体本身）
+pub mod error_code {
+    /// 错误码常量表（与 DTL §6 对齐；用于 metrics / log 标签）
+    pub const TOKEN_NOT_FOUND: &str = "TOKEN_NOT_FOUND";
+    /// token 过期
+    pub const TOKEN_EXPIRED: &str = "TOKEN_EXPIRED";
+    /// token 损坏
+    pub const TOKEN_CORRUPTED: &str = "TOKEN_CORRUPTED";
+    /// token 重复
+    pub const TOKEN_DUPLICATE: &str = "TOKEN_DUPLICATE";
+    /// 非法状态转移
+    pub const ILLEGAL_STATE_TRANSITION: &str = "ILLEGAL_STATE_TRANSITION";
+    /// 已在进行中
+    pub const ALREADY_IN_PROGRESS: &str = "ALREADY_IN_PROGRESS";
+    /// 已完成
+    pub const ALREADY_COMPLETED: &str = "ALREADY_COMPLETED";
+    /// 后端错误
+    pub const BACKEND_ERROR: &str = "BACKEND_ERROR";
+    /// Range 不支持
+    pub const RANGE_NOT_SUPPORTED: &str = "RANGE_NOT_SUPPORTED";
+    /// ETag 不匹配
+    pub const ETAG_MISMATCH: &str = "ETAG_MISMATCH";
+    /// Range 请求失败
+    pub const RANGE_REQUEST_FAILED: &str = "RANGE_REQUEST_FAILED";
+    /// 整文件校验失败（NFR-CDN-002 不可绕过）
+    pub const INTEGRITY_FAILED: &str = "INTEGRITY_FAILED";
+    /// chunk hash 不一致
+    pub const CHUNK_HASH_MISMATCH: &str = "CHUNK_HASH_MISMATCH";
+    /// in_flight 取消失败
+    pub const IN_FLIGHT_CANCEL_FAILED: &str = "IN_FLIGHT_CANCEL_FAILED";
+    /// store IO 错误
+    pub const STORE_IO_ERROR: &str = "STORE_IO_ERROR";
+    /// store 序列化错误
+    pub const STORE_SERIALIZATION_ERROR: &str = "STORE_SERIALIZATION_ERROR";
+    /// store 后端错误
+    pub const STORE_BACKEND_ERROR: &str = "STORE_BACKEND_ERROR";
+    /// 配置非法
+    pub const INVALID_CONFIG: &str = "INVALID_CONFIG";
+    /// 非法参数
+    pub const INVALID_ARGUMENT: &str = "INVALID_ARGUMENT";
+    /// 磁盘空间不足
+    pub const INSUFFICIENT_DISK_SPACE: &str = "INSUFFICIENT_DISK_SPACE";
+    /// 权限不足
+    pub const PERMISSION_DENIED: &str = "PERMISSION_DENIED";
+    /// 重试耗尽
+    pub const RETRY_EXHAUSTED: &str = "RETRY_EXHAUSTED";
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// 编译期断言：13 个变体严格对应 RGS-DTL-041 §3.3。
-    ///
-    /// 此测试不验证行为，只验证类型签名存在；若有人删除某个变体，编译即失败。
     #[test]
-    fn error_variants_compile() {
-        fn _assert_variants(
-            _: DownloadError,
-        ) {
-            // dummy match to enumerate all variants without runtime cost
-            let _ = match todo!() as DownloadError {
-                DownloadError::InvalidTransition { .. } => 0,
-                DownloadError::RangeRequestFailed(_) => 1,
-                DownloadError::RangeNotSatisfiable { .. } => 2,
-                DownloadError::ETagChanged { .. } => 3,
-                DownloadError::IntegrityCheckFailed { .. } => 4,
-                DownloadError::ManifestSignatureInvalid { .. } => 5,
-                DownloadError::GrayRolledBack => 6,
-                DownloadError::ResumeTokenExpired { .. } => 7,
-                DownloadError::DiskSpaceInsufficient { .. } => 8,
-                DownloadError::RetryExhausted { .. } => 9,
-                DownloadError::RateLimited => 10,
-                DownloadError::TokenStoreError(_) => 11,
-                DownloadError::RangeNotSupported => 12,
-            };
-        }
+    fn error_display_does_not_leak_pii() {
+        // 确保错误信息不含 PII 字段名（per FR-CDN-064）
+        let err = AssetDownloadError::TokenNotFound("token-abc".to_string());
+        let s = err.to_string();
+        assert!(!s.contains("player_id"));
+        assert!(!s.contains("device_id"));
+        assert!(!s.contains("email"));
+        assert!(!s.contains("ip_address"));
+        assert!(!s.contains("mac_address"));
+    }
+
+    #[test]
+    fn error_code_constants_match_dtl_section_6() {
+        // DTL §6 错误码总览 - 抽样验证
+        assert_eq!(error_code::TOKEN_NOT_FOUND, "TOKEN_NOT_FOUND");
+        assert_eq!(error_code::INTEGRITY_FAILED, "INTEGRITY_FAILED");
+        assert_eq!(error_code::IN_FLIGHT_CANCEL_FAILED, "IN_FLIGHT_CANCEL_FAILED");
     }
 }

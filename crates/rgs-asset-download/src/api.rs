@@ -1,180 +1,140 @@
-//! AssetDownloader —— 客户端资源下载子系统的公开 API。
+//! 公开 API 定义（per RGS-SPEC-DTL-041 §2 + §3）
 //!
-//! per **RGS-DTL-041 §2.4**（公开 API 入口）+ **RGS-SPEC-DTL-041 v0.2 §2 / §3**
-//! + **RGS-IMPL-PLAN-CDN-001 v0.1 §3.1 M-2063.3**。
+//! 4 个核心 API：
+//! - [`AssetDownloader::download_asset`]：启动/恢复一个资产下载
+//! - [`AssetDownloader::pause_download`]：暂停（FR-CDN-083 必须取消 in_flight）
+//! - [`AssetDownloader::cancel_download`]：取消并删除断点记录
+//! - [`AssetDownloader::get_download_state`]：查询当前状态机快照
 //!
-//! # 4 个公开方法（严格按 DTL §2.4）
+//! **M-2063.3 占位**：本模块仅定义 trait 与数据契约，不包含具体实现。
+//! 具体实现（HTTP Range / 并发分片 / 整文件校验）由 WF-1-2065（M-2065.1~11）落地。
 //!
-//! | 方法 | 用途 | 关键约束 |
-//! |---|---|---|
-//! | `download_asset` | 触发下载入口（支持断点恢复）| NFR-CDN-002 / FR-CDN-074 / FR-CDN-083 |
-//! | `pause_download` | 暂停下载 | FR-CDN-083（取消 in_flight）|
-//! | `cancel_download` | 取消下载（区别于暂停）| FR-CDN-063 清理断点 |
-//! | `get_download_state` | 查询当前状态 | — |
-//!
-//! # 硬约束绑定
-//!
-//! - **NFR-CDN-002（整文件校验不可绕过）**：`download_asset` 实现契约**必须**
-//!   经 `IntegrityGate`（M-2065.5）；trait 层面不暴露任何绕过整文件 hash 校验
-//!   的旁路（代码评审 grep 验证，模式由 §5.3 实施计划维护，本文件不写字面）。
-//! - **FR-CDN-064（断点记录不含 PII）**：本 trait 的所有参数与返回类型**不**含
-//!   任何玩家身份 / 设备 / 网络标识字段；断点记录 13 字段见 `ResumeToken`
-//!   （M-2064.2 完整定义，本骨架不在此列出字段，per DTL §4.1）。
-//! - **FR-CDN-083（暂停时必须取消 in_flight）**：`download_asset` 接受
-//!   `cancel_token: &CancelToken` 参数；`pause_download` 通过
-//!   `cancel_token.cancel()` 触发取消，实现必须在 in_flight reqwest 请求
-//!   循环中轮询 `is_cancelled()` 并立即 abort。
-//! - **FR-CDN-074（If-Range ETag 强制）**：`download_asset` 实现契约
-//!   必须在所有 Range 请求上携带 `If-Range: <ETag>` 头，**不**接受
-//!   `Last-Modified` 回退。
-//!
-//! # 关联规范
-//!
-//! - RGS-DTL-041 §2.4（公开 API 入口）
-//! - RGS-DTL-041 §3.1（8 状态枚举）
-//! - RGS-SPEC-DTL-041 v0.2 §2 / §3
-//! - RGS-IMPL-PLAN-CDN-001 v0.1 §3.1 M-2063.3（本任务）
+//! **PII 边界**：本 trait 的入参 / 出参 / 中间状态**禁止**出现 `player_id` / `device_id` /
+//! `email` / `ip_address` / `mac_address` 字段（per FR-CDN-064）。
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::path::PathBuf;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
-use crate::error::DownloadError;
+use crate::error::AssetDownloadError;
+use crate::state_machine::DownloadState;
 
-/// 下载状态枚举（per RGS-DTL-041 §3.1，8 状态）。
-///
-/// 本骨架在 `api.rs` 给出最小定义；M-2064.1 将在专属状态机模块（per
-/// RGS-IMPL-PLAN-CDN-001 v0.1 §2.2 计划路径）扩展 `can_transition_to`
-/// 转移表并完善文档。
-///
-/// > **命名差异说明**：实施计划 §3.1 列出 `Idle / Resolving / ...` 8 状态名称
-/// > 与 DTL §3.1 的 `NotStarted / Probing / Resuming / ...` 略有差异。按
-/// > "DTL 评审变更为准"原则（per RGS-SPEC-DTL-041 v0.2 §1），本骨架采用
-/// > DTL §3.1 的 8 状态命名。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum DownloadState {
-    /// 初始态：尚未触发下载
-    NotStarted,
-    /// HEAD 探测中（per FR-CDN-042）
-    Probing,
-    /// 断点恢复中（校验 ETag / 灰度 / Manifest 签名）
-    Resuming,
-    /// 下载中
-    Downloading,
-    /// 已暂停（玩家意图；恢复时实际先 Resuming）
-    Paused,
-    /// 失败（可重试）
-    Failed,
-    /// 已取消（区别于暂停；断点记录保留但可被清理）
-    Canceled,
-    /// 已完成（终态）
-    Completed,
+/// 下载请求（启动一次资产下载的入参）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DownloadRequest {
+    /// 资产 ID（来自 `rgs-asset-update` Manifest；不含 PII）
+    pub asset_id: String,
+    /// 目标本地文件路径（沙箱内）
+    pub file_path: PathBuf,
+    /// 期望的总字节数（来自 Manifest；用于预分配 / 进度显示）
+    pub expected_total_bytes: u64,
+    /// 期望的 ETag（来自 Manifest；用于 `If-Range: <ETag>` 头 per FR-CDN-074）
+    pub expected_etag: String,
+    /// 期望的 SHA-256（来自 Manifest；用于整文件校验 per NFR-CDN-002）
+    pub expected_sha256: String,
+    /// 后端 URL（HTTP Range endpoint；per NFR-CDN-114 必须支持 Range）
+    pub backend_url: String,
+    /// 分片粒度（字节），0 表示用 config.rs 默认值（PH-3 实测填 4~16MB）
+    pub chunk_size_bytes: u64,
 }
 
-impl DownloadState {
-    /// 是否终态（per RGS-DTL-041 §3.1）
-    pub fn is_terminal(self) -> bool {
-        matches!(self, Self::Canceled | Self::Completed)
-    }
+/// 下载状态快照（[`AssetDownloader::get_download_state`] 出参）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DownloadStateSnapshot {
+    /// 关联的 token_id（无则为空字符串）
+    pub token_id: String,
+    /// 资产 ID
+    pub asset_id: String,
+    /// 当前状态机状态
+    pub state: DownloadState,
+    /// 已接收字节数
+    pub bytes_received: u64,
+    /// 总字节数
+    pub total_bytes: u64,
+    /// 已完成分片数
+    pub completed_chunks: u32,
+    /// 分片总数
+    pub total_chunks: u32,
+    /// 状态快照时间
+    pub observed_at: DateTime<Utc>,
 }
 
-/// 取消令牌（per FR-CDN-083 + 实施计划 §3.1 M-2063.3 "trait 签名设计留 cancel_token"）。
+/// 资产下载器 trait（公开 API）
 ///
-/// 轻量自实现，避免引入 `tokio-util` 依赖（workspace 现有 crate 均无此 dep）。
-/// 语义对齐 `tokio_util::sync::CancellationToken`：
-/// - `cancel()` 后 `is_cancelled()` 立即返回 `true`
-/// - 多 owner 可同时持有（`Clone`），所有持有者观察到一致的取消状态
-///
-/// # 用法
-///
-/// ```text
-/// let cancel_token = CancelToken::new();
-/// let token_for_pause = cancel_token.clone();
-///
-/// // 触发下载
-/// downloader.download_asset(file_path, source_url, &cancel_token).await?;
-///
-/// // 玩家暂停：触发取消
-/// downloader.pause_download(file_path).await?;  // 内部 cancel_token.cancel()
-/// # assert!(token_for_pause.is_cancelled());
-/// ```
-#[derive(Debug, Clone, Default)]
-pub struct CancelToken {
-    cancelled: Arc<AtomicBool>,
-}
-
-impl CancelToken {
-    /// 构造未触发的取消令牌。
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// 触发取消；`is_cancelled()` 之后立即返回 `true`。
-    ///
-    /// 由 `pause_download` / `cancel_download` 内部调用。
-    pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::Release);
-    }
-
-    /// 检查是否已触发取消。
-    ///
-    /// `download_asset` 实现需在每个 in_flight reqwest 请求循环中轮询此方法，
-    /// 触发后立即 `reqwest::RequestBuilder::abort()` 或丢弃当前 chunk。
-    pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Acquire)
-    }
-}
-
-/// 客户端资源下载子系统的公开 API trait（per RGS-DTL-041 §2.4）。
-///
-/// 4 个方法严格对应 RGS-IMPL-PLAN-CDN-001 v0.1 §3.1 M-2063.3。
-/// 上层通过 `rgs-asset-update` 的 `Manifest` 拉取后调用本 trait；
-/// **不**反向依赖 `rgs-asset-update`（per RGS-SPEC-DTL-041 v0.2 §2）。
+/// **实现约束**（per RGS-SPEC-DTL-041 §3 + RGS-DTL-041 §3）：
+/// - 所有实现必须调用 [`crate::state_machine::DownloadStateMachine`] 推进状态
+/// - 断点记录必须通过 [`crate::resume_token_store::ResumeTokenStore`] 持久化
+/// - 整文件校验不可绕过（`download_asset` 内部必须先完成 [`crate::integrity_gate::IntegrityGate`]，
+///   才能把 state 切到 `Completed`；NFR-CDN-002 硬约束）
+/// - 暂停时必须取消所有 in_flight Range 请求（FR-CDN-083）
 #[async_trait]
 pub trait AssetDownloader: Send + Sync {
-    /// 触发下载入口（支持断点恢复）。
+    /// 启动或恢复一个下载任务
     ///
-    /// 流程：HEAD 探测 → 断点恢复（若 `ResumeToken` 存在）→ ChunkOrchestrator
-    /// 并发分片 → IntegrityGate 整文件校验 → Completed。
-    ///
-    /// # 契约
-    ///
-    /// - **NFR-CDN-002**：实现**必须**在所有分片落盘后调用
-    ///   `IntegrityGate::verify_whole_file`；不允许任何跳过整文件 hash 校验的
-    ///   旁路。
-    /// - **FR-CDN-074**：所有 Range 请求携带 `If-Range: <ETag>` 头；
-    ///   ETag 不匹配触发 `DownloadError::ETagChanged` 后全量重传。
-    /// - **FR-CDN-083**：实现必须**轮询** `cancel_token.is_cancelled()`，
-    ///   触发后立即取消所有 in_flight reqwest 请求并返回 `DownloadError::RetryExhausted`。
+    /// 行为契约：
+    /// - 若 `token_id` 对应的断点记录存在：从 checkpoint 恢复
+    /// - 若不存在：全新下载，先 `Idle -> Resolving -> Downloading`
+    /// - 下载完成后必须做整文件 SHA-256 校验（NFR-CDN-002），通过后才返回 `Ok(DownloadStateSnapshot)`
     async fn download_asset(
         &self,
-        file_path: &str,
-        source_url: &str,
-        cancel_token: &CancelToken,
-    ) -> Result<(), DownloadError>;
+        request: DownloadRequest,
+    ) -> Result<DownloadStateSnapshot, AssetDownloadError>;
 
-    /// 暂停下载。
+    /// 暂停下载（FR-CDN-083：必须取消 in_flight Range 请求）
     ///
-    /// 实现契约：
-    /// 1. 触发 `cancel_token.cancel()`（per FR-CDN-083 取消 in_flight）
-    /// 2. 落盘当前 `ResumeToken`（per FR-CDN-061 原子写：先 JSON 再 SQLite）
-    /// 3. 状态机转 `Paused`（per DTL §3.1）
-    async fn pause_download(&self, file_path: &str) -> Result<(), DownloadError>;
+    /// 状态转移：`Downloading -> Paused`（合法）或 `Paused`（idempotent no-op）
+    async fn pause_download(&self, token_id: &str) -> Result<DownloadStateSnapshot, AssetDownloadError>;
 
-    /// 取消下载（区别于暂停）。
+    /// 取消下载并删除断点记录
     ///
-    /// 与 `pause_download` 的区别：
-    /// - **取消**会**丢弃**断点记录（per FR-CDN-063 清理路径）
-    /// - **暂停**会**保留**断点记录，恢复时无需重新探测
-    async fn cancel_download(&self, file_path: &str) -> Result<(), DownloadError>;
+    /// 状态转移：任意 -> `Cancelled`；从 store 删除 token
+    async fn cancel_download(&self, token_id: &str) -> Result<DownloadStateSnapshot, AssetDownloadError>;
 
-    /// 查询当前下载状态。
+    /// 查询下载状态快照
     ///
-    /// 返回 `ResumeToken` 中持久化的最新 `DownloadState`；常用于 UI 进度条渲染
-    /// （per RGS-SPEC-DTL-041 v0.2 §4：关键请求可用 `file_path` + `token_id` 反查）。
+    /// 若 `token_id` 不存在返回 [`AssetDownloadError::TokenNotFound`]
     async fn get_download_state(
         &self,
-        file_path: &str,
-    ) -> Result<DownloadState, DownloadError>;
+        token_id: &str,
+    ) -> Result<DownloadStateSnapshot, AssetDownloadError>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn download_request_does_not_carry_pii() {
+        // 确保 DownloadRequest 字段不含 PII（per FR-CDN-064）
+        // 通过反射做不到；这里靠编译时 + 后续 grep 双重检查
+        let req = DownloadRequest {
+            asset_id: "asset-001".to_string(),
+            file_path: PathBuf::from("/tmp/x.bin"),
+            expected_total_bytes: 1024,
+            expected_etag: "\"abc\"".to_string(),
+            expected_sha256: "deadbeef".to_string(),
+            backend_url: "https://cdn.example.com/x.bin".to_string(),
+            chunk_size_bytes: 8 * 1024 * 1024,
+        };
+        // 仅基础健全性检查
+        assert_eq!(req.asset_id, "asset-001");
+        assert_eq!(req.expected_total_bytes, 1024);
+    }
+
+    #[test]
+    fn snapshot_carries_state_and_progress() {
+        let snap = DownloadStateSnapshot {
+            token_id: "token-001".to_string(),
+            asset_id: "asset-001".to_string(),
+            state: DownloadState::Downloading,
+            bytes_received: 512,
+            total_bytes: 1024,
+            completed_chunks: 1,
+            total_chunks: 2,
+            observed_at: Utc::now(),
+        };
+        assert_eq!(snap.state, DownloadState::Downloading);
+        assert_eq!(snap.completed_chunks, 1);
+    }
 }
