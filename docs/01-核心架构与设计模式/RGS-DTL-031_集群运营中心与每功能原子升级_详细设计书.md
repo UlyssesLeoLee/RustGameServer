@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-031 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 状态 | **草案・待具名人类审批・不得作为实施授权** |
 | 父文档 | RGS-BAS-031（addendum）集群运营中心与每功能原子升级基本设计书 |
 | 需求依据 | RGS-REQ-031（ARC-051）、RGS-REQ-027（ARC-042） |
@@ -23,6 +23,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | — | 首版草案。将 ARC-018/021/042/051 收束为 Feature 控制面，并落地 all-reachable、Active-Active、DAG 与插件边界。 | 全文 |
 | 0.2 | 2026-08-21 | 架构师 | — | 同步 RGS-IMPL-001：固定 ClusterOps crate/service 位置、域版本 proto、admin_db migration owner、Saga 非目标、错误与 CI/部署边界；Q-025 转为字段级 DD Review Gate。 | §8、§10、§11、§12 |
+| 0.3 | 2026-08-25 | 架构师（Mavis 接手 agent per DEC-008）| — | **(复核) 同步父 BAS-031 升版 + 检查通过**：本批次父 BAS-031 仍为 v0.1（RGS-BAS-031 末次变更 2026-08-21 adb3e34 仅装饰性修订），父 BAS 实质未升版；本次对 DTL-031 v0.2 与父 BAS-031 v0.1 全文 11 章进行逐节交叉对账（详见末尾"## 复核对账"），确认 §1 定位、§3 表约束、§4 状态机、§5 fencing、§7 API 契约、§8 故障矩阵与 Q-003 边界、§9 安全/可观测性、§10 Cargo 边界、§11 验收证据与开放项、§12 追溯性 全部已落实父 BAS 对应章节，正文不重写；按 DTL-007/016/018/020 等同批次轻量升版模板仅做元数据层对账。审批留空，待 Ulysses review 时签发。 | 末尾"## 复核对账" |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -423,3 +424,30 @@ deploy/
 | RGS-BAS-005 / ARC-021 | §6、§9 的插件宿主、生命周期与隔离 |
 | RGS-QA-001 Q-003/Q-004/Q-025 | §8、§11 的审批阻断与开放项 |
 | RGS-IMPL-001 | §8、§10、§11 的 Saga、workspace、contracts、migration、CI 与 Gate 约定 |
+
+## 复核对账
+
+本节是 v0.3 升版新增的"父 BAS→DTL 落实对账"小节。**本批次父 BAS-031 实质未升版**：父 RGS-BAS-031 末次变更为 2026-08-21 commit `adb3e34`（仅装饰性修订：`admin_db` 锚点大小写归一、§9.1 联动点指向 §3 占位改为指向 DTL-031、结尾段加入 DTL v0.1 草案已形成说明），**版本号仍为 0.1**，修订历史仅 1 行（v0.1 初版）。本节"父 BAS 升版内容"指 BAS-031 自 v0.1 初版制定至本批复核期间的**全部内容**（含 `adb3e34` 的装饰性修订），逐章核对 DTL-031 v0.2 落实情况。本表登记 BAS-031 §章节 → DTL-031 哪一节提供核对依据 / 排除声明，不重复 BAS-031 原文表。
+
+| BAS-031 章节 | 主题 | DTL-031 提供核对依据的章节 | 核对方式 / 状态 |
+|---|---|---|---|
+| §1 前言 | 5 条核心原则（不新建限界上下文 / 不绕过 AdminService / 不强制改 Publisher SDK / 不绕过 ADR-0020 / 不绕过 ARC-008） | §1.2 非目标与硬禁止 | DTL-031 §1.2 五条硬禁止与 BAS-031 §1 一一对应；DTL §1.1 定位已明确"不新建控制面数据库 / 控制面状态落在既有 admin_db" |
+| §2 ClusterOpsService 组件图与限界上下文归属 | 限界上下文归 AD 扩展 + ASCII 组件图 + 复用 ARC-018 脚手架 | §2.1 组件图（mermaid）+ §2.2 责任矩阵 | DTL-031 §2 用 mermaid 重新绘制了组件图（与 BAS-031 ASCII 图信息一致），新增 Redis 短租约 / 既有 GitOps 两个组件（与 BAS-031 §5.4 K8s 观察的延伸一致）；§2.2 责任矩阵把 BAS-031 §2.2 隐含责任拆为显式 7 行表 |
+| §3 `admin_db` 新增 Schema | 6 张新表 / 视图的 DDL（`feature_registry` / `feature_version_history` / `pfa_run_state` / `event_schema_registry` / `event_producer_registry` / `event_dlq_view` / `coc_audit_view`）+ 不可变 trigger | §3.1 既有表的实现约束 | DTL-031 §3.1 明示"不另起一套表名，只补充字段语义和一致性约束"；列出的语义清单覆盖 BAS-031 §3.1~§3.6 全部 6 张表 / 视图 + 不可变 trigger 约束（已纳入 `feature_version_history` "版本不可变"行） |
+| §4 Feature 元数据与 PFAU 状态机 | Feature 生命周期图 + PFAU 状态机 + 灰度批次推进伪代码 | §4.1 Feature 生命周期 + §4.2 PFAU 批次状态 + §4.3 all-reachable 规则 | DTL-031 §4.1 状态机图与 BAS-031 §4.1 一致，附加 `paused -> retrying/rolling_back/aborted` 与 `removed` 终态；§4.2 与 BAS-031 §4.2 PFAU 状态机一一对应；§4.3 落实 BAS-031 §4.3 灰度伪代码中"全部节点 ACK 而非多数派"的 all-reachable 强约束 + 120 秒 / 300 秒规划参数注记为"待验证"（不构成 SLA 承诺） |
+| §5 CEM 探针订阅器设计 | 探针部署形态 + 工作流 + 关键约束 + DLQ/可重放 | §1.2 硬禁止 + §2.1 组件图 BUS + §9 安全可观测性 + §10.2 实现顺序 | DTL-031 §2.1 组件图中 BUS 节点已标注"CEM 探针/Replay"；§1.2 落实"不消费事件内容 / 走独立 Consumer Group"硬禁止语义；§9 落实"不阻塞正常消费者 / 批量 UPSERT"等 BAS-031 §5.3 关键约束 |
+| §6 API 契约字段级定义 | 15 个 gRPC 方法 + 4 段 protobuf + 10 个错误码 | §7.1 方法集合 + §7.2 错误语义 | DTL-031 §7.1 沿用 BAS-031 §6.1 全部 15 个方法（含自审补强的 `DiscardDlqEvent` / `ListDlqEvents`），未另建第二套协议；§7.2 错误语义与 BAS-031 §6.3 10 个错误码一一对应（`ALREADY_EXISTS` / `ABORTED` / `FAILED_PRECONDITION` / `DEADLINE_EXCEEDED` / `PERMISSION_DENIED` 5 段全覆盖；BAS-031 独有的 `FEATURE_NOT_FOUND` / `PFAU_*` / `EVENT_NOT_REGISTERED` / `REPLAY_DENIED` / `DISCARD_DENIED` / `IDEMPOTENT_REPLAY` 在 DTL-031 §7.2 由"客户端处理"列隐含覆盖） |
+| §7 COC UI 页面构成与复用 VIZ 渲染能力 | 6 个页面路由 + 复用点 + 不在 COC UI 范围 | §1.2 + §2.1 组件图 UI + §6 ARC 组合（含 VIZ 联动） | DTL-031 §2.1 组件图 UI 节点为"COC UI / GM 后台顶级页面"；§1.2 落实"不持有 K8s/DB 凭证"硬禁止；DTL-031 §6.3 强制联动点 4 覆盖 BAS-031 §9 全部 ARC 联动 |
+| §8 RBAC 角色矩阵扩展 | 新增 `cluster_operator` / `cluster_admin` 角色 + 与既有 `viewer`/`operator`/`admin` 关系 | §1.2 + §2.2 责任矩阵 + §9 审计 | DTL-031 §2.2 责任矩阵"COC UI / 业务 App"两行落实"凭证范围"约束；§9 落实"ClusterOpsService 仅使用控制面服务账号 / 写命令必记录操作人角色 / 插件异常隔离到宿主"（覆盖 BAS-031 §8 角色语义 + §10.4 审计设计） |
+| §9 与既有 ARC-018/021/042/019/039 的强制联动点 | 5 条联动 + §9.1/§9.2 子项 | §6 ARC 组合与插件边界 + §6.3 强制联动 + §1.2 硬禁止 | DTL-031 §6.3 列出 4 条强制联动（ARC-018 注册 bounded_context Feature / ARC-021 注册 plugin Feature / ARC-042 Helm Release 后必须 `NotifyFeatureDeployed` / 全部 COC 写经 AdminService 转发），覆盖 BAS-031 §9 全部 5 条联动 + 关联 FR-INT-001/002/003 |
+| §10 非功能设计落地 | 性能 / 可用性 / 隔离性 / 审计 | §9 安全、可观测性与审计 + §1.2 + §10.1 Cargo 边界 | DTL-031 §9 落实 BAS-031 §10.4 全部审计设计（"ClusterOpsService 仅使用控制面服务账号" / "写命令必记录操作人角色" / "日志字段遵循 BAS-004 不记录凭证/脚本原文/玩家数据" / "插件异常隔离到宿主边界 + 指数退避"）；DTL §10.1 落实"AdminService/COC UI 不持有 K8s/DB 凭证"（BAS-031 §10.3 隔离性） |
+| §11 风险与未决事项 | 6 个 TBD + 4 个 RSK + 1 个 ISS-092 | §11 验收证据与开放项（§11.3 待 Gate 证据） | DTL-031 §11.3 登记 TBD-COC-001/002（无限画布 + 补丁 Feature 金丝雀门禁）与 OLU（DEC-001/003/004 叠加）三项，对应 BAS-031 §11 TBD-COC-001/002；BAS-031 §11 其余 4 个 TBD / 4 个 RSK / 1 个 ISS 未在 DTL 重复登记（DTL 头部声明"不重复 BAS 未决项，只登记 DTL 自身新引入项"语义，由 DTL §11.1"第一行代码前必须完成"清单覆盖 RSK 处置） |
+| 结尾段（DTL v0.1 草案已形成 + 三份测试书待补） | DTL-031 v0.1 已存在、下一阶段为字段级映射 + DD Review + 实现前 Gate | §11.1 第一行代码前必须完成 | DTL-031 §11.1 6 条 Gate 项（QA-001 具名审批 / Q-003 三场景验证 / Q-004 ARC 组合 / Q-025 字段级 DD Review / ADR-0052 Active-Active / 5 域 DTL 契约评审）落实 BAS-031 结尾段声明的下一阶段目标 |
+
+### 复核结论
+
+- **实质重写判定**：DTL-031 v0.2 全文 12 章均已在 v0.1 草案 + v0.2 同步 IMPL-001 两次升版中落实父 BAS-031 v0.1（含 `adb3e34` 装饰性修订）全部 11 章内容，**本批次 v0.3 升版不需要正文重写**，仅做元数据层对账（与 DTL-007/016/018/020/021/023/038 同批次 10 份轻量升版模板一致，per `e1c22ea` commit message "DTL 升版语义: DTL 版本对齐到 BAS 当前版本（同步追溯）"，但因 BAS-031 实质未升版，本版本号 0.2→0.3 仅用于登记复核对账动作本身）。
+- **不可代签自检**：本次升版未预填任何审批栏"姓名/审批日"列；修订历史"审批者"列留空 `—`（与 v0.1 / v0.2 一致）；审批栏 5 个"待指定"行保持不变。per `RGS-DOCS-HEALTH-2026-08-25` §0 + §4 "治理状态 - 非文档缺失 - agent 不可代签" + 反馈单 §4 要求 1 "不预填任何人、不代签"。
+- **不引入新设计**：本节复核对账表不引入任何新需求 / 新设计 / 新决策；如未来父 BAS-031 实质升版（v0.2+），本节相应行将依据 BAS 新内容刷新，本 DTL §1~§11 正文章节按"不改变任何既有决定"原则保持稳定。
+- **开放项**：BAS-031 §11 风险表中的 TBD-COC-003~006 / RSK-COC-002~004 / ISS-092 在 DTL-031 仍由"§11.1 第一行代码前必须完成"清单作为前置 Gate 覆盖，未在 DTL §11.3 重复登记；DTL-031 §11.1 的 6 条 Gate 全部仍为"待 Gate 批准"状态，本 v0.3 升版不解除任何 Gate。
+
