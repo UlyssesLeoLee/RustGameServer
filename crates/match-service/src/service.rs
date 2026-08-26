@@ -63,6 +63,14 @@ impl MatchService for MatchServiceImpl {
     }
 
     async fn create_match(&self, room_id: String, mode: MatchMode) -> Result<Match> {
+        tracing::debug!(
+            operation = "matchmaking_entry",
+            service = "match-service",
+            method = "create_match",
+            room_id = %room_id,
+            mode = ?mode,
+            "matchmaking: create match"
+        );
         if room_id.is_empty() {
             return Err(Error::Validation("room_id must not be empty".to_string()));
         }
@@ -83,6 +91,15 @@ impl MatchService for MatchServiceImpl {
         player_id: Uuid,
         team: Team,
     ) -> Result<MatchParticipant> {
+        tracing::debug!(
+            operation = "matchmaking_candidate_join",
+            service = "match-service",
+            method = "join_match",
+            match_id = %match_id,
+            player_id = %player_id,
+            team = ?team,
+            "matchmaking: candidate join"
+        );
         let m = self
             .matches
             .find_by_id(match_id)
@@ -166,6 +183,12 @@ pub mod grpc_service {
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
         ) -> std::result::Result<Response<common_proto::HealthCheckResponse>, Status> {
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "match-service",
+                method = "HealthCheck",
+                "enter grpc handler"
+            );
             let healthy = self
                 .impl_
                 .health_check()
@@ -190,6 +213,14 @@ pub mod grpc_service {
             request: Request<common_proto::EntityId>,
         ) -> std::result::Result<Response<match_proto::Match>, Status> {
             let id_str = request.get_ref().id.clone();
+            let match_id_parsed = Uuid::parse_str(&id_str).ok();
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "match-service",
+                method = "GetMatch",
+                match_id = %match_id_parsed.as_ref().map(|u| u.to_string()).unwrap_or_else(|| id_str.clone()),
+                "enter grpc handler"
+            );
             let match_id = Uuid::parse_str(&id_str)
                 .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", id_str)))?;
             let m = self
