@@ -36,10 +36,12 @@
 #![allow(clippy::result_large_err)]
 #![allow(clippy::doc_overindented_list_items, clippy::doc_lazy_continuation)]
 
+pub mod drill;
 pub mod error;
 pub mod metrics;
 pub mod operations;
 pub mod plans;
+pub mod saga;
 pub mod state;
 
 pub use error::{LcmError, LcmResult};
