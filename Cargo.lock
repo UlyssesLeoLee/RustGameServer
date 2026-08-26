@@ -621,6 +621,7 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "chrono",
+ "economy-service",
  "prost",
  "serde",
  "serde_json",

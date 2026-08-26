@@ -32,6 +32,10 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 # 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
 shared-platform = { path = "../shared-platform" }
+# WF-1-2067 启用：复用 SagaOrchestrator / Saga / SagaStep 模式
+# (per RGS-DTL-100 + RGS-DTL-015/016 既有模式，per RGS-IMPL-PLAN-LCM-001 §2.3 关键复用声明)
+# 不重写 Saga 状态机，只 import + 适配
+economy-service = { path = "../economy-service" }
 
 [build-dependencies]
 tonic-build = { workspace = true }
