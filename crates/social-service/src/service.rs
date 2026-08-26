@@ -55,6 +55,14 @@ impl SocialService for SocialServiceImpl {
         description: String,
         leader_id: Uuid,
     ) -> Result<Guild> {
+        tracing::debug!(
+            operation = "service_entry",
+            service = "social-service",
+            method = "CreateGuild",
+            name = %name,
+            leader_id = %leader_id,
+            "enter create_guild"
+        );
         if name.trim().is_empty() {
             return Err(Error::Validation(
                 "guild name must not be empty".to_string(),
@@ -81,6 +89,14 @@ impl SocialService for SocialServiceImpl {
     }
 
     async fn join_guild(&self, guild_id: Uuid, player_id: Uuid) -> Result<GuildMember> {
+        tracing::debug!(
+            operation = "service_entry",
+            service = "social-service",
+            method = "JoinGuild",
+            guild_id = %guild_id,
+            player_id = %player_id,
+            "enter join_guild"
+        );
         let guild = self
             .guilds
             .find_by_id(guild_id)
@@ -174,6 +190,12 @@ pub mod grpc_service {
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
         ) -> std::result::Result<Response<common_proto::HealthCheckResponse>, Status> {
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "social-service",
+                method = "HealthCheck",
+                "enter grpc handler"
+            );
             let healthy = self
                 .impl_
                 .health_check()
@@ -198,6 +220,14 @@ pub mod grpc_service {
             request: Request<common_proto::EntityId>,
         ) -> std::result::Result<Response<social_proto::Guild>, Status> {
             let id_str = request.get_ref().id.clone();
+            let guild_id_parsed = Uuid::parse_str(&id_str).ok();
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "social-service",
+                method = "GetGuild",
+                guild_id = %guild_id_parsed.as_ref().map(|u| u.to_string()).unwrap_or_else(|| id_str.clone()),
+                "enter grpc handler"
+            );
             let guild_id = Uuid::parse_str(&id_str)
                 .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", id_str)))?;
             let g = self
