@@ -1,0 +1,11 @@
+# rgs-web 本地运行时产物
+node_modules/
+server.log
+server.err
+
+# mTLS cert files — per setup-certs.sh 重新生成
+# 不入仓:dev-only self-signed,每台机器 / 每次重新生成都会不同
+# 重新生成:bash tools/rgs-web/setup-certs.sh
+rgs-ca.pem
+rgs-client.crt.pem
+rgs-client.key.pem
