@@ -40,6 +40,14 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # 2026-08-26 22:34 JST 加：rust-ci gate
+  # 防止 main 上有 cargo test 编译错误时仍 build/push docker image
+  # 依赖 rust-ci workflow 跑过（cargo test --workspace pass）才能进 docker build
+  # 见 RGS-INC-002 v0.1 复盘 + cluster-ops drill 编译 bug
+  rust-ci-gate:
+    name: cargo test gate（防止编译不过的代码 push image）
+    uses: ./.github/workflows/rust-ci.yml
+
   docker-build:
     name: docker buildx（53.7 占位 trigger；实际 build 在 53.13 后启用）
     runs-on: ubuntu-latest
@@ -47,6 +55,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    needs: rust-ci-gate  # 2026-08-26 22:34 JST 加：等 rust-ci 通过才能 build
 
     steps:
       - name: Checkout
