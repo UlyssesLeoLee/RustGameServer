@@ -24,6 +24,55 @@
 
 ---
 
+
+---
+
+## §3 RACI 矩阵 (NEW, v0.2 升版增量, per RGS-LEAD-RACI-001 v1.1 §3)
+
+本域 CDN 的 6 治理角色 × 7 实施任务 RACI 映射（per RGS-ADR-0055 v0.1 §4）:
+
+| 治理角色 | Phases | Tasks | Dependencies | Rollback | Migration | Monitor |
+|---|---|---|---|---|---|---|
+| Arch | R | R | R | R | R | R |
+| BE Lead | R | R | R | R | R | R |
+| SRE Lead | R | R | R | R | R | R |
+| DBA | R | R | R | C | R | R |
+| PM | R | R | C | C | C | C |
+| PO | C | C | C | I | I | I |
+
+> **RACI 字母单值**（per RGS-ADR-0055 v0.1 §4）: R = Responsible 执行 / A = Accountable 主责（每行 1 个）/ C = Consulted 咨询 / I = Informed 知情
+
+> **DEC-008 一人公司 12 角色** 在此表中统一 R（单人全责），无 R/A/C/I 区分。本表仅作为正式 RACI 框架，真实跨域协调待 5 域 binary 启 + DDD Review 反馈闭环后补。
+
+## §A 已知缺口 (NEW, per RGS-DOCS-HEALTH-2026-08-26 §0~§4 治理基线)
+
+### §A.1 CDN 域 跨域协调依赖
+
+本 CDN 域 IMPL-PLAN 涉及跨域 gRPC 调用（player → economy/match/social/admin + saga）需 5 域 binary 全部启 + 跨域联调通过才能完整验证。当前阻塞：
+- PostgreSQL 18.6 未装（per Ulysses 16:58/16:59 硬约束，等装入）
+- 5 域 binary 编译完成但启需 DATABASE_URL（per `RGS-GM-V0.3-DEPLOY-SOP-2026-08-26.md` v0.1）
+- 跨域联调 IT 测试（per RGS-TEST-STRATEGY 4 阶段 phase 2，等 PG 装完）
+
+### §A.2 实时审计跟踪
+
+本 CDN 域 IMPL-PLAN 涉及 GM 操作 / RBAC 权限变更 / 跨域事件触发等操作需实时审计跟踪。依赖:
+- ARC-018/021/042/051 4 治理角色（per RGS-ADR-0055 v0.1 §4）
+- audit log 落库（per DTL-031 事件总线 + audit_log 表）
+- 实时审计 dashboard（per rgs-web GM 后台 §3.5）
+
+当前状态：审计跟踪设计在 DTL-031 §4，但 dashboard UI 未实装。
+
+### §A.3 一人公司 12 角色 RACI 全覆盖
+
+本 CDN 域 IMPL-PLAN v0.2 §3 RACI 矩阵仅含 6 治理角色（Arch/BE Lead/SRE Lead/DBA/PM/PO），缺:
+- FE Lead（前后端边界，本域为后端无 FE）
+- QA Lead（per RGS-TEST-STRATEGY 4 阶段）
+- SEC（per RGS-REV-008 mTLS fail-closed）
+- SRE（SRE Lead + SRE 角色区分，per DEC-008）
+- 1 人 12 角色（per DEC-008 一人公司治理基线，5 域 Lead 全部 = Ulysses 兼任）
+
+本缺口待 5 域 binary 启 + DDD Review 反馈 + RACI-001 v1.2 升版时统一补全。
+
 ## 1. 目标 & 范围
 
 ### 1.1 目标
