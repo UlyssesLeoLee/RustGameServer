@@ -1,36 +1,38 @@
-//! cluster-ops · realm_lifecycle 子模块（per RGS-IMPL-PLAN-LCM-001 §2 + RGS-SPEC-DTL-042 §2）
+//! 服务器全生命周期管理（LCM）— realm_lifecycle 子模块入口
 //!
-//! 职责：服务器全生命周期管理（开新服 / 扩缩容 / 分服 / 合服 / 退场 / 归档）。
-//! 6 阶段操作器 + Saga 编排 + Drill 演练 + Plans 表 + Feature 适配 + OLU 上报。
+//! 规范：RGS-SPEC-DTL-042 §2 + ARC-051 Feature 扩展
+//! 入口统一经由 `AdminService` 转发（FR-LCM-004 硬约束）
+//! 阶段变更作为 `realm_lifecycle::*` Feature 子类走 ClusterOpsService PFAU 编排
 //!
-//! 硬约束（per RGS-SPEC-DTL-042 §2）：
-//! - 入口经 AdminService 转发；RealmLifecycleService **不**对外暴露独立接口
-//! - 阶段变更作为 `realm_lifecycle::*` Feature 子类走 ClusterOpsService PFAU 编排
-//! - SagaOrchestrator 是 RealmLifecycleService 内部模块，**不**分发独立协调服务
-//! - 不在 `admin_db` 之外新建独立数据库
+//! ## 子模块
 //!
-//! 复用原则（per RGS-IMPL-PLAN-LCM-001 §2.3 关键复用声明）：
-//! - Saga 模式：复用 `economy-service::saga_orchestrator`（per RGS-DTL-100 + RGS-DTL-015/016）
-//! - 不重写 Saga 状态机；只 import + 适配
+//! - [`plans`]：6 张 Plan 表 entity + PgRepository 骨架（per M-2068.7）
+//! - 后续 L4 任务（WF-1-2066 / WF-1-2067）将补充：
+//!   - `operates/`：6 阶段操作器（NewRealm / Scale / Split / Merge / Retire / Archive）
+//!   - `saga.rs`：SagaOrchestrator
+//!   - `drill.rs`：DrillExecutor（沙箱 PG + K8s 客户端）
+//!   - `feature_adapter.rs`：ClusterOpsService PFAU 集成
+//!   - `olu_reporter.rs`：OLU 预算上报（per NFR-LCM-007）
+//!   - `metrics.rs`：10 项 `rgs_lcm_*` 指标
 //!
-//! 本 worktree（wbs/WF-1-2067）只关注 M-2067.1~6（Saga 编排层）；
-//! 6 操作器业务逻辑属于 WF-1-2066 / WF-1-2070 / WF-1-2071，
-//! 6 张新表 migration 属于 WF-1-2068，Drill 属于 WF-1-2070。
+//! ## 硬约束（继承自 RGS-SPEC-DTL-042 §3）
+//!
+//! - **FR-LCM-001**：6 张表全部在 admin_db；本子模块不新建独立数据库
+//! - **FR-LCM-003**：DrillExecutor **仅**在沙箱 PG 池 + 沙箱 K8s 客户端跑
+//! - **FR-LCM-004**：入口统一经由 AdminService 转发；不暴露独立接口
+//! - **NFR-LCM-007**：OLU 预算上报**必须**经 rgs-arc-olu 既定服务
+//! - **NFR-SE-010**：GDPR 删除通路 admin_db.audit_log 双层审计
 
-pub mod error;
-pub mod service;
-pub mod operations;
-pub mod saga;
+pub mod plans;
 
-#[cfg(test)]
-pub mod tests;
+// 后续 L4 任务会扩展以下子模块（per RGS-SPEC-DTL-042 §2 实现单元）：
+// pub mod operates;
+// pub mod saga;
+// pub mod drill;
+// pub mod feature_adapter;
+// pub mod olu_reporter;
+// pub mod metrics;
 
-pub use error::{Error, Result};
-pub use service::{
-    ArchiveOperator, LcmOperatorInput, LcmOperatorOutput, MergeOperator, NewRealmOperator,
-    RealmLifecycleService, RetireOperator, ScaleOperator, SplitOperator,
-};
-pub use saga::{
-    CompensateAction, IdempotencyKey, IdempotencyRecord, IdempotencyStore, LcmPhase, LcmSaga,
-    LcmSagaStep, SagaContext, SagaOrchestrator, SagaStepHandler, SagaStepStatus, SagaTimeoutConfig,
-};
+// 在 realm_lifecycle 命名空间下重新导出 plans 模块的公共项，
+// 方便调用方写 `realm_lifecycle::RealmLifecycleRun` 而非 `realm_lifecycle::plans::RealmLifecycleRun`。
+pub use plans::*;
