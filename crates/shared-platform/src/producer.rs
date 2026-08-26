@@ -185,6 +185,14 @@ impl Producer {
         subject: &str,
         payload: Vec<u8>,
     ) -> Result<(), ProducerError> {
+        tracing::debug!(
+            operation = "nats_publish_entry",
+            service = "shared-platform",
+            component = "producer",
+            subject = %subject,
+            payload_bytes = payload.len(),
+            "enter nats publish"
+        );
         // 55.45 一次性构造 traceparent header（retry 复用同一 trace_id）
         let headers = build_traceparent_headers();
         let mut last_err: Option<ProducerError> = None;

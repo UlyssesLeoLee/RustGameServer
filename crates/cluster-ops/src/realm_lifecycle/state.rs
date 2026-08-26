@@ -62,6 +62,14 @@ impl RealmLifecycleState {
     ///
     /// 严格按 DTL-042 §4.1 表格实现（任何表格外组合返回 `false`）。
     pub fn can_transition_to(self, next: RealmLifecycleState) -> bool {
+        tracing::debug!(
+            operation = "pfau_state_transition_check",
+            service = "cluster-ops",
+            method = "can_transition_to",
+            from = ?self,
+            to = ?next,
+            "check pfau state transition"
+        );
         use RealmLifecycleState::*;
         match (self, next) {
             // 开新服
@@ -85,6 +93,13 @@ impl RealmLifecycleState {
 
     /// 是否终态
     pub fn is_terminal(self) -> bool {
+        tracing::debug!(
+            operation = "pfau_state_query",
+            service = "cluster-ops",
+            method = "is_terminal",
+            state = ?self,
+            "query if pfau state is terminal"
+        );
         // 当前实现下 Archived 为终态（per FR-LCM-081 归档后仅迁移存储位置，
         // 不进入二次状态变更）；如需"二次激活归档服"需先经合规审批并扩 DTL。
         matches!(self, RealmLifecycleState::Archived)
@@ -92,6 +107,13 @@ impl RealmLifecycleState {
 
     /// 是否可发起归档前置转换（仅 Retired 状态可发起，per DTL-042 §4.1 表格）
     pub fn is_archive_eligible(self) -> bool {
+        tracing::debug!(
+            operation = "pfau_state_query",
+            service = "cluster-ops",
+            method = "is_archive_eligible",
+            state = ?self,
+            "query if pfau state is archive-eligible"
+        );
         matches!(self, RealmLifecycleState::Retired)
     }
 }
