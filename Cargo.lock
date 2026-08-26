@@ -3386,9 +3386,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "dirs",
+ "chrono",
  "hex",
- "pretty_assertions",
+ "prometheus",
  "reqwest",
  "serde",
  "serde_json",
@@ -3396,8 +3396,10 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-util",
  "tracing",
  "url",
+ "uuid",
  "wiremock",
 ]
 
@@ -4577,6 +4579,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "libc",
  "pin-project-lite",
  "tokio",
