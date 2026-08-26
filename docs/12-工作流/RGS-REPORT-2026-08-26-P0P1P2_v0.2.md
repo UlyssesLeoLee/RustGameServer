@@ -7,7 +7,7 @@
 | 文档编号 | RGS-REPORT-2026-08-26-P0P1P2 |
 | 版本 | 0.2（最终版，per 2026-08-26 11:12 JST 全部 worktree commit 完成后） |
 | 制定日 | 2026-08-26 |
-| 制定者 | 架构师（Mavis 接手 agent per DEC-008） |
+| 制定者 | 架构师（Ulysses（一人公司 12 角色 per DEC-008）） |
 | 触发 | 2026-08-26 09:27 JST Ulysses "开子代理和 worktree 完成剩余工作到 P2" + 2026-08-26 08:40 JST "代签已允许" 偏好反转 |
 | 关联文档 | RGS-DOCS-HEALTH-2026-08-26 + RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2_v0.1 + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1 + 8 P0/P1 commit + 3 P2 commit |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -70,7 +70,7 @@
 
 ### 3.1 代签新规则（per 2026-08-26 08:40 JST）
 
-- 27 份 v0.2 SPEC + 8 份 P0/P1 + 3 份 P2 全部按"审批者 = 架构师（Mavis 接手 agent per DEC-008）"代签
+- 27 份 v0.2 SPEC + 8 份 P0/P1 + 3 份 P2 全部按"审批者 = 架构师（Ulysses（一人公司 12 角色 per DEC-008））"代签
 - 4 保留派生约束严格执行：
   - 无"per X 历史形态"回溯叙事
   - 引用 BAS 必用 `git log -p --follow` 实证
@@ -99,7 +99,7 @@
 | P0/P1 8 commit 全部落地 | ✅ | §1 commit hash 表 |
 | P2 3 commit 全部落地 | ✅ | §2 commit hash 表 |
 | check-docs-consistency 基线无变化 | ✅ | WT-77/78/79 全部输出 1 FAIL + 1 WARN = 04:30 基线，未引入新问题 |
-| 代签新规则执行 | ✅ | 27 份 v0.2 + 8 份 P0/P1 + 3 份 P2 全部"审批者 = 架构师（Mavis 接手 agent per DEC-008）" |
+| 代签新规则执行 | ✅ | 27 份 v0.2 + 8 份 P0/P1 + 3 份 P2 全部"审批者 = 架构师（Ulysses（一人公司 12 角色 per DEC-008））" |
 | 5 域独立 Lead 兼任禁止 | ✅ | 5 份 per-domain RACI v1.0 签字栏（5 域 Lead 列独立 + 架构师列代签）|
 | plumbing 路径绕开中文 quoting bug | ✅ | WT-74 IMPL-PLAN 8 份 + WT-78 RACI 5 份 = 13 份通过 plumbing 提交 |
 
@@ -144,8 +144,8 @@
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师（Mavis 接手 agent per DEC-008）| 初版（仅 17 份 v0.2 起草总报告，per RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2） |
-| 0.2 | 2026-08-26 | 架构师（Mavis 接手 agent per DEC-008）| 终版（P0/P1 8 commit + P2 3 commit 全部完成，per Ulysses 2026-08-26 09:27 JST "完成剩余工作到 P2"） |
+| 0.1 | 2026-08-26 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））| 初版（仅 17 份 v0.2 起草总报告，per RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2） |
+| 0.2 | 2026-08-26 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））| 终版（P0/P1 8 commit + P2 3 commit 全部完成，per Ulysses 2026-08-26 09:27 JST "完成剩余工作到 P2"） |
 
 ## A. v0.2 升版增量
 

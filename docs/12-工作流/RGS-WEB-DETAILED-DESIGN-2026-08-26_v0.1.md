@@ -9,7 +9,7 @@
 | 状态 | 草案（待 Ulysses DDD Review 阶段补签）|
 | 触发 | 自审发现 REQUIREMENTS v0.1 + BASIC-DESIGN v0.1 已落地,DETAILED-DESIGN 缺 |
 | 关联 | RGS-WEB-REQUIREMENTS-2026-08-26 v0.1 + RGS-WEB-BASIC-DESIGN-2026-08-26 v0.1 + RGS-WEB-PLAN-2026-08-26 v0.1 + RGS-WEB-GM-PLAN-2026-08-26 v0.1 |
-| 责任人 | 架构师（Mavis 接手 agent per DEC-008）|
+| 责任人 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））|
 
 ---
 
@@ -727,7 +727,7 @@ spec:
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:server-no-deps.js 逐行 + index.html 逐函数 + 部署 + v0.3/v1.0 详细规划 + 故障排查 |
+| 0.1 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）)| 初版:server-no-deps.js 逐行 + index.html 逐函数 + 部署 + v0.3/v1.0 详细规划 + 故障排查 |
 
 ## A. v0.1 升版增量
 

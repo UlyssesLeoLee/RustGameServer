@@ -20,7 +20,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定，本文档是RGS-DTL-001/002/025/026/027之后本批次继续推进详细设计阶段的一部分。细化RGS-BAS-018§2.2逻辑数据模型为`AccountIdentityLink`／`IdentityBindingAuditLog`／`ComplianceProfile`／`IdentityVerificationVault`／`MinorRestrictionAuditLog`五表具体DDL、§3第三方登录时序与§3.2 IdP降级落实为可直接翻译为Rust实现的伪代码、§4合规规则引擎判定逻辑落实为具体算法。**本版本不覆盖**：各IdP（Apple/Google/Steam...）适配子模块各自的SDK调用细节、`ComplianceRuleSet`各地区具体规则的填值（TBD-IDN-001）。见§7 | 全部 |
-| 0.3 | 2026-08-25 | 架构师（Mavis 接手 agent per DEC-008）| — | **同步父 BAS-018 升版至 v0.3**（2 次升版，BAS-018 v0.2 + v0.3 装饰性升版）: 本 DTL 是父 BAS 的详细化（per DTL 头部"不改变任何既有决定"），父 BAS 升版为元数据/追溯性表/装饰性修订，DTL-018 既有章节内容无实质重写，本升版仅做元数据层对齐;**正文本不重写**（per `RGS-DOCS-HEALTH-2026-08-25` §0 第 4 行"治理状态, 非文档缺陷, agent 不可代签" + 反馈单 §4 要求 1 "不预填任何 ✅, 不代签"）。 审批留空，待 Ulysses 在 review 时签发。 | (父 BAS 升版章节) |
+| 0.3 | 2026-08-25 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））| — | **同步父 BAS-018 升版至 v0.3**（2 次升版，BAS-018 v0.2 + v0.3 装饰性升版）: 本 DTL 是父 BAS 的详细化（per DTL 头部"不改变任何既有决定"），父 BAS 升版为元数据/追溯性表/装饰性修订，DTL-018 既有章节内容无实质重写，本升版仅做元数据层对齐;**正文本不重写**（per `RGS-DOCS-HEALTH-2026-08-25` §0 第 4 行"治理状态, 非文档缺陷, agent 不可代签" + 反馈单 §4 要求 1 "不预填任何 ✅, 不代签"）。 审批留空，待 Ulysses 在 review 时签发。 | (父 BAS 升版章节) |
 
 ## 审批栏（承認欄 / Approval）
 

@@ -8,7 +8,7 @@
 | 范围 | RGS-WBS-001 v0.4 §A.1 列出的 8 份 DTL/SPEC 详细设计 + 实现规格 v0.2 升版状态核对 |
 | worktree | `D:/RustGameServer-worktrees/WF-1-A-08-dtl`（branch `wbs/WF-1-A-08-dtl`，基线 `8766661`） |
 | 报告日 | 2026-08-26 |
-| 报告人 | worker（架构师 Mavis 接手 agent per DEC-008） |
+| 报告人 | worker（架构师 Ulysses（一人公司 12 角色 per DEC-008）） |
 | 依据 | RGS-DOCS-HEALTH-2026-08-26 §0~§4 治理基线 + 2026-08-26 08:40 JST 代签新规则 |
 
 ---
@@ -124,4 +124,4 @@ DTL-040: 23 20 e8 af a6 e7 bb 86  → UTF-8
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 |
 |---|---|---|---|---|
-| 0.1 | 2026-08-26 | worker（架构师 Mavis 接手 agent per DEC-008） | 架构师(Mavis 接手 agent per DEC-008) | 初版：8 份 DTL/SPEC 状态核对结果（0 份需补升）+ 3 处 WBS §A.1 已知缺口（路径/编码/版本）+ 4 个 git commit hash 实证 |
+| 0.1 | 2026-08-26 | worker（架构师 Ulysses（一人公司 12 角色 per DEC-008）） | 架构师(Ulysses（一人公司 12 角色 per DEC-008）) | 初版：8 份 DTL/SPEC 状态核对结果（0 份需补升）+ 3 处 WBS §A.1 已知缺口（路径/编码/版本）+ 4 个 git commit hash 实证 |

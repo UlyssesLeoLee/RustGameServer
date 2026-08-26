@@ -7,7 +7,7 @@
 | 文档编号 | RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2 |
 | 版本 | 0.1 |
 | 制定日 | 2026-08-26 |
-| 制定者 | 架构师(Mavis 接手 agent per DEC-008) |
+| 制定者 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）) |
 | 关联文档 | RGS-DTL-036-REVIEW-2026-08-26 + 26 份 RGS-DTL-NNN_*.md + 26 份 RGS-SPEC-DTL-NNN_*.md + RGS-SPEC-000 v0.3 |
 | 适用许可 | Apache-2.0(本仓库) |
 

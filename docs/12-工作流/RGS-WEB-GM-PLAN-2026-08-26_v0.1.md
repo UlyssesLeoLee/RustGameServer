@@ -9,7 +9,7 @@
 | 状态 | 设计 + v0.2-gm 已落地（10 页面 + 6 API + dark theme）|
 | 触发 | 2026-08-26 12:15 JST "RGS 需要一个网页端的后台" + 13:13 JST "参考 E:/ROPE_CS 改善" |
 | 关联 | RGS-WEB-PLAN-2026-08-26 v0.1（总览）+ RGS-WEB-REQUIREMENTS-2026-08-26 v0.1（需求）|
-| 责任人 | 架构师（Mavis 接手 agent per DEC-008）|
+| 责任人 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））|
 
 ---
 
@@ -256,7 +256,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:横向对比 ROPE_CS 19 页面 + RGS 10 页面 v0.2-gm 落地 |
+| 0.1 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）)| 初版:横向对比 ROPE_CS 19 页面 + RGS 10 页面 v0.2-gm 落地 |
 
 ## A. v0.1 升版增量
 

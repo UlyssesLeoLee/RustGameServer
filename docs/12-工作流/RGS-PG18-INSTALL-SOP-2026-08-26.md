@@ -214,7 +214,7 @@ $body.Content
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:PG 18 + 5 域 DB + 5 binary 启动 SOP |
+| 0.1 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）)| 初版:PG 18 + 5 域 DB + 5 binary 启动 SOP |
 
 ## A. v0.1 升版增量
 

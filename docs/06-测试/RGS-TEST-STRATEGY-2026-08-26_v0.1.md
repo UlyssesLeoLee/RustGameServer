@@ -8,7 +8,7 @@
 | 版本 | 0.1（per Ulysses 2026-08-26 13:28 JST "完善 mock 项目，对整个项目进行覆盖率大于 90% 的 UT 测试"）|
 | 状态 | 草案（待 Ulysses DDD Review 阶段补签）|
 | 触发 | 2026-08-26 13:28 JST |
-| 责任人 | 架构师（Mavis 接手 agent per DEC-008）|
+| 责任人 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））|
 | 适用许可 | Apache-2.0 |
 
 ---
@@ -366,7 +366,7 @@ cargo llvm-cov report --summary-only
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:12 crate 评估 + 4 阶段计划 + 验收 + CI 集成 |
+| 0.1 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）)| 初版:12 crate 评估 + 4 阶段计划 + 验收 + CI 集成 |
 
 ## A. v0.1 升版增量
 

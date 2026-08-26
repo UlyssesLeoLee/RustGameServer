@@ -21,7 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定（负责人指示"按顺序和你的建议推进"，本文档为推荐的下一份详细设计文档，先于其余业务域是因为其余域挂载均依赖本文档确立的物理脚手架）。细化RGS-BAS-002§4.2 CI/CD流水线为具体流水线定义、§5.2 Helm chart模板文件列表为具体YAML内容、§10.1 Mount Record字段表为具体物理存储格式（Markdown frontmatter + Appendix C行）、§12检查清单为可脚本化的自动化检查逻辑。**本版本不覆盖**：实际admission-webhook实现代码、实际migration工具选型的完整对比评审（仅给出所选工具与用法）、跨云厂商Helm差异适配。见§7 | 全部 |
 | 0.2 | 2026-08-17 | 架构师 | — | 负责人指示"详细设计应充分体现以热插拔为主的App集群的原子化低耦合高内聚特性，妥善调和回滚和生命周期幂等排他问题"。发现§6.4退场安全网与§4挂载CI流水线各自独立触发、互不感知对方状态，同一限界上下文的挂载与退场可被并发触发产生竞态——新增§6.5生命周期排他锁：Mount Record frontmatter新增`lifecycle_state`字段驱动显式状态机（MOUNTING/ACTIVE/DECOMMISSIONING/DECOMMISSIONED），CI新增`lifecycle-lock-check`前置阶段强制互斥，并阐明该机制与RGS-DTL-024§2集群级排他约束是同一类问题在不同物理介质（Git提交串行性 vs. 数据库唯一索引）上的对应实现 | §6.1、§6.5（新增）、§7 |
-| 0.3 | 2026-08-25 | 架构师（Mavis 接手 agent per DEC-008）| — | **同步父 BAS-002 升版至 v0.3**（1 次升版，RGS-IMPL-001: virtual workspace/领域库 bin 分离/按域 versioned proto/migration 锁）: 本 DTL 是父 BAS 的详细化（per DTL 头部"不改变任何既有决定"），父 BAS 升版为元数据/追溯性表/装饰性修订，DTL-002 既有章节内容无实质重写，本升版仅做元数据层对齐;**正文本不重写**（per `RGS-DOCS-HEALTH-2026-08-25` §0 第 4 行"治理状态, 非文档缺陷, agent 不可代签" + 反馈单 §4 要求 1 "不预填任何 ✅, 不代签"）。 审批留空，待 Ulysses 在 review 时签发。 | (父 BAS 升版章节) |
+| 0.3 | 2026-08-25 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））| — | **同步父 BAS-002 升版至 v0.3**（1 次升版，RGS-IMPL-001: virtual workspace/领域库 bin 分离/按域 versioned proto/migration 锁）: 本 DTL 是父 BAS 的详细化（per DTL 头部"不改变任何既有决定"），父 BAS 升版为元数据/追溯性表/装饰性修订，DTL-002 既有章节内容无实质重写，本升版仅做元数据层对齐;**正文本不重写**（per `RGS-DOCS-HEALTH-2026-08-25` §0 第 4 行"治理状态, 非文档缺陷, agent 不可代签" + 反馈单 §4 要求 1 "不预填任何 ✅, 不代签"）。 审批留空，待 Ulysses 在 review 时签发。 | (父 BAS 升版章节) |
 
 ## 审批栏（承認欄 / Approval）
 

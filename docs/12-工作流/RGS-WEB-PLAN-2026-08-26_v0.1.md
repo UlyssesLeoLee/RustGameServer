@@ -8,7 +8,7 @@
 | 版本 | 0.1（per Ulysses 2026-08-26 12:15 JST "RGS 需要一个网页端的后台"） |
 | 状态 | 设计 + 最小可行实现已落地（`tools/rgs-web/` v0.1,node + express-less HTTP server） |
 | 触发 | 2026-08-26 12:15 JST Ulysses "RGS 需要一个网页端的后台"（per RGS-DOCS-HEALTH-2026-08-26 §2 P2 拆分） |
-| 责任人 | 架构师（Mavis 接手 agent per DEC-008）|
+| 责任人 | 架构师（Ulysses（一人公司 12 角色 per DEC-008））|
 | 关联 | RGS-REPORT-2026-08-26-P0P1P2-v0.2 + RGS-DOCS-HEALTH-2026-08-26 + DEC-008 一人公司 12 角色 |
 
 ---
@@ -170,7 +170,7 @@ node D:/RustGameServer/tools/rgs-web/server-no-deps.js
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:最小可行 Web UI(零依赖 node + 原生 HTML)|
+| 0.1 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）)| 初版:最小可行 Web UI(零依赖 node + 原生 HTML)|
 
 ## A. v0.1 升版增量
 

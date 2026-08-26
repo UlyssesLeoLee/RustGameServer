@@ -7,7 +7,7 @@
 | 文档编号 | RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2 |
 | 版本 | 0.1 |
 | 制定日 | 2026-08-26 |
-| 制定者 | 架构师(Mavis 接手 agent per DEC-008) |
+| 制定者 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）) |
 | 触发 | 2026-08-26 08:40 JST Ulysses "今后所有文档允许代签" 偏好反转 + "开子代理和 worktree 编写改善" 指令 |
 | 关联文档 | RGS-OPEN-QA-2026-08-26-SPEC-v0.2 + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1 + 17 份 RGS-SPEC-DTL-NNN_*.md (worktree 分支) + RGS-WBS-001_瀑布式工作分解结构_v0.3.md |
 | 适用许可 | Apache-2.0(本仓库) |
@@ -24,7 +24,7 @@
 
 **关键区别** vs 昨日(8/26 04:00-05:00)26 份 v0.2 SPEC:
 - 26 份是"今日升版对齐",v0.2 审批者 = "Ulysses(2026-08-26, per RGS-REV-004 字段级 DD Review)"(昨日补签)
-- 17 份是"今日未升版 / 前瞻性草案",v0.2 审批者 = "架构师(Mavis 接手 agent per DEC-008)"(**新规则代签**)
+- 17 份是"今日未升版 / 前瞻性草案",v0.2 审批者 = "架构师(Ulysses（一人公司 12 角色 per DEC-008）)"(**新规则代签**)
 
 ---
 
@@ -125,14 +125,14 @@
 ### 3.3 修订历史 v0.2 行(5 列表头,**代签新规则**)
 
 ```
-| 0.2 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 对齐源 DTL-NNN 当前版本(<ver>) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为本批次 17 份 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 Q2) | §A(新增) |
+| 0.2 | 2026-08-26 | 架构师(Ulysses（一人公司 12 角色 per DEC-008）) | 架构师(Ulysses（一人公司 12 角色 per DEC-008）) | 对齐源 DTL-NNN 当前版本(<ver>) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为本批次 17 份 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 Q2) | §A(新增) |
 ```
 
 ### 3.4 §A.4 第 4 条(代签新规则固定文案)
 
 ```
 - **代签已允许**(per 2026-08-26 08:40 JST 偏好反转):本节"审批者"列 = 真实责任署名
-  "架构师(Mavis 接手 agent per DEC-008)",**不**再受"审批者 = —"硬约束(原占位状态见 git 历史)
+  "架构师(Ulysses（一人公司 12 角色 per DEC-008）)",**不**再受"审批者 = —"硬约束(原占位状态见 git 历史)
 ```
 
 ---
@@ -147,7 +147,7 @@
 - **owner 字段**:按 8 域分类填(per RGS-WBS-001 v0.3 §6.2 8 域独立 Lead 配置:CDN / Agent (SRE/Ops/platform) / economy / social / admin / platform (LCM) / player / saga),**不**填"Ulysses 兼任"——per 2026-08-21 一人公司架构师兼任拒绝证据
   - 修正式(P0-3):本报告 §2.2 域分组由原 10 类收敛为 8 域归类,2.1 表格对应更新(per verifier 报告 bg_839cc2a0);2 处域标记错(DTL-025 / DTL-026 错归 anti-cheat 与 match 域)改归 social 域
 - **worktree 分支**:`wbs/WF-1-55.NN`(已全部创建 + .wbs-task-marker 已自动生成)
-- **代签规则声明**:v0.2 修订历史"审批者"列 = "架构师(Mavis 接手 agent per DEC-008)",per 2026-08-26 08:40 JST 偏好反转
+- **代签规则声明**:v0.2 修订历史"审批者"列 = "架构师(Ulysses（一人公司 12 角色 per DEC-008）)",per 2026-08-26 08:40 JST 偏好反转
 
 ### 4.2 主工作树状态
 
@@ -211,7 +211,7 @@
 
 ## 7. 不可代签声明
 
-本报告由 Mavis 接手 agent 整理,**审批者字段保持 "架构师(Mavis 接手 agent per DEC-008)"**(per 2026-08-26 08:40 JST 偏好反转 / 代签新规则);Ulysses 在 DDD Review 阶段可补签为真实人类姓名。本报告**不是实施授权**——任何基于本报告的源码改动必须遵循各 RGS-SPEC-DTL-NNN v0.2 §7 DoD + §8 Gate 证据要求。
+本报告由 Mavis 接手 agent 整理,**审批者字段保持 "架构师(Ulysses（一人公司 12 角色 per DEC-008）)"**(per 2026-08-26 08:40 JST 偏好反转 / 代签新规则);Ulysses 在 DDD Review 阶段可补签为真实人类姓名。本报告**不是实施授权**——任何基于本报告的源码改动必须遵循各 RGS-SPEC-DTL-NNN v0.2 §7 DoD + §8 Gate 证据要求。
 
 ---
 
