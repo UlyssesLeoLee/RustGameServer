@@ -6,27 +6,33 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "客户端可恢复下载 SDK（per RGS-IMPL-PLAN-CDN-001 v0.1）—— 含 MinIO 自托管 + 商业 CDN 边缘集成（PH-5 可选）"
+description = "RustGameServer 客户端资源分发的断点续传与可恢复下载（per RGS-DTL-041 / SPEC-DTL-041 v0.2）"
 
 [dependencies]
-# 公共能力（per workspace 既有）
+# 既有 workspace 公共依赖
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
 tracing = { workspace = true }
 async-trait = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
 
-# 下载能力（per SPEC-DTL-041 §2 + RGS-IMPL-PLAN-CDN-001 §2.3）
+# 新增（per SPEC §2 实现单元 + DTL §12）
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 sha2 = "0.10"
 hex = "0.4"
 url = "2"
-dirs = "5"
+# 取消令牌（FR-CDN-083：暂停时取消 in_flight）
+tokio-util = { version = "0.7", features = ["rt"] }
+
+# metrics（10 项 rgs_asset_download_*，独立 Registry；不与 shared-platform 耦合以避免拖入 sqlx）
+prometheus = { version = "0.13", default-features = false }
 
 [dev-dependencies]
-tokio = { workspace = true }
-tempfile = "3"
+tokio = { version = "1", features = ["full", "test-util"] }
 wiremock = "0.6"
-pretty_assertions = "1"
+tempfile = "3"
+# proptest 留待 M-2064.6 状态机 fuzz 用
