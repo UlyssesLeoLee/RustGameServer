@@ -63,9 +63,23 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
     /// 单次轮询（一次 batch）
     pub async fn tick(&self) -> crate::outbox::Result<RelayStats> {
         let mut stats = RelayStats::default();
+        tracing::debug!(
+            operation = "outbox_poll",
+            service = "shared-platform",
+            method = "OutboxRelay::tick",
+            batch_size = self.config.batch_size,
+            "outbox relay poll begin"
+        );
         // 55.17：list_pending 内部已 mark in_flight + lease 30s + 提交后持锁
         let pending = self.repo.list_pending(self.config.batch_size).await?;
         stats.fetched = pending.len();
+        tracing::debug!(
+            operation = "outbox_poll_result",
+            service = "shared-platform",
+            method = "OutboxRelay::tick",
+            fetched = stats.fetched,
+            "outbox relay poll: list_pending done"
+        );
 
         for entry in pending {
             // entry.status 此时已是 InFlight（list_pending 内部标记）
@@ -108,6 +122,14 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
 
     /// 后台循环（tokio task）
     pub async fn run(self: Arc<Self>) {
+        tracing::debug!(
+            operation = "outbox_loop_start",
+            service = "shared-platform",
+            method = "OutboxRelay::run",
+            poll_interval_ms = self.config.poll_interval.as_millis() as u64,
+            batch_size = self.config.batch_size,
+            "outbox relay background loop start"
+        );
         let mut ticker = time::interval(self.config.poll_interval);
         loop {
             ticker.tick().await;
