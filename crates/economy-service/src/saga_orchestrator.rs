@@ -84,6 +84,15 @@ impl SagaOrchestrator {
     /// - Running: 崩溃恢复 resume，跳过 start() 直接续跑当前 step
     /// - Compensating: 崩溃恢复 resume 补偿未完成 step
     pub async fn execute(&self, saga: &mut Saga) -> Result<()> {
+        tracing::debug!(
+            operation = "saga_step_enter",
+            service = "economy-service",
+            method = "SagaOrchestrator::execute",
+            saga_id = %saga.id,
+            saga_status = ?saga.status,
+            current_step = saga.current_step,
+            "enter saga execute"
+        );
         match saga.status {
             SagaStatus::Pending => {
                 // 启动
@@ -163,6 +172,15 @@ impl SagaOrchestrator {
     /// 新顺序：handler.compensate 崩溃 → step 仍 Completed → resume 重跑 handler.compensate
     /// （handler 用 saga_idem_key 查 ledger, 已存在则跳过 apply_atomic, 防止 +amount 重复）。
     pub async fn compensate(&self, saga: &mut Saga) -> Result<()> {
+        tracing::debug!(
+            operation = "saga_step_enter",
+            service = "economy-service",
+            method = "SagaOrchestrator::compensate",
+            saga_id = %saga.id,
+            saga_status = ?saga.status,
+            current_step = saga.current_step,
+            "enter saga compensate"
+        );
         // 1. 收集 Completed step 列表 — 必须在 saga.compensate() 修改 step.status 之前做,
         //    否则 filter 永远为空 (per RGS-REV-007 AC4 实化发现的旧 bug)
         let completed: Vec<(String, Option<Uuid>)> = saga
@@ -194,6 +212,13 @@ impl SagaOrchestrator {
 
     /// 通过 saga_id 重新加载并继续执行（崩溃恢复）
     pub async fn resume(&self, saga_id: Uuid) -> Result<()> {
+        tracing::debug!(
+            operation = "saga_step_enter",
+            service = "economy-service",
+            method = "SagaOrchestrator::resume",
+            saga_id = %saga_id,
+            "enter saga resume (crash recovery)"
+        );
         let mut saga = self
             .sagas
             .find_by_id(saga_id)

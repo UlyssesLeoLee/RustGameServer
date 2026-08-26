@@ -69,11 +69,33 @@ impl Reservation {
 
     /// 确认（业务侧调用，表示资金预留已最终生效）
     pub fn confirm(&mut self) {
+        tracing::debug!(
+            operation = "reservation_state_change",
+            service = "economy-service",
+            method = "Reservation::confirm",
+            reservation_id = %self.id,
+            saga_id = %self.saga_id,
+            account_id = %self.account_id,
+            from = "Reserved",
+            to = "Confirmed",
+            "reservation state change"
+        );
         self.status = ReservationStatus::Confirmed;
     }
 
     /// 补偿（业务侧调用，saga compensate 阶段释放占用）
     pub fn compensate(&mut self) {
+        tracing::debug!(
+            operation = "reservation_state_change",
+            service = "economy-service",
+            method = "Reservation::compensate",
+            reservation_id = %self.id,
+            saga_id = %self.saga_id,
+            account_id = %self.account_id,
+            from = "Reserved|Confirmed",
+            to = "Compensated",
+            "reservation state change"
+        );
         self.status = ReservationStatus::Compensated;
     }
 
@@ -90,6 +112,17 @@ impl Reservation {
     /// 调用后 reserve_id 对应的 reservation 进入 Compensated 终态, 不应被再次
     /// `confirm()` / `compensate()` / `release()`(幂等性由调用方保证).
     pub fn release(&mut self) {
+        tracing::debug!(
+            operation = "reservation_state_change",
+            service = "economy-service",
+            method = "Reservation::release",
+            reservation_id = %self.id,
+            saga_id = %self.saga_id,
+            account_id = %self.account_id,
+            from = "Reserved|Confirmed",
+            to = "Compensated (no-op cleanup)",
+            "reservation state change (handler failure path)"
+        );
         self.status = ReservationStatus::Compensated;
     }
 
