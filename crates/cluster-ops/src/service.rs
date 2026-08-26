@@ -192,6 +192,42 @@ pub mod grpc_service {
                 display_name: n.hostname,
             }))
         }
+
+        // PFAU 阶段查询（per RGS-ADR-0052 §3 "all-reachable PFAU"）
+        // WF-1-PFAU-phase 最小实现：返回静态 Idle / progress=0 / started_at_unix=0。
+        // 后续任务在 cluster-ops 引入真正的 PFAU 5/6 阶段状态机后，可在此
+        // 直接读取 in-memory tracker 替换默认实现（hook 已就位：
+        // `self.impl_.read_pfau_phase()` 占位尚未实现，保持 trait 干净）。
+        async fn get_pfau_phase(
+            &self,
+            _request: Request<cluster_proto::PfauPhaseRequest>,
+        ) -> std::result::Result<Response<cluster_proto::PfauPhaseResponse>, Status> {
+            // 留 hook：未来 PFAU state machine 接入时，把此处改为读 in-memory state。
+            // 当前仅返回 Idle（per ADR-0052 §3 Idle = 无活动 PFAU 操作）。
+            let phase_name = "Idle".to_string();
+            let progress: i32 = 0;
+            let component = String::new();
+            let message = "no active PFAU operation".to_string();
+            let started_at_unix: i64 = 0;
+
+            tracing::debug!(
+                target: "cluster-ops",
+                operation = "get_pfau_phase",
+                service = "cluster-ops",
+                method = "GetPFAUPhase",
+                phase = %phase_name,
+                progress,
+                "PFAU phase query served (Idle default)"
+            );
+
+            Ok(Response::new(cluster_proto::PfauPhaseResponse {
+                phase: phase_name,
+                progress,
+                component,
+                message,
+                started_at_unix,
+            }))
+        }
     }
 }
 
