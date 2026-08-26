@@ -12,6 +12,7 @@
 
 pub mod entity;
 pub mod error;
+pub mod realm_lifecycle;
 pub mod repository;
 pub mod service;
 

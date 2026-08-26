@@ -1,34 +1,55 @@
 {
-  "l4_id": "WF-1-2067",
-  "task": "SagaOrchestrator + 6 阶段 Saga 步骤实现",
-  "owner": "Admin 域 Lead (R) | Ulysses (A)",
-  "tokens": "840K",
+  "l4_id": "WF-1-2068",
+  "task": "6 张新表 migration 上线（admin_db）",
+  "owner": "DBA + Admin 域 Lead",
+  "tokens": "630K",
   "spec": "SPEC-DTL-042",
   "dtl": "DTL-042",
-  "branch": "wbs/WF-1-2067",
+  "branch": "wbs/WF-1-2068",
   "status": "done",
   "progress": 100,
   "started_at": "2026-08-25T03:29:38.765Z",
-  "updated_at": "2026-08-25T16:08:00.000Z",
-  "completed_at": "2026-08-25T16:08:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-2067",
+  "updated_at": "2026-08-25T12:31:08.000Z",
+  "completed_at": "2026-08-25T12:31:08.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2068",
   "deliverables": {
-    "module_skeleton": "crates/cluster-ops/src/realm_lifecycle/{mod.rs,error.rs,service.rs,operations/}",
-    "saga_layer": "crates/cluster-ops/src/realm_lifecycle/saga/{mod.rs,orchestrator.rs,steps.rs,idempotency.rs}",
-    "tests": "crates/cluster-ops/src/realm_lifecycle/tests/{mod.rs,ut_saga.rs} + crates/cluster-ops/tests/ut_saga.rs",
-    "reuses": "economy_service::{saga, saga_orchestrator, reservation} (per RGS-IMPL-PLAN-LCM-001 §2.3)",
-    "phases": ["NewRealm", "Scale", "Split", "Merge", "MergeRollback", "Retire", "Archive"],
-    "timeout_default_secs": 60,
-    "compensation_actions": ["Reverse", "Rollback", "Cleanup", "CrossDomainReverse", "CrossDomainRollback"]
+    "sql_migration": "crates/cluster-ops/migrations/0020_lcm_tables.sql",
+    "expand_contract_script": "crates/cluster-ops/migrations/0020_lcm_expand_contract.sh",
+    "rust_entities": [
+      "crates/cluster-ops/src/realm_lifecycle/mod.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/mod.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/realm_lifecycle_run.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/new_realm_plan.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/split_plan.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/merge_conflict_rule_set_v2.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/retire_plan.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/archive_policy.rs"
+    ]
   },
-  "m_tasks_completed": [
-    "M-2067.PREREQ",
-    "M-2067.1",
-    "M-2067.2",
-    "M-2067.3",
-    "M-2067.4",
-    "M-2067.5",
-    "M-2067.6"
+  "m_tasks": [
+    "M-2068.1 realm_lifecycle_run DDL（月度范围分区）",
+    "M-2068.2 new_realm_plan + split_plan + merge_conflict_rule_set_v2 DDL",
+    "M-2068.3 retire_plan（query_channel_rbac）+ archive_policy DDL",
+    "M-2068.4 6 张表 indexes（18 个）",
+    "M-2068.5 Expand-Contract 双向演练脚本",
+    "M-2068.6 sqlx prepare 注释（指向 cargo sqlx prepare --workspace）",
+    "M-2068.7 6 个 entity + PgRepository 骨架"
   ],
-  "next": "WF-1-2066 (6 operator trait impl) + WF-1-2068 (6 表 migration) + WF-1-2070 (drill)"
+  "hard_constraints_satisfied": {
+    "FR-LCM-001": "6 张表全部在 admin_db，无 CREATE DATABASE / SCHEMA",
+    "FR-LCM-002": "阶段变更全流程留痕既有 admin_db.audit_log",
+    "FR-LCM-062": "merge_conflict_rule_set_v2 含 locked_at + chk_merge_conflict_lock_consistency + 应用层 save 校验",
+    "FR-LCM-081": "archive_policy 不含数据销毁路径（grep 验证 0 匹配）",
+    "NFR-SE-010": "GDPR 删除通路 admin_db.audit_log 双层审计",
+    "ARC-008_5_DB": "不新建独立数据库"
+  },
+  "validation": {
+    "cargo_check": "0 error",
+    "cargo_test_lib": "39 passed; 0 failed",
+    "sql_table_count": 6,
+    "sql_index_count": 18,
+    "unique_constraint_uq_lifecycle_run_request_operator": true,
+    "monthly_partition_count": 2,
+    "expand_contract_script_phases": ["expand", "verify", "contract", "re-expand"]
+  }
 }
