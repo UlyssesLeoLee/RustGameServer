@@ -257,3 +257,9 @@
 [2026-08-22 11:57:01] [END] === 部署完成 ===
 [2026-08-22 11:57:01] [INFO] Log: D:\RustGameServer\docs\deploy\09-deploy-dev-k3s.log
 [2026-08-22 11:57:01] [INFO] 
+[2026-08-26 11:23:15] [START] === RGS dev 部署开始 (per DEC-010 WSL2 k3s native) ===
+[2026-08-26 11:23:16] [INFO] Repository: D:\RustGameServer
+[2026-08-26 11:23:16] [INFO] Manifest dir: D:\RustGameServer\docs\deploy\01-k8s-manifests
+[2026-08-26 11:23:16] [INFO] Wsl2 temp dir: /tmp/rgs-deploy-dev (UNC: \\wsl$\Ubuntu\tmp\rgs-deploy-dev)
+[2026-08-26 11:23:16] [INFO] Step 1: 检查 WSL2 + k3s
+[2026-08-26 11:23:16] [ERROR] k3s 不可用。请先装 k3s: curl -sfL https://get.k3s.io | sh -

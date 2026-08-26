@@ -22,3 +22,8 @@ docs/00-**/reviews/**/cargo-*.log
 
 # 隔离 0 字节误建文件 + session 临时删除缓冲
 .git-trash/
+
+# tools/rgs-web/ 依赖(per RGS-WEB-PLAN-2026-08-26 §6.2 npm install SOP)
+# server.js 是备选实现,server-no-deps.js 是当前运行版(零依赖,无 node_modules)
+# node_modules 实际未在 commit(per commit 5f827ee),规则是预防未来 npm install 误入
+tools/rgs-web/node_modules/
