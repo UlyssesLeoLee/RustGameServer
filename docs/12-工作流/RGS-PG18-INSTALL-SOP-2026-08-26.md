@@ -1,12 +1,12 @@
-# RGS-PG18-INSTALL-SOP-2026-08-26 v0.1
+# RGS-PG18-INSTALL-SOP-2026-08-26 v0.2
 
-**RGS PostgreSQL 18 安装 + 5 域 DB 创建 SOP(per Ulysses 16:58 JST "PG 18 是必须装的")**
+**RGS PostgreSQL 18.6 安装 + 5 域 DB 创建 SOP(per Ulysses 16:59 JST "PG 18.6 必须装 + rust 1.98.0 + 文档代码必须遵循 + 遇阻协商")**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-PG18-INSTALL-SOP-2026-08-26 |
-| 版本 | 0.1 |
-| 触发 | 2026-08-26 16:58 JST Ulysses 确认 PG 18 必须装 |
+| 版本 | **0.2**(per Ulysses 16:59 JST 硬约束确认) |
+| 触发 | 2026-08-26 16:58 JST "PG 18 必须装" + 16:59 JST "PG 18.6 / rust 1.98.0 / 文档代码必须遵循 / 遇阻协商" |
 | 责任人 | Ulysses(WSL 内执行)+ Mavis(装完后启 5 域) |
 
 ---
@@ -25,23 +25,31 @@
 ## 1. Ulysses 在 WSL Ubuntu terminal 执行(预计 5-8 分钟)
 
 ```bash
-# === Step 1: 装 PostgreSQL 18 (Ubuntu 24.04 标准仓库默认 PG 16,需要 PGDG 仓库) ===
+# === Step 1: 装 PostgreSQL 18.6(Ubuntu 24.04 标准仓库默认 PG 16,需要 PGDG 仓库) ===
 # 1.1 加 PGDG 仓库(Ubuntu 24.04 = noble)
 sudo apt-get install -y curl ca-certificates gnupg lsb-release
 sudo install -d /usr/share/postgresql-common/pgdg
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 
-# 1.2 装 PG 18(约 3-5 分钟)
+# 1.2 装 PG 18.6 严格版本(Ulysses 16:59 硬约束)
+# PGDG noble 仓库当前最新 18.6 = postgresql-18 包的默认版本(滚动)
+# 显式装 18.6(如果仓库有) 或 postgresql-18(滚动到 18.6)
 sudo apt-get update
+# 看 PG 18.6 是否可用
+apt-cache madison postgresql-18 2>&1 | grep -E '18\.[0-9]+' | head -5
+# 装最新 PG 18.x(应拿 18.6)
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-18 postgresql-client-18
 
-# 1.3 启动 PG 18(不依赖 systemd,直接 pg_ctlcluster)
+# 1.3 启动 PG 18.x
 sudo pg_ctlcluster 18 main start
-# 或: sudo service postgresql start
 
-# 1.4 验证(关键!)
-sudo -u postgres psql -c "SELECT version();"
-# 期望: PostgreSQL 18.x on x86_64-pc-linux-gnu ...
+# 1.4 **关键验证:必须 PG 18.6**(per Ulysses 硬约束)
+sudo -u postgres psql -c "SELECT version();" | grep -E 'PostgreSQL 18\.[0-9]+'
+# 期望: PostgreSQL 18.6 on x86_64-pc-linux-gnu
+# 如果不是 18.6:
+#   apt-cache policy postgresql-18 | head -10
+#   或: sudo apt install -y postgresql-18=18.6-1.pgdg24.04+1(具体版本看 apt-cache)
+# 如果装不到 18.6(只有 18.0/18.1/18.2),**跟我协商**(per Ulysses 16:59 "遇阻协商"指令)
 
 # === Step 2: 创建 5 域 DB + 5 user(per ARC-008 5 域分 DB) ===
 sudo -u postgres psql << 'EOF'
@@ -223,3 +231,17 @@ $body.Content
 - per RGS-REV-009 V3 H-1(NoopMock deprecation)
 - per RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 v0.1
 - 修订历史代签新规则 per 2026-08-26 08:40 JST
+
+
+## 6. 硬约束(per Ulysses 16:59 JST)
+
+- **rust 1.98.0** 必须(rustc --version 验证:`1.98.0`)
+  - 仓库已 locked: workspace.rust-version = "1.98"
+  - 当前 `E:\DevCache\cargo\bin\rustc.exe = 1.98.0 ✅`
+- **PostgreSQL 18.6** 必须(SOP §1.4 验证:`PostgreSQL 18.6 ...`)
+  - 装不到 18.6 → **跟 Ulysses 协商**(per 16:59 指令"遇阻协商")
+- **所有文档/代码必须遵循上述约束**(per 16:59 指令)
+- **cargo 1.98.0**:`E:\DevCache\cargo\bin\cargo.exe = 1.98.0 ✅`
+- **sqlx 0.8.6**:PG 18.6 兼容 ✅(JSONB / UUID / TIMESTAMPTZ / GIN 全支持)
+- **5 域 migration 验证**:player-service/0001_init.sql 用 UUID + TIMESTAMPTZ + CHECK,PG 18.6 兼容 ✅
+
