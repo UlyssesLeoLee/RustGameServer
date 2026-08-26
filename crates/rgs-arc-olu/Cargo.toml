@@ -1,0 +1,13 @@
+[package]
+name = "rgs-arc-olu"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "rgs-arc-olu 占位 crate（per RGS-SPEC-DTL-042 §3 NFR-LCM-007 + TBD-LCM-007 PH-4 实测填）"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

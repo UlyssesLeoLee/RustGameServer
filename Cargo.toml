@@ -11,7 +11,7 @@ members = [
     "crates/rgs-testkit",
     "crates/rgs-certgen",
     "crates/function-plane",
-    "crates/rgs-asset-download",
+    "crates/rgs-arc-olu",
 ]
 resolver = "2"
 

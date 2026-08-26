@@ -26,7 +26,8 @@ pub mod proto;
 
 pub mod db;
 
-// WF-1-2067 启用：realm_lifecycle 子模块（per RGS-IMPL-PLAN-LCM-001 §2.1）
+// M-2071 PREREQ：realm_lifecycle Feature 子模块
+// (per RGS-SPEC-DTL-042 §2 + DTL-031 §1.1，AD 限界上下文扩展)
 pub mod realm_lifecycle;
 
 pub mod common {

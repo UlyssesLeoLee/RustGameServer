@@ -1,194 +1,187 @@
-//! `RealmLifecycleService` 门面 trait（per SPEC-DTL-042 §3 + DTL-042 §5）。
+//! RealmLifecycleService 主入口（per RGS-SPEC-DTL-042 §2 + §3）
 //!
-//! ## 硬约束（per FR-LCM-004）
-//!
-//! `RealmLifecycleService` **不**对外暴露独立接口；仅经 `AdminService` 转发。
-//! `lib.rs` 不得 `re-export` tonic::include_proto 入口。
-//!
-//! ## 6 操作器签名
-//!
-//! 实际实现由后续 worktree（WF-1-2066/2067/2068/2071/2073）补齐；
-//! 本 worktree（WF-1-2070）只提供 trait 签名 + 默认实现占位 + drill 测试可引用。
+//! **不**对外暴露独立接口（FR-LCM-004 硬约束）；所有调用经 `AdminService` 转发。
+//! 本服务**只**作为 RealmLifecycleService 内部业务编排入口存在，调用者必须
+//! 在 AdminService 完成 RBAC + 幂等 + 审计后才能委派到此服务。
+
+use std::sync::Arc;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use super::{
-    ApprovalRef, OperatorId, RealmId, RealmStatus, RequestId, SagaRunId, TraceId,
-};
+use crate::realm_lifecycle::error::Result;
+use crate::realm_lifecycle::feature_adapter::{FeatureRegistry, RealmLifecycleFeatureAdapter};
+use crate::realm_lifecycle::metrics::LcmMetrics;
+use crate::realm_lifecycle::olu_reporter::OluReporter;
+use crate::realm_lifecycle::operators::OperatorInput;
 
-// =====================================================================
-// DTO
-// =====================================================================
-
-/// LCM 操作统一请求（per SPEC §3 第 7 条：request_id + operator_id + approval_ref + trace_id）。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LifecycleRequest {
-    pub request_id: RequestId,
-    pub operator_id: OperatorId,
-    pub approval_ref: ApprovalRef,
-    pub trace_id: TraceId,
-    pub realm_id: RealmId,
-    /// 操作阶段（由 AdminService 转发时填入；drill 也透传）。
-    pub phase: LifecyclePhase,
+/// 阶段变更命令（per SPEC §2 RealmLifecycleService）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PhaseChangeCommand {
+    /// 阶段名（snake_case：new_realm / scale / split / merge / merge_rollback / retire / archive）
+    pub phase: String,
+    /// 目标 realm ID
+    pub target_realm_id: Uuid,
+    /// 操作者上下文
+    pub input: OperatorInput,
 }
 
-/// LCM 操作统一响应。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LifecycleResponse {
-    pub run_id: String,
-    pub saga_run_id: Option<SagaRunId>,
-    pub status: RealmStatus,
-    pub started_at: DateTime<Utc>,
-    pub completed_at: Option<DateTime<Utc>>,
+/// 阶段变更结果
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PhaseChangeResult {
+    pub run_id: Uuid,
+    pub phase: String,
+    pub feature_id: String,
+    pub pfau_state: String,
 }
 
-/// 6 阶段枚举（per DTL-042 §4 状态机）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum LifecyclePhase {
-    NewRealm,
-    Scale,
-    Split,
-    Merge,
-    MergeRollback,
-    Retire,
-    Archive,
+/// RealmLifecycleService trait（per SPEC §3 RealmLifecycleService 业务方法）
+#[async_trait]
+pub trait RealmLifecycleServiceTrait: Send + Sync {
+    /// 启动一次阶段变更（走 PFAU 5 状态机 + 7 SubFeature 编排 + OLU 上报）
+    async fn start_phase_change(&self, cmd: PhaseChangeCommand) -> Result<PhaseChangeResult>;
+
+    /// 查询阶段变更状态
+    async fn get_phase_change(&self, run_id: Uuid) -> Result<PhaseChangeResult>;
 }
 
-impl LifecyclePhase {
-    /// 字符串化（用于 Prometheus 标签 `feature_subtype`，per DTL §11.1）。
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::NewRealm => "new_realm",
-            Self::Scale => "scale",
-            Self::Split => "split",
-            Self::Merge => "merge",
-            Self::MergeRollback => "merge_rollback",
-            Self::Retire => "retire",
-            Self::Archive => "archive",
+/// RealmLifecycleServiceImpl（per SPEC §2 + IMPL-PLAN-LCM-001 §3.5）
+pub struct RealmLifecycleService {
+    feature_adapter: Arc<RealmLifecycleFeatureAdapter>,
+    olu_reporter: Arc<OluReporter>,
+    metrics: Arc<LcmMetrics>,
+    registry: Arc<FeatureRegistry>,
+}
+
+impl RealmLifecycleService {
+    pub fn new(
+        feature_adapter: Arc<RealmLifecycleFeatureAdapter>,
+        olu_reporter: Arc<OluReporter>,
+        metrics: Arc<LcmMetrics>,
+        registry: Arc<FeatureRegistry>,
+    ) -> Self {
+        Self {
+            feature_adapter,
+            olu_reporter,
+            metrics,
+            registry,
         }
     }
+
+    /// 直接访问 Feature 注册表（per M-2071.6 验证需要）
+    pub fn registry(&self) -> &Arc<FeatureRegistry> {
+        &self.registry
+    }
+
+    /// 直接访问 OLU reporter（per M-2071.7 验证需要）
+    pub fn olu_reporter(&self) -> &Arc<OluReporter> {
+        &self.olu_reporter
+    }
+
+    /// 直接访问 metrics（per M-2071.5 + 验证需要）
+    pub fn metrics(&self) -> &Arc<LcmMetrics> {
+        &self.metrics
+    }
 }
-
-// =====================================================================
-// RealmLifecycleService trait（per FR-LCM-004：仅 AdminService 转发）
-// =====================================================================
-
-/// 6 阶段操作器门面 trait。
-///
-/// 实际实现由 `ClusterOpsService` 内部组合 `operations::*` + `saga::orchestrator` 适配。
-/// 本 trait **不**对外暴露 gRPC；任何对 `RealmLifecycleService::*` 方法的调用必须经
-/// `AdminService` 转发到 `ClusterOpsService` PFAU 编排。
-#[async_trait]
-pub trait RealmLifecycleService: Send + Sync {
-    /// 开新服（AC-LCM-001）。
-    async fn new_realm(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 扩缩容（AC-LCM-002；scale_up / scale_down 双向）。
-    async fn scale(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 分服（AC-LCM-003）。
-    async fn split(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 合服（AC-LCM-004）。
-    async fn merge(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 合服回退（AC-LCM-005；FR-LCM-062 锁定后触发回退窗口期 7-30 天）。
-    async fn merge_rollback(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 退场（AC-LCM-006；触发 RBAC 查询通道限制 + 30-90 天后启动归档）。
-    async fn retire(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-
-    /// 归档（AC-LCM-007；冷热分层 + N+2 冗余；不删数据）。
-    async fn archive(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
-}
-
-// =====================================================================
-// InMemoryService 占位实现（供 UT + drill test 引用；实际实现由后续 worktree）
-// =====================================================================
-
-/// `NoopRealmLifecycleService` —— 默认占位实现。
-///
-/// 所有方法返回 `Error::Validation` 标记"未实现"；drill 测试**不**调用这些方法，
-/// drill 走自己的 `DrillExecutor` + `sandbox_*` 路径（per FR-LCM-003）。
-#[derive(Debug, Default, Clone, Copy)]
-pub struct NoopRealmLifecycleService;
 
 #[async_trait]
-impl RealmLifecycleService for NoopRealmLifecycleService {
-    async fn new_realm(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("new_realm", &req)
-    }
-    async fn scale(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("scale", &req)
-    }
-    async fn split(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("split", &req)
-    }
-    async fn merge(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("merge", &req)
-    }
-    async fn merge_rollback(
-        &self,
-        req: LifecycleRequest,
-    ) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("merge_rollback", &req)
-    }
-    async fn retire(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("retire", &req)
-    }
-    async fn archive(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
-        unimplemented_marker("archive", &req)
-    }
-}
+impl RealmLifecycleServiceTrait for RealmLifecycleService {
+    async fn start_phase_change(&self, cmd: PhaseChangeCommand) -> Result<PhaseChangeResult> {
+        // 1. FeatureType::RealmLifecycle 注册校验（per M-2071.2 + DTL-031 §5 发布）
+        self.feature_adapter
+            .require_registered(&cmd.phase)
+            .map_err(crate::realm_lifecycle::error::Error::PFAUFeatureNotRegistered)?;
 
-fn unimplemented_marker(
-    op: &str,
-    _req: &LifecycleRequest,
-) -> crate::Result<LifecycleResponse> {
-    Err(crate::Error::Validation(format!(
-        "RealmLifecycleService::{op} pending impl in WF-1-2066/2071/2073"
-    )))
+        // 2. PFAU 5 状态机启动（per M-2071.3）
+        let run_id = self
+            .feature_adapter
+            .start_pfau_run(&cmd.phase, &cmd.input)?;
+
+        // 3. OLU 上报（per M-2071.4 + NFR-LCM-007 硬约束：必经 rgs-arc-olu）
+        self.olu_reporter
+            .report_phase_start(&cmd.phase, &cmd.target_realm_id.to_string(), &cmd.input)
+            .await
+            .map_err(|reason| {
+                crate::realm_lifecycle::error::Error::OLUReportFailed {
+                    phase: cmd.phase.clone(),
+                    team: "platform".to_string(),
+                    reason,
+                }
+            })?;
+
+        // 4. metrics 记录（per M-2071.5）
+        self.metrics
+            .record_pfau_transition(&cmd.phase, "none", "declared");
+        self.metrics.inc_active_runs(&cmd.phase);
+
+        Ok(PhaseChangeResult {
+            run_id,
+            phase: cmd.phase.clone(),
+            feature_id: format!("realm_lifecycle.{}", cmd.phase),
+            pfau_state: "declared".to_string(),
+        })
+    }
+
+    async fn get_phase_change(&self, _run_id: Uuid) -> Result<PhaseChangeResult> {
+        // 占位：PH-4 接入 realm_lifecycle_run 表查询
+        Err(crate::realm_lifecycle::error::Error::NotFound {
+            entity: "realm_lifecycle_run",
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::entity::{FeatureType, PfauState, SubFeature};
+    use crate::realm_lifecycle::feature_adapter::FeatureRegistry;
+    use crate::realm_lifecycle::metrics::LcmMetrics;
+    use crate::realm_lifecycle::olu_reporter::OluReporter;
 
-    #[test]
-    fn phase_as_str_matches_dtl_feature_subtype() {
-        // DTL §11.1：feature_subtype 标签值
-        assert_eq!(LifecyclePhase::NewRealm.as_str(), "new_realm");
-        assert_eq!(LifecyclePhase::Scale.as_str(), "scale");
-        assert_eq!(LifecyclePhase::Split.as_str(), "split");
-        assert_eq!(LifecyclePhase::Merge.as_str(), "merge");
-        assert_eq!(LifecyclePhase::MergeRollback.as_str(), "merge_rollback");
-        assert_eq!(LifecyclePhase::Retire.as_str(), "retire");
-        assert_eq!(LifecyclePhase::Archive.as_str(), "archive");
+    fn build_service() -> RealmLifecycleService {
+        let adapter = Arc::new(RealmLifecycleFeatureAdapter::new());
+        let olu = Arc::new(OluReporter::new_for_test("test"));
+        let metrics = Arc::new(LcmMetrics::new_for_test());
+        let registry = Arc::new(FeatureRegistry::with_default_seven());
+        let _ = adapter;
+        let _ = FeatureType::RealmLifecycle;
+        let _ = SubFeature::ALL;
+        let _ = PfauState::ALL;
+        RealmLifecycleService::new(adapter, olu, metrics, registry)
+    }
+
+    fn cmd(phase: &str) -> PhaseChangeCommand {
+        PhaseChangeCommand {
+            phase: phase.to_string(),
+            target_realm_id: Uuid::new_v4(),
+            input: OperatorInput {
+                request_id: Uuid::new_v4(),
+                operator_id: Uuid::new_v4(),
+                approval_ref: None,
+                trace_id: "trace-test".to_string(),
+            },
+        }
     }
 
     #[tokio::test]
-    async fn noop_service_returns_validation_error() {
-        let svc = NoopRealmLifecycleService;
-        let req = LifecycleRequest {
-            request_id: "r-1".to_string(),
-            operator_id: "op-1".to_string(),
-            approval_ref: None,
-            trace_id: "t-1".to_string(),
-            realm_id: "rlm-1".to_string(),
-            phase: LifecyclePhase::NewRealm,
-        };
-        for r in [
-            svc.new_realm(req.clone()).await,
-            svc.scale(req.clone()).await,
-            svc.split(req.clone()).await,
-            svc.merge(req.clone()).await,
-            svc.merge_rollback(req.clone()).await,
-            svc.retire(req.clone()).await,
-            svc.archive(req.clone()).await,
-        ] {
-            assert!(matches!(r, Err(crate::Error::Validation(_))));
-        }
+    async fn start_phase_change_new_realm_ok() {
+        let s = build_service();
+        let r = s.start_phase_change(cmd("new_realm")).await.unwrap();
+        assert_eq!(r.phase, "new_realm");
+        assert_eq!(r.pfau_state, "declared");
+    }
+
+    #[tokio::test]
+    async fn start_phase_change_unknown_phase_fails() {
+        let s = build_service();
+        let err = s
+            .start_phase_change(cmd("not_a_phase"))
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            crate::realm_lifecycle::error::Error::PFAUFeatureNotRegistered(_)
+        ));
     }
 }
