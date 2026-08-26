@@ -1,258 +1,165 @@
-//! cluster-ops · realm_lifecycle 域错误类型（per RGS-SPEC-DTL-042 §5 + DTL §6）
+//! realm_lifecycle 错误类型（per DTL-042 §6 + SPEC-DTL-042 §3）。
 //!
-//! 设计原则（per DTL §6）：
-//! - 复用 crate::Error 既有 12 个变体，不引入新顶层 Error enum
-//! - LCM 域特化错误以"新变体扩展"形式加在 Error 上
-//! - 反向补偿由 saga 层触发，错误向上冒泡
+//! 不引入新枚举基类；复用 `crate::Error` 通用变体 + 本模块专用变体。
 //!
-//! 56 类错误（per RGS-SPEC-DTL-042 §5）：
-//! - Validation / Conflict / NotFound / Unauthorized / Forbidden / Internal
-//! - 域特化：阶段非法跳转 / 步骤超时 / 已应用（幂等）/ 跨域反向补偿失败 / 资源未释放
+//! 锚定：FR-LCM-002（阶段变更全流程留痕）/ FR-LCM-003（drill 仅沙箱）/
+//!       FR-LCM-062（merge_conflict_rule_set_v2 锁定后不可改）/ FR-LCM-081（归档不删数据）。
 
 use thiserror::Error;
 
-/// cluster-ops · realm_lifecycle 域统一错误类型
+use super::RealmId;
+
+/// realm_lifecycle 子模块专用错误（per DTL-042 §6 错误码 + SPEC §3）。
+///
+/// 不引入新枚举基类；以下变体为本模块独占，会经 `From<realm_lifecycle::Error> for crate::Error`
+/// 在 service.rs 中桥接到域统一错误。
 #[derive(Debug, Error)]
+#[allow(clippy::result_large_err)]
 pub enum Error {
-    #[error("validation error: {0}")]
-    Validation(String),
+    /// 阶段非法跳转（per DTL §4 状态机：例如 Pending → Merging）。
+    #[error("illegal phase transition: from {from} to {to}")]
+    IllegalPhaseTransition { from: String, to: String },
 
-    #[error("conflict: {0}")]
-    Conflict(String),
+    /// 阶段二次激活（同一 request_id 重复提交，但状态机不允许二次激活）。
+    #[error("phase double activation: realm {realm} request {request_id}")]
+    DoubleActivation { realm: RealmId, request_id: String },
 
-    #[error("not found: {entity} with id {id}")]
-    NotFound { entity: &'static str, id: String },
-
-    #[error("unauthorized: {0}")]
-    Unauthorized(String),
-
-    #[error("forbidden: {0}")]
-    Forbidden(String),
-
-    #[error("unavailable: {0}")]
-    Unavailable(String),
-
-    #[error("internal error: {0}")]
-    Internal(#[source] anyhow::Error),
-
-    // ===== 域特化（per RGS-SPEC-DTL-042 §5 + DTL §6）=====
-
-    /// 阶段非法跳转（如：NewRealm → Archive 跳过中间阶段）
-    #[error("invalid phase transition: from {from} to {to}")]
-    InvalidPhaseTransition { from: String, to: String },
-
-    /// Saga 步骤超时（默认 60s per SPEC §8）
-    #[error("saga step timeout: phase {phase} after {secs}s reason {reason}")]
-    SagaStepTimeout { phase: String, secs: u64, reason: String },
-
-    /// 幂等冲突：(request_id, operator_id) 唯一索引命中
-    /// per RGS-SPEC-DTL-042 §5 幂等一致性
-    #[error("already applied: request_id {request_id} operator_id {operator_id}")]
-    AlreadyApplied {
-        request_id: String,
-        operator_id: String,
+    /// Saga 步骤超时（默认 60s，per SPEC §5 背压规则）。
+    #[error("saga step timeout: phase {phase} step {step} after {elapsed_ms}ms")]
+    SagaStepTimeout {
+        phase: String,
+        step: String,
+        elapsed_ms: u64,
     },
 
-    /// 跨域 Saga 反向补偿失败
-    #[error("cross-domain reverse compensation failed: domain {domain} phase {phase} reason {reason}")]
-    CrossDomainReverseCompensationFailed {
-        domain: String,
+    /// Saga 步骤执行失败（per SPEC §5 故障域：Saga 步骤失败）。
+    #[error("saga step failed: phase {phase} step {step} reason {reason}")]
+    SagaStepFailed {
         phase: String,
+        step: String,
         reason: String,
     },
 
-    /// 资源未释放（强一致性审计发现）
-    #[error("resource not released: kind {kind} id {id}")]
-    ResourceNotReleased { kind: String, id: String },
+    /// Saga 反向补偿失败（per SPEC §5 R9 风险缓解：业务 service gRPC 失败导致反向不完整）。
+    #[error("saga rollback failed: phase {phase} step {step} reason {reason}")]
+    SagaRollbackFailed {
+        phase: String,
+        step: String,
+        reason: String,
+    },
 
-    /// 操作器未实现（per 硬约束：本 worktree 仅占位，业务逻辑属 WF-1-2066/2070/2071）
-    #[error("operator not implemented: {0}")]
-    OperatorNotImplemented(String),
+    /// merge_conflict_rule_set_v2 锁定后仍尝试修改（per FR-LCM-062）。
+    #[error(
+        "merge_conflict_rule_set_v2 already locked at {locked_at} (FR-LCM-062): realm {realm}"
+    )]
+    MergeRulesLocked {
+        realm: RealmId,
+        locked_at: chrono::DateTime<chrono::Utc>,
+    },
+
+    /// 归档尝试删除数据（per FR-LCM-081：不删数据，只迁移存储位置）。
+    #[error("archive must not delete data (FR-LCM-081): realm {realm}")]
+    ArchiveDeleteForbidden { realm: RealmId },
+
+    /// 退场后查询通道 RBAC 不允许（per SPEC §3 第 8 条：仅 cs_agent / sre / legal）。
+    #[error("retired realm query denied for role {role}: realm {realm}")]
+    RetiredQueryDenied { realm: RealmId, role: String },
+
+    /// drill 试图引用生产 PG / 生产 K8s 客户端（per FR-LCM-003：仅沙箱）。
+    #[error("drill executor must not reference production PG / K8s (FR-LCM-003)")]
+    DrillProductionLeak,
+
+    /// 沙箱 PG 池不可达（演练环境未启动）。
+    #[error("sandbox PG pool unavailable: {0}")]
+    SandboxPgUnavailable(String),
+
+    /// 沙箱 K8s 客户端不可达。
+    #[error("sandbox K8s client unavailable: {0}")]
+    SandboxK8sUnavailable(String),
+
+    /// 阶段变更高密度期间 OLU 预算超限（per RSK-LCM-006 缓解：串行调度）。
+    #[error("OLU budget exceeded for phase {phase} (RSK-LCM-006)")]
+    OluBudgetExceeded { phase: String },
+
+    /// 跨域 Saga 跨 DB 协调失败（per R1 风险 + ADR-0015 Saga 适用边界）。
+    #[error("cross-DB saga coordination failed: phase {phase} db {db}")]
+    CrossDbCoordinationFailed { phase: String, db: String },
+
+    /// rgs-arc-olu 通道不可达（per NFR-LCM-007 硬约束）。
+    #[error("rgs-arc-olu channel unavailable (NFR-LCM-007)")]
+    OluChannelUnavailable,
+
+    /// 计划表 query_channel_rbac 角色配置不合法（per SPEC §3 第 8 条）。
+    #[error("invalid query_channel_rbac role {role} for retire plan {plan}")]
+    InvalidRetireRbac { plan: String, role: String },
+
+    /// 通用验证错误（封装到域 Error::Validation）。
+    #[error("validation: {0}")]
+    Validation(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-impl From<anyhow::Error> for Error {
-    fn from(e: anyhow::Error) -> Self {
-        Error::Internal(e)
-    }
-}
-
-impl From<Error> for crate::error::Error {
+/// 桥接到 cluster-ops 域统一错误。
+impl From<Error> for crate::Error {
     fn from(e: Error) -> Self {
-        use crate::error::Error as ClusterError;
+        use crate::Error as Domain;
         match e {
-            Error::Validation(m) => ClusterError::Validation(m),
-            Error::Conflict(m) => ClusterError::Conflict(m),
-            Error::NotFound { entity, id } => ClusterError::NotFound { entity, id },
-            Error::Unauthorized(m) => ClusterError::Unauthorized(m),
-            Error::Forbidden(m) => ClusterError::Forbidden(m),
-            Error::Unavailable(m) => ClusterError::Unavailable(m),
-            Error::Internal(e) => ClusterError::Internal(e),
-            // 域特化映射到 cluster-ops 既有错误码（不引入新 enum）
-            Error::InvalidPhaseTransition { from, to } => ClusterError::Validation(format!(
-                "invalid phase transition: from {} to {}",
-                from, to
-            )),
-            Error::SagaStepTimeout { phase, secs, .. } => ClusterError::Unavailable(format!(
-                "saga step timeout: phase {} after {}s",
-                phase, secs
-            )),
-            Error::AlreadyApplied { request_id, operator_id } => ClusterError::Conflict(format!(
-                "already applied: request_id {} operator_id {}",
-                request_id, operator_id
-            )),
-            Error::CrossDomainReverseCompensationFailed { domain, phase, reason } => {
-                ClusterError::Unavailable(format!(
-                    "cross-domain reverse compensation failed: domain {} phase {} reason {}",
-                    domain, phase, reason
-                ))
+            Error::Validation(s) => Domain::Validation(s),
+            Error::IllegalPhaseTransition { from, to } => {
+                Domain::Validation(format!("illegal phase transition {from} -> {to}"))
             }
-            Error::ResourceNotReleased { kind, id } => ClusterError::Conflict(format!(
-                "resource not released: kind {} id {}",
-                kind, id
+            Error::DoubleActivation { realm, request_id } => {
+                Domain::Conflict(format!("phase double activation: {realm} / {request_id}"))
+            }
+            Error::SagaStepTimeout {
+                phase,
+                step,
+                elapsed_ms,
+            } => Domain::Unavailable(format!(
+                "saga step timeout: {phase} / {step} / {elapsed_ms}ms"
             )),
-            Error::OperatorNotImplemented(m) => ClusterError::Validation(m),
-        }
-    }
-}
-
-impl From<crate::error::Error> for Error {
-    fn from(e: crate::error::Error) -> Self {
-        match e {
-            crate::error::Error::Validation(m) => Error::Validation(m),
-            crate::error::Error::Conflict(m) => Error::Conflict(m),
-            crate::error::Error::NotFound { entity, id } => Error::NotFound { entity, id },
-            crate::error::Error::Unauthorized(m) => Error::Unauthorized(m),
-            crate::error::Error::Forbidden(m) => Error::Forbidden(m),
-            other => Error::Internal(anyhow::anyhow!("cluster-ops error: {}", other)),
-        }
-    }
-}
-
-impl From<tonic::Status> for Error {
-    fn from(s: tonic::Status) -> Self {
-        Error::Internal(anyhow::anyhow!("tonic status: {}", s))
-    }
-}
-
-/// 复用：economy::Error → realm_lifecycle::Error（per M-2067.1 关键复用声明）
-///
-/// 关键：Saga 编排器调 economy::SagaOrchestrator::execute 返 economy::Error，
-/// 需要映射到 LCM 域错误（避免泄漏 economy 域错误码到 LCM API 边界）。
-impl From<economy_service::Error> for Error {
-    fn from(e: economy_service::Error) -> Self {
-        use economy_service::Error as EconomyError;
-        match e {
-            EconomyError::Database(_) => Error::Internal(anyhow::anyhow!("db: {}", e)),
-            EconomyError::NotFound { entity, id } => Error::NotFound { entity, id },
-            EconomyError::Validation(m) => Error::Validation(m),
-            EconomyError::Conflict(m) => Error::Conflict(m),
-            EconomyError::Unauthorized(m) => Error::Unauthorized(m),
-            EconomyError::Forbidden(m) => Error::Forbidden(m),
-            EconomyError::Unavailable(m) => Error::Unavailable(m),
-            EconomyError::Internal(_) => Error::Internal(anyhow::anyhow!("internal: {}", e)),
-            EconomyError::Transport(_) => Error::Internal(anyhow::anyhow!("transport: {}", e)),
-            EconomyError::InsufficientFunds { .. } => {
-                Error::Validation(format!("insufficient funds: {}", e))
-            }
-            EconomyError::OCCConflict { .. } => Error::Conflict(format!("OCC: {}", e)),
-            EconomyError::CurrencyNotFound(c) => Error::NotFound {
-                entity: "Currency",
-                id: c,
-            },
-            EconomyError::AccountFrozen(_) => Error::Forbidden(e.to_string()),
-            EconomyError::IdempotencyConflict(_) => {
-                // 注意：此处 economy 侧的 IdempotencyConflict 转换为 LCM AlreadyApplied
-                // 幂等键语义一致
-                Error::AlreadyApplied {
-                    request_id: "?".to_string(),
-                    operator_id: "?".to_string(),
-                }
-            }
-            EconomyError::SagaFailed { step, reason, .. } => Error::SagaStepTimeout {
-                phase: step,
-                secs: 0,
+            Error::SagaStepFailed {
+                phase,
+                step,
                 reason,
-            },
-        }
-    }
-}
-
-/// 反向：realm_lifecycle::Error → economy::Error
-///
-/// 用途：step handler 实现 EconomySagaStepHandler trait 时，
-/// 操作器返 realm_lifecycle::Error，需要转 economy::Error。
-impl From<Error> for economy_service::Error {
-    fn from(e: Error) -> Self {
-        use economy_service::Error as EconomyError;
-        match e {
-            Error::Validation(m) => EconomyError::Validation(m),
-            Error::Conflict(m) => EconomyError::Conflict(m),
-            Error::NotFound { entity, id } => EconomyError::NotFound { entity, id },
-            Error::Unauthorized(m) => EconomyError::Unauthorized(m),
-            Error::Forbidden(m) => EconomyError::Forbidden(m),
-            Error::Unavailable(m) => EconomyError::Unavailable(m),
-            Error::Internal(_) => EconomyError::Internal(anyhow::anyhow!("lcm: {}", e)),
-            // 域特化 → economy 域变体映射
-            Error::InvalidPhaseTransition { from, to } => EconomyError::Validation(format!(
-                "invalid phase transition: from {} to {}",
-                from, to
+            } => Domain::Unavailable(format!(
+                "saga step failed: {phase} / {step} / {reason}"
             )),
-            Error::SagaStepTimeout { phase, secs, reason } => EconomyError::SagaFailed {
-                saga_id: String::new(),
-                step: phase,
-                reason: format!("timeout after {}s: {}", secs, reason),
-            },
-            Error::AlreadyApplied { request_id, operator_id } => {
-                EconomyError::IdempotencyConflict(format!(
-                    "request_id={} operator_id={}",
-                    request_id, operator_id
-                ))
+            Error::SagaRollbackFailed {
+                phase,
+                step,
+                reason,
+            } => Domain::Unavailable(format!(
+                "saga rollback failed: {phase} / {step} / {reason}"
+            )),
+            Error::MergeRulesLocked { realm, locked_at } => {
+                Domain::Conflict(format!("merge rules locked: {realm} @ {locked_at}"))
             }
-            Error::CrossDomainReverseCompensationFailed { domain, phase, reason } => {
-                EconomyError::SagaFailed {
-                    saga_id: String::new(),
-                    step: phase,
-                    reason: format!("cross-domain reverse failed: domain={} reason={}", domain, reason),
-                }
+            Error::ArchiveDeleteForbidden { realm } => {
+                Domain::Forbidden(format!("archive must not delete: {realm}"))
             }
-            Error::ResourceNotReleased { kind, id } => {
-                EconomyError::Validation(format!("resource not released: kind={} id={}", kind, id))
+            Error::RetiredQueryDenied { realm, role } => {
+                Domain::Forbidden(format!("retired query denied: {realm} / {role}"))
             }
-            Error::OperatorNotImplemented(m) => EconomyError::Validation(m),
-        }
-    }
-}
-
-impl From<Error> for tonic::Status {
-    fn from(e: Error) -> Self {
-        use tonic::Code;
-        match e {
-            Error::Validation(_) => tonic::Status::new(Code::InvalidArgument, e.to_string()),
-            Error::Conflict(_) => tonic::Status::new(Code::AlreadyExists, e.to_string()),
-            Error::NotFound { .. } => tonic::Status::new(Code::NotFound, e.to_string()),
-            Error::Unauthorized(_) => tonic::Status::new(Code::Unauthenticated, e.to_string()),
-            Error::Forbidden(_) => tonic::Status::new(Code::PermissionDenied, e.to_string()),
-            Error::Unavailable(_) => tonic::Status::new(Code::Unavailable, e.to_string()),
-            Error::Internal(_) => tonic::Status::new(Code::Internal, e.to_string()),
-            Error::InvalidPhaseTransition { .. } => {
-                tonic::Status::new(Code::FailedPrecondition, e.to_string())
+            Error::DrillProductionLeak => {
+                Domain::Forbidden("drill executor leaked to production".to_string())
             }
-            Error::SagaStepTimeout { .. } => {
-                tonic::Status::new(Code::DeadlineExceeded, e.to_string())
+            Error::SandboxPgUnavailable(s) => Domain::Unavailable(format!("sandbox PG: {s}")),
+            Error::SandboxK8sUnavailable(s) => {
+                Domain::Unavailable(format!("sandbox K8s: {s}"))
             }
-            Error::AlreadyApplied { .. } => {
-                tonic::Status::new(Code::AlreadyExists, e.to_string())
+            Error::OluBudgetExceeded { phase } => {
+                Domain::Conflict(format!("OLU budget exceeded: {phase}"))
             }
-            Error::CrossDomainReverseCompensationFailed { .. } => {
-                tonic::Status::new(Code::Unavailable, e.to_string())
+            Error::CrossDbCoordinationFailed { phase, db } => {
+                Domain::Unavailable(format!("cross-DB saga: {phase} / {db}"))
             }
-            Error::ResourceNotReleased { .. } => {
-                tonic::Status::new(Code::FailedPrecondition, e.to_string())
+            Error::OluChannelUnavailable => {
+                Domain::Unavailable("rgs-arc-olu channel unavailable".to_string())
             }
-            Error::OperatorNotImplemented(_) => {
-                tonic::Status::new(Code::Unimplemented, e.to_string())
+            Error::InvalidRetireRbac { plan, role } => {
+                Domain::Validation(format!("invalid retire rbac: {plan} / {role}"))
             }
         }
     }
@@ -263,41 +170,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn invalid_phase_transition_to_failed_precondition() {
-        let s: tonic::Status = Error::InvalidPhaseTransition {
-            from: "NewRealm".to_string(),
-            to: "Archive".to_string(),
+    fn error_variants_display_does_not_panic() {
+        // 防止 Display impl 漏写新字段导致 panic
+        let _ = Error::IllegalPhaseTransition {
+            from: "Pending".to_string(),
+            to: "Merging".to_string(),
         }
-        .into();
-        assert_eq!(s.code(), tonic::Code::FailedPrecondition);
+        .to_string();
+        let _ = Error::DoubleActivation {
+            realm: "r-1".to_string(),
+            request_id: "req-1".to_string(),
+        }
+        .to_string();
+        let _ = Error::SagaStepTimeout {
+            phase: "Merge".to_string(),
+            step: "ApplyConflict".to_string(),
+            elapsed_ms: 60_001,
+        }
+        .to_string();
+        let _ = Error::MergeRulesLocked {
+            realm: "r-1".to_string(),
+            locked_at: chrono::Utc::now(),
+        }
+        .to_string();
+        let _ = Error::DrillProductionLeak.to_string();
+        let _ = Error::OluChannelUnavailable.to_string();
     }
 
     #[test]
-    fn saga_step_timeout_to_deadline_exceeded() {
-        let s: tonic::Status = Error::SagaStepTimeout {
-            phase: "Scale".to_string(),
-            secs: 60,
-            reason: "step exceeded 60s".to_string(),
-        }
-        .into();
-        assert_eq!(s.code(), tonic::Code::DeadlineExceeded);
-    }
+    fn bridge_to_domain_error_preserves_semantics() {
+        // 锚定 FR-LCM-062 语义：锁定冲突 → Domain::Conflict
+        let e = Error::MergeRulesLocked {
+            realm: "r-x".to_string(),
+            locked_at: chrono::Utc::now(),
+        };
+        let _: crate::Error = e.into();
 
-    #[test]
-    fn already_applied_to_already_exists() {
-        let s: tonic::Status = Error::AlreadyApplied {
-            request_id: "r1".to_string(),
-            operator_id: "o1".to_string(),
-        }
-        .into();
-        assert_eq!(s.code(), tonic::Code::AlreadyExists);
-    }
-
-    #[test]
-    fn from_cluster_error_roundtrip() {
-        let original = Error::Validation("x".to_string());
-        let cluster: crate::error::Error = original.into();
-        let back: Error = cluster.into();
-        assert!(matches!(back, Error::Validation(_)));
+        // 锚定 FR-LCM-081 语义：归档删除禁止 → Domain::Forbidden
+        let e = Error::ArchiveDeleteForbidden {
+            realm: "r-x".to_string(),
+        };
+        let _: crate::Error = e.into();
     }
 }

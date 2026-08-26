@@ -1,200 +1,139 @@
-//! archive_policy entity（per M-2068.7 + FR-LCM-081 + NFR-SE-010）
+//! `archive_policy` 策略表（per DTL-042 §7.2 + IMPL §3.3 M-2068.3 + FR-LCM-081 + RSK-LCM-005）。
 //!
-//! 归档策略：仅迁移存储位置，**不**删除数据
-//! N+2 冗余（per RSK-LCM-005 缓解）
-//! 3 年热 + 10 年冷（per RGS-SPEC-DTL-042 §8 Gate 证据）
+//! ## 硬约束
 //!
-//! 硬约束：
-//! - **不**含数据销毁路径（per NFR-SE-010 双层审计，仅追加）
-//! - GDPR 删除通路走 `admin_db.audit_log`，**不**走本表
-//! - 本 entity 不暴露任何数据销毁方法
+//! - 冷热分层阈值：3 年热 + 10 年冷（per SPEC §8 TBD-DTL-042-01）
+//! - N+2 冗余（per RSK-LCM-005 缓解）
+//! - 不删数据（per FR-LCM-081）
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Row};
-use uuid::Uuid;
 
-use crate::Result;
+use crate::realm_lifecycle::{
+    error::{Error, Result},
+    RealmId,
+};
 
-/// ArchivePolicy entity（per RGS-SPEC-DTL-042 §2 表 6/6）
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+use super::super::operations::archive::{
+    ArchiveTier, ARCHIVE_REDUNDANCY, COLD_TIER_YEARS, HOT_TIER_YEARS,
+};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArchivePolicy {
-    pub id: Uuid,
-    pub realm_id: Uuid,
-    pub hot_storage_tier: String,
-    pub cold_storage_tier: String,
-    pub hot_retention_years: i32,
-    pub cold_retention_years: i32,
-    pub n_plus_2_redundancy: bool,
+    pub policy_id: String,
+    pub hot_tier_years: u32,
+    pub cold_tier_years: u32,
+    pub redundancy: u32,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for ArchivePolicy {
+    fn default() -> Self {
+        Self {
+            policy_id: "default".to_string(),
+            hot_tier_years: HOT_TIER_YEARS,
+            cold_tier_years: COLD_TIER_YEARS,
+            redundancy: ARCHIVE_REDUNDANCY,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
 }
 
 impl ArchivePolicy {
-    /// 工厂：新建归档策略
-    /// - hot_retention_years >= 3
-    /// - cold_retention_years >= 10
-    /// - n_plus_2_redundancy 默认 true
-    pub fn new(
-        realm_id: Uuid,
-        hot_storage_tier: String,
-        cold_storage_tier: String,
-        hot_retention_years: i32,
-        cold_retention_years: i32,
-    ) -> Self {
-        assert!(hot_retention_years >= 3, "hot_retention_years 必须 >= 3（DDL CHECK 约束）");
-        assert!(cold_retention_years >= 10, "cold_retention_years 必须 >= 10（DDL CHECK 约束）");
-        Self {
-            id: Uuid::new_v4(),
-            realm_id,
-            hot_storage_tier,
-            cold_storage_tier,
-            hot_retention_years,
-            cold_retention_years,
-            n_plus_2_redundancy: true,
-            created_at: Utc::now(),
+    /// 根据最后活跃时间判定冷热分层。
+    pub fn classify(&self, last_active_at: DateTime<Utc>, now: DateTime<Utc>) -> ArchiveTier {
+        let age_years = (now - last_active_at).num_days() / 365;
+        if age_years <= self.hot_tier_years as i64 {
+            ArchiveTier::Hot
+        } else {
+            ArchiveTier::Cold
         }
     }
 
-    /// 切换 N+2 冗余开关
-    pub fn set_n_plus_2(&mut self, enabled: bool) {
-        self.n_plus_2_redundancy = enabled;
-    }
-}
-
-/// PgRepository 骨架
-///
-/// **本 Repository 不提供任何数据销毁方法**（per FR-LCM-081 + NFR-SE-010）
-/// 归档迁移通过 save() 的 UPSERT 完成（update_storage_tier 等由业务层调用 save）
-pub struct PgArchivePolicyRepository {
-    pool: PgPool,
-}
-
-impl PgArchivePolicyRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-fn row_to_archive_policy(row: sqlx::postgres::PgRow) -> ArchivePolicy {
-    ArchivePolicy {
-        id: row.get("id"),
-        realm_id: row.get("realm_id"),
-        hot_storage_tier: row.get("hot_storage_tier"),
-        cold_storage_tier: row.get("cold_storage_tier"),
-        hot_retention_years: row.get("hot_retention_years"),
-        cold_retention_years: row.get("cold_retention_years"),
-        n_plus_2_redundancy: row.get("n_plus_2_redundancy"),
-        created_at: row.get("created_at"),
-    }
-}
-
-#[async_trait]
-impl super::ArchivePolicyRepository for PgArchivePolicyRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ArchivePolicy>> {
-        let row = sqlx::query(
-            "SELECT id, realm_id, hot_storage_tier, cold_storage_tier, \
-             hot_retention_years, cold_retention_years, n_plus_2_redundancy, created_at \
-             FROM archive_policy WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_archive_policy))
+    /// 验证策略不变量（per FR-LCM-081 + RSK-LCM-005）。
+    pub fn validate(&self) -> Result<()> {
+        if self.redundancy < 2 {
+            return Err(Error::Validation(
+                "archive redundancy must be >= 2 (RSK-LCM-005 N+2)".to_string(),
+            ));
+        }
+        if self.hot_tier_years == 0 || self.cold_tier_years == 0 {
+            return Err(Error::Validation(
+                "archive tier thresholds must be > 0".to_string(),
+            ));
+        }
+        Ok(())
     }
 
-    async fn find_by_realm_id(&self, realm_id: Uuid) -> Result<Option<ArchivePolicy>> {
-        let row = sqlx::query(
-            "SELECT id, realm_id, hot_storage_tier, cold_storage_tier, \
-             hot_retention_years, cold_retention_years, n_plus_2_redundancy, created_at \
-             FROM archive_policy WHERE realm_id = $1",
-        )
-        .bind(realm_id)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_archive_policy))
+    /// FR-LCM-081 锚定：归档操作前/后 row count 校验。
+    pub fn assert_row_count_preserved(before: u64, after: u64, realm: &RealmId) -> Result<()> {
+        if before != after {
+            return Err(Error::ArchiveDeleteForbidden {
+                realm: realm.clone(),
+            });
+        }
+        Ok(())
     }
-
-    async fn save(&self, entity: &ArchivePolicy) -> Result<ArchivePolicy> {
-        sqlx::query(
-            "INSERT INTO archive_policy \
-             (id, realm_id, hot_storage_tier, cold_storage_tier, \
-              hot_retention_years, cold_retention_years, n_plus_2_redundancy, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) \
-             ON CONFLICT (id) DO UPDATE SET \
-                hot_storage_tier = EXCLUDED.hot_storage_tier, \
-                cold_storage_tier = EXCLUDED.cold_storage_tier, \
-                hot_retention_years = EXCLUDED.hot_retention_years, \
-                cold_retention_years = EXCLUDED.cold_retention_years, \
-                n_plus_2_redundancy = EXCLUDED.n_plus_2_redundancy",
-        )
-        .bind(entity.id)
-        .bind(entity.realm_id)
-        .bind(&entity.hot_storage_tier)
-        .bind(&entity.cold_storage_tier)
-        .bind(entity.hot_retention_years)
-        .bind(entity.cold_retention_years)
-        .bind(entity.n_plus_2_redundancy)
-        .bind(entity.created_at)
-        .execute(&self.pool)
-        .await?;
-        Ok(entity.clone())
-    }
-    // 故意不提供任何数据销毁方法 —— per FR-LCM-081 + NFR-SE-010
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Duration;
 
     #[test]
-    fn archive_policy_factory_defaults() {
-        let p = ArchivePolicy::new(
-            Uuid::new_v4(),
-            "nvme".to_string(),
-            "object_storage".to_string(),
-            3,
-            10,
-        );
-        assert_eq!(p.hot_retention_years, 3);
-        assert_eq!(p.cold_retention_years, 10);
-        assert!(p.n_plus_2_redundancy);
+    fn default_policy_matches_spec() {
+        // SPEC §8 TBD-DTL-042-01：3 年热 + 10 年冷
+        let p = ArchivePolicy::default();
+        assert_eq!(p.hot_tier_years, 3);
+        assert_eq!(p.cold_tier_years, 10);
     }
 
     #[test]
-    fn archive_policy_set_n_plus_2() {
-        let mut p = ArchivePolicy::new(
-            Uuid::new_v4(),
-            "ssd".to_string(),
-            "tape".to_string(),
-            5,
-            15,
-        );
-        p.set_n_plus_2(false);
-        assert!(!p.n_plus_2_redundancy);
+    fn default_redundancy_is_n_plus_two() {
+        let p = ArchivePolicy::default();
+        assert_eq!(p.redundancy, 3);
     }
 
     #[test]
-    #[should_panic(expected = "hot_retention_years 必须 >= 3")]
-    fn archive_policy_rejects_hot_lt_3() {
-        let _ = ArchivePolicy::new(
-            Uuid::new_v4(),
-            "nvme".to_string(),
-            "object_storage".to_string(),
-            2,
-            10,
-        );
+    fn classify_hot_within_three_years() {
+        let p = ArchivePolicy::default();
+        let now = Utc::now();
+        let last = now - Duration::days(365);
+        assert_eq!(p.classify(last, now), ArchiveTier::Hot);
     }
 
     #[test]
-    #[should_panic(expected = "cold_retention_years 必须 >= 10")]
-    fn archive_policy_rejects_cold_lt_10() {
-        let _ = ArchivePolicy::new(
-            Uuid::new_v4(),
-            "nvme".to_string(),
-            "object_storage".to_string(),
-            3,
-            9,
-        );
+    fn classify_cold_beyond_three_years() {
+        let p = ArchivePolicy::default();
+        let now = Utc::now();
+        let last = now - Duration::days(365 * 5);
+        assert_eq!(p.classify(last, now), ArchiveTier::Cold);
+    }
+
+    #[test]
+    fn validate_passes_default() {
+        assert!(ArchivePolicy::default().validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_redundancy_lt_2() {
+        let mut p = ArchivePolicy::default();
+        p.redundancy = 1;
+        assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn row_count_preserved_passes_when_equal() {
+        let r = ArchivePolicy::assert_row_count_preserved(100, 100, &"rlm".to_string());
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn row_count_preserved_fails_on_mismatch_fr_lcm_081() {
+        let r = ArchivePolicy::assert_row_count_preserved(100, 99, &"rlm".to_string());
+        assert!(matches!(r, Err(Error::ArchiveDeleteForbidden { .. })));
     }
 }

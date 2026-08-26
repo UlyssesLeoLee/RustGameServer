@@ -1,29 +1,85 @@
-//! NewRealm 操作器占位（per RGS-SPEC-DTL-042 §3.1）
+//! NewRealm 操作器（开新服，per AC-LCM-001 + DTL-042 §5.1）。
 //!
-//! 真实业务实化属于 WF-1-2066（M-2066.4）。
-//! 本 worktree 仅提供 trait 实现桩（满足 6 操作器 trait 签名约束）+ 单测可注入点。
+//! 步骤：分配 realm_id → 初始化 realm_directory 路由条目（灰度 0%）→
+//! admin_db.realm_lifecycle_run 写 run 记录 → PFAU 编排到 Active 状态。
+//!
+//! 本 worktree（WF-1-2070）只定义 trait 签名 + 占位 operator。
 
 use async_trait::async_trait;
-use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
-use crate::realm_lifecycle::error::Result;
-use crate::realm_lifecycle::service::{LcmOperatorInput, LcmOperatorOutput, NewRealmOperator};
+use super::PhaseOperator;
+use crate::realm_lifecycle::{
+    error::Result, ApprovalRef, OperatorId, RealmId, RequestId, TraceId,
+};
 
-/// NewRealm 操作器桩（per WF-1-2067 PREREQ：trait 签名占位）
-///
-/// 真实实现由 WF-1-2066 完成。本桩保证：
-/// - 满足 `NewRealmOperator` trait 约束（async fn open/reverse）
-/// - SagaOrchestrator 可持有 `Arc<dyn NewRealmOperator>`
-/// - UT 可注入成功 / 失败场景
-pub struct StubNewRealm;
+/// NewRealm 计划参数（per DTL-042 §5.1 + SPEC §3）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewRealmParams {
+    pub realm_id: RealmId,
+    pub region: String,
+    pub initial_capacity: u32,
+    pub initial_node_count: u32,
+}
+
+/// NewRealm 操作结果（drill 用）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewRealmOutcome {
+    pub realm_id: RealmId,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub directory_entry_registered: bool,
+    pub pfau_state: String,
+}
 
 #[async_trait]
-impl NewRealmOperator for StubNewRealm {
-    async fn open(&self, _input: LcmOperatorInput) -> Result<LcmOperatorOutput> {
-        unimplemented!("NewRealmOperator::open 实化属于 WF-1-2066 M-2066.4")
-    }
+pub trait NewRealmOperator: PhaseOperator {
+    /// 执行开新服；返回 outcome。
+    ///
+    /// drill 实现走 `DrillExecutor` → `sandbox_pg` + `sandbox_k8s`。
+    /// 生产实现由 WF-1-2066/2071 后续 worktree 提供。
+    async fn execute(
+        &self,
+        request_id: &RequestId,
+        operator_id: &OperatorId,
+        approval_ref: &ApprovalRef,
+        trace_id: &TraceId,
+        params: NewRealmParams,
+    ) -> Result<NewRealmOutcome>;
+}
 
-    async fn reverse(&self, _resource_id: Uuid, _reason: String) -> Result<()> {
-        unimplemented!("NewRealmOperator::reverse 实化属于 WF-1-2066 M-2066.4")
+/// `NoopNewRealmOperator` —— 占位实现，标记"未实现"（不 panic）。
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NoopNewRealmOperator;
+
+impl PhaseOperator for NoopNewRealmOperator {
+    fn phase_name(&self) -> &'static str {
+        "new_realm"
+    }
+}
+
+#[async_trait]
+impl NewRealmOperator for NoopNewRealmOperator {
+    async fn execute(
+        &self,
+        _request_id: &RequestId,
+        _operator_id: &OperatorId,
+        _approval_ref: &ApprovalRef,
+        _trace_id: &TraceId,
+        _params: NewRealmParams,
+    ) -> Result<NewRealmOutcome> {
+        Err(crate::realm_lifecycle::error::Error::Validation(
+            "NewRealmOperator pending impl in WF-1-2066/2071".to_string(),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn noop_phase_name_matches_dtl_feature_subtype() {
+        let op = NoopNewRealmOperator;
+        assert_eq!(op.phase_name(), "new_realm");
     }
 }

@@ -1,22 +1,19 @@
-//! cluster-ops · realm_lifecycle · 6 阶段操作器骨架（per RGS-SPEC-DTL-042 §3）
+//! 6 阶段操作器（per DTL-042 §5 + SPEC-DTL-042 §3）。
 //!
-//! 硬约束：6 操作器业务逻辑**不**在本 worktree 实现。
-//! - 真实业务实化属于 WF-1-2066（M-2066.4~9：操作器 trait impl）
-//! - Drill 演练属于 WF-1-2070
-//! - Feature 集成属于 WF-1-2074
-//!
-//! 本 worktree 只提供 6 个 trait 定义（per 硬约束：每个操作器至少 1 个 `async fn`）+ 占位 stub。
+//! 本 worktree（WF-1-2070）只提供 trait 签名 + 占位；具体实现由
+//! WF-1-2066/2071/2073 后续 worktree 补齐（per WBS L4 拆分 + DEC-008 RACI）。
 
+pub mod archive;
+pub mod merge;
 pub mod new_realm;
+pub mod retire;
 pub mod scale;
 pub mod split;
-pub mod merge;
-pub mod retire;
-pub mod archive;
 
-pub use new_realm::StubNewRealm;
-pub use scale::StubScale;
-pub use split::StubSplit;
-pub use merge::StubMerge;
-pub use retire::StubRetire;
-pub use archive::StubArchive;
+/// 阶段操作器公共 trait（per DTL §5）。
+///
+/// 实际方法签名与具体 Saga 步骤绑定；本 worktree 只定义 trait 形状。
+pub trait PhaseOperator: Send + Sync {
+    /// 操作阶段名（用于 Prometheus 标签 `feature_subtype`，per DTL §11.1）。
+    fn phase_name(&self) -> &'static str;
+}
