@@ -6,6 +6,10 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/cluster_ops/v
 service ClusterOpsService {
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
   rpc GetNode(common.v1.EntityId) returns (Node);
+  // PFAU (Progressive Feature Apply/Update, per RGS-ADR-0052 §3) 阶段查询。
+  // 5 阶段：Idle / Preparing / Applying / Verifying / Committed / Aborted。
+  // component 留空 = 全组件聚合状态。
+  rpc GetPFAUPhase(PFAUPhaseRequest) returns (PFAUPhaseResponse);
 }
 
 message Node {
@@ -13,4 +17,24 @@ message Node {
   common.v1.Status status = 2;
   common.v1.Timestamp created_at = 3;
   string display_name = 4;
+}
+
+// PFAU 阶段查询请求（WF-1-PFAU-phase）
+message PFAUPhaseRequest {
+  // 留空 = 全组件聚合；非空 = 指定组件名（如 "player" / "cluster-ops"）。
+  string component = 1;
+}
+
+// PFAU 阶段查询响应
+message PFAUPhaseResponse {
+  // 阶段名：Idle / Preparing / Applying / Verifying / Committed / Aborted 之一
+  string phase = 1;
+  // 0-100 进度
+  int32 progress = 2;
+  // 当前正在操作的组件；空字符串表示无活动操作
+  string component = 3;
+  // 描述（可空）
+  string message = 4;
+  // 当前阶段起始 unix ts（0 = 尚未启动 / 处于 Idle）
+  int64 started_at_unix = 5;
 }
