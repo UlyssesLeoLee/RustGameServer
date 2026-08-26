@@ -6,7 +6,7 @@
 |---|---|
 | 文档编号 | RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 |
 | 版本 | **0.3**（per worker 升版任务 2026-08-26 ~22:00 JST "DEPLOY-SOP v0.2 → v0.3 升版同步 rgs-web 接 5 域 gRPC 落地"——§4 §5 19 页面 ROPE_CS 完备表更新到 v0.3 实际（9 真实 + 5 后续 + 5 不做）+ §A.6 v0.3 升版实证段）|
-| 状态 | ✅ **v0.3**——5 域 gRPC 50051-50056 + cluster-ops 50056 全部 1/1 Running 0 RESTARTS（per `kubectl get endpoints -n rust-game-server` 实证，2026-08-26 22:00 JST）+ rgs-web v0.3 接 5 域 gRPC 落地（per `<待 rgs-web v0.3 worker commit>`）|
+| 状态 | ✅ **v0.3**——5 域 gRPC 50051-50056 + cluster-ops 50056 全部 1/1 Running 0 RESTARTS（per `kubectl get endpoints -n rust-game-server` 实证，2026-08-26 22:00 JST）+ rgs-web v0.3 接 5 域 gRPC 落地（per commit `5fa04ce` → merge `33922ce`，6 API + http2 + mTLS via kubectl port-forward）|
 | 责任人 | Ulysses（人）+ Mavis（agent）|
 
 ---
@@ -232,7 +232,7 @@ Mavis 收到通知后会:
 - DEPLOY-SOP v0.2 升版：commit `43e6108`（[wbs] WF-1-D.0-v0.2: DEPLOY-SOP v0.1 sync → v0.2 升版 5 域 gRPC 全部 TCP-OK）
 - LEAD-RACI 5 域 Lead 真实签字：commit `b031a9c`（[wbs] WF-1-LEAD-RACI-real-sign: 5 份 RACI v1.1 §4 5 域 Lead 联合签字栏全部填充已签 20 行 = 5 份 × 4 行）
 - RGS-INC-002 部署事件报告 v0.1：commit `c56735c`（[wbs] WF-1-INC-002: 5 域 gRPC 真实跑通事件复盘 v0.1 13 时间点 / 根因 3 段 / 修复 4 项 / 待办 3 项 / 引用 4 commit）
-- rgs-web v0.3 接 5 域 gRPC：`<待 rgs-web v0.3 worker commit>`（rgs-web v0.3 worker `bg_26269498` 直连 pod IP 路由问题，已派 port-forward worker，主对话在 rgs-web v0.3 worker 完成后填入）
+- rgs-web v0.3 接 5 域 gRPC：commit `5fa04ce`（[wbs] WF-1-rgs-web-v0.3: 6 API endpoints 真实接 5 域 gRPC via kubectl port-forward + http2 + mTLS）→ merge `33922ce`。附带 PREREQ 修复：rgs-certgen 重生成 CA + 6 域 server cert + rgs-web client cert（EKU=clientAuth）+ kubectl apply 7 secret + 6 deployment rollout restart（per RGS-REV-007-C verify-C 风险记录：CA 私钥丢失导致 mTLS 无任何 client cert 可信）。6 endpoints 全部 curl 实证：health/all / player/:id / services/status / pfau/phase / sql/query / metrics/:svc。已知缺口：9464 metrics port 1/5 connection refused（player 降级）/ PFAU phase gRPC method 不存在（cluster-ops proto 无）/ 5 域 DB 空（GetPlayer 返回 HTTP 200 + 空 Player）/ WSL 内 psql 未装（/api/sql/query 自动降级 mock）/ port-forward pod 重启不自动重连。tools/rgs-web/setup-certs.sh 幂等 regen + k3s apply + pods restart。cert 文件不入仓（.gitignore）。
 
 **v0.3 落地 9 页面真实**（per §5 19 页面 ROPE_CS 完备表 v0.3 实际状态）：
 
