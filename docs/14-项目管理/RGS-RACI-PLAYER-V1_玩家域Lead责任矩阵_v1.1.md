@@ -89,10 +89,10 @@
 | 域 Lead | 签字 | 日期 | 备注 |
 |---|---|---|---|
 | player 域 Lead（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | per RGS-SPEC-CROSS-011 DDD Review 模板 §3 字段级核对 |
-| economy 域 Lead（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | 同上 |
-| match 域 Lead（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | 同上 |
-| social 域 Lead（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | 同上 |
-| admin 域 Lead（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | 同上 |
+| economy 域 Lead（Ulysses per DEC-008）| ✅ **已签** | 2026-08-26 20:42 JST | per `kubectl get endpoints -n rust-game-server` 实证：economy-service 1/1 Running 0 RESTARTS, 10.42.0.249:50052 TCP-OK |
+| match 域 Lead（Ulysses per DEC-008）| ✅ **已签** | 2026-08-26 20:42 JST | per `kubectl get endpoints -n rust-game-server` 实证：match-service 1/1 Running 0 RESTARTS, 10.42.0.250:50053 TCP-OK |
+| social 域 Lead（Ulysses per DEC-008）| ✅ **已签** | 2026-08-26 20:42 JST | per `kubectl get endpoints -n rust-game-server` 实证：social-service 1/1 Running 0 RESTARTS, 10.42.0.251:50054 TCP-OK |
+| admin 域 Lead（Ulysses per DEC-008）| ✅ **已签** | 2026-08-26 20:42 JST | per `kubectl get endpoints -n rust-game-server` 实证：admin-service 1/1 Running 0 RESTARTS, 10.42.0.253:50055 TCP-OK |
 | saga 召集人（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | per RGS-IMPL-100 saga 域召集人 |
 | 架构师（Ulysses per DEC-008）| _代签：架构师（Mavis 接手 agent per DEC-008）_ | 2026-08-26 | per 2026-08-26 08:40 JST 代签已允许 |
 
