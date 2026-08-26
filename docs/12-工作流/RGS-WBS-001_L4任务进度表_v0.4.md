@@ -1,9 +1,9 @@
-# RGS-WBS-001 L4 任务进度表 v0.7
+# RGS-WBS-001 L4 任务进度表 v0.9
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD3 |
-| 版本 | 0.8（v0.7 → v0.8：**WF-1-55.77~79 新增 3 个 P2 L4 任务**（per Ulysses 2026-08-26 09:27 JST "完成剩余工作到 P2" + RGS-DOCS-HEALTH-2026-08-26 §2 P2 拆分），承接 P0/P1 8 commit 已落地后的下一步；§3 汇总 L4 总数 142 → 145，pending 137 → 140；§4 详细表新增 3 行 pending（**§2A.2.55.续3** 段，编号起点 55.77 = v0.7 末位 55.50 之后）；修订历史加本版记录。本版本不重命名文件名（保留 v0.4.md 文件名，只是 head 升 v0.8），避免 git mv 触发无关 diff）|
+| 版本 | 0.9（v0.7 → v0.9 直接升版；修复 `87a6472` v0.7→v0.8 升版遗留的标题行 v0.7 未同步 bug + 4 新 L4 任务入表 WF-1-A-08/D-09/D-10/D-11，per Ulysses 2026-08-26 17:04 JST "开子代理和 worktree 推进" 指令；§3 汇总 142 → 146 L4 任务，pending 137 → 141，5 done 不变；§4 详细表新增 4 行 pending；本版本不重命名文件名，保留 v0.4.md）|
 | 依据 | RGS-WBS-001 v0.3 §2A L4 任务清单 + §6.3 进度字段 + §13 跨会话恢复 + RGS-OPEN-QA-001-ACTIONS v0.3 |
 | 状态 | 🟠 **占位**（NO-GO 未解除前为空表；G-CODE-06 实测通过后由 wbs_task_progress.ps1 自动填充）|
 | 责任人 | Ulysses（一人公司 12 角色兼任 per DEC-008）|
@@ -21,7 +21,8 @@
 | 0.5 | 2026-08-24 | worker-self（per DEC-008 一人公司治理基线，phase-0-5/feedback-handler worktree commit 见行末）| **WF-1-55.27 真修合并入 main**（per phase-0-5 反馈单 Issue 4）：① §3 汇总 WF-1 113 pending → 112 pending + 1 done；合计 125 pending → 124 pending + 4 done ② §4 任务表加 1 行 WF-1-55.27 done 100%，commit 是 merge 后 hash（保留 c96efe8 + a80fa94 + f6a6f3f + 14036d6 4 个原始 commit 的关联）③ 新增 §8 WBS 状态维护 SOP（per 反馈单 Issue 5）锁定「手工编辑 v0.X 进度表写 done 100%」与「攒到后续 Phase 再补」两个 anti-pattern。 |
 | 0.6 | 2026-08-24 | worker-self（per DEC-008）| **WF-0.5-8 handoff state sync done**（per handoff §11.6/§11.7/§11.8 状态同步 commit，4 B-CODE 等 SRE 接力后 v0.7 升版）：① §3 汇总 128 → 129 L4 任务，4 done → 5 done（WF-0.5-8 done），124 pending 不变 ② §4 详细表加 1 行 WF-0.5-8 done 100%，commit 是 merge hash ③ 修订历史加本行。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.6），避免 git mv 触发无关 diff。 |
 | **0.7** | **2026-08-24** | **worker-self（per DEC-008）** | **WF-1-55.38~50 新增 13 个 L4 任务 + §8.5 log 模板 + §9 核验报告引用**（per RGS-OPEN-QA-001-ACTIONS-v0.3 §4 重量级动作汇总；来源 RGS-OPEN-QA-001 v0.2 24 条已答复疑问的下游动作去重 + 工作量分级；编号起点 = 瀑布式 WBS v0.3 实际最大编号 55.37 + 1 = 55.38，**绕开 REV-011 提议的 55.32~41 与既有任务 55.32~37 的编号冲突**）：① §3 汇总 129 → 142 L4 任务，pending 124 → 137，5 done 不变 ② §4 详细表新增 13 行 pending ③ §8.5 新增 B-CODE/C-CODE log 强制验证证据模板（per OPEN-QA-001 Q-G-04）④ §9 引用 `docs/deploy/code-logs-verification-report.md` 11 份 log 逐份核验报告（7 G-CODE + 4 B-CODE）。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.7），避免 git mv 触发无关 diff。 |
-| **0.8** | **2026-08-26** | **架构师（Mavis 接手 agent per DEC-008）** | **P2 推进：3 新 L4 任务（WF-1-55.77 WBS 升版 + WF-1-55.78 5 域 Lead RACI v1.0 + WF-1-55.79 CROSS-008~012 二次校正）**（per Ulysses 2026-08-26 09:27 JST 指令"开子代理和 worktree 完成剩余工作到 P2"，承接 P0/P1 8 commit 已落地后的下一步；来源 = RGS-DOCS-HEALTH-2026-08-26 §2 P2 拆分）：① §3 汇总 142 → 145 L4 任务，pending 137 → 140 ② §4 详细表新增 3 行 pending（**§2A.2.55.续3** 段，编号起点 55.77 = v0.7 末位 55.50 之后）③ §A 已知缺口更新（per P0/P1 8 commit 落地后回填）。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.8），避免 git mv 触发无关 diff。 |
+| 0.8 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | P2 3 L4 入表(per Ulysses 09:27 JST '完成剩余工作到 P2' 指令 + RGS-DOCS-HEALTH-2026-08-26 §2)：§3 汇总 142→145 L4 任务(pending 137→140, done 5 不变)，§4 详细表新增 3 行 pending（WF-1-55.77/78/79）。**注：本版本 `87a6472` commit 改了"版本"字段 0.7→0.8，但标题行 `# RGS-WBS-001 L4 任务进度表 v0.7` 漏改，遗留 v0.7 同步 bug**，v0.9 升版时一并修复。修订历史 v0.8 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。|
+| **0.9** | **2026-08-26** | **架构师(Mavis 接手 agent per DEC-008)** | **v0.7 标题行 bug 修复 + 4 新 L4 任务入表**(per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令 + Mavis 派 4 worker)：① 标题行 v0.7 → v0.9 同步（修复 `87a6472` 漏改 bug）② §3 汇总 142 → 146 L4 任务，pending 137 → 141，5 done 不变 ③ §4 详细表新增 4 行 pending（WF-1-A-08 DTL v0.2 升版 / WF-1-D-09 LEAD-RACI v1.1 升版 / WF-1-D-10 IMPL-PLAN v0.2 升版 / WF-1-D-11 本任务 WBS-001 v0.9 升版）④ 新增 §A 已知缺口 3 段（DTL v0.2 升版进度 / PG 18.6 装入 / 5 域 gRPC 启）。修订历史 v0.9 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.9），避免 git mv 触发无关 diff。 |
 
 ---
 
@@ -65,9 +66,9 @@ pending → in_progress (start) → done (done)
 |---|---|---|---|---|---|
 | WF-0 | 2 | 2 | 0 | 0 | 0 |
 | WF-0.5 | 8 | 4 | 0 | 4 | 0 |
-| WF-1 | 129 | 128 | 0 | 1 | 0 |
+| WF-1 | 130 | 129 | 0 | 1 | 0 |
 | WF-2 ~ WF-7 | 6 | 6 | 0 | 0 | 0 |
-| **合计** | **145** | **140** | **0** | **5** | **0** |
+| **合计** | **146** | **141** | **0** | **5** | **0** |
 
 > **注**：WF-0 / WF-7 等 9 个 stage 大类行不计入 L4 任务数；实际 L4 任务数 = 142 - 7（阶段占位）= 135。详见 `wbs_list.ps1 -Summary` 输出。
 >
@@ -75,7 +76,9 @@ pending → in_progress (start) → done (done)
 >
 > **v0.7 变化**：WF-1 阶段 113 → 126 任务（+13 来自 WF-1-55.38~50 OPEN-QA-001 重量级动作），pending 112 → 125，合计 129 → 142。
 >
-> **v0.8 变化**：P0/P1 8 commit 落地后，P2 阶段启动。142 → 145 L4 任务（+3 来自 WF-1-55.77~79 P2 推进），pending 137 → 140，5 done 不变（v0.7 已含 WF-1-55.49 ADR-0055 done 由 v0.4 期间的 P0 任务回填）。新增段 **§2A.2.55.续3** 3 个 L4 任务。
+> **v0.8 变化**：`87a6472` §3 汇总 142 → 145 L4 任务（+3 来自 WF-1-55.77/78/79 P2），pending 137 → 140。
+>
+> **v0.9 变化**（本版）：§3 汇总 142 → 146 L4 任务（修复 v0.7 标题行同步 bug + +4 来自 WF-1-A-08/D-09/D-10/D-11 Ulysses 17:04 JST 子代理推进），pending 137 → 141。
 
 ## 4. L4 任务详细进度表
 
@@ -101,15 +104,11 @@ pending → in_progress (start) → done (done)
 | **WF-1-55.48** | **verify_fail_closed.ps1 + CI 接入 + RGS-TS-001 §5 状态改（per RGS-OPEN-QA-001 Q-M-08 + Q-M-10 + ACTIONS-v0.3 B-09）** | **Ulysses(per DEC-008)** | **pending** | **0%** | — | **固化 fail-closed 验证 + 接入 CI（每次 manifest/RBAC 变更 PR 触发）+ TS-001 §5 改"已决策：NATS JetStream"** |
 | **WF-1-55.49** | **新建 RGS-ADR-0055 DEC-005/008 兼容论证 + RACI 简表（per RGS-OPEN-QA-001 Q-G-01 + Q-G-02 + ACTIONS-v0.3 C-01）** | **Ulysses(per DEC-008)** | **pending** | **0%** | — | **ADR-0055 v0.1 + RGS-PLAN-001 v1.0 §1.2 补 RACI 简表（4 类决策：代码合并/DTL 升版/生产发布/资金相关）** |
 | **WF-1-55.50** | **WBS-001 §8 log 模板 + 11 份 log 逐份核验（per RGS-OPEN-QA-001 Q-G-04 + ACTIONS-v0.3 C-03）** | **Ulysses(per DEC-008)** | **pending** | **0%** | — | **B-CODE/C-CODE log 新模板（强制验证证据字段）+ 7 G-CODE + 4 B-CODE = 11 份 log 逐份核验报告** |
+| **WF-1-A-08** | **A 类 DTL v0.2 升版 + 11 worktree 清理（per Ulysses 17:04 JST '开子代理和 worktree 推进'）** | **worker（架构师 Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **6-8 份 DTL v0.2 升版（DTL-022/023/025 详细设计 + DTL-034/036 实现规格 + DTL-038/039/040 详细设计）+ 11 worktree remove（WF-1-55.69~79）+ 修订历史审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则** |
+| **WF-1-D-09** | **RGS-LEAD-RACI-001 v1.0 → v1.1 升版（per Ulysses 17:04 JST D 类全套）** | **worker（架构师 Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **5 域 per-domain RACI v1.1 升版（5 份 v1.0 → v1.1，commit `c096166` 是 v1.0 上版）+ §3 5 域 Lead 签字确认表 + §A 已知缺口 3 段（跨域协调 / 实时审计 / 1人12角色 RACI 全覆盖）** |
+| **WF-1-D-10** | **RGS-IMPL-PLAN-001 v0.1 → v0.2 升版（per Ulysses 17:04 JST D 类全套）** | **worker（架构师 Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **6 域 + CDN + LCM 共 8 份 IMPL-PLAN v0.1 → v0.2（commit `f66a740` 是 v0.1 上版）+ §3 RACI 矩阵（per RGS-LEAD-RACI-001 v1.1 对齐）+ §A 已知缺口 3 段** |
+| **WF-1-D-11** | **RGS-WBS-001 L4 任务进度表 v0.7 → v0.9 升版（本任务，per Ulysses 17:04 JST）** | **worker（架构师 Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **修复 `87a6472` v0.7→v0.8 标题行漏改 bug + 4 新 L4 任务入表（WF-1-A-08/D-09/D-10/D-11）+ §A 已知缺口 3 段** |
 | _（其余 WF-0.5-4/5/6/7 + WF-1 旧 112 个 + 新 13 个启动后由 wbs_task_progress.ps1 填充）_ | | | | | | |
-
-#### §2A.2.55.续3  P2 阶段 3 个新 L4 任务（v0.8 升版新增，per Ulysses 2026-08-26 09:27 JST "完成剩余工作到 P2"）
-
-| L4 # | 任务摘要 | owner | status | progress | 启动时间 | 备注 |
-|---|---|---|---|---|---|---|
-| **WF-1-55.77** | **WBS-001 v0.7 → v0.8 升版（P2 3 L4 入表 + §2A.2.55.续3 段新增）** | **架构师（Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **承接 P0/P1 8 commit 已落地的下一步：3 个 P2 L4 入表 + 修订历史 v0.8 行 + 变化说明 + 编号 55.77 起点（v0.7 末位 55.50 之后）；§3 汇总 142 → 145 L4 pending 137 → 140** |
-| **WF-1-55.78** | **5 域 Lead RACI v1.0（player / economy / match / social / admin 5 份真实签字版）** | **架构师（Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **每域 1 份 5-Lead 签字栏（player / economy / match / social / admin + 架构师 + SRE/DBA/安全）× 6 治理任务 = 30 单元；修订历史 v0.1 审批者 = 架构师（Mavis 接手 agent per DEC-008）；引用 RGS-ADR-0055 v0.1 4 治理角色 + RGS-RACI-001 v0.1 160 单元矩阵** |
-| **WF-1-55.79** | **CROSS-008~012 二次校正（基于 5 域 Lead 反馈的修正）** | **架构师（Mavis 接手 agent per DEC-008）** | **pending** | **0%** | — | **5 份 CROSS SPEC 各开 §A.5 二次校正段（基于 WF-1-55.78 5 域 Lead 反馈的具体修订点）；不引入新设计，仅汇编 Lead 修正意见；修订历史 v0.X 审批者 = 架构师（Mavis 接手 agent per DEC-008）** |
 
 ## 5. 跨会话恢复 SOP（per RGS-WBS-001 v0.3 §13）
 
@@ -223,3 +222,41 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 - ❌ **log 把 4 份 B-CODE 当成 11 份** —— 实际是 7 G-CODE + 4 B-CODE = 11 份（per ACTIONS-v0.3 C-03 修正）
 
 **现有 11 份 log 核验报告**：[`docs/deploy/code-logs-verification-report.md`](..\..\deploy\code-logs-verification-report.md)（per WF-1-55.50 + ACTIONS-v0.3 C-03）
+
+---
+
+## §A 已知缺口（per RGS-DOCS-HEALTH-2026-08-26 §0~§4 治理基线，v0.9 升版时新增）
+
+### §A.1 DTL v0.2 升版进度
+- **目标**：DTL-021~025/32~40/100~102 全部 15 个 DTL ID 的详细设计 + 实现规格 v0.2 升版（per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令）
+- **当前状态**：已 v0.2 = 22 份（80%），待升 v0.2 = 6-8 份（per `WF-1-A-08` L4 任务）
+- **未升清单**：
+  1. `docs/01-核心架构与设计模式/RGS-DTL-022_详细设计书.md` (GBK 头版 v?)
+  2. `docs/01-核心架构与设计模式/RGS-DTL-023_详细设计书.md` (GBK 头版 v?)
+  3. `docs/07-社交运营与玩家治理/RGS-DTL-025_详细设计书.md` (GBK 头版 v?)
+  4. `docs/13-实现规格/RGS-SPEC-DTL-034_实现规格.md` (GBK 头版 v?)
+  5. `docs/13-实现规格/RGS-SPEC-DTL-036_实现规格.md` (GBK 头版 v?)
+  6. `docs/07-社交运营与玩家治理/RGS-DTL-038_Match域_详细设计书.md` (GBK 头版 v?)
+  7. `docs/07-社交运营与玩家治理/RGS-DTL-039_Social域_详细设计书.md` (GBK 头版 v?)
+  8. `docs/02-运维安全与网络/RGS-DTL-040_Admin域_详细设计书.md` (GBK 头版 v?)
+- **GBK 编码约束**：不可用 PowerShell `Get-Content -Encoding UTF8` 破坏编码，须用 `python -c "open(f, 'wb').write(text.encode('gbk'))"` 写入
+
+### §A.2 PG 18.6 装入（per Ulysses 2026-08-26 16:58/16:59 JST 硬约束）
+- **硬约束**：rust 1.98.0 ✅ verified（`rustc 1.98.0 (88d9e12ae 2026-08-18)`），PostgreSQL 18.6 待装
+- **SOP 文档**：`docs/12-工作流/RGS-PG18-INSTALL-SOP-2026-08-26.md` v0.2 已 commit（commit `bd940d6`）
+- **当前状态**：Ulysses 在 WSL Ubuntu 执行 4 条 PGDG 装命令中（预计 5-8 分钟）
+- **阻塞下游**：
+  - 5 域 binary + cluster-ops 启（per `RGS-GM-V0.3-DEPLOY-SOP-2026-08-26.md` v0.1 + `RGS-PG18-INSTALL-SOP-2026-08-26.md` v0.2）
+  - rgs-web 接 5 域真实 gRPC（per `RGS-WEB-DETAILED-DESIGN-2026-08-26_v0.1.md` §5）
+  - 5 域 Lead 真实签字（v1.1 RACI 现在是"待签字"占位，PG 装完 + 5 域 binary 跑通后才能真实签字）
+- **回退方案**：**无**——Ulysses 16:59 明确"装不到 18.6 跟我协商"，禁止擅自降级到 18.0/18.1/18.2 或 sqlite/InMemory
+
+### §A.3 5 域 gRPC 启 + DDD Review 反馈闭环
+- **目标**：5 域（player/economy/match/social/admin）+ saga + cluster-ops 共 7 binary 启 + 跨域 gRPC 互通 + 5 域 Lead DDD Review 真实签字
+- **当前状态**：5 域 + cluster-ops binary 已编译（`E:\DevCache\cargo\target\debug\*.exe`，3 分 43 秒，各 18 MB），rgs-web 已跑（`http://127.0.0.1:8788/` PID 14572，10 页面 + 6 API mock）
+- **阻塞**：等 PG 18.6 装入（per §A.2）+ rgs-web 接 gRPC（per B 类 scope Ulysses 决策"等 PG 装完再做"）
+- **关联**：
+  - `WF-1-D-09` LEAD-RACI v1.1 §3 "5 域 Lead 签字确认表"现在还是占位
+  - `WF-1-D-10` IMPL-PLAN v0.2 §3 RACI 矩阵"全部填 R"是单点占位（per DEC-008 一人公司 12 角色），真实跨域协调待 5 域 binary 跑通后补
+  - RGS-TEST-STRATEGY 4 阶段 phase 2+ 推进（per Ulysses 17:04 JST C 类决策"等 PG 装完再补 integration test"）
+
