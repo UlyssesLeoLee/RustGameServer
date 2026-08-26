@@ -27,3 +27,8 @@ docs/00-**/reviews/**/cargo-*.log
 # server.js 是备选实现,server-no-deps.js 是当前运行版(零依赖,无 node_modules)
 # node_modules 实际未在 commit(per commit 5f827ee),规则是预防未来 npm install 误入
 tools/rgs-web/node_modules/
+
+# Worker 临时脚手架目录(per 2026-08-26 清理决议)
+# 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
+# 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
+.worker-tmp/
