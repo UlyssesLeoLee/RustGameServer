@@ -73,7 +73,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cluster-ops
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.1-cluster-ops
           imagePullPolicy: IfNotPresent
           command: ["/app/bin/cluster-ops"]
           securityContext:
