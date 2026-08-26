@@ -233,17 +233,18 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 
 ### §A.1 DTL v0.2 升版进度
 - **目标**：DTL-021~025/32~40/100~102 全部 15 个 DTL ID 的详细设计 + 实现规格 v0.2 升版（per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令）
-- **当前状态**：已 v0.2 = 22 份（80%），待升 v0.2 = 6-8 份（per `WF-1-A-08` L4 任务）
-- **未升清单**：
-  1. `docs/01-核心架构与设计模式/RGS-DTL-022_详细设计书.md` (GBK 头版 v?)
-  2. `docs/01-核心架构与设计模式/RGS-DTL-023_详细设计书.md` (GBK 头版 v?)
-  3. `docs/07-社交运营与玩家治理/RGS-DTL-025_详细设计书.md` (GBK 头版 v?)
-  4. `docs/13-实现规格/RGS-SPEC-DTL-034_实现规格.md` (GBK 头版 v?)
-  5. `docs/13-实现规格/RGS-SPEC-DTL-036_实现规格.md` (GBK 头版 v?)
-  6. `docs/07-社交运营与玩家治理/RGS-DTL-038_Match域_详细设计书.md` (GBK 头版 v?)
-  7. `docs/07-社交运营与玩家治理/RGS-DTL-039_Social域_详细设计书.md` (GBK 头版 v?)
-  8. `docs/02-运维安全与网络/RGS-DTL-040_Admin域_详细设计书.md` (GBK 头版 v?)
-- **GBK 编码约束**：不可用 PowerShell `Get-Content -Encoding UTF8` 破坏编码，须用 `python -c "open(f, 'wb').write(text.encode('gbk'))"` 写入
+- **当前状态（v0.10 sync 修正）**：清单已过期。8 份目标 DTL 全部已 ≥v0.2（DTL-022/DTL-025 达 v0.3，SPEC-DTL-034/036/DTL-023/038/039/040 达 v0.2）。**0 份需要补升**。详见 [`docs/12-工作流/RGS-REPORT-2026-08-26-WF-1-A-08-DTL-Status-Check_v0.1.md`](RGS-REPORT-2026-08-26-WF-1-A-08-DTL-Status-Check_v0.1.md)（commit `4bfba1a`，git 实证三重：最新 commit + 头表 `| 版本 |` 字段 + 修订历史 v0.2/v0.3 行）
+- **原未升清单（已过期，WBS-001 v0.11 升版时可删）**：
+  1. `docs/01-核心架构与设计模式/RGS-DTL-022_详细设计书.md` —— **实际 v0.3**（commit `b8c85984`），WBS 路径正确但版本/编码标错
+  2. `docs/01-核心架构与设计模式/RGS-DTL-023_详细设计书.md` —— **实际 v0.2**（commit `e1c22ea8`）
+  3. `docs/07-社交运营与玩家治理/RGS-DTL-025_详细设计书.md` —— **实际 v0.3**（commit `adb3e346`）
+  4. `docs/13-实现规格/RGS-SPEC-DTL-034_实现规格书.md`（WBS 路径少"书"字）—— **实际 v0.2**（commit `71d97cbd`）
+  5. `docs/13-实现规格/RGS-SPEC-DTL-036_实现规格书.md`（WBS 路径少"书"字）—— **实际 v0.2**（commit `d8c922c3`）
+  6. `docs/07-社交运营与玩家治理/RGS-DTL-038_Match域_详细设计书.md` —— **实际 v0.2**（commit `e1c22ea8`）
+  7. `docs/07-社交运营与玩家治理/RGS-DTL-039_Social域_详细设计书.md` —— **实际 v0.2**（commit `d8c922c3`）
+  8. `docs/02-运维安全与网络/RGS-DTL-040_Admin域_详细设计书.md` —— **实际 v0.2**（commit `d8c922c3`）
+- **编码澄清**：8 份**全部 UTF-8**（SPEC-DTL-034/036 带 BOM `ef bb bf`，6 份 DTL 无 BOM 首字节 `# 详`），WBS 标"GBK 头版"是错误
+- **GBK 编码约束（保留）**：不可用 PowerShell `Get-Content -Encoding UTF8` 破坏 GBK 编码；如需写 GBK 文件，须用 `python -c "open(f, 'wb').write(text.encode('gbk'))"` 写入（但本清单的 8 份都不是 GBK）
 
 ### §A.2 PG 18.6 装入（per Ulysses 2026-08-26 16:58/16:59 JST 硬约束）
 - **硬约束**：rust 1.98.0 ✅ verified（`rustc 1.98.0 (88d9e12ae 2026-08-18)`），PostgreSQL 18.6 待装
