@@ -1,219 +1,142 @@
-//! merge_conflict_rule_set_v2 entity（per M-2068.7 + FR-LCM-062）
+//! `merge_conflict_rule_set_v2` 表（per DTL-042 §7.2 + IMPL §3.3 M-2068.2 + FR-LCM-062）。
 //!
-//! 合服冲突规则集 v2；**锁定后（locked_at 非空）不允许运行时修改**
-//! 字段对应 DDL：id / rule_set_version / rules (JSONB) / locked_at / locked_by / created_at
+//! ## 硬约束（per FR-LCM-062）
 //!
-//! FR-LCM-062 硬约束：
-//! - save() 在 locked_at 已设的情况下禁止覆盖 rules / locked_at / locked_by
-//! - lock() 工厂：一次性把 locked_at 设为 now()；set_locked() 后只读
-//! - 应用层校验（DDL 仅含 chk_merge_conflict_lock_consistency 同步约束）
+//! `locked_at` 锁定后**不**允许运行时修改。
+//! `check_locked` 必须在所有写路径前置检查；锁定后写 → `Error::MergeRulesLocked`。
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use sqlx::{PgPool, Row};
-use uuid::Uuid;
 
-use crate::error::Error;
-use crate::Result;
+use crate::realm_lifecycle::{
+    error::{Error, Result},
+    RealmId,
+};
 
-/// 锁定后修改错误文案（per FR-LCM-062）
-fn locked_err_msg(locked_at: Option<DateTime<Utc>>) -> String {
-    format!(
-        "merge_conflict_rule_set_v2 已锁定（locked_at={:?}），禁止运行时修改（FR-LCM-062）",
-        locked_at
-    )
-}
-
-/// MergeConflictRuleSetV2 entity（per RGS-SPEC-DTL-042 §2 表 4/6）
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// v2 冲突规则集合（per SPEC §6 56 条 UT 拆分中"冲突规则 v2"项）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergeConflictRuleSetV2 {
-    pub id: Uuid,
-    pub rule_set_version: i32,
-    pub rules: JsonValue,
+    pub rule_set_id: String,
+    pub version: u32,
+    pub rules: Vec<ConflictRule>,
+    /// FR-LCM-062 锚定字段：`locked_at = Some(_)` 后**不**允许运行时修改。
     pub locked_at: Option<DateTime<Utc>>,
-    pub locked_by: Option<Uuid>,
+    pub locked_by: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
+/// 单条冲突规则（v2 新增 3 类规则之一）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConflictRule {
+    pub rule_id: String,
+    pub rule_kind: ConflictRuleKind,
+    pub priority: i32,
+    pub description: String,
+}
+
+/// v2 冲突规则类型（v2 新增 3 类）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ConflictRuleKind {
+    /// 玩家名冲突：源服玩家名 + 服区后缀
+    PlayerNameWithRealmSuffix,
+    /// 公会名冲突：源服公会 + 服区后缀
+    GuildNameWithRealmSuffix,
+    /// 工会战积分：取 MAX（避免双计）
+    GuildWarScoreMax,
+}
+
+impl ConflictRuleKind {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::PlayerNameWithRealmSuffix => "player_name_with_realm_suffix",
+            Self::GuildNameWithRealmSuffix => "guild_name_with_realm_suffix",
+            Self::GuildWarScoreMax => "guild_war_score_max",
+        }
+    }
+}
+
 impl MergeConflictRuleSetV2 {
-    /// 工厂：新建未锁定 rule set（rules 默认 '[]'）
-    pub fn new(rule_set_version: i32, rules: JsonValue) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            rule_set_version,
-            rules,
-            locked_at: None,
-            locked_by: None,
-            created_at: Utc::now(),
+    /// FR-LCM-062 锚定：检查锁定状态。
+    ///
+    /// 锁定后调用方**不**应尝试修改。
+    pub fn check_locked(&self) -> Result<()> {
+        if self.locked_at.is_some() {
+            Err(Error::MergeRulesLocked {
+                realm: RealmId::from("<rule_set>"),
+                locked_at: self.locked_at.unwrap_or_else(Utc::now),
+            })
+        } else {
+            Ok(())
         }
     }
 
-    /// 是否已锁定
-    pub fn is_locked(&self) -> bool {
-        self.locked_at.is_some()
-    }
-
-    /// 锁定（一次性；锁定后规则集只读）
-    pub fn lock(&mut self, by: Uuid) {
-        if self.is_locked() {
-            return; // 幂等：已锁定忽略
-        }
+    /// 锁定操作（仅在未锁定时可调用）。
+    pub fn lock(&mut self, operator_id: &str) -> Result<()> {
+        self.check_locked()?;
         self.locked_at = Some(Utc::now());
-        self.locked_by = Some(by);
-    }
-
-    /// 业务校验：锁定后禁止修改 rules（FR-LCM-062）
-    pub fn validate_save_allowed(&self, new_rules: &JsonValue) -> Result<()> {
-        if self.is_locked() && &self.rules != new_rules {
-            return Err(Error::Conflict(locked_err_msg(self.locked_at)));
-        }
+        self.locked_by = Some(operator_id.to_string());
         Ok(())
-    }
-}
-
-/// PgRepository 骨架（per M-2068.7）
-///
-/// 关键约束（per FR-LCM-062）：
-/// - save() 之前**必须**调用 validate_save_allowed
-/// - 锁定后 UPSERT 会带 WHERE locked_at IS NULL（防 SQL 层面绕过）
-pub struct PgMergeConflictRuleSetV2Repository {
-    pool: PgPool,
-}
-
-impl PgMergeConflictRuleSetV2Repository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-fn row_to_rule_set(row: sqlx::postgres::PgRow) -> MergeConflictRuleSetV2 {
-    MergeConflictRuleSetV2 {
-        id: row.get("id"),
-        rule_set_version: row.get("rule_set_version"),
-        rules: row.get("rules"),
-        locked_at: row.get("locked_at"),
-        locked_by: row.get("locked_by"),
-        created_at: row.get("created_at"),
-    }
-}
-
-#[async_trait]
-impl super::MergeConflictRuleSetV2Repository for PgMergeConflictRuleSetV2Repository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<MergeConflictRuleSetV2>> {
-        let row = sqlx::query(
-            "SELECT id, rule_set_version, rules, locked_at, locked_by, created_at \
-             FROM merge_conflict_rule_set_v2 WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_rule_set))
-    }
-
-    async fn find_by_version(
-        &self,
-        version: i32,
-    ) -> Result<Option<MergeConflictRuleSetV2>> {
-        let row = sqlx::query(
-            "SELECT id, rule_set_version, rules, locked_at, locked_by, created_at \
-             FROM merge_conflict_rule_set_v2 WHERE rule_set_version = $1",
-        )
-        .bind(version)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_rule_set))
-    }
-
-    async fn save(
-        &self,
-        entity: &MergeConflictRuleSetV2,
-    ) -> Result<MergeConflictRuleSetV2> {
-        // 应用层校验：锁定后禁止修改（FR-LCM-062 硬约束）
-        // 先 SELECT 查旧值；锁定时只允许 locked_at / locked_by 变化
-        if let Some(existing) = self.find_by_id(entity.id).await? {
-            if existing.is_locked() {
-                if existing.rules != entity.rules {
-                    return Err(Error::Conflict(locked_err_msg(existing.locked_at)));
-                }
-                if existing.locked_at != entity.locked_at
-                    || existing.locked_by != entity.locked_by
-                {
-                    return Err(Error::Conflict(locked_err_msg(existing.locked_at)));
-                }
-            }
-        }
-        sqlx::query(
-            "INSERT INTO merge_conflict_rule_set_v2 \
-             (id, rule_set_version, rules, locked_at, locked_by, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6) \
-             ON CONFLICT (id) DO UPDATE SET \
-                rules = EXCLUDED.rules, \
-                locked_at = EXCLUDED.locked_at, \
-                locked_by = EXCLUDED.locked_by",
-        )
-        .bind(entity.id)
-        .bind(entity.rule_set_version)
-        .bind(&entity.rules)
-        .bind(entity.locked_at)
-        .bind(entity.locked_by)
-        .bind(entity.created_at)
-        .execute(&self.pool)
-        .await?;
-        Ok(entity.clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
-    #[test]
-    fn rule_set_factory() {
-        let r = MergeConflictRuleSetV2::new(1, json!([]));
-        assert_eq!(r.rule_set_version, 1);
-        assert!(!r.is_locked());
+    fn sample() -> MergeConflictRuleSetV2 {
+        MergeConflictRuleSetV2 {
+            rule_set_id: "rs-1".to_string(),
+            version: 2,
+            rules: vec![ConflictRule {
+                rule_id: "r-1".to_string(),
+                rule_kind: ConflictRuleKind::PlayerNameWithRealmSuffix,
+                priority: 100,
+                description: "player name with realm suffix".to_string(),
+            }],
+            locked_at: None,
+            locked_by: None,
+            created_at: Utc::now(),
+        }
     }
 
     #[test]
-    fn rule_set_lock() {
-        let mut r = MergeConflictRuleSetV2::new(1, json!([]));
-        let admin = Uuid::new_v4();
-        r.lock(admin);
-        assert!(r.is_locked());
-        assert_eq!(r.locked_by, Some(admin));
+    fn unlocked_check_passes() {
+        let rs = sample();
+        assert!(rs.check_locked().is_ok());
     }
 
     #[test]
-    fn rule_set_lock_is_idempotent() {
-        let mut r = MergeConflictRuleSetV2::new(1, json!([]));
-        let admin1 = Uuid::new_v4();
-        let admin2 = Uuid::new_v4();
-        r.lock(admin1);
-        let first_locked = r.locked_at;
-        r.lock(admin2);
-        // 二次 lock 应被忽略（locked_by 保持原值）
-        assert_eq!(r.locked_at, first_locked);
-        assert_eq!(r.locked_by, Some(admin1));
+    fn locked_check_fails_fr_lcm_062() {
+        // FR-LCM-062 锚定：锁定后 check_locked 必须返回 MergeRulesLocked
+        let mut rs = sample();
+        rs.lock("sre-1").unwrap();
+        let r = rs.check_locked();
+        assert!(matches!(r, Err(Error::MergeRulesLocked { .. })));
     }
 
     #[test]
-    fn rule_set_validate_blocks_modification_after_lock() {
-        let mut r = MergeConflictRuleSetV2::new(1, json!([{"kind": "guild_owner"}]));
-        r.lock(Uuid::new_v4());
-        let new_rules = json!([{"kind": "guild_owner"}, {"kind": "friend_link"}]);
-        let result = r.validate_save_allowed(&new_rules);
-        assert!(result.is_err());
+    fn double_lock_fails() {
+        let mut rs = sample();
+        rs.lock("sre-1").unwrap();
+        // 二次 lock 应失败
+        let r = rs.lock("sre-2");
+        assert!(matches!(r, Err(Error::MergeRulesLocked { .. })));
     }
 
     #[test]
-    fn rule_set_validate_allows_same_rules_after_lock() {
-        let mut r = MergeConflictRuleSetV2::new(1, json!([{"kind": "guild_owner"}]));
-        r.lock(Uuid::new_v4());
-        let same = json!([{"kind": "guild_owner"}]);
-        let result = r.validate_save_allowed(&same);
-        assert!(result.is_ok());
+    fn rule_kind_as_str_covers_v2_three_kinds() {
+        // SPEC §6：冲突规则 v2 新增 3 类
+        assert_eq!(
+            ConflictRuleKind::PlayerNameWithRealmSuffix.as_str(),
+            "player_name_with_realm_suffix"
+        );
+        assert_eq!(
+            ConflictRuleKind::GuildNameWithRealmSuffix.as_str(),
+            "guild_name_with_realm_suffix"
+        );
+        assert_eq!(
+            ConflictRuleKind::GuildWarScoreMax.as_str(),
+            "guild_war_score_max"
+        );
     }
 }

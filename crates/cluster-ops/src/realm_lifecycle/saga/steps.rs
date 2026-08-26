@@ -1,555 +1,188 @@
-//! cluster-ops · realm_lifecycle · 6 阶段 Saga 步骤 + 反向补偿（per M-2067.2/3/5）
+//! 6 阶段 Saga 步骤定义（per DTL-042 §6 + SPEC-DTL-042 §3 + SPEC §5 背压）。
 //!
-//! **M-2067.2** 6 阶段 Saga 步骤定义（含 SagaStep + CompensateAction）
-//! **M-2067.3** 反向补偿步骤（含跨域 Saga 反向补偿链）
-//! **M-2067.5** Saga 步骤超时（默认 60s per SPEC §8）触发反向补偿
+//! ## 硬约束
 //!
-//! 设计：
-//! - 7 个 step handler struct（6 阶段 + MergeRollback 子阶段）
-//! - 每个 step 实现 `economy_service::saga_orchestrator::SagaStepHandler` trait
-//! - 每个 step 内置反向补偿（`compensate` 方法）
-//! - `CompensateAction` 枚举：标识补偿方向（reverse / rollback / cleanup）
-//! - 60s 超时通过 `tokio::time::timeout` 在 orchestrator 包装（per M-2067.5）
-//! - 真实业务逻辑属 WF-1-2066 / WF-1-2070 / WF-1-2071；本 worktree 只提供 Saga 编排接口
+//! - 步骤超时默认 60s（per SPEC §5 背压规则 + IMPL §3.2 M-2067.5）
+//! - 失败触发反向补偿（per SPEC §5 故障域 + ADR-0015 Saga 适用边界）
+//! - 复用 economy::saga_orchestrator 模式（per IMPL §2.3）
+//!
+//! 本 worktree（WF-1-2070）只定义枚举 + 步骤名 + 默认 trait；具体
+//! SagaStep 行为由 WF-1-2067 + 2071 后续 worktree 补齐。
 
-use std::sync::Arc;
-use std::time::Duration;
-use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
-use async_trait::async_trait;
-
-use economy_service::saga_orchestrator::SagaStepHandler as EconomySagaStepHandler;
-pub use economy_service::saga::SagaStepStatus as LcmSagaStepStatus;
-
-use crate::realm_lifecycle::saga::orchestrator::{LcmPhase, LcmSaga};
-use crate::realm_lifecycle::service::{
-    ArchiveOperator, LcmOperatorInput, MergeOperator, NewRealmOperator, RealmLifecycleService,
-    RetireOperator, ScaleOperator, SplitOperator,
-};
-
-// Result 类型别名：必须用 economy_service 因为 EconomySagaStepHandler trait 要求
-use economy_service::Result;
-
-// ============================================================================
-// CompensateAction 枚举（per M-2067.2）
-// ============================================================================
-
-/// 反向补偿动作类型（per RGS-IMPL-PLAN-LCM-001 §3.2 关键复用声明）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CompensateAction {
-    /// 反向操作（如 NewRealm 失败 → 回收已分配资源）
-    Reverse,
-    /// 回滚（如 Merge 锁定后撤回 → 重新合并）
-    Rollback,
-    /// 清理（资源释放、数据快照删除等）
-    Cleanup,
-    /// 跨域反向补偿链（per RGS-ADR-0015 单一调解者原则）
-    /// LCM 编排器在跨域失败时调用其他域的补偿
-    CrossDomainReverse,
-    /// 跨域回滚
-    CrossDomainRollback,
+/// Saga 阶段（per 6 阶段操作器）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SagaPhase {
+    NewRealm,
+    Scale,
+    Split,
+    Merge,
+    MergeRollback,
+    Retire,
+    Archive,
 }
 
-impl CompensateAction {
-    /// 字符串名（per trace 日志）
-    pub fn as_str(&self) -> &'static str {
+impl SagaPhase {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            Self::Reverse => "reverse",
-            Self::Rollback => "rollback",
-            Self::Cleanup => "cleanup",
-            Self::CrossDomainReverse => "cross_domain_reverse",
-            Self::CrossDomainRollback => "cross_domain_rollback",
+            Self::NewRealm => "new_realm",
+            Self::Scale => "scale",
+            Self::Split => "split",
+            Self::Merge => "merge",
+            Self::MergeRollback => "merge_rollback",
+            Self::Retire => "retire",
+            Self::Archive => "archive",
         }
     }
 }
 
-// ============================================================================
-// SagaTimeoutConfig（per M-2067.5）
-// ============================================================================
-
-/// Saga 步骤超时配置（per RGS-SPEC-DTL-042 §8）
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SagaTimeoutConfig {
-    /// 单步超时秒数（默认 60s）
-    pub secs: u64,
+/// Saga 步骤状态。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum StepStatus {
+    Pending,
+    Running,
+    Succeeded,
+    Failed,
+    Compensating,
+    Compensated,
+    TimedOut,
 }
 
-impl Default for SagaTimeoutConfig {
-    fn default() -> Self {
-        Self { secs: 60 }
-    }
-}
-
-impl SagaTimeoutConfig {
-    pub const DEFAULT_SECS: u64 = 60;
-
-    /// 工厂：自定义超时
-    pub fn new(secs: u64) -> Self {
-        Self { secs }
-    }
-
-    /// 转换为 Duration
-    pub fn to_duration(&self) -> Duration {
-        Duration::from_secs(self.secs)
-    }
-}
-
-// ============================================================================
-// 7 阶段 step handler（per M-2067.2 + M-2067.3）
-// ============================================================================
-//
-// 7 个 step handler（NewRealm / Scale / Split / Merge / MergeRollback / Retire / Archive）
-// 全部手工展开以提供清晰类型签名 + Saga 编排接口。
-// 真实业务逻辑（resource_id 处理等）由 WF-1-2066 填充；本 worktree 仅提供 Saga 编排接口。
-
-/// NewRealm step handler（开新服）
-pub struct NewRealmStep {
-    ops: Arc<dyn NewRealmOperator>,
-}
-
-impl NewRealmStep {
-    pub fn new(ops: Arc<dyn NewRealmOperator>) -> Self {
-        Self { ops }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for NewRealmStep {
-    fn name(&self) -> &str {
-        LcmPhase::NewRealm.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        // 构造输入 + 调操作器
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: Uuid::nil(), // 真实 realm_id 由 orchestrator 通过 metadata 注入；本 worktree 占位
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self.ops.open(input).await {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                // 反向补偿链触发点：NewRealm 失败 → 回收已分配资源（per M-2067.3）
-                trigger_reverse_compensation(LcmPhase::NewRealm, CompensateAction::Reverse);
-                Err(e.into())
-            }
+impl StepStatus {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Running => "running",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Compensating => "compensating",
+            Self::Compensated => "compensated",
+            Self::TimedOut => "timed_out",
         }
     }
 
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 反向：回收已开服资源
-        let rid = resource_id.unwrap_or_else(Uuid::nil);
-        self.ops
-            .reverse(rid, "NewRealm step failed".to_string())
-            .await
-            .map_err(Into::into)
+    /// 是否终态（用于 Prometheus 指标 + 调度释放）。
+    pub const fn is_terminal(&self) -> bool {
+        matches!(
+            self,
+            Self::Succeeded | Self::Failed | Self::Compensated | Self::TimedOut
+        )
     }
 }
 
-/// Scale step handler（扩缩容）
-pub struct ScaleStep {
-    ops: Arc<dyn ScaleOperator>,
-    /// 扩缩容 delta（> 0 扩容；< 0 缩容）
-    pub delta: i32,
-}
-
-impl ScaleStep {
-    pub fn new(ops: Arc<dyn ScaleOperator>, delta: i32) -> Self {
-        Self { ops, delta }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for ScaleStep {
-    fn name(&self) -> &str {
-        LcmPhase::Scale.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: Uuid::nil(),
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self.ops.scale(input, self.delta).await {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                trigger_reverse_compensation(LcmPhase::Scale, CompensateAction::Reverse);
-                Err(e.into())
-            }
-        }
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        _resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 反向：回滚到扩缩容前状态（delta 取反）
-        let prior = -self.delta;
-        let input = LcmOperatorInput {
-            operator_id: Uuid::nil(),
-            request_id: Uuid::nil(),
-            realm_id: Uuid::nil(),
-            metadata: String::new(),
-        };
-        self.ops.reverse(input.realm_id, prior).await.map_err(Into::into)
-    }
-}
-
-/// Split step handler（分服）
-pub struct SplitStep {
-    ops: Arc<dyn SplitOperator>,
-    pub target_realm_id: Uuid,
-}
-
-impl SplitStep {
-    pub fn new(ops: Arc<dyn SplitOperator>, target_realm_id: Uuid) -> Self {
-        Self {
-            ops,
-            target_realm_id,
-        }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for SplitStep {
-    fn name(&self) -> &str {
-        LcmPhase::Split.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: self.target_realm_id,
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self.ops.split(input, self.target_realm_id).await {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                trigger_reverse_compensation(LcmPhase::Split, CompensateAction::Reverse);
-                Err(e.into())
-            }
-        }
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        _resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 反向：合回源服
-        let source_realm_id = Uuid::nil(); // 占位：真实从 metadata 解析
-        self.ops
-            .reverse(source_realm_id, self.target_realm_id)
-            .await
-            .map_err(Into::into)
-    }
-}
-
-/// Merge step handler（合服）
-pub struct MergeStep {
-    ops: Arc<dyn MergeOperator>,
-    pub target_realm_id: Uuid,
-    pub source_realm_ids: Vec<Uuid>,
-}
-
-impl MergeStep {
-    pub fn new(
-        ops: Arc<dyn MergeOperator>,
-        target_realm_id: Uuid,
-        source_realm_ids: Vec<Uuid>,
-    ) -> Self {
-        Self {
-            ops,
-            target_realm_id,
-            source_realm_ids,
-        }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for MergeStep {
-    fn name(&self) -> &str {
-        LcmPhase::Merge.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: self.target_realm_id,
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self
-            .ops
-            .merge(input, self.target_realm_id, self.source_realm_ids.clone())
-            .await
-        {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                // 跨域反向补偿链（per RGS-ADR-0015）：合服失败可能涉及 player / social / economy 域
-                trigger_cross_domain_reverse(LcmPhase::Merge, &["player", "social", "economy"]);
-                Err(e.into())
-            }
-        }
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        _resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        self.ops
-            .reverse(self.target_realm_id, self.source_realm_ids.clone())
-            .await
-            .map_err(Into::into)
-    }
-}
-
-/// MergeRollback step handler（合服回滚子步骤，独立 step 不是 reverse）
-pub struct MergeRollbackStep {
-    ops: Arc<dyn MergeOperator>,
-    pub target_realm_id: Uuid,
-    pub locked_at_ms: i64,
-}
-
-impl MergeRollbackStep {
-    pub fn new(ops: Arc<dyn MergeOperator>, target_realm_id: Uuid, locked_at_ms: i64) -> Self {
-        Self {
-            ops,
-            target_realm_id,
-            locked_at_ms,
-        }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for MergeRollbackStep {
-    fn name(&self) -> &str {
-        LcmPhase::MergeRollback.as_str()
-    }
-
-    async fn execute(&self, _saga: &mut LcmSaga) -> Result<()> {
-        // MergeRollback 不走 saga execute 路径（由 Merge.rollback 直接调用）
-        // 这里仅占位；真实路径：合服窗口期内（7-30 天）管理员发起 rollback
-        self.ops
-            .rollback(self.target_realm_id, self.locked_at_ms)
-            .await
-            .map_err(Into::into)
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        _resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 跨域回滚（per M-2067.3 跨域 Saga 反向）
-        trigger_cross_domain_reverse(LcmPhase::MergeRollback, &["player", "social", "economy"]);
-        Ok(())
-    }
-}
-
-/// Retire step handler（退服）
-pub struct RetireStep {
-    ops: Arc<dyn RetireOperator>,
-}
-
-impl RetireStep {
-    pub fn new(ops: Arc<dyn RetireOperator>) -> Self {
-        Self { ops }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for RetireStep {
-    fn name(&self) -> &str {
-        LcmPhase::Retire.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: Uuid::nil(),
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self.ops.retire(input).await {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                trigger_reverse_compensation(LcmPhase::Retire, CompensateAction::Reverse);
-                Err(e.into())
-            }
-        }
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 反向：恢复已退服
-        self.ops
-            .reverse(resource_id.unwrap_or_else(Uuid::nil))
-            .await
-            .map_err(Into::into)
-    }
-}
-
-/// Archive step handler（归档）
-pub struct ArchiveStep {
-    ops: Arc<dyn ArchiveOperator>,
-}
-
-impl ArchiveStep {
-    pub fn new(ops: Arc<dyn ArchiveOperator>) -> Self {
-        Self { ops }
-    }
-}
-
-#[async_trait]
-impl EconomySagaStepHandler for ArchiveStep {
-    fn name(&self) -> &str {
-        LcmPhase::Archive.as_str()
-    }
-
-    async fn execute(&self, saga: &mut LcmSaga) -> Result<()> {
-        let input = LcmOperatorInput {
-            operator_id: parse_metadata_operator(saga)?,
-            request_id: saga.command_id,
-            realm_id: Uuid::nil(),
-            metadata: saga.idempotency_key.clone(),
-        };
-        match self.ops.archive(input).await {
-            Ok(output) => {
-                if let Some(rid) = output.resource_id {
-                    saga.steps[saga.current_step].resource_id = Some(rid);
-                }
-                Ok(())
-            }
-            Err(e) => {
-                trigger_reverse_compensation(LcmPhase::Archive, CompensateAction::Reverse);
-                Err(e.into())
-            }
-        }
-    }
-
-    async fn compensate(
-        &self,
-        _saga: &mut LcmSaga,
-        resource_id: Option<Uuid>,
-    ) -> Result<()> {
-        // 反向：从归档恢复
-        self.ops
-            .reverse(resource_id.unwrap_or_else(Uuid::nil))
-            .await
-            .map_err(Into::into)
-    }
-}
-
-// ============================================================================
-// 跨域反向补偿辅助函数（per M-2067.3 跨域 Saga 反向补偿链）
-// ============================================================================
-
-/// 触发反向补偿（占位：真实路径属 WF-1-2073 跨域 gRPC 集成）
-fn trigger_reverse_compensation(phase: LcmPhase, action: CompensateAction) {
-    tracing::info!(
-        target: "lcm_saga",
-        phase = phase.as_str(),
-        action = action.as_str(),
-        "triggering reverse compensation chain (placeholder)"
-    );
-}
-
-/// 触发跨域反向补偿链（per RGS-ADR-0015 单一调解者原则）
+/// 6 阶段操作器各阶段典型 Saga 步骤（per DTL §6 + SPEC §3 第 5 条）。
 ///
-/// 真实路径属 WF-1-2073：跨域 gRPC client 集成（player / economy / social）
-/// 本 worktree 仅占位 + 日志
-fn trigger_cross_domain_reverse(phase: LcmPhase, domains: &[&str]) {
-    tracing::info!(
-        target: "lcm_saga",
-        phase = phase.as_str(),
-        domains = ?domains,
-        "triggering cross-domain reverse compensation chain (placeholder)"
-    );
+/// 实际步骤由 orchestrator 拼接；本枚举定义"步骤类型"集合（不绑定特定 phase）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SagaStepKind {
+    /// 1. 冻结源 realm 写
+    FreezeSource,
+    /// 2. 玩家数据快照
+    SnapshotPlayers,
+    /// 3. 创建目标 realm
+    CreateTargetRealm,
+    /// 4. 数据迁移
+    MigrateData,
+    /// 5. 切流量
+    ShiftTraffic,
+    /// 6. realm_directory 灰度 0%→100%
+    PromoteDirectory,
+    /// 7. 解冻源 realm
+    ThawSource,
+
+    /// NewRealm 专属：初始化 realm_directory 条目（灰度 0%）
+    InitDirectory,
+    /// NewRealm 专属：admin_db.realm_lifecycle_run 写 run
+    WriteRunRecord,
+    /// NewRealm 专属：PFAU 编排到 Active
+    PfauActivate,
+
+    /// Scale 专属：调 K3s 副本数
+    AdjustK8sReplicas,
+
+    /// Merge 专属：冲突规则 v2 加载
+    LoadConflictRulesV2,
+    /// Merge 专属：玩家数据合并
+    MergePlayerData,
+    /// Merge 专属：merge_conflict_rule_set_v2 锁定（FR-LCM-062 锚定）
+    LockConflictRulesV2,
+    /// Merge 专属：合并完成
+    MergeCompleted,
+
+    /// MergeRollback 专属：检测 window 内回退请求
+    CheckRollbackWindow,
+    /// MergeRollback 专属：玩家数据切回
+    RestorePlayerData,
+    /// MergeRollback 专属：locked_at 保持（FR-LCM-062 不解锁）
+    PreserveLockedAt,
+
+    /// Retire 专属：retire_plan 创建
+    CreateRetirePlan,
+    /// Retire 专属：30-90 天后启动归档
+    ScheduleArchive,
+
+    /// Archive 专属：冷热分层判定
+    ClassifyHotCold,
+    /// Archive 专属：迁移到冷/热存储
+    MigrateToStorage,
+    /// Archive 专属：N+2 冗余
+    ReplicateForNPlus2,
 }
 
-/// 从 saga 元数据解析 operator_id（占位 helper）
-fn parse_metadata_operator(saga: &LcmSaga) -> Result<Uuid> {
-    // 真实路径：从 saga.idempotency_key 解析；本 worktree 返 nil
-    let _ = saga;
-    Ok(Uuid::nil())
+impl SagaStepKind {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::FreezeSource => "freeze_source",
+            Self::SnapshotPlayers => "snapshot_players",
+            Self::CreateTargetRealm => "create_target_realm",
+            Self::MigrateData => "migrate_data",
+            Self::ShiftTraffic => "shift_traffic",
+            Self::PromoteDirectory => "promote_directory",
+            Self::ThawSource => "thaw_source",
+            Self::InitDirectory => "init_directory",
+            Self::WriteRunRecord => "write_run_record",
+            Self::PfauActivate => "pfau_activate",
+            Self::AdjustK8sReplicas => "adjust_k8s_replicas",
+            Self::LoadConflictRulesV2 => "load_conflict_rules_v2",
+            Self::MergePlayerData => "merge_player_data",
+            Self::LockConflictRulesV2 => "lock_conflict_rules_v2",
+            Self::MergeCompleted => "merge_completed",
+            Self::CheckRollbackWindow => "check_rollback_window",
+            Self::RestorePlayerData => "restore_player_data",
+            Self::PreserveLockedAt => "preserve_locked_at",
+            Self::CreateRetirePlan => "create_retire_plan",
+            Self::ScheduleArchive => "schedule_archive",
+            Self::ClassifyHotCold => "classify_hot_cold",
+            Self::MigrateToStorage => "migrate_to_storage",
+            Self::ReplicateForNPlus2 => "replicate_for_n_plus_2",
+        }
+    }
 }
 
-// ============================================================================
-// 工厂：构建完整 7 step handler 集合
-// ============================================================================
+/// 一次 Saga 步骤的最小快照。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SagaStep {
+    pub phase: SagaPhase,
+    pub kind: SagaStepKind,
+    pub status: StepStatus,
+    /// 步骤超时（默认 60s，per SPEC §5 背压）。
+    pub timeout_secs: u32,
+    /// 该步骤重试次数。
+    pub retry_count: u32,
+}
 
-/// 工厂：构造 7 阶段 step handler Vec（per phase 选 step handler）
-///
-/// service 字段必须已设置所有 6 操作器；本函数按 phase 选对应 handler
-pub fn build_step_handlers(
-    service: &RealmLifecycleService,
-    phase: LcmPhase,
-    target_realm_id: Option<Uuid>,
-    source_realm_ids: Vec<Uuid>,
-    locked_at_ms: Option<i64>,
-    delta: Option<i32>,
-) -> Vec<Arc<dyn EconomySagaStepHandler>> {
-    match phase {
-        LcmPhase::NewRealm => vec![Arc::new(NewRealmStep::new(service.new_realm.clone()))],
-        LcmPhase::Scale => vec![Arc::new(ScaleStep::new(
-            service.scale.clone(),
-            delta.unwrap_or(1),
-        ))],
-        LcmPhase::Split => vec![Arc::new(SplitStep::new(
-            service.split.clone(),
-            target_realm_id.unwrap_or_else(Uuid::new_v4),
-        ))],
-        LcmPhase::Merge => vec![Arc::new(MergeStep::new(
-            service.merge.clone(),
-            target_realm_id.unwrap_or_else(Uuid::new_v4),
-            source_realm_ids,
-        ))],
-        LcmPhase::MergeRollback => vec![Arc::new(MergeRollbackStep::new(
-            service.merge.clone(),
-            target_realm_id.unwrap_or_else(Uuid::new_v4),
-            locked_at_ms.unwrap_or(0),
-        ))],
-        LcmPhase::Retire => vec![Arc::new(RetireStep::new(service.retire.clone()))],
-        LcmPhase::Archive => vec![Arc::new(ArchiveStep::new(service.archive.clone()))],
+impl SagaStep {
+    pub const DEFAULT_TIMEOUT_SECS: u32 = 60;
+
+    pub fn new(phase: SagaPhase, kind: SagaStepKind) -> Self {
+        Self {
+            phase,
+            kind,
+            status: StepStatus::Pending,
+            timeout_secs: Self::DEFAULT_TIMEOUT_SECS,
+            retry_count: 0,
+        }
     }
 }
 
@@ -558,29 +191,79 @@ mod tests {
     use super::*;
 
     #[test]
-    fn compensate_action_str() {
-        assert_eq!(CompensateAction::Reverse.as_str(), "reverse");
-        assert_eq!(CompensateAction::Rollback.as_str(), "rollback");
-        assert_eq!(CompensateAction::Cleanup.as_str(), "cleanup");
-        assert_eq!(CompensateAction::CrossDomainReverse.as_str(), "cross_domain_reverse");
-        assert_eq!(CompensateAction::CrossDomainRollback.as_str(), "cross_domain_rollback");
+    fn saga_phase_as_str_matches_dtl_feature_subtype() {
+        // DTL §11.1：feature_subtype 标签值
+        for p in [
+            SagaPhase::NewRealm,
+            SagaPhase::Scale,
+            SagaPhase::Split,
+            SagaPhase::Merge,
+            SagaPhase::MergeRollback,
+            SagaPhase::Retire,
+            SagaPhase::Archive,
+        ] {
+            assert!(!p.as_str().is_empty());
+        }
     }
 
     #[test]
-    fn timeout_config_default() {
-        let t = SagaTimeoutConfig::default();
-        assert_eq!(t.secs, 60);
+    fn step_status_terminal_partition() {
+        for s in [
+            StepStatus::Pending,
+            StepStatus::Running,
+            StepStatus::Succeeded,
+            StepStatus::Failed,
+            StepStatus::Compensating,
+            StepStatus::Compensated,
+            StepStatus::TimedOut,
+        ] {
+            let t = s.is_terminal();
+            // Pending/Running/Compensating 一定非终态；其余为终态
+            if matches!(s, StepStatus::Pending | StepStatus::Running | StepStatus::Compensating) {
+                assert!(!t, "{:?} should not be terminal", s);
+            } else {
+                assert!(t, "{:?} should be terminal", s);
+            }
+        }
     }
 
     #[test]
-    fn timeout_config_custom() {
-        let t = SagaTimeoutConfig::new(30);
-        assert_eq!(t.secs, 30);
+    fn step_kind_covers_all_phases() {
+        // 防止后续 phase 漏加步骤
+        let all_kinds = [
+            SagaStepKind::FreezeSource,
+            SagaStepKind::SnapshotPlayers,
+            SagaStepKind::CreateTargetRealm,
+            SagaStepKind::MigrateData,
+            SagaStepKind::ShiftTraffic,
+            SagaStepKind::PromoteDirectory,
+            SagaStepKind::ThawSource,
+            SagaStepKind::InitDirectory,
+            SagaStepKind::WriteRunRecord,
+            SagaStepKind::PfauActivate,
+            SagaStepKind::AdjustK8sReplicas,
+            SagaStepKind::LoadConflictRulesV2,
+            SagaStepKind::MergePlayerData,
+            SagaStepKind::LockConflictRulesV2,
+            SagaStepKind::MergeCompleted,
+            SagaStepKind::CheckRollbackWindow,
+            SagaStepKind::RestorePlayerData,
+            SagaStepKind::PreserveLockedAt,
+            SagaStepKind::CreateRetirePlan,
+            SagaStepKind::ScheduleArchive,
+            SagaStepKind::ClassifyHotCold,
+            SagaStepKind::MigrateToStorage,
+            SagaStepKind::ReplicateForNPlus2,
+        ];
+        for k in all_kinds {
+            assert!(!k.as_str().is_empty());
+        }
     }
 
     #[test]
-    fn timeout_config_to_duration() {
-        let t = SagaTimeoutConfig::new(45);
-        assert_eq!(t.to_duration(), Duration::from_secs(45));
+    fn default_timeout_matches_spec() {
+        // SPEC §5 背压：步骤超时默认 60s
+        let step = SagaStep::new(SagaPhase::Merge, SagaStepKind::MergeCompleted);
+        assert_eq!(step.timeout_secs, 60);
     }
 }

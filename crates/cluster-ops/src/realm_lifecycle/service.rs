@@ -1,184 +1,155 @@
-//! cluster-ops · realm_lifecycle · RealmLifecycleService 业务接口（per RGS-SPEC-DTL-042 §2.1）
+//! `RealmLifecycleService` 门面 trait（per SPEC-DTL-042 §3 + DTL-042 §5）。
 //!
-//! 硬约束（per RGS-SPEC-DTL-042 §2.1）：
-//! - RealmLifecycleService **不**对外暴露独立接口（FR-LCM-004）
-//! - 6 阶段操作器 trait 由 RealmLifecycleService 内部聚合
-//! - 每个 operator 至少 1 个 `async fn`（per 验收门槛）
-//! - 业务逻辑**不**在本 worktree 实现（属 WF-1-2066 / WF-1-2070 / WF-1-2071）
+//! ## 硬约束（per FR-LCM-004）
 //!
-//! 设计：
-//! - 6 个独立 trait，per OperatorType，便于 PFAU Feature 集成
-//! - RealmLifecycleService 聚合 6 个 Arc<dyn ...Operator> 引用
-//! - execute_phase 统一入口（内部调 SagaOrchestrator）
+//! `RealmLifecycleService` **不**对外暴露独立接口；仅经 `AdminService` 转发。
+//! `lib.rs` 不得 `re-export` tonic::include_proto 入口。
+//!
+//! ## 6 操作器签名
+//!
+//! 实际实现由后续 worktree（WF-1-2066/2067/2068/2071/2073）补齐；
+//! 本 worktree（WF-1-2070）只提供 trait 签名 + 默认实现占位 + drill 测试可引用。
 
 use async_trait::async_trait;
-use std::sync::Arc;
-use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-use super::error::Result;
-use super::saga::{LcmPhase, SagaContext, SagaOrchestrator};
+use super::{
+    ApprovalRef, OperatorId, RealmId, RealmStatus, RequestId, SagaRunId, TraceId,
+};
 
-/// LCM 操作输入（per 6 阶段抽象）
-#[derive(Debug, Clone)]
-pub struct LcmOperatorInput {
-    /// 操作者 ID（管理员）
-    pub operator_id: Uuid,
-    /// 请求 ID（幂等键）
-    pub request_id: Uuid,
-    /// 目标服务器/区服 ID
-    pub realm_id: Uuid,
-    /// 附加元数据（JSON 字符串；各操作器按需解析）
-    pub metadata: String,
+// =====================================================================
+// DTO
+// =====================================================================
+
+/// LCM 操作统一请求（per SPEC §3 第 7 条：request_id + operator_id + approval_ref + trace_id）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LifecycleRequest {
+    pub request_id: RequestId,
+    pub operator_id: OperatorId,
+    pub approval_ref: ApprovalRef,
+    pub trace_id: TraceId,
+    pub realm_id: RealmId,
+    /// 操作阶段（由 AdminService 转发时填入；drill 也透传）。
+    pub phase: LifecyclePhase,
 }
 
-impl LcmOperatorInput {
-    pub fn new(operator_id: Uuid, request_id: Uuid, realm_id: Uuid) -> Self {
-        Self {
-            operator_id,
-            request_id,
-            realm_id,
-            metadata: String::new(),
+/// LCM 操作统一响应。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LifecycleResponse {
+    pub run_id: String,
+    pub saga_run_id: Option<SagaRunId>,
+    pub status: RealmStatus,
+    pub started_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+/// 6 阶段枚举（per DTL-042 §4 状态机）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum LifecyclePhase {
+    NewRealm,
+    Scale,
+    Split,
+    Merge,
+    MergeRollback,
+    Retire,
+    Archive,
+}
+
+impl LifecyclePhase {
+    /// 字符串化（用于 Prometheus 标签 `feature_subtype`，per DTL §11.1）。
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::NewRealm => "new_realm",
+            Self::Scale => "scale",
+            Self::Split => "split",
+            Self::Merge => "merge",
+            Self::MergeRollback => "merge_rollback",
+            Self::Retire => "retire",
+            Self::Archive => "archive",
         }
     }
-
-    /// 构造带 metadata 的输入
-    pub fn with_metadata(mut self, metadata: String) -> Self {
-        self.metadata = metadata;
-        self
-    }
 }
 
-/// LCM 操作结果（per 6 阶段抽象）
-#[derive(Debug, Clone)]
-pub struct LcmOperatorOutput {
-    /// 阶段
-    pub phase: LcmPhase,
-    /// 关联资源 ID（如新服 ID / Saga ID）
-    pub resource_id: Option<Uuid>,
-    /// 执行状态描述
-    pub status: String,
-}
+// =====================================================================
+// RealmLifecycleService trait（per FR-LCM-004：仅 AdminService 转发）
+// =====================================================================
 
-// ============================================================================
-// 6 操作器 trait 签名（per RGS-SPEC-DTL-042 §3 第 3 条 + WBS WF-1-2066 §3.1）
-// ============================================================================
-
-/// NewRealm 操作器（开新服）
-#[async_trait]
-pub trait NewRealmOperator: Send + Sync {
-    /// 执行开新服
-    async fn open(&self, input: LcmOperatorInput) -> Result<LcmOperatorOutput>;
-    /// 反向：回收已开服资源（被 SagaOrchestrator 触发）
-    async fn reverse(&self, resource_id: Uuid, reason: String) -> Result<()>;
-}
-
-/// Scale 操作器（扩缩容；含双向）
-#[async_trait]
-pub trait ScaleOperator: Send + Sync {
-    /// 执行扩缩容（`delta > 0` = 扩容；`delta < 0` = 缩容）
-    async fn scale(&self, input: LcmOperatorInput, delta: i32) -> Result<LcmOperatorOutput>;
-    /// 反向：回滚到扩缩容前状态
-    async fn reverse(&self, resource_id: Uuid, prior_replicas: i32) -> Result<()>;
-}
-
-/// Split 操作器（分服）
-#[async_trait]
-pub trait SplitOperator: Send + Sync {
-    /// 执行分服（从源服拆出新区服）
-    async fn split(&self, input: LcmOperatorInput, target_realm_id: Uuid) -> Result<LcmOperatorOutput>;
-    /// 反向：合回源服（清理已分出的子服）
-    async fn reverse(&self, source_realm_id: Uuid, child_realm_id: Uuid) -> Result<()>;
-}
-
-/// Merge 操作器（合服）+ MergeRollback 子操作
-#[async_trait]
-pub trait MergeOperator: Send + Sync {
-    /// 执行合服（多服合入目标服）
-    async fn merge(
-        &self,
-        input: LcmOperatorInput,
-        target_realm_id: Uuid,
-        source_realm_ids: Vec<Uuid>,
-    ) -> Result<LcmOperatorOutput>;
-    /// 反向：合服回退（per DTL §3.5 合服回退窗口期 7~30 天）
-    async fn reverse(
-        &self,
-        target_realm_id: Uuid,
-        source_realm_ids: Vec<Uuid>,
-    ) -> Result<()>;
-    /// MergeRollback 子操作：合服锁定后撤回（不同于 reverse，可触发重新合并）
-    async fn rollback(&self, target_realm_id: Uuid, locked_at_ms: i64) -> Result<()>;
-}
-
-/// Retire 操作器（退服）
-#[async_trait]
-pub trait RetireOperator: Send + Sync {
-    /// 执行退服
-    async fn retire(&self, input: LcmOperatorInput) -> Result<LcmOperatorOutput>;
-    /// 反向：恢复已退服
-    async fn reverse(&self, resource_id: Uuid) -> Result<()>;
-}
-
-/// Archive 操作器（归档 + 冷热分层占位）
-#[async_trait]
-pub trait ArchiveOperator: Send + Sync {
-    /// 执行归档
-    async fn archive(&self, input: LcmOperatorInput) -> Result<LcmOperatorOutput>;
-    /// 反向：从归档恢复（演练 / 客服查询）
-    async fn reverse(&self, resource_id: Uuid) -> Result<()>;
-}
-
-// ============================================================================
-// RealmLifecycleService 聚合（per RGS-SPEC-DTL-042 §2.1 + §2.3）
-// ============================================================================
-
-/// RealmLifecycleService 聚合（**内部模块，不分发独立接口**）
+/// 6 阶段操作器门面 trait。
 ///
-/// 6 操作器 trait 实现由 WF-1-2066 / WF-1-2070 / WF-1-2071 填充；
-/// 本 worktree 只持有 trait object 占位 + SagaOrchestrator 编排入口。
-pub struct RealmLifecycleService {
-    pub new_realm: Arc<dyn NewRealmOperator>,
-    pub scale: Arc<dyn ScaleOperator>,
-    pub split: Arc<dyn SplitOperator>,
-    pub merge: Arc<dyn MergeOperator>,
-    pub retire: Arc<dyn RetireOperator>,
-    pub archive: Arc<dyn ArchiveOperator>,
-    pub saga: Arc<SagaOrchestrator>,
+/// 实际实现由 `ClusterOpsService` 内部组合 `operations::*` + `saga::orchestrator` 适配。
+/// 本 trait **不**对外暴露 gRPC；任何对 `RealmLifecycleService::*` 方法的调用必须经
+/// `AdminService` 转发到 `ClusterOpsService` PFAU 编排。
+#[async_trait]
+pub trait RealmLifecycleService: Send + Sync {
+    /// 开新服（AC-LCM-001）。
+    async fn new_realm(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 扩缩容（AC-LCM-002；scale_up / scale_down 双向）。
+    async fn scale(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 分服（AC-LCM-003）。
+    async fn split(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 合服（AC-LCM-004）。
+    async fn merge(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 合服回退（AC-LCM-005；FR-LCM-062 锁定后触发回退窗口期 7-30 天）。
+    async fn merge_rollback(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 退场（AC-LCM-006；触发 RBAC 查询通道限制 + 30-90 天后启动归档）。
+    async fn retire(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
+
+    /// 归档（AC-LCM-007；冷热分层 + N+2 冗余；不删数据）。
+    async fn archive(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse>;
 }
 
-impl RealmLifecycleService {
-    pub fn new(
-        new_realm: Arc<dyn NewRealmOperator>,
-        scale: Arc<dyn ScaleOperator>,
-        split: Arc<dyn SplitOperator>,
-        merge: Arc<dyn MergeOperator>,
-        retire: Arc<dyn RetireOperator>,
-        archive: Arc<dyn ArchiveOperator>,
-        saga: Arc<SagaOrchestrator>,
-    ) -> Self {
-        Self {
-            new_realm,
-            scale,
-            split,
-            merge,
-            retire,
-            archive,
-            saga,
-        }
-    }
+// =====================================================================
+// InMemoryService 占位实现（供 UT + drill test 引用；实际实现由后续 worktree）
+// =====================================================================
 
-    /// 统一 LCM 入口（被 AdminService 转发调用）
-    ///
-    /// 注：业务执行由 SagaOrchestrator 编排 6 操作器；本方法只做参数校验 + 委托
-    /// 真实路径见 saga::orchestrator::SagaOrchestrator::execute
-    pub async fn execute_phase(
-        &self,
-        phase: LcmPhase,
-        ctx: SagaContext,
-    ) -> Result<LcmOperatorOutput> {
-        ctx.validate()?;
-        self.saga.dispatch(phase, ctx, self).await
+/// `NoopRealmLifecycleService` —— 默认占位实现。
+///
+/// 所有方法返回 `Error::Validation` 标记"未实现"；drill 测试**不**调用这些方法，
+/// drill 走自己的 `DrillExecutor` + `sandbox_*` 路径（per FR-LCM-003）。
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NoopRealmLifecycleService;
+
+#[async_trait]
+impl RealmLifecycleService for NoopRealmLifecycleService {
+    async fn new_realm(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("new_realm", &req)
     }
+    async fn scale(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("scale", &req)
+    }
+    async fn split(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("split", &req)
+    }
+    async fn merge(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("merge", &req)
+    }
+    async fn merge_rollback(
+        &self,
+        req: LifecycleRequest,
+    ) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("merge_rollback", &req)
+    }
+    async fn retire(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("retire", &req)
+    }
+    async fn archive(&self, req: LifecycleRequest) -> crate::Result<LifecycleResponse> {
+        unimplemented_marker("archive", &req)
+    }
+}
+
+fn unimplemented_marker(
+    op: &str,
+    _req: &LifecycleRequest,
+) -> crate::Result<LifecycleResponse> {
+    Err(crate::Error::Validation(format!(
+        "RealmLifecycleService::{op} pending impl in WF-1-2066/2071/2073"
+    )))
 }
 
 #[cfg(test)]
@@ -186,100 +157,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn operator_input_constructs() {
-        let op = Uuid::new_v4();
-        let req = Uuid::new_v4();
-        let realm = Uuid::new_v4();
-        let input = LcmOperatorInput::new(op, req, realm);
-        assert_eq!(input.operator_id, op);
-        assert_eq!(input.request_id, req);
-        assert_eq!(input.realm_id, realm);
-        assert!(input.metadata.is_empty());
+    fn phase_as_str_matches_dtl_feature_subtype() {
+        // DTL §11.1：feature_subtype 标签值
+        assert_eq!(LifecyclePhase::NewRealm.as_str(), "new_realm");
+        assert_eq!(LifecyclePhase::Scale.as_str(), "scale");
+        assert_eq!(LifecyclePhase::Split.as_str(), "split");
+        assert_eq!(LifecyclePhase::Merge.as_str(), "merge");
+        assert_eq!(LifecyclePhase::MergeRollback.as_str(), "merge_rollback");
+        assert_eq!(LifecyclePhase::Retire.as_str(), "retire");
+        assert_eq!(LifecyclePhase::Archive.as_str(), "archive");
     }
 
-    #[test]
-    fn operator_input_with_metadata() {
-        let input = LcmOperatorInput::new(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4())
-            .with_metadata("{}".to_string());
-        assert_eq!(input.metadata, "{}");
-    }
-
-    /// 空操作器 stub（仅占位以满足 trait 签名约束）
-    pub struct EmptyOperator;
-
-    #[async_trait]
-    impl NewRealmOperator for EmptyOperator {
-        async fn open(&self, _input: LcmOperatorInput) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(&self, _resource_id: Uuid, _reason: String) -> Result<()> {
-            unimplemented!()
-        }
-    }
-
-    #[async_trait]
-    impl ScaleOperator for EmptyOperator {
-        async fn scale(&self, _input: LcmOperatorInput, _delta: i32) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(&self, _resource_id: Uuid, _prior_replicas: i32) -> Result<()> {
-            unimplemented!()
-        }
-    }
-
-    #[async_trait]
-    impl SplitOperator for EmptyOperator {
-        async fn split(
-            &self,
-            _input: LcmOperatorInput,
-            _target_realm_id: Uuid,
-        ) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(&self, _source_realm_id: Uuid, _child_realm_id: Uuid) -> Result<()> {
-            unimplemented!()
-        }
-    }
-
-    #[async_trait]
-    impl MergeOperator for EmptyOperator {
-        async fn merge(
-            &self,
-            _input: LcmOperatorInput,
-            _target_realm_id: Uuid,
-            _source_realm_ids: Vec<Uuid>,
-        ) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(
-            &self,
-            _target_realm_id: Uuid,
-            _source_realm_ids: Vec<Uuid>,
-        ) -> Result<()> {
-            unimplemented!()
-        }
-        async fn rollback(&self, _target_realm_id: Uuid, _locked_at_ms: i64) -> Result<()> {
-            unimplemented!()
-        }
-    }
-
-    #[async_trait]
-    impl RetireOperator for EmptyOperator {
-        async fn retire(&self, _input: LcmOperatorInput) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(&self, _resource_id: Uuid) -> Result<()> {
-            unimplemented!()
-        }
-    }
-
-    #[async_trait]
-    impl ArchiveOperator for EmptyOperator {
-        async fn archive(&self, _input: LcmOperatorInput) -> Result<LcmOperatorOutput> {
-            unimplemented!()
-        }
-        async fn reverse(&self, _resource_id: Uuid) -> Result<()> {
-            unimplemented!()
+    #[tokio::test]
+    async fn noop_service_returns_validation_error() {
+        let svc = NoopRealmLifecycleService;
+        let req = LifecycleRequest {
+            request_id: "r-1".to_string(),
+            operator_id: "op-1".to_string(),
+            approval_ref: None,
+            trace_id: "t-1".to_string(),
+            realm_id: "rlm-1".to_string(),
+            phase: LifecyclePhase::NewRealm,
+        };
+        for r in [
+            svc.new_realm(req.clone()).await,
+            svc.scale(req.clone()).await,
+            svc.split(req.clone()).await,
+            svc.merge(req.clone()).await,
+            svc.merge_rollback(req.clone()).await,
+            svc.retire(req.clone()).await,
+            svc.archive(req.clone()).await,
+        ] {
+            assert!(matches!(r, Err(crate::Error::Validation(_))));
         }
     }
 }

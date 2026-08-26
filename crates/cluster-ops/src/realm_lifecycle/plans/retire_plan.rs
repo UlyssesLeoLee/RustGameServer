@@ -1,161 +1,56 @@
-//! retire_plan entity（per M-2068.7）
+//! `retire_plan` 计划表（per DTL-042 §7.2 + IMPL §3.3 M-2068.3 + SPEC §3 第 8 条）。
 //!
-//! 退场计划；query_channel_rbac JSONB 配置退场后查询通道的允许角色（per FR-LCM-007）
-//! 默认 ["cs_agent", "sre", "legal"]；archive_threshold_days CHECK 30-90
+//! ## 硬约束
+//!
+//! `query_channel_rbac` 角色配置默认 `["cs_agent", "sre", "legal"]`；
+//! 退场后查询通道**仅**对配置角色开放（其他角色 → `Error::RetiredQueryDenied`）。
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use sqlx::{PgPool, Row};
-use uuid::Uuid;
 
-use crate::Result;
+use crate::realm_lifecycle::{
+    error::{Error, Result},
+    RealmId,
+};
 
-/// retire_plan 状态机
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum RetirePlanStatus {
-    Draft,
-    Validated,
-    Executing,
-    Done,
-    Failed,
-}
+use super::super::operations::retire::DEFAULT_RETIRE_QUERY_ROLES;
 
-impl RetirePlanStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            RetirePlanStatus::Draft => "draft",
-            RetirePlanStatus::Validated => "validated",
-            RetirePlanStatus::Executing => "executing",
-            RetirePlanStatus::Done => "done",
-            RetirePlanStatus::Failed => "failed",
-        }
-    }
-
-    pub fn parse(s: &str) -> Self {
-        match s {
-            "draft" => RetirePlanStatus::Draft,
-            "validated" => RetirePlanStatus::Validated,
-            "executing" => RetirePlanStatus::Executing,
-            "done" => RetirePlanStatus::Done,
-            "failed" => RetirePlanStatus::Failed,
-            _ => RetirePlanStatus::Draft,
-        }
-    }
-}
-
-/// RetirePlan entity（per RGS-SPEC-DTL-042 §2 表 5/6）
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetirePlan {
-    pub id: Uuid,
-    pub run_id: Uuid,
-    pub target_realm_id: Uuid,
-    pub archive_threshold_days: i32,
-    pub query_channel_rbac: JsonValue,
-    pub status: RetirePlanStatus,
+    pub plan_id: String,
+    pub realm_id: RealmId,
+    pub query_channel_rbac: Vec<String>,
+    /// 退场后归档启动阈值（天，per SPEC §8 实测参数 30-90 天）。
+    pub archive_threshold_days: u32,
     pub created_at: DateTime<Utc>,
+    pub created_by: String,
 }
 
 impl RetirePlan {
-    /// 工厂：新建 draft 状态 plan；默认 rbac = ["cs_agent","sre","legal"]
-    pub fn new(
-        run_id: Uuid,
-        target_realm_id: Uuid,
-        archive_threshold_days: i32,
-    ) -> Self {
-        assert!(
-            (30..=90).contains(&archive_threshold_days),
-            "archive_threshold_days 必须在 30-90 之间（DDL CHECK 约束）"
-        );
-        Self {
-            id: Uuid::new_v4(),
-            run_id,
-            target_realm_id,
-            archive_threshold_days,
-            query_channel_rbac: serde_json::json!(["cs_agent", "sre", "legal"]),
-            status: RetirePlanStatus::Draft,
-            created_at: Utc::now(),
+    /// SPEC §3 第 8 条锚定：默认角色 = cs_agent / sre / legal。
+    pub fn default_query_roles() -> Vec<String> {
+        DEFAULT_RETIRE_QUERY_ROLES
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    /// SPEC §3 第 8 条锚定：判定角色是否被允许访问退场后查询通道。
+    pub fn is_role_allowed(&self, role: &str) -> bool {
+        self.query_channel_rbac.iter().any(|r| r == role)
+    }
+
+    /// 验证 query_channel_rbac 配置。
+    pub fn validate_rbac(&self) -> Result<()> {
+        for role in &self.query_channel_rbac {
+            if role.is_empty() {
+                return Err(Error::InvalidRetireRbac {
+                    plan: self.plan_id.clone(),
+                    role: "<empty>".to_string(),
+                });
+            }
         }
-    }
-
-    /// 自定义 query_channel_rbac（覆盖默认三角色）
-    pub fn with_query_channel_rbac(mut self, rbac: JsonValue) -> Self {
-        self.query_channel_rbac = rbac;
-        self
-    }
-}
-
-/// PgRepository 骨架
-pub struct PgRetirePlanRepository {
-    pool: PgPool,
-}
-
-impl PgRetirePlanRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-fn row_to_retire_plan(row: sqlx::postgres::PgRow) -> RetirePlan {
-    let status_str: String = row.get("status");
-    RetirePlan {
-        id: row.get("id"),
-        run_id: row.get("run_id"),
-        target_realm_id: row.get("target_realm_id"),
-        archive_threshold_days: row.get("archive_threshold_days"),
-        query_channel_rbac: row.get("query_channel_rbac"),
-        status: RetirePlanStatus::parse(&status_str),
-        created_at: row.get("created_at"),
-    }
-}
-
-#[async_trait]
-impl super::RetirePlanRepository for PgRetirePlanRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<RetirePlan>> {
-        let row = sqlx::query(
-            "SELECT id, run_id, target_realm_id, archive_threshold_days, query_channel_rbac, status, created_at \
-             FROM retire_plan WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_retire_plan))
-    }
-
-    async fn find_by_run_id(&self, run_id: Uuid) -> Result<Option<RetirePlan>> {
-        let row = sqlx::query(
-            "SELECT id, run_id, target_realm_id, archive_threshold_days, query_channel_rbac, status, created_at \
-             FROM retire_plan WHERE run_id = $1",
-        )
-        .bind(run_id)
-        .fetch_optional(&self.pool)
-        .await?;
-        Ok(row.map(row_to_retire_plan))
-    }
-
-    async fn save(&self, entity: &RetirePlan) -> Result<RetirePlan> {
-        sqlx::query(
-            "INSERT INTO retire_plan \
-             (id, run_id, target_realm_id, archive_threshold_days, query_channel_rbac, status, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7) \
-             ON CONFLICT (id) DO UPDATE SET \
-                target_realm_id = EXCLUDED.target_realm_id, \
-                archive_threshold_days = EXCLUDED.archive_threshold_days, \
-                query_channel_rbac = EXCLUDED.query_channel_rbac, \
-                status = EXCLUDED.status",
-        )
-        .bind(entity.id)
-        .bind(entity.run_id)
-        .bind(entity.target_realm_id)
-        .bind(entity.archive_threshold_days)
-        .bind(&entity.query_channel_rbac)
-        .bind(entity.status.as_str())
-        .bind(entity.created_at)
-        .execute(&self.pool)
-        .await?;
-        Ok(entity.clone())
+        Ok(())
     }
 }
 
@@ -163,36 +58,48 @@ impl super::RetirePlanRepository for PgRetirePlanRepository {
 mod tests {
     use super::*;
 
-    #[test]
-    fn retire_plan_status_roundtrip() {
-        for s in [
-            RetirePlanStatus::Draft,
-            RetirePlanStatus::Validated,
-            RetirePlanStatus::Executing,
-            RetirePlanStatus::Done,
-            RetirePlanStatus::Failed,
-        ] {
-            assert_eq!(RetirePlanStatus::parse(s.as_str()), s);
+    fn sample() -> RetirePlan {
+        RetirePlan {
+            plan_id: "rp-1".to_string(),
+            realm_id: "rlm-1".to_string(),
+            query_channel_rbac: RetirePlan::default_query_roles(),
+            archive_threshold_days: 60,
+            created_at: Utc::now(),
+            created_by: "sre-1".to_string(),
         }
     }
 
     #[test]
-    fn retire_plan_factory_default_rbac() {
-        let p = RetirePlan::new(Uuid::new_v4(), Uuid::new_v4(), 60);
-        assert_eq!(p.archive_threshold_days, 60);
-        assert_eq!(p.query_channel_rbac, serde_json::json!(["cs_agent", "sre", "legal"]));
+    fn default_roles_match_spec() {
+        let roles = RetirePlan::default_query_roles();
+        assert_eq!(roles, vec!["cs_agent", "sre", "legal"]);
     }
 
     #[test]
-    fn retire_plan_factory_custom_rbac() {
-        let p = RetirePlan::new(Uuid::new_v4(), Uuid::new_v4(), 45)
-            .with_query_channel_rbac(serde_json::json!(["cs_agent", "legal"]));
-        assert_eq!(p.query_channel_rbac, serde_json::json!(["cs_agent", "legal"]));
+    fn allowed_role_passes() {
+        let p = sample();
+        assert!(p.is_role_allowed("cs_agent"));
+        assert!(p.is_role_allowed("sre"));
+        assert!(p.is_role_allowed("legal"));
     }
 
     #[test]
-    #[should_panic(expected = "archive_threshold_days 必须在 30-90 之间")]
-    fn retire_plan_factory_rejects_threshold_out_of_range() {
-        let _ = RetirePlan::new(Uuid::new_v4(), Uuid::new_v4(), 100);
+    fn non_allowed_role_rejected() {
+        let p = sample();
+        assert!(!p.is_role_allowed("player"));
+        assert!(!p.is_role_allowed("anonymous"));
+    }
+
+    #[test]
+    fn validate_rbac_passes_for_valid_plan() {
+        assert!(sample().validate_rbac().is_ok());
+    }
+
+    #[test]
+    fn validate_rbac_rejects_empty_role() {
+        let mut p = sample();
+        p.query_channel_rbac.push(String::new());
+        let r = p.validate_rbac();
+        assert!(matches!(r, Err(Error::InvalidRetireRbac { .. })));
     }
 }
