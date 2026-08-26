@@ -1,9 +1,9 @@
-# RGS-WBS-001 L4 任务进度表 v0.10
+# RGS-WBS-001 L4 任务进度表 v0.11
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD3 |
-| 版本 | 0.10（v0.9 → v0.10 升版；§4 line 108-111 4 行 17:04 子代理批次（A-08/D-09/D-10/D-11）状态同步 done，per Ulysses 2026-08-26 19:05 JST "开子代理并行完成所有 phase" 指令；merge commit 已在 main 落地（`d8c922c` / `948cbfd` / `b99aff6` / `eccf0ab`），标题行 v0.9 → v0.10 同步修复 87a6472 类 bug；§3 汇总 18 done → 22 done / 128 pending → 124 pending（合计 146 不变）；本版本不重命名文件名，保留 v0.4.md）|
+| 版本 | 0.11（v0.10 → v0.11 升版；§A.2 + §A.3 已知缺口实测解锁，per Ulysses 2026-08-26 21:00 JST 确认 PG 18.6 在 k3s 跑通 + 主对话 21:01-21:02 JST k3s 实测：① §A.2 PG 18.6 装入解锁：k3s `ulyssespc` Ready (4d9h) + PG pod `postgres-744457577c-rcglr` 1/1 Running (102m) + 版本 `18.6 (Debian 18.6-1.pgdg13+2)` 严格满足 DEC-009 + 6 DB + 6 user 全就位 ② §A.3 5 域 gRPC 启部分解锁：6 binary 19-20m Running；**剩余未决** = rgs-web 接真实 gRPC + 5 域 Lead DDD Review 真实签字 + RGS-TEST-STRATEGY phase 2 启动 + RGS-DEC-Q003 §7 12 角色签字；§3 汇总不变（22 done / 124 pending / 合计 146）；本版本不重命名文件名，保留 v0.4.md）|
 | 依据 | RGS-WBS-001 v0.3 §2A L4 任务清单 + §6.3 进度字段 + §13 跨会话恢复 + RGS-OPEN-QA-001-ACTIONS v0.3 |
 | 状态 | 🟠 **占位**（NO-GO 未解除前为空表；G-CODE-06 实测通过后由 wbs_task_progress.ps1 自动填充）|
 | 责任人 | Ulysses（一人公司 12 角色兼任 per DEC-008）|
@@ -25,6 +25,7 @@
 | **0.9** | **2026-08-26** | **架构师(Mavis 接手 agent per DEC-008)** | **v0.7 标题行 bug 修复 + 4 新 L4 任务入表**(per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令 + Mavis 派 4 worker)：① 标题行 v0.7 → v0.9 同步（修复 `87a6472` 漏改 bug）② §3 汇总 142 → 146 L4 任务，pending 137 → 141，5 done 不变 ③ §4 详细表新增 4 行 pending（WF-1-A-08 DTL v0.2 升版 / WF-1-D-09 LEAD-RACI v1.1 升版 / WF-1-D-10 IMPL-PLAN v0.2 升版 / WF-1-D-11 本任务 WBS-001 v0.9 升版）④ 新增 §A 已知缺口 3 段（DTL v0.2 升版进度 / PG 18.6 装入 / 5 域 gRPC 启）。修订历史 v0.9 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.9），避免 git mv 触发无关 diff。 |
 | **0.9 sync** | **2026-08-26 18:30 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **§4 13 行 OPEN-QA-001 重量级任务同步 done（per Ulysses 18:21 JST 转移主对话→worker）**：merge commit 已在 main 落地（`aea7a69` ~ `5d030b5`），§3 汇总同步 5 done → 18 done / 141 pending → 128 pending（合计 146 不变）；§4 13 行 status pending → done / progress 0% → 100%，每行补 `[已合并: <merge hash>]` 标记；不动 §A 已知缺口 3 段。修订历史 v0.9 sync 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.9 sync），避免 git mv 触发无关 diff。 |
 | **v0.10** | **2026-08-26 19:05 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **§4 4 行 17:04 子代理批次（A-08/D-09/D-10/D-11）状态同步 done**（per Ulysses 19:05 JST "开子代理并行完成所有 phase" 指令）：merge commit 已在 main 落地（`d8c922c` / `948cbfd` / `b99aff6` / `eccf0ab`），§3 汇总同步 18 done → 22 done / 128 pending → 124 pending（合计 146 不变）；§4 line 108-111 status pending → done / progress 0% → 100%，每行补 merge commit hash 标记。审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.10），避免 git mv 触发无关 diff。 |
+| **v0.11** | **2026-08-26 21:05 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **§A.2 + §A.3 已知缺口实测解锁**（per Ulysses 21:00 JST 确认 PG 18.6 在 k3s 跑通 + 主对话 21:01-21:02 JST k3s 实测 6 域 DB + 6 binary 全就位）：① §A.2 PG 18.6 装入实测解锁：k3s `ulyssespc` Ready (4d9h) + PG pod `postgres-744457577c-rcglr` 1/1 Running (102m) + 版本 `18.6 (Debian 18.6-1.pgdg13+2)` 严格满足 DEC-009 + 6 DB + 6 user 全就位（admin/cluster_ops/economy/match/player/social）+ local-path 5Gi PVC + 端口 15432 ② §A.3 5 域 gRPC 启部分解锁：6 binary 19-20m Running（admin/cluster-ops/economy/match/player/social）+ OTel/Prometheus/Grafana 全 Running；**剩余未决** = rgs-web 接真实 gRPC（B 类 scope）+ 5 域 Lead DDD Review 真实签字 + RGS-TEST-STRATEGY phase 2 启动 + RGS-DEC-Q003 §7 12 角色签字。审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.11），避免 git mv 触发无关 diff。 |
 
 ---
 
@@ -247,21 +248,40 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 - **GBK 编码约束（保留）**：不可用 PowerShell `Get-Content -Encoding UTF8` 破坏 GBK 编码；如需写 GBK 文件，须用 `python -c "open(f, 'wb').write(text.encode('gbk'))"` 写入（但本清单的 8 份都不是 GBK）
 
 ### §A.2 PG 18.6 装入（per Ulysses 2026-08-26 16:58/16:59 JST 硬约束）
-- **硬约束**：rust 1.98.0 ✅ verified（`rustc 1.98.0 (88d9e12ae 2026-08-18)`），PostgreSQL 18.6 待装
+- **硬约束**：rust 1.98.0 ✅ verified（`rustc 1.98.0 (88d9e12ae 2026-08-18)`），PostgreSQL 18.6 ✅ verified（`18.6 (Debian 18.6-1.pgdg13+2)`）
 - **SOP 文档**：`docs/12-工作流/RGS-PG18-INSTALL-SOP-2026-08-26.md` v0.2 已 commit（commit `bd940d6`）
-- **当前状态**：Ulysses 在 WSL Ubuntu 执行 4 条 PGDG 装命令中（预计 5-8 分钟）
-- **阻塞下游**：
-  - 5 域 binary + cluster-ops 启（per `RGS-GM-V0.3-DEPLOY-SOP-2026-08-26.md` v0.1 + `RGS-PG18-INSTALL-SOP-2026-08-26.md` v0.2）
-  - rgs-web 接 5 域真实 gRPC（per `RGS-WEB-DETAILED-DESIGN-2026-08-26_v0.1.md` §5）
-  - 5 域 Lead 真实签字（v1.1 RACI 现在是"待签字"占位，PG 装完 + 5 域 binary 跑通后才能真实签字）
-- **回退方案**：**无**——Ulysses 16:59 明确"装不到 18.6 跟我协商"，禁止擅自降级到 18.0/18.1/18.2 或 sqlite/InMemory
+- **当前状态（✅ 2026-08-26 21:01 JST 实测解锁）**：Ulysses 21:00 JST 确认 PG 18.6 在 k3s 里跑通；**实测就位**（per WSL Ubuntu 21:01-21:02 JST k3s kubectl exec）：
+  - k3s node `ulyssespc` Ready（4d9h uptime，v1.36.3+k3s1）
+  - PG pod `postgres-744457577c-rcglr` **1/1 Running**（102m，3 次重启最近 62m 前，per phase-0-5 step 4 部署）
+  - PG 版本 **`18.6 (Debian 18.6-1.pgdg13+2)`** —— 严格满足 DEC-009
+  - **6 DB 全建**：`admin_db` / `cluster_ops_db` / `economy_db` / `match_db` / `player_db` / `social_db`（per `22-postgres-configmap.yaml` 初始化 SQL）
+  - **6 user 全建**：`admin_user` / `cluster_ops_user` / `economy_user` / `match_user` / `player_user` / `social_user`
+  - local-path 5Gi PVC 持久化（per `21-postgres-pvc.yaml`）
+  - 端口 15432（per `24-postgres-service.yaml`，避 Windows 5432 冲突）
+- **下游解锁**：
+  - ✅ 5 域 binary + cluster-ops 启（per §A.3 实测 6 binary 19-20m Running）
+  - ⏳ rgs-web 接 5 域真实 gRPC（per `RGS-WEB-DETAILED-DESIGN-2026-08-26_v0.1.md` §5，B 类 scope）
+  - ⏳ 5 域 Lead 真实签字（v1.1 RACI 现在是"待签字"占位，per §A.3 跑通后真实签字）
+- **回退方案**：**无**——Ulysses 16:59 明确"装不到 18.6 跟我协商"，禁止擅自降级到 18.0/18.1/18.2 或 sqlite/InMemory（已不再适用，18.6 装入解锁）
 
 ### §A.3 5 域 gRPC 启 + DDD Review 反馈闭环
 - **目标**：5 域（player/economy/match/social/admin）+ saga + cluster-ops 共 7 binary 启 + 跨域 gRPC 互通 + 5 域 Lead DDD Review 真实签字
-- **当前状态**：5 域 + cluster-ops binary 已编译（`E:\DevCache\cargo\target\debug\*.exe`，3 分 43 秒，各 18 MB），rgs-web 已跑（`http://127.0.0.1:8788/` PID 14572，10 页面 + 6 API mock）
-- **阻塞**：等 PG 18.6 装入（per §A.2）+ rgs-web 接 gRPC（per B 类 scope Ulysses 决策"等 PG 装完再做"）
+- **当前状态（✅ 2026-08-26 21:01 JST 部分解锁——6 binary 跑通，DDD Review 签字待）**：
+  - **6 binary 全 Running**（per WSL Ubuntu 21:01 JST k3s kubectl get pods）：
+    - `admin-service-57f968f84f-qt2mk` 1/1 Running 19m
+    - `cluster-ops-79d5d98d7c-txxhv` 1/1 Running 19m
+    - `economy-service-5ff9cb6b5f-fgmtk` 1/1 Running 20m
+    - `match-service-745c75c956-jx88w` 1/1 Running 19m
+    - `player-service-799f7fc66f-t6r9m` 1/1 Running 20m
+    - `social-service-5dc4dd6dfd-bprgj` 1/1 Running 19m
+  - rgs-web 已跑（`http://127.0.0.1:8788/`，10 页面 + 6 API mock，per RGS-WEB v0.2-gm 19 页面基础，commit `52c1a83`）—— **未接 5 域真实 gRPC**（mock 模式），B 类 scope Ulysses 决策"等 PG 装完再做"已部分触发
 - **关联**：
-  - `WF-1-D-09` LEAD-RACI v1.1 §3 "5 域 Lead 签字确认表"现在还是占位
-  - `WF-1-D-10` IMPL-PLAN v0.2 §3 RACI 矩阵"全部填 R"是单点占位（per DEC-008 一人公司 12 角色），真实跨域协调待 5 域 binary 跑通后补
-  - RGS-TEST-STRATEGY 4 阶段 phase 2+ 推进（per Ulysses 17:04 JST C 类决策"等 PG 装完再补 integration test"）
+  - `WF-1-D-09` LEAD-RACI v1.1 §3 "5 域 Lead 签字确认表"现在还是占位（**未真实签字**，等 Ulysses DDD Review 阶段做）
+  - `WF-1-D-10` IMPL-PLAN v0.2 §3 RACI 矩阵"全部填 R"是单点占位（per DEC-008 一人公司 12 角色）
+  - RGS-TEST-STRATEGY 4 阶段 phase 2+ 推进（per Ulysses 17:04 JST C 类决策"等 PG 装完再补 integration test"—— **PG 已装入，phase 2 可启动**）
+- **剩余未决**（per Ulysses 21:00 JST PG 装入后 next 阶段）：
+  - rgs-web 接 5 域真实 gRPC（替换 mock）
+  - 5 域 Lead DDD Review 真实签字（v1.1 RACI §3 占位补实）
+  - RGS-TEST-STRATEGY phase 2 推进（integration test 套件）
+  - RGS-DEC-Q003 §7 12 角色签字（per OPEN-QA-001 v0.2 Q-M-01）
 
