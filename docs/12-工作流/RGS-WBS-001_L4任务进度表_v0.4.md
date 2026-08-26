@@ -1,9 +1,9 @@
-# RGS-WBS-001 L4 任务进度表 v0.9
+# RGS-WBS-001 L4 任务进度表 v0.10
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WBS-001-ADD3 |
-| 版本 | 0.9（v0.7 → v0.9 直接升版；修复 `87a6472` v0.7→v0.8 升版遗留的标题行 v0.7 未同步 bug + 4 新 L4 任务入表 WF-1-A-08/D-09/D-10/D-11，per Ulysses 2026-08-26 17:04 JST "开子代理和 worktree 推进" 指令；§3 汇总 142 → 146 L4 任务，pending 137 → 141，5 done 不变；§4 详细表新增 4 行 pending；本版本不重命名文件名，保留 v0.4.md）|
+| 版本 | 0.10（v0.9 → v0.10 升版；§4 line 108-111 4 行 17:04 子代理批次（A-08/D-09/D-10/D-11）状态同步 done，per Ulysses 2026-08-26 19:05 JST "开子代理并行完成所有 phase" 指令；merge commit 已在 main 落地（`d8c922c` / `948cbfd` / `b99aff6` / `eccf0ab`），标题行 v0.9 → v0.10 同步修复 87a6472 类 bug；§3 汇总 18 done → 22 done / 128 pending → 124 pending（合计 146 不变）；本版本不重命名文件名，保留 v0.4.md）|
 | 依据 | RGS-WBS-001 v0.3 §2A L4 任务清单 + §6.3 进度字段 + §13 跨会话恢复 + RGS-OPEN-QA-001-ACTIONS v0.3 |
 | 状态 | 🟠 **占位**（NO-GO 未解除前为空表；G-CODE-06 实测通过后由 wbs_task_progress.ps1 自动填充）|
 | 责任人 | Ulysses（一人公司 12 角色兼任 per DEC-008）|
@@ -24,6 +24,7 @@
 | 0.8 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | P2 3 L4 入表(per Ulysses 09:27 JST '完成剩余工作到 P2' 指令 + RGS-DOCS-HEALTH-2026-08-26 §2)：§3 汇总 142→145 L4 任务(pending 137→140, done 5 不变)，§4 详细表新增 3 行 pending（WF-1-55.77/78/79）。**注：本版本 `87a6472` commit 改了"版本"字段 0.7→0.8，但标题行 `# RGS-WBS-001 L4 任务进度表 v0.7` 漏改，遗留 v0.7 同步 bug**，v0.9 升版时一并修复。修订历史 v0.8 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。|
 | **0.9** | **2026-08-26** | **架构师(Mavis 接手 agent per DEC-008)** | **v0.7 标题行 bug 修复 + 4 新 L4 任务入表**(per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令 + Mavis 派 4 worker)：① 标题行 v0.7 → v0.9 同步（修复 `87a6472` 漏改 bug）② §3 汇总 142 → 146 L4 任务，pending 137 → 141，5 done 不变 ③ §4 详细表新增 4 行 pending（WF-1-A-08 DTL v0.2 升版 / WF-1-D-09 LEAD-RACI v1.1 升版 / WF-1-D-10 IMPL-PLAN v0.2 升版 / WF-1-D-11 本任务 WBS-001 v0.9 升版）④ 新增 §A 已知缺口 3 段（DTL v0.2 升版进度 / PG 18.6 装入 / 5 域 gRPC 启）。修订历史 v0.9 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.9），避免 git mv 触发无关 diff。 |
 | **0.9 sync** | **2026-08-26 18:30 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **§4 13 行 OPEN-QA-001 重量级任务同步 done（per Ulysses 18:21 JST 转移主对话→worker）**：merge commit 已在 main 落地（`aea7a69` ~ `5d030b5`），§3 汇总同步 5 done → 18 done / 141 pending → 128 pending（合计 146 不变）；§4 13 行 status pending → done / progress 0% → 100%，每行补 `[已合并: <merge hash>]` 标记；不动 §A 已知缺口 3 段。修订历史 v0.9 sync 审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.9 sync），避免 git mv 触发无关 diff。 |
+| **v0.10** | **2026-08-26 19:05 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **§4 4 行 17:04 子代理批次（A-08/D-09/D-10/D-11）状态同步 done**（per Ulysses 19:05 JST "开子代理并行完成所有 phase" 指令）：merge commit 已在 main 落地（`d8c922c` / `948cbfd` / `b99aff6` / `eccf0ab`），§3 汇总同步 18 done → 22 done / 128 pending → 124 pending（合计 146 不变）；§4 line 108-111 status pending → done / progress 0% → 100%，每行补 merge commit hash 标记。审批者 = 架构师(Mavis 接手 agent per DEC-008) per 2026-08-26 08:40 JST 代签新规则。**本版本不重命名文件名**（保留 v0.4.md 文件名，只是 head 升 v0.10），避免 git mv 触发无关 diff。 |
 
 ---
 
@@ -67,9 +68,9 @@ pending → in_progress (start) → done (done)
 |---|---|---|---|---|---|
 | WF-0 | 2 | 2 | 0 | 0 | 0 |
 | WF-0.5 | 8 | 4 | 0 | 4 | 0 |
-| WF-1 | 130 | 116 | 0 | 14 | 0 |
+| WF-1 | 130 | 112 | 0 | 18 | 0 |
 | WF-2 ~ WF-7 | 6 | 6 | 0 | 0 | 0 |
-| **合计** | **146** | **128** | **0** | **18** | **0** |
+| **合计** | **146** | **124** | **0** | **22** | **0** |
 
 > **注**：WF-0 / WF-7 等 9 个 stage 大类行不计入 L4 任务数；实际 L4 任务数 = 142 - 7（阶段占位）= 135。详见 `wbs_list.ps1 -Summary` 输出。
 >
@@ -80,6 +81,8 @@ pending → in_progress (start) → done (done)
 > **v0.8 变化**：`87a6472` §3 汇总 142 → 145 L4 任务（+3 来自 WF-1-55.77/78/79 P2），pending 137 → 140。
 >
 > **v0.9 变化**（本版）：§3 汇总 142 → 146 L4 任务（修复 v0.7 标题行同步 bug + +4 来自 WF-1-A-08/D-09/D-10/D-11 Ulysses 17:04 JST 子代理推进），pending 137 → 141。
+>
+> **v0.10 变化**（本版）：§3 汇总 18 done → 22 done / 128 pending → 124 pending（合计 146 不变），per WF-1-A-08/D-09/D-10/D-11 17:04 JST 4 行 merge commit 在 main 落地（`d8c922c` / `948cbfd` / `b99aff6` / `eccf0ab`），§4 line 108-111 状态同步 done / 100%。
 
 ## 4. L4 任务详细进度表
 
