@@ -35,8 +35,9 @@ pub mod proto;
 
 pub mod db;
 
-// M-2071 PREREQ：realm_lifecycle Feature 子模块
-// (per RGS-SPEC-DTL-042 §2 + DTL-031 §1.1，AD 限界上下文扩展)
+// ===== WBS L4 #2074（per RGS-IMPL-PLAN-LCM-001 v0.1 §3.7 PH-6）=====
+// 归档冷热分层 + N+2 冗余 + GDPR "被遗忘权" 删除通路
+// 硬约束：FR-LCM-081 归档不删数据 / NFR-SE-010 双层审计 / RSK-LCM-005 N+2
 pub mod realm_lifecycle;
 
 pub mod common {

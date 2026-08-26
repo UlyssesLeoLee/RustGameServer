@@ -32,9 +32,7 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 # 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
 shared-platform = { path = "../shared-platform" }
-# M-2071.4 OLU 上报必经通道（per RGS-SPEC-DTL-042 §3 NFR-LCM-007 硬约束）
-rgs-arc-olu = { path = "../rgs-arc-olu" }
-# M-2071.5 10 项 rgs_lcm_* 指标（per SPEC §4 + DTL §11.1）
+# WF-1-2074 启用：Prometheus metrics (per RGS-SPEC-DTL-042 §4 + DTL-042 §11.1)
 prometheus = "0.13"
 
 [build-dependencies]

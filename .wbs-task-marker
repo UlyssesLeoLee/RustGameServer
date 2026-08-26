@@ -1,46 +1,30 @@
 {
-  "l4_id": "WF-1-2073",
-  "task": "LCM 与业务 service gRPC 集成 + 退场后 RBAC 通道开启",
-  "owner": "Admin Lead + 各域 Lead",
-  "tokens": "730K",
+  "l4_id": "WF-1-2074",
+  "task": "归档冷热分层 + N+2 冗余 + GDPR 删除通路实测",
+  "owner": "DBA + 法务",
+  "tokens": "440K",
   "spec": "SPEC-DTL-042",
   "dtl": "DTL-042",
-  "branch": "wbs/WF-1-2073",
+  "branch": "wbs/WF-1-2074",
   "status": "done",
   "progress": 100,
   "started_at": "2026-08-25T03:29:38.765Z",
-  "updated_at": "2026-08-25T16:08:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-2073",
-  "completion": {
-    "m_tasks": [
-      "M-2073.PREREQ: 模块骨架 (mod/service/error/saga/plans)",
-      "M-2073.1: rgs-player-service gRPC client 集成",
-      "M-2073.2: rgs-economy-service gRPC client 集成",
-      "M-2073.3: rgs-social-service gRPC client 集成",
-      "M-2073.4: 退场后 RBAC 查询通道 (cs_agent/sre/legal)",
-      "M-2073.5: 跨域 Saga 7 步 IT (23 cases)",
-      "M-2073.6: 100 万玩家级资产快照 Load (1M snapshot <100ms)"
+  "updated_at": "2026-08-25T12:34:21.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2074",
+  "requires_explicit_sign": true,
+  "sign_basis": "RGS-SPEC-DTL-042 §4.3 + RGS-ADR-0055 §4.3 (资金/合规关键标注 - GDPR 删除通路)",
+  "deliverables": {
+    "code": [
+      "crates/cluster-ops/src/realm_lifecycle/mod.rs",
+      "crates/cluster-ops/src/realm_lifecycle/error.rs",
+      "crates/cluster-ops/src/realm_lifecycle/state.rs",
+      "crates/cluster-ops/src/realm_lifecycle/metrics.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/mod.rs",
+      "crates/cluster-ops/src/realm_lifecycle/plans/archive_policy.rs",
+      "crates/cluster-ops/src/realm_lifecycle/operations/mod.rs",
+      "crates/cluster-ops/src/realm_lifecycle/operations/archive.rs"
     ],
-    "tests": {
-      "lib_ut": 42,
-      "integration": 23,
-      "load": 10,
-      "fail_closed_existing": 1,
-      "total_pass": 76
-    },
-    "perf_actual": {
-      "1M_player_snapshot_ms": 66,
-      "1M_chunked_snapshot_ms": 93,
-      "1M_id_generation_ms": 120,
-      "1M_id_memory_mb": 26.7,
-      "7step_saga_p99_ms": 0,
-      "budget_snapshot_s": 30,
-      "budget_p99_ms": 500
-    },
-    "grep_validated": {
-      "rgs_player_service_economy_social_count": 12,
-      "query_channel_rbac_cs_agent_sre_legal_count": 10,
-      "step1_to_step7_reverse_count": 12
-    }
+    "report": "docs/deploy/lcm-archive-report.md",
+    "tests": "72 passed / 0 failed / 3 ignored (real-infra IT pending SRE handover)"
   }
 }

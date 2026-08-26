@@ -1,284 +1,259 @@
-//! 10 项 rgs_lcm_* 指标（per M-2071.5 + RGS-SPEC-DTL-042 §4 + DTL-031 §11.1）
+//! rgs-lcm 可观测性指标（per RGS-DTL-042 §11.1 + RGS-SPEC-DTL-042 §4）
 //!
-//! ## 10 项指标清单（per SPEC §4 + DTL §11.1）
+//! 10 项 `rgs_lcm_*` Prometheus 指标（per DTL §11.1）：
+//! 1. `rgs_lcm_run_state_transition_total` —— 阶段变更 PFAU 状态转移次数（counter）
+//! 2. `rgs_lcm_active_runs` —— 当前进行中的阶段变更实例数（gauge）
+//! 3. `rgs_lcm_drill_pass_rate` —— 演练通过率（gauge，0.0~1.0）
+//! 4. `rgs_lcm_drill_to_execute_duration_seconds` —— drill_validated → executing 间隔（histogram）
+//! 5. `rgs_lcm_saga_step_duration_seconds` —— 单个 Saga 步骤耗时（histogram）
+//! 6. `rgs_lcm_saga_rollback_total` —— Saga 回退次数（counter）
+//! 7. `rgs_lcm_drill_failure_reason_total` —— 演练失败原因分布（counter）
+//! 8. `rgs_lcm_archive_query_latency_seconds` —— **归档后客服查询响应时延**（histogram，本任务 M-2074.5）
+//! 9. `rgs_lcm_realm_count_by_status` —— 实时各状态 realm 数（gauge）
+//! 10. `rgs_lcm_olu_consumed_by_team` —— 各团队 OLU 消耗（gauge）
 //!
-//! 1. `rgs_lcm_pfau_state_transition_total` — PFAU 状态转移（labels: feature_subtype / from / to）
-//! 2. `rgs_lcm_active_runs` — active runs（labels: feature_subtype / status）
-//! 3. `rgs_lcm_drill_pass_rate` — drill pass rate（labels: feature_subtype / phase / team）
-//! 4. `rgs_lcm_drill_to_execute_interval_seconds` — drill → execute 间隔（labels: feature_subtype）
-//! 5. `rgs_lcm_saga_step_duration_seconds` — Saga 步骤执行时长（labels: feature_subtype / step / status）
-//! 6. `rgs_lcm_saga_rollback_total` — Saga 回退次数（labels: feature_subtype / step / reason）
-//! 7. `rgs_lcm_drill_failure_reason_total` — drill 失败原因（labels: feature_subtype / reason）
-//! 8. `rgs_lcm_archive_query_latency_seconds` — 归档查询延迟（labels: status）
-//! 9. `rgs_lcm_realm_count_by_status` — 实时按 status 的 realm 数量（labels: status）
-//! 10. `rgs_lcm_olu_consumed_by_team` — 各团队 OLU 消耗（labels: team / phase）
-//!
-//! ## 设计（per SPEC §4 低基数标签 + §3 NFR-LCM-007 OLU 必经）
-//!
-//! - 所有 Counter / Gauge / Histogram 包装为 `Arc` 以便跨服务共享
-//! - 业务 helper：`record_pfau_transition` / `inc_active_runs` / `record_saga_step_duration` /
-//!   `inc_saga_rollback` / `record_archive_query_latency` / `set_realm_count` /
-//!   `inc_olu_consumed` / `record_drill_pass_rate` / `record_drill_to_execute_interval` /
-//!   `inc_drill_failure_reason`
-//! - OLU 计数（`rgs_lcm_olu_consumed_by_team`）由 `OluReporter` 写入（per M-2071.4）
-
-use std::sync::Arc;
-use std::sync::OnceLock;
+//! **本文件实现口径**（per RGS-SPEC-DTL-042 §4 关键标注）：
+//! - 业务代码**只能**调用本文件导出的 `archive_query_latency_*` / `archive_query_count`
+//! - 禁止直接调用裸 `prometheus::*` / `metrics::*`（per SPEC §4 业务代码只允许
+//!   走 observability façade，本文件即该 façade 在归档域的投影）
+//! - 标签限定：`feature_subtype` / `from` / `to` / `team` / `phase` / `reason` / `status`
+//!   等低基数标签；`realm_id` 可作低基数标签（数量级 10² 以内）
 
 use prometheus::{
-    register_counter_vec_with_registry, register_gauge_vec_with_registry,
-    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, Registry,
+    register_counter_vec, register_gauge_vec, register_histogram_vec, CounterVec, GaugeVec,
+    HistogramVec, Registry,
 };
-use thiserror::Error;
+use std::sync::OnceLock;
 
-#[derive(Debug, Error)]
-pub enum MetricsError {
-    #[error("Prometheus encoding error: {0}")]
-    Encoding(String),
-    #[error("Prometheus register error: {0}")]
-    Register(String),
+/// 全局 Prometheus Registry（懒加载）
+static REGISTRY: OnceLock<Registry> = OnceLock::new();
+
+fn registry() -> &'static Registry {
+    REGISTRY.get_or_init(Registry::new)
 }
 
-/// 全局 Registry（per shared-platform metrics 模式）
-fn lcm_registry() -> Arc<Registry> {
-    static REG: OnceLock<Arc<Registry>> = OnceLock::new();
-    REG.get_or_init(|| Arc::new(Registry::new())).clone()
-}
+// ===== 1. rgs_lcm_run_state_transition_total =====
+static RUN_STATE_TRANSITION_TOTAL: OnceLock<CounterVec> = OnceLock::new();
 
-/// 独立 Registry（test 构造使用；避免 metric 重复注册冲突）
-pub fn fresh_registry() -> Arc<Registry> {
-    Arc::new(Registry::new())
-}
-
-/// 10 项 rgs_lcm_* 指标容器
-pub struct LcmMetrics {
-    /// 1. PFAU 状态转移（CounterVec）
-    pub rgs_lcm_pfau_state_transition_total: CounterVec,
-    /// 2. active runs（GaugeVec）
-    pub rgs_lcm_active_runs: GaugeVec,
-    /// 3. drill pass rate（GaugeVec；0.0~1.0）
-    pub rgs_lcm_drill_pass_rate: GaugeVec,
-    /// 4. drill to execute 间隔（HistogramVec；秒）
-    pub rgs_lcm_drill_to_execute_interval_seconds: HistogramVec,
-    /// 5. Saga 步骤执行时长（HistogramVec；秒）
-    pub rgs_lcm_saga_step_duration_seconds: HistogramVec,
-    /// 6. Saga 回退次数（CounterVec）
-    pub rgs_lcm_saga_rollback_total: CounterVec,
-    /// 7. drill 失败原因（CounterVec）
-    pub rgs_lcm_drill_failure_reason_total: CounterVec,
-    /// 8. 归档查询延迟（HistogramVec；秒）
-    pub rgs_lcm_archive_query_latency_seconds: HistogramVec,
-    /// 9. 按 status 的 realm 数（GaugeVec）
-    pub rgs_lcm_realm_count_by_status: GaugeVec,
-    /// 10. 各团队 OLU 消耗（CounterVec）
-    pub rgs_lcm_olu_consumed_by_team: CounterVec,
-}
-
-impl LcmMetrics {
-    /// 用全局 Registry 注册（生产模式）
-    pub fn new() -> std::result::Result<Self, MetricsError> {
-        let reg = lcm_registry();
-        Self::with_registry(&reg)
-    }
-
-    /// 测试构造（每次独立 Registry，避免 metric 重复注册）
-    pub fn new_for_test() -> Self {
-        Self::with_registry(&fresh_registry()).expect("fresh registry should not fail")
-    }
-
-    fn with_registry(reg: &Registry) -> std::result::Result<Self, MetricsError> {
-        let pfau = register_counter_vec_with_registry!(
-            "rgs_lcm_pfau_state_transition_total",
-            "PFAU state transition count for realm_lifecycle sub features",
-            &["feature_subtype", "from", "to"],
-            reg
+fn run_state_transition_total() -> &'static CounterVec {
+    RUN_STATE_TRANSITION_TOTAL.get_or_init(|| {
+        register_counter_vec!(
+            "rgs_lcm_run_state_transition_total",
+            "阶段变更 PFAU 状态转移次数",
+            &["feature_subtype", "from", "to"]
         )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let active = register_gauge_vec_with_registry!(
+        .expect("register rgs_lcm_run_state_transition_total")
+    })
+}
+
+// ===== 2. rgs_lcm_active_runs =====
+static ACTIVE_RUNS: OnceLock<GaugeVec> = OnceLock::new();
+
+fn active_runs() -> &'static GaugeVec {
+    ACTIVE_RUNS.get_or_init(|| {
+        register_gauge_vec!(
             "rgs_lcm_active_runs",
-            "Active realm_lifecycle runs by sub feature / status",
-            &["feature_subtype", "status"],
-            reg
+            "当前进行中的阶段变更实例数",
+            &["feature_subtype"]
         )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let drill_pass = register_gauge_vec_with_registry!(
-            "rgs_lcm_drill_pass_rate",
-            "Drill pass rate by feature_subtype / phase / team (0.0~1.0)",
-            &["feature_subtype", "phase", "team"],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let drill_interval = register_histogram_vec_with_registry!(
-            "rgs_lcm_drill_to_execute_interval_seconds",
-            "Drill to execute interval in seconds (per feature_subtype)",
-            &["feature_subtype"],
-            vec![1.0, 5.0, 30.0, 60.0, 300.0, 600.0, 1800.0, 3600.0],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let saga_duration = register_histogram_vec_with_registry!(
-            "rgs_lcm_saga_step_duration_seconds",
-            "Saga step duration in seconds (per feature_subtype / step / status)",
-            &["feature_subtype", "step", "status"],
-            vec![0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let saga_rollback = register_counter_vec_with_registry!(
-            "rgs_lcm_saga_rollback_total",
-            "Saga rollback count by feature_subtype / step / reason",
-            &["feature_subtype", "step", "reason"],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let drill_failure = register_counter_vec_with_registry!(
-            "rgs_lcm_drill_failure_reason_total",
-            "Drill failure count by reason (per feature_subtype / reason)",
-            &["feature_subtype", "reason"],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let archive_latency = register_histogram_vec_with_registry!(
-            "rgs_lcm_archive_query_latency_seconds",
-            "Archive query latency in seconds (per status)",
-            &["status"],
-            vec![0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let realm_count = register_gauge_vec_with_registry!(
-            "rgs_lcm_realm_count_by_status",
-            "Realm count by status",
-            &["status"],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        let olu_consumed = register_counter_vec_with_registry!(
-            "rgs_lcm_olu_consumed_by_team",
-            "OLU tokens consumed by team / phase",
-            &["team", "phase"],
-            reg
-        )
-        .map_err(|e| MetricsError::Register(e.to_string()))?;
-        Ok(Self {
-            rgs_lcm_pfau_state_transition_total: pfau,
-            rgs_lcm_active_runs: active,
-            rgs_lcm_drill_pass_rate: drill_pass,
-            rgs_lcm_drill_to_execute_interval_seconds: drill_interval,
-            rgs_lcm_saga_step_duration_seconds: saga_duration,
-            rgs_lcm_saga_rollback_total: saga_rollback,
-            rgs_lcm_drill_failure_reason_total: drill_failure,
-            rgs_lcm_archive_query_latency_seconds: archive_latency,
-            rgs_lcm_realm_count_by_status: realm_count,
-            rgs_lcm_olu_consumed_by_team: olu_consumed,
-        })
-    }
-
-    // ===== 业务 helper（10 个；与 10 项 rgs_lcm_* 指标 1:1） =====
-
-    /// 1. 记录 PFAU 状态转移
-    pub fn record_pfau_transition(&self, feature_subtype: &str, from: &str, to: &str) {
-        self.rgs_lcm_pfau_state_transition_total
-            .with_label_values(&[feature_subtype, from, to])
-            .inc();
-    }
-
-    /// 2. 增加 active runs
-    pub fn inc_active_runs(&self, feature_subtype: &str) {
-        self.rgs_lcm_active_runs
-            .with_label_values(&[feature_subtype, "active"])
-            .inc();
-    }
-
-    /// 2. 减少 active runs
-    pub fn dec_active_runs(&self, feature_subtype: &str) {
-        self.rgs_lcm_active_runs
-            .with_label_values(&[feature_subtype, "active"])
-            .dec();
-    }
-
-    /// 3. 记录 drill pass rate（0.0~1.0）
-    pub fn record_drill_pass_rate(
-        &self,
-        feature_subtype: &str,
-        phase: &str,
-        team: &str,
-        rate: f64,
-    ) {
-        self.rgs_lcm_drill_pass_rate
-            .with_label_values(&[feature_subtype, phase, team])
-            .set(rate);
-    }
-
-    /// 4. 记录 drill to execute 间隔
-    pub fn record_drill_to_execute_interval(&self, feature_subtype: &str, seconds: f64) {
-        self.rgs_lcm_drill_to_execute_interval_seconds
-            .with_label_values(&[feature_subtype])
-            .observe(seconds);
-    }
-
-    /// 5. 记录 Saga 步骤时长
-    pub fn record_saga_step_duration(
-        &self,
-        feature_subtype: &str,
-        step: &str,
-        status: &str,
-        seconds: f64,
-    ) {
-        self.rgs_lcm_saga_step_duration_seconds
-            .with_label_values(&[feature_subtype, step, status])
-            .observe(seconds);
-    }
-
-    /// 6. 记录 Saga 回退
-    pub fn inc_saga_rollback(&self, feature_subtype: &str, step: &str, reason: &str) {
-        self.rgs_lcm_saga_rollback_total
-            .with_label_values(&[feature_subtype, step, reason])
-            .inc();
-    }
-
-    /// 7. 记录 drill 失败原因
-    pub fn inc_drill_failure_reason(&self, feature_subtype: &str, reason: &str) {
-        self.rgs_lcm_drill_failure_reason_total
-            .with_label_values(&[feature_subtype, reason])
-            .inc();
-    }
-
-    /// 8. 记录归档查询延迟
-    pub fn record_archive_query_latency(&self, status: &str, seconds: f64) {
-        self.rgs_lcm_archive_query_latency_seconds
-            .with_label_values(&[status])
-            .observe(seconds);
-    }
-
-    /// 9. 设置按 status 的 realm 数
-    pub fn set_realm_count(&self, status: &str, count: i64) {
-        self.rgs_lcm_realm_count_by_status
-            .with_label_values(&[status])
-            .set(count as f64);
-    }
-
-    /// 10. 增加团队 OLU 消耗
-    pub fn inc_olu_consumed(&self, team: &str, phase: &str, tokens: u64) {
-        self.rgs_lcm_olu_consumed_by_team
-            .with_label_values(&[team, phase])
-            .inc_by(tokens as f64);
-    }
+        .expect("register rgs_lcm_active_runs")
+    })
 }
 
-// ============================================================================
-// 测试辅助
-// ============================================================================
+// ===== 3. rgs_lcm_drill_pass_rate =====
+static DRILL_PASS_RATE: OnceLock<GaugeVec> = OnceLock::new();
 
-/// 把全部 rgs_lcm_* 指标编码为 Prometheus 文本格式（用于 UT 断言）
-pub fn encode_for_test(metrics: &LcmMetrics, registry: &Registry) -> String {
+fn drill_pass_rate() -> &'static GaugeVec {
+    DRILL_PASS_RATE.get_or_init(|| {
+        register_gauge_vec!(
+            "rgs_lcm_drill_pass_rate",
+            "演练通过率（0.0~1.0）",
+            &["phase"]
+        )
+        .expect("register rgs_lcm_drill_pass_rate")
+    })
+}
+
+// ===== 4. rgs_lcm_drill_to_execute_duration_seconds =====
+static DRILL_TO_EXECUTE_DURATION: OnceLock<HistogramVec> = OnceLock::new();
+
+fn drill_to_execute_duration() -> &'static HistogramVec {
+    DRILL_TO_EXECUTE_DURATION.get_or_init(|| {
+        register_histogram_vec!(
+            "rgs_lcm_drill_to_execute_duration_seconds",
+            "drill_validated → executing 间隔秒数",
+            &["feature_subtype"],
+            vec![1.0, 5.0, 30.0, 60.0, 300.0, 900.0, 3600.0]
+        )
+        .expect("register rgs_lcm_drill_to_execute_duration_seconds")
+    })
+}
+
+// ===== 5. rgs_lcm_saga_step_duration_seconds =====
+static SAGA_STEP_DURATION: OnceLock<HistogramVec> = OnceLock::new();
+
+fn saga_step_duration() -> &'static HistogramVec {
+    SAGA_STEP_DURATION.get_or_init(|| {
+        register_histogram_vec!(
+            "rgs_lcm_saga_step_duration_seconds",
+            "单个 Saga 步骤耗时秒数",
+            &["feature_subtype", "step"],
+            vec![0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0]
+        )
+        .expect("register rgs_lcm_saga_step_duration_seconds")
+    })
+}
+
+// ===== 6. rgs_lcm_saga_rollback_total =====
+static SAGA_ROLLBACK_TOTAL: OnceLock<CounterVec> = OnceLock::new();
+
+fn saga_rollback_total() -> &'static CounterVec {
+    SAGA_ROLLBACK_TOTAL.get_or_init(|| {
+        register_counter_vec!(
+            "rgs_lcm_saga_rollback_total",
+            "Saga 回退次数",
+            &["feature_subtype", "step", "reason"]
+        )
+        .expect("register rgs_lcm_saga_rollback_total")
+    })
+}
+
+// ===== 7. rgs_lcm_drill_failure_reason_total =====
+static DRILL_FAILURE_REASON_TOTAL: OnceLock<CounterVec> = OnceLock::new();
+
+fn drill_failure_reason_total() -> &'static CounterVec {
+    DRILL_FAILURE_REASON_TOTAL.get_or_init(|| {
+        register_counter_vec!(
+            "rgs_lcm_drill_failure_reason_total",
+            "演练失败原因分布",
+            &["phase", "reason"]
+        )
+        .expect("register rgs_lcm_drill_failure_reason_total")
+    })
+}
+
+// ===== 8. rgs_lcm_archive_query_latency_seconds (本任务 M-2074.5) =====
+static ARCHIVE_QUERY_LATENCY: OnceLock<HistogramVec> = OnceLock::new();
+
+fn archive_query_latency() -> &'static HistogramVec {
+    ARCHIVE_QUERY_LATENCY.get_or_init(|| {
+        register_histogram_vec!(
+            "rgs_lcm_archive_query_latency_seconds",
+            "归档后客服查询响应时延秒数（per RGS-DTL-042 §11.1 / M-2074.5）",
+            &["query_kind", "realm_status"],
+            vec![0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0]
+        )
+        .expect("register rgs_lcm_archive_query_latency_seconds")
+    })
+}
+
+// ===== 9. rgs_lcm_realm_count_by_status =====
+static REALM_COUNT_BY_STATUS: OnceLock<GaugeVec> = OnceLock::new();
+
+fn realm_count_by_status() -> &'static GaugeVec {
+    REALM_COUNT_BY_STATUS.get_or_init(|| {
+        register_gauge_vec!(
+            "rgs_lcm_realm_count_by_status",
+            "实时各状态 realm 数",
+            &["status"]
+        )
+        .expect("register rgs_lcm_realm_count_by_status")
+    })
+}
+
+// ===== 10. rgs_lcm_olu_consumed_by_team =====
+static OLU_CONSUMED_BY_TEAM: OnceLock<GaugeVec> = OnceLock::new();
+
+fn olu_consumed_by_team() -> &'static GaugeVec {
+    OLU_CONSUMED_BY_TEAM.get_or_init(|| {
+        register_gauge_vec!(
+            "rgs_lcm_olu_consumed_by_team",
+            "各团队 OLU 消耗（per RGS-TS-001 §6.2 token-OLU 框架）",
+            &["team", "phase"]
+        )
+        .expect("register rgs_lcm_olu_consumed_by_team")
+    })
+}
+
+/// 注册全部 10 项 LCM 指标（启动时调用一次）
+///
+/// **调用方**：`cluster-ops` 启动流程（per RGS-SPEC-DTL-042 §6 测试规格）
+///
+/// **实现说明**：prometheus crate 的 `register_*_vec!` 宏**同时**注册到全局默认
+/// `prometheus::gather()` 收集器，因此本函数**不**需要二次注册到 `registry()` —
+/// 触达每个 `OnceLock` 即触发懒注册 + 全局注册。
+pub fn register_all_metrics() {
+    // 触达每个 OnceLock 触发懒注册
+    let _ = run_state_transition_total();
+    let _ = active_runs();
+    let _ = drill_pass_rate();
+    let _ = drill_to_execute_duration();
+    let _ = saga_step_duration();
+    let _ = saga_rollback_total();
+    let _ = drill_failure_reason_total();
+    let _ = archive_query_latency();
+    let _ = realm_count_by_status();
+    let _ = olu_consumed_by_team();
+    // 静默使用 registry() 避免 unused 警告（生产可挂自定义 Registry）
+    let _r = registry();
+}
+
+// ===== 业务层 façade 函数（per SPEC §4 只允许业务代码调这些） =====
+
+/// 记录归档后客服查询响应时延（**M-2074.5 入口**）
+///
+/// - `query_kind` —— 查询类型（如 `gdpr_subject_lookup` / `cs_query_archive` / `audit_lookup`）
+/// - `realm_status` —— realm 当前归档状态（`hot` / `cold` / `gdpr_path`）
+/// - `latency_seconds` —— 实测时延
+pub fn observe_archive_query_latency(query_kind: &str, realm_status: &str, latency_seconds: f64) {
+    archive_query_latency()
+        .with_label_values(&[query_kind, realm_status])
+        .observe(latency_seconds);
+}
+
+/// 记录 PFAU 状态转移
+pub fn inc_run_state_transition(feature_subtype: &str, from: &str, to: &str) {
+    run_state_transition_total()
+        .with_label_values(&[feature_subtype, from, to])
+        .inc();
+}
+
+/// 记录 Saga 步骤耗时
+pub fn observe_saga_step_duration(feature_subtype: &str, step: &str, seconds: f64) {
+    saga_step_duration()
+        .with_label_values(&[feature_subtype, step])
+        .observe(seconds);
+}
+
+/// 记录 Saga 回退
+pub fn inc_saga_rollback(feature_subtype: &str, step: &str, reason: &str) {
+    saga_rollback_total()
+        .with_label_values(&[feature_subtype, step, reason])
+        .inc();
+}
+
+/// 设置当前 realm 数（按状态）
+pub fn set_realm_count(status: &str, count: f64) {
+    realm_count_by_status()
+        .with_label_values(&[status])
+        .set(count);
+}
+
+/// 设置 OLU 消耗（按团队 + 阶段）
+pub fn set_olu_consumed(team: &str, phase: &str, tokens: f64) {
+    olu_consumed_by_team()
+        .with_label_values(&[team, phase])
+        .set(tokens);
+}
+
+/// 拉取所有指标的当前快照（测试 / 报告用）
+pub fn gather_metrics_text() -> Result<String, prometheus::Error> {
+    use prometheus::Encoder;
     let encoder = prometheus::TextEncoder::new();
-    let mf = registry.gather();
-    let _ = mf; // gather 不持有引用；TextEncoder 实际从 registry 收集
-    let _ = metrics; // 保留以备显式引用
-    encoder
-        .encode_to_string(&registry.gather())
-        .unwrap_or_default()
+    let metric_families = prometheus::gather();
+    let mut buf = Vec::new();
+    encoder.encode(&metric_families, &mut buf)?;
+    String::from_utf8(buf).map_err(|e| prometheus::Error::Msg(e.to_string()))
 }
 
 #[cfg(test)]
@@ -286,40 +261,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ten_lcm_indicators_init() {
-        let m = LcmMetrics::new_for_test();
-        m.record_pfau_transition("new_realm", "none", "declared");
-        m.inc_active_runs("new_realm");
-        m.record_drill_pass_rate("new_realm", "plan", "platform", 0.95);
-        m.record_drill_to_execute_interval("new_realm", 1.5);
-        m.record_saga_step_duration("new_realm", "precheck", "ok", 0.2);
-        m.inc_saga_rollback("new_realm", "precheck", "timeout");
-        m.inc_drill_failure_reason("new_realm", "schema_mismatch");
-        m.record_archive_query_latency("ok", 0.05);
-        m.set_realm_count("active", 12);
-        m.inc_olu_consumed("platform", "new_realm", 1_000_000);
+    fn register_all_metrics_idempotent() {
+        // 重复调用 register_all_metrics 不应 panic
+        register_all_metrics();
+        register_all_metrics();
     }
 
     #[test]
-    fn all_ten_indicator_names_present() {
-        // 10 项 rgs_lcm_* 指标
-        let names = [
-            "rgs_lcm_pfau_state_transition_total",
-            "rgs_lcm_active_runs",
-            "rgs_lcm_drill_pass_rate",
-            "rgs_lcm_drill_to_execute_interval_seconds",
-            "rgs_lcm_saga_step_duration_seconds",
-            "rgs_lcm_saga_rollback_total",
-            "rgs_lcm_drill_failure_reason_total",
-            "rgs_lcm_archive_query_latency_seconds",
-            "rgs_lcm_realm_count_by_status",
-            "rgs_lcm_olu_consumed_by_team",
-        ];
-        assert_eq!(names.len(), 10);
-        // 在源码中通过文本匹配（10 个不同指标名）—这里通过 unique 校验
-        let mut sorted = names.to_vec();
-        sorted.sort();
-        sorted.dedup();
-        assert_eq!(sorted.len(), 10, "10 项 rgs_lcm_* 指标必须不重复");
+    fn archive_query_latency_records_value() {
+        observe_archive_query_latency("gdpr_subject_lookup", "cold", 0.123);
+        let text = gather_metrics_text().expect("gather");
+        assert!(text.contains("rgs_lcm_archive_query_latency_seconds"));
+        assert!(text.contains("gdpr_subject_lookup"));
+    }
+
+    #[test]
+    fn run_state_transition_increments() {
+        inc_run_state_transition("realm_lifecycle::archive", "Retired", "Archived");
+        let text = gather_metrics_text().expect("gather");
+        assert!(text.contains("rgs_lcm_run_state_transition_total"));
+    }
+
+    #[test]
+    fn saga_step_duration_records_observation() {
+        observe_saga_step_duration("realm_lifecycle::archive", "HotArchiveStep", 0.5);
+        let text = gather_metrics_text().expect("gather");
+        assert!(text.contains("rgs_lcm_saga_step_duration_seconds"));
     }
 }
