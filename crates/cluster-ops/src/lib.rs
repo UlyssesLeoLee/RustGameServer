@@ -9,12 +9,21 @@
 //! gRPC API：cluster-ops/v1/cluster.proto（per WF-1-54.2 Proto 定义 + WF-1-54.3 tonic-build）。
 //!
 //! 54.6 实化：entity 2 个 + Repository trait + PgRepository sqlx impl + InMemoryRepository 测用。
+//!
+//! WF-1-2073 扩展：新增 `realm_lifecycle` 子模块（per RGS-IMPL-PLAN-LCM-001 §2.2
+//! + SPEC-DTL-042 §2 + FR-LCM-004 硬约束）。
 
 pub mod entity;
 pub mod error;
 pub mod realm_lifecycle;
 pub mod repository;
 pub mod service;
+
+/// WF-1-2073: 服务器全生命周期管理子模块（per RGS-IMPL-PLAN-LCM-001 v0.1）
+///
+/// 含 6 阶段操作器 trait + 跨域 Saga 7 步 + 6 张 plan 表（含 retire RBAC）。
+/// 本子模块**不**对外暴露独立 gRPC（per FR-LCM-004 硬约束）。
+pub mod realm_lifecycle;
 
 pub use error::{Error, Result};
 pub use repository::{
