@@ -185,6 +185,36 @@
 3. 不可代签 17 份修订历史'审批者'列 = 真实责任署名(per 代签新规则)
 4. 17 个 worktree 分支 + 17 个 .wbs-task-marker + 17 个 commit(每份独立,可分批 merge)
 
+#### §2A.2.55.续2 工程 55 续 2 — P0/P1 剩余工作(8 L4 任务 / 4.5 人·天 / 1.1M tokens)
+
+> **触发**:2026-08-26 09:27 JST Ulysses 指令"开子代理和 worktree 完成剩余工作到 P2"。
+> **关联**:RGS-OPEN-QA-2026-08-26-SPEC-v0.2 + `D:\tmp\PLAN_NEXT_2W.md` + 17 份 v0.2 SPEC 起草产物 (commit `756bcd3` ~ `97ef67c`)。
+> **代签规则**:per 2026-08-26 08:40 JST 偏好反转,本批 8 L4 任务子代理可独立 commit + 署名。
+
+| L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
+|---|---|---|---:|---:|---|---|---|---|---|
+| WF-1-55.69 | RGS-SPEC-CROSS-008 错误码字典扩展(per DTL-036 v1.4.2 §3 末 5 项已知缺口;gRPC canonical status / HTTP problem details;含 v0.1 既有错误码 + v0.2 新增 5 类) | foundation | 0.5 | 100K | RGS-DOCS-HEALTH-2026-08-26 §1 | CROSS-008 v0.1 4 列表头 + 错误码列表 ≥ 100 项 + check-docs-consistency.sh 未引入新 FAIL | revert CROSS-008 | `wbs/WF-1-55.69` | ⬜ 未启动 |
+| WF-1-55.70 | RGS-SPEC-CROSS-009 gRPC Proto 风格指南 v0.2(per DTL-008 v0.3 既有;含字段编号 1-15 高频 / 16+ 低频 + enum 命名 + message 命名 + service 命名) | foundation | 0.5 | 100K | RGS-SPEC-CROSS-002 v0.1 | CROSS-009 v0.2 8 章节齐全 + player.proto 示例 + 既有 36 份 DTL 字段编号对账(无冲突) | revert CROSS-009 | `wbs/WF-1-55.70` | ⬜ 未启动 |
+| WF-1-55.71 | RGS-SPEC-CROSS-010 跨域事件 Schema 字典 v0.2(per DTL-031 事件总线;含 5 域 + saga 共 6 域 + 9 类事件 + per RGS-SPEC-CROSS-003 v0.1 升版) | shared-platform | 0.5 | 100K | RGS-SPEC-CROSS-003 v0.1 | CROSS-010 v0.2 + 9 类事件 schema + 6 域订阅者矩阵 | revert CROSS-010 | `wbs/WF-1-55.71` | ⬜ 未启动 |
+| WF-1-55.72 | RGS-SPEC-CROSS-011 DDD Review 模板(5 域 Lead 签字栏;per DEC-008 一人公司治理基线;含 §0-§7 8 章节 + 通过/打回/挂起 3 选项) | foundation | 0.5 | 100K | RGS-REV-004 v0.1 | CROSS-011 v0.1 模板 + 5 域 Lead 签字栏 + 4 类已知缺口勾选 + 与 RGS-OPEN-QA-001-ACTIONS 模板对齐 | revert CROSS-011 | `wbs/WF-1-55.72` | ⬜ 未启动 |
+| WF-1-55.73 | RGS-DEC-Q003 跨 DB Saga 审批包(per OPEN-QA-001-ACTIONS-v0.3 B-02;含 §0 触发 + §1 6 场景 + §2 RACI + §3 风险 + §4 决策) | economy | 2.0 | 500K | RGS-DTL-015/016 v0.2 §3.4 + RGS-REV-005 附件 B | DEC-Q003 v0.1 5 章节齐全 + RACI 4 角色 + 6 场景引用 + 5 域 Lead 签字栏 | revert DEC-Q003 | `wbs/WF-1-55.73` | ⬜ 未启动 |
+| WF-1-55.74 | 6 域 IMPL-PLAN 起草(per CDN/LCM 模板;player / economy / match / social / admin / saga 共 6 份;每域 Phases / Tasks / RACI / Rollback / 验收) | 5 域 + saga 6 Lead | 3.0 | 600K | 17 份 v0.2 SPEC 合并后 | 6 份 IMPL-PLAN-NNN v0.1 + 每份 ≥ 6 章节 + 6 域 owner 签字栏 + 与 2A.2.55 续 1 SPEC v0.2 引用一致 | revert 6 份 | `wbs/WF-1-55.74` | ⬜ 未启动 |
+| WF-1-55.75 | RGS-ADR-0055 v0.1 + RACI 责任矩阵(per OPEN-QA-001 Q-G-01/Q-G-02;含 ARC-018/021/042/051 4 角色 × 5 域 8 阶段 = 160 单元矩阵) | foundation | 1.5 | 300K | 17 份 v0.2 SPEC | ADR-0055 v0.1 5 章节 + RACI 矩阵 160 单元 + 与 DEC-008 12 角色分配一致 | revert ADR-0055 | `wbs/WF-1-55.75` | ⬜ 未启动 |
+| WF-1-55.76 | WBS v0.7 → v0.8 升版(纳入 17 份 worktree + 5 项 ADR Ulysses 补签状态 + 8 项 P0/P1 新 L4 任务) | Ulysses(per DEC-008) | 1.0 | 200K | WF-1-55.69~75 完成后 | L4 进度表 v0.8 + §3 汇总更新 + §4 新增 8 行 + §8.5 log 模板按实际产出更新 + 修订历史 v0.8 行 | revert 进度表 | `wbs/WF-1-55.76` | ⬜ 未启动 |
+
+**小计**: 8 L4 / 4.5 人·天 / 1.1M tokens (平均每 L4 0.56 人·天 / 137K tokens,符合 v0.3 §6.2 ≤ 2 人·天 / ≤ 500K tokens 拆分标准)
+**关键依赖**:
+- WF-1-55.69 / 70 / 71 / 72 相互独立(4 份 CROSS 平行)
+- WF-1-55.73 依赖 WF-1-55.71(CROSS-010 事件 Schema 是 DEC-Q003 跨 DB Saga 事件总线基础)
+- WF-1-55.74 依赖 17 份 v0.2 SPEC 合并后(WF-1-55.69~73 完成后批量)
+- WF-1-55.75 依赖 WF-1-55.74(IMPL-PLAN 含 RACI 矩阵元素)
+- WF-1-55.76 是所有 P0/P1 任务的"汇总升版",最后做
+**完成判定**(merge 准入):
+1. 8 份新产出(CROSS-008~011 + DEC-Q003 + 6 域 IMPL-PLAN + ADR-0055 + WBS v0.8)按规范 4 列表头 + 修订历史 v0.X 行齐全
+2. check-docs-consistency.sh 1 FAIL + 1 WARN 状态不变,未引入新问题
+3. 不可代签 8 份修订历史'审批者'列 = 真实责任署名(per 代签新规则)
+4. 8 个 worktree 分支 + 8 个 .wbs-task-marker + 8 个 commit(每份独立,可分批 merge)
+
 **小计**: 11 L4 / ~6.1 人·天 / ~1.2M tokens
 **关键依赖**: WF-1-55.31 (PgTestDatabase) 是 WF-1-55.27/28/29 真 DB 集成测试的前置
 **完成判定** (merge 准入):
