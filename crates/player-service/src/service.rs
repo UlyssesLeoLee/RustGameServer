@@ -57,7 +57,23 @@ impl PlayerServiceImpl {
 
     /// gRPC GetPlayer 用：直接通过 Repository 查（绕开 trait）
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Player>> {
-        self.players.find_by_id(id).await
+        tracing::debug!(
+            operation = "db_query_before",
+            service = "player-service",
+            method = "find_by_id",
+            player_id = %id,
+            "query player by id"
+        );
+        let res = self.players.find_by_id(id).await;
+        tracing::debug!(
+            operation = "db_query_after",
+            service = "player-service",
+            method = "find_by_id",
+            player_id = %id,
+            found = res.as_ref().map(|o| o.is_some()).unwrap_or(false),
+            "query player by id done"
+        );
+        res
     }
 }
 
@@ -182,6 +198,12 @@ pub mod grpc_service {
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
         ) -> std::result::Result<Response<common_proto::HealthCheckResponse>, Status> {
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "player-service",
+                method = "HealthCheck",
+                "enter grpc handler"
+            );
             let healthy = self
                 .impl_
                 .health_check()
@@ -203,6 +225,14 @@ pub mod grpc_service {
             request: Request<common_proto::EntityId>,
         ) -> std::result::Result<Response<player_proto::Player>, Status> {
             let id_str = request.get_ref().id.clone();
+            let player_id_parsed = Uuid::parse_str(&id_str).ok();
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "player-service",
+                method = "GetPlayer",
+                player_id = %player_id_parsed.as_ref().map(|u| u.to_string()).unwrap_or_else(|| id_str.clone()),
+                "enter grpc handler"
+            );
             let player_id = Uuid::parse_str(&id_str)
                 .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", id_str)))?;
             let player = self
