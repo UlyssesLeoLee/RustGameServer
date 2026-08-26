@@ -261,6 +261,16 @@ impl SagaOrchestrator {
         ctx: SagaContext,
         svc: &RealmLifecycleService,
     ) -> Result<LcmOperatorOutput> {
+        tracing::debug!(
+            operation = "saga_dispatch_entry",
+            service = "cluster-ops",
+            component = "realm_lifecycle",
+            phase = %phase.as_str(),
+            request_id = %ctx.request_id,
+            operator_id = %ctx.operator_id,
+            realm_id = %ctx.realm_id,
+            "enter saga dispatch"
+        );
         ctx.validate()?;
 
         // 1. 幂等性检查
@@ -347,6 +357,13 @@ impl SagaOrchestrator {
 
     /// 恢复 Saga（崩溃恢复用）
     pub async fn resume(&self, saga_id: Uuid) -> Result<()> {
+        tracing::debug!(
+            operation = "saga_resume_entry",
+            service = "cluster-ops",
+            component = "realm_lifecycle",
+            saga_id = %saga_id,
+            "enter saga resume"
+        );
         self.inner.resume(saga_id).await.map_err(Into::into)
     }
 }
