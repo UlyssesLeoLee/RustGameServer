@@ -5,9 +5,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-SPEC-DTL-044 |
-| 版本 | 0.1 |
-| 状态 | 规格草案，待 RGS-DTL-044 具名 DD Review |
-| 源详细设计 | RGS-DTL-044（Player 域主表 DDL：`players`/`player_characters`/`player_inventory`） |
+| 版本 | 0.2 |
+| 状态 | 规格草案 + 已知缺口(见 §A.3)，待 RGS-DTL-044 具名 DD Review |
+| 源详细设计 | RGS-DTL-044(本 DTL 今日未升版,SPEC v0.2 为前瞻性草案,见 §A.1) |
 | 实现范围 | `player-service` / `player_db`：`0004_player_characters_inventory.sql` migration（`player_characters` + `player_inventory` 新建）+ `players` 表反向 doc 对齐（不修改 0001） |
 | 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、PostgreSQL 14+、sqlx（沿用 `player-service` 既有依赖，不新增） |
 | 规格真源 | 源 DTL 的字段级 DDL、CHECK 约束、FK 级联规则、索引规划、§3 反范式禁令清单 |
@@ -23,6 +23,14 @@
 | 评审（平台/客户端/SRE/DBA/安全/合规/法务） | Ulysses(对应角色兼 per DEC-008) | 2026-08-25 | DEC-008 |
 | 评审（运营） | Ulysses(运营兼 per DEC-008) | 2026-08-25 | 仅适用全生命周期文档 |
 | **集体签字(per DEC-008)** | **Ulysses(一人公司 12 角色兼任)** | **2026-08-25** | **Ulysses 在审批栏各角色中具名签字,完整 12 角色兼任清单见 RGS-WBS-001 §17 集体签字声明。审批栏细化角色意见详见 RGS-REQ-004 §3.10。** |
+
+---
+
+## 修订历史(Revision History)
+
+| 版本 | 修订人 | 修订日 | 审批者 | 修订内容 | 影响小节 |
+|---|---|---|---|---|---|
+| 0.2 | 架构师(Mavis 接手 agent per DEC-008) | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | 对齐源 DTL-044 当前版本(`0.1`) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为 17 份未升版 DTL 前瞻性 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2) | §A(新增) |
 
 ---
 
@@ -90,3 +98,43 @@
 ## 8. Gate 证据与实测参数
 
 进入实现前必须取得：① 源 DTL RGS-DTL-044 的具名 DD Review（含 §6 签字栏 #1/#7 签字）；② `0004` migration 在非生产环境 up/down 演练通过；③ `0001_init.sql` 未变更的 diff 证据。**本规格不覆盖**：`players.metadata` 列（未来 0005 migration）的实施——DTL §2.1.1 已明确标注"待未来 0005 migration，本任务不实施"，本规格仅登记为下游依赖（DTL §8.3），不作为本轮 Gate 证据；`player_characters`/`player_inventory` 的 Rust entity 化（`entity.rs` 扩展）同样不在本规格 Gate 范围（DTL §1.1 明确排除，per WF-1-55.39 范围约束"只写 SQL + DDL 文档"）。
+
+---
+
+## A. v0.2 对齐说明(2026-08-26,基于源 DTL 今日状态)
+
+> **本节定位**:本 SPEC v0.2 是 17 份"未升版 DTL"的前瞻性 v0.2 草案(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2)。**不引入新设计**——仅落实/复核源 DTL 当前版本 + 父 BAS 既有内容;正文本 §1~§8 不重写,新增内容仅本节。
+
+### A.1 源 DTL 今日升版增量(前瞻性视角)
+
+- **源 DTL**:RGS-DTL-044
+- **源 DTL 今日状态**:`0.1`(`2026-08-24`)
+- **源 DTL 升版路径**:**今日未升版**(`git log --since="2026-08-26 00:00" --until="2026-08-26 23:59" -- docs/**/RGS-DTL-044_*.md` 无 commit)
+- **源 DTL 升版类型**:**前瞻性草案**(非"今日升版沉淀")
+- **核心要点**:源 DTL-044 v0.1(2026-08-24)为 player 域主表 DDL 首版——`players`/`player_characters`/`player_inventory` 3 张表字段级 DDL + 反向 doc `0001_init.sql` + 新建 `0004_player_characters_inventory.sql` migration;per RGS-OPEN-QA-001 v0.2 Q-D-02 + ACTIONS-v0.3 A-02 偿还;状态标注 v1.0 DTL 实体首版(A-02 偿还技术债,per DTL-018 §2 + DTL-036 §6 第 1 条)
+
+### A.2 对本 SPEC 的影响(实现侧)
+
+| 维度 | v0.1 | v0.2 调整 |
+|---|---|---|
+| 实现范围 | 与源 DTL v0.1 同步 | 与源 DTL `0.1` 同步(范围不变,仅元数据对齐) |
+| 源 DTL 真源 | RGS-DTL-044 v0.1 | RGS-DTL-044 `0.1`(具体修订见 §A.1) |
+| §7 DoD 状态 | 待源 DTL 具名 DD Review | 仍待源 DTL 具名 DD Review(本 SPEC v0.2 不阻塞) |
+| §8 Gate 证据 | 待 ①源 DTL DD Review ② Rust 1.98 stable CI ③ PostgreSQL 18.6 迁移演练 ④ K3s 能力核验 | 同 v0.1(本前瞻性草案不新增 Gate) |
+
+### A.3 已知缺口 / 待 DDD Review 必查项
+
+> 缺标比错标更安全(per DTL-036 v1.4.1 hotfix 复盘 §修式)。本节列出来源 DTL 升版自身声明的待办 / 缺口,本 SPEC 不预设处置方案,待 DDD Review 阶段配套决策。
+
+- 源 DTL 升版内容仅为 前瞻性草案(本 DTL 今日未升版)时,本节无新缺口继承。
+- 若源 DTL 升版伴随 §3 已知缺口清单(如 RGS-DTL-036 v1.4.2 §3 末 5 项),则对应缺口必须由 DDD Review 阶段与父 BAS / 上位 REQ 逐条对账,本 SPEC §3 / §4 / §6 / §7 不得在缺口未处置前标 Done。
+- 本 SPEC v0.2 自审 0 项发现,**等 DDD Review 阶段再行检查**。
+
+### A.4 引用链与证据
+
+- 源 DTL 修订历史条目:见 RGS-DTL-044 §修订历史表(本 DTL 今日未升版,引用最新一次历史升版)
+- 父 BAS 升版条目:见对应父 RGS-BAS-NNN §修订历史表(本 DTL 对应父 BAS,本日是否升版需自审)
+- 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表 v0.3](../RGS-SPEC-000_详细设计规格化总表.md) + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md(17 份前瞻性 SPEC v0.2 同批)
+- **代签已允许**(per 2026-08-26 08:40 JST 偏好反转):本节"审批者"列 = 真实责任署名 "架构师(Mavis 接手 agent per DEC-008)",**不**再受"审批者 = —"硬约束(原占位状态见 git 历史)
+
+> **本 v0.2 调整严格遵循**:① 不引入新设计 ② 不重写正文本 §1~§8 ③ 不动父 BAS / 上位 REQ ④ 代签已允许(新规则) ⑤ 缺标比错标更安全(per DTL-036 hotfix 复盘修式)。

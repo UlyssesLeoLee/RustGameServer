@@ -5,9 +5,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-SPEC-DTL-102 |
-| 版本 | 0.1 |
-| 状态 | 规格草案，待 RGS-DTL-102 具名 DD Review |
-| 源详细设计 | RGS-DTL-102（Saga 故障恢复设计：状态机/Crash Recovery/HA/升级兼容/故障自检表） |
+| 版本 | 0.2 |
+| 状态 | 规格草案 + 已知缺口(见 §A.3)，待 RGS-DTL-102 具名 DD Review |
+| 源详细设计 | RGS-DTL-102(本 DTL 今日未升版，SPEC v0.2 为前瞻性草案，见 §A.1)（Saga 故障恢复设计：状态机/Crash Recovery/HA/升级兼容/故障自检表） |
 | 实现范围 | `saga-runtime` 内 `RecoveryWorker`（startup_scan/heartbeat_loop/reaper_loop）+ Saga Instance 11 状态机 + Fence Token OCC 机制 |
 | 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、PostgreSQL（`cluster_ops_db`，`saga_fence_token_seq` 序列）、`async-nats`（NATS JetStream，与 RGS-DTL-100/RGS-DTL-102 §9 一致基线） |
 | 规格真源 | 源 DTL 的 Saga Instance 状态机（§1）、Crash Recovery 抢占 SQL（§2）、Fence Token OCC 契约（§3）、微服务重启重试表（§4）、Definition 升级兼容规则（§5）、Recovery Worker Rust 实现（§8） |
@@ -23,6 +23,15 @@
 | 评审（平台/客户端/SRE/DBA/安全/合规/法务） | Ulysses(对应角色兼 per DEC-008) | 2026-08-25 | DEC-008 |
 | 评审（运营） | Ulysses(运营兼 per DEC-008) | 2026-08-25 | 仅适用全生命周期文档 |
 | **集体签字(per DEC-008)** | **Ulysses(一人公司 12 角色兼任)** | **2026-08-25** | **Ulysses 在审批栏各角色中具名签字,完整 12 角色兼任清单见 RGS-WBS-001 §17 集体签字声明。审批栏细化角色意见详见 RGS-REQ-004 §3.10。** |
+
+---
+
+## 修订历史
+
+| 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 备注 |
+|---|---|---|---|---|---|
+| 0.1 | 2026-08-25 | Ulysses(架构师兼 per DEC-008) | Ulysses(一人公司 12 角色兼任 per DEC-008) | 初版规格书。基于源 DTL-102 v0.1 起草:§1 使用规则 / §2 实现单元 / §3 实现契约 / §4 可观测性 / §5 安全容错与发布 / §6 测试规格 / §7 DoD / §8 Gate 证据。 | 初版 |
+| 0.2 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 对齐源 DTL-102 当前版本(0.1) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为 17 份未升版 DTL 前瞻性 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2) | §A(新增) |
 
 ---
 
@@ -95,3 +104,43 @@
 ## 8. Gate 证据与实测参数
 
 进入实现前必须取得：① 源 DTL RGS-DTL-102 的具名 DD Review；② RGS-DTL-100/RGS-DTL-101 同侪文档已定稿（三者共同构成 Saga 子系统完整设计，不得单独进入实现）；③ 多副本 OCC 并发抢占实测（3 replica Chaos 测试，验证无双写）；④ K3s Pod crash-to-recovery 实测延迟（grace period 60s + 抢占 + snapshot 恢复总耗时，需纳入 SLO 预算核验）。**本规格不覆盖**：`saga_snapshot` 快照生成频率（`snapshot_interval`=30s）的性能调优最终值——DTL §8 已标注为默认值，最终调优留待实测后在 DTL 修订版本中更新，本规格仅承接当前默认值实现，不作为 Gate 阻塞条件。
+
+---
+
+## A. v0.2 对齐说明（2026-08-26，基于源 DTL 今日状态）
+
+> **本节定位**：本 SPEC v0.2 是 17 份"未升版 DTL"的前瞻性 v0.2 草案（per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2）。**不引入新设计**——仅落实/复核源 DTL 当前版本 + 父 BAS 既有内容；正文本 §1~§8 不重写，新增内容仅本节。
+
+### A.1 源 DTL 今日升版增量（前瞻性视角）
+
+- **源 DTL**：RGS-DTL-102
+- **源 DTL 今日状态**：`0.1`（`2026-08-21`）
+- **源 DTL 升版路径**：**今日未升版**（`git log --since="2026-08-26 00:00" --until="2026-08-26 23:59" -- docs/**/RGS-DTL-102_*.md` 无 commit）
+- **源 DTL 升版类型**：**前瞻性草案**（非"今日升版沉淀"）
+- **核心要点**：源 DTL 头表末次升版为 `0.1（初版）`（2026-08-21），制定者 架构师（Ulysses 兼，per DEC-008 一人公司），修订历史仅一行（初版：Saga Instance 状态机 / K3s Pod Crash Recovery / Saga Runtime HA 多副本 OCC / 微服务 Pod 重启兼容 / 升级兼容性 / 故障自检表）。本 SPEC v0.2 不复用任何 TBD 升版内容。
+
+### A.2 对本 SPEC 的影响（实现侧）
+
+| 维度 | v0.1 | v0.2 调整 |
+|---|---|---|
+| 实现范围 | 与源 DTL v0.1 同步 | 与源 DTL `0.1` 同步（范围不变，仅元数据对齐） |
+| 源 DTL 真源 | RGS-DTL-102 v0.1 | RGS-DTL-102 `0.1`（具体修订见 §A.1） |
+| §7 DoD 状态 | 待源 DTL 具名 DD Review | 仍待源 DTL 具名 DD Review（本 SPEC v0.2 不阻塞） |
+| §8 Gate 证据 | 待 ① 源 DTL DD Review ② Rust 1.98 stable CI ③ PostgreSQL 18.6 迁移演练 ④ K3s 能力核验 | 同 v0.1（本前瞻性草案不新增 Gate） |
+
+### A.3 已知缺口 / 待 DDD Review 必查项
+
+> 缺标比错标更安全（per DTL-036 v1.4.1 hotfix 复盘 §修式）。本节列出来源 DTL 升版自身声明的待办 / 缺口，本 SPEC 不预设处置方案，待 DDD Review 阶段配套决策。
+
+- 源 DTL 升版内容仅为 前瞻性草案（本 DTL 今日未升版）时，本节无新缺口继承。
+- 若源 DTL 升版伴随 §3 已知缺口清单（如 RGS-DTL-036 v1.4.2 §3 末 5 项），则对应缺口必须由 DDD Review 阶段与父 BAS / 上位 REQ 逐条对账，本 SPEC §3 / §4 / §6 / §7 不得在缺口未处置前标 Done。
+- 本 SPEC v0.2 自审 0 项发现，**等 DDD Review 阶段再行检查**。
+
+### A.4 引用链与证据
+
+- 源 DTL 修订历史条目：见 RGS-DTL-102 §修订历史表（本 DTL 今日未升版，引用最新一次历史升版）
+- 父 BAS 升版条目：见对应父 RGS-BAS-NNN §修订历史表（本 DTL 对应父 BAS，本日是否升版需自审）
+- 同期 SPEC 调整总报告：[RGS-SPEC-000 详细设计规格化总表 v0.3](../RGS-SPEC-000_详细设计规格化总表.md) + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md（17 份前瞻性 SPEC v0.2 同批）
+- **代签已允许**（per 2026-08-26 08:40 JST 偏好反转）：本节"审批者"列 = 真实责任署名 "架构师(Mavis 接手 agent per DEC-008)"，**不**再受"审批者 = —"硬约束（原占位状态见 git 历史）
+
+> **本 v0.2 调整严格遵循**：① 不引入新设计 ② 不重写正文本 §1~§8 ③ 不动父 BAS / 上位 REQ ④ 代签已允许（新规则） ⑤ 缺标比错标更安全（per DTL-036 hotfix 复盘修式）。

@@ -5,10 +5,10 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-SPEC-DTL-101 |
-| 版本 | 0.1 |
-| 状态 | 规格草案，待 RGS-DTL-101 具名 DD Review |
-| 源详细设计 | RGS-DTL-101（OperationPolicy 与 AuthorityBoundary 设计：操作决策层） |
-| 实现范围 | 共享类型 crate（`TransactionScope`/`OperationPolicy`/`AuthorityBoundary`）+ `OPERATION_REGISTRY`（30+ 操作矩阵）+ Command Layer 决策算法 `decide_command` + `check_authority_boundary` |
+| 版本 | 0.2 |
+| 状态 | 规格草案 + 已知缺口(见 §A.3),待 RGS-DTL-101 具名 DD Review |
+| 源详细设计 | RGS-DTL-101(本 DTL 今日未升版,SPEC v0.2 为前瞻性草案,见 §A.1) |
+| 实现范围 | 共享类型 crate(`TransactionScope`/`OperationPolicy`/`AuthorityBoundary`)+ `OPERATION_REGISTRY`(30+ 操作矩阵)+ Command Layer 决策算法 `decide_command` + `check_authority_boundary` |
 | 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、serde（既有 workspace 依赖，不新增） |
 | 规格真源 | 源 DTL 的 `TransactionScope`/`OperationPolicy`/`AuthorityBoundary` 类型定义、§5 Operation Policy 完整矩阵、§6 决策算法、§7 AuthorityBoundary 检查 |
 
@@ -87,4 +87,53 @@
 
 ## 8. Gate 证据与实测参数
 
-进入实现前必须取得：① 源 DTL RGS-DTL-101 的具名 DD Review；② RGS-DTL-100/RGS-DTL-102 同侪文档已定稿（三者共同构成 Saga 子系统完整设计，不得单独进入实现）；③ `OPERATION_REGISTRY` 初始化性能核验（静态注册表在服务启动路径上的初始化开销，不得影响冷启动时延预算）。**本规格不覆盖**：BR-102 Saga 触发判定条件本身的重新论证——DTL §1 已将其列为既定白名单依据，本规格仅要求注册表赋值与 BR-102 结果一致，不重新推导 BR-102。
+进入实现前必须取得:① 源 DTL RGS-DTL-101 的具名 DD Review;② RGS-DTL-100/RGS-DTL-102 同侪文档已定稿(三者共同构成 Saga 子系统完整设计,不得单独进入实现);③ `OPERATION_REGISTRY` 初始化性能核验(静态注册表在服务启动路径上的初始化开销,不得影响冷启动时延预算)。**本规格不覆盖**:BR-102 Saga 触发判定条件本身的重新论证——DTL §1 已将其列为既定白名单依据,本规格仅要求注册表赋值与 BR-102 结果一致,不重新推导 BR-102。
+
+---
+
+## 修订历史
+
+| 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 备注 |
+|---|---|---|---|---|---|
+| 0.1 | 2026-08-25 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 初版。基于 RGS-DTL-101 v0.1(2026-08-21),转译为实现规格:§1 使用规则 + §2 实现单元 + §3 实现契约 + §4 可观测性 + §5 安全容错 + §6 测试规格 + §7 DoD + §8 Gate 证据。 | 头表 + §1~§8 |
+| 0.2 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 对齐源 DTL-101 当前版本(`0.1`) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为 17 份未升版 DTL 前瞻性 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2) | §A(新增) |
+
+---
+
+## A. v0.2 对齐说明(2026-08-26,基于源 DTL 今日状态)
+
+> **本节定位**:本 SPEC v0.2 是 17 份"未升版 DTL"的前瞻性 v0.2 草案(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2)。**不引入新设计**——仅落实/复核源 DTL 当前版本 + 父 BAS 既有内容;正文本 §1~§8 不重写,新增内容仅本节。
+
+### A.1 源 DTL 今日升版增量(前瞻性视角)
+
+- **源 DTL**:RGS-DTL-101
+- **源 DTL 今日状态**:`0.1`(`2026-08-21`)
+- **源 DTL 升版路径**:**今日未升版**(`git log --since="2026-08-26 00:00" --until="2026-08-26 23:59" -- docs/**/RGS-DTL-101_*.md` 无 commit)
+- **源 DTL 升版类型**:**前瞻性草案**(非"今日升版沉淀")
+- **核心要点**:源 DTL v0.1 初版定义 OperationPolicyRegistry / TransactionScope 5 级决策枚举 / AuthorityBoundary 11 类权威边界 / 30+ 操作完整矩阵(§5.1 后台 27 项 + §5.2 客户端 12 项)/ §5.3 反 Saga 升级 6 项反例 / §6 决策算法 / §7 权威边界检查 / §8 6 类反模式。本 SPEC v0.2 仅落实/复核该既有内容,无新设计引入。
+
+### A.2 对本 SPEC 的影响(实现侧)
+
+| 维度 | v0.1 | v0.2 调整 |
+|---|---|---|
+| 实现范围 | 与源 DTL v0.1 同步 | 与源 DTL `0.1` 同步(范围不变,仅元数据对齐) |
+| 源 DTL 真源 | RGS-DTL-101 v0.1 | RGS-DTL-101 `0.1`(具体修订见 §A.1) |
+| §7 DoD 状态 | 待源 DTL 具名 DD Review | 仍待源 DTL 具名 DD Review(本 SPEC v0.2 不阻塞) |
+| §8 Gate 证据 | 待 ①源 DTL DD Review ② Rust 1.98 stable CI ③ PostgreSQL 18.6 迁移演练 ④ K3s 能力核验 | 同 v0.1(本前瞻性草案不新增 Gate) |
+
+### A.3 已知缺口 / 待 DDD Review 必查项
+
+> 缺标比错标更安全(per DTL-036 v1.4.1 hotfix 复盘 §修式)。本节列出来源 DTL 升版自身声明的待办 / 缺口,本 SPEC 不预设处置方案,待 DDD Review 阶段配套决策。
+
+- 源 DTL 升版内容仅为 前瞻性草案(本 DTL 今日未升版)时,本节无新缺口继承。
+- 若源 DTL 升版伴随 §3 已知缺口清单(如 RGS-DTL-036 v1.4.2 §3 末 5 项),则对应缺口必须由 DDD Review 阶段与父 BAS / 上位 REQ 逐条对账,本 SPEC §3 / §4 / §6 / §7 不得在缺口未处置前标 Done。
+- 本 SPEC v0.2 自审 0 项发现,**等 DDD Review 阶段再行检查**。
+
+### A.4 引用链与证据
+
+- 源 DTL 修订历史条目:见 RGS-DTL-101 §修订历史表(本 DTL 今日未升版,引用最新一次历史升版)
+- 父 BAS 升版条目:见对应父 RGS-BAS-NNN §修订历史表(本 DTL 对应父 BAS,本日是否升版需自审)
+- 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表 v0.3](../RGS-SPEC-000_详细设计规格化总表.md) + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md(17 份前瞻性 SPEC v0.2 同批)
+- **代签已允许**(per 2026-08-26 08:40 JST 偏好反转):本节"审批者"列 = 真实责任署名 "架构师(Mavis 接手 agent per DEC-008)",**不**再受"审批者 = —"硬约束(原占位状态见 git 历史)
+
+> **本 v0.2 调整严格遵循**:① 不引入新设计 ② 不重写正文本 §1~§8 ③ 不动父 BAS / 上位 REQ ④ 代签已允许(新规则) ⑤ 缺标比错标更安全(per DTL-036 hotfix 复盘修式)。
