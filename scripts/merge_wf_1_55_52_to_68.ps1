@@ -29,23 +29,23 @@ $ErrorActionPreference = 'Stop'
 
 # 17 个 worktree 分支（per RGS-WBS-001 v0.3 §2A.2.55.续1 + commit e5dcea3）
 $branches = @(
-    @{ num = '025'; l4 = 'WF-1-55.52'; branch = 'wbs/WF-1-55-52' }
-    @{ num = '026'; l4 = 'WF-1-55.53'; branch = 'wbs/WF-1-55-53' }
-    @{ num = '027'; l4 = 'WF-1-55.54'; branch = 'wbs/WF-1-55-54' }
-    @{ num = '032'; l4 = 'WF-1-55.55'; branch = 'wbs/WF-1-55-55' }
-    @{ num = '033'; l4 = 'WF-1-55.56'; branch = 'wbs/WF-1-55-56' }
-    @{ num = '034'; l4 = 'WF-1-55.57'; branch = 'wbs/WF-1-55-57' }
-    @{ num = '035'; l4 = 'WF-1-55.58'; branch = 'wbs/WF-1-55-58' }
-    @{ num = '037'; l4 = 'WF-1-55.59'; branch = 'wbs/WF-1-55-59' }
-    @{ num = '039'; l4 = 'WF-1-55.60'; branch = 'wbs/WF-1-55-60' }
-    @{ num = '040'; l4 = 'WF-1-55.61'; branch = 'wbs/WF-1-55-61' }
-    @{ num = '041'; l4 = 'WF-1-55.62'; branch = 'wbs/WF-1-55-62' }
-    @{ num = '042'; l4 = 'WF-1-55.63'; branch = 'wbs/WF-1-55-63' }
-    @{ num = '043'; l4 = 'WF-1-55.64'; branch = 'wbs/WF-1-55-64' }
-    @{ num = '044'; l4 = 'WF-1-55.65'; branch = 'wbs/WF-1-55-65' }
-    @{ num = '100'; l4 = 'WF-1-55.66'; branch = 'wbs/WF-1-55-66' }
-    @{ num = '101'; l4 = 'WF-1-55.67'; branch = 'wbs/WF-1-55-67' }
-    @{ num = '102'; l4 = 'WF-1-55.68'; branch = 'wbs/WF-1-55-68' }
+    @{ num = '025'; l4 = 'WF-1-55.52'; branch = 'wbs/WF-1-55.52' }
+    @{ num = '026'; l4 = 'WF-1-55.53'; branch = 'wbs/WF-1-55.53' }
+    @{ num = '027'; l4 = 'WF-1-55.54'; branch = 'wbs/WF-1-55.54' }
+    @{ num = '032'; l4 = 'WF-1-55.55'; branch = 'wbs/WF-1-55.55' }
+    @{ num = '033'; l4 = 'WF-1-55.56'; branch = 'wbs/WF-1-55.56' }
+    @{ num = '034'; l4 = 'WF-1-55.57'; branch = 'wbs/WF-1-55.57' }
+    @{ num = '035'; l4 = 'WF-1-55.58'; branch = 'wbs/WF-1-55.58' }
+    @{ num = '037'; l4 = 'WF-1-55.59'; branch = 'wbs/WF-1-55.59' }
+    @{ num = '039'; l4 = 'WF-1-55.60'; branch = 'wbs/WF-1-55.60' }
+    @{ num = '040'; l4 = 'WF-1-55.61'; branch = 'wbs/WF-1-55.61' }
+    @{ num = '041'; l4 = 'WF-1-55.62'; branch = 'wbs/WF-1-55.62' }
+    @{ num = '042'; l4 = 'WF-1-55.63'; branch = 'wbs/WF-1-55.63' }
+    @{ num = '043'; l4 = 'WF-1-55.64'; branch = 'wbs/WF-1-55.64' }
+    @{ num = '044'; l4 = 'WF-1-55.65'; branch = 'wbs/WF-1-55.65' }
+    @{ num = '100'; l4 = 'WF-1-55.66'; branch = 'wbs/WF-1-55.66' }
+    @{ num = '101'; l4 = 'WF-1-55.67'; branch = 'wbs/WF-1-55.67' }
+    @{ num = '102'; l4 = 'WF-1-55.68'; branch = 'wbs/WF-1-55.68' }
 )
 
 $root = (Resolve-Path (Join-Path $PSCommandPath '..\..')).Path
