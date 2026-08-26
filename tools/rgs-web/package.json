@@ -1,14 +1,17 @@
 {
   "name": "rgs-web",
-  "version": "0.1.0",
-  "description": "RGS 后台管理 Web UI (node + express,代理 k3s API)",
+  "version": "0.3.0",
+  "description": "RGS 后台管理 Web UI v0.3 — Node http2 + mTLS + 真实 5 域 gRPC (per WF-1-rgs-web-v0.3-pf)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "pf": "wsl -e bash -c 'bash /mnt/d/RustGameServer/.pf-start.sh'",
+    "test": "curl -s http://127.0.0.1:8788/api/health/all | head -1"
   },
-  "dependencies": {
-    "express": "^4.19.2"
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
   },
   "license": "Apache-2.0"
 }
