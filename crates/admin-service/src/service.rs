@@ -81,6 +81,13 @@ impl AdminService for AdminServiceImpl {
     }
 
     async fn authenticate(&self, username: String, password_hash: String) -> Result<AdminUser> {
+        tracing::debug!(
+            operation = "auth_entry",
+            service = "admin-service",
+            method = "Authenticate",
+            username = %username,
+            "enter authenticate"
+        );
         let user = self
             .users
             .find_by_username(&username)
@@ -102,6 +109,15 @@ impl AdminService for AdminServiceImpl {
         role: AdminRole,
         domain_scope: Option<String>,
     ) -> Result<AdminUser> {
+        tracing::debug!(
+            operation = "rbac_admin_create",
+            service = "admin-service",
+            method = "CreateAdmin",
+            username = %username,
+            role = ?role,
+            domain_scope = ?domain_scope,
+            "enter create_admin (RBAC grant)"
+        );
         if username.is_empty() {
             return Err(Error::Validation("username must not be empty".to_string()));
         }
@@ -123,6 +139,13 @@ impl AdminService for AdminServiceImpl {
     }
 
     async fn disable_admin(&self, admin_id: Uuid) -> Result<bool> {
+        tracing::debug!(
+            operation = "rbac_admin_disable",
+            service = "admin-service",
+            method = "DisableAdmin",
+            admin_id = %admin_id,
+            "enter disable_admin (RBAC revoke)"
+        );
         let ok = self.users.disable(admin_id, chrono::Utc::now()).await?;
         if !ok {
             return Err(Error::NotFound {
@@ -191,6 +214,12 @@ pub mod grpc_service {
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
         ) -> std::result::Result<Response<common_proto::HealthCheckResponse>, Status> {
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "admin-service",
+                method = "HealthCheck",
+                "enter grpc handler"
+            );
             let healthy = self
                 .impl_
                 .health_check()
@@ -215,6 +244,22 @@ pub mod grpc_service {
             request: Request<common_proto::EntityId>,
         ) -> std::result::Result<Response<admin_proto::AdminOp>, Status> {
             let id_str = request.get_ref().id.clone();
+            let user_id_parsed = Uuid::parse_str(&id_str).ok();
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "admin-service",
+                method = "GetAdminOp",
+                admin_id = %user_id_parsed.as_ref().map(|u| u.to_string()).unwrap_or_else(|| id_str.clone()),
+                "enter grpc handler"
+            );
+            let user_id_parsed = Uuid::parse_str(&id_str).ok();
+            tracing::debug!(
+                operation = "grpc_handler_entry",
+                service = "admin-service",
+                method = "GetAdminOp",
+                user_id = %user_id_parsed.as_ref().map(|u| u.to_string()).unwrap_or_else(|| id_str.clone()),
+                "enter grpc handler"
+            );
             let user_id = Uuid::parse_str(&id_str)
                 .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", id_str)))?;
             let u = self
