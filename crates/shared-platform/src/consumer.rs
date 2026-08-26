@@ -149,6 +149,16 @@ pub async fn process_with_retry<T: serde::de::DeserializeOwned + Send>(
     jetstream: &Context,
     config: &ConsumerConfig,
 ) -> Result<(), ConsumerError> {
+    tracing::debug!(
+        operation = "nats_consume_entry",
+        service = "shared-platform",
+        method = "process_with_retry",
+        handler = handler.name(),
+        subject = %subject,
+        retry_count = retry_count,
+        payload_bytes = payload.len(),
+        "enter consumer process"
+    );
     // 55.45 入口 traceparent 关联（容错：缺失 / 解析失败 / OTel 未启用都不报错）
     if let Some((trace_id, span_id)) = extract_traceparent_from_headers(&headers) {
         link_current_span_to_parent(trace_id, span_id);
