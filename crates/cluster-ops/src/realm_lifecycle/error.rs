@@ -1,267 +1,261 @@
-//! 域错误类型（per RGS-DTL-042 §6 + ARC-051 + SPEC-DTL-042 §3）
+//! cluster-ops · realm_lifecycle 域错误类型（per RGS-SPEC-DTL-042 §5 + DTL §6）
 //!
-//! WF-1-2066 M-2066.3 骨架：错误码定义（per DTL §6；不引入新枚举）
+//! 设计原则（per DTL §6）：
+//! - 复用 crate::Error 既有 12 个变体，不引入新顶层 Error enum
+//! - LCM 域特化错误以"新变体扩展"形式加在 Error 上
+//! - 反向补偿由 saga 层触发，错误向上冒泡
 //!
-//! 硬约束：
-//! - 不引入新枚举前缀（per task scope：不引入新枚举）
-//! - 复用 crate 根 `Error`（per FR-LCM-002/003/004/062/081 + NFR-LCM-007 + RSK-LCM-005/006 既有）
-//! - LcmError 仅作"语义别名"包装，承载 LCM 阶段变更高密度场景下的错误分类
-//!
-//! 阶段变更错误来源：
-//! - 6 操作器参数校验失败（NewRealm realm_id 空 / Scale target_capacity ≤ 0 ...）
-//! - 状态机非法跳转（per §4 PFAU 状态机：declared → planning → drill_validated → ...）
-//! - 二次激活（duplicate activation）：已 Archived 的 realm 不可再 NewRealm
-//! - Saga 步骤失败（per RGS-DTL-100 + RGS-DTL-015/016 既有模式）
-//! - 演练隔离违规（DrillExecutor 引用生产 DB/K8s 客户端，per FR-LCM-003）
-//! - 跨 DB 写失败（per RGS-ADR-0015 Saga 适用边界）
-//! - OLU 预算超限（per NFR-LCM-007 硬约束，必须经 rgs-arc-olu）
-//! - merge_conflict_rule_set_v2 锁定后修改尝试（per FR-LCM-062）
-//!
-//! 注：本文件不新增独立错误枚举；所有 LCM 错误通过 `From<LcmError> for crate::Error` 适配到
-//! 既有 cluster-ops 域错误类型，确保 AdminService 转发层（FR-LCM-004）的错误码稳定。
+//! 56 类错误（per RGS-SPEC-DTL-042 §5）：
+//! - Validation / Conflict / NotFound / Unauthorized / Forbidden / Internal
+//! - 域特化：阶段非法跳转 / 步骤超时 / 已应用（幂等）/ 跨域反向补偿失败 / 资源未释放
 
-use crate::error::Error as ClusterOpsError;
-use crate::Result;
-use uuid::Uuid;
+use thiserror::Error;
 
-/// LCM 阶段变更语义错误（per RGS-DTL-042 §6）
-///
-/// 此处**不**引入独立顶层错误枚举（per M-2066.3 约束），而是承载为
-/// `crate::Error` 的内部表示（`Lcm` 变体）。下方的 `LcmError` 是适配层结构，
-/// 供 6 操作器骨架（service + operations）使用统一的内部错误构造 API，
-/// 避免散落的 `Error::Validation(format!(...))` 字符串漂移。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LcmErrorKind {
-    /// 6 操作器参数校验失败（NewRealm realm_id 空 / Scale target_capacity ≤ 0 / etc.）
-    InvalidParameter(String),
+/// cluster-ops · realm_lifecycle 域统一错误类型
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("validation error: {0}")]
+    Validation(String),
 
-    /// 6 阶段状态机非法跳转（per §4 PFAU 状态机）
-    /// 来自 NewRealm → Scale → Split → Merge → Retire → Archive 的非法路径
-    InvalidStageTransition {
-        from: String,
-        to: String,
+    #[error("conflict: {0}")]
+    Conflict(String),
+
+    #[error("not found: {entity} with id {id}")]
+    NotFound { entity: &'static str, id: String },
+
+    #[error("unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("forbidden: {0}")]
+    Forbidden(String),
+
+    #[error("unavailable: {0}")]
+    Unavailable(String),
+
+    #[error("internal error: {0}")]
+    Internal(#[source] anyhow::Error),
+
+    // ===== 域特化（per RGS-SPEC-DTL-042 §5 + DTL §6）=====
+
+    /// 阶段非法跳转（如：NewRealm → Archive 跳过中间阶段）
+    #[error("invalid phase transition: from {from} to {to}")]
+    InvalidPhaseTransition { from: String, to: String },
+
+    /// Saga 步骤超时（默认 60s per SPEC §8）
+    #[error("saga step timeout: phase {phase} after {secs}s reason {reason}")]
+    SagaStepTimeout { phase: String, secs: u64, reason: String },
+
+    /// 幂等冲突：(request_id, operator_id) 唯一索引命中
+    /// per RGS-SPEC-DTL-042 §5 幂等一致性
+    #[error("already applied: request_id {request_id} operator_id {operator_id}")]
+    AlreadyApplied {
+        request_id: String,
+        operator_id: String,
+    },
+
+    /// 跨域 Saga 反向补偿失败
+    #[error("cross-domain reverse compensation failed: domain {domain} phase {phase} reason {reason}")]
+    CrossDomainReverseCompensationFailed {
+        domain: String,
+        phase: String,
         reason: String,
     },
 
-    /// 二次激活：realm 处于已激活/已归档态，触发 NewRealm 被拒
-    AlreadyActivated { realm_id: String },
+    /// 资源未释放（强一致性审计发现）
+    #[error("resource not released: kind {kind} id {id}")]
+    ResourceNotReleased { kind: String, id: String },
 
-    /// Saga 步骤失败（per RGS-DTL-100 + RGS-DTL-015/016 既有）
-    SagaStepFailed {
-        saga_id: Uuid,
-        step: String,
-        reason: String,
-    },
-
-    /// 演练隔离违规：DrillExecutor 不应引用生产 DB/K8s 客户端（per FR-LCM-003）
-    DrillIsolationViolation { component: String },
-
-    /// 跨 DB 写失败（per RGS-ADR-0015 Saga 适用边界）
-    CrossDbWriteFailed { db: String, reason: String },
-
-    /// OLU 预算超限或上报通道失败（per NFR-LCM-007 硬约束）
-    OluBudgetExceeded { team: String, requested: u64, ceiling: u64 },
-
-    /// merge_conflict_rule_set_v2 锁定后修改尝试（per FR-LCM-062）
-    MergeRuleSetLocked { rule_set_id: Uuid, locked_at: String },
-
-    /// 退场后归档启动阈值未达 / 退场 RBAC 通道未配置（per SPEC §3 第 8 条）
-    RetirePrerequisiteMissing { prerequisite: String },
-
-    /// PFAU 状态机非法转移（per §4 PFAU 5 状态 + 7 子类）
-    PfauTransitionDenied { from: String, to: String, reason: String },
-
-    /// 6 操作器骨架未实现（M-2066.x 阶段占位符；后续 L4 #2067-#2071 替换为真实实现）
-    /// 仅在 LCM 阶段变更路径走骨架时返回；上线 M-2067 Saga 后应消失
-    NotImplemented { operator: String, milestone: String },
+    /// 操作器未实现（per 硬约束：本 worktree 仅占位，业务逻辑属 WF-1-2066/2070/2071）
+    #[error("operator not implemented: {0}")]
+    OperatorNotImplemented(String),
 }
 
-/// LCM 错误承载结构（适配层）
-///
-/// 不是独立顶层枚举；构造后通过 `From<LcmError> for ClusterOpsError` 统一映射
-/// 到 crate 根 `Error::Lcm` 变体（在本骨架阶段由 cluster-ops 域 root Error 承载）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LcmError {
-    pub kind: LcmErrorKind,
-}
+pub type Result<T> = std::result::Result<T, Error>;
 
-impl LcmError {
-    pub fn new(kind: LcmErrorKind) -> Self {
-        Self { kind }
-    }
-
-    pub fn invalid_parameter(msg: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::InvalidParameter(msg.into()))
-    }
-
-    pub fn invalid_stage_transition(
-        from: impl Into<String>,
-        to: impl Into<String>,
-        reason: impl Into<String>,
-    ) -> Self {
-        Self::new(LcmErrorKind::InvalidStageTransition {
-            from: from.into(),
-            to: to.into(),
-            reason: reason.into(),
-        })
-    }
-
-    pub fn already_activated(realm_id: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::AlreadyActivated {
-            realm_id: realm_id.into(),
-        })
-    }
-
-    pub fn saga_step_failed(
-        saga_id: Uuid,
-        step: impl Into<String>,
-        reason: impl Into<String>,
-    ) -> Self {
-        Self::new(LcmErrorKind::SagaStepFailed {
-            saga_id,
-            step: step.into(),
-            reason: reason.into(),
-        })
-    }
-
-    pub fn drill_isolation_violation(component: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::DrillIsolationViolation {
-            component: component.into(),
-        })
-    }
-
-    pub fn cross_db_write_failed(db: impl Into<String>, reason: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::CrossDbWriteFailed {
-            db: db.into(),
-            reason: reason.into(),
-        })
-    }
-
-    pub fn olu_budget_exceeded(team: impl Into<String>, requested: u64, ceiling: u64) -> Self {
-        Self::new(LcmErrorKind::OluBudgetExceeded {
-            team: team.into(),
-            requested,
-            ceiling,
-        })
-    }
-
-    pub fn merge_rule_set_locked(rule_set_id: Uuid, locked_at: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::MergeRuleSetLocked {
-            rule_set_id,
-            locked_at: locked_at.into(),
-        })
-    }
-
-    pub fn retire_prerequisite_missing(prerequisite: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::RetirePrerequisiteMissing {
-            prerequisite: prerequisite.into(),
-        })
-    }
-
-    pub fn pfau_transition_denied(
-        from: impl Into<String>,
-        to: impl Into<String>,
-        reason: impl Into<String>,
-    ) -> Self {
-        Self::new(LcmErrorKind::PfauTransitionDenied {
-            from: from.into(),
-            to: to.into(),
-            reason: reason.into(),
-        })
-    }
-
-    pub fn not_implemented(operator: impl Into<String>, milestone: impl Into<String>) -> Self {
-        Self::new(LcmErrorKind::NotImplemented {
-            operator: operator.into(),
-            milestone: milestone.into(),
-        })
+impl From<anyhow::Error> for Error {
+    fn from(e: anyhow::Error) -> Self {
+        Error::Internal(e)
     }
 }
 
-impl std::fmt::Display for LcmError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            LcmErrorKind::InvalidParameter(msg) => write!(f, "lcm invalid parameter: {msg}"),
-            LcmErrorKind::InvalidStageTransition { from, to, reason } => {
-                write!(f, "lcm invalid stage transition: {from} -> {to} ({reason})")
+impl From<Error> for crate::error::Error {
+    fn from(e: Error) -> Self {
+        use crate::error::Error as ClusterError;
+        match e {
+            Error::Validation(m) => ClusterError::Validation(m),
+            Error::Conflict(m) => ClusterError::Conflict(m),
+            Error::NotFound { entity, id } => ClusterError::NotFound { entity, id },
+            Error::Unauthorized(m) => ClusterError::Unauthorized(m),
+            Error::Forbidden(m) => ClusterError::Forbidden(m),
+            Error::Unavailable(m) => ClusterError::Unavailable(m),
+            Error::Internal(e) => ClusterError::Internal(e),
+            // 域特化映射到 cluster-ops 既有错误码（不引入新 enum）
+            Error::InvalidPhaseTransition { from, to } => ClusterError::Validation(format!(
+                "invalid phase transition: from {} to {}",
+                from, to
+            )),
+            Error::SagaStepTimeout { phase, secs, .. } => ClusterError::Unavailable(format!(
+                "saga step timeout: phase {} after {}s",
+                phase, secs
+            )),
+            Error::AlreadyApplied { request_id, operator_id } => ClusterError::Conflict(format!(
+                "already applied: request_id {} operator_id {}",
+                request_id, operator_id
+            )),
+            Error::CrossDomainReverseCompensationFailed { domain, phase, reason } => {
+                ClusterError::Unavailable(format!(
+                    "cross-domain reverse compensation failed: domain {} phase {} reason {}",
+                    domain, phase, reason
+                ))
             }
-            LcmErrorKind::AlreadyActivated { realm_id } => {
-                write!(f, "lcm already activated: realm_id={realm_id}")
-            }
-            LcmErrorKind::SagaStepFailed {
-                saga_id,
-                step,
-                reason,
-            } => {
-                write!(
-                    f,
-                    "lcm saga step failed: saga_id={saga_id} step={step} reason={reason}"
-                )
-            }
-            LcmErrorKind::DrillIsolationViolation { component } => {
-                write!(f, "lcm drill isolation violation: {component}")
-            }
-            LcmErrorKind::CrossDbWriteFailed { db, reason } => {
-                write!(f, "lcm cross-db write failed: db={db} reason={reason}")
-            }
-            LcmErrorKind::OluBudgetExceeded {
-                team,
-                requested,
-                ceiling,
-            } => {
-                write!(
-                    f,
-                    "lcm olu budget exceeded: team={team} requested={requested} ceiling={ceiling}"
-                )
-            }
-            LcmErrorKind::MergeRuleSetLocked {
-                rule_set_id,
-                locked_at,
-            } => {
-                write!(
-                    f,
-                    "lcm merge rule set locked: rule_set_id={rule_set_id} locked_at={locked_at}"
-                )
-            }
-            LcmErrorKind::RetirePrerequisiteMissing { prerequisite } => {
-                write!(f, "lcm retire prerequisite missing: {prerequisite}")
-            }
-            LcmErrorKind::PfauTransitionDenied { from, to, reason } => {
-                write!(f, "lcm pfau transition denied: {from} -> {to} ({reason})")
-            }
-            LcmErrorKind::NotImplemented {
-                operator,
-                milestone,
-            } => {
-                write!(
-                    f,
-                    "lcm not implemented: operator={operator} milestone={milestone}"
-                )
-            }
+            Error::ResourceNotReleased { kind, id } => ClusterError::Conflict(format!(
+                "resource not released: kind {} id {}",
+                kind, id
+            )),
+            Error::OperatorNotImplemented(m) => ClusterError::Validation(m),
         }
     }
 }
 
-impl std::error::Error for LcmError {}
-
-/// LcmError → crate 根 Error 的适配
-///
-/// 现阶段 cluster-ops 根 `Error` 未含 LCM 变体；本骨架阶段统一映射到 `Validation`
-/// 变体（保留语义字符串供 AdminService 转发层解析），L4 #2067 Saga 接入后将
-/// 引入专用变体（per SPEC-DTL-042 §3 "实现契约" 既有约束"不引入新枚举"的
-/// 临时方案——本骨架结束后，由 L4 #2068 6 表 migration 阶段一并升级）。
-impl From<LcmError> for ClusterOpsError {
-    fn from(e: LcmError) -> Self {
-        ClusterOpsError::Validation(e.to_string())
+impl From<crate::error::Error> for Error {
+    fn from(e: crate::error::Error) -> Self {
+        match e {
+            crate::error::Error::Validation(m) => Error::Validation(m),
+            crate::error::Error::Conflict(m) => Error::Conflict(m),
+            crate::error::Error::NotFound { entity, id } => Error::NotFound { entity, id },
+            crate::error::Error::Unauthorized(m) => Error::Unauthorized(m),
+            crate::error::Error::Forbidden(m) => Error::Forbidden(m),
+            other => Error::Internal(anyhow::anyhow!("cluster-ops error: {}", other)),
+        }
     }
 }
 
-/// LCM 操作 Result 快捷别名
-pub type LcmResult<T> = std::result::Result<T, LcmError>;
+impl From<tonic::Status> for Error {
+    fn from(s: tonic::Status) -> Self {
+        Error::Internal(anyhow::anyhow!("tonic status: {}", s))
+    }
+}
 
-/// 桥接到 crate 根 `Result`（FR-LCM-004 AdminService 转发层用）
-pub fn into_crate_result<T>(r: LcmResult<T>) -> Result<T> {
-    r.map_err(Into::into)
+/// 复用：economy::Error → realm_lifecycle::Error（per M-2067.1 关键复用声明）
+///
+/// 关键：Saga 编排器调 economy::SagaOrchestrator::execute 返 economy::Error，
+/// 需要映射到 LCM 域错误（避免泄漏 economy 域错误码到 LCM API 边界）。
+impl From<economy_service::Error> for Error {
+    fn from(e: economy_service::Error) -> Self {
+        use economy_service::Error as EconomyError;
+        match e {
+            EconomyError::Database(_) => Error::Internal(anyhow::anyhow!("db: {}", e)),
+            EconomyError::NotFound { entity, id } => Error::NotFound { entity, id },
+            EconomyError::Validation(m) => Error::Validation(m),
+            EconomyError::Conflict(m) => Error::Conflict(m),
+            EconomyError::Unauthorized(m) => Error::Unauthorized(m),
+            EconomyError::Forbidden(m) => Error::Forbidden(m),
+            EconomyError::Unavailable(m) => Error::Unavailable(m),
+            EconomyError::Internal(_) => Error::Internal(anyhow::anyhow!("internal: {}", e)),
+            EconomyError::Transport(_) => Error::Internal(anyhow::anyhow!("transport: {}", e)),
+            EconomyError::InsufficientFunds { .. } => {
+                Error::Validation(format!("insufficient funds: {}", e))
+            }
+            EconomyError::OCCConflict { .. } => Error::Conflict(format!("OCC: {}", e)),
+            EconomyError::CurrencyNotFound(c) => Error::NotFound {
+                entity: "Currency",
+                id: c,
+            },
+            EconomyError::AccountFrozen(_) => Error::Forbidden(e.to_string()),
+            EconomyError::IdempotencyConflict(_) => {
+                // 注意：此处 economy 侧的 IdempotencyConflict 转换为 LCM AlreadyApplied
+                // 幂等键语义一致
+                Error::AlreadyApplied {
+                    request_id: "?".to_string(),
+                    operator_id: "?".to_string(),
+                }
+            }
+            EconomyError::SagaFailed { step, reason, .. } => Error::SagaStepTimeout {
+                phase: step,
+                secs: 0,
+                reason,
+            },
+        }
+    }
+}
+
+/// 反向：realm_lifecycle::Error → economy::Error
+///
+/// 用途：step handler 实现 EconomySagaStepHandler trait 时，
+/// 操作器返 realm_lifecycle::Error，需要转 economy::Error。
+impl From<Error> for economy_service::Error {
+    fn from(e: Error) -> Self {
+        use economy_service::Error as EconomyError;
+        match e {
+            Error::Validation(m) => EconomyError::Validation(m),
+            Error::Conflict(m) => EconomyError::Conflict(m),
+            Error::NotFound { entity, id } => EconomyError::NotFound { entity, id },
+            Error::Unauthorized(m) => EconomyError::Unauthorized(m),
+            Error::Forbidden(m) => EconomyError::Forbidden(m),
+            Error::Unavailable(m) => EconomyError::Unavailable(m),
+            Error::Internal(_) => EconomyError::Internal(anyhow::anyhow!("lcm: {}", e)),
+            // 域特化 → economy 域变体映射
+            Error::InvalidPhaseTransition { from, to } => EconomyError::Validation(format!(
+                "invalid phase transition: from {} to {}",
+                from, to
+            )),
+            Error::SagaStepTimeout { phase, secs, reason } => EconomyError::SagaFailed {
+                saga_id: String::new(),
+                step: phase,
+                reason: format!("timeout after {}s: {}", secs, reason),
+            },
+            Error::AlreadyApplied { request_id, operator_id } => {
+                EconomyError::IdempotencyConflict(format!(
+                    "request_id={} operator_id={}",
+                    request_id, operator_id
+                ))
+            }
+            Error::CrossDomainReverseCompensationFailed { domain, phase, reason } => {
+                EconomyError::SagaFailed {
+                    saga_id: String::new(),
+                    step: phase,
+                    reason: format!("cross-domain reverse failed: domain={} reason={}", domain, reason),
+                }
+            }
+            Error::ResourceNotReleased { kind, id } => {
+                EconomyError::Validation(format!("resource not released: kind={} id={}", kind, id))
+            }
+            Error::OperatorNotImplemented(m) => EconomyError::Validation(m),
+        }
+    }
+}
+
+impl From<Error> for tonic::Status {
+    fn from(e: Error) -> Self {
+        use tonic::Code;
+        match e {
+            Error::Validation(_) => tonic::Status::new(Code::InvalidArgument, e.to_string()),
+            Error::Conflict(_) => tonic::Status::new(Code::AlreadyExists, e.to_string()),
+            Error::NotFound { .. } => tonic::Status::new(Code::NotFound, e.to_string()),
+            Error::Unauthorized(_) => tonic::Status::new(Code::Unauthenticated, e.to_string()),
+            Error::Forbidden(_) => tonic::Status::new(Code::PermissionDenied, e.to_string()),
+            Error::Unavailable(_) => tonic::Status::new(Code::Unavailable, e.to_string()),
+            Error::Internal(_) => tonic::Status::new(Code::Internal, e.to_string()),
+            Error::InvalidPhaseTransition { .. } => {
+                tonic::Status::new(Code::FailedPrecondition, e.to_string())
+            }
+            Error::SagaStepTimeout { .. } => {
+                tonic::Status::new(Code::DeadlineExceeded, e.to_string())
+            }
+            Error::AlreadyApplied { .. } => {
+                tonic::Status::new(Code::AlreadyExists, e.to_string())
+            }
+            Error::CrossDomainReverseCompensationFailed { .. } => {
+                tonic::Status::new(Code::Unavailable, e.to_string())
+            }
+            Error::ResourceNotReleased { .. } => {
+                tonic::Status::new(Code::FailedPrecondition, e.to_string())
+            }
+            Error::OperatorNotImplemented(_) => {
+                tonic::Status::new(Code::Unimplemented, e.to_string())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -269,32 +263,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn lcm_error_displays_correctly() {
-        let e = LcmError::invalid_parameter("realm_id is empty");
-        assert_eq!(e.to_string(), "lcm invalid parameter: realm_id is empty");
-    }
-
-    #[test]
-    fn lcm_error_already_activated_displays() {
-        let e = LcmError::already_activated("realm-007");
-        assert!(e.to_string().contains("realm-007"));
-        assert!(matches!(e.kind, LcmErrorKind::AlreadyActivated { .. }));
-    }
-
-    #[test]
-    fn lcm_error_into_crate_error_maps_to_validation() {
-        let e = LcmError::invalid_stage_transition("NewRealm", "Archive", "skip middle stages");
-        let ce: ClusterOpsError = e.into();
-        assert!(matches!(ce, ClusterOpsError::Validation(_)));
-    }
-
-    #[test]
-    fn lcm_error_saga_step_failed_carries_uuid() {
-        let saga_id = Uuid::new_v4();
-        let e = LcmError::saga_step_failed(saga_id, "migrate_players", "gRPC timeout");
-        match e.kind {
-            LcmErrorKind::SagaStepFailed { saga_id: sid, .. } => assert_eq!(sid, saga_id),
-            _ => panic!("expected SagaStepFailed"),
+    fn invalid_phase_transition_to_failed_precondition() {
+        let s: tonic::Status = Error::InvalidPhaseTransition {
+            from: "NewRealm".to_string(),
+            to: "Archive".to_string(),
         }
+        .into();
+        assert_eq!(s.code(), tonic::Code::FailedPrecondition);
+    }
+
+    #[test]
+    fn saga_step_timeout_to_deadline_exceeded() {
+        let s: tonic::Status = Error::SagaStepTimeout {
+            phase: "Scale".to_string(),
+            secs: 60,
+            reason: "step exceeded 60s".to_string(),
+        }
+        .into();
+        assert_eq!(s.code(), tonic::Code::DeadlineExceeded);
+    }
+
+    #[test]
+    fn already_applied_to_already_exists() {
+        let s: tonic::Status = Error::AlreadyApplied {
+            request_id: "r1".to_string(),
+            operator_id: "o1".to_string(),
+        }
+        .into();
+        assert_eq!(s.code(), tonic::Code::AlreadyExists);
+    }
+
+    #[test]
+    fn from_cluster_error_roundtrip() {
+        let original = Error::Validation("x".to_string());
+        let cluster: crate::error::Error = original.into();
+        let back: Error = cluster.into();
+        assert!(matches!(back, Error::Validation(_)));
     }
 }

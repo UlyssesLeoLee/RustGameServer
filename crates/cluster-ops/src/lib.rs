@@ -25,10 +25,7 @@ pub mod proto;
 
 pub mod db;
 
-// 服务器全生命周期管理子模块（per RGS-DTL-042 + SPEC-DTL-042 + ARC-051）
-// WF-1-2066 M-2066.1: 仅 module 声明；6 操作器 + Saga + Drill + Plans + Feature 适配
-// 的实际内容由后续 L4 #2066/#2067/#2068/#2070/#2071/#2073/#2074 任务逐级接入
-// 硬约束（per FR-LCM-004）：本模块**不**对外暴露独立 gRPC / HTTP
+// WF-1-2067 启用：realm_lifecycle 子模块（per RGS-IMPL-PLAN-LCM-001 §2.1）
 pub mod realm_lifecycle;
 
 pub mod common {

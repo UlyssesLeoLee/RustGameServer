@@ -1,42 +1,34 @@
 {
-  "l4_id": "WF-1-2065",
-  "task": "RangeClient + ChunkOrchestrator + IntegrityGate 实现",
-  "owner": "架构师（兼）",
-  "tokens": "1280K",
-  "spec": "SPEC-DTL-041",
-  "dtl": "DTL-041",
-  "branch": "wbs/WF-1-2065",
+  "l4_id": "WF-1-2067",
+  "task": "SagaOrchestrator + 6 阶段 Saga 步骤实现",
+  "owner": "Admin 域 Lead (R) | Ulysses (A)",
+  "tokens": "840K",
+  "spec": "SPEC-DTL-042",
+  "dtl": "DTL-042",
+  "branch": "wbs/WF-1-2067",
   "status": "done",
   "progress": 100,
   "started_at": "2026-08-25T03:29:38.765Z",
   "updated_at": "2026-08-25T16:08:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-2065",
+  "completed_at": "2026-08-25T16:08:00.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2067",
   "deliverables": {
-    "crate_path": "crates/rgs-asset-download",
-    "modules": [
-      "src/lib.rs",
-      "src/api.rs",
-      "src/config.rs",
-      "src/error.rs",
-      "src/state_machine.rs",
-      "src/range_client.rs (432 lines, M-2065.1+2)",
-      "src/chunk_orchestrator.rs (608 lines, M-2065.3+4)",
-      "src/integrity_gate.rs (223 lines, M-2065.5)",
-      "src/metrics.rs (325 lines, M-2065.8, 10 项 rgs_asset_download_*)",
-      "src/platform/mod.rs + unix.rs + windows.rs + android.rs + ios.rs (M-2065.6+7)"
-    ],
-    "tests": [
-      "tests/ut_range_client.rs (10 tests, M-2065.9: HEAD + 206/416/200/429/5xx + cancel)",
-      "tests/ut_chunk_orchestrator.rs (8 tests, M-2065.10: 桌面16/移动4 + pause/cancel + retry)",
-      "tests/ut_integrity_gate.rs (8 tests, M-2065.11: 整文件 hash + 篡改负例)",
-      "tests/security_no_pii.rs (4 tests, M-2065.12: grep 验证 PII 字段为空)"
-    ],
-    "hard_constraints_verified": {
-      "NFR-CDN-002": "PASS (no skip_integrity/bypass_integrity in src)",
-      "FR-CDN-074": "PASS (If-Range + ETag in range_client.rs)",
-      "FR-CDN-083": "PASS (cancel_request + abort_request in chunk_orchestrator.rs)",
-      "FR-CDN-064": "PASS (no player_id/device_id/email in api.rs)"
-    },
-    "test_results": "62 tests pass (32 lib + 10 ut_range_client + 8 ut_chunk_orchestrator + 8 ut_integrity_gate + 4 security_no_pii)"
-  }
+    "module_skeleton": "crates/cluster-ops/src/realm_lifecycle/{mod.rs,error.rs,service.rs,operations/}",
+    "saga_layer": "crates/cluster-ops/src/realm_lifecycle/saga/{mod.rs,orchestrator.rs,steps.rs,idempotency.rs}",
+    "tests": "crates/cluster-ops/src/realm_lifecycle/tests/{mod.rs,ut_saga.rs} + crates/cluster-ops/tests/ut_saga.rs",
+    "reuses": "economy_service::{saga, saga_orchestrator, reservation} (per RGS-IMPL-PLAN-LCM-001 §2.3)",
+    "phases": ["NewRealm", "Scale", "Split", "Merge", "MergeRollback", "Retire", "Archive"],
+    "timeout_default_secs": 60,
+    "compensation_actions": ["Reverse", "Rollback", "Cleanup", "CrossDomainReverse", "CrossDomainRollback"]
+  },
+  "m_tasks_completed": [
+    "M-2067.PREREQ",
+    "M-2067.1",
+    "M-2067.2",
+    "M-2067.3",
+    "M-2067.4",
+    "M-2067.5",
+    "M-2067.6"
+  ],
+  "next": "WF-1-2066 (6 operator trait impl) + WF-1-2068 (6 表 migration) + WF-1-2070 (drill)"
 }
