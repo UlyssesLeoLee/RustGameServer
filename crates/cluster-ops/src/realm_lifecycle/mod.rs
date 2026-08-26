@@ -1,41 +1,65 @@
-//! realm_lifecycle 子模块（per RGS-SPEC-DTL-042 §2 + DTL-031 §1.1）
+//! `realm_lifecycle` —— 服务器全生命周期管理子模块
 //!
-//! 服务器全生命周期管理（AD 限界上下文扩展 Feature）。**不**独立 crate；作为
-//! `cluster-ops` 子模块存在，对外接口**仅**经 `AdminService` 转发（FR-LCM-004）。
+//! # 规范
 //!
-//! ## 子模块清单（per SPEC §2 + IMPL-PLAN-LCM-001 §3.5）
+//! - RGS-IMPL-PLAN-LCM-001 v0.1 §2.2（结构）+ §3.6（WF-1-2073 范围）
+//! - RGS-SPEC-DTL-042 v0.2 §2（实现单元）+ §3（实现契约）
 //!
-//! - [`error`]：LCM 域特化错误（含 PFAU 状态非法跳转 / Saga 失败 / OLU 上报失败）
-//! - [`service`]：`RealmLifecycleService` 主入口（编排 + 状态机 + 路由）
-//! - [`operators`]：6 阶段操作器 trait（new_realm / scale / split / merge / retire / archive；
-//!   merge_rollback 走 merge 逆向补偿路径而非独立操作器）
-//! - [`saga`]：`SagaOrchestrator` 占位 + 步骤定义
-//! - [`plans`]：6 Plan 占位（new_realm_plan / scale_plan / split_plan / merge_plan /
-//!   retire_plan / archive_plan）
-//! - [`feature_adapter`]：FeatureType 适配 + 7 SubFeature 注册 + PFAU 5 状态编排（M-2071.1~3）
-//! - [`olu_reporter`]：`rgs-arc-olu` 通道（NFR-LCM-007 硬约束；M-2071.4）
-//! - [`metrics`]：10 项 `rgs_lcm_*` 指标（M-2071.5）
-
-#![allow(clippy::result_large_err)]
+//! # 子模块
+//!
+//! - [`service`]        6 阶段操作器 trait 抽象（per L4 #2066 M-2066.2）
+//! - [`error`]          LCM 错误码（per DTL-042 §6）
+//! - [`saga`]           跨域 Saga 7 步 + 3 业务 service gRPC client（per L4 #2073）
+//! - [`plans`]          6 张 LCM plan 表（per L4 #2068；retire_plan 完整实现 + 5 占位）
+//!
+//! # FR-LCM-004 硬约束
+//!
+//! 本子模块**不**对外暴露独立 gRPC / HTTP（per FR-LCM-004 硬约束）。
+//! 全部经 `AdminService` 转发 + `ClusterOpsService` PFAU 编排。
 
 pub mod error;
+pub mod plans;
+pub mod saga;
 pub mod service;
 
-pub mod operators;
-
-pub mod saga;
-
-pub mod plans;
-
-pub mod feature_adapter;
-pub mod metrics;
-pub mod olu_reporter;
-
-// 公共 re-export
 pub use error::{Error, Result};
-pub use feature_adapter::{
-    FeatureRegistry, PfauTransition, RealmLifecycleFeatureAdapter, SubFeatureRegistration,
+pub use plans::{
+    retire_plan::{
+        InMemoryRetirePlanConfig, QueryChannelRbac, RetireChannelRole, RetirePlan,
+        RetirePlanConfig,
+    },
+    realm_lifecycle_run::RealmLifecycleRun,
+    new_realm_plan::NewRealmPlan,
+    split_plan::SplitPlan,
+    merge_conflict_rule_set_v2::MergeConflictRuleV2,
+    archive_policy::ArchivePolicy,
 };
-pub use metrics::LcmMetrics;
-pub use olu_reporter::{OluPhase, OluReport, OluReporter};
-pub use service::RealmLifecycleService;
+pub use saga::{
+    BusinessServiceClient, CrossDomainSaga, InMemoryBusinessServiceClient, SagaContext,
+    SagaStepError, SagaStepKind, SagaStepOutcome, SagaStepResult, TonicBusinessServiceClient,
+    SAGA_STEP_KINDS, SAGA_STEP_ORDER,
+};
+pub use service::{
+    NewRealmOperator, Operator, OperatorContext, OperatorOutcome, RealmLifecycleService,
+    ScaleOperator, SplitOperator, MergeOperator, MergeRollbackOperator, RetireOperator,
+    ArchiveOperator,
+};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 验证子模块 re-export 完整（per FR-LCM-004 + L4 #2066/2067/2068/2073 集成）
+    #[test]
+    fn submodules_reexported() {
+        // error
+        let _: Error = Error::NotFound("test".to_string());
+        // plans
+        let _ = QueryChannelRbac::default();
+        // saga
+        assert_eq!(SAGA_STEP_ORDER.len(), 7);
+        assert_eq!(SAGA_STEP_KINDS.len(), 7);
+        // service
+        assert_eq!(RealmLifecycleService::ALL_FEATURES.len(), 7);
+    }
+}
