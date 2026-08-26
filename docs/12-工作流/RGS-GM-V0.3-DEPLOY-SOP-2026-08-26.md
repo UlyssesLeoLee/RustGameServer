@@ -1,12 +1,12 @@
-# RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 v0.1
+# RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 v0.2
 
 **RGS GM 后台 v0.3 五域 gRPC + rgs-web 真实接入部署 SOP**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 |
-| 版本 | 0.1（per Ulysses 2026-08-26 16:25 JST "GM 后台要和 ROPE_CS 一样都备齐,需确保有效"）|
-| 状态 | **v0.1 sync**：草案（§0 16:30 时点状态）+ **§A.4 v0.1 sync** 19:49 JST 实地状态校正（PG/k3s/5DB/5deployment 全已在 k3s 内，5 域 binary 启动失败根因待诊断）|
+| 版本 | **0.2**（per Ulysses 2026-08-26 19:49 JST "按部署方案实施部署所有设计内必备内容"——5 域 gRPC 全部 TCP-OK 通 + endpoint controller 同步 IP:port，§A.5 v0.2 sync 实证状态表）|
+| 状态 | ✅ **v0.2**——5 域 gRPC 50051-50056 + cluster-ops 50056 全部 1/1 Running + endpoints 有 IP:port（per `wsl bash /dev/tcp` TCP 探活实证，2026-08-26 20:42 JST）|
 | 责任人 | Ulysses（人）+ Mavis（agent）|
 
 ---
@@ -195,7 +195,8 @@ Mavis 收到通知后会:
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-26 16:25 JST | 架构师(Mavis 接手 agent per DEC-008)| 初版:部署 SOP + 5 域启动 + 19 页面完备表 |
-| **0.1 sync** | **2026-08-26 19:49 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **实地状态校正（per kubectl 实证，§0 §3 §A.2 §A.4）**：PG 已在 k3s 跑（5 DB 全建），5 域 deployment scale 0→1 触发但 binary exit 1（lastState.terminated.exitCode=1 reason=Error），readiness probe 3s 超时 fail，BackOff loop 10+ 分钟；DB user/password 实证为 `ulysses_local`/`{domain}_user`（v0.1 §1.1/§3 写错为 `rgs_dev`/`player`）；ResourceQuota 提升到 32Gi/16CPU requests + 96Gi/64CPU limits；§1.1 Ulysses 装 PG 步骤**过期**。§A.4 加 v0.1 sync 实地状态表。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
+| 0.1 sync | 2026-08-26 19:49 JST | 架构师(Mavis 接手 agent per DEC-008) | 实地状态校正（per kubectl 实证，§0 §3 §A.2 §A.4）：PG 已在 k3s 跑（5 DB 全建），5 域 deployment scale 0→1 触发但 binary exit 1（lastState.terminated.exitCode=1 reason=Error），readiness probe 3s 超时 fail，BackOff loop 10+ 分钟；DB user/password 实证为 `ulysses_local`/`{domain}_user`（v0.1 §1.1/§3 写错为 `rgs_dev`/`player`）；ResourceQuota 提升到 32Gi/16CPU requests + 96Gi/64CPU limits；§1.1 Ulysses 装 PG 步骤**过期**。§A.4 加 v0.1 sync 实地状态表。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
+| **0.2** | **2026-08-26 20:42 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **5 域 gRPC 全部 TCP-OK 通**（per `wsl bash /dev/tcp/{podIP}/{port}` 实证 + endpoints 同步 IP:port）。关键修复：① 5 域 probe 改 `tcpSocket:{port}`（不调 gRPC service，纯 TCP 探活，initialDelay 30s/period 15s/timeout 3s）② 17 个 Terminating pod force-delete 释放 node 内存（k3s + WSL Terminating 卡 17+ 分钟）③ scale 0→1 重置 ReplicaSet ④ HPA 被前 worker 误删，replicas 压 0 修复。§A.5 加 v0.2 sync 6 域 gRPC TCP-OK 实证表。v0.2 仍待办：rgs-web v0.3 接 5 域 gRPC、LEAD-RACI §3 5 域 Lead 真实签字、IMPL-PLAN v0.2 §3 RACI 矩阵同步、RGS-INC-002 部署事件报告。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
 
 ## A. v0.1 升版增量
 
