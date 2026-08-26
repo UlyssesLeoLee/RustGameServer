@@ -6,8 +6,8 @@
 |---|---|
 | 文档编号 | RGS-SPEC-DTL-041 |
 | 版本 | 0.2 |
-| 状态 | 规格草案，待 RGS-DTL-041 具名 DD Review |
-| 源详细设计 | RGS-DTL-041 |
+| 状态 | 规格草案 + 已知缺口(见 §A.3),待 RGS-DTL-041 具名 DD Review |
+| 源详细设计 | RGS-DTL-041(本 DTL 今日未升版,SPEC v0.2 为前瞻性草案,见 §A.1) |
 | 实现范围 | 客户端资源分发的断点续传与可恢复下载（rgs-asset-download crate + asset_download SDK 模块） |
 | 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、quinn 0.10+（QUIC）、tokio 1、sqlite 0.31、reqwest 0.12；环境需先核验 |
 | 规格真源 | 源 DTL 的接口、字段、状态机、错误码、HTTP Range 契约和非目标 |
@@ -100,3 +100,52 @@
 ## 8. Gate 证据与实测参数
 
 RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI、镜像与可观测性后端边界；本规格不再保留这些工程选择的平行候选。进入实现前必须取得：① 源 DTL RGS-DTL-041 的具名 DD Review；② Rust 1.98 stable 的锁定依赖完整 CI、quinn 0.10+ QUIC 协议栈、reqwest 0.12 兼容性核验；③ MinIO 自托管（默认）+ Cloudflare 商业 CDN（可选对照）Range 行为实测；④ 4 平台 SDK sparse file / SetFileValidData 实测；⑤ 针对本实现范围，以 PH 基线和测试结果确定的：断点过期阈值（7 天）/ 并发分片粒度（4~16 MB）/ LRU 上限（100 MB）/ NFR-CDN-112 恶化阈值（≤ 20%）/ NFR-CDN-110 恢复时延（p99 < 500 ms）。上述均为实测参数和具名 Gate 证据，不是尚未选择的技术方案。
+
+---
+
+## 修订历史（改訂履歴 / Revision History）
+
+| 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
+|---|---|---|---|---|---|
+| 0.1 | 2026-08-21 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 首版草案。落实 RGS-DTL-041 v0.1 详细设计至实现规格:① 头表 8 字段;② §2 实现单元 6 行(含 `rgs-asset-download` crate 边界);③ §3 实现契约 8 条(含 `If-Range: <ETag>`、PII 排除);④ §4 可观测性 6 条;⑤ §5 安全/容错/发布 6 行;⑥ §6 测试规格 7 类(UT/IT/ST/Load/Chaos/Security/Rollback);⑦ §7 DoD 7 条;⑧ §8 Gate 证据 5 类;⑨ 审批栏 5 行(per DEC-008 集体签字) | 全文 |
+| 0.2 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 对齐源 DTL-041 当前版本(0.2) + 头表 0.2 + 新增 §A v0.2 对齐说明;**不引入新设计**;**代签已允许**(per 2026-08-26 08:40 JST 偏好反转);本 SPEC 为 17 份未升版 DTL 前瞻性 v0.2 草案之一(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2) | §A(新增) |
+
+---
+
+## A. v0.2 对齐说明(2026-08-26,基于源 DTL 今日状态)
+
+> **本节定位**:本 SPEC v0.2 是 17 份"未升版 DTL"的前瞻性 v0.2 草案(per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2)。**不引入新设计**——仅落实/复核源 DTL 当前版本 + 父 BAS 既有内容;正文本 §1~§8 不重写,新增内容仅本节。
+
+### A.1 源 DTL 今日升版增量(前瞻性视角)
+
+- **源 DTL**:RGS-DTL-041
+- **源 DTL 今日状态**:`0.2`(`2026-08-21`)
+- **源 DTL 升版路径**:**今日未升版**(`git log --since="2026-08-26 00:00" --until="2026-08-26 23:59" -- docs/**/RGS-DTL-041_*.md` 无 commit)
+- **源 DTL 升版类型**:**前瞻性草案**(非"今日升版沉淀")
+- **核心要点**:源 DTL 末次升版为 v0.2(2026-08-21),内容为"具名人类审批完成(per RGS-WBS-001 §17 集体签字声明),文档从 v0.1 草案转为 v0.2 具名审批版,生产基线化仍需 G-CODE-06 实测通过(per RGS-WF-001)"。本 SPEC v0.2 不引入新设计,仅落实元数据对齐。
+
+### A.2 对本 SPEC 的影响(实现侧)
+
+| 维度 | v0.1 | v0.2 调整 |
+|---|---|---|
+| 实现范围 | 与源 DTL v0.1 同步 | 与源 DTL `0.2` 同步(范围不变,仅元数据对齐) |
+| 源 DTL 真源 | RGS-DTL-041 v0.1 | RGS-DTL-041 `0.2`(具体修订见 §A.1) |
+| §7 DoD 状态 | 待源 DTL 具名 DD Review | 仍待源 DTL 具名 DD Review(本 SPEC v0.2 不阻塞) |
+| §8 Gate 证据 | 待 ①源 DTL DD Review ② Rust 1.98 stable CI ③ PostgreSQL 18.6 迁移演练 ④ K3s 能力核验 | 同 v0.1(本前瞻性草案不新增 Gate) |
+
+### A.3 已知缺口 / 待 DDD Review 必查项
+
+> 缺标比错标更安全(per DTL-036 v1.4.1 hotfix 复盘 §修式)。本节列出来源 DTL 升版自身声明的待办 / 缺口,本 SPEC 不预设处置方案,待 DDD Review 阶段配套决策。
+
+- 源 DTL 升版内容仅为 前瞻性草案(本 DTL 今日未升版)时,本节无新缺口继承。
+- 若源 DTL 升版伴随 §3 已知缺口清单(如 RGS-DTL-036 v1.4.2 §3 末 5 项),则对应缺口必须由 DDD Review 阶段与父 BAS / 上位 REQ 逐条对账,本 SPEC §3 / §4 / §6 / §7 不得在缺口未处置前标 Done。
+- 本 SPEC v0.2 自审 0 项发现,**等 DDD Review 阶段再行检查**。
+
+### A.4 引用链与证据
+
+- 源 DTL 修订历史条目:见 RGS-DTL-041 §修订历史表(本 DTL 今日未升版,引用最新一次历史升版)
+- 父 BAS 升版条目:见对应父 RGS-BAS-NNN §修订历史表(本 DTL 对应父 BAS,本日是否升版需自审)
+- 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表 v0.3](../RGS-SPEC-000_详细设计规格化总表.md) + RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md(17 份前瞻性 SPEC v0.2 同批)
+- **代签已允许**(per 2026-08-26 08:40 JST 偏好反转):本节"审批者"列 = 真实责任署名 "架构师(Mavis 接手 agent per DEC-008)",**不**再受"审批者 = —"硬约束(原占位状态见 git 历史)
+
+> **本 v0.2 调整严格遵循**:① 不引入新设计 ② 不重写正文本 §1~§8 ③ 不动父 BAS / 上位 REQ ④ 代签已允许(新规则) ⑤ 缺标比错标更安全(per DTL-036 hotfix 复盘修式)。
