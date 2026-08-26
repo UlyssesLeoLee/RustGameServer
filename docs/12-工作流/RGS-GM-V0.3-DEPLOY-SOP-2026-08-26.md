@@ -6,7 +6,7 @@
 |---|---|
 | 文档编号 | RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 |
 | 版本 | 0.1（per Ulysses 2026-08-26 16:25 JST "GM 后台要和 ROPE_CS 一样都备齐,需确保有效"）|
-| 状态 | 草案 + 已执行 P0（binary 编译完成,等 PG 装）|
+| 状态 | **v0.1 sync**：草案（§0 16:30 时点状态）+ **§A.4 v0.1 sync** 19:49 JST 实地状态校正（PG/k3s/5DB/5deployment 全已在 k3s 内，5 域 binary 启动失败根因待诊断）|
 | 责任人 | Ulysses（人）+ Mavis（agent）|
 
 ---
@@ -21,12 +21,14 @@ Ulysses 要求"和 ROPE_CS 一样备齐,需确保有效"= **5 域 gRPC 必须真
 
 | 项 | 状态 |
 |---|---|
-| 5 域 + cluster-ops binary | ✅ 已编译(`E:\DevCache\cargo\target\debug\*.exe`,5 域 + cluster-ops 各 18 MB,3 分 43 秒) |
-| WSL k3s API server | ⚠️ 在退化为 TIMEOUT 15s+ |
-| WSL PostgreSQL | ❌ **未装**(WSL Ubuntu 24.04 内无 postgresql service) |
-| 5 域二进制启动 | ❌ 阻塞——`DATABASE_URL` 必填,无 DB 起不来 |
-| `sudo` 提权 | ❌ leo19 需密码(`/etc/sudoers.d/leo19` 不存在) |
-| Mavis 自助能力 | ❌ 无法提权装 PG |
+| 5 域 + cluster-ops binary | ✅ 已编译（`E:\DevCache\cargo\target\debug\*.exe`，5 域 + cluster-ops 各 18 MB，3 分 43 秒）+ ghcr.io 预构建 image `ghcr.io/ulyssesleolee/rustgameserver:0.1.0-{domain}` 已在 k3s containerd 缓存 |
+| WSL k3s API server | ✅ **k3s v1.36.3+k3s1 control-plane Ready 4d8h**（16:30 时 TIMEOUT 已恢复）|
+| WSL PostgreSQL | ✅ **k3s 内 postgres pod Running 38+ 分钟**（`postgres-744457577c-rcglr` 1/1）+ **6 DB 全建好**（player_db/economy_db/match_db/social_db/admin_db/cluster_ops_db，user = `{domain}_user`，password = `ulysses_local`）|
+| 5 域 deployment | ✅ 6 份 manifest 已 apply（5 域 + cluster-ops 0→1 replica scale 完成）|
+| 5 域 pod 启动 | ❌ **exit code 1**：`lastState.terminated.exitCode: 1, reason: "Error"`；readiness probe 持续 fail（"failed to connect service 10.42.0.214:50051 within 3s"）；BackOff 重启 loop，0/1 Running 卡住 10+ 分钟 |
+| 运维组件 | ✅ grafana 1/1、otel-collector 1/1、prometheus 1/1 全部 Running |
+| `sudo` 提权 | ⚠️ Mavis 仍无 sudo 提权（PG 装入用 k3s 内 postgres 已绕过，不需要 Mavis 提权）|
+| Mavis 自助能力 | ✅ k8s 资源管理（patch resourcequota、scale、exec、logs）全部可达 |
 
 **Mavis 需 Ulysses 协助**:**在 WSL Ubuntu 终端** 跑 1-2 条命令(输入密码),之后 Mavis 自动接续。
 
@@ -111,17 +113,24 @@ Mavis 收到通知后会:
 
 ## 3. 5 域启动参数(per main.rs 读取的 env)
 
-| Crate | GRPC_ADDR | DATABASE_URL | RGS_ 专用 |
+| Crate | GRPC_ADDR | DATABASE_URL（k3s secret 实证，per `*-db-credentials` Opaque secret `data.url`）| RGS_ 专用 |
 |---|---|---|---|
-| player-service | `0.0.0.0:50051` | `postgres://player:rgs_dev@127.0.0.1:5432/player_db` | `RGS_ALLOW_INSECURE_GRPC=1`(dev) |
-| economy-service | `0.0.0.0:50052` | `postgres://economy:rgs_dev@127.0.0.1:5432/economy_db` | 同上 |
-| match-service | `0.0.0.0:50053` | `postgres://match_user:rgs_dev@127.0.0.1:5432/match_db` | 同上 |
-| social-service | `0.0.0.0:50054` | `postgres://social:rgs_dev@127.0.0.1:5432/social_db` | 同上 |
-| admin-service | `0.0.0.0:50055` | `postgres://admin:rgs_dev@127.0.0.1:5432/admin_db` | 同上 |
-| cluster-ops | `0.0.0.0:50056` | (共用 admin_db) | 同上 |
+| player-service | `0.0.0.0:50051` | `postgres://player_user:ulysses_local@postgres:5432/player_db` | `RGS_ALLOW_INSECURE_GRPC=0`（manifest 写 0，但 DEPLOY-SOP §1.1 / §3 写 1 是错误——v0.1 sync 修正）|
+| economy-service | `0.0.0.0:50052` | `postgres://economy_user:ulysses_local@postgres:5432/economy_db` | 同上 |
+| match-service | `0.0.0.0:50053` | `postgres://match_user:ulysses_local@postgres:5432/match_db` | 同上 |
+| social-service | `0.0.0.0:50054` | `postgres://social_user:ulysses_local@postgres:5432/social_db` | 同上 |
+| admin-service | `0.0.0.0:50055` | `postgres://admin_user:ulysses_local@postgres:5432/admin_db` | 同上 |
+| cluster-ops | `0.0.0.0:50056` | `postgres://cluster_ops_user:ulysses_local@postgres:5432/cluster_ops_db` | 同上 |
 
-**5 域 binary 在 Windows**:`E:\DevCache\cargo\target\debug\*.exe`
-**5 域 binary 在 WSL**:`/mnt/d/DevCache/cargo/target/debug/*.exe` 或 `/mnt/d/RustGameServer/target/debug/*.exe`
+**关键修正**（v0.1 sync 19:49 JST 实证）：
+- v0.1 §1.1/§3 写的 `rgs_dev` 密码 + `player`/`economy`/... 短 user 是**错的**——k3s secret 实际存的是 `ulysses_local` + `{domain}_user`
+- v0.1 §3 写 `cluster-ops 共用 admin_db` 是**错的**——k3s 已建独立 `cluster_ops_db`
+- v0.1 §3 写 `RGS_ALLOW_INSECURE_GRPC=1` 是**错的**——manifest 实际是 `0`（mTLS 严格模式）
+- v0.1 §1.1 写"1-2 条命令 Ulysses 装 PG"是**过期**——PG 已在 k3s 内由 postgres pod Running，6 DB 全建好
+
+**5 域 binary 在 Windows**：`E:\DevCache\cargo\target\debug\*.exe`
+**5 域 binary 在 WSL**：`/mnt/d/DevCache/cargo/target/debug/*.exe` 或 `/mnt/d/RustGameServer/target/debug/*.exe`
+**5 域 image 在 k3s**：ghcr.io `ghcr.io/ulyssesleolee/rustgameserver:0.1.0-{domain}`（OCI index，478.4 MiB）
 
 ---
 
@@ -185,7 +194,8 @@ Mavis 收到通知后会:
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:部署 SOP + 5 域启动 + 19 页面完备表 |
+| 0.1 | 2026-08-26 16:25 JST | 架构师(Mavis 接手 agent per DEC-008)| 初版:部署 SOP + 5 域启动 + 19 页面完备表 |
+| **0.1 sync** | **2026-08-26 19:49 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **实地状态校正（per kubectl 实证，§0 §3 §A.2 §A.4）**：PG 已在 k3s 跑（5 DB 全建），5 域 deployment scale 0→1 触发但 binary exit 1（lastState.terminated.exitCode=1 reason=Error），readiness probe 3s 超时 fail，BackOff loop 10+ 分钟；DB user/password 实证为 `ulysses_local`/`{domain}_user`（v0.1 §1.1/§3 写错为 `rgs_dev`/`player`）；ResourceQuota 提升到 32Gi/16CPU requests + 96Gi/64CPU limits；§1.1 Ulysses 装 PG 步骤**过期**。§A.4 加 v0.1 sync 实地状态表。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
 
 ## A. v0.1 升版增量
 
