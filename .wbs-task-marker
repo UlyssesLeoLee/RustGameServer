@@ -1,30 +1,40 @@
 {
-  "l4_id": "WF-1-2070",
-  "task": "6 阶段操作器演练环境实测",
-  "owner": "SRE + Admin Lead",
-  "tokens": "1350K",
+  "l4_id": "WF-1-2071",
+  "task": "ClusterOpsService realm_lifecycle Feature 7 子类 + OLU 上报集成",
+  "owner": "Admin Lead",
+  "tokens": "600K",
   "spec": "SPEC-DTL-042",
   "dtl": "DTL-042",
-  "branch": "wbs/WF-1-2070",
+  "branch": "wbs/WF-1-2071",
   "status": "done",
   "progress": 100,
   "started_at": "2026-08-25T03:29:38.765Z",
-  "updated_at": "2026-08-25T07:08:00.000Z",
-  "completed_at": "2026-08-25T07:08:00.000Z",
-  "worktree": "D:/RustGameServer-worktrees/WF-1-2070",
+  "updated_at": "2026-08-25T03:51:00.000Z",
+  "worktree": "D:/RustGameServer-worktrees/WF-1-2071",
   "deliverables": {
-    "module_skeleton": "crates/cluster-ops/src/realm_lifecycle/{mod,service,error,saga/steps,plans/*}.rs",
-    "drill_submodule": "crates/cluster-ops/src/realm_lifecycle/drill/{mod,executor,playbook,sandbox_pg,sandbox_k8s,metrics_collector}.rs",
-    "drill_tests": "crates/cluster-ops/tests/drill_{lcm_001..008_010,chaos,nfr,risk}.rs (11 files, 68 tests)",
-    "report": "docs/deploy/lcm-drill-report.md"
+    "module_skeleton": "crates/cluster-ops/src/realm_lifecycle/{mod,error,service,operators,saga/{mod,steps},plans/{mod,6 placeholders}}.rs",
+    "feature_adapter": "crates/cluster-ops/src/realm_lifecycle/feature_adapter.rs (7 SubFeature + 5 PFAU states)",
+    "olu_reporter": "crates/cluster-ops/src/realm_lifecycle/olu_reporter.rs (NFR-LCM-007 必经 rgs-arc-olu)",
+    "metrics": "crates/cluster-ops/src/realm_lifecycle/metrics.rs (10 项 rgs_lcm_*)",
+    "ut_feature_adapter": "crates/cluster-ops/tests/ut_feature_adapter.rs (20 测试 100% 命中)",
+    "ut_olu": "crates/cluster-ops/tests/ut_olu.rs (11 测试 NFR-LCM-007 验证)",
+    "shim_crate": "crates/rgs-arc-olu/ (占位 crate 满足 NFR-LCM-007 显式依赖)"
   },
-  "validation": {
-    "cargo_test_lib": "88 passed; 0 failed",
-    "cargo_test_tests": "69 passed; 0 failed (across 12 test binaries)",
-    "sandbox_anchored_count": 57,
-    "playbook_5_kinds_anchored_count": 88
+  "m_tasks": {
+    "M-2071.PREREQ": "done",
+    "M-2071.1": "done",
+    "M-2071.2": "done",
+    "M-2071.3": "done",
+    "M-2071.4": "done",
+    "M-2071.5": "done",
+    "M-2071.6": "done",
+    "M-2071.7": "done"
   },
-  "fr_lcm_anchored": ["FR-LCM-003 (sandbox only)", "FR-LCM-004 (no gRPC)", "FR-LCM-062 (lock immutable)", "FR-LCM-081 (no delete)"],
-  "deferred_to_sre": "Sandbox PG + K3s namespace 启动 + 5 类剧本真沙箱演练跑通（per 任务降级策略）",
-  "next_tasks": ["WF-1-2071 (Feature 集成)", "WF-1-2073 (跨域联动)", "WF-1-2074 (GDPR 归档)"]
+  "verification": {
+    "cargo_check_cluster_ops": "0 error / 0 warning",
+    "cargo_test_cluster_ops": "81 tests passed (49 unittests + 1 fail_closed_start + 20 ut_feature_adapter + 11 ut_olu)",
+    "grep_nfr_lcm_007": "rgs_arc_olu olu_reporter in olu_reporter.rs: 4 处",
+    "grep_7_subfeatures": "feature_adapter.rs: 13 处匹配",
+    "grep_10_metrics": "metrics.rs: 68 处匹配"
+  }
 }

@@ -32,10 +32,10 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 # 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
 shared-platform = { path = "../shared-platform" }
-# WF-1-2067 启用：复用 SagaOrchestrator / Saga / SagaStep 模式
-# (per RGS-DTL-100 + RGS-DTL-015/016 既有模式，per RGS-IMPL-PLAN-LCM-001 §2.3 关键复用声明)
-# 不重写 Saga 状态机，只 import + 适配
-economy-service = { path = "../economy-service" }
+# M-2071.4 OLU 上报必经通道（per RGS-SPEC-DTL-042 §3 NFR-LCM-007 硬约束）
+rgs-arc-olu = { path = "../rgs-arc-olu" }
+# M-2071.5 10 项 rgs_lcm_* 指标（per SPEC §4 + DTL §11.1）
+prometheus = "0.13"
 
 [build-dependencies]
 tonic-build = { workspace = true }
@@ -43,3 +43,5 @@ tonic-build = { workspace = true }
 [dev-dependencies]
 # WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
 assert_cmd = "2"
+# M-2071.7 UT OLU 上报 NFR-LCM-007 验证（async block_on）
+futures-lite = "2"

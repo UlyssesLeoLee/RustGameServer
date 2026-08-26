@@ -1,19 +1,29 @@
-//! `split_plan` 计划表（per DTL-042 §7.2 + IMPL §3.3 M-2068.2）。
+//! split_plan 占位（per RGS-SPEC-DTL-042 §2 + FR-LCM-031）
+//!
+//! DDL 目标表：`split_plan`（per SPEC §2 DDL）
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::realm_lifecycle::RealmId;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SplitPlan {
-    pub plan_id: String,
-    pub source_realm_id: RealmId,
-    pub target_realm_id: RealmId,
-    pub split_point_player_id: String,
-    pub estimated_players: u64,
-    pub created_at: DateTime<Utc>,
-    pub created_by: String,
+    pub plan_id: Uuid,
+    pub request_id: Uuid,
+    pub source_realm_id: Uuid,
+    pub target_realm_ids: Vec<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl SplitPlan {
+    pub fn placeholder(plan_id: Uuid, request_id: Uuid) -> Self {
+        Self {
+            plan_id,
+            request_id,
+            source_realm_id: Uuid::new_v4(),
+            target_realm_ids: vec![],
+            created_at: chrono::Utc::now(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -21,17 +31,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn split_plan_fields_present() {
-        let plan = SplitPlan {
-            plan_id: "sp-1".to_string(),
-            source_realm_id: "src".to_string(),
-            target_realm_id: "tgt".to_string(),
-            split_point_player_id: "p-1000000".to_string(),
-            estimated_players: 2_000_000,
-            created_at: Utc::now(),
-            created_by: "sre-1".to_string(),
-        };
-        assert_eq!(plan.source_realm_id, "src");
-        assert_eq!(plan.target_realm_id, "tgt");
+    fn placeholder_split_empty_targets_by_default() {
+        let plan_id = Uuid::new_v4();
+        let request_id = Uuid::new_v4();
+        let p = SplitPlan::placeholder(plan_id, request_id);
+        assert!(p.target_realm_ids.is_empty());
     }
 }
