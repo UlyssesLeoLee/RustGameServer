@@ -114,8 +114,12 @@
       <!-- Dashboard -->
       <div class="page active" id="page-dashboard">
         <h2>📊 Dashboard</h2>
-        <p class="sub">实时运营指标(per RGS 5 域 gRPC + k3s API 代理)</p>
+        <p class="sub">实时运营指标(per RGS 5 域 gRPC + k3s API 代理, v0.3 真实接入)</p>
         <div class="grid-4" id="dash-stats"></div>
+        <div class="card" style="margin-top: 12px;">
+          <h3>🟢 5 域 + cluster-ops gRPC 实时健康 (per /api/health/all, mTLS + kubectl port-forward)</h3>
+          <div id="dash-grpc"></div>
+        </div>
         <div class="grid-2" style="margin-top: 12px;">
           <div class="card"><h3>5 域 IMPL-PLAN 进度</h3><div id="dash-plans"></div></div>
           <div class="card"><h3>文档健康基线</h3><div id="dash-docs"></div></div>
@@ -129,40 +133,47 @@
       <!-- Servers -->
       <div class="page" id="page-servers">
         <h2>🖥️ Servers</h2>
-        <p class="sub">5 域 gRPC server + cluster-ops + shared-platform(经 k3s API 代理)</p>
+        <p class="sub">5 域 gRPC server + cluster-ops + shared-platform (5 域走 mTLS gRPC, k3s 走 6443 代理)</p>
         <div class="toolbar">
-          <input id="srv-search" placeholder="搜索 server / pod / node..." style="width:300px;">
           <button onclick="loadServers()">刷新</button>
           <span class="spacer"></span>
           <span class="muted" id="srv-stats"></span>
         </div>
         <div class="card">
-          <h3>k3s Nodes</h3>
-          <table id="tbl-nodes"><thead><tr><th>Name</th><th>Status</th><th>Role</th><th>Age</th><th>Version</th></tr></thead><tbody></tbody></table>
+          <h3>5 域 gRPC endpoints (per /api/services/status)</h3>
+          <table id="tbl-svc-grpc"><thead><tr><th>Service</th><th>Package.Service</th><th>gRPC URL</th><th>Metrics URL</th><th>Methods</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
-          <h3>Pods (按 namespace)</h3>
-          <table id="tbl-pods"><thead><tr><th>Name</th><th>Namespace</th><th>Phase</th><th>Ready</th><th>Restarts</th><th>Age</th></tr></thead><tbody></tbody></table>
+          <h3>5 域 gRPC Health (mTLS + port-forward)</h3>
+          <table id="tbl-svc-health"><thead><tr><th>Service</th><th>Status</th><th>HTTP</th><th>Latency</th><th>Message</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
-          <h3>Deployments</h3>
-          <table id="tbl-deployments"><thead><tr><th>Name</th><th>Namespace</th><th>Replicas</th><th>Ready</th></tr></thead><tbody></tbody></table>
+          <h3>k3s Nodes (per /api/k8s proxy, 需 K3S_TOKEN)</h3>
+          <table id="tbl-nodes"><thead><tr><th>Name</th><th>Status</th><th>Role</th><th>Version</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+          <h3>k3s Pods (per /api/k8s proxy)</h3>
+          <table id="tbl-pods"><thead><tr><th>Name</th><th>Namespace</th><th>Phase</th><th>Restarts</th><th>Age</th></tr></thead><tbody></tbody></table>
         </div>
       </div>
 
       <!-- Players -->
       <div class="page" id="page-players">
         <h2>👥 Players</h2>
-        <p class="sub">玩家查询 / 详情 / GM 操作(踢 / 封 / 禁 / 改)</p>
+        <p class="sub">玩家查询(per /api/player/:id → player-service gRPC GetPlayer, mTLS)</p>
         <div class="toolbar">
-          <input id="pl-search" placeholder="player_id / account / nickname..." style="width:300px;">
-          <button onclick="searchPlayer()">查询</button>
+          <input id="pl-search" placeholder="player UUID(例 00000000-0000-0000-0000-000000000001)..." style="width:380px;">
+          <button onclick="searchPlayer()">GetPlayer (gRPC)</button>
           <span class="spacer"></span>
           <span class="muted" id="pl-stats"></span>
         </div>
         <div class="card">
-          <h3>查询结果</h3>
-          <table id="tbl-players"><thead><tr><th>player_id</th><th>account</th><th>nickname</th><th>level</th><th>online</th><th>banned</th><th>actions</th></tr></thead><tbody></tbody></table>
+          <h3>查询结果 (raw gRPC response)</h3>
+          <pre class="log" id="pl-result">// 输入 player_id → 调 player.v1.PlayerService/GetPlayer (mTLS via 127.0.0.1:15051)\n// 注意:5 域 DB 为空(per 5 域 binary 部署窗口 PG 18.6 schema 落位 + seed 阶段);DB 真实数据需 Phase D.4 接续</pre>
+        </div>
+        <div class="card">
+          <h3>批量 player 状态(per 5 域 gRPC mock DB connect)</h3>
+          <table id="tbl-players"><thead><tr><th>player_id</th><th>grpc_status</th><th>decoded fields</th><th>actions</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card" id="pl-detail" style="display:none;">
           <h3>Player 详情 <span id="pl-detail-id" class="cyan"></span></h3>
@@ -173,43 +184,42 @@
       <!-- Live Console -->
       <div class="page" id="page-stream">
         <h2>📡 Live Console</h2>
-        <p class="sub">5 域 gRPC server stdout/stderr 日志流(per git worktree log + WSL tail)</p>
+        <p class="sub">5 域 gRPC HealthCheck 实时轮询 (每 2s 调一次 /api/health/all, mTLS + kubectl port-forward)</p>
         <div class="toolbar">
           <select id="stream-source">
-            <option value="cluster-ops">cluster-ops</option>
+            <option value="all">all (6 域)</option>
             <option value="player-service">player-service</option>
             <option value="economy-service">economy-service</option>
             <option value="match-service">match-service</option>
             <option value="social-service">social-service</option>
             <option value="admin-service">admin-service</option>
-            <option value="shared-platform">shared-platform</option>
-            <option value="k3s">k3s server</option>
+            <option value="cluster-ops">cluster-ops</option>
           </select>
-          <input id="stream-filter" placeholder="grep pattern (optional)" style="width:200px;">
+          <input id="stream-interval" type="number" value="2000" min="500" max="10000" step="500" style="width:90px;"> ms
           <button onclick="startStream()">Start</button>
           <button class="secondary" onclick="stopStream()">Stop</button>
           <button class="secondary" onclick="document.getElementById('stream-pre').textContent=''">Clear</button>
           <span class="spacer"></span>
           <span class="muted" id="stream-stats">offline</span>
         </div>
-        <pre class="log" id="stream-pre">// 选 source + Start 开始 tail\n// 当前无 WS / SSE 通道,后端每 1s 拉一次 git worktree log + WSL tail\n// v0.1 模拟:显示 5 域最后 git commit log</pre>
+        <pre class="log" id="stream-pre">// 选 source + Start 开始实时 gRPC HealthCheck 轮询\n// 每 N ms 调 /api/health/all,显示各域 status/latency/message\n// v0.3 真实 gRPC stream(无 WS,1 poll = 1 gRPC call)</pre>
       </div>
 
       <!-- Config Center -->
       <div class="page" id="page-config">
         <h2>⚙️ Config Center</h2>
-        <p class="sub">配置查询 / 修改(只读 view,改需 git commit + k3s reconcile)</p>
+        <p class="sub">配置查询 / 5 域 gRPC endpoints / 5 域 metrics 端点(只读 view,改需 git commit + k3s reconcile)</p>
         <div class="card">
-          <h3>5 域配置 (per RGS-IMPL-PLAN-*.md §A.3 配置相关)</h3>
+          <h3>5 域 IMPL-PLAN (per /api/impl-plan)</h3>
           <pre class="log" id="cfg-pre">// 加载中...</pre>
         </div>
         <div class="card">
-          <h3>k3s ConfigMap (rgs namespace)</h3>
-          <table id="tbl-cfgmaps"><thead><tr><th>Name</th><th>Data keys</th><th>Age</th></tr></thead><tbody></tbody></table>
+          <h3>5 域 /metrics 端点(per /api/metrics/:service, 9464 → 127.0.0.1:1946x via port-forward)</h3>
+          <table id="tbl-metrics"><thead><tr><th>Service</th><th>Status</th><th>Lines</th><th>Sample</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
-          <h3>Env Vars (per 5 域)</h3>
-          <pre class="log" id="env-pre">// 待 WSL sudo chmod 后能 kubectl describe</pre>
+          <h3>5 域 gRPC endpoints (per /api/services/status)</h3>
+          <pre class="log" id="svc-pre">// 加载中...</pre>
         </div>
       </div>
 
@@ -218,48 +228,50 @@
         <h2>🔄 Hot Update</h2>
         <p class="sub">热更状态(per RGS-DTL-031 cluster-ops + RGS-PLAN-001 灰度)</p>
         <div class="card">
-          <h3>PFAU 阶段 (Per-Feature Atomic Upgrade)</h3>
-          <table id="tbl-pfau"><thead><tr><th>Phase</th><th>State</th><th>Started</th><th>Duration</th><th>Canary %</th></tr></thead><tbody></tbody></table>
+          <h3>PFAU 阶段 (Per-Feature Atomic Upgrade) — per /api/pfau/phase</h3>
+          <pre class="log" id="pfau-pre">// 加载中(per cluster-ops gRPC HealthCheck + GetNode)...</pre>
         </div>
         <div class="card">
-          <h3>近 7 天 git commit (热更证据)</h3>
+          <h3>近 30 commit (热更证据, per /api/git-log)</h3>
           <table id="tbl-commits"><thead><tr><th>Hash</th><th>Date</th><th>Message</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
           <h3>Helm chart 版本 (per RGS-IMPL-PLAN-LCM-001 v0.1)</h3>
           <pre class="log">// cluster-ops realm_lifecycle Feature(per ARC-051)
 // 6 阶段:7-30天入场 → 30-90天退出
-// 待 cluster-ops binary 实际部署后激活</pre>
+// 待 cluster-ops binary 真实部署后激活(PFAU method 当前不在 proto — 降级 HealthCheck + GetNode)</pre>
         </div>
       </div>
 
       <!-- Operations SQL -->
       <div class="page" id="page-operations">
         <h2>🗃️ Operations SQL</h2>
-        <p class="sub">PostgreSQL 只读查询(per RGS-ARC-008 5 域分 DB 原则)— SELECT only</p>
+        <p class="sub">PostgreSQL 只读查询(per RGS-ARC-008 5 域分 DB 原则)— SELECT only, per /api/sql/query</p>
         <div class="toolbar">
           <select id="ops-db">
-            <option value="player">player_db</option>
-            <option value="economy">economy_db</option>
-            <option value="match">match_db</option>
-            <option value="social">social_db</option>
-            <option value="admin">admin_db</option>
+            <option value="player_db">player_db</option>
+            <option value="economy_db">economy_db</option>
+            <option value="match_db">match_db</option>
+            <option value="social_db">social_db</option>
+            <option value="admin_db">admin_db</option>
           </select>
-          <textarea id="ops-sql" placeholder="SELECT * FROM players WHERE player_id = $1 LIMIT 10" style="width:500px; height:60px; font-family:monospace;">SELECT version();</textarea>
-          <button onclick="runOps()">Run</button>
+          <textarea id="ops-sql" placeholder="SELECT 1" style="width:500px; height:60px; font-family:monospace;">SELECT 1;</textarea>
+          <button onclick="runOps()">Run (per /api/sql/query)</button>
           <span class="muted" id="ops-stats"></span>
         </div>
         <div class="card">
           <h3>Query Result</h3>
-          <pre class="log" id="ops-result">// SELECT only. UPDATE/INSERT/DELETE 拒绝(per ARC-008 + RGS-IMPL-100 saga 不可逆)\n// 需要:WSL sudo chmod 644 k3s.yaml 才能 kubectl exec 跑 psql</pre>
+          <pre class="log" id="ops-result">// SELECT only. UPDATE/INSERT/DELETE 拒绝(per ARC-008 + RGS-IMPL-100 saga 不可逆)
+// WSL 内 psql 未安装 → 后端自动降级 mock(per server.js /api/sql/query);真正 SQL 需安装 psql 或部署 Node pg client</pre>
         </div>
         <div class="card">
-          <h3>危险语句拦截规则</h3>
+          <h3>危险语句拦截规则 (server-side)</h3>
           <ul style="margin: 0; padding-left: 20px; color: var(--muted); font-size: 11px;">
-            <li>UPDATE / INSERT / DELETE / DROP / TRUNCATE / ALTER / GRANT — 拒绝(per ARC-008 + 1人公司治理基线 DEC-008)</li>
+            <li>UPDATE / INSERT / DELETE / DROP / TRUNCATE / ALTER / GRANT — 拒绝(per ARC-008 + 1 人公司治理基线 DEC-008)</li>
             <li>事务性破坏 (BEGIN / COMMIT / ROLLBACK) — 拒绝</li>
             <li>锁操作 (LOCK / SELECT FOR UPDATE) — 仅 saga 域可执行</li>
             <li>SELECT LIMIT 1000 max</li>
+            <li>psql 不可用时:自动降级 mock + 返回 reason(per /api/sql/query source="mock-fallback")</li>
           </ul>
         </div>
       </div>
@@ -311,23 +323,20 @@
       <!-- Reports -->
       <div class="page" id="page-reports">
         <h2>📈 Reports</h2>
-        <p class="sub">RGS 报告(per docs/12-工作流/RGS-REPORT-*)</p>
+        <p class="sub">RGS 报告(per docs/12-工作流/RGS-REPORT-*) + 5 域 gRPC 实时状态(per /api/health/all)</p>
         <div class="grid-2">
           <div class="card">
             <h3>近期报告</h3>
             <ul style="margin: 0; padding-left: 20px; font-size: 12px;">
-              <li><code>RGS-REPORT-2026-08-26-P0P1P2_v0.2.md</code> — P0/P1/P2 全部完成(commit 9e6a392)</li>
-              <li><code>RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2_v0.1.md</code> — 17 份 v0.2 SPEC</li>
-              <li><code>RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md</code> — 26 份 v0.2 SPEC</li>
-              <li><code>docs/deploy/phase-0-5-handoff.md</code> — Phase 0.5 handoff</li>
+              <li><code>RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md</code> — 5 域 gRPC TCP-OK 事件复盘</li>
               <li><code>docs/deploy/05-k3s-cluster-verify_v0.1.md</code> — k3s cluster verify</li>
               <li><code>docs/deploy/06-pg-18.6-verify_v0.1.md</code> — PG 18.6 verify</li>
+              <li><code>docs/deploy/phase-0-5-handoff.md</code> — Phase 0.5 handoff</li>
             </ul>
           </div>
           <div class="card">
-            <h3>导出</h3>
-            <p style="color: var(--muted); font-size: 12px;">v0.1: 直接读 docs/12-工作流/ + docs/deploy/ 目录(零依赖)</p>
-            <p style="color: var(--muted); font-size: 12px;">v0.2: PDF / Excel 导出(per RGS-WEB-GM-PLAN §5.2)</p>
+            <h3>5 域 gRPC 健康快照</h3>
+            <pre class="log" id="rpt-grpc">// 加载中(per /api/health/all)...</pre>
           </div>
         </div>
       </div>
@@ -349,34 +358,59 @@
       if (page === 'hotupdate') loadHotUpdate();
       if (page === 'worktrees') loadWorktrees();
       if (page === 'players') searchPlayer();
+      if (page === 'operations') {/* runOps trigger by user */}
+      if (page === 'reports') loadReports();
     });
   });
 
   // ================== 通用 ==================
   async function api(path, opts) {
     const r = await fetch(path, opts);
+    if (!r.ok) { const t = await r.text(); throw new Error(`HTTP ${r.status}: ${t.substring(0, 200)}`); }
     return r.json();
   }
   function fmtDate(iso) { return new Date(iso).toLocaleString('zh-CN'); }
   function escHtml(s) { return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  // ================== Dashboard ==================
+  // ================== Dashboard (v0.3: + 5 域 gRPC 实时) ==================
   async function loadDashboard() {
-    const [h, p, d, w] = await Promise.all([
-      api('/api/health'), api('/api/impl-plan'), api('/api/docs-health'), api('/api/worktrees')
+    const [h, p, d, w, hc] = await Promise.all([
+      api('/api/health'), api('/api/impl-plan'), api('/api/docs-health'), api('/api/worktrees'),
+      api('/api/health/all').catch(e => ({ error: e.message })),
     ]);
-    document.getElementById('meta').textContent = `k3s: ${h.k3s} · PID ${h.pid} · ${h.time}`;
-    document.getElementById('k3s-status').textContent = 'k3s UP';
+    document.getElementById('meta').textContent = `${h.rgs_web_version} · PID ${h.pid} · ${h.time}`;
+    document.getElementById('k3s-status').textContent = 'gRPC UP';
     document.getElementById('k3s-status').className = 'badge badge-up';
 
     const plans = p.plans || [];
     const v01 = plans.length, wt45 = (w.worktrees||[]).length;
+    // 5 域 gRPC 健康统计
+    let okCount = 0, totalCount = 0;
+    if (hc.services) {
+      for (const k of Object.keys(hc.services)) { totalCount++; if (hc.services[k].ok) okCount++; }
+    }
     document.getElementById('dash-stats').innerHTML = `
-      <div class="card"><h3>5 域 IMPL-PLAN</h3><p class="stat-big green">${v01}</p><p class="stat-label">v0.1 全部落地 (per WF-1-55.74)</p></div>
-      <div class="card"><h3>11 P0/P1/P2 commit</h3><p class="stat-big blue">11/11</p><p class="stat-label">含 8 P0/P1 + 3 P2</p></div>
-      <div class="card"><h3>Worktrees</h3><p class="stat-big purple">${wt45}</p><p class="stat-label">17 v0.2 + 11 P0/P1/P2 + 17 其他</p></div>
+      <div class="card"><h3>5 域 gRPC 健康</h3><p class="stat-big ${okCount===totalCount?'green':'yellow'}">${okCount}/${totalCount}</p><p class="stat-label">${hc.totalMs||'?'}ms 总延迟 (mTLS + port-forward)</p></div>
+      <div class="card"><h3>5 域 IMPL-PLAN</h3><p class="stat-big green">${v01}</p><p class="stat-label">v0.1 全部落地</p></div>
+      <div class="card"><h3>Worktrees</h3><p class="stat-big purple">${wt45}</p><p class="stat-label">活跃 worktree</p></div>
       <div class="card"><h3>文档健康</h3><p class="stat-big red">${d.fail}</p><p class="stat-label">FAIL: ${d.fail_reason}</p><p class="stat-big yellow" style="margin-top:8px;">${d.warn}</p><p class="stat-label">WARN: ${d.warn_reason}</p></div>
     `;
+    // 5 域 gRPC 实时状态表
+    if (hc.services) {
+      document.getElementById('dash-grpc').innerHTML = `
+        <table><thead><tr><th>Service</th><th>Status</th><th>HTTP</th><th>Latency</th><th>Message</th></tr></thead>
+        <tbody>${Object.entries(hc.services).map(([k, v]) => `<tr>
+          <td><code>${k}</code></td>
+          <td>${v.ok ? '<span class="pill pill-running">SERVING</span>' : '<span class="pill pill-failed">DOWN</span>'}</td>
+          <td>${v.httpStatus || '-'}</td>
+          <td>${v.latencyMs || 0}ms</td>
+          <td>${escHtml((v.message || v.error || '').substring(0, 60))}</td>
+        </tr>`).join('')}</tbody></table>
+        <p class="muted" style="font-size:10px;margin-top:8px;">transport: Node http2 + mTLS (rgs-ca.pem + rgs-client.crt/key) → kubectl port-forward (WSL setsid 守护, 15051-15056) → k3s pod:5005x</p>
+      `;
+    } else {
+      document.getElementById('dash-grpc').innerHTML = `<p class="red">gRPC health check failed: ${escHtml(hc.error || 'unknown')}</p>`;
+    }
     document.getElementById('dash-plans').innerHTML = plans.map(x => `
       <div class="bar-row">
         <div class="label"><code style="font-size:10px">${x.file.substring(15, 35)}</code></div>
@@ -400,134 +434,197 @@
     `;
   }
 
-  // ================== Servers (k3s 代理) ==================
+  // ================== Servers (v0.3: 5 域 gRPC endpoints + health) ==================
   async function loadServers() {
     document.getElementById('srv-stats').textContent = 'loading...';
     try {
-      const nodes = await api('/api/k8s/api/v1/nodes', { method: 'GET' });
-      const pods = await api('/api/k8s/api/v1/pods', { method: 'GET' });
-      const deps = await api('/api/k8s/api/v1/deployments', { method: 'GET' });
-      const t = (k) => (k || []).map(x => `<tr>
-        <td><code>${escHtml(x.metadata?.name || '')}</code></td>
-        <td>${k === pods ? x.status?.phase : (k === deps ? `${x.spec?.replicas || 0}→${x.status?.readyReplicas || 0}` : (x.status?.conditions?.[0]?.type || 'Unknown'))}</td>
-        <td>${k === pods ? x.metadata?.namespace : (k === deps ? x.metadata?.namespace : (x.metadata?.labels?.['node-role.kubernetes.io/control-plane'] ? 'control-plane' : 'worker'))}</td>
-        <td class="muted">${k === pods ? x.status?.containerStatuses?.[0]?.restartCount || 0 : (k === deps ? '' : '')}</td>
-        <td class="muted">${k === pods ? new Date(x.metadata?.creationTimestamp).toLocaleString() : (k === deps ? '' : x.status?.nodeInfo?.kubeletVersion || '')}</td>
-      </tr>`).join('');
-      document.getElementById('tbl-nodes').innerHTML = `<thead><tr><th>Name</th><th>Status</th><th>Role</th><th>Created</th><th>Version</th></tr><tbody>${t(nodes.items||[])}</tbody>`;
-      document.getElementById('tbl-pods').innerHTML = `<thead><tr><th>Name</th><th>Namespace</th><th>Phase</th><th>Restarts</th><th>Age</th></tr><tbody>${(pods.items||[]).slice(0, 50).map(x => `<tr>
-        <td><code>${escHtml(x.metadata?.name || '')}</code></td>
-        <td>${x.metadata?.namespace || ''}</td>
-        <td><span class="pill ${x.status?.phase === 'Running' ? 'pill-running' : (x.status?.phase === 'Failed' ? 'pill-failed' : 'pill-pending')}">${x.status?.phase || ''}</span></td>
-        <td>${x.status?.containerStatuses?.[0]?.restartCount || 0}</td>
-        <td class="muted">${x.status?.startTime ? new Date(x.status.startTime).toLocaleString() : ''}</td>
+      const [svc, hc] = await Promise.all([api('/api/services/status'), api('/api/health/all')]);
+      // 5 域 gRPC endpoints 表
+      document.getElementById('tbl-svc-grpc').innerHTML = `<tbody>${(svc.services||[]).map(s => `<tr>
+        <td><code>${s.name}</code></td>
+        <td><code>${s.package}.${s.service}</code></td>
+        <td><code style="font-size:10px">${s.grpc}</code></td>
+        <td><code style="font-size:10px">${s.metrics}</code></td>
+        <td>${(s.methods||[]).map(m => `<span class="pill pill-progress">${m}</span>`).join(' ')}</td>
       </tr>`).join('')}</tbody>`;
-      document.getElementById('tbl-deployments').innerHTML = `<thead><tr><th>Name</th><th>Namespace</th><th>Replicas</th></tr><tbody>${(deps.items||[]).map(x => `<tr>
-        <td><code>${escHtml(x.metadata?.name || '')}</code></td>
-        <td>${x.metadata?.namespace || ''}</td>
-        <td>${x.spec?.replicas || 0} → ${x.status?.readyReplicas || 0}</td>
+      // 5 域 gRPC health 表
+      document.getElementById('tbl-svc-health').innerHTML = `<tbody>${Object.entries(hc.services||{}).map(([k, v]) => `<tr>
+        <td><code>${k}</code></td>
+        <td>${v.ok ? '<span class="pill pill-running">SERVING</span>' : '<span class="pill pill-failed">DOWN</span>'}</td>
+        <td>${v.httpStatus || '-'}</td>
+        <td>${v.latencyMs || 0}ms</td>
+        <td class="muted">${escHtml((v.message || v.error || '').substring(0, 80))}</td>
       </tr>`).join('')}</tbody>`;
-      document.getElementById('srv-stats').textContent = `${(nodes.items||[]).length} nodes · ${(pods.items||[]).length} pods · ${(deps.items||[]).length} deployments`;
+      const ok = Object.values(hc.services||{}).filter(v => v.ok).length;
+      const total = Object.keys(hc.services||{}).length;
+      document.getElementById('srv-stats').textContent = `5 域 gRPC: ${ok}/${total} SERVING · ${hc.totalMs}ms 总延迟`;
+      // k3s 节点 / pods (代理;需 K3S_TOKEN,失败降级)
+      try {
+        const nodes = await api('/api/k8s/api/v1/nodes', { method: 'GET' });
+        const pods  = await api('/api/k8s/api/v1/pods', { method: 'GET' });
+        document.getElementById('tbl-nodes').innerHTML = `<tbody>${(nodes.items||[]).map(x => `<tr>
+          <td><code>${escHtml(x.metadata?.name||'')}</code></td>
+          <td>${escHtml(x.status?.conditions?.[0]?.type||'Unknown')}</td>
+          <td>${x.metadata?.labels?.['node-role.kubernetes.io/control-plane']?'control-plane':'worker'}</td>
+          <td class="muted">${escHtml(x.status?.nodeInfo?.kubeletVersion||'')}</td>
+        </tr>`).join('')}</tbody>`;
+        document.getElementById('tbl-pods').innerHTML = `<tbody>${(pods.items||[]).slice(0, 30).map(x => `<tr>
+          <td><code>${escHtml(x.metadata?.name||'')}</code></td>
+          <td>${x.metadata?.namespace||''}</td>
+          <td><span class="pill ${x.status?.phase==='Running'?'pill-running':(x.status?.phase==='Failed'?'pill-failed':'pill-pending')}">${x.status?.phase||''}</span></td>
+          <td>${x.status?.containerStatuses?.[0]?.restartCount||0}</td>
+          <td class="muted">${x.status?.startTime?new Date(x.status.startTime).toLocaleString():''}</td>
+        </tr>`).join('')}</tbody>`;
+      } catch (e) {
+        document.getElementById('tbl-nodes').innerHTML = `<tr><td colspan="4" class="muted">k3s API 代理未通(需 WSL sudo chmod 644 /etc/rancher/k3s/k3s.yaml + K3S_TOKEN): ${escHtml(e.message)}</td></tr>`;
+        document.getElementById('tbl-pods').innerHTML = `<tr><td colspan="5" class="muted">k3s API 代理未通</td></tr>`;
+      }
     } catch (e) {
-      document.getElementById('srv-stats').textContent = 'k3s 代理未通(需 K3S_TOKEN): ' + e.message;
+      document.getElementById('srv-stats').textContent = 'loadServers failed: ' + e.message;
     }
   }
 
-  // ================== Players (mock 优先) ==================
+  // ================== Players (v0.3: 真 gRPC GetPlayer) ==================
   async function searchPlayer() {
-    const q = document.getElementById('pl-search').value;
-    document.getElementById('pl-stats').textContent = 'searching...';
+    const q = document.getElementById('pl-search').value || '00000000-0000-0000-0000-000000000001';
+    document.getElementById('pl-stats').textContent = 'grpc calling...';
+    const pre = document.getElementById('pl-result');
+    pre.textContent = '// calling player.v1.PlayerService/GetPlayer via mTLS + kubectl port-forward ...';
     try {
-      // 先试 k3s 代理;失败用 mock
-      const r = await api(`/api/k8s/api/v1/namespaces/rgs/pods?labelSelector=app=player-service`);
-      document.getElementById('tbl-players').innerHTML = `<tr><td colspan="7" class="muted">player-service pod 找到 — 走 gRPC 查询待实现</td></tr>`;
-      document.getElementById('pl-stats').textContent = 'k3s 通了 — 待 player gRPC';
+      const r = await api(`/api/player/${encodeURIComponent(q)}`);
+      pre.textContent = JSON.stringify(r, null, 2);
+      document.getElementById('pl-stats').textContent = `gRPC ${r.httpStatus} · ${r.latencyMs}ms · msgLen=${r.msgLen}B`;
+      // 批量展示(5 个测试 UUID + 1 个用户输入)
+      const testIds = ['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002', q];
+      const rows = await Promise.all(testIds.map(async id => {
+        try {
+          const r = await api(`/api/player/${id}`);
+          const fields = [];
+          if (r.player?.id) fields.push(`id=${r.player.id}`);
+          if (r.player?.display_name) fields.push(`display_name=${r.player.display_name}`);
+          if (r.player?.status && r.player.status !== 'UNKNOWN(undefined)') fields.push(`status=${r.player.status}`);
+          return { id, ok: r.httpStatus === 200, fields: fields.join(', ') || '(no fields — DB empty / proto not yet wired)' };
+        } catch (e) { return { id, ok: false, fields: e.message.substring(0, 60) }; }
+      }));
+      document.getElementById('tbl-players').innerHTML = `<tbody>${rows.map(x => `<tr>
+        <td><code>${escHtml(x.id)}</code></td>
+        <td>${x.ok ? '<span class="pill pill-running">200</span>' : '<span class="pill pill-failed">err</span>'}</td>
+        <td class="muted">${escHtml(x.fields)}</td>
+        <td><button class="small secondary" onclick="viewPlayer('${x.id}')">view</button></td>
+      </tr>`).join('')}</tbody>`;
     } catch (e) {
-      // Mock 数据(WSL sudo 阻塞时 fallback)
-      const mock = [
-        { id: '1000001', account: 'leo19', nickname: 'TestPlayer1', level: 23, online: true, banned: false },
-        { id: '1000002', account: 'player2', nickname: 'TestPlayer2', level: 15, online: false, banned: false },
-        { id: '1000003', account: 'banned_user', nickname: 'Banned', level: 5, online: false, banned: true },
-      ].filter(x => !q || x.id.includes(q) || x.account.includes(q) || x.nickname.includes(q));
-      document.getElementById('tbl-players').innerHTML = mock.map(x => `<tr>
-        <td><code>${x.id}</code></td>
-        <td>${x.account}</td>
-        <td>${x.nickname}</td>
-        <td>${x.level}</td>
-        <td><span class="pill ${x.online ? 'pill-running' : 'pill-pending'}">${x.online ? 'online' : 'offline'}</span></td>
-        <td><span class="pill ${x.banned ? 'pill-failed' : 'pill-succeeded'}">${x.banned ? 'banned' : 'ok'}</span></td>
-        <td>
-          <button class="small secondary" onclick="viewPlayer('${x.id}')">view</button>
-          <button class="small danger" onclick="gmAction('${x.id}','ban')">ban</button>
-        </td>
-      </tr>`).join('') + `<tr><td colspan="7" class="muted">mock 数据(WSL sudo 阻塞,k3s 代理未通)。player gRPC client 接入待实现</td></tr>`;
-      document.getElementById('pl-stats').textContent = `${mock.length} 条 (mock)`;
+      pre.textContent = '// gRPC call failed:\n' + e.message;
+      document.getElementById('pl-stats').textContent = 'failed';
     }
   }
-  function viewPlayer(id) {
+  async function viewPlayer(id) {
     const pre = document.getElementById('pl-detail-pre');
     document.getElementById('pl-detail-id').textContent = id;
-    pre.textContent = `// player ${id} 详情\n// 待 player-service gRPC GetPlayer\n// 字段: account / nickname / level / exp / gold / inventory / friends / ...\n\nmock:\n{\n  "player_id": "${id}",\n  "account": "leo19",\n  "nickname": "TestPlayer",\n  "level": 23,\n  "exp": 15234,\n  "gold": 100000,\n  "inventory": [...],\n  "session_epoch": "2026-08-26T11:30:00Z"\n}`;
+    try {
+      const r = await api(`/api/player/${id}`);
+      pre.textContent = JSON.stringify(r, null, 2);
+    } catch (e) { pre.textContent = '// failed: ' + e.message; }
     document.getElementById('pl-detail').style.display = 'block';
   }
   function gmAction(id, action) {
-    alert(`GM ${action} player ${id}\n(待: player-service gRPC 接口 + audit log)`);
+    alert(`GM ${action} player ${id}\n(待: player-service gRPC 写接口 + audit log,非 v0.3 范围)`);
   }
 
-  // ================== Live Console (mock log stream) ==================
+  // ================== Live Console (v0.3: 真实 5 域 gRPC 轮询) ==================
   let streamTimer = null;
   function startStream() {
     if (streamTimer) stopStream();
     const src = document.getElementById('stream-source').value;
-    const filter = document.getElementById('stream-filter').value;
+    const interval = parseInt(document.getElementById('stream-interval').value) || 2000;
     const pre = document.getElementById('stream-pre');
-    document.getElementById('stream-stats').textContent = `streaming ${src}...`;
+    document.getElementById('stream-stats').textContent = `polling /api/health/all every ${interval}ms (src=${src})`;
     let n = 0;
-    streamTimer = setInterval(() => {
+    const tick = async () => {
       n++;
-      const ts = new Date().toISOString().substring(11, 19);
-      const lines = [
-        `[${ts}] INFO ${src} request handled player_id=10000${n%3+1} latency=${(n*3)%50}ms`,
-        `[${ts}] DEBUG ${src} cache hit key=player:10000${n%3+1}`,
-        `[${ts}] INFO ${src} outbox enqueued event=PlayerLoggedIn id=${10000+n%3+1}`,
-        `[${ts}] WARN ${src} retry 1/3 db connection timeout`,
-        `[${ts}] INFO ${src} saga committed tx=${n%5}`,
-      ];
-      const filtered = filter ? lines.filter(l => l.includes(filter)) : lines;
-      pre.textContent += filtered.join('\n') + '\n';
-      pre.scrollTop = pre.scrollHeight;
-      if (n > 50) { pre.textContent = pre.textContent.split('\n').slice(-30).join('\n'); n = 0; }
-    }, 1000);
+      try {
+        const r = await api('/api/health/all');
+        const ts = new Date().toISOString().substring(11, 23);
+        let lines = [`[${ts}] POLL #${n} totalMs=${r.totalMs}ms`];
+        for (const [k, v] of Object.entries(r.services||{})) {
+          if (src !== 'all' && src !== k) continue;
+          lines.push(`  ${k.padEnd(18)} ${v.ok?'SERVING':'DOWN   '} ${(v.httpStatus||'-').toString().padEnd(3)} ${(v.latencyMs||0).toString().padStart(4)}ms  ${(v.message||v.error||'').substring(0, 40)}`);
+        }
+        pre.textContent += lines.join('\n') + '\n';
+        pre.scrollTop = pre.scrollHeight;
+        if (n > 100) { pre.textContent = pre.textContent.split('\n').slice(-80).join('\n'); n = 0; }
+      } catch (e) {
+        pre.textContent += `[${new Date().toISOString().substring(11,19)}] ERR ${e.message}\n`;
+      }
+    };
+    tick();
+    streamTimer = setInterval(tick, interval);
   }
   function stopStream() {
     if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
     document.getElementById('stream-stats').textContent = 'offline';
   }
 
-  // ================== Config Center ==================
+  // ================== Config Center (v0.3: + 5 域 metrics + gRPC endpoints) ==================
   async function loadConfig() {
-    const cfg = await api('/api/impl-plan');
-    const pre = document.getElementById('cfg-pre');
-    pre.textContent = cfg.plans.map(p => `// ${p.file}\n   status: ${p.status}\n   size:   ${(p.size/1024).toFixed(1)}KB\n`).join('\n');
+    // IMPL-PLAN
+    const cfg = await api('/api/impl-plan').catch(e => ({ error: e.message }));
+    document.getElementById('cfg-pre').textContent = cfg.error || (cfg.plans||[]).map(p => `// ${p.file}\n   status: ${p.status}\n   size:   ${(p.size/1024).toFixed(1)}KB\n`).join('\n');
+    // 5 域 /metrics
+    const svcs = ['player-service','economy-service','match-service','social-service','admin-service','cluster-ops'];
+    const metricRows = await Promise.all(svcs.map(async svc => {
+      try {
+        const r = await api(`/api/metrics/${svc}`);
+        const sample = (r.samples && r.samples[0]) || r.error || 'n/a';
+        return { svc, ok: !r.error, lines: r.totalLines || 0, sample: String(sample).substring(0, 80) };
+      } catch (e) { return { svc, ok: false, lines: 0, sample: e.message.substring(0, 80) }; }
+    }));
+    document.getElementById('tbl-metrics').innerHTML = `<tbody>${metricRows.map(x => `<tr>
+      <td><code>${x.svc}</code></td>
+      <td>${x.ok?'<span class="pill pill-running">UP</span>':'<span class="pill pill-failed">DOWN</span>'}</td>
+      <td>${x.lines || '-'}</td>
+      <td class="muted" style="font-size:10px;">${escHtml(x.sample)}</td>
+    </tr>`).join('')}</tbody>`;
+    // 5 域 gRPC endpoints
+    const svc = await api('/api/services/status').catch(e => ({ error: e.message }));
+    document.getElementById('svc-pre').textContent = svc.error || JSON.stringify(svc, null, 2);
   }
 
-  // ================== Hot Update ==================
+  // ================== Hot Update (v0.3: + /api/pfau/phase) ==================
   async function loadHotUpdate() {
-    document.getElementById('tbl-pfau').innerHTML = `<tr><td colspan="5" class="muted">PFAU 阶段表(per RGS-DTL-031 + ARC-051)<br>待 cluster-ops gRPC 部署后激活</td></tr>`;
-    // 拉最近 7 天 git log
+    const pre = document.getElementById('pfau-pre');
+    pre.textContent = '// calling /api/pfau/phase (cluster-ops gRPC HealthCheck + GetNode) ...';
     try {
-      const r = await fetch('/api/k3s-proxy-not-yet', { method: 'GET' });
-    } catch (e) {}
-    // 用 git command via new API
-    const commits = await api('/api/git-log');
+      const r = await api('/api/pfau/phase');
+      pre.textContent = JSON.stringify(r, null, 2);
+    } catch (e) { pre.textContent = '// failed: ' + e.message; }
+    // git log
+    const commits = await api('/api/git-log').catch(e => ({ commits: [], error: e.message }));
     document.getElementById('tbl-commits').innerHTML = (commits.commits || []).map(c => `<tr>
       <td><code>${c.hash?.substring(0,7)}</code></td>
       <td class="muted">${c.date?.substring(0,10)}</td>
       <td>${escHtml(c.message || '')}</td>
-    </tr>`).join('') || '<tr><td colspan="3" class="muted">/api/git-log 待实现</td></tr>';
+    </tr>`).join('') || `<tr><td colspan="3" class="muted">${escHtml(commits.error||'no commits')}</td></tr>`;
   }
 
-  // ================== Worktrees ==================
+  // ================== Operations SQL (v0.3: 真 /api/sql/query) ==================
+  async function runOps() {
+    const db = document.getElementById('ops-db').value;
+    const sql = document.getElementById('ops-sql').value;
+    const result = document.getElementById('ops-result');
+    const stats = document.getElementById('ops-stats');
+    stats.textContent = 'running...';
+    result.textContent = `// POST /api/sql/query?db=${db}&sql=...`;
+    try {
+      const r = await api(`/api/sql/query?db=${encodeURIComponent(db)}&sql=${encodeURIComponent(sql)}`);
+      result.textContent = JSON.stringify(r, null, 2);
+      stats.textContent = `${r.source} · ${(r.rows||r.mock_rows||[]).length} rows`;
+    } catch (e) {
+      result.textContent = '// failed: ' + e.message;
+      stats.textContent = 'failed';
+    }
+  }
+
+  // ================== Worktrees (保留 v0.2-gm) ==================
   async function loadWorktrees() {
     const r = await api('/api/worktrees');
     const all = r.worktrees || [];
@@ -545,11 +642,21 @@
         <td><code>${escHtml(wt.branch || '(detached)')}</code></td>
         <td><code>${wt.head || ''}</code></td>
         <td class="muted" style="font-size:10px;">${escHtml((wt.path || '').replace('D:/RustGameServer-worktrees/', ''))}</td>
-        <td>${wt.path?.includes('locked') ? '<span class="pill pill-failed">locked</span>' : ''}</td>
+        <td>${wt.locked ? '<span class="pill pill-failed">locked</span>' : ''}</td>
         <td>${isP0P1P2 ? '<span class="pill pill-progress">P0/P1/P2</span>' : isV02 ? '<span class="pill pill-succeeded">v0.2</span>' : '<span class="pill pill-pending">other</span>'}</td>
       </tr>`;
     }).join('');
     document.getElementById('wt-stats').textContent = `${list.length} / ${all.length} worktrees`;
+  }
+
+  // ================== Reports (v0.3: + gRPC 健康快照) ==================
+  async function loadReports() {
+    const pre = document.getElementById('rpt-grpc');
+    pre.textContent = '// calling /api/health/all ...';
+    try {
+      const r = await api('/api/health/all');
+      pre.textContent = JSON.stringify(r, null, 2);
+    } catch (e) { pre.textContent = '// failed: ' + e.message; }
   }
 
   // ================== 启动 ==================
