@@ -152,4 +152,105 @@ mod tests {
         .into();
         assert_eq!(s.code(), Code::Unavailable);
     }
+
+    // ===== v0.1 补:通用 + From impl 覆盖(per RGS-TEST-STRATEGY P1)=====
+
+    #[test]
+    fn database_to_internal() {
+        let s: tonic::Status = Error::Database(Box::new(sqlx::Error::PoolClosed)).into();
+        assert_eq!(s.code(), Code::Internal);
+        assert!(s.message().contains("database error"));
+    }
+
+    #[test]
+    fn not_found_to_not_found() {
+        let s: tonic::Status = Error::NotFound { entity: "Player", id: "p1".to_string() }.into();
+        assert_eq!(s.code(), Code::NotFound);
+        assert!(s.message().contains("Player") && s.message().contains("p1"));
+    }
+
+    #[test]
+    fn validation_to_invalid_argument() {
+        let s: tonic::Status = Error::Validation("bad input".to_string()).into();
+        assert_eq!(s.code(), Code::InvalidArgument);
+    }
+
+    #[test]
+    fn conflict_to_already_exists() {
+        let s: tonic::Status = Error::Conflict("dup".to_string()).into();
+        assert_eq!(s.code(), Code::AlreadyExists);
+    }
+
+    #[test]
+    fn unauthorized_to_unauthenticated() {
+        let s: tonic::Status = Error::Unauthorized("no token".to_string()).into();
+        assert_eq!(s.code(), Code::Unauthenticated);
+    }
+
+    #[test]
+    fn forbidden_to_permission_denied() {
+        let s: tonic::Status = Error::Forbidden("rbac deny".to_string()).into();
+        assert_eq!(s.code(), Code::PermissionDenied);
+    }
+
+    #[test]
+    fn unavailable_to_unavailable() {
+        let s: tonic::Status = Error::Unavailable("no route".to_string()).into();
+        assert_eq!(s.code(), Code::Unavailable);
+    }
+
+    #[test]
+    fn internal_anyhow_to_internal() {
+        let s: tonic::Status = Error::Internal(anyhow::anyhow!("boom")).into();
+        assert_eq!(s.code(), Code::Internal);
+    }
+
+    #[test]
+    fn transport_passthrough() {
+        let original = tonic::Status::unauthenticated("nope");
+        let s: tonic::Status = Error::Transport(Box::new(original.clone())).into();
+        assert_eq!(s.code(), Code::Unauthenticated);
+        assert_eq!(s.message(), "nope");
+    }
+
+    #[test]
+    fn from_sqlx_error() {
+        let e: Error = sqlx::Error::PoolClosed.into();
+        assert!(matches!(e, Error::Database(_)));
+    }
+
+    #[test]
+    fn from_anyhow_error() {
+        let e: Error = anyhow::anyhow!("x").into();
+        assert!(matches!(e, Error::Internal(_)));
+    }
+
+    #[test]
+    fn from_tonic_status() {
+        let s = tonic::Status::not_found("nf");
+        let e: Error = s.into();
+        assert!(matches!(e, Error::Transport(_)));
+    }
+
+    #[test]
+    fn error_display_messages() {
+        // Display impl 正确
+        assert_eq!(
+            Error::NotFound { entity: "X", id: "1".to_string() }.to_string(),
+            "not found: X with id 1"
+        );
+        assert_eq!(
+            Error::PFAUVersionMismatch { expected: 5, actual: 3 }.to_string(),
+            "PFAU version mismatch: expected 5, actual 3"
+        );
+    }
+
+    #[test]
+    fn error_source_chain() {
+        // source() chain 应保留
+        use std::error::Error as _;
+        let sqlx_err = sqlx::Error::PoolClosed;
+        let e = Error::Database(Box::new(sqlx_err));
+        assert!(e.source().is_some());
+    }
 }
