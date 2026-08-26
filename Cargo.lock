@@ -621,7 +621,6 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "chrono",
- "futures-lite",
  "prometheus",
  "prost",
  "rgs-arc-olu",
