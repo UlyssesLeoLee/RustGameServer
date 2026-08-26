@@ -1,0 +1,14 @@
+{
+  "name": "rgs-web",
+  "version": "0.1.0",
+  "description": "RGS 后台管理 Web UI (node + express,代理 k3s API)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "license": "Apache-2.0"
+}

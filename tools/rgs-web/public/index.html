@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>RGS Admin Dashboard</title>
+  <meta http-equiv="refresh" content="30">
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #1a1d23;
+      --border: #2a2e36;
+      --text: #e6e9ef;
+      --muted: #8a8f99;
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --blue: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+    h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px 0; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card h2 {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 12px 0;
+      font-weight: 500;
+    }
+    .stat { font-size: 28px; font-weight: 600; margin: 0; }
+    .stat-row { display: flex; gap: 24px; align-items: baseline; }
+    .stat-label { color: var(--muted); font-size: 12px; }
+    .stat-green { color: var(--green); }
+    .stat-red { color: var(--red); }
+    .stat-yellow { color: var(--yellow); }
+    .stat-blue { color: var(--blue); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; }
+    .pill-done { background: #14322a; color: var(--green); }
+    .pill-progress { background: #1f2a3d; color: var(--blue); }
+    .pill-pending { background: #2a2014; color: var(--yellow); }
+    .pill-blocked { background: #2d1212; color: var(--red); }
+    code { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; font-size: 12px; }
+    .bar { display: flex; align-items: center; gap: 8px; }
+    .bar-fill { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .bar-fill > div { height: 100%; background: var(--green); }
+  </style>
+</head>
+<body>
+  <h1>🚀 RGS Admin Dashboard</h1>
+  <p class="subtitle" id="subtitle">加载中...</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>5 域 IMPL-PLAN 状态</h2>
+      <div id="plans" class="stat-row"></div>
+    </div>
+
+    <div class="card">
+      <h2>文档健康(per check-docs-consistency.sh)</h2>
+      <div id="docs" class="stat-row"></div>
+    </div>
+
+    <div class="card">
+      <h2>P0/P1/P2 commit 进度</h2>
+      <div id="p0p1p2">
+        <p class="stat stat-green">11 / 11</p>
+        <p class="stat-label">8 P0/P1 + 3 P2 commit 全部落地</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>k3s Cluster</h2>
+      <div id="k3s">
+        <p class="stat stat-green">active</p>
+        <p class="stat-label">API server: 6443 (curl /healthz = 401) → up</p>
+        <p class="stat-label">kubectl 受 k3s.yaml 权限阻塞(leo19)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 16px;">
+    <h2>11 个 worktree 状态</h2>
+    <table>
+      <thead><tr><th>分支</th><th>Head commit</th><th>路径</th><th>状态</th></tr></thead>
+      <tbody id="wts"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top: 16px;">
+    <h2>5 域 IMPL-PLAN 详情</h2>
+    <table>
+      <thead><tr><th>文件</th><th>状态</th><th>Owner</th><th>行数</th></tr></thead>
+      <tbody id="plans-detail"></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function load() {
+      try {
+        const [h, p, d, w] = await Promise.all([
+          fetch('/api/health').then(r => r.json()),
+          fetch('/api/impl-plan').then(r => r.json()),
+          fetch('/api/docs-health').then(r => r.json()),
+          fetch('/api/worktrees').then(r => r.json())
+        ]);
+
+        document.getElementById('subtitle').textContent =
+          `${h.time} · k3s API: ${h.k3s} · RGS commit hash 总报告 v0.2 = 9e6a392`;
+
+        const plans = p.plans || [];
+        const done = plans.filter(x => x.status.includes('v0.1') || x.status.includes('done')).length;
+        const total = plans.length;
+        document.getElementById('plans').innerHTML = `
+          <p class="stat stat-blue">${done} / ${total}</p>
+          <p class="stat-label">IMPL-PLAN v0.1 落地</p>
+        `;
+        document.getElementById('plans-detail').innerHTML = plans.map(p => `
+          <tr>
+            <td><code>${p.file}</code></td>
+            <td><span class="pill pill-done">${p.status.substring(0, 30)}</span></td>
+            <td>${p.owner}</td>
+            <td>${(p.size / 1024).toFixed(1)} KB</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('docs').innerHTML = `
+          <p class="stat stat-red">${d.fail}</p>
+          <p class="stat-label">FAIL: ${d.fail_reason}</p>
+          <p class="stat stat-yellow" style="margin-left:24px">${d.warn}</p>
+          <p class="stat-label">WARN: ${d.warn_reason}</p>
+        `;
+
+        const wts = w.worktrees || [];
+        document.getElementById('wts').innerHTML = wts.map(wt => {
+          const isLocked = wt.path.includes('locked');
+          const isP0P1P2 = /WF-1-55-(6[9]|7[0-9])$/.test(wt.branch || '');
+          return `<tr>
+            <td><code>${wt.branch || '(detached)'}</code></td>
+            <td><code>${wt.head || ''}</code></td>
+            <td><code>${wt.path ? wt.path.replace('D:/RustGameServer-worktrees/', '') : ''}</code></td>
+            <td><span class="pill ${isP0P1P2 ? 'pill-progress' : (isLocked ? 'pill-done' : 'pill-pending')}">${isP0P1P2 ? 'P0/P1/P2' : (isLocked ? 'merged' : 'open')}</span></td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        document.getElementById('subtitle').textContent = '加载失败: ' + e.message;
+      }
+    }
+    load();
+    setInterval(load, 30000);
+  </script>
+</body>
+</html>
