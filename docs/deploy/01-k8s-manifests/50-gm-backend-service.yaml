@@ -53,9 +53,9 @@ spec:
           type: RuntimeDefault
       containers:
       - name: gm-backend
-        # 用 0.1.0-base distroless(已有 /app/bin 含 6 域 binary),用 0.1.0-cluster-ops 镜像作为 base
-        # (cluster-ops 镜像有完整 grpc_health_probe,gm-backend binary 通过 initContainer 注入)
-        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.1-cluster-ops
+        # 用推上 ghcr.io 的 0.1.0-gm-backend 镜像(distroless + 5917 字节 binary + entrypoint)
+        # Per 2026-08-27 15:18 JST Actions 推送成功(workflow run 33047394103)
+        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend
         imagePullPolicy: IfNotPresent
         command: ["/app/bin/gm-backend"]
         env:
@@ -111,46 +111,9 @@ spec:
             memory: 256Mi
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
+          readOnlyRootFilesystem: true
           capabilities:
             drop: [ALL]
-        volumeMounts:
-        - name: gm-backend-bin
-          mountPath: /app/bin
-          readOnly: true
-      initContainers:
-      - name: copy-gm-backend
-        # 用 alpine(本地 cache 有) 拷贝 binary
-        image: docker.io/library/alpine:3.20
-        imagePullPolicy: Never
-        command: ['/bin/sh','-c','cp /mnt/host/gm-backend /app/bin/gm-backend && chmod +x /app/bin/gm-backend && echo done']
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: [ALL]
-        volumeMounts:
-        - name: gm-backend-bin
-          mountPath: /app/bin
-          readOnly: false
-        - name: gm-backend-host
-          mountPath: /mnt/host
-          readOnly: true
-      volumes:
-      - name: gm-backend-bin
-        # emptyDir:initContainer 写入,主容器 readOnly 挂
-        emptyDir: {}
-      - name: gm-backend-host
-        # dev:WSL 路径(Windows 端是 D:\RustGameServer\target\release\gm-backend)
-        hostPath:
-          path: /mnt/d/RustGameServer/target/release
-          type: Directory
       topologySpreadConstraints:
       - labelSelector:
           matchLabels:
