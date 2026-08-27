@@ -12,6 +12,7 @@ members = [
     "crates/rgs-certgen",
     "crates/function-plane",
     "crates/rgs-arc-olu",
+    "crates/rgs-overflow-alert",
 ]
 resolver = "2"
 
@@ -53,6 +54,11 @@ opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
 # RGS-INC-001 v0.2 §8/§9/§15 mock: WASM runtime + WAT text format
 wasmtime = "19"
 wat = "1"
+# 2026-08-27 超限排队 + 邮件告警（per 任务 §2.1）
+# - async-nats 0.42（与 shared-platform::producer 同主线，已在 lock）
+# - lettre 0.11：tokio1-rustls-tls 组合 feature（per .worker-tmp/HANDOFF-ENV-CHECK.md §5）
+async-nats = "0.42"
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 
 [profile.release]
 lto = "thin"
