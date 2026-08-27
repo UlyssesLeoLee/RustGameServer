@@ -26,7 +26,9 @@ env:
   IMAGE_NAME: ulyssesleolee/rustgameserver
   GRPC_HEALTH_PROBE_VERSION: v0.4.56
   # 0.1.0 镜像(其 cluster-ops binary 的 migration hash 与 cluster_ops DB _sqlx_migrations 一致)
-  BASE_IMAGE: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
+  # 注:ghcr.io 上没有 0.1.0-cluster-ops 这个 tag(只有 0.1.0,0.1.1-cluster-ops,0.1.0-gm-backend)
+  # 0.1.0 镜像(502MB)就是 0.1.0-cluster-ops 的内容(distroless + 全 workspace binary, cluster-ops 在内)
+  BASE_IMAGE: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
 
 jobs:
   build:
@@ -59,12 +61,12 @@ jobs:
           # 3. Dockerfile — 双 FROM 多阶段:从 0.1.0 抽 cluster-ops + 当前层加 grpc_health_probe
           cat > Dockerfile <<'DOCKERFILE'
           # syntax=docker/dockerfile:1.7
-          # Stage 1: 从 0.1.0-cluster-ops 抽 cluster-ops binary(其 migration hash 与 DB 一致)
-          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops AS base-binary
+          # Stage 1: 从 0.1.0 抽 cluster-ops binary(其 migration hash 与 DB 一致)
+          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0 AS base-binary
           # 已在 base 中有 cluster-ops(/app/bin/cluster-ops),只需带它进下一阶段
           
           # Stage 2: 同样从 0.1.0 起步,加 grpc_health_probe
-          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
+          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0
           USER root
           COPY --from=base-binary /app/bin/cluster-ops /app/bin/cluster-ops
           COPY grpc_health_probe /app/bin/grpc_health_probe
