@@ -1,4 +1,4 @@
-[workspace]
+﻿[workspace]
 members = [
     "crates/rgs-hello",
     "crates/player-service",
@@ -14,6 +14,7 @@ members = [
     "crates/function-plane",
     "crates/rgs-arc-olu",
     "crates/rgs-overflow-alert",
+    "crates/rgs-asset-download",
 ]
 resolver = "2"
 
