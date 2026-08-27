@@ -60,7 +60,18 @@ jobs:
         run: |
           mkdir -p /tmp/gm-build
           cp target/release/gm-backend /tmp/gm-build/gm-backend
+          # Dockerfile 用 distroless cc + entrypoint binary
+          cat > /tmp/gm-build/Dockerfile <<'EOF'
+          FROM gcr.io/distroless/cc-debian12:nonroot
+          WORKDIR /app
+          COPY gm-backend /app/bin/gm-backend
+          USER nonroot:nonroot
+          EXPOSE 8443 8081 9464
+          ENV RUST_LOG=info
+          ENTRYPOINT ["/app/bin/gm-backend"]
+          EOF
           ls -la /tmp/gm-build/
+          cat /tmp/gm-build/Dockerfile
 
       - name: Log in to ghcr.io
         uses: docker/login-action@v3
