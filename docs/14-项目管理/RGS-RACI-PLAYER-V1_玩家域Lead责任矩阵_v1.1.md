@@ -96,7 +96,7 @@
 | saga 召集人（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | per RGS-IMPL-100 saga 域召集人 |
 | 架构师（Ulysses per DEC-008）| _代签：架构师（Ulysses（一人公司 12 角色 per DEC-008））_ | 2026-08-26 | per 2026-08-26 08:40 JST 代签已允许 |
 
-**注**：v1.0 在一人公司模式下，5 域 Lead 都是 Ulysses 担任；DDD Review 阶段由 Ulysses 在每个域分别签字（一签字 = 该域决策正式生效）。**代签不允许用于"代签他人"**——架构师列可由 Mavis 代签 per 2026-08-26 08:40 JST 新规则，但 5 域 Lead 列必须由 Ulysses 本人（per DDD Review SOP）。
+**注**：v1.0 在一人公司模式下，5 域 Lead 都是 Ulysses 担任；DDD Review 阶段由 Ulysses 在每个域分别签字（一签字 = 该域决策正式生效）。**代签不允许用于"代签他人"**——架构师列可由 Ulysses 代签 per 2026-08-26 08:40 JST 新规则，但 5 域 Lead 列必须由 Ulysses 本人（per DDD Review SOP）。
 
 ---
 

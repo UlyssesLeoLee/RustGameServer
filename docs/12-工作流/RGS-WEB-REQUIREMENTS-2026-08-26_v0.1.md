@@ -223,7 +223,7 @@
 
 - per DEC-008：一公司 12 角色，无 RBAC，Web UI 是 1 人工具
 - per DEC-005：5 域独立 Lead 兼任禁止（Web UI 需展示 5 域 Lead 独立性）
-- per 2026-08-26 08:40 JST：代签已允许新规则（修订历史"审批者"列可由 Mavis 代签"架构师(Ulysses（一人公司 12 角色 per DEC-008）)"）
+- per 2026-08-26 08:40 JST：代签已允许新规则（修订历史"审批者"列可由 Ulysses 代签"架构师(Ulysses（一人公司 12 角色 per DEC-008）)"）
 - per DTL-036 v1.4.2 反馈：禁"per X 历史形态"回溯叙事，引用 BAS 必须 git 实证
 
 ### 5.2 技术约束

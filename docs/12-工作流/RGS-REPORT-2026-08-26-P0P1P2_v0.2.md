@@ -57,7 +57,7 @@
 **P2 5 域 Lead RACI v1.0 关键设计**：
 - 每域 6 任务 × 7 治理角色 = 42 签字单元（vs RGS-RACI-001 v0.1 通用 160 单元）
 - 责任到人映射（per DEC-008 一人公司 12 角色）
-- 5 域 Lead 联合签字栏（架构师列可由 Mavis 代签，5 域 Lead 列必须由 Ulysses 在 DDD Review 阶段本人签）
+- 5 域 Lead 联合签字栏（架构师列可由 Ulysses 代签，5 域 Lead 列必须由 Ulysses 在 DDD Review 阶段本人签）
 
 **P2 CROSS 二次校正报告关键设计**：
 - 4 类触发场景（域内错误 / 跨域争议 / 治理补充 / RACI 修正）
