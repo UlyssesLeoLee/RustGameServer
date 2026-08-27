@@ -1,0 +1,47 @@
+{
+  "version": "0.1.0",
+  "categories": {
+    "unity": [
+      { "id": "all",          "label": "全部", "order": 0 },
+      { "id": "emission",     "label": "发射", "order": 1 },
+      { "id": "lifecycle",    "label": "生命周期", "order": 2 },
+      { "id": "shape",        "label": "形状", "order": 3 },
+      { "id": "color",        "label": "颜色与渐变", "order": 4 },
+      { "id": "size-rotation","label": "大小与旋转", "order": 5 },
+      { "id": "velocity-force","label": "速度与力", "order": 6 },
+      { "id": "collision",    "label": "碰撞", "order": 7 },
+      { "id": "subemitter",   "label": "子发射器", "order": 8 },
+      { "id": "external",     "label": "外部力场", "order": 9 }
+    ],
+    "unreal": [
+      { "id": "all",      "label": "全部",       "order": 0 },
+      { "id": "spawn",    "label": "Spawn",      "order": 1 },
+      { "id": "update",   "label": "Update",     "order": 2 },
+      { "id": "render",   "label": "Render",     "order": 3 },
+      { "id": "events",   "label": "Events",     "order": 4 },
+      { "id": "gpu-sim",  "label": "GPU Sim",    "order": 5 },
+      { "id": "material", "label": "Material",   "order": 6 },
+      { "id": "perf",     "label": "Performance","order": 7 },
+      { "id": "variable", "label": "Variable",   "order": 8 }
+    ],
+    "godot": [
+      { "id": "all",        "label": "全部",   "order": 0 },
+      { "id": "emission",   "label": "发射",   "order": 1 },
+      { "id": "process",    "label": "进程",   "order": 2 },
+      { "id": "draw",       "label": "绘制",   "order": 3 },
+      { "id": "collision",  "label": "碰撞",   "order": 4 },
+      { "id": "subemitter", "label": "子发射器","order": 5 },
+      { "id": "texture",    "label": "纹理",   "order": 6 },
+      { "id": "material",   "label": "材质",   "order": 7 }
+    ],
+    "physis": [
+      { "id": "all",        "label": "全部",     "order": 0 },
+      { "id": "emission",   "label": "粒子发射", "order": 1 },
+      { "id": "integrator", "label": "积分器",   "order": 2 },
+      { "id": "collision",  "label": "碰撞",     "order": 3 },
+      { "id": "force",      "label": "力场",     "order": 4 },
+      { "id": "lifecycle",  "label": "生命周期", "order": 5 },
+      { "id": "sync",       "label": "同步回调", "order": 6 }
+    ]
+  }
+}

@@ -1,0 +1,504 @@
+{
+  "version": "0.1.0",
+  "generatedAt": "2026-08-27",
+  "baseline": {
+    "unity":  "Unity 2022.3+",
+    "unreal": "Unreal Engine 5.3+",
+    "godot":  "Godot 4.2+",
+    "physis": "Physis 0.4+ / GVPE 0.2+"
+  },
+  "apis": [
+    {
+      "id": "unity-particlesystem-emit",
+      "primaryEngine": "unity",
+      "name": "ParticleSystem.Emit",
+      "category": "emission",
+      "tags": ["emit", "burst", "instant"],
+      "summary": "立即发射 N 个粒子，跳过发射速率限制。",
+      "description": "ParticleSystem.Emit 是 Unity 内置粒子系统的瞬时发射 API。调用时同步立即向粒子池注入指定数量的粒子，临时绕过 emission.rateOverTime 模块的速率限制。适用于命中特效、爆炸、伤害飘字、Buff 触发等需要瞬时爆发的场景。",
+      "signature": "void Emit(int count)",
+      "parameters": [
+        {
+          "name": "count",
+          "type": "int",
+          "required": true,
+          "default": null,
+          "unit": "个",
+          "description": "要发射的粒子数量。负数视为 0。实际生效数受 maxParticles 限制。"
+        }
+      ],
+      "returns": "void",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "var ps = GetComponent<ParticleSystem>();\nps.Emit(50);  // 立即发射 50 个粒子\n\n// 适用：命中特效、爆炸、伤害飘字等瞬时场景\n// 注意：受 ParticleSystem.MainModule.maxParticles 限制",
+          "notes": "EmissionModule 的 rateOverTime 在 Emit() 调用期间被临时绕过。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "// Unreal 等价做法：通过 Niagara 的 Spawn Burst Instantaneous 模块\nUNiagaraComponent* NC = GetNiagaraComponent();\nNC->Activate(true);  // 启动 + 重置\n\n// 在 Niagara Stack 中配置 Spawn Burst Instantaneous 节点，\n// 设定 Spawn Count = 50, Spawn Time = 0",
+          "notes": "Activate(true) 不会直接产生粒子，必须配合 Niagara Stack 内的 Spawn Burst 模块。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: GPUParticles3D = $Particles\n\n# 一次性瞬时发射\nparticles.one_shot = true\nparticles.emitting = true   # 触发一次发射后自动置 false",
+          "notes": "emitting 是布尔开关；one_shot=true 时发射完自动停止。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "#include <gvpe/gvpe_particle.h>\n\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);\ngvpe_particle_emit(ps, 50);  // 同步发射 50 个粒子\n\n// 与 GVPE 视觉层联动才能渲染\ngvpe_visual_attach(visual_handle, ps);",
+          "notes": "同步调用，立即推入物理世界。需要 GVPE 表现层 gvpe_visual_attach() 才会渲染。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "同步立即发射，跳过 emission.rateOverTime",   "note": "仅 CPU 模拟生效；GPU 模拟下退化为延迟发射" },
+        { "engine": "unreal", "behavior": "需要 Spawn Burst Instantaneous 模块配置数量", "note": "Activate(true) 不直接产生粒子" },
+        { "engine": "godot",  "behavior": "emitting 是布尔开关，立即生效",              "note": "one_shot=true 时发射完自动停止" },
+        { "engine": "physis", "behavior": "gvpe_particle_emit() 同步调用",               "note": "需要 GVPE gvpe_visual_attach() 才会渲染" }
+      ],
+      "caveats": [
+        "不要在 Update() 里每帧调用 Emit()，会突破粒子上限造成性能问题",
+        "粒子的 maxParticles 限制 Emit() 的实际生效数量",
+        "GPU 模拟下 Emit() 的时序不可预测，仅适合非确定性场景"
+      ],
+      "relatedApis": ["unity-particlesystem-shape"],
+      "sourceUrls": {
+        "unity":  "https://docs.unity3d.com/2022.3/Documentation/ScriptReference/ParticleSystem.Emit.html",
+        "unreal": "https://dev.epicgames.com/documentation/en-us/unreal-engine/niagara-key-concepts",
+        "godot":  "https://docs.godotengine.org/en/4.2/classes/class_gpuparticles3d.html",
+        "physis": "../crates/gvpe-ffi/include/gvpe_particle.h"
+      }
+    },
+    {
+      "id": "unity-particlesystem-shape",
+      "primaryEngine": "unity",
+      "name": "ParticleSystem.shape",
+      "category": "shape",
+      "tags": ["shape", "emitter", "volume"],
+      "summary": "控制粒子发射器的形状（球/盒/网格/网格渲染器等）。",
+      "description": "ParticleSystem.shape 暴露 ShapeModule，控制粒子从哪个体积表面发射。Unity 内置 12+ 种形状：Sphere / Hemisphere / Box / Mesh / MeshRenderer / Cone / Donut / Circle / Edge / Rectangle 等。每种形状有不同的位置/旋转/缩放参数。",
+      "signature": "ParticleSystem.ShapeModule shape { get; }",
+      "parameters": [],
+      "returns": "ParticleSystem.ShapeModule",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "var ps = GetComponent<ParticleSystem>();\nvar shape = ps.shape;\nshape.enabled = true;\nshape.shapeType = ParticleSystemShapeType.Sphere;\nshape.radius = 2.0f;  // 球形发射器半径 2 米",
+          "notes": "切换 shapeType 时 Unity 会重置部分子参数。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "// Unreal 用 Niagara 多个 Shape Location 模块实现\n// 球形发射：在 Emitter Update 添加 Sphere Location 模块\nUNiagaraComponent* NC = GetNiagaraComponent();\nNC->SetVariableFloat(\"SphereRadius\", 200.0f);",
+          "notes": "Niagara 的形状由 Stack 节点决定，运行时通过 User Parameter 调节。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: GPUParticles3D = $Particles\n\n# Godot 的发射形状由 draw_pass_1 的 Mesh 决定\n# 需要创建一个 SphereMesh / BoxMesh 作为粒子网格",
+          "notes": "Godot 用绘制网格形状隐式表达发射体积。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "#include <gvpe/gvpe_particle.h>\n\nGvpeParticleDesc desc = {\n    .emitter_type = GVPE_EMITTER_SPHERE,\n    .radius       = 2.0f,\n    .center       = {0.0f, 0.0f, 0.0f}\n};\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);",
+          "notes": "Physis 通过 GvpeParticleDesc.emitter_type 指定形状。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "内置 12+ 种形状枚举", "note": "切换形状时部分子参数会重置" },
+        { "engine": "unreal", "behavior": "由 Niagara Stack 节点组合", "note": "通过 User Parameter 运行时调节" },
+        { "engine": "godot",  "behavior": "由绘制网格形状决定", "note": "SphereMesh/BoxMesh 隐式表达发射体积" },
+        { "engine": "physis", "behavior": "GvpeParticleDesc.emitter_type 枚举", "note": "球/盒/锥/自定义点云" }
+      ],
+      "caveats": [
+        "Mesh 形状的发射点在三角面随机采样，密集网格性能开销高",
+        "Cone 形状的 radius/angle 影响发射方向锥度"
+      ],
+      "relatedApis": ["unity-particlesystem-emit"],
+      "sourceUrls": {
+        "unity":  "https://docs.unity3d.com/2022.3/Documentation/ScriptReference/ParticleSystem.ShapeModule.html",
+        "godot":  "https://docs.godotengine.org/en/4.2/classes/class_gpuparticles3d.html"
+      }
+    },
+    {
+      "id": "unreal-niagara-component-activate",
+      "primaryEngine": "unreal",
+      "name": "UNiagaraComponent::Activate",
+      "category": "spawn",
+      "tags": ["activate", "spawn", "start"],
+      "summary": "启动或重置 Niagara 发射器，控制粒子开始/重新生成。",
+      "description": "UNiagaraComponent::Activate 是 UE Niagara 系统的启动入口。传入 bReset=true 时清空现有粒子并重新开始发射，传入 bReset=false 时若已激活则保持运行，否则启动。配合 Deactivate() 可停止发射。",
+      "signature": "virtual void Activate(bool bReset = false)",
+      "parameters": [
+        {
+          "name": "bReset",
+          "type": "bool",
+          "required": false,
+          "default": "false",
+          "unit": "",
+          "description": "true 时重置现有粒子并重新发射；false 时仅启动（若已运行则无操作）"
+        }
+      ],
+      "returns": "void",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "// Unity 等价做法：Play()\nvar ps = GetComponent<ParticleSystem>();\nps.Play(true);  // withChildren = true 包含子发射器\n\n// 重新发射：先 Stop 再 Play\nps.Stop();\nps.Play();",
+          "notes": "Unity 的 Play() 对应 UE 的 Activate(true)。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "UNiagaraComponent* NC = GetNiagaraComponent();\nNC->Activate(true);  // 启动 + 重置\n\n// 停止\nNC->Deactivate();\n\n// 蓝图节点：Activate (Reset)",
+          "notes": "Activate(true) 会重置 Spawn Count、Age 等所有模拟状态。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: GPUParticles3D = $Particles\n\nparticles.restart()       # 重启并清空现有粒子\nparticles.emitting = true  # 开始持续发射",
+          "notes": "Godot 的 restart() 内部调用 emitting=false + emitting=true。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "#include <gvpe/gvpe_particle.h>\n\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);\ngvpe_particle_activate(ps, true);  // 激活 + 重置\n\n// 停止\ngvpe_particle_deactivate(ps);",
+          "notes": "Physis 通过 gvpe_particle_activate/deactivate 控制生命周期。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "Play(withChildren) 启动发射", "note": "true 时递归启动子发射器" },
+        { "engine": "unreal", "behavior": "Activate(bReset) 启动或重置", "note": "bReset=true 会清空所有粒子状态" },
+        { "engine": "godot",  "behavior": "emitting=true 启动，restart() 重启", "note": "restart() = emit false + emit true" },
+        { "engine": "physis", "behavior": "gvpe_particle_activate(bool)", "note": "同步调用，立即推入物理世界" }
+      ],
+      "caveats": [
+        "Activate(true) 会丢失所有当前粒子的状态（年龄、位置、速度）",
+        "Deactivate() 不会立即清空粒子，只是不再生成新的；现有粒子继续模拟直到死亡"
+      ],
+      "relatedApis": ["unreal-niagara-spawn-burst"],
+      "sourceUrls": {
+        "unreal": "https://dev.epicgames.com/documentation/en-us/unreal-engine/API/Runtime/Niagara/UNiagaraComponent/Activate"
+      }
+    },
+    {
+      "id": "unreal-niagara-spawn-burst",
+      "primaryEngine": "unreal",
+      "name": "Spawn Burst Instantaneous",
+      "category": "spawn",
+      "tags": ["burst", "instant", "spawn"],
+      "summary": "Niagara Stack 中的瞬时爆发模块，按指定数量一次性生成粒子。",
+      "description": "Spawn Burst Instantaneous 是 Niagara Emitter Update 阶段的模块，按 Spawn Count 在 Spawn Time 时刻一次性生成粒子。对应 Unity 的 ParticleSystem.Emit 和 Godot 的 one_shot 模式。",
+      "signature": "Module: Spawn Burst Instantaneous",
+      "parameters": [
+        {
+          "name": "Spawn Count",
+          "type": "int",
+          "required": true,
+          "default": "0",
+          "unit": "个",
+          "description": "瞬时生成的粒子数量"
+        },
+        {
+          "name": "Spawn Time",
+          "type": "float",
+          "required": false,
+          "default": "0.0",
+          "unit": "秒",
+          "description": "相对于发射器激活时刻的延迟时间"
+        }
+      ],
+      "returns": "void",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "// 等价：ps.Emit(count)\nvar ps = GetComponent<ParticleSystem>();\nps.Emit(100);  // 立即发射 100 个粒子",
+          "notes": "Unity 的 Emit() 是 C# 端 API，UE 的 Spawn Burst Instantaneous 是节点配置。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "// 在 Niagara System 资产中配置：\n// Add Module > Emitter Update > Spawn Burst Instantaneous\n// Spawn Count = 100, Spawn Time = 0.0\n// 运行时无法直接修改次数，需通过 User Parameter 控制",
+          "notes": "运行时修改需要把 Spawn Count 提升为 User Parameter。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: GPUParticles3D = $Particles\n\nparticles.amount = 100   # 设置最大粒子数\nparticles.one_shot = true\nparticles.emitting = true",
+          "notes": "Godot 的 one_shot 发射 amount 个粒子后自动停止。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "GvpeParticleHandle ps = gvpe_particle_create(world, &desc);\ngvpe_particle_emit(ps, 100);  // 瞬时发射 100 个\n// 若发射器 one_shot 模式，自动停止\ngvpe_particle_set_oneshot(ps, true);",
+          "notes": "Physis 的 gvpe_particle_emit + set_oneshot 组合等价。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "Emit(count) C# API", "note": "运行时动态决定数量" },
+        { "engine": "unreal", "behavior": "Niagara Stack 节点配置", "note": "运行时通过 User Parameter 调节" },
+        { "engine": "godot",  "behavior": "amount + one_shot", "note": "amount 是粒子总数" },
+        { "engine": "physis", "behavior": "gvpe_particle_emit + set_oneshot", "note": "两者组合" }
+      ],
+      "caveats": [
+        "运行时改 Spawn Count 必须先在编辑器里暴露为 User Parameter",
+        "大量 burst 会触发 CPU 峰值，PC 端 1000+ 需考虑性能预算"
+      ],
+      "relatedApis": ["unreal-niagara-component-activate"],
+      "sourceUrls": {
+        "unreal": "https://dev.epicgames.com/documentation/en-us/unreal-engine/niagara-module-reference"
+      }
+    },
+    {
+      "id": "godot-gpu-particles-emitting",
+      "primaryEngine": "godot",
+      "name": "GPUParticles3D.emitting",
+      "category": "emission",
+      "tags": ["emitting", "toggle", "state"],
+      "summary": "GPU 粒子的发射开关布尔值，控制是否持续生成新粒子。",
+      "description": "GPUParticles3D.emitting 是 Godot 4 粒子系统最常用的开关。true 时持续发射，false 时停止发射但现有粒子继续模拟直到死亡。配合 one_shot 可实现瞬时爆发。",
+      "signature": "bool emitting",
+      "parameters": [],
+      "returns": "bool",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "var ps = GetComponent<ParticleSystem>();\nvar emission = ps.emission;\nemission.enabled = true;   // 持续发射\nemission.enabled = false;  // 停止发射",
+          "notes": "Unity 用 emission.enabled，Godot 直接用 emitting。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "UNiagaraComponent* NC = GetNiagaraComponent();\nNC->Activate();   // 开始\nNC->Deactivate(); // 停止（现有粒子继续）",
+          "notes": "UE 的 Deactivate 对应 Godot 的 emitting=false。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: GPUParticles3D = $Particles\n\nparticles.emitting = true   # 开始持续发射\n# ... 一段时间后\nparticles.emitting = false  # 停止发射\n\n# 一次性瞬时\nparticles.one_shot = true\nparticles.emitting = true",
+          "notes": "emitting 是即时切换，没有过渡状态。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "GvpeParticleHandle ps = gvpe_particle_create(world, &desc);\ngvpe_particle_activate(ps, true);   // 开始\ngvpe_particle_deactivate(ps);       // 停止",
+          "notes": "Physis 用 activate/deactivate 对偶 API。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "emission.enabled bool",       "note": "false 时立即停止" },
+        { "engine": "unreal", "behavior": "Deactivate() 停止",            "note": "现有粒子继续模拟" },
+        { "engine": "godot",  "behavior": "emitting bool 立即切换",       "note": "one_shot 模式下自动置 false" },
+        { "engine": "physis", "behavior": "gvpe_particle_deactivate",     "note": "同步调用" }
+      ],
+      "caveats": [
+        "one_shot=true 时 emitting 会在发射完 amount 个粒子后自动置 false",
+        "频繁切换 emitting 会产生 CPU/GPU 同步开销"
+      ],
+      "relatedApis": ["godot-cpu-particles-amount"],
+      "sourceUrls": {
+        "godot": "https://docs.godotengine.org/en/4.2/classes/class_gpuparticles3d.html#class-gpuparticles3d-property-emitting"
+      }
+    },
+    {
+      "id": "godot-cpu-particles-amount",
+      "primaryEngine": "godot",
+      "name": "CPUParticles3D.amount",
+      "category": "emission",
+      "tags": ["amount", "count", "pool"],
+      "summary": "CPU 粒子的粒子池大小，决定同时存在的最大粒子数。",
+      "description": "CPUParticles3D.amount 控制粒子池大小。发射时会从池中取粒子，死亡后归还。一次性发射（one_shot=true）时 amount 也是瞬时发射数量。",
+      "signature": "int amount (default 32)",
+      "parameters": [],
+      "returns": "int",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "var ps = GetComponent<ParticleSystem>();\nvar main = ps.main;\nmain.maxParticles = 200;  // 粒子池大小",
+          "notes": "Unity 的 maxParticles 对应 Godot 的 amount。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "// UE 没有直接的池大小概念，Niagara 由 GPU/CPU Sim Max Particles 决定\nUNiagaraComponent* NC = GetNiagaraComponent();\nNC->SetVariableInt(\"User.MaxParticles\", 200);",
+          "notes": "UE 通过 User Parameter 间接控制。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "@onready var particles: CPUParticles3D = $Particles\n\nparticles.amount = 200      # 粒子池 200\nparticles.one_shot = false  # 持续发射\nparticles.emitting = true",
+          "notes": "amount 改变时现有粒子会被清空。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "GvpeParticleDesc desc = {\n    .max_particles = 200,\n    .emission_rate = 50.0f  // 每秒 50 个\n};\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);",
+          "notes": "Physis 的 max_particles 字段对应。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "main.maxParticles int",         "note": "运行时修改会清空现有粒子" },
+        { "engine": "unreal", "behavior": "Niagara User Parameter",         "note": "通过 Stack 节点控制" },
+        { "engine": "godot",  "behavior": "amount int 立即生效",            "note": "现有粒子会被清空" },
+        { "engine": "physis", "behavior": "GvpeParticleDesc.max_particles", "note": "创建时设定，运行时可调" }
+      ],
+      "caveats": [
+        "运行时修改 amount 会在大多数引擎中清空当前粒子",
+        "GPU 粒子的 amount 实际上是 draw_calls 的最大并行数，与 CPU 不同"
+      ],
+      "relatedApis": ["godot-gpu-particles-emitting"],
+      "sourceUrls": {
+        "godot": "https://docs.godotengine.org/en/4.2/classes/class_cpuparticles3d.html#class-cpuparticles3d-property-amount"
+      }
+    },
+    {
+      "id": "physis-gvpe-particle-emit",
+      "primaryEngine": "physis",
+      "name": "gvpe_particle_emit",
+      "category": "emission",
+      "tags": ["emit", "burst", "c-abi"],
+      "summary": "Physis 物理引擎的同步粒子发射 API，立即向物理世界推入 N 个粒子。",
+      "description": "gvpe_particle_emit 是 Physis 0.4+ / GVPE 0.2+ 的 C ABI 同步发射函数。调用时立即向指定粒子系统的物理世界推入 N 个粒子，位置由发射器形状（emitter_type）和当前帧时间决定。与 Unity 的 ParticleSystem.Emit 行为最接近，但属于底层 C 接口，需要 GVPE 表现层 gvpe_visual_attach() 才会渲染。",
+      "signature": "GvpeResult gvpe_particle_emit(GvpeParticleHandle ps, uint32_t count)",
+      "parameters": [
+        {
+          "name": "ps",
+          "type": "GvpeParticleHandle",
+          "required": true,
+          "default": null,
+          "unit": "",
+          "description": "粒子系统句柄，由 gvpe_particle_create() 创建"
+        },
+        {
+          "name": "count",
+          "type": "uint32_t",
+          "required": true,
+          "default": null,
+          "unit": "个",
+          "description": "要发射的粒子数量，受 max_particles 限制"
+        }
+      ],
+      "returns": "GvpeResult (GVPE_OK / GVPE_ERR_INVALID_HANDLE / GVPE_ERR_LIMIT_EXCEEDED)",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "var ps = GetComponent<ParticleSystem>();\nps.Emit(50);  // 立即发射 50 个粒子",
+          "notes": "行为最接近 Unity 的 Emit。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "UNiagaraComponent* NC = GetNiagaraComponent();\nNC->Activate(true);\n// 配合 Niagara Stack 中的 Spawn Burst Instantaneous (Count=50)",
+          "notes": "需配合 Niagara Stack 节点配置。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "particles.amount = 50\nparticles.one_shot = true\nparticles.emitting = true",
+          "notes": "one_shot + amount 组合等价。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "#include <gvpe/gvpe_particle.h>\n\nGvpeWorld* world = gvpe_world_create();\nGvpeParticleDesc desc = {\n    .emitter_type = GVPE_EMITTER_SPHERE,\n    .radius       = 1.0f,\n    .max_particles = 1000\n};\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);\n\nGvpeResult r = gvpe_particle_emit(ps, 50);\nif (r != GVPE_OK) {\n    fprintf(stderr, \"emit failed: %d\\n\", r);\n}\n\n// 与 GVPE 视觉层联动\ngvpe_visual_attach(visual_handle, ps);",
+          "notes": "返回 GvpeResult 错误码，需检查。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "ps.Emit(50) C# API",                "note": "无显式错误码" },
+        { "engine": "unreal", "behavior": "Niagara Stack 节点配置",            "note": "无法直接同步发射" },
+        { "engine": "godot",  "behavior": "amount + one_shot",                  "note": "间接实现" },
+        { "engine": "physis", "behavior": "gvpe_particle_emit 返回错误码",      "note": "底层 C ABI，跨语言可用" }
+      ],
+      "caveats": [
+        "必须检查返回的 GvpeResult，错误码包括 INVALID_HANDLE / LIMIT_EXCEEDED",
+        "未 gvpe_visual_attach() 时粒子在物理世界更新但不可见",
+        "在 Rust 侧调用需通过 rgs-physis-ffi crate 包装"
+      ],
+      "relatedApis": ["physis-gvpe-particle-create"],
+      "sourceUrls": {
+        "physis": "../crates/gvpe-ffi/include/gvpe_particle.h"
+      }
+    },
+    {
+      "id": "physis-gvpe-particle-create",
+      "primaryEngine": "physis",
+      "name": "gvpe_particle_create",
+      "category": "lifecycle",
+      "tags": ["create", "lifecycle", "handle"],
+      "summary": "在指定物理世界中创建粒子系统，返回不透明句柄。",
+      "description": "gvpe_particle_create 是 Physis 粒子生命周期的起点。传入 GvpeWorld 句柄和描述符（emitter_type / radius / max_particles 等），返回一个 GvpeParticleHandle，后续所有操作（emit / activate / attach）都基于该句柄。",
+      "signature": "GvpeParticleHandle gvpe_particle_create(GvpeWorld* world, const GvpeParticleDesc* desc)",
+      "parameters": [
+        {
+          "name": "world",
+          "type": "GvpeWorld*",
+          "required": true,
+          "default": null,
+          "unit": "",
+          "description": "物理世界句柄"
+        },
+        {
+          "name": "desc",
+          "type": "const GvpeParticleDesc*",
+          "required": true,
+          "default": null,
+          "unit": "",
+          "description": "粒子描述符，包含发射器形状、半径、最大粒子数等"
+        }
+      ],
+      "returns": "GvpeParticleHandle (NULL 表示失败)",
+      "examples": {
+        "unity": {
+          "language": "csharp",
+          "label": "Unity C#",
+          "code": "// Unity 通过 GameObject + ParticleSystem 组件隐式创建\nvar go = new GameObject(\"MyParticles\");\nvar ps = go.AddComponent<ParticleSystem>();\nvar main = ps.main;\nmain.maxParticles = 1000;\nvar shape = ps.shape;\nshape.shapeType = ParticleSystemShapeType.Sphere;\nshape.radius = 1.0f;",
+          "notes": "Unity 通过 GameObject + 组件模型隐式创建。"
+        },
+        "unreal": {
+          "language": "cpp",
+          "label": "Unreal C++",
+          "code": "// UE 通过 SpawnActor 隐式创建\nUNiagaraComponent* NC = NewObject<UNiagaraComponent>(this);\nNC->SetAsset(NiagaraSystem);  // 关联 Niagara 资产\nNC->RegisterComponent();",
+          "notes": "UE 通过 Component 注册模型。"
+        },
+        "godot": {
+          "language": "gdscript",
+          "label": "Godot 4 GDScript",
+          "code": "var particles = GPUParticles3D.new()\nparticles.amount = 1000\nparticles.emitting = false\nadd_child(particles)",
+          "notes": "Godot 通过 new() 显式构造节点。"
+        },
+        "physis": {
+          "language": "c",
+          "label": "Physis C ABI",
+          "code": "#include <gvpe/gvpe_particle.h>\n\nGvpeWorld* world = gvpe_world_create();\nGvpeParticleDesc desc = {\n    .emitter_type  = GVPE_EMITTER_SPHERE,\n    .radius        = 1.0f,\n    .max_particles = 1000,\n    .lifetime      = 5.0f  // 5 秒\n};\n\nGvpeParticleHandle ps = gvpe_particle_create(world, &desc);\nif (ps == NULL) {\n    fprintf(stderr, \"failed to create particle system\\n\");\n    return -1;\n}\n\n// 使用完毕后销毁\ngvpe_particle_destroy(ps);",
+          "notes": "需配对调用 gvpe_particle_destroy() 释放资源。"
+        }
+      },
+      "engineDifferences": [
+        { "engine": "unity",  "behavior": "AddComponent<ParticleSystem>",        "note": "依附 GameObject 生命周期" },
+        { "engine": "unreal", "behavior": "NewObject<UNiagaraComponent>",         "note": "需 RegisterComponent 激活" },
+        { "engine": "godot",  "behavior": "GPUParticles3D.new()",                  "note": "显式构造 + add_child" },
+        { "engine": "physis", "behavior": "gvpe_particle_create 返回句柄",        "note": "需手动 destroy 释放" }
+      ],
+      "caveats": [
+        "desc 为 NULL 时函数行为未定义，崩溃或返回 NULL",
+        "GvpeWorld 销毁前必须先 destroy 所有 particle handle",
+        "句柄在线程间传递需要 GvpeWorld 加锁"
+      ],
+      "relatedApis": ["physis-gvpe-particle-emit"],
+      "sourceUrls": {
+        "physis": "../crates/gvpe-ffi/include/gvpe_particle.h"
+      }
+    }
+  ]
+}
