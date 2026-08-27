@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0",
+  "locale": "zh-CN",
+  "strings": {
+    "app.title":          "粒子 API 浏览器",
+    "engine.all":         "所有引擎",
+    "engine.unity":       "Unity",
+    "engine.unreal":      "Unreal",
+    "engine.godot":       "Godot",
+    "engine.physis":      "Physis",
+    "tab.overview":       "概述",
+    "tab.params":         "参数",
+    "tab.examples":       "示例",
+    "tab.caveats":        "注意事项",
+    "tab.diff":           "引擎差异",
+    "search.placeholder": "搜索 API 名称、描述、标签… (按 / 聚焦)",
+    "modal.close":        "关闭",
+    "modal.noExamples":   "暂无该引擎的示例",
+    "list.empty":         "没有匹配的 API",
+    "list.count":         "共 {n} 条",
+    "footer.version":     "DEV-PAB-001 v0.1",
+    "shortcut.title":     "快捷键",
+    "shortcut.focusSearch":"/   聚焦搜索",
+    "shortcut.navigate":  "↑↓  列表导航",
+    "shortcut.open":      "Enter  打开详情",
+    "shortcut.close":     "Esc   关闭弹窗",
+    "data.loadError":     "数据加载失败: {error}"
+  }
+}
