@@ -2,6 +2,14 @@
 .serena/
 __pycache__/
 .worktree.env
+# Cargo build artifacts (per 2026-08-27 16:48 self-review 发现历史漏洞)
+# RGS 仓库的 [profile.release] 配置下 target/ 持续增长,
+# 此前未在 .gitignore 中导致 git add -A 会把 6000+ .d / .rlib / .rmeta 全 stage
+/target/
+**/target/
+target/
+**/x86_64-unknown-linux-gnu/
+**/x86_64-unknown-linux-musl/
 
 # Local env files（含 DB 密码 / NATS / K8s 等敏感信息，per RGS-SEC-100 §7 Secret 管理）
 .env
@@ -28,7 +36,17 @@ docs/00-**/reviews/**/cargo-*.log
 # node_modules 实际未在 commit(per commit 5f827ee),规则是预防未来 npm install 误入
 tools/rgs-web/node_modules/
 
+# Rust cargo 构建输出 (per 2026-08-27 本地 k3s 部署后产生的 untracked target/)
+# 模式仅匹配仓库根 target/, 不影响 nested crate (e.g. crates/*/target 仍可显式
+# 排除于各子 crate 自身的 .gitignore 或本文件后续追加)
+target/
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
 .worker-tmp/
+
+# scripts/_scratch/ (per 2026-08-27 16:48 self-review)
+# 其他 session 跑 RGS-INC-002 cross-ref 验证时的临时 Python 脚本 + 临时输出
+# 15 个文件 622KB,跑完即失效,不入 git 也不归档
+scripts/_scratch/
