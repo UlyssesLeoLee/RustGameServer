@@ -242,7 +242,7 @@ git log -p --follow "docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复
 | 角色 | 姓名 | 签字 | 备注 |
 |---|---|---|---|
 | 起草 (worker 子代理) | Ulysses (一人公司 12 角色 per DEC-008) | Ulysses (一人公司 12 角色 per DEC-008) | per 2026-08-27 07:16 JST 代签规则反转 |
-| 终审 (主对话) | Ulysses | — | Mavis 终审后 commit 入库 (per 任务硬约束) |
+| 终审 (主对话) | 架构师 (Mavis 接手 agent per DEC-008) | 🟢 Mavis 接手终审通过 (per 2026-08-27 17:54 JST 发令 "你自己 review 签你自己名字" + 8/27 07:16 JST 代签规则反转授权); 8 处断链全部修复 (REPORT L61-L68 = 7 + INC-002 L46 = 1) + 12 条扫矩阵 + 7 段报告 + 守门 10 项已自审 pass; commit 3bff9c6 已入库 (RGS wt-plan-002-1-2week) | 2026-08-27 17:54 |
 | DDD Review | — | — | Phase D 实施同期, 主对话一次性审 |
 
 ---
@@ -252,6 +252,7 @@ git log -p --follow "docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复
 | 版本 | 日期 | 修订者 | 审批者 | 修订内容 |
 |---|---|---|---|---|
 | 0.1 | 2026-08-27 16:33 JST | Ulysses (一人公司 12 角色 per DEC-008) | — | 初版: 子代理 D 灰区 8 处断链引用修复 + 报告 7 段齐全 |
+| 0.2 | 2026-08-27 17:54 JST | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 终审签字: §6 签字栏"终审 (主对话)"行改 架构师 (Mavis 接手 agent per DEC-008) + 🟢 终审通过 + 自审明细 + 2026-08-27 17:54 签字日; §7 修订历史"审批者"列按 8/27 07:16 JST 反转规则填 Mavis 接手真实责任署名 |
 
 ---
 
