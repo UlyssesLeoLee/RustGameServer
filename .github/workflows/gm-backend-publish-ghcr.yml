@@ -22,8 +22,8 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   REGISTRY: ghcr.io
-  # docker buildx / ghcr.io 强制 lowercase;GitHub owner 包含大写也必须转
-  IMAGE_NAME: ${{ github.repository_owner | lower }}/rustgameserver
+  # docker buildx / ghcr.io 强制 lowercase
+  IMAGE_NAME: ulyssesleolee/rustgameserver
 
 jobs:
   build-and-push:
