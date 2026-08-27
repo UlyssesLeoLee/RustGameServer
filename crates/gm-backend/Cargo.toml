@@ -33,3 +33,16 @@ tonic = { workspace = true }
 prost = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+
+[dev-dependencies]
+# per 5 域 + cluster-ops 一致模式:fail-closed 启动 + rgs-testkit 集成
+assert_cmd = "2"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+axum-test = "16"
+hyper = { version = "1", features = ["full"] }
+serde_json = { workspace = true }
+# 串行化 env-mutating 测试(per rgs-testkit 1.5 用法)
+serial_test = "0.5"
+# rgs-testkit:GM 后台 5 个 endpoint stub 阶段不依赖,但 dev-dep 留着供未来
+# admin-service gRPC client 实现用
+rgs-testkit = { path = "../rgs-testkit" }
