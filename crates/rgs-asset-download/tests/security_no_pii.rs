@@ -207,6 +207,16 @@ fn scan_dir(dir: &Path, violations: &mut Vec<String>) {
             if trimmed.starts_with("assert!") || trimmed.contains("assert!(") {
                 continue;
             }
+            // 跳过「防御性 PII 反向断言」array literal（per FR-CDN-064）
+            // 模式：`for forbidden in ["player_id", ...]` / `for field in PII_FIELDS`
+            // 这是 test 故意引用 PII 字段名做反向断言的合法 pattern（FR-CDN-064 验证），
+            // 不应被本 scanner 误报。P0 续命 (2026-08-27 22:46 JST) — 见 ut_resume_token_store.rs:128,151。
+            if trimmed.contains("for forbidden in [")
+                || trimmed.contains("for field in PII_FIELDS")
+                || trimmed.contains("for field_name in PII_FIELDS")
+            {
+                continue;
+            }
             for field in PII_FIELDS {
                 if line.contains(field) {
                     violations.push(format!(
