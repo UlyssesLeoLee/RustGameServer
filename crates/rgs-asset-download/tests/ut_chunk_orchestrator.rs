@@ -17,7 +17,7 @@ use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn make_client() -> RangeClient {
-    RangeClient::new(RangeClientConfig {
+    RangeClient::with_config(RangeClientConfig {
         user_agent: "test".into(),
         timeout_secs: 30,
         verify_tls: false,

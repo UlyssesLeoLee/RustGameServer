@@ -20,21 +20,24 @@ const AC_ID: &str = "AC_CDN_112";
 
 /// ResumeToken 13 字段（per SPEC §6）
 fn make_resume_token(asset_id: &str, completed_chunks: Vec<u32>) -> ResumeToken {
+    use chrono::TimeZone;
     use rgs_asset_download::api::ResumeToken;
+    let ts = chrono::Utc.timestamp_opt(1_700_000_000, 0).single().unwrap();
     ResumeToken {
+        schema_version: 1,
         token_id: format!("tok-{asset_id}"),
         asset_id: asset_id.to_string(),
         file_path: PathBuf::from(format!("/tmp/{asset_id}")),
         total_size: SMALL,
-        chunk_size: CHUNK_SIZE_8MB,
+        chunk_size: CHUNK_SIZE_8MB as u64,
         completed_chunks,
         etag: format!("etag-{asset_id}"),
+        created_at: ts,
+        updated_at: ts,
+        expires_at: ts + chrono::Duration::days(7),
+        checksum_sha256: sha256_hex(&[]),
         backend_url: MINIO_ENDPOINT.to_string(),
-        created_at_unix: 1_700_000_000,
-        last_resume_at_unix: 1_700_000_000,
-        resume_count: 0,
-        sha256_expected: sha256_hex(&[]),
-        app_session_id: "app-sess-001".to_string(),
+        status: rgs_asset_download::DownloadState::Paused,
     }
 }
 
@@ -49,7 +52,7 @@ async fn it_ac_cdn_112_pause_then_resume_from_checkpoint() {
 
     let asset_id = "resume-001";
     let token = make_resume_token(asset_id, vec![0, 1, 2, 3]);
-    eprintln!("[{AC_ID}] 完成 chunks: {:?}, resume_count: {}", token.completed_chunks, token.resume_count);
+    eprintln!("[{AC_ID}] 完成 chunks: {:?}", token.completed_chunks);
 
     // 真实实现：
     // 1. SDK 启动 → 读取 ResumeToken
@@ -90,7 +93,7 @@ fn it_ac_cdn_112_state_machine_legal_transitions() {
     assert!(sm.transition(DownloadState::Paused));
     assert!(sm.transition(DownloadState::Downloading)); // Paused → Downloading 合法
     assert!(sm.transition(DownloadState::Completed));
-    assert_eq!(sm.current(), Some(DownloadState::Completed));
+    assert_eq!(sm.current(), DownloadState::Completed);
 }
 
 /// 负例：非法转移（Completed → Downloading 不允许）

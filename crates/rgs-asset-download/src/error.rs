@@ -17,10 +17,13 @@
 
 use thiserror::Error;
 
-use crate::state_machine::StateTransitionError;
+use crate::state_machine::TransitionError;
 
 /// 库内统一 `Result` 别名。
 pub type DownloadResult<T> = Result<T, DownloadError>;
+
+/// 旧名兼容别名（per `rgs_asset_download::AssetDownloadError` 测试 import）
+pub type AssetDownloadError = DownloadError;
 
 /// 错误码（与 DTL §6 一一对应；命名上不增不减）。
 #[derive(Debug, Error)]
@@ -176,6 +179,23 @@ pub enum DownloadError {
     /// URL 解析失败
     #[error("invalid url: {0}")]
     InvalidUrl(String),
+
+    /// Store IO 错误（per `AssetDownloadError::StoreIoError` 测试 import）
+    #[error("store io error: path={path}, cause={cause}")]
+    StoreIoError {
+        /// 失败路径
+        path: String,
+        /// 底层原因
+        cause: String,
+    },
+
+    /// Store 后端错误（SQLite / generic backend）
+    #[error("store backend error: {0}")]
+    StoreBackendError(String),
+
+    /// Store 序列化错误
+    #[error("store serialization error: {0}")]
+    StoreSerializationError(String),
 }
 
 impl DownloadError {
@@ -198,6 +218,9 @@ impl DownloadError {
             Self::Paused => "paused",
             Self::Io { .. } | Self::PlatformPreallocateUnsupported { .. } => "io",
             Self::HttpClient(_) | Self::InvalidUrl(_) => "client",
+            Self::StoreIoError { .. }
+            | Self::StoreBackendError(_)
+            | Self::StoreSerializationError(_) => "store",
         }
     }
 }
@@ -214,11 +237,11 @@ impl From<url::ParseError> for DownloadError {
     }
 }
 
-impl From<StateTransitionError> for DownloadError {
-    fn from(e: StateTransitionError) -> Self {
+impl From<TransitionError> for DownloadError {
+    fn from(e: TransitionError) -> Self {
         Self::StateIllegalTransition {
             from: e.from.to_string(),
-            via: e.via.to_string(),
+            via: e.event.to_string(),
         }
     }
 }

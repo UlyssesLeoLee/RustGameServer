@@ -61,7 +61,7 @@ fn transition_table_has_exactly_19_legal_entries() {
 #[test]
 fn every_legal_transition_lands_on_expected_state() {
     for (from, event, expected_to) in LEGAL_TRANSITIONS {
-        let sm = DownloadStateMachine::with_state(*from);
+        let mut sm = DownloadStateMachine::with_state(*from);
         let got = sm.apply(*event).expect("legal transition must succeed");
         assert_eq!(
             got, *expected_to,
@@ -135,7 +135,7 @@ fn allowed_transitions_count_per_state() {
 #[test]
 fn illegal_transitions_are_rejected_with_descriptive_error() {
     // Idle -> Complete（必须先 ResolveStart）
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     let err = sm.apply(StateEvent::Complete).unwrap_err();
     let TransitionError { from, event, allowed } = err;
     assert_eq!(from, DownloadState::Idle);
@@ -148,7 +148,7 @@ fn illegal_transitions_are_rejected_with_descriptive_error() {
 
 #[test]
 fn illegal_transition_paused_to_completed_directly_is_rejected() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Paused);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Paused);
     // Paused 不能直接 Complete（必须先 Resume）
     let err = sm.apply(StateEvent::Complete).unwrap_err();
     assert_eq!(err.from, DownloadState::Paused);
@@ -158,7 +158,7 @@ fn illegal_transition_paused_to_completed_directly_is_rejected() {
 
 #[test]
 fn illegal_transition_resolving_to_completed_directly_is_rejected() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Resolving);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Resolving);
     let err = sm.apply(StateEvent::Complete).unwrap_err();
     assert_eq!(err.from, DownloadState::Resolving);
     assert_eq!(err.event, StateEvent::Complete);
@@ -166,7 +166,7 @@ fn illegal_transition_resolving_to_completed_directly_is_rejected() {
 
 #[test]
 fn illegal_transition_failed_to_completed_is_rejected() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Failed);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Failed);
     let err = sm.apply(StateEvent::Complete).unwrap_err();
     assert_eq!(err.from, DownloadState::Failed);
     assert!(sm.current() == DownloadState::Failed);
@@ -174,7 +174,7 @@ fn illegal_transition_failed_to_completed_is_rejected() {
 
 #[test]
 fn illegal_transition_expired_to_paused_is_rejected() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Expired);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Expired);
     // Expired 不能直接 Pause（必须先 ResolveStart）
     let err = sm.apply(StateEvent::Pause).unwrap_err();
     assert_eq!(err.from, DownloadState::Expired);
@@ -196,7 +196,7 @@ fn terminal_states_reject_all_events() {
         StateEvent::Expire,
         StateEvent::Retry,
     ] {
-        let sm = DownloadStateMachine::with_state(DownloadState::Completed);
+        let mut sm = DownloadStateMachine::with_state(DownloadState::Completed);
         assert!(
             sm.apply(ev).is_err(),
             "Completed should reject event {ev:?}"
@@ -212,7 +212,7 @@ fn terminal_states_reject_all_events() {
         StateEvent::Expire,
         StateEvent::Retry,
     ] {
-        let sm = DownloadStateMachine::with_state(DownloadState::Cancelled);
+        let mut sm = DownloadStateMachine::with_state(DownloadState::Cancelled);
         assert!(
             sm.apply(ev).is_err(),
             "Cancelled should reject event {ev:?}"
@@ -226,7 +226,7 @@ fn terminal_states_reject_all_events() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_set_on_paused() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     // 转移前 cancel flag 是 false
@@ -237,7 +237,7 @@ fn fr_cdn_083_cancel_flag_set_on_paused() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_set_on_cancelled_from_downloading() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::Cancel).unwrap();
@@ -246,7 +246,7 @@ fn fr_cdn_083_cancel_flag_set_on_cancelled_from_downloading() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_set_on_failed() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::ChunkFail).unwrap();
@@ -255,14 +255,14 @@ fn fr_cdn_083_cancel_flag_set_on_failed() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_set_on_expired() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Paused);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Paused);
     sm.apply(StateEvent::Expire).unwrap();
     assert!(sm.cancel_flag().load(Ordering::SeqCst));
 }
 
 #[test]
 fn fr_cdn_083_cancel_flag_reset_when_resuming_from_paused() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Paused);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Paused);
     // 初始 Pause 状态：cancel flag 应为 true
     assert!(sm.cancel_flag().load(Ordering::SeqCst));
     // Resume → Downloading：cancel flag 应被重置
@@ -272,7 +272,7 @@ fn fr_cdn_083_cancel_flag_reset_when_resuming_from_paused() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_reset_when_retrying_from_failed() {
-    let sm = DownloadStateMachine::with_state(DownloadState::Failed);
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Failed);
     assert!(sm.cancel_flag().load(Ordering::SeqCst));
     sm.apply(StateEvent::Retry).unwrap();
     // Retry → Resolving：cancel flag 应被重置
@@ -281,7 +281,7 @@ fn fr_cdn_083_cancel_flag_reset_when_retrying_from_failed() {
 
 #[test]
 fn fr_cdn_083_cancel_flag_not_set_on_completed() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::Complete).unwrap();
@@ -293,7 +293,7 @@ fn fr_cdn_083_cancel_flag_not_set_on_completed() {
 async fn fr_cdn_083_cancel_notify_signal_present() {
     use std::sync::Arc;
     use std::time::Duration;
-    let sm = Arc::new(DownloadStateMachine::with_state(DownloadState::Downloading));
+    let mut sm = DownloadStateMachine::with_state(DownloadState::Downloading);
     let notify = sm.cancel_notify();
     // 在 notify 触发前先 spawn waiter（避免 race：Notify 单次触发，已触发后再 .notified() 不会唤醒）
     let waiter = {
@@ -323,7 +323,7 @@ async fn fr_cdn_083_cancel_notify_signal_present() {
 
 #[test]
 fn scenario_happy_path_idle_to_completed() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::Complete).unwrap();
@@ -333,7 +333,7 @@ fn scenario_happy_path_idle_to_completed() {
 
 #[test]
 fn scenario_pause_resume_cycle() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::Pause).unwrap();
@@ -346,7 +346,7 @@ fn scenario_pause_resume_cycle() {
 
 #[test]
 fn scenario_retry_after_failure() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::ChunkFail).unwrap();
@@ -360,7 +360,7 @@ fn scenario_retry_after_failure() {
 
 #[test]
 fn scenario_etag_mismatch_triggers_full_retransmit() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     // ETag 不匹配（per FR-CDN-074）→ Failed（不是 Cancelled）
@@ -375,7 +375,7 @@ fn scenario_etag_mismatch_triggers_full_retransmit() {
 
 #[test]
 fn scenario_expire_after_pause() {
-    let sm = DownloadStateMachine::new();
+    let mut sm = DownloadStateMachine::new();
     sm.apply(StateEvent::ResolveStart).unwrap();
     sm.apply(StateEvent::ResolveSuccess).unwrap();
     sm.apply(StateEvent::Pause).unwrap();
@@ -400,7 +400,7 @@ fn scenario_cancel_from_every_non_terminal_state() {
         DownloadState::Expired,
     ];
     for state in non_terminals {
-        let sm = DownloadStateMachine::with_state(state);
+        let mut sm = DownloadStateMachine::with_state(state);
         let to = sm.apply(StateEvent::Cancel).expect("cancel must succeed");
         assert_eq!(to, DownloadState::Cancelled, "from {state:?}");
         assert!(sm.is_terminal());
