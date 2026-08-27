@@ -21,7 +21,22 @@
 //! 真实 Windows syscall 落到 PH-4（#2069）实装；M-2065.6+7 提供**接口 + 降级逻辑**。
 
 use crate::error::{DownloadError, DownloadResult};
-use crate::platform::{fallback_preallocate, PreallocateOutcome, PreallocateStrategy};
+use crate::platform::{
+    fallback_preallocate, PreallocateOutcome, PreallocateStrategy, SparseFileAllocator,
+};
+
+/// Windows sparse file 分配器（per `it_minio_platform.rs` 4 平台 trait 调用）
+///
+/// 真实 syscall（`FSCTL_SET_SPARSE` + `SetFileValidData`）由 PH-4 落定；
+/// 当前实现：所有平台先走 fallback 路径（`SetEndOfFile` + 写 0）以保证 cross-compile 可用。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct WindowsSparseFile;
+
+impl SparseFileAllocator for WindowsSparseFile {
+    fn preallocate(&self, path: &str, size: u64) -> DownloadResult<PreallocateOutcome> {
+        preallocate(path, size)
+    }
+}
 
 /// Windows sparse file 预分配入口。
 ///

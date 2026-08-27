@@ -18,7 +18,10 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::error::DownloadResult;
-use crate::state_machine::{DownloadState, DownloadStateMachine};
+use crate::state_machine::{DownloadState, DownloadStateMachine, StateEvent};
+
+/// `ResumeToken` 在 `api` 模块下的 re-export（per `it_minio_resume.rs` 的 `use rgs_asset_download::api::ResumeToken` 路径）
+pub use crate::resume_token::ResumeToken;
 
 /// 下载请求（per SPEC §2 + DTL §3）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,7 +168,7 @@ impl AssetDownloadService for DefaultAssetDownloadService {
     async fn download_asset(&self, req: DownloadRequest) -> DownloadResult<PauseOutcome> {
         // PREREQ 占位：仅推进状态机 + 生成 token_id
         let mut sm = self.sm.lock().expect("state machine poisoned");
-        sm.apply(crate::state_machine::StateTransition::Start)?;
+        sm.apply(StateEvent::ResolveStart)?;
         let token_id = req
             .resume_token_id
             .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -177,7 +180,7 @@ impl AssetDownloadService for DefaultAssetDownloadService {
 
     async fn pause_download(&self, resume_token_id: &str) -> DownloadResult<PauseOutcome> {
         let mut sm = self.sm.lock().expect("state machine poisoned");
-        sm.apply(crate::state_machine::StateTransition::Pause)?;
+        sm.apply(StateEvent::Pause)?;
         Ok(PauseOutcome {
             resume_token_id: resume_token_id.to_string(),
             bytes_received: 0,
@@ -186,7 +189,7 @@ impl AssetDownloadService for DefaultAssetDownloadService {
 
     async fn cancel_download(&self, _resume_token_id: &str) -> DownloadResult<CancelOutcome> {
         let mut sm = self.sm.lock().expect("state machine poisoned");
-        sm.apply(crate::state_machine::StateTransition::Cancel)?;
+        sm.apply(StateEvent::Cancel)?;
         Ok(CancelOutcome {
             bytes_received: 0,
             token_removed: true,

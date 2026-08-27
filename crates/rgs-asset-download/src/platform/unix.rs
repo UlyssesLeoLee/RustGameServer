@@ -3,7 +3,19 @@
 use std::io::Write;
 
 use crate::error::{DownloadError, DownloadResult};
-use crate::platform::{fallback_preallocate, PreallocateOutcome, PreallocateStrategy};
+use crate::platform::{
+    fallback_preallocate, PreallocateOutcome, PreallocateStrategy, SparseFileAllocator,
+};
+
+/// Unix / macOS sparse file 分配器（per `it_minio_platform.rs` 4 平台 trait 调用）
+#[derive(Debug, Clone, Copy, Default)]
+pub struct UnixSparseFile;
+
+impl SparseFileAllocator for UnixSparseFile {
+    fn preallocate(&self, path: &str, size: u64) -> DownloadResult<PreallocateOutcome> {
+        preallocate(path, size)
+    }
+}
 
 /// `fallocate` / `posix_fallocate` 平台预分配。
 ///

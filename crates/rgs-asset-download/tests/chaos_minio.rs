@@ -163,11 +163,11 @@ fn it_chaos_5_categories_state_machine_invariant() {
 
         // 模拟故障 → Failed
         sm.transition(DownloadState::Failed);
-        assert_eq!(sm.current(), Some(DownloadState::Failed));
+        assert_eq!(sm.current(), DownloadState::Failed);
 
         // 恢复 → Resolving
         sm.transition(DownloadState::Resolving);
-        assert_eq!(sm.current(), Some(DownloadState::Resolving));
+        assert_eq!(sm.current(), DownloadState::Resolving);
         eprintln!(
             "[chaos_minio/UT] chaos_idx={} ({}) → 状态机恢复成功",
             chaos_idx, CHAOS_5_CATEGORIES[chaos_idx]

@@ -124,20 +124,81 @@ impl Default for RangeClientConfig {
     }
 }
 
-/// 单次 HTTP 响应的关键字段。
+/// 单次 Range 请求的输入（per `it_minio_latency.rs` 用法）。
 #[derive(Debug, Clone)]
-pub struct RangeResponse {
+pub struct RangeRequest {
+    /// 目标 URL（含 scheme + host + path）
+    pub url: String,
+    /// ETag（用于 `If-Range: <ETag>` per FR-CDN-074）
+    pub etag: String,
+    /// 起始字节（inclusive）
+    pub start: u64,
+    /// 结束字节（inclusive）
+    pub end_inclusive: u64,
+    /// 单次请求超时
+    pub timeout: Duration,
+}
+
+/// 单次 HTTP 响应的关键字段。
+///
+/// 历史上是 struct；2026-08-27 重构为 enum 以显式表达 5 类响应
+/// （per `chaos_responses.rs` 5 类响应分类 + SPEC §3）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RangeResponse {
+    /// 206 Partial Content：分片字节
+    PartialContent {
+        /// `ETag`（per FR-CDN-074 透传 If-Range）
+        etag: String,
+        /// 分片 body
+        body: Vec<u8>,
+    },
+    /// 416 Range Not Satisfiable：ETag 变更 / 范围越界 → 重新拉
+    RangeNotSatisfiable,
+    /// 200 OK：服务端忽略 Range → 触发全量重传
+    FullContent {
+        /// `ETag`（per FR-CDN-074 透传 If-Range）
+        etag: String,
+        /// 完整 body
+        body: Vec<u8>,
+    },
+    /// 429 Too Many Requests：触发退避重试
+    TooManyRequests {
+        /// `Retry-After` 头值（per RFC 7231 §7.1.3）
+        retry_after: Option<Duration>,
+    },
+    /// 503 Service Unavailable：触发退避重试，耗尽后 `RetryExhausted`
+    ServiceUnavailable {
+        /// `Retry-After` 头值
+        retry_after: Option<Duration>,
+    },
+}
+
+impl RangeResponse {
+    /// body 引用（仅 `PartialContent` / `FullContent` 有 body）
+    pub fn body(&self) -> Option<&[u8]> {
+        match self {
+            Self::PartialContent { body, .. } | Self::FullContent { body, .. } => Some(body),
+            _ => None,
+        }
+    }
+}
+
+/// 探测 / Range 拉取的"扩展视图"：包含 HTTP 状态码 + Content-Range 等元数据。
+///
+/// 内部 `chunk_orchestrator` 使用（含 body / content_range / accept_ranges）。
+#[derive(Debug, Clone)]
+pub struct RangeResponseDetailed {
     /// HTTP 状态码
     pub status: u16,
-    /// `Content-Length`（HEAD 探测或 200 OK 时）
+    /// `Content-Length`
     pub content_length: u64,
-    /// `Accept-Ranges` 原始值
+    /// `Accept-Ranges`
     pub accept_ranges: Option<String>,
-    /// `ETag`（强 / 弱均可；M-2065.2 不区分强/弱 If-Range，按字符串精确比对）
+    /// `ETag`
     pub etag: Option<String>,
-    /// `Content-Range`（206 Partial Content 时）
+    /// `Content-Range`
     pub content_range: Option<ContentRange>,
-    /// 响应 body（206 = 分片字节；200 = 全量字节）
+    /// body
     pub body: Vec<u8>,
 }
 
@@ -158,8 +219,16 @@ impl std::fmt::Debug for RangeClient {
 }
 
 impl RangeClient {
-    /// 新建客户端。
-    pub fn new(config: RangeClientConfig) -> DownloadResult<Self> {
+    /// 新建客户端（无参：使用 [`RangeClientConfig::default()`]，per `it_minio_latency.rs` / `it_minio_nfr110.rs`）。
+    ///
+    /// 底层 reqwest 客户端 build 失败会 panic（极少见，仅在系统资源耗尽时触发）。
+    pub fn new() -> Self {
+        Self::with_config(RangeClientConfig::default())
+            .expect("RangeClient::new with default config should not fail")
+    }
+
+    /// 新建客户端（带配置；per `ut_range_client.rs`）。
+    pub fn with_config(config: RangeClientConfig) -> DownloadResult<Self> {
         let mut builder = Client::builder()
             .user_agent(&config.user_agent)
             .timeout(Duration::from_secs(config.timeout_secs));
@@ -176,6 +245,47 @@ impl RangeClient {
     /// 当前配置（只读）。
     pub fn config(&self) -> &RangeClientConfig {
         &self.config
+    }
+
+    /// 简化版发送：携带 `If-Range: <etag>` 直接 GET `[start, end_inclusive]`
+    /// （per `it_minio_latency.rs`）。
+    ///
+    /// 返回归一化的 [`RangeResponse`] enum；网络错误上抛 [`DownloadError`]。
+    pub async fn send(&self, req: RangeRequest) -> DownloadResult<RangeResponse> {
+        let range = HttpRangeSpec::new(req.start, req.end_inclusive);
+        let raw = self
+            .send_range(
+                &req.url,
+                &range,
+                if req.etag.is_empty() {
+                    None
+                } else {
+                    Some(req.etag.as_str())
+                },
+                &CancellationToken::new(),
+            )
+            .await?;
+        let status = raw.status.as_u16();
+        let etag = raw.etag.clone().unwrap_or_default();
+        Ok(match status {
+            206 => RangeResponse::PartialContent {
+                etag,
+                body: raw.body,
+            },
+            200 => RangeResponse::FullContent {
+                etag,
+                body: raw.body,
+            },
+            416 => RangeResponse::RangeNotSatisfiable,
+            429 => RangeResponse::TooManyRequests { retry_after: None },
+            503 => RangeResponse::ServiceUnavailable { retry_after: None },
+            _ => {
+                return Err(DownloadError::BackendHttpError {
+                    status,
+                    host: host_of(&req.url),
+                });
+            }
+        })
     }
 
     /// HEAD 探测（per NFR-CDN-114）。
@@ -219,7 +329,7 @@ impl RangeClient {
         &self,
         url: &str,
         cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponse> {
+    ) -> DownloadResult<RangeResponseDetailed> {
         self.send_head(url, cancel).await.map(|r| r.into_response())
     }
 
@@ -233,7 +343,7 @@ impl RangeClient {
         range: &HttpRangeSpec,
         expected_etag: Option<&str>,
         cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponse> {
+    ) -> DownloadResult<RangeResponseDetailed> {
         let resp = self
             .send_range(url, range, expected_etag, cancel)
             .await?;
@@ -370,8 +480,8 @@ struct RawResponse {
 }
 
 impl RawResponse {
-    fn into_response(self) -> RangeResponse {
-        RangeResponse {
+    fn into_response(self) -> RangeResponseDetailed {
+        RangeResponseDetailed {
             status: self.status.as_u16(),
             content_length: self.content_length,
             accept_ranges: self.accept_ranges,

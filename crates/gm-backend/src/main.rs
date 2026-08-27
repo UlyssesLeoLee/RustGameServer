@@ -35,6 +35,7 @@ struct GmConfig {
     pub http_addr: SocketAddr,
     pub health_addr: SocketAddr,
     pub admin_grpc_endpoint: String,
+    #[allow(dead_code)] // TODO(per 2026-08-27 P0 fix): implement JWT validation
     pub jwt_secret: String,
 }
 

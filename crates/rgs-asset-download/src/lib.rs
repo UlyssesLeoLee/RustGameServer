@@ -18,11 +18,13 @@
 //! - [`api`]              公开 trait：`download_asset` / `pause_download` / `cancel_download` / `get_download_state`
 //! - [`config`]           并发数 / 分片大小 / LRU / 断点 TTL 等运行时参数
 //! - [`error`]            错误码（per DTL §6）
-//! - [`state_machine`]    `DownloadStateMachine`（8 状态 + 转移表；M-2065.PREREQ 占位 → M-2064.1 替换）
+//! - [`state_machine`]    `DownloadStateMachine`（8 状态 + 19 转移表；M-2064.1 落定）
 //! - [`range_client`]     `RangeClient`（M-2065.1~2）
 //! - [`chunk_orchestrator`] `ChunkOrchestrator`（M-2065.3~4）
 //! - [`integrity_gate`]   `IntegrityGate`（M-2065.5）
 //! - [`platform`]         4 平台 sparse file 预分配（M-2065.6~7）
+//! - [`resume_token`]     `ResumeToken` 13 字段断点记录（M-2064.2）
+//! - [`resume_token_store`] `JsonFileResumeTokenStore` / `SqliteResumeTokenStore`（M-2064.3~5）
 //! - [`metrics`]          10 项 `rgs_asset_download_*`（M-2065.8）
 
 #![warn(missing_docs)]
@@ -36,6 +38,8 @@ pub mod integrity_gate;
 pub mod metrics;
 pub mod platform;
 pub mod range_client;
+pub mod resume_token;
+pub mod resume_token_store;
 pub mod state_machine;
 
 pub use api::{
@@ -44,11 +48,19 @@ pub use api::{
 };
 pub use chunk_orchestrator::{ChunkOrchestrator, ChunkSpec, InFlightChunk, PauseCancelSignal};
 pub use config::{DownloadConfig, PlatformProfile};
-pub use error::{DownloadError, DownloadResult};
+pub use error::{AssetDownloadError, DownloadError, DownloadResult};
 pub use integrity_gate::{IntegrityGate, IntegrityReport, IntegrityStatus};
 pub use metrics::{encode_metrics_text, AssetDownloadMetrics, IntegrityOutcome};
 pub use platform::{preallocate_sparse_file, PreallocateOutcome, PreallocateStrategy};
 pub use range_client::{
-    ContentRange, HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig, RangeResponse,
+    ContentRange, HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig,
+    RangeRequest, RangeResponse, RangeResponseDetailed,
 };
-pub use state_machine::{DownloadState, DownloadStateMachine, StateTransition, StateTransitionError};
+pub use resume_token::{ResumeToken, ResumeTokenError};
+pub use resume_token_store::{
+    JsonFileResumeTokenStore, ResumeTokenStore, SqliteResumeTokenStore, DEFAULT_LRU_MAX_BYTES,
+};
+pub use state_machine::{
+    allowed_events, allowed_transitions, next_state, DownloadState, DownloadStateMachine,
+    StateEvent, StateTransition, TransitionError, TRANSITION_TABLE,
+};

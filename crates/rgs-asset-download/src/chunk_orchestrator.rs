@@ -27,7 +27,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::DownloadConfig;
 use crate::error::{DownloadError, DownloadResult};
-use crate::range_client::{HttpRangeSpec, RangeClient, RangeResponse};
+use crate::range_client::{HttpRangeSpec, RangeClient, RangeResponseDetailed};
 
 /// 单个分片的描述（无状态；可序列化入断点）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -381,7 +381,7 @@ fn unsafe_clone_range_client(_rc: &RangeClient) -> RangeClient {
     // 这里通过 Arc 包装共享——但为简化，复制一个等价的 `RangeClient`。
     // 实际生产路径：把 `RangeClient` 改造为内部 `Arc<Client>` + 共享 config；
     // 当前 `RangeClient` 已持有 `reqwest::Client: Clone via Arc`，因此构造一个新实例等价。
-    RangeClient::new(_rc.config().clone()).expect("clone range client")
+    RangeClient::with_config(_rc.config().clone()).expect("clone range client")
 }
 
 type RangeClientRef = Arc<RangeClient>;
@@ -394,7 +394,7 @@ trait RangeClientLike {
         range: &HttpRangeSpec,
         expected_etag: Option<&str>,
         cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponse>;
+    ) -> DownloadResult<RangeResponseDetailed>;
 }
 
 #[async_trait::async_trait]
@@ -405,7 +405,7 @@ impl RangeClientLike for RangeClient {
         range: &HttpRangeSpec,
         expected_etag: Option<&str>,
         cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponse> {
+    ) -> DownloadResult<RangeResponseDetailed> {
         RangeClient::fetch_range(self, url, range, expected_etag, cancel).await
     }
 }

@@ -17,7 +17,7 @@ use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn test_client() -> RangeClient {
-    RangeClient::new(RangeClientConfig {
+    RangeClient::with_config(RangeClientConfig {
         user_agent: "rgs-asset-download-test".into(),
         timeout_secs: 10,
         verify_tls: false,

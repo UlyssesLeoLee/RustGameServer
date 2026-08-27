@@ -56,6 +56,16 @@ pub struct PreallocateOutcome {
     pub fallback_reason: Option<String>,
 }
 
+/// Sparse file 预分配器 trait（per `it_minio_platform.rs` 4 平台统一调用入口）
+///
+/// 平台实现：
+/// - `unix.rs`：`UnixSparseFile`（Linux / macOS / Android / iOS 共用）
+/// - `windows.rs`：`WindowsSparseFile`
+pub trait SparseFileAllocator {
+    /// 平台预分配方法
+    fn preallocate(&self, path: &str, size: u64) -> DownloadResult<PreallocateOutcome>;
+}
+
 /// 顶层入口：按当前 target_os 路由到平台实现。
 ///
 /// 行为：
