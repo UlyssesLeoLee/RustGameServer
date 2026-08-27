@@ -1,0 +1,117 @@
+# build-cluster-ops-0.1.2 — F2 修复:在 ghcr.io 现有 0.1.0 镜像层上加 grpc_health_probe
+# 触发:workflow_dispatch
+# 输入:image_tag(默认 0.1.2-cluster-ops)
+# 关键差异(对比 wf-1-pfau-phase-cluster-ops-image.yml):
+#   - 不跑 cargo build(避免 LF 迁移内容与 DB CRLF hash 冲突)
+#   - 从 ghcr.io 0.1.0-cluster-ops 已有镜像层 COPY /app/bin/cluster-ops(其 migration hash 已与 DB 一致)
+#   - 从 0.1.1-cluster-ops 镜像(或 GitHub release)取 grpc_health_probe v0.4.56
+# 关联:RGS-INC-002 复盘 + 2026-08-27 verifier-4 报告 + 16:30 JST 主会话 follow-up
+name: build-cluster-ops-0.1.2
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Target image tag (default: 0.1.2-cluster-ops)"
+        required: false
+        default: "0.1.2-cluster-ops"
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ulyssesleolee/rustgameserver
+  GRPC_HEALTH_PROBE_VERSION: v0.4.56
+  # 0.1.0 镜像(其 cluster-ops binary 的 migration hash 与 cluster_ops DB _sqlx_migrations 一致)
+  BASE_IMAGE: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
+
+jobs:
+  build:
+    name: extract cluster-ops from 0.1.0 + add grpc_health_probe + push ghcr.io
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: prepare build context
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/cluster-ops-0.1.2-build
+          cd /tmp/cluster-ops-0.1.2-build
+          
+          # 1. 从 0.1.0 镜像抽 cluster-ops binary
+          #    利用 buildx 的 --from 能力:实际上我们在下面的 Dockerfile 中用 FROM 0.1.0 + COPY --from
+          #    这里只放 grpc_health_probe 到 context
+          
+          # 2. 下载 grpc_health_probe(ghcr.io 0.1.0 镜像没带这个 binary)
+          curl -fsSL -o grpc_health_probe \
+            "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64"
+          chmod +x grpc_health_probe
+          # 校验:必须与 0.1.1 镜像里的字节相同(避免 partial download / 替换)
+          # upstream sha256: dc13e24d92cdd05d1eb9faf7192c65057dc5b52d38b01aa56188e6899604ec93
+          echo "dc13e24d92cdd05d1eb9faf7192c65057dc5b52d38b01aa56188e6899604ec93  grpc_health_probe" | sha256sum -c -
+          
+          # 3. Dockerfile — 双 FROM 多阶段:从 0.1.0 抽 cluster-ops + 当前层加 grpc_health_probe
+          cat > Dockerfile <<'DOCKERFILE'
+          # syntax=docker/dockerfile:1.7
+          # Stage 1: 从 0.1.0-cluster-ops 抽 cluster-ops binary(其 migration hash 与 DB 一致)
+          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops AS base-binary
+          # 已在 base 中有 cluster-ops(/app/bin/cluster-ops),只需带它进下一阶段
+          
+          # Stage 2: 同样从 0.1.0 起步,加 grpc_health_probe
+          FROM ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
+          USER root
+          COPY --from=base-binary /app/bin/cluster-ops /app/bin/cluster-ops
+          COPY grpc_health_probe /app/bin/grpc_health_probe
+          USER nonroot:nonroot
+          ENV RUST_LOG=info,cluster-ops=debug,sqlx=warn,tonic=warn RUST_BACKTRACE=0
+          EXPOSE 50056 9090 9464
+          ENTRYPOINT ["/app/bin/cluster-ops"]
+          DOCKERFILE
+          
+          cat Dockerfile
+          ls -la
+
+      - name: login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: docker buildx build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/cluster-ops-0.1.2-build
+          file: /tmp/cluster-ops-0.1.2-build/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cluster-ops
+            org.opencontainers.image.version=0.1.2
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.description=cluster-ops 0.1.2 (binary reused from 0.1.0 for migration hash compat + grpc_health_probe v0.4.56)
+          platforms: linux/amd64
+
+      - name: verify push (manifest HEAD)
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+            "https://${{ env.REGISTRY }}/v2/${{ env.IMAGE_NAME }}/manifests/${{ inputs.image_tag }}" \
+            | head -c 500
+          echo
+
+      - name: summary
+        run: |
+          echo "## ✅ Pushed ghcr.io/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+          echo "- source workflow: ${{ github.workflow }} #${{ github.run_number }} (${{ github.run_id }})"
+          echo "- base binary: 0.1.0-cluster-ops(distroless cc-debian12:nonroot, migration hash 与 DB 一致)"
+          echo "- grpc_health_probe: v0.4.56 (sha256:dc13e24d...)"
+          echo "- cluster-ops binary + grpc_health_probe 共存于 /app/bin/"
