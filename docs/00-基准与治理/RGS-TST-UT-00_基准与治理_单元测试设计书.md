@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TST-UT-00 |
-| 版本 | 0.1 |
+| 版本 | 0.2 |
 | 父文档 | RGS-DTL-009 详细设计书（体系治理与横切关注点） |
 | 本主题域源文档全集（REQ/BAS/DTL） | RGS-REQ-001、RGS-REQ-002、RGS-REQ-003、RGS-REQ-004、RGS-REQ-005、RGS-REQ-013、RGS-BAS-009、RGS-DTL-009 |
 
@@ -23,6 +23,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。基于 RGS-DTL-009 的物理/实现级设计，覆盖 ID 登记表、OLU 预算台账、治理闭环 CI 机械校验、PH-6 删除/导出编排等模块的函数/类型级正确性试验设计 |
+| 0.2 | 2026-08-27 | 架构师（Mavis 接手 agent per DEC-008，本会话接手） | §3.8 v0.2 增量：新增 TST-UT-00-061~065 共 5 条用例，对齐 RGS-DTL-009 v0.2（commit `23677ff`）的 3 项实质变更（§5.2.1 EXPORT_TTL 常量名修复 + §5.4 删除/导出两条编排遍历的库集合一致性校验）。修订者按 2026-08-26 08:40 JST 代签新规则（报告类文档适用代签） |
 
 ## 审批栏
 
@@ -297,6 +298,40 @@
 | TST-UT-00-058 | ST-004 交易 | `Settled → Draft` 拒绝 | S | 同上 |
 | TST-UT-00-059 | ST-005 账号 | `Banned → Active` 拒绝（需解封流程） | S | 同上 |
 | TST-UT-00-060 | ST-000-3 通用 | 散在 `if status==` 模式不被允许 | S | clippy lint 触发（`status_discriminant_match` 规则） |
+
+---
+
+## 3.8 v0.2 增量（per RGS-DTL-009 v0.2 升版 / commit `23677ff`）
+
+**升版触发**：`23677ff docs: RGS-DTL-009 v0.1→v0.2 同步父 BAS-009 升版至 v0.6`（2026-08-26 05:08 JST）
+
+**DTL-009 v0.2 实质变更 3 项**（per `git show 23677ff -- docs/00-基准与治理/RGS-DTL-009*` 实证）：
+1. **头部版本** v0.1 → v0.2（metadata 字段）
+2. **修订历史** 加 v0.2 行
+3. **§5.2.1 伪代码常量名笔误**：`EXPORY_TTL` → `EXPORT_TTL`（落实 BAS-009 v0.6）
+4. **新增 §5.4 删除/导出两条编排遍历的库集合一致性校验**（落实 BAS-009 v0.6 §5.2.1 设计点③）
+
+**v0.1 漏覆盖核查**：
+- 头部版本 + 修订历史 = 元数据，无测试用例
+- §5.2.1 EXPORT_TTL 常量名修复 = 伪代码/源码层一致性问题，需要新增 1 条"常量名一致性"测试
+- §5.4 库集合一致性 = **v0.1 UT-00 没有此用例**（v0.1 §3.4 仅覆盖 TST-UT-00-030~038 的 §6.X 编排状态机/步骤序列/中断恢复/幂等/回退/审计/超时，**没有"两路径库集合一致性"**）——需补 4 条（N/A/B/P）
+
+| 用例 ID | 对应 DTL 章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
+|---|---|---|---|---|---|---|---|---|
+| TST-UT-00-061 | §5.2.1（EXPORT_TTL 常量名修复） | 伪代码常量名 `EXPORT_TTL` 与源码 `pub const EXPORT_TTL: Duration = ...` 命名一致 | N | 源码中存在 `EXPORT_TTL` 常量定义 | `grep -n "EXPORY_TTL\|EXPORT_TTL" crates/gov/**/deletion_orchestrator.rs` | 调用 | 0 处 `EXPORY_TTL`，≥1 处 `EXPORT_TTL` | 旧拼写已绝迹，新拼写存在 |
+| TST-UT-00-062 | §5.4（库集合一致性，无序集合） | 删除路径遍历的库集合 == 导出路径遍历的库集合（HashSet 语义） | A | 删除路径返回 `["db_a", "db_b", "db_c"]`；导出路径返回 `["db_c", "db_b", "db_a"]` | `verify_repository_set_consistency(deletion_set, export_set)` | 调用 | 返回 `Ok(())` | 集合相等（顺序无关） |
+| TST-UT-00-063 | §5.4（库集合一致性，顺序敏感） | 删除路径与导出路径遍历库的顺序敏感一致性（Vec 顺序一致） | B | 删除路径返回 `["db_a", "db_b", "db_c"]`；导出路径返回 `["db_a", "db_b", "db_c"]` | `verify_repository_set_consistency_strict(deletion_vec, export_vec)` | 调用 | 返回 `Ok(())` | 顺序一致 |
+| TST-UT-00-064 | §5.4（库集合不一致异常） | 库集合不一致时返回 `Err(RepositorySetMismatch)` | A | 删除路径返回 `["db_a", "db_b"]`；导出路径返回 `["db_a", "db_b", "db_c"]` | `verify_repository_set_consistency(deletion_set, export_set)` | 调用 | 返回 `Err(RepositorySetMismatch { deletion: [...], export: [...] })` | 错误类型 `DeletionOrchestratorError::RepositorySetMismatch`，错误信息含两路径集合的 diff |
+| TST-UT-00-065 | §5.4 BZ 属性试验 | proptest 随机化两路径的库集合，结果集合必须一致（顺序无关） | P | — | proptest：随机 `Vec<RepoId>` 两个，长度 1~10 | 1000 次 | 满足 `verify_repository_set_consistency(set_a, set_b) == Ok(())` 当且仅当 `set_a == set_b`（HashSet 语义） | proptest 1000 次无失败用例 |
+
+**追溯性矩阵更新**（v0.1 之后追加）：
+
+| 详细设计章节 | 用例 ID 范围 | 覆盖类型 |
+|---|---|---|
+| RGS-DTL-009 v0.2 §5.2.1 EXPORT_TTL 常量名修复 | TST-UT-00-061 | N |
+| RGS-DTL-009 v0.2 §5.4 库集合一致性 | TST-UT-00-062〜065 | A/B/P |
+
+（修订历史 v0.2 行已统一在文件头部 §修订历史 追加，不在 §3.8 内嵌重复）
 
 ---
 
