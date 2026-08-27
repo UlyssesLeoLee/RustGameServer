@@ -22,3 +22,9 @@ clap = { version = "4", features = ["derive"] }
 time = { version = "0.3", features = ["formatting", "macros"] }
 # 错误
 anyhow = { workspace = true }
+
+[dev-dependencies]
+# 黑盒 CLI 测试 (per RGS-TST-UT-09 工具集 §3, 2026-08-28 跨反馈 F1/F2 衍生实装)
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
