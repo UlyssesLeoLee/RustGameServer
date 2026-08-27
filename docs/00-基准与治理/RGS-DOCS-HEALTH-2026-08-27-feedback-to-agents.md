@@ -54,6 +54,18 @@
 
 - 本次会话中已向用户指出该冲突，用户提案未被执行，DEC-Q003 状态未变更
 
+### 1.5 新发现：DEC-Q003 文档自身内部矛盾（2026-08-27 验收补充）
+
+**现象**：`RGS-DEC-Q003_跨DBSaga审批_v0.1.md` 第 444 行（§7 12 角色签字声明原文）已写明：
+
+> "12 角色中任意 1 个角色反对，本 DEC-Q003 v0.1 即不通过；全 12 角色通过 = DEC-Q003 v0.1 审批通过。**本人作为一人公司 12 角色全签，DEC-Q003 v0.1 审批通过**。"
+
+即文档 §7 自身已宣称"审批通过"，但文档头部元数据"状态"字段（第 10 行）仍标 **🟡 审批中**，两处矛盾。
+
+**处置要求**：这不是 agent 可自行裁决的表述冲突（可能是"§7 声明"与"头部状态字段"两个字段本应联动更新但漏更新，也可能是 Ulysses 本人故意留有余地未最终拍板）——**agent 不得因 §7 已有"审批通过"字样就代为同步头部状态字段**，仍按 §1.3 处置：只能记录矛盾现象，交 Ulysses 本人裁决并统一两处字段。
+
+**已处理**：本条已同步补充进 `docs/00-基准与治理/RGS-DEC-Q003_审批摘要_2026-08-27_v0.1.md` §2 待决事项⑥（见该文件修订历史 v0.2）。
+
 ---
 
 ## 2. cluster-ops `tests-disabled/` 恢复前置条件
@@ -70,7 +82,7 @@
 
 ### 2.3 已处理
 
-- **2026-08-27 已读取** `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`（commit `43e6108`），全文 219 行，主题为"5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上从 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK"的事件复盘
+- **2026-08-27 已读取** `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，全文 219 行，主题为"5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上从 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK"的事件复盘（**勘误**：本条此前误标 commit `43e6108`——该 commit 实际内容是无关的"DEPLOY-SOP v0.1→v0.2 升版"；该报告真正的创建 commit 是 `c56735c`，已于 2026-08-27 核对修正）
 - **关键发现（必读）**：RGS-INC-002 v0.1 复盘**全文 0 处提及** `drill` / `saga` / `编译死锁`（已 `Select-String -Pattern 'drill|编译死锁|saga' RGS-INC-002_...v0.1.md` 实证无匹配）。**`b74ccc3` 的 commit message 标 "per RGS-INC-002 v0.1 复盘" 是归因错误**——INC-002 复盘主题是 k3s 部署，与 cluster-ops drill/saga 编译死锁是两个独立事故
 - **RGS-INC-002 复盘记录的"未决项"** 限于 k3s manifest 漂移（6 份 probe 未回写 + 00-namespace.yaml ResourceQuota 未回写）——属 Phase D.5 DEPLOY-SOP v0.3 范围，与 cluster-ops drill/saga 修复无关
 - **`b74ccc3` 实际修复内容**（per `git show b74ccc3`）：删 `src/realm_lifecycle/drill/*`（6 文件，编译失败）+ `src/realm_lifecycle/saga/*`（4 文件，编译失败）+ 18 个 tests 移至 `tests-disabled/`（含 `drill_chaos.rs` / `drill_lcm_001~008_010.rs` / `drill_nfr.rs` / `drill_risk.rs` / `ut_saga.rs` 等）。**未决项**（per commit body）：`drill/executor.rs` 补 19 个 SagaStepKind variant + `saga/steps.rs` 改 SagaStep struct + SagaStep::new(phase, kind) 关联函数 + SagaPhase/StepStatus/RealmId type 定义 + 18 个 tests 重新启用
