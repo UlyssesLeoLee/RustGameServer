@@ -5,15 +5,15 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TST-UT-31 |
-| 版本 | 0.1 |
-| 父文档 | RGS-REQ-031 addendum 需求定义书（ARC-051）、RGS-BAS-031 addendum 基本设计书、RGS-ADR-0051 架构决定 |
-| V模型层级 | TL-1 单元试验 ↔ RGS-DTL-031 v0.1 草案（字段级映射与审批待完成） |
+| 版本 | 0.2 |
+| 父文档 | RGS-REQ-031 addendum 需求定义书（ARC-051）、RGS-BAS-031 v0.1 addendum 基本设计书（11 章）、RGS-DTL-031 v0.3 详细设计书（2026-08-25 复核对账版）、RGS-ADR-0051 架构决定 |
+| V模型层级 | TL-1 单元试验 ↔ RGS-BAS-031 v0.1 全部 11 章 + RGS-DTL-031 v0.3 复核对账子节（12 行 BAS→DTL 映射） |
 | 依据标准 | IPA『共通フレーム 2013』詳細設計工程 |
-| 制定日 | 2026-08-19 |
-| 制定者 | 架构师 |
+| 制定日 | 2026-08-19（v0.1 初版）/ 2026-08-27（v0.2 升版） |
+| 制定者 | 架构师（v0.1）/ 架构师（Mavis 接手 agent per DEC-008，v0.2） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
-| 本主题域源文档全集 | RGS-REQ-031、RGS-BAS-031、RGS-ADR-0051、（待）RGS-DTL-031 |
+| 本主题域源文档全集 | RGS-REQ-031、RGS-BAS-031 v0.1（addendum）、RGS-DTL-031 v0.3（2026-08-25 复核对账版，per commit `5743747`）、RGS-ADR-0051 |
 
 ---
 
@@ -22,6 +22,9 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。覆盖 feature_registry 元数据管理、CEM 探针解析、PFAU 状态机迁移、AdminService 转发逻辑、ClusterOpsService 内部模块 |
+| 0.2 | 2026-08-27 | 架构师（Mavis 接手 agent per DEC-008）| 升版：① 头表映射基线 RGS-DTL-031 v0.1→v0.3（含 BAS-031 v0.1 全部 11 章 + DTL-031 v0.3 复核对账 12 行映射，per commit `5743747`）② §1.5 字段级映射目标从"BAS-031 §3 Schema + §4 状态机"升级为"BAS-031 v0.1 全部 11 章 + DTL-031 v0.3 复核对账子节 + DTL §1~§11" ③ 追加 10 条 v0.2 新增用例（G001~G010 — 覆盖 DTL-031 v0.3 复核对账 4 条结论的可 UT 化项：不可代签自检 / 实质重写判定 / 不引入新设计 / 修订历史完整） ④ 8 条"暂缓"用例（A020/C001/C003/C004/C008/C012/C013/ADR-003 — per commit `b74ccc3` 临时禁用 cluster-ops drill + saga + 移 18 个 tests 至 `tests-disabled/`，per RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现 INC-002 归因冲突） ⑤ 末尾追加 §5 "v0.2 增量（per DTL-031 v0.3 + b74ccc3）" |
+
+> ⚠️ v0.2 含 8 条"暂缓"用例，per b74ccc3 + RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现（INC-002 归因冲突），待新开 RGS-INC-003 后恢复
 
 ## 审批栏
 
@@ -124,7 +127,16 @@
 
 ## 1.5 字段级映射说明
 
-每条用例"对应设计"列格式：`<文档ID> §<章节> <表/图/字段名>`。本版本以 RGS-BAS-031 §3 Schema 与 §4 状态机为主要映射目标；RGS-DTL-031 v0.1 草案已形成，DTL 字段级映射待评审后追加，不能据此宣告 UT 已实施。
+每条用例"对应设计"列格式：`<文档ID> §<章节> <表/图/字段名>`。
+
+**v0.1 映射基线**（保留）：以 RGS-BAS-031 §3 Schema 与 §4 状态机为主要映射目标。
+
+**v0.2 映射基线**（升版，per DTL-031 v0.3 复核对账）：升级为 **BAS-031 v0.1 全部 11 章 + DTL-031 v0.3 末尾"## 复核对账"12 行映射表 + DTL-031 §1~§11 全章字段级**。具体变更：
+
+1. v0.1 单一 BAS 映射 → v0.2 双映射（BAS-031 v0.1 + DTL-031 v0.3），§3.1~§3.7 模块 A~F 既有 103 条用例保持稳定
+2. 新增 §5.3 v0.2 增量 10 条用例（G001~G010）— 覆盖 DTL-031 v0.3 复核对账 4 条结论中可 UT 化项
+3. 新增 §5.4 v0.2 暂缓 8 条用例 — per b74ccc3 + RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现（INC-002 归因冲突）
+4. "不能据此宣告 UT 已实施"语义 v0.2 仍保留：RGS-DTL-031 v0.3 仍标"草案・待具名人类审批"，DTL 升版本身不解除 §11.1 6 条 Gate
 
 ## 1.6 命名约定
 
@@ -359,3 +371,85 @@ BAS-031 (§3 Schema, §4 状态机, §5 探针, §6 API 契约, §7 UI, §8 RBAC
 ---
 
 > 本文档配套 RGS-REQ-031 需求定义书、RGS-BAS-031 基本设计书、RGS-ADR-0051 架构决定。后续将产出 RGS-TST-IT-31（集成）与 RGS-TST-ST-31（系统）。
+
+---
+
+## 5. v0.2 增量（per DTL-031 v0.3 + b74ccc3）
+
+> 本节为 v0.2 升版新增的**纯追加**章节，v0.1 §1~§4（103 条用例）+ §5~§7（执行计划 / 通过判定 / TBD）原样保留。v0.1 既有用例不删除、不修改，仅在新追加条目中按"对应 v0.1 章节"列做关联标注，便于追溯。
+
+### 5.1 背景与变更依据
+
+v0.2 升版由两条独立变更触发，二者均不重写 DTL/BAS 既有设计，仅做**测试设计书的同步对账 + 暂缓标记**：
+
+1. **DTL-031 v0.2 → v0.3**（per commit `5743747`，2026-08-25，作者：架构师（Mavis 接手 agent per DEC-008））
+   - 实质重写 = **否**：本批次父 BAS-031 实质未升版（per git log，父 RGS-BAS-031 末次变更 2026-08-21 commit `adb3e34` 仅装饰性修订：`admin_db` 锚点大小写归一、§9.1 联动点指向占位改为指向 DTL-031、结尾段加入 DTL v0.1 草案已形成说明，版本号仍为 v0.1，修订历史仅 1 行）
+   - DTL-031 v0.3 实质变更仅 3 项元数据层：① 头表版本号 0.2→0.3 ② 修订历史表追加 v0.3 行 ③ 末尾追加"## 复核对账"子节（12 行 BAS-031 章节→DTL-031 章节映射表 + 4 条复核结论：实质重写判定 / 不可代签自检 / 不引入新设计 / 开放项）
+   - DTL-031 v0.3 头部声明"本文落实 DEC-001~004 的候选实现规则"，正文不重写；§1~§11 字段与 v0.2 实质等价
+2. **b74ccc3 临时禁用 cluster-ops drill + saga**（per commit `b74ccc3`，2026-08-27 07:36 JST）
+   - 移除 `crates/cluster-ops/src/realm_lifecycle/drill/*`（6 文件，编译失败）+ `crates/cluster-ops/src/realm_lifecycle/saga/*`（4 文件，编译失败）+ 18 个 tests 移至 `crates/cluster-ops/tests-disabled/`（`drill_chaos.rs` / `drill_lcm_001~008_010.rs` / `drill_nfr.rs` / `drill_risk.rs` / `fail_closed_start.rs` / `it_cross_domain.rs` / `load_snapshot.rs` / `ut_feature_adapter.rs` / `ut_olu.rs` / `ut_saga.rs` / `ut_state_machine.rs`）
+   - **INC-002 归因冲突**（per RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现）：b74ccc3 commit message 标"per RGS-INC-002 v0.1 复盘"是**归因错误**——RGS-INC-002 v0.1 复盘（`docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，commit `43e6108`，全文 219 行）主题为"5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上从 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK"，**全文 0 处提及** `drill` / `saga` / `编译死锁`（已 `Select-String` 实证）。INC-002 复盘与 cluster-ops drill/saga 编译死锁是**两个独立事故**
+   - b74ccc3 实际未决项（per commit body）：① `drill/executor.rs` 补 19 个 SagaStepKind variant（InitDirectory 等）② `saga/steps.rs` 改 SagaStep struct（替换 trait，与 playbook.rs 假设一致）③ `saga/SagaStep::new(phase, kind)` 关联函数实现 ④ `saga/SagaPhase + StepStatus + RealmId` type 定义 ⑤ 18 个 tests 重新启用
+   - 恢复前置条件：建议新开 `RGS-INC-003_集群运营中心_drill_saga_编译死锁复盘` 归档真正根因后，再恢复 18 个 tests 至 `tests/` 目录（**非本 UT 设计书职责范围**，本设计书仅做"暂缓"标记 + 引用归档位置）
+
+### 5.2 映射基线升版（v0.1 §1.5 / §2.1 / 头表 8 行）
+
+| 映射维度 | v0.1 基线 | v0.2 基线（per DTL-031 v0.3） |
+|---|---|---|
+| 头表版本 | 0.1 | 0.2 |
+| V 模型层映射 | TL-1 ↔ RGS-DTL-031 v0.1 草案（字段级映射与审批待完成） | TL-1 ↔ RGS-BAS-031 v0.1 全部 11 章 + RGS-DTL-031 v0.3 复核对账子节（12 行 BAS→DTL 映射） |
+| 源文档全集 | RGS-REQ-031、RGS-BAS-031、RGS-ADR-0051、（待）RGS-DTL-031 | RGS-REQ-031、RGS-BAS-031 v0.1（addendum）、RGS-DTL-031 v0.3（2026-08-25 复核对账版）、RGS-ADR-0051 |
+| §1.5 主要映射目标 | BAS-031 §3 Schema + §4 状态机 | BAS-031 v0.1 全部 11 章 + DTL-031 v0.3 复核对账 12 行 + DTL §1~§11 |
+| 追溯性矩阵 | §3.1~§3.7 模块 A~F 映射 BAS §3~§6/§8 | 模块 A~F 既有 103 条用例保持稳定；§5.3/§5.4 追加 18 条 v0.2 增量映射至 DTL-031 v0.3 复核对账子节 + b74ccc3 暂缓范围 |
+| 既有用例数量 | 103 条（A001~A020 + B001~B010 + C001~C020 + D001~D023 + E001~E008 + F001~F010 + ADR-001~ADR-012） | 103 条 v0.1 + 10 条 v0.2 新增（G001~G010）+ 8 条 v0.2 暂缓（v0.1 既有用例标"暂缓 per b74ccc3"） |
+
+### 5.3 v0.2 新增测试用例（覆盖 DTL-031 v0.3 复核对账 4 条结论的可 UT 化项）
+
+> 本节 10 条新增用例（G001~G010），覆盖 DTL-031 v0.3 末尾"## 复核对账"子节中 4 条复核结论的**可单元测试化**部分。命名规则：模块代号 G（v0.2 Governance / 治理对账模块），不复用 v0.1 模块 A~F（避免与既有元数据 / 探针 / 状态机 / 转发 / Feature / RBAC 用例混淆）。
+
+| 用例 ID | 对应 DTL-031 v0.3 | 字段级 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|
+| **TST-UT-31-G001** | v0.3 末尾"## 复核对账"-不可代签自检 | BAS-031 §1.2 / DTL-031 §1.2 不可代签红线 | CI 静态扫描 BAS-031 + DTL-031 修订历史"审批者"列 | N | 解析 BAS-031 + DTL-031 修订历史表，校验"审批者"列非空且非代签短语（"Mavis"/"agent" 单字签发） | DEC/ADR/NOGO 决策类文件"审批者" = "—"（不预填任何姓名）；SPEC/DTL/报告类"审批者" = 具名（含 "架构师（Mavis 接手 agent per DEC-008）"）| 治理红线自检 | ◎ |
+| **TST-UT-31-G002** | v0.3 §"复核结论"-实质重写判定 | BAS-031 v0.1 + DTL-031 v0.3 git diff | DTL 升版正文未重写 BAS | N | 拉取 BAS-031 v0.1（commit `adb3e34`）+ DTL-031 v0.3（commit `5743747`）全文，章节拓扑比对 | DTL §1~§11 全在 BAS 11 章范围；DTL 净增行仅元数据层 + 复核对账表 | 实质重写 = 否 | ○ |
+| **TST-UT-31-G003** | v0.3 §"复核结论"-不引入新设计 | DTL-031 v0.2→v0.3 净增行 | v0.3 不引入新需求/设计/决策 | N | git diff v0.2→v0.3，分类净增行（需求 / 设计 / 决策 / 元数据） | 元数据层（版本号 / 修订历史 / 复核对账表）100% 占比；新需求/新设计/新决策 = 0 行 | 不引入新设计 | △ |
+| **TST-UT-31-G004** | v0.3 头表"v0.1→v0.2→v0.3" | 修订历史表 3 行 | 修订历史完整 + 不可代签 | N | 解析 BAS-031 + DTL-031 修订历史表，校验行数 = 当前版本号 + 1（如 v0.3 应有 3 行 v0.1/v0.2/v0.3） | 3 行存在；"审批者"列符合 G001 红线 | 文档完整性 | ◎ |
+| **TST-UT-31-G005** | DTL-031 v0.3 §1.2 五条硬禁止 | 不新建控制面数据库 / 不绕过 AdminService / 不强制改 Publisher SDK / 不绕过 ADR-0020 / 不绕过 ARC-008 | 五条硬禁止各 1 UT 覆盖 | N | 单元 mock 各禁止场景（尝试新建 DB / 直调 COC 写 / 改 SDK / 上传 .so / 跳过 ARC-008）| 五条全禁止，且错误信息指明对应 ADR | 硬约束 5/5 | ◎ |
+| **TST-UT-31-G006** | DTL-031 v0.3 §2.1 组件图 | 7 个节点：ClusterOpsService / FeatureRegistry / PFAURunner / CEMProbeAggregator / DLQOperator / ReplayOperator / Redis 短租约 + 既有 GitOps | 组件图节点 100% 覆盖 UT | N | 对照组件图 7 节点各写 ≥1 UT（v0.1 §3.1~§3.6 已有 6 节点覆盖，需补 Redis 短租约节点 UT）| 节点 7/7 覆盖（v0.1 已覆盖 6，新增 Redis 短租约 1）| 拓扑覆盖 | ○ |
+| **TST-UT-31-G007** | DTL-031 v0.3 §3.1 "不另起一套表名，只补充字段语义" | 7 张表/视图：`feature_registry` / `feature_version_history` / `pfa_run_state` / `event_schema_registry` / `event_producer_registry` / `event_dlq_view` / `coc_audit_view` | 七表全在 admin_db 落位 | N | CI 扫描 7 表 DDL 路径（应在 `crates/admin-service/migrations/` 或 `crates/cluster-ops/migrations/`，per RGS-BAS-002 既有规范）| 7/7 落在 admin_db 迁移目录 | 表归属 | ◎ |
+| **TST-UT-31-G008** | DTL-031 v0.3 §6.3 强制联动 4 条 | ARC-018 注册 bounded_context Feature / ARC-021 注册 plugin Feature / ARC-042 Helm Release 后必须 `NotifyFeatureDeployed` / 全部 COC 写经 AdminService 转发 | 4 条联动 UT 验证 | N | 单元 mock ARC 注册事件，校验 FeatureRegistry 自动创建/上报路径 | 联动触发 Feature 创建/上报 4/4 | 强制联动 | ◎ |
+| **TST-UT-31-G009** | DTL-031 v0.3 §7.2 错误语义 | 10 个错误码：`ALREADY_EXISTS` / `ABORTED` / `FAILED_PRECONDITION` / `DEADLINE_EXCEEDED` / `PERMISSION_DENIED` / `FEATURE_NOT_FOUND` / `PFAU_*` / `EVENT_NOT_REGISTERED` / `REPLAY_DENIED` / `DISCARD_DENIED` / `IDEMPOTENT_REPLAY` | 错误码覆盖 | A | 单元触发每错误码 1 次 | 10/10 错误码可触发 | 错误码全 | ◎ |
+| **TST-UT-31-G010** | DTL-031 v0.3 §11.3 开放项 + §11.1 Gate | TBD-COC-001/002 + OLU（DEC-001/003/004 叠加） + 6 项 §11.1 Gate（QA-001 具名审批 / Q-003 三场景验证 / Q-004 ARC 组合 / Q-025 字段级 DD Review / ADR-0052 Active-Active / 5 项 DTL 契约评审）| 开放项 UT 状态 | N | 扫描 §11.1 6 项 Gate 当前状态 | 6/6 仍"待 Gate 批准"；v0.3 升版不解除任何 Gate | 开放项状态 | ○ |
+
+### 5.4 v0.2 暂缓用例（per b74ccc3 + RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现 — INC-002 归因冲突）
+
+> v0.1 addendum §3.3 PFAU 状态机 + §3.1 A020 last_heartbeat_at + §3.7 ADR-003 等用例的设计意图**依赖** `crates/cluster-ops/tests/` 下 `ut_saga.rs` / `ut_state_machine.rs` / `drill_lcm_001~008_010.rs` / `drill_chaos.rs` / `drill_nfr.rs` / `drill_risk.rs` 等 backing tests 作为 `cargo test -p cluster-ops` 的可执行载体。b74ccc3 将 18 个该类 tests 移至 `crates/cluster-ops/tests-disabled/`，因此以下 8 条用例**当前无法 `cargo test -p cluster-ops` 通过**，本节标"暂缓"。
+>
+> **INC-002 归因冲突说明**（per RGS-DOCS-HEALTH-2026-08-27 §2.3 关键发现）：b74ccc3 commit message 标"per RGS-INC-002 v0.1 复盘"是**归因错误**——RGS-INC-002 v0.1 复盘（`docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，commit `43e6108`）主题为 k3s 部署（5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK），**全文 0 处提及** `drill` / `saga` / `编译死锁`（已 `Select-String -Pattern 'drill|编译死锁|saga' RGS-INC-002_...v0.1.md` 实证无匹配）。INC-002 复盘与 cluster-ops drill/saga 编译死锁是**两个独立事故**，真正的修复依据在 b74ccc3 commit body 列出的 5 条"未决项"（`drill/executor.rs` 补 19 个 SagaStepKind variant + `saga/steps.rs` 改 SagaStep struct + `saga/SagaStep::new(phase, kind)` 关联函数 + `saga/SagaPhase + StepStatus + RealmId` type 定义 + 18 个 tests 重新启用）。**注意 ID 复用**：`RGS-INC-002` 编号被两份不同文档复用——本事故复盘报告，以及 `docs/01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md`（内容无关，仅编号撞车）；引用时务必带完整路径。
+>
+> **处置路径**（不在本 UT 设计书职责范围，仅做记录）：建议**新开** `RGS-INC-003_集群运营中心_drill_saga_编译死锁复盘`，归档 b74ccc3 真正根因（`drill/executor.rs` 缺 19 个 SagaStepKind variant / `saga/steps.rs` SagaStep struct 与 playbook.rs 假设不一致等），由 cluster-ops 域在 RGS-INC-003 批准后实施修复并恢复 18 个 backing tests 至 `tests/` 目录；本设计书暂缓用例待 RGS-INC-003 批准 + 18 个 tests 重新启用后，由 v0.3 升版恢复标"可执行"。
+
+| 用例 ID | 原 v0.1 章节 | 对应 backing tests（当前在 `tests-disabled/`）| 暂缓原因 | 暂缓期参考 | INC-002 归因冲突备注 |
+|---|---|---|---|---|---|
+| **TST-UT-31-A020**（标"暂缓"）| §3.1 A020 last_heartbeat_at 跨节点确认超时 | `drill_lcm_002.rs`（推断，per 文件名 `002` 与"超时"主题对应）| b74ccc3 移至 tests-disabled/ | 待 RGS-INC-003 归档后 | b74ccc3 标"per INC-002"为归因错误（INC-002 主题为 k3s 部署），实际根因 per b74ccc3 commit body §未决项 |
+| **TST-UT-31-C001**（标"暂缓"）| §3.3 C001 declared → canary_in_progress | `ut_state_machine.rs` + `ut_saga.rs` | 同上 | 同上 | 同上 |
+| **TST-UT-31-C003**（标"暂缓"）| §3.3 C003 节点确认超时 canary_in_progress → paused | `drill_lcm_002.rs` | 同上 | 同上 | 同上 |
+| **TST-UT-31-C004**（标"暂缓"）| §3.3 C004 canary_confirmed → completed | `ut_state_machine.rs` | 同上 | 同上 | 同上 |
+| **TST-UT-31-C008**（标"暂缓"）| §3.3 C008 5 批全部完成 | `drill_lcm_008_010.rs`（推断，per 文件名 `008_010` 与"5 批完成"主题对应）| 同上 | 同上 | 同上 |
+| **TST-UT-31-C012**（标"暂缓"）| §3.3 C012 全部节点确认 | `drill_lcm_001.rs`（推断，per 文件名 `001` 与"全节点 ACK"主题对应）| 同上 | 同上 | 同上 |
+| **TST-UT-31-C013**（标"暂缓"）| §3.3 C013 单节点未确认超时 | `drill_lcm_002.rs` | 同上 | 同上 | 同上 |
+| **TST-UT-31-ADR-003**（标"暂缓"）| §3.7 ADR-003 8 状态迁移合法/非法全覆盖 | `ut_state_machine.rs` + `ut_saga.rs` | 同上 | 同上 | 同上 |
+
+### 5.5 处置路径与下一步
+
+| 路径 | 责任方 | 触发条件 | 完成后对本 UT 设计书的影响 |
+|---|---|---|---|
+| **A. 新开 RGS-INC-003 复盘** | cluster-ops 域 Lead | b74ccc3 归因错误已确认（per RGS-DOCS-HEALTH-2026-08-27 §2.3）| RGS-INC-003 归档真正根因 + 修复路径 |
+| **B. 修复 b74ccc3 5 条未决项** | cluster-ops 域 Lead + 实施 agent | RGS-INC-003 已批准 | 18 个 backing tests 可移回 `tests/` 目录 |
+| **C. 恢复 18 个 backing tests** | cluster-ops 域实施 agent | B 完成 | 本设计书 8 条暂缓用例（A020/C001/C003/C004/C008/C012/C013/ADR-003）恢复"可执行" |
+| **D. UT 设计书 v0.3 升版** | 本主题域 UT 设计书 owner（即架构师 / Mavis 接手 agent per DEC-008）| C 完成 | §5.4 暂缓 8 条用例标"可执行 per RGS-INC-003 + 18 tests 恢复"；§5.4 表格移除"暂缓"列；§5.3 同步追加"暂缓→可执行"变更说明 |
+
+**本 v0.2 升版不实施 A/B/C/D 任一路径**——本设计书 owner 仅完成 v0.2 升版的元数据层对账（§5.1 背景 / §5.2 映射基线 / §5.3 10 条新增 / §5.4 8 条暂缓），实际修复 + tests 恢复在 cluster-ops 域另一 worktree 实施。
+
+---
+
+> v0.2 升版结束。本文档配套 RGS-REQ-031 需求定义书、RGS-BAS-031 v0.1 addendum 基本设计书、RGS-DTL-031 v0.3 详细设计书（2026-08-25 复核对账版）、RGS-ADR-0051 架构决定。后续将产出 RGS-TST-IT-31（集成）与 RGS-TST-ST-31（系统）。
