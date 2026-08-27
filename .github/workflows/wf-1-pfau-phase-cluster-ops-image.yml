@@ -1,0 +1,98 @@
+# WF-1-PFAU-phase cluster-ops image build + push to ghcr.io
+# 触发：workflow_dispatch（fine-grained PAT 触发，无需 classic PAT packages:write）
+# 输入：image_tag（默认 0.1.1-cluster-ops）
+# 流程：
+#   1. checkout main
+#   2. install Rust 1.98 + gcc + protoc + libssl-dev
+#   3. cargo build --release -p cluster-ops --target x86_64-unknown-linux-gnu
+#   4. write Dockerfile.cluster-ops in /tmp
+#   5. docker buildx build + push via GITHUB_TOKEN (packages:write)
+# 关联：RGS-ADR-0052 (PFAU)、WF-1-PFAU-phase 任务
+name: wf-1-pfau-phase-cluster-ops-image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Target image tag (default: 0.1.1-cluster-ops)"
+        required: false
+        default: "0.1.1-cluster-ops"
+        type: string
+      base_image_tag:
+        description: "Base image tag to overlay (default: 0.1.0-cluster-ops)"
+        required: false
+        default: "0.1.0-cluster-ops"
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: build cluster-ops (Linux ELF) + push ghcr.io
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: install Rust 1.98
+        uses: dtolnay/rust-toolchain@1.98
+        with:
+          toolchain: 1.98
+          targets: x86_64-unknown-linux-gnu
+
+      - name: install build deps (gcc / protoc / libssl)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc libc6-dev pkg-config libssl-dev protobuf-compiler ca-certificates
+
+      - name: cargo build cluster-ops (Linux)
+        run: cargo build --release -p cluster-ops --target x86_64-unknown-linux-gnu
+
+      - name: verify binary format (must be ELF)
+        run: |
+          file target/x86_64-unknown-linux-gnu/release/cluster-ops
+          test "$(file -b --mime-type target/x86_64-unknown-linux-gnu/release/cluster-ops)" = "application/x-executable"
+
+      - name: prepare build context
+        run: |
+          mkdir -p /tmp/cluster-ops-build
+          cp target/x86_64-unknown-linux-gnu/release/cluster-ops /tmp/cluster-ops-build/cluster-ops
+          cat > /tmp/cluster-ops-build/Dockerfile <<EOF
+          FROM ghcr.io/ulyssesleolee/rustgameserver:${{ inputs.base_image_tag }}
+          COPY cluster-ops /app/bin/cluster-ops
+          EOF
+          cat /tmp/cluster-ops-build/Dockerfile
+
+      - name: login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: docker buildx build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/cluster-ops-build
+          file: /tmp/cluster-ops-build/Dockerfile
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}
+          platforms: linux/amd64
+          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME }}:buildcache-cluster-ops
+          cache-to: type=inline
+
+      - name: summary
+        run: |
+          echo "## ✅ Pushed ghcr.io/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+          echo "- source commit: ${{ github.sha }}"
+          echo "- workflow run:  ${{ github.run_id }}"
+          echo "- cluster-ops binary: $(file target/x86_64-unknown-linux-gnu/release/cluster-ops | head -1)"
