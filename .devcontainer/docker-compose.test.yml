@@ -1,0 +1,39 @@
+# Per verifier bg_394b3ca1 §4 P1 修复:5 域 service 集成测试 PG fixture
+# ---------------------------------------------------------------------------
+# 范围:仅供 5 域 service 集成测试 (admin/economy/match/player/social) 使用
+# - postgres:16-alpine + 健康检查
+# - host 端口 15432 (避 Windows 本地 PG 5432 / k3s port-forward 15432 冲突)
+#   注:与现有 scripts/port_forward_pg.ps1 (k3s → Windows 15432) 互斥,
+#     跑本 fixture 前先停 k3s port-forward (per verifier §4 P1 边界)
+# - 单一共享 DB `rgs_test`,各 test 自行负责 schema 隔离
+#   (#[sqlx::test] / rgs_testkit::pg_test 均自动建/删 per-test DB)
+# ---------------------------------------------------------------------------
+# 不影响:
+# - 5 域产品代码 (lib / migrations / queries)
+# - 5 个 crates/<svc>/tests/integration_<svc>_basic.rs
+# - 14 个其他 workspace member
+# ---------------------------------------------------------------------------
+version: "3.9"
+
+services:
+  test-pg:
+    image: postgres:16-alpine
+    container_name: rgs-test-pg
+    environment:
+      POSTGRES_USER: rgs
+      POSTGRES_PASSWORD: rgs_test_pw
+      POSTGRES_DB: rgs_test
+    ports:
+      - "15432:5432"
+    volumes:
+      - rgs-test-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rgs -d rgs_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  rgs-test-pg-data:
+    name: rgs-test-pg-data
