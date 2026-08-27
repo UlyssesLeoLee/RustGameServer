@@ -116,7 +116,7 @@ rgs-certgen main.rs 4495 字节
 | 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
 |---|---|---|---|---|---|
 | TST-IT-09-B001 | IMPL-001 §4 | `ca.crt.pem` PEM 格式 | [TL-3] | N | PEM 头"-----BEGIN CERTIFICATE-----" |
-| TST-IT-09-B002 | IMPL-001 §4 | CA 证书 subject = "RGS Dev CA" | [TL-3] | N | subject CN 字段 |
+| TST-IT-09-B002 | IMPL-001 §4 | CA 证书 subject = "RustGameServer Dev CA" | [TL-3] | N | subject CN 字段（硬编码 `main.rs:82`,非 CLI 可配置） |
 | TST-IT-09-B003 | IMPL-001 §4 | CA is_ca=true, key_usages=[KeyCertSign, CrlSign] | [TL-3] | N | CA 标志正确 |
 | TST-IT-09-B004 | IMPL-001 §4 | `<domain>.crt.pem` PEM | [TL-3] | N | 服务证书 PEM 格式 |
 | TST-IT-09-B005 | IMPL-001 §4 | 服务证书 SAN = domain | [TL-3] | N | SAN DNS 字段 |
