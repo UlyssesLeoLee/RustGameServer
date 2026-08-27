@@ -8,6 +8,7 @@ members = [
     "crates/admin-service",
     "crates/cluster-ops",
     "crates/shared-platform",
+    "crates/gm-backend",
     "crates/rgs-testkit",
     "crates/rgs-certgen",
     "crates/function-plane",
