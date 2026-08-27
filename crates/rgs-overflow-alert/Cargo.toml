@@ -1,0 +1,37 @@
+[package]
+name = "rgs-overflow-alert"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "超限排队 + 邮件告警中间件（per 2026-08-27 Ulysses 拍板；5 域业务服务限流 / NATS JS 排队 / SMTP 告警降级日志）"
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# NATS JS 客户端（per task §1：与 shared-platform 同一 0.42 主线）
+async-nats = { workspace = true }
+# 邮件告警（per task §2.1 alert.rs）
+lettre = { workspace = true }
+# 复用 messaging 工厂 + subject 工具（per handoff §2/§3）
+shared-platform = { path = "../shared-platform" }
+# hostname fallback（POD_NAME 未注入时）
+hostname = "0.4"
+
+[dev-dependencies]
+# 集成测试辅助：chrono / uuid / tracing 已在主依赖
+tokio = { workspace = true }
+pretty_assertions = "1"
+# 复用 rgs-testkit 的 InMemoryNatsMock 仅用于 e2e 演示（生产路径不引）
+rgs-testkit = { path = "../rgs-testkit" }
