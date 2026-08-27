@@ -15,7 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码文档 | RGS-IMPL-001 §4, RGS-SPEC-000 §2.1, RGS-REQ-007 §2.1, RGS-BAS-003 §2.1 |
-| 关联源代码 | `crates/rgs-certgen/src/main.rs`（4495 字节, 4 个 pub fn / 1 个 pub struct）|
+| 关联源代码 | `crates/rgs-certgen/src/main.rs`（4495 字节, 3 个 fn + 1 个 struct,**均非 pub**——`main.rs:28 struct Cli` / `:49 fn main` / `:74 fn generate_ca` / `:99 fn generate_server_cert`）|
 | 关联测试代码 | **暂无**（rgs-certgen 暂未实现任何测试，本次设计先行） |
 
 ---
@@ -65,7 +65,7 @@
 
 | 边界 | 说明 |
 |---|---|
-| 包含 | rgs-certgen crate 全部 pub fn + Cli 结构体 + 4 个内部函数（generate_ca / generate_server_cert / main 流程） |
+| 包含 | rgs-certgen crate **所有 3 个 fn + 1 个 struct(均非 pub,无 lib 入口面)** + Cli 结构体 + 黑盒端到端(assert_cmd 启 binary + 输出文件断言) |
 | 排除 | 集成测试（见 RGS-TST-IT-09）、系统测试（见 RGS-TST-ST-09）、rgs-arc-olu 占位 crate（不写设计书）、rcgen 库自身测试 |
 | 当前状态 | rgs-certgen 暂未实现任何测试代码（**rgs-testkit-style mock / fixture 0 个**） |
 
@@ -153,7 +153,7 @@ per RGS-TST-UT-00 §1.4(RFC 2119 + IPA 共通框架 2013)。
 |---|---|---|---|---|
 | TST-UT-09-B001 | main.rs generate_ca | output dir + validity_days | N | 生成 ca.crt.pem + ca.key.pem |
 | TST-UT-09-B002 | main.rs generate_ca | IsCa::Ca(BasicConstraints::Unconstrained) | N | CA 标志 + KeyCertSign + CrlSign |
-| TST-UT-09-B003 | main.rs generate_ca | 自定义 CN | N | CA CN 字段正确 |
+| TST-UT-09-B003 | main.rs:82 generate_ca | 硬编码 CN = "RustGameServer Dev CA" | N | CA CN 字段固定值（无 CLI 可配置参数，CLI 仅 `output` / `domains` / `validity_days`）|
 
 **实现位置**：`crates/rgs-certgen/tests/ut_ca.rs`（**TBD**）
 
@@ -190,7 +190,7 @@ per RGS-TST-UT-00 §1.4(RFC 2119 + IPA 共通框架 2013)。
 | TST-UT-09-C001~C004 | §4 工具链 | §2.1 | main.rs generate_server_cert | **TBD** `ut_server_cert.rs` |
 | TST-UT-09-D001~D004 | §4 工具链 | §2.1 | main.rs:49-72 | **TBD** `integration_main.rs` |
 
-**总计**：19 测试用例 ID（**全部 TBD**）
+**总计**：17 测试用例 ID（Cli 解析 6 + CA 3 + Server cert 4 + main 流程 4，**全部 TBD**）
 
 ---
 

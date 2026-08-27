@@ -159,7 +159,7 @@
 
 | 维度 | 目标 |
 |---|---|
-| 字段级覆盖率 | 100%（全部 GM endpoint 字段 + GmConfig 字段） |
+| 字段级覆盖率 | 100%（覆盖当前 stub 实现的既有字段，**不含 v0.2 admin-service 协议字段**——per 2026-08-28 跨反馈 F8 处置） |
 | 业务路径覆盖率 | ≥ 70% |
 | 缺陷密度 | ≤ 1.0 个/KLOC（QA-004） |
 | 边界用例 | 至少 3 类（无效 SocketAddr / 缺失 env / 配置越界） |
@@ -168,60 +168,70 @@
 
 ## 3. 测试用例
 
-## 3.1 模块 A：GmConfig 配载（RGS-DTL-040 §3.1）
+## 3.1 模块 A：GmConfig 配载（无上游详细设计依据，实现阶段新增）
+
+> **2026-08-28 跨反馈 F7 处置**:GmConfig 的 http_addr/health_addr/admin_grpc_endpoint/jwt_secret 四个字段在 RGS-DTL-040、RGS-DTL-003、RGS-BAS-003 全文中均无对应设计条目,本模块为"实现阶段自行引入、未走详细设计流程"的配置项。
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
-| TST-UT-08-A001 | DTL-040 §3.1 GmConfig 默认值 | http_addr=0.0.0.0:8443, health_addr=0.0.0.0:8081, admin_grpc_endpoint="https://admin-service:50055", jwt_secret="dev-only-do-not-use-in-prod" | N | env 缺失时 from_env 返回默认值 |
-| TST-UT-08-A002 | DTL-040 §3.1 GmConfig env 覆盖 | http_addr, health_addr, admin_grpc_endpoint, jwt_secret 4 字段 | N | 显式 set_var 后 from_env 读到覆盖值 |
-| TST-UT-08-A003 | DTL-040 §3.1 GmConfig::from_env 错误处理 | http_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HTTP_ADDR" |
-| TST-UT-08-A004 | DTL-040 §3.1 GmConfig::from_env 错误处理 | health_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HEALTH_ADDR" |
-| TST-UT-08-A005 | DTL-040 §3.1 GmConfig::for_test builder | 3 参数（http/str, health/str, admin/str） | N | builder 构造出符合预期 GmConfig |
-| TST-UT-08-A006 | DTL-040 §3.1 GmConfig Clone + PartialEq | GmConfig Clone 实现 | N | clone 后 PartialEq 相等 |
+| TST-UT-08-A001 | 无上游设计依据,实现阶段新增 | http_addr=0.0.0.0:8443, health_addr=0.0.0.0:8081, admin_grpc_endpoint="https://admin-service:50055", jwt_secret="dev-only-do-not-use-in-prod" | N | env 缺失时 from_env 返回默认值 |
+| TST-UT-08-A002 | 无上游设计依据,实现阶段新增 | http_addr, health_addr, admin_grpc_endpoint, jwt_secret 4 字段 | N | 显式 set_var 后 from_env 读到覆盖值 |
+| TST-UT-08-A003 | 无上游设计依据,实现阶段新增 | http_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HTTP_ADDR" |
+| TST-UT-08-A004 | 无上游设计依据,实现阶段新增 | health_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HEALTH_ADDR" |
+| TST-UT-08-A005 | 无上游设计依据,实现阶段新增 | 3 参数（http/str, health/str, admin/str） | N | builder 构造出符合预期 GmConfig |
+| TST-UT-08-A006 | 无上游设计依据,实现阶段新增 | GmConfig Clone 实现 | N | clone 后 PartialEq 相等 |
 
 **实现位置**：`crates/gm-backend/tests/ut_config.rs`（6 测试,2026-08-27 22:53 JST 19/19 PASS）
 
-## 3.2 模块 B：AppState + Router 构造（RGS-BAS-003 §2.1）
+## 3.2 模块 B：AppState + Router 构造（无对应详细设计章节，实现阶段新增）
+
+> **2026-08-28 跨反馈 F7 处置**:DTL-040 §3 全文仅是 AdminService/ClusterOpsService/COC UI 三层职责表,无 §3.1/§3.2/§3.3/§3.4 编号子章节,亦不涉及 axum Router 构造。Router 7 路由与 health 2 路由属实现阶段设计。
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
-| TST-UT-08-B001 | BAS-003 §2.1 Router 7 路由 | 7 路由：/healthz, /readyz, /api/v1/gm/health/view, /api/v1/gm/ban, /api/v1/gm/compensation, /api/v1/gm/maintenance, /api/v1/audit/logs | N | build_router() 包含所有 7 路由 |
-| TST-UT-08-B002 | BAS-003 §2.1 health_router 隔离 | build_health_router() 仅 2 路由 | N | health 路由不含 /api/v1/gm/* 业务端点 |
-| TST-UT-08-B003 | BAS-003 §2.1 AppState Clone | AppState Clone 实现 | N | Clone 后两个 handle 共享同一 config |
+| TST-UT-08-B001 | 无对应详细设计,实现阶段新增 | 7 路由：/healthz, /readyz, /api/v1/gm/health/view, /api/v1/gm/ban, /api/v1/gm/compensation, /api/v1/gm/maintenance, /api/v1/audit/logs | N | build_router() 包含所有 7 路由 |
+| TST-UT-08-B002 | 无对应详细设计,实现阶段新增 | build_health_router() 仅 2 路由 | N | health 路由不含 /api/v1/gm/* 业务端点 |
+| TST-UT-08-B003 | 无对应详细设计,实现阶段新增 | AppState Clone 实现 | N | Clone 后两个 handle 共享同一 config |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（含部分 L1 单元测试 + in-process 集成）
 
-## 3.3 模块 C：fail-closed 启动（RGS-BAS-003 §2.1 启动约束）
+## 3.3 模块 C：fail-closed 启动（BAS-003 §2.1 启动约束 + 实现阶段扩展）
+
+> **2026-08-28 跨反馈 F7 处置**:DTL-040 §3 全文仅是 AdminService/ClusterOpsService/COC UI 三层职责表,无 §3.4 编号子章节,亦不涉及 fail-closed 启动语义。C002 标注"无对应详细设计,实现阶段预留"。
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
 | TST-UT-08-C001 | BAS-003 §2.1 + 5 域 fail-closed 模式 | env 全部 0.0.0.0:0 | N | 5s 内启动，stderr 含 "starting GM APIGW" 或进程仍在跑 |
-| TST-UT-08-C002 | BAS-003 §2.1 mTLS 启动路径(预留) | RGS_TLS_DIR 缺失 | A | **TBD-08-02** v0.2 实装: mTLS 必须 fail-closed（per 5 域 RGS_ALLOW_INSECURE_GRPC=0 默认） |
+| TST-UT-08-C002 | 无对应详细设计,实现阶段预留 | RGS_TLS_DIR 缺失 | A | **TBD-08-02** v0.2 实装: mTLS 必须 fail-closed（per 5 域 RGS_ALLOW_INSECURE_GRPC=0 默认） |
 
 **实现位置**：`crates/gm-backend/tests/fail_closed_start.rs`（1 测试）
 
-## 3.4 模块 D：Handler 输入输出（BAS-003 §3.1-§3.4）
+## 3.4 模块 D：Handler 输入输出（多源追溯，见各行）
+
+> **2026-08-28 跨反馈 F7 处置**:模块 D 7 行 BAS-003 引用逐条已核对: D001→§3.4(QueryHealthView), D002/D003→`RGS-BAS-001 §6.3.4`(AdminService 既有方法定义处,本模块 UT-08 §1.3 关联文档此前未列), D004→§3.3(SetMaintenanceMode), D005→§3.4(QueryAuditLog)保留, D006/D007 标注"无 BAS-003 §3 对应依据"(k8s 探针非 AdminService 方法)。DTL-040 §3.3 整体不存在,处理同模块 A/B/C。
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
-| TST-UT-08-D001 | BAS-003 §3.1 health_view | 响应字段:service, admin_endpoint, mode | N | 返回 200 + 含 3 字段 |
-| TST-UT-08-D002 | BAS-003 §3.4 ban_account | 响应字段:status, op | N | 返回 202 + status=queued, op=ban |
-| TST-UT-08-D003 | BAS-003 §3.4 grant_compensation | 响应字段:status, op | N | 返回 202 + status=queued, op=compensation |
-| TST-UT-08-D004 | BAS-003 §3.4 set_maintenance | 响应字段:status, op | N | 返回 202 + status=queued, op=maintenance |
-| TST-UT-08-D005 | BAS-003 §3.4 query_audit | 响应字段:items, next | N | 返回 200 + items=[] + next=stub |
-| TST-UT-08-D006 | BAS-003 §3.4 healthz | 响应字段:status, service | N | 返回 200 + service=gm-backend |
-| TST-UT-08-D007 | BAS-003 §3.4 readyz | 响应字段:status, service | N | 返回 200 + service=gm-backend |
+| TST-UT-08-D001 | BAS-003 §3.4 QueryHealthView（stub 字段见 F8 处置） | 响应字段:service, admin_endpoint, mode | N | 返回 200 + 含 3 字段 |
+| TST-UT-08-D002 | RGS-BAS-001 §6.3.4 AdminService.BanAccount（既有方法，§3 范围外） | 响应字段:status, op | N | 返回 202 + status=queued, op=ban |
+| TST-UT-08-D003 | RGS-BAS-001 §6.3.4 AdminService.GrantCompensation（既有方法，§3 范围外） | 响应字段:status, op | N | 返回 202 + status=queued, op=compensation |
+| TST-UT-08-D004 | BAS-003 §3.3 SetMaintenanceMode（stub 字段见 F8 处置） | 响应字段:status, op | N | 返回 202 + status=queued, op=maintenance |
+| TST-UT-08-D005 | BAS-003 §3.4 QueryAuditLog（stub 字段见 F8 处置） | 响应字段:items, next | N | 返回 200 + items=[] + next=stub |
+| TST-UT-08-D006 | 无 BAS-003 §3 对应依据（k8s 探针） | 响应字段:status, service | N | 返回 200 + service=gm-backend |
+| TST-UT-08-D007 | 无 BAS-003 §3 对应依据（k8s 探针） | 响应字段:status, service | N | 返回 200 + service=gm-backend |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（12 测试）
 
-## 3.5 模块 E：Router 路由边界（RGS-BAS-003 §2.1 路由表）
+## 3.5 模块 E：Router 路由边界（BAS-003 §2.1 路由表 + 实现阶段新增边界）
+
+> **2026-08-28 跨反馈 F7 处置**:DTL-040 §3.2 编号子章节不存在,本模块路由边界测试无对应详细设计,实现阶段新增。
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
 | TST-UT-08-E001 | BAS-003 §2.1 GET 端点拒绝 POST | /healthz POST | A | 返回 405 Method Not Allowed |
 | TST-UT-08-E002 | BAS-003 §2.1 POST 端点拒绝 GET | /api/v1/gm/ban GET | A | 返回 405 |
-| TST-UT-08-E003 | BAS-003 §2.1 未知路由 | /api/v1/gm/nonexistent GET | A | 返回 404 Not Found |
-| TST-UT-08-E004 | BAS-003 §2.1 health 路由不含 GM 端点 | /api/v1/gm/health/view GET (在 build_health_router) | A | 返回 404 |
+| TST-UT-08-E003 | 无对应详细设计,实现阶段新增 | /api/v1/gm/nonexistent GET | A | 返回 404 Not Found |
+| TST-UT-08-E004 | 无对应详细设计,实现阶段新增 | /api/v1/gm/health/view GET (在 build_health_router) | A | 返回 404 |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（4 测试）
 
@@ -231,19 +241,30 @@
 
 | 测试 ID | RGS-REQ | RGS-BAS | RGS-DTL | 测试代码 |
 |---|---|---|---|---|
-| TST-UT-08-A001 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_defaults_when_env_missing` |
-| TST-UT-08-A002 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_respects_env_overrides` |
-| TST-UT-08-A003 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_rejects_invalid_socket_addr` |
-| TST-UT-08-A004 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_rejects_invalid_health_addr` |
-| TST-UT-08-A005 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_for_test_builder` |
-| TST-UT-08-A006 | REQ-007 §3.4 | BAS-003 §3.1 | DTL-040 §3.1 | `ut_config.rs::gm_config_clone_equality` |
-| TST-UT-08-B001~B003 | REQ-007 §3.1 | BAS-003 §2.1 | DTL-040 §3.2 | `integration_gm_basic.rs::*_returns_*` |
-| TST-UT-08-C001 | REQ-007 §3.1 | BAS-003 §2.1 | DTL-040 §3.4 | `fail_closed_start.rs::gm_backend_starts_with_defaults` |
-| TST-UT-08-C002 | REQ-007 §3.1 | BAS-003 §2.1 | DTL-040 §3.4 | **TBD-08-02** v0.2 实装 |
-| TST-UT-08-D001~D007 | REQ-007 §3.4 | BAS-003 §3.1-§3.4 | DTL-040 §3.3 | `integration_gm_basic.rs::*_returns_*` |
-| TST-UT-08-E001~E004 | REQ-007 §3.1 | BAS-003 §2.1 | DTL-040 §3.2 | `integration_gm_basic.rs::main_router_does_not_accept_*` + `unknown_route_*` + `health_router_does_not_expose_*` |
+| TST-UT-08-A001 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_defaults_when_env_missing` |
+| TST-UT-08-A002 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_respects_env_overrides` |
+| TST-UT-08-A003 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_rejects_invalid_socket_addr` |
+| TST-UT-08-A004 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_rejects_invalid_health_addr` |
+| TST-UT-08-A005 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_for_test_builder` |
+| TST-UT-08-A006 | REQ-007 §3.4 | 无上游设计依据（实现阶段新增） | 无上游设计依据（实现阶段新增） | `ut_config.rs::gm_config_clone_equality` |
+| TST-UT-08-B001~B003 | REQ-007 §3.1 | BAS-003 §2.1 | 无对应详细设计（实现阶段新增） | `integration_gm_basic.rs::*_returns_*` |
+| TST-UT-08-C001 | REQ-007 §3.1 | BAS-003 §2.1 | 无对应详细设计（实现阶段扩展） | `fail_closed_start.rs::gm_backend_starts_with_defaults` |
+| TST-UT-08-C002 | REQ-007 §3.1 | BAS-003 §2.1 | 无对应详细设计（实现阶段预留） | **TBD-08-02** v0.2 实装 |
+| TST-UT-08-D001 | REQ-007 §3.4 | BAS-003 §3.4 QueryHealthView（stub 字段） | 无对应详细设计（实现阶段扩展） | `integration_gm_basic.rs::health_view_returns_*` |
+| TST-UT-08-D002 | REQ-007 §3.4 | BAS-001 §6.3.4 AdminService.BanAccount（既有方法） | 无对应详细设计 | `integration_gm_basic.rs::ban_account_returns_*` |
+| TST-UT-08-D003 | REQ-007 §3.4 | BAS-001 §6.3.4 AdminService.GrantCompensation（既有方法） | 无对应详细设计 | `integration_gm_basic.rs::grant_compensation_returns_*` |
+| TST-UT-08-D004 | REQ-007 §3.4 | BAS-003 §3.3 SetMaintenanceMode（stub 字段） | 无对应详细设计（实现阶段扩展） | `integration_gm_basic.rs::set_maintenance_returns_*` |
+| TST-UT-08-D005 | REQ-007 §3.4 | BAS-003 §3.4 QueryAuditLog（stub 字段） | 无对应详细设计 | `integration_gm_basic.rs::query_audit_returns_*` |
+| TST-UT-08-D006 | REQ-007 §3.4 | 无对应详细设计（k8s 探针） | 无对应详细设计（k8s 探针） | `integration_gm_basic.rs::healthz_returns_*` |
+| TST-UT-08-D007 | REQ-007 §3.4 | 无对应详细设计（k8s 探针） | 无对应详细设计（k8s 探针） | `integration_gm_basic.rs::readyz_returns_*` |
+| TST-UT-08-E001 | REQ-007 §3.1 | BAS-003 §2.1 | 无对应详细设计（实现阶段新增） | `integration_gm_basic.rs::main_router_does_not_accept_*` |
+| TST-UT-08-E002 | REQ-007 §3.1 | BAS-003 §2.1 | 无对应详细设计（实现阶段新增） | `integration_gm_basic.rs::main_router_does_not_accept_*` |
+| TST-UT-08-E003 | REQ-007 §3.1 | 无对应详细设计（实现阶段新增） | 无对应详细设计（实现阶段新增） | `integration_gm_basic.rs::unknown_route_*` |
+| TST-UT-08-E004 | REQ-007 §3.1 | 无对应详细设计（实现阶段新增） | 无对应详细设计（实现阶段新增） | `integration_gm_basic.rs::health_router_does_not_expose_*` |
 
-**总计**：23 测试用例 ID（19 已实现 + 4 边界,1 TBD-08-02 待 v0.2）
+**总计**：22 测试用例 ID（21 已实现 + 1 TBD-08-02 待 v0.2）。模块 A 6 + 模块 B 3 + 模块 C 2 + 模块 D 7 + 模块 E 4 = 22（per 2026-08-28 跨反馈 F3/F7 处置，原 §4 自报"23"已纠正）。
+
+> **2026-08-28 跨反馈 F7 处置续**:原 §4 追溯矩阵"全部 22 条"用例 ID 都在 DTL-040 列标了一个 §3.x 子章节号,而 DTL-040 §3 全文没有任何数字编号子章节,22 条无一存在。已逐条改为"无对应详细设计(实现阶段新增/扩展/预留)"或挂到真实存在的父章节(BAS-001 §6.3.4 / BAS-003 §2.1 / §3.1-§3.4)。DTL-040 因文档头自标"契约骨架·待评审·不得作为实施授权",本表仅保留"实现阶段新增/扩展"占位,不在此引用。
 
 ---
 
@@ -267,7 +288,7 @@
 | 维度 | 通过阈值 |
 |---|---|
 | 测试通过率 | 100% |
-| 字段级映射覆盖率 | 100%（GmConfig 4 字段 + 7 endpoint × 1-3 字段） |
+| 字段级映射覆盖率 | 100%（覆盖当前 stub 实现的既有字段——GmConfig 4 字段 + 7 endpoint × 1-3 字段；**不含 v0.2 admin-service 协议字段**，per 2026-08-28 跨反馈 F8 处置） |
 | 编译警告 | 0（除 `#[allow(dead_code)] jwt_secret` 故意外） |
 | 业务路径覆盖率 | ≥ 80%（per QA-001 80% 阈值） |
 | 测试代码行 | 19 测试函数 ≥ 200 行 |
@@ -282,7 +303,7 @@
 |---|---|---|---|
 | TBD-08-01 | JWT validation 未实装（`jwt_secret` 字段保留 `#[allow(dead_code)]`） | P1 | v0.2 实装：JWT middleware + `axum::middleware::from_fn` |
 | TBD-08-02 | mTLS 启动 fail-closed 路径未实装（per 5 域 RGS_ALLOW_INSECURE_GRPC=0 模式） | P1 | v0.2 实装：`shared_platform::tls::load_server_tls_config` 集成 |
-| TBD-08-03 | 5 个 GM endpoint 仍 stub（返回硬编码 202 queued） | P2 | v0.2 实装：admin-service gRPC client + rgs-testkit mock |
+| TBD-08-03 | 5 个 GM endpoint 仍 stub（返回硬编码 202 queued） | P2 | v0.2 实装：admin-service gRPC client + rgs-testkit mock。<br/>**2026-08-28 跨反馈 F8 处置补充**——v0.2 实装时需新增/调整测试覆盖以下 BAS-003/DTL-003 字段级协议字段（当前 stub 字段 ≠ 设计字段，UT-08-D001/D004/D005 未测到这些）：<br/>① `SetMaintenanceModeResponse` 新增 `propagation_status`（枚举 PROPAGATING/CONVERGED，per BAS-003 §3.3 + DTL-003 §3.3）——覆盖 D004<br/>② `QueryHealthViewResponse` = `repeated ServiceHealthEntry services`，每条含 `service_name`/`ready`/`queue_depth`/`db_pool_usage_ratio`/`checked_at_ms`（per BAS-003 §3.4 + DTL-003 §3.4）——覆盖 D001<br/>③ `QueryAuditLogResponse` = `repeated AuditLogEntry entries` + `bool has_more`（per BAS-003 §3.4 + DTL-003 §3.4）——覆盖 D005 |
 | TBD-08-04 | 审计查询 endpoint（`/api/v1/audit/logs`）返回空 items | P2 | v0.2 实装：audit_log 表 join 查询 |
 | TBD-08-05 | 覆盖率阈值门槛（80% / 70%）未在 CI 强制 | P2 | 加 cargo-llvm-cov + 阈值 |
 | TBD-08-06 | `axum-test 16` 与 7 域使用的 `wiremock` 不一致 | P3 | 评估统一 mock 工具 |
