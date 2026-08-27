@@ -43,5 +43,20 @@
     "branch": "wbs/WF-1-D-10",
     "progress": 100,
     "merge_resolution_note": "squash merge D-10 时 .wbs-task-marker 冲突合并为 JSON 数组保留两 task; D-10 task 标记 done (合并完成)"
+  },
+  {
+    "l4_id": "WF-1-D-15",
+    "task": "M4 主对话退场后 接收-恢复 工具链(rgs_handoff_recover.ps1 + rgs_handoff_snapshot.ps1 + README)",
+    "owner": "Ulysses(一人公司 12 角色 per DEC-008) — 子代理 4 号(M4)",
+    "tokens": "300K",
+    "spec": "RGS-PLAN-002 §1.1",
+    "branch": "wbs/M4",
+    "status": "in_progress",
+    "progress": 50,
+    "started_at": "2026-08-27T10:16:04+09:00",
+    "updated_at": "2026-08-27T10:23:04+09:00",
+    "worktree": "D:/RustGameServer-worktrees/M4",
+    "requires_explicit_sign": false,
+    "sign_basis": "per Ulysses 2026-08-27 10:13 JST 授权:子代理代签全批准"
   }
 ]
