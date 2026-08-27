@@ -18,12 +18,32 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: short
+  # 5 域 service 集成测试 PG fixture(per verifier bg_394b3ca1 §4 P1 修复)
+  # 端口走 service container 内部 5432,不要改成 15432
+  DATABASE_URL: postgres://rgs:rgs_test_pw@localhost:5432/rgs_test
 
 jobs:
   rust-ci:
     name: fmt + clippy + test on ubuntu-latest
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    # 5 域 service 集成测试 PG fixture (postgres:16-alpine, per verifier §4 P1)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: rgs
+          POSTGRES_PASSWORD: rgs_test_pw
+          POSTGRES_DB: rgs_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rgs -d rgs_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 5s
 
     steps:
       - name: Checkout
