@@ -1,105 +1,141 @@
 #!/usr/bin/env pwsh
-# e2e-smoke.ps1 — 端到端 smoke test for rust-game-server k3s namespace
-# Per docs/deploy/.run-logs/2026-08-27-deploy-all/worker-2 / FOLLOW-UP-PLAN F9
-#
-# 探活清单:
-#   - 5 域 business service gRPC 端口 (50051-50055)
-#   - cluster-ops 50056
-#   - gm-backend 8081 (/healthz, /readyz)
-#   - postgres 5432
-#   - prometheus 9090
-#   - grafana 3000
-#   - nats 4222 (F1 完成后)
-#   - otel-collector 4317
-#
-# 用法:
-#   pwsh scripts/e2e-smoke.ps1
-#
-# 输出: 文本报告, 每项 OK/FAIL/SKIP, 最后一行 OK|FAIL
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    RGS k3s 8 域 + 基础设施端到端冒烟测试
 
-$ErrorActionPreference = 'Continue'
-$K3S = "sudo -n /usr/local/bin/k3s"
-$NS = "rust-game-server"
+.DESCRIPTION
+    通过 wsl 调用 wsl-side bash driver (e2e-smoke.sh) 执行所有探活。
+    幂等,可重复跑。
 
-Write-Host "=== e2e-smoke @ $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===" -ForegroundColor Cyan
+    测试方式:
+      - HTTP 端点(有 health/readyz): bash 内 curl 拿 status code + body 关键字段
+      - gRPC / QUIC / 纯 TCP 端口: bash 内 curl 看 connect 成功(200/400/404 都视为端口可达)
 
-# 1) Pod 状态
-Write-Host "`n--- Pod 状态 ---" -ForegroundColor Yellow
-$running = 0; $expected = 0
-$pods = wsl -d Ubuntu -- bash -lc "$K3S kubectl -n $NS get pod --no-headers" 2>&1
-foreach ($line in $pods -split "`n") {
-    if ($line.Trim() -match "Running") { $running++ }
-    $expected++
-    if ($line -match "CrashLoop|Error|ImagePull|Pending") {
-        Write-Host "  [WARN] $($line.Trim())" -ForegroundColor Yellow
-    }
-}
-Write-Host "  $running / $expected Pods Running"
+    期望结果(2026-08-27 部署):
+      - 5 域 grpc 端口 50051/50052/50053/50054/50055 全部可达
+      - cluster-ops 50056 可达
+      - gm-backend 8081 /healthz + /readyz 返回 200
+      - postgres 5432 端口可达
+      - prometheus 9090 /-/healthy 返回 "Prometheus Server is Healthy"
+      - grafana 3000 /api/health 返回 200 + JSON database:ok
+      - nats 8222 /varz 返回 200 + auth_required(F1 完成后)
 
-# 2) Service 端口探活
-# k3s label: app.kubernetes.io/name=player (短名,不是 player-service)
-$services = @(
-    @{label="player";  port=50051;  display="player-service"},
-    @{label="economy"; port=50052;  display="economy-service"},
-    @{label="match";   port=50053;  display="match-service"},
-    @{label="social";  port=50054;  display="social-service"},
-    @{label="admin";   port=50055;  display="admin-service"},
-    @{label="cluster-ops";     port=50056;  display="cluster-ops"},
-    @{label="postgres";        port=5432;   display="postgres"},
-    @{label="prometheus";      port=9090;   display="prometheus"},
-    @{label="grafana";         port=3000;   display="grafana"},
-    @{label="otel-collector";  port=4317;   display="otel-collector"},
-    @{label="nats";            port=4222;   display="nats"},
-    @{label="gm-backend";      port=8081;   display="gm-backend"}
+.NOTES
+    作者: Mavis (Mavis 接手 agent per DEC-008) — 代签
+    授权: 2026-08-26 08:40 JST Ulysses 反转规则(代签允许)
+    创建: 2026-08-27 worker-2 task
+    端口参考: docs/deploy/01-k8s-manifests/{01..50}-*.yaml
+#>
+
+[CmdletBinding()]
+param(
+    [switch]$Json,           # 输出 JSON 报告(否则文本)
+    [switch]$Quiet,          # 只输出失败项
+    [int]$ExpectNats = 1     # 1 = 期望 NATS 部署就位(F1 完成后); 0 = 容忍 NATS 缺失
 )
 
-$fail = 0
-foreach ($svc in $services) {
-    $label = $svc.label
-    $port = $svc.port
-    $display = $svc.display
+$ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'
 
-    # 拿 pod IP(label selector 是短名)
-    $podIP = wsl -d Ubuntu -- bash -lc "$K3S kubectl -n $NS get pod -l app.kubernetes.io/name=$label -o jsonpath='{.items[0].status.podIP}'" 2>&1
-    $podIP = $podIP.Trim()
+# --- 配置 ---
+$ScriptDir = $PSScriptRoot
+$WslDriver = '/mnt/d/RustGameServer/scripts/e2e-smoke.sh'
+$Wsl = 'Ubuntu'
+$SudoPwFile = '/tmp/.sudo_pw'
 
-    if ($podIP -and $podIP.Length -gt 5) {
-        # 用 nc -z 测端口
-        $test = wsl -d Ubuntu -- bash -lc "timeout 3 nc -zv $podIP $port 2>&1; echo exit=\$?" 2>&1
-        if ($test -match "succeeded|open") {
-            Write-Host "  [OK]   $display :$port @ $podIP" -ForegroundColor Green
-        } else {
-            Write-Host "  [FAIL] $display :$port @ $podIP" -ForegroundColor Red
-            $fail++
+# 验证 wsl driver 存在
+$winDriver = Join-Path $ScriptDir 'e2e-smoke.sh'
+if (-not (Test-Path $winDriver)) {
+    Write-Error "wsl driver not found: $winDriver"
+    exit 2
+}
+
+# --- 写 sudo 密码到 wsl 端(用 stdin 管道,不 echo 到 stdout/history) ---
+# 优先用 $env:UbuntuPW(per 2026-08-27 11:06 JST Ulysses hard ban:不打印 env 值)
+if (Test-Path env:UbuntuPW) {
+    # 通过 stdin pipe 密码给 wsl 内的 cat,写文件(chmod 600)
+    $env:UbuntuPW | & 'wsl.exe' -d $Wsl -- bash -c "cat > $SudoPwFile && chmod 600 $SudoPwFile"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "写 sudo 密码文件失败"
+        exit 2
+    }
+} else {
+    Write-Warning "env:UbuntuPW 未设置;假设 WSL 端 sudo 免密(如已登录缓存)"
+}
+
+# --- 调用 wsl 跑 driver,捕获 stdout ---
+$wslArg = @('-d', $Wsl, '--', 'bash', '-c', "SUDO_PW_FILE=$SudoPwFile EXPECT_NATS=$ExpectNats bash '$WslDriver'")
+$rawOutput = & 'wsl.exe' @wslArg 2>&1
+$exitCode = $LASTEXITCODE
+$outputLines = @($rawOutput | ForEach-Object { $_.ToString() })
+
+if ($exitCode -ne 0) {
+    Write-Error "wsl driver failed, exit=$exitCode"
+    Write-Host "STDOUT/STDERR:"
+    $outputLines | ForEach-Object { Write-Host "  $_" }
+    exit 2
+}
+
+# --- 解析 name|status|detail ---
+$results = @()
+foreach ($line in $outputLines) {
+    if ($line -match '^([^|]+)\|([^|]+)\|(.*)$') {
+        $results += [pscustomobject]@{
+            Name   = $Matches[1]
+            Status = $Matches[2]
+            Detail = $Matches[3]
         }
-    } else {
-        Write-Host "  [SKIP] $display (no pod IP, label=$label)" -ForegroundColor Yellow
     }
 }
 
-# 3) gm-backend /healthz(port-forward)
-Write-Host "`n--- gm-backend HTTP probes ---" -ForegroundColor Yellow
-$gmPod = (wsl -d Ubuntu -- bash -lc "$K3S kubectl -n $NS get pod -l app.kubernetes.io/name=gm-backend -o name" 2>&1 | Select-Object -First 1).Trim()
-if ($gmPod) {
-    $pfOut = wsl -d Ubuntu -- bash -lc "$K3S kubectl -n $NS port-forward $gmPod 18081:8081 > /tmp/pf.log 2>&1 & echo \$! > /tmp/pf.pid; sleep 3; curl -s --max-time 3 http://localhost:18081/healthz; echo; curl -s --max-time 3 http://localhost:18081/readyz; echo; kill \$(cat /tmp/pf.pid) 2>/dev/null; true" 2>&1
-    if ($pfOut -match '"status":"ok"') {
-        Write-Host "  [OK]   gm-backend /healthz returns ok" -ForegroundColor Green
-    } else {
-        Write-Host "  [FAIL] gm-backend /healthz ($pfOut)" -ForegroundColor Red
-        $fail++
-    }
-} else {
-    Write-Host "  [SKIP] no gm-backend pod" -ForegroundColor Yellow
+if ($results.Count -eq 0) {
+    Write-Error "wsl driver 返回 0 行结果(driver 失败?)"
+    exit 2
 }
 
-# 4) Summary
-Write-Host "`n=== summary ===" -ForegroundColor Cyan
-Write-Host "  Pods Running: $running / $expected"
-Write-Host "  Service failures: $fail"
-if ($running -eq $expected -and $fail -eq 0) {
-    Write-Host "  STATUS: OK" -ForegroundColor Green
-    exit 0
+# --- 输出 ---
+$pass = ($results | Where-Object Status -eq 'PASS').Count
+$fail = ($results | Where-Object Status -eq 'FAIL').Count
+$skip = ($results | Where-Object Status -eq 'SKIP').Count
+$total = $results.Count
+
+if ($Json) {
+    $report = @{
+        timestamp   = (Get-Date).ToString('o')
+        namespace   = 'rust-game-server'
+        expect_nats = $ExpectNats
+        total       = $total
+        pass        = $pass
+        fail        = $fail
+        skip        = $skip
+        results     = $results
+    }
+    $report | ConvertTo-Json -Depth 5
 } else {
-    Write-Host "  STATUS: FAIL" -ForegroundColor Red
-    exit 1
+    Write-Host "==> RGS k3s e2e smoke (namespace=rust-game-server, expect_nats=$ExpectNats)" -ForegroundColor Cyan
+    Write-Host ('-' * 100)
+    foreach ($r in $results) {
+        $icon = switch ($r.Status) {
+            'PASS' { '✅' }
+            'FAIL' { '❌' }
+            'SKIP' { '⏭ ' }
+            default { '?' }
+        }
+        $color = switch ($r.Status) {
+            'PASS' { 'Green' }
+            'FAIL' { 'Red' }
+            'SKIP' { 'DarkGray' }
+            default { 'Yellow' }
+        }
+        if (-not $Quiet -or $r.Status -ne 'PASS') {
+            Write-Host ("{0} {1,-28} {2,-5}  {3}" -f $icon, $r.Name, $r.Status, $r.Detail) -ForegroundColor $color
+        }
+    }
+    Write-Host ('-' * 100)
+    $summaryColor = if ($fail -eq 0) { 'Green' } else { 'Red' }
+    Write-Host "==> 汇总: total=$total pass=$pass fail=$fail skip=$skip" -ForegroundColor $summaryColor
 }
+
+# exit code
+if ($fail -gt 0) { exit 1 } else { exit 0 }
