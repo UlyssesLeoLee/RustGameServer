@@ -66,11 +66,23 @@ jobs:
         run: |
           mkdir -p /tmp/cluster-ops-build
           cp target/x86_64-unknown-linux-gnu/release/cluster-ops /tmp/cluster-ops-build/cluster-ops
-          cat > /tmp/cluster-ops-build/Dockerfile <<EOF
-          FROM ghcr.io/ulyssesleolee/rustgameserver:${{ inputs.base_image_tag }}
+          # grpc_health_probe from base64-decoded curl (linux/amd64 binary, mTLS support)
+          curl -fsSL -o /tmp/cluster-ops-build/grpc_health_probe \
+            "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.56/grpc_health_probe-linux-amd64"
+          chmod +x /tmp/cluster-ops-build/grpc_health_probe
+          # distroless cc-debian12:nonroot + cluster-ops binary + grpc_health_probe
+          # mirrors the existing 0.1.0-cluster-ops image structure (per RGS-OPS-101)
+          cat > /tmp/cluster-ops-build/Dockerfile <<'DOCKERFILE'
+          FROM gcr.io/distroless/cc-debian12:nonroot
+          WORKDIR /app
           COPY cluster-ops /app/bin/cluster-ops
-          EOF
+          COPY grpc_health_probe /app/bin/grpc_health_probe
+          USER nonroot:nonroot
+          ENV RUST_LOG=info RUST_BACKTRACE=0
+          ENTRYPOINT ["/app/bin/cluster-ops"]
+          DOCKERFILE
           cat /tmp/cluster-ops-build/Dockerfile
+          ls -la /tmp/cluster-ops-build/
 
       - name: login to ghcr.io
         uses: docker/login-action@v3
