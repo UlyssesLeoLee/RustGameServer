@@ -14,6 +14,7 @@
 
 #[cfg(target_os = "linux")]
 #[test]
+#[ignore = "需要 WSL + k3s 集群实机环境（per 文件头注释 --include-ignored 手动跑）；CI ubuntu-latest 无 k3s"]
 fn cluster_ops_health_endpoint_self_check() {
     use std::process::Command;
     // WSL 端: k3s kubectl get pods
