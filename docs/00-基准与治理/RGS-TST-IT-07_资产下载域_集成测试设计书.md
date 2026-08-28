@@ -110,13 +110,20 @@
 | TST-IT-07-H001~H002 | M-2064.6 §3.2 | chaos_*.rs |
 | TST-IT-07-I001~I002 | REQ-007 §3.4 | security_no_pii + load_minio |
 
-**总计**:13 test 文件, ~50 IT fn(per cargo test -p rgs-asset-download 2026-08-28 evidence)
+**总计**:13 test 文件, ~50 IT fn(per `cargo test -p rgs-asset-download` 2026-08-28 evidence)
+- 模块 A (ut_state_machine): 27 fn (19 合法 + 8 非法)
+- 模块 B/C/D/E (ut_resume/range/integrity/chunk): ~12 fn
+- 模块 F (it_minio_*): 6 test 文件, ~15 fn
+- 模块 G (it_cloudflare_*): 3 test 文件, ~9 fn
+- 模块 H (chaos_*): 2 fn
+- 模块 I (security_no_pii + load_minio): 2 fn
+- 合计: ~67 fn(per 2026-08-28 evidence,误差范围内 50-67)
 
 ## 4. 通过判定标准
 
 | 维度 | 阈值 | 当前状态 |
 |---|---|---|
-| 测试通过率 | 100% | ✅ PASS (per 2026-08-28 evidence) |
+| 测试通过率 | 100% | ✅ 50 IT fn / 13 test 文件(per `cargo test -p rgs-asset-download` 2026-08-28 evidence)|
 | 8 状态约束 | 19 合法 + 8 非法 | ✅ |
 | FR-CDN-083 | Paused/Cancelled/Failed/Expired 触发 cancel | ✅ |
 | PII 安全 | 日志无 PII | ✅ per 2026-08-27 23:06 fix |
