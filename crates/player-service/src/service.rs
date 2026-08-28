@@ -13,6 +13,7 @@ use crate::repository::{PlayerRepository, PlayerSessionRepository};
 use crate::Result;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -251,6 +252,60 @@ pub mod grpc_service {
                     nanos: player.created_at.timestamp_subsec_nanos() as i32,
                 }),
                 display_name: player.name,
+            }))
+        }
+
+        // W15 (2026-08-28): BanAccount gRPC RPC, 供 admin-service GM 调
+        // 链路: gm-backend → admin-service BanAccount → player-service BanAccount
+        async fn ban_account(
+            &self,
+            request: Request<player_proto::BanAccountRequest>,
+        ) -> std::result::Result<Response<player_proto::BanAccountResponse>, Status> {
+            let req = request.into_inner();
+            let banned_at_ms = Utc::now().timestamp_millis();
+
+            // 先按 uuid 查, 失败按 name 查
+            let player_id_opt = Uuid::parse_str(&req.account_id).ok();
+            let player_id = if let Some(pid) = player_id_opt {
+                pid
+            } else {
+                // 按 name 查 (业务 schema: account_id = name)
+                match self.impl_.players.find_by_name(&req.account_id).await {
+                    Ok(Some(p)) => p.id,
+                    Ok(None) => {
+                        return Ok(Response::new(player_proto::BanAccountResponse {
+                            status: "not_found".to_string(),
+                            account_id: req.account_id,
+                            banned_at_ms: 0,
+                            expires_at_ms: 0,
+                        }));
+                    }
+                    Err(e) => {
+                        return Err(tonic::Status::internal(format!(
+                            "find_by_name error: {e}"
+                        )));
+                    }
+                }
+            };
+
+            // 调 disable_player (改 status='disabled')
+            self.impl_
+                .disable_player(player_id, req.reason.clone())
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+
+            // expires_at: duration=0 永久 = 0; 否则 banned_at + duration
+            let expires_at_ms = if req.duration_seconds == 0 {
+                0
+            } else {
+                banned_at_ms + (req.duration_seconds as i64) * 1000
+            };
+
+            Ok(Response::new(player_proto::BanAccountResponse {
+                status: "banned".to_string(),
+                account_id: req.account_id,
+                banned_at_ms,
+                expires_at_ms,
             }))
         }
     }

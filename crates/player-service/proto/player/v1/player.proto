@@ -6,6 +6,10 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/player/v1;pla
 service PlayerService {
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
   rpc GetPlayer(common.v1.EntityId) returns (Player);
+
+  // W15 (2026-08-28): BanAccount gRPC RPC, 供 admin-service GM 调 (per RGS-BAS-003 §3.1)
+  // 真链路: gm-backend → admin-service BanAccount → player-service BanAccount
+  rpc BanAccount(BanAccountRequest) returns (BanAccountResponse);
 }
 
 message Player {
@@ -13,4 +17,18 @@ message Player {
   common.v1.Status status = 2;
   common.v1.Timestamp created_at = 3;
   string display_name = 4;
+}
+
+message BanAccountRequest {
+  string request_id = 1;
+  string account_id = 2;
+  string reason = 3;
+  int32 duration_seconds = 4; // 0 = 永久
+}
+
+message BanAccountResponse {
+  string status = 1; // "banned" / "already_banned" / "not_found"
+  string account_id = 2;
+  int64 banned_at_ms = 3;
+  int64 expires_at_ms = 4; // 0 = 永久
 }
