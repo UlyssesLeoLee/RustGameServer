@@ -21,7 +21,7 @@ const CHAOS_RESP_ID: &str = "CHAOS_RESPONSES";
 
 #[test]
 fn it_chaos_resp_5_response_categories_documented() {
-    let responses = vec![
+    let responses = [
         ("206 Partial Content", "正常处理，写 chunk"),
         ("416 Range Not Satisfiable", "ETag 变更 / 范围越界 → 重新拉"),
         ("200 OK", "服务端忽略 Range → 触发全量重传"),

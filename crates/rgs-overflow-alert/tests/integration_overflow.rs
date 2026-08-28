@@ -4,6 +4,7 @@
 //!
 //! **不**依赖真 NATS server —— 使用 `InMemoryQueueBackend` + `CountingSink`
 //! 保证测试在 CI / 本地不依赖外部服务即可跑
+#![allow(clippy::await_holding_lock)]
 
 use rgs_overflow_alert::alert::{AlertDeduplicator, AlertSink, LogOnlySink};
 use rgs_overflow_alert::config::OverflowConfig;

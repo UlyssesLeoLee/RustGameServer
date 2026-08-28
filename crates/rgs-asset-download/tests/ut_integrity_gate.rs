@@ -15,9 +15,8 @@ use tempfile::tempdir;
 #[tokio::test]
 async fn known_vector_abc() {
     let gate = IntegrityGate::new();
-    let h = gate.verify_for_test("ignored", "").await;
     // 不验证文件路径；改用 hash_bytes
-    drop(h);
+    let _ = gate.verify_for_test("ignored", "").await;
     let hex = IntegrityGate::hash_bytes(b"abc");
     assert_eq!(
         hex,

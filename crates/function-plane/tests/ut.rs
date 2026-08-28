@@ -12,7 +12,7 @@
 
 use function_plane::{
     FunctionContext, FunctionGateway, FunctionMetadata, FunctionPlaneError, FunctionStatus,
-    FunctionRegistry, InMemoryRegistry, InvocationRequest, Result, Runtime, TriggerType, WasmHost,
+    FunctionRegistry, InMemoryRegistry, InvocationRequest, Runtime, TriggerType, WasmHost,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -681,7 +681,7 @@ fn ut_error_display_messages() {
 
 #[test]
 fn ut_error_not_found_message_includes_function_id() {
-    let err: Result<()> = Err(FunctionPlaneError::NotFound("fn.critical".into()));
-    let msg = err.expect_err("err").to_string();
+    let err = FunctionPlaneError::NotFound("fn.critical".into());
+    let msg = err.to_string();
     assert!(msg.contains("fn.critical"), "msg should include id, got: {msg}");
 }

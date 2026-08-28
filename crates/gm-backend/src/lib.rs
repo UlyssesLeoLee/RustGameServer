@@ -17,7 +17,7 @@
 
 use anyhow::{Context, Result};
 use axum::{
-    extract::{Query, Request, State},
+    extract::{Request, State},
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Json},
@@ -36,6 +36,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 /// S4 Phase 2 step 1: gm-backend 作为 admin-service 的 gRPC client
 /// tonic-build 生成的 `admin.v1` 路径 = `gm_backend::admin::v1::*`,
 /// 引用 `common.v1` 时用 `crate::common::v1::*` (平铺 2 个 include_proto)
+#[allow(clippy::result_large_err)]
 pub mod admin {
     pub mod v1 {
         tonic::include_proto!("admin.v1");

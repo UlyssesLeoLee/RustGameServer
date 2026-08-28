@@ -9,7 +9,6 @@
 //! C001: openSSL x509 文本解析 (1, 端到端, 可选, 跳过若 openSSL 不可用)
 
 use assert_cmd::Command;
-use predicates::prelude::*;
 use std::fs;
 use std::process::Command as StdCommand;
 use tempfile::TempDir;

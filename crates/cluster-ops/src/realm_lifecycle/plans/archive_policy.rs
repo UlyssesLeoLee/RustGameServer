@@ -34,22 +34,16 @@ pub const STORAGE_REDUNDANCY_N_PLUS_1: &str = "n_plus_1";
 pub const STORAGE_REDUNDANCY_N_PLUS_3: &str = "n_plus_3";
 
 /// 存储冗余等级（per DTL-042 §3.1 #6 chk_storage_redundancy 约束）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum StorageRedundancy {
     /// N+1（最少副本数；需 Ulysses 显式签字才能降级到此，per ADR-0055 §4.3）
     NPlus1,
     /// **N+2（默认；per RSK-LCM-005 缓解）**
+    #[default]
     NPlus2,
     /// N+3（更高冗余；运营可主动升级）
     NPlus3,
-}
-
-impl Default for StorageRedundancy {
-    fn default() -> Self {
-        // 硬约束：默认 N+2，per RSK-LCM-005
-        StorageRedundancy::NPlus2
-    }
 }
 
 impl fmt::Display for StorageRedundancy {
@@ -419,8 +413,10 @@ mod tests {
     #[test]
     fn empty_gdpr_path_rejected() {
         // gdpr_delete_path 不能为空（per NFR-SE-010）
-        let mut p = ArchivePolicy::default();
-        p.gdpr_delete_path = "".to_string();
+        let p = ArchivePolicy {
+            gdpr_delete_path: "".to_string(),
+            ..ArchivePolicy::default()
+        };
         let v = p.validate();
         assert!(matches!(v, Err(LcmError::InvalidArchivePolicy(_))));
     }

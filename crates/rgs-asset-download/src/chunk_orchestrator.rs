@@ -27,7 +27,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::DownloadConfig;
 use crate::error::{DownloadError, DownloadResult};
-use crate::range_client::{HttpRangeSpec, RangeClient, RangeResponseDetailed};
+use crate::range_client::{HttpRangeSpec, RangeClient};
 
 /// 单个分片的描述（无状态；可序列化入断点）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,6 +46,11 @@ impl ChunkSpec {
     /// 区间长度（字节数 = end - start + 1）。
     pub fn len(&self) -> u64 {
         self.end - self.start + 1
+    }
+
+    /// 区间是否为空（`start > end`；正常构造下恒为 `false`）。
+    pub fn is_empty(&self) -> bool {
+        self.start > self.end
     }
 
     /// 转为 [`HttpRangeSpec`]。
@@ -386,30 +391,7 @@ fn unsafe_clone_range_client(_rc: &RangeClient) -> RangeClient {
 
 type RangeClientRef = Arc<RangeClient>;
 
-#[async_trait::async_trait]
-trait RangeClientLike {
-    async fn fetch_range(
-        &self,
-        url: &str,
-        range: &HttpRangeSpec,
-        expected_etag: Option<&str>,
-        cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponseDetailed>;
-}
-
-#[async_trait::async_trait]
-impl RangeClientLike for RangeClient {
-    async fn fetch_range(
-        &self,
-        url: &str,
-        range: &HttpRangeSpec,
-        expected_etag: Option<&str>,
-        cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponseDetailed> {
-        RangeClient::fetch_range(self, url, range, expected_etag, cancel).await
-    }
-}
-
+#[allow(clippy::too_many_arguments)]
 async fn run_single_chunk(
     spec: ChunkSpec,
     url: &str,
@@ -457,7 +439,7 @@ async fn run_single_chunk(
             Err(DownloadError::Cancelled) => {
                 return Err(DownloadError::Cancelled);
             }
-            Err(e) if attempt >= max_retries => {
+            Err(_e) if attempt >= max_retries => {
                 total_retry.fetch_add(attempt as u64, Ordering::SeqCst);
                 return Err(DownloadError::RetryExhausted {
                     chunk_index: spec.index,
@@ -482,6 +464,7 @@ async fn write_chunk(file_path: &str, spec: &ChunkSpec, body: &[u8]) -> Download
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(false)
         .open(file_path)
         .await
         .map_err(|e| DownloadError::Io {
@@ -506,8 +489,6 @@ async fn write_chunk(file_path: &str, spec: &ChunkSpec, body: &[u8]) -> Download
     })?;
     Ok(())
 }
-
-use std::io::Seek;
 
 #[cfg(test)]
 mod tests {

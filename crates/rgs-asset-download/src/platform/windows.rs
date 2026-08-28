@@ -20,10 +20,12 @@
 //! 本文件代码可在所有 target 编译（不引入 windows-sys 依赖；用 `cfg(windows)` 隔离）。
 //! 真实 Windows syscall 落到 PH-4（#2069）实装；M-2065.6+7 提供**接口 + 降级逻辑**。
 
-use crate::error::{DownloadError, DownloadResult};
-use crate::platform::{
-    fallback_preallocate, PreallocateOutcome, PreallocateStrategy, SparseFileAllocator,
-};
+#[cfg(not(target_os = "windows"))]
+use crate::error::DownloadError;
+use crate::error::DownloadResult;
+use crate::platform::{fallback_preallocate, PreallocateOutcome, SparseFileAllocator};
+#[cfg(all(test, target_os = "windows"))]
+use crate::platform::PreallocateStrategy;
 
 /// Windows sparse file 分配器（per `it_minio_platform.rs` 4 平台 trait 调用）
 ///

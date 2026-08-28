@@ -258,8 +258,10 @@ pub fn encode_metrics_text() -> Result<String, MetricsError> {
 /// Metrics 错误。
 #[derive(Debug, thiserror::Error)]
 pub enum MetricsError {
+    /// Prometheus text format 编码失败
     #[error("Prometheus encoding error: {0}")]
     Encoding(String),
+    /// Metric 注册到 registry 失败（如重复注册）
     #[error("Prometheus register error: {0}")]
     Register(String),
 }
