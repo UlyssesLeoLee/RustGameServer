@@ -37,12 +37,11 @@ jobs:
 
       - name: Run markdownlint
         # 53.5 起步：仅检查 docs/ 目录（排除 deploy 目录里的笔记/草稿）
-        # 55.4 升 v0.4 时把 config 提到 .markdownlint-cli2.yamlc
+        # config 见仓库根 .markdownlint-cli2.jsonc（markdownlint-cli2 --config 只接受文件路径，不接受内联 JSON）
         run: |
           markdownlint-cli2 \
             "docs/**/*.md" \
-            "#docs/deploy/README.md" \
-            --config '{"default":true,"MD013":false,"MD033":false,"MD041":false}'
+            "#docs/deploy/README.md"
 
   lychee:
     name: lychee link check on ubuntu-latest
@@ -62,7 +61,7 @@ jobs:
             lycheeverse/lychee:latest \
             --offline \
             --exclude-loopback \
-            --exclude-mail \
+            --exclude '^mailto:' \
             --no-progress \
             "/input/docs/**/*.md"
 
