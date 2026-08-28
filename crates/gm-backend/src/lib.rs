@@ -206,11 +206,75 @@ impl AdminGrpcClient {
     /// 尝试连接 admin-service(失败返 Err,AppState 设 None 降级)
     /// 用 `Endpoint::connect_lazy()` 构造 Channel(实际连接在第一次 RPC 时发生),
     /// 符合 fail-open 语义:AppState::with_audit_store 不会因 admin-service 未就绪而 panic
+    ///
+    /// W9 (2026-08-28): mTLS 实装 (per RGS-BAS-003 §2.1)
+    /// - env `GM_CLIENT_TLS_DOMAIN` / `GM_CLIENT_TLS_CA` / `GM_CLIENT_TLS_CERT` / `GM_CLIENT_TLS_KEY` 全设 → 启用 mTLS
+    /// - 任一缺失 → 降级 plaintext (与 v0.2 行为一致, dev/test 友好)
     pub fn try_connect(config: &GmConfig) -> Result<Self> {
-        let endpoint = tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
+        let base_endpoint = tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
             .context("invalid admin_grpc_endpoint")?
             .timeout(Duration::from_millis(500))
             .connect_timeout(Duration::from_millis(500));
+
+        // mTLS 加载 (W9 增量, per BAS-003 §2.1 + DEC-015 P1)
+        let tls_domain = std::env::var("GM_CLIENT_TLS_DOMAIN").ok();
+        let tls_ca = std::env::var("GM_CLIENT_TLS_CA").ok();
+        let tls_cert = std::env::var("GM_CLIENT_TLS_CERT").ok();
+        let tls_key = std::env::var("GM_CLIENT_TLS_KEY").ok();
+        let endpoint = match (&tls_domain, &tls_ca, &tls_cert, &tls_key) {
+            (Some(d), Some(ca), Some(cert), Some(key)) => {
+                match shared_platform::tls::load_client_tls(
+                    &shared_platform::tls::ClientTlsConfigInput {
+                        domain: d.clone(),
+                        ca_cert_path: ca.clone(),
+                        client_cert_path: cert.clone(),
+                        client_key_path: key.clone(),
+                    },
+                ) {
+                    Ok(tls_config) => {
+                        tracing::info!(
+                            target: "gm-backend",
+                            domain = %d,
+                            "mTLS ENABLED for admin-service (per W9 + BAS-003 §2.1)"
+                        );
+                        // tls_config 失败时 fallback 重建 base_endpoint
+                        base_endpoint
+                            .tls_config(tls_config)
+                            .unwrap_or_else(|e| {
+                                tracing::warn!(
+                                    target: "gm-backend",
+                                    error = %e,
+                                    "mTLS tls_config failed, falling back to plaintext"
+                                );
+                                // 重建 base_endpoint (已 move, 用原始 URL + timeout 重建)
+                                tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
+                                    .expect("invalid admin_grpc_endpoint")
+                                    .timeout(Duration::from_millis(500))
+                                    .connect_timeout(Duration::from_millis(500))
+                            })
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            target: "gm-backend",
+                            error = %e,
+                            "mTLS cert load failed, falling back to plaintext"
+                        );
+                        base_endpoint
+                    }
+                }
+            }
+            _ => {
+                if config.admin_grpc_endpoint.starts_with("https://") {
+                    tracing::warn!(
+                        target: "gm-backend",
+                        "admin_grpc_endpoint uses https:// but mTLS env not set (GM_CLIENT_TLS_DOMAIN/CA/CERT/KEY) — \
+                         falling back to plaintext (NOT secure for prod)"
+                    );
+                }
+                base_endpoint
+            }
+        };
+
         let channel = endpoint.connect_lazy();
         let client = crate::admin::v1::admin_service_client::AdminServiceClient::new(channel);
         Ok(Self { client })
