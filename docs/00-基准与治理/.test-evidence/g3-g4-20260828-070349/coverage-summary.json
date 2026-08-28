@@ -1,0 +1,163 @@
+{
+  "workspace_total": {
+    "lines_found": 11639.0,
+    "lines_hit": 8829.0,
+    "branches_found": 0.0,
+    "branches_hit": 0.0,
+    "files": 96.0
+  },
+  "workspace_line_pct": 75.9,
+  "workspace_branch_pct": 0,
+  "by_crate": [
+    {
+      "crate": "economy-service",
+      "files": 10,
+      "lines_found": 2154,
+      "lines_hit": 1653,
+      "line_pct": 76.7,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "cluster-ops",
+      "files": 8,
+      "lines_found": 1011,
+      "lines_hit": 740,
+      "line_pct": 73.2,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-arc-olu",
+      "files": 1,
+      "lines_found": 22,
+      "lines_hit": 22,
+      "line_pct": 100.0,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-certgen",
+      "files": 1,
+      "lines_found": 66,
+      "lines_hit": 63,
+      "line_pct": 95.5,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "function-plane",
+      "files": 5,
+      "lines_found": 369,
+      "lines_hit": 265,
+      "line_pct": 71.8,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-overflow-alert",
+      "files": 7,
+      "lines_found": 998,
+      "lines_hit": 815,
+      "line_pct": 81.7,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-testkit",
+      "files": 4,
+      "lines_found": 229,
+      "lines_hit": 213,
+      "line_pct": 93.0,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "shared-platform",
+      "files": 18,
+      "lines_found": 1825,
+      "lines_hit": 1364,
+      "line_pct": 74.7,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-hello",
+      "files": 1,
+      "lines_found": 3,
+      "lines_hit": 0,
+      "line_pct": 0.0,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "player-service",
+      "files": 6,
+      "lines_found": 576,
+      "lines_hit": 388,
+      "line_pct": 67.4,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "admin-service",
+      "files": 7,
+      "lines_found": 735,
+      "lines_hit": 518,
+      "line_pct": 70.5,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "gm-backend",
+      "files": 2,
+      "lines_found": 274,
+      "lines_hit": 250,
+      "line_pct": 91.2,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "rgs-asset-download",
+      "files": 12,
+      "lines_found": 2232,
+      "lines_hit": 1809,
+      "line_pct": 81.0,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "match-service",
+      "files": 7,
+      "lines_found": 613,
+      "lines_hit": 381,
+      "line_pct": 62.2,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    },
+    {
+      "crate": "social-service",
+      "files": 7,
+      "lines_found": 532,
+      "lines_hit": 348,
+      "line_pct": 65.4,
+      "branches_found": 0,
+      "branches_hit": 0,
+      "branch_pct": 0
+    }
+  ]
+}
