@@ -51,6 +51,25 @@
 保留 + 加本文件 + 推 OPEN-QA Q7,等 Ulysses DDD Review 阶段决策 A/B/C 之一。
 **本次采用**:方案 C + 方案 D 组合——保留 + 文档化 + 跟踪决策到 OPEN-QA Q7。
 
+## 4. v0.3 终方案处置结果(per Ulysses 2026-08-28 10:33 JST 决策)
+
+**采纳**:方案 A' (单文件 ut_state_machine.rs 删除 + P3 follow-up 其余 3 文件)
+
+### 4.1 处置动作
+
+- ✅ `ut_state_machine.rs` 已 `git rm`(per commit 实际包含在本次)
+  - 原因:与 `src/realm_lifecycle/tests/ut_state_machine.rs` 完全重复(23 fn 全部覆盖,且新文件新增 6 个更细粒度 fn)
+  - 验证:`cargo test -p cluster-ops` 仍 56 PASS(因为旧 ut_state_machine 本来就不在跑)
+- ⏳ `ut_feature_adapter.rs` 留 P3 follow-up(20 fn, PFAU 7 阶段已间接覆盖 per 6b9a8d0)
+- ⏳ `ut_olu.rs` 留 P3 follow-up(11 fn, 需重新评估 OLU 度量)
+- ⏳ `ut_saga.rs` 留 P3 follow-up(5 fn, SagaOrchestrator 已重构,旧断言可能失效)
+
+### 4.2 处置后状态
+
+- `tests-disabled/` 现有 3 个 ut_*.rs(ut_feature_adapter / ut_olu / ut_saga) + 12 个 drill_*.rs + it_cross_domain.rs + load_snapshot.rs + fail_closed_start.rs
+- 全部继续保留 + 文档化(C 方案兜底)
+- P3 follow-up 跟踪:OPEN-QA Q7 v0.4(待 v0.3 实装时再决 A 全迁 vs git rm)
+
 ## 4. 验证 Cargo.toml 排除
 
 `crates/cluster-ops/Cargo.toml` 未显式 include/exclude `tests-disabled/`,但 `tests/` 目录约定是 cargo 默认只识别 `tests/*.rs`。`tests-disabled/` 因前缀不匹配不会被 cargo test 识别。
