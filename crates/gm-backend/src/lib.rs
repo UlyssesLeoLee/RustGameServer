@@ -48,7 +48,8 @@ pub mod common {
 }
 
 // W18 (2026-08-28): Circuit breaker (5 次失败 → 30s 断开)
-// W20 (2026-08-28): wire 到 AdminGrpcClient 5 method (gm-backend 4 endpoint + 业务 1)
+// W20 (2026-08-28): wire 到 AdminGrpcClient 4 method (gm-backend 4 endpoint)
+// W23 (2026-08-28): integration 5 IT 验证 wire + chaos 集成
 // 关联: RGS-OPEN-QA v0.4 DDD Review 决议
 pub mod circuit_breaker;
 
@@ -205,7 +206,9 @@ impl AppState {
 /// - 提供 `health_check(timeout)` 调 admin-service HealthCheck
 pub struct AdminGrpcClient {
     client: crate::admin::v1::admin_service_client::AdminServiceClient<tonic::transport::Channel>,
-    /// W20 (2026-08-28): Circuit breaker (5 失败 → 30s 断开, 共享 4 method)
+    /// W18 (2026-08-28): Circuit breaker (5 次失败 → 30s 断开)
+    /// W20 (2026-08-28): wire 到 4 method (gm-backend 4 endpoint)
+    /// W23 (2026-08-28): wire 到 5 method (gm-backend 4 endpoint + 业务 1)
     breaker: std::sync::Arc<crate::circuit_breaker::CircuitBreaker>,
 }
 
@@ -213,6 +216,8 @@ impl AdminGrpcClient {
     /// 尝试连接 admin-service(失败返 Err,AppState 设 None 降级)
     /// 用 `Endpoint::connect_lazy()` 构造 Channel(实际连接在第一次 RPC 时发生),
     /// 符合 fail-open 语义:AppState::with_audit_store 不会因 admin-service 未就绪而 panic
+    ///
+    /// W23 (2026-08-28): 加 CircuitBreaker 默认 (5 失败 → 30s 断开)
     pub fn try_connect(config: &GmConfig) -> Result<Self> {
         let endpoint = tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
             .context("invalid admin_grpc_endpoint")?
@@ -227,6 +232,7 @@ impl AdminGrpcClient {
     }
 
     /// 调 admin-service HealthCheck, 500ms timeout, 失败返 Err
+    /// W23: 走 CircuitBreaker (共享 5 method 失败计数)
     pub async fn health_check(&self) -> Result<()> {
         use crate::common::v1::HealthCheckRequest;
         if !self.breaker.try_acquire() {
