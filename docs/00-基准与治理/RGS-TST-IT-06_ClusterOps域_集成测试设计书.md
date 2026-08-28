@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 10:33 JST |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码文档 | RGS-DTL-042 §4(6 阶段)/§5(操作器)/§6(LCM 演练)/§7(跨域) |
+| 关联基本设计 | RGS-BAS-009, RGS-BAS-012, RGS-BAS-022, RGS-BAS-031, RGS-BAS-037 |
 | 关联源代码 | `crates/cluster-ops/src/realm_lifecycle/**/*.rs` + tests/ + tests-disabled/ |
 | 关联测试代码 | ✅ 56 PASS(per 2026-08-28 evidence) |
 

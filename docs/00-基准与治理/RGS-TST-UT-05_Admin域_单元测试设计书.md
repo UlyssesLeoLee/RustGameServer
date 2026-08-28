@@ -11,6 +11,7 @@
 | 编制者 | 架构师（Mavis 接手 agent per DEC-008,代签）|
 | 编制日期 | 2026-08-28 |
 | 关联源代码 | `crates/admin-service/src/lib.rs` + `crates/admin-service/tests/{integration_admin_basic,fail_closed_start}.rs` |
+| 关联基本设计 | RGS-BAS-003, RGS-BAS-005, RGS-BAS-007, RGS-BAS-009, RGS-BAS-031 |
 | 关联测试代码 | ✅ 2 个 test 文件（per 2026-08-28,20 测试 PASS）|
 
 ---

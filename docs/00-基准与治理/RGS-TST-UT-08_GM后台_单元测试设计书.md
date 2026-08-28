@@ -15,6 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码文档 | RGS-REQ-007, RGS-BAS-003, RGS-REQ-019, RGS-REQ-020, RGS-REQ-024, RGS-BAS-021, RGS-DTL-003, RGS-DTL-040 |
+| 关联基本设计 | RGS-BAS-003, RGS-BAS-009, RGS-BAS-021 |
 | 关联测试代码 | `crates/gm-backend/tests/ut_config.rs`（已实现 6 测试） |
 
 ---

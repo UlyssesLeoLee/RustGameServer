@@ -15,6 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码文档 | RGS-DTL-018 §2/§3 (OCC),§4 (outbox),DTL-100 Saga,DTL-102 Saga 恢复 |
+| 关联基本设计 | RGS-BAS-001, RGS-BAS-002, RGS-BAS-007, RGS-BAS-009, RGS-BAS-015, RGS-BAS-100 |
 | 关联源代码 | `crates/economy-service/src/lib.rs` + 5 个 integration_/chaos_/span_ test 文件 |
 | 关联测试代码 | ✅ 5 test 文件(per 2026-08-28,57 PASS / 1 fail / 1 ignored) |
 

@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 10:33 JST |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码文档 | RGS-SPEC-DTL-041 §6 (8 状态), M-2064.6 (断点续传/Range/chunk), RGS-REQ-007 §3.4 (NFR-110/112) |
+| 关联基本设计 | RGS-BAS-009, RGS-BAS-022, RGS-BAS-027, RGS-BAS-036 |
 | 关联源代码 | `crates/rgs-asset-download/src/**/*.rs` + tests/ |
 | 关联测试代码 | ✅ 13 test 文件(5 ut_ + 6 it_minio + 3 it_cloudflare + 2 chaos + 1 security + 1 load) |
 

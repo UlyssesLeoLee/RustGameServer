@@ -15,6 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码文档 | RGS-IMPL-001 §4, RGS-SPEC-000 §2.1, RGS-REQ-007 §2.1, RGS-BAS-003 §2.1 |
+| 关联基本设计 | RGS-BAS-009 |
 | 关联源代码 | `crates/rgs-certgen/src/main.rs`（4495 字节） |
 | 关联测试代码 | **暂无** |
 

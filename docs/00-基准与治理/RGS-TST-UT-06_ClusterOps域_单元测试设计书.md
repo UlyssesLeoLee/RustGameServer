@@ -11,6 +11,7 @@
 | 编制者 | 架构师（Mavis 接手 agent per DEC-008,代签）|
 | 编制日期 | 2026-08-28 |
 | 关联源代码 | `crates/cluster-ops/src/**/*.rs` + `crates/cluster-ops/src/realm_lifecycle/tests/{ut_state_machine,ut_saga,mod}.rs` + `crates/cluster-ops/tests/{drill_*,fail_closed_start,it_cross_domain,load_snapshot}.rs` |
+| 关联基本设计 | RGS-BAS-009, RGS-BAS-012, RGS-BAS-022, RGS-BAS-031, RGS-BAS-037 |
 | 关联测试代码 | ⚠️ `tests-disabled/` 4 个 ut_*.rs 旧债待清理 + `src/realm_lifecycle/tests/` 2 ut_*.rs 已迁(46 + 25 = 71 测试 PASS) |
 
 ---
