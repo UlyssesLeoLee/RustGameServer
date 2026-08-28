@@ -1,10 +1,10 @@
 # RGS-OPEN-QA-2026-08-27-k3s-deploy — 待答问题清单
 
 > **文档 ID**: RGS-OPEN-QA-2026-08-27-k3s-deploy
-> **版本**: v0.1
-> **生效日期**: 2026-08-27 22:05 JST
+> **版本**: v0.2
+> **生效日期**: 2026-08-27 22:05 JST(v0.2 修订 2026-08-28)
 > **作者**: 架构师(Mavis 接手 agent per DEC-008,代签)
-> **状态**: 🟡 OPEN(Q1/Q2/Q3/Q5/Q6 已决策/已执行,Q4 根因诊断有新证据待复核,详见各条 + §4 修订历史)
+> **状态**: 🟡 OPEN(Q1/Q2/Q3/Q5/Q6 已决策/已执行;Q4 根因诊断有新证据待复核;**Q7 新增** 2026-08-28 cluster-ops/tests-disabled/ 旧债 + TBD-08/09 排期,详见各条 + §4 修订历史)
 > **范围**: 2026-08-27 12:43 JST 部署完成 + 16:30 JST 后续 P0/P1/P2 收尾,9 个 DDD Review blocker / 决策项
 > **关联**:
 > - 部署报告:`docs/deploy/.run-logs/2026-08-27-deploy-all/DEPLOY-REPORT.md` (6664 字节)
@@ -188,6 +188,40 @@
 
 ---
 
+### Q7. 🟡 cluster-ops/tests-disabled/ 4 ut_*.rs 旧债处置 + TBD-08-NN/TBD-09-NN 排期(P2 治理,2026-08-28 追加)
+
+**问题描述**:
+- per 2026-08-28 08:40 JST Ulysses "实施ut" 指令 + ut 实施批次,发现 2 类遗留:
+  1. **cluster-ops/tests-disabled/ 4 ut_*.rs 旧债**(ut_feature_adapter / ut_olu / ut_saga / ut_state_machine)
+     - 来源:commit `b74ccc3` (2026-08-27 08:00 JST) RGS-INC-002 v0.1 复盘,saga 编译死锁临时禁用
+     - 现状:源码已搬至 `src/realm_lifecycle/`,旧测试 fn 引用旧路径,无法直接迁回
+     - 决策记录:`crates/cluster-ops/tests-disabled/OLD-DEBT.md`(本次新增,3 处置方案候选)
+  2. **TBD-08-NN (8 条) + TBD-09-NN (44 条) 实装排期**(per 2026-08-28 跨反馈 F7/F8 衍生 D4)
+     - TBD-08-01~08:gm-backend 8 条(JWT / mTLS / gRPC client / audit_log / coverage / etc)
+     - TBD-09-01 已关闭(本轮实装 17 黑盒),剩 TBD-09-02~04 + TBD-09-08(per UT-09 v0.2)
+
+**决策项**:
+- [ ] cluster-ops/tests-disabled/ 处置方案(迁回 tests/ / 移到 git 历史 / 保留 + 文档化) → **临时方案 C(保留 + 文档化)**,待 DDD Review 阶段决策
+- [ ] TBD-08-NN + TBD-09-NN 排期(v0.2 / v0.3 / 长期) → **待 8 域 Lead 联合排期**
+
+**决议**(2026-08-28,Mavis 接手 agent per DEC-008 代签临时方案):
+- 临时采用方案 C(保留 + `OLD-DEBT.md` 文档化),不动 Cargo.toml,保持 `cargo build --tests -p cluster-ops` 0 error
+- 跟踪到本 OPEN-QA Q7,DDD Review 阶段由 Ulysses + cluster-ops 域 Lead(per Q2 待具名)+ SRE Lead 联合决策 A/B/C 终方案
+- TBD-08/09 排期依赖域 Lead 具名 + 8 域 Lead 联合协调,本轮仅关闭 TBD-09-01
+
+**负责**:cluster-ops 域 Lead(待具名 per Q2)+ Ulysses 决策
+
+**阻塞影响**:
+- 方案 C 保留不删,0 阻塞,只是新增接手 agent 需先读 OLD-DEBT.md 才会知道 tests-disabled/ 不在 cargo test 范围
+- TBD-08/09 排期延后会拖慢 v0.2 实装节奏
+
+**关联 commit**:
+- `94ba812` UT-09 rgs-certgen 17 黑盒实装 + 7 域 example + mock-registry
+- 本批 commit:evidence 脚本 + 6 域独立 UT 文档 + tests-disabled/ OLD-DEBT.md
+- TBD-08-01~08 暂未实装,留 v0.2 阶段
+
+---
+
 ## 2. 已闭合项(本 OPEN-QA 范围外,但供参考)
 
 - ✅ 8 域 + 4 基础设施部署(2026-08-27 12:43-16:08 JST)
@@ -227,6 +261,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-27 22:05 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | 初版:6 个 OPEN 问题 + 9 个已闭合项 | 🟡 OPEN |
 | 0.1(原地追记) | 2026-08-27 | 架构师(Mavis 接手 agent per DEC-008,代签) | Q1:git mv 合并 3 处误落目录回 `00-基准与治理/`,已执行;Q2/Q3/Q6:记录决议(判断性,未改动其他文档);Q4:根因诊断修正(CRLF/LF hash 风险,非"重新编译"),仍 OPEN,未构建/推送镜像;Q5:5 域已串行重启,发现 NetworkPolicy 缺口(`nats-ingress` 从未 apply + manifest 自身 2 处标签 bug),仍 🔴 未解决 | 🟡 OPEN(Q4/Q5 待续) |
+| 0.2 | 2026-08-28 | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q7 新增**:per 2026-08-28 08:40 JST "实施ut" 指令 + ut 实施批次,发现 2 类遗留:① cluster-ops/tests-disabled/ 4 ut_*.rs 旧债(commit `b74ccc3` RGS-INC-002 复盘临时禁用,源码已搬至 `src/realm_lifecycle/`,决策记录 `OLD-DEBT.md`,临时方案 C 保留 + 文档化) ② TBD-08-NN (8 条) + TBD-09-NN (剩 3 条) 实装排期(per 2026-08-28 跨反馈 F7/F8 衍生 D4)。本批同时关闭 TBD-09-01(per UT-09 v0.2 实装 17/17 PASS) | 🟡 OPEN(Q7 临时方案 C,DDC Review 阶段决策 A/B/C 终方案 + TBD 排期) |
 
 ---
 
