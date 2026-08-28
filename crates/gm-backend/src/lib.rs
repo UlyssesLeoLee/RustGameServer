@@ -47,6 +47,10 @@ pub mod common {
     }
 }
 
+// W11 (2026-08-28): 业务 handler 模块 (4 endpoint 真实 body 解析)
+// 关联: docs/00-基准与治理/RGS-S4-PHASE2-STEP1-设计.md
+pub mod business_handler;
+
 // ============================================================================
 // 配置
 // ============================================================================
@@ -410,7 +414,14 @@ pub struct AuditLogEntry {
 // ============================================================================
 
 pub fn build_router(state: AppState) -> Router {
-    let api = Router::new()
+    // W11 (2026-08-28): 业务路由 v2 接入
+    // 旧 stub 路由 (v1) 保留兼容, 新业务路由 (v2) 用 business_handler 真实解析 body
+    use crate::business_handler::{
+        ban_account_business, grant_compensation_business, query_audit_business,
+        set_maintenance_business,
+    };
+
+    let api_v1 = Router::new()
         .route("/api/v1/gm/health/view", get(health_view))
         .route("/api/v1/gm/ban", post(ban_account))
         .route("/api/v1/gm/compensation", post(grant_compensation))
@@ -418,10 +429,20 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/audit/logs", get(query_audit))
         .layer(middleware::from_fn_with_state(state.clone(), jwt_middleware));
 
+    // 业务 v2 路由: 真实 body 解析 (per W7 business_handler.rs)
+    // 仍走 JWT middleware
+    let api_v2 = Router::new()
+        .route("/api/v2/gm/ban", post(ban_account_business))
+        .route("/api/v2/gm/compensation", post(grant_compensation_business))
+        .route("/api/v2/gm/maintenance", post(set_maintenance_business))
+        .route("/api/v2/audit/logs", post(query_audit_business)) // POST 因 query body 复杂
+        .layer(middleware::from_fn_with_state(state.clone(), jwt_middleware));
+
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
-        .merge(api)
+        .merge(api_v1)
+        .merge(api_v2)
         .with_state(state)
 }
 
