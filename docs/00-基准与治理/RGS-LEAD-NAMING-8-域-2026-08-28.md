@@ -2,7 +2,7 @@
 
 > **目的**:为 8 域 + cluster-ops + gm-backend + 工具集 配置独立 Lead 实名(per DEC-005 兼任拒绝原则)
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 09:30 JST)
-> **状态**:🟡 OPEN — 待 Ulysses 终审(一人公司 12 角色,决策权在 Ulysses)
+> **状态**:✅ 已追认采纳(per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正;RACI v1.2 升级仍留待 DDD Review 阶段,见 §5)
 > **关联**:Q2 OPEN-QA(per RGS-OPEN-QA-2026-08-27-k3s-deploy §Q2)+ DEC-005(5 域独立 Lead 拒绝兼任)+ DEC-008(一人公司 12 角色)
 
 ---
@@ -119,12 +119,12 @@ Ulysses 一人公司模式 12 角色,本表"8 域 Lead 具名"采用以下映射
 | RACI v1.2 升级 | 立即 / DDD Review 阶段 | **DDD Review 阶段**(per Q2 决议)|
 | 一人公司 12 角色 vs 8 域 Lead 数量 | 12 角色 vs 8 域 + 共享 4 | **合理**(共享支持 + 8 域) |
 
-## 6. 待 Ulysses 终审
+## 6. Ulysses 终审(✅ 已追认,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md`,2026-08-28 12:21 JST)
 
-- [ ] 是否同意 §1 8 域 Lead 角色映射
-- [ ] 是否同意 §1.5 共享支持角色
-- [ ] RACI v1.2 升级窗口(DDD Review 阶段 vs 立即)
-- [ ] 12 角色 vs 8 域 数量是否合理
+- [x] 同意 §1 8 域 Lead 角色映射
+- [x] 同意 §1.5 共享支持角色
+- [x] RACI v1.2 升级窗口 = DDD Review 阶段(非立即)
+- [x] 12 角色 vs 8 域 数量合理
 
 ## 7. 关闭条件(per Q2)
 

@@ -3,7 +3,7 @@
 > **目的**:7 域(5 域 + cluster-ops + admin)用 `wiremock 0.6` HTTP mock server,8 域 gm-backend 用 `axum-test 16` in-process router,工具栈不统一
 > **关联**:TBD-08-06 v0.2 处置 + RGS-UT-08 工具栈治理
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 ut 实施 v0.2)
-> **状态**:🟡 OPEN — 待 Ulysses 决策
+> **状态**:✅ 已追认(方案 D,双工具并存,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
 
 ---
 
@@ -65,7 +65,7 @@
 - [ ] v0.3 试点从哪个 5 域开始
 - [ ] 评估指标是否需要量化阈值(跑测时间 < X 秒 / 失败率 < Y%)
 
-## 5. v0.3 终审决议(per Ulysses 2026-08-28 10:33 JST)
+## 5. v0.3 终审决议(per Ulysses 真实追认,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,确认时间 2026-08-28 12:21 JST)
 
 ✅ **采纳** 方案 D(双工具并存, 短期推荐)
 
