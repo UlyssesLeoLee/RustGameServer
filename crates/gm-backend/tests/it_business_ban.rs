@@ -22,7 +22,10 @@ fn build_test_state() -> AppState {
 async fn ban_account_parses_body_and_writes_audit_log() {
     // 真实 ban: account_id="player_123", reason="cheating", duration=3600
     let app = axum::Router::new()
-        .route("/api/v1/gm/ban", axum::routing::post(gm_backend::ban_account))
+        .route(
+            "/api/v1/gm/ban",
+            axum::routing::post(gm_backend::ban_account),
+        )
         .with_state(build_test_state());
 
     let body = serde_json::json!({
@@ -51,7 +54,10 @@ async fn ban_account_parses_body_and_writes_audit_log() {
 #[tokio::test]
 async fn ban_account_rejects_empty_account_id() {
     let app = axum::Router::new()
-        .route("/api/v1/gm/ban", axum::routing::post(gm_backend::ban_account))
+        .route(
+            "/api/v1/gm/ban",
+            axum::routing::post(gm_backend::ban_account),
+        )
         .with_state(build_test_state());
 
     let body = serde_json::json!({
@@ -79,7 +85,10 @@ async fn ban_account_rejects_empty_account_id() {
 async fn ban_account_works_with_minimal_body() {
     // duration_seconds 缺省 → 默认 0 (永久)
     let app = axum::Router::new()
-        .route("/api/v1/gm/ban", axum::routing::post(gm_backend::ban_account))
+        .route(
+            "/api/v1/gm/ban",
+            axum::routing::post(gm_backend::ban_account),
+        )
         .with_state(build_test_state());
 
     let body = serde_json::json!({
@@ -105,7 +114,10 @@ async fn ban_account_works_with_minimal_body() {
 async fn ban_account_rejects_missing_account_id_field() {
     // 缺 account_id 字段 → axum Json extractor 返 400
     let app = axum::Router::new()
-        .route("/api/v1/gm/ban", axum::routing::post(gm_backend::ban_account))
+        .route(
+            "/api/v1/gm/ban",
+            axum::routing::post(gm_backend::ban_account),
+        )
         .with_state(build_test_state());
 
     let body = serde_json::json!({

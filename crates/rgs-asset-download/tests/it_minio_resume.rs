@@ -11,8 +11,8 @@
 
 mod common;
 
-use common::*;
 use common::size::*;
+use common::*;
 use rgs_asset_download::{api::ResumeToken, state_machine::DownloadState};
 use std::path::PathBuf;
 
@@ -22,7 +22,10 @@ const AC_ID: &str = "AC_CDN_112";
 fn make_resume_token(asset_id: &str, completed_chunks: Vec<u32>) -> ResumeToken {
     use chrono::TimeZone;
     use rgs_asset_download::api::ResumeToken;
-    let ts = chrono::Utc.timestamp_opt(1_700_000_000, 0).single().unwrap();
+    let ts = chrono::Utc
+        .timestamp_opt(1_700_000_000, 0)
+        .single()
+        .unwrap();
     ResumeToken {
         schema_version: 1,
         token_id: format!("tok-{asset_id}"),
@@ -106,7 +109,10 @@ fn it_ac_cdn_112_state_machine_illegal_transition_rejected() {
     sm.transition(DownloadState::Downloading);
     sm.transition(DownloadState::Completed);
     // 尝试 Completed → Downloading
-    assert!(!sm.transition(DownloadState::Downloading), "Completed → Downloading 应被拒绝");
+    assert!(
+        !sm.transition(DownloadState::Downloading),
+        "Completed → Downloading 应被拒绝"
+    );
 }
 
 /// FR-CDN-083 grep 验证：暂停时必须取消 in_flight

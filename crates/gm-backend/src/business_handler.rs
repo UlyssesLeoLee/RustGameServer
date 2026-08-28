@@ -134,25 +134,24 @@ pub async fn health_view(
     State(s): State<AppState>,
     Query(q): Query<HealthViewQuery>,
 ) -> impl IntoResponse {
-    let request_id = q.request_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let request_id = q
+        .request_id
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now_ms = Utc::now().timestamp_millis();
     let ready = match s.admin_grpc.as_ref() {
-        Some(client) => match tokio::time::timeout(
-            Duration::from_millis(500),
-            client.health_check(),
-        )
-        .await
-        {
-            Ok(Ok(())) => true,
-            Ok(Err(e)) => {
-                tracing::warn!("admin-service health_check failed: {e}");
-                false
+        Some(client) => {
+            match tokio::time::timeout(Duration::from_millis(500), client.health_check()).await {
+                Ok(Ok(())) => true,
+                Ok(Err(e)) => {
+                    tracing::warn!("admin-service health_check failed: {e}");
+                    false
+                }
+                Err(_) => {
+                    tracing::warn!("admin-service health_check timeout (500ms)");
+                    false
+                }
             }
-            Err(_) => {
-                tracing::warn!("admin-service health_check timeout (500ms)");
-                false
-            }
-        },
+        }
         None => true, // 测试 / 初始化失败时保持 stub 行为
     };
     let services = vec![ServiceHealthEntry {
@@ -194,7 +193,10 @@ pub async fn ban_account(
         return bad_request("missing_reason", "reason must not be empty");
     }
     if body.duration_seconds < 0 {
-        return bad_request("invalid_duration", "duration_seconds must be >= 0 (0 = permanent)");
+        return bad_request(
+            "invalid_duration",
+            "duration_seconds must be >= 0 (0 = permanent)",
+        );
     }
 
     let request_id = uuid::Uuid::new_v4().to_string();
@@ -332,10 +334,7 @@ pub async fn set_maintenance(
 ) -> impl IntoResponse {
     // 字段级校验
     if !ALLOWED_MAINTENANCE_SCOPES.contains(&body.scope.as_str()) {
-        return bad_request(
-            "invalid_scope",
-            "scope must be cluster|domain|single_node",
-        );
+        return bad_request("invalid_scope", "scope must be cluster|domain|single_node");
     }
     if body.target_id.trim().is_empty() {
         return bad_request("missing_target_id", "target_id must not be empty");
@@ -408,7 +407,10 @@ pub async fn query_audit(
     Query(q): Query<QueryAuditLogQuery>,
 ) -> impl IntoResponse {
     let request_id = uuid::Uuid::new_v4().to_string();
-    let limit = q.limit.unwrap_or(DEFAULT_AUDIT_LIMIT).clamp(1, MAX_AUDIT_LIMIT);
+    let limit = q
+        .limit
+        .unwrap_or(DEFAULT_AUDIT_LIMIT)
+        .clamp(1, MAX_AUDIT_LIMIT);
     let cursor = q.cursor.unwrap_or_default();
     let filter_admin = q.filter_admin.unwrap_or_default();
     let filter_action = q.filter_action.unwrap_or_default();

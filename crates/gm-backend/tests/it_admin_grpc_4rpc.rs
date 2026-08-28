@@ -75,7 +75,9 @@ async fn set_maintenance_with_unreachable_admin_returns_202_with_propagating() {
     let started = std::time::Instant::now();
     let resp = server
         .post("/api/v1/gm/maintenance")
-        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .json(
+            &json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}),
+        )
         .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);

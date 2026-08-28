@@ -45,7 +45,9 @@ async fn it_ac_cdn_115_cloudflare_cross_region_replication() {
 #[ignore = "PH-5: 需 Cloudflare 切流配置（M-2072.3）"]
 async fn it_ac_cdn_116_cloudflare_traffic_shift_5_25_100() {
     eprintln!("[AC_CDN_116] Cloudflare 切流验证：5% → 25% → 100%");
-    eprintln!("[AC_CDN_116] 步骤：1) DNS weighted record  2) 5% 灰度  3) 监控 + 切到 25%  4) 切到 100%");
+    eprintln!(
+        "[AC_CDN_116] 步骤：1) DNS weighted record  2) 5% 灰度  3) 监控 + 切到 25%  4) 切到 100%"
+    );
     panic!("PH-5 deferred — see WF-1-2072 / M-2072.3");
 }
 

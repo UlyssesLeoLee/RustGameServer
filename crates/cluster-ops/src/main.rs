@@ -22,8 +22,7 @@ use shared_platform::tls::load_server_tls_config;
 
 use cluster_ops::db;
 use cluster_ops::repository::{
-    ClusterNodeRepository, FeatureFlagRepository, PgClusterNodeRepository,
-    PgFeatureFlagRepository,
+    ClusterNodeRepository, FeatureFlagRepository, PgClusterNodeRepository, PgFeatureFlagRepository,
 };
 use cluster_ops::service::grpc_service::ClusterOpsGrpcService;
 use cluster_ops::service::ClusterOpsServiceImpl;
@@ -115,7 +114,9 @@ async fn main() -> anyhow::Result<()> {
     // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
-        .set_serving::<cluster_ops::proto::v1::cluster_ops_service_server::ClusterOpsServiceServer<ClusterOpsGrpcService>>()
+        .set_serving::<cluster_ops::proto::v1::cluster_ops_service_server::ClusterOpsServiceServer<
+            ClusterOpsGrpcService,
+        >>()
         .await;
     health_reporter
         .set_service_status("", tonic_health::ServingStatus::Serving)
@@ -141,7 +142,9 @@ async fn main() -> anyhow::Result<()> {
             &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
             &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
         )
-        .context("mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)")?;
+        .context(
+            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
+        )?;
         server_builder = server_builder
             .tls_config(tls_config)
             .context("tls_config")?;

@@ -61,16 +61,19 @@ async fn main() -> anyhow::Result<()> {
     let health_addr: SocketAddr = state.config.health_addr;
     let health_app = build_health_router(state.clone());
     tokio::spawn(async move {
-        let listener = TcpListener::bind(health_addr).await
+        let listener = TcpListener::bind(health_addr)
+            .await
             .expect("bind health addr");
         tracing::info!(target: "gm-backend", "health probe listening on {}", health_addr);
-        axum::serve(listener, health_app).await
+        axum::serve(listener, health_app)
+            .await
             .expect("health server");
     });
 
     // 主 HTTPS server(8443,生产模式 mTLS,当前 dev 跳过)
     let http_addr = state.config.http_addr;
-    let listener = TcpListener::bind(http_addr).await
+    let listener = TcpListener::bind(http_addr)
+        .await
         .context("bind GM_HTTP_ADDR")?;
     let api = build_router(state);
     tracing::info!(target: "gm-backend", "GM APIGW listening on https://{}", http_addr);

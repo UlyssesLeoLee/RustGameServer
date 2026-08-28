@@ -45,9 +45,11 @@ pub fn preallocate(path: &str, size: u64) -> DownloadResult<PreallocateOutcome> 
 pub fn preallocate(path: &str, _size: u64) -> DownloadResult<PreallocateOutcome> {
     // 非 Android target 调用 android::preallocate → fallback（错误）
     let _ = path;
-    Err(crate::error::DownloadError::PlatformPreallocateUnsupported {
-        target_os: "android (compiled on non-android)".into(),
-    })
+    Err(
+        crate::error::DownloadError::PlatformPreallocateUnsupported {
+            target_os: "android (compiled on non-android)".into(),
+        },
+    )
 }
 
 #[cfg(test)]

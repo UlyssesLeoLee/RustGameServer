@@ -61,7 +61,13 @@ fn tolerance_is_monotonic_non_decreasing() {
     let mut prev = tolerance(0, &p);
     for t in 0..1000 {
         let cur = tolerance(t, &p);
-        assert!(cur >= prev, "tolerance not monotonic at t={}: {} < {}", t, cur, prev);
+        assert!(
+            cur >= prev,
+            "tolerance not monotonic at t={}: {} < {}",
+            t,
+            cur,
+            prev
+        );
         prev = cur;
     }
 }
@@ -153,9 +159,18 @@ fn commit_proposed_match_all_occ_pass_commits() {
     // 3 个 entry,版本号对齐
     let db = MockOccDb::new(vec![("e1", 1), ("e2", 1), ("e3", 1)]);
     let proposal = vec![
-        ProposedEntry { entry_id: "e1".to_string(), version: 1 },
-        ProposedEntry { entry_id: "e2".to_string(), version: 1 },
-        ProposedEntry { entry_id: "e3".to_string(), version: 1 },
+        ProposedEntry {
+            entry_id: "e1".to_string(),
+            version: 1,
+        },
+        ProposedEntry {
+            entry_id: "e2".to_string(),
+            version: 1,
+        },
+        ProposedEntry {
+            entry_id: "e3".to_string(),
+            version: 1,
+        },
     ];
     let r = commit_proposed_match(&proposal, "m-1", &db);
     match r {
@@ -173,13 +188,25 @@ fn commit_proposed_match_one_conflict_rolls_back_succeeded() {
     let mut db = MockOccDb::new(vec![("e1", 1), ("e2", 1), ("e3", 1)]);
     db.force_conflict_on("e2");
     let proposal = vec![
-        ProposedEntry { entry_id: "e1".to_string(), version: 1 },
-        ProposedEntry { entry_id: "e2".to_string(), version: 1 },
-        ProposedEntry { entry_id: "e3".to_string(), version: 1 },
+        ProposedEntry {
+            entry_id: "e1".to_string(),
+            version: 1,
+        },
+        ProposedEntry {
+            entry_id: "e2".to_string(),
+            version: 1,
+        },
+        ProposedEntry {
+            entry_id: "e3".to_string(),
+            version: 1,
+        },
     ];
     let r = commit_proposed_match(&proposal, "m-1", &db);
     match r {
-        CommitResult::ConcurrentlyMatched { losing_entry, succeeded } => {
+        CommitResult::ConcurrentlyMatched {
+            losing_entry,
+            succeeded,
+        } => {
             assert_eq!(losing_entry, "e2");
             assert_eq!(succeeded, vec!["e1".to_string()]);
             // e1 已被 rollback (status = WAITING_ROLLBACK)
@@ -198,10 +225,16 @@ fn commit_proposed_match_one_conflict_rolls_back_succeeded() {
 fn commit_proposed_match_version_mismatch_returns_conflict() {
     // e1 version=1 但 proposal 说 version=2,应该 conflict
     let db = MockOccDb::new(vec![("e1", 1)]);
-    let proposal = vec![ProposedEntry { entry_id: "e1".to_string(), version: 2 }];
+    let proposal = vec![ProposedEntry {
+        entry_id: "e1".to_string(),
+        version: 2,
+    }];
     let r = commit_proposed_match(&proposal, "m-1", &db);
     match r {
-        CommitResult::ConcurrentlyMatched { losing_entry, succeeded } => {
+        CommitResult::ConcurrentlyMatched {
+            losing_entry,
+            succeeded,
+        } => {
             assert_eq!(losing_entry, "e1");
             assert!(succeeded.is_empty());
         }

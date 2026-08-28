@@ -154,12 +154,13 @@ impl AlertSink for SmtpAlertSink {
         let subject = event.subject();
         let body = event.body();
         let email = Message::builder()
-            .from(from.parse().map_err(|e: lettre::address::AddressError| {
-                AlertError::Build(e.to_string())
-            })?)
-            .to(to.parse().map_err(|e: lettre::address::AddressError| {
-                AlertError::Build(e.to_string())
-            })?)
+            .from(
+                from.parse()
+                    .map_err(|e: lettre::address::AddressError| AlertError::Build(e.to_string()))?,
+            )
+            .to(to
+                .parse()
+                .map_err(|e: lettre::address::AddressError| AlertError::Build(e.to_string()))?)
             .subject(subject)
             .header(ContentType::TEXT_PLAIN)
             .body(body)
@@ -374,7 +375,9 @@ mod tests {
     #[tokio::test]
     async fn log_only_sink_never_fails() {
         let sink = LogOnlySink;
-        let r = sink.send("x@example.com", &sample_event(AlertKind::HardCapReached)).await;
+        let r = sink
+            .send("x@example.com", &sample_event(AlertKind::HardCapReached))
+            .await;
         assert!(r.is_ok());
     }
 

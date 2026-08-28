@@ -21,9 +21,18 @@ async fn main() {
 
     // 2. publish 3 条 player 事件
     println!("[1] nats.publish(\"player.events\", ...) × 3");
-    nats.publish("player.events", br#"{"event":"login","player_id":"p1"}"#).await.unwrap();
-    nats.publish("player.events", br#"{"event":"level_up","player_id":"p1","level":2}"#).await.unwrap();
-    nats.publish("player.events", br#"{"event":"logout","player_id":"p1"}"#).await.unwrap();
+    nats.publish("player.events", br#"{"event":"login","player_id":"p1"}"#)
+        .await
+        .unwrap();
+    nats.publish(
+        "player.events",
+        br#"{"event":"level_up","player_id":"p1","level":2}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish("player.events", br#"{"event":"logout","player_id":"p1"}"#)
+        .await
+        .unwrap();
     println!("    3 messages published\n");
 
     // 3. subscribe 取所有 player 事件
@@ -36,8 +45,14 @@ async fn main() {
     assert_eq!(msgs.len(), 3);
 
     // 4. 计数
-    println!("\n[3] nats.received_count(\"player.events\") = {}", nats.received_count("player.events"));
-    println!("    nats.received_count(\"nonexistent\")  = {}", nats.received_count("nonexistent"));
+    println!(
+        "\n[3] nats.received_count(\"player.events\") = {}",
+        nats.received_count("player.events")
+    );
+    println!(
+        "    nats.received_count(\"nonexistent\")  = {}",
+        nats.received_count("nonexistent")
+    );
     assert_eq!(nats.received_count("player.events"), 3);
     assert_eq!(nats.received_count("nonexistent"), 0);
 
@@ -51,13 +66,22 @@ async fn main() {
 
     // 实战: economy 域转账事件
     println!("\n[5] 实战: economy 域转账事件");
-    nats.publish("economy.tx", br#"{"from":"p1","to":"p2","amount":100}"#).await.unwrap();
-    nats.publish("economy.tx", br#"{"from":"p2","to":"p3","amount":50}"#).await.unwrap();
+    nats.publish("economy.tx", br#"{"from":"p1","to":"p2","amount":100}"#)
+        .await
+        .unwrap();
+    nats.publish("economy.tx", br#"{"from":"p2","to":"p3","amount":50}"#)
+        .await
+        .unwrap();
     let tx_msgs = nats.subscribe("economy.tx").await.unwrap();
     println!("    economy.tx 收到 {} 笔交易", tx_msgs.len());
 
     // 实战: match 域得分事件
-    nats.publish("match.score", br#"{"match_id":"m1","player_id":"p1","score":100}"#).await.unwrap();
+    nats.publish(
+        "match.score",
+        br#"{"match_id":"m1","player_id":"p1","score":100}"#,
+    )
+    .await
+    .unwrap();
     let score_msgs = nats.subscribe("match.score").await.unwrap();
     println!("    match.score 收到 {} 次得分事件", score_msgs.len());
 

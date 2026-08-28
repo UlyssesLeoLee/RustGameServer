@@ -111,7 +111,10 @@ async fn pg_test_db_pg_pool_err_without_url() {
     if let Some(v) = prev {
         std::env::set_var(pg_test_db::DATABASE_URL_ENV, v);
     }
-    assert!(result.is_err(), "pg_pool() must err when DATABASE_URL unset");
+    assert!(
+        result.is_err(),
+        "pg_pool() must err when DATABASE_URL unset"
+    );
 }
 
 /// PG 集成 smoke test (feature-gated, 需真 PG)
@@ -127,7 +130,9 @@ async fn pg_test_db_smoke_connects_and_selects_one(pool: sqlx::PgPool) {
     assert_eq!(row.0, 1);
 
     // fixture pg_pool() 用同一 DATABASE_URL 起第二个池, 验 fixture API 也通
-    let pool2 = pg_pool().await.expect("fixture pg_pool() must succeed when DATABASE_URL set");
+    let pool2 = pg_pool()
+        .await
+        .expect("fixture pg_pool() must succeed when DATABASE_URL set");
     let row2: (i32,) = sqlx::query_as("SELECT 1").fetch_one(&pool2).await.unwrap();
     assert_eq!(row2.0, 1);
 }
@@ -141,5 +146,8 @@ async fn pg_test_db_smoke_connects_and_selects_one(pool: sqlx::PgPool) {
 #[rgs_testkit::pg_test]
 async fn pg_test_macro_re_export_works(pool: sqlx::PgPool) {
     let row: (i32,) = sqlx::query_as("SELECT 42").fetch_one(&pool).await.unwrap();
-    assert_eq!(row.0, 42, "rgs_testkit::pg_test macro must work identically to #[sqlx::test]");
+    assert_eq!(
+        row.0, 42,
+        "rgs_testkit::pg_test macro must work identically to #[sqlx::test]"
+    );
 }

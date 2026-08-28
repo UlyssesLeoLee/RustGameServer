@@ -13,8 +13,8 @@
 use crate::config::OverflowConfig;
 use crate::domain::Domain;
 use async_nats::jetstream;
-use async_nats::jetstream::stream::{Config as StreamConfig, StorageType};
 use async_nats::jetstream::stream::RetentionPolicy;
+use async_nats::jetstream::stream::{Config as StreamConfig, StorageType};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use shared_platform::messaging::{build_messaging_client, MessagingConfig};
@@ -154,8 +154,7 @@ impl NatsJsQueueBackend {
 
     /// 当前 stream 上的 pending 消息数（approximate）
     pub fn current_pending(&self) -> u64 {
-        self.current_msgs
-            .load(std::sync::atomic::Ordering::Relaxed)
+        self.current_msgs.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// stream 名
@@ -199,9 +198,7 @@ impl QueueBackend for NatsJsQueueBackend {
                 return Err(QueueError::Publish(s));
             }
         };
-        let ack = ack
-            .await
-            .map_err(|e| QueueError::Publish(e.to_string()))?;
+        let ack = ack.await.map_err(|e| QueueError::Publish(e.to_string()))?;
         let seq = ack.sequence;
         // approximate update
         self.current_msgs

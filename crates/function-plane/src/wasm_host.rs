@@ -198,11 +198,9 @@ impl WasmHost {
         let instance = linker
             .instantiate(&mut store, &module)
             .map_err(|e| FunctionPlaneError::WasmInstantiate(e.to_string()))?;
-        let func = instance
-            .get_func(&mut store, "compute")
-            .ok_or_else(|| {
-                FunctionPlaneError::ContractInvalid("no 'compute' export in module".into())
-            })?;
+        let func = instance.get_func(&mut store, "compute").ok_or_else(|| {
+            FunctionPlaneError::ContractInvalid("no 'compute' export in module".into())
+        })?;
         let typed = func
             .typed::<(i32, i32), i32>(&store)
             .map_err(|e| FunctionPlaneError::WasmInstantiate(e.to_string()))?;
@@ -227,12 +225,7 @@ impl WasmHost {
 /// Wasmtime 19 host-import signature: `fn(Caller<T>, Args...) -> R` — the
 /// `Caller` is *not* `&mut`; Wasmtime gives each call its own `Caller` value
 /// with interior mutability for memory / global access.
-fn host_log(
-    mut caller: wasmtime::Caller<'_, CallStoreData>,
-    level: i32,
-    ptr: i32,
-    len: i32,
-) {
+fn host_log(mut caller: wasmtime::Caller<'_, CallStoreData>, level: i32, ptr: i32, len: i32) {
     if len <= 0 || ptr < 0 {
         return;
     }

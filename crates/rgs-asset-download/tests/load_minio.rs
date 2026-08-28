@@ -13,8 +13,8 @@
 
 mod common;
 
-use common::*;
 use common::size::*;
+use common::*;
 use std::time::Instant;
 
 const LOAD_ID: &str = "LOAD_MINIO";
@@ -61,7 +61,11 @@ async fn it_load_1m_chunks_disk_throughput() {
         hist.p99() * 1000
     );
     // 期望：单 chunk 落盘 < 10ms
-    assert!(hist.p99() < 10, "单 chunk 落盘 p99={}ms >= 10ms", hist.p99());
+    assert!(
+        hist.p99() < 10,
+        "单 chunk 落盘 p99={}ms >= 10ms",
+        hist.p99()
+    );
 }
 
 #[tokio::test]

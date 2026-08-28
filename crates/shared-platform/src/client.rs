@@ -67,10 +67,7 @@ impl ServiceId {
 /// （`/etc/rgs/certs/{domain}-ca.pem` / `client.pem` / `client.key`）。
 /// 实际生产应由调用方在 5 域 `main.rs` 内通过 [`build_secure_channel_with_tls`]
 /// 注入真实证书路径（per RGS-REV-007 CH4 + DEC-015 P1）。
-pub async fn build_secure_channel(
-    service: ServiceId,
-    host: &str,
-) -> Result<Channel, ChannelError> {
+pub async fn build_secure_channel(service: ServiceId, host: &str) -> Result<Channel, ChannelError> {
     let tls = default_client_tls_input(service);
     build_secure_channel_with_tls(service, host, &tls).await
 }
@@ -114,7 +111,7 @@ pub async fn build_insecure_channel(
     let cfg = RpcChannelConfig {
         uri: service.default_uri(host),
         tls: None,
-        require_tls: false, // 显式 opt-out
+        require_tls: false,                                 // 显式 opt-out
         connect_timeout: std::time::Duration::from_secs(2), // 短超时便于测试
         ..Default::default()
     };

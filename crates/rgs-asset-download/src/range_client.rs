@@ -318,10 +318,7 @@ impl RangeClient {
                 host: host_of(url),
             });
         }
-        let accepts = resp
-            .accept_ranges
-            .as_deref()
-            .map(|s| s.to_string());
+        let accepts = resp.accept_ranges.as_deref().map(|s| s.to_string());
         let is_supported = accepts
             .as_deref()
             .map(|s| s.eq_ignore_ascii_case("bytes"))
@@ -329,9 +326,7 @@ impl RangeClient {
         if is_supported {
             Ok(RangeBackendProbe::Supported)
         } else {
-            Err(DownloadError::BackendRangeUnsupported {
-                host: host_of(url),
-            })
+            Err(DownloadError::BackendRangeUnsupported { host: host_of(url) })
         }
     }
 
@@ -355,9 +350,7 @@ impl RangeClient {
         expected_etag: Option<&str>,
         cancel: &CancellationToken,
     ) -> DownloadResult<RangeResponseDetailed> {
-        let resp = self
-            .send_range(url, range, expected_etag, cancel)
-            .await?;
+        let resp = self.send_range(url, range, expected_etag, cancel).await?;
         let status = resp.status;
         let resp = resp.into_response();
         match status.as_u16() {
@@ -382,9 +375,7 @@ impl RangeClient {
                 start: range.start,
                 end: range.end,
             }),
-            429 => Err(DownloadError::BackendTooManyRequests {
-                host: host_of(url),
-            }),
+            429 => Err(DownloadError::BackendTooManyRequests { host: host_of(url) }),
             s if (500..600).contains(&s) => Err(DownloadError::BackendHttpError {
                 status: s,
                 host: host_of(url),

@@ -35,10 +35,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     tonic_build::configure()
-        .build_server(false)  // gm-backend 是 client, 不需要 server trait
+        .build_server(false) // gm-backend 是 client, 不需要 server trait
         .build_client(true)
         .compile_protos(
-            &[gm_proto.as_str(), admin_proto.as_str(), common_proto.as_str()],
+            &[
+                gm_proto.as_str(),
+                admin_proto.as_str(),
+                common_proto.as_str(),
+            ],
             includes,
         )?;
 

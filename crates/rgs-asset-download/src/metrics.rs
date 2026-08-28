@@ -26,7 +26,8 @@
 
 use prometheus::{
     register_counter_vec_with_registry, register_gauge_vec_with_registry,
-    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, Registry, TextEncoder,
+    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, Registry,
+    TextEncoder,
 };
 use std::sync::OnceLock;
 
@@ -182,7 +183,9 @@ impl AssetDownloadMetrics {
 
     /// 设置活跃下载数
     pub fn set_active_count(&self, status: &str, count: i64) {
-        self.active_count.with_label_values(&[status]).set(count as f64);
+        self.active_count
+            .with_label_values(&[status])
+            .set(count as f64);
     }
 
     /// 累加已收字节

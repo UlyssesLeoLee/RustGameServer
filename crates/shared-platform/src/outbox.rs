@@ -128,9 +128,8 @@ impl OutboxEntry {
     /// 标记 InFlight（relay 持锁 lease_until = now + lease）
     pub fn mark_in_flight(&mut self, lease: Duration) {
         self.status = OutboxStatus::InFlight;
-        self.lease_until = Some(
-            Utc::now() + chrono::Duration::milliseconds(lease.as_millis() as i64),
-        );
+        self.lease_until =
+            Some(Utc::now() + chrono::Duration::milliseconds(lease.as_millis() as i64));
     }
 
     /// 标记已发送
@@ -161,11 +160,7 @@ pub trait OutboxRepository: Send + Sync {
     ///
     /// 55.17 签名升级：`executor` 接受 `PgExecutor`（即 `&PgPool` 或 `&mut Transaction<'_, Postgres>`）
     /// 让调用方把"业务写 DB"和"写 outbox"包在同一事务里。
-    async fn append<'e, E: PgExecutor<'e>>(
-        &self,
-        entry: &OutboxEntry,
-        executor: E,
-    ) -> Result<()>;
+    async fn append<'e, E: PgExecutor<'e>>(&self, entry: &OutboxEntry, executor: E) -> Result<()>;
 
     /// 列出待发送条目（relay 调用）
     ///
@@ -232,11 +227,7 @@ fn row_to_entry(row: sqlx::postgres::PgRow) -> OutboxEntry {
 
 #[async_trait]
 impl OutboxRepository for PgOutboxRepository {
-    async fn append<'e, E: PgExecutor<'e>>(
-        &self,
-        entry: &OutboxEntry,
-        executor: E,
-    ) -> Result<()> {
+    async fn append<'e, E: PgExecutor<'e>>(&self, entry: &OutboxEntry, executor: E) -> Result<()> {
         sqlx::query(
             "INSERT INTO outbox \
              (id, subject, payload, command_id, saga_id, status, retry_count, last_error, lease_until, created_at, sent_at) \
@@ -338,12 +329,10 @@ impl OutboxRepository for PgOutboxRepository {
     }
 
     async fn mark_giveup(&self, id: Uuid) -> Result<()> {
-        sqlx::query(
-            "UPDATE outbox SET status = 'failed', lease_until = NULL WHERE id = $1",
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE outbox SET status = 'failed', lease_until = NULL WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 }
@@ -383,11 +372,7 @@ impl Default for InMemoryOutboxRepository {
 
 #[async_trait]
 impl OutboxRepository for InMemoryOutboxRepository {
-    async fn append<'e, E: PgExecutor<'e>>(
-        &self,
-        entry: &OutboxEntry,
-        _executor: E,
-    ) -> Result<()> {
+    async fn append<'e, E: PgExecutor<'e>>(&self, entry: &OutboxEntry, _executor: E) -> Result<()> {
         // InMemory 不需要 executor（实际业务里 executor 是给 Pg 用的同事务 tx）
         self.inner.lock().unwrap().insert(entry.id, entry.clone());
         Ok(())

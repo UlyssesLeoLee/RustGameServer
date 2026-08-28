@@ -55,11 +55,11 @@ pub struct InFlightGuard {
 impl Drop for InFlightGuard {
     fn drop(&mut self) {
         // saturating_sub 避免负数
-        let prev = self.counter.fetch_update(
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-            |v| Some(v.saturating_sub(1)),
-        );
+        let prev = self
+            .counter
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
+                Some(v.saturating_sub(1))
+            });
         let _ = prev; // 即使 overflow 也不 panic
     }
 }
@@ -176,9 +176,19 @@ impl OverflowLimiter {
             Ok(_) => {
                 // CAS 成功：next = in_flight_after
                 if next <= self.soft {
-                    (AcquireOutcome::Pass, Some(InFlightGuard { counter: counter.clone() }))
+                    (
+                        AcquireOutcome::Pass,
+                        Some(InFlightGuard {
+                            counter: counter.clone(),
+                        }),
+                    )
                 } else {
-                    (AcquireOutcome::Queued, Some(InFlightGuard { counter: counter.clone() }))
+                    (
+                        AcquireOutcome::Queued,
+                        Some(InFlightGuard {
+                            counter: counter.clone(),
+                        }),
+                    )
                 }
             }
             Err(actual) => {

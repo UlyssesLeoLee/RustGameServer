@@ -56,8 +56,8 @@ impl FunctionGateway {
     /// runtime is WASM, the bytes are eagerly compiled and cached. Paused /
     /// Draft versions are metadata-only and will be hot-loaded later.
     pub async fn register(&self, meta: FunctionMetadata) -> Result<()> {
-        let needs_compile = matches!(meta.runtime, Runtime::Wasm)
-            && meta.status == FunctionStatus::Active;
+        let needs_compile =
+            matches!(meta.runtime, Runtime::Wasm) && meta.status == FunctionStatus::Active;
         if needs_compile {
             self.host.register_module(&meta).await?;
         }
