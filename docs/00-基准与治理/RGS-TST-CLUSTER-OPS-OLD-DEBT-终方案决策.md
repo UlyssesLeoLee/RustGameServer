@@ -2,7 +2,7 @@
 
 > **目的**:为 `crates/cluster-ops/tests-disabled/` 4 个 ut_*.rs 旧债选终方案(per Q7 OPEN-QA 跟踪,2026-08-28)
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 ut 实施 v0.2)
-> **状态**:🟡 OPEN — 待 Ulysses 终审
+> **状态**:✅ 已追认(方案 A',per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
 > **关联**:`crates/cluster-ops/tests-disabled/OLD-DEBT.md` v0.1 + Q7 OPEN-QA
 
 ---

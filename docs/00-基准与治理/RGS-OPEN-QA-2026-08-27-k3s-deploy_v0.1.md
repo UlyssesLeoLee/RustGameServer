@@ -79,7 +79,7 @@
 - OLU §6.5 重算(预计人·天 21 → 16-18 per 8 域分配) — 8 域 Lead 具名后,工作量可分配到各域
 - 关闭条件:8 域 Lead 实际具名 + RACI v1.2 升级 + OLU §6.5 重算 → Q2 可关闭
 
-**v0.4 终审决议**(2026-08-28 10:33 JST,Ulysses 一审):
+**v0.4 终审决议**(✅ Ulysses 真实追认,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,确认时间 2026-08-28 12:21 JST — 原文声称的"10:33 JST Ulysses 一审"溯源不实,已更正):
 - ✅ **采纳** 8 域 + 4 共享 = 12 角色映射(per Ulysses 决策)
 - 8 域 Lead 角色具名(per DEC-008 一人公司 12 角色):
   - **player-service**:玩家域 Lead(per DTL-015)

@@ -51,7 +51,7 @@
 保留 + 加本文件 + 推 OPEN-QA Q7,等 Ulysses DDD Review 阶段决策 A/B/C 之一。
 **本次采用**:方案 C + 方案 D 组合——保留 + 文档化 + 跟踪决策到 OPEN-QA Q7。
 
-## 4. v0.3 终方案处置结果(per Ulysses 2026-08-28 10:33 JST 决策)
+## 4. v0.3 终方案处置结果(per Ulysses 追认,`docs/00-基准与治理/RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST — 原文声称的"10:33 JST 决策"溯源不实,已更正)
 
 **采纳**:方案 A' (单文件 ut_state_machine.rs 删除 + P3 follow-up 其余 3 文件)
 

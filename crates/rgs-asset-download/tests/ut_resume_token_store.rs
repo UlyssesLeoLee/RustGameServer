@@ -137,7 +137,7 @@ fn token_serialization_does_not_contain_pii_substrings() {
 fn token_struct_has_no_pii_fields_in_definition() {
     // 反射做不到精确字段名检查；这里通过解析源码 + 限定到 struct 块范围来定位
     // 关键点：13 字段定义段不应包含 PII 字段名（除了防御性常量 `PII_FORBIDDEN_FIELDS`）
-    let source = include_str!("../src/resume_token.rs");
+    let source = include_str!("../src/resume_token.rs").replace("\r\n", "\n");
     // 提取 pub struct ResumeToken { ... } 段
     let struct_start = source
         .find("pub struct ResumeToken {")
