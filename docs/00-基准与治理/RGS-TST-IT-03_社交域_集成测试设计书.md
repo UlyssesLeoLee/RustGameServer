@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 10:33 JST |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码文档 | RGS-DTL-019 §2/§3, RGS-DTL-020 §3 推送投递, RGS-BAS-019 §2.2 |
+| 关联基本设计 | RGS-BAS-001, RGS-BAS-002, RGS-BAS-007, RGS-BAS-009, RGS-BAS-013, RGS-BAS-019 |
 | 关联源代码 | `crates/social-service/src/lib.rs` + `crates/social-service/src/push_delivery.rs` + tests/ |
 | 关联测试代码 | ✅ 2 test 文件(per 2026-08-28,21 PASS / 3 fixture env fail) |
 

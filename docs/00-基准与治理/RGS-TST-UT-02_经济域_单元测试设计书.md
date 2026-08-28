@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码 | `crates/economy-service/src/lib.rs` + `crates/economy-service/tests/{integration_reservation,integration_outbox,span_assertion,chaos_reservation,fail_closed_start}.rs` |
+| 关联基本设计 | RGS-BAS-001, RGS-BAS-002, RGS-BAS-007, RGS-BAS-009, RGS-BAS-015, RGS-BAS-100 |
 | 关联测试代码 | ✅ 5 个 test 文件（per 2026-08-28,53 测试 PASS）|
 
 ---

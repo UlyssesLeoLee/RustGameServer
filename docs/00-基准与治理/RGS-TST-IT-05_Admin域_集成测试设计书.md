@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 10:33 JST |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码文档 | RGS-DTL-031 §3(目标节点快照)/§4(PFAU)+ DTL-003 §3 (admin 协议) |
+| 关联基本设计 | RGS-BAS-003, RGS-BAS-005, RGS-BAS-007, RGS-BAS-009, RGS-BAS-031 |
 | 关联源代码 | `crates/admin-service/src/lib.rs` + `crates/admin-service/src/pfau.rs`(per 2026-08-28 v0.2 实装) + tests/ |
 | 关联测试代码 | ✅ 2 test 文件(per 2026-08-28,32 PASS / 3 fixture env fail) |
 

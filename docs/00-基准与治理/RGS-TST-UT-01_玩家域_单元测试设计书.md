@@ -15,6 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码 | `crates/player-service/src/lib.rs` + `crates/player-service/tests/integration_player_basic.rs` + `crates/player-service/tests/fail_closed_start.rs` |
+| 关联基本设计 | RGS-BAS-001, RGS-BAS-002, RGS-BAS-007, RGS-BAS-009, RGS-BAS-013, RGS-BAS-022 |
 | 关联测试代码 | ✅ `crates/player-service/tests/integration_player_basic.rs`（3 测试 PASS per 2026-08-28）|
 
 ---

@@ -13,6 +13,7 @@
 | 编制日期 | 2026-08-28 10:33 JST |
 | 密级 | 内部限定(Internal Use Only) |
 | 关联源代码文档 | RGS-DTL-026 §3(房间)/§4(扩圈算法)/§5(跨分片 OCC)/§6(排队确认) |
+| 关联基本设计 | RGS-BAS-001, RGS-BAS-002, RGS-BAS-007, RGS-BAS-009, RGS-BAS-023, RGS-BAS-026 |
 | 关联源代码 | `crates/match-service/src/lib.rs` + `crates/match-service/src/matchmaker.rs`(per 2026-08-28 v0.2 实装) + tests/ |
 | 关联测试代码 | ✅ 3 test 文件(per 2026-08-28,29 PASS / 3 fixture env fail) |
 

@@ -15,6 +15,7 @@
 | 密级 | 内部限定(Internal Use Only) |
 | 许可证 | Apache-2.0(本仓库) |
 | 关联源代码文档 | RGS-IMPL-001 §4, RGS-SPEC-000 §2.1, RGS-REQ-007 §2.1, RGS-BAS-003 §2.1 |
+| 关联基本设计 | RGS-BAS-009 |
 | 关联源代码 | `crates/rgs-certgen/src/main.rs`（4495 字节, 3 个 fn + 1 个 struct,**均非 pub**——`main.rs:28 struct Cli` / `:49 fn main` / `:74 fn generate_ca` / `:99 fn generate_server_cert`）|
 | 关联测试代码 | `crates/rgs-certgen/tests/ut_blackbox.rs`（17 测试,**17/17 PASS**,0.78s,per 2026-08-28 跨反馈 F1/F2/F6 处置实装）|
 

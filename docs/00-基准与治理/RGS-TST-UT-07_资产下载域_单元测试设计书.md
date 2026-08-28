@@ -11,6 +11,7 @@
 | 编制者 | 架构师（Mavis 接手 agent per DEC-008,代签）|
 | 编制日期 | 2026-08-28 |
 | 关联源代码 | `crates/rgs-asset-download/src/**/*.rs` + `crates/rgs-asset-download/tests/{ut_*,it_*,chaos_*,security_*,load_*}.rs` |
+| 关联基本设计 | RGS-BAS-009, RGS-BAS-022, RGS-BAS-027, RGS-BAS-036 |
 | 关联测试代码 | ✅ 13 个 test 文件(5 ut_ + 6 it_ + 1 chaos + 1 security + 1 load) |
 
 ---
