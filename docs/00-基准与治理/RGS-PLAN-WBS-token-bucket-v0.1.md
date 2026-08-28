@@ -59,18 +59,46 @@
 - **状态**:W6 已实装 (commit `b20ff53` 35 BAS 关键追溯 + `5ddb682` BAS-TST cross W25 65,583 字节), 主体已完成。**剩余 P2 偏差 35 项需在 W7 业务实装时同步闭合**
 - **累计 token**:~15M (已完成)+ 5M (剩余闭合)
 
-### 2.2 桶 2: gm-backend 业务实装(原 W7 决策 6+7 合并项)
+### 2.2 桶 2: gm-backend 业务实装(原 W7 决策 6+7 合并项,拆 2a/2b/2c per 2026-08-29 05:51 JST 拍板 4)
+
+#### 2.2.1 桶 2a: gm 业务实装 (40M tokens)
 
 - **范围**:
   - 5 GM RPC 业务 schema 完整实装 (BanAccount/GrantCompensation/SetMaintenance/QueryAuditLog/CreateAdminUser 5 endpoint 真实 handler)
-  - 5 域 axum-test 工具切(原 W7 决策 6)
-  - 链路 B/C/D 实装(原 W7 决策 7,gm → admin → player/economy 完整)
+  - gm.proto v0.3 保持(不动 v0.4 引入 common.proto)
   - gm-backend 业务 5 endpoint 真实 handler(per DTL-003 §3.3-§3.4)
-- **token 预算**:60M-100M
-- **质量门**:5 GM RPC 全部 IT PASS / 链路 B/C/D 真链路 PASS / 5 域 axum-test 切完 / 覆盖率 ≥ 80%
-- **责任**:gm-backend Lead + 5 域 Lead + QA Lead
-- **依赖**:桶 1(BAS 追溯闭合,确定业务 schema 范围)
-- **累计 token**:~80M(预计)
+- **token 预算**:40M (单 worker + 自审复核)
+- **质量门**:5 GM RPC 全部 IT PASS / gm-backend 跑测 ≥ 90/90 / 业务 schema 与 BAS-003 §3.1-§3.4 对齐
+- **责任**:gm-backend Lead + QA Lead
+- **依赖**:桶 1
+- **实施方式**:单 worker 派单,产出后 Mavis 自审 + 跑测验证 + commit
+- **状态**:⏳ 待启动(本对话)
+
+#### 2.2.2 桶 2b: 5 域 axum-test 工具切 (20M tokens)
+
+- **范围**:5 域(player/economy/match/social/cluster-ops)axum-test 切 + 业务 IT 骨架
+- **token 预算**:20M (与 2c 并行,2 个 worker)
+- **质量门**:5 域 axum-test IT 跑通 / 跑测 0 fail
+- **责任**:5 域 Lead + QA Lead
+- **依赖**:桶 2a(业务 schema 落地)
+- **实施方式**:worker 派单,与 2c 并行
+- **状态**:⏳ 待启动(2a 完成后)
+
+#### 2.2.3 桶 2c: 链路 B/C/D 实装 (20M tokens)
+
+- **范围**:gm → admin → player/economy 完整链路 B/C/D
+- **token 预算**:20M (与 2b 并行,2 个 worker)
+- **质量门**:链路 B/C/D 真链路 IT PASS / 覆盖 ≥ 80%
+- **责任**:gm-backend Lead + 5 域 Lead
+- **依赖**:桶 2a
+- **实施方式**:worker 派单,与 2b 并行
+- **状态**:⏳ 待启动(2a 完成后)
+
+#### 桶 2 合计
+
+- **总 token 预算**:80M (与 v0.1 一致,不增加)
+- **拆分子桶顺序**:2a 单跑 → 2b+2c 并行
+- **节省 vs 单桶 80M**:降低 worker 失职返工风险(失职返工估 20-30M,拆=省)
 
 ### 2.3 桶 3: OTel + NATS 全链路(原 W8 决策 8 合并项)
 
@@ -218,16 +246,28 @@
 - 桶 6 范围 = `.github/workflows/ai-audit.yml` 调 `mavis --audit-pr`, 9 维度 checklist + 跳转人工审核
 - 拒绝替代: OpenAI API(增加 API key 管理 + 月度计费 + 误报率 30%+ 不可控)
 
+**拍板 4:桶 2 子桶拆分 + gm.proto 版本**(per 2026-08-29 05:51 JST)
+- 决策:**桶 2 拆为 2a (gm 业务实装) + 2b (5 域 axum-test 切) + 2c (链路 B/C/D)**
+  - 2a (40M tokens,gm 业务实装):5 GM RPC 业务 schema 完整实装(从 v0.3 简化版升级),单 worker + 自审复核
+  - 2b+2c (40M tokens,并行):2b 5 域切 axum-test,2c 链路 B/C/D 实装,2 个 worker 并行
+- 理由: 单桶 80M token 对 worker 不可靠(per bg_2f56eddd 失职 + 73bcb19 复盘),拆为 3 个独立可验证子桶,每子桶 ≤ 40M
+- gm.proto 保持 v0.3(不去 v0.4 引入 common.proto / RequestContext 统一)— 决 6 暂缓 + 决 7 暂缓推 9 月 WBS
+- 拒绝替代:
+  - 桶 2 不拆(单 worker 80M 失职概率高, 返工成本 > 拆分成本)
+  - gm.proto 升 v0.4(增加 common.proto 依赖, 5 域需同步, token 估 +30%)
+
 ### 7.3 v0.2 文档状态
 
 - v0.1 (2026-08-29 04:23 JST): 6 桶 token 预算 + 推进机制(纯文档)
-- **v0.2 (2026-08-29 05:28 JST)**: 加 §7.2 Ulysses 3 决策拍板 + 拒绝替代记录(per 2026-08-26 04:30 JST "决策即留痕"原则)
+- v0.2 (2026-08-29 05:28 JST): 加 §7.2 Ulysses 3 决策拍板 + 拒绝替代记录
+- **v0.3 (2026-08-29 05:51 JST)**: 加 §7.2 拍板 4 桶 2 子桶拆分 + gm.proto v0.3 保持
 
-### 7.4 已实装现状(8/29 05:28 JST 之前)
+### 7.4 已实装现状(8/29 05:51 JST 之前)
 
 - W25 Step 3 集成包入库 (commit `ce62925` + tag `v0.5-step3-integration-2026-08-29`)
 - 9 决议 1-5 接受 / 6-9 暂缓 (9-DECISIONS v0.3)
-- BAS-TST cross W25 报告 (P0=0 P1=0 P2=35 P3=2)
+- BAS-TST cross W25 报告 v0.2 §8 (35 P2 100% closure 状态明确)
+- 桶 1 闭合 (commit `ddf1cb7`)
 - 跑测累计 294/294 PASS (gm-backend 84 + admin-service 35 + 5 域 175)
 - TS-001 v0.8 §6.3 WBS token 桶原则 (commit `0c0a0c7`)
 
