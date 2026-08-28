@@ -1,0 +1,154 @@
+# ai-audit —— AI 审计 CI workflow (per WBS v0.3 §2.6 桶 6 + 拍板 3 Mavis native)
+# 触发: pull_request to main
+# 范围: 9 维度 checklist + 跳转人工审核 (per AI-AUDIT-PROMPT-Mavis-2026-08-28.md)
+# 规范: 2026-08-28 08:40 + 19:39 JST Ulysses 允许代签 + 桶 6 拍板 (per RGS-PLAN-WBS-token-bucket-v0.4 §7.2 拍板 3)
+# 实施: W29 桶 6 阶段 1 (workflow skeleton + PR comment), 阶段 2 集成 Mavis native API 待 W32+
+
+name: ai-audit
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 9 维度审计(per AI-AUDIT-PROMPT-Mavis-2026-08-28.md):
+# 1. 决策追踪
+# 2. 代码治理
+# 3. 测试设计
+# 4. 文档治理
+# 5. 跑测
+# 6. 覆盖
+# 7. 集成
+# 8. 部署
+# 9. 异常处理
+
+# 阶段 1 (本 workflow): 输出 9 维度 checklist + 跳转人工审核链接
+# 阶段 2 (W32+): 集成 Mavis native API, 实跑 AI 审计
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ai-audit-checklist:
+    name: 9 维度 checklist + 跳转人工审核
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 收集 PR 元数据
+        id: meta
+        run: |
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+          echo "pr_body<<EOF" >> $GITHUB_OUTPUT
+          ${{ github.event.pull_request.body }}
+          EOF
+          echo "base_branch=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          echo "head_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+
+      - name: 收集变更文件清单
+        id: changed
+        run: |
+          # 提取本次 PR 修改的 .md / .rs / .toml / .yml 文件清单
+          git diff --name-only origin/${{ steps.meta.outputs.base_branch }}...${{ steps.meta.outputs.head_sha }} \
+            | grep -E '\.(md|rs|toml|yml)$' \
+            | tee changed_files.txt
+          echo "changed_count=$(wc -l < changed_files.txt)" >> $GITHUB_OUTPUT
+
+      - name: 检测 BAS 引用覆盖 (维度 4 文档治理)
+        id: bas-refs
+        run: |
+          # 9 决议 + DDD Review 文档是否引用 RGS-BAS-NNN 章节
+          bas_count=$(git diff origin/${{ steps.meta.outputs.base_branch }}...${{ steps.meta.outputs.head_sha }} -- 'docs/00-基准与治理/*.md' \
+            | grep -c 'RGS-BAS-' || echo 0)
+          echo "bas_refs=$bas_count" >> $GITHUB_OUTPUT
+
+      - name: 检测测试覆盖 (维度 5 跑测)
+        id: test-coverage
+        run: |
+          # 估算本次 PR 是否包含 it_*.rs / ut_*.rs 测试
+          test_count=$(git diff --name-only origin/${{ steps.meta.outputs.base_branch }}...${{ steps.meta.outputs.head_sha }} \
+            | grep -cE 'tests/(it|ut)_.*\.rs$' || echo 0)
+          echo "test_files=$test_count" >> $GITHUB_OUTPUT
+
+      - name: 检测 DDD Review / 9 决议相关 (维度 1 决策追踪)
+        id: ddd
+        run: |
+          # 是否有 9 决议草案 / DDD Review 文档修改
+          ddd_count=$(git diff --name-only origin/${{ steps.meta.outputs.base_branch }}...${{ steps.meta.outputs.head_sha }} \
+            | grep -cE '(RGS-DEC-|RGS-DDD-)' || echo 0)
+          echo "ddd_files=$ddd_count" >> $GITHUB_OUTPUT
+
+      - name: 生成 9 维度 checklist 报告
+        run: |
+          cat > ai_audit_report.md <<EOF
+          # AI 审计 9 维度 Checklist (阶段 1 skeleton)
+
+          > **PR**: #${{ steps.meta.outputs.pr_number }} ${{ steps.meta.outputs.pr_title }}
+          > **Head SHA**: ${{ steps.meta.outputs.head_sha }}
+          > **Base**: ${{ steps.meta.outputs.base_branch }}
+          > **审计员**: Mavis 接手 agent per DEC-008 (阶段 1: skeleton / 阶段 2: Mavis native API)
+
+          ## 9 维度 Checklist
+
+          | # | 维度 | 自动检测 | 人工审核 |
+          |---|---|---|---|
+          | 1 | 决策追踪 | DDD 文件: ${{ steps.ddd.outputs.ddd_files }} 个 | [ ] 9 决议 / DDD Review 一致性 |
+          | 2 | 代码治理 | 变更文件: ${{ steps.changed.outputs.changed_count }} 个 | [ ] Rust 风格 / clippy 通过 |
+          | 3 | 测试设计 | 测试文件: ${{ steps.test-coverage.outputs.test_files }} 个 | [ ] 单元/集成/系统测试分层 |
+          | 4 | 文档治理 | BAS 引用: ${{ steps.ddd.outputs.bas_refs }} 次 | [ ] RGS-BAS 章节级追溯 |
+          | 5 | 跑测 | 见 rust-ci workflow | [ ] 0 fail |
+          | 6 | 覆盖 | 见 rust-ci workflow | [ ] ≥ 60% 跨域 |
+          | 7 | 集成 | 跨域 IT 触发 | [ ] 5 类链路覆盖 |
+          | 8 | 部署 | k8s manifest 变更检测 | [ ] 镜像版本 + 探针 |
+          | 9 | 异常处理 | circuit_breaker 引用检测 | [ ] fail-closed 防线 |
+
+          ## 阶段 1 限制
+
+          - 阶段 1 仅输出 9 维度 checklist + 跳转人工审核
+          - 阶段 2 (W32+) 集成 Mavis native API 实跑 AI 审计
+          - 当前无 LLM API 调用, 无误报风险, 延迟 < 5s
+
+          ## 完整审计提示词
+
+          见 \`docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md\` (9,489 字节, 9 维度 + 10 重点)
+          EOF
+          cat ai_audit_report.md
+
+      - name: 上传 checklist 报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-audit-checklist
+          path: ai_audit_report.md
+          retention-days: 30
+
+      - name: PR 评论 checklist
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          header: ai-audit-checklist
+          message: |
+            ## 🤖 AI 审计 9 维度 Checklist (阶段 1)
+
+            | # | 维度 | 自动检测 |
+            |---|---|---|
+            | 1 | 决策追踪 | DDD 文件: ${{ steps.ddd.outputs.ddd_files }} 个 |
+            | 2 | 代码治理 | 变更文件: ${{ steps.changed.outputs.changed_count }} 个 |
+            | 3 | 测试设计 | 测试文件: ${{ steps.test-coverage.outputs.test_files }} 个 |
+            | 4 | 文档治理 | BAS 引用: ${{ steps.ddd.outputs.bas_refs }} 次 |
+            | 5 | 跑测 | 见 rust-ci workflow |
+            | 6 | 覆盖 | 见 rust-ci workflow |
+            | 7 | 集成 | 跨域 IT 触发 |
+            | 8 | 部署 | k8s manifest 变更检测 |
+            | 9 | 异常处理 | circuit_breaker 引用检测 |
+
+            **完整报告**: 见 artifact `ai-audit-checklist`
+            **审计提示词**: `docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md`
+            **阶段 2**: Mavis native API 集成待 W32+ 实施
+
+            cc: @UlyssesLeoLee (per 一人公司 12 角色 per DEC-008)
