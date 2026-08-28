@@ -12,6 +12,7 @@
 
 use axum_test::TestServer;
 use gm_backend::{build_router, AppState, GmConfig};
+use serde_json::json;
 use std::time::Duration;
 
 fn make_server_unreachable_admin() -> TestServer {
@@ -31,9 +32,13 @@ fn make_server_unreachable_admin() -> TestServer {
 async fn circuit_breaker_business_handler_returns_202_after_open() {
     // 即使 admin-service 不可达, business handler 仍 202 (InMemory fallback)
     // CircuitBreaker 内部 Open 状态时, 快速返 Err → handler 降级
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_unreachable_admin();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/ban").await;
+    let resp = server
+        .post("/api/v1/gm/ban")
+        .json(&json!({"account_id": "cb-ban", "reason": "cb-test", "duration_seconds": 0}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     assert!(
@@ -44,9 +49,13 @@ async fn circuit_breaker_business_handler_returns_202_after_open() {
 
 #[tokio::test]
 async fn circuit_breaker_business_handler_compensation_returns_202() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_unreachable_admin();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/compensation").await;
+    let resp = server
+        .post("/api/v1/gm/compensation")
+        .json(&json!({"account_id": "cb-comp", "amount": 10, "currency": "USD", "reason": "cb"}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     assert!(elapsed < Duration::from_secs(1));
@@ -54,9 +63,13 @@ async fn circuit_breaker_business_handler_compensation_returns_202() {
 
 #[tokio::test]
 async fn circuit_breaker_business_handler_maintenance_returns_202() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_unreachable_admin();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/maintenance").await;
+    let resp = server
+        .post("/api/v1/gm/maintenance")
+        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     assert!(elapsed < Duration::from_secs(1));
@@ -76,11 +89,15 @@ async fn circuit_breaker_query_audit_returns_200() {
 async fn circuit_breaker_5_consecutive_bans_then_open() {
     // 5 次 ban 调用, 触发 CircuitBreaker Open
     // 后续 ban 应 fail-fast (< 100ms) 代替 500ms timeout
+    // W26 (2026-08-29) 桶 2a: 发送合法 body (i 用作 account_id 区分)
     let server = make_server_unreachable_admin();
     let mut first_5_elapsed = Vec::new();
     for i in 0..5 {
         let started = std::time::Instant::now();
-        let resp = server.post("/api/v1/gm/ban").await;
+        let resp = server
+            .post("/api/v1/gm/ban")
+            .json(&json!({"account_id": format!("cb-{i}"), "reason": "burst", "duration_seconds": 0}))
+            .await;
         let elapsed = started.elapsed();
         resp.assert_status(axum::http::StatusCode::ACCEPTED);
         first_5_elapsed.push(elapsed);

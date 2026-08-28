@@ -11,6 +11,7 @@
 
 use axum_test::TestServer;
 use gm_backend::{build_router, AppState, GmConfig};
+use serde_json::json;
 use std::time::Duration;
 
 fn make_server_with_admin_grpc_enabled() -> TestServer {
@@ -33,9 +34,13 @@ fn make_server_with_admin_grpc_enabled() -> TestServer {
 #[tokio::test]
 async fn ban_account_with_unreachable_admin_returns_202() {
     // admin-service 不可达 → handler 仍 返 202 (降级 InMemory)
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_with_admin_grpc_enabled();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/ban").await;
+    let resp = server
+        .post("/api/v1/gm/ban")
+        .json(&json!({"account_id": "u-ban", "reason": "u", "duration_seconds": 0}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     // 500ms timeout + jitter → 总时长 < 1s
@@ -47,9 +52,13 @@ async fn ban_account_with_unreachable_admin_returns_202() {
 
 #[tokio::test]
 async fn grant_compensation_with_unreachable_admin_returns_202() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_with_admin_grpc_enabled();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/compensation").await;
+    let resp = server
+        .post("/api/v1/gm/compensation")
+        .json(&json!({"account_id": "u-comp", "amount": 10, "currency": "USD", "reason": "u"}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     assert!(
@@ -61,9 +70,13 @@ async fn grant_compensation_with_unreachable_admin_returns_202() {
 #[tokio::test]
 async fn set_maintenance_with_unreachable_admin_returns_202_with_propagating() {
     // set_maintenance 失败降级: propagation_status 默认 PROPAGATING
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_with_admin_grpc_enabled();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/maintenance").await;
+    let resp = server
+        .post("/api/v1/gm/maintenance")
+        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     assert!(
