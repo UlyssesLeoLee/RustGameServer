@@ -55,14 +55,22 @@ async fn health_router_also_exposes_healthz() {
 }
 
 #[tokio::test]
-async fn health_view_returns_admin_endpoint_from_config() {
+async fn health_view_returns_services_array_with_admin_endpoint() {
+    // per 2026-08-28 跨反馈 F8 v0.2 实装:QueryHealthViewResponse.services[] (5 子字段)
     let server = make_test_server();
     let resp = server.get("/api/v1/gm/health/view").await;
     resp.assert_status_ok();
     let body: serde_json::Value = resp.json();
-    assert_eq!(body["service"], "gm-backend");
+    assert!(body["services"].is_array(), "services[] must be array");
+    let services = body["services"].as_array().unwrap();
+    assert_eq!(services.len(), 1);
+    let svc = &services[0];
+    assert_eq!(svc["service_name"], "admin-service");
+    assert_eq!(svc["ready"], true);
+    assert_eq!(svc["queue_depth"], 0);
+    assert!(svc["db_pool_usage_ratio"].is_number());
+    assert!(svc["checked_at_ms"].is_number());
     assert_eq!(body["admin_endpoint"], "http://admin-staging:50055");
-    assert_eq!(body["mode"], "stub-ok");
 }
 
 #[tokio::test]
@@ -86,24 +94,27 @@ async fn grant_compensation_returns_202_queued() {
 }
 
 #[tokio::test]
-async fn set_maintenance_returns_202_queued() {
+async fn set_maintenance_returns_202_queued_with_propagation_status() {
+    // per 2026-08-28 跨反馈 F8 v0.2 实装:SetMaintenanceModeResponse 新增 propagation_status
     let server = make_test_server();
     let resp = server.post("/api/v1/gm/maintenance").await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let body: serde_json::Value = resp.json();
     assert_eq!(body["status"], "queued");
     assert_eq!(body["op"], "maintenance");
+    assert_eq!(body["propagation_status"], "PROPAGATING");
 }
 
 #[tokio::test]
-async fn query_audit_returns_empty_items_stub() {
+async fn query_audit_returns_empty_entries_with_has_more_false() {
+    // per 2026-08-28 跨反馈 F8 v0.2 实装:QueryAuditLogResponse = entries[] + has_more
     let server = make_test_server();
     let resp = server.get("/api/v1/audit/logs").await;
     resp.assert_status_ok();
     let body: serde_json::Value = resp.json();
-    assert!(body["items"].is_array());
-    assert_eq!(body["items"].as_array().unwrap().len(), 0);
-    assert_eq!(body["next"], "stub");
+    assert!(body["entries"].is_array(), "entries must be array");
+    assert_eq!(body["entries"].as_array().unwrap().len(), 0);
+    assert_eq!(body["has_more"], false);
 }
 
 #[tokio::test]

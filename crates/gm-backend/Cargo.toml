@@ -33,6 +33,8 @@ tonic = { workspace = true }
 prost = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+# JWT 验证(per TBD-08-01 v0.2 实装)
+jsonwebtoken = "9"
 
 [dev-dependencies]
 # per 5 域 + cluster-ops 一致模式:fail-closed 启动 + rgs-testkit 集成
