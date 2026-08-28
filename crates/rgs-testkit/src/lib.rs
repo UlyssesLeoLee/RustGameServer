@@ -1,5 +1,9 @@
 //! rgs-testkit —— RustGameServer 测试套件骨架
 //!
+//! W10 (2026-08-28) P3 follow-up: deny(deprecated) 升级, 强制新代码不引用 mock::DbMock / NoopMock
+//!
+//! 四大子模块：
+//!
 //! 四大子模块：
 //! - `mock`        DB / gRPC / NATS JetStream mock 工具 (deprecated, 见下方强约束)
 //! - `helper`      config 加载 / tracing 初始化 / 公共 assert helper
@@ -8,6 +12,13 @@
 //!   防 '209 test pass ≠ correct' 假象复发)
 //!
 //! 5 域 + cluster-ops + shared-platform 测试统一引用本 crate。
+
+// W10 (2026-08-28) P3 follow-up: deny(deprecated) 升级
+// 任何 *新* 代码引用 mock::DbMock / NoopMock 编译失败
+// 旧代码 (2026-08-28 前) 加 `#[allow(deprecated)]` 抑制
+#![deny(deprecated)]
+
+
 //! 规范：RGS-IMPL-001 §3 + RGS-SPEC-000 §2.4
 //!
 //! 53.3 骨架：3 个子模块各 1-2 个最小可用 API，self-test 覆盖。
@@ -27,7 +38,7 @@
 //! - **`pg_test`** —— `#[rgs_testkit::pg_test]` 是 `#[sqlx::test]` 的强约束别名,
 //!   内部仍然 call sqlx-macros, 但通过本 crate 单一入口强制使用
 //!
-//! ## 拒绝的 API (编译期 `#[deprecated]` 警告)
+//! ## 拒绝的 API (编译期 `#[deprecated]` 警告 + W10 deny 升级)
 //!
 //! - `mock::DbMock` / `mock::NoopMock` / `mock_url()` —— 已被 `pg_pool()` 取代
 //! - `#[tokio::test]` for DB / saga / OCC / outbox test (单元 test 仍可用)
@@ -42,6 +53,11 @@
 //!
 //! `cargo test -p rgs-testkit` 必须全过 + 任何新 test crate 加 `MockPool` 引用
 //! 应产生 `#[deprecated]` 警告 (不静默通过).
+//!
+//! # W10 (2026-08-28) P3 follow-up: deny(deprecated) 升级
+//!
+//! per 决议 3 (cluster-ops 旧债终方案), 将 mock 弃用警告升级为编译错误.
+//! 只影响 *新* 代码 (2026-08-28 后), 旧代码不立即 break.
 
 pub mod fixture;
 pub mod helper;

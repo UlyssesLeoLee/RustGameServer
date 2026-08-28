@@ -13,6 +13,10 @@
 //! （async fn 触发前者，impl Future 触发后者），53.4 选择 `async fn` 形式
 //! + 在 rust-ci.yml 用 `-A clippy::async_fn_in_trait` 抑制该 pedantic 警告。
 //!
+//! W10 (2026-08-28) P3 follow-up: 升级 DbMock / NoopMock 弃用警告
+//! - 增加 #![deny(deprecated)] 让 *新* 代码引用 mock::DbMock 编译失败
+//! - 旧代码 (2026-08-28 前) 仍允许 `#[allow(deprecated)]` 抑制
+//!
 //! 54.x 接入：
 //! - `GrpcMock` 已升级：`TonicGrpcMock` 用 `mockito::Server` 启动真 HTTP mock
 //!   server，提供 `url()` 给 tonic client connect，提供 `expect()` 注册
