@@ -284,6 +284,8 @@
 
 ---
 
-**Author**: Mavis 接手 agent per DEC-008(代签)
-**Time**: 2026-08-27 22:05 JST
+**作者**:架构师(Mavis 接手 agent per DEC-008,代签)
+**审批**:架构师(Mavis 接手 agent per DEC-008)+ 自审 + 2026-08-27 (v0.1) / 2026-08-28 09:30 JST (v0.3)
+**修订人**:Ulysses(一人公司 12 角色 per DEC-008)— Mavis 接手
+
 **Next step**: Ulysses 派发给 5 域 Lead / SRE Lead / PM 各自负责的问题;DDD Review 阶段补全"实际具名"签字
