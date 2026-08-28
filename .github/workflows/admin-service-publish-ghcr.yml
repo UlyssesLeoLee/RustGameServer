@@ -1,0 +1,113 @@
+name: admin-service-publish-ghcr
+
+# Purpose: W12 (2026-08-28) — 在 GitHub-hosted runner 上 build admin-service 0.1.0 镜像 + push 到 ghcr.io
+# Triggered by: workflow_dispatch (用 GITHUB_TOKEN)
+# 关联: docs/00-基准与治理/RGS-S4-PHASE2-STEP2-设计.md (S4 Phase 2 step 2 实装 5 GM RPC)
+# 关联: docs/deploy/01-k8s-manifests/05-admin-service.yaml (Deployment 镜像引用)
+#
+# 关键改动 (per W12):
+#   1. 新 build target: admin-service (含 5 GM RPC: BanAccount/GrantCompensation/SetMaintenance/QueryAuditLog + HealthCheck + GetAdminOp)
+#   2. 新 tag: 0.1.0-admin-service
+#   3. k3s 部署后, gm-backend → admin-service 5 GM RPC 真链路可用
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像 tag(默认 0.1.0-admin-service)'
+        required: false
+        default: '0.1.0-admin-service'
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ulyssesleolee/rustgameserver
+
+jobs:
+  build-and-push:
+    name: cargo build (linux) + docker build + push ghcr.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.98
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: admin-service -> target
+
+      - name: cargo build --release -p admin-service
+        working-directory: .
+        run: |
+          cargo build --release -p admin-service --locked
+
+      - name: Prepare admin-service build context
+        run: |
+          mkdir -p /tmp/admin-build
+          cp target/release/admin-service /tmp/admin-build/admin-service
+          cat > /tmp/admin-build/Dockerfile <<'EOF'
+          FROM gcr.io/distroless/cc-debian12:nonroot
+          WORKDIR /app
+          COPY admin-service /app/bin/admin-service
+          USER nonroot:nonroot
+          EXPOSE 50055 8080 9464
+          ENV RUST_LOG=info
+          ENTRYPOINT ["/app/bin/admin-service"]
+          EOF
+          ls -la /tmp/admin-build/
+          cat /tmp/admin-build/Dockerfile
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (distroless, linux/amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: /tmp/admin-build
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+          labels: |
+            org.opencontainers.image.title=admin-service
+            org.opencontainers.image.description=admin-service with 5 GM RPC (per RGS-BAS-003 §3 + S4 Phase 2 step 2)
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+          platforms: linux/amd64
+
+  verify:
+    name: verify push + summarize
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: curl registry manifest
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+            "https://ghcr.io/v2/${{ env.IMAGE_NAME }}/manifests/${{ inputs.tag }}" \
+            | jq .
+      - name: summary
+        run: |
+          echo "✅ Pushed ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}"
+          echo "Run: k3s kubectl set image deployment/admin-service admin=ghcr.io/${{ env.IMAGE_NAME }}:${{ inputs.tag }} -n rust-game-server"
