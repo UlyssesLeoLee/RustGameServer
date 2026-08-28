@@ -1,0 +1,5 @@
+ current_user | current_database 
+--------------+------------------
+ postgres     | player_db
+(1 row)
+
