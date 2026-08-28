@@ -1,10 +1,10 @@
 # RGS-OPEN-QA-2026-08-27-k3s-deploy — 待答问题清单
 
 > **文档 ID**: RGS-OPEN-QA-2026-08-27-k3s-deploy
-> **版本**: v0.2
-> **生效日期**: 2026-08-27 22:05 JST(v0.2 修订 2026-08-28)
+> **版本**: v0.3
+> **生效日期**: 2026-08-27 22:05 JST(v0.3 修订 2026-08-28 09:30 JST)
 > **作者**: 架构师(Mavis 接手 agent per DEC-008,代签)
-> **状态**: 🟡 OPEN(Q1/Q2/Q3/Q5/Q6 已决策/已执行;Q4 根因诊断有新证据待复核;**Q7 新增** 2026-08-28 cluster-ops/tests-disabled/ 旧债 + TBD-08/09 排期,详见各条 + §4 修订历史)
+> **状态**: 🟡 OPEN(Q1/Q3/Q4/Q5/Q6 已决策/已执行;**Q2 已出 8 域 Lead 具名草案待终审**;**Q7 已出 cluster-ops 终方案决策草案 + 3 子决策待终审**;详见各条 + §4 修订历史)
 > **范围**: 2026-08-27 12:43 JST 部署完成 + 16:30 JST 后续 P0/P1/P2 收尾,9 个 DDD Review blocker / 决策项
 > **关联**:
 > - 部署报告:`docs/deploy/.run-logs/2026-08-27-deploy-all/DEPLOY-REPORT.md` (6664 字节)
@@ -70,6 +70,14 @@
 - [x] RACI 文档 v1.1 是否升级到 v1.2,加入"实际具名 + 代签范围"声明? → **是,待 5 域 Lead 具名或下次 RACI 修订窗口时一并做**
 
 **决议**(2026-08-27,Ulysses per DEC-008 代签):dev k3s 部署阶段兼任代签可接受,但生产部署 gate 前必须 5 域 Lead 实际具名,列为硬性 checklist 项(而非软性 deadline);RACI v1.2 升级与具名同批次做,不单独立即执行(避免为空壳字段折腾文档版本)
+
+**v0.3 追加决议**(2026-08-28 09:30 JST,Mavis 接手 agent per DEC-008 代签):
+- 8 域 Lead 角色映射草案已落档:`docs/00-基准与治理/RGS-LEAD-NAMING-8-域-2026-08-28.md`
+- 8 域(5 域 + cluster-ops + gm-backend + 工具集)各自独立角色,共享支持 4 角色(SRE/Platform/QA/PM) + 架构师 = 12 角色 (per DEC-008 一人公司 12 角色)
+- 一人公司 12 角色 ↔ 8 域 Lead 数量合理(8 域 + 4 共享 = 12)
+- 待 Ulysses 终审 §1 角色映射 + §1.5 共享支持 + RACI v1.2 升级窗口
+- OLU §6.5 重算(预计人·天 21 → 16-18 per 8 域分配) — 8 域 Lead 具名后,工作量可分配到各域
+- 关闭条件:8 域 Lead 实际具名 + RACI v1.2 升级 + OLU §6.5 重算 → Q2 可关闭
 
 **负责**:Ulysses 决策 + 5 域 Lead(未来 5 个真人)
 
@@ -209,6 +217,14 @@
 - 跟踪到本 OPEN-QA Q7,DDD Review 阶段由 Ulysses + cluster-ops 域 Lead(per Q2 待具名)+ SRE Lead 联合决策 A/B/C 终方案
 - TBD-08/09 排期依赖域 Lead 具名 + 8 域 Lead 联合协调,本轮仅关闭 TBD-09-01
 
+**v0.3 追加决议**(2026-08-28 09:30 JST,Mavis 接手 agent per DEC-008 代签):
+- TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `404e3ea`)
+- TBD-08-03 (admin-service gRPC client) 暂留 v0.3,v0.2 用 AuditStore trait 抽象 + InMemory 实现
+- TBD-08-06 (axum-test vs wiremock 工具决策) 草案已落档 `RGS-TST-08-06-axum-test-vs-wiremock-工具决策.md`,方案 D (双工具并存) 短期推荐
+- cluster-ops/tests-disabled/ 终方案决策草案已落档 `RGS-TST-CLUSTER-OPS-OLD-DEBT-终方案决策.md`,方案 A' (单文件 ut_state_machine 迁回, P3 follow-up 其余 3 文件) 推荐
+- 8 域 Lead 具名草案已落档 `RGS-LEAD-NAMING-8-域-2026-08-28.md`(per Q2 解决)
+- 待 Ulysses 终审 3 决策草案
+
 **负责**:cluster-ops 域 Lead(待具名 per Q2)+ Ulysses 决策
 
 **阻塞影响**:
@@ -217,8 +233,10 @@
 
 **关联 commit**:
 - `94ba812` UT-09 rgs-certgen 17 黑盒实装 + 7 域 example + mock-registry
-- 本批 commit:evidence 脚本 + 6 域独立 UT 文档 + tests-disabled/ OLD-DEBT.md
-- TBD-08-01~08 暂未实装,留 v0.2 阶段
+- `de86d80` 6 域独立 UT 文档 + evidence + 旧债决策
+- `3c7d670` 核对报告 + test-evidence.ps1 v4
+- `404e3ea` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2 + match §4.1/§5 + social §3 + admin §4.2 PFAU
+- TBD-08-03 (gRPC client) + TBD-08-06 (工具决策) 留 v0.3
 
 ---
 
@@ -262,6 +280,7 @@
 | 0.1 | 2026-08-27 22:05 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | 初版:6 个 OPEN 问题 + 9 个已闭合项 | 🟡 OPEN |
 | 0.1(原地追记) | 2026-08-27 | 架构师(Mavis 接手 agent per DEC-008,代签) | Q1:git mv 合并 3 处误落目录回 `00-基准与治理/`,已执行;Q2/Q3/Q6:记录决议(判断性,未改动其他文档);Q4:根因诊断修正(CRLF/LF hash 风险,非"重新编译"),仍 OPEN,未构建/推送镜像;Q5:5 域已串行重启,发现 NetworkPolicy 缺口(`nats-ingress` 从未 apply + manifest 自身 2 处标签 bug),仍 🔴 未解决 | 🟡 OPEN(Q4/Q5 待续) |
 | 0.2 | 2026-08-28 | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q7 新增**:per 2026-08-28 08:40 JST "实施ut" 指令 + ut 实施批次,发现 2 类遗留:① cluster-ops/tests-disabled/ 4 ut_*.rs 旧债(commit `b74ccc3` RGS-INC-002 复盘临时禁用,源码已搬至 `src/realm_lifecycle/`,决策记录 `OLD-DEBT.md`,临时方案 C 保留 + 文档化) ② TBD-08-NN (8 条) + TBD-09-NN (剩 3 条) 实装排期(per 2026-08-28 跨反馈 F7/F8 衍生 D4)。本批同时关闭 TBD-09-01(per UT-09 v0.2 实装 17/17 PASS) | 🟡 OPEN(Q7 临时方案 C,DDC Review 阶段决策 A/B/C 终方案 + TBD 排期) |
+| 0.3 | 2026-08-28 09:30 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q2 v0.3 追加**:8 域 Lead 角色映射草案落档 `RGS-LEAD-NAMING-8-域-2026-08-28.md` (5 域 + cluster-ops + gm-backend + 工具集 = 8 域,共享支持 4 角色 SRE/Platform/QA/PM,总 12 角色 per DEC-008)。**Q7 v0.3 追加**:TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `404e3ea`);TBD-08-03 暂留 v0.3 + TBD-08-06 工具决策草案落档 + cluster-ops 终方案决策草案落档(方案 A' 推荐)。**3 草案待 Ulysses 终审**。TBD-08-08 (gm-backend 域 Lead 具名) = Q2 解决(per RGS-LEAD-NAMING-8-域)。 | 🟡 OPEN(Q2/Q7 草案待终审,TBD-08-03/06 留 v0.3) |
 
 ---
 
