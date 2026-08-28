@@ -73,7 +73,7 @@ async fn social_fixture_creates_guild_in_real_pg(pool: PgPool) {
          VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind(uuid::Uuid::new_v4())
-    .bind(format!("guild-{}", &msg.friend_id)) // name UNIQUE
+    .bind(format!("guild-{}", msg.friend_id)) // name UNIQUE
     .bind(&msg.message) // 用 message 作 guild description
     .bind(leader_uuid)
     .bind(1_i32)

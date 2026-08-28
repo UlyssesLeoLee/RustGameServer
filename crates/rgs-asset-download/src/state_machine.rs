@@ -339,8 +339,10 @@ impl DownloadStateMachine {
 
     /// 以指定状态构造（用于测试 / 序列化恢复）。
     pub fn with_state(state: DownloadState) -> Self {
-        let mut s = Self::default();
-        s.state = state;
+        let s = Self {
+            state,
+            ..Self::default()
+        };
         // Paused / Failed / Expired / Cancelled 终态（部分）应有 cancel 信号
         match state {
             DownloadState::Paused

@@ -86,6 +86,11 @@ impl HttpRangeSpec {
         self.end - self.start + 1
     }
 
+    /// 区间是否为空（`start > end`；正常构造下恒为 `false`）。
+    pub fn is_empty(&self) -> bool {
+        self.start > self.end
+    }
+
     /// 序列化为 `Range: bytes=start-end` 头部值。
     pub fn to_header_value(&self) -> String {
         format!("bytes={}-{}", self.start, self.end)
@@ -215,6 +220,12 @@ impl std::fmt::Debug for RangeClient {
         f.debug_struct("RangeClient")
             .field("config", &self.config)
             .finish()
+    }
+}
+
+impl Default for RangeClient {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

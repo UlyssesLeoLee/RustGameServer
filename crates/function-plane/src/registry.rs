@@ -64,6 +64,11 @@ impl InMemoryRegistry {
     pub async fn len(&self) -> usize {
         self.inner.read().await.len()
     }
+
+    /// Whether the registry currently holds no rows.
+    pub async fn is_empty(&self) -> bool {
+        self.inner.read().await.is_empty()
+    }
 }
 
 #[async_trait]

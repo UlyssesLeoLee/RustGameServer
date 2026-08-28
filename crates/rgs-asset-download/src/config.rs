@@ -10,21 +10,16 @@
 use serde::{Deserialize, Serialize};
 
 /// 平台画像（per SPEC §3 / IMPL-PLAN §6 R1 移动 ≤ 4 / 桌面 ≤ 16）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum PlatformProfile {
     /// 桌面（macOS 14 / Windows 11 / Linux 桌面）
+    #[default]
     Desktop,
     /// 移动（iOS 17 / Android 14）
     Mobile,
     /// 服务器 / CI（无并发限制外暴露；用于测压）
     Server,
-}
-
-impl Default for PlatformProfile {
-    fn default() -> Self {
-        Self::Desktop
-    }
 }
 
 impl PlatformProfile {
@@ -92,7 +87,7 @@ impl DownloadConfig {
             return 0;
         }
         let cs = self.chunk_size_bytes.max(1);
-        (total_size + cs - 1) / cs
+        total_size.div_ceil(cs)
     }
 }
 

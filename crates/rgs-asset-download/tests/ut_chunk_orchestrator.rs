@@ -13,7 +13,7 @@ use rgs_asset_download::config::{DownloadConfig, PlatformProfile};
 use rgs_asset_download::error::DownloadError;
 use rgs_asset_download::range_client::{RangeClient, RangeClientConfig};
 use tempfile::tempdir;
-use wiremock::matchers::{header, method, path};
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn make_client() -> RangeClient {

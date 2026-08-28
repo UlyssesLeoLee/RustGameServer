@@ -14,12 +14,8 @@
 //! 注: in-process 测试用 axum-test, 真链路由需 tonic Channel + gm_backend admin_grpc
 //! 跳过 admin-service pod 真连,因 W12 ghcr push 未完成
 
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use serde_json::json;
+use axum::http::StatusCode;
 use std::sync::Arc;
-use std::sync::Mutex;
-use tonic::{Request as TonicRequest, Response as TonicResponse, Status as TonicStatus};
 
 use player_service::entity::Player;
 use player_service::repository::{

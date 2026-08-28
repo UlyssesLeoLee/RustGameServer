@@ -28,7 +28,7 @@ use tempfile::TempDir;
 
 fn sha256_hex(seed: u8) -> String {
     // 生成 64 字符 hex；不同 seed 给出不同 hash
-    let s = format!("{seed:x}").repeat(64 / 1 + 1);
+    let s = format!("{seed:x}").repeat(64 + 1);
     s[..64].to_string()
 }
 

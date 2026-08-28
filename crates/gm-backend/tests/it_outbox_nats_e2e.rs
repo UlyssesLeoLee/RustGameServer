@@ -13,7 +13,6 @@
 //! 已知缺口 (per 8/28 设计): 7 个 mock 测试已实装 (it_outbox_nats.rs),
 //! JetStream 持久化测试待 Step 3+ 补 (依赖更复杂 API)
 
-use async_nats::Client;
 use futures_util::StreamExt;
 use std::time::Duration;
 
@@ -21,10 +20,10 @@ const NATS_URL: &str = "nats://localhost:14222";
 
 /// helper: 检查 NATS 可达性
 async fn nats_available() -> bool {
-    match tokio::time::timeout(Duration::from_secs(2), async_nats::connect(NATS_URL)).await {
-        Ok(Ok(_)) => true,
-        _ => false,
-    }
+    matches!(
+        tokio::time::timeout(Duration::from_secs(2), async_nats::connect(NATS_URL)).await,
+        Ok(Ok(_))
+    )
 }
 
 #[tokio::test]

@@ -142,7 +142,7 @@ impl SmtpAlertSink {
     }
 
     /// 构造 from 头部（`"Name" <addr>`）
-    fn from_header(&self) -> String {
+    fn build_from_header(&self) -> String {
         format!("\"{}\" <{}>", self.from_name, self.from_addr)
     }
 }
@@ -150,7 +150,7 @@ impl SmtpAlertSink {
 #[async_trait]
 impl AlertSink for SmtpAlertSink {
     async fn send(&self, to: &str, event: &AlertEvent) -> Result<(), AlertError> {
-        let from = self.from_header();
+        let from = self.build_from_header();
         let subject = event.subject();
         let body = event.body();
         let email = Message::builder()

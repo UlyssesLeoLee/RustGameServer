@@ -205,7 +205,7 @@ async fn s5_a005_concurrent_workers_no_duplicate_publish() {
     let h1 = tokio::spawn(async move {
         let nats = InMemoryNatsMock::new();
         let mut picked = vec![];
-        while let Some(_) = run_relay_once(&store1, &nats).await {
+        while run_relay_once(&store1, &nats).await.is_some() {
             picked.push(());
         }
         picked.len()
@@ -213,7 +213,7 @@ async fn s5_a005_concurrent_workers_no_duplicate_publish() {
     let h2 = tokio::spawn(async move {
         let nats = InMemoryNatsMock::new();
         let mut picked = vec![];
-        while let Some(_) = run_relay_once(&store2, &nats).await {
+        while run_relay_once(&store2, &nats).await.is_some() {
             picked.push(());
         }
         picked.len()

@@ -55,12 +55,15 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use wasmtime::{Config, Engine, Extern, Linker, Module, ResourceLimiter, Store};
 
+/// Module cache keyed by `(function_id, version)`.
+type ModuleCache = Arc<Mutex<HashMap<(String, String), Arc<Module>>>>;
+
 /// In-process WASM runtime: one engine + a module cache keyed by
 /// `(function_id, version)`.
 #[derive(Clone)]
 pub struct WasmHost {
     engine: Engine,
-    modules: Arc<Mutex<HashMap<(String, String), Arc<Module>>>>,
+    modules: ModuleCache,
 }
 
 impl std::fmt::Debug for WasmHost {
