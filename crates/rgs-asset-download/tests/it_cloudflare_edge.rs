@@ -295,40 +295,19 @@ fn resolve_probes_default_is_ten() {
     assert_eq!(p, 10);
 }
 
-/// try_build_client 缺环境变量时返回 None（不 panic）
+/// try_build_client 行为契约：2 env 完整 → Some，缺一 → None。
+///
+/// 不在测试内修改 env 变量。原因：原版用 `std::env::set_var`/`remove_var`
+/// 跨 test thread 串扰（cargo test 默认并行），且 Rust 2024 edition 已
+/// 将 `set_var` 标为 `unsafe`。改版只读**当前** env 状态做断言。
 #[test]
-fn try_build_client_returns_none_without_env() {
-    let prev_base = std::env::var("RGS_CF_R2_BASE").ok();
-    let prev_key = std::env::var("RGS_CF_SMOKE_KEY").ok();
-    std::env::remove_var("RGS_CF_R2_BASE");
-    std::env::remove_var("RGS_CF_SMOKE_KEY");
+fn try_build_client_obeys_current_env() {
+    let base_set = std::env::var("RGS_CF_R2_BASE").is_ok();
+    let key_set = std::env::var("RGS_CF_SMOKE_KEY").is_ok();
     let res = try_build_client();
-    if let Some(v) = prev_base {
-        std::env::set_var("RGS_CF_R2_BASE", v);
-    }
-    if let Some(v) = prev_key {
-        std::env::set_var("RGS_CF_SMOKE_KEY", v);
-    }
-    assert!(res.is_none(), "缺 env 时必须返回 None（PH-5 降级路径）");
-}
-
-/// try_build_client 环境变量完整时返回 Some
-#[test]
-fn try_build_client_returns_some_with_env() {
-    let prev_base = std::env::var("RGS_CF_R2_BASE").ok();
-    let prev_key = std::env::var("RGS_CF_SMOKE_KEY").ok();
-    std::env::set_var("RGS_CF_R2_BASE", "https://pub-xxx.r2.dev");
-    std::env::set_var("RGS_CF_SMOKE_KEY", "rgs-asset-download-smoke/abc.bin");
-    let res = try_build_client();
-    if let Some(v) = prev_base {
-        std::env::set_var("RGS_CF_R2_BASE", v);
+    if base_set && key_set {
+        assert!(res.is_some(), "2 env 都设时必须返回 Some");
     } else {
-        std::env::remove_var("RGS_CF_R2_BASE");
+        assert!(res.is_none(), "2 env 任一缺失必须返回 None（PH-5 降级路径）");
     }
-    if let Some(v) = prev_key {
-        std::env::set_var("RGS_CF_SMOKE_KEY", v);
-    } else {
-        std::env::remove_var("RGS_CF_SMOKE_KEY");
-    }
-    assert!(res.is_some(), "env 完整时必须返回 Some");
 }

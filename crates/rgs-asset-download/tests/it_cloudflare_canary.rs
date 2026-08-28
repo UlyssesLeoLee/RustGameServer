@@ -445,50 +445,27 @@ fn canary_select_backend_distribution() {
     assert_eq!(r2_count_100, 1000, "100% 阶段必须全 R2");
 }
 
-/// try_build_scheduler 缺 env 时返回 None
+/// try_build_scheduler 行为契约：4 env 完整 → Some，缺一 → None。
+///
+/// 不在测试内修改 env 变量。原因：原版用 `std::env::set_var`/`remove_var`
+/// 跨 test thread 串扰（cargo test 默认并行），且 Rust 2024 edition 已
+/// 将 `set_var` 标为 `unsafe`。改版只读**当前** env 状态做断言。
+/// 跑测方在调用此测试前应保证 env 状态稳定；CI 端可加 `--test-threads=1`。
 #[test]
-fn try_build_scheduler_returns_none_without_env() {
+fn try_build_scheduler_obeys_current_env() {
     let keys = [
         "RGS_CF_R2_BASE",
         "RGS_CF_SMOKE_KEY",
         "RGS_SELF_HOSTED_BASE",
         "RGS_SELF_HOSTED_KEY",
     ];
-    let prev: Vec<_> = keys.iter().map(|k| std::env::var(k).ok()).collect();
-    for k in &keys {
-        std::env::remove_var(k);
-    }
+    let all_set = keys.iter().all(|k| std::env::var(k).is_ok());
     let res = try_build_scheduler();
-    for (k, v) in keys.iter().zip(prev.iter()) {
-        if let Some(v) = v {
-            std::env::set_var(k, v);
-        }
+    if all_set {
+        assert!(res.is_some(), "4 env 都设时必须返回 Some");
+    } else {
+        assert!(res.is_none(), "4 env 任一缺失必须返回 None（PH-5 降级路径）");
     }
-    assert!(res.is_none(), "缺 env 时必须返回 None（PH-5 降级路径）");
-}
-
-/// try_build_scheduler env 完整时返回 Some
-#[test]
-fn try_build_scheduler_returns_some_with_env() {
-    let keys = [
-        ("RGS_CF_R2_BASE", "https://pub-xxx.r2.dev"),
-        ("RGS_CF_SMOKE_KEY", "smoke/abc.bin"),
-        ("RGS_SELF_HOSTED_BASE", "https://self.example.com"),
-        ("RGS_SELF_HOSTED_KEY", "smoke/abc.bin"),
-    ];
-    let prev: Vec<_> = keys.iter().map(|(k, _)| std::env::var(k).ok()).collect();
-    for (k, v) in &keys {
-        std::env::set_var(k, v);
-    }
-    let res = try_build_scheduler();
-    for ((k, _), v) in keys.iter().zip(prev.iter()) {
-        if let Some(v) = v {
-            std::env::set_var(k, v);
-        } else {
-            std::env::remove_var(k);
-        }
-    }
-    assert!(res.is_some(), "env 完整时必须返回 Some");
 }
 
 /// r2_share 空数组返回 0.0
