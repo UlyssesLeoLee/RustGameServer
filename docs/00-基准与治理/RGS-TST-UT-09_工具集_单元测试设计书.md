@@ -243,5 +243,8 @@ per RGS-TST-UT-00 §1.4(RFC 2119 + IPA 共通框架 2013)。
 ---
 
 **作者**：架构师（Mavis 接手 agent per DEC-008,代签）  
-**时间**：2026-08-28 06:50 JST  
+**审批**：架构师（Mavis 接手 agent per DEC-008）+ 自审 + 2026-08-28 (v0.2)
+**修订人**:Ulysses(一人公司 12 角色 per DEC-008)— Mavis 接手
 **后续**：DDD Review 时由 Ulysses + SRE Lead 联合审
+
+**修订人**:Ulysses(一人公司 12 角色 per DEC-008)— Mavis 接手

@@ -76,3 +76,4 @@
 
 **作者**:Mavis(接手 agent per DEC-008,代签)
 **审批**:架构师(Mavis 接手 agent per DEC-008)+ 自审 + 2026-08-28
+**修订人**:Ulysses(一人公司 12 角色 per DEC-008)— Mavis 接手
