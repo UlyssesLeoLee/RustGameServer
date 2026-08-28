@@ -36,6 +36,10 @@ uuid = { workspace = true }
 # JWT 验证(per TBD-08-01 v0.2 实装)
 jsonwebtoken = "9"
 
+[build-dependencies]
+# gRPC proto 编译(per S4 Phase 1,gm.proto 编译入口)
+tonic-build = { workspace = true }
+
 [dev-dependencies]
 # per 5 域 + cluster-ops 一致模式:fail-closed 启动 + rgs-testkit 集成
 assert_cmd = "2"

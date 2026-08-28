@@ -12,8 +12,7 @@ package gm.v1;
 //
 // 关联 commit: 404e3ea (v0.2 实装)
 // v0.3 计划: gm-backend → admin-service gRPC 真实集成(S4 立项)
-
-import "common/v1/common.proto";
+// v0.3 简化: 不依赖 common.proto, RequestContext 字段 inline (后续 v0.4 统一 proto 仓库)
 
 service GmBackend {
   // HealthView: 返回 services[] 5 子字段 + propagation_status
@@ -37,7 +36,7 @@ service GmBackend {
 // ============================================================================
 
 message HealthViewRequest {
-  common.v1.RequestContext ctx = 1;
+  string request_id = 1;
 }
 
 message HealthViewResponse {
@@ -59,7 +58,7 @@ message ServiceHealthEntry {
 // ============================================================================
 
 message BanAccountRequest {
-  common.v1.RequestContext ctx = 1;
+  string request_id = 1;
   string account_id = 2;
   string reason = 3;
   int32 duration_seconds = 4; // 0 = 永久
@@ -68,11 +67,11 @@ message BanAccountRequest {
 message BanAccountResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "ban"
-  common.v1.Timestamp accepted_at = 3;
+  int64 accepted_at_ms = 3;
 }
 
 message GrantCompensationRequest {
-  common.v1.RequestContext ctx = 1;
+  string request_id = 1;
   string account_id = 2;
   int64 amount = 3;
   string currency = 4;
@@ -82,7 +81,7 @@ message GrantCompensationRequest {
 message GrantCompensationResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "compensation"
-  common.v1.Timestamp accepted_at = 3;
+  int64 accepted_at_ms = 3;
 }
 
 // ============================================================================
@@ -90,7 +89,7 @@ message GrantCompensationResponse {
 // ============================================================================
 
 message SetMaintenanceRequest {
-  common.v1.RequestContext ctx = 1;
+  string request_id = 1;
   bool enable = 2;
   string scope = 3;        // "cluster" / "domain" / "single_node"
   string target_id = 4;    // 配合 scope
@@ -102,7 +101,7 @@ message SetMaintenanceResponse {
   string op = 2;            // "maintenance"
   // v0.2 新增字段(per F8 处置): PROPAGATING / CONVERGED
   PropagationStatus propagation_status = 3;
-  common.v1.Timestamp accepted_at = 4;
+  int64 accepted_at_ms = 4;
 }
 
 enum PropagationStatus {
@@ -116,7 +115,7 @@ enum PropagationStatus {
 // ============================================================================
 
 message QueryAuditLogRequest {
-  common.v1.RequestContext ctx = 1;
+  string request_id = 1;
   int32 limit = 2;           // 默认 3(v0.2 兼容, v0.3 调为 20)
   string cursor = 3;         // 分页 cursor
   string filter_admin = 4;   // 过滤 admin_id
@@ -136,3 +135,4 @@ message AuditLogEntry {
   string target_id = 4;
   int64 occurred_at_ms = 5;
 }
+
