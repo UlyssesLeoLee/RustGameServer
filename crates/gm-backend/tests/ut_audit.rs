@@ -12,6 +12,7 @@
 use axum_test::TestServer;
 use gm_backend::{AuditLogEntry, AuditStore, GmConfig, InMemoryAuditStore};
 use rgs_testkit::fixture::{self, FixtureBuilder};
+use serde_json::json;
 use std::sync::Arc;
 
 fn make_test_server() -> (TestServer, Arc<InMemoryAuditStore>) {
@@ -44,29 +45,43 @@ fn make_test_server_preloaded() -> (TestServer, Arc<InMemoryAuditStore>) {
 
 #[tokio::test]
 async fn ban_account_writes_audit_log() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body 写 audit_log
     let (server, store) = make_test_server();
-    let resp = server.post("/api/v1/gm/ban").await;
+    let resp = server
+        .post("/api/v1/gm/ban")
+        .json(&json!({"account_id": "audit-ban-target", "reason": "test", "duration_seconds": 0}))
+        .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let entries = store.list_entries(20).await;
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].action, "ban");
     assert_eq!(entries[0].admin_id, "system");
+    assert_eq!(entries[0].target_id, "audit-ban-target"); // 真值, 不是 "stub"
 }
 
 #[tokio::test]
 async fn grant_compensation_writes_audit_log() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let (server, store) = make_test_server();
-    let resp = server.post("/api/v1/gm/compensation").await;
+    let resp = server
+        .post("/api/v1/gm/compensation")
+        .json(&json!({"account_id": "audit-comp-target", "amount": 100, "currency": "USD", "reason": "test"}))
+        .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let entries = store.list_entries(20).await;
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].action, "grant_compensation");
+    assert_eq!(entries[0].target_id, "audit-comp-target"); // 真值
 }
 
 #[tokio::test]
 async fn set_maintenance_writes_audit_log() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let (server, store) = make_test_server();
-    let resp = server.post("/api/v1/gm/maintenance").await;
+    let resp = server
+        .post("/api/v1/gm/maintenance")
+        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let entries = store.list_entries(20).await;
     assert_eq!(entries.len(), 1);

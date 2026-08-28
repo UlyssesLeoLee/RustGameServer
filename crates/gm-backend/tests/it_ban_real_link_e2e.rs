@@ -198,7 +198,10 @@ async fn ban_e2e_unreachable_admin_fallback_passes() {
     let app = build_router(state);
     let server = axum_test::TestServer::new(app).expect("test server");
 
-    let resp = server.post("/api/v1/gm/ban").await;
+    let resp = server
+        .post("/api/v1/gm/ban")
+        .json(&serde_json::json!({"account_id": "e2e-target", "reason": "e2e", "duration_seconds": 0}))
+        .await;
     resp.assert_status(StatusCode::ACCEPTED);
     // 注: stub handler 写 system admin_id (v1 路由), 降级 InMemory 成功
     let body: serde_json::Value = resp.json();
