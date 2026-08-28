@@ -79,6 +79,21 @@
 - OLU §6.5 重算(预计人·天 21 → 16-18 per 8 域分配) — 8 域 Lead 具名后,工作量可分配到各域
 - 关闭条件:8 域 Lead 实际具名 + RACI v1.2 升级 + OLU §6.5 重算 → Q2 可关闭
 
+**v0.4 终审决议**(2026-08-28 10:33 JST,Ulysses 一审):
+- ✅ **采纳** 8 域 + 4 共享 = 12 角色映射(per Ulysses 决策)
+- 8 域 Lead 角色具名(per DEC-008 一人公司 12 角色):
+  - **player-service**:玩家域 Lead(per DTL-015)
+  - **economy-service**:经济域 Lead(per DTL-018/037)
+  - **match-service**:对战域 Lead(per DTL-026/038)
+  - **social-service**:社交域 Lead(per DTL-019/020/039)
+  - **admin-service**:Admin 域 Lead(per DTL-031)
+  - **cluster-ops**:集群运营 Lead(per DTL-042)
+  - **gm-backend**:GM 后台域 Lead(per BAS-003)
+  - **rgs-certgen**:工具链 Lead(per 09 编号域)
+- 共享支持 4 角色(SRE/Platform/QA/PM)+ 架构师
+- 代签透明:author=Ulysses / 审批=架构师(Mavis 接手 agent per DEC-008)+自审+日期
+- 关闭条件:8 域 Lead 实际具名 + RACI v1.2 升级 + OLU §6.5 重算 → Q2 可关闭
+
 **负责**:Ulysses 决策 + 5 域 Lead(未来 5 个真人)
 
 **阻塞影响**:
