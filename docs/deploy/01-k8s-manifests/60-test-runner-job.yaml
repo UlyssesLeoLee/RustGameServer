@@ -1,0 +1,201 @@
+# 60-test-runner-job.yaml
+# 角色:一次性 k3s Job — 在集群内跑 cargo test --workspace + cargo llvm-cov
+# 状态:🟢 GO  (per 2026-08-28 13:00 JST IT 主阶段 G3/G4 立项)
+# 用途:
+#   - G3: 5 域 fixture 真实 PG 验证(per Ulysses 12:43 JST 拆解)
+#   - G4: workspace 真实覆盖率实测 + 文档更新
+# 关联:it-readiness-check-2026-08-28.md + 2026-08-28 跨反馈
+#
+# 关键点:
+#   1. 镜像用现成的 rgs-testkit crate build image(已含 cargo + cargo-llvm-cov)
+#   2. DATABASE_URL 通过 envFrom postgres-secret 注入(service DNS 解析)
+#   3. 结果落 workspace 共享 PVC, kubectl cp 出来
+#   4. ttlSecondsAfterFinished: 600(10 分钟保留)
+#   5. backoffLimit: 0(不重试,直接看结果)
+#
+# 跑测命令:
+#   kubectl apply -f 60-test-runner-job.yaml -n rgs-dev
+#   kubectl wait --for=condition=Complete --timeout=600s job/test-runner -n rgs-dev
+#   kubectl cp rgs-dev/test-runner-pod:/workspace/evidence ./test-evidence-2026-08-28
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-runner
+  namespace: PLACEHOLDER_NAMESPACE  # 实际:rgs-dev
+  labels:
+    app.kubernetes.io/name: test-runner
+    app.kubernetes.io/component: ci-tool
+    app.kubernetes.io/part-of: rust-game-server
+    rgs-purpose: it-main-stage-g3-g4
+  annotations:
+    rgs.perf/created-by: "Mavis 接手 agent per DEC-008 (代签)"
+    rgs.perf/created-at: "2026-08-28 13:00 JST"
+spec:
+  ttlSecondsAfterFinished: 600  # 完成后保留 10 分钟,方便 kubectl cp + log
+  backoffLimit: 0                # 失败不重试
+  activeDeadlineSeconds: 3600    # 1 小时硬超时
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-runner
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rgs-test-runner  # 见 RBAC template
+      # 用 5 域 workspace 的 build 镜像(已含 cargo + rust toolchain + cargo-llvm-cov)
+      # 镜像从 gm-backend 0.1.0 同 base 构建(已 push ghcr.io)
+      containers:
+        - name: test-runner
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend
+          # 或者用 dev image: ghcr.io/ulyssesleolee/rustgameserver:dev-base
+          imagePullPolicy: Always
+          workingDir: /workspace
+          env:
+            # PG 通过 k3s service DNS 解析(postgres:5432)
+            # DATABASE_URL 由 postgres-secret envFrom 注入
+            - name: RUST_LOG
+              value: "info,gm-backend=debug"
+            - name: CARGO_TERM_COLOR
+              value: "always"
+            - name: RUST_BACKTRACE
+              value: "short"
+            # dev 模式跳过 mTLS fail-closed (gm-backend)
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "1"
+            - name: GM_HTTP_ADDR
+              value: "0.0.0.0:0"
+            - name: GM_HEALTH_ADDR
+              value: "0.0.0.0:0"
+          envFrom:
+            # 注入 postgres-secret 里的 DATABASE_URL + 5 域 DB credentials
+            - secretRef:
+                name: rgs-postgres-secret
+                optional: false
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== IT 主阶段 G3/G4 ==="
+              echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) start"
+              
+              # 0. 准备 evidence 目录
+              BATCH="it-main-stage-$(date -u +%Y%m%d-%H%M%S)"
+              mkdir -p /workspace/evidence/${BATCH}
+              cd /workspace/evidence/${BATCH}
+              
+              # 1. cargo test --workspace --no-fail-fast
+              echo "=== G3: cargo test --workspace --no-fail-fast ==="
+              cd /workspace
+              cargo test --workspace --no-fail-fast --quiet 2>&1 | tee /workspace/evidence/${BATCH}/cargo-test-workspace.log
+              TEST_EXIT=$?
+              echo "cargo test exit=${TEST_EXIT}"
+              
+              # 2. cargo llvm-cov --workspace (per G4)
+              echo "=== G4: cargo llvm-cov --workspace ==="
+              cargo llvm-cov --workspace --lcov --output-path /workspace/evidence/${BATCH}/lcov-workspace.info 2>&1 | tee /workspace/evidence/${BATCH}/cargo-llvm-cov-workspace.log
+              LLVM_COV_EXIT=$?
+              echo "cargo llvm-cov exit=${LLVM_COV_EXIT}"
+              
+              # 3. 提取覆盖率摘要
+              if [ -f /workspace/evidence/${BATCH}/lcov-workspace.info ]; then
+                  # 解析 LCOV 拿行覆盖率
+                  TOTAL_LINES=$(grep -c '^DA:' /workspace/evidence/${BATCH}/lcov-workspace.info || echo 0)
+                  HIT_LINES=$(awk -F',' '/^DA:/ { hit+=$2; total+=$1 } END { print hit }' /workspace/evidence/${BATCH}/lcov-workspace.info || echo 0)
+                  TOTAL_LF=$(awk -F',' '/^DA:/ { total+=$1 } END { print total }' /workspace/evidence/${BATCH}/lcov-workspace.info || echo 0)
+                  if [ "$TOTAL_LF" -gt 0 ]; then
+                      COVERAGE=$(awk "BEGIN { printf \"%.2f\", $HIT_LINES * 100 / $TOTAL_LF }")
+                  else
+                      COVERAGE="0.00"
+                  fi
+                  echo "workspace coverage: ${COVERAGE}% (${HIT_LINES}/${TOTAL_LF} lines)"
+                  cat > /workspace/evidence/${BATCH}/coverage-summary.json <<EOF
+              {
+                "batch": "${BATCH}",
+                "test_exit": ${TEST_EXIT},
+                "llvm_cov_exit": ${LLVM_COV_EXIT},
+                "coverage_pct": ${COVERAGE},
+                "hit_lines": ${HIT_LINES},
+                "total_lines": ${TOTAL_LF}
+              }
+              EOF
+              fi
+              
+              # 4. 写 manifest
+              cat > /workspace/evidence/${BATCH}/manifest.json <<EOF
+              {
+                "batch": "${BATCH}",
+                "purpose": "IT 主阶段 G3 fixture + G4 覆盖率",
+                "k8s_namespace": "$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo unknown)",
+                "rust_version": "$(rustc --version)",
+                "cargo_version": "$(cargo --version)",
+                "test_exit": ${TEST_EXIT},
+                "llvm_cov_exit": ${LLVM_COV_EXIT},
+                "artifacts": [
+                  "cargo-test-workspace.log",
+                  "cargo-llvm-cov-workspace.log",
+                  "lcov-workspace.info"
+                ]
+              }
+              EOF
+              
+              echo "=== 完结 ==="
+              echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) end"
+              echo "evidence: /workspace/evidence/${BATCH}"
+              echo "BATCH=${BATCH}"
+              
+              # 把 BATCH 写到 /tmp 让 initContainer 取
+              echo -n "${BATCH}" > /tmp/test-runner-batch
+              
+              exit $TEST_EXIT
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "8"
+              memory: "16Gi"
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            - name: cargo-cache
+              mountPath: /root/.cargo
+            - name: target-cache
+              mountPath: /workspace/target
+      volumes:
+        # 共享 workspace PVC(由 cluster-ops / gm-backend deployments 共享)
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: rgs-workspace-pvc  # 实际命名见 k3s manifest
+        # cargo 缓存(避免每次 rebuild)
+        - name: cargo-cache
+          emptyDir: {}
+        - name: target-cache
+          emptyDir: {}
+
+---
+# RBAC: rgs-test-runner ServiceAccount(per 10-rbac-template.yaml)
+# 实际值 kubectl apply 前替换
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rgs-test-runner
+  namespace: PLACEHOLDER_NAMESPACE  # 实际:rgs-dev
+  labels:
+    app.kubernetes.io/name: test-runner
+---
+# 一次性 pod 用,无需 role binding(只读 secret + write emptyDir)
+---
+# 备注:
+# - 若 5 域需要独立 DB user,postgres-secret 必须含 5 个 DATABASE_URL(per_domain)
+# - 或简单做法:所有 5 域用同一个 test_db,DATABASE_URL 单一
+# - 建议:dev k3s 用单 DB 简化(per 2026-08-27 部署 19/19 Pods Running 状态)
+#
+# 用法:
+# 1. kubectl apply -f 60-test-runner-job.yaml -n rgs-dev
+# 2. kubectl wait --for=condition=Complete --timeout=600s job/test-runner -n rgs-dev
+# 3. kubectl get pods -n rgs-dev -l app.kubernetes.io/name=test-runner
+# 4. kubectl cp rgs-dev/<test-runner-pod>:/workspace/evidence ./test-evidence
+# 5. cat test-evidence/*/coverage-summary.json  # 看真实覆盖率
+# 6. cat test-evidence/*/cargo-test-workspace.log | tail -100  # 看 cargo test 结果
+# 7. 用 LCOV 上传 codecov.io 或本地看 lcov-workspace.info
