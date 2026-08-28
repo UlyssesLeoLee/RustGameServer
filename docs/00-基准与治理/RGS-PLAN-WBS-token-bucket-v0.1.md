@@ -198,18 +198,38 @@
 - **桶 1 闭合 P2 偏差 35 项**(5M tokens, 预计 1 周)
 - **桶 2 立项**: 5 域 Lead + gm-backend Lead 启动 gm.proto v0.3 业务实装
 
-### 7.2 待 Ulysses 拍板
+### 7.2 Ulysses 拍板(per 2026-08-29 05:28 JST 拍板,落档 v0.1 → v0.2)
 
-- **桶 2 范围确认**: 决议 6 (axum-test 切) + 决议 7 (链路 B/C/D) 合并到桶 2 是否合理?或拆为桶 2a (业务) + 桶 2b (axum-test) + 桶 2c (链路)?
-- **桶 4 mTLS 决策草案**: BAS-003 §2.1 mTLS 待定项, 需先决策再实装
-- **桶 6 AI 审计 API 选型**: Mavis native / OpenAI / Claude 三选一
+**拍板 1:桶 2 范围不拆**(决 6+7 合并)
+- 理由:拆 = 3 个独立桶需要 3 次立项 + 3 次推进,token 浪费;合并 = 1 次启动
+- 桶 2 范围 = gm 业务实装 + 5 域 axum-test 切 + 链路 B/C/D 补,80M tokens
+- 拒绝替代: 拆 2a/2b/2c(每桶 ~27M, 3 次立项 + 3 次推进 = 节省 0%, 反而增加协调成本)
 
-### 7.3 已实装现状(8/29 04:23 JST 之前)
+**拍板 2:mTLS 决策草案**(per 2026-08-29 05:28 JST)
+- 决策:**gm-backend → admin-service 用 mTLS 双向认证**, 5 域内部 RPC 用明文 + JWT
+- 理由: gm → admin 跨信任域(BAS-022 + ARC-019), mTLS 强认证;5 域内部同信任域,k3s NetworkPolicy 已隔离 + JWT 已鉴权
+- 依据: W21 已实装 mTLS 5 IT(gm → admin 5/5 PASS), 5 域内部 mTLS 增加 token 浪费(每域 +1 套证书 + 轮换 + 监控)
+- 桶 4 范围 = gm → admin mTLS 扩展到全路径(admin → 5 域用 JWT, 不上 mTLS)
+- 拒绝替代: 全 9 域 mTLS(增加 4 套证书生命周期管理,token 估 +50%)
+
+**拍板 3:AI 审计 API 选型**(per 2026-08-29 05:28 JST)
+- 决策:**Mavis native** (本地 Mavis agent 调用, 不引入 OpenAI/Claude)
+- 理由: ① 减少 token 计费复杂度(走 1 SRE 1M tokens/周 已建立预算); ② 误报可控(Mavis 已熟悉 9 决议 + BAS); ③ 9 维度(决策追踪/代码治理/...)都是文档型, 不需要 GPT-4/Claude 强模型
+- 桶 6 范围 = `.github/workflows/ai-audit.yml` 调 `mavis --audit-pr`, 9 维度 checklist + 跳转人工审核
+- 拒绝替代: OpenAI API(增加 API key 管理 + 月度计费 + 误报率 30%+ 不可控)
+
+### 7.3 v0.2 文档状态
+
+- v0.1 (2026-08-29 04:23 JST): 6 桶 token 预算 + 推进机制(纯文档)
+- **v0.2 (2026-08-29 05:28 JST)**: 加 §7.2 Ulysses 3 决策拍板 + 拒绝替代记录(per 2026-08-26 04:30 JST "决策即留痕"原则)
+
+### 7.4 已实装现状(8/29 05:28 JST 之前)
 
 - W25 Step 3 集成包入库 (commit `ce62925` + tag `v0.5-step3-integration-2026-08-29`)
 - 9 决议 1-5 接受 / 6-9 暂缓 (9-DECISIONS v0.3)
 - BAS-TST cross W25 报告 (P0=0 P1=0 P2=35 P3=2)
 - 跑测累计 294/294 PASS (gm-backend 84 + admin-service 35 + 5 域 175)
+- TS-001 v0.8 §6.3 WBS token 桶原则 (commit `0c0a0c7`)
 
 ---
 
@@ -217,10 +237,10 @@
 
 | 角色 | 姓名 | 审批日 | 备注 |
 |---|---|---|---|
-| 制定 | 架构师 (Mavis 接手 per DEC-008) | 2026-08-29 04:23 JST | — |
-| 评审 | SRE Lead | ⏳ | 桶 4 mTLS + 桶 6 AI 审计 CI |
+| 制定 | 架构师 (Mavis 接手 per DEC-008) | 2026-08-29 04:23 JST | v0.1 |
+| 拍板 | Ulysses | 2026-08-29 05:28 JST | v0.2 桶 2 不拆 / mTLS gm→admin / Mavis native |
+| 评审 | SRE Lead | ⏳ | 桶 4 mTLS 实装 + 桶 6 AI 审计 CI |
 | 评审 | QA Lead | ⏳ | 桶 1 BAS 追溯 + 桶 2 业务实装 |
-| 审批 | Ulysses | ⏳ | 桶范围确认 + 4 决策拍板 |
 
 ---
 
