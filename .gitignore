@@ -50,3 +50,10 @@ target/
 # 其他 session 跑 RGS-INC-002 cross-ref 验证时的临时 Python 脚本 + 临时输出
 # 15 个文件 622KB,跑完即失效,不入 git 也不归档
 scripts/_scratch/
+
+# test-evidence (per 2026-08-28 ut 实施批次,test-evidence.ps1 输出)
+# 内容:cargo test / cargo example / e2e-smoke 留档 log + manifest.json
+# 不入 git (DDD Review 阶段需查档时手动从本机 / CI 复跑生成)
+docs/00-基准与治理/.test-evidence/*/cargo-*.log
+docs/00-基准与治理/.test-evidence/*/e2e-smoke.log
+docs/00-基准与治理/.test-evidence/*/manifest.json
