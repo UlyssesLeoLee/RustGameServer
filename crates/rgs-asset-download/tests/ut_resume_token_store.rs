@@ -504,11 +504,12 @@ fn default_lru_max_bytes_is_100mb() {
 
 #[tokio::test]
 async fn json_file_store_returns_specific_error_on_io_failure() {
-    // 试图在一个不存在的盘符下创建
-    let bad = PathBuf::from("Z:\\definitely-not-existing\\store");
+    // 试图在不可写位置创建：/proc/0 是内核伪文件系统，无法 mkdir。
+    // 兼容 WSL/Linux（Windows 原生测试用 TempDir 但此处需要"必然失败"路径）。
+    let bad = PathBuf::from("/proc/0/cannot-create-here/store");
     let res = JsonFileResumeTokenStore::new(bad).await;
-    assert!(matches!(
-        res,
-        Err(AssetDownloadError::StoreIoError { .. })
-    ));
+    assert!(
+        matches!(res, Err(AssetDownloadError::StoreIoError { .. })),
+        "expected StoreIoError, got: {res:?}"
+    );
 }
