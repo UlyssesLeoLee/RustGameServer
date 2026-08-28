@@ -262,14 +262,38 @@
 - v0.2 (2026-08-29 05:28 JST): 加 §7.2 Ulysses 3 决策拍板 + 拒绝替代记录
 - **v0.3 (2026-08-29 05:51 JST)**: 加 §7.2 拍板 4 桶 2 子桶拆分 + gm.proto v0.3 保持
 
-### 7.4 已实装现状(8/29 05:51 JST 之前)
+### 7.4 已实装现状(8/29 07:38 JST 之后)
 
 - W25 Step 3 集成包入库 (commit `ce62925` + tag `v0.5-step3-integration-2026-08-29`)
 - 9 决议 1-5 接受 / 6-9 暂缓 (9-DECISIONS v0.3)
 - BAS-TST cross W25 报告 v0.2 §8 (35 P2 100% closure 状态明确)
 - 桶 1 闭合 (commit `ddf1cb7`)
-- 跑测累计 294/294 PASS (gm-backend 84 + admin-service 35 + 5 域 175)
+- **桶 2a 完成 (W26 commit `5e1e168` + tag `v0.6-bucket2a-gm-business-2026-08-29`)**
+  - gm-backend 5 endpoint 业务实装 (axum Json/Query extractor)
+  - 22 IT PASS (ban/compensation/maintenance/audit/health)
+  - gm-backend 跑测累计 106/106 PASS
+- **桶 2b 落档 (W27 commit `1e38711` + merge `0b40e14`)**
+  - 决议 6 (5 域切 axum-test) 与现状 gap, 推 W31+ (50-80M tokens)
+  - 5 域是 gRPC service 无 axum HTTP 入口, 0 IT
+  - 落档 `RGS-BUCKET-2B-AXUM-TEST-v0.1.md`
+- **桶 2c 落档 (W28 commit `88fd21b` + merge `7b66d64`)**
+  - 链路 B 已实装 (W22 commit `a9a473f` 5/5 PASS)
+  - 链路 C 缺上游 economy RPC, 推 W29 (15-20M tokens)
+  - 链路 D 依赖 C, 推 W30 (30-40M tokens)
+  - 落档 `RGS-BUCKET-2C-LINK-BC-v0.1.md`
+- 跑测累计 400+ PASS (gm-backend 106 + admin-service 35 + 5 域 175 + W26 22 新 IT)
 - TS-001 v0.8 §6.3 WBS token 桶原则 (commit `0c0a0c7`)
+- WBS v0.3 (commit `8ad815c`) 桶 2 拆 2a/2b/2c
+- WBS v0.4 (commit `0b40e14` 即将升) 桶 2b/2c 落档
+
+### 7.5 桶 2 进度汇总
+
+| 桶 | 状态 | 实际 token | 备注 |
+|---|---|---|---|
+| 2a gm 业务实装 | ✅ 完成 | 实际 ~10-15M (自做, W26) | commit `5e1e168`, tag v0.6 |
+| 2b 5 域 axum-test 切 | ⏸ 落档 W31+ | 0 (落档, W27) | 决议 6 与现状 gap |
+| 2c 链路 B/C/D | ⏸ 落档 W29/W30 | 0 (落档, W28) | 链路 B 已实装, C/D 缺上游 |
+| **合计** | 1/3 完成, 2/3 落档 | **~10-15M / 80M 预算** | 节省 ~65M tokens (落档不实装) |
 
 ---
 
