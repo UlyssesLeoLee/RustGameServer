@@ -194,6 +194,8 @@ pub fn init_otel_exporter_optional(
         .ok()
         .and_then(|s| s.trim().parse::<f64>().ok())
         .filter(|v| (0.0..=1.0).contains(v))
+        // W8: 默认 sample 10-20% (per Q-M-03 答复"PH-1 先 10-20% 采样")
+        // 0.10 = 10% 默认, 生产可通过 OTEL_TRACES_SAMPLER_ARG=0.20 提升到 20%
         .unwrap_or(0.10);
 
     let resource = Resource::new(vec![
@@ -202,46 +204,49 @@ pub fn init_otel_exporter_optional(
         KeyValue::new("deployment.environment", deployment_env.to_string()),
     ]);
 
-    // 53.12 任务未完成：OTel SDK 链路未启用（tracing-opentelemetry bridge 缺失）。
-    // 本函数仅"占位 + env 解析 + 校验 + log 告警"，等 53.12 完成后
-    // 改回 opentelemetry_otlp::new_pipeline().install_batch 即可生效。
-    //
-    // 55.45 临时：直接返回 noop guard（避免 OTLP exporter 启动但 bridge 未挂导致 span 静默丢失）
     tracing::info!(
         target: "otel",
         service = service_name,
         endpoint = %endpoint,
         sample_ratio = sample_ratio,
-        "OTel exporter env detected (endpoint={}, sample={}) — awaiting 53.12 OTel SDK 启用",
+        "OTel exporter env detected (endpoint={}, sample={}) — W8 激活",
         endpoint,
         sample_ratio
     );
 
-    // 53.12 完成后：把以下行注释去掉即可真正启用
-    //
-    // match opentelemetry_otlp::new_pipeline()
-    //     .tracing()
-    //     .with_exporter(
-    //         opentelemetry_otlp::new_exporter()
-    //             .tonic()
-    //             .with_endpoint(&endpoint),
-    //     )
-    //     .with_trace_config(
-    //         sdktrace::Config::default()
-    //             .with_resource(resource)
-    //             .with_sampler(sdktrace::Sampler::TraceIdRatioBased(sample_ratio)),
-    //     )
-    //     .install_batch(opentelemetry_sdk::runtime::Tokio)
-    // {
-    //     Ok(_) => OtelExporterGuard { enabled: true },
-    //     Err(e) => {
-    //         tracing::warn!(...);
-    //         OtelExporterGuard { enabled: false }
-    //     }
-    // }
-
-    let _ = (resource, endpoint, sample_ratio); // suppress unused warnings
-    OtelExporterGuard { enabled: false }
+    // W8 (2026-08-28): 激活 OTLP exporter (53.12 已完成)
+    match opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint(&endpoint),
+        )
+        .with_trace_config(
+            sdktrace::Config::default()
+                .with_resource(resource)
+                .with_sampler(sdktrace::Sampler::TraceIdRatioBased(sample_ratio)),
+        )
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+    {
+        Ok(_) => {
+            tracing::info!(
+                target: "otel",
+                service = service_name,
+                "OTel exporter ENABLED (PH-1 全链路 OTel 实装, per W8 commit)"
+            );
+            OtelExporterGuard { enabled: true }
+        }
+        Err(e) => {
+            tracing::warn!(
+                target: "otel",
+                service = service_name,
+                error = %e,
+                "OTel exporter init failed, falling back to noop (business still works)"
+            );
+            OtelExporterGuard { enabled: false }
+        }
+    }
 }
 
 #[cfg(test)]
