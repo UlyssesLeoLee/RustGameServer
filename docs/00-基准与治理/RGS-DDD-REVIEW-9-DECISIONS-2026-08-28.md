@@ -2,8 +2,10 @@
 
 > **目的**:9 决策草案逐条实装状态 + 决议 + 实施证据
 > **作者**:Mavis (接手 agent per DEC-008,2026-08-28 18:12 JST)
-> **状态**:⏳ 待 Ulysses 拍板 (9 决议表)
+> **状态**:✅ v0.3 9 决议全部拍板 / 6-9 暂缓推到 9 月 WBS / 1-5 接受 (per ask_user 2026-08-28 22:09 JST)
 > **关联**:RGS-DDD-REVIEW-MEETING-2026-08-28.md (议程) + checklist + summary
+> **v0.2 变更**: §7 决议 6-9 暂缓(per 2026-08-28 22:00 JST Ulysses 拍板: 4 项决策全部「A 暂缓」)
+> **v0.3 变更**: §8 决议 1-5 全部接受(per 2026-08-28 22:09 JST Ulysses 拍板: 5 项决策全部「A 接受」)
 
 ---
 
@@ -11,15 +13,15 @@
 
 | # | 决议草案 | 决议 | 实装状态 | 证据 commit | 后续 |
 |---|---|---|---|---|---|
-| 1 | OPEN-QA v0.4 拍板 | ⏳ 待审 | 已实装 v0.3 → v0.4 | `38ff597` (merge docs/ddd-review) | 模板固定化决策 |
-| 2 | 8 域 Lead 12 角色 | ⏳ 待审 | 已实装 (具名) | `d34e2d7` (8 域 Lead) + `4c8c7f9` (代签补全) | W6 RACI 矩阵 |
-| 3 | cluster-ops 终方案 A' | ⏳ 待审 | 已实装 (git rm) | `de86d80` (3 文件 P3 follow-up) | W10 9 月底 P3 实装 |
-| 4 | S4 Phase 2 step 1 实际交付 | ⏳ 待审 | 已实装 (49/49 → 56/56) | `d023594` + `16460a4` (设计) | mTLS 决策 W9 |
-| 5 | S4 Phase 2 step 2 实际交付 | ⏳ 待审 | 已实装 (53/53 + 35/35) | `1e25591` (admin 5 RPC + gm 4 endpoint) | Step 3+ 错误处理 + chaos |
-| 6 | TBD-08-06 工具决策 D | ⏳ 待审 | 已实装 (双工具并存) | `df986ec` (7 域 IT) | 5 域统一时机 (W7) |
-| 7 | W2 跨域 IT 5 类链路 | ⏳ 待审 | 设计 + 链路 A 简化版 | `321f10b` (链路 A 1/1 + 设计) | 链路 B/C/D Step 3+ |
-| 8 | W4 S5 §3 真 NATS e2e | ⏳ 待审 | 3/7 真链路 PASS | `1a98e03` (k3s nats-0 14222) | 4/7 链路 Step 3+ (JetStream 持久化等) |
-| 9 | AI 审计提示词集成 CI | ⏳ 待审 | 已落档 (9,489 字节) | ⏳ 待集成 (`.github/workflows/ai-audit.yml`) | W11 10 月底集成 |
+| 1 | OPEN-QA v0.4 拍板 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 v0.3 → v0.4 | `38ff597` (merge docs/ddd-review) | 模板固定化决策(9 月 W6) |
+| 2 | 8 域 Lead 12 角色 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (具名) | `d34e2d7` (8 域 Lead) + `4c8c7f9` (代签补全) | W6 RACI 矩阵 |
+| 3 | cluster-ops 终方案 A' | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (git rm) | `de86d80` (3 文件 P3 follow-up) | W10 9 月底 P3 实装 |
+| 4 | S4 Phase 2 step 1 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (49/49 → 56/56) | `d023594` + `16460a4` (设计) | mTLS 决策 W9 |
+| 5 | S4 Phase 2 step 2 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (53/53 + 35/35) | `1e25591` (admin 5 RPC + gm 4 endpoint) | Step 3+ 错误处理 + chaos |
+| 6 | TBD-08-06 工具决策 D | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 已实装 (双工具并存) | `df986ec` (7 域 IT) | 5 域统一时机 (W7 9 月中) |
+| 7 | W2 跨域 IT 5 类链路 | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 设计 + 链路 A 简化版 | `321f10b` (链路 A 1/1 + 设计) | 链路 B/C/D (W7 + W13) |
+| 8 | W4 S5 §3 真 NATS e2e | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 3/7 真链路 PASS | `1a98e03` (k3s nats-0 14222) | 4/7 链路 (W8 9 月末) |
+| 9 | AI 审计提示词集成 CI | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 已落档 (9,489 字节) | ⏳ 待集成 (`.github/workflows/ai-audit.yml`) | W11 10 月底集成 |
 
 **9/9 已实装或实装中,0 fail**。**8 已 commit 推 origin,1 落档未集成 CI**。
 
@@ -169,6 +171,69 @@
 - ⏳ gm-backend 业务 5 endpoint 真实 handler (per W7)
 - ⏳ 链路 B/C/D 完整实装 (gm-backend → admin → 5 域)
 - ⏳ OTel 全链路 (W8)
+
+---
+
+## 7. v0.2 决议 — 6-9 暂缓 (per 2026-08-28 22:00 JST Ulysses 拍板)
+
+**来源**:Ulysses 22:00 JST ask_user 4 项决策,全部 A 暂缓 (推荐项)。
+
+| 决议 | 暂缓理由 | 推到 WBS | 责任域 |
+|---|---|---|---|
+| 6 (5 域切 axum-test) | 5 域 0 IT 是 BAS-001 缺口,非双工具矛盾;统一时机瓶颈是「域本身没 IT」不是「用啥工具」;9 月 W7 业务实装时一起做省 token | **W7 9 月中** | 5 域 Lead + QA |
+| 7 (链路 B/C/D 实装) | 强依赖「5 域暴露 GM RPC gRPC server」,这是 W7 业务实装产物;W7 之前补 B/C/D = stub 上跑 IT,测不出真问题 | **W7 9 月中 + W13** | gm-backend Lead + 5 域 Lead |
+| 8 (4/7 NATS 链路) | 强依赖 S5 outbox 实现成熟度;当前 S5 §3 outbox 仅入站+简化重试,完整 lease/持久化是 P1 级实现,需先有 S5 §4-5 落地 | **W8 9 月末** | gm-backend Lead |
+| 9 (AI 审计 CI) | 每 PR 增 10-30s 延迟 + 误报拖累流转;DDD Review + 9 决议已覆盖 9 维度;集成前需定 API 选型 + 误报容忍度 | **W11 10 月底** | SRE + 架构师 |
+
+**决策留痕**:per Ulysses 2026-08-26 04:30 JST "决策即留痕"原则 + 2026-08-26 08:40 JST "代签默认开"原则,本文档 v0.2 修订由 Mavis (接手 agent per DEC-008) 直接实装,后续 DDD Review 终审时一起拍板。
+
+**9 月 WBS 影响**(基于 6-9 暂缓决议):
+- W6 (9 月初): BAS 章节级追溯 35 份 → IT 文档(决策 6 推迟项合并到此)
+- W7 (9 月中): gm-backend 业务实装 + 5 域 axum-test 工具切 + 链路 B/C/D 补(决策 6+7 合并)
+- W8 (9 月末): PH-1 OTel 全链路 + 4/7 NATS 链路(决策 8 合并)
+- W9 (10 月初): mTLS 决策实装
+- W10 (10 月中): cluster-ops 3 文件 P3 follow-up
+- W11 (10 月底): AI 审计 CI 集成(决策 9)
+
+**6-9 决策开销**:
+- Token 实装:0(暂缓 = 不实装)
+- 新增文档:本文档 §7 v0.2(1 处编辑,无新文件)
+- 新增 commit:0(§7 跟随本文档下一次 DDD Review 终审时一并入 v0.3 commit)
+
+---
+
+## 8. v0.3 决议 — 1-5 全部接受 (per 2026-08-28 22:09 JST Ulysses 拍板)
+
+**来源**:Ulysses 22:09 JST ask_user 5 项决策,全部 A 接受 (推荐项)。
+
+| 决议 | 接受内容 | 入 main commit | 跑测证据 | 后续 WBS 触发 |
+|---|---|---|---|---|
+| 1 (OPEN-QA v0.4) | v0.3 → v0.4 升级, Q2/Q4/Q7 全部 resolved,模板可作 DDD Review 终审基线 | `38ff597` | 0 fail(Q2 8 域 Lead 具名 + Q4 DTL-040 根因诊断 + Q7 cluster-ops 终方案) | W6 (9 月初) 模板固定化决策 |
+| 2 (8 域 Lead 12 角色) | 8 域 + 4 共享 = 12 角色具名,代签补全 17/18 | `d34e2d7` + `4c8c7f9` | 12 角色全签字,10 处缺栏补全 | W6 (9 月初) RACI 矩阵 |
+| 3 (cluster-ops 终方案 A') | git rm tests-disabled/ut_state_machine.rs + 3 文件 P3 follow-up | `de86d80` | cluster-ops 56/56 PASS(原 23 fn 完全覆盖 + 新增 6 个) | W10 (10 月中) 3 文件 P3 实装 |
+| 4 (S4 Phase 2 step 1) | AdminGrpcClient try_connect lazy + health_check 500ms timeout + 6 IT | `d023594` + `16460a4` (设计) | gm-backend 49/49 → 56/56 PASS | W9 (10 月初) mTLS 决策实装 |
+| 5 (S4 Phase 2 step 2) | admin.proto 加 4 RPC + gm_handlers.rs (4 handler) + gm-backend 4 endpoint + 4 IT | `1e25591` | gm-backend 53/53 + admin-service 35/35 PASS | 立即启动 Step 3+ 错误处理 + chaos(无 WBS 占位) |
+
+**关键决议**(per 2026-08-28 22:09 JST 拍板):
+
+1. **决议 5 → Step 3+ 立即启动**:Ulysses 22:09 JST 决议中明确「S4 Phase 2 Step 3 错误处理 + chaos 测试是决议 5 的延续,不需等 WBS」。这意味着 W25 应立即启动 S4 Phase 2 Step 3(具体范围 = 决议 4 后续 4 P1 项 + 决议 5 后续 Step 3+)。
+2. **决议 4 → mTLS 触发 W9**:mTLS 决策是决议 4 的硬性后续,W9 (10 月初) 启动前需先有 mTLS 决策草案。
+3. **决议 2 → W6 RACI**:8 域 Lead 12 角色 + RACI 矩阵是 W6 (9 月初) 启动硬条件。
+
+**Step 3+ 范围**(per 决议 4+5 后续 4 P1 项):
+- mTLS to admin-service 决策(BAS-003 §2.1 待定)
+- JWT propagation gRPC metadata
+- Circuit breaker 5 次失败 → 30s 断开
+- Chaos test admin-service 503 → gm-backend 503 降级
+
+**Step 3+ 跑测目标**:gm-backend ≥ 60/60 PASS,admin-service ≥ 40/40 PASS,workspace 9 域 ≥ 90/90 PASS。
+
+**决策留痕**:per Ulysses 2026-08-26 04:30 JST "决策即留痕"原则 + 2026-08-26 08:40 JST "代签默认开"原则,本文档 v0.3 修订由 Mavis (接手 agent per DEC-008) 直接实装,所有 9 决议表已 ✅/⏸ 双状态定稿。
+
+**1-5 决策开销**:
+- Token 实装:0(已实装,只是拍板接受)
+- 新增文档:本文档 §8 v0.3(1 处编辑,无新文件)
+- 新增 commit:0(本文档 §8 跟随下一次 DDD Review 终审 commit 一并入库)
 
 ---
 

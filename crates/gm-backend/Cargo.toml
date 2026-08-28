@@ -56,3 +56,7 @@ rgs-testkit = { path = "../rgs-testkit" }
 # 关联: docs/00-基准与治理/RGS-TST-S5-outbox-NATS-IT-设计书.md
 async-nats = "0.42"
 futures-util = "0.3"
+# W22 (2026-08-28): BanAccount 真链路 e2e (gm-backend → admin → player 端到端)
+# 关联: W15 commit 952b756 (player BanAccount gRPC) + W17 commit 658b742 (admin JWT)
+player-service = { path = "../player-service" }
+admin-service = { path = "../admin-service" }
