@@ -15,7 +15,10 @@ fn build_test_state() -> AppState {
 #[tokio::test]
 async fn query_audit_uses_default_limit_when_no_query() {
     let app = axum::Router::new()
-        .route("/api/v1/audit/logs", axum::routing::get(gm_backend::query_audit))
+        .route(
+            "/api/v1/audit/logs",
+            axum::routing::get(gm_backend::query_audit),
+        )
         .with_state(build_test_state());
 
     let req = axum::http::Request::builder()
@@ -36,7 +39,10 @@ async fn query_audit_uses_default_limit_when_no_query() {
 async fn query_audit_clamps_limit_to_max_100() {
     // limit=999 → clamp 到 100, 不报错
     let app = axum::Router::new()
-        .route("/api/v1/audit/logs", axum::routing::get(gm_backend::query_audit))
+        .route(
+            "/api/v1/audit/logs",
+            axum::routing::get(gm_backend::query_audit),
+        )
         .with_state(build_test_state());
 
     let req = axum::http::Request::builder()
@@ -52,7 +58,10 @@ async fn query_audit_clamps_limit_to_max_100() {
 #[tokio::test]
 async fn query_audit_accepts_filter_query_params() {
     let app = axum::Router::new()
-        .route("/api/v1/audit/logs", axum::routing::get(gm_backend::query_audit))
+        .route(
+            "/api/v1/audit/logs",
+            axum::routing::get(gm_backend::query_audit),
+        )
         .with_state(build_test_state());
 
     let req = axum::http::Request::builder()
@@ -68,7 +77,10 @@ async fn query_audit_accepts_filter_query_params() {
 #[tokio::test]
 async fn query_audit_returns_next_cursor_field() {
     let app = axum::Router::new()
-        .route("/api/v1/audit/logs", axum::routing::get(gm_backend::query_audit))
+        .route(
+            "/api/v1/audit/logs",
+            axum::routing::get(gm_backend::query_audit),
+        )
         .with_state(build_test_state());
 
     let req = axum::http::Request::builder()
@@ -98,7 +110,10 @@ async fn query_audit_with_unreachable_admin_returns_empty_inmemory() {
     };
     let state = AppState::new(cfg);
     let app = axum::Router::new()
-        .route("/api/v1/audit/logs", axum::routing::get(gm_backend::query_audit))
+        .route(
+            "/api/v1/audit/logs",
+            axum::routing::get(gm_backend::query_audit),
+        )
         .with_state(state);
 
     let req = axum::http::Request::builder()

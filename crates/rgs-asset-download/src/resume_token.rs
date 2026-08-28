@@ -172,10 +172,14 @@ impl ResumeToken {
             return Err(ResumeTokenError::InvalidChunkSize(chunk_size));
         }
         if checksum_sha256.len() != 64 {
-            return Err(ResumeTokenError::InvalidChecksumLength(checksum_sha256.len()));
+            return Err(ResumeTokenError::InvalidChecksumLength(
+                checksum_sha256.len(),
+            ));
         }
         if !checksum_sha256.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(ResumeTokenError::InvalidChecksumLength(checksum_sha256.len()));
+            return Err(ResumeTokenError::InvalidChecksumLength(
+                checksum_sha256.len(),
+            ));
         }
 
         let now = Utc::now();
@@ -236,7 +240,9 @@ impl ResumeToken {
             return Err(ResumeTokenError::InvalidChunkSize(chunk_size));
         }
         if checksum_sha256.len() != 64 {
-            return Err(ResumeTokenError::InvalidChecksumLength(checksum_sha256.len()));
+            return Err(ResumeTokenError::InvalidChecksumLength(
+                checksum_sha256.len(),
+            ));
         }
 
         Ok(Self {

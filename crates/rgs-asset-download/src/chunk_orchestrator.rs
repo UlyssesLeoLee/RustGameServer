@@ -16,8 +16,8 @@
 //! - **FR-CDN-064**：本文件**禁止**引用 PII 字段（无 player_id / device_id / email）。
 //! - **NFR-CDN-002**：分片到达**不**做单独 hash（仅落盘 + 累加 `bytes_received`）。
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -137,8 +137,14 @@ impl std::fmt::Debug for ChunkOrchestrator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ChunkOrchestrator")
             .field("config", &self.config)
-            .field("bytes_received", &self.bytes_received.load(Ordering::Relaxed))
-            .field("chunks_completed", &self.chunks_completed.load(Ordering::Relaxed))
+            .field(
+                "bytes_received",
+                &self.bytes_received.load(Ordering::Relaxed),
+            )
+            .field(
+                "chunks_completed",
+                &self.chunks_completed.load(Ordering::Relaxed),
+            )
             .field("paused", &self.paused.load(Ordering::Relaxed))
             .field("aborted", &self.aborted.load(Ordering::Relaxed))
             .finish()
@@ -259,9 +265,11 @@ impl ChunkOrchestrator {
         let file_path = file_path.to_string();
 
         for spec in chunks {
-            let permit = semaphore.clone().acquire_owned().await.map_err(|e| {
-                DownloadError::HttpClient(format!("semaphore closed: {e}"))
-            })?;
+            let permit = semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|e| DownloadError::HttpClient(format!("semaphore closed: {e}")))?;
             let range_client = range_client_owned(range_client);
             let cancel_token = cancel_token.clone();
             let bytes_received = bytes_received.clone();
@@ -477,12 +485,10 @@ async fn write_chunk(file_path: &str, spec: &ChunkSpec, body: &[u8]) -> Download
             path: file_path.to_string(),
             kind: format!("seek: {e}"),
         })?;
-    file.write_all(body)
-        .await
-        .map_err(|e| DownloadError::Io {
-            path: file_path.to_string(),
-            kind: format!("write: {e}"),
-        })?;
+    file.write_all(body).await.map_err(|e| DownloadError::Io {
+        path: file_path.to_string(),
+        kind: format!("write: {e}"),
+    })?;
     file.flush().await.map_err(|e| DownloadError::Io {
         path: file_path.to_string(),
         kind: format!("flush: {e}"),

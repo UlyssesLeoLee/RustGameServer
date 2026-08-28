@@ -11,7 +11,9 @@
 //! - **FR-CDN-074**：所有 Range 请求携带 `If-Range: "<etag>"`（不传 Last-Modified）
 
 use rgs_asset_download::error::DownloadError;
-use rgs_asset_download::range_client::{HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig};
+use rgs_asset_download::range_client::{
+    HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig,
+};
 use tokio_util::sync::CancellationToken;
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -54,19 +56,14 @@ async fn head_probe_missing_accept_ranges_returns_unsupported_error() {
     let server = MockServer::start().await;
     Mock::given(method("HEAD"))
         .and(path("/asset.bin"))
-        .respond_with(
-            ResponseTemplate::new(200).insert_header("Content-Length", "1024"),
-        )
+        .respond_with(ResponseTemplate::new(200).insert_header("Content-Length", "1024"))
         .mount(&server)
         .await;
 
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client.probe(&url, &token()).await.unwrap_err();
-    assert!(matches!(
-        err,
-        DownloadError::BackendRangeUnsupported { .. }
-    ));
+    assert!(matches!(err, DownloadError::BackendRangeUnsupported { .. }));
 }
 
 #[tokio::test]
@@ -81,10 +78,7 @@ async fn head_probe_explicit_accept_ranges_none_returns_unsupported() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client.probe(&url, &token()).await.unwrap_err();
-    assert!(matches!(
-        err,
-        DownloadError::BackendRangeUnsupported { .. }
-    ));
+    assert!(matches!(err, DownloadError::BackendRangeUnsupported { .. }));
 }
 
 #[tokio::test]
@@ -109,12 +103,7 @@ async fn range_request_206_returns_partial_content() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let resp = client
-        .fetch_range(
-            &url,
-            &HttpRangeSpec::new(0, 255),
-            Some("v1"),
-            &token(),
-        )
+        .fetch_range(&url, &HttpRangeSpec::new(0, 255), Some("v1"), &token())
         .await
         .unwrap();
     assert_eq!(resp.status, 206);
@@ -137,12 +126,7 @@ async fn range_request_416_returns_range_not_satisfiable() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client
-        .fetch_range(
-            &url,
-            &HttpRangeSpec::new(9999, 99999),
-            Some("v1"),
-            &token(),
-        )
+        .fetch_range(&url, &HttpRangeSpec::new(9999, 99999), Some("v1"), &token())
         .await
         .unwrap_err();
     assert!(matches!(
@@ -168,12 +152,7 @@ async fn range_request_200_means_etag_mismatch() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client
-        .fetch_range(
-            &url,
-            &HttpRangeSpec::new(0, 255),
-            Some("v1"),
-            &token(),
-        )
+        .fetch_range(&url, &HttpRangeSpec::new(0, 255), Some("v1"), &token())
         .await
         .unwrap_err();
     match err {
@@ -198,18 +177,10 @@ async fn range_request_429_returns_too_many_requests() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client
-        .fetch_range(
-            &url,
-            &HttpRangeSpec::new(0, 255),
-            Some("v1"),
-            &token(),
-        )
+        .fetch_range(&url, &HttpRangeSpec::new(0, 255), Some("v1"), &token())
         .await
         .unwrap_err();
-    assert!(matches!(
-        err,
-        DownloadError::BackendTooManyRequests { .. }
-    ));
+    assert!(matches!(err, DownloadError::BackendTooManyRequests { .. }));
 }
 
 #[tokio::test]
@@ -224,12 +195,7 @@ async fn range_request_5xx_returns_http_error() {
     let url = format!("{}/asset.bin", server.uri());
     let client = test_client();
     let err = client
-        .fetch_range(
-            &url,
-            &HttpRangeSpec::new(0, 255),
-            Some("v1"),
-            &token(),
-        )
+        .fetch_range(&url, &HttpRangeSpec::new(0, 255), Some("v1"), &token())
         .await
         .unwrap_err();
     match err {

@@ -137,7 +137,9 @@ fn generate_candidates(n: usize, seed: u64) -> Vec<QueueEntry> {
     // LCG 伪随机数 + Box-Muller 高斯变换，**不**依赖 rand crate（保持 dev-dep 最小）
     let mut state = seed.wrapping_add(1);
     let mut next_uniform = || {
-        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         (state as f64) / (u64::MAX as f64)
     };
     let mut next_gaussian = || {

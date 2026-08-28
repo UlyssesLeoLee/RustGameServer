@@ -253,10 +253,7 @@ mod tests {
     #[test]
     fn error_categories_are_stable() {
         // 类别字符串在 metrics 标签中使用，必须稳定
-        assert_eq!(
-            DownloadError::Cancelled.category(),
-            "cancelled"
-        );
+        assert_eq!(DownloadError::Cancelled.category(), "cancelled");
         assert_eq!(
             DownloadError::IntegrityMismatch {
                 expected: "a".into(),

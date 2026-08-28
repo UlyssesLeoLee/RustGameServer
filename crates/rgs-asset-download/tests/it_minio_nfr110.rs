@@ -28,14 +28,22 @@ async fn it_nfr_cdn_110_resume_latency_p99_under_500ms_strict() {
     for i in 0..N_RESOURCES_FULL {
         for platform in PLATFORMS {
             // 模拟 resume 拉 first byte
-            let simulated = std::time::Duration::from_millis(((i * 7 + platform.len() * 3) % 600) as u64);
+            let simulated =
+                std::time::Duration::from_millis(((i * 7 + platform.len() * 3) % 600) as u64);
             hist.record(simulated);
         }
     }
 
     let p99 = hist.p99();
-    eprintln!("[{NFR_ID}] 完成：{} 样本，p99={}ms (NFR: < 500ms)", hist.len(), p99);
-    assert!(p99 < 500, "NFR-CDN-110 失败：p99={p99}ms >= 500ms（per SPEC §5.2）");
+    eprintln!(
+        "[{NFR_ID}] 完成：{} 样本，p99={}ms (NFR: < 500ms)",
+        hist.len(),
+        p99
+    );
+    assert!(
+        p99 < 500,
+        "NFR-CDN-110 失败：p99={p99}ms >= 500ms（per SPEC §5.2）"
+    );
 }
 
 #[tokio::test]

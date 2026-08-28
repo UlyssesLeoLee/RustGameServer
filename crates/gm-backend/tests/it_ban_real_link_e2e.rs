@@ -18,15 +18,11 @@ use axum::http::StatusCode;
 use std::sync::Arc;
 
 use player_service::entity::Player;
-use player_service::repository::{
-    InMemoryPlayerRepository, PlayerRepository,
-};
+use player_service::repository::{InMemoryPlayerRepository, PlayerRepository};
 use player_service::service::{PlayerService, PlayerServiceImpl};
 
 use admin_service::entity::AuditLogEntry;
-use admin_service::repository::{
-    AuditLogRepository, InMemoryAuditLogRepository,
-};
+use admin_service::repository::{AuditLogRepository, InMemoryAuditLogRepository};
 
 // ============================================================================
 // 模拟 player-service BanAccount gRPC handler (因 build.rs 在 lib.rs 不导出)
@@ -54,7 +50,10 @@ async fn ban_e2e_player_status_changes_to_disabled() {
     // 简化: 跳过 HTTP layer, 直接调 service.disable_player
 
     let player_repo = Arc::new(InMemoryPlayerRepository::new());
-    player_repo.save(&create_test_player("e2e-player")).await.unwrap();
+    player_repo
+        .save(&create_test_player("e2e-player"))
+        .await
+        .unwrap();
 
     let sessions = Arc::new(player_service::repository::InMemoryPlayerSessionRepository::new());
     let player_svc = PlayerServiceImpl::new(player_repo.clone(), sessions);
@@ -73,7 +72,10 @@ async fn ban_e2e_player_status_changes_to_disabled() {
 
     // 验证: 真实 DB 状态改
     assert_eq!(banned.name, "e2e-player");
-    assert_eq!(banned.status, player_service::entity::PlayerStatus::Disabled);
+    assert_eq!(
+        banned.status,
+        player_service::entity::PlayerStatus::Disabled
+    );
 
     // 验证: 后续 find_by_id 也返 Disabled
     let after = player_svc.find_by_id(player_id).await.unwrap().unwrap();

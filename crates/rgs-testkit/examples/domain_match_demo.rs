@@ -20,7 +20,10 @@ async fn main() {
     // 1. MatchFixture
     println!("[1] MatchFixture::match_game(\"alice\")");
     let m = fixture::match_game("alice");
-    println!("    match_id={}, player_id={}, score={}, status={}\n", m.match_id, m.player_id, m.score, m.status);
+    println!(
+        "    match_id={}, player_id={}, score={}, status={}\n",
+        m.match_id, m.player_id, m.score, m.status
+    );
 
     // 2. FixtureBuilder 链式构造
     println!("[2] FixtureBuilder::new(m).with_score(100).with_status(\"Active\").build()");
@@ -28,14 +31,32 @@ async fn main() {
         .with_score(100)
         .with_status("Active")
         .build();
-    println!("    match_id={}, score={}, status={}\n", custom.match_id, custom.score, custom.status);
+    println!(
+        "    match_id={}, score={}, status={}\n",
+        custom.match_id, custom.score, custom.status
+    );
 
     // 3. InMemoryNatsMock 模拟 match.events
     println!("[3] InMemoryNatsMock 模拟 match.events");
     let nats = InMemoryNatsMock::new();
-    nats.publish("match.events", br#"{"event":"room_created","room_id":"r1"}"#).await.unwrap();
-    nats.publish("match.events", br#"{"event":"team_assigned","room_id":"r1","team":0}"#).await.unwrap();
-    nats.publish("match.events", br#"{"event":"match_started","room_id":"r1"}"#).await.unwrap();
+    nats.publish(
+        "match.events",
+        br#"{"event":"room_created","room_id":"r1"}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "match.events",
+        br#"{"event":"team_assigned","room_id":"r1","team":0}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "match.events",
+        br#"{"event":"match_started","room_id":"r1"}"#,
+    )
+    .await
+    .unwrap();
     let count = nats.received_count("match.events");
     println!("    match.events received_count={} (期望 3)\n", count);
 

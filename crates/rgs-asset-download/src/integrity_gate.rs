@@ -89,11 +89,10 @@ impl IntegrityGate {
         let block_size = self.block_size;
 
         let started = std::time::Instant::now();
-        let (actual_hex, size) = tokio::task::spawn_blocking(move || {
-            hash_file_blocking(path, block_size)
-        })
-        .await
-        .map_err(|e| DownloadError::HttpClient(format!("integrity task join: {e}")))??;
+        let (actual_hex, size) =
+            tokio::task::spawn_blocking(move || hash_file_blocking(path, block_size))
+                .await
+                .map_err(|e| DownloadError::HttpClient(format!("integrity task join: {e}")))??;
 
         let duration_ms = started.elapsed().as_millis() as u64;
         let status = if actual_hex == expected {
@@ -125,10 +124,13 @@ fn hash_file_blocking(path: String, block_size: usize) -> DownloadResult<(String
         path: path.clone(),
         kind: format!("open: {e}"),
     })?;
-    let size = file.metadata().map_err(|e| DownloadError::Io {
-        path: path.clone(),
-        kind: format!("metadata: {e}"),
-    })?.len();
+    let size = file
+        .metadata()
+        .map_err(|e| DownloadError::Io {
+            path: path.clone(),
+            kind: format!("metadata: {e}"),
+        })?
+        .len();
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; block_size];
     loop {
@@ -156,13 +158,10 @@ pub async fn hash_file_async(path: &Path) -> DownloadResult<String> {
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; 1024 * 1024];
     loop {
-        let n = file
-            .read(&mut buf)
-            .await
-            .map_err(|e| DownloadError::Io {
-                path: path.to_string_lossy().to_string(),
-                kind: format!("read: {e}"),
-            })?;
+        let n = file.read(&mut buf).await.map_err(|e| DownloadError::Io {
+            path: path.to_string_lossy().to_string(),
+            kind: format!("read: {e}"),
+        })?;
         if n == 0 {
             break;
         }
@@ -215,7 +214,10 @@ mod tests {
         let gate = IntegrityGate::new();
         // 声称是别的 hash → mismatch
         let report = gate
-            .verify(path.to_str().unwrap(), "0000000000000000000000000000000000000000000000000000000000000000")
+            .verify(
+                path.to_str().unwrap(),
+                "0000000000000000000000000000000000000000000000000000000000000000",
+            )
             .await
             .unwrap();
         assert_eq!(report.status, IntegrityStatus::Mismatch);

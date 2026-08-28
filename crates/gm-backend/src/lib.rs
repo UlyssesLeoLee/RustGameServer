@@ -70,8 +70,7 @@ pub mod test_helpers;
 pub use business_handler::{
     ban_account, grant_compensation, health_view, query_audit, set_maintenance,
     BanAccountRequestBody, CompensationRequestBody as GrantCompensationRequestBody,
-    HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody,
-    QueryAuditLogQuery,
+    HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody, QueryAuditLogQuery,
 };
 
 // ============================================================================
@@ -173,8 +172,7 @@ impl AuditStore for InMemoryAuditStore {
     fn list_entries(
         &self,
         limit: usize,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>>
-    {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>> {
         Box::pin(async move {
             let guard = self.entries.lock().unwrap();
             guard.iter().rev().take(limit).cloned().collect()
@@ -494,7 +492,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/gm/compensation", post(grant_compensation))
         .route("/api/v1/gm/maintenance", post(set_maintenance))
         .route("/api/v1/audit/logs", get(query_audit))
-        .layer(middleware::from_fn_with_state(state.clone(), jwt_middleware));
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_middleware,
+        ));
 
     Router::new()
         .route("/healthz", get(healthz))
@@ -516,11 +517,17 @@ pub fn build_health_router(state: AppState) -> Router {
 // ============================================================================
 
 pub async fn healthz() -> impl IntoResponse {
-    (StatusCode::OK, Json(json!({"status":"ok","service":"gm-backend"})))
+    (
+        StatusCode::OK,
+        Json(json!({"status":"ok","service":"gm-backend"})),
+    )
 }
 
 pub async fn readyz() -> impl IntoResponse {
-    (StatusCode::OK, Json(json!({"status":"ready","service":"gm-backend"})))
+    (
+        StatusCode::OK,
+        Json(json!({"status":"ready","service":"gm-backend"})),
+    )
 }
 
 // 注: 5 GM endpoint 业务 handler(health_view, ban_account, grant_compensation,

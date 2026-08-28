@@ -17,20 +17,38 @@ fn main() {
     // 1. 53.3 已实现: player / economy / saga
     println!("[1] 53.3 fixture (向后兼容):");
     let p = fixture::player();
-    println!("    player()       → id={}, name={}, level={}", p.id, p.name, p.level);
+    println!(
+        "    player()       → id={}, name={}, level={}",
+        p.id, p.name, p.level
+    );
     let e = fixture::economy("alice");
-    println!("    economy(\"alice\") → player_id={}, currency={}, gold={}", e.player_id, e.currency, e.gold);
+    println!(
+        "    economy(\"alice\") → player_id={}, currency={}, gold={}",
+        e.player_id, e.currency, e.gold
+    );
     let s = fixture::saga("transfer");
-    println!("    saga(\"transfer\") → saga_id={}, state={}", s.saga_id, s.state);
+    println!(
+        "    saga(\"transfer\") → saga_id={}, state={}",
+        s.saga_id, s.state
+    );
 
     // 2. 54.x 新增: match / social / admin
     println!("\n[2] 54.x 新增 fixture:");
     let m = fixture::match_game("alice");
-    println!("    match_game(\"alice\")   → match_id={}, status={}", m.match_id, m.status);
+    println!(
+        "    match_game(\"alice\")   → match_id={}, status={}",
+        m.match_id, m.status
+    );
     let sm = fixture::social_message("alice", "bob");
-    println!("    social_message(\"alice\", \"bob\") → message={:?}", sm.message);
+    println!(
+        "    social_message(\"alice\", \"bob\") → message={:?}",
+        sm.message
+    );
     let a = fixture::admin_action("admin1", "ban", "bad_player");
-    println!("    admin_action(\"admin1\", \"ban\", \"bad_player\") → action={}", a.action);
+    println!(
+        "    admin_action(\"admin1\", \"ban\", \"bad_player\") → action={}",
+        a.action
+    );
 
     // 3. FixtureBuilder 链式 API: 定制 player
     println!("\n[3] FixtureBuilder 链式 API (player):");
@@ -48,7 +66,10 @@ fn main() {
         .with_gold(500)
         .build();
     println!("    .with_currency(9999).with_gold(500)");
-    println!("    → currency={}, gold={}", e_custom.currency, e_custom.gold);
+    println!(
+        "    → currency={}, gold={}",
+        e_custom.currency, e_custom.gold
+    );
 
     // 5. FixtureBuilder 链式 API: 定制 match
     println!("\n[5] FixtureBuilder 链式 API (match):");
@@ -74,17 +95,25 @@ fn main() {
         .with_target("bob")
         .build();
     println!("    .with_action(\"demote\").with_target(\"bob\")");
-    println!("    → action={}, target_id={}", a_custom.action, a_custom.target_id);
+    println!(
+        "    → action={}, target_id={}",
+        a_custom.action, a_custom.target_id
+    );
 
     // 8. 实战: 5 域 fixture 组合
     println!("\n[8] 实战: 5 域 fixture 组合 (跨域测试):");
-    let p = FixtureBuilder::new(fixture::player()).with_name("Hero").with_level(10).build();
+    let p = FixtureBuilder::new(fixture::player())
+        .with_name("Hero")
+        .with_level(10)
+        .build();
     let e = fixture::economy(&p.id);
     let m = fixture::match_game(&p.id);
     let s = fixture::social_message(&p.id, "friend_1");
     let a = fixture::admin_action("admin_001", "audit", &p.id);
-    println!("    player({}) + economy({}) + match({}) + social({}) + admin({})",
-        p.name, e.player_id, m.match_id, s.friend_id, a.target_id);
+    println!(
+        "    player({}) + economy({}) + match({}) + social({}) + admin({})",
+        p.name, e.player_id, m.match_id, s.friend_id, a.target_id
+    );
 
     println!("\n=== Demo complete ===");
 }

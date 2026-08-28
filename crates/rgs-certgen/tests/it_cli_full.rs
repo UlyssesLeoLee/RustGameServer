@@ -29,14 +29,29 @@ fn it_cli_default_args_creates_6_domains() {
         .output()
         .expect("spawn rgs-certgen");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("player.service"), "missing player.service in stdout");
-    assert!(stdout.contains("economy.service"), "missing economy.service");
-    assert!(stdout.contains("cluster-ops.service"), "missing cluster-ops.service");
+    assert!(
+        stdout.contains("player.service"),
+        "missing player.service in stdout"
+    );
+    assert!(
+        stdout.contains("economy.service"),
+        "missing economy.service"
+    );
+    assert!(
+        stdout.contains("cluster-ops.service"),
+        "missing cluster-ops.service"
+    );
     // 6 个文件 + ca.crt + ca.key + 6 server.{crt,key}.pem = 14
-    let entries: Vec<_> = fs::read_dir(&outdir).unwrap()
+    let entries: Vec<_> = fs::read_dir(&outdir)
+        .unwrap()
         .filter_map(|e| e.ok())
         .collect();
-    assert_eq!(entries.len(), 14, "expected 14 files (1 ca.crt + 1 ca.key + 6*(crt+key)), got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        14,
+        "expected 14 files (1 ca.crt + 1 ca.key + 6*(crt+key)), got {}",
+        entries.len()
+    );
 }
 
 #[test]
@@ -53,10 +68,16 @@ fn it_cli_custom_domains_creates_n_servers() {
         .assert()
         .success();
     // 1 ca.crt + 1 ca.key + 3*(crt+key) = 8
-    let entries: Vec<_> = fs::read_dir(&outdir).unwrap()
+    let entries: Vec<_> = fs::read_dir(&outdir)
+        .unwrap()
         .filter_map(|e| e.ok())
         .collect();
-    assert_eq!(entries.len(), 8, "expected 8 files (1+1+3*2), got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        8,
+        "expected 8 files (1+1+3*2), got {}",
+        entries.len()
+    );
     assert!(outdir.join("svc1.example.com.crt.pem").exists());
     assert!(outdir.join("svc3.example.com.crt.pem").exists());
 }
@@ -75,7 +96,10 @@ fn it_cli_custom_validity_days_writes_correct_field() {
         .output()
         .expect("spawn rgs-certgen");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("30 天"), "validity 30 天 should print to stdout");
+    assert!(
+        stdout.contains("30 天"),
+        "validity 30 天 should print to stdout"
+    );
     // 30 天 ≈ 2592000 秒;ca.crt.pem 仍生成
     assert!(outdir.join("ca.crt.pem").exists());
 }
@@ -96,7 +120,8 @@ fn it_cli_combined_args_minimal_output() {
         .assert()
         .success();
     // 1 ca.crt + 1 ca.key + 2*(crt+key) = 6
-    let entries: Vec<_> = fs::read_dir(&outdir).unwrap()
+    let entries: Vec<_> = fs::read_dir(&outdir)
+        .unwrap()
         .filter_map(|e| e.ok())
         .collect();
     assert_eq!(entries.len(), 6);
@@ -124,16 +149,34 @@ fn it_d001_cert_files_compatible_with_k3s_create_secret() {
         .success();
 
     let ca_crt = fs::read_to_string(outdir.join("ca.crt.pem")).unwrap();
-    assert!(ca_crt.contains("-----BEGIN CERTIFICATE-----"), "ca cert PEM 头缺失");
-    assert!(ca_crt.contains("-----END CERTIFICATE-----"), "ca cert PEM 尾缺失");
+    assert!(
+        ca_crt.contains("-----BEGIN CERTIFICATE-----"),
+        "ca cert PEM 头缺失"
+    );
+    assert!(
+        ca_crt.contains("-----END CERTIFICATE-----"),
+        "ca cert PEM 尾缺失"
+    );
 
     let svr_crt = fs::read_to_string(outdir.join("k3s-test.example.com.crt.pem")).unwrap();
-    assert!(svr_crt.contains("-----BEGIN CERTIFICATE-----"), "server cert PEM 头缺失");
-    assert!(svr_crt.contains("-----END CERTIFICATE-----"), "server cert PEM 尾缺失");
+    assert!(
+        svr_crt.contains("-----BEGIN CERTIFICATE-----"),
+        "server cert PEM 头缺失"
+    );
+    assert!(
+        svr_crt.contains("-----END CERTIFICATE-----"),
+        "server cert PEM 尾缺失"
+    );
 
     let svr_key = fs::read_to_string(outdir.join("k3s-test.example.com.key.pem")).unwrap();
-    assert!(svr_key.contains("-----BEGIN PRIVATE KEY-----"), "server key PEM 头缺失");
-    assert!(svr_key.contains("-----END PRIVATE KEY-----"), "server key PEM 尾缺失");
+    assert!(
+        svr_key.contains("-----BEGIN PRIVATE KEY-----"),
+        "server key PEM 头缺失"
+    );
+    assert!(
+        svr_key.contains("-----END PRIVATE KEY-----"),
+        "server key PEM 尾缺失"
+    );
 }
 
 #[test]
@@ -154,10 +197,15 @@ fn it_d002_make_certs_helper_produces_identical_output() {
     }
     // 1 域 = 1 ca.crt + 1 ca.key + 1 server.crt + 1 server.key = 4 文件
     // 3 次执行后,文件数仍 4(幂等覆盖,不加文件)
-    let entries: Vec<_> = fs::read_dir(&outdir).unwrap()
+    let entries: Vec<_> = fs::read_dir(&outdir)
+        .unwrap()
         .filter_map(|e| e.ok())
         .collect();
-    assert_eq!(entries.len(), 4, "repeated runs should overwrite, not add files (1 domain = 4 files)");
+    assert_eq!(
+        entries.len(),
+        4,
+        "repeated runs should overwrite, not add files (1 domain = 4 files)"
+    );
 }
 
 // ============================================================================
@@ -179,9 +227,7 @@ fn it_c001_openssl_can_parse_ca_cert() {
         .success();
 
     // 检查 openSSL 是否可用
-    let openssl_check = StdCommand::new("openssl")
-        .arg("version")
-        .output();
+    let openssl_check = StdCommand::new("openssl").arg("version").output();
     if openssl_check.is_err() {
         // openSSL 不可用,跳过(本机无 openSSL 工具)
         eprintln!("openSSL not available, skipping C001 (k3s CI 会跑)");
@@ -197,7 +243,10 @@ fn it_c001_openssl_can_parse_ca_cert() {
         .output()
         .expect("openssl x509 text");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Certificate"), "openssl output should mention Certificate");
+    assert!(
+        stdout.contains("Certificate"),
+        "openssl output should mention Certificate"
+    );
     // CN 应是 "RustGameServer Dev CA"(per F2 处置)
     assert!(
         stdout.contains("RustGameServer Dev CA"),

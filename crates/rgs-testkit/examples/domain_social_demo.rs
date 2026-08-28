@@ -21,21 +21,42 @@ async fn main() {
     // 1. SocialFixture
     println!("[1] SocialFixture::social_message(\"alice\", \"bob\")");
     let m = fixture::social_message("alice", "bob");
-    println!("    player_id={}, friend_id={}, message={:?}\n", m.player_id, m.friend_id, m.message);
+    println!(
+        "    player_id={}, friend_id={}, message={:?}\n",
+        m.player_id, m.friend_id, m.message
+    );
 
     // 2. FixtureBuilder 链式构造
     println!("[2] FixtureBuilder::new(m).with_message(\"hello world\").build()");
     let custom = FixtureBuilder::new(m.clone())
         .with_message("hello world")
         .build();
-    println!("    player_id={}, friend_id={}, message={:?}\n", custom.player_id, custom.friend_id, custom.message);
+    println!(
+        "    player_id={}, friend_id={}, message={:?}\n",
+        custom.player_id, custom.friend_id, custom.message
+    );
 
     // 3. InMemoryNatsMock 模拟 social.events
     println!("[3] InMemoryNatsMock 模拟 social.events");
     let nats = InMemoryNatsMock::new();
-    nats.publish("social.events", br#"{"event":"friend_request","from":"alice","to":"bob"}"#).await.unwrap();
-    nats.publish("social.events", br#"{"event":"friend_accepted","from":"bob","to":"alice"}"#).await.unwrap();
-    nats.publish("social.events", br#"{"event":"message_sent","from":"alice","to":"bob","text":"hi"}"#).await.unwrap();
+    nats.publish(
+        "social.events",
+        br#"{"event":"friend_request","from":"alice","to":"bob"}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "social.events",
+        br#"{"event":"friend_accepted","from":"bob","to":"alice"}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "social.events",
+        br#"{"event":"message_sent","from":"alice","to":"bob","text":"hi"}"#,
+    )
+    .await
+    .unwrap();
     let count = nats.received_count("social.events");
     println!("    social.events received_count={} (期望 3)\n", count);
 

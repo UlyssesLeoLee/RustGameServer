@@ -155,10 +155,12 @@ impl FunctionRegistry for InMemoryRegistry {
     ) -> Result<()> {
         let key = (function_id.to_string(), version.to_string());
         let mut guard = self.inner.write().await;
-        let entry = guard.get_mut(&key).ok_or_else(|| FunctionPlaneError::VersionNotFound {
-            function_id: function_id.to_string(),
-            version: version.to_string(),
-        })?;
+        let entry = guard
+            .get_mut(&key)
+            .ok_or_else(|| FunctionPlaneError::VersionNotFound {
+                function_id: function_id.to_string(),
+                version: version.to_string(),
+            })?;
         entry.status = status;
         entry.updated_at = chrono::Utc::now();
         Ok(())
@@ -216,7 +218,10 @@ mod tests {
 
     #[test]
     fn compare_versions_orders_semver_correctly() {
-        assert_eq!(compare_versions("v0.1.0", "v0.2.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("v0.1.0", "v0.2.0"),
+            std::cmp::Ordering::Less
+        );
         assert_eq!(
             compare_versions("v0.10.0", "v0.2.0"),
             std::cmp::Ordering::Greater

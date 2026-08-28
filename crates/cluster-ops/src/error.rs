@@ -164,7 +164,11 @@ mod tests {
 
     #[test]
     fn not_found_to_not_found() {
-        let s: tonic::Status = Error::NotFound { entity: "Player", id: "p1".to_string() }.into();
+        let s: tonic::Status = Error::NotFound {
+            entity: "Player",
+            id: "p1".to_string(),
+        }
+        .into();
         assert_eq!(s.code(), Code::NotFound);
         assert!(s.message().contains("Player") && s.message().contains("p1"));
     }
@@ -236,11 +240,19 @@ mod tests {
     fn error_display_messages() {
         // Display impl 正确
         assert_eq!(
-            Error::NotFound { entity: "X", id: "1".to_string() }.to_string(),
+            Error::NotFound {
+                entity: "X",
+                id: "1".to_string()
+            }
+            .to_string(),
             "not found: X with id 1"
         );
         assert_eq!(
-            Error::PFAUVersionMismatch { expected: 5, actual: 3 }.to_string(),
+            Error::PFAUVersionMismatch {
+                expected: 5,
+                actual: 3
+            }
+            .to_string(),
             "PFAU version mismatch: expected 5, actual 3"
         );
     }

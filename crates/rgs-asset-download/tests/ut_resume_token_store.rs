@@ -103,7 +103,10 @@ fn token_field_order_matches_spec_terminology() {
         "backend_url",
         "status",
     ] {
-        assert!(json.contains(key), "missing key {key} in serialized token: {json}");
+        assert!(
+            json.contains(key),
+            "missing key {key} in serialized token: {json}"
+        );
     }
 }
 
@@ -125,7 +128,13 @@ fn token_serialization_does_not_contain_pii_substrings() {
     let t = make_token("asset-001", 4096, 512, &dir);
     let json = serde_json::to_string(&t).unwrap();
     // FR-CDN-064：禁出现的 PII 字段名
-    for forbidden in ["player_id", "device_id", "email", "ip_address", "mac_address"] {
+    for forbidden in [
+        "player_id",
+        "device_id",
+        "email",
+        "ip_address",
+        "mac_address",
+    ] {
         assert!(
             !json.contains(forbidden),
             "FR-CDN-064 violation: payload contains '{forbidden}': {json}"
@@ -148,7 +157,13 @@ fn token_struct_has_no_pii_fields_in_definition() {
     let struct_end = struct_start + struct_end_rel;
     let struct_body = &source[struct_start..=struct_end];
 
-    for forbidden in ["player_id", "device_id", "email", "ip_address", "mac_address"] {
+    for forbidden in [
+        "player_id",
+        "device_id",
+        "email",
+        "ip_address",
+        "mac_address",
+    ] {
         assert!(
             !struct_body.contains(forbidden),
             "FR-CDN-064 struct violation: ResumeToken struct contains '{forbidden}'"
@@ -240,7 +255,7 @@ async fn json_file_store_persists_across_reload() {
             .unwrap();
         s.put(&t).await.unwrap();
     } // drop s
-    // 重新打开
+      // 重新打开
     let s2 = JsonFileResumeTokenStore::new(dir.path().to_path_buf())
         .await
         .unwrap();
@@ -271,9 +286,7 @@ async fn json_file_store_ignores_tmp_files_when_loading_index() {
     let dir = TempDir::new().unwrap();
     // 写一个 .json.tmp.x 文件模拟"半截写入"残留
     let stray = dir.path().join("stray.json.tmp.deadbeef");
-    tokio::fs::write(&stray, b"corrupt")
-        .await
-        .unwrap();
+    tokio::fs::write(&stray, b"corrupt").await.unwrap();
     // 加载 store
     let s = JsonFileResumeTokenStore::new(dir.path().to_path_buf())
         .await

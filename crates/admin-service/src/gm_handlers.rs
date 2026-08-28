@@ -28,13 +28,13 @@ use std::sync::{Arc, OnceLock};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+use crate::entity::AuditLogEntry as DbAuditLogEntry;
 use crate::proto::v1::{
     AuditLogEntry as ProtoAuditLogEntry, BanAccountRequest, BanAccountResponse,
-    GrantCompensationRequest, GrantCompensationResponse, PropagationStatus,
-    QueryAuditLogRequest, QueryAuditLogResponse, SetMaintenanceRequest, SetMaintenanceResponse,
+    GrantCompensationRequest, GrantCompensationResponse, PropagationStatus, QueryAuditLogRequest,
+    QueryAuditLogResponse, SetMaintenanceRequest, SetMaintenanceResponse,
 };
 use crate::repository::AuditLogRepository;
-use crate::entity::AuditLogEntry as DbAuditLogEntry;
 
 /// 共享 handler 状态: AuditLogRepository (Pg 或 InMemory) + InMemory fallback
 #[derive(Clone)]
@@ -235,7 +235,11 @@ pub async fn query_audit_log(
     request: Request<QueryAuditLogRequest>,
 ) -> Result<Response<QueryAuditLogResponse>, Status> {
     let req = request.into_inner();
-    let limit = if req.limit <= 0 { 20 } else { req.limit as usize };
+    let limit = if req.limit <= 0 {
+        20
+    } else {
+        req.limit as usize
+    };
 
     let entries: Vec<DbAuditLogEntry> = match state().audit_log.latest().await {
         Ok(_) => match state()

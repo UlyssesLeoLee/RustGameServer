@@ -139,13 +139,8 @@ impl EconomyServiceImpl {
         }
 
         // 3. 原子 OCC 更新账户 + 写账目
-        let mut entry = TransactionLedger::new(
-            account.id,
-            -amount,
-            currency,
-            kind,
-            idempotency_key,
-        );
+        let mut entry =
+            TransactionLedger::new(account.id, -amount, currency, kind, idempotency_key);
         entry.saga_id = Some(saga_id);
         entry.command_id = Some(command_id);
         entry.status = TransactionStatus::Confirmed;
@@ -387,12 +382,14 @@ mod tests {
 
     /// 构造带共享 ledger 的 service（per RGS-REV-007 AC3 修复）
     /// 共享 ledger HashMap 让 apply_atomic 可原子写两侧
-    fn make_service_paired() -> (EconomyServiceImpl, Arc<InMemoryAccountRepository>, Arc<InMemoryTransactionLedgerRepository>) {
+    fn make_service_paired() -> (
+        EconomyServiceImpl,
+        Arc<InMemoryAccountRepository>,
+        Arc<InMemoryTransactionLedgerRepository>,
+    ) {
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let acc_repo = Arc::new(
-            InMemoryAccountRepository::new()
-                .with_shared_ledger(led_repo.inner.clone()),
-        );
+        let acc_repo =
+            Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
         let svc = EconomyServiceImpl::new(
             acc_repo.clone() as Arc<dyn AccountRepository>,
             led_repo.clone() as Arc<dyn TransactionLedgerRepository>,
@@ -418,7 +415,16 @@ mod tests {
         let acc = svc.get_balance(account_id).await.unwrap();
         assert_eq!(acc.balance, 100);
         // per RGS-REV-007 AC3: ledger 同步写入（apply_atomic 原子性）
-        assert_eq!(acc_repo.inner.lock().unwrap().get(&account_id).unwrap().balance, 100);
+        assert_eq!(
+            acc_repo
+                .inner
+                .lock()
+                .unwrap()
+                .get(&account_id)
+                .unwrap()
+                .balance,
+            100
+        );
     }
 
     #[tokio::test]
@@ -584,12 +590,7 @@ mod tests {
         let cmd_id = Uuid::new_v4();
 
         // 预写入 1 个 dummy reservation 用不同 saga_id, 用于验证 cleanup 不影响其它记录
-        let dummy = Reservation::new(
-            Uuid::new_v4(),
-            account_id,
-            1,
-            Currency::Gold,
-        );
+        let dummy = Reservation::new(Uuid::new_v4(), account_id, 1, Currency::Gold);
         let dummy_id = dummy.id;
         res_repo.save(&dummy).await.unwrap();
 
@@ -625,7 +626,10 @@ mod tests {
 
         // dummy 未受影响
         let still_dummy = res_repo.find_by_id(dummy_id).await.unwrap();
-        assert!(still_dummy.is_some(), "dummy reservation should be untouched");
+        assert!(
+            still_dummy.is_some(),
+            "dummy reservation should be untouched"
+        );
 
         // 账户余额未变（未被扣）
         let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
@@ -661,12 +665,7 @@ mod tests {
         }
 
         // 预写入 1 个 dummy reservation 用不同 saga_id, 用于验证 cleanup 不影响其它记录
-        let dummy = Reservation::new(
-            Uuid::new_v4(),
-            account_id,
-            1,
-            Currency::Gold,
-        );
+        let dummy = Reservation::new(Uuid::new_v4(), account_id, 1, Currency::Gold);
         let dummy_id = dummy.id;
         res_repo.save(&dummy).await.unwrap();
 
@@ -704,7 +703,10 @@ mod tests {
 
         // dummy 未受影响
         let still_dummy = res_repo.find_by_id(dummy_id).await.unwrap();
-        assert!(still_dummy.is_some(), "dummy reservation should be untouched");
+        assert!(
+            still_dummy.is_some(),
+            "dummy reservation should be untouched"
+        );
 
         // ledger 无任何条目（apply_atomic 失败, ledger INSERT 未发生）
         assert_eq!(led_repo.inner.lock().unwrap().len(), 0);

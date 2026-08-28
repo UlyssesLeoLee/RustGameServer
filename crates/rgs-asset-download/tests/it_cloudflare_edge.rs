@@ -105,14 +105,12 @@ impl EdgeClient {
 /// 从 `RGS_CF_REGIONS` 解析 region 列表（逗号分隔）。缺省取 4 大区。
 fn resolve_regions() -> Vec<String> {
     match std::env::var("RGS_CF_REGIONS") {
-        Ok(v) if !v.trim().is_empty() => {
-            v.split(',').map(|s| s.trim().to_lowercase()).collect()
-        }
+        Ok(v) if !v.trim().is_empty() => v.split(',').map(|s| s.trim().to_lowercase()).collect(),
         _ => vec![
-            "nrt".to_string(),   // Tokyo
-            "sfo".to_string(),   // San Jose
-            "fra".to_string(),   // Frankfurt
-            "syd".to_string(),   // Sydney
+            "nrt".to_string(), // Tokyo
+            "sfo".to_string(), // San Jose
+            "fra".to_string(), // Frankfurt
+            "syd".to_string(), // Sydney
         ],
     }
 }
@@ -177,7 +175,11 @@ fn edge_hit_multiregion_range_206() {
 
     assert_eq!(count_206, all.len(), "所有 region × probe 必须 206");
     assert!(count_hit > 0, "至少 1 次 HIT（首轮 MISS 暖身后）");
-    assert_eq!(count_accept_ranges, all.len(), "Accept-Ranges: bytes 必须存在");
+    assert_eq!(
+        count_accept_ranges,
+        all.len(),
+        "Accept-Ranges: bytes 必须存在"
+    );
 }
 
 /// NFR-CDN-110：恢复时延 p99 < 500ms（边缘命中态下 Range 请求首字节时延）
@@ -206,7 +208,11 @@ fn edge_ttfb_p99_under_500ms() {
         ttfb_samples[ttfb_samples.len() / 2],
         p99
     );
-    assert!(p99 < Duration::from_millis(500), "NFR-CDN-110 失败: p99={:?}", p99);
+    assert!(
+        p99 < Duration::from_millis(500),
+        "NFR-CDN-110 失败: p99={:?}",
+        p99
+    );
 }
 
 /// 暖身 + 缓存状态迁移曲线：首轮 MISS → 后续 HIT/REVALIDATED
@@ -308,6 +314,9 @@ fn try_build_client_obeys_current_env() {
     if base_set && key_set {
         assert!(res.is_some(), "2 env 都设时必须返回 Some");
     } else {
-        assert!(res.is_none(), "2 env 任一缺失必须返回 None（PH-5 降级路径）");
+        assert!(
+            res.is_none(),
+            "2 env 任一缺失必须返回 None（PH-5 降级路径）"
+        );
     }
 }

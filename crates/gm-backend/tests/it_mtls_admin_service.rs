@@ -67,7 +67,10 @@ async fn mtls_3_env_set_uses_plaintext() {
         disable_admin_grpc: false,
     };
     let client = AdminGrpcClient::try_connect(&cfg);
-    assert!(client.is_ok(), "3 env 缺 CERT/KEY → plaintext (env 缺失), 应成功");
+    assert!(
+        client.is_ok(),
+        "3 env 缺 CERT/KEY → plaintext (env 缺失), 应成功"
+    );
     clear_mtls_env();
 }
 

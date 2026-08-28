@@ -68,8 +68,8 @@ fn it_ac_cdn_113_unix_posix_fallocate_test() {
 fn it_ac_cdn_113_4platform_allocator_instantiation() {
     #[cfg(unix)]
     {
-        use rgs_asset_download::platform::SparseFileAllocator;
         use rgs_asset_download::platform::unix::UnixSparseFile;
+        use rgs_asset_download::platform::SparseFileAllocator;
         let alloc = UnixSparseFile;
         // 预分配调用是 stub（IT 路径），不在 UT 阶段调
         let _ = alloc;

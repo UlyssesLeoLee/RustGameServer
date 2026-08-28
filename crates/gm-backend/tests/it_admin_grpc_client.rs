@@ -17,8 +17,8 @@ use std::time::{Duration, Instant};
 
 #[test]
 fn try_connect_accepts_valid_http_endpoint() {
-    let cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055")
-        .unwrap();
+    let cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055").unwrap();
     // 验证 for_test 强制 disable_admin_grpc=true(测试隔离)
     assert!(cfg.disable_admin_grpc);
 }

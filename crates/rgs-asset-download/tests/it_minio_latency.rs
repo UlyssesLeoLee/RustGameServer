@@ -58,7 +58,9 @@ async fn it_ac_cdn_110_resume_latency_p99_under_500ms() {
         return;
     }
 
-    setup_minio_assets(N_RESOURCES_FULL).await.expect("MinIO asset setup");
+    setup_minio_assets(N_RESOURCES_FULL)
+        .await
+        .expect("MinIO asset setup");
 
     let mut hist = LatencyHistogram::new();
     let client = RangeClient::new();
@@ -88,7 +90,12 @@ async fn it_ac_cdn_110_resume_latency_p99_under_500ms() {
             let _ = result; // wiremock 接管；生产用真实 MinIO
 
             if resource_idx % 100 == 0 {
-                eprintln!("[{AC_ID}] 进度：{}/{} 资源，p99={}ms", resource_idx + 1, N_RESOURCES_FULL, hist.p99());
+                eprintln!(
+                    "[{AC_ID}] 进度：{}/{} 资源，p99={}ms",
+                    resource_idx + 1,
+                    N_RESOURCES_FULL,
+                    hist.p99()
+                );
             }
         }
     }

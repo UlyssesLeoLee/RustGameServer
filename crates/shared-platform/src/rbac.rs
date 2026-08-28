@@ -385,7 +385,7 @@ mod tests {
         let mut s = super_admin();
         s.roles = vec![Role::DomainAdmin];
         s.domain_scope = None; // 关键：缺 scope
-        // 即使资源看起来合法，DomainAdmin 没有 scope 必须 deny
+                               // 即使资源看起来合法，DomainAdmin 没有 scope 必须 deny
         let result = a.check(&s, "player:read", "player/123");
         assert!(!result.is_allow());
         match result {
@@ -410,17 +410,11 @@ mod tests {
         s.domain_scope = Some("player".to_string());
 
         // 兄弟前缀 `player_secret/1` 不应在 `player` scope 内 → deny
-        assert!(!a
-            .check(&s, "player:read", "player_secret/1")
-            .is_allow());
+        assert!(!a.check(&s, "player:read", "player_secret/1").is_allow());
         // `players`（无 / 后缀）也不应在 `player` scope 内 → deny
-        assert!(!a
-            .check(&s, "player:read", "players")
-            .is_allow());
+        assert!(!a.check(&s, "player:read", "players").is_allow());
         // `player/123` 正确匹配（`player/` 是边界）→ allow
-        assert!(a
-            .check(&s, "player:read", "player/123")
-            .is_allow());
+        assert!(a.check(&s, "player:read", "player/123").is_allow());
         // 完全相等 `player` → allow
         assert!(a.check(&s, "player:read", "player").is_allow());
     }
@@ -430,9 +424,7 @@ mod tests {
     fn superadmin_still_works() {
         let a = SimpleAuthorizer::new();
         // SuperAdmin 无 domain_scope，跨域允许
-        assert!(a
-            .check(&super_admin(), "player:ban", "player/1")
-            .is_allow());
+        assert!(a.check(&super_admin(), "player:ban", "player/1").is_allow());
         assert!(a
             .check(&super_admin(), "economy:transfer", "economy/1")
             .is_allow());

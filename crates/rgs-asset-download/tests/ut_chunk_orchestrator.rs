@@ -114,8 +114,14 @@ async fn pause_marks_cancel_request_on_in_flight() {
     assert!(orch.is_paused());
     assert_eq!(orch.cancel_request_count(), 1);
     let snapshot = orch.in_flight_snapshot().await;
-    assert!(snapshot[0].cancel_request, "in_flight.cancel_request must be true after pause");
-    assert!(!snapshot[0].abort_request, "pause should not set abort_request");
+    assert!(
+        snapshot[0].cancel_request,
+        "in_flight.cancel_request must be true after pause"
+    );
+    assert!(
+        !snapshot[0].abort_request,
+        "pause should not set abort_request"
+    );
 }
 
 #[tokio::test]
@@ -132,8 +138,14 @@ async fn cancel_marks_abort_request_on_in_flight() {
     orch.cancel().await.unwrap();
     assert!(orch.is_aborted());
     let snapshot = orch.in_flight_snapshot().await;
-    assert!(snapshot[0].cancel_request, "in_flight.cancel_request must be true after cancel");
-    assert!(snapshot[0].abort_request, "in_flight.abort_request must be true after cancel");
+    assert!(
+        snapshot[0].cancel_request,
+        "in_flight.cancel_request must be true after cancel"
+    );
+    assert!(
+        snapshot[0].abort_request,
+        "in_flight.abort_request must be true after cancel"
+    );
 }
 
 #[tokio::test]

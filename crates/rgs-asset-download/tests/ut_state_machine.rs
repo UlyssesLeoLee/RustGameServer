@@ -13,8 +13,8 @@
 use std::sync::atomic::Ordering;
 
 use rgs_asset_download::{
-    DownloadState, DownloadStateMachine, StateEvent, StateTransition, TransitionError,
-    allowed_events, allowed_transitions, next_state,
+    allowed_events, allowed_transitions, next_state, DownloadState, DownloadStateMachine,
+    StateEvent, StateTransition, TransitionError,
 };
 
 // ---------------------------------------------------------------------------
@@ -23,30 +23,106 @@ use rgs_asset_download::{
 
 const LEGAL_TRANSITIONS: &[(DownloadState, StateEvent, DownloadState)] = &[
     // Idle
-    (DownloadState::Idle, StateEvent::ResolveStart, DownloadState::Resolving),
-    (DownloadState::Idle, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Idle,
+        StateEvent::ResolveStart,
+        DownloadState::Resolving,
+    ),
+    (
+        DownloadState::Idle,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
     // Resolving
-    (DownloadState::Resolving, StateEvent::ResolveSuccess, DownloadState::Downloading),
-    (DownloadState::Resolving, StateEvent::ResolveFail, DownloadState::Failed),
-    (DownloadState::Resolving, StateEvent::Pause, DownloadState::Paused),
-    (DownloadState::Resolving, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Resolving,
+        StateEvent::ResolveSuccess,
+        DownloadState::Downloading,
+    ),
+    (
+        DownloadState::Resolving,
+        StateEvent::ResolveFail,
+        DownloadState::Failed,
+    ),
+    (
+        DownloadState::Resolving,
+        StateEvent::Pause,
+        DownloadState::Paused,
+    ),
+    (
+        DownloadState::Resolving,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
     // Downloading
-    (DownloadState::Downloading, StateEvent::Pause, DownloadState::Paused),
-    (DownloadState::Downloading, StateEvent::Complete, DownloadState::Completed),
-    (DownloadState::Downloading, StateEvent::ChunkFail, DownloadState::Failed),
-    (DownloadState::Downloading, StateEvent::EtagMismatch, DownloadState::Failed),
-    (DownloadState::Downloading, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Downloading,
+        StateEvent::Pause,
+        DownloadState::Paused,
+    ),
+    (
+        DownloadState::Downloading,
+        StateEvent::Complete,
+        DownloadState::Completed,
+    ),
+    (
+        DownloadState::Downloading,
+        StateEvent::ChunkFail,
+        DownloadState::Failed,
+    ),
+    (
+        DownloadState::Downloading,
+        StateEvent::EtagMismatch,
+        DownloadState::Failed,
+    ),
+    (
+        DownloadState::Downloading,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
     // Paused
-    (DownloadState::Paused, StateEvent::Resume, DownloadState::Downloading),
-    (DownloadState::Paused, StateEvent::Cancel, DownloadState::Cancelled),
-    (DownloadState::Paused, StateEvent::Expire, DownloadState::Expired),
+    (
+        DownloadState::Paused,
+        StateEvent::Resume,
+        DownloadState::Downloading,
+    ),
+    (
+        DownloadState::Paused,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
+    (
+        DownloadState::Paused,
+        StateEvent::Expire,
+        DownloadState::Expired,
+    ),
     // Failed
-    (DownloadState::Failed, StateEvent::Retry, DownloadState::Resolving),
-    (DownloadState::Failed, StateEvent::Cancel, DownloadState::Cancelled),
-    (DownloadState::Failed, StateEvent::Expire, DownloadState::Expired),
+    (
+        DownloadState::Failed,
+        StateEvent::Retry,
+        DownloadState::Resolving,
+    ),
+    (
+        DownloadState::Failed,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
+    (
+        DownloadState::Failed,
+        StateEvent::Expire,
+        DownloadState::Expired,
+    ),
     // Expired
-    (DownloadState::Expired, StateEvent::ResolveStart, DownloadState::Resolving),
-    (DownloadState::Expired, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Expired,
+        StateEvent::ResolveStart,
+        DownloadState::Resolving,
+    ),
+    (
+        DownloadState::Expired,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
 ];
 
 #[test]
@@ -137,7 +213,11 @@ fn illegal_transitions_are_rejected_with_descriptive_error() {
     // Idle -> Complete（必须先 ResolveStart）
     let mut sm = DownloadStateMachine::new();
     let err = sm.apply(StateEvent::Complete).unwrap_err();
-    let TransitionError { from, event, allowed } = err;
+    let TransitionError {
+        from,
+        event,
+        allowed,
+    } = err;
     assert_eq!(from, DownloadState::Idle);
     assert_eq!(event, StateEvent::Complete);
     assert!(allowed.contains(&StateEvent::ResolveStart));
@@ -232,7 +312,10 @@ fn fr_cdn_083_cancel_flag_set_on_paused() {
     // 转移前 cancel flag 是 false
     assert!(!sm.cancel_flag().load(Ordering::SeqCst));
     sm.apply(StateEvent::Pause).unwrap();
-    assert!(sm.cancel_flag().load(Ordering::SeqCst), "FR-CDN-083 violation");
+    assert!(
+        sm.cancel_flag().load(Ordering::SeqCst),
+        "FR-CDN-083 violation"
+    );
 }
 
 #[test]

@@ -198,8 +198,7 @@ impl ArchivePolicy {
             // 本方法**不**接受 `signed_by: Option<String>` 形参，意味着**不**允许
             // 通过业务代码直接降级 — 降级必须由外部 SRE 工具发起且经 UI 显式签字
             return Err(LcmError::InvalidArchivePolicy(
-                "N+1 降级必须 Ulysses 显式签字（per ADR-0055 §4.3），业务代码不允许"
-                    .to_string(),
+                "N+1 降级必须 Ulysses 显式签字（per ADR-0055 §4.3），业务代码不允许".to_string(),
             ));
         }
         Ok(Self {

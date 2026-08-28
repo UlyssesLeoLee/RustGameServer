@@ -109,19 +109,23 @@ impl JsonFileResumeTokenStore {
         let mut index = self.index.lock().await;
         index.clear();
 
-        let mut entries = tokio::fs::read_dir(&self.dir).await.map_err(|e| {
-            AssetDownloadError::StoreIoError {
-                path: self.dir.display().to_string(),
-                cause: e.to_string(),
-            }
-        })?;
+        let mut entries =
+            tokio::fs::read_dir(&self.dir)
+                .await
+                .map_err(|e| AssetDownloadError::StoreIoError {
+                    path: self.dir.display().to_string(),
+                    cause: e.to_string(),
+                })?;
 
-        while let Some(entry) = entries.next_entry().await.map_err(|e| {
-            AssetDownloadError::StoreIoError {
-                path: self.dir.display().to_string(),
-                cause: e.to_string(),
-            }
-        })? {
+        while let Some(entry) =
+            entries
+                .next_entry()
+                .await
+                .map_err(|e| AssetDownloadError::StoreIoError {
+                    path: self.dir.display().to_string(),
+                    cause: e.to_string(),
+                })?
+        {
             let path = entry.path();
             if !path.is_file() {
                 continue;
@@ -140,12 +144,12 @@ impl JsonFileResumeTokenStore {
 
     /// 读文件 → 反序列化
     async fn read_file(&self, path: &Path) -> Result<ResumeToken, AssetDownloadError> {
-        let bytes = tokio::fs::read(path).await.map_err(|e| {
-            AssetDownloadError::StoreIoError {
+        let bytes = tokio::fs::read(path)
+            .await
+            .map_err(|e| AssetDownloadError::StoreIoError {
                 path: path.display().to_string(),
                 cause: e.to_string(),
-            }
-        })?;
+            })?;
         serde_json::from_slice(&bytes).map_err(|e| {
             AssetDownloadError::StoreSerializationError(format!(
                 "failed to deserialize token at {}: {}",
@@ -156,26 +160,20 @@ impl JsonFileResumeTokenStore {
     }
 
     /// 原子写文件：tmp + rename
-    async fn write_file_atomic(
-        &self,
-        path: &Path,
-        bytes: &[u8],
-    ) -> Result<(), AssetDownloadError> {
+    async fn write_file_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), AssetDownloadError> {
         // tmp 文件名加随机后缀，避免并发写冲突
         let tmp_name = format!(
             "{}.tmp.{}",
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("token"),
+            path.file_name().and_then(|n| n.to_str()).unwrap_or("token"),
             uuid::Uuid::new_v4().simple()
         );
         let tmp_path = path.with_file_name(tmp_name);
-        tokio::fs::write(&tmp_path, bytes).await.map_err(|e| {
-            AssetDownloadError::StoreIoError {
+        tokio::fs::write(&tmp_path, bytes)
+            .await
+            .map_err(|e| AssetDownloadError::StoreIoError {
                 path: tmp_path.display().to_string(),
                 cause: e.to_string(),
-            }
-        })?;
+            })?;
         // POSIX rename 原子；Windows 上 ReplaceFile/POSIX rename 也原子
         if let Err(e) = tokio::fs::rename(&tmp_path, path).await {
             // 清理 tmp 残留
@@ -225,12 +223,12 @@ impl ResumeTokenStore for JsonFileResumeTokenStore {
             return Ok(false);
         };
         if path.exists() {
-            tokio::fs::remove_file(&path).await.map_err(|e| {
-                AssetDownloadError::StoreIoError {
+            tokio::fs::remove_file(&path)
+                .await
+                .map_err(|e| AssetDownloadError::StoreIoError {
                     path: path.display().to_string(),
                     cause: e.to_string(),
-                }
-            })?;
+                })?;
         }
         debug!(token_id = %token_id, "JsonFileResumeTokenStore::delete ok");
         Ok(true)
@@ -264,7 +262,10 @@ impl ResumeTokenStore for JsonFileResumeTokenStore {
             }
         }
         if removed > 0 {
-            info!(count = removed, "JsonFileResumeTokenStore::cleanup_expired done");
+            info!(
+                count = removed,
+                "JsonFileResumeTokenStore::cleanup_expired done"
+            );
         }
         Ok(removed)
     }
@@ -359,7 +360,8 @@ impl SqliteResumeTokenStore {
         let conn = self.conn.clone();
         let total: i64 = tokio::task::spawn_blocking(move || -> Result<i64, rusqlite::Error> {
             let conn = conn.blocking_lock();
-            let mut stmt = conn.prepare("SELECT COALESCE(SUM(payload_size), 0) FROM resume_tokens")?;
+            let mut stmt =
+                conn.prepare("SELECT COALESCE(SUM(payload_size), 0) FROM resume_tokens")?;
             let total: i64 = stmt.query_row([], |row| row.get(0))?;
             Ok(total)
         })
@@ -405,17 +407,20 @@ impl SqliteResumeTokenStore {
             // 删除这一条
             let conn = self.conn.clone();
             let token_id_clone = token_id.clone();
-            let deleted: usize = tokio::task::spawn_blocking(move || -> Result<usize, rusqlite::Error> {
-                let conn = conn.blocking_lock();
-                let n = conn.execute(
-                    "DELETE FROM resume_tokens WHERE token_id = ?1",
-                    params![token_id_clone],
-                )?;
-                Ok(n)
-            })
-            .await
-            .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
-            .map_err(|e| AssetDownloadError::StoreBackendError(format!("sqlite delete: {e}")))?;
+            let deleted: usize =
+                tokio::task::spawn_blocking(move || -> Result<usize, rusqlite::Error> {
+                    let conn = conn.blocking_lock();
+                    let n = conn.execute(
+                        "DELETE FROM resume_tokens WHERE token_id = ?1",
+                        params![token_id_clone],
+                    )?;
+                    Ok(n)
+                })
+                .await
+                .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
+                .map_err(|e| {
+                    AssetDownloadError::StoreBackendError(format!("sqlite delete: {e}"))
+                })?;
             if deleted == 0 {
                 break;
             }
@@ -438,9 +443,8 @@ impl SqliteResumeTokenStore {
 #[async_trait]
 impl ResumeTokenStore for SqliteResumeTokenStore {
     async fn put(&self, token: &ResumeToken) -> Result<(), AssetDownloadError> {
-        let payload = serde_json::to_vec(token).map_err(|e| {
-            AssetDownloadError::StoreSerializationError(format!("serialize: {e}"))
-        })?;
+        let payload = serde_json::to_vec(token)
+            .map_err(|e| AssetDownloadError::StoreSerializationError(format!("serialize: {e}")))?;
         let payload_size = payload.len() as i64;
         let token_id = token.token_id.clone();
         let asset_id = token.asset_id.clone();
@@ -495,8 +499,8 @@ impl ResumeTokenStore for SqliteResumeTokenStore {
     async fn get(&self, token_id: &str) -> Result<Option<ResumeToken>, AssetDownloadError> {
         let conn = self.conn.clone();
         let token_id_owned = token_id.to_string();
-        let payload: Option<Vec<u8>> = tokio::task::spawn_blocking(
-            move || -> Result<Option<Vec<u8>>, rusqlite::Error> {
+        let payload: Option<Vec<u8>> =
+            tokio::task::spawn_blocking(move || -> Result<Option<Vec<u8>>, rusqlite::Error> {
                 let conn = conn.blocking_lock();
                 let mut stmt =
                     conn.prepare("SELECT payload FROM resume_tokens WHERE token_id = ?1")?;
@@ -504,11 +508,10 @@ impl ResumeTokenStore for SqliteResumeTokenStore {
                     .query_row(params![token_id_owned], |row| row.get(0))
                     .optional()?;
                 Ok(row)
-            },
-        )
-        .await
-        .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
-        .map_err(|e| AssetDownloadError::StoreBackendError(format!("sqlite select: {e}")))?;
+            })
+            .await
+            .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
+            .map_err(|e| AssetDownloadError::StoreBackendError(format!("sqlite select: {e}")))?;
 
         let Some(bytes) = payload else {
             return Ok(None);
@@ -538,19 +541,18 @@ impl ResumeTokenStore for SqliteResumeTokenStore {
 
     async fn list(&self) -> Result<Vec<ResumeToken>, AssetDownloadError> {
         let conn = self.conn.clone();
-        let payloads: Vec<Vec<u8>> = tokio::task::spawn_blocking(
-            move || -> Result<Vec<Vec<u8>>, rusqlite::Error> {
+        let payloads: Vec<Vec<u8>> =
+            tokio::task::spawn_blocking(move || -> Result<Vec<Vec<u8>>, rusqlite::Error> {
                 let conn = conn.blocking_lock();
                 let mut stmt = conn.prepare("SELECT payload FROM resume_tokens")?;
                 let rows = stmt
                     .query_map([], |row| row.get::<_, Vec<u8>>(0))?
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok(rows)
-            },
-        )
-        .await
-        .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
-        .map_err(|e| AssetDownloadError::StoreBackendError(format!("sqlite list: {e}")))?;
+            })
+            .await
+            .map_err(|e| AssetDownloadError::StoreBackendError(format!("join error: {e}")))?
+            .map_err(|e| AssetDownloadError::StoreBackendError(format!("sqlite list: {e}")))?;
 
         let mut out = Vec::with_capacity(payloads.len());
         for bytes in payloads {
@@ -659,7 +661,10 @@ mod tests {
             .await
             .unwrap();
         for i in 0..5 {
-            let t = make_token(&format!("asset-{i:03}"), dir.path().join(format!("a{i}.bin")));
+            let t = make_token(
+                &format!("asset-{i:03}"),
+                dir.path().join(format!("a{i}.bin")),
+            );
             store.put(&t).await.unwrap();
         }
         let all = store.list().await.unwrap();
@@ -760,9 +765,7 @@ mod tests {
         // 强制小 LRU 上限（1KB）→ 触发驱逐
         let dir = TempDir::new().unwrap();
         let db = dir.path().join("tokens.db");
-        let store = SqliteResumeTokenStore::with_lru(db, 1024)
-            .await
-            .unwrap();
+        let store = SqliteResumeTokenStore::with_lru(db, 1024).await.unwrap();
         // 连续 put 多个 token；每个 token 的 payload ~ 1KB+ → 触发 LRU
         for i in 0..5 {
             let t = make_token(

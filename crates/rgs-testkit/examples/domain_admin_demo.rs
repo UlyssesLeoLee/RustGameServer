@@ -22,7 +22,10 @@ async fn main() {
     // 1. AdminFixture
     println!("[1] AdminFixture::admin_action(\"admin01\", \"ban\", \"player123\")");
     let a = fixture::admin_action("admin01", "ban", "player123");
-    println!("    admin_id={}, action={}, target_id={}\n", a.admin_id, a.action, a.target_id);
+    println!(
+        "    admin_id={}, action={}, target_id={}\n",
+        a.admin_id, a.action, a.target_id
+    );
 
     // 2. FixtureBuilder 链式构造
     println!("[2] FixtureBuilder::new(a).with_action(\"mute\").with_target(\"player456\").build()");
@@ -30,24 +33,62 @@ async fn main() {
         .with_action("mute")
         .with_target("player456")
         .build();
-    println!("    admin_id={}, action={}, target_id={}\n", custom.admin_id, custom.action, custom.target_id);
+    println!(
+        "    admin_id={}, action={}, target_id={}\n",
+        custom.admin_id, custom.action, custom.target_id
+    );
 
     // 3. InMemoryNatsMock 模拟 admin.audit
     println!("[3] InMemoryNatsMock 模拟 admin.audit subject");
     let nats = InMemoryNatsMock::new();
-    nats.publish("admin.audit", br#"{"admin":"admin01","action":"ban","target":"player123"}"#).await.unwrap();
-    nats.publish("admin.audit", br#"{"admin":"admin01","action":"mute","target":"player456"}"#).await.unwrap();
+    nats.publish(
+        "admin.audit",
+        br#"{"admin":"admin01","action":"ban","target":"player123"}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "admin.audit",
+        br#"{"admin":"admin01","action":"mute","target":"player456"}"#,
+    )
+    .await
+    .unwrap();
     let count = nats.received_count("admin.audit");
     println!("    admin.audit received_count={} (期望 2)\n", count);
 
     // 4. TonicGrpcMock 模拟 admin-service 5 个 GM endpoint (per BAS-003 §3.1-§3.4)
     println!("[4] TonicGrpcMock 模拟 5 个 GM endpoint 字段级 stub (per BAS-003 §3.1-§3.4)");
     let mut grpc = rgs_testkit::mock::TonicGrpcMock::new().await;
-    grpc.expect("POST", "/player.v1.PlayerService/Login", 200, br#"{"ok":true,"token":"mock-jwt"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/KickSession", 200, br#"{"status":"queued","op":"kick"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/SetMaintenanceMode", 200, br#"{"status":"queued","op":"maintenance"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/QueryHealthView", 200, br#"{"service":"admin","admin_endpoint":"http://localhost","mode":"stub-ok"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/QueryAuditLog", 200, br#"{"items":[],"next":"stub"}"#);
+    grpc.expect(
+        "POST",
+        "/player.v1.PlayerService/Login",
+        200,
+        br#"{"ok":true,"token":"mock-jwt"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/KickSession",
+        200,
+        br#"{"status":"queued","op":"kick"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/SetMaintenanceMode",
+        200,
+        br#"{"status":"queued","op":"maintenance"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/QueryHealthView",
+        200,
+        br#"{"service":"admin","admin_endpoint":"http://localhost","mode":"stub-ok"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/QueryAuditLog",
+        200,
+        br#"{"items":[],"next":"stub"}"#,
+    );
     println!("    TonicGrpcMock url={}\n", grpc.url());
     println!("    5 expectations registered\n");
 

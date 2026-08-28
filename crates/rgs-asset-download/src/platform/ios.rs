@@ -40,9 +40,11 @@ pub fn preallocate(path: &str, size: u64) -> DownloadResult<PreallocateOutcome> 
 #[cfg(not(target_os = "ios"))]
 pub fn preallocate(path: &str, _size: u64) -> DownloadResult<PreallocateOutcome> {
     let _ = path;
-    Err(crate::error::DownloadError::PlatformPreallocateUnsupported {
-        target_os: "ios (compiled on non-ios)".into(),
-    })
+    Err(
+        crate::error::DownloadError::PlatformPreallocateUnsupported {
+            target_os: "ios (compiled on non-ios)".into(),
+        },
+    )
 }
 
 #[cfg(test)]

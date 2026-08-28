@@ -30,8 +30,7 @@ use uuid::Uuid;
 use economy_service::entity::{Account, Currency, TransactionKind};
 use economy_service::reservation::ReservationRepository;
 use economy_service::{
-    AccountRepository, PgAccountRepository, PgReservationRepository,
-    PgTransactionLedgerRepository,
+    AccountRepository, PgAccountRepository, PgReservationRepository, PgTransactionLedgerRepository,
 };
 
 // ============================================================================
@@ -78,7 +77,9 @@ async fn pg_pool_at(url: &str, max_conn: u32) -> anyhow::Result<PgPool> {
     Ok(pool)
 }
 
-async fn bootstrap(url: &str) -> anyhow::Result<(
+async fn bootstrap(
+    url: &str,
+) -> anyhow::Result<(
     PgPool,
     Arc<PgAccountRepository>,
     Arc<PgReservationRepository>,
@@ -160,7 +161,10 @@ async fn chaos_db_disconnect_mid_reserve_recovers() {
     acc_repo.save(&account).await.expect("save account");
 
     // 1. 在 reserve 之前先 warm up pool, 让 PG 端记录到连接
-    let _ = sqlx::query("SELECT 1").fetch_one(&pool).await.expect("warmup");
+    let _ = sqlx::query("SELECT 1")
+        .fetch_one(&pool)
+        .await
+        .expect("warmup");
 
     // 2. 模拟 DB 突然断开: 强制 terminate 测试 DB 的所有连接 (除 admin DB)
     let mut admin_conn = PgConnection::connect(&admin_url)
@@ -231,14 +235,15 @@ async fn chaos_db_disconnect_mid_reserve_recovers() {
         "recovered reservation must be in Reserved state"
     );
     assert_eq!(recovered_res.amount, 30);
-    assert_eq!(recovered.0.balance, 1000 - 30, "balance must reflect only the recovered reserve");
+    assert_eq!(
+        recovered.0.balance,
+        1000 - 30,
+        "balance must reflect only the recovered reserve"
+    );
 
     // 6. 断言: 无 dangling reservation
     // list_by_saga(saga_id) 若 mid_result 失败应返回 0, 若成功返回 1
-    let mid_list = res_repo
-        .list_by_saga(saga_id)
-        .await
-        .expect("list mid saga");
+    let mid_list = res_repo.list_by_saga(saga_id).await.expect("list mid saga");
     // mid 成功 + 后续没失败 → 1 条 Reserved
     // mid 失败 (连接断开) → 0 条
     // 关键: 任何存在的 mid reservation 都必须是 Reserved (没有"半持久化"状态)
@@ -367,8 +372,16 @@ async fn chaos_deadlock_between_concurrent_sagas_recovered() {
 
     // 至少一边必须报 SQLSTATE 40P01 (deadlock_detected) 或 55P03 (lock_not_available)
     // PG 在两个事务交叉锁时会让第二个进入 deadlock 检测 → 必一边报 deadlock
-    let deadlock_seen_a = res_a.as_ref().err().map(|e| e.to_string().contains("deadlock") || e.to_string().contains("40P01")).unwrap_or(false);
-    let deadlock_seen_b = res_b.as_ref().err().map(|e| e.to_string().contains("deadlock") || e.to_string().contains("40P01")).unwrap_or(false);
+    let deadlock_seen_a = res_a
+        .as_ref()
+        .err()
+        .map(|e| e.to_string().contains("deadlock") || e.to_string().contains("40P01"))
+        .unwrap_or(false);
+    let deadlock_seen_b = res_b
+        .as_ref()
+        .err()
+        .map(|e| e.to_string().contains("deadlock") || e.to_string().contains("40P01"))
+        .unwrap_or(false);
     assert!(
         deadlock_seen_a || deadlock_seen_b,
         "expected at least one transaction to hit deadlock (40P01); got a={:?}, b={:?}",
@@ -399,21 +412,20 @@ async fn chaos_deadlock_between_concurrent_sagas_recovered() {
         .await
         .expect("query reservation")
         .expect("post-deadlock reservation must be persisted");
-    assert_eq!(persisted.status, economy_service::reservation::ReservationStatus::Reserved);
+    assert_eq!(
+        persisted.status,
+        economy_service::reservation::ReservationStatus::Reserved
+    );
 
     drop_test_db(&admin_url, &db_name).await;
 }
 
 /// 内部 helper: 找 saga 关联的 reservation (per IT 1 / IT 2 同样模式)
-async fn _reservation_id_of(
-    res_repo: &PgReservationRepository,
-    saga_id: Uuid,
-) -> Uuid {
-    let list = res_repo
-        .list_by_saga(saga_id)
-        .await
-        .expect("list_by_saga");
-    list.first().map(|r| r.id).expect("at least one reservation expected")
+async fn _reservation_id_of(res_repo: &PgReservationRepository, saga_id: Uuid) -> Uuid {
+    let list = res_repo.list_by_saga(saga_id).await.expect("list_by_saga");
+    list.first()
+        .map(|r| r.id)
+        .expect("at least one reservation expected")
 }
 
 // ============================================================================

@@ -270,8 +270,5 @@ pub async fn init_test_db(name: &str) -> anyhow::Result<String> {
         return Ok(url);
     }
     // 占位: future PG 容器 (53.3 backward compat)
-    Ok(format!(
-        "postgres://test:test@localhost:5432/{}",
-        name
-    ))
+    Ok(format!("postgres://test:test@localhost:5432/{}", name))
 }

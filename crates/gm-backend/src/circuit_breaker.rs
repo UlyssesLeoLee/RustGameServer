@@ -172,6 +172,9 @@ mod tests {
         cb.record_success();
         cb.record_failure();
         cb.record_failure();
-        assert!(cb.try_acquire(), "still closed (counter reset after success)");
+        assert!(
+            cb.try_acquire(),
+            "still closed (counter reset after success)"
+        );
     }
 }

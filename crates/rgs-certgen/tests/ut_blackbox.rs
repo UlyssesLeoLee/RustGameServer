@@ -77,7 +77,10 @@ fn cli_custom_output_dir() {
         .assert()
         .success();
     assert!(outdir.exists(), "custom output dir should be created");
-    assert!(outdir.join("ca.crt.pem").exists(), "ca.crt.pem should exist");
+    assert!(
+        outdir.join("ca.crt.pem").exists(),
+        "ca.crt.pem should exist"
+    );
 }
 
 /// A005: --domains 自定义域名列表(逗号分隔)
@@ -176,7 +179,11 @@ fn ca_cert_cn_not_configurable_via_cli() {
         .arg("MyCustomCA")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("unexpected argument").or(predicate::str::contains("Found argument").or(predicate::str::contains("isn't a valid value"))));
+        .stderr(
+            predicate::str::contains("unexpected argument")
+                .or(predicate::str::contains("Found argument")
+                    .or(predicate::str::contains("isn't a valid value"))),
+        );
 }
 
 // ============================================================================
@@ -197,8 +204,16 @@ fn server_cert_files_generated_per_domain() {
         .assert()
         .success();
     for d in &["svc1.example.com", "svc2.example.com"] {
-        assert!(outdir.join(format!("{}.crt.pem", d)).exists(), "missing {}.crt.pem", d);
-        assert!(outdir.join(format!("{}.key.pem", d)).exists(), "missing {}.key.pem", d);
+        assert!(
+            outdir.join(format!("{}.crt.pem", d)).exists(),
+            "missing {}.crt.pem",
+            d
+        );
+        assert!(
+            outdir.join(format!("{}.key.pem", d)).exists(),
+            "missing {}.key.pem",
+            d
+        );
     }
 }
 
@@ -255,7 +270,10 @@ fn server_cert_empty_domain_list_just_ca() {
         .arg("")
         .assert()
         .success();
-    assert!(outdir.join("ca.crt.pem").exists(), "ca should always be generated");
+    assert!(
+        outdir.join("ca.crt.pem").exists(),
+        "ca should always be generated"
+    );
 }
 
 // ============================================================================
