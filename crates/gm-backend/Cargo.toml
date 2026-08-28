@@ -52,3 +52,7 @@ serial_test = "0.5"
 # rgs-testkit:GM 后台 5 个 endpoint stub 阶段不依赖,但 dev-dep 留着供未来
 # admin-service gRPC client 实现用
 rgs-testkit = { path = "../rgs-testkit" }
+# S5 §3 真 NATS e2e (W3, 2026-08-28): k3s nats-0 port-forward 真链路测试
+# 关联: docs/00-基准与治理/RGS-TST-S5-outbox-NATS-IT-设计书.md
+async-nats = "0.42"
+futures-util = "0.3"
