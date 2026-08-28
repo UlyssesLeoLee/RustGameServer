@@ -17,8 +17,13 @@
 //!
 //! 实现: 用 `OnceCell<GmHandlerState>` 全局单例, 避免 tonic 0.12 State extractor 复杂。
 //! 在 main.rs / lib.rs init 时调 `gm_handlers::init_state(...)` 注入。
+//!
+//! W17 (2026-08-28): JWT propagation - 从 gRPC metadata 抽 `authorization: Bearer <jwt>`,
+//! 验签后用 claims.sub 作 admin_id 写 audit_log (per TBD-08-01 + RGS-BAS-003 §2.1 RBAC)
 
 use chrono::Utc;
+use jsonwebtoken::{decode, DecodingKey, Validation};
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, OnceLock};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -67,10 +72,13 @@ fn state() -> &'static GmHandlerState {
 pub async fn ban_account(
     request: Request<BanAccountRequest>,
 ) -> Result<Response<BanAccountResponse>, Status> {
+    let admin_id_str = extract_admin_id_from_jwt(&request);
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
 
-    let actor_id = Uuid::nil();
+    let actor_id = Uuid::parse_str(&admin_id_str)
+        .ok()
+        .unwrap_or_else(Uuid::nil);
     let payload = format!(
         "{{\"request_id\":\"{}\",\"account_id\":\"{}\",\"reason\":\"{}\",\"duration_seconds\":{}}}",
         escape(&req.request_id),
@@ -117,10 +125,13 @@ pub async fn ban_account(
 pub async fn grant_compensation(
     request: Request<GrantCompensationRequest>,
 ) -> Result<Response<GrantCompensationResponse>, Status> {
+    let admin_id_str = extract_admin_id_from_jwt(&request);
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
 
-    let actor_id = Uuid::nil();
+    let actor_id = Uuid::parse_str(&admin_id_str)
+        .ok()
+        .unwrap_or_else(Uuid::nil);
     let payload = format!(
         "{{\"request_id\":\"{}\",\"account_id\":\"{}\",\"amount\":{},\"currency\":\"{}\",\"reason\":\"{}\"}}",
         escape(&req.request_id),
@@ -168,10 +179,13 @@ pub async fn grant_compensation(
 pub async fn set_maintenance(
     request: Request<SetMaintenanceRequest>,
 ) -> Result<Response<SetMaintenanceResponse>, Status> {
+    let admin_id_str = extract_admin_id_from_jwt(&request);
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
 
-    let actor_id = Uuid::nil();
+    let actor_id = Uuid::parse_str(&admin_id_str)
+        .ok()
+        .unwrap_or_else(Uuid::nil);
     let payload = format!(
         "{{\"request_id\":\"{}\",\"enable\":{},\"scope\":\"{}\",\"target_id\":\"{}\",\"ttl_seconds\":{}}}",
         escape(&req.request_id),
@@ -277,4 +291,44 @@ fn in_memory_latest(limit: usize) -> Vec<DbAuditLogEntry> {
 
 fn escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+// ============================================================================
+// W17 JWT propagation (per TBD-08-01 + RGS-BAS-003 §2.1 RBAC)
+// ============================================================================
+
+/// JWT claims (per gm-backend issue_jwt 格式)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct JwtClaims {
+    pub sub: String,
+    pub exp: usize,
+    pub roles: Vec<String>,
+}
+
+/// 从 gRPC metadata 抽 `authorization: Bearer <token>`, 验签
+/// 失败: 返 None (handler 降级用 "system" admin_id)
+fn extract_admin_id_from_jwt<T>(request: &Request<T>) -> String {
+    // metadata "authorization" key
+    let auth_value = request
+        .metadata()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok());
+
+    let token = match auth_value {
+        Some(s) if s.starts_with("Bearer ") => &s[7..],
+        _ => return "system".to_string(),
+    };
+
+    // JWT secret 简化: dev 环境固定 secret, prod 应从 RGS_JWT_SECRET env
+    let secret = std::env::var("ADMIN_JWT_SECRET")
+        .unwrap_or_else(|_| "dev-only-do-not-use-in-prod".to_string());
+
+    match decode::<JwtClaims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::default(),
+    ) {
+        Ok(data) => data.claims.sub,
+        Err(_) => "system".to_string(),
+    }
 }

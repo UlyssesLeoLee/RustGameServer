@@ -45,6 +45,8 @@ sha2 = "0.10"
 hex = "0.4"
 # 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
 shared-platform = { path = "../shared-platform" }
+# W17 (2026-08-28): JWT propagation gRPC metadata (per TBD-08-01 + RGS-BAS-003 §2.1 RBAC)
+jsonwebtoken = "9"
 
 [build-dependencies]
 tonic-build = { workspace = true }
