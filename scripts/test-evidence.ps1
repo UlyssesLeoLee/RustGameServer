@@ -69,15 +69,17 @@ function Invoke-CargoTest {
     Set-Content -Path $LogFile -Value $output -Encoding UTF8
     # 提取 pass/fail 数 (兼容 ok / FAILED 两种格式,sum 所有匹配,cargo test 会输出多次 result)
     # ok 格式: 'test result: ok. N passed; M failed; ...'
-    # FAILED 格式: 'test result: FAILED. M failed; ...'
+    # FAILED 格式: 'test result: FAILED. N passed; M failed; ...' (也有 N passed!)
     $passMatches = [regex]::Matches($output, 'test result: ok\.\s+(\d+)\s+passed')
+    $passFailedMatches = [regex]::Matches($output, 'test result: FAILED\.\s+(\d+)\s+passed')
     $failOkMatches = [regex]::Matches($output, 'test result: ok\.\s+\d+\s+passed;\s+(\d+)\s+failed')
-    $failMatches = [regex]::Matches($output, 'test result: FAILED\.\s+(\d+)\s+failed')
-    $passed = ($passMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
-    if ($null -eq $passed) { $passed = 0 }
+    $failFailedMatches = [regex]::Matches($output, 'test result: FAILED\.\s+\d+\s+passed;\s+(\d+)\s+failed')
+    $passed = 0
+    foreach ($m in $passMatches) { $passed += [int]$m.Groups[1].Value }
+    foreach ($m in $passFailedMatches) { $passed += [int]$m.Groups[1].Value }
     $failed = 0
     foreach ($m in $failOkMatches) { $failed += [int]$m.Groups[1].Value }
-    foreach ($m in $failMatches) { $failed += [int]$m.Groups[1].Value }
+    foreach ($m in $failFailedMatches) { $failed += [int]$m.Groups[1].Value }
     $summary = @{
         crate = $Crate
         log = (Resolve-Path $LogFile).Path
