@@ -13,6 +13,7 @@
 
 pub mod entity;
 pub mod error;
+pub mod matchmaker;
 pub mod repository;
 pub mod service;
 

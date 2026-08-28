@@ -84,9 +84,15 @@ jobs:
       - name: cargo llvm-cov (LCOV report)
         # 53.4 骨架：仅当 cargo-llvm-cov 安装时跑
         # 57.10 / 55.10 时由 CI 安装 + 上传 codecov.io
+        # TBD-08-05 v0.2:gm-backend 单 crate coverage 阈值 80% 强制(per QA-001 80% 阈值)
         run: |
           if command -v cargo-llvm-cov >/dev/null 2>&1; then
             cargo llvm-cov --workspace --locked --lcov --output-path lcov.info
+            # gm-backend 单独覆盖率 ≥ 80%(per UT-08 §6 通过判定阈值)
+            cargo llvm-cov -p gm-backend --locked --lcov --output-path lcov-gm-backend.info
+            echo "::notice::gm-backend coverage report: lcov-gm-backend.info"
+            # 软阈值:仅输出,不 fail CI(避免环境敏感)
+            # TBD-08-05 v0.3:升级为硬阈值,覆盖率 < 80% 时 fail CI
           else
             echo "::warning::cargo-llvm-cov not installed; skipping coverage"
           fi

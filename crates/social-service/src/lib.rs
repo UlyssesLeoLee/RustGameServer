@@ -12,6 +12,7 @@
 
 pub mod entity;
 pub mod error;
+pub mod push_delivery;
 pub mod repository;
 pub mod service;
 
