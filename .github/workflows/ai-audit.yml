@@ -1,0 +1,143 @@
+name: ai-audit
+
+# W16 (2026-08-28): AI 审计提示词集成 CI (per 决议 9)
+#
+# Purpose: PR 提交时自动跑 AI 审计 (9 维度 + 10 重点)
+# Triggered by: pull_request
+# 关联: docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md
+# 关联: docs/00-基准与治理/RGS-DDD-REVIEW-9-DECISIONS-2026-08-28.md (决议 9)
+#
+# 实现策略 (简化版, 避免 OpenAI API key 注入):
+#   - 仅生成 AI 审计 checklist markdown 评论 (占位)
+#   - 实际 AI 调用由 Ulysses 本地 `mavis --audit-pr` 手动触发
+#   - 未来可加 OpenAI API key 注入
+#
+# 9 维度 (per AI-AUDIT-PROMPT-Mavis-2026-08-28.md):
+#   1. 决策追踪 (DDD Review 决议表)
+#   2. 代码治理 (代签 / commit 规范 / 路径 byte-level)
+#   3. 测试设计 (BAS×TST 引用 100% / IT 准入 5 项)
+#   4. 文档治理 (头表 / 引用矩阵 / 决议)
+#   5. 跑测 (workspace 81/81 + 域 0 fail)
+#   6. 覆盖 (≥ 60% 域 / workspace ≥ 75%)
+#   7. 集成 (k3s 部署 / ghcr push)
+#   8. 部署 (mTLS / JWT / Circuit breaker)
+#   9. 异常处理 (S5 NATS 真链路 / chaos)
+#
+# 10 重点核查项:
+#   1. BAS × TST 头表 100% 引用
+#   2. 代签 3 栏完整 (修订人 / 审批 / 日期)
+#   3. commit 引用 commit hash + file:line (无回溯叙事)
+#   4. 路径 byte-level 一致 (00-基准与治理/)
+#   5. 跑测 PASS/0 fail
+#   6. 覆盖率 ≥ 60% 域
+#   7. k3s 部署 image tag 已更新
+#   8. mTLS 启用 (per BAS-003 §2.1)
+#   9. JWT propagation (per TBD-08-01)
+#   10. NATS 真链路 ≥ 4/7
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  audit-checklist-comment:
+    name: post AI audit checklist to PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate AI audit checklist
+        id: generate
+        run: |
+          cat > /tmp/ai-audit-checklist.md <<'EOF'
+          ## AI 审计 Checklist (W16 自动生成, 需 Ulysses 手动审)
+
+          > 9 维度 + 10 重点核查项 (per `docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md`)
+
+          ### 9 维度
+
+          - [ ] **1. 决策追踪** - DDD Review 决议表是否更新 (per `RGS-DDD-REVIEW-9-DECISIONS-2026-08-28.md`)
+          - [ ] **2. 代码治理** - 代签 3 栏完整 (修订人 / 审批 / 日期) / commit 引用 commit hash
+          - [ ] **3. 测试设计** - BAS × TST 头表 100% 引用 (44/44)
+          - [ ] **4. 文档治理** - 新文档头表 / 引用矩阵
+          - [ ] **5. 跑测** - workspace 81/81 PASS / 0 fail
+          - [ ] **6. 覆盖** - 14/14 域 ≥ 60% / workspace ≥ 75%
+          - [ ] **7. 集成** - k3s 部署 image tag 更新
+          - [ ] **8. 部署** - mTLS 启用 / JWT propagation
+          - [ ] **9. 异常处理** - S5 NATS 真链路 ≥ 4/7 / chaos
+
+          ### 10 重点核查项
+
+          - [ ] 1. BAS × TST 头表 100% 引用 (44/44 = 100%)
+          - [ ] 2. 代签 3 栏完整 (修订人 / 审批 / 日期) — per 2026-08-27 21:59 JST 第三次强化规则
+          - [ ] 3. commit 引用 commit hash + file:line (无回溯叙事) — per 2026-08-26 04:30 JST 派生约束
+          - [ ] 4. 路径 byte-level 一致 (`00-基准与治理/` per Q1 决议保留)
+          - [ ] 5. 跑测 PASS / 0 fail (gm-backend 49/49 + admin-service 35/35 + workspace 81/81)
+          - [ ] 6. 覆盖率 ≥ 60% 域 / workspace ≥ 75% (per G3+G4 evidence)
+          - [ ] 7. k3s 部署 image tag 已更新 (per W12 workflow + W13 IT)
+          - [ ] 8. mTLS 启用 (per BAS-003 §2.1 / W9 commit f8f6937)
+          - [ ] 9. JWT propagation gRPC metadata (per TBD-08-01, W17)
+          - [ ] 10. NATS 真链路 ≥ 4/7 (per W14 commit dbd90e0)
+
+          ### Ulysses 决策点
+
+          - [ ] **DDD Review 启动**:60-90 min 会议 (per checklist Section E 议程)
+          - [ ] **merge 4 W11-W14 branch → main**:总 35+ commits
+          - [ ] **W12 CI dispatch**:Ulysses 触发 admin-service ghcr push workflow
+          EOF
+          echo "checklist generated"
+          echo "::set-output name=body::$(cat /tmp/ai-audit-checklist.md)"
+
+      - name: Post checklist as PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: ai-audit-checklist
+          message: |
+            ## AI 审计 Checklist (W16 自动)
+
+            > 9 维度 + 10 重点核查项 (per `AI-AUDIT-PROMPT-Mavis-2026-08-28.md`)
+            > Ulysses 手动审 (后续可接 OpenAI API 自动分析)
+
+            ### 9 维度
+
+            - [ ] **1. 决策追踪** - DDD Review 决议表是否更新
+            - [ ] **2. 代码治理** - 代签 3 栏完整 / commit 引用 commit hash
+            - [ ] **3. 测试设计** - BAS × TST 头表 100% 引用
+            - [ ] **4. 文档治理** - 新文档头表 / 引用矩阵
+            - [ ] **5. 跑测** - workspace 81/81 PASS / 0 fail
+            - [ ] **6. 覆盖** - 14/14 域 ≥ 60% / workspace ≥ 75%
+            - [ ] **7. 集成** - k3s 部署 image tag 更新
+            - [ ] **8. 部署** - mTLS 启用 / JWT propagation
+            - [ ] **9. 异常处理** - S5 NATS 真链路 ≥ 4/7 / chaos
+
+            ### 10 重点核查项
+
+            - [ ] 1. BAS × TST 头表 100% 引用
+            - [ ] 2. 代签 3 栏完整
+            - [ ] 3. commit 引用 commit hash + file:line (无回溯叙事)
+            - [ ] 4. 路径 byte-level 一致
+            - [ ] 5. 跑测 PASS / 0 fail
+            - [ ] 6. 覆盖率 ≥ 60% 域
+            - [ ] 7. k3s 部署 image tag 已更新
+            - [ ] 8. mTLS 启用
+            - [ ] 9. JWT propagation
+            - [ ] 10. NATS 真链路 ≥ 4/7
+
+            ---
+
+            📋 **Ulysses 决策点**:
+            - [ ] DDD Review 启动 (60-90 min 会议)
+            - [ ] merge 4 W11-W14 branch → main
+            - [ ] W12 CI dispatch (admin-service ghcr push)
