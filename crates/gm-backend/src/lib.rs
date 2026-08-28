@@ -30,7 +30,22 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing_subscriber::{fmt, EnvFilter};
+
+/// S4 Phase 2 step 1: gm-backend 作为 admin-service 的 gRPC client
+/// tonic-build 生成的 `admin.v1` 路径 = `gm_backend::admin::v1::*`,
+/// 引用 `common.v1` 时用 `crate::common::v1::*` (平铺 2 个 include_proto)
+pub mod admin {
+    pub mod v1 {
+        tonic::include_proto!("admin.v1");
+    }
+}
+pub mod common {
+    pub mod v1 {
+        tonic::include_proto!("common.v1");
+    }
+}
 
 // ============================================================================
 // 配置
@@ -45,6 +60,10 @@ pub struct GmConfig {
     /// 是否要求 JWT 验证(per 5 域 RGS_ALLOW_INSECURE_GRPC=0 默认)
     /// dev 环境可设 GM_REQUIRE_JWT=0 跳过(per TBD-08-01)
     pub require_jwt: bool,
+    /// S4 Phase 2 step 1: 是否禁用 admin-service gRPC 注入(测试用)
+    /// dev/UT 环境设 true, AppState.admin_grpc 永远 None, HealthView 走 stub 行为
+    /// 生产环境 (k3s) 设 false, AppState::new 尝试 connect admin-service
+    pub disable_admin_grpc: bool,
 }
 
 impl GmConfig {
@@ -65,16 +84,21 @@ impl GmConfig {
             .ok()
             .and_then(|s| s.parse::<bool>().ok())
             .unwrap_or(false);
+        let disable_admin_grpc = std::env::var("GM_DISABLE_ADMIN_GRPC")
+            .ok()
+            .and_then(|s| s.parse::<bool>().ok())
+            .unwrap_or(false);
         Ok(Self {
             http_addr,
             health_addr,
             admin_grpc_endpoint,
             jwt_secret,
             require_jwt,
+            disable_admin_grpc,
         })
     }
 
-    /// 测试用 builder(避开 env,UT 友好)
+    /// 测试用 builder(避开 env,UT 友好, 默认 disable_admin_grpc=true)
     pub fn for_test(http: &str, health: &str, admin: &str) -> anyhow::Result<Self> {
         Ok(Self {
             http_addr: http.parse()?,
@@ -82,6 +106,7 @@ impl GmConfig {
             admin_grpc_endpoint: admin.to_string(),
             jwt_secret: "test-secret".to_string(),
             require_jwt: false,
+            disable_admin_grpc: true,
         })
     }
 }
@@ -135,22 +160,75 @@ pub struct AppState {
     pub config: Arc<GmConfig>,
     /// v0.2 抽象:audit_log 存储(默认 InMemory,可替换为 PgAuditStore)
     pub audit_store: Arc<dyn AuditStore>,
+    /// S4 Phase 2 step 1: admin-service gRPC client(失败时为 None, 降级)
+    pub admin_grpc: Option<Arc<AdminGrpcClient>>,
 }
 
 impl AppState {
+    /// 构造 AppState + 尝试连接 admin-service gRPC(失败不 panic,设 None 降级)
     pub fn new(config: GmConfig) -> Self {
-        Self {
-            config: Arc::new(config),
-            audit_store: Arc::new(InMemoryAuditStore::new()),
-        }
+        let audit_store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
+        Self::with_audit_store(config, audit_store)
     }
 
-    /// 测试用 + 注入自定义 AuditStore
+    /// 测试用 + 注入自定义 AuditStore + admin_grpc client
     pub fn with_audit_store(config: GmConfig, audit_store: Arc<dyn AuditStore>) -> Self {
+        let config = Arc::new(config);
+        let admin_grpc = if config.disable_admin_grpc {
+            None
+        } else {
+            let client = AdminGrpcClient::try_connect(&config).ok().map(Arc::new);
+            if client.is_none() {
+                tracing::warn!(
+                    "admin-service gRPC not reachable at {} (fail-open: HealthView will mark admin ready=false)",
+                    config.admin_grpc_endpoint
+                );
+            }
+            client
+        };
         Self {
-            config: Arc::new(config),
+            config,
             audit_store,
+            admin_grpc,
         }
+    }
+}
+
+/// S4 Phase 2 step 1: admin-service gRPC client wrapper
+/// - 包装 tonic Channel + AdminServiceClient
+/// - 构造时 try_connect:失败返回 Err(供 AppState 降级为 None)
+/// - 提供 `health_check(timeout)` 调 admin-service HealthCheck
+pub struct AdminGrpcClient {
+    client: crate::admin::v1::admin_service_client::AdminServiceClient<tonic::transport::Channel>,
+}
+
+impl AdminGrpcClient {
+    /// 尝试连接 admin-service(失败返 Err,AppState 设 None 降级)
+    /// 用 `Endpoint::connect_lazy()` 构造 Channel(实际连接在第一次 RPC 时发生),
+    /// 符合 fail-open 语义:AppState::with_audit_store 不会因 admin-service 未就绪而 panic
+    pub fn try_connect(config: &GmConfig) -> Result<Self> {
+        let endpoint = tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
+            .context("invalid admin_grpc_endpoint")?
+            .timeout(Duration::from_millis(500))
+            .connect_timeout(Duration::from_millis(500));
+        let channel = endpoint.connect_lazy();
+        let client = crate::admin::v1::admin_service_client::AdminServiceClient::new(channel);
+        Ok(Self { client })
+    }
+
+    /// 调 admin-service HealthCheck, 500ms timeout, 失败返 Err
+    pub async fn health_check(&self) -> Result<()> {
+        use crate::common::v1::HealthCheckRequest;
+        let mut client = self.client.clone();
+        let req = HealthCheckRequest {
+            service: "gm-backend".to_string(),
+        };
+        let resp = client
+            .health_check(req)
+            .await
+            .context("admin-service health_check RPC failed")?;
+        let _ = resp.into_inner();
+        Ok(())
     }
 }
 
@@ -316,12 +394,35 @@ pub async fn readyz() -> impl IntoResponse {
     (StatusCode::OK, Json(json!({"status":"ready","service":"gm-backend"})))
 }
 
-/// `services[]` 5 子字段(per F8 v0.2 实装)
+/// `services[]` 5 子字段(per F8 v0.2 实装 + S4 Phase 2 step 1 admin-service gRPC)
+/// 行为:
+/// - admin_grpc.is_some() AND gRPC HealthCheck 500ms 内 Ok → ready=true
+/// - admin_grpc.is_some() AND gRPC 失败/超时 → ready=false + tracing::warn!
+/// - admin_grpc.is_none() (测试 / 连接初始化失败) → ready=true (兼容 v0.2 stub 行为)
 pub async fn health_view(State(s): State<AppState>) -> impl IntoResponse {
     let now_ms = Utc::now().timestamp_millis();
+    let ready = match s.admin_grpc.as_ref() {
+        Some(client) => match tokio::time::timeout(
+            Duration::from_millis(500),
+            client.health_check(),
+        )
+        .await
+        {
+            Ok(Ok(())) => true,
+            Ok(Err(e)) => {
+                tracing::warn!("admin-service health_check failed: {e}");
+                false
+            }
+            Err(_) => {
+                tracing::warn!("admin-service health_check timeout (500ms)");
+                false
+            }
+        },
+        None => true, // 测试 / 初始化失败时保持 stub 行为
+    };
     let services = vec![ServiceHealthEntry {
         service_name: "admin-service".to_string(),
-        ready: true,
+        ready,
         queue_depth: 0,
         db_pool_usage_ratio: 0.0,
         checked_at_ms: now_ms,
@@ -336,6 +437,7 @@ pub async fn health_view(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
+// TODO(S4-Phase2-step2+): 接入 admin-service gRPC BanAccount RPC, 失败降级 InMemory
 pub async fn ban_account(State(s): State<AppState>) -> impl IntoResponse {
     // per TBD-08-04 v0.2:写 audit_log(原 BanAccount 操作)
     s.audit_store.append(AuditLogEntry {
@@ -351,6 +453,7 @@ pub async fn ban_account(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
+// TODO(S4-Phase2-step2+): 接入 admin-service gRPC GrantCompensation RPC, 失败降级 InMemory
 pub async fn grant_compensation(State(s): State<AppState>) -> impl IntoResponse {
     s.audit_store.append(AuditLogEntry {
         log_id: uuid::Uuid::new_v4().to_string(),
@@ -365,6 +468,8 @@ pub async fn grant_compensation(State(s): State<AppState>) -> impl IntoResponse 
     )
 }
 
+// TODO(S4-Phase2-step2+): 接入 admin-service gRPC SetMaintenance RPC,
+//      让 admin-service 返回 propagation_status
 /// `propagation_status` (PROPAGATING) (per F8 v0.2 实装)
 pub async fn set_maintenance(State(s): State<AppState>) -> impl IntoResponse {
     s.audit_store.append(AuditLogEntry {
@@ -384,6 +489,8 @@ pub async fn set_maintenance(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
+// TODO(S4-Phase2-step2+): 接入 admin-service gRPC QueryAuditLog RPC,
+//      替换 InMemoryAuditStore list_entries
 /// `entries[]` + `has_more` (per F8 v0.2 实装 + TBD-08-04 抽象 AuditStore)
 pub async fn query_audit(State(s): State<AppState>) -> impl IntoResponse {
     // v0.2:固定 limit=3 (与 ut_audit 测试 + peer-review 期望对齐)
