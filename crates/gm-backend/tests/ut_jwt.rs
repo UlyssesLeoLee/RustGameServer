@@ -27,6 +27,7 @@ fn test_state(require_jwt: bool) -> AppState {
         admin_grpc_endpoint: "http://admin:50055".to_string(),
         jwt_secret: "test-secret".to_string(),
         require_jwt,
+        disable_admin_grpc: true,
     };
     AppState::new(cfg)
 }
