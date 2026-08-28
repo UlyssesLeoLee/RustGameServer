@@ -2,10 +2,8 @@
 
 use std::io::Write;
 
-use crate::error::{DownloadError, DownloadResult};
-use crate::platform::{
-    fallback_preallocate, PreallocateOutcome, PreallocateStrategy, SparseFileAllocator,
-};
+use crate::error::DownloadResult;
+use crate::platform::{PreallocateOutcome, PreallocateStrategy, SparseFileAllocator};
 
 /// Unix / macOS sparse file 分配器（per `it_minio_platform.rs` 4 平台 trait 调用）
 #[derive(Debug, Clone, Copy, Default)]
@@ -59,7 +57,7 @@ pub fn preallocate(path: &str, size: u64) -> DownloadResult<PreallocateOutcome> 
         let fd = file.as_raw_fd();
         // FALLOC_FL_KEEP_SIZE = 0x01
         const FALLOC_FL_KEEP_SIZE: i32 = 0x01;
-        let res = unsafe { libc_fallocate(fd, 0, 0, size as i64) };
+        let res = libc_fallocate(fd, FALLOC_FL_KEEP_SIZE, 0, size as i64);
         if res == 0 {
             // 写 0 触发真实块分配（sparse file 不预占盘，但 `len` 已就位）
             let _ = file.write_all(&[0u8; 1]);
