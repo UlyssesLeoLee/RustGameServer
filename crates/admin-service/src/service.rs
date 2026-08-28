@@ -277,8 +277,37 @@ pub mod grpc_service {
                     seconds: u.created_at.timestamp(),
                     nanos: u.created_at.timestamp_subsec_nanos() as i32,
                 }),
-                display_name: u.username,
+                display_name: u.username.clone(),
             }))
+        }
+
+        // S4 Phase 2 step 2: 4 GM RPC (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog)
+        async fn ban_account(
+            &self,
+            request: Request<admin_proto::BanAccountRequest>,
+        ) -> std::result::Result<Response<admin_proto::BanAccountResponse>, Status> {
+            crate::gm_handlers::ban_account(request).await
+        }
+
+        async fn grant_compensation(
+            &self,
+            request: Request<admin_proto::GrantCompensationRequest>,
+        ) -> std::result::Result<Response<admin_proto::GrantCompensationResponse>, Status> {
+            crate::gm_handlers::grant_compensation(request).await
+        }
+
+        async fn set_maintenance(
+            &self,
+            request: Request<admin_proto::SetMaintenanceRequest>,
+        ) -> std::result::Result<Response<admin_proto::SetMaintenanceResponse>, Status> {
+            crate::gm_handlers::set_maintenance(request).await
+        }
+
+        async fn query_audit_log(
+            &self,
+            request: Request<admin_proto::QueryAuditLogRequest>,
+        ) -> std::result::Result<Response<admin_proto::QueryAuditLogResponse>, Status> {
+            crate::gm_handlers::query_audit_log(request).await
         }
     }
 }
