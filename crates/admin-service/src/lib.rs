@@ -16,6 +16,8 @@ pub mod error;
 pub mod pfau;
 pub mod repository;
 pub mod service;
+// S4 Phase 2 step 2: 4 GM RPC handler (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog)
+pub mod gm_handlers;
 
 pub use error::{Error, Result};
 pub use repository::{

@@ -230,6 +230,57 @@ impl AdminGrpcClient {
         let _ = resp.into_inner();
         Ok(())
     }
+
+    // S4 Phase 2 step 2: 4 GM RPC client methods
+    // 每个方法 500ms timeout, 失败返 Err(让 handler 降级到 InMemory fallback)
+
+    pub async fn ban_account(
+        &self,
+        req: crate::admin::v1::BanAccountRequest,
+    ) -> Result<crate::admin::v1::BanAccountResponse> {
+        let mut client = self.client.clone();
+        let resp = client
+            .ban_account(req)
+            .await
+            .context("admin-service ban_account RPC failed")?;
+        Ok(resp.into_inner())
+    }
+
+    pub async fn grant_compensation(
+        &self,
+        req: crate::admin::v1::GrantCompensationRequest,
+    ) -> Result<crate::admin::v1::GrantCompensationResponse> {
+        let mut client = self.client.clone();
+        let resp = client
+            .grant_compensation(req)
+            .await
+            .context("admin-service grant_compensation RPC failed")?;
+        Ok(resp.into_inner())
+    }
+
+    pub async fn set_maintenance(
+        &self,
+        req: crate::admin::v1::SetMaintenanceRequest,
+    ) -> Result<crate::admin::v1::SetMaintenanceResponse> {
+        let mut client = self.client.clone();
+        let resp = client
+            .set_maintenance(req)
+            .await
+            .context("admin-service set_maintenance RPC failed")?;
+        Ok(resp.into_inner())
+    }
+
+    pub async fn query_audit_log(
+        &self,
+        req: crate::admin::v1::QueryAuditLogRequest,
+    ) -> Result<crate::admin::v1::QueryAuditLogResponse> {
+        let mut client = self.client.clone();
+        let resp = client
+            .query_audit_log(req)
+            .await
+            .context("admin-service query_audit_log RPC failed")?;
+        Ok(resp.into_inner())
+    }
 }
 
 pub fn init_tracing() {
@@ -437,43 +488,126 @@ pub async fn health_view(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
-// TODO(S4-Phase2-step2+): 接入 admin-service gRPC BanAccount RPC, 失败降级 InMemory
+// S4 Phase 2 step 2: 接入 admin-service gRPC BanAccount RPC,
+// 失败降级写 InMemory AuditStore (per TBD-08-04 抽象)
 pub async fn ban_account(State(s): State<AppState>) -> impl IntoResponse {
-    // per TBD-08-04 v0.2:写 audit_log(原 BanAccount 操作)
+    // 构造 admin-service BanAccountRequest (v0.2 字段简化, request_id 用 uuid)
+    let request_id = uuid::Uuid::new_v4().to_string();
+    let admin_grpc_result = match s.admin_grpc.as_ref() {
+        Some(client) => {
+            let req = crate::admin::v1::BanAccountRequest {
+                request_id: request_id.clone(),
+                account_id: "stub".to_string(), // v0.2 占位, v0.3 从 body 解析
+                reason: "stub".to_string(),
+                duration_seconds: 0,
+            };
+            tokio::time::timeout(
+                Duration::from_millis(500),
+                client.ban_account(req),
+            )
+            .await
+            .map_err(|_| anyhow::anyhow!("admin-service ban_account timeout"))
+            .and_then(|r| r)
+            .ok()
+        }
+        None => None,
+    };
+    // 不论成功/失败都写本地 audit_log (gm-backend 端 stub cache)
     s.audit_store.append(AuditLogEntry {
-        log_id: uuid::Uuid::new_v4().to_string(),
-        admin_id: "system".to_string(), // v0.3 从 JWT claims 拿
+        log_id: request_id,
+        admin_id: "system".to_string(),
         action: "ban".to_string(),
         target_id: "stub".to_string(),
         occurred_at_ms: Utc::now().timestamp_millis(),
     });
+    if admin_grpc_result.is_none() {
+        tracing::warn!("admin-service ban_account unavailable, local InMemory fallback used");
+    }
     (
         StatusCode::ACCEPTED,
         Json(json!({"status":"queued","op":"ban"})),
     )
 }
 
-// TODO(S4-Phase2-step2+): 接入 admin-service gRPC GrantCompensation RPC, 失败降级 InMemory
+// S4 Phase 2 step 2: 接入 admin-service gRPC GrantCompensation RPC, 失败降级 InMemory
 pub async fn grant_compensation(State(s): State<AppState>) -> impl IntoResponse {
+    let request_id = uuid::Uuid::new_v4().to_string();
+    let admin_grpc_result = match s.admin_grpc.as_ref() {
+        Some(client) => {
+            let req = crate::admin::v1::GrantCompensationRequest {
+                request_id: request_id.clone(),
+                account_id: "stub".to_string(),
+                amount: 0,
+                currency: "stub".to_string(),
+                reason: "stub".to_string(),
+            };
+            tokio::time::timeout(
+                Duration::from_millis(500),
+                client.grant_compensation(req),
+            )
+            .await
+            .map_err(|_| anyhow::anyhow!("admin-service grant_compensation timeout"))
+            .and_then(|r| r)
+            .ok()
+        }
+        None => None,
+    };
     s.audit_store.append(AuditLogEntry {
-        log_id: uuid::Uuid::new_v4().to_string(),
+        log_id: request_id,
         admin_id: "system".to_string(),
         action: "grant_compensation".to_string(),
         target_id: "stub".to_string(),
         occurred_at_ms: Utc::now().timestamp_millis(),
     });
+    if admin_grpc_result.is_none() {
+        tracing::warn!("admin-service grant_compensation unavailable, local InMemory fallback used");
+    }
     (
         StatusCode::ACCEPTED,
         Json(json!({"status":"queued","op":"compensation"})),
     )
 }
 
-// TODO(S4-Phase2-step2+): 接入 admin-service gRPC SetMaintenance RPC,
-//      让 admin-service 返回 propagation_status
-/// `propagation_status` (PROPAGATING) (per F8 v0.2 实装)
+// S4 Phase 2 step 2: 接入 admin-service gRPC SetMaintenance RPC,
+// 让 admin-service 返回 propagation_status (per DTL-003 §3.3)
+/// `propagation_status` 来自 admin-service 响应, 失败降级 PROPAGATING 默认
 pub async fn set_maintenance(State(s): State<AppState>) -> impl IntoResponse {
+    let request_id = uuid::Uuid::new_v4().to_string();
+    let propagation_status = match s.admin_grpc.as_ref() {
+        Some(client) => {
+            let req = crate::admin::v1::SetMaintenanceRequest {
+                request_id: request_id.clone(),
+                enable: true,
+                scope: "cluster".to_string(),
+                target_id: "cluster".to_string(),
+                ttl_seconds: 0,
+            };
+            match tokio::time::timeout(
+                Duration::from_millis(500),
+                client.set_maintenance(req),
+            )
+            .await
+            {
+                Ok(Ok(resp)) => match resp.propagation_status {
+                    1 => "PROPAGATING",
+                    2 => "CONVERGED",
+                    _ => "PROPAGATING",
+                }
+                .to_string(),
+                Ok(Err(e)) => {
+                    tracing::warn!("admin-service set_maintenance failed: {e}");
+                    "PROPAGATING".to_string()
+                }
+                Err(_) => {
+                    tracing::warn!("admin-service set_maintenance timeout");
+                    "PROPAGATING".to_string()
+                }
+            }
+        }
+        None => "PROPAGATING".to_string(),
+    };
     s.audit_store.append(AuditLogEntry {
-        log_id: uuid::Uuid::new_v4().to_string(),
+        log_id: request_id,
         admin_id: "system".to_string(),
         action: "set_maintenance".to_string(),
         target_id: "cluster".to_string(),
@@ -484,19 +618,60 @@ pub async fn set_maintenance(State(s): State<AppState>) -> impl IntoResponse {
         Json(json!({
             "status":"queued",
             "op":"maintenance",
-            "propagation_status":"PROPAGATING",
+            "propagation_status": propagation_status,
         })),
     )
 }
 
-// TODO(S4-Phase2-step2+): 接入 admin-service gRPC QueryAuditLog RPC,
-//      替换 InMemoryAuditStore list_entries
+// S4 Phase 2 step 2: 接入 admin-service gRPC QueryAuditLog RPC, 失败降级 InMemory
 /// `entries[]` + `has_more` (per F8 v0.2 实装 + TBD-08-04 抽象 AuditStore)
 pub async fn query_audit(State(s): State<AppState>) -> impl IntoResponse {
-    // v0.2:固定 limit=3 (与 ut_audit 测试 + peer-review 期望对齐)
-    // 真实 limit 应从 query string 解析 (per BAS-003 §3.4 QueryAuditLogRequest.limit)
-    // v0.3 接入
-    const DEFAULT_LIMIT: usize = 3;
+    const DEFAULT_LIMIT: usize = 20; // v0.3 调为 20 (per gm.proto v0.3)
+    // 尝试调 admin-service gRPC
+    let admin_entries: Option<Vec<crate::admin::v1::AuditLogEntry>> = match s.admin_grpc.as_ref() {
+        Some(client) => {
+            let req = crate::admin::v1::QueryAuditLogRequest {
+                request_id: uuid::Uuid::new_v4().to_string(),
+                limit: DEFAULT_LIMIT as i32,
+                cursor: String::new(),
+                filter_admin: String::new(),
+                filter_action: String::new(),
+            };
+            match tokio::time::timeout(
+                Duration::from_millis(500),
+                client.query_audit_log(req),
+            )
+            .await
+            {
+                Ok(Ok(resp)) => Some(resp.entries),
+                _ => None,
+            }
+        }
+        None => None,
+    };
+    // 优先用 admin-service 返回, 失败降级本地 InMemory
+    if let Some(entries) = admin_entries {
+        let proto_entries: Vec<serde_json::Value> = entries
+            .iter()
+            .map(|e| {
+                json!({
+                    "log_id": e.log_id,
+                    "admin_id": e.admin_id,
+                    "action": e.action,
+                    "target_id": e.target_id,
+                    "occurred_at_ms": e.occurred_at_ms,
+                })
+            })
+            .collect();
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "entries": proto_entries,
+                "has_more": proto_entries.len() >= DEFAULT_LIMIT,
+            })),
+        );
+    }
+    // 降级路径
     let entries = s.audit_store.list_entries(DEFAULT_LIMIT).await;
     let has_more = entries.len() >= DEFAULT_LIMIT;
     (
