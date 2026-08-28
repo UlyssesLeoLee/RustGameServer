@@ -26,7 +26,8 @@ fn make_test_server() -> (TestServer, Arc<InMemoryAuditStore>) {
 fn make_test_server_preloaded() -> (TestServer, Arc<InMemoryAuditStore>) {
     let cfg = GmConfig::for_test("0.0.0.0:8443", "0.0.0.0:8081", "http://admin:50055").unwrap();
     let store = InMemoryAuditStore::new();
-    for i in 0..5 {
+    // S4 Phase 2 step 2: limit=20 (per gm.proto v0.3), 预加载 25 条以触发 has_more=true
+    for i in 0..25 {
         store.append(AuditLogEntry {
             log_id: format!("pre-{i}"),
             admin_id: "test-admin".to_string(),
@@ -123,11 +124,16 @@ async fn query_audit_limit_truncates_and_sets_has_more() {
     resp.assert_status(axum::http::StatusCode::OK);
     let body: serde_json::Value = resp.json();
     let entries = body["entries"].as_array().unwrap();
-    assert_eq!(entries.len(), 3, "limit=3 must return 3 entries");
-    assert_eq!(body["has_more"], true, "5 entries > limit 3, has_more=true");
-    assert_eq!(entries[0]["log_id"], "pre-4");
-    assert_eq!(entries[1]["log_id"], "pre-3");
-    assert_eq!(entries[2]["log_id"], "pre-2");
+    // S4 Phase 2 step 2: limit=20 (per gm.proto v0.3)
+    assert_eq!(entries.len(), 20, "limit=20 must return 20 entries");
+    assert_eq!(
+        body["has_more"], true,
+        "25 entries > limit 20, has_more=true"
+    );
+    // list_entries 反转 (新→旧), 25 条最新是 pre-24, 20 条返 pre-24..pre-5
+    assert_eq!(entries[0]["log_id"], "pre-24");
+    assert_eq!(entries[1]["log_id"], "pre-23");
+    assert_eq!(entries[19]["log_id"], "pre-5");
 }
 
 #[test]

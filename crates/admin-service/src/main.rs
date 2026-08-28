@@ -81,6 +81,12 @@ async fn main() -> anyhow::Result<()> {
     let users: Arc<dyn AdminUserRepository> = Arc::new(PgAdminUserRepository::new(pool.clone()));
     let audit: Arc<dyn AuditLogRepository> = Arc::new(PgAuditLogRepository::new(pool.clone()));
 
+    // S4 Phase 2 step 2: 注入 audit_log repository 到 4 GM RPC handler 全局 state
+    // (per RGS-S4-PHASE2-STEP1-设计.md)
+    admin_service::gm_handlers::init_state(
+        admin_service::gm_handlers::GmHandlerState::new(audit.clone())
+    );
+
     tracing::info!(target: "admin-service", "admin-service started, DB pool size: {}", pool.size());
 
     // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
