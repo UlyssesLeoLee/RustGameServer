@@ -57,3 +57,11 @@ scripts/_scratch/
 docs/00-基准与治理/.test-evidence/*/cargo-*.log
 docs/00-基准与治理/.test-evidence/*/e2e-smoke.log
 docs/00-基准与治理/.test-evidence/*/manifest.json
+
+# audit-*.js (per 2026-08-28 ut-vs-dtl 核对批次)
+# 临时 Node.js 审计脚本,跑完即失效
+audit-*.js
+
+# node_modules (per 2026-08-28 audit 引入 glob 包)
+node_modules/
+package-lock.json
