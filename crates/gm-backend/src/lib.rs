@@ -17,7 +17,7 @@
 
 use anyhow::{Context, Result};
 use axum::{
-    extract::{Request, State},
+    extract::{Query, Request, State},
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Json},
@@ -52,6 +52,26 @@ pub mod common {
 // W23 (2026-08-28): integration 5 IT 验证 wire + chaos 集成
 // 关联: RGS-OPEN-QA v0.4 DDD Review 决议
 pub mod circuit_breaker;
+
+// W26 (2026-08-29) 桶 2a: 5 GM endpoint 业务实装(从 lib.rs 移出)
+// - Json/Query extractor + 字段级校验
+// - admin-service gRPC + 失败降级 InMemory
+// - 关联: RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1
+pub mod business_handler;
+
+// W26 (2026-08-29) 桶 2a: 5 it_business_*.rs 测试用 build_test_state
+// - 暴露在 lib 根路径, 简化 test 文件 import
+pub mod test_helpers;
+
+// W26 (2026-08-29) 桶 2a: re-export 5 handler + 5 DTO types at lib 根路径
+// - 让 it_business_*.rs 可以 `gm_backend::ban_account` 直接引用
+// - 兼容外部 (admin CLI / curl / health probe) 也可用 lib:: 类型
+pub use business_handler::{
+    ban_account, grant_compensation, health_view, query_audit, set_maintenance,
+    BanAccountRequestBody, CompensationRequestBody as GrantCompensationRequestBody,
+    HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody,
+    QueryAuditLogQuery,
+};
 
 // ============================================================================
 // 配置
@@ -456,11 +476,17 @@ pub struct AuditLogEntry {
     pub occurred_at_ms: i64,
 }
 
+// 注: 5 GM endpoint RequestBody/Query 类型已移至 `business_handler` 模块
+// (per W26 桶 2a: lib.rs 只留 router 配置 + 类型 + 基础 service 抽象)
+
 // ============================================================================
 // Router 构建
 // ============================================================================
 
 pub fn build_router(state: AppState) -> Router {
+    use crate::business_handler::{
+        ban_account, grant_compensation, health_view, query_audit, set_maintenance,
+    };
     let api = Router::new()
         .route("/api/v1/gm/health/view", get(health_view))
         .route("/api/v1/gm/ban", post(ban_account))
@@ -485,7 +511,7 @@ pub fn build_health_router(state: AppState) -> Router {
 }
 
 // ============================================================================
-// 6 handler
+// 2 health handler(per BAS-003 §2.1 探针专用)
 // ============================================================================
 
 pub async fn healthz() -> impl IntoResponse {
@@ -496,240 +522,7 @@ pub async fn readyz() -> impl IntoResponse {
     (StatusCode::OK, Json(json!({"status":"ready","service":"gm-backend"})))
 }
 
-/// `services[]` 5 子字段(per F8 v0.2 实装 + S4 Phase 2 step 1 admin-service gRPC)
-/// 行为:
-/// - admin_grpc.is_some() AND gRPC HealthCheck 500ms 内 Ok → ready=true
-/// - admin_grpc.is_some() AND gRPC 失败/超时 → ready=false + tracing::warn!
-/// - admin_grpc.is_none() (测试 / 连接初始化失败) → ready=true (兼容 v0.2 stub 行为)
-pub async fn health_view(State(s): State<AppState>) -> impl IntoResponse {
-    let now_ms = Utc::now().timestamp_millis();
-    let ready = match s.admin_grpc.as_ref() {
-        Some(client) => match tokio::time::timeout(
-            Duration::from_millis(500),
-            client.health_check(),
-        )
-        .await
-        {
-            Ok(Ok(())) => true,
-            Ok(Err(e)) => {
-                tracing::warn!("admin-service health_check failed: {e}");
-                false
-            }
-            Err(_) => {
-                tracing::warn!("admin-service health_check timeout (500ms)");
-                false
-            }
-        },
-        None => true, // 测试 / 初始化失败时保持 stub 行为
-    };
-    let services = vec![ServiceHealthEntry {
-        service_name: "admin-service".to_string(),
-        ready,
-        queue_depth: 0,
-        db_pool_usage_ratio: 0.0,
-        checked_at_ms: now_ms,
-    }];
-    (
-        StatusCode::OK,
-        Json(json!({
-            "services": services,
-            "checked_at_ms": now_ms,
-            "admin_endpoint": s.config.admin_grpc_endpoint,
-        })),
-    )
-}
-
-// S4 Phase 2 step 2: 接入 admin-service gRPC BanAccount RPC,
-// 失败降级写 InMemory AuditStore (per TBD-08-04 抽象)
-pub async fn ban_account(State(s): State<AppState>) -> impl IntoResponse {
-    // 构造 admin-service BanAccountRequest (v0.2 字段简化, request_id 用 uuid)
-    let request_id = uuid::Uuid::new_v4().to_string();
-    let admin_grpc_result = match s.admin_grpc.as_ref() {
-        Some(client) => {
-            let req = crate::admin::v1::BanAccountRequest {
-                request_id: request_id.clone(),
-                account_id: "stub".to_string(), // v0.2 占位, v0.3 从 body 解析
-                reason: "stub".to_string(),
-                duration_seconds: 0,
-            };
-            tokio::time::timeout(
-                Duration::from_millis(500),
-                client.ban_account(req),
-            )
-            .await
-            .map_err(|_| anyhow::anyhow!("admin-service ban_account timeout"))
-            .and_then(|r| r)
-            .ok()
-        }
-        None => None,
-    };
-    // 不论成功/失败都写本地 audit_log (gm-backend 端 stub cache)
-    s.audit_store.append(AuditLogEntry {
-        log_id: request_id,
-        admin_id: "system".to_string(),
-        action: "ban".to_string(),
-        target_id: "stub".to_string(),
-        occurred_at_ms: Utc::now().timestamp_millis(),
-    });
-    if admin_grpc_result.is_none() {
-        tracing::warn!("admin-service ban_account unavailable, local InMemory fallback used");
-    }
-    (
-        StatusCode::ACCEPTED,
-        Json(json!({"status":"queued","op":"ban"})),
-    )
-}
-
-// S4 Phase 2 step 2: 接入 admin-service gRPC GrantCompensation RPC, 失败降级 InMemory
-pub async fn grant_compensation(State(s): State<AppState>) -> impl IntoResponse {
-    let request_id = uuid::Uuid::new_v4().to_string();
-    let admin_grpc_result = match s.admin_grpc.as_ref() {
-        Some(client) => {
-            let req = crate::admin::v1::GrantCompensationRequest {
-                request_id: request_id.clone(),
-                account_id: "stub".to_string(),
-                amount: 0,
-                currency: "stub".to_string(),
-                reason: "stub".to_string(),
-            };
-            tokio::time::timeout(
-                Duration::from_millis(500),
-                client.grant_compensation(req),
-            )
-            .await
-            .map_err(|_| anyhow::anyhow!("admin-service grant_compensation timeout"))
-            .and_then(|r| r)
-            .ok()
-        }
-        None => None,
-    };
-    s.audit_store.append(AuditLogEntry {
-        log_id: request_id,
-        admin_id: "system".to_string(),
-        action: "grant_compensation".to_string(),
-        target_id: "stub".to_string(),
-        occurred_at_ms: Utc::now().timestamp_millis(),
-    });
-    if admin_grpc_result.is_none() {
-        tracing::warn!("admin-service grant_compensation unavailable, local InMemory fallback used");
-    }
-    (
-        StatusCode::ACCEPTED,
-        Json(json!({"status":"queued","op":"compensation"})),
-    )
-}
-
-// S4 Phase 2 step 2: 接入 admin-service gRPC SetMaintenance RPC,
-// 让 admin-service 返回 propagation_status (per DTL-003 §3.3)
-/// `propagation_status` 来自 admin-service 响应, 失败降级 PROPAGATING 默认
-pub async fn set_maintenance(State(s): State<AppState>) -> impl IntoResponse {
-    let request_id = uuid::Uuid::new_v4().to_string();
-    let propagation_status = match s.admin_grpc.as_ref() {
-        Some(client) => {
-            let req = crate::admin::v1::SetMaintenanceRequest {
-                request_id: request_id.clone(),
-                enable: true,
-                scope: "cluster".to_string(),
-                target_id: "cluster".to_string(),
-                ttl_seconds: 0,
-            };
-            match tokio::time::timeout(
-                Duration::from_millis(500),
-                client.set_maintenance(req),
-            )
-            .await
-            {
-                Ok(Ok(resp)) => match resp.propagation_status {
-                    1 => "PROPAGATING",
-                    2 => "CONVERGED",
-                    _ => "PROPAGATING",
-                }
-                .to_string(),
-                Ok(Err(e)) => {
-                    tracing::warn!("admin-service set_maintenance failed: {e}");
-                    "PROPAGATING".to_string()
-                }
-                Err(_) => {
-                    tracing::warn!("admin-service set_maintenance timeout");
-                    "PROPAGATING".to_string()
-                }
-            }
-        }
-        None => "PROPAGATING".to_string(),
-    };
-    s.audit_store.append(AuditLogEntry {
-        log_id: request_id,
-        admin_id: "system".to_string(),
-        action: "set_maintenance".to_string(),
-        target_id: "cluster".to_string(),
-        occurred_at_ms: Utc::now().timestamp_millis(),
-    });
-    (
-        StatusCode::ACCEPTED,
-        Json(json!({
-            "status":"queued",
-            "op":"maintenance",
-            "propagation_status": propagation_status,
-        })),
-    )
-}
-
-// S4 Phase 2 step 2: 接入 admin-service gRPC QueryAuditLog RPC, 失败降级 InMemory
-/// `entries[]` + `has_more` (per F8 v0.2 实装 + TBD-08-04 抽象 AuditStore)
-pub async fn query_audit(State(s): State<AppState>) -> impl IntoResponse {
-    const DEFAULT_LIMIT: usize = 20; // v0.3 调为 20 (per gm.proto v0.3)
-    // 尝试调 admin-service gRPC
-    let admin_entries: Option<Vec<crate::admin::v1::AuditLogEntry>> = match s.admin_grpc.as_ref() {
-        Some(client) => {
-            let req = crate::admin::v1::QueryAuditLogRequest {
-                request_id: uuid::Uuid::new_v4().to_string(),
-                limit: DEFAULT_LIMIT as i32,
-                cursor: String::new(),
-                filter_admin: String::new(),
-                filter_action: String::new(),
-            };
-            match tokio::time::timeout(
-                Duration::from_millis(500),
-                client.query_audit_log(req),
-            )
-            .await
-            {
-                Ok(Ok(resp)) => Some(resp.entries),
-                _ => None,
-            }
-        }
-        None => None,
-    };
-    // 优先用 admin-service 返回, 失败降级本地 InMemory
-    if let Some(entries) = admin_entries {
-        let proto_entries: Vec<serde_json::Value> = entries
-            .iter()
-            .map(|e| {
-                json!({
-                    "log_id": e.log_id,
-                    "admin_id": e.admin_id,
-                    "action": e.action,
-                    "target_id": e.target_id,
-                    "occurred_at_ms": e.occurred_at_ms,
-                })
-            })
-            .collect();
-        return (
-            StatusCode::OK,
-            Json(json!({
-                "entries": proto_entries,
-                "has_more": proto_entries.len() >= DEFAULT_LIMIT,
-            })),
-        );
-    }
-    // 降级路径
-    let entries = s.audit_store.list_entries(DEFAULT_LIMIT).await;
-    let has_more = entries.len() >= DEFAULT_LIMIT;
-    (
-        StatusCode::OK,
-        Json(json!({
-            "entries": entries,
-            "has_more": has_more,
-        })),
-    )
-}
+// 注: 5 GM endpoint 业务 handler(health_view, ban_account, grant_compensation,
+// set_maintenance, query_audit) 已移至 `business_handler` 模块
+// (per W26 桶 2a + RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1)
+// lib.rs 只保留 router 配置 + 类型 + 基础 service 抽象

@@ -7,6 +7,7 @@
 
 use axum_test::TestServer;
 use gm_backend::{build_router, AppState, GmConfig};
+use serde_json::json;
 use std::time::Duration;
 
 fn make_server_unreachable_admin() -> TestServer {
@@ -63,9 +64,13 @@ async fn chaos_health_view_marks_admin_unavailable() {
 async fn chaos_ban_account_returns_202_insteadof_503() {
     // 即使 admin-service 完全不可达, gm-backend ban 仍 202 + 降级 InMemory
     // (per S4 Phase 2 step 2 设计: 业务不中断, audit 写本地)
+    // W26 (2026-08-29) 桶 2a: 发送合法 body 走真实 handler
     let server = make_server_unreachable_admin();
     let started = std::time::Instant::now();
-    let resp = server.post("/api/v1/gm/ban").await;
+    let resp = server
+        .post("/api/v1/gm/ban")
+        .json(&json!({"account_id": "chaos-ban", "reason": "chaos", "duration_seconds": 0}))
+        .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     // 500ms timeout, 总时长 < 1s
@@ -73,19 +78,31 @@ async fn chaos_ban_account_returns_202_insteadof_503() {
         elapsed < Duration::from_secs(1),
         "chaos ban_account must complete within 1s, got {elapsed:?}"
     );
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["degraded"], true, "降级路径必须标记 degraded=true");
 }
 
 #[tokio::test]
 async fn chaos_grant_compensation_returns_202_insteadof_503() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_unreachable_admin();
-    let resp = server.post("/api/v1/gm/compensation").await;
+    let resp = server
+        .post("/api/v1/gm/compensation")
+        .json(&json!({"account_id": "chaos-comp", "amount": 50, "currency": "USD", "reason": "chaos"}))
+        .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["degraded"], true);
 }
 
 #[tokio::test]
 async fn chaos_set_maintenance_returns_202_with_propagating() {
+    // W26 (2026-08-29) 桶 2a: 发送合法 body
     let server = make_server_unreachable_admin();
-    let resp = server.post("/api/v1/gm/maintenance").await;
+    let resp = server
+        .post("/api/v1/gm/maintenance")
+        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let body: serde_json::Value = resp.json();
     assert_eq!(body["op"], "maintenance");
