@@ -1,0 +1,138 @@
+syntax = "proto3";
+package gm.v1;
+
+// GM 后台 5 个 endpoint 协议(per RGS-BAS-003 §3.1-§3.4 + RGS-DTL-003 §3.3-§3.4)
+//
+// 5 个 endpoint:
+// - HealthView: 跨服务健康视图
+// - BanAccount: 封禁玩家
+// - GrantCompensation: 发放补偿
+// - SetMaintenance: 设置维护模式
+// - QueryAuditLog: 审计日志查询
+//
+// 关联 commit: 404e3ea (v0.2 实装)
+// v0.3 计划: gm-backend → admin-service gRPC 真实集成(S4 立项)
+
+import "common/v1/common.proto";
+
+service GmBackend {
+  // HealthView: 返回 services[] 5 子字段 + propagation_status
+  rpc HealthView(HealthViewRequest) returns (HealthViewResponse);
+
+  // BanAccount: 封禁玩家(BAS-003 §3.1)
+  rpc BanAccount(BanAccountRequest) returns (BanAccountResponse);
+
+  // GrantCompensation: 发放补偿(BAS-003 §3.1)
+  rpc GrantCompensation(GrantCompensationRequest) returns (GrantCompensationResponse);
+
+  // SetMaintenance: 设置维护模式,新增 propagation_status 字段(DTL-003 §3.3)
+  rpc SetMaintenance(SetMaintenanceRequest) returns (SetMaintenanceResponse);
+
+  // QueryAuditLog: 审计日志查询,使用 entries[] + has_more(DTL-003 §3.4)
+  rpc QueryAuditLog(QueryAuditLogRequest) returns (QueryAuditLogResponse);
+}
+
+// ============================================================================
+// HealthView: services[] 5 子字段
+// ============================================================================
+
+message HealthViewRequest {
+  common.v1.RequestContext ctx = 1;
+}
+
+message HealthViewResponse {
+  repeated ServiceHealthEntry services = 1;
+  int64 checked_at_ms = 2;
+  string admin_endpoint = 3; // 兼容旧 stub 字段(v0.2 兼容期)
+}
+
+message ServiceHealthEntry {
+  string service_name = 1;
+  bool ready = 2;
+  uint32 queue_depth = 3;
+  float db_pool_usage_ratio = 4;
+  int64 checked_at_ms = 5;
+}
+
+// ============================================================================
+// BanAccount / GrantCompensation: 既有方法(BAS-001 §6.3.4)
+// ============================================================================
+
+message BanAccountRequest {
+  common.v1.RequestContext ctx = 1;
+  string account_id = 2;
+  string reason = 3;
+  int32 duration_seconds = 4; // 0 = 永久
+}
+
+message BanAccountResponse {
+  string status = 1; // "queued" / "ok"
+  string op = 2;     // "ban"
+  common.v1.Timestamp accepted_at = 3;
+}
+
+message GrantCompensationRequest {
+  common.v1.RequestContext ctx = 1;
+  string account_id = 2;
+  int64 amount = 3;
+  string currency = 4;
+  string reason = 5;
+}
+
+message GrantCompensationResponse {
+  string status = 1; // "queued" / "ok"
+  string op = 2;     // "compensation"
+  common.v1.Timestamp accepted_at = 3;
+}
+
+// ============================================================================
+// SetMaintenance: 新增 propagation_status(DTL-003 §3.3)
+// ============================================================================
+
+message SetMaintenanceRequest {
+  common.v1.RequestContext ctx = 1;
+  bool enable = 2;
+  string scope = 3;        // "cluster" / "domain" / "single_node"
+  string target_id = 4;    // 配合 scope
+  int32 ttl_seconds = 5;   // 0 = 永久
+}
+
+message SetMaintenanceResponse {
+  string status = 1;        // "queued" / "ok"
+  string op = 2;            // "maintenance"
+  // v0.2 新增字段(per F8 处置): PROPAGATING / CONVERGED
+  PropagationStatus propagation_status = 3;
+  common.v1.Timestamp accepted_at = 4;
+}
+
+enum PropagationStatus {
+  PROPAGATION_STATUS_UNSPECIFIED = 0;
+  PROPAGATING = 1;
+  CONVERGED = 2;
+}
+
+// ============================================================================
+// QueryAuditLog: entries[] + has_more(DTL-003 §3.4)
+// ============================================================================
+
+message QueryAuditLogRequest {
+  common.v1.RequestContext ctx = 1;
+  int32 limit = 2;           // 默认 3(v0.2 兼容, v0.3 调为 20)
+  string cursor = 3;         // 分页 cursor
+  string filter_admin = 4;   // 过滤 admin_id
+  string filter_action = 5;  // 过滤 action
+}
+
+message QueryAuditLogResponse {
+  repeated AuditLogEntry entries = 1;
+  bool has_more = 2;
+  string next_cursor = 3;
+}
+
+message AuditLogEntry {
+  string log_id = 1;
+  string admin_id = 2;
+  string action = 3;
+  string target_id = 4;
+  int64 occurred_at_ms = 5;
+}
