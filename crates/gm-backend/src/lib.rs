@@ -47,6 +47,11 @@ pub mod common {
     }
 }
 
+// W18 (2026-08-28): Circuit breaker (5 失败 → 30s 断开)
+// W20 (2026-08-28): wire 到 AdminGrpcClient 4 method
+// 关联: RGS-OPEN-QA v0.4 DDD Review 决议
+pub mod circuit_breaker;
+
 // ============================================================================
 // 配置
 // ============================================================================
@@ -200,6 +205,8 @@ impl AppState {
 /// - 提供 `health_check(timeout)` 调 admin-service HealthCheck
 pub struct AdminGrpcClient {
     client: crate::admin::v1::admin_service_client::AdminServiceClient<tonic::transport::Channel>,
+    /// W20 (2026-08-28): Circuit breaker (5 失败 → 30s 断开, 共享 4 method)
+    breaker: std::sync::Arc<crate::circuit_breaker::CircuitBreaker>,
 }
 
 impl AdminGrpcClient {
@@ -213,21 +220,31 @@ impl AdminGrpcClient {
             .connect_timeout(Duration::from_millis(500));
         let channel = endpoint.connect_lazy();
         let client = crate::admin::v1::admin_service_client::AdminServiceClient::new(channel);
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            breaker: std::sync::Arc::new(crate::circuit_breaker::CircuitBreaker::default()),
+        })
     }
 
     /// 调 admin-service HealthCheck, 500ms timeout, 失败返 Err
     pub async fn health_check(&self) -> Result<()> {
         use crate::common::v1::HealthCheckRequest;
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN, skipping admin-service health_check");
+        }
         let mut client = self.client.clone();
         let req = HealthCheckRequest {
             service: "gm-backend".to_string(),
         };
-        let resp = client
+        let result = client
             .health_check(req)
             .await
-            .context("admin-service health_check RPC failed")?;
-        let _ = resp.into_inner();
+            .context("admin-service health_check RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
+        result?;
         Ok(())
     }
 
@@ -238,48 +255,76 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::BanAccountRequest,
     ) -> Result<crate::admin::v1::BanAccountResponse> {
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN, skipping admin-service ban_account");
+        }
         let mut client = self.client.clone();
-        let resp = client
+        let result = client
             .ban_account(req)
             .await
-            .context("admin-service ban_account RPC failed")?;
-        Ok(resp.into_inner())
+            .context("admin-service ban_account RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
+        Ok(result?.into_inner())
     }
 
     pub async fn grant_compensation(
         &self,
         req: crate::admin::v1::GrantCompensationRequest,
     ) -> Result<crate::admin::v1::GrantCompensationResponse> {
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN, skipping admin-service grant_compensation");
+        }
         let mut client = self.client.clone();
-        let resp = client
+        let result = client
             .grant_compensation(req)
             .await
-            .context("admin-service grant_compensation RPC failed")?;
-        Ok(resp.into_inner())
+            .context("admin-service grant_compensation RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
+        Ok(result?.into_inner())
     }
 
     pub async fn set_maintenance(
         &self,
         req: crate::admin::v1::SetMaintenanceRequest,
     ) -> Result<crate::admin::v1::SetMaintenanceResponse> {
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN, skipping admin-service set_maintenance");
+        }
         let mut client = self.client.clone();
-        let resp = client
+        let result = client
             .set_maintenance(req)
             .await
-            .context("admin-service set_maintenance RPC failed")?;
-        Ok(resp.into_inner())
+            .context("admin-service set_maintenance RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
+        Ok(result?.into_inner())
     }
 
     pub async fn query_audit_log(
         &self,
         req: crate::admin::v1::QueryAuditLogRequest,
     ) -> Result<crate::admin::v1::QueryAuditLogResponse> {
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN, skipping admin-service query_audit_log");
+        }
         let mut client = self.client.clone();
-        let resp = client
+        let result = client
             .query_audit_log(req)
             .await
-            .context("admin-service query_audit_log RPC failed")?;
-        Ok(resp.into_inner())
+            .context("admin-service query_audit_log RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
+        Ok(result?.into_inner())
     }
 }
 
