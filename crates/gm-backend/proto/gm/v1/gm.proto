@@ -10,9 +10,17 @@ package gm.v1;
 // - SetMaintenance: 设置维护模式
 // - QueryAuditLog: 审计日志查询
 //
-// 关联 commit: 404e3ea (v0.2 实装)
-// v0.3 计划: gm-backend → admin-service gRPC 真实集成(S4 立项)
-// v0.3 简化: 不依赖 common.proto, RequestContext 字段 inline (后续 v0.4 统一 proto 仓库)
+// ## 版本演进
+// - 关联 commit 404e3ea: v0.2 实装
+// - 关联 commit 8ad815c: v0.3 简化 (不依赖 common.proto, RequestContext inline)
+// - 桶 14 补完 (W35) v0.4 增量: 5 新字段 (per RGS-DTL-038 §4.3 + DEC-038-07):
+//   * BanAccountRequest.force_disconnect_session: bool
+//   * GrantCompensationRequest.card_ids: repeated string
+//   * GrantCompensationRequest.pack_ids: repeated string
+//   * SetMaintenanceRequest.mode_flags: uint32 (天梯冻结 / 交易冻结 bit flag)
+//   * QueryAuditLogRequest.audit_type: AuditType enum
+//
+// v0.4 强约束: 0 破坏 v0.3, 仅追加字段, 旧 client 不传新字段走默认行为
 
 service GmBackend {
   // HealthView: 返回 services[] 5 子字段 + propagation_status
@@ -62,12 +70,17 @@ message BanAccountRequest {
   string account_id = 2;
   string reason = 3;
   int32 duration_seconds = 4; // 0 = 永久
+  // v0.4 增量: 是否强制踢出当前 session (per DTL-038 §4.3 + DEC-038-07)
+  // 默认 false = 仅冻结账户, 不踢出现有 session
+  bool force_disconnect_session = 5;
 }
 
 message BanAccountResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "ban"
   int64 accepted_at_ms = 3;
+  // v0.4 增量: 是否执行了强制踢出
+  bool disconnected_sessions = 4;
 }
 
 message GrantCompensationRequest {
@@ -76,16 +89,24 @@ message GrantCompensationRequest {
   int64 amount = 3;
   string currency = 4;
   string reason = 5;
+  // v0.4 增量: 卡牌补偿 ID 列表 (per DTL-038 §4.3)
+  // 卡牌游戏补偿常见: 货币 + 卡牌 + 卡包 一起发
+  repeated string card_ids = 6;
+  // v0.4 增量: 卡包补偿 ID 列表
+  repeated string pack_ids = 7;
 }
 
 message GrantCompensationResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "compensation"
   int64 accepted_at_ms = 3;
+  // v0.4 增量: 实际发放的卡牌 / 卡包数
+  uint32 cards_granted = 4;
+  uint32 packs_granted = 5;
 }
 
 // ============================================================================
-// SetMaintenance: 新增 propagation_status(DTL-003 §3.3)
+// SetMaintenance: 新增 propagation_status(DTL-003 §3.3) + v0.4 mode_flags
 // ============================================================================
 
 message SetMaintenanceRequest {
@@ -94,6 +115,13 @@ message SetMaintenanceRequest {
   string scope = 3;        // "cluster" / "domain" / "single_node"
   string target_id = 4;    // 配合 scope
   int32 ttl_seconds = 5;   // 0 = 永久
+  // v0.4 增量: 模式 bit flag (per DTL-038 §4.3 + DEC-038-07)
+  // bit 0: ladder_freeze (天梯冻结)
+  // bit 1: trade_freeze (交易冻结)
+  // bit 2: gacha_freeze (抽卡冻结)
+  // bit 3: match_freeze (匹配冻结)
+  // 默认 0 = 全局维护模式, 1+ = 部分冻结
+  uint32 mode_flags = 6;
 }
 
 message SetMaintenanceResponse {
@@ -102,6 +130,8 @@ message SetMaintenanceResponse {
   // v0.2 新增字段(per F8 处置): PROPAGATING / CONVERGED
   PropagationStatus propagation_status = 3;
   int64 accepted_at_ms = 4;
+  // v0.4 增量: 实际生效的 mode_flags (echo 回去, 便于客户端确认)
+  uint32 applied_mode_flags = 5;
 }
 
 enum PropagationStatus {
@@ -111,7 +141,7 @@ enum PropagationStatus {
 }
 
 // ============================================================================
-// QueryAuditLog: entries[] + has_more(DTL-003 §3.4)
+// QueryAuditLog: entries[] + has_more(DTL-003 §3.4) + v0.4 audit_type
 // ============================================================================
 
 message QueryAuditLogRequest {
@@ -120,12 +150,21 @@ message QueryAuditLogRequest {
   string cursor = 3;         // 分页 cursor
   string filter_admin = 4;   // 过滤 admin_id
   string filter_action = 5;  // 过滤 action
+  // v0.4 增量: 审计类型过滤 (per DTL-038 §4.3 + DEC-038-07)
+  // Trade = 拍卖/私下交易审计
+  // Gacha = 抽卡审计 (per DEC-038-06 强制公开)
+  // Match = 比赛结果审计
+  // Compensation = GM 补偿审计
+  // All = 全量 (默认, 兼容 v0.3 行为)
+  AuditType audit_type = 6;
 }
 
 message QueryAuditLogResponse {
   repeated AuditLogEntry entries = 1;
   bool has_more = 2;
   string next_cursor = 3;
+  // v0.4 增量: 实际过滤的 audit_type (echo)
+  AuditType applied_audit_type = 4;
 }
 
 message AuditLogEntry {
@@ -134,5 +173,16 @@ message AuditLogEntry {
   string action = 3;
   string target_id = 4;
   int64 occurred_at_ms = 5;
+  // v0.4 增量: 审计类型 (DB 层 audit_log.audit_type 列)
+  AuditType audit_type = 6;
 }
 
+// v0.4 增量: 审计类型枚举
+enum AuditType {
+  AUDIT_TYPE_UNSPECIFIED = 0;
+  AUDIT_TYPE_ALL = 1;        // 默认 (v0.3 兼容: 不分类)
+  AUDIT_TYPE_TRADE = 2;      // 拍卖/私下交易
+  AUDIT_TYPE_GACHA = 3;      // 抽卡
+  AUDIT_TYPE_MATCH = 4;      // 比赛
+  AUDIT_TYPE_COMPENSATION = 5; // GM 补偿
+}
