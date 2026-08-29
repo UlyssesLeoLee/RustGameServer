@@ -27,6 +27,13 @@ pub mod entity_v2;
 pub mod matchmaker_v2;
 pub mod repository_v2;
 
+// W36 (2026-08-30): 跨域 SaveReplay saga — match-service → replay-service gRPC client
+pub mod replay_client;
+pub use replay_client::{
+    ReplayClient, ReplayClientConfig, ReplayClientTrait, ReplayClientTlsConfig, SaveReplayOutcome,
+    SaveReplayRequest,
+};
+
 pub use error::{Error, Result};
 pub use repository::{
     InMemoryMatchParticipantRepository, InMemoryMatchRepository, MatchParticipantRepository,
@@ -49,6 +56,15 @@ pub use repository_v2::{
 };
 
 pub mod proto;
+
+// W36 (2026-08-30): 跨域 replay 客户端 (per 桶 13 收尾 TODO)
+// 注: 必须放在 crate 根级 (不在 proto:: 下), 因为生成的 replay.v1.rs 引用
+// super::super::common::v1 (与 crate::common::v1 平级)
+pub mod replay {
+    pub mod v1 {
+        tonic::include_proto!("replay.v1");
+    }
+}
 
 pub mod db;
 
