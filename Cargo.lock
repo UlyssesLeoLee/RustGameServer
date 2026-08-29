@@ -2055,6 +2055,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "i18n-service"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "prost",
+ "serde",
+ "serde_json",
+ "shared-platform",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "tonic-health",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
