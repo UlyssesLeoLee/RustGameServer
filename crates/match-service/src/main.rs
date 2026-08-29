@@ -1,11 +1,13 @@
 //! match-service 入口（54.7 业务实施后 binary）
 //!
-//! 启动 tonic gRPC server 接 MatchService（HealthCheck + GetMatch）+ tracing 初始化。
+//! 启动 tonic gRPC server 接 MatchService（HealthCheck + GetMatch + 9 v2 RPC）+ tracing 初始化。
 //! 55.15 wire-up：main.rs 切到 PgRepository + db::pool_from_env() + migrations。
 //! 55.21 wire-up：tonic server 强制 mTLS（per RGS-REV-007 CH4 / DEC-015 P1）。
 //! 55.22 wire-up：实例化 PgOutboxRepository + OutboxRelay 后台轮询（per RGS-REV-007 CH1+CH2+AH1 / DEC-015 P1）。
 //! 55.26 fail-closed mTLS：默认强制 mTLS；RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out
 //!                       (per RGS-REV-008 AC-1 / verify-A+C)。
+//!
+//! 桶 9 补完: 注入 MatchmakerServiceV2 (per RGS-DTL-038 §4.2 + §5)
 
 use anyhow::Context;
 use std::env;
@@ -21,8 +23,12 @@ use shared_platform::producer::{Producer, ProducerConfig};
 use shared_platform::tls::load_server_tls_config;
 
 use match_service::db;
+use match_service::matchmaker_v2::MatchmakerServiceV2;
 use match_service::repository::{
     MatchParticipantRepository, MatchRepository, PgMatchParticipantRepository, PgMatchRepository,
+};
+use match_service::repository_v2::{
+    PgGameSessionRepository, PgMatchmakingTicketRepository, PgMoveRepository,
 };
 use match_service::service::grpc_service::MatchGrpcService;
 use match_service::service::MatchServiceImpl;
@@ -78,9 +84,25 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(1);
     }
 
+    // ===== v1 仓库 (5 域 matchmaker 旧业务) =====
     let matches: Arc<dyn MatchRepository> = Arc::new(PgMatchRepository::new(pool.clone()));
     let participants: Arc<dyn MatchParticipantRepository> =
         Arc::new(PgMatchParticipantRepository::new(pool.clone()));
+
+    // ===== v2 仓库 (卡牌游戏 session/turn 业务) =====
+    // 桶 9 补完: 注入 PgGameSessionRepository / PgMoveRepository / PgMatchmakingTicketRepository
+    let v2_sessions: Arc<dyn match_service::repository_v2::GameSessionRepository> =
+        Arc::new(PgGameSessionRepository::new(pool.clone()));
+    let v2_moves: Arc<dyn match_service::repository_v2::MoveRepository> =
+        Arc::new(PgMoveRepository::new(pool.clone()));
+    let v2_tickets: Arc<dyn match_service::repository_v2::MatchmakingTicketRepository> =
+        Arc::new(PgMatchmakingTicketRepository::new(pool.clone()));
+
+    let matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(
+        v2_sessions,
+        v2_moves,
+        v2_tickets,
+    ));
 
     tracing::info!(target: "match-service", "match-service started, DB pool size: {}", pool.size());
 
@@ -115,7 +137,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let service_impl = Arc::new(MatchServiceImpl::new(matches, participants));
+    // 桶 9 补完: 使用 with_matchmaker_v2 注入 v2 matchmaker
+    let service_impl = Arc::new(MatchServiceImpl::with_matchmaker_v2(
+        matches,
+        participants,
+        matchmaker_v2,
+    ));
     let grpc = MatchGrpcService::new(service_impl);
 
     // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
