@@ -22,6 +22,7 @@
 //!
 //! 53.2 占位 → 54.9 client → 54.10 messaging → 54.11 outbox → 54.12 observability → 54.13 metrics → 54.14 json logging → 54.15 RBAC.
 
+pub mod cert_rotation;
 pub mod channel;
 pub mod client;
 pub mod consumer;
