@@ -166,6 +166,20 @@ pub mod grpc_service {
     use super::*;
     use crate::common::v1 as common_proto;
     use crate::proto::v1 as match_proto;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tonic::codegen::tokio_stream::Stream;
+
+    // v2 增量: SubscribeMatch 用的空流类型 (per RGS-DTL-038 §4.2)
+    // 桶 7 阶段: 占位空流, 业务实装 (桶 9 session/turn) 替换
+    pub struct EmptyMatchEventStream;
+
+    impl Stream for EmptyMatchEventStream {
+        type Item = std::result::Result<match_proto::MatchEvent, Status>;
+        fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            Poll::Ready(None)
+        }
+    }
 
     pub struct MatchGrpcService {
         pub impl_: Arc<MatchServiceImpl>,
@@ -179,6 +193,10 @@ pub mod grpc_service {
 
     #[tonic::async_trait]
     impl match_proto::match_service_server::MatchService for MatchGrpcService {
+        // v2 增量: SubscribeMatch 流关联类型 (per RGS-DTL-038 §4.2 — stream RPC)
+        // 桶 7 阶段: stub 用空流类型
+        // 桶 9 (session/turn) 起实装
+        type SubscribeMatchStream = EmptyMatchEventStream;
         async fn health_check(
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
@@ -239,7 +257,99 @@ pub mod grpc_service {
                     nanos: m.created_at.timestamp_subsec_nanos() as i32,
                 }),
                 display_name: m.room_id,
+                // v2 增量字段 (per RGS-DTL-038 §4.2): 现有 v1 entity 无对应字段, 返回默认值
+                // 桶 9 (session/turn) 起按 9 DEC 落地业务实装
+                mode: 0,                            // GAME_MODE_UNSPECIFIED
+                players: vec![],                     // 占位空数组
+                board_snapshot_ref: String::new(),   // 占位空字符串
+                turn_index: 0,                       // 占位 0
             }))
+        }
+
+        // ========================================================================
+        // v2 增量 (per RGS-DTL-038 §4.2 — match-service session/turn 抽象)
+        // 桶 7 (proto 设计) 阶段: 全部 stub — 返回 unimplemented
+        // 桶 9 (session/turn) 起按 9 DEC 落地业务实装
+        // ========================================================================
+
+        async fn enqueue_matchmaking(
+            &self,
+            _request: Request<match_proto::EnqueueMatchmakingRequest>,
+        ) -> std::result::Result<Response<match_proto::EnqueueMatchmakingResponse>, Status> {
+            Err(Status::unimplemented(
+                "EnqueueMatchmaking stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn cancel_matchmaking(
+            &self,
+            _request: Request<match_proto::CancelMatchmakingRequest>,
+        ) -> std::result::Result<Response<match_proto::CancelMatchmakingResponse>, Status> {
+            Err(Status::unimplemented(
+                "CancelMatchmaking stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn get_matchmaking_status(
+            &self,
+            _request: Request<match_proto::GetMatchmakingStatusRequest>,
+        ) -> std::result::Result<Response<match_proto::GetMatchmakingStatusResponse>, Status> {
+            Err(Status::unimplemented(
+                "GetMatchmakingStatus stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn create_match(
+            &self,
+            _request: Request<match_proto::CreateMatchRequest>,
+        ) -> std::result::Result<Response<match_proto::CreateMatchResponse>, Status> {
+            Err(Status::unimplemented(
+                "CreateMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn join_match(
+            &self,
+            _request: Request<match_proto::JoinMatchRequest>,
+        ) -> std::result::Result<Response<match_proto::JoinMatchResponse>, Status> {
+            Err(Status::unimplemented(
+                "JoinMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn leave_match(
+            &self,
+            _request: Request<match_proto::LeaveMatchRequest>,
+        ) -> std::result::Result<Response<match_proto::LeaveMatchResponse>, Status> {
+            Err(Status::unimplemented(
+                "LeaveMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn get_match_state(
+            &self,
+            _request: Request<match_proto::GetMatchStateRequest>,
+        ) -> std::result::Result<Response<match_proto::GetMatchStateResponse>, Status> {
+            Err(Status::unimplemented(
+                "GetMatchState stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn submit_move(
+            &self,
+            _request: Request<match_proto::SubmitMoveRequest>,
+        ) -> std::result::Result<Response<match_proto::SubmitMoveResponse>, Status> {
+            Err(Status::unimplemented(
+                "SubmitMove stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
+            ))
+        }
+
+        async fn subscribe_match(
+            &self,
+            _request: Request<match_proto::SubscribeMatchRequest>,
+        ) -> std::result::Result<Response<Self::SubscribeMatchStream>, Status> {
+            // 流式 RPC stub: 返回空流, 业务实装 (桶 9) 替换
+            Ok(Response::new(EmptyMatchEventStream))
         }
     }
 }
