@@ -28,6 +28,7 @@ pub mod consumer;
 pub mod dlq;
 pub mod grpc_tracing;
 pub mod json_logging;
+pub mod proto;
 pub mod messaging;
 pub mod metrics;
 pub mod metrics_endpoint;
