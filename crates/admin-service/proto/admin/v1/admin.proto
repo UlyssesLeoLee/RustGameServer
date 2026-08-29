@@ -6,13 +6,14 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/admin/v1;admi
 // admin-service gRPC API
 // 基础: HealthCheck + GetAdminOp (per WF-1-54.2 + 54.3)
 // S4 Phase 2 step 2 增量: 4 GM RPC (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog)
+// 桶 14 补完 (W35) v0.4 增量: 5 新字段, 与 gm.proto v0.4 完全对齐 (per DTL-038 §4.3 + DEC-038-07)
 service AdminService {
   // 基础 (54.x 已有)
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
   rpc GetAdminOp(common.v1.EntityId) returns (AdminOp);
 
   // S4 Phase 2 step 2: GM 5 endpoint (4 RPC + HealthView 在 gm.proto 内部处理)
-  // 字段与 gm.proto v0.3 完全对齐 (per RGS-BAS-003 §3.1-§3.4 + RGS-DTL-003 §3.3-§3.4)
+  // 字段与 gm.proto v0.4 完全对齐 (per RGS-BAS-003 §3.1-§3.4 + RGS-DTL-003 §3.3-§3.4)
   rpc BanAccount(BanAccountRequest) returns (BanAccountResponse);
   rpc GrantCompensation(GrantCompensationRequest) returns (GrantCompensationResponse);
   rpc SetMaintenance(SetMaintenanceRequest) returns (SetMaintenanceResponse);
@@ -27,7 +28,7 @@ message AdminOp {
 }
 
 // ============================================================================
-// S4 Phase 2 step 2: GM RPC 4 个 (字段与 gm.proto v0.3 对齐)
+// S4 Phase 2 step 2: GM RPC 4 个 (字段与 gm.proto v0.4 对齐)
 // ============================================================================
 
 // BanAccount (per RGS-BAS-003 §3.1)
@@ -36,12 +37,16 @@ message BanAccountRequest {
   string account_id = 2;
   string reason = 3;
   int32 duration_seconds = 4; // 0 = 永久
+  // v0.4 增量: 强制踢出 session
+  bool force_disconnect_session = 5;
 }
 
 message BanAccountResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "ban"
   int64 accepted_at_ms = 3;
+  // v0.4 增量: 实际是否踢出
+  bool disconnected_sessions = 4;
 }
 
 // GrantCompensation (per RGS-BAS-003 §3.1)
@@ -51,12 +56,18 @@ message GrantCompensationRequest {
   int64 amount = 3;
   string currency = 4;
   string reason = 5;
+  // v0.4 增量: 卡牌 / 卡包补偿
+  repeated string card_ids = 6;
+  repeated string pack_ids = 7;
 }
 
 message GrantCompensationResponse {
   string status = 1; // "queued" / "ok"
   string op = 2;     // "compensation"
   int64 accepted_at_ms = 3;
+  // v0.4 增量: 实际发放数
+  uint32 cards_granted = 4;
+  uint32 packs_granted = 5;
 }
 
 // SetMaintenance (per RGS-BAS-003 §3.3 + DTL-003 §3.3 propagation_status 字段)
@@ -66,6 +77,8 @@ message SetMaintenanceRequest {
   string scope = 3;      // "cluster" / "domain" / "single_node"
   string target_id = 4;  // 配合 scope
   int32 ttl_seconds = 5; // 0 = 永久
+  // v0.4 增量: 模式 bit flag
+  uint32 mode_flags = 6;
 }
 
 message SetMaintenanceResponse {
@@ -74,6 +87,8 @@ message SetMaintenanceResponse {
   // v0.2 新增字段 (per F8 处置): PROPAGATING / CONVERGED
   PropagationStatus propagation_status = 3;
   int64 accepted_at_ms = 4;
+  // v0.4 增量: 实际生效的 mode_flags
+  uint32 applied_mode_flags = 5;
 }
 
 enum PropagationStatus {
@@ -89,12 +104,16 @@ message QueryAuditLogRequest {
   string cursor = 3;        // 分页 cursor
   string filter_admin = 4;  // 过滤 admin_id
   string filter_action = 5; // 过滤 action
+  // v0.4 增量: 审计类型过滤
+  AuditType audit_type = 6;
 }
 
 message QueryAuditLogResponse {
   repeated AuditLogEntry entries = 1;
   bool has_more = 2;
   string next_cursor = 3;
+  // v0.4 增量: 实际应用的 audit_type
+  AuditType applied_audit_type = 4;
 }
 
 message AuditLogEntry {
@@ -103,4 +122,16 @@ message AuditLogEntry {
   string action = 3;
   string target_id = 4;
   int64 occurred_at_ms = 5;
+  // v0.4 增量: 审计类型
+  AuditType audit_type = 6;
+}
+
+// v0.4 增量: 审计类型
+enum AuditType {
+  AUDIT_TYPE_UNSPECIFIED = 0;
+  AUDIT_TYPE_ALL = 1;
+  AUDIT_TYPE_TRADE = 2;
+  AUDIT_TYPE_GACHA = 3;
+  AUDIT_TYPE_MATCH = 4;
+  AUDIT_TYPE_COMPENSATION = 5;
 }
