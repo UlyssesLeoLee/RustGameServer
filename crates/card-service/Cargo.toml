@@ -12,8 +12,8 @@ description = "卡牌游戏新域微服务 (per RGS-DTL-038 §4.4 — catalog + 
 name = "card-service"
 path = "src/main.rs"
 
-# 桶 7 (proto 设计) 阶段: 域骨架只编译 proto + include 公共类型
-# 桶 10 (card catalog) 起添加: db / service / repository / 8 张表 migration (per RGS-DTL-038 §7.1)
+# 桶 7 (proto 设计) + 桶 8 (proto 实装) 阶段: 域骨架只编译 proto + include 公共类型
+# 桶 10 (card catalog) 实装: 加 db / service / repository / 3 张表 migration (per RGS-DTL-038 §7.1)
 # 当前 features: 预留 sqlx-tracing 域级总开关, 与 5 域对齐
 [features]
 default = ["tracing"]
@@ -35,11 +35,17 @@ tonic-health = { workspace = true }
 prost = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
-# 桶 9+ 起启用 sqlx: 5 独立 DB 原则 (per ARC-008), card-service → card_db
-# sqlx = { workspace = true }
-# 55.21+22 wire-up 预留: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
-# 桶 10 起按 5 域模板接入
+# 桶 10 启用 sqlx: 5 独立 DB 原则 (per ARC-008), card-service → card_db
+# 55.45 注释: sqlx 0.8.6 已硬依赖 tracing, 采样率通过 db::sqlx_tracing_sample_ratio() 读取 env
+sqlx = { workspace = true }
+# 桶 10 起按 5 域模板接入: mTLS + outbox relay 预留 (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
 shared-platform = { path = "../shared-platform" }
 
 [build-dependencies]
 tonic-build = { workspace = true }
+
+[dev-dependencies]
+# WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
+assert_cmd = "2"
+# WF-1-55.44: 4 域 rgs-testkit dev-dep 接入 + 集成测试骨架 (per RGS-OPEN-QA-001 Q-M-02)
+rgs-testkit = { path = "../rgs-testkit" }
