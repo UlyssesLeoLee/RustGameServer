@@ -1,0 +1,45 @@
+[package]
+name = "card-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "卡牌游戏新域微服务 (per RGS-DTL-038 §4.4 — catalog + collection + 抽卡, 域职责: DEC-038-01 选 A 卡组归 player, card-service 仅承担 catalog + collection)"
+
+[[bin]]
+name = "card-service"
+path = "src/main.rs"
+
+# 桶 7 (proto 设计) 阶段: 域骨架只编译 proto + include 公共类型
+# 桶 10 (card catalog) 起添加: db / service / repository / 8 张表 migration (per RGS-DTL-038 §7.1)
+# 当前 features: 预留 sqlx-tracing 域级总开关, 与 5 域对齐
+[features]
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server / client (per 5 域对齐: tonic 0.12.3)
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# 桶 9+ 起启用 sqlx: 5 独立 DB 原则 (per ARC-008), card-service → card_db
+# sqlx = { workspace = true }
+# 55.21+22 wire-up 预留: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
+# 桶 10 起按 5 域模板接入
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }

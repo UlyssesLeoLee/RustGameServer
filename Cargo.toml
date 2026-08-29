@@ -15,6 +15,7 @@ members = [
     "crates/rgs-arc-olu",
     "crates/rgs-overflow-alert",
     "crates/rgs-asset-download",
+    "crates/card-service",
 ]
 resolver = "2"
 

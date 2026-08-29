@@ -1,0 +1,198 @@
+syntax = "proto3";
+package card.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/card/v1;cardv1";
+
+// ============================================================
+// card-service v1 (per RGS-DTL-038 §4.4 — 卡牌游戏新域)
+// 上游: RGS-REQ-038 §FR-003 catalog / §FR-006 收藏 / §BR-003 抽卡
+// 状态: 草案, 待 DDD Review 拍板 (9 DEC) — DEC-038-01~09
+// 域职责: catalog (静态) + collection (动态) + 抽卡 (per DEC-038-01)
+// 卡组归 player-service (per DEC-038-01 推荐 A), card-service 不承担 deck
+// ============================================================
+
+service CardService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 卡牌 catalog (静态 / 慢变, 缓存友好)
+  rpc GetCard(GetCardRequest) returns (Card);
+  rpc ListCards(ListCardsRequest) returns (ListCardsResponse);
+  rpc GetCardSeries(GetCardSeriesRequest) returns (CardSeries);
+  rpc ListCardSeries(ListCardSeriesRequest) returns (ListCardSeriesResponse);
+
+  // 玩家收藏 (动态)
+  rpc GetPlayerCollection(GetPlayerCollectionRequest) returns (GetPlayerCollectionResponse);
+  // 内部 / 抽卡结果, 不暴露客户端
+  rpc AddCardToCollection(AddCardToCollectionRequest) returns (AddCardToCollectionResponse);
+  rpc RemoveCardFromCollection(RemoveCardFromCollectionRequest) returns (RemoveCardFromCollectionResponse);
+
+  // 抽卡 (per RGS-REQ-038 §BR-003)
+  rpc OpenPack(OpenPackRequest) returns (OpenPackResponse);
+}
+
+message Card {
+  string card_id = 1;
+  common.v1.I18nString name = 2;
+  common.v1.CardType type = 3;
+  common.v1.CardRarity rarity = 4;
+  string series_id = 5;     // 所属卡包 / 系列
+  uint32 base_cost = 6;     // 基础费用
+  common.v1.I18nString description = 7; // 卡牌描述
+  // 效果引用 (业务层 game-logic 解析)
+  string effect_ref = 8;
+  // 卡牌属性 (攻击 / 生命 / ...)
+  CardStats stats = 9;
+}
+
+message CardStats {
+  uint32 attack = 1;
+  uint32 health = 2;
+  uint32 mana = 3;
+  // 扩展
+  map<string, int32> custom = 10;
+}
+
+message CardSeries {
+  string series_id = 1;
+  common.v1.I18nString name = 2;
+  uint32 pack_size = 3;     // 一包几张
+  // 抽卡概率表 (per DEC-038-06 强制公开)
+  DropTable drop_table = 4;
+  common.v1.Currency price = 5;
+  common.v1.Timestamp released_at = 6;
+  common.v1.Status status = 7; // 活跃 / 绝版
+}
+
+message DropTable {
+  // 概率快照 (per SR-001)
+  uint32 version = 1;          // 每次调整递增
+  common.v1.Timestamp snapshot_at = 2;
+  repeated DropEntry entries = 3;
+}
+
+message DropEntry {
+  common.v1.CardRarity rarity = 1;
+  uint32 count = 2;            // 出几张
+  double probability = 3;      // 0.0-1.0
+  string card_id = 4;          // 单卡 (可选, 用于保底)
+}
+
+message CardInstance {
+  string instance_id = 1;       // UUID
+  string card_id = 2;           // 静态 card.id
+  common.v1.PlayerId owner = 3;
+  common.v1.Timestamp acquired_at = 4;
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    SOURCE_PACK = 1;       // 开包
+    SOURCE_REWARD = 2;     // 任务奖励
+    SOURCE_TRADE = 3;      // 交易
+    SOURCE_GM_GRANT = 4;   // GM 补偿
+    SOURCE_EVENT = 5;      // 活动
+  }
+  Source source = 5;
+  uint32 level = 6;            // 等级 (1-N)
+  map<string, int32> attrs = 7; // 个性化属性 (强化 / 精炼)
+  // 交易状态
+  bool tradable = 8;
+  bool locked = 9;             // 锁定中
+}
+
+message GetCardRequest {
+  string request_id = 1;
+  string card_id = 2;
+  common.v1.Locale locale = 3;
+}
+
+message ListCardsRequest {
+  string request_id = 1;
+  common.v1.Locale locale = 2;
+  common.v1.PageRequest page = 3;
+  // 过滤
+  common.v1.CardType type_filter = 4;
+  common.v1.CardRarity rarity_filter = 5;
+  string series_id_filter = 6;
+}
+
+message ListCardsResponse {
+  repeated Card cards = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetCardSeriesRequest {
+  string request_id = 1;
+  string series_id = 2;
+}
+
+message ListCardSeriesRequest {
+  string request_id = 1;
+  common.v1.PageRequest page = 3;
+  // 过滤
+  common.v1.Status status_filter = 4;
+}
+
+message ListCardSeriesResponse {
+  repeated CardSeries series = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message GetPlayerCollectionRequest {
+  string request_id = 1;
+  common.v1.PlayerId player = 2;
+  common.v1.PageRequest page = 3;
+  // 过滤
+  common.v1.CardRarity rarity_filter = 4;
+  string series_id_filter = 5;
+}
+
+message GetPlayerCollectionResponse {
+  repeated CardInstance instances = 1;
+  common.v1.PageResponse page = 2;
+  // 收藏统计
+  uint32 total_count = 3;
+  map<string, uint32> by_rarity = 4; // rarity -> count
+}
+
+message AddCardToCollectionRequest {
+  string request_id = 1;
+  common.v1.PlayerId player = 2;
+  string card_id = 3;
+  CardInstance.Source source = 4;
+  // 用于 saga 关联
+  string saga_id = 5;
+}
+
+message AddCardToCollectionResponse {
+  string instance_id = 1;
+  CardInstance instance = 2;
+}
+
+message RemoveCardFromCollectionRequest {
+  string request_id = 1;
+  string instance_id = 2;
+  common.v1.PlayerId player = 3;
+  string reason = 4;
+  string saga_id = 5;
+}
+
+message RemoveCardFromCollectionResponse {
+  bool removed = 1;
+}
+
+message OpenPackRequest {
+  string request_id = 1;
+  common.v1.PlayerId player = 2;
+  string series_id = 3;
+  uint32 pack_count = 4; // 一次开 N 包
+  // 关联 saga (扣货币)
+  string saga_id = 5;
+}
+
+message OpenPackResponse {
+  // 抽到的卡牌 (按稀有度倒序)
+  repeated CardInstance instances = 1;
+  // 概率快照 (per SR-001)
+  DropTable drop_table = 2;
+  // 交易流水 ID
+  string transaction_id = 3;
+}

@@ -253,6 +253,93 @@ pub mod grpc_service {
                 display_name: player.name,
             }))
         }
+
+        // ========================================================================
+        // v2 增量 (per RGS-DTL-038 §4.3 — player-service 卡牌资料 + 卡组)
+        // 桶 7 (proto 设计) 阶段: 全部 stub — 返回 unimplemented
+        // 桶 11 (deck) 起按 DEC-038-01 落地业务实装
+        // ========================================================================
+
+        async fn get_player_profile(
+            &self,
+            _request: Request<player_proto::GetPlayerProfileRequest>,
+        ) -> std::result::Result<Response<player_proto::PlayerProfile>, Status> {
+            Err(Status::unimplemented(
+                "GetPlayerProfile stub (桶 7), 桶 11 (deck+profile) 起实装 — per RGS-DTL-038 §4.3",
+            ))
+        }
+
+        async fn update_player_profile(
+            &self,
+            _request: Request<player_proto::UpdatePlayerProfileRequest>,
+        ) -> std::result::Result<Response<player_proto::UpdatePlayerProfileResponse>, Status> {
+            Err(Status::unimplemented(
+                "UpdatePlayerProfile stub (桶 7), 桶 11 (deck+profile) 起实装 — per RGS-DTL-038 §4.3",
+            ))
+        }
+
+        async fn create_deck(
+            &self,
+            _request: Request<player_proto::CreateDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::Deck>, Status> {
+            Err(Status::unimplemented(
+                "CreateDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn get_deck(
+            &self,
+            _request: Request<player_proto::GetDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::Deck>, Status> {
+            Err(Status::unimplemented(
+                "GetDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn update_deck(
+            &self,
+            _request: Request<player_proto::UpdateDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::UpdateDeckResponse>, Status> {
+            Err(Status::unimplemented(
+                "UpdateDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn delete_deck(
+            &self,
+            _request: Request<player_proto::DeleteDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::DeleteDeckResponse>, Status> {
+            Err(Status::unimplemented(
+                "DeleteDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn list_decks(
+            &self,
+            _request: Request<player_proto::ListDecksRequest>,
+        ) -> std::result::Result<Response<player_proto::ListDecksResponse>, Status> {
+            Err(Status::unimplemented(
+                "ListDecks stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn share_deck(
+            &self,
+            _request: Request<player_proto::ShareDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::ShareDeckResponse>, Status> {
+            Err(Status::unimplemented(
+                "ShareDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
+
+        async fn get_shared_deck(
+            &self,
+            _request: Request<player_proto::GetSharedDeckRequest>,
+        ) -> std::result::Result<Response<player_proto::Deck>, Status> {
+            Err(Status::unimplemented(
+                "GetSharedDeck stub (桶 7), 桶 11 (deck) 起实装 — per RGS-DTL-038 §4.3 / DEC-038-01",
+            ))
+        }
     }
 }
 
