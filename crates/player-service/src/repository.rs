@@ -8,6 +8,10 @@
 //! - PgRepository：生产用 sqlx PgPool（非宏版 query，运行时绑定）
 //! - InMemoryRepository：单测用，验证 trait 行为一致性
 //! - list_paginated：分页查询（per common.proto PageRequest/PageResponse）
+//!
+//! 桶 11 增量 (per DTL-038 §4.3 + §7.1 + FR-002 + DEC-038-01)：
+//! - DeckRepository trait + PgDeckRepository sqlx impl + InMemoryDeckRepository 测试用
+//! - 7 方法: create_deck / get_deck / update_deck / delete_deck / list_decks / share_deck / get_shared_deck
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -16,7 +20,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
 
-use crate::entity::{Player, PlayerSession, PlayerStatus};
+use crate::entity::{Deck, DeckSlot, DeckStatus, Player, PlayerSession, PlayerStatus};
 use crate::Result;
 
 /// 分页请求（per common.proto PageRequest）
@@ -72,6 +76,27 @@ pub trait PlayerSessionRepository: Send + Sync {
     async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
     /// 清理过期会话
     async fn delete_expired(&self, now: DateTime<Utc>) -> Result<u64>;
+}
+
+/// Deck Repository trait（per DTL-038 §4.3 + §7.1 + FR-002，桶 11 增量）
+#[async_trait]
+pub trait DeckRepository: Send + Sync {
+    /// 创建卡组（id 由 entity 提供；返回持久化后的 entity）
+    async fn create(&self, entity: &Deck) -> Result<Deck>;
+    /// 按 id 查询
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Deck>>;
+    /// 全量更新（name / mode / slots / status / is_public / share_code / like_count / updated_at）
+    async fn update(&self, entity: &Deck) -> Result<Deck>;
+    /// 按 id 删除
+    async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
+    /// 按 owner_id 分页查询
+    async fn list_by_owner(
+        &self,
+        owner_id: Uuid,
+        req: PageRequest,
+    ) -> Result<Page<Deck>>;
+    /// 按 share_code 查询（用于 GetSharedDeck；要求 is_public=true）
+    async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>>;
 }
 
 // ============================================================================
@@ -384,6 +409,292 @@ impl PlayerSessionRepository for InMemoryPlayerSessionRepository {
 }
 
 // ============================================================================
+// Deck Repository impls (per DTL-038 §4.3 + §7.1, 桶 11 增量)
+// ============================================================================
+
+// ============================================================================
+// PgDeckRepository (sqlx 实现, 生产用)
+// ============================================================================
+
+/// sqlx PgPool 实现
+pub struct PgDeckRepository {
+    pool: PgPool,
+}
+
+impl PgDeckRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+/// slots 列 (JSONB) 序列化: Vec<DeckSlot> → serde_json::Value
+fn slots_to_jsonb(slots: &[DeckSlot]) -> Result<serde_json::Value> {
+    serde_json::to_value(slots).map_err(|e| {
+        crate::Error::Internal(anyhow::anyhow!("serialize slots to JSONB failed: {}", e))
+    })
+}
+
+/// slots 列 (JSONB) 反序列化: serde_json::Value → Vec<DeckSlot>
+fn jsonb_to_slots(value: serde_json::Value) -> Result<Vec<DeckSlot>> {
+    serde_json::from_value(value).map_err(|e| {
+        crate::Error::Internal(anyhow::anyhow!("deserialize slots from JSONB failed: {}", e))
+    })
+}
+
+fn row_to_deck(row: sqlx::postgres::PgRow) -> Result<Deck> {
+    let status_i16: i16 = row.get("status");
+    let status_num = i32::from(status_i16);
+    let status = match status_num {
+        2 => DeckStatus::Active,
+        3 => DeckStatus::Archived,
+        _ => DeckStatus::Draft,
+    };
+    let mode_i16: i16 = row.get("mode");
+    let mode = i32::from(mode_i16);
+    let slots_jsonb: serde_json::Value = row.get("slots");
+    let slots = jsonb_to_slots(slots_jsonb)?;
+    let like_count_i32: i32 = row.get("like_count");
+    let like_count = like_count_i32.max(0) as u32;
+
+    Ok(Deck {
+        id: row.get("deck_id"),
+        owner_id: row.get("owner_id"),
+        name: row.get("name"),
+        mode,
+        slots,
+        status,
+        is_public: row.get("is_public"),
+        share_code: row.get("share_code"),
+        like_count,
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    })
+}
+
+#[async_trait]
+impl DeckRepository for PgDeckRepository {
+    async fn create(&self, entity: &Deck) -> Result<Deck> {
+        let slots_jsonb = slots_to_jsonb(&entity.slots)?;
+        let status_num: i16 = match entity.status {
+            DeckStatus::Draft => 1,
+            DeckStatus::Active => 2,
+            DeckStatus::Archived => 3,
+        };
+        let mode_num: i16 = entity.mode as i16;
+        let like_count_i32: i32 = entity.like_count as i32;
+
+        sqlx::query(
+            "INSERT INTO decks \
+             (deck_id, owner_id, name, mode, slots, status, is_public, share_code, like_count, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        )
+        .bind(entity.id)
+        .bind(entity.owner_id)
+        .bind(&entity.name)
+        .bind(mode_num)
+        .bind(slots_jsonb)
+        .bind(status_num)
+        .bind(entity.is_public)
+        .bind(entity.share_code.as_deref())
+        .bind(like_count_i32)
+        .bind(entity.created_at)
+        .bind(entity.updated_at)
+        .execute(&self.pool)
+        .await?;
+        Ok(entity.clone())
+    }
+
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Deck>> {
+        let row = sqlx::query(
+            "SELECT deck_id, owner_id, name, mode, slots, status, is_public, share_code, like_count, created_at, updated_at \
+             FROM decks WHERE deck_id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        match row {
+            Some(r) => Ok(Some(row_to_deck(r)?)),
+            None => Ok(None),
+        }
+    }
+
+    async fn update(&self, entity: &Deck) -> Result<Deck> {
+        let slots_jsonb = slots_to_jsonb(&entity.slots)?;
+        let status_num: i16 = match entity.status {
+            DeckStatus::Draft => 1,
+            DeckStatus::Active => 2,
+            DeckStatus::Archived => 3,
+        };
+        let mode_num: i16 = entity.mode as i16;
+        let like_count_i32: i32 = entity.like_count as i32;
+
+        sqlx::query(
+            "UPDATE decks SET \
+                owner_id = $2, \
+                name = $3, \
+                mode = $4, \
+                slots = $5, \
+                status = $6, \
+                is_public = $7, \
+                share_code = $8, \
+                like_count = $9, \
+                updated_at = $10 \
+             WHERE deck_id = $1",
+        )
+        .bind(entity.id)
+        .bind(entity.owner_id)
+        .bind(&entity.name)
+        .bind(mode_num)
+        .bind(slots_jsonb)
+        .bind(status_num)
+        .bind(entity.is_public)
+        .bind(entity.share_code.as_deref())
+        .bind(like_count_i32)
+        .bind(entity.updated_at)
+        .execute(&self.pool)
+        .await?;
+        Ok(entity.clone())
+    }
+
+    async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM decks WHERE deck_id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    async fn list_by_owner(
+        &self,
+        owner_id: Uuid,
+        req: PageRequest,
+    ) -> Result<Page<Deck>> {
+        let offset = ((req.page.saturating_sub(1)) * req.page_size) as i64;
+        let limit = req.page_size as i64;
+
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM decks WHERE owner_id = $1")
+            .bind(owner_id)
+            .fetch_one(&self.pool)
+            .await?;
+
+        let rows = sqlx::query(
+            "SELECT deck_id, owner_id, name, mode, slots, status, is_public, share_code, like_count, created_at, updated_at \
+             FROM decks WHERE owner_id = $1 ORDER BY updated_at DESC OFFSET $2 LIMIT $3",
+        )
+        .bind(owner_id)
+        .bind(offset)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut items = Vec::with_capacity(rows.len());
+        for r in rows {
+            items.push(row_to_deck(r)?);
+        }
+        Ok(Page {
+            items,
+            total,
+            page: req.page,
+            page_size: req.page_size,
+        })
+    }
+
+    async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>> {
+        let row = sqlx::query(
+            "SELECT deck_id, owner_id, name, mode, slots, status, is_public, share_code, like_count, created_at, updated_at \
+             FROM decks WHERE share_code = $1 AND is_public = TRUE",
+        )
+        .bind(share_code)
+        .fetch_optional(&self.pool)
+        .await?;
+        match row {
+            Some(r) => Ok(Some(row_to_deck(r)?)),
+            None => Ok(None),
+        }
+    }
+}
+
+// ============================================================================
+// InMemoryDeckRepository (单测用, 验证 trait 行为)
+// ============================================================================
+
+pub struct InMemoryDeckRepository {
+    inner: Mutex<HashMap<Uuid, Deck>>,
+}
+
+impl InMemoryDeckRepository {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for InMemoryDeckRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl DeckRepository for InMemoryDeckRepository {
+    async fn create(&self, entity: &Deck) -> Result<Deck> {
+        self.inner.lock().unwrap().insert(entity.id, entity.clone());
+        Ok(entity.clone())
+    }
+
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Deck>> {
+        Ok(self.inner.lock().unwrap().get(&id).cloned())
+    }
+
+    async fn update(&self, entity: &Deck) -> Result<Deck> {
+        self.inner.lock().unwrap().insert(entity.id, entity.clone());
+        Ok(entity.clone())
+    }
+
+    async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
+        Ok(self.inner.lock().unwrap().remove(&id).is_some())
+    }
+
+    async fn list_by_owner(
+        &self,
+        owner_id: Uuid,
+        req: PageRequest,
+    ) -> Result<Page<Deck>> {
+        let guard = self.inner.lock().unwrap();
+        let mut all: Vec<Deck> = guard
+            .values()
+            .filter(|d| d.owner_id == owner_id)
+            .cloned()
+            .collect();
+        all.sort_by_key(|d| std::cmp::Reverse(d.updated_at));
+        let total = all.len() as i64;
+        let offset = ((req.page.saturating_sub(1)) * req.page_size) as usize;
+        let items = all
+            .into_iter()
+            .skip(offset)
+            .take(req.page_size as usize)
+            .collect();
+        Ok(Page {
+            items,
+            total,
+            page: req.page,
+            page_size: req.page_size,
+        })
+    }
+
+    async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>> {
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .values()
+            .find(|d| d.is_public && d.share_code.as_deref() == Some(share_code))
+            .cloned())
+    }
+}
+
+// ============================================================================
 // helpers
 // ============================================================================
 
@@ -465,5 +776,145 @@ mod tests {
         repo.save(&s).await.unwrap();
         let removed = repo.delete_expired(Utc::now()).await.unwrap();
         assert_eq!(removed, 1);
+    }
+
+    // ----- v2 Deck repository UT (per DTL-038 §4.3, 桶 11 增量) -----
+
+    #[tokio::test]
+    async fn in_memory_deck_create_and_find() {
+        let repo = InMemoryDeckRepository::new();
+        let owner = Uuid::new_v4();
+        let d = Deck::new(owner, "aggressive".to_string(), 1);
+        let id = d.id;
+        repo.create(&d).await.unwrap();
+        let found = repo.find_by_id(id).await.unwrap().unwrap();
+        assert_eq!(found.id, d.id);
+        assert_eq!(found.owner_id, owner);
+        assert_eq!(found.name, "aggressive");
+        assert_eq!(found.mode, 1);
+        assert_eq!(found.status, DeckStatus::Draft);
+        assert!(!found.is_public);
+        assert!(found.share_code.is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_update_slots() {
+        let repo = InMemoryDeckRepository::new();
+        let owner = Uuid::new_v4();
+        let mut d = Deck::new(owner, "control".to_string(), 2);
+        d.slots.push(DeckSlot::new("card-1".to_string(), 2));
+        d.slots.push(DeckSlot::new("card-2".to_string(), 3));
+        repo.create(&d).await.unwrap();
+
+        // 全量替换 slots
+        d.slots.clear();
+        d.slots.push(DeckSlot::new("card-9".to_string(), 1));
+        d.updated_at = Utc::now();
+        repo.update(&d).await.unwrap();
+
+        let found = repo.find_by_id(d.id).await.unwrap().unwrap();
+        assert_eq!(found.slots.len(), 1);
+        assert_eq!(found.slots[0].card_id, "card-9");
+        assert_eq!(found.slots[0].count, 1);
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_delete_by_id() {
+        let repo = InMemoryDeckRepository::new();
+        let d = Deck::new(Uuid::new_v4(), "deck".to_string(), 1);
+        let id = d.id;
+        repo.create(&d).await.unwrap();
+        assert!(repo.delete_by_id(id).await.unwrap());
+        assert!(repo.find_by_id(id).await.unwrap().is_none());
+        // 二次删返回 false
+        assert!(!repo.delete_by_id(id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_list_by_owner_paginated() {
+        let repo = InMemoryDeckRepository::new();
+        let owner_a = Uuid::new_v4();
+        let owner_b = Uuid::new_v4();
+        for i in 0..5 {
+            repo.create(&Deck::new(owner_a, format!("a-{}", i), 1))
+                .await
+                .unwrap();
+        }
+        for i in 0..3 {
+            repo.create(&Deck::new(owner_b, format!("b-{}", i), 2))
+                .await
+                .unwrap();
+        }
+        let page = repo
+            .list_by_owner(
+                owner_a,
+                PageRequest {
+                    page: 1,
+                    page_size: 3,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(page.total, 5);
+        assert_eq!(page.items.len(), 3);
+        // owner_b 单独查
+        let page_b = repo
+            .list_by_owner(
+                owner_b,
+                PageRequest {
+                    page: 1,
+                    page_size: 10,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(page_b.total, 3);
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_find_by_share_code_only_public() {
+        let repo = InMemoryDeckRepository::new();
+        let owner = Uuid::new_v4();
+        // 私有 deck 不应被 share_code 查
+        let mut private = Deck::new(owner, "private".to_string(), 1);
+        private.share_code = Some("secret-code".to_string());
+        private.is_public = false;
+        repo.create(&private).await.unwrap();
+        assert!(repo.find_by_share_code("secret-code").await.unwrap().is_none());
+
+        // 公开 deck 可查
+        let mut public = Deck::new(owner, "public".to_string(), 1);
+        public.share_code = Some("public-code".to_string());
+        public.is_public = true;
+        repo.create(&public).await.unwrap();
+        let found = repo.find_by_share_code("public-code").await.unwrap().unwrap();
+        assert_eq!(found.id, public.id);
+        assert!(found.is_public);
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_update_share_state() {
+        // 验证 update 可变更 is_public + share_code
+        let repo = InMemoryDeckRepository::new();
+        let mut d = Deck::new(Uuid::new_v4(), "deck".to_string(), 1);
+        repo.create(&d).await.unwrap();
+
+        // 开启分享
+        d.is_public = true;
+        d.share_code = Some("share-1".to_string());
+        d.updated_at = Utc::now();
+        repo.update(&d).await.unwrap();
+        let found = repo.find_by_id(d.id).await.unwrap().unwrap();
+        assert!(found.is_public);
+        assert_eq!(found.share_code.as_deref(), Some("share-1"));
+
+        // 取消分享
+        d.is_public = false;
+        d.share_code = None;
+        d.updated_at = Utc::now();
+        repo.update(&d).await.unwrap();
+        let found = repo.find_by_id(d.id).await.unwrap().unwrap();
+        assert!(!found.is_public);
+        assert!(found.share_code.is_none());
     }
 }
