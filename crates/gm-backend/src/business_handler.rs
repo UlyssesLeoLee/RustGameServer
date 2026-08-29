@@ -270,6 +270,7 @@ pub async fn ban_account(
         action: "ban".to_string(),
         target_id: body.account_id.clone(),
         occurred_at_ms: Utc::now().timestamp_millis(),
+        // 注: 本地 AuditLogEntry struct 无 audit_type 字段 (v0.4 proto AuditLogEntry.audit_type 是返回给 client 的, 不是本地 store)
     });
     if admin_grpc_result.is_none() {
         tracing::warn!(
@@ -354,6 +355,7 @@ pub async fn grant_compensation(
         action: "grant_compensation".to_string(),
         target_id: body.account_id.clone(),
         occurred_at_ms: Utc::now().timestamp_millis(),
+        // 注: 本地 AuditLogEntry struct 无 audit_type 字段
     });
     if admin_grpc_result.is_none() {
         tracing::warn!(
@@ -455,6 +457,7 @@ pub async fn set_maintenance(
         action: "set_maintenance".to_string(),
         target_id: body.target_id.clone(),
         occurred_at_ms: Utc::now().timestamp_millis(),
+        // 注: 本地 AuditLogEntry struct 无 audit_type 字段
     });
     (
         StatusCode::ACCEPTED,

@@ -115,6 +115,8 @@ pub async fn ban_account(
         status: "queued".to_string(),
         op: "ban".to_string(),
         accepted_at_ms,
+        // v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): 默认 false (未强制踢出对战)
+        disconnected_sessions: false,
     }))
 }
 
@@ -169,6 +171,9 @@ pub async fn grant_compensation(
         status: "queued".to_string(),
         op: "compensation".to_string(),
         accepted_at_ms,
+        // v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): 默认 0 (未发卡牌/卡包)
+        cards_granted: 0,
+        packs_granted: 0,
     }))
 }
 
@@ -224,6 +229,8 @@ pub async fn set_maintenance(
         op: "maintenance".to_string(),
         propagation_status: PropagationStatus::Converged as i32,
         accepted_at_ms,
+        // v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): 默认 0 (无维护模式)
+        applied_mode_flags: 0,
     }))
 }
 
@@ -266,6 +273,8 @@ pub async fn query_audit_log(
             action: e.action.clone(),
             target_id: e.target.clone(),
             occurred_at_ms: e.created_at.timestamp_millis(),
+            // v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): 默认 All (本地 store 不分类)
+            audit_type: crate::proto::v1::AuditType::All as i32,
         })
         .collect();
 
@@ -282,6 +291,8 @@ pub async fn query_audit_log(
         entries: proto_entries,
         has_more,
         next_cursor,
+        // v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): 默认 Unspecified (待 filter 解析)
+        applied_audit_type: crate::proto::v1::AuditType::Unspecified as i32,
     }))
 }
 

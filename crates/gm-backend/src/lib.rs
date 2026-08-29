@@ -47,6 +47,13 @@ pub mod common {
         tonic::include_proto!("common.v1");
     }
 }
+// v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): gm.proto v0.4 升版
+pub mod proto {
+    #![allow(clippy::all)]
+    pub mod v1 {
+        tonic::include_proto!("gm.v1");
+    }
+}
 
 // W18 (2026-08-28): Circuit breaker (5 次失败 → 30s 断开)
 // W20 (2026-08-28): wire 到 AdminGrpcClient 4 method (gm-backend 4 endpoint)

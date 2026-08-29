@@ -56,7 +56,8 @@ async fn ban_e2e_player_status_changes_to_disabled() {
         .unwrap();
 
     let sessions = Arc::new(player_service::repository::InMemoryPlayerSessionRepository::new());
-    let player_svc = PlayerServiceImpl::new(player_repo.clone(), sessions);
+    let decks = Arc::new(player_service::repository::InMemoryDeckRepository::new());
+    let player_svc = PlayerServiceImpl::new(player_repo.clone(), sessions, decks);
 
     // 模拟 gm-backend → admin → player 的 gRPC 链
     let player_id = player_repo
