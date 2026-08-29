@@ -1,0 +1,48 @@
+[package]
+name = "leaderboard-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "卡牌游戏 4 类排行榜微服务 (per RGS-REQ-038 §FR-007 + RGS-DTL-038 §3 DEC-038-02 推荐 A 新域)"
+
+[[bin]]
+name = "leaderboard-service"
+path = "src/main.rs"
+
+[features]
+# 域级总开关: tracing 启用 / 关闭 (per match-service 模板)
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+# DB (5 独立 DB 原则: leaderboard_db, per ARC-008)
+sqlx = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# 55.21+22 wire-up: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[dev-dependencies]
+# tokio 时间控制 (per IT 4 sort_stable)
+tokio = { workspace = true, features = ["full", "test-util"] }
+# IT 用到 InMemory 互不共享 repo, 显式拉 uuid
+uuid = { workspace = true }

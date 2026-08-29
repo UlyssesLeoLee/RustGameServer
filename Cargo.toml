@@ -16,6 +16,7 @@ members = [
     "crates/rgs-overflow-alert",
     "crates/rgs-asset-download",
     "crates/card-service",
+    "crates/leaderboard-service",
 ]
 resolver = "2"
 
