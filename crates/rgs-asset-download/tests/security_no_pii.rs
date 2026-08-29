@@ -186,6 +186,9 @@ fn scan_dir(dir: &Path, violations: &mut Vec<String>) {
                 continue;
             }
         };
+        // cargo fmt 可能把 `for forbidden in [...]` 字面量换行展开成多行；
+        // 一旦进入该豁免块就持续跳过，直到遇到收尾的 `]`（含该行本身）。
+        let mut in_forbidden_array = false;
         for (lineno, line) in content.lines().enumerate() {
             let trimmed = line.trim_start();
             // 跳过纯注释行（// 单行 / /// doc / //! module doc）
@@ -215,6 +218,15 @@ fn scan_dir(dir: &Path, violations: &mut Vec<String>) {
                 || trimmed.contains("for field in PII_FIELDS")
                 || trimmed.contains("for field_name in PII_FIELDS")
             {
+                if !trimmed.contains(']') {
+                    in_forbidden_array = true;
+                }
+                continue;
+            }
+            if in_forbidden_array {
+                if trimmed.contains(']') {
+                    in_forbidden_array = false;
+                }
                 continue;
             }
             for field in PII_FIELDS {
