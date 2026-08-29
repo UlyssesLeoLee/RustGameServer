@@ -22,7 +22,8 @@ use shared_platform::tls::load_server_tls_config;
 
 use player_service::db;
 use player_service::repository::{
-    PgPlayerRepository, PgPlayerSessionRepository, PlayerRepository, PlayerSessionRepository,
+    DeckRepository, PgDeckRepository, PgPlayerRepository, PgPlayerSessionRepository,
+    PlayerRepository, PlayerSessionRepository,
 };
 use player_service::service::grpc_service::PlayerGrpcService;
 use player_service::service::PlayerServiceImpl;
@@ -82,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
     let players: Arc<dyn PlayerRepository> = Arc::new(PgPlayerRepository::new(pool.clone()));
     let sessions: Arc<dyn PlayerSessionRepository> =
         Arc::new(PgPlayerSessionRepository::new(pool.clone()));
+    let decks: Arc<dyn DeckRepository> = Arc::new(PgDeckRepository::new(pool.clone()));
 
     tracing::info!(target: "player-service", "player-service started, DB pool size: {}", pool.size());
 
@@ -116,7 +118,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let service_impl = Arc::new(PlayerServiceImpl::new(players, sessions));
+    let service_impl = Arc::new(PlayerServiceImpl::new(players, sessions, decks));
     let grpc = PlayerGrpcService::new(service_impl);
 
     // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
