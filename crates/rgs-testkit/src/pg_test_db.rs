@@ -97,8 +97,8 @@ pub fn database_url() -> Option<String> {
 /// - `DATABASE_URL` env var 未设置
 /// - sqlx 连接 / 握手失败 (PG 不可达 / 鉴权错)
 pub async fn pg_pool() -> anyhow::Result<PgPool> {
-    let url = database_url()
-        .ok_or_else(|| anyhow::anyhow!("{} env var not set", DATABASE_URL_ENV))?;
+    let url =
+        database_url().ok_or_else(|| anyhow::anyhow!("{} env var not set", DATABASE_URL_ENV))?;
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(DEFAULT_POOL_SIZE)
         .connect(&url)

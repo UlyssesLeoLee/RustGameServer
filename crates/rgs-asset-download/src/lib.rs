@@ -53,8 +53,8 @@ pub use integrity_gate::{IntegrityGate, IntegrityReport, IntegrityStatus};
 pub use metrics::{encode_metrics_text, AssetDownloadMetrics, IntegrityOutcome};
 pub use platform::{preallocate_sparse_file, PreallocateOutcome, PreallocateStrategy};
 pub use range_client::{
-    ContentRange, HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig,
-    RangeRequest, RangeResponse, RangeResponseDetailed,
+    ContentRange, HttpRangeSpec, RangeBackendProbe, RangeClient, RangeClientConfig, RangeRequest,
+    RangeResponse, RangeResponseDetailed,
 };
 pub use resume_token::{ResumeToken, ResumeTokenError};
 pub use resume_token_store::{

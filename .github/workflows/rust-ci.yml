@@ -11,6 +11,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 # 必跑（required by branch protection per WF-1-58.5）
 # 53.4 单平台；58.7 跨平台扩展 macos-latest
@@ -55,12 +56,15 @@ jobs:
           toolchain: 1.98
           components: rustfmt, clippy
 
+      - name: Install protoc (admin-service / cluster-ops / economy-service / gm-backend / match-service / player-service / shared-platform / social-service 的 build.rs 需 tonic-build / prost-build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            ->~/.rustup
-            ->target
           cache-on-failure: true
 
       - name: Show rustc + cargo version

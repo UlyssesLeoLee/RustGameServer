@@ -68,7 +68,9 @@ async fn circuit_breaker_business_handler_maintenance_returns_202() {
     let started = std::time::Instant::now();
     let resp = server
         .post("/api/v1/gm/maintenance")
-        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .json(
+            &json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}),
+        )
         .await;
     let elapsed = started.elapsed();
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
@@ -96,7 +98,9 @@ async fn circuit_breaker_5_consecutive_bans_then_open() {
         let started = std::time::Instant::now();
         let resp = server
             .post("/api/v1/gm/ban")
-            .json(&json!({"account_id": format!("cb-{i}"), "reason": "burst", "duration_seconds": 0}))
+            .json(
+                &json!({"account_id": format!("cb-{i}"), "reason": "burst", "duration_seconds": 0}),
+            )
             .await;
         let elapsed = started.elapsed();
         resp.assert_status(axum::http::StatusCode::ACCEPTED);

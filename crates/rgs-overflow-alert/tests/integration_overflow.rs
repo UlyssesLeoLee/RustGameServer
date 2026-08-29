@@ -4,7 +4,10 @@
 //!
 //! **不**依赖真 NATS server —— 使用 `InMemoryQueueBackend` + `CountingSink`
 //! 保证测试在 CI / 本地不依赖外部服务即可跑
+#![allow(clippy::await_holding_lock)]
 
+use async_trait::async_trait;
+use rgs_overflow_alert::alert::AlertError;
 use rgs_overflow_alert::alert::{AlertDeduplicator, AlertSink, LogOnlySink};
 use rgs_overflow_alert::config::OverflowConfig;
 use rgs_overflow_alert::domain::Domain;
@@ -14,8 +17,6 @@ use rgs_overflow_alert::queue::{InMemoryQueueBackend, QueueBackend};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use async_trait::async_trait;
-use rgs_overflow_alert::alert::AlertError;
 
 /// 计数 sink（用于断言告警触发次数）
 struct CountingSink {
@@ -24,7 +25,11 @@ struct CountingSink {
 }
 #[async_trait]
 impl AlertSink for CountingSink {
-    async fn send(&self, _to: &str, _event: &rgs_overflow_alert::alert::AlertEvent) -> Result<(), AlertError> {
+    async fn send(
+        &self,
+        _to: &str,
+        _event: &rgs_overflow_alert::alert::AlertEvent,
+    ) -> Result<(), AlertError> {
         self.count.fetch_add(1, Ordering::Relaxed);
         if self.fail {
             Err(AlertError::Smtp("mock".to_string()))
@@ -134,7 +139,9 @@ async fn integration_1000_concurrent_pass_queue_reject_distribution() {
     for i in 0..n {
         let g = g.clone();
         handles.push(tokio::spawn(async move {
-            let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+            let d = g
+                .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+                .await;
             // Pass 时持有 permit 直到 task 结束
             (d.status, d.guard)
         }));
@@ -162,13 +169,27 @@ async fn integration_1000_concurrent_pass_queue_reject_distribution() {
     }
     // 验证：行为正确（精确比例在 1000 并发下受 CPU 调度影响不可靠 — 单元测试已覆盖精确比例）
     // 行为约束：所有 1000 个请求必须分到 3 类之一；Pass + Queued 不能超过 hard（=10）+ 一些 race 容差
-    assert_eq!((pass + queued + rejected) as usize, n, "all 1000 must be classified");
+    assert_eq!(
+        (pass + queued + rejected) as usize,
+        n,
+        "all 1000 must be classified"
+    );
     assert!(pass <= 10, "Pass > hard ({} > 10) — limiter broken", pass);
-    assert!(pass + queued <= 10, "Pass+Queued > hard ({} > 10) — limiter broken", pass + queued);
+    assert!(
+        pass + queued <= 10,
+        "Pass+Queued > hard ({} > 10) — limiter broken",
+        pass + queued
+    );
     // 至少 1 个 Rejected（说明限流生效）
     assert!(rejected > 0, "no rejections — limiter not engaged");
     // queue 收到 Queued 个消息
-    assert_eq!(queue.len() as u32, queued, "queue.len mismatch with Queued count: {} vs {}", queue.len(), queued);
+    assert_eq!(
+        queue.len() as u32,
+        queued,
+        "queue.len mismatch with Queued count: {} vs {}",
+        queue.len(),
+        queued
+    );
     // 告警去重：HardCapReached 窗口内 1 次 + SoftCapSurge 窗口内 1 次 = 2
     assert_eq!(
         sink_count.load(Ordering::Relaxed),
@@ -193,7 +214,9 @@ async fn integration_alert_dedup_suppresses_storm() {
     let _p = g.limiter().try_acquire().1;
     // 100 次 check，全部 Rejected，告警仅 1 次
     for i in 0..100 {
-        let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+        let d = g
+            .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+            .await;
         assert_eq!(d.status, OverflowStatus::Rejected);
     }
     assert_eq!(
@@ -217,17 +240,33 @@ async fn integration_queue_full_transitions_to_reject() {
     // 5 个 Pass（拿 permit 持有）
     let mut d_passes = Vec::new();
     for i in 0..5 {
-        let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+        let d = g
+            .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+            .await;
         assert_eq!(d.status, OverflowStatus::Pass);
         d_passes.push(d);
     }
     // 再 5 个 check：前 2 个 Queued 入队成功（queue=2），后 3 个 Rejected
     for i in 5..10 {
-        let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+        let d = g
+            .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+            .await;
         if i < 7 {
-            assert_eq!(d.status, OverflowStatus::Queued, "iteration {} expected Queued, got {:?}", i, d.status);
+            assert_eq!(
+                d.status,
+                OverflowStatus::Queued,
+                "iteration {} expected Queued, got {:?}",
+                i,
+                d.status
+            );
         } else {
-            assert_eq!(d.status, OverflowStatus::Rejected, "iteration {} expected Rejected, got {:?}", i, d.status);
+            assert_eq!(
+                d.status,
+                OverflowStatus::Rejected,
+                "iteration {} expected Rejected, got {:?}",
+                i,
+                d.status
+            );
         }
     }
     // queue 应该有 2 条
@@ -241,10 +280,22 @@ async fn integration_queue_full_transitions_to_reject() {
 async fn integration_4_domains_use_independent_subjects() {
     // 验证 4 域 NATS subject 独立（per `rgs.<domain>.overflow.v1` 约定）
     use rgs_overflow_alert::queue::NatsJsQueueBackend;
-    assert_eq!(NatsJsQueueBackend::subject_for(Domain::Player), "rgs.player.overflow.v1");
-    assert_eq!(NatsJsQueueBackend::subject_for(Domain::Economy), "rgs.economy.overflow.v1");
-    assert_eq!(NatsJsQueueBackend::subject_for(Domain::Match), "rgs.match.overflow.v1");
-    assert_eq!(NatsJsQueueBackend::subject_for(Domain::Social), "rgs.social.overflow.v1");
+    assert_eq!(
+        NatsJsQueueBackend::subject_for(Domain::Player),
+        "rgs.player.overflow.v1"
+    );
+    assert_eq!(
+        NatsJsQueueBackend::subject_for(Domain::Economy),
+        "rgs.economy.overflow.v1"
+    );
+    assert_eq!(
+        NatsJsQueueBackend::subject_for(Domain::Match),
+        "rgs.match.overflow.v1"
+    );
+    assert_eq!(
+        NatsJsQueueBackend::subject_for(Domain::Social),
+        "rgs.social.overflow.v1"
+    );
 }
 
 #[tokio::test]
@@ -252,12 +303,20 @@ async fn integration_disabled_when_all_hard_caps_zero() {
     let _g = lock_env();
     clear_all_overflow_env();
     // 全部 hard=0 → 限流未启用 → 1000 个全部 Pass
-    let (g, _queue) = make_guard_with(0, 100, 0.5, 60, Arc::new(CountingSink {
-        count: Arc::new(AtomicU32::new(0)),
-        fail: false,
-    }));
+    let (g, _queue) = make_guard_with(
+        0,
+        100,
+        0.5,
+        60,
+        Arc::new(CountingSink {
+            count: Arc::new(AtomicU32::new(0)),
+            fail: false,
+        }),
+    );
     for i in 0..1000 {
-        let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+        let d = g
+            .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+            .await;
         assert_eq!(d.status, OverflowStatus::Pass);
     }
 }

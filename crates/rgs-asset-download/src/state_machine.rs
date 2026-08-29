@@ -210,8 +210,16 @@ pub struct TransitionError {
 /// `(from, event, to)` 三元组构成的转移表。
 pub const TRANSITION_TABLE: &[(DownloadState, StateEvent, DownloadState)] = &[
     // Idle
-    (DownloadState::Idle, StateEvent::ResolveStart, DownloadState::Resolving),
-    (DownloadState::Idle, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Idle,
+        StateEvent::ResolveStart,
+        DownloadState::Resolving,
+    ),
+    (
+        DownloadState::Idle,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
     // Resolving
     (
         DownloadState::Resolving,
@@ -223,8 +231,16 @@ pub const TRANSITION_TABLE: &[(DownloadState, StateEvent, DownloadState)] = &[
         StateEvent::ResolveFail,
         DownloadState::Failed,
     ),
-    (DownloadState::Resolving, StateEvent::Pause, DownloadState::Paused),
-    (DownloadState::Resolving, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Resolving,
+        StateEvent::Pause,
+        DownloadState::Paused,
+    ),
+    (
+        DownloadState::Resolving,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
     // Downloading
     (
         DownloadState::Downloading,
@@ -252,20 +268,48 @@ pub const TRANSITION_TABLE: &[(DownloadState, StateEvent, DownloadState)] = &[
         DownloadState::Cancelled,
     ),
     // Paused
-    (DownloadState::Paused, StateEvent::Resume, DownloadState::Downloading),
-    (DownloadState::Paused, StateEvent::Cancel, DownloadState::Cancelled),
-    (DownloadState::Paused, StateEvent::Expire, DownloadState::Expired),
+    (
+        DownloadState::Paused,
+        StateEvent::Resume,
+        DownloadState::Downloading,
+    ),
+    (
+        DownloadState::Paused,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
+    (
+        DownloadState::Paused,
+        StateEvent::Expire,
+        DownloadState::Expired,
+    ),
     // Failed
-    (DownloadState::Failed, StateEvent::Retry, DownloadState::Resolving),
-    (DownloadState::Failed, StateEvent::Cancel, DownloadState::Cancelled),
-    (DownloadState::Failed, StateEvent::Expire, DownloadState::Expired),
+    (
+        DownloadState::Failed,
+        StateEvent::Retry,
+        DownloadState::Resolving,
+    ),
+    (
+        DownloadState::Failed,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
+    (
+        DownloadState::Failed,
+        StateEvent::Expire,
+        DownloadState::Expired,
+    ),
     // Expired
     (
         DownloadState::Expired,
         StateEvent::ResolveStart,
         DownloadState::Resolving,
     ),
-    (DownloadState::Expired, StateEvent::Cancel, DownloadState::Cancelled),
+    (
+        DownloadState::Expired,
+        StateEvent::Cancel,
+        DownloadState::Cancelled,
+    ),
 ];
 
 /// 静态查询：从 `from` 状态出发的合法事件列表。
@@ -339,8 +383,10 @@ impl DownloadStateMachine {
 
     /// 以指定状态构造（用于测试 / 序列化恢复）。
     pub fn with_state(state: DownloadState) -> Self {
-        let mut s = Self::default();
-        s.state = state;
+        let s = Self {
+            state,
+            ..Self::default()
+        };
         // Paused / Failed / Expired / Cancelled 终态（部分）应有 cancel 信号
         match state {
             DownloadState::Paused
@@ -399,7 +445,10 @@ impl DownloadStateMachine {
     }
 
     /// 应用一次事件（alias for `apply()`，保留以兼容不同命名）。
-    pub fn transition_event(&mut self, event: StateEvent) -> Result<DownloadState, TransitionError> {
+    pub fn transition_event(
+        &mut self,
+        event: StateEvent,
+    ) -> Result<DownloadState, TransitionError> {
         self.apply(event)
     }
 

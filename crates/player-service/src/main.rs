@@ -149,7 +149,9 @@ async fn main() -> anyhow::Result<()> {
             &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
             &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
         )
-        .context("mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)")?;
+        .context(
+            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
+        )?;
         server_builder = server_builder
             .tls_config(tls_config)
             .context("tls_config")?;

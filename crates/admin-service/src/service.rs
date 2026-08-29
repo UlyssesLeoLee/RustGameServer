@@ -461,13 +461,13 @@ mod tests {
         // 后续每条 prev_hash 严格等于前一条 hash
         for i in 1..entries.len() {
             assert_eq!(
-                entries[i].prev_hash, entries[i - 1].hash,
+                entries[i].prev_hash,
+                entries[i - 1].hash,
                 "hash 链断裂 at i={i}"
             );
         }
         // 20 条 hash 全部互不相同
-        let unique: std::collections::HashSet<&String> =
-            entries.iter().map(|e| &e.hash).collect();
+        let unique: std::collections::HashSet<&String> = entries.iter().map(|e| &e.hash).collect();
         assert_eq!(unique.len(), entries.len(), "hash 出现碰撞");
 
         // 并发 20 条：再次验证 Mutex/InMemory 路径下不出现分叉

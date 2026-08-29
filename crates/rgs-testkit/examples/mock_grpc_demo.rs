@@ -18,7 +18,7 @@ async fn main() {
     // 1. 启动 mock server 拿 url
     println!("[1] TonicGrpcMock::new().await 启动 mock server");
     let mut mock = TonicGrpcMock::new().await;
-    let url = mock.url().to_string();  // owned String, 避免与 expect() 的 &mut self 借用冲突
+    let url = mock.url().to_string(); // owned String, 避免与 expect() 的 &mut self 借用冲突
     println!("    mock server url = {}\n", url);
     assert!(url.starts_with("http://127.0.0.1:") || url.starts_with("http://localhost:"));
 

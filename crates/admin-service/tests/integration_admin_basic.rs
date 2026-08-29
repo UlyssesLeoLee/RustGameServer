@@ -16,7 +16,7 @@
 //! - `DATABASE_URL=postgres://postgres@127.0.0.1:5555/admin_db` (或任何可写 PG)
 //! - migrations 已跑过 (本 test 假设 migrations 存在, 不自动 migrate)
 
-use rgs_testkit::fixture::{self, FixtureBuilder, AdminFixture};
+use rgs_testkit::fixture::{self, AdminFixture, FixtureBuilder};
 use rgs_testkit::pg_test;
 use sqlx::PgPool;
 
@@ -37,14 +37,11 @@ async fn admin_fixture_builder_customizes_action_and_target(_pool: PgPool) {
     assert_eq!(default_action.admin_id, "admin-001");
 
     // FixtureBuilder 链式覆盖
-    let mute_action: AdminFixture = FixtureBuilder::new(fixture::admin_action(
-        "admin-001",
-        "ban",
-        "player-test-001",
-    ))
-    .with_action("mute")
-    .with_target("player-spammer-007")
-    .build();
+    let mute_action: AdminFixture =
+        FixtureBuilder::new(fixture::admin_action("admin-001", "ban", "player-test-001"))
+            .with_action("mute")
+            .with_target("player-spammer-007")
+            .build();
 
     assert_eq!(mute_action.admin_id, "admin-001");
     assert_eq!(mute_action.action, "mute");
@@ -76,8 +73,7 @@ async fn admin_fixture_creates_audit_log_in_real_pg(pool: PgPool) {
     .build();
 
     // actor_id 必须是合法 UUID; admin_id 是占位 string, 解析失败时用 new_v4
-    let actor_uuid =
-        uuid::Uuid::parse_str(&act.admin_id).unwrap_or_else(|_| uuid::Uuid::new_v4());
+    let actor_uuid = uuid::Uuid::parse_str(&act.admin_id).unwrap_or_else(|_| uuid::Uuid::new_v4());
 
     // prev_hash 与 hash 用不同 64-hex-char 占位 (实服务走 sha256)
     let prev_hash = "0".repeat(64);
@@ -103,14 +99,13 @@ async fn admin_fixture_creates_audit_log_in_real_pg(pool: PgPool) {
     .expect("INSERT audit_log 走真 PG 必须成功");
 
     // SELECT 读回 (per actor + action 唯一定位)
-    let (action, target): (String, String) = sqlx::query_as(
-        "SELECT action, target FROM audit_log WHERE actor_id = $1 AND action = $2",
-    )
-    .bind(actor_uuid)
-    .bind(&act.action)
-    .fetch_one(&pool)
-    .await
-    .expect("SELECT audit_log 走真 PG 必须成功");
+    let (action, target): (String, String) =
+        sqlx::query_as("SELECT action, target FROM audit_log WHERE actor_id = $1 AND action = $2")
+            .bind(actor_uuid)
+            .bind(&act.action)
+            .fetch_one(&pool)
+            .await
+            .expect("SELECT audit_log 走真 PG 必须成功");
 
     assert_eq!(action, "promote");
     assert_eq!(target, "player-new-mod-007");

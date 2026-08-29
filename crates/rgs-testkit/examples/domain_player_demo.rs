@@ -28,14 +28,26 @@ async fn main() {
         .with_name("Alice")
         .with_level(42)
         .build();
-    println!("    id={}, name={}, level={}\n", custom.id, custom.name, custom.level);
+    println!(
+        "    id={}, name={}, level={}\n",
+        custom.id, custom.name, custom.level
+    );
 
     // 3. InMemoryNatsMock 模拟 player.events
     println!("[3] InMemoryNatsMock 模拟 player.events");
     let nats = InMemoryNatsMock::new();
-    nats.publish("player.events", br#"{"event":"login","player_id":"p1"}"#).await.unwrap();
-    nats.publish("player.events", br#"{"event":"level_up","player_id":"p1","level":2}"#).await.unwrap();
-    nats.publish("player.events", br#"{"event":"logout","player_id":"p1"}"#).await.unwrap();
+    nats.publish("player.events", br#"{"event":"login","player_id":"p1"}"#)
+        .await
+        .unwrap();
+    nats.publish(
+        "player.events",
+        br#"{"event":"level_up","player_id":"p1","level":2}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish("player.events", br#"{"event":"logout","player_id":"p1"}"#)
+        .await
+        .unwrap();
     let count = nats.received_count("player.events");
     println!("    player.events received_count={} (期望 3)\n", count);
 

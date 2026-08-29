@@ -80,7 +80,9 @@ async fn set_maintenance_writes_audit_log() {
     let (server, store) = make_test_server();
     let resp = server
         .post("/api/v1/gm/maintenance")
-        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .json(
+            &json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}),
+        )
         .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let entries = store.list_entries(20).await;

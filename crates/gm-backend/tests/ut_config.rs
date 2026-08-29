@@ -17,7 +17,12 @@ use serial_test::serial;
 #[test]
 #[serial]
 fn gm_config_defaults_when_env_missing() {
-    for k in ["GM_HTTP_ADDR", "GM_HEALTH_ADDR", "ADMIN_GRPC_ENDPOINT", "GM_JWT_SECRET"] {
+    for k in [
+        "GM_HTTP_ADDR",
+        "GM_HEALTH_ADDR",
+        "ADMIN_GRPC_ENDPOINT",
+        "GM_JWT_SECRET",
+    ] {
         std::env::remove_var(k);
     }
     let cfg = GmConfig::from_env().expect("from_env should succeed with defaults");
@@ -42,7 +47,12 @@ fn gm_config_respects_env_overrides() {
     assert_eq!(cfg.admin_grpc_endpoint, "http://admin-staging:50055");
     assert_eq!(cfg.jwt_secret, "test-jwt-secret-32-bytes-min!!");
 
-    for k in ["GM_HTTP_ADDR", "GM_HEALTH_ADDR", "ADMIN_GRPC_ENDPOINT", "GM_JWT_SECRET"] {
+    for k in [
+        "GM_HTTP_ADDR",
+        "GM_HEALTH_ADDR",
+        "ADMIN_GRPC_ENDPOINT",
+        "GM_JWT_SECRET",
+    ] {
         std::env::remove_var(k);
     }
 }
@@ -73,8 +83,12 @@ fn gm_config_rejects_invalid_health_addr() {
 #[test]
 fn gm_config_for_test_builder() {
     // 不动 env,纯 builder,无串行需求
-    let cfg = GmConfig::for_test("127.0.0.1:18000", "127.0.0.1:18001", "http://admin-test:50055")
-        .expect("for_test should succeed");
+    let cfg = GmConfig::for_test(
+        "127.0.0.1:18000",
+        "127.0.0.1:18001",
+        "http://admin-test:50055",
+    )
+    .expect("for_test should succeed");
     assert_eq!(cfg.http_addr.to_string(), "127.0.0.1:18000");
     assert_eq!(cfg.health_addr.to_string(), "127.0.0.1:18001");
     assert_eq!(cfg.admin_grpc_endpoint, "http://admin-test:50055");

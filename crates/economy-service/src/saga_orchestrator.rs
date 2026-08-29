@@ -394,8 +394,8 @@ impl SagaStepHandler for ReserveHandler {
     }
 
     async fn compensate(&self, saga: &mut Saga, resource_id: Option<Uuid>) -> Result<()> {
-        let account_id =
-            resource_id.ok_or_else(|| Error::Validation("reserve: missing resource_id".to_string()))?;
+        let account_id = resource_id
+            .ok_or_else(|| Error::Validation("reserve: missing resource_id".to_string()))?;
 
         // 1. 找 reservation（按 saga_id + account_id 过滤）
         let reservations = self.reservations.list_by_saga(saga.id).await?;
@@ -438,14 +438,14 @@ impl SagaStepHandler for ReserveHandler {
         }
 
         // 3. 退款（读取最新账户，OCC 更新 +amount）
-        let mut account = self
-            .accounts
-            .find_by_id(account_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "Account",
-                id: account_id.to_string(),
-            })?;
+        let mut account =
+            self.accounts
+                .find_by_id(account_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "Account",
+                    id: account_id.to_string(),
+                })?;
         let refund_amount = r.amount;
         let refund_currency = r.currency;
         account.credit(refund_amount);
@@ -568,14 +568,14 @@ impl SagaStepHandler for ConfirmHandler {
         }
 
         // 退款
-        let mut account = self
-            .accounts
-            .find_by_id(account_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "Account",
-                id: account_id.to_string(),
-            })?;
+        let mut account =
+            self.accounts
+                .find_by_id(account_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "Account",
+                    id: account_id.to_string(),
+                })?;
         let refund_amount = r.amount;
         let refund_currency = r.currency;
         account.credit(refund_amount);
@@ -611,9 +611,7 @@ impl SagaStepHandler for ConfirmHandler {
 mod tests {
     use super::*;
     use crate::entity::Account;
-    use crate::repository::{
-        InMemoryAccountRepository, InMemoryTransactionLedgerRepository,
-    };
+    use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
     use crate::reservation::{InMemoryReservationRepository, Reservation, ReservationStatus};
     use crate::saga::{InMemorySagaRepository, Saga, SagaType};
     use std::sync::Mutex;
@@ -633,9 +631,8 @@ mod tests {
 
     async fn make_env(initial_balance: i64) -> TestEnv {
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let acc_repo = Arc::new(
-            InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
-        );
+        let acc_repo =
+            Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
         let res_repo = Arc::new(InMemoryReservationRepository::new());
         let sag_repo = Arc::new(InMemorySagaRepository::new());
 
@@ -730,7 +727,9 @@ mod tests {
             player_id: Uuid,
             currency: Currency,
         ) -> Result<Option<Account>> {
-            self.inner.find_by_player_and_currency(player_id, currency).await
+            self.inner
+                .find_by_player_and_currency(player_id, currency)
+                .await
         }
         async fn update_with_version(&self, account: &Account) -> Result<Account> {
             self.inner.update_with_version(account).await
@@ -793,11 +792,7 @@ mod tests {
         env.orch.execute(&mut saga).await.unwrap();
 
         // 1 个 reservation
-        let reservations = env
-            .reservations
-            .list_by_saga(saga.id)
-            .await
-            .unwrap();
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
         assert_eq!(reservations.len(), 1, "exactly 1 reservation");
         let r = &reservations[0];
         assert_eq!(r.saga_id, saga.id);
@@ -817,12 +812,7 @@ mod tests {
         env.orch.execute(&mut saga).await.unwrap();
 
         // balance = initial - amount
-        let account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(account.balance, TEST_INITIAL_BALANCE - TEST_AMOUNT);
 
         // ledger 写入（apply_atomic 原子性）：reserve + compensate-confirm 也算 → 至少 1 条
@@ -876,12 +866,7 @@ mod tests {
 
         confirm.execute(&mut confirm_only).await.unwrap();
 
-        let after = env
-            .reservations
-            .find_by_id(r.id)
-            .await
-            .unwrap()
-            .unwrap();
+        let after = env.reservations.find_by_id(r.id).await.unwrap().unwrap();
         assert_eq!(after.status, ReservationStatus::Confirmed);
     }
 
@@ -889,9 +874,8 @@ mod tests {
     async fn compensate_releases_reservation_and_refunds() {
         // AC4 验证：补偿路径真释放 reservation + 退款
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let acc_repo = Arc::new(
-            InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
-        );
+        let acc_repo =
+            Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
         let res_repo = Arc::new(InMemoryReservationRepository::new());
         let sag_repo = Arc::new(InMemorySagaRepository::new());
 
@@ -960,20 +944,11 @@ mod tests {
         assert_eq!(saga.steps[1].status, SagaStepStatus::Completed);
 
         // 账户余额 = initial - amount（reserve 阶段扣了，confirm 阶段不重复扣）
-        let account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(account.balance, TEST_INITIAL_BALANCE - TEST_AMOUNT);
 
         // reservation = Confirmed
-        let reservations = env
-            .reservations
-            .list_by_saga(saga.id)
-            .await
-            .unwrap();
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
         assert_eq!(reservations.len(), 1);
         assert_eq!(reservations[0].status, ReservationStatus::Confirmed);
 
@@ -993,20 +968,15 @@ mod tests {
         assert!(matches!(err, Error::InsufficientFunds { .. }));
 
         // reservation 被清理（防止 dangling）
-        let reservations = env
-            .reservations
-            .list_by_saga(saga.id)
-            .await
-            .unwrap();
-        assert_eq!(reservations.len(), 0, "dangling reservation should be deleted");
+        let reservations = env.reservations.list_by_saga(saga.id).await.unwrap();
+        assert_eq!(
+            reservations.len(),
+            0,
+            "dangling reservation should be deleted"
+        );
 
         // 余额未变
-        let account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(account.balance, TEST_AMOUNT - 1);
     }
 
@@ -1021,9 +991,8 @@ mod tests {
     #[tokio::test]
     async fn reserve_handler_cleans_reservation_on_occ_failure() {
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let inner_acc_repo = Arc::new(
-            InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
-        );
+        let inner_acc_repo =
+            Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
         let res_repo = Arc::new(InMemoryReservationRepository::new());
         let sag_repo = Arc::new(InMemorySagaRepository::new());
 
@@ -1079,7 +1048,11 @@ mod tests {
         );
 
         // 关键断言: apply_atomic 失败回滚, 余额未变
-        let reloaded = inner_acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+        let reloaded = inner_acc_repo
+            .find_by_id(account_id)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(
             reloaded.balance, TEST_INITIAL_BALANCE,
             "apply_atomic OCC failure must not commit the debit; balance should be untouched"
@@ -1115,12 +1088,7 @@ mod tests {
         assert_eq!(reservations[0].status, ReservationStatus::Confirmed);
 
         // 验证余额正确扣减
-        let final_account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let final_account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(final_account.balance, TEST_INITIAL_BALANCE - TEST_AMOUNT);
     }
 
@@ -1147,14 +1115,12 @@ mod tests {
         let account_id = account_id_in_env(&env);
 
         // 直接构造冻结账户, 不通过 service.freeze_account() 避免改其它路径
-        let mut frozen_account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut frozen_account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         frozen_account.status = crate::entity::AccountStatus::Frozen;
-        env.accounts.update_with_version(&frozen_account).await.unwrap();
+        env.accounts
+            .update_with_version(&frozen_account)
+            .await
+            .unwrap();
 
         // 构造 saga 指向被冻结账户
         let mut saga = make_transfer_saga(account_id);
@@ -1277,7 +1243,11 @@ mod tests {
         orch.compensate(&mut saga).await.unwrap();
 
         let recorded = *last.lock().unwrap();
-        assert_eq!(recorded, Some(Some(target)), "compensate must pass step's resource_id");
+        assert_eq!(
+            recorded,
+            Some(Some(target)),
+            "compensate must pass step's resource_id"
+        );
     }
 
     // ============================================================================
@@ -1409,12 +1379,7 @@ mod tests {
         env.sagas.save(&saga).await.unwrap();
 
         // 验证 reserve 步真实扣款
-        let account_after_reserve = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account_after_reserve = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             account_after_reserve.balance,
             TEST_INITIAL_BALANCE - TEST_AMOUNT,
@@ -1440,12 +1405,7 @@ mod tests {
         env.sagas.save(&saga).await.unwrap();
 
         // 验证部分补偿后状态
-        let account_after_partial = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account_after_partial = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             account_after_partial.balance, TEST_INITIAL_BALANCE,
             "partial compensation should refund +100, balance back to TEST_INITIAL_BALANCE (500)"
@@ -1484,12 +1444,7 @@ mod tests {
         // 关键断言 1: 账户余额仍 = TEST_INITIAL_BALANCE (500), 不是 TEST_INITIAL_BALANCE + TEST_AMOUNT (600)
         //   → reserve.compensate 没被调第二次 → 无资金幻影
         // ========================================================================
-        let final_account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let final_account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             final_account.balance, TEST_INITIAL_BALANCE,
             "no double refund: account balance must remain at TEST_INITIAL_BALANCE (500), \
@@ -1670,12 +1625,7 @@ mod tests {
         env.sagas.save(&saga).await.unwrap();
 
         // 验证: 账户已 debit -100
-        let account_after_debit = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account_after_debit = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             account_after_debit.balance,
             TEST_INITIAL_BALANCE - TEST_AMOUNT,
@@ -1701,12 +1651,8 @@ mod tests {
             .unwrap();
         // 验证: reserve.compensate 已完成, 账户已 +100, reservation 已 Compensated
         //   (saga 状态字段仍是 Running + step 0 Completed — 因为我们没调 saga.compensate)
-        let account_after_first_refund = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let account_after_first_refund =
+            env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             account_after_first_refund.balance, TEST_INITIAL_BALANCE,
             "after first reserve.compensate, balance should be back to TEST_INITIAL_BALANCE (500)"
@@ -1729,12 +1675,7 @@ mod tests {
         // ========================================================================
         // 关键断言 1: 账户余额仍 = TEST_INITIAL_BALANCE (500), 不是 +100 二次
         // ========================================================================
-        let final_account = env
-            .accounts
-            .find_by_id(account_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let final_account = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
         assert_eq!(
             final_account.balance, TEST_INITIAL_BALANCE,
             "no double refund: handler.compensate must be idempotent via saga_idem_key, \
@@ -1750,10 +1691,7 @@ mod tests {
             let ledger_guard = env.ledger.inner.lock().unwrap();
             ledger_guard
                 .values()
-                .filter(|t| {
-                    t.idempotency_key
-                        == format!("saga:{}-compensate-reserve", saga_id)
-                })
+                .filter(|t| t.idempotency_key == format!("saga:{}-compensate-reserve", saga_id))
                 .cloned()
                 .collect()
         };

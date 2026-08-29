@@ -193,7 +193,11 @@ mod tests {
         assert_eq!(parts.len(), 4);
         assert_eq!(parts[0], "00");
         assert_eq!(parts[1].len(), 32, "trace_id 应为 32 hex chars");
-        assert_eq!(parts[2].len(), 32, "span_id 应为 32 hex chars (含 zero-pad)");
+        assert_eq!(
+            parts[2].len(),
+            32,
+            "span_id 应为 32 hex chars (含 zero-pad)"
+        );
         assert_eq!(parts[3], "01");
     }
 
@@ -202,8 +206,20 @@ mod tests {
     fn client_interceptor_fallback_generates_unique_per_call() {
         let r1 = client_interceptor(Request::new(())).unwrap();
         let r2 = client_interceptor(Request::new(())).unwrap();
-        let tp1 = r1.metadata().get(TRACEPARENT_HEADER).unwrap().to_str().unwrap().to_string();
-        let tp2 = r2.metadata().get(TRACEPARENT_HEADER).unwrap().to_str().unwrap().to_string();
+        let tp1 = r1
+            .metadata()
+            .get(TRACEPARENT_HEADER)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let tp2 = r2
+            .metadata()
+            .get(TRACEPARENT_HEADER)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
         assert_ne!(tp1, tp2, "fallback 路径每次调用应生成新 trace_id");
     }
 
@@ -213,13 +229,11 @@ mod tests {
     fn build_traceparent_with_padded_span_id() {
         // 模拟 OTel TraceId (16 bytes random)
         let trace_bytes: [u8; 16] = [
-            0x4b, 0xf9, 0x2f, 0x35, 0x77, 0xb3, 0x4d, 0xa6,
-            0xa3, 0xce, 0x92, 0x9d, 0x0e, 0x0e, 0x47, 0x36,
+            0x4b, 0xf9, 0x2f, 0x35, 0x77, 0xb3, 0x4d, 0xa6, 0xa3, 0xce, 0x92, 0x9d, 0x0e, 0x0e,
+            0x47, 0x36,
         ];
         // 模拟 OTel SpanId (8 bytes random)
-        let span_bytes: [u8; 8] = [
-            0x00, 0xf0, 0x67, 0xaa, 0x0b, 0xa9, 0x02, 0xb7,
-        ];
+        let span_bytes: [u8; 8] = [0x00, 0xf0, 0x67, 0xaa, 0x0b, 0xa9, 0x02, 0xb7];
         let mut trace_id_arr = [0u8; 16];
         trace_id_arr.copy_from_slice(&trace_bytes);
         let mut span_id_arr = [0u8; 16];

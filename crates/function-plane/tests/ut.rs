@@ -11,8 +11,8 @@
 //! is self-contained.
 
 use function_plane::{
-    FunctionContext, FunctionGateway, FunctionMetadata, FunctionPlaneError, FunctionStatus,
-    FunctionRegistry, InMemoryRegistry, InvocationRequest, Result, Runtime, TriggerType, WasmHost,
+    FunctionContext, FunctionGateway, FunctionMetadata, FunctionPlaneError, FunctionRegistry,
+    FunctionStatus, InMemoryRegistry, InvocationRequest, Runtime, TriggerType, WasmHost,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -158,7 +158,10 @@ async fn ut_registry_not_found_returns_error() {
         .await
         .expect_err("must error");
     match err {
-        FunctionPlaneError::VersionNotFound { function_id, version } => {
+        FunctionPlaneError::VersionNotFound {
+            function_id,
+            version,
+        } => {
             assert_eq!(function_id, "fn.exists");
             assert_eq!(version, "v9.9.9");
         }
@@ -620,7 +623,10 @@ fn ut_contract_function_metadata_serde_roundtrip() {
     assert_eq!(back.version, m.version);
     assert_eq!(back.runtime, m.runtime);
     assert_eq!(back.status, m.status);
-    assert_eq!(back.wasm_bytes.as_ref().unwrap().len(), m.wasm_bytes.as_ref().unwrap().len());
+    assert_eq!(
+        back.wasm_bytes.as_ref().unwrap().len(),
+        m.wasm_bytes.as_ref().unwrap().len()
+    );
 }
 
 #[test]
@@ -667,7 +673,10 @@ fn ut_error_display_messages() {
         function_id: "fn.y".into(),
         version: "v0.0.0".into(),
     };
-    assert_eq!(e2.to_string(), "version not found: function=fn.y version=v0.0.0");
+    assert_eq!(
+        e2.to_string(),
+        "version not found: function=fn.y version=v0.0.0"
+    );
 
     let e3 = FunctionPlaneError::FuelExhausted { limit: 100 };
     assert_eq!(e3.to_string(), "fuel exhausted (limit=100)");
@@ -681,7 +690,10 @@ fn ut_error_display_messages() {
 
 #[test]
 fn ut_error_not_found_message_includes_function_id() {
-    let err: Result<()> = Err(FunctionPlaneError::NotFound("fn.critical".into()));
-    let msg = err.expect_err("err").to_string();
-    assert!(msg.contains("fn.critical"), "msg should include id, got: {msg}");
+    let err = FunctionPlaneError::NotFound("fn.critical".into());
+    let msg = err.to_string();
+    assert!(
+        msg.contains("fn.critical"),
+        "msg should include id, got: {msg}"
+    );
 }

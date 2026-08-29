@@ -90,7 +90,9 @@ pub struct LatencyHistogram {
 
 impl LatencyHistogram {
     pub fn new() -> Self {
-        Self { samples_ms: Vec::new() }
+        Self {
+            samples_ms: Vec::new(),
+        }
     }
     pub fn record(&mut self, d: Duration) {
         self.samples_ms.push(d.as_millis() as u64);

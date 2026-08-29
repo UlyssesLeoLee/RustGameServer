@@ -214,9 +214,9 @@ mod tests {
     #[tokio::test]
     async fn relay_uses_in_flight_state() {
         // 1h lease 避免测试中等过期
-        let repo: Arc<InMemoryOutboxRepository> = Arc::new(
-            InMemoryOutboxRepository::with_lease(Duration::from_secs(3600)),
-        );
+        let repo: Arc<InMemoryOutboxRepository> = Arc::new(InMemoryOutboxRepository::with_lease(
+            Duration::from_secs(3600),
+        ));
         // 测试用 lazy pool（InMemory 忽略 executor）
         let pool: sqlx::PgPool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(1)

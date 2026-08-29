@@ -16,8 +16,8 @@
 //! - **FR-CDN-064**：本文件**禁止**引用 PII 字段（无 player_id / device_id / email）。
 //! - **NFR-CDN-002**：分片到达**不**做单独 hash（仅落盘 + 累加 `bytes_received`）。
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::DownloadConfig;
 use crate::error::{DownloadError, DownloadResult};
-use crate::range_client::{HttpRangeSpec, RangeClient, RangeResponseDetailed};
+use crate::range_client::{HttpRangeSpec, RangeClient};
 
 /// 单个分片的描述（无状态；可序列化入断点）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,6 +46,11 @@ impl ChunkSpec {
     /// 区间长度（字节数 = end - start + 1）。
     pub fn len(&self) -> u64 {
         self.end - self.start + 1
+    }
+
+    /// 区间是否为空（`start > end`；正常构造下恒为 `false`）。
+    pub fn is_empty(&self) -> bool {
+        self.start > self.end
     }
 
     /// 转为 [`HttpRangeSpec`]。
@@ -132,8 +137,14 @@ impl std::fmt::Debug for ChunkOrchestrator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ChunkOrchestrator")
             .field("config", &self.config)
-            .field("bytes_received", &self.bytes_received.load(Ordering::Relaxed))
-            .field("chunks_completed", &self.chunks_completed.load(Ordering::Relaxed))
+            .field(
+                "bytes_received",
+                &self.bytes_received.load(Ordering::Relaxed),
+            )
+            .field(
+                "chunks_completed",
+                &self.chunks_completed.load(Ordering::Relaxed),
+            )
             .field("paused", &self.paused.load(Ordering::Relaxed))
             .field("aborted", &self.aborted.load(Ordering::Relaxed))
             .finish()
@@ -254,9 +265,11 @@ impl ChunkOrchestrator {
         let file_path = file_path.to_string();
 
         for spec in chunks {
-            let permit = semaphore.clone().acquire_owned().await.map_err(|e| {
-                DownloadError::HttpClient(format!("semaphore closed: {e}"))
-            })?;
+            let permit = semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|e| DownloadError::HttpClient(format!("semaphore closed: {e}")))?;
             let range_client = range_client_owned(range_client);
             let cancel_token = cancel_token.clone();
             let bytes_received = bytes_received.clone();
@@ -386,30 +399,7 @@ fn unsafe_clone_range_client(_rc: &RangeClient) -> RangeClient {
 
 type RangeClientRef = Arc<RangeClient>;
 
-#[async_trait::async_trait]
-trait RangeClientLike {
-    async fn fetch_range(
-        &self,
-        url: &str,
-        range: &HttpRangeSpec,
-        expected_etag: Option<&str>,
-        cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponseDetailed>;
-}
-
-#[async_trait::async_trait]
-impl RangeClientLike for RangeClient {
-    async fn fetch_range(
-        &self,
-        url: &str,
-        range: &HttpRangeSpec,
-        expected_etag: Option<&str>,
-        cancel: &CancellationToken,
-    ) -> DownloadResult<RangeResponseDetailed> {
-        RangeClient::fetch_range(self, url, range, expected_etag, cancel).await
-    }
-}
-
+#[allow(clippy::too_many_arguments)]
 async fn run_single_chunk(
     spec: ChunkSpec,
     url: &str,
@@ -457,7 +447,7 @@ async fn run_single_chunk(
             Err(DownloadError::Cancelled) => {
                 return Err(DownloadError::Cancelled);
             }
-            Err(e) if attempt >= max_retries => {
+            Err(_e) if attempt >= max_retries => {
                 total_retry.fetch_add(attempt as u64, Ordering::SeqCst);
                 return Err(DownloadError::RetryExhausted {
                     chunk_index: spec.index,
@@ -482,6 +472,7 @@ async fn write_chunk(file_path: &str, spec: &ChunkSpec, body: &[u8]) -> Download
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(false)
         .open(file_path)
         .await
         .map_err(|e| DownloadError::Io {
@@ -494,20 +485,16 @@ async fn write_chunk(file_path: &str, spec: &ChunkSpec, body: &[u8]) -> Download
             path: file_path.to_string(),
             kind: format!("seek: {e}"),
         })?;
-    file.write_all(body)
-        .await
-        .map_err(|e| DownloadError::Io {
-            path: file_path.to_string(),
-            kind: format!("write: {e}"),
-        })?;
+    file.write_all(body).await.map_err(|e| DownloadError::Io {
+        path: file_path.to_string(),
+        kind: format!("write: {e}"),
+    })?;
     file.flush().await.map_err(|e| DownloadError::Io {
         path: file_path.to_string(),
         kind: format!("flush: {e}"),
     })?;
     Ok(())
 }
-
-use std::io::Seek;
 
 #[cfg(test)]
 mod tests {

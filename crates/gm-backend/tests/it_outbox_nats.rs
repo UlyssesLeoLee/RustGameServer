@@ -62,10 +62,7 @@ impl MockOutboxStore {
         for entry in entries.iter_mut() {
             if entry.status == "pending"
                 || (entry.status == "in_flight"
-                    && entry
-                        .lease_until
-                        .map(|t| t.as_secs() == 0)
-                        .unwrap_or(false))
+                    && entry.lease_until.map(|t| t.as_secs() == 0).unwrap_or(false))
             {
                 entry.status = "in_flight".to_string();
                 entry.lease_until = Some(Duration::from_secs(60));
@@ -95,12 +92,18 @@ impl MockOutboxStore {
 
     fn status_of(&self, id: Uuid) -> Option<String> {
         let entries = self.entries.lock().unwrap();
-        entries.iter().find(|e| e.id == id).map(|e| e.status.clone())
+        entries
+            .iter()
+            .find(|e| e.id == id)
+            .map(|e| e.status.clone())
     }
 }
 
 /// 模拟 outbox relay worker: 拉取 → publish → ack/nack
-async fn run_relay_once(store: &MockOutboxStore, nats: &InMemoryNatsMock) -> Option<(Uuid, String)> {
+async fn run_relay_once(
+    store: &MockOutboxStore,
+    nats: &InMemoryNatsMock,
+) -> Option<(Uuid, String)> {
     let entry = store.worker_pick()?;
     match nats
         .publish(&entry.subject, entry.payload.to_string().as_bytes())
@@ -125,13 +128,19 @@ async fn run_relay_once(store: &MockOutboxStore, nats: &InMemoryNatsMock) -> Opt
 async fn s5_a001_worker_sees_pending_and_acquires_lease() {
     // A001: worker 看到 status=pending, 加 lease_until
     let store = MockOutboxStore::new();
-    let id = store.insert("economy.balance_changed", json!({"player_id": "alice", "delta": 100}));
+    let id = store.insert(
+        "economy.balance_changed",
+        json!({"player_id": "alice", "delta": 100}),
+    );
     let _nats = InMemoryNatsMock::new();
 
     let picked = store.worker_pick();
     assert!(picked.is_some(), "worker should pick pending entry");
     let picked = picked.unwrap();
-    assert_eq!(picked.status, "in_flight", "status should be in_flight after pick");
+    assert_eq!(
+        picked.status, "in_flight",
+        "status should be in_flight after pick"
+    );
     assert!(picked.lease_until.is_some(), "lease_until should be set");
 
     // outbox 状态变 in_flight
@@ -151,7 +160,10 @@ async fn s5_a002_publish_to_nats_subject_aligns_payload() {
     assert_eq!(store.status_of(id), Some("sent".to_string()));
 
     // NATS 收到消息
-    let received = nats.subscribe("economy.balance_changed").await.expect("subscribe");
+    let received = nats
+        .subscribe("economy.balance_changed")
+        .await
+        .expect("subscribe");
     assert_eq!(received.len(), 1, "NATS should have 1 message");
     let received_payload: serde_json::Value = serde_json::from_slice(&received[0]).unwrap();
     assert_eq!(received_payload["player_id"], "alice");
@@ -205,7 +217,7 @@ async fn s5_a005_concurrent_workers_no_duplicate_publish() {
     let h1 = tokio::spawn(async move {
         let nats = InMemoryNatsMock::new();
         let mut picked = vec![];
-        while let Some(_) = run_relay_once(&store1, &nats).await {
+        while run_relay_once(&store1, &nats).await.is_some() {
             picked.push(());
         }
         picked.len()
@@ -213,7 +225,7 @@ async fn s5_a005_concurrent_workers_no_duplicate_publish() {
     let h2 = tokio::spawn(async move {
         let nats = InMemoryNatsMock::new();
         let mut picked = vec![];
-        while let Some(_) = run_relay_once(&store2, &nats).await {
+        while run_relay_once(&store2, &nats).await.is_some() {
             picked.push(());
         }
         picked.len()
@@ -284,7 +296,10 @@ async fn s5_c001_nats_unreachable_outbox_stays_pending_with_retry() {
     {
         let entries = store.entries.lock().unwrap();
         let entry = entries.iter().find(|e| e.id == id).unwrap();
-        assert_eq!(entry.retry_count, 2, "retry_count should increment each attempt");
+        assert_eq!(
+            entry.retry_count, 2,
+            "retry_count should increment each attempt"
+        );
     }
 }
 

@@ -173,10 +173,16 @@ async fn it_reservation_create_success() {
         .expect("reserve via apply_atomic_with_reservation");
 
     // assert: 余额 1000 - 100 = 900
-    assert_eq!(updated_account.balance, 900, "balance should be 1000 - 100 = 900");
+    assert_eq!(
+        updated_account.balance, 900,
+        "balance should be 1000 - 100 = 900"
+    );
     // assert: ledger 写入 1 条
     assert_eq!(entry.amount, -100);
-    assert_eq!(entry.status, economy_service::entity::TransactionStatus::Confirmed);
+    assert_eq!(
+        entry.status,
+        economy_service::entity::TransactionStatus::Confirmed
+    );
     assert_eq!(entry.saga_id, Some(saga_id));
     // assert: reservation 持久化
     let loaded = res_repo
@@ -214,8 +220,10 @@ async fn it_reservation_create_success() {
         sag_repo.clone() as Arc<dyn SagaRepository>,
         res_repo.clone() as Arc<dyn ReservationRepository>,
         vec![
-            Arc::new(reserve_handler) as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
-            Arc::new(confirm_handler) as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
+            Arc::new(reserve_handler)
+                as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
+            Arc::new(confirm_handler)
+                as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
         ],
     );
     orchestrator.execute(&mut saga).await.expect("saga execute");
@@ -330,10 +338,7 @@ async fn it_reservation_conflict_releases() {
 
     // 断言 2: dangling reservation 已被 cleanup (per RGS-REV-008 CC-4)
     // list_by_saga 应返回 0 条
-    let for_saga = res_repo
-        .list_by_saga(saga_id)
-        .await
-        .expect("list_by_saga");
+    let for_saga = res_repo.list_by_saga(saga_id).await.expect("list_by_saga");
     assert_eq!(
         for_saga.len(),
         0,
@@ -347,8 +352,15 @@ async fn it_reservation_conflict_releases() {
         .await
         .expect("re-fetch")
         .expect("account still exists");
-    assert_eq!(reloaded.balance, 400, "balance must reflect only concurrent update");
-    assert_eq!(reloaded.version, original_version + 1, "version must be the concurrent one");
+    assert_eq!(
+        reloaded.balance, 400,
+        "balance must reflect only concurrent update"
+    );
+    assert_eq!(
+        reloaded.version,
+        original_version + 1,
+        "version must be the concurrent one"
+    );
 
     // 断言 4: ledger 无条目 (apply_atomic 未提交)
     let any = led_repo
@@ -433,8 +445,10 @@ async fn it_reservation_cleanup_on_failure() {
         sag_repo.clone() as Arc<dyn SagaRepository>,
         res_repo_dyn.clone(),
         vec![
-            Arc::new(reserve_handler) as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
-            Arc::new(confirm_handler) as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
+            Arc::new(reserve_handler)
+                as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
+            Arc::new(confirm_handler)
+                as Arc<dyn economy_service::saga_orchestrator::SagaStepHandler>,
         ],
     );
 

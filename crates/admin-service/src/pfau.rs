@@ -106,7 +106,10 @@ pub struct CanaryAck {
 
 impl CanaryAck {
     pub fn new(total: u32) -> Self {
-        Self { total_nodes: total, acked_nodes: 0 }
+        Self {
+            total_nodes: total,
+            acked_nodes: 0,
+        }
     }
     pub fn record_ack(&mut self) {
         self.acked_nodes = (self.acked_nodes + 1).min(self.total_nodes);
@@ -163,15 +166,43 @@ mod tests {
     #[test]
     fn completed_is_terminal() {
         // Completed 不能再转移
-        for to in [Declared, CanaryInProgress, CanaryConfirmed, Observing, Paused, Retrying, RollingBack, Aborted, Completed] {
-            assert!(!can_transition(Completed, to), "Completed -> {} should be invalid", to);
+        for to in [
+            Declared,
+            CanaryInProgress,
+            CanaryConfirmed,
+            Observing,
+            Paused,
+            Retrying,
+            RollingBack,
+            Aborted,
+            Completed,
+        ] {
+            assert!(
+                !can_transition(Completed, to),
+                "Completed -> {} should be invalid",
+                to
+            );
         }
     }
 
     #[test]
     fn aborted_is_terminal() {
-        for to in [Declared, CanaryInProgress, CanaryConfirmed, Observing, Paused, Retrying, RollingBack, Aborted, Completed] {
-            assert!(!can_transition(Aborted, to), "Aborted -> {} should be invalid", to);
+        for to in [
+            Declared,
+            CanaryInProgress,
+            CanaryConfirmed,
+            Observing,
+            Paused,
+            Retrying,
+            RollingBack,
+            Aborted,
+            Completed,
+        ] {
+            assert!(
+                !can_transition(Aborted, to),
+                "Aborted -> {} should be invalid",
+                to
+            );
         }
     }
 

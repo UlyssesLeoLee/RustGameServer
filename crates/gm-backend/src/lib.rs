@@ -17,7 +17,7 @@
 
 use anyhow::{Context, Result};
 use axum::{
-    extract::{Query, Request, State},
+    extract::{Request, State},
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Json},
@@ -36,6 +36,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 /// S4 Phase 2 step 1: gm-backend 作为 admin-service 的 gRPC client
 /// tonic-build 生成的 `admin.v1` 路径 = `gm_backend::admin::v1::*`,
 /// 引用 `common.v1` 时用 `crate::common::v1::*` (平铺 2 个 include_proto)
+#[allow(clippy::result_large_err)]
 pub mod admin {
     pub mod v1 {
         tonic::include_proto!("admin.v1");
@@ -69,8 +70,7 @@ pub mod test_helpers;
 pub use business_handler::{
     ban_account, grant_compensation, health_view, query_audit, set_maintenance,
     BanAccountRequestBody, CompensationRequestBody as GrantCompensationRequestBody,
-    HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody,
-    QueryAuditLogQuery,
+    HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody, QueryAuditLogQuery,
 };
 
 // ============================================================================
@@ -172,8 +172,7 @@ impl AuditStore for InMemoryAuditStore {
     fn list_entries(
         &self,
         limit: usize,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>>
-    {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>> {
         Box::pin(async move {
             let guard = self.entries.lock().unwrap();
             guard.iter().rev().take(limit).cloned().collect()
@@ -493,7 +492,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/gm/compensation", post(grant_compensation))
         .route("/api/v1/gm/maintenance", post(set_maintenance))
         .route("/api/v1/audit/logs", get(query_audit))
-        .layer(middleware::from_fn_with_state(state.clone(), jwt_middleware));
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_middleware,
+        ));
 
     Router::new()
         .route("/healthz", get(healthz))
@@ -515,11 +517,17 @@ pub fn build_health_router(state: AppState) -> Router {
 // ============================================================================
 
 pub async fn healthz() -> impl IntoResponse {
-    (StatusCode::OK, Json(json!({"status":"ok","service":"gm-backend"})))
+    (
+        StatusCode::OK,
+        Json(json!({"status":"ok","service":"gm-backend"})),
+    )
 }
 
 pub async fn readyz() -> impl IntoResponse {
-    (StatusCode::OK, Json(json!({"status":"ready","service":"gm-backend"})))
+    (
+        StatusCode::OK,
+        Json(json!({"status":"ready","service":"gm-backend"})),
+    )
 }
 
 // 注: 5 GM endpoint 业务 handler(health_view, ban_account, grant_compensation,

@@ -136,10 +136,7 @@ pub trait AssetDownloadService: Send + Sync {
     async fn cancel_download(&self, resume_token_id: &str) -> DownloadResult<CancelOutcome>;
 
     /// 查询状态。
-    async fn get_download_state(
-        &self,
-        resume_token_id: &str,
-    ) -> DownloadResult<DownloadStateView>;
+    async fn get_download_state(&self, resume_token_id: &str) -> DownloadResult<DownloadStateView>;
 }
 
 /// PREREQ 阶段默认实现：仅做状态机推进（不实际触发 IO / HTTP）。
@@ -196,10 +193,7 @@ impl AssetDownloadService for DefaultAssetDownloadService {
         })
     }
 
-    async fn get_download_state(
-        &self,
-        resume_token_id: &str,
-    ) -> DownloadResult<DownloadStateView> {
+    async fn get_download_state(&self, resume_token_id: &str) -> DownloadResult<DownloadStateView> {
         let sm = self.sm.lock().expect("state machine poisoned");
         Ok(DownloadStateView {
             state: sm.state(),
@@ -230,7 +224,10 @@ mod tests {
         };
         let outcome = svc.download_asset(req).await.unwrap();
         assert!(!outcome.resume_token_id.is_empty());
-        let view = svc.get_download_state(&outcome.resume_token_id).await.unwrap();
+        let view = svc
+            .get_download_state(&outcome.resume_token_id)
+            .await
+            .unwrap();
         // 推进到 Resolving
         assert!(matches!(
             view.state,

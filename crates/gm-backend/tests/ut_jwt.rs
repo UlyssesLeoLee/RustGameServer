@@ -34,8 +34,8 @@ fn test_state(require_jwt: bool) -> AppState {
 
 #[test]
 fn issue_and_verify_jwt_roundtrip() {
-    let token = issue_jwt("test-secret", "admin01", vec!["gm".to_string()], 3600)
-        .expect("issue_jwt ok");
+    let token =
+        issue_jwt("test-secret", "admin01", vec!["gm".to_string()], 3600).expect("issue_jwt ok");
     let claims = verify_jwt("test-secret", &token).expect("verify_jwt ok");
     assert_eq!(claims.sub, "admin01");
     assert_eq!(claims.roles, vec!["gm"]);
@@ -85,13 +85,7 @@ async fn middleware_require_jwt_true_no_token_returns_401() {
 #[tokio::test]
 async fn middleware_require_jwt_true_valid_token_returns_200() {
     let state = test_state(true);
-    let token = issue_jwt(
-        "test-secret",
-        "admin01",
-        vec!["gm".to_string()],
-        3600,
-    )
-    .unwrap();
+    let token = issue_jwt("test-secret", "admin01", vec!["gm".to_string()], 3600).unwrap();
     let app = gm_backend::build_router(state);
     let req = Request::builder()
         .method("GET")

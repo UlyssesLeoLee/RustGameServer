@@ -20,7 +20,10 @@ async fn main() {
     // 1. EconomyFixture
     println!("[1] EconomyFixture::economy(\"alice\")");
     let bal = fixture::economy("alice");
-    println!("    player_id={}, currency={}, gold={}\n", bal.player_id, bal.currency, bal.gold);
+    println!(
+        "    player_id={}, currency={}, gold={}\n",
+        bal.player_id, bal.currency, bal.gold
+    );
 
     // 2. FixtureBuilder 链式构造
     println!("[2] FixtureBuilder::new(bal).with_currency(5000).with_gold(100).build()");
@@ -28,15 +31,34 @@ async fn main() {
         .with_currency(5000)
         .with_gold(100)
         .build();
-    println!("    player_id={}, currency={}, gold={}\n", custom.player_id, custom.currency, custom.gold);
+    println!(
+        "    player_id={}, currency={}, gold={}\n",
+        custom.player_id, custom.currency, custom.gold
+    );
 
     // 3. InMemoryNatsMock 模拟 outbox relay
     println!("[3] InMemoryNatsMock 模拟 outbox relay 事件");
     let nats = InMemoryNatsMock::new();
-    nats.publish("economy.outbox.balance_changed", br#"{"player_id":"alice","delta":100}"#).await.unwrap();
-    nats.publish("economy.outbox.balance_changed", br#"{"player_id":"alice","delta":-50}"#).await.unwrap();
-    let msgs = nats.subscribe("economy.outbox.balance_changed").await.expect("subscribe ok");
-    println!("    outbox received_count={} (期望 2)\n", nats.received_count("economy.outbox.balance_changed"));
+    nats.publish(
+        "economy.outbox.balance_changed",
+        br#"{"player_id":"alice","delta":100}"#,
+    )
+    .await
+    .unwrap();
+    nats.publish(
+        "economy.outbox.balance_changed",
+        br#"{"player_id":"alice","delta":-50}"#,
+    )
+    .await
+    .unwrap();
+    let msgs = nats
+        .subscribe("economy.outbox.balance_changed")
+        .await
+        .expect("subscribe ok");
+    println!(
+        "    outbox received_count={} (期望 2)\n",
+        nats.received_count("economy.outbox.balance_changed")
+    );
     println!("    payload[0]={}", String::from_utf8_lossy(&msgs[0]));
     println!("    payload[1]={}", String::from_utf8_lossy(&msgs[1]));
 

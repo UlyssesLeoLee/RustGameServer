@@ -21,12 +21,18 @@ const CHAOS_RESP_ID: &str = "CHAOS_RESPONSES";
 
 #[test]
 fn it_chaos_resp_5_response_categories_documented() {
-    let responses = vec![
+    let responses = [
         ("206 Partial Content", "正常处理，写 chunk"),
         ("416 Range Not Satisfiable", "ETag 变更 / 范围越界 → 重新拉"),
         ("200 OK", "服务端忽略 Range → 触发全量重传"),
-        ("429 Too Many Requests", "退避后 retry（指数退避 100ms 起步）"),
-        ("503 Service Unavailable", "退避后 retry → 最终 RetryExhausted"),
+        (
+            "429 Too Many Requests",
+            "退避后 retry（指数退避 100ms 起步）",
+        ),
+        (
+            "503 Service Unavailable",
+            "退避后 retry → 最终 RetryExhausted",
+        ),
     ];
     eprintln!("[{CHAOS_RESP_ID}] 5 类服务端响应注入：");
     for (i, (code, behavior)) in responses.iter().enumerate() {
