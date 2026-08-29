@@ -60,3 +60,9 @@ rgs-testkit = { path = "../rgs-testkit" }
 # WF-1-55.42: criterion.rs 撮合 benchmark（per RGS-DTL-026 v0.4 §4.1.3 + RGS-OPEN-QA-001 Q-D-10 + ACTIONS-v0.3 A-10）
 # 不入 workspace.dependencies：match-service 域专属，且只有 dev 场景需要，避免污染其他 4 域
 criterion = { version = "0.5", features = ["html_reports"] }
+# W36 (2026-08-30): 跨域 SaveReplay saga IT — 引入 replay-service + tonic 端到端 mock server
+replay-service = { path = "../replay-service" }
+# tonic 0.12 服务端 listen: TcpListenerStream 适配
+tokio-stream = { version = "0.1", features = ["net"] }
+# IT 需要更精细的时间控制 (per saga retry)
+tokio = { workspace = true, features = ["full", "test-util", "time"] }

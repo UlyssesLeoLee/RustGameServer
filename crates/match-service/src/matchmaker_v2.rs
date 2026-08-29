@@ -29,14 +29,14 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::{broadcast, Mutex as AsyncMutex};
 use uuid::Uuid;
 
 use crate::entity_v2::{
-    Board, GameMode, GameSession, MatchmakingTicket, Move, MoveType, SessionPlayer, SessionStatus,
+    GameMode, GameSession, MatchmakingTicket, Move, MoveType, SessionPlayer, SessionStatus,
 };
 use crate::error::Error;
+use crate::replay_client::{ReplayClientTrait, SaveReplayRequest};
 use crate::repository_v2::{
     GameSessionRepository, MatchmakingTicketRepository, MoveRepository,
 };
@@ -159,6 +159,10 @@ pub struct MatchmakerServiceV2 {
     moves: Arc<dyn MoveRepository>,
     tickets: Arc<dyn MatchmakingTicketRepository>,
     event_bus: EventBus,
+    /// W36 (2026-08-30): 跨域 SaveReplay 客户端 (per replay-service 桶 13 收尾 TODO)
+    /// - None = 禁用跨域 SaveReplay (兼容旧测试, 0 破坏)
+    /// - Some(Arc<dyn ReplayClientTrait>) = 启用, session Ending → Ended 时 fire-and-forget 触发
+    replay_client: Option<Arc<dyn ReplayClientTrait>>,
 }
 
 impl MatchmakerServiceV2 {
@@ -172,7 +176,144 @@ impl MatchmakerServiceV2 {
             moves,
             tickets,
             event_bus: EventBus::new(),
+            replay_client: None,
         }
+    }
+
+    /// W36 (2026-08-30): 注入 replay 客户端, 启用跨域 SaveReplay saga
+    /// 用法: `MatchmakerServiceV2::with_replay_client(s, m, t, replay_client)`
+    pub fn with_replay_client(
+        sessions: Arc<dyn GameSessionRepository>,
+        moves: Arc<dyn MoveRepository>,
+        tickets: Arc<dyn MatchmakingTicketRepository>,
+        replay_client: Arc<dyn ReplayClientTrait>,
+    ) -> Self {
+        Self {
+            sessions,
+            moves,
+            tickets,
+            event_bus: EventBus::new(),
+            replay_client: Some(replay_client),
+        }
+    }
+
+    /// 注入 / 替换 replay 客户端 (per 测试 / 热更新场景)
+    pub fn set_replay_client(&mut self, client: Arc<dyn ReplayClientTrait>) {
+        self.replay_client = Some(client);
+    }
+
+    /// 返回当前 replay 客户端 (供测试验证)
+    pub fn replay_client(&self) -> Option<Arc<dyn ReplayClientTrait>> {
+        self.replay_client.clone()
+    }
+
+    // ========================================================================
+    // W36 (2026-08-30): 跨域 SaveReplay 触发 (per 桶 13 收尾 TODO)
+    // 设计:
+    //   - 在 session 状态机 Ending → Ended 转移时, 异步 fire-and-forget 调 replay-service
+    //   - fire-and-forget: 不阻塞业务响应, 失败仅 log warn (不级联)
+    //   - saga_id 留空 (单次调用非 saga 模式, 后续桶接入 saga 编排时填充)
+    //   - 序列化 session.board + moves 到 JSON bytes 作为 data 字段
+    // ========================================================================
+
+    /// 异步触发 SaveReplay (fire-and-forget, 不等待结果)
+    ///
+    /// 触发点:
+    /// - `leave_match(surrender=true)`: 投降, 立即 Ended
+    /// - `submit_move(MoveType::Surrender)`: 投降, 立即 Ended
+    /// - `timeout_turn(timeout_count >= 3)`: 3 次累计超时, 判负
+    ///
+    /// 跳过条件:
+    /// - `replay_client` 未注入 (None) — 0 破坏兼容
+    /// - session 仍在非终态 (数据未完结)
+    /// - session.players 为空 (单方都没就结束, 没意义保存)
+    pub fn trigger_save_replay(&self, session: &GameSession) {
+        let client = match &self.replay_client {
+            Some(c) => c.clone(),
+            None => return, // 未注入: 静默跳过 (兼容旧测试)
+        };
+
+        // 校验: 终态 + 至少 1 个玩家
+        if !session.status.is_terminal() {
+            return;
+        }
+        if session.players.is_empty() {
+            return;
+        }
+
+        // 提取 player_a / player_b (按 players[0] = host 简化)
+        let player_a = session
+            .players
+            .first()
+            .map(|p| p.player_id.clone())
+            .unwrap_or_default();
+        let player_b = session.players.get(1).map(|p| p.player_id.clone());
+
+        // mode: i32 (0=unspecified 1=ranked 2=casual 3=room 4=pve_ai)
+        let mode = session.mode as i32;
+
+        // duration_secs: 从 started_at 到 now 估算 (per §5)
+        let now = chrono::Utc::now();
+        let duration_secs = (now - session.started_at).num_seconds().max(0) as u32;
+
+        // 构造 data: JSON { board, moves_count, end_reason, winner_id }
+        // 注: 这里仅序列化 board + 元数据, 详细 move log 由上层 saga 拼接 (per 后续桶)
+        let data = match serde_json::to_vec(&serde_json::json!({
+            "match_id": session.match_id.to_string(),
+            "mode": session.mode.to_string(),
+            "board": session.board,
+            "players": session.players.iter().map(|p| &p.player_id).collect::<Vec<_>>(),
+            "end_reason": session.end_reason,
+            "winner_id": session.winner_id,
+            "ended_at": session.ended_at.map(|t| t.to_rfc3339()),
+        })) {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::warn!(
+                    target: "match-service",
+                    "trigger_save_replay: serialize board failed for match {}: {}",
+                    session.match_id,
+                    e
+                );
+                return;
+            }
+        };
+
+        let req = SaveReplayRequest {
+            match_id: session.match_id,
+            player_a,
+            player_b,
+            mode,
+            data,
+            duration_secs,
+            custom_ttl_secs: 0, // 0 = 用 mode 默认 TTL
+            saga_id: None,      // W36 单次调用, 后续桶接 saga
+        };
+
+        // fire-and-forget: tokio::spawn 不等待结果
+        let match_id = session.match_id;
+        tokio::spawn(async move {
+            match client.save_replay(req).await {
+                Ok(outcome) => {
+                    tracing::info!(
+                        target: "match-service",
+                        "SaveReplay ok: match_id={} replay_id={} object_key={} size={}",
+                        match_id,
+                        outcome.replay_id,
+                        outcome.object_key,
+                        outcome.object_size
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        target: "match-service",
+                        "SaveReplay failed (fire-and-forget, non-fatal): match_id={} err={}",
+                        match_id,
+                        e
+                    );
+                }
+            }
+        });
     }
 
     pub fn event_bus(&self) -> EventBus {
@@ -621,6 +762,12 @@ impl MatchmakerServiceV2 {
             self.event_bus.cleanup(session.match_id).await;
         }
 
+        // W36 (2026-08-30): 跨域 SaveReplay saga — 终态时 fire-and-forget 触发
+        // 仅在 Ended (投降 / 判负) 触发; Canceled (未真正开始) 跳过
+        if session.status == SessionStatus::Ended {
+            self.trigger_save_replay(&session);
+        }
+
         Ok(LeaveMatchResult {
             left: true,
             match_result,
@@ -742,6 +889,9 @@ impl MatchmakerServiceV2 {
                 )
                 .await;
             self.event_bus.cleanup(match_id).await;
+
+            // W36 (2026-08-30): 跨域 SaveReplay saga — 投降判负, 立即 Ended
+            self.trigger_save_replay(&session);
 
             return Ok(SubmitMoveResult {
                 accepted: true,
@@ -918,6 +1068,9 @@ impl MatchmakerServiceV2 {
                 )
                 .await;
             self.event_bus.cleanup(match_id).await;
+
+            // W36 (2026-08-30): 跨域 SaveReplay saga — 3 次累计超时判负
+            self.trigger_save_replay(&session);
         } else {
             // 强制切到下一回合
             let deadline_ms = chrono::Utc::now().timestamp_millis() + 60_000;

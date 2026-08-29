@@ -1,4 +1,6 @@
 //! match-service proto 模块（per WBS v0.3 §2A.5 WF-1-54.3）
+//!
+//! W36 (2026-08-30): replay.proto 已移到 crate::replay::v1 (与 crate::common::v1 平级)
 
 #![allow(clippy::all)]
 
