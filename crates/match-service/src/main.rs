@@ -98,11 +98,40 @@ async fn main() -> anyhow::Result<()> {
     let v2_tickets: Arc<dyn match_service::repository_v2::MatchmakingTicketRepository> =
         Arc::new(PgMatchmakingTicketRepository::new(pool.clone()));
 
-    let matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(
+    let mut matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(
         v2_sessions,
         v2_moves,
         v2_tickets,
     ));
+
+    // W36 (2026-08-30): 跨域 SaveReplay saga — 注入 replay-service gRPC 客户端
+    // mTLS fail-closed (per RGS-REV-007 CH4 / DEC-015 P1): 默认强制 mTLS
+    // 注入失败: 仅 warn + 降级 (replay_client=None, session 结束不触发 SaveReplay, 0 破坏)
+    match build_replay_client() {
+        Ok(client) => {
+            tracing::info!(
+                target: "match-service",
+                "replay-service gRPC client ready (endpoint={})",
+                client_endpoint()
+            );
+            // matchmaker_v2 持有 Arc, 借用 Arc::get_mut 注入
+            if let Some(mv2_mut) = Arc::get_mut(&mut matchmaker_v2) {
+                mv2_mut.set_replay_client(client);
+            } else {
+                tracing::warn!(
+                    target: "match-service",
+                    "matchmaker_v2 already shared; replay client NOT injected (session 结束不触发 SaveReplay)"
+                );
+            }
+        }
+        Err(e) => {
+            tracing::warn!(
+                target: "match-service",
+                "replay-service gRPC client init failed: {}; SaveReplay saga disabled (session 结束不触发)",
+                e
+            );
+        }
+    }
 
     tracing::info!(target: "match-service", "match-service started, DB pool size: {}", pool.size());
 
@@ -193,4 +222,57 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("tonic server failed")?;
     Ok(())
+}
+
+// ============================================================================
+// W36 (2026-08-30): replay-service gRPC 客户端构造辅助函数
+// - mTLS fail-closed (per RGS-REV-007 CH4 / DEC-015 P1)
+// - 默认强制 mTLS; RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out (dev/test only)
+// - 失败仅 warn, 降级为 None (matchmaker_v2 不触发 SaveReplay, 业务 0 破坏)
+// ============================================================================
+
+/// 全局: 缓存 endpoint (供 tracing info 显示)
+fn client_endpoint() -> String {
+    std::env::var("REPLAY_GRPC_ENDPOINT")
+        .unwrap_or_else(|_| "http://replay-service:50057".to_string())
+}
+
+/// 构造 ReplayClient (mTLS fail-closed)
+fn build_replay_client() -> anyhow::Result<Arc<dyn match_service::ReplayClientTrait>> {
+    use match_service::{ReplayClient, ReplayClientConfig};
+
+    let endpoint = std::env::var("REPLAY_GRPC_ENDPOINT")
+        .unwrap_or_else(|_| "http://replay-service:50057".to_string());
+
+    // mTLS 配置: RGS_TLS_DIR/replay-client.{pem,key} + RGS_TLS_DIR/ca.pem
+    let allow_insecure = std::env::var("RGS_ALLOW_INSECURE_GRPC")
+        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
+
+    let config = if allow_insecure {
+        tracing::warn!(
+            target: "match-service",
+            "⚠ RGS_ALLOW_INSECURE_GRPC=1 — replay-service gRPC INSECURE (dev/test only)"
+        );
+        ReplayClientConfig::insecure(endpoint)
+    } else {
+        let tls_dir =
+            std::env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
+        let ca = format!("{}/ca.pem", tls_dir);
+        let cert = format!("{}/replay-client.pem", tls_dir);
+        let key = format!("{}/replay-client.key", tls_dir);
+        if !std::path::Path::new(&ca).exists()
+            || !std::path::Path::new(&cert).exists()
+            || !std::path::Path::new(&key).exists()
+        {
+            anyhow::bail!(
+                "mTLS cert missing at {tls_dir} (need ca.pem, replay-client.pem, replay-client.key). \
+                 set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test"
+            );
+        }
+        ReplayClientConfig::mtls(endpoint, "replay-service", ca, cert, key)
+    };
+
+    let client = ReplayClient::try_connect_lazy(config)
+        .context("replay-service client init failed")?;
+    Ok(Arc::new(client) as Arc<dyn match_service::ReplayClientTrait>)
 }
