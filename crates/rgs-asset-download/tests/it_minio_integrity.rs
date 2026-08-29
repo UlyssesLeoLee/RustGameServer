@@ -12,8 +12,8 @@
 
 mod common;
 
-use common::*;
 use common::size::*;
+use common::*;
 use sha2::{Digest, Sha256};
 
 const AC_ID: &str = "AC_CDN_111";
@@ -60,7 +60,10 @@ async fn it_ac_cdn_111_integrity_gate_tampered_negative() {
     tampered[last] ^= 0xFF;
 
     // 期望：校验失败
-    assert!(!integrity_gate_verify(&tampered, &expected_sha), "AC-CDN-111 负例失败：篡改未被检测");
+    assert!(
+        !integrity_gate_verify(&tampered, &expected_sha),
+        "AC-CDN-111 负例失败：篡改未被检测"
+    );
 }
 
 /// UT：IntegrityGate 边界用例
@@ -74,7 +77,10 @@ fn it_ac_cdn_111_integrity_gate_empty_file() {
 #[test]
 fn it_ac_cdn_111_integrity_gate_wrong_hash() {
     let data = b"hello, world";
-    assert!(!integrity_gate_verify(data, "0000000000000000000000000000000000000000000000000000000000000000"));
+    assert!(!integrity_gate_verify(
+        data,
+        "0000000000000000000000000000000000000000000000000000000000000000"
+    ));
 }
 
 /// 编译期 grep 验证（per NFR-CDN-002）

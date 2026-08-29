@@ -105,8 +105,8 @@ impl OverflowConfig {
         if !(soft_ratio > 0.0 && soft_ratio <= 1.0) {
             return Err(ConfigError::InvalidSoftRatio(soft_ratio));
         }
-        let stream_name = env::var("NATS_OVERFLOW_STREAM")
-            .unwrap_or_else(|_| "RGS_OVERFLOW".to_string());
+        let stream_name =
+            env::var("NATS_OVERFLOW_STREAM").unwrap_or_else(|_| "RGS_OVERFLOW".to_string());
         let consumer_group = env::var("NATS_OVERFLOW_CONSUMER_GROUP")
             .unwrap_or_else(|_| "rgs-overflow-workers".to_string());
         let max_pending = env::var("NATS_OVERFLOW_MAX_PENDING")
@@ -199,7 +199,10 @@ mod tests {
         assert_eq!(cfg.stream_name, "RGS_OVERFLOW");
         assert_eq!(cfg.consumer_group, "rgs-overflow-workers");
         assert_eq!(cfg.max_pending, DEFAULT_MAX_PENDING);
-        assert_eq!(cfg.dedup_window, Duration::from_secs(DEFAULT_DEDUP_WINDOW_SECS));
+        assert_eq!(
+            cfg.dedup_window,
+            Duration::from_secs(DEFAULT_DEDUP_WINDOW_SECS)
+        );
         assert_eq!(cfg.smtp.host, "smtp.gmail.com");
         assert_eq!(cfg.smtp.port, 587);
         assert!(cfg.smtp.password_is_empty());

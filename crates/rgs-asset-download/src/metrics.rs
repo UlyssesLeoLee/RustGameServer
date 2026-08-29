@@ -26,7 +26,8 @@
 
 use prometheus::{
     register_counter_vec_with_registry, register_gauge_vec_with_registry,
-    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, Registry, TextEncoder,
+    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, Registry,
+    TextEncoder,
 };
 use std::sync::OnceLock;
 
@@ -182,7 +183,9 @@ impl AssetDownloadMetrics {
 
     /// 设置活跃下载数
     pub fn set_active_count(&self, status: &str, count: i64) {
-        self.active_count.with_label_values(&[status]).set(count as f64);
+        self.active_count
+            .with_label_values(&[status])
+            .set(count as f64);
     }
 
     /// 累加已收字节
@@ -258,8 +261,10 @@ pub fn encode_metrics_text() -> Result<String, MetricsError> {
 /// Metrics 错误。
 #[derive(Debug, thiserror::Error)]
 pub enum MetricsError {
+    /// Prometheus text format 编码失败
     #[error("Prometheus encoding error: {0}")]
     Encoding(String),
+    /// Metric 注册到 registry 失败（如重复注册）
     #[error("Prometheus register error: {0}")]
     Register(String),
 }

@@ -44,10 +44,7 @@ async fn drop_test_db(admin_url: &str, db_name: &str) {
     let mut conn = PgConnection::connect(admin_url)
         .await
         .expect("reconnect to admin DB");
-    let drop_sql = format!(
-        "DROP DATABASE IF EXISTS \"{}\" WITH (FORCE)",
-        db_name
-    );
+    let drop_sql = format!("DROP DATABASE IF EXISTS \"{}\" WITH (FORCE)", db_name);
     let _ = conn.execute(drop_sql.as_str()).await;
 }
 
@@ -66,7 +63,9 @@ async fn outbox_check_constraint_rejects_invalid_status() {
         Some((p, q)) => (p.to_string(), format!("?{}", q)),
         None => (base.clone(), String::new()),
     };
-    let last_slash = base_prefix.rfind('/').expect("DATABASE_URL must have /<dbname>");
+    let last_slash = base_prefix
+        .rfind('/')
+        .expect("DATABASE_URL must have /<dbname>");
     let admin_url = format!("{}/postgres{}", &base_prefix[..last_slash], query);
 
     create_test_db(&admin_url, &db_name).await;
@@ -146,7 +145,9 @@ async fn outbox_check_constraint_is_idempotent() {
         Some((p, q)) => (p.to_string(), format!("?{}", q)),
         None => (base.clone(), String::new()),
     };
-    let last_slash = base_prefix.rfind('/').expect("DATABASE_URL must have /<dbname>");
+    let last_slash = base_prefix
+        .rfind('/')
+        .expect("DATABASE_URL must have /<dbname>");
     let admin_url = format!("{}/postgres{}", &base_prefix[..last_slash], query);
     let db_name = format!("wf_1_55_28_{}", Uuid::new_v4().simple());
     let test_url = format!("{}/{}{}", &base_prefix[..last_slash], db_name, query);

@@ -319,10 +319,7 @@ async fn span_assertion_apply_atomic_with_reservation_no_panic() {
     );
 
     // 关键: 失败路径 reservation 必须 cleanup (per RGS-REV-008 CC-4)
-    let for_saga = res_repo
-        .list_by_saga(saga_id2)
-        .await
-        .expect("list_by_saga");
+    let for_saga = res_repo.list_by_saga(saga_id2).await.expect("list_by_saga");
     assert_eq!(
         for_saga.len(),
         0,

@@ -29,11 +29,36 @@ async fn main() {
     let mut grpc = TonicGrpcMock::new().await;
     // gm-backend 当前是 stub 状态 (per TBD-08-03 v0.2 实装 admin-service gRPC client)
     // 这里只 mock 字段级 stub 返回
-    grpc.expect("POST", "/admin.v1.AdminService/QueryHealthView", 200, br#"{"service":"admin","admin_endpoint":"http://admin:50055","mode":"stub-ok"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/BanAccount", 200, br#"{"status":"queued","op":"ban"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/GrantCompensation", 200, br#"{"status":"queued","op":"compensation"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/SetMaintenanceMode", 200, br#"{"status":"queued","op":"maintenance"}"#);
-    grpc.expect("POST", "/admin.v1.AdminService/QueryAuditLog", 200, br#"{"items":[],"next":"stub"}"#);
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/QueryHealthView",
+        200,
+        br#"{"service":"admin","admin_endpoint":"http://admin:50055","mode":"stub-ok"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/BanAccount",
+        200,
+        br#"{"status":"queued","op":"ban"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/GrantCompensation",
+        200,
+        br#"{"status":"queued","op":"compensation"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/SetMaintenanceMode",
+        200,
+        br#"{"status":"queued","op":"maintenance"}"#,
+    );
+    grpc.expect(
+        "POST",
+        "/admin.v1.AdminService/QueryAuditLog",
+        200,
+        br#"{"items":[],"next":"stub"}"#,
+    );
     println!("    TonicGrpcMock url={}\n", grpc.url());
     println!("    5 admin-service expectations registered\n");
 

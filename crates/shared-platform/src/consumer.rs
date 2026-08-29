@@ -66,7 +66,9 @@ pub fn extract_traceparent_from_headers(headers: &HeaderMap) -> Option<(Uuid, Uu
 ///
 /// 复用 grpc_tracing::parse_traceparent 解析格式（per W3C Trace Context）。
 fn link_current_span_to_parent(trace_id: Uuid, span_id: Uuid) {
-    use opentelemetry::trace::{SpanContext, SpanId as OtelSpanId, TraceFlags, TraceId as OtelTraceId, TraceState};
+    use opentelemetry::trace::{
+        SpanContext, SpanId as OtelSpanId, TraceFlags, TraceId as OtelTraceId, TraceState,
+    };
     // OTel TraceId = 16 bytes，直接从 UUID 拷过来
     let mut trace_bytes = [0u8; 16];
     trace_bytes.copy_from_slice(trace_id.as_bytes());
@@ -279,7 +281,8 @@ mod tests {
         let tp = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b70000000000000000-01";
         headers.insert(
             TRACEPARENT_HEADER,
-            tp.parse::<async_nats::HeaderValue>().expect("valid traceparent"),
+            tp.parse::<async_nats::HeaderValue>()
+                .expect("valid traceparent"),
         );
         let (trace_id, span_id) =
             extract_traceparent_from_headers(&headers).expect("valid traceparent must parse");

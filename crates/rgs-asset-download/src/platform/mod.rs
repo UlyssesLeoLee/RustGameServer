@@ -22,14 +22,14 @@
 
 use crate::error::{DownloadError, DownloadResult};
 
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-pub mod unix;
-#[cfg(target_os = "windows")]
-pub mod windows;
 #[cfg(target_os = "android")]
 pub mod android;
 #[cfg(target_os = "ios")]
 pub mod ios;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub mod unix;
+#[cfg(target_os = "windows")]
+pub mod windows;
 
 /// 预分配策略（用于 metrics 标签 + 调试日志）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -73,10 +73,7 @@ pub trait SparseFileAllocator {
 /// 2. 平台预分配（4 平台各自实现）
 /// 3. 失败 → 降级到 [`fallback_preallocate`]
 /// 4. 仍失败 → `DownloadError::Io` / `PlatformPreallocateUnsupported`
-pub fn preallocate_sparse_file(
-    path: &str,
-    size: u64,
-) -> DownloadResult<PreallocateOutcome> {
+pub fn preallocate_sparse_file(path: &str, size: u64) -> DownloadResult<PreallocateOutcome> {
     if size == 0 {
         return Err(DownloadError::ConfigInvalid {
             field: "size".into(),

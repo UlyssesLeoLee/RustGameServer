@@ -44,7 +44,11 @@ async fn it_nfr_cdn_112_degradation_under_20pct() {
         throughput_without,
         ratio * 100.0
     );
-    assert!(ratio <= 0.20, "NFR-CDN-112 失败：恶化率={:.1}% > 20%", ratio * 100.0);
+    assert!(
+        ratio <= 0.20,
+        "NFR-CDN-112 失败：恶化率={:.1}% > 20%",
+        ratio * 100.0
+    );
 }
 
 /// UT：degradation_ratio 边界用例

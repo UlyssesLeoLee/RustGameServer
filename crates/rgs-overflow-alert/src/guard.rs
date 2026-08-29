@@ -139,7 +139,12 @@ impl OverflowGuard {
     /// 3. Queued → queue.enqueue，成功 → OverflowStatus::Queued，失败 → Rejected + 告警
     /// 4. Rejected → 立即告警
     #[allow(clippy::too_many_lines)]
-    pub async fn check(&self, op: &str, request_id: &str, business_json: Option<&str>) -> OverflowDecision {
+    pub async fn check(
+        &self,
+        op: &str,
+        request_id: &str,
+        business_json: Option<&str>,
+    ) -> OverflowDecision {
         // 1. 限流
         let (outcome, permit) = self.limiter.try_acquire();
         match outcome {
@@ -261,7 +266,10 @@ impl OverflowGuard {
     /// 用配置构造"标准三件套"：SMTP / LogOnly + dedup（**业务**用，省 boilerplate）
     pub fn build_standard_sink(
         cfg: &OverflowConfig,
-    ) -> (Arc<dyn crate::alert::AlertSink>, Arc<dyn crate::alert::AlertSink>) {
+    ) -> (
+        Arc<dyn crate::alert::AlertSink>,
+        Arc<dyn crate::alert::AlertSink>,
+    ) {
         let primary: Arc<dyn crate::alert::AlertSink> = if cfg.smtp.password_is_empty() {
             Arc::new(crate::alert::LogOnlySink)
         } else {
@@ -282,9 +290,7 @@ impl OverflowGuard {
     }
 
     /// 构造 dedup（辅助函数）
-    pub fn build_alerter(
-        cfg: &OverflowConfig,
-    ) -> Arc<AlertDeduplicator> {
+    pub fn build_alerter(cfg: &OverflowConfig) -> Arc<AlertDeduplicator> {
         let (primary, fallback) = Self::build_standard_sink(cfg);
         Arc::new(AlertDeduplicator::new(
             primary,
@@ -300,6 +306,7 @@ impl OverflowGuard {
 }
 
 #[cfg(test)]
+#[allow(clippy::await_holding_lock)]
 mod tests {
     use super::*;
     use crate::alert::{AlertDeduplicator, LogOnlySink};
@@ -355,7 +362,9 @@ mod tests {
         // 用 check() 取 5 个 permit（Pass 路径返回 permit，business 持有）
         let mut d_passes = Vec::new();
         for i in 0..5 {
-            let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+            let d = g
+                .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+                .await;
             assert_eq!(d.status, OverflowStatus::Pass);
             assert!(d.guard.is_some());
             d_passes.push(d);
@@ -365,7 +374,10 @@ mod tests {
         assert_eq!(d.status, OverflowStatus::Queued);
         assert!(d.ack_token.is_some());
         // Queued 也持有 permit（直到消费者处理完才 drop）— 这是限流语义的关键
-        assert!(d.guard.is_some(), "Queued should retain permit for in_flight accounting");
+        assert!(
+            d.guard.is_some(),
+            "Queued should retain permit for in_flight accounting"
+        );
         // 持 5 个 permit + 第 6 个的 permit
         d_passes.push(d);
         drop(d_passes);
@@ -399,7 +411,9 @@ mod tests {
         // 用 check() 取 5 个 permit
         let mut d_passes = Vec::new();
         for i in 0..5 {
-            let d = g.check(&format!("Op::{}", i), &format!("req-{}", i), None).await;
+            let d = g
+                .check(&format!("Op::{}", i), &format!("req-{}", i), None)
+                .await;
             assert_eq!(d.status, OverflowStatus::Pass);
             d_passes.push(d);
         }

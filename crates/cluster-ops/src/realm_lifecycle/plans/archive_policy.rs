@@ -34,22 +34,16 @@ pub const STORAGE_REDUNDANCY_N_PLUS_1: &str = "n_plus_1";
 pub const STORAGE_REDUNDANCY_N_PLUS_3: &str = "n_plus_3";
 
 /// 存储冗余等级（per DTL-042 §3.1 #6 chk_storage_redundancy 约束）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum StorageRedundancy {
     /// N+1（最少副本数；需 Ulysses 显式签字才能降级到此，per ADR-0055 §4.3）
     NPlus1,
     /// **N+2（默认；per RSK-LCM-005 缓解）**
+    #[default]
     NPlus2,
     /// N+3（更高冗余；运营可主动升级）
     NPlus3,
-}
-
-impl Default for StorageRedundancy {
-    fn default() -> Self {
-        // 硬约束：默认 N+2，per RSK-LCM-005
-        StorageRedundancy::NPlus2
-    }
 }
 
 impl fmt::Display for StorageRedundancy {
@@ -204,8 +198,7 @@ impl ArchivePolicy {
             // 本方法**不**接受 `signed_by: Option<String>` 形参，意味着**不**允许
             // 通过业务代码直接降级 — 降级必须由外部 SRE 工具发起且经 UI 显式签字
             return Err(LcmError::InvalidArchivePolicy(
-                "N+1 降级必须 Ulysses 显式签字（per ADR-0055 §4.3），业务代码不允许"
-                    .to_string(),
+                "N+1 降级必须 Ulysses 显式签字（per ADR-0055 §4.3），业务代码不允许".to_string(),
             ));
         }
         Ok(Self {
@@ -419,8 +412,10 @@ mod tests {
     #[test]
     fn empty_gdpr_path_rejected() {
         // gdpr_delete_path 不能为空（per NFR-SE-010）
-        let mut p = ArchivePolicy::default();
-        p.gdpr_delete_path = "".to_string();
+        let p = ArchivePolicy {
+            gdpr_delete_path: "".to_string(),
+            ..ArchivePolicy::default()
+        };
         let v = p.validate();
         assert!(matches!(v, Err(LcmError::InvalidArchivePolicy(_))));
     }

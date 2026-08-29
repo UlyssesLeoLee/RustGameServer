@@ -14,11 +14,22 @@
 
 #[cfg(target_os = "linux")]
 #[test]
+#[ignore = "需要 WSL + k3s 集群实机环境（per 文件头注释 --include-ignored 手动跑）；CI ubuntu-latest 无 k3s"]
 fn cluster_ops_health_endpoint_self_check() {
     use std::process::Command;
     // WSL 端: k3s kubectl get pods
     let out = Command::new("k3s")
-        .args(["kubectl", "get", "pods", "-n", "rust-game-server", "-l", "app.kubernetes.io/name=cluster-ops", "-o", "name"])
+        .args([
+            "kubectl",
+            "get",
+            "pods",
+            "-n",
+            "rust-game-server",
+            "-l",
+            "app.kubernetes.io/name=cluster-ops",
+            "-o",
+            "name",
+        ])
         .output()
         .expect("k3s kubectl get pods (run inside WSL)");
     let stdout = String::from_utf8_lossy(&out.stdout);
@@ -26,7 +37,10 @@ fn cluster_ops_health_endpoint_self_check() {
         stdout.contains("cluster-ops-"),
         "cluster-ops pods must be running, got: {stdout}"
     );
-    let lines: Vec<&str> = stdout.lines().filter(|l| l.contains("cluster-ops-")).collect();
+    let lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("cluster-ops-"))
+        .collect();
     assert!(
         lines.len() >= 3,
         "cluster-ops should have >= 3 replicas, got {}",

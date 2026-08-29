@@ -14,7 +14,7 @@
 mod common;
 
 use common::*;
-use rgs_asset_download::{RangeResponse, state_machine::DownloadState};
+use rgs_asset_download::{state_machine::DownloadState, RangeResponse};
 
 const CHAOS_5_CATEGORIES: &[&str] = &[
     "断网 (network partition)",
@@ -155,7 +155,7 @@ async fn it_chaos_5_forced_full_response_200_ok() {
 #[test]
 fn it_chaos_5_categories_state_machine_invariant() {
     use rgs_asset_download::state_machine::DownloadStateMachine;
-    for chaos_idx in 0..CHAOS_5_CATEGORIES.len() {
+    for (chaos_idx, chaos_category) in CHAOS_5_CATEGORIES.iter().enumerate() {
         let mut sm = DownloadStateMachine::new();
         sm.transition(DownloadState::Idle);
         sm.transition(DownloadState::Resolving);
@@ -168,9 +168,6 @@ fn it_chaos_5_categories_state_machine_invariant() {
         // 恢复 → Resolving
         sm.transition(DownloadState::Resolving);
         assert_eq!(sm.current(), DownloadState::Resolving);
-        eprintln!(
-            "[chaos_minio/UT] chaos_idx={} ({}) → 状态机恢复成功",
-            chaos_idx, CHAOS_5_CATEGORIES[chaos_idx]
-        );
+        eprintln!("[chaos_minio/UT] chaos_idx={chaos_idx} ({chaos_category}) → 状态机恢复成功");
     }
 }

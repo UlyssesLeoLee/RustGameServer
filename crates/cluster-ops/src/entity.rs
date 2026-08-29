@@ -344,8 +344,7 @@ mod tests {
     #[test]
     fn sub_feature_seven_distinct() {
         // 7 子类不重复
-        let mut all: Vec<&'static str> =
-            SubFeature::ALL.iter().map(|s| s.as_str()).collect();
+        let mut all: Vec<&'static str> = SubFeature::ALL.iter().map(|s| s.as_str()).collect();
         all.sort();
         all.dedup();
         assert_eq!(all.len(), 7, "7 子类必须 snake_case 不重复");
@@ -354,8 +353,7 @@ mod tests {
     #[test]
     fn sub_feature_required_snake_case_names() {
         // per RGS-SPEC-DTL-042 §3：7 子类名
-        let names: Vec<&'static str> =
-            SubFeature::ALL.iter().map(|s| s.as_str()).collect();
+        let names: Vec<&'static str> = SubFeature::ALL.iter().map(|s| s.as_str()).collect();
         for required in [
             "new_realm",
             "scale",

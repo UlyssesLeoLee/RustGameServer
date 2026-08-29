@@ -41,7 +41,9 @@ pub mod subject;
 pub mod tls;
 pub mod tracing_init;
 
-pub use channel::{build_channel, mtls_bypassed_total, retry_backoff, ChannelError, RpcChannelConfig};
+pub use channel::{
+    build_channel, mtls_bypassed_total, retry_backoff, ChannelError, RpcChannelConfig,
+};
 pub use client::{
     build_insecure_channel, build_secure_channel, build_secure_channel_with_tls, ServiceId,
 };
@@ -76,8 +78,8 @@ pub use span_helpers::{
 };
 pub use subject::{parse, SubjectBuilder, SubjectDomain, SubjectError};
 pub use tls::{
-    install_default_crypto_provider, load_client_tls, load_server_identity,
-    load_server_tls_config, ClientTlsConfigInput, TlsError,
+    install_default_crypto_provider, load_client_tls, load_server_identity, load_server_tls_config,
+    ClientTlsConfigInput, TlsError,
 };
 pub use tracing_init::{
     init_otel_exporter_optional, init_tracing, init_tracing_with_otel, shutdown_tracing,

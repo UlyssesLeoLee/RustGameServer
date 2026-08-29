@@ -83,9 +83,9 @@ async fn main() -> anyhow::Result<()> {
 
     // S4 Phase 2 step 2: 注入 audit_log repository 到 4 GM RPC handler 全局 state
     // (per RGS-S4-PHASE2-STEP1-设计.md)
-    admin_service::gm_handlers::init_state(
-        admin_service::gm_handlers::GmHandlerState::new(audit.clone())
-    );
+    admin_service::gm_handlers::init_state(admin_service::gm_handlers::GmHandlerState::new(
+        audit.clone(),
+    ));
 
     tracing::info!(target: "admin-service", "admin-service started, DB pool size: {}", pool.size());
 
@@ -125,9 +125,7 @@ async fn main() -> anyhow::Result<()> {
     // 55.13 (per verify-C CC-1): 注入 PgPool 让 audit_log 走事务化路径
     // 不调 with_pool 时 admin-service.audit_log() 会走 InMemory fallback,
     // 导致 55.13 SHA-256 hash 链 + 事务化 + UNIQUE(prev_hash) 全部失效
-    let service_impl = Arc::new(
-        AdminServiceImpl::new(users, audit).with_pool(pool.clone())
-    );
+    let service_impl = Arc::new(AdminServiceImpl::new(users, audit).with_pool(pool.clone()));
     let grpc = AdminGrpcService::new(service_impl);
 
     // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
@@ -160,7 +158,9 @@ async fn main() -> anyhow::Result<()> {
             &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
             &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
         )
-        .context("mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)")?;
+        .context(
+            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
+        )?;
         server_builder = server_builder
             .tls_config(tls_config)
             .context("tls_config")?;

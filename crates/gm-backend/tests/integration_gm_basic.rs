@@ -14,14 +14,16 @@ use gm_backend::{build_health_router, build_router, AppState, GmConfig};
 use serde_json::json;
 
 fn make_test_server() -> TestServer {
-    let cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055").unwrap();
+    let cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055").unwrap();
     let state = AppState::new(cfg);
     let app = build_router(state);
     TestServer::new(app).expect("test server should bind")
 }
 
 fn make_health_server() -> TestServer {
-    let cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055").unwrap();
+    let cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://admin-staging:50055").unwrap();
     let state = AppState::new(cfg);
     let app = build_health_router(state);
     TestServer::new(app).expect("health server should bind")
@@ -112,7 +114,9 @@ async fn set_maintenance_returns_202_queued_with_propagation_status() {
     let server = make_test_server();
     let resp = server
         .post("/api/v1/gm/maintenance")
-        .json(&json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}))
+        .json(
+            &json!({"enable": true, "scope": "cluster", "target_id": "cluster", "ttl_seconds": 0}),
+        )
         .await;
     resp.assert_status(axum::http::StatusCode::ACCEPTED);
     let body: serde_json::Value = resp.json();

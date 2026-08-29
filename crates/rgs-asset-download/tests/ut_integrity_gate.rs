@@ -15,9 +15,8 @@ use tempfile::tempdir;
 #[tokio::test]
 async fn known_vector_abc() {
     let gate = IntegrityGate::new();
-    let h = gate.verify_for_test("ignored", "").await;
     // 不验证文件路径；改用 hash_bytes
-    drop(h);
+    let _ = gate.verify_for_test("ignored", "").await;
     let hex = IntegrityGate::hash_bytes(b"abc");
     assert_eq!(
         hex,
@@ -36,7 +35,10 @@ async fn match_for_known_payload() {
         .unwrap();
     let expected = IntegrityGate::hash_bytes(payload);
     let gate = IntegrityGate::new();
-    let report = gate.verify(path.to_str().unwrap(), &expected).await.unwrap();
+    let report = gate
+        .verify(path.to_str().unwrap(), &expected)
+        .await
+        .unwrap();
     assert_eq!(report.status, IntegrityStatus::Match);
     assert_eq!(report.size_bytes, payload.len() as u64);
 }
@@ -58,10 +60,7 @@ async fn mismatch_detects_tampering() {
         .await
         .unwrap();
     assert_eq!(report.status, IntegrityStatus::Mismatch);
-    assert_eq!(
-        report.actual_sha256,
-        IntegrityGate::hash_bytes(b"original")
-    );
+    assert_eq!(report.actual_sha256, IntegrityGate::hash_bytes(b"original"));
 }
 
 #[tokio::test]

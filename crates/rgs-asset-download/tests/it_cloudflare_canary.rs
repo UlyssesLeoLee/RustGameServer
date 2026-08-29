@@ -144,7 +144,12 @@ impl CanaryScheduler {
     /// 探测一次（PH-3 阶段 stub：返回占位结果，由 SRE 接力后接 reqwest）。
     fn probe(&self, stage: CanaryStage, seq: u32) -> CanaryProbe {
         let backend = self.select_backend(stage, seq);
-        let _ = (self.r2_base.as_str(), self.r2_key.as_str(), self.self_hosted_base.as_str(), self.self_hosted_key.as_str());
+        let _ = (
+            self.r2_base.as_str(),
+            self.r2_key.as_str(),
+            self.self_hosted_base.as_str(),
+            self.self_hosted_key.as_str(),
+        );
         CanaryProbe {
             stage,
             seq,
@@ -233,7 +238,10 @@ fn canary_stage_5_percent() {
         "5% 阶段 R2 占比应在 3%-7%, 实际 {:.1}%",
         share * 100.0
     );
-    assert_eq!(integrity_fail, 0, "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0");
+    assert_eq!(
+        integrity_fail, 0,
+        "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0"
+    );
 }
 
 /// 切流阶段 2：25% R2 + 75% 自托管
@@ -267,7 +275,10 @@ fn canary_stage_25_percent() {
         "25% 阶段 R2 占比应在 23%-27%, 实际 {:.1}%",
         share * 100.0
     );
-    assert_eq!(integrity_fail, 0, "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0");
+    assert_eq!(
+        integrity_fail, 0,
+        "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0"
+    );
 }
 
 /// 切流阶段 3：100% R2（自托管降为 fallback）
@@ -301,7 +312,10 @@ fn canary_stage_100_percent_full_cutover() {
         "100% 阶段 R2 占比应 ≥98%, 实际 {:.1}%",
         share * 100.0
     );
-    assert_eq!(integrity_fail, 0, "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0");
+    assert_eq!(
+        integrity_fail, 0,
+        "NFR-CDN-002: 任何阶段整文件 hash 失败 = 0"
+    );
 }
 
 /// 三阶段顺序执行 + 整文件 hash 全程 0 失败 + 恶化阈值 ≤ 20%
@@ -348,7 +362,12 @@ fn canary_three_stage_full_run() {
             );
         }
 
-        assert_eq!(integrity_fail, 0, "NFR-CDN-002: {} 整文件 hash 失败 = 0", stage.name());
+        assert_eq!(
+            integrity_fail,
+            0,
+            "NFR-CDN-002: {} 整文件 hash 失败 = 0",
+            stage.name()
+        );
         all_stages.push((stage, batch));
     }
 
@@ -429,14 +448,22 @@ fn canary_select_backend_distribution() {
         .filter(|&seq| sched.select_backend(CanaryStage::Percent5, seq) == "r2")
         .count();
     let share_5 = r2_count_5 as f64 / 1000.0;
-    assert!((0.03..=0.07).contains(&share_5), "5% 阶段 share={}", share_5);
+    assert!(
+        (0.03..=0.07).contains(&share_5),
+        "5% 阶段 share={}",
+        share_5
+    );
 
     // 25% 阶段
     let r2_count_25 = (0..1000u32)
         .filter(|&seq| sched.select_backend(CanaryStage::Percent25, seq) == "r2")
         .count();
     let share_25 = r2_count_25 as f64 / 1000.0;
-    assert!((0.23..=0.27).contains(&share_25), "25% 阶段 share={}", share_25);
+    assert!(
+        (0.23..=0.27).contains(&share_25),
+        "25% 阶段 share={}",
+        share_25
+    );
 
     // 100% 阶段
     let r2_count_100 = (0..1000u32)
@@ -464,7 +491,10 @@ fn try_build_scheduler_obeys_current_env() {
     if all_set {
         assert!(res.is_some(), "4 env 都设时必须返回 Some");
     } else {
-        assert!(res.is_none(), "4 env 任一缺失必须返回 None（PH-5 降级路径）");
+        assert!(
+            res.is_none(),
+            "4 env 任一缺失必须返回 None（PH-5 降级路径）"
+        );
     }
 }
 

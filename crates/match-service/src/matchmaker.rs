@@ -75,7 +75,10 @@ pub enum CommitResult {
     /// 全部条目 OCC 通过,match 创建
     Committed(Vec<String>),
     /// 有条目冲突,本次撮合废止
-    ConcurrentlyMatched { losing_entry: String, succeeded: Vec<String> },
+    ConcurrentlyMatched {
+        losing_entry: String,
+        succeeded: Vec<String>,
+    },
 }
 
 /// 抽象 OCC 数据库(测试可注入 mock)
