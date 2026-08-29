@@ -1,0 +1,42 @@
+[package]
+name = "i18n-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "卡牌游戏多语言文案微服务 (per RGS-REQ-038 §NFR-005 + RGS-DTL-038 §4.1 + DEC-038-05 推荐 A — Redis 缓存 + DB 持久化 + 独立 i18n-service 域)"
+
+[[bin]]
+name = "i18n-service"
+path = "src/main.rs"
+
+[features]
+# 域级总开关: tracing 启用 / 关闭 (per 5 域对齐)
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server (per 5 域对齐: tonic 0.12.3)
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+# DB (5 独立 DB 原则: i18n_db, per ARC-008)
+sqlx = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# 55.21+22 wire-up 预留: mTLS + outbox relay (per RGS-REV-007 CH4+CH1+CH2 / DEC-015 P1)
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }
