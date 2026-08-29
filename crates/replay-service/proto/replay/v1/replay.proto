@@ -1,0 +1,155 @@
+syntax = "proto3";
+package replay.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/replay/v1;replayv1";
+
+// ============================================================
+// replay-service v1 (per RGS-DTL-038 §3 DEC-038-03 推荐 A — cluster-ops 对象存储)
+// 上游: RGS-REQ-038 §FR-008 战斗回放
+// 状态: 草案, 待 DDD Review 拍板 (9 DEC 2026-08-29 已 9A 全过, 桶 13 实施)
+//
+// 域职责 (per DEC-038-03):
+// - 元数据: PostgreSQL (replays 表, per DTL-038 §7.1 #7)
+// - 回放数据: 对象存储 (cluster-ops S3-兼容), 本地用 LocalFs 模拟
+// - 4 RPC: SaveReplay / GetReplay / ListReplays / StreamReplay
+// - 5 message: Replay / ReplayMeta / ReplayList / SaveReplayRequest / SaveReplayResponse
+//
+// 集成: match-service session 结束自动调 SaveReplay (TODO, 完整集成推 W36+)
+// 生命周期:
+//   - 热数据: 默认 90 天 (天梯) / 7 天 (休闲) / 自定义 (房间)
+//   - 过期清理: 启动时检查 + cron job (TODO)
+// ============================================================
+
+service ReplayService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 保存回放 (内部 / 跨域 API, match-service session 结束调用)
+  // 接收完整的回放数据 bytes, 写入对象存储, 元数据落 PostgreSQL
+  rpc SaveReplay(SaveReplayRequest) returns (SaveReplayResponse);
+
+  // 拉取回放 (元数据 + 完整数据, 一次性返回, 适合小回放)
+  rpc GetReplay(GetReplayRequest) returns (Replay);
+
+  // 列出回放 (按 player_a / player_b / mode 过滤 + 分页)
+  rpc ListReplays(ListReplaysRequest) returns (ReplayList);
+
+  // 流式读取回放 (server streaming, 按 chunk 推送, 适合大回放)
+  // 每 chunk 包含一段 bytes + offset 标识, 客户端可断点续传
+  rpc StreamReplay(StreamReplayRequest) returns (stream ReplayChunk);
+}
+
+// ----------------------------------------------------------------------------
+// 枚举 (与 common.proto GameMode 数值对应: 0=unspecified 1=ranked 2=casual 3=room 4=pve_ai)
+// ----------------------------------------------------------------------------
+
+enum ReplayMode {
+  REPLAY_MODE_UNSPECIFIED = 0;
+  REPLAY_MODE_RANKED = 1;
+  REPLAY_MODE_CASUAL = 2;
+  REPLAY_MODE_ROOM = 3;
+  REPLAY_MODE_PVE_AI = 4;
+}
+
+// ----------------------------------------------------------------------------
+// 元数据 (per DTL-038 §7.1 #7 replays 表)
+// ----------------------------------------------------------------------------
+
+message ReplayMeta {
+  string replay_id = 1;        // UUID, primary key
+  string match_id = 2;         // 关联 game_sessions.match_id (跨域引用, 不物化 FK)
+  string player_a = 3;         // 玩家 A ID (UUID 字符串)
+  string player_b = 4;         // 玩家 B ID (可选, 单人 / PvE 可空)
+  ReplayMode mode = 5;         // 模式 (天梯 / 休闲 / 房间 / PvE)
+  string object_key = 6;       // 对象存储 key
+  int64 object_size = 7;       // 对象大小 (bytes, 0 = 未知)
+  uint32 duration_secs = 8;    // 比赛时长 (秒)
+  common.v1.Timestamp created_at = 9;
+  common.v1.Timestamp expires_at = 10; // 过期时间 (热数据周期, 默认 90 天 / 7 天)
+}
+
+// ----------------------------------------------------------------------------
+// 完整 Replay (元数据 + 数据 bytes)
+// ----------------------------------------------------------------------------
+
+message Replay {
+  ReplayMeta meta = 1;
+  bytes data = 2;              // 回放数据 (e.g. move log, board snapshots, JSON / protobuf)
+}
+
+// ----------------------------------------------------------------------------
+// 流式读取 chunk
+// ----------------------------------------------------------------------------
+
+message ReplayChunk {
+  string replay_id = 1;        // 关联的 replay_id
+  uint64 offset = 2;           // 字节偏移 (用于客户端拼接)
+  bytes payload = 3;           // 本 chunk 的数据
+  bool is_last = 4;            // 最后一个 chunk (offset + payload.len() == total size)
+  uint32 chunk_index = 5;      // chunk 序号 (0-based, 调试用)
+}
+
+// ----------------------------------------------------------------------------
+// SaveReplay (内部 API, match-service 调用)
+// ----------------------------------------------------------------------------
+
+message SaveReplayRequest {
+  string request_id = 1;
+  string match_id = 2;         // 关联的 match_id
+  string player_a = 3;
+  string player_b = 4;         // 可选
+  ReplayMode mode = 5;
+  bytes data = 6;              // 回放数据
+  uint32 duration_secs = 7;
+  // 自定义过期秒数 (None = 用 mode 默认, 天梯 90d / 休闲 7d / 房间 30d)
+  // 0 = 用默认, >0 = 自定义
+  int64 custom_ttl_secs = 8;
+  // 关联 saga (match 结束结算用, 留空 = 不参与 saga)
+  string saga_id = 9;
+}
+
+message SaveReplayResponse {
+  ReplayMeta meta = 1;         // 保存后的元数据 (含 replay_id + expires_at)
+  string object_key = 2;       // 对象存储 key (客户端可拉流)
+}
+
+// ----------------------------------------------------------------------------
+// GetReplay
+// ----------------------------------------------------------------------------
+
+message GetReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+}
+
+// ----------------------------------------------------------------------------
+// ListReplays (按 player + mode 过滤 + 分页)
+// ----------------------------------------------------------------------------
+
+message ListReplaysRequest {
+  string request_id = 1;
+  // 过滤 (任一非空即过滤, 全部空 = 列出全部)
+  string player_a_filter = 2;
+  string player_b_filter = 3;
+  ReplayMode mode_filter = 4;
+  // 是否包含已过期 (false = 仅 hot, true = 包含已过期但未清理)
+  bool include_expired = 5;
+  common.v1.PageRequest page = 6;
+}
+
+message ReplayList {
+  repeated ReplayMeta items = 1;
+  common.v1.PageResponse page = 2;
+}
+
+// ----------------------------------------------------------------------------
+// StreamReplay (server streaming, 大回放用)
+// ----------------------------------------------------------------------------
+
+message StreamReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+  // chunk size hint (bytes, 默认 64 KiB, 服务端可调整)
+  uint32 chunk_size = 3;
+  // 起始 offset (用于断点续传, 0 = 从头)
+  uint64 start_offset = 4;
+}

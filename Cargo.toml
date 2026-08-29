@@ -18,6 +18,7 @@ members = [
     "crates/card-service",
     "crates/i18n-service",
     "crates/leaderboard-service",
+    "crates/replay-service",
 ]
 resolver = "2"
 
