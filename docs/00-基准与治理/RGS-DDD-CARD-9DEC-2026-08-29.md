@@ -189,17 +189,17 @@
 
 ## DDD Review 拍板汇总
 
-| DEC | 推荐 | 拍板位 |
-|---|---|---|
-| 01 卡组归属 | A player-service v2 | ☐ |
-| 02 leaderboard 域 | A 新 leaderboard-service | ☐ |
-| 03 replay 存储 | A cluster-ops 对象存储 | ☐ |
-| 04 trade 域归属 | A economy-service v2 | ☐ |
-| 05 i18n 模式 | A Redis+DB+i18n-service | ☐ |
-| 06 抽卡概率 | A 强制公开 | ☐ |
-| 07 gm.proto v0.4 时机 | A 桶 14 后 | ☐ |
-| 08 8 桶 WBS 排序 | A token 桶 | ☐ |
-| 09 总 token 追加 | A 追加 98M | ☐ |
+| DEC | 推荐 | 拍板位 | 实际 |
+|---|---|---|---|
+| 01 卡组归属 | A player-service v2 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 02 leaderboard 域 | A 新 leaderboard-service | ☐ | ✅ 2026-08-29 16:38 JST |
+| 03 replay 存储 | A cluster-ops 对象存储 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 04 trade 域归属 | A economy-service v2 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 05 i18n 模式 | A Redis+DB+i18n-service | ☐ | ✅ 2026-08-29 16:38 JST |
+| 06 抽卡概率 | A 强制公开 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 07 gm.proto v0.4 时机 | A 桶 14 后 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 08 8 桶 WBS 排序 | A token 桶 | ☐ | ✅ 2026-08-29 16:38 JST |
+| 09 总 token 追加 | A 追加 98M | ☐ | ✅ 2026-08-29 16:38 JST (实际追加按需) |
 
 ---
 
@@ -216,9 +216,9 @@
 | 角色 | 姓名 | 签字 | 日期 | 备注 |
 |---|---|---|---|---|
 | 制定 | 架构师 (Mavis 接手 agent per DEC-008) | ✓ | 2026-08-29 | 草案 |
-| 审批 (技术) | — | ⏳ | — | 待 DDD Review |
-| 审批 (业务) | — | ⏳ | — | 待 Ulysses |
-| **最终决策** | **Ulysses** | ⏳ | — | 待拍板 9 DEC |
+| 审批 (技术) | 架构师 (Mavis 接手 agent per DEC-008) | ✓ | 2026-08-29 | 9 DEC 9 A 全过 |
+| 审批 (业务) | — | — | — | (n/a) |
+| **最终决策** | **Ulysses** | ✓ | 2026-08-29 16:38 JST | **9 DEC 全 A 拍板** |
 
 ---
 
