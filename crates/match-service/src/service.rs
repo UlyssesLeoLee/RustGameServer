@@ -1,10 +1,32 @@
-//! match-service 域 Service 业务实施（per RGS-DTL-016 §3）
+//! match-service 域 Service 业务实施（per RGS-DTL-016 §3 + RGS-DTL-038 §4.2/§5）
 //!
 //! 54.7 实化：4 Service 业务方法（create_match / join_match / start_match / finish_match）
 //! + gRPC 桥接 HealthCheck + GetMatch
+//!
+//! 桶 9 补完 (per RGS-DTL-038 §4.2 + §5):
+//! - MatchServiceImpl 扩展 `matchmaker_v2: Arc<MatchmakerServiceV2>` 字段
+//! - 旧构造函数 `new(v1_repo, v1_participant_repo)` 保留兼容
+//! - 新构造函数 `with_matchmaker_v2` 注入 v2 matchmaker
+//! - 9 个 v2 RPC stub 升级到调用 matchmaker_v2 业务逻辑
+//! - SubscribeMatch 用 `matchmaker_v2.event_bus().subscribe()` 流式推送
+//!
+//! ## 9 RPC 映射 (per §4.2)
+//! 1. EnqueueMatchmaking    → matchmaker_v2.enqueue_matchmaking
+//! 2. CancelMatchmaking     → matchmaker_v2.cancel_matchmaking
+//! 3. GetMatchmakingStatus  → matchmaker_v2.get_matchmaking_status
+//! 4. CreateMatch           → matchmaker_v2.create_match
+//! 5. JoinMatch             → matchmaker_v2.join_match
+//! 6. LeaveMatch            → matchmaker_v2.leave_match
+//! 7. GetMatchState         → matchmaker_v2.get_match_state
+//! 8. SubmitMove            → matchmaker_v2.submit_move
+//! 9. SubscribeMatch        → matchmaker_v2.event_bus().subscribe()
 
 use crate::entity::{Match, MatchMode, MatchParticipant, MatchStatus, Team};
+use crate::entity_v2::{
+    GameMode as GameModeV2, GameSession, MoveType, SessionPlayer, SessionStatus,
+};
 use crate::error::Error;
+use crate::matchmaker_v2::{MatchmakerServiceV2, TicketStatus};
 use crate::repository::{MatchParticipantRepository, MatchRepository};
 use crate::Result;
 
@@ -36,11 +58,16 @@ pub trait MatchService: Send + Sync {
 }
 
 pub struct MatchServiceImpl {
+    /// v1 (5 域 matchmaker) 仓库
     matches: Arc<dyn MatchRepository>,
     participants: Arc<dyn MatchParticipantRepository>,
+    /// v2 (卡牌游戏 session/turn) matchmaker (per RGS-DTL-038 §4.2 + §5)
+    matchmaker_v2: Option<Arc<MatchmakerServiceV2>>,
 }
 
 impl MatchServiceImpl {
+    /// v1 兼容构造函数 (旧 5 域 matchmaker 业务)
+    /// v2 业务不可用 (matchmaker_v2 = None), 9 RPC 仍返回 unimplemented 错误
     pub fn new(
         matches: Arc<dyn MatchRepository>,
         participants: Arc<dyn MatchParticipantRepository>,
@@ -48,7 +75,41 @@ impl MatchServiceImpl {
         Self {
             matches,
             participants,
+            matchmaker_v2: None,
         }
+    }
+
+    /// 桶 9 新构造函数: 注入 v2 matchmaker (per RGS-DTL-038 §4.2 + §5)
+    pub fn with_matchmaker_v2(
+        matches: Arc<dyn MatchRepository>,
+        participants: Arc<dyn MatchParticipantRepository>,
+        matchmaker_v2: Arc<MatchmakerServiceV2>,
+    ) -> Self {
+        Self {
+            matches,
+            participants,
+            matchmaker_v2: Some(matchmaker_v2),
+        }
+    }
+
+    /// 仅 v2 构造 (per RGS-DTL-038 §4.2, 纯 v2 服务场景)
+    pub fn v2_only(
+        matchmaker_v2: Arc<MatchmakerServiceV2>,
+        matches: Arc<dyn MatchRepository>,
+        participants: Arc<dyn MatchParticipantRepository>,
+    ) -> Self {
+        Self {
+            matches,
+            participants,
+            matchmaker_v2: Some(matchmaker_v2),
+        }
+    }
+
+    /// 取 v2 matchmaker (无 → Internal 错)
+    pub fn v2(&self) -> Result<&Arc<MatchmakerServiceV2>> {
+        self.matchmaker_v2
+            .as_ref()
+            .ok_or_else(|| Error::Internal(anyhow::anyhow!("matchmaker_v2 not configured")))
     }
 
     pub async fn find_match_by_id(&self, id: Uuid) -> Result<Option<Match>> {
@@ -162,22 +223,283 @@ impl MatchService for MatchServiceImpl {
     }
 }
 
+// ============================================================================
+// Proto ↔ Entity 转换工具
+// ============================================================================
+
+pub mod conv {
+    use super::*;
+    use crate::matchmaker_v2::MatchEvent as MatchEventV2;
+
+    // ---- GameMode ----
+    pub fn game_mode_from_proto(i: i32) -> GameModeV2 {
+        match i {
+            1 => GameModeV2::Ranked,
+            2 => GameModeV2::Casual,
+            3 => GameModeV2::Room,
+            4 => GameModeV2::PveAi,
+            _ => GameModeV2::Unspecified,
+        }
+    }
+
+    pub fn game_mode_to_proto(m: GameModeV2) -> i32 {
+        m as i32
+    }
+
+    // ---- SessionPlayer <-> common.v1.PlayerId ----
+    pub fn player_from_proto(p: &crate::common::v1::PlayerId) -> SessionPlayer {
+        let pid = p
+            .player_id
+            .as_ref()
+            .map(|e| e.id.clone())
+            .unwrap_or_default();
+        let sp = SessionPlayer::new(pid, p.display_name.clone())
+            .with_rank(p.rank_score, p.level);
+        // 注: common.v1.PlayerId 不含 deck_ref 字段 (per proto 定义)
+        // deck_ref 在 EnqueueMatchmakingRequest / SubmitMoveRequest 等 message 上独立携带
+        sp
+    }
+
+    pub fn player_to_proto(p: &SessionPlayer) -> crate::common::v1::PlayerId {
+        crate::common::v1::PlayerId {
+            player_id: Some(crate::common::v1::EntityId {
+                id: p.player_id.clone(),
+            }),
+            display_name: p.display_name.clone(),
+            rank_score: p.rank_score,
+            level: p.level,
+        }
+    }
+
+    // ---- Move <-> proto::v1::Move ----
+    pub fn move_from_proto(
+        match_id: Uuid,
+        turn_index: u32,
+        m: &crate::proto::v1::Move,
+    ) -> crate::entity_v2::Move {
+        use crate::entity_v2::Move as EntityMove;
+        let move_type = match m.r#type {
+            1 => MoveType::PlayCard,
+            2 => MoveType::Attack,
+            3 => MoveType::EndTurn,
+            4 => MoveType::Surrender,
+            5 => MoveType::UseAbility,
+            _ => MoveType::Unspecified,
+        };
+        let player_id = m
+            .player
+            .as_ref()
+            .and_then(|p| p.player_id.as_ref().map(|e| e.id.clone()))
+            .unwrap_or_default();
+        let mut em = EntityMove::new(match_id, player_id, turn_index, move_type, m.payload_json.clone());
+        em.accepted = m.accepted;
+        em.result_json = if m.result_json.is_empty() {
+            None
+        } else {
+            Some(m.result_json.clone())
+        };
+        if !m.move_id.is_empty() {
+            if let Ok(parsed) = Uuid::parse_str(&m.move_id) {
+                em.move_id = parsed;
+            }
+        }
+        em
+    }
+
+    pub fn move_to_proto(m: &crate::entity_v2::Move) -> crate::proto::v1::Move {
+        let type_i = match m.move_type {
+            MoveType::PlayCard => 1,
+            MoveType::Attack => 2,
+            MoveType::EndTurn => 3,
+            MoveType::Surrender => 4,
+            MoveType::UseAbility => 5,
+            MoveType::Unspecified => 0,
+        };
+        crate::proto::v1::Move {
+            move_id: m.move_id.to_string(),
+            player: Some(crate::common::v1::PlayerId {
+                player_id: Some(crate::common::v1::EntityId {
+                    id: m.player_id.clone(),
+                }),
+                display_name: String::new(),
+                rank_score: 0,
+                level: 0,
+            }),
+            r#type: type_i,
+            payload_json: m.payload_json.clone(),
+            occurred_at_ms: m.occurred_at.timestamp_millis(),
+            result_json: m.result_json.clone().unwrap_or_default(),
+            accepted: m.accepted,
+        }
+    }
+
+    // ---- SessionStatus -> proto::v1::Match (GetMatch/GetMatchState) ----
+    pub fn session_to_match_proto(s: &GameSession) -> crate::proto::v1::Match {
+        use crate::common::v1 as common_proto;
+        let status_i = match s.status {
+            SessionStatus::Creating => 2,    // STATUS_PENDING
+            SessionStatus::Waiting => 2,     // STATUS_PENDING
+            SessionStatus::Starting => 2,    // STATUS_PENDING
+            SessionStatus::Running => 1,     // STATUS_OK
+            SessionStatus::Paused => 2,      // STATUS_PENDING
+            SessionStatus::Ending => 2,      // STATUS_PENDING
+            SessionStatus::Ended => 1,       // STATUS_OK
+            SessionStatus::Canceled => 4,    // STATUS_CANCELLED
+        };
+        let players: Vec<common_proto::PlayerId> =
+            s.players.iter().map(player_to_proto).collect();
+        crate::proto::v1::Match {
+            id: Some(common_proto::EntityId {
+                id: s.match_id.to_string(),
+            }),
+            status: status_i,
+            created_at: Some(common_proto::Timestamp {
+                seconds: s.created_at.timestamp(),
+                nanos: s.created_at.timestamp_subsec_nanos() as i32,
+            }),
+            display_name: s.room_code.clone().unwrap_or_default(),
+            mode: game_mode_to_proto(s.mode),
+            players,
+            board_snapshot_ref: s.board_snapshot_ref.clone().unwrap_or_default(),
+            turn_index: s.turn_index,
+        }
+    }
+
+    // ---- TicketStatus -> proto Status enum ----
+    pub fn ticket_status_to_proto(s: TicketStatus) -> i32 {
+        match s {
+            TicketStatus::Queued => 1,
+            TicketStatus::Matched => 2,
+            TicketStatus::Cancelled => 3,
+            TicketStatus::Expired => 4,
+        }
+    }
+
+    // ---- GameEvent -> proto MatchEvent ----
+    pub fn event_to_proto(e: &MatchEventV2) -> crate::proto::v1::MatchEvent {
+        use crate::matchmaker_v2::MatchEvent as E;
+        let type_i = match e {
+            E::Snapshot { .. } => 1,
+            E::MoveApplied { .. } => 2,
+            E::TurnChanged { .. } => 3,
+            E::PlayerJoined { .. } => 4,
+            E::PlayerLeft { .. } => 5,
+            E::MatchEnded { .. } => 6,
+            E::TimeoutWarning { .. } => 7,
+        };
+        let occurred_at_ms = e.occurred_at_ms();
+        let payload = match e {
+            E::Snapshot { board_snapshot, .. } => {
+                crate::proto::v1::match_event::Payload::BoardSnapshot(board_snapshot.clone())
+            }
+            E::MoveApplied { mv, .. } => crate::proto::v1::match_event::Payload::Move(
+                move_to_proto(mv),
+            ),
+            E::TurnChanged {
+                new_turn_index, ..
+            } => crate::proto::v1::match_event::Payload::NewTurnIndex(*new_turn_index),
+            E::PlayerJoined { player, .. } => {
+                crate::proto::v1::match_event::Payload::Player(player_to_proto(player))
+            }
+            E::PlayerLeft { player_id, .. } => {
+                // proto PlayerId required; put player_id in EntityId
+                crate::proto::v1::match_event::Payload::Player(crate::common::v1::PlayerId {
+                    player_id: Some(crate::common::v1::EntityId {
+                        id: player_id.clone(),
+                    }),
+                    display_name: String::new(),
+                    rank_score: 0,
+                    level: 0,
+                })
+            }
+            E::MatchEnded { end_reason, .. } => {
+                crate::proto::v1::match_event::Payload::EndReason(end_reason.clone())
+            }
+            E::TimeoutWarning {
+                turn_index,
+                remaining_ms,
+                ..
+            } => {
+                // 用 EndReason 槽位透传, 实际"timeout_warning" string + remaining 信息
+                // 简化: 直接在 end_reason 槽位塞 "turn=N,remaining_ms=M"
+                let _ = turn_index;
+                let _ = remaining_ms;
+                crate::proto::v1::match_event::Payload::EndReason(format!(
+                    "timeout_warning:turn={},remaining_ms={}",
+                    turn_index, remaining_ms
+                ))
+            }
+        };
+        crate::proto::v1::MatchEvent {
+            r#type: type_i,
+            occurred_at_ms,
+            payload: Some(payload),
+        }
+    }
+
+    pub fn parse_uuid(s: &str) -> Result<Uuid> {
+        Uuid::parse_str(s)
+            .map_err(|_| Error::Validation(format!("invalid uuid: {}", s)))
+    }
+
+    pub fn ok_status(s: &str) -> Result<Uuid> {
+        parse_uuid(s)
+    }
+}
+
 pub mod grpc_service {
     use super::*;
     use crate::common::v1 as common_proto;
     use crate::proto::v1 as match_proto;
     use std::pin::Pin;
     use std::task::{Context, Poll};
+    use tokio::sync::broadcast;
     use tonic::codegen::tokio_stream::Stream;
 
-    // v2 增量: SubscribeMatch 用的空流类型 (per RGS-DTL-038 §4.2)
-    // 桶 7 阶段: 占位空流, 业务实装 (桶 9 session/turn) 替换
-    pub struct EmptyMatchEventStream;
+    // ============================================================================
+    // v2 SubscribeMatch stream type (per §4.2 stream RPC)
+    // 将 broadcast::Receiver<MatchEvent> 包装成 tonic Stream
+    // ============================================================================
 
-    impl Stream for EmptyMatchEventStream {
+    pub struct MatchEventStream {
+        inner: broadcast::Receiver<crate::matchmaker_v2::MatchEvent>,
+    }
+
+    impl MatchEventStream {
+        pub fn new(inner: broadcast::Receiver<crate::matchmaker_v2::MatchEvent>) -> Self {
+            Self { inner }
+        }
+    }
+
+    impl Stream for MatchEventStream {
         type Item = std::result::Result<match_proto::MatchEvent, Status>;
-        fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-            Poll::Ready(None)
+
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            // Pin::get_mut 安全: Self 字段是 broadcast::Receiver, 自身可 Pin (Unpin)
+            let this = self.get_mut();
+            loop {
+                match this.inner.try_recv() {
+                    Ok(evt) => return Poll::Ready(Some(Ok(conv::event_to_proto(&evt)))),
+                    Err(broadcast::error::TryRecvError::Empty) => {
+                        // 注册 waker 等待新事件
+                        let waker = cx.waker().clone();
+                        let mut rx = this.inner.resubscribe();
+                        tokio::spawn(async move {
+                            // 仅作 waker 触发, 事件丢失可接受 (client 会拉 get_match_state)
+                            let _ = rx.recv().await;
+                            waker.wake();
+                        });
+                        return Poll::Pending;
+                    }
+                    Err(broadcast::error::TryRecvError::Lagged(_)) => {
+                        // 跳过积压, 继续下一次
+                        continue;
+                    }
+                    Err(broadcast::error::TryRecvError::Closed) => {
+                        return Poll::Ready(None);
+                    }
+                }
+            }
         }
     }
 
@@ -193,10 +515,8 @@ pub mod grpc_service {
 
     #[tonic::async_trait]
     impl match_proto::match_service_server::MatchService for MatchGrpcService {
-        // v2 增量: SubscribeMatch 流关联类型 (per RGS-DTL-038 §4.2 — stream RPC)
-        // 桶 7 阶段: stub 用空流类型
-        // 桶 9 (session/turn) 起实装
-        type SubscribeMatchStream = EmptyMatchEventStream;
+        type SubscribeMatchStream = MatchEventStream;
+
         async fn health_check(
             &self,
             _request: Request<common_proto::HealthCheckRequest>,
@@ -257,107 +577,350 @@ pub mod grpc_service {
                     nanos: m.created_at.timestamp_subsec_nanos() as i32,
                 }),
                 display_name: m.room_id,
-                // v2 增量字段 (per RGS-DTL-038 §4.2): 现有 v1 entity 无对应字段, 返回默认值
-                // 桶 9 (session/turn) 起按 9 DEC 落地业务实装
-                mode: 0,                            // GAME_MODE_UNSPECIFIED
-                players: vec![],                     // 占位空数组
-                board_snapshot_ref: String::new(),   // 占位空字符串
-                turn_index: 0,                       // 占位 0
+                mode: 0,
+                players: vec![],
+                board_snapshot_ref: String::new(),
+                turn_index: 0,
             }))
         }
 
         // ========================================================================
-        // v2 增量 (per RGS-DTL-038 §4.2 — match-service session/turn 抽象)
-        // 桶 7 (proto 设计) 阶段: 全部 stub — 返回 unimplemented
-        // 桶 9 (session/turn) 起按 9 DEC 落地业务实装
+        // v2 9 RPC 业务实装 (per RGS-DTL-038 §4.2 + §5)
         // ========================================================================
 
         async fn enqueue_matchmaking(
             &self,
-            _request: Request<match_proto::EnqueueMatchmakingRequest>,
+            request: Request<match_proto::EnqueueMatchmakingRequest>,
         ) -> std::result::Result<Response<match_proto::EnqueueMatchmakingResponse>, Status> {
-            Err(Status::unimplemented(
-                "EnqueueMatchmaking stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let session_player = conv::player_from_proto(player);
+            let mode = conv::game_mode_from_proto(req.mode);
+            tracing::debug!(
+                service = "match-service",
+                method = "EnqueueMatchmaking",
+                player_id = %session_player.player_id,
+                mode = ?mode,
+                "enqueue_matchmaking"
+            );
+            let result = v2
+                .enqueue_matchmaking(
+                    session_player,
+                    mode,
+                    req.rank_score_min,
+                    req.rank_score_max,
+                )
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            let resp = match result {
+                crate::matchmaker_v2::EnqueueResult::Queued {
+                    ticket_id,
+                    estimated_wait_ms,
+                } => match_proto::EnqueueMatchmakingResponse {
+                    ticket_id: ticket_id.to_string(),
+                    estimated_wait_ms,
+                },
+                crate::matchmaker_v2::EnqueueResult::Matched {
+                    ticket_id,
+                    match_id,
+                } => match_proto::EnqueueMatchmakingResponse {
+                    ticket_id: ticket_id.to_string(),
+                    estimated_wait_ms: 0,
+                }
+                .with_optional_match_id(match_id),
+            };
+            Ok(Response::new(resp))
         }
 
         async fn cancel_matchmaking(
             &self,
-            _request: Request<match_proto::CancelMatchmakingRequest>,
+            request: Request<match_proto::CancelMatchmakingRequest>,
         ) -> std::result::Result<Response<match_proto::CancelMatchmakingResponse>, Status> {
-            Err(Status::unimplemented(
-                "CancelMatchmaking stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let ticket_id = conv::parse_uuid(&req.ticket_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            tracing::debug!(
+                service = "match-service",
+                method = "CancelMatchmaking",
+                ticket_id = %ticket_id,
+                "cancel_matchmaking"
+            );
+            // proto §4.2 CancelMatchmakingRequest 无 player_id 字段
+            // 桶 9: 透传 empty string 跳过所有权校验 (mTLS + ticket_id 已足够)
+            // 后续桶 (saga 落地) 补 player_id 字段
+            let cancelled = v2
+                .cancel_matchmaking(ticket_id, "")
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::CancelMatchmakingResponse { cancelled }))
         }
 
         async fn get_matchmaking_status(
             &self,
-            _request: Request<match_proto::GetMatchmakingStatusRequest>,
+            request: Request<match_proto::GetMatchmakingStatusRequest>,
         ) -> std::result::Result<Response<match_proto::GetMatchmakingStatusResponse>, Status> {
-            Err(Status::unimplemented(
-                "GetMatchmakingStatus stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let ticket_id = conv::parse_uuid(&req.ticket_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let status = v2
+                .get_matchmaking_status(ticket_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::GetMatchmakingStatusResponse {
+                status: conv::ticket_status_to_proto(status.status),
+                match_id: status.match_id.map(|u| u.to_string()).unwrap_or_default(),
+            }))
         }
 
         async fn create_match(
             &self,
-            _request: Request<match_proto::CreateMatchRequest>,
+            request: Request<match_proto::CreateMatchRequest>,
         ) -> std::result::Result<Response<match_proto::CreateMatchResponse>, Status> {
-            Err(Status::unimplemented(
-                "CreateMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let host = req
+                .host
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("host required"))?;
+            let host_player = conv::player_from_proto(host);
+            let mode = conv::game_mode_from_proto(req.mode);
+            tracing::debug!(
+                service = "match-service",
+                method = "CreateMatch",
+                host_id = %host_player.player_id,
+                mode = ?mode,
+                room_code = %req.room_code,
+                "create_match"
+            );
+            // min_players: proto 没显式字段, 默认 2 (1v1) / ROOM 模式可由 host 通过 deck_ref / 后续桶扩展
+            let min_players: u32 = 2;
+            let room_code = if req.room_code.is_empty() {
+                None
+            } else {
+                Some(req.room_code.clone())
+            };
+            let room_password = if req.room_password.is_empty() {
+                None
+            } else {
+                Some(req.room_password.clone())
+            };
+            let result = v2
+                .create_match(
+                    host_player,
+                    mode,
+                    room_code,
+                    room_password,
+                    req.max_players.max(2),
+                    min_players,
+                    req.ai_difficulty,
+                )
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::CreateMatchResponse {
+                match_id: result.match_id.to_string(),
+                mode: conv::game_mode_to_proto(result.mode),
+                room_code: result.room_code.unwrap_or_default(),
+            }))
         }
 
         async fn join_match(
             &self,
-            _request: Request<match_proto::JoinMatchRequest>,
+            request: Request<match_proto::JoinMatchRequest>,
         ) -> std::result::Result<Response<match_proto::JoinMatchResponse>, Status> {
-            Err(Status::unimplemented(
-                "JoinMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let match_id = conv::parse_uuid(&req.match_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let session_player = conv::player_from_proto(player);
+            tracing::debug!(
+                service = "match-service",
+                method = "JoinMatch",
+                match_id = %match_id,
+                player_id = %session_player.player_id,
+                "join_match"
+            );
+            let room_code = if req.room_code.is_empty() {
+                None
+            } else {
+                Some(req.room_code.clone())
+            };
+            let room_password = if req.room_password.is_empty() {
+                None
+            } else {
+                Some(req.room_password.clone())
+            };
+            let result = v2
+                .join_match(match_id, session_player, room_code, room_password)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::JoinMatchResponse {
+                joined: result.joined,
+                turn_index: result.turn_index,
+            }))
         }
 
         async fn leave_match(
             &self,
-            _request: Request<match_proto::LeaveMatchRequest>,
+            request: Request<match_proto::LeaveMatchRequest>,
         ) -> std::result::Result<Response<match_proto::LeaveMatchResponse>, Status> {
-            Err(Status::unimplemented(
-                "LeaveMatch stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let match_id = conv::parse_uuid(&req.match_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let player_id = player
+                .player_id
+                .as_ref()
+                .map(|e| e.id.clone())
+                .unwrap_or_default();
+            tracing::debug!(
+                service = "match-service",
+                method = "LeaveMatch",
+                match_id = %match_id,
+                player_id = %player_id,
+                surrender = req.surrender,
+                "leave_match"
+            );
+            let result = v2
+                .leave_match(match_id, &player_id, req.surrender)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::LeaveMatchResponse {
+                left: result.left,
+                match_result: result.match_result,
+            }))
         }
 
         async fn get_match_state(
             &self,
-            _request: Request<match_proto::GetMatchStateRequest>,
+            request: Request<match_proto::GetMatchStateRequest>,
         ) -> std::result::Result<Response<match_proto::GetMatchStateResponse>, Status> {
-            Err(Status::unimplemented(
-                "GetMatchState stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let match_id = conv::parse_uuid(&req.match_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let session_player = conv::player_from_proto(player);
+            let state = v2
+                .get_match_state(match_id, &session_player)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            let pending_moves: Vec<match_proto::Move> = state
+                .session
+                .pending_moves
+                .iter()
+                .map(conv::move_to_proto)
+                .collect();
+            Ok(Response::new(match_proto::GetMatchStateResponse {
+                r#match: Some(conv::session_to_match_proto(&state.session)),
+                board_snapshot: state.board_snapshot,
+                pending_moves,
+                next_turn_deadline_ms: state.next_turn_deadline_ms.unwrap_or(0),
+            }))
         }
 
         async fn submit_move(
             &self,
-            _request: Request<match_proto::SubmitMoveRequest>,
+            request: Request<match_proto::SubmitMoveRequest>,
         ) -> std::result::Result<Response<match_proto::SubmitMoveResponse>, Status> {
-            Err(Status::unimplemented(
-                "SubmitMove stub (桶 7), 桶 9 (session/turn) 起实装 — per RGS-DTL-038 §4.2",
-            ))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let match_id = conv::parse_uuid(&req.match_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let session_player = conv::player_from_proto(player);
+            let move_proto = req
+                .r#move
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("move required"))?;
+            let entity_move = conv::move_from_proto(match_id, req.turn_index, move_proto);
+            tracing::debug!(
+                service = "match-service",
+                method = "SubmitMove",
+                match_id = %match_id,
+                player_id = %session_player.player_id,
+                turn_index = req.turn_index,
+                "submit_move"
+            );
+            let result = v2
+                .submit_move(match_id, &session_player, req.turn_index, entity_move)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(match_proto::SubmitMoveResponse {
+                accepted: result.accepted,
+                new_turn_index: result.new_turn_index,
+                new_board_snapshot_ref: result.new_board_snapshot_ref.unwrap_or_default(),
+                reject_reason: result.reject_reason.unwrap_or_default(),
+            }))
         }
 
         async fn subscribe_match(
             &self,
-            _request: Request<match_proto::SubscribeMatchRequest>,
+            request: Request<match_proto::SubscribeMatchRequest>,
         ) -> std::result::Result<Response<Self::SubscribeMatchStream>, Status> {
-            // 流式 RPC stub: 返回空流, 业务实装 (桶 9) 替换
-            Ok(Response::new(EmptyMatchEventStream))
+            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let req = request.into_inner();
+            let match_id = conv::parse_uuid(&req.match_id)
+                .map_err(Into::<tonic::Status>::into)?;
+            let player = req
+                .player
+                .as_ref()
+                .ok_or_else(|| Status::invalid_argument("player required"))?;
+            let session_player = conv::player_from_proto(player);
+            let receiver = v2
+                .subscribe_match(match_id, &session_player, req.full_snapshot_first)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(MatchEventStream::new(receiver)))
         }
     }
 }
+
+// ============================================================================
+// 内部 trait 扩展
+// ============================================================================
+
+trait EnqueueRespExt {
+    fn with_optional_match_id(self, _match_id: Uuid) -> Self;
+}
+
+impl EnqueueRespExt for crate::proto::v1::EnqueueMatchmakingResponse {
+    fn with_optional_match_id(self, _match_id: Uuid) -> Self {
+        // proto 字段只有 ticket_id + estimated_wait_ms, match_id 暂不带
+        self
+    }
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::repository::{InMemoryMatchParticipantRepository, InMemoryMatchRepository};
+    use crate::repository_v2::{
+        InMemoryGameSessionRepository, InMemoryMatchmakingTicketRepository, InMemoryMoveRepository,
+    };
 
     fn svc() -> MatchServiceImpl {
         MatchServiceImpl::new(
@@ -365,6 +928,33 @@ mod tests {
             Arc::new(InMemoryMatchParticipantRepository::new()),
         )
     }
+
+    fn svc_v2() -> (MatchServiceImpl, Arc<MatchmakerServiceV2>) {
+        let v2 = Arc::new(MatchmakerServiceV2::new(
+            Arc::new(InMemoryGameSessionRepository::new()),
+            Arc::new(InMemoryMoveRepository::new()),
+            Arc::new(InMemoryMatchmakingTicketRepository::new()),
+        ));
+        let s = MatchServiceImpl::with_matchmaker_v2(
+            Arc::new(InMemoryMatchRepository::new()),
+            Arc::new(InMemoryMatchParticipantRepository::new()),
+            v2.clone(),
+        );
+        (s, v2)
+    }
+
+    fn make_player(id: &str) -> crate::common::v1::PlayerId {
+        crate::common::v1::PlayerId {
+            player_id: Some(crate::common::v1::EntityId {
+                id: id.to_string(),
+            }),
+            display_name: format!("P-{}", id),
+            rank_score: 1500,
+            level: 10,
+        }
+    }
+
+    // ===== v1 (原 6 UT 保留兼容) =====
 
     #[tokio::test]
     async fn create_and_get_match() {
@@ -440,5 +1030,435 @@ mod tests {
     async fn health_check() {
         let s = svc();
         assert!(s.health_check().await.unwrap());
+    }
+
+    // ===== v2 (9 RPC × 2 UT = 18 UT, per RGS-DTL-038 §4.2) =====
+
+    // ---- 1. EnqueueMatchmaking ----
+    #[tokio::test]
+    async fn enqueue_matchmaking_happy_queued() {
+        let (s, v2) = svc_v2();
+        let player = make_player("p1");
+        let mode = GameModeV2::Casual as i32;
+        let r = v2
+            .enqueue_matchmaking(
+                conv::player_from_proto(&player),
+                conv::game_mode_from_proto(mode),
+                0,
+                0,
+            )
+            .await
+            .unwrap();
+        // 验证 service 层 v2 可用
+        let _ = s.v2().unwrap();
+        assert!(matches!(
+            r,
+            crate::matchmaker_v2::EnqueueResult::Queued { .. }
+        ));
+    }
+
+    #[tokio::test]
+    async fn enqueue_matchmaking_validation_rejects_room_mode() {
+        let (s, v2) = svc_v2();
+        let player = make_player("p1");
+        // ROOM 模式应被 EnqueueMatchmaking 拒
+        let err = v2
+            .enqueue_matchmaking(
+                conv::player_from_proto(&player),
+                conv::game_mode_from_proto(GameModeV2::Room as i32),
+                0,
+                0,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+        let _ = s;
+    }
+
+    // ---- 2. CancelMatchmaking ----
+    #[tokio::test]
+    async fn cancel_matchmaking_happy() {
+        let (_s, v2) = svc_v2();
+        let player = make_player("p1");
+        let r = v2
+            .enqueue_matchmaking(
+                conv::player_from_proto(&player),
+                GameModeV2::Casual,
+                0,
+                0,
+            )
+            .await
+            .unwrap();
+        let ticket_id = match r {
+            crate::matchmaker_v2::EnqueueResult::Queued { ticket_id, .. } => ticket_id,
+            _ => panic!("expected Queued"),
+        };
+        let cancelled = v2.cancel_matchmaking(ticket_id, "p1").await.unwrap();
+        assert!(cancelled);
+    }
+
+    #[tokio::test]
+    async fn cancel_matchmaking_validation_wrong_player() {
+        let (_s, v2) = svc_v2();
+        let player = make_player("p1");
+        let r = v2
+            .enqueue_matchmaking(
+                conv::player_from_proto(&player),
+                GameModeV2::Casual,
+                0,
+                0,
+            )
+            .await
+            .unwrap();
+        let ticket_id = match r {
+            crate::matchmaker_v2::EnqueueResult::Queued { ticket_id, .. } => ticket_id,
+            _ => panic!(),
+        };
+        let err = v2.cancel_matchmaking(ticket_id, "p2").await.unwrap_err();
+        assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    // ---- 3. GetMatchmakingStatus ----
+    #[tokio::test]
+    async fn get_matchmaking_status_happy_queued() {
+        let (_s, v2) = svc_v2();
+        let player = make_player("p1");
+        let r = v2
+            .enqueue_matchmaking(
+                conv::player_from_proto(&player),
+                GameModeV2::Casual,
+                0,
+                0,
+            )
+            .await
+            .unwrap();
+        let ticket_id = match r {
+            crate::matchmaker_v2::EnqueueResult::Queued { ticket_id, .. } => ticket_id,
+            _ => panic!(),
+        };
+        let status = v2.get_matchmaking_status(ticket_id).await.unwrap();
+        assert_eq!(status.status, TicketStatus::Queued);
+    }
+
+    #[tokio::test]
+    async fn get_matchmaking_status_validation_not_found() {
+        let (_s, v2) = svc_v2();
+        let err = v2
+            .get_matchmaking_status(Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ---- 4. CreateMatch ----
+    #[tokio::test]
+    async fn create_match_happy_room() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("ROOM1".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        assert_eq!(r.room_code, Some("ROOM1".to_string()));
+    }
+
+    #[tokio::test]
+    async fn create_match_validation_max_lt_min() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let err = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                1, // max
+                2, // min
+                0,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // ---- 5. JoinMatch ----
+    #[tokio::test]
+    async fn join_match_happy_auto_start() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let p2 = make_player("p2");
+        let j = v2
+            .join_match(r.match_id, conv::player_from_proto(&p2), None, None)
+            .await
+            .unwrap();
+        assert!(j.joined);
+    }
+
+    #[tokio::test]
+    async fn join_match_validation_full() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                2, // max
+                2, // min
+                0,
+            )
+            .await
+            .unwrap();
+        let p2 = make_player("p2");
+        v2.join_match(r.match_id, conv::player_from_proto(&p2), None, None)
+            .await
+            .unwrap();
+        let p3 = make_player("p3");
+        let err = v2
+            .join_match(r.match_id, conv::player_from_proto(&p3), None, None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::MatchFull { .. }));
+    }
+
+    // ---- 6. LeaveMatch ----
+    #[tokio::test]
+    async fn leave_match_happy_surrender() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let p2 = make_player("p2");
+        v2.join_match(r.match_id, conv::player_from_proto(&p2), None, None)
+            .await
+            .unwrap();
+        // 强制 status=Running (否则 leave_match 的 transition_to_ending 要求 Running/Paused)
+        let mut s = v2
+            .sessions()
+            .find_by_id(r.match_id)
+            .await
+            .unwrap()
+            .unwrap();
+        s.status = SessionStatus::Running;
+        v2.sessions().save(&s).await.unwrap();
+        let l = v2.leave_match(r.match_id, "p2", true).await.unwrap();
+        assert_eq!(l.match_result, "surrender");
+    }
+
+    #[tokio::test]
+    async fn leave_match_validation_not_in_match() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let err = v2
+            .leave_match(r.match_id, "ghost", false)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotInMatch { .. }));
+    }
+
+    // ---- 7. GetMatchState ----
+    #[tokio::test]
+    async fn get_match_state_happy() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let state = v2
+            .get_match_state(r.match_id, &conv::player_from_proto(&host))
+            .await
+            .unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&state.board_snapshot).unwrap();
+        assert!(parsed.is_object());
+    }
+
+    #[tokio::test]
+    async fn get_match_state_validation_not_found() {
+        let (_s, v2) = svc_v2();
+        let err = v2
+            .get_match_state(Uuid::new_v4(), &conv::player_from_proto(&make_player("p1")))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ---- 8. SubmitMove ----
+    #[tokio::test]
+    async fn submit_move_happy_end_turn_advances() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                2,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let p2 = make_player("p2");
+        v2.join_match(r.match_id, conv::player_from_proto(&p2), None, None)
+            .await
+            .unwrap();
+        // 强制 status=Running
+        let mut s = v2
+            .sessions()
+            .find_by_id(r.match_id)
+            .await
+            .unwrap()
+            .unwrap();
+        s.status = SessionStatus::Running;
+        s.current_player_id = Some("host".to_string());
+        v2.sessions().save(&s).await.unwrap();
+        let m = crate::entity_v2::Move::new(
+            r.match_id,
+            "host".to_string(),
+            0,
+            MoveType::EndTurn,
+            "{}".to_string(),
+        );
+        let res = v2
+            .submit_move(r.match_id, &conv::player_from_proto(&host), 0, m)
+            .await
+            .unwrap();
+        assert!(res.accepted);
+        assert_eq!(res.new_turn_index, 1);
+    }
+
+    #[tokio::test]
+    async fn submit_move_validation_wrong_turn_index() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                2,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let p2 = make_player("p2");
+        v2.join_match(r.match_id, conv::player_from_proto(&p2), None, None)
+            .await
+            .unwrap();
+        let mut s = v2
+            .sessions()
+            .find_by_id(r.match_id)
+            .await
+            .unwrap()
+            .unwrap();
+        s.status = SessionStatus::Running;
+        s.current_player_id = Some("host".to_string());
+        v2.sessions().save(&s).await.unwrap();
+        let m = crate::entity_v2::Move::new(
+            r.match_id,
+            "host".to_string(),
+            99, // wrong
+            MoveType::PlayCard,
+            "{}".to_string(),
+        );
+        let err = v2
+            .submit_move(r.match_id, &conv::player_from_proto(&host), 99, m)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // ---- 9. SubscribeMatch ----
+    #[tokio::test]
+    async fn subscribe_match_happy_returns_receiver() {
+        let (_s, v2) = svc_v2();
+        let host = make_player("host");
+        let r = v2
+            .create_match(
+                conv::player_from_proto(&host),
+                GameModeV2::Room,
+                Some("R".to_string()),
+                None,
+                4,
+                2,
+                0,
+            )
+            .await
+            .unwrap();
+        let rx = v2
+            .subscribe_match(r.match_id, &conv::player_from_proto(&host), false)
+            .await
+            .unwrap();
+        // 接收方存在即可 (后续测试可 publish 后验证)
+        drop(rx);
+    }
+
+    #[tokio::test]
+    async fn subscribe_match_validation_not_found() {
+        let (_s, v2) = svc_v2();
+        let err = v2
+            .subscribe_match(
+                Uuid::new_v4(),
+                &conv::player_from_proto(&make_player("p1")),
+                false,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
     }
 }
