@@ -1,0 +1,67 @@
+syntax = "proto3";
+package i18n.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/i18n/v1;i18nv1";
+
+// i18n-service 卡牌游戏多语言文案服务(per RGS-REQ-038 §NFR-005 + RGS-DTL-038 §4.1 + DEC-038-05 推荐 A)
+// 模式: Redis 缓存(5 分钟 TTL) + DB 持久化 + 独立 i18n-service 域
+//
+// 3 RPC:
+// - GetText: 拉取单个 key 的某语言文案(带 fallback 默认语言)
+// - GetTexts: 批量拉取多个 key 的某语言文案(性能优化, 1 RTT 拉多 key)
+// - ListLanguages: 列出系统支持的 locale 清单(给客户端 i18n 切换用)
+service I18nService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+  rpc GetText(GetTextRequest) returns (GetTextResponse);
+  rpc GetTexts(GetTextsRequest) returns (GetTextsResponse);
+  rpc ListLanguages(ListLanguagesRequest) returns (ListLanguagesResponse);
+}
+
+// GetText: 单 key 拉取(带默认 fallback)
+message GetTextRequest {
+  string request_id = 1;
+  string key = 2;            // 文案 key, e.g. "card.shanghai.welcome"
+  common.v1.Locale locale = 3; // 期望语言
+}
+
+message GetTextResponse {
+  string key = 1;
+  common.v1.Locale locale = 2;
+  string text = 3;
+  bool fallback_used = 4;  // true = 用 default_text fallback (locale 缺失)
+}
+
+// GetTexts: 批量拉取 (per RGS-DTL-038 §4.1 性能优化)
+// 1 RTT 拉多 key, 减少 gRPC 开销(客户端初始化时常用)
+message GetTextsRequest {
+  string request_id = 1;
+  repeated string keys = 2;
+  common.v1.Locale locale = 3;
+}
+
+message GetTextsResponse {
+  repeated I18nEntry entries = 1;
+  common.v1.Locale locale = 2;
+  bool any_fallback = 3;  // 至少 1 个 key 用了 fallback
+}
+
+message I18nEntry {
+  string key = 1;
+  string text = 2;
+  bool fallback_used = 3;
+}
+
+// ListLanguages: 列出系统支持的所有 locale
+message ListLanguagesRequest {
+  string request_id = 1;
+}
+
+message ListLanguagesResponse {
+  repeated LanguageInfo languages = 1;
+}
+
+message LanguageInfo {
+  common.v1.Locale locale = 1;
+  string display_name = 2; // 本地化名称, e.g. "简体中文" / "English"
+  bool is_default = 3;     // true = 系统默认 locale
+}
