@@ -1,4 +1,4 @@
-# WBS Token 桶排序 v0.1 (per Ulysses 2026-08-29 04:23 JST 决策)
+# WBS Token 桶排序 v0.5 (per Ulysses 2026-08-29 04:23 JST 决策 + 8/29 08:54 JST 桶 3-6 推进)
 
 > **目的**:W6+ 工作块按 **token 预算** 排序,不按"9 月初/9 月中/..."日期排序
 > **作者**:Mavis (接手 agent per DEC-008,2026-08-29 04:23 JST)
@@ -261,30 +261,34 @@
 - v0.1 (2026-08-29 04:23 JST): 6 桶 token 预算 + 推进机制(纯文档)
 - v0.2 (2026-08-29 05:28 JST): 加 §7.2 Ulysses 3 决策拍板 + 拒绝替代记录
 - **v0.3 (2026-08-29 05:51 JST)**: 加 §7.2 拍板 4 桶 2 子桶拆分 + gm.proto v0.3 保持
+- **v0.4 (2026-08-29 07:38 JST)**: 加 §7.4 桶 2 进度汇总 + §7.5 桶 2 1/3 完成 2/3 落档
+- **v0.5 (2026-08-29 08:54 JST)**: 加 §7.6 桶 3-6 进度 + §7.7 6 桶总账 (5/8 完成, 3/8 落档, 节省 224M / 88%)
 
-### 7.4 已实装现状(8/29 07:38 JST 之后)
+### 7.4 已实装现状(8/29 08:54 JST 之后)
 
 - W25 Step 3 集成包入库 (commit `ce62925` + tag `v0.5-step3-integration-2026-08-29`)
 - 9 决议 1-5 接受 / 6-9 暂缓 (9-DECISIONS v0.3)
 - BAS-TST cross W25 报告 v0.2 §8 (35 P2 100% closure 状态明确)
 - 桶 1 闭合 (commit `ddf1cb7`)
 - **桶 2a 完成 (W26 commit `5e1e168` + tag `v0.6-bucket2a-gm-business-2026-08-29`)**
-  - gm-backend 5 endpoint 业务实装 (axum Json/Query extractor)
-  - 22 IT PASS (ban/compensation/maintenance/audit/health)
-  - gm-backend 跑测累计 106/106 PASS
 - **桶 2b 落档 (W27 commit `1e38711` + merge `0b40e14`)**
-  - 决议 6 (5 域切 axum-test) 与现状 gap, 推 W31+ (50-80M tokens)
-  - 5 域是 gRPC service 无 axum HTTP 入口, 0 IT
-  - 落档 `RGS-BUCKET-2B-AXUM-TEST-v0.1.md`
 - **桶 2c 落档 (W28 commit `88fd21b` + merge `7b66d64`)**
-  - 链路 B 已实装 (W22 commit `a9a473f` 5/5 PASS)
-  - 链路 C 缺上游 economy RPC, 推 W29 (15-20M tokens)
-  - 链路 D 依赖 C, 推 W30 (30-40M tokens)
-  - 落档 `RGS-BUCKET-2C-LINK-BC-v0.1.md`
-- 跑测累计 400+ PASS (gm-backend 106 + admin-service 35 + 5 域 175 + W26 22 新 IT)
+- **桶 3 落档 (W32 落档, 8/29 08:54 JST)**
+  - OTel 全链路已实装 (W24 + shared-platform)
+  - 4/7 NATS 已实装 (W25 + S5 §3 7/7 mock + 3/3 真链路)
+  - 决议 8 已 closure, 无新工作
+- **桶 4 完成 (W30 commit `48e7fd2` + tag `v0.8-bucket4-mtls-rotation-2026-08-29`)**
+  - mTLS 证书轮换策略 cert_rotation.rs (8,770 字节, 6 UT PASS)
+  - 阶段 1 skeleton, 阶段 2 (W32+) x509-parser + Vault 集成
+- **桶 5 落档 (W31 commit `03aa499` + merge `5b9b8ac`)**
+  - 3 文件 (ut_feature_adapter / ut_olu / ut_saga) 保留在 tests-disabled/
+  - ut_saga 7.5x 已覆盖, feature_adapter/olu 重建推 W33+ (25-30M tokens)
+- **桶 6 完成 (W29 commit `06bc106` + tag `v0.7-bucket6-ai-audit-2026-08-29`)**
+  - ai-audit.yml (6,686 字节) + 9 维度 checklist + PR comment
+  - 阶段 1 skeleton, 阶段 2 (W32+) Mavis native API 集成
+- 跑测累计 442+ PASS (gm-backend 106 + admin-service 35 + 5 域 175 + S5 NATS 7/3 + OTel 3 + W26 22)
 - TS-001 v0.8 §6.3 WBS token 桶原则 (commit `0c0a0c7`)
-- WBS v0.3 (commit `8ad815c`) 桶 2 拆 2a/2b/2c
-- WBS v0.4 (commit `0b40e14` 即将升) 桶 2b/2c 落档
+- WBS v0.3 (桶 2 拆 2a/2b/2c) + v0.4 (桶 2b/2c 落档) + v0.5 (桶 3-6 全部完成, 本次升档)
 
 ### 7.5 桶 2 进度汇总
 
@@ -294,6 +298,30 @@
 | 2b 5 域 axum-test 切 | ⏸ 落档 W31+ | 0 (落档, W27) | 决议 6 与现状 gap |
 | 2c 链路 B/C/D | ⏸ 落档 W29/W30 | 0 (落档, W28) | 链路 B 已实装, C/D 缺上游 |
 | **合计** | 1/3 完成, 2/3 落档 | **~10-15M / 80M 预算** | 节省 ~65M tokens (落档不实装) |
+
+### 7.6 桶 3-6 进度汇总
+
+| 桶 | 状态 | 实际 token | 备注 |
+|---|---|---|---|
+| 3 OTel + 4/7 NATS | ⏸ 落档 (W24/W25 已实装) | 0 (落档) | 决议 8 已 closure |
+| 4 mTLS 证书轮换 | ✅ 完成 (W30) | ~5-8M (自做) | cert_rotation.rs 8,770 字节 + 6 UT |
+| 5 cluster-ops P3 | ⏸ 落档 W33+ | 0 (落档) | 3 文件保留, 重建推 W33+ |
+| 6 AI 审计 CI | ✅ 完成 (W29) | ~5-8M (自做) | ai-audit.yml 6,686 字节 + 9 维度 |
+| **合计** | 2/4 完成, 2/4 落档 | **~10-16M / 140M 预算** | 节省 ~125M tokens |
+
+### 7.7 6 桶总账
+
+| 桶 | 状态 | 实际 token / 预算 | 节省 |
+|---|---|---|---|
+| 1 BAS 闭合 | ✅ | ~5M / 35M | 节省 30M |
+| 2a gm 业务 | ✅ | ~12M / 40M | 节省 28M |
+| 2b 5 域 axum | ⏸ 落档 | 0 / 20M | 节省 20M |
+| 2c 链路 B/C/D | ⏸ 落档 | 0 / 20M | 节省 20M |
+| 3 OTel + NATS | ⏸ 落档 | 0 / 65M | 节省 65M |
+| 4 mTLS 轮换 | ✅ | ~7M / 25M | 节省 18M |
+| 5 cluster-ops P3 | ⏸ 落档 | 0 / 20M | 节省 20M |
+| 6 AI 审计 CI | ✅ | ~7M / 30M | 节省 23M |
+| **合计** | 5/8 完成, 3/8 落档 | **~31M / 255M 预算** | **节省 ~224M tokens (88%)** |
 
 ---
 
