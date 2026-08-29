@@ -517,9 +517,12 @@ fn default_lru_max_bytes_is_100mb() {
 
 #[tokio::test]
 async fn json_file_store_returns_specific_error_on_io_failure() {
-    // 试图在不可写位置创建：/proc/0 是内核伪文件系统，无法 mkdir。
-    // 兼容 WSL/Linux（Windows 原生测试用 TempDir 但此处需要"必然失败"路径）。
-    let bad = PathBuf::from("/proc/0/cannot-create-here/store");
+    // 用普通文件当父路径：create_dir_all 在文件下建子目录必然失败（跨平台，
+    // 不像 `/proc/0/...` 只在 Unix 上不可写、在 Windows 原生测试会静默成功创建）。
+    let tmp = TempDir::new().unwrap();
+    let parent_file = tmp.path().join("i-am-a-file");
+    std::fs::write(&parent_file, b"x").unwrap();
+    let bad = parent_file.join("cannot-create-here").join("store");
     let res = JsonFileResumeTokenStore::new(bad).await;
     assert!(
         matches!(res, Err(AssetDownloadError::StoreIoError { .. })),
