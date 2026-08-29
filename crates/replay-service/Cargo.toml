@@ -1,0 +1,52 @@
+[package]
+name = "replay-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "卡牌游戏回放微服务 (per RGS-REQ-038 §FR-008 + RGS-DTL-038 §3 DEC-038-03 推荐 A — cluster-ops 对象存储 + replay 元数据 PostgreSQL)"
+
+[[bin]]
+name = "replay-service"
+path = "src/main.rs"
+
+[features]
+# 域级总开关: tracing 启用 / 关闭 (per 5 域对齐)
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+# DB (5 独立 DB 原则: replay_db, per ARC-008 卡牌游戏 6 域独立)
+sqlx = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# bytes: stream chunk (StreamReplay 流式读取)
+bytes = "1"
+# futures: Stream trait + StreamExt helpers (StreamReplay server streaming)
+futures = "0.3"
+# mTLS + tracing init (per RGS-REV-007 CH4 / DEC-015 P1)
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[dev-dependencies]
+# tokio 时间控制 (per IT 4 过期清理 mock)
+tokio = { workspace = true, features = ["full", "test-util"] }
+# tempdir for LocalFsBackend IT (跨平台: Windows + WSL)
+tempfile = "3"
