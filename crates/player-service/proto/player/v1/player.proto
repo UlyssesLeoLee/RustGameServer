@@ -4,13 +4,168 @@ import "common/v1/common.proto";
 option go_package = "github.com/ulyssesleolee/rustgameserver/proto/player/v1;playerv1";
 
 service PlayerService {
+  // v1 既有 RPC (per DTL-018 §3 + 54.2)
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
   rpc GetPlayer(common.v1.EntityId) returns (Player);
+
+  // v2 新增: 卡牌游戏资料 (per DTL-038 §4.3 FR-001)
+  rpc GetPlayerProfile(GetPlayerProfileRequest) returns (PlayerProfile);
+  rpc UpdatePlayerProfile(UpdatePlayerProfileRequest) returns (UpdatePlayerProfileResponse);
+
+  // v2 新增: 卡组 (per DTL-038 §4.3 FR-002 + DEC-038-01)
+  rpc CreateDeck(CreateDeckRequest) returns (Deck);
+  rpc GetDeck(GetDeckRequest) returns (Deck);
+  rpc UpdateDeck(UpdateDeckRequest) returns (UpdateDeckResponse);
+  rpc DeleteDeck(DeleteDeckRequest) returns (DeleteDeckResponse);
+  rpc ListDecks(ListDecksRequest) returns (ListDecksResponse);
+  rpc ShareDeck(ShareDeckRequest) returns (ShareDeckResponse);
+  rpc GetSharedDeck(GetSharedDeckRequest) returns (Deck);
 }
+
+// ============================================================================
+// v1 message (54.6 实化, 完整保留 — 不可破坏)
+// ============================================================================
 
 message Player {
   common.v1.EntityId id = 1;
   common.v1.Status status = 2;
   common.v1.Timestamp created_at = 3;
   string display_name = 4;
+}
+
+// ============================================================================
+// v2 message: 卡牌游戏资料 (per DTL-038 §4.3 FR-001)
+// ============================================================================
+
+// TODO(common.proto v2): PlayerId 应迁移到 common.v1.PlayerId (per DTL-038 §4.3
+// PlayerProfile.player). 当前 common.proto v1 缺 PlayerId 类型, 暂用 string.
+// 后续 common.proto v2 实装后, 此处应改回 common.v1.PlayerId.
+message PlayerProfile {
+  string player_id = 1;        // TODO: 迁 common.v1.PlayerId
+  // 卡牌游戏专属
+  uint32 ranked_score = 2;     // 天梯积分
+  string ranked_tier = 3;      // 段位 (Bronze / Silver / Gold / ...)
+  uint32 total_matches = 4;    // 总对战数
+  uint32 total_wins = 5;       // 总胜
+  uint32 collection_count = 6; // 收藏数
+  // TODO(common.proto v2): Currency 列表应使用 common.v1.Currency
+  repeated Currency currencies = 7;
+  // TODO(common.proto v2): preferred_locale 应使用 common.v1.Locale
+  string preferred_locale = 8; // BCP-47 locale code (e.g. zh-CN, en-US, ja-JP)
+}
+
+// TODO(common.proto v2): 应迁移到 common.v1.Currency
+// 暂以本地 message 占位, 保持与 DTL-038 §4.3 currencies 字段对齐
+message Currency {
+  string code = 1;             // "GOLD" / "GEM" / "DUST"
+  int64 amount = 2;
+}
+
+message GetPlayerProfileRequest {
+  string request_id = 1;
+  string player_id = 2;        // TODO: 迁 common.v1.PlayerId
+}
+
+message UpdatePlayerProfileRequest {
+  string request_id = 1;
+  string player_id = 2;        // TODO: 迁 common.v1.PlayerId
+  PlayerProfile profile = 3;
+}
+
+message UpdatePlayerProfileResponse {
+  bool updated = 1;
+}
+
+// ============================================================================
+// v2 message: 卡组 (per DTL-038 §4.3 FR-002 + §7.1 decks 表)
+// ============================================================================
+
+message Deck {
+  string deck_id = 1;          // UUID (string)
+  string owner_id = 2;         // TODO: 迁 common.v1.PlayerId
+  string name = 3;
+  // TODO(common.proto v2): 模式用 common.v1.GameMode 枚举
+  // 当前 common.proto v1 缺 GameMode, 暂用 int32: 1=ranked 2=casual 3=room 4=ai
+  int32 mode = 4;
+  repeated DeckSlot slots = 5; // 卡组牌 (30-60 张, 业务层校验)
+  common.v1.Status status = 6;
+  common.v1.Timestamp created_at = 7;
+  common.v1.Timestamp updated_at = 8;
+  bool is_public = 9;
+  string share_code = 10;      // 公开分享码 (UUIDv4 string), 仅 is_public=true 时存在
+  uint32 like_count = 11;
+}
+
+message DeckSlot {
+  // TODO(common.proto v2): 迁 common.v1.CardRef
+  string card_id = 1;          // 卡牌 master ID (跨域引用, 不物化 FK)
+  uint32 count = 2;            // 同卡数量 (业务层校验 1-3)
+}
+
+message CreateDeckRequest {
+  string request_id = 1;
+  string owner_id = 2;         // TODO: 迁 common.v1.PlayerId
+  string name = 3;
+  int32 mode = 4;              // TODO: 迁 common.v1.GameMode
+}
+
+message GetDeckRequest {
+  string request_id = 1;
+  string deck_id = 2;
+}
+
+message UpdateDeckRequest {
+  string request_id = 1;
+  string deck_id = 2;
+  string owner_id = 3;         // TODO: 迁 common.v1.PlayerId
+  // 全量替换 slots (业务层校验 30-60 张)
+  repeated DeckSlot slots = 4;
+  string name = 5;             // 可选, 空字符串 = 不改名
+}
+
+message UpdateDeckResponse {
+  bool updated = 1;
+  // 校验失败详情 (业务层校验, 规则引擎未实装, 留空 list)
+  repeated string validation_errors = 2;
+}
+
+message DeleteDeckRequest {
+  string request_id = 1;
+  string deck_id = 2;
+  string owner_id = 3;         // TODO: 迁 common.v1.PlayerId
+}
+
+message DeleteDeckResponse {
+  bool deleted = 1;
+}
+
+message ListDecksRequest {
+  string request_id = 1;
+  string owner_id = 2;         // TODO: 迁 common.v1.PlayerId
+  common.v1.PageRequest page = 3;
+}
+
+message ListDecksResponse {
+  repeated Deck decks = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message ShareDeckRequest {
+  string request_id = 1;
+  string deck_id = 2;
+  string owner_id = 3;         // TODO: 迁 common.v1.PlayerId
+  bool make_public = 4;        // true=开启分享, false=取消分享
+}
+
+message ShareDeckResponse {
+  string share_code = 1;       // 公开分享码 (UUIDv4 string)
+  string share_url = 2;        // 完整分享 URL (per service 拼接, placeholder)
+}
+
+message GetSharedDeckRequest {
+  string request_id = 1;
+  string share_code = 2;       // 公开分享码拉取路径
+  // 兼容好友 ID 拉取路径 (二选一, 业务层优先 share_code)
+  string friend_id = 3;        // TODO: 迁 common.v1.PlayerId
+  string friend_deck_id = 4;
 }
