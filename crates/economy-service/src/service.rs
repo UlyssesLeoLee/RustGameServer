@@ -301,14 +301,44 @@ pub mod grpc_service {
     use super::*;
     use crate::common::v1 as common_proto;
     use crate::proto::v1 as economy_proto;
+    use crate::trade_entity::AuctionFilter;
+    use crate::trade_service::{TradeService, TradeServiceImpl};
 
     pub struct EconomyGrpcService {
         pub impl_: Arc<EconomyServiceImpl>,
+        pub trade: Arc<TradeServiceImpl>,
     }
 
     impl EconomyGrpcService {
-        pub fn new(impl_: Arc<EconomyServiceImpl>) -> Self {
-            Self { impl_ }
+        pub fn new(impl_: Arc<EconomyServiceImpl>, trade: Arc<TradeServiceImpl>) -> Self {
+            Self { impl_, trade }
+        }
+    }
+
+    /// Auction → proto.Auction 转换
+    fn auction_to_proto(a: &crate::trade_entity::Auction) -> economy_proto::Auction {
+        economy_proto::Auction {
+            auction_id: a.auction_id.to_string(),
+            seller_id: a.seller_id.clone(),
+            card_id: a.card_id.clone(),
+            card_instance_id: a.card_instance_id.clone(),
+            min_price: a.min_price,
+            currency_type: a.currency_type,
+            highest_bid: a.highest_bid,
+            highest_bidder: a.highest_bidder.clone(),
+            status: a.status.as_i32(),
+            started_at: Some(common_proto::Timestamp {
+                seconds: a.started_at.timestamp(),
+                nanos: a.started_at.timestamp_subsec_nanos() as i32,
+            }),
+            ends_at: Some(common_proto::Timestamp {
+                seconds: a.ends_at.timestamp(),
+                nanos: a.ends_at.timestamp_subsec_nanos() as i32,
+            }),
+            closed_at: a.closed_at.map(|t| common_proto::Timestamp {
+                seconds: t.timestamp(),
+                nanos: t.timestamp_subsec_nanos() as i32,
+            }),
         }
     }
 
@@ -364,6 +394,128 @@ pub mod grpc_service {
                     nanos: account.created_at.timestamp_subsec_nanos() as i32,
                 }),
                 display_name: format!("{:?}-{:?}", account.currency, account.player_id),
+            }))
+        }
+
+        // ========== trade 域 5 RPC (per RGS-DTL-038 §4.4 + DEC-038-04) ==========
+        // 委托给 self.trade (TradeServiceImpl) 业务实现
+        async fn create_auction(
+            &self,
+            request: Request<economy_proto::CreateAuctionRequest>,
+        ) -> std::result::Result<Response<economy_proto::CreateAuctionResponse>, Status> {
+            let req = request.into_inner();
+            let auction = self
+                .trade
+                .create_auction(
+                    req.seller_id,
+                    req.card_id,
+                    req.card_instance_id,
+                    req.min_price,
+                    req.currency_type,
+                    req.ends_at_unix,
+                )
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(economy_proto::CreateAuctionResponse {
+                auction_id: auction.auction_id.to_string(),
+                started_at: Some(common_proto::Timestamp {
+                    seconds: auction.started_at.timestamp(),
+                    nanos: auction.started_at.timestamp_subsec_nanos() as i32,
+                }),
+                ends_at: Some(common_proto::Timestamp {
+                    seconds: auction.ends_at.timestamp(),
+                    nanos: auction.ends_at.timestamp_subsec_nanos() as i32,
+                }),
+            }))
+        }
+
+        async fn bid_auction(
+            &self,
+            request: Request<economy_proto::BidAuctionRequest>,
+        ) -> std::result::Result<Response<economy_proto::BidAuctionResponse>, Status> {
+            let req = request.into_inner();
+            let auction_id = Uuid::parse_str(&req.auction_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id))
+            })?;
+            let result = self
+                .trade
+                .bid_auction(auction_id, req.bidder_id, req.amount, req.idempotency_key)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(economy_proto::BidAuctionResponse {
+                bid_id: result.bid_id.to_string(),
+                is_highest: result.is_highest,
+                current_highest: result.auction.highest_bid,
+                auction_ended: result.auction_ended,
+                refunded_to: result.refunded_to,
+                refund_amount: result.refund_amount,
+            }))
+        }
+
+        async fn cancel_auction(
+            &self,
+            request: Request<economy_proto::CancelAuctionRequest>,
+        ) -> std::result::Result<Response<economy_proto::CancelAuctionResponse>, Status> {
+            let req = request.into_inner();
+            let auction_id = Uuid::parse_str(&req.auction_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id))
+            })?;
+            let result = self
+                .trade
+                .cancel_auction(auction_id, req.seller_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(economy_proto::CancelAuctionResponse {
+                cancelled: true,
+                refunded: result.refunded,
+                refunded_to: result.refunded_to,
+            }))
+        }
+
+        async fn list_auction(
+            &self,
+            request: Request<economy_proto::ListAuctionRequest>,
+        ) -> std::result::Result<Response<economy_proto::ListAuctionResponse>, Status> {
+            let req = request.into_inner();
+            let filter = AuctionFilter::from_i32(req.filter);
+            let page_req = req.page.unwrap_or_default();
+            let (list, total) = self
+                .trade
+                .list_auctions(filter, page_req.page, page_req.page_size)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let has_next = (page_req.page as u64) * (page_size as u64) < total;
+            Ok(Response::new(economy_proto::ListAuctionResponse {
+                auctions: list.iter().map(auction_to_proto).collect(),
+                page: Some(common_proto::PageResponse {
+                    total: total as u32,
+                    has_next,
+                    next_cursor: String::new(),
+                }),
+            }))
+        }
+
+        async fn get_trade_history(
+            &self,
+            request: Request<economy_proto::GetTradeHistoryRequest>,
+        ) -> std::result::Result<Response<economy_proto::GetTradeHistoryResponse>, Status> {
+            let req = request.into_inner();
+            let page_req = req.page.unwrap_or_default();
+            let (list, total) = self
+                .trade
+                .get_trade_history(req.player_id, page_req.page, page_req.page_size)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let has_next = (page_req.page as u64) * (page_size as u64) < total;
+            Ok(Response::new(economy_proto::GetTradeHistoryResponse {
+                trades: list.iter().map(auction_to_proto).collect(),
+                page: Some(common_proto::PageResponse {
+                    total: total as u32,
+                    has_next,
+                    next_cursor: String::new(),
+                }),
             }))
         }
     }
