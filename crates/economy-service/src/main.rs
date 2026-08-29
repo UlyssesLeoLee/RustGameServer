@@ -34,6 +34,8 @@ use economy_service::saga::{PgSagaRepository, SagaRepository};
 use economy_service::saga_orchestrator::{ConfirmHandler, ReserveHandler, SagaOrchestrator};
 use economy_service::service::grpc_service::EconomyGrpcService;
 use economy_service::service::EconomyServiceImpl;
+use economy_service::trade_repository::{PgTradeRepository, TradeRepository};
+use economy_service::trade_service::TradeServiceImpl;
 
 // mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C / RGS-REV-009 HI-1）
 //
@@ -189,8 +191,16 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let service_impl = Arc::new(EconomyServiceImpl::new(accounts, ledger));
-    let grpc = EconomyGrpcService::new(service_impl);
+    let service_impl = Arc::new(EconomyServiceImpl::new(accounts.clone(), ledger.clone()));
+    // trade 域: TradeRepository (Pg) + TradeServiceImpl 业务实现 (per RGS-DTL-038 §4.4 + DEC-038-04)
+    // mTLS fail-closed: 与主服务共用 mTLS 配置 (per BAS-003)
+    let trade_repo: Arc<dyn TradeRepository> = Arc::new(PgTradeRepository::new(pool.clone()));
+    let trade_impl = Arc::new(TradeServiceImpl::new(
+        trade_repo,
+        accounts.clone() as Arc<dyn AccountRepository>,
+        ledger.clone() as Arc<dyn TransactionLedgerRepository>,
+    ));
+    let grpc = EconomyGrpcService::new(service_impl, trade_impl);
 
     // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
     // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。

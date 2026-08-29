@@ -464,7 +464,10 @@ impl AccountRepository for InMemoryAccountRepository {
 }
 
 pub struct InMemoryTransactionLedgerRepository {
-    pub(crate) inner: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
+    /// HashMap 句柄: 可与 InMemoryAccountRepository.with_shared_ledger 共享,
+    /// 实现 apply_atomic 原子双写 (per RGS-REV-007 AC3).
+    /// IT/测试可通过 `inner` 拿到句柄, 业务代码无需直接访问.
+    pub inner: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
 }
 
 impl InMemoryTransactionLedgerRepository {

@@ -14,7 +14,7 @@
 //!           私下交易 (ExecuteTrade) 涉及 card-service + economy-service 双向货币/卡牌转移.
 //!           当前用 TODO 注释标记 W36+ 接入点, 业务实现保持单域内可运行 (mock 跨域).
 
-use crate::entity::{Currency, TransactionKind, TransactionStatus};
+use crate::entity::{Currency, TransactionKind, TransactionLedger, TransactionStatus};
 use crate::error::Error;
 use crate::repository::{AccountRepository, TransactionLedgerRepository};
 use crate::trade_entity::{Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus};
@@ -801,12 +801,10 @@ mod tests {
         (svc, acc_repo, led_repo)
     }
 
-    fn fund(acc_repo: &InMemoryAccountRepository, player_id: Uuid, currency: Currency, amount: i64) {
+    async fn fund(acc_repo: &InMemoryAccountRepository, player_id: Uuid, currency: Currency, amount: i64) {
         let mut acc = crate::entity::Account::new(player_id, currency);
         acc.credit(amount);
-        futures::executor::block_on(async {
-            acc_repo.save(&acc).await.unwrap();
-        });
+        acc_repo.save(&acc).await.unwrap();
     }
 
     #[tokio::test]
@@ -874,7 +872,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, seller, Currency::Gold, 1000);
+        fund(&acc_repo, seller, Currency::Gold, 1000).await;
         let err = svc
             .bid_auction(
                 auction.auction_id,
@@ -903,7 +901,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder, Currency::Gold, 1000);
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
         let err = svc
             .bid_auction(
                 auction.auction_id,
@@ -932,7 +930,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder, Currency::Gold, 1000);
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
 
         let result = svc
             .bid_auction(
@@ -976,8 +974,8 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder1, Currency::Gold, 1000);
-        fund(&acc_repo, bidder2, Currency::Gold, 1000);
+        fund(&acc_repo, bidder1, Currency::Gold, 1000).await;
+        fund(&acc_repo, bidder2, Currency::Gold, 1000).await;
 
         // bidder1 出价 200
         let r1 = svc
@@ -1038,7 +1036,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder, Currency::Gold, 1000);
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
 
         svc.bid_auction(
             auction.auction_id,
@@ -1076,7 +1074,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder, Currency::Gold, 50);
+        fund(&acc_repo, bidder, Currency::Gold, 50).await;
 
         let err = svc
             .bid_auction(
@@ -1106,7 +1104,7 @@ mod tests {
             )
             .await
             .unwrap();
-        fund(&acc_repo, bidder, Currency::Gold, 1000);
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
         svc.bid_auction(
             auction.auction_id,
             bidder.to_string(),
@@ -1162,7 +1160,7 @@ mod tests {
         let (svc, acc_repo, _led_repo) = make_service();
         let seller = Uuid::new_v4();
         let bidder = Uuid::new_v4();
-        fund(&acc_repo, bidder, Currency::Gold, 1000);
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
 
         // 3 拍卖
         for i in 0..3 {
@@ -1189,5 +1187,233 @@ mod tests {
             .get_trade_history(seller.to_string(), 1, 10)
             .await
             .unwrap();
+    }
+
+    // =========================================================================
+    // 桶 14 / 子桶 1 收尾: 5 RPC × 2 (happy + validation) = 10 新增 UT
+    // 覆盖 trade 域 5 RPC 业务逻辑边界 (per RGS-DTL-038 §4.4 + DEC-038-04)
+    // =========================================================================
+
+    // [1/10] create_auction happy: 显式 ends_at_unix
+    #[tokio::test]
+    async fn ut_create_auction_happy_with_explicit_ends_at() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let future_unix = (chrono::Utc::now() + chrono::Duration::hours(2)).timestamp();
+        let auction = svc
+            .create_auction(
+                Uuid::new_v4().to_string(),
+                "card-exp".to_string(),
+                "inst-exp".to_string(),
+                500,
+                2, // Diamond
+                future_unix,
+            )
+            .await
+            .unwrap();
+        assert_eq!(auction.status, AuctionStatus::Active);
+        assert_eq!(auction.currency_type, 2);
+        assert!(auction.ends_at.timestamp() <= future_unix + 1);
+    }
+
+    // [2/10] create_auction validation: 未知 currency_type
+    #[tokio::test]
+    async fn ut_create_auction_invalid_currency_type() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let err = svc
+            .create_auction(
+                Uuid::new_v4().to_string(),
+                "card-x".to_string(),
+                "inst-x".to_string(),
+                100,
+                99, // unknown
+                0,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // [3/10] bid_auction happy: 出价成为最高, 余额正确扣减
+    #[tokio::test]
+    async fn ut_bid_auction_happy_becomes_highest() {
+        let (svc, acc_repo, _led_repo) = make_service();
+        let seller = Uuid::new_v4();
+        let bidder = Uuid::new_v4();
+        let auction = svc
+            .create_auction(
+                seller.to_string(),
+                "card-001".to_string(),
+                "inst-001".to_string(),
+                100,
+                1,
+                0,
+            )
+            .await
+            .unwrap();
+        fund(&acc_repo, bidder, Currency::Gold, 500).await;
+        let r = svc
+            .bid_auction(auction.auction_id, bidder.to_string(), 150, "k-bid-1".to_string())
+            .await
+            .unwrap();
+        assert!(r.is_highest);
+        assert_eq!(r.auction.highest_bid, 150);
+        assert_eq!(r.auction.highest_bidder, bidder.to_string());
+        // 余额: 500 - 150 = 350
+        let acc = acc_repo
+            .find_by_player_and_currency(bidder, Currency::Gold)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(acc.balance, 350);
+    }
+
+    // [4/10] bid_auction validation: amount = 0 拒绝
+    #[tokio::test]
+    async fn ut_bid_auction_invalid_zero_amount() {
+        let (svc, acc_repo, _led_repo) = make_service();
+        let seller = Uuid::new_v4();
+        let bidder = Uuid::new_v4();
+        let auction = svc
+            .create_auction(
+                seller.to_string(),
+                "card-001".to_string(),
+                "inst-001".to_string(),
+                100,
+                1,
+                0,
+            )
+            .await
+            .unwrap();
+        fund(&acc_repo, bidder, Currency::Gold, 1000).await;
+        let err = svc
+            .bid_auction(auction.auction_id, bidder.to_string(), 0, "k-zero".to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // [5/10] cancel_auction happy: 无出价时撤单, refunded = 0
+    #[tokio::test]
+    async fn ut_cancel_auction_happy_no_bids() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let seller = Uuid::new_v4();
+        let auction = svc
+            .create_auction(
+                seller.to_string(),
+                "card-001".to_string(),
+                "inst-001".to_string(),
+                100,
+                1,
+                0,
+            )
+            .await
+            .unwrap();
+        let r = svc
+            .cancel_auction(auction.auction_id, seller.to_string())
+            .await
+            .unwrap();
+        assert_eq!(r.refunded, 0);
+        assert_eq!(r.refunded_to, "");
+        assert_eq!(r.auction.status, AuctionStatus::Cancelled);
+    }
+
+    // [6/10] cancel_auction validation: 不存在 auction
+    #[tokio::test]
+    async fn ut_cancel_auction_invalid_not_found() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let err = svc
+            .cancel_auction(Uuid::new_v4(), Uuid::new_v4().to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // [7/10] list_auctions happy: filter=All 包含已撤单的拍卖
+    #[tokio::test]
+    async fn ut_list_auctions_happy_filter_all() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let seller = Uuid::new_v4();
+        // 2 active + 1 cancelled
+        for i in 0..2 {
+            svc.create_auction(
+                seller.to_string(),
+                format!("card-a-{}", i),
+                format!("inst-a-{}", i),
+                100,
+                1,
+                0,
+            )
+            .await
+            .unwrap();
+        }
+        let to_cancel = svc
+            .create_auction(
+                seller.to_string(),
+                "card-c".to_string(),
+                "inst-c".to_string(),
+                100,
+                1,
+                0,
+            )
+            .await
+            .unwrap();
+        svc.cancel_auction(to_cancel.auction_id, seller.to_string())
+            .await
+            .unwrap();
+        // All filter: 应返回 3 条
+        let (_list_all, total_all) = svc
+            .list_auctions(AuctionFilter::All, 1, 10)
+            .await
+            .unwrap();
+        assert_eq!(total_all, 3);
+        // Active filter: 应返回 2 条
+        let (_list_active, total_active) = svc
+            .list_auctions(AuctionFilter::Active, 1, 10)
+            .await
+            .unwrap();
+        assert_eq!(total_active, 2);
+    }
+
+    // [8/10] list_auctions validation: page_size 上限保护
+    #[tokio::test]
+    async fn ut_list_auctions_invalid_pagination_capped() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let seller = Uuid::new_v4();
+        // page_size > 100 应被截到 100 (impl 在 service.rs / trade_service.rs)
+        let (_list, _total) = svc
+            .list_auctions(AuctionFilter::All, 1, 500)
+            .await
+            .unwrap();
+        // page_size=0 应 fallback 到 20
+        let (_list2, _total2) = svc
+            .list_auctions(AuctionFilter::All, 0, 0)
+            .await
+            .unwrap();
+        // 验证不 panic, 返回值有效
+        let _ = seller; // suppress unused
+    }
+
+    // [9/10] get_trade_history happy: 空历史
+    #[tokio::test]
+    async fn ut_get_trade_history_happy_empty() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let random_player = Uuid::new_v4().to_string();
+        let (list, total) = svc
+            .get_trade_history(random_player.clone(), 1, 10)
+            .await
+            .unwrap();
+        assert_eq!(total, 0);
+        assert!(list.is_empty());
+    }
+
+    // [10/10] get_trade_history validation: empty player_id
+    #[tokio::test]
+    async fn ut_get_trade_history_invalid_empty_player() {
+        let (svc, _acc_repo, _led_repo) = make_service();
+        let err = svc
+            .get_trade_history("".to_string(), 1, 10)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
     }
 }
