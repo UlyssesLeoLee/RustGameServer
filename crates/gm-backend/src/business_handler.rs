@@ -1,21 +1,22 @@
-//! gm-backend 5 GM endpoint 业务 handler(per RGS-BAS-003 §3.1-§3.4 + gm.proto v0.3)
+//! gm-backend 5 GM endpoint 业务 handler(per RGS-BAS-003 §3.1-§3.4 + gm.proto v0.4)
 //!
-//! ## 范围(per RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1 桶 2a)
+//! ## 范围(per RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1 桶 2a + W35 桶 14 补完)
 //! - 从 lib.rs 移出 5 个 stub handler(health_view / ban_account / grant_compensation
 //!   / set_maintenance / query_audit)
 //! - 从 HTTP body (Json) / query string (Query) 解析真值
 //! - 调用 admin-service gRPC,失败降级 InMemory AuditStore
 //! - 字段级校验:缺字段 → 400,业务约束违反 → 400
 //!
-//! ## 字段 schema(per gm.proto v0.3)
-//! - BanAccount: { account_id, reason, duration_seconds? }
-//! - GrantCompensation: { account_id, amount, currency, reason }
-//! - SetMaintenance: { enable, scope, target_id, ttl_seconds? }
-//! - QueryAuditLog: ?limit=1..=100 ?cursor= ?filter_admin= ?filter_action=
+//! ## 字段 schema(per gm.proto v0.4 — W35 桶 14 升版)
+//! - BanAccount: { account_id, reason, duration_seconds?, force_disconnect_session? } [v0.4 新增 force_disconnect_session]
+//! - GrantCompensation: { account_id, amount, currency, reason, card_ids?, pack_ids? } [v0.4 新增 card_ids/pack_ids]
+//! - SetMaintenance: { enable, scope, target_id, ttl_seconds?, mode_flags? } [v0.4 新增 mode_flags]
+//! - QueryAuditLog: ?limit=1..=100 ?cursor= ?filter_admin= ?filter_action= ?audit_type=
 //! - HealthView: ?request_id=
 //!
 //! ## 关联
 //! - gm.proto v0.3 commit 8ad815c (WBS v0.3)
+//! - gm.proto v0.4 桶 14 补完 (W35) — 5 字段升版 (per DTL-038 §4.3 + DEC-038-07)
 //! - admin-service gm_handlers 实装 commit 1e25591 (S4 Phase 2 step 2)
 //! - circuit_breaker wire W20 + W23
 //!
@@ -25,6 +26,10 @@
 //! - comp:   missing_account_id / missing_reason / invalid_amount / invalid_currency
 //! - maint:  invalid_scope / missing_target_id / invalid_ttl
 //! - audit:  (limit clamp, 非 400)
+//!
+//! ## v0.4 audit_type 解析
+//! 客户端传 ?audit_type=trade|gacha|match|compensation|all (lowercase)
+//! 默认 = AUDIT_TYPE_ALL (兼容 v0.3 不分类行为)
 
 use axum::{
     extract::{Query, State},
@@ -38,13 +43,14 @@ use std::time::Duration;
 
 use crate::{
     admin::v1::{
-        BanAccountRequest, GrantCompensationRequest, QueryAuditLogRequest, SetMaintenanceRequest,
+        AuditType, BanAccountRequest, GrantCompensationRequest, QueryAuditLogRequest,
+        SetMaintenanceRequest,
     },
     AppState, AuditLogEntry, ServiceHealthEntry,
 };
 
 // ============================================================================
-// Request body / query DTOs(per BAS-003 §3.1-§3.4 + gm.proto v0.3)
+// Request body / query DTOs(per BAS-003 §3.1-§3.4 + gm.proto v0.4)
 // ============================================================================
 
 /// BanAccount 请求 body (per BAS-003 §3.1)
@@ -55,6 +61,9 @@ pub struct BanAccountRequestBody {
     /// 0 = 永久(可缺省, 默认 0)
     #[serde(default)]
     pub duration_seconds: i32,
+    /// v0.4 增量: 是否强制踢出现有 session
+    #[serde(default)]
+    pub force_disconnect_session: bool,
 }
 
 /// GrantCompensation 请求 body (per BAS-003 §3.1)
@@ -64,6 +73,12 @@ pub struct CompensationRequestBody {
     pub amount: i64,
     pub currency: String,
     pub reason: String,
+    /// v0.4 增量: 卡牌补偿 ID 列表
+    #[serde(default)]
+    pub card_ids: Vec<String>,
+    /// v0.4 增量: 卡包补偿 ID 列表
+    #[serde(default)]
+    pub pack_ids: Vec<String>,
 }
 
 /// SetMaintenance 请求 body (per BAS-003 §3.3)
@@ -75,6 +90,9 @@ pub struct MaintenanceRequestBody {
     /// 0 = 永久(可缺省, 默认 0)
     #[serde(default)]
     pub ttl_seconds: i32,
+    /// v0.4 增量: 模式 bit flag (天梯/交易/抽卡/匹配冻结)
+    #[serde(default)]
+    pub mode_flags: u32,
 }
 
 /// QueryAuditLog query string (per BAS-003 §3.4)
@@ -88,6 +106,9 @@ pub struct QueryAuditLogQuery {
     pub filter_admin: Option<String>,
     #[serde(default)]
     pub filter_action: Option<String>,
+    /// v0.4 增量: 审计类型过滤 (字符串: trade|gacha|match|compensation|all)
+    #[serde(default)]
+    pub audit_type: Option<String>,
 }
 
 /// HealthView query string (可选 request_id, 默认 uuid)
@@ -98,7 +119,7 @@ pub struct HealthViewQuery {
 }
 
 // ============================================================================
-// 业务常量(per gm.proto v0.3)
+// 业务常量(per gm.proto v0.4)
 // ============================================================================
 
 /// QueryAuditLogRequest.limit 默认值(per gm.proto v0.3)
@@ -107,6 +128,30 @@ pub const DEFAULT_AUDIT_LIMIT: usize = 20;
 pub const MAX_AUDIT_LIMIT: usize = 100;
 /// SetMaintenance.scope 允许值
 pub const ALLOWED_MAINTENANCE_SCOPES: &[&str] = &["cluster", "domain", "single_node"];
+
+/// v0.4 增量: audit_type 字符串 → proto enum 映射
+pub fn parse_audit_type(s: &str) -> Option<i32> {
+    match s.to_ascii_lowercase().as_str() {
+        "all" => Some(AuditType::All as i32),
+        "trade" => Some(AuditType::Trade as i32),
+        "gacha" => Some(AuditType::Gacha as i32),
+        "match" => Some(AuditType::Match as i32),
+        "compensation" => Some(AuditType::Compensation as i32),
+        _ => None,
+    }
+}
+
+/// v0.4 增量: proto enum → 字符串(供响应回显)
+pub fn audit_type_to_str(v: i32) -> &'static str {
+    match v {
+        1 => "all",
+        2 => "trade",
+        3 => "gacha",
+        4 => "match",
+        5 => "compensation",
+        _ => "all",
+    }
+}
 
 // ============================================================================
 // 校验错误响应 helper
@@ -176,11 +221,12 @@ pub async fn health_view(
 // 2. BanAccount: 解析 body, 调 admin-service gRPC, 写 audit_log
 // ============================================================================
 
-/// BanAccount handler(per gm.proto v0.3)
+/// BanAccount handler(per gm.proto v0.4)
 /// - account_id 空 → 400 (missing_account_id)
 /// - reason 空 → 400 (missing_reason)
 /// - duration_seconds < 0 → 400 (invalid_duration)
 /// - admin_grpc 失败/超时 → 降级 InMemory + 202 (degraded, 仍记录审计)
+/// - v0.4 增量: force_disconnect_session 透传给 admin-service
 pub async fn ban_account(
     State(s): State<AppState>,
     Json(body): Json<BanAccountRequestBody>,
@@ -207,6 +253,7 @@ pub async fn ban_account(
                 account_id: body.account_id.clone(),
                 reason: body.reason.clone(),
                 duration_seconds: body.duration_seconds,
+                force_disconnect_session: body.force_disconnect_session, // v0.4 透传
             };
             tokio::time::timeout(Duration::from_millis(500), client.ban_account(req))
                 .await
@@ -231,6 +278,11 @@ pub async fn ban_account(
             "admin-service ban_account unavailable, local InMemory fallback used"
         );
     }
+    // v0.4: disconnected_sessions 来自 admin-service 响应; 降级路径用 body 字段 echo
+    let disconnected = admin_grpc_result
+        .as_ref()
+        .map(|r| r.disconnected_sessions)
+        .unwrap_or(body.force_disconnect_session);
     (
         StatusCode::ACCEPTED,
         Json(json!({
@@ -239,6 +291,8 @@ pub async fn ban_account(
             "request_id": request_id,
             "account_id": body.account_id,
             "degraded": admin_grpc_result.is_none(),
+            "force_disconnect_session": body.force_disconnect_session,
+            "disconnected_sessions": disconnected,
         })),
     )
 }
@@ -247,11 +301,12 @@ pub async fn ban_account(
 // 3. GrantCompensation: amount > 0, currency 3-4 字符
 // ============================================================================
 
-/// GrantCompensation handler(per gm.proto v0.3)
+/// GrantCompensation handler(per gm.proto v0.4)
 /// - account_id / reason 空 → 400
 /// - amount ≤ 0 → 400 (invalid_amount)
 /// - currency 长度 ∉ [3, 4] → 400 (invalid_currency)
 /// - admin_grpc 失败 → 降级 InMemory + 202
+/// - v0.4 增量: card_ids / pack_ids 透传给 admin-service
 pub async fn grant_compensation(
     State(s): State<AppState>,
     Json(body): Json<CompensationRequestBody>,
@@ -282,6 +337,8 @@ pub async fn grant_compensation(
                 amount: body.amount,
                 currency: body.currency.clone(),
                 reason: body.reason.clone(),
+                card_ids: body.card_ids.clone(), // v0.4 透传
+                pack_ids: body.pack_ids.clone(), // v0.4 透传
             };
             tokio::time::timeout(Duration::from_millis(500), client.grant_compensation(req))
                 .await
@@ -305,6 +362,15 @@ pub async fn grant_compensation(
             "admin-service grant_compensation unavailable, local InMemory fallback used"
         );
     }
+    // v0.4: 实际发放数 (cards_granted / packs_granted)
+    let cards_granted = admin_grpc_result
+        .as_ref()
+        .map(|r| r.cards_granted)
+        .unwrap_or(body.card_ids.len() as u32);
+    let packs_granted = admin_grpc_result
+        .as_ref()
+        .map(|r| r.packs_granted)
+        .unwrap_or(body.pack_ids.len() as u32);
     (
         StatusCode::ACCEPTED,
         Json(json!({
@@ -315,6 +381,10 @@ pub async fn grant_compensation(
             "amount": body.amount,
             "currency": body.currency,
             "degraded": admin_grpc_result.is_none(),
+            "card_ids": body.card_ids,
+            "pack_ids": body.pack_ids,
+            "cards_granted": cards_granted,
+            "packs_granted": packs_granted,
         })),
     )
 }
@@ -323,11 +393,12 @@ pub async fn grant_compensation(
 // 4. SetMaintenance: scope ∈ {cluster, domain, single_node}
 // ============================================================================
 
-/// SetMaintenance handler(per gm.proto v0.3 + DTL-003 §3.3 propagation_status)
+/// SetMaintenance handler(per gm.proto v0.4 + DTL-003 §3.3 propagation_status)
 /// - scope ∉ 3 选 1 → 400 (invalid_scope)
 /// - target_id 空 → 400
 /// - ttl_seconds < 0 → 400
 /// - 响应保留 propagation_status 字段(PROPAGATING / CONVERGED)
+/// - v0.4 增量: mode_flags 透传
 pub async fn set_maintenance(
     State(s): State<AppState>,
     Json(body): Json<MaintenanceRequestBody>,
@@ -344,7 +415,7 @@ pub async fn set_maintenance(
     }
 
     let request_id = uuid::Uuid::new_v4().to_string();
-    let propagation_status = match s.admin_grpc.as_ref() {
+    let (propagation_status, applied_mode_flags) = match s.admin_grpc.as_ref() {
         Some(client) => {
             let req = SetMaintenanceRequest {
                 request_id: request_id.clone(),
@@ -352,27 +423,31 @@ pub async fn set_maintenance(
                 scope: body.scope.clone(),
                 target_id: body.target_id.clone(),
                 ttl_seconds: body.ttl_seconds,
+                mode_flags: body.mode_flags, // v0.4 透传
             };
             match tokio::time::timeout(Duration::from_millis(500), client.set_maintenance(req))
                 .await
             {
-                Ok(Ok(resp)) => match resp.propagation_status {
-                    1 => "PROPAGATING",
-                    2 => "CONVERGED",
-                    _ => "PROPAGATING",
-                }
-                .to_string(),
+                Ok(Ok(resp)) => (
+                    match resp.propagation_status {
+                        1 => "PROPAGATING",
+                        2 => "CONVERGED",
+                        _ => "PROPAGATING",
+                    }
+                    .to_string(),
+                    resp.applied_mode_flags,
+                ),
                 Ok(Err(e)) => {
                     tracing::warn!("admin-service set_maintenance failed: {e}");
-                    "PROPAGATING".to_string()
+                    ("PROPAGATING".to_string(), body.mode_flags)
                 }
                 Err(_) => {
                     tracing::warn!("admin-service set_maintenance timeout");
-                    "PROPAGATING".to_string()
+                    ("PROPAGATING".to_string(), body.mode_flags)
                 }
             }
         }
-        None => "PROPAGATING".to_string(),
+        None => ("PROPAGATING".to_string(), body.mode_flags),
     };
     s.audit_store.append(AuditLogEntry {
         log_id: request_id.clone(),
@@ -391,16 +466,19 @@ pub async fn set_maintenance(
             "target_id": body.target_id,
             "enable": body.enable,
             "propagation_status": propagation_status,
+            "mode_flags": body.mode_flags,
+            "applied_mode_flags": applied_mode_flags,
         })),
     )
 }
 
 // ============================================================================
-// 5. QueryAuditLog: ?limit=1..=100 + cursor/filter_admin/filter_action
+// 5. QueryAuditLog: ?limit=1..=100 + cursor/filter_admin/filter_action/audit_type
 // ============================================================================
 
-/// QueryAuditLog handler(per gm.proto v0.3 + DTL-003 §3.4 entries[] + has_more + next_cursor)
+/// QueryAuditLog handler(per gm.proto v0.4 + DTL-003 §3.4 entries[] + has_more + next_cursor)
 /// - limit 0 → 默认 20;limit > 100 → clamp 到 100(防爆, 不返 400)
+/// - audit_type 不在 5 选 1 → 默认 all (v0.3 兼容)
 /// - 优先返回 admin-service gRPC 真实 entries,失败降级 InMemory AuditStore
 pub async fn query_audit(
     State(s): State<AppState>,
@@ -414,6 +492,12 @@ pub async fn query_audit(
     let cursor = q.cursor.unwrap_or_default();
     let filter_admin = q.filter_admin.unwrap_or_default();
     let filter_action = q.filter_action.unwrap_or_default();
+    // v0.4: audit_type 解析
+    let audit_type = q
+        .audit_type
+        .as_deref()
+        .and_then(parse_audit_type)
+        .unwrap_or(AuditType::All as i32);
 
     // 尝试调 admin-service gRPC
     let admin_entries: Option<Vec<crate::admin::v1::AuditLogEntry>> = match s.admin_grpc.as_ref() {
@@ -424,6 +508,7 @@ pub async fn query_audit(
                 cursor: cursor.clone(),
                 filter_admin: filter_admin.clone(),
                 filter_action: filter_action.clone(),
+                audit_type, // v0.4 透传
             };
             match tokio::time::timeout(Duration::from_millis(500), client.query_audit_log(req))
                 .await
@@ -445,6 +530,7 @@ pub async fn query_audit(
                     "action": e.action,
                     "target_id": e.target_id,
                     "occurred_at_ms": e.occurred_at_ms,
+                    "audit_type": audit_type_to_str(e.audit_type), // v0.4
                 })
             })
             .collect();
@@ -455,6 +541,8 @@ pub async fn query_audit(
                 "entries": proto_entries,
                 "has_more": proto_entries.len() >= limit,
                 "next_cursor": null,
+                "audit_type": audit_type_to_str(audit_type),
+                "applied_audit_type": audit_type_to_str(audit_type),
             })),
         );
     }
@@ -470,6 +558,7 @@ pub async fn query_audit(
                 "action": e.action,
                 "target_id": e.target_id,
                 "occurred_at_ms": e.occurred_at_ms,
+                "audit_type": "all", // v0.4: 降级路径不分类
             })
         })
         .collect();
@@ -480,6 +569,8 @@ pub async fn query_audit(
             "entries": proto_entries,
             "has_more": has_more,
             "next_cursor": null,
+            "audit_type": audit_type_to_str(audit_type),
+            "applied_audit_type": audit_type_to_str(audit_type),
         })),
     )
 }
