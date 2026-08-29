@@ -4,8 +4,22 @@ import "common/v1/common.proto";
 option go_package = "github.com/ulyssesleolee/rustgameserver/proto/match/v1;matchv1";
 
 service MatchService {
+  // 既有 (v1 保留)
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
   rpc GetMatch(common.v1.EntityId) returns (Match);
+
+  // v2 新增: 匹配 (per RGS-REQ-038 §FR-005)
+  rpc EnqueueMatchmaking(EnqueueMatchmakingRequest) returns (EnqueueMatchmakingResponse);
+  rpc CancelMatchmaking(CancelMatchmakingRequest) returns (CancelMatchmakingResponse);
+  rpc GetMatchmakingStatus(GetMatchmakingStatusRequest) returns (GetMatchmakingStatusResponse);
+
+  // v2 新增: session (per RGS-REQ-038 §FR-004)
+  rpc CreateMatch(CreateMatchRequest) returns (CreateMatchResponse);
+  rpc JoinMatch(JoinMatchRequest) returns (JoinMatchResponse);
+  rpc LeaveMatch(LeaveMatchRequest) returns (LeaveMatchResponse);
+  rpc GetMatchState(GetMatchStateRequest) returns (GetMatchStateResponse);
+  rpc SubmitMove(SubmitMoveRequest) returns (SubmitMoveResponse);
+  rpc SubscribeMatch(SubscribeMatchRequest) returns (stream MatchEvent);
 }
 
 message Match {
@@ -13,4 +27,182 @@ message Match {
   common.v1.Status status = 2;
   common.v1.Timestamp created_at = 3;
   string display_name = 4;
+  // v2 扩展
+  common.v1.GameMode mode = 5;
+  repeated common.v1.PlayerId players = 6;
+  string board_snapshot_ref = 7; // 对象存储引用
+  uint32 turn_index = 8;
+}
+
+// ============================================================
+// v2 增量 (per RGS-DTL-038 §4.2 — match-service session/turn 抽象)
+// 上游: RGS-REQ-038 §FR-004 session / §FR-005 匹配
+// 状态: 草案, 待 DDD Review 拍板 (9 DEC) — DEC-038-01~09
+// ============================================================
+
+message EnqueueMatchmakingRequest {
+  string request_id = 1;
+  common.v1.PlayerId player = 2;
+  common.v1.GameMode mode = 3;
+  // 天梯: rank_score 范围; 休闲: 任意
+  uint32 rank_score_min = 4;
+  uint32 rank_score_max = 5;
+  common.v1.CardRef deck_ref = 6; // 卡组引用
+}
+
+message EnqueueMatchmakingResponse {
+  string ticket_id = 1; // 匹配 ticket
+  int64 estimated_wait_ms = 2;
+}
+
+message CancelMatchmakingRequest {
+  // 桶 7 草稿补充: §4.2 服务定义声明了该 RPC 但 message 未列
+  // (per RGS-DTL-038 §4.2 末注释: "CancelMatchmakingRequest/Response 由 §6.1 saga 决定")
+  // 最小可用字段, 后续桶 (匹配 saga 落地) 再扩展
+  string request_id = 1;
+  string ticket_id = 2;
+}
+
+message CancelMatchmakingResponse {
+  bool cancelled = 1;
+}
+
+message GetMatchmakingStatusRequest {
+  string ticket_id = 1;
+}
+
+message GetMatchmakingStatusResponse {
+  enum Status {
+    TICKET_STATUS_UNSPECIFIED = 0;
+    QUEUED = 1;
+    MATCHED = 2;
+    CANCELLED = 3;
+    EXPIRED = 4;
+  }
+  Status status = 1;
+  string match_id = 2; // MATCHED 时填
+}
+
+message CreateMatchRequest {
+  string request_id = 1;
+  common.v1.GameMode mode = 2;
+  common.v1.PlayerId host = 3;
+  common.v1.CardRef deck_ref = 4;
+  // 房间模式额外字段
+  string room_code = 5;  // 房间码 (ROOM 模式)
+  string room_password = 6;
+  uint32 max_players = 7;
+  // AI 模式
+  uint32 ai_difficulty = 8; // 0=随机 1=简单 2=中等 3=困难
+}
+
+message CreateMatchResponse {
+  string match_id = 1;
+  common.v1.GameMode mode = 2;
+  string room_code = 3; // ROOM 模式
+}
+
+message JoinMatchRequest {
+  string request_id = 1;
+  string match_id = 2;
+  common.v1.PlayerId player = 3;
+  common.v1.CardRef deck_ref = 4;
+  string room_code = 5;
+  string room_password = 6;
+}
+
+message JoinMatchResponse {
+  bool joined = 1;
+  uint32 turn_index = 2; // 加入时的回合
+}
+
+message LeaveMatchRequest {
+  string request_id = 1;
+  string match_id = 2;
+  common.v1.PlayerId player = 3;
+  bool surrender = 4; // 投降
+}
+
+message LeaveMatchResponse {
+  bool left = 1;
+  string match_result = 2; // "surrender" / "disconnect"
+}
+
+message GetMatchStateRequest {
+  string request_id = 1;
+  string match_id = 2;
+  common.v1.PlayerId player = 3;
+}
+
+message GetMatchStateResponse {
+  Match match = 1;
+  string board_snapshot = 2; // JSON 序列化
+  repeated Move pending_moves = 3; // 待执行 move
+  int64 next_turn_deadline_ms = 4;
+}
+
+message SubmitMoveRequest {
+  string request_id = 1;
+  string match_id = 2;
+  common.v1.PlayerId player = 3;
+  uint32 turn_index = 4; // 防并发
+  Move move = 5;
+}
+
+message SubmitMoveResponse {
+  bool accepted = 1;
+  uint32 new_turn_index = 2;
+  string new_board_snapshot_ref = 3;
+  // 拒绝原因
+  string reject_reason = 4;
+}
+
+message Move {
+  string move_id = 1;        // UUID
+  common.v1.PlayerId player = 2;
+  enum MoveType {
+    MOVE_TYPE_UNSPECIFIED = 0;
+    PLAY_CARD = 1;     // 出牌
+    ATTACK = 2;        // 攻击
+    END_TURN = 3;      // 结束回合
+    SURRENDER = 4;     // 投降
+    USE_ABILITY = 5;   // 触发技能
+  }
+  MoveType type = 6;
+  // move payload (JSON, 业务层解析)
+  string payload_json = 7;
+  int64 occurred_at_ms = 8;
+  // 业务层返回的结果
+  string result_json = 9;
+  bool accepted = 10;
+}
+
+message SubscribeMatchRequest {
+  string request_id = 1;
+  string match_id = 2;
+  common.v1.PlayerId player = 3;
+  // 订阅类型: 全量 / 增量
+  bool full_snapshot_first = 4;
+}
+
+message MatchEvent {
+  enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    SNAPSHOT = 1;        // 战牌快照更新
+    MOVE_APPLIED = 2;    // move 已应用
+    TURN_CHANGED = 3;    // 回合切换
+    PLAYER_JOINED = 4;
+    PLAYER_LEFT = 5;
+    MATCH_ENDED = 6;
+    TIMEOUT_WARNING = 7; // turn 超时警告
+  }
+  EventType type = 1;
+  int64 occurred_at_ms = 2;
+  oneof payload {
+    string board_snapshot = 10;
+    Move move = 11;
+    uint32 new_turn_index = 12;
+    common.v1.PlayerId player = 13;
+    string end_reason = 14;
+  }
 }

@@ -49,3 +49,83 @@ message HealthCheckResponse {
   Status status = 1;
   string message = 2;
 }
+
+// ============================================================
+// v2 增量 (per RGS-DTL-038 §4.1 — 卡牌游戏通用抽象)
+// 上游: RGS-REQ-038 §2.2 卡牌类型 / §BR-001 模式 / §BR-007 货币
+// 状态: 草案, 待 DDD Review 拍板 (9 DEC) — DEC-038-01~09
+// ============================================================
+
+// 语言 (per RGS-REQ-038 §NFR-005 i18n)
+enum Locale {
+  LOCALE_UNSPECIFIED = 0;
+  LOCALE_ZH_CN = 1;
+  LOCALE_EN_US = 2;
+  LOCALE_JA_JP = 3;
+  LOCALE_KO_KR = 4;
+}
+
+message LocalizedText {
+  Locale locale = 1;
+  string text = 2;
+}
+
+message I18nString {
+  // 默认 zh-CN, fallback en-US
+  string default_text = 1;
+  repeated LocalizedText translations = 2;
+}
+
+// 卡牌类型 (per RGS-REQ-038 §2.2)
+enum CardType {
+  CARD_TYPE_UNSPECIFIED = 0;
+  CARD_TYPE_CREATURE = 1;   // 生物
+  CARD_TYPE_SPELL = 2;      // 法术
+  CARD_TYPE_EQUIPMENT = 3;  // 装备
+  CARD_TYPE_LAND = 4;       // 地 (MTG)
+  CARD_TYPE_TRAP = 5;       // 陷阱 (YGO)
+  CARD_TYPE_HERO = 6;       // 英雄
+}
+
+enum CardRarity {
+  CARD_RARITY_UNSPECIFIED = 0;
+  CARD_RARITY_COMMON = 1;    // N
+  CARD_RARITY_UNCOMMON = 2;  // R
+  CARD_RARITY_RARE = 3;      // SR
+  CARD_RARITY_EPIC = 4;      // SSR
+  CARD_RARITY_LEGENDARY = 5; // UR
+}
+
+message CardRef {
+  string card_id = 1;            // 静态 card.id
+  string instance_id = 2;        // 玩家收藏 instance_id (若有)
+}
+
+// 卡牌游戏模式 (per RGS-REQ-038 §BR-001)
+enum GameMode {
+  GAME_MODE_UNSPECIFIED = 0;
+  GAME_MODE_RANKED = 1;
+  GAME_MODE_CASUAL = 2;
+  GAME_MODE_ROOM = 3;
+  GAME_MODE_PVE_AI = 4;
+}
+
+message PlayerId {
+  EntityId player_id = 1;
+  string display_name = 2;
+  uint32 rank_score = 3; // 天梯积分
+  uint32 level = 4;
+}
+
+// 货币 (per RGS-REQ-038 §BR-007)
+enum CurrencyType {
+  CURRENCY_TYPE_UNSPECIFIED = 0;
+  CURRENCY_TYPE_SOFT = 1;  // 软通
+  CURRENCY_TYPE_HARD = 2;  // 硬通
+  CURRENCY_TYPE_CARD_VALUE = 3; // 卡牌价值 (集换)
+}
+
+message Currency {
+  CurrencyType type = 1;
+  int64 amount = 2;
+}
