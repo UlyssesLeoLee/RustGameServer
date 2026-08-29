@@ -3,14 +3,161 @@ package economy.v1;
 import "common/v1/common.proto";
 option go_package = "github.com/ulyssesleolee/rustgameserver/proto/economy/v1;economyv1";
 
+// EconomyService —— 5 域经济微服务 gRPC API（per RGS-DTL-015 + RGS-DTL-038 §4 economy v2）
+//
+// v1 (per RGS-DTL-015):
+//   - HealthCheck / GetAccount
+//
+// v2 增量 (per RGS-DTL-038 §4.4 DEC-038-04 trade 域归属 + 9 DEC 全 A 拍板):
+//   - CreateAuction / BidAuction / CancelAuction / ListAuction / GetTradeHistory
+//
+// 范围: trade 域 = economy-service v2 内置 (per DEC-038-04 A), 卡牌实例当作新型资产;
+// 公开拍卖撮合 = economy 内子模块; 跨域 saga (card-service 协同) 用 TODO 占位待 W36+ 接入.
 service EconomyService {
+  // v1 健康检查
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // v1 账户查询
   rpc GetAccount(common.v1.EntityId) returns (Account);
+
+  // === v2 增量: trade 域 (per RGS-DTL-038 §4.4 + §6.2/§6.3) ===
+
+  // CreateAuction —— 卖家创建公开拍卖
+  // 输入: seller_id + card_id + min_price + currency_type
+  // 输出: 新 auction_id
+  // 业务: 卡牌实例 escrowed 化, status=Active, 截止时间默认 24h
+  rpc CreateAuction(CreateAuctionRequest) returns (CreateAuctionResponse);
+
+  // BidAuction —— 玩家对拍卖出价
+  // 输入: auction_id + bidder_id + amount
+  // 输出: bid_id + is_highest
+  // 业务: 高于当前最高价则覆盖; 旧最高出价者退还 (补偿); auction 截止则触发自动成交
+  //       (per §6.2 Trade saga 4 步 + §6.3 ExecuteAuction saga 触发)
+  rpc BidAuction(BidAuctionRequest) returns (BidAuctionResponse);
+
+  // CancelAuction —— 卖家撤单
+  // 输入: auction_id + seller_id
+  // 输出: cancelled + refunded
+  // 业务: 仅 Active 可撤; 退还所有出价者货币; 卖家卡牌解锁 (TODO 跨域)
+  rpc CancelAuction(CancelAuctionRequest) returns (CancelAuctionResponse);
+
+  // ListAuction —— 公开拍卖列表
+  // 输入: filter (active / closed / all) + page
+  // 输出: auctions[] + page
+  rpc ListAuction(ListAuctionRequest) returns (ListAuctionResponse);
+
+  // GetTradeHistory —— 玩家交易历史
+  // 输入: player_id + page
+  // 输出: trades[] (含买家和卖家视角) + page
+  rpc GetTradeHistory(GetTradeHistoryRequest) returns (GetTradeHistoryResponse);
 }
+
+// === v1 message ===
 
 message Account {
   common.v1.EntityId id = 1;
   common.v1.Status status = 2;
   common.v1.Timestamp created_at = 3;
   string display_name = 4;
+}
+
+// === v2 增量 message: trade 域 (per RGS-DTL-038 §4.4) ===
+
+// 拍卖状态
+enum AuctionStatus {
+  AUCTION_STATUS_UNSPECIFIED = 0;
+  AUCTION_STATUS_ACTIVE = 1;    // 进行中
+  AUCTION_STATUS_SOLD = 2;      // 已成交
+  AUCTION_STATUS_CANCELLED = 3; // 已撤单
+  AUCTION_STATUS_EXPIRED = 4;   // 已过期
+}
+
+// 拍卖过滤器
+enum AuctionFilter {
+  AUCTION_FILTER_UNSPECIFIED = 0;
+  AUCTION_FILTER_ACTIVE = 1;  // 进行中
+  AUCTION_FILTER_CLOSED = 2;  // 已结束 (含 SOLD / CANCELLED / EXPIRED)
+  AUCTION_FILTER_ALL = 3;      // 全部
+}
+
+// 单条拍卖 (ListAuction / GetTradeHistory 共用)
+message Auction {
+  string auction_id = 1;
+  string seller_id = 2;
+  string card_id = 3;          // 卡牌静态 ID (card.card_id)
+  string card_instance_id = 4; // 卡牌实例 ID (card_instances.instance_id)
+  int64 min_price = 5;
+  common.v1.CurrencyType currency_type = 6;
+  int64 highest_bid = 7;       // 0 = 尚无人出价
+  string highest_bidder = 8;   // "" = 尚无人出价
+  AuctionStatus status = 9;
+  common.v1.Timestamp started_at = 10;
+  common.v1.Timestamp ends_at = 11;
+  common.v1.Timestamp closed_at = 12; // 0 = 未结束
+}
+
+// CreateAuction
+message CreateAuctionRequest {
+  string seller_id = 1;
+  string card_id = 2;
+  string card_instance_id = 3;
+  int64 min_price = 4;
+  common.v1.CurrencyType currency_type = 5;
+  // 可选: 截止时间 (秒, Unix epoch). 0 = 默认 24h 后.
+  int64 ends_at_unix = 6;
+}
+message CreateAuctionResponse {
+  string auction_id = 1;
+  common.v1.Timestamp started_at = 2;
+  common.v1.Timestamp ends_at = 3;
+}
+
+// BidAuction
+message BidAuctionRequest {
+  string auction_id = 1;
+  string bidder_id = 2;
+  int64 amount = 3;
+  // 幂等键 (e.g. "bid-{auction_id}-{bidder_id}-{ts}"), 避免双花
+  string idempotency_key = 4;
+}
+message BidAuctionResponse {
+  string bid_id = 1;
+  bool is_highest = 2;        // true = 本次出价为当前最高
+  int64 current_highest = 3;  // 当前最高价
+  bool auction_ended = 4;     // true = 出价后 auction 已到期, 触发 ExecuteAuction saga
+  // 当 is_highest=true 且 amount > 之前最高价, old_highest_bidder 收到退款
+  string refunded_to = 5;     // "" = 无人退款
+  int64 refund_amount = 6;    // 退款金额 (0 = 无退款)
+}
+
+// CancelAuction
+message CancelAuctionRequest {
+  string auction_id = 1;
+  string seller_id = 2;
+}
+message CancelAuctionResponse {
+  bool cancelled = 1;
+  int64 refunded = 2;         // 退还给当前最高出价者的货币
+  string refunded_to = 3;     // "" = 无出价者
+}
+
+// ListAuction
+message ListAuctionRequest {
+  AuctionFilter filter = 1;
+  common.v1.PageRequest page = 2;
+}
+message ListAuctionResponse {
+  repeated Auction auctions = 1;
+  common.v1.PageResponse page = 2;
+}
+
+// GetTradeHistory
+message GetTradeHistoryRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message GetTradeHistoryResponse {
+  // trades 包含: 玩家作为卖家的成交拍卖 + 玩家作为买家的成交拍卖 + 玩家参与的撤单
+  repeated Auction trades = 1;
+  common.v1.PageResponse page = 2;
 }

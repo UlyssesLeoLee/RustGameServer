@@ -19,6 +19,10 @@ pub mod reservation;
 pub mod saga;
 pub mod saga_orchestrator;
 pub mod service;
+// 卡牌 8 桶 / 子桶 1: trade 域 (per RGS-DTL-038 §4.4 + DEC-038-04 + 9 DEC 全 A 拍板)
+pub mod trade_entity;
+pub mod trade_repository;
+pub mod trade_service;
 
 pub use error::{Error, Result};
 pub use inbox::{InboxEntry, InboxRepository, InboxStatus, PgInboxRepository};
@@ -35,6 +39,9 @@ pub use saga::{
     SagaStepStatus, SagaType,
 };
 pub use saga_orchestrator::{ConfirmHandler, ReserveHandler, SagaOrchestrator, SagaStepHandler};
+pub use trade_entity::{Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus};
+pub use trade_repository::{InMemoryTradeRepository, PgTradeRepository, TradeRepository};
+pub use trade_service::{ExecuteTradeServiceImpl, TradeService, TradeServiceImpl};
 
 pub mod proto;
 
