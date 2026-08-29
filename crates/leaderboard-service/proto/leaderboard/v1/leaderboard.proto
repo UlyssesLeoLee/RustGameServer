@@ -1,0 +1,149 @@
+syntax = "proto3";
+package leaderboard.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/leaderboard/v1;leaderboardv1";
+
+// leaderboard-service —— 卡牌游戏 4 类榜单 RPC
+// 上游依据: RGS-REQ-038 §FR-007 + RGS-DTL-038 §3 DEC-038-02 推荐 A (新域)
+// 榜单类型:
+//   - RANKED      天梯榜 (MMR-based, PvP 排名)
+//   - CASUAL      休闲榜 (胜场 / 局数, 不影响天梯分)
+//   - COLLECTION  集换价值榜 (玩家收藏卡牌总价值)
+//   - PLAYER_RANK 玩家自己在榜位置 (内部 GetPlayerRank 调 3 类榜单后聚合)
+// 周期: WEEKLY / MONTHLY / SEASONAL / ALL_TIME
+service LeaderboardService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 天梯榜 — MMR-based ranked leaderboard
+  rpc GetRankedLeaderboard(GetRankedLeaderboardRequest) returns (GetRankedLeaderboardResponse);
+
+  // 休闲榜 — 胜场 / 局数
+  rpc GetCasualLeaderboard(GetCasualLeaderboardRequest) returns (GetCasualLeaderboardResponse);
+
+  // 集换价值榜 — 玩家收藏卡牌总价值
+  rpc GetCollectionLeaderboard(GetCollectionLeaderboardRequest) returns (GetCollectionLeaderboardResponse);
+
+  // 玩家自己在榜位置
+  rpc GetPlayerRank(GetPlayerRankRequest) returns (GetPlayerRankResponse);
+
+  // 内部入榜写 API — 仅 server-to-server 调用, 不暴露给 client
+  // (per DTL-038 §2 跨域交互: match-service / card-service 赛后 / 收藏变化触发)
+  rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
+}
+
+// ----------------------------------------------------------------------------
+// 榜单类型 / 周期枚举
+// ----------------------------------------------------------------------------
+
+enum LeaderboardType {
+  LEADERBOARD_TYPE_UNSPECIFIED = 0;
+  LEADERBOARD_TYPE_RANKED = 1;
+  LEADERBOARD_TYPE_CASUAL = 2;
+  LEADERBOARD_TYPE_COLLECTION = 3;
+}
+
+enum LeaderboardPeriod {
+  LEADERBOARD_PERIOD_UNSPECIFIED = 0;
+  LEADERBOARD_PERIOD_WEEKLY = 1;
+  LEADERBOARD_PERIOD_MONTHLY = 2;
+  LEADERBOARD_PERIOD_SEASONAL = 3;
+  LEADERBOARD_PERIOD_ALL_TIME = 4;
+}
+
+// ----------------------------------------------------------------------------
+// 榜单条目
+// ----------------------------------------------------------------------------
+
+message LeaderboardEntry {
+  uint32 rank = 1;             // 排名 (1-based)
+  string player_id = 2;        // 玩家 ID (UUID string)
+  string display_name = 3;     // 玩家展示名 (per DTL-038 §2 PII 最小化)
+  int64 score = 4;             // 分数 (MMR / 胜场 / 集换价值, 取决于榜单类型)
+  uint32 wins = 5;             // 胜场
+  uint32 losses = 6;           // 负场
+  common.v1.Timestamp updated_at = 7;
+}
+
+// ----------------------------------------------------------------------------
+// GetRankedLeaderboard
+// ----------------------------------------------------------------------------
+
+message GetRankedLeaderboardRequest {
+  LeaderboardPeriod period = 1;
+  common.v1.PageRequest page = 2;
+  string season_id = 3;  // 可选, 限定某赛季; 空 = 当前活跃赛季
+}
+
+message GetRankedLeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+  common.v1.PageResponse page = 2;
+  LeaderboardPeriod period = 3;
+  string season_id = 4;
+}
+
+// ----------------------------------------------------------------------------
+// GetCasualLeaderboard
+// ----------------------------------------------------------------------------
+
+message GetCasualLeaderboardRequest {
+  LeaderboardPeriod period = 1;
+  common.v1.PageRequest page = 2;
+}
+
+message GetCasualLeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+  common.v1.PageResponse page = 2;
+  LeaderboardPeriod period = 3;
+}
+
+// ----------------------------------------------------------------------------
+// GetCollectionLeaderboard
+// ----------------------------------------------------------------------------
+
+message GetCollectionLeaderboardRequest {
+  LeaderboardPeriod period = 1;
+  common.v1.PageRequest page = 2;
+}
+
+message GetCollectionLeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+  common.v1.PageResponse page = 2;
+  LeaderboardPeriod period = 3;
+}
+
+// ----------------------------------------------------------------------------
+// GetPlayerRank — 玩家在 3 类榜单的位置
+// ----------------------------------------------------------------------------
+
+message GetPlayerRankRequest {
+  string player_id = 1;
+  LeaderboardPeriod period = 2;
+}
+
+message GetPlayerRankResponse {
+  string player_id = 1;
+  LeaderboardEntry ranked = 2;        // 天梯榜条目 (若未上榜, 字段为 null)
+  LeaderboardEntry casual = 3;        // 休闲榜条目
+  LeaderboardEntry collection = 4;    // 集换价值榜条目
+  LeaderboardPeriod period = 5;
+}
+
+// ----------------------------------------------------------------------------
+// AddEntry (内部 API)
+// ----------------------------------------------------------------------------
+
+message AddEntryRequest {
+  LeaderboardType leaderboard_type = 1;
+  LeaderboardPeriod period = 2;
+  string player_id = 3;
+  int64 score = 4;
+  uint32 wins = 5;
+  uint32 losses = 6;
+  string display_name = 7;
+  string season_id = 8;  // RANKED 时必填, 其他可选
+}
+
+message AddEntryResponse {
+  LeaderboardEntry entry = 1;  // 入榜后该玩家的最新条目 (含新 rank)
+  bool rank_changed = 2;       // rank 是否发生变化
+}
