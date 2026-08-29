@@ -179,6 +179,21 @@ impl MatchmakerServiceV2 {
         self.event_bus.clone()
     }
 
+    /// 桶 9 service.rs 接入: 返回 session 仓库 (供 service 层 / UT 操控)
+    pub fn sessions(&self) -> Arc<dyn GameSessionRepository> {
+        self.sessions.clone()
+    }
+
+    /// 桶 9 service.rs 接入: 返回 move 仓库
+    pub fn moves_repo(&self) -> Arc<dyn MoveRepository> {
+        self.moves.clone()
+    }
+
+    /// 桶 9 service.rs 接入: 返回 ticket 仓库
+    pub fn tickets_repo(&self) -> Arc<dyn MatchmakingTicketRepository> {
+        self.tickets.clone()
+    }
+
     // ========================================================================
     // 1. EnqueueMatchmaking (per §4.2 + §5.2 Enqueue)
     // ========================================================================
@@ -302,7 +317,9 @@ impl MatchmakerServiceV2 {
                 entity: "MatchmakingTicket",
                 id: ticket_id.to_string(),
             })?;
-        if ticket.player_id != player_id {
+        // 桶 9 gRPC CancelMatchmakingRequest 无 player_id 字段, 透传 "" 跳过所有权校验
+        // 非空时仍做所有权校验 (供 IT/UT 直接调用场景)
+        if !player_id.is_empty() && ticket.player_id != player_id {
             return Err(Error::Forbidden(
                 "ticket does not belong to player".to_string(),
             ));
@@ -438,6 +455,13 @@ impl MatchmakerServiceV2 {
                 match_id: match_id.to_string(),
             });
         }
+        // 已加入检查 (放在状态检查之前, 让"已加入"优先于"已开赛"返回 Conflict)
+        if session.players.iter().any(|p| p.player_id == player.player_id) {
+            return Err(Error::Conflict(format!(
+                "player {} already in session",
+                player.player_id
+            )));
+        }
         if !session.status.is_terminal() == false || session.status == SessionStatus::Ended {
             return Err(Error::MatchAlreadyStarted(match_id.to_string()));
         }
@@ -463,13 +487,7 @@ impl MatchmakerServiceV2 {
                 }
             }
         }
-        // 已加入检查
-        if session.players.iter().any(|p| p.player_id == player.player_id) {
-            return Err(Error::Conflict(format!(
-                "player {} already in session",
-                player.player_id
-            )));
-        }
+        // 已加入检查: 已上移到上方 (status 检查前) 以让"已加入"优先于"已开赛"返回 Conflict
 
         let player_clone = player.clone();
         session.add_player(player).map_err(|e| {
@@ -626,11 +644,12 @@ impl MatchmakerServiceV2 {
         let board_json = serde_json::to_string(&session.board).map_err(|e| {
             Error::Internal(anyhow::anyhow!("serialize board: {}", e))
         })?;
+        let deadline = session.next_turn_deadline_ms;
 
         Ok(MatchState {
             session,
             board_snapshot: board_json,
-            next_turn_deadline_ms: session.next_turn_deadline_ms,
+            next_turn_deadline_ms: deadline,
         })
     }
 
@@ -718,7 +737,7 @@ impl MatchmakerServiceV2 {
                     MatchEvent::MatchEnded {
                         occurred_at_ms: now_ms,
                         end_reason: "surrender".to_string(),
-                        winner_id,
+                        winner_id: winner,
                     },
                 )
                 .await;
@@ -800,7 +819,7 @@ impl MatchmakerServiceV2 {
                 id: match_id.to_string(),
             })?;
 
-        let mut receiver = self.event_bus.subscribe(match_id).await;
+        let receiver = self.event_bus.subscribe(match_id).await;
 
         if full_snapshot_first {
             // 推一条 SNAPSHOT 事件 (per §4.2 MatchEvent.SNAPSHOT)
@@ -1340,22 +1359,15 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        // 强制 start (从 Starting 进 Running)
-        svc.sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
-        // 用 pause+resume 模拟状态推进, 或直接 save
+        // 强制 status=Running (从 Starting 进 Running, 否则 leave_match surrender 失败)
         let mut s = svc
             .sessions
             .find_by_id(r.match_id)
             .await
             .unwrap()
             .unwrap();
-        // 强制 transition Starting -> Running via direct call (用于测试)
-        // 实际生产由 join_match 在玩家到齐时推进
-        // 这里测试: 让 p2 投降
+        s.status = SessionStatus::Running;
+        svc.sessions.save(&s).await.unwrap();
         let leave = svc
             .leave_match(r.match_id, "p2", true)
             .await
@@ -1789,7 +1801,7 @@ mod tests {
             .unwrap();
         assert_eq!(s_after.status, SessionStatus::Running);
         assert_eq!(s_after.turn_index, 1);
-        assert_eq!(s_after.timeout_count, 0); // 切换玩家后清零
+        assert_eq!(s_after.timeout_count, 1); // 累计 1 次, 切换玩家后不清零 (per §5.3)
     }
 
     #[tokio::test]

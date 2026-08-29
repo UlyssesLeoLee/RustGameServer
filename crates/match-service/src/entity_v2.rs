@@ -506,8 +506,7 @@ impl GameSession {
         self.current_player_id = Some(self.players[next_idx].player_id.clone());
         self.turn_index = self.turn_index.saturating_add(1);
         self.next_turn_deadline_ms = deadline_ms;
-        // 切换玩家时清零超时计数
-        self.timeout_count = 0;
+        // 注: 不再重置 timeout_count (per §5.3 累计 3 次判负语义)
         self.touch();
         Ok(())
     }
@@ -686,7 +685,10 @@ mod tests {
 
     fn make_session(num_players: usize) -> GameSession {
         let host = make_player("p1");
-        let mut s = GameSession::new(GameMode::Ranked, host, 2, 2);
+        // max=动态 (num_players+1), min=2 (兼容既有 2 玩家测试)
+        let max = (num_players as u32 + 1).max(2);
+        let min = 2;
+        let mut s = GameSession::new(GameMode::Ranked, host, max, min);
         for i in 2..=num_players {
             s.add_player(make_player(&format!("p{}", i))).unwrap();
         }
@@ -740,7 +742,10 @@ mod tests {
 
     #[test]
     fn session_full_rejects_add() {
-        let mut s = make_session(2);
+        // 自建 max=2/min=2 session, 第 3 人 add 必须失败
+        let host = make_player("p1");
+        let mut s = GameSession::new(GameMode::Ranked, host, 2, 2);
+        s.add_player(make_player("p2")).unwrap();
         s.add_player(make_player("p3")).unwrap_err();
     }
 
