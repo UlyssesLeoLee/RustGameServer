@@ -2,7 +2,7 @@
 
 ## 元数据
 
-- **审查范围**: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **审查范围**: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - **审查轮次**: 第 2 轮 (对抗仲裁)
 - **审查者**: V4 (adversarial verifier) → root session 接手完成
 - **日期**: 2026-08-23
@@ -136,7 +136,7 @@
 
 **是否可解锁 no-merge-pending-wf-1-55-27 tag**: **条件性解锁**
 
-- **5 修复 commit (13dec2d..0434ada)** 标 NO-MERGE-PENDING-WF-1-55-27, 解锁条件:
+- **5 修复 commit (1b30878..cc888b5)** 标 NO-MERGE-PENDING-WF-1-55-27, 解锁条件:
   - ✅ P0 3 项 (CR-1 + CR-2 + HI-2-stub) — 真修并锚定
   - ✅ P1 4 项 (mTLS getter + PgTestDatabase + fail-closed test + 3 终态 test)
   - ✅ P2 4 项 (deprecation + admin 注释 + rgs-certgen + 补偿半途)
@@ -164,7 +164,7 @@
 
 ## 8. commit hash
 
-- **HEAD**: `f31ca6c` (Merge commit 'ec1f992' — WF-1-55.31 PgTestDatabase fixture)
-- 范围: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **HEAD**: `3ead5f6` (Merge commit 'd7b016c' — WF-1-55.31 PgTestDatabase fixture)
+- 范围: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - main worktree 状态: 仅有 untracked 新文件 `docs/00-基准与治理/reviews/adversarial-55-27-37/V4-adversarial.md` (本次报告), 无源码变更
 - 报告落盘: `D:/RustGameServer/docs/00-基准与治理/reviews/adversarial-55-27-37/V4-adversarial.md`

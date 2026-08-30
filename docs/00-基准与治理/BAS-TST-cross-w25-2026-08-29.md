@@ -28,14 +28,14 @@
 
 ### 0.2 gm.proto / admin.proto 业务 schema (v0.3)
 
-- **gm.proto v0.3** (per commit 404e3ea 实装):5 RPC = `HealthView / BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog`
+- **gm.proto v0.3** (per commit ec0f11a 实装):5 RPC = `HealthView / BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog`
 - **admin.proto v0.3** (per S4 Phase 2 step 2 增量):6 RPC = `HealthCheck / GetAdminOp / BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog`
 - 字段级对齐:`BanAccount{request_id, account_id, reason, duration_seconds}`、`QueryAuditLog{limit=20, cursor, filter_admin, filter_action}`、`SetMaintenance{propagation_status enum}`、`QueryAuditLogResponse{entries[], has_more, next_cursor}`
 
 ### 0.3 工作目录与主 worktree
 
-- 主 worktree HEAD:`eef07e4` (W23 CircuitBreaker integration 5 IT)
-- W17-W23 7 个 merge commit:`b939ddb` (W17 JWT) / `ed212ec` (W18 CB) / `4abaf2e` (W19 chaos) / `ec950a6` (W20 wire) / `4dbfff1` (W21 mTLS) / `3dbde69` (W22 ban) / `eef07e4` (W23 wire-5method)
+- 主 worktree HEAD:`f399b66` (W23 CircuitBreaker integration 5 IT)
+- W17-W23 7 个 merge commit:`bf1274c` (W17 JWT) / `20c3066` (W18 CB) / `b9553eb` (W19 chaos) / `cf879e2` (W20 wire) / `41ed307` (W21 mTLS) / `422ec2b` (W22 ban) / `f399b66` (W23 wire-5method)
 - 9 决议 v0.3 (per 2026-08-28 22:09 JST):决议 1-5 已接受,决议 6-9 暂缓推 9 月 WBS
 
 ---
@@ -438,7 +438,7 @@
 | §3.1 admin 不可达降级 | chaos | it_chaos_admin_unavailable | crates/gm-backend/tests/it_chaos_admin_unavailable.rs | PASS | 8 IT PASS (W19) |
 | §3.3 SetMaintenance | 字段 + propagation_status enum | (无独立 IT) | — | 未跑 | gm.proto v0.3 enum 实装但 W25 无 IT |
 | §3.4 QueryAuditLog | 字段 + entries[] + has_more | ut_audit (7 UT) | crates/gm-backend/tests/ut_audit.rs | PASS | 7 UT PASS (TBD-08-04) |
-| §4 运行时受限控制通道 | JWT propagation gRPC metadata | (W17 间接) | — | PASS | W17 commit 658b742 实装 admin-service gm_handlers |
+| §4 运行时受限控制通道 | JWT propagation gRPC metadata | (W17 间接) | — | PASS | W17 commit 2acc222 实装 admin-service gm_handlers |
 | §6 告警与事件推送 | alert 推 | (无 IT) | — | 未跑 | §6 告警 |
 | §7 审计与查询 | 哈希链 | (无 IT) | — | 未跑 | §7 审计 |
 | §8 RBAC 角色矩阵 | 高危二次确认 | (无 IT) | — | 未跑 | §8 RBAC |
@@ -854,9 +854,9 @@
 
 > **本报告数据来源**:
 > - BAS 文档:`docs/{00-基准与治理,01-核心架构与设计模式,02-运维安全与网络,03-数据经济与交易,04-客户端与SDK,05-智能体与Agent,06-测试与质量保障,07-社交运营与玩家治理}/RGS-BAS-*.md` (35 份)
-> - W25 跑测 log:`D:\RustGameServer-worktrees\w25-step3-integration\` 主 worktree,HEAD `eef07e4`
-> - W17-W23 merge commits:`b939ddb` / `ed212ec` / `4abaf2e` / `ec950a6` / `4dbfff1` / `3dbde69` / `eef07e4`
-> - gm.proto v0.3:`crates/gm-backend/proto/gm/v1/gm.proto` (commit 404e3ea)
+> - W25 跑测 log:`D:\RustGameServer-worktrees\w25-step3-integration\` 主 worktree,HEAD `f399b66`
+> - W17-W23 merge commits:`bf1274c` / `20c3066` / `b9553eb` / `cf879e2` / `41ed307` / `422ec2b` / `f399b66`
+> - gm.proto v0.3:`crates/gm-backend/proto/gm/v1/gm.proto` (commit ec0f11a)
 > - admin.proto v0.3:`crates/admin-service/proto/admin/v1/admin.proto` (S4 Phase 2 step 2)
 > - 既有参考:`docs/00-基准与治理/BAS-TST-coverage-audit-2026-08-28.md` (BAS×TST 引用审计 v1,15.9% 引用率)
 > - 后台任务:cluster-ops UT 跑测 `bg_2280d4b1-e373-4794-ba49-91d8f6b88269`
@@ -983,6 +983,6 @@
 
 ### 8.5 拒绝替代
 
-- **A. 重写 18 份 TST 文档**: 73bcb19 已实装头表 BAS 引用,重写 = 重复劳动,token 浪费,拒绝
+- **A. 重写 18 份 TST 文档**: c6dc816 已实装头表 BAS 引用,重写 = 重复劳动,token 浪费,拒绝
 - **B. 派 worker 逐项 closure 35 P2**: 子代理不可靠(per DDD Review 风险 P0),自审 + 直接落档更稳,拒绝
 - **C. 补 5 域 axum-test IT (per 决议 6)**: 决议 6 已暂缓到桶 2,提前实装 = 决策不闭环,拒绝

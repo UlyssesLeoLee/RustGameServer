@@ -25,41 +25,41 @@
 
 | # | L4 任务 | commit |
 |---|---|---|
-| 53.1 | rust-toolchain profile minimal → complete | `da5ab03` |
-| 53.2 | Cargo workspace 8 crate 骨架 | `c5178b2` |
-| 53.3 | rgs-testkit 骨架（mock + helper + fixture + 9 self-test）| `bfd9975` |
-| 53.4 | CI workflow 1 rust-ci（fmt + clippy + test + llvm-cov）| `5460154` |
-| 53.5 | CI workflow 2 docs-ci（markdownlint + lychee）| `9bf1c26` |
-| 53.6 | CI workflow 3 verify-docs-ci（3 脚本必跑）+ 整合 | `82152e8` |
-| 53.7 | CI workflow 4 docker-build（占位 trigger 框架）| `621aa0c` |
-| 53.8 | docker-compose dev profile（11 services + 11 volumes）| `c43757c` |
-| 53.9 | k3s 集群部署验证文档（per DEC-010 WSL2 native）| `06e589e` |
-| 53.10 | 5 独立 PG 18.6 DB 部署验证文档 | `185f606` |
-| 53.11 | rgs-certgen binary（rustls + rcgen 0.13）| `588af40` |
-| 53.12 | OTel Collector + Prometheus + Grafana | `3ac8f13` |
-| 53.13 | distroless Dockerfile（dev/staging/prod 3 target）| `64c44fe` |
-| 53.14 | deny.toml + audit.toml（cargo-deny + cargo-audit）| `615b587` |
-| 53.15 | devcontainer.json（VS Code Remote Container）| `a843546` |
+| 53.1 | rust-toolchain profile minimal → complete | `627c7b4` |
+| 53.2 | Cargo workspace 8 crate 骨架 | `f5be502` |
+| 53.3 | rgs-testkit 骨架（mock + helper + fixture + 9 self-test）| `5d14a82` |
+| 53.4 | CI workflow 1 rust-ci（fmt + clippy + test + llvm-cov）| `ca157a7` |
+| 53.5 | CI workflow 2 docs-ci（markdownlint + lychee）| `9884429` |
+| 53.6 | CI workflow 3 verify-docs-ci（3 脚本必跑）+ 整合 | `e792bc7` |
+| 53.7 | CI workflow 4 docker-build（占位 trigger 框架）| `4ea43e9` |
+| 53.8 | docker-compose dev profile（11 services + 11 volumes）| `629bc69` |
+| 53.9 | k3s 集群部署验证文档（per DEC-010 WSL2 native）| `153bd50` |
+| 53.10 | 5 独立 PG 18.6 DB 部署验证文档 | `f4a5f9d` |
+| 53.11 | rgs-certgen binary（rustls + rcgen 0.13）| `450aada` |
+| 53.12 | OTel Collector + Prometheus + Grafana | `3c9566c` |
+| 53.13 | distroless Dockerfile（dev/staging/prod 3 target）| `4fbff7b` |
+| 53.14 | deny.toml + audit.toml（cargo-deny + cargo-audit）| `8acb788` |
+| 53.15 | devcontainer.json（VS Code Remote Container）| `550556d` |
 
 ## 3. 工程 54（编码实现）15/15 L4
 
 | # | L4 任务 | commit | tests |
 |---|---|---|---|
-| 54.1 | 5 域 Cargo crate 业务骨架 | `7b4d540` | 5*6 |
-| 54.2 | 7 .proto 文件 + buf.yaml | `a29e149` | - |
-| 54.3 | tonic-build 配置（build.rs + OUT_DIR + module 暴露）| `c8cc181` | - |
-| 54.4 | sqlx 适配（每域独立 DATABASE_URL + PgPool + migration）| `f3cfb2c` | - |
-| 54.5 | 6 域 Error 细化 + gRPC Status 映射 | `6a35650` | 34 |
-| 54.6 | 6 域 entity 实化 + Repository trait + Pg/InMemory impl | `d254f1d` | 31 |
-| 54.7 | 6 域 Service 业务实施 + gRPC 桥接 | `dd3a57d` | 39 |
-| 54.8 | economy-service Saga 事务系统（Q-003 / per RGS-DTL-100）| `a1efa28` | 10 |
-| 54.9 | shared-platform 跨域 RPC client 工具层（mTLS + retry）| `fc111ee` | 12 |
-| 54.10 | shared-platform NATS JetStream 消息总线（CEM + Saga）| `59a4bfd` | 15 |
-| 54.11 | shared-platform Outbox pattern 事务性消息 | `d6add32` | 7 |
-| 54.12 | shared-platform OTel 可观测性（tracing + traceparent）| `a18ac48` | 6 |
-| 54.13 | shared-platform Prometheus metrics | `d49605c` | 4 |
-| 54.14 | shared-platform JSON 结构化日志（ELK / Loki）| `7782076` | 2 |
-| 54.15 | shared-platform RBAC 角色基础访问控制 | `9b27e2e` | 7 |
+| 54.1 | 5 域 Cargo crate 业务骨架 | `ebc0454` | 5*6 |
+| 54.2 | 7 .proto 文件 + buf.yaml | `f93b11d` | - |
+| 54.3 | tonic-build 配置（build.rs + OUT_DIR + module 暴露）| `e854ddf` | - |
+| 54.4 | sqlx 适配（每域独立 DATABASE_URL + PgPool + migration）| `4ad5f20` | - |
+| 54.5 | 6 域 Error 细化 + gRPC Status 映射 | `2402fe2` | 34 |
+| 54.6 | 6 域 entity 实化 + Repository trait + Pg/InMemory impl | `a37c0e1` | 31 |
+| 54.7 | 6 域 Service 业务实施 + gRPC 桥接 | `cbc6d59` | 39 |
+| 54.8 | economy-service Saga 事务系统（Q-003 / per RGS-DTL-100）| `fb73286` | 10 |
+| 54.9 | shared-platform 跨域 RPC client 工具层（mTLS + retry）| `15d8502` | 12 |
+| 54.10 | shared-platform NATS JetStream 消息总线（CEM + Saga）| `292444d` | 15 |
+| 54.11 | shared-platform Outbox pattern 事务性消息 | `39fff67` | 7 |
+| 54.12 | shared-platform OTel 可观测性（tracing + traceparent）| `a8ad99a` | 6 |
+| 54.13 | shared-platform Prometheus metrics | `683bd23` | 4 |
+| 54.14 | shared-platform JSON 结构化日志（ELK / Loki）| `494f3fd` | 2 |
+| 54.15 | shared-platform RBAC 角色基础访问控制 | `a724e49` | 7 |
 
 ## 4. shared-platform 18 模块清单
 
@@ -118,8 +118,8 @@
 | DEC-006 | OLU 路径 B（调低期望至 14-18 周）| (prior) |
 | DEC-007 | OLU 双轨制（人·天/周 + token/周）| (prior) |
 | DEC-008 | 一人公司治理（Ulysses = 全部 12 角色）| (prior) |
-| DEC-009 | PostgreSQL 18.4 → 18.6 | `e232915` |
-| DEC-010 | k3d → k3s native in WSL2 | `2f25ddb` |
+| DEC-009 | PostgreSQL 18.4 → 18.6 | `19c129b` |
+| DEC-010 | k3d → k3s native in WSL2 | `0cc8152` |
 | DEC-011 | Saga 事务系统正式登记为 first slice 关键能力 | (prior) |
 | DEC-012 | 直接开工工程 53 / 4 工程问题接受 | (prior) |
 

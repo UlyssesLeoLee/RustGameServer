@@ -27,7 +27,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 17 个 worktree 分支（per RGS-WBS-001 v0.3 §2A.2.55.续1 + commit e5dcea3）
+# 17 个 worktree 分支（per RGS-WBS-001 v0.3 §2A.2.55.续1 + commit 6bb5a34）
 $branches = @(
     @{ num = '025'; l4 = 'WF-1-55.52'; branch = 'wbs/WF-1-55.52' }
     @{ num = '026'; l4 = 'WF-1-55.53'; branch = 'wbs/WF-1-55.53' }

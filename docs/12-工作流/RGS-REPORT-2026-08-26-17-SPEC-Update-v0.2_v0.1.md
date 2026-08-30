@@ -96,7 +96,7 @@
 
 > **本批次 17 份分类**(per verifier 报告 P0-4 建议):
 > - **16 份** 8/26 当日源 DTL 未升版,SPEC v0.2 为前瞻性草案(对齐源 DTL 当前版本)
-> - **1 份** DTL-026 已在 8/25 升版 v0.4 (per commit `22dd047` WF-1-55.42),SPEC v0.2 为 8/25 升版当日未配套 SPEC v0.2 调整的补完
+> - **1 份** DTL-026 已在 8/25 升版 v0.4 (per commit `fe6d1ea` WF-1-55.42),SPEC v0.2 为 8/25 升版当日未配套 SPEC v0.2 调整的补完
 > - DTL-026 严格说不是"今日未升版",SPEC v0.2 §A.1 准确反映 v0.4 最新版本
 
 ---
@@ -177,7 +177,7 @@
 ### 5.4 17 份分支未 merge
 
 - **当前状态**:17 份 worktree 分支独立存在,未合并到 main
-- **影响**:`D:/RustGameServer` 主工作树仍只有 17 份 v0.2 调整的 WBS 文档(M 状态) + 主分支仍是 d8d3efb
+- **影响**:`D:/RustGameServer` 主工作树仍只有 17 份 v0.2 调整的 WBS 文档(M 状态) + 主分支仍是 cd840d1
 - **merge 决策点**(留给你):
   - **方案 A**:一次性 squash merge 17 个 worktree 分支到 main(简单,但失去 17 个独立 commit 粒度)
   - **方案 B**:17 个 worktree 分支各自 merge(保留 commit 粒度,但 17 次 merge 操作)

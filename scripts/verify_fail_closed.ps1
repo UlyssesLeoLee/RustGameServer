@@ -6,7 +6,7 @@
 .DESCRIPTION
     本脚本是 Q-M-08 答复合规产物(WF-1-55.48,per RGS-OPEN-QA-001 v0.2 Q-M-08 + ACTIONS-v0.3 B-09):
 
-    设计目标:把"phase-0-5 step 4 commit 765930a 一次性 fail-closed 验证"固化为 CI 入口脚本,
+    设计目标:把"phase-0-5 step 4 commit b9bc214 一次性 fail-closed 验证"固化为 CI 入口脚本,
     每次 manifest/RBAC 变更的 PR 触发(不限新增域),确保 fail-closed 防线不被静默降级破坏。
 
     测试覆盖(4 项,per Q-M-08 答复):

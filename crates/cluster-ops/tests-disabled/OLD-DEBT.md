@@ -11,17 +11,17 @@
 
 | commit | 日期(JST) | 说明 |
 |---|---|---|
-| `b74ccc3` | 2026-08-27 08:00 | **RGS-INC-002 v0.1 复盘**:临时禁用 drill + saga 编译死锁修复;18 tests 移到 tests-disabled/(含 4 ut_*.rs + 14 drill_*.rs)|
+| `30a8842` | 2026-08-27 08:00 | **RGS-INC-002 v0.1 复盘**:临时禁用 drill + saga 编译死锁修复;18 tests 移到 tests-disabled/(含 4 ut_*.rs + 14 drill_*.rs)|
 | 后续 | 2026-08-27+ | saga 死锁已解,但 ut_*.rs 因源码已搬至 `src/realm_lifecycle/`,引用旧路径 `cluster_ops::feature_adapter::*` / `cluster_ops::saga::*` / `cluster_ops::state_machine::*`,无法直接迁回 tests/ |
 
 ## 2. 4 个 ut_*.rs 现状
 
 | 文件 | 测试 fn 数 | 引用的旧路径 | 等价新位置 |
 |---|---|---|---|
-| `ut_feature_adapter.rs` | 20 | `cluster_ops::feature_adapter` | `realm_lifecycle::feature` (per 6b9a8d0 7 子类重构) |
+| `ut_feature_adapter.rs` | 20 | `cluster_ops::feature_adapter` | `realm_lifecycle::feature` (per 0b8ab81 7 子类重构) |
 | `ut_olu.rs` | TBD | `cluster_ops::olu` | `realm_lifecycle::olu` |
-| `ut_saga.rs` | TBD | `cluster_ops::saga` | `realm_lifecycle::saga` (per b369d2e SagaOrchestrator) |
-| `ut_state_machine.rs` | TBD | `cluster_ops::state_machine` | `realm_lifecycle::state` (per 698d92b RealmLifecycleService 6 操作器) |
+| `ut_saga.rs` | TBD | `cluster_ops::saga` | `realm_lifecycle::saga` (per 2672d2d SagaOrchestrator) |
+| `ut_state_machine.rs` | TBD | `cluster_ops::state_machine` | `realm_lifecycle::state` (per e5b58c9 RealmLifecycleService 6 操作器) |
 
 ## 3. 处置方案候选
 
@@ -33,7 +33,7 @@
 
 ### 方案 B: 移到 git 历史(删除 + 历史保留)
 
-`git rm crates/cluster-ops/tests-disabled/ut_*.rs` 后,文件可由 `b74ccc3` git history 找回。
+`git rm crates/cluster-ops/tests-disabled/ut_*.rs` 后,文件可由 `30a8842` git history 找回。
 **工作量**:1 分钟。**风险**:无,git 历史天然保留。
 
 ### 方案 C: 保留 tests-disabled/ + 写本说明(本次决策)
@@ -60,7 +60,7 @@
 - ✅ `ut_state_machine.rs` 已 `git rm`(per commit 实际包含在本次)
   - 原因:与 `src/realm_lifecycle/tests/ut_state_machine.rs` 完全重复(23 fn 全部覆盖,且新文件新增 6 个更细粒度 fn)
   - 验证:`cargo test -p cluster-ops` 仍 56 PASS(因为旧 ut_state_machine 本来就不在跑)
-- ⏳ `ut_feature_adapter.rs` 留 P3 follow-up(20 fn, PFAU 7 阶段已间接覆盖 per 6b9a8d0)
+- ⏳ `ut_feature_adapter.rs` 留 P3 follow-up(20 fn, PFAU 7 阶段已间接覆盖 per 0b8ab81)
 - ⏳ `ut_olu.rs` 留 P3 follow-up(11 fn, 需重新评估 OLU 度量)
 - ⏳ `ut_saga.rs` 留 P3 follow-up(5 fn, SagaOrchestrator 已重构,旧断言可能失效)
 

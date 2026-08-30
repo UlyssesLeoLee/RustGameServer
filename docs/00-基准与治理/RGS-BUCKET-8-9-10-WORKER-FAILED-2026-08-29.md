@@ -30,7 +30,7 @@ per 历史 session memory:
 
 | 桶 | 失职处理 | 落档后续 | 估 token |
 |---|---|---|---|
-| 8 proto 实装 | 落档 | proto v2 草稿已 merge main (桶 7 82c5161), 缺 25 UT, 推后续 W34+ | 5-8M |
+| 8 proto 实装 | 落档 | proto v2 草稿已 merge main (桶 7 21e0524), 缺 25 UT, 推后续 W34+ | 5-8M |
 | 9 match session | 落档 | match.proto v2 stub 已 merge (桶 7), 缺状态机 + 9 RPC 实装, 推 W34+ | 25-40M |
 | 10 card catalog | 落档 | card.proto v1 + card-service skeleton 已 merge (桶 7), 缺 10 RPC 实装, 推 W34+ | 18-28M |
 
@@ -63,7 +63,7 @@ per 历史 session memory:
 
 ## 关联
 
-- main HEAD `f5ca89f`(5 桶 commit + 4 tag 推 origin)
+- main HEAD `237036a`(5 桶 commit + 4 tag 推 origin)
 - 跑测累计 534+ PASS / 0 fail
 - 6 个 worktree 保留 (3 失职 + 3 已完成):card-bucket7/8/9/10/11/12
 - Mavis 接手 agent per DEC-008 (代签 Ulysses 无需再问)

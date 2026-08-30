@@ -2,7 +2,7 @@
 # 角色：3 验证脚本必跑（per handoff §5 + RGS-WF-001 v0.5）
 # 状态：🔴 NO-GO 占位
 # 激活条件：7 G-CODE Closed + Platform 架构师具名签字
-# 重要：3 脚本在 commit eb2fffa 时已在本机验证 PASS（227 文件），本 workflow 仅为 CI 化包装
+# 重要：3 脚本在 commit 138a93d 时已在本机验证 PASS（227 文件），本 workflow 仅为 CI 化包装
 name: verify-docs
 
 on:

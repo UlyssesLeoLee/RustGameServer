@@ -751,7 +751,7 @@ spec:
 
 - server-no-deps.js 实际代码 151 行
 - public/index.html 实际代码 560 行
-- rgs-web v0.2-gm commit `52c1a83`
-- rgs-web v0.1 commit `5f827ee`
+- rgs-web v0.2-gm commit `23d447b`
+- rgs-web v0.1 commit `c076948`
 - 11 P0/P1/P2 commit(per RGS-REPORT-2026-08-26-P0P1P2_v0.2)
 - 修订历史代签新规则 per 2026-08-26 08:40 JST

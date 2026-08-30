@@ -4,13 +4,13 @@
 > **版本**: v0.4
 > **生效日期**: 2026-08-27 22:05 JST(v0.3 修订 2026-08-28 09:30 JST / v0.4 修订 2026-08-28 17:15 JST)
 > **作者**: 架构师(Mavis 接手 agent per DEC-008,代签)
-> **状态**: 🟡 OPEN(Q1/Q3/Q5/Q6 已决策/已执行;**Q2 已出 8 域 Lead 具名 + 采纳 (commit d34e2d7)**;**Q4 DTL-040 根因诊断新证据已落实 (commit a227e0c 跨反馈处置 F1)**;**Q7 cluster-ops 终方案 A' 已实装 (commit de86d80)**;**Q2/Q4/Q7 全部 resolved 待 DDD Review 终审**;详见各条 + §4 修订历史)
+> **状态**: 🟡 OPEN(Q1/Q3/Q5/Q6 已决策/已执行;**Q2 已出 8 域 Lead 具名 + 采纳 (commit 12437ca)**;**Q4 DTL-040 根因诊断新证据已落实 (commit 43a2e08 跨反馈处置 F1)**;**Q7 cluster-ops 终方案 A' 已实装 (commit 3e8d9ca)**;**Q2/Q4/Q7 全部 resolved 待 DDD Review 终审**;详见各条 + §4 修订历史)
 > **范围**: 2026-08-27 12:43 JST 部署完成 + 16:30 JST 后续 P0/P1/P2 收尾,9 个 DDD Review blocker / 决策项
 > **v0.4 升级说明**: Q2/Q4/Q7 全部 resolved (per 2026-08-28 17:15 JST),状态从 🟡 → 🟡 待终审。
 > **关联**:
 > - 部署报告:`docs/deploy/.run-logs/2026-08-27-deploy-all/DEPLOY-REPORT.md` (6664 字节)
-> - 代签签字记录:`docs/00-基准与治理/RGS-EXEC-2026-08-27-DEPLOY-SIGN.md`(commit `2013049` 落 `00-基础与管理/`,per Q1 决议已 merge 回 `00-基准与治理/`)
-> - OLU 报告:`docs/14-项目管理/RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md` (commit `88ce66b`)
+> - 代签签字记录:`docs/00-基准与治理/RGS-EXEC-2026-08-27-DEPLOY-SIGN.md`(commit `5419b0c` 落 `00-基础与管理/`,per Q1 决议已 merge 回 `00-基准与治理/`)
+> - OLU 报告:`docs/14-项目管理/RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md` (commit `2ab798e`)
 > - 5 域 RACI:`docs/14-项目管理/RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_*.md`
 > - 部署 SOP:`docs/deploy/05-deploy-sop.md` + `04-env-setup-sop.md`
 > - DDD Review checklist:`docs/00-基准与治理/RGS-DDD-REVIEW-2026-08-28-checklist.md`
@@ -35,8 +35,8 @@
 - git 实际追踪目录: `docs/00-基准与治理/`(8 字节 UTF-8 字符)
 - 任务规范名 + F3 commit 落点: `docs/00-基础与管理/`
 - 6 字节 / 18 字节路径差异 = 33% 不同
-- 证据: commit `2013049 docs(exec): 2026-08-27 部署签字记录 (代签)` 落 `00-基础与管理/`
-- 反证据: commit `88ce66b chore(workspace): .gitignore 修 target/ + scripts/_scratch/` 落 `00-基准与治理/`
+- 证据: commit `5419b0c docs(exec): 2026-08-27 部署签字记录 (代签)` 落 `00-基础与管理/`
+- 反证据: commit `2ab798e chore(workspace): .gitignore 修 target/ + scripts/_scratch/` 落 `00-基准与治理/`
 - 已存在文档:
   - `RGS-OPEN-QA-001_*` 系列在 `00-基准与治理/`
   - `RGS-DEC-Q003_*` 在 `00-基准与治理/`
@@ -47,7 +47,7 @@
 - [x] 保留哪个目录 / 都保留 / 合并重命名 / 不动 → **保留 `00-基准与治理/`,其余合并进去**
 
 **决议**(2026-08-27,Ulysses per DEC-008 代签):
-- `docs/README.md` 总索引第 11 行硬编码 `00-基准与治理/` 为基准分区入口,下辖 RGS-REQ/BAS/DTL/REV/HANDOFF 等 31 个文件;`00-基础与管理/` 只有本次新增的 2 个文件,系 commit `2013049` 建目录时误输入(治理→管理)
+- `docs/README.md` 总索引第 11 行硬编码 `00-基准与治理/` 为基准分区入口,下辖 RGS-REQ/BAS/DTL/REV/HANDOFF 等 31 个文件;`00-基础与管理/` 只有本次新增的 2 个文件,系 commit `5419b0c` 建目录时误输入(治理→管理)
 - 额外发现第三个近似目录 `00-基本与治理/`(仅含 `reviews/phase-0-5-citation-sweep/` 2 份引用扫雷报告),同属命名漂移,一并处理
 - **已执行**:`git mv` 合并 3 处误落文件回 `00-基准与治理/`(本 commit),未新建分区
 - **未处理(超出本次授权范围)**:`docs/12-工作流/RGS-IMPL-PLAN-{CDN,LCM}-001_*.md`、`docs/deploy/cdn-cloudflare-report.md`、`docs/deploy/cdn-it-report.md` 等文档中存在多处 `../00-基本与治理/` 裸目录链接(未指向具体文件,疑似占位符从未补全)——这是独立于本次路径合并的既有引用缺陷,建议另开 OPEN-QA 或纳入下次 DOCS-HEALTH 扫描,不在本次范围内修改
@@ -109,7 +109,7 @@
 ### Q3. 🟠 NFR-OP-010 人·天轨 21 略超 20(P1 决策)
 
 **问题描述**:
-- per OLU 报告 §6.5(commit `88ce66b`):本次 dev k3s 部署 token 轨 0.7-1.45M tokens(conservative)/ 1.95-3.68M(aggressive),**远低于** NFR-OP-010 上限 20M/周
+- per OLU 报告 §6.5(commit `2ab798e`):本次 dev k3s 部署 token 轨 0.7-1.45M tokens(conservative)/ 1.95-3.68M(aggressive),**远低于** NFR-OP-010 上限 20M/周
 - 但人·天轨中位 21,**略超** 20 上限(超 5%)
 - 5 域 + cluster-ops + gm-backend 维护成本在 dev k3s 稳定后每周仍需 ~21 人·天
 - 决策来源:per 2026-08-21 Ulysses 反馈"AI 协作下人·天失去精度,改 token"
@@ -133,10 +133,10 @@
 ### Q4. 🟠 0.1.2-cluster-ops 镜像资产保留 vs 不能用(P1 决策)
 
 **问题描述**:
-- 0.1.2-cluster-ops 镜像已 push ghcr.io(commit `ddff002` + `e614515` + `bbebb02` 链),200 OK, 23 layers
+- 0.1.2-cluster-ops 镜像已 push ghcr.io(commit `b703f30` + `1165858` + `5bf6ae3` 链),200 OK, 23 layers
 - apply 失败:`DB migrations failed: internal error: migration 1 was previously applied but has been modified`
 - 根因:0.1.2 镜像是从最新 source 重新编译,migration 1 SQL 与 0.1.0 build 时跑的 hash 不匹配
-- 主会话已回滚:commit `fb926f1` image tag 0.1.2 → 0.1.0 + probe 改回 tcpSocket
+- 主会话已回滚:commit `73fbd7f` image tag 0.1.2 → 0.1.0 + probe 改回 tcpSocket
 - live 状态:3 副本 1/1 Running(0.1.0 image + tcpSocket probe)
 
 **决策项**:
@@ -145,8 +145,8 @@
 - [ ] probe 何时改回 grpc_health_probe?(待 0.1.2 修复后)
 
 **根因复核**(2026-08-27,架构师 per DEC-008 代签,**仍 OPEN,未决策,未执行任何镜像构建/推送**):
-- 原文档"0.1.2 镜像从最新 source 重新编译"这句话不准确。实际链路(git 实证):`ddff002`(17:54)新建 `build-cluster-ops-0.1.2.yml`,设计上**不跑 cargo build**,而是从 base image `COPY --from` 复用二进制(commit 注释原话:"避免 LF 迁移内容与 DB CRLF hash 冲突"——说明作者当时已知有 CRLF/LF 风险);`e614515`(17:55)因 `0.1.0-cluster-ops` tag 在 ghcr.io 不存在,把 base image 改成通用 tag `0.1.0`;`bbebb02`(17:57)据此部署 0.1.2
-- 关键新证据:`fb926f1` 回滚时用的是 `0.1.0-cluster-ops` 这个 tag(而非 `0.1.0`),且回滚后 3 副本正常 Running——说明当前真正能通过 migration 校验的是 `0.1.0-cluster-ops`,而 0.1.2 构建用的 base 是**另一个** tag(`0.1.0`),二者是否字节等价未经验证
+- 原文档"0.1.2 镜像从最新 source 重新编译"这句话不准确。实际链路(git 实证):`b703f30`(17:54)新建 `build-cluster-ops-0.1.2.yml`,设计上**不跑 cargo build**,而是从 base image `COPY --from` 复用二进制(commit 注释原话:"避免 LF 迁移内容与 DB CRLF hash 冲突"——说明作者当时已知有 CRLF/LF 风险);`1165858`(17:55)因 `0.1.0-cluster-ops` tag 在 ghcr.io 不存在,把 base image 改成通用 tag `0.1.0`;`5bf6ae3`(17:57)据此部署 0.1.2
+- 关键新证据:`73fbd7f` 回滚时用的是 `0.1.0-cluster-ops` 这个 tag(而非 `0.1.0`),且回滚后 3 副本正常 Running——说明当前真正能通过 migration 校验的是 `0.1.0-cluster-ops`,而 0.1.2 构建用的 base 是**另一个** tag(`0.1.0`),二者是否字节等价未经验证
 - 环境层面确认存在真实 CRLF/LF 差异风险源:本机 git 系统级配置 `core.autocrlf=true`(Git for Windows 默认),本仓库 `.git/config` 局部覆盖为 `false`——即任何在没有这条局部覆盖的环境(例如另一台机器 clone、或某次 CI/本地构建未继承该覆盖)签出 `crates/cluster-ops/migrations/*.sql` 都可能得到 CRLF 内容,而 git blob 本身是纯 LF(已用 `git show HEAD:...` 核实);sqlx 的 migration checksum 是按文件字节算的,CRLF/LF 差一个字节就会导致 hash 不匹配
 - **结论**:根因大概率是"哪次构建的签出环境决定了 CRLF/LF、进而决定了 sqlx checksum",而不是简单的"用了新 source"。真正修复前需要先确认:(a) 当前活着的 `0.1.0-cluster-ops` 镜像里的二进制具体来自哪次构建/哪个签出环境,(b) `0.1.0` 通用 tag 与 `0.1.0-cluster-ops` 是否字节相同。这两点未查清前,**不建议**基于现有任何 workflow 重新 build/push,以免再次产生 hash 不匹配
 
@@ -220,7 +220,7 @@
 **问题描述**:
 - per 2026-08-28 08:40 JST Ulysses "实施ut" 指令 + ut 实施批次,发现 2 类遗留:
   1. **cluster-ops/tests-disabled/ 4 ut_*.rs 旧债**(ut_feature_adapter / ut_olu / ut_saga / ut_state_machine)
-     - 来源:commit `b74ccc3` (2026-08-27 08:00 JST) RGS-INC-002 v0.1 复盘,saga 编译死锁临时禁用
+     - 来源:commit `30a8842` (2026-08-27 08:00 JST) RGS-INC-002 v0.1 复盘,saga 编译死锁临时禁用
      - 现状:源码已搬至 `src/realm_lifecycle/`,旧测试 fn 引用旧路径,无法直接迁回
      - 决策记录:`crates/cluster-ops/tests-disabled/OLD-DEBT.md`(本次新增,3 处置方案候选)
   2. **TBD-08-NN (8 条) + TBD-09-NN (44 条) 实装排期**(per 2026-08-28 跨反馈 F7/F8 衍生 D4)
@@ -237,7 +237,7 @@
 - TBD-08/09 排期依赖域 Lead 具名 + 8 域 Lead 联合协调,本轮仅关闭 TBD-09-01
 
 **v0.3 追加决议**(2026-08-28 09:30 JST,Mavis 接手 agent per DEC-008 代签):
-- TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `404e3ea`)
+- TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `ec0f11a`)
 - TBD-08-03 (admin-service gRPC client) 暂留 v0.3,v0.2 用 AuditStore trait 抽象 + InMemory 实现
 - TBD-08-06 (axum-test vs wiremock 工具决策) 草案已落档 `RGS-TST-08-06-axum-test-vs-wiremock-工具决策.md`,方案 D (双工具并存) 短期推荐
 - cluster-ops/tests-disabled/ 终方案决策草案已落档 `RGS-TST-CLUSTER-OPS-OLD-DEBT-终方案决策.md`,方案 A' (单文件 ut_state_machine 迁回, P3 follow-up 其余 3 文件) 推荐
@@ -251,10 +251,10 @@
 - TBD-08/09 排期延后会拖慢 v0.2 实装节奏
 
 **关联 commit**:
-- `94ba812` UT-09 rgs-certgen 17 黑盒实装 + 7 域 example + mock-registry
-- `de86d80` 6 域独立 UT 文档 + evidence + 旧债决策
-- `3c7d670` 核对报告 + test-evidence.ps1 v4
-- `404e3ea` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2 + match §4.1/§5 + social §3 + admin §4.2 PFAU
+- `b4df2ed` UT-09 rgs-certgen 17 黑盒实装 + 7 域 example + mock-registry
+- `3e8d9ca` 6 域独立 UT 文档 + evidence + 旧债决策
+- `b87f1b3` 核对报告 + test-evidence.ps1 v4
+- `ec0f11a` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2 + match §4.1/§5 + social §3 + admin §4.2 PFAU
 - TBD-08-03 (gRPC client) + TBD-08-06 (工具决策) 留 v0.3
 
 ---
@@ -262,12 +262,12 @@
 ## 2. 已闭合项(本 OPEN-QA 范围外,但供参考)
 
 - ✅ 8 域 + 4 基础设施部署(2026-08-27 12:43-16:08 JST)
-- ✅ gm-backend crate + workspace + 0.1.0 镜像 push(commit `456482e` + `7e2fcb2`)
+- ✅ gm-backend crate + workspace + 0.1.0 镜像 push(commit `0ed9b77` + `fbe9194`)
 - ✅ cluster-ops probe 临时修复(tcpSocket 50056)
-- ✅ 代签签字记录 commit `2013049`
-- ✅ .gitignore 加 target/(commit `4390795` + `88ce66b`)
-- ✅ OLU 报告 commit `88ce66b`(37285 字节,自验 4/4)
-- ✅ NATS 部署 + e2e-smoke.ps1(commit `a59bbb9`,19/19 Pods Running,STATUS: OK)
+- ✅ 代签签字记录 commit `5419b0c`
+- ✅ .gitignore 加 target/(commit `b4ae639` + `2ab798e`)
+- ✅ OLU 报告 commit `2ab798e`(37285 字节,自验 4/4)
+- ✅ NATS 部署 + e2e-smoke.ps1(commit `9851df7`,19/19 Pods Running,STATUS: OK)
 - ✅ 0.1.2-cluster-ops 镜像资产保留(3 commit,主会话回滚)
 - ✅ RGS-EXEC-2026-08-27-DEPLOY-SIGN.md 落地(代签透明)
 
@@ -277,15 +277,15 @@
 
 | 文件 / commit | 用途 | SHA |
 |---|---|---|
-| RGS-EXEC-2026-08-27-DEPLOY-SIGN.md | 代签签字记录 | `2013049` |
-| .gitignore | target/ 排除 | `4390795` |
-| RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md | OLU token 估算 | `88ce66b` |
-| 06-cluster-ops-service.yaml (回滚) | 0.1.2 → 0.1.0 | `fb926f1` |
-| 50-gm-backend-service.yaml | ghcr.io 0.1.0-gm-backend | `456482e` |
-| scripts/e2e-smoke.ps1 | 19/19 smoke OK | `a59bbb9` |
-| 0.1.2-cluster-ops image | ghcr.io 资产 | `ddff002` / `e614515` / `bbebb02` |
-| 7e2fcb2 | 8 域 + gm-backend 初始 commit | `7e2fcb2` |
-| 456482e | gm-backend manifest 切镜像 | `456482e` |
+| RGS-EXEC-2026-08-27-DEPLOY-SIGN.md | 代签签字记录 | `5419b0c` |
+| .gitignore | target/ 排除 | `b4ae639` |
+| RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md | OLU token 估算 | `2ab798e` |
+| 06-cluster-ops-service.yaml (回滚) | 0.1.2 → 0.1.0 | `73fbd7f` |
+| 50-gm-backend-service.yaml | ghcr.io 0.1.0-gm-backend | `0ed9b77` |
+| scripts/e2e-smoke.ps1 | 19/19 smoke OK | `9851df7` |
+| 0.1.2-cluster-ops image | ghcr.io 资产 | `b703f30` / `1165858` / `5bf6ae3` |
+| fbe9194 | 8 域 + gm-backend 初始 commit | `fbe9194` |
+| 0ed9b77 | gm-backend manifest 切镜像 | `0ed9b77` |
 | cluster-ops-before-20260827-131829.yaml | cluster-ops 修复前 snapshot | snapshot |
 | DEPLOY-REPORT.md | 主部署报告 | 6664 字节 |
 | FOLLOW-UP-PLAN.md | 10 项 follow-up 清单 | 1700 字节 |
@@ -298,8 +298,8 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-27 22:05 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | 初版:6 个 OPEN 问题 + 9 个已闭合项 | 🟡 OPEN |
 | 0.1(原地追记) | 2026-08-27 | 架构师(Mavis 接手 agent per DEC-008,代签) | Q1:git mv 合并 3 处误落目录回 `00-基准与治理/`,已执行;Q2/Q3/Q6:记录决议(判断性,未改动其他文档);Q4:根因诊断修正(CRLF/LF hash 风险,非"重新编译"),仍 OPEN,未构建/推送镜像;Q5:5 域已串行重启,发现 NetworkPolicy 缺口(`nats-ingress` 从未 apply + manifest 自身 2 处标签 bug),仍 🔴 未解决 | 🟡 OPEN(Q4/Q5 待续) |
-| 0.2 | 2026-08-28 | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q7 新增**:per 2026-08-28 08:40 JST "实施ut" 指令 + ut 实施批次,发现 2 类遗留:① cluster-ops/tests-disabled/ 4 ut_*.rs 旧债(commit `b74ccc3` RGS-INC-002 复盘临时禁用,源码已搬至 `src/realm_lifecycle/`,决策记录 `OLD-DEBT.md`,临时方案 C 保留 + 文档化) ② TBD-08-NN (8 条) + TBD-09-NN (剩 3 条) 实装排期(per 2026-08-28 跨反馈 F7/F8 衍生 D4)。本批同时关闭 TBD-09-01(per UT-09 v0.2 实装 17/17 PASS) | 🟡 OPEN(Q7 临时方案 C,DDC Review 阶段决策 A/B/C 终方案 + TBD 排期) |
-| 0.3 | 2026-08-28 09:30 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q2 v0.3 追加**:8 域 Lead 角色映射草案落档 `RGS-LEAD-NAMING-8-域-2026-08-28.md` (5 域 + cluster-ops + gm-backend + 工具集 = 8 域,共享支持 4 角色 SRE/Platform/QA/PM,总 12 角色 per DEC-008)。**Q7 v0.3 追加**:TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `404e3ea`);TBD-08-03 暂留 v0.3 + TBD-08-06 工具决策草案落档 + cluster-ops 终方案决策草案落档(方案 A' 推荐)。**3 草案待 Ulysses 终审**。TBD-08-08 (gm-backend 域 Lead 具名) = Q2 解决(per RGS-LEAD-NAMING-8-域)。 | 🟡 OPEN(Q2/Q7 草案待终审,TBD-08-03/06 留 v0.3) |
+| 0.2 | 2026-08-28 | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q7 新增**:per 2026-08-28 08:40 JST "实施ut" 指令 + ut 实施批次,发现 2 类遗留:① cluster-ops/tests-disabled/ 4 ut_*.rs 旧债(commit `30a8842` RGS-INC-002 复盘临时禁用,源码已搬至 `src/realm_lifecycle/`,决策记录 `OLD-DEBT.md`,临时方案 C 保留 + 文档化) ② TBD-08-NN (8 条) + TBD-09-NN (剩 3 条) 实装排期(per 2026-08-28 跨反馈 F7/F8 衍生 D4)。本批同时关闭 TBD-09-01(per UT-09 v0.2 实装 17/17 PASS) | 🟡 OPEN(Q7 临时方案 C,DDC Review 阶段决策 A/B/C 终方案 + TBD 排期) |
+| 0.3 | 2026-08-28 09:30 JST | 架构师(Mavis 接手 agent per DEC-008,代签) | **Q2 v0.3 追加**:8 域 Lead 角色映射草案落档 `RGS-LEAD-NAMING-8-域-2026-08-28.md` (5 域 + cluster-ops + gm-backend + 工具集 = 8 域,共享支持 4 角色 SRE/Platform/QA/PM,总 12 角色 per DEC-008)。**Q7 v0.3 追加**:TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `ec0f11a`);TBD-08-03 暂留 v0.3 + TBD-08-06 工具决策草案落档 + cluster-ops 终方案决策草案落档(方案 A' 推荐)。**3 草案待 Ulysses 终审**。TBD-08-08 (gm-backend 域 Lead 具名) = Q2 解决(per RGS-LEAD-NAMING-8-域)。 | 🟡 OPEN(Q2/Q7 草案待终审,TBD-08-03/06 留 v0.3) |
 
 ---
 

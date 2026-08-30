@@ -73,9 +73,9 @@ cargo 1.98.0 (xxxxx 2026-08-XX)
 ```powershell
 cd D:\RustGameServer
 
-# Cargo.toml（最小，per commit dc7d9fa 已就位）
-# rust-toolchain.toml（per commit dc7d9fa 已就位）
-# crates/rgs-hello/（per commit dc7d9fa 已就位）
+# Cargo.toml（最小，per commit b290367 已就位）
+# rust-toolchain.toml（per commit b290367 已就位）
+# crates/rgs-hello/（per commit b290367 已就位）
 
 # 编译 + 测试
 cargo build --locked 2>&1 | Tee-Object docs/deploy/06-rust-198-build.log

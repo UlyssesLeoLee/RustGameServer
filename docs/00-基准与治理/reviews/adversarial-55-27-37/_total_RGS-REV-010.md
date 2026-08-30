@@ -2,12 +2,12 @@
 
 ## 元数据
 
-- **审查范围**: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **审查范围**: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - **审查模式**: 3 轮递进对抗（V1/V2/V3 并行独立 → V4 仲裁 → V5 收口）
 - **审查者**: V1 (安全) + V2 (正确性) + V3 (集成) + V4 (对抗仲裁) + V5 (综合收口) — 5 verifier 子代理 (V1/V3/V4 root session 接手, V2/V5 worker 产出)
 - **独立 worktree**: V2 worker 独立 worktree; V1/V3 root session 接手 (worker 因资源超限 terminated/cancelled)
 - **日期**: 2026-08-23
-- **上一轮基线**: `161a241` RGS-REV-009 总报告 (5 verifier 3 轮对抗, 13 issue 3C/3H/4M/3L)
+- **上一轮基线**: `49f8731` RGS-REV-009 总报告 (5 verifier 3 轮对抗, 13 issue 3C/3H/4M/3L)
 
 ---
 
@@ -36,7 +36,7 @@
   1. 独立验证 V1-V4 关键发现
   2. 整合共识矩阵 (哪些 4/4 / 3/4 / 2/4 / 1/4 共识)
   3. 仲裁 V1-V4 之间矛盾 (仅 V2 vs V1+V3 矛盾)
-  4. 给出 5 commit (13dec2d..0434ada) NO-MERGE-PENDING-WF-1-55-27 tag 解锁决策
+  4. 给出 5 commit (1b30878..cc888b5) NO-MERGE-PENDING-WF-1-55-27 tag 解锁决策
   5. 给 root session 可操作建议
 
 ---
@@ -57,18 +57,18 @@
 
 | RGS-REV-009 ID | 修复 commit | V1 | V2 | V3 | V4 | **V5 终判** |
 |---|---|---|---|---|---|---|
-| CR-1 资金幻影 | WF-1-55.27 `0c6d573` | ✅ | ✅ | ✅ | ✅ | **✅ CRITICAL→修复** |
-| CR-2 outbox CHECK | WF-1-55.28 `fdfd4aa` | ✅ | ✅ | ✅ | ✅ | **✅ CRITICAL→修复** |
-| HI-1 mTLS getter | WF-1-55.30 `7e2d457` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
-| HI-2-stub DC-1.3 | WF-1-55.29 `63706a6` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
-| **HI-3 fail-closed test** | WF-1-55.32 `d2a19ac` | ⚠️ HIGH | ✅ | ⚠️ CRITICAL | ⚠️ HIGH | **⚠️ HIGH (test 内部缺陷, 需修)** |
-| HI-D 3 终态 test | WF-1-55.33 `5f64b8e` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
-| ME-1 deprecation | WF-1-55.34 `5866946` | — | ✅ | — | ✅ | **✅ MEDIUM→修复** |
-| LO-4 补偿半途 + 幂等 | WF-1-55.37 `62d62cb` | ✅ | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
-| HI-2-pg PgTestDb | WF-1-55.31 `ec1f992` | ✅ | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
-| ME-2/3 admin 注释 | WF-1-55.35 `ee022d0` | — | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
-| LO-1/2/3 rgs-certgen | WF-1-55.36 `91d4608` | — | ✅ | ✅ | ✅ | **✅ LOW→修复** |
-| LO-1/2/3 doctest | WF-1-55.36 `91d4608` | — | ✅ | ✅ | ✅ | **✅ LOW→修复** |
+| CR-1 资金幻影 | WF-1-55.27 `eafafe8` | ✅ | ✅ | ✅ | ✅ | **✅ CRITICAL→修复** |
+| CR-2 outbox CHECK | WF-1-55.28 `13a67bc` | ✅ | ✅ | ✅ | ✅ | **✅ CRITICAL→修复** |
+| HI-1 mTLS getter | WF-1-55.30 `3022f12` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
+| HI-2-stub DC-1.3 | WF-1-55.29 `13010ce` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
+| **HI-3 fail-closed test** | WF-1-55.32 `ce35f10` | ⚠️ HIGH | ✅ | ⚠️ CRITICAL | ⚠️ HIGH | **⚠️ HIGH (test 内部缺陷, 需修)** |
+| HI-D 3 终态 test | WF-1-55.33 `7e258d3` | ✅ | ✅ | ✅ | ✅ | **✅ HIGH→修复** |
+| ME-1 deprecation | WF-1-55.34 `2f334fc` | — | ✅ | — | ✅ | **✅ MEDIUM→修复** |
+| LO-4 补偿半途 + 幂等 | WF-1-55.37 `6d8c127` | ✅ | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
+| HI-2-pg PgTestDb | WF-1-55.31 `d7b016c` | ✅ | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
+| ME-2/3 admin 注释 | WF-1-55.35 `385fd7e` | — | ✅ | ✅ | ✅ | **✅ MEDIUM→修复** |
+| LO-1/2/3 rgs-certgen | WF-1-55.36 `e0de669` | — | ✅ | ✅ | ✅ | **✅ LOW→修复** |
+| LO-1/2/3 doctest | WF-1-55.36 `e0de669` | — | ✅ | ✅ | ✅ | **✅ LOW→修复** |
 
 **汇总**: 11/11 修复落地, 10 ✅ + 1 ⚠️ (HI-3 fail-closed test 缺陷, 需修)
 
@@ -158,7 +158,7 @@
 - **当前 22 commit (含 11 修复 + 11 merge)**: **❌ NO MERGE**
   - 原因: 1 HIGH 待修 (fail-closed test 缺陷)
   - 修 fail-closed test 缺陷 → 22 commit 可 push
-- **5 原始 commit (13dec2d..0434ada) NO-MERGE-PENDING-WF-1-55-27 tag**: **仍保留**
+- **5 原始 commit (1b30878..cc888b5) NO-MERGE-PENDING-WF-1-55-27 tag**: **仍保留**
   - 原因: 5 commit 是 WF-1-55.26 原始产出, 与 22 commit 是不同维度
   - 建议: 解锁 tag 等工程 55 整体 push 后 (即 push RGS-REV-009 评审 + 11 修复一并)
 
@@ -217,7 +217,7 @@
 
 ## 9. RGS-REV-008 → RGS-REV-009 → RGS-REV-010 演进对照
 
-| 维度 | RGS-REV-008 (c730b21) | RGS-REV-009 | RGS-REV-010 (本轮) |
+| 维度 | RGS-REV-008 (22f662f) | RGS-REV-009 | RGS-REV-010 (本轮) |
 |---|---|---|---|
 | 审查模式 | 平面 4 verifier 并行 | 3 轮递进对抗 (5 verifier) | 3 轮递进对抗 (5 verifier) |
 | 审查范围 | 12 commit 55 P0+收尾 | 5 commit WF-1-55.26 | 22 commit WF-1-55.27..55.37 (11 修复 + 11 merge) |
@@ -253,8 +253,8 @@
 
 ## 11. commit hash
 
-- **HEAD**: `f31ca6c` (Merge commit 'ec1f992' — WF-1-55.31 PgTestDatabase fixture)
-- 范围: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **HEAD**: `3ead5f6` (Merge commit 'd7b016c' — WF-1-55.31 PgTestDatabase fixture)
+- 范围: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - main worktree 状态: 5 untracked 新文件 (V1/V2/V3/V4/V5 报告, 不含审查前 untracked cargo log)
   - `docs/00-基准与治理/reviews/adversarial-55-27-37/V1-security.md` (7110 bytes)
   - `docs/00-基准与治理/reviews/adversarial-55-27-37/V2-correctness.md` (19991 bytes)

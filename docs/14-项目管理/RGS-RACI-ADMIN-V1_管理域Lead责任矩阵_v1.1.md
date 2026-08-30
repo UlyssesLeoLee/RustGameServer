@@ -8,7 +8,7 @@
 | 版本 | v1.0（per WF-1-55.78 P2 5 域 Lead RACI v1.0；基于 RGS-RACI-001 v0.1 160 单元矩阵 + RGS-ADR-0055 v0.1 4 治理角色升版） |
 | 状态 | 规格草案 + 已知缺口（见 §A.3），待 player 域 Lead 联合具名 DDD Review |
 | 源 RACI | RGS-RACI-001 v0.1（commit `14786a5`，2026-08-26 09:30 JST，5 域 × 8 阶段 × 4 角色 = 160 单元） |
-| 源 ADR | RGS-ADR-0055 v0.1（per WF-1-55.49，2026-08-25 06:26 JST，commit `eed34d3`，DEC-005 5 域独立 Lead + DEC-008 一人公司 12 角色兼容论证） |
+| 源 ADR | RGS-ADR-0055 v0.1（per WF-1-55.49，2026-08-25 06:26 JST，commit `d6a56c6`，DEC-005 5 域独立 Lead + DEC-008 一人公司 12 角色兼容论证） |
 | 适用范围 | admin 域（RBAC / 配置 / 公告 / 审计 / 恢复 / 运营决策） |
 | 目标基线 | 一人公司 12 角色治理基线 per DEC-008 + 5 域独立 Lead 兼任禁止 per DEC-005 |
 | 责任人 | Ulysses（player 域 Lead 兼架构师 per DEC-008） |
@@ -137,7 +137,7 @@
 ### A.4 引用链与证据
 
 - RGS-RACI-001 v0.1（commit `14786a5`，2026-08-26 09:30 JST）
-- RGS-ADR-0055 v0.1（commit `eed34d3`，2026-08-25 06:26 JST，per WF-1-55.49）
+- RGS-ADR-0055 v0.1（commit `d6a56c6`，2026-08-25 06:26 JST，per WF-1-55.49）
 - RGS-SPEC-CROSS-011 v0.1（commit `7e851a2`，2026-08-26 09:30 JST，DDD Review 模板）
 - RGS-IMPL-100 saga 域召集人决策
 - per WBS v0.4 L4 #WF-1-55.78 (P2 推进)

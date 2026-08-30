@@ -1,12 +1,12 @@
 # verify-C 工程 55 P0+收尾 security + saga 交叉审核
 
-**审核对象**: git log 8c1dbfd..5ace5ad 含 12 commit（实际范围扩到 7379019^..5ace5ad 含 12 个 P0+收尾 commit;原始任务范围 8c1dbfd..5ace5ad 仅含 3 commit,按 12 commit 全量审核）
+**审核对象**: git log ec43377..2fe68b4 含 12 commit（实际范围扩到 4201281^..2fe68b4 含 12 个 P0+收尾 commit;原始任务范围 ec43377..2fe68b4 仅含 3 commit,按 12 commit 全量审核）
 
 **审核子代理**: verify-C security-saga-adversarial
 
 **审核时间**: 2026-08-22
 
-**commit 基线**: 5ace5ad
+**commit 基线**: 2fe68b4
 
 **worktree**: D:\RustGameServer-worktrees\verify-55-C-security (branch: verify/55-C-security)
 
@@ -14,21 +14,21 @@
 
 ## 0. 范围说明
 
-任务范围 8c1dbfd..5ace5ad 仅含 3 commit（55.18/55.23/55.24）。工程 55 P0+收尾的 12 个 commit 实际跨度为 7379019^..5ace5ad（含 merge 共 14 个 commit,去 merge 12 个 P0 commit）,本次审核以此为准。
+任务范围 ec43377..2fe68b4 仅含 3 commit（55.18/55.23/55.24）。工程 55 P0+收尾的 12 个 commit 实际跨度为 4201281^..2fe68b4（含 merge 共 14 个 commit,去 merge 12 个 P0 commit）,本次审核以此为准。
 
 12 commit 列表（去 merge）:
-- 7379019 55.1 AC3 economy 资金事务原子化（OCC + apply_atomic）
-- 7deff16 55.15 5 域 + cluster-ops main.rs InMemory -> Pg 接线
-- 69ebcd1 55.16 client_interceptor trace_id 从 Span 提取
-- 33fca1e 55.14 RBAC DomainAdmin 缺 scope 显式 deny + 边界修复
-- 9e55bbe 55.20 dev 密码 6 域独立化
-- 6b3cc5d 55.13 audit_log FNV-1a -> SHA-256 + 事务化
-- d8d33cf 55.12 SagaOrchestrator handler 实化
-- 53a8d37 55.17 outbox SKIP LOCKED + 事务边界 + 6 域 outbox migration
-- 8c1dbfd 55.18 mTLS client_auth_required 实化
-- 421585c 55.23 economy main.rs SagaOrchestrator 接线
-- 465bfeb 55.24 housekeeping 修 pre-existing doctest + clippy
-- 5ace5ad 55.21+22 5 域 main.rs mTLS + outbox 接线
+- 4201281 55.1 AC3 economy 资金事务原子化（OCC + apply_atomic）
+- 10bd5b1 55.15 5 域 + cluster-ops main.rs InMemory -> Pg 接线
+- c14abac 55.16 client_interceptor trace_id 从 Span 提取
+- 68822d2 55.14 RBAC DomainAdmin 缺 scope 显式 deny + 边界修复
+- 0c8539d 55.20 dev 密码 6 域独立化
+- 44253af 55.13 audit_log FNV-1a -> SHA-256 + 事务化
+- de282e1 55.12 SagaOrchestrator handler 实化
+- 55af339 55.17 outbox SKIP LOCKED + 事务边界 + 6 域 outbox migration
+- ec43377 55.18 mTLS client_auth_required 实化
+- 9556d3a 55.23 economy main.rs SagaOrchestrator 接线
+- ecb4c1d 55.24 housekeeping 修 pre-existing doctest + clippy
+- 2fe68b4 55.21+22 5 域 main.rs mTLS + outbox 接线
 
 ---
 

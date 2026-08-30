@@ -29,8 +29,8 @@
 |---|---|---|
 | 04:00-05:00 | Mavis 主导 26 份 DTL 升版(10 份轻量合并 + 16 份实质重写/元数据同步),共 25 个 DTL-XXX commit | `git log --since="2026-08-26 04:00" --until="2026-08-26 05:00"` |
 | 05:38 | Ulysses 对 26 份 DTL 升版做一审 review,发现 DTL-036 v1.4 存在 3 项 CRITICAL 治理基线违规(P1/P2/P3),产出 `RGS-DTL-036-REVIEW-2026-08-26-feedback-to-agents.md` | 反馈单 §0 |
-| 05:46-05:50 | DTL-036 v1.4.1 hotfix(commit `13badca` + merge `fd4f4d5`):撤回 §3 第 50 行伪造出处 + 补 `session_epoch`(ARC-005 强制)+ §3 末列已知缺口 5 项 | `git show 13badca` |
-| 06:00-06:05 | 独立复核发现 v1.4.1"§3 已知缺口"清单后 3 项自相矛盾且引用仓库不存在内容,产出 DTL-036 v1.4.2 hotfix(commit `2c81361`)撤回 3 项具体内容改写为纯缺口描述 | `git show 2c81361` |
+| 05:46-05:50 | DTL-036 v1.4.1 hotfix(commit `9328984` + merge `18e5572`):撤回 §3 第 50 行伪造出处 + 补 `session_epoch`(ARC-005 强制)+ §3 末列已知缺口 5 项 | `git show 9328984` |
+| 06:00-06:05 | 独立复核发现 v1.4.1"§3 已知缺口"清单后 3 项自相矛盾且引用仓库不存在内容,产出 DTL-036 v1.4.2 hotfix(commit `c7f0e72`)撤回 3 项具体内容改写为纯缺口描述 | `git show c7f0e72` |
 | 06:15-06:25 | Mavis 基于 26 份 DTL 升版增量,为对应 26 份 RGS-SPEC-DTL-NNN_*.md 追加 v0.2 §A 对齐说明 + 修订历史 v0.2 行 | `git diff --stat docs/13-实现规格/` |
 
 ---
@@ -174,8 +174,8 @@ docs/13-实现规格/RGS-SPEC-000_详细设计规格化总表.md  ← v0.1/v0.2 
 **报告字数**:约 4500 字 / 27 文件影响 / 0 行实质删除
 
 **生成 commit**:
-- `2557a8c` (2026-08-26 06:59 JST, Mavis): `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本报告 28 文件一起 commit
-- `fed8d9d` (2026-08-26 07:25 JST, Mavis): `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` —— 独立复核 2557a8c 后定位 7 项问题(P1/P2a/P2b/P3~P7)+ 1 项非阻断卫生项,建议 Ulysses 签字前处置
-- v0.1 报告原稿里"未 commit"表述已过时,实际已在 2557a8c 落地;v0.2 校正于本修订更新
+- `71b4104` (2026-08-26 06:59 JST, Mavis): `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本报告 28 文件一起 commit
+- `4c88ae0` (2026-08-26 07:25 JST, Mavis): `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` —— 独立复核 71b4104 后定位 7 项问题(P1/P2a/P2b/P3~P7)+ 1 项非阻断卫生项,建议 Ulysses 签字前处置
+- v0.1 报告原稿里"未 commit"表述已过时,实际已在 71b4104 落地;v0.2 校正于本修订更新
 
 **报告生成时间**:2026-08-26 06:25 JST(初版)→ 07:36 JST(校正 v0.2,与 RGS-OPEN-QA-2026-08-26-SPEC-v0.2_v0.1.md 同期)

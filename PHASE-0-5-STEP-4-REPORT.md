@@ -1,6 +1,6 @@
 # Phase 0.5 Step 4 部署报告 —— mTLS 证书签发 + Secret 注入 + 5 域 fail-closed 启动验证
 
-> **任务范围**:`D:\RustGameServer-worktrees\WF-0-5-3\` worktree,branch `wbs/WF-0.5-3`,base = main `fca0a55`
+> **任务范围**:`D:\RustGameServer-worktrees\WF-0-5-3\` worktree,branch `wbs/WF-0.5-3`,base = main `c035912`
 > **完成时间**:2026-08-24
 > **执行人**:Worker (Phase 0.5 Step 4)
 > **依据**:RGS-INC-001 v0.2 §1.4 (mTLS fail-closed) + RGS-DEC-NOGO-001 v0.1 (NO-GO 解除) + RGS-IMPL-001 §3.4 (Secret 管理)

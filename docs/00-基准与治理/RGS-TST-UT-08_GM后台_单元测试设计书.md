@@ -279,7 +279,7 @@
 | 覆盖率 | cargo-llvm-cov | 后续 | TBD |
 
 **已知 bug**：
-- 本机 CI 暂未集成 gm-backend 5 域 PG fixture（per 8e5fe38 5 域已集成，gm-backend 暂不需要 DB）
+- 本机 CI 暂未集成 gm-backend 5 域 PG fixture（per 6763baa 5 域已集成，gm-backend 暂不需要 DB）
 - DDD Review 阶段需补覆盖率门槛
 
 ---

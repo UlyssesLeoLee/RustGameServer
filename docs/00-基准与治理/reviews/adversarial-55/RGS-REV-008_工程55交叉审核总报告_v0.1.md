@@ -1,8 +1,8 @@
 # RGS-REV-008 工程 55 P0+收尾 12 commit 交叉审核总报告
 
-**审核对象**：git log 7deff16..5ace5ad（13 commit 含 2 merge，覆盖 12 L4 任务）
+**审核对象**：git log 10bd5b1..2fe68b4（13 commit 含 2 merge，覆盖 12 L4 任务）
 **审核时间**：2026-08-22
-**commit 基线**：5ace5ad
+**commit 基线**：2fe68b4
 **审核方式**：4 个独立 verifier 子代理并行（独立 worktree + 独立 context + 强制落盘）
 
 ---
@@ -28,9 +28,9 @@
 | # | 报告 | 主题 | 状态 | 阻塞 |
 |---|------|------|------|------|
 | **AC-1** | A | 5 域 main.rs 把 55.18 fail-closed 防线用"dev/test fallback"绕开 | **未修** | 生产 |
-| BC-1 | B | admin-service migrations 2 个 0002 冲突（sqlx::migrate! 编译失败）| **✅ 已修**（commit `f1c29b8`）| 编译 |
-| **CC-1** | C | admin main.rs 未调 with_pool → 55.13 audit_log 事务化死代码 | **✅ 已修**（commit `f1c29b8`）| 生产 |
-| **CC-2** | C | SagaOrchestrator::execute 强校验 Pending，崩溃恢复完全失效 | **✅ 已修**（commit `f1c29b8` 接受 3 状态）| 崩溃恢复 |
+| BC-1 | B | admin-service migrations 2 个 0002 冲突（sqlx::migrate! 编译失败）| **✅ 已修**（commit `9d8ed26`）| 编译 |
+| **CC-1** | C | admin main.rs 未调 with_pool → 55.13 audit_log 事务化死代码 | **✅ 已修**（commit `9d8ed26`）| 生产 |
+| **CC-2** | C | SagaOrchestrator::execute 强校验 Pending，崩溃恢复完全失效 | **✅ 已修**（commit `9d8ed26` 接受 3 状态）| 崩溃恢复 |
 | **CC-3** | C | 6 域 outbox migration 缺 `CHECK(status IN ...)` 约束 | 未修 | 部署 |
 | **CC-4** | C | apply_atomic OCC 失败时 reservation dangling + 资金幻影 | 未修 | 资金 |
 | DC-1 | D | SagaOrchestrator::resume() 完全无测试 | 未修 | 测试 |
@@ -76,12 +76,12 @@
 ### 4.2 SagaOrchestrator::execute 三状态
 - 原实现强校验 `status == Pending`
 - 55.23 30s 崩溃恢复轮询 `list_running(100)` 找的全是 `Running`/`Compensating` → 全部被拒
-- **已修**：execute 现在接受 Pending/Running/Compensating（commit `f1c29b8`）
+- **已修**：execute 现在接受 Pending/Running/Compensating（commit `9d8ed26`）
 
 ### 4.3 audit_log 死代码
 - 55.13 升级 SHA-256 + 事务化 + UNIQUE(prev_hash) + append_atomic trait
 - admin main.rs 调 `AdminServiceImpl::new(users, audit)` 而非 `.with_pool(pool)` → 走 InMemory fallback
-- **已修**：admin main.rs 调 with_pool（commit `f1c29b8`）
+- **已修**：admin main.rs 调 with_pool（commit `9d8ed26`）
 - 仍缺：`verify_chain()` 函数本身**不存在**，即使升级到 SHA-256 也没独立验证器
 
 ### 4.4 apply_atomic OCC 失败补偿
@@ -93,11 +93,11 @@
 - 55.13 加 `0002_audit_prev_hash_unique.sql`
 - 55.17 加 `0002_outbox.sql`（应该是 `0003_outbox.sql`）
 - sqlx::migrate! 0.8.6 编译期 reject 重复版本号
-- **已修**：重命名为 `0002_audit.sql` + `0003_outbox.sql`（commit `f1c29b8`）
+- **已修**：重命名为 `0002_audit.sql` + `0003_outbox.sql`（commit `9d8ed26`）
 
 ### 4.6 范围口径校正
-- 4 报告都指出任务原范围 `8c1dbfd..5ace5ad = 3 commit` 笔误
-- 实际范围 `7deff16..5ace5ad = 13 commit`（55.15 → 55.21+22）
+- 4 报告都指出任务原范围 `ec43377..2fe68b4 = 3 commit` 笔误
+- 实际范围 `10bd5b1..2fe68b4 = 13 commit`（55.15 → 55.21+22）
 - 这是流程问题，建议 WBS 任务书模板加"自动 git rev-list 范围校验"
 
 ---
@@ -142,7 +142,7 @@
 - B: [verify-B_architecture-consistency.md](./verify-B_architecture-consistency.md) (26KB)
 - C: [verify-C_security-saga.md](./verify-C_security-saga.md) (25KB)
 - D: [verify-D_testing-integration.md](./verify-D_testing-integration.md) (26KB)
-- WF-1-55.25 commit `f1c29b8` (3 CRITICAL 修复 + 3 报告入仓)
+- WF-1-55.25 commit `9d8ed26` (3 CRITICAL 修复 + 3 报告入仓)
 - RGS-REV-007 工程 53+54 对抗性审核总报告 (前一轮)
 
 ---

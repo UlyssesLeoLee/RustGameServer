@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-AI-HANDOFF-UPSTREAM-2026-08-30 |
 | 版本 | v0.1 |
-| 关联 commit | 6bc70fd (收工 v0.41) / ed98638 (workflow+script) / 60e9a2f (v0.40) |
+| 关联 commit | 36123fc (收工 v0.41) / f6d0d42 (workflow+script) / c9b34ef (v0.40) |
 | 关联主对话 session | mvs_25e9300a4de240af9fc2e31f5eb99eaa (Mavis / Ulysses) |
 | 状态 | 🟡 主对话收工,镜像推 GHCR 留待上游 AI 处理 |
 | 收件方 | 上游 AI(可能拥有 docker push 权限 / 长期 classic PAT / self-hosted runner 凭据 / 镜像预构建能力) |
@@ -14,24 +14,24 @@
 
 ## 0. 一句话当前状态
 
-**RGS k3s 部署实质闭环**(B-CODE 4/4 ✓ + 14/14 业务镜像 Running + 跨域 trace 验证 PASS),**仅剩 0.1.0 prod 镜像推 GHCR 失败** — 因 `$env:GHCR_PAT`(fine-grained PAT `github_pat_11AHE3X4...`,长度 93)对 GitHub 全部 endpoint 401 + `docker login ghcr.io` `denied: denied`,token 自身已无效。主对话已完成新式 GHCR pipeline(workflow + trigger script 落档 commit ed98638),**等上游 AI 用有效凭据触发 build**。
+**RGS k3s 部署实质闭环**(B-CODE 4/4 ✓ + 14/14 业务镜像 Running + 跨域 trace 验证 PASS),**仅剩 0.1.0 prod 镜像推 GHCR 失败** — 因 `$env:GHCR_PAT`(fine-grained PAT `github_pat_11AHE3X4...`,长度 93)对 GitHub 全部 endpoint 401 + `docker login ghcr.io` `denied: denied`,token 自身已无效。主对话已完成新式 GHCR pipeline(workflow + trigger script 落档 commit f6d0d42),**等上游 AI 用有效凭据触发 build**。
 
 ---
 
 ## 1. 关键 commit 链(全部已推 origin/main)
 
 ```
-6bc70fd docs(plan): k3s 部署收工落档 v0.41 (per 8/30 13:00 JST 决策)
-60e9a2f docs(plan): 新式 GHCR pipeline 配置 + 触发阻塞落档 v0.40 (per 8/30 14:30 JST)
-ed98638 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT trigger
-212495c docs(plan): 卡牌 8 桶 + W36 跨域 100% 闭环最终总结 v0.37 (per 8/30 10:05 JST)
-8cb15cf merge: W36 economy-service 跨域 trade saga 集成 (100 测试全过)
-95572aa feat(gm-backend): W36 gm.proto v0.4 实际集成 (15 UT + 5 IT 全过, 0 破坏)
-062498b merge: W36 match-service 跨域 SaveReplay saga 集成 (177 测试全过)
-a5aa9f4 docs(deploy): k3s 部署重启阻塞落档 (3 阻塞, per 2026-08-30 12:55 JST)
+36123fc docs(plan): k3s 部署收工落档 v0.41 (per 8/30 13:00 JST 决策)
+c9b34ef docs(plan): 新式 GHCR pipeline 配置 + 触发阻塞落档 v0.40 (per 8/30 14:30 JST)
+f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT trigger
+b7c514a docs(plan): 卡牌 8 桶 + W36 跨域 100% 闭环最终总结 v0.37 (per 8/30 10:05 JST)
+f6820dd merge: W36 economy-service 跨域 trade saga 集成 (100 测试全过)
+1ea7284 feat(gm-backend): W36 gm.proto v0.4 实际集成 (15 UT + 5 IT 全过, 0 破坏)
+57412e9 merge: W36 match-service 跨域 SaveReplay saga 集成 (177 测试全过)
+46bbb62 docs(deploy): k3s 部署重启阻塞落档 (3 阻塞, per 2026-08-30 12:55 JST)
 ```
 
-main HEAD = `6bc70fd`,工作区 clean(只 untracked `.worktrees/` + `docs/00-基准与治理/.test-evidence/`)。
+main HEAD = `36123fc`,工作区 clean(只 untracked `.worktrees/` + `docs/00-基准与治理/.test-evidence/`)。
 
 ---
 
@@ -64,7 +64,7 @@ main HEAD = `6bc70fd`,工作区 clean(只 untracked `.worktrees/` + `docs/00-基
 
 ## 3. 主对话已交付的资产(等上游 AI 用)
 
-### 3.1 新式 GHCR workflow(已 commit ed98638)
+### 3.1 新式 GHCR workflow(已 commit f6d0d42)
 
 文件: `.github/workflows/build-prod-0.1.0.yml`(5874 字节)
 
@@ -79,7 +79,7 @@ main HEAD = `6bc70fd`,工作区 clean(只 untracked `.worktrees/` + `docs/00-基
 
 **输出镜像**: `ghcr.io/ulyssesleolee/rustgameserver:0.1.0`(内容包含 player/economy/match/social/admin/cluster-ops/i18n/card/leaderboard/replay/rgs-asset-download 11 个 binary)
 
-### 3.2 Trigger 脚本(已 commit ed98638)
+### 3.2 Trigger 脚本(已 commit f6d0d42)
 
 文件: `scripts/trigger-build-prod.ps1`(3205 字节)
 

@@ -94,7 +94,7 @@
 - [ ] **A6.2 状态机**：feature 状态（declared → canary → confirm → done / rolled_back）转移图
 - [ ] **A6.3 错误码**：PFAU 5 类错误码（confirm 失败 / 节点掉线 / 资源不足 / 灰度不一致 / 回滚失败）
 - [ ] **A6.4 ADR-0052 贯穿**：all-reachable 确认语义 + Active-Active 写入路径在每个 gRPC 方法中体现
-- [ ] **A6.5 DLQ 处理**：DiscardDlqEvent / ListDlqEvents（per f0b2432 self-review 补强）
+- [ ] **A6.5 DLQ 处理**：DiscardDlqEvent / ListDlqEvents（per 2f218c9 self-review 补强）
 - [ ] **A6.6 监控**：PFAU 完成时延指标（按 handoff §4.3 R1 估算 ~13 分钟）
 - [ ] **A6.7 Admin 域 Lead 签字**（独立，不可代签）：_______ 日期：_______
 

@@ -3,7 +3,7 @@
 > **目的**:Ulysses 一次性审 9 决策草案 + 跨反馈处置 + S4 Phase 2 step 1+2 + 跑测 + 文档治理
 > **作者**:Mavis (接手 agent per DEC-008,2026-08-28 17:09 JST)
 > **状态**:⏳ OPEN (待 Ulysses DDD Review 拍板)
-> **关联**:RGS-OPEN-QA v0.4 (推进中) + 9 决策草案 + 8 commits (c5c9f5f → 16460a4)
+> **关联**:RGS-OPEN-QA v0.4 (推进中) + 9 决策草案 + 8 commits (c14d49b → 38097e8)
 
 ---
 
@@ -12,28 +12,28 @@
 ### A1. 8 域 Lead 具名 (Q2 OPEN-QA)
 - **文档**: `docs/00-基准与治理/RGS-LEAD-NAMING-8-域-2026-08-28.md`
 - **决策**: 采纳 8 域 + 4 共享 = 12 角色 (player/economy/match/social/admin/cluster-ops/gm-backend/rgs-certgen + SRE/Platform/QA/PM)
-- **已实装**: commit `d34e2d7`
+- **已实装**: commit `12437ca`
 - **已知缺口**: SRE Lead/平台/评审/PM 4 域 Lead 仍 ⏳ 不代签 (per 8/21 JST "拒绝兼任")
 - **需 DDD 拍板**: 8 域 + 4 共享角色边界是否清晰? 是否需补 RACI 矩阵?
 
 ### A2. cluster-ops 终方案 A' (Q7)
 - **文档**: `docs/00-基准与治理/RGS-TST-CLUSTER-OPS-OLD-DEBT-终方案决策.md`
 - **决策**: git rm `tests-disabled/ut_state_machine.rs` + 3 文件 P3 follow-up
-- **已实装**: commit `de86d80` (per worktree main)
+- **已实装**: commit `3e8d9ca` (per worktree main)
 - **已知缺口**: 3 文件 P3 follow-up 仍未实装 (per 9 月计划)
 - **需 DDD 拍板**: P3 优先级是否可推后到 9 月?
 
 ### A3. TBD-08-06 工具决策 D
 - **文档**: `docs/00-基准与治理/RGS-TST-08-06-axum-test-vs-wiremock-工具决策.md`
 - **决策**: 双工具并存 (7 域 wiremock 0.6 + 8 域 axum-test 16)
-- **已实装**: 7 域 + 8 域 IT 文档齐全 (per commit `df986ec`)
+- **已实装**: 7 域 + 8 域 IT 文档齐全 (per commit `90aa3df`)
 - **已知缺口**: 5 域 + gm-backend 是否需统一? 待观察
 - **需 DDD 拍板**: 5 域是否也切 axum-test? (gm-backend 已用)
 
 ### A4. S4 Phase 2 step 1 (gm-backend admin-service gRPC client)
 - **文档**: `docs/00-基准与治理/RGS-S4-PHASE2-STEP1-设计.md`
 - **决策**: gm-backend 注入 tonic Channel + HealthView 调 admin-service gRPC + 失败降级
-- **已实装**: commit `d023594` + 设计 `16460a4` (49/49 PASS)
+- **已实装**: commit `11a230a` + 设计 `38097e8` (49/49 PASS)
 - **已知缺口**: 4 endpoint (ban/grant/maintenance/query_audit) 仍 stub, 待 Step 2
 - **需 DDD 拍板**: Step 2 启动时机 (本 worktree 或下批次)?
 
@@ -72,19 +72,19 @@
 
 ## Section B: 跨反馈处置 9 条 (F1-F9)
 
-**文档**: `docs/00-基准与治理/RGS-TST-PEERREVIEW-2026-08-28-feedback-handling.md` (commit `a227e0c`)
+**文档**: `docs/00-基准与治理/RGS-TST-PEERREVIEW-2026-08-28-feedback-handling.md` (commit `43a2e08`)
 
 | 反馈 | 内容 | 处置 | 状态 |
 |---|---|---|---|
 | F1 | DTL-040 根因诊断新证据 | Q4 OPEN-QA 推进 + 跨反馈处置报告 | ✅ |
-| F2 | 代签审核缺栏 | 17/18 PASS + 10 处缺栏补全 (commit `4c8c7f9`) | ✅ |
+| F2 | 代签审核缺栏 | 17/18 PASS + 10 处缺栏补全 (commit `be27937`) | ✅ |
 | F3 | path byte-level 偏差 | `00-基准与治理/` 保留决议 (per 8/26 04:30) | ✅ |
-| F4 | BAS × TST 覆盖审计 | 44/44 BAS 引用 100% (commit `73bcb19`) | ✅ |
-| F5 | F8 v0.2 services[] 5 子字段 | UT-08 模块 D 字段级协议实装 (commit `404e3ea`) | ✅ |
-| F6 | DTL 章节级追溯 | 6 域 + cluster-ops 独立 UT + 章节级追溯 (commit `de86d80`) | ✅ |
-| F7 | test-evidence v4 | `test-evidence.ps1` 升级 (commit `3c7d670`) | ✅ |
-| F8 | GM 后台 5 endpoint 字段级协议 | 实装 (commit `c5c9f5f`) | ✅ |
-| F9 | IT 准入核对 | 推荐路径 (commit `580cde3`) | ✅ |
+| F4 | BAS × TST 覆盖审计 | 44/44 BAS 引用 100% (commit `c6dc816`) | ✅ |
+| F5 | F8 v0.2 services[] 5 子字段 | UT-08 模块 D 字段级协议实装 (commit `ec0f11a`) | ✅ |
+| F6 | DTL 章节级追溯 | 6 域 + cluster-ops 独立 UT + 章节级追溯 (commit `3e8d9ca`) | ✅ |
+| F7 | test-evidence v4 | `test-evidence.ps1` 升级 (commit `b87f1b3`) | ✅ |
+| F8 | GM 后台 5 endpoint 字段级协议 | 实装 (commit `c14d49b`) | ✅ |
+| F9 | IT 准入核对 | 推荐路径 (commit `3357c10`) | ✅ |
 
 **已知缺口**: 9 条全部处置, 0 pending。
 
@@ -92,18 +92,18 @@
 
 ## Section C: 测试 + 覆盖率 summary
 
-### C.1 G3 workspace 跑测 (commit `1c2bf91`)
+### C.1 G3 workspace 跑测 (commit `2b3ad09`)
 - **81/81 targets PASS, 0 fail** (上轮 17 fail 已全修)
 - 663/663 test cases PASS, 37 ignored (PH-5 Cloudflare opt-in)
 - evidence: `docs/00-基准与治理/.test-evidence/g3-g4-20260828-070349/`
 
-### C.2 G4 覆盖率 (commit `1c2bf91`)
+### C.2 G4 覆盖率 (commit `2b3ad09`)
 - **Workspace line coverage: 75.9%** (8829/11639 行)
 - **14/14 域 + 共享 crate ≥ 60%** (rgs-hello 空 stub 0%)
 - TOP: rgs-arc-olu 100% / rgs-certgen 95.5% / rgs-testkit 93% / gm-backend 91.2%
 - MIN: match-service 62.2% (≥ 60% 阈值)
 
-### C.3 gm-backend 49/49 (commit `d023594`)
+### C.3 gm-backend 49/49 (commit `11a230a`)
 - 含 8 JWT UT + 7 audit UT + 7 outbox NATS mock UT + 6 admin gRPC IT + 12 5 endpoint IT + 9 其他
 - 上轮 36 → 49 (+13)
 - 0 fail
@@ -117,22 +117,22 @@
 ## Section D: 文档治理 summary
 
 ### D.1 18 份 TST 文档头表 BAS 引用
-- 44/44 BAS 引用 100% (commit `73bcb19`)
+- 44/44 BAS 引用 100% (commit `c6dc816`)
 - 7 域 TST 头表 + UT-08/09 + IT-00~09 全覆盖
 
 ### D.2 代签审核
 - 17/18 PASS, 1 个 ⏳ (5 域 Lead 拒绝兼任, 仍 Mavis 接手)
-- 10 处缺栏补全 (commit `4c8c7f9`)
+- 10 处缺栏补全 (commit `be27937`)
 
 ### D.3 35 份 BAS 文档
 - 全覆盖 + 跨引用 (DTL-018/019/003/040 + 7 域 + gm-backend + cluster-ops)
 
 ### D.4 19 份 IT 文档
-- IT-00 v0.2 + IT-01~09 全覆盖 (commit `df986ec`)
+- IT-00 v0.2 + IT-01~09 全覆盖 (commit `90aa3df`)
 - 7 域 IT 设计齐全
 
 ### D.5 跑测手册
-- `G3-G4-it-main-stage-runbook.md` (commit `580cde3`) — 主阶段入口
+- `G3-G4-it-main-stage-runbook.md` (commit `3357c10`) — 主阶段入口
 - `G3-G4-it-main-stage-runbook.md` 待补: W2 跨域 + W4 S5 真 NATS 入口
 
 ---
@@ -209,7 +209,7 @@
 
 ## H: 引用
 
-- **main branch HEAD**: `16460a4` (S4 Phase 2 step 1 设计文档)
+- **main branch HEAD**: `38097e8` (S4 Phase 2 step 1 设计文档)
 - **worktree list**: 8 个 (main + 4 旧 + 3 新)
   - main: `D:/RustGameServer`
   - 旧: `fix-drill-compile`, `M1`, `M2`, `M3` (8/22 之前的 WBS M 段)

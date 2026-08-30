@@ -6,14 +6,14 @@
 |---|---|
 | 文档编号 | RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 |
 | 版本 | **0.3**（per worker 升版任务 2026-08-26 ~22:00 JST "DEPLOY-SOP v0.2 → v0.3 升版同步 rgs-web 接 5 域 gRPC 落地"——§4 §5 19 页面 ROPE_CS 完备表更新到 v0.3 实际（9 真实 + 5 后续 + 5 不做）+ §A.6 v0.3 升版实证段）|
-| 状态 | ✅ **v0.3**——5 域 gRPC 50051-50056 + cluster-ops 50056 全部 1/1 Running 0 RESTARTS（per `kubectl get endpoints -n rust-game-server` 实证，2026-08-26 22:00 JST）+ rgs-web v0.3 接 5 域 gRPC 落地（per commit `5fa04ce` → merge `33922ce`，6 API + http2 + mTLS via kubectl port-forward）|
+| 状态 | ✅ **v0.3**——5 域 gRPC 50051-50056 + cluster-ops 50056 全部 1/1 Running 0 RESTARTS（per `kubectl get endpoints -n rust-game-server` 实证，2026-08-26 22:00 JST）+ rgs-web v0.3 接 5 域 gRPC 落地（per commit `140b2af` → merge `625a3f0`，6 API + http2 + mTLS via kubectl port-forward）|
 | 责任人 | Ulysses（人）+ Mavis（agent）|
 
 ---
 
 ## 0. 背景
 
-**RGS GM 后台 v0.2-gm**(commit 52c1a83)有 10 页面但 Players/Items/Mall 等都是 **mock 数据**——不是真实 gRPC 调用。
+**RGS GM 后台 v0.2-gm**(commit 23d447b)有 10 页面但 Players/Items/Mall 等都是 **mock 数据**——不是真实 gRPC 调用。
 
 Ulysses 要求"和 ROPE_CS 一样备齐,需确保有效"= **5 域 gRPC 必须真实跑通**,rgs-web 接真实 client。
 
@@ -197,7 +197,7 @@ Mavis 收到通知后会:
 | 0.1 | 2026-08-26 16:25 JST | 架构师(Mavis 接手 agent per DEC-008)| 初版:部署 SOP + 5 域启动 + 19 页面完备表 |
 | 0.1 sync | 2026-08-26 19:49 JST | 架构师(Mavis 接手 agent per DEC-008) | 实地状态校正（per kubectl 实证，§0 §3 §A.2 §A.4）：PG 已在 k3s 跑（5 DB 全建），5 域 deployment scale 0→1 触发但 binary exit 1（lastState.terminated.exitCode=1 reason=Error），readiness probe 3s 超时 fail，BackOff loop 10+ 分钟；DB user/password 实证为 `ulysses_local`/`{domain}_user`（v0.1 §1.1/§3 写错为 `rgs_dev`/`player`）；ResourceQuota 提升到 32Gi/16CPU requests + 96Gi/64CPU limits；§1.1 Ulysses 装 PG 步骤**过期**。§A.4 加 v0.1 sync 实地状态表。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
 | **0.2** | **2026-08-26 20:42 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **5 域 gRPC 全部 TCP-OK 通**（per `wsl bash /dev/tcp/{podIP}/{port}` 实证 + endpoints 同步 IP:port）。关键修复：① 5 域 probe 改 `tcpSocket:{port}`（不调 gRPC service，纯 TCP 探活，initialDelay 30s/period 15s/timeout 3s）② 17 个 Terminating pod force-delete 释放 node 内存（k3s + WSL Terminating 卡 17+ 分钟）③ scale 0→1 重置 ReplicaSet ④ HPA 被前 worker 误删，replicas 压 0 修复。§A.5 加 v0.2 sync 6 域 gRPC TCP-OK 实证表。v0.2 仍待办：rgs-web v0.3 接 5 域 gRPC、LEAD-RACI §3 5 域 Lead 真实签字、IMPL-PLAN v0.2 §3 RACI 矩阵同步、RGS-INC-002 部署事件报告。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
-| **0.3** | **2026-08-26 22:23 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **DEPLOY-SOP v0.2 → v0.3 升版**（per worker 升版任务 2026-08-26 ~22:00 JST,本 commit）。§4 10 页面 v0.2-gm→v0.3 接入规划表更新到 v0.3 实际（9 真实 + 1 部分：Reports metrics 降级），§5 19 页面 ROPE_CS 完备表更新到 v0.3 实际（8 ✅ + 1 ⚠️ Reports metrics 9464 端口不可达 admin 降级 / 5 后续 v1.0 路线 / 5 不做 per DEC-008），§A.6 加 v0.3 升版实证段（4 commit 引用：v0.2 `43e6108` / LEAD-RACI `b031a9c` / INC-002 `c56735c` / rgs-web v0.3 占位 `<待 rgs-web v0.3 worker commit>`）。v0.3 仍待办：rgs-web v0.3 worker `bg_26269498` 直连 pod IP 路由问题（已派 port-forward worker），主对话在 rgs-web v0.3 worker 完成后填入 §A.6 的 rgs-web v0.3 commit hash。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
+| **0.3** | **2026-08-26 22:23 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **DEPLOY-SOP v0.2 → v0.3 升版**（per worker 升版任务 2026-08-26 ~22:00 JST,本 commit）。§4 10 页面 v0.2-gm→v0.3 接入规划表更新到 v0.3 实际（9 真实 + 1 部分：Reports metrics 降级），§5 19 页面 ROPE_CS 完备表更新到 v0.3 实际（8 ✅ + 1 ⚠️ Reports metrics 9464 端口不可达 admin 降级 / 5 后续 v1.0 路线 / 5 不做 per DEC-008），§A.6 加 v0.3 升版实证段（4 commit 引用：v0.2 `f624c32` / LEAD-RACI `655061b` / INC-002 `d09f502` / rgs-web v0.3 占位 `<待 rgs-web v0.3 worker commit>`）。v0.3 仍待办：rgs-web v0.3 worker `bg_26269498` 直连 pod IP 路由问题（已派 port-forward worker），主对话在 rgs-web v0.3 worker 完成后填入 §A.6 的 rgs-web v0.3 commit hash。修订历史代签新规则 per 2026-08-26 08:40 JST。 |
 
 ## A. v0.1 升版增量
 
@@ -215,7 +215,7 @@ Mavis 收到通知后会:
 ### A.3 引用链与证据
 
 - per RGS-TEST-STRATEGY-2026-08-26 v0.1
-- per rgs-web v0.2-gm commit 52c1a83
+- per rgs-web v0.2-gm commit 23d447b
 - per RGS-DOCS-HEALTH-2026-08-26 §2 P2 拆分
 - per RGS-REV-008 AC-1(mTLS fail-closed)+ verify-A+C
 - per RGS-REV-009 V3 H-1(NoopMock deprecation)
@@ -229,10 +229,10 @@ Mavis 收到通知后会:
 
 **4 commit 引用**（per `git log --oneline main` 实证）：
 
-- DEPLOY-SOP v0.2 升版：commit `43e6108`（[wbs] WF-1-D.0-v0.2: DEPLOY-SOP v0.1 sync → v0.2 升版 5 域 gRPC 全部 TCP-OK）
-- LEAD-RACI 5 域 Lead 真实签字：commit `b031a9c`（[wbs] WF-1-LEAD-RACI-real-sign: 5 份 RACI v1.1 §4 5 域 Lead 联合签字栏全部填充已签 20 行 = 5 份 × 4 行）
-- RGS-INC-002 部署事件报告 v0.1：commit `c56735c`（[wbs] WF-1-INC-002: 5 域 gRPC 真实跑通事件复盘 v0.1 13 时间点 / 根因 3 段 / 修复 4 项 / 待办 3 项 / 引用 4 commit）
-- rgs-web v0.3 接 5 域 gRPC：commit `5fa04ce`（[wbs] WF-1-rgs-web-v0.3: 6 API endpoints 真实接 5 域 gRPC via kubectl port-forward + http2 + mTLS）→ merge `33922ce`。附带 PREREQ 修复：rgs-certgen 重生成 CA + 6 域 server cert + rgs-web client cert（EKU=clientAuth）+ kubectl apply 7 secret + 6 deployment rollout restart（per RGS-REV-007-C verify-C 风险记录：CA 私钥丢失导致 mTLS 无任何 client cert 可信）。6 endpoints 全部 curl 实证：health/all / player/:id / services/status / pfau/phase / sql/query / metrics/:svc。已知缺口：9464 metrics port 1/5 connection refused（player 降级）/ PFAU phase gRPC method 不存在（cluster-ops proto 无）/ 5 域 DB 空（GetPlayer 返回 HTTP 200 + 空 Player）/ WSL 内 psql 未装（/api/sql/query 自动降级 mock）/ port-forward pod 重启不自动重连。tools/rgs-web/setup-certs.sh 幂等 regen + k3s apply + pods restart。cert 文件不入仓（.gitignore）。
+- DEPLOY-SOP v0.2 升版：commit `f624c32`（[wbs] WF-1-D.0-v0.2: DEPLOY-SOP v0.1 sync → v0.2 升版 5 域 gRPC 全部 TCP-OK）
+- LEAD-RACI 5 域 Lead 真实签字：commit `655061b`（[wbs] WF-1-LEAD-RACI-real-sign: 5 份 RACI v1.1 §4 5 域 Lead 联合签字栏全部填充已签 20 行 = 5 份 × 4 行）
+- RGS-INC-002 部署事件报告 v0.1：commit `d09f502`（[wbs] WF-1-INC-002: 5 域 gRPC 真实跑通事件复盘 v0.1 13 时间点 / 根因 3 段 / 修复 4 项 / 待办 3 项 / 引用 4 commit）
+- rgs-web v0.3 接 5 域 gRPC：commit `140b2af`（[wbs] WF-1-rgs-web-v0.3: 6 API endpoints 真实接 5 域 gRPC via kubectl port-forward + http2 + mTLS）→ merge `625a3f0`。附带 PREREQ 修复：rgs-certgen 重生成 CA + 6 域 server cert + rgs-web client cert（EKU=clientAuth）+ kubectl apply 7 secret + 6 deployment rollout restart（per RGS-REV-007-C verify-C 风险记录：CA 私钥丢失导致 mTLS 无任何 client cert 可信）。6 endpoints 全部 curl 实证：health/all / player/:id / services/status / pfau/phase / sql/query / metrics/:svc。已知缺口：9464 metrics port 1/5 connection refused（player 降级）/ PFAU phase gRPC method 不存在（cluster-ops proto 无）/ 5 域 DB 空（GetPlayer 返回 HTTP 200 + 空 Player）/ WSL 内 psql 未装（/api/sql/query 自动降级 mock）/ port-forward pod 重启不自动重连。tools/rgs-web/setup-certs.sh 幂等 regen + k3s apply + pods restart。cert 文件不入仓（.gitignore）。
 
 **v0.3 落地 9 页面真实**（per §5 19 页面 ROPE_CS 完备表 v0.3 实际状态）：
 

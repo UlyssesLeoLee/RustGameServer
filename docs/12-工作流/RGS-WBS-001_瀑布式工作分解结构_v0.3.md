@@ -122,7 +122,7 @@
 #### §2A.2.55B 工程 55 收尾 — RGS-REV-009 修复（11 L4 任务 / ~6 人·天 / ~1.2M tokens）
 
 > **来源**: RGS-REV-009 WF-1-55.26 5 commit 3 轮对抗性审查（5 verifier 子代理 + V4 仲裁）。
-> **基线 commit**: 13dec2d..0434ada（5 commit 标 `no-merge-pending-wf-1-55-27` tag，**NO MERGE**）。
+> **基线 commit**: 1b30878..cc888b5（5 commit 标 `no-merge-pending-wf-1-55-27` tag，**NO MERGE**）。
 > **共识矩阵**: 13 issue (3 CRITICAL / 3 HIGH / 4 MEDIUM / 3 LOW)，V1+V2+V4+V5 共识，反驳 V3 CONDITIONAL PASS。
 > **关键 CRITICAL**:
 > - CR-1: CC-4 修复打偏靶 — `apply_atomic_with_reservation` 死代码（0 生产调用），`saga_orchestrator.rs:248-289` 未触及
@@ -151,7 +151,7 @@
 
 #### §2A.2.55.续1 工程 55 续 — 17 份未升版 DTL 的 SPEC v0.2 起草（17 L4 任务 / 5.1 人·天 / 850K tokens）
 
-> **触发**:2026-08-26 当日 26 份 DTL 升版 → 26 份 SPEC v0.2 调整 (commit 2557a8c)。本日仍有 17 份未升版 DTL 的 SPEC 维持 v0.1 (per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2)。本批 17 个 L4 任务是**补完性工作**(对齐今日 26 份模板),不是新工作分解。
+> **触发**:2026-08-26 当日 26 份 DTL 升版 → 26 份 SPEC v0.2 调整 (commit 71b4104)。本日仍有 17 份未升版 DTL 的 SPEC 维持 v0.1 (per RGS-OPEN-QA-2026-08-26-SPEC-v0.2 §5.2)。本批 17 个 L4 任务是**补完性工作**(对齐今日 26 份模板),不是新工作分解。
 
 > **owner 字段说明**:owner 列填 5 域分类(per RGS-WBS-001 v0.3 §6.2 5 域独立 Lead 配置) + foundation / cluster-ops / shared-platform,不填 Ulysses 兼任——per 2026-08-21 一人公司架构师兼任拒绝证据,5 域独立 Lead 不可兼任。实际起草由 Mavis 接手 agent 派 17 个 worker 子代理完成(worktree + 代签新规则 per 2026-08-26 08:40 JST)。
 

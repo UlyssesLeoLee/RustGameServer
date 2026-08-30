@@ -1,7 +1,7 @@
 # V2 正确性审查报告 (WF-1-55.26 5 commit)
 
 ## 元数据
-- 审查范围: `13dec2d..0434ada` (5 commit)
+- 审查范围: `1b30878..cc888b5` (5 commit)
 - 审查维度: Correctness (资金一致性 / Saga 崩溃恢复 / 事务边界 / 状态机正确性)
 - 审查者: V2 (verifier sub-agent, branch session)
 - 日期: 2026-08-23
@@ -38,15 +38,15 @@
 - **文件**: 6 域 outbox migration (admin/cluster-ops/economy/match/player/social 各自 migrations/0002|0003_outbox.sql)
 - **证据**:
   - 完整 diff 显示 CC-3 把 CHECK 约束**写在同一个** `CREATE TABLE IF NOT EXISTS outbox (...)` 块内 (例 economy-service/migrations/0003_outbox.sql:19)。
-  - `git log -- crates/economy-service/migrations/0003_outbox.sql` 显示该文件由 55.17 commit `53a8d37` 首次创建(无 CHECK),13dec2d 修改同文件追加 CHECK。
+  - `git log -- crates/economy-service/migrations/0003_outbox.sql` 显示该文件由 55.17 commit `55af339` 首次创建(无 CHECK),1b30878 修改同文件追加 CHECK。
   - 在**已部署环境**中(55.17 已跑过、`outbox` 表已存在),`CREATE TABLE IF NOT EXISTS` 是 no-op,**CHECK 约束永不生效**;只有新部署(表不存在)才会随 CREATE 一起加 CHECK。
   - 没有任何 ALTER TABLE ADD CONSTRAINT 兜底。
 - **影响**:
   - 报告 CC-3 (verify-C §4.3) 标的"CHECK 约束"对**生产环境实际无效**,只对 fresh DB 有效。
   - 6 域都中招:admin/cluster-ops/match/player/social 用 0002_outbox.sql,economy 用 0003_outbox.sql,模式相同。
 - **建议修复**:
-  - 选项 A(推荐):新增 0004 migration 文件 (或 6 域递增),内容为 `ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))`,与 13dec2d 文件解耦,保证已部署环境升级时生效。
-  - 选项 B:在 13dec2d 文件内追加 `DO $$ BEGIN ... EXCEPTION ... ALTER TABLE outbox ADD CONSTRAINT ...; END $$;` 的幂等块。
+  - 选项 A(推荐):新增 0004 migration 文件 (或 6 域递增),内容为 `ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))`,与 1b30878 文件解耦,保证已部署环境升级时生效。
+  - 选项 B:在 1b30878 文件内追加 `DO $$ BEGIN ... EXCEPTION ... ALTER TABLE outbox ADD CONSTRAINT ...; END $$;` 的幂等块。
   - 同理需要 6 域各一份(或在 shared-platform 抽 outbox schema builder)。
 
 ---

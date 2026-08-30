@@ -262,7 +262,7 @@
 | L4 v0.2 | cargo + rustls | `cargo test -p gm-backend --test integration_tls` | v0.2 TLS 实装 |
 
 **已知 bug**：
-- 5 域集成测试 PG fixture 已由 commit 8e5fe38 接入（gm-backend 暂不需要 DB）
+- 5 域集成测试 PG fixture 已由 commit 6763baa 接入（gm-backend 暂不需要 DB）
 - DDD Review 阶段需补 v0.2 测试用例的 gRPC client mock 选型
 
 ---

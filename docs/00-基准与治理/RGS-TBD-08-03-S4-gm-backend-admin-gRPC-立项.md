@@ -3,13 +3,13 @@
 > **目的**:实装 gm-backend 5 个 GM endpoint → admin-service gRPC 真实调用(替代 v0.2 AuditStore trait 抽象 + InMemory)
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 12:50 JST)
 > **状态**:🟡 OPEN(立项完成,实施按 5 阶段推进,预计 1 周)
-> **关联**:TBD-08-03 v0.2 抽象(per commit `404e3ea`)+ gm-backend proto schema 立项(per `crates/gm-backend/proto/gm/v1/gm.proto`)
+> **关联**:TBD-08-03 v0.2 抽象(per commit `ec0f11a`)+ gm-backend proto schema 立项(per `crates/gm-backend/proto/gm/v1/gm.proto`)
 
 ---
 
 ## 0. 背景
 
-### 0.1 当前状态(v0.2, per commit `404e3ea`)
+### 0.1 当前状态(v0.2, per commit `ec0f11a`)
 
 gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 - `health_view` 返回 `{service, admin_endpoint, mode}` 扁平对象,无 `services[]` 数组
@@ -133,7 +133,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 ---
 
 **关联 commit**:
-- `404e3ea` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2(per F8)
+- `ec0f11a` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2(per F8)
 - 本批:proto schema 立项(`crates/gm-backend/proto/gm/v1/gm.proto`)
 - v0.3 实施 commit:预计 2026-09-04 完成
 

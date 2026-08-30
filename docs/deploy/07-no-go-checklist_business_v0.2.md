@@ -61,7 +61,7 @@
 
 | 阻塞 | 进展 | 剩余 |
 |---|---|---|
-| 11 K8s manifest 全部 PLACEHOLDER | ✅ 全部替换为实际值（per Phase 0.5 Step 1 worker commit `4467080`）| 既有 manifest (00-10) 仍含部分 PLACEHOLDER(非部署阻塞)|
+| 11 K8s manifest 全部 PLACEHOLDER | ✅ 全部替换为实际值（per Phase 0.5 Step 1 worker commit `a497882`）| 既有 manifest (00-10) 仍含部分 PLACEHOLDER(非部署阻塞)|
 | NATS/OTel/Prom/Grafana 0 Pod | ✅ 14 K8s resources apply OK + 3 Deployment Scaled + 3 PVC Bound | 3 Pod 全部 ImagePullBackOff（gcr.io + docker.io 防火墙拦截）|
 | 5 业务域 0 Pod | ✅ 5 业务域 manifest 实际值就位 + rgs-certgen 6 域证书生成 PASS + 7 Secret 模板就位 | 5 业务域镜像未推（ghcr.io 需真实 PAT）|
 | mTLS fail-closed 验证 | ✅ 5/5 业务域 release binary 实测 fail-closed PASS（exit=1 不静默降级） | K3s 内 opt-out 场景待镜像就位后实跑 |

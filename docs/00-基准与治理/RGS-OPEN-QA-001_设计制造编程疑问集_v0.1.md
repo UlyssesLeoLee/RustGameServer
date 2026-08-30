@@ -190,11 +190,11 @@
 
 | 字段 | 内容 |
 |---|---|
-| 关联文档 | RGS-REV-009 CR-3 + WF-1-55.27 f6a6f3f commit + RGS-IMPL-001 §3 测试约定 + REV-011 §2.5 |
+| 关联文档 | RGS-REV-009 CR-3 + WF-1-55.27 2bab9fe commit + RGS-IMPL-001 §3 测试约定 + REV-011 §2.5 |
 | 现状 | WF-1-55.27 引入 `PgTestDatabase` fixture + `#[sqlx::test]` 强约束（仅 economy-service --lib 50/50 pass）；其他 4 域（player/match/social/admin）尚未统一 |
 | 疑问 | (1) `#[sqlx::test]` 强约束是**全 5 域统一**还是仅 **economy 域硬约束**？<br>(2) 单元测试（无 DB）是否允许 `#[tokio::test]` 不用 `#[sqlx::test]`？<br>(3) 集成测试（IT）是否走 `tests/` 目录独立 `#[sqlx::test]`？ |
 | 期望答复 | 5 域统一范围 + 单元/集成测试规则 |
-| 答复栏 | 🟡 **已核实代码现状（现状描述已过时）**：`rgs-testkit` 现已支持 `FixtureBuilder` + 5 域（commit 7592b66/71a47b0/e280967 已合并），但实际只有 **economy-service** 在自己 `tests/` 目录接入了 `rgs-testkit`（`integration_outbox.rs`）；player/match/social/admin 4 域尚未在各自 Cargo.toml dev-dependencies 接入——基础设施已就绪，采纳是待补的执行工作，不是待决策的范围问题。(1) **全 5 域统一**（非仅 economy 硬约束），否则会出现"economy 严格、其余域宽松"的质量洼地。(2) 无 DB 的纯单元测试**允许** `#[tokio::test]`，不强制 `#[sqlx::test]`。(3) 集成测试**走 `tests/` 目录独立 `#[sqlx::test]`**（`integration_outbox.rs` 即样板，直接复制推广）。下游动作：4 域各补 rgs-testkit dev-dependency + 同款集成测试骨架（约 4×0.5 人天）。 |
+| 答复栏 | 🟡 **已核实代码现状（现状描述已过时）**：`rgs-testkit` 现已支持 `FixtureBuilder` + 5 域（commit bcd8da3/61fa8e8/2de5e3a 已合并），但实际只有 **economy-service** 在自己 `tests/` 目录接入了 `rgs-testkit`（`integration_outbox.rs`）；player/match/social/admin 4 域尚未在各自 Cargo.toml dev-dependencies 接入——基础设施已就绪，采纳是待补的执行工作，不是待决策的范围问题。(1) **全 5 域统一**（非仅 economy 硬约束），否则会出现"economy 严格、其余域宽松"的质量洼地。(2) 无 DB 的纯单元测试**允许** `#[tokio::test]`，不强制 `#[sqlx::test]`。(3) 集成测试**走 `tests/` 目录独立 `#[sqlx::test]`**（`integration_outbox.rs` 即样板，直接复制推广）。下游动作：4 域各补 rgs-testkit dev-dependency + 同款集成测试骨架（约 4×0.5 人天）。 |
 
 ---
 
@@ -214,7 +214,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 关联文档 | RGS-OPS-101 v0.1（commit 66ff53b，26 文件 / 685 行）+ 5 域 k8s manifest（per phase-0-5 step 1+5）+ 6 域 mTLS Secret（per phase-0-5 step 4 50-secret-*）|
+| 关联文档 | RGS-OPS-101 v0.1（commit f4dd357，26 文件 / 685 行）+ 5 域 k8s manifest（per phase-0-5 step 1+5）+ 6 域 mTLS Secret（per phase-0-5 step 4 50-secret-*）|
 | 现状 | RGS-OPS-101 修复了 grpc_health_probe 与 mTLS 的兼容问题；phase-0-5 step 1+5 推送了 6 域 manifest（01-player-service.yaml ~ 06-cluster-ops-service.yaml）；但**5 域 manifest 的 liveness/readiness probe 配置是否一致**（同一个 helm 模板 vs 各自手写）？ |
 | 疑问 | (1) 5 域 manifest 走 Helm template 共享 probe 配置，还是各自 YAML 手写？<br>(2) RGS-OPS-101 修复后是否需要在 5 域 manifest 同步加 `--tls` / `--tls-ca-cert` 参数？<br>(3) probe 失败重试次数 / 超时阈值在 5 域是否一致？ |
 | 期望答复 | probe 配置模板化 vs 分散决策 + RGS-OPS-101 修复同步范围 + 阈值统一性 |
@@ -226,7 +226,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 关联文档 | phase-0-5 step 4（commit 765930a）+ `docs/deploy/01-k8s-manifests/50-secret-*.yaml`（player/economy/match/social/admin/cluster-ops 6 份）|
+| 关联文档 | phase-0-5 step 4（commit b9bc214）+ `docs/deploy/01-k8s-manifests/50-secret-*.yaml`（player/economy/match/social/admin/cluster-ops 6 份）|
 | 现状 | 6 域 mTLS Secret 已创建（50-secret-player-tls.yaml ~ 50-secret-cluster-ops-tls.yaml）；Secret type = `kubernetes.io/tls`；命名约定 `<domain>-tls` |
 | 疑问 | (1) 6 域 Secret 是放在同一 namespace（如 `rgs-system`）还是各自 namespace（如 `rgs-player` / `rgs-economy`）？<br>(2) CA 证书（50-secret-ca.yaml）单例还是按域分？<br>(3) Secret 轮转（rotation）策略：手工 kubectl apply 还是 cert-manager 自动？ |
 | 期望答复 | namespace 分配 + CA 拓扑 + 轮转自动化范围 |
@@ -250,7 +250,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 关联文档 | RGS-REV-009 CR-1 + WF-1-55.27 commit c96efe8（reservation.rs + saga_orchestrator.rs +159/-4）+ 50/50 cargo test pass |
+| 关联文档 | RGS-REV-009 CR-1 + WF-1-55.27 commit eba4b22（reservation.rs + saga_orchestrator.rs +159/-4）+ 50/50 cargo test pass |
 | 现状 | WF-1-55.27 修了 ReserveHandler OCC cleanup + reservation release 失败路径；CR-1 验收测试 50/50 pass（per WBS-001 v0.5 §4）；CR-2/3 也合并 |
 | 疑问 | (1) 50/50 是单元测试还是含集成？需要补 `tests/it_*.rs` 端到端？<br>(2) reservation release 失败路径的混沌测试（chaos test）覆盖：DB 突然断开 / Reservation row 被外部 DELETE / 死锁，3 个场景是否要进 IT？<br>(3) 修复后 OTel span 是否完整（reservation.create → saga.step → reservation.release / cleanup）？ |
 | 期望答复 | 50/50 范围 + 混沌测试场景 + OTel span 完整度 |
@@ -262,7 +262,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 关联文档 | phase-0-5 step 4（commit 765930a）+ RGS-SEC-100 v0.1 GM 审计与 Saga 安全 + 07-no-go-checklist_business v0.3 |
+| 关联文档 | phase-0-5 step 4（commit b9bc214）+ RGS-SEC-100 v0.1 GM 审计与 Saga 安全 + 07-no-go-checklist_business v0.3 |
 | 现状 | phase-0-5 step 4 跑了 fail-closed 验证（5 域 mTLS + Secret + RBAC fail-closed）；4 B-CODE 全部 Closed |
 | 疑问 | (1) PH-1 期间新增域（5 → 6 域或后续 7 域）是否需要重跑 fail-closed？<br>(2) fail-closed 验证脚本是 `scripts/verify-fail-closed.ps1`（建议命名）一次性还是纳入 CI？<br>(3) RBAC 资源新增时 fail-closed 行为是否仍生效（默认拒绝 vs 默认放行）？ |
 | 期望答复 | 重跑触发条件 + 脚本命名 + 默认拒绝决策 |

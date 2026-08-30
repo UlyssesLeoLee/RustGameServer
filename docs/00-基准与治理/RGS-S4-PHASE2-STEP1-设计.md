@@ -3,7 +3,7 @@
 > **目标**:实装 gm-backend tonic Channel for admin-service + HealthView 走 gRPC 调 admin-service HealthCheck, 其他 4 endpoint 保留 stub
 > **作者**:Mavis (接手 agent per DEC-008,2026-08-28 16:32 JST)
 > **状态**:⏳ OPEN (worker bg_5e6b37c7 实施中)
-> **关联**:RGS-TBD-08-03 S4 立项 v0.2 (commit `404e3ea` 之后) + gm.proto v0.3 (commit `c5c9f5f`)
+> **关联**:RGS-TBD-08-03 S4 立项 v0.2 (commit `ec0f11a` 之后) + gm.proto v0.3 (commit `c14d49b`)
 
 ---
 
@@ -109,9 +109,9 @@ $ /home/leo19/.cargo/bin/cargo test -p gm-backend --no-fail-fast
 - **RGS-TBD-08-03** S4 立项 v0.2 (6 天工作量分解)
 - **RGS-TBD-08-01** JWT middleware v0.2 (已实装, 36/36 UT)
 - **RGS-TBD-08-04** AuditStore trait v0.2 (InMemory 默认 + PgAuditStore 延后)
-- **gm.proto v0.3** (commit `c5c9f5f`, 5 endpoint 协议 + 简化)
-- **commit `1c2bf91`** G3+G4 evidence (75.9% 覆盖, 14/14 域 ≥ 60%)
-- **commit `1790b18`** G3 fixture 修复 (sqlx leo19 fallback + 3 非 fixture bug)
+- **gm.proto v0.3** (commit `c14d49b`, 5 endpoint 协议 + 简化)
+- **commit `2b3ad09`** G3+G4 evidence (75.9% 覆盖, 14/14 域 ≥ 60%)
+- **commit `b8359b9`** G3 fixture 修复 (sqlx leo19 fallback + 3 非 fixture bug)
 
 ---
 

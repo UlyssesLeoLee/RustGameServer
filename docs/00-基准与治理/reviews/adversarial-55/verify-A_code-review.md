@@ -1,12 +1,12 @@
 # verify-A 工程 55 P0+收尾 code review 交叉审核
 
-**审核对象**：git log 7deff16^..5ace5ad (13 commits: 11 L4 任务 + 2 merge)
+**审核对象**：git log 10bd5b1^..2fe68b4 (13 commits: 11 L4 任务 + 2 merge)
 **审核子代理**：verify-A code-review-adversarial
 **审核时间**：2026-08-22
-**commit 基线**：5ace5ad
+**commit 基线**：2fe68b4
 **审核范围**：55.12 / 55.13 / 55.14 / 55.15 / 55.16 / 55.17 / 55.18 / 55.20 / 55.21+22 / 55.23 / 55.24
 
-> 实际范围说明：任务书标注 8c1dbfd..5ace5ad 12 commits，但 8c1dbfd 是 55.18，不是范围起点。实际工程 55 任务起点是 7deff16 (55.15)，终点 5ace5ad，共 13 commits (11 L4 + 2 merge)。本报告以 13 commits 为准。
+> 实际范围说明：任务书标注 ec43377..2fe68b4 12 commits，但 ec43377 是 55.18，不是范围起点。实际工程 55 任务起点是 10bd5b1 (55.15)，终点 2fe68b4，共 13 commits (11 L4 + 2 merge)。本报告以 13 commits 为准。
 
 ---
 
@@ -294,9 +294,9 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 
 ### AM-10. 55.15 player-service main.rs 之前用 warn 路径, 55.15 改为 exit(1) - 改动未在 commit message 说明
 
-- 位置: crates/player-service/src/main.rs:34-58 (7deff16 diff)
+- 位置: crates/player-service/src/main.rs:34-58 (10bd5b1 diff)
 - 类别: 沟通
-- 问题: commit 7deff16 把 player-service 改为 fail-fast, 但 commit message 仅说切到 PgRepository. 行为变更(warn->exit)没在 message 单独标注.
+- 问题: commit 10bd5b1 把 player-service 改为 fail-fast, 但 commit message 仅说切到 PgRepository. 行为变更(warn->exit)没在 message 单独标注.
 - 修复建议: commit message 显式列 breaking 行为变更.
 
 ---
@@ -379,7 +379,7 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 <审计员>: verify-A
 <签名>: <占位 - 等待用户正式签字>
 
-**审核范围声明**: 本报告仅基于 commit 5ace5ad 仓库快照 + git diff 7deff16^..5ace5ad 静态阅读源码 + grep 关键模式 (unwrap / expect / panic / TODO / FIXME / unsafe / #![allow]).
+**审核范围声明**: 本报告仅基于 commit 2fe68b4 仓库快照 + git diff 10bd5b1^..2fe68b4 静态阅读源码 + grep 关键模式 (unwrap / expect / panic / TODO / FIXME / unsafe / #![allow]).
 **审核方法**:
 1. `git log --stat` 看 13 commits 文件清单
 2. `git show` 完整 diff 11 个 L4 任务
@@ -392,7 +392,7 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 - 未追踪 54.x 历史 bug 与 55.x 修复的对应关系(仅靠 commit message 自我报告)
 - 未验证 `rgs-certgen` 与 55.18 mTLS config 的实际证书生成兼容性
 
-**核心理由**: 任务书标注 git log 8c1dbfd..5ace5ad 12 commits, 但 8c1dbfd 是 55.18(不是 55 范围起点), 实际范围应为 7deff16^..5ace5ad(13 commits: 11 L4 + 2 merge). **已在报告第 1 节顶部说明**.
+**核心理由**: 任务书标注 git log ec43377..2fe68b4 12 commits, 但 ec43377 是 55.18(不是 55 范围起点), 实际范围应为 10bd5b1^..2fe68b4(13 commits: 11 L4 + 2 merge). **已在报告第 1 节顶部说明**.
 
 ---
 

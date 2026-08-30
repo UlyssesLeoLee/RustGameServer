@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30 |
 | 版本 | v0.40 |
-| 关联 commit | ed98638 |
+| 关联 commit | f6d0d42 |
 | 关联父文档 | RGS-DEPLOY-K3S-RESTART-BLOCKED-2026-08-30 (v0.39) |
 | 状态 | 🟡 配置完成 + trigger 阻塞(新发现 PAT 状态变化) |
 | 修订人 | Ulysses (一人公司 12 角色 per DEC-008) - Mavis 接手 |
@@ -42,16 +42,16 @@
 - 错误码透传 + body 输出,便于诊断
 - 长度 < 20 字符直接拒绝触发(防误用)
 
-### 1.3 commit + push(ed98638)
+### 1.3 commit + push(f6d0d42)
 
 ```
-ed98638 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT trigger
+f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT trigger
  2 files changed, 236 insertions(+)
  create mode 100644 .github/workflows/build-prod-0.1.0.yml
  create mode 100644 scripts/trigger-build-prod.ps1
 ```
 
-已推 origin/main,`a5aa9f4..ed98638 main -> main`。
+已推 origin/main,`46bbb62..f6d0d42 main -> main`。
 
 ## 2. 阻塞(新发现 vs 8/30 下午状态)
 
@@ -151,7 +151,7 @@ kubectl -n rust-game-server set image deploy/player-service \
 
 ## 4. 关键发现总结
 
-### 4.1 新式 pipeline 配置本身成功(commit ed98638)
+### 4.1 新式 pipeline 配置本身成功(commit f6d0d42)
 
 - workflow 文件语法 OK
 - trigger 脚本逻辑 OK(POST endpoint 正确)
@@ -188,8 +188,8 @@ v0.39 写"14 卡牌域镜像未推"是误解。实际 k3s manifest 用 3 个 tag
 ## 5. 引用
 
 - 父文档: `RGS-DEPLOY-K3S-RESTART-BLOCKED-2026-08-30.md` v0.39
-- 父文档 commit: `a5aa9f4`
-- 本文档 commit: `ed98638` (workflow + script)
+- 父文档 commit: `46bbb62`
+- 本文档 commit: `f6d0d42` (workflow + script)
 - 关联 workflow: `.github/workflows/gm-backend-publish-ghcr.yml` (5.5 KB, 已 publish 0.1.0-gm-backend)
 - 关联 workflow: `.github/workflows/docker-build.yml` (CI 集成, 不走 fine-grained PAT trigger)
 - 关联 Dockerfile: `Dockerfile` (根, 多阶段 distroless)

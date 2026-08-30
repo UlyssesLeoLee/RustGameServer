@@ -1,14 +1,14 @@
 # RGS-REV-010 V2 正确性审查报告
 
 ## 元数据
-- 审查范围: 161a241..f31ca6c (22 commit: 11 修复 + 11 merge)
+- 审查范围: 49f8731..3ead5f6 (22 commit: 11 修复 + 11 merge)
 - 审查维度: Correctness (资金一致性 / Saga 崩溃恢复 / 事务边界 / 状态机正确性)
 - 审查者: V2 (verifier sub-agent)
 - 日期: 2026-08-23
 - 独立 worktree: `D:/rev-010-V2`
 - 独立 target dir: `D:\target-rev-010-V2`
 - 排除 crate: `rgs-certgen` (per task spec)
-- 提交头: `f31ca6c` (Merge commit 'ec1f992')
+- 提交头: `3ead5f6` (Merge commit 'd7b016c')
 
 ---
 
@@ -39,7 +39,7 @@
 ## V2 详细发现 (按 RGS-REV-009 issue 编号)
 
 ### [CR-1] 资金幻影真修 — ✅ 真修且锚定真路径
-- **commit**: 0c6d573 (WF-1-55.27)
+- **commit**: eafafe8 (WF-1-55.27)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:248-296, 305-320`
 - **证据**:
   - L259 静默吞错 (`let _ = ...delete_by_id`) 改为 `if let Err + tracing::warn!` — 与 `service.rs::apply_atomic_with_reservation` 风格一致
@@ -53,7 +53,7 @@
 - **评级**: CRITICAL→✅ 真修, V2 无任何 CRITICAL 残留
 
 ### [CR-2] outbox CHECK 静默失效 — ✅ 6 域幂等修复
-- **commit**: fdfd4aa (WF-1-55.28)
+- **commit**: 13a67bc (WF-1-55.28)
 - **文件**: 6 域 `migrations/0003/0004_outbox_check.sql`
 - **证据**:
   - SQL body (DDL) 在 6 域完全相同:
@@ -65,7 +65,7 @@
         WHEN duplicate_object THEN NULL;
     END $$;
     ```
-  - fresh DB 路径: 约束未存在 → ADD CONSTRAINT 创建 → 后续 13dec2d CHECK 失效问题被堵
+  - fresh DB 路径: 约束未存在 → ADD CONSTRAINT 创建 → 后续 1b30878 CHECK 失效问题被堵
   - 已部署环境路径: 约束已存在 → `EXCEPTION WHEN duplicate_object THEN NULL` → no-op
   - 6 域文件大小: 856-860 字节 (差异仅为注释 + service name)
   - admin 域使用 `0004_outbox_check.sql` (因 0002_audit.sql 在前), 其余 5 域使用 `0003_outbox_check.sql` — 序号规则合理
@@ -73,7 +73,7 @@
 - **评级**: CRITICAL→✅
 
 ### [HI-2-stub] DC-1.3 真 handler 替换 — ✅ 3 阶段崩溃恢复真测试
-- **commit**: 63706a6 (WF-1-55.29)
+- **commit**: 13010ce (WF-1-55.29)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:1207-1284` (resume_compensating_saga_does_not_double_refund_with_real_handlers)
 - **证据**:
   - 旧 stub `CompensateRecorder` + `FailingHandler` 替换为真 `ReserveHandler` + `ConfirmHandler`
@@ -87,7 +87,7 @@
 - **评级**: HIGH→✅
 
 ### [HI-3] fail-closed 启动 test — ✅ 6 域 integration test 一致
-- **commit**: d2a19ac (WF-1-55.32)
+- **commit**: ce35f10 (WF-1-55.32)
 - **文件**: 6 域 `tests/fail_closed_start.rs` (admin/cluster-ops/economy/match/player/social)
 - **证据**:
   - 6 域 test 文件结构完全一致, 仅差异点:
@@ -103,7 +103,7 @@
 - **评级**: HIGH→✅ (test 文件结构一致, 6 域 diff 已 diff-equal 确认)
 
 ### [HI-D] DC-1 3 终态 test — ✅ 终态不可逆 invariant 锚定
-- **commit**: 5f64b8e (WF-1-55.33)
+- **commit**: 7e258d3 (WF-1-55.33)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:1380-1443`
 - **证据**:
   - 3 个新 test: `resume_completed_saga_returns_validation_err` / `resume_failed_saga_returns_validation_err` / `resume_aborted_saga_returns_validation_err`
@@ -123,7 +123,7 @@
 - **评级**: MEDIUM→✅
 
 ### [P2 ME-1] EconomyService::credit/debit deprecation — ✅ 引导走 saga 路径
-- **commit**: 5866946 (WF-1-55.34)
+- **commit**: 2f334fc (WF-1-55.34)
 - **文件**: `crates/economy-service/src/service.rs:34-36, 49-51`
 - **证据**:
   - `#[deprecated(note = "考虑用 apply_atomic_with_reservation 走 saga 路径...")]` 在 trait method 标注
@@ -133,7 +133,7 @@
 - **评级**: MEDIUM→✅
 
 ### [P2 LO-4] 补偿半途崩溃 + 幂等性 — ✅ 3 关键断言锚定防 +amount 资金幻影
-- **commit**: 62d62cb (WF-1-55.37) — **本任务重点**
+- **commit**: 6d8c127 (WF-1-55.37) — **本任务重点**
 - **文件**:
   - `crates/economy-service/src/saga_orchestrator.rs:141-183` (compete() 调换顺序)
   - `crates/economy-service/src/saga_orchestrator.rs:354-376` (ReserveHandler.compensate idempotency)
@@ -156,7 +156,7 @@
 - **评级**: MEDIUM→✅ 完美修复
 
 ### [P1 HI-2-pg] PgTestDatabase fixture — ✅ 127 行 sqlx 0.8, feature-gated
-- **commit**: ec1f992 (WF-1-55.31)
+- **commit**: d7b016c (WF-1-55.31)
 - **文件**:
   - `crates/rgs-testkit/src/pg_test_db.rs` (127 行) + `crates/rgs-testkit/README.md` (176 行)
   - `crates/rgs-testkit/Cargo.toml` (sqlx 0.8 + features)
@@ -171,14 +171,14 @@
 - **评级**: MEDIUM→✅
 
 ### [ME-2] admin migration 注释 0002→0003 — ✅ 修正
-- **commit**: ee022d0 (WF-1-55.35)
+- **commit**: 385fd7e (WF-1-55.35)
 - **文件**: `crates/admin-service/migrations/0003_outbox.sql:1`
 - **证据**: L1 注释从 `-- admin-service migration 0002_outbox` 改为 `-- admin-service migration 0003_outbox`, 与文件名一致
 - **影响**: 命名一致, 后续 review 可读
 - **评级**: MEDIUM→✅
 
 ### [ME-3] clippy 1.98 lint 名升级 — ⚠️ 已知不可执行修复
-- **commit**: ee022d0 (WF-1-55.35)
+- **commit**: 385fd7e (WF-1-55.35)
 - **证据**:
   - scan 范围 (`scripts/` / `.github/workflows/` / `clippy.toml` / `Makefile` / `docs/00-基准与治理/`) 未发现老式 `-A pedantic` / `-A nursery` / `-A cargo` 写法
   - 现有 `.github/workflows/rust-ci.yml:59` 已用新式 `-A clippy::doc_overindented_list_items / -A clippy::doc_lazy_continuation`
@@ -187,7 +187,7 @@
 - **评级**: MEDIUM→⚠️ 已知遗留 (非修复问题)
 
 ### [LO-1/2/3] rgs-certgen pre-existing + doctest — ✅ 3 clippy 错误修复
-- **commit**: 91d4608 (WF-1-55.36)
+- **commit**: e0de669 (WF-1-55.36)
 - **文件**: `crates/rgs-certgen/src/main.rs:65, 74, 99` + `crates/shared-platform/src/json_logging.rs` (61 行 doctest)
 - **证据**:
   - L65: `let _ = generate_server_cert(...)?;` 移除 `let _ =` (避免 let-binding unit value clippy)
@@ -199,7 +199,7 @@
 - **评级**: LOW→✅
 
 ### [HI-1] mTLS server 端 getter — ✅ 6 域迁移至 shared-platform
-- **commit**: 7e2d457 (WF-1-55.30)
+- **commit**: 3022f12 (WF-1-55.30)
 - **文件**:
   - `crates/shared-platform/src/channel.rs:89-100` (SERVER_MTLS_BYPASSED_TOTAL + getter)
   - 6 域 `src/main.rs` (`shared_platform::channel::SERVER_MTLS_BYPASSED_TOTAL.fetch_add(1, ...)`)
@@ -219,19 +219,19 @@
 
 | RGS-REV-009 ID | 修复 commit | 实际验证 | 关键断言 | 评级 |
 |---|---|---|---|---|
-| CR-1 资金幻影 | 0c6d573 | ✅ | OccFailingAccountRepository 真路径 + 3 关键断言 (reservation=0, balance不变, ledger=0) | CRITICAL→✅ |
-| CR-2 outbox CHECK | fdfd4aa | ✅ | 6 域 migration DDL 100% 相同 + 幂等 SQL | CRITICAL→✅ |
-| HI-2-stub DC-1.3 | 63706a6 | ✅ | 3 阶段崩溃恢复 test (resume_compensating_saga_does_not_double_refund) 通过 | HIGH→✅ |
-| HI-3 fail-closed | d2a19ac | ✅ | 6 域 fail_closed_start.rs diff 一致, clippy 0 warning | HIGH→✅ |
-| HI-1 mTLS getter | 7e2d457 | ✅ | shared-platform SERVER_MTLS_BYPASSED_TOTAL + 6 main.rs 迁移完成 | HIGH→✅ |
-| HI-D 3 终态 | 5f64b8e | ✅ | 3 个 test (Completed/Failed/Aborted) 全过 | MEDIUM→✅ |
-| ME-1 deprecation | 5866946 | ✅ | 2 个 #[deprecated] + #![allow(deprecated)] in test mod, 4 test 仍跑 | MEDIUM→✅ |
-| LO-4 补偿半途 | 62d62cb | ✅ | compete_recovery test 3 关键断言全过 (balance=500, ledger=1, Failed) | MEDIUM→✅ |
-| HI-2-pg PgTestDb | ec1f992 | ✅ | 127 行 fixture + 3 unit test + sqlx 0.8 + feature-gated, clippy 0 warning | MEDIUM→✅ |
-| ME-2 admin 注释 | ee022d0 | ✅ | 0003_outbox.sql L1 注释修正 | MEDIUM→✅ |
-| ME-3 clippy 1.98 | ee022d0 | ⚠️ | 已知不可执行, scan 范围无老式写法, M-3 历史记录保留 | MEDIUM→⚠️ |
-| LO-1/2/3 rgs-certgen | 91d4608 | ✅ | let _ 移除 + &PathBuf→&Path, 3 clippy 错误清 | LOW→✅ |
-| LO-1/2/3 doctest | 91d4608 | ✅ | shared-platform/json_logging.rs +61 行 doctest 示例 | LOW→✅ |
+| CR-1 资金幻影 | eafafe8 | ✅ | OccFailingAccountRepository 真路径 + 3 关键断言 (reservation=0, balance不变, ledger=0) | CRITICAL→✅ |
+| CR-2 outbox CHECK | 13a67bc | ✅ | 6 域 migration DDL 100% 相同 + 幂等 SQL | CRITICAL→✅ |
+| HI-2-stub DC-1.3 | 13010ce | ✅ | 3 阶段崩溃恢复 test (resume_compensating_saga_does_not_double_refund) 通过 | HIGH→✅ |
+| HI-3 fail-closed | ce35f10 | ✅ | 6 域 fail_closed_start.rs diff 一致, clippy 0 warning | HIGH→✅ |
+| HI-1 mTLS getter | 3022f12 | ✅ | shared-platform SERVER_MTLS_BYPASSED_TOTAL + 6 main.rs 迁移完成 | HIGH→✅ |
+| HI-D 3 终态 | 7e258d3 | ✅ | 3 个 test (Completed/Failed/Aborted) 全过 | MEDIUM→✅ |
+| ME-1 deprecation | 2f334fc | ✅ | 2 个 #[deprecated] + #![allow(deprecated)] in test mod, 4 test 仍跑 | MEDIUM→✅ |
+| LO-4 补偿半途 | 6d8c127 | ✅ | compete_recovery test 3 关键断言全过 (balance=500, ledger=1, Failed) | MEDIUM→✅ |
+| HI-2-pg PgTestDb | d7b016c | ✅ | 127 行 fixture + 3 unit test + sqlx 0.8 + feature-gated, clippy 0 warning | MEDIUM→✅ |
+| ME-2 admin 注释 | 385fd7e | ✅ | 0003_outbox.sql L1 注释修正 | MEDIUM→✅ |
+| ME-3 clippy 1.98 | 385fd7e | ⚠️ | 已知不可执行, scan 范围无老式写法, M-3 历史记录保留 | MEDIUM→⚠️ |
+| LO-1/2/3 rgs-certgen | e0de669 | ✅ | let _ 移除 + &PathBuf→&Path, 3 clippy 错误清 | LOW→✅ |
+| LO-1/2/3 doctest | e0de669 | ✅ | shared-platform/json_logging.rs +61 行 doctest 示例 | LOW→✅ |
 
 **汇总**: 11 修复中 10 个 ✅ + 1 个 ⚠️ (ME-3, 已知不可执行遗留, 已在报告与 commit message 中说明)
 
@@ -302,7 +302,7 @@
   1. **ME-3 (clippy 1.98 lint 名升级)**: scan 范围内无老式写法, 历史 issue 保留, 不阻塞
   2. **PgTestDatabase fixture** (W31) 未被 6 域实际使用 — 56.x 阶段才有 PG 集成 test 需求, 当前无直接可观察的 6 域 PG 集成 test 落地
   3. **HI-3 fail-closed test** 默认不跑 (需要 binary + 网络) — 需 CI 阶段验证 mTLS load 失败时 exit 1 行为 (本审查仅验证 test 文件结构 + clippy)
-- **commit hash**: `f31ca6c` (Merge commit 'ec1f992')
+- **commit hash**: `3ead5f6` (Merge commit 'd7b016c')
 
 **V2 审查判定**: **PASS** — 0 CRITICAL / 0 HIGH / 0 MEDIUM / 0 LOW 新发现, 11 修复中 10 ✅ + 1 ⚠️ 已知遗留, 7 状态 + 6 reservation 生命周期路径完整覆盖, 218 test 全过, clippy 0/0。
 

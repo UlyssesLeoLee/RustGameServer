@@ -5,7 +5,7 @@
 | 文档编号 | RGS-IMPL-PLAN-MATCH-001 |
 | 版本 | 0.2 |
 | 父文档 | RGS-WBS-001 v0.3 §2A.2.55.续2 + RGS-PLAN-001 v1.0 + RGS-IMPL-001 工程约定 |
-| 源详细设计 | RGS-DTL-026 match 域 v0.4(commit `22dd047` 8/25 升版)+ RGS-SPEC-DTL-026 实现规格 v0.2(commit `54b6500` WF-1-55-53)+ RGS-DTL-001 v0.6 §7.2.1 ARC-013 死锁防止/背压八边界 |
+| 源详细设计 | RGS-DTL-026 match 域 v0.4(commit `fe6d1ea` 8/25 升版)+ RGS-SPEC-DTL-026 实现规格 v0.2(commit `54b6500` WF-1-55-53)+ RGS-DTL-001 v0.6 §7.2.1 ARC-013 死锁防止/背压八边界 |
 | 适用范围 | match 域 Atomic App 全生命周期实施(match-service crate + match_db 库 + 5 张表 + 匹配引擎 + 对局状态机) |
 | 目标基线 | Rust 1.98 + Actix Web 4.14.1 + PostgreSQL 18.6 + K3s |
 | 责任人 | match 域 Lead(Ulysses per DEC-008 一人公司 12 角色兼任) |

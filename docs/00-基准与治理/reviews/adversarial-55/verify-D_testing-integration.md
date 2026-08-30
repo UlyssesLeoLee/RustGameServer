@@ -3,22 +3,22 @@
 **审核对象**: 工程 55 P0+收尾 12 L4 commit（git rev-list 不连续，覆盖 6 P0 + 收尾 3 + 收尾 1 housekeeping + 1 dev）
 **审核子代理**: verify-D testing-integration-adversarial
 **审核时间**: 2026-08-22
-**commit 基线**: 5ace5ad（main）
+**commit 基线**: 2fe68b4（main）
 **worktree**: D:\RustGameServer-worktrees\verify-55-D-testing
 
 ---
 
 ## 0. 范围注释
 
-任务说 "git log 8c1dbfd..5ace5ad 这 12 个 commit" — 实际 `8c1dbfd..5ace5ad` 仅 3 commit
+任务说 "git log ec43377..2fe68b4 这 12 个 commit" — 实际 `ec43377..2fe68b4` 仅 3 commit
 （55.21+22, 55.23, 55.24 — 即收尾 3 个），但任务列出 12 L4 项覆盖 55.P0 全集 + 收尾 + housekeeping。
-本审核覆盖 12 L4 项的 testing + integration 角度（commit 范围 = `7deff16..5ace5ad`
+本审核覆盖 12 L4 项的 testing + integration 角度（commit 范围 = `10bd5b1..2fe68b4`
 含 2 个 merge commit，共 13 commit）：
-- 55.15 (7deff16), 55.15 merge (87890ef)
-- 55.16 (69ebcd1), 55.16 merge (b488f3a)
-- 55.14 (33fca1e), 55.20 (9e55bbe), 55.13 (6b3cc5d)
-- 55.12 (d8d33cf), 55.17 (53a8d37), 55.18 (8c1dbfd)
-- 55.23 (421585c), 55.24 (465bfeb), 55.21+22 (5ace5ad)
+- 55.15 (10bd5b1), 55.15 merge (e1b12c6)
+- 55.16 (c14abac), 55.16 merge (18ec710)
+- 55.14 (68822d2), 55.20 (0c8539d), 55.13 (44253af)
+- 55.12 (de282e1), 55.17 (55af339), 55.18 (ec43377)
+- 55.23 (9556d3a), 55.24 (ecb4c1d), 55.21+22 (2fe68b4)
 
 ---
 
@@ -37,17 +37,17 @@
 
 | L4 | commit | 新增 unit test | 关键路径覆盖 | 关键缺失 |
 |----|--------|----------------|--------------|----------|
-| 55.12 | d8d33cf | **+9** (7 saga_orch + 2 service) | reserve persist + 原子扣减 + confirm 标记 + 补偿退款 + 端到端 + 余额不足 dangling 清理 | **缺: SagaOrchestrator::resume()（崩溃恢复主路径，saga_orchestrator.rs:150）** |
-| 55.13 | 6b3cc5d | **+3** (entity 2 + service 1) | SHA-256 长度前缀 + separator 碰撞 + atomic latest append | **缺: `verify_chain()` 函数不存在**（admin-service 整个无 chain verifier；grep 0 match）；只能加 1000 随机输入测试，未测端到端 append→verify |
-| 55.14 | 33fca1e | **+6** | DomainAdmin 缺 scope 显式 deny + scope 边界（player/123 vs player_secret/1）+ SuperAdmin 不受影响 + resource_in_scope helper | 缺: `roles = vec![]` 空角色 edge case |
-| 55.15 | 7deff16 | +0 (refactor) | 5 域 + cluster-ops main.rs 切到 PgRepository | 缺: PgRepository 真实 DB 集成测试（无 PG 实例） |
-| 55.16 | 69ebcd1 | **+3** | OTel fallback + 每次新 UUID + SpanId 8→16 字节 0-pad | 缺: 端到端 gRPC request trace 验证（client→server 串联） |
-| 55.17 | 53a8d37 | **+6** (5 outbox + 1 outbox_relay) | SKIP LOCKED + 事务化 + lease 过期重试 + in_flight 状态机 | **缺: `OutboxRelay::run()`（outbox_relay.rs:110）无限循环未做 integration test** |
-| 55.18 | 8c1dbfd | **+10** (3 channel + 4 client + 3 tls) | mTLS fail-closed + bypass counter +1 + TLS 路径错误分类 + build_insecure_channel warn + service 域默认端口 | **缺: 真实 PEM 加载测试**（仅 missing file error path；worker 报告"未做"已确认） |
-| 55.20 | 9e55bbe | +0 (非 Rust) | .env + 6 域独立密码 + scripts/generate_dev_passwords.ps1 | 缺: PowerShell 脚本单测（无 test infra） |
-| 55.21+22 | 5ace5ad | +0 (refactor) | 5 域 + cluster-ops main.rs mTLS + outbox 接线 | **缺: dev fallback insecure gRPC 路径在 main.rs 级别的端到端测试**（仅在 channel.rs 单元测了 build_insecure_channel，5 域 main.rs 的 match load_server_tls_config() 逻辑无 test） |
-| 55.23 | 421585c | +0 (refactor) | economy main.rs SagaOrchestrator + 30s 轮询 + resume | **缺: 30s recover 轮询 race（多实例并发 resume 同一 saga）** |
-| 55.24 | 465bfeb | +2 doctest | rgs-testkit mock.rs + shared-platform json_logging.rs | OK |
+| 55.12 | de282e1 | **+9** (7 saga_orch + 2 service) | reserve persist + 原子扣减 + confirm 标记 + 补偿退款 + 端到端 + 余额不足 dangling 清理 | **缺: SagaOrchestrator::resume()（崩溃恢复主路径，saga_orchestrator.rs:150）** |
+| 55.13 | 44253af | **+3** (entity 2 + service 1) | SHA-256 长度前缀 + separator 碰撞 + atomic latest append | **缺: `verify_chain()` 函数不存在**（admin-service 整个无 chain verifier；grep 0 match）；只能加 1000 随机输入测试，未测端到端 append→verify |
+| 55.14 | 68822d2 | **+6** | DomainAdmin 缺 scope 显式 deny + scope 边界（player/123 vs player_secret/1）+ SuperAdmin 不受影响 + resource_in_scope helper | 缺: `roles = vec![]` 空角色 edge case |
+| 55.15 | 10bd5b1 | +0 (refactor) | 5 域 + cluster-ops main.rs 切到 PgRepository | 缺: PgRepository 真实 DB 集成测试（无 PG 实例） |
+| 55.16 | c14abac | **+3** | OTel fallback + 每次新 UUID + SpanId 8→16 字节 0-pad | 缺: 端到端 gRPC request trace 验证（client→server 串联） |
+| 55.17 | 55af339 | **+6** (5 outbox + 1 outbox_relay) | SKIP LOCKED + 事务化 + lease 过期重试 + in_flight 状态机 | **缺: `OutboxRelay::run()`（outbox_relay.rs:110）无限循环未做 integration test** |
+| 55.18 | ec43377 | **+10** (3 channel + 4 client + 3 tls) | mTLS fail-closed + bypass counter +1 + TLS 路径错误分类 + build_insecure_channel warn + service 域默认端口 | **缺: 真实 PEM 加载测试**（仅 missing file error path；worker 报告"未做"已确认） |
+| 55.20 | 0c8539d | +0 (非 Rust) | .env + 6 域独立密码 + scripts/generate_dev_passwords.ps1 | 缺: PowerShell 脚本单测（无 test infra） |
+| 55.21+22 | 2fe68b4 | +0 (refactor) | 5 域 + cluster-ops main.rs mTLS + outbox 接线 | **缺: dev fallback insecure gRPC 路径在 main.rs 级别的端到端测试**（仅在 channel.rs 单元测了 build_insecure_channel，5 域 main.rs 的 match load_server_tls_config() 逻辑无 test） |
+| 55.23 | 9556d3a | +0 (refactor) | economy main.rs SagaOrchestrator + 30s 轮询 + resume | **缺: 30s recover 轮询 race（多实例并发 resume 同一 saga）** |
+| 55.24 | ecb4c1d | +2 doctest | rgs-testkit mock.rs + shared-platform json_logging.rs | OK |
 
 **新增测试总数**: 9 + 3 + 6 + 3 + 6 + 10 = **37 新 unit test** + 2 doctest fix
 （任务说"55.12 SagaOrchestrator handler 7 新测试" = saga_orchestrator.rs 部分，
@@ -114,7 +114,7 @@ pub mod saga_orchestrator;
 
 任务怀疑 "55.23 + 55.21+22 都改 economy main.rs — git 3-way merge 后是否完整"。
 **实际不是 merge commit**，是顺序追加：
-- 7deff16 (55.15) → 421585c (55.23) → 465bfeb (55.24) → 5ace5ad (55.21+22)
+- 10bd5b1 (55.15) → 9556d3a (55.23) → ecb4c1d (55.24) → 2fe68b4 (55.21+22)
 - 每个 commit 在 first-parent 链上 linear，无 conflict resolution
 
 **economy main.rs 现状包含 3 段完整接线**：
@@ -451,7 +451,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 <审计员>: verify-D (testing-integration-adversarial)
 <签名>: <占位>
 <worktree>: D:\RustGameServer-worktrees\verify-55-D-testing
-<base commit>: 5ace5ad
+<base commit>: 2fe68b4
 <范围>: 工程 55 P0+收尾 12 L4 commit (testing + integration 角度)
 
 **总结**:

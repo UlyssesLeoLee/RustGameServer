@@ -3,7 +3,7 @@
 **审核对象**：proto + migration + Cargo 依赖 + port + DTL 引用 + helm chart
 **审核子代理**：architecture-consistency-adversarial-001
 **审核时间**：2026-08-22
-**commit 基线**：`e320c69`
+**commit 基线**：`2486aef`
 
 ---
 
@@ -480,7 +480,7 @@ CREATE INDEX idx_inbox_processed_at ON inbox (processed_at);
 - 未涉及：5 域业务逻辑（service.rs / repository.rs 实现细节）
 
 **审核方法声明**：
-- 全部基于 commit `e320c69` 仓库快照
+- 全部基于 commit `2486aef` 仓库快照
 - 所有发现均通过文件读取 + grep 验证（无推断）
 - 6 域 `0001_init.sql` + `0002_saga_init.sql` 100% 完整阅读
 - 6 域 proto 100% 完整阅读

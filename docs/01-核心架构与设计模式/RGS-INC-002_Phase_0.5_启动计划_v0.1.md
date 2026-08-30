@@ -222,7 +222,7 @@ Phase 0.5 全闭环后，必须**同时满足**以下 5 条才能进 RGS-INC-001
 2. 11/11 manifest 🟢（附责任人签字 + apply 日志）
 3. `cargo test --workspace` 0 回归（9/9 crate 全绿）
 4. 工具链 5/5 安装 + 验证 PASS
-5. Wasmtime 集成已在 mock 验证（per commit `2b7470b`）
+5. Wasmtime 集成已在 mock 验证（per commit `4b5526e`）
 
 **禁止** Phase 0.5 跨过任何一条准入直接进 Phase 1。
 

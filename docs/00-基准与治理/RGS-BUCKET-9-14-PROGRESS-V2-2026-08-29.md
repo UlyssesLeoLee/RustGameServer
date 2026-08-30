@@ -92,11 +92,11 @@
 
 ## 关联
 
-- main HEAD: 284b043
+- main HEAD: e41e83e
 - 累计 tag 推 origin: v0.4 ~ v0.20 = 17 tag
 - 跑测累计: 607+ PASS / 0 fail
-- 9 DEC 全 A 拍板: 8d1508b (RGS-DDD-CARD-9DEC-2026-08-29.md)
-- 失职落档 v1: 618d515 (RGS-BUCKET-8-9-10-WORKER-FAILED-2026-08-29.md)
+- 9 DEC 全 A 拍板: 946d362 (RGS-DDD-CARD-9DEC-2026-08-29.md)
+- 失职落档 v1: 97d96d4 (RGS-BUCKET-8-9-10-WORKER-FAILED-2026-08-29.md)
 - 桶 9+14 部分进展 v0.18: 4 commit + merge (含 PR #20 rebase)
-- 桶 8 proto UT 19: 735523e + 8db8976
-- 桶 10 card catalog 54 测试: afd25f9 + 284b043
+- 桶 8 proto UT 19: d4f9532 + 6937b56
+- 桶 10 card catalog 54 测试: 3f2c1c6 + e41e83e

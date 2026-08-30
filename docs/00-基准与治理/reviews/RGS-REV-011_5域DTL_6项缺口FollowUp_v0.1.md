@@ -190,7 +190,7 @@
 **owner**: Economy 域 Lead(Ulysses)+ 架构师(Ulysses)+ 评审主持人(Ulysses)联合
 **token 估算**: ~10-12K tokens
 **前置**:
-- G-CODE-04 Saga 6 场景演练通过(per RGS-REV-005 附件 B,已 Closed 7d68f73)
+- G-CODE-04 Saga 6 场景演练通过(per RGS-REV-005 附件 B,已 Closed 74a9302)
 - 5 域 DTL §1-§3 联检(WF-0.5-7)通过
 - 1 人·日评审会(架构师 + Economy 域 Lead + 评审主持人)
 

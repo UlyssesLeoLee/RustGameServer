@@ -57,12 +57,12 @@
 
 | 文档 | 状态 | 关联 |
 |---|---|---|
-| RGS-WBS-001 v0.3（瀑布式 WBS + 121 L4 任务 + §2A.6.7~§2A.6.10 横向规范）| ✅ 就位 | commit `5a717ae` + `a2ec295` + `dd960fa` |
+| RGS-WBS-001 v0.3（瀑布式 WBS + 121 L4 任务 + §2A.6.7~§2A.6.10 横向规范）| ✅ 就位 | commit `7412033` + `40e2aa7` + `fbd9d5a` |
 | RGS-WBS-001_L4任务进度表 v0.3（占位）| ✅ 就位 | commit 待定（v0.3）|
 | RGS-WBS-001_DAG v0.3（占位）| ✅ 就位 | commit 待定（v0.3）|
 | RGS-WT-001 v0.2（WBS L4 任务 worktree 模式）| ✅ 就位 | commit 待定（v0.3）|
-| 7 份 RGS-SPEC-CROSS-001~007 占位 | ✅ 就位 | commit `0f9af88`（v0.1）|
-| 36 份 RGS-SPEC-DTL 占位 | ✅ 就位 | per `f198270`（v0.x）|
+| 7 份 RGS-SPEC-CROSS-001~007 占位 | ✅ 就位 | commit `544411e`（v0.1）|
+| 36 份 RGS-SPEC-DTL 占位 | ✅ 就位 | per `2dbe3ba`（v0.x）|
 | RGS-EXEC-001 v0.3 + RGS-ENV-001 v0.3 + RGS-REV-003 v0.3 + RGS-PLAN-001 v0.8 + RGS-QA-001 v0.13（5 治理核心）| ✅ 就位 | per commits |
 
 ### 2.2 工具脚本就位

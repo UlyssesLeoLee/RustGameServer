@@ -248,7 +248,7 @@ Test-Path -Path D:/RustGameServer/crates/cluster-ops/src/realm_lifecycle
 
 ### 5.4 跨清单基线（不入孤儿，但本清单辅助识别）
 
-- **反向孤儿（蓝）**：WF-1-54.1~54.15 在 WBS L89~L103 仍标"未启动"，但代码层已合入 main（per git log `a1efa28` `d254f1d` `d8e8869` 等 8 个 merge commit）→ **不归本清单**，待 RGS-ANTIPATTERN-002 覆盖
+- **反向孤儿（蓝）**：WF-1-54.1~54.15 在 WBS L89~L103 仍标"未启动"，但代码层已合入 main（per git log `fb73286` `a37c0e1` `a556015` 等 8 个 merge commit）→ **不归本清单**，待 RGS-ANTIPATTERN-002 覆盖
 - **WBS 进度表与 git 现实脱节（per WBS v0.7 §8.3 anti-pattern #1）**：v0.7 进度表只列 5 done，git 实际 53.x/54.x/55.1~55.37 都已合 → **已在 WBS §8.3 覆盖**，本清单不重复
 
 ---

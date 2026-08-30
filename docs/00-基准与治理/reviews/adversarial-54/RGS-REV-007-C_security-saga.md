@@ -3,7 +3,7 @@
 **审核对象**：密码学 / Saga 状态机 / Outbox race / RBAC / mTLS / SQL 注入 / 密钥
 **审核子代理**：security-saga-adversarial-001
 **审核时间**：2026-08-22
-**commit 基线**：`e320c69`
+**commit 基线**：`2486aef`
 
 ---
 
@@ -542,7 +542,7 @@ async fn save(&self, entity: &Saga) -> Result<Saga> {
 <签名>：⟪adversarial-54/security-saga-001@2026-08-22⟫
 
 **审核范围独立判断**：
-- 本审计仅基于 commit `e320c69` 静态阅读源码 + git 历史，**未执行动态 fuzzing / 渗透测试**。
+- 本审计仅基于 commit `2486aef` 静态阅读源码 + git 历史，**未执行动态 fuzzing / 渗透测试**。
 - 6 域 repository.rs 的 SQL 注入风险通过 `grep "format!\(.*SELECT|FROM|WHERE"` 全仓 0 匹配 + 逐个 `sqlx::query().bind()` 模式确认 = **0 注入点**。`cluster-ops/repository.rs:302` 的 `format!("{}|{}", key, scope_value)` 仅用于构造应用层 key（参数化绑定），不拼接到 SQL。
 - mTLS 实化（54.9）当前为"演示结构"，**生产部署前必须实化 `ServerTlsConfig::client_auth_required(true)`**（H4）。
 - `.env` 文件已被 `.gitignore` 屏蔽（`git check-ignore -v .env` → `.gitignore:7:.env` 验证）—— 密钥管理整体合格，仅 dev 密码共享需治理（M6）。

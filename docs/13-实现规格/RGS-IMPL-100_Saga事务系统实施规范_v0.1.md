@@ -134,7 +134,7 @@ crates/
 ├── rgs-saga-client/                 # 给其他 Rust 服务用的客户端 SDK
 │   ├── Cargo.toml
 │   └── src/lib.rs                   # SagaClient（start + respond + on_event）
-└── rgs-hello/                       # 占位（per commit dc7d9fa）
+└── rgs-hello/                       # 占位（per commit b290367）
 ```
 
 ---

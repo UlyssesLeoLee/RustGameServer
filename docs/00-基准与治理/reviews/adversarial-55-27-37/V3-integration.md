@@ -2,7 +2,7 @@
 
 ## 元数据
 
-- **审查范围**: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **审查范围**: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - **审查维度**: Integration & Testing
 - **审查者**: V3 (verifier) → root session 接手完成 (V3 worker 因资源超限 terminated)
 - **日期**: 2026-08-23
@@ -82,17 +82,17 @@
 
 | commit | 新 unit test | 新 integration test | 关键断言 | 状态 |
 |---|---|---|---|---|
-| 0c6d573 (W27 CR-1) | 2 (OccFailingAccountRepository wrapper) | 0 | 真实生产路径 OCC + 成功不误清 | ✅ |
-| fdfd4aa (W28 CR-2) | 0 | 0 | (纯 SQL 改动) | ✅ |
-| 63706a6 (W29 HI-2-stub) | 1 (替换 1 stub) | 0 | 3 阶段崩溃恢复 + 关键断言 3 条 | ✅ |
-| 7e2d457 (W30 HI-1) | 0 | 0 | (纯代码改动) | ✅ |
-| d2a19ac (W32 HI-3) | 0 | 6 | 6 域 assert_cmd + DATABASE_URL=127.0.0.1:1 (⚠️ **fail-closed 关键问题见 CR-1**) | ⚠️ |
-| 5f64b8e (W33 HI-D) | 3 | 0 | 3 终态 validation_err | ✅ |
-| 5866946 (W34 deprecation) | 0 | 0 | (trait 标记) | ✅ |
-| ee022d0 (W35 admin+clippy) | 0 | 0 | (注释 + 验证脚本) | ✅ |
-| 91d4608 (W36 rgs-certgen) | 0 | 0 | 3 pre-existing clippy error 修 | ✅ |
-| 62d62cb (W37 补偿半途) | 1 | 0 | compete_recovery test (handler.compensate 幂等性) | ✅ |
-| ec1f992 (W31 PgTestDb) | 3 (pg_test_db) | 1 (feature-gated) | fixture 设计 + smoke test | ✅ |
+| eafafe8 (W27 CR-1) | 2 (OccFailingAccountRepository wrapper) | 0 | 真实生产路径 OCC + 成功不误清 | ✅ |
+| 13a67bc (W28 CR-2) | 0 | 0 | (纯 SQL 改动) | ✅ |
+| 13010ce (W29 HI-2-stub) | 1 (替换 1 stub) | 0 | 3 阶段崩溃恢复 + 关键断言 3 条 | ✅ |
+| 3022f12 (W30 HI-1) | 0 | 0 | (纯代码改动) | ✅ |
+| ce35f10 (W32 HI-3) | 0 | 6 | 6 域 assert_cmd + DATABASE_URL=127.0.0.1:1 (⚠️ **fail-closed 关键问题见 CR-1**) | ⚠️ |
+| 7e258d3 (W33 HI-D) | 3 | 0 | 3 终态 validation_err | ✅ |
+| 2f334fc (W34 deprecation) | 0 | 0 | (trait 标记) | ✅ |
+| 385fd7e (W35 admin+clippy) | 0 | 0 | (注释 + 验证脚本) | ✅ |
+| e0de669 (W36 rgs-certgen) | 0 | 0 | 3 pre-existing clippy error 修 | ✅ |
+| 6d8c127 (W37 补偿半途) | 1 | 0 | compete_recovery test (handler.compensate 幂等性) | ✅ |
+| d7b016c (W31 PgTestDb) | 3 (pg_test_db) | 1 (feature-gated) | fixture 设计 + smoke test | ✅ |
 
 ## RGS-REV-009 5 大教训验证
 
@@ -147,7 +147,7 @@ cargo clippy --workspace --all-targets --exclude rgs-certgen
 
 ## commit hash
 
-- **HEAD**: `f31ca6c` (Merge commit 'ec1f992' — WF-1-55.31 PgTestDatabase fixture)
-- 范围: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **HEAD**: `3ead5f6` (Merge commit 'd7b016c' — WF-1-55.31 PgTestDatabase fixture)
+- 范围: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - main worktree 状态: 仅有 untracked 新文件 `docs/00-基准与治理/reviews/adversarial-55-27-37/V3-integration.md` (本次报告), 无源码变更
 - 报告落盘: `D:/RustGameServer/docs/00-基准与治理/reviews/adversarial-55-27-37/V3-integration.md`

@@ -72,7 +72,7 @@ RGS-PLAN-WBS-token-bucket-v0.3 §2.2.2:
 
 ### 3.2 前置依赖
 
-- gm.proto v0.3 业务实装已完成 (W26 commit `5e1e168`)
+- gm.proto v0.3 业务实装已完成 (W26 commit `8ff7e0b`)
 - 5 域 gRPC server 已实装 (W15+ W17+ 7 域 wire GM RPC)
 - 5 域业务实装需要 (决议 6+7 暂缓项落档到桶 2b, 但需要 9 月 W7 业务实装基础)
 
@@ -88,7 +88,7 @@ W31 启动需 Ulysses 拍板:
 - **决策日**: 2026-08-29 07:38 JST
 - **决策方**: Ulysses (per ask_user 之外直接拍板, A 路径: 拍板 3 项 + 启动桶 2b+2c)
 - **执行情况**:
-  - W27 worktree 创建 (基于 main `c385168` = v0.6 桶 2a)
+  - W27 worktree 创建 (基于 main `ac18640` = v0.6 桶 2a)
   - 5 域 axum-test 工具切盘点: 5 域 0 IT + 0 axum Router
   - 拒绝 W27 强行做"5 域 × 1 骨架 IT"(无价值)
   - 落档后续 W31+ (50-80M tokens 估)
@@ -99,7 +99,7 @@ W31 启动需 Ulysses 拍板:
 
 - RGS-PLAN-WBS-token-bucket-v0.3 §2.2.2 (桶 2b 范围)
 - RGS-OPEN-QA-001 Q-TBD-08-06 (双工具决策: 7 域 wiremock + 8 域 axum-test)
-- W26 commit `5e1e168` (gm-backend 5 endpoint 业务实装)
-- W22 commit `a9a473f` (链路 B gm→admin→player 真链路 5/5 PASS)
+- W26 commit `8ff7e0b` (gm-backend 5 endpoint 业务实装)
+- W22 commit `c2abd12` (链路 B gm→admin→player 真链路 5/5 PASS)
 - 决议 6 (5 域切 axum-test 推 W7 = 桶 2b, per 9-DECISIONS v0.3)
 - TBD-08-06 工具决策 D (双工具并存)

@@ -159,7 +159,7 @@ git worktree prune --dry-run
    - ❌ **不允许**stash 后 drop 别人 worktree 中正在用的改动而不通知
    - ✅ **必须**的 stash 写法（明文记原因 + 接手人）：
      ```bash
-     git stash push -m "原因: <具体原因，例如"handoff §11 修订已被 6d985d6 包含，避免重复"> 接手: <session-id 或 'main' 或 'drop 计划'> $(date -Iseconds)"
+     git stash push -m "原因: <具体原因，例如"handoff §11 修订已被 7426802 包含，避免重复"> 接手: <session-id 或 'main' 或 'drop 计划'> $(date -Iseconds)"
      ```
    - ✅ **优先**的替代：保留在 working tree（让别的 session 看见并显式 merge），不要用 stash 当"临时回收站"
 

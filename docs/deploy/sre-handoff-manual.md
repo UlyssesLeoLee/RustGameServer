@@ -242,7 +242,7 @@ ls -la target/dev-certs/
 ```bash
 pwsh -File docs/deploy/phase-0-5-step-4-render-secrets.ps1
 # 期望产出 7 个真实注入证书的 Secret yaml
-# 修复已合入: TemplateDir 默认动态,不依赖 worktree 路径(per f9512cc)
+# 修复已合入: TemplateDir 默认动态,不依赖 worktree 路径(per 7f27c74)
 ```
 
 ### 4.4 创建 Grafana admin secret(1 分钟,per RISK-DEPLOY-006)
@@ -291,7 +291,7 @@ kubectl get pods -n rust-game-server
 ```
 
 **已知问题 + 修复**:
-- **Pod CrashLoopBackOff** + mTLS 探针冲突 → 已修 per RGS-OPS-101(commit 66ff53b),无需额外操作
+- **Pod CrashLoopBackOff** + mTLS 探针冲突 → 已修 per RGS-OPS-101(commit f4dd357),无需额外操作
 - **Grafana 缺 admin-secret** → §4.4 已加
 - **deny-all NetworkPolicy 误拦** → 已显式 allow PFAU TCP 9090 + K8s API 10.43.0.1:443
 

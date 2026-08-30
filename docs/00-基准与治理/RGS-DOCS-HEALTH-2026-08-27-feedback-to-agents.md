@@ -18,7 +18,7 @@
 |---|---|---|---|
 | 1 | 将 DEC-Q003 状态从 🟡 审批中 改为 🟢 已批准，解除 DTL-031 §8.2 阻断 | ❌ **违反治理红线**（详见 §1）| 🔴 拒绝按原文执行，改为"生成审批摘要供 Ulysses 本人签字" |
 | 2 | fail-closed 启动测试断言重构（6 域） | ✅ 文件真实存在（`crates/*/tests/fail_closed_start.rs`，**实测 5 份**：admin / economy / match / player / social——提案说 6 域，实际 main HEAD 中只有这 5 份；提案表述需修正），任务描述可执行 | ⏳ 待接手 agent 执行（执行前先确认是否还有第 6 域的 `fail_closed_start.rs` 路径未发现，或"6 域"是误述） |
-| 3 | cluster-ops 混沌测试恢复（`tests-disabled/`）| ✅ 文件真实存在，但**当日（2026-08-27）刚因 RGS-INC-002 复盘临时禁用**（commit `b74ccc3`），需先读事故报告 | ⏳ 待接手 agent 先读 RGS-INC-002 再执行（详见 §2）|
+| 3 | cluster-ops 混沌测试恢复（`tests-disabled/`）| ✅ 文件真实存在，但**当日（2026-08-27）刚因 RGS-INC-002 复盘临时禁用**（commit `30a8842`），需先读事故报告 | ⏳ 待接手 agent 先读 RGS-INC-002 再执行（详见 §2）|
 | 4 | Player 域 0004 迁移与 DTL-036 回填对齐 | ✅ 文件真实存在（`crates/player-service/migrations/0004_player_characters_inventory.sql`）| ⏳ 待接手 agent 执行 |
 | 5 | Social 域 DTL-019 非目标章节澄清 | ✅ 文件真实存在（`RGS-DTL-019`）| ⏳ 待接手 agent 执行 |
 
@@ -72,22 +72,22 @@
 
 ### 2.1 现象
 
-`crates/cluster-ops/tests-disabled/`（含 `drill_chaos.rs`、`drill_lcm_001~008_010.rs` 等 14 个文件）于 **2026-08-27** 当日由 commit `b74ccc3`（`fix(cluster-ops): merge 临时禁用 drill + saga 编译死锁修复 per RGS-INC-002 v0.1 复盘`）临时移出 `tests/` 目录。
+`crates/cluster-ops/tests-disabled/`（含 `drill_chaos.rs`、`drill_lcm_001~008_010.rs` 等 14 个文件）于 **2026-08-27** 当日由 commit `30a8842`（`fix(cluster-ops): merge 临时禁用 drill + saga 编译死锁修复 per RGS-INC-002 v0.1 复盘`）临时移出 `tests/` 目录。
 
 ### 2.2 处置要求
 
 后续 agent 在恢复这批测试前，**必须先读事故复盘报告** `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，确认编译死锁根因（Saga 相关类型/trait 依赖冲突）是否已有修复方案，不要仅将文件移回 `tests/` 而不解决底层冲突，否则会重现同一编译死锁。
 
-**注意 ID 复用**：`RGS-INC-002` 编号被两份不同文档复用——上述复盘报告，以及 `docs/01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md`（内容无关，仅编号撞车）。commit `b74ccc3`/`838559e`/`e519784` message 中的"RGS-INC-002"均指前者（复盘报告），引用时务必带完整路径，避免接手 agent 找错文档。
+**注意 ID 复用**：`RGS-INC-002` 编号被两份不同文档复用——上述复盘报告，以及 `docs/01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md`（内容无关，仅编号撞车）。commit `30a8842`/`400dcc8`/`9ef7296` message 中的"RGS-INC-002"均指前者（复盘报告），引用时务必带完整路径，避免接手 agent 找错文档。
 
 ### 2.3 已处理
 
-- **2026-08-27 已读取** `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，全文 219 行，主题为"5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上从 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK"的事件复盘（**勘误**：本条此前误标 commit `43e6108`——该 commit 实际内容是无关的"DEPLOY-SOP v0.1→v0.2 升版"；该报告真正的创建 commit 是 `c56735c`，已于 2026-08-27 核对修正）
-- **关键发现（必读）**：RGS-INC-002 v0.1 复盘**全文 0 处提及** `drill` / `saga` / `编译死锁`（已 `Select-String -Pattern 'drill|编译死锁|saga' RGS-INC-002_...v0.1.md` 实证无匹配）。**`b74ccc3` 的 commit message 标 "per RGS-INC-002 v0.1 复盘" 是归因错误**——INC-002 复盘主题是 k3s 部署，与 cluster-ops drill/saga 编译死锁是两个独立事故
+- **2026-08-27 已读取** `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`，全文 219 行，主题为"5 域 + cluster-ops 6 份 gRPC server 在 WSL k3s 上从 binary exit 1 → 6/6 pod 1/1 Running 0 RESTARTS + 6/6 gRPC TCP-OK"的事件复盘（**勘误**：本条此前误标 commit `f624c32`——该 commit 实际内容是无关的"DEPLOY-SOP v0.1→v0.2 升版"；该报告真正的创建 commit 是 `d09f502`，已于 2026-08-27 核对修正）
+- **关键发现（必读）**：RGS-INC-002 v0.1 复盘**全文 0 处提及** `drill` / `saga` / `编译死锁`（已 `Select-String -Pattern 'drill|编译死锁|saga' RGS-INC-002_...v0.1.md` 实证无匹配）。**`30a8842` 的 commit message 标 "per RGS-INC-002 v0.1 复盘" 是归因错误**——INC-002 复盘主题是 k3s 部署，与 cluster-ops drill/saga 编译死锁是两个独立事故
 - **RGS-INC-002 复盘记录的"未决项"** 限于 k3s manifest 漂移（6 份 probe 未回写 + 00-namespace.yaml ResourceQuota 未回写）——属 Phase D.5 DEPLOY-SOP v0.3 范围，与 cluster-ops drill/saga 修复无关
-- **`b74ccc3` 实际修复内容**（per `git show b74ccc3`）：删 `src/realm_lifecycle/drill/*`（6 文件，编译失败）+ `src/realm_lifecycle/saga/*`（4 文件，编译失败）+ 18 个 tests 移至 `tests-disabled/`（含 `drill_chaos.rs` / `drill_lcm_001~008_010.rs` / `drill_nfr.rs` / `drill_risk.rs` / `ut_saga.rs` 等）。**未决项**（per commit body）：`drill/executor.rs` 补 19 个 SagaStepKind variant + `saga/steps.rs` 改 SagaStep struct + SagaStep::new(phase, kind) 关联函数 + SagaPhase/StepStatus/RealmId type 定义 + 18 个 tests 重新启用
-- **结论**：接手 agent 恢复 `tests-disabled/` 前**不能依赖 RGS-INC-002 复盘**——该复盘与本次编译死锁事故**没有事实关联**。真正的修复依据在 `b74ccc3` 的 commit body + 上面 5 条"未决项"。建议在恢复 tests 前**优先在 cluster-ops 域内新开一份 `RGS-INC-003_集群运营中心_drill_saga_编译死锁复盘`**，把"实际根因 + 修复路径"归档清楚，再做 tests 恢复
-- **附**：本次还顺带核对了 `RGS-DEC-Q003 v0.1` 文档状态（per §1.3 授权），生成独立审批摘要 `docs/00-基准与治理/RGS-DEC-Q003_审批摘要_2026-08-27_v0.1.md`（v0.1，5461 字节），§6.4 触发条件 #1（签字日 2026-08-25，commit `cdd169c`）+ 触发条件 #2（DTL-031 v0.3 入仓，commit `5743747`）技术前提**均已满足**，但 agent 按红线不动状态字段、不填生效日期，由 Ulysses 自行决定走路径 A/B/C（详见摘要 §3）
+- **`30a8842` 实际修复内容**（per `git show 30a8842`）：删 `src/realm_lifecycle/drill/*`（6 文件，编译失败）+ `src/realm_lifecycle/saga/*`（4 文件，编译失败）+ 18 个 tests 移至 `tests-disabled/`（含 `drill_chaos.rs` / `drill_lcm_001~008_010.rs` / `drill_nfr.rs` / `drill_risk.rs` / `ut_saga.rs` 等）。**未决项**（per commit body）：`drill/executor.rs` 补 19 个 SagaStepKind variant + `saga/steps.rs` 改 SagaStep struct + SagaStep::new(phase, kind) 关联函数 + SagaPhase/StepStatus/RealmId type 定义 + 18 个 tests 重新启用
+- **结论**：接手 agent 恢复 `tests-disabled/` 前**不能依赖 RGS-INC-002 复盘**——该复盘与本次编译死锁事故**没有事实关联**。真正的修复依据在 `30a8842` 的 commit body + 上面 5 条"未决项"。建议在恢复 tests 前**优先在 cluster-ops 域内新开一份 `RGS-INC-003_集群运营中心_drill_saga_编译死锁复盘`**，把"实际根因 + 修复路径"归档清楚，再做 tests 恢复
+- **附**：本次还顺带核对了 `RGS-DEC-Q003 v0.1` 文档状态（per §1.3 授权），生成独立审批摘要 `docs/00-基准与治理/RGS-DEC-Q003_审批摘要_2026-08-27_v0.1.md`（v0.1，5461 字节），§6.4 触发条件 #1（签字日 2026-08-25，commit `3a74edf`）+ 触发条件 #2（DTL-031 v0.3 入仓，commit `909bba3`）技术前提**均已满足**，但 agent 按红线不动状态字段、不填生效日期，由 Ulysses 自行决定走路径 A/B/C（详见摘要 §3）
 
 ---
 

@@ -27,14 +27,14 @@
 
 | commit | 时间(JST) | 标题 |
 |---|---|---|
-| `a227e0c` | 2026-08-28 07:57 | docs(tst): 处置 2026-08-28 跨反馈 9 条 (F1-F9) |
-| `94ba812` | 2026-08-28 08:47 | test(ut): 实施 UT-09 rgs-certgen 17 条黑盒 + mock 资产化 (7 example + registry) |
-| `de86d80` | 2026-08-28 09:05 | test(ut): 6 域独立 UT 文档聚合 + test-evidence + 跨域回归 + 旧债决策 |
-| `3c7d670` | 2026-08-28 09:15 | audit(tst): 测试结果 vs 详细设计 核对报告 + test-evidence.ps1 v4 |
-| `404e3ea` | 2026-08-28 09:48 | feat(tbd08): TBD-08-01~05/07 + UT-08 模块 D 字段级 + match §4.1/§5 + social §3 + admin §4.2 PFAU |
-| `d34e2d7` | 2026-08-28 09:50 | docs(decision): 8 域 Lead 具名 + cluster-ops 旧债终方案 + OPEN-QA v0.3 |
-| `580cde3` | 2026-08-28 10:00 | docs(it): IT 准入核对清单 + 推荐路径 |
-| `4c8c7f9` | 2026-08-28 10:09 | docs(audit): 代签审核 + 10 处缺栏补全 |
+| `43a2e08` | 2026-08-28 07:57 | docs(tst): 处置 2026-08-28 跨反馈 9 条 (F1-F9) |
+| `b4df2ed` | 2026-08-28 08:47 | test(ut): 实施 UT-09 rgs-certgen 17 条黑盒 + mock 资产化 (7 example + registry) |
+| `3e8d9ca` | 2026-08-28 09:05 | test(ut): 6 域独立 UT 文档聚合 + test-evidence + 跨域回归 + 旧债决策 |
+| `b87f1b3` | 2026-08-28 09:15 | audit(tst): 测试结果 vs 详细设计 核对报告 + test-evidence.ps1 v4 |
+| `ec0f11a` | 2026-08-28 09:48 | feat(tbd08): TBD-08-01~05/07 + UT-08 模块 D 字段级 + match §4.1/§5 + social §3 + admin §4.2 PFAU |
+| `12437ca` | 2026-08-28 09:50 | docs(decision): 8 域 Lead 具名 + cluster-ops 旧债终方案 + OPEN-QA v0.3 |
+| `3357c10` | 2026-08-28 10:00 | docs(it): IT 准入核对清单 + 推荐路径 |
+| `be27937` | 2026-08-28 10:09 | docs(audit): 代签审核 + 10 处缺栏补全 |
 
 ### 审核范围(6 个维度)
 
@@ -56,7 +56,7 @@
 - **通过标准**:无 1 类违规,3 类符合
 
 #### 维度 3:跨反馈处置质量(2026-08-28 主对话 Sonnet 5 9 条反馈)
-- 9 条反馈 F1-F9,处置 commit `a227e0c` + `de86d80` + `3c7d670`
+- 9 条反馈 F1-F9,处置 commit `43a2e08` + `3e8d9ca` + `b87f1b3`
 - 检查每条 F1-F9 的"已处理"段落是否包含:
   - 处置 commit SHA
   - 验证证据(grep / Select-String / cargo test 输出)
@@ -156,7 +156,7 @@
 ### 重点核查项(Mavis 自审时可能遗漏的盲区)
 
 1. **Mavis 自审报告(`signature-audit-2026-08-28.md`)是否客观?**有没有给过自己过高的评分?
-2. **Mavis 在 commit `a227e0c` 处置的 9 条跨反馈,有没有凑数 / 走过场?**
+2. **Mavis 在 commit `43a2e08` 处置的 9 条跨反馈,有没有凑数 / 走过场?**
 3. **gm-backend 36/36 PASS,但 BAS-003 协议字段实装(per F8)是否真接,不是仅改字段名?**
 4. **8 域 Lead 具名草案有没有给 Ulysses 留决策权,还是擅自代签?**
 5. **cluster-ops 旧债 OLD-DEBT.md 的"临时方案 C"是否合理(per 缺标比错标)?**

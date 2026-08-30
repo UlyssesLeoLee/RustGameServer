@@ -59,7 +59,7 @@
 
 ## 仓库最终状态 (8/29 20:10 JST)
 
-- main HEAD: d37aef4
+- main HEAD: 5cd0c93
 - 本地 worktree: 1 (main)
 - 本地分支: 1 (main)
 - origin 分支: 1 (origin/main)
@@ -85,11 +85,11 @@
 
 | 文档 | 路径 | 字节 | 状态 |
 |---|---|---|---|
-| 卡牌需求 v0.1 | RGS-REQ-038_卡牌游戏适配_需求定义书.md | 20,247 | commit ede4172 |
-| 卡牌详细设计 v0.1 | RGS-DTL-038_卡牌游戏适配_详细设计书.md | 41,757 | commit ede4172 |
-| 9 DEC 拍板表 | RGS-DDD-CARD-9DEC-2026-08-29.md | 6,425 | commit 8d1508b + 590bdcd |
-| 3 worker 失职落档 v1 | RGS-BUCKET-8-9-10-WORKER-FAILED-2026-08-29.md | 3,838 | commit 618d515 |
-| 8 桶收尾落档 v2 | RGS-BUCKET-9-14-PROGRESS-V2-2026-08-29.md | 5,289 | commit 46d4fc7 |
+| 卡牌需求 v0.1 | RGS-REQ-038_卡牌游戏适配_需求定义书.md | 20,247 | commit 002aea3 |
+| 卡牌详细设计 v0.1 | RGS-DTL-038_卡牌游戏适配_详细设计书.md | 41,757 | commit 002aea3 |
+| 9 DEC 拍板表 | RGS-DDD-CARD-9DEC-2026-08-29.md | 6,425 | commit 946d362 + 69ba42a |
+| 3 worker 失职落档 v1 | RGS-BUCKET-8-9-10-WORKER-FAILED-2026-08-29.md | 3,838 | commit 97d96d4 |
+| 8 桶收尾落档 v2 | RGS-BUCKET-9-14-PROGRESS-V2-2026-08-29.md | 5,289 | commit 79a5f00 |
 | 上游 AI 通知 v1.1 | .worktrees/上游AI通知-2026-08-29-08-11.md | 4,451 | (v0.10 cleanup 后落档) |
 | 上游 AI 通知 v1.2 | .worktrees/上游AI通知-2026-08-29-19-08.md | 7,590 | (本档后落档) |
 | **本最终总结** | RGS-CARD-8BUCKET-FINAL-V0.22-2026-08-29.md | ~5,000 | (本档) |

@@ -328,7 +328,7 @@
 
 ### A.4 引用链与证据
 
-- rgs-web commit `5f827ee`（2026-08-26 12:22 JST，7 文件 661 行）
+- rgs-web commit `c076948`（2026-08-26 12:22 JST，7 文件 661 行）
 - RGS-WEB-PLAN-2026-08-26 v0.1（设计总览）
 - WSL-KUBECONFIG-FIX-2026-08-26.md（WSL 修复 SOP）
 - per WBS v0.8 commit `87a6472`（per WF-1-55.77）

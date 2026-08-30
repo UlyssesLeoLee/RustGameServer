@@ -16,7 +16,7 @@
 | 项目 | 数据 |
 |---|---|
 | Worktree | `D:/RustGameServer-worktrees/WF-1-2069` |
-| Branch | `wbs/WF-1-2069`（base = `main@5d8facf`）|
+| Branch | `wbs/WF-1-2069`（base = `main@2b2ef81`）|
 | M 任务数 | 10（M-2069.PREREQ + M-2069.1~10 + M-2069.REPORT）|
 | 验收项总数 | 9 AC + 2 NFR + 2 Chaos + 1 Load = **14 项** |
 | IT 测试代码完成 | 14 / 14 = **100%**（24 个 `#[test]` 函数）|

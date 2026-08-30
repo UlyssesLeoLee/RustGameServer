@@ -1,7 +1,7 @@
 # V1 安全审查报告 (WF-1-55.26 5 commit)
 
 ## 元数据
-- 审查范围: 13dec2d..0434ada (5 commit)
+- 审查范围: 1b30878..cc888b5 (5 commit)
 - 审查维度: Security
 - 审查者: V1 (verifier)
 - 日期: 2026-08-23
@@ -14,7 +14,7 @@
 - 文件: crates/economy-service/src/saga_orchestrator.rs:248-289 (ReserveHandler.execute, 真实生产路径)
 - 关联文件: crates/economy-service/src/service.rs:86-160 (apply_atomic_with_reservation, 仅被 4 个测试调用)
 - 证据:
-  - 4973255 commit 仅修改 service.rs (+190/-6)，**未触碰 saga_orchestrator.rs**。
+  - a950b46 commit 仅修改 service.rs (+190/-6)，**未触碰 saga_orchestrator.rs**。
   - `apply_atomic_with_reservation` (service.rs:86) 的 doc comment 自称"给 SagaOrchestrator 的 ReserveHandler/ConfirmHandler 用"，但实际全仓 grep 显示该函数**只在 service.rs 的 4 个 test (lines 487/536/580/660) 中被调用**，无任何 production 调用点。
   - production 路径 main.rs:99-105 直接 `ReserveHandler::new(...)` + `ConfirmHandler::new(...)` 注入，**ReserveHandler.execute (saga_orchestrator.rs:248-289) 仍内联 self.reservations.save / self.accounts.apply_atomic**：
     - L253: `self.reservations.save(&r).await?;` — reservation 持久化
@@ -92,7 +92,7 @@
 - 文件: 待 grep（55.26 不在范围）
 - 影响: LOW — orphan reservation 长期堆积，storage 增长。
 
-## 交叉对照 (vs RGS-REV-008 c730b21)
+## 交叉对照 (vs RGS-REV-008 22f662f)
 
 | RGS-REV-008 ID | 声称修复 | 实际验证状态 | 备注 |
 |---|---|---|---|

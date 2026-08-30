@@ -6,7 +6,7 @@
 | 报告依据 | RGS-REV-004 附件 A §A.1-§A.7 5 域 DTL 字段级 Review Checklist |
 | 关闭目标 | G-CODE-05（5 域 DTL 边界冻结）关闭证据 + RGS-DEC-NOGO-001 v0.1 形式上解除 |
 | 报告范围 | 5 域 DTL 源文件 × 7 份 + 5 域 DTL 对应 SPEC × 7 份 |
-| worktree | `D:\RustGameServer-worktrees\WF-0-5-review\`（base = main `6d985d6`，branch = `phase-0-5/review`） |
+| worktree | `D:\RustGameServer-worktrees\WF-0-5-review\`（base = main `7426802`，branch = `phase-0-5/review`） |
 | 报告日 | 2026-08-24 |
 | 报告人 | Worker（5 域 DTL 字段级 Review 扫雷子任务） |
 
@@ -83,7 +83,7 @@
 | **A6.2 状态机（declared→canary→confirm→done/rolled_back）** | ✅ | DTL-031 §4.1 Feature 生命周期 6 态（158-165 行）+ §4.2 PFAU 批次状态 7 态（170-183 行）**比 §A.6.2 简化版更细化**（declared→active→upgrade_pending→canary_in_progress→canary_confirmed→observing→completed/paused/rolling_back/aborted/failed/rolled_back）；**§A.6.2 简化版可视为 §4.2 子集** |
 | **A6.3 错误码（PFAU 5 类）** | ✅ | DTL-031 §7.2 错误语义 5 项（ALREADY_EXISTS/ABORTED/FAILED_PRECONDITION/DEADLINE_EXCEEDED/PERMISSION_DENIED，299-305 行）；每项含客户端处理 |
 | **A6.4 ADR-0052 贯穿（all-reachable + Active-Active）** | ✅ | DTL-031 §4.3 all-reachable 规则 4 项（186-192 行）+ §5.1 双副本策略 5 项（200-204 行）+ §5.2 命令并发规则 5 项（210-214 行） |
-| **A6.5 DLQ 处理（DiscardDlqEvent/ListDlqEvents per f0b2432）** | ✅ | DTL-031 §7.1 方法表 `ReplayEvents / DiscardDlqEvent` Server stream/Unary（293 行）+ §7.1 "均需审计"（293 行） |
+| **A6.5 DLQ 处理（DiscardDlqEvent/ListDlqEvents per 2f218c9）** | ✅ | DTL-031 §7.1 方法表 `ReplayEvents / DiscardDlqEvent` Server stream/Unary（293 行）+ §7.1 "均需审计"（293 行） |
 | **A6.6 监控（PFAU 完成时延指标 per handoff §4.3 R1 ~13 分钟）** | ⚠️ | DTL-031 §9 指标 7 项含"PFAU 状态停留时间 / ACK 延迟"（337 行）；**未显式给出 ~13 分钟 R1 估算**——§4.3 "300 秒观察窗口和 120 秒超时均为待验证规划参数，不是已承诺的 p99/SLA"（191 行），与 handoff R1 估算存在数值差异需对齐 |
 
 ### §1.7 §A.7 跨域一致性 5 项（去签字栏 1 项）

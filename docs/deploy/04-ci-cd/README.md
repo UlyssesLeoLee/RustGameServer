@@ -66,7 +66,7 @@
    - G-CODE-05 Platform 架构师具名 + CI/CD 签字
    - G-CODE-06 Rust 1.98 + Cargo.lock + CI 全绿
 2. **RGS-ENV-001 v0.3 §6 12 类签字栏全部具名签字**（当前 2/12 实际签 + 10/12 所有者背书占位）
-3. **3 验证脚本通过**（已在 eb2fffa 验证过，状态保留）
+3. **3 验证脚本通过**（已在 138a93d 验证过，状态保留）
 4. **Runner + registry 实际配置**（Platform 架构师签字）
 
 满足后由架构师出 v0.8 删除"所有者背书"占位 → 本目录 `_status.md` 升 `🟢 GO` → 由 Platform 架构师主导激活 `docker-build.yaml` 实际 push trigger。

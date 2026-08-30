@@ -7,25 +7,25 @@
 
 ## 1. 进度 (current state)
 
-main HEAD: **`16460a4`** — 已 push origin
+main HEAD: **`38097e8`** — 已 push origin
 
 **已完成 8 commits** (since 2026-08-28 12:00 JST):
 | commit | 标题 |
 |---|---|
-| `c5c9f5f` | S4 Phase 1 gm.proto 编译实装 |
-| `acd0454` | S5 outbox NATS mock IT + 7 mock 测试 |
-| `73bcb19` | BAS×TST 覆盖审计 44/44 = 100% |
-| `de86d80` | 6 域独立 UT + 跨域回归 + 旧债决策 |
-| `3c7d670` | 测试结果核对 + test-evidence v4 |
-| `404e3ea` | TBD-08 UT-08 模块 D + 4 域 PFAU |
-| `d34e2d7` | 8 域 Lead 具名 + cluster-ops 旧债终方案 + OPEN-QA v0.3 |
-| `580cde3` / `4c8c7f9` / `df986ec` | IT 准入 + 代签 + 01-07 域 IT 补全 |
-| `a227e0c` | 跨反馈 9 条 (F1-F9) 处置 |
-| `94ba812` | UT-09 rgs-certgen 17 测试 |
-| `1790b18` | G3 fixture 修复 (sqlx leo19 + 3 非 fixture) |
-| `1c2bf91` | G3+G4 evidence 落档 (81/81 PASS, 75.9% 覆盖) |
-| `d023594` | S4 Phase 2 step 1 (admin-service gRPC client 注入) |
-| `16460a4` | S4 Phase 2 step 1 设计文档 |
+| `c14d49b` | S4 Phase 1 gm.proto 编译实装 |
+| `b6cf3d8` | S5 outbox NATS mock IT + 7 mock 测试 |
+| `c6dc816` | BAS×TST 覆盖审计 44/44 = 100% |
+| `3e8d9ca` | 6 域独立 UT + 跨域回归 + 旧债决策 |
+| `b87f1b3` | 测试结果核对 + test-evidence v4 |
+| `ec0f11a` | TBD-08 UT-08 模块 D + 4 域 PFAU |
+| `12437ca` | 8 域 Lead 具名 + cluster-ops 旧债终方案 + OPEN-QA v0.3 |
+| `3357c10` / `be27937` / `90aa3df` | IT 准入 + 代签 + 01-07 域 IT 补全 |
+| `43a2e08` | 跨反馈 9 条 (F1-F9) 处置 |
+| `b4df2ed` | UT-09 rgs-certgen 17 测试 |
+| `b8359b9` | G3 fixture 修复 (sqlx leo19 + 3 非 fixture) |
+| `2b3ad09` | G3+G4 evidence 落档 (81/81 PASS, 75.9% 覆盖) |
+| `11a230a` | S4 Phase 2 step 1 (admin-service gRPC client 注入) |
+| `38097e8` | S4 Phase 2 step 1 设计文档 |
 
 **当前 DDD Review 状态**:⏳ 9 决策草案就绪 (5 已实装, 3 worktree W1/W2/W3 启动但 worker 模式未真跑, 1 OPEN-QA v0.4 待升级)
 
@@ -45,18 +45,18 @@ main HEAD: **`16460a4`** — 已 push origin
 
 ## 3. 跑测 (G3 + G4 + gm-backend)
 
-### G3 跑测 (workspace, commit `1c2bf91`)
+### G3 跑测 (workspace, commit `2b3ad09`)
 - **81/81 targets PASS, 0 fail**
 - 663/663 test cases PASS, 37 ignored (Cloudflare PH-5 opt-in)
 - evidence: `docs/00-基准与治理/.test-evidence/g3-g4-20260828-070349/`
 
-### G4 覆盖率 (commit `1c2bf91`)
+### G4 覆盖率 (commit `2b3ad09`)
 - **Workspace line coverage: 75.9%** (8829/11639 行)
 - **14/14 域 ≥ 60%** (rgs-hello 空 stub 0% 除外)
 - TOP: rgs-arc-olu 100% / rgs-certgen 95.5% / rgs-testkit 93% / gm-backend 91.2%
 - MIN: match-service 62.2%
 
-### gm-backend (commit `d023594`)
+### gm-backend (commit `11a230a`)
 - **49/49 PASS, 0 fail** (上轮 36 + 13 含 6 IT)
 - 含 JWT/audit/outbox NATS mock/admin gRPC/5 endpoint
 
@@ -70,7 +70,7 @@ main HEAD: **`16460a4`** — 已 push origin
 ### TST 文档 (18 份)
 - **RGS-TST-00~09 UT** (10 份): 9 域 UT + UT-00 总览
 - **RGS-TST-00~09 IT** (9 份): 9 域 IT + IT-00 v0.2
-- **44/44 BAS 引用 100%** (commit `73bcb19`)
+- **44/44 BAS 引用 100%** (commit `c6dc816`)
 
 ### BAS 文档 (35 份)
 - 全 9 域 + cluster-ops + gm-backend 覆盖

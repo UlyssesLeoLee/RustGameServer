@@ -14,7 +14,7 @@ git -C D:/RustGameServer add \
   "docs/12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md"
 git -C D:/RustGameServer commit -m "[review] RGS-REV-009 WF-1-55.26 5 commit 3 轮对抗性审查 (5 verifier 子代理)
 
-3 轮对抗性递进审查 WF-1-55.26 5 commit (13dec2d..0434ada):
+3 轮对抗性递进审查 WF-1-55.26 5 commit (1b30878..cc888b5):
 - 轮 1: V1 安全 + V2 正确性 + V3 集成 (3 verifier 并行独立 worktree)
 - 轮 2: V4 对抗仲裁 (读 V1/V2/V3, 反驳 V3 降级, 独立验证 V1+V2 CRITICAL)
 - 轮 3: V5 综合收口 (本报告 + WF-1-55.27+ 任务清单)
@@ -39,7 +39,7 @@ Co-Authored-By: Mavis (verifier 子代理 V1/V2/V3/V4/V5)
 "
 
 # 加 NO-MERGE tag (annotated, 标记当前 5 commit 不可直接 merge)
-git -C D:/RustGameServer tag -a no-merge-pending-wf-1-55-27 -m "WF-1-55.26 5 commit (13dec2d..0434ada) 状态: NO MERGE
+git -C D:/RustGameServer tag -a no-merge-pending-wf-1-55-27 -m "WF-1-55.26 5 commit (1b30878..cc888b5) 状态: NO MERGE
 原因: RGS-REV-009 3 轮对抗性审查发现 2 独立 CRITICAL (CC-4 死代码 + CC-3 migration 静默失效)
 修复路径: WF-1-55.27+ 任务清单 11 项 (P0: 3 / P1: 4 / P2: 4)
 报告位置: docs/00-基准与治理/reviews/adversarial-55-26/
@@ -85,7 +85,7 @@ git -C D:/RustGameServer push origin no-merge-pending-wf-1-55-27   # 可选: tag
 
 ## RGS-REV-008 → RGS-REV-009 演进对照
 
-| 维度 | RGS-REV-008 (c730b21) | RGS-REV-009 (本轮) |
+| 维度 | RGS-REV-008 (22f662f) | RGS-REV-009 (本轮) |
 |---|---|---|
 | 审查模式 | 平面 4 verifier 并行 | 3 轮递进对抗 (5 verifier) |
 | 审查范围 | 12 commit 55 P0+收尾 | 5 commit WF-1-55.26 |

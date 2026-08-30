@@ -13,14 +13,14 @@
 
 | # | 决议草案 | 决议 | 实装状态 | 证据 commit | 后续 |
 |---|---|---|---|---|---|
-| 1 | OPEN-QA v0.4 拍板 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 v0.3 → v0.4 | `38ff597` (merge docs/ddd-review) | 模板固定化决策(9 月 W6) |
-| 2 | 8 域 Lead 12 角色 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (具名) | `d34e2d7` (8 域 Lead) + `4c8c7f9` (代签补全) | W6 RACI 矩阵 |
-| 3 | cluster-ops 终方案 A' | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (git rm) | `de86d80` (3 文件 P3 follow-up) | W10 9 月底 P3 实装 |
-| 4 | S4 Phase 2 step 1 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (49/49 → 56/56) | `d023594` + `16460a4` (设计) | mTLS 决策 W9 |
-| 5 | S4 Phase 2 step 2 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (53/53 + 35/35) | `1e25591` (admin 5 RPC + gm 4 endpoint) | Step 3+ 错误处理 + chaos |
-| 6 | TBD-08-06 工具决策 D | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 已实装 (双工具并存) | `df986ec` (7 域 IT) | 5 域统一时机 (W7 9 月中) |
-| 7 | W2 跨域 IT 5 类链路 | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 设计 + 链路 A 简化版 | `321f10b` (链路 A 1/1 + 设计) | 链路 B/C/D (W7 + W13) |
-| 8 | W4 S5 §3 真 NATS e2e | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 3/7 真链路 PASS | `1a98e03` (k3s nats-0 14222) | 4/7 链路 (W8 9 月末) |
+| 1 | OPEN-QA v0.4 拍板 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 v0.3 → v0.4 | `ae32266` (merge docs/ddd-review) | 模板固定化决策(9 月 W6) |
+| 2 | 8 域 Lead 12 角色 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (具名) | `12437ca` (8 域 Lead) + `be27937` (代签补全) | W6 RACI 矩阵 |
+| 3 | cluster-ops 终方案 A' | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (git rm) | `3e8d9ca` (3 文件 P3 follow-up) | W10 9 月底 P3 实装 |
+| 4 | S4 Phase 2 step 1 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (49/49 → 56/56) | `11a230a` + `38097e8` (设计) | mTLS 决策 W9 |
+| 5 | S4 Phase 2 step 2 实际交付 | ✅ 接受 (v0.3 2026-08-28 22:09 JST) | 已实装 (53/53 + 35/35) | `1da9388` (admin 5 RPC + gm 4 endpoint) | Step 3+ 错误处理 + chaos |
+| 6 | TBD-08-06 工具决策 D | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 已实装 (双工具并存) | `90aa3df` (7 域 IT) | 5 域统一时机 (W7 9 月中) |
+| 7 | W2 跨域 IT 5 类链路 | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 设计 + 链路 A 简化版 | `86d27e5` (链路 A 1/1 + 设计) | 链路 B/C/D (W7 + W13) |
+| 8 | W4 S5 §3 真 NATS e2e | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 3/7 真链路 PASS | `a39af02` (k3s nats-0 14222) | 4/7 链路 (W8 9 月末) |
 | 9 | AI 审计提示词集成 CI | ⏸ 暂缓 (v0.2 2026-08-28 22:00 JST) | 已落档 (9,489 字节) | ⏳ 待集成 (`.github/workflows/ai-audit.yml`) | W11 10 月底集成 |
 
 **9/9 已实装或实装中,0 fail**。**8 已 commit 推 origin,1 落档未集成 CI**。
@@ -32,21 +32,21 @@
 ### 决议 1 — OPEN-QA v0.4
 - **实装**: `docs/00-基准与治理/RGS-OPEN-QA-2026-08-27-k3s-deploy_v0.4.md` (24,000+ bytes)
 - **Q2**: 8 域 Lead 具名 + 采纳
-- **Q4**: DTL-040 根因诊断新证据 (commit a227e0c F1 处置)
+- **Q4**: DTL-040 根因诊断新证据 (commit 43a2e08 F1 处置)
 - **Q7**: cluster-ops 终方案 A' 实装
 - **状态**: 🟡 待 DDD Review 终审 (从 OPEN 转 closed-pending-review)
-- **commit**: `38ff597` (merge docs/ddd-review)
+- **commit**: `ae32266` (merge docs/ddd-review)
 
 ### 决议 2 — 8 域 Lead 12 角色
 - **实装**: 8 域 + 4 共享 = 12 角色
   - 8 域 Lead: player / economy / match / social / admin / cluster-ops / gm-backend / rgs-certgen
   - 4 共享: SRE / Platform / QA / PM
 - **RACI**: 待 W6 9 月初实装 (per 决议 2 后续)
-- **代签**: 17/18 PASS,10 处缺栏补全 (commit `4c8c7f9`)
-- **commit**: `d34e2d7` (8 域 Lead 具名) + `4c8c7f9` (代签补全)
+- **代签**: 17/18 PASS,10 处缺栏补全 (commit `be27937`)
+- **commit**: `12437ca` (8 域 Lead 具名) + `be27937` (代签补全)
 
 ### 决议 3 — cluster-ops 终方案 A'
-- **A' 实装**: `git rm tests-disabled/ut_state_machine.rs` (commit `de86d80`)
+- **A' 实装**: `git rm tests-disabled/ut_state_machine.rs` (commit `3e8d9ca`)
 - **新位置**: 26 fn 完全覆盖在 `crates/cluster-ops/src/realm_lifecycle/`
 - **P3 follow-up 3 文件** (推后到 9 月底 W10):
   - `crates/rgs-testkit/src/mock.rs` DbMock / NoopMock 弃用警告
@@ -61,7 +61,7 @@
   - `GmConfig.disable_admin_grpc: bool` (for_test 默认 true)
   - 6 IT (try_connect 接受/不可达/无效 URL + AppState admin_grpc None/Some + health_check 500ms timeout)
 - **跑测**: gm-backend 49/49 PASS (上轮 36 + 13)
-- **commit**: `d023594` (实装) + `16460a4` (设计)
+- **commit**: `11a230a` (实装) + `38097e8` (设计)
 
 ### 决议 5 — S4 Phase 2 step 2
 - **实装**:
@@ -73,13 +73,13 @@
   - `crates/gm-backend/tests/it_admin_grpc_4rpc.rs` 4 IT (ban / grant / maintenance / query 降级)
   - `crates/gm-backend/tests/ut_audit.rs` DEFAULT_LIMIT 3 → 20 (per gm.proto v0.3)
 - **跑测**: gm-backend 53/53 + admin-service 35/35
-- **commit**: `1e25591`
+- **commit**: `1da9388`
 
 ### 决议 6 — TBD-08-06 工具决策 D
 - **实装**: 双工具并存
   - 7 域 IT: `wiremock 0.6`
   - 8 域 IT: `axum-test 16`
-- **IT 文档齐全**: IT-00 v0.2 + IT-01~09 全覆盖 (commit `df986ec`)
+- **IT 文档齐全**: IT-00 v0.2 + IT-01~09 全覆盖 (commit `90aa3df`)
 - **5 域统一时机**: 7 域 (player/economy/match/social/admin) 现仍用 InMemory mock, 待观察统一时机
 
 ### 决议 7 — W2 跨域 IT 5 类链路
@@ -88,7 +88,7 @@
   - 链路 A 简化版: `crates/cluster-ops/tests/it_cross_domain_admin_health.rs` 1/1 PASS
   - 链路 E: 隐含在 gm-backend 53/53 IT (HealthView 调 admin-service gRPC)
 - **设计文档**: `docs/00-基准与治理/RGS-TST-CROSS-DOMAIN-链路-IT-设计书.md` (4,511 bytes)
-- **commit**: `321f10b`
+- **commit**: `86d27e5`
 
 ### 决议 8 — W4 S5 §3 真 NATS e2e
 - **实装**: `crates/gm-backend/tests/it_outbox_nats_e2e.rs` (3,317 bytes)
@@ -98,9 +98,9 @@
   - nats_request_reply (req/rep 验证)
 - **前置**: `k3s kubectl port-forward -n rust-game-server nats-0 14222:4222`
 - **已知缺口**: 4/7 链路 (lease 过期 / retry 退避 / 并发 / JetStream 持久化) 待 Step 3+
-- **mock 7/7**: `crates/gm-backend/tests/it_outbox_nats.rs` (commit `acd0454`)
+- **mock 7/7**: `crates/gm-backend/tests/it_outbox_nats.rs` (commit `b6cf3d8`)
 - **合计 10/14 NATS 测试** (mock 7 + 真 3)
-- **commit**: `1a98e03`
+- **commit**: `a39af02`
 
 ### 决议 9 — AI 审计提示词集成 CI
 - **实装**: `docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md` (9,489 bytes)
@@ -208,11 +208,11 @@
 
 | 决议 | 接受内容 | 入 main commit | 跑测证据 | 后续 WBS 触发 |
 |---|---|---|---|---|
-| 1 (OPEN-QA v0.4) | v0.3 → v0.4 升级, Q2/Q4/Q7 全部 resolved,模板可作 DDD Review 终审基线 | `38ff597` | 0 fail(Q2 8 域 Lead 具名 + Q4 DTL-040 根因诊断 + Q7 cluster-ops 终方案) | W6 (9 月初) 模板固定化决策 |
-| 2 (8 域 Lead 12 角色) | 8 域 + 4 共享 = 12 角色具名,代签补全 17/18 | `d34e2d7` + `4c8c7f9` | 12 角色全签字,10 处缺栏补全 | W6 (9 月初) RACI 矩阵 |
-| 3 (cluster-ops 终方案 A') | git rm tests-disabled/ut_state_machine.rs + 3 文件 P3 follow-up | `de86d80` | cluster-ops 56/56 PASS(原 23 fn 完全覆盖 + 新增 6 个) | W10 (10 月中) 3 文件 P3 实装 |
-| 4 (S4 Phase 2 step 1) | AdminGrpcClient try_connect lazy + health_check 500ms timeout + 6 IT | `d023594` + `16460a4` (设计) | gm-backend 49/49 → 56/56 PASS | W9 (10 月初) mTLS 决策实装 |
-| 5 (S4 Phase 2 step 2) | admin.proto 加 4 RPC + gm_handlers.rs (4 handler) + gm-backend 4 endpoint + 4 IT | `1e25591` | gm-backend 53/53 + admin-service 35/35 PASS | 立即启动 Step 3+ 错误处理 + chaos(无 WBS 占位) |
+| 1 (OPEN-QA v0.4) | v0.3 → v0.4 升级, Q2/Q4/Q7 全部 resolved,模板可作 DDD Review 终审基线 | `ae32266` | 0 fail(Q2 8 域 Lead 具名 + Q4 DTL-040 根因诊断 + Q7 cluster-ops 终方案) | W6 (9 月初) 模板固定化决策 |
+| 2 (8 域 Lead 12 角色) | 8 域 + 4 共享 = 12 角色具名,代签补全 17/18 | `12437ca` + `be27937` | 12 角色全签字,10 处缺栏补全 | W6 (9 月初) RACI 矩阵 |
+| 3 (cluster-ops 终方案 A') | git rm tests-disabled/ut_state_machine.rs + 3 文件 P3 follow-up | `3e8d9ca` | cluster-ops 56/56 PASS(原 23 fn 完全覆盖 + 新增 6 个) | W10 (10 月中) 3 文件 P3 实装 |
+| 4 (S4 Phase 2 step 1) | AdminGrpcClient try_connect lazy + health_check 500ms timeout + 6 IT | `11a230a` + `38097e8` (设计) | gm-backend 49/49 → 56/56 PASS | W9 (10 月初) mTLS 决策实装 |
+| 5 (S4 Phase 2 step 2) | admin.proto 加 4 RPC + gm_handlers.rs (4 handler) + gm-backend 4 endpoint + 4 IT | `1da9388` | gm-backend 53/53 + admin-service 35/35 PASS | 立即启动 Step 3+ 错误处理 + chaos(无 WBS 占位) |
 
 **关键决议**(per 2026-08-28 22:09 JST 拍板):
 
@@ -242,7 +242,7 @@
 ### W5 收尾 (Decision 3 worktree 推进)
 - 清理 4 worktree (s4-phase2-step2 / w2-cross-domain / w4-s5-nats / ddd-review)
 - 清理 3 review worktree (decision-1/2/3 本身)
-- main HEAD 标注 `a0cb709` 为 DDD Review v1 base
+- main HEAD 标注 `dba953b` 为 DDD Review v1 base
 - tag `v0.4-ddd-review-2026-08-28`
 
 ### 9 月 WBS (Ulysses 拍板后启动)

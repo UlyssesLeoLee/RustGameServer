@@ -4,7 +4,7 @@
 |---|---|
 | **Worktree** | `D:\RustGameServer-worktrees\WF-0-5-2\` |
 | **Branch** | `wbs/WF-0.5-2` (locked) |
-| **Base** | `main @ fca0a55` |
+| **Base** | `main @ c035912` |
 | **生成时间** | 2026-08-24 06:25 JST |
 | **作者** | Phase 0.5 部署 worker (session `mvs_f3184ab7f2e746e486efb3f599112e43`) |
 | **NO-GO 状态** | 已解除（per `RGS-DEC-NOGO-001 v0.1` + DEC-008，12 角色全部签字）|

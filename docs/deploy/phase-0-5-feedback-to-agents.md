@@ -8,7 +8,7 @@
 
 ## 1. 并发 session 修改 main 未协调，导致我方在途工作被静默 stash
 
-- **现象**：本 session 开始时 `git status` 显示 ~30 个文件 M（Dockerfile / 6 个 service main.rs / tls.rs / k8s manifests 等），几十分钟后再查 `git log` 发现 main 已推进 5 个新 commit（`66ff53b` `ad54801` `7c2db70` `65ea750` `6d985d6`），working tree 变回干净，我方之前的编辑消失于 `stash@{0}: On main: handoff-fix-in-progress-20260824-1827`。
+- **现象**：本 session 开始时 `git status` 显示 ~30 个文件 M（Dockerfile / 6 个 service main.rs / tls.rs / k8s manifests 等），几十分钟后再查 `git log` 发现 main 已推进 5 个新 commit（`f4dd357` `a72781b` `8f85ef5` `4f12963` `7426802`），working tree 变回干净，我方之前的编辑消失于 `stash@{0}: On main: handoff-fix-in-progress-20260824-1827`。
 - **问题**：没有任何提示/交接说明告知本 session「你正在看的文件已被别的 session 改过/stash 过」，导致核对成本极高，且存在两个 session 同时改同一批文件、互相覆盖的风险。
 - **要求**：
   1. 多 session 并发操作同一仓库时，改动前先 `git fetch`/`git status` 确认无他人在途改动，或至少在 handoff 文档里登记「本 session 正在编辑：文件列表 + 时间戳」。
@@ -17,15 +17,15 @@
 ### 已处理（per worker-self @ 2026-08-24 → 主对话复审 @ 2026-08-24 19:30）
 
 - **stash 哈希确认**：`stash@{0}` → `ad702ee18dedd2726adf9ae82b7635633cb50feb`（短 `ad702ee`），label `On main: handoff-fix-in-progress-20260824-1827`
-- **stash 内容复核**：`git stash show -p stash@{0}` 影响 `.gitignore`（+3 行，隔离 `.git-trash/`）+ `docs/deploy/phase-0-5-handoff.md`（+25/-16，§11 修订，与已合并的 `7c2db70` 同步）+ 共 38 行差值，**与反馈单本条「38 行」描述一致**；diff 已逐行审过，**确属无害**（仅维护性改动，不影响任何业务逻辑/部署 manifest/测试）
+- **stash 内容复核**：`git stash show -p stash@{0}` 影响 `.gitignore`（+3 行，隔离 `.git-trash/`）+ `docs/deploy/phase-0-5-handoff.md`（+25/-16，§11 修订，与已合并的 `8f85ef5` 同步）+ 共 38 行差值，**与反馈单本条「38 行」描述一致**；diff 已逐行审过，**确属无害**（仅维护性改动，不影响任何业务逻辑/部署 manifest/测试）
 - **drop 决策（执行者 = 主对话）**：
-  - stash 是用户（主对话）自己于 2026-08-24 18:27 主动 stash 的，label 明确写「handoff-fix-in-progress」；handoff §11.5 修订实质上与已合并的 7c2db70 + 6d985d6 重复（部分内容已被 main 包含）
+  - stash 是用户（主对话）自己于 2026-08-24 18:27 主动 stash 的，label 明确写「handoff-fix-in-progress」；handoff §11.5 修订实质上与已合并的 8f85ef5 + 7426802 重复（部分内容已被 main 包含）
   - 留纸面证据 = 本条「已处理」段落 + 下面 §6.7/§11.7 流程升级；不留 stash 是因为它本身就是「静默持有别人未提交改动」的范本，继续保留会**鼓励反模式**
   - **实际 drop 状态**：截至本反馈单最新一次复审（2026-08-24 19:30），`git stash list` 仍显示 `stash@{0}: On main: handoff-fix-in-progress-20260824-1827`——**主对话尚未 drop**。**请主对话复审后手工 drop**（`git stash drop stash@{0}`）
 - **流程升级**（per 要求 1+2，已落 `phase-0-5/feedback-handler-clean` 分支，待主对话 merge 进 main）：
   - `RGS-WT-001_GitWorktree隔离开发方案.md` 新加 **§6.7「多 session 协调与禁止静默 stash」**，明文两条规则
   - 旧 §11.6 改 **§11.7「worktree 清理违规例外条款」**，与新 §6.7 不冲突
-  - hash 引用：本 worktree commit `6ae469b`（`[wt] + [ts] RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 工具链 Bug 登记`）
+  - hash 引用：本 worktree commit `0db8511`（`[wt] + [ts] RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 工具链 Bug 登记`）
 - **未做事项**（明确不越权）：本 worker **不**执行 `git stash drop` 本身——`git stash` 是主 worktree `D:/RustGameServer` 的本地状态，**主对话自己 drop** 即可
 
 ## 2. 4 个并行 worker（Saga 修复 / DTL Review / 引用扫雷 / Retrospective）全部 0 产出
@@ -46,7 +46,7 @@
   - `RGS-TS-001_主要技术选型报告.md` 末尾**新加 §7「工具链 Bug 登记（per RGS-REV-009 + phase-0.5 反馈单）」**——选这条因为 RGS-TS-001 是技术选型权威文档，bug 登记在那里最显眼（per任务说明二选一，选 A）
   - 同步在 `scripts/wbs_create_worktree.ps1` 顶部注释块加 cross-reference（**不**重复登记，只指 §7）
   - **节号选择说明**：任务建议「§9」，但 RGS-TS-001 §6.3 之后**无 §7/§8**（§7 = 工具脚本索引、§8 = 测试，§7 + §8 不在当前结构）。直接加 §9 会跳号，加 §6.4 又破坏 §6「OLU 影响」结构。**最终选 §7「工具链 Bug 登记」**，让 §6 → §7 逻辑衔接自然
-- **hash 引用**：本 worktree commit `6ae469b`（`[wt] + [ts] RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 工具链 Bug 登记`）
+- **hash 引用**：本 worktree commit `0db8511`（`[wt] + [ts] RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 工具链 Bug 登记`）
 
 ## 3. 多个 worktree 缺 `.wbs-task-marker`，导致 `wbs_merge.ps1` 找不到任务
 
@@ -62,10 +62,10 @@
 - **逐 worktree 状态复核**（per `git worktree list` + 4 个 worktree 内 `git status` + `.wbs-task-marker` 检查）:
   | worktree | branch | HEAD | 状态 | 处理 |
   |---|---|---|---|---|
-  | `WF-0-5-citation` | `phase-0-5/citation` | `f9512cc` | tip 不在 main（squash merge 进 7c2db70） | **worktree remove 成功**（无 `--force`）；`git branch -d` **拒绝**（squash merge 后 tip 不在 main 历史里，per 安全检查）|
-  | `WF-0-5-retro` | `phase-0-5/retro` | `e4c084e` | 同上 | **worktree remove 成功**；`git branch -d` 拒绝 |
-  | `WF-0-5-review` | `phase-0-5/review` | `452c3b2` | 同上 | **worktree remove 成功**；`git branch -d` 拒绝 |
-  | `WF-1-55-retry` | `wbs/WF-1-55.27-retry` | `a80fa94` | 有未合并工作（`c96efe8` + `a80fa94` + `f6a6f3f` + `14036d6`）| **不清理**，marker **已存在**（实测有，非"缺"），等 Issue 4 合并后再说 |
+  | `WF-0-5-citation` | `phase-0-5/citation` | `7f27c74` | tip 不在 main（squash merge 进 8f85ef5） | **worktree remove 成功**（无 `--force`）；`git branch -d` **拒绝**（squash merge 后 tip 不在 main 历史里，per 安全检查）|
+  | `WF-0-5-retro` | `phase-0-5/retro` | `cd63a97` | 同上 | **worktree remove 成功**；`git branch -d` 拒绝 |
+  | `WF-0-5-review` | `phase-0-5/review` | `a737897` | 同上 | **worktree remove 成功**；`git branch -d` 拒绝 |
+  | `WF-1-55-retry` | `wbs/WF-1-55.27-retry` | `0623066` | 有未合并工作（`eba4b22` + `0623066` + `2bab9fe` + `629369d`）| **不清理**，marker **已存在**（实测有，非"缺"），等 Issue 4 合并后再说 |
 - **清理执行**（在主 worktree `D:/RustGameServer` 跑，**不**在自己 feedback-handler worktree 跑）：
   - `git worktree remove D:/RustGameServer-worktrees/WF-0-5-citation`（不加 `--force`，per RGS-WT-001 §6.6 / §11.7）✅
   - `git worktree remove D:/RustGameServer-worktrees/WF-0-5-retro` ✅
@@ -76,14 +76,14 @@
   - **3 个分支保留未删**（按 RGS-WT-001 §6.6 不用 `-D` 强删；本 worker 不越权 -D）
 - **当前 `git worktree list` 实际状态**（截至 19:30）：
   ```
-  D:/RustGameServer                            c9fec8b [main]
-  D:/RustGameServer-worktrees/WF-0-5-feedback  e85a044 [phase-0-5/feedback-handler-clean]
+  D:/RustGameServer                            e0a1997 [main]
+  D:/RustGameServer-worktrees/WF-0-5-feedback  0a3b647 [phase-0-5/feedback-handler-clean]
   ```
-  4 个旧 worktree（citation/retro/review/WF-1-55-retry）已全部 remove；3 个对应分支（citation/retro/review）+ `wbs/WF-1-55.27-retry` 仍保留未 -d 删（squash merge 边界 + 1-55-retry 内容已并入 main 195bfae，按 §6.6/§11.7 不强删；主对话选项见下）
+  4 个旧 worktree（citation/retro/review/WF-1-55-retry）已全部 remove；3 个对应分支（citation/retro/review）+ `wbs/WF-1-55.27-retry` 仍保留未 -d 删（squash merge 边界 + 1-55-retry 内容已并入 main 534e008，按 §6.6/§11.7 不强删；主对话选项见下）
 - **边界情况说明**（主对话选项）：
-  - handoff §11.6 写「3 个 worktree 已合并入 phase-0-5/local-fixes」是基于**内容**合并（squash 进 7c2db70 聚合 commit）；**分支 tip 哈希**（f9512cc / e4c084e / 452c3b2）实际**不在** main 历史里
+  - handoff §11.6 写「3 个 worktree 已合并入 phase-0-5/local-fixes」是基于**内容**合并（squash 进 8f85ef5 聚合 commit）；**分支 tip 哈希**（7f27c74 / cd63a97 / a737897）实际**不在** main 历史里
   - `git branch -d` 的安全检查 = "分支 tip 必须在 main 历史里"，squash 合并后不满足，故拒绝
-  - **主对话选项**（请手工决定）：① 接受 4 个分支永久保留（无害，只是 `git branch -a` 多 4 行）② 手工 `git branch -D` 四个分支（接受 squash merge 风险）③ 用 `git replace --graft <tip> 7c2db70` 改写分支 tip 为已合并状态，再 -d 删除（高级，per git plumbing docs）
+  - **主对话选项**（请手工决定）：① 接受 4 个分支永久保留（无害，只是 `git branch -a` 多 4 行）② 手工 `git branch -D` 四个分支（接受 squash merge 风险）③ 用 `git replace --graft <tip> 8f85ef5` 改写分支 tip 为已合并状态，再 -d 删除（高级，per git plumbing docs）
 - **WF-1-55-retry marker 状态**（实测有，非缺）：
   - 文件已存在 `D:/RustGameServer-worktrees/WF-1-55-retry/.wbs-task-marker`（LastWriteTime 2026-08-24 18:44, 430 bytes）
   - **与任务建议的 schema 略有差异**（这是主对话自己手工补建的）：
@@ -96,13 +96,13 @@
   - **本 worker 不覆盖**（保留主对话手补状态）：字段差异是主对话的判断，**默认主对话的选择正确**
   - **主对话选项**：① 保留现有 marker ② 覆盖为任务建议 schema ③ merge 后由 wbs_task_progress.ps1 自动覆盖
 - **hash 引用**：
-  - worktree 清理**不**在 commit 里（清理是主 worktree 操作，不进 git）；流程升级进 commit `6ae469b`（RGS-WT-001 §6.7/§11.7）
+  - worktree 清理**不**在 commit 里（清理是主 worktree 操作，不进 git）；流程升级进 commit `0db8511`（RGS-WT-001 §6.7/§11.7）
   - `.wbs-task-marker` **不**进 commit（这是 WF-1-55-retry worktree 的文件，不在 feedback-handler worktree 里）
 
-## 4. `wbs/WF-1-55.27-retry`（commit `c96efe8`）是真实、已验证的修复，但从未合并、也未登记
+## 4. `wbs/WF-1-55.27-retry`（commit `eba4b22`）是真实、已验证的修复，但从未合并、也未登记
 
 - **现象**：分支包含真实修复（`crates/economy-service/src/{reservation.rs,saga_orchestrator.rs}`，+159/-4 行），针对 `ReserveHandler::execute` 第三条失败路径（`load_active_account` 失败但 reservation 已落盘，导致 compensate 时幽灵 `+amount` 入账）。本 session 复核：
-  - `git merge-base main wbs/WF-1-55.27-retry` == 当前 main tip（`6d985d6`），可直接 fast-forward 式合并，无冲突。
+  - `git merge-base main wbs/WF-1-55.27-retry` == 当前 main tip（`7426802`），可直接 fast-forward 式合并，无冲突。
   - `cargo test -p economy-service --lib` 在该分支上对着最新 main 跑：**50/50 通过**（含 2 个新增回归测试）。
 - **问题**：`docs/deploy/phase-0-5-handoff.md` §11.3 仍写「CR-1/2/3 修复仅 mock 验证」——这条记录是**过时的**，没有反映这个已存在、已测试通过的真实修复。说明「登记 WBS 状态」和「实际分支里发生了什么」这两者之间存在信息断层，容易导致后续 agent 重复造轮子或错过已有成果。
 - **要求**：
@@ -112,29 +112,29 @@
 
 ### 已处理（per worker-self @ 2026-08-24 → 主对话已自合 @ 19:02）
 
-- **实际合并执行 = 主对话 195bfae**（per main `git log`）:
-  - **主对话在 19:02 自行 merge** `wbs/WF-1-55.27-retry` → main, commit `195bfae`（`[merge] wbs/WF-1-55.27-retry: Saga CRITICAL 修复 3 L4 + tag 收尾(per RGS-REV-009 CR-1/2/3)`）
-  - 本 worker 在自己 worktree 里也做了一次 `--no-ff` merge（commit `49d93b5`，内容与 `195bfae` **完全相同**）→ 标为 **redundant merge**，已在 rebase 阶段 drop
+- **实际合并执行 = 主对话 534e008**（per main `git log`）:
+  - **主对话在 19:02 自行 merge** `wbs/WF-1-55.27-retry` → main, commit `534e008`（`[merge] wbs/WF-1-55.27-retry: Saga CRITICAL 修复 3 L4 + tag 收尾(per RGS-REV-009 CR-1/2/3)`）
+  - 本 worker 在自己 worktree 里也做了一次 `--no-ff` merge（commit `49d93b5`，内容与 `534e008` **完全相同**）→ 标为 **redundant merge**，已在 rebase 阶段 drop
   - 4 个被合并的 commit（按时间顺序）:
-    - `c96efe8` **WF-1-55.27 CR-1**：`ReserveHandler::execute` 修第 3 失败路径 + `Reservation::release()` 语义，+159/-4
-    - `a80fa94` **WF-1-55.28 CR-2**：6 域 migration 改名为 `*_outbox_check_idempotent.sql` + 220 行真 PG integration test
-    - `f6a6f3f` **WF-1-55.31 CR-3**：`rgs_testkit::pg_pool()` + `rgs_testkit::pg_test` 强约束 re-export + DbMock/NoopMock/mock_url `#[deprecated]`
-    - `14036d6` **WF-1-55 tag 收尾**：删 `no-merge-pending-wf-1-55-27` tag + WBS marker 收尾
-- **合并后验证**（per主对话 58f7766 handoff §11.3 描述）:
+    - `eba4b22` **WF-1-55.27 CR-1**：`ReserveHandler::execute` 修第 3 失败路径 + `Reservation::release()` 语义，+159/-4
+    - `0623066` **WF-1-55.28 CR-2**：6 域 migration 改名为 `*_outbox_check_idempotent.sql` + 220 行真 PG integration test
+    - `2bab9fe` **WF-1-55.31 CR-3**：`rgs_testkit::pg_pool()` + `rgs_testkit::pg_test` 强约束 re-export + DbMock/NoopMock/mock_url `#[deprecated]`
+    - `629369d` **WF-1-55 tag 收尾**：删 `no-merge-pending-wf-1-55-27` tag + WBS marker 收尾
+- **合并后验证**（per主对话 03ed8f6 handoff §11.3 描述）:
   - `cargo test --workspace` **271 passed / 0 failed**（含 2 真 PG integration test + deprecation 警告 4 处）
   - 真实 PG 验证（**非 mock**）：K3s postgres-5bb9bb647d-6wfv4 port-forward 验证
-  - handoff §11.3 已被主对话 58f7766 改写为「✅ Closed 2026-08-24 19:00」状态（含 3 L4 全真修 + 真 PG 验证 + 271 tests passed 详细记录）
+  - handoff §11.3 已被主对话 03ed8f6 改写为「✅ Closed 2026-08-24 19:00」状态（含 3 L4 全真修 + 真 PG 验证 + 271 tests passed 详细记录）
 - **状态表更新**（per反馈单要求 2，已落 `phase-0-5/feedback-handler-clean` 分支，待主对话 merge 进 main）:
-  - `RGS-WBS-001_L4任务进度表_v0.4.md` → v0.5（修订历史加一行 + WF-1-55.27 一行 done 100% + §3 汇总 113→112 pending+1 done + §8 SOP）: commit `5a6bde1`
-  - **handoff §11.3 不在 worker 改动里**（主对话 58f7766 已 closed，**内容更全**含 271 tests passed + worktree 收尾注；worker 原 1ecf83a 的 §10.3 改动在 rebase 阶段被 drop，避免与 58f7766 重复）
+  - `RGS-WBS-001_L4任务进度表_v0.4.md` → v0.5（修订历史加一行 + WF-1-55.27 一行 done 100% + §3 汇总 113→112 pending+1 done + §8 SOP）: commit `e0348ed`
+  - **handoff §11.3 不在 worker 改动里**（主对话 03ed8f6 已 closed，**内容更全**含 271 tests passed + worktree 收尾注；worker 原 1ecf83a 的 §10.3 改动在 rebase 阶段被 drop，避免与 03ed8f6 重复）
 - **hash 引用**:
-  - 主对话 merge commit `195bfae`（main 上）
-  - 本 worktree WBS v0.5 commit `5a6bde1`（`[wbs] v0.5: WF-1-55.27 done + 3 L4 收尾(per phase-0.5 反馈单 Issue 4 + Issue 5, handoff §11.3 由主对话 58f7766 同步 close 不重写)`）
+  - 主对话 merge commit `534e008`（main 上）
+  - 本 worktree WBS v0.5 commit `e0348ed`（`[wbs] v0.5: WF-1-55.27 done + 3 L4 收尾(per phase-0.5 反馈单 Issue 4 + Issue 5, handoff §11.3 由主对话 03ed8f6 同步 close 不重写)`）
 - **rebase 路径记录**（per worker-self 已 rebase 完毕，可供后续审计）:
   - 原始 worker 5 commit → `phase-0-5/feedback-handler` 分支，HEAD = `309f3bb`（保留为 `phase-0-5/feedback-handler-pre-rebase` tag）
-  - main 已前进到 `c9fec8b`（含 195bfae/58f7766/65b11a7/c9fec8b）
-  - rebase 后: `phase-0-5/feedback-handler-clean` 分支，HEAD = `e85a044`，4 个 unique commit（`b3ca43a` / `6ae469b` / `5a6bde1` / `e85a044`）已 rebased onto `c9fec8b`；redundant merge 49d93b5 + 4 个 inherited commit 已 drop
-  - handoff 冲突: rebase 阶段 drop worker 1ecf83a 的 handoff §10.3 改动（主对话 58f7766 已有更新版，保留 main 版本避免冲突）
+  - main 已前进到 `e0a1997`（含 534e008/03ed8f6/f4bdad5/e0a1997）
+  - rebase 后: `phase-0-5/feedback-handler-clean` 分支，HEAD = `0a3b647`，4 个 unique commit（`fede406` / `0db8511` / `e0348ed` / `0a3b647`）已 rebased onto `e0a1997`；redundant merge 49d93b5 + 4 个 inherited commit 已 drop
+  - handoff 冲突: rebase 阶段 drop worker 1ecf83a 的 handoff §10.3 改动（主对话 03ed8f6 已有更新版，保留 main 版本避免冲突）
 
 ## 5. `RGS-WBS-001_L4任务进度表` 长期与实际状态脱节
 
@@ -144,7 +144,7 @@
 
 ### 已处理（per worker-self @ 2026-08-24）
 
-- **Issue 4 已做一半**（直接编辑 v0.5 进度表，把 WF-1-55.27 标 done + §8 SOP 段落）: commit `5a6bde1`
+- **Issue 4 已做一半**（直接编辑 v0.5 进度表，把 WF-1-55.27 标 done + §8 SOP 段落）: commit `e0348ed`
 - **操作 SOP 写明**（per反馈单要求，已落 v0.5 §8）:
   1. **正确流程**（preferred）：走 `scripts/wbs_merge.ps1 -L4Id <ID>`，内建 [1/3] 步骤**自动**跑 `wbs_task_progress.ps1 -Status done`，不要绕过
   2. **手工 merge 时补救**（escape hatch，仅在 `wbs_merge.ps1` 不可用时）:
@@ -163,7 +163,7 @@
   - ❌ **不**真的去执行 `wbs_task_progress.ps1 -Status done`（WF-1-55.27 的 marker 还在 `WF-1-55-retry` worktree，本 worker 没在那跑，脚本会抛错；**这是预期行为**，留给下一轮主对话处理）
   - ❌ **不**把 v0.4 → v0.5 之外的其它 L4 任务都补 done（如 WF-0.5-1/2/3 已在 v0.4 done，无须本 worker 重复标）
   - ❌ **不**改父文档 v0.3 §11.4（per DEC-006 "v0.X 子文档 = 已发布快照"——v0.4 → v0.5 是子文档迭代，不影响父 v0.3）
-- **hash 引用**: 本 worktree commit `5a6bde1`（WBS v0.5 + §8 SOP 同一 commit）
+- **hash 引用**: 本 worktree commit `e0348ed`（WBS v0.5 + §8 SOP 同一 commit）
 
 ---
 
@@ -171,11 +171,11 @@
 
 | 条目 | 处理 agent | 处理时间 | commit/依据 | 状态 |
 |---|---|---|---|---|
-| 1 | worker-self | 2026-08-24T19:00+09:00 | `6ae469b`:`RGS-WT-001 §6.7/§11.7 新节(多 session 协调 + worktree 清理例外)`;stash drop 待主对话复审 | ✅ |
-| 2 | worker-self | 2026-08-24T19:00+09:00 | `6ae469b`:`RGS-TS-001 §7 新章(工具链 BUG-001 mavis worker 派发层登记,选 §7 防跳号)` | ✅ |
+| 1 | worker-self | 2026-08-24T19:00+09:00 | `0db8511`:`RGS-WT-001 §6.7/§11.7 新节(多 session 协调 + worktree 清理例外)`;stash drop 待主对话复审 | ✅ |
+| 2 | worker-self | 2026-08-24T19:00+09:00 | `0db8511`:`RGS-TS-001 §7 新章(工具链 BUG-001 mavis worker 派发层登记,选 §7 防跳号)` | ✅ |
 | 3 | worker-self | 2026-08-24T19:00+09:00 | 3 worktree remove(无 --force)✅ + 3 branch -d ❌(squash merge 后 tip 不在 main);WF-1-55-retry marker 保留主对话手补版不覆盖;主对话决策 4 分支去留在本反馈单 §3 「已处理」段已说明 | ✅ |
-| 4 | worker-self + 主对话并行 | 2026-08-24T19:00~19:02+09:00 | 主对话 `195bfae` merge `wbs/WF-1-55.27-retry`(3 L4 全真修 + tag 收尾)+ worker `5a6bde1` WBS v0.5;worker redundant merge `49d93b5` 已在 rebase 阶段 drop | ✅ |
-| 5 | worker-self | 2026-08-24T19:00+09:00 | `5a6bde1`:`RGS-WBS-001 v0.5 §8 SOP 段落(4 字段:流程/补救/反模式/升级)` | ✅ |
+| 4 | worker-self + 主对话并行 | 2026-08-24T19:00~19:02+09:00 | 主对话 `534e008` merge `wbs/WF-1-55.27-retry`(3 L4 全真修 + tag 收尾)+ worker `e0348ed` WBS v0.5;worker redundant merge `49d93b5` 已在 rebase 阶段 drop | ✅ |
+| 5 | worker-self | 2026-08-24T19:00+09:00 | `e0348ed`:`RGS-WBS-001 v0.5 §8 SOP 段落(4 字段:流程/补救/反模式/升级)` | ✅ |
 
 ---
 
@@ -187,8 +187,8 @@
 # 1. 复审
 cd D:/RustGameServer
 git fetch
-git log --oneline c9fec8b..phase-0-5/feedback-handler-clean
-# 应看到 7 commit(以 git log 实际输出为准;worker-self 修整 hash 触发的 amend 不会改变 commit 数):b3ca43a / 6ae469b / 5a6bde1 / e85a044 / 95e310b / ece7854 / <最末 amend commit>
+git log --oneline e0a1997..phase-0-5/feedback-handler-clean
+# 应看到 7 commit(以 git log 实际输出为准;worker-self 修整 hash 触发的 amend 不会改变 commit 数):fede406 / 0db8511 / e0348ed / 0a3b647 / d440793 / c001f50 / <最末 amend commit>
 
 # 2. Merge(预期 0 冲突，因为 rebase 已解决 handoff §10.3 vs §11.3)
 git merge phase-0-5/feedback-handler-clean --no-ff -m "[feedback] phase-0.5 反馈单 5 条处理 + 流程升级(RGS-WT-001 §6.7/§11.7 + RGS-TS-001 §7 + WBS v0.5)"

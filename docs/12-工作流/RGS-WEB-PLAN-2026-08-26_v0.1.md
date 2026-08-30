@@ -86,7 +86,7 @@ D:/RustGameServer/tools/rgs-web/
 ```
 +------------------------------------------+
 |  RGS Admin Dashboard  (12:20 JST)        |
-|  k3s API: 6443 · RGS v0.2 = 9e6a392      |
+|  k3s API: 6443 · RGS v0.2 = b32f726      |
 +------------------------------------------+
 | [5 域 IMPL-PLAN]    [文档健康]            |
 |  8/8 落地           1 FAIL + 1 WARN      |

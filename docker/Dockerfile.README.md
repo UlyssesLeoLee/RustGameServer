@@ -24,7 +24,7 @@ docker build -t ghcr.io/ulyssesleolee/rustgameserver:0.1.0 .
 ## 启用
 
 - 53.13 写好 Dockerfile
-- docker-build.yml 启用待 53.7 注释解除（per commit 621aa0c）
+- docker-build.yml 启用待 53.7 注释解除（per commit 4ea43e9）
 - 实际镜像推送待 WF-1-57.8 cosign keyless 签名
 
 ## 53.13 范围

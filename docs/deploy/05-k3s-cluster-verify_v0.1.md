@@ -97,7 +97,7 @@ WBS v0.3 §2A.5 WF-1-53.9 描述："本地 k3s 集群（或 kind）单节点 dev
 
 ## 启动验证日志
 
-实测启动日志见 `docs/deploy/09-deploy-dev-k3s.log`（per commit `f7c0c12` 记录）。
+实测启动日志见 `docs/deploy/09-deploy-dev-k3s.log`（per commit `fb2f0d8` 记录）。
 
 ## 53.9 关闭条件（per 07-no-go-checklist v0.4 G-CODE-03）
 

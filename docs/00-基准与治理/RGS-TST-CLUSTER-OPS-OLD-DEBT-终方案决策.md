@@ -2,7 +2,7 @@
 
 > **目的**:为 `crates/cluster-ops/tests-disabled/` 4 个 ut_*.rs 旧债选终方案(per Q7 OPEN-QA 跟踪,2026-08-28)
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 ut 实施 v0.2)
-> **状态**:✅ 已追认(方案 A',per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
+> **状态**:✅ 已追认(方案 A',per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `90aa3df` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
 > **关联**:`crates/cluster-ops/tests-disabled/OLD-DEBT.md` v0.1 + Q7 OPEN-QA
 
 ---
@@ -11,12 +11,12 @@
 
 | 文件 | 测试 fn | 引用旧路径 | 等价新位置 | 状态 |
 |---|---|---|---|---|
-| `ut_feature_adapter.rs` | 20 | `cluster_ops::feature_adapter` | `cluster_ops::realm_lifecycle::feature` (per 6b9a8d0 7 子类) | 旧,源码已搬 |
+| `ut_feature_adapter.rs` | 20 | `cluster_ops::feature_adapter` | `cluster_ops::realm_lifecycle::feature` (per 0b8ab81 7 子类) | 旧,源码已搬 |
 | `ut_olu.rs` | TBD | `cluster_ops::olu` | `cluster_ops::realm_lifecycle::olu` | 旧,源码已搬 |
-| `ut_saga.rs` | TBD | `cluster_ops::saga` | `cluster_ops::realm_lifecycle::saga` (per b369d2e SagaOrchestrator) | 旧,源码已搬 |
-| `ut_state_machine.rs` | TBD | `cluster_ops::state_machine` | `cluster_ops::realm_lifecycle::state` (per 698d92b) | 旧,源码已搬 |
+| `ut_saga.rs` | TBD | `cluster_ops::saga` | `cluster_ops::realm_lifecycle::saga` (per 2672d2d SagaOrchestrator) | 旧,源码已搬 |
+| `ut_state_machine.rs` | TBD | `cluster_ops::state_machine` | `cluster_ops::realm_lifecycle::state` (per e5b58c9) | 旧,源码已搬 |
 
-**根因**:commit `b74ccc3` (2026-08-27 08:00 RGS-INC-002 v0.1 复盘) saga 编译死锁修复时 18 tests 移到 `tests-disabled/`,后来 `src/realm_lifecycle/` 重组,旧 ut_*.rs 引用旧路径,无法直接迁回 `tests/`。
+**根因**:commit `30a8842` (2026-08-27 08:00 RGS-INC-002 v0.1 复盘) saga 编译死锁修复时 18 tests 移到 `tests-disabled/`,后来 `src/realm_lifecycle/` 重组,旧 ut_*.rs 引用旧路径,无法直接迁回 `tests/`。
 
 ## 1. 3 方案对比(per OLD-DEBT.md §3)
 
@@ -35,7 +35,7 @@
 - `ut_state_machine.rs`:20 fn,6 阶段状态机全部转移 + 非法转移 + 终态唯一性。最有迁移价值
 - `ut_feature_adapter.rs`:20 fn,PFAU 7 阶段 feature registry,字段级 + 转移表测试,价值高
 - `ut_olu.rs`:TBD fn,OLU 度量(per Open-QA Q3 OLU 略超 NFR-OP-010),需重新审视
-- `ut_saga.rs`:TBD fn,saga 编排(per b369d2e SagaOrchestrator),源码已重构,**断言可能失效**
+- `ut_saga.rs`:TBD fn,saga 编排(per 2672d2d SagaOrchestrator),源码已重构,**断言可能失效**
 
 **风险**:
 - SagaOrchestrator 内部重构后,旧断言大概率已失效
@@ -55,13 +55,13 @@
 - 工作量 30 分钟,风险 0
 
 **其余 3 文件保留**:
-- `ut_feature_adapter.rs` 价值高但 PFAU 已间接覆盖(per 6b9a8d0 + b2aba4d)
+- `ut_feature_adapter.rs` 价值高但 PFAU 已间接覆盖(per 0b8ab81 + 6a913f3)
 - `ut_olu.rs` 需重新评估,放 P3 follow-up
 - `ut_saga.rs` 断言可能失效,放 P3 follow-up(需 DDD Review 阶段重写)
 
 ### 方案 B(移到 git 历史)
 
-`git rm tests-disabled/ut_*.rs` 后,文件可由 `b74ccc3` git history 找回。
+`git rm tests-disabled/ut_*.rs` 后,文件可由 `30a8842` git history 找回。
 
 **风险**:
 - 0 风险(无代码变化)

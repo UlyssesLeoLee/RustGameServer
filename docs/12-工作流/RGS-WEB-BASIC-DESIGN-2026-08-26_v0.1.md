@@ -483,8 +483,8 @@ http://127.0.0.1:8788/
 
 ### A.4 引用链与证据
 
-- rgs-web v0.2-gm commit `52c1a83`(2026-08-26 13:17 JST)
-- rgs-web v0.1 commit `5f827ee`(2026-08-26 12:22 JST)
+- rgs-web v0.2-gm commit `23d447b`(2026-08-26 13:17 JST)
+- rgs-web v0.1 commit `c076948`(2026-08-26 12:22 JST)
 - REQUIREMENTS v0.1(13.8 KB,21 FR + 21 NFR)
 - GM-PLAN v0.1(11.7 KB,横向对比 ROPE_CS)
 - PLAN v0.1(7.2 KB,设计总览)

@@ -3,7 +3,7 @@
 # 角色：2026-08-26 全天文档健康度反馈单（代签新规则固化 + 17 份 SPEC v0.2 起草配套治理），要求接手 agent 逐项核实/修改/回填
 
 # 生成：主对话（Mavis 接手 agent per DEC-008）2026-08-26 09:14 JST，基于：
-#   (a) 2026-08-26 04:00-05:00 主对话主导的 26 份 DTL 升版（含 DTL-036 双 hotfix）+ 06:59 批量 SPEC v0.2 调整（commit `2557a8c`） + 07:25 独立复核 feedback 单（commit `fed8d9d`）+ 07:26/08:09/08:41 补签 + 数字校正 + Q&A v0.2→v0.3
+#   (a) 2026-08-26 04:00-05:00 主对话主导的 26 份 DTL 升版（含 DTL-036 双 hotfix）+ 06:59 批量 SPEC v0.2 调整（commit `71b4104`） + 07:25 独立复核 feedback 单（commit `4c88ae0`）+ 07:26/08:09/08:41 补签 + 数字校正 + Q&A v0.2→v0.3
 #   (b) 2026-08-26 08:40 JST Ulysses 偏好反转："今后所有文档允许代签" + "开子代理和 worktree 编写改善"
 #   (c) 2026-08-26 08:42-09:14 主对话 fire 17 个 background worker 起草 17 份未升版 DTL 的 SPEC v0.2（17 commit + 17 worktree 分支 + 1 WBS 同步 + 1 总报告）
 
@@ -24,7 +24,7 @@
 | # | 问题/事项 | 类型 | 处置 |
 |---|---|---|---|
 | 1 | 代签新规则反转 + user memory 已落 | 硬约束固化 | ✅ 已落 `C:\Users\leo19\.minimax\memory\user.md` "文档代签规则反转(2026-08-26 08:40 JST)" 节 |
-| 2 | 17 份未升版 DTL SPEC v0.2 起草（17 worktree + 17 commit + WBS 同步 + 总报告） | HAPPY PATH | ✅ 已落 17 commit + commit `e5dcea3`(WBS + 总报告 2 文件) |
+| 2 | 17 份未升版 DTL SPEC v0.2 起草（17 worktree + 17 commit + WBS 同步 + 总报告） | HAPPY PATH | ✅ 已落 17 commit + commit `6bb5a34`(WBS + 总报告 2 文件) |
 | 3 | 17 个 worktree 分支 merge 策略（方案 A/B/C） | 决策点 | ⏳ 留 Ulysses DDD Review 阶段定 |
 | 4 | 26 份 v0.2 SPEC（4:30-7:30 期间）的"审批者 = Ulysses"状态 | 历史不可改写 | ⏳ 不追溯改写，但 08:40 后新文档按新规则 |
 | 5 | check-docs-consistency.sh 状态 | 监控 | ⏳ 1 FAIL（DEC-NOGO-001）+ 1 WARN（5 ADR 待具名审批）= 与 04:30 基线一致，**未引入新问题** |
@@ -134,15 +134,15 @@
 ### 2.4 关联 commit
 
 - **17 份 v0.2 SPEC commit**（见 §2.2 表格）
-- **`e5dcea3` 2026-08-26 09:15 JST**：`docs: 17 份未升版 DTL SPEC v0.2 起草前置配套(WBS §2A.2.55.续1 17 L4 + 总报告 v0.1)` —— 2 files changed, 266 insertions(+), 1 deletion(-)
+- **`6bb5a34` 2026-08-26 09:15 JST**：`docs: 17 份未升版 DTL SPEC v0.2 起草前置配套(WBS §2A.2.55.续1 17 L4 + 总报告 v0.1)` —— 2 files changed, 266 insertions(+), 1 deletion(-)
   - `docs/12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md`（M→commit）：新增 §2A.2.55.续1 章节 + 17 行 L4 任务（WF-1-55.52~68）
   - `docs/12-工作流/RGS-REPORT-2026-08-26-17-SPEC-Update-v0.2_v0.1.md`（??→commit，新建）：总报告 v0.1，含触发事件 / 17 份 commit 表 / 5 域分组 / WBS 同步 / 关键决策 / 已知问题 / merge 决策点
 
 ### 2.5 处置要求
 
 1. **17 份 v0.2 SPEC 已 commit 到 17 个独立 worktree 分支**（未合并到 main，详见 §3）
-2. **WBS v0.3 §2A.2.55.续1 已 commit**（commit `e5dcea3`）
-3. **总报告 v0.1 已 commit**（commit `e5dcea3`）
+2. **WBS v0.3 §2A.2.55.续1 已 commit**（commit `6bb5a34`）
+3. **总报告 v0.1 已 commit**（commit `6bb5a34`）
 4. **17 个 worktree 仍存在**（`D:/RustGameServer-worktrees/WF-1-55-52` ~ `WF-1-55-68`），等 Ulysses 决定 merge 策略
 
 ### 2.6 已处理
@@ -186,7 +186,7 @@
 
 ### 4.1 现象
 
-2026-08-26 04:30-08:40 期间生成的 26 份 v0.2 SPEC（per commit `2557a8c`），修订历史 v0.2 行"审批者"列 = "Ulysses(2026-08-26, per RGS-REV-004 字段级 DD Review)"。这是 Ulysses 本人在 7:30 期间 review 后补签的状态。
+2026-08-26 04:30-08:40 期间生成的 26 份 v0.2 SPEC（per commit `71b4104`），修订历史 v0.2 行"审批者"列 = "Ulysses(2026-08-26, per RGS-REV-004 字段级 DD Review)"。这是 Ulysses 本人在 7:30 期间 review 后补签的状态。
 
 ### 4.2 性质
 
@@ -202,7 +202,7 @@
 
 ### 4.4 已处理
 
-- **26 份 v0.2 SPEC 未改写**（commit `d8d3efb` 7:30 补签状态保留）
+- **26 份 v0.2 SPEC 未改写**（commit `cd840d1` 7:30 补签状态保留）
 - **代签新规则仅适用 08:40 JST 之后新文档**（17 份 v0.2 + WBS + 总报告 + 本反馈单）
 
 ---
@@ -229,7 +229,7 @@
 
 ### 5.4 已处理
 
-- **本批起草** + **commit `e5dcea3`** 健康度状态与基线一致
+- **本批起草** + **commit `6bb5a34`** 健康度状态与基线一致
 - **无新 FAIL / WARN**
 
 ---
@@ -273,20 +273,20 @@
 
 | commit hash | 时间 (JST) | 内容 |
 |---|---|---|
-| `e1c22ea` | 2026-08-26 04:00-05:00 | 10 份轻量 DTL 升版（002/014/016/017/018/019/020/021/023/038）|
-| `833c58d` `8bbcdaa` 等 15 commit | 2026-08-26 04:00-05:00 | 15 份 DTL 实质升版（001/003/004/005/006/007/008/009/011/012/013/015/022/024/031）|
-| `c1a349e` + `91203c2` | 2026-08-26 04:00-05:00 | DTL-036 v0.1→v1.4 升版 + merge |
-| `13badca` + `fd4f4d5` | 2026-08-26 05:46-05:50 | DTL-036 v1.4→v1.4.1 hotfix（撤回 P1 伪造出处 + 补 P2 session_epoch + 列 P3 已知缺口）|
-| `5ca7d67` | 2026-08-26 05:50-06:00 | RGS-DTL-036-REVIEW-2026-08-26 feedback 单 + 处置内容回填 |
-| `2c81361` | 2026-08-26 06:00-06:05 | DTL-036 v1.4.1→v1.4.2 hotfix（撤回 §3 已知缺口清单后 3 项自相矛盾项）|
-| `2557a8c` | 2026-08-26 06:59 | `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本批报告 28 文件批量 |
-| `fed8d9d` | 2026-08-26 07:25 | `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` |
-| `2a19bdd` | 2026-08-26 07:30 | `docs: RGS-OPEN-QA v0.1->v0.2 事实核正` |
-| `552341f` | 2026-08-26 08:09 | `docs: RGS-OPEN-QA v0.2->v0.3 二次核正(015/016/022 P0 出处)` |
-| `d8d3efb` | 2026-08-26 08:35 | `docs: 26 份 RGS-SPEC-DTL-NNN v0.2 审批者补签（Ulysses）` |
-| `d83b434` | 2026-08-26 08:35 | `chore: update RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md` |
+| `acc7e7a` | 2026-08-26 04:00-05:00 | 10 份轻量 DTL 升版（002/014/016/017/018/019/020/021/023/038）|
+| `476291d` `218990f` 等 15 commit | 2026-08-26 04:00-05:00 | 15 份 DTL 实质升版（001/003/004/005/006/007/008/009/011/012/013/015/022/024/031）|
+| `8db76f4` + `0064dfc` | 2026-08-26 04:00-05:00 | DTL-036 v0.1→v1.4 升版 + merge |
+| `9328984` + `18e5572` | 2026-08-26 05:46-05:50 | DTL-036 v1.4→v1.4.1 hotfix（撤回 P1 伪造出处 + 补 P2 session_epoch + 列 P3 已知缺口）|
+| `7066fb9` | 2026-08-26 05:50-06:00 | RGS-DTL-036-REVIEW-2026-08-26 feedback 单 + 处置内容回填 |
+| `c7f0e72` | 2026-08-26 06:00-06:05 | DTL-036 v1.4.1→v1.4.2 hotfix（撤回 §3 已知缺口清单后 3 项自相矛盾项）|
+| `71b4104` | 2026-08-26 06:59 | `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本批报告 28 文件批量 |
+| `4c88ae0` | 2026-08-26 07:25 | `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` |
+| `bcdd614` | 2026-08-26 07:30 | `docs: RGS-OPEN-QA v0.1->v0.2 事实核正` |
+| `08effa7` | 2026-08-26 08:09 | `docs: RGS-OPEN-QA v0.2->v0.3 二次核正(015/016/022 P0 出处)` |
+| `cd840d1` | 2026-08-26 08:35 | `docs: 26 份 RGS-SPEC-DTL-NNN v0.2 审批者补签（Ulysses）` |
+| `8b24823` | 2026-08-26 08:35 | `chore: update RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md` |
 | **17 个 `756bcd3` ~ `97ef67c`** | **2026-08-26 08:42-09:14** | **17 份 `docs: RGS-SPEC-DTL-NNN v0.1→v0.2 前瞻性草案(代签新规则)`** |
-| **`e5dcea3`** | **2026-08-26 09:15** | **`docs: 17 份未升版 DTL SPEC v0.2 起草前置配套(WBS §2A.2.55.续1 17 L4 + 总报告 v0.1)`** |
+| **`6bb5a34`** | **2026-08-26 09:15** | **`docs: 17 份未升版 DTL SPEC v0.2 起草前置配套(WBS §2A.2.55.续1 17 L4 + 总报告 v0.1)`** |
 | 本反馈单（待 commit）| 2026-08-26 09:20 | `docs: RGS-DOCS-HEALTH-2026-08-26 feedback 单 + 代签新规则固化` |
 
 ---

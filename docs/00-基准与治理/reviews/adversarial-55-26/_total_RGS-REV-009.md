@@ -2,13 +2,13 @@
 
 ## 元数据
 
-- **审查范围**: `13dec2d..0434ada` (5 commit: CC-3 / CC-4 / AC-1 / housekeeping / DC-1)
+- **审查范围**: `1b30878..cc888b5` (5 commit: CC-3 / CC-4 / AC-1 / housekeeping / DC-1)
 - **审查模式**: 3 轮递进对抗（与 RGS-REV-008 平面 4 verifier 不同）
 - **审查者**: V1 (安全) + V2 (正确性) + V3 (集成) + V4 (对抗仲裁) + V5 (综合收口) — 5 子代理
 - **独立 worktree**: `D:/adversarial-55-26-V{1,2,3,4,5}`
 - **独立 target dir**: `D:\target-adversarial-V{1,2,3,4,5}`
 - **日期**: 2026-08-23
-- **上一轮基线**: `c730b21` RGS-REV-008 (4 verifier 平面交叉审核 12 commit, 聚合 70 issue / 10C/20H/26M/14L)
+- **上一轮基线**: `22f662f` RGS-REV-008 (4 verifier 平面交叉审核 12 commit, 聚合 70 issue / 10C/20H/26M/14L)
 
 ---
 
@@ -44,9 +44,9 @@ V5 任务：
 - `cargo test --workspace --lib` (worktree V5): **209/209 passed** (18+16+42+16+24+0+78+15) — 与 V1+V2+V4 一致
 - `cargo clippy --workspace --all-targets -- -D warnings -A clippy::pedantic -A clippy::nursery -A clippy::cargo --exclude rgs-certgen`: **0 warning** — 与 V1+V3+V4 一致
 - `git grep "apply_atomic_with_reservation"`: 1 定义 + 4 test + 2 doc, **0 生产调用**（service.rs:487/536/580/660）— V1+V2+V4 共识确认
-- `git show 13dec2d -- 'crates/*/migrations/*outbox*.sql'`: 6 域 CHECK 全部在 `CREATE TABLE IF NOT EXISTS` 块**内部**（已部署环境 no-op）— V2+V4 共识确认
-- `git show 4973255 --stat`: 1 file changed (仅 service.rs, +190/-6) — V1+V2 共识（CC-4 未触 saga_orchestrator.rs）
-- `git show 13dec2d` 验证: economy `0003_outbox.sql` 之前由 55.17 commit `53a8d37` 创建，13dec2d 同文件追加 CHECK 块内 — 部署后无效
+- `git show 1b30878 -- 'crates/*/migrations/*outbox*.sql'`: 6 域 CHECK 全部在 `CREATE TABLE IF NOT EXISTS` 块**内部**（已部署环境 no-op）— V2+V4 共识确认
+- `git show a950b46 --stat`: 1 file changed (仅 service.rs, +190/-6) — V1+V2 共识（CC-4 未触 saga_orchestrator.rs）
+- `git show 1b30878` 验证: economy `0003_outbox.sql` 之前由 55.17 commit `55af339` 创建，1b30878 同文件追加 CHECK 块内 — 部署后无效
 - `git grep "resume_completed\|resume_failed\|resume_aborted"`: **0 匹配**（3 终态 0 覆盖）— V2+V4 共识
 - `git grep "load_server_tls_config"`: 单元测试有（tls.rs:142/156），但 0 integration test — V3 L-2 + V4 §3.1 升级共识
 
@@ -118,7 +118,7 @@ crates/economy-service/src/service.rs:660 [test]   .apply_atomic_with_reservatio
 0 production call.
 ```
 
-CC-4 fix commit (4973255) `--stat`: **1 file changed, +190/-6**（仅 `crates/economy-service/src/service.rs`），**未触及** `saga_orchestrator.rs`（生产路径）。
+CC-4 fix commit (a950b46) `--stat`: **1 file changed, +190/-6**（仅 `crates/economy-service/src/service.rs`），**未触及** `saga_orchestrator.rs`（生产路径）。
 
 **生产路径**（`saga_orchestrator.rs:248-289` ReserveHandler::execute）:
 - L253: `self.reservations.save(&r).await?;` ← reservation 落库
@@ -155,17 +155,17 @@ diff --git a/crates/economy-service/migrations/0003_outbox.sql
 
 **关键 git log 证据**:
 ```
-53a8d37  [wbs] WF-1-55.17: outbox SKIP LOCKED + ... (per RGS-REV-007)
-13dec2d  [wbs] WF-1-55.26: 6 域 outbox migration CHECK 约束 (per RGS-REV-008 CC-3)
+55af339  [wbs] WF-1-55.17: outbox SKIP LOCKED + ... (per RGS-REV-007)
+1b30878  [wbs] WF-1-55.26: 6 域 outbox migration CHECK 约束 (per RGS-REV-008 CC-3)
 ```
 
-55.17 commit `53a8d37` 已创建 outbox 表并部署。13dec2d 在同文件追加 CHECK，**写在 `CREATE TABLE IF NOT EXISTS` 块内部**。PG 语义：表存在时 CREATE 块**silent skip**，CHECK 永不生效。
+55.17 commit `55af339` 已创建 outbox 表并部署。1b30878 在同文件追加 CHECK，**写在 `CREATE TABLE IF NOT EXISTS` 块内部**。PG 语义：表存在时 CREATE 块**silent skip**，CHECK 永不生效。
 
 **影响**: 数据完整性 silent-fail。RGS-REV-008 verify-C §4.3 标的"CHECK 防 status 漂移"在 6 域生产环境**完全不存在**。仅 fresh DB 部署（CI / 新建环境）有效。
 
 **修复方向**:
 - 选项 A（推荐）: 6 域各加 `0004_outbox_check_constraint.sql`（或对应递增序号），内容 `ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))`
-- 选项 B: 在 13dec2d 文件内追加 `DO $$ BEGIN ALTER TABLE outbox ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;` 幂等块
+- 选项 B: 在 1b30878 文件内追加 `DO $$ BEGIN ALTER TABLE outbox ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;` 幂等块
 - PG 不支持 `ADD CONSTRAINT IF NOT EXISTS`（7.1+ 仍不支持），需 DO 块
 
 ---
@@ -180,7 +180,7 @@ V4 提出 5 项解释，V5 整合并补充：
 
 2. **CC-4 测试用 InMemoryAccountRepository** — V3 H-1 提到，OCC 失败靠手动 `acc_repo.inner.lock().unwrap().get(&id).version = original + 99` 模拟。**生产 PG OCC** 是 `UPDATE ... WHERE version = ?` 0 row，行为不完全等价。
 
-3. **CC-3 migration 是 SQL，无 Rust test** — 13dec2d 只改 6 个 .sql 文件，没加任何 Rust test 验证 CHECK 实际生效。`cargo test` 100% pass 与 migration 是否真生效完全无关。
+3. **CC-3 migration 是 SQL，无 Rust test** — 1b30878 只改 6 个 .sql 文件，没加任何 Rust test 验证 CHECK 实际生效。`cargo test` 100% pass 与 migration 是否真生效完全无关。
 
 4. **DC-1.3 stub handler** — `CompensateRecorder.compensate` 只 set `bool flag`，不调真实 `ReserveHandler.compensate`。`account.credit(refund_amount)` 凭空造钱路径在 stub handler 内**根本无法触发**，所以 stub test 不会暴露 V1 HIGH (双倍退款)。
 
@@ -225,7 +225,7 @@ V4 提出 5 项解释，V5 整合并补充：
 
 ## 6. 最终决策
 
-**当前 5 commit (0434ada) 状态: ❌ NO MERGE**
+**当前 5 commit (cc888b5) 状态: ❌ NO MERGE**
 
 - 理由: 2 个独立 CRITICAL (CR-1 资金安全 P0 + CR-2 数据完整性 silent-fail)
 - 任何 1 个 CRITICAL 即阻断 merge，2 个并存强化 NO MERGE
@@ -234,7 +234,7 @@ V4 提出 5 项解释，V5 整合并补充：
 **V3 评级错判根因**（V5 仲裁）:
 - V3 "集成视角" 重视 cargo test 数量（220 全过），但**漏看 209 test 测的对象是死代码 + stub handler + InMemory repo**
 - V3 M-1 论据"5 处裸 apply_atomic 都无 reservation" 错看生产路径，实际 `saga_orchestrator.rs:253/277` 是真实的 reservation + apply_atomic 组合
-- V3 漏看 13dec2d SQL diff，CC-3 migration 静默失效是 silent-fail 性质
+- V3 漏看 1b30878 SQL diff，CC-3 migration 静默失效是 silent-fail 性质
 
 **给 root session 的可操作建议**:
 
@@ -254,7 +254,7 @@ V4 提出 5 项解释，V5 整合并补充：
 | `cargo clippy --workspace --all-targets --exclude rgs-certgen` | 0 warn | 0 warn | 0 warn | 0 warn | **0 warn** |
 | 独立 grep `apply_atomic_with_reservation` | ✓ (0 prod) | ✓ (0 prod) | ⚠ (M-1 错看) | ✓ (0 prod) | **✓ (0 prod)** |
 | 独立 grep `MTLS_BYPASSED_TOTAL` | ✓ (6 server 死) | ✓ (0 load) | ✓ (6 私有) | ✓ (6 server 死) | **✓ (6 server 死, 0 load)** |
-| 独立 diff 13dec2d outbox CHECK | — | ✓ (CR-2) | — | ✓ (CR-2) | **✓ (6 域全中招)** |
+| 独立 diff 1b30878 outbox CHECK | — | ✓ (CR-2) | — | ✓ (CR-2) | **✓ (6 域全中招)** |
 | 独立 grep `resume_completed/failed/aborted` | — | ✓ (0 match) | — | ✓ (0 match) | **✓ (0 match)** |
 | 独立看 `load_server_tls_config` integration test | — | — | ✓ (L-2 LOW) | ✓ (升级 HIGH) | **✓ (0 integration test)** |
 
@@ -265,7 +265,7 @@ V4 提出 5 项解释，V5 整合并补充：
 1. **测试全绿 ≠ 正确** — 测试覆盖死代码、InMemory repo 模拟不到 PG OCC。需引入真 DB 集成基建。
 2. **silent-fail migration** — `CREATE TABLE IF NOT EXISTS` 内追加 CHECK 在已部署环境无效。需新 migration 文件 + 幂等 DO 块。
 3. **加 metric 但不暴露** — server 端 counter 死代码，监控盲区。需对称 client 端加 pub getter。
-4. **CRITICAL 修复需独立第三方验证** — V3 自己看 5 commit 没发现 V1+V2 看到的问题，V4 才看穿（V3 漏 L253/L277 + 漏 13dec2d SQL diff）。
+4. **CRITICAL 修复需独立第三方验证** — V3 自己看 5 commit 没发现 V1+V2 看到的问题，V4 才看穿（V3 漏 L253/L277 + 漏 1b30878 SQL diff）。
 5. **stub handler test 不可信** — DC-1.3 用 CompensateRecorder 仅 set flag，未触发真实 55.12 回归点。需真 handler 测。
 6. **3 轮对抗 > 1 轮平面** — RGS-REV-008 (4 verifier 平面) 发现 70 issue 但 RGS-REV-009 (3 轮对抗) 5 verifier 通过仲裁抓出 2 个被平面审查错漏的 CRITICAL。
 
@@ -278,7 +278,7 @@ V4 提出 5 项解释，V5 整合并补充：
 - V3 报告: `V3-integration.md` (0C/2H/4M/3L = 9)
 - V4 报告: `V4-adversarial.md` (仲裁 + cross-impact)
 - 5 commit 验证命令记录: 见各 verifier 报告 + V5 worktree (`D:/adversarial-55-26-V5`)
-- RGS-REV-008 baseline: `c730b21` (4 verifier 平面交叉审核 12 commit, 70 issue)
+- RGS-REV-008 baseline: `22f662f` (4 verifier 平面交叉审核 12 commit, 70 issue)
 - 修复任务清单: `issues-56x-catalog.md` (11 项, P0: 3, P1: 4, P2: 4)
 - Commit 提案: `COMMIT_PROPOSAL.md`（不 commit，留给 root session 决策）
 

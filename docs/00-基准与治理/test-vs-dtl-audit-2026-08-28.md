@@ -1,6 +1,6 @@
 # 测试结果 vs 详细设计 核对报告 — 2026-08-28
 
-> **目的**:核对 2026-08-28 ut 实施批次(commit `94ba812` + `de86d80`)的测试结果是否与 DTL/BAS 详细设计预期一致,识别"测试通过 ≠ 设计达标"差异
+> **目的**:核对 2026-08-28 ut 实施批次(commit `b4df2ed` + `3e8d9ca`)的测试结果是否与 DTL/BAS 详细设计预期一致,识别"测试通过 ≠ 设计达标"差异
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 09:06 JST)
 > **关联**:
 > - 测试 evidence:`docs/00-基准与治理/.test-evidence/2026-08-28-audit-v2/` (16 个 artifact)
@@ -58,7 +58,7 @@
 | main 流程 | 4 行 log + nested dir + 幂等 + exit 0 | D001~D004 (4) | ✅ |
 | **合计** | **17 ID** | **17/17 PASS** | **✅ 100% 达标** |
 
-**说明**:`RGS-TST-UT-09_工具集_单元测试设计书.md` v0.2(per commit `94ba812` F1/F2/F6 处置)与 `crates/rgs-certgen/tests/ut_blackbox.rs` 17 test fn 一一对应。TBD-09-01 已关闭。
+**说明**:`RGS-TST-UT-09_工具集_单元测试设计书.md` v0.2(per commit `b4df2ed` F1/F2/F6 处置)与 `crates/rgs-certgen/tests/ut_blackbox.rs` 17 test fn 一一对应。TBD-09-01 已关闭。
 
 ## 2.2 rgs-testkit (mock 资产中枢)
 
@@ -184,7 +184,7 @@
 | D2 | economy-service `outbox_check_constraint_is_idempotent` 手写 env var 缺 DATABASE_URL | HIGH | fixture 缺失 + 未用 `#[pg_test]` 宏 | 改用 `#[rgs_testkit::pg_test]` 强约束 |
 | D3 | 5 域 outbox CHECK 测试(`outbox_check_constraint_rejects_invalid_status` × 4) panic | HIGH | 同 D1 根因 | 同 D1 |
 | D4 | gm-backend 5 endpoint 字段级 stub ≠ BAS-003/DTL-003 协议字段 | HIGH | 设计覆盖未达 | per F8 处置 v0.2 实装 propagation_status / services[] / entries+has_more(已入 TBD-08-03)|
-| D5 | gm-backend 追溯矩阵引用 DTL-040 §3.x 子章节号不存在 | MEDIUM | 设计引用错误 | per F7 处置段已改(本批 commit `de86d80` 含)|
+| D5 | gm-backend 追溯矩阵引用 DTL-040 §3.x 子章节号不存在 | MEDIUM | 设计引用错误 | per F7 处置段已改(本批 commit `3e8d9ca` 含)|
 | D6 | DTL-040 自标"待评审・不得作为实施授权",gm-backend 已上线 | HIGH | 设计/实施顺序倒挂 | DDD Review 阶段审批 DTL-040 v0.3 + 追加 gm-backend 实施授权追溯 |
 | D7 | match-service DTL-026 §4 扩圈算法 + §5 跨分片 OCC 无 UT | MEDIUM | 设计覆盖缺口 | 新增 match-service 专项 UT(v0.2 实装)|
 | D8 | social-service `social_fixture_creates_guild_in_real_pg` 命名 vs DTL-019 "兑换码三表" | LOW | 命名/归属可疑 | DDD Review 阶段确认 social-service 实际子域定位 |

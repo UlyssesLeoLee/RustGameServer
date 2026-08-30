@@ -116,7 +116,7 @@ per RGS-WBS-001 v0.7 §8.5 + RGS-OPEN-QA-001 v0.2 Q-G-04 答复，**不能一刀
 | 文件 | `docs/deploy/b1-otel-pod-up.log` |
 | 实测日期 | 2026-08-24T06:42:00+09:00 |
 | 责任人 | Ulysses（per DEC-008） |
-| 部署源 | WF-0.5-2 worker（commit 1183515）渲染的 NATS + OTel + Prom + Grafana K8s manifest |
+| 部署源 | WF-0.5-2 worker（commit 2ccae93）渲染的 NATS + OTel + Prom + Grafana K8s manifest |
 | 工具链 | kubectl（WSL2 k3s）/ Docker（Windows host） |
 | **验证证据 1：manifest apply** | ✅ 14 K8s resources apply OK（namespace + 3 Deployment + 3 PVC + 7 Service/ConfigMap/SA）|
 | **验证证据 2：Pod Running** | ❌ 0/3 Pod Running（ImagePullBackOff 因 ghcr.io 无 PAT）|
@@ -128,7 +128,7 @@ per RGS-WBS-001 v0.7 §8.5 + RGS-OPEN-QA-001 v0.2 Q-G-04 答复，**不能一刀
 | 文件 | `docs/deploy/b2-player-grpc-healthcheck.log` |
 | 实测日期 | 2026-08-24T06:50:00+09:00 |
 | 责任人 | Ulysses（per DEC-008） |
-| 部署源 | WF-0.5-1 worker（commit 4467080）渲染的 5 业务域 K8s manifest |
+| 部署源 | WF-0.5-1 worker（commit a497882）渲染的 5 业务域 K8s manifest |
 | **验证证据 1：apply** | ❌ 未执行（worker `bg_a00b2e0a` 在准备阶段 Request timed out）|
 | **验证证据 2：Pod Running** | ❌ No resources found in rust-game-server namespace |
 | 备注 | 即使 apply，5 业务域镜像未推（ghcr.io 无 PAT），Pod 会立即 ImagePullBackOff |

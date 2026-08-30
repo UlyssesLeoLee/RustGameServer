@@ -128,7 +128,7 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 
 > 缺标比错标更安全(per DTL-036 v1.4.1 hotfix 复盘 §修式)。本节列出来源 DTL 升版自身声明的待办 / 缺口,本 SPEC 不预设处置方案,待 DDD Review 阶段配套决策。
 
-源 RGS-DTL-036 v1.4.2 §3 末尾"已知缺口(DDD Review 阶段必查项)"清单 **5 项**(per v1.4.2 hotfix commit `2c81361` §3 修订)必须由本 SPEC 在编码阶段配套处置(per RGS-DTL-036-REVIEW-2026-08-26 §P3 处置要求 1/2/3):
+源 RGS-DTL-036 v1.4.2 §3 末尾"已知缺口(DDD Review 阶段必查项)"清单 **5 项**(per v1.4.2 hotfix commit `c7f0e72` §3 修订)必须由本 SPEC 在编码阶段配套处置(per RGS-DTL-036-REVIEW-2026-08-26 §P3 处置要求 1/2/3):
 
 1. **gRPC 方法名与父 BAS-001 §6.3.1 PlayerService 现有方法名对账**——当前 DTL-036 §3 占位名 `GetPlayer`/`CreatePlayer`/`UpdatePlayerState` vs 父 BAS 现行 `Authenticate`/`SelectCharacter`/`GetCharacterList`,两者**不一致**。本 SPEC 待 DDD Review 阶段配套 player.proto 字段号/错误枚举/兼容窗口一起重写;**具体 proto 路径 / crate 路径 / 中间件层由 DDD Review 阶段决定,本 SPEC 不预设**;实现期 **不得** 直接以 DTL-036 §3 占位名落到未经 DDD Review 决定的任一具体位置。
 2. **与 REQ-001 §FR-PL-004(玩家永久状态读写, PH-1 ◎)/ FR-PL-005(封禁/制裁)/ FR-PL-006(在线状态)三条业务规则对账**——当前 DTL-036 §3 未覆盖,见源 DTL §8 评审(业务)栏备注。本 SPEC §3 实现单元的 "API/event" 行暂不补充这三类方法,留待 DDD Review 阶段以基础方法名(本节缺口 1)对齐后,按 FR-PL-004/005/006 业务边界追加,实现期不得自行决定命名。

@@ -2,12 +2,12 @@
 
 ## 元数据
 
-- **审查范围**: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **审查范围**: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - **审查维度**: Security
 - **审查者**: V1 (verifier, mvs_3af160637a444cba85e37859df663495)
 - **日期**: 2026-08-23
 - **关联**: RGS-REV-009 修复落地验证 (per V5 NO-MERGE-PENDING-WF-1-55-27 tag 解锁条件)
-- **worktree**: `D:/rev-010-V1` (基于 f31ca6c detached HEAD)
+- **worktree**: `D:/rev-010-V1` (基于 3ead5f6 detached HEAD)
 - **target dir**: `D:\target-rev-010-V1` (独立)
 - **未修改 main worktree 任何源码**
 
@@ -26,19 +26,19 @@
 
 | RGS-REV-009 ID | 修复 commit | 实际验证状态 | 备注 |
 |---|---|---|---|
-| CR-1 资金幻影 | WF-1-55.27 `0c6d573` | ✅ | OccFailingAccountRepository wrapper (tokio::sync::Mutex 控制失败次数) 驱动真实生产路径 `ReserveHandler.execute`, 3 关键断言 (reservation=0, balance 不变, ledger=0) — V1 独立验证 |
-| CR-2 outbox CHECK 静默失效 | WF-1-55.28 `fdfd4aa` | ✅ | 6 域 migration 文件除首行注释外内容 100% 相同; 幂等 SQL `DO $$ ... EXCEPTION WHEN duplicate_object` 兼容 fresh + 已部署; sqlx::migrate! build 通过 |
-| HI-1 mTLS server getter | WF-1-55.30 `7e2d457` | ✅ | shared-platform `SERVER_MTLS_BYPASSED_TOTAL` + `server_mtls_bypassed_total()` getter, 6 域 main.rs 迁移完成 (grep 命中 6/6); 6 diff 实际代码变更 byte-for-byte 相同 |
-| HI-2-stub DC-1.3 | WF-1-55.29 `63706a6` | ✅ | `resume_compensating_saga_does_not_double_refund_with_real_handlers` 3 阶段崩溃恢复, 真 ReserveHandler/ConfirmHandler 替换 stub CompensateRecorder; V1 验证测试结构覆盖 3 关键断言 |
-| HI-3 fail-closed 启动 test | WF-1-55.32 `d2a19ac` | ⚠️ HIGH | 6 域 `fail_closed_start.rs` 文件一致 (仅 binary name 差异); 6 域 test 实际跑通 (1.0 passed / 6.0s); **但 test assertion 包含 "economy-service" 等永远匹配的 token** (详见下) |
-| HI-D 3 终态 test | WF-1-55.33 `5f64b8e` | ✅ | 3 个 test (Completed/Failed/Aborted) 全过, 锚定 `saga_orchestrator.rs:94-99` 早返 Validation("already in terminal state"); V1 验证 status enum match 完整 |
-| ME-1 deprecation | WF-1-55.34 `5866946` | ✅ | `#[deprecated]` 标注 `EconomyService::credit/debit` (note 指向 saga helper), test mod `#![allow(deprecated)]`; 4 test 仍跑不报 warning |
-| ME-2 admin 注释 | WF-1-55.35 `ee022d0` | ✅ | `admin-service/migrations/0003_outbox.sql` L1 注释从 `0002_outbox` 修正为 `0003_outbox`; 与文件名一致 |
-| ME-3 clippy 1.98 | WF-1-55.35 `ee022d0` | ✅ | V1 独立跑 `cargo clippy --workspace --all-targets --exclude rgs-certgen -- -D warnings -A pedantic -A nursery -A cargo`: 0 warning, 19m12s 编译完成 |
-| LO-1/2/3 rgs-certgen | WF-1-55.36 `91d4608` | ✅ | `let _ =` 移除 + `&PathBuf` → `&Path`, 3 clippy 错误清; rgs-certgen 排除在 clippy 范围外但文件已修 |
-| LO-1/2/3 doctest | WF-1-55.36 `91d4608` | ✅ | `shared-platform/src/json_logging.rs` +61 行 doctest 用法示例 (符合 doc comment 规范) |
-| LO-4 补偿半途崩溃 + 幂等 | WF-1-55.37 `62d62cb` | ✅ | `compete_recovery_after_handler_crash_retries_handler` 3 关键断言 (balance=500, ledger=1 条, 终态 Failed); `compete()` 顺序调换 `handler.compensate → saga.compensate → sagas.save`; `find_ledger_by_idempotency_key` 在 trait + Pg + InMemory + OccFailingAccountRepository wrapper 四处实现 |
-| HI-2-pg PgTestDb fixture | WF-1-55.31 `ec1f992` | ✅ (W31) / ⚠️ ME-2 (未使用) | 127 行 fixture + 3 unit test + sqlx 0.8 + `pg-integration` feature 默认关; rgs-testkit 3 test 全过; **但 6 域 main 测试仍只用 InMemory** (per ME-2) |
+| CR-1 资金幻影 | WF-1-55.27 `eafafe8` | ✅ | OccFailingAccountRepository wrapper (tokio::sync::Mutex 控制失败次数) 驱动真实生产路径 `ReserveHandler.execute`, 3 关键断言 (reservation=0, balance 不变, ledger=0) — V1 独立验证 |
+| CR-2 outbox CHECK 静默失效 | WF-1-55.28 `13a67bc` | ✅ | 6 域 migration 文件除首行注释外内容 100% 相同; 幂等 SQL `DO $$ ... EXCEPTION WHEN duplicate_object` 兼容 fresh + 已部署; sqlx::migrate! build 通过 |
+| HI-1 mTLS server getter | WF-1-55.30 `3022f12` | ✅ | shared-platform `SERVER_MTLS_BYPASSED_TOTAL` + `server_mtls_bypassed_total()` getter, 6 域 main.rs 迁移完成 (grep 命中 6/6); 6 diff 实际代码变更 byte-for-byte 相同 |
+| HI-2-stub DC-1.3 | WF-1-55.29 `13010ce` | ✅ | `resume_compensating_saga_does_not_double_refund_with_real_handlers` 3 阶段崩溃恢复, 真 ReserveHandler/ConfirmHandler 替换 stub CompensateRecorder; V1 验证测试结构覆盖 3 关键断言 |
+| HI-3 fail-closed 启动 test | WF-1-55.32 `ce35f10` | ⚠️ HIGH | 6 域 `fail_closed_start.rs` 文件一致 (仅 binary name 差异); 6 域 test 实际跑通 (1.0 passed / 6.0s); **但 test assertion 包含 "economy-service" 等永远匹配的 token** (详见下) |
+| HI-D 3 终态 test | WF-1-55.33 `7e258d3` | ✅ | 3 个 test (Completed/Failed/Aborted) 全过, 锚定 `saga_orchestrator.rs:94-99` 早返 Validation("already in terminal state"); V1 验证 status enum match 完整 |
+| ME-1 deprecation | WF-1-55.34 `2f334fc` | ✅ | `#[deprecated]` 标注 `EconomyService::credit/debit` (note 指向 saga helper), test mod `#![allow(deprecated)]`; 4 test 仍跑不报 warning |
+| ME-2 admin 注释 | WF-1-55.35 `385fd7e` | ✅ | `admin-service/migrations/0003_outbox.sql` L1 注释从 `0002_outbox` 修正为 `0003_outbox`; 与文件名一致 |
+| ME-3 clippy 1.98 | WF-1-55.35 `385fd7e` | ✅ | V1 独立跑 `cargo clippy --workspace --all-targets --exclude rgs-certgen -- -D warnings -A pedantic -A nursery -A cargo`: 0 warning, 19m12s 编译完成 |
+| LO-1/2/3 rgs-certgen | WF-1-55.36 `e0de669` | ✅ | `let _ =` 移除 + `&PathBuf` → `&Path`, 3 clippy 错误清; rgs-certgen 排除在 clippy 范围外但文件已修 |
+| LO-1/2/3 doctest | WF-1-55.36 `e0de669` | ✅ | `shared-platform/src/json_logging.rs` +61 行 doctest 用法示例 (符合 doc comment 规范) |
+| LO-4 补偿半途崩溃 + 幂等 | WF-1-55.37 `6d8c127` | ✅ | `compete_recovery_after_handler_crash_retries_handler` 3 关键断言 (balance=500, ledger=1 条, 终态 Failed); `compete()` 顺序调换 `handler.compensate → saga.compensate → sagas.save`; `find_ledger_by_idempotency_key` 在 trait + Pg + InMemory + OccFailingAccountRepository wrapper 四处实现 |
+| HI-2-pg PgTestDb fixture | WF-1-55.31 `d7b016c` | ✅ (W31) / ⚠️ ME-2 (未使用) | 127 行 fixture + 3 unit test + sqlx 0.8 + `pg-integration` feature 默认关; rgs-testkit 3 test 全过; **但 6 域 main 测试仍只用 InMemory** (per ME-2) |
 
 **汇总**: 10 ✅ + 1 ⚠️ HIGH (HI-3 fail-closed test 缺陷) + 1 ⚠️ MEDIUM (W31 fixture 未被 6 域使用)
 
@@ -170,8 +170,8 @@ cargo clippy --workspace --all-targets --manifest-path D:/rev-010-V1/Cargo.toml
 
 ## commit hash
 
-- **HEAD**: `f31ca6c` (Merge commit 'ec1f992' — WF-1-55.31 PgTestDatabase fixture)
-- 范围: `161a241..f31ca6c` (22 commit: 11 修复 + 11 merge)
+- **HEAD**: `3ead5f6` (Merge commit 'd7b016c' — WF-1-55.31 PgTestDatabase fixture)
+- 范围: `49f8731..3ead5f6` (22 commit: 11 修复 + 11 merge)
 - main worktree (D:/RustGameServer) 状态: 仅 untracked `docs/00-基准与治理/reviews/adversarial-55-27-37/V1-security.md` (本次报告)
 - 报告落盘: `D:/RustGameServer/docs/00-基准与治理/reviews/adversarial-55-27-37/V1-security.md`
 - 不修改 main worktree 任何源码; 不修改 RGS-REV-009 V1-V4 历史报告

@@ -56,7 +56,7 @@
 - **质量门**:35 BAS 100% 覆盖 / 偏差 P0=0 P1 ≤ 3 / 9 域 IT 文档头表 BAS 引用闭合
 - **责任**:架构师 (Mavis)+ QA Lead + 9 域 Lead 联合签字
 - **依赖**:无前置
-- **状态**:W6 已实装 (commit `b20ff53` 35 BAS 关键追溯 + `5ddb682` BAS-TST cross W25 65,583 字节), 主体已完成。**剩余 P2 偏差 35 项需在 W7 业务实装时同步闭合**
+- **状态**:W6 已实装 (commit `3c3bcc4` 35 BAS 关键追溯 + `aa283ec` BAS-TST cross W25 65,583 字节), 主体已完成。**剩余 P2 偏差 35 项需在 W7 业务实装时同步闭合**
 - **累计 token**:~15M (已完成)+ 5M (剩余闭合)
 
 ### 2.2 桶 2: gm-backend 业务实装(原 W7 决策 6+7 合并项,拆 2a/2b/2c per 2026-08-29 05:51 JST 拍板 4)
@@ -250,7 +250,7 @@
 - 决策:**桶 2 拆为 2a (gm 业务实装) + 2b (5 域 axum-test 切) + 2c (链路 B/C/D)**
   - 2a (40M tokens,gm 业务实装):5 GM RPC 业务 schema 完整实装(从 v0.3 简化版升级),单 worker + 自审复核
   - 2b+2c (40M tokens,并行):2b 5 域切 axum-test,2c 链路 B/C/D 实装,2 个 worker 并行
-- 理由: 单桶 80M token 对 worker 不可靠(per bg_2f56eddd 失职 + 73bcb19 复盘),拆为 3 个独立可验证子桶,每子桶 ≤ 40M
+- 理由: 单桶 80M token 对 worker 不可靠(per bg_2f56eddd 失职 + c6dc816 复盘),拆为 3 个独立可验证子桶,每子桶 ≤ 40M
 - gm.proto 保持 v0.3(不去 v0.4 引入 common.proto / RequestContext 统一)— 决 6 暂缓 + 决 7 暂缓推 9 月 WBS
 - 拒绝替代:
   - 桶 2 不拆(单 worker 80M 失职概率高, 返工成本 > 拆分成本)
@@ -264,33 +264,33 @@
 
 ### 7.4 已实装现状(8/29 07:38 JST 之后)
 
-- W25 Step 3 集成包入库 (commit `ce62925` + tag `v0.5-step3-integration-2026-08-29`)
+- W25 Step 3 集成包入库 (commit `b563e5e` + tag `v0.5-step3-integration-2026-08-29`)
 - 9 决议 1-5 接受 / 6-9 暂缓 (9-DECISIONS v0.3)
 - BAS-TST cross W25 报告 v0.2 §8 (35 P2 100% closure 状态明确)
-- 桶 1 闭合 (commit `ddf1cb7`)
-- **桶 2a 完成 (W26 commit `5e1e168` + tag `v0.6-bucket2a-gm-business-2026-08-29`)**
+- 桶 1 闭合 (commit `3c9e1ef`)
+- **桶 2a 完成 (W26 commit `8ff7e0b` + tag `v0.6-bucket2a-gm-business-2026-08-29`)**
   - gm-backend 5 endpoint 业务实装 (axum Json/Query extractor)
   - 22 IT PASS (ban/compensation/maintenance/audit/health)
   - gm-backend 跑测累计 106/106 PASS
-- **桶 2b 落档 (W27 commit `1e38711` + merge `0b40e14`)**
+- **桶 2b 落档 (W27 commit `b85f518` + merge `02da714`)**
   - 决议 6 (5 域切 axum-test) 与现状 gap, 推 W31+ (50-80M tokens)
   - 5 域是 gRPC service 无 axum HTTP 入口, 0 IT
   - 落档 `RGS-BUCKET-2B-AXUM-TEST-v0.1.md`
-- **桶 2c 落档 (W28 commit `88fd21b` + merge `7b66d64`)**
-  - 链路 B 已实装 (W22 commit `a9a473f` 5/5 PASS)
+- **桶 2c 落档 (W28 commit `1f19d67` + merge `d5b0d43`)**
+  - 链路 B 已实装 (W22 commit `c2abd12` 5/5 PASS)
   - 链路 C 缺上游 economy RPC, 推 W29 (15-20M tokens)
   - 链路 D 依赖 C, 推 W30 (30-40M tokens)
   - 落档 `RGS-BUCKET-2C-LINK-BC-v0.1.md`
 - 跑测累计 400+ PASS (gm-backend 106 + admin-service 35 + 5 域 175 + W26 22 新 IT)
-- TS-001 v0.8 §6.3 WBS token 桶原则 (commit `0c0a0c7`)
-- WBS v0.3 (commit `8ad815c`) 桶 2 拆 2a/2b/2c
-- WBS v0.4 (commit `0b40e14` 即将升) 桶 2b/2c 落档
+- TS-001 v0.8 §6.3 WBS token 桶原则 (commit `e113f64`)
+- WBS v0.3 (commit `aa85045`) 桶 2 拆 2a/2b/2c
+- WBS v0.4 (commit `02da714` 即将升) 桶 2b/2c 落档
 
 ### 7.5 桶 2 进度汇总
 
 | 桶 | 状态 | 实际 token | 备注 |
 |---|---|---|---|
-| 2a gm 业务实装 | ✅ 完成 | 实际 ~10-15M (自做, W26) | commit `5e1e168`, tag v0.6 |
+| 2a gm 业务实装 | ✅ 完成 | 实际 ~10-15M (自做, W26) | commit `8ff7e0b`, tag v0.6 |
 | 2b 5 域 axum-test 切 | ⏸ 落档 W31+ | 0 (落档, W27) | 决议 6 与现状 gap |
 | 2c 链路 B/C/D | ⏸ 落档 W29/W30 | 0 (落档, W28) | 链路 B 已实装, C/D 缺上游 |
 | **合计** | 1/3 完成, 2/3 落档 | **~10-15M / 80M 预算** | 节省 ~65M tokens (落档不实装) |

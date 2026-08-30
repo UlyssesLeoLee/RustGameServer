@@ -3,7 +3,7 @@
 > **目的**:7 域(5 域 + cluster-ops + admin)用 `wiremock 0.6` HTTP mock server,8 域 gm-backend 用 `axum-test 16` in-process router,工具栈不统一
 > **关联**:TBD-08-06 v0.2 处置 + RGS-UT-08 工具栈治理
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 ut 实施 v0.2)
-> **状态**:✅ 已追认(方案 D,双工具并存,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
+> **状态**:✅ 已追认(方案 D,双工具并存,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `90aa3df` 声称的"10:33 JST ask_user 决策"溯源不实,已更正)
 
 ---
 

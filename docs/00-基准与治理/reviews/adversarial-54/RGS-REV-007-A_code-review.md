@@ -3,7 +3,7 @@
 **审核对象**：RustGameServer 工程 53 + 54 全部 Rust 代码 + migration + proto
 **审核子代理**：code-review-adversarial-001
 **审核时间**：2026-08-22
-**commit 基线**：`e320c69`（main ahead origin 82 commits）
+**commit 基线**：`2486aef`（main ahead origin 82 commits）
 **审核范围**：crates/ 下 86 .rs + 10 .toml + 7 .sql + 7 .proto
 
 ---
@@ -401,7 +401,7 @@
 <审计员>：code-review-adversarial-001
 <签名>：code-review-adversarial-001
 <审计时间>：2026-08-22
-<commit>：e320c69
+<commit>：2486aef
 <范围>：86 .rs + 10 .toml + 7 .sql + 7 .proto
 
 **核心结论**：

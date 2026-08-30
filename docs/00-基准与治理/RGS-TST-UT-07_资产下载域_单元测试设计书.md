@@ -36,7 +36,7 @@
 | `it_minio_*.rs` (6 文件) | MinIO 集成(resume / platform / nfr112 / nfr110 / latency / integrity) | ✅ |
 | `it_cloudflare_*.rs` (3 文件) | Cloudflare R2 集成(edge / canary / base) | ✅ |
 | `chaos_responses.rs` + `chaos_minio.rs` | 故障注入(响应错 / MinIO 故障) | ✅ |
-| `security_no_pii.rs` | PII 安全(per 2026-08-27 23:06 fix b2aba4d) | ✅ |
+| `security_no_pii.rs` | PII 安全(per 2026-08-27 23:06 fix 6a913f3) | ✅ |
 | `load_minio.rs` | MinIO 负载 | ✅ |
 
 ## 2. 测试用例
@@ -89,7 +89,7 @@
 
 | 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
-| TST-UT-07-H001~H??? | asset_download/tests/security_no_pii | 日志输出 | N | 日志不含 PII (per 2026-08-27 23:06 fix b2aba4d) |
+| TST-UT-07-H001~H??? | asset_download/tests/security_no_pii | 日志输出 | N | 日志不含 PII (per 2026-08-27 23:06 fix 6a913f3) |
 
 ## 3. 追溯矩阵
 

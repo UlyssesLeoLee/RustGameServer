@@ -15,12 +15,12 @@
 ## 1. 你接手时的 git 状态(2026-08-24 07:30 main HEAD)
 
 ```
-b44c589 [phase-0.5] step-6 总报告(主对话接手版,worker timeout 失败后整合)
-48101aa [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist_business v0.1 → v0.2
-765930a [merge] WF-0.5-3: Phase 0.5 Step 4 (mTLS 7 Secret + 5/5 fail-closed PASS)
-c5a0c9f [merge] WF-0.5-2: Phase 0.5 Step 2+3 (NATS + OTel/Prom/Grafana 18 manifest)
-7046936 [merge] WF-0.5-1: Phase 0.5 Step 1+5 (5 域 manifest 实际值 + docker image 脚本)
-fa6b07e [phase-0.5] NO-GO 解除决议(一人公司 12 角色全签) + 4 B-CODE 实测 log
+f2d30a0 [phase-0.5] step-6 总报告(主对话接手版,worker timeout 失败后整合)
+28679c0 [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist_business v0.1 → v0.2
+b9bc214 [merge] WF-0.5-3: Phase 0.5 Step 4 (mTLS 7 Secret + 5/5 fail-closed PASS)
+731f836 [merge] WF-0.5-2: Phase 0.5 Step 2+3 (NATS + OTel/Prom/Grafana 18 manifest)
+722cb69 [merge] WF-0.5-1: Phase 0.5 Step 1+5 (5 域 manifest 实际值 + docker image 脚本)
+28f153a [phase-0.5] NO-GO 解除决议(一人公司 12 角色全签) + 4 B-CODE 实测 log
 ```
 
 **worktree 状态**:`git worktree list` 只剩主工作区 + 3 个你之前决定保留的 detached `rev-010-V{1..3}`。
@@ -356,13 +356,13 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ## 11. 已知未完成事项(per 2026-08-24 18:25 主对话盘点后)
 
-> **当前状态**(per 2026-08-24 20:53 主对话盘点,5 worker + 4 follow-up merge commit 落地):**12 项子事项(11.1~11.12)**,其中 **10 项 closed**(§11.3/11.4/11.5/11.6/11.7/11.8/11.9/11.10/11.11/11.12 per `195bfae` + `6ae469b` + `7c2db70` + `32333d2` + `7d68f73` + `452c3b2` + `65b11a7` + `77d06c2` + `f9512cc` 共 9 commit)+ **2 项仍 open**。
+> **当前状态**(per 2026-08-24 20:53 主对话盘点,5 worker + 4 follow-up merge commit 落地):**12 项子事项(11.1~11.12)**,其中 **10 项 closed**(§11.3/11.4/11.5/11.6/11.7/11.8/11.9/11.10/11.11/11.12 per `534e008` + `0db8511` + `8f85ef5` + `28dc9b6` + `74a9302` + `a737897` + `f4bdad5` + `52277a1` + `7f27c74` 共 9 commit)+ **2 项仍 open**。
 >
 > **修订历史**:
-> - 2026-08-24 20:42 主对话盘点:§11.6/§11.7/§11.8 标 Closed(per 6ae469b + 7c2db70 + 32333d2,3 项已在 phase-0-5 期间完成但 handoff 文档未同步);剩余 §11.1/§11.2 真阻塞,等 SRE 接力 + G-CODE-06 实测
-> - 2026-08-24 19:00 修订:①§11.3 关闭(Saga CRITICAL 修复 3 L4 全真修 + 271 test passed,per merge `195bfae`)②新增 §11.9 / §11.10 / §11.11 / §11.12 反映 4 worker 实际产出(Phase 0.5 retrospective / 5 域 DTL Review / 引用扫雷 / Saga 修复)
-> - 2026-08-24 18:25 修订:①§11 子章节编号 10.1~10.8 → 11.1~11.8(commit 6d985d6 仅改 §11 标题未改子编号)②11.4 关闭(7c2db70 已修正则)③11.5 关闭(无文档错)④§12.3 改"未 commit" → "已 commit 66ff53b"
-> - 2026-08-24 18:00 首次盘点:e293b98 §10 8 项 + 6d985d6 §11 标题
+> - 2026-08-24 20:42 主对话盘点:§11.6/§11.7/§11.8 标 Closed(per 0db8511 + 8f85ef5 + 28dc9b6,3 项已在 phase-0-5 期间完成但 handoff 文档未同步);剩余 §11.1/§11.2 真阻塞,等 SRE 接力 + G-CODE-06 实测
+> - 2026-08-24 19:00 修订:①§11.3 关闭(Saga CRITICAL 修复 3 L4 全真修 + 271 test passed,per merge `534e008`)②新增 §11.9 / §11.10 / §11.11 / §11.12 反映 4 worker 实际产出(Phase 0.5 retrospective / 5 域 DTL Review / 引用扫雷 / Saga 修复)
+> - 2026-08-24 18:25 修订:①§11 子章节编号 10.1~10.8 → 11.1~11.8(commit 7426802 仅改 §11 标题未改子编号)②11.4 关闭(8f85ef5 已修正则)③11.5 关闭(无文档错)④§12.3 改"未 commit" → "已 commit f4dd357"
+> - 2026-08-24 18:00 首次盘点:c6294ed §10 8 项 + 7426802 §11 标题
 
 ### 11.1 数据/evidence 丢失
 
@@ -372,26 +372,26 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 
 ### 11.2 WBS 任务进度表未更新
 
-- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md`(注:7c2db70 已升 v0.3 → v0.4,WF-0.5-1/2/3 三行已标 done,§3 汇总同步 7 pending → 4 pending + 3 done)仍显示 128/128 整体 pending
+- `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md`(注:8f85ef5 已升 v0.3 → v0.4,WF-0.5-1/2/3 三行已标 done,§3 汇总同步 7 pending → 4 pending + 3 done)仍显示 128/128 整体 pending
 - 实际状态:**WF-0.5-1/2/3 已在 Phase 0.5 期间作为"Phase 0.5 部署 worktree"重定向使用,3 个 worktree 已合并入 main;WF-0.5-6 worker 失败,主对话接手补完 4 B-CODE log + 总报告**
 - **L4 任务标 done 的正确做法**:G-CODE-06 实测通过后由 `wbs_task_progress.ps1 -Status done` 自动填充;当前 NO-GO 形式上解除但实质未闭环,WBS 进度表更新是后续 Phase 0.5 实质完成后的工作
 - **SRE 完成 §5 后**:`pwsh -File scripts/wbs_task_progress.ps1 -L4Id WF-0.5-1 -Status done` 等 3 个
 
-### 11.3 Saga CRITICAL 修复 ✅ Closed(per merge `195bfae` + tag 收尾 `14036d6`)
+### 11.3 Saga CRITICAL 修复 ✅ Closed(per merge `534e008` + tag 收尾 `629369d`)
 
-- ✅ **Closed 2026-08-24 19:00**:`wbs/WF-1-55.27-retry` 分支并入 main(`195bfae`),`no-merge-pending-wf-1-55-27` git tag 已删(`14036d6`)
+- ✅ **Closed 2026-08-24 19:00**:`wbs/WF-1-55.27-retry` 分支并入 main(`534e008`),`no-merge-pending-wf-1-55-27` git tag 已删(`629369d`)
 - ✅ **3 个 L4 任务全真修 + 真 PG 验证**(非 mock,经 K3s postgres-5bb9bb647d-6wfv4 port-forward 验证):
-  - **WF-1-55.27 CR-1**(`c96efe8`):`ReserveHandler::execute` 修第 3 失败路径 `load_active_account` + 加 `Reservation::release()` 语义,2 个新测试锚定
-  - **WF-1-55.28 CR-2**(`a80fa94`):6 域 migration 改名为 `*_outbox_check_idempotent.sql` + 加 `crates/economy-service/tests/integration_outbox.rs` 220 行真 PG 测试
-  - **WF-1-55.31 CR-3**(`f6a6f3f`):`rgs_testkit::pg_pool()` + `rgs_testkit::pg_test` 强约束 re-export,`DbMock` / `NoopMock` / `mock_url` 全部 `#[deprecated]`,加 `pg_test_macro_re_export_works` doctest 真 PG 验证
+  - **WF-1-55.27 CR-1**(`eba4b22`):`ReserveHandler::execute` 修第 3 失败路径 `load_active_account` + 加 `Reservation::release()` 语义,2 个新测试锚定
+  - **WF-1-55.28 CR-2**(`0623066`):6 域 migration 改名为 `*_outbox_check_idempotent.sql` + 加 `crates/economy-service/tests/integration_outbox.rs` 220 行真 PG 测试
+  - **WF-1-55.31 CR-3**(`2bab9fe`):`rgs_testkit::pg_pool()` + `rgs_testkit::pg_test` 强约束 re-export,`DbMock` / `NoopMock` / `mock_url` 全部 `#[deprecated]`,加 `pg_test_macro_re_export_works` doctest 真 PG 验证
 - ✅ **验证结果**:`cargo test --workspace` **271 passed / 0 failed**,含 2 个真 PG integration test + deprecation 警告机制(use DbMock x2 / NoopMock x1 / mock_url x1 触发 4 个 warning)
 - ✅ **worktree**:`D:\RustGameServer-worktrees\WF-1-55-retry\` 收尾后清理(保留分支 `wbs/WF-1-55.27-retry` 供审计)
 
-### 11.4 git 工具链 bug 已修 ✅ Closed(per 7c2db70)
+### 11.4 git 工具链 bug 已修 ✅ Closed(per 8f85ef5)
 
-- ✅ **Closed 2026-08-24 18:17(commit `7c2db70`)**:`scripts/wbs_create_worktree.ps1` L4Id 正则 `^WF-[\d\.]+(?:\.[\d]+)?$` → `^WF-(\d+(\.\d+)?)-(\d+)(\.\d+)?$`,同时支持 `WF-1-53.1` / `WF-0.5-1` / `WF-1.5-X` 多种格式
+- ✅ **Closed 2026-08-24 18:17(commit `8f85ef5`)**:`scripts/wbs_create_worktree.ps1` L4Id 正则 `^WF-[\d\.]+(?:\.[\d]+)?$` → `^WF-(\d+(\.\d+)?)-(\d+)(\.\d+)?$`,同时支持 `WF-1-53.1` / `WF-0.5-1` / `WF-1.5-X` 多种格式
 - ✅ 新增 `scripts/test-l4id-regex.ps1` 回归测试 10/10 case pass
-- ✅ handoff §11.4 之前标"未修复"是过时的——已 commit 7c2db70 第 2 项任务交付
+- ✅ handoff §11.4 之前标"未修复"是过时的——已 commit 8f85ef5 第 2 项任务交付
 
 ### 11.5 RGS-WBS-001 文档 §11.4 vs §2A.6.7 引用错位 ✅ Closed(无文档错)
 
@@ -400,33 +400,33 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - **修复:文档本身没错,只是主对话之前引用章节号写错**。后续引用统一改用 §2A.6.7(已在 §11.2 注中修正)
 - **本项无代码/文档变更**,只主对话的引用习惯修正
 
-### 11.6 worktree 清理违规例外条款 ✅ Closed(per 6ae469b)
+### 11.6 worktree 清理违规例外条款 ✅ Closed(per 0db8511)
 
-- ✅ **Closed 2026-08-24(commit `6ae469b`)**:RGS-WT-001 v0.2 §11.7 已加例外条款,允许"已合并入 main 的 worktree 可 --force"但需走 4 步流程(人审 → 备份 untracked → 才允许 --force → 登记 RGS-INC-*);明确 --force 是 incident 应急而非日常快捷键
+- ✅ **Closed 2026-08-24(commit `0db8511`)**:RGS-WT-001 v0.2 §11.7 已加例外条款,允许"已合并入 main 的 worktree 可 --force"但需走 4 步流程(人审 → 备份 untracked → 才允许 --force → 登记 RGS-INC-*);明确 --force 是 incident 应急而非日常快捷键
 - **关联**:phase-0-5 反馈单 Issue 1 + RGS-WT-001 §6.7 协调规则
-- **本项无新代码变更**(handoff §11.6 写"应加例外条款"已被 6ae469b 实现,只是 handoff 文档没同步)
+- **本项无新代码变更**(handoff §11.6 写"应加例外条款"已被 0db8511 实现,只是 handoff 文档没同步)
 
-### 11.7 3 个 rev-010-V detached worktree 清理 ✅ Closed(per 7c2db70)
+### 11.7 3 个 rev-010-V detached worktree 清理 ✅ Closed(per 8f85ef5)
 
-- ✅ **Closed 2026-08-24(commit `7c2db70` + merge `65ea750`)**:3 个 D:\rev-010-V{1..3} detached worktree 已清理(per phase-0-5/local-fixes merge commit message "3 rev-010 清理")
+- ✅ **Closed 2026-08-24(commit `8f85ef5` + merge `4f12963`)**:3 个 D:\rev-010-V{1..3} detached worktree 已清理(per phase-0-5/local-fixes merge commit message "3 rev-010 清理")
 - 验证: `git worktree list` 当前 2026-08-24 20:42 仅主工作区,无 D:\rev-010-V* 残留
 - **本项无新代码变更**
 
-### 11.8 RGS-INC-001 文档名/版本不一致 ✅ Closed(per 32333d2)
+### 11.8 RGS-INC-001 文档名/版本不一致 ✅ Closed(per 28dc9b6)
 
-- ✅ **Closed 2026-08-24(commit `32333d2`)**:文件已 `git mv ..._v0.1.md → ..._v0.2.md`,文件头 v0.2 标记与文件名 v0.2 一致
+- ✅ **Closed 2026-08-24(commit `28dc9b6`)**:文件已 `git mv ..._v0.1.md → ..._v0.2.md`,文件头 v0.2 标记与文件名 v0.2 一致
 - 验证: `glob docs/**/RGS-INC-001*.md` 当前 2026-08-24 20:42 仅返回 `RGS-INC-001_..._v0.2.md`
 - **本项无新代码变更**
 
-### 11.9 Phase 0.5 经验教训沉淀 ✅ Closed(per merge `7d68f73`)
+### 11.9 Phase 0.5 经验教训沉淀 ✅ Closed(per merge `74a9302`)
 
-- ✅ **Closed 2026-08-24 18:38(commit `7d68f73`)**:`docs/14-项目管理/RGS-PM-008_Phase_0.5_Retrospective_v0.1.md` 入仓
+- ✅ **Closed 2026-08-24 18:38(commit `74a9302`)**:`docs/14-项目管理/RGS-PM-008_Phase_0.5_Retrospective_v0.1.md` 入仓
 - ✅ 8 章节齐全:§0 元信息 / §1 范围与窗口 / §2 17 commit 时间线 + 2 补充 / §3 8 修复 + 3 commit + 4 B-CODE / §4 16 经验教训 / §5 6 风险 / §6 12 角色全签 per DEC-008 / §7 PH-1 后续 / §8 修订历史
 - **worktree**:`D:\RustGameServer-worktrees\WF-0-5-retro\` 收尾后清理(保留分支 `phase-0-5/retro` 供审计)
 
-### 11.10 5 域 DTL 字段级 Review 扫雷 ✅ Closed(per merge `452c3b2` 经 `77d06c2` 上链)
+### 11.10 5 域 DTL 字段级 Review 扫雷 ✅ Closed(per merge `a737897` 经 `52277a1` 上链)
 
-- ✅ **Closed 2026-08-24 18:30(commit `452c3b2` 在 `phase-0-5/review` 分支,merge `77d06c2` 不涉及此 commit)**
+- ✅ **Closed 2026-08-24 18:30(commit `a737897` 在 `phase-0-5/review` 分支,merge `52277a1` 不涉及此 commit)**
 - ✅ 交付:`5-DOMAIN-DTL-REVIEW-REPORT.md` 26 KB,含 §1 状态矩阵(§A.1 跨 5 域 70 行 + §A.2-§A.7 域特定 125 行 = 195+ 行带具体行号引用)+ §2 6 行签字栏(per DEC-008 Ulysses 兼任)+ §3 3 处歧义占位 + §4 完成度自评
 - ✅ `RGS-REV-004_附件A_5域DTL字段级ReviewChecklist.md` 末尾加 §A.8(5 域 Lead + 架构师 6 行)+ §A.9(3 处歧义 `[WF-0-5-7 联检前需统一] [域 Lead 决议]` 占位)
 - ⚠️ **5 域完成度**:Admin 89% > Match 68% > Economy 57% > Player 53% > Social 43%,跨域 40%,**总体 ~58%**。**6 项关键缺口**:
@@ -439,9 +439,9 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - ⚠️ **G-CODE-05 完全关闭(field-level DD Review Gate)前需**:架构师决议 + Q-003/ADR-0052 具名 Gate 通过 + DTL-036 §6 待补齐项 4 条落地
 - **worktree**:`D:\RustGameServer-worktrees\WF-0-5-review\` 收尾后清理(保留分支 `phase-0-5/review` 供审计)
 
-### 11.11 引用扫雷 + render-secrets.ps1 路径修复 ✅ Closed(per merge `77d06c2`)
+### 11.11 引用扫雷 + render-secrets.ps1 路径修复 ✅ Closed(per merge `52277a1`)
 
-- ✅ **Closed 2026-08-24 19:00(merge `77d06c2` + 2 commit `32333d2` + `f9512cc`)**
+- ✅ **Closed 2026-08-24 19:00(merge `52277a1` + 2 commit `28dc9b6` + `7f27c74`)**
 - ✅ **v0.3 → v0.4 引用扫雷**:4 行 / 4 文件已替换(`RGS-WBS-001_DAG_v0.3.md:188` + `RGS-WT-001_GitWorktree隔离开发方案.md:228` + `docs/deploy/phase-0-5-handoff.md:313/369`)
 - ✅ **v0.1 → v0.2 引用扫雷**:2 行 / 2 文件已替换(`crates/function-plane/README.md:11` + `docs/deploy/phase-0-5-handoff.md:306`)
 - ✅ **`render-secrets.ps1` 路径修复**:`TemplateDir` 默认从硬编码 `D:\RustGameServer-worktrees\WF-0-5-3\...` 改为 `Join-Path $PSScriptRoot '01-k8s-manifests'`,跨 worktree/克隆通用
@@ -458,15 +458,15 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 - **结果**:**4/4 succeeded**(0 失败,此前主对话误判"4/4 error 0 产出"已修正,见 §11 修订历史)
 - **worktree 清理**:WF-1-55-retry / WF-0-5-review / WF-0-5-citation / WF-0-5-retro 4 个 worktree 收尾后清理(保留分支供审计)
 - **commit 落地 7 个**:
-  - `452c3b2` [phase-0-5/review] 5 域 DTL 字段级 Review 扫雷(2 文件 / 244 行)
-  - `7d68f73` [retro] Phase 0.5 经验教训沉淀(1 文件 / 248 行)
-  - `e4c084e` [saga-drill] G-CODE-04 Saga 6 场景详细演练(1 文件 / 881 行)
-  - `32333d2` [phase-0.5] 引用扫雷:RGS-WBS-001 L4 进度表 v0.3→v0.4 + RGS-INC-001 v0.1→v0.2(6 文件 / 206 ins / 6 del)
-  - `f9512cc` [fix] render-secrets.ps1:TemplateDir 默认值由硬编码 worktree 路径改为动态(1 文件 / 3 ins / 3 del)
-  - `c96efe8` / `a80fa94` / `f6a6f3f` / `14036d6` Saga 修复 3 L4 + tag 收尾(30 文件 / 801 行 / 97 删)
+  - `a737897` [phase-0-5/review] 5 域 DTL 字段级 Review 扫雷(2 文件 / 244 行)
+  - `74a9302` [retro] Phase 0.5 经验教训沉淀(1 文件 / 248 行)
+  - `cd63a97` [saga-drill] G-CODE-04 Saga 6 场景详细演练(1 文件 / 881 行)
+  - `28dc9b6` [phase-0.5] 引用扫雷:RGS-WBS-001 L4 进度表 v0.3→v0.4 + RGS-INC-001 v0.1→v0.2(6 文件 / 206 ins / 6 del)
+  - `7f27c74` [fix] render-secrets.ps1:TemplateDir 默认值由硬编码 worktree 路径改为动态(1 文件 / 3 ins / 3 del)
+  - `eba4b22` / `0623066` / `2bab9fe` / `629369d` Saga 修复 3 L4 + tag 收尾(30 文件 / 801 行 / 97 删)
 - **merge 落地 2 个**:
-  - `77d06c2` [merge] phase-0-5/citation(7 文件 / 209 行 / 9 删)
-  - `195bfae` [merge] wbs/WF-1-55.27-retry(30 文件 / 801 行 / 97 删)
+  - `52277a1` [merge] phase-0-5/citation(7 文件 / 209 行 / 9 删)
+  - `534e008` [merge] wbs/WF-1-55.27-retry(30 文件 / 801 行 / 97 删)
 
 ---
 
@@ -489,7 +489,7 @@ git commit -m "[plan] RGS-PLAN-001 v0.9 → v1.0: Phase 0.5 实质完成 + 进 P
 2. `Dockerfile` 内置静态编译的 `grpc_health_probe`(v0.4.56,linux-amd64,SHA-256 pin,已校验)二进制到 `runtime-base` 镜像。
 3. 6 份 k8s manifest 的 `livenessProbe` / `readinessProbe` 从 `grpc:` 改为 `exec:`,执行 `grpc_health_probe` 并携带 `-tls` 系列参数,**复用各服务自己挂载的 mTLS server 证书**(`/etc/rgs/certs/server.pem` + `.key`)作为探针的 client 身份(`rgs-certgen` 生成证书未设 `ExtendedKeyUsage`,可同时充当 serverAuth/clientAuth,无需新证书/新 Secret)。
 
-### 12.3 已变更文件(已 commit `66ff53b`,26 文件 / 685 行 / 96 删)
+### 12.3 已变更文件(已 commit `f4dd357`,26 文件 / 685 行 / 96 删)
 
 - `Cargo.toml`(workspace)+ 6 服务 `Cargo.toml`:加 `tonic-health = "0.12"`
 - `crates/{player,economy,match,social,admin}-service/src/main.rs` + `crates/cluster-ops/src/main.rs`:注册 `health_reporter` / `health_service`,`add_service` 挂载

@@ -1,7 +1,7 @@
 # V4 对抗仲裁报告 (WF-1-55.26 5 commit)
 
 ## 元数据
-- 审查范围: 13dec2d..0434ada (5 commit)
+- 审查范围: 1b30878..cc888b5 (5 commit)
 - 审查轮次: 第 2 轮 (对抗轮)
 - 审查者: V4 (adversarial verifier)
 - 前置输入: V1 / V2 / V3 报告
@@ -55,7 +55,7 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 
 **V2 描述**：`CREATE TABLE IF NOT EXISTS outbox (...)` 块内追加 `CONSTRAINT chk_outbox_status CHECK (...)`。已部署环境（55.17 已跑过 migration）`outbox` 表已存在，整个 CREATE 块被 sqlx 静默跳过 → CHECK 永不生效。
 
-**我的独立验证** (diff 13dec2d):
+**我的独立验证** (diff 1b30878):
 ```
 --- a/crates/economy-service/migrations/0003_outbox.sql
 @@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS outbox (
@@ -69,7 +69,7 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 ```
 **6 域全中招**（admin/cluster-ops/economy/match/player/social）。所有 6 个文件 diff 模式完全相同。
 
-**CC-3 在 55.17 commit (`53a8d37`)** 已经把 `outbox` 表 CREATE 出来并跑过。生产环境现在的 `outbox` 表:
+**CC-3 在 55.17 commit (`55af339`)** 已经把 `outbox` 表 CREATE 出来并跑过。生产环境现在的 `outbox` 表:
 - 已有 (id, subject, payload, command_id, saga_id, status, retry_count, last_error, lease_until, created_at, sent_at) 列
 - **无 CHECK 约束**
 - 任何 status 字符串都可写入（"draft", "PENDING", "" 等）
@@ -77,7 +77,7 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 **bug 后果**: RGS-REV-008 verify-C §4.3 标的"CHECK 防 status 漂移"在 6 域生产环境**完全不存在**。仅 fresh DB 部署 (CI / 新建环境) 才有效。
 
 **V1 漏列原因**: V1 视角是 security, 关注 fail-closed 与 mTLS, 漏看 SQL migration 语义。
-**V3 漏列原因**: V3 M-1 纠结在 "5 处裸 apply_atomic", 没看 13dec2d 的 SQL 内容。
+**V3 漏列原因**: V3 M-1 纠结在 "5 处裸 apply_atomic", 没看 1b30878 的 SQL 内容。
 
 **V4 仲裁**: 确认 V2 **CRITICAL**。这是 silent-fail 性质 — 整个 5 commit 没说 "fresh DB only"。
 
@@ -118,7 +118,7 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 ### 3.1 [V4-NEW-001] `load_server_tls_config` 失败路径 0 integration test — V4 升级为 HIGH
 
 **证据**:
-- 6 域 main.rs 全部把 `load_server_tls_config` 失败路径从 "warn + None" (55.21+22 静默降级) 改成 `.context()?` 上抛退 1 (cc44249)
+- 6 域 main.rs 全部把 `load_server_tls_config` 失败路径从 "warn + None" (55.21+22 静默降级) 改成 `.context()?` 上抛退 1 (0240d4f)
 - 这是**整个工程最关键的安全防线之一** (verify-A AL-1 / verify-C §4.1)
 - 全仓 grep 0 test 模拟 "PEM 不存在 → 启动退 1" 场景
 
@@ -127,19 +127,19 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 ### 3.2 [V4-NEW-002] 5 commit 跨 commit 集成时序
 
 **时序**:
-- 06:34:20 `13dec2d` CC-3 CHECK
-- 06:36:43 `4973255` CC-4 helper
-- 06:37:33 `cc44249` AC-1 mTLS fail-closed
-- 06:40:07 `a163d17` housekeeping json_logging
-- 06:40:28 `0434ada` DC-1 resume tests
+- 06:34:20 `1b30878` CC-3 CHECK
+- 06:36:43 `a950b46` CC-4 helper
+- 06:37:33 `0240d4f` AC-1 mTLS fail-closed
+- 06:40:07 `f9bf84f` housekeeping json_logging
+- 06:40:28 `cc888b5` DC-1 resume tests
 
-**a163d17 → cc44249 cross-impact 风险**: a163d17 修 json_logging doctest (移除 `fn main()` 包裹, 保留 `no_run`)。cc44249 在 6 域 main.rs 引入 `init_json_logging` 启动时调用 + `.context()?` 退 1。
-- **时序上 a163d17 在 cc44249 之后**, 即 mTLS 改动先, housekeeping 后
+**f9bf84f → 0240d4f cross-impact 风险**: f9bf84f 修 json_logging doctest (移除 `fn main()` 包裹, 保留 `no_run`)。0240d4f 在 6 域 main.rs 引入 `init_json_logging` 启动时调用 + `.context()?` 退 1。
+- **时序上 f9bf84f 在 0240d4f 之后**, 即 mTLS 改动先, housekeeping 后
 - 两者**无直接冲突**: json_logging 只动 doctest 注释, 不动运行时代码
 - 但 `no_run` 标记意味着 doctest 只编译不执行 — 6 域 main.rs 启动时调 `init_json_logging` 真的能跑通, 没被 doctest 验证
 - **V2 L-HOUSEKEEPING-001 提到这点**, 评级 LOW 合理
 
-**`13dec2d` CHECK → `4973255` helper 间接影响**: 无 (helper 在 service.rs, 不动 migration)。但 CC-3 + CC-4 都没真修是**两个独立 P0** 互相掩盖。
+**`1b30878` CHECK → `a950b46` helper 间接影响**: 无 (helper 在 service.rs, 不动 migration)。但 CC-3 + CC-4 都没真修是**两个独立 P0** 互相掩盖。
 
 ### 3.3 [V4-NEW-003] V1/V2/V3 测试数量口径不一致
 
@@ -150,9 +150,9 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 
 **口径差异非问题**, 但 V1/V2 报告里说的"209 全过"给读者一个错觉"全工程测试覆盖好", 实际**真 DB 集成 0 个** (`#[sqlx::test]` / docker-compose 都没有)。V3 H-1 提到了这一点。
 
-### 3.4 [V4-NEW-004] a163d17 housekeeping 副作用
+### 3.4 [V4-NEW-004] f9bf84f housekeeping 副作用
 
-`a163d17` diff 仅 5 行: 移除 `fn main() { ... }` 包裹。**无副作用**:
+`f9bf84f` diff 仅 5 行: 移除 `fn main() { ... }` 包裹。**无副作用**:
 - 0 `#[ignore]` 添加/删除
 - 0 `#[cfg(...)]` 改动
 - 0 测试删除
@@ -176,7 +176,7 @@ V4 仲裁: 这是 **fail-closed 原则正确**的体现, 不是 bug。V2 评级 
 
 2. **CC-4 测试用 InMemoryAccountRepository**: V3 H-1 提到, OCC 失败靠手动 `acc_repo.inner.lock().unwrap().get(&id).version = original + 99` 模拟。**生产 PG OCC** 是 `UPDATE ... WHERE version = ?` 0 row, 行为不完全等价。test 通过 != 生产正确。
 
-3. **CC-3 migration 是 SQL, 无 Rust test**: 13dec2d 只改 6 个 .sql 文件, 没加任何 Rust test 验证 CHECK 实际生效。`cargo test` 100% pass 与 migration 是否真生效完全无关。
+3. **CC-3 migration 是 SQL, 无 Rust test**: 1b30878 只改 6 个 .sql 文件, 没加任何 Rust test 验证 CHECK 实际生效。`cargo test` 100% pass 与 migration 是否真生效完全无关。
 
 4. **DC-1.3 stub handler**: `CompensateRecorder.compensate` 只 set `bool flag`, 不调真实 `ReserveHandler.compensate`。`account.credit(refund_amount)` 凭空造钱路径在 stub handler 内**根本无法触发**, 所以 stub test 不会暴露 V1 HIGH (双倍退款)。
 
@@ -195,7 +195,7 @@ V4 仲裁: 这是 **fail-closed 原则正确**的体现, 不是 bug。V2 评级 
    - (B) 把 `apply_atomic_with_reservation` helper 内化到 ReserveHandler (消灭死代码)
    - 同步修 `ConfirmHandler::execute` (saga_orchestrator.rs:369-394) 同样的 OCC 模式
    - 加 1 个 `#[sqlx::test]` 真 DB 集成测试, 模拟 PG OCC 失败, 验证 (a) reservation cleanup (b) 账户余额未减 (c) ledger 无条目
-2. **CC-3 migration 真修**: 6 域各加 `0004_outbox_check_constraint.sql` (或对应序号), 用 `DO $$ BEGIN ... ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (...); EXCEPTION WHEN duplicate_object THEN NULL; END $$;` 幂等块; 或在 13dec2d 文件内追加 `DO` 块
+2. **CC-3 migration 真修**: 6 域各加 `0004_outbox_check_constraint.sql` (或对应序号), 用 `DO $$ BEGIN ... ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (...); EXCEPTION WHEN duplicate_object THEN NULL; END $$;` 幂等块; 或在 1b30878 文件内追加 `DO` 块
 3. **DC-1.3 stub 改真 handler**: 用 `ReserveHandler` + `ConfirmHandler` 重写 `resume_compensating_saga_triggers_compensation`, 构造 55.12 真实 OCC 失败场景, 验证 `account.credit(refund_amount)` **不**被调用
 
 ### Merge-with-follow-up (HIGH, 56.x 必修但可合并)
@@ -244,7 +244,7 @@ V1 给 NO MERGE, V3 给 CONDITIONAL PASS, 仲裁如下:
 
 ### 给 root session 的可操作建议
 
-1. **不要**接受 V3 的 CONDITIONAL PASS。V3 的测试视角漏看 CC-4 L253 reservation.save + apply_atomic 真实组合, 也漏看 13dec2d SQL 语义。
+1. **不要**接受 V3 的 CONDITIONAL PASS。V3 的测试视角漏看 CC-4 L253 reservation.save + apply_atomic 真实组合, 也漏看 1b30878 SQL 语义。
 2. **必须**让 worker 在 56.x 早期完成 §5 merge-blocker 1+2+3, 然后**用真 PG 实例** (CI docker-compose 起 PG) 跑 1 轮 verify, 再回来谈 merge。
 3. **可推迟** §5 merge-with-follow-up 4+5+6 到 56.x 中期, 但需要在 56.x 任务单上明确 owner, 避免再次失访。
 4. **审查 V1+V2+V3+V4 报告都报 LOW 的 housekeeping 收尾** (admin 注释 / clippy 脚本) — 这些可以小 PR 一次性清, 不进 56.x 主线。
@@ -256,7 +256,7 @@ V1 给 NO MERGE, V3 给 CONDITIONAL PASS, 仲裁如下:
 
 | 验证项 | 命令 | 结果 | 耗时 |
 |---|---|---|---|
-| 全 worktree 创建 | `git worktree add D:/adversarial-55-26-V4 0434ada` | OK | <1s |
+| 全 worktree 创建 | `git worktree add D:/adversarial-55-26-V4 cc888b5` | OK | <1s |
 | 全仓 test (lib) | `cargo test --workspace --lib --manifest-path D:/adversarial-55-26-V4/Cargo.toml` | **209/209 passed** (18+16+42+16+24+0+78+15) | ~2s |
 | 全仓 test (full) | `cargo test --workspace --manifest-path D:/adversarial-55-26-V4/Cargo.toml` | **220/220 passed** (含 9 integration + 2 doc) | ~3s |
 | clippy (排除 rgs-certgen) | `cargo clippy --workspace --all-targets -- -D warnings -A clippy::pedantic -A clippy::nursery -A clippy::cargo` | 3 errors pre-existing rgs-certgen (let-unit + 2x &PathBuf); 6 域 + shared + rgs-testkit **0 warning** | ~30s |
@@ -264,7 +264,7 @@ V1 给 NO MERGE, V3 给 CONDITIONAL PASS, 仲裁如下:
 | grep 2: `MTLS_BYPASSED_TOTAL` | 全仓 | 6 service main.rs 私有 + 1 shared-platform 私有 (有 getter); 0 service-side load/读 | <1s |
 | grep 3: `apply_atomic` in economy-service | economy-service | 5 处: service.rs:141/208/256 (helper + credit/debit) + saga_orchestrator.rs:277/327/432 (生产路径 3 处) | <1s |
 | grep 4: 终态 resume test | economy-service | `resume_completed_saga` / `resume_failed_saga` / `terminal_state` **0 匹配** | <1s |
-| diff 13dec2d SQL | 6 migration 文件 | CHECK 全部在 `CREATE TABLE IF NOT EXISTS` 块**内部** (last line of column list) | <1s |
+| diff 1b30878 SQL | 6 migration 文件 | CHECK 全部在 `CREATE TABLE IF NOT EXISTS` 块**内部** (last line of column list) | <1s |
 
 ---
 

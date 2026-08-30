@@ -172,7 +172,7 @@ pwsh -NoProfile -File scripts/verify_fail_closed.ps1 -Mode Smoke
 ## 7. 相关文档
 
 - `scripts/verify_fail_closed.ps1`（脚本本体）
-- `docs/deploy/phase-0-5-step-4-validate-fail-closed.ps1`（PH-0.5 一次性验证，per commit 765930a）
+- `docs/deploy/phase-0-5-step-4-validate-fail-closed.ps1`（PH-0.5 一次性验证，per commit b9bc214）
 - `RGS-INC-001 v0.2 §1.4`（mTLS fail-closed 规范）
 - `RGS-OPEN-QA-001 v0.2 Q-M-08 + ACTIONS-v0.3 B-09`（任务来源）
 

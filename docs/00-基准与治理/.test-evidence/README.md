@@ -23,9 +23,9 @@
 
 | batch_id | 时间(JST) | artifacts | passed | failed | git head |
 |---|---|---|---|---|---|
-| 2026-08-28-ut-impl | 2026-08-28 09:00 JST | 16 | 195 | 0 | 94ba8128ab72b34b0b328b2ddc2d31ac7cdd3e06 |
-| 2026-08-28-ut-impl-v2 | 2026-08-28 09:05 JST | 16 | 195 | 0 | 94ba8128ab72b34b0b328b2ddc2d31ac7cdd3e06(正则未修) |
-| 2026-08-28-ut-impl-v3 | 2026-08-28 09:10 JST | 16 | **270** | 0 | 94ba8128ab72b34b0b328b2ddc2d31ac7cdd3e06(正则修复,sum 多次 result) |
+| 2026-08-28-ut-impl | 2026-08-28 09:00 JST | 16 | 195 | 0 | b4df2ed23acdc33e541c5e3aac9323f51c7cd3f1 |
+| 2026-08-28-ut-impl-v2 | 2026-08-28 09:05 JST | 16 | 195 | 0 | b4df2ed23acdc33e541c5e3aac9323f51c7cd3f1(正则未修) |
+| 2026-08-28-ut-impl-v3 | 2026-08-28 09:10 JST | 16 | **270** | 0 | b4df2ed23acdc33e541c5e3aac9323f51c7cd3f1(正则修复,sum 多次 result) |
 
 > v1/v2/v3 同一 commit,正则版本差异(从 regex 单次匹配 → 多次 sum)。最终 v3 是准确数字。
 

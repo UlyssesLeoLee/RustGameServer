@@ -1,6 +1,6 @@
 # RGS-TST-PEERREVIEW-2026-08-28-feedback-to-agents.md
 
-# 角色：交叉核实 2026-08-28 06:50 JST「交叉审核报告」（`docs/00-基准与治理/peer-review-2026-08-28.md`，架构师 agent 代签）覆盖的两侧材料：(a) 被审的 09 工具集三份测试设计书（commit `99e6980`）+ 08 GM 后台 ST/UT 测试设计书（commit `f13acc6`）本身；(b) peer-review 报告自身对这些文档的核对结论
+# 角色：交叉核实 2026-08-28 06:50 JST「交叉审核报告」（`docs/00-基准与治理/peer-review-2026-08-28.md`，架构师 agent 代签）覆盖的两侧材料：(a) 被审的 09 工具集三份测试设计书（commit `6383921`）+ 08 GM 后台 ST/UT 测试设计书（commit `9403ac2`）本身；(b) peer-review 报告自身对这些文档的核对结论
 # 生成：主对话（Sonnet 5）2026-08-28，逐条对照实际源码（`crates/rgs-certgen/src/main.rs`、`crates/gm-backend/src/lib.rs`）与详细设计源文档（`RGS-BAS-003`/`RGS-DTL-003`/`RGS-DTL-040`）、测试设计书原文重新计数校验
 # 使用方式：接手 agent 逐条核实/处置后，在对应条目下追加「已处理」段落，注明 commit + 验证证据，不要删除原问题描述（沿用 `RGS-SPEC-26Batch-REVIEW-2026-08-26-feedback-to-agents.md` 同款约定）
 
@@ -8,7 +8,7 @@
 
 ## 0. 反馈范围与结论
 
-本轮复核对象：09 工具集三份测试设计书（`RGS-TST-{UT,IT,ST}-09`，commit `99e6980`）中涉及 `rgs-certgen` 源码具体字段/字符串的断言，08 GM 后台 ST/UT 测试设计书（`RGS-TST-ST-08`/`RGS-TST-UT-08`，commit `f13acc6`）的 ID 总数自算及其对 `RGS-BAS-003`/`RGS-DTL-003`/`RGS-DTL-040` 详细设计的追溯准确性，以及 `peer-review-2026-08-28.md` 对上述两批文档的核对结论本身。
+本轮复核对象：09 工具集三份测试设计书（`RGS-TST-{UT,IT,ST}-09`，commit `6383921`）中涉及 `rgs-certgen` 源码具体字段/字符串的断言，08 GM 后台 ST/UT 测试设计书（`RGS-TST-ST-08`/`RGS-TST-UT-08`，commit `9403ac2`）的 ID 总数自算及其对 `RGS-BAS-003`/`RGS-DTL-003`/`RGS-DTL-040` 详细设计的追溯准确性，以及 `peer-review-2026-08-28.md` 对上述两批文档的核对结论本身。
 
 **结论**：被审文档一侧存在**字段级事实错误**（非缺标，是错标）：UT-09 头表/§1.2 的 pub 函数计数与源码实际不符且自相矛盾，UT-09 §4 的模块表格自求和（17）与自称总计（19）也对不上；IT-09-B002 断言的 CA subject 字符串与源码硬编码值不符，UT-09-B003 假设了一个源码里不存在的可配置项。UT-08 一侧，其追溯矩阵大面积引用了 RGS-DTL-040 §3 下**不存在**的子章节编号（§3.1~§3.4），且把两个明确被 RGS-BAS-003 排除在 §3 之外的既有方法（BanAccount/GrantCompensation）挂在"BAS-003 §3.1-§3.4"下；在 BAS-003/DTL-003 确实定义了字段级协议（`propagation_status`/`services[]`/`entries+has_more`）的地方，gm-backend 的 stub 实现与 UT-08 测试目标又都测的是与设计文档不同的字段名，而 UT-08 §2.4/§6 仍笼统宣称"字段级覆盖率 100%"。peer-review 报告一侧，其对 ST-08 总数的"纠正"（25→27）本身也是错的（真实值 26，ST-08 自身§4 的"9 PASS+17 TBD"和该报告自己 §2.3 表格的隐含求和均印证 26），§2.3 发现 #5 的求和式本身算不对（22+10+0 写成等于 30，实际是 32），且报告在对 UT-09"总计 19"、IT-08/ST-08 与 09 工具集三份文档逐份核对模块求和时唯独漏了对 UT-09 本身重新相加，径直采信了其错误的"19"；报告 §1 表格已正确核实 UT-08 真实数为 22，但 §7 推荐后续动作又原样写回未修正的"UT-08 23 ID + UT-09 19 ID"；报告最终 §6.1/6.3 给出无保留的"完整性 PASS / 阻塞项：无"，未像既往同类报告一样声明核查深度边界（范围已声明，颗粒度未声明）。
 
@@ -19,7 +19,7 @@
 | F3 | ST-08 §4 自称"总计 25"，但其自身 A~G 模块表格实际求和为 26；peer-review 报告将其"纠正"为 27，同样错误（部署模块误数为 7，实际 A001~A006 只有 6 条），且与该报告自己 §2.3 表格的模块行数矛盾 | 双方（ST-08 自身 + peer-review） | MEDIUM | 待处置 |
 | F4 | peer-review §2.3 发现 #5"22/GM08 + 10/工具集(0) + 0/ST08 TBD = 30 实现"，逐项字面相加是 32 不是 30；且与同一报告紧邻的 §2.3 表格（该表格逐行 ✅ 相加为 UT-08 21 + IT-08 12 + ST-08 9 = 42 已实现，ID 级口径）直接矛盾；42 本身也需限定为 ID 级，因 UT-08 B/D/E + IT-08 A/B/C 共 26 ID 收敛到同一份 12 函数的 `integration_gm_basic.rs`，不可与发现 #3 的测试函数级"19"混用 | peer-review | MEDIUM-HIGH | 待处置 |
 | F5 | peer-review §6.1/§6.3 给出无保留的"完整性 ✅ PASS"「不通过/阻塞项：无」；报告已声明审核**范围**（8 commits），但未声明核查**深度/颗粒度**，未像 `RGS-SPEC-26Batch-REVIEW-2026-08-26-feedback-to-agents.md` §0 那样说明哪些点做了字段级核实、哪些只做了数字自洽性核对 | peer-review | MEDIUM | 待处置 |
-| F6 | UT-09 §4 自称"总计 19"，但其自身 A~D 模块表格实际求和为 17；peer-review 对 `99e6980` 三份文档逐一复核 IT/ST 的模块求和（"IT 4+6+3+2=15""ST 3+3+3+1=10"），唯独 UT 的"19"未重新逐模块相加即判定"数字对……OK,一致" | 双方（UT-09 自身 + peer-review） | MEDIUM | 待处置 |
+| F6 | UT-09 §4 自称"总计 19"，但其自身 A~D 模块表格实际求和为 17；peer-review 对 `6383921` 三份文档逐一复核 IT/ST 的模块求和（"IT 4+6+3+2=15""ST 3+3+3+1=10"），唯独 UT 的"19"未重新逐模块相加即判定"数字对……OK,一致" | 双方（UT-09 自身 + peer-review） | MEDIUM | 待处置 |
 | F7 | UT-08 追溯矩阵（第 234~244 行）**全部 22 条**测试用例 ID 都在"DTL-040"列标了一个 §3.x 子章节号（A→§3.1／B→§3.2／C→§3.4／D→§3.3／E→§3.2），但 DTL-040 §3（"API 与转发骨架"）**没有任何数字编号子章节**，22 条引用无一存在；另外模块 D 各行自己的"对应需求"列（第 207~213 行）里，D001 标"BAS-003 §3.1"但 QueryHealthView 实际在 §3.4，D004 标"§3.4"但 SetMaintenanceMode 实际在 §3.3，D002/D003（ban_account/grant_compensation）标"§3.4"但 BanAccount/GrantCompensation 是 BAS-003 §1.1 明文排除在 §3 范围外的"既有方法"，D006/D007（k8s 探针）标"§3.4"但探针端点在 BAS-003 §3 中根本不存在——模块 D 的 7 行里仅 D005 引用准确 | 被审文档（UT-08） | HIGH | 待处置 |
 | F8 | BAS-003 §3.3/§3.4 + DTL-003 §3.3/§3.4（协议线格式）已经字段级定义了 SetMaintenanceModeResponse 新增 `propagation_status`、QueryHealthViewResponse = `services[]`(ServiceHealthEntry: service_name/ready/queue_depth/db_pool_usage_ratio/checked_at)、QueryAuditLogResponse = `entries[]`+`has_more`；但 `gm-backend/src/lib.rs` 的 `set_maintenance`/`health_view`/`query_audit` 三个 handler 均未实现这些字段（分别返回 {status,op}/{service,admin_endpoint,mode}/{items,next}），UT-08-D001/D004/D005 测的也是这套不匹配设计文档的字段名；UT-08 §2.4/§6 却宣称"字段级覆盖率 100%（全部 GM endpoint 字段）" | 被审文档（UT-08，与源码+BAS-003/DTL-003 对照） | MEDIUM-HIGH | 待处置 |
 | F9 | peer-review §1 表格第 40 行已重新核实 UT-08 真实总数为 22（推翻 UT-08 自称的 23），但 §7 推荐后续动作第 229 行"重点审 UT-08 **23** ID + UT-09 **19** ID"仍原样使用两个已被推翻的自报数字——UT-08 的 23 与该报告自己第 40 行矛盾，UT-09 的 19 与本文档 F6 核实的 17 不符 | peer-review | MEDIUM | 待处置 |
@@ -126,7 +126,7 @@
 
 ## F6. UT-09 总数自相矛盾（19 vs 实际 17），peer-review 逐份复核 IT/ST 却唯独漏了 UT
 
-- **现象**：`RGS-TST-UT-09_工具集_单元测试设计书.md` §4（第 193 行）"**总计**：19 测试用例 ID"。`peer-review-2026-08-28.md` 第 41 行对 commit `99e6980` 三份文档的核查写道："实际 UT 19 ID 但 IT 4+6+3+2=15 ID + ST 3+3+3+1=10 ID，数字对……OK,一致"——IT 和 ST 都重新逐模块相加验证过，UT 的"19"则未重算，直接采信。
+- **现象**：`RGS-TST-UT-09_工具集_单元测试设计书.md` §4（第 193 行）"**总计**：19 测试用例 ID"。`peer-review-2026-08-28.md` 第 41 行对 commit `6383921` 三份文档的核查写道："实际 UT 19 ID 但 IT 4+6+3+2=15 ID + ST 3+3+3+1=10 ID，数字对……OK,一致"——IT 和 ST 都重新逐模块相加验证过，UT 的"19"则未重算，直接采信。
 
 - **实证**：UT-09 §3 自己列出的模块 ID：§3.1 模块 A = A001~A006（6 条）；§3.2 模块 B = B001~B003（3 条）；§3.3 模块 C = C001~C004（4 条）；§3.4 模块 D = D001~D004（4 条）。按文档自己的清单字面相加：6+3+4+4 = **17**，与 §4 自称的"19"不符，且与 §4 上方追溯矩阵（第 188~191 行）列出的同一组 ID 区间完全一致——即 UT-09 文档内部两处（模块清单 vs 总计行）自相矛盾。
 

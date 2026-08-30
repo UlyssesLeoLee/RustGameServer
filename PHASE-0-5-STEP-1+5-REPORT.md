@@ -4,7 +4,7 @@
 > **Step**: Phase 0.5 Step 1（5 业务域 K8s manifest 实际值落地）+ Step 5（docker image 流水线 + registry 接入）
 > **责任人**: 5 域 Lead 联合 + SRE 协调 + Platform 架构师（一律 Ulysses 一人公司兼任 per DEC-008）
 > **周期**: Step 1 3~5 天 / Step 5 2~3 天（per RGS-INC-002 v0.1 §3）
-> **Worktree**: `D:\RustGameServer-worktrees\WF-0-5-1`（branch: `wbs/WF-0.5-1`，base: `fca0a55`）
+> **Worktree**: `D:\RustGameServer-worktrees\WF-0-5-1`（branch: `wbs/WF-0.5-1`，base: `c035912`）
 > **执行时间**: 2026-08-24 06:15 → 06:35（实测约 20 分钟，单 worker session）
 > **NO-GO 状态**: 🟢 已解除（per `RGS-DEC-NOGO-001` 决议 + DEC-008 12 角色签字 2026-08-24）
 
@@ -223,7 +223,7 @@ dial tcp 192.178.163.82:443: connect: connection refused
 - 决策矩阵 19×7 全部填实数（per RGS-INC-002 §4 + DEC-008 校准），校准依据：6 业务域 binary ~8.0 MB / 0.1 人·天 token-OLU
 - 3 ps1 脚本（render / validate / build）+ 1 Python 验证辅助：全部含 SYNOPSIS/PARAMETER/EXAMPLE/NOTES header
 - 验证：Python PyYAML 11/11 PASS（client-side 解析）；kubectl apply --dry-run=client 因本机无 cluster 不可达（fallback 记录）；Dockerfile 解析通过 / gcr.io + docker.io 网络限制无法实跑
-- commit hash `44670809818029f5a39487acdb794c6c513a4137` 已落到 `wbs/WF-0.5-1`，17 files / 2702+/459-
+- commit hash `a4978823738d7c034805b466f48c04ff112fb787` 已落到 `wbs/WF-0.5-1`，17 files / 2702+/459-
 
 ---
 
@@ -278,12 +278,12 @@ dial tcp 192.178.163.82:443: connect: connection refused
 ## ⑥ Commit 信息
 
 - **Branch**: `wbs/WF-0.5-1`
-- **Base**: `fca0a55` `[review] RGS-REV-010 V1 security report (补正 7d29af5 漏提交)`
+- **Base**: `c035912` `[review] RGS-REV-010 V1 security report (补正 7e5fdd9 漏提交)`
 - **Commit message**:
   ```
   [phase-0.5] step-1+5: 5 域 manifest 实际值 + docker image 脚本
   ```
-- **Commit hash**: **`44670809818029f5a39487acdb794c6c513a4137`**（`4467080` short）
+- **Commit hash**: **`a4978823738d7c034805b466f48c04ff112fb787`**（`a497882` short）
 - **Author**: `Worker <worker@rust-game-server.local>`（per worktree session identity）
 - **Diff stat**: 17 files changed, 2702 insertions(+), 459 deletions(-)
 - **Files changed**:

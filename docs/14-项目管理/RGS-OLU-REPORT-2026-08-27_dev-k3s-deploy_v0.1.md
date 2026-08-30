@@ -104,7 +104,7 @@ token-OLU 框架要素(per RGS-TS-001 v0.6 §6.2.2.1 + user_profile):
 |---|---|---|
 | 主会话工作窗口 | 12:43 JST ~ 13:40 JST(57 min 主工作)+ 16:30 JST(收尾)+ 16:32~16:50 JST(4 verifier)| DEPLOY-REPORT.md §0 总耗时 ~55 min + verifier 报告时间戳 |
 | 12:00-16:30 JST 区间 commit 数 | 8 个 commit(per `git log --since="2026-08-27 12:00"`)| 详见 §3.2-3.6 |
-| 8 Actions workflow 调试 | 5 CI fix commit(per git log 25e2316 / 46b8774 / a817b0a / 6915631 / 2aa747c)+ 1 success(456482e)+ 2 pre-fix(7e2fcb2)| git log 2026-08-27 commit 链 |
+| 8 Actions workflow 调试 | 5 CI fix commit(per git log 2514b0a / 800bcfa / f6c8a52 / 0948c9c / 5f6bbd5)+ 1 success(0ed9b77)+ 2 pre-fix(fbe9194)| git log 2026-08-27 commit 链 |
 | 4 verifier 子代理 | verifier-1/2/3/4 各 ~4-18 min | verifier-{1,2,3,4}-report.md 报告元信息 |
 | **本报告 token 估算方法** | **保守估算 + 数据来源逐项标注;无现成 token counter,故按"会话时长 × 每分钟 AI 协作 token 流"近似**| 标注"估算,待 RGS-ENV-CALIB-001 真实数据校准" |
 
@@ -124,7 +124,7 @@ token-OLU 框架要素(per RGS-TS-001 v0.6 §6.2.2.1 + user_profile):
 | 项 | 数值 | 来源 |
 |---|---|---|
 | 工作内容 | 5 业务域(player/economy/match/social/admin)+ cluster-ops 共 6 域 kubectl apply + verify 1/1 Running | DEPLOY-REPORT §1 Step 2-3 + §6.1 |
-| commit | 1 个(7e2fcb2 deploy 8 域微服务 + gm-backend + cluster-ops probe 修复)| git log 2026-08-27 12:00-16:30 |
+| commit | 1 个(fbe9194 deploy 8 域微服务 + gm-backend + cluster-ops probe 修复)| git log 2026-08-27 12:00-16:30 |
 | 估算 token | **~50K-100K tokens**(conservative) / **~150K-300K tokens**(aggressive)| 6 kubectl apply × ~10K tokens/apply + 6 verify × ~5K tokens/verify + manifest 微调 |
 
 ### §3.4 Phase 2: cluster-ops probe 修复(诊断 + 3 次 patch)
@@ -132,15 +132,15 @@ token-OLU 框架要素(per RGS-TS-001 v0.6 §6.2.2.1 + user_profile):
 | 项 | 数值 | 来源 |
 |---|---|---|
 | 工作内容 | cluster-ops 3 副本 0/1 修到 1/1:grpc_health_probe exec → tcpSocket 50056 + 滚动 30s | DEPLOY-REPORT §1 Step 4 + verifier-4 §3(线上 probe 仍是 tcpSocket 实证)|
-| commit | 1 个(7e2fcb2 同一 commit 内的 fix)| git log |
+| commit | 1 个(fbe9194 同一 commit 内的 fix)| git log |
 | 估算 token | **~30K-60K tokens**(conservative)/ **~80K-150K tokens**(aggressive)| 3 次 patch × ~10K + 诊断日志 1 session × ~30K |
 
 ### §3.5 Phase 3: gm-backend crate 编写(Cargo.toml + main.rs + Dockerfile + manifest)
 
 | 项 | 数值 | 来源 |
 |---|---|---|
-| 工作内容 | 新建 `crates/gm-backend/`(Cargo.toml + src/main.rs APIGW + Dockerfile distroless)+ workspace members + k8s manifest 50-gm-backend-service.yaml | DEPLOY-REPORT §6.3 + git log 7e2fcb2 |
-| commit | 1 个(7e2fcb2)| git log |
+| 工作内容 | 新建 `crates/gm-backend/`(Cargo.toml + src/main.rs APIGW + Dockerfile distroless)+ workspace members + k8s manifest 50-gm-backend-service.yaml | DEPLOY-REPORT §6.3 + git log fbe9194 |
+| commit | 1 个(fbe9194)| git log |
 | 估算 token | **~150K-300K tokens**(conservative)/ **~400K-800K tokens**(aggressive)| main.rs ~250 行 × ~0.5K tokens/行(等效 AI 产出)+ Dockerfile ~30 行 + manifest ~80 行 + Cargo.toml ~20 行 + workspace edit + APIGW 路由设计决策 |
 
 ### §3.6 Phase 4: WSL2 cargo build(冷编译 1m40s)
@@ -154,14 +154,14 @@ token-OLU 框架要素(per RGS-TS-001 v0.6 §6.2.2.1 + user_profile):
 
 | commit | 描述 | 失败原因 | 估算 token |
 |---|---|---|---|
-| 25e2316 | install protoc for tonic-build/prost-build in shared-platform | shared-platform 缺 protoc | ~20K-40K |
-| 46b8774 | ghcr.io 强制 lowercase,改 IMAGE_NAME 转小写 | `RustGameServer` 大小写混用 | ~15K-30K |
-| a817b0a | IMAGE_NAME owner 也转 lowercase | 上次 fix 不彻底 | ~10K-20K |
-| 6915631 | IMAGE_NAME hardcode = `ulyssesleolee/rustgameserver` | owner 解析路径错 | ~15K-30K |
-| 2aa747c | build context 里加 Dockerfile(distroless) | Dockerfile 没在 context | ~20K-40K |
-| 7e2fcb2 | deploy 8 域(成功) | workflow build OK | ~30K-60K(成功收尾决策)|
-| 456482e | gm-backend manifest 切到 ghcr.io 0.1.0-gm-backend 镜像 | dev 模式切生产 manifest | ~15K-30K |
-| 8c64ad2 | fix(workspace): remove UTF-8 BOM from Cargo.toml | UTF-8 BOM 编译报错 | ~5K-10K |
+| 2514b0a | install protoc for tonic-build/prost-build in shared-platform | shared-platform 缺 protoc | ~20K-40K |
+| 800bcfa | ghcr.io 强制 lowercase,改 IMAGE_NAME 转小写 | `RustGameServer` 大小写混用 | ~15K-30K |
+| f6c8a52 | IMAGE_NAME owner 也转 lowercase | 上次 fix 不彻底 | ~10K-20K |
+| 0948c9c | IMAGE_NAME hardcode = `ulyssesleolee/rustgameserver` | owner 解析路径错 | ~15K-30K |
+| 5f6bbd5 | build context 里加 Dockerfile(distroless) | Dockerfile 没在 context | ~20K-40K |
+| fbe9194 | deploy 8 域(成功) | workflow build OK | ~30K-60K(成功收尾决策)|
+| 0ed9b77 | gm-backend manifest 切到 ghcr.io 0.1.0-gm-backend 镜像 | dev 模式切生产 manifest | ~15K-30K |
+| 0b1b240 | fix(workspace): remove UTF-8 BOM from Cargo.toml | UTF-8 BOM 编译报错 | ~5K-10K |
 | **小计** | **8 commit** | | **~130K-260K tokens**(conservative)/ **~400K-700K tokens**(aggressive)|
 
 > **数据来源**:git log 2026-08-27 12:00-16:30 区间 commit 链;每个 commit 估算含"决策(改什么)+ 实施(diff 产出)+ 验证(workflow run 失败信息读 + 重写)"三步。
@@ -360,9 +360,9 @@ per RGS-ADR-0025:"台账余额不足时,新增运维面须先回收既有负荷�
 
 #### §7.2.1 5 域 RACI 实际签字 git 实证(per 2026-08-26 04:30 JST 派生约束"引用 BAS / RACI 必须 git log -p 实证")
 
-> **git 实证**:`b031a9c94848fb38945a7519385516e4051a6d90 [wbs] WF-1-LEAD-RACI-real-sign: 5 域 RACI v1.1 §4 5 域 Lead 联合签字栏全部填充已签(20 行 = 5 域 × 4 行)`,commit 时间 2026-08-26 22:19 JST(per `git log --since="2026-08-26 18:00" --until="2026-08-27 17:00" -- "docs/14-项目管理/"`)
+> **git 实证**:`655061baadc153828c49e42d1b996b7399e4ca45 [wbs] WF-1-LEAD-RACI-real-sign: 5 域 RACI v1.1 §4 5 域 Lead 联合签字栏全部填充已签(20 行 = 5 域 × 4 行)`,commit 时间 2026-08-26 22:19 JST(per `git log --since="2026-08-26 18:00" --until="2026-08-27 17:00" -- "docs/14-项目管理/"`)
 >
-> **commit 内容摘要**(per `git show b031a9c`):
+> **commit 内容摘要**(per `git show 655061b`):
 > - 5 份 RACI 文档(`RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_..._v1.1.md`)§4 "5 域 Lead 联合签字栏" 全部 20 行 = 5 域 × 4 行
 > - 签字内容(per kubectl get endpoints 2026-08-26 20:42 JST 实地状态):
 >   - player 域 Lead:player-service 1/1 Running 0 RESTARTS, 10.42.0.248:50051 TCP-OK
@@ -378,7 +378,7 @@ per RGS-ADR-0025:"台账余额不足时,新增运维面须先回收既有负荷�
 > 1. RACI 文档层面 **5 域 Lead 已正式签字**(状态 = 已签),但签字人 **= Ulysses**(DEC-008 代签),非 5 名独立 Lead 候选人
 > 2. 与 DEC-005 "5 域独立 Lead(拒绝兼任)" 的差距:签字栏有,但签字人是 Ulysses 1 人代签(per DEC-008 一人公司 12 角色治理基线)
 > 3. 与 DEC-008 的相容:完全相容——DEC-008 = 1 人 12 职责 = Ulysses 全签 = 真实人真实职责,不构成"伪造"或"兼任压缩"
-> 4. **生产前实际具名需求**依然存在:per DEPLOY-REPORT §7 DDD Review 第 6 条"5 域 Lead 独立具名(per DEC-005)——目前仍是 Ulysses 代签,生产前必须实际签字" — b031a9c 改变了 §7.2 的部分表述(从"5 域 Lead 未签"→"RACI 已签但仍 Ulysses 代签"),但**最终结论不变**:生产前需独立具名
+> 4. **生产前实际具名需求**依然存在:per DEPLOY-REPORT §7 DDD Review 第 6 条"5 域 Lead 独立具名(per DEC-005)——目前仍是 Ulysses 代签,生产前必须实际签字" — 655061b 改变了 §7.2 的部分表述(从"5 域 Lead 未签"→"RACI 已签但仍 Ulysses 代签"),但**最终结论不变**:生产前需独立具名
 
 ### §7.3 与 NFR-OP-010 的关系(关键风险)
 

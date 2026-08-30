@@ -1,7 +1,7 @@
 # V3 集成+测试审查报告 (WF-1-55.26 5 commit)
 
 ## 元数据
-- 审查范围: 13dec2d..0434ada
+- 审查范围: 1b30878..cc888b5
 - 审查维度: Integration & Testing
 - 审查者: V3
 - 日期: 2026-08-23
@@ -69,7 +69,7 @@
 - 文件: `crates/rgs-hello/src/main.rs` (3 行 hello world) + 全局 clippy 1.98 弃用 lint 名称
 - 证据:
   - `cargo clippy --workspace --all-targets -- -D warnings -A pedantic -A nursery -A cargo` 失败:`error: lint name 'pedantic' is deprecated` (在 rgs-hello, 因 1.98 改名 `clippy::pedantic`)
-  - cc44249 commit message 中"验收"声明 `cargo clippy --no-deps -p 6 域 --all-targets -D warnings -A pedantic -A nursery -A cargo 0 warning` 实际能通过(只跑 6 域 + 排除 rgs-hello),但缺 rgs-certgen 3 个 pre-existing error
+  - 0240d4f commit message 中"验收"声明 `cargo clippy --no-deps -p 6 域 --all-targets -D warnings -A pedantic -A nursery -A cargo 0 warning` 实际能通过(只跑 6 域 + 排除 rgs-hello),但缺 rgs-certgen 3 个 pre-existing error
   - 改用 `-A clippy::pedantic -A clippy::nursery -A clippy::cargo` 现代语法可让 6 域 + shared-platform + rgs-testkit 通过 (我已验证),但 rgs-hello + rgs-certgen 仍 fail
 - 影响: 55.26 验证脚本写法 (老式 `-A pedantic`) 在 clippy 1.98 上不能直接复现 PASS,新人/CI 用同样命令会困惑
 - 建议修复: 56.x 统一所有 verify 脚本为 `-A clippy::pedantic` 形式;或在 `clippy.toml` 加 `[lints]` 节集中定义
@@ -91,7 +91,7 @@
 - 证据: 6 域 main.rs 的 `load_server_tls_config` 失败路径改用 `.context()?` 上抛 → 进程退出 1,无任何 test 模拟"PEM 文件不存在"启动场景断言退出码
 - 建议: 56.x 加一个 `assert_cmd` 集成测试,启动 binary 缺 cert dir,断言非 0 退出码 + stderr 含 "mTLS config load failed"
 
-### [L-3] housekeeping a163d17 仅修 1 行,未顺手修 `rgs-certgen` 3 个 clippy error
+### [L-3] housekeeping f9bf84f 仅修 1 行,未顺手修 `rgs-certgen` 3 个 clippy error
 - 证据: `cargo clippy -p rgs-certgen --all-targets` 报 3 个 error (`let-binding has unit value` / 2x `&PathBuf` instead of `&Path`),commit message 自承"rgs-certgen 3 个错误仍属 55.x 范围外,56.x 处理"
 - 建议: 56.x 一次性清掉,避免 56.x 范围扩散
 
@@ -116,11 +116,11 @@
 
 | commit | unit test | integration test | doc test | stress/concurrency test |
 |---|---|---|---|---|
-| 13dec2d (CC-3) | ❌ 无 | ❌ 无 (SQL CHECK 无 Rust 测) | ❌ N/A | ❌ |
-| 4973255 (CC-4) | ✅ 2 new (service.rs:550-700) | ❌ 无 (InMemory) | ❌ | ❌ 无并发 apply_atomic |
-| cc44249 (AC-1) | ❌ 无 (commit 自承监控集成属后续任务) | ❌ 无 fail-closed 启动测试 | ❌ | N/A |
-| a163d17 (housekeeping) | ❌ | ❌ | ✅ 1 (json_logging) 编译通过 | N/A |
-| 0434ada (DC-1) | ✅ 4 new (saga_orchestrator.rs:838-1019) | ❌ 无 (InMemory) | ❌ | ❌ 无并发 resume |
+| 1b30878 (CC-3) | ❌ 无 | ❌ 无 (SQL CHECK 无 Rust 测) | ❌ N/A | ❌ |
+| a950b46 (CC-4) | ✅ 2 new (service.rs:550-700) | ❌ 无 (InMemory) | ❌ | ❌ 无并发 apply_atomic |
+| 0240d4f (AC-1) | ❌ 无 (commit 自承监控集成属后续任务) | ❌ 无 fail-closed 启动测试 | ❌ | N/A |
+| f9bf84f (housekeeping) | ❌ | ❌ | ✅ 1 (json_logging) 编译通过 | N/A |
+| cc888b5 (DC-1) | ✅ 4 new (saga_orchestrator.rs:838-1019) | ❌ 无 (InMemory) | ❌ | ❌ 无并发 resume |
 
 **关键观察**:
 - 5 commit 净增 6 个 unit test (CC-4 2 + DC-1 4) + 修复 1 个 doc test 编译

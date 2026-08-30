@@ -3,7 +3,7 @@
 > **目的**:实装跨域 IT 链路用例,覆盖 cluster-ops ↔ 5 域 ↔ admin-service ↔ gm-backend 端到端
 > **作者**:Mavis (接手 agent per DEC-008,2026-08-28 17:30 JST)
 > **状态**:⏳ OPEN (W2 部分实装,3/5 链路)
-> **关联**:RGS-OPEN-QA v0.4 + 9 决策草案 + 8 commits (c5c9f5f → 16460a4)
+> **关联**:RGS-OPEN-QA v0.4 + 9 决策草案 + 8 commits (c14d49b → 38097e8)
 
 ---
 
@@ -12,7 +12,7 @@
 ### 链路 A: cluster-ops ↔ 5 域
 - 用途: cluster-ops 调 5 域 (player/economy/match/social/admin) health + config
 - 实装难度: 中 (需 5 域都有 tonic gRPC client)
-- 实装状态: ⏳ **链路 A 简化版** (gm_backend tests/it_admin_grpc_client.rs 链路 A 简化版已实装 2026-08-28 d023594)
+- 实装状态: ⏳ **链路 A 简化版** (gm_backend tests/it_admin_grpc_client.rs 链路 A 简化版已实装 2026-08-28 11a230a)
 
 ### 链路 B: cluster-ops ↔ admin-service
 - 用途: cluster-ops 推送 config / 限流策略
@@ -40,11 +40,11 @@
 
 ### 链路 A 简化版 (gm-backend 端)
 - 文档: `crates/gm-backend/tests/it_admin_grpc_client.rs` (6 IT)
-- 关联 commit: `d023594` (S4 Phase 2 step 1)
+- 关联 commit: `11a230a` (S4 Phase 2 step 1)
 
 ### 链路 E 简化版 (gm-backend 端)
 - 文档: `crates/gm-backend/tests/integration_gm_basic.rs` (12 IT) + `crates/gm-backend/tests/it_admin_grpc_4rpc.rs` (4 IT)
-- 关联 commit: `d023594` + `1e25591` (S4 Phase 2 step 2)
+- 关联 commit: `11a230a` + `1da9388` (S4 Phase 2 step 2)
 
 ### 链路 B/C/D (跨域) — ⏳ 待 Step 3+
 - 链路 B: cluster-ops → admin-service gRPC 限流/配置推送
@@ -95,7 +95,7 @@
 ## 6. 参考
 
 - **RGS-TBD-08-03** S4 立项 v0.2 + 6 天工作量分解
-- **RGS-S4-PHASE2-STEP1-设计.md** + 实际 commit d023594 / 1e25591
+- **RGS-S4-PHASE2-STEP1-设计.md** + 实际 commit 11a230a / 1da9388
 - **G3-G4-it-main-stage-runbook.md** 主阶段入口
-- **gm.proto v0.3** (commit c5c9f5f) 5 endpoint 协议
-- **admin.proto v0.4** (commit 1e25591) 6 RPC (HealthCheck + GetAdminOp + 4 GM)
+- **gm.proto v0.3** (commit c14d49b) 5 endpoint 协议
+- **admin.proto v0.4** (commit 1da9388) 6 RPC (HealthCheck + GetAdminOp + 4 GM)

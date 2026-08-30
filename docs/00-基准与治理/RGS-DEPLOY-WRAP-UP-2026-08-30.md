@@ -4,7 +4,7 @@
 |---|---|
 | 文档编号 | RGS-DEPLOY-WRAP-UP-2026-08-30 |
 | 版本 | v0.41 |
-| 关联 commit | 60e9a2f (v0.40 父文档) |
+| 关联 commit | c9b34ef (v0.40 父文档) |
 | 状态 | 🟢 收工决策 + 镜像推遗留 |
 | 修订人 | Ulysses (一人公司 12 角色 per DEC-008) - Mavis 接手 |
 
@@ -12,20 +12,20 @@
 
 - **B-CODE 4/4 已修**(per 8/30 实测:OTel+Prom+Grafana ✓ / 跨域 trace ✓ / session 落库 ✓ / gRPC Health ✓)
 - **k3s 14/14 业务镜像 Running**(8 业务域 + cluster-ops + gm-backend + postgres + nats + otel-collector + prometheus + grafana)
-- **新式 GHCR pipeline 配置完成**(workflow + script 已 commit ed98638),但 trigger 阻塞在 `$env:GHCR_PAT` 401
+- **新式 GHCR pipeline 配置完成**(workflow + script 已 commit f6d0d42),但 trigger 阻塞在 `$env:GHCR_PAT` 401
 - **镜像推 GHCR 留给以后**:Ulysses 重生 fine-grained PAT(Repository access 选 UlyssesLeoLee/RustGameServer + Actions: write + Contents: read)后即可触发
 
 ## 2. 本次会话 (8/30 14:30 → 13:00 跨日) 关键产出
 
 | 项 | commit | 说明 |
 |---|---|---|
-| 新式 GHCR workflow | ed98638 | `.github/workflows/build-prod-0.1.0.yml`(5874 字节) |
-| Trigger 脚本 | ed98638 | `scripts/trigger-build-prod.ps1`(3205 字节) |
-| 落档文档 | 60e9a2f | `RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30.md` v0.40 (8686 字节) |
+| 新式 GHCR workflow | f6d0d42 | `.github/workflows/build-prod-0.1.0.yml`(5874 字节) |
+| Trigger 脚本 | f6d0d42 | `scripts/trigger-build-prod.ps1`(3205 字节) |
+| 落档文档 | c9b34ef | `RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30.md` v0.40 (8686 字节) |
 | 收工落档 | (本文件) | v0.41 |
 
 **推 origin**:
-- `a5aa9f4..ed98638..60e9a2f` 已推 main
+- `46bbb62..f6d0d42..c9b34ef` 已推 main
 
 ## 3. 遗留(下次会话)
 
@@ -59,9 +59,9 @@
 
 ## 4. 引用
 
-- v0.39 (k3s 部署重启 3 阻塞): `RGS-DEPLOY-K3S-RESTART-BLOCKED-2026-08-30.md` commit a5aa9f4
-- v0.40 (新式 GHCR pipeline 配置 + 触发阻塞): `RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30.md` commit 60e9a2f
-- 父卡牌 + W36 闭环总结: `RGS-CARD-8BUCKET-W36-100PCT-V0.37-2026-08-30.md` commit 212495c
+- v0.39 (k3s 部署重启 3 阻塞): `RGS-DEPLOY-K3S-RESTART-BLOCKED-2026-08-30.md` commit 46bbb62
+- v0.40 (新式 GHCR pipeline 配置 + 触发阻塞): `RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30.md` commit c9b34ef
+- 父卡牌 + W36 闭环总结: `RGS-CARD-8BUCKET-W36-100PCT-V0.37-2026-08-30.md` commit b7c514a
 - 9 DEC 拍板: `RGS-DDD-CARD-9DEC-2026-08-29.md`
 
 ## 修订历史

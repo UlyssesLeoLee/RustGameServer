@@ -6,7 +6,7 @@
 | 制定日 | 2026-08-24 |
 | 制定者 | 主对话(Step 6 worker `bg_a00b2e0a` 在 B-CODE-02 阶段 `Request timed out` 失败,主对话基于 `b1-evidence/` 真实 kubectl 输出 + 4 份 B-CODE log 接手整合)|
 | 关联 | `docs/deploy/b1-otel-pod-up.log` / `b2-player-grpc-healthcheck.log` / `b3-session-pg-trace.log` / `b4-cross-domain-trace.log` |
-| 部署源 | WF-0-5-1 (Step 1+5 / commit 4467080) + WF-0-5-2 (Step 2+3 / commit 1183515) + WF-0-5-3 (Step 4 / commit 2b70b0b) |
+| 部署源 | WF-0-5-1 (Step 1+5 / commit a497882) + WF-0-5-2 (Step 2+3 / commit 2ccae93) + WF-0-5-3 (Step 4 / commit dbefde6) |
 | 状态 | **Phase 0.5 6 步部分完成**;NO-GO 形式上解除(per RGS-DEC-NOGO-001 v0.1);4 B-CODE 实质未解除(待 SRE 接力) |
 
 ---
@@ -81,11 +81,11 @@
 
 **git 历史**:
 ```
-48101aa [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist v0.1 → v0.2
-765930a [merge] WF-0.5-3: Phase 0.5 Step 4 (mTLS 7 Secret + 5/5 fail-closed PASS)
-c5a0c9f [merge] WF-0.5-2: Phase 0.5 Step 2+3 (NATS + OTel/Prom/Grafana 18 manifest)
-7046936 [merge] WF-0.5-1: Phase 0.5 Step 1+5 (5 域 manifest 实际值 + docker image 脚本)
-fa6b07e [phase-0.5] NO-GO 解除决议(一人公司 12 角色全签) + 4 B-CODE 实测 log
+28679c0 [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist v0.1 → v0.2
+b9bc214 [merge] WF-0.5-3: Phase 0.5 Step 4 (mTLS 7 Secret + 5/5 fail-closed PASS)
+731f836 [merge] WF-0.5-2: Phase 0.5 Step 2+3 (NATS + OTel/Prom/Grafana 18 manifest)
+722cb69 [merge] WF-0.5-1: Phase 0.5 Step 1+5 (5 域 manifest 实际值 + docker image 脚本)
+28f153a [phase-0.5] NO-GO 解除决议(一人公司 12 角色全签) + 4 B-CODE 实测 log
 ```
 
 ---

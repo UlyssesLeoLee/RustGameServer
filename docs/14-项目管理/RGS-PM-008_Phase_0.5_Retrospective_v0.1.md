@@ -26,10 +26,10 @@
 
 ### §1.1 实施窗口
 
-- **开始**：2026-08-23 06:30 UTC+9（NO-GO 解除决议 commit `fa6b07e`）
-- **结束**：2026-08-24 18:30 UTC+9（handoff 标题更新 commit `6d985d6`，本地修复 8 类全部入库）
+- **开始**：2026-08-23 06:30 UTC+9（NO-GO 解除决议 commit `28f153a`）
+- **结束**：2026-08-24 18:30 UTC+9（handoff 标题更新 commit `7426802`，本地修复 8 类全部入库）
 - **总时长**：约 **36 小时**（跨 2 个工作日）
-- **本文件额外 commit**：在 `6d985d6` 之后 +2 commit（retro 文档 + saga drill 文档）
+- **本文件额外 commit**：在 `7426802` 之后 +2 commit（retro 文档 + saga drill 文档）
 
 ### §1.2 涉及域
 
@@ -62,42 +62,42 @@
 
 | # | hash | 说明 |
 |---|---|---|
-| 1 | `fa6b07e` | [phase-0.5] NO-GO 解除决议（一人公司 12 角色全签）+ 4 B-CODE 实测 log |
-| 2 | `4467080` | [phase-0.5] step-1+5: 5 域 manifest 实际值 + docker image 脚本 |
-| 3 | `74fc7bc` | [phase-0.5] step-1+5: report 填入 commit hash 4467080 + 5 行 bullet |
-| 4 | `7046936` | [merge] WF-0.5-1: Phase 0.5 Step 1+5（5 域 manifest 实际值 + docker image 脚本） |
-| 5 | `c5a0c9f` | [merge] WF-0.5-2: Phase 0.5 Step 2+3（NATS + OTel/Prom/Grafana 18 manifest） |
-| 6 | `765930a` | [merge] WF-0.5-3: Phase 0.5 Step 4（mTLS 7 Secret + 5/5 fail-closed PASS） |
-| 7 | `48101aa` | [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist_business v0.1 → v0.2 |
-| 8 | `b44c589` | [phase-0.5] step-6 总报告（主对话接手版，worker timeout 失败后整合） |
-| 9 | `4d1c977` | [phase-0.5] SRE handoff 提示词 v0.1（5 步接力 + 验证 checklist + 风险回退） |
-| 10 | `3963d29` | [docs] 归档 3 份历史文档 + .gitignore 加 .run-logs/ |
-| 11 | `e293b98` | [handoff] §10 已知未完成事项（主对话盘点 + 历史盘点，8 项边缘待 SRE / 后续 Phase 处理） |
-| 12 | `26c734c` | [sig] 全部交付物加 Ulysses 12 角色全签（per DEC-008 一人公司治理基线） |
-| 13 | `c6a4bef` | [phase-0.5] SRE 接力前置修复：namespace rgs→rust-game-server + imagePullSecrets + 去重 otel-collector |
-| 14 | `4798eb5` | [handoff] §5 Step 2 加 GHCR_PAT 获取 4 步（避免 SRE 重复问） |
-| 15 | `66ff53b` | [fix] gRPC 健康探针 mTLS 兼容性修复（RGS-OPS-101） |
-| 16 | `ad54801` | [fix] SRE 接力前置修复：Secret 渲染脚本 + 可观测性组件安全加固 |
-| 17 | `7c2db70` | [phase-0.5] 本地修复：8 类无 K3s 任务交付（per RGS-DEC-NOGO-001 v0.1 形式上解除） |
-| 18 | `65ea750` | [merge] phase-0.5/local-fixes：8 类本地修复（工具链/wbs 正则/INC-001 重命名/证书重生成/7 Secret 重渲染/Grafana 脚本/3 rev-010 清理） |
-| 19 | `6d985d6` | [handoff] §11 标题更新（反映 phase-0-5/local-fixes merge 后 5 项已闭环 5 项仍 open） |
+| 1 | `28f153a` | [phase-0.5] NO-GO 解除决议（一人公司 12 角色全签）+ 4 B-CODE 实测 log |
+| 2 | `a497882` | [phase-0.5] step-1+5: 5 域 manifest 实际值 + docker image 脚本 |
+| 3 | `e2f26cf` | [phase-0.5] step-1+5: report 填入 commit hash a497882 + 5 行 bullet |
+| 4 | `722cb69` | [merge] WF-0.5-1: Phase 0.5 Step 1+5（5 域 manifest 实际值 + docker image 脚本） |
+| 5 | `731f836` | [merge] WF-0.5-2: Phase 0.5 Step 2+3（NATS + OTel/Prom/Grafana 18 manifest） |
+| 6 | `b9bc214` | [merge] WF-0.5-3: Phase 0.5 Step 4（mTLS 7 Secret + 5/5 fail-closed PASS） |
+| 7 | `28679c0` | [phase-0.5] RGS-PLAN-001 v0.8 → v0.9 升版 + 07-no-go-checklist_business v0.1 → v0.2 |
+| 8 | `f2d30a0` | [phase-0.5] step-6 总报告（主对话接手版，worker timeout 失败后整合） |
+| 9 | `1bd079c` | [phase-0.5] SRE handoff 提示词 v0.1（5 步接力 + 验证 checklist + 风险回退） |
+| 10 | `cf8b69f` | [docs] 归档 3 份历史文档 + .gitignore 加 .run-logs/ |
+| 11 | `c6294ed` | [handoff] §10 已知未完成事项（主对话盘点 + 历史盘点，8 项边缘待 SRE / 后续 Phase 处理） |
+| 12 | `28a2c36` | [sig] 全部交付物加 Ulysses 12 角色全签（per DEC-008 一人公司治理基线） |
+| 13 | `40f95c1` | [phase-0.5] SRE 接力前置修复：namespace rgs→rust-game-server + imagePullSecrets + 去重 otel-collector |
+| 14 | `8ea2546` | [handoff] §5 Step 2 加 GHCR_PAT 获取 4 步（避免 SRE 重复问） |
+| 15 | `f4dd357` | [fix] gRPC 健康探针 mTLS 兼容性修复（RGS-OPS-101） |
+| 16 | `a72781b` | [fix] SRE 接力前置修复：Secret 渲染脚本 + 可观测性组件安全加固 |
+| 17 | `8f85ef5` | [phase-0.5] 本地修复：8 类无 K3s 任务交付（per RGS-DEC-NOGO-001 v0.1 形式上解除） |
+| 18 | `4f12963` | [merge] phase-0.5/local-fixes：8 类本地修复（工具链/wbs 正则/INC-001 重命名/证书重生成/7 Secret 重渲染/Grafana 脚本/3 rev-010 清理） |
+| 19 | `7426802` | [handoff] §11 标题更新（反映 phase-0-5/local-fixes merge 后 5 项已闭环 5 项仍 open） |
 | **+1** | `(待生成)` | [retro] Phase 0.5 经验教训沉淀（本文件） |
 | **+2** | `(待生成)` | [saga-drill] G-CODE-04 Saga 6 场景演练（per RGS-REV-005 附件B） |
 
 ### §2.2 关键节点
 
-- **T+0h**：`fa6b07e` 形式上解除 NO-GO，Phase 0.5 启动
+- **T+0h**：`28f153a` 形式上解除 NO-GO，Phase 0.5 启动
 - **T+12h**：3 个并行 worktree 完成（Step 1+5 / Step 2+3 / Step 4），merge 入 main
 - **T+24h**：Step 6 worker `Request timed out` 失败（BLOCK-003），主对话接手整合
 - **T+30h**：8 类本地修复 PR 创建（`phase-0-5/local-fixes` 分支）
-- **T+34h**：本地修复 merge 入 main（`65ea750`），handoff §11 标题更新（`6d985d6`）
+- **T+34h**：本地修复 merge 入 main（`4f12963`），handoff §11 标题更新（`7426802`）
 - **T+36h**：retro 文档 + saga drill 文档入库（本轮 2 commit）
 
 ---
 
 ## §3 实际进展 vs 计划
 
-### §3.1 8 类本地修复（per `7c2db70` + `65ea750`）
+### §3.1 8 类本地修复（per `8f85ef5` + `4f12963`）
 
 | # | 修复 | 涉及文件 | 状态 |
 |---|---|---|---|
@@ -110,13 +110,13 @@
 | 7 | 3 份 rev-010 历史文档清理 | `docs/00-基准与治理/reviews/rev-010-*` | 🟢 |
 | 8 | 命名空间修正 `rgs` → `rust-game-server` | `docs/deploy/01-k8s-manifests/*.yaml` | 🟢 |
 
-### §3.2 3 个新 commit 修复（per `26c734c` + `c6a4bef` + `ad54801`）
+### §3.2 3 个新 commit 修复（per `28a2c36` + `40f95c1` + `a72781b`）
 
 | commit | 修复 |
 |---|---|
-| `26c734c` | [sig] 全部交付物加 Ulysses 12 角色全签（per DEC-008） |
-| `c6a4bef` | [phase-0.5] SRE 接力前置修复：namespace rgs→rust-game-server + imagePullSecrets + 去重 otel-collector |
-| `ad54801` | [fix] SRE 接力前置修复：Secret 渲染脚本 + 可观测性组件安全加固 |
+| `28a2c36` | [sig] 全部交付物加 Ulysses 12 角色全签（per DEC-008） |
+| `40f95c1` | [phase-0.5] SRE 接力前置修复：namespace rgs→rust-game-server + imagePullSecrets + 去重 otel-collector |
+| `a72781b` | [fix] SRE 接力前置修复：Secret 渲染脚本 + 可观测性组件安全加固 |
 
 ### §3.3 4 B-CODE 状态（per handoff §2）
 
@@ -131,7 +131,7 @@
 
 - **BLOCK-001**：gcr.io:443 + docker.io:443 防火墙屏蔽 → 切到 ghcr.io（已可触达）
 - **BLOCK-002**：ghcr.io:443 OK 但 docker login 需 PAT → 需生成 GHCR_PAT（per handoff §5 Step 2.1）
-- **BLOCK-003**：Step 6 worker `Request timed out` → 主对话接手整合（per `b44c589`）
+- **BLOCK-003**：Step 6 worker `Request timed out` → 主对话接手整合（per `f2d30a0`）
 - **BLOCK-004**：本地工具链 5 项缺失（cargo-deny/audit/llvm-cov/helm/kubectl）→ SRE 接力 Step 1（per handoff §5 Step 1）
 
 ---
@@ -144,7 +144,7 @@
 |---|---|---|
 | 1 | **6 步并行 4 worktree** 显著缩短关键路径 | 3 个 worktree 12h 内 merge 入 main（vs 串行预计 36h+） |
 | 2 | **SRE 接力 5 步结构化** | handoff §5 5 步 + 验证 checklist + 风险回退，让 SRE 接力无歧义 |
-| 3 | **Ulysses 12 角色全签**（per DEC-008） | 26c734c 一次 commit 全文档签字，治理基线可追溯 |
+| 3 | **Ulysses 12 角色全签**（per DEC-008） | 28a2c36 一次 commit 全文档签字，治理基线可追溯 |
 | 4 | **Handoff 8 章节 → 11 章节 演化** | handoff 从 8 章扩到 11 章（含 §11 标题更新反映 5/5 闭环 + 5/5 open） |
 | 5 | **NO-GO 形式上解除** vs **实际解除** 分离 | per RGS-DEC-NOGO-001 v0.1，形式解除可解锁文档/签字，实际解除需 SRE 验证 4 B-CODE |
 | 6 | **8 类本地修复归一** | phase-0-5/local-fixes 分支归一 8 类无 K3s 任务，避免在 SRE 接力期继续污染 main |
@@ -158,11 +158,11 @@
 | 1 | **Step 6 worker `Request timed out`** | 端到端验证 4 B-CODE 涉及 5 Pod 启动 + OTel 联调 + 跨域 trace，超出单 worker 180s 限制 | 拆 Step 6 为 4 子步骤（B-CODE-01~04 各一 worker），或预先拉长 timeout |
 | 2 | **Phase 0.5 worktree 清理违规 §6.6** | 4 个旧 detached `rev-010-V{1..3}` worktree 未及时清理，被主对话强删 | worktree 生命周期 hook（PR merge 后 24h 内 `git worktree remove`） |
 | 3 | **`wbs_create_worktree.ps1` L4Id 正则 bug** | 正则匹配 `L4-{N}` 失败导致 worktree 命名错位 | 加 `--debug` 输出 + 严格 `^L4-\d+(\.\d+)?$` 校验（已修） |
-| 4 | **命名空间 rgs vs rust-game-server 错位** | Step 1+5 worker 写 `rgs`，实际应为 `rust-game-server`（per ARC-008） | 主对话整合时统一 prefix（per `c6a4bef`），但本应在 worktree 任务描述中明示 |
-| 5 | **gRPC Health 探针 mTLS 不兼容** | k8s 原生 `grpc:` 探针无法出示 mTLS 客户端证书，Health 端点未注册 | 加 `66ff53b` 修复：HTTP/1.1 探针 + HealthCheck service 显式注册 |
+| 4 | **命名空间 rgs vs rust-game-server 错位** | Step 1+5 worker 写 `rgs`，实际应为 `rust-game-server`（per ARC-008） | 主对话整合时统一 prefix（per `40f95c1`），但本应在 worktree 任务描述中明示 |
+| 5 | **gRPC Health 探针 mTLS 不兼容** | k8s 原生 `grpc:` 探针无法出示 mTLS 客户端证书，Health 端点未注册 | 加 `f4dd357` 修复：HTTP/1.1 探针 + HealthCheck service 显式注册 |
 | 6 | **OTel/Prom/Grafana Pod ImagePullBackOff** | ghcr.io 未推送镜像（BLOCK-002 阻塞） | SRE Step 2 推送后即可恢复（脚本已就绪） |
-| 7 | **Step 1+5 worker 未写 `imagePullSecrets`** | render 脚本未加 `imagePullSecrets` 字段渲染 | 主对话整合时统一加（per `c6a4bef`），但应在 worker 任务规范中要求 |
-| 8 | **Grafana admin-secret 缺失**（RISK-DEPLOY-006） | Step 2+3 worker 漏写 admin-secret 创建 | 加 `phase-0-5-step-3-create-grafana-admin-secret.ps1`（per `ad54801`） |
+| 7 | **Step 1+5 worker 未写 `imagePullSecrets`** | render 脚本未加 `imagePullSecrets` 字段渲染 | 主对话整合时统一加（per `40f95c1`），但应在 worker 任务规范中要求 |
+| 8 | **Grafana admin-secret 缺失**（RISK-DEPLOY-006） | Step 2+3 worker 漏写 admin-secret 创建 | 加 `phase-0-5-step-3-create-grafana-admin-secret.ps1`（per `a72781b`） |
 
 ---
 
@@ -170,7 +170,7 @@
 
 | 风险 | 等级 | 缓解措施 |
 |---|---|---|
-| **R-1**：SRE 接力 5 步中 Step 2 GHCR_PAT 推送失败（网络/权限） | 🟡 中 | 4 步获取 PAT 流程已写明（per `4798eb5`），失败可降级为本地 tarball `docker save/load` |
+| **R-1**：SRE 接力 5 步中 Step 2 GHCR_PAT 推送失败（网络/权限） | 🟡 中 | 4 步获取 PAT 流程已写明（per `8ea2546`），失败可降级为本地 tarball `docker save/load` |
 | **R-2**：Step 4 apply 后 5 业务 Pod 启动失败（非 ImagePullBackOff） | 🟡 中 | handoff §5 Step 4 含 `kubectl describe pod` + `kubectl logs` 排错路径 |
 | **R-3**：B-CODE-02/03/04 验证发现 Saga 端到端问题 | 🟢 低 | Saga UT 已全过（per `saga.rs` 4 test + `saga_orchestrator.rs` 集成测试），端到端 4 场景待 PH-1 集成测试覆盖（per RGS-REV-005 附件B） |
 | **R-4**：PH-1 进入时未完成 NO-GO 实际解除 | 🔴 高 | handoff §11 5 项 open 是 SRE 接力后的实际解除 gating，Ulysses 应在 SRE 报告返回后做 GO/NO-GO 决策 |
@@ -237,7 +237,7 @@
 | **worker 任务规范** | 任务描述必须包含：命名空间前缀 / imagePullSecrets / Health 探针兼容性 |
 | **worker timeout 治理** | 端到端验证任务拆为子步骤，每子任务 < 180s；或拉长 timeout 到 600s |
 | **NO-GO 形式 vs 实际分离** | 形式解除走 DEC-008 12 角色签字；实际解除需 4 B-CODE 全绿 + 独立决议文档 |
-| **Handoff 模板升级** | handoff 应在 5 步前增加"前置修复"小节（per `c6a4bef` / `ad54801` 模式），避免 SRE 接力期被前置阻塞 |
+| **Handoff 模板升级** | handoff 应在 5 步前增加"前置修复"小节（per `40f95c1` / `a72781b` 模式），避免 SRE 接力期被前置阻塞 |
 
 ---
 

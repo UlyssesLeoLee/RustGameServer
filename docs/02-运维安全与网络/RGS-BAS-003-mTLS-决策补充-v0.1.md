@@ -23,13 +23,13 @@
 
 - **跨信任域**: gm-backend 接收前端 JWT(admin role),admin-service 在后端服务域,gm 不知道也不应该知道 admin 的 NetworkPolicy 策略细节
 - **强认证需求**: GM 操作(封号/补偿/维护)是 high-impact,需要 client cert 双向认证作为 JWT 之外的第二因子
-- **已有实装**: W21 (commit `679bfb7`) 已 5 IT PASS,真实 k3s 证书从 rgs-secret-admin-tls 抽取
+- **已有实装**: W21 (commit `ff62bdd`) 已 5 IT PASS,真实 k3s 证书从 rgs-secret-admin-tls 抽取
 - **合规**: 部分监管要求 admin 操作双因素(client cert + JWT)
 
 ### 2.2 5 域内部不上 mTLS 的理由
 
 - **同信任域**: 5 域都在 k3s namespace `rust-game-server` 内,NetworkPolicy 已隔离
-- **JWT 已鉴权**: per W17 (commit `658b742`),gRPC metadata 传播 JWT,服务间调用有 RBAC
+- **JWT 已鉴权**: per W17 (commit `2acc222`),gRPC metadata 传播 JWT,服务间调用有 RBAC
 - **mTLS 成本**: 每域 +1 套证书生命周期管理(签发/轮换/吊销/监控),估 +50% token(per RGS-TS-001 v0.6 §6.2 双算法估算)
 - **复杂度**: 5 域 × 双向 mTLS = 10 套证书,与 5 域独立的 RACI(per DDD Review 决议 2)冲突
 
@@ -57,9 +57,9 @@
 ## 6. 关联文档
 
 - BAS-003 §2.1 组件图(L74-89)+ §4.4 NetworkPolicy
-- W21 mTLS 5 IT (commit `679bfb7`)
-- W17 JWT propagation gRPC metadata (commit `658b742`)
-- W9 mTLS to admin-service (commit `f8f6937`,gm-backend client cert via env)
+- W21 mTLS 5 IT (commit `ff62bdd`)
+- W17 JWT propagation gRPC metadata (commit `2acc222`)
+- W9 mTLS to admin-service (commit `1333898`,gm-backend client cert via env)
 - RGS-PLAN-WBS-token-bucket-v0.1 §7.2 拍板 2
 
 ---

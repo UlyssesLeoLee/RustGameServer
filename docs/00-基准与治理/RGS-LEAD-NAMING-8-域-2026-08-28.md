@@ -2,7 +2,7 @@
 
 > **目的**:为 8 域 + cluster-ops + gm-backend + 工具集 配置独立 Lead 实名(per DEC-005 兼任拒绝原则)
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 09:30 JST)
-> **状态**:✅ 已追认采纳(per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `df986ec` 声称的"10:33 JST ask_user 决策"溯源不实,已更正;RACI v1.2 升级仍留待 DDD Review 阶段,见 §5)
+> **状态**:✅ 已追认采纳(per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST;commit `90aa3df` 声称的"10:33 JST ask_user 决策"溯源不实,已更正;RACI v1.2 升级仍留待 DDD Review 阶段,见 §5)
 > **关联**:Q2 OPEN-QA(per RGS-OPEN-QA-2026-08-27-k3s-deploy §Q2)+ DEC-005(5 域独立 Lead 拒绝兼任)+ DEC-008(一人公司 12 角色)
 
 ---

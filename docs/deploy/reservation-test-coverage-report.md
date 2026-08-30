@@ -2,7 +2,7 @@
 
 > 跟踪表：`D:\RustGameServer\docs\00-基准与治理\RGS-OPEN-QA-001-ACTIONS-v0.3.md` §3 B-08 + §4
 > 父疑问：RGS-OPEN-QA-001 v0.2 Q-M-07（已答复 🟢：3 个新增子任务，50/50 是单元测试范围，需要补端到端 IT）
-> 分支：`wbs/WF-1-55.47` (基于 main 396f56a merge WF-1-55.45)
+> 分支：`wbs/WF-1-55.47` (基于 main 72bc12f merge WF-1-55.45)
 > 状态：✅ done
 > Worktree：`D:\RustGameServer-worktrees\WF-1-55-47\`
 
@@ -43,8 +43,8 @@ RGS-OPEN-QA-001 Q-M-07 答复（🟢）确认：
 任务描述："前置：WF-1-55.44 rgs-testkit 4 域 dev-dep 已落地（player/match/social/admin，但 economy 不在——需要单独加 rgs-testkit dev-dep）"
 
 **实际现状**：
-- economy-service 早在 WF-1-55.28 (commit 0c6d573 之前的更早 commit) 就已加 `rgs-testkit = { path = "../rgs-testkit" }`
-- WF-1-55.44 (commit 876bce0) 是给 4 域（player/match/social/admin）加的
+- economy-service 早在 WF-1-55.28 (commit eafafe8 之前的更早 commit) 就已加 `rgs-testkit = { path = "../rgs-testkit" }`
+- WF-1-55.44 (commit 76946b9) 是给 4 域（player/match/social/admin）加的
 - 任务描述"economy 不在"是**过时信息**，以 git log/Cargo.toml 为准
 
 **本任务调整**：只追加注释锚定，不动 dev-dep 本身（避免无意义 diff）
