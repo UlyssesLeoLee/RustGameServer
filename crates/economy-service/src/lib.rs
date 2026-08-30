@@ -23,6 +23,9 @@ pub mod service;
 pub mod trade_entity;
 pub mod trade_repository;
 pub mod trade_service;
+// W36 跨域 1/3 步收尾: trade 跨域 saga (per RGS-DTL-038 §6 + DEC-038-04)
+pub mod trade_saga;
+pub mod trade_saga_clients;
 
 pub use error::{Error, Result};
 pub use inbox::{InboxEntry, InboxRepository, InboxStatus, PgInboxRepository};
@@ -42,6 +45,15 @@ pub use saga_orchestrator::{ConfirmHandler, ReserveHandler, SagaOrchestrator, Sa
 pub use trade_entity::{Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus};
 pub use trade_repository::{InMemoryTradeRepository, PgTradeRepository, TradeRepository};
 pub use trade_service::{ExecuteTradeServiceImpl, TradeService, TradeServiceImpl};
+// W36 跨域 saga 导出 (per RGS-DTL-038 §6)
+pub use trade_saga::{
+    BidAuctionInput, BidAuctionOutput, BidAuctionSaga, ExecuteAuctionInput, ExecuteAuctionOutput,
+    ExecuteAuctionSaga, OpenPackInput, OpenPackOutput, OpenPackSaga,
+};
+pub use trade_saga_clients::{
+    AuctionLockState, CardClient, CardGrpcClient, CardSource, MockCardClient, MockTradeClient,
+    TradeClient,
+};
 
 pub mod proto;
 
