@@ -1,0 +1,153 @@
+# build-prod-0.1.0.yml —— 新式 GHCR pipeline(per 2026-08-30 14:30 JST Ulysses 部署决策)
+#
+# 目的:在 GitHub-hosted runner 上 build prod 镜像(5 业务域 + 5 卡牌域 = 10 binary 共享
+#      /app/bin/,k3s manifest 用 command 分流)+ push 到 ghcr.io,tag 0.1.0 + latest
+# 触发:workflow_dispatch(由本地 fine-grained PAT 调 REST API 触发)
+# 认证:GITHUB_TOKEN(per workflow permissions: packages: write),不用任何长期 PAT
+# 关联:docs/deploy/01-k8s-manifests/*.yaml 5 业务域都用 ghcr.io/ulyssesleolee/rustgameserver:0.1.0
+#      跟 50-gm-backend-service.yaml 0.1.0-gm-backend 互不干扰(gm-backend 走独立 workflow)
+#
+# 设计取舍:
+#   - 不卡 rust-ci gate: 信任 main HEAD 已通过 rust-ci(PUSH 时已验证)
+#   - 跳过 fmt + clippy + test: 节省 15+ 分钟(本地 1313 测试已 PASS)
+#   - 直接 cargo build --release --workspace --locked + docker build --target prod
+#   - timeout 60 分钟(GitHub-hosted ubuntu-latest 4 CPU/14GB RAM)
+#
+# 2026-08-30 14:30 JST Ulysses 决策确认: fine-grained PAT → Actions workflow_dispatch → GITHUB_TOKEN
+
+name: build-prod-0.1.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像 tag(默认 0.1.0,latest 自动加)'
+        required: false
+        default: '0.1.0'
+        type: string
+      push_latest:
+        description: '同时打 latest tag'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+# 关键: 只给 packages:write + contents:read, 不超授
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  # docker buildx / ghcr.io 强制 lowercase
+  IMAGE_NAME: ulyssesleolee/rustgameserver
+
+jobs:
+  build-and-push:
+    name: cargo build --workspace + docker build prod + push ghcr.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.98
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98
+
+      - name: Install protoc(workspace 多 crate build.rs 需 tonic-build / prost-build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
+      - name: Cache cargo registry + target(per Swatinem/rust-cache)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Show rustc + cargo version(快速 sanity check)
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: cargo build --release --workspace --locked
+        # 10 binary: player-service / economy-service / match-service / social-service
+        # / admin-service / cluster-ops / i18n-service / card-service / leaderboard-service
+        # / replay-service / rgs-asset-download(共享 /app/bin/ 给 k3s command 分流)
+        run: |
+          cargo build --release --workspace --locked
+          ls -la target/release/ | grep -E '\-service$|cluster-ops|rgs-asset-download'
+          file target/release/player-service
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tags(dynamic latest toggle)
+        id: tags
+        run: |
+          if [ "${{ inputs.push_latest }}" = "true" ]; then
+            echo "tags=--tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }} --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=--tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
+      - name: Build and push(prod,linux/amd64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: prod
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=rustgameserver
+            org.opencontainers.image.description=RGS 10-service workspace image (5 业务域 + 5 卡牌域,k3s command 分流)
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  verify:
+    name: verify push + summarize
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 5
+    steps:
+      - name: curl registry manifest(确认镜像已推)
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+            "https://ghcr.io/v2/${{ env.IMAGE_NAME }}/manifests/${{ inputs.tag }}" \
+            | jq .
+      - name: curl registry manifest latest
+        if: inputs.push_latest == 'true'
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+            "https://ghcr.io/v2/${{ env.IMAGE_NAME }}/manifests/latest" \
+            | jq '. | {tag: "latest", digest: .config.digest, size: .config.size}'
+      - name: summary
+        run: |
+          echo "✅ Pushed ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}"
+          if [ "${{ inputs.push_latest }}" = "true" ]; then
+            echo "✅ Pushed ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          fi
+          echo "Run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}"
