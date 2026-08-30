@@ -99,11 +99,14 @@ jobs:
       - name: Resolve tags(dynamic latest toggle)
         id: tags
         run: |
-          if [ "${{ inputs.push_latest }}" = "true" ]; then
-            echo "tags=--tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }} --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"
-          else
-            echo "tags=--tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          fi
+          {
+            echo "tags<<TAGEOF"
+            echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}"
+            if [ "${{ inputs.push_latest }}" = "true" ]; then
+              echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+            fi
+            echo "TAGEOF"
+          } >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
 
       - name: Build and push(prod,linux/amd64)
