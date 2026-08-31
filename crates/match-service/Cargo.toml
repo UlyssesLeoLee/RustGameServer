@@ -66,3 +66,6 @@ replay-service = { path = "../replay-service" }
 tokio-stream = { version = "0.1", features = ["net"] }
 # IT 需要更精细的时间控制 (per saga retry)
 tokio = { workspace = true, features = ["full", "test-util", "time"] }
+# v3 (2026-08-31): match 域 UT — entity 序列化 roundtrip / matchmaker 配对不变式 (per UT-AGENT-BRIEFING-v3 §1 DoD)
+# proptest 直接 1.11 dev-dep, 不入 workspace (per "不修改 workspace.dependencies" 约束)
+proptest = "1.11"
