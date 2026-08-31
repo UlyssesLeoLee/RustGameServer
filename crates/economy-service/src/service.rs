@@ -974,7 +974,8 @@ mod tests {
                         )
                         .await
                         .unwrap_err();
-                    prop_assert!(matches!(err, Error::InsufficientFunds { .. }), "expected InsufficientFunds");
+                    let is_insuff = matches!(err, Error::InsufficientFunds { .. });
+                    prop_assert!(is_insuff, "expected InsufficientFunds, got {:?}", err);
                     // 关键: 无 dangling reservation
                     let for_saga = res_repo.list_by_saga(saga_id).await.unwrap();
                     prop_assert_eq!(for_saga.len(), 0,

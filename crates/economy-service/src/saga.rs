@@ -594,7 +594,7 @@ mod tests {
                 prop_assert_eq!(s.steps.len(), n_steps);
 
                 for i in 0..n_steps {
-                    prop_assert_eq!(&s.current().unwrap().name, &step_names[i]);
+                    prop_assert_eq!(s.current().unwrap().name.as_str(), step_names[i].as_str());
                     s.start();
                     s.current_mut().unwrap().mark_completed();
                     if i + 1 < n_steps {

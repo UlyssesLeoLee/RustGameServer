@@ -1164,11 +1164,9 @@ mod tests {
                         prop_assert_eq!(after.balance, initial - total,
                             "balance must be initial - total on success");
                     } else {
-                        prop_assert!(
-                            matches!(res, Err(Error::InsufficientFunds { .. })),
-                            "should fail with InsufficientFunds: initial={} total={}",
-                            initial, total
-                        );
+                        let is_insuff = matches!(res, Err(Error::InsufficientFunds { .. }));
+                        prop_assert!(is_insuff,
+                            "should fail with InsufficientFunds: initial={} total={}", initial, total);
                         prop_assert_eq!(after.balance, initial,
                             "balance must be unchanged on InsufficientFunds");
                     }
