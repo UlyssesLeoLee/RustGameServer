@@ -544,6 +544,7 @@ mod tests {
 mod proptests {
     use super::*;
     use proptest::prelude::*;
+    use proptest::test_runner::TestCaseError;
 
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(64))]
@@ -571,6 +572,7 @@ mod proptests {
                 let found = found.unwrap();
                 prop_assert_eq!(found.username.as_str(), username.as_str());
                 prop_assert_eq!(found.id, u.id);
+                Ok::<(), TestCaseError>(())
             });
         }
 
@@ -603,6 +605,7 @@ mod proptests {
                 // latest 应是 all 中 created_at 最大的, action 形如 "a.{n-1}"
                 let max_action = format!("a.{}", n - 1);
                 prop_assert_eq!(latest.action.as_str(), max_action.as_str());
+                Ok::<(), TestCaseError>(())
             });
         }
     }

@@ -317,7 +317,8 @@ mod tests {
     use super::*;
     use crate::repository::{InMemoryAdminUserRepository, InMemoryAuditLogRepository};
 
-    fn svc() -> AdminServiceImpl {
+    /// pub(super): 允许同文件 `mod proptests` 访问 (per admin UT hotfix 2026-08-31)
+    pub(super) fn svc() -> AdminServiceImpl {
         AdminServiceImpl::new(
             Arc::new(InMemoryAdminUserRepository::new()),
             Arc::new(InMemoryAuditLogRepository::new()),
@@ -663,8 +664,10 @@ mod tests {
 
 #[cfg(test)]
 mod proptests {
-    use super::tests::*;
+    use super::*;
+    use super::tests::svc;
     use proptest::prelude::*;
+    use proptest::test_runner::TestCaseError;
 
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(128))]
@@ -690,6 +693,7 @@ mod proptests {
                     .await
                     .unwrap_err();
                 prop_assert!(matches!(err, Error::Validation(_)));
+                Ok::<(), TestCaseError>(())
             });
         }
 
@@ -712,6 +716,7 @@ mod proptests {
                     .await
                     .unwrap_err();
                 prop_assert!(matches!(err, Error::Conflict(_)));
+                Ok::<(), TestCaseError>(())
             });
         }
 
@@ -739,18 +744,19 @@ mod proptests {
                         .unwrap();
                     entries.push(e);
                 }
-                prop_assert_eq!(entries[0].prev_hash, "0".repeat(64));
+                prop_assert_eq!(&entries[0].prev_hash, &"0".repeat(64));
                 for i in 1..entries.len() {
                     prop_assert_eq!(
-                        entries[i].prev_hash,
-                        entries[i - 1].hash,
-                        "chain break at i={i}"
+                        &entries[i].prev_hash,
+                        &entries[i - 1].hash,
+                        "chain break at i={}", i
                     );
                 }
                 // N 个 hash 全部不同
                 let unique: std::collections::HashSet<&String> =
                     entries.iter().map(|e| &e.hash).collect();
                 prop_assert_eq!(unique.len(), entries.len());
+                Ok::<(), TestCaseError>(())
             });
         }
     }
