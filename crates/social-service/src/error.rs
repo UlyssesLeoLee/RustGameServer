@@ -149,4 +149,52 @@ mod tests {
         .into();
         assert_eq!(s.code(), Code::FailedPrecondition);
     }
+
+    #[test]
+    fn database_to_internal() {
+        // 用 anyhow::Error 模拟 Database 内部错误路径(避免依赖具体 sqlx::Error 变体)
+        let s: tonic::Status =
+            Error::Internal(anyhow::anyhow!("simulated db failure")).into();
+        assert_eq!(s.code(), Code::Internal);
+    }
+
+    #[test]
+    fn validation_to_invalid_argument() {
+        let s: tonic::Status = Error::Validation("bad".to_string()).into();
+        assert_eq!(s.code(), Code::InvalidArgument);
+    }
+
+    #[test]
+    fn conflict_to_already_exists() {
+        let s: tonic::Status = Error::Conflict("dup".to_string()).into();
+        assert_eq!(s.code(), Code::AlreadyExists);
+    }
+
+    #[test]
+    fn not_found_to_not_found() {
+        let s: tonic::Status = Error::NotFound {
+            entity: "Guild",
+            id: "x".to_string(),
+        }
+        .into();
+        assert_eq!(s.code(), Code::NotFound);
+    }
+
+    #[test]
+    fn unauthorized_to_unauthenticated() {
+        let s: tonic::Status = Error::Unauthorized("nope".to_string()).into();
+        assert_eq!(s.code(), Code::Unauthenticated);
+    }
+
+    #[test]
+    fn forbidden_to_permission_denied() {
+        let s: tonic::Status = Error::Forbidden("nope".to_string()).into();
+        assert_eq!(s.code(), Code::PermissionDenied);
+    }
+
+    #[test]
+    fn unavailable_to_unavailable() {
+        let s: tonic::Status = Error::Unavailable("down".to_string()).into();
+        assert_eq!(s.code(), Code::Unavailable);
+    }
 }

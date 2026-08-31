@@ -103,4 +103,51 @@ mod tests {
         assert!(sanitize_push_content("x", "javascript:alert(1)").is_err());
         assert!(sanitize_push_content("x", "data:text/html").is_err());
     }
+
+    #[test]
+    fn push_delivery_result_contains_code() {
+        let r = PushDeliveryResult { result_code: DeliveryResultCode::Delivered };
+        let json = serde_json::to_string(&r).unwrap();
+        assert!(json.contains("result_code"));
+        let back: PushDeliveryResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.result_code, DeliveryResultCode::Delivered);
+    }
+
+    #[test]
+    fn sanitize_accepts_long_safe_text() {
+        let long = "a".repeat(10_000);
+        assert!(sanitize_push_content(&long, &long).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// DeliveryResultCode 在合法 4 值内 roundtrip 不变
+        #[test]
+        fn delivery_result_code_roundtrip_all_valid(v in 0i32..=3) {
+            let code = DeliveryResultCode::from_i32(v).unwrap();
+            prop_assert_eq!(code.as_i32(), v);
+        }
+
+        /// 任意不含禁用模式的 title/body 必 sanitize 通过
+        #[test]
+        fn sanitize_passes_for_safe_text(
+            title in "[A-Za-z0-9 .,_!?-]{0,128}",
+            body in "[A-Za-z0-9 .,_!?-]{0,256}",
+        ) {
+            // 我们的安全字符集不包含 <script> / javascript: / data: 等禁用模式
+            prop_assert!(sanitize_push_content(&title, &body).is_ok());
+        }
+
+        /// 包含 <script> 任意 title 必被拒
+        #[test]
+        fn sanitize_rejects_script_in_title(prefix in ".*", suffix in ".*") {
+            let title = format!("{}<script>{}</script>", prefix, suffix);
+            prop_assert!(sanitize_push_content(&title, "ok").is_err());
+        }
+    }
 }

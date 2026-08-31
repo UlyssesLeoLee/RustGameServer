@@ -365,4 +365,151 @@ mod tests {
         let list = repo.find_by_player(player_id).await.unwrap();
         assert_eq!(list.len(), 1);
     }
+
+    #[tokio::test]
+    async fn in_memory_guild_delete_by_id() {
+        let repo = InMemoryGuildRepository::new();
+        let g = Guild::new("g".to_string(), "".to_string(), Uuid::new_v4());
+        let id = g.id;
+        repo.save(&g).await.unwrap();
+        assert!(repo.delete_by_id(id).await.unwrap());
+        assert!(repo.find_by_id(id).await.unwrap().is_none());
+        // 二次删除返回 false
+        assert!(!repo.delete_by_id(id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn in_memory_guild_find_by_name() {
+        let repo = InMemoryGuildRepository::new();
+        repo.save(&Guild::new("alpha".to_string(), "".to_string(), Uuid::new_v4()))
+            .await
+            .unwrap();
+        let found = repo.find_by_name("alpha").await.unwrap();
+        assert!(found.is_some());
+        assert!(repo.find_by_name("nonexistent").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_guild_list_by_leader() {
+        let repo = InMemoryGuildRepository::new();
+        let leader = Uuid::new_v4();
+        repo.save(&Guild::new("A".to_string(), "".to_string(), leader))
+            .await
+            .unwrap();
+        repo.save(&Guild::new("B".to_string(), "".to_string(), leader))
+            .await
+            .unwrap();
+        repo.save(&Guild::new("C".to_string(), "".to_string(), Uuid::new_v4()))
+            .await
+            .unwrap();
+        let by_leader = repo.list_by_leader(leader).await.unwrap();
+        assert_eq!(by_leader.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn in_memory_member_list_by_guild() {
+        let repo = InMemoryGuildMemberRepository::new();
+        let gid = Uuid::new_v4();
+        repo.save(&GuildMember::new(gid, Uuid::new_v4()))
+            .await
+            .unwrap();
+        repo.save(&GuildMember::new(gid, Uuid::new_v4()))
+            .await
+            .unwrap();
+        repo.save(&GuildMember::new(Uuid::new_v4(), Uuid::new_v4()))
+            .await
+            .unwrap();
+        let list = repo.list_by_guild(gid).await.unwrap();
+        assert_eq!(list.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn in_memory_member_delete_by_id() {
+        let repo = InMemoryGuildMemberRepository::new();
+        let m = GuildMember::new(Uuid::new_v4(), Uuid::new_v4());
+        let id = m.id;
+        repo.save(&m).await.unwrap();
+        assert!(repo.delete_by_id(id).await.unwrap());
+        assert!(repo.find_by_id(id).await.unwrap().is_none());
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Guild save 后 find_by_id 必能拿回原 entity
+        #[test]
+        fn guild_in_memory_save_find_roundtrip(
+            name in "[A-Za-z0-9]{1,32}",
+            desc in ".*",
+            leader_bytes in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let repo = InMemoryGuildRepository::new();
+                let leader = Uuid::from_bytes(leader_bytes);
+                let g = Guild::new(name.clone(), desc.clone(), leader);
+                let id = g.id;
+                repo.save(&g).await.unwrap();
+                let back = repo.find_by_id(id).await.unwrap().unwrap();
+                prop_assert_eq!(back.name, name);
+                prop_assert_eq!(back.description, desc);
+                prop_assert_eq!(back.leader_id, leader);
+                prop_assert_eq!(back.level, g.level);
+                prop_assert_eq!(back.member_count, g.member_count);
+                prop_assert_eq!(back.experience, g.experience);
+            });
+        }
+
+        /// Guild save 覆盖原 entity (同 id 二次 save 后 find_by_id 返回新值)
+        #[test]
+        fn guild_in_memory_save_overwrites(
+            name1 in "[A-Za-z0-9]{1,16}",
+            name2 in "[A-Za-z0-9]{1,16}",
+            leader_bytes in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let repo = InMemoryGuildRepository::new();
+                let leader = Uuid::from_bytes(leader_bytes);
+                let mut g = Guild::new(name1, "".to_string(), leader);
+                let id = g.id;
+                repo.save(&g).await.unwrap();
+                g.name = name2.clone();
+                repo.save(&g).await.unwrap();
+                let back = repo.find_by_id(id).await.unwrap().unwrap();
+                prop_assert_eq!(back.name, name2);
+            });
+        }
+
+        /// GuildMember 按 player_id 查找不变式:save 一个 player, 必查到 1 个
+        #[test]
+        fn guild_member_find_by_player_count(
+            guild_bytes in any::<[u8; 16]>(),
+            player_bytes in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let repo = InMemoryGuildMemberRepository::new();
+                let gid = Uuid::from_bytes(guild_bytes);
+                let pid = Uuid::from_bytes(player_bytes);
+                repo.save(&GuildMember::new(gid, pid)).await.unwrap();
+                let list = repo.find_by_player(pid).await.unwrap();
+                prop_assert_eq!(list.len(), 1);
+                prop_assert_eq!(list[0].player_id, pid);
+            });
+        }
+    }
 }
