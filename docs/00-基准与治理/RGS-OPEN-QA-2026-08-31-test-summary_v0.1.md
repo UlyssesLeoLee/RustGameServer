@@ -1,10 +1,11 @@
 # RGS-OPEN-QA-2026-08-31-test-summary — 5 域 UT+IT+ST 测试阶段问题汇总
 
 > **文档 ID**: RGS-OPEN-QA-2026-08-31-test-summary
-> **版本**: v0.1
-> **生效日期**: 2026-08-31 20:10 JST
+> **版本**: v0.2
+> **生效日期**: 2026-08-31 20:10 JST (v0.1) / 2026-08-31 JST (v0.2 决策回复)
 > **作者**: 架构师(Mavis 接手 agent per DEC-008,代签)
-> **状态**: 🟡 OPEN (11 项 P1 backlog 待上游 AI 决策 + 6 项工程教训待 DDD Review 复盘)
+> **v0.2 决策人**: 上游 AI 接力 (Claude Code)
+> **状态**: 🟢 Q1-Q7/Q10(工具选型)/L1-L5 已决策；Q8/Q9/Q11/L6/Q10(证书导出+ST重跑) 需 k3s 集群访问，已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`（本次会话集群不可连，实测 `kubectl` 报 `dial tcp 127.0.0.1:52551: connectex` 拒绝连接）
 > **范围**: 2026-08-31 12:09-19:48 JST,5 域 UT + IT + ST 三阶段并行测试,11 commit 落 main (`305f2cb`),+11070 行, 366+ tests, 5/5 cargo check, 10 ST 场景
 > **关联**:
 > - UT+IT DDD Review: `docs/14-项目管理/ddd-review/RGS-DDD-2026-08-31-UT-IT_v0.1.md` (commit `bd0884f`)
@@ -61,6 +62,12 @@
 - IT 报告: `67f82d6` (admin 域 feat(test) IT 3 文件)
 - 5 域 merge: `103481a` (admin 域 merge)
 
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/admin-service/src/gm_handlers.rs` L72-121 (`ban_account`) 实测确认 — 仅 `extract_admin_id_from_jwt` 取 actor_id, 无角色/权限校验后直接执行, 证实问题描述
+- 落地位置: **handler 入口** (`gm_handlers.rs` 内 `ban_account` / `grant_compensation` / `set_maintenance` 各自顶部), 不下沉到 trait 层 — trait 层 (`service.rs`) 是纯业务逻辑, RBAC 是 handler/传输层关注点, 与 JWT 提取同一层处理
+- 测试覆盖: IT 为主 (现有 `issue_gm_command_with_rbac` wrapper 行为转正为生产代码路径, `integration_gm_command_permission_chain.rs` 4 tests 保留), UT 补 role_matrix 单元测试
+- 优先级: 下一轮工程 bucket 最高优先 (安全漏洞, 阻塞面广)
+
 ---
 
 ### Q2. 🔴 P1-02: admin audit_log 缺 startup verify (tamper detection)
@@ -80,6 +87,12 @@
 **证据 commit**:
 - IT 报告: `67f82d6` 含 `integration_audit_log_chain_under_restart.rs` 3 tests
 
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/admin-service/src/repository.rs` 实测确认 — 仅有 `append`/`latest`/`find` 类查询, 无 `recompute`/`verify_chain`/`startup` 函数, 证实缺失
+- 启动时全表 recompute: **否** — 审计表无界增长, 全量 O(N) 每次启动不可扩展。改为**增量 verify**: 仅校验最近 N 条 (建议最近 1000 条或最近 24h, 由下一轮实现时按数据量实测调整) 的 hash chain 连续性; 全量 verify 作为独立运维命令 (非 startup 强制路径)
+- 启动失败处理: **区分场景** — 检测到真实篡改 (hash 不匹配) → fail-closed (拒绝启动, 需人工介入); DB 不可达等基础设施原因导致 verify 本身失败 → warning + 继续启动 (与 Q8/L6 "infra 问题不应阻塞启动" 同一哲学, 避免误伤)
+- 增量 vs 全量: 增量 (见上)
+
 ---
 
 ### Q3. 🟡 P1-03: player update_player_profile 占位未强制 wins ≤ total_matches
@@ -97,6 +110,12 @@
 
 **证据 commit**:
 - IT 报告: `bd83fb3` 含 `integration_player_profile_update_chain.rs` 4 tests
+
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/player-service/src/service.rs` L253-268 (`update_player_profile`) 实测确认 — L259 `// TODO(DTL-038 §7.2): player_profiles 表实装后, 持久化 + 审计`, 当前整函数是占位 (仅 log + Ok 回传, 无持久化), 证实占位描述
+- 阶段: **与 DTL-038 §7.2 player_profiles 表实装同批**, 不单独插队 — 当前函数无持久化地基, 单独修约束没有意义
+- 层: **业务层 invariant** (service 层校验并拒绝), 不加数据库 CHECK 约束 — `total_wins ≤ total_matches` 是随累计更新路径演进的派生不变量, DB CHECK 只能防静态错误值, 业务层校验对更新路径更灵活
+- 现有 IT 测试 (`bd83fb3`) 保留, 实装后测试断言应保持不变 (向后兼容)
 
 ---
 
@@ -116,6 +135,11 @@
 - IT 报告: `afd3d65` 含 `integration_outbox_atomicity.rs` 4 tests
 - pre-existing: `0623066` + `2396941`
 
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/economy-service/tests/integration_outbox.rs` L143 实测确认 — `let base = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");`, 与同文件 L61 (第一个 test) 同一模式, 但缺 graceful skip 分支
+- 只修这一处 `expect` (统一成该文件已有的 skip 风格), 不做全仓库 outbox 测试风格大统一 (范围蔓延无必要)
+- 是否纳入 P1 backlog: **否** — 降级为普通 test hygiene chore (非阻塞), 仅影响测试代码, 非生产路径, 且是 pre-existing 问题
+
 ---
 
 ### Q5. 🟢 P1-05: social guild capacity 硬上限 50 (简报假设 64)
@@ -133,6 +157,11 @@
 
 **证据 commit**:
 - IT 报告: `3f41626` 含 `integration_guild_capacity_boundary.rs` 3 tests
+
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/social-service/src/service.rs` L108-109 实测确认 — `// 简单限制：50 人` + `if guild.member_count >= 50`, 证实硬编码 50 (非 64)
+- 50 vs 64: **代码现状 50 为准**, 不擅自改成 64 — 业务规则变更需产品/业务侧拍板, 非本轮 QA 收敛环节可决定。此项**转交 social 域 Lead 业务确认**是否 50 为最终值
+- 现有 50 边界测试 (`integration_guild_capacity_boundary.rs`) 保留不变; 若未来改 64, 需同步更新简报文档 + 该测试
 
 ---
 
@@ -152,6 +181,13 @@
 **证据 commit**:
 - IT 报告: `3f41626` 含 `integration_guild_lifecycle.rs` 3 tests
 
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/social-service/src` 实测确认无 `leave_guild` 方法, 证实缺失
+- 桶: PH-6 社交域下一轮实现补 `leave_guild` API
+- leadership 转移规则: leader 退出时转移给**加入时间最早的剩余成员**; 若只剩 leader 一人退出 → 解散公会
+- 离开后清理: `player.profile` 中 `guild_id` 字段置空
+- 实现需写生产代码 (非纯决策) → 列入下游 handoff 实现清单
+
 ---
 
 ### Q7. 🟡 P1-07: social push_delivery 缺真实 dispatcher
@@ -169,6 +205,13 @@
 
 **证据 commit**:
 - IT 报告: `3f41626` 含 `integration_push_delivery_atomicity.rs` 3 tests
+
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 复核: `crates/social-service/src/push_delivery.rs` 实测确认仅有 `PushDeliveryRequest`/`DeliveryResultCode`/`sanitize_push_content`, 无 dispatcher 实现, 证实缺失
+- dispatcher 走向: **走 NATS** — 项目已有 NATS 基础设施用于跨域事件 (与 outbox pattern 一致), 不新增 FCM/APNs 直连依赖; FCM/APNs 实际转发是 dispatcher 消费 NATS 主题后的下一跳, 不在本次范围
+- retry 策略: 复用 economy 域已验证的 outbox+saga retry 模式 (max attempts + backoff)
+- DLQ: 是, 需要 (失败超过 max attempts 进 DLQ, 供人工/离线重放)
+- 实现需写生产代码 (非纯决策) → 列入下游 handoff 实现清单
 
 ---
 
@@ -192,6 +235,8 @@
 - ST merge: `305f2cb`
 - e2e-smoke baseline: `scripts/e2e-smoke.ps1` (per 8/27 部署成果)
 
+**决策 (上游 AI, 2026-08-31 JST)**: 需 k3s 集群访问诊断 (kubectl exec/logs), 本次会话集群不可连 (`kubectl get pods` 报 `dial tcp 127.0.0.1:52551: connectex` 拒绝连接) → **已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` §1**, 附诊断步骤 + 与历史 HPA minReplicas 强启动风暴问题 (per 8/26 JST 排障记录) 的关联提示。
+
 ---
 
 ### Q9. 🟡 P1-09: ST prometheus + grafana HTTP 探活 000000
@@ -210,6 +255,8 @@
 **证据 commit**:
 - ST 报告: `cd93169` (verdict 矩阵 st-01, st-05, st-07, st-09, st-10 FAIL 根因)
 - e2e-smoke: 12 probe baseline
+
+**决策 (上游 AI, 2026-08-31 JST)**: 同 Q8, 需集群访问诊断, 本次会话不可达 → **已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` §1**。
 
 ---
 
@@ -232,6 +279,11 @@
 - mTLS k8s secret: `docs/deploy/01-k8s-manifests/50-secret-*-tls.yaml`
 - 证书生成 SOP: `docs/deploy/00-prerequisites/phase-0-5-step-4-gen-certs.ps1`
 
+**决策 (上游 AI, 2026-08-31 JST)**:
+- 工具链 (可现在决策, 不需集群): **grpcurl** — 项目已有 curl-based `e2e-smoke.ps1/.sh` 先例, grpcurl 是同量级工具, 不需新增 Rust client 或 Postman 依赖
+- 证书导出 + 实际 ST 重跑: 需集群访问, 本次会话不可达 → **已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` §2**
+- trade saga / replay 端到端时间点: 下轮 ST (待 Q8/Q9 基础设施问题解决后)
+
 ---
 
 ### Q11. 🟢 P1-11: ST NATS 8222 部署范围
@@ -249,6 +301,8 @@
 
 **证据 commit**:
 - ST 报告: `cd93169` (st-08 social-cross-domain-push 含 NATS probe, 已 SKIP accept)
+
+**决策 (上游 AI, 2026-08-31 JST)**: 本项是事实核查题 (非决策题), 文档已给出核查命令 `kubectl get pods -n rust-game-server -l app.kubernetes.io/name=nats`。本次会话尝试执行, 集群不可连 (`dial tcp 127.0.0.1:52551: connectex`), 无法闭合 → **已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` §1**, 待集群可用时一条命令即可核实归属 (含 → 修 Q9 类似启动问题; 不含 → 标 SKIP 非 P1)。
 
 ---
 
@@ -274,6 +328,8 @@
 - [ ] 文档化到 `AGENTS.md` "Worker cargo 长编译反 pattern"
 - [ ] 未来 worker 简报模板禁用 "cargo test" / "cargo build", 改 "cargo check --tests"
 
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 规则确认为最终文本 — **"Worker 任务简报禁止要求 'cargo test 通过' 作为 DoD; 改为 'cargo check --tests 通过' (快, 几秒), 最终 cargo test 在主会话统一跑。禁止 worker 用 polling (`Start-Sleep` + `Get-Process`) 等编译完成, 这是反 pattern, worker 应在触发编译后直接返回, 等任务完成信号"**。`AGENTS.md` 当前仓库不存在, 创建它 + 落入此规则是实现动作 (非纯决策) → 列入下游 handoff。
+
 ---
 
 ### L2. 🔴 UT v2 禁 cargo 导致 38 编译错误
@@ -294,6 +350,8 @@
 **决策项**:
 - [ ] 文档化到 `AGENTS.md` "Worker cargo check 必跑"
 - [ ] 未来简报: "✅ 必跑 `cargo check --tests` (限时 60s)" 列为强约束
+
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 与 L1 合并为同一条 `AGENTS.md` 规则的两面 (L1: 禁 `cargo test` polling; L2: 但必须跑 `cargo check`, 不能完全禁 cargo) — 规则文本: **"Worker 必须在提交前跑至少一次 `cargo check --tests` (限时 60s 内应出结果) 作为编译验证下限, 不允许跳过验证直接 commit; 但不得要求跑完整 `cargo test`"**。列入下游 handoff (随 L1 一起写入 `AGENTS.md`)。
 
 ---
 
@@ -317,6 +375,8 @@
 - [ ] 文档化 rgs-testkit 强约束到 `AGENTS.md`
 - [ ] 未来 mock server 决策先 grep workspace 依赖 + 看 rgs-testkit 强约束段
 
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 规则文本: **"跨工具链决策 (mock server / testkit / 外部依赖选型) 前必须先 `grep` workspace `Cargo.toml` 确认依赖是否存在 + 阅读相关强约束文档段落 (如 `crates/rgs-testkit/src/lib.rs` §唯一接受的 API), 禁止拍脑袋假设依赖可用"**。列入下游 handoff (写入 `AGENTS.md`)。
+
 ---
 
 ### L4. 🟡 ST 阶段 5 worker 0 产出 → 主会话自写
@@ -337,6 +397,8 @@
 **决策项**:
 - [ ] 文档化到 `AGENTS.md` "跨工具链场景先主会话打头阵"
 - [ ] 未来简报模板: 跨 WSL / Docker / k3s / 多 binary 场景默认主会话先跑 1 个
+
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 规则文本: **"跨多工具链场景 (WSL + sudo + k3s + 多域 + 外部脚本) 不直接派 worker 从 0 探索; 主会话先打头阵跑通 1 条完整链路, 产出可复用模板后, 再派 worker 做模板化复制 (改 probe 列表 / 改域名等参数化工作)"**。列入下游 handoff (写入 `AGENTS.md`)。
 
 ---
 
@@ -359,6 +421,8 @@
 **决策项**:
 - [ ] 下轮 ST 前先导出 mTLS 证书到 ST worktree
 - [ ] 文档化: "ST worktree 必备 5 域 mTLS 证书" 列入 ST 启动 checklist
+
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 规则文本: **"ST 阶段启动 checklist 新增: 路径选择前先 `grep` k8s secret 位置 + 证书导出 SOP 是否存在; 5 域 mTLS 业务级 ST 需要的证书导出必须列入 ST worktree 初始化步骤, 不能等到写测试时才发现缺失"**。列入下游 handoff (写入 `AGENTS.md` + 与 Q10 证书导出实操合并处理)。
 
 ---
 
@@ -383,6 +447,8 @@
 - [ ] 派 1 个 worker 修 gm-backend 容器 (kubectl exec 诊断 + 重启)
 - [ ] 重跑 ST 10 场景, 期望 10/10 PASS (gm-backend 修好后)
 
+**决策 (上游 AI, 2026-08-31 JST)**: 采纳教训, 规则文本: **"ST 阶段 FAIL 不能直接归咎测试代码, 先对照 e2e-smoke baseline (12 probe 基线) 排除是否为已知基础设施问题; k3s 容器 HTTP 不响应类问题应先查 pod 重启次数/events (与历史 HPA minReplicas 强启动风暴问题同类特征), 而非默认怀疑 binary 逻辑"**。诊断 + 修复本身需集群访问 → 与 Q8 合并, 已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` §1; 规则文本列入下游 handoff (写入 `AGENTS.md`)。
+
 ---
 
 ## 4. 关联文档与证据汇总
@@ -406,22 +472,20 @@
 | 版本 | 日期 | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-08-31 20:10 JST | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 11 项 P1 backlog + 6 项工程教训汇总, 待上游 AI 决策 |
+| v0.2 | 2026-08-31 JST | 上游 AI 接力 (Claude Code) | 对 Q1-Q7 / Q10(工具选型) / L1-L5 给出决策(附代码实证复核); Q8/Q9/Q11/L6/Q10(证书导出+ST重跑) 因 k3s 集群本次会话不可连(`dial tcp 127.0.0.1:52551` 拒绝连接), 转入新建 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`; AGENTS.md 创建列为下游实现项(不在本次自建, 避免第三个未经请求的产物) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
+**v0.2 决策人**: 上游 AI 接力 (Claude Code)
 
 ---
 
-## 6. 接力说明 (给上游 AI)
+## 6. 接力说明 (给上游 AI / 下游 AI)
 
-本 OPEN-QA 是 Mavis 8/31 12:09-20:00 JST 的测试阶段总结。**所有 Q1-Q11 + L1-L6 都需要上游 AI / 5 域 Lead / Ulysses 决策**,Mavis 不擅自给方案(per 8/26 JST "缺标比错标安全")。
+本 OPEN-QA 是 Mavis 8/31 12:09-20:00 JST 的测试阶段总结。v0.2 由上游 AI 对全部 Q1-Q11 + L1-L6 逐项回复(每项决策前先 grep/read 源码复核 §0 引用的 git 实证要求,详见各条目下"决策 (上游 AI, 2026-08-31 JST)")。
 
-**建议接力顺序**:
-1. **Q1-Q2 (admin P1, 🔴 高)**: 先看 8/21 JST 5 域独立 Lead 架构里 admin 域 Lead 的优先级
-2. **Q8 (gm-backend ST 失败, 🔴 高)**: 看 k3s 部署运维, gm-backend 容器为何不响应
-3. **Q3-Q7 (业务 P1, 🟡 中)**: 5 域 Lead 各自消化
-4. **L1-L6 (工程教训)**: 文档化到 AGENTS.md, 影响未来 worker 工作流
-5. **Q9-Q11 (运维/ST)**: 与 k3s 部署组同步
-6. **Q10 (mTLS ST 缺失)**: 下轮 ST 启动 checklist 必备
+**已闭合(本文档内决策,无需再上会)**: Q1, Q2, Q3, Q4, Q5(转 social Lead 业务确认), Q6(设计已定, 待实现), Q7(设计已定, 待实现), Q10 工具选型, L1-L5
 
-**所有 commit / file:line / 8.x JST 决策时间 都是 git 实证**,可独立验证。
+**未闭合(转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`,需 k3s 集群访问)**: Q8, Q9, Q11, L6, Q10 证书导出+ST重跑, AGENTS.md 创建落地
+
+**所有 commit / file:line / 8.x JST 决策时间 都是 git 实证**,可独立验证。v0.2 决策补充的 file:line 引用均为本次会话 grep/Read 实测确认。
