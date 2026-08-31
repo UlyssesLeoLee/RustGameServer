@@ -1,40 +1,40 @@
 {
   "bas_section": "§4.4 + §4.8",
-  "scenario": "ST-02 player 跨域 health 链路",
   "verdict": "FAIL",
-  "timestamp": "2026-08-31T18:39:10.9961886+09:00",
   "steps": [
     {
-      "expected": "PASS",
-      "status": "PASS",
+      "name": "player-service-grpc",
       "step": 1,
-      "actual": "PASS",
       "detail": "ip=10.42.0.102 port=50051 http=000000",
-      "name": "player-service-grpc"
+      "actual": "PASS",
+      "status": "PASS",
+      "expected": "PASS"
     },
     {
-      "expected": "PASS",
-      "status": "PASS",
+      "name": "admin-service-grpc",
       "step": 2,
-      "actual": "PASS",
       "detail": "ip=10.42.0.103 port=50055 http=000000",
-      "name": "admin-service-grpc"
-    },
-    {
-      "expected": "PASS",
-      "status": "FAIL",
-      "step": 3,
-      "actual": "FAIL",
-      "detail": "ip=10.42.0.96 port=8081/healthz http=000000!=200",
-      "name": "gm-backend-healthz"
-    },
-    {
-      "expected": "PASS",
-      "status": "PASS",
-      "step": 4,
       "actual": "PASS",
+      "status": "PASS",
+      "expected": "PASS"
+    },
+    {
+      "name": "gm-backend-healthz",
+      "step": 3,
+      "detail": "ip=10.42.0.96 port=8081/healthz http=000000!=200",
+      "actual": "FAIL",
+      "status": "FAIL",
+      "expected": "PASS"
+    },
+    {
+      "name": "postgres",
+      "step": 4,
       "detail": "ip=10.42.0.117 port=5432 http=000000",
-      "name": "postgres"
+      "actual": "PASS",
+      "status": "PASS",
+      "expected": "PASS"
     }
-  ]
+  ],
+  "timestamp": "2026-08-31T18:53:43.4600677+09:00",
+  "scenario": "ST-02 player 跨域 health 链路"
 }
