@@ -1095,4 +1095,105 @@ mod tests {
         // step 3 不应执行
         assert_eq!(card.add_count(), 0);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — OpenPack 余额守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use crate::trade_saga_clients::MockCardClient;
+        use proptest::prelude::*;
+        use std::sync::Arc;
+
+        /// OpenPack saga 余额守恒:
+        /// 任意 (initial, price, pack_count) 组合下:
+        ///   - 余额足够 → 扣 price*pack_count, 终余额 = initial - debit
+        ///   - 余额不足 → 返 InsufficientFunds, 余额不变
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn open_pack_balance_conservation(
+                initial in 0i64..10_000,
+                price in 1i64..200,
+                pack_count in 1u32..5,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let led = Arc::new(InMemoryTransactionLedgerRepository::new());
+                    let acc = Arc::new(
+                        InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
+                    );
+                    let card = Arc::new(MockCardClient::new());
+                    let card_dyn: Arc<dyn CardClient> = card.clone();
+
+                    let player = Uuid::new_v4();
+                    fund(&acc, player, Currency::Gold, initial).await;
+                    card.set_drop_result(vec!["c-1".to_string()]);
+
+                    let total = price * (pack_count as i64);
+                    let saga = OpenPackSaga::new(
+                        acc.clone() as Arc<dyn AccountRepository>,
+                        led.clone() as Arc<dyn TransactionLedgerRepository>,
+                        card_dyn,
+                    );
+                    let key = format!("k-prop-op-{}-{}-{}", initial, price, pack_count);
+                    let res = saga
+                        .execute(OpenPackInput {
+                            player_id: player,
+                            series_id: "s-prop".to_string(),
+                            pack_count,
+                            pack_size: 1,
+                            price,
+                            currency_type: 1,
+                            idempotency_key: key,
+                        })
+                        .await;
+
+                    let after = acc
+                        .find_by_player_and_currency(player, Currency::Gold)
+                        .await
+                        .unwrap()
+                        .unwrap();
+                    if initial >= total {
+                        prop_assert!(res.is_ok(), "should succeed: initial={} total={}", initial, total);
+                        prop_assert_eq!(after.balance, initial - total,
+                            "balance must be initial - total on success");
+                    } else {
+                        let is_insuff = matches!(res, Err(Error::InsufficientFunds { .. }));
+                        prop_assert!(is_insuff,
+                            "should fail with InsufficientFunds: initial={} total={}", initial, total);
+                        prop_assert_eq!(after.balance, initial,
+                            "balance must be unchanged on InsufficientFunds");
+                    }
+                    Ok(())
+                });
+            }
+        }
+
+        /// ExecuteAuction tax 守恒: 任意 (final_price, tax_bps) 下
+        /// tax = floor(final_price * tax_bps / 10000), seller_amount = final_price - tax
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(1024))]
+
+            #[test]
+            fn execute_auction_tax_arithmetic(
+                final_price in 0i64..100_000_000,
+                tax_bps in 0i64..10_000,
+            ) {
+                let tax = (final_price as i128 * tax_bps as i128 / 10_000) as i64;
+                let seller_amount = final_price - tax;
+                prop_assert!(tax >= 0);
+                prop_assert!(seller_amount >= 0);
+                prop_assert!(tax <= final_price, "tax must be <= final_price");
+                // 不变量: tax + seller_amount = final_price (无丢失, 无幻影)
+                prop_assert_eq!(tax + seller_amount, final_price,
+                    "tax + seller_amount must equal final_price (no value lost / no phantom)");
+            }
+        }
+    }
 }

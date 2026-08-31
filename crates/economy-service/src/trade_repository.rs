@@ -644,6 +644,83 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].seller_id, "s2");
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — list filter 守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 拍卖列表 filter 守恒: 注入 N 条拍卖 (Active / Sold / Cancelled),
+        /// list_auctions(filter) 返回的 total 必须 == 匹配 filter 的数量.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn auction_list_filter_total_matches(
+                n_active in 0u32..8,
+                n_sold in 0u32..5,
+                n_cancelled in 0u32..5,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let repo = InMemoryTradeRepository::new();
+                    // 注入 active
+                    for i in 0..n_active {
+                        let mut a = make_auction(&format!("s-a-{}", i), 10);
+                        a.status = AuctionStatus::Active;
+                        // ends_at 在未来, 确保 Active filter 选中
+                        a.ends_at = Utc::now() + chrono::Duration::seconds(3600);
+                        repo.save_auction(&a).await.unwrap();
+                    }
+                    // 注入 sold
+                    for i in 0..n_sold {
+                        let mut a = make_auction(&format!("s-so-{}", i), 10);
+                        a.status = AuctionStatus::Sold;
+                        a.closed_at = Some(Utc::now());
+                        repo.save_auction(&a).await.unwrap();
+                    }
+                    // 注入 cancelled
+                    for i in 0..n_cancelled {
+                        let mut a = make_auction(&format!("s-ca-{}", i), 10);
+                        a.status = AuctionStatus::Cancelled;
+                        a.closed_at = Some(Utc::now());
+                        repo.save_auction(&a).await.unwrap();
+                    }
+
+                    // Active filter
+                    let (_, total_active) = repo
+                        .list_auctions(AuctionFilter::Active, 1, 100)
+                        .await
+                        .unwrap();
+                    prop_assert_eq!(total_active, n_active as u64,
+                        "Active filter total must equal injected count");
+
+                    // Closed filter
+                    let (_, total_closed) = repo
+                        .list_auctions(AuctionFilter::Closed, 1, 100)
+                        .await
+                        .unwrap();
+                    prop_assert_eq!(total_closed, (n_sold + n_cancelled) as u64,
+                        "Closed filter total must equal sold + cancelled");
+
+                    // All filter
+                    let (_, total_all) = repo
+                        .list_auctions(AuctionFilter::All, 1, 100)
+                        .await
+                        .unwrap();
+                    prop_assert_eq!(total_all, (n_active + n_sold + n_cancelled) as u64,
+                        "All filter total must equal sum of all categories");
+                    Ok(())
+                });
+            }
+        }
+    }
 }
 
 // 抑制 unused DateTime 警告

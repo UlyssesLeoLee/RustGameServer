@@ -1416,4 +1416,103 @@ mod tests {
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — 出价总额守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 出价总额守恒: 多个 bidder 连续出价 (递增), 最后的 highest_bid
+        /// 等于最后一次出价金额; 当前最高出价者余额 = initial - his bid;
+        /// 已被 outbid 的旧最高出价者余额 = initial (full refund).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn auction_bid_chain_conservation(
+                initial in 1000i64..100_000,
+                min_price in 10i64..100,
+                bid_count in 2u32..6,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let (svc, acc_repo, _led_repo) = make_service();
+                    let seller = Uuid::new_v4();
+                    // 创建拍卖
+                    let auction = svc
+                        .create_auction(
+                            seller.to_string(),
+                            "c".to_string(),
+                            "i".to_string(),
+                            min_price,
+                            1,
+                            0,
+                        )
+                        .await
+                        .unwrap();
+
+                    // bid_count 个 bidder 依次递增出价
+                    let mut bidders = Vec::new();
+                    for i in 0..bid_count {
+                        let b = Uuid::new_v4();
+                        bidders.push(b);
+                        fund(&acc_repo, b, Currency::Gold, initial).await;
+                    }
+                    let mut last_bid = min_price; // 至少起拍
+                    for (i, &b) in bidders.iter().enumerate() {
+                        let amt = last_bid + 10 + (i as i64) * 5;
+                        let key = format!("k-prop-bid-{}-{}", i, b);
+                        let _ = svc
+                            .bid_auction(
+                                auction.auction_id,
+                                b.to_string(),
+                                amt,
+                                key,
+                            )
+                            .await
+                            .unwrap();
+                        last_bid = amt;
+                    }
+
+                    // 终态: auction.highest_bid = last_bid, highest_bidder = last bidder
+                    let a = svc
+                        .list_auctions(AuctionFilter::Active, 1, 10)
+                        .await
+                        .unwrap()
+                        .0
+                        .into_iter()
+                        .find(|a| a.auction_id == auction.auction_id)
+                        .expect("auction must exist");
+                    prop_assert_eq!(a.highest_bid, last_bid);
+                    prop_assert_eq!(a.highest_bidder, bidders.last().unwrap().to_string());
+
+                    // 最后一个 bidder 余额 = initial - last_bid
+                    let last = acc_repo
+                        .find_by_player_and_currency(*bidders.last().unwrap(), Currency::Gold)
+                        .await
+                        .unwrap()
+                        .unwrap();
+                    prop_assert_eq!(last.balance, initial - last_bid);
+
+                    // 中间被 outbid 的 bidders 余额 = initial (退款回到原始)
+                    for &b in &bidders[..bidders.len() - 1] {
+                        let acc = acc_repo
+                            .find_by_player_and_currency(b, Currency::Gold)
+                            .await
+                            .unwrap()
+                            .unwrap();
+                        prop_assert_eq!(acc.balance, initial,
+                            "outbid bidder {} should have full refund", b);
+                    }
+                    Ok(())
+                });
+            }
+        }
+    }
 }

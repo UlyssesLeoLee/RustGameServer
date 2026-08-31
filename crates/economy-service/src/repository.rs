@@ -630,4 +630,58 @@ mod tests {
         assert!(found.is_some());
         assert_eq!(found.unwrap().amount, 100);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — apply_atomic 余额守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// apply_atomic 余额守恒: 任意 (initial, amount) 组合下,
+        /// apply_atomic 成功后账户 balance = initial - amount, version + 1.
+        /// 用 amount <= initial 保证 try_debit 成功, 避免 race。
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(512))]
+
+            #[test]
+            fn apply_atomic_debit_conservation(
+                initial in 1i64..100_000,
+                amount in 1i64..50_000,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let amount = amount.min(initial);
+                    let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
+                    let acc_repo = Arc::new(
+                        InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
+                    );
+                    let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+                    acc.credit(initial);
+                    acc_repo.save(&acc).await.unwrap();
+
+                    let acc_id = acc.id;
+                    let mut debited = acc_repo.find_by_id(acc_id).await.unwrap().unwrap();
+                    prop_assert!(debited.try_debit(amount), "amount <= initial must succeed");
+                    let key = format!("k-prop-{}-{}", initial, amount);
+                    let mut entry = TransactionLedger::new(
+                        acc_id,
+                        -amount,
+                        Currency::Gold,
+                        TransactionKind::Spend,
+                        key,
+                    );
+                    entry.status = TransactionStatus::Confirmed;
+                    let (updated, _saved) = acc_repo.apply_atomic(&debited, &entry).await.unwrap();
+                    prop_assert_eq!(updated.balance, initial - amount);
+                    prop_assert_eq!(updated.version, 1, "version must increment by 1");
+                    Ok(())
+                });
+            }
+        }
+    }
 }
