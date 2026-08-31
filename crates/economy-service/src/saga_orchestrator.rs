@@ -1717,4 +1717,107 @@ mod tests {
             "step 0 must be Compensated after orch.compensate() finishes"
         );
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — SagaOrchestrator 余额守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// transfer saga happy path 余额守恒: 任意 (initial, amount) 组合下,
+        /// reserve + confirm 完整跑完后, 账户余额 = initial - amount.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn transfer_saga_balance_conservation(
+                initial in 100i64..100_000,
+                amount in 1i64..5_000,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let amount = amount.min(initial); // 余额足够
+                    let env = make_env(initial).await;
+                    let account_id = account_id_in_env(&env);
+
+                    // 自定义 ReserveHandler (amount 走 prop 值)
+                    let reserve = ReserveHandler::new(
+                        env.reservations.clone() as Arc<dyn ReservationRepository>,
+                        env.accounts.clone() as Arc<dyn AccountRepository>,
+                        amount,
+                        Currency::Gold,
+                    );
+                    let confirm = ConfirmHandler::new(
+                        env.reservations.clone() as Arc<dyn ReservationRepository>,
+                        env.accounts.clone() as Arc<dyn AccountRepository>,
+                    );
+                    let orch = SagaOrchestrator::new(
+                        env.sagas.clone() as Arc<dyn SagaRepository>,
+                        env.reservations.clone() as Arc<dyn ReservationRepository>,
+                        vec![Arc::new(reserve), Arc::new(confirm)],
+                    );
+
+                    let mut saga = make_transfer_saga(account_id);
+                    orch.execute(&mut saga).await.unwrap();
+
+                    prop_assert_eq!(saga.status, SagaStatus::Completed);
+                    let after = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
+                    prop_assert_eq!(after.balance, initial - amount,
+                        "balance must be initial - amount on Completed (initial={}, amount={})",
+                        initial, amount);
+                });
+            }
+        }
+
+        /// transfer saga 失败时余额守恒: 余额足够, 在 confirm 阶段注入失败,
+        /// 触发补偿, 终余额必须 == initial (无丢失, 无幻影).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn transfer_saga_compensation_balance_conservation(
+                initial in 100i64..100_000,
+                amount in 1i64..5_000,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let amount = amount.min(initial);
+                    let env = make_env(initial).await;
+                    let account_id = account_id_in_env(&env);
+
+                    let reserve = ReserveHandler::new(
+                        env.reservations.clone() as Arc<dyn ReservationRepository>,
+                        env.accounts.clone() as Arc<dyn AccountRepository>,
+                        amount,
+                        Currency::Gold,
+                    );
+                    let failing_confirm = super::FailingHandler {
+                        name: "confirm".to_string(),
+                    };
+                    let orch = SagaOrchestrator::new(
+                        env.sagas.clone() as Arc<dyn SagaRepository>,
+                        env.reservations.clone() as Arc<dyn ReservationRepository>,
+                        vec![Arc::new(reserve), Arc::new(failing_confirm)],
+                    );
+
+                    let mut saga = make_transfer_saga(account_id);
+                    let _ = orch.execute(&mut saga).await; // Err 预期
+
+                    let after = env.accounts.find_by_id(account_id).await.unwrap().unwrap();
+                    prop_assert_eq!(after.balance, initial,
+                        "balance must be restored to initial after full compensation (initial={}, amount={})",
+                        initial, amount);
+                    prop_assert_eq!(saga.status, SagaStatus::Failed);
+                });
+            }
+        }
+    }
 }

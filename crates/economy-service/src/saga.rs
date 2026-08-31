@@ -565,4 +565,131 @@ mod tests {
         assert_eq!(running.len(), 1);
         assert_eq!(running[0].id, s1.id);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — Saga 状态机不变式
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 状态机步进不变式: 在任意 step 数下, advance() 推进
+        /// current_step 直到末尾; 此后 advance() 必须返 false.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(1024))]
+
+            #[test]
+            fn saga_advance_walks_all_steps(
+                n_steps in 1usize..12,
+            ) {
+                let step_names: Vec<String> = (0..n_steps).map(|i| format!("s{}", i)).collect();
+                let mut s = Saga::new(
+                    SagaType::Transfer,
+                    Uuid::new_v4(),
+                    "k-prop-advance".to_string(),
+                    step_names.clone(),
+                );
+                prop_assert_eq!(s.current_step, 0);
+                prop_assert_eq!(s.steps.len(), n_steps);
+
+                for i in 0..n_steps {
+                    prop_assert_eq!(s.current().unwrap().name, step_names[i]);
+                    s.start();
+                    s.current_mut().unwrap().mark_completed();
+                    if i + 1 < n_steps {
+                        prop_assert!(s.advance(), "advance() must succeed before end");
+                        prop_assert_eq!(s.current_step, i + 1);
+                    } else {
+                        prop_assert!(!s.advance(), "advance() must fail at last step");
+                    }
+                }
+                s.complete();
+                prop_assert_eq!(s.status, SagaStatus::Completed);
+            }
+        }
+
+        /// 状态机失败传播: 任一 step 标 Failed + 调 compensate(),
+        /// 仅 Completed 步被标 Compensated (反向遍历).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(1024))]
+
+            #[test]
+            fn compensate_only_marks_completed_steps(
+                n_steps in 2usize..8,
+                fail_idx in 1usize..8,  // 至少 step 0 是 Completed
+            ) {
+                let fail_idx = fail_idx.min(n_steps - 1);
+                let step_names: Vec<String> = (0..n_steps).map(|i| format!("s{}", i)).collect();
+                let mut s = Saga::new(
+                    SagaType::Transfer,
+                    Uuid::new_v4(),
+                    "k-prop-comp".to_string(),
+                    step_names,
+                );
+
+                // 启动 + 完成 step 0..fail_idx
+                s.start();
+                for i in 0..=fail_idx {
+                    s.current_mut().unwrap().mark_completed();
+                    if i < fail_idx {
+                        s.advance();
+                    }
+                }
+                // step fail_idx 失败
+                s.current_mut().unwrap().mark_failed("oops".to_string());
+
+                // 触发补偿
+                s.compensate();
+                prop_assert_eq!(s.status, SagaStatus::Compensating);
+
+                // 仅 0..fail_idx (Completed) 被标 Compensated
+                for i in 0..fail_idx {
+                    prop_assert_eq!(
+                        s.steps[i].status,
+                        SagaStepStatus::Compensated,
+                        "step {} should be Compensated",
+                        i
+                    );
+                }
+                // 失败步保持 Failed
+                prop_assert_eq!(
+                    s.steps[fail_idx].status,
+                    SagaStepStatus::Failed,
+                    "failed step should remain Failed"
+                );
+                // 失败步之后如有步, 保持 Pending
+                for i in (fail_idx + 1)..n_steps {
+                    prop_assert_eq!(
+                        s.steps[i].status,
+                        SagaStepStatus::Pending,
+                        "post-fail step {} should be Pending",
+                        i
+                    );
+                }
+            }
+        }
+
+        /// current() 在 current_step 越界时必须返 None (防御性).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn current_returns_none_when_index_out_of_range(
+                n_steps in 1usize..8,
+            ) {
+                let step_names: Vec<String> = (0..n_steps).map(|i| format!("s{}", i)).collect();
+                let mut s = Saga::new(
+                    SagaType::DailyReward,
+                    Uuid::new_v4(),
+                    "k-prop-cur".to_string(),
+                    step_names,
+                );
+                // 强制 current_step 越界
+                s.current_step = n_steps + 5;
+                prop_assert!(s.current().is_none());
+                prop_assert!(s.current_mut().is_none());
+            }
+        }
+    }
 }

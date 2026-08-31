@@ -869,4 +869,120 @@ mod tests {
         // version 是我们之前 bump 后的值（apply_atomic 失败未影响）
         assert_eq!(reloaded.version, original_version + 99);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — apply_atomic_with_reservation 守恒
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// apply_atomic_with_reservation happy path 余额守恒:
+        /// 任意 (initial, amount) 组合下, 余额足够时, helper 成功后
+        /// 账户余额 = initial - amount, reservation 1 条, ledger 1 条.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn apply_atomic_with_reservation_conservation(
+                initial in 100i64..100_000,
+                amount in 1i64..5_000,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let amount = amount.min(initial);
+                    let (svc, acc_repo, led_repo) = make_service_paired();
+                    let res_repo = Arc::new(InMemoryReservationRepository::new());
+                    let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+
+                    let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+                    acc.credit(initial);
+                    let account_id = acc.id;
+                    acc_repo.save(&acc).await.unwrap();
+
+                    let saga_id = Uuid::new_v4();
+                    let cmd_id = Uuid::new_v4();
+                    let key = format!("k-prop-{}-{}", initial, amount);
+                    let (updated, entry, reservation) = svc
+                        .apply_atomic_with_reservation(
+                            &acc,
+                            amount,
+                            Currency::Gold,
+                            TransactionKind::Transfer,
+                            saga_id,
+                            cmd_id,
+                            key,
+                            &res_repo_dyn,
+                        )
+                        .await
+                        .unwrap();
+
+                    prop_assert_eq!(updated.balance, initial - amount);
+                    prop_assert_eq!(entry.amount, -amount);
+                    prop_assert_eq!(reservation.amount, amount);
+                    prop_assert_eq!(led_repo.inner.lock().unwrap().len(), 1);
+                    let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+                    prop_assert_eq!(reloaded.balance, initial - amount);
+                });
+            }
+        }
+
+        /// apply_atomic_with_reservation 余额不足时不变量:
+        /// 任意 (initial, amount > initial) 组合下, helper 返 InsufficientFunds,
+        /// 账户余额不变, reservation 已清理 (无 dangling).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn apply_atomic_with_reservation_insufficient_no_dangle(
+                initial in 0i64..10_000,
+                extra in 1i64..50_000,
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let (svc, acc_repo, _led_repo) = make_service_paired();
+                    let res_repo = Arc::new(InMemoryReservationRepository::new());
+                    let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();
+
+                    let mut acc = Account::new(Uuid::new_v4(), Currency::Gold);
+                    acc.credit(initial);
+                    let account_id = acc.id;
+                    acc_repo.save(&acc).await.unwrap();
+
+                    let amount = initial + extra; // 必超余额
+                    let saga_id = Uuid::new_v4();
+                    let cmd_id = Uuid::new_v4();
+                    let key = format!("k-prop-isf-{}-{}", initial, amount);
+                    let err = svc
+                        .apply_atomic_with_reservation(
+                            &acc,
+                            amount,
+                            Currency::Gold,
+                            TransactionKind::Transfer,
+                            saga_id,
+                            cmd_id,
+                            key,
+                            &res_repo_dyn,
+                        )
+                        .await
+                        .unwrap_err();
+                    prop_assert!(matches!(err, Error::InsufficientFunds { .. }));
+                    // 关键: 无 dangling reservation
+                    let for_saga = res_repo.list_by_saga(saga_id).await.unwrap();
+                    prop_assert_eq!(for_saga.len(), 0,
+                        "no dangling reservation should be left after InsufficientFunds");
+                    // 余额不变
+                    let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
+                    prop_assert_eq!(reloaded.balance, initial);
+                });
+            }
+        }
+    }
 }

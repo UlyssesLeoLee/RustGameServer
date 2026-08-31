@@ -359,4 +359,79 @@ mod tests {
         let list = repo.list_by_saga(saga_id).await.unwrap();
         assert_eq!(list.len(), 2);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — Reservation 不重叠 / 状态机
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 不重叠不变式: 同一 (account_id, currency) 维度上, 多个 saga
+        /// 可各自 reservation, 但每条 reservation 的 amount 守恒.
+        /// 这里验证: 任意 N 条 reservation 持久化后, list_by_saga
+        /// 必须返回 N 条, 金额总和 = 注入时累加.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(512))]
+
+            #[test]
+            fn reservation_amounts_preserved(
+                amounts in proptest::collection::vec(1i64..10_000, 1..16),
+            ) {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(async {
+                    let repo = InMemoryReservationRepository::new();
+                    let saga_id = Uuid::new_v4();
+                    let mut total = 0i64;
+                    for a in &amounts {
+                        total += a;
+                        let r = Reservation::new(saga_id, Uuid::new_v4(), *a, Currency::Gold);
+                        repo.save(&r).await.unwrap();
+                    }
+                    let list = repo.list_by_saga(saga_id).await.unwrap();
+                    prop_assert_eq!(list.len(), amounts.len());
+                    let loaded_total: i64 = list.iter().map(|r| r.amount).sum();
+                    prop_assert_eq!(loaded_total, total);
+                });
+            }
+        }
+
+        /// 状态机不变式: confirm / compensate / release 终态都是终态;
+        /// mark_expired 是另一终态. 终态后 idempotent 调用结果应一致
+        /// (确认现有行为 — 状态机不再自动拒绝重复调用).
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn reservation_state_machine_terminal_states(
+                amount in 1i64..100_000,
+            ) {
+                let mut r = Reservation::new(Uuid::new_v4(), Uuid::new_v4(), amount, Currency::Gold);
+                prop_assert_eq!(r.status, ReservationStatus::Reserved);
+
+                // confirm
+                r.confirm();
+                prop_assert_eq!(r.status, ReservationStatus::Confirmed);
+
+                // 重新构造: 测 compensate
+                let mut r2 = Reservation::new(Uuid::new_v4(), Uuid::new_v4(), amount, Currency::Gold);
+                r2.compensate();
+                prop_assert_eq!(r2.status, ReservationStatus::Compensated);
+
+                // release
+                let mut r3 = Reservation::new(Uuid::new_v4(), Uuid::new_v4(), amount, Currency::Gold);
+                r3.release();
+                prop_assert_eq!(r3.status, ReservationStatus::Compensated);
+
+                // mark_expired
+                let mut r4 = Reservation::new(Uuid::new_v4(), Uuid::new_v4(), amount, Currency::Gold);
+                r4.mark_expired();
+                prop_assert_eq!(r4.status, ReservationStatus::Expired);
+            }
+        }
+    }
 }

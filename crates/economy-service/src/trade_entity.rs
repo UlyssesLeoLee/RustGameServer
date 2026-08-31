@@ -328,4 +328,68 @@ mod tests {
         assert_eq!(t.status, PrivateTradeStatus::Proposed);
         assert_eq!(t.proposer_currency_amount, 100);
     }
+
+    // ========================================================================
+    // Proptest (RGS-UT 2026-08-31 JST) — Auction 出价规则
+    // ========================================================================
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 出价合法规则: amount >= min_price 且 amount > highest_bid
+        /// 且 bidder != seller → Ok; 否则 Err.
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(512))]
+
+            #[test]
+            fn auction_bid_validation(
+                min_price in 1i64..100_000,
+                highest_bid in 0i64..200_000,
+            ) {
+                let seller = "seller-prop";
+                let bidder = "bidder-prop";
+                // 假设 current highest_bid 可能为 0 (无出价)
+                let a = Auction::new(
+                    seller.to_string(),
+                    "c".to_string(),
+                    "i".to_string(),
+                    min_price,
+                    1,
+                    3600,
+                );
+                let mut a2 = a.clone();
+                a2.highest_bid = highest_bid;
+                a2.highest_bidder = if highest_bid > 0 {
+                    "prev-bidder".to_string()
+                } else {
+                    String::new()
+                };
+
+                // 1. amount < min_price → Err
+                if min_price > 1 {
+                    let res = a2.is_valid_bid(min_price - 1, bidder);
+                    prop_assert!(res.is_err(), "amount < min must fail");
+                }
+                // 2. amount = min_price 且 highest_bid = 0 → Ok (首次出价 = 起拍)
+                if highest_bid == 0 {
+                    let res = a2.is_valid_bid(min_price, bidder);
+                    prop_assert!(res.is_ok(), "first bid at min must succeed");
+                }
+                // 3. amount = highest_bid → Err
+                if highest_bid >= min_price {
+                    let res = a2.is_valid_bid(highest_bid, bidder);
+                    prop_assert!(res.is_err(), "bid equal to current highest must fail");
+                }
+                // 4. amount > highest_bid 且 amount >= min_price → Ok
+                let valid_amt = std::cmp::max(min_price, highest_bid + 1);
+                let res = a2.is_valid_bid(valid_amt, bidder);
+                prop_assert!(res.is_ok(), "higher bid must succeed (min={}, highest={}, amt={})",
+                    min_price, highest_bid, valid_amt);
+                // 5. seller 出价 → Err
+                let res = a2.is_valid_bid(valid_amt, seller);
+                prop_assert!(res.is_err(), "seller self-bid must fail");
+            }
+        }
+    }
 }

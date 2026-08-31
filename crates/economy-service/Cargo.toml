@@ -49,6 +49,8 @@ tonic-build = { workspace = true }
 [dev-dependencies]
 # WF-1-55.32 HI-3: fail-closed 启动 integration test (per RGS-REV-009 V3 L-2)
 assert_cmd = "2"
+# RGS-UT 5 worker 协奏 (2026-08-31 JST): economy 域 proptest 守恒 / 不变式
+proptest = "1"
 # WF-1-55.28: 6 域 outbox CHECK 幂等 migration 集成测试 (per RGS-REV-009 CR-2)
 # WF-1-55.47: reservation 端到端 IT + 混沌测试 + OTel span 断言 (per RGS-OPEN-QA-001 Q-M-07)
 #  - integration_reservation.rs: 3 个 IT (create_success / conflict_releases / cleanup_on_failure)
