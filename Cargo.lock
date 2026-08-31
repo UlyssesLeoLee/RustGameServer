@@ -4524,6 +4524,7 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "chrono",
+ "proptest",
  "prost",
  "rgs-testkit",
  "serde",

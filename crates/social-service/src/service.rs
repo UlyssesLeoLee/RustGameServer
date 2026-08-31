@@ -336,4 +336,223 @@ mod tests {
         let s = svc();
         assert!(s.health_check().await.unwrap());
     }
+
+    #[tokio::test]
+    async fn create_guild_rejects_empty_name() {
+        let s = svc();
+        let err = s
+            .create_guild("".to_string(), "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_guild_rejects_whitespace_only_name() {
+        let s = svc();
+        let err = s
+            .create_guild("   ".to_string(), "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_guild_rejects_too_long_name() {
+        let s = svc();
+        let long = "a".repeat(65);
+        let err = s
+            .create_guild(long, "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_guild_accepts_max_len_name() {
+        let s = svc();
+        let name = "b".repeat(64);
+        let g = s
+            .create_guild(name.clone(), "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap();
+        assert_eq!(g.name, name);
+    }
+
+    #[tokio::test]
+    async fn join_guild_rejects_full_guild() {
+        let s = svc();
+        let g = s
+            .create_guild("X".to_string(), "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap();
+        // leader 已在 member_count=1 状态,需要再加 49 个成员达到 50 上限
+        for _ in 0..49 {
+            s.join_guild(g.id, Uuid::new_v4()).await.unwrap();
+        }
+        // 第 50 个新人应被拒(guild 已 50)
+        let err = s.join_guild(g.id, Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::GuildFull { .. }));
+    }
+
+    #[tokio::test]
+    async fn join_guild_rejects_already_member() {
+        let s = svc();
+        let g = s
+            .create_guild("Y".to_string(), "".to_string(), Uuid::new_v4())
+            .await
+            .unwrap();
+        let player = Uuid::new_v4();
+        s.join_guild(g.id, player).await.unwrap();
+        // 同一 player 再 join 应被拒
+        let err = s.join_guild(g.id, player).await.unwrap_err();
+        assert!(matches!(err, Error::AlreadyInGuild { .. }));
+    }
+
+    #[tokio::test]
+    async fn join_guild_rejects_nonexistent_guild() {
+        let s = svc();
+        let err = s
+            .join_guild(Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn promote_to_officer_rejects_leader() {
+        let s = svc();
+        let leader = Uuid::new_v4();
+        let g = s
+            .create_guild("Z".to_string(), "".to_string(), leader)
+            .await
+            .unwrap();
+        // 查找 leader 自己的 member id
+        let members = s
+            .members
+            .find_by_player(leader)
+            .await
+            .unwrap();
+        assert_eq!(members.len(), 1);
+        let leader_member_id = members[0].id;
+        let err = s
+            .promote_to_officer(leader_member_id)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::InsufficientPermission { .. }));
+    }
+
+    #[tokio::test]
+    async fn promote_to_officer_rejects_nonexistent_member() {
+        let s = svc();
+        let err = s
+            .promote_to_officer(Uuid::new_v4())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn dissolve_guild_rejects_nonexistent() {
+        let s = svc();
+        let err = s.dissolve_guild(Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn find_guild_by_id_returns_none_for_missing() {
+        let s = svc();
+        let g = s
+            .find_guild_by_id(Uuid::new_v4())
+            .await
+            .unwrap();
+        assert!(g.is_none());
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use crate::repository::{InMemoryGuildMemberRepository, InMemoryGuildRepository};
+    use proptest::prelude::*;
+    use std::sync::Arc;
+
+    fn svc() -> SocialServiceImpl {
+        SocialServiceImpl::new(
+            Arc::new(InMemoryGuildRepository::new()),
+            Arc::new(InMemoryGuildMemberRepository::new()),
+        )
+    }
+
+    proptest! {
+        /// create_guild 对 [A-Za-z0-9]{1..=64} 名字必成功,member_count=1
+        #[test]
+        fn create_guild_happy_path_random_names(
+            name in "[A-Za-z0-9]{1,64}",
+            desc in ".*",
+            leader_bytes in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let s = svc();
+                let leader = Uuid::from_bytes(leader_bytes);
+                let g = s.create_guild(name.clone(), desc.clone(), leader).await.unwrap();
+                prop_assert_eq!(g.name, name);
+                prop_assert_eq!(g.leader_id, leader);
+                prop_assert_eq!(g.member_count, 1);
+                prop_assert_eq!(g.level, 1);
+                prop_assert_eq!(g.experience, 0);
+                Ok(())
+            });
+        }
+
+        /// create_guild 重复同名必失败 (Conflict)
+        #[test]
+        fn create_guild_duplicate_name_fails_random(
+            name in "[A-Za-z0-9]{1,16}",
+            l1 in any::<[u8; 16]>(),
+            l2 in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let s = svc();
+                s.create_guild(name.clone(), "".to_string(), Uuid::from_bytes(l1))
+                    .await
+                    .unwrap();
+                let err = s
+                    .create_guild(name, "".to_string(), Uuid::from_bytes(l2))
+                    .await
+                    .unwrap_err();
+                prop_assert!(matches!(err, Error::Conflict(_)));
+                Ok(())
+            });
+        }
+
+        /// 名字长度 == 65 必被拒(超过 64 上限)
+        #[test]
+        fn create_guild_name_too_long_rejected(
+            name in "[a]{65,100}",
+            leader_bytes in any::<[u8; 16]>(),
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let s = svc();
+                let err = s
+                    .create_guild(name, "".to_string(), Uuid::from_bytes(leader_bytes))
+                    .await
+                    .unwrap_err();
+                prop_assert!(matches!(err, Error::Validation(_)));
+                Ok(())
+            });
+        }
+    }
 }
