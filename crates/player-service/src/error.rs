@@ -175,4 +175,86 @@ mod tests {
         let s: tonic::Status = Error::AccountDisabled("banned".to_string()).into();
         assert_eq!(s.code(), Code::PermissionDenied);
     }
+
+    // ====== v3 增量 (RGS UT 桶 11 / 玩家域, per UT-AGENT-BRIEFING §2 Step 2) ======
+    // 13 个 Error 变体全覆盖: 已有 8, 补 5 (Database / Conflict / Unauthorized / Unavailable / Internal / InvalidDevice)
+
+    #[test]
+    fn database_to_status_internal() {
+        let sqlx_err = sqlx::Error::PoolClosed;
+        let e: Error = sqlx_err.into();
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::Internal);
+        assert!(s.message().contains("database error"));
+    }
+
+    #[test]
+    fn conflict_to_status_already_exists() {
+        let e = Error::Conflict("duplicate key".to_string());
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::AlreadyExists);
+    }
+
+    #[test]
+    fn unauthorized_to_status_unauthenticated() {
+        let e = Error::Unauthorized("no token".to_string());
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::Unauthenticated);
+    }
+
+    #[test]
+    fn forbidden_to_status_permission_denied() {
+        let e = Error::Forbidden("not owner".to_string());
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::PermissionDenied);
+    }
+
+    #[test]
+    fn unavailable_to_status_unavailable() {
+        let e = Error::Unavailable("downstream timeout".to_string());
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::Unavailable);
+    }
+
+    #[test]
+    fn internal_to_status_internal() {
+        let e = Error::Internal(anyhow::anyhow!("boom"));
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::Internal);
+    }
+
+    #[test]
+    fn invalid_device_to_status_invalid_argument() {
+        let e = Error::InvalidDevice("fingerprint mismatch".to_string());
+        let s: tonic::Status = e.into();
+        assert_eq!(s.code(), Code::InvalidArgument);
+    }
+
+    #[test]
+    fn transport_roundtrip_preserves_code_and_message() {
+        let original = tonic::Status::new(Code::ResourceExhausted, "rate limited");
+        let e: Error = original.clone().into();
+        let back: tonic::Status = e.into();
+        assert_eq!(back.code(), original.code());
+        assert_eq!(back.message(), original.message());
+    }
+
+    #[test]
+    fn from_anyhow_to_internal() {
+        let e: Error = anyhow::anyhow!("some anyhow").into();
+        assert!(matches!(e, Error::Internal(_)));
+    }
+
+    #[test]
+    fn error_display_messages_contain_expected_substrings() {
+        // 验证 thiserror #[error("...")] 派生消息含变体名/字段
+        assert!(Error::Validation("x".to_string()).to_string().contains("validation error"));
+        assert!(Error::Conflict("x".to_string()).to_string().contains("conflict"));
+        assert!(Error::Unauthorized("x".to_string()).to_string().contains("unauthorized"));
+        assert!(Error::Forbidden("x".to_string()).to_string().contains("forbidden"));
+        assert!(Error::Unavailable("x".to_string()).to_string().contains("unavailable"));
+        assert!(Error::SessionExpired.to_string().contains("expired"));
+        assert!(Error::AlreadyLoggedIn.to_string().contains("already logged in"));
+        assert!(Error::NotFound { entity: "Deck", id: "abc".to_string() }.to_string().contains("Deck"));
+    }
 }

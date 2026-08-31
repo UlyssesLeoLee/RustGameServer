@@ -380,4 +380,254 @@ mod tests {
         assert_eq!(p.collection_count, 0);
         assert_eq!(p.preferred_locale, "zh-CN");
     }
+
+    // ====== v3 proptest 增量 (RGS UT 桶 11 / 玩家域, per UT-AGENT-BRIEFING §2 Step 3) ======
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// 任意 Uuid (proptest 1.11 内置不支持 Uuid::Arbitrary, 自构 16 字节)
+        fn arb_uuid() -> impl Strategy<Value = Uuid> {
+            proptest::collection::vec(any::<u8>(), 16)
+                .prop_map(|bytes| {
+                    let mut arr = [0u8; 16];
+                    arr.copy_from_slice(&bytes);
+                    Uuid::from_bytes(arr)
+                })
+                .boxed()
+        }
+
+        /// 任意 u32 受限范围内 (等级 1-999, vip 0-20, score 0-10_000_000)
+        fn arb_player_level() -> impl Strategy<Value = i32> {
+            (1i32..=999).boxed()
+        }
+        fn arb_player_vip() -> impl Strategy<Value = i32> {
+            (0i32..=20).boxed()
+        }
+
+        /// 玩家名: 非空、长度 ≤ 64, 可见 ASCII (避开 proptest 注入控制字符)
+        fn arb_player_name() -> impl Strategy<Value = String> {
+            "[A-Za-z0-9_-]{1,32}".prop_map(|s| s).boxed()
+        }
+
+        /// 策略: 任意 Player, 等级/vip/名字 都在合法域
+        fn arb_player() -> impl Strategy<Value = Player> {
+            (
+                arb_uuid(),
+                arb_player_name(),
+                arb_player_level(),
+                arb_player_vip(),
+                proptest::prop_oneof![
+                    Just(PlayerStatus::Active),
+                    Just(PlayerStatus::Banned),
+                    Just(PlayerStatus::Disabled),
+                    Just(PlayerStatus::Pending),
+                ],
+            )
+                .prop_map(|(id, name, level, vip_level, status)| Player {
+                    id,
+                    name,
+                    level,
+                    vip_level,
+                    status,
+                    last_login_at: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                })
+        }
+
+        /// 策略: 任意 DeckStatus
+        fn arb_deck_status() -> impl Strategy<Value = DeckStatus> {
+            proptest::prop_oneof![
+                Just(DeckStatus::Draft),
+                Just(DeckStatus::Active),
+                Just(DeckStatus::Archived),
+            ]
+        }
+
+        /// 策略: 任意 GameMode
+        fn arb_game_mode() -> impl Strategy<Value = GameMode> {
+            proptest::prop_oneof![
+                Just(GameMode::Ranked),
+                Just(GameMode::Casual),
+                Just(GameMode::Room),
+                Just(GameMode::Ai),
+            ]
+        }
+
+        /// 策略: 任意 DeckSlot
+        fn arb_deck_slot() -> impl Strategy<Value = DeckSlot> {
+            ("[A-Za-z0-9_-]{1,16}", 1u32..=3).prop_map(|(id, count)| DeckSlot {
+                card_id: id,
+                count,
+            })
+        }
+
+        /// 策略: 任意 Deck (slots 可空可满, share_code 受 is_public 约束)
+        fn arb_deck() -> impl Strategy<Value = Deck> {
+            (
+                arb_uuid(),
+                arb_uuid(),
+                "[A-Za-z0-9 _-]{1,32}",
+                arb_game_mode().prop_map(|m| m.as_i32()),
+                proptest::collection::vec(arb_deck_slot(), 0..=8),
+                arb_deck_status(),
+                any::<bool>(),
+                proptest::option::of("[A-Za-z0-9-]{8,16}"),
+                0u32..=100_000,
+            )
+                .prop_map(
+                    |(id, owner_id, name, mode, slots, status, is_public, share_code, like_count)| {
+                        // share_code 强制: 仅 is_public=true 时才可 Some
+                        let share_code = if is_public { share_code.or_else(|| Some(Uuid::new_v4().to_string())) } else { None };
+                        Deck {
+                            id,
+                            owner_id,
+                            name,
+                            mode,
+                            slots,
+                            status,
+                            is_public,
+                            share_code,
+                            like_count,
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                        }
+                    },
+                )
+        }
+
+        // ----- Player 序列化 round-trip (JSON 关键路径: 玩家档案存档 / 跨域事件) -----
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(256))]
+
+            #[test]
+            fn player_json_roundtrip_preserves_fields(p in arb_player()) {
+                let json = serde_json::to_string(&p).expect("serialize player");
+                let back: Player = serde_json::from_str(&json).expect("deserialize player");
+                prop_assert_eq!(p.id, back.id);
+                prop_assert_eq!(p.name, back.name);
+                prop_assert_eq!(p.level, back.level);
+                prop_assert_eq!(p.vip_level, back.vip_level);
+                prop_assert_eq!(p.status, back.status);
+                prop_assert_eq!(p.created_at, back.created_at);
+                prop_assert_eq!(p.updated_at, back.updated_at);
+            }
+
+            // ----- PlayerStatus 枚举 round-trip (snake_case 序列化约定) -----
+
+            #[test]
+            fn player_status_json_roundtrip(s in proptest::prop_oneof![
+                Just(PlayerStatus::Active),
+                Just(PlayerStatus::Banned),
+                Just(PlayerStatus::Disabled),
+                Just(PlayerStatus::Pending),
+            ]) {
+                let json = serde_json::to_string(&s).expect("serialize status");
+                let back: PlayerStatus = serde_json::from_str(&json).expect("deserialize status");
+                prop_assert_eq!(s, back);
+                // 约定: snake_case 字符串
+                let expected = match s {
+                    PlayerStatus::Active => "\"active\"",
+                    PlayerStatus::Banned => "\"banned\"",
+                    PlayerStatus::Disabled => "\"disabled\"",
+                    PlayerStatus::Pending => "\"pending\"",
+                };
+                prop_assert_eq!(json.as_str(), expected);
+            }
+
+            // ----- DeckStatus 枚举 → as_str / parse 互逆 -----
+
+            #[test]
+            fn deck_status_as_str_parse_inverse(s in arb_deck_status()) {
+                let as_str = s.as_str();
+                let parsed = DeckStatus::parse(as_str);
+                prop_assert_eq!(s, parsed);
+            }
+
+            // ----- GameMode i32 round-trip -----
+
+            #[test]
+            fn game_mode_i32_roundtrip(m in arb_game_mode()) {
+                let n = m.as_i32();
+                let back = GameMode::from_i32(n);
+                prop_assert_eq!(Some(m), back);
+            }
+
+            // ----- Deck 不变量: total_card_count == Σ slots.count, unique == |slots| -----
+
+            #[test]
+            fn deck_total_card_count_invariant(deck in arb_deck()) {
+                let expected_total: u32 = deck.slots.iter().map(|s| s.count).sum();
+                prop_assert_eq!(deck.total_card_count(), expected_total);
+                prop_assert_eq!(deck.unique_card_count(), deck.slots.len());
+            }
+
+            // ----- Deck 序列化 round-trip (slots 走 JSONB / 跨域事件负载) -----
+
+            #[test]
+            fn deck_json_roundtrip_preserves_slots(deck in arb_deck()) {
+                let json = serde_json::to_string(&deck).expect("serialize deck");
+                let back: Deck = serde_json::from_str(&json).expect("deserialize deck");
+                prop_assert_eq!(deck.id, back.id);
+                prop_assert_eq!(deck.owner_id, back.owner_id);
+                prop_assert_eq!(deck.name, back.name);
+                prop_assert_eq!(deck.mode, back.mode);
+                prop_assert_eq!(deck.slots.len(), back.slots.len());
+                prop_assert_eq!(deck.slots, back.slots);
+                prop_assert_eq!(deck.status, back.status);
+                prop_assert_eq!(deck.is_public, back.is_public);
+                prop_assert_eq!(deck.share_code, back.share_code);
+                prop_assert_eq!(deck.like_count, back.like_count);
+            }
+
+            // ----- PlayerSession 序列化 round-trip -----
+
+            #[test]
+            fn player_session_json_roundtrip(
+                player_id in arb_uuid(),
+                device in "[A-Za-z0-9_.-]{1,32}",
+                ip in "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}",
+            ) {
+                let s = PlayerSession::new(player_id, device, ip);
+                let json = serde_json::to_string(&s).expect("serialize session");
+                let back: PlayerSession = serde_json::from_str(&json).expect("deserialize session");
+                prop_assert_eq!(s.id, back.id);
+                prop_assert_eq!(s.player_id, back.player_id);
+                prop_assert_eq!(s.device_id, back.device_id);
+                prop_assert_eq!(s.ip, back.ip);
+                prop_assert_eq!(s.login_at, back.login_at);
+                prop_assert_eq!(s.last_heartbeat_at, back.last_heartbeat_at);
+                prop_assert_eq!(s.expires_at, back.expires_at);
+            }
+
+            // ----- PlayerProfile 序列化 round-trip -----
+
+            #[test]
+            fn player_profile_json_roundtrip(
+                pid in arb_uuid(),
+                score in 0u32..=10_000_000,
+                tier in "[A-Za-z]{4,16}",
+                matches in 0u32..=1_000_000,
+                wins in 0u32..=1_000_000,
+                collection in 0u32..=100_000,
+                locale in "[a-z]{2}-[A-Z]{2}",
+            ) {
+                let p = PlayerProfile {
+                    player_id: pid,
+                    ranked_score: score,
+                    ranked_tier: tier,
+                    total_matches: matches,
+                    total_wins: wins.min(matches), // 胜场 ≤ 总场
+                    collection_count: collection,
+                    preferred_locale: locale,
+                };
+                let json = serde_json::to_string(&p).expect("serialize profile");
+                let back: PlayerProfile = serde_json::from_str(&json).expect("deserialize profile");
+                prop_assert_eq!(p, back);
+            }
+        }
+    }
 }
