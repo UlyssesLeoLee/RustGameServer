@@ -51,3 +51,5 @@ tonic-build = { workspace = true }
 assert_cmd = "2"
 # WF-1-55.44: 4 域 rgs-testkit dev-dep 接入 + 集成测试骨架 (per RGS-OPEN-QA-001 Q-M-02)
 rgs-testkit = { path = "../rgs-testkit" }
+# RGS UT 桶 11 / 玩家域 proptest 补充 (per UT-AGENT-BRIEFING §2 Step 3, 序列化/不变量随机用例)
+proptest = "1"
