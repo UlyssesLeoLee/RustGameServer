@@ -1,0 +1,13 @@
+{
+  "scenario": "st-03-economy-grpc-port-and-outbox",
+  "bas_section": "§4.5.1 + §5.4",
+  "expected": {
+    "probes": [
+      {"name": "economy-service-grpc", "status": "PASS"},
+      {"name": "postgres", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "admin-service-grpc", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

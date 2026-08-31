@@ -1,0 +1,56 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "actual": "PASS",
+      "name": "admin-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.103 port=50055 http=000000",
+      "expected": "PASS"
+    },
+    {
+      "step": 2,
+      "actual": "PASS",
+      "name": "player-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "expected": "PASS"
+    },
+    {
+      "step": 3,
+      "actual": "PASS",
+      "name": "economy-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.111 port=50052 http=000000",
+      "expected": "PASS"
+    },
+    {
+      "step": 4,
+      "actual": "PASS",
+      "name": "match-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.106 port=50053 http=000000",
+      "expected": "PASS"
+    },
+    {
+      "step": 5,
+      "actual": "PASS",
+      "name": "social-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.100 port=50054 http=000000",
+      "expected": "PASS"
+    },
+    {
+      "step": 6,
+      "actual": "FAIL",
+      "name": "gm-backend-healthz",
+      "status": "FAIL",
+      "detail": "ip=10.42.0.96 port=8081/healthz http=000000!=200",
+      "expected": "PASS"
+    }
+  ],
+  "bas_section": "§4.8 + §5.7",
+  "verdict": "FAIL",
+  "timestamp": "2026-08-31T18:45:22.5992946+09:00",
+  "scenario": "ST-10 admin 跨域 GM 链路"
+}

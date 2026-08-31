@@ -1,0 +1,12 @@
+{
+  "scenario": "st-01-player-grpc-port-and-gm-backend",
+  "bas_section": "§4.4",
+  "expected": {
+    "probes": [
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"},
+      {"name": "gm-backend-readyz", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

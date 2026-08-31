@@ -1,0 +1,32 @@
+{
+  "verdict": "FAIL",
+  "bas_section": "§4.4",
+  "steps": [
+    {
+      "actual": "PASS",
+      "name": "player-service-grpc",
+      "status": "PASS",
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "expected": "PASS",
+      "step": 1
+    },
+    {
+      "actual": "FAIL",
+      "name": "gm-backend-healthz",
+      "status": "FAIL",
+      "detail": "ip=10.42.0.96 port=8081/healthz http=000000!=200",
+      "expected": "PASS",
+      "step": 2
+    },
+    {
+      "actual": "FAIL",
+      "name": "gm-backend-readyz",
+      "status": "FAIL",
+      "detail": "ip=10.42.0.96 port=8081/readyz http=000000!=200",
+      "expected": "PASS",
+      "step": 3
+    }
+  ],
+  "timestamp": "2026-08-31T18:53:43.4501463+09:00",
+  "scenario": "ST-01 player 域 gRPC port + gm-backend health"
+}

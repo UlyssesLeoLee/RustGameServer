@@ -1,0 +1,13 @@
+{
+  "scenario": "st-06-match-cross-domain-session",
+  "bas_section": "§4.2 + §4.4 + §4.6",
+  "expected": {
+    "probes": [
+      {"name": "match-service-grpc", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "social-service-grpc", "status": "PASS"},
+      {"name": "admin-service-grpc", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

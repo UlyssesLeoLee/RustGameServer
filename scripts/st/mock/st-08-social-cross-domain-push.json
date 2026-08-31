@@ -1,0 +1,14 @@
+{
+  "scenario": "st-08-social-cross-domain-push",
+  "bas_section": "§4.6 + §4.7.1",
+  "expected": {
+    "probes": [
+      {"name": "social-service-grpc", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "admin-service-grpc", "status": "PASS"},
+      {"name": "nats-varz", "status": "PASS_OR_SKIP"}
+    ],
+    "all_status": "PASS",
+    "notes": "NATS optional per 8/27 deployment scope"
+  }
+}

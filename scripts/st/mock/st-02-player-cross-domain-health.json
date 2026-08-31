@@ -1,0 +1,13 @@
+{
+  "scenario": "st-02-player-cross-domain-health",
+  "bas_section": "§4.4 + §4.8",
+  "expected": {
+    "probes": [
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "admin-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"},
+      {"name": "postgres", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

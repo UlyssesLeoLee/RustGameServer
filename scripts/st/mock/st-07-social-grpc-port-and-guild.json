@@ -1,0 +1,13 @@
+{
+  "scenario": "st-07-social-grpc-port-and-guild",
+  "bas_section": "§4.6 + §5.6",
+  "expected": {
+    "probes": [
+      {"name": "social-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "postgres", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

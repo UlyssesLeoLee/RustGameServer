@@ -1,0 +1,40 @@
+{
+  "verdict": "PASS",
+  "steps": [
+    {
+      "detail": "ip=10.42.0.106 port=50053 http=000000",
+      "expected": "PASS",
+      "step": 1,
+      "name": "match-service-grpc",
+      "status": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "expected": "PASS",
+      "step": 2,
+      "name": "player-service-grpc",
+      "status": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.100 port=50054 http=000000",
+      "expected": "PASS",
+      "step": 3,
+      "name": "social-service-grpc",
+      "status": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.103 port=50055 http=000000",
+      "expected": "PASS",
+      "step": 4,
+      "name": "admin-service-grpc",
+      "status": "PASS",
+      "actual": "PASS"
+    }
+  ],
+  "bas_section": "§4.2 + §4.4 + §4.6",
+  "timestamp": "2026-08-31T18:45:22.6370038+09:00",
+  "scenario": "ST-06 match 跨域 session 链路"
+}

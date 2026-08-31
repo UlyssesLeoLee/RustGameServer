@@ -1,0 +1,13 @@
+{
+  "scenario": "st-09-admin-grpc-port-and-audit",
+  "bas_section": "§4.8 + §5.7",
+  "expected": {
+    "probes": [
+      {"name": "admin-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"},
+      {"name": "gm-backend-readyz", "status": "PASS"},
+      {"name": "postgres", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

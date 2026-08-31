@@ -1,0 +1,40 @@
+{
+  "verdict": "PASS",
+  "timestamp": "2026-08-31T18:45:22.6115343+09:00",
+  "steps": [
+    {
+      "expected": "PASS",
+      "step": 1,
+      "status": "PASS",
+      "detail": "ip=10.42.0.111 port=50052 http=000000",
+      "actual": "PASS",
+      "name": "economy-service-grpc"
+    },
+    {
+      "expected": "PASS",
+      "step": 2,
+      "status": "PASS",
+      "detail": "ip=10.42.0.117 port=5432 http=000000",
+      "actual": "PASS",
+      "name": "postgres"
+    },
+    {
+      "expected": "PASS",
+      "step": 3,
+      "status": "PASS",
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "actual": "PASS",
+      "name": "player-service-grpc"
+    },
+    {
+      "expected": "PASS",
+      "step": 4,
+      "status": "PASS",
+      "detail": "ip=10.42.0.103 port=50055 http=000000",
+      "actual": "PASS",
+      "name": "admin-service-grpc"
+    }
+  ],
+  "scenario": "ST-03 economy 域 gRPC port + postgres outbox",
+  "bas_section": "§4.5.1 + §5.4"
+}

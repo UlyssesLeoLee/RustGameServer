@@ -1,0 +1,15 @@
+{
+  "scenario": "st-10-admin-cross-domain-gm-flow",
+  "bas_section": "§4.8 + §5.7",
+  "expected": {
+    "probes": [
+      {"name": "admin-service-grpc", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "economy-service-grpc", "status": "PASS"},
+      {"name": "match-service-grpc", "status": "PASS"},
+      {"name": "social-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}
