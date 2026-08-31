@@ -10,15 +10,20 @@
 //! - 重试只针对 FailedRetryable 任务
 //! - 验证最终状态: 全部 Delivered, 无半成品
 //!
-//! ## 风格
-//! - 100% InMemory mock (per §1, §4)
-//! - 不连真 push gateway, 不起真实 gRPC server
-//! - 复用 src/ 的 PushDeliveryRequest / DeliveryResultCode / sanitize_push_content
+//! ## Q7 扩展 (per RGS-OPEN-QA-2026-08-31 v0.2 §Q7 决策)
+//! 走 NATS 主题 `social.push.delivery` + 复用 economy outbox+saga retry 模式
+//! (max_attempts=3 + exponential backoff) + DLQ (`social.push.dlq` + push_dlq 表)。
+//! 使用 src/ 生产代码 `NatsPushDispatcher` + 测试 `InMemoryNatsPublisher` +
+//! `InMemoryPushDlqRepository` 测端到端。
 
 use std::collections::HashSet;
+use std::sync::Arc;
+use std::time::Duration;
 
 use social_service::push_delivery::{
-    sanitize_push_content, DeliveryResultCode, PushDeliveryRequest, PushDeliveryResult,
+    sanitize_push_content, DeliveryResultCode, DispatchOutcome, DispatcherConfig,
+    InMemoryNatsPublisher, InMemoryPushDlqRepository, NatsPushDispatcher, PUSH_DELIVERY_SUBJECT,
+    PUSH_DLQ_SUBJECT, PushDeliveryRequest, PushDeliveryResult, PushDispatcher, PushDlqRepository,
 };
 
 // ============================================================================
@@ -368,4 +373,152 @@ async fn push_delivery_atomicity_retry_only_resolves_retryable_state() {
         assert_eq!(s.1, TaskStatus::Delivered);
         assert_eq!(s.3, Some(DeliveryResultCode::Delivered));
     }
+}
+
+// ============================================================================
+// Q7 扩展 IT 场景 (per RGS-OPEN-QA-2026-08-31 v0.2 §Q7)
+// 端到端测 production `NatsPushDispatcher` + `InMemoryNatsPublisher` +
+// `InMemoryPushDlqRepository`, 验证:
+//   1. happy path → Delivered{attempts: 1}, 1 条到 social.push.delivery
+//   2. retry 成功 → Delivered{attempts: 2}, 1 条到 social.push.delivery, 0 DLQ
+//   3. retry 耗尽 → DeadLettered{attempts: 3}, 1 DLQ entry + 1 条到 social.push.dlq
+//   4. sanitizer 拒绝 → RejectedBySanitizer, 1 DLQ entry, 不进 social.push.delivery
+// ============================================================================
+
+fn req_q7(account_id: &str) -> PushDeliveryRequest {
+    PushDeliveryRequest {
+        account_id: account_id.to_string(),
+        category: "promo".to_string(),
+        title: "Hello".to_string(),
+        body: "World".to_string(),
+        dedup_window_id: 1,
+    }
+}
+
+#[tokio::test]
+async fn push_dispatcher_e2e_happy_path_single_delivery_to_nats() {
+    let nats = Arc::new(InMemoryNatsPublisher::new());
+    let dlq = Arc::new(InMemoryPushDlqRepository::new());
+    let dispatcher = NatsPushDispatcher::new(
+        nats.clone(),
+        dlq.clone(),
+        DispatcherConfig {
+            max_attempts: 3,
+            backoff_base: Duration::from_millis(1),
+        },
+    );
+
+    let outcome = dispatcher.dispatch(&req_q7("acc-happy")).await;
+    assert!(
+        matches!(outcome, DispatchOutcome::Delivered { attempts: 1 }),
+        "happy path 期望 Delivered{{attempts: 1}}, got {:?}",
+        outcome
+    );
+    // 1 条到 social.push.delivery
+    assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 1);
+    let msgs = nats.messages(PUSH_DELIVERY_SUBJECT);
+    assert_eq!(msgs.len(), 1);
+    let parsed: PushDeliveryRequest = serde_json::from_slice(&msgs[0]).unwrap();
+    assert_eq!(parsed.account_id, "acc-happy");
+    // 0 DLQ
+    assert_eq!(dlq.count().await, 0);
+    // 0 条到 social.push.dlq
+    assert_eq!(nats.received_count(PUSH_DLQ_SUBJECT), 0);
+}
+
+#[tokio::test]
+async fn push_dispatcher_e2e_retry_recovers_to_delivered() {
+    let nats = Arc::new(InMemoryNatsPublisher::new());
+    // 模拟 social.push.delivery 首次 publish 失败
+    nats.fail_first_publish(PUSH_DELIVERY_SUBJECT);
+    let dlq = Arc::new(InMemoryPushDlqRepository::new());
+    let dispatcher = NatsPushDispatcher::new(
+        nats.clone(),
+        dlq.clone(),
+        DispatcherConfig {
+            max_attempts: 3,
+            backoff_base: Duration::from_millis(1),
+        },
+    );
+
+    let outcome = dispatcher.dispatch(&req_q7("acc-retry")).await;
+    assert!(
+        matches!(outcome, DispatchOutcome::Delivered { attempts: 2 }),
+        "retry 成功路径: 第 1 次 fail, 第 2 次 success, 期望 Delivered{{attempts: 2}}, got {:?}",
+        outcome
+    );
+    // 1 条到 social.push.delivery (fail 不进 store)
+    assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 1);
+    // 0 DLQ
+    assert_eq!(dlq.count().await, 0);
+}
+
+#[tokio::test]
+async fn push_dispatcher_e2e_retry_exhausted_routes_to_dlq_table_and_subject() {
+    let nats = Arc::new(InMemoryNatsPublisher::new());
+    nats.always_fail(PUSH_DELIVERY_SUBJECT);
+    let dlq = Arc::new(InMemoryPushDlqRepository::new());
+    let dispatcher = NatsPushDispatcher::new(
+        nats.clone(),
+        dlq.clone(),
+        DispatcherConfig {
+            max_attempts: 3,
+            backoff_base: Duration::from_millis(1),
+        },
+    );
+
+    let outcome = dispatcher.dispatch(&req_q7("acc-exhausted")).await;
+    match &outcome {
+        DispatchOutcome::DeadLettered { attempts, last_error } => {
+            assert_eq!(*attempts, 3);
+            assert!(last_error.contains("always_fail"));
+        }
+        other => panic!("retry 耗尽期望 DeadLettered{{attempts: 3, ..}}, got {:?}", other),
+    }
+    // 0 条到 social.push.delivery (publish 一直失败)
+    assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 0);
+    // 1 条 DLQ entry
+    assert_eq!(dlq.count().await, 1);
+    let entries = dlq.list_all().await.unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].attempts, 3);
+    assert_eq!(entries[0].req.account_id, "acc-exhausted");
+    // 1 条到 social.push.dlq (NAT 主题)
+    assert_eq!(nats.received_count(PUSH_DLQ_SUBJECT), 1);
+}
+
+#[tokio::test]
+async fn push_dispatcher_e2e_sanitizer_reject_bypasses_nats_delivery_subject() {
+    let nats = Arc::new(InMemoryNatsPublisher::new());
+    let dlq = Arc::new(InMemoryPushDlqRepository::new());
+    let dispatcher = NatsPushDispatcher::new(
+        nats.clone(),
+        dlq.clone(),
+        DispatcherConfig {
+            max_attempts: 3,
+            backoff_base: Duration::from_millis(1),
+        },
+    );
+
+    let bad_req = PushDeliveryRequest {
+        account_id: "acc-xss".to_string(),
+        category: "promo".to_string(),
+        title: "<script>alert(1)</script>".to_string(),
+        body: "evil".to_string(),
+        dedup_window_id: 1,
+    };
+    let outcome = dispatcher.dispatch(&bad_req).await;
+    assert!(
+        matches!(outcome, DispatchOutcome::RejectedBySanitizer { .. }),
+        "sanitizer 拒绝应直接进 DLQ, got {:?}",
+        outcome
+    );
+    // 0 条到 social.push.delivery (sanitizer 拒, 不进 NATS)
+    assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 0);
+    // 1 条 DLQ entry
+    assert_eq!(dlq.count().await, 1);
+    let entries = dlq.list_all().await.unwrap();
+    assert!(entries[0].last_error.contains("sanitizer_reject"));
+    // 1 条到 social.push.dlq
+    assert_eq!(nats.received_count(PUSH_DLQ_SUBJECT), 1);
 }

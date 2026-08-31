@@ -222,3 +222,165 @@ async fn guild_lifecycle_leader_member_record_consistent_pre_dissolve() {
     assert_eq!(m.contribution, 0);
     assert!(m.joined_at <= chrono::Utc::now());
 }
+
+// ============================================================================
+// Q6 leave_guild 集成测试场景 (per RGS-OPEN-QA-2026-08-31 v0.2 §Q6 决策)
+// 决策:
+//   - leadership 转移 = 加入时间最早剩余成员
+//   - 仅剩 leader 一人退出 → 解散公会
+//   - leaving player 的 player.profile.guild_id 置空 (跨域事件, 暂 trace 标记)
+// ============================================================================
+
+/// Q6 IT 场景 1: 普通成员退出, guild 保留, member_count 减 1
+#[tokio::test]
+async fn leave_guild_normal_member_does_not_dissolve() {
+    let (svc, _guild_repo, member_repo) = new_svc_with_repos();
+    let leader_id = Uuid::new_v4();
+    let guild = svc
+        .create_guild("Leave Normal".to_string(), "".to_string(), leader_id)
+        .await
+        .unwrap();
+
+    // 2 个普通成员加入
+    let player_a = Uuid::new_v4();
+    let player_b = Uuid::new_v4();
+    svc.join_guild(guild.id, player_a).await.unwrap();
+    svc.join_guild(guild.id, player_b).await.unwrap();
+    assert_eq!(
+        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        3
+    );
+
+    // player_a 退出
+    svc.leave_guild(guild.id, player_a).await.unwrap();
+
+    // guild 仍存在, member_count = 2
+    let after = svc.find_guild_by_id(guild.id).await.unwrap();
+    assert!(after.is_some(), "guild 不应解散");
+    assert_eq!(after.unwrap().member_count, 2);
+
+    // player_a 的 member 记录已清
+    let player_a_records = member_repo.find_by_player(player_a).await.unwrap();
+    assert!(
+        player_a_records.is_empty(),
+        "leave 后 player_a 不应再有 member 记录"
+    );
+
+    // leader 没变
+    let after_guild = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(after_guild.leader_id, leader_id, "leader 不应被替换");
+}
+
+/// Q6 IT 场景 2: leader 退出, leadership 转移给 joined_at 最早剩余成员
+#[tokio::test]
+async fn leave_guild_leader_transfers_to_oldest_remaining() {
+    let (svc, _guild_repo, member_repo) = new_svc_with_repos();
+    let leader_id = Uuid::new_v4();
+    let guild = svc
+        .create_guild("Leader Transfer".to_string(), "".to_string(), leader_id)
+        .await
+        .unwrap();
+
+    // player_old 先加入（最早）
+    let player_old = Uuid::new_v4();
+    let _old_member = svc.join_guild(guild.id, player_old).await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+
+    // player_mid 加入
+    let player_mid = Uuid::new_v4();
+    svc.join_guild(guild.id, player_mid).await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+
+    // player_new 最后加入
+    let player_new = Uuid::new_v4();
+    let _new_member = svc.join_guild(guild.id, player_new).await.unwrap();
+
+    assert_eq!(
+        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        4
+    );
+
+    // leader 退出
+    svc.leave_guild(guild.id, leader_id).await.unwrap();
+
+    // guild 仍存在, member_count = 3
+    let after = svc.find_guild_by_id(guild.id).await.unwrap();
+    assert!(after.is_some());
+    assert_eq!(after.unwrap().member_count, 3);
+
+    // leadership 转移给 player_old (joined_at 最早)
+    let after_guild = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(
+        after_guild.leader_id, player_old,
+        "leadership 应转移给 joined_at 最早剩余成员 (player_old)"
+    );
+
+    // 验证 player_old 的 role 变 Leader
+    let old_records = member_repo.find_by_player(player_old).await.unwrap();
+    assert_eq!(old_records.len(), 1);
+    assert_eq!(old_records[0].role, GuildRole::Leader);
+
+    // 验证 player_mid / player_new 角色不变 (仍是 Member)
+    let mid_records = member_repo.find_by_player(player_mid).await.unwrap();
+    assert_eq!(mid_records[0].role, GuildRole::Member);
+    let new_records = member_repo.find_by_player(player_new).await.unwrap();
+    assert_eq!(new_records[0].role, GuildRole::Member);
+
+    // leader 原 member 记录已清
+    let leader_records = member_repo.find_by_player(leader_id).await.unwrap();
+    assert!(leader_records.is_empty());
+}
+
+/// Q6 IT 场景 3: 最后一人退出 → 解散公会
+#[tokio::test]
+async fn leave_guild_last_member_dissolves_guild() {
+    let (svc, _guild_repo, member_repo) = new_svc_with_repos();
+    let leader_id = Uuid::new_v4();
+    let guild = svc
+        .create_guild("Solo Guild".to_string(), "".to_string(), leader_id)
+        .await
+        .unwrap();
+    assert_eq!(guild.member_count, 1);
+
+    // leader (唯一成员) 退出
+    svc.leave_guild(guild.id, leader_id).await.unwrap();
+
+    // guild 解散, 查不到
+    let after = svc.find_guild_by_id(guild.id).await.unwrap();
+    assert!(after.is_none(), "最后一人退出应解散 guild");
+
+    // leader 不再有 member 记录
+    let leader_records = member_repo.find_by_player(leader_id).await.unwrap();
+    assert!(leader_records.is_empty());
+}
+
+/// Q6 IT 场景 4: 非成员退出 → NotGuildMember, 状态不变
+#[tokio::test]
+async fn leave_guild_rejects_non_member_state_unchanged() {
+    let (svc, _guild_repo, member_repo) = new_svc_with_repos();
+    let leader_id = Uuid::new_v4();
+    let guild = svc
+        .create_guild("Reject Stranger".to_string(), "".to_string(), leader_id)
+        .await
+        .unwrap();
+
+    let stranger = Uuid::new_v4();
+    let err = svc
+        .leave_guild(guild.id, stranger)
+        .await
+        .expect_err("非成员 leave_guild 应被拒");
+    assert!(
+        matches!(err, Error::NotGuildMember { .. }),
+        "期望 NotGuildMember, got {:?}",
+        err
+    );
+
+    // guild 状态不变
+    let after = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(after.member_count, 1, "拒绝后 guild.member_count 不应变");
+    assert_eq!(after.leader_id, leader_id);
+
+    // stranger 也没有 member 记录
+    let stranger_records = member_repo.find_by_player(stranger).await.unwrap();
+    assert!(stranger_records.is_empty());
+}
