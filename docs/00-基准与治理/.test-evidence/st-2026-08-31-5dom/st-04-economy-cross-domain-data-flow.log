@@ -1,0 +1,48 @@
+{
+  "verdict": "PASS",
+  "steps": [
+    {
+      "detail": "ip=10.42.0.111 port=50052 http=000000",
+      "name": "economy-service-grpc",
+      "status": "PASS",
+      "step": 1,
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "name": "player-service-grpc",
+      "status": "PASS",
+      "step": 2,
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.106 port=50053 http=000000",
+      "name": "match-service-grpc",
+      "status": "PASS",
+      "step": 3,
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.103 port=50055 http=000000",
+      "name": "admin-service-grpc",
+      "status": "PASS",
+      "step": 4,
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.117 port=5432 http=000000",
+      "name": "postgres",
+      "status": "PASS",
+      "step": 5,
+      "expected": "PASS",
+      "actual": "PASS"
+    }
+  ],
+  "bas_section": "§4.5 + §4.7.2",
+  "scenario": "ST-04 economy 跨域数据流",
+  "timestamp": "2026-08-31T18:45:22.6331731+09:00"
+}

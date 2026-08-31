@@ -1,0 +1,13 @@
+{
+  "scenario": "st-05-match-grpc-port-and-replay",
+  "bas_section": "§4.2 + §5.5",
+  "expected": {
+    "probes": [
+      {"name": "match-service-grpc", "status": "PASS"},
+      {"name": "gm-backend-healthz", "status": "PASS"},
+      {"name": "player-service-grpc", "status": "PASS"},
+      {"name": "postgres", "status": "PASS"}
+    ],
+    "all_status": "PASS"
+  }
+}

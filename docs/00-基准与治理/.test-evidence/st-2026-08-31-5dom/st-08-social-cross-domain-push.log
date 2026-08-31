@@ -1,0 +1,40 @@
+{
+  "steps": [
+    {
+      "detail": "ip=10.42.0.100 port=50054 http=000000",
+      "name": "social-service-grpc",
+      "step": 1,
+      "status": "PASS",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.102 port=50051 http=000000",
+      "name": "player-service-grpc",
+      "step": 2,
+      "status": "PASS",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "ip=10.42.0.103 port=50055 http=000000",
+      "name": "admin-service-grpc",
+      "step": 3,
+      "status": "PASS",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "detail": "expect_nats=0",
+      "name": "nats-varz",
+      "step": 4,
+      "status": "PASS",
+      "expected": "PASS",
+      "actual": "SKIP"
+    }
+  ],
+  "verdict": "PASS",
+  "scenario": "ST-08 social 跨域 push 链路",
+  "timestamp": "2026-08-31T18:45:19.0129462+09:00",
+  "bas_section": "§4.6 + §4.7.1"
+}
