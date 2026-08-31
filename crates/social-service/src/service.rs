@@ -505,6 +505,7 @@ mod proptests {
                 prop_assert_eq!(g.member_count, 1);
                 prop_assert_eq!(g.level, 1);
                 prop_assert_eq!(g.experience, 0);
+                Ok(())
             });
         }
 
@@ -529,6 +530,7 @@ mod proptests {
                     .await
                     .unwrap_err();
                 prop_assert!(matches!(err, Error::Conflict(_)));
+                Ok(())
             });
         }
 
@@ -549,6 +551,7 @@ mod proptests {
                     .await
                     .unwrap_err();
                 prop_assert!(matches!(err, Error::Validation(_)));
+                Ok(())
             });
         }
     }

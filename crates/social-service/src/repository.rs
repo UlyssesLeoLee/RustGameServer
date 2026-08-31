@@ -464,6 +464,7 @@ mod proptests {
                 prop_assert_eq!(back.level, g.level);
                 prop_assert_eq!(back.member_count, g.member_count);
                 prop_assert_eq!(back.experience, g.experience);
+                Ok(())
             });
         }
 
@@ -488,6 +489,7 @@ mod proptests {
                 repo.save(&g).await.unwrap();
                 let back = repo.find_by_id(id).await.unwrap().unwrap();
                 prop_assert_eq!(back.name, name2);
+                Ok(())
             });
         }
 
@@ -509,6 +511,7 @@ mod proptests {
                 let list = repo.find_by_player(pid).await.unwrap();
                 prop_assert_eq!(list.len(), 1);
                 prop_assert_eq!(list[0].player_id, pid);
+                Ok(())
             });
         }
     }
