@@ -1510,6 +1510,7 @@ mod tests {
                         prop_assert_eq!(acc.balance, initial,
                             "outbid bidder {} should have full refund", b);
                     }
+                    Ok(())
                 });
             }
         }

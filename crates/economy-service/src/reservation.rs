@@ -396,6 +396,7 @@ mod tests {
                     prop_assert_eq!(list.len(), amounts.len());
                     let loaded_total: i64 = list.iter().map(|r| r.amount).sum();
                     prop_assert_eq!(loaded_total, total);
+                    Ok(())
                 });
             }
         }

@@ -927,6 +927,7 @@ mod tests {
                     prop_assert_eq!(led_repo.inner.lock().unwrap().len(), 1);
                     let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
                     prop_assert_eq!(reloaded.balance, initial - amount);
+                    Ok(())
                 });
             }
         }
@@ -973,7 +974,7 @@ mod tests {
                         )
                         .await
                         .unwrap_err();
-                    prop_assert!(matches!(err, Error::InsufficientFunds { .. }));
+                    prop_assert!(matches!(err, Error::InsufficientFunds { .. }), "expected InsufficientFunds");
                     // 关键: 无 dangling reservation
                     let for_saga = res_repo.list_by_saga(saga_id).await.unwrap();
                     prop_assert_eq!(for_saga.len(), 0,
@@ -981,6 +982,7 @@ mod tests {
                     // 余额不变
                     let reloaded = acc_repo.find_by_id(account_id).await.unwrap().unwrap();
                     prop_assert_eq!(reloaded.balance, initial);
+                    Ok(())
                 });
             }
         }

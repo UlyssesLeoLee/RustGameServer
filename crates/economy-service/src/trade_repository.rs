@@ -716,6 +716,7 @@ mod tests {
                         .unwrap();
                     prop_assert_eq!(total_all, (n_active + n_sold + n_cancelled) as u64,
                         "All filter total must equal sum of all categories");
+                    Ok(())
                 });
             }
         }

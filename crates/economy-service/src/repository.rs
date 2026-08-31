@@ -679,6 +679,7 @@ mod tests {
                     let (updated, _saved) = acc_repo.apply_atomic(&debited, &entry).await.unwrap();
                     prop_assert_eq!(updated.balance, initial - amount);
                     prop_assert_eq!(updated.version, 1, "version must increment by 1");
+                    Ok(())
                 });
             }
         }

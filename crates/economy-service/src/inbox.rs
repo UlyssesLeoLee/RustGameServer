@@ -267,6 +267,7 @@ mod tests {
                         results.contains(&found.result),
                         "found result must be one of the appended results"
                     );
+                    Ok(())
                 });
             }
         }
@@ -296,6 +297,7 @@ mod tests {
                         let found = repo.find_by_command(cmd_id, h).await.unwrap();
                         prop_assert!(found.is_some(), "handler {} must find entry", h);
                     }
+                    Ok(())
                 });
             }
         }

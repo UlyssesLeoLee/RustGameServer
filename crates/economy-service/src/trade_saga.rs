@@ -1172,6 +1172,7 @@ mod tests {
                         prop_assert_eq!(after.balance, initial,
                             "balance must be unchanged on InsufficientFunds");
                     }
+                    Ok(())
                 });
             }
         }

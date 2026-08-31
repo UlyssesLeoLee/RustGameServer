@@ -1770,6 +1770,7 @@ mod tests {
                     prop_assert_eq!(after.balance, initial - amount,
                         "balance must be initial - amount on Completed (initial={}, amount={})",
                         initial, amount);
+                    Ok(())
                 });
             }
         }
@@ -1816,6 +1817,7 @@ mod tests {
                         "balance must be restored to initial after full compensation (initial={}, amount={})",
                         initial, amount);
                     prop_assert_eq!(saga.status, SagaStatus::Failed);
+                    Ok(())
                 });
             }
         }
