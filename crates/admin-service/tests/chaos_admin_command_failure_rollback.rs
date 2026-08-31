@@ -117,6 +117,13 @@ impl AuditLogRepository for FailingAuditLogRepository {
         // IT 不走 PG 事务路径, 退化到普通 append
         self.append(entry).await
     }
+    async fn verify_recent(
+        &self,
+        n: usize,
+    ) -> admin_service::Result<admin_service::VerifyReport> {
+        // 透传到 inner (chaos 测试场景不验证链, 只验证 append 行为)
+        self.inner.verify_recent(n).await
+    }
 }
 
 // ============================================================================
