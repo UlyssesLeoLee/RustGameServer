@@ -256,12 +256,22 @@ impl PlayerService for PlayerServiceImpl {
             entity: "Player",
             id: profile.player_id.to_string(),
         })?;
+        // 业务层 invariant (per RGS-OPEN-QA-2026-08-31-test-summary v0.2 §Q3):
+        // total_wins ≤ total_matches. DB 层不加 CHECK 约束, 业务层校验对累计更新路径
+        // 更灵活. 持久化实装在 DTL-038 §7.2 同批处理, 本轮仅加 invariant.
+        if profile.total_wins > profile.total_matches {
+            return Err(Error::Validation(format!(
+                "total_wins ({}) must be ≤ total_matches ({})",
+                profile.total_wins, profile.total_matches
+            )));
+        }
         // TODO(DTL-038 §7.2): player_profiles 表实装后, 持久化 + 审计
         tracing::info!(
             target: "player-service",
             player_id = %profile.player_id,
             ranked_score = profile.ranked_score,
             total_matches = profile.total_matches,
+            total_wins = profile.total_wins,
             "player profile updated (placeholder)"
         );
         Ok(profile)
@@ -1702,5 +1712,99 @@ mod tests {
         let profile = PlayerProfile::new(Uuid::new_v4());
         let err = svc.update_player_profile(profile).await.unwrap_err();
         assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ----- Q3 invariant: total_wins ≤ total_matches -----
+    // (per RGS-OPEN-QA-2026-08-31-test-summary v0.2 §Q3, 业务层 invariant)
+
+    #[tokio::test]
+    async fn update_player_profile_wins_lt_total_succeeds() {
+        // happy: wins < total (wins+1 ≤ total) → 接受
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("q3-alice".to_string()).await.unwrap();
+        let back = svc
+            .update_player_profile(PlayerProfile {
+                player_id: owner.id,
+                ranked_score: 1000,
+                ranked_tier: "Silver".to_string(),
+                total_matches: 10,
+                total_wins: 7,
+                collection_count: 5,
+                preferred_locale: "zh-CN".to_string(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(back.total_matches, 10);
+        assert_eq!(back.total_wins, 7);
+    }
+
+    #[tokio::test]
+    async fn update_player_profile_wins_eq_total_succeeds() {
+        // 边界: wins == total → 接受
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("q3-bob".to_string()).await.unwrap();
+        let back = svc
+            .update_player_profile(PlayerProfile {
+                player_id: owner.id,
+                ranked_score: 1500,
+                ranked_tier: "Gold".to_string(),
+                total_matches: 5,
+                total_wins: 5,
+                collection_count: 0,
+                preferred_locale: "en-US".to_string(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(back.total_wins, back.total_matches);
+    }
+
+    #[tokio::test]
+    async fn update_player_profile_wins_gt_total_returns_validation_error() {
+        // 违反: wins > total → Error::Validation
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("q3-carol".to_string()).await.unwrap();
+        let err = svc
+            .update_player_profile(PlayerProfile {
+                player_id: owner.id,
+                ranked_score: 0,
+                ranked_tier: "Bronze".to_string(),
+                total_matches: 3,
+                total_wins: 4,
+                collection_count: 0,
+                preferred_locale: "zh-CN".to_string(),
+            })
+            .await
+            .unwrap_err();
+        match err {
+            Error::Validation(msg) => {
+                assert!(msg.contains("total_wins"), "msg 应提及 total_wins: {}", msg);
+                assert!(msg.contains("total_matches"), "msg 应提及 total_matches: {}", msg);
+            }
+            other => panic!("expected Error::Validation, got: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn update_player_profile_wins_eq_total_plus_one_returns_validation_error() {
+        // 边界: wins == total + 1 → Error::Validation
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("q3-dave".to_string()).await.unwrap();
+        let err = svc
+            .update_player_profile(PlayerProfile {
+                player_id: owner.id,
+                ranked_score: 0,
+                ranked_tier: "Bronze".to_string(),
+                total_matches: 10,
+                total_wins: 11,
+                collection_count: 0,
+                preferred_locale: "zh-CN".to_string(),
+            })
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Validation(_)),
+            "expected Error::Validation, got: {:?}",
+            err
+        );
     }
 }
