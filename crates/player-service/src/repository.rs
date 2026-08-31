@@ -917,4 +917,245 @@ mod tests {
         assert!(!found.is_public);
         assert!(found.share_code.is_none());
     }
+
+    // ====== v3 增量 (RGS UT 桶 11 / 玩家域, per UT-AGENT-BRIEFING §2 Step 2) ======
+
+    // ----- InMemoryPlayerRepository 边界 -----
+
+    #[tokio::test]
+    async fn in_memory_player_delete_nonexistent_returns_false() {
+        let repo = InMemoryPlayerRepository::new();
+        let id = Uuid::new_v4();
+        assert!(!repo.delete_by_id(id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn in_memory_player_find_by_id_nonexistent_returns_none() {
+        let repo = InMemoryPlayerRepository::new();
+        let id = Uuid::new_v4();
+        assert!(repo.find_by_id(id).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_player_find_by_name_nonexistent_returns_none() {
+        let repo = InMemoryPlayerRepository::new();
+        assert!(repo.find_by_name("ghost").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_player_list_paginated_empty_repo() {
+        let repo = InMemoryPlayerRepository::new();
+        let page = repo
+            .list_paginated(PageRequest::default())
+            .await
+            .unwrap();
+        assert_eq!(page.total, 0);
+        assert!(page.items.is_empty());
+        assert_eq!(page.page, 1);
+        assert_eq!(page.page_size, 20);
+    }
+
+    #[tokio::test]
+    async fn in_memory_player_list_paginated_offset() {
+        let repo = InMemoryPlayerRepository::new();
+        for i in 0..6 {
+            repo.save(&Player::new(format!("p-{:02}", i))).await.unwrap();
+        }
+        // page 1 size 2 → 2 项
+        let p1 = repo.list_paginated(PageRequest { page: 1, page_size: 2 }).await.unwrap();
+        assert_eq!(p1.total, 6);
+        assert_eq!(p1.items.len(), 2);
+        // page 2 size 2 → 2 项 (offset 2)
+        let p2 = repo.list_paginated(PageRequest { page: 2, page_size: 2 }).await.unwrap();
+        assert_eq!(p2.total, 6);
+        assert_eq!(p2.items.len(), 2);
+        // page 4 size 2 → 0 项 (offset 6, 越界)
+        let p4 = repo.list_paginated(PageRequest { page: 4, page_size: 2 }).await.unwrap();
+        assert_eq!(p4.total, 6);
+        assert!(p4.items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn in_memory_player_save_overwrites_existing() {
+        let repo = InMemoryPlayerRepository::new();
+        let mut p = Player::new("alice".to_string());
+        repo.save(&p).await.unwrap();
+        // 同一 id 再 save, 应覆盖
+        p.level = 99;
+        p.vip_level = 5;
+        repo.save(&p).await.unwrap();
+        let found = repo.find_by_id(p.id).await.unwrap().unwrap();
+        assert_eq!(found.level, 99);
+        assert_eq!(found.vip_level, 5);
+        // repo 仍只 1 项
+        let all = repo.list_paginated(PageRequest { page: 1, page_size: 100 }).await.unwrap();
+        assert_eq!(all.total, 1);
+    }
+
+    // ----- InMemoryPlayerSessionRepository 边界 -----
+
+    #[tokio::test]
+    async fn in_memory_session_find_by_id_nonexistent_returns_none() {
+        let repo = InMemoryPlayerSessionRepository::new();
+        assert!(repo.find_by_id(Uuid::new_v4()).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_session_delete_nonexistent_returns_false() {
+        let repo = InMemoryPlayerSessionRepository::new();
+        assert!(!repo.delete_by_id(Uuid::new_v4()).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn in_memory_session_list_by_player_filters_other_players() {
+        let repo = InMemoryPlayerSessionRepository::new();
+        let p1 = Uuid::new_v4();
+        let p2 = Uuid::new_v4();
+        let s1 = PlayerSession::new(p1, "d1".to_string(), "1.1.1.1".to_string());
+        let s2 = PlayerSession::new(p2, "d2".to_string(), "2.2.2.2".to_string());
+        let s3 = PlayerSession::new(p1, "d3".to_string(), "1.1.1.2".to_string());
+        repo.save(&s1).await.unwrap();
+        repo.save(&s2).await.unwrap();
+        repo.save(&s3).await.unwrap();
+        let p1_sessions = repo.list_by_player(p1).await.unwrap();
+        assert_eq!(p1_sessions.len(), 2);
+        let p2_sessions = repo.list_by_player(p2).await.unwrap();
+        assert_eq!(p2_sessions.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn in_memory_session_delete_expired_keeps_valid_ones() {
+        let repo = InMemoryPlayerSessionRepository::new();
+        let pid = Uuid::new_v4();
+        // 1 个过期, 1 个未过期
+        let mut expired = PlayerSession::new(pid, "d-old".to_string(), "1.1.1.1".to_string());
+        expired.expires_at = Utc::now() - chrono::Duration::hours(1);
+        let valid = PlayerSession::new(pid, "d-new".to_string(), "1.1.1.2".to_string());
+        // valid.expires_at 默认 now + 24h, 当前未过期
+        repo.save(&expired).await.unwrap();
+        repo.save(&valid).await.unwrap();
+        let removed = repo.delete_expired(Utc::now()).await.unwrap();
+        assert_eq!(removed, 1);
+        // valid 仍存
+        assert!(repo.find_by_id(valid.id).await.unwrap().is_some());
+        // expired 已删
+        assert!(repo.find_by_id(expired.id).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_session_save_overwrites_existing() {
+        let repo = InMemoryPlayerSessionRepository::new();
+        let pid = Uuid::new_v4();
+        let mut s = PlayerSession::new(pid, "dev".to_string(), "1.1.1.1".to_string());
+        repo.save(&s).await.unwrap();
+        s.heartbeat();
+        repo.save(&s).await.unwrap();
+        let back = repo.find_by_id(s.id).await.unwrap().unwrap();
+        // 第二次 save 后 last_heartbeat_at 已被刷新 (≥ 首次)
+        assert!(back.last_heartbeat_at >= s.login_at);
+    }
+
+    // ----- InMemoryDeckRepository 边界 -----
+
+    #[tokio::test]
+    async fn in_memory_deck_find_by_id_nonexistent_returns_none() {
+        let repo = InMemoryDeckRepository::new();
+        assert!(repo.find_by_id(Uuid::new_v4()).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_delete_nonexistent_returns_false() {
+        let repo = InMemoryDeckRepository::new();
+        assert!(!repo.delete_by_id(Uuid::new_v4()).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_list_by_owner_empty() {
+        let repo = InMemoryDeckRepository::new();
+        let page = repo
+            .list_by_owner(Uuid::new_v4(), PageRequest::default())
+            .await
+            .unwrap();
+        assert_eq!(page.total, 0);
+        assert!(page.items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_list_by_owner_offset() {
+        let repo = InMemoryDeckRepository::new();
+        let owner = Uuid::new_v4();
+        for i in 0..6 {
+            repo.create(&Deck::new(owner, format!("d-{:02}", i), 1)).await.unwrap();
+        }
+        // page 1 size 2 → 2 项
+        let p1 = repo.list_by_owner(owner, PageRequest { page: 1, page_size: 2 }).await.unwrap();
+        assert_eq!(p1.total, 6);
+        assert_eq!(p1.items.len(), 2);
+        // page 3 size 2 → 2 项 (offset 4)
+        let p3 = repo.list_by_owner(owner, PageRequest { page: 3, page_size: 2 }).await.unwrap();
+        assert_eq!(p3.total, 6);
+        assert_eq!(p3.items.len(), 2);
+        // page 4 size 2 → 0 项 (offset 6, 越界)
+        let p4 = repo.list_by_owner(owner, PageRequest { page: 4, page_size: 2 }).await.unwrap();
+        assert_eq!(p4.total, 6);
+        assert!(p4.items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_create_overwrites_existing() {
+        let repo = InMemoryDeckRepository::new();
+        let mut d = Deck::new(Uuid::new_v4(), "deck".to_string(), 1);
+        repo.create(&d).await.unwrap();
+        d.name = "renamed".to_string();
+        d.is_public = true;
+        d.share_code = Some("share-x".to_string());
+        repo.create(&d).await.unwrap();
+        let back = repo.find_by_id(d.id).await.unwrap().unwrap();
+        assert_eq!(back.name, "renamed");
+        assert!(back.is_public);
+        assert_eq!(back.share_code.as_deref(), Some("share-x"));
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_find_by_share_code_skips_unpublic_even_with_code() {
+        let repo = InMemoryDeckRepository::new();
+        let mut d = Deck::new(Uuid::new_v4(), "private".to_string(), 1);
+        d.is_public = false; // 显式私有
+        d.share_code = Some("leaked".to_string());
+        repo.create(&d).await.unwrap();
+        // 私有 deck 不应被 find_by_share_code 命中
+        assert!(repo.find_by_share_code("leaked").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_find_by_share_code_empty_string() {
+        let repo = InMemoryDeckRepository::new();
+        // 空 share_code 不命中任何记录
+        assert!(repo.find_by_share_code("").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_deck_list_by_owner_returns_only_target_owner() {
+        let repo = InMemoryDeckRepository::new();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        for i in 0..3 {
+            repo.create(&Deck::new(a, format!("a-{}", i), 1)).await.unwrap();
+        }
+        for i in 0..5 {
+            repo.create(&Deck::new(b, format!("b-{}", i), 2)).await.unwrap();
+        }
+        // owner_a 应只看到 3 个
+        let pa = repo.list_by_owner(a, PageRequest { page: 1, page_size: 100 }).await.unwrap();
+        assert_eq!(pa.total, 3);
+        for d in &pa.items {
+            assert_eq!(d.owner_id, a);
+        }
+        // owner_b 应只看到 5 个
+        let pb = repo.list_by_owner(b, PageRequest { page: 1, page_size: 100 }).await.unwrap();
+        assert_eq!(pb.total, 5);
+        for d in &pb.items {
+            assert_eq!(d.owner_id, b);
+        }
+    }
 }

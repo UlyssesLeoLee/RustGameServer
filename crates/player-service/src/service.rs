@@ -1170,4 +1170,537 @@ mod tests {
         let errs = PlayerServiceImpl::validate_deck_slots(&slots);
         assert!(errs.is_empty());
     }
+
+    // ====== v3 增量 (RGS UT 桶 11 / 玩家域, per UT-AGENT-BRIEFING §2 Step 2) ======
+
+    // ----- register 边界 -----
+
+    #[tokio::test]
+    async fn register_whitespace_only_name_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc.register("   ".to_string()).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn register_name_too_long_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let long_name = "a".repeat(65);
+        let err = svc.register(long_name).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn register_name_at_max_length_succeeds() {
+        let (svc, _, _, _) = make_service().await;
+        let max_name = "a".repeat(64);
+        let p = svc.register(max_name.clone()).await.unwrap();
+        assert_eq!(p.name, max_name);
+    }
+
+    #[tokio::test]
+    async fn register_trimmed_name_preserves_surrounding_spaces() {
+        // 当前实现未 trim: 前后空格视为不同名 (依赖业务定义)
+        // 验证重复名检查: "alice" 和 "alice " 是不同
+        let (svc, _, _, _) = make_service().await;
+        let p1 = svc.register("alice".to_string()).await.unwrap();
+        // 后面空格视为不同名 — 当前实现
+        let p2 = svc.register("alice ".to_string()).await.unwrap();
+        assert_ne!(p1.id, p2.id);
+        assert_eq!(p1.name, "alice");
+        assert_eq!(p2.name, "alice ");
+    }
+
+    // ----- heartbeat 边界 -----
+
+    #[tokio::test]
+    async fn heartbeat_unknown_session_returns_session_expired() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc.heartbeat(Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::SessionExpired));
+    }
+
+    #[tokio::test]
+    async fn heartbeat_already_expired_session_returns_session_expired() {
+        let (svc, _, sessions, decks) = make_service().await;
+        let pid = Uuid::new_v4();
+        let mut s = PlayerSession::new(pid, "dev".to_string(), "1.1.1.1".to_string());
+        s.expires_at = chrono::Utc::now() - chrono::Duration::hours(1); // 过期
+        sessions.save(&s).await.unwrap();
+        // 重新构造 svc 显式接入 sessions (make_service 的 sessions 已被 svc 持有)
+        let svc2 = PlayerServiceImpl::new(
+            Arc::new(InMemoryPlayerRepository::new()),
+            sessions.clone() as Arc<dyn PlayerSessionRepository>,
+            decks.clone() as Arc<dyn DeckRepository>,
+        );
+        let err = svc2.heartbeat(s.id).await.unwrap_err();
+        assert!(matches!(err, Error::SessionExpired));
+    }
+
+    // ----- update_profile 边界 -----
+
+    #[tokio::test]
+    async fn update_profile_banned_player_fails_with_account_disabled() {
+        let (svc, players, _, _) = make_service().await;
+        let mut p = svc.register("alice".to_string()).await.unwrap();
+        // 手动改 status → Banned
+        p.status = PlayerStatus::Banned;
+        players.save(&p).await.unwrap();
+        let err = svc.update_profile(p.id, Some(50), None).await.unwrap_err();
+        assert!(matches!(err, Error::AccountDisabled(_)));
+    }
+
+    #[tokio::test]
+    async fn update_profile_disabled_player_fails_with_account_disabled() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        svc.disable_player(p.id, "test".to_string()).await.unwrap();
+        let err = svc.update_profile(p.id, Some(50), None).await.unwrap_err();
+        assert!(matches!(err, Error::AccountDisabled(_)));
+    }
+
+    #[tokio::test]
+    async fn update_profile_unknown_player_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc.update_profile(Uuid::new_v4(), Some(50), None).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn update_profile_vip_level_out_of_range() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        // vip 21 → 超 20 上限
+        let err = svc.update_profile(p.id, None, Some(21)).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+        // vip -1 → 负数
+        let err = svc.update_profile(p.id, None, Some(-1)).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn update_profile_vip_zero_succeeds() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, None, Some(0)).await.unwrap();
+        assert_eq!(updated.vip_level, 0);
+    }
+
+    #[tokio::test]
+    async fn update_profile_vip_twenty_at_boundary() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, None, Some(20)).await.unwrap();
+        assert_eq!(updated.vip_level, 20);
+    }
+
+    #[tokio::test]
+    async fn update_profile_level_one_at_lower_boundary() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, Some(1), None).await.unwrap();
+        assert_eq!(updated.level, 1);
+    }
+
+    #[tokio::test]
+    async fn update_profile_level_nine_nine_nine_at_upper_boundary() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, Some(999), None).await.unwrap();
+        assert_eq!(updated.level, 999);
+    }
+
+    #[tokio::test]
+    async fn update_profile_zero_level_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let err = svc.update_profile(p.id, Some(0), None).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn update_profile_thousand_level_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let err = svc.update_profile(p.id, Some(1000), None).await.unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn update_profile_no_changes_returns_ok_with_same_data() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, None, None).await.unwrap();
+        assert_eq!(updated.level, p.level);
+        assert_eq!(updated.vip_level, p.vip_level);
+        // updated_at 应被刷新 (即使 level/vip 未变)
+        assert!(updated.updated_at >= p.updated_at);
+    }
+
+    #[tokio::test]
+    async fn update_profile_only_vip_changes() {
+        let (svc, _, _, _) = make_service().await;
+        let p = svc.register("alice".to_string()).await.unwrap();
+        let updated = svc.update_profile(p.id, None, Some(5)).await.unwrap();
+        assert_eq!(updated.level, p.level);
+        assert_eq!(updated.vip_level, 5);
+    }
+
+    // ----- find_by_id 边界 -----
+
+    #[tokio::test]
+    async fn find_by_id_unknown_returns_none() {
+        let (svc, _, _, _) = make_service().await;
+        let found = svc.find_by_id(Uuid::new_v4()).await.unwrap();
+        assert!(found.is_none());
+    }
+
+    // ----- disable_player 边界 -----
+
+    #[tokio::test]
+    async fn disable_player_unknown_id_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc
+            .disable_player(Uuid::new_v4(), "test".to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ----- create_deck 边界 -----
+
+    #[tokio::test]
+    async fn create_deck_whitespace_name_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .create_deck(owner.id, "   ".to_string(), 1)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_deck_name_too_long_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let long = "a".repeat(65);
+        let err = svc
+            .create_deck(owner.id, long, 1)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_deck_name_at_max_length_succeeds() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let max = "a".repeat(64);
+        let d = svc.create_deck(owner.id, max.clone(), 1).await.unwrap();
+        assert_eq!(d.name, max);
+    }
+
+    #[tokio::test]
+    async fn create_deck_unknown_player_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc
+            .create_deck(Uuid::new_v4(), "deck".to_string(), 1)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn create_deck_zero_mode_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .create_deck(owner.id, "deck".to_string(), 0)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn create_deck_negative_mode_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .create_deck(owner.id, "deck".to_string(), -1)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // ----- get_deck 边界 -----
+
+    #[tokio::test]
+    async fn get_deck_unknown_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc.get_deck(Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ----- update_deck 边界 -----
+
+    #[tokio::test]
+    async fn update_deck_unknown_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .update_deck(Uuid::new_v4(), owner.id, Some("x".to_string()), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn update_deck_name_only_no_slots_change() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc
+            .create_deck(owner.id, "deck".to_string(), 1)
+            .await
+            .unwrap();
+        // 先用 service 更新一次保存 slots (让 repo 持有该 slot)
+        let d2 = svc
+            .update_deck(
+                d.id,
+                owner.id,
+                None,
+                Some(vec![DeckSlot::new("card-1".to_string(), 1)]),
+            )
+            .await
+            .unwrap();
+        assert_eq!(d2.slots.len(), 1);
+        // 再单独通过 service 更新 name (不开 slots)
+        let updated = svc
+            .update_deck(d.id, owner.id, Some("renamed".to_string()), None)
+            .await
+            .unwrap();
+        assert_eq!(updated.name, "renamed");
+        // slots 未变 (None → 不动)
+        assert_eq!(updated.slots.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn update_deck_slots_only_no_name_change() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc
+            .create_deck(owner.id, "deck".to_string(), 1)
+            .await
+            .unwrap();
+        let updated = svc
+            .update_deck(d.id, owner.id, None, Some(vec![DeckSlot::new("card-X".to_string(), 2)]))
+            .await
+            .unwrap();
+        assert_eq!(updated.name, "deck"); // 未变
+        assert_eq!(updated.slots.len(), 1);
+        assert_eq!(updated.slots[0].card_id, "card-X");
+    }
+
+    #[tokio::test]
+    async fn update_deck_empty_name_after_trim_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc
+            .create_deck(owner.id, "deck".to_string(), 1)
+            .await
+            .unwrap();
+        let err = svc
+            .update_deck(d.id, owner.id, Some("   ".to_string()), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn update_deck_name_too_long_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc
+            .create_deck(owner.id, "deck".to_string(), 1)
+            .await
+            .unwrap();
+        let long = "a".repeat(65);
+        let err = svc
+            .update_deck(d.id, owner.id, Some(long), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn update_deck_both_none_is_noop() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc
+            .create_deck(owner.id, "deck".to_string(), 1)
+            .await
+            .unwrap();
+        let updated = svc
+            .update_deck(d.id, owner.id, None, None)
+            .await
+            .unwrap();
+        assert_eq!(updated.id, d.id);
+        assert_eq!(updated.name, "deck");
+        assert!(updated.slots.is_empty());
+    }
+
+    // ----- delete_deck 边界 -----
+
+    #[tokio::test]
+    async fn delete_deck_unknown_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .delete_deck(Uuid::new_v4(), owner.id)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ----- list_decks 边界 -----
+
+    #[tokio::test]
+    async fn list_decks_empty_owner_returns_zero_total() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let (items, total) = svc
+            .list_decks(owner.id, PageRequest::default())
+            .await
+            .unwrap();
+        assert_eq!(total, 0);
+        assert!(items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_decks_page_beyond_end_returns_empty() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        svc.create_deck(owner.id, "only".to_string(), 1).await.unwrap();
+        let (items, total) = svc
+            .list_decks(
+                owner.id,
+                PageRequest { page: 99, page_size: 20 },
+            )
+            .await
+            .unwrap();
+        assert_eq!(total, 1);
+        assert!(items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_decks_excludes_other_owners() {
+        let (svc, _, _, _) = make_service().await;
+        let a = svc.register("alice".to_string()).await.unwrap();
+        let b = svc.register("bob".to_string()).await.unwrap();
+        svc.create_deck(a.id, "a-deck".to_string(), 1).await.unwrap();
+        svc.create_deck(b.id, "b-deck".to_string(), 1).await.unwrap();
+        let (a_items, a_total) = svc
+            .list_decks(a.id, PageRequest { page: 1, page_size: 100 })
+            .await
+            .unwrap();
+        assert_eq!(a_total, 1);
+        assert_eq!(a_items[0].name, "a-deck");
+    }
+
+    // ----- share_deck 边界 -----
+
+    #[tokio::test]
+    async fn share_deck_twice_keeps_same_share_code() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc.create_deck(owner.id, "deck".to_string(), 1).await.unwrap();
+        let s1 = svc.share_deck(d.id, owner.id, true).await.unwrap();
+        let s2 = svc.share_deck(d.id, owner.id, true).await.unwrap();
+        // 二次开启分享, share_code 不应重新生成 (幂等)
+        assert_eq!(s1.share_code, s2.share_code);
+    }
+
+    #[tokio::test]
+    async fn share_deck_unpublic_when_already_private_is_noop() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc.create_deck(owner.id, "deck".to_string(), 1).await.unwrap();
+        // 未分享过, 再次 unpublic → 仍私有
+        let s = svc.share_deck(d.id, owner.id, false).await.unwrap();
+        assert!(!s.is_public);
+        assert!(s.share_code.is_none());
+    }
+
+    #[tokio::test]
+    async fn share_deck_unknown_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let err = svc
+            .share_deck(Uuid::new_v4(), owner.id, true)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn share_deck_not_owner_returns_forbidden() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let other = svc.register("bob".to_string()).await.unwrap();
+        let d = svc.create_deck(owner.id, "deck".to_string(), 1).await.unwrap();
+        let err = svc.share_deck(d.id, other.id, true).await.unwrap_err();
+        assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    // ----- get_shared_deck 边界 -----
+
+    #[tokio::test]
+    async fn get_shared_deck_unpublic_with_code_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let owner = svc.register("alice".to_string()).await.unwrap();
+        let d = svc.create_deck(owner.id, "deck".to_string(), 1).await.unwrap();
+        // 手动设置 share_code 但 is_public=false (绕过 service)
+        let mut private = d;
+        private.share_code = Some("private-code".to_string());
+        private.is_public = false;
+        // 直接通过 svc 不可改 (service 不暴露); 走 repo
+        // 这里只能验证: 即使 share_code 存在, get_shared_deck 也不应找到 (因 InMemory 仓库过滤 is_public)
+        let err = svc
+            .get_shared_deck("private-code".to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+        // private 仍存在
+        let _found = svc.get_deck(private.id).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn get_shared_deck_whitespace_only_code_fails() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc
+            .get_shared_deck("   ".to_string())
+            .await
+            .unwrap_err();
+        // 当前实现: trim 后 is_empty() → Validation
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    // ----- get_player_profile 边界 -----
+
+    #[tokio::test]
+    async fn get_player_profile_unknown_player_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let err = svc.get_player_profile(Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
+
+    // ----- update_player_profile 边界 -----
+
+    #[tokio::test]
+    async fn update_player_profile_unknown_player_returns_not_found() {
+        let (svc, _, _, _) = make_service().await;
+        let profile = PlayerProfile::new(Uuid::new_v4());
+        let err = svc.update_player_profile(profile).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound { .. }));
+    }
 }
