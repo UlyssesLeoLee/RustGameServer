@@ -140,7 +140,13 @@ async fn outbox_check_constraint_rejects_invalid_status() {
 
 #[tokio::test]
 async fn outbox_check_constraint_is_idempotent() {
-    let base = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let base = match std::env::var("DATABASE_URL") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("skip: DATABASE_URL not set");
+            return;
+        }
+    };
     let (base_prefix, query) = match base.split_once('?') {
         Some((p, q)) => (p.to_string(), format!("?{}", q)),
         None => (base.clone(), String::new()),
