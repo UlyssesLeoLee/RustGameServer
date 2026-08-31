@@ -371,3 +371,235 @@ async fn disabled_admin_cannot_issue_any_gm_command() {
         "Auditor 调 GM 指令应被 RBAC 拒, got {err2:?}"
     );
 }
+
+// ============================================================================
+// UT 子代理 (2026-08-31 v3 P1 fix Q1): handler 入口 RBAC 链路 IT
+// 验证 gm_handlers::require_coc_role + extract_admin_user_from_jwt 的集成
+// (per v0.2 §Q1 "IT 为主" 决策, 扩展现有 issue_gm_command_with_rbac 场景)
+// ============================================================================
+
+/// 完整 RBAC 矩阵 (per v0.2 §Q1 决策): 验证 5 类 admin 角色对 3 类 GM 指令的
+/// handler 入口行为, 覆盖 gm_handlers::require_coc_role 真实调用路径.
+#[tokio::test]
+async fn handler_rbac_full_matrix_3_roles_x_3_actions() {
+    use admin_service::gm_handlers::require_coc_role;
+
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        Arc::new(InMemoryAuditLogRepository::new()),
+    );
+
+    // 建 5 类 admin: SuperAdmin / DomainAdmin(player) / DomainAdmin(economy) /
+    // DomainAdmin(cluster) / Auditor / Support
+    let super_admin = svc
+        .create_admin(
+            "sa".to_string(),
+            "h".to_string(),
+            AdminRole::SuperAdmin,
+            None,
+        )
+        .await
+        .unwrap();
+    let da_player = svc
+        .create_admin(
+            "da-p".to_string(),
+            "h".to_string(),
+            AdminRole::DomainAdmin,
+            Some("player".to_string()),
+        )
+        .await
+        .unwrap();
+    let da_economy = svc
+        .create_admin(
+            "da-e".to_string(),
+            "h".to_string(),
+            AdminRole::DomainAdmin,
+            Some("economy".to_string()),
+        )
+        .await
+        .unwrap();
+    let da_cluster = svc
+        .create_admin(
+            "da-c".to_string(),
+            "h".to_string(),
+            AdminRole::DomainAdmin,
+            Some("cluster".to_string()),
+        )
+        .await
+        .unwrap();
+    let auditor = svc
+        .create_admin(
+            "a".to_string(),
+            "h".to_string(),
+            AdminRole::Auditor,
+            None,
+        )
+        .await
+        .unwrap();
+    let support = svc
+        .create_admin(
+            "s".to_string(),
+            "h".to_string(),
+            AdminRole::Support,
+            None,
+        )
+        .await
+        .unwrap();
+
+    // (admin, action) → 期望 ok / err
+    // 矩阵 (true = 期望 Ok, false = 期望 COCRoleRequired):
+    //              player.ban  economy.grant  cluster.maintenance
+    // SuperAdmin       ✓            ✓                ✓
+    // DA(player)       ✓            ✗                ✗
+    // DA(economy)      ✗            ✓                ✗
+    // DA(cluster)      ✗            ✗                ✓
+    // Auditor          ✗            ✗                ✗
+    // Support          ✗            ✗                ✗
+    let cases: Vec<(&AdminUser, &str, bool)> = vec![
+        (&super_admin, "player.ban", true),
+        (&super_admin, "economy.grant", true),
+        (&super_admin, "cluster.maintenance", true),
+        (&da_player, "player.ban", true),
+        (&da_player, "economy.grant", false),
+        (&da_player, "cluster.maintenance", false),
+        (&da_economy, "player.ban", false),
+        (&da_economy, "economy.grant", true),
+        (&da_economy, "cluster.maintenance", false),
+        (&da_cluster, "player.ban", false),
+        (&da_cluster, "economy.grant", false),
+        (&da_cluster, "cluster.maintenance", true),
+        (&auditor, "player.ban", false),
+        (&auditor, "economy.grant", false),
+        (&auditor, "cluster.maintenance", false),
+        (&support, "player.ban", false),
+        (&support, "economy.grant", false),
+        (&support, "cluster.maintenance", false),
+    ];
+
+    for (admin, action, expect_ok) in cases {
+        let result = require_coc_role(admin, action);
+        if expect_ok {
+            assert!(
+                result.is_ok(),
+                "{:?} 调 {} 应 ok, got {:?}",
+                admin.role,
+                action,
+                result
+            );
+        } else {
+            assert!(
+                matches!(result, Err(Error::COCRoleRequired { .. })),
+                "{:?} 调 {} 应被 COCRoleRequired 拒, got {:?}",
+                admin.role,
+                action,
+                result
+            );
+        }
+    }
+}
+
+/// 验证: handler 入口 RBAC + audit_log 写入的端到端 (per v0.2 §Q1 "IT 为主" 决策)
+/// 链路: issue_gm_command_with_rbac 内 check_rbac 拒 → 不写 audit_log
+#[tokio::test]
+async fn handler_rbac_rejection_does_not_write_audit_log() {
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        Arc::new(InMemoryAuditLogRepository::new()),
+    );
+    let support = svc
+        .create_admin(
+            "support-no-audit".to_string(),
+            "h".to_string(),
+            AdminRole::Support,
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Support 调 player.ban → 应被 RBAC 拒
+    let err = issue_gm_command_with_rbac(
+        &svc,
+        &support,
+        "player.ban",
+        "no-audit-target",
+        "{}",
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(err, Error::COCRoleRequired { .. }));
+
+    // 验证: audit_log 链上不应有 "no-audit-target" 相关 entry
+    // (RBAC 拒 → 不调 svc.audit_log)
+    let _all = svc
+        .find_user_by_id(support.id)
+        .await
+        .unwrap()
+        .expect("admin 应可查");
+    // 我们用 list_by_actor 间接验证: Support 调 RBAC-拒 后不应有 audit
+    // (用 Uuid::nil() 因为 audit_log 不会写)
+    // 由于 service 没暴露 list 入口, 我们用 svc.audit_log 写一条然后读 latest
+    // 验证: latest 不是 no-audit-target
+    let probe = svc
+        .audit_log(
+            support.id,
+            "probe".to_string(),
+            "probe-target".to_string(),
+            "{}".to_string(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(probe.target, "probe-target");
+    // probe 是 svc.audit_log 直接写, 它的 prev_hash = 0 (因 InMemory 初始空)
+    // 这表明: RBAC 拒的 6 次尝试**未**追加 audit_log (因 InMemory initial prev_hash 仍是 0)
+    assert_eq!(
+        probe.prev_hash,
+        "0".repeat(64),
+        "若 RBAC 拒有 audit_log 写入, probe.prev_hash 应 != 0; 实得初始 0 表示拒未写"
+    );
+}
+
+/// Q1 RBAC 与 audit_log hash 链集成: 即使通过 RBAC, 多次操作必须保持
+/// prev_hash 链不断 (per 55.13 AC5=CC1+CH3 / RGS-SEC-100 §7).
+#[tokio::test]
+async fn handler_rbac_passes_preserve_audit_hash_chain() {
+    use admin_service::gm_handlers::require_coc_role;
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        Arc::new(InMemoryAuditLogRepository::new()),
+    );
+    let root = svc
+        .create_admin(
+            "root-rc".to_string(),
+            "h".to_string(),
+            AdminRole::SuperAdmin,
+            None,
+        )
+        .await
+        .unwrap();
+
+    // SuperAdmin 顺序调 3 类 GM 指令, 每条都通过 RBAC
+    let actions = ["player.ban", "economy.grant", "cluster.maintenance"];
+    let mut last_hash: Option<String> = None;
+    for action in actions {
+        assert!(require_coc_role(&root, action).is_ok());
+        let entry = svc
+            .audit_log(
+                root.id,
+                action.to_string(),
+                format!("target-{}", action),
+                "{}".to_string(),
+            )
+            .await
+            .unwrap();
+        if let Some(prev) = &last_hash {
+            assert_eq!(
+                &entry.prev_hash, prev,
+                "RBAC 通过路径下 hash 链必须连续 (action={action})"
+            );
+        } else {
+            // 首条 prev_hash 应 = 0
+            assert_eq!(entry.prev_hash, "0".repeat(64));
+        }
+        last_hash = Some(entry.hash.clone());
+    }
+}

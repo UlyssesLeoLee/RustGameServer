@@ -24,7 +24,8 @@ use std::sync::Arc;
 
 use admin_service::entity::AuditLogEntry;
 use admin_service::repository::{
-    AuditLogRepository, InMemoryAdminUserRepository, InMemoryAuditLogRepository,
+    run_startup_verify, AuditLogRepository, InMemoryAdminUserRepository,
+    InMemoryAuditLogRepository, StartupVerifyOutcome, VerifyReport,
 };
 use admin_service::service::{AdminService, AdminServiceImpl};
 use uuid::Uuid;
@@ -341,4 +342,239 @@ async fn tampered_audit_entry_fails_hash_recomputation() {
         prev_hash_of_tampered, expected_prev_hash,
         "篡改 entry 的 prev_hash 仍指向链中前一条 (哈希结构未自动修复)"
     );
+}
+
+// ============================================================================
+// UT 子代理 (2026-08-31 v3 P1 fix Q2): startup verify IT 场景
+// 覆盖 run_startup_verify 三态 (Verified / TamperDetected / InfraError) + 增量 verify
+// (per v0.2 §Q2 "启动时跑增量 verify_recent(1000)" 决策)
+// ============================================================================
+
+/// 启动期 verify: 干净链 → Verified 状态, checked == N
+#[tokio::test]
+async fn startup_verify_clean_chain_returns_verified() {
+    let audit = Arc::new(InMemoryAuditLogRepository::new());
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit.clone(),
+    );
+    let actor = Uuid::nil();
+    // 写 50 条干净链
+    for i in 0..50 {
+        svc.audit_log(
+            actor,
+            format!("startup.action.{i}"),
+            format!("target-{i}"),
+            format!(r#"{{"i":{i}}}"#),
+        )
+        .await
+        .unwrap();
+    }
+    // 跑 startup verify (模拟 main.rs 启动钩子)
+    let outcome = run_startup_verify(&*audit, 1000).await;
+    match outcome {
+        StartupVerifyOutcome::Verified(report) => {
+            assert_eq!(report.checked, 50);
+            assert!(report.is_ok());
+            assert!(report.last_hash.is_some());
+            assert!(report.first_prev_hash.is_some());
+        }
+        other => panic!("干净链应得 Verified, got {:?}", other),
+    }
+}
+
+/// 启动期 verify: 篡改后 → TamperDetected (per v0.2 §Q2 fail-closed)
+#[tokio::test]
+async fn startup_verify_detects_tamper_after_restart() {
+    // === 进程 #1: 写 N 条 ===
+    let audit_v1 = Arc::new(InMemoryAuditLogRepository::new());
+    let svc_v1 = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit_v1.clone(),
+    );
+    let actor = Uuid::nil();
+    let n = 20;
+    for i in 0..n {
+        svc_v1
+            .audit_log(
+                actor,
+                format!("action.{i}"),
+                format!("target-{i}"),
+                format!(r#"{{"i":{i}}}"#),
+            )
+            .await
+            .unwrap();
+    }
+
+    // === 篡改: 改第 5 条 entry 的 prev_hash 字段 (模拟 DB 行被攻击者直接 UPDATE) ===
+    let target_idx = 5;
+    let target = audit_v1
+        .list_by_actor(actor, n as i64)
+        .await
+        .unwrap();
+    // list_by_actor 返 DESC, 索引 = n-1-target_idx 才是 ASC 顺序的 target_idx
+    let target_desc_idx = n - 1 - target_idx;
+    let mut tampered = target[target_desc_idx].clone();
+    tampered.prev_hash = "deadbeef".repeat(8); // 64 char, 故意错位
+    // 注: 不重算 hash, 模拟攻击者无 SHA-256 secret 的场景
+    audit_v1.append(&tampered).await.unwrap();
+
+    // === 进程 #2 启动: 跑 startup verify → 应报 TamperDetected ===
+    let outcome = run_startup_verify(&*audit_v1, 1000).await;
+    match outcome {
+        StartupVerifyOutcome::TamperDetected { report, reason } => {
+            assert!(
+                !report.is_ok(),
+                "篡改后 verify 报告应不 ok"
+            );
+            assert!(report.broken_at_index.is_some());
+            assert!(!reason.is_empty());
+            // 验证: 报告里的 broken_at_index 指向被破坏的位置
+            // 由于我们覆写的是第 target_idx 条, 排序后位置可能为 target_idx
+            // (因 sort 是 stable 且 created_at 不变) — 但允许其他位置
+            tracing::debug!("tamper detected at {:?}", report.broken_at_index);
+        }
+        StartupVerifyOutcome::Verified(_) => {
+            panic!("篡改后 startup verify 应检测到 TamperDetected, 不应通过");
+        }
+        StartupVerifyOutcome::InfraError { .. } => {
+            panic!("篡改后应报 TamperDetected (非 infra 失败)");
+        }
+    }
+}
+
+/// 启动期 verify: 重启后 N 条链完整, 再 append 1 条 → verify 仍应通过
+/// (per 55.13 AC5=CC1+CH3 + v0.2 §Q2 增量 verify 决策)
+#[tokio::test]
+async fn startup_verify_after_restart_with_new_append() {
+    // === 进程 #1: 写 30 条 ===
+    let audit_v1 = Arc::new(InMemoryAuditLogRepository::new());
+    let svc_v1 = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit_v1.clone(),
+    );
+    let actor = Uuid::nil();
+    let n = 30;
+    for i in 0..n {
+        svc_v1
+            .audit_log(
+                actor,
+                format!("v1.{i}"),
+                format!("t-{i}"),
+                "{}".to_string(),
+            )
+            .await
+            .unwrap();
+    }
+
+    // === 进程 #2: reload (灌入新 repo) ===
+    let snapshot = audit_v1.list_by_actor(actor, 100_000).await.unwrap();
+    let audit_v2 = Arc::new(InMemoryAuditLogRepository::new());
+    for e in snapshot {
+        audit_v2.append(&e).await.unwrap();
+    }
+    // (顺序为 DESC 灌入 → InMemory 的 latest 仍为原 last, 但 verify_recent
+    //  内部用 Reverse 排序, 顺序无关)
+    let _ = n;
+
+    // === 启动 verify: 链完整 → Verified ===
+    let out1 = run_startup_verify(&*audit_v2, 1000).await;
+    match out1 {
+        StartupVerifyOutcome::Verified(report) => {
+            assert_eq!(report.checked, 30);
+        }
+        other => panic!("reload 后链应完整, got {:?}", other),
+    }
+
+    // === 进程 #2 再 append 一条 ===
+    let svc_v2 = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit_v2.clone(),
+    );
+    let _ = svc_v2
+        .audit_log(
+            actor,
+            "post.restart".to_string(),
+            "post".to_string(),
+            "{}".to_string(),
+        )
+        .await
+        .unwrap();
+
+    // === 再 verify: 链仍完整 (31 条) ===
+    let out2 = run_startup_verify(&*audit_v2, 1000).await;
+    match out2 {
+        StartupVerifyOutcome::Verified(report) => {
+            assert_eq!(report.checked, 31, "append 后应 31 条");
+        }
+        other => panic!("append 后链应完整, got {:?}", other),
+    }
+}
+
+/// 启动期 verify: 增量 verify n=5 仅扫最近 5 条 (per v0.2 §Q2 "最近 1000 条 / 24h")
+#[tokio::test]
+async fn startup_verify_incremental_n_limits_checked_count() {
+    let audit = Arc::new(InMemoryAuditLogRepository::new());
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit.clone(),
+    );
+    let actor = Uuid::nil();
+    // 写 100 条干净链
+    for i in 0..100 {
+        svc.audit_log(
+            actor,
+            format!("a.{i}"),
+            format!("t-{i}"),
+            "{}".to_string(),
+        )
+        .await
+        .unwrap();
+    }
+    // 增量 verify n=5
+    let out = run_startup_verify(&*audit, 5).await;
+    match out {
+        StartupVerifyOutcome::Verified(report) => {
+            // 增量 verify 应仅扫最近 5 条
+            assert!(
+                report.checked <= 5,
+                "n=5 时 checked 应 <= 5, got {}",
+                report.checked
+            );
+        }
+        other => panic!("干净链应通过, got {:?}", other),
+    }
+}
+
+/// 启动期 verify: VerifyReport 字段可观测 (delta_count, first_prev_hash, last_hash)
+/// (per v0.2 §Q2 报告字段要求)
+#[tokio::test]
+async fn startup_verify_report_fields_observable() {
+    let audit = Arc::new(InMemoryAuditLogRepository::new());
+    let svc = AdminServiceImpl::new(
+        Arc::new(InMemoryAdminUserRepository::new()),
+        audit.clone(),
+    );
+    let actor = Uuid::nil();
+    for i in 0..3 {
+        svc.audit_log(
+            actor,
+            format!("f.{i}"),
+            format!("t-{i}"),
+            "{}".to_string(),
+        )
+        .await
+        .unwrap();
+    }
+    let out = run_startup_verify(&*audit, 1000).await;
+    let report: VerifyReport = match out {
+        StartupVerifyOutcome::Verified(r) => r,
+        other => panic!("应得 Verified, got {:?}", other),
+    };
+    assert_eq!(report.checked, 3);
+    assert_eq!(report.first_prev_hash, Some("0".repeat(64)));
+    assert!(report.last_hash.is_some());
+    assert_eq!(report.broken_at_index, None);
+    assert_eq!(report.broken_reason, None);
+    assert!(report.is_ok());
 }

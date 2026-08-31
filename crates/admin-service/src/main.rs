@@ -22,7 +22,8 @@ use shared_platform::tls::load_server_tls_config;
 
 use admin_service::db;
 use admin_service::repository::{
-    AdminUserRepository, AuditLogRepository, PgAdminUserRepository, PgAuditLogRepository,
+    run_startup_verify, AdminUserRepository, AuditLogRepository, PgAdminUserRepository,
+    PgAuditLogRepository, StartupVerifyOutcome,
 };
 use admin_service::service::grpc_service::AdminGrpcService;
 use admin_service::service::AdminServiceImpl;
@@ -81,11 +82,43 @@ async fn main() -> anyhow::Result<()> {
     let users: Arc<dyn AdminUserRepository> = Arc::new(PgAdminUserRepository::new(pool.clone()));
     let audit: Arc<dyn AuditLogRepository> = Arc::new(PgAuditLogRepository::new(pool.clone()));
 
-    // S4 Phase 2 step 2: 注入 audit_log repository 到 4 GM RPC handler 全局 state
-    // (per RGS-S4-PHASE2-STEP1-设计.md)
+    // S4 Phase 2 step 2: 注入 audit_log + users repository 到 4 GM RPC handler 全局 state
+    // (per RGS-S4-PHASE2-STEP1-设计.md + Q1 RBAC fix 需 users 用于 actor 查找)
     admin_service::gm_handlers::init_state(admin_service::gm_handlers::GmHandlerState::new(
         audit.clone(),
+        users.clone(),
     ));
+
+    // Q2 startup verify (per RGS-OPEN-QA-2026-08-31 v0.2 §Q2):
+    // 启动时跑增量 verify_recent(1000), 检测 audit_log 链是否被篡改.
+    // - 真实篡改 → fail-closed (process exit 1)
+    // - infra 失败 → warning + 继续 (不阻塞服务)
+    // - 链通过 → 静默 (info 级别)
+    match run_startup_verify(&*audit, 1000).await {
+        StartupVerifyOutcome::Verified(report) => {
+            tracing::info!(
+                target: "admin-service",
+                "audit_log startup verify PASS, checked={} entries",
+                report.checked
+            );
+        }
+        StartupVerifyOutcome::TamperDetected { report, reason } => {
+            tracing::error!(
+                target: "admin-service",
+                "audit_log startup verify FAILED (tamper detected): reason={reason}, broken_at_index={:?}, checked={}",
+                report.broken_at_index,
+                report.checked
+            );
+            // fail-closed: 真实篡改不进入服务态, 退出进程
+            std::process::exit(1);
+        }
+        StartupVerifyOutcome::InfraError { reason } => {
+            tracing::warn!(
+                target: "admin-service",
+                "audit_log startup verify infra error (will continue): {reason}"
+            );
+        }
+    }
 
     tracing::info!(target: "admin-service", "admin-service started, DB pool size: {}", pool.size());
 

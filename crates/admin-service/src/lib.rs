@@ -21,8 +21,9 @@ pub mod gm_handlers;
 
 pub use error::{Error, Result};
 pub use repository::{
-    AdminUserRepository, AuditLogRepository, InMemoryAdminUserRepository,
+    run_startup_verify, AdminUserRepository, AuditLogRepository, InMemoryAdminUserRepository,
     InMemoryAuditLogRepository, PgAdminUserRepository, PgAuditLogRepository,
+    StartupVerifyOutcome, VerifyReport,
 };
 
 pub mod proto;
