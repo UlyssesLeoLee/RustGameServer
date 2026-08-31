@@ -21,6 +21,7 @@ dependencies = [
  "chrono",
  "hex",
  "jsonwebtoken",
+ "proptest",
  "prost",
  "rgs-testkit",
  "serde",

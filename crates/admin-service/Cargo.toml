@@ -56,3 +56,5 @@ tonic-build = { workspace = true }
 assert_cmd = "2"
 # WF-1-55.44: 4 域 rgs-testkit dev-dep 接入 + 集成测试骨架 (per RGS-OPEN-QA-001 Q-M-02)
 rgs-testkit = { path = "../rgs-testkit" }
+# UT 子代理 (2026-08-31 v2 重派): 权限矩阵 / hash 链不变式 proptest
+proptest = "1"
