@@ -297,3 +297,151 @@ impl ReplayClientTrait for ReplayClient {
 // ============================================================================
 // Tests — 单元测试在 tests/ut_replay_client.rs (独立文件以避免污染主 lib)
 // ============================================================================
+
+#[cfg(test)]
+mod tests {
+    //! replay_client.rs 单元测试 (per UT-AGENT-BRIEFING-v3 Step 2)
+    //!
+    //! 覆盖:
+    //! - SaveReplayRequest / SaveReplayOutcome 字段构造与读取
+    //! - ReplayClientConfig::insecure / ReplayClientConfig::mtls 工厂方法
+    //! - MockReplayClient 实现 ReplayClientTrait 验证 saga 调用捕获
+    //!
+    //! 注: 不测真实 tonic Channel (需要网络), 用 mock trait 实现验证 saga 路径
+
+    use super::*;
+    use std::sync::Mutex;
+    use uuid::Uuid;
+
+    /// Mock ReplayClient — 捕获所有 save_replay 调用供 UT 验证
+    struct MockReplayClient {
+        calls: Mutex<Vec<SaveReplayRequest>>,
+        response: std::result::Result<SaveReplayOutcome, tonic::Status>,
+    }
+
+    impl MockReplayClient {
+        fn ok() -> Self {
+            Self {
+                calls: Mutex::new(Vec::new()),
+                response: Ok(SaveReplayOutcome {
+                    replay_id: Uuid::nil(),
+                    object_key: "obj/test".to_string(),
+                    object_size: 1024,
+                }),
+            }
+        }
+
+        fn err(status: tonic::Status) -> Self {
+            Self {
+                calls: Mutex::new(Vec::new()),
+                response: Err(status),
+            }
+        }
+
+        fn call_count(&self) -> usize {
+            self.calls.lock().unwrap().len()
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl ReplayClientTrait for MockReplayClient {
+        async fn save_replay(
+            &self,
+            req: SaveReplayRequest,
+        ) -> std::result::Result<SaveReplayOutcome, tonic::Status> {
+            self.calls.lock().unwrap().push(req);
+            match &self.response {
+                Ok(out) => Ok(out.clone()),
+                Err(s) => Err(s.clone()),
+            }
+        }
+    }
+
+    fn sample_request() -> SaveReplayRequest {
+        SaveReplayRequest {
+            match_id: Uuid::new_v4(),
+            player_a: "player-a".to_string(),
+            player_b: Some("player-b".to_string()),
+            mode: 1, // ranked
+            data: vec![1, 2, 3, 4],
+            duration_secs: 600,
+            custom_ttl_secs: 0,
+            saga_id: Some("saga-123".to_string()),
+        }
+    }
+
+    #[tokio::test]
+    async fn mock_replay_client_captures_request() {
+        // 验证 trait 抽象: mock 收到请求后回包, 调用方能拿到 outcome
+        let mock = MockReplayClient::ok();
+        let req = sample_request();
+        let outcome = mock.save_replay(req.clone()).await.expect("ok");
+        assert_eq!(outcome.object_key, "obj/test");
+        assert_eq!(outcome.object_size, 1024);
+        assert_eq!(mock.call_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn mock_replay_client_propagates_status_error() {
+        // 错误路径: tonic::Status 应原样上抛
+        let mock = MockReplayClient::err(tonic::Status::unavailable("svc down"));
+        let req = sample_request();
+        let result = mock.save_replay(req).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), tonic::Code::Unavailable);
+    }
+
+    #[test]
+    fn config_insecure_factory() {
+        // ReplayClientConfig::insecure 工厂 — dev only, tls=None
+        let c = ReplayClientConfig::insecure("http://localhost:50057");
+        assert_eq!(c.endpoint, "http://localhost:50057");
+        assert_eq!(c.timeout_ms, 2000);
+        assert!(c.tls.is_none());
+    }
+
+    #[test]
+    fn config_mtls_factory() {
+        // ReplayClientConfig::mtls 工厂 — 生产配置, tls 完整
+        let c = ReplayClientConfig::mtls(
+            "https://replay-service:50057",
+            "replay.rgs.local",
+            "/etc/certs/ca.pem",
+            "/etc/certs/client.pem",
+            "/etc/certs/client.key",
+        );
+        assert_eq!(c.endpoint, "https://replay-service:50057");
+        let tls = c.tls.expect("tls should be set");
+        assert_eq!(tls.domain, "replay.rgs.local");
+        assert_eq!(tls.ca_cert_path, "/etc/certs/ca.pem");
+        assert_eq!(tls.client_cert_path, "/etc/certs/client.pem");
+        assert_eq!(tls.client_key_path, "/etc/certs/client.key");
+    }
+
+    #[test]
+    fn save_replay_request_carries_all_fields() {
+        // SaveReplayRequest 字段透传 (per 业务 DTO 设计)
+        let req = sample_request();
+        assert!(req.player_b.is_some());
+        assert_eq!(req.duration_secs, 600);
+        assert_eq!(req.mode, 1);
+        assert!(req.saga_id.is_some());
+    }
+
+    #[test]
+    fn save_replay_request_optional_fields_default() {
+        // 单人 / PvE 场景: player_b=None, saga_id=None
+        let req = SaveReplayRequest {
+            match_id: Uuid::new_v4(),
+            player_a: "solo".to_string(),
+            player_b: None,
+            mode: 4, // pve_ai
+            data: vec![],
+            duration_secs: 0,
+            custom_ttl_secs: 3600,
+            saga_id: None,
+        };
+        assert!(req.player_b.is_none());
+        assert!(req.saga_id.is_none());
+    }
+}

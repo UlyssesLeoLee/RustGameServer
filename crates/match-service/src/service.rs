@@ -447,6 +447,204 @@ pub mod conv {
     }
 }
 
+#[cfg(test)]
+mod conv_tests {
+    //! service.rs::conv 单元测试 (per UT-AGENT-BRIEFING-v3 Step 2)
+    //!
+    //! 覆盖:
+    //! - game_mode 双向映射 (1-4 ↔ Ranked/Casual/Room/PveAi, 0/默认 → Unspecified)
+    //! - parse_uuid 错误路径
+    //! - player_from_proto / player_to_proto 字段透传
+    //! - move_type 双向映射 (1-5 ↔ PlayCard/Attack/EndTurn/Surrender/UseAbility)
+    //!
+    //! 注: 不依赖 DB / 网络, 纯 DTO 转换逻辑
+
+    use super::conv;
+    use crate::common::v1 as common_proto;
+    use crate::entity_v2::{Move, MoveType, SessionPlayer};
+    use crate::matchmaker_v2::TicketStatus;
+
+    // ==================== game_mode ====================
+
+    #[test]
+    fn game_mode_roundtrip_all_known_values() {
+        // 1-4 已知值: Ranked/Casual/Room/PveAi
+        assert_eq!(conv::game_mode_from_proto(1), crate::entity_v2::GameMode::Ranked);
+        assert_eq!(conv::game_mode_from_proto(2), crate::entity_v2::GameMode::Casual);
+        assert_eq!(conv::game_mode_from_proto(3), crate::entity_v2::GameMode::Room);
+        assert_eq!(conv::game_mode_from_proto(4), crate::entity_v2::GameMode::PveAi);
+        // 0 / 5+ → Unspecified
+        assert_eq!(conv::game_mode_from_proto(0), crate::entity_v2::GameMode::Unspecified);
+        assert_eq!(conv::game_mode_from_proto(99), crate::entity_v2::GameMode::Unspecified);
+    }
+
+    #[test]
+    fn game_mode_to_proto_is_identity_for_known() {
+        // 已知的 GameMode 转回 proto 数字 (枚举 discriminant 稳定)
+        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Ranked), 1);
+        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Casual), 2);
+        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Room), 3);
+        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::PveAi), 4);
+    }
+
+    // ==================== parse_uuid ====================
+
+    #[test]
+    fn parse_uuid_valid_and_invalid() {
+        // 有效 UUID 字符串
+        let u = conv::parse_uuid("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        assert_eq!(
+            u.to_string(),
+            "550e8400-e29b-41d4-a716-446655440000"
+        );
+        // 无效 → Validation 错
+        let err = conv::parse_uuid("not-a-uuid").unwrap_err();
+        match err {
+            crate::Error::Validation(msg) => assert!(msg.contains("invalid uuid")),
+            _ => panic!("expected Validation, got {:?}", err),
+        }
+    }
+
+    // ==================== player_from_proto / player_to_proto ====================
+
+    #[test]
+    fn player_proto_roundtrip_preserves_fields() {
+        let proto = common_proto::PlayerId {
+            player_id: Some(common_proto::EntityId {
+                id: "pid-001".to_string(),
+            }),
+            display_name: "alice".to_string(),
+            rank_score: 1500,
+            level: 25,
+        };
+        let sp = conv::player_from_proto(&proto);
+        assert_eq!(sp.player_id, "pid-001");
+        assert_eq!(sp.display_name, "alice");
+        assert_eq!(sp.rank_score, 1500);
+        assert_eq!(sp.level, 25);
+
+        let back = conv::player_to_proto(&sp);
+        assert_eq!(back.player_id.unwrap().id, "pid-001");
+        assert_eq!(back.display_name, "alice");
+        assert_eq!(back.rank_score, 1500);
+        assert_eq!(back.level, 25);
+    }
+
+    #[test]
+    fn player_from_proto_handles_missing_entity_id() {
+        // player_id 字段为 None → 空字符串
+        let proto = common_proto::PlayerId {
+            player_id: None,
+            display_name: "bob".to_string(),
+            rank_score: 0,
+            level: 0,
+        };
+        let sp = conv::player_from_proto(&proto);
+        assert_eq!(sp.player_id, "");
+        assert_eq!(sp.display_name, "bob");
+    }
+
+    // ==================== move_type ====================
+
+    #[test]
+    fn move_type_roundtrip_all_known_values() {
+        // move_from_proto: 1-5 → 5 种 MoveType
+        for (i, expected) in &[
+            (1i32, MoveType::PlayCard),
+            (2, MoveType::Attack),
+            (3, MoveType::EndTurn),
+            (4, MoveType::Surrender),
+            (5, MoveType::UseAbility),
+        ] {
+            let proto = crate::proto::v1::Move {
+                move_id: String::new(),
+                player: Some(common_proto::PlayerId {
+                    player_id: Some(common_proto::EntityId { id: "p".to_string() }),
+                    display_name: String::new(),
+                    rank_score: 0,
+                    level: 0,
+                }),
+                r#type: *i,
+                payload_json: String::new(),
+                occurred_at_ms: 0,
+                result_json: String::new(),
+                accepted: false,
+            };
+            let m = conv::move_from_proto(uuid::Uuid::new_v4(), 1, &proto);
+            assert_eq!(&m.move_type, expected, "type {} → expected {:?}", i, expected);
+
+            // 反向: move_to_proto
+            let back = conv::move_to_proto(&m);
+            assert_eq!(back.r#type, *i, "roundtrip: type {} → {}", i, back.r#type);
+        }
+        // 0 / 6+ → Unspecified
+        let proto_unspec = crate::proto::v1::Move {
+            move_id: String::new(),
+            player: Some(common_proto::PlayerId {
+                player_id: Some(common_proto::EntityId { id: "p".to_string() }),
+                display_name: String::new(),
+                rank_score: 0,
+                level: 0,
+            }),
+            r#type: 0,
+            payload_json: String::new(),
+            occurred_at_ms: 0,
+            result_json: String::new(),
+            accepted: false,
+        };
+        let m = conv::move_from_proto(uuid::Uuid::new_v4(), 1, &proto_unspec);
+        assert_eq!(m.move_type, MoveType::Unspecified);
+    }
+
+    // ==================== ticket_status_to_proto ====================
+
+    #[test]
+    fn ticket_status_to_proto_mapping() {
+        // per service.rs::conv::ticket_status_to_proto 定义
+        assert_eq!(conv::ticket_status_to_proto(TicketStatus::Queued), 1);
+        assert_eq!(conv::ticket_status_to_proto(TicketStatus::Matched), 2);
+        assert_eq!(conv::ticket_status_to_proto(TicketStatus::Cancelled), 3);
+        assert_eq!(conv::ticket_status_to_proto(TicketStatus::Expired), 4);
+    }
+
+    #[test]
+    fn move_to_proto_propagates_optional_result_json() {
+        // result_json None → 空字符串 (per proto3 默认)
+        let m = Move {
+            move_id: uuid::Uuid::nil(),
+            match_id: uuid::Uuid::nil(),
+            player_id: "p".to_string(),
+            turn_index: 0,
+            move_type: MoveType::PlayCard,
+            payload_json: String::new(),
+            occurred_at: chrono::Utc::now(),
+            result_json: None,
+            accepted: false,
+            reject_reason: None,
+        };
+        let back = conv::move_to_proto(&m);
+        assert_eq!(back.result_json, "");
+
+        // result_json Some(s) → 原样透传
+        let mut m2 = m.clone();
+        m2.result_json = Some("ok".to_string());
+        let back2 = conv::move_to_proto(&m2);
+        assert_eq!(back2.result_json, "ok");
+    }
+
+    // ==================== session_player 构造 (per 业务) ====================
+
+    #[test]
+    fn session_player_builder_chain() {
+        // SessionPlayer::new + with_rank 链式构造 (per entity_v2)
+        let sp = SessionPlayer::new("pid-1".to_string(), "alice".to_string()).with_rank(2000, 30);
+        assert_eq!(sp.player_id, "pid-1");
+        assert_eq!(sp.display_name, "alice");
+        assert_eq!(sp.rank_score, 2000);
+        assert_eq!(sp.level, 30);
+    }
+}
+
 pub mod grpc_service {
     use super::*;
     use crate::common::v1 as common_proto;

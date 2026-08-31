@@ -2595,6 +2595,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "criterion",
+ "proptest",
  "prost",
  "replay-service",
  "rgs-testkit",

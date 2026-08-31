@@ -161,6 +161,7 @@ impl MatchParticipant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn match_lifecycle() {
@@ -191,5 +192,82 @@ mod tests {
         };
         // deaths=0 → returns kills+assists = 15
         assert_eq!(p.kda_ratio(), 15.0);
+    }
+
+    // ==================== proptest 块 (per UT-AGENT-BRIEFING-v3 DoD ≥1 个) ====================
+    // 不变式: 任意非负 kills/assists/deaths 参与者的 KDA 比率 ≥ 0, 且 deaths=0 时 = kills+assists
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        #[test]
+        fn kda_ratio_is_non_negative(
+            kills in 0u32..1000,
+            assists in 0u32..1000,
+            deaths in 0u32..1000,
+        ) {
+            let p = MatchParticipant {
+                id: Uuid::new_v4(),
+                match_id: Uuid::new_v4(),
+                player_id: Uuid::new_v4(),
+                team: Team::Blue,
+                score: 0,
+                kills: kills as i32,
+                deaths: deaths as i32,
+                assists: assists as i32,
+                is_mvp: false,
+                joined_at: Utc::now(),
+            };
+            let ratio = p.kda_ratio();
+            prop_assert!(ratio >= 0.0, "kda={} 应非负 (k={}, a={}, d={})", ratio, kills, assists, deaths);
+        }
+
+        #[test]
+        fn kda_ratio_when_zero_deaths_eq_kills_plus_assists(
+            kills in 0u32..500,
+            assists in 0u32..500,
+        ) {
+            let p = MatchParticipant {
+                id: Uuid::new_v4(),
+                match_id: Uuid::new_v4(),
+                player_id: Uuid::new_v4(),
+                team: Team::Red,
+                score: 0,
+                kills: kills as i32,
+                deaths: 0,
+                assists: assists as i32,
+                is_mvp: false,
+                joined_at: Utc::now(),
+            };
+            let expected = (kills + assists) as f64;
+            prop_assert_eq!(p.kda_ratio(), expected);
+        }
+
+        #[test]
+        fn match_json_roundtrip_preserves_mode_and_status(
+            mode_idx in 0usize..4,
+            status_idx in 0usize..4,
+        ) {
+            let modes = [MatchMode::OneVsOne, MatchMode::TwoVsTwo, MatchMode::FiveVsFive, MatchMode::BattleRoyale];
+            let statuses = [MatchStatus::Waiting, MatchStatus::InProgress, MatchStatus::Finished, MatchStatus::Cancelled];
+            let m = Match {
+                id: Uuid::new_v4(),
+                room_id: "room-rt".to_string(),
+                mode: modes[mode_idx],
+                status: statuses[status_idx],
+                winner_team: None,
+                scheduled_at: Utc::now(),
+                started_at: None,
+                ended_at: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            let json = serde_json::to_string(&m).expect("serialize");
+            let back: Match = serde_json::from_str(&json).expect("deserialize");
+            prop_assert_eq!(back.mode, m.mode);
+            prop_assert_eq!(back.status, m.status);
+            prop_assert_eq!(back.room_id, m.room_id);
+            prop_assert_eq!(back.id, m.id);
+        }
     }
 }
