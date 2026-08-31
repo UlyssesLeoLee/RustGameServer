@@ -238,3 +238,123 @@ mod tests {
         );
     }
 }
+
+// ============================================================================
+// UT 子代理 (2026-08-31 v2): 权限矩阵 proptest
+// 覆盖 AdminRole × domain 组合 + hash 链长度不变式
+// ============================================================================
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// 权限矩阵 (per ARC-051 COC RBAC): SuperAdmin 全域 ✓;
+    /// DomainAdmin 仅匹配其 domain_scope; Auditor / Support 一律 false。
+    /// proptest 跑 256 组随机 (role, domain, scope) 组合确保模型正确。
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+
+        #[test]
+        fn super_admin_can_admin_any_domain(
+            domain in "[a-z]{1,16}"
+        ) {
+            let u = AdminUser::new(
+                "root".to_string(),
+                "h".to_string(),
+                AdminRole::SuperAdmin,
+            );
+            prop_assert!(u.can_admin_domain(&domain));
+        }
+
+        #[test]
+        fn auditor_never_can_admin(
+            domain in "[a-z]{1,16}"
+        ) {
+            let u = AdminUser::new(
+                "a".to_string(),
+                "h".to_string(),
+                AdminRole::Auditor,
+            );
+            prop_assert!(!u.can_admin_domain(&domain));
+        }
+
+        #[test]
+        fn support_never_can_admin(
+            domain in "[a-z]{1,16}"
+        ) {
+            let u = AdminUser::new(
+                "s".to_string(),
+                "h".to_string(),
+                AdminRole::Support,
+            );
+            prop_assert!(!u.can_admin_domain(&domain));
+        }
+
+        #[test]
+        fn domain_admin_matches_only_its_scope(
+            scope in "[a-z]{1,8}",
+            target in "[a-z]{1,8}"
+        ) {
+            let mut u = AdminUser::new(
+                "da".to_string(),
+                "h".to_string(),
+                AdminRole::DomainAdmin,
+            );
+            u.domain_scope = Some(scope.clone());
+            let expected = scope == target;
+            prop_assert_eq!(
+                u.can_admin_domain(&target),
+                expected,
+                "scope={} target={} expected={}",
+                scope, target, expected
+            );
+        }
+
+        #[test]
+        fn domain_admin_without_scope_denies_all(
+            target in "[a-z]{1,8}"
+        ) {
+            let u = AdminUser::new(
+                "da".to_string(),
+                "h".to_string(),
+                AdminRole::DomainAdmin,
+            );
+            // domain_scope = None → 永远 false
+            prop_assert!(!u.can_admin_domain(&target));
+        }
+
+        /// 55.13 AC5 不变式: hash 长度永远是 64 hex (SHA-256)。
+        #[test]
+        fn hash_length_invariant(
+            action in "[a-z.]{1,32}",
+            target in "[a-z0-9-]{1,32}",
+            payload in ".{0,64}",
+        ) {
+            let actor = Uuid::nil();
+            let ts = chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+            let h = compute_hash(
+                actor, &action, &target, &payload,
+                "0".repeat(64).as_str(), ts,
+            );
+            prop_assert_eq!(h.len(), 64, "hash 应为 64 hex 字符");
+            prop_assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
+        }
+
+        /// 55.13 不变式: prev_hash 变化 → 当前 hash 也变 (无前缀缓存).
+        #[test]
+        fn prev_hash_changes_propagate(
+            action in "[a-z.]{1,8}",
+            target in "[a-z0-9-]{1,8}",
+            prev_a in "[0-9a-f]{64}",
+            prev_b in "[0-9a-f]{64}",
+        ) {
+            prop_assume!(prev_a != prev_b);
+            let actor = Uuid::nil();
+            let ts = chrono::DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+            let h1 = compute_hash(actor, &action, &target, "p", &prev_a, ts);
+            let h2 = compute_hash(actor, &action, &target, "p", &prev_b, ts);
+            prop_assert_ne!(h1, h2);
+        }
+    }
+}

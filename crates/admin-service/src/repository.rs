@@ -446,4 +446,164 @@ mod tests {
         let latest = repo.latest().await.unwrap().unwrap();
         assert_eq!(latest.action, "a2");
     }
+
+    // ========================================================================
+    // UT 子代理 (2026-08-31 v2): repository 行为不变式
+    // ========================================================================
+
+    /// InMemoryAdminUserRepository::list_active 仅返未停用用户
+    #[tokio::test]
+    async fn in_memory_list_active_excludes_disabled() {
+        let repo = InMemoryAdminUserRepository::new();
+        let mut u_active = AdminUser::new(
+            "a".to_string(),
+            "h".to_string(),
+            AdminRole::SuperAdmin,
+        );
+        let mut u_disabled = AdminUser::new(
+            "d".to_string(),
+            "h".to_string(),
+            AdminRole::DomainAdmin,
+        );
+        u_disabled.disabled_at = Some(Utc::now());
+        let _ = u_active;
+        repo.save(&u_active).await.unwrap();
+        repo.save(&u_disabled).await.unwrap();
+        let active = repo.list_active().await.unwrap();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].username, "a");
+        assert!(active[0].is_active());
+    }
+
+    /// InMemoryAdminUserRepository::disable 对不存在的 id 返 false
+    #[tokio::test]
+    async fn in_memory_disable_unknown_id_returns_false() {
+        let repo = InMemoryAdminUserRepository::new();
+        let ok = repo.disable(Uuid::new_v4(), Utc::now()).await.unwrap();
+        assert!(!ok);
+    }
+
+    /// InMemoryAuditLogRepository::list_by_actor 仅返匹配 actor_id
+    /// 的条目, 且按 created_at DESC 排序, limit 生效.
+    #[tokio::test]
+    async fn in_memory_list_by_actor_filters_and_sorts() {
+        let repo = InMemoryAuditLogRepository::new();
+        let actor_a = Uuid::new_v4();
+        let actor_b = Uuid::new_v4();
+        // actor_a 写 3 条
+        for i in 0..3 {
+            let e = AuditLogEntry::new(
+                actor_a,
+                format!("a{i}"),
+                format!("t{i}"),
+                "p".to_string(),
+                "0".repeat(64),
+            );
+            repo.append(&e).await.unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        // actor_b 写 1 条
+        let e = AuditLogEntry::new(
+            actor_b,
+            "b0".to_string(),
+            "tb".to_string(),
+            "p".to_string(),
+            "0".repeat(64),
+        );
+        repo.append(&e).await.unwrap();
+
+        let list = repo.list_by_actor(actor_a, 10).await.unwrap();
+        assert_eq!(list.len(), 3, "应仅返 actor_a 的 3 条");
+        for entry in &list {
+            assert_eq!(entry.actor_id, actor_a);
+        }
+        // 按 created_at DESC: list[0] 应是最后写的 (a2)
+        assert_eq!(list[0].action, "a2");
+        assert_eq!(list[1].action, "a1");
+        assert_eq!(list[2].action, "a0");
+
+        // limit=2 仅取前 2 条
+        let limited = repo.list_by_actor(actor_a, 2).await.unwrap();
+        assert_eq!(limited.len(), 2);
+    }
+
+    /// InMemoryAuditLogRepository::find_by_id 返 None for 不存在 id
+    #[tokio::test]
+    async fn in_memory_audit_find_by_id_unknown_returns_none() {
+        let repo = InMemoryAuditLogRepository::new();
+        let result = repo.find_by_id(Uuid::new_v4()).await.unwrap();
+        assert!(result.is_none());
+    }
+}
+
+// ============================================================================
+// UT 子代理 (2026-08-31 v2): repository 容量 / 一致性 proptest
+// ============================================================================
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        /// InMemoryAdminUserRepository: 任意 (username, role) 组合 save 后
+        /// find_by_username 必能找到且 username 完全相等 (大小写敏感).
+        #[test]
+        fn username_lookup_exact_match(
+            username in "[a-z]{1,12}",
+        ) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let repo = InMemoryAdminUserRepository::new();
+                let u = AdminUser::new(
+                    username.clone(),
+                    "h".to_string(),
+                    AdminRole::SuperAdmin,
+                );
+                repo.save(&u).await.unwrap();
+                let found = repo.find_by_username(&username).await.unwrap();
+                prop_assert!(found.is_some());
+                let found = found.unwrap();
+                prop_assert_eq!(found.username.as_str(), username.as_str());
+                prop_assert_eq!(found.id, u.id);
+            });
+        }
+
+        /// 任意 N 条 audit_log 追加后, latest() 必返 created_at 最大者.
+        #[test]
+        fn latest_returns_max_created_at(n in 1usize..15) {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let repo = InMemoryAuditLogRepository::new();
+                let actor = Uuid::new_v4();
+                let mut all = Vec::with_capacity(n);
+                for i in 0..n {
+                    let e = AuditLogEntry::new(
+                        actor,
+                        format!("a.{i}"),
+                        format!("t.{i}"),
+                        "p".to_string(),
+                        "0".repeat(64),
+                    );
+                    repo.append(&e).await.unwrap();
+                    all.push(e);
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+                let latest = repo.latest().await.unwrap();
+                prop_assert!(latest.is_some());
+                let latest = latest.unwrap();
+                // latest 应是 all 中 created_at 最大的, action 形如 "a.{n-1}"
+                let max_action = format!("a.{}", n - 1);
+                prop_assert_eq!(latest.action.as_str(), max_action.as_str());
+            });
+        }
+    }
 }
