@@ -46,3 +46,5 @@ tonic-build = { workspace = true }
 tokio = { workspace = true, features = ["full", "test-util"] }
 # IT 用到 InMemory 互不共享 repo, 显式拉 uuid
 uuid = { workspace = true }
+# proptest (per 9/1 PT-WORKER 派工: leaderboard 排序 invariant)
+proptest = "1"
