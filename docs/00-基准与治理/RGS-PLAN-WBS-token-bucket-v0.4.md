@@ -147,6 +147,16 @@
 
 **12 GAP 估时合计**: ~24 人·天 (跨 4 周, 跟 9/1-10/13 6 周节奏)
 
+### 4.1 PH-3 评审启动源 (v0.4.9 hotfix 新增, 2026-09-02 10:14 JST)
+
+4 DRAFT partitioned SQL (`c2acf02` commit) 实施后进入 PH-3 评审窗口, 评审启动材料:
+- **文档**: `docs/00-基准与治理/RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md` v0.1.1
+- **启动 commit**: `999ff5d` (v0.1) + `24ce59c` (v0.1.1 §1.1 已签方背景)
+- **评审方**: 5 域 Lead (admin/economy × 2/match) 已派工签字 (per RACI v0.2 §3 + 6 worktree 跑通 9/1-9/2 23:57 JST) + SRE + DBA (2 角色待 Phase C 介入 / 评审启动待指派)
+- **评审流程**: 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 (per v0.1 §2-§4)
+- **PH-3 实施前置条件**: 5 项 (per v0.1 §5: DRAFT→v1.0 commit + sqlx prepare + k3s ulyssespc 恢复 + 5 域 mTLS 部署 + 监控告警阈值确认)
+- **派生约束**: L12 临时文件不入 commit + L13 自指字段全 deferred 实时查询 (per STATUS-SNAPSHOT v0.6.23 §0 终极守护)
+
 ## 5. 解除 blocked 决策 (per 2026-09-02 02:20 JST)
 
 **原 blocked 原因 (per 2026-09-02 00:42 JST)**:
@@ -198,6 +208,7 @@
 | **v0.4.6** | **2026-09-02 09:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 / §1.1 ahead 行 / §6 维护表 3 处 "88 commit" 数字替换为实时 git 实证查询表达式 `git rev-list --count 84edf26..main` — 跟 STATUS-SNAPSHOT v0.6.4 ~ v0.6.8 同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.4.7** | **2026-09-02 09:12** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 E3 W2-W6 每行 commit 字段补全 — 之前写 "1e3d528 系" / "5568a68 系" 简略, 现在展开成 9 + 9 + 8 + 6 + 7 = 39 commit + 4 hotfix = 43 commit 全 commit hash 关联 (从 STATUS-SNAPSHOT v0.6.9 §2 复制), 让 verifier / 后续会话能直接拉 commit 链 — 跟 §2 权威索引同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.4.8** | **2026-09-02 09:32** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 主表新增 E3 W2-W6 汇总行 (37/40 L4 任务 + 4 hotfix = 43 commit, 详见 §1.1) — 修复 §1 主表 vs §1.1 子表不一致 (主表只列 E1/E2/E3 W1 6 任务, W2-W6 在 §1.1 独立, verifier 看 §1 会漏 W2-W6 落地状态), 用汇总行代替逐行 39 commit 避免重复 + 指针到 §1.1 全 commit 索引, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.4.9** | **2026-09-02 10:14** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §4.1 新增 "PH-3 评审启动源" 段 — 4 DRAFT partitioned SQL (c2acf02) + 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 (commit 999ff5d + 24ce59c), 5 域 Lead 已派工签字 + SRE + DBA 待 Phase C 介入 / 评审启动, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 + 5 项实施前置条件, L12 + L13 派生约束守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
