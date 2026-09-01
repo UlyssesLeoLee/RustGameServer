@@ -18,6 +18,8 @@ pub mod repository;
 pub mod service;
 // S4 Phase 2 step 2: 4 GM RPC handler (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog)
 pub mod gm_handlers;
+// WBS v0.2 桶 8 B8 (2026-09-01): LCM step execution 拍板, 归 Work 表 (per BAS-001 v0.2 §6.6.2)
+pub mod lcm;
 
 pub use error::{Error, Result};
 pub use repository::{
