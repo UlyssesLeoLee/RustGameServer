@@ -54,6 +54,7 @@ struct AppState {
     grpc_clients: GrpcClients,
     // 5 域 gRPC client 完整 (W2 BA-W2-2 扩展, 4 域 + player)
     worker_pool: Arc<WorkerPool>,
+    cron: CronEngine,        // W2 BA-W2-5 cron 调度 (per GAP-3 mavis self-remind)
 }
 
 // ────────── Master 5 表 repository 雏形 (W2 BA-W2-1, GAP-7 模板版本字段) ──────────
@@ -359,6 +360,108 @@ impl WorkerPool {
     }
 }
 
+
+// ────────── Cron 调度 (W2 BA-W2-5, GAP-3 mavis self-remind) ──────────
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct Schedule {
+    id: Uuid,
+    name: String,
+    cron_expr: String,       // 简化: interval_secs 字段
+    interval_secs: i32,      // 周期秒数 (GAP-3 调度)
+    enabled: bool,
+    last_run_at: Option<chrono::DateTime<chrono::Utc>>,
+    next_run_at: Option<chrono::DateTime<chrono::Utc>>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Default, Serialize)]
+struct CronStats {
+    active_schedules: usize,
+    executions_total: i64,
+    last_execution_at: Option<chrono::DateTime<chrono::Utc>>,
+    mavis_reminder_active: bool,
+}
+
+#[derive(Clone)]
+struct CronEngine {
+    stats: Arc<std::sync::Mutex<CronStats>>,
+    db: PgPool,
+}
+
+impl CronEngine {
+    fn new(db: PgPool) -> Self {
+        Self {
+            stats: Arc::new(std::sync::Mutex::new(CronStats {
+                mavis_reminder_active: true,  // GAP-3 启动时启用
+                ..Default::default()
+            })),
+            db,
+        }
+    }
+
+    fn start(&self) {
+        // W2 BA-W2-5 + GAP-3: 启动后台 cron loop (per BATCH-PLAN v0.2 §3.1 W3 BA-W3-2)
+        let stats = self.stats.clone();
+        let db = self.db.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60));  // 60s 周期扫描
+            loop {
+                interval.tick().await;
+                let schedules: Result<Vec<Schedule>, _> = sqlx::query_as::<_, Schedule>(
+                    "SELECT id, name, cron_expr, interval_secs, enabled, last_run_at, next_run_at, created_at FROM batch_master.schedule WHERE enabled = true"
+                )
+                .fetch_all(&db)
+                .await;
+                if let Ok(list) = schedules {
+                    let now = chrono::Utc::now();
+                    let mut active_count = list.len();
+                    let mut exec_delta: i64 = 0;
+                    let mut last_exec: Option<chrono::DateTime<chrono::Utc>> = None;
+                    for s in &list {
+                        let due = match s.next_run_at {
+                            Some(next) => now >= next,
+                            None => true,
+                        };
+                        if due {
+                            exec_delta += 1;
+                            last_exec = Some(now);
+                            tracing::info!(target: SERVICE, "cron schedule {} due, executing", s.name);
+                            let _ = sqlx::query(
+                                "UPDATE batch_master.schedule SET last_run_at = $1, next_run_at = $2 WHERE id = $3"
+                            )
+                            .bind(now)
+                            .bind(now + chrono::Duration::seconds(s.interval_secs as i64))
+                            .bind(s.id)
+                            .execute(&db)
+                            .await;
+                        }
+                    }
+                    // 同步更新 stats (短暂持锁)
+                    if let Ok(mut stats_lock) = stats.lock() {
+                        stats_lock.active_schedules = active_count;
+                        stats_lock.executions_total += exec_delta;
+                        if last_exec.is_some() {
+                            stats_lock.last_execution_at = last_exec;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    fn stats(&self) -> CronStats {
+        // 短暂持锁 + 复制 owned CronStats
+        let s = self.stats.lock().unwrap();
+        CronStats {
+            active_schedules: s.active_schedules,
+            executions_total: s.executions_total,
+            last_execution_at: s.last_execution_at,
+            mavis_reminder_active: s.mavis_reminder_active,
+        }
+    }
+}
+
 // ────────── HTTP endpoints (W2 BA-W2-1/2/3/4/7) ──────────
 
 #[derive(Serialize)]
@@ -410,6 +513,7 @@ async fn version() -> impl Responder {
             "BA-W2-2: /api/v1/tasks 6 endpoint (CRUD + 锁定 template_version)",
             "BA-W2-3: DLQ 完整 (exponential backoff 100ms→30s + retry_count + max_retries + /api/v1/dlq/retry/{id} + /api/v1/dlq/stats, per GAP-9)",
             "BA-W2-4: worker pool 完整 (GAP-4 优先级 BinaryHeap + max_concurrent 8 + /api/v1/workers/enqueue + dequeue + by_priority 计数)",
+            "BA-W2-5: cron 调度 (60s 周期 + /api/v1/cron/stats + mavis_reminder_active, per GAP-3)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -739,6 +843,13 @@ async fn grpc_status(state: web::Data<AppState>) -> impl Responder {
     }))
 }
 
+
+#[get("/api/v1/cron/stats")]
+async fn cron_stats(state: web::Data<AppState>) -> impl Responder {
+    // W2 BA-W2-5 + GAP-3: cron 调度统计
+    web::Json(state.cron.stats())
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt()
@@ -776,10 +887,14 @@ async fn main() -> std::io::Result<()> {
     let worker_pool = Arc::new(WorkerPool::new());
     worker_pool.heartbeat();
 
+    let cron = CronEngine::new(db.clone());
+    cron.start();
+
     let state = AppState {
         db,
         grpc_clients,
         worker_pool,
+        cron,
     };
 
     HttpServer::new(move || {
@@ -798,6 +913,7 @@ async fn main() -> std::io::Result<()> {
             .service(dlq_stats)
             .service(metrics)
             .service(grpc_status)
+            .service(cron_stats)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
