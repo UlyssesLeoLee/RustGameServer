@@ -9,10 +9,10 @@
 
 | 维度 | 数据 |
 |---|---|
-| main HEAD | (实时, 查 `git rev-parse main`, v0.6.10 时为 `ee3e81d`; 后续 hotfix 同步更新此行 或以 §7 修订历史最新行为准) |
+| main HEAD | (实时, 查 `git rev-parse main` — 后续 hotfix 不用同步更新此行, 实时查询即最新) |
 | main HEAD (短) | (实时, 查 `git rev-parse --short main`) |
-| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.10 时 100) |
-| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.10 时 152) |
+| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`) |
+| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`) |
 | working tree | untracked 5 项 (DRAFT 状态待评审) + git stash 3 个 (上游 AI 残留, 待决策) — 详见 §0.1 |
 
 ### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:40 JST, v0.6.7 hotfix 修 — 各小节自指时间戳请以 §7 修订历史最新版为准)
@@ -289,6 +289,7 @@
 | **v0.6.20** | **2026-09-02 09:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §5.1 Phase C 阻塞段补 "Phase C 落地后解锁的下游依赖" 表 (5 行, 跨 WBS v0.4.7 §1.1 3 项外部依赖 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件 + L1 cargo test 限时) — SRE 介入时一目了然, 不用回 WBS/CHECKLIST/AGENTS.md 多文件查, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.21** | **2026-09-02 10:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 12 commit → 18 commit (补 v0.6.14/12/16/17 + 999ff5d DB-CHECKLIST v0.1 + v0.6.18) + §2 commit 链总合计 54 → 60 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.22** | **2026-09-02 10:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 18 commit → 19 commit (补 24ce59c RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 §1.1 已签方背景), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.23** | **2026-09-02 10:11** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表 4 行 "v0.6.10 时" 自指版本号指针全部删除 (per L13 自指字段全 deferred 实时查询终极守护) — §0 表全部用实时 git 实证查询表达式 (`git rev-parse main` / `git rev-list --count 84edf26..main` / `git rev-list --count origin/main..main`), 后续 hotfix 不用再回头改 §0 自指字段, 收敛点 v0.6.11 + v0.6.23 双重守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
