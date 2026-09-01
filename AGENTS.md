@@ -233,6 +233,12 @@
 
 #### L12: PT 派工临时 log 不入 commit 防御
 
+#### L14 | plumbing 节点字符串处理: 含多 newline 时需 substring 提取 + brace 跟踪,不能简单 indexOf + 1 | 9/2 W2 BA-W2-3/5/6 patch 经验 |
+- 例: Patch A 替换 push_dlq body 时 marker 含 `}\n    }\n}\n#[get...` 4 边界,简单 `indexOf('}') + 1` 找到第 1 个 `}` (字符串里) 而非函数关闭
+- 修法: brace 跟踪 + 字符串内跳过 (if (!inString) { if (ch === '{}') braceCount++ })
+- 配套: 新字符串构造用 byte-level 拼接避免 PowerShell 转义解释问题
+- 配套: 用 git cat-file -p <commit>:<path> 拿 raw buffer, 而非 git show 字符串
+
 - **教训**: 8 worker 在 worktree 根写 .log / .txt 临时文件 (cargo-check.log / commit-msg.log / COMMIT_MSG_TMP.txt / .tmp_search_backup), 未跟踪但污染 worktree
 - **强约束**: **PT 派工简报** 必须明文 "临时 log / .txt / .tmp_search* 不入 commit, 主会话 merge 后清理", 避免 8 worktree 7 个临时文件残留
 - **依据**: 9/1 14:15-15:10 JST 8 worker 临时文件: shared-platform 1 / cluster-ops 1 / rgs-testkit 2 / leaderboard-overflow-asset 5, 都没入 commit, 但 7 worktree 根污染
