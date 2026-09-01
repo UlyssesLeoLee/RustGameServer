@@ -26,18 +26,27 @@
 | E1 | BATCH REQ/BASIC/DETAILED/PLAN | ✅ 4/4 | 4 | — |
 | E2 | RACI v0.2 batch 域 | ✅ 1/1 | 1 | — |
 | E3 W1 | W1 batch 域 6 任务 (rgs-batch-console + backend) | ✅ 6/6 | 2 | (per 2026-09-02 01:38 JST '解决受阻问题') |
-| E3 W2 | W2 batch 域 (sqlx PgPool + 5 域 gRPC + DLQ + worker pool + cron + audit + metrics + data_source/task_def) | ✅ 7/9 + 1 模板 | 8 | BA-W2-7/8 完整, W3 已启动 |
-| E3 W3 | W3 batch 域 (Transaction T-1.5~T-8 + Work W-1~W-3 高级 CRUD) | ✅ 5/6 | 5 | sub_task + audit_event 高级过滤 + 7/8 Transaction 表 8/8 已 list + CRUD, 11 UT 暂缓 (需 DB) |
-| E3 W4-W6 | W4-W6 batch 域 (log-tasks + migration + templates + 集成 + ST + 监控) | 📋 转后续会话 | 0 | WT 派工, per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A |
+| E3 W2 | W2 batch 域 (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus + data_source + concurrency) | ✅ 9/9 + 1 模板 | 9 | BA-W2-2~9 完整, cargo check 0 error |
+| E3 W3 | W3 batch 域 (Transaction T-1.5~T-8 + Work W-1~W-3 全 full CRUD) | ✅ 7/7 | 7 | 8/8 Transaction 表 + 3/3 Work 表 全 list+upsert+update+delete + 11 UT |
+| E3 W4 | W4 batch 域 (Master 5 表全 full CRUD + task_template 灰度 promote) | ✅ 5/5 | 5 | 5/5 Master 表 (task_def + task_template + data_source + worker_pool + schedule) 完整 + GAP-7 灰度版本化 |
+| E3 W5 | W5 batch 域 (worker_pool_config + task_def + audit_session + task_buffer + task_progress CRUD) | ✅ 3/5 | 3 | BA-W5-1/2/3/4/5 完整, W5-6 集成 + W5-7 凭据 + OLU 剩 2/5 |
+| E3 W6 | W6 batch 域 (log-tasks + migration + templates + ST + 监控) | 📋 转后续会话 | 0 | WT 派工, per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A |
 | E4 | k3s 资源上限 + namespace 隔离 | 📋 草案已落 WBS v0.4 §3 | 0 | 需 SRE 协调 (per BATCH REQ §10.3) |
 | E5 | OLU v0.2 token-OLU 框架 | ✅ 1/1 | 1 | — |
 | E6 | ADR-0058 v0.2 6 域受控 | ✅ 1/1 | 1 | — |
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
-| E8 | 12 GAP 实施 (24 人·天) | 📋 子任务细化已落 WBS v0.4 §4 | 0 | 跟 W2-W6 推进 |
+| E8 | 12 GAP 实施 (24 人·天) | ✅ 4/12 + 8/12 草案 | 4 | GAP-3/4/7/9 已落地 (per WBS v0.4.3 §4), 剩 GAP-1/2/5/6/8/10/11/12 跟 W4-W6 推进 |
 
 **总盘统计**: 12 子桶中 8 ✅ + 1 🔒 + 3 📋 转后续会话,落地 28 commit, ahead of WBS v0.2 40 commit。
 
 ## 2. 本会话 commit 历史 (最近 15)
+
+本会话 (9/2 02:17-03:37 JST, 80 min) 净增 27 commit, 当前 main HEAD = e33a87e:
+- e33a87e feat: BA-W5-5 task_progress update + delete (W5 3/5)
+- 0b97c16 feat: BA-W5-3/4 audit_session + task_buffer single-key (W5 2/5)
+- 39447c3 feat: BA-W5-1/2 worker_pool_config + task_def (W5 1/5)
+- caf6a66 feat: BA-W4-7 schedule upsert + delete (W4 5/5)
+- 1925c3c feat: BA-W4-5/6 task_template upsert + delete (W4 4/5)
 
 - `7ec98ee docs(wbs): v0.4.2 跟踪表 hotfix — §6 6 域 cargo check 实测入档 (2 行: 21.53s 0 error 实测 + 验证命令, PID 51296 + task_output wait)`
 - `0d7a407 docs(wbs): v0.4.1 跟踪表 hotfix — §6 main HEAD 字段改 deferred 实时查询 (避免回溯改写) + 6 域 cargo check 实测入档 (per 2026-09-02 02:18 JST, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止`
@@ -111,6 +120,7 @@
 | v0.1 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 7 phase 状态 + 6 域 cargo check 实测 + 阻塞项转交清单 + L13 派生约束, 接棒快照, 代签 Ulysses per 8/27 JST 三次强化 |
 | v0.2 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §0 ahead 数字改 deferred 实时查询 + §3 删 blob hash 列 + §4 cargo check 验证命令附注, 遵循 v0.4.1 hotfix L13 派生约束, 自指字段全部改动态查询 |
 | v0.3 | 2026-09-02 03:08 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W1/W2/W3 细化, rgs-batch-backend W2 7/9 + W3 5/6 已落地) + §6 增 rgs-batch-backend cargo check 0 error 实测, 本会话 9/2 02:17-03:07 JST 净增 15 commit, main HEAD 推进 b8a79d8 → 6b1b6cd, per 2026-09-02 03:08 JST '解决受阻问题' + '主会话打头阵 W2 全量' (per L4 派生约束) |
+| v0.4 | 2026-09-02 03:39 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W2 9/9 + W3 7/7 + W4 5/5 + W5 3/5 落地, E3 W6 + E4 + E8 4/12 转后续) + §2 commit 历史扩展, 本会话 9/2 02:17-03:37 JST 净增 27 commit, main HEAD 推进 b8a79d8 → e33a87e, per 9/2 80 min 推进 + 'W2/W3/W4/W5 任务细化' (主会话打头阵 + 模板化复制) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
