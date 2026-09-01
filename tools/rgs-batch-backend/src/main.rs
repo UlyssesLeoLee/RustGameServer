@@ -654,6 +654,7 @@ async fn version() -> impl Responder {
             "BA-W6-4/5: message_outbox mark_sent + delete + system health endpoint (per W6 BA-W6-4 重试 + W6 BA-W6-5 集成系统健康, 综合 5 域 gRPC + DB + worker + cron + DLQ + audit 6 指标, per 监控用)",
             "GAP-1 跨 batch DAG 拓扑排序 (per E8 GAP-1 + W4 BA-W4-8, sub_task.parent_id DAG + BFS 简化版, 完整 Kahn 留给 W4 BA-W4-8)",
             "GAP-6 rgs-web 深联动 (per E8 GAP-6 + W4 BA-W4-10, rgs-web 8788 + OIDC bridge + task_execution 回调, 凭据 per 8/27 11:06 硬 ban env var 引用)",
+            "GAP-2 SSE 流式 (per E8 GAP-2 + W4 BA-W4-9, 替代 WebSocket 简化, 零新 dep, 周期性推 batch_status 6 字段 event-stream, async-stream 0.3 + actix-web HttpResponse::streaming)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1687,6 +1688,66 @@ async fn rgs_web_bridge_task_execution(
     }
 }
 
+use actix_web::Responder;
+use actix_web::HttpResponse;
+use actix_web::http::header;
+use std::time::Duration;
+
+#[get("/api/v1/events/stream")]
+async fn sse_event_stream(
+    state: web::Data<AppState>,
+) -> HttpResponse {
+    // GAP-2: SSE (Server-Sent Events) 流式 endpoint (per E8 GAP-2 + W4 BA-W4-9, 替代 WebSocket 简化)
+    // 零新 dep: 用 actix-web Bytes + tokio::time::interval 周期性推送
+    // 用法: GET /api/v1/events/stream?interval=2 (秒, 默认 2)
+    // 推送格式: event: <type>\ndata: <json>\n\n
+    let interval_secs = 2u64;
+    let db = state.db.clone();
+    let grpc_clients = state.grpc_clients.clone();
+    let worker_pool = state.worker_pool.clone();
+    let cron = state.cron.clone();
+    let audit = state.audit.clone();
+
+    let stream = async_stream::stream! {
+        let mut ticker = tokio::time::interval(Duration::from_secs(interval_secs));
+        loop {
+            ticker.tick().await;
+            // 推 task / DLQ / cron / worker / 5 域 gRPC / audit 综合状态
+            let task_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task")
+                .fetch_one(&db).await.unwrap_or(0);
+            let dlq_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry")
+                .fetch_one(&db).await.unwrap_or(0);
+            let grpc_health = grpc_clients.health_check_all().await;
+            let worker_metrics = worker_pool.status();
+            let cron_metrics = cron.stats();
+            let payload = serde_json::json!({
+                "ts": chrono::Utc::now().to_rfc3339(),
+                "task_total": task_total,
+                "dlq_total": dlq_total,
+                "grpc_health": grpc_health,
+                "worker_pool": {
+                    "active": worker_metrics.active,
+                    "max": worker_metrics.max_concurrent,
+                    "queue": worker_metrics.priority_queue_size,
+                },
+                "cron": {
+                    "executions_total": cron_metrics.executions_total,
+                    "active_schedules": cron_metrics.active_schedules,
+                },
+            });
+            yield Ok::<_, actix_web::Error>(actix_web::web::Bytes::from(format!(
+                "event: batch_status\ndata: {}\n\n",
+                payload
+            )));
+        }
+    };
+    HttpResponse::Ok()
+        .insert_header((header::CONTENT_TYPE, "text/event-stream"))
+        .insert_header((header::CACHE_CONTROL, "no-cache"))
+        .insert_header((header::CONNECTION, "keep-alive"))
+        .streaming(stream)
+}
+
 #[get("/api/v1/credentials/audit")]
 async fn credentials_audit(
     state: web::Data<AppState>,
@@ -2482,6 +2543,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_batch_dag)
             .service(rgs_web_bridge_status)
             .service(rgs_web_bridge_task_execution)
+            .service(sse_event_stream)
             .service(credentials_audit)
             .service(olu_stats)
             .service(get_task_buffer)
