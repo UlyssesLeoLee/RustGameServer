@@ -28,10 +28,10 @@
 
 | commit | 文件 | 性质 | 推荐处理 | 阻塞 |
 |---|---|---|---|---|
-| `c2acf02` | `crates/admin-service/migrations/0006_audit_log_partitioned.sql` (111 行, P0-02) | 上游 AI 9/2 08:25 JST commit, MIGRATION_STATUS: DRAFT 等 SRE + DBA + admin Lead 评审 | 保留等评审 + PH-2 实施 | DRAFT 状态不允许 apply, 仅 commit 落地 |
-| `c2acf02` | `crates/economy-service/migrations/0006_transaction_ledger_partitioned.sql` (101 行, T-02, PH-3) | 同上 | 同上 | 同上 |
-| `c2acf02` | `crates/economy-service/migrations/0007_sagas_partitioned.sql` (132 行, T-03, PH-3) | 同上 | 同上 | 同上 |
-| `c2acf02` | `crates/match-service/migrations/0041_moves_partitioned.sql` (107 行, T-04 / P1-07, 1 年保留, PH-3) | 同上 | 同上 | 同上 |
+| `c2acf02` | `crates/admin-service/migrations/0006_audit_log_partitioned.sql` (111 行, P0-02) | 上游 AI 9/2 08:25 JST commit, MIGRATION_STATUS: DRAFT **评审启动材料 v0.1 已就绪** (per `RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md` commit `999ff5d`, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏) | 等 SRE + DBA + admin Lead 评审签字 | DRAFT 状态不允许 apply, 仅 commit 落地, 评审通过转 v1.0 + PH-2 |
+| `c2acf02` | `crates/economy-service/migrations/0006_transaction_ledger_partitioned.sql` (101 行, T-02, PH-3) | 同上 + 评审启动材料 v0.1 | 等 SRE + DBA + economy Lead 评审签字 | 同上, 评审通过转 v1.0 + PH-3 |
+| `c2acf02` | `crates/economy-service/migrations/0007_sagas_partitioned.sql` (132 行, T-03, PH-3) | 同上 + 评审启动材料 v0.1 | 等 SRE + DBA + economy Lead 评审签字 | 同上, 评审通过转 v1.0 + PH-3 |
+| `c2acf02` | `crates/match-service/migrations/0041_moves_partitioned.sql` (107 行, T-04 / P1-07, 1 年保留, PH-3) | 同上 + 评审启动材料 v0.1 | 等 SRE + DBA + match Lead 评审签字 | 同上, 评审通过转 v1.0 + PH-3 |
 
 **已 prune 元数据 1 项** (本轮 git worktree remove --force 已成功 + worktree prune 元数据已清, 物理目录残留 — L12 派生约束只要求临时文件不入 commit, 不要求 working tree 清空):
 - `.worktrees/feat-auto-20260901-3e13c819/crates/rgs-asset-download/Z:\definitely-not-existing\store/` (L12 临时文件, 物理目录在 feat-auto 老 worktree 内, mavis-trash ban + CLI 安全策略 ban 永久删除, 不入 commit 即可)
@@ -267,6 +267,7 @@
 | **v0.6.15** | **2026-09-02 09:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 10 commit → 12 commit (补 c3c52cb WBS v0.4.7 + a13da81 WBS v0.4.8 两个 WBS 跟踪表 hotfix) + §2 commit 链总合计 52 → 54 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.16** | **2026-09-02 09:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 "已 prune 元数据 1 项" 后补 5 项主 worktree .worktrees/ 老临时文件 (per `Get-ChildItem .worktrees` 实测) — feat-auto 物理目录 + bas-list.txt + 3 个 AI 通知文件 8/29-8/30 残留, L12 派生约束只要求不入 commit 不要求清空, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.17** | **2026-09-02 09:46** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 补 docs/ 空目录残留 1 项 (per `Get-ChildItem docs/ddd-review` 实测) — docs/ddd-review/ 8/31 16:30 JST 创建但 0 file 0 commit (bd0884f 实际进 `docs/14-项目管理/ddd-review/`), L11 派生约束 docs 空目录不影响 git 状态, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.18** | **2026-09-02 09:53** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 4 tracked-but-DRAFT 表 4 行 "性质" / "推荐处理" 字段同步更新 — 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md v0.1 (commit `999ff5d`) 已就绪, "保留等评审" 升级为 "等 SRE + DBA + 域 Lead 评审签字" (10 行签字栏), DRAFT→v1.0 评审流程闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
