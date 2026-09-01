@@ -1693,6 +1693,9 @@ async fn rgs_web_bridge_task_execution(
 async fn sse_event_stream(
     state: web::Data<AppState>,
 ) -> HttpResponse {
+    use actix_web::http::header;
+    use std::time::Duration;
+
     // GAP-2: SSE (Server-Sent Events) 流式 endpoint (per E8 GAP-2 + W4 BA-W4-9, 替代 WebSocket 简化)
     // 零新 dep: 用 actix-web Bytes + tokio::time::interval 周期性推送
     // 用法: GET /api/v1/events/stream?interval=2 (秒, 默认 2)
