@@ -28,3 +28,5 @@ anyhow = { workspace = true }
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
+# proptest for 证书 subject/issuer 字段 invariant (per 9/1 14:15 JST 派工 w8-pt-arc-certgen-hello)
+proptest = "1"

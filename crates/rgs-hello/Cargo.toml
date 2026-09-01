@@ -5,3 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+
+[dev-dependencies]
+# rgs-hello UT + IT 黑盒测试 (per 9/1 14:15 JST 派工 w8-pt-arc-certgen-hello)
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"

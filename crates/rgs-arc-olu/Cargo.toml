@@ -11,3 +11,10 @@ description = "rgs-arc-olu 占位 crate（per RGS-SPEC-DTL-042 §3 NFR-LCM-007 +
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+# pub fn request_for_phase 使用 uuid::Uuid::new_v4() 作为默认 request_id/operator_id
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+# proptest for OluRequest serde roundtrip + OluPhase as_str invariant
+# (per 9/1 14:15 JST PT-WORKER-BRIEFING.md §2.3 proptest 块要求)
+proptest = "1"
