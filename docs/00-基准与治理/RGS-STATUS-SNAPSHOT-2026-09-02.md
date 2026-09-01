@@ -156,7 +156,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (12 commit)
+### 文档 / 跟踪表 hotfix (18 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -172,8 +172,14 @@
 | `abcc752` | WBS v0.4.6 跟踪表 hotfix (§1.1 / §1.1 ahead / §6 3 处 "88 commit" → 实时 git 实证表达式) |
 | `c3c52cb` | WBS v0.4.7 跟踪表 hotfix (§1.1 E3 W2-W6 每行 commit 字段补全 9+9+8+6+7=39+4 hotfix=43 commit) |
 | `a13da81` | WBS v0.4.8 跟踪表 hotfix (§1 主表新增 E3 W2-W6 汇总行 修复 §1 vs §1.1 不一致) |
+| `3f94d17` | STATUS-SNAPSHOT v0.6.14 (§0.1 3 git stash 文件实证分析 stash show --name-status) |
+| `e4f82e3` | STATUS-SNAPSHOT v0.6.12 (§0.1 "已清理 1 项" 事实修正 feat-auto 老 worktree 物理目录仍在) |
+| `43e4869` | STATUS-SNAPSHOT v0.6.16 (§0.1 补 5 项主 worktree .worktrees/ 老临时文件 8/29-8/30 残留) |
+| `4bf413a` | STATUS-SNAPSHOT v0.6.17 (§0.1 补 docs/ 空目录残留 1 项 docs/ddd-review/ 0 file 0 commit) |
+| `999ff5d` | **RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1 (新文档, 4 DRAFT partitioned SQL 评审启动材料, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 + 5 项实施前置条件)** |
+| `3974ac3` | STATUS-SNAPSHOT v0.6.18 (§0.1 4 tracked-but-DRAFT 表 4 行性质/推荐处理字段同步, 评审启动材料就绪) |
 
-**commit 链总合计**: 54 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 12) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.5 + 本快照 v0.6.1 ~ v0.6.4 等)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
+**commit 链总合计**: 60 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 18) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.8 + 本快照 v0.6.1 ~ v0.6.20 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
 - `7ec98ee docs(wbs): v0.4.2 跟踪表 hotfix — §6 6 域 cargo check 实测入档 (2 行: 21.53s 0 error 实测 + 验证命令, PID 51296 + task_output wait)`
 - `0d7a407 docs(wbs): v0.4.1 跟踪表 hotfix — §6 main HEAD 字段改 deferred 实时查询 (避免回溯改写) + 6 域 cargo check 实测入档 (per 2026-09-02 02:18 JST, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止`
@@ -280,6 +286,7 @@
 | **v0.6.18** | **2026-09-02 09:53** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 4 tracked-but-DRAFT 表 4 行 "性质" / "推荐处理" 字段同步更新 — 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md v0.1 (commit `999ff5d`) 已就绪, "保留等评审" 升级为 "等 SRE + DBA + 域 Lead 评审签字" (10 行签字栏), DRAFT→v1.0 评审流程闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.19** | **2026-09-02 09:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (100/151 → 110/162 commit, 跨 9/2 09:15-09:55 JST 净增 10 commit = 999ff5d DB-REVIEW-CHECKLIST v0.1 + 3974ac3 STATUS-SNAPSHOT v0.6.18 + 本 commit, 跟 WBS v0.4.8 + DB-REVIEW-CHECKLIST v0.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.20** | **2026-09-02 09:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §5.1 Phase C 阻塞段补 "Phase C 落地后解锁的下游依赖" 表 (5 行, 跨 WBS v0.4.7 §1.1 3 项外部依赖 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件 + L1 cargo test 限时) — SRE 介入时一目了然, 不用回 WBS/CHECKLIST/AGENTS.md 多文件查, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.21** | **2026-09-02 10:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 12 commit → 18 commit (补 v0.6.14/12/16/17 + 999ff5d DB-CHECKLIST v0.1 + v0.6.18) + §2 commit 链总合计 54 → 60 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
