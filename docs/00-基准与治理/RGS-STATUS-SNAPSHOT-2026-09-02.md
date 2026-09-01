@@ -66,7 +66,7 @@
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
 | E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:50 JST, v0.6.4 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 94 commit (ahead of WBS v0.2), 144 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
+**总盘统计** (per WBS v0.4.7 跟踪表, 2026-09-02 09:15 JST, v0.6.10 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 100 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 151 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
@@ -235,6 +235,7 @@
 | **v0.6.7** | **2026-09-02 08:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: 文档元信息行 (创建日期 + 依据段 + §0 头标) 更新到 v0.6.6 接棒 2026-09-02 08:55 JST — 避免创建时间停留在 v0.1 (02:23 JST) 自指污染 + §0 头标 5 段时间戳全部对齐, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.8** | **2026-09-02 09:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 + §2 自指版本号从 v0.6.2/v0.6.3 统一到 v0.6.7 + 加"以 §7 修订历史最新版为准"指针 — 避免小节标头版本号落后于 §7 修订表自指污染, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.9** | **2026-09-02 09:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 3 commit → 10 commit (补 1eb289f/56b65ca/77454e5/c3a73dd/9980ebe/b9f2979/7afcf08/abcc752 8 个 hotfix commit, 全部 9/2 08:38-09:05 JST L13 守护) + §2 commit 链总合计 42 → 52 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.10** | **2026-09-02 09:15** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (94/144 → 100/151 commit, 跨 9/2 08:52-09:15 JST 净增 6 commit = 9980ebe/b9f2979/7afcf08/abcc752/c3c52cb + 文档热修系), 跟 WBS v0.4.7 跟踪表 (commit c3c52cb) §1.1 E3 W2-W6 39 commit + 4 hotfix = 43 commit 关联同步, per L13 自指字段 deferred 实时查询 + 实时 `git rev-list --count` 表达式守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
