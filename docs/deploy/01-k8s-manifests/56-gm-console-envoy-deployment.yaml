@@ -1,0 +1,139 @@
+# 56-gm-console-envoy-deployment.yaml
+# 角色: gm-console 前端 envoy 边缘代理 (独立 Deployment, 不挂 sidecar)
+# 状态: 新增 (per 9/1 13:05 JST Ulysses 决策)
+#
+# 部署形态: 独立 envoy Deployment + ClusterIP Service (per 8/21 JST 5 域独立架构)
+# 关联:
+#   - 55-gm-console-envoy-configmap.yaml (bootstrap config 挂载到 /etc/envoy/)
+#   - 57-gm-console-envoy-service.yaml (ClusterIP 暴露 8080 入口)
+#   - 50-gm-backend-service.yaml (反代目标)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gm-console-envoy
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: gm-console-envoy
+    app.kubernetes.io/component: gm-frontend
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: 0.1.0
+    rust-game-server.io/role: edge-proxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gm-console-envoy
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gm-console-envoy
+        app.kubernetes.io/component: gm-frontend
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: 0.1.0
+        rust-game-server.io/role: edge-proxy
+      annotations:
+        # prometheus scrape (per RGS-ARC-051)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9901"
+        prometheus.io/path: "/stats"
+    spec:
+      serviceAccountName: gm-console-envoy-service-account
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: envoy
+        # envoy 1.31 (跟 RGS 8 域 svc 镜像同源 — distroless 不适用 envoy, 用 alpine)
+        image: envoyproxy/envoy:v1.31-latest
+        imagePullPolicy: IfNotPresent
+        command: ["/usr/local/bin/envoy"]
+        args:
+        - "--config-path"
+        - "/etc/envoy/envoy.yaml"
+        - "--service-cluster"
+        - "gm-console-envoy"
+        - "--service-node"
+        - "$(POD_NAME)"
+        - "--log-level"
+        - "info"
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: admin
+          containerPort: 9901
+          protocol: TCP
+        # 探针: envoy admin /ready (per RGS-ARC-051 健康检查)
+        # 待 k3s exec 探针走 grpc_health_probe 路径修复后, 跟 5 域 svc 对齐
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: admin
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /server_info
+            port: admin
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+          readOnly: true
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: gm-console-envoy-config
+          items:
+          - key: envoy.yaml
+            path: envoy.yaml
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: gm-console-envoy
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+---
+# ServiceAccount (显式声明, 跟 50-gm-backend-service 一致)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gm-console-envoy-service-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: gm-console-envoy
+    app.kubernetes.io/part-of: rust-game-server

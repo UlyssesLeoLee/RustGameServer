@@ -1,0 +1,83 @@
+# 57-gm-console-envoy-service.yaml
+# 角色: gm-console envoy ClusterIP Service (8 域边缘层, 不暴露给集群外)
+# 状态: 新增 (per 9/1 13:05 JST Ulysses 决策)
+#
+# 部署形态: 独立 ClusterIP service
+# 关联:
+#   - 56-gm-console-envoy-deployment.yaml
+#   - 55-gm-console-envoy-configmap.yaml
+#   - 50-gm-backend-service.yaml (反代目标)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gm-console-envoy
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: gm-console-envoy
+    app.kubernetes.io/component: gm-frontend
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  selector:
+    app.kubernetes.io/name: gm-console-envoy
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: admin
+    port: 9901
+    targetPort: admin
+    protocol: TCP
+  type: ClusterIP
+---
+# NetworkPolicy: 限制 envoy 入口, 仅允许 ingress from 业务网络
+# egress 限制到 gm-backend:8443 + gm-backend:8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gm-console-envoy-netpol
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: gm-console-envoy
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: gm-console-envoy
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 业务网段 (per ARC-005 网络分区, 业务 ingress 网段)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: rust-game-server
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # gm-backend APIGW (8443 mTLS)
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gm-backend
+    ports:
+    - protocol: TCP
+      port: 8443
+  # gm-backend 静态服务 (8080, 临时 HTTP, 待 actix-files 整合后改 mTLS)
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gm-backend
+    ports:
+    - protocol: TCP
+      port: 8080
+  # DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
