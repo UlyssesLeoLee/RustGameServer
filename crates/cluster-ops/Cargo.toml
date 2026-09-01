@@ -43,3 +43,6 @@ tonic-build = { workspace = true }
 assert_cmd = "2"
 # M-2071.7 UT OLU 上报 NFR-LCM-007 验证（async block_on）
 futures-lite = "2"
+# PT worker 派工 v0.1 (9/1 14:15 JST) cluster-ops 域 proptest 补充
+# 覆盖 entity ClusterNode 不变量 (heartbeat idempotent / mark_unhealthy stable)
+proptest = "1"

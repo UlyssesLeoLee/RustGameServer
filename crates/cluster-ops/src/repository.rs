@@ -445,4 +445,144 @@ mod tests {
         let list = repo.list_by_scope("player").await.unwrap();
         assert_eq!(list.len(), 2); // f1 + f2 (global)
     }
+
+    // ===== PT worker v0.1 (9/1 14:15 JST) 扩展: repository 覆盖 =====
+
+    #[tokio::test]
+    async fn in_memory_node_delete_by_id_existing() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let n = ClusterNode::new(
+            "h-del".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        let id = n.id;
+        repo.save(&n).await.unwrap();
+        let removed = repo.delete_by_id(id).await.unwrap();
+        assert!(removed);
+        let after = repo.find_by_id(id).await.unwrap();
+        assert!(after.is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_node_delete_by_id_nonexistent_returns_false() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let removed = repo.delete_by_id(Uuid::new_v4()).await.unwrap();
+        assert!(!removed);
+    }
+
+    #[tokio::test]
+    async fn in_memory_node_save_overwrites_existing() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let mut n = ClusterNode::new(
+            "h-save".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        repo.save(&n).await.unwrap();
+        // 修改 ip/version 再 save (相同 id 覆盖)
+        n.ip = "2.2.2.2".to_string();
+        n.version = "0.2.0".to_string();
+        repo.save(&n).await.unwrap();
+        let loaded = repo.find_by_id(n.id).await.unwrap().unwrap();
+        assert_eq!(loaded.ip, "2.2.2.2");
+        assert_eq!(loaded.version, "0.2.0");
+    }
+
+    #[tokio::test]
+    async fn in_memory_node_find_by_hostname() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let n = ClusterNode::new(
+            "h-find".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        repo.save(&n).await.unwrap();
+        let found = repo.find_by_hostname("h-find").await.unwrap();
+        assert!(found.is_some());
+        let not_found = repo.find_by_hostname("nonexistent").await.unwrap();
+        assert!(not_found.is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_mark_stale_skips_already_unhealthy() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let mut n = ClusterNode::new(
+            "h-stale".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Replica,
+            "0.1.0".to_string(),
+        );
+        n.last_heartbeat_at = Utc::now() - chrono::Duration::seconds(120);
+        n.status = NodeStatus::Unhealthy;
+        repo.save(&n).await.unwrap();
+        // 已是 Unhealthy, mark_stale 不应再计数
+        let marked = repo
+            .mark_stale_unhealthy(Utc::now() - chrono::Duration::seconds(60))
+            .await
+            .unwrap();
+        assert_eq!(marked, 0);
+    }
+
+    #[tokio::test]
+    async fn in_memory_mark_stale_skips_fresh_heartbeat() {
+        let repo = InMemoryClusterNodeRepository::new();
+        let n = ClusterNode::new(
+            "h-fresh".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        // last_heartbeat_at = now, threshold = now - 60s → 不会变 Unhealthy
+        repo.save(&n).await.unwrap();
+        let marked = repo
+            .mark_stale_unhealthy(Utc::now() - chrono::Duration::seconds(60))
+            .await
+            .unwrap();
+        assert_eq!(marked, 0);
+        // 验证 status 仍 Healthy
+        let loaded = repo.find_by_id(n.id).await.unwrap().unwrap();
+        assert_eq!(loaded.status, NodeStatus::Healthy);
+    }
+
+    #[tokio::test]
+    async fn in_memory_flag_find_by_key_nonexistent() {
+        let repo = InMemoryFeatureFlagRepository::new();
+        let result = repo.find_by_key("never_set", "scope-x").await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_flag_save_then_update_in_place() {
+        let repo = InMemoryFeatureFlagRepository::new();
+        let admin = Uuid::new_v4();
+        let mut f = FeatureFlag::new(
+            "in_place".to_string(),
+            FlagScope::Domain,
+            "player".to_string(),
+            admin,
+        );
+        f.enable(admin);
+        repo.save(&f).await.unwrap();
+        // disable 后再 save (覆盖)
+        f.disable(admin);
+        repo.save(&f).await.unwrap();
+        let loaded = repo
+            .find_by_key("in_place", "player")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!loaded.enabled);
+        assert_eq!(loaded.version, 2);
+    }
+
+    #[tokio::test]
+    async fn in_memory_flag_list_by_scope_empty() {
+        let repo = InMemoryFeatureFlagRepository::new();
+        let list = repo.list_by_scope("nothing_here").await.unwrap();
+        assert!(list.is_empty());
+    }
 }

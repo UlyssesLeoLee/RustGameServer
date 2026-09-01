@@ -1004,6 +1004,7 @@ dependencies = [
  "chrono",
  "futures-lite",
  "prometheus",
+ "proptest",
  "prost",
  "serde",
  "serde_json",

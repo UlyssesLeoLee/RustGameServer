@@ -376,4 +376,190 @@ mod tests {
         // per RGS-DTL-031 §4.1：5 状态 PFAU 编排
         assert_eq!(PfauState::ALL.len(), 5);
     }
+
+    // ===== PT worker v0.1 (9/1 14:15 JST) 扩展: ClusterNode 边界 + proptest 不变量 =====
+
+    #[test]
+    fn node_new_is_healthy_with_enabled_at_now() {
+        let before = Utc::now();
+        let n = ClusterNode::new(
+            "h".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        let after = Utc::now();
+        assert_eq!(n.status, NodeStatus::Healthy);
+        assert!(n.enabled_at.is_some());
+        let ea = n.enabled_at.unwrap();
+        assert!(ea >= before && ea <= after);
+        assert_eq!(n.role, NodeRole::Primary);
+        // registered_at 应等于 enabled_at (同 now)
+        assert_eq!(n.registered_at, n.last_heartbeat_at);
+    }
+
+    #[test]
+    fn node_heartbeat_updates_timestamp() {
+        let mut n = ClusterNode::new(
+            "h".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        );
+        let old = n.last_heartbeat_at;
+        // 注: heartbeat() 使用 Utc::now()，同一纳秒精度可能相等 (rare)
+        // 这里仅验证时间戳被设置 (= 或 > old, 不会回退)
+        n.heartbeat();
+        assert!(n.last_heartbeat_at >= old);
+    }
+
+    #[test]
+    fn node_mark_unhealthy_idempotent() {
+        let mut n = ClusterNode::new(
+            "h".to_string(),
+            "1.1.1.1".to_string(),
+            NodeRole::Replica,
+            "0.1.0".to_string(),
+        );
+        n.mark_unhealthy();
+        assert_eq!(n.status, NodeStatus::Unhealthy);
+        n.mark_unhealthy();
+        n.mark_unhealthy();
+        assert_eq!(n.status, NodeStatus::Unhealthy);
+    }
+
+    #[test]
+    fn feature_flag_default_disabled_version_zero() {
+        let admin = Uuid::new_v4();
+        let f = FeatureFlag::new(
+            "k".to_string(),
+            FlagScope::Global,
+            "*".to_string(),
+            admin,
+        );
+        assert!(!f.enabled);
+        assert_eq!(f.version, 0);
+        assert_eq!(f.updated_by, admin);
+    }
+
+    #[test]
+    fn feature_flag_enable_disable_updates_actor() {
+        let admin1 = Uuid::new_v4();
+        let admin2 = Uuid::new_v4();
+        let mut f = FeatureFlag::new(
+            "k".to_string(),
+            FlagScope::Domain,
+            "player".to_string(),
+            admin1,
+        );
+        assert_eq!(f.updated_by, admin1);
+        f.enable(admin2);
+        assert_eq!(f.updated_by, admin2);
+        assert_eq!(f.version, 1);
+        f.disable(admin2);
+        assert_eq!(f.updated_by, admin2);
+        assert_eq!(f.version, 2);
+    }
+
+    // ===== proptest 块: ClusterNode / FeatureFlag 不变量随机用例 =====
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        // 任意 hostname/ip/version 字符串下:
+        // - new() 必产生 Healthy + enabled_at=Some + status=Healthy
+        // - 字段透传不丢失
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(64))]
+
+            #[test]
+            fn cluster_node_new_preserves_fields(
+                hostname in "[a-z0-9-]{1,32}",
+                ip in "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}",
+                version in "[0-9]+\\.[0-9]+\\.[0-9]+",
+            ) {
+                let n = ClusterNode::new(
+                    hostname.clone(),
+                    ip.clone(),
+                    NodeRole::Primary,
+                    version.clone(),
+                );
+                prop_assert_eq!(n.hostname.as_str(), hostname.as_str());
+                prop_assert_eq!(n.ip.as_str(), ip.as_str());
+                prop_assert_eq!(n.version.as_str(), version.as_str());
+                prop_assert_eq!(n.status, NodeStatus::Healthy);
+                prop_assert!(n.enabled_at.is_some());
+                // registered_at == last_heartbeat_at (new 时同 now)
+                prop_assert_eq!(n.registered_at, n.last_heartbeat_at);
+            }
+
+            /// heartbeat 反复触发: last_heartbeat_at 单调不减 + status 始终 Healthy
+            #[test]
+            fn cluster_node_heartbeat_idempotent(
+                n_iterations in 1u32..10,
+            ) {
+                let mut n = ClusterNode::new(
+                    "h".to_string(),
+                    "1.1.1.1".to_string(),
+                    NodeRole::Primary,
+                    "0.1.0".to_string(),
+                );
+                let mut last_ts = n.last_heartbeat_at;
+                for _ in 0..n_iterations {
+                    n.heartbeat();
+                    prop_assert!(n.last_heartbeat_at >= last_ts);
+                    prop_assert_eq!(n.status, NodeStatus::Healthy);
+                    last_ts = n.last_heartbeat_at;
+                }
+            }
+
+            /// mark_unhealthy 反复触发: 状态稳定 Unhealthy, 不可逆
+            #[test]
+            fn cluster_node_mark_unhealthy_stable(
+                n_unhealthy in 1u32..5,
+            ) {
+                let mut n = ClusterNode::new(
+                    "h".to_string(),
+                    "1.1.1.1".to_string(),
+                    NodeRole::Replica,
+                    "0.1.0".to_string(),
+                );
+                for _ in 0..n_unhealthy {
+                    n.mark_unhealthy();
+                    prop_assert_eq!(n.status, NodeStatus::Unhealthy);
+                }
+                // heartbeat() 也不能从 Unhealthy 恢复 (按 entity 现状: 仅当 Unhealthy 时变回 Healthy)
+                // 验证 mark_unhealthy → heartbeat → Unhealthy 仍可能恢复为 Healthy
+                // (这与 entity impl 一致, 是显式行为, 不在稳定不变量内)
+                // 所以这里只断言 mark_unhealthy 反复调用的稳定 Unhealthy
+            }
+
+            /// FeatureFlag: 任意 enable/disable 序列后, version == 序列长度
+            /// (每次 enable 或 disable 都应 +1, 不论前后 enabled 状态)
+            #[test]
+            fn feature_flag_version_monotonic(
+                ops in proptest::collection::vec(any::<bool>(), 1..10),
+            ) {
+                let admin = Uuid::new_v4();
+                let mut f = FeatureFlag::new(
+                    "k".to_string(),
+                    FlagScope::Global,
+                    "*".to_string(),
+                    admin,
+                );
+                let mut expected_version: i64 = 0;
+                for op in ops {
+                    if op {
+                        f.enable(admin);
+                    } else {
+                        f.disable(admin);
+                    }
+                    expected_version += 1;
+                    prop_assert_eq!(f.version, expected_version);
+                    prop_assert_eq!(f.updated_by, admin);
+                }
+            }
+        }
+    }
 }
