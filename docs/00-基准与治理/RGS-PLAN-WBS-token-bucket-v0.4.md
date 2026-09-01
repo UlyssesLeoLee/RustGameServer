@@ -146,6 +146,8 @@
 | ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`) |
 | 7 phase 落地统计 | A 6/6 + B 6/6 + D 6/6 + E 7/8 (含本会话 2 commit) |
 | 派生约束 L1/L11/L12 | 全守 (cargo check 1m 27s 0 error) |
+| 6 域 lib 实测 (per 2026-09-02 02:18 JST, hotfix v0.4.1→v0.4.2 链式) | `cargo check --lib -p player-service -p economy-service -p match-service -p social-service -p admin-service` 21.53s **0 error**, 2 dead_code warning (economy BidAuctionSaga/ExecuteAuctionSaga), 1 shared-platform future-incompat warning |
+| 验证命令 | `Start-Process cargo (PID 51296) + task_output wait`, 1 次拿 status (per L11 派生约束, 不 polling 多轮编译) |
 | 代签三件套 | 全 commit 齐 |
 | Phase C | 🔒 0/5 (SRE 介入) |
 | Phase E3 W1 | ✅ 6/6 (本会话跑完) |
@@ -161,6 +163,7 @@
 | v0.3 | 2026-09-02 00:35 | 架构师(Mavis 接手 agent per DEC-008) | 跟踪表, 7 桶落地状态固化, 阻塞项转交清单 |
 | **v0.4** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **跟踪表 + 解除 blocked: E3 W1 6 任务落地 (commit af84884 + 2a44836, 21 files / 9559+ 行), E4 草案 (本版 §3), E8 12 GAP 子任务 (本版 §4), 7 phase 落地 7/8 (剩 E3 W2-W6 + E4 拍板 + Phase C SRE)** |
 | **v0.4.1** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 main HEAD / ahead of 字段改为 deferred 实时查询 (避免回溯改写) + §6 6 域 cargo check 实测入档 (per L11 派生约束 1 次拿 status, PID 51296 + task_output wait, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止 (per 8/27 JST 决策: 不追溯改写历史文档, 数字以 git log --oneline 实时为准)** |
+| **v0.4.2** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 6 域 cargo check 实测行入档 (v0.4.1 patch 2 因字符匹配问题未应用, 此 v0.4.2 hotfix 补入)** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
