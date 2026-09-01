@@ -38,4 +38,5 @@ rusqlite = { version = "0.32", default-features = false, features = ["bundled"] 
 tokio = { version = "1", features = ["full", "test-util"] }
 wiremock = "0.6"
 tempfile = "3"
-# proptest 留待 M-2064.6 状态机 fuzz 用
+# proptest (per 9/1 PT-WORKER 派工 + M-2064.6 状态机 fuzz 落地)
+proptest = "1"

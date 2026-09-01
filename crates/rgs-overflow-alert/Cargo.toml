@@ -35,3 +35,5 @@ tokio = { workspace = true }
 pretty_assertions = "1"
 # 复用 rgs-testkit 的 InMemoryNatsMock 仅用于 e2e 演示（生产路径不引）
 rgs-testkit = { path = "../rgs-testkit" }
+# proptest (per 9/1 PT-WORKER 派工: overflow alert idempotent invariant)
+proptest = "1"
