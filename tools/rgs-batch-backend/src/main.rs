@@ -646,6 +646,7 @@ async fn version() -> impl Responder {
             "BA-W4-5/6: task_template upsert + delete (per GAP-7 灰度版本化, ON CONFLICT id 锁定 template_version, audit_event 自动记录)",
             "BA-W4-7: schedule upsert + delete (per id, ON CONFLICT 锁定 cron_expr + interval_secs, audit_event 自动记录, 5/5 Master 表全 full CRUD)",
             "BA-W5-1/2: worker_pool_config + task_def upsert + delete (per GAP-4 优先级 min/max/priority_levels + 5 域 gRPC client handler 注册, params_schema JSONB 存储)",
+            "BA-W5-3/4: audit_session update + delete + task_buffer 单 key get + delete (per Work W-3 完整 CRUD, 凭据 per 8/27 11:06 硬 ban, audit_session ended_at 关闭会话)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -822,7 +823,7 @@ struct TaskBuffer {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct AuditSession {
     id: Uuid,
     operator: String,
@@ -1493,6 +1494,81 @@ async fn list_audit_sessions(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[actix_web::put("/api/v1/audit-sessions/{id}")]
+async fn update_audit_session(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<AuditSession>,
+) -> impl Responder {
+    // W5 BA-W5-3: audit_session update (per id, ended_at 关闭会话)
+    let id = path.into_inner();
+    let s = body.into_inner();
+    let _ = sqlx::query(
+        "UPDATE batch_work.audit_session SET operator = $1, session_token = $2, ended_at = $3, ip_address = $4 WHERE id = $5"
+    )
+    .bind(&s.operator)
+    .bind(&s.session_token)
+    .bind(s.ended_at)
+    .bind(&s.ip_address)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    web::Json(serde_json::json!({ "updated": true, "id": id, "operator": s.operator }))
+}
+
+#[actix_web::delete("/api/v1/audit-sessions/{id}")]
+async fn delete_audit_session(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W5 BA-W5-3: audit_session delete (per id, 凭据 per 8/27 11:06 硬 ban)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_work.audit_session WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
+#[get("/api/v1/task-buffer/{task_id}/{key}")]
+async fn get_task_buffer_by_key(
+    state: web::Data<AppState>,
+    path: web::Path<(Uuid, String)>,
+) -> impl Responder {
+    // W5 BA-W5-4: task_buffer 单 buffer 查询 (per task_id + key)
+    let (task_id, key) = path.into_inner();
+    let row: Result<Option<TaskBuffer>, _> = sqlx::query_as::<_, TaskBuffer>(
+        "SELECT id, task_id, key, value, created_at FROM batch_work.task_buffer WHERE task_id = $1 AND key = $2 ORDER BY created_at DESC LIMIT 1"
+    )
+    .bind(task_id)
+    .bind(&key)
+    .fetch_optional(&state.db)
+    .await;
+    match row {
+        Ok(Some(b)) => web::Json(serde_json::json!({ "buffer": b, "found": true })),
+        Ok(None) => web::Json(serde_json::json!({ "buffer": null, "found": false })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "found": false })),
+    }
+}
+
+#[actix_web::delete("/api/v1/task-buffer/{task_id}/{key}")]
+async fn delete_task_buffer_by_key(
+    state: web::Data<AppState>,
+    path: web::Path<(Uuid, String)>,
+) -> impl Responder {
+    // W5 BA-W5-4: task_buffer 单 buffer 删除 (per task_id + key)
+    let (task_id, key) = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_work.task_buffer WHERE task_id = $1 AND key = $2")
+        .bind(task_id)
+        .bind(&key)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "task_id": task_id, "key": key }))
+}
+
 #[get("/api/v1/dlq-events")]
 async fn list_dlq_events(
     state: web::Data<AppState>,
@@ -1912,6 +1988,10 @@ async fn main() -> std::io::Result<()> {
             .service(get_task_buffer)
             .service(put_task_buffer)
             .service(list_audit_sessions)
+            .service(update_audit_session)
+            .service(delete_audit_session)
+            .service(get_task_buffer_by_key)
+            .service(delete_task_buffer_by_key)
             .service(list_dlq_events)
             .service(list_audit_events)
             .service(list_saga_instances)
