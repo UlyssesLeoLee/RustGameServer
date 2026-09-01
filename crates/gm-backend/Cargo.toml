@@ -61,3 +61,5 @@ async-nats = "0.42"
 futures-util = "0.3"
 player-service = { path = "../player-service" }
 admin-service = { path = "../admin-service" }
+# proptest 1.11.0 (per Cargo.lock 已有) — 给 unit test 提供 invariant fuzzing
+proptest = "1.11"
