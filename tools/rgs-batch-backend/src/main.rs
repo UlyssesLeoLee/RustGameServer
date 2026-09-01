@@ -427,7 +427,7 @@ impl AuditLogger {
 
 // ────────── data_source Master M-3 (W2 BA-W2-8) ──────────
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct DataSource {
     id: Uuid,
     name: String,
