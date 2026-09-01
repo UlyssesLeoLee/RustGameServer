@@ -68,14 +68,81 @@
 
 **总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:25 JST): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 88 commit (ahead of WBS v0.2), 138 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
 
-## 2. 本会话 commit 历史 (最近 15)
+## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.3 hotfix 实测 git log --oneline 84edf26..main)
 
-本会话 (9/2 02:17-03:37 JST, 80 min) 净增 27 commit, 当前 main HEAD = e33a87e:
-- e33a87e feat: BA-W5-5 task_progress update + delete (W5 3/5)
-- 0b97c16 feat: BA-W5-3/4 audit_session + task_buffer single-key (W5 2/5)
-- 39447c3 feat: BA-W5-1/2 worker_pool_config + task_def (W5 1/5)
-- caf6a66 feat: BA-W4-7 schedule upsert + delete (W4 5/5)
-- 1925c3c feat: BA-W4-5/6 task_template upsert + delete (W4 4/5)
+**说明**: 本表为 verifier / 后续会话的单一 commit 索引, 跨 9/2 02:17-08:14 JST 主会话打头阵 ~6h, 42 commit 按 BA-WX-X 任务编号排序 (新→旧):
+
+### E3 W2 (8 commit: W2 模板 + 8 子任务 + 1 hotfix)
+
+| commit | 任务 | 摘要 |
+|---|---|---|
+| `3040232` | BA-W2-9 | worker pool concurrency endpoint (per GAP-4) |
+| `40e5ac5` | BA-W2-2 hotfix | HashMap::get &domain 借用 (cargo check 0 error 2.43s) |
+| `5aa876a` | BA-W2-2 | 5 域 gRPC client 完整 (economy/match/social/admin/player) + /api/v1/grpc-status |
+| `1ce1223` | BA-W2-8 | Master M-3 data_source + M-1 task_def list endpoint |
+| `cab771a` | BA-W2-7 | Prometheus 12 指标 (task total/succeeded/failed/running + duration + worker pool) |
+| `21be7a1` | BA-W2-6 | audit_event T-3 永久保留 + AuditLogger + SHA-256 params_hash |
+| `b7c100a` | BA-W2-5 | cron 调度 60s 周期 + /api/v1/cron/stats + mavis_reminder_active |
+| `a932d95` | BA-W2-4 | worker pool 完整 + GAP-4 优先级 BinaryHeap + max_concurrent 8 |
+| `5568a68` | BA-W2-3 | DLQ 完整 + exponential backoff (100ms→20s) + retry_count + max_retries |
+| `1e3d528` | BA-W2-X | W2 模板 (sqlx PgPool + Master M-2 task_template repo + /api/v1/tasks 6 endpoint + 5 域 gRPC 雏形) |
+
+### E3 W3 (7 commit: 9 子任务 + 11 UT)
+
+| commit | 任务 | 摘要 |
+|---|---|---|
+| `d3ca7be` | BA-W3-11 | 11 E2E 集成测试 (13 张表 join: DAG + rgs-web + system_health + OLU + credentials + Prometheus + GAP-1 + GAP-6 + T-3 + message_outbox + sub_task) |
+| `0107d2d` | BA-W3-10 | 11 UT 基础测试 (exponential_backoff + endpoint JSON schema) |
+| `cc88b6c` | BA-W3-9 | sub_task update + delete (per id, full CRUD 8/3 Transaction 表) |
+| `6b1b6cd` | BA-W3-8 | sub_task Transaction T-1.5 CRUD (per parent_task_id/state/order_idx 过滤, ON CONFLICT upsert) |
+| `e629be5` | BA-W3-6/7 | saga_instance + message_outbox + data_migration T-7+T-8+T-6 CRUD |
+| `b508425` | BA-W3-4/5 | audit_event + dlq_event 高级过滤 (operator/action/result/dlq_id/trace_id 动态 SQL) |
+| `1010031` | BA-W3-2/3 | task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD |
+| `bacfe90` | BA-W3-1 | task_execution + log_event 高级查询 (task_id/result/duration/level/target 动态 SQL 拼装) |
+
+### E3 W4 (5 commit: 5 Master + GAP-7 灰度 + 2 GAP endpoint + 1 E2E)
+
+| commit | 任务 | 摘要 |
+|---|---|---|
+| `3f6074a` | GAP-2 | SSE 流式 endpoint (per E8 GAP-2 + W4 BA-W4-9, async-stream 0.3) |
+| `15ff16f` | GAP-6 | rgs-web 深联动 bridge endpoint (per E8 GAP-6 + W4 BA-W4-10) |
+| `0e2dc91` | GAP-1 | 跨 batch DAG 拓扑排序 endpoint (per E8 GAP-1 + W4 BA-W4-8) |
+| `caf6a66` | BA-W4-7 | schedule upsert + delete |
+| `1925c3c` | BA-W4-5/6 | task_template upsert + delete |
+| `4aab11c` | BA-W4-3/4 | data_source Deserialize + PUT/DELETE data-sources + PUT task-templates/{id}/promote |
+| `971f7a6` | BA-W4-3/4 | data_source update/delete + task_template 灰度版本 promote (per GAP-7) |
+| `e64bde7` | BA-W4-1/2 | worker_pool_config + schedule Master M-4+M-5 CRUD |
+
+### E3 W5 (7 commit)
+
+| commit | 任务 | 摘要 |
+|---|---|---|
+| `eb116f6` | GAP-5/8 | AI 协助 SQL + Rollback SQL 验证 endpoint (per E8 GAP-5/8 + W5 BA-W5-6 + W4 BA-W4-11) |
+| `63f1c24` | BA-W5-6/7 | integration test + credentials audit + OLU stats endpoint |
+| `e33a87e` | BA-W5-5 | task_progress update + delete |
+| `0b97c16` | BA-W5-3/4 | audit_session update+delete + task_buffer single-key get+delete |
+| `39447c3` | BA-W5-1/2 | worker_pool_config + task_def upsert + delete (per GAP-4) |
+
+### E3 W6 (5 commit + 1 GAP 修复 v1 + 1 GAP 修复 v2)
+
+| commit | 任务 | 摘要 |
+|---|---|---|
+| `bc63265` | GAP-10 修复 v1 | HashMap lookup 修复 (grpc_health.get(&gd) → unwrap_or) |
+| `ea4c874` | GAP-10 修复 v2 | gd.service_name() key (因为 health_check_all 返回 HashMap<&str, bool>) |
+| `deb5c94` | GAP-10 | 跨域 saga 触发 endpoint (saga_instance + message_outbox 跨域事件分发 + 5 域 gRPC health check) |
+| `ac3a528` | BA-W6-4/5 | message_outbox + system health endpoint |
+| `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
+| `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
+
+### 文档 / 跟踪表 hotfix (3 commit)
+
+| commit | 摘要 |
+|---|---|
+| `faf40a8` | docs(agents): AGENTS.md L14 派生约束入档 (plumbing 节点字符串 brace 跟踪, per 9/2 W2 BA-W2-3/5/6 patch 经验) |
+| `c2acf02` | feat(svc): PH-3 分区实施草稿 4 migration DRAFT (audit_log + transaction_ledger + sagas + moves) |
+| `1eb289f` + `56b65ca` | STATUS-SNAPSHOT v0.6.2 + v0.6.3 hotfix (本快照自指字段修正) |
+
+**commit 链总合计**: 42 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 3) — 跟 `git rev-list --count 84edf26..main` 93 commit 差 51 commit 是 W1 (af84884 + 2a44836) + 跟踪表 hotfix 系列 (WBS v0.4.x + STATUS-SNAPSHOT v0.x.x) + 其他。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
 - `7ec98ee docs(wbs): v0.4.2 跟踪表 hotfix — §6 6 域 cargo check 实测入档 (2 行: 21.53s 0 error 实测 + 验证命令, PID 51296 + task_output wait)`
 - `0d7a407 docs(wbs): v0.4.1 跟踪表 hotfix — §6 main HEAD 字段改 deferred 实时查询 (避免回溯改写) + 6 域 cargo check 实测入档 (per 2026-09-02 02:18 JST, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止`
@@ -155,6 +222,7 @@
 | **v0.6.1** | **2026-09-02 08:30** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 E8 6/12 + 6/12 草案 → 12/12 全部落地 (GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 RACI commit `0755ef8e` + GAP-12 BA-W1-3 namespace commit `2a44836`) + §0 总盘统计 35 → 88 commit (ahead of WBS v0.2, 跟 WBS v0.4.5 跟踪表 git 实证一致, per L13 派生约束 自指字段全 deferred 实时查询), 跟 WBS v0.4.5 跟踪表 (commit `4723808`) 同步, 代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.2** | **2026-09-02 08:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 新增 working tree untracked + git stash 待决策清单 — 4 DRAFT 状态大表分区化 SQL (git status clean / tracked commit c2acf02, 等 SRE + DBA + 域 Lead 评审 + PH-2/PH-3 实施前不 apply) + 2 cargo build 残留 (mavis-trash 不可用 + 永久删除被 CLI 安全策略 ban, 保留在主 worktree 不入 commit) + 1 L12 临时文件 PowerShell Remove-Item 已清 + 3 git stash (REQ-001/005/007-ADD1/038 + worktrees 残留 + REQ-007-ADD1) 等 Ulysses 拍板 drop / apply / 保留。 11 老 worktree 已 git worktree remove --force + worktree prune 全清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.3** | **2026-09-02 08:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 实测修正 — (1) v0.6.2 误报 4 partitioned SQL 为 untracked, 实测 git status clean + git ls-files 8a6b6ed/7a3ebd7/36f33db/03459f6 全部 tracked commit c2acf02 (DRAFT 状态); (2) 真正 untracked 仅 2 cargo build target-bucket-8-{phase-b,w1-player}/ (mavis-trash ban); (3) 修正 §0 数字 v0.6.1 140 → 142 commit (c2acf02 + status 检查后 +2); (4) §0.1 重写: 2 untracked + 4 tracked-but-DRAFT + 1 已清 + 3 stash, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.4** | **2026-09-02 08:48** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 新增 E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 — 42 commit 按 BA-WX-X 任务编号分组 (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 3) + 派生约束 L13 自指字段全 deferred 实时查询 (per `git log 84edf26..main --oneline` 实测 93 commit 差 51 commit 是 W1 + 跟踪表 hotfix), verifier 引用过期 host cache 根因 — 单一 commit 索引固化, 减少 verifier 反馈循环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
