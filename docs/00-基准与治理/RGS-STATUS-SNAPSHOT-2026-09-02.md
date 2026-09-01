@@ -219,6 +219,16 @@
 - **Mavis 边界 (per OPEN-QA v0.3 §7.5)**: 不应做卸载 k3s / 重 apply manifest / 修证书 / 改 yaml, 等 SRE 介入
 - **影响 commit**: 0/5 ST 业务级 mTLS 落地
 
+**Phase C 落地后解锁的下游依赖** (v0.6.20 hotfix 新增, 2026-09-02 09:58 JST, 跨 WBS v0.4.7 §1.1 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件):
+
+| 解锁项 | 来源 | SRE 介入后动作 |
+|---|---|---|
+| E3 W2 BA-W2-X task_buffer 持久化 | WBS v0.4.7 §1.1 外部依赖 1 | k3s PostgreSQL StatefulSet 起来 → task_buffer 写入真实 DB |
+| E3 W3 BA-W3-12 E2E 真实 sqlx + 5 域 | WBS v0.4.7 §1.1 外部依赖 2 | 5 域 gRPC 起来 + PG 池接通 → 11 UT 实际跑 (cargo test 编译链 60s+ 已 L1 限时) |
+| E3 W4 BA-W4-N 灰度锁 + W6 BA-W6-N 跨域事件真实发送 | WBS v0.4.7 §1.1 外部依赖 3 | 5 域 mTLS 业务级 ST 完成 → 灰度锁 + 跨域事件真实落地 |
+| 4 DRAFT partitioned SQL PH-2/PH-3 实施窗口 | DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件 1 | k3s ulyssespc 节点起来 + 5 域 mTLS → DBA 可 apply migration + 双写期 |
+| cargo test --tests 实际跑 (22 测试函数 11 UT + 11 E2E) | L1 派生约束 cargo check 60s 限时, 实际跑待 Phase C | k3s ulyssespc + 5 域 mTLS + PG 池 → cargo test 跑通 |
+
 ### 5.2 📋 E3 W2-W6 (后续会话 WT 派工)
 - **范围**: 32 L4 任务 (W2 Master 5 表 + 5 gRPC client + worker pool + retry/DLQ + /api/v1/tasks 6 endpoint / W3 Transaction 3 表 + Work 2 表 + cron 调度 + audit + 11 UT / W4 log-tasks + migration + templates + dlq + data-sources + 7 页面 / W5 集成 + 端到端 + 凭据 + OLU / W6 系统测试 + 监控 + 故障恢复 + DDD Review)
 - **依据**: per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A (E3/E4 → 后续会话)
@@ -269,6 +279,7 @@
 | **v0.6.17** | **2026-09-02 09:46** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 补 docs/ 空目录残留 1 项 (per `Get-ChildItem docs/ddd-review` 实测) — docs/ddd-review/ 8/31 16:30 JST 创建但 0 file 0 commit (bd0884f 实际进 `docs/14-项目管理/ddd-review/`), L11 派生约束 docs 空目录不影响 git 状态, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.18** | **2026-09-02 09:53** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 4 tracked-but-DRAFT 表 4 行 "性质" / "推荐处理" 字段同步更新 — 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md v0.1 (commit `999ff5d`) 已就绪, "保留等评审" 升级为 "等 SRE + DBA + 域 Lead 评审签字" (10 行签字栏), DRAFT→v1.0 评审流程闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.19** | **2026-09-02 09:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (100/151 → 110/162 commit, 跨 9/2 09:15-09:55 JST 净增 10 commit = 999ff5d DB-REVIEW-CHECKLIST v0.1 + 3974ac3 STATUS-SNAPSHOT v0.6.18 + 本 commit, 跟 WBS v0.4.8 + DB-REVIEW-CHECKLIST v0.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.20** | **2026-09-02 09:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §5.1 Phase C 阻塞段补 "Phase C 落地后解锁的下游依赖" 表 (5 行, 跨 WBS v0.4.7 §1.1 3 项外部依赖 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件 + L1 cargo test 限时) — SRE 介入时一目了然, 不用回 WBS/CHECKLIST/AGENTS.md 多文件查, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
