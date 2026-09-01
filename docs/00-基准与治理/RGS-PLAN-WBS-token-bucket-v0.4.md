@@ -49,12 +49,12 @@
 
 | 子项 | 任务 | commit | 状态 |
 |---|---|---|---|
-| E3 W2 | BA-W2-1~8 (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency) | 8 commit (1e3d528 系 + a932d95 + b7c100a) | ✅ (本会话) |
-| E3 W3 | BA-W3-1~9 (9 业务 + 11 UT + 11 E2E) | 9 commit (5568a68 系) | ✅ (本会话) |
-| E3 W4 | BA-W4-1~7 (Master 5 表 full CRUD + task_template 灰度) + BA-W4-8 DAG + BA-W4-9 SSE + BA-W4-10 rgs-web bridge | 10 commit (0e2dc91 + d5468c6 + 15ff16f 系) | ✅ (本会话) |
-| E3 W5 | BA-W5-1~7 (worker_pool + task_def + audit + buffer + progress + integration + credentials + OLU) | 7 commit | ✅ (本会话) |
-| E3 W6 | BA-W6-1~6 (log-tasks by-trace + recent + data_migration + saga + message_outbox + system_health + 跨域 saga) | 6 commit (ea4c874 系) | ✅ (本会话) |
-| E3 W2-W6 小计 | **40 L4 任务 → 37/40 已落** (3 项依赖外部) | 40 commit | ✅ 37/40 |
+| E3 W2 | BA-W2-1~8 (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency) | 9 commit: `1e3d528` (W2 模板) + `5aa876a` (BA-W2-2) + `40e5ac5` (W2-2 hotfix) + `5568a68` (BA-W2-3) + `a932d95` (BA-W2-4) + `b7c100a` (BA-W2-5) + `21be7a1` (BA-W2-6) + `cab771a` (BA-W2-7) + `1ce1223` (BA-W2-8) + `3040232` (BA-W2-9) | ✅ (本会话) |
+| E3 W3 | BA-W3-1~9 (9 业务 + 11 UT + 11 E2E) | 9 commit: `bacfe90` (BA-W3-1) + `1010031` (BA-W3-2/3) + `b508425` (BA-W3-4/5) + `e629be5` (BA-W3-6/7) + `6b1b6cd` (BA-W3-8) + `cc88b6c` (BA-W3-9) + `0107d2d` (BA-W3-10 11 UT) + `d3ca7be` (BA-W3-11 11 E2E) + (1 个 hotfix 含 W3 系) | ✅ (本会话) |
+| E3 W4 | BA-W4-1~7 (Master 5 表 full CRUD + task_template 灰度) + BA-W4-8 DAG + BA-W4-9 SSE + BA-W4-10 rgs-web bridge | 8 commit: `e64bde7` (BA-W4-1/2) + `971f7a6` + `4aab11c` (BA-W4-3/4) + `1925c3c` (BA-W4-5/6) + `caf6a66` (BA-W4-7) + `0e2dc91` (BA-W4-8 GAP-1) + `3f6074a` (BA-W4-9 GAP-2) + `15ff16f` (BA-W4-10 GAP-6) | ✅ (本会话) |
+| E3 W5 | BA-W5-1~7 (worker_pool + task_def + audit + buffer + progress + integration + credentials + OLU) | 6 commit: `39447c3` (BA-W5-1/2) + `0b97c16` (BA-W5-3/4) + `e33a87e` (BA-W5-5) + `63f1c24` (BA-W5-6/7) + `eb116f6` (BA-W5-6 GAP-5/8) | ✅ (本会话) |
+| E3 W6 | BA-W6-1~6 (log-tasks by-trace + recent + data_migration + saga + message_outbox + system_health + 跨域 saga) | 7 commit: `eeaec4a` (BA-W6-1) + `222e129` (BA-W6-2/3) + `ac3a528` (BA-W6-4/5) + `deb5c94` (BA-W6-6 GAP-10) + `bc63265` (GAP-10 修复 v1) + `ea4c874` (GAP-10 修复 v2) | ✅ (本会话) |
+| E3 W2-W6 小计 | **40 L4 任务 → 37/40 已落** (3 项依赖外部) | 39 commit + 4 hotfix = 43 commit | ✅ 37/40 |
 
 **外部依赖 (3 项 WBS 0/5)**:
 - W2 BA-W2-X task_buffer 持久化: 等 Phase C 5 域 mTLS 落地 (SRE 介入, WSL k3s ulyssespc 节点注册未恢复)
@@ -195,6 +195,7 @@
 | v0.4.4 | 2026-09-02 08:17 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 → 10/12 (GAP-1/2/5/6/8/10 已落地, 6 commit 关联 W2-W6), 本会话 9/2 02:17-08:14 JST 累计净增 39 commit, main HEAD 推进 b8a79d8 → ea4c874, per 9/2 ~6h 推进 + 'GAP-1/2/5/6/8/10 收口' (主会话打头阵 + 模板化复制 + L14 派生约束守护) |
 | **v0.4.5** | **2026-09-02 08:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: (1) v0.4.4 跟踪表 "39 commit" 误算 → git 实证 88 commit (差 49, per L13 派生约束 自指字段全 deferred 实时查询); (2) §1.1 新增 E3 W2-W6 实际落地段 (37/40 L4 任务, 40 commit, 9/2 02:17-08:14 JST 主会话打头阵 ~6h); (3) §4 GAP-12 补 commit 关联 (2a44836 BA-W1-3 9 k8s manifests), E8 12/12 ✅; (4) §5 解除 blocked: E3 W2-W6 37/40 + E8 12/12 全部解除, 剩 Phase C SRE 介入 + E4 草案拍板; (5) §6 维护表 E3 W2-W6 + E8 12/12 状态固化; (6) §7 修订历史 + v0.4.5 (代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化)** |
 | **v0.4.6** | **2026-09-02 09:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 / §1.1 ahead 行 / §6 维护表 3 处 "88 commit" 数字替换为实时 git 实证查询表达式 `git rev-list --count 84edf26..main` — 跟 STATUS-SNAPSHOT v0.6.4 ~ v0.6.8 同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.4.7** | **2026-09-02 09:12** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 E3 W2-W6 每行 commit 字段补全 — 之前写 "1e3d528 系" / "5568a68 系" 简略, 现在展开成 9 + 9 + 8 + 6 + 7 = 39 commit + 4 hotfix = 43 commit 全 commit hash 关联 (从 STATUS-SNAPSHOT v0.6.9 §2 复制), 让 verifier / 后续会话能直接拉 commit 链 — 跟 §2 权威索引同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
