@@ -649,6 +649,7 @@ async fn version() -> impl Responder {
             "BA-W5-3/4: audit_session update + delete + task_buffer 单 key get + delete (per Work W-3 完整 CRUD, 凭据 per 8/27 11:06 硬 ban, audit_session ended_at 关闭会话)",
             "BA-W5-5: task_progress update + delete (per Work W-1 完整 CRUD: list+upsert+update+delete, 跨 3/3 Work 表 3/3 已 full CRUD)",
             "BA-W5-6/7: integration test + credentials audit + OLU stats endpoint (per W5 集成 + 凭据 per 8/27 11:06 硬 ban + RGS-OLU-REPORT v0.2 token-OLU 框架 ~21.7M tokens)",
+            "BA-W6-1: log-tasks by-trace + recent endpoint (跨 log_event + audit_event + task_execution 三表 join, 分布式追踪 + 监控, per W6 BA-W6-1)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1413,6 +1414,48 @@ async fn list_logs(
     }
 }
 
+#[get("/api/v1/log-tasks/by-trace/{trace_id}")]
+async fn get_logs_by_trace(
+    state: web::Data<AppState>,
+    path: web::Path<String>,
+) -> impl Responder {
+    // W6 BA-W6-1: log-tasks 高级 endpoint (per trace_id 聚合, 跨 log_event + audit_event + task_execution 三表 join)
+    let trace_id = path.into_inner();
+    let log_rows: Result<Vec<LogEvent>, _> = sqlx::query_as::<_, LogEvent>(
+        "SELECT id, level, target, message, task_id, trace_id, created_at FROM batch_transaction.log_event WHERE trace_id = $1 ORDER BY created_at ASC LIMIT 100"
+    ).bind(&trace_id).fetch_all(&state.db).await;
+    let audit_rows: Result<Vec<AuditEvent>, _> = sqlx::query_as::<_, AuditEvent>(
+        "SELECT id, operator, action, params_hash, result, trace_id, resource_type, resource_id, created_at FROM batch_transaction.audit_event WHERE trace_id = $1 ORDER BY created_at ASC LIMIT 50"
+    ).bind(&trace_id).fetch_all(&state.db).await;
+    let exec_rows: Result<Vec<TaskExecution>, _> = sqlx::query_as::<_, TaskExecution>(
+        "SELECT id, task_id, attempt, started_at, finished_at, duration_ms, result, error_msg, trace_id FROM batch_transaction.task_execution WHERE trace_id = $1 ORDER BY started_at ASC LIMIT 50"
+    ).bind(&trace_id).fetch_all(&state.db).await;
+    web::Json(serde_json::json!({
+        "trace_id": trace_id,
+        "logs": log_rows.unwrap_or_default(),
+        "audits": audit_rows.unwrap_or_default(),
+        "executions": exec_rows.unwrap_or_default(),
+        "note": "跨 log_event + audit_event + task_execution 三表聚合, per W6 BA-W6-1 分布式追踪"
+    }))
+}
+
+#[get("/api/v1/log-tasks/recent/{hours}")]
+async fn get_recent_logs(
+    state: web::Data<AppState>,
+    path: web::Path<i64>,
+) -> impl Responder {
+    // W6 BA-W6-1: log-tasks recent endpoint (per 最近 N 小时, 默认 24)
+    let hours = path.into_inner();
+    let log_rows: Result<Vec<LogEvent>, _> = sqlx::query_as::<_, LogEvent>(
+        "SELECT id, level, target, message, task_id, trace_id, created_at FROM batch_transaction.log_event WHERE created_at > now() - ($1 * interval '1 hour') ORDER BY created_at DESC LIMIT 200"
+    ).bind(hours).fetch_all(&state.db).await;
+    web::Json(serde_json::json!({
+        "hours": hours,
+        "logs": log_rows.unwrap_or_default(),
+        "note": "per W6 BA-W6-1 log-tasks 时间范围查询, 默认 24h, 监控用"
+    }))
+}
+
 #[get("/api/v1/task-progress")]
 async fn list_task_progress(state: web::Data<AppState>) -> impl Responder {
     // W3 BA-W3-2: Work W-1 task_progress 列表
@@ -2119,6 +2162,8 @@ async fn main() -> std::io::Result<()> {
             .service(delete_schedule)
             .service(list_task_executions)
             .service(list_logs)
+            .service(get_logs_by_trace)
+            .service(get_recent_logs)
             .service(list_task_progress)
             .service(upsert_task_progress)
             .service(update_task_progress)
