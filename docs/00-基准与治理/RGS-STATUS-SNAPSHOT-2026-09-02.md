@@ -25,8 +25,10 @@
 | D | 基础设施 + Handoff v0.4 | ✅ 6/6 (D4 excluded) | 6 | — |
 | E1 | BATCH REQ/BASIC/DETAILED/PLAN | ✅ 4/4 | 4 | — |
 | E2 | RACI v0.2 batch 域 | ✅ 1/1 | 1 | — |
-| E3 | W1 batch 域 6 任务 | ✅ W1 6/6 | 2 | W2-W6 转后续会话 (32 L4 任务) |
-| E3b | W2-W6 batch 域 | 📋 转后续会话 | 0 | WT 派工, per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A |
+| E3 W1 | W1 batch 域 6 任务 (rgs-batch-console + backend) | ✅ 6/6 | 2 | (per 2026-09-02 01:38 JST '解决受阻问题') |
+| E3 W2 | W2 batch 域 (sqlx PgPool + 5 域 gRPC + DLQ + worker pool + cron + audit + metrics + data_source/task_def) | ✅ 7/9 + 1 模板 | 8 | BA-W2-7/8 完整, W3 已启动 |
+| E3 W3 | W3 batch 域 (Transaction T-1.5~T-8 + Work W-1~W-3 高级 CRUD) | ✅ 5/6 | 5 | sub_task + audit_event 高级过滤 + 7/8 Transaction 表 8/8 已 list + CRUD, 11 UT 暂缓 (需 DB) |
+| E3 W4-W6 | W4-W6 batch 域 (log-tasks + migration + templates + 集成 + ST + 监控) | 📋 转后续会话 | 0 | WT 派工, per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A |
 | E4 | k3s 资源上限 + namespace 隔离 | 📋 草案已落 WBS v0.4 §3 | 0 | 需 SRE 协调 (per BATCH REQ §10.3) |
 | E5 | OLU v0.2 token-OLU 框架 | ✅ 1/1 | 1 | — |
 | E6 | ADR-0058 v0.2 6 域受控 | ✅ 1/1 | 1 | — |
@@ -108,6 +110,7 @@
 |---|---|---|---|
 | v0.1 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 7 phase 状态 + 6 域 cargo check 实测 + 阻塞项转交清单 + L13 派生约束, 接棒快照, 代签 Ulysses per 8/27 JST 三次强化 |
 | v0.2 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §0 ahead 数字改 deferred 实时查询 + §3 删 blob hash 列 + §4 cargo check 验证命令附注, 遵循 v0.4.1 hotfix L13 派生约束, 自指字段全部改动态查询 |
+| v0.3 | 2026-09-02 03:08 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W1/W2/W3 细化, rgs-batch-backend W2 7/9 + W3 5/6 已落地) + §6 增 rgs-batch-backend cargo check 0 error 实测, 本会话 9/2 02:17-03:07 JST 净增 15 commit, main HEAD 推进 b8a79d8 → 6b1b6cd, per 2026-09-02 03:08 JST '解决受阻问题' + '主会话打头阵 W2 全量' (per L4 派生约束) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
