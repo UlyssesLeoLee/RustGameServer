@@ -198,7 +198,26 @@
 - 等编译不要用 Start-Sleep 轮询
 ```
 
-### 6.2 模板 (per ST worker / 主会话 ST)
+### 6.2 临时越界记录 (per 2026-09-01 09:45 JST Ulysses 决策 opt3 + 追认)
+
+**背景**: 9/1 09:00-10:00 JST k3s 部署恢复期, postgres Deployment 缺 + initdb.sql 缺 CREATE USER, 5 域 svc 全部 CrashLoopBackOff 13 次 (DB pool timeout)。
+
+**Mavis 临时越界** (v0.3 §7.5 ❌ 改 yaml 边界外):
+- 改 `docs/deploy/01-k8s-manifests/22-postgres-configmap.yaml` initdb.sql: 加 `CREATE USER + GRANT` (6 域 user, password `ulysses_local`)
+- 改 `crates/player-service/migrations/0004_player_characters_inventory.sql`: 拆 cross-table FK (line 93 forward ref) → DO 块 + ALTER TABLE 在表建好后加
+
+**Ulysses 追认**: per ask_user opt3 决策 ("Mavis 改 22-postgres-configmap.yaml initdb.sql + apply, Mavis 临时越界, 你追认")
+
+**保留派生约束**:
+- 临时越界仅限部署恢复紧急路径, **不允许扩展到日常 commit / feature dev**
+- 越界后必须 24h 内 commit + 在 PR 描述 + 修订历史写明 "临时越界 + Ulysses 追认"
+- 不追溯改写历史文档中的"审批者=—" (per 8/27 19:39 JST 决策)
+
+**AGENTS.md 后续工作**:
+- v0.4 正式纳入"部署恢复期临时越界许可"流程 (Mavis 上报 + Ulysses 决策 + 24h 内 commit 三件套)
+- v0.4 追加 m4 forward ref FK 案例到 §2 Worker 工作流规则 (新派生约束 L7)
+
+### 6.3 模板 (per ST worker / 主会话 ST)
 
 ```markdown
 # ST 任务简报
@@ -227,6 +246,7 @@
 |---|---|---|---|
 | v0.1 | 2026-08-31 21:50 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 摘录 OPEN-QA v0.2 L1-L5 规则 + 5 域 Lead 流程 + 任务级 prompt 模板 |
 | (待续) | — | — | Q1-Q11 业务实现落地后, 追加 "业务级实施跟踪" 段 |
+| v0.2 | 2026-09-01 10:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 k3s 部署恢复期: 加 §6.2 临时越界记录 (Ulysses opt3 追认), 22-postgres-configmap initdb.sql + m4 forward ref FK 两处临时越界 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
