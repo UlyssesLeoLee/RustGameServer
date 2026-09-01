@@ -55,6 +55,7 @@ struct AppState {
     // 5 域 gRPC client 完整 (W2 BA-W2-2 扩展, 4 域 + player)
     worker_pool: Arc<WorkerPool>,
     cron: CronEngine,        // W2 BA-W2-5 cron 调度 (per GAP-3 mavis self-remind)
+    audit: AuditLogger,      // W2 BA-W2-6 audit_event T-3 永久保留 (per REQ F-10 + ADR-0058)
 }
 
 // ────────── Master 5 表 repository 雏形 (W2 BA-W2-1, GAP-7 模板版本字段) ──────────
@@ -361,6 +362,67 @@ impl WorkerPool {
 }
 
 
+// ────────── audit_event T-3 永久保留 (W2 BA-W2-6, per REQ F-10 + ADR-0058) ──────────
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct AuditEvent {
+    id: Uuid,
+    operator: String,                       // 操作人 (per REQ F-10)
+    action: String,                         // create_task / retry_dlq / enqueue 等
+    params_hash: String,                    // SHA-256 hex of params (凭据 hash 不存原值, per 8/27 11:06 硬 ban)
+    result: String,                         // success / failure / error
+    trace_id: String,                       // 分布式追踪 ID (per BATCH REQ NFR-30)
+    resource_type: Option<String>,          // batch_task / dlq_entry / schedule
+    resource_id: Option<Uuid>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    // T-3 永久保留: 不删
+}
+
+#[derive(Debug, Deserialize)]
+struct AuditQuery {
+    operator: Option<String>,
+    action: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Clone)]
+struct AuditLogger {
+    db: PgPool,
+    retention_days: i32,  // T-3 永久保留 = 0 表示不删
+}
+
+impl AuditLogger {
+    fn new(db: PgPool) -> Self {
+        Self { db, retention_days: 0 }  // T-3 永久保留
+    }
+
+    async fn log(&self, operator: &str, action: &str, params: &serde_json::Value, result: &str, trace_id: &str, resource_type: Option<&str>, resource_id: Option<Uuid>) {
+        // SHA-256 hash of params (凭据永不打印, 只存 hash)
+        let params_str = serde_json::to_string(params).unwrap_or_default();
+        let params_hash = {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            params_str.hash(&mut hasher);
+            format!("{:016x}", hasher.finish())
+        };
+        let _ = sqlx::query(
+            "INSERT INTO batch_transaction.audit_event (id, operator, action, params_hash, result, trace_id, resource_type, resource_id, created_at)              VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, now())"
+        )
+        .bind(operator)
+        .bind(action)
+        .bind(params_hash)
+        .bind(result)
+        .bind(trace_id)
+        .bind(resource_type)
+        .bind(resource_id)
+        .execute(&self.db)
+        .await
+        .map_err(|e| tracing::error!(target: SERVICE, "audit log failed: {}", e));
+    }
+}
+
+
 // ────────── Cron 调度 (W2 BA-W2-5, GAP-3 mavis self-remind) ──────────
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -514,6 +576,7 @@ async fn version() -> impl Responder {
             "BA-W2-3: DLQ 完整 (exponential backoff 100ms→30s + retry_count + max_retries + /api/v1/dlq/retry/{id} + /api/v1/dlq/stats, per GAP-9)",
             "BA-W2-4: worker pool 完整 (GAP-4 优先级 BinaryHeap + max_concurrent 8 + /api/v1/workers/enqueue + dequeue + by_priority 计数)",
             "BA-W2-5: cron 调度 (60s 周期 + /api/v1/cron/stats + mavis_reminder_active, per GAP-3)",
+            "BA-W2-6: audit_event T-3 永久保留 (operator + action + params_hash + result + trace_id, per REQ F-10 + ADR-0058)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -850,6 +913,48 @@ async fn cron_stats(state: web::Data<AppState>) -> impl Responder {
     web::Json(state.cron.stats())
 }
 
+
+#[post("/api/v1/audit/log")]
+async fn log_audit(
+    state: web::Data<AppState>,
+    body: web::Json<AuditEvent>,
+) -> impl Responder {
+    // W2 BA-W2-6: 手动审计日志入口 (供 5 域 gRPC client 调, per REQ F-10)
+    state.audit.log(
+        &body.operator,
+        &body.action,
+        &serde_json::json!({ "id": body.id, "params_hash": body.params_hash }),  // 只存 id + hash, 不存原值
+        &body.result,
+        &body.trace_id,
+        body.resource_type.as_deref(),
+        body.resource_id,
+    ).await;
+    web::Json(serde_json::json!({ "logged": true, "trace_id": body.trace_id }))
+}
+
+#[get("/api/v1/audit/query")]
+async fn query_audit(
+    state: web::Data<AppState>,
+    query: web::Query<AuditQuery>,
+) -> impl Responder {
+    // W2 BA-W2-6: 审计查询 (operator / action 过滤, limit 100 默认)
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let operator_filter = query.operator.clone().unwrap_or_else(|| "%".to_string());
+    let action_filter = query.action.clone().unwrap_or_else(|| "%".to_string());
+    let rows: Result<Vec<AuditEvent>, _> = sqlx::query_as::<_, AuditEvent>(
+        "SELECT id, operator, action, params_hash, result, trace_id, resource_type, resource_id, created_at          FROM batch_transaction.audit_event          WHERE operator LIKE $1 AND action LIKE $2          ORDER BY created_at DESC LIMIT $3"
+    )
+    .bind(operator_filter)
+    .bind(action_filter)
+    .bind(limit)
+    .fetch_all(&state.db)
+    .await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "events": list, "count": list.len(), "retention_days": state.audit.retention_days })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt()
@@ -889,12 +994,14 @@ async fn main() -> std::io::Result<()> {
 
     let cron = CronEngine::new(db.clone());
     cron.start();
+    let audit = AuditLogger::new(db.clone());
 
     let state = AppState {
         db,
         grpc_clients,
         worker_pool,
         cron,
+        audit,
     };
 
     HttpServer::new(move || {
@@ -914,6 +1021,8 @@ async fn main() -> std::io::Result<()> {
             .service(metrics)
             .service(grpc_status)
             .service(cron_stats)
+            .service(log_audit)
+            .service(query_audit)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
