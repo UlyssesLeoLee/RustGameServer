@@ -607,6 +607,7 @@ async fn version() -> impl Responder {
             "BA-W3-2/3: task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD (per task_id 过滤, ON CONFLICT upsert, 凭据 hash 不存原值 per 8/27 11:06 硬 ban)",
             "BA-W3-4/5: audit_event + dlq_event 高级过滤 (per operator/action/result/dlq_id/trace_id 过滤, 动态 SQL, per ADR-0058 T-3 永久保留)",
             "BA-W3-6/7: saga_instance + message_outbox + data_migration Transaction T-7+T-8+T-6 CRUD (per saga_type/state/destination/state/name 过滤, 动态 SQL, 跨 5 域 + kafka + DB 迁移)",
+            "BA-W3-8: sub_task Transaction T-1.5 CRUD (per parent_task_id/state/order_idx 过滤, ON CONFLICT (parent_task_id, name) upsert, 跨 8/3 Transaction 表 8/8 已 list + CRUD)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -860,6 +861,27 @@ struct SagaInstanceQuery {
 #[derive(Debug, Deserialize)]
 struct MessageOutboxQuery {
     destination: Option<String>,
+    state: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct SubTask {
+    id: Uuid,
+    parent_task_id: Uuid,        // 父 batch_task
+    name: String,                // 子任务名
+    state: String,               // pending / running / succeeded / failed
+    order_idx: i32,              // 执行顺序
+    started_at: Option<chrono::DateTime<chrono::Utc>>,
+    finished_at: Option<chrono::DateTime<chrono::Utc>>,
+    duration_ms: Option<i64>,
+    error_msg: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SubTaskQuery {
+    parent_task_id: Option<Uuid>,
     state: Option<String>,
     limit: Option<i64>,
 }
@@ -1237,6 +1259,51 @@ async fn list_data_migrations(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/api/v1/sub-tasks")]
+async fn list_sub_tasks(
+    state: web::Data<AppState>,
+    query: web::Query<SubTaskQuery>,
+) -> impl Responder {
+    // W3 BA-W3-8: Transaction T-1.5 sub_task 高级查询 (per parent_task_id/state/order_idx 过滤, 动态 SQL)
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let mut sql = String::from("SELECT id, parent_task_id, name, state, order_idx, started_at, finished_at, duration_ms, error_msg, created_at FROM batch_transaction.sub_task WHERE 1=1");
+    if let Some(pid) = query.parent_task_id { sql.push_str(&format!(" AND parent_task_id = '{}'", pid)); }
+    if let Some(s) = &query.state { sql.push_str(&format!(" AND state = '{}'", s)); }
+    sql.push_str(&format!(" ORDER BY order_idx ASC, created_at ASC LIMIT {}", limit));
+    let rows: Result<Vec<SubTask>, _> = sqlx::query_as::<_, SubTask>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "sub_tasks": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[post("/api/v1/sub-tasks")]
+async fn upsert_sub_task(
+    state: web::Data<AppState>,
+    body: web::Json<SubTask>,
+) -> impl Responder {
+    // W3 BA-W3-8: sub_task upsert (per (parent_task_id, name) ON CONFLICT)
+    let s = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_transaction.sub_task (id, parent_task_id, name, state, order_idx, started_at, finished_at, duration_ms, error_msg, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now()) \
+         ON CONFLICT (parent_task_id, name) DO UPDATE SET state = $4, order_idx = $5, started_at = $6, finished_at = $7, duration_ms = $8, error_msg = $9"
+    )
+    .bind(s.id)
+    .bind(s.parent_task_id)
+    .bind(&s.name)
+    .bind(&s.state)
+    .bind(s.order_idx)
+    .bind(s.started_at)
+    .bind(s.finished_at)
+    .bind(s.duration_ms)
+    .bind(&s.error_msg)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    web::Json(serde_json::json!({ "upserted": true, "parent_task_id": s.parent_task_id, "name": s.name, "state": s.state }))
+}
+
 #[post("/api/v1/workers/enqueue")]
 async fn enqueue_task(
     state: web::Data<AppState>,
@@ -1453,6 +1520,8 @@ async fn main() -> std::io::Result<()> {
             .service(list_saga_instances)
             .service(list_message_outbox)
             .service(list_data_migrations)
+            .service(list_sub_tasks)
+            .service(upsert_sub_task)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
