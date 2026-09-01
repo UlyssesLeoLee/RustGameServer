@@ -2118,6 +2118,7 @@ dependencies = [
  "futures-util",
  "jsonwebtoken",
  "player-service",
+ "proptest",
  "prost",
  "rand 0.8.7",
  "rgs-testkit",
