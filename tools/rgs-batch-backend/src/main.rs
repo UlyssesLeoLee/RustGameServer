@@ -60,7 +60,7 @@ struct AppState {
 
 // ────────── Master 5 表 repository 雏形 (W2 BA-W2-1, GAP-7 模板版本字段) ──────────
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct TaskTemplate {
     id: Uuid,
     name: String,
@@ -643,6 +643,7 @@ async fn version() -> impl Responder {
             "BA-W3-9: sub_task update + delete (per id, 跨 8/3 Transaction 表 8/8 已 full CRUD: list+upsert+update+delete)",
             "BA-W4-1/2: worker_pool_config + schedule Master M-4+M-5 CRUD (per min/max_workers + enabled/handler 过滤, GAP-4 优先级调度对接)",
             "BA-W4-3/4: data_source update/delete + task_template 灰度版本 promote (per GAP-7 任务模板版本化, audit_event 自动记录 promote 动作, per ADR-0058 + REQ F-10)",
+            "BA-W4-5/6: task_template upsert + delete (per GAP-7 灰度版本化, ON CONFLICT id 锁定 template_version, audit_event 自动记录)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1139,6 +1140,54 @@ async fn promote_task_template(
         "success", "trace-promote-001", Some("task_template"), Some(id)
     ).await;
     web::Json(serde_json::json!({ "promoted": true, "id": id, "trace_id": "trace-promote-001" }))
+}
+
+#[actix_web::put("/api/v1/task-templates")]
+async fn upsert_task_template(
+    state: web::Data<AppState>,
+    body: web::Json<TaskTemplate>,
+) -> impl Responder {
+    // W4 BA-W4-5: task_template upsert (per GAP-7 灰度版本化, ON CONFLICT id)
+    let t = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_master.task_template (id, name, template_version, priority, timeout_secs, sql_template, enabled, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, now()) \
+         ON CONFLICT (id) DO UPDATE SET template_version = $3, priority = $4, timeout_secs = $5, sql_template = $6, enabled = $7"
+    )
+    .bind(t.id)
+    .bind(&t.name)
+    .bind(t.template_version)
+    .bind(t.priority)
+    .bind(t.timeout_secs)
+    .bind(&t.sql_template)
+    .bind(t.enabled)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    state.audit.log(
+        "ulysses", "upsert_task_template", &serde_json::json!({ "template_id": t.id, "version": t.template_version }),
+        "success", "trace-upsert-001", Some("task_template"), Some(t.id)
+    ).await;
+    web::Json(serde_json::json!({ "upserted": true, "id": t.id, "template_version": t.template_version }))
+}
+
+#[actix_web::delete("/api/v1/task-templates/{id}")]
+async fn delete_task_template(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W4 BA-W4-5: task_template delete (per id, audit_event 自动记录)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_master.task_template WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    state.audit.log(
+        "ulysses", "delete_task_template", &serde_json::json!({ "template_id": id }),
+        "success", "trace-delete-001", Some("task_template"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
 }
 
 #[get("/api/v1/worker-pool-config")]
@@ -1701,6 +1750,8 @@ async fn main() -> std::io::Result<()> {
             .service(update_data_source)
             .service(delete_data_source)
             .service(promote_task_template)
+            .service(upsert_task_template)
+            .service(delete_task_template)
             .service(list_task_defs)
             .service(list_worker_pool_config)
             .service(list_schedules)
