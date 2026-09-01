@@ -144,7 +144,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (10 commit)
+### 文档 / 跟踪表 hotfix (12 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -158,8 +158,10 @@
 | `b9f2979` | STATUS-SNAPSHOT v0.6.7 (本表元信息行 + §0 头标 5 段时间戳统一) |
 | `7afcf08` | STATUS-SNAPSHOT v0.6.8 (本表 §0.1 + §2 自指版本号统一 v0.6.7 + §7 指针) |
 | `abcc752` | WBS v0.4.6 跟踪表 hotfix (§1.1 / §1.1 ahead / §6 3 处 "88 commit" → 实时 git 实证表达式) |
+| `c3c52cb` | WBS v0.4.7 跟踪表 hotfix (§1.1 E3 W2-W6 每行 commit 字段补全 9+9+8+6+7=39+4 hotfix=43 commit) |
+| `a13da81` | WBS v0.4.8 跟踪表 hotfix (§1 主表新增 E3 W2-W6 汇总行 修复 §1 vs §1.1 不一致) |
 
-**commit 链总合计**: 52 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 10) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.4 + 本快照 v0.6.1 ~ v0.6.4 等)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
+**commit 链总合计**: 54 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 12) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.5 + 本快照 v0.6.1 ~ v0.6.4 等)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
 - `7ec98ee docs(wbs): v0.4.2 跟踪表 hotfix — §6 6 域 cargo check 实测入档 (2 行: 21.53s 0 error 实测 + 验证命令, PID 51296 + task_output wait)`
 - `0d7a407 docs(wbs): v0.4.1 跟踪表 hotfix — §6 main HEAD 字段改 deferred 实时查询 (避免回溯改写) + 6 域 cargo check 实测入档 (per 2026-09-02 02:18 JST, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止`
@@ -250,6 +252,7 @@
 | **v0.6.12** | **2026-09-02 09:21** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 "已清理 1 项" 事实修正 — 之前 v0.6.2 误判 PowerShell Remove-Item 删除成功, 实测路径在 .worktrees/feat-auto-20260901-3e13c819/ 内部 (12 老 worktree 之一, Permission denied 未清), 物理目录仍在; 改为 "已 prune 元数据" + 标注 L12 派生约束只要求不入 commit 不要求清空, 事实修正 (L12 + L11 派生约束), 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.13** | **2026-09-02 09:24** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 3 git stash 表格新增 "创建时间" 列 + 实证分析段 — 3 stash 全是 WBS v0.2 (84edf26, 2026-09-01 22:20 JST) 之前的 8/25-8/26 老 stash, 跟本会话 9/2 hotfix 全部无关, 不影响 main HEAD, 内容是上游 session 协调未决需求, 由 Ulysses 拍板 drop / apply / pop / branch-and-apply, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.14** | **2026-09-02 09:27** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 3 git stash 文件实证分析 (per `git stash show --name-status`) — stash@{0} Cargo.lock 1 文件 11KB 建议 drop (L12 临时 lock 文件, 8/26 老分支 pre-rebase 已无价值) + stash@{1} RGS-REQ-001/005 2 文件 3.2KB 建议 apply 评估 (GM 后台实际需求增量) + stash@{2} 空 stash 建议 drop, Ulysses 拍板提供文件级决策依据, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.15** | **2026-09-02 09:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 10 commit → 12 commit (补 c3c52cb WBS v0.4.7 + a13da81 WBS v0.4.8 两个 WBS 跟踪表 hotfix) + §2 commit 链总合计 52 → 54 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
