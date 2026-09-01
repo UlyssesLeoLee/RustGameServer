@@ -604,6 +604,7 @@ async fn version() -> impl Responder {
             "BA-W2-7: Prometheus 完整 12 指标 (task total/succeeded/failed/running + duration avg + worker pool active/max/queue + DLQ size/exhausted + cron executions/active, per BA-W2-7)",
             "BA-W2-8: data_source + task_def Master M-3 + M-1 list endpoint (per BAS-001 v0.3 三分类, Master 5 表 4/5 已 list)",
             "BA-W3-1: task_execution + log_event Transaction T-2 + T-5 高级查询 (per task_id/result/duration/level/target 过滤, 动态 SQL)",
+            "BA-W3-2/3: task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD (per task_id 过滤, ON CONFLICT upsert, 凭据 hash 不存原值 per 8/27 11:06 硬 ban)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -759,6 +760,35 @@ struct LogEvent {
     task_id: Option<Uuid>,
     trace_id: Option<String>,
     created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct TaskProgress {
+    id: Uuid,
+    task_id: Uuid,
+    progress_pct: f64,        // 0.0 - 100.0
+    current_step: String,     // 当前 step 名称
+    total_steps: i32,
+    updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct TaskBuffer {
+    id: Uuid,
+    task_id: Uuid,
+    key: String,              // buffer key (e.g. "checkpoint" / "intermediate_result")
+    value: serde_json::Value, // buffer value (任意 JSON)
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct AuditSession {
+    id: Uuid,
+    operator: String,
+    session_token: String,    // 会话 token, 凭据 per 8/27 11:06 硬 ban
+    started_at: chrono::DateTime<chrono::Utc>,
+    ended_at: Option<chrono::DateTime<chrono::Utc>>,
+    ip_address: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -961,6 +991,89 @@ async fn list_logs(
     let rows: Result<Vec<LogEvent>, _> = sqlx::query_as::<_, LogEvent>(&sql).fetch_all(&state.db).await;
     match rows {
         Ok(list) => web::Json(serde_json::json!({ "logs": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/task-progress")]
+async fn list_task_progress(state: web::Data<AppState>) -> impl Responder {
+    // W3 BA-W3-2: Work W-1 task_progress 列表
+    let rows: Result<Vec<TaskProgress>, _> = sqlx::query_as::<_, TaskProgress>(
+        "SELECT id, task_id, progress_pct, current_step, total_steps, updated_at FROM batch_work.task_progress ORDER BY updated_at DESC LIMIT 100"
+    ).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "progress": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[post("/api/v1/task-progress")]
+async fn upsert_task_progress(
+    state: web::Data<AppState>,
+    body: web::Json<TaskProgress>,
+) -> impl Responder {
+    // W3 BA-W3-2: Work W-1 task_progress upsert (per task_id)
+    let p = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_work.task_progress (id, task_id, progress_pct, current_step, total_steps, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, now()) \
+         ON CONFLICT (task_id) DO UPDATE SET progress_pct = $3, current_step = $4, total_steps = $5, updated_at = now()"
+    )
+    .bind(p.id)
+    .bind(p.task_id)
+    .bind(p.progress_pct)
+    .bind(&p.current_step)
+    .bind(p.total_steps)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    web::Json(serde_json::json!({ "upserted": true, "task_id": p.task_id, "progress_pct": p.progress_pct }))
+}
+
+#[get("/api/v1/task-buffer/{task_id}")]
+async fn get_task_buffer(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W3 BA-W3-3: Work W-2 task_buffer 查询 (per task_id)
+    let task_id = path.into_inner();
+    let rows: Result<Vec<TaskBuffer>, _> = sqlx::query_as::<_, TaskBuffer>(
+        "SELECT id, task_id, key, value, created_at FROM batch_work.task_buffer WHERE task_id = $1 ORDER BY created_at ASC"
+    ).bind(task_id).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "buffers": list, "count": list.len(), "task_id": task_id })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[post("/api/v1/task-buffer")]
+async fn put_task_buffer(
+    state: web::Data<AppState>,
+    body: web::Json<TaskBuffer>,
+) -> impl Responder {
+    // W3 BA-W3-3: Work W-2 task_buffer 写入 (per task_id + key)
+    let b = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_work.task_buffer (id, task_id, key, value, created_at) VALUES ($1, $2, $3, $4, now())"
+    )
+    .bind(b.id)
+    .bind(b.task_id)
+    .bind(&b.key)
+    .bind(&b.value)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "stored": false })));
+    web::Json(serde_json::json!({ "stored": true, "task_id": b.task_id, "key": b.key }))
+}
+
+#[get("/api/v1/audit-sessions")]
+async fn list_audit_sessions(state: web::Data<AppState>) -> impl Responder {
+    // W3 BA-W3-2/3: Work W-3 audit_session 列表 (operator 会话历史, 凭据 per 8/27 11:06 硬 ban)
+    let rows: Result<Vec<AuditSession>, _> = sqlx::query_as::<_, AuditSession>(
+        "SELECT id, operator, session_token, started_at, ended_at, ip_address FROM batch_work.audit_session ORDER BY started_at DESC LIMIT 50"
+    ).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "sessions": list, "count": list.len() })),
         Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
     }
 }
@@ -1171,6 +1284,11 @@ async fn main() -> std::io::Result<()> {
             .service(list_task_defs)
             .service(list_task_executions)
             .service(list_logs)
+            .service(list_task_progress)
+            .service(upsert_task_progress)
+            .service(get_task_buffer)
+            .service(put_task_buffer)
+            .service(list_audit_sessions)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
