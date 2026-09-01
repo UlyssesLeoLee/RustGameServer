@@ -605,6 +605,7 @@ async fn version() -> impl Responder {
             "BA-W2-8: data_source + task_def Master M-3 + M-1 list endpoint (per BAS-001 v0.3 三分类, Master 5 表 4/5 已 list)",
             "BA-W3-1: task_execution + log_event Transaction T-2 + T-5 高级查询 (per task_id/result/duration/level/target 过滤, 动态 SQL)",
             "BA-W3-2/3: task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD (per task_id 过滤, ON CONFLICT upsert, 凭据 hash 不存原值 per 8/27 11:06 硬 ban)",
+            "BA-W3-4/5: audit_event + dlq_event 高级过滤 (per operator/action/result/dlq_id/trace_id 过滤, 动态 SQL, per ADR-0058 T-3 永久保留)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -789,6 +790,26 @@ struct AuditSession {
     started_at: chrono::DateTime<chrono::Utc>,
     ended_at: Option<chrono::DateTime<chrono::Utc>>,
     ip_address: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct DlqEvent {
+    id: Uuid,
+    dlq_id: Uuid,            // 引用 batch_work.dlq_entry (主表)
+    attempt: i32,            // 第 N 次重试
+    started_at: chrono::DateTime<chrono::Utc>,
+    finished_at: Option<chrono::DateTime<chrono::Utc>>,
+    result: String,          // success / failure / skipped
+    error_msg: Option<String>,
+    trace_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct DlqEventQuery {
+    dlq_id: Option<Uuid>,
+    result: Option<String>,
+    trace_id: Option<String>,
+    limit: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1078,6 +1099,44 @@ async fn list_audit_sessions(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/api/v1/dlq-events")]
+async fn list_dlq_events(
+    state: web::Data<AppState>,
+    query: web::Query<DlqEventQuery>,
+) -> impl Responder {
+    // W3 BA-W3-5: Transaction T-4 dlq_event 高级查询 (per dlq_id/result/trace_id 过滤, 动态 SQL)
+    let limit = query.limit.unwrap_or(50).min(500);
+    let mut sql = String::from("SELECT id, dlq_id, attempt, started_at, finished_at, result, error_msg, trace_id FROM batch_transaction.dlq_event WHERE 1=1");
+    if let Some(did) = query.dlq_id { sql.push_str(&format!(" AND dlq_id = '{}'", did)); }
+    if let Some(r) = &query.result { sql.push_str(&format!(" AND result = '{}'", r)); }
+    if let Some(t) = &query.trace_id { sql.push_str(&format!(" AND trace_id = '{}'", t)); }
+    sql.push_str(&format!(" ORDER BY started_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<DlqEvent>, _> = sqlx::query_as::<_, DlqEvent>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "dlq_events": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/audit-events")]
+async fn list_audit_events(
+    state: web::Data<AppState>,
+    query: web::Query<AuditQuery>,
+) -> impl Responder {
+    // W3 BA-W3-4: Transaction T-3 audit_event 高级过滤 (per operator/action/result 过滤 + 时间范围)
+    // AuditQuery 在 BA-W2-6 已定义, 这里用 query 注入 + 时间范围
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let mut sql = String::from("SELECT id, operator, action, params_hash, result, trace_id, resource_type, resource_id, created_at FROM batch_transaction.audit_event WHERE 1=1");
+    if let Some(op) = &query.operator { sql.push_str(&format!(" AND operator LIKE '%{}%'", op)); }
+    if let Some(act) = &query.action { sql.push_str(&format!(" AND action LIKE '%{}%'", act)); }
+    sql.push_str(&format!(" ORDER BY created_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<AuditEvent>, _> = sqlx::query_as::<_, AuditEvent>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "events": list, "count": list.len(), "retention_days": state.audit.retention_days })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
 #[post("/api/v1/workers/enqueue")]
 async fn enqueue_task(
     state: web::Data<AppState>,
@@ -1289,6 +1348,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_task_buffer)
             .service(put_task_buffer)
             .service(list_audit_sessions)
+            .service(list_dlq_events)
+            .service(list_audit_events)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
