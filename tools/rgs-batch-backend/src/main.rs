@@ -657,6 +657,7 @@ async fn version() -> impl Responder {
             "GAP-2 SSE 流式 (per E8 GAP-2 + W4 BA-W4-9, 替代 WebSocket 简化, 零新 dep, 周期性推 batch_status 6 字段 event-stream, async-stream 0.3 + actix-web HttpResponse::streaming)",
             "GAP-5 AI 协助 SQL (per E8 GAP-5 + W5 BA-W5-6, 简化版不调 LLM, 关键词映射 + 5 域 + batch 模板生成, 生产可接 OLU-WEB F-25 LLM)",
             "GAP-8 Rollback SQL 验证 (per E8 GAP-8 + W4 BA-W4-11, 沙箱执行 + diff 校验, 默认 dry_run=true 不真执行, audit_event 自动记录)",
+            "GAP-10 跨域 saga 触发 (per E8 GAP-10 + W6 BA-W6-6, saga-runtime 独立 Pod 集成预留, 写 saga_instance + message_outbox 跨域事件分发, 5 域 gRPC health check)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1722,6 +1723,101 @@ struct RollbackSqlRequest {
     dry_run: Option<bool>,
 }
 
+#[derive(Debug, Deserialize)]
+struct CrossDomainSagaRequest {
+    saga_type: String,         // rgs-batch-saga-cleanup / rgs-batch-saga-rollback / rgs-batch-saga-distribute
+    source_domain: String,     // player / economy / match / social / admin
+    target_domains: Vec<String>, // 跨域: e.g. ["player", "economy"]
+    payload: serde_json::Value,
+    trace_id: Option<String>,
+}
+
+#[post("/api/v1/sagas/cross-domain")]
+async fn cross_domain_saga(
+    state: web::Data<AppState>,
+    body: web::Json<CrossDomainSagaRequest>,
+) -> impl Responder {
+    // GAP-10: 跨域 saga 触发 (per E8 GAP-10 + W6 BA-W6-6, saga-runtime 独立 Pod 集成预留)
+    // 简化版: 在 batch_transaction.saga_instance 写 saga, 标记跨域来源 + 目标, 通过 grpc_clients 通知
+    let req = body.into_inner();
+    let trace_id = req.trace_id.clone().unwrap_or_else(|| format!("trace-cross-{}", chrono::Utc::now().timestamp()));
+
+    // 1. 写 saga_instance 记录
+    let saga_id: Result<Uuid, _> = sqlx::query_scalar(
+        "INSERT INTO batch_transaction.saga_instance (id, saga_type, state, started_at, updated_at, payload, error_msg) \
+         VALUES (gen_random_uuid(), $1, 'pending', now(), now(), $2, NULL) \
+         RETURNING id"
+    )
+    .bind(&req.saga_type)
+    .bind(serde_json::to_value(&req.payload).unwrap_or_default())
+    .fetch_one(&state.db)
+    .await;
+    let saga_id = match saga_id {
+        Ok(id) => id,
+        Err(e) => return web::Json(serde_json::json!({ "error": e.to_string() })),
+    };
+
+    // 2. 检查 5 域 gRPC 健康
+    let grpc_health = state.grpc_clients.health_check_all().await;
+    let target_grpc_ok: Vec<(&'static str, bool)> = req.target_domains.iter().filter_map(|d| {
+        let mapped: Option<GrpcDomain> = match d.as_str() {
+            "player" => Some(GrpcDomain::Player),
+            "economy" => Some(GrpcDomain::Economy),
+            "match" => Some(GrpcDomain::Match),
+            "social" => Some(GrpcDomain::Social),
+            "admin" => Some(GrpcDomain::Admin),
+            _ => None,
+        };
+        mapped.map(|gd| (gd.service_name(), grpc_health.get(&gd).copied().unwrap_or(false)))
+    }).collect();
+
+    // 3. 模拟 saga 执行 (实际应 saga-runtime 独立 Pod 调度, per RGS-BAS-100 v0.1)
+    let _ = sqlx::query(
+        "UPDATE batch_transaction.saga_instance SET state = 'running', updated_at = now() WHERE id = $1"
+    ).bind(saga_id).execute(&state.db).await;
+
+    // 4. 写 message_outbox 跨域事件 (per W6 BA-W6-4 模式)
+    for target in &req.target_domains {
+        let _ = sqlx::query(
+            "INSERT INTO batch_transaction.message_outbox (id, destination, topic, payload, state, retry_count, created_at) \
+             VALUES (gen_random_uuid(), $1, $2, $3, 'pending', 0, now())"
+        )
+        .bind(target)
+        .bind(format!("{}.cross_domain.{}", req.saga_type, target))
+        .bind(serde_json::json!({
+            "saga_id": saga_id,
+            "saga_type": req.saga_type,
+            "source_domain": req.source_domain,
+            "target_domain": target,
+            "payload": req.payload,
+            "trace_id": trace_id,
+        }))
+        .execute(&state.db)
+        .await;
+    }
+
+    // 5. audit_event 记录
+    state.audit.log(
+        "ulysses", "cross_domain_saga", &serde_json::json!({
+            "saga_id": saga_id, "saga_type": req.saga_type,
+            "source_domain": req.source_domain, "target_domains": req.target_domains,
+        }),
+        "success", &trace_id, Some("saga_instance"), Some(saga_id)
+    ).await;
+
+    web::Json(serde_json::json!({
+        "saga_id": saga_id,
+        "saga_type": req.saga_type,
+        "source_domain": req.source_domain,
+        "target_domains": req.target_domains,
+        "target_grpc_health": target_grpc_ok,
+        "state": "running",
+        "trace_id": trace_id,
+        "message_outbox_enqueued": req.target_domains.len(),
+        "note": "GAP-10 跨域 saga 触发 (per E8 GAP-10 + W6 BA-W6-6), saga-runtime 独立 Pod 集成预留 (per RGS-BAS-100 v0.1), 当前在 saga_instance 写记录 + message_outbox 跨域事件分发",
+    }))
+}
+
 #[post("/api/v1/migrations/rollback")]
 async fn rollback_migration(
     state: web::Data<AppState>,
@@ -2670,6 +2766,7 @@ async fn main() -> std::io::Result<()> {
             .service(integration_test_full_cycle)
             .service(get_batch_dag)
             .service(ai_sql_generate)
+            .service(cross_domain_saga)
             .service(rollback_migration)
             .service(rgs_web_bridge_status)
             .service(rgs_web_bridge_task_execution)
