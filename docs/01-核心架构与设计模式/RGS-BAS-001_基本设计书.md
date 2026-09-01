@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-001 |
-| 版本 | 1.4 |
+| 版本 | 1.5 |
 | 父文档 | RGS-REQ-001 需求定义书 第10章（架构设计方针） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程（日文原标准） |
 | 制定日 | 2026-08-15 |
@@ -21,6 +21,7 @@
 | 1.2 | 2026-08-15 | 架构师 | 自审：修正§5.2 UML依赖箭头方向（应指向被引用方PlayerContext而非反向）；修正§6.3接口图误用的UML"实现"记号（realization）为"依赖"记号（dependency）；§4.5.1时序图遗留字段名统一为`character_id`（与§4.4.2/§5/§6.3.2一致）；简化§6.3.3/6.3.4构造型注记避免未验证语法；依用户澄清，将玩家（账号）实体的ID字段统一改为`player_id`／`playerId`，与需求定义书FR-EC-003／NFR-OP-002既有用词对齐，实体/表名`Account`本身不变 | §4.5.1、§5.2、§5.3、§5.7、§6.3 |
 | 1.3 | 2026-08-17 | 架构师 | 补齐设计缺口：ARC-013"死锁防止"（不得在Actor间构成同步请求应答循环，须使用优先级不同的独立通道并在设计时证明不会形成循环）此前仅在§2追溯性摘要表出现，正文无对应设计内容；新增§7.2.1给出全部东西向调用的方向性分类、循环检测判定表与具体证明，并补充ARC-013"背压设置位置"八个边界的一览表 | §7.2 |
 | 1.4 | 2026-08-25 | 架构师 | 反映RGS-ADR-0057（游戏核心状态收敛与分级持久化架构演进，Accepted）§2.1：新增§5.4.3权威源分级说明，明确`economy_db`（Tier-1，强一致不可逆资产）与SceneActor内存（Tier-2，最终一致过程态）各自的权威源归属与恢复语义；不改变§4.2.1/4.2.2 tick循环结构本身，与CON-007/ARC-007/NFR-PE-002零冲突 | §5.4.3新增 |
+| 1.5 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：（1）§4.8.3新增"体系级日志章节约定"，作为BAS-002/003/005-037全部36个BAS文档的"本功能日志设计"小节的统一写作模板（5列：字段名/触发条件/频率估算/采样策略/脱敏与成本）+ 引用BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段规范 + §5.1 脱敏规则 + §6.2 强制全采样；（2）§6.1.1新增"API日志约定"，§6.1 5条API设计原则各加日志字段/级别/采样/脱敏/成本（10 行详尽表），含 `api.request_body_size`/`api.response_body_size`/`api.internal_branch_hit` 三个 debug-only 字段（`#[cfg(debug_assertions)]` 守护）+ `api.auth_failed` 强制全采样字段；（3）§9.1.1新增"错误分类日志设计"，按§9.1业务/系统/基础设施三类错误分别给日志级别/触发位置/字段/采样/脱敏成本，含反模式与NFR-OP-008排查SLA保障；（4）§9.2.1新增"错误响应日志设计"，按§9.2三种传输层错误表达方式统一字段，含 `error.client_visible` 强制规则（系统/基础设施错误不暴露 panic message/DB endpoint）+ `error.response_body_dump` debug-only 字段；§4.8.3.4 追溯性扩展新增 AC-LOG-006（debug-only 宏在 release build 完全剔除）与 AC-LOG-007（每功能 BAS 文档须含本功能 log 设计章节），与 RGS-BAS-003 v0.3 / RGS-BAS-004 v0.3 形成统一规范 | §4.8.3、§6.1.1、§9.1.1、§9.2.1、§4.8.3.4 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -569,6 +570,47 @@ sequenceDiagram
 
 各组件通过OTLP将指标推送/暴露给OTel Collector（§3.1），Collector写入指标存储，仪表盘（FR-OB-004）从指标存储查询。日志走结构化输出→日志存储，检索时以`trace_id`／`player_id`等关联ID联表分析（NFR-OP-002）。
 
+### 4.8.3 体系级日志章节约定（落实RGS-BAS-004 v0.3 §4.2 / §4.3 / §4.4 / §4.5）
+
+**本总纲的日志设计总则**。本节定义了本总纲（§3-§9）下所有"本功能日志设计"小节的统一写作模板与字段规范，是派发给各域基本设计书（BAS-002/003/005-037）的种子模板。
+
+#### 4.8.3.1 日志设计模板（5列详尽版，**所有功能章节沿用**）
+
+每个功能章节下必须新增 `### N.M.X 本功能日志设计` 小节，包含一张 5 列表 + 引用段：
+
+| 列名 | 必填 | 填写规则 | 示例 |
+|---|---|---|---|
+| 字段名（field） | ✅ | snake_case，与BAS-004 §4.3.1基础字段+§4.3.2业务扩展字段保持拼写一致；不得使用`playerId`等变体（FR-LOG-013） | `player_id`／`request_id`／`scene_id` |
+| 触发条件（trigger） | ✅ | 描述何时输出该日志条目（事件名/方法入口/异常分支/心跳/限流命中），**必须**区分 debug-only 与 release 必出 | `ec.commit_transaction` 入口; `gm.kick_session` 出口 |
+| 频率估算（frequency） | ✅ | 标注该日志条目在稳态/峰值下的输出频率（req/s、events/s、ticks/s），便于容量规划 | 稳态 10/s / 峰值 100/s |
+| 采样策略（sampling） | ✅ | debug-only 由 `#[cfg(debug_assertions)]` 守护，release build 完全剔除；release 必出由 FR-LOG-040 + §6.2 强制全采样白名单决定 | debug-only (100%, release 剔除) / release 必出 (默认100% 强制全采样) |
+| 脱敏与成本（redact & cost） | ✅ | 标注字段是否进入§5.1脱敏规则表（`*token*`/`*password*`黑名单自动丢弃）；估算每条日志的字节数 × 频率 = 稳态/峰值流量成本 | 字段已脱敏 (`credential_token` 黑名单); 约 200B/条 × 100/s = 20KB/s 稳态 |
+
+#### 4.8.3.2 编译期 × 运行时二维矩阵（**所有 log 章节强制沿用 BAS-004 v0.3 §4.2**）
+
+| 级别 | debug build | release build | debug Profile 输出 | release Profile 输出 | 适用场景（与本总纲 §4.8.1 Trace 一致） |
+|---|---|---|---|---|---|
+| `trace!` | 编译进 | `#[cfg(debug_assertions)]` 守护，release 完全剔除 | ✅ | ❌ | 逐步调试（tick 循环每次迭代、循环内分支命中） |
+| `debug!` | 编译进 | `#[cfg(debug_assertions)]` 守护，release 完全剔除 | ✅ | ❌ | 关键变量值、API 入参出参、条件分支命中 |
+| `info!` | 编译进 | 编译进（常驻） | ✅ | ✅ | 正常业务事件（会话建立、场景切换、GM 指令成功） |
+| `warn!` | 编译进 | 编译进（常驻） | ✅ | ✅ | 降级触发、重试成功、背压拒绝 |
+| `error!` | 编译进 | 编译进（常驻） | ✅ | ✅（+ §6.2 强制全采样） | 未被正确处理的异常、下游依赖不可用 |
+
+#### 4.8.3.3 引用规范（**所有 log 章节强制包含**）
+
+- 字段名规范 → RGS-BAS-004 v0.3 §4.3.1 基础字段 + §4.3.2 业务扩展字段
+- 脱敏规则 → RGS-BAS-004 v0.3 §5.1 脱敏规则表
+- 采样策略 → RGS-BAS-004 v0.3 §6.1 配置项 + §6.2 强制全量采集范围
+- 标准化检查 → RGS-BAS-004 v0.3 §11.1 新服务埋点接入检查清单 + §11.2 既有服务改造检查清单
+- 样板参考 → RGS-BAS-003 v0.3 §3.1.1 / §3.2.1 / §3.3.1 / §3.4.1 / §4.5 / §5.1 / §6.3 / §7.1 / §8.3 / §9.1 / §10.1（共 11 个"本功能日志设计"小节，是其他 BAS 的工作样板）
+
+#### 4.8.3.4 追溯性扩展
+
+| 验收标准 | 落实段落 | 关联需求 |
+|---|---|---|
+| AC-LOG-006：debug-only 宏（`trace!`/`debug!`）在 release build 完全由 `#[cfg(debug_assertions)]` 剔除，二进制中无相关调用 | 全部 BAS 文档的"本功能日志设计"小节 + RGS-BAS-004 v0.3 §4.4 | FR-LOG-012 |
+| AC-LOG-007：每功能 BAS 文档须含本功能 log 设计章节，区分 debug-only / release 必出 | 全部 36 个 BAS 文档 | FR-LOG-010/011/012 + §1 总要求 |
+
 ---
 
 # 5. 数据库论理设计
@@ -905,6 +947,28 @@ erDiagram
 | 追踪字段 | 全部方法的请求元数据（gRPC metadata／QUIC消息头）**必须**携带`trace_id` | NFR-OP-002、§4.8.1 |
 | 错误表达 | 业务错误通过响应体的`result_code`字段表达，**不得**滥用传输层错误（gRPC status/QUIC错误帧）表达业务语义 | §9.2 |
 
+### 6.1.1 API 日志约定（落实 RGS-BAS-004 v0.3 §4 / §5 / §6）
+
+本节是 §6.1 API 设计通用原则 5 条的"日志设计"配套约定。所有 §6.x 接口的"本接口日志设计"小节（§6.2/§6.3/§6.4/§6.5 各小节下）必须沿用本节约定的字段、级别与脱敏规则。
+
+| 字段名 | 触发条件 | 频率估算 | 采样策略 | 脱敏与成本 |
+|---|---|---|---|---|
+| `trace_id` | 全部方法入口（gRPC metadata / QUIC 头） | 1:1 与请求量 | release 必出 | 已脱敏（snake_case 标准字段）; 32B/条 × 全量请求 |
+| `request_id`（UUIDv7） | §6.1 幂等键 / 全部写方法 | 写流量 1:1 | release 必出 | 已脱敏; 16B/条 × 写流量 |
+| `player_id` | 全部玩家域方法（PL/EC/MT/GD 上下文） | 业务请求 1:1 | release 必出 | 明文允许（§5.1）; 16B/条 |
+| `api.method` | 全部方法入口，gRPC full method（如 `pl.PlayerService/SelectCharacter`） | 业务请求 1:1 | release 必出 | 标准字段; 64B/条 |
+| `api.duration_ms` | 全部方法出口 | 业务请求 1:1 | release 必出 | 数值; 8B/条 |
+| `api.status_code` | 全部方法出口（gRPC status 或业务 `result_code`） | 业务请求 1:1 | release 必出 | 数值; 4B/条 |
+| `api.request_body_size` | 全部方法入口 | 业务请求 1:1 | debug-only（`#[cfg(debug_assertions)]`，release 完全剔除） | 数值; 8B/条 |
+| `api.response_body_size` | 全部方法出口 | 业务请求 1:1 | debug-only（`#[cfg(debug_assertions)]`，release 完全剔除） | 数值; 8B/条 |
+| `api.internal_branch_hit` | 关键内部条件分支命中（如 retry 路径、fallback 路径、限流命中） | 10-100/s | debug-only | 枚举字符串; 32B/条 |
+| `api.auth_failed` | 鉴权失败（token 无效、签名错误、过期） | <1/s | release 必出（安全审计，§6.2 强制全采样） | 字段已脱敏（`*token*` 黑名单自动丢弃，不记录 token 值）; 64B/条 |
+
+**总成本估算**（典型 1k req/s 混合读写流量）：
+- release 必出累计：~120B/条 × 1k/s = 120 KB/s 稳态（4.3 GB/h）
+- debug-only 在 release build 完全剔除，不产生成本
+- 故障排查时可临时通过 `RUST_LOG=info,my_crate::module=debug` 提升指定模块的级别（**前提是该模块在 release build 中已有 `debug!` 调用未被剔除**，因此"打算在 release 故障排查时可能需要"的 `debug!` 也必须保留）
+
 ## 6.2 IF-001：客户端 ⇔ 网关（QUIC消息字段设计）
 
 ### 6.2.1 不可靠通道（Datagram）消息
@@ -1125,6 +1189,22 @@ flowchart TD
 | 系统错误 | 组件内部异常（panic、逻辑缺陷） | 监督者隔离＋恢复（§4.2.3），记录告警 | FR-RT-010 |
 | 基础设施错误 | 依赖的数据库／缓存／事件基础设施不可用 | 依ARC-013背压与降级方针处理，**不得**将基础设施错误伪装成业务错误返回客户端 | ARC-013、NFR-AV-009 |
 
+### 9.1.1 错误分类日志设计（落实 RGS-BAS-004 v0.3 §4.2 5 级矩阵 + §6.2 强制全采样）
+
+§9.1 三类错误在日志侧的区分设计：
+
+| 错误分类 | 日志级别 | 触发位置 | 字段 | 采样策略 | 脱敏与成本 |
+|---|---|---|---|---|---|
+| 业务错误（BZ-001〜007） | `warn!`（已被业务规则正确处理，不需人工介入） | 全部业务方法出口 | `error.code`（BZ-nnn）、`error.classification`=`business`、`request_id` | release 必出 + 强制全采样（§6.2） | 字段已脱敏; ~80B/条 × 业务错误率（典型 0.1-1% 流量） |
+| 系统错误（panic / 逻辑缺陷） | `error!`（必须触发 §6.2 强制全采集） | Actor 监督者（§4.2.3）/ panic catch_unwind | `error.code`、`error.classification`=`system`、`error.panic_message`、`error.backtrace`（debug-only）、`actor_id`、`scene_id` | release 必出 + §6.2 强制全采样 + span 关联 | 字段已脱敏; backtrace 由 `#[cfg(debug_assertions)]` 守护，release 剔除; ~200B/条（不含 backtrace） |
+| 基础设施错误（DB/缓存/事件不可用） | `error!`（必须触发 §6.2 强制全采集） | 连接池超时回调 / outbox 死信 | `error.code`、`error.classification`=`infra`、`infra.kind`（postgres/nats/redis）、`infra.endpoint`、`retry_count`、`next_retry_at` | release 必出 + §6.2 强制全采样 + span 关联 | 字段已脱敏; ~150B/条; 失败时叠加事件 trace |
+
+**反模式**（§9.1 落实 §9.2"基础设施错误不得伪装为业务错误"原则的日志侧保障）：
+- ❌ 业务方法 catch 基础设施错误 → 写 `info!` + 返回 `result_code=BZ-001`：违反 §9.2 原则，且会让运维误判为"业务正常 + 偶发业务拒绝"
+- ✅ 业务方法 catch 基础设施错误 → 写 `error!` + `error.classification=infra` + 返回 gRPC status `UNAVAILABLE`（让客户端走重试/降级）
+
+**故障排查 SLA**：NFR-OP-008 一次排查 15 分钟以内 — 该 SLA 由本节三类错误的结构化字段（`error.code`/`error.classification`/`error.panic_message`）+ 强制全采样（§6.2）联合保障。
+
 ## 9.2 错误响应格式设计方针
 
 | 路径 | 错误传达方式 |
@@ -1134,6 +1214,25 @@ flowchart TD
 | 运营API（HTTPS） | 标准HTTP状态码＋JSON错误体，业务错误码在body中 |
 
 **统一原则**：错误码须能唯一定位到需求定义书的BZ-nnn／ARC-nnn/NFR-nnn，便于运维排查时反查需求依据（呼应NFR-OP-008一次排查15分钟以内的目标）。具体错误码编号体系属详细设计范围。
+
+### 9.2.1 错误响应日志设计（落实 RGS-BAS-004 v0.3 §4.3 字段规范）
+
+§9.2 三种传输层错误表达方式在日志侧的统一字段：
+
+| 字段名 | 触发条件 | 频率估算 | 采样策略 | 脱敏与成本 |
+|---|---|---|---|---|
+| `error.transport` | 全部错误出口（gRPC / QUIC / HTTPS 三类） | 1:1 与错误流量 | release 必出 | 枚举 `grpc` / `quic` / `https`; 8B/条 |
+| `error.transport_code` | 全部错误出口 | 1:1 与错误流量 | release 必出 | gRPC status code / QUIC error code / HTTP status code; 4B/条 |
+| `error.business_code`（BZ-nnn / ARC-nnn） | 全部业务错误出口 | 业务错误 1:1 | release 必出 | 字符串; 8B/条 |
+| `error.message` | 全部错误出口 | 1:1 与错误流量 | release 必出 | 人类可读简述（**不得**将结构化数据塞进 message）; 32-128B/条 |
+| `error.client_visible` | 业务错误出口 | 1:1 与业务错误 | release 必出 | 布尔，标识该错误是否向客户端透传（false 时仅日志侧，response 不暴露详情，避免信息泄露）; 1B/条 |
+| `error.response_body_dump` | 全部错误出口 | 1:1 与错误流量 | debug-only（`#[cfg(debug_assertions)]`，release 完全剔除） | 完整响应体序列化（仅 debug Profile 排查用）; 1-10KB/条 |
+| `error.handling_decision` | 监督者出口 / 错误分类器 | 1:1 与系统/基础设施错误 | release 必出 | 枚举 `retry` / `supervisor_restart` / `dlq` / `circuit_break`; 16B/条 |
+
+**`error.client_visible=false` 强制规则**（落实 NFR-SE-012 + §5 脱敏）：
+- 系统错误（panic / 逻辑缺陷）：`error.client_visible=false`，response 仅返回 `INTERNAL_ERROR` + 业务 `result_code=ARC-nnn`（不暴露 panic message / backtrace）
+- 基础设施错误：`error.client_visible=false`，response 返回 `UNAVAILABLE` + 业务 `result_code=ARC-nnn`（不暴露 DB endpoint / 连接串 / 内部地址）
+- 业务错误：`error.client_visible=true`（按 §6.1 错误表达原则，response 透传业务 `result_code`）
 
 ---
 
