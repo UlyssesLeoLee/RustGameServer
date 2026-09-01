@@ -29,7 +29,7 @@
 | E3 W2 | W2 batch 域 (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus + data_source + concurrency) | ✅ 9/9 + 1 模板 | 9 | BA-W2-2~9 完整, cargo check 0 error |
 | E3 W3 | W3 batch 域 (Transaction T-1.5~T-8 + Work W-1~W-3 全 full CRUD) | ✅ 7/7 | 7 | 8/8 Transaction 表 + 3/3 Work 表 全 list+upsert+update+delete + 11 UT |
 | E3 W4 | W4 batch 域 (Master 5 表全 full CRUD + task_template 灰度 promote) | ✅ 5/5 | 5 | 5/5 Master 表 (task_def + task_template + data_source + worker_pool + schedule) 完整 + GAP-7 灰度版本化 |
-| E3 W5 | W5 batch 域 (worker_pool_config + task_def + audit_session + task_buffer + task_progress CRUD) | ✅ 3/5 | 3 | BA-W5-1/2/3/4/5 完整, W5-6 集成 + W5-7 凭据 + OLU 剩 2/5 |
+| E3 W5 | W5 batch 域 (worker_pool_config + task_def + audit_session + task_buffer + task_progress CRUD + 集成 + 凭据 + OLU) | ✅ 5/5 | 7 | BA-W5-1/2/3/4/5/6/7 完整, 跨模块集成测试 + credentials audit + OLU stats, 7 endpoint 落地 |
 | E3 W6 | W6 batch 域 (log-tasks + migration + templates + ST + 监控) | 📋 转后续会话 | 0 | WT 派工, per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A |
 | E4 | k3s 资源上限 + namespace 隔离 | 📋 草案已落 WBS v0.4 §3 | 0 | 需 SRE 协调 (per BATCH REQ §10.3) |
 | E5 | OLU v0.2 token-OLU 框架 | ✅ 1/1 | 1 | — |
@@ -121,6 +121,7 @@
 | v0.2 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §0 ahead 数字改 deferred 实时查询 + §3 删 blob hash 列 + §4 cargo check 验证命令附注, 遵循 v0.4.1 hotfix L13 派生约束, 自指字段全部改动态查询 |
 | v0.3 | 2026-09-02 03:08 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W1/W2/W3 细化, rgs-batch-backend W2 7/9 + W3 5/6 已落地) + §6 增 rgs-batch-backend cargo check 0 error 实测, 本会话 9/2 02:17-03:07 JST 净增 15 commit, main HEAD 推进 b8a79d8 → 6b1b6cd, per 2026-09-02 03:08 JST '解决受阻问题' + '主会话打头阵 W2 全量' (per L4 派生约束) |
 | v0.4 | 2026-09-02 03:39 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W2 9/9 + W3 7/7 + W4 5/5 + W5 3/5 落地, E3 W6 + E4 + E8 4/12 转后续) + §2 commit 历史扩展, 本会话 9/2 02:17-03:37 JST 净增 27 commit, main HEAD 推进 b8a79d8 → e33a87e, per 9/2 80 min 推进 + 'W2/W3/W4/W5 任务细化' (主会话打头阵 + 模板化复制) |
+| v0.5 | 2026-09-02 03:44 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 E3 W5 3/5 → 5/5 落地 (BA-W5-6/7 integration test + credentials audit + OLU stats, 7 endpoint 落地), 本会话 9/2 02:17-03:41 JST 净增 29 commit, main HEAD 推进 b8a79d8 → 63f1c24, E3 W2-W5 25/35 L4 任务全部完成, per 9/2 84 min 推进 + 'W5 集成 + 凭据 + OLU 收口' (主会话打头阵 + 模板化复制) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
