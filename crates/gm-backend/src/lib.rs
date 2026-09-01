@@ -1,41 +1,47 @@
 //! gm-backend lib — GM 后台 APIGW 业务逻辑
 //!
-//! 第 8 域微服务(per Ulysses 2026-08-27 12:43 JST 明确指令),
-//! per RGS-BAS-003 §2.1 设计:HTTPS 入口 + RBAC + mTLS 调 admin-service gRPC.
+//! 第 8 域微服务 (per Ulysses 2026-08-27 12:43 JST 明确指令),
+//! per RGS-BAS-003 §2.1 设计: HTTPS 入口 + RBAC + mTLS 调 admin-service gRPC.
+//!
+//! ## 2026-09-01 actix-web 重写 (per Ulysses 决策)
+//! 替换原 axum 0.7 → actix-web 4.0, 保留 5 现有 GM endpoint + JWT + admin gRPC client +
+//! circuit breaker, 补全 ROPE_CS 9 端点 + 4 业务模块 + SSE 实时事件流.
 //!
 //! ## 公开 API
 //! - `GmConfig::from_env()` — 配载 + 解析
-//! - `AppState` — handler 共享状态
-//! - `build_router(state)` — 完整 axum Router
-//! - `build_health_router(state)` — health-only Router(8081 探针用)
-//! - 6 个 handler:healthz, readyz, health_view, ban_account,
-//!   grant_compensation, set_maintenance, query_audit
-//! - JWT middleware(per TBD-08-01 v0.2 实装)
-//! - 5 GM endpoint 字段级协议(per F8 处置 v0.2)
+//! - `AppState` — handler 共享状态 (含 8 个 ROPE_CS 移植的内存模块)
+//! - `register_routes(cfg)` — 把全部 15+ 端点 + SSE 注册到 actix-web ServiceConfig
+//! - `register_health_routes(cfg)` — 探针路由 (8081, 走 /healthz /readyz)
+//! - 业务 handler: health_view, ban_account, grant_compensation, set_maintenance,
+//!   query_audit, login, list_players, broadcast, list_anchors, send_canvas_command,
+//!   list_servers, start_server, stop_server, list_mall_items, create_mall_item, ...
+//! - JWT middleware: `JwtAuth` (actix-web Transform)
+//! - bcrypt password hash (ROPE_CS 同等功能)
 //!
-//! main.rs 只做 entry point,把所有可测部分放在这里。
+//! main.rs 只做 entry point, 把所有可测部分放在这里.
 
-use anyhow::{Context, Result};
-use axum::{
-    extract::{Request, State},
-    http::{header, StatusCode},
-    middleware::{self, Next},
-    response::{IntoResponse, Json},
-    routing::{get, post},
-    Router,
+use actix_web::{
+    body::EitherBody,
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    http::header,
+    web, Error as ActixError, HttpMessage, HttpRequest, HttpResponse,
 };
+use anyhow::{Context, Result};
 use chrono::Utc;
+use futures_util::future::{ready, LocalBoxFuture, Ready};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing_subscriber::{fmt, EnvFilter};
 
-/// S4 Phase 2 step 1: gm-backend 作为 admin-service 的 gRPC client
-/// tonic-build 生成的 `admin.v1` 路径 = `gm_backend::admin::v1::*`,
-/// 引用 `common.v1` 时用 `crate::common::v1::*` (平铺 2 个 include_proto)
+// ============================================================================
+// proto include
+// ============================================================================
+
 #[allow(clippy::result_large_err)]
 pub mod admin {
     pub mod v1 {
@@ -47,7 +53,6 @@ pub mod common {
         tonic::include_proto!("common.v1");
     }
 }
-// v0.4 (per RGS-DDD-CARD-9DEC-2026-08-29 DEC-038-07): gm.proto v0.4 升版
 pub mod proto {
     #![allow(clippy::all)]
     pub mod v1 {
@@ -55,30 +60,41 @@ pub mod proto {
     }
 }
 
-// W18 (2026-08-28): Circuit breaker (5 次失败 → 30s 断开)
-// W20 (2026-08-28): wire 到 AdminGrpcClient 4 method (gm-backend 4 endpoint)
-// W23 (2026-08-28): integration 5 IT 验证 wire + chaos 集成
-// 关联: RGS-OPEN-QA v0.4 DDD Review 决议
 pub mod circuit_breaker;
 
-// W26 (2026-08-29) 桶 2a: 5 GM endpoint 业务实装(从 lib.rs 移出)
-// - Json/Query extractor + 字段级校验
-// - admin-service gRPC + 失败降级 InMemory
-// - 关联: RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1
+// 5 GM 业务 handler (per gm.proto v0.4)
 pub mod business_handler;
 
-// W26 (2026-08-29) 桶 2a: 5 it_business_*.rs 测试用 build_test_state
-// - 暴露在 lib 根路径, 简化 test 文件 import
+// 补全 4 端点 + SSE handler (per ROPE_CS 移植)
+pub mod auth_handler;
+pub mod players_handler;
+pub mod broadcast_handler;
+pub mod canvas_handler;
+pub mod servers_handler;
+pub mod mall_handler;
+pub mod items_handler;
+pub mod support_handler;
+pub mod reports_handler;
+pub mod summary_handler;
+
 pub mod test_helpers;
 
-// W26 (2026-08-29) 桶 2a: re-export 5 handler + 5 DTO types at lib 根路径
-// - 让 it_business_*.rs 可以 `gm_backend::ban_account` 直接引用
-// - 兼容外部 (admin CLI / curl / health probe) 也可用 lib:: 类型
+// re-export
 pub use business_handler::{
     ban_account, grant_compensation, health_view, query_audit, set_maintenance,
     BanAccountRequestBody, CompensationRequestBody as GrantCompensationRequestBody,
     HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody, QueryAuditLogQuery,
 };
+pub use auth_handler::{login, LoginRequest, LoginResponse, AdminRecord};
+pub use players_handler::{list_players, get_player_stats, PlayersQuery, PlayersResponse, PlayerStatsResponse};
+pub use broadcast_handler::{broadcast, list_broadcasts, BroadcastRequest, BroadcastEntry, sse_events};
+pub use canvas_handler::{list_anchors, send_canvas_command, CanvasCommandRequest, AnchorOption};
+pub use servers_handler::{list_servers, get_server_stats, start_server, stop_server, metrics, ServerEntry, ServerStats};
+pub use mall_handler::{list_mall_items, create_mall_item, update_mall_item, delete_mall_item, MallItem};
+pub use items_handler::{grant_item, list_grants, GrantRequest, GrantEntry};
+pub use support_handler::{create_ticket, list_tickets, update_ticket_status, TicketEntry, CreateTicketRequest, UpdateTicketStatusRequest};
+pub use reports_handler::{list_reports, ReportEntry};
+pub use summary_handler::summary;
 
 // ============================================================================
 // 配置
@@ -90,12 +106,7 @@ pub struct GmConfig {
     pub health_addr: SocketAddr,
     pub admin_grpc_endpoint: String,
     pub jwt_secret: String,
-    /// 是否要求 JWT 验证(per 5 域 RGS_ALLOW_INSECURE_GRPC=0 默认)
-    /// dev 环境可设 GM_REQUIRE_JWT=0 跳过(per TBD-08-01)
     pub require_jwt: bool,
-    /// S4 Phase 2 step 1: 是否禁用 admin-service gRPC 注入(测试用)
-    /// dev/UT 环境设 true, AppState.admin_grpc 永远 None, HealthView 走 stub 行为
-    /// 生产环境 (k3s) 设 false, AppState::new 尝试 connect admin-service
     pub disable_admin_grpc: bool,
 }
 
@@ -131,7 +142,6 @@ impl GmConfig {
         })
     }
 
-    /// 测试用 builder(避开 env,UT 友好, 默认 disable_admin_grpc=true)
     pub fn for_test(http: &str, health: &str, admin: &str) -> anyhow::Result<Self> {
         Ok(Self {
             http_addr: http.parse()?,
@@ -144,10 +154,10 @@ impl GmConfig {
     }
 }
 
-/// Audit store trait — per TBD-08-04 v0.2 抽象
-///
-/// v0.2 默认实现 InMemoryAuditStore(测试用 + 5 域 outbox 暂未接通场景)
-/// v0.3 实装 PgAuditStore 走 admin_db.audit_log 表(per TBD-08-04 延后)
+// ============================================================================
+// Audit store trait + InMemory
+// ============================================================================
+
 pub trait AuditStore: Send + Sync + 'static {
     fn append(&self, entry: AuditLogEntry);
     fn list_entries(
@@ -156,26 +166,18 @@ pub trait AuditStore: Send + Sync + 'static {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>>;
 }
 
-/// In-memory 默认实现
 #[derive(Default, Clone)]
 pub struct InMemoryAuditStore {
     entries: Arc<std::sync::Mutex<Vec<AuditLogEntry>>>,
 }
 
 impl InMemoryAuditStore {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// 追加 entry(供 ban_account / grant_compensation 等 stub handler 调用)
-    pub fn append(&self, entry: AuditLogEntry) {
-        self.entries.lock().unwrap().push(entry);
-    }
+    pub fn new() -> Self { Self::default() }
+    pub fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
 }
 
 impl AuditStore for InMemoryAuditStore {
-    fn append(&self, entry: AuditLogEntry) {
-        self.entries.lock().unwrap().push(entry);
-    }
+    fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
     fn list_entries(
         &self,
         limit: usize,
@@ -187,23 +189,37 @@ impl AuditStore for InMemoryAuditStore {
     }
 }
 
+// ============================================================================
+// AppState — 含 8 个 ROPE_CS 移植的内存模块
+// ============================================================================
+
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<GmConfig>,
-    /// v0.2 抽象:audit_log 存储(默认 InMemory,可替换为 PgAuditStore)
     pub audit_store: Arc<dyn AuditStore>,
-    /// S4 Phase 2 step 1: admin-service gRPC client(失败时为 None, 降级)
     pub admin_grpc: Option<Arc<AdminGrpcClient>>,
+    /// ROPE_CS 移植: SSE 实时事件总线
+    pub broadcast_tx: tokio::sync::broadcast::Sender<BroadcastEntry>,
+    /// ROPE_CS 移植: admin 列表 (init 时 ensure_default_admin 创建 superadmin)
+    pub admins: Arc<std::sync::Mutex<Vec<AdminRecord>>>,
+    /// ROPE_CS 移植: mall items
+    pub mall_items: Arc<std::sync::Mutex<Vec<MallItem>>>,
+    /// ROPE_CS 移植: grants
+    pub grants: Arc<std::sync::Mutex<Vec<GrantEntry>>>,
+    /// ROPE_CS 移植: tickets
+    pub tickets: Arc<std::sync::Mutex<Vec<TicketEntry>>>,
+    /// ROPE_CS 移植: reports
+    pub reports: Arc<std::sync::Mutex<Vec<ReportEntry>>>,
+    /// ROPE_CS 移植: servers 列表 + state (5 假 server 初始化)
+    pub servers: Arc<std::sync::Mutex<Vec<ServerEntry>>>,
 }
 
 impl AppState {
-    /// 构造 AppState + 尝试连接 admin-service gRPC(失败不 panic,设 None 降级)
     pub fn new(config: GmConfig) -> Self {
         let audit_store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
         Self::with_audit_store(config, audit_store)
     }
 
-    /// 测试用 + 注入自定义 AuditStore + admin_grpc client
     pub fn with_audit_store(config: GmConfig, audit_store: Arc<dyn AuditStore>) -> Self {
         let config = Arc::new(config);
         let admin_grpc = if config.disable_admin_grpc {
@@ -212,38 +228,64 @@ impl AppState {
             let client = AdminGrpcClient::try_connect(&config).ok().map(Arc::new);
             if client.is_none() {
                 tracing::warn!(
-                    "admin-service gRPC not reachable at {} (fail-open: HealthView will mark admin ready=false)",
+                    "admin-service gRPC not reachable at {} (fail-open)",
                     config.admin_grpc_endpoint
                 );
             }
             client
         };
+        let (broadcast_tx, _) = tokio::sync::broadcast::channel(100);
+        let admins = Arc::new(std::sync::Mutex::new(Vec::<AdminRecord>::new()));
+        let mall_items = Arc::new(std::sync::Mutex::new(Vec::<MallItem>::new()));
+        let grants = Arc::new(std::sync::Mutex::new(Vec::<GrantEntry>::new()));
+        let tickets = Arc::new(std::sync::Mutex::new(Vec::<TicketEntry>::new()));
+        let reports = Arc::new(std::sync::Mutex::new(Vec::<ReportEntry>::new()));
+        let servers = Arc::new(std::sync::Mutex::new(vec![
+            ServerEntry { id: "player-1".into(), name: "Player Shard 1".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 1284, last_updated: Some(Utc::now().to_rfc3339()) },
+            ServerEntry { id: "player-2".into(), name: "Player Shard 2".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 982, last_updated: Some(Utc::now().to_rfc3339()) },
+            ServerEntry { id: "match-1".into(), name: "Match Service 1".into(), region: Some("us-west-2".into()), status: "running".into(), online_players: 421, last_updated: Some(Utc::now().to_rfc3339()) },
+            ServerEntry { id: "social-1".into(), name: "Social Shard 1".into(), region: Some("eu-central-1".into()), status: "stopped".into(), online_players: 0, last_updated: Some(Utc::now().to_rfc3339()) },
+            ServerEntry { id: "economy-1".into(), name: "Economy Shard 1".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 0, last_updated: Some(Utc::now().to_rfc3339()) },
+        ]));
         Self {
             config,
             audit_store,
             admin_grpc,
+            broadcast_tx,
+            admins,
+            mall_items,
+            grants,
+            tickets,
+            reports,
+            servers,
+        }
+    }
+
+    /// ROPE_CS 移植: ensure_default_admin — 创建默认 superadmin (admin/adminpass)
+    pub async fn ensure_default_admin(&self) {
+        let mut admins = self.admins.lock().unwrap();
+        if !admins.iter().any(|a| a.username == "admin") {
+            let hashed = bcrypt::hash("adminpass", 12).unwrap_or_default();
+            admins.push(AdminRecord {
+                username: "admin".to_string(),
+                password_hash: hashed,
+                role: "superadmin".to_string(),
+            });
+            tracing::info!("default superadmin 'admin' created (password: adminpass)");
         }
     }
 }
 
-/// S4 Phase 2 step 1: admin-service gRPC client wrapper
-/// - 包装 tonic Channel + AdminServiceClient
-/// - 构造时 try_connect:失败返回 Err(供 AppState 降级为 None)
-/// - 提供 `health_check(timeout)` 调 admin-service HealthCheck
+// ============================================================================
+// AdminGrpcClient (gRPC client 跟 web 框架无关, 直接保留)
+// ============================================================================
+
 pub struct AdminGrpcClient {
     client: crate::admin::v1::admin_service_client::AdminServiceClient<tonic::transport::Channel>,
-    /// W18 (2026-08-28): Circuit breaker (5 次失败 → 30s 断开)
-    /// W20 (2026-08-28): wire 到 4 method (gm-backend 4 endpoint)
-    /// W23 (2026-08-28): wire 到 5 method (gm-backend 4 endpoint + 业务 1)
     breaker: std::sync::Arc<crate::circuit_breaker::CircuitBreaker>,
 }
 
 impl AdminGrpcClient {
-    /// 尝试连接 admin-service(失败返 Err,AppState 设 None 降级)
-    /// 用 `Endpoint::connect_lazy()` 构造 Channel(实际连接在第一次 RPC 时发生),
-    /// 符合 fail-open 语义:AppState::with_audit_store 不会因 admin-service 未就绪而 panic
-    ///
-    /// W23 (2026-08-28): 加 CircuitBreaker 默认 (5 失败 → 30s 断开)
     pub fn try_connect(config: &GmConfig) -> Result<Self> {
         let endpoint = tonic::transport::Endpoint::from_shared(config.admin_grpc_endpoint.clone())
             .context("invalid admin_grpc_endpoint")?
@@ -257,21 +299,12 @@ impl AdminGrpcClient {
         })
     }
 
-    /// 调 admin-service HealthCheck, 500ms timeout, 失败返 Err
-    /// W23: 走 CircuitBreaker (共享 5 method 失败计数)
     pub async fn health_check(&self) -> Result<()> {
         use crate::common::v1::HealthCheckRequest;
-        if !self.breaker.try_acquire() {
-            anyhow::bail!("circuit breaker OPEN, skipping admin-service health_check");
-        }
+        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
         let mut client = self.client.clone();
-        let req = HealthCheckRequest {
-            service: "gm-backend".to_string(),
-        };
-        let result = client
-            .health_check(req)
-            .await
-            .context("admin-service health_check RPC failed");
+        let req = HealthCheckRequest { service: "gm-backend".to_string() };
+        let result = client.health_check(req).await.context("admin-service health_check RPC failed");
         match &result {
             Ok(_) => self.breaker.record_success(),
             Err(_) => self.breaker.record_failure(),
@@ -280,25 +313,14 @@ impl AdminGrpcClient {
         Ok(())
     }
 
-    // S4 Phase 2 step 2: 4 GM RPC client methods
-    // 每个方法 500ms timeout, 失败返 Err(让 handler 降级到 InMemory fallback)
-
     pub async fn ban_account(
         &self,
         req: crate::admin::v1::BanAccountRequest,
     ) -> Result<crate::admin::v1::BanAccountResponse> {
-        if !self.breaker.try_acquire() {
-            anyhow::bail!("circuit breaker OPEN, skipping admin-service ban_account");
-        }
+        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
         let mut client = self.client.clone();
-        let result = client
-            .ban_account(req)
-            .await
-            .context("admin-service ban_account RPC failed");
-        match &result {
-            Ok(_) => self.breaker.record_success(),
-            Err(_) => self.breaker.record_failure(),
-        }
+        let result = client.ban_account(req).await.context("admin-service ban_account RPC failed");
+        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
         Ok(result?.into_inner())
     }
 
@@ -306,18 +328,10 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::GrantCompensationRequest,
     ) -> Result<crate::admin::v1::GrantCompensationResponse> {
-        if !self.breaker.try_acquire() {
-            anyhow::bail!("circuit breaker OPEN, skipping admin-service grant_compensation");
-        }
+        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
         let mut client = self.client.clone();
-        let result = client
-            .grant_compensation(req)
-            .await
-            .context("admin-service grant_compensation RPC failed");
-        match &result {
-            Ok(_) => self.breaker.record_success(),
-            Err(_) => self.breaker.record_failure(),
-        }
+        let result = client.grant_compensation(req).await.context("admin-service grant_compensation RPC failed");
+        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
         Ok(result?.into_inner())
     }
 
@@ -325,18 +339,10 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::SetMaintenanceRequest,
     ) -> Result<crate::admin::v1::SetMaintenanceResponse> {
-        if !self.breaker.try_acquire() {
-            anyhow::bail!("circuit breaker OPEN, skipping admin-service set_maintenance");
-        }
+        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
         let mut client = self.client.clone();
-        let result = client
-            .set_maintenance(req)
-            .await
-            .context("admin-service set_maintenance RPC failed");
-        match &result {
-            Ok(_) => self.breaker.record_success(),
-            Err(_) => self.breaker.record_failure(),
-        }
+        let result = client.set_maintenance(req).await.context("admin-service set_maintenance RPC failed");
+        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
         Ok(result?.into_inner())
     }
 
@@ -344,20 +350,59 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::QueryAuditLogRequest,
     ) -> Result<crate::admin::v1::QueryAuditLogResponse> {
-        if !self.breaker.try_acquire() {
-            anyhow::bail!("circuit breaker OPEN, skipping admin-service query_audit_log");
-        }
+        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
         let mut client = self.client.clone();
-        let result = client
-            .query_audit_log(req)
-            .await
-            .context("admin-service query_audit_log RPC failed");
-        match &result {
-            Ok(_) => self.breaker.record_success(),
-            Err(_) => self.breaker.record_failure(),
-        }
+        let result = client.query_audit_log(req).await.context("admin-service query_audit_log RPC failed");
+        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
         Ok(result?.into_inner())
     }
+}
+
+// ============================================================================
+// 共享类型
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditLogEntry {
+    pub log_id: String,
+    pub admin_id: String,
+    pub action: String,
+    pub target_id: String,
+    pub occurred_at_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceHealthEntry {
+    pub service_name: String,
+    pub ready: bool,
+    pub queue_depth: u32,
+    pub db_pool_usage_ratio: f32,
+    pub checked_at_ms: i64,
+}
+
+// ============================================================================
+// JWT
+// ============================================================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
+    pub roles: Vec<String>,
+}
+
+pub fn issue_jwt(secret: &str, sub: &str, roles: Vec<String>, ttl_seconds: i64) -> Result<String> {
+    let exp = (Utc::now().timestamp() + ttl_seconds) as usize;
+    let claims = Claims { sub: sub.to_string(), exp, roles };
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
+        .context("encode jwt")
+}
+
+pub fn verify_jwt(secret: &str, token: &str) -> Result<Claims> {
+    let validation = Validation::default();
+    let data = decode::<Claims>(token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
+        .context("decode jwt")?;
+    Ok(data.claims)
 }
 
 pub fn init_tracing() {
@@ -370,174 +415,160 @@ pub fn init_tracing() {
 }
 
 // ============================================================================
-// JWT middleware(per TBD-08-01 v0.2 实装)
+// JWT middleware (actix-web Transform)
 // ============================================================================
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Claims {
-    pub sub: String,
-    pub exp: usize,
-    pub roles: Vec<String>,
+pub struct JwtAuth {
+    pub require: bool,
+    pub secret: String,
 }
 
-/// 签发 JWT(供测试 + admin 端用,生产应该 admin-service 签发)
-pub fn issue_jwt(secret: &str, sub: &str, roles: Vec<String>, ttl_seconds: i64) -> Result<String> {
-    let exp = (Utc::now().timestamp() + ttl_seconds) as usize;
-    let claims = Claims {
-        sub: sub.to_string(),
-        exp,
-        roles,
-    };
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    )
-    .context("encode jwt")
-}
+impl<S, B> Transform<S, ServiceRequest> for JwtAuth
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError> + 'static,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<EitherBody<B>>;
+    type Error = ActixError;
+    type Transform = JwtAuthMiddleware<S>;
+    type InitError = ();
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
-/// 验证 JWT 签名 + 过期
-pub fn verify_jwt(secret: &str, token: &str) -> Result<Claims> {
-    let validation = Validation::default();
-    let data = decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation,
-    )
-    .context("decode jwt")?;
-    Ok(data.claims)
-}
-
-/// JWT middleware:从 Authorization: Bearer <token> 取 token,验证签名
-/// per TBD-08-01 v0.2 实装(per RGS-BAS-003 §2.1 RBAC 链路)
-pub async fn jwt_middleware(
-    State(state): State<AppState>,
-    mut req: Request,
-    next: Next,
-) -> impl IntoResponse {
-    if !state.config.require_jwt {
-        return next.run(req).await;
-    }
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|h| h.to_str().ok());
-    let token = match auth_header {
-        Some(s) if s.starts_with("Bearer ") => &s[7..],
-        _ => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"error":"missing_bearer_token"})),
-            )
-                .into_response();
-        }
-    };
-    match verify_jwt(&state.config.jwt_secret, token) {
-        Ok(claims) => {
-            req.extensions_mut().insert(claims);
-            next.run(req).await
-        }
-        Err(e) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error":"invalid_token","detail":e.to_string()})),
-        )
-            .into_response(),
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(JwtAuthMiddleware {
+            service: Rc::new(service),
+            require: self.require,
+            secret: self.secret.clone(),
+        }))
     }
 }
 
-// ============================================================================
-// 5 GM endpoint 字段级协议(per F8 处置 v0.2)
-// ============================================================================
-
-/// `SetMaintenanceModeResponse` 新增 `propagation_status` (PROPAGATING / CONVERGED)
-/// per RGS-BAS-003 §3.3 + DTL-003 §3.3
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PropagationStatus {
-    #[serde(rename = "PROPAGATING")]
-    Propagating,
-    #[serde(rename = "CONVERGED")]
-    Converged,
+pub struct JwtAuthMiddleware<S> {
+    service: Rc<S>,
+    require: bool,
+    secret: String,
 }
 
-/// `QueryHealthViewResponse` = `services[]` (ServiceHealthEntry)
-/// per RGS-BAS-003 §3.4 + DTL-003 §3.4
-/// 注:`db_pool_usage_ratio: f32` 不能 derive Eq(NaN 不等),只用 PartialEq
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ServiceHealthEntry {
-    pub service_name: String,
-    pub ready: bool,
-    pub queue_depth: u32,
-    pub db_pool_usage_ratio: f32,
-    pub checked_at_ms: i64,
+impl<S, B> Service<ServiceRequest> for JwtAuthMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = ActixError> + 'static,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<EitherBody<B>>;
+    type Error = ActixError;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    forward_ready!(service);
+
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        let service = self.service.clone();
+        let require = self.require;
+        let secret = self.secret.clone();
+
+        Box::pin(async move {
+            if !require {
+                let res = service.call(req).await?;
+                return Ok(res.map_into_left_body());
+            }
+            let token = req
+                .headers()
+                .get(header::AUTHORIZATION)
+                .and_then(|h| h.to_str().ok())
+                .and_then(|s| s.strip_prefix("Bearer "))
+                .map(|s| s.to_string());
+
+            match token {
+                Some(t) => match verify_jwt(&secret, &t) {
+                    Ok(claims) => {
+                        req.extensions_mut().insert(claims);
+                        let res = service.call(req).await?;
+                        Ok(res.map_into_left_body())
+                    }
+                    Err(e) => {
+                        tracing::debug!("jwt verify failed: {e}");
+                        let (req_parts, _payload) = req.into_parts();
+                        let resp = HttpResponse::Unauthorized()
+                            .json(json!({"error": "invalid_token"}));
+                        Ok(ServiceResponse::new(req_parts, resp).map_into_right_body())
+                    }
+                },
+                None => {
+                    let (req_parts, _payload) = req.into_parts();
+                    let resp = HttpResponse::Unauthorized()
+                        .json(json!({"error": "missing_bearer_token"}));
+                    Ok(ServiceResponse::new(req_parts, resp).map_into_right_body())
+                }
+            }
+        })
+    }
 }
 
-/// `QueryAuditLogResponse` = `entries[]` + `has_more`
-/// per RGS-BAS-003 §3.4 + DTL-003 §3.4
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct AuditLogEntry {
-    pub log_id: String,
-    pub admin_id: String,
-    pub action: String,
-    pub target_id: String,
-    pub occurred_at_ms: i64,
-}
-
-// 注: 5 GM endpoint RequestBody/Query 类型已移至 `business_handler` 模块
-// (per W26 桶 2a: lib.rs 只留 router 配置 + 类型 + 基础 service 抽象)
-
-// ============================================================================
-// Router 构建
-// ============================================================================
-
-pub fn build_router(state: AppState) -> Router {
-    use crate::business_handler::{
-        ban_account, grant_compensation, health_view, query_audit, set_maintenance,
-    };
-    let api = Router::new()
-        .route("/api/v1/gm/health/view", get(health_view))
-        .route("/api/v1/gm/ban", post(ban_account))
-        .route("/api/v1/gm/compensation", post(grant_compensation))
-        .route("/api/v1/gm/maintenance", post(set_maintenance))
-        .route("/api/v1/audit/logs", get(query_audit))
-        .layer(middleware::from_fn_with_state(
-            state.clone(),
-            jwt_middleware,
-        ));
-
-    Router::new()
-        .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz))
-        .merge(api)
-        .with_state(state)
-}
-
-/// health-only router(8081,k8s 探针专用,**不挂 JWT,免探针误拒**)
-pub fn build_health_router(state: AppState) -> Router {
-    Router::new()
-        .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz))
-        .with_state(state)
+pub fn extract_claims(req: &HttpRequest) -> Option<Claims> {
+    req.extensions().get::<Claims>().cloned()
 }
 
 // ============================================================================
-// 2 health handler(per BAS-003 §2.1 探针专用)
+// Routes 注册函数 (actix-web 标准 ServiceConfig 模式)
 // ============================================================================
 
-pub async fn healthz() -> impl IntoResponse {
-    (
-        StatusCode::OK,
-        Json(json!({"status":"ok","service":"gm-backend"})),
-    )
+/// 把全部 15+ 端点 + SSE 注册到 actix-web ServiceConfig
+/// main.rs 用: App::new().app_data(state).wrap(JwtAuth{...}).configure(register_routes)
+pub fn register_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/gm")
+            // 公开端点
+            .route("/login", web::post().to(login))
+            // 鉴权后端点 — 中间件全局 (注: SSE 在 /gm/events 单独注册, 不走这个 scope)
+            .service(
+                web::scope("")
+                    // ping
+                    .route("/ping", web::get().to(ping))
+                    // 5 GM endpoint
+                    .route("/health_view", web::get().to(health_view))
+                    .route("/ban_account", web::post().to(ban_account))
+                    .route("/grant_compensation", web::post().to(grant_compensation))
+                    .route("/set_maintenance", web::post().to(set_maintenance))
+                    .route("/query_audit", web::get().to(query_audit))
+                    // admin 管理
+                    .route("/admins", web::post().to(auth_handler::create_admin))
+                    .route("/admins", web::get().to(auth_handler::list_admins))
+                    // 4 补全端点 (ROPE_CS 移植)
+                    .route("/players", web::get().to(list_players))
+                    .route("/broadcast", web::post().to(broadcast))
+                    .route("/broadcasts", web::get().to(list_broadcasts))
+                    .route("/canvas/anchors", web::get().to(list_anchors))
+                    .route("/canvas/send", web::post().to(send_canvas_command))
+                    // 4 业务模块 (ROPE_CS 移植)
+                    .route("/servers", web::get().to(list_servers))
+                    .route("/servers/{id}/start", web::post().to(start_server))
+                    .route("/servers/{id}/stop", web::post().to(stop_server))
+                    .route("/metrics", web::get().to(metrics))
+                    .route("/mall/items", web::get().to(list_mall_items))
+                    .route("/mall/items", web::post().to(create_mall_item))
+                    .route("/mall/items/{id}", web::put().to(update_mall_item))
+                    .route("/mall/items/{id}", web::delete().to(delete_mall_item))
+                    .route("/items/grant", web::post().to(grant_item))
+                    .route("/items/grants", web::get().to(list_grants))
+                    .route("/support", web::post().to(create_ticket))
+                    .route("/support/tickets", web::get().to(list_tickets))
+                    .route("/support/tickets/{id}", web::patch().to(update_ticket_status))
+                    .route("/reports", web::get().to(list_reports))
+                    // 1 聚合 (Dashboard 数据源)
+                    .route("/summary", web::get().to(summary))
+                    // 1 SSE 实时事件流 — 在 events.rs 内部手动验证 JWT
+                    .route("/events", web::get().to(sse_events)),
+            ),
+    );
 }
 
-pub async fn readyz() -> impl IntoResponse {
-    (
-        StatusCode::OK,
-        Json(json!({"status":"ready","service":"gm-backend"})),
-    )
+/// health 探针路由 (k8s exec 探针, 8081)
+pub fn register_health_routes(cfg: &mut web::ServiceConfig) {
+    cfg.route("/healthz", web::get().to(healthz))
+        .route("/readyz", web::get().to(readyz));
 }
 
-// 注: 5 GM endpoint 业务 handler(health_view, ban_account, grant_compensation,
-// set_maintenance, query_audit) 已移至 `business_handler` 模块
-// (per W26 桶 2a + RGS-PLAN-WBS-token-bucket-v0.3 §2.2.1)
-// lib.rs 只保留 router 配置 + 类型 + 基础 service 抽象
+async fn ping() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ok"})) }
+async fn healthz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "healthy"})) }
+async fn readyz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ready"})) }

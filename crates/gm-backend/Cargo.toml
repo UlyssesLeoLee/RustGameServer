@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "GM 后台 APIGW(HTTPS+RBAC+mTLS,HTTP→AdminService gRPC 路由,per RGS-BAS-003 §2.1 / 8 域微服务之第 8 域)"
+description = "GM 后台 APIGW (actix-web 4 + RBAC + mTLS, HTTP→AdminService gRPC 路由, per RGS-BAS-003 §2.1 / 8 域微服务之第 8 域). ROPE_CS 同等功能 + 审美 (9 页面 + 15 端点 + SSE), 2026-09-01 actix-web 重写 (per Ulysses 决策)."
 
 [[bin]]
 name = "gm-backend"
@@ -15,48 +15,49 @@ path = "src/main.rs"
 [dependencies]
 tokio = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+serde_json = "1"
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-# HTTP server(APIGW 入口,per RGS-BAS-003 §2.1)
-axum = { version = "0.7", features = ["macros", "tokio", "http1"] }
-tower = { version = "0.5", features = ["util"] }
-tower-http = { version = "0.6", features = ["trace", "cors"] }
-# HTTPS(mTLS 服务端证书)
+# HTTP server (actix-web 4 — per 2026-09-01 Ulysses 决策替换 axum 0.7)
+actix-web = "4"
+# SSE / async streaming
+actix-web-lab = "0.24"
+async-stream = "0.3"
+futures-util = "0.3"
+# HTTPS (mTLS 服务端证书)
 rustls = { version = "0.23", default-features = false, features = ["logging", "aws_lc_rs", "std"] }
-# 共享平台(从 gRPC 客户端、RBAC、TLS)
+# 共享平台 (gRPC 客户端 / RBAC / TLS)
 shared-platform = { path = "../shared-platform" }
 # mTLS gRPC 客户端连 AdminService
 tonic = { workspace = true }
 prost = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
-# JWT 验证(per TBD-08-01 v0.2 实装)
+# JWT 验证 (per TBD-08-01 v0.2 实装)
 jsonwebtoken = "9"
+# bcrypt 密码哈希 (ROPE_CS 同等功能)
+bcrypt = "0.16"
+# 异步 broadcast (SSE 实时事件流)
+tokio-stream = { version = "0.1", features = ["sync"] }
+# 随机数 (mock 数据生成)
+rand = "0.8"
+# base64 (canvas image_base64 校验)
+base64 = "0.22"
+# Bytes (SSE 实时事件流)
+bytes = "1"
 
 [build-dependencies]
-# gRPC proto 编译(per S4 Phase 1,gm.proto 编译入口)
 tonic-build = { workspace = true }
 
 [dev-dependencies]
-# per 5 域 + cluster-ops 一致模式:fail-closed 启动 + rgs-testkit 集成
 assert_cmd = "2"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-axum-test = "16"
-hyper = { version = "1", features = ["full"] }
 serde_json = { workspace = true }
-# 串行化 env-mutating 测试(per rgs-testkit 1.5 用法)
 serial_test = "0.5"
-# rgs-testkit:GM 后台 5 个 endpoint stub 阶段不依赖,但 dev-dep 留着供未来
-# admin-service gRPC client 实现用
 rgs-testkit = { path = "../rgs-testkit" }
-# S5 §3 真 NATS e2e (W3, 2026-08-28): k3s nats-0 port-forward 真链路测试
-# 关联: docs/00-基准与治理/RGS-TST-S5-outbox-NATS-IT-设计书.md
 async-nats = "0.42"
 futures-util = "0.3"
-# W22 (2026-08-28): BanAccount 真链路 e2e (gm-backend → admin → player 端到端)
-# 关联: W15 commit 952b756 (player BanAccount gRPC) + W17 commit 658b742 (admin JWT)
 player-service = { path = "../player-service" }
 admin-service = { path = "../admin-service" }
