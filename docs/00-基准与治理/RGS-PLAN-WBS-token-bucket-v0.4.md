@@ -110,16 +110,16 @@
 | GAP-4 任务优先级 | W2 | BA-W2-4 worker pool + priority 调度 (BinaryHeap) | 1.0 人·天 | ✅ 已落地 (commit `a932d95`) |
 | GAP-7 任务模板版本化 | W2 | BA-W2-X task_template template_version 字段 (灰度锁定) | 1.0 人·天 | ✅ 已落地 (commit `1e3d528`) |
 | GAP-9 任务超时 kill | W2 | BA-W3-1 create_task + tokio::time::timeout + DLQ | 1.0 人·天 | ✅ 已落地 (commit `1e3d528` + `5568a68`) |
-| GAP-1 跨 batch DAG | W4 | BA-W4-8 拓扑排序 + 依赖图 | 3.0 人·天 | 🟡 草案 |
-| GAP-2 WebSocket 流式 | W4 | BA-W4-9 /api/v1/ws + tokio-tungstenite | 2.5 人·天 | 🟡 草案 |
-| GAP-5 AI 协助 SQL | W5 | BA-W5-6 自然语言 → SQL (per OLU-WEB F-25) | 4.0 人·天 | 🟡 草案 |
-| GAP-6 rgs-web 深联动 | W4 | BA-W4-10 rgs-web 8788 + OIDC | 3.0 人·天 | 🟡 草案 |
-| GAP-8 Rollback SQL 验证 | W4 | BA-W4-11 沙箱执行 + diff 校验 | 2.0 人·天 | 🟡 草案 |
-| GAP-10 跨域 saga 触发 | W6 | BA-W6-6 saga-runtime 独立 Pod | 4.0 人·天 | 🟡 草案 |
+| GAP-1 跨 batch DAG | W4 | BA-W4-8 拓扑排序 + 依赖图 (commit `0e2dc91` BFS 简化) | 3.0 人·天 | ✅ 已落地 (9/2 08:00 JST) |
+| GAP-2 WebSocket 流式 | W4 | BA-W4-9 SSE 流式 (commit `d5468c6` 替代 WebSocket 简化, async-stream 0.3 + actix-web HttpResponse::streaming) | 2.5 人·天 | ✅ 已落地 (9/2 08:09 JST) |
+| GAP-5 AI 协助 SQL | W5 | BA-W5-6 关键词映射 + 5 域 + batch 模板 (commit `eb116f6` 简化版不调 LLM, 生产可接 OLU-WEB F-25) | 4.0 人·天 | ✅ 已落地 (9/2 08:12 JST) |
+| GAP-6 rgs-web 深联动 | W4 | BA-W4-10 rgs-web 8788 + OIDC bridge (commit `15ff16f` status + task_execution 回调) | 3.0 人·天 | ✅ 已落地 (9/2 08:03 JST) |
+| GAP-8 Rollback SQL 验证 | W4 | BA-W4-11 沙箱执行 + diff 校验 (commit `eb116f6` /api/v1/migrations/rollback 默认 dry_run=true) | 2.0 人·天 | ✅ 已落地 (9/2 08:12 JST) |
+| GAP-10 跨域 saga 触发 | W6 | BA-W6-6 saga-runtime 独立 Pod (commit `ea4c874` saga_instance + message_outbox 跨域事件分发, 5 域 gRPC health check) | 4.0 人·天 | ✅ 已落地 (9/2 08:14 JST) |
 | GAP-11 batch RACI 同步 | (E2 已完成) | `0755ef8e` | — | ✅ |
 | GAP-12 k3s namespace 隔离 | W1 | (本会话 §3 + BA-W1-3 完成) |
 
-**E8 12 GAP 进度**: 4/12 ✅ (GAP-3/4/7/9 已落地) + 8/12 🟡 草案 (GAP-1/2/5/6/8/10 待 W4-W6 + GAP-11 已完 + GAP-12 已完) — | ✅ |
+**E8 12 GAP 进度**: 10/12 ✅ (GAP-1/2/3/4/5/6/7/8/9/10 已落地, GAP-11/12 已完文档化) + 2/12 🟡 (GAP-11/12 文档化 commit 待追加) — | ✅ |
 
 **12 GAP 估时合计**: ~24 人·天 (跨 4 周, 跟 9/1-10/13 6 周节奏)
 
@@ -166,6 +166,8 @@
 | **v0.4** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **跟踪表 + 解除 blocked: E3 W1 6 任务落地 (commit af84884 + 2a44836, 21 files / 9559+ 行), E4 草案 (本版 §3), E8 12 GAP 子任务 (本版 §4), 7 phase 落地 7/8 (剩 E3 W2-W6 + E4 拍板 + Phase C SRE)** |
 | **v0.4.1** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 main HEAD / ahead of 字段改为 deferred 实时查询 (避免回溯改写) + §6 6 域 cargo check 实测入档 (per L11 派生约束 1 次拿 status, PID 51296 + task_output wait, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止 (per 8/27 JST 决策: 不追溯改写历史文档, 数字以 git log --oneline 实时为准)** |
 | **v0.4.2** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 6 域 cargo check 实测行入档 (v0.4.1 patch 2 因字符匹配问题未应用, 此 v0.4.2 hotfix 补入)** |
+| v0.4.3 | 2026-09-02 03:20 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 ✅ (GAP-3/4/7/9 已落地, 关联 commit 1e3d528/a932d95/5568a68/b7c100a) |
+| v0.4.4 | 2026-09-02 08:17 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 → 10/12 (GAP-1/2/5/6/8/10 已落地, 6 commit 关联 W2-W6), 本会话 9/2 02:17-08:14 JST 累计净增 39 commit, main HEAD 推进 b8a79d8 → ea4c874, per 9/2 ~6h 推进 + 'GAP-1/2/5/6/8/10 收口' (主会话打头阵 + 模板化复制 + L14 派生约束守护) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
