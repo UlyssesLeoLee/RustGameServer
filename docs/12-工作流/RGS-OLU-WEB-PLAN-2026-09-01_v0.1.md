@@ -305,3 +305,57 @@ node tools/rgs-web/server.js
 | 详细设计 | `docs/12-工作流/RGS-OLU-WEB-DETAILED-DESIGN-2026-09-01_v0.1.md` | ~350 行 |
 | 计划总览 | `docs/12-工作流/RGS-OLU-WEB-PLAN-2026-09-01_v0.1.md` | ~250 行（本文）|
 | **合计** | | **~1300 行** |
+
+### A.5 v0.2 升版增量（per Ulysses 4 + 2 ask_user 决策，2026-09-01 16:41 JST）
+
+> **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 PLAN 各章节：
+
+**1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+- §3.1 决策（webhook 端点 + 验签 + 重放保护）
+- §4.2 OL-W2-7（webhook 端点）
+- §4.3 OL-W3-6（E2E 实测）
+
+**2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+- §3.1 决策（数据存储 + SQLite 6 表 + 备份 batch）
+- §4.1 OL-W1-2（sqlite.js）
+- §4.4 OL-W4-5（backup-batch.js）
+- §4.5 总工作量重新核算
+
+**3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+- §3.1 决策（webhook 端点 cloudflared）
+- §4.3 OL-W3-4（cloudflared.js）
+- §7.1 启动 SOP（装 cloudflared）
+
+**4. webhook 验签 + 重放保护**（per F-32/F-33）
+- §4.1 OL-W1-6（webhook-verifier.js）
+- §4.2 OL-W2-7（webhook 端点）
+
+**5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+- §4.4 OL-W4-5（backup-batch.js）
+- §7.1 启动 SOP（cron 配置）
+
+**v0.2 总工作量**（per §4.5 重新核算）：
+- 26 L4 任务（v0.1 21 + v0.2 增 5：sqlite.js / webhook-verifier.js / webhook 端点 / cloudflared.js / E2E / backup-batch.js）
+- 25.5 人·天（v0.1 22 + v0.2 增 3.5）
+- 5.1M tokens（v0.1 4.4M + v0.2 增 0.7M）
+- NFR-OP-010 双轨校验：人·天轨 6.4/周（绿 ≤ 20）+ token 轨 1.3M/周（绿 ≤ 20M）
+
+**v0.2 风险**（per §5 重新核算，11 → 16）：
+- R-12 better-sqlite3 native binding 编译失败
+- R-13 cloudflared 二进制未装
+- R-14 cloudflared tunnel 公开 URL 泄露
+- R-15 SQLite 写并发死锁
+- R-16 备份 batch 失败
+
+**v0.1 风险 R-7 已缓解**：127.0.0.1 only 与 webhook 冲突 → cloudflared tunnel 解冲突
+
+**派生决策引用**：per 2026-09-01 14:58 JST 拍板决策必须用选项 + per "Never auto-install software" 硬约束
+
+---
+
+## 修订历史
+
+| 版本 | 日期 | 修订者 | 修订内容 |
+|---|---|---|---|
+| v0.1 | 2026-09-01 15:44 JST | 架构师（**Mavis 接手 agent per DEC-008**）| 首版（commit `a896ca9`）|
+| **v0.2** | **2026-09-01 16:41 JST** | **架构师（**Mavis 接手 agent per DEC-008**）** | **v0.2 升版**：① 11 决策 + 13 不选（v0.1 10 + 9）② 26 L4 任务（v0.1 21）③ 25.5 人·天（v0.1 22）④ 5.1M tokens（v0.1 4.4M）⑤ 16 风险（v0.1 11 + 5）⑥ NFR-OP-010 双轨仍绿 |
