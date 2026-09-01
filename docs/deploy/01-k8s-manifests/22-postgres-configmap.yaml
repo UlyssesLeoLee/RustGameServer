@@ -76,13 +76,43 @@ data:
     host    all             all             0.0.0.0/0               reject
 
   # 5 域 DB + cluster_ops_db init SQL（per ARC-008 5 独立 DB 原则）
-  # 实际表结构由 03-db-migrations/{db_name}/ 注入，本 ConfigMap 仅负责 CREATE DATABASE
+  # 实际表结构由 03-db-migrations/{db_name}/ 注入，本 ConfigMap 负责 CREATE USER + DATABASE + GRANT
+  # 2026-09-01 09:45 JST Mavis 临时越界 + Ulysses 追认 (per AGENTS.md v0.4 §临时越界记录):
+  #   加 CREATE USER + GRANT, 解决 9/1 部署恢复时 pod 启动 sqlx migrate 4 (player_inventory) 找不到 relation 的真因
+  #   (initdb.sql 之前只 CREATE DATABASE, 没 CREATE USER, 5 域 svc 连 DB 用 *_user md5 认证, user 不存在则连不上)
   initdb.sql: |
     -- per ARC-008 5 独立 DB 原则 + ADR-0052 cluster_ops 独立
-    -- 顺序：先建 DB，再用 sqlx-cli migrate 注入 schema
-    SELECT 'CREATE DATABASE player_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'player_db')\gexec
-    SELECT 'CREATE DATABASE economy_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'economy_db')\gexec
-    SELECT 'CREATE DATABASE match_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'match_db')\gexec
-    SELECT 'CREATE DATABASE social_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'social_db')\gexec
-    SELECT 'CREATE DATABASE admin_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'admin_db')\gexec
-    SELECT 'CREATE DATABASE cluster_ops_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cluster_ops_db')\gexec
+    -- 顺序: 先建 user, 再建 DB, 最后 GRANT
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'player_user') THEN
+        CREATE ROLE player_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'economy_user') THEN
+        CREATE ROLE economy_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'match_user') THEN
+        CREATE ROLE match_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'social_user') THEN
+        CREATE ROLE social_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'admin_user') THEN
+        CREATE ROLE admin_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'cluster_ops_user') THEN
+        CREATE ROLE cluster_ops_user WITH LOGIN PASSWORD 'ulysses_local';
+      END IF;
+    END$$;
+    SELECT 'CREATE DATABASE player_db OWNER player_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'player_db')\gexec
+    SELECT 'CREATE DATABASE economy_db OWNER economy_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'economy_db')\gexec
+    SELECT 'CREATE DATABASE match_db OWNER match_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'match_db')\gexec
+    SELECT 'CREATE DATABASE social_db OWNER social_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'social_db')\gexec
+    SELECT 'CREATE DATABASE admin_db OWNER admin_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'admin_db')\gexec
+    SELECT 'CREATE DATABASE cluster_ops_db OWNER cluster_ops_user' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cluster_ops_db')\gexec
+    GRANT ALL PRIVILEGES ON DATABASE player_db TO player_user;
+    GRANT ALL PRIVILEGES ON DATABASE economy_db TO economy_user;
+    GRANT ALL PRIVILEGES ON DATABASE match_db TO match_user;
+    GRANT ALL PRIVILEGES ON DATABASE social_db TO social_user;
+    GRANT ALL PRIVILEGES ON DATABASE admin_db TO admin_user;
+    GRANT ALL PRIVILEGES ON DATABASE cluster_ops_db TO cluster_ops_user;
