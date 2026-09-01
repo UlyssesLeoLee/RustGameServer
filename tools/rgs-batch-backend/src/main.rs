@@ -652,6 +652,7 @@ async fn version() -> impl Responder {
             "BA-W6-1: log-tasks by-trace + recent endpoint (跨 log_event + audit_event + task_execution 三表 join, 分布式追踪 + 监控, per W6 BA-W6-1)",
             "BA-W6-2/3: data_migration update/delete + saga_instance 状态机 (per W6 BA-W6-2 状态机 pending→running→succeeded/failed/rolled_back + W6 BA-W6-3 saga state 推进, audit_event 自动记录)",
             "BA-W6-4/5: message_outbox mark_sent + delete + system health endpoint (per W6 BA-W6-4 重试 + W6 BA-W6-5 集成系统健康, 综合 5 域 gRPC + DB + worker + cron + DLQ + audit 6 指标, per 监控用)",
+            "GAP-1 跨 batch DAG 拓扑排序 (per E8 GAP-1 + W4 BA-W4-8, sub_task.parent_id DAG + BFS 简化版, 完整 Kahn 留给 W4 BA-W4-8)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1575,6 +1576,50 @@ async fn integration_test_full_cycle(
     }))
 }
 
+#[get("/api/v1/batch-dag/{task_execution_id}")]
+async fn get_batch_dag(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // GAP-1: 跨 batch DAG 拓扑排序 + 依赖图 (per E8 GAP-1 跨 batch DAG, W4 BA-W4-8)
+    let task_exec_id = path.into_inner();
+    let nodes: Result<Vec<(Uuid, Uuid, String)>, _> = sqlx::query_as(
+        "SELECT id, parent_id, state FROM batch_transaction.sub_task WHERE parent_id = $1 OR id = $1"
+    ).bind(task_exec_id).fetch_all(&state.db).await;
+    let execs: Result<Vec<(Uuid, String, i32, Option<i64>)>, _> = sqlx::query_as(
+        "SELECT id, state, attempt, duration_ms FROM batch_transaction.task_execution WHERE id = $1"
+    ).bind(task_exec_id).fetch_all(&state.db).await;
+    let mut topo_order: Vec<String> = vec![];
+    let mut visited: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
+    let mut queue: Vec<Uuid> = vec![task_exec_id];
+    while let Some(current_node) = queue.pop() {
+        if visited.contains(&current_node) { continue; }
+        visited.insert(current_node);
+        topo_order.push(current_node.to_string());
+        if let Ok(ref rows) = nodes {
+            for (_id, parent_id, _state) in rows {
+                if *parent_id == current_node && !visited.contains(_id) {
+                    queue.push(*_id);
+                }
+            }
+        }
+    }
+    let result = match (nodes, execs) {
+        (Ok(n), Ok(e)) => serde_json::json!({
+            "task_execution_id": task_exec_id,
+            "topo_order": topo_order,
+            "topo_order_count": topo_order.len(),
+            "sub_task_count": n.len(),
+            "task_execution_count": e.len(),
+            "task_executions": e,
+            "note": "BFS 简化拓扑排序, 完整 Kahn's algorithm 见 W4 BA-W4-8"
+        }),
+        (Err(e1), _) => serde_json::json!({ "error": e1.to_string() }),
+        (_, Err(e2)) => serde_json::json!({ "error": e2.to_string() }),
+    };
+    web::Json(result)
+}
+
 #[get("/api/v1/credentials/audit")]
 async fn credentials_audit(
     state: web::Data<AppState>,
@@ -2367,6 +2412,7 @@ async fn main() -> std::io::Result<()> {
             .service(update_task_progress)
             .service(delete_task_progress)
             .service(integration_test_full_cycle)
+            .service(get_batch_dag)
             .service(credentials_audit)
             .service(olu_stats)
             .service(get_task_buffer)
