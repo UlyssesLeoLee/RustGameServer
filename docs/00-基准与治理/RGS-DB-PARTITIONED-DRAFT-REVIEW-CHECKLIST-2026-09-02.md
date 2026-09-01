@@ -18,6 +18,24 @@
 | `c2acf02` | `crates/economy-service/migrations/0007_sagas_partitioned.sql` | 132 | T-03, PH-3 | PH-3 | SRE + DBA + economy Lead |
 | `c2acf02` | `crates/match-service/migrations/0041_moves_partitioned.sql` | 107 | 14-§3.5 P1-07 + v0.2 §3.2 T-04 + §9.4 | PH-3 | SRE + DBA + match Lead |
 
+### 1.1 已签方背景 (per 9/2 v0.1.1 hotfix 新增, 2026-09-02 10:05 JST)
+
+5 域 Lead + SRE + DBA + 架构师 (8 角色) **在 RACI v0.2 §3 签字栏已全部 ✅** (per 6 worktree 跑通 9/1-9/2 23:57 JST 6 merge commit 落地, 拍板 3 全 A 9/2 00:28 JST)。**评审启动材料 v0.1 §4 签字栏是"评审项"签字,不是"派工"签字** — 已派工的 8 角色已知, 评审召集时直接从 RACI v0.2 §3 取名 + 通过 DEC-008 一人公司 12 角色 framework 走评审召集流程。
+
+**RACI v0.2 §3 已签方** (per 6 域 RACI 文档):
+
+| 角色 | 文档 | 9/1-9/2 签字状态 |
+|---|---|---|
+| player Lead | `docs/14-项目管理/RGS-RACI-PLAYER-V1_玩家域Lead责任矩阵_v1.1.md` | ✅ (派工签字) |
+| economy Lead | `docs/14-项目管理/RGS-RACI-ECONOMY-V1_经济域Lead责任矩阵_v1.1.md` | ✅ (派工签字) |
+| match Lead | `docs/14-项目管理/RGS-RACI-MATCH-V1_匹配域Lead责任矩阵_v1.1.md` | ✅ (派工签字) |
+| social Lead | `docs/14-项目管理/RGS-RACI-SOCIAL-V1_社交域Lead责任矩阵_v1.1.md` | ✅ (派工签字) |
+| admin Lead | `docs/14-项目管理/RGS-RACI-ADMIN-V1_管理域Lead责任矩阵_v1.1.md` | ✅ (派工签字) |
+| batch Lead | `docs/14-项目管理/RGS-RACI-BATCH-V1_批量域Lead责任矩阵_v1.1.md` | ✅ (派工签字, 待指定 per E2) |
+| SRE Lead | (per 5/1 OPEN-QA v0.3 §7.1 WSL k3s ulyssespc 节点注册) | ⏳ (Phase C 介入待恢复) |
+| DBA Lead | (per 17-P0-02 + RGS-DB-BAS-001 v0.2 §9.4) | ⏳ (评审启动待指派) |
+| 架构师 | (per DEC-008 一人公司 12 角色) | ✅ (Mavis 接手 per DEC-008 + Ulysses 代签授权 8/27 三次强化) |
+
 ## 2. 评审检查项 (per 17-P0-02 Expand-Contract 模式 + RGS-BAS-001 v0.2 §9.4)
 
 ### 2.1 Schema 正确性 (DBA 主审)
@@ -127,3 +145,4 @@
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-09-02 09:50 | 架构师(Mavis 接手 agent per DEC-008) | 初版: 4 DRAFT partitioned SQL 评审启动材料, 7 大评审检查项 + 4 维决策矩阵 + 4 域 Lead + SRE + DBA 签字栏 + 5 项实施前置条件, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化 |
+| **v0.1.1** | **2026-09-02 10:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 新增"已签方背景"段 — 5 域 Lead + 架构师 (6 角色) 在 RACI v0.2 §3 签字栏已全部 ✅ (per 6 worktree 跑通 9/1-9/2 23:57 JST 6 merge commit + 拍板 3 全 A 9/2 00:28 JST), SRE + DBA (2 角色) ⏳ (Phase C 介入待恢复 / DBA 评审启动待指派), 评审启动材料 §4 签字栏是"评审项"签字不是"派工"签字, 已派工 6 角色直接从 RACI v0.2 §3 取名, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
