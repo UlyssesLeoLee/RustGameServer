@@ -956,6 +956,304 @@ mod tests {
             other => panic!("应得 TamperDetected, got {:?}", other),
         }
     }
+
+    // ============================================================================
+    // UT 追加 (2026-09-01 WBS v0.2 桶 8 B2 增补): verify_recent / chain 边界
+    //
+    // 覆盖 B2 brief "已 commit 2d587f2 跑通, 本次追加 verify_recent 边界 UT":
+    // - n=0 边界
+    // - n=1 单条窗口
+    // - 空 repo 链验证
+    // - verify_chain_ascending 直接调用 (内部函数)
+    // - VerifyReport 字段精确断言
+    // - StartupVerifyOutcome 三态 + reason 字段内容
+    // ============================================================================
+
+    /// verify_recent(n=0): 返回空 report, is_ok=true
+    #[tokio::test]
+    async fn verify_recent_zero_window_returns_empty_ok() {
+        let repo = InMemoryAuditLogRepository::new();
+        let actor = Uuid::new_v4();
+        // 即使有数据, n=0 也不应扫描
+        let e = AuditLogEntry::new(
+            actor,
+            "test.action".to_string(),
+            "target".to_string(),
+            "{}".to_string(),
+            "0".repeat(64),
+        );
+        repo.append(&e).await.unwrap();
+        let report = repo.verify_recent(0).await.unwrap();
+        assert!(report.is_ok(), "n=0 应通过, got {:?}", report);
+        assert_eq!(report.checked, 0);
+    }
+
+    /// verify_recent(n=1): 扫描单条窗口
+    #[tokio::test]
+    async fn verify_recent_single_entry_window() {
+        let repo = InMemoryAuditLogRepository::new();
+        let actor = Uuid::new_v4();
+        let e = AuditLogEntry::new(
+            actor,
+            "single.action".to_string(),
+            "target".to_string(),
+            "{}".to_string(),
+            "0".repeat(64),
+        );
+        repo.append(&e).await.unwrap();
+        let report = repo.verify_recent(1).await.unwrap();
+        assert!(report.is_ok());
+        assert_eq!(report.checked, 1);
+    }
+
+    /// run_startup_verify 空 repo: Verified(0 entries)
+    #[tokio::test]
+    async fn run_startup_verify_empty_repo_verified_zero() {
+        let repo = InMemoryAuditLogRepository::new();
+        let out = run_startup_verify(&repo, 100).await;
+        match out {
+            StartupVerifyOutcome::Verified(report) => {
+                assert_eq!(report.checked, 0);
+                assert!(report.is_ok());
+            }
+            other => panic!("空 repo 应得 Verified(0), got {:?}", other),
+        }
+    }
+
+    /// verify_chain_ascending 直接调用: 单条 entry + 锚点匹配
+    #[test]
+    fn verify_chain_ascending_single_entry_anchor_match() {
+        use crate::repository::verify_chain_ascending;
+        let actor = Uuid::new_v4();
+        let e = AuditLogEntry::new(
+            actor,
+            "x".to_string(),
+            "y".to_string(),
+            "{}".to_string(),
+            "0".repeat(64),
+        );
+        let report = verify_chain_ascending(&[e], &"0".repeat(64));
+        assert!(report.is_ok());
+        assert_eq!(report.checked, 1);
+        assert_eq!(report.first_prev_hash.as_deref(), Some("0".repeat(64).as_str()));
+    }
+
+    /// verify_chain_ascending 直接调用: 单条 entry + 锚点不匹配 → 立即 broken
+    #[test]
+    fn verify_chain_ascending_single_entry_anchor_mismatch() {
+        use crate::repository::verify_chain_ascending;
+        let actor = Uuid::new_v4();
+        let e = AuditLogEntry::new(
+            actor,
+            "x".to_string(),
+            "y".to_string(),
+            "{}".to_string(),
+            "0".repeat(64), // prev_hash = 0..0
+        );
+        // 锚点 = "f..f" (非 0..0) → 第一条 prev_hash != 锚点 → 立即 broken
+        let wrong_anchor = "f".repeat(64);
+        let report = verify_chain_ascending(&[e], &wrong_anchor);
+        assert!(!report.is_ok());
+        assert_eq!(report.broken_at_index, Some(0));
+        assert!(report
+            .broken_reason
+            .as_deref()
+            .map(|r| r.contains("prev_hash"))
+            .unwrap_or(false));
+    }
+
+    /// verify_chain_ascending 直接调用: 空切片
+    #[test]
+    fn verify_chain_ascending_empty_slice() {
+        use crate::repository::verify_chain_ascending;
+        let report = verify_chain_ascending(&[], &"0".repeat(64));
+        assert!(report.is_ok());
+        assert_eq!(report.checked, 0);
+        assert!(report.first_prev_hash.is_none());
+        assert!(report.broken_at_index.is_none());
+    }
+
+    /// verify_chain_ascending: 第二条 prev_hash 指向第一条 hash (链连续)
+    #[test]
+    fn verify_chain_ascending_two_entries_continuous_chain() {
+        use crate::repository::verify_chain_ascending;
+        let actor = Uuid::new_v4();
+        let e1 = AuditLogEntry::new(
+            actor,
+            "first".to_string(),
+            "t".to_string(),
+            "{}".to_string(),
+            "0".repeat(64),
+        );
+        let hash1 = e1.hash.clone();
+        let e2 = AuditLogEntry::new(
+            actor,
+            "second".to_string(),
+            "t".to_string(),
+            "{}".to_string(),
+            hash1.clone(),
+        );
+        let report = verify_chain_ascending(&[e1, e2], &"0".repeat(64));
+        assert!(report.is_ok(), "连续链应通过, got {:?}", report);
+        assert_eq!(report.checked, 2);
+    }
+
+    /// verify_chain_ascending: 第二条 prev_hash 篡改 (broken_at_index = 1)
+    #[test]
+    fn verify_chain_ascending_two_entries_second_prev_hash_tampered() {
+        use crate::repository::verify_chain_ascending;
+        let actor = Uuid::new_v4();
+        let e1 = AuditLogEntry::new(
+            actor,
+            "first".to_string(),
+            "t".to_string(),
+            "{}".to_string(),
+            "0".repeat(64),
+        );
+        // e2 的 prev_hash 故意写错 (不是 e1.hash)
+        let e2 = AuditLogEntry::new(
+            actor,
+            "second".to_string(),
+            "t".to_string(),
+            "{}".to_string(),
+            "deadbeef".repeat(8), // 64 hex chars, 但不是 e1.hash
+        );
+        let report = verify_chain_ascending(&[e1, e2], &"0".repeat(64));
+        assert!(!report.is_ok());
+        assert_eq!(report.broken_at_index, Some(1));
+        assert!(report.checked == 1, "在 i=1 之前应已确认 1 条 OK");
+    }
+
+    /// VerifyReport is_ok: broken_at_index=None 时为 true
+    #[test]
+    fn verify_report_is_ok_semantics() {
+        let clean = VerifyReport {
+            checked: 5,
+            first_prev_hash: Some("0".repeat(64)),
+            last_hash: Some("a".repeat(64)),
+            broken_at_index: None,
+            broken_reason: None,
+        };
+        assert!(clean.is_ok());
+
+        let broken = VerifyReport {
+            checked: 3,
+            first_prev_hash: Some("0".repeat(64)),
+            last_hash: Some("b".repeat(64)),
+            broken_at_index: Some(2),
+            broken_reason: Some("chain break at i=2".to_string()),
+        };
+        assert!(!broken.is_ok());
+    }
+
+    /// run_startup_verify: TamperDetected 携带 reason 描述 (覆盖 broken_reason 字段)
+    #[tokio::test]
+    async fn run_startup_verify_tamper_reason_carries_descriptive_text() {
+        use sqlx::{Postgres, Transaction};
+        // 构造一个总是返 Err 的 fake repo
+        struct AlwaysErrRepo;
+        #[async_trait::async_trait]
+        impl AuditLogRepository for AlwaysErrRepo {
+            async fn append(&self, e: &AuditLogEntry) -> Result<AuditLogEntry> {
+                let _ = e;
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn find_by_id(&self, _id: Uuid) -> Result<Option<AuditLogEntry>> {
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn latest(&self) -> Result<Option<AuditLogEntry>> {
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn list_by_actor(
+                &self,
+                _actor: Uuid,
+                _limit: i64,
+            ) -> Result<Vec<AuditLogEntry>> {
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn append_atomic(
+                &self,
+                _tx: &mut Transaction<'_, Postgres>,
+                _entry: &AuditLogEntry,
+            ) -> Result<AuditLogEntry> {
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn verify_recent(&self, _n: usize) -> Result<VerifyReport> {
+                Err(crate::Error::Internal(anyhow::anyhow!("db connection lost")))
+            }
+        }
+        let fake = AlwaysErrRepo;
+        let out = run_startup_verify(&fake, 10).await;
+        match out {
+            StartupVerifyOutcome::InfraError { reason } => {
+                assert!(
+                    reason.contains("db connection lost"),
+                    "InfraError reason 应透传底层错误, got: {reason}"
+                );
+            }
+            other => panic!("应得 InfraError, got {:?}", other),
+        }
+    }
+
+    /// StartupVerifyOutcome 三态: 构造 + match 模式匹配
+    #[test]
+    fn startup_verify_outcome_pattern_match() {
+        let verified = StartupVerifyOutcome::Verified(VerifyReport {
+            checked: 5,
+            first_prev_hash: Some("0".repeat(64)),
+            last_hash: Some("a".repeat(64)),
+            broken_at_index: None,
+            broken_reason: None,
+        });
+        let tamper = StartupVerifyOutcome::TamperDetected {
+            report: VerifyReport {
+                checked: 3,
+                first_prev_hash: Some("0".repeat(64)),
+                last_hash: Some("b".repeat(64)),
+                broken_at_index: Some(1),
+                broken_reason: Some("chain break".to_string()),
+            },
+            reason: "chain break at i=1".to_string(),
+        };
+        let infra = StartupVerifyOutcome::InfraError {
+            reason: "db unavailable".to_string(),
+        };
+
+        // Pattern match
+        let _ = match verified {
+            StartupVerifyOutcome::Verified(r) => r.checked,
+            _ => panic!(),
+        };
+        let _ = match tamper {
+            StartupVerifyOutcome::TamperDetected { report, reason } => (report.broken_at_index, reason),
+            _ => panic!(),
+        };
+        let _ = match infra {
+            StartupVerifyOutcome::InfraError { reason } => reason,
+            _ => panic!(),
+        };
+    }
+
+    /// verify_recent: n 大于总条数, 全部扫描通过
+    #[tokio::test]
+    async fn verify_recent_n_larger_than_total() {
+        let repo = InMemoryAuditLogRepository::new();
+        let actor = Uuid::new_v4();
+        for _ in 0..3 {
+            let e = AuditLogEntry::new(
+                actor,
+                "x".to_string(),
+                "y".to_string(),
+                "{}".to_string(),
+                "0".repeat(64),
+            );
+            repo.append(&e).await.unwrap();
+        }
+        // n=100, 但只有 3 条 → 应扫全部 3 条
+        let report = repo.verify_recent(100).await.unwrap();
+        assert!(report.is_ok());
+        assert_eq!(report.checked, 3);
+    }
 }
 
 // ============================================================================
