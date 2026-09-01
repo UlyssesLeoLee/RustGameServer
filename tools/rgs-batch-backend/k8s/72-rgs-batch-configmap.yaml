@@ -1,0 +1,29 @@
+# rgs-batch configmap (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-3, 2026-09-02 02:00 JST Mavis 接手代签)
+# 业务配置 (非凭据, 凭据走 secret)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rgs-batch-config
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch
+data:
+  # 5 域 gRPC client 端点 (per DETAILED-DESIGN §3.1)
+  PLAYER_GRPC_ENDPOINT: "rust-game-server-player:50051"
+  ECONOMY_GRPC_ENDPOINT: "rust-game-server-economy:50052"
+  MATCH_GRPC_ENDPOINT: "rust-game-server-match:50053"
+  SOCIAL_GRPC_ENDPOINT: "rust-game-server-social:50054"
+  ADMIN_GRPC_ENDPOINT: "rust-game-server-admin:50055"
+
+  # Worker pool 配置 (per W2 BA-W2-4)
+  WORKER_POOL_SIZE: "5"
+  WORKER_RPM_LIMIT: "1000"
+
+  # Cron 调度配置 (per W3 BA-W3-2)
+  CRON_TIMEZONE: "Asia/Tokyo"
+  AUDIT_RETENTION_DAYS: "365"
+
+  # DLQ 配置 (per W2 BA-W2-5)
+  DLQ_MAX_RETRIES: "3"
+  DLQ_BACKOFF_MS: "100,200,400"

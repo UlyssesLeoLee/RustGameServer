@@ -1,0 +1,18 @@
+# rgs-batch TLS secret (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-4, 2026-09-02 02:00 JST Mavis 接手代签)
+# 边缘 TLS 证书 (envoy mTLS termination), 由 crates/rgs-certgen 生成
+# 凭据永不打印, 实际部署时 SRE 注入 (per 8/27 11:06 JST 硬 ban)
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rgs-batch-tls
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch
+  annotations:
+    description: "rgs-batch 边缘 TLS 证书 (envoy mTLS termination), 由 crates/rgs-certgen 生成"
+type: kubernetes.io/tls
+data:
+  # 占位, base64 编码, 实际由 SRE 注入 (per 8/27 11:06 JST 硬 ban)
+  tls.crt: "UkVBQ1RFRC1DRVJULURBVEE="
+  tls.key: "UkVBQ1RFRC1DRVJULURBVEE="

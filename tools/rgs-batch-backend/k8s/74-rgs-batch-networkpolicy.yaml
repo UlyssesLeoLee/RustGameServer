@@ -1,0 +1,120 @@
+# rgs-batch networkpolicy (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-3, 2026-09-02 02:00 JST Mavis 接手代签)
+# 隔离: console ↔ backend (in-namespace), 5 域 ingress (egress), 拒绝跨 namespace
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rgs-batch-console
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-console
+spec:
+  podSelector:
+    matchLabels:
+      app: rgs-batch-console
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # 允许 envoy 边缘代理访问 console (per W1 BA-W1-6 envoy 独立 deployment)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: rgs-batch-envoy
+      ports:
+        - port: 8789
+          protocol: TCP
+    # 允许 Prometheus scrape (per W2 BA-W2-7)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - port: 8789
+          protocol: TCP
+  egress:
+    # 允许 console → backend (同 namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: rgs-batch-backend
+      ports:
+        - port: 8790
+          protocol: TCP
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rgs-batch-backend
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: rgs-batch-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # 允许 console 访问 backend
+    - from:
+        - podSelector:
+            matchLabels:
+              app: rgs-batch-console
+      ports:
+        - port: 8790
+          protocol: TCP
+    # 允许 envoy 访问 backend (per W1 BA-W1-6)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: rgs-batch-envoy
+      ports:
+        - port: 8790
+          protocol: TCP
+    # 允许 Prometheus scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - port: 9464
+          protocol: TCP
+  egress:
+    # 允许 backend → 5 域 gRPC (rust-game-server namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: rust-game-server
+      ports:
+        - port: 50051
+          protocol: TCP
+        - port: 50052
+          protocol: TCP
+        - port: 50053
+          protocol: TCP
+        - port: 50054
+          protocol: TCP
+        - port: 50055
+          protocol: TCP
+    # 允许 backend → postgres-rgs
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: rust-game-server
+      ports:
+        - port: 5432
+          protocol: TCP
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP

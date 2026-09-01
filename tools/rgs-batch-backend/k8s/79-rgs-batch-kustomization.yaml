@@ -1,0 +1,21 @@
+# rgs-batch kustomization (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-3, 2026-09-02 02:00 JST Mavis 接手代签)
+# kustomize 入口, 9 manifest 索引 (per OPEN-QA v0.3 §7.5.2 替代 sed 替换)
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rgs-batch
+resources:
+  - 78-rgs-batch-namespace.yaml
+  - 70-rgs-batch-console-deployment.yaml
+  - 71-rgs-batch-backend-deployment.yaml
+  - 72-rgs-batch-configmap.yaml
+  - 73-rgs-batch-secret-example.yaml
+  - 74-rgs-batch-networkpolicy.yaml
+  - 75-rgs-batch-envoy-deployment.yaml
+  - 76-rgs-batch-envoy-config.yaml
+  - 77-rgs-batch-tls.yaml
+commonLabels:
+  app.kubernetes.io/part-of: rgs-batch
+  app.kubernetes.io/version: v0.1.0
+commonAnnotations:
+  description: "rgs-batch 综合 batch 管理平台 (per BATCH-PLAN v0.2)"

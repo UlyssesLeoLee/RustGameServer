@@ -1,0 +1,13 @@
+# rgs-batch namespace (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-3, 2026-09-02 02:00 JST Mavis 接手代签)
+# 独立 namespace rgs-batch, 跟 rust-game-server 隔离 (per AGENTS.md v0.4 §7.5 5 不破坏 + E4 资源策略)
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rgs-batch
+  labels:
+    name: rgs-batch
+    app.kubernetes.io/part-of: rgs-batch
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

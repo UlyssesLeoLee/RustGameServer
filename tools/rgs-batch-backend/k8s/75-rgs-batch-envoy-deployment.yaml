@@ -1,0 +1,88 @@
+# rgs-batch envoy 独立 deployment (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-6, 2026-09-02 02:00 JST Mavis 接手代签)
+# envoy 独立 deployment 模式 (per 9/1 13:03/13:05 JST 偏好, 不引入 istio sidecar)
+# mTLS termination + reverse proxy + file_system HTTP filter 托管 console 静态资源
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rgs-batch-envoy
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-envoy
+    app.kubernetes.io/name: rgs-batch-envoy
+    app.kubernetes.io/part-of: rgs-batch
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rgs-batch-envoy
+  template:
+    metadata:
+      labels:
+        app: rgs-batch-envoy
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.30-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: tls-certs
+              mountPath: /etc/certs
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: rgs-batch-envoy-config
+        - name: tls-certs
+          secret:
+            secretName: rgs-batch-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rgs-batch-envoy
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-envoy
+spec:
+  type: ClusterIP
+  selector:
+    app: rgs-batch-envoy
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+      protocol: TCP
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP

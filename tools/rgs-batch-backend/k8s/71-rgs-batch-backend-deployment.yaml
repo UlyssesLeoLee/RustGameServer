@@ -1,0 +1,102 @@
+# rgs-batch-backend deployment (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-3, 2026-09-02 02:00 JST Mavis 接手代签)
+# Rust + actix-web 4, 监听 0.0.0.0:8790
+# mTLS 业务级 (per AGENTS.md v0.4 §7 batch 域派生约束), 镜像 rgs-batch-backend:0.1.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rgs-batch-backend
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-backend
+    app.kubernetes.io/name: rgs-batch-backend
+    app.kubernetes.io/part-of: rgs-batch
+    app.kubernetes.io/version: v0.1.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rgs-batch-backend
+  template:
+    metadata:
+      labels:
+        app: rgs-batch-backend
+    spec:
+      containers:
+        - name: rgs-batch-backend
+          image: rgs-batch-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8790
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: info
+            - name: BATCH_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rgs-batch-db
+                  key: url
+            - name: BATCH_5DOMAIN_CERTS_DIR
+              value: /etc/certs/5domain
+          volumeMounts:
+            - name: 5domain-certs
+              mountPath: /etc/certs/5domain
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: 5domain-certs
+          secret:
+            secretName: rgs-batch-5domain-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rgs-batch-backend
+  namespace: rgs-batch
+  labels:
+    app: rgs-batch-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: rgs-batch-backend
+  ports:
+    - name: http
+      port: 8790
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: metrics
+      protocol: TCP

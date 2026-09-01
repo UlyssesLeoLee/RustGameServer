@@ -1,0 +1,39 @@
+[workspace]
+# rgs-batch-backend 独立 cargo project (per AGENTS.md v0.4 §7.1, 不加入 workspace)
+
+[package]
+name = "rgs-batch-backend"
+version = "0.1.0"
+edition = "2021"
+description = "rgs-batch-backend (Rust + actix-web 4 + tokio + tonic 0.12 gRPC client + sqlx 0.7 + mTLS 业务级, per BATCH-PLAN v0.2 §3.1 W1 BA-W1-2, AGENTS.md v0.4 §7.1 batch 域独立项目)"
+license = "Apache-2.0"
+
+[[bin]]
+name = "rgs-batch-backend"
+path = "src/main.rs"
+
+[dependencies]
+actix-web = "4"
+actix-rt = "2"
+tokio = { version = "1", features = ["full"] }
+tonic = { version = "0.12", features = ["transport", "tls", "tls-roots"] }
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "1"
+futures = "0.3"
+once_cell = "1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
