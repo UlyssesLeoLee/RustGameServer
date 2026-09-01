@@ -45,7 +45,7 @@
 
 **E 段 7/8 落地** (比 v0.3 时 5/8 多了 E3 W1 6 任务 + E4/E8 草案)
 
-### 1.1 E3 W2-W6 增量落地 (per 9/2 02:17-08:14 JST 主会话打头阵 ~6h, 88 commit 净增)
+### 1.1 E3 W2-W6 增量落地 (per 9/2 02:17-08:14 JST 主会话打头阵 ~6h, commit 净增数实时查 `git rev-list --count 84edf26..main`)
 
 | 子项 | 任务 | commit | 状态 |
 |---|---|---|---|
@@ -63,7 +63,7 @@
 
 **9/2 08:14 JST git 实证** (per L13 派生约束 自指字段全 deferred):
 - main HEAD: `e0ed477` (实时, 跑 `git log main --oneline -1`)
-- ahead of WBS v0.2 (84edf26): **88 commit** (`git rev-list --count 84edf26..main`, 修正 v0.4.4 跟踪表"39 commit"误算, 差 49 commit)
+- ahead of WBS v0.2 (84edf26): **88 commit** (实时 `git rev-list --count 84edf26..main`, 创建时实测数; 修正 v0.4.4 跟踪表"39 commit"误算)
 - ahead of origin/main: 138 commit (`git rev-list --count origin/main..main`)
 - 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 实际跑待 Phase C 落地
 
@@ -177,7 +177,7 @@
 | 代签三件套 | 全 commit 齐 |
 | Phase C | 🔒 0/5 (SRE 介入) |
 | Phase E3 W1 | ✅ 6/6 (本会话跑完, 9/2 02:15 JST) |
-| Phase E3 W2-W6 | ✅ 37/40 L4 任务 (本会话 88 commit, 9/2 08:14 JST, 详见 §1.1) |
+| Phase E3 W2-W6 | ✅ 37/40 L4 任务 (9/2 08:14 JST, commit 净增数实时查 `git rev-list --count 84edf26..main`, 详见 §1.1) |
 | Phase E4 | 🟡 草案 (本版 §3, 待 SRE 拍板) |
 | Phase E8 | ✅ 12/12 GAP (10 实施 + 2 文档化, commit 关联全补, 详见 §4) |
 
@@ -194,6 +194,7 @@
 | v0.4.3 | 2026-09-02 03:20 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 ✅ (GAP-3/4/7/9 已落地, 关联 commit 1e3d528/a932d95/5568a68/b7c100a) |
 | v0.4.4 | 2026-09-02 08:17 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 → 10/12 (GAP-1/2/5/6/8/10 已落地, 6 commit 关联 W2-W6), 本会话 9/2 02:17-08:14 JST 累计净增 39 commit, main HEAD 推进 b8a79d8 → ea4c874, per 9/2 ~6h 推进 + 'GAP-1/2/5/6/8/10 收口' (主会话打头阵 + 模板化复制 + L14 派生约束守护) |
 | **v0.4.5** | **2026-09-02 08:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: (1) v0.4.4 跟踪表 "39 commit" 误算 → git 实证 88 commit (差 49, per L13 派生约束 自指字段全 deferred 实时查询); (2) §1.1 新增 E3 W2-W6 实际落地段 (37/40 L4 任务, 40 commit, 9/2 02:17-08:14 JST 主会话打头阵 ~6h); (3) §4 GAP-12 补 commit 关联 (2a44836 BA-W1-3 9 k8s manifests), E8 12/12 ✅; (4) §5 解除 blocked: E3 W2-W6 37/40 + E8 12/12 全部解除, 剩 Phase C SRE 介入 + E4 草案拍板; (5) §6 维护表 E3 W2-W6 + E8 12/12 状态固化; (6) §7 修订历史 + v0.4.5 (代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化)** |
+| **v0.4.6** | **2026-09-02 09:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 / §1.1 ahead 行 / §6 维护表 3 处 "88 commit" 数字替换为实时 git 实证查询表达式 `git rev-list --count 84edf26..main` — 跟 STATUS-SNAPSHOT v0.6.4 ~ v0.6.8 同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
