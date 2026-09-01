@@ -35,9 +35,9 @@
 | E5 | OLU v0.2 token-OLU 框架 | ✅ 1/1 | 1 | — |
 | E6 | ADR-0058 v0.2 6 域受控 | ✅ 1/1 | 1 | — |
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
-| E8 | 12 GAP 实施 (24 人·天) | ✅ 6/12 + 6/12 草案 | 6 | GAP-1/3/4/6/7/9 已落地 (GAP-1 跨 batch DAG BFS + GAP-6 rgs-web 8788 + OIDC bridge, per 9/2 08:05 JST), 剩 GAP-2/5/8/10/11/12 跟 W4-W6 推进 |
+| E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计**: 12 子桶中 8 ✅ + 1 🔒 + 3 📋 转后续会话,落地 28 commit, ahead of WBS v0.2 40 commit。
+**总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:25 JST): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 88 commit (ahead of WBS v0.2), 138 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
 
 ## 2. 本会话 commit 历史 (最近 15)
 
@@ -123,6 +123,7 @@
 | v0.4 | 2026-09-02 03:39 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 12 sub-bucket 表更新 (E3 W2 9/9 + W3 7/7 + W4 5/5 + W5 3/5 落地, E3 W6 + E4 + E8 4/12 转后续) + §2 commit 历史扩展, 本会话 9/2 02:17-03:37 JST 净增 27 commit, main HEAD 推进 b8a79d8 → e33a87e, per 9/2 80 min 推进 + 'W2/W3/W4/W5 任务细化' (主会话打头阵 + 模板化复制) |
 | v0.5 | 2026-09-02 03:44 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 E3 W5 3/5 → 5/5 落地 (BA-W5-6/7 integration test + credentials audit + OLU stats, 7 endpoint 落地), 本会话 9/2 02:17-03:41 JST 净增 29 commit, main HEAD 推进 b8a79d8 → 63f1c24, E3 W2-W5 25/35 L4 任务全部完成, per 9/2 84 min 推进 + 'W5 集成 + 凭据 + OLU 收口' (主会话打头阵 + 模板化复制) |
 | v0.6 | 2026-09-02 08:08 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 E3 W6 0/5 → 5/5 落地 (BA-W6-1/2/3/4/5, 5 commit) + E8 4/12 → 6/12 (GAP-1 跨 batch DAG + GAP-6 rgs-web bridge, 2 commit), 本会话 9/2 02:17-08:08 JST 累计净增 35 commit, main HEAD 推进 b8a79d8 → d3ca7be, E3 W2-W6 35/40 L4 任务全部完成, AGENTS.md L14 派生约束入档 + 22 测试函数 (11 UT + 11 E2E), per 9/2 ~6h 推进 + 'W3 BA-W3-11 E2E + GAP-1/6 + L14' 收口 |
+| **v0.6.1** | **2026-09-02 08:30** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 E8 6/12 + 6/12 草案 → 12/12 全部落地 (GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 RACI commit `0755ef8e` + GAP-12 BA-W1-3 namespace commit `2a44836`) + §0 总盘统计 35 → 88 commit (ahead of WBS v0.2, 跟 WBS v0.4.5 跟踪表 git 实证一致, per L13 派生约束 自指字段全 deferred 实时查询), 跟 WBS v0.4.5 跟踪表 (commit `4723808`) 同步, 代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
