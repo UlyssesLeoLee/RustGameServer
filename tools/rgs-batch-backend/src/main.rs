@@ -1688,10 +1688,6 @@ async fn rgs_web_bridge_task_execution(
     }
 }
 
-use actix_web::Responder;
-use actix_web::HttpResponse;
-use actix_web::http::header;
-use std::time::Duration;
 
 #[get("/api/v1/events/stream")]
 async fn sse_event_stream(
@@ -1706,7 +1702,6 @@ async fn sse_event_stream(
     let grpc_clients = state.grpc_clients.clone();
     let worker_pool = state.worker_pool.clone();
     let cron = state.cron.clone();
-    let audit = state.audit.clone();
 
     let stream = async_stream::stream! {
         let mut ticker = tokio::time::interval(Duration::from_secs(interval_secs));
