@@ -439,6 +439,37 @@ struct DataSource {
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
+struct WorkerPoolConfig {
+    id: Uuid,
+    name: String,
+    min_workers: i32,         // GAP-4 优先级调度: 最小 worker 数
+    max_workers: i32,         // max_concurrent 上限
+    priority_levels: i32,     // 优先级层数 (per GAP-4 1-10)
+    enabled: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct ScheduleEntry {
+    id: Uuid,
+    name: String,
+    cron_expr: String,         // 简化: cron 表达式 (e.g. "0 * * * *")
+    interval_secs: i32,        // 周期秒数
+    handler: String,           // handler name
+    enabled: bool,
+    last_run_at: Option<chrono::DateTime<chrono::Utc>>,
+    next_run_at: Option<chrono::DateTime<chrono::Utc>>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ScheduleEntryQuery {
+    enabled: Option<bool>,
+    handler: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
 struct TaskDef {
     id: Uuid,
     name: String,
@@ -610,6 +641,7 @@ async fn version() -> impl Responder {
             "BA-W3-6/7: saga_instance + message_outbox + data_migration Transaction T-7+T-8+T-6 CRUD (per saga_type/state/destination/state/name 过滤, 动态 SQL, 跨 5 域 + kafka + DB 迁移)",
             "BA-W3-8: sub_task Transaction T-1.5 CRUD (per parent_task_id/state/order_idx 过滤, ON CONFLICT (parent_task_id, name) upsert, 跨 8/3 Transaction 表 8/8 已 list + CRUD)",
             "BA-W3-9: sub_task update + delete (per id, 跨 8/3 Transaction 表 8/8 已 full CRUD: list+upsert+update+delete)",
+            "BA-W4-1/2: worker_pool_config + schedule Master M-4+M-5 CRUD (per min/max_workers + enabled/handler 过滤, GAP-4 优先级调度对接)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1042,6 +1074,36 @@ async fn list_task_defs(state: web::Data<AppState>) -> impl Responder {
     .await;
     match rows {
         Ok(list) => web::Json(serde_json::json!({ "task_defs": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/worker-pool-config")]
+async fn list_worker_pool_config(state: web::Data<AppState>) -> impl Responder {
+    // W4 BA-W4-1: Master M-4 worker_pool CRUD (per GAP-4 优先级调度 + max_workers 上限)
+    let rows: Result<Vec<WorkerPoolConfig>, _> = sqlx::query_as::<_, WorkerPoolConfig>(
+        "SELECT id, name, min_workers, max_workers, priority_levels, enabled, created_at FROM batch_master.worker_pool ORDER BY name ASC"
+    ).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "pools": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/schedules")]
+async fn list_schedules(
+    state: web::Data<AppState>,
+    query: web::Query<ScheduleEntryQuery>,
+) -> impl Responder {
+    // W4 BA-W4-2: Master M-5 schedule CRUD (per enabled/handler 过滤, 动态 SQL)
+    let limit = query.limit.unwrap_or(50).min(500);
+    let mut sql = String::from("SELECT id, name, cron_expr, interval_secs, handler, enabled, last_run_at, next_run_at, created_at FROM batch_master.schedule WHERE 1=1");
+    if let Some(e) = query.enabled { sql.push_str(&format!(" AND enabled = {}", e)); }
+    if let Some(h) = &query.handler { sql.push_str(&format!(" AND handler = '{}'", h)); }
+    sql.push_str(&format!(" ORDER BY name ASC LIMIT {}", limit));
+    let rows: Result<Vec<ScheduleEntry>, _> = sqlx::query_as::<_, ScheduleEntry>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "schedules": list, "count": list.len() })),
         Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
     }
 }
@@ -1574,6 +1636,8 @@ async fn main() -> std::io::Result<()> {
             .service(query_audit)
             .service(list_data_sources)
             .service(list_task_defs)
+            .service(list_worker_pool_config)
+            .service(list_schedules)
             .service(list_task_executions)
             .service(list_logs)
             .service(list_task_progress)
