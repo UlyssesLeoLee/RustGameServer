@@ -12,7 +12,7 @@
 
 - **项目**: RustGameServer (分布式游戏服务器 Rust + gRPC)
 - **架构**: **6 域** (player / economy / match / social / admin / **batch**) + 平台层 + 工具 crate, 6 域独立 Lead (per 2026-08-21 JST + 2026-09-01 18:00-19:24 JST batch 域扩展, per §7)
-- **基线 commit**: 46dd2a0 (831) → 305f2cb (8/31 19:48 JST) → f5c0359 → 8da6695 → fd122f6 (REQ) → e366ff8 (BASIC) → 62027c9 (DETAILED) → e70ed71 (PLAN, 2026-09-01 19:24 JST batch 4 件套)
+- **基线 commit**: 46dd2a0 (831) → 305f2cb (8/31 19:48 JST) → f5c0359 → 8da6695 → fd122f6 (REQ) → e366ff8 (BASIC) → 62027c9 (DETAILED) → e70ed71 (PLAN, 2026-09-01 19:24 JST batch 4 件套) → eb1e15d (BAS-001 v0.2) → 84edf26 (WBS v0.2, 2026-09-01 22:20 JST 4 拍板 B/B/B/A) → fb1fd8c (6 worktree merge 落地, 22 commit ahead)
 - **代签规则**: 修订人 = Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手;审批 = 架构师(Mavis 接手 agent per DEC-008) (per 2026-08-27 19:39/20:56/21:59 JST 三次强化)
 
 ---
@@ -429,6 +429,7 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 | v0.2 | 2026-09-01 10:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 k3s 部署恢复期: 加 §6.2 临时越界记录 (Ulysses opt3 追认), 22-postgres-configmap initdb.sql + m4 forward ref FK 两处临时越界 |
 | v0.3 | 2026-09-01 16:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 PT 派工 8 worker 完结 (commit ffbfb19) + 5 域 ST 业务级 mTLS 全完成 (commit 401ac5c): 加 L9/L11/L12 派生约束 (临时越界流程化 + cargo build dir lock 防御 + 临时 log 不入 commit 防御) |
 | v0.4 | 2026-09-01 19:24 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 batch 域 4 件套落地 (REQ `fd122f6` + BASIC `e366ff8` + DETAILED `62027c9` + PLAN `e70ed71`, 2576 行 / 165.2 KB / 23 处自审 fix): §0 元信息更新 5 域→6 域 + §7 新增 batch 域派生约束 (12 条约束 + 已知缺口 + brief 模板 + 5 不破坏 + 4 复用 + 3 引用 + 38 L4 任务入口) |
+| v0.5 | 2026-09-01 23:57 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 22:20 JST WBS v0.2 落地 (commit `84edf26` 4 拍板 B/B/B/A) + 9/1 23:57 JST 6 worktree merge 落地 (桶 7+10+8 并行, 22 commit ahead, 6 crate cargo check --lib 0 error): §0 元信息加 WBS v0.2 + §3.2 加 RACI v1.2 (5→6 域 batch 扩展, 待 A5 落档) + §6 简报模板引 WBS v0.2 引用 + §7 保留 v0.4 batch 域派生约束 + §8 本修订历史 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
