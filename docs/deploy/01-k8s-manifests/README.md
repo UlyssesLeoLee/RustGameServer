@@ -6,6 +6,12 @@
 >
 > 当前文件全部为**结构骨架**（namespace / 占位 Deployment / ConfigMap 模板），仅用于提前铺好目录与命名空间边界。**禁止在 NO-GO 解除前向本目录提交实际镜像 tag、副本数、资源 request/limit、Secret 实际值。**
 
+> **9/1 22:30 JST 追加（per WBS v0.2 桶 10 Phase D D3, commit 84edf26）**:
+> - `kustomization.yaml` 已落地 (per RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md §7.5.2)
+> - 47 manifest 已按 8/27 顺序列在 `resources:` (namespace 用 kustomize 字段统一替换 `rust-game-server`)
+> - 实际 Secret 值仍走 sealed-secrets / external-secrets 注入 (per 8/29 修订)
+> - 完整 47 manifest template 化 (ConfigMapGenerator / SecretGenerator / patches) 跨 4h 估算, 跟桶 9 集群可达同步推进
+
 ---
 
 ## 1. 目录组织

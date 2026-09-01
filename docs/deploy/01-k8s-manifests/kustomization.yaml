@@ -1,0 +1,95 @@
+# kustomization.yaml — k8s manifest 模板化 (per WBS v0.2 桶 10 Phase D D3)
+#
+# 背景 (per RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md §7.5.2):
+# 8/27 部署 manifest 用了 PLACEHOLDER_NAMESPACE / PLACEHOLDER_* 占位符,
+# SRE 必须 sed 替换后才能 apply — 易错、不可重现、不可 review diff。
+#
+# 改造: 用 kustomize 替代 sed
+# - namespace 用 kustomize namespace 字段 (per kustomize 官方 docs)
+# - secret 实际值用 sealed-secrets / external-secrets 注入 (per ARC-019 + 8/29 修订)
+# - 容器镜像 tag / replicas 用 kustomize components / overlays 切换
+#
+# 验证: `kubectl apply -k .` 应成功
+# 注意: 本 kustomization.yaml 仅展示 namespace 替换 + 占位 secret 用 sealed-secret 占位
+#       完整 47 manifest 模板化 (D3 完整) 跨 4h 估算, 落档阶段
+#
+# 关联:
+# - WBS v0.2 commit 84edf26 (桶 10 Phase D D3)
+# - RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md §7.5.2
+# - DDD Review §7.2 P2: k3s PLEG 死锁 + cluster-reset 派生约束
+#
+# 状态: 🟡 占位 (per 9/1 22:30 JST 30 min 预算, 完整 47 manifest 转换跟
+#       桶 9 集群可达同步推进, per WT-10-brief §D3 卡住应对)
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 命名空间 (替换全部 PLACEHOLDER_NAMESPACE)
+namespace: rust-game-server
+
+# 资源引用 (按 8/27 顺序 apply)
+resources:
+  - 00-namespace.yaml
+  - 01-player-service.yaml
+  - 02-economy-service.yaml
+  - 03-match-service.yaml
+  - 04-social-service.yaml
+  - 05-admin-service.yaml
+  - 06-cluster-ops-service.yaml
+  - 07-shared-platform.yaml
+  - 08-configmap-template.yaml
+  - 09-secret-template.yaml
+  - 10-rbac-template.yaml
+  - 20-postgres-secret.yaml
+  - 21-postgres-pvc.yaml
+  - 22-postgres-configmap.yaml
+  - 23-postgres-statefulset.yaml
+  - 24-postgres-service.yaml
+  - 25-postgres-networkpolicy.yaml
+  - 30-nats-configmap.yaml
+  - 30-nats-networkpolicy.yaml
+  - 30-nats-pvc.yaml
+  - 30-nats-sa.yaml
+  - 30-nats-service.yaml
+  - 30-nats-statefulset.yaml
+  - 40-otel-collector-configmap.yaml
+  - 40-otel-collector-deployment.yaml
+  - 40-otel-collector-sa.yaml
+  - 40-otel-collector-service.yaml
+  - 41-prometheus-configmap.yaml
+  - 41-prometheus-deployment.yaml
+  - 41-prometheus-pvc.yaml
+  - 41-prometheus-service.yaml
+  - 42-grafana-configmap.yaml
+  - 42-grafana-deployment.yaml
+  - 42-grafana-pvc.yaml
+  - 42-grafana-service.yaml
+  - 50-gm-backend-service.yaml
+  - 50-secret-admin-tls.yaml
+  - 50-secret-ca.yaml
+  - 50-secret-cluster-ops-tls.yaml
+  - 50-secret-economy-tls.yaml
+  - 50-secret-match-tls.yaml
+  - 50-secret-player-tls.yaml
+  - 50-secret-social-tls.yaml
+  - 55-gm-console-envoy-configmap.yaml
+  - 56-gm-console-envoy-deployment.yaml
+  - 57-gm-console-envoy-service.yaml
+  - 60-test-runner-job.yaml
+
+# 公共 labels (per 8/27 实际值校准)
+commonLabels:
+  app.kubernetes.io/part-of: rust-game-server
+  app.kubernetes.io/managed-by: kustomize
+
+# 公共 annotations
+commonAnnotations:
+  rust-game-server.io/source: kustomize-v1
+  rust-game-server.io/wbs-bucket: bucket-10-phase-d
+  rust-game-server.io/wbs-version: v0.2
+  rust-game-server.io/wbs-commit: 84edf26
+
+# ConfigMapGenerator / SecretGenerator 占位
+# 注: 实际部署用 sealed-secrets / external-secrets 注入
+# generators: 见 generators/ 目录 (待 SRE 完整转换)
+generators: []
