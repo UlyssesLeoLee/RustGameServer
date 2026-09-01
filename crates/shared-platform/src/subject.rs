@@ -131,4 +131,108 @@ mod tests {
         assert!(parse("not.rgs.subject").is_err());
         assert!(parse("rgs.unknown.event").is_err());
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // Subject 是 RGS-ARC-051 CEM 中心事件管理核心命名空间, 加 3 单测 + 2 proptest
+
+    #[test]
+    fn parse_dlq_subject_works() {
+        // DLQ subject: rgs.dlq.<source>
+        let (d, rest) = parse("rgs.dlq.rgs.player.registered.v1").unwrap();
+        assert_eq!(d, SubjectDomain::Dlq);
+        assert_eq!(rest, "rgs.player.registered.v1");
+    }
+
+    #[test]
+    fn parse_cem_event_works() {
+        let (d, rest) = parse("rgs.cem.feature_flag_updated").unwrap();
+        assert_eq!(d, SubjectDomain::Cem);
+        assert_eq!(rest, "feature_flag_updated");
+    }
+
+    #[test]
+    fn parse_all_five_business_domains() {
+        // 5 业务域 + cluster_ops 都应解析为 Domain
+        for d in &["player", "economy", "match", "social", "admin", "cluster_ops"] {
+            let subj = format!("rgs.{}.some_event.v1", d);
+            let (parsed_domain, _) = parse(&subj).unwrap();
+            assert_eq!(
+                parsed_domain,
+                SubjectDomain::Domain,
+                "{} 应被识别为业务域",
+                d
+            );
+        }
+    }
+
+    #[test]
+    fn parse_empty_or_short_fails() {
+        assert!(parse("").is_err());
+        assert!(parse("rgs").is_err());
+        assert!(parse("rgs.x").is_err());
+    }
+
+    #[test]
+    fn dlq_subject_wraps_source_correctly() {
+        // SubjectBuilder::dlq(source) 之后 parse 回的 rest 应 == source
+        let source = "rgs.economy.transferred.v1";
+        let dlq = SubjectBuilder::dlq(source);
+        let (d, rest) = parse(&dlq).unwrap();
+        assert_eq!(d, SubjectDomain::Dlq);
+        assert_eq!(rest, source);
+    }
+
+    #[test]
+    fn role_round_trip() {
+        // 5 类 SubjectDomain 都能 format + parse
+        // (此处仅验证 format 输出是 rgs.<domain>.<event> 结构)
+        let subj = SubjectBuilder::domain_event("player", "registered", 1);
+        assert!(subj.starts_with("rgs.player."));
+        let (d, _) = parse(&subj).unwrap();
+        assert_eq!(d, SubjectDomain::Domain);
+    }
+}
+
+// ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+// Subject 命名空间 proptest 守恒 / 不变式
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// domain_event(name, type, v=1..=999) → parse 后 (Domain, name.type.vN)
+    proptest! {
+        #[test]
+        fn domain_event_format_then_parse(
+            domain in "[a-z_]{1,16}",
+            event_type in "[a-z_]{1,16}",
+            version in 1u32..1000,
+        ) {
+            let subj = SubjectBuilder::domain_event(&domain, &event_type, version);
+            let (_d, rest) = parse(&subj).expect("format 后应能 parse");
+            // domain 不在 5 业务域 / cluster_ops / saga / cem / dlq 列表时会被识别为 UnknownDomain
+            // 但我们这里只验证: 若 parse 成功, d 一定是 Domain (因为 SubjectBuilder::domain_event
+            // 不会生成 saga/cem/dlq 前缀)
+            if let Ok(parsed) = parse(&subj) {
+                prop_assert_eq!(parsed.0, SubjectDomain::Domain);
+            }
+            // rest 应至少包含 event_type
+            prop_assert!(rest.contains(&event_type), "rest={} 应含 event_type={}", rest, event_type);
+        }
+    }
+
+    /// saga_event(type, event) → parse 后 (Saga, type.event)
+    proptest! {
+        #[test]
+        fn saga_event_format_then_parse(
+            saga_type in "[a-z_]{1,16}",
+            event in "[a-z_]{1,16}",
+        ) {
+            let subj = SubjectBuilder::saga_event(&saga_type, &event);
+            let (d, rest) = parse(&subj).expect("saga subject 应能被 parse");
+            prop_assert_eq!(d, SubjectDomain::Saga);
+            prop_assert!(rest.contains(&saga_type));
+            prop_assert!(rest.contains(&event));
+        }
+    }
 }

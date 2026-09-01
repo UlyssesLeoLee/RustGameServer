@@ -186,4 +186,61 @@ mod tests {
         );
         assert!(matches!(result, Err(TlsError::FileRead { .. })));
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // mTLS 是 RGS-REV-007 CH4 + DEC-015 P1 关键, 加 4 单测
+
+    #[test]
+    fn install_default_crypto_provider_is_idempotent() {
+        // rustls 0.23: install_default 失败仅代表已安装, 必须可重入
+        install_default_crypto_provider();
+        install_default_crypto_provider();
+        install_default_crypto_provider();
+        // 没 panic 即通过
+    }
+
+    #[test]
+    fn client_tls_config_input_clone_preserves_all_fields() {
+        let input = ClientTlsConfigInput {
+            domain: "player.local".to_string(),
+            ca_cert_path: "/ca.pem".to_string(),
+            client_cert_path: "/client.pem".to_string(),
+            client_key_path: "/client.key".to_string(),
+        };
+        let cloned = input.clone();
+        assert_eq!(cloned.domain, input.domain);
+        assert_eq!(cloned.ca_cert_path, input.ca_cert_path);
+        assert_eq!(cloned.client_cert_path, input.client_cert_path);
+        assert_eq!(cloned.client_key_path, input.client_key_path);
+    }
+
+    #[test]
+    fn load_server_tls_config_error_path_includes_filename() {
+        // 错误 path 必须包含原始文件名 (定位根因)
+        let result = load_server_tls_config(
+            Path::new("/nonexistent/server-cert-v2.pem"),
+            Path::new("/nonexistent/server-key.pem"),
+            Path::new("/nonexistent/client-ca.pem"),
+        );
+        if let Err(TlsError::FileRead { path, .. }) = result {
+            assert!(
+                path.contains("server-cert-v2.pem"),
+                "错误 path 应包含文件名, 实际: {}",
+                path
+            );
+        } else {
+            panic!("期望 FileRead 错误");
+        }
+    }
+
+    #[test]
+    fn tls_error_display_includes_path() {
+        // TlsError::FileRead 的 Display 必须暴露 path 字段
+        let e = TlsError::FileRead {
+            path: "/var/run/cert.pem".to_string(),
+            source: std::io::Error::new(std::io::ErrorKind::NotFound, "not found"),
+        };
+        let s = e.to_string();
+        assert!(s.contains("/var/run/cert.pem"), "Display 应含 path: {}", s);
+    }
 }

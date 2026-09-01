@@ -4877,6 +4877,7 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "prometheus",
+ "proptest",
  "prost",
  "rustls",
  "serde",

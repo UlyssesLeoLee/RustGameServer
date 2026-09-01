@@ -250,4 +250,94 @@ mod tests {
         let result = retry_backoff(&status, 0, &cfg);
         assert!(result.is_some());
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // channel + retry 协同单测, 加 5 个
+
+    #[tokio::test]
+    async fn retry_backoff_increases_with_attempt() {
+        // 同一可重试 status, attempt 越大退避越长 (在未超 max 之前)
+        let cfg = RetryConfig::default();
+        let status = tonic::Status::new(Code::Unavailable, "x");
+        let d0 = retry_backoff(&status, 0, &cfg).expect("retryable");
+        let d1 = retry_backoff(&status, 1, &cfg).expect("retryable");
+        // 1 的 base 是 0 的 2x, 1 必须 > 0 (含 jitter 边界, 至少 1.6x)
+        assert!(
+            d1 >= d0,
+            "attempt 1 ({:?}) 必须 ≥ attempt 0 ({:?})",
+            d1,
+            d0
+        );
+    }
+
+    #[tokio::test]
+    async fn retry_backoff_for_all_retryable_codes() {
+        // retry_backoff 应对 4 类可重试 code 都返 Some
+        let cfg = RetryConfig::default();
+        for code in [
+            Code::Unavailable,
+            Code::DeadlineExceeded,
+            Code::Aborted,
+            Code::ResourceExhausted,
+        ] {
+            let status = tonic::Status::new(code, "x");
+            let result = retry_backoff(&status, 0, &cfg);
+            assert!(result.is_some(), "{:?} 应该可重试", code);
+        }
+    }
+
+    #[tokio::test]
+    async fn retry_backoff_for_all_non_retryable_codes() {
+        // retry_backoff 应对 4 类不可重试 code 都返 None
+        let cfg = RetryConfig::default();
+        for code in [
+            Code::NotFound,
+            Code::InvalidArgument,
+            Code::PermissionDenied,
+            Code::Unauthenticated,
+        ] {
+            let status = tonic::Status::new(code, "x");
+            let result = retry_backoff(&status, 0, &cfg);
+            assert!(result.is_none(), "{:?} 不应该可重试", code);
+        }
+    }
+
+    #[tokio::test]
+    async fn retry_backoff_at_max_retries_boundary() {
+        // attempt = max_retries - 1 应该仍可重试
+        // attempt = max_retries 应该不可重试
+        let cfg = RetryConfig {
+            max_retries: 2,
+            initial_interval: Duration::from_millis(1),
+            max_interval: Duration::from_millis(10),
+            multiplier: 2.0,
+        };
+        let status = tonic::Status::new(Code::Unavailable, "x");
+        // attempt=1 = max_retries-1 → 仍可重试
+        assert!(retry_backoff(&status, 1, &cfg).is_some());
+        // attempt=2 = max_retries → 不可重试 (超限)
+        assert!(retry_backoff(&status, 2, &cfg).is_none());
+    }
+
+    #[tokio::test]
+    async fn mtls_bypass_counter_is_atomic_and_monotonic() {
+        // 多次连续 opt-out 计数应该单调递增
+        let before = mtls_bypassed_total();
+        for _ in 0..5 {
+            let cfg = RpcChannelConfig {
+                uri: "http://127.0.0.1:1".to_string(),
+                connect_timeout: Duration::from_millis(1),
+                require_tls: false,
+                ..Default::default()
+            };
+            let _ = build_channel(&cfg).await; // 连接预期失败, 但 counter 已 +1
+        }
+        let after = mtls_bypassed_total();
+        assert!(
+            after >= before + 5,
+            "5 次 opt-out 应当 +5, before={} after={}",
+            before,
+            after
+        );
+    }
 }

@@ -45,3 +45,8 @@ prometheus = "0.13"
 
 [build-dependencies]
 tonic-build = { workspace = true }
+
+[dev-dependencies]
+# 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2):
+#   proptest 守恒 / 不变式 (Subject 命名 + retry backoff + DLQ base64 round-trip)
+proptest = "1"
