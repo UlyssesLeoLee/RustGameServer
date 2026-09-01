@@ -414,6 +414,8 @@ async fn it_health_view_summary_metrics_aggregation() {
 
 // ============================================================================
 // IT6: broadcast → list_broadcasts (audit_store 写入 + 反查)
+// 2026-09-01 22:30 JST Phase D D6 修复: broadcast 端点已写 audit,
+// list_broadcasts 现在应返 1 条 (per WBS v0.2 桶 10 Phase D D6, commit 84edf26)
 // ============================================================================
 
 #[actix_web::test]
@@ -440,17 +442,40 @@ async fn it_broadcast_writes_to_audit_store() {
     assert_eq!(body["status"], "sent");
     assert_eq!(body["broadcast"]["message"], "Server maintenance at 03:00 UTC");
 
-    // 2) list_broadcasts — 注意: list_broadcasts 实际从 audit_store 反查
-    //    (per broadcast_handler.rs L51-69) — broadcast 当前未写 audit, 故 list 返 0 条
-    //    这个 invariant 在 IT6 里是确认当前行为, 后续 PH-x 改 list_broadcasts 需重写
+    // 2) list_broadcasts — 现在从 audit_store 反查 action=="broadcast" 的条目
+    //    (per WBS v0.2 桶 10 Phase D D6 修复) — broadcast 端点已写 audit
+    //    list 应返 1 条
     let list_req = test::TestRequest::get().uri("/gm/broadcasts").to_request();
     let list_resp = test::call_service(&app, list_req).await;
     assert!(list_resp.status().is_success());
     let list_body: serde_json::Value = test::read_body_json(list_resp).await;
-    // list_broadcasts 现在从 audit_store 反查 action=="broadcast" 的条目
-    // 当前 broadcast 端点不发 audit, 所以 list 应返 0 条 (这是已知 gap)
     let arr = list_body["broadcasts"].as_array().expect("broadcasts array");
-    assert_eq!(arr.len(), 0, "已知 gap: broadcast 端点未写 audit, list 返 0");
+    assert_eq!(arr.len(), 1, "D6 修复后 list_broadcasts 应返 1 条");
+    assert_eq!(arr[0]["message"], "Server maintenance at 03:00 UTC");
+}
+
+// ============================================================================
+// IT6b: list_broadcasts 空状态 (无 broadcast 时返 0)
+// 2026-09-01 22:30 JST Phase D D6 新增: 边界用例
+// ============================================================================
+
+#[actix_web::test]
+async fn it_list_broadcasts_empty_state() {
+    let state = test_state();
+    state.ensure_default_admin().await;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .configure(register_routes),
+    )
+    .await;
+
+    let list_req = test::TestRequest::get().uri("/gm/broadcasts").to_request();
+    let list_resp = test::call_service(&app, list_req).await;
+    assert!(list_resp.status().is_success());
+    let list_body: serde_json::Value = test::read_body_json(list_resp).await;
+    let arr = list_body["broadcasts"].as_array().expect("broadcasts array");
+    assert_eq!(arr.len(), 0, "无 broadcast 时 list_broadcasts 返 0 条");
 }
 
 // ============================================================================

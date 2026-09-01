@@ -1,5 +1,10 @@
 //! broadcast_handler — 公告 + SSE 实时事件流 (per ROPE_CS gm_platform/modules/activity 移植)
 //! 2026-09-01 actix-web 重写 + actix-web-lab SSE
+//!
+//! ## 2026-09-01 22:30 JST Phase D D6 修复
+//! - `broadcast` handler 写入 audit_store (action="broadcast") 以便 `list_broadcasts` 反查
+//! - 解决 DDD Review §7.2 P1 GM backend `list_broadcasts` 已知 gap
+//! - IT6 同步更新: 期望 list 返 1 条 (修复前返 0 条)
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use async_stream::stream;
@@ -8,7 +13,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{extract_claims, verify_jwt, AppState, Claims};
+use crate::{extract_claims, verify_jwt, AppState, AuditLogEntry, Claims};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BroadcastEntry {
@@ -37,21 +42,31 @@ pub async fn broadcast(
         .map(|c: Claims| c.sub)
         .unwrap_or_else(|| "unknown".to_string());
     let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let occurred_at_ms = Utc::now().timestamp_millis();
     let entry = BroadcastEntry {
         id,
         message: body.message.clone(),
-        admin,
+        admin: admin.clone(),
         created_at: Utc::now().to_rfc3339(),
     };
     // 推送给所有 SSE 订阅者
     let _ = state.broadcast_tx.send(entry.clone());
+    // 2026-09-01 22:30 JST Phase D D6: 写入 audit_store 以便 list_broadcasts 反查
+    // 解决 DDD Review §7.2 P1 GM backend list_broadcasts 已知 gap (per WT-10-brief §D6)
+    state.audit_store.append(AuditLogEntry {
+        log_id: format!("broadcast-{}", id),
+        admin_id: admin,
+        action: "broadcast".to_string(),
+        target_id: body.message.clone(),
+        occurred_at_ms,
+    });
     HttpResponse::Ok().json(json!({"status": "sent", "broadcast": entry}))
 }
 
 pub async fn list_broadcasts(state: web::Data<AppState>) -> HttpResponse {
-    // 从 audit_store 反查太重, 直接 InMemory Vec 暂存
-    // 注: 简化为从 InMemoryAuditStore 拉 ban/grant/compensation 之外, 单独维护 broadcast 历史
-    // 这里使用 state.broadcast_tx 不可读, 改用 InMemoryAuditStore 模拟
+    // 2026-09-01 22:30 JST Phase D D6 修复: 实际从 audit_store 反查
+    // (per broadcast_handler.rs L60-72) — broadcast 现在写 audit action="broadcast"
+    // (per WBS v0.2 桶 10 Phase D D6, commit 84edf26)
     let entries = state.audit_store.list_entries(50).await;
     let broadcasts: Vec<BroadcastEntry> = entries
         .into_iter()
