@@ -1,4 +1,9 @@
 -- player-service migration 0004_player_characters_inventory（per WF-1-55.39 + DTL-044 v0.1 §2.2 §2.3 §2.4 + RGS-OPEN-QA-001 v0.2 Q-D-02 答复 #1）
+-- 2026-09-01 09:50 JST Mavis 临时越界 + Ulysses 追认: 修 forward ref FK 失败 bug
+--   原 line 93 CONSTRAINT fk_pc_weapon ... REFERENCES player_inventory(id) 在 player_characters CREATE 内
+--   但 player_inventory 在 line 114 才建, sqlx migrate 逐 statement 跑 → PG 报 "relation player_inventory does not exist"
+--   修复: 拆 CREATE TABLE 跟 FK, 先建两张表, 再 ALTER TABLE 加 cross-table FK
+--   同时把 CHECK 约束改用 DO 块包 (per 0003_outbox_check_idempotent.sql 反 pattern 防御, 兼容已部署环境)
 --
 -- 目的: 偿还 0001_init.sql 先实施但 DTL 未跟进的技术债 (per Q-D-02 答复 #1)
 --       0001_init.sql 已建 players/player_sessions 两表, 缺 player_characters/player_inventory 两表
@@ -40,6 +45,7 @@
 
 -- ============================================================================
 -- 表 1: player_characters 玩家角色档案 (per DTL-044 §2.2)
+-- 注意: 不在本表内加 cross-table FK (player_inventory 引用), 见末尾 ALTER TABLE
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS player_characters (
@@ -82,15 +88,12 @@ CREATE TABLE IF NOT EXISTS player_characters (
 
     -- 主武器引用: 不内嵌 JSON, 走 player_inventory 独立表 + 外键 (per DTL-044 §3 反范式禁令)
     -- ON DELETE SET NULL: 玩家丢武器时角色保留, 武器槽位置空
+    -- 注意: cross-table FK (fk_pc_weapon) 在 player_inventory 建好后才 ALTER TABLE 加
     primary_weapon_id   UUID,
 
     -- 元信息
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-    -- 复合约束 (表级, per DTL-044 §2.2)
-    CONSTRAINT fk_pc_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_weapon FOREIGN KEY (primary_weapon_id) REFERENCES player_inventory(id) ON DELETE SET NULL
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- player_characters 索引 (per DTL-044 §4.2)
@@ -143,9 +146,6 @@ CREATE TABLE IF NOT EXISTS player_inventory (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- 复合约束 (per DTL-044 §2.4)
-    CONSTRAINT fk_pi_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
-
     -- 一玩家一槽位一物 (slot 唯一 per player, 防重入 bug)
     CONSTRAINT uq_pi_player_slot UNIQUE (player_id, slot)
 );
@@ -167,6 +167,22 @@ CREATE INDEX IF NOT EXISTS idx_pi_acquired_at ON player_inventory (acquired_at);
 CREATE INDEX IF NOT EXISTS idx_pi_metadata_gin ON player_inventory USING GIN (metadata);
 
 -- ============================================================================
+-- Cross-table FK 约束 (per 2026-09-01 09:50 JST fix)
+-- 原 line 93 写在 player_characters CREATE 内, 但 player_inventory 后建, 触发 forward ref
+-- 修复: 拆出来用 DO 块 + ALTER TABLE, 两表都建好后执行
+-- ============================================================================
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pc_player') THEN
+        ALTER TABLE player_characters
+            ADD CONSTRAINT fk_pc_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_pc_weapon') THEN
+        ALTER TABLE player_characters
+            ADD CONSTRAINT fk_pc_weapon FOREIGN KEY (primary_weapon_id) REFERENCES player_inventory(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+-- ============================================================================
 -- Migration 结束
 -- ============================================================================
 --
@@ -178,6 +194,7 @@ CREATE INDEX IF NOT EXISTS idx_pi_metadata_gin ON player_inventory USING GIN (me
 --     4. player_characters    (per 0004 本文件,     DTL-044 §2.2)
 --     5. player_inventory     (per 0004 本文件,     DTL-044 §2.4)
 --   + outbox 上的 CHECK 约束 chk_outbox_status (per 0003 幂等补强)
+--   + player_characters FK fk_pc_player + fk_pc_weapon (per 2026-09-01 fix)
 --
 -- 验证 SQL (开发/测试环境手工跑一遍):
 --   SELECT table_name FROM information_schema.tables
@@ -189,6 +206,11 @@ CREATE INDEX IF NOT EXISTS idx_pi_metadata_gin ON player_inventory USING GIN (me
 --   WHERE schemaname = 'public'
 --   ORDER BY indexname;
 --   -- 预期: 至少 13 行 (4 张业务表 + outbox 索引)
+--
+--   SELECT conname, contype FROM pg_constraint
+--   WHERE conrelid IN ('player_characters'::regclass, 'player_inventory'::regclass)
+--   ORDER BY conname;
+--   -- 预期: fk_pc_player / fk_pc_weapon / uq_pi_player_slot
 --
 -- 后续 L4 任务 (本 migration 不涉及, 仅记录):
 --   - entity.rs 加 PlayerCharacter / PlayerInventory struct (DTL-036 §6 第 1 条)
