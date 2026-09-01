@@ -449,7 +449,7 @@ struct WorkerPoolConfig {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct ScheduleEntry {
     id: Uuid,
     name: String,
@@ -644,6 +644,7 @@ async fn version() -> impl Responder {
             "BA-W4-1/2: worker_pool_config + schedule Master M-4+M-5 CRUD (per min/max_workers + enabled/handler 过滤, GAP-4 优先级调度对接)",
             "BA-W4-3/4: data_source update/delete + task_template 灰度版本 promote (per GAP-7 任务模板版本化, audit_event 自动记录 promote 动作, per ADR-0058 + REQ F-10)",
             "BA-W4-5/6: task_template upsert + delete (per GAP-7 灰度版本化, ON CONFLICT id 锁定 template_version, audit_event 自动记录)",
+            "BA-W4-7: schedule upsert + delete (per id, ON CONFLICT 锁定 cron_expr + interval_secs, audit_event 自动记录, 5/5 Master 表全 full CRUD)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1220,6 +1221,54 @@ async fn list_schedules(
     }
 }
 
+#[actix_web::put("/api/v1/schedules")]
+async fn upsert_schedule(
+    state: web::Data<AppState>,
+    body: web::Json<ScheduleEntry>,
+) -> impl Responder {
+    // W4 BA-W4-7: schedule upsert (per id, cron_expr + interval_secs 配置)
+    let s = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_master.schedule (id, name, cron_expr, interval_secs, handler, enabled, last_run_at, next_run_at, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now()) \
+         ON CONFLICT (id) DO UPDATE SET name = $2, cron_expr = $3, interval_secs = $4, handler = $5, enabled = $6, next_run_at = $7"
+    )
+    .bind(s.id)
+    .bind(&s.name)
+    .bind(&s.cron_expr)
+    .bind(s.interval_secs)
+    .bind(&s.handler)
+    .bind(s.enabled)
+    .bind(s.next_run_at)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    state.audit.log(
+        "ulysses", "upsert_schedule", &serde_json::json!({ "schedule_id": s.id, "interval_secs": s.interval_secs }),
+        "success", "trace-schedule-upsert-001", Some("schedule"), Some(s.id)
+    ).await;
+    web::Json(serde_json::json!({ "upserted": true, "id": s.id, "name": s.name, "enabled": s.enabled }))
+}
+
+#[actix_web::delete("/api/v1/schedules/{id}")]
+async fn delete_schedule(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W4 BA-W4-7: schedule delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_master.schedule WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    state.audit.log(
+        "ulysses", "delete_schedule", &serde_json::json!({ "schedule_id": id }),
+        "success", "trace-schedule-delete-001", Some("schedule"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
 #[get("/api/v1/task-executions")]
 async fn list_task_executions(
     state: web::Data<AppState>,
@@ -1755,6 +1804,8 @@ async fn main() -> std::io::Result<()> {
             .service(list_task_defs)
             .service(list_worker_pool_config)
             .service(list_schedules)
+            .service(upsert_schedule)
+            .service(delete_schedule)
             .service(list_task_executions)
             .service(list_logs)
             .service(list_task_progress)
