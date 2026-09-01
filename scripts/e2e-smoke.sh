@@ -108,7 +108,7 @@ PROBES=(
   "postgres|tcp|app.kubernetes.io/name=postgres|5432|"
   "prometheus-healthy|http|app.kubernetes.io/name=prometheus|9090|/-/healthy|200|Prometheus Server is Healthy"
   "grafana-health|http|app.kubernetes.io/name=grafana|3000|/api/health|200|database.*ok"
-  "nats-varz|http|app.kubernetes.io/name=nats|8222|/varz|200|auth_required"
+  "nats-varz|http|app.kubernetes.io/name=nats|8222|/varz|200|server_id"
 )
 
 # 探活循环

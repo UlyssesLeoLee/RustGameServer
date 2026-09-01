@@ -7,6 +7,11 @@
 #   - 端口 9090（Web UI + scrape）
 #   - 数据保留 --storage.tsdb.retention.time=15d
 #   - web.enable-lifecycle 允许热加载配置（kubectl exec ... kill -HUP 1）
+# 2026-09-01 13:10 JST Mavis 临时越界 (per 部署恢复期, docker.io timeout, 9/1 13:00-14:00 JST 链路丢包):
+#   - image: prom/prometheus:v2.54.1 (docker.io) → docker.m.daocloud.io/prom/prometheus:v2.54.1
+#   - 加 pod securityContext.runAsNonRoot + seccompProfile
+#   - 加 container securityContext (PSA restricted 要求)
+#   - 临时方案: daocloud.io mirror, 后续评估 ghcr.io 公开 mirror (per L8 派生约束)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -32,10 +37,20 @@ spec:
         runAsUser: 65534  # nobody
         runAsGroup: 65534
         fsGroup: 65534
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.54.1
+          image: docker.m.daocloud.io/prom/prometheus:v2.54.1
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
