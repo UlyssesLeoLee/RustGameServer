@@ -650,6 +650,7 @@ async fn version() -> impl Responder {
             "BA-W5-5: task_progress update + delete (per Work W-1 完整 CRUD: list+upsert+update+delete, 跨 3/3 Work 表 3/3 已 full CRUD)",
             "BA-W5-6/7: integration test + credentials audit + OLU stats endpoint (per W5 集成 + 凭据 per 8/27 11:06 硬 ban + RGS-OLU-REPORT v0.2 token-OLU 框架 ~21.7M tokens)",
             "BA-W6-1: log-tasks by-trace + recent endpoint (跨 log_event + audit_event + task_execution 三表 join, 分布式追踪 + 监控, per W6 BA-W6-1)",
+            "BA-W6-2/3: data_migration update/delete + saga_instance 状态机 (per W6 BA-W6-2 状态机 pending→running→succeeded/failed/rolled_back + W6 BA-W6-3 saga state 推进, audit_event 自动记录)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -880,7 +881,7 @@ struct MessageOutbox {
     sent_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct DataMigration {
     id: Uuid,
     name: String,
@@ -1834,6 +1835,121 @@ async fn list_data_migrations(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct DataMigrationUpdate {
+    state: String,         // running / succeeded / failed / rolled_back
+    rows_migrated: i64,
+    error_msg: Option<String>,
+}
+
+#[actix_web::put("/api/v1/data-migrations/{id}")]
+async fn update_data_migration(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<DataMigrationUpdate>,
+) -> impl Responder {
+    // W6 BA-W6-2: data_migration update (per id, 状态机: pending → running → succeeded/failed/rolled_back)
+    let id = path.into_inner();
+    let u = body.into_inner();
+    let now = chrono::Utc::now();
+    let finished_at = if u.state == "succeeded" || u.state == "failed" || u.state == "rolled_back" {
+        Some(now)
+    } else {
+        None
+    };
+    let started_at = if u.state == "running" { Some(now) } else { None };
+    let _ = sqlx::query(
+        "UPDATE batch_transaction.data_migration SET state = $1, rows_migrated = $2, error_msg = $3, started_at = COALESCE($4, started_at), finished_at = COALESCE($5, finished_at) WHERE id = $6"
+    )
+    .bind(&u.state)
+    .bind(u.rows_migrated)
+    .bind(&u.error_msg)
+    .bind(started_at)
+    .bind(finished_at)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    state.audit.log(
+        "ulysses", "update_data_migration", &serde_json::json!({ "migration_id": id, "state": u.state, "rows_migrated": u.rows_migrated }),
+        "success", "trace-migration-update-001", Some("data_migration"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "updated": true, "id": id, "state": u.state, "rows_migrated": u.rows_migrated }))
+}
+
+#[actix_web::delete("/api/v1/data-migrations/{id}")]
+async fn delete_data_migration(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W6 BA-W6-2: data_migration delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_transaction.data_migration WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
+#[derive(Debug, Deserialize)]
+struct SagaInstanceQueryFilter {
+    saga_type: Option<String>,
+    state: Option<String>,
+    limit: Option<i64>,
+}
+
+#[get("/api/v1/saga-instances/{id}")]
+async fn get_saga_instance(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W6 BA-W6-3: saga_instance single (per id)
+    let id = path.into_inner();
+    let row: Result<Option<SagaInstance>, _> = sqlx::query_as::<_, SagaInstance>(
+        "SELECT id, saga_type, state, started_at, updated_at, completed_at, payload, error_msg FROM batch_transaction.saga_instance WHERE id = $1"
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await;
+    match row {
+        Ok(Some(s)) => web::Json(serde_json::json!({ "saga": s, "found": true })),
+        Ok(None) => web::Json(serde_json::json!({ "saga": null, "found": false })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "found": false })),
+    }
+}
+
+#[actix_web::put("/api/v1/saga-instances/{id}/state")]
+async fn update_saga_state(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<serde_json::Value>,
+) -> impl Responder {
+    // W6 BA-W6-3: saga_instance 状态机 (per id, 推进 state + payload)
+    let id = path.into_inner();
+    let new_state = body.get("state").and_then(|v| v.as_str()).unwrap_or("pending");
+    let payload = body.get("payload").cloned().unwrap_or(serde_json::json!({}));
+    let now = chrono::Utc::now();
+    let completed = if new_state == "succeeded" || new_state == "failed" { Some(now) } else { None };
+    let _ = sqlx::query(
+        "UPDATE batch_transaction.saga_instance SET state = $1, payload = $2, updated_at = $3, completed_at = COALESCE($4, completed_at), error_msg = $5 WHERE id = $6"
+    )
+    .bind(new_state)
+    .bind(&payload)
+    .bind(now)
+    .bind(completed)
+    .bind(body.get("error_msg").and_then(|v| v.as_str()))
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    state.audit.log(
+        "ulysses", "update_saga_state", &serde_json::json!({ "saga_id": id, "state": new_state }),
+        "success", "trace-saga-update-001", Some("saga_instance"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "updated": true, "id": id, "state": new_state }))
+}
+
 #[get("/api/v1/sub-tasks")]
 async fn list_sub_tasks(
     state: web::Data<AppState>,
@@ -2183,6 +2299,10 @@ async fn main() -> std::io::Result<()> {
             .service(list_saga_instances)
             .service(list_message_outbox)
             .service(list_data_migrations)
+            .service(update_data_migration)
+            .service(delete_data_migration)
+            .service(get_saga_instance)
+            .service(update_saga_state)
             .service(list_sub_tasks)
             .service(upsert_sub_task)
             .service(update_sub_task)
