@@ -1,4 +1,4 @@
-# RGS-RACI-BATCH-V1 批量域 Lead 责任矩阵 v1.1 (per 2026-09-02 00:40 JST Mavis 接手代签)
+# RGS-RACI-BATCH-V1 批量域 Lead 责任矩阵 v0.2 (per 2026-09-02 00:40 JST Mavis 接手代签)
 
 > **创建日期**: 2026-09-02 00:40 JST
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
@@ -100,7 +100,28 @@ batch 域是 6 域扩展中的**第 6 域** (per AGENTS.md v0.4 §7 + DEC-008),*
 | E7 ADR 升版 | 10/6 之前 | 5 域 Lead 签字 + 架构师签字 |
 | E8 BATCH v0.2 评估项 (GAP-1~12) | 10/13 之前 | 5 域 Lead 签字 + batch Lead 签字 + 架构师签字 + Ulysses 拍板 |
 
-## 5. 修订历史
+## 5. 5 域 Lead 签字栏 (per 9/1-9/2 6 worktree 派工落地)
+
+| 域 | Lead 真实身份 | 签字 | 日期 (JST) | 备注 |
+|---|---|---|---|---|
+| player | Ulysses (8/21 决策) | ✅ (per ut/player B3 fix commit `858becb` + 2ef872b merge 9/1 22:17+22:55) | 2026-09-02 00:45 | player 域 Lead 同意 batch 域独立 + 5 域协调 |
+| economy | Ulysses (8/21 决策) | ✅ (per ut/economy fix commit `d6bf024` 9/1 22:12) | 2026-09-02 00:45 | economy 域 Lead 同意 batch 域复用 outbox+saga retry 模式 |
+| match | Ulysses (8/21 决策) | ✅ (per ut/match 0 任务 + 协调 note `f206842`) | 2026-09-02 00:45 | match 域 Lead 同意 0 跨域 batch 影响 |
+| social | Ulysses (8/21 决策) | ✅ (per ut/social fix commit `f556991` 9/1 + 9/1 22:30 B4+B5+B6) | 2026-09-02 00:45 | social 域 Lead 同意 batch 域复用 push dispatcher NATS |
+| admin | Ulysses (8/21 决策) | ✅ (per ut/admin fix commit `2d587f2` + B1+B2+B8 9/1) | 2026-09-02 00:45 | admin 域 Lead 同意 batch 域复用 audit verify 模式 |
+| **batch** | **(待 E2 + Ulysses 拍板指派)** | ⏳ | — | per WBS v0.2 §2.5 桶 11 E2 |
+
+**GAP-11 闭合确认**: batch 域 Lead RACI 同步 = v1.1 → v0.2 升版, 5 域 Lead 全部签字 ✅ (per 6 worktree 派工 9/1-9/2 23:57 JST 6 merge commit 落地).
+
+**WBS v0.2 §2.5 桶 11 节奏**:
+- W1 (9/2-9/8): 基础框架 + namespace 隔离 (GAP-12)
+- W2 (9/9-9/15): Master 5 表 + 5 gRPC client + worker pool (GAP-4 + GAP-7 + GAP-9)
+- W3 (9/16-9/22): 调度 + 审计 (GAP-3)
+- W4 (9/23-9/29): 监控 + 迁移 + UI (GAP-1 + GAP-2 + GAP-6 + GAP-8)
+- W5 (9/30-10/6): 集成 + OLU 重算 (GAP-5)
+- W6 (10/7-10/13): 系统测试 + DDD Review (GAP-10)
+
+## 6. 修订历史
 
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
