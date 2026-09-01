@@ -3,9 +3,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-REQ-100 |
-| 版本 | 0.1（初版） |
-| 制定日 | 2026-08-21 |
-| 最终更新日 | 2026-08-21 |
+| 版本 | 0.2（v0.1 + saga-runtime 独立 Pod 评估） |
+| 制定日 | 2026-08-21（v0.1）/ 2026-09-01 22:30 JST（v0.2） |
+| 最终更新日 | 2026-09-01 22:30 JST |
 | 制定者 | 架构师（Ulysses 兼，per DEC-008 一人公司） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -19,6 +19,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。覆盖 L0-L5 状态分层 / OperationPolicy 决策层级 / Saga 触发条件 / 商城购买 / 角色创建 / 比赛奖励 / GM 补偿 / 跨服转移 / 浏览器关闭不影响 Saga / K3s Pod 恢复 / 多副本 OCC / 纯开源约束 / 17 个必答问题。 |
+| 0.2 | 2026-09-01 22:30 JST | 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses) | v0.2 评估: saga-runtime 独立 Pod 落点 (per WBS v0.2 桶 10 Phase D D5, commit 84edf26)。决策项留给 Ulysses 拍板 (per AGENTS.md v0.4 §7 batch 域派生约束 + WBS v0.2 §4.3 拍板 3)。 |
 
 ---
 
@@ -540,3 +541,71 @@ participants:
   - `RGS-ARC-021` 节点异常检测
   - `RGS-ARC-042` 中心事件管理（CEM）
   - `RGS-ADR-0052` Active-Active + all-reachable
+
+---
+
+## 11. v0.2 评估：saga-runtime 独立 Pod 落点 (per 2026-09-01 22:30 JST)
+
+> **触发**：per BATCH REQ `RGS-BATCH-REQUIREMENTS-2026-09-01_v0.1.md` GAP-11
+> **任务**：per WBS v0.2 桶 10 Phase D D5 (commit 84edf26)
+> **关联**：per AGENTS.md v0.4 §7 batch 域派生约束 (12 约束) + WBS v0.2 §4.3 拍板 3
+
+### 11.1 v0.1 状态 (per 2026-08-21 JST 初版)
+
+- v0.1 不集成 saga-runtime (per RGS-BAS-100 v0.1 假设)
+- saga-runtime 由 5 业务域 + cluster-ops 各自内嵌 (非独立服务)
+- batch 域 v0.1 不触发跨域 saga (per BATCH REQ GAP-11)
+
+### 11.2 v0.2 评估：saga-runtime 独立 Pod 落点
+
+#### 方案 A: saga-runtime 独立 Pod (本评估推荐)
+
+| 项 | 内容 |
+|---|---|
+| 部署形态 | 独立 Deployment + ClusterIP service (per 9/1 13:05 JST envoy 独立 deployment 偏好) |
+| 端口 | 0.0.0.0:50057 (gRPC, 跟 5 域 50051-50055 + cluster-ops 50056 顺序) |
+| 副本数 | 3 副本 (Active-Active per ADR-0052, **禁 HPA** 避免 all-reachable 漂移) |
+| 持久化 | PostgreSQL (per RGS-ARC-008 5 独立 DB 原则 — saga 9 张表走独立 `saga_db`, **不与 5 域混**) |
+| 消息总线 | NATS JetStream (per 8/31 OPEN-QA v0.2 Q7 social push_delivery 复用) |
+| 触发方 | 5 域 (player / economy / match / social / admin) + cluster-ops + batch 域 |
+| 监控 | OTel collector 复用 (per 桶 9 部署) |
+| mTLS | 业务级 (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`) |
+
+#### 方案 B: saga-runtime 嵌入 cluster-ops Pod (拒绝)
+
+- 拒绝理由：cluster-ops 是 Active-Active 控制面，saga 是分布式事务协调，职责混合违反 ARC-008 单一职责
+- 资源耦合：saga 9 张表 + saga runtime 状态机增加 cluster-ops 复杂度
+- 扩展性差：saga 流量增长会冲击 cluster-ops Active-Active 状态
+
+#### 方案 C: saga-runtime 完全外包 (e.g. Temporal / Apache Airflow) (拒绝)
+
+- 拒绝理由：per v0.1 §7 约束 "不绑闭源 Saga 协调器" + "纯开源约束" (BR-111)
+- 拒绝替代：自研 Rust Saga Runtime (per v0.1 §0)
+
+### 11.3 决策项（待 Ulysses 拍板）
+
+per AGENTS.md v0.4 §7 batch 域派生约束 (Mavis 不允许默认代签 batch 域决策):
+
+1. **方案 A 整体拍板** — 独立 Pod / 副本数 3 / saga_db 独立 DB / NATS JetStream 复用 / 业务级 mTLS
+2. **saga_db 拓扑决策** — 加进 ARC-008 5 独立 DB 原则 = 6 独立 DB (player / economy / match / social / admin / saga) + cluster_ops_db = 7 DB
+3. **saga-runtime 资源上限** — CPU/Mem request+limit (per RGS-INC-002 §3 资源约束)
+4. **batch 域 v0.2 触发 saga 范围** — 仅交易类 (购买/补偿) 或全场景 (per BATCH REQ §9 GAP-11)
+5. **触发幂等键规范** — per FR-105 Outbox / Inbox + idempotency_key (复用 v0.1 §9 决策 15)
+6. **跨域 saga vs 域内 saga 分类** — per FR-101 Authority Map (复用 v0.1 §9 决策 5)
+
+### 11.4 已知缺口 (per v0.2 评估)
+
+- ⏳ **saga-runtime 9 张表 schema 详细设计** — 待 DTL-100 v0.2 升版 (per WBS v0.2 桶 11 Phase E E1)
+- ⏳ **saga 失败恢复 4 状态机详细设计** — 待 DTL-102 v0.2 升版
+- ⏳ **saga_runtime + 5 域 gRPC 客户端代码生成** — 待 v0.2 实施
+- ⏳ **saga 监控 + 告警阈值** — 待 v0.2 实施 (per RGS-GOBS-100)
+- ⏳ **batch 域触发 saga 的 9 GAP 项 v0.2 评估** — per BATCH REQ §9 GAP-1~12
+- ⏳ **Mavis 不能默认代签的决策** — 等 Ulysses 拍板 (per §11.3 6 项)
+
+### 11.5 v0.2 → v0.3 推进路径
+
+- 9/1 22:30 JST: v0.2 评估 commit 落档 (本 commit)
+- 9/2-9/8: Ulysses 拍板 6 项决策项 (per §11.3)
+- W37+ (per WBS v0.2 桶 11 Phase E): E1 BATCH IMPL-PLAN v0.2 + 38 L4 任务 W1-W6
+- W42+ (per WBS v0.2 桶 11 Phase E E3): rgs-batch-console + rgs-batch-backend 项目初始化
+- 9 月内: saga-runtime 独立 Pod 实装 (per BATCH PLAN v0.1 + WBS v0.2 桶 11)
