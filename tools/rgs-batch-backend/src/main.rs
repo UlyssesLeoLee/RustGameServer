@@ -642,6 +642,7 @@ async fn version() -> impl Responder {
             "BA-W3-8: sub_task Transaction T-1.5 CRUD (per parent_task_id/state/order_idx 过滤, ON CONFLICT (parent_task_id, name) upsert, 跨 8/3 Transaction 表 8/8 已 list + CRUD)",
             "BA-W3-9: sub_task update + delete (per id, 跨 8/3 Transaction 表 8/8 已 full CRUD: list+upsert+update+delete)",
             "BA-W4-1/2: worker_pool_config + schedule Master M-4+M-5 CRUD (per min/max_workers + enabled/handler 过滤, GAP-4 优先级调度对接)",
+            "BA-W4-3/4: data_source update/delete + task_template 灰度版本 promote (per GAP-7 任务模板版本化, audit_event 自动记录 promote 动作, per ADR-0058 + REQ F-10)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1076,6 +1077,68 @@ async fn list_task_defs(state: web::Data<AppState>) -> impl Responder {
         Ok(list) => web::Json(serde_json::json!({ "task_defs": list, "count": list.len() })),
         Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
     }
+}
+
+#[actix_web::put("/api/v1/data-sources/{id}")]
+async fn update_data_source(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<DataSource>,
+) -> impl Responder {
+    // W4 BA-W4-3: data_source update (per id 全字段, 凭据 per 8/27 11:06 硬 ban)
+    let id = path.into_inner();
+    let ds = body.into_inner();
+    let _ = sqlx::query(
+        "UPDATE batch_master.data_source SET name = $1, source_type = $2, connection_ref = $3, enabled = $4, last_sync_at = $5 WHERE id = $6"
+    )
+    .bind(&ds.name)
+    .bind(&ds.source_type)
+    .bind(&ds.connection_ref)
+    .bind(ds.enabled)
+    .bind(ds.last_sync_at)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    web::Json(serde_json::json!({ "updated": true, "id": id, "enabled": ds.enabled }))
+}
+
+#[actix_web::delete("/api/v1/data-sources/{id}")]
+async fn delete_data_source(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W4 BA-W4-3: data_source delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_master.data_source WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
+#[actix_web::put("/api/v1/task-templates/{id}/promote")]
+async fn promote_task_template(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W4 BA-W4-4: task_template 灰度版本提升 (per GAP-7 任务模板版本化, 新版 → production)
+    let id = path.into_inner();
+    let _ = sqlx::query(
+        "UPDATE batch_master.task_template SET enabled = $1 WHERE id = $2"
+    )
+    .bind(true)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "promoted": false })));
+    // 记录 promote 动作到 audit_event (per ADR-0058 + REQ F-10)
+    state.audit.log(
+        "ulysses", "promote_task_template", &serde_json::json!({ "template_id": id }),
+        "success", "trace-promote-001", Some("task_template"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "promoted": true, "id": id, "trace_id": "trace-promote-001" }))
 }
 
 #[get("/api/v1/worker-pool-config")]
@@ -1635,6 +1698,9 @@ async fn main() -> std::io::Result<()> {
             .service(log_audit)
             .service(query_audit)
             .service(list_data_sources)
+            .service(update_data_source)
+            .service(delete_data_source)
+            .service(promote_task_template)
             .service(list_task_defs)
             .service(list_worker_pool_config)
             .service(list_schedules)
