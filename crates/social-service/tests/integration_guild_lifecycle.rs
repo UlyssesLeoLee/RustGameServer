@@ -384,3 +384,77 @@ async fn leave_guild_rejects_non_member_state_unchanged() {
     let stranger_records = member_repo.find_by_player(stranger).await.unwrap();
     assert!(stranger_records.is_empty());
 }
+
+/// Q6 IT 场景 5 (Phase B B5 新增, per WBS v0.2 §2.2 B5):
+/// leader 离开后, 再次有成员离开, 验证 leadership 转移链稳定 + member_count 正确递减
+///
+/// 关键不变量:
+/// - 第二次 leave 触发"leader 离开"分支, 新 leader = 当前 joined_at 最早剩余成员
+/// - guild 保留, member_count 持续 -1
+/// - 旧 leader 的 member 记录已清 (不留 ghost)
+#[tokio::test]
+async fn leave_guild_cascading_leadership_transfer_keeps_guild_intact() {
+    let (svc, _guild_repo, member_repo) = new_svc_with_repos();
+    let leader_id = Uuid::new_v4();
+    let guild = svc
+        .create_guild("Cascade Transfer".to_string(), "".to_string(), leader_id)
+        .await
+        .unwrap();
+
+    // 加 3 个普通成员, joined_at 顺序: leader < player_a < player_b < player_c
+    let player_a = Uuid::new_v4();
+    svc.join_guild(guild.id, player_a).await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let player_b = Uuid::new_v4();
+    svc.join_guild(guild.id, player_b).await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let player_c = Uuid::new_v4();
+    svc.join_guild(guild.id, player_c).await.unwrap();
+    assert_eq!(
+        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        4
+    );
+
+    // 第一次: leader 离开 → player_a 成为新 leader
+    svc.leave_guild(guild.id, leader_id).await.unwrap();
+    let after_first = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(after_first.member_count, 3);
+    assert_eq!(
+        after_first.leader_id, player_a,
+        "第 1 次 leave: leader → player_a (joined_at 最早剩余)"
+    );
+
+    // 第二次: 新 leader (player_a) 离开 → player_b 成为新 leader
+    svc.leave_guild(guild.id, player_a).await.unwrap();
+    let after_second = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(after_second.member_count, 2);
+    assert_eq!(
+        after_second.leader_id, player_b,
+        "第 2 次 leave: 新 leader player_a → player_b (新 joined_at 最早剩余)"
+    );
+
+    // 第三次: 新 leader (player_b) 离开 → player_c 成为新 leader
+    svc.leave_guild(guild.id, player_b).await.unwrap();
+    let after_third = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
+    assert_eq!(after_third.member_count, 1);
+    assert_eq!(
+        after_third.leader_id, player_c,
+        "第 3 次 leave: 新 leader player_b → player_c (最后剩余)"
+    );
+
+    // 第四次: 最后一人 player_c 离开 → 解散公会
+    svc.leave_guild(guild.id, player_c).await.unwrap();
+    let after_dissolve = svc.find_guild_by_id(guild.id).await.unwrap();
+    assert!(after_dissolve.is_none(), "最后一人离开应解散 guild");
+
+    // 全部 4 名原成员的 member 记录均已清空
+    for pid in [leader_id, player_a, player_b, player_c] {
+        let records = member_repo.find_by_player(pid).await.unwrap();
+        assert!(
+            records.is_empty(),
+            "全部离开后 player={} 不应留 member 记录, got {} 条",
+            pid,
+            records.len()
+        );
+    }
+}
