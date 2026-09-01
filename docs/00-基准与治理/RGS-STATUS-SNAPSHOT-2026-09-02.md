@@ -66,7 +66,7 @@
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
 | E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:25 JST): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 88 commit (ahead of WBS v0.2), 138 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
+**总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:50 JST, v0.6.4 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 94 commit (ahead of WBS v0.2), 144 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.3 hotfix 实测 git log --oneline 84edf26..main)
 
@@ -223,6 +223,7 @@
 | **v0.6.2** | **2026-09-02 08:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 新增 working tree untracked + git stash 待决策清单 — 4 DRAFT 状态大表分区化 SQL (git status clean / tracked commit c2acf02, 等 SRE + DBA + 域 Lead 评审 + PH-2/PH-3 实施前不 apply) + 2 cargo build 残留 (mavis-trash 不可用 + 永久删除被 CLI 安全策略 ban, 保留在主 worktree 不入 commit) + 1 L12 临时文件 PowerShell Remove-Item 已清 + 3 git stash (REQ-001/005/007-ADD1/038 + worktrees 残留 + REQ-007-ADD1) 等 Ulysses 拍板 drop / apply / 保留。 11 老 worktree 已 git worktree remove --force + worktree prune 全清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.3** | **2026-09-02 08:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 实测修正 — (1) v0.6.2 误报 4 partitioned SQL 为 untracked, 实测 git status clean + git ls-files 8a6b6ed/7a3ebd7/36f33db/03459f6 全部 tracked commit c2acf02 (DRAFT 状态); (2) 真正 untracked 仅 2 cargo build target-bucket-8-{phase-b,w1-player}/ (mavis-trash ban); (3) 修正 §0 数字 v0.6.1 140 → 142 commit (c2acf02 + status 检查后 +2); (4) §0.1 重写: 2 untracked + 4 tracked-but-DRAFT + 1 已清 + 3 stash, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.4** | **2026-09-02 08:48** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 新增 E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 — 42 commit 按 BA-WX-X 任务编号分组 (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 3) + 派生约束 L13 自指字段全 deferred 实时查询 (per `git log 84edf26..main --oneline` 实测 93 commit 差 51 commit 是 W1 + 跟踪表 hotfix), verifier 引用过期 host cache 根因 — 单一 commit 索引固化, 减少 verifier 反馈循环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.5** | **2026-09-02 08:52** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (88/138 → 94/144 commit, 跨 9/2 08:25-08:52 JST 净增 6 commit = 1e289f/56b65ca/77454e5 + 跟踪表 hotfix 系), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
