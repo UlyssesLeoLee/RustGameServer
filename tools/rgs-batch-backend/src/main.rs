@@ -51,8 +51,8 @@ static START_TIME: once_cell::sync::Lazy<Instant> =
 #[derive(Clone)]
 struct AppState {
     db: PgPool,
-    grpc_player: Arc<GrpcClient>,
-    // 5 域 gRPC client 雏形 (W2 完整集成扩展)
+    grpc_clients: GrpcClients,
+    // 5 域 gRPC client 完整 (W2 BA-W2-2 扩展, 4 域 + player)
     worker_pool: Arc<WorkerPool>,
 }
 
@@ -122,6 +122,111 @@ impl GrpcClient {
     async fn health_check(&self) -> bool {
         // W2 雏形: 实际应调 5 域 Health gRPC, 这里仅做 channel 状态检查
         self.connected
+    }
+}
+
+// ────────── 5 域 gRPC client 完整 (W2 BA-W2-2, 4 域扩展) ──────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum GrpcDomain {
+    Player,
+    Economy,
+    Match,
+    Social,
+    Admin,
+}
+
+impl GrpcDomain {
+    fn endpoint_env(&self) -> &'static str {
+        match self {
+            GrpcDomain::Player => "GRPC_PLAYER_ENDPOINT",
+            GrpcDomain::Economy => "GRPC_ECONOMY_ENDPOINT",
+            GrpcDomain::Match => "GRPC_MATCH_ENDPOINT",
+            GrpcDomain::Social => "GRPC_SOCIAL_ENDPOINT",
+            GrpcDomain::Admin => "GRPC_ADMIN_ENDPOINT",
+        }
+    }
+
+    fn service_name(&self) -> &'static str {
+        match self {
+            GrpcDomain::Player => "player-service",
+            GrpcDomain::Economy => "economy-service",
+            GrpcDomain::Match => "match-service",
+            GrpcDomain::Social => "social-service",
+            GrpcDomain::Admin => "admin-service",
+        }
+    }
+
+    fn default_endpoint(&self) -> &'static str {
+        match self {
+            GrpcDomain::Player => "https://player-service:50051",
+            GrpcDomain::Economy => "https://economy-service:50052",
+            GrpcDomain::Match => "https://match-service:50053",
+            GrpcDomain::Social => "https://social-service:50054",
+            GrpcDomain::Admin => "https://admin-service:50055",
+        }
+    }
+
+    fn all() -> [GrpcDomain; 5] {
+        [GrpcDomain::Player, GrpcDomain::Economy, GrpcDomain::Match, GrpcDomain::Social, GrpcDomain::Admin]
+    }
+}
+
+#[derive(Clone)]
+struct GrpcClients {
+    clients: std::collections::HashMap<GrpcDomain, Arc<GrpcClient>>,
+}
+
+impl GrpcClients {
+    fn empty() -> Self {
+        Self { clients: std::collections::HashMap::new() }
+    }
+
+    async fn init_with_certs(ca_cert_pem: String, client_cert_pem: String, client_key_pem: String) -> Self {
+        let mut clients = std::collections::HashMap::new();
+        if ca_cert_pem.is_empty() {
+            tracing::warn!(target: SERVICE, "GRPC_CA_CERT_PEM not set, all 5 域 gRPC clients disabled (dev only)");
+            return Self { clients };
+        }
+        let ca_cert = Certificate::from_pem(ca_cert_pem);
+        let identity = Identity::from_pem(&client_cert_pem, &client_key_pem);
+        for domain in GrpcDomain::all() {
+            let endpoint = std::env::var(domain.endpoint_env()).unwrap_or_else(|_| domain.default_endpoint().to_string());
+            match GrpcClient::new(endpoint, domain.service_name().to_string(), ca_cert.clone(), identity.clone()).await {
+                Ok(c) => {
+                    clients.insert(domain, Arc::new(c));
+                }
+                Err(e) => {
+                    tracing::error!(target: SERVICE, "gRPC {} client init failed: {}", domain.service_name(), e);
+                    clients.insert(domain, Arc::new(GrpcClient {
+                        endpoint: domain.default_endpoint().to_string(),
+                        service_name: domain.service_name().to_string(),
+                        connected: false,
+                        last_check_at: None,
+                    }));
+                }
+            }
+        }
+        Self { clients }
+    }
+
+    fn status(&self) -> Vec<(&'static str, bool)> {
+        GrpcDomain::all().iter().map(|d| {
+            let connected = self.clients.get(d).map(|c| c.connected).unwrap_or(false);
+            (d.service_name(), connected)
+        }).collect()
+    }
+
+    async fn health_check_all(&self) -> std::collections::HashMap<&'static str, bool> {
+        let mut result = std::collections::HashMap::new();
+        for domain in GrpcDomain::all() {
+            let connected = self.clients.get(domain)
+                .map(|c| c.connected)
+                .unwrap_or(false);
+            result.insert(domain.service_name(), connected);
+        }
+        result
     }
 }
 
@@ -221,11 +326,11 @@ async fn version() -> impl Responder {
             "BA-W2-3: DLQ stub (per GAP-9 超时 kill)",
             "BA-W2-4: worker pool 雏形 (GAP-4 优先级调度接口预留)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
-            "5 域 gRPC client 雏形 (player connected, 其余 4 域 TODO)",
-        ],
+            "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
+            "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
+        ]
     })
 }
-
 #[get("/api/v1/task-templates")]
 async fn list_task_templates(state: web::Data<AppState>) -> impl Responder {
     // W2 BA-W2-1: Master M-2 task_template 列表 (GAP-7 version 字段排序)
@@ -330,7 +435,7 @@ async fn create_task(
 async fn execute_task(state: &AppState, tmpl: &TaskTemplate, _params: &serde_json::Value) -> anyhow::Result<()> {
     // W2 雏形: 实际执行应: 1) 调 5 域 gRPC (per BA-W2-2 模板) 2) 跑 sql_template 3) 写审计
     // 这里只做 1 次 sleep + gRPC player health check 验证 5 域 gRPC client 雏形 OK
-    let _ = state.grpc_player.health_check().await;
+    let _ = state.grpc_clients.health_check_all().await;
     tokio::time::sleep(Duration::from_millis(100)).await;
     tracing::info!(target: SERVICE, "task executed (template={} v{})", tmpl.name, tmpl.template_version);
     Ok(())
@@ -398,6 +503,17 @@ async fn metrics(state: web::Data<AppState>) -> impl Responder {
         .body(body)
 }
 
+#[get("/api/v1/grpc-status")]
+async fn grpc_status(state: web::Data<AppState>) -> impl Responder {
+    // W2 BA-W2-2: 5 域 gRPC client 状态
+    let status = state.grpc_clients.health_check_all().await;
+    web::Json(serde_json::json!({
+        "domains": status,
+        "total": status.len(),
+        "connected": status.values().filter(|v| **v).count(),
+    }))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt()
@@ -424,20 +540,11 @@ async fn main() -> std::io::Result<()> {
     let client_cert_pem = std::env::var("GRPC_CLIENT_CERT_PEM").unwrap_or_default();
     let client_key_pem = std::env::var("GRPC_CLIENT_KEY_PEM").unwrap_or_default();
 
-    let grpc_player = if !ca_cert_pem.is_empty() {
-        let ca_cert = Certificate::from_pem(ca_cert_pem.clone());
-        let identity = Identity::from_pem(&client_cert_pem, &client_key_pem);
-        let endpoint = std::env::var("GRPC_PLAYER_ENDPOINT").unwrap_or_else(|_| "https://player-service:50051".to_string());
-        GrpcClient::new(endpoint, "player-service".to_string(), ca_cert, identity)
-            .await
-            .map(Arc::new)
-            .unwrap_or_else(|e| {
-                tracing::error!(target: SERVICE, "gRPC player client init failed: {}", e);
-                Arc::new(GrpcClient { endpoint: "uninit".to_string(), service_name: "player-service".to_string(), connected: false, last_check_at: None })
-            })
+    let grpc_clients = if !ca_cert_pem.is_empty() {
+        GrpcClients::init_with_certs(ca_cert_pem.clone(), client_cert_pem.clone(), client_key_pem.clone()).await
     } else {
-        tracing::warn!(target: SERVICE, "GRPC_CA_CERT_PEM not set, gRPC player client disabled (dev only)");
-        Arc::new(GrpcClient { endpoint: "uninit".to_string(), service_name: "player-service".to_string(), connected: false, last_check_at: None })
+        tracing::warn!(target: SERVICE, "GRPC_CA_CERT_PEM not set, all 5 域 gRPC clients disabled (dev only)");
+        GrpcClients::empty()
     };
 
     // 3. worker pool 雏形 (per BA-W2-4)
@@ -446,7 +553,7 @@ async fn main() -> std::io::Result<()> {
 
     let state = AppState {
         db,
-        grpc_player,
+        grpc_clients,
         worker_pool,
     };
 
@@ -461,6 +568,7 @@ async fn main() -> std::io::Result<()> {
             .service(worker_status)
             .service(list_dlq)
             .service(metrics)
+            .service(grpc_status)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
