@@ -221,7 +221,7 @@ impl GrpcClients {
     async fn health_check_all(&self) -> std::collections::HashMap<&'static str, bool> {
         let mut result = std::collections::HashMap::new();
         for domain in GrpcDomain::all() {
-            let connected = self.clients.get(domain)
+            let connected = self.clients.get(&domain)
                 .map(|c| c.connected)
                 .unwrap_or(false);
             result.insert(domain.service_name(), connected);
