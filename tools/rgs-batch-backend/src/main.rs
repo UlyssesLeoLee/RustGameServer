@@ -1768,7 +1768,7 @@ async fn cross_domain_saga(
             "admin" => Some(GrpcDomain::Admin),
             _ => None,
         };
-        mapped.map(|gd| (gd.service_name(), *grpc_health.get(&gd).unwrap_or(&false)))
+        mapped.map(|gd| (gd.service_name(), *grpc_health.get(gd.service_name()).unwrap_or(&false)))
     }).collect();
 
     // 3. 模拟 saga 执行 (实际应 saga-runtime 独立 Pod 调度, per RGS-BAS-100 v0.1)
