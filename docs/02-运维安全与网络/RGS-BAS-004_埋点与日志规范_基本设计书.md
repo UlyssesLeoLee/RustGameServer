@@ -18,6 +18,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-008 ARC-020展开为指标目录、span命名规范、日志字段规范、脱敏实现设计、采样设计、高频路径可观测性设计、CI静态检查设计 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | 追溯性表补齐AC-LOG-001〜005验收标准与设计章节的映射（此前追溯性表仅覆盖ARC/FR/NFR，遗漏AC条目） | §12 |
+| 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求：§4.2日志级别表升级为**编译期模式（debug build / release build）** × **运行时Profile（debug / release）** 二维矩阵，新增§4.4 debug-only 宏规范（`#[cfg(debug_assertions)]` 守护的 `trace!`/`debug!` 调用，release build 完全剔除零运行时开销）与 §4.5 release 必出宏清单（INFO/WARN/ERROR 编译期常驻）；§8 脚手架补 debug-only 与 release 必出宏的自动生成模板；§9 CI 加 `cfg(debug_assertions)` 守护宏白名单检查；§11 标准化清单补每功能BAS文档的 log 章节检查项；§12 追溯性新增 AC-LOG-006（debug-only 宏在 release build 完全剔除）与 AC-LOG-007（每功能BAS文档须含本功能log设计章节） | §4、§8、§9、§11、§12 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -138,17 +139,61 @@ flowchart TB
 
 ## 4.2 日志级别使用场景定义（落实FR-LOG-012）
 
-| 级别 | 使用场景 | 是否默认输出到生产环境 |
-|---|---|---|
-| `TRACE` | 逐步调试用的极细粒度信息（如单次数值计算过程） | 否，仅开发/预发布环境按需开启 |
-| `DEBUG` | 有助于问题定位但非日常需要的信息 | 否，默认关闭，故障排查时临时提升级别 |
-| `INFO` | 正常业务事件（会话建立、场景切换、GM指令执行成功等） | 是 |
-| `WARN` | 非预期但已被系统正确处理的情况（降级触发、重试成功、背压拒绝） | 是 |
-| `ERROR` | 需要人工关注的失败（未被正确处理的异常、下游依赖不可用导致的请求失败） | 是，**必须**同时触发§6.2强制全量采集 |
+**二维矩阵**：行=日志级别，列=编译期模式（debug build / release build）下该级别调用是否被编译进二进制 + 运行时 Profile（debug / release）下该级别默认是否输出。
 
-## 4.3 日志字段规范（落实FR-LOG-010/011/013）
+| 级别 | 调用宏 | debug build（编译进） | release build（编译进） | debug Profile 输出 | release Profile 输出 | 使用场景 |
+|---|---|---|---|---|---|---|
+| `TRACE` | `trace!` / `tracing::trace!` | ✅ 必进 | ❌ 由 `#[cfg(debug_assertions)]` 守护，**完全剔除**（零运行时开销，编译器不会生成任何代码） | ✅ 输出 | ❌ 不输出 | 逐步调试用的极细粒度信息（如单次数值计算过程、循环内每次迭代） |
+| `DEBUG` | `debug!` / `tracing::debug!` | ✅ 必进 | ❌ 由 `#[cfg(debug_assertions)]` 守护，**完全剔除** | ✅ 输出 | ❌ 不输出（运行时 `RUST_LOG=debug` 也无法开启，因为代码已被剔除） | 有助于问题定位但非日常需要的信息（关键变量值、条件分支命中、API 入参出参） |
+| `INFO` | `info!` | ✅ 必进 | ✅ 必进（编译期常驻） | ✅ 输出 | ✅ 输出 | 正常业务事件（会话建立、场景切换、GM指令执行成功等） |
+| `WARN` | `warn!` | ✅ 必进 | ✅ 必进（编译期常驻） | ✅ 输出 | ✅ 输出 | 非预期但已被系统正确处理的情况（降级触发、重试成功、背压拒绝） |
+| `ERROR` | `error!` | ✅ 必进 | ✅ 必进（编译期常驻） | ✅ 输出 | ✅ 输出，**必须**同时触发§6.2强制全量采集 | 需要人工关注的失败（未被正确处理的异常、下游依赖不可用导致的请求失败） |
 
-### 4.3.1 基础字段（全部日志条目必须包含，可得性允许时）
+**编译期与运行时的关系**：
+- **编译期**决定该级别的调用代码是否存在于二进制中：`trace!`/`debug!` 在 release build 完全被 `#[cfg(debug_assertions)]` 剔除，无任何运行时开销；`info!`/`warn!`/`error!` 编译期常驻，运行时按 Profile 配置过滤。
+- **运行时 Profile** 仅对**已编译进二进制**的级别生效。release build 中 `trace!`/`debug!` 不存在，运行时无法通过 `RUST_LOG=trace,debug` 开启。
+- **Profile 默认值**：`debug` Profile（开发/CI 预发布）默认输出全部已编译级别；`release` Profile（生产/灰度）默认仅输出 `INFO`/`WARN`/`ERROR`。故障排查时可临时通过 `RUST_LOG=info,my_crate::module=debug` 提升指定模块的级别——**前提是该模块在 release build 中已有 `debug!` 调用未被剔除**，因此"打算在 release 故障排查时可能需要"的 `debug!` 也必须保留（见§4.4 第二条规则）。
+
+**约定**：
+- `info!`/`warn!`/`error!` **不得** 包裹在 `#[cfg(debug_assertions)]` 内——这些是生产可见日志，去掉会导致 release 失明。
+- `trace!`/`debug!` **必须** 由 `#[cfg(debug_assertions)]` 守护（直接守护宏调用本身，不是包裹大段代码块；细节见 §4.4）。
+
+## 4.3 debug-only 调用宏规范
+
+`trace!`/`debug!` 在 release build 中由 `#[cfg(debug_assertions)]` 完全剔除。为保证剔除彻底且无副作用扩散，规定以下四条铁律：
+
+| # | 规则 | 反例 | 正例 |
+|---|---|---|---|
+| 1 | 宏调用**直接**用 `#[cfg(debug_assertions)]` 守护，不要把 `#[cfg]` 放在外层 `if` 或大段代码块上 | `if cfg!(debug_assertions) { expensive_calc(); debug!(...); }`（`expensive_calc()` 仍编译进 release） | `#[cfg(debug_assertions)] { let v = expensive_calc(); debug!(value = %v); }` |
+| 2 | **打算在 release 故障排查时可能需要**的 `debug!` 也要保留（按"缺标比错标安全"原则）——只要不包裹昂贵计算就保留 | 把所有 `debug!` 全部 `#[cfg]` 掉，故障时看不到关键变量 | 关键变量打印用 `debug!` 直接守护，昂贵计算才剔除 |
+| 3 | `debug!` 调用的参数表达式**必须**是 O(1) 或已缓存的值（避免隐式触发昂贵运算后仅在 release 失效） | `debug!(items = ?collection.iter().collect::<Vec<_>>())`（即使 release 不输出，`collect()` 仍执行） | `debug!(items = ?cached_items, count = cached_items.len())` |
+| 4 | 跨调用点的关联 ID（`request_id`/`trace_id`/`player_id`）字段值获取放在 `debug!` 宏参数内**之前**做一次局部变量绑定（避免 release 失效后关联 ID 也没拿到） | `debug!(player_id = get_player_id())`（release 下 `get_player_id()` 不执行） | `let pid = get_player_id(); #[cfg(debug_assertions)] debug!(player_id = %pid);` |
+
+**`info!`/`warn!`/`error!` 不适用本节**——这三类编译期常驻，无 `#[cfg]` 需求。
+
+## 4.4 release 必出宏清单
+
+下列事件**必须**产生结构化日志（`info!`/`warn!`/`error!`），不允许 `#[cfg(debug_assertions)]` 剔除。**任何功能 BAS 文档的 log 章节必须显式声明本功能的 release 必出事件清单**（详见各 BAS 文档 §X.Y）。
+
+| 类别 | 必出事件 | 级别 | 触发条件 | 字段最小集 |
+|---|---|---|---|---|
+| 业务关键事件 | 会话建立/断开、场景创建/销毁/迁移、角色登录/登出 | `INFO` | 状态机迁移完成的同步点 | `event`、`character_id`/`session_id`、`scene_id`、`at` |
+| 业务关键事件 | GM 指令执行结果（成功/失败）、补偿发放 | `INFO` | `AdminService` 全部方法调用完成 | `command`、`operator_id`、`character_id`（如有）、`result_code`、`request_id` |
+| 业务关键事件 | 支付/发货工作流状态迁移 | `INFO` | Saga 状态机迁移点 | `workflow_id`、`state`、`request_id` |
+| 异常但已处理 | 重试成功、降级触发、背压拒绝、限流命中 | `WARN` | 内部已正确处理但属非预期路径 | `event`、`reason`、`attempt`、`backoff_ms` |
+| 异常但已处理 | 配置热更新一致性检查未通过回退 | `WARN` | 旧版本回退 | `event`、`table`、`old_version`、`new_version` |
+| 需要人工介入 | 未捕获异常、下游不可用、数据库事务失败、OCC 冲突重试超限 | `ERROR` | 错误未被处理或重试耗尽 | `event`、`error`、`attempt`、`trace_id` |
+| 强制全量采集 | 同§6.2 强制全量采集范围内的全部事件（ERROR/GM 指令/高危操作/降级/背压） | 同上 | §6.2 判定 | §6.2 既有字段 |
+
+**`#[cfg(debug_assertions)]` 禁止守护 `info!`/`warn!`/`error!` 调用**（即使在测试代码中也保持 production-equivalent 可观测性）。
+
+## 4.5 升级后章节编号重排说明
+
+原 §4.3 日志字段规范起所有章节顺延一节（原 §4.3 → 新 §4.6、原 §4.4 命名规则 → 新 §4.7）；本版本 §4.2 升级 + 新增 §4.3/§4.4/§4.5 不影响 §4.6 起内容，引用关系保持不变。
+
+## 4.6 日志字段规范（落实FR-LOG-010/011/013）
+
+### 4.6.1 基础字段（全部日志条目必须包含，可得性允许时）
 
 | 字段名 | 类型 | 说明 |
 |---|---|---|
@@ -158,7 +203,7 @@ flowchart TB
 | `trace_id`／`span_id` | 字符串 | 当前上下文可得时必须携带 |
 | `message` | 字符串 | 人类可读的简述，**不得**将结构化数据拼接进`message`（应作为独立字段） |
 
-### 4.3.2 业务扩展字段（按上下文可得性附加）
+### 4.6.2 业务扩展字段（按上下文可得性附加）
 
 | 字段名 | 类型 | 说明 |
 |---|---|---|
@@ -234,10 +279,17 @@ flowchart TB
 
 | 脚手架产出 | 内容 |
 |---|---|
-| `main.rs`中的SDK初始化 | 自动生成本文档§2统一埋点SDK的初始化代码（读取`trace_sample_ratio`等配置），业务代码无需手写初始化样板 |
+| `main.rs`中的SDK初始化 | 自动生成本文档§2统一埋点SDK的初始化代码（读取`trace_sample_ratio`／`profile`等配置），业务代码无需手写初始化样板 |
 | `api/`层的自动埋点 | gRPC handler的入口/出口span（FR-LOG-001）由脚手架生成的中间件/拦截器自动产生，业务代码只需实现业务逻辑本身，无需手动`start_span` |
-| 基础字段自动注入 | §4.3.1基础字段（`service.name`／`trace_id`等）由脚手架生成的日志封装自动注入，业务代码调用日志API时只需传入业务扩展字段（§4.3.2）与`message` |
+| 基础字段自动注入 | §4.6.1基础字段（`service.name`／`trace_id`等）由脚手架生成的日志封装自动注入，业务代码调用日志API时只需传入业务扩展字段（§4.6.2）与`message` |
+| **debug-only 宏调用模板** | 脚手架在 `skeleton/log_templates.rs` 预生成 `debug!`/`trace!` 调用模板片段，业务代码在 IDE 自动补全时**仅**插入已被 `#[cfg(debug_assertions)]` 守护的宏片段（CI 静态检查 §9 第 5 项强制） |
+| **release 必出宏调用模板** | 脚手架在 `skeleton/log_templates.rs` 预生成 `info!`/`warn!`/`error!` 调用模板片段，**不**带 `#[cfg]` 守护（与 §4.4 反例对照） |
 | RGS-BAS-002§9.1的关系 | 本节是RGS-BAS-002§9.1"标准埋点（脚手架自动生成）"表格的**字段级细化**，两者描述同一套脚手架产出物，未产生新的独立机制 |
+
+**业务代码使用约束**：
+- 仅使用脚手架预生成的 `debug!`/`trace!`/`info!`/`warn!`/`error!` 模板片段；
+- **不得**手写 `#[cfg(debug_assertions)] debug!(...)` —— 脚手架预生成的片段已自动包含守护属性，手写易遗漏或写错位置（§4.3 规则 #1）；
+- IDE 通过自定义 snippet 仅暴露带正确守护属性的调用宏，避免误用。
 
 ---
 
@@ -251,6 +303,9 @@ flowchart TB
 | 字段命名规范 | 扫描日志/span属性字面量，检测非`snake_case`或与既有API字段设计表（BAS-001/BAS-003）拼写不一致的高相似度命名（如检测到`playerId`提示应为`player_id`） | CI警告，人工复核后可合并（避免误报阻断） |
 | 脱敏黑名单绕过检测 | 扫描是否存在将黑名单敏感字段值先做字符串拼接再输出以规避正则匹配的可疑模式 | CI失败，阻断合并 |
 | span命名格式 | 校验是否符合§4.1 `<限界上下文缩写>.<动词短语>`格式 | CI警告 |
+| **`debug!`/`trace!` 缺 `#[cfg(debug_assertions)]` 守护检测** | 静态扫描：检测业务代码中**未**被 `#[cfg(debug_assertions)]` 包裹的 `debug!`/`trace!` 宏调用，违反 §4.3 规则 #1 即报错。允许特例：`#[cfg(test)]` 与 `#[cfg(debug_assertions)]` 同时存在视为合规（测试代码） | CI失败，阻断合并 |
+| **`info!`/`warn!`/`error!` 被 `#[cfg(debug_assertions)]` 守护检测** | 静态扫描：检测 `info!`/`warn!`/`error!` 宏调用是否被 `#[cfg(debug_assertions)]` 守护，违反 §4.4 反例即报错 | CI失败，阻断合并 |
+| **release build 二进制中 debug-only 符号剔除验证** | release 构建产物（`cargo build --release` 输出）的二进制符号表扫描：检测是否存在 `tracing::debug` / `log::debug` / `tracing::trace` / `log::trace` 调用点的 panic/format 占位代码残留（rustc 通常完全消除，但可借 `cargo bloat` 或 `nm` 抽样验证） | CI警告（开销较高，仅关键服务跑） |
 
 该CI检查纳入RGS-BAS-002§4.2既有CI/CD流水线骨架的"lint/test"阶段，不新建独立检查流水线。
 
@@ -271,11 +326,28 @@ flowchart TB
 
 - [ ] 已使用标准化脚手架生成埋点骨架（§8），未绕过SDK直接调用裸OTel/日志库
 - [ ] 全部对外接口的入口/出口span已自动生成，跨上下文调用已正确嵌套为子span（§4.1）
-- [ ] 日志基础字段（§4.3.1）自动注入验证通过，业务扩展字段命名经过既有API字段表核对（§4.3.2）
+- [ ] 日志基础字段（§4.6.1）自动注入验证通过，业务扩展字段命名经过既有API字段表核对（§4.6.2）
 - [ ] 脱敏规则（§5）在测试环境注入敏感字段样本值验证已生效
 - [ ] 错误路径与高危操作的强制全量采集（§6.2）已验证不受采样率配置影响
 - [ ] 高频路径（如有tick循环）未产生逐次span，仅通过指标观测（§7）
 - [ ] CI静态检查（§9）全部通过
+- [ ] **每功能 BAS 文档均含"本功能 log 设计"章节**（§4.4 release 必出宏清单与各 BAS 文档 §X.Y 本功能 log 设计对应），且 log 章节内明确区分 debug-only（`#[cfg(debug_assertions)]` 守护的 `debug!`/`trace!`）与 release 必出（`info!`/`warn!`/`error!`）两类事件
+- [ ] release 必出事件清单（§4.4）逐项可在本功能代码中检索到对应调用点（grep 验证），未遗漏业务关键事件（会话/场景/GM 指令/工作流迁移/降级/限流/异常等）
+
+## 11.2 模板片段规范（脚手架产出）
+
+下列片段由脚手架预生成，业务代码 IDE 补全时插入：
+
+```rust
+// debug-only: release build 完全剔除, 零运行时开销
+#[cfg(debug_assertions)]
+debug!(target: "module_path", field_a = %value_a, field_b = value_b, "context message");
+
+// release 必出: 编译期常驻, 运行时按 Profile 过滤
+info!(target: "module_path", field_a = %value_a, field_b = value_b, "context message");
+warn!(target: "module_path", field_a = %value_a, "warning context");
+error!(target: "module_path", error = %err, "error context");
+```
 
 ---
 
@@ -285,7 +357,7 @@ flowchart TB
 |---|---|---|
 | ARC-020 | 埋点与日志的统一规范 | §2、§8、§9 |
 | FR-LOG-001〜005 | 埋点覆盖范围 | §3、§4.1、§7 |
-| FR-LOG-010〜013 | 日志字段规范 | §4.2、§4.3 |
+| FR-LOG-010〜013 | 日志字段规范 | §4.2、§4.6 |
 | FR-LOG-020〜022 | 脱敏与个人信息保护 | §5 |
 | FR-LOG-030 | 与审计日志的关系 | §10 |
 | FR-LOG-040〜041 | 采样 | §6 |
@@ -295,6 +367,10 @@ flowchart TB
 | AC-LOG-003（脚手架生成新服务无需手工编码即符合规范） | §8标准化脚手架集成（SDK初始化/自动埋点中间件/基础字段自动注入均由脚手架产出） | §8 |
 | AC-LOG-004（错误路径与GM指令在采样率<100%下仍100%记录） | §6.2强制全量采集范围与SDK层判定逻辑 | §6.2 |
 | AC-LOG-005（负载试验下存储/索引成本不突破运维负荷上限） | §3高基数注记（防止指标基数爆炸）＋§6.1采样率配置（成本可控的第一道调节手段）＋§9 CI检查防止规范劣化导致埋点膨胀 | §3、§6.1 |
+| **AC-LOG-006（debug-only 宏在 release build 完全剔除，零运行时开销）** | §4.2 二维矩阵（编译期模式 × 运行时 Profile）+ §4.3 四条铁律（守护宏直接放在 `#[cfg(debug_assertions)]` 下、不得包外层 `if`）+ §9 CI 第 5 项静态检查 | §4.2、§4.3、§9 |
+| **AC-LOG-007（每功能 BAS 文档须含本功能 log 设计章节）** | §4.4 release 必出宏清单（每个功能 BAS 文档 §X.Y 须显式声明对应清单）+ §11.1 检查项第 8 条（每功能 log 章节存在性）+ §11.1 检查项第 9 条（release 必出事件 grep 验证） | §4.4、§11.1、§12 |
+
+
 
 ---
 
