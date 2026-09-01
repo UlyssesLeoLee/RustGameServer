@@ -88,7 +88,7 @@
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
 | E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计** (per WBS v0.4.7 跟踪表, 2026-09-02 09:15 JST, v0.6.10 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 100 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 151 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
+**总盘统计** (per WBS v0.4.8 跟踪表 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1, 2026-09-02 09:55 JST, v0.6.19 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 110 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 162 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 4 DRAFT partitioned SQL 评审启动材料 v0.1 就绪 (commit `999ff5d`)。
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
@@ -268,6 +268,7 @@
 | **v0.6.16** | **2026-09-02 09:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 "已 prune 元数据 1 项" 后补 5 项主 worktree .worktrees/ 老临时文件 (per `Get-ChildItem .worktrees` 实测) — feat-auto 物理目录 + bas-list.txt + 3 个 AI 通知文件 8/29-8/30 残留, L12 派生约束只要求不入 commit 不要求清空, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.17** | **2026-09-02 09:46** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 补 docs/ 空目录残留 1 项 (per `Get-ChildItem docs/ddd-review` 实测) — docs/ddd-review/ 8/31 16:30 JST 创建但 0 file 0 commit (bd0884f 实际进 `docs/14-项目管理/ddd-review/`), L11 派生约束 docs 空目录不影响 git 状态, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.18** | **2026-09-02 09:53** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 4 tracked-but-DRAFT 表 4 行 "性质" / "推荐处理" 字段同步更新 — 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md v0.1 (commit `999ff5d`) 已就绪, "保留等评审" 升级为 "等 SRE + DBA + 域 Lead 评审签字" (10 行签字栏), DRAFT→v1.0 评审流程闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.19** | **2026-09-02 09:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (100/151 → 110/162 commit, 跨 9/2 09:15-09:55 JST 净增 10 commit = 999ff5d DB-REVIEW-CHECKLIST v0.1 + 3974ac3 STATUS-SNAPSHOT v0.6.18 + 本 commit, 跟 WBS v0.4.8 + DB-REVIEW-CHECKLIST v0.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
