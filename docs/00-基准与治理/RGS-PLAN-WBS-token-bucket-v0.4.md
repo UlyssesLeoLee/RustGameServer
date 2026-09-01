@@ -106,10 +106,10 @@
 
 | GAP | 落点 W | 子任务 | 估时 | 状态 |
 |---|---|---|---|---|
-| GAP-3 mavis cron 告警 | W3 | BA-W3-2 cron + mavis self-remind | 1.5 人·天 | 🟡 草案 |
-| GAP-4 任务优先级 | W2 | BA-W2-4 worker pool + priority 调度 | 1.0 人·天 | 🟡 草案 |
-| GAP-7 任务模板版本化 | W2 | BA-W2-1 task_template M-2 version 字段 + 灰度 | 1.0 人·天 | 🟡 草案 |
-| GAP-9 任务超时 kill | W2 | BA-W2-5 tokio::time::timeout + DLQ | 1.0 人·天 | 🟡 草案 |
+| GAP-3 mavis cron 告警 | W3 | BA-W3-5 cron + mavis self-remind | 1.5 人·天 | ✅ 已落地 (commit `b7c100a`) |
+| GAP-4 任务优先级 | W2 | BA-W2-4 worker pool + priority 调度 (BinaryHeap) | 1.0 人·天 | ✅ 已落地 (commit `a932d95`) |
+| GAP-7 任务模板版本化 | W2 | BA-W2-X task_template template_version 字段 (灰度锁定) | 1.0 人·天 | ✅ 已落地 (commit `1e3d528`) |
+| GAP-9 任务超时 kill | W2 | BA-W3-1 create_task + tokio::time::timeout + DLQ | 1.0 人·天 | ✅ 已落地 (commit `1e3d528` + `5568a68`) |
 | GAP-1 跨 batch DAG | W4 | BA-W4-8 拓扑排序 + 依赖图 | 3.0 人·天 | 🟡 草案 |
 | GAP-2 WebSocket 流式 | W4 | BA-W4-9 /api/v1/ws + tokio-tungstenite | 2.5 人·天 | 🟡 草案 |
 | GAP-5 AI 协助 SQL | W5 | BA-W5-6 自然语言 → SQL (per OLU-WEB F-25) | 4.0 人·天 | 🟡 草案 |
@@ -117,7 +117,9 @@
 | GAP-8 Rollback SQL 验证 | W4 | BA-W4-11 沙箱执行 + diff 校验 | 2.0 人·天 | 🟡 草案 |
 | GAP-10 跨域 saga 触发 | W6 | BA-W6-6 saga-runtime 独立 Pod | 4.0 人·天 | 🟡 草案 |
 | GAP-11 batch RACI 同步 | (E2 已完成) | `0755ef8e` | — | ✅ |
-| GAP-12 k3s namespace 隔离 | W1 | (本会话 §3 + BA-W1-3 完成) | — | ✅ |
+| GAP-12 k3s namespace 隔离 | W1 | (本会话 §3 + BA-W1-3 完成) |
+
+**E8 12 GAP 进度**: 4/12 ✅ (GAP-3/4/7/9 已落地) + 8/12 🟡 草案 (GAP-1/2/5/6/8/10 待 W4-W6 + GAP-11 已完 + GAP-12 已完) — | ✅ |
 
 **12 GAP 估时合计**: ~24 人·天 (跨 4 周, 跟 9/1-10/13 6 周节奏)
 
