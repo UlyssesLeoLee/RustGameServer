@@ -606,6 +606,7 @@ async fn version() -> impl Responder {
             "BA-W3-1: task_execution + log_event Transaction T-2 + T-5 高级查询 (per task_id/result/duration/level/target 过滤, 动态 SQL)",
             "BA-W3-2/3: task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD (per task_id 过滤, ON CONFLICT upsert, 凭据 hash 不存原值 per 8/27 11:06 硬 ban)",
             "BA-W3-4/5: audit_event + dlq_event 高级过滤 (per operator/action/result/dlq_id/trace_id 过滤, 动态 SQL, per ADR-0058 T-3 永久保留)",
+            "BA-W3-6/7: saga_instance + message_outbox + data_migration Transaction T-7+T-8+T-6 CRUD (per saga_type/state/destination/state/name 过滤, 动态 SQL, 跨 5 域 + kafka + DB 迁移)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -809,6 +810,57 @@ struct DlqEventQuery {
     dlq_id: Option<Uuid>,
     result: Option<String>,
     trace_id: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct SagaInstance {
+    id: Uuid,
+    saga_type: String,            // e.g. "rgs-batch-saga-cleanup"
+    state: String,                // pending / running / compensating / succeeded / failed
+    started_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
+    completed_at: Option<chrono::DateTime<chrono::Utc>>,
+    payload: serde_json::Value,   // 步骤状态
+    error_msg: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct MessageOutbox {
+    id: Uuid,
+    destination: String,          // 目标服务 (e.g. "player-service" / "kafka")
+    topic: String,                // topic / queue
+    payload: serde_json::Value,
+    state: String,                // pending / sent / failed
+    retry_count: i32,
+    created_at: chrono::DateTime<chrono::Utc>,
+    sent_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct DataMigration {
+    id: Uuid,
+    name: String,
+    source_version: String,
+    target_version: String,
+    state: String,                // pending / running / succeeded / failed / rolled_back
+    started_at: Option<chrono::DateTime<chrono::Utc>>,
+    finished_at: Option<chrono::DateTime<chrono::Utc>>,
+    rows_migrated: i64,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SagaInstanceQuery {
+    saga_type: Option<String>,
+    state: Option<String>,
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MessageOutboxQuery {
+    destination: Option<String>,
+    state: Option<String>,
     limit: Option<i64>,
 }
 
@@ -1137,6 +1189,54 @@ async fn list_audit_events(
     }
 }
 
+#[get("/api/v1/saga-instances")]
+async fn list_saga_instances(
+    state: web::Data<AppState>,
+    query: web::Query<SagaInstanceQuery>,
+) -> impl Responder {
+    // W3 BA-W3-6: Transaction T-7 saga_instance 高级查询 (per saga_type/state 过滤, 动态 SQL)
+    let limit = query.limit.unwrap_or(50).min(500);
+    let mut sql = String::from("SELECT id, saga_type, state, started_at, updated_at, completed_at, payload, error_msg FROM batch_transaction.saga_instance WHERE 1=1");
+    if let Some(t) = &query.saga_type { sql.push_str(&format!(" AND saga_type = '{}'", t)); }
+    if let Some(s) = &query.state { sql.push_str(&format!(" AND state = '{}'", s)); }
+    sql.push_str(&format!(" ORDER BY updated_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<SagaInstance>, _> = sqlx::query_as::<_, SagaInstance>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "sagas": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/message-outbox")]
+async fn list_message_outbox(
+    state: web::Data<AppState>,
+    query: web::Query<MessageOutboxQuery>,
+) -> impl Responder {
+    // W3 BA-W3-6: Transaction T-8 message_outbox 高级查询 (per destination/state 过滤, 动态 SQL)
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let mut sql = String::from("SELECT id, destination, topic, payload, state, retry_count, created_at, sent_at FROM batch_transaction.message_outbox WHERE 1=1");
+    if let Some(d) = &query.destination { sql.push_str(&format!(" AND destination = '{}'", d)); }
+    if let Some(s) = &query.state { sql.push_str(&format!(" AND state = '{}'", s)); }
+    sql.push_str(&format!(" ORDER BY created_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<MessageOutbox>, _> = sqlx::query_as::<_, MessageOutbox>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "outbox": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/data-migrations")]
+async fn list_data_migrations(state: web::Data<AppState>) -> impl Responder {
+    // W3 BA-W3-7: Transaction T-6 data_migration 状态查询 (per state 过滤 + 时间)
+    let rows: Result<Vec<DataMigration>, _> = sqlx::query_as::<_, DataMigration>(
+        "SELECT id, name, source_version, target_version, state, started_at, finished_at, rows_migrated, created_at FROM batch_transaction.data_migration ORDER BY created_at DESC LIMIT 50"
+    ).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "migrations": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
 #[post("/api/v1/workers/enqueue")]
 async fn enqueue_task(
     state: web::Data<AppState>,
@@ -1350,6 +1450,9 @@ async fn main() -> std::io::Result<()> {
             .service(list_audit_sessions)
             .service(list_dlq_events)
             .service(list_audit_events)
+            .service(list_saga_instances)
+            .service(list_message_outbox)
+            .service(list_data_migrations)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
