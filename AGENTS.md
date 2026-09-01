@@ -217,7 +217,76 @@
 - v0.4 正式纳入"部署恢复期临时越界许可"流程 (Mavis 上报 + Ulysses 决策 + 24h 内 commit 三件套)
 - v0.4 追加 m4 forward ref FK 案例到 §2 Worker 工作流规则 (新派生约束 L7)
 
-### 6.3 模板 (per ST worker / 主会话 ST)
+### 6.3 PT 派工派生约束 (per 9/1 14:15-15:10 JST 8 worker 派工, commit ffbfb19)
+
+**背景**: 9/1 14:15 JST Ulysses 决策"5 平台层 (130 .rs) + 3 工具 (92 .rs) 拆 worker 派工", 派工 5 平台 (1 crate 1 worker) + 3 工具 (按业务相关性合并, 3 crate 1 worker) = 8 worker. 8 worker 25 min 全交付 (vs 8/31 5 worker 0 产出 4h), 验证 v3 hotfix 模板化复制有效.
+
+**新增派生约束 L11/L12** (per DDD Review v0.1 §5.11/§5.12):
+
+#### L11: PT 派工 cargo build dir lock 防御
+
+- **教训**: 8 worker 同时跑 `cargo check --tests`, 8 cargo 进程并发竞争 target/ build dir lock, 多个 worker 报告"等待多轮编译"
+- **强约束**: **PT 派工简报** 必须明文 "DoD = cargo check --tests 1 次拿 status, 修到 0 error, 不要 polling 多轮编译", 避免 8 cargo 进程互锁
+- **依据**: 9/1 14:15-15:10 JST 8 worker 25 min 完工 (vs 8/31 5 worker 0 产出 4h), 8 worker 报告都提到"等待多轮编译"但 0 死锁
+- **检查工具**: worker 报告里 grep `Waiting for|build dir lock` 应该 < 5 次
+- **配套**: 简报明文 "30 min 必须出 commit, 失败也没关系, 占位 commit 也行", 避免 worker 长时间 polling 编译
+
+#### L12: PT 派工临时 log 不入 commit 防御
+
+- **教训**: 8 worker 在 worktree 根写 .log / .txt 临时文件 (cargo-check.log / commit-msg.log / COMMIT_MSG_TMP.txt / .tmp_search_backup), 未跟踪但污染 worktree
+- **强约束**: **PT 派工简报** 必须明文 "临时 log / .txt / .tmp_search* 不入 commit, 主会话 merge 后清理", 避免 8 worktree 7 个临时文件残留
+- **依据**: 9/1 14:15-15:10 JST 8 worker 临时文件: shared-platform 1 / cluster-ops 1 / rgs-testkit 2 / leaderboard-overflow-asset 5, 都没入 commit, 但 7 worktree 根污染
+- **检查工具**: `git status` 在 merge 前应该 0 untracked (除了 .gitignore 没列的临时 log)
+- **主会话清理**: merge 前 `git worktree remove --force` + `git worktree prune` 批量清理 8 worktree
+
+#### L9 流程化: 临时越界 (Mavis) + 追认 (Ulysses) 三件套
+
+- **背景**: 9/1 部署恢复期, Mavis 改 yaml (22-postgres-configmap + m4) 越 v0.3 §7.5 边界, Ulysses 决策 opt3 追认
+- **完整流程** (per AGENTS.md v0.2 §6.2):
+  1. **Mavis 上报**: ask_user 给 Ulysses 选项 (不能只问"可以吗", per 9/1 14:58 JST Ulysses 反馈)
+  2. **Ulysses 决策**: opt3 (Mavis 改 + 你追认) / opt1 (SRE 介入, Mavis 退出) / opt2 (Mavis apply + 临时越界)
+  3. **Mavis 改**: 改 yaml + apply (具体改法由 Mavis 直接落地, 不需要再问)
+  4. **24h 内 commit + 修订历史写明**: "临时越界 + Ulysses 追认" 三行齐全
+  5. **AGENTS.md 同步**: v0.x 加 §6.2 临时越界记录, 记入派生约束
+- **不允许扩展到**: 日常 commit / feature dev / 业务实装 (仅限部署恢复紧急路径)
+- **追溯改写**: 不追溯改写历史文档"审批者=—" (per 8/27 19:39 JST 决策)
+
+#### PT 派工简报标准模板 (per v0.3 §6.1 + L11 + L12)
+
+```markdown
+# 任务简报 - <category> 域 <task>
+
+## 工作环境
+- worktree: D:/rgs-<prefix>-<scope>
+- 分支: <prefix>/<scope> (基线 <baseline>)
+- 负责 crate: crates/<scope> (其他 crate 不动)
+
+## 必做
+1. 读 <briefing> + AGENTS.md §6 模板 + DDD Review §<N>
+2. 探索: Get-ChildItem crates/<scope> -Recurse -Filter *.rs
+3. 写 UT 优先 (沿用 InMemory mock 风格, rgs-testkit 禁 InMemory, 用 NoOp)
+4. 写 IT 优先 (跨模块场景)
+5. **验证**: cd D:/rgs-<prefix>-<scope>; cargo check -p <scope> --tests 2>&1 | tail -20
+   (1 次拿 status, **不要 polling 多轮**, per L11)
+6. 0 error → git add + commit (代签格式 per 8/27 JST)
+7. **(可选)** git push origin <prefix>/<scope>
+
+## DoD
+- ✅ cargo check --tests 60s 内通过
+- ✅ commit 1+ 段带代签 (代签/审批/修订人 三行齐全)
+- ✅ 1 域 1 worker 不交叉改 (5 域独立 Lead 原则)
+- ✅ **不动** AGENTS.md / DDD Review / OPEN-QA / manifests (主会话负责)
+- ✅ **临时 log / .txt / .tmp_search* 不入 commit** (per L12)
+- ✅ **30 min 必须出 commit**, 失败也没关系, 占位 commit 也行
+
+## 卡住的应对
+- cargo check 超 60s → 接受 warning, 先 commit 占位
+- 找不到合适 mock → 复用 src/ 已有 InMemory*Repository
+- **不要 Start-Sleep 轮询等编译** (per L11)
+- 单 commit 跨多个 crate → 不允许
+```
+
+### 6.4 模板 (per ST worker / 主会话 ST)
 
 ```markdown
 # ST 任务简报
@@ -247,6 +316,7 @@
 | v0.1 | 2026-08-31 21:50 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 摘录 OPEN-QA v0.2 L1-L5 规则 + 5 域 Lead 流程 + 任务级 prompt 模板 |
 | (待续) | — | — | Q1-Q11 业务实现落地后, 追加 "业务级实施跟踪" 段 |
 | v0.2 | 2026-09-01 10:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 k3s 部署恢复期: 加 §6.2 临时越界记录 (Ulysses opt3 追认), 22-postgres-configmap initdb.sql + m4 forward ref FK 两处临时越界 |
+| v0.3 | 2026-09-01 16:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 PT 派工 8 worker 完结 (commit ffbfb19) + 5 域 ST 业务级 mTLS 全完成 (commit 401ac5c): 加 L9/L11/L12 派生约束 (临时越界流程化 + cargo build dir lock 防御 + 临时 log 不入 commit 防御) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
