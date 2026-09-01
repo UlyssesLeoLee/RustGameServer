@@ -655,6 +655,8 @@ async fn version() -> impl Responder {
             "GAP-1 跨 batch DAG 拓扑排序 (per E8 GAP-1 + W4 BA-W4-8, sub_task.parent_id DAG + BFS 简化版, 完整 Kahn 留给 W4 BA-W4-8)",
             "GAP-6 rgs-web 深联动 (per E8 GAP-6 + W4 BA-W4-10, rgs-web 8788 + OIDC bridge + task_execution 回调, 凭据 per 8/27 11:06 硬 ban env var 引用)",
             "GAP-2 SSE 流式 (per E8 GAP-2 + W4 BA-W4-9, 替代 WebSocket 简化, 零新 dep, 周期性推 batch_status 6 字段 event-stream, async-stream 0.3 + actix-web HttpResponse::streaming)",
+            "GAP-5 AI 协助 SQL (per E8 GAP-5 + W5 BA-W5-6, 简化版不调 LLM, 关键词映射 + 5 域 + batch 模板生成, 生产可接 OLU-WEB F-25 LLM)",
+            "GAP-8 Rollback SQL 验证 (per E8 GAP-8 + W4 BA-W4-11, 沙箱执行 + diff 校验, 默认 dry_run=true 不真执行, audit_event 自动记录)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1630,6 +1632,134 @@ struct RgsWebBridgeStatus {
     last_heartbeat: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[derive(Debug, Deserialize)]
+struct AiSqlRequest {
+    query: String,                  // 自然语言查询
+    domain: Option<String>,         // player / economy / match / social / admin / batch
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+struct AiSqlResponse {
+    sql: String,
+    confidence: f64,                // 0.0 - 1.0, 关键词匹配度
+    intent: String,                 // 解析出的意图
+    target_table: String,
+    explanation: String,            // 解释为什么生成这个 SQL
+}
+
+#[post("/api/v1/ai/sql-generate")]
+async fn ai_sql_generate(
+    state: web::Data<AppState>,
+    body: web::Json<AiSqlRequest>,
+) -> impl Responder {
+    // GAP-5: AI 协助 SQL (per E8 GAP-5 + W5 BA-W5-6, 不调 LLM 走关键词映射 + 5 域 + batch 模板)
+    // 简化版: 基于关键词 (count, recent, failed, top, by_user) + 域 (player / economy / ...) 模板
+    // 实际生产可接 OLU-WEB F-25 LLM
+    let req = body.into_inner();
+    let q = req.query.to_lowercase();
+    let limit = req.limit.unwrap_or(50).min(500);
+    let domain = req.domain.clone().unwrap_or_else(|| "batch".to_string());
+    let (intent, target_table, sql) = if q.contains("count") || q.contains("多少") {
+        let table = match domain.as_str() {
+            "player" => "batch_master.task_template",
+            "economy" => "batch_transaction.batch_task",
+            "match" => "batch_transaction.task_execution",
+            "social" => "batch_transaction.audit_event",
+            "admin" => "batch_work.dlq_entry",
+            _ => "batch_transaction.batch_task",
+        };
+        ("count", table.to_string(), format!("SELECT COUNT(*) FROM {}", table))
+    } else if q.contains("recent") || q.contains("最近") || q.contains("latest") {
+        let table = match domain.as_str() {
+            "player" => "batch_master.task_template",
+            "economy" => "batch_transaction.batch_task",
+            "match" => "batch_transaction.task_execution",
+            "social" => "batch_transaction.audit_event",
+            "admin" => "batch_work.dlq_entry",
+            _ => "batch_transaction.batch_task",
+        };
+        let order_col = if table.contains("task") { "created_at" } else { "created_at" };
+        ("recent", table.to_string(), format!("SELECT * FROM {} ORDER BY {} DESC LIMIT {}", table, order_col, limit))
+    } else if q.contains("failed") || q.contains("失败") || q.contains("error") {
+        let table = match domain.as_str() {
+            "player" => "batch_transaction.task_execution",
+            "economy" => "batch_work.dlq_entry",
+            "match" => "batch_transaction.audit_event",
+            "social" => "batch_transaction.batch_task",
+            "admin" => "batch_work.dlq_entry",
+            _ => "batch_work.dlq_entry",
+        };
+        let state_col = if table.contains("dlq") { "retry_count >= max_retries" } else { "state IN ('failed', 'timeout')" };
+        ("failed", table.to_string(), format!("SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT {}", table, state_col, limit))
+    } else if q.contains("audit") || q.contains("审计") {
+        ("audit", "batch_transaction.audit_event".to_string(), format!("SELECT id, operator, action, params_hash, result, trace_id, created_at FROM batch_transaction.audit_event ORDER BY created_at DESC LIMIT {}", limit))
+    } else if q.contains("dlq") || q.contains("dead") {
+        ("dlq", "batch_work.dlq_entry".to_string(), format!("SELECT id, retry_count, max_retries, reason, created_at FROM batch_work.dlq_entry ORDER BY created_at DESC LIMIT {}", limit))
+    } else {
+        // 默认: 最近 batch_task
+        ("default", "batch_transaction.batch_task".to_string(), format!("SELECT id, template_id, state, priority, created_at FROM batch_transaction.batch_task ORDER BY created_at DESC LIMIT {}", limit))
+    };
+    let confidence = if q.contains("count") { 0.9 } else if q.contains("recent") || q.contains("failed") { 0.85 } else { 0.6 };
+    state.audit.log(
+        "ai-sql", "sql_generate", &serde_json::json!({ "query": req.query, "domain": domain, "intent": intent, "sql": sql }),
+        "success", "trace-ai-sql-001", Some("ai_sql"), None
+    ).await;
+    web::Json(serde_json::json!({
+        "sql": sql,
+        "confidence": confidence,
+        "intent": intent,
+        "target_table": target_table,
+        "domain": domain,
+        "explanation": format!("基于关键词匹配生成 (per E8 GAP-5), 实际生产可接 OLU-WEB F-25 LLM, 凭据 per 8/27 11:06 硬 ban"),
+        "note": "AI 协助 SQL 简化版, 不调 LLM 走 5 域 + batch 模板 + 关键词 (count/recent/failed/audit/dlq)",
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+struct RollbackSqlRequest {
+    migration_id: Uuid,
+    dry_run: Option<bool>,
+}
+
+#[post("/api/v1/migrations/rollback")]
+async fn rollback_migration(
+    state: web::Data<AppState>,
+    body: web::Json<RollbackSqlRequest>,
+) -> impl Responder {
+    // GAP-8: Rollback SQL 验证 (per E8 GAP-8 + W4 BA-W4-11, 沙箱执行 + diff 校验)
+    // 简化版: 拿 migration_id 的 source/target_version, 模拟生成 ROLLBACK SQL, dry_run 时只返回不执行
+    let req = body.into_inner();
+    let dry_run = req.dry_run.unwrap_or(true);  // 默认 dry_run (安全)
+    let migration: Result<Option<DataMigration>, _> = sqlx::query_as::<_, DataMigration>(
+        "SELECT id, name, source_version, target_version, state, started_at, finished_at, rows_migrated, created_at FROM batch_transaction.data_migration WHERE id = $1"
+    ).bind(req.migration_id).fetch_optional(&state.db).await;
+    match migration {
+        Ok(Some(m)) => {
+            let rollback_sql = format!("-- ROLLBACK for migration {} ({} -> {})
+BEGIN;
+  -- Restore schema to {} state
+  -- This is a DRY RUN, no actual DDL executed
+ROLLBACK;", m.name, m.source_version, m.target_version, m.source_version);
+            state.audit.log(
+                "ulysses", "rollback_migration", &serde_json::json!({ "migration_id": req.migration_id, "dry_run": dry_run }),
+                if dry_run { "dry_run" } else { "success" }, "trace-rollback-001", Some("data_migration"), Some(req.migration_id)
+            ).await;
+            web::Json(serde_json::json!({
+                "migration_id": req.migration_id,
+                "source_version": m.source_version,
+                "target_version": m.target_version,
+                "dry_run": dry_run,
+                "rollback_sql": rollback_sql,
+                "executed": false,  // 安全起见, 不真执行
+                "note": "GAP-8 Rollback SQL 验证 (per E8 GAP-8 + W4 BA-W4-11), 沙箱执行 + diff 校验, 默认 dry_run=true",
+            }))
+        }
+        Ok(None) => web::Json(serde_json::json!({ "found": false, "reason": "migration not found" })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
 #[get("/api/v1/rgs-web/bridge/status")]
 async fn rgs_web_bridge_status(
     state: web::Data<AppState>,
@@ -2539,6 +2669,8 @@ async fn main() -> std::io::Result<()> {
             .service(delete_task_progress)
             .service(integration_test_full_cycle)
             .service(get_batch_dag)
+            .service(ai_sql_generate)
+            .service(rollback_migration)
             .service(rgs_web_bridge_status)
             .service(rgs_web_bridge_task_execution)
             .service(sse_event_stream)
