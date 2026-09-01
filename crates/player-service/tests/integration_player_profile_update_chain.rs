@@ -13,12 +13,20 @@
 //! 3. test_update_unknown_player_returns_not_found — 权限/存在性: 不存在 player 必须 NotFound
 //! 4. test_profile_chain_accumulates_wins_only_when_matches_grow — 验证合理累加路径
 //!
-//! ## wins ≤ total 约束的当前实现状态 (per service.rs:253-268 update_player_profile)
-//! 当前 service.update_player_profile 是占位实现 (per DTL-038 §7.2 TODO): 验证 player 存在后
-//! 直接返回传入的 profile, **未在 service 层强制 wins ≤ total 约束**. 因此本 IT:
-//! - 在测试层 (helper `assert_wins_leq_total`) 显式声明并检查该不变量
-//! - 通过 service 链路验证不变量"自然保持" (合法输入路径)
-//! - 业务约束的强制化是 P1 backlog (RGS-OPEN-QA-001 Q-M-02 范畴外), 列"已知风险"提示
+//! ## wins ≤ total 约束的当前实现状态 (per service.rs L253-278 update_player_profile)
+//! - **业务层已强制** (per 2026-09-01 22:25 JST WBS v0.2 B3 实装, 基线 commit 858becb +
+//!   2ef872b): service.update_player_profile 在 total_wins > total_matches 时
+//!   返回 `Error::Validation`, DB 层不加 CHECK 约束 (per OPEN-QA v0.2 §Q3
+//!   决策: 业务层校验对累计更新路径更灵活)
+//! - 本 IT 范围: 验证**合法输入路径** (wins ≤ total) 在整条链路上"自然保持",
+//!   4 tests 全部用 wins ≤ total 输入, 断言保持不变
+//! - **业务层拒绝路径** (wins > total) 由 service.rs 末尾 mod tests 覆盖:
+//!   `update_player_profile_wins_gt_total_returns_validation_error` +
+//!   `update_player_profile_wins_eq_total_plus_one_returns_validation_error`
+//!   (1 happy / 1 边界 / 2 error 共 4 case, per 858becb L1717+)
+//! - DTL-038 §7.2 player_profiles 表实装同批持久化, 业务层 invariant 已先落地
+//! - WBS v0.2 桶 8 (Phase B 业务 P1 backlog) 派工: B3 跟 DTL-038 §7.2 同批
+//!   关联, 不单独插队, 5 worker 中 w1 player 责任段
 //!
 //! ## 跳过机制
 //! - 无需 DATABASE_URL (InMemory 路径)
@@ -30,7 +38,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 /// 业务不变量: total_wins ≤ total_matches.
-/// IT 层显式 assert, service 层尚为 TODO (见 file header 注释).
+/// 业务层已强制 (per WBS v0.2 B3, 2026-09-01 22:25 JST 派工; commit 858becb +
+/// 2ef872b 在 service.update_player_profile 返 `Error::Validation`).
+/// IT 层 helper 显式 assert, 供 4 IT 链路用合法输入验证不变量"自然保持".
 fn assert_wins_leq_total(p: &PlayerProfile) {
     assert!(
         p.total_wins <= p.total_matches,
