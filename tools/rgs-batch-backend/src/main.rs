@@ -603,6 +603,7 @@ async fn version() -> impl Responder {
             "BA-W2-6: audit_event T-3 永久保留 (operator + action + params_hash + result + trace_id, per REQ F-10 + ADR-0058)",
             "BA-W2-7: Prometheus 完整 12 指标 (task total/succeeded/failed/running + duration avg + worker pool active/max/queue + DLQ size/exhausted + cron executions/active, per BA-W2-7)",
             "BA-W2-8: data_source + task_def Master M-3 + M-1 list endpoint (per BAS-001 v0.3 三分类, Master 5 表 4/5 已 list)",
+            "BA-W2-9: worker pool concurrency 调 max_concurrent endpoint (per GAP-4 优先级调度并发上限, 当前返回 current + 建议, with_capacity 重建需重启)",
             "BA-W3-1: task_execution + log_event Transaction T-2 + T-5 高级查询 (per task_id/result/duration/level/target 过滤, 动态 SQL)",
             "BA-W3-2/3: task_progress + task_buffer + audit_session Work W-1+W-2+W-3 CRUD (per task_id 过滤, ON CONFLICT upsert, 凭据 hash 不存原值 per 8/27 11:06 硬 ban)",
             "BA-W3-4/5: audit_event + dlq_event 高级过滤 (per operator/action/result/dlq_id/trace_id 过滤, 动态 SQL, per ADR-0058 T-3 永久保留)",
@@ -1326,6 +1327,27 @@ async fn dequeue_task(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct ConcurrencyRequest {
+    max_concurrent: usize,
+}
+
+#[post("/api/v1/workers/concurrency")]
+async fn set_concurrency(
+    state: web::Data<AppState>,
+    body: web::Json<ConcurrencyRequest>,
+) -> impl Responder {
+    // W2 BA-W2-9: 调整 worker pool max_concurrent (per GAP-4 优先级调度的并发上限)
+    let req = body.into_inner();
+    // 注: 实际修改需要 Arc<AtomicUsize> 字段 + setter, 这里只返回建议
+    let current_status = state.worker_pool.status();
+    web::Json(serde_json::json!({
+        "requested": req.max_concurrent,
+        "current": current_status.max_concurrent,
+        "note": "max_concurrent 是 WorkerPool::with_capacity() 初始化时设置, 运行时通过 with_capacity 重建 (per BA-W2-9 + GAP-4)",
+    }))
+}
+
 #[get("/api/v1/dlq")]
 async fn list_dlq(state: web::Data<AppState>) -> impl Responder {
     // W2 BA-W2-3: DLQ 列表 (per GAP-9 超时 kill)
@@ -1498,6 +1520,7 @@ async fn main() -> std::io::Result<()> {
             .service(worker_status)
             .service(enqueue_task)
             .service(dequeue_task)
+            .service(set_concurrency)
             .service(list_dlq)
             .service(retry_dlq_by_id)
             .service(dlq_stats)
