@@ -9,10 +9,10 @@
 
 | 维度 | 数据 |
 |---|---|
-| main HEAD | (实时, 查 `git rev-parse main`, v0.6.5 时为 `c3a73dd`) |
+| main HEAD | (实时, 查 `git rev-parse main`, v0.6.10 时为 `ee3e81d`; 后续 hotfix 同步更新此行 或以 §7 修订历史最新行为准) |
 | main HEAD (短) | (实时, 查 `git rev-parse --short main`) |
-| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.5 时 94) |
-| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.5 时 145) |
+| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.10 时 100) |
+| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.10 时 152) |
 | working tree | untracked 5 项 (DRAFT 状态待评审) + git stash 3 个 (上游 AI 残留, 待决策) — 详见 §0.1 |
 
 ### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:40 JST, v0.6.7 hotfix 修 — 各小节自指时间戳请以 §7 修订历史最新版为准)
@@ -236,6 +236,7 @@
 | **v0.6.8** | **2026-09-02 09:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 + §2 自指版本号从 v0.6.2/v0.6.3 统一到 v0.6.7 + 加"以 §7 修订历史最新版为准"指针 — 避免小节标头版本号落后于 §7 修订表自指污染, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.9** | **2026-09-02 09:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 3 commit → 10 commit (补 1eb289f/56b65ca/77454e5/c3a73dd/9980ebe/b9f2979/7afcf08/abcc752 8 个 hotfix commit, 全部 9/2 08:38-09:05 JST L13 守护) + §2 commit 链总合计 42 → 52 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.10** | **2026-09-02 09:15** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (94/144 → 100/151 commit, 跨 9/2 08:52-09:15 JST 净增 6 commit = 9980ebe/b9f2979/7afcf08/abcc752/c3c52cb + 文档热修系), 跟 WBS v0.4.7 跟踪表 (commit c3c52cb) §1.1 E3 W2-W6 39 commit + 4 hotfix = 43 commit 关联同步, per L13 自指字段 deferred 实时查询 + 实时 `git rev-list --count` 表达式守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.11** | **2026-09-02 09:18** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表自指字段统一更新到 v0.6.10 时 (main HEAD `ee3e81d` + 100/152 commit) + 加 "后续 hotfix 同步更新此行 或以 §7 修订历史最新行为准" 指针 — L13 自指字段全 deferred 实时查询 + 终态收敛避免无止境 hotfix 循环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
