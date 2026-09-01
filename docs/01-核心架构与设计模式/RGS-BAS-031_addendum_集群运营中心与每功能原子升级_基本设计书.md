@@ -21,6 +21,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响需求ID |
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | — | 初版制定。将RGS-REQ-031 ARC-051展开为ClusterOpsService的组件图、`admin_db`新增Schema、Feature元数据与PFAU状态机、CEM探针订阅器设计、API契约字段级定义、RBAC角色矩阵扩展、整合既有ARC-018／021／042／019／039的强制联动点 | 全部 |
+| 0.2 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | — | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，all_36 + compile_plus_runtime）：§3.1-3.6（feature_registry/feature_version_history/pfa_run_state/event_schema_registry+event_producer_registry/event_dlq_view/coc_audit_view 6 张表 lifecycle）+ §4.1（Feature 元数据生命周期状态机）+ §5.5（CEM 探针全链路综合）+ §6.4（ClusterOpsService API 契约全链路综合）+ §10.5（性能/可用性/隔离/审计综合）共 10 个"本功能日志设计"小节全部新增；每节均含 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），字段名前缀 `coc.*`（区别于 BAS-002 `mnt.*` / BAS-003 `gm.*` / BAS-004 `log.*` / BAS-005 `plugin.*` / BAS-009 `gov.*` / BAS-019 `push.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.3.1/§4.3.2 保持拼写一致（FR-LOG-013）；显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`/`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；覆盖 ARC-051 集群运营中心 + 每功能原子升级全链路——Feature 元数据 CRUD / 不可变审计 / PFAU 实例状态机 / 灰度批次推进 / CEM 探针订阅 / 事件总线可达性 / DLQ 视图 / API 调用 receive/complete/失败 / 性能 SLO 降级 / 隔离边界违反 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -158,6 +159,25 @@ CREATE INDEX idx_feature_registry_type_status ON feature_registry (feature_type,
 CREATE INDEX idx_feature_registry_owner ON feature_registry (owner_team);
 ```
 
+### 3.1 本功能日志设计
+
+`feature_registry` 是 COC 元数据根基表，CRUD 事件是 §4.1 Feature 元数据生命周期的**持久化回声**。所有写操作 release 必出（per BAS-004 v0.3 §6.2 合规审计白名单），读操作 debug-only（按 trace_id 排查时按需开启）。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.feature_registry.row_registered` | `AdminService.RegisterFeature` 成功写入新行 | 极低（每月 0-3 个新 Feature） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 合规审计） | 含 `feature_id` / `feature_type` / `display_name` / `owner_team` / `operator_id`；约 250B/条 |
+| `coc.feature_registry.row_updated` | `current_version` / `target_version` / `status` / `depends_on` 等字段修订 | 极低（每次 PFAU 启动 / 完成各 1 条） | release 必出（100% 强制全采样） | 含 `feature_id` / `field_changed` / `old_value` / `new_value` / `operator_id`；约 300B/条 |
+| `coc.feature_registry.status_transitioned` | `status` 字段从 `pending` → `in_progress` → `active` / `rolling_back` / `rolled_back` / `deprecated` 迁移（与 §4.1 状态机一一对应） | 每次 PFAU 启动 / 完成 / 回滚 1 条 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 状态机迁移强制全采） | 含 `feature_id` / `from_status` / `to_status` / `pfa_run_id`（如有）；约 250B/条 |
+| `coc.feature_registry.duplicate_feature_id` | CI 校验或人工录入时主键冲突 | 配置错（应极少） | release 必出（100% 强制全采样） | 含 `feature_id` / `existing_owner_team` / `new_owner_team`；约 250B/条 |
+| `coc.feature_registry.invalid_depends_on` | `depends_on` 数组引用不存在的 `feature_id`（图引用断链） | 偶发（首版登记） | release 必出（100% 强制全采样） | 含 `feature_id` / `missing_dependency`；约 200B/条 |
+| `coc.feature_registry.row_deprecated` | `AdminService.DeprecateFeature` 写入 `deprecated` 状态 | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `feature_id` / `operator_id` / `deprecation_reason`；约 280B/条 |
+| `coc.feature_registry.debug.read_query_plan` | 读查询（典型 `SELECT * WHERE feature_id=?`）的执行计划 dump | 高频（GM 后台查询） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.5-2KB/条（release 剔除） |
+| `coc.feature_registry.debug.full_row_dump` | 完整行 dump（含 `depends_on` 数组 / `notes` 等大字段） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
+
+**debug-only 守护要点**（落实 BAS-004 v0.3 §4.3）：
+- `coc.feature_registry.debug.read_query_plan` 是**高频**事件（GM 后台查询 feature 元数据），**必须** `#[cfg(debug_assertions)]` 守护
+- `coc.feature_registry.status_transitioned` 与 §4.1 Feature 元数据生命周期状态机一一对应——是 PFAU 编排可观测性的"持久化层回声"，与 §4.2 PFAU 状态机的 `pfa_run_state.*` 事件按 `feature_id` + `pfa_run_id` 串联
+
 ## 3.2 `feature_version_history`（版本历史，FR-PFAU-003 不可变）
 
 ```sql
@@ -194,6 +214,19 @@ BEFORE UPDATE OR DELETE ON feature_version_history
 FOR EACH ROW EXECUTE FUNCTION prevent_feature_version_history_modify();
 ```
 
+### 3.2 本功能日志设计
+
+`feature_version_history` 是**不可变**表（DB trigger 拦截 UPDATE/DELETE），仅 INSERT 事件 release 必出——这是 §3.1 `feature_registry.status_transitioned` 的"版本侧回声"，按 `pfa_run_id` 关联。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.feature_version_history.row_inserted` | PFAU 状态迁移触发 INSERT（典型 `declared` / `active` / `rolled_back` / `deprecated` 四个 state 转换） | 每次 PFAU 4 条（start/canary_confirmed/completed/rolled_back 或 completed 等） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 不可变审计） | 含 `history_id` / `feature_id` / `version` / `state` / `declared_by` / `pfa_run_id`；约 300B/条 |
+| `coc.feature_version_history.update_attempted_blocked` | 收到 UPDATE/DELETE 请求被 trigger 拒绝（违反不可变性） | 极少（应为代码 bug） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 安全告警） | 含 `feature_id` / `attempted_op`（update/delete）/ `actor_session` / `trace_id`；约 280B/条 |
+| `coc.feature_version_history.delete_attempted_blocked` | 同上，DELETE 路径 | 极少 | release 必出（100% 强制全采样） | 同上字段集 |
+| `coc.feature_version_history.debug.full_version_chain` | 某 feature_id 的全部历史行 dump（运维追溯用） | 偶发（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（取决于版本数，release 剔除） |
+
+**debug-only 守护要点**：`coc.feature_version_history.debug.full_version_chain` 涉及整个 feature 全部版本历史（典型 5-50 个版本），release 完全剔除避免 RUST_LOG=debug 误开时撑爆日志通道。
+
 ## 3.3 `pfa_run_state`（PFAU 实例状态机，FR-PFAU-010/011）
 
 ```sql
@@ -222,6 +255,28 @@ CREATE TABLE pfa_run_state (
 CREATE INDEX idx_pfa_run_state_feature_id ON pfa_run_state (feature_id, declared_at DESC);
 CREATE INDEX idx_pfa_run_state_state ON pfa_run_state (state) WHERE state IN ('declared','canary_in_progress','canary_confirmed','paused');
 ```
+
+### 3.3 本功能日志设计
+
+`pfa_run_state` 是 PFAU 实例的"实时状态"表，与 §4.2 PFAU 状态机一一对应——任何状态字段变更（`state` / `current_batch` / `confirmed_node_ids` / `failed_node_ids` / `pause_reason`）均 release 必出，便于 SRE 按 `run_id` 排查 PFAU 编排过程。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.pfa_run_state.instance_created` | `ClusterOpsService.StartPFAU` 创建新 `run_id` | 极低（每次 PFAU 启动 1 条） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 配置变更衍生） | 含 `run_id` / `feature_id` / `from_version` / `to_version` / `direction`（upgrade/rollback）/ `declared_by` / `total_batches` / `batch_size_pct`；约 350B/条 |
+| `coc.pfa_run_state.batch_advanced` | `current_batch` 递增（每批次 canary 完成时） | 每次 PFAU 推进 1 批 | release 必出（100% 强制全采样） | 含 `run_id` / `current_batch` / `total_batches` / `confirmed_count` / `failed_count`；约 280B/条 |
+| `coc.pfa_run_state.state_transitioned` | `state` 字段从 `declared` → `canary_in_progress` → `canary_confirmed` → `completed` / `paused` / `rolled_back` / `failed` 迁移 | 每次 PFAU 3-5 条 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 状态机迁移强制全采） | 含 `run_id` / `from_state` / `to_state` / `pause_reason`（如有）；约 250B/条 |
+| `coc.pfa_run_state.node_confirmed` | 某批次 canary 节点回执确认 | 每批次 N 条（N = 节点数 × 批次百分比） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 强制全采样白名单） | 含 `run_id` / `node_id` / `batch` / `confirmed_at`；约 250B/条 × 节点数 |
+| `coc.pfa_run_state.node_failed` | 某批次 canary 节点回执失败（如版本不兼容） | 偶发 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `run_id` / `node_id` / `batch` / `error` / `trace_id`；约 320B/条 |
+| `coc.pfa_run_state.paused_by_operator` | `AdminService.PausePFAU` 人工暂停 | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `run_id` / `operator_id` / `pause_reason`；约 280B/条 |
+| `coc.pfa_run_state.rolled_back` | `AdminService.RollbackPFAU` 触发回滚 | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `run_id` / `operator_id` / `from_version` / `to_version` / `reason`；约 320B/条 |
+| `coc.pfa_run_state.heartbeat_timeout` | `last_heartbeat_at` 超过阈值（per §4.3 灰度批次推进规则） | 极少（编排器故障） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `run_id` / `last_heartbeat_at` / `timeout_threshold_ms`；约 280B/条 |
+| `coc.pfa_run_state.completed` | 全部批次完成，`state=completed` | 每次 PFAU 1 条 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 配置变更完成） | 含 `run_id` / `feature_id` / `duration_ms` / `total_confirmed_nodes`；约 280B/条 |
+| `coc.pfa_run_state.debug.full_node_table` | 某 PFAU 实例的 `target_node_ids` + `confirmed_node_ids` + `failed_node_ids` 完整三表 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（节点数决定，release 剔除） |
+| `coc.pfa_run_state.debug.batch_progression_timeline` | 批次推进完整时间线（每批次开始/结束时刻 + 节点回执延迟） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-8KB/条（release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.pfa_run_state.node_confirmed` 是**高频**事件（每批次 canary N 节点回执），release 必出 + 100% 全采样（per BAS-004 v0.3 §6.2 配置热更新强制全采样）——**不能**挂 `#[cfg]`，这是 PFAU 编排进度的核心证据链
+- `coc.pfa_run_state.debug.batch_progression_timeline` 在大集群下可能 8KB+ —— release 完全剔除
 
 ## 3.4 `event_schema_registry` 与 `event_producer_registry`（FR-CEM-001/010）
 
@@ -252,6 +307,26 @@ CREATE TABLE event_producer_registry (
 CREATE INDEX idx_event_producer_app ON event_producer_registry (app_id);
 ```
 
+### 3.4 本功能日志设计
+
+`event_schema_registry` / `event_producer_registry` 双表是 CEM（Cluster Event Mesh）的元数据根基——`event_type` 注册与 Producer 自我声明。CRUD 事件 release 必出（per BAS-004 v0.3 §6.2 事件基础设施元数据），Producer 自我声明是高频（每 App 启动 1 次），但属于"基础设施心跳"性质，按 `app_id` 维度去重即可。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.event_schema_registry.row_registered` | 新 `event_type` 在 CEM 注册（首次声明） | 极低（每 Feature 1-3 个新事件类型） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 事件基础设施元数据） | 含 `event_type` / `feature_id` / `schema_version` / `schema_lang` / `partition_key_rule` / `retention_days` / `registered_by`；约 380B/条 |
+| `coc.event_schema_registry.schema_version_bumped` | 同一 `event_type` 的 `schema_version` 递增（含旧版本 deprecation） | 偶发（Feature 演进） | release 必出（100% 强制全采样） | 含 `event_type` / `old_version` / `new_version` / `schema_ref`（commit hash）；约 300B/条 |
+| `coc.event_schema_registry.deprecated` | `deprecated_at` 写入（旧 schema 标记弃用） | 偶发 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 弃用事件） | 含 `event_type` / `deprecated_at` / `deprecation_reason`；约 280B/条 |
+| `coc.event_schema_registry.duplicate_event_type` | 重复注册同一 `event_type`（主键冲突） | 配置错 | release 必出（100% 强制全采样） | 含 `event_type` / `existing_feature_id` / `new_feature_id`；约 280B/条 |
+| `coc.event_producer_registry.producer_first_seen` | 新 Producer 组合（`event_type` + `app_id` + `app_version`）首次声明 | 偶发（每 App 升级 1 次） | release 必出（100% 强制全采样） | 含 `event_type` / `app_id` / `app_version` / `feature_id`；约 300B/条 |
+| `coc.event_producer_registry.producer_heartbeat` | 既有 Producer 在 `event_producer_registry` 更新 `last_seen_at`（每 N 分钟一次） | 每 App × 事件类型，每 5-15min | release 必出（按 `app_id` 维度抽样，5-15% 采样率）+ 自动去重（同一 `app_id` 1h 内只留 1 条） | 含 `event_type` / `app_id` / `app_version` / `last_seen_at`；约 220B/条 × 5% = 11B/条 |
+| `coc.event_producer_registry.producer_stale` | `last_seen_at` 超过阈值（如 24h 未更新）触发告警 | 极少（App 下线） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 告警事件） | 含 `event_type` / `app_id` / `app_version` / `stale_hours`；约 280B/条 |
+| `coc.event_schema_registry.debug.full_schema_dump` | 完整 schema dump（json_schema 文本 / protobuf 描述符） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-10KB/条（schema 大小决定，release 剔除） |
+| `coc.event_producer_registry.debug.producer_inventory` | 某 feature_id 的全部 Producer 清单（含 app_version 分布） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.event_producer_registry.producer_heartbeat` 是**高频**事件（每 App × 事件类型 × 5-15min）——release 必出但**5-15% 抽样**（避免日志通道被心跳淹没），per BAS-004 v0.3 §6.1 采样率
+- `coc.event_schema_registry.debug.full_schema_dump` 可能含 protobuf 描述符（10KB+）——release 完全剔除
+
 ## 3.5 `event_dlq_view`（视图，FR-CEM-040 死信队列只读视图）
 
 DLQ本身由事件总线维护（不归COC所有），COC仅以**视图**形式聚合展示。视图定义：
@@ -269,6 +344,19 @@ LEFT JOIN <event_bus_dlq_table> dlq ON dlq.event_type = esr.event_type
 GROUP BY esr.event_type, esr.feature_id;
 -- 实际 JOIN 取决于事件总线实现, 此处为示意
 ```
+
+### 3.5 本功能日志设计
+
+`event_dlq_view` 是**只读视图**（DLQ 本身由事件总线维护），不产生新业务事件。视图刷新失败/聚合查询失败产生 release 必出事件（运维告警信号），查询结果详情 debug-only。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.event_dlq_view.refresh_failed` | 视图刷新失败（事件总线 DLQ 表 JOIN 失败） | 极少（数据源事故） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `error` / `trace_id`；约 280B/条 |
+| `coc.event_dlq_view.high_dlq_count_detected` | `last_1h_count` 超过阈值触发告警（如 1h 内 > 100 条死信） | 偶发 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 告警事件） | 含 `event_type` / `feature_id` / `last_1h_count` / `last_24h_count`；约 280B/条 |
+| `coc.event_dlq_view.query_served` | `AdminService.QueryDLQView` 返回结果 | GM 后台轮询 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 GM 指令衍生） | 含 `request_id` / `operator_id` / `result_count` / `latency_ms`；约 250B/条 |
+| `coc.event_dlq_view.debug.raw_dlq_samples` | 视图底层 DLQ 表的样本 dump（最近 10 条死信全文） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除，DLQ 样本可能含事件 payload 隐私字段） |
+
+**debug-only 守护要点**：`coc.event_dlq_view.debug.raw_dlq_samples` 可能含事件 payload 隐私字段——release 完全剔除避免 RUST_LOG=debug 误开时泄漏。
 
 ## 3.6 `coc_audit_view`（视图，FR-COC-040 审计查询只读视图）
 
@@ -291,6 +379,19 @@ WHERE oa.action_type LIKE 'coc.%' OR oa.action_type IN (
 );
 -- operation_audit 表结构既有, 此处仅为视图过滤 COC 相关操作
 ```
+
+### 3.6 本功能日志设计
+
+`coc_audit_view` 是审计查询只读视图（基于 `operation_audit` 表过滤 COC 相关操作）。审计写层事件已在 BAS-003 §7.1 统一设计（`audit.write.*`），本视图**不**产生新业务事件，仅视图查询/刷新失败产生 release 必出事件。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.audit_view.query_served` | `AdminService.QueryAuditLog` 经本视图过滤后返回 | GM 后台查询 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2） | 含 `request_id` / `operator_id` / `result_count` / `latency_ms`；约 250B/条 |
+| `coc.audit_view.refresh_failed` | 视图刷新失败（基础表 `operation_audit` JOIN 失败） | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `error` / `trace_id`；约 280B/条 |
+| `coc.audit_view.filter_invalid_action_type` | 查询 filter 含未在白名单的 `action_type`（视图过滤失效） | 配置错 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 安全告警） | 含 `attempted_action_type` / `operator_id` / `request_id`；约 280B/条 |
+| `coc.audit_view.debug.full_audit_chain` | 某 `audit_id` 的完整审计链 dump（含关联 `pfa_run_id` / `feature_id` 反查结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
+
+**debug-only 守护要点**：`coc.audit_view.debug.full_audit_chain` 涉及跨表反查（`operation_audit` + `pfa_run_state` + `feature_registry`），数据量大——release 完全剔除。
 
 # 4. Feature 元数据与 PFAU 状态机
 
@@ -343,6 +444,27 @@ WHERE oa.action_type LIKE 'coc.%' OR oa.action_type IN (
 │  removed     │  (从 feature_registry 物理删除, 但 feature_version_history 保留)
 └──────────────┘
 ```
+
+### 4.1 本功能日志设计
+
+Feature 元数据生命周期是 §3.1 `coc.feature_registry.status_transitioned` 的"语义层回声"——本节按 §4.1 状态机迁移点给出 GM 后台可观察的"业务事件"层视角（与持久化层一一对应）。每个状态迁移 release 必出（per BAS-004 v0.3 §6.2 状态机迁移强制全采），便于运营按 `feature_id` 时间线审计"Feature 何时光荣 / 何时回滚 / 何时弃用"。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.feature.lifecycle.registered` | Feature 在 `feature_registry` 创建，状态从无 → `pending` | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 合规审计） | 含 `feature_id` / `feature_type` / `display_name` / `owner_team` / `operator_id`；约 250B/条 |
+| `coc.feature.lifecycle.upgrade_declared` | `AdminService.DeclareFeatureUpgrade` 触发，状态 `active` → `upgrade_pending` | 极低 | release 必出（100% 强制全采样） | 含 `feature_id` / `from_version` / `to_version` / `operator_id` / `expected_batches`；约 300B/条 |
+| `coc.feature.lifecycle.pfau_started` | `ClusterOpsService.StartPFAU` 触发，状态 `upgrade_pending` → `in_progress` | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2） | 含 `feature_id` / `pfa_run_id` / `direction`（upgrade/rollback）/ `batch_size_pct`；约 300B/条 |
+| `coc.feature.lifecycle.upgrade_completed` | PFAU 完成，状态 `in_progress` → `active`（新 current_version） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 配置变更完成） | 含 `feature_id` / `pfa_run_id` / `new_current_version` / `duration_ms`；约 280B/条 |
+| `coc.feature.lifecycle.rollback_initiated` | `AdminService.RollbackFeature` 触发，状态 `in_progress` → `rolling_back` | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `feature_id` / `pfa_run_id` / `operator_id` / `reason` / `target_version`；约 320B/条 |
+| `coc.feature.lifecycle.rollback_completed` | 回滚 PFAU 完成，状态 `rolling_back` → `rolled_back` | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `feature_id` / `pfa_run_id` / `restored_version` / `duration_ms`；约 280B/条 |
+| `coc.feature.lifecycle.deprecated` | `AdminService.DeprecateFeature`，状态 `active` → `deprecated` | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `feature_id` / `operator_id` / `deprecation_reason` / `expected_removal_date`；约 320B/条 |
+| `coc.feature.lifecycle.removed` | `AdminService.RemoveFeature`，状态 `deprecated` → `removed`（物理删除） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 数据删除合规） | 含 `feature_id` / `operator_id` / `compliance_review_ref` / `feature_version_history_retained`；约 350B/条 |
+| `coc.feature.lifecycle.invalid_transition_attempted` | 非法状态机迁移（如 `removed` → `active`）被 AdminService 拒绝 | 配置错 / 攻击 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 安全告警） | 含 `feature_id` / `from_status` / `attempted_to_status` / `operator_id` / `request_id`；约 320B/条 |
+| `coc.feature.lifecycle.debug.full_history_timeline` | 某 feature_id 的完整生命周期时间线（所有 status 迁移 + 对应 PFAU 实例） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（生命周期长度决定，release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.feature.lifecycle.invalid_transition_attempted` 是**安全告警**——release 必出，便于按 `operator_id` 维度识别异常操作模式
+- `coc.feature.lifecycle.debug.full_history_timeline` 涉及多年 Feature 累积的完整时间线，release 完全剔除
 
 ## 4.2 PFAU 状态机（FR-PFAU-010/011）
 
@@ -481,6 +603,32 @@ CEM 探针订阅器（CEMProbeAggregator）作为AD限界上下文的**附属进
 
 - **DLQ**：由事件总线维护，COC通过`event_dlq_view`只读聚合（§3.5），不直接管理DLQ存储
 - **可重放历史**：事件总线本身提供`Replay` API（FR-CEM-051），COC通过`AdminService.ReplayEvents`调用并审计
+
+### 5.5 本功能日志设计（CEM 探针全链路综合）
+
+`CEMProbeAggregator` 与 §3.4 `event_producer_registry` 是同一逻辑链路的"运行时/持久化"两个观察点；DLQ/可重放历史在 §3.5 `event_dlq_view` 已覆盖。本节覆盖探针本身的启停/订阅/采样/失败/重试事件。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.cem.probe.started` | CEM 探针容器启动并完成事件总线连接 | 每节点启动 1 次 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 基础设施心跳） | 含 `node_id` / `event_bus_endpoint` / `consumer_group_id`；约 250B/条 |
+| `coc.cem.probe.stopped` | 探针容器优雅关闭（SIGTERM） | 每节点关闭 1 次 | release 必出（100% 强制全采样） | 含 `node_id` / `inflight_event_count` / `shutdown_kind`；约 280B/条 |
+| `coc.cem.probe.subscribed` | 探针对某 `event_type` 完成 Consumer Group 订阅 | 偶发（订阅关系变化） | release 必出（100% 强制全采样） | 含 `event_type` / `feature_id` / `partition_count` / `consumer_group_id`；约 280B/条 |
+| `coc.cem.probe.unsubscribed` | 探针取消某 `event_type` 订阅（如 Feature 弃用） | 偶发 | release 必出（100% 强制全采样） | 含 `event_type` / `feature_id` / `reason`（deprecation/manual）；约 280B/条 |
+| `coc.cem.probe.event_sampled` | 探针对某事件做采样并写入聚合视图 | 取决于业务流量（典型 10-100/s 集群） | release 必出（5-10% 采样率） | 含 `event_type` / `feature_id` / `partition_key` / `payload_size_bytes`；约 250B/条 × 5% = 12.5B/条 |
+| `coc.cem.probe.consumer_lag_high` | 探针 Consumer Group lag 超过阈值（如 > 1000 条）触发告警 | 偶发（业务流量突增） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 告警事件） | 含 `event_type` / `lag_count` / `threshold` / `node_id`；约 280B/条 |
+| `coc.cem.probe.event_bus_unreachable` | 探针与事件总线连接断开 | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `event_bus_endpoint` / `error` / `retry_count` / `trace_id`；约 320B/条 |
+| `coc.cem.probe.subscription_failed` | 探针订阅某 `event_type` 失败（event_bus 拒接 / 权限不足） | 偶发 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `event_type` / `feature_id` / `error` / `trace_id`；约 300B/条 |
+| `coc.cem.probe.replay_started` | `AdminService.ReplayEvents` 触发事件重放 | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 数据回灌合规） | 含 `event_type` / `time_range` / `operator_id` / `consumer_group_target`；约 320B/条 |
+| `coc.cem.probe.replay_completed` | 事件重放完成 | 极低 | release 必出（100% 强制全采样） | 含 `event_type` / `replayed_count` / `duration_ms` / `operator_id`；约 280B/条 |
+| `coc.cem.probe.replay_failed` | 事件重放失败（如时间窗超出 retention） | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `event_type` / `error` / `operator_id` / `trace_id`；约 320B/条 |
+| `coc.cem.probe.dlq_discarded` | DLQ 事件被人工丢弃（`AdminService.DiscardDLQEvent`，FR-CEM-041） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `dlq_event_id` / `event_type` / `operator_id` / `discard_reason`；约 320B/条 |
+| `coc.cem.probe.debug.event_payload_sample` | 事件 payload 完整 dump（采样命中后） | 业务触发同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.5-5KB/条（payload 大小决定，**含业务隐私风险**，release 剔除） |
+| `coc.cem.probe.debug.consumer_group_state` | Consumer Group 完整状态 dump（成员/分区分配/lag 分布） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.cem.probe.event_sampled` 是**高频**事件（10-100/s 集群），release 必出但**5-10% 抽样**避免日志通道淹没
+- `coc.cem.probe.debug.event_payload_sample` **必须** `#[cfg(debug_assertions)]` 守护——事件 payload 可能含 PII（运营 ID / 玩家 ID / 业务字段），release 误开 RUST_LOG=debug 时**不能**泄漏
+- `coc.cem.probe.replay_started` / `replay_completed` / `replay_failed` 是**数据回灌事件**——release 必出 + 全采样（合规审计要求"谁在何时重放了哪些事件"必须可追溯）
 
 # 6. API 契约字段级定义
 
@@ -648,6 +796,34 @@ message DlqEvent {
 | `RBAC_DENIED` | 操作者角色不足 (FR-COC-041) | PERMISSION_DENIED |
 | `IDEMPOTENT_REPLAY` | request_id 重复提交, 已返回首次结果 | OK (with previous_result) |
 
+### 6.4 本功能日志设计（API 契约全链路综合）
+
+`ClusterOpsService` 全部 gRPC 方法（§6.1）+ 字段级消息（§6.2）的运行时事件。所有方法调用 release 必出 + 100% 强制全采样（per BAS-004 v0.3 §6.2 GM 指令衍生强制全采白名单），便于 SRE 按 `request_id` / `operator_id` 维度审计控制平面调用。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.api.register_feature.received` | `ClusterOpsService.RegisterFeature` 调用进入处理 | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `feature_id` / `feature_type` / `operator_id`；约 280B/条 |
+| `coc.api.register_feature.completed` | Feature 已写入 `feature_registry`（含事务提交） | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `feature_id` / `db_tx_id`；约 250B/条 |
+| `coc.api.declare_feature_upgrade.received` | `DeclareFeatureUpgrade` 调用（server stream 入口） | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `feature_id` / `from_version` / `to_version` / `expected_batches` / `operator_id`；约 350B/条 |
+| `coc.api.declare_feature_upgrade.pfa_started` | 升级声明触发 `ClusterOpsService.StartPFAU` | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `feature_id` / `pfa_run_id` / `direction`；约 280B/条 |
+| `coc.api.declare_feature_upgrade.stream_progress` | server stream 推送的进度事件（每批 canary 推进） | 每次 PFAU 推进 1 条 | release 必出（100% 强制全采样） | 含 `request_id` / `pfa_run_id` / `current_batch` / `total_batches` / `confirmed_count` / `failed_count`；约 320B/条 |
+| `coc.api.declare_feature_upgrade.stream_completed` | server stream 正常结束 | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `pfa_run_id` / `final_state` / `total_duration_ms`；约 280B/条 |
+| `coc.api.start_pfau.received` | `StartPFAU` 调用 | 极低 | release 必出（100% 强制全采样） | 含 `request_id` / `feature_id` / `pfa_run_id` / `batch_size_pct` / `operator_id`；约 320B/条 |
+| `coc.api.pause_pfau.received` | `PausePFAU` 调用（人工暂停） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `request_id` / `pfa_run_id` / `operator_id` / `pause_reason`；约 300B/条 |
+| `coc.api.rollback_pfau.received` | `RollbackPFAU` 调用（人工回滚） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `request_id` / `pfa_run_id` / `operator_id` / `reason` / `target_version`；约 350B/条 |
+| `coc.api.replay_events.received` | `ReplayEvents` 调用 | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 数据回灌合规） | 含 `request_id` / `event_type` / `time_range` / `operator_id`；约 350B/条 |
+| `coc.api.discard_dlq_event.received` | `DiscardDLQEvent` 调用（FR-CEM-041 自审补强） | 极低 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 高危操作） | 含 `request_id` / `dlq_event_id` / `operator_id` / `discard_reason`；约 320B/条 |
+| `coc.api.discard_dlq_event.rbac_denied` | 操作者角色不足（无 DLQ 操作权限） | 偶发（配置错） | release 必出（100% 强制全采样） | 含 `request_id` / `operator_id` / `operator_role` / `required_role`；约 300B/条 |
+| `coc.api.discard_dlq_event.not_found` | `dlq_event_id` 在 DLQ 中不存在（§6.3 `DLQ_EVENT_NOT_FOUND`） | 偶发 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `request_id` / `dlq_event_id` / `event_type` / `trace_id`；约 280B/条 |
+| `coc.api.<method>.failed.unexpected` | 上述任一方法未预期内部异常（DB 错误/事件总线不可达/PFAU 调度器崩溃） | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `request_id` / `method` / `error` / `trace_id`；约 320B/条 |
+| `coc.api.debug.request_envelope` | gRPC 请求 envelope 完整 dump（含 metadata + 完整 request body） | 业务触发同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.5-3KB/条（release 剔除） |
+| `coc.api.debug.stream_chunk_trace` | server stream 每条推送 chunk 的延迟与大小 | 业务触发同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.api.declare_feature_upgrade.stream_progress` 是**高频**事件（每 PFAU 推进 1 批），release 必出 + 全采样——**不能**挂 `#[cfg]`，是 PFAU 编排进度可观测性的核心数据流
+- `coc.api.discard_dlq_event.*` 是**高危操作**白名单（per BAS-004 v0.3 §6.2），所有派生事件 release 必出便于合规审计
+- `coc.api.debug.request_envelope` 完整 dump 含元数据（auth token 等敏感字段）——**严格** `#[cfg(debug_assertions)]` 守护，release 完全剔除
+
 # 7. COC UI 页面构成与复用 VIZ 渲染能力
 
 ## 7.1 页面构成
@@ -736,6 +912,24 @@ RGS-BAS-024 §4 编排状态机追加:
 
 - 全部 COC UI 写操作 (含 plug/unplug/升级/回滚/灰度批次调整/DLQ 重放) 经 `AdminService` 转发时, **必须**在 `operation_audit` 追加一条记录, `action_type` 字段按 §6.2 协议枚举 (FR-COC-040)
 - 审计保留期沿用 NFR-OPS-005 (3 年, 不可篡改)
+
+### 10.5 本功能日志设计（非功能设计综合）
+
+本节覆盖 §10.1 性能 + §10.2 可用性 + §10.3 隔离性 + §10.4 审计的运行时事件观察点。审计写层事件已在 BAS-003 §7.1 统一设计（`audit.write.*`），本节仅补充 COC 域特有的"非功能降级/隔离触发"信号。
+
+| 字段名（field） | 触发条件（trigger） | 频率估算（frequency） | 采样策略（sampling） | 脱敏与成本（redact & cost） |
+|---|---|---|---|---|
+| `coc.nfr.slo_budget_exceeded` | SRE 定义的 COC 操作 SLO 预算（如 PFAU 端到端 P99 < 30s）本月已耗尽（如 95%）触发告警 | 偶发（运维超载） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 告警事件） | 含 `slo_name` / `budget_remaining_pct` / `current_month_consumed_pct` / `operator_id`（如本月有触发动作）；约 320B/条 |
+| `coc.nfr.circuit_breaker_opened` | COC UI → AdminService → ClusterOpsService 任一链路熔断器打开（per §10.2 可用性） | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 错误路径） | 含 `downstream` / `error_rate` / `opened_at`；约 280B/条 |
+| `coc.nfr.isolation_boundary_violated` | COC 域操作意外触达其他限界上下文（per §10.3 隔离性，NetworkPolicy 拦截） | 极少（配置错） | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 安全告警） | 含 `attempted_target` / `expected_boundary` / `source_session` / `request_id`；约 320B/条 |
+| `coc.nfr.perf_degradation_detected` | COC UI 操作 P99 超过阈值（如 > 5s）持续 5min | 极少 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2 告警事件） | 含 `operation` / `p99_latency_ms` / `threshold_ms` / `duration_min`；约 280B/条 |
+| `coc.nfr.debug.coc_metrics_dump` | COC 域全部 Prometheus 指标完整 dump（运维排障用） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（指标数量决定，release 剔除） |
+
+**debug-only 守护要点**：
+- `coc.nfr.isolation_boundary_violated` 是**安全告警**——release 必出，便于按 `source_session` 维度识别异常访问模式
+- `coc.nfr.debug.coc_metrics_dump` 涉及全部 COC 域指标，release 完全剔除避免 RUST_LOG=debug 误开时撑爆
+
+---
 
 # 11. 风险与未决事项
 

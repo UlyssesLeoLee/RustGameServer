@@ -426,3 +426,79 @@
 - per 2026-08-27 11:06 JST env value hard ban
 - per 2026-09-01 13:03 / 13:05 JST envoy 独立 deployment 偏好
 - per 2026-09-01 14:58 JST 拍板决策必须用选项
+
+### A.5 v0.2 升版增量（per Ulysses 4 + 2 ask_user 决策，2026-09-01 16:41 JST）
+
+> **v0.1 主体不追溯改写**（per user_profile "保留派生约束" + 2026-08-26 04:30 JST 强约束）。v0.2 增量 = 5 大块：
+
+**1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+- F-17 / F-19 升 P0：rgs-web 通过 cloudflared tunnel 收 webhook
+- IR-5 / IR-6 升深联动：`POST /api/webhook/github` + `POST /api/webhook/gitlab`
+- 解析 event: `issues.opened` / `issues.labeled`(label=token-budget) / `issues.closed` / `pull_request.merged`
+- 写 `webhook_events` 表 + 更新 `tasks` 表
+- F-29 废弃（v0.1 推迟 → v0.2 已落地）
+
+**2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+- DR-2 ~ DR-6 全部从 jsonl/json 文件**升版为 SQLite**（`data/olu.db`）
+- 6 表 schema：`tasks` / `ai_ledger` / `git_ledger` / `github_issues` / `gitlab_issues` / `webhook_events` / `nfr_op_010_snapshots`
+- WAL 模式 + busy_timeout=5000ms + FK 约束
+- v0.1 lockfile 方案作废（better-sqlite3 同步 API + 1 写者约束）
+- DR-7 SQLite database 文件 + DR-8 备份 batch（每日 0:00 JST `VACUUM INTO` 保留 90 天）+ DR-9 webhook 重放保护 UNIQUE(provider, delivery_id)
+- IR-12 新增：cron / Windows 任务计划 / rgs-web 启动检查 3 选 1（默认 cron）
+- §7.1 新增派生约束：better-sqlite3 编译失败 fail-fast，不静默降级 JSON
+
+**3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+- §7.2 新增：rgs-web 启动时 `child_process.spawn('cloudflared', ['tunnel', '--url', 'http://127.0.0.1:8788'])`（outbound，不破 127.0.0.1 only 硬约束）
+- §3.1 新增 lib/cloudflared.js
+- cloudflared 二进制需 Ulysses 手动装（per "Never auto-install software" 硬约束，rgs-web 启动时给明确错误）
+
+**4. webhook 验签 + 重放保护**（per F-32/F-33 + §1.10/§1.11）
+- GitHub: `X-Hub-Signature-256` HMAC-SHA256 + `GITHUB_WEBHOOK_SECRET` env var
+- GitLab: `X-Gitlab-Token` 等值比较 + `GITLAB_WEBHOOK_TOKEN` env var
+- 重放：`UNIQUE(provider, delivery_id) ON CONFLICT IGNORE` 返 200 不重处理
+- IR-10 / IR-11 新增
+- §5.1 凭据管理增 GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_TOKEN（env value 永不出现在响应 / 日志）
+
+**5. 备份 batch + 清理**（per ask_user "详细的记录备份清理 batch"）
+- 每日 0:00 JST `VACUUM INTO 'data/backups/olu-YYYY-MM-DD.db'` + `sha256sum` 校验
+- 清理 > 90 天的备份（per NFR-32）
+- §3.1 新增 lib/backup-batch.js + lib/sqlite.js
+
+**新增 NFR（NFR-29 ~ NFR-33）**：
+- NFR-29 webhook 验签 + 重放保护
+- NFR-30 cloudflared tunnel 启动延迟 ≤ 5s
+- NFR-31 SQLite 单 database < 200MB
+- NFR-32 SQLite 备份保留 90 天
+- NFR-33 webhook 端点响应 < 200ms
+
+**新增风险（R-12 ~ R-16）**：
+- R-12 better-sqlite3 native binding 编译失败 → fail-fast
+- R-13 cloudflared 二进制未装 → 顶部条黄态
+- R-14 cloudflared tunnel 公开 URL 泄露 → webhook secret + 重放保护
+- R-15 SQLite 写并发死锁 → WAL + busy_timeout + 1 写者约束
+- R-16 备份 batch 失败 → PRAGMA wal_checkpoint + sha256sum 校验
+
+**v0.1 风险 R-7 已缓解**：127.0.0.1 only 与 webhook 冲突 → cloudflared tunnel 解冲突
+
+**已知缺口**（v0.2 新增）：
+- cloudflared 二进制需 Ulysses 手动装
+- GITHUB_WEBHOOK_SECRET + GITLAB_WEBHOOK_TOKEN 注入路径未确认
+- better-sqlite3 Windows 编译风险（Ulysses 接受 npm install 2 分钟+ 成本）
+- 备份 batch 触发方式（cron / Windows 任务计划 / rgs-web 启动检查 3 选 1，默认 cron）
+- mavis runtime hook 写 ai_ledger 表 schema 兼容性（v0.1 jsonl → v0.2 SQLite，hook 脚本需重写）
+- v0.2 6 NFR 实测基线未建立（v0.2 落地后第 1 周做基线）
+
+**派生决策引用**：
+- per 2026-09-01 14:58 JST 拍板决策必须用选项
+- per 2026-09-01 16:30 JST 4 个 ask_user 决策
+- per 2026-09-01 16:41 JST 2 个 follow-up 决策（webhook + sqlite runtime）
+- per "Never auto-install software" 硬约束（system prompt windows-behavior）
+
+---
+
+## 修订历史
+
+| 版本 | 日期 | 修订者 | 修订内容 |
+|---|---|---|---|
+| v0.1 | 2026-09-01 15:44 JST | 架构师（**Mavis 接手 agent per DEC-008**）| 首版：6 用户故事 + 30 FR + 6 DR + 8 IR + 7 NFR（新增）+ 6 约束 + 9 风险 + 3 验收阶段（commit `a896ca9`）|
+| **v0.2** | **2026-09-01 16:41 JST** | **架构师（**Mavis 接手 agent per DEC-008**）** | **v0.2 升版**（per Ulysses 4 + 2 ask_user 决策）：① GitHub/GitLab 浅联动 → 深联动 webhook inbound（F-17/F-19 升 P0 + F-29 废弃）② 存储 JSON + lockfile → better-sqlite3 6 表 schema ③ cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突 ④ webhook HMAC 验签 + 重放保护 ⑤ SQLite 备份 + 清理 batch（每日 0:00 JST VACUUM INTO + 90 天清理）⑥ 新增 5 NFR（NFR-29 ~ NFR-33）+ 5 风险（R-12 ~ R-16）⑦ v0.1 风险 R-7 已缓解 |
