@@ -60,8 +60,8 @@ try {
     # 用 helper script 跑避免 PowerShell here-string 变量展开冲突
     $commonDir = '/mnt/d/RustGameServer/crates/shared-platform/proto'
     $playerDir = '/mnt/d/RustGameServer/crates/player-service/proto'
-    $helperSh = '/mnt/d/rgs-st-mock/scripts/st/st-11-grpcurl-helper.sh'
-    $output = wsl -e bash -c "bash $helperSh '$caPem' '$clientPem' '$clientKey' 'player.service' '$commonDir' '$playerDir' '$CommonProto' '$PlayerProto' '$playerIp' 'player.v1.PlayerService/HealthCheck'" 2>&1
+    $helperSh = '/mnt/d/rgs-st-mock/scripts/st/st-grpcurl-helper.sh'
+    $output = wsl -e bash -c "bash $helperSh '$caPem' '$clientPem' '$clientKey' 'player.service' '$commonDir' '$playerDir' '$CommonProto' '$PlayerProto' '$playerIp' 'player.v1.PlayerService/HealthCheck' 50051" 2>&1
     $outputText = ($output | ForEach-Object { $_.ToString() }) -join "`n"
     Write-Host "[st-11] grpcurl output:" -ForegroundColor Yellow
     Write-Host $outputText

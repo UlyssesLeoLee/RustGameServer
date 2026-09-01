@@ -1,0 +1,9 @@
+[st-15] social mTLS gRPC
+Time: 2026-09-01T15:50:21.8441072+09:00
+social pod IP: 10.42.0.246
+Verdict: PASS
+Detail: mTLS OK + HealthCheck 返回 status=Ok
+Output: {
+  "status": "STATUS_OK",
+  "message": "ok"
+}

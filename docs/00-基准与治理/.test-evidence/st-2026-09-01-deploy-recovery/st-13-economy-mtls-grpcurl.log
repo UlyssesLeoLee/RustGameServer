@@ -1,0 +1,9 @@
+[st-13] economy mTLS gRPC
+Time: 2026-09-01T15:49:16.0418280+09:00
+economy pod IP: 10.42.0.240
+Verdict: PASS
+Detail: mTLS OK, HealthCheck 返回 status=Ok
+Output: {
+  "status": "STATUS_OK",
+  "message": "ok"
+}
