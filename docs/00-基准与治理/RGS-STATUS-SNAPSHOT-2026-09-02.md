@@ -44,6 +44,10 @@
 - `.worktrees/给AI通知-2026-08-29-19-08.md` (8/30 20:56 JST, 7590 byte, 上游 AI 通知 3)
 - **L12 派生约束**: 5 项均不入 commit 即可, mavis-trash ban + CLI 安全策略 ban 永久删除, 保留在主 worktree 不影响 git 状态, 等外部工具清理。
 
+**docs/ 空目录残留 1 项** (v0.6.17 hotfix 新增, 2026-09-02 09:46 JST, per `Get-ChildItem docs/ddd-review` 实测):
+- `docs/ddd-review/` (空目录, 8/31 16:30 JST 创建, 0 file 0 commit, bd0884f 实际 commit 进 `docs/14-项目管理/ddd-review/`, 该空目录是 9/1 worktree 切换时残留)
+- **L11 派生约束**: docs 空目录不影响 git 状态 (git status 不报, 因为空目录不被 track), 不入 commit 即可, 等外部工具清理。
+
 **git stash 3 个**:
 
 | stash | 内容 | 创建时间 (git stash list 实测) | 推荐处理 |
@@ -262,6 +266,7 @@
 | **v0.6.14** | **2026-09-02 09:27** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 3 git stash 文件实证分析 (per `git stash show --name-status`) — stash@{0} Cargo.lock 1 文件 11KB 建议 drop (L12 临时 lock 文件, 8/26 老分支 pre-rebase 已无价值) + stash@{1} RGS-REQ-001/005 2 文件 3.2KB 建议 apply 评估 (GM 后台实际需求增量) + stash@{2} 空 stash 建议 drop, Ulysses 拍板提供文件级决策依据, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.15** | **2026-09-02 09:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 10 commit → 12 commit (补 c3c52cb WBS v0.4.7 + a13da81 WBS v0.4.8 两个 WBS 跟踪表 hotfix) + §2 commit 链总合计 52 → 54 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.16** | **2026-09-02 09:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 "已 prune 元数据 1 项" 后补 5 项主 worktree .worktrees/ 老临时文件 (per `Get-ChildItem .worktrees` 实测) — feat-auto 物理目录 + bas-list.txt + 3 个 AI 通知文件 8/29-8/30 残留, L12 派生约束只要求不入 commit 不要求清空, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.17** | **2026-09-02 09:46** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 补 docs/ 空目录残留 1 项 (per `Get-ChildItem docs/ddd-review` 实测) — docs/ddd-review/ 8/31 16:30 JST 创建但 0 file 0 commit (bd0884f 实际进 `docs/14-项目管理/ddd-review/`), L11 派生约束 docs 空目录不影响 git 状态, 等外部工具清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
