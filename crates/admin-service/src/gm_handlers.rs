@@ -633,4 +633,226 @@ mod tests {
             assert!(matches!(err, Error::COCRoleRequired { .. }));
         }
     }
+
+    // ============================================================================
+    // UT 追加 (2026-09-01 WBS v0.2 桶 8 B1 增补): 完整 action × role 矩阵
+    //
+    // 覆盖 B1 brief "本次追加 role_matrix UT":
+    // - 全部 11 action × 4 role 矩阵
+    // - DomainAdmin("match") / DomainAdmin("social") 分支 (2d587f2 v0.2 未覆盖)
+    // - DomainAdmin scope 边界 (None / Some("") / Some("cluster") 等)
+    // - 跨 case-sensitivity / unknown 域 / 多 action 顺序
+    // ============================================================================
+
+    /// SuperAdmin: 全部 11 action 应通过 (per ARC-051 全域)
+    #[test]
+    fn rbac_super_admin_passes_all_eleven_actions() {
+        let sa = admin(AdminRole::SuperAdmin, None);
+        for action in [
+            "player.ban",
+            "player.unban",
+            "player.mute",
+            "player.promote",
+            "economy.grant",
+            "economy.adjust",
+            "match.kick",
+            "match.end",
+            "guild.dissolve",
+            "guild.promote",
+            "cluster.maintenance",
+            "cluster.shutdown",
+        ] {
+            assert!(
+                require_coc_role(&sa, action).is_ok(),
+                "SuperAdmin 应通过 {action}"
+            );
+        }
+    }
+
+    // --- DomainAdmin("match"): match.kick / match.end ok, 其它 reject ---
+    #[test]
+    fn rbac_domain_admin_match_can_kick_match() {
+        let a = admin(AdminRole::DomainAdmin, Some("match"));
+        assert!(require_coc_role(&a, "match.kick").is_ok());
+    }
+    #[test]
+    fn rbac_domain_admin_match_can_end_match() {
+        let a = admin(AdminRole::DomainAdmin, Some("match"));
+        assert!(require_coc_role(&a, "match.end").is_ok());
+    }
+    #[test]
+    fn rbac_domain_admin_match_cannot_ban_player() {
+        let a = admin(AdminRole::DomainAdmin, Some("match"));
+        let err = require_coc_role(&a, "player.ban").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+    #[test]
+    fn rbac_domain_admin_match_cannot_dissolve_guild() {
+        let a = admin(AdminRole::DomainAdmin, Some("match"));
+        let err = require_coc_role(&a, "guild.dissolve").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+    #[test]
+    fn rbac_domain_admin_match_cannot_set_cluster_maintenance() {
+        let a = admin(AdminRole::DomainAdmin, Some("match"));
+        let err = require_coc_role(&a, "cluster.maintenance").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+
+    // --- DomainAdmin("social"): guild.dissolve / guild.promote ok, 其它 reject ---
+    #[test]
+    fn rbac_domain_admin_social_can_dissolve_guild() {
+        let a = admin(AdminRole::DomainAdmin, Some("social"));
+        assert!(require_coc_role(&a, "guild.dissolve").is_ok());
+    }
+    #[test]
+    fn rbac_domain_admin_social_can_promote_guild() {
+        let a = admin(AdminRole::DomainAdmin, Some("social"));
+        assert!(require_coc_role(&a, "guild.promote").is_ok());
+    }
+    #[test]
+    fn rbac_domain_admin_social_cannot_ban_player() {
+        let a = admin(AdminRole::DomainAdmin, Some("social"));
+        let err = require_coc_role(&a, "player.ban").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+    #[test]
+    fn rbac_domain_admin_social_cannot_grant_economy() {
+        let a = admin(AdminRole::DomainAdmin, Some("social"));
+        let err = require_coc_role(&a, "economy.grant").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+
+    // --- DomainAdmin scope 边界: None / Some("") / 大小写不匹配 ---
+    #[test]
+    fn rbac_domain_admin_with_none_scope_rejects_all() {
+        let a = admin(AdminRole::DomainAdmin, None);
+        for action in [
+            "player.ban",
+            "economy.grant",
+            "match.kick",
+            "guild.dissolve",
+            "cluster.maintenance",
+        ] {
+            let err = require_coc_role(&a, action).unwrap_err();
+            assert!(
+                matches!(err, Error::COCRoleRequired { .. }),
+                "DomainAdmin scope=None 应拒绝 {action}, got {err:?}"
+            );
+        }
+    }
+    #[test]
+    fn rbac_domain_admin_with_empty_string_scope_rejects_all() {
+        let a = admin(AdminRole::DomainAdmin, Some(""));
+        for action in [
+            "player.ban",
+            "economy.grant",
+            "match.kick",
+            "guild.dissolve",
+            "cluster.maintenance",
+        ] {
+            let err = require_coc_role(&a, action).unwrap_err();
+            assert!(
+                matches!(err, Error::COCRoleRequired { .. }),
+                "DomainAdmin scope=\"\" 应拒绝 {action}, got {err:?}"
+            );
+        }
+    }
+    #[test]
+    fn rbac_domain_admin_case_mismatch_rejected() {
+        // domain_scope="Player" (大写) vs action_target_domain 返回 "player" (小写)
+        // Rust string 比较严格区分大小写, 因此不匹配 → reject
+        let a = admin(AdminRole::DomainAdmin, Some("Player"));
+        let err = require_coc_role(&a, "player.ban").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+
+    // --- Auditor/Support 即使配上 domain_scope 也不能操作 (per ARC-051) ---
+    #[test]
+    fn rbac_auditor_with_domain_scope_still_rejected() {
+        let a = admin(AdminRole::Auditor, Some("player"));
+        let err = require_coc_role(&a, "player.ban").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+    #[test]
+    fn rbac_support_with_domain_scope_still_rejected() {
+        let a = admin(AdminRole::Support, Some("economy"));
+        let err = require_coc_role(&a, "economy.grant").unwrap_err();
+        assert!(matches!(err, Error::COCRoleRequired { .. }));
+    }
+
+    // --- action_target_domain 完整覆盖: 11 known + 1 unknown ---
+    #[test]
+    fn rbac_action_target_domain_complete_coverage() {
+        // player
+        assert_eq!(action_target_domain("player.ban"), "player");
+        assert_eq!(action_target_domain("player.unban"), "player");
+        assert_eq!(action_target_domain("player.mute"), "player");
+        assert_eq!(action_target_domain("player.promote"), "player");
+        // economy
+        assert_eq!(action_target_domain("economy.grant"), "economy");
+        assert_eq!(action_target_domain("economy.adjust"), "economy");
+        // match
+        assert_eq!(action_target_domain("match.kick"), "match");
+        assert_eq!(action_target_domain("match.end"), "match");
+        // social (guild.*)
+        assert_eq!(action_target_domain("guild.dissolve"), "social");
+        assert_eq!(action_target_domain("guild.promote"), "social");
+        // cluster
+        assert_eq!(action_target_domain("cluster.maintenance"), "cluster");
+        assert_eq!(action_target_domain("cluster.shutdown"), "cluster");
+    }
+
+    // --- 顺序校验: session expired 优先于 RBAC, RBAC 优先于 admin 查不到 ---
+    #[test]
+    fn rbac_session_expired_precedes_rbac_check() {
+        // 1. SuperAdmin 启用 → 任意 action 通过
+        // 2. 同一 SuperAdmin disabled_at 设置 → 任意 action 返 AdminSessionExpired
+        // (注意: session_expired 优先于 can_admin_domain 校验, per RGS-ARC-051)
+        let mut sa = admin(AdminRole::SuperAdmin, None);
+        assert!(require_coc_role(&sa, "player.ban").is_ok());
+        sa.disabled_at = Some(Utc::now());
+        let err = require_coc_role(&sa, "player.ban").unwrap_err();
+        assert!(
+            matches!(err, Error::AdminSessionExpired(_)),
+            "disabled SuperAdmin 应返 AdminSessionExpired, got {err:?}"
+        );
+    }
+
+    // --- 多 action 顺序: 同一 admin 连续跨 action 调用 ---
+    #[test]
+    fn rbac_same_admin_multi_action_sequence_super_admin() {
+        let sa = admin(AdminRole::SuperAdmin, None);
+        assert!(require_coc_role(&sa, "player.ban").is_ok());
+        assert!(require_coc_role(&sa, "economy.grant").is_ok());
+        assert!(require_coc_role(&sa, "match.kick").is_ok());
+        assert!(require_coc_role(&sa, "guild.dissolve").is_ok());
+        assert!(require_coc_role(&sa, "cluster.shutdown").is_ok());
+    }
+    #[test]
+    fn rbac_same_admin_multi_action_sequence_domain_admin_player() {
+        let da = admin(AdminRole::DomainAdmin, Some("player"));
+        assert!(require_coc_role(&da, "player.ban").is_ok());
+        assert!(require_coc_role(&da, "player.unban").is_ok());
+        assert!(require_coc_role(&da, "player.mute").is_ok());
+        // 跨域失败
+        assert!(matches!(
+            require_coc_role(&da, "economy.grant").unwrap_err(),
+            Error::COCRoleRequired { .. }
+        ));
+        assert!(matches!(
+            require_coc_role(&da, "cluster.maintenance").unwrap_err(),
+            Error::COCRoleRequired { .. }
+        ));
+    }
+
+    // --- Disabled DomainAdmin: session_expired 优先 ---
+    #[test]
+    fn rbac_disabled_domain_admin_session_expired_precedes_scope() {
+        let mut da = admin(AdminRole::DomainAdmin, Some("player"));
+        da.disabled_at = Some(Utc::now());
+        // 即使 scope 匹配, 仍因 disabled 返 session expired (不是 COCRoleRequired)
+        let err = require_coc_role(&da, "player.ban").unwrap_err();
+        assert!(matches!(err, Error::AdminSessionExpired(_)));
+    }
 }
