@@ -156,7 +156,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (18 commit)
+### 文档 / 跟踪表 hotfix (19 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -178,6 +178,7 @@
 | `4bf413a` | STATUS-SNAPSHOT v0.6.17 (§0.1 补 docs/ 空目录残留 1 项 docs/ddd-review/ 0 file 0 commit) |
 | `999ff5d` | **RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1 (新文档, 4 DRAFT partitioned SQL 评审启动材料, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 + 5 项实施前置条件)** |
 | `3974ac3` | STATUS-SNAPSHOT v0.6.18 (§0.1 4 tracked-but-DRAFT 表 4 行性质/推荐处理字段同步, 评审启动材料就绪) |
+| `24ce59c` | RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 (§1.1 新增"已签方背景"段, 6 角色已派工 + 2 角色待 Phase C / DBA 评审启动, 派工 vs 评审签字分离) |
 
 **commit 链总合计**: 60 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 18) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.8 + 本快照 v0.6.1 ~ v0.6.20 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
@@ -287,6 +288,7 @@
 | **v0.6.19** | **2026-09-02 09:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (100/151 → 110/162 commit, 跨 9/2 09:15-09:55 JST 净增 10 commit = 999ff5d DB-REVIEW-CHECKLIST v0.1 + 3974ac3 STATUS-SNAPSHOT v0.6.18 + 本 commit, 跟 WBS v0.4.8 + DB-REVIEW-CHECKLIST v0.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.20** | **2026-09-02 09:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §5.1 Phase C 阻塞段补 "Phase C 落地后解锁的下游依赖" 表 (5 行, 跨 WBS v0.4.7 §1.1 3 项外部依赖 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1 §5 实施前置条件 + L1 cargo test 限时) — SRE 介入时一目了然, 不用回 WBS/CHECKLIST/AGENTS.md 多文件查, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.21** | **2026-09-02 10:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 12 commit → 18 commit (补 v0.6.14/12/16/17 + 999ff5d DB-CHECKLIST v0.1 + v0.6.18) + §2 commit 链总合计 54 → 60 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.22** | **2026-09-02 10:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 18 commit → 19 commit (补 24ce59c RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 §1.1 已签方背景), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
