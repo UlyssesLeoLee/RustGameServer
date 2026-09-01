@@ -9,10 +9,10 @@
 
 | 维度 | 数据 |
 |---|---|
-| main HEAD | (实时, 查 `git rev-parse main`, v0.6.1 时为 `bec1747`) |
+| main HEAD | (实时, 查 `git rev-parse main`, v0.6.5 时为 `c3a73dd`) |
 | main HEAD (短) | (实时, 查 `git rev-parse --short main`) |
-| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.1 时 90) |
-| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.3 时 142) |
+| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.5 时 94) |
+| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.5 时 145) |
 | working tree | untracked 5 项 (DRAFT 状态待评审) + git stash 3 个 (上游 AI 残留, 待决策) — 详见 §0.1 |
 
 ### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:40 JST, v0.6.2 hotfix 修)
@@ -224,6 +224,7 @@
 | **v0.6.3** | **2026-09-02 08:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 实测修正 — (1) v0.6.2 误报 4 partitioned SQL 为 untracked, 实测 git status clean + git ls-files 8a6b6ed/7a3ebd7/36f33db/03459f6 全部 tracked commit c2acf02 (DRAFT 状态); (2) 真正 untracked 仅 2 cargo build target-bucket-8-{phase-b,w1-player}/ (mavis-trash ban); (3) 修正 §0 数字 v0.6.1 140 → 142 commit (c2acf02 + status 检查后 +2); (4) §0.1 重写: 2 untracked + 4 tracked-but-DRAFT + 1 已清 + 3 stash, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.4** | **2026-09-02 08:48** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 新增 E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 — 42 commit 按 BA-WX-X 任务编号分组 (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 3) + 派生约束 L13 自指字段全 deferred 实时查询 (per `git log 84edf26..main --oneline` 实测 93 commit 差 51 commit 是 W1 + 跟踪表 hotfix), verifier 引用过期 host cache 根因 — 单一 commit 索引固化, 减少 verifier 反馈循环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.5** | **2026-09-02 08:52** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (88/138 → 94/144 commit, 跨 9/2 08:25-08:52 JST 净增 6 commit = 1e289f/56b65ca/77454e5 + 跟踪表 hotfix 系), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.6** | **2026-09-02 08:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表自指字段统一更新到 v0.6.5 时 (main HEAD `c3a73dd` + 94/145 commit) — 避免 v0.6.1/v0.6.3 双版本号自指污染, per L13 自指字段全 deferred 实时查询 + §0 §1 §1.1 §2 §0.1 五段数字统一以 git 实证为准, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
