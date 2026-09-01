@@ -9,10 +9,10 @@
 
 | 维度 | 数据 |
 |---|---|
-| main HEAD | `7ec98ee57dd541c4bc83b441b6ad78ea5fc30e08` |
-| main HEAD (短) | `7ec98ee` |
-| ahead of WBS v0.2 (`84edf26`) | **40 commit** |
-| ahead of origin/main | **90 commit** |
+| main HEAD | (实时, 查 `git rev-parse main`, 创建快照时为 `7ec98ee`) |
+| main HEAD (短) | (实时, 查 `git rev-parse --short main`) |
+| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, 创建时 40) |
+| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, 创建时 90) |
 | working tree | clean (3 untracked dirs: .worktrees/, target-bucket-8-*, 临时文件已清 per L12) |
 
 ## 1. 7 phase + 6 E 子桶落地状态
@@ -57,19 +57,19 @@
 
 | 文档 | Commit | Blob | 作用 |
 |---|---|---|---|
-| WBS v0.4.2 跟踪表 | `7ec98ee` | `b20be9fc` | 7 phase 状态 + E4 草案 + E8 12 GAP + 接棒入口 |
-| BATCH-PLAN v0.2 | `2125727` | `e1dd8fc3` | §10 12 GAP + 270M token 估 |
-| RACI-BATCH v0.2 | `0755ef8e` | `90d7baf8` | 5 域 Lead 签字 + W1-W6 节奏 |
-| OLU v0.2 | `6afed27d` | `1e94f6fb` | token-OLU 框架 + 6 域重算 |
-| ADR-0058 v0.2 | `c642e7ad` | `45710463` | 6 域受控 + batch 域 GAP-3/4/7/9 |
-| AGENTS.md v0.5 | `7d4458d` | — | WBS v0.2 + 6 worktree merge 验证 |
-| OPEN-QA v0.4 | `51f2b47` | — | Q1-Q11 全 ✅ |
+| WBS v0.4.2 跟踪表 | `7ec98ee` | 7 phase 状态 + E4 草案 + E8 12 GAP + 接棒入口 (blob 用 `git rev-parse 7ec98ee:docs/00-基准与治理/RGS-PLAN-WBS-token-bucket-v0.4.md` 实时查) |
+| BATCH-PLAN v0.2 | `2125727` | §10 12 GAP + 270M token 估 |
+| RACI-BATCH v0.2 | `0755ef8e` | 5 域 Lead 签字 + W1-W6 节奏 |
+| OLU v0.2 | `6afed27d` | token-OLU 框架 + 6 域重算 |
+| ADR-0058 v0.2 | `c642e7ad` | 6 域受控 + batch 域 GAP-3/4/7/9 |
+| AGENTS.md v0.5 | `7d4458d` | WBS v0.2 + 6 worktree merge 验证 |
+| OPEN-QA v0.4 | `51f2b47` | Q1-Q11 全 ✅ |
 
 ## 4. 6 域 cargo check 实测 (per 2026-09-02 02:18 JST, v0.4.2 hotfix)
 
 | 命令 | 结果 |
 |---|---|
-| `cargo check --lib -p player-service -p economy-service -p match-service -p social-service -p admin-service` | 21.53s **0 error** |
+| `cargo check --lib -p player-service -p economy-service -p match-service -p social-service -p admin-service` | 21.53s **0 error** (per 2026-09-02 02:18 JST, Start-Process PID 51296 + task_output wait, 1 次拿 status) |
 | 2 dead_code warning | economy BidAuctionSaga/ExecuteAuctionSaga |
 | 1 future-incompat warning | shared-platform (sqlx-postgres) |
 | 派生约束 L11 | 全守 (1 次拿 status, 不 polling 多轮编译, per PID 51296 + task_output wait) |
@@ -107,6 +107,7 @@
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 7 phase 状态 + 6 域 cargo check 实测 + 阻塞项转交清单 + L13 派生约束, 接棒快照, 代签 Ulysses per 8/27 JST 三次强化 |
+| v0.2 | 2026-09-02 02:23 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §0 ahead 数字改 deferred 实时查询 + §3 删 blob hash 列 + §4 cargo check 验证命令附注, 遵循 v0.4.1 hotfix L13 派生约束, 自指字段全部改动态查询 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
