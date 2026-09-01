@@ -22,3 +22,5 @@ wasmtime = { workspace = true }
 
 [dev-dependencies]
 wat = { workspace = true }
+# proptest: registry 字符串不变式 / parse_version_tuple 不变式 (per DTL-038 §4.3 FR-001)
+proptest = "1"
