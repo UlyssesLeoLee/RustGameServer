@@ -24,6 +24,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:04 对战域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -46,34 +47,34 @@
 
 ## 2.1 模块 A:房间 + 撮合(per DTL-026 §3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-04-A001~A003 | `integration_match_basic.rs` | match_id / score / status | N | 3 个集成 case:room_create / team_assign / match_start |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-04-A001~A003 | `integration_match_basic.rs` | match_id / score / status | N | — | — | 3 个集成 case:room_create / team_assign / match_start |
 
 ## 2.2 模块 B:扩圈算法(per DTL-026 §4.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-04-B001 | `matchmaker.rs::tolerance_within_grace_period_returns_initial` | waiting_seconds / grace_period | N | grace_period 内返回 initial_tolerance (50) |
-| TST-IT-04-B002 | `matchmaker.rs::tolerance_after_grace_widens_linearly` | waiting > grace | N | 线性扩:50 + 2*(waiting-5) |
-| TST-IT-04-B003 | `matchmaker.rs::tolerance_caps_at_max` | waiting 超 max | N | 上限 400 截断 |
-| TST-IT-04-B004 | `matchmaker.rs::tolerance_is_monotonic_non_decreasing` | t 0..1000 | N | 单调不减约束(RGS-BAS-026 §4.1) |
-| TST-IT-04-B005 | `matchmaker.rs::tolerance_params_default_aligns_with_dtl_026_proposal` | ToleranceParams | N | default 值对齐 DTL-026 §4.1 提案 |
-| TST-IT-04-B006 | `matchmaker.rs::default_max_candidates_per_tick_is_500_placeholder` | n ≤ 500 | N | §4.1.1 占位 n 上限(per Q-D-10 答复) |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-04-B001 | `matchmaker.rs::tolerance_within_grace_period_returns_initial` | waiting_seconds / grace_period | N | — | — | grace_period 内返回 initial_tolerance (50) |
+| TST-IT-04-B002 | `matchmaker.rs::tolerance_after_grace_widens_linearly` | waiting > grace | N | — | — | 线性扩:50 + 2*(waiting-5) |
+| TST-IT-04-B003 | `matchmaker.rs::tolerance_caps_at_max` | waiting 超 max | N | — | — | 上限 400 截断 |
+| TST-IT-04-B004 | `matchmaker.rs::tolerance_is_monotonic_non_decreasing` | t 0..1000 | N | — | — | 单调不减约束(RGS-BAS-026 §4.1) |
+| TST-IT-04-B005 | `matchmaker.rs::tolerance_params_default_aligns_with_dtl_026_proposal` | ToleranceParams | N | — | — | default 值对齐 DTL-026 §4.1 提案 |
+| TST-IT-04-B006 | `matchmaker.rs::default_max_candidates_per_tick_is_500_placeholder` | n ≤ 500 | N | — | — | §4.1.1 占位 n 上限(per Q-D-10 答复) |
 
 ## 2.3 模块 C:跨分片 OCC(per DTL-026 §5)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-04-C001 | `matchmaker.rs::commit_proposed_match_all_occ_pass_commits` | 3 entries version 1 | N | 全部 OCC 通过 → Committed |
-| TST-IT-04-C002 | `matchmaker.rs::commit_proposed_match_one_conflict_rolls_back_succeeded` | e2 强制 conflict | A | 单条冲突 → 回退已成功 + ConcurrentlyMatched |
-| TST-IT-04-C003 | `matchmaker.rs::commit_proposed_match_version_mismatch_returns_conflict` | version mismatch | A | 版本号不匹配 → ConcurrentlyMatched |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-04-C001 | `matchmaker.rs::commit_proposed_match_all_occ_pass_commits` | 3 entries version 1 | N | — | — | 全部 OCC 通过 → Committed |
+| TST-IT-04-C002 | `matchmaker.rs::commit_proposed_match_one_conflict_rolls_back_succeeded` | e2 强制 conflict | A | — | — | 单条冲突 → 回退已成功 + ConcurrentlyMatched |
+| TST-IT-04-C003 | `matchmaker.rs::commit_proposed_match_version_mismatch_returns_conflict` | version mismatch | A | — | — | 版本号不匹配 → ConcurrentlyMatched |
 
 ## 2.4 模块 D:fail-closed 启动(per DTL-026 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-04-D001 | `fail_closed_start.rs::match_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 5 域 fail-closed 模式启动 5s 内成功 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-04-D001 | `fail_closed_start.rs::match_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 5 域 fail-closed 模式启动 5s 内成功 |
 
 ## 3. 追溯矩阵
 

@@ -18,18 +18,18 @@
 
 ## 2. 测试用例
 
-| 用例 ID | 试验级别 | 测试目的 |
-|---|---|---|
-| TST-IT-01-S001 | [TL-2] | 4 logical shard 端到端：5 服务以 `jump_consistent_hash_v1` + routing_version 透明路由 |
-| TST-IT-01-S002 | [TL-3] | shard_config gRPC 契约含 routing_version、hash_algorithm、唯一有序 active_shard_ids |
-| TST-IT-01-S003 | [TL-2] | 同物理 DB 跨 shard 操作：购买 + 货币扣减以单 PostgreSQL 事务提交/回滚 |
-| TST-IT-01-S004 | [TL-2] | PREPARE → DUAL_WRITE → VERIFY → CUTOVER → RETIRE 全程 0 中断（NFR-AV-007） |
-| TST-IT-01-S005 | [TL-2] | 单主 shard 故障 → 仅同 shard 副本接管，其他 7 shard 继续服务 |
-| TST-IT-01-S006 | [TL-4] | 1 → 4 → 8 shard 扩展比 ≥ 80% |
-| TST-IT-01-S007 | [TL-3] | `jump_consistent_hash_v1` 路由与 routing_version schema 契约 |
-| TST-IT-01-S008 | [TL-2] | 跨 shard 查询性能 p99 < 50ms |
-| TST-IT-01-S009 | [TL-2] | sharding 与 ARC-013 死锁防止兼容 |
-| TST-IT-01-S010 | [TL-2] | sharding 与 ARC-008 限界上下文一致 |
+| 用例 ID | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|
+| TST-IT-01-S001 | [TL-2] | 4 logical shard 端到端：5 服务以 `jump_consistent_hash_v1` + routing_version 透明路由 | — | — |
+| TST-IT-01-S002 | [TL-3] | shard_config gRPC 契约含 routing_version、hash_algorithm、唯一有序 active_shard_ids | — | — |
+| TST-IT-01-S003 | [TL-2] | 同物理 DB 跨 shard 操作：购买 + 货币扣减以单 PostgreSQL 事务提交/回滚 | — | — |
+| TST-IT-01-S004 | [TL-2] | PREPARE → DUAL_WRITE → VERIFY → CUTOVER → RETIRE 全程 0 中断（NFR-AV-007） | — | — |
+| TST-IT-01-S005 | [TL-2] | 单主 shard 故障 → 仅同 shard 副本接管，其他 7 shard 继续服务 | — | — |
+| TST-IT-01-S006 | [TL-4] | 1 → 4 → 8 shard 扩展比 ≥ 80% | — | — |
+| TST-IT-01-S007 | [TL-3] | `jump_consistent_hash_v1` 路由与 routing_version schema 契约 | — | — |
+| TST-IT-01-S008 | [TL-2] | 跨 shard 查询性能 p99 < 50ms | — | — |
+| TST-IT-01-S009 | [TL-2] | sharding 与 ARC-013 死锁防止兼容 | — | — |
+| TST-IT-01-S010 | [TL-2] | sharding 与 ARC-008 限界上下文一致 | — | — |
 
 ## 3. 追溯性
 

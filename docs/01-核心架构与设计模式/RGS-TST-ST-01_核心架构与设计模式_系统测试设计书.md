@@ -22,6 +22,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定
+| 0.3 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，添加「シナリオ」「テストデータ」2 列；新增 §1.4.5 字段定义引用 + §3.0 占位章节；§3.x 全部用例表扩展为 12 列 (Pattern A) / 9 列 (Pattern B)。详细场景/测试数据在各领域 ST 实施阶段补充 |
 | **0.2** | 2026-08-19 | 架构师 | **字段级深化**：每条用例的"对应设计"列升级为"文档 ID + §X.Y + 表/图/字段"；新增"ADR 决策验证"小节覆盖本主题 ADR；新增"TBD 处置"小节 |。覆盖 12 子系统端到端、ARC-001~026、NFR Lv.2/3/4、AC-001~019 |
 | 0.2 | 2026-08-19 | 架构师 | **字段级深化**：每条用例精确引用 REQ §X.Y + 验收标准；新增 §3.10 ADR 决策验证（ST 层级）；新增 §6.5 NFR 覆盖索引；新增 §7 TBD 处置 |
 
@@ -121,6 +122,11 @@ TL-6/TL-7/TL-8 层级，对应主题 01 的需求定义书。本版本（0.2）�
 - 全部引用以编号（如 `RGS-REQ-006`）而非文件路径
 - 同一编号在本文档中首次出现时附全称，后续仅用编号
 
+
+### 1.4.5 シナリオ / テストデータ 字段（IT 必须包含 / ST 必须包含）
+
+按 2026-09-01 JST 拍板决策，集成测试 (IT) 与系统测试 (ST) 设计书**必须**在用例表内包含「シナリオ」「テストデータ」2 列。完整字段定义、填写规则、命名约定（S-NNN / TD-NNN）见 `RGS-TST-ST-00 §1.4.5 / §1.6 / §3.0`。本设计书的场景/测试数据编号自 S-NNN 续编，详见本设计书 §3.0。
+
 ## 1.5 字段级映射说明
 
 本版本（0.2）的核心升级是**字段级映射**：每条测试用例的"对应设计"列从"§X.Y 章节名"升级为"文档 ID + §X.Y + 表/图/字段"。
@@ -137,6 +143,8 @@ TL-6/TL-7/TL-8 层级，对应主题 01 的需求定义书。本版本（0.2）�
 - 用例 ID：`TST-{UT|IT|ST}-XX-NNN`（XX 为主题编号 00-07）
 - 试验级别标注：UT 无标注 / IT 用 [TL-2/3/4/5] / ST 用 [TL-6/7/8/E2E]
 - 覆盖类型：N=正常 / A=异常 / B=边界 / P=属性不变条件 / S=状态机非法迁移
+- **场景编号**：`S-NNN`（与用例 ID 解耦，1 场景可被多用例引用，详见 §3.0 场景集）
+- **测试数据编号**：`TD-NNN`（与场景编号解耦，1 场景可有多组数据，详见 §3.0 测试数据集）
 - 运行时机：`cargo test --workspace`（主干 CI 必跑，QA-006 ≤ 15 min 约束内）
 
 
@@ -192,286 +200,291 @@ TL-6/TL-7/TL-8 层级，对应主题 01 的需求定义书。本版本（0.2）�
 
 ## 3. 测试用例
 
+
+## 3.0 场景集与测试数据集占位
+
+本设计书的场景集（S-NNN）与测试数据集（TD-NNN）由本主题域负责人在用例实装阶段补充。参考主模板 `RGS-TST-ST-00 §3.0` 的格式与字段约定。占位期间, 用例表内「シナリオ」「テストデータ」列以 `—` 标记。
+
 ## 3.1 架构方针 ARC-001~017 端到端（RGS-REQ-001 §10）
 
-| 用例 ID | ARC | 字段级 | 步骤 | 预期 |
-|---|---|---|---|---|
-| TST-ST-01-001 | ARC-001 Actor 粒度 | 场景 Pod 崩溃后玩家重连 | kill 节点 | 玩家重连 |
-| TST-ST-01-002 | ARC-001 ECS 实体 | player_id 字段为 ECS 实体 | 跑场景 | 玩家在 ECS |
-| TST-ST-01-003 | ARC-002 同步方式 | 状态同步+预测+和解 | 跑场景 | 一致 |
-| TST-ST-01-004 | ARC-003 传输方式 | QUIC Datagram+Stream | 跑 | 双路径 |
-| TST-ST-01-005 | ARC-004 量化位打包 | position_quantized 字段 | 跑 | 编码符合 |
-| TST-ST-01-006 | ARC-005 Single-Writer | session_epoch 字段 | 注入 | Err |
-| TST-ST-01-007 | ARC-006 ACK 边界 | DB 写前不发 ACK | 注入 DB 慢 | 顺序 |
-| TST-ST-01-008 | ARC-007 运行不同步 DB | tick 内无 DB 调用 | profile | 0 DB |
-| TST-ST-01-009 | ARC-008 限界上下文 | inventory + wallet 同 schema | 查 EC | 同一库 |
-| TST-ST-01-010 | ARC-009 禁止双写 | OCC+幂等 | 注入 | 副作用 1 |
-| TST-ST-01-011 | ARC-010 顺序边界 | aggregate_version 字段 | 注入 | 拒 |
-| TST-ST-01-012 | ARC-011 Saga 边界 | 实时不同步 Saga | 跑 | 路径正确 |
-| TST-ST-01-013 | ARC-012 缓存边界 | 缓存全损 | 注入 | 降级 |
-| TST-ST-01-014 | ARC-013 背压 | 8 边界全有 | 审计 | 100% |
-| TST-ST-01-015 | ARC-014 中间件判定 | 中间件列表 | 引入 | 需 ADR |
-| TST-ST-01-016 | ARC-015 版本管理 | schema_version 字段 | 滚动 | 0 中断 |
-| TST-ST-01-017 | ARC-016 热更新 | table_version 字段 | 部署 | 切 |
-| TST-ST-01-018 | ARC-017 可观测性 | trace_id 贯通 | 查 | 全路径 |
+| 用例 ID | ARC | 字段级 | シナリオ | テストデータ | 步骤 | 预期 |
+| --- | --- | --- | --- | --- | --- | --- |
+| TST-ST-01-001 | ARC-001 Actor 粒度 | 场景 Pod 崩溃后玩家重连 | — | — | kill 节点 | 玩家重连 |
+| TST-ST-01-002 | ARC-001 ECS 实体 | player_id 字段为 ECS 实体 | — | — | 跑场景 | 玩家在 ECS |
+| TST-ST-01-003 | ARC-002 同步方式 | 状态同步+预测+和解 | — | — | 跑场景 | 一致 |
+| TST-ST-01-004 | ARC-003 传输方式 | QUIC Datagram+Stream | — | — | 跑 | 双路径 |
+| TST-ST-01-005 | ARC-004 量化位打包 | position_quantized 字段 | — | — | 跑 | 编码符合 |
+| TST-ST-01-006 | ARC-005 Single-Writer | session_epoch 字段 | — | — | 注入 | Err |
+| TST-ST-01-007 | ARC-006 ACK 边界 | DB 写前不发 ACK | — | — | 注入 DB 慢 | 顺序 |
+| TST-ST-01-008 | ARC-007 运行不同步 DB | tick 内无 DB 调用 | — | — | profile | 0 DB |
+| TST-ST-01-009 | ARC-008 限界上下文 | inventory + wallet 同 schema | — | — | 查 EC | 同一库 |
+| TST-ST-01-010 | ARC-009 禁止双写 | OCC+幂等 | — | — | 注入 | 副作用 1 |
+| TST-ST-01-011 | ARC-010 顺序边界 | aggregate_version 字段 | — | — | 注入 | 拒 |
+| TST-ST-01-012 | ARC-011 Saga 边界 | 实时不同步 Saga | — | — | 跑 | 路径正确 |
+| TST-ST-01-013 | ARC-012 缓存边界 | 缓存全损 | — | — | 注入 | 降级 |
+| TST-ST-01-014 | ARC-013 背压 | 8 边界全有 | — | — | 审计 | 100% |
+| TST-ST-01-015 | ARC-014 中间件判定 | 中间件列表 | — | — | 引入 | 需 ADR |
+| TST-ST-01-016 | ARC-015 版本管理 | schema_version 字段 | — | — | 滚动 | 0 中断 |
+| TST-ST-01-017 | ARC-016 热更新 | table_version 字段 | — | — | 部署 | 切 |
+| TST-ST-01-018 | ARC-017 可观测性 | trace_id 贯通 | — | — | 查 | 全路径 |
 
 ## 3.2 12 子系统端到端
 
 ### 3.2.1 GW 网关
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-021 | FR-GW-001~009 | 全部 9 FR |
-| TST-ST-01-022 | NFR-PE-014 | 单节点 20k CCU |
-| TST-ST-01-023 | ARC-013 死锁 | §7.2.1 方向性 |
-| TST-ST-01-024 | NFR-AV-003 | RTO 5min |
-| TST-ST-01-025 | NFR-AV-007 | 排空 0 中断 |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-021 | FR-GW-001~009 | 全部 9 FR | — | — |
+| TST-ST-01-022 | NFR-PE-014 | 单节点 20k CCU | — | — |
+| TST-ST-01-023 | ARC-013 死锁 | §7.2.1 方向性 | — | — |
+| TST-ST-01-024 | NFR-AV-003 | RTO 5min | — | — |
+| TST-ST-01-025 | NFR-AV-007 | 排空 0 中断 | — | — |
 
 ### 3.2.2 RT 实时运行时
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-031 | FR-RT-001~014 | 全部 14 FR |
-| TST-ST-01-032 | NFR-PE-001~003 | tick_rate=20Hz, p99<25ms, p99<10ms |
-| TST-ST-01-033 | FR-RT-007 | 延迟补偿 client_time - 3 frame |
-| TST-ST-01-034 | FR-RT-010 | Actor 崩溃恢复 |
-| TST-ST-01-035 | NFR-PE-016 | 场景 300 软/500 硬 |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-031 | FR-RT-001~014 | 全部 14 FR | — | — |
+| TST-ST-01-032 | NFR-PE-001~003 | tick_rate=20Hz, p99<25ms, p99<10ms | — | — |
+| TST-ST-01-033 | FR-RT-007 | 延迟补偿 client_time - 3 frame | — | — |
+| TST-ST-01-034 | FR-RT-010 | Actor 崩溃恢复 | — | — |
+| TST-ST-01-035 | NFR-PE-016 | 场景 300 软/500 硬 | — | — |
 
 ### 3.2.3 SY 同步/AOI
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-041 | FR-SY-001~009 | 全部 |
-| TST-ST-01-042 | NFR-PE-005 | 配送 10-20Hz |
-| TST-ST-01-043 | NFR-PE-006 | 带宽 ≤ 8KB/s |
-| TST-ST-01-044 | ARC-002 | prediction + reconciliation |
-| TST-ST-01-045 | ARC-004 | 量化位打包 |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-041 | FR-SY-001~009 | 全部 | — | — |
+| TST-ST-01-042 | NFR-PE-005 | 配送 10-20Hz | — | — |
+| TST-ST-01-043 | NFR-PE-006 | 带宽 ≤ 8KB/s | — | — |
+| TST-ST-01-044 | ARC-002 | prediction + reconciliation | — | — |
+| TST-ST-01-045 | ARC-004 | 量化位打包 | — | — |
 
 ### 3.2.4 PL/EC/MT/GD 业务服务
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-051 | FR-PL-001~006 | 账号 6 FR |
-| TST-ST-01-052 | FR-EC-001~008 | 经济 8 FR |
-| TST-ST-01-053 | FR-MT-001~003 | 对局 3 FR |
-| TST-ST-01-054 | FR-GD-001~003 | 社交 3 FR |
-| TST-ST-01-055 | NFR-PE-008 | 经济 API p99<20ms |
-| TST-ST-01-056 | BZ-001~007 | 业务规则端到端 |
-| TST-ST-01-057 | ARC-006 | ACK 边界 |
-| TST-ST-01-058 | ARC-008 | 限界上下文 |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-051 | FR-PL-001~006 | 账号 6 FR | — | — |
+| TST-ST-01-052 | FR-EC-001~008 | 经济 8 FR | — | — |
+| TST-ST-01-053 | FR-MT-001~003 | 对局 3 FR | — | — |
+| TST-ST-01-054 | FR-GD-001~003 | 社交 3 FR | — | — |
+| TST-ST-01-055 | NFR-PE-008 | 经济 API p99<20ms | — | — |
+| TST-ST-01-056 | BZ-001~007 | 业务规则端到端 | — | — |
+| TST-ST-01-057 | ARC-006 | ACK 边界 | — | — |
+| TST-ST-01-058 | ARC-008 | 限界上下文 | — | — |
 
 ### 3.2.5 EV/WF 事件/工作流
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-061 | FR-EV-001~006 | 事件 6 FR |
-| TST-ST-01-062 | FR-WF-001~003 | 工作流 3 FR |
-| TST-ST-01-063 | NFR-PE-011 | 事件 p95<5s |
-| TST-ST-01-064 | ARC-009/010 | 顺序+幂等 |
-| TST-ST-01-065 | ARC-011 | Saga 边界 |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-061 | FR-EV-001~006 | 事件 6 FR | — | — |
+| TST-ST-01-062 | FR-WF-001~003 | 工作流 3 FR | — | — |
+| TST-ST-01-063 | NFR-PE-011 | 事件 p95<5s | — | — |
+| TST-ST-01-064 | ARC-009/010 | 顺序+幂等 | — | — |
+| TST-ST-01-065 | ARC-011 | Saga 边界 | — | — |
 
 ### 3.2.6 OB/AD/CS 可观测性/运营/SDK
 
-| 用例 ID | 对应需求 | 字段级 |
-|---|---|---|
-| TST-ST-01-071 | FR-OB-001~005 | 可观测 5 FR |
-| TST-ST-01-072 | FR-AD-001~005 | 运营 5 FR |
-| TST-ST-01-073 | FR-CS-001~004 | SDK 4 FR |
-| TST-ST-01-074 | NFR-OP-001~010 | 运维 Lv.3/4 |
-| TST-ST-01-075 | NFR-SDK-001 | 三引擎一致 (VF-015) |
+| 用例 ID | 对应需求 | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-071 | FR-OB-001~005 | 可观测 5 FR | — | — |
+| TST-ST-01-072 | FR-AD-001~005 | 运营 5 FR | — | — |
+| TST-ST-01-073 | FR-CS-001~004 | SDK 4 FR | — | — |
+| TST-ST-01-074 | NFR-OP-001~010 | 运维 Lv.3/4 | — | — |
+| TST-ST-01-075 | NFR-SDK-001 | 三引擎一致 (VF-015) | — | — |
 
 ## 3.3 NFR 全部非功能需求端到端（NFR Lv.2/3/4）
 
-| 用例 ID | 试验级别 | NFR | 字段级 | 目标值 |
-|---|---|---|---|---|
-| TST-ST-01-081 | [TL-6] | NFR-AV-002 | availability_target | 99.9% 月 |
-| TST-ST-01-082 | [TL-7] | NFR-AV-003 | rto_game_node | 5min |
-| TST-ST-01-083 | [TL-7] | NFR-AV-004 | rto_db | 30min |
-| TST-ST-01-084 | [TL-7] | NFR-AV-005 Lv.4 | rpo_persistent | 0 |
-| TST-ST-01-085 | [TL-7] | NFR-AV-006 | rpo_realtime | 30s |
-| TST-ST-01-086 | [E2E] | NFR-AV-007 | rolling_update_zero_downtime | 0 |
-| TST-ST-01-087 | [E2E] | NFR-AV-008 | n_plus_1 | 满足 |
-| TST-ST-01-088 | [TL-7] | NFR-AV-009 | degrade | 满足 |
-| TST-ST-01-089 | [E2E] | NFR-AV-010 | backup_restore_quarterly | 满足 |
-| TST-ST-01-090 | [TL-6] | NFR-PE-001 | tick_rate_hz | 20 |
-| TST-ST-01-091 | [TL-6] | NFR-PE-002 | tick_p99_ms | < 25 |
-| TST-ST-01-092 | [TL-6] | NFR-PE-003 | schedule_p99_ms | < 10 |
-| TST-ST-01-093 | [TL-6] | NFR-PE-004 | input_ack_p99_ms | < 100 |
-| TST-ST-01-094 | [TL-6] | NFR-PE-005 | delivery_rate_hz | 10-20 |
-| TST-ST-01-095 | [TL-6] | NFR-PE-006 | bandwidth_kbps | ≤ 8 |
-| TST-ST-01-096 | [TL-7] | NFR-PE-007 | reconnect_p99_s | < 3 |
-| TST-ST-01-097 | [TL-6] | NFR-PE-008 | economy_p99_ms | < 20 |
-| TST-ST-01-098 | [TL-6] | NFR-PE-009 | business_p99_ms | < 200 |
-| TST-ST-01-099 | [TL-6] | NFR-PE-013 | total_ccu | 100k |
-| TST-ST-01-100 | [TL-6] | NFR-PE-014 | gateway_per_node | 20k |
-| TST-ST-01-101 | [TL-6] | NFR-PE-015 | runtime_per_node | 5k |
-| TST-ST-01-102 | [TL-6] | NFR-PE-016 | entities_per_scene | 300/500 |
-| TST-ST-01-103 | [TL-6] | NFR-PE-017 | linear_scale_pct | ≥ 80 |
-| TST-ST-01-104 | [E2E] | NFR-PE-018 | overload | 拒/限/降 |
-| TST-ST-01-105 | [E2E] | NFR-PE-019 | scale_min | 15 |
-| TST-ST-01-106 | [E2E] | NFR-OP-001 Lv.4 | trace_full_path | 贯通 |
-| TST-ST-01-107 | [E2E] | NFR-OP-002 Lv.4 | ids_propagated | 6 ID |
-| TST-ST-01-108 | [E2E] | NFR-OP-003 | metrics_all | 满足 |
-| TST-ST-01-109 | [E2E] | NFR-OP-006 Lv.4 | mixed_version | 满足 |
-| TST-ST-01-110 | [E2E] | NFR-OP-007 | config_no_downtime | 满足 |
-| TST-ST-01-111 | [E2E] | NFR-OP-008 | diagnose_min | ≤ 15 |
-| TST-ST-01-112 | [E2E] | NFR-OP-009 | deploy_automation | 满足 |
-| TST-ST-01-113 | [E2E] | NFR-OP-010 Lv.3 | olu_sre_max | ≤ 2 |
-| TST-ST-01-114 | [E2E] | NFR-MI-002 | expand_contract | 满足 |
-| TST-ST-01-115 | [E2E] | NFR-MI-005 | replaceable | 满足 |
-| TST-ST-01-116 | [E2E] | NFR-SE-001 Lv.4 | server_authority | 满足 |
-| TST-ST-01-117 | [E2E] | NFR-SE-002 Lv.4 | tls_1_3 | 满足 |
-| TST-ST-01-118 | [E2E] | NFR-SE-003 | mtls | 满足 |
-| TST-ST-01-119 | [E2E] | NFR-SE-006 Lv.4 | input_validation | 满足 |
-| TST-ST-01-120 | [E2E] | NFR-SE-010 Lv.4 | audit_immutable | 满足 |
-| TST-ST-01-121 | [TL-6] | NFR-EN-001 | k8s | 部署 |
-| TST-ST-01-122 | [E2E] | NFR-EN-002 | resource_limits | 满足 |
-| TST-ST-01-123 | [E2E] | NFR-EN-003 Lv.4 | osi_license | 100% |
-| TST-ST-01-124 | [E2E] | NFR-EN-005 | ntp_utc | 满足 |
+| 用例 ID | 试验级别 | NFR | シナリオ | テストデータ | 字段级 | 目标值 |
+| --- | --- | --- | --- | --- | --- | --- |
+| TST-ST-01-081 | [TL-6] | NFR-AV-002 | — | — | availability_target | 99.9% 月 |
+| TST-ST-01-082 | [TL-7] | NFR-AV-003 | — | — | rto_game_node | 5min |
+| TST-ST-01-083 | [TL-7] | NFR-AV-004 | — | — | rto_db | 30min |
+| TST-ST-01-084 | [TL-7] | NFR-AV-005 Lv.4 | — | — | rpo_persistent | 0 |
+| TST-ST-01-085 | [TL-7] | NFR-AV-006 | — | — | rpo_realtime | 30s |
+| TST-ST-01-086 | [E2E] | NFR-AV-007 | — | — | rolling_update_zero_downtime | 0 |
+| TST-ST-01-087 | [E2E] | NFR-AV-008 | — | — | n_plus_1 | 满足 |
+| TST-ST-01-088 | [TL-7] | NFR-AV-009 | — | — | degrade | 满足 |
+| TST-ST-01-089 | [E2E] | NFR-AV-010 | — | — | backup_restore_quarterly | 满足 |
+| TST-ST-01-090 | [TL-6] | NFR-PE-001 | — | — | tick_rate_hz | 20 |
+| TST-ST-01-091 | [TL-6] | NFR-PE-002 | — | — | tick_p99_ms | < 25 |
+| TST-ST-01-092 | [TL-6] | NFR-PE-003 | — | — | schedule_p99_ms | < 10 |
+| TST-ST-01-093 | [TL-6] | NFR-PE-004 | — | — | input_ack_p99_ms | < 100 |
+| TST-ST-01-094 | [TL-6] | NFR-PE-005 | — | — | delivery_rate_hz | 10-20 |
+| TST-ST-01-095 | [TL-6] | NFR-PE-006 | — | — | bandwidth_kbps | ≤ 8 |
+| TST-ST-01-096 | [TL-7] | NFR-PE-007 | — | — | reconnect_p99_s | < 3 |
+| TST-ST-01-097 | [TL-6] | NFR-PE-008 | — | — | economy_p99_ms | < 20 |
+| TST-ST-01-098 | [TL-6] | NFR-PE-009 | — | — | business_p99_ms | < 200 |
+| TST-ST-01-099 | [TL-6] | NFR-PE-013 | — | — | total_ccu | 100k |
+| TST-ST-01-100 | [TL-6] | NFR-PE-014 | — | — | gateway_per_node | 20k |
+| TST-ST-01-101 | [TL-6] | NFR-PE-015 | — | — | runtime_per_node | 5k |
+| TST-ST-01-102 | [TL-6] | NFR-PE-016 | — | — | entities_per_scene | 300/500 |
+| TST-ST-01-103 | [TL-6] | NFR-PE-017 | — | — | linear_scale_pct | ≥ 80 |
+| TST-ST-01-104 | [E2E] | NFR-PE-018 | — | — | overload | 拒/限/降 |
+| TST-ST-01-105 | [E2E] | NFR-PE-019 | — | — | scale_min | 15 |
+| TST-ST-01-106 | [E2E] | NFR-OP-001 Lv.4 | — | — | trace_full_path | 贯通 |
+| TST-ST-01-107 | [E2E] | NFR-OP-002 Lv.4 | — | — | ids_propagated | 6 ID |
+| TST-ST-01-108 | [E2E] | NFR-OP-003 | — | — | metrics_all | 满足 |
+| TST-ST-01-109 | [E2E] | NFR-OP-006 Lv.4 | — | — | mixed_version | 满足 |
+| TST-ST-01-110 | [E2E] | NFR-OP-007 | — | — | config_no_downtime | 满足 |
+| TST-ST-01-111 | [E2E] | NFR-OP-008 | — | — | diagnose_min | ≤ 15 |
+| TST-ST-01-112 | [E2E] | NFR-OP-009 | — | — | deploy_automation | 满足 |
+| TST-ST-01-113 | [E2E] | NFR-OP-010 Lv.3 | — | — | olu_sre_max | ≤ 2 |
+| TST-ST-01-114 | [E2E] | NFR-MI-002 | — | — | expand_contract | 满足 |
+| TST-ST-01-115 | [E2E] | NFR-MI-005 | — | — | replaceable | 满足 |
+| TST-ST-01-116 | [E2E] | NFR-SE-001 Lv.4 | — | — | server_authority | 满足 |
+| TST-ST-01-117 | [E2E] | NFR-SE-002 Lv.4 | — | — | tls_1_3 | 满足 |
+| TST-ST-01-118 | [E2E] | NFR-SE-003 | — | — | mtls | 满足 |
+| TST-ST-01-119 | [E2E] | NFR-SE-006 Lv.4 | — | — | input_validation | 满足 |
+| TST-ST-01-120 | [E2E] | NFR-SE-010 Lv.4 | — | — | audit_immutable | 满足 |
+| TST-ST-01-121 | [TL-6] | NFR-EN-001 | — | — | k8s | 部署 |
+| TST-ST-01-122 | [E2E] | NFR-EN-002 | — | — | resource_limits | 满足 |
+| TST-ST-01-123 | [E2E] | NFR-EN-003 Lv.4 | — | — | osi_license | 100% |
+| TST-ST-01-124 | [E2E] | NFR-EN-005 | — | — | ntp_utc | 满足 |
 
 ## 3.4 故障注入（FT-001~014）
 
-| 用例 ID | FT | 字段级 |
-|---|---|---|
-| TST-ST-01-131 | FT-001 | 运行时节点 kill -9 |
-| TST-ST-01-132 | FT-002 | PG 主 stop |
-| TST-ST-01-133 | FT-003 | 缓存 flushall |
-| TST-ST-01-134 | FT-004 | 网络分区 |
-| TST-ST-01-135 | FT-005 | EC 全停 |
-| TST-ST-01-136 | FT-006 | 事件停止 |
-| TST-ST-01-137 | FT-007 | 慢消费者 5s |
-| TST-ST-01-138 | FT-008 | Pod evict |
-| TST-ST-01-139 | FT-009 | 3x 过载 |
-| TST-ST-01-140 | FT-010 | 1000 重复事件 |
-| TST-ST-01-141 | FT-011 | GM 过载 |
-| TST-ST-01-142 | FT-012 | 跨节点套利 |
-| TST-ST-01-143 | FT-013 | 删除中断 |
-| TST-ST-01-144 | FT-014 | 密钥轮换 |
+| 用例 ID | FT | 字段级 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-131 | FT-001 | 运行时节点 kill -9 | — | — |
+| TST-ST-01-132 | FT-002 | PG 主 stop | — | — |
+| TST-ST-01-133 | FT-003 | 缓存 flushall | — | — |
+| TST-ST-01-134 | FT-004 | 网络分区 | — | — |
+| TST-ST-01-135 | FT-005 | EC 全停 | — | — |
+| TST-ST-01-136 | FT-006 | 事件停止 | — | — |
+| TST-ST-01-137 | FT-007 | 慢消费者 5s | — | — |
+| TST-ST-01-138 | FT-008 | Pod evict | — | — |
+| TST-ST-01-139 | FT-009 | 3x 过载 | — | — |
+| TST-ST-01-140 | FT-010 | 1000 重复事件 | — | — |
+| TST-ST-01-141 | FT-011 | GM 过载 | — | — |
+| TST-ST-01-142 | FT-012 | 跨节点套利 | — | — |
+| TST-ST-01-143 | FT-013 | 删除中断 | — | — |
+| TST-ST-01-144 | FT-014 | 密钥轮换 | — | — |
 
 ## 3.5 挂载架构（ARC-018 / REQ-006）
 
-| 用例 ID | 字段级 | 测试目的 |
-|---|---|---|
-| TST-ST-01-151 | 完整挂载演练 | 端到端 |
-| TST-ST-01-152 | canary_weight 1→10→100% | 灰度 |
-| TST-ST-01-153 | lifecycle_state 完整 | 退场 |
-| TST-ST-01-154 | NFR-MNT-001 | ≤ 1 天 |
-| TST-ST-01-155 | NFR-MNT-002 | 错误率 ≤ 10% |
-| TST-ST-01-156 | NFR-MNT-003 | DB 故障隔离 |
-| TST-ST-01-157 | NFR-MNT-004 | 流量回退 p99<10s |
-| TST-ST-01-158 | NFR-MNT-005 | 黄金指标 |
-| TST-ST-01-159 | NFR-MNT-006 | 模板同源 |
-| TST-ST-01-160 | AC-MNT-001~004 | 全部 |
+| 用例 ID | 字段级 | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-151 | 完整挂载演练 | 端到端 | — | — |
+| TST-ST-01-152 | canary_weight 1→10→100% | 灰度 | — | — |
+| TST-ST-01-153 | lifecycle_state 完整 | 退场 | — | — |
+| TST-ST-01-154 | NFR-MNT-001 | ≤ 1 天 | — | — |
+| TST-ST-01-155 | NFR-MNT-002 | 错误率 ≤ 10% | — | — |
+| TST-ST-01-156 | NFR-MNT-003 | DB 故障隔离 | — | — |
+| TST-ST-01-157 | NFR-MNT-004 | 流量回退 p99<10s | — | — |
+| TST-ST-01-158 | NFR-MNT-005 | 黄金指标 | — | — |
+| TST-ST-01-159 | NFR-MNT-006 | 模板同源 | — | — |
+| TST-ST-01-160 | AC-MNT-001~004 | 全部 | — | — |
 
 ## 3.6 弹性容量（ARC-040 / REQ-025）
 
-| 用例 ID | 字段级 | 测试目的 |
-|---|---|---|
-| TST-ST-01-171 | capacity_tier=T0 | 5 万 CCU |
-| TST-ST-01-172 | T1 | 20 万 |
-| TST-ST-01-173 | T2 | 100 万 |
-| TST-ST-01-174 | T3 | 1000 万 |
-| TST-ST-01-175 | FR-CAP-001~003 | 完整 |
-| TST-ST-01-176 | NFR-CAP-001~005 | 全部 |
-| TST-ST-01-177 | shard_id 字段 | 路由一致 |
-| TST-ST-01-178 | hpa_trigger 字段 | 弹性预留 |
+| 用例 ID | 字段级 | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-171 | capacity_tier=T0 | 5 万 CCU | — | — |
+| TST-ST-01-172 | T1 | 20 万 | — | — |
+| TST-ST-01-173 | T2 | 100 万 | — | — |
+| TST-ST-01-174 | T3 | 1000 万 | — | — |
+| TST-ST-01-175 | FR-CAP-001~003 | 完整 | — | — |
+| TST-ST-01-176 | NFR-CAP-001~005 | 全部 | — | — |
+| TST-ST-01-177 | shard_id 字段 | 路由一致 | — | — |
+| TST-ST-01-178 | hpa_trigger 字段 | 弹性预留 | — | — |
 
 ## 3.7 请求处理链（ARC-041 / REQ-026）
 
-| 用例 ID | 字段级 | 测试目的 |
-|---|---|---|
-| TST-ST-01-181 | 全部 5 服务接入 | 管道 |
-| TST-ST-01-182 | FR-PPL-001~020 | 完整 |
-| TST-ST-01-183 | NFR-PPL-001~004 | 全部 |
-| TST-ST-01-184 | bypass 拒绝 | 安全合规 |
-| TST-ST-01-185 | error_response | 统一格式 |
+| 用例 ID | 字段级 | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-181 | 全部 5 服务接入 | 管道 | — | — |
+| TST-ST-01-182 | FR-PPL-001~020 | 完整 | — | — |
+| TST-ST-01-183 | NFR-PPL-001~004 | 全部 | — | — |
+| TST-ST-01-184 | bypass 拒绝 | 安全合规 | — | — |
+| TST-ST-01-185 | error_response | 统一格式 | — | — |
 
 ## 3.8 集群部署脚本（ARC-042 / REQ-027）
 
-| 用例 ID | 字段级 | 测试目的 |
-|---|---|---|
-| TST-ST-01-191 | FR-DEP-001~010 | 完整 |
-| TST-ST-01-192 | 完整集群编排 | 端到端 |
-| TST-ST-01-193 | resume_token | 中断续跑 |
-| TST-ST-01-194 | cluster_name=staging/prod | 跨环境 |
-| TST-ST-01-195 | new_app 字段 | 自动入清单 |
+| 用例 ID | 字段级 | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-191 | FR-DEP-001~010 | 完整 | — | — |
+| TST-ST-01-192 | 完整集群编排 | 端到端 | — | — |
+| TST-ST-01-193 | resume_token | 中断续跑 | — | — |
+| TST-ST-01-194 | cluster_name=staging/prod | 跨环境 | — | — |
+| TST-ST-01-195 | new_app 字段 | 自动入清单 | — | — |
 
 ## 3.9 重点验证（VF-001~016）
 
-| 用例 ID | VF |
-|---|---|
-| TST-ST-01-201~216 | VF-001~016 全部 |
+| 用例 ID | VF | シナリオ | テストデータ |
+| --- | --- | --- | --- |
+| TST-ST-01-201~216 | VF-001~016 全部 | — | — |
 
 ## 3.10 业务规则与状态机（QA-002/003）
 
-| 用例 ID | 测试目的 |
-|---|---|
-| TST-ST-01-221 | BZ-001 货币非负 |
-| TST-ST-01-222 | BZ-002 支付幂等 |
-| TST-ST-01-223 | BZ-003 流水复原 |
-| TST-ST-01-224 | BZ-004 客户端伤害 |
-| TST-ST-01-225 | BZ-005 归档对局 |
-| TST-ST-01-226 | BZ-006 封禁登录 |
-| TST-ST-01-227 | BZ-007 交易原子性 |
-| TST-ST-01-231 | ST-001 玩家会话 |
-| TST-ST-01-232 | ST-002 对局 |
-| TST-ST-01-233 | ST-003 购买 |
-| TST-ST-01-234 | ST-004 交易 |
-| TST-ST-01-235 | ST-005 账号 |
+| 用例 ID | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- |
+| TST-ST-01-221 | BZ-001 货币非负 | — | — |
+| TST-ST-01-222 | BZ-002 支付幂等 | — | — |
+| TST-ST-01-223 | BZ-003 流水复原 | — | — |
+| TST-ST-01-224 | BZ-004 客户端伤害 | — | — |
+| TST-ST-01-225 | BZ-005 归档对局 | — | — |
+| TST-ST-01-226 | BZ-006 封禁登录 | — | — |
+| TST-ST-01-227 | BZ-007 交易原子性 | — | — |
+| TST-ST-01-231 | ST-001 玩家会话 | — | — |
+| TST-ST-01-232 | ST-002 对局 | — | — |
+| TST-ST-01-233 | ST-003 购买 | — | — |
+| TST-ST-01-234 | ST-004 交易 | — | — |
+| TST-ST-01-235 | ST-005 账号 | — | — |
 
 ## 3.11 数据需求端到端
 
-| 用例 ID | 字段级 | 对应需求 |
-|---|---|---|
-| TST-ST-01-241 | data_classification | DR-001/002/003 |
-| TST-ST-01-242 | no_cross_domain_query | DR-004 |
-| TST-ST-01-243 | physical_separation | DR-005 |
-| TST-ST-01-244 | outbox_per_owner | DR-006 |
-| TST-ST-01-245 | version_column | DR-007/008 |
-| TST-ST-01-246 | no_lww | DR-009 |
-| TST-ST-01-247 | request_id_unique | DR-010 |
-| TST-ST-01-248 | outbox_required_fields | DR-011~015 |
-| TST-ST-01-249 | retention_policy | §6.5 |
+| 用例 ID | 字段级 | 对应需求 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-241 | data_classification | DR-001/002/003 | — | — |
+| TST-ST-01-242 | no_cross_domain_query | DR-004 | — | — |
+| TST-ST-01-243 | physical_separation | DR-005 | — | — |
+| TST-ST-01-244 | outbox_per_owner | DR-006 | — | — |
+| TST-ST-01-245 | version_column | DR-007/008 | — | — |
+| TST-ST-01-246 | no_lww | DR-009 | — | — |
+| TST-ST-01-247 | request_id_unique | DR-010 | — | — |
+| TST-ST-01-248 | outbox_required_fields | DR-011~015 | — | — |
+| TST-ST-01-249 | retention_policy | §6.5 | — | — |
 
 ## 3.12 接口需求端到端
 
-| 用例 ID | 字段级 | 对应需求 |
-|---|---|---|
-| TST-ST-01-251 | if_001_quic | IF-001 |
-| TST-ST-01-252 | if_002_https_grpc | IF-002 |
-| TST-ST-01-253 | if_003_rt_to_biz | IF-003 |
-| TST-ST-01-254 | if_004_pg | IF-004 |
-| TST-ST-01-255 | if_005_outbox_cdc | IF-005 |
-| TST-ST-01-256 | if_006_payment | IF-006 |
-| TST-ST-01-257 | if_007_ops | IF-007 |
-| TST-ST-01-258 | if_008_otel | IF-008 |
-| TST-ST-01-259 | if_001_1_6_fields | IF-001-1~6 |
+| 用例 ID | 字段级 | 对应需求 | シナリオ | テストデータ |
+| --- | --- | --- | --- | --- |
+| TST-ST-01-251 | if_001_quic | IF-001 | — | — |
+| TST-ST-01-252 | if_002_https_grpc | IF-002 | — | — |
+| TST-ST-01-253 | if_003_rt_to_biz | IF-003 | — | — |
+| TST-ST-01-254 | if_004_pg | IF-004 | — | — |
+| TST-ST-01-255 | if_005_outbox_cdc | IF-005 | — | — |
+| TST-ST-01-256 | if_006_payment | IF-006 | — | — |
+| TST-ST-01-257 | if_007_ops | IF-007 | — | — |
+| TST-ST-01-258 | if_008_otel | IF-008 | — | — |
+| TST-ST-01-259 | if_001_1_6_fields | IF-001-1~6 | — | — |
 
 ## 3.13 ADR 决策验证（ST 层级）
 
-| 用例 ID | ADR | ST 层级验证 | 试验级别 |
-|---|---|---|---|
-| TST-ST-01-K001 | ADR-0001 Actor 粒度 | kill 节点后玩家重连 | [TL-7] |
-| TST-ST-01-K002 | ADR-0002 同步方式 | 200ms RTT 下一致 | [E2E] |
-| TST-ST-01-K003 | ADR-0007 统合 | 购买流水跨表原子 | [E2E] |
-| TST-ST-01-K004 | ADR-0008 中间件 | 无 ADR 拒绝 | [E2E] |
-| TST-ST-01-K005 | ADR-0015 Saga 边界 | 实时路径不调 Saga | [E2E] |
-| TST-ST-01-K006 | ADR-0020 拒绝动态库 | 端到端无 dlopen | [E2E] |
-| TST-ST-01-K007 | ADR-0022 业务逻辑不入库 | 端到端无业务 SP | [E2E] |
-| TST-ST-01-K008 | ADR-0023 客户端单一 | 三引擎同输入 | [E2E] |
-| TST-ST-01-K009 | ADR-0026 智能层只读 | 端到端不可写 | [E2E] |
-| TST-ST-01-K010 | ADR-0029 闸门 | L4 写必经 | [E2E] |
+| 用例 ID | ADR | ST 层级验证 | シナリオ | テストデータ | 试验级别 |
+| --- | --- | --- | --- | --- | --- |
+| TST-ST-01-K001 | ADR-0001 Actor 粒度 | kill 节点后玩家重连 | — | — | [TL-7] |
+| TST-ST-01-K002 | ADR-0002 同步方式 | 200ms RTT 下一致 | — | — | [E2E] |
+| TST-ST-01-K003 | ADR-0007 统合 | 购买流水跨表原子 | — | — | [E2E] |
+| TST-ST-01-K004 | ADR-0008 中间件 | 无 ADR 拒绝 | — | — | [E2E] |
+| TST-ST-01-K005 | ADR-0015 Saga 边界 | 实时路径不调 Saga | — | — | [E2E] |
+| TST-ST-01-K006 | ADR-0020 拒绝动态库 | 端到端无 dlopen | — | — | [E2E] |
+| TST-ST-01-K007 | ADR-0022 业务逻辑不入库 | 端到端无业务 SP | — | — | [E2E] |
+| TST-ST-01-K008 | ADR-0023 客户端单一 | 三引擎同输入 | — | — | [E2E] |
+| TST-ST-01-K009 | ADR-0026 智能层只读 | 端到端不可写 | — | — | [E2E] |
+| TST-ST-01-K010 | ADR-0029 闸门 | L4 写必经 | — | — | [E2E] |
 
 ## 3.14 回归（TL-8 / QA-005）
 
-| 用例 ID | 测试目的 |
-|---|---|
-| TST-ST-01-271 | QA-005 100% 回归化 |
-| TST-ST-01-272 | QA-001 单元覆盖率 80% |
-| TST-ST-01-273 | QA-002 业务规则属性 |
-| TST-ST-01-274 | QA-003 状态机 100% |
-| TST-ST-01-275 | QA-004 缺陷密度 ≤1.0 |
-| TST-ST-01-276 | QA-006 CI ≤15min |
+| 用例 ID | 测试目的 | シナリオ | テストデータ |
+| --- | --- | --- | --- |
+| TST-ST-01-271 | QA-005 100% 回归化 | — | — |
+| TST-ST-01-272 | QA-001 单元覆盖率 80% | — | — |
+| TST-ST-01-273 | QA-002 业务规则属性 | — | — |
+| TST-ST-01-274 | QA-003 状态机 100% | — | — |
+| TST-ST-01-275 | QA-004 缺陷密度 ≤1.0 | — | — |
+| TST-ST-01-276 | QA-006 CI ≤15min | — | — |
 
 ---
 

@@ -24,6 +24,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:06 ClusterOps 域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -53,39 +54,39 @@
 
 ## 2.1 模块 A:6 阶段状态机(per DTL-042 §4)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-A001~A??? | `src/realm_lifecycle/tests/ut_state_machine.rs` | NewRealm / Scale / Split / Merge / Retire / Archive | N | 6 阶段合法转移 + 非法转移 + 6 步约束 + 终态唯一性(per DTL-042 §4 + SPEC-DTL-042 §3 §6 步约束) |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-A001~A??? | `src/realm_lifecycle/tests/ut_state_machine.rs` | NewRealm / Scale / Split / Merge / Retire / Archive | N | — | — | 6 阶段合法转移 + 非法转移 + 6 步约束 + 终态唯一性(per DTL-042 §4 + SPEC-DTL-042 §3 §6 步约束) |
 
 ## 2.2 模块 B:saga 编排(per DTL-042 §5)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-B001~B??? | `src/realm_lifecycle/tests/ut_saga.rs` | saga_id / state | N | saga 启动 + 步骤执行 + 失败回滚 + 重试策略 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-B001~B??? | `src/realm_lifecycle/tests/ut_saga.rs` | saga_id / state | N | — | — | saga 启动 + 步骤执行 + 失败回滚 + 重试策略 |
 
 ## 2.3 模块 C:LCM 演练(per DTL-042 §6)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-C001~C??? | `tests/drill_lcm_001.rs` ~ `drill_lcm_008_010.rs` | drill_lcm_001~008 | A | 8 个 LCM 演练:启动 / 扩容 / 缩容 / 升级 / 回滚 / 故障切换 / 数据迁移 / 退役 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-C001~C??? | `tests/drill_lcm_001.rs` ~ `drill_lcm_008_010.rs` | drill_lcm_001~008 | A | — | — | 8 个 LCM 演练:启动 / 扩容 / 缩容 / 升级 / 回滚 / 故障切换 / 数据迁移 / 退役 |
 
 ## 2.4 模块 D:跨域集成(per DTL-042 §7)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-D001~D008 | `tests-disabled/it_cross_domain.rs`(8 fn) | 跨域 RPC | A | 5 域 + cluster-ops 协同,验证编排指令正确分发<br/>⏳ **P3 follow-up**:Q7 终方案 v0.4 待迁回 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-D001~D008 | `tests-disabled/it_cross_domain.rs`(8 fn) | 跨域 RPC | A | — | — | 5 域 + cluster-ops 协同,验证编排指令正确分发<br/>⏳ **P3 follow-up**:Q7 终方案 v0.4 待迁回 |
 
 ## 2.5 模块 E:快照加载(per DTL-042 §5)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-E001~E??? | `tests/load_snapshot.rs` | snapshot | A | ClusterOpsService 重启从 admin_db 恢复,Redis 租约不可用时写入 fail-closed |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-E001~E??? | `tests/load_snapshot.rs` | snapshot | A | — | — | ClusterOpsService 重启从 admin_db 恢复,Redis 租约不可用时写入 fail-closed |
 
 ## 2.6 模块 F:fail-closed 启动(per DTL-042 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-06-F001 | `tests/fail_closed_start.rs::cluster_ops_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 跨域 fail-closed 模式启动 5s 内成功 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-06-F001 | `tests/fail_closed_start.rs::cluster_ops_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 跨域 fail-closed 模式启动 5s 内成功 |
 
 ## 3. 追溯矩阵
 

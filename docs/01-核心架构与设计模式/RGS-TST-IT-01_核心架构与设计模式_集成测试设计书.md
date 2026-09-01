@@ -24,6 +24,7 @@
 | 0.1 | 2026-08-19 | 架构师 | 初版制定
 | **0.2** | 2026-08-19 | 架构师 | **字段级深化**：每条用例的"对应设计"列升级为"文档 ID + §X.Y + 表/图/字段"；新增"ADR 决策验证"小节覆盖本主题 ADR；新增"TBD 处置"小节 |。覆盖 5 服务协议、跨库主键、挂载脚手架、容量分片、请求处理链、集群部署 |
 | 0.2 | 2026-08-19 | 架构师 | **字段级深化**：每条用例精确引用 BAS §X.Y + 接口字段；新增 §3.10 ADR 决策验证；新增 §6.5 NFR 覆盖索引；新增 §7 TBD 处置 |
+| 0.3 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列；新增 §1.4.5 字段定义引用段；§1.6 命名约定补充场景/数据编号；新增 §3.0 场景集与测试数据集占位章节。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 审批栏
 
@@ -126,6 +127,11 @@ TL-2/TL-3/TL-4/TL-5 层级，对应主题 01 的 6 份基本设计书。本版�
 - 全部引用以编号（如 `RGS-REQ-006`）而非文件路径
 - 同一编号在本文档中首次出现时附全称，后续仅用编号
 
+
+### 1.4.5 シナリオ / テストデータ 字段（IT 必须包含 / ST 必须包含）
+
+按 2026-09-01 JST 拍板决策，本设计书按 IT-00 模板纳入「シナリオ」「テストデータ」2 列。完整字段定义、填写规则、命名约定（S-NNN / TD-NNN）见 `RGS-TST-IT-00 §1.4.5 / §1.6 / §3.0`。本设计书的场景/测试数据编号自 S-NNN 续编，详见本设计书 §3.0。
+
 ## 1.5 字段级映射说明
 
 本版本（0.2）的核心升级是**字段级映射**：每条测试用例的"对应设计"列从"§X.Y 章节名"升级为"文档 ID + §X.Y + 表/图/字段"。
@@ -142,6 +148,8 @@ TL-2/TL-3/TL-4/TL-5 层级，对应主题 01 的 6 份基本设计书。本版�
 - 用例 ID：`TST-{UT|IT|ST}-XX-NNN`（XX 为主题编号 00-07）
 - 试验级别标注：UT 无标注 / IT 用 [TL-2/3/4/5] / ST 用 [TL-6/7/8/E2E]
 - 覆盖类型：N=正常 / A=异常 / B=边界 / P=属性不变条件 / S=状态机非法迁移
+- **场景编号**：`S-NNN`（与用例 ID 解耦，1 场景可被多用例引用，详见 §3.0 场景集）
+- **测试数据编号**：`TD-NNN`（与场景编号解耦，1 场景可有多组数据，详见 §3.0 测试数据集）
 - 运行时机：`cargo test --workspace`（主干 CI 必跑，QA-006 ≤ 15 min 约束内）
 
 
@@ -190,143 +198,147 @@ TL-2/TL-3/TL-4/TL-5 层级，对应主题 01 的 6 份基本设计书。本版�
 
 ## 3. 测试用例
 
+## 3.0 场景集与测试数据集占位
+
+本设计书的场景集（S-NNN）与测试数据集（TD-NNN）由本主题域负责人在用例实装阶段补充。参考主模板 `RGS-TST-IT-00 §3.0` 的格式与字段约定。占位期间, 用例表内「シナリオ」「テストデータ」列以 `—` 标记。
+
 ## 3.1 模块 A：5 服务协议集成（RGS-BAS-001 §4）
 
-| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 |
-|---|---|---|---|---|
-| TST-IT-01-A001 | BAS-001 §4.4 PlayerService | request{device_id, client_version} → response{account_id, character_id} | [TL-2] | 端到端 |
-| TST-IT-01-A002 | BAS-001 §4.4 PlayerService gRPC | schema_version 字段 | [TL-3] | 契约兼容 |
-| TST-IT-01-A003 | BAS-001 §4.5 EconomyService.Determine | request_id UUID, session_epoch BIGINT | [TL-2] | 端到端 |
-| TST-IT-01-A004 | BAS-001 §4.5 EconomyService gRPC | v1 client 调 v2 server | [TL-3] | 兼容性 |
-| TST-IT-01-A005 | BAS-001 §4.5 RT → Economy | gRPC async over mTLS | [TL-2] | 跨进程 |
-| TST-IT-01-A006 | BAS-001 §4.5 RT → Player | gRPC session_epoch 写入 | [TL-2] | 跨进程 |
-| TST-IT-01-A007 | BAS-001 §4.7 跨服务事件 | event.schema_version, event_id | [TL-3] | 契约 |
-| TST-IT-01-A008 | BAS-001 §5.1 跨库主键 | UUID↔BIGINT 双向 | [TL-2] | 跨 DB |
-| TST-IT-01-A009 | BAS-001 §4.4-§4.5 5 服务并发 | 1000 并发 | [TL-2] | 性能冒烟 |
-| TST-IT-01-A010 | BAS-001 §8 ST-001 跨服务 | 状态机非法迁移 | [TL-5] | 状态机 |
+| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|
+| TST-IT-01-A001 | BAS-001 §4.4 PlayerService | request{device_id, client_version} → response{account_id, character_id} | [TL-2] | 端到端 | — | — |
+| TST-IT-01-A002 | BAS-001 §4.4 PlayerService gRPC | schema_version 字段 | [TL-3] | 契约兼容 | — | — |
+| TST-IT-01-A003 | BAS-001 §4.5 EconomyService.Determine | request_id UUID, session_epoch BIGINT | [TL-2] | 端到端 | — | — |
+| TST-IT-01-A004 | BAS-001 §4.5 EconomyService gRPC | v1 client 调 v2 server | [TL-3] | 兼容性 | — | — |
+| TST-IT-01-A005 | BAS-001 §4.5 RT → Economy | gRPC async over mTLS | [TL-2] | 跨进程 | — | — |
+| TST-IT-01-A006 | BAS-001 §4.5 RT → Player | gRPC session_epoch 写入 | [TL-2] | 跨进程 | — | — |
+| TST-IT-01-A007 | BAS-001 §4.7 跨服务事件 | event.schema_version, event_id | [TL-3] | 契约 | — | — |
+| TST-IT-01-A008 | BAS-001 §5.1 跨库主键 | UUID↔BIGINT 双向 | [TL-2] | 跨 DB | — | — |
+| TST-IT-01-A009 | BAS-001 §4.4-§4.5 5 服务并发 | 1000 并发 | [TL-2] | 性能冒烟 | — | — |
+| TST-IT-01-A010 | BAS-001 §8 ST-001 跨服务 | 状态机非法迁移 | [TL-5] | 状态机 | — | — |
 
 ## 3.2 模块 B：挂载脚手架集成（RGS-BAS-002 §4-§12）
 
-| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 |
-|---|---|---|---|---|
-| TST-IT-01-B001 | BAS-002 §4 cargo-generate | template.git 字段 | [TL-2] | 端到端 |
-| TST-IT-01-B002 | BAS-002 §4 Helm chart 4 模板 | Deployment.replicas | [TL-3] | 渲染正确 |
-| TST-IT-01-B003 | BAS-002 §5 DB provisioning | SQL 脚本重入 | [TL-2] | 幂等 |
-| TST-IT-01-B004 | BAS-002 §5 Mount Record | frontmatter.id 唯一 | [TL-2] | 写入 |
-| TST-IT-01-B005 | BAS-002 §6 挂载检查清单 | 13 项 | [TL-2] | 全部 PASS |
-| TST-IT-01-B006 | BAS-002 §6.5 排他锁 | uq_deploy_runs_cluster_running | [TL-2] | 同 cluster 并发仅 1 成功 |
-| TST-IT-01-B007 | BAS-002 §6 网关路由 | routes[] 字段 | [TL-2] | 路由登记 |
-| TST-IT-01-B008 | BAS-002 §6 事件 Schema | schema_version 必填 | [TL-2] | 事件登记 |
-| TST-IT-01-B009 | BAS-002 §6 OTel | service.name 字段 | [TL-2] | 可观测接入 |
-| TST-IT-01-B010 | BAS-002 §7 灰度发布 | canary_weight 字段 | [TL-2] | 切 1%/10%/100% |
-| TST-IT-01-B011 | BAS-002 §7 流量回退 | 路由权重置 0 | [TL-2] | p99<10s |
-| TST-IT-01-B012 | BAS-002 §8 退场 | lifecycle_state=Decommissioning | [TL-2] | 端到端 |
-| TST-IT-01-B013 | BAS-002 §8 退场幂等 | re_decommission | [TL-2] | Ok(AlreadyGone) |
-| TST-IT-01-B014 | BAS-002 §10 ARC-018 5 要素 | DB+部署+gRPC+事件+可观测 | [TL-2] | 全部具备 |
-| TST-IT-01-B015 | BAS-002 §11 NFR-MNT-002 | error_rate_increment | [TL-2] | ≤10% 阈值 |
-| TST-IT-01-B016 | BAS-002 §11 NFR-MNT-003 | DB 故障注入 | [TL-2] | 不影响既有 |
-| TST-IT-01-B017 | BAS-002 §11 NFR-MNT-006 | Helm chart 同源 | [TL-3] | 模板漂移检测 |
+| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|
+| TST-IT-01-B001 | BAS-002 §4 cargo-generate | template.git 字段 | [TL-2] | 端到端 | — | — |
+| TST-IT-01-B002 | BAS-002 §4 Helm chart 4 模板 | Deployment.replicas | [TL-3] | 渲染正确 | — | — |
+| TST-IT-01-B003 | BAS-002 §5 DB provisioning | SQL 脚本重入 | [TL-2] | 幂等 | — | — |
+| TST-IT-01-B004 | BAS-002 §5 Mount Record | frontmatter.id 唯一 | [TL-2] | 写入 | — | — |
+| TST-IT-01-B005 | BAS-002 §6 挂载检查清单 | 13 项 | [TL-2] | 全部 PASS | — | — |
+| TST-IT-01-B006 | BAS-002 §6.5 排他锁 | uq_deploy_runs_cluster_running | [TL-2] | 同 cluster 并发仅 1 成功 | — | — |
+| TST-IT-01-B007 | BAS-002 §6 网关路由 | routes[] 字段 | [TL-2] | 路由登记 | — | — |
+| TST-IT-01-B008 | BAS-002 §6 事件 Schema | schema_version 必填 | [TL-2] | 事件登记 | — | — |
+| TST-IT-01-B009 | BAS-002 §6 OTel | service.name 字段 | [TL-2] | 可观测接入 | — | — |
+| TST-IT-01-B010 | BAS-002 §7 灰度发布 | canary_weight 字段 | [TL-2] | 切 1%/10%/100% | — | — |
+| TST-IT-01-B011 | BAS-002 §7 流量回退 | 路由权重置 0 | [TL-2] | p99<10s | — | — |
+| TST-IT-01-B012 | BAS-002 §8 退场 | lifecycle_state=Decommissioning | [TL-2] | 端到端 | — | — |
+| TST-IT-01-B013 | BAS-002 §8 退场幂等 | re_decommission | [TL-2] | Ok(AlreadyGone) | — | — |
+| TST-IT-01-B014 | BAS-002 §10 ARC-018 5 要素 | DB+部署+gRPC+事件+可观测 | [TL-2] | 全部具备 | — | — |
+| TST-IT-01-B015 | BAS-002 §11 NFR-MNT-002 | error_rate_increment | [TL-2] | ≤10% 阈值 | — | — |
+| TST-IT-01-B016 | BAS-002 §11 NFR-MNT-003 | DB 故障注入 | [TL-2] | 不影响既有 | — | — |
+| TST-IT-01-B017 | BAS-002 §11 NFR-MNT-006 | Helm chart 同源 | [TL-3] | 模板漂移检测 | — | — |
 
 ## 3.3 模块 C：设计模式与算法（RGS-BAS-010 §3）
 
-| 用例 ID | 对应设计 | 测试目的 | 试验级别 |
-|---|---|---|---|
-| TST-IT-01-C001 | BAS-010 §3.1 Strategy/State | GoF 模式端到端 | [TL-2] |
-| TST-IT-01-C002 | BAS-010 §3.2 Outbox/CQRS | 架构模式 | [TL-2] |
-| TST-IT-01-C003 | BAS-010 §3.3 G-001 OCC | 冲突检测 | [TL-2] |
-| TST-IT-01-C004 | BAS-010 §3.3 G-002 Idempotency | 1000 次 | [TL-4] |
-| TST-IT-01-C005 | BAS-010 §3.9 Deterministic Gate | 智能层确定性 | [TL-2] |
-| TST-IT-01-C006 | BAS-010 §3.9 Dual-Mode OLU | 双模式切换 | [TL-2] |
-| TST-IT-01-C007 | BAS-010 §3.10 反模式 | 静态分析 | [TL-2] |
+| 用例 ID | 对应设计 | 测试目的 | 试验级别 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-01-C001 | BAS-010 §3.1 Strategy/State | GoF 模式端到端 | [TL-2] | — | — |
+| TST-IT-01-C002 | BAS-010 §3.2 Outbox/CQRS | 架构模式 | [TL-2] | — | — |
+| TST-IT-01-C003 | BAS-010 §3.3 G-001 OCC | 冲突检测 | [TL-2] | — | — |
+| TST-IT-01-C004 | BAS-010 §3.3 G-002 Idempotency | 1000 次 | [TL-4] | — | — |
+| TST-IT-01-C005 | BAS-010 §3.9 Deterministic Gate | 智能层确定性 | [TL-2] | — | — |
+| TST-IT-01-C006 | BAS-010 §3.9 Dual-Mode OLU | 双模式切换 | [TL-2] | — | — |
+| TST-IT-01-C007 | BAS-010 §3.10 反模式 | 静态分析 | [TL-2] | — | — |
 
 ## 3.4 模块 D：弹性容量分片（RGS-BAS-022 §3-§5）
 
-| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 |
-|---|---|---|---|---|
-| TST-IT-01-D001 | BAS-022 §3.1 一致性 hash | shard_id 字段 | [TL-2] | 8 shard 路由一致 |
-| TST-IT-01-D002 | BAS-022 §3.2 T0 5万 | capacity_tier 字段 | [TL-2] | 部署正确 |
-| TST-IT-01-D003 | BAS-022 §3.2 T1 20万 | 同上 | [TL-2] | 同上 |
-| TST-IT-01-D004 | BAS-022 §3.2 T2 100万 | 同上 | [TL-2] | 同上 |
-| TST-IT-01-D005 | BAS-022 §3.2 T3 1000万 | 同上 | [TL-2] | 同上 |
-| TST-IT-01-D006 | BAS-022 §3.3 跨分片 API | list_cross_shard | [TL-3] | 契约 |
-| TST-IT-01-D007 | BAS-022 §4.1 HPA | metrics_server URL | [TL-2] | 触发 |
-| TST-IT-01-D008 | BAS-022 §4.2 预测预热 | predict_window 字段 | [TL-2] | 流量预判 |
-| TST-IT-01-D009 | BAS-022 §5 NFR-CAP-001~005 | 跨分片 BZ-001 | [TL-4] | 守恒 |
-| TST-IT-01-D010 | BAS-022 §5 NFR-CAP-002 | 突发流量 | [TL-2] | 不中断 |
+| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|
+| TST-IT-01-D001 | BAS-022 §3.1 一致性 hash | shard_id 字段 | [TL-2] | 8 shard 路由一致 | — | — |
+| TST-IT-01-D002 | BAS-022 §3.2 T0 5万 | capacity_tier 字段 | [TL-2] | 部署正确 | — | — |
+| TST-IT-01-D003 | BAS-022 §3.2 T1 20万 | 同上 | [TL-2] | 同上 | — | — |
+| TST-IT-01-D004 | BAS-022 §3.2 T2 100万 | 同上 | [TL-2] | 同上 | — | — |
+| TST-IT-01-D005 | BAS-022 §3.2 T3 1000万 | 同上 | [TL-2] | 同上 | — | — |
+| TST-IT-01-D006 | BAS-022 §3.3 跨分片 API | list_cross_shard | [TL-3] | 契约 | — | — |
+| TST-IT-01-D007 | BAS-022 §4.1 HPA | metrics_server URL | [TL-2] | 触发 | — | — |
+| TST-IT-01-D008 | BAS-022 §4.2 预测预热 | predict_window 字段 | [TL-2] | 流量预判 | — | — |
+| TST-IT-01-D009 | BAS-022 §5 NFR-CAP-001~005 | 跨分片 BZ-001 | [TL-4] | 守恒 | — | — |
+| TST-IT-01-D010 | BAS-022 §5 NFR-CAP-002 | 突发流量 | [TL-2] | 不中断 | — | — |
 
 ## 3.5 模块 E：请求处理链（RGS-BAS-023 §3-§5）
 
-| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 |
-|---|---|---|---|---|
-| TST-IT-01-E001 | BAS-023 §3.1 全部服务接入 | 5/5 接入 | [TL-2] | 端到端 |
-| TST-IT-01-E002 | BAS-023 §3.2 鉴权失败短路 | 401 | [TL-2] | 不进业务 |
-| TST-IT-01-E003 | BAS-023 §3.3 限流 | 100/秒 | [TL-2] | 跨服务 |
-| TST-IT-01-E004 | BAS-023 §3.4 幂等 | idempotency_key | [TL-2] | 跨服务 |
-| TST-IT-01-E005 | BAS-023 §4 字段级脱敏 | password→*** | [TL-2] | 跨服务 |
-| TST-IT-01-E006 | BAS-023 §5 错误格式 | {code, message} | [TL-2] | 5 服务统一 |
-| TST-IT-01-E007 | BAS-023 §6 脚手架强制 | 新 App 自动接入 | [TL-2] | 挂载 |
-| TST-IT-01-E008 | BAS-023 §6 旁路禁止 | bypass 拒绝 | [TL-2] | 安全合规 |
+| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|
+| TST-IT-01-E001 | BAS-023 §3.1 全部服务接入 | 5/5 接入 | [TL-2] | 端到端 | — | — |
+| TST-IT-01-E002 | BAS-023 §3.2 鉴权失败短路 | 401 | [TL-2] | 不进业务 | — | — |
+| TST-IT-01-E003 | BAS-023 §3.3 限流 | 100/秒 | [TL-2] | 跨服务 | — | — |
+| TST-IT-01-E004 | BAS-023 §3.4 幂等 | idempotency_key | [TL-2] | 跨服务 | — | — |
+| TST-IT-01-E005 | BAS-023 §4 字段级脱敏 | password→*** | [TL-2] | 跨服务 | — | — |
+| TST-IT-01-E006 | BAS-023 §5 错误格式 | {code, message} | [TL-2] | 5 服务统一 | — | — |
+| TST-IT-01-E007 | BAS-023 §6 脚手架强制 | 新 App 自动接入 | [TL-2] | 挂载 | — | — |
+| TST-IT-01-E008 | BAS-023 §6 旁路禁止 | bypass 拒绝 | [TL-2] | 安全合规 | — | — |
 
 ## 3.6 模块 F：集群部署编排（RGS-BAS-024 §3-§10）
 
-| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 |
-|---|---|---|---|---|
-| TST-IT-01-F001 | BAS-024 §3 清单 | cluster_name, apps[] | [TL-2] | 解析 |
-| TST-IT-01-F002 | BAS-024 §3 | 缺 cluster_name | [TL-2] | 拒 |
-| TST-IT-01-F003 | BAS-024 §4 DAG | 拓扑排序 | [TL-2] | 正确 |
-| TST-IT-01-F004 | BAS-024 §4 | A→B→A 循环 | [TL-2] | Err(Cycle) |
-| TST-IT-01-F005 | BAS-024 §5 状态机 | run_id 字段 | [TL-2] | 完整迁移 |
-| TST-IT-01-F006 | BAS-024 §6 排他约束 | uq_deploy_runs_cluster_running | [TL-2] | 同 cluster 1 RUNNING |
-| TST-IT-01-F007 | BAS-024 §7 dry-run | --dry-run 字段 | [TL-2] | 不真部署 |
-| TST-IT-01-F008 | BAS-024 §8 幂等编排 | resume_token | [TL-2] | 中断续 |
-| TST-IT-01-F009 | BAS-024 §8 回滚 | --rollback 字段 | [TL-2] | 失败回滚 |
-| TST-IT-01-F010 | BAS-024 §9 联动脚手架 | new_app 字段 | [TL-2] | 入清单 |
-| TST-IT-01-F011 | BAS-024 §10 跨 cluster | cluster_name 多值 | [TL-2] | 编排 |
-| TST-IT-01-F012 | BAS-024 §10 工具无关 | CLI/Helm 字段 | [TL-3] | 同步 |
+| 用例 ID | 对应设计 | 字段级 | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|
+| TST-IT-01-F001 | BAS-024 §3 清单 | cluster_name, apps[] | [TL-2] | 解析 | — | — |
+| TST-IT-01-F002 | BAS-024 §3 | 缺 cluster_name | [TL-2] | 拒 | — | — |
+| TST-IT-01-F003 | BAS-024 §4 DAG | 拓扑排序 | [TL-2] | 正确 | — | — |
+| TST-IT-01-F004 | BAS-024 §4 | A→B→A 循环 | [TL-2] | Err(Cycle) | — | — |
+| TST-IT-01-F005 | BAS-024 §5 状态机 | run_id 字段 | [TL-2] | 完整迁移 | — | — |
+| TST-IT-01-F006 | BAS-024 §6 排他约束 | uq_deploy_runs_cluster_running | [TL-2] | 同 cluster 1 RUNNING | — | — |
+| TST-IT-01-F007 | BAS-024 §7 dry-run | --dry-run 字段 | [TL-2] | 不真部署 | — | — |
+| TST-IT-01-F008 | BAS-024 §8 幂等编排 | resume_token | [TL-2] | 中断续 | — | — |
+| TST-IT-01-F009 | BAS-024 §8 回滚 | --rollback 字段 | [TL-2] | 失败回滚 | — | — |
+| TST-IT-01-F010 | BAS-024 §9 联动脚手架 | new_app 字段 | [TL-2] | 入清单 | — | — |
+| TST-IT-01-F011 | BAS-024 §10 跨 cluster | cluster_name 多值 | [TL-2] | 编排 | — | — |
+| TST-IT-01-F012 | BAS-024 §10 工具无关 | CLI/Helm 字段 | [TL-3] | 同步 | — | — |
 
 ## 3.7 跨服务业务规则（TL-4）
 
-| 用例 ID | 业务规则 | 试验级别 | 跨服务 |
-|---|---|---|---|
-| TST-IT-01-100 | BZ-001 货币非负 | [TL-4] | 5 服务 |
-| TST-IT-01-101 | BZ-002 支付幂等 | [TL-4] | 跨服务 |
-| TST-IT-01-102 | BZ-003 流水复原 | [TL-4] | 跨服务 |
-| TST-IT-01-103 | BZ-007 交易原子性 | [TL-4] | 跨 Saga |
-| TST-IT-01-104 | ARC-005 epoch | [TL-4] | 跨服务 |
-| TST-IT-01-105 | ARC-007 实时不同步 DB | [TL-4] | 跨服务 |
-| TST-IT-01-106 | ARC-009 OCC | [TL-4] | 跨服务 |
+| 用例 ID | 业务规则 | 试验级别 | 跨服务 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-01-100 | BZ-001 货币非负 | [TL-4] | 5 服务 | — | — |
+| TST-IT-01-101 | BZ-002 支付幂等 | [TL-4] | 跨服务 | — | — |
+| TST-IT-01-102 | BZ-003 流水复原 | [TL-4] | 跨服务 | — | — |
+| TST-IT-01-103 | BZ-007 交易原子性 | [TL-4] | 跨 Saga | — | — |
+| TST-IT-01-104 | ARC-005 epoch | [TL-4] | 跨服务 | — | — |
+| TST-IT-01-105 | ARC-007 实时不同步 DB | [TL-4] | 跨服务 | — | — |
+| TST-IT-01-106 | ARC-009 OCC | [TL-4] | 跨服务 | — | — |
 
 ## 3.8 跨服务状态机（TL-5）
 
-| 用例 ID | 状态机 | 试验级别 |
-|---|---|---|
-| TST-IT-01-110 | ST-001 跨服务 | [TL-5] |
-| TST-IT-01-111 | ST-002 跨服务 | [TL-5] |
-| TST-IT-01-112 | ST-003 跨 Saga | [TL-5] |
-| TST-IT-01-113 | ST-005 跨服务 | [TL-5] |
+| 用例 ID | 状态机 | 试验级别 | シナリオ | テストデータ |
+|---|---|---|---|---|
+| TST-IT-01-110 | ST-001 跨服务 | [TL-5] | — | — |
+| TST-IT-01-111 | ST-002 跨服务 | [TL-5] | — | — |
+| TST-IT-01-112 | ST-003 跨 Saga | [TL-5] | — | — |
+| TST-IT-01-113 | ST-005 跨服务 | [TL-5] | — | — |
 
 ## 3.9 ARC-013 死锁防止跨服务（BAS-001 §7.2.1）
 
-| 用例 ID | 测试目的 | 试验级别 |
-|---|---|---|
-| TST-IT-01-120 | A→B 不形成同步循环 | [TL-2] |
-| TST-IT-01-121 | 优先级不同独立通道 | [TL-2] |
-| TST-IT-01-122 | 全部 mailbox bound | [TL-2] |
+| 用例 ID | 测试目的 | 试验级别 | シナリオ | テストデータ |
+|---|---|---|---|---|
+| TST-IT-01-120 | A→B 不形成同步循环 | [TL-2] | — | — |
+| TST-IT-01-121 | 优先级不同独立通道 | [TL-2] | — | — |
+| TST-IT-01-122 | 全部 mailbox bound | [TL-2] | — | — |
 
 ## 3.10 模块 J：ADR 决策验证（集成层级）
 
-| 用例 ID | ADR | 集成层验证 | 试验级别 |
-|---|---|---|---|
-| TST-IT-01-K001 | ADR-0001 Actor 粒度 | RT 进程崩溃后 EconomyService gRPC 仍接受 RT-001 重连 epoch | [TL-2] |
-| TST-IT-01-K002 | ADR-0002 状态同步 | 客户端 SDK 与 RT 端到端协议字段一致 | [TL-2] |
-| TST-IT-01-K003 | ADR-0007 道具货币统合 | inventory + wallet 同 schema | [TL-2] |
-| TST-IT-01-K004 | ADR-0008 中间件判定 | 新中间件无 ADR 被 CLI 拒绝 | [TL-2] |
-| TST-IT-01-K005 | ADR-0015 Saga 边界 | 实时路径 gRPC 不调工作流 | [TL-2] |
-| TST-IT-01-K006 | ADR-0020 拒绝动态库 | dlopen 调用被拒 | [TL-2] |
-| TST-IT-01-K007 | ADR-0022 业务逻辑不入库 | 存储过程仅 CRUD | [TL-2] |
-| TST-IT-01-K008 | ADR-0023 客户端核心逻辑 | 三引擎同输入 | [TL-2] |
-| TST-IT-01-K009 | ADR-0026 智能层只读 | 不写经济 | [TL-2] |
-| TST-IT-01-K010 | ADR-0029 确定性闸门 | L4 写必经 | [TL-2] |
+| 用例 ID | ADR | 集成层验证 | 试验级别 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-01-K001 | ADR-0001 Actor 粒度 | RT 进程崩溃后 EconomyService gRPC 仍接受 RT-001 重连 epoch | [TL-2] | — | — |
+| TST-IT-01-K002 | ADR-0002 状态同步 | 客户端 SDK 与 RT 端到端协议字段一致 | [TL-2] | — | — |
+| TST-IT-01-K003 | ADR-0007 道具货币统合 | inventory + wallet 同 schema | [TL-2] | — | — |
+| TST-IT-01-K004 | ADR-0008 中间件判定 | 新中间件无 ADR 被 CLI 拒绝 | [TL-2] | — | — |
+| TST-IT-01-K005 | ADR-0015 Saga 边界 | 实时路径 gRPC 不调工作流 | [TL-2] | — | — |
+| TST-IT-01-K006 | ADR-0020 拒绝动态库 | dlopen 调用被拒 | [TL-2] | — | — |
+| TST-IT-01-K007 | ADR-0022 业务逻辑不入库 | 存储过程仅 CRUD | [TL-2] | — | — |
+| TST-IT-01-K008 | ADR-0023 客户端核心逻辑 | 三引擎同输入 | [TL-2] | — | — |
+| TST-IT-01-K009 | ADR-0026 智能层只读 | 不写经济 | [TL-2] | — | — |
+| TST-IT-01-K010 | ADR-0029 确定性闸门 | L4 写必经 | [TL-2] | — | — |
 
 ---
 

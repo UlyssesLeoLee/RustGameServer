@@ -18,18 +18,18 @@
 
 ## 2. 测试用例
 
-| 用例 ID | 试验级别 | 测试目的 |
-|---|---|---|
-| TST-IT-04-C001 | [TL-2] | 已批准自托管 `DistributionBackend` → 源站端到端 |
-| TST-IT-04-C002 | [TL-2] | 商业 CDN 后端可插拔且必须经 ApprovedBackendProfile 门禁 |
-| TST-IT-04-C003 | [TL-3] | manifest HTTP 契约 |
-| TST-IT-04-C004 | [TL-3] | patch HTTP 契约 |
-| TST-IT-04-C005 | [TL-2] | 灰度推送：canary → stable 切换 |
-| TST-IT-04-C006 | [TL-2] | 强制更新：客户端低于 min_supported_version |
-| TST-IT-04-C007 | [TL-2] | 资源签名 Ed25519 验证 |
-| TST-IT-04-C008 | [TL-2] | 跨 region 一致性 |
-| TST-IT-04-C009 | [TL-2] | 已批准源站回源失败降级至上一稳定版 |
-| TST-IT-04-C010 | [TL-2] | ARC-045-1/2 后端抽象层及 BOM/许可证/ADR 启用门禁 |
+| 用例 ID | 试验级别 | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|
+| TST-IT-04-C001 | [TL-2] | 已批准自托管 `DistributionBackend` → 源站端到端 | — | — |
+| TST-IT-04-C002 | [TL-2] | 商业 CDN 后端可插拔且必须经 ApprovedBackendProfile 门禁 | — | — |
+| TST-IT-04-C003 | [TL-3] | manifest HTTP 契约 | — | — |
+| TST-IT-04-C004 | [TL-3] | patch HTTP 契约 | — | — |
+| TST-IT-04-C005 | [TL-2] | 灰度推送：canary → stable 切换 | — | — |
+| TST-IT-04-C006 | [TL-2] | 强制更新：客户端低于 min_supported_version | — | — |
+| TST-IT-04-C007 | [TL-2] | 资源签名 Ed25519 验证 | — | — |
+| TST-IT-04-C008 | [TL-2] | 跨 region 一致性 | — | — |
+| TST-IT-04-C009 | [TL-2] | 已批准源站回源失败降级至上一稳定版 | — | — |
+| TST-IT-04-C010 | [TL-2] | ARC-045-1/2 后端抽象层及 BOM/许可证/ADR 启用门禁 | — | — |
 
 ## 3. 追溯性
 

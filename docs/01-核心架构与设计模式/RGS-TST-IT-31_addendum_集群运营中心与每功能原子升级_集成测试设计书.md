@@ -22,6 +22,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。覆盖 AdminService ↔ ClusterOpsService 集成、ClusterOpsService ↔ admin_db 集成、CEM 探针 ↔ 事件总线集成、PFAU ↔ Helm Release 集成、ARC-018/021/042 联动集成 |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列；新增 §3.0 场景集与测试数据集占位章节。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 审批栏
 
@@ -154,101 +155,105 @@ BAS-031 (§2 组件图, §3 Schema, §4 状态机, §5 探针, §6 API, §9 联�
 
 ## 3. 测试用例
 
+## 3.0 场景集与测试数据集占位
+
+本设计书的场景集（S-NNN）与测试数据集（TD-NNN）由本主题域负责人在用例实装阶段补充。参考主模板 `RGS-TST-IT-00 §3.0` 的格式与字段约定。占位期间, 用例表内「シナリオ」「テストデータ」列以 `—` 标记。
+
 ## 3.1 模块 A：AdminService ↔ ClusterOpsService 集成（RGS-BAS-031 §6.1, §9）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-A001 | BAS-031 §6.1 gRPC 方法列表 | AdminService 转发 | RegisterFeature 端到端 | I | AdminService.RegisterFeature → ClusterOpsService.RegisterFeature | 字段一致, feature_registry 写入 | 转发契约 | ◎ |
-| TST-IT-31-A002 | BAS-031 §6.2.1 | 同上 | feature_id 唯一性跨进程 | I | 并发两次 RegisterFeature 同 feature_id | 一个成功, 一个返回 AlreadyExists | 并发安全 | ◎ |
-| TST-IT-31-A003 | BAS-031 §6.1 | 同上 | 流式响应跨进程 | I | DeclareFeatureUpgrade → Server stream | 流返回 PfaRunStateUpdate 序列 | 流式契约 | ◎ |
-| TST-IT-31-A004 | BAS-031 §6.1 | 同上 | RBAC 跨进程 | I | cluster_operator 调 RollbackFeature | AdminService 拒绝 (RBAC) | NFR-OPS-004 | ◎ |
-| TST-IT-31-A005 | BAS-031 §6.3 错误码 | 同上 | NOT_FOUND 跨进程 | I | 查找不存在的 feature_id | gRPC status = NOT_FOUND | 错误码 | ◎ |
-| TST-IT-31-A006 | BAS-031 §6.3 | 同上 | IDEMPOTENT_REPLAY 跨进程 | I | 重复 request_id | 第二次返回 IDEMPOTENT_REPLAY | FR-API-003 | ◎ |
-| TST-IT-31-A007 | BAS-031 §6.1 | ClusterOpsService 崩溃 | AdminService 优雅降级 | E | ClusterOpsService 进程崩溃 | AdminService 返回 UNAVAILABLE, 不影响 AdminService 自身 | 故障隔离 | ◎ |
-| TST-IT-31-A008 | BAS-031 §9.1 | COC UI → AdminService | COC UI 经 AdminService 唯一入口 | I | COC UI 调 RegisterFeature | 流量必经 AdminService, ClusterOpsService 收到的是 AdminService 转发 | 强制联动 | ◎ |
-| TST-IT-31-A009 | BAS-031 §9.1 | 渗透测试 | COC UI 不持有 K8s 凭证 | I | 检查 COC UI ServiceAccount | 无 K8s RBAC 绑定 | NFR-OPS-004 | ◎ |
-| TST-IT-31-A010 | BAS-031 §6.1 | ClusterOpsService 启动慢 | 启动期间请求排队 | E | ClusterOpsService 启动 30 秒, AdminService 立即发请求 | 请求排队直到 ClusterOpsService 就绪 | 启动顺序 | ○ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-A001 | BAS-031 §6.1 gRPC 方法列表 | AdminService 转发 | RegisterFeature 端到端 | I | — | — | AdminService.RegisterFeature → ClusterOpsService.RegisterFeature | 字段一致, feature_registry 写入 | 转发契约 | ◎ |
+| TST-IT-31-A002 | BAS-031 §6.2.1 | 同上 | feature_id 唯一性跨进程 | I | — | — | 并发两次 RegisterFeature 同 feature_id | 一个成功, 一个返回 AlreadyExists | 并发安全 | ◎ |
+| TST-IT-31-A003 | BAS-031 §6.1 | 同上 | 流式响应跨进程 | I | — | — | DeclareFeatureUpgrade → Server stream | 流返回 PfaRunStateUpdate 序列 | 流式契约 | ◎ |
+| TST-IT-31-A004 | BAS-031 §6.1 | 同上 | RBAC 跨进程 | I | — | — | cluster_operator 调 RollbackFeature | AdminService 拒绝 (RBAC) | NFR-OPS-004 | ◎ |
+| TST-IT-31-A005 | BAS-031 §6.3 错误码 | 同上 | NOT_FOUND 跨进程 | I | — | — | 查找不存在的 feature_id | gRPC status = NOT_FOUND | 错误码 | ◎ |
+| TST-IT-31-A006 | BAS-031 §6.3 | 同上 | IDEMPOTENT_REPLAY 跨进程 | I | — | — | 重复 request_id | 第二次返回 IDEMPOTENT_REPLAY | FR-API-003 | ◎ |
+| TST-IT-31-A007 | BAS-031 §6.1 | ClusterOpsService 崩溃 | AdminService 优雅降级 | E | — | — | ClusterOpsService 进程崩溃 | AdminService 返回 UNAVAILABLE, 不影响 AdminService 自身 | 故障隔离 | ◎ |
+| TST-IT-31-A008 | BAS-031 §9.1 | COC UI → AdminService | COC UI 经 AdminService 唯一入口 | I | — | — | COC UI 调 RegisterFeature | 流量必经 AdminService, ClusterOpsService 收到的是 AdminService 转发 | 强制联动 | ◎ |
+| TST-IT-31-A009 | BAS-031 §9.1 | 渗透测试 | COC UI 不持有 K8s 凭证 | I | — | — | 检查 COC UI ServiceAccount | 无 K8s RBAC 绑定 | NFR-OPS-004 | ◎ |
+| TST-IT-31-A010 | BAS-031 §6.1 | ClusterOpsService 启动慢 | 启动期间请求排队 | E | — | — | ClusterOpsService 启动 30 秒, AdminService 立即发请求 | 请求排队直到 ClusterOpsService 就绪 | 启动顺序 | ○ |
 
 ## 3.2 模块 B：ClusterOpsService ↔ admin_db 集成（RGS-BAS-031 §3）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-B001 | BAS-031 §3.1 feature_registry | admin_db | Schema 创建 | N | 应用迁移 | 全部表/索引/trigger/视图创建成功 | 迁移正确 | ◎ |
-| TST-IT-31-B002 | BAS-031 §3.2 trigger | 同上 | append-only trigger 触发 | I | ClusterOpsService 尝试 UPDATE feature_version_history | trigger 抛出 Exception | FR-DB-001 | ◎ |
-| TST-IT-31-B003 | BAS-031 §3.3 pfa_run_state | 同上 | 状态机迁移持久化 | S | 启动 PFAU, 状态切换多次 | 每次切换后 admin_db 状态一致 | 持久化 | ◎ |
-| TST-IT-31-B004 | BAS-031 §3.3 | 同上 | 跨节点确认超时持久化 | B | 模拟超时, 状态变 paused | admin_db 写入 pause_reason | 持久化超时原因 | ◎ |
-| TST-IT-31-B005 | BAS-031 §3.3 | 同上 | 并发 PFAU 启动互斥 | I | 同一 feature_id 并发启动 2 个 PFAU | 第二个返回 PFAU_ALREADY_RUNNING | 并发安全 | ◎ |
-| TST-IT-31-B006 | BAS-031 §3.1 | 同上 | feature_registry CRUD 事务 | I | 创建 + 立即查询 | 事务隔离, 立即可见 | 事务边界 | ◎ |
-| TST-IT-31-B007 | BAS-031 §3.4 event_schema_registry | 同上 | 事件注册表写入 | N | RegisterEvent 调用 | event_type 写入, schema_ref 校验通过 | 写入契约 | ◎ |
-| TST-IT-31-B008 | BAS-031 §3.4 | 同上 | schema_ref 引用源码 commit | I | 提交 schema_ref=invalid_hash | 拒绝, 错误信息指明 | FR-CEM-011 | ◎ |
-| TST-IT-31-B009 | BAS-031 §3.5 event_dlq_view | 同上 | DLQ 视图查询 | N | 制造死信, 查视图 | last_1h_count 正确 | 视图正确 | ◎ |
-| TST-IT-31-B010 | BAS-031 §3.6 coc_audit_view | 同上 | 审计视图查询 | N | 通过 AdminService 写操作, 查视图 | 视图返回 coc.% 操作 | FR-COC-040 | ◎ |
-| TST-IT-31-B011 | BAS-031 §3.3 | 同上 | last_heartbeat_at 心跳更新 | I | 运行时上报心跳, 状态机推进 | heartbeat 字段更新 | 跨节点确认 | ◎ |
-| TST-IT-31-B012 | BAS-031 §3.1 | admin_db 故障 | ClusterOpsService 优雅降级 | E | 杀掉 admin_db | ClusterOpsService 返回 UNAVAILABLE, PFAU 状态保留 (待 DB 恢复后继续) | 故障恢复 | ◎ |
-| TST-IT-31-B013 | BAS-031 §3.2 | 同上 | version_history 历史不可变 | I | PFAU 完成后, 尝试修改历史记录 | trigger 拒绝 | 不可变历史 | ◎ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-B001 | BAS-031 §3.1 feature_registry | admin_db | Schema 创建 | N | — | — | 应用迁移 | 全部表/索引/trigger/视图创建成功 | 迁移正确 | ◎ |
+| TST-IT-31-B002 | BAS-031 §3.2 trigger | 同上 | append-only trigger 触发 | I | — | — | ClusterOpsService 尝试 UPDATE feature_version_history | trigger 抛出 Exception | FR-DB-001 | ◎ |
+| TST-IT-31-B003 | BAS-031 §3.3 pfa_run_state | 同上 | 状态机迁移持久化 | S | — | — | 启动 PFAU, 状态切换多次 | 每次切换后 admin_db 状态一致 | 持久化 | ◎ |
+| TST-IT-31-B004 | BAS-031 §3.3 | 同上 | 跨节点确认超时持久化 | B | — | — | 模拟超时, 状态变 paused | admin_db 写入 pause_reason | 持久化超时原因 | ◎ |
+| TST-IT-31-B005 | BAS-031 §3.3 | 同上 | 并发 PFAU 启动互斥 | I | — | — | 同一 feature_id 并发启动 2 个 PFAU | 第二个返回 PFAU_ALREADY_RUNNING | 并发安全 | ◎ |
+| TST-IT-31-B006 | BAS-031 §3.1 | 同上 | feature_registry CRUD 事务 | I | — | — | 创建 + 立即查询 | 事务隔离, 立即可见 | 事务边界 | ◎ |
+| TST-IT-31-B007 | BAS-031 §3.4 event_schema_registry | 同上 | 事件注册表写入 | N | — | — | RegisterEvent 调用 | event_type 写入, schema_ref 校验通过 | 写入契约 | ◎ |
+| TST-IT-31-B008 | BAS-031 §3.4 | 同上 | schema_ref 引用源码 commit | I | — | — | 提交 schema_ref=invalid_hash | 拒绝, 错误信息指明 | FR-CEM-011 | ◎ |
+| TST-IT-31-B009 | BAS-031 §3.5 event_dlq_view | 同上 | DLQ 视图查询 | N | — | — | 制造死信, 查视图 | last_1h_count 正确 | 视图正确 | ◎ |
+| TST-IT-31-B010 | BAS-031 §3.6 coc_audit_view | 同上 | 审计视图查询 | N | — | — | 通过 AdminService 写操作, 查视图 | 视图返回 coc.% 操作 | FR-COC-040 | ◎ |
+| TST-IT-31-B011 | BAS-031 §3.3 | 同上 | last_heartbeat_at 心跳更新 | I | — | — | 运行时上报心跳, 状态机推进 | heartbeat 字段更新 | 跨节点确认 | ◎ |
+| TST-IT-31-B012 | BAS-031 §3.1 | admin_db 故障 | ClusterOpsService 优雅降级 | E | — | — | 杀掉 admin_db | ClusterOpsService 返回 UNAVAILABLE, PFAU 状态保留 (待 DB 恢复后继续) | 故障恢复 | ◎ |
+| TST-IT-31-B013 | BAS-031 §3.2 | 同上 | version_history 历史不可变 | I | — | — | PFAU 完成后, 尝试修改历史记录 | trigger 拒绝 | 不可变历史 | ◎ |
 
 ## 3.3 模块 C：CEM 探针订阅器 ↔ 事件总线集成（RGS-BAS-031 §5）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-C001 | BAS-031 §5.2 探针工作流 | 事件总线 (NATS) | 探针订阅正常事件 | I | 生产 100 个已注册事件 | 探针 UPSERT 100 次 (批合并后 1 次) | 探针工作流 | ◎ |
-| TST-IT-31-C002 | BAS-031 §5.2 | 同上 | 探针订阅未注册事件 | A | 生产 10 个未注册事件 | 探针写告警, 不阻塞 | RSK-COC-001 | ◎ |
-| TST-IT-31-C003 | BAS-031 §5.3 | 同上 | 探针不阻塞正常消费者 | I | 探针慢处理, 正常消费者速度 | 正常消费者 lag=0 | FR-API-012 | ◎ |
-| TST-IT-31-C004 | BAS-031 §5.3 | 同上 | 探针独立 Consumer Group | I | 启动两个探针实例 | 各自 offset 独立 | FR-API-012 | ◎ |
-| TST-IT-31-C005 | BAS-031 §5.2 | 同上 | 探针解析 event_type 失败不崩溃 | E | 生产畸形事件 | 探针记录错误, 继续监听 | 鲁棒性 | ◎ |
-| TST-IT-31-C006 | BAS-031 §5.3 | 同上 | 探针批量 UPSERT 5 秒窗口 | I | 1 秒内 1000 事件 | 1 次 DB UPSERT | 批处理 | ◎ |
-| TST-IT-31-C007 | BAS-031 §5.2 | 同上 | event_producer_registry 更新 | I | 生产事件 | last_seen_at 更新, app_version 正确 | 写入契约 | ◎ |
-| TST-IT-31-C008 | BAS-031 §5.2 | 同上 | 探针事件总线故障 | E | 杀掉事件总线 | 探针重连, 不丢失告警通路 | 故障恢复 | ◎ |
-| TST-IT-31-C009 | BAS-031 §5.2 | 同上 | 探针启动顺序 | I | 事件总线先于探针启动 | 探针自动重连到事件总线 | 启动顺序 | ○ |
-| TST-IT-31-C010 | BAS-031 §5.2 | 同上 | 探针 ack 模式 | I | 探针确认事件后丢弃 | 探针 ack 速度快, 不影响正常消费者 | ack 模式 | ◎ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-C001 | BAS-031 §5.2 探针工作流 | 事件总线 (NATS) | 探针订阅正常事件 | I | — | — | 生产 100 个已注册事件 | 探针 UPSERT 100 次 (批合并后 1 次) | 探针工作流 | ◎ |
+| TST-IT-31-C002 | BAS-031 §5.2 | 同上 | 探针订阅未注册事件 | A | — | — | 生产 10 个未注册事件 | 探针写告警, 不阻塞 | RSK-COC-001 | ◎ |
+| TST-IT-31-C003 | BAS-031 §5.3 | 同上 | 探针不阻塞正常消费者 | I | — | — | 探针慢处理, 正常消费者速度 | 正常消费者 lag=0 | FR-API-012 | ◎ |
+| TST-IT-31-C004 | BAS-031 §5.3 | 同上 | 探针独立 Consumer Group | I | — | — | 启动两个探针实例 | 各自 offset 独立 | FR-API-012 | ◎ |
+| TST-IT-31-C005 | BAS-031 §5.2 | 同上 | 探针解析 event_type 失败不崩溃 | E | — | — | 生产畸形事件 | 探针记录错误, 继续监听 | 鲁棒性 | ◎ |
+| TST-IT-31-C006 | BAS-031 §5.3 | 同上 | 探针批量 UPSERT 5 秒窗口 | I | — | — | 1 秒内 1000 事件 | 1 次 DB UPSERT | 批处理 | ◎ |
+| TST-IT-31-C007 | BAS-031 §5.2 | 同上 | event_producer_registry 更新 | I | — | — | 生产事件 | last_seen_at 更新, app_version 正确 | 写入契约 | ◎ |
+| TST-IT-31-C008 | BAS-031 §5.2 | 同上 | 探针事件总线故障 | E | — | — | 杀掉事件总线 | 探针重连, 不丢失告警通路 | 故障恢复 | ◎ |
+| TST-IT-31-C009 | BAS-031 §5.2 | 同上 | 探针启动顺序 | I | — | — | 事件总线先于探针启动 | 探针自动重连到事件总线 | 启动顺序 | ○ |
+| TST-IT-31-C010 | BAS-031 §5.2 | 同上 | 探针 ack 模式 | I | — | — | 探针确认事件后丢弃 | 探针 ack 速度快, 不影响正常消费者 | ack 模式 | ◎ |
 
 ## 3.4 模块 D：PFAU ↔ Helm Release 集成（RGS-BAS-031 §9.2 联动）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-D001 | BAS-031 §9.2 | Helm Release (假) | PFAU 启动调用 Helm | I | DeclareFeatureUpgrade → Helm install | Helm 收到 install 命令, 成功后 PFAU 推进 | 联动正确 | ◎ |
-| TST-IT-31-D002 | BAS-031 §9.2 | 同上 | Helm 失败 → PFAU 失败 | E | Helm install 失败 | PFAU 进入 paused, pause_reason='helm_install_failed' | 错误传播 | ◎ |
-| TST-IT-31-D003 | BAS-031 §9.2 | 同上 | Helm 成功 → 触发节点确认 | I | Helm install 成功, 模拟节点上报 | 节点确认后 PFAU 推进 | 跨节点确认 | ◎ |
-| TST-IT-31-D004 | BAS-031 §4.2 | 同上 | 灰度批次与 Helm 升级对应 | I | 5 批灰度, 每批调 Helm upgrade | 5 次 Helm upgrade, 每次只升级当前批次节点 | 灰度实现 | ◎ |
-| TST-IT-31-D005 | BAS-031 §9.2 | 同上 | 节点失联触发自动回滚 | E | 模拟 K8s Pod 异常退出 | Helm rollback 触发, PFAU 回到 rolled_back | FR-PFAU-022 | ◎ |
-| TST-IT-31-D006 | BAS-031 §9.2 | 同上 | 自动回滚后状态机 | S | 自动回滚完成 | feature_registry.current_version 回到 from_version | 一致性 | ◎ |
-| TST-IT-31-D007 | BAS-031 §9.2 | 同上 | 灰度批次观察期强制 | B | 观察期 5 秒, 立即推进 | Helm 不被调用下一批, 等待观察期 | 观察期强制 | ◎ |
-| TST-IT-31-D008 | BAS-031 §9.2 | 同上 | 跨节点确认超时 | B | 1 节点 120 秒不上报 | PFAU paused, Helm 不再调升级 | 超时逻辑 | ◎ |
-| TST-IT-31-D009 | BAS-031 §9.2 | 同上 | Helm release 历史记录 | I | 完成一次升级 | Helm release 包含 pfa_run_id 标签 | 可追溯 | ◎ |
-| TST-IT-31-D010 | BAS-031 §9.2 | 同上 | 人工 rollback → Helm rollback | I | 人工触发 rollback | Helm rollback 到 from_version revision | 人工路径 | ◎ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-D001 | BAS-031 §9.2 | Helm Release (假) | PFAU 启动调用 Helm | I | — | — | DeclareFeatureUpgrade → Helm install | Helm 收到 install 命令, 成功后 PFAU 推进 | 联动正确 | ◎ |
+| TST-IT-31-D002 | BAS-031 §9.2 | 同上 | Helm 失败 → PFAU 失败 | E | — | — | Helm install 失败 | PFAU 进入 paused, pause_reason='helm_install_failed' | 错误传播 | ◎ |
+| TST-IT-31-D003 | BAS-031 §9.2 | 同上 | Helm 成功 → 触发节点确认 | I | — | — | Helm install 成功, 模拟节点上报 | 节点确认后 PFAU 推进 | 跨节点确认 | ◎ |
+| TST-IT-31-D004 | BAS-031 §4.2 | 同上 | 灰度批次与 Helm 升级对应 | I | — | — | 5 批灰度, 每批调 Helm upgrade | 5 次 Helm upgrade, 每次只升级当前批次节点 | 灰度实现 | ◎ |
+| TST-IT-31-D005 | BAS-031 §9.2 | 同上 | 节点失联触发自动回滚 | E | — | — | 模拟 K8s Pod 异常退出 | Helm rollback 触发, PFAU 回到 rolled_back | FR-PFAU-022 | ◎ |
+| TST-IT-31-D006 | BAS-031 §9.2 | 同上 | 自动回滚后状态机 | S | — | — | 自动回滚完成 | feature_registry.current_version 回到 from_version | 一致性 | ◎ |
+| TST-IT-31-D007 | BAS-031 §9.2 | 同上 | 灰度批次观察期强制 | B | — | — | 观察期 5 秒, 立即推进 | Helm 不被调用下一批, 等待观察期 | 观察期强制 | ◎ |
+| TST-IT-31-D008 | BAS-031 §9.2 | 同上 | 跨节点确认超时 | B | — | — | 1 节点 120 秒不上报 | PFAU paused, Helm 不再调升级 | 超时逻辑 | ◎ |
+| TST-IT-31-D009 | BAS-031 §9.2 | 同上 | Helm release 历史记录 | I | — | — | 完成一次升级 | Helm release 包含 pfa_run_id 标签 | 可追溯 | ◎ |
+| TST-IT-31-D010 | BAS-031 §9.2 | 同上 | 人工 rollback → Helm rollback | I | — | — | 人工触发 rollback | Helm rollback 到 from_version revision | 人工路径 | ◎ |
 
 ## 3.5 模块 E：ARC-018 挂载完成自动创建 Feature（RGS-BAS-031 §9.1）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-E001 | BAS-031 §9.1 ARC-018 联动 | ARC-018 脚手架 | 新挂载触发 Feature 创建 | I | 执行 ARC-018 挂载流程 | feature_registry 自动创建 BOUNDED_CONTEXT 类型 Feature | FR-INT-001 | ◎ |
-| TST-IT-31-E002 | BAS-031 §9.1 | 同上 | Mount Record 含 COC UI 元数据 | I | 检查挂载产物 | Mount Record 含 feature_id 字段 | FR-INT-001 | ◎ |
-| TST-IT-31-E003 | BAS-031 §9.1 | CI 校验 | 缺失 feature 创建 CI 失败 | I | ARC-018 挂载但未触发 Feature 创建 | CI 校验失败, 挂载不视为完成 | FR-INT-001 | ◎ |
-| TST-IT-31-E004 | BAS-031 §9.1 | ARC-018 CI | Feature 创建回滚 | I | ARC-018 挂载失败 | feature_registry 行回滚 (无残留) | 事务一致性 | ◎ |
-| TST-IT-31-E005 | BAS-031 §9.1 | 既有多 App | 既有 App 重新声明 | I | 重跑 ARC-018 挂载 (幂等) | feature_registry 行保持, updated_at 刷新 | 幂等 | ◎ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-E001 | BAS-031 §9.1 ARC-018 联动 | ARC-018 脚手架 | 新挂载触发 Feature 创建 | I | — | — | 执行 ARC-018 挂载流程 | feature_registry 自动创建 BOUNDED_CONTEXT 类型 Feature | FR-INT-001 | ◎ |
+| TST-IT-31-E002 | BAS-031 §9.1 | 同上 | Mount Record 含 COC UI 元数据 | I | — | — | 检查挂载产物 | Mount Record 含 feature_id 字段 | FR-INT-001 | ◎ |
+| TST-IT-31-E003 | BAS-031 §9.1 | CI 校验 | 缺失 feature 创建 CI 失败 | I | — | — | ARC-018 挂载但未触发 Feature 创建 | CI 校验失败, 挂载不视为完成 | FR-INT-001 | ◎ |
+| TST-IT-31-E004 | BAS-031 §9.1 | ARC-018 CI | Feature 创建回滚 | I | — | — | ARC-018 挂载失败 | feature_registry 行回滚 (无残留) | 事务一致性 | ◎ |
+| TST-IT-31-E005 | BAS-031 §9.1 | 既有多 App | 既有 App 重新声明 | I | — | — | 重跑 ARC-018 挂载 (幂等) | feature_registry 行保持, updated_at 刷新 | 幂等 | ◎ |
 
 ## 3.6 模块 F：ARC-021 插件注册自动创建 Feature（RGS-BAS-031 §9.1）
 
-| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|---|---|
-| TST-IT-31-F001 | BAS-031 §9.1 ARC-021 联动 | 插件注册表 | 新插件触发 Feature 创建 | I | ARC-021 注册新插件 | feature_registry 自动创建 PLUGIN 类型 Feature | FR-INT-002 | ◎ |
-| TST-IT-31-F002 | BAS-031 §9.1 | CI 校验 | 插件数 == PLUGIN Feature 数 | I | 跑 CI 校验脚本 | check-cem-coverage.sh 验证一致 | RSK-COC-001 | ◎ |
-| TST-IT-31-F003 | BAS-031 §9.1 | 插件沙箱 | 沙箱脚本插件 | I | 注册 Rhai 脚本插件 | Feature 创建, sandbox 关联 | ARC-021 兼容 | ◎ |
-| TST-IT-31-F004 | BAS-031 §9.1 | 插件热插拔 | 插件 plug/unplug 联动 | I | 插件 plug | Feature status 切换 active/disabled | ARC-021 兼容 | ◎ |
-| TST-IT-31-F005 | BAS-031 §9.1 | RGS-ADR-0020 守门 | 拒绝 .so/.dll 上传 | I | 尝试上传动态库 | 拒绝, Feature 不创建, 错误指明 ADR-0020 | ADR-0020 守门 | ◎ |
+| 用例 ID | 对应设计 | 集成对端 | 测试目的 | 覆盖类型 | シナリオ | テストデータ | 步骤 | 预期 | 判定 | 优先级 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-F001 | BAS-031 §9.1 ARC-021 联动 | 插件注册表 | 新插件触发 Feature 创建 | I | — | — | ARC-021 注册新插件 | feature_registry 自动创建 PLUGIN 类型 Feature | FR-INT-002 | ◎ |
+| TST-IT-31-F002 | BAS-031 §9.1 | CI 校验 | 插件数 == PLUGIN Feature 数 | I | — | — | 跑 CI 校验脚本 | check-cem-coverage.sh 验证一致 | RSK-COC-001 | ◎ |
+| TST-IT-31-F003 | BAS-031 §9.1 | 插件沙箱 | 沙箱脚本插件 | I | — | — | 注册 Rhai 脚本插件 | Feature 创建, sandbox 关联 | ARC-021 兼容 | ◎ |
+| TST-IT-31-F004 | BAS-031 §9.1 | 插件热插拔 | 插件 plug/unplug 联动 | I | — | — | 插件 plug | Feature status 切换 active/disabled | ARC-021 兼容 | ◎ |
+| TST-IT-31-F005 | BAS-031 §9.1 | RGS-ADR-0020 守门 | 拒绝 .so/.dll 上传 | I | — | — | 尝试上传动态库 | 拒绝, Feature 不创建, 错误指明 ADR-0020 | ADR-0020 守门 | ◎ |
 
 ## 3.7 ADR-0051 集成守门
 
-| 用例 ID | 对应决策项 | 集成验证 | 步骤 | 预期 | 判定 | 优先级 |
-|---|---|---|---|---|---|---|
-| TST-IT-31-ADR-001 | §2 决定 4: COC UI 不另开凭证 | 集成层级验证 | 抓取 COC UI 流量 | 全部经 AdminService, 无 K8s/DB 直连 | NFR-OPS-004 守门 | ◎ |
-| TST-IT-31-ADR-002 | §2 决定 5: 声明式+流式+幂等 | 跨进程契约 | 跨进程并发 request_id 重复 | 第二个返回 IDEMPOTENT_REPLAY | FR-API-003 守门 | ◎ |
-| TST-IT-31-ADR-003 | §2 决定 6: DB 侧三类协同 | 集成层级 trigger 验证 | 尝试跨进程改 feature_version_history | trigger 拒绝 | FR-DB-001 守门 | ◎ |
-| TST-IT-31-ADR-004 | §3.1 否决: COC UI 不独立 | 凭证体系验证 | 审计 COC UI 凭证范围 | 仅 admin_service 角色, 无 K8s/DB 角色 | 守门 | ◎ |
-| TST-IT-31-ADR-005 | §3.3 否决: CEM 不分库 | DB 集成验证 | 检查 event_schema_registry 位置 | 在 admin_db, 不在 App 自己的 DB | ARC-008 守门 | ◎ |
-| TST-IT-31-ADR-006 | §3.4 否决: COC 不直调 Helm | 流量层级验证 | 抓取 ClusterOpsService → Helm 流量 | 仅 ClusterOpsService 调 Helm, COC UI 不直接调 | 守门 | ◎ |
-| TST-IT-31-ADR-007 | §3.5 否决: 补丁型不传动态库 | ARC-021 集成 | 上传 .so/.dll | 拒绝, 错误指明 ADR-0020 | RGS-ADR-0020 守门 | ◎ |
-| TST-IT-31-ADR-008 | §3.6 否决: COC 不作 VIZ 子页 | 路由表验证 | 检查 COC UI 路由 | 顶级页面, 不在 VIZ 路由下 | 守门 | ◎ |
+| 用例 ID | 对应决策项 | 集成验证 | 步骤 | 预期 | 判定 | 优先级 | シナリオ | テストデータ |
+|---|---|---|---|---|---|---|---|---|
+| TST-IT-31-ADR-001 | §2 决定 4: COC UI 不另开凭证 | 集成层级验证 | 抓取 COC UI 流量 | 全部经 AdminService, 无 K8s/DB 直连 | NFR-OPS-004 守门 | ◎ | — | — |
+| TST-IT-31-ADR-002 | §2 决定 5: 声明式+流式+幂等 | 跨进程契约 | 跨进程并发 request_id 重复 | 第二个返回 IDEMPOTENT_REPLAY | FR-API-003 守门 | ◎ | — | — |
+| TST-IT-31-ADR-003 | §2 决定 6: DB 侧三类协同 | 集成层级 trigger 验证 | 尝试跨进程改 feature_version_history | trigger 拒绝 | FR-DB-001 守门 | ◎ | — | — |
+| TST-IT-31-ADR-004 | §3.1 否决: COC UI 不独立 | 凭证体系验证 | 审计 COC UI 凭证范围 | 仅 admin_service 角色, 无 K8s/DB 角色 | 守门 | ◎ | — | — |
+| TST-IT-31-ADR-005 | §3.3 否决: CEM 不分库 | DB 集成验证 | 检查 event_schema_registry 位置 | 在 admin_db, 不在 App 自己的 DB | ARC-008 守门 | ◎ | — | — |
+| TST-IT-31-ADR-006 | §3.4 否决: COC 不直调 Helm | 流量层级验证 | 抓取 ClusterOpsService → Helm 流量 | 仅 ClusterOpsService 调 Helm, COC UI 不直接调 | 守门 | ◎ | — | — |
+| TST-IT-31-ADR-007 | §3.5 否决: 补丁型不传动态库 | ARC-021 集成 | 上传 .so/.dll | 拒绝, 错误指明 ADR-0020 | RGS-ADR-0020 守门 | ◎ | — | — |
+| TST-IT-31-ADR-008 | §3.6 否决: COC 不作 VIZ 子页 | 路由表验证 | 检查 COC UI 路由 | 顶级页面, 不在 VIZ 路由下 | 守门 | ◎ | — | — |
 
 ---
 

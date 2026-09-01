@@ -34,75 +34,75 @@
 
 ### 2.1 与 AdminService 集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L001 | TL-3 | FR-LCM-004 | 阶段变更**全部**经 `AdminService` 转发（**不**暴露独立 gRPC/HTTP）|
-| TST-IT-02-L002 | TL-3 | FR-LCM-004 | RBAC 权限校验：缺权限返回 `InsufficientPrivilege` |
-| TST-IT-02-L003 | TL-3 | FR-LCM-002 | 阶段变更 `operation_audit` 留痕（操作者/审批/前后状态/影响账号数）|
-| TST-IT-02-L004 | TL-3 | FR-LCM-004 | `request_id` 幂等：同一请求重复提交返回首次结果 |
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L001 | TL-3 | FR-LCM-004 | 阶段变更**全部**经 `AdminService` 转发（**不**暴露独立 gRPC/HTTP）| — | — |
+| TST-IT-02-L002 | TL-3 | FR-LCM-004 | RBAC 权限校验：缺权限返回 `InsufficientPrivilege` | — | — |
+| TST-IT-02-L003 | TL-3 | FR-LCM-002 | 阶段变更 `operation_audit` 留痕（操作者/审批/前后状态/影响账号数）| — | — |
+| TST-IT-02-L004 | TL-3 | FR-LCM-004 | `request_id` 幂等：同一请求重复提交返回首次结果 | — | — |
 
 ### 2.2 与 ClusterOpsService PFAU 集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L020 | TL-4 | FR-LCM-001 | 阶段变更作为 `realm_lifecycle::*` Feature 走 PFAU 状态机 |
-| TST-IT-02-L021 | TL-4 | FR-LCM-005 | PFAU `canary_confirmed` 后才更新 `RealmLifecycleState` |
-| TST-IT-02-L022 | TL-4 | FR-LCM-005 | PFAU `paused → retrying / rolling_back / aborted` 状态机覆盖 |
-| TST-IT-02-L023 | TL-4 | FR-LCM-005 | PFAU 失联时阶段变更挂起等待 PFAU 恢复 |
-| TST-IT-02-L024 | TL-4 | FR-LCM-005 | `realm_lifecycle` Feature 7 个子类全部注册到 `FeatureRegistry` |
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L020 | TL-4 | FR-LCM-001 | 阶段变更作为 `realm_lifecycle::*` Feature 走 PFAU 状态机 | — | — |
+| TST-IT-02-L021 | TL-4 | FR-LCM-005 | PFAU `canary_confirmed` 后才更新 `RealmLifecycleState` | — | — |
+| TST-IT-02-L022 | TL-4 | FR-LCM-005 | PFAU `paused → retrying / rolling_back / aborted` 状态机覆盖 | — | — |
+| TST-IT-02-L023 | TL-4 | FR-LCM-005 | PFAU 失联时阶段变更挂起等待 PFAU 恢复 | — | — |
+| TST-IT-02-L024 | TL-4 | FR-LCM-005 | `realm_lifecycle` Feature 7 个子类全部注册到 `FeatureRegistry` | — | — |
 
 ### 2.3 与业务域 service 集成（跨 DB 写入）
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L040 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 2：调用 `player_service.bulk_update_realm` 改写 player_db.realm_id |
-| TST-IT-02-L041 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 3：调用 `social_service.mark_cross_realm_friends` |
-| TST-IT-02-L042 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 4：调用 `social_service.split_guilds_by_realm` |
-| TST-IT-02-L043 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 5：调用 `economy_service.migrate_mail_by_account` |
-| TST-IT-02-L044 | TL-4 | FR-LCM-005 | 合服 Saga 步骤：调用各业务 service 应用冲突规则 v2 |
-| TST-IT-02-L045 | TL-4 | FR-LCM-005 | 业务 service gRPC 调用失败 → Saga 反向步骤补偿 |
-| TST-IT-02-L046 | TL-4 | FR-LCM-005 | 业务 DB 长事务阻塞检测（事务隔离级别 + 锁等待超时）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L040 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 2：调用 `player_service.bulk_update_realm` 改写 player_db.realm_id | — | — |
+| TST-IT-02-L041 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 3：调用 `social_service.mark_cross_realm_friends` | — | — |
+| TST-IT-02-L042 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 4：调用 `social_service.split_guilds_by_realm` | — | — |
+| TST-IT-02-L043 | TL-4 | FR-LCM-005 | 分服 Saga 步骤 5：调用 `economy_service.migrate_mail_by_account` | — | — |
+| TST-IT-02-L044 | TL-4 | FR-LCM-005 | 合服 Saga 步骤：调用各业务 service 应用冲突规则 v2 | — | — |
+| TST-IT-02-L045 | TL-4 | FR-LCM-005 | 业务 service gRPC 调用失败 → Saga 反向步骤补偿 | — | — |
+| TST-IT-02-L046 | TL-4 | FR-LCM-005 | 业务 DB 长事务阻塞检测（事务隔离级别 + 锁等待超时）| — | — |
 
 ### 2.4 与 RealmDirectoryService 集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L060 | TL-3 | FR-LCM-030 | 开新服时 `RealmDirectoryService` 登记新服元数据（hidden 状态）|
-| TST-IT-02-L061 | TL-3 | FR-LCM-031 | 灰度开放：`hidden → white_list → channel_gray → all` 状态机正确 |
-| TST-IT-02-L062 | TL-3 | FR-LCM-074 | 退场：`RealmDirectoryService` 状态置为 `retired`，对玩家隐藏 |
-| TST-IT-02-L063 | TL-3 | FR-LCM-074 | 退场后对客服/法务角色**仍**可见（RBAC 通道）|
-| TST-IT-02-L064 | TL-3 | FR-LCM-085 | 归档后玩家选服列表**不**显示该服（玩家侧不可见）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L060 | TL-3 | FR-LCM-030 | 开新服时 `RealmDirectoryService` 登记新服元数据（hidden 状态）| — | — |
+| TST-IT-02-L061 | TL-3 | FR-LCM-031 | 灰度开放：`hidden → white_list → channel_gray → all` 状态机正确 | — | — |
+| TST-IT-02-L062 | TL-3 | FR-LCM-074 | 退场：`RealmDirectoryService` 状态置为 `retired`，对玩家隐藏 | — | — |
+| TST-IT-02-L063 | TL-3 | FR-LCM-074 | 退场后对客服/法务角色**仍**可见（RBAC 通道）| — | — |
+| TST-IT-02-L064 | TL-3 | FR-LCM-085 | 归档后玩家选服列表**不**显示该服（玩家侧不可见）| — | — |
 
 ### 2.5 演练执行器与沙箱环境集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L080 | TL-4 | FR-LCM-003 | 演练环境与生产环境隔离（独立 PG 池 + 独立 K8s 客户端）|
-| TST-IT-02-L081 | TL-4 | FR-LCM-003 | 生产数据快照生成（脱敏后拷贝到演练 DB）|
-| TST-IT-02-L082 | TL-4 | FR-LCM-003 | 演练 Saga 步骤执行 + 一致性校验 |
-| TST-IT-02-L083 | TL-4 | FR-LCM-003 | 演练报告生成（通过/失败原因/一致性报告）|
-| TST-IT-02-L084 | TL-4 | FR-LCM-003 | 演练通过后方可切到 `executing` 状态（FR-LCM-003 硬约束）|
-| TST-IT-02-L085 | TL-4 | FR-LCM-003 | 演练数据清理（**不**影响生产 DB）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L080 | TL-4 | FR-LCM-003 | 演练环境与生产环境隔离（独立 PG 池 + 独立 K8s 客户端）| — | — |
+| TST-IT-02-L081 | TL-4 | FR-LCM-003 | 生产数据快照生成（脱敏后拷贝到演练 DB）| — | — |
+| TST-IT-02-L082 | TL-4 | FR-LCM-003 | 演练 Saga 步骤执行 + 一致性校验 | — | — |
+| TST-IT-02-L083 | TL-4 | FR-LCM-003 | 演练报告生成（通过/失败原因/一致性报告）| — | — |
+| TST-IT-02-L084 | TL-4 | FR-LCM-003 | 演练通过后方可切到 `executing` 状态（FR-LCM-003 硬约束）| — | — |
+| TST-IT-02-L085 | TL-4 | FR-LCM-003 | 演练数据清理（**不**影响生产 DB）| — | — |
 
 ### 2.6 与客服系统 + 归档存储集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L100 | TL-5 | FR-LCM-073 | 客服系统按 `cs_agent` RBAC 查询退场服历史数据 |
-| TST-IT-02-L101 | TL-5 | FR-LCM-073 | 客服查询留痕（双层审计：客服查 + 法务监控）|
-| TST-IT-02-L102 | TL-5 | FR-LCM-082 | 热归档：DB 切换为冷备实例（只读副本）|
-| TST-IT-02-L103 | TL-5 | FR-LCM-082 | 冷归档：全量导出至对象存储（N+2 副本）|
-| TST-IT-02-L104 | TL-5 | NFR-LCM-006 | 归档后客服查询 p99 < 5 秒 |
-| TST-IT-02-L105 | TL-5 | FR-LCM-084 | GDPR "被遗忘权"删除通路：定位并删除冷归档中玩家数据 |
-| TST-IT-02-L106 | TL-5 | FR-LCM-085 | 跨服合并回溯保留（合服前资产归属记录可还原）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L100 | TL-5 | FR-LCM-073 | 客服系统按 `cs_agent` RBAC 查询退场服历史数据 | — | — |
+| TST-IT-02-L101 | TL-5 | FR-LCM-073 | 客服查询留痕（双层审计：客服查 + 法务监控）| — | — |
+| TST-IT-02-L102 | TL-5 | FR-LCM-082 | 热归档：DB 切换为冷备实例（只读副本）| — | — |
+| TST-IT-02-L103 | TL-5 | FR-LCM-082 | 冷归档：全量导出至对象存储（N+2 副本）| — | — |
+| TST-IT-02-L104 | TL-5 | NFR-LCM-006 | 归档后客服查询 p99 < 5 秒 | — | — |
+| TST-IT-02-L105 | TL-5 | FR-LCM-084 | GDPR "被遗忘权"删除通路：定位并删除冷归档中玩家数据 | — | — |
+| TST-IT-02-L106 | TL-5 | FR-LCM-085 | 跨服合并回溯保留（合服前资产归属记录可还原）| — | — |
 
 ### 2.7 事件总线 + 业务事件集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-02-L120 | TL-4 | FR-LCM-005 | 阶段变更事件（`RealmCreated` / `RealmRetired`）经事件总线发布 |
-| TST-IT-02-L121 | TL-4 | FR-LCM-005 | 业务 service 订阅 `RealmCreated` 事件后初始化该服数据 |
-| TST-IT-02-L122 | TL-4 | FR-LCM-005 | 业务 service 订阅 `RealmRetired` 事件后停止新流量承接 |
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-02-L120 | TL-4 | FR-LCM-005 | 阶段变更事件（`RealmCreated` / `RealmRetired`）经事件总线发布 | — | — |
+| TST-IT-02-L121 | TL-4 | FR-LCM-005 | 业务 service 订阅 `RealmCreated` 事件后初始化该服数据 | — | — |
+| TST-IT-02-L122 | TL-4 | FR-LCM-005 | 业务 service 订阅 `RealmRetired` 事件后停止新流量承接 | — | — |
 
 ## 3. 最小可复现实验
 

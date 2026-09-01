@@ -24,6 +24,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:05 Admin 域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -46,31 +47,31 @@
 
 ## 2.1 模块 A:5 域 admin RPC(per DTL-031 §3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-05-A001~A003 | `integration_admin_basic.rs` | admin_id / action / target | N | 3 个集成 case:ban / mute / promote |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-05-A001~A003 | `integration_admin_basic.rs` | admin_id / action / target | N | — | — | 3 个集成 case:ban / mute / promote |
 
 ## 2.2 模块 B:fail-closed 启动(per DTL-031 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-05-B001 | `fail_closed_start.rs::admin_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 5 域 fail-closed 模式启动 5s 内成功 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-05-B001 | `fail_closed_start.rs::admin_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 5 域 fail-closed 模式启动 5s 内成功 |
 
 ## 2.3 模块 C:PFAU 7 阶段状态机(per DTL-031 §4.2)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-05-C001 | `pfau.rs::declared_can_advance_to_canary_in_progress` | Declared→CanaryInProgress | N | 合法转移 |
-| TST-IT-05-C002 | `pfau.rs::declared_cannot_jump_to_completed` | Declared→Completed | A | 非法转移拒绝 |
-| TST-IT-05-C003 | `pfau.rs::canary_in_progress_can_pause` | CanaryInProgress→Paused | N | 合法转移 |
-| TST-IT-05-C004 | `pfau.rs::observing_can_return_to_canary_in_progress` | Observing→CanaryInProgress | N | 还有下一批 |
-| TST-IT-05-C005 | `pfau.rs::observing_can_complete` | Observing→Completed | N | 全部批次完成 |
-| TST-IT-05-C006 | `pfau.rs::paused_can_retry_rollback_abort` | Paused→Retrying/RollingBack/Aborted | N | 3 合法转移 |
-| TST-IT-05-C007 | `pfau.rs::rolling_back_can_complete` | RollingBack→Completed | N | 合法转移 |
-| TST-IT-05-C008 | `pfau.rs::completed_is_terminal` | Completed→任意 | A | 终态不可转移 |
-| TST-IT-05-C009 | `pfau.rs::aborted_is_terminal` | Aborted→任意 | A | 终态不可转移 |
-| TST-IT-05-C010 | `pfau.rs::canary_ack_all_acked_only_when_total_acked` | 5 total + 5 acked | N | all-reachable 规则(per DTL-031 §4.3) |
-| TST-IT-05-C011 | `pfau.rs::canary_ack_zero_total_is_not_all_acked` | total=0 | A | 边界:空批不算 all-reached |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-05-C001 | `pfau.rs::declared_can_advance_to_canary_in_progress` | Declared→CanaryInProgress | N | — | — | 合法转移 |
+| TST-IT-05-C002 | `pfau.rs::declared_cannot_jump_to_completed` | Declared→Completed | A | — | — | 非法转移拒绝 |
+| TST-IT-05-C003 | `pfau.rs::canary_in_progress_can_pause` | CanaryInProgress→Paused | N | — | — | 合法转移 |
+| TST-IT-05-C004 | `pfau.rs::observing_can_return_to_canary_in_progress` | Observing→CanaryInProgress | N | — | — | 还有下一批 |
+| TST-IT-05-C005 | `pfau.rs::observing_can_complete` | Observing→Completed | N | — | — | 全部批次完成 |
+| TST-IT-05-C006 | `pfau.rs::paused_can_retry_rollback_abort` | Paused→Retrying/RollingBack/Aborted | N | — | — | 3 合法转移 |
+| TST-IT-05-C007 | `pfau.rs::rolling_back_can_complete` | RollingBack→Completed | N | — | — | 合法转移 |
+| TST-IT-05-C008 | `pfau.rs::completed_is_terminal` | Completed→任意 | A | — | — | 终态不可转移 |
+| TST-IT-05-C009 | `pfau.rs::aborted_is_terminal` | Aborted→任意 | A | — | — | 终态不可转移 |
+| TST-IT-05-C010 | `pfau.rs::canary_ack_all_acked_only_when_total_acked` | 5 total + 5 acked | N | — | — | all-reachable 规则(per DTL-031 §4.3) |
+| TST-IT-05-C011 | `pfau.rs::canary_ack_zero_total_is_not_all_acked` | total=0 | A | — | — | 边界:空批不算 all-reached |
 
 ## 3. 追溯矩阵
 

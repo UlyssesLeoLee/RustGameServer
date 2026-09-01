@@ -26,6 +26,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师（Mavis 接手 agent per DEC-008,代签） | 2026-08-28 06:52 JST | 初次编制 |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列；新增 §3.0 场景集与测试数据集占位章节。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 签字栏
 
@@ -101,46 +102,50 @@ rgs-certgen main.rs 4495 字节
 
 ## 3. 测试用例
 
+## 3.0 场景集与测试数据集占位
+
+本设计书的场景集（S-NNN）与测试数据集（TD-NNN）由本主题域负责人在用例实装阶段补充。参考主模板 `RGS-TST-IT-00 §3.0` 的格式与字段约定。占位期间, 用例表内「シナリオ」「テストデータ」列以 `—` 标记。
+
 ## 3.1 模块 A：端到端 CLI 调用
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-09-A001 | IMPL-001 §4 | spawn `rgs-certgen --output /tmp/x` | [TL-2/4] | N | 退出码 0 + 1 CA + 6 server cert 共 7 个文件 |
-| TST-IT-09-A002 | IMPL-001 §4 | `--domains a,b,c` | [TL-2/4] | N | 1 CA + 3 server cert |
-| TST-IT-09-A003 | IMPL-001 §4 | `--validity-days 30` | [TL-2/4] | N | 证书 validity 字段 ≤ 30 天 |
-| TST-IT-09-A004 | IMPL-001 §4 | 组合 `--output /tmp/y --domains p,e --validity-days 1` | [TL-2/4] | N | 端到端组合 |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-09-A001 | IMPL-001 §4 | spawn `rgs-certgen --output /tmp/x` | [TL-2/4] | N | — | — | 退出码 0 + 1 CA + 6 server cert 共 7 个文件 |
+| TST-IT-09-A002 | IMPL-001 §4 | `--domains a,b,c` | [TL-2/4] | N | — | — | 1 CA + 3 server cert |
+| TST-IT-09-A003 | IMPL-001 §4 | `--validity-days 30` | [TL-2/4] | N | — | — | 证书 validity 字段 ≤ 30 天 |
+| TST-IT-09-A004 | IMPL-001 §4 | 组合 `--output /tmp/y --domains p,e --validity-days 1` | [TL-2/4] | N | — | — | 端到端组合 |
 
 **实现位置**：`crates/rgs-certgen/tests/integration_cli.rs`（**TBD**）
 
 ## 3.2 模块 B：输出文件 schema 验证
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-09-B001 | IMPL-001 §4 | `ca.crt.pem` PEM 格式 | [TL-3] | N | PEM 头"-----BEGIN CERTIFICATE-----" |
-| TST-IT-09-B002 | IMPL-001 §4 | CA 证书 subject = "RustGameServer Dev CA" | [TL-3] | N | subject CN 字段（硬编码 `main.rs:82`,非 CLI 可配置） |
-| TST-IT-09-B003 | IMPL-001 §4 | CA is_ca=true, key_usages=[KeyCertSign, CrlSign] | [TL-3] | N | CA 标志正确 |
-| TST-IT-09-B004 | IMPL-001 §4 | `<domain>.crt.pem` PEM | [TL-3] | N | 服务证书 PEM 格式 |
-| TST-IT-09-B005 | IMPL-001 §4 | 服务证书 SAN = domain | [TL-3] | N | SAN DNS 字段 |
-| TST-IT-09-B006 | IMPL-001 §4 | 服务证书 is_ca=false | [TL-3] | N | 不是 CA 标志 |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-09-B001 | IMPL-001 §4 | `ca.crt.pem` PEM 格式 | [TL-3] | N | — | — | PEM 头"-----BEGIN CERTIFICATE-----" |
+| TST-IT-09-B002 | IMPL-001 §4 | CA 证书 subject = "RustGameServer Dev CA" | [TL-3] | N | — | — | subject CN 字段（硬编码 `main.rs:82`,非 CLI 可配置） |
+| TST-IT-09-B003 | IMPL-001 §4 | CA is_ca=true, key_usages=[KeyCertSign, CrlSign] | [TL-3] | N | — | — | CA 标志正确 |
+| TST-IT-09-B004 | IMPL-001 §4 | `<domain>.crt.pem` PEM | [TL-3] | N | — | — | 服务证书 PEM 格式 |
+| TST-IT-09-B005 | IMPL-001 §4 | 服务证书 SAN = domain | [TL-3] | N | — | — | SAN DNS 字段 |
+| TST-IT-09-B006 | IMPL-001 §4 | 服务证书 is_ca=false | [TL-3] | N | — | — | 不是 CA 标志 |
 
 **实现位置**：`crates/rgs-certgen/tests/integration_pem.rs`（**TBD**）
 
 ## 3.3 模块 C：互操作（openSSL 解析）
 
-| 测试 ID | 对应需求 | 字段/工具 | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-09-C001 | IMPL-001 §4 + IMPL-005 | openssl x509 -in ca.crt.pem -text | [TL-4] | N | openSSL 能解析 |
-| TST-IT-09-C002 | IMPL-001 §4 + IMPL-005 | openssl verify -CAfile ca.crt.pem server.crt.pem | [TL-4] | N | 服务证书由 CA 签发成功 |
-| TST-IT-09-C003 | IMPL-001 §4 + IMPL-005 | openssl s_server test | [TL-4] | N | 启动 TLS server 成功(可选) |
+| 测试 ID | 对应需求 | 字段/工具 | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-09-C001 | IMPL-001 §4 + IMPL-005 | openssl x509 -in ca.crt.pem -text | [TL-4] | N | — | — | openSSL 能解析 |
+| TST-IT-09-C002 | IMPL-001 §4 + IMPL-005 | openssl verify -CAfile ca.crt.pem server.crt.pem | [TL-4] | N | — | — | 服务证书由 CA 签发成功 |
+| TST-IT-09-C003 | IMPL-001 §4 + IMPL-005 | openssl s_server test | [TL-4] | N | — | — | 启动 TLS server 成功(可选) |
 
 **实现位置**：`crates/rgs-certgen/tests/integration_openssl.rs`（**TBD,需 openssl CLI**）
 
 ## 3.4 模块 D：CI/CD 链集成
 
-| 测试 ID | 对应需求 | 字段/工具 | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-09-D001 | RGS-IMPL-001 §4 + IMPL-005 | `make certs` 或 `cargo run -p rgs-certgen` | [TL-4] | N | CI 脚本能调用 |
-| TST-IT-09-D002 | RGS-IMPL-001 §4 | k3s tls secret | [TL-4] | N | 生成 cert 后能 create secret |
+| 测试 ID | 对应需求 | 字段/工具 | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-09-D001 | RGS-IMPL-001 §4 + IMPL-005 | `make certs` 或 `cargo run -p rgs-certgen` | [TL-4] | N | — | — | CI 脚本能调用 |
+| TST-IT-09-D002 | RGS-IMPL-001 §4 | k3s tls secret | [TL-4] | N | — | — | 生成 cert 后能 create secret |
 
 **实现位置**：`scripts/ci-integration.sh`（**TBD**）
 

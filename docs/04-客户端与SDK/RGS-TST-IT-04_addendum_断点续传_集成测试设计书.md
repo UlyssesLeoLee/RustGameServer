@@ -34,42 +34,42 @@
 
 ### 2.1 SDK 内部模块集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-04-R001 | TL-3 | FR-CDN-070 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `IntegrityGate` 整文件校验 |
-| TST-IT-04-R002 | TL-3 | FR-CDN-071 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `ManifestService` 重新拉取并校验签名 |
-| TST-IT-04-R003 | TL-3 | FR-CDN-072 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `GrayRolloutChecker` 灰度状态判定 |
-| TST-IT-04-R004 | TL-3 | FR-CDN-051 | `rgs-asset-download` 的状态变更同步到 `rgs-asset-update` 的 Rollout 事件 |
-| TST-IT-04-R005 | TL-3 | FR-CDN-073 | `rgs-asset-download` 触发限流时与 `rgs-network` 限流配额共享 |
-| TST-IT-04-R006 | TL-3 | FR-CDN-040 | `rgs-asset-download` 通过 `rgs-network` (QUIC/TCP) 发起 Range 请求 |
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-04-R001 | TL-3 | FR-CDN-070 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `IntegrityGate` 整文件校验 | — | — |
+| TST-IT-04-R002 | TL-3 | FR-CDN-071 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `ManifestService` 重新拉取并校验签名 | — | — |
+| TST-IT-04-R003 | TL-3 | FR-CDN-072 | `rgs-asset-download` 调用 `rgs-asset-update` 的 `GrayRolloutChecker` 灰度状态判定 | — | — |
+| TST-IT-04-R004 | TL-3 | FR-CDN-051 | `rgs-asset-download` 的状态变更同步到 `rgs-asset-update` 的 Rollout 事件 | — | — |
+| TST-IT-04-R005 | TL-3 | FR-CDN-073 | `rgs-asset-download` 触发限流时与 `rgs-network` 限流配额共享 | — | — |
+| TST-IT-04-R006 | TL-3 | FR-CDN-040 | `rgs-asset-download` 通过 `rgs-network` (QUIC/TCP) 发起 Range 请求 | — | — |
 
 ### 2.2 与后端 DistributionBackend 集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-04-R020 | TL-4 | FR-CDN-040 | 客户端 Range 请求打到 MinIO 自托管，验证 206/416/ETag/If-Range 行为 |
-| TST-IT-04-R021 | TL-4 | FR-CDN-041 | ETag 变更：MinIO 上新版本对象，客户端收到 200 OK |
-| TST-IT-04-R022 | TL-4 | FR-CDN-045 | Range 协议不改变 MinIO 上文件存储格式（不预切片） |
-| TST-IT-04-R023 | TL-4 | FR-CDN-046 | 客户端 Range 协议与自托管对象存储契约一致（NFR-CDN-114）|
-| TST-IT-04-R024 | TL-5 | FR-CDN-043 | 商业 CDN（Cloudflare 可选）Range 行为一致性测试 |
-| TST-IT-04-R025 | TL-5 | NFR-CDN-114 | 商业 CDN Range 边缘命中实测（RSK-CDN-203 缓解）|
-| TST-IT-04-R026 | TL-4 | FR-CDN-040 | 客户端 Range 协议不依赖任何特定后端 SDK（抽象层不变性）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-04-R020 | TL-4 | FR-CDN-040 | 客户端 Range 请求打到 MinIO 自托管，验证 206/416/ETag/If-Range 行为 | — | — |
+| TST-IT-04-R021 | TL-4 | FR-CDN-041 | ETag 变更：MinIO 上新版本对象，客户端收到 200 OK | — | — |
+| TST-IT-04-R022 | TL-4 | FR-CDN-045 | Range 协议不改变 MinIO 上文件存储格式（不预切片） | — | — |
+| TST-IT-04-R023 | TL-4 | FR-CDN-046 | 客户端 Range 协议与自托管对象存储契约一致（NFR-CDN-114）| — | — |
+| TST-IT-04-R024 | TL-5 | FR-CDN-043 | 商业 CDN（Cloudflare 可选）Range 行为一致性测试 | — | — |
+| TST-IT-04-R025 | TL-5 | NFR-CDN-114 | 商业 CDN Range 边缘命中实测（RSK-CDN-203 缓解）| — | — |
+| TST-IT-04-R026 | TL-4 | FR-CDN-040 | 客户端 Range 协议不依赖任何特定后端 SDK（抽象层不变性）| — | — |
 
 ### 2.3 与既有 CDN 边缘 addendum 集成
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-04-R040 | TL-4 | FR-CDN-040 + RGS-REQ-030-ADD1 §3 FR-CDN-030 | 边缘节点对 Range 请求的缓存键（`{channel}/{version}/{region}/{file}#range_START-END`）正确命中 |
-| TST-IT-04-R041 | TL-4 | FR-CDN-040 + FR-CDN-032 | Range 请求回源时与全量 GET 共用回源策略（`DistributionBackend` 源站）|
-| TST-IT-04-R042 | TL-4 | FR-CDN-041 + FR-CDN-034 | ETag 变更触发全量重传时，CDN 快速切回 stable channel ≤ 30s |
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-04-R040 | TL-4 | FR-CDN-040 + RGS-REQ-030-ADD1 §3 FR-CDN-030 | 边缘节点对 Range 请求的缓存键（`{channel}/{version}/{region}/{file}#range_START-END`）正确命中 | — | — |
+| TST-IT-04-R041 | TL-4 | FR-CDN-040 + FR-CDN-032 | Range 请求回源时与全量 GET 共用回源策略（`DistributionBackend` 源站）| — | — |
+| TST-IT-04-R042 | TL-4 | FR-CDN-041 + FR-CDN-034 | ETag 变更触发全量重传时，CDN 快速切回 stable channel ≤ 30s | — | — |
 
 ### 2.4 跨 SDK 协作场景
 
-| 用例 ID | 集成层级 | 对应 FR | 测试目的 |
-|---|---|---|---|
-| TST-IT-04-R060 | TL-3 | FR-CDN-023 | 协议版本协商被拒（`result_code=协议版本过旧`）→ 自动进入断点续传下载流程 |
-| TST-IT-04-R061 | TL-3 | FR-CDN-024 | 强制更新场景：从最低受支持版本 SDK 升级到当前版本，断点续传链路完整 |
-| TST-IT-04-R062 | TL-3 | FR-CDN-070 | 完整性校验失败 → 触发全量重传 → 全量重传仍走断点续传（无限重试循环检测）|
+| 用例 ID | 集成层级 | 对应 FR | 测试目的 | シナリオ | テストデータ |
+|---|---|---|---|---|---|
+| TST-IT-04-R060 | TL-3 | FR-CDN-023 | 协议版本协商被拒（`result_code=协议版本过旧`）→ 自动进入断点续传下载流程 | — | — |
+| TST-IT-04-R061 | TL-3 | FR-CDN-024 | 强制更新场景：从最低受支持版本 SDK 升级到当前版本，断点续传链路完整 | — | — |
+| TST-IT-04-R062 | TL-3 | FR-CDN-070 | 完整性校验失败 → 触发全量重传 → 全量重传仍走断点续传（无限重试循环检测）| — | — |
 
 ## 3. 最小可复现实验
 

@@ -24,6 +24,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:07 资产下载域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -52,53 +53,53 @@
 
 ## 2.1 模块 A:8 状态状态机(per SPEC-DTL-041 §6)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-A001~A019 | `ut_state_machine.rs` | 8 状态 × 11 事件 | N | 19 合法转移全覆盖(8 状态 × 11 事件) |
-| TST-IT-07-A020~A027 | `ut_state_machine.rs` | 非法事件 | A | 8 状态每状态至少 1 非法事件拒绝 |
-| TST-IT-07-A028 | `ut_state_machine.rs` | Paused/Cancelled/Failed/Expired → cancel | N | FR-CDN-083 触发 cancel 信号 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-A001~A019 | `ut_state_machine.rs` | 8 状态 × 11 事件 | N | — | — | 19 合法转移全覆盖(8 状态 × 11 事件) |
+| TST-IT-07-A020~A027 | `ut_state_machine.rs` | 非法事件 | A | — | — | 8 状态每状态至少 1 非法事件拒绝 |
+| TST-IT-07-A028 | `ut_state_machine.rs` | Paused/Cancelled/Failed/Expired → cancel | N | — | — | FR-CDN-083 触发 cancel 信号 |
 
 ## 2.2 模块 B:断点续传 + Range + chunk + 完整性(per M-2064.6)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-B??? | `ut_resume_token_store.rs` | token / offset | N | token 生成/存储/恢复/过期 |
-| TST-IT-07-C??? | `ut_range_client.rs` | range / chunk | N | Range 请求 / chunked 响应 / 重试 |
-| TST-IT-07-D??? | `ut_integrity_gate.rs` | SHA-256 / CRC | N | 校验和计算 / 比对 / mismatch 拒绝 |
-| TST-IT-07-E??? | `ut_chunk_orchestrator.rs` | chunk_size / concurrency | N | chunk 划分 / 并发下载 / 顺序拼接 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-B??? | `ut_resume_token_store.rs` | token / offset | N | — | — | token 生成/存储/恢复/过期 |
+| TST-IT-07-C??? | `ut_range_client.rs` | range / chunk | N | — | — | Range 请求 / chunked 响应 / 重试 |
+| TST-IT-07-D??? | `ut_integrity_gate.rs` | SHA-256 / CRC | N | — | — | 校验和计算 / 比对 / mismatch 拒绝 |
+| TST-IT-07-E??? | `ut_chunk_orchestrator.rs` | chunk_size / concurrency | N | — | — | chunk 划分 / 并发下载 / 顺序拼接 |
 
 ## 2.3 模块 F:MinIO 集成(per RGS-IMPL-PLAN-CDN-001 §3.2)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-F001 | `it_minio_resume.rs` | 真 MinIO | A | 断点续传(resume_token_store) |
-| TST-IT-07-F002 | `it_minio_platform.rs` | 真 MinIO | A | 平台一致性(MinIO S3 兼容) |
-| TST-IT-07-F003 | `it_minio_nfr112.rs` | 真 MinIO | A | NFR-112 性能阈值 |
-| TST-IT-07-F004 | `it_minio_nfr110.rs` | 真 MinIO | A | NFR-110 性能阈值 |
-| TST-IT-07-F005 | `it_minio_latency.rs` | 真 MinIO | A | 延迟 P99 |
-| TST-IT-07-F006 | `it_minio_integrity.rs` | 真 MinIO | A | 完整性校验 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-F001 | `it_minio_resume.rs` | 真 MinIO | A | — | — | 断点续传(resume_token_store) |
+| TST-IT-07-F002 | `it_minio_platform.rs` | 真 MinIO | A | — | — | 平台一致性(MinIO S3 兼容) |
+| TST-IT-07-F003 | `it_minio_nfr112.rs` | 真 MinIO | A | — | — | NFR-112 性能阈值 |
+| TST-IT-07-F004 | `it_minio_nfr110.rs` | 真 MinIO | A | — | — | NFR-110 性能阈值 |
+| TST-IT-07-F005 | `it_minio_latency.rs` | 真 MinIO | A | — | — | 延迟 P99 |
+| TST-IT-07-F006 | `it_minio_integrity.rs` | 真 MinIO | A | — | — | 完整性校验 |
 
 ## 2.4 模块 G:Cloudflare R2 集成(per RGS-IMPL-PLAN-CDN-001 §3.2)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-G001 | `it_cloudflare_edge.rs` | 真 R2 | A | 边缘节点 |
-| TST-IT-07-G002 | `it_cloudflare_canary.rs` | 真 R2 | A | 金丝雀灰度 |
-| TST-IT-07-G003 | `it_cloudflare.rs` | 真 R2 | A | 基础集成 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-G001 | `it_cloudflare_edge.rs` | 真 R2 | A | — | — | 边缘节点 |
+| TST-IT-07-G002 | `it_cloudflare_canary.rs` | 真 R2 | A | — | — | 金丝雀灰度 |
+| TST-IT-07-G003 | `it_cloudflare.rs` | 真 R2 | A | — | — | 基础集成 |
 
 ## 2.5 模块 H:故障注入(chaos)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-H001 | `chaos_responses.rs` | 响应错 | A | 401/416/500 错误响应注入 |
-| TST-IT-07-H002 | `chaos_minio.rs` | MinIO 故障 | A | MinIO 不可达 + 慢响应 + 网络分区 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-H001 | `chaos_responses.rs` | 响应错 | A | — | — | 401/416/500 错误响应注入 |
+| TST-IT-07-H002 | `chaos_minio.rs` | MinIO 故障 | A | — | — | MinIO 不可达 + 慢响应 + 网络分区 |
 
 ## 2.6 模块 I:安全 + 负载
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-07-I001 | `security_no_pii.rs` | 日志 | N | 日志不含 PII(per 2026-08-27 23:06 fix 6a913f3) |
-| TST-IT-07-I002 | `load_minio.rs` | 并发 | A | MinIO 负载测试 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-07-I001 | `security_no_pii.rs` | 日志 | N | — | — | 日志不含 PII(per 2026-08-27 23:06 fix 6a913f3) |
+| TST-IT-07-I002 | `load_minio.rs` | 并发 | A | — | — | MinIO 负载测试 |
 
 ## 3. 追溯矩阵
 

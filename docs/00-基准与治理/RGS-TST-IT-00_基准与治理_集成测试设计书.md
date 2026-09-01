@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-TST-IT-00 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 父文档 | RGS-BAS-009 体系治理与横切关注点 基本设计书 |
 | 本主题域源文档全集（REQ/BAS/DTL） | RGS-REQ-001、RGS-REQ-002、RGS-REQ-003、RGS-REQ-004、RGS-REQ-005、RGS-REQ-013、RGS-BAS-009、RGS-DTL-009 |
 
@@ -24,6 +24,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定。基于 RGS-BAS-009 的基本设计，覆盖两级 ID 体系、OLU 运维负荷预算机制、治理闭环 CI 机械校验、4 项横切需求落地等模块间的集成契约 |
 | 0.2 | 2026-08-20 | 架构师 | 对齐正文已说明的字段级映射升级，修正文档元数据版本。 |
+| 0.3 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，集成测试 (IT) 与系统测试 (ST) 设计书**必须**在用例表内包含「シナリオ」「テストデータ」2 列。新增 §1.4.5 字段定义、§1.6 命名约定补充 S-NNN / TD-NNN、§3.0 场景集 + 测试数据集；§3.1〜3.8 全部用例表扩展为 12 列 (Pattern A) / 9 列 (Pattern B)，并填入示例场景 S-001〜S-015 + 测试数据 TD-001〜TD-012 |
 
 ## 审批栏
 
@@ -132,6 +133,24 @@
 - 全部引用以编号（如 `RGS-REQ-006`）而非文件路径
 - 同一编号在本文档中首次出现时附全称，后续仅用编号
 
+### 1.4.5 シナリオ / テストデータ 字段（IT 必须包含 / ST 必须包含）
+
+按 2026-09-01 JST 拍板决策，集成测试 (IT) 与系统测试 (ST) 设计书**必须**在用例表内包含以下 2 列：
+
+| 列名 | 中文 | 日文 | 英文 | 字段含义 | 字段格式 |
+|---|---|---|---|---|---|
+| シナリオ | 场景 | シナリオ | Scenario | 描述该用例所处业务/操作上下文（用户故事 / 触发条件 / 前后置业务流） | `S-NNN` + 一句话描述，引用 §3.0 场景集 |
+| テストデータ | 测试数据 | テストデータ | Test Data | 描述该用例具体使用的输入数据 / 夹具 / 期望输出值 | `TD-NNN` + JSON / YAML / 键值表，引用 §3.0 测试数据集 |
+
+**字段填写规则**：
+
+- 1 用例可引用多个场景（用 `S-001, S-002` 列出）；1 场景可被多用例共享
+- テストデータ**应当**给出具体值（不是仅"有效输入"），含：ID / 枚举 / 边界 / 无效值
+- テストデータ**必须**区分正常值 (N) / 边界值 (B) / 异常值 (A) 三类
+- 跨域场景**应当**显式标注涉及的服务/事件（如 `EC-003 → MM-001 → OBS-002`）
+- 若用例无独立测试数据，可引用父级场景的共用 fixtures，并标注 `[继承自 S-NNN]`
+- 暂时未填的单元格用 `—` 占位，**禁止**留空（保持表格列对齐）
+
 ## 1.5 字段级映射说明
 
 本版本（0.2）的核心升级是**字段级映射**：每条测试用例的"对应设计"列从"§X.Y 章节名"升级为"文档 ID + §X.Y + 表/图/字段"。
@@ -148,6 +167,8 @@
 - 用例 ID：`TST-{UT|IT|ST}-XX-NNN`（XX 为主题编号 00-07）
 - 试验级别标注：UT 无标注 / IT 用 [TL-2/3/4/5] / ST 用 [TL-6/7/8/E2E]
 - 覆盖类型：N=正常 / A=异常 / B=边界 / P=属性不变条件 / S=状态机非法迁移
+- **场景编号**：`S-NNN`（与用例 ID 解耦，1 场景可被多用例引用，详见 §3.0 场景集）
+- **测试数据编号**：`TD-NNN`（与场景编号解耦，1 场景可有多组数据，详见 §3.0 测试数据集）
 - 运行时机：`cargo test --workspace`（主干 CI 必跑，QA-006 ≤ 15 min 约束内）
 
 
@@ -202,115 +223,177 @@
 
 ## 3. 测试用例
 
+## 3.0 场景集与测试数据集（シナリオ集 / テストデータ集）
+
+### 3.0.1 场景集（S-NNN）
+
+每个场景可被多个用例引用，描述**业务上下文**而非具体步骤。
+
+| 场景 ID | 场景名称 | 业务上下文 | 涉及服务/事件 | 被引用用例 |
+|---|---|---|---|---|
+| S-001 | 域内 ID 首次注册 | 治理域建立新的域内 ID 段并分配主编号 | `id-registry` 内部 | TST-IT-00-001 |
+| S-002 | 主编号反查 | 业务代码通过主编号反查域内 ID（场景：日志审计） | `id-registry` 内部 | TST-IT-00-002 |
+| S-003 | 未注册段访问 | 业务代码尝试引用未注册的域段（场景：入侵检测） | `id-registry` 内部 + `gov-ci` 阻断 | TST-IT-00-004 |
+| S-004 | 跨域引用建立 | 经济域 ID 被业务域引用（场景：跨域协作） | `id-registry` + 跨域事件总线 | TST-IT-00-005 |
+| S-005 | OLU 预算分配 | 新服务注册时分配 SRE 工时预算 | `id-registry` + `olu_ledger` | TST-IT-00-011 |
+| S-006 | OLU 超额告警 | 服务消耗 OLU 接近上限（场景：周末大版本上线） | `olu_ledger` + 告警通道 | TST-IT-00-013 |
+| S-007 | OLU 超额阻断 | 服务消耗 OLU 超过 100%（场景：CI 守门） | `olu_ledger` + `gov-ci` 阻断 | TST-IT-00-014 |
+| S-008 | 治理 CI 端到端阻断 | 提交含未注册 ID 的 PR（场景：开发者失误） | `gov-ci` + git | TST-IT-00-021 |
+| S-009 | 治理规则热加载 | 治理规则集更新（场景：紧急修复误报规则） | `gov-ci` 配置 + CI runner | TST-IT-00-023 |
+| S-010 | 插件直写 DB 拦截 | 第三方插件尝试绕过经济 API 直写 DB（场景：合规审计） | 插件运行时 + `gov-ci` 静态检查 | TST-IT-00-031 |
+| S-011 | 跨节点套利防护 | 同一账号在两个节点并发操作经济（场景：双开刷金） | `economy-svc` × 2 + `lock-svc` | TST-IT-00-040 |
+| S-012 | 跨服务状态机非法迁移 | 状态机服务与业务服务联合触发非法迁移（场景：状态注入攻击） | 多服务 | TST-IT-00-051〜055 |
+| S-013 | gRPC 跨服务调用 | 业务客户端通过 gRPC 跨服务调用 | `id-registry` + tonic 客户端 | TST-IT-00-009, 056 |
+| S-014 | DB 持久化往返 | 数据写入 PostgreSQL 并重启后查询 | Postgres + sqlx | TST-IT-00-007, 019 |
+| S-015 | 属性不变条件 - 货币守恒 | 跨服务并发下货币余额非负 | `economy-svc` + proptest | TST-IT-00-046 |
+
+### 3.0.2 测试数据集（TD-NNN）
+
+每个数据集给出**具体值**，含正常/边界/异常三类。
+
+| 数据集 ID | 关联场景 | 类型 | 字段 | 值 | 备注 |
+|---|---|---|---|---|---|
+| TD-001 | S-001 | N | `domain_code` | `"CS"` | 玩家域代号 |
+| TD-001 | S-001 | N | `local_seq` | `1` | 域内序号 |
+| TD-001 | S-001 | N | `expected_main_id` | `"FR-CS-001"` | 主编号格式 |
+| TD-002 | S-002 | N | `main_id` | `"FR-CS-001"` | 反查输入 |
+| TD-002 | S-002 | N | `expected_domain_code` | `"CS"` | 反查域代号 |
+| TD-002 | S-002 | N | `expected_local_seq` | `1` | 反查序号 |
+| TD-003 | S-003 | A | `main_id` | `"FR-XX-001"` | 未注册段 |
+| TD-003 | S-003 | A | `expected_err` | `Err(UnregisteredDomain)` | 期望错误 |
+| TD-003 | S-003 | A | `err_message_contains` | `"XX"` | 错误信息应含未注册段 |
+| TD-004 | S-004 | N | `from_main_id` | `"FR-EC-001"` | 引用方 |
+| TD-004 | S-004 | N | `to_main_id` | `"FR-RT-014"` | 被引用方 |
+| TD-005 | S-005 | N | `service_name` | `"auth-svc"` | 新服务名 |
+| TD-005 | S-005 | N | `budget_sre_d_per_wk` | `0.3` | OLU 预算（人天/周） |
+| TD-006 | S-006 | B | `budget` | `1.0` | 上限 |
+| TD-006 | S-006 | B | `consumed` | `0.85` | 当前消耗（触发 80% 告警） |
+| TD-007 | S-007 | B | `budget` | `1.0` | 上限 |
+| TD-007 | S-007 | B | `consumed` | `1.2` | 超额 20% |
+| TD-007 | S-007 | B | `expected_ci_exit_code` | `non-zero` | CI 阻断 |
+| TD-008 | S-008 | A | `unregistered_id` | `"UNREG-001"` | 未注册 ID |
+| TD-008 | S-008 | A | `pr_url` | — | PR 链接 |
+| TD-009 | S-010 | A | `sql_statement` | `"UPDATE wallet SET amount=..."` | 插件直写 SQL |
+| TD-009 | S-010 | A | `expected_err` | `Err(DirectDbWriteForbidden)` | 期望错误 |
+| TD-010 | S-011 | A | `account_id` | `"ACC-DUP-001"` | 套利账号 |
+| TD-010 | S-011 | A | `concurrency` | `2` | 两个节点并发 |
+| TD-010 | S-011 | A | `expected_success_count` | `1` | 仅 1 次成功 |
+| TD-010 | S-011 | A | `expected_err` | `Err(EpochMismatch)` | 另 1 次失败 |
+| TD-011 | S-014 | N | `pg_image` | `postgresql:16-alpine` | DB 镜像 |
+| TD-011 | S-014 | N | `schema` | `id_registry_v1` | 迁移目标 |
+| TD-012 | S-015 | P | `concurrent_accounts` | `100` | 并发账户数 |
+| TD-012 | S-015 | P | `proptest_iterations` | `1000` | proptest 迭代次数 |
+| TD-012 | S-015 | P | `invariant` | `balance >= 0` | 不变条件 |
+
 ## 3.1 模块 A：两级 ID 体系集成
 
 对应 RGS-BAS-009 §2.2〜§2.3 的 ID 归属与主编号映射表结构。
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
-|---|---|---|---|---|---|---|---|---|---|
-| TST-IT-00-001 | [TL-2] | §3.1 域内 ID 注册 | 域内 ID 在登记表注册并产生主编号 | N | 启动 in-memory `id-registry` | `register_domain_id("CS", 1)` | 调用 | 返回 `Ok(Registered { main_id: "FR-CS-001" })` | 主编号格式符合 §3.1 |
-| TST-IT-00-002 | [TL-2] | §3.1 主编号 ↔ 域内 ID 反查 | 通过主编号反查域内 ID | N | 已有 FR-CS-001 | `lookup_main("FR-CS-001")` | 调用 | 返回 `("CS", 1)` | 反查正确 |
-| TST-IT-00-003 | [TL-3] | §3.2 ID 归属登记表与 GOV-ID-005 | 域内 ID 段需在登记表注册后方可使用 | N | 注册表含 "CS" | `validate_id("FR-CS-001")` | 调用 | 返回 `Ok(_)` | 段已注册 |
-| TST-IT-00-004 | [TL-3] | §3.2 段未注册拒绝 | 未注册的域段被拒 | A | 注册表不含 "XX" | `validate_id("FR-XX-001")` | 调用 | 返回 `Err(UnregisteredDomain)` | 错误信息含 "XX" |
-| TST-IT-00-005 | [TL-2] | §3.3 跨域引用 | 经济域 ID 被业务域引用 | N | FR-EC-001 已注册 | `cross_reference("FR-EC-001", "FR-RT-014")` | 调用 | 引用关系被记录 | 双向引用表新增行 |
-| TST-IT-00-006 | [TL-2] | §3.4 附件C §7 一致性 | 附件 C §7 登记的 26 个域全部能在注册表找到 | N | 附件 C 全文 | `audit_all_domains()` | 调用 | 返回 26 项，全部状态 `Active` | 数量与 §7 一致 |
-| TST-IT-00-007 | [TL-2] | §3.5 数据库 Schema 集成 | id_registry 表迁移至 PostgreSQL 成功 | N | ephemeral PG | `sqlx migrate run` | 调用 | 迁移成功，`id_registry` 表存在 | 字段类型符合 §3.5 |
-| TST-IT-00-008 | [TL-4] | §3.6 ID 不重不漏 | 随机 10,000 个 ID 注册后无重复 | P | 内存表 | proptest：随机 10,000 个 ID | 100 次 | 全部唯一 | proptest 100 次无失败 |
-| TST-IT-00-009 | [TL-2] | §3.7 跨服务集成 | `gov-ci` 进程通过 gRPC 调用 `id-registry` 服务 | N | 启动 id-registry 服务 | `gov_ci::check_id("BR-001")` via gRPC | 调用 | 返回 `Ok(Registered)` | gRPC 调用成功 |
-| TST-IT-00-010 | [TL-3] | §3.7 gRPC Schema 兼容 | client/server Schema 版本不匹配时报错 | A | server v2, client v1 | client v1 调用 server v2 | 调用 | 返回 `Err(SchemaIncompatible)` | 兼容性检查生效 |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | 前提条件 | 入力 | ステップ | 期待結果 | 合格判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-00-001 | [TL-2] | §3.1 域内 ID 注册 | 域内 ID 在登记表注册并产生主编号 | N | S-001 域内 ID 首次注册 | TD-001 `("CS", 1)` → `"FR-CS-001"` | 启动 in-memory `id-registry` | `register_domain_id("CS", 1)` | 调用 | 返回 `Ok(Registered { main_id: "FR-CS-001" })` | 主编号格式符合 §3.1 |
+| TST-IT-00-002 | [TL-2] | §3.1 主编号 ↔ 域内 ID 反查 | 通过主编号反查域内 ID | N | S-002 主编号反查 | TD-002 `"FR-CS-001"` → `("CS", 1)` | 已有 FR-CS-001 | `lookup_main("FR-CS-001")` | 调用 | 返回 `("CS", 1)` | 反查正确 |
+| TST-IT-00-003 | [TL-3] | §3.2 ID 归属登记表与 GOV-ID-005 | 域内 ID 段需在登记表注册后方可使用 | N | S-001 域内 ID 首次注册 | TD-001 `[继承自 S-001]` | 注册表含 "CS" | `validate_id("FR-CS-001")` | 调用 | 返回 `Ok(_)` | 段已注册 |
+| TST-IT-00-004 | [TL-3] | §3.2 段未注册拒绝 | 未注册的域段被拒 | A | S-003 未注册段访问 | TD-003 `"FR-XX-001"` → `Err(UnregisteredDomain)` | 注册表不含 "XX" | `validate_id("FR-XX-001")` | 调用 | 返回 `Err(UnregisteredDomain)` | 错误信息含 "XX" |
+| TST-IT-00-005 | [TL-2] | §3.3 跨域引用 | 经济域 ID 被业务域引用 | N | S-004 跨域引用建立 | TD-004 `("FR-EC-001", "FR-RT-014")` | FR-EC-001 已注册 | `cross_reference("FR-EC-001", "FR-RT-014")` | 调用 | 引用关系被记录 | 双向引用表新增行 |
+| TST-IT-00-006 | [TL-2] | §3.4 附件C §7 一致性 | 附件 C §7 登记的 26 个域全部能在注册表找到 | N | S-001 域内 ID 首次注册 | `audit_all_domains() → 26 Active` | 附件 C 全文 | `audit_all_domains()` | 调用 | 返回 26 项，全部状态 `Active` | 数量与 §7 一致 |
+| TST-IT-00-007 | [TL-2] | §3.5 数据库 Schema 集成 | id_registry 表迁移至 PostgreSQL 成功 | N | S-014 DB 持久化往返 | TD-011 `pg=postgresql:16-alpine, schema=id_registry_v1` | ephemeral PG | `sqlx migrate run` | 调用 | 迁移成功，`id_registry` 表存在 | 字段类型符合 §3.5 |
+| TST-IT-00-008 | [TL-4] | §3.6 ID 不重不漏 | 随机 10,000 个 ID 注册后无重复 | P | S-001 域内 ID 首次注册 | proptest 10000 个 ID | 内存表 | proptest：随机 10,000 个 ID | 100 次 | 全部唯一 | proptest 100 次无失败 |
+| TST-IT-00-009 | [TL-2] | §3.7 跨服务集成 | `gov-ci` 进程通过 gRPC 调用 `id-registry` 服务 | N | S-013 gRPC 跨服务调用 | `gov_ci::check_id("BR-001")` | 启动 id-registry 服务 | `gov_ci::check_id("BR-001")` via gRPC | 调用 | 返回 `Ok(Registered)` | gRPC 调用成功 |
+| TST-IT-00-010 | [TL-3] | §3.7 gRPC Schema 兼容 | client/server Schema 版本不匹配时报错 | A | S-013 gRPC 跨服务调用 | `server v2, client v1` | server v2, client v1 | client v1 调用 server v2 | 调用 | 返回 `Err(SchemaIncompatible)` | 兼容性检查生效 |
 
 ## 3.2 模块 B：OLU 运维负荷预算机制集成
 
 对应 RGS-BAS-009 §3.1〜§3.4 的 OLU 预算机制。
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
-|---|---|---|---|---|---|---|---|---|---|
-| TST-IT-00-011 | [TL-2] | §4.1 预算分配 | 服务注册时分配 SRE 工时预算 | N | 服务 `auth-svc` 注册 | `allocate_budget("auth-svc", 0.3)` | 调用 | `auth-svc` OLU 预算为 0.3 SRE·d/wk | 分配成功 |
-| TST-IT-00-012 | [TL-2] | §4.2 工时上报 | 服务向 OLU 台上报实际工时 | N | auth-svc 运行 1 周 | `report_consumption("auth-svc", 0.4)` | 调用 | OLU 台账累计 0.4 | 累计值正确 |
-| TST-IT-00-013 | [TL-2] | §4.3 超额告警 | 累计消耗超预算 80% 触发告警 | B | budget=1.0, consumed=0.85 | 写入 0.85 | 调用 | 返回 `Warning(80% reached)` | 告警阈值符合 §4.3 |
-| TST-IT-00-014 | [TL-2] | §4.3 超额阻断 | 累计消耗超 100% 阻断新 PR | B | budget=1.0, consumed=1.2 | CI 检查 | 调用 | CI 返回非零退出 | 阻断生效 |
-| TST-IT-00-015 | [TL-2] | §4.4 多服务叠加 | 多个服务 OLU 汇总至全局预算 | N | 3 个服务分别消耗 0.3/0.4/0.5 | `aggregate()` | 调用 | 全局消耗 1.2 | 汇总正确 |
-| TST-IT-00-016 | [TL-2] | §4.5 周期切换 | 每周一切换至新周，旧数据归档 | N | 已积累 7 天数据 | `rotate_weekly()` | 调用 | 旧周数据移至 `olu_history`，新周期重置 | 切换符合 §4.5 |
-| TST-IT-00-017 | [TL-4] | §4.6 预算守恒 | 任何时刻 `sum(consumed) ≤ budget` | P | 随机操作序列 | proptest：1000 个随机操作 | 100 次 | 不变量始终成立 | proptest 100 次通过 |
-| TST-IT-00-018 | [TL-2] | §4.7 NFR-OP-010 校验 | 总 OLU > 2.0 SRE·d/wk 时被 ADR 拒绝 | A | 总消耗 2.5 | CI 检查 | 调用 | CI 失败，要求缩减 | NFR-OP-010 守门生效 |
-| TST-IT-00-019 | [TL-2] | §4.8 DB 集成 | OLU 数据持久化至 PostgreSQL 并可查询 | N | ephemeral PG | 写入 0.5，进程重启，查询 | 调用 | 查询返回 0.5 | 持久化生效 |
-| TST-IT-00-020 | [TL-3] | §4.9 Schema 演进 | 追加 `notes` 字段后老数据仍可读 | A | 旧 schema 数据 | 新 schema 读取 | 调用 | 旧数据 `notes=None` | 向后兼容 |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | 前提条件 | 入力 | ステップ | 期待結果 | 合格判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-00-011 | [TL-2] | §4.1 预算分配 | 服务注册时分配 SRE 工时预算 | N | S-005 OLU 预算分配 | TD-005 `("auth-svc", 0.3)` | 服务 `auth-svc` 注册 | `allocate_budget("auth-svc", 0.3)` | 调用 | `auth-svc` OLU 预算为 0.3 SRE·d/wk | 分配成功 |
+| TST-IT-00-012 | [TL-2] | §4.2 工时上报 | 服务向 OLU 台上报实际工时 | N | S-005 OLU 预算分配 | TD-005 `[继承自 S-005]` + `consumed=0.4` | auth-svc 运行 1 周 | `report_consumption("auth-svc", 0.4)` | 调用 | OLU 台账累计 0.4 | 累计值正确 |
+| TST-IT-00-013 | [TL-2] | §4.3 超额告警 | 累计消耗超预算 80% 触发告警 | B | S-006 OLU 超额告警 | TD-006 `budget=1.0, consumed=0.85` | budget=1.0, consumed=0.85 | 写入 0.85 | 调用 | 返回 `Warning(80% reached)` | 告警阈值符合 §4.3 |
+| TST-IT-00-014 | [TL-2] | §4.3 超额阻断 | 累计消耗超 100% 阻断新 PR | B | S-007 OLU 超额阻断 | TD-007 `budget=1.0, consumed=1.2` | budget=1.0, consumed=1.2 | CI 检查 | 调用 | CI 返回非零退出 | 阻断生效 |
+| TST-IT-00-015 | [TL-2] | §4.4 多服务叠加 | 多个服务 OLU 汇总至全局预算 | N | S-005 OLU 预算分配 | 3 服务 (0.3/0.4/0.5) | 3 个服务分别消耗 0.3/0.4/0.5 | `aggregate()` | 调用 | 全局消耗 1.2 | 汇总正确 |
+| TST-IT-00-016 | [TL-2] | §4.5 周期切换 | 每周一切换至新周，旧数据归档 | N | S-005 OLU 预算分配 | 7 日数据积累 | 已积累 7 天数据 | `rotate_weekly()` | 调用 | 旧周数据移至 `olu_history`，新周期重置 | 切换符合 §4.5 |
+| TST-IT-00-017 | [TL-4] | §4.6 预算守恒 | 任何时刻 `sum(consumed) ≤ budget` | P | S-005 OLU 预算分配 | proptest 1000 操作 | 随机操作序列 | proptest：1000 个随机操作 | 100 次 | 不变量始终成立 | proptest 100 次通过 |
+| TST-IT-00-018 | [TL-2] | §4.7 NFR-OP-010 校验 | 总 OLU > 2.0 SRE·d/wk 时被 ADR 拒绝 | A | S-007 OLU 超额阻断 | TD-007 `[继承自 S-007]` | 总消耗 2.5 | CI 检查 | 调用 | CI 失败，要求缩减 | NFR-OP-010 守门生效 |
+| TST-IT-00-019 | [TL-2] | §4.8 DB 集成 | OLU 数据持久化至 PostgreSQL 并可查询 | N | S-014 DB 持久化往返 | TD-011 `pg=postgresql:16-alpine` | ephemeral PG | 写入 0.5，进程重启，查询 | 调用 | 查询返回 0.5 | 持久化生效 |
+| TST-IT-00-020 | [TL-3] | §4.9 Schema 演进 | 追加 `notes` 字段后老数据仍可读 | A | S-014 DB 持久化往返 | TD-011 `[继承自 S-014]` | 旧 schema 数据 | 新 schema 读取 | 调用 | 旧数据 `notes=None` | 向后兼容 |
 
 ## 3.3 模块 C：治理闭环 CI 机械校验集成
 
 对应 RGS-BAS-009 §4 治理闭环 CI 机械校验设计。
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
-|---|---|---|---|---|---|---|---|---|---|
-| TST-IT-00-021 | [TL-2] | §5.1 CI 端到端 | 提交含未注册 ID 的 PR → CI 阻断 | N | git repo + CI runner | `git commit` 引用 `UNREG-001` | 触发 CI | CI 返回非零退出 | 端到端阻断生效 |
-| TST-IT-00-022 | [TL-2] | §5.2 PR 报告 | CI 失败时生成结构化报告 | N | 同上 | CI 失败 | 读取 artifact | 报告含 `rule_id`/`file`/`line`/`message` | 报告格式符合 §5.2 |
-| TST-IT-00-023 | [TL-2] | §5.3 治理规则集热加载 | 规则集更新后 CI 无需重启即生效 | N | 已有 CI runner | 修改 rules.yaml，触发 CI | 调用 | 新规则生效 | 热加载符合 §5.3 |
-| TST-IT-00-024 | [TL-3] | §5.4 规则集 Schema | 非法 rule YAML 被拒 | A | 缺 `rule_id` | `load_ruleset(bad.yaml)` | 调用 | 返回 `Err(MissingField)` | Schema 校验生效 |
-| TST-IT-00-025 | [TL-2] | §5.5 与附件D联动 | TBD 主编号在附件D 不存在时被识别 | N | gov-ci 读附件D | `check_tbd("TBD-99999")` | 调用 | 返回 `Err(OrphanTbdRef)` | 联动正确 |
-| TST-IT-00-026 | [TL-2] | §5.6 附件C ↔ 附件D 一致性 | 附件C 引用的所有 TBD 都存在于附件D | N | 附件C 全文 | `cross_check()` | 调用 | 返回 `Ok(_)` | 引用一致 |
-| TST-IT-00-027 | [TL-2] | §5.7 ADR ↔ ARC 联动 | ARC 必须有 ADR 关联 | N | 加载所有 ADR | `audit_arc_adr()` | 调用 | 全部 ARC 都有 ADR | 联动完整 |
-| TST-IT-00-028 | [TL-2] | §5.8 误判申诉通道 | 开发者可标记 false positive 绕过单次检查 | N | CI 失败 PR | `gov-ci bypass --reason "..."` | 调用 | CI 重新通过，附 bypass 记录 | 申诉通道可用 |
-| TST-IT-00-029 | [TL-2] | §5.9 bypass 审计 | 每次 bypass 写入审计日志 | N | 触发 bypass | `query_audit_bypass()` | 调用 | 末条记录含操作者、原因、时间 | 审计完整 |
-| TST-IT-00-030 | [TL-2] | §5.10 跨语言集成 | 治理 CI 工具链与 Go 编写的 k6 通过 JSON RPC 协作 | N | k6 + gov-ci | k6 报告性能 → gov-ci 校验 NFR-PE-001 | 调用 | gov-ci 接收并校验 | 跨语言集成可用 |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | 前提条件 | 入力 | ステップ | 期待結果 | 合格判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-00-021 | [TL-2] | §5.1 CI 端到端 | 提交含未注册 ID 的 PR → CI 阻断 | N | S-008 治理 CI 端到端阻断 | TD-008 `unregistered_id="UNREG-001"` | git repo + CI runner | `git commit` 引用 `UNREG-001` | 触发 CI | CI 返回非零退出 | 端到端阻断生效 |
+| TST-IT-00-022 | [TL-2] | §5.2 PR 报告 | CI 失败时生成结构化报告 | N | S-008 治理 CI 端到端阻断 | TD-008 `[继承自 S-008]` | 同上 | CI 失败 | 读取 artifact | 报告含 `rule_id`/`file`/`line`/`message` | 报告格式符合 §5.2 |
+| TST-IT-00-023 | [TL-2] | §5.3 治理规则集热加载 | 规则集更新后 CI 无需重启即生效 | N | S-009 治理规则热加载 | 修改 rules.yaml | 已有 CI runner | 修改 rules.yaml，触发 CI | 调用 | 新规则生效 | 热加载符合 §5.3 |
+| TST-IT-00-024 | [TL-3] | §5.4 规则集 Schema | 非法 rule YAML 被拒 | A | S-009 治理规则热加载 | 缺 `rule_id` 的 YAML | 缺 `rule_id` | `load_ruleset(bad.yaml)` | 调用 | 返回 `Err(MissingField)` | Schema 校验生效 |
+| TST-IT-00-025 | [TL-2] | §5.5 与附件D联动 | TBD 主编号在附件D 不存在时被识别 | N | S-008 治理 CI 端到端阻断 | TBD-99999 | gov-ci 读附件D | `check_tbd("TBD-99999")` | 调用 | 返回 `Err(OrphanTbdRef)` | 联动正确 |
+| TST-IT-00-026 | [TL-2] | §5.6 附件C ↔ 附件D 一致性 | 附件C 引用的所有 TBD 都存在于附件D | N | S-008 治理 CI 端到端阻断 | 附件C 全文 | 附件C 全文 | `cross_check()` | 调用 | 返回 `Ok(_)` | 引用一致 |
+| TST-IT-00-027 | [TL-2] | §5.7 ADR ↔ ARC 联动 | ARC 必须有 ADR 关联 | N | S-008 治理 CI 端到端阻断 | 全部 ADR 加载 | 加载所有 ADR | `audit_arc_adr()` | 调用 | 全部 ARC 都有 ADR | 联动完整 |
+| TST-IT-00-028 | [TL-2] | §5.8 误判申诉通道 | 开发者可标记 false positive 绕过单次检查 | N | S-008 治理 CI 端到端阻断 | CI 失败 PR | CI 失败 PR | `gov-ci bypass --reason "..."` | 调用 | CI 重新通过，附 bypass 记录 | 申诉通道可用 |
+| TST-IT-00-029 | [TL-2] | §5.9 bypass 审计 | 每次 bypass 写入审计日志 | N | S-008 治理 CI 端到端阻断 | bypass 触发 | 触发 bypass | `query_audit_bypass()` | 调用 | 末条记录含操作者、原因、时间 | 审计完整 |
+| TST-IT-00-030 | [TL-2] | §5.10 跨语言集成 | 治理 CI 工具链与 Go 编写的 k6 通过 JSON RPC 协作 | N | S-008 治理 CI 端到端阻断 | k6 + gov-ci | k6 + gov-ci | k6 报告性能 → gov-ci 校验 NFR-PE-001 | 调用 | gov-ci 接收并校验 | 跨语言集成可用 |
 
 ## 3.4 模块 D：横切关注点集成（4 项横切需求）
 
 对应 RGS-BAS-009 §5.1〜§5.4 的 4 项横切需求：① FR-GOV-001〜004 插件经济边界 ② FR-GOV-010〜014 删除权 ③ FR-GOV-020〜023 机制重复消除 ④ FR-GOV-030〜033 判定权收口。
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
-|---|---|---|---|---|---|---|---|---|---|
-| TST-IT-00-031 | [TL-2] | §6.1 FR-GOV-001 插件经济边界 | 插件尝试直接 UPDATE economy_db 被拒 | A | 启动带插件的 mock 服务 | 插件执行 `UPDATE wallet` | 调用 | 返回 `Err(DirectDbWriteForbidden)` | 边界守门生效（VF-016） |
-| TST-IT-00-032 | [TL-2] | §6.1 插件走 EC-003 路径 | 插件通过确定请求 API 写经济成功 | N | 同上 | 插件调 `EC-003` API | 调用 | 副作用 1 次，写流水 | 路径符合 FR-EC-003 |
-| TST-IT-00-033 | [TL-2] | §7.1 FR-GOV-010 删除幂等 | 删除用户 → 重复删除 → 结果一致 | N | 用户 soft-deleted | `delete(uid)` × 2 | 调用 | 两次均返回 `Ok(AlreadyDeleted)` | 幂等（FT-013 基础） |
-| TST-IT-00-034 | [TL-2] | §7.2 删除审计不可篡改 | 删除记录不可被 UPDATE/DELETE | A | 删除记录已写入 | `UPDATE audit_log SET action='X'` | 调用 | 权限拒绝或触发只读约束 | 审计不可变（NFR-SE-010） |
-| TST-IT-00-035 | [TL-2] | §8.1 FR-GOV-020 机制重复消除 | 同一资产无两套持久化路径 | N | 扫描 codebase | `audit_dual_persistence()` | 调用 | 返回空集合 | 重复为 0 |
-| TST-IT-00-036 | [TL-2] | §9.1 FR-GOV-030 判定权收口 | 封禁判定仅 AdminService 拥有 | N | 启动全部业务服务 | 业务服务尝试调 `BanAccount` | 调用 | 返回 `Err(UnauthorizedCapability)` | 判定权唯一 |
-| TST-IT-00-037 | [TL-5] | §9.2 状态机 跨模块 | 删除编排状态机跨服务 | S | 编排器跨进程 | 触发 `Idle → Paused` 非法迁移 | 调用 | 返回 `Err` | 跨模块状态机拒绝 |
-| TST-IT-00-038 | [TL-2] | §6.2 插件沙箱 | 插件 panic 不导致宿主进程崩溃 | A | 启动带 panic 插件 | 插件触发 panic | 调用 | 宿主继续运行，插件被卸载 | 隔离生效（NFR-PLG-004 / VF-014） |
-| TST-IT-00-039 | [TL-2] | §6.3 插件生命周期 | 插件注册→启用→停用→注销 | N | 插件注册表 | 顺序调用 4 个 API | 调用 | 状态机依次迁移 | 生命周期符合 §6.3 |
-| TST-IT-00-040 | [TL-2] | §9.3 跨节点套利防护 | 同一账号在多节点并发操作经济 | A | 启动 2 个 EC 服务实例 | 双侧并发 `EC-003` | 调用 | 仅 1 次成功，另 1 次返回 `Err(EpochMismatch)` | 跨节点判定权唯一（FT-012） |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | 前提条件 | 入力 | ステップ | 期待結果 | 合格判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-00-031 | [TL-2] | §6.1 FR-GOV-001 插件经济边界 | 插件尝试直接 UPDATE economy_db 被拒 | A | S-010 插件直写 DB 拦截 | TD-009 `sql="UPDATE wallet SET..."` | 启动带插件的 mock 服务 | 插件执行 `UPDATE wallet` | 调用 | 返回 `Err(DirectDbWriteForbidden)` | 边界守门生效（VF-016） |
+| TST-IT-00-032 | [TL-2] | §6.1 插件走 EC-003 路径 | 插件通过确定请求 API 写经济成功 | N | S-010 插件直写 DB 拦截 | TD-009 `[继承自 S-010]` + `EC-003 API` | 同上 | 插件调 `EC-003` API | 调用 | 副作用 1 次，写流水 | 路径符合 FR-EC-003 |
+| TST-IT-00-033 | [TL-2] | §7.1 FR-GOV-010 删除幂等 | 删除用户 → 重复删除 → 结果一致 | N | S-008 治理 CI 端到端阻断 | soft-deleted 用户 | 用户 soft-deleted | `delete(uid)` × 2 | 调用 | 两次均返回 `Ok(AlreadyDeleted)` | 幂等（FT-013 基础） |
+| TST-IT-00-034 | [TL-2] | §7.2 删除审计不可篡改 | 删除记录不可被 UPDATE/DELETE | A | S-008 治理 CI 端到端阻断 | 删除记录已写入 | 删除记录已写入 | `UPDATE audit_log SET action='X'` | 调用 | 权限拒绝或触发只读约束 | 审计不可变（NFR-SE-010） |
+| TST-IT-00-035 | [TL-2] | §8.1 FR-GOV-020 机制重复消除 | 同一资产无两套持久化路径 | N | S-010 插件直写 DB 拦截 | codebase 扫描 | 扫描 codebase | `audit_dual_persistence()` | 调用 | 返回空集合 | 重复为 0 |
+| TST-IT-00-036 | [TL-2] | §9.1 FR-GOV-030 判定权收口 | 封禁判定仅 AdminService 拥有 | N | S-008 治理 CI 端到端阻断 | 全部业务服务启动 | 启动全部业务服务 | 业务服务尝试调 `BanAccount` | 调用 | 返回 `Err(UnauthorizedCapability)` | 判定权唯一 |
+| TST-IT-00-037 | [TL-5] | §9.2 状态机 跨模块 | 删除编排状态机跨服务 | S | S-012 跨服务状态机非法迁移 | 编排器跨进程 | 编排器跨进程 | 触发 `Idle → Paused` 非法迁移 | 调用 | 返回 `Err` | 跨模块状态机拒绝 |
+| TST-IT-00-038 | [TL-2] | §6.2 插件沙箱 | 插件 panic 不导致宿主进程崩溃 | A | S-010 插件直写 DB 拦截 | panic 插件 | 启动带 panic 插件 | 插件触发 panic | 调用 | 宿主继续运行，插件被卸载 | 隔离生效（NFR-PLG-004 / VF-014） |
+| TST-IT-00-039 | [TL-2] | §6.3 插件生命周期 | 插件注册→启用→停用→注销 | N | S-010 插件直写 DB 拦截 | 插件注册表 | 插件注册表 | 顺序调用 4 个 API | 调用 | 状态机依次迁移 | 生命周期符合 §6.3 |
+| TST-IT-00-040 | [TL-2] | §9.3 跨节点套利防护 | 同一账号在多节点并发操作经济 | A | S-011 跨节点套利防护 | TD-010 `account=ACC-DUP-001, conc=2` | 启动 2 个 EC 服务实例 | 双侧并发 `EC-003` | 调用 | 仅 1 次成功，另 1 次返回 `Err(EpochMismatch)` | 跨节点判定权唯一（FT-012） |
 
 ## 3.5 模块 E：横切关注点 4 阶段集成
 
 **待设计，不计入 RGS-BAS-009 基线追溯**：RGS-BAS-009 当前未定义“分阶段落地”章节；本模块保留为跨文档实施计划测试，待具名负责人补充设计依据后再纳入基线覆盖。
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 前置条件 | 输入 | 步骤 | 预期结果 | 通过判定 |
-|---|---|---|---|---|---|---|---|---|---|
-| TST-IT-00-041 | [TL-2] | §10.1 PH-1 治理闭环挂载 | PH-1 完成时治理 CI 接入主干 | N | 模拟 PH-1 收尾 | `git tag phase-1-done` | 触发 CI | 治理 CI 启用 | 挂载时机正确 |
-| TST-IT-00-042 | [TL-2] | §10.2 PH-2 数据库标准 | DB 迁移通过 Expand-Contract 流程 | N | 新增列 `notes` | 跑两阶段迁移 | 调用 | 第一阶段：新旧兼容；第二阶段：删旧列 | 流程符合 §10.2 |
-| TST-IT-00-043 | [TL-2] | §10.3 PH-3 插件边界 | 插件接入自动校验经济边界 | N | 部署带插件的服务 | 提交插件代码 | CI 检查 | 不合规插件被拒 | 自动校验生效 |
-| TST-IT-00-044 | [TL-2] | §10.4 PH-4 OLU 预算 | PH-4 引入 4 个新服务，OLU 累计 1.8 | N | 部署 PH-4 服务 | 累计 OLU | 调用 | OLU ≤ 2.0（NFR-OP-010） | 预算守门 |
-| TST-IT-00-045 | [TL-2] | §10.5 PH-6 治理聚合项启用 | AC-019 在 PH-6 起具备阻断力 | N | 部署 21 份领域文档 | 触发 AC-019 检查 | 调用 | 任一 AC-<域>-* 未达 → CI 失败 | AC-019 聚合生效 |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | 前提条件 | 入力 | ステップ | 期待結果 | 合格判定 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TST-IT-00-041 | [TL-2] | §10.1 PH-1 治理闭环挂载 | PH-1 完成时治理 CI 接入主干 | N | S-008 治理 CI 端到端阻断 | `git tag phase-1-done` | 模拟 PH-1 收尾 | `git tag phase-1-done` | 触发 CI | 治理 CI 启用 | 挂载时机正确 |
+| TST-IT-00-042 | [TL-2] | §10.2 PH-2 数据库标准 | DB 迁移通过 Expand-Contract 流程 | N | S-014 DB 持久化往返 | `notes` 列新增 | 新增列 `notes` | 跑两阶段迁移 | 调用 | 第一阶段：新旧兼容；第二阶段：删旧列 | 流程符合 §10.2 |
+| TST-IT-00-043 | [TL-2] | §10.3 PH-3 插件边界 | 插件接入自动校验经济边界 | N | S-010 插件直写 DB 拦截 | 部署带插件的服务 | 部署带插件的服务 | 提交插件代码 | CI 检查 | 不合规插件被拒 | 自动校验生效 |
+| TST-IT-00-044 | [TL-2] | §10.4 PH-4 OLU 预算 | PH-4 引入 4 个新服务，OLU 累计 1.8 | N | S-005 OLU 预算分配 | PH-4 4 新服务 | 部署 PH-4 服务 | 累计 OLU | 调用 | OLU ≤ 2.0（NFR-OP-010） | 预算守门 |
+| TST-IT-00-045 | [TL-2] | §10.5 PH-6 治理聚合项启用 | AC-019 在 PH-6 起具备阻断力 | N | S-008 治理 CI 端到端阻断 | 部署 21 份领域文档 | 部署 21 份领域文档 | 触发 AC-019 检查 | 调用 | 任一 AC-<域>-* 未达 → CI 失败 | AC-019 聚合生效 |
 
 ## 3.6 业务规则集成级属性试验（TL-4）
 
-| 用例 ID | 试验级别 | 对应需求 | 测试目的 | 覆盖类型 | 测试方法 |
-|---|---|---|---|---|---|
-| TST-IT-00-046 | [TL-4] | BZ-001 货币余额非负 | 跨服务并发下余额仍 ≥ 0 | P | proptest：100 个并发账户，断言守恒 |
-| TST-IT-00-047 | [TL-4] | BZ-002 支付订单幂等 | 跨服务重复支付仅 1 次发货 | P | proptest：同 order_id 在 3 个服务实例并发调发货 |
-| TST-IT-00-048 | [TL-4] | BZ-003 道具增减可由流水复原 | 跨服务操作后 `sum(ledger) == inventory` | P | proptest：1000 个跨服务操作 |
-| TST-IT-00-049 | [TL-4] | BZ-005 已归档对局不可变 | 跨服务状态机非法迁移拒绝 | P | proptest：随机目标状态 |
-| TST-IT-00-050 | [TL-4] | BZ-006 封禁账号不可建会话 | 跨服务登录尝试拒绝 | P | proptest：随机账号跨节点登录 |
+| 用例 ID | 試験レベル | 対応需求 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | テスト方法 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-00-046 | [TL-4] | BZ-001 货币余额非负 | 跨服务并发下余额仍 ≥ 0 | P | S-015 属性不变条件 - 货币守恒 | TD-012 100 并发账户, 1000 iterations | proptest：100 个并发账户，断言守恒 |
+| TST-IT-00-047 | [TL-4] | BZ-002 支付订单幂等 | 跨服务重复支付仅 1 次发货 | P | S-011 跨节点套利防护 | TD-010 `[继承自 S-011]` + 3 サービス | proptest：同 order_id 在 3 个服务实例并发调发货 |
+| TST-IT-00-048 | [TL-4] | BZ-003 道具增减可由流水复原 | 跨服务操作后 `sum(ledger) == inventory` | P | S-015 属性不变条件 - 货币守恒 | TD-012 `[继承自 S-015]` | proptest：1000 个跨服务操作 |
+| TST-IT-00-049 | [TL-4] | BZ-005 已归档对局不可变 | 跨服务状态机非法迁移拒绝 | P | S-012 跨服务状态机非法迁移 | proptest 随机目标状态 | proptest：随机目标状态 |
+| TST-IT-00-050 | [TL-4] | BZ-006 封禁账号不可建会话 | 跨服务登录尝试拒绝 | P | S-011 跨节点套利防护 | TD-010 `[继承自 S-011]` | proptest：随机账号跨节点登录 |
 
 ## 3.7 跨模块状态机试验（TL-5）
 
-| 用例 ID | 试验级别 | 对应需求 | 测试目的 | 覆盖类型 | 测试方法 |
-|---|---|---|---|---|---|
-| TST-IT-00-051 | [TL-5] | ST-001 玩家会话 | `Terminating → Active` 跨服务拒绝 | S | 通过会话服务与运行时联合触发 |
-| TST-IT-00-052 | [TL-5] | ST-002 对局 | `Finished → Running` 跨服务拒绝 | S | 通过对局服务与状态机服务联合触发 |
-| TST-IT-00-053 | [TL-5] | ST-003 购买 | `Refunded → Delivered` 跨 Saga 拒绝 | S | 通过 Saga 与经济服务联合触发 |
-| TST-IT-00-054 | [TL-5] | ST-005 账号 | `Banned → Active` 跨服务拒绝 | S | 通过账号服务与认证服务联合触发 |
-| TST-IT-00-055 | [TL-5] | 治理编排状态机 | `Idle → Paused` 跨服务拒绝 | S | gov-ci 与 deletion_orchestrator 联合触发 |
+| 用例 ID | 試験レベル | 対応需求 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | テスト方法 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-00-051 | [TL-5] | ST-001 玩家会话 | `Terminating → Active` 跨服务拒绝 | S | S-012 跨服务状态机非法迁移 | ST-001 状态机 | 通过会话服务与运行时联合触发 |
+| TST-IT-00-052 | [TL-5] | ST-002 对局 | `Finished → Running` 跨服务拒绝 | S | S-012 跨服务状态机非法迁移 | ST-002 状态机 | 通过对局服务与状态机服务联合触发 |
+| TST-IT-00-053 | [TL-5] | ST-003 购买 | `Refunded → Delivered` 跨 Saga 拒绝 | S | S-012 跨服务状态机非法迁移 | ST-003 状态机 | 通过 Saga 与经济服务联合触发 |
+| TST-IT-00-054 | [TL-5] | ST-005 账号 | `Banned → Active` 跨服务拒绝 | S | S-012 跨服务状态机非法迁移 | ST-005 状态机 | 通过账号服务与认证服务联合触发 |
+| TST-IT-00-055 | [TL-5] | 治理编排状态机 | `Idle → Paused` 跨服务拒绝 | S | S-012 跨服务状态机非法迁移 | 治理编排状态机 | gov-ci 与 deletion_orchestrator 联合触发 |
 
 ## 3.8 契约试验（TL-3）专项
 
-| 用例 ID | 试验级别 | 对应设计章节 | 测试目的 | 覆盖类型 | 测试方法 |
-|---|---|---|---|---|---|
-| TST-IT-00-056 | [TL-3] | §3.7 gRPC API | 全部 public gRPC API 兼容 | N | 生成的 stub + 兼容性脚本 |
-| TST-IT-00-057 | [TL-3] | §5.4 事件 Schema | 全部事件 topic Schema 兼容 | N | apicurio-registry 兼容性 API |
-| TST-IT-00-058 | [TL-3] | §3.5 DB Schema | Expand-Contract 迁移可逆 | A | 写新 schema → migrate down → 数据无损 |
-| TST-IT-00-059 | [TL-3] | §6.1 插件配置 | 插件 manifest Schema 校验 | A | 非法 manifest 被拒 |
-| TST-IT-00-060 | [TL-3] | §10.5 治理配置 | 治理规则集 YAML Schema 校验 | A | 非法规则被拒 |
+| 用例 ID | 試験レベル | 対応設計章節 | テスト目的 | カバレッジタイプ | シナリオ | テストデータ | テスト方法 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-00-056 | [TL-3] | §3.7 gRPC API | 全部 public gRPC API 兼容 | N | S-013 gRPC 跨服务调用 | tonic 生成的 stub | 生成的 stub + 兼容性脚本 |
+| TST-IT-00-057 | [TL-3] | §5.4 事件 Schema | 全部事件 topic Schema 兼容 | N | S-013 gRPC 跨服务调用 | apicurio-registry | apicurio-registry 兼容性 API |
+| TST-IT-00-058 | [TL-3] | §3.5 DB Schema | Expand-Contract 迁移可逆 | A | S-014 DB 持久化往返 | TD-011 `[继承自 S-014]` | 写新 schema → migrate down → 数据无损 |
+| TST-IT-00-059 | [TL-3] | §6.1 插件配置 | 插件 manifest Schema 校验 | A | S-010 插件直写 DB 拦截 | 非法 manifest | 非法 manifest 被拒 |
+| TST-IT-00-060 | [TL-3] | §10.5 治理配置 | 治理规则集 YAML Schema 校验 | A | S-008 治理 CI 端到端阻断 | 非法 rule YAML | 非法规则被拒 |
 
 ---
 

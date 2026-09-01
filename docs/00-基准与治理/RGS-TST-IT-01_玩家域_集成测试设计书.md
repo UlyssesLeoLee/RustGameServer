@@ -26,6 +26,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:01 玩家域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST,等 01-07 IT 文档补全再开 IT) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 签字栏
 
@@ -55,17 +56,17 @@
 
 ## 2.1 模块 A:玩家表 + FixtureBuilder 集成(per DTL-015 §2/§3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-01-A001 | `player-service/tests/integration_player_basic.rs::pg_test_player_fixture_inserts_and_reads_back_in_real_pg` | players 表 INSERT/SELECT | N | rgs-testkit FixtureBuilder + 真 PG 集成:玩家表可 INSERT/SELECT,索引 + 约束生效 |
-| TST-IT-01-A002 | `player-service/tests/integration_player_basic.rs::pg_test_player_fixture_builder_customizes_name_and_level` | with_name / with_level | N | FixtureBuilder 链式 API:sample data 可定制 |
-| TST-IT-01-A003 | `player-service/tests/integration_player_basic.rs::pg_test_outbox_check_constraint_rejects_invalid_status` | outbox 表 CHECK 约束 | A | 0003_outbox_check_idempotent.sql `chk_outbox_status` 约束真的生效,invalid status 拒 insert |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-01-A001 | `player-service/tests/integration_player_basic.rs::pg_test_player_fixture_inserts_and_reads_back_in_real_pg` | players 表 INSERT/SELECT | N | — | — | rgs-testkit FixtureBuilder + 真 PG 集成:玩家表可 INSERT/SELECT,索引 + 约束生效 |
+| TST-IT-01-A002 | `player-service/tests/integration_player_basic.rs::pg_test_player_fixture_builder_customizes_name_and_level` | with_name / with_level | N | — | — | FixtureBuilder 链式 API:sample data 可定制 |
+| TST-IT-01-A003 | `player-service/tests/integration_player_basic.rs::pg_test_outbox_check_constraint_rejects_invalid_status` | outbox 表 CHECK 约束 | A | — | — | 0003_outbox_check_idempotent.sql `chk_outbox_status` 约束真的生效,invalid status 拒 insert |
 
 ## 2.2 模块 B:fail-closed 启动(per DTL-015 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-01-B001 | `player-service/tests/fail_closed_start.rs::player_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 5 域 fail-closed 模式启动 5s 内成功,RGS_TLS_DIR 异常 fail |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-01-B001 | `player-service/tests/fail_closed_start.rs::player_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 5 域 fail-closed 模式启动 5s 内成功,RGS_TLS_DIR 异常 fail |
 
 ## 3. 追溯矩阵
 

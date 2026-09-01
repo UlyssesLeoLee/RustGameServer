@@ -24,6 +24,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:03 社交域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -45,23 +46,23 @@
 
 ## 2.1 模块 A:好友 + 消息 + 群组(per DTL-019 §3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-03-A001~A003 | `integration_social_basic.rs` | friend_id / message | N | 3 个集成 case:friend_request / friend_accept / message_send |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-03-A001~A003 | `integration_social_basic.rs` | friend_id / message | N | — | — | 3 个集成 case:friend_request / friend_accept / message_send |
 
 ## 2.2 模块 B:fail-closed 启动(per DTL-019 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-03-B001 | `fail_closed_start.rs::social_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 5 域 fail-closed 模式启动 5s 内成功 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-03-B001 | `fail_closed_start.rs::social_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 5 域 fail-closed 模式启动 5s 内成功 |
 
 ## 2.3 模块 C:推送投递协议线(per DTL-019 §3 / DTL-020 §3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-03-C001 | `social-service/src/push_delivery.rs::push_delivery_request_serializes_all_fields` | account_id/category/title/body/dedup_window_id | N | PushDeliveryRequest 5 字段 JSON 序列化对齐 protobuf 镜像 |
-| TST-IT-03-C002 | `social-service/src/push_delivery.rs::delivery_result_code_roundtrip` | DeliveryResultCode 4 枚举 | N | Delivered=0/DeviceTokenExpired=1/RateLimitedDropped=2/RateLimitedQueued=3 roundtrip |
-| TST-IT-03-C003 | `social-service/src/push_delivery.rs::sanitize_rejects_banned_patterns` | title/body 校验 | A | PushContentSanitizer 拒绝 script/javascript:/data: 模式 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-03-C001 | `social-service/src/push_delivery.rs::push_delivery_request_serializes_all_fields` | account_id/category/title/body/dedup_window_id | N | — | — | PushDeliveryRequest 5 字段 JSON 序列化对齐 protobuf 镜像 |
+| TST-IT-03-C002 | `social-service/src/push_delivery.rs::delivery_result_code_roundtrip` | DeliveryResultCode 4 枚举 | N | — | — | Delivered=0/DeviceTokenExpired=1/RateLimitedDropped=2/RateLimitedQueued=3 roundtrip |
+| TST-IT-03-C003 | `social-service/src/push_delivery.rs::sanitize_rejects_banned_patterns` | title/body 校验 | A | — | — | PushContentSanitizer 拒绝 script/javascript:/data: 模式 |
 
 ## 3. 追溯矩阵
 

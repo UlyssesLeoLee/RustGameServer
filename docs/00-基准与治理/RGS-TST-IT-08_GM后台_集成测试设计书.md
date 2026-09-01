@@ -25,6 +25,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师（Mavis 接手 agent per DEC-008,代签） | 2026-08-27 23:38 JST | 初次编制：8 域第 8 域 GM 后台集成测试设计书（补全 7 域→8 域覆盖缺口） |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列；新增 §3.0 场景集与测试数据集占位章节。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 签字栏
 
@@ -172,58 +173,62 @@
 
 ## 3. 测试用例
 
+## 3.0 场景集与测试数据集占位
+
+本设计书的场景集（S-NNN）与测试数据集（TD-NNN）由本主题域负责人在用例实装阶段补充。参考主模板 `RGS-TST-IT-00 §3.0` 的格式与字段约定。占位期间, 用例表内「シナリオ」「テストデータ」列以 `—` 标记。
+
 ## 3.1 模块 A：HTTP 健康端点（BAS-003 §3.4）
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-08-A001 | BAS-003 §3.4 /healthz | 响应：200, `{ "status":"ok", "service":"gm-backend" }` | [TL-2] | N | healthz 返回 200 + 2 字段 |
-| TST-IT-08-A002 | BAS-003 §3.4 /readyz | 响应：200, `{ "status":"ready", "service":"gm-backend" }` | [TL-2] | N | readyz 返回 200 + 2 字段 |
-| TST-IT-08-A003 | BAS-003 §2.1 build_health_router 隔离 | /healthz GET（通过 8081 router）| [TL-2] | N | health router 暴露 /healthz |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-08-A001 | BAS-003 §3.4 /healthz | 响应：200, `{ "status":"ok", "service":"gm-backend" }` | [TL-2] | N | — | — | healthz 返回 200 + 2 字段 |
+| TST-IT-08-A002 | BAS-003 §3.4 /readyz | 响应：200, `{ "status":"ready", "service":"gm-backend" }` | [TL-2] | N | — | — | readyz 返回 200 + 2 字段 |
+| TST-IT-08-A003 | BAS-003 §2.1 build_health_router 隔离 | /healthz GET（通过 8081 router）| [TL-2] | N | — | — | health router 暴露 /healthz |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（3 测试）
 
 ## 3.2 模块 B：GM 业务端点（BAS-003 §3.1-§3.4）
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-08-B001 | BAS-003 §3.1 /api/v1/gm/health/view | 响应：200, `{ "service", "admin_endpoint", "mode" }` | [TL-2/3] | N | health_view 返回 3 字段 + admin_endpoint 来自 config |
-| TST-IT-08-B002 | BAS-003 §3.4 /api/v1/gm/ban | 响应：202, `{ "status":"queued", "op":"ban" }` | [TL-2] | N | ban_account 返回 202 + 2 字段 |
-| TST-IT-08-B003 | BAS-003 §3.4 /api/v1/gm/compensation | 响应：202, `{ "status":"queued", "op":"compensation" }` | [TL-2] | N | grant_compensation 返回 202 + 2 字段 |
-| TST-IT-08-B004 | BAS-003 §3.4 /api/v1/gm/maintenance | 响应：202, `{ "status":"queued", "op":"maintenance" }` | [TL-2] | N | set_maintenance 返回 202 + 2 字段 |
-| TST-IT-08-B005 | BAS-003 §4.2 /api/v1/audit/logs | 响应：200, `{ "items":[], "next":"stub" }` | [TL-2] | N | query_audit 返回空 items（v0.2 实装 join） |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-08-B001 | BAS-003 §3.1 /api/v1/gm/health/view | 响应：200, `{ "service", "admin_endpoint", "mode" }` | [TL-2/3] | N | — | — | health_view 返回 3 字段 + admin_endpoint 来自 config |
+| TST-IT-08-B002 | BAS-003 §3.4 /api/v1/gm/ban | 响应：202, `{ "status":"queued", "op":"ban" }` | [TL-2] | N | — | — | ban_account 返回 202 + 2 字段 |
+| TST-IT-08-B003 | BAS-003 §3.4 /api/v1/gm/compensation | 响应：202, `{ "status":"queued", "op":"compensation" }` | [TL-2] | N | — | — | grant_compensation 返回 202 + 2 字段 |
+| TST-IT-08-B004 | BAS-003 §3.4 /api/v1/gm/maintenance | 响应：202, `{ "status":"queued", "op":"maintenance" }` | [TL-2] | N | — | — | set_maintenance 返回 202 + 2 字段 |
+| TST-IT-08-B005 | BAS-003 §4.2 /api/v1/audit/logs | 响应：200, `{ "items":[], "next":"stub" }` | [TL-2] | N | — | — | query_audit 返回空 items（v0.2 实装 join） |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（5 测试）
 
 ## 3.3 模块 C：路由边界（BAS-003 §2.1 路由表）
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-08-C001 | BAS-003 §2.1 GET 端点拒绝 POST | POST /healthz | [TL-2] | A | 返回 405 Method Not Allowed |
-| TST-IT-08-C002 | BAS-003 §2.1 POST 端点拒绝 GET | GET /api/v1/gm/ban | [TL-2] | A | 返回 405 |
-| TST-IT-08-C003 | BAS-003 §2.1 未知路由 | GET /api/v1/gm/nonexistent | [TL-2] | A | 返回 404 Not Found |
-| TST-IT-08-C004 | BAS-003 §2.1 health 路由不含 GM 端点 | GET /api/v1/gm/health/view（通过 build_health_router）| [TL-2] | A | 返回 404（端口隔离） |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-08-C001 | BAS-003 §2.1 GET 端点拒绝 POST | POST /healthz | [TL-2] | A | — | — | 返回 405 Method Not Allowed |
+| TST-IT-08-C002 | BAS-003 §2.1 POST 端点拒绝 GET | GET /api/v1/gm/ban | [TL-2] | A | — | — | 返回 405 |
+| TST-IT-08-C003 | BAS-003 §2.1 未知路由 | GET /api/v1/gm/nonexistent | [TL-2] | A | — | — | 返回 404 Not Found |
+| TST-IT-08-C004 | BAS-003 §2.1 health 路由不含 GM 端点 | GET /api/v1/gm/health/view（通过 build_health_router）| [TL-2] | A | — | — | 返回 404（端口隔离） |
 
 **实现位置**：`crates/gm-backend/tests/integration_gm_basic.rs`（4 测试）
 
 ## 3.4 模块 D：端到端集成（v0.2 TBD，BAS-003 §4.1 RBAC + admin-service gRPC）
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-08-D001 | BAS-003 §4.1 RBAC GM_OPERATOR | JWT 角色 = GM_OPERATOR | [TL-4] | N | ban_account 200 + 调 admin-service.BanAccount |
-| TST-IT-08-D002 | BAS-003 §4.1 RBAC GM_ADMIN | JWT 角色 = GM_ADMIN | [TL-4] | N | grant_compensation 200 + 调 admin-service.GrantCompensation |
-| TST-IT-08-D003 | BAS-003 §4.1 RBAC SRE | JWT 角色 = SRE | [TL-4] | N | set_maintenance 200 + 调 admin-service.SetMaintenance |
-| TST-IT-08-D004 | BAS-003 §4.1 RBAC 拒绝 | JWT 角色 = GM_VIEWER | [TL-4] | A | 返回 403 Forbidden |
-| TST-IT-08-D005 | BAS-003 §4.2 audit join admin-service.QueryAudit | query_audit 调 admin-service | [TL-4] | N | 返回 200 + items ≥ 1 + next=string |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-08-D001 | BAS-003 §4.1 RBAC GM_OPERATOR | JWT 角色 = GM_OPERATOR | [TL-4] | N | — | — | ban_account 200 + 调 admin-service.BanAccount |
+| TST-IT-08-D002 | BAS-003 §4.1 RBAC GM_ADMIN | JWT 角色 = GM_ADMIN | [TL-4] | N | — | — | grant_compensation 200 + 调 admin-service.GrantCompensation |
+| TST-IT-08-D003 | BAS-003 §4.1 RBAC SRE | JWT 角色 = SRE | [TL-4] | N | — | — | set_maintenance 200 + 调 admin-service.SetMaintenance |
+| TST-IT-08-D004 | BAS-003 §4.1 RBAC 拒绝 | JWT 角色 = GM_VIEWER | [TL-4] | A | — | — | 返回 403 Forbidden |
+| TST-IT-08-D005 | BAS-003 §4.2 audit join admin-service.QueryAudit | query_audit 调 admin-service | [TL-4] | N | — | — | 返回 200 + items ≥ 1 + next=string |
 
 **实现位置**：`crates/gm-backend/tests/integration_admin_grpc.rs`（**TBD v0.2**,占位,等 admin-service gRPC client 实装后补）
 
 ## 3.5 模块 E：TLS / mTLS 集成（v0.2 TBD，BAS-003 §2.1）
 
-| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | 测试目标 |
-|---|---|---|---|---|---|
-| TST-IT-08-E001 | BAS-003 §2.1 HTTPS 8443 | rustls + server.pem + ca.pem | [TL-4] | N | https:// 客户端证书验证通过 |
-| TST-IT-08-E002 | BAS-003 §2.1 mTLS 拒绝 | 客户端无证书 | [TL-4] | A | 返回 401 Unauthorized |
-| TST-IT-08-E003 | BAS-003 §2.1 mTLS 拒绝 | 客户端证书非 CA 签发 | [TL-4] | A | 返回 401 |
+| 测试 ID | 对应需求 | 字段/schema | V 层级 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|---|
+| TST-IT-08-E001 | BAS-003 §2.1 HTTPS 8443 | rustls + server.pem + ca.pem | [TL-4] | N | — | — | https:// 客户端证书验证通过 |
+| TST-IT-08-E002 | BAS-003 §2.1 mTLS 拒绝 | 客户端无证书 | [TL-4] | A | — | — | 返回 401 Unauthorized |
+| TST-IT-08-E003 | BAS-003 §2.1 mTLS 拒绝 | 客户端证书非 CA 签发 | [TL-4] | A | — | — | 返回 401 |
 
 **实现位置**：`crates/gm-backend/tests/integration_tls.rs`（**TBD v0.2**）
 

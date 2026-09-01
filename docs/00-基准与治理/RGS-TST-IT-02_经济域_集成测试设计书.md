@@ -26,6 +26,7 @@
 | 版本 | 修订者 | 修订日期 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 架构师(Mavis 接手 agent per DEC-008,代签) | 2026-08-28 10:33 JST | 初次编制:02 经济域独立 IT 文档(per Ulysses 追认决策 B,`RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,真实确认时间 2026-08-28 12:21 JST) |
+| 0.2 | 2026-09-01 | 架构师（Mavis 接手代签 per DEC-008） | 按 2026-09-01 JST 拍板决策，用例表添加「シナリオ」「テストデータ」2 列。详细场景/测试数据在各领域 IT 实施阶段补充 |
 
 ## 1. 范围与结构
 
@@ -49,35 +50,35 @@
 
 ## 2.1 模块 A:OCC + 余额预占(per DTL-018 §2/§3)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-02-A001~A009 | `service::*`、`reservation::*`、`repository::*` | balance version | N | 9 个 OCC 路径:正常预占/并发冲突回滚/超额拒绝/version 0 row 等 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-02-A001~A009 | `service::*`、`reservation::*`、`repository::*` | balance version | N | — | — | 9 个 OCC 路径:正常预占/并发冲突回滚/超额拒绝/version 0 row 等 |
 
 ## 2.2 模块 B:outbox CHECK 约束 + relay(per DTL-018 §4)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-02-B001~B006 | `integration_outbox.rs` | outbox.status | N | 0004_outbox_check_idempotent.sql `chk_outbox_status` CHECK 约束真的生效 |
-| TST-IT-02-B007 | `integration_outbox.rs::outbox_check_constraint_is_idempotent` | migration 可重入 | A | migration 第二次跑 no-op,不报错(WF-1-55.28 step 5 验证) |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-02-B001~B006 | `integration_outbox.rs` | outbox.status | N | — | — | 0004_outbox_check_idempotent.sql `chk_outbox_status` CHECK 约束真的生效 |
+| TST-IT-02-B007 | `integration_outbox.rs::outbox_check_constraint_is_idempotent` | migration 可重入 | A | — | — | migration 第二次跑 no-op,不报错(WF-1-55.28 step 5 验证) |
 
 ## 2.3 模块 C:tracing span(per DTL-018 §5)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-02-C001~C??? | `span_assertion.rs` | span name / fields | N | tracing span 字段 + 父子关系 + propagation |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-02-C001~C??? | `span_assertion.rs` | span name / fields | N | — | — | tracing span 字段 + 父子关系 + propagation |
 
 ## 2.4 模块 D:chaos 故障注入(per DTL-018 §6)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-02-D001~D002 | `chaos_reservation.rs::chaos_db_disconnect_mid_reserve_recovers` + `chaos_deadlock_between_concurrent_sagas_recovered` | 故障点 | A | 模拟 PG 慢/NATS 断/CPU 抢占下,OCC + outbox 仍正确 |
-| TST-IT-02-D003 | `chaos_row_external_delete_returns_not_found` | 外部 DELETE row | A | ⚠️ ignored, P2 stub per RGS-OPEN-QA-001 Q-M-07 答复, PH-2 实测 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-02-D001~D002 | `chaos_reservation.rs::chaos_db_disconnect_mid_reserve_recovers` + `chaos_deadlock_between_concurrent_sagas_recovered` | 故障点 | A | — | — | 模拟 PG 慢/NATS 断/CPU 抢占下,OCC + outbox 仍正确 |
+| TST-IT-02-D003 | `chaos_row_external_delete_returns_not_found` | 外部 DELETE row | A | — | — | ⚠️ ignored, P2 stub per RGS-OPEN-QA-001 Q-M-07 答复, PH-2 实测 |
 
 ## 2.5 模块 E:fail-closed 启动(per DTL-018 §2.1)
 
-| 测试 ID | 对应源码 | 字段 | 用例类型 | 测试目标 |
-|---|---|---|---|---|
-| TST-IT-02-E001 | `fail_closed_start.rs::economy_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | 5 域 fail-closed 模式启动 5s 内成功 |
+| 测试 ID | 对应源码 | 字段 | 用例类型 | シナリオ | テストデータ | 测试目标 |
+|---|---|---|---|---|---|---|
+| TST-IT-02-E001 | `fail_closed_start.rs::economy_service_fail_closed_when_tls_dir_invalid` | env 0.0.0.0:0 | N | — | — | 5 域 fail-closed 模式启动 5s 内成功 |
 
 ## 3. 追溯矩阵
 
