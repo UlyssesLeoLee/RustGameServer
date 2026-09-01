@@ -5,15 +5,35 @@
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008) 代签 Ulysses
 > **依据**: 9/1 22:20-9/2 02:23 JST commit 历史,verifier 引用过期 `b8a79d8f` 33 commit 持续反馈循环,本快照落地为单一证据源
 
-## 0. 权威 git 状态 (per 2026-09-02 02:23 JST)
+## 0. 权威 git 状态 (per 2026-09-02 02:23 JST, v0.6.1 hotfix 修, 2026-09-02 08:30 JST)
 
 | 维度 | 数据 |
 |---|---|
-| main HEAD | (实时, 查 `git rev-parse main`, 创建快照时为 `7ec98ee`) |
+| main HEAD | (实时, 查 `git rev-parse main`, v0.6.1 时为 `bec1747`) |
 | main HEAD (短) | (实时, 查 `git rev-parse --short main`) |
-| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, 创建时 40) |
-| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, 创建时 90) |
-| working tree | clean (3 untracked dirs: .worktrees/, target-bucket-8-*, 临时文件已清 per L12) |
+| ahead of WBS v0.2 (`84edf26`) | (实时, 查 `git rev-list --count 84edf26..main`, v0.6.1 时 90) |
+| ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.1 时 140) |
+| working tree | untracked 5 项 (DRAFT 状态待评审) + git stash 3 个 (上游 AI 残留, 待决策) — 详见 §0.1 |
+
+### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:35 JST)
+
+**untracked 5 项**:
+
+| 路径 | 性质 | 推荐处理 | 阻塞 |
+|---|---|---|---|
+| `crates/admin-service/migrations/0006_audit_log_partitioned.sql` | 上游 AI DRAFT 状态大表分区化 SQL (8/22 思路, 6966 字节) | 保留等 SRE + DBA + admin Lead 评审 + PH-2 实施 | DRAFT 状态不允许 commit |
+| `crates/economy-service/migrations/0006_transaction_ledger_partitioned.sql` | 同上 (DRAFT, 6569 字节) | 保留等评审 | 同上 |
+| `crates/economy-service/migrations/0007_sagas_partitioned.sql` | 同上 (DRAFT, 7702 字节) | 保留等评审 | 同上 |
+| `crates/match-service/migrations/0041_moves_partitioned.sql` | 同上 (DRAFT) | 保留等评审 | 同上 |
+| `.worktrees/feat-auto-20260901-3e13c819/` (worktree 已 prune) + `target-bucket-8-phase-b/` + `target-bucket-8-w1-player/` + `docs/ddd-review/` (空目录) + `crates/rgs-asset-download/Z:\definitely-not-existing\store/` | 老 worktree / cargo build 残留 / 8/29 临时文件 | **mavis-trash 不可用, 永久删除被 CLI 安全策略 ban, 保留在主 worktree 不入 commit** | 等用户决策是否要外部工具清理 |
+
+**git stash 3 个**:
+
+| stash | 内容 | 推荐处理 |
+|---|---|---|
+| `stash@{0}` | On wbs/WF-1-debug-log: dirty-cargo-lock-pre-rebase | 等用户决策是否 drop |
+| `stash@{1}` | On main: REQ-001/005/007-ADD1/038 + worktrees 残留 (per 上一 session 协调) | 同上 |
+| `stash@{2}` | On main: RGS-REQ-007-ADD1 GM 后台需求 + worktrees/ dir (per 上一 session 协调) | 同上 |
 
 ## 1. 7 phase + 6 E 子桶落地状态
 
@@ -124,6 +144,7 @@
 | v0.5 | 2026-09-02 03:44 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 E3 W5 3/5 → 5/5 落地 (BA-W5-6/7 integration test + credentials audit + OLU stats, 7 endpoint 落地), 本会话 9/2 02:17-03:41 JST 净增 29 commit, main HEAD 推进 b8a79d8 → 63f1c24, E3 W2-W5 25/35 L4 任务全部完成, per 9/2 84 min 推进 + 'W5 集成 + 凭据 + OLU 收口' (主会话打头阵 + 模板化复制) |
 | v0.6 | 2026-09-02 08:08 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §1 E3 W6 0/5 → 5/5 落地 (BA-W6-1/2/3/4/5, 5 commit) + E8 4/12 → 6/12 (GAP-1 跨 batch DAG + GAP-6 rgs-web bridge, 2 commit), 本会话 9/2 02:17-08:08 JST 累计净增 35 commit, main HEAD 推进 b8a79d8 → d3ca7be, E3 W2-W6 35/40 L4 任务全部完成, AGENTS.md L14 派生约束入档 + 22 测试函数 (11 UT + 11 E2E), per 9/2 ~6h 推进 + 'W3 BA-W3-11 E2E + GAP-1/6 + L14' 收口 |
 | **v0.6.1** | **2026-09-02 08:30** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 E8 6/12 + 6/12 草案 → 12/12 全部落地 (GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 RACI commit `0755ef8e` + GAP-12 BA-W1-3 namespace commit `2a44836`) + §0 总盘统计 35 → 88 commit (ahead of WBS v0.2, 跟 WBS v0.4.5 跟踪表 git 实证一致, per L13 派生约束 自指字段全 deferred 实时查询), 跟 WBS v0.4.5 跟踪表 (commit `4723808`) 同步, 代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.2** | **2026-09-02 08:38** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 新增 working tree untracked 5 项 + git stash 3 个 待决策清单 — (1) 4 DRAFT 状态大表分区化 SQL 等 SRE + DBA + 域 Lead 评审 + PH-2/PH-3 实施前不 apply / commit; (2) 5 老 worktree / cargo build 残留 / 临时文件 (mavis-trash 不可用 + 永久删除被 CLI 安全策略 ban, 保留在主 worktree 不入 commit); (3) 3 git stash (REQ-001/005/007-ADD1/038 + worktrees 残留 + REQ-007-ADD1) 等 Ulysses 拍板 drop / apply / 保留。 实际 mavis-trash 11 老 worktree 已 git worktree remove --force + worktree prune 全清理, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
