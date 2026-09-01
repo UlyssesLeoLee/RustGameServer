@@ -126,31 +126,15 @@ spec:
               cpu: 2000m
               memory: 2Gi
           livenessProbe:
-            exec:
-              command:
-                - /app/bin/grpc_health_probe
-                - -addr=127.0.0.1:50056
-                - -tls
-                - -tls-client-cert=/etc/rgs/certs/server.pem
-                - -tls-client-key=/etc/rgs/certs/server.key
-                - -tls-ca-cert=/etc/rgs/certs/ca.pem
-                - -tls-server-name=cluster-ops.service
-                - -connect-timeout=2s
+            tcpSocket:
+              port: 50056
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
-            exec:
-              command:
-                - /app/bin/grpc_health_probe
-                - -addr=127.0.0.1:50056
-                - -tls
-                - -tls-client-cert=/etc/rgs/certs/server.pem
-                - -tls-client-key=/etc/rgs/certs/server.key
-                - -tls-ca-cert=/etc/rgs/certs/ca.pem
-                - -tls-server-name=cluster-ops.service
-                - -connect-timeout=2s
+            tcpSocket:
+              port: 50056
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3

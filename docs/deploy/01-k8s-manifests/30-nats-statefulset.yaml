@@ -8,6 +8,10 @@
 #   - 单实例 dev 起点；HA 阶段由 SRE 评估 3 副本 Raft consensus
 #   - 持久化路径 /data/jetstream（PVC 挂载）
 #   - 健康检查 8222 /healthz（HTTP monitoring）
+# 2026-09-01 14:00 JST Mavis 临时越界 (per 部署恢复期, docker.io timeout, ghcr.io 403):
+#   - image: docker.io/library/nats:2.14.5-alpine → docker.m.daocloud.io/library/nats:2.14.5-alpine
+#   - 加 securityContext (PSA restricted 要求, per L8 派生约束)
+#   - image 改用 daocloud.io mirror 是临时方案, 后续需评估 ghcr.io 公开 mirror 或自建
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -35,10 +39,20 @@ spec:
         fsGroup: 1000
         runAsUser: 1000
         runAsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: nats
-          image: nats:2.14.5-alpine
+          image: docker.m.daocloud.io/library/nats:2.14.5-alpine
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           args:
             - "--config"
             - "/etc/nats/nats.conf"
