@@ -134,15 +134,22 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (3 commit)
+### 文档 / 跟踪表 hotfix (10 commit)
 
 | commit | 摘要 |
 |---|---|
 | `faf40a8` | docs(agents): AGENTS.md L14 派生约束入档 (plumbing 节点字符串 brace 跟踪, per 9/2 W2 BA-W2-3/5/6 patch 经验) |
 | `c2acf02` | feat(svc): PH-3 分区实施草稿 4 migration DRAFT (audit_log + transaction_ledger + sagas + moves) |
-| `1eb289f` + `56b65ca` | STATUS-SNAPSHOT v0.6.2 + v0.6.3 hotfix (本快照自指字段修正) |
+| `1eb289f` | STATUS-SNAPSHOT v0.6.2 (本快照自指字段修正, §0.1 待决策清单) |
+| `56b65ca` | STATUS-SNAPSHOT v0.6.3 (v0.6.2 误报 4 partitioned SQL 为 untracked → tracked 实测) |
+| `77454e5` | STATUS-SNAPSHOT v0.6.4 (本表 §2 E3 W2-W6 + E8 6 GAP 实施 42 commit 权威索引固化) |
+| `c3a73dd` | STATUS-SNAPSHOT v0.6.5 (本表 §1 总盘统计 88/138 → 94/144 commit 实时更新) |
+| `9980ebe` | STATUS-SNAPSHOT v0.6.6 (本表 §0 表自指字段统一 v0.6.5) |
+| `b9f2979` | STATUS-SNAPSHOT v0.6.7 (本表元信息行 + §0 头标 5 段时间戳统一) |
+| `7afcf08` | STATUS-SNAPSHOT v0.6.8 (本表 §0.1 + §2 自指版本号统一 v0.6.7 + §7 指针) |
+| `abcc752` | WBS v0.4.6 跟踪表 hotfix (§1.1 / §1.1 ahead / §6 3 处 "88 commit" → 实时 git 实证表达式) |
 
-**commit 链总合计**: 42 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 3) — 跟 `git rev-list --count 84edf26..main` 93 commit 差 51 commit 是 W1 (af84884 + 2a44836) + 跟踪表 hotfix 系列 (WBS v0.4.x + STATUS-SNAPSHOT v0.x.x) + 其他。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
+**commit 链总合计**: 52 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 10) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.4 + 本快照 v0.6.1 ~ v0.6.4 等)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
 - `7ec98ee docs(wbs): v0.4.2 跟踪表 hotfix — §6 6 域 cargo check 实测入档 (2 行: 21.53s 0 error 实测 + 验证命令, PID 51296 + task_output wait)`
 - `0d7a407 docs(wbs): v0.4.1 跟踪表 hotfix — §6 main HEAD 字段改 deferred 实时查询 (避免回溯改写) + 6 域 cargo check 实测入档 (per 2026-09-02 02:18 JST, 5 业务域 + shared-platform 21.53s 0 error), 链式 hotfix 终止`
@@ -227,6 +234,7 @@
 | **v0.6.6** | **2026-09-02 08:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表自指字段统一更新到 v0.6.5 时 (main HEAD `c3a73dd` + 94/145 commit) — 避免 v0.6.1/v0.6.3 双版本号自指污染, per L13 自指字段全 deferred 实时查询 + §0 §1 §1.1 §2 §0.1 五段数字统一以 git 实证为准, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.7** | **2026-09-02 08:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: 文档元信息行 (创建日期 + 依据段 + §0 头标) 更新到 v0.6.6 接棒 2026-09-02 08:55 JST — 避免创建时间停留在 v0.1 (02:23 JST) 自指污染 + §0 头标 5 段时间戳全部对齐, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.8** | **2026-09-02 09:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 + §2 自指版本号从 v0.6.2/v0.6.3 统一到 v0.6.7 + 加"以 §7 修订历史最新版为准"指针 — 避免小节标头版本号落后于 §7 修订表自指污染, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.9** | **2026-09-02 09:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 3 commit → 10 commit (补 1eb289f/56b65ca/77454e5/c3a73dd/9980ebe/b9f2979/7afcf08/abcc752 8 个 hotfix commit, 全部 9/2 08:38-09:05 JST L13 守护) + §2 commit 链总合计 42 → 52 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
