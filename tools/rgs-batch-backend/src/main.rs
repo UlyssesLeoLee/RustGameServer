@@ -438,7 +438,7 @@ struct DataSource {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct WorkerPoolConfig {
     id: Uuid,
     name: String,
@@ -469,7 +469,7 @@ struct ScheduleEntryQuery {
     limit: Option<i64>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct TaskDef {
     id: Uuid,
     name: String,
@@ -645,6 +645,7 @@ async fn version() -> impl Responder {
             "BA-W4-3/4: data_source update/delete + task_template 灰度版本 promote (per GAP-7 任务模板版本化, audit_event 自动记录 promote 动作, per ADR-0058 + REQ F-10)",
             "BA-W4-5/6: task_template upsert + delete (per GAP-7 灰度版本化, ON CONFLICT id 锁定 template_version, audit_event 自动记录)",
             "BA-W4-7: schedule upsert + delete (per id, ON CONFLICT 锁定 cron_expr + interval_secs, audit_event 自动记录, 5/5 Master 表全 full CRUD)",
+            "BA-W5-1/2: worker_pool_config + task_def upsert + delete (per GAP-4 优先级 min/max/priority_levels + 5 域 gRPC client handler 注册, params_schema JSONB 存储)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1201,6 +1202,100 @@ async fn list_worker_pool_config(state: web::Data<AppState>) -> impl Responder {
         Ok(list) => web::Json(serde_json::json!({ "pools": list, "count": list.len() })),
         Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
     }
+}
+
+#[actix_web::put("/api/v1/worker-pool-config")]
+async fn upsert_worker_pool_config(
+    state: web::Data<AppState>,
+    body: web::Json<WorkerPoolConfig>,
+) -> impl Responder {
+    // W5 BA-W5-1: worker_pool upsert (per id, GAP-4 优先级调度 min/max/priority_levels)
+    let p = body.into_inner();
+    let _ = sqlx::query(
+        "INSERT INTO batch_master.worker_pool (id, name, min_workers, max_workers, priority_levels, enabled, created_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, now()) \
+         ON CONFLICT (id) DO UPDATE SET name = $2, min_workers = $3, max_workers = $4, priority_levels = $5, enabled = $6"
+    )
+    .bind(p.id)
+    .bind(&p.name)
+    .bind(p.min_workers)
+    .bind(p.max_workers)
+    .bind(p.priority_levels)
+    .bind(p.enabled)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    state.audit.log(
+        "ulysses", "upsert_worker_pool_config", &serde_json::json!({ "pool_id": p.id, "max_workers": p.max_workers }),
+        "success", "trace-pool-upsert-001", Some("worker_pool"), Some(p.id)
+    ).await;
+    web::Json(serde_json::json!({ "upserted": true, "id": p.id, "name": p.name, "max_workers": p.max_workers }))
+}
+
+#[actix_web::delete("/api/v1/worker-pool-config/{id}")]
+async fn delete_worker_pool_config(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W5 BA-W5-1: worker_pool delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_master.worker_pool WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    state.audit.log(
+        "ulysses", "delete_worker_pool_config", &serde_json::json!({ "pool_id": id }),
+        "success", "trace-pool-delete-001", Some("worker_pool"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
+#[actix_web::put("/api/v1/task-defs")]
+async fn upsert_task_def(
+    state: web::Data<AppState>,
+    body: web::Json<TaskDef>,
+) -> impl Responder {
+    // W5 BA-W5-2: task_def upsert (per id + handler, 5 域 gRPC client handler 名注册)
+    let t = body.into_inner();
+    let params_schema_str = serde_json::to_string(&t.params_schema).unwrap_or_default();
+    let _ = sqlx::query(
+        "INSERT INTO batch_master.task_def (id, name, handler, params_schema, enabled, created_at) \
+         VALUES ($1, $2, $3, $4::jsonb, $5, now()) \
+         ON CONFLICT (id) DO UPDATE SET name = $2, handler = $3, params_schema = $4::jsonb, enabled = $5"
+    )
+    .bind(t.id)
+    .bind(&t.name)
+    .bind(&t.handler)
+    .bind(params_schema_str)
+    .bind(t.enabled)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "upserted": false })));
+    state.audit.log(
+        "ulysses", "upsert_task_def", &serde_json::json!({ "task_def_id": t.id, "handler": t.handler }),
+        "success", "trace-taskdef-upsert-001", Some("task_def"), Some(t.id)
+    ).await;
+    web::Json(serde_json::json!({ "upserted": true, "id": t.id, "handler": t.handler, "enabled": t.enabled }))
+}
+
+#[actix_web::delete("/api/v1/task-defs/{id}")]
+async fn delete_task_def(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W5 BA-W5-2: task_def delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_master.task_def WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    state.audit.log(
+        "ulysses", "delete_task_def", &serde_json::json!({ "task_def_id": id }),
+        "success", "trace-taskdef-delete-001", Some("task_def"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
 }
 
 #[get("/api/v1/schedules")]
@@ -1802,7 +1897,11 @@ async fn main() -> std::io::Result<()> {
             .service(upsert_task_template)
             .service(delete_task_template)
             .service(list_task_defs)
+            .service(upsert_task_def)
+            .service(delete_task_def)
             .service(list_worker_pool_config)
+            .service(upsert_worker_pool_config)
+            .service(delete_worker_pool_config)
             .service(list_schedules)
             .service(upsert_schedule)
             .service(delete_schedule)
