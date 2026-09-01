@@ -1,0 +1,8 @@
+{
+  "pod_ip": "10.42.0.246",
+  "timestamp": "2026-09-01T15:50:21.8462678+09:00",
+  "detail": "mTLS OK + HealthCheck 返回 status=Ok",
+  "verdict": "PASS",
+  "service": "social.v1.SocialService",
+  "probe": "st-15-social-mtls-grpcurl"
+}

@@ -1,0 +1,8 @@
+{
+  "pod_ip": "10.42.0.247",
+  "timestamp": "2026-09-01T15:50:22.8546954+09:00",
+  "detail": "mTLS OK + HealthCheck 返回 status=Ok",
+  "verdict": "PASS",
+  "service": "admin.v1.AdminService",
+  "probe": "st-16-admin-mtls-grpcurl"
+}

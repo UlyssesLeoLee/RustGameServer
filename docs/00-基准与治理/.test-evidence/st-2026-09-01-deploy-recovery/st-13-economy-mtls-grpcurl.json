@@ -1,0 +1,7 @@
+{
+  "pod_ip": "10.42.0.240",
+  "probe": "st-13-economy-mtls-grpcurl",
+  "timestamp": "2026-09-01T15:49:16.0494400+09:00",
+  "verdict": "PASS",
+  "detail": "mTLS OK, HealthCheck 返回 status=Ok"
+}
