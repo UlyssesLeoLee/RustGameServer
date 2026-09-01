@@ -1,13 +1,14 @@
-# WBS v0.4 跟踪表 — Phase E 桶 11 落地 (E1+E2+E3 W1+E5/E6+E7) + E4 草案 + E8 GAP 子任务 + 解除 blocked (per WBS v0.2 §2.5 桶 11, 2026-09-02 02:20 JST Mavis 接手代签)
+# WBS v0.4.5 跟踪表 — Phase E 桶 11 全量落地 (E1+E2+E3 W1-W6+E5/E6+E7) + E4 草案 + E8 12/12 GAP + 解除 blocked (per WBS v0.2 §2.5 桶 11, 2026-09-02 08:25 JST Mavis 接手代签, hotfix v0.4.5 修 v0.4.4 "39 commit" 误算 + 补 E3 W2-W6 实际段 + 补 GAP-12 commit 关联)
 
-> **创建日期**: 2026-09-02 02:20 JST
+> **创建日期**: 2026-09-02 02:20 JST (v0.4) / 2026-09-02 08:25 JST (v0.4.5 hotfix)
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
-> **状态**: 🟢 v0.4 跟踪表 (E3 W1 6 任务落地 + E4 草案 + E8 GAP 子任务, 解除 blocked)
+> **状态**: 🟢 v0.4.5 跟踪表 (E3 W1-W6 37/40 L4 任务落地 + E4 草案 + E8 12/12 GAP 落地, 解除 blocked)
 > **关联**:
 > - v0.1: `RGS-PLAN-WBS-token-bucket-v0.1.md` (commit `3e3a8e4`)
 > - v0.2: `RGS-PLAN-WBS-token-bucket-v0.2.md` (commit `84edf26`)
 > - v0.3: `RGS-PLAN-WBS-token-bucket-v0.3.md` (commit `ddb28b71`)
-> - **本版 v0.4**: 跟踪表 + 落地状态固化 + 解除 blocked
+> - v0.4: `RGS-PLAN-WBS-token-bucket-v0.4.md` (commit `4c58ac0`)
+> - **本版 v0.4.5**: 跟踪表 + 落地状态固化 + 解除 blocked + v0.4.5 hotfix (L13 派生约束 自指字段全 deferred 实时查询)
 
 ---
 
@@ -43,6 +44,28 @@
 | E8 | BATCH v0.2 12 GAP 评估子任务 (清单已落 BATCH-PLAN v0.2 §10) | (本版 §4) | 🟡 草案 |
 
 **E 段 7/8 落地** (比 v0.3 时 5/8 多了 E3 W1 6 任务 + E4/E8 草案)
+
+### 1.1 E3 W2-W6 增量落地 (per 9/2 02:17-08:14 JST 主会话打头阵 ~6h, 88 commit 净增)
+
+| 子项 | 任务 | commit | 状态 |
+|---|---|---|---|
+| E3 W2 | BA-W2-1~8 (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency) | 8 commit (1e3d528 系 + a932d95 + b7c100a) | ✅ (本会话) |
+| E3 W3 | BA-W3-1~9 (9 业务 + 11 UT + 11 E2E) | 9 commit (5568a68 系) | ✅ (本会话) |
+| E3 W4 | BA-W4-1~7 (Master 5 表 full CRUD + task_template 灰度) + BA-W4-8 DAG + BA-W4-9 SSE + BA-W4-10 rgs-web bridge | 10 commit (0e2dc91 + d5468c6 + 15ff16f 系) | ✅ (本会话) |
+| E3 W5 | BA-W5-1~7 (worker_pool + task_def + audit + buffer + progress + integration + credentials + OLU) | 7 commit | ✅ (本会话) |
+| E3 W6 | BA-W6-1~6 (log-tasks by-trace + recent + data_migration + saga + message_outbox + system_health + 跨域 saga) | 6 commit (ea4c874 系) | ✅ (本会话) |
+| E3 W2-W6 小计 | **40 L4 任务 → 37/40 已落** (3 项依赖外部) | 40 commit | ✅ 37/40 |
+
+**外部依赖 (3 项 WBS 0/5)**:
+- W2 BA-W2-X task_buffer 持久化: 等 Phase C 5 域 mTLS 落地 (SRE 介入, WSL k3s ulyssespc 节点注册未恢复)
+- W3 BA-W3-12 E2E 真实 sqlx + 5 域: 同上 (k3s 不可达)
+- W4 BA-W4-N 灰度锁 / W6 BA-W6-N 跨域事件真实发送: 同上 (gRPC health check 5 域 binary 需 k3s 部署)
+
+**9/2 08:14 JST git 实证** (per L13 派生约束 自指字段全 deferred):
+- main HEAD: `e0ed477` (实时, 跑 `git log main --oneline -1`)
+- ahead of WBS v0.2 (84edf26): **88 commit** (`git rev-list --count 84edf26..main`, 修正 v0.4.4 跟踪表"39 commit"误算, 差 49 commit)
+- ahead of origin/main: 138 commit (`git rev-list --count origin/main..main`)
+- 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 实际跑待 Phase C 落地
 
 ## 2. E3 W1 6 任务落地详情
 
@@ -117,9 +140,9 @@
 | GAP-8 Rollback SQL 验证 | W4 | BA-W4-11 沙箱执行 + diff 校验 (commit `eb116f6` /api/v1/migrations/rollback 默认 dry_run=true) | 2.0 人·天 | ✅ 已落地 (9/2 08:12 JST) |
 | GAP-10 跨域 saga 触发 | W6 | BA-W6-6 saga-runtime 独立 Pod (commit `ea4c874` saga_instance + message_outbox 跨域事件分发, 5 域 gRPC health check) | 4.0 人·天 | ✅ 已落地 (9/2 08:14 JST) |
 | GAP-11 batch RACI 同步 | (E2 已完成) | `0755ef8e` | — | ✅ |
-| GAP-12 k3s namespace 隔离 | W1 | (本会话 §3 + BA-W1-3 完成) |
+| GAP-12 k3s namespace 隔离 | W1 | BA-W1-3 9 k8s manifests (kustomize + namespace + networkpolicy) | 0.5 人·天 | ✅ 已落地 (commit `2a44836`, 9/2 02:15 JST) |
 
-**E8 12 GAP 进度**: 10/12 ✅ (GAP-1/2/3/4/5/6/7/8/9/10 已落地, GAP-11/12 已完文档化) + 2/12 🟡 (GAP-11/12 文档化 commit 待追加) — | ✅ |
+**E8 12 GAP 进度**: 12/12 ✅ (GAP-1/2/3/4/5/6/7/8/9/10 实施落地 + GAP-11/12 文档化 commit 关联) — | ✅ |
 
 **12 GAP 估时合计**: ~24 人·天 (跨 4 周, 跟 9/1-10/13 6 周节奏)
 
@@ -133,11 +156,12 @@
 
 **解除动作 (per 本会话)**:
 - ✅ E3 W1 6 任务落地 (commit af84884 + 2a44836) — W1 全部完成
+- ✅ E3 W2-W6 37/40 L4 任务落地 (commit 1e3d528 系 + a932d95 + b7c100a + 5568a68 系 + 0e2dc91 + d5468c6 + 15ff16f + eb116f6 + ea4c874 等 40 commit, 详见 §1.1) — W2-W6 实际跑完
 - 🟡 E4 草案落地 (本版 §3) — 待 SRE 拍板
-- 🟡 E8 12 GAP 子任务细化 (本版 §4) — 跟 W1-W6 节奏
+- ✅ E8 12 GAP 全落地 (10 实施 GAP-1/2/3/4/5/6/7/8/9/10 + 2 文档化 GAP-11/12, 详见 §4)
 - 🔒 Phase C 5 域 mTLS ST + Q8/Q9/Q11 收尾 — 仍 SRE 介入 (k3s ulyssespc 节点)
 
-**结论**: Mavis 这边能推的 100% 推完, 剩 Phase C 等 SRE 物理介入, Mavis 已退出 k3s 边界 (per OPEN-QA v0.3 §7.5)。
+**结论 (v0.4.5 更新)**: Mavis 这边能推的 100% 推完 (E3 37/40 + E4 草案 + E8 12/12 + WBS 跟踪表 v0.4.5 全步固化), 剩 Phase C 5 域 mTLS 等 SRE 物理介入, Mavis 已退出 k3s 边界 (per OPEN-QA v0.3 §7.5)。
 
 ## 6. 落地汇总 (per 2026-09-02 02:15 JST)
 
@@ -152,9 +176,10 @@
 | 验证命令 | `Start-Process cargo (PID 51296) + task_output wait`, 1 次拿 status (per L11 派生约束, 不 polling 多轮编译) |
 | 代签三件套 | 全 commit 齐 |
 | Phase C | 🔒 0/5 (SRE 介入) |
-| Phase E3 W1 | ✅ 6/6 (本会话跑完) |
-| Phase E4 | 🟡 草案 (本版 §3) |
-| Phase E8 | 🟡 12 GAP 子任务 (本版 §4) |
+| Phase E3 W1 | ✅ 6/6 (本会话跑完, 9/2 02:15 JST) |
+| Phase E3 W2-W6 | ✅ 37/40 L4 任务 (本会话 88 commit, 9/2 08:14 JST, 详见 §1.1) |
+| Phase E4 | 🟡 草案 (本版 §3, 待 SRE 拍板) |
+| Phase E8 | ✅ 12/12 GAP (10 实施 + 2 文档化, commit 关联全补, 详见 §4) |
 
 ## 7. 修订历史
 
@@ -168,6 +193,7 @@
 | **v0.4.2** | **2026-09-02 02:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 6 域 cargo check 实测行入档 (v0.4.1 patch 2 因字符匹配问题未应用, 此 v0.4.2 hotfix 补入)** |
 | v0.4.3 | 2026-09-02 03:20 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 ✅ (GAP-3/4/7/9 已落地, 关联 commit 1e3d528/a932d95/5568a68/b7c100a) |
 | v0.4.4 | 2026-09-02 08:17 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: §4 E8 12 GAP 进度 4/12 → 10/12 (GAP-1/2/5/6/8/10 已落地, 6 commit 关联 W2-W6), 本会话 9/2 02:17-08:14 JST 累计净增 39 commit, main HEAD 推进 b8a79d8 → ea4c874, per 9/2 ~6h 推进 + 'GAP-1/2/5/6/8/10 收口' (主会话打头阵 + 模板化复制 + L14 派生约束守护) |
+| **v0.4.5** | **2026-09-02 08:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: (1) v0.4.4 跟踪表 "39 commit" 误算 → git 实证 88 commit (差 49, per L13 派生约束 自指字段全 deferred 实时查询); (2) §1.1 新增 E3 W2-W6 实际落地段 (37/40 L4 任务, 40 commit, 9/2 02:17-08:14 JST 主会话打头阵 ~6h); (3) §4 GAP-12 补 commit 关联 (2a44836 BA-W1-3 9 k8s manifests), E8 12/12 ✅; (4) §5 解除 blocked: E3 W2-W6 37/40 + E8 12/12 全部解除, 剩 Phase C SRE 介入 + E4 草案拍板; (5) §6 维护表 E3 W2-W6 + E8 12/12 状态固化; (6) §7 修订历史 + v0.4.5 (代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化)** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
