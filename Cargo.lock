@@ -4266,8 +4266,10 @@ dependencies = [
 name = "rgs-arc-olu"
 version = "0.1.0"
 dependencies = [
+ "proptest",
  "serde",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -4302,6 +4304,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "predicates",
+ "proptest",
  "rcgen",
  "rustls-pemfile",
  "tempfile",
@@ -4311,6 +4314,11 @@ dependencies = [
 [[package]]
 name = "rgs-hello"
 version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "predicates",
+ "tempfile",
+]
 
 [[package]]
 name = "rgs-overflow-alert"
