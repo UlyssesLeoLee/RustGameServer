@@ -1,0 +1,9 @@
+[st-11] player-service mTLS 业务级 gRPC
+Time: 2026-09-01T13:44:50.4091345+09:00
+Player pod IP: 10.42.0.221
+Verdict: PASS
+Detail: mTLS OK, HealthCheck 返回 status=Ok
+Output: {
+  "status": "STATUS_OK",
+  "message": "ok"
+}

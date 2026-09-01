@@ -1,0 +1,17 @@
+{
+  "player_pod_ip": "10.42.0.221",
+  "verdict": "PASS",
+  "timestamp": "2026-09-01T13:44:50.4160441+09:00",
+  "output_excerpt": "{\n  \"status\": \"STATUS_OK\",\n  \"message\": \"ok\"\n}",
+  "probe": "st-11-player-mtls-grpcurl",
+  "rpc_method": "HealthCheck",
+  "detail": "mTLS OK, HealthCheck 返回 status=Ok",
+  "mtls": {
+    "server_name": "player.service",
+    "ca_cert": "rgs-secret-ca",
+    "client_cert": "rgs-secret-player-tls (tls.crt)",
+    "enabled": true
+  },
+  "grpc_service": "player.v1.PlayerService",
+  "grpc_url": "10.42.0.221:50051"
+}
