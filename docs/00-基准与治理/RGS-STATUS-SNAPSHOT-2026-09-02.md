@@ -88,7 +88,7 @@
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
 | E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计** (per WBS v0.4.8 跟踪表 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1, 2026-09-02 09:55 JST, v0.6.19 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 110 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 162 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 4 DRAFT partitioned SQL 评审启动材料 v0.1 就绪 (commit `999ff5d`)。
+**总盘统计** (per WBS v0.4.9 跟踪表 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1, 2026-09-02 10:17 JST, v0.6.24 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 117 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 169 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 4 DRAFT partitioned SQL 评审启动材料 v0.1.1 就绪 (commit `999ff5d` + `24ce59c`), WBS v0.4.9 §4.1 PH-3 评审启动源固化 (commit `3501f52`)。
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
@@ -290,6 +290,7 @@
 | **v0.6.21** | **2026-09-02 10:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 12 commit → 18 commit (补 v0.6.14/12/16/17 + 999ff5d DB-CHECKLIST v0.1 + v0.6.18) + §2 commit 链总合计 54 → 60 commit, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.22** | **2026-09-02 10:08** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 18 commit → 19 commit (补 24ce59c RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 §1.1 已签方背景), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.23** | **2026-09-02 10:11** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表 4 行 "v0.6.10 时" 自指版本号指针全部删除 (per L13 自指字段全 deferred 实时查询终极守护) — §0 表全部用实时 git 实证查询表达式 (`git rev-parse main` / `git rev-list --count 84edf26..main` / `git rev-list --count origin/main..main`), 后续 hotfix 不用再回头改 §0 自指字段, 收敛点 v0.6.11 + v0.6.23 双重守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.24** | **2026-09-02 10:17** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (110/162 → 117/169 commit, 跨 9/2 09:55-10:17 JST 净增 7 commit = v0.6.20/21/22/23 + v0.4.9 + v0.1.1 + 本 commit, 跟 WBS v0.4.9 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
