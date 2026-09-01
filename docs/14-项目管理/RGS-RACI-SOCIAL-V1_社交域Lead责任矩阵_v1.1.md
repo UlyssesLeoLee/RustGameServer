@@ -109,11 +109,22 @@
 
 ---
 
+## 6. 业务决议（per OPEN-QA v0.2 §Q5 决策 — Phase B B4 落地）
+
+- **Q5 决议：guild capacity 50 维持现状, 不擅自改 64** (per RGS-OPEN-QA-2026-08-31-test-summary v0.2 §Q5 决策)
+  - 代码现状：`crates/social-service/src/service.rs` L124 `if guild.member_count >= 50` 硬编码 50
+  - 决策依据：QA 报告上限 50 为准, 改 64 需 social 域 Lead 业务侧（产品/业务侧）确认是否 50 为需求值, 不是 QA 主动可决策项
+  - 当前 WBS v0.2 Phase B B4 落档：维持 50 现状, 50 边界 IT `integration_guild_capacity_boundary.rs` 已 PASS
+  - 若产品/业务侧要求改 64, 需走 social 域 Lead 业务确认 → 修订本文档 §6 + 改 service.rs + 同步边界 IT, 跟本 v1.1 升版流程一致
+  - 引用：`docs/00-基准与治理/RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md` §Q5 + 业务实装 commit `f556991`
+
 ## 修订历史
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
 | v1.0 | 2026-08-26 | 架构师（Mavis 接手 agent per DEC-008）| 初版（per WF-1-55.78 P2 5 域 Lead RACI v1.0；基于 RGS-RACI-001 v0.1 160 单元 + RGS-ADR-0055 v0.1 升版） |
+| v1.1 | 2026-08-26 20:42 JST | Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手 | §4 5 域 Lead 联合签字栏全部填充已签（20 行 = 5 域 × 4 行）（per `kubectl get endpoints -n rust-game-server` 实证） |
+| v1.1.1 | 2026-09-01 23:10 JST | Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手 | §6 业务决议段新增 Q5 guild capacity 50 决议行 (per WBS v0.2 §2.2 Phase B 桶 8 B4 + OPEN-QA v0.2 §Q5 决策) |
 
 ## A. v1.0 升版增量
 
