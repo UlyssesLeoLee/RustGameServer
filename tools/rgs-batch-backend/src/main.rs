@@ -577,6 +577,7 @@ async fn version() -> impl Responder {
             "BA-W2-4: worker pool 完整 (GAP-4 优先级 BinaryHeap + max_concurrent 8 + /api/v1/workers/enqueue + dequeue + by_priority 计数)",
             "BA-W2-5: cron 调度 (60s 周期 + /api/v1/cron/stats + mavis_reminder_active, per GAP-3)",
             "BA-W2-6: audit_event T-3 永久保留 (operator + action + params_hash + result + trace_id, per REQ F-10 + ADR-0058)",
+            "BA-W2-7: Prometheus 完整 12 指标 (task total/succeeded/failed/running + duration avg + worker pool active/max/queue + DLQ size/exhausted + cron executions/active, per BA-W2-7)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -871,24 +872,35 @@ async fn list_dlq(state: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/v1/metrics")]
 async fn metrics(state: web::Data<AppState>) -> impl Responder {
-    // W2 BA-W2-7: Prometheus 5 指标
+    // W2 BA-W2-7: Prometheus 完整 5 指标 (per BATCH-PLAN v0.2 §3.1 W2 BA-W2-7)
+    // 5 指标: rgs_batch_up + rgs_batch_task_total + rgs_batch_task_duration_seconds + rgs_batch_worker_pool + rgs_batch_dlq
     let task_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task")
-        .fetch_one(&state.db)
-        .await
-        .unwrap_or(0);
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let task_succeeded: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task WHERE state = 'succeeded'")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let task_failed: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task WHERE state IN ('failed', 'timeout')")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let task_running: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task WHERE state = 'running'")
+        .fetch_one(&state.db).await.unwrap_or(0);
     let dlq_size: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry")
-        .fetch_one(&state.db)
-        .await
-        .unwrap_or(0);
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let dlq_exhausted: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry WHERE retry_count >= max_retries")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    // task duration: avg over succeeded tasks (per BA-W2-7 histogram 简化版)
+    let avg_duration_secs: f64 = sqlx::query_scalar::<_, Option<f64>>(
+        "SELECT AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) FROM batch_transaction.batch_task WHERE state = 'succeeded' AND started_at IS NOT NULL AND finished_at IS NOT NULL"
+    )
+    .fetch_one(&state.db).await.unwrap_or(None).unwrap_or(0.0);
+    let cron_metrics = state.cron.stats();
+    let cron_exec = cron_metrics.executions_total;
+    let cron_active = cron_metrics.active_schedules;
+    let worker_metrics = state.worker_pool.status();
+
     let body = format!(
-        "# HELP rgs_batch_up Service up\n# TYPE rgs_batch_up gauge\nrgs_batch_up 1\n\
-         # HELP rgs_batch_task_total Total tasks\n# TYPE rgs_batch_task_total counter\nrgs_batch_task_total {}\n\
-         # HELP rgs_batch_worker_pool_active Active workers\n# TYPE rgs_batch_worker_pool_active gauge\nrgs_batch_worker_pool_active {}\n\
-         # HELP rgs_batch_dlq_size DLQ size\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size {}\n\
-         # HELP rgs_batch_cron_executions_total Cron executions\n# TYPE rgs_batch_cron_executions_total counter\nrgs_batch_cron_executions_total 0\n",
-        task_total,
-        state.worker_pool.status().active,
-        dlq_size
+        "# HELP rgs_batch_up Service up\n# TYPE rgs_batch_up gauge\nrgs_batch_up 1\n         # HELP rgs_batch_task_total Total tasks\n# TYPE rgs_batch_task_total counter\nrgs_batch_task_total {}\n         # HELP rgs_batch_task_succeeded_total Succeeded tasks\n# TYPE rgs_batch_task_succeeded_total counter\nrgs_batch_task_succeeded_total {}\n         # HELP rgs_batch_task_failed_total Failed tasks\n# TYPE rgs_batch_task_failed_total counter\nrgs_batch_task_failed_total {}\n         # HELP rgs_batch_task_running Running tasks\n# TYPE rgs_batch_task_running gauge\nrgs_batch_task_running {}\n         # HELP rgs_batch_task_duration_seconds_avg Average task duration\n# TYPE rgs_batch_task_duration_seconds_avg gauge\nrgs_batch_task_duration_seconds_avg {:.3}\n         # HELP rgs_batch_worker_pool_active Active workers\n# TYPE rgs_batch_worker_pool_active gauge\nrgs_batch_worker_pool_active {}\n         # HELP rgs_batch_worker_pool_max Max workers\n# TYPE rgs_batch_worker_pool_max gauge\nrgs_batch_worker_pool_max {}\n         # HELP rgs_batch_worker_pool_priority_queue Priority queue size\n# TYPE rgs_batch_worker_pool_priority_queue gauge\nrgs_batch_worker_pool_priority_queue {}\n         # HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size {}\n         # HELP rgs_batch_dlq_exhausted DLQ exhausted retries\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted {}\n         # HELP rgs_batch_cron_executions_total Cron executions\n# TYPE rgs_batch_cron_executions_total counter\nrgs_batch_cron_executions_total {}\n         # HELP rgs_batch_cron_active_schedules Active cron schedules\n# TYPE rgs_batch_cron_active_schedules gauge\nrgs_batch_cron_active_schedules {}\n",
+        task_total, task_succeeded, task_failed, task_running, avg_duration_secs,
+        worker_metrics.active, worker_metrics.max_concurrent, worker_metrics.priority_queue_size,
+        dlq_size, dlq_exhausted, cron_exec, cron_active
     );
     HttpResponse::Ok()
         .content_type("text/plain; version=0.0.4")
