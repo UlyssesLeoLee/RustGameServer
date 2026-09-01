@@ -467,3 +467,46 @@ interface IntegrationsResp {
 - per 2026-08-27 11:06 JST env value hard ban
 - per 2026-09-01 13:03 / 13:05 JST envoy 独立 deployment 偏好
 - per 2026-09-01 14:58 JST 拍板决策必须用选项
+
+### A.5 v0.2 升版增量（per Ulysses 4 + 2 ask_user 决策，2026-09-01 16:41 JST）
+
+> **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 BASIC-DESIGN 各章节：
+
+**1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+- §1 架构新增 `/api/webhook/*` 2 endpoint（`/api/webhook/github` + `/api/webhook/gitlab`）
+- §4 关键流程新增 §4.7 webhook inbound 处理流程：HMAC-SHA256 验签 + UNIQUE(provider, delivery_id) 重放保护 + 事务
+- §5.2 API Response Schema 新增 §5.2.6 / §5.2.7 webhook API 范式
+
+**2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+- §2 选型 11 决策（原 10 决策 + cloudflared + webhook 验签 + 备份 batch）
+- §2.1 不选 13 方案（v0.1 9 不选 + node:sqlite / sql.js / ngrok / rgs-web 监听 0.0.0.0 4 v0.2 不选）
+- §3.1 模块 lib/sqlite.js + lib/cloudflared.js + lib/backup-batch.js + lib/webhook-verifier.js
+- §4.1/§4.2 改 SQLite INSERT
+- §4.5 异常流程 lockfile / jsonl 异常作废，新增 better-sqlite3 / cloudflared / webhook 异常
+- §4.8 备份 batch 流程（VACUUM INTO + sha256 + 90 天清理）
+- §5.1 SQLite 6 表 schema（tasks / ai_ledger / git_ledger / github_issues / gitlab_issues / webhook_events / nfr_op_010_snapshots）
+
+**3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+- §3.1 lib/cloudflared.js
+- §4.6 cloudflared 启动流程（启动时 spawn + 公网 URL 解析 + 优雅关闭）
+
+**4. webhook 验签 + 重放保护**（per F-32/F-33 + §1.10/§1.11）
+- §3.1 lib/webhook-verifier.js（HMAC-SHA256 + 等值比较）
+- §4.5 异常流程（HMAC 失败 / 重放 / WAL checkpoint 失败）
+- §4.7 webhook inbound 处理流程（验签 + UNIQUE 约束 + 事务）
+
+**5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+- §3.1 lib/backup-batch.js
+- §4.8 备份 batch 流程
+- §5.1 schema nfr_op_010_snapshots 表
+
+**派生决策引用**：per 2026-09-01 14:58 JST 拍板决策必须用选项 + per "Never auto-install software" 硬约束
+
+---
+
+## 修订历史
+
+| 版本 | 日期 | 修订者 | 修订内容 |
+|---|---|---|---|
+| v0.1 | 2026-09-01 15:44 JST | 架构师（**Mavis 接手 agent per DEC-008**）| 首版（commit `a896ca9`）|
+| **v0.2** | **2026-09-01 16:41 JST** | **架构师（**Mavis 接手 agent per DEC-008**）** | **v0.2 升版**：① 5 数据文件 + lockfile → better-sqlite3 单文件 6 表 ② 浅联动 → 深联动 ③ cloudflared tunnel ④ webhook HMAC + 重放保护 ⑤ 备份 batch + 清理 |
