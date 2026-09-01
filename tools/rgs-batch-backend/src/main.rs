@@ -647,6 +647,7 @@ async fn version() -> impl Responder {
             "BA-W4-7: schedule upsert + delete (per id, ON CONFLICT 锁定 cron_expr + interval_secs, audit_event 自动记录, 5/5 Master 表全 full CRUD)",
             "BA-W5-1/2: worker_pool_config + task_def upsert + delete (per GAP-4 优先级 min/max/priority_levels + 5 域 gRPC client handler 注册, params_schema JSONB 存储)",
             "BA-W5-3/4: audit_session update + delete + task_buffer 单 key get + delete (per Work W-3 完整 CRUD, 凭据 per 8/27 11:06 硬 ban, audit_session ended_at 关闭会话)",
+            "BA-W5-5: task_progress update + delete (per Work W-1 完整 CRUD: list+upsert+update+delete, 跨 3/3 Work 表 3/3 已 full CRUD)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1446,6 +1447,44 @@ async fn upsert_task_progress(
     web::Json(serde_json::json!({ "upserted": true, "task_id": p.task_id, "progress_pct": p.progress_pct }))
 }
 
+#[actix_web::put("/api/v1/task-progress/{id}")]
+async fn update_task_progress(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<TaskProgress>,
+) -> impl Responder {
+    // W5 BA-W5-5: task_progress update (per id 全字段)
+    let id = path.into_inner();
+    let p = body.into_inner();
+    let _ = sqlx::query(
+        "UPDATE batch_work.task_progress SET task_id = $1, progress_pct = $2, current_step = $3, total_steps = $4, updated_at = now() WHERE id = $5"
+    )
+    .bind(p.task_id)
+    .bind(p.progress_pct)
+    .bind(&p.current_step)
+    .bind(p.total_steps)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    web::Json(serde_json::json!({ "updated": true, "id": id, "progress_pct": p.progress_pct }))
+}
+
+#[actix_web::delete("/api/v1/task-progress/{id}")]
+async fn delete_task_progress(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W5 BA-W5-5: task_progress delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_work.task_progress WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
 #[get("/api/v1/task-buffer/{task_id}")]
 async fn get_task_buffer(
     state: web::Data<AppState>,
@@ -1985,6 +2024,8 @@ async fn main() -> std::io::Result<()> {
             .service(list_logs)
             .service(list_task_progress)
             .service(upsert_task_progress)
+            .service(update_task_progress)
+            .service(delete_task_progress)
             .service(get_task_buffer)
             .service(put_task_buffer)
             .service(list_audit_sessions)
