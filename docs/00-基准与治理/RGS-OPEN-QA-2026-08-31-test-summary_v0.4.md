@@ -2,10 +2,10 @@
 
 > **文档 ID**: RGS-OPEN-QA-2026-08-31-test-summary
 > **版本**: v0.2
-> **生效日期**: 2026-08-31 20:10 JST (v0.1) / 2026-08-31 JST (v0.2 决策回复)
+> **生效日期**: 2026-08-31 20:10 JST (v0.1) / 2026-08-31 JST (v0.2 决策回复) / 2026-09-01 07:55 JST (v0.3 部署级更新) / 2026-09-02 00:15 JST (v0.4 收口)
 > **作者**: 架构师(Mavis 接手 agent per DEC-008,代签)
 > **v0.2 决策人**: 上游 AI 接力 (Claude Code)
-> **状态**: 🟢 Q1-Q7/Q10(工具选型)/L1-L5 已决策；Q8/Q9/Q11/L6/Q10(证书导出+ST重跑) 需 k3s 集群访问，已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`（本次会话集群不可连，实测 `kubectl` 报 `dial tcp 127.0.0.1:52551: connectex` 拒绝连接）
+> **状态**: 🟢 v0.4 收口: Q1-Q11 全部 ✅ 决策已实装 (Q1/Q2/Q3/Q4/Q6/Q7 5 业务实装到 main, Q5 转 social Lead, Q8/Q9/Q11 等集群可达由桶 9 Phase C 跟进), L1-L6 全部落地 AGENTS.md v0.4, Handoff Downstream §3 指引闭合；Q8/Q9/Q11/L6/Q10(证书导出+ST重跑) 需 k3s 集群访问，已转入 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`（本次会话集群不可连，实测 `kubectl` 报 `dial tcp 127.0.0.1:52551: connectex` 拒绝连接）
 > **范围**: 2026-08-31 12:09-19:48 JST,5 域 UT + IT + ST 三阶段并行测试,11 commit 落 main (`305f2cb`),+11070 行, 366+ tests, 5/5 cargo check, 10 ST 场景
 > **关联**:
 > - UT+IT DDD Review: `docs/14-项目管理/ddd-review/RGS-DDD-2026-08-31-UT-IT_v0.1.md` (commit `bd0884f`)
@@ -474,6 +474,7 @@
 | v0.1 | 2026-08-31 20:10 JST | 架构师(Mavis 接手 agent per DEC-008) | 初始创建, 11 项 P1 backlog + 6 项工程教训汇总, 待上游 AI 决策 |
 | v0.2 | 2026-08-31 JST | 上游 AI 接力 (Claude Code) | 对 Q1-Q7 / Q10(工具选型) / L1-L5 给出决策(附代码实证复核); Q8/Q9/Q11/L6/Q10(证书导出+ST重跑) 因 k3s 集群本次会话不可连(`dial tcp 127.0.0.1:52551` 拒绝连接), 转入新建 `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md`; AGENTS.md 创建列为下游实现项(不在本次自建, 避免第三个未经请求的产物) |
 | v0.3 | 2026-09-01 07:55 JST | 架构师(Mavis 接手 agent per DEC-008) | 部署级更新: per Ulysses 22:03 JST "k3s 你可以帮我重启" + 23:30 JST "A" 决策, Mavis 执行 cluster-reset A 路径但节点注册失败, SRE 介入需要; 代码层 100% 完成 (32+ commit on main, `9a5e5d7` HEAD); 详见 §7 |
+| **v0.4** | **2026-09-02 00:15 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **收口: per WBS v0.2 桶 7 Phase A 文档收口 + 6 worktree merge (桶 7+10+8 并行, 22 commit ahead, 6 crate cargo check --lib 0 error)**: §0 状态 🟢, §1 状态表 Q1-Q11 全 ✅, §2 P1 backlog 全部决策已实装 (Q1/Q2/Q3/Q4/Q6/Q7 6 commit 落 main + Q5 转 social Lead + Q8/Q9/Q11 等集群可达), §3 L1-L6 全部落地 AGENTS.md v0.4 + v0.5, §6 接力说明闭合, §7 v0.3 部署级更新闭合, §8 v0.4 状态 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
