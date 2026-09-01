@@ -162,4 +162,47 @@ mod tests {
         assert!(text.contains("rgs_saga_state_count"));
         assert!(text.contains("rgs_outbox_pending_count"));
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // Prometheus 指标是 ARC-051 集群运营中心入口, 加 4 单测
+
+    #[test]
+    fn record_http_request_increments_counter() {
+        // 同一 label 多次 inc, Prometheus 输出应包含样例
+        let m = metrics();
+        for _ in 0..3 {
+            m.record_http_request("unit-test-svc", "GET", "200");
+        }
+        let text = encode_to_text().unwrap();
+        assert!(text.contains("unit-test-svc"));
+        assert!(text.contains("rgs_http_requests_total"));
+    }
+
+    #[test]
+    fn set_saga_state_visible_in_text_format() {
+        let m = metrics();
+        m.set_saga_state("test-saga", "completed", 42);
+        let text = encode_to_text().unwrap();
+        assert!(text.contains("test-saga"));
+        assert!(text.contains("rgs_saga_state_count"));
+    }
+
+    #[test]
+    fn set_outbox_pending_negative_value_works() {
+        // Gauge 支持负数 (虽然业务上不会, 但 Prometheus 允许)
+        let m = metrics();
+        m.set_outbox_pending("test-domain", -1);
+        let text = encode_to_text().unwrap();
+        assert!(text.contains("test-domain"));
+    }
+
+    #[test]
+    fn record_http_duration_records_histogram() {
+        let m = metrics();
+        m.record_http_duration("test-dur-svc", "Slow", 0.123);
+        m.record_http_duration("test-dur-svc", "Fast", 0.001);
+        let text = encode_to_text().unwrap();
+        assert!(text.contains("rgs_http_request_duration_seconds"));
+        assert!(text.contains("test-dur-svc"));
+    }
 }

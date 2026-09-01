@@ -162,4 +162,45 @@ mod tests {
         let result = with_saga_id(Uuid::new_v4(), "transfer", || "ok");
         assert_eq!(result, "ok");
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // JSON logging 是 RGS-ARC-051 观测核心, 加 3 单测
+
+    #[test]
+    fn with_actor_executes() {
+        // with_actor 注入 actor_id + actor_type, 必须能执行闭包并返回值
+        let result = with_actor(Uuid::nil(), "admin", || 200_u16);
+        assert_eq!(result, 200);
+
+        let result2 = with_actor(Uuid::new_v4(), "player", || "actor-ok".to_string());
+        assert_eq!(result2, "actor-ok");
+    }
+
+    #[test]
+    fn with_request_id_supports_complex_closure() {
+        // 闭包可以是任意返回类型, 包括 Result<T, E>
+        let result: Result<u32, &str> = with_request_id(Uuid::new_v4(), || Ok(42));
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[test]
+    fn with_saga_id_supports_complex_closure() {
+        // 闭包可访问外部状态
+        let x = 10;
+        let result = with_saga_id(Uuid::new_v4(), "transfer", || x * 2);
+        assert_eq!(result, 20);
+    }
+
+    #[test]
+    fn init_json_logging_is_idempotent() {
+        // 同一进程重复 init 不能 panic (OnceLock 设计意图)
+        // 第 1 次: 成功 OR 因为全局 subscriber 已被 test runner 设置而 SubscriberInit 失败
+        // 第 2 次: 必定走 early return Ok(()) 分支
+        let r1 = init_json_logging("info");
+        let r2 = init_json_logging("info");
+        // r2 必须 Ok (OnceLock guard)
+        assert!(r2.is_ok(), "第二次 init_json_logging 必须 Ok, 实际: {:?}", r2);
+        // r1 可能 Ok 也可能 Err (取决于 test runner 顺序), 不强制
+        let _ = r1;
+    }
 }

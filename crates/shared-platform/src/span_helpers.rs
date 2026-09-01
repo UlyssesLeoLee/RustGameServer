@@ -71,4 +71,40 @@ mod tests {
     fn repository_span_creates() {
         let _ = repository_span("Player", "find_by_id");
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // span helper 是 RGS-DTL-100 §7 OTel 桥接入口, 4 个 helper 各加 1 单测
+
+    #[test]
+    fn saga_orchestrator_span_creates() {
+        let _ = saga_orchestrator_span("saga-id-123", "transfer");
+    }
+
+    #[test]
+    fn service_call_span_creates() {
+        let _ = service_call_span("player-service", "RegisterPlayer");
+    }
+
+    #[test]
+    fn outbox_relay_span_creates() {
+        let _ = outbox_relay_span(100);
+        let _ = outbox_relay_span(0); // 边界: batch_size=0
+    }
+
+    #[test]
+    fn grpc_handler_span_creates() {
+        let _ = grpc_handler_span("/player.v1.PlayerService/Register");
+    }
+
+    #[test]
+    fn all_spans_can_be_entered_and_exited() {
+        // span 必须能 in_scope 执行闭包不 panic
+        saga_step_span("transfer", "reserve").in_scope(|| {
+            repository_span("Player", "find").in_scope(|| {
+                service_call_span("economy", "credit").in_scope(|| {
+                    // 嵌套 3 层不 panic 即通过
+                });
+            });
+        });
+    }
 }

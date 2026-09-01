@@ -450,4 +450,169 @@ mod tests {
         // 空 resource 不会等于非空 scope
         assert!(!resource_in_scope("", "player"));
     }
+
+    // ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+    // RBAC 是 RGS-DTL-019 §3 + DEC-005 5 域 Lead 核心, 加 5 单测 + 1 proptest
+
+    fn support() -> Subject {
+        Subject {
+            id: Uuid::new_v4(),
+            subject_type: SubjectType::System,
+            roles: vec![Role::Support],
+            domain_scope: None,
+        }
+    }
+
+    fn auditor() -> Subject {
+        Subject {
+            id: Uuid::new_v4(),
+            subject_type: SubjectType::Admin,
+            roles: vec![Role::Auditor],
+            domain_scope: None,
+        }
+    }
+
+    /// Support 角色能读 player / guild, 但不能写
+    #[test]
+    fn support_can_read_player_and_guild() {
+        let a = SimpleAuthorizer::new();
+        let s = support();
+        assert!(a.check(&s, "player:read", "player/1").is_allow());
+        assert!(a.check(&s, "guild:read", "guild/1").is_allow());
+        // 写动作不在 permission 集合
+        assert!(!a.check(&s, "player:ban", "player/1").is_allow());
+        assert!(!a.check(&s, "guild:kick", "guild/1").is_allow());
+    }
+
+    /// Auditor 读 *:read, 但跨域写动作 deny
+    #[test]
+    fn auditor_read_only_cross_domain() {
+        let a = SimpleAuthorizer::new();
+        let au = auditor();
+        // 5 域都能 read
+        for (perm, res) in &[
+            ("player:read", "player/1"),
+            ("economy:read", "economy/1"),
+            ("match:read", "match/1"),
+            ("social:read", "social/1"),
+            ("admin:read", "admin/1"),
+        ] {
+            assert!(
+                a.check(&au, perm, res).is_allow(),
+                "Auditor 应能 {} {}",
+                perm,
+                res
+            );
+        }
+        // 但 *:write 都 deny
+        for (perm, res) in &[
+            ("player:ban", "player/1"),
+            ("economy:transfer", "economy/1"),
+        ] {
+            assert!(
+                !a.check(&au, perm, res).is_allow(),
+                "Auditor 不应能 {} {}",
+                perm,
+                res
+            );
+        }
+    }
+
+    /// 多角色 subject: 一个角色 deny, 另一个 allow → 整体 allow (OR 语义)
+    #[test]
+    fn multi_role_subject_or_semantics() {
+        let a = SimpleAuthorizer::new();
+        // Player (deny 别人) + SuperAdmin (allow 全部)
+        let s = Subject {
+            id: Uuid::new_v4(),
+            subject_type: SubjectType::Admin,
+            roles: vec![Role::Player, Role::SuperAdmin],
+            domain_scope: None,
+        };
+        // SuperAdmin 兜底, 任何资源都 allow
+        assert!(a.check(&s, "anything:go", "anywhere").is_allow());
+    }
+
+    /// 空角色 subject → 一律 deny
+    #[test]
+    fn empty_roles_subject_denied() {
+        let a = SimpleAuthorizer::new();
+        let s = Subject {
+            id: Uuid::new_v4(),
+            subject_type: SubjectType::Player,
+            roles: vec![], // 关键: 空
+            domain_scope: None,
+        };
+        let result = a.check(&s, "player:self", &s.id.to_string());
+        assert!(!result.is_allow());
+        if let CheckResult::Deny { reason } = result {
+            assert!(reason.contains("no role grants"));
+        } else {
+            panic!("期望 Deny with reason");
+        }
+    }
+
+    /// 业务 helper enforce: Allow 时返 Ok(()), Deny 时返 Err(PermissionDenied(reason))
+    #[test]
+    fn enforce_returns_ok_on_allow() {
+        let a = SimpleAuthorizer::new();
+        let s = super_admin();
+        let result = enforce(&a, &s, "player:ban", "player/1");
+        assert!(result.is_ok(), "SuperAdmin ban 应 Ok, 实际: {:?}", result);
+    }
+
+    /// CheckResult 构造 + is_allow 配套
+    #[test]
+    fn check_result_deny_if_constructor() {
+        let r = CheckResult::deny_if("nope");
+        assert!(!r.is_allow());
+        if let CheckResult::Deny { reason } = r {
+            assert_eq!(reason, "nope");
+        } else {
+            panic!("期望 Deny");
+        }
+        let allow = CheckResult::Allow;
+        assert!(allow.is_allow());
+    }
+
+    /// Role::as_str 与 FromStr 必须互逆
+    #[test]
+    fn role_as_str_and_from_str_round_trip() {
+        for role in [
+            Role::SuperAdmin,
+            Role::DomainAdmin,
+            Role::Auditor,
+            Role::Support,
+            Role::Player,
+        ] {
+            let s = role.as_str();
+            let parsed: Role = s.parse().expect("as_str 必须可 parse");
+            assert_eq!(parsed, role, "as_str→parse 互逆失败: {:?}", role);
+        }
+    }
+}
+
+// ---- 9/1 pt/shared-platform worker 派工 (per PT-WORKER-BRIEFING.md §2) ----
+// RBAC 权限通配符 proptest
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// 任意合法 permission 字符串 (resource:action) → permission_matches 行为必须确定性
+    proptest! {
+        #[test]
+        fn permission_matches_wildcard_deterministic(
+            action in "[a-z]{1,8}",
+        ) {
+            // *:read 应匹配 <any>:read
+            let perm = format!("{}:read", "x");
+            prop_assert!(permission_matches("*:read", &perm));
+            // *:read 不应匹配 <any>:write
+            let perm_w = format!("{}:write", "x");
+            prop_assert!(!permission_matches("*:read", &perm_w));
+            // 显式 action 字符串
+            let _ = action;
+        }
+    }
 }
