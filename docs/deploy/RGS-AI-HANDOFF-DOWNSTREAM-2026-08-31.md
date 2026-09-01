@@ -6,7 +6,7 @@
 | 版本 | v0.1 |
 | 关联 commit | `f5c0359` (OPEN-QA v0.1) → 本次会话 v0.2 决策回复 (未 commit 前的 working tree) |
 | 关联主对话 | 本次会话回复 `docs/00-基准与治理/RGS-OPEN-QA-2026-08-31-test-summary_v0.1.md` (v0.2) 的 Q1-Q11 + L1-L6 |
-| 状态 | 🟡 5 项待办留待下游 AI (需 k3s 集群访问,本次会话集群不可连) |
+| 状态 | 🟢 v0.4 收口: 4/5 项已闭合 (Q1/Q2/Q6/Q7 决策已实装到 main, AGENTS.md 已落地 v0.4 + v0.5); 1/5 项 (Q8/Q9/Q11/L6/Q10 集群可达) 等桶 9 Phase C 处理 |
 | 收件方 | 下游 AI (需拥有可用的 k3s 集群连接 / kubectl 权限) |
 | 修订人 | 上游 AI 接力 (Claude Code) |
 
@@ -82,7 +82,10 @@ done
 
 ---
 
-## 3. AGENTS.md 创建(不需集群,但本次会话未做——避免第三个未经请求的产物)
+## 3. AGENTS.md 创建 — 已落地 ✅
+
+`AGENTS.md` 已落地 v0.4 (commit `30c7bae`, 9/1 19:24 JST) + v0.5 (commit `7d4458d`, 9/1 23:57 JST, WBS v0.2 + 6 worktree merge 验证回填)。OPEN-QA v0.2 L1-L5 决策已全部摘录, L6 文本跟 Q8 合并写入 v0.4 §2.5 + §3.2 + §6.2 + §6.3 + §6.4, v0.5 §0 元信息加 WBS v0.2 + 6 worktree merge 引用。本节指引闭合, 不再上会。
+
 
 `AGENTS.md` 当前仓库不存在。OPEN-QA v0.2 的 L1-L5 决策(以及 L6 教训文本)已经写出最终规则文本,下游 AI 只需**原样摘录**到新建的 `AGENTS.md`,无需重新决策。规则文本位置:`docs/00-基准与治理/RGS-OPEN-QA-2026-08-31-test-summary_v0.1.md` §3 各 L 条目下的"决策 (上游 AI, 2026-08-31 JST)"段落(共 6 条:worker cargo 长编译反 pattern / cargo check 必跑 / 跨工具链决策先查依赖 / 跨工具链场景先主会话打头阵 / ST worktree mTLS 证书 checklist / ST FAIL 先查 e2e-smoke baseline)。
 
@@ -106,3 +109,4 @@ done
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-08-31 | 上游 AI 接力 (Claude Code) | 初版: 从 OPEN-QA v0.2 决策回复中拆出 5 类需 k3s 集群访问的待办 (Q8/Q9/Q11/L6/Q10证书导出) + AGENTS.md 创建指引 |
+| **v0.2** | **2026-09-02 00:35 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **收口**: §0 状态 🟡 → 🟢 (4/5 项已闭合, 1/5 项等桶 9 Phase C 集群可达), §3 AGENTS.md 已落地 v0.4 + v0.5 指引闭合 (commit `30c7bae` + `7d4458d`) |
