@@ -11,8 +11,8 @@
 ## 0. 仓库元信息
 
 - **项目**: RustGameServer (分布式游戏服务器 Rust + gRPC)
-- **架构**: 5 域 (player / economy / match / social / admin) + 平台层 + 工具 crate, 5 域独立 Lead (per 2026-08-21 JST)
-- **基线 commit**: 46dd2a0 (831) → 305f2cb (8/31 19:48 JST) → f5c0359 → 8da6695
+- **架构**: **6 域** (player / economy / match / social / admin / **batch**) + 平台层 + 工具 crate, 6 域独立 Lead (per 2026-08-21 JST + 2026-09-01 18:00-19:24 JST batch 域扩展, per §7)
+- **基线 commit**: 46dd2a0 (831) → 305f2cb (8/31 19:48 JST) → f5c0359 → 8da6695 → fd122f6 (REQ) → e366ff8 (BASIC) → 62027c9 (DETAILED) → e70ed71 (PLAN, 2026-09-01 19:24 JST batch 4 件套)
 - **代签规则**: 修订人 = Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手;审批 = 架构师(Mavis 接手 agent per DEC-008) (per 2026-08-27 19:39/20:56/21:59 JST 三次强化)
 
 ---
@@ -309,7 +309,118 @@
 
 ---
 
-## 7. 修订历史
+## 7. batch 域派生约束 (per 2026-09-01 18:00-19:24 JST)
+
+**触发**: per Ulysses 2026-09-01 18:00 JST "batch 需要一个专门的管理界面和对其支持的前后端功能, 应该是一个独立的项目, 但可以按照其他功能的方式融入架构, 从需求文档开始设计" + 18:25 JST 范围澄清 "所有内容的批量, 包括但不限于 log/数据整理" + 18:34 JST Q2 拍板 "独立双项目" + 19:00 JST 继续 PLAN 决策。
+
+**4 文档落地 commit**: REQ `fd122f6` + BASIC `e366ff8` + DETAILED `62027c9` + PLAN `e70ed71`(per OLU-WEB 4 件套范式, 2026-09-01 18:00-19:24 JST)。
+
+### 7.1 batch 域项目形态 (per Q2 拍板)
+
+| 项目 | 路径 | 技术栈 | 部署 |
+|---|---|---|---|
+| **rgs-batch-console** (前端) | `tools/rgs-batch-console/` | Node 22 + 原生 http + 0 依赖 | envoy 独立 deployment + ClusterIP service (per 9/1 13:03/13:05 JST) |
+| **rgs-batch-backend** (后端) | `tools/rgs-batch-backend/` | Rust + actix-web 4 + tokio + tonic 0.12 gRPC client + sqlx 0.7 + mTLS 业务级 | envoy 独立 deployment + ClusterIP service |
+| **端口** | console 127.0.0.1:8789 (区别 rgs-web 8788), backend ClusterIP 0.0.0.0:8790 | | |
+
+**对标**: rgs-web (Node) + gm-backend (actix-web) 模式, 但**项目命名空间独立** (rgs-batch-*, 不与现有 tools 冲突)。
+
+### 7.2 batch 域核心约束 (12 条派生约束)
+
+per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横展三分类 + env value 硬 ban + envoy 独立 deployment 偏好:
+
+| # | 约束 | 说明 | 引用 |
+|---|---|---|---|
+| 1 | **5 域独立 Lead → 6 域扩展** | batch 域不与 5 域 Lead 兼任 (per 8/21 JST 拒绝兼任), 扩展 5 域 → 6 域 + 1 batch Lead (per REQ F-16 + R-5) | REQ §0 |
+| 2 | **DB 三分类横展** | Master / Transaction / Work 三分清晰 (per 9/1 18:30 JST), 16 张表 schema 划分 `batch_master` / `batch_transaction` / `batch_work` / `batch_transaction_archive` | REQ §4 |
+| 3 | **env value 硬 ban** | 凭据走 env var, 永不打印值 (per 8/27 11:06 JST), 包括 BATCH_DB_PASSWORD / GRPC_CERT_PATH_* (5 域) / GRPC_CLIENT_KEY / trace_id | REQ NFR-30 |
+| 4 | **mTLS 业务级** | 5 域 gRPC 调用走 mTLS (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`), 证书复用 8/27 ST 导出 SOP | REQ NFR-32 |
+| 5 | **envoy 独立 deployment** | 不选 nginx, 不选 istio sidecar (per 9/1 13:03/13:05 JST), rgs-batch-console / rgs-batch-backend / envoy 三个独立 deployment | REQ IR-8 |
+| 6 | **127.0.0.1 only** | rgs-batch-console 监听 127.0.0.1:8789 (per rgs-web 母规范 + NFR-31) | REQ F-12 |
+| 7 | **0 依赖 Node** | 沿用 rgs-web 母规范, 不引入 Express / Koa / Fastify / React / Vue / chart.js / d3 / dhtmlx-gantt | BASIC §2.1 |
+| 8 | **1 写者约束** | rgs-batch-backend 单进程 + tokio multi-thread runtime (per OLU-WEB §5.1.5), sqlx 默认 1 写者安全 | BASIC §2.2 |
+| 9 | **rgs-testkit 禁 InMemory** | 跨工具链决策前先 grep workspace 依赖 (per AGENTS.md §2.3 L3), 用 NoOp + 真实 sqlx + 5 域 gRPC client mock | DETAILED §7.1 |
+| 10 | **audit 永久保留** | audit_event T-3 永久保留 (per NFR-29), 操作人 / 时间 / 参数 hash / 结果 / trace_id 全记录 | REQ F-10 |
+| 11 | **代签规则** | Mavis 默认代签 Ulysses (per 8/27 19:39/20:56/21:59 JST 三次强化), author=Ulysses / 审批=架构师 / 修订人=Ulysses — Mavis 接手 | REQ §0 |
+| 12 | **saga 集成** | v0.1 不集成, saga-runtime 独立 Pod (per RGS-BAS-100 v0.1), v0.2 评估跨域 saga 触发 (per REQ GAP-11) | REQ GAP-11 |
+
+### 7.3 batch 域已知缺口 (per 2026-09-01 18:30 JST 缺标比错标)
+
+- **GAP-1 ~ GAP-12** (12 缺口) per RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1 §9 (跨 batch DAG / WebSocket / 流式 / mavis cron 告警 / 任务优先级 / AI 协助 SQL / rgs-web 深联动 / 任务模板版本化 / Rollback SQL 验证 / 任务超时 kill / 跨域 saga 触发 / batch 域 Lead RACI 同步)
+- **RACI v1.2** 扩展 5 域 → 6 域 (待 DDD Review 阶段, per PLAN A.3)
+- **IMPL-PLAN-BATCH-001 v0.1** 起草 (per 5 域 IMPL-PLAN 范式, per PLAN §A.3)
+- **RACI-BATCH-V1 v0.1** 独立 RACI 文档 (per 5 域独立 RACI 范式, per PLAN §A.3)
+- **v0.2 评估** (per PLAN §A.3): Log 批量 + 数据整理 + DAG + WebSocket + mavis cron 告警 + AI 协作 + rgs-web 深联动 + 证书轮换 + dry-run + 任务超时强制 kill
+- **k3s 资源上限 + namespace 隔离策略** (per REQ §10.3 待协调)
+- **5 域 binary 未来调外部 LLM 未登记** (v0.1 不集成, v0.2 评估 per OLU-WEB F-25)
+
+### 7.4 batch 域 brief 模板 (per OLU-WEB 范式 + 8/27 JST 代签格式)
+
+```markdown
+# 任务简报 - batch 域 <task>
+
+## 工作环境
+- worktree: D:/rgs-ut-batch (或 D:/rgs-st-batch)
+- 分支: <prefix>/batch (基线 46dd2a0 / fd122f6)
+- 负责 crate: tools/rgs-batch-console (前端) 或 tools/rgs-batch-backend (后端)
+
+## 必做
+1. 读 <briefing> + AGENTS.md §7 batch 域派生约束 + RGS-BATCH-*-DESIGN-2026-09-01 v0.1
+2. 探索: Get-ChildItem tools/rgs-batch-{console,backend} -Recurse
+3. 写实现 (沿用 OLU-WEB 范式: rgs-testkit 禁 InMemory, 用 NoOp + 真实 sqlx + 5 域 gRPC client mock)
+4. **验证**: cd D:/rgs-<prefix>-batch; cargo check -p rgs-batch-backend --tests 2>&1 | tail -20
+   (1 次拿 status, **不要 polling 多轮**, per L11)
+5. 0 error → git add + commit (代签格式 per 8/27 JST)
+6. **(可选)** git push origin <prefix>/batch
+
+## DoD
+- ✅ cargo check --tests 60s 内通过 (1 次拿 status)
+- ✅ commit 1+ 段带代签 (代签/审批/修订人 三行齐全)
+- ✅ 1 worker 1 域不交叉改 (6 域独立 Lead 原则: 5 域 + batch)
+- ✅ **不动** AGENTS.md / RGS-BATCH-* 文档 / 5 域代码 / manifests (主会话负责)
+- ✅ **临时 log / .txt / .tmp_search* 不入 commit** (per L12)
+- ✅ **30 min 必须出 commit**, 失败也没关系, 占位 commit 也行
+- ✅ **凭据永不打印** (per 8/27 11:06 JST 硬 ban + REDACTED filter, per DETAILED §5.1)
+- ✅ **DB 表归类 Master/Transaction/Work** (per 9/1 18:30 JST 横展)
+
+## 卡住的应对
+- cargo check 超 60s → 接受 warning, 先 commit 占位
+- 找不到合适 mock → 复用 src/ 已有 InMemory*Repository 或 rgs-testkit NoOp
+- **不要 Start-Sleep 轮询等编译** (per L11)
+- 5 域 gRPC 调用失败 → retry 3 次 (指数退避 100/200/400ms) + DLQ, 不静默失败
+- 单 commit 跨多个 crate → 不允许
+- env value 出现在日志 → 立即用 REDACTED filter (per DETAILED §5.1)
+- 任务撤销原子性 → 仅未执行 + 未生效可撤销 (per F-21)
+- batch 域 Lead 兼任 5 域 → 立即拒绝, per 8/21 JST 拒绝兼任基线
+```
+
+### 7.5 batch 域与已有架构的集成关系 (5 不破坏 + 4 复用 + 3 引用)
+
+**5 不破坏** (per BASIC §6.2):
+- ❌ 不破坏 5 域架构: rgs-batch-backend 作为 gRPC 客户端调用 5 域, **不修改** 5 域代码
+- ❌ 不破坏 rgs-web: rgs-batch-console 独立 Node 项目, **不嵌入** rgs-web
+- ❌ 不破坏 shared-platform: 复用现有 crate, **不修改** shared-platform 代码
+- ❌ 不破坏 function-plane: v0.1 不集成 (saga-runtime 独立 Pod per RGS-BAS-100), **不修改** function-plane 代码
+- ❌ 不破坏 gm-backend: rgs-batch-console 跟 gm-console 形态不同, 但都是 envoy 独立 deployment
+
+**4 复用** (per BASIC §6.2):
+- ✅ rgs-web 母规范 5 份: 0 依赖 + 127.0.0.1 only + 30s 轮询 + JSON 响应
+- ✅ rgs-web OLU-WEB 4 份: data/ 目录 + lockfile + token-estimate + ai-ledger.jsonl
+- ✅ gm-backend 范式: actix-web + mTLS + 8443 HTTPS APIGW
+- ✅ 5 域 ST 业务级 mTLS 实践 (commit `401ac5c`): 证书 + 双向认证 + 8/27 ST 导出 SOP
+
+**3 引用** (per BASIC §6.2):
+- 🔗 shared-platform 20 模块: outbox + tracing + span_helpers + retry + dlq + grpc_tracing + rbac + tls + ...
+- 🔗 5 域 gRPC client: player / economy / match / social / admin 50051-50055 (k8s targetPort)
+- 🔗 saga-runtime 独立 Pod (per RGS-BAS-100 v0.1, v0.2 集成)
+
+### 7.6 实施 WBS 入口 (per PLAN v0.1)
+
+38 L4 任务 (W1 6 + W2 7 + W3 8 + W4 7 + W5 5 + W6 5), 54 人·天 / 9.65M tokens, 6 周落地. 完整 WBS 任务表 per RGS-BATCH-PLAN-2026-09-01 v0.1 §3 (commit `e70ed71`).
+
+---
+
+## 8. 修订历史
 
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
@@ -317,6 +428,7 @@
 | (待续) | — | — | Q1-Q11 业务实现落地后, 追加 "业务级实施跟踪" 段 |
 | v0.2 | 2026-09-01 10:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 k3s 部署恢复期: 加 §6.2 临时越界记录 (Ulysses opt3 追认), 22-postgres-configmap initdb.sql + m4 forward ref FK 两处临时越界 |
 | v0.3 | 2026-09-01 16:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 PT 派工 8 worker 完结 (commit ffbfb19) + 5 域 ST 业务级 mTLS 全完成 (commit 401ac5c): 加 L9/L11/L12 派生约束 (临时越界流程化 + cargo build dir lock 防御 + 临时 log 不入 commit 防御) |
+| v0.4 | 2026-09-01 19:24 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 batch 域 4 件套落地 (REQ `fd122f6` + BASIC `e366ff8` + DETAILED `62027c9` + PLAN `e70ed71`, 2576 行 / 165.2 KB / 23 处自审 fix): §0 元信息更新 5 域→6 域 + §7 新增 batch 域派生约束 (12 条约束 + 已知缺口 + brief 模板 + 5 不破坏 + 4 复用 + 3 引用 + 38 L4 任务入口) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
