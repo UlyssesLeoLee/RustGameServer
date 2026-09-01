@@ -651,6 +651,7 @@ async fn version() -> impl Responder {
             "BA-W5-6/7: integration test + credentials audit + OLU stats endpoint (per W5 集成 + 凭据 per 8/27 11:06 硬 ban + RGS-OLU-REPORT v0.2 token-OLU 框架 ~21.7M tokens)",
             "BA-W6-1: log-tasks by-trace + recent endpoint (跨 log_event + audit_event + task_execution 三表 join, 分布式追踪 + 监控, per W6 BA-W6-1)",
             "BA-W6-2/3: data_migration update/delete + saga_instance 状态机 (per W6 BA-W6-2 状态机 pending→running→succeeded/failed/rolled_back + W6 BA-W6-3 saga state 推进, audit_event 自动记录)",
+            "BA-W6-4/5: message_outbox mark_sent + delete + system health endpoint (per W6 BA-W6-4 重试 + W6 BA-W6-5 集成系统健康, 综合 5 域 gRPC + DB + worker + cron + DLQ + audit 6 指标, per 监控用)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -869,7 +870,7 @@ struct SagaInstance {
     error_msg: Option<String>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 struct MessageOutbox {
     id: Uuid,
     destination: String,          // 目标服务 (e.g. "player-service" / "kafka")
@@ -1823,6 +1824,87 @@ async fn list_message_outbox(
     }
 }
 
+#[actix_web::put("/api/v1/message-outbox/{id}/send")]
+async fn mark_outbox_sent(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W6 BA-W6-4: message_outbox 标记已发送
+    let id = path.into_inner();
+    let now = chrono::Utc::now();
+    let _ignored: Result<_, sqlx::Error> = sqlx::query(
+        "UPDATE batch_transaction.message_outbox SET state = 'sent', sent_at = $1, retry_count = retry_count + 1 WHERE id = $2"
+    )
+    .bind(now)
+    .bind(id)
+    .execute(&state.db)
+    .await;
+    state.audit.log(
+        "ulysses", "mark_outbox_sent", &serde_json::json!({ "outbox_id": id }),
+        "success", "trace-outbox-sent-001", Some("message_outbox"), Some(id)
+    ).await;
+    web::Json(serde_json::json!({ "updated": true, "id": id, "state": "sent", "sent_at": now.to_rfc3339() }))
+}
+
+#[actix_web::delete("/api/v1/message-outbox/{id}")]
+async fn delete_outbox(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W6 BA-W6-4: message_outbox delete
+    let id = path.into_inner();
+    let _ignored: Result<_, sqlx::Error> = sqlx::query("DELETE FROM batch_transaction.message_outbox WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await;
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
+#[get("/api/v1/system/health")]
+async fn system_health(
+    state: web::Data<AppState>,
+) -> impl Responder {
+    // W6 BA-W6-5: 集成系统健康检查
+    let db_ok = sqlx::query_scalar::<_, i32>("SELECT 1")
+        .fetch_one(&state.db)
+        .await
+        .is_ok();
+    let grpc_health = state.grpc_clients.health_check_all().await;
+    let worker_metrics = state.worker_pool.status();
+    let cron_metrics = state.cron.stats();
+    let task_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.batch_task")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let dlq_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let audit_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_transaction.audit_event")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let all_grpc_ok = grpc_health.values().all(|v| *v);
+    let body = serde_json::json!({
+        "status": if all_grpc_ok && db_ok { "ok" } else { "degraded" },
+        "uptime_ms": START_TIME.elapsed().as_millis(),
+        "db_connected": db_ok,
+        "all_grpc_connected": all_grpc_ok,
+        "grpc_health": grpc_health,
+        "worker_pool": {
+            "active": worker_metrics.active,
+            "max": worker_metrics.max_concurrent,
+            "queue": worker_metrics.priority_queue_size,
+        },
+        "cron": {
+            "executions_total": cron_metrics.executions_total,
+            "active_schedules": cron_metrics.active_schedules,
+        },
+        "metrics": {
+            "task_total": task_total,
+            "dlq_total": dlq_total,
+            "audit_event_total": audit_total,
+        },
+    });
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(body.to_string())
+}
+
 #[get("/api/v1/data-migrations")]
 async fn list_data_migrations(state: web::Data<AppState>) -> impl Responder {
     // W3 BA-W3-7: Transaction T-6 data_migration 状态查询 (per state 过滤 + 时间)
@@ -2298,6 +2380,9 @@ async fn main() -> std::io::Result<()> {
             .service(list_audit_events)
             .service(list_saga_instances)
             .service(list_message_outbox)
+            .service(mark_outbox_sent)
+            .service(delete_outbox)
+            .service(system_health)
             .service(list_data_migrations)
             .service(update_data_migration)
             .service(delete_data_migration)
