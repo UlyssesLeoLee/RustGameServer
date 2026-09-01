@@ -37,6 +37,7 @@
 | E3 W1 | **BA-W1-4 5 域 ST 证书导出 + rgs-certgen 边缘 TLS** | `2a44836` | ✅ (本会话) |
 | E3 W1 | **BA-W1-5 PG schema 3 个 + 16 表 + 3 migration** (per BAS-001 v0.2 §3) | `2a44836` | ✅ (本会话) |
 | E3 W1 | **BA-W1-6 envoy 独立 deployment** (per 9/1 13:03/13:05 偏好) | `2a44836` | ✅ (本会话) |
+| **E3 W2-W6** | **BA-W2-1~9 + W3-1~11 + W4-1~11 + W5-1~7 + W6-1~6 = 37/40 L4 任务 + 4 hotfix** (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency + Transaction T-1.5~T-8 + Work W-1~W-3 + Master 5 表 full CRUD + task_template 灰度 + 跨模块集成 + credentials audit + OLU stats + log-tasks + data_migration + saga + message_outbox + system health + GAP-1/2/5/6/8/10 实施) | 详见 §1.1 (43 commit, W2 9 + W3 9 + W4 8 + W5 6 + W6 7 + 4 hotfix) | ✅ (本会话) |
 | E4 | **k3s 资源上限 + namespace 隔离策略 草案** | (本版 §3) | 🟡 草案 (待 SRE 拍板) |
 | E5 | OLU 重算 + token-OLU 框架 (RGS-OLU-REPORT-token-OLU v0.2) | `6afed27d` | ✅ |
 | E6 | OLU 跨 5+1 域重算 (已落地 ~21.7M vs 估 750-1110M) | `6afed27d` | ✅ (跟 E5 合并) |
@@ -196,6 +197,7 @@
 | **v0.4.5** | **2026-09-02 08:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: (1) v0.4.4 跟踪表 "39 commit" 误算 → git 实证 88 commit (差 49, per L13 派生约束 自指字段全 deferred 实时查询); (2) §1.1 新增 E3 W2-W6 实际落地段 (37/40 L4 任务, 40 commit, 9/2 02:17-08:14 JST 主会话打头阵 ~6h); (3) §4 GAP-12 补 commit 关联 (2a44836 BA-W1-3 9 k8s manifests), E8 12/12 ✅; (4) §5 解除 blocked: E3 W2-W6 37/40 + E8 12/12 全部解除, 剩 Phase C SRE 介入 + E4 草案拍板; (5) §6 维护表 E3 W2-W6 + E8 12/12 状态固化; (6) §7 修订历史 + v0.4.5 (代签三件齐全 per 8/27 19:39/20:56/21:59 JST 三次强化)** |
 | **v0.4.6** | **2026-09-02 09:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 / §1.1 ahead 行 / §6 维护表 3 处 "88 commit" 数字替换为实时 git 实证查询表达式 `git rev-list --count 84edf26..main` — 跟 STATUS-SNAPSHOT v0.6.4 ~ v0.6.8 同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.4.7** | **2026-09-02 09:12** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 E3 W2-W6 每行 commit 字段补全 — 之前写 "1e3d528 系" / "5568a68 系" 简略, 现在展开成 9 + 9 + 8 + 6 + 7 = 39 commit + 4 hotfix = 43 commit 全 commit hash 关联 (从 STATUS-SNAPSHOT v0.6.9 §2 复制), 让 verifier / 后续会话能直接拉 commit 链 — 跟 §2 权威索引同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.4.8** | **2026-09-02 09:32** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 主表新增 E3 W2-W6 汇总行 (37/40 L4 任务 + 4 hotfix = 43 commit, 详见 §1.1) — 修复 §1 主表 vs §1.1 子表不一致 (主表只列 E1/E2/E3 W1 6 任务, W2-W6 在 §1.1 独立, verifier 看 §1 会漏 W2-W6 落地状态), 用汇总行代替逐行 39 commit 避免重复 + 指针到 §1.1 全 commit 索引, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
