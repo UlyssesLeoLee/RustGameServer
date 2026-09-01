@@ -609,6 +609,7 @@ async fn version() -> impl Responder {
             "BA-W3-4/5: audit_event + dlq_event 高级过滤 (per operator/action/result/dlq_id/trace_id 过滤, 动态 SQL, per ADR-0058 T-3 永久保留)",
             "BA-W3-6/7: saga_instance + message_outbox + data_migration Transaction T-7+T-8+T-6 CRUD (per saga_type/state/destination/state/name 过滤, 动态 SQL, 跨 5 域 + kafka + DB 迁移)",
             "BA-W3-8: sub_task Transaction T-1.5 CRUD (per parent_task_id/state/order_idx 过滤, ON CONFLICT (parent_task_id, name) upsert, 跨 8/3 Transaction 表 8/8 已 list + CRUD)",
+            "BA-W3-9: sub_task update + delete (per id, 跨 8/3 Transaction 表 8/8 已 full CRUD: list+upsert+update+delete)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -1305,6 +1306,48 @@ async fn upsert_sub_task(
     web::Json(serde_json::json!({ "upserted": true, "parent_task_id": s.parent_task_id, "name": s.name, "state": s.state }))
 }
 
+#[actix_web::put("/api/v1/sub-tasks/{id}")]
+async fn update_sub_task(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    body: web::Json<SubTask>,
+) -> impl Responder {
+    // W3 BA-W3-9: sub_task update (per id 全字段)
+    let id = path.into_inner();
+    let s = body.into_inner();
+    let _ = sqlx::query(
+        "UPDATE batch_transaction.sub_task SET parent_task_id = $1, name = $2, state = $3, order_idx = $4, started_at = $5, finished_at = $6, duration_ms = $7, error_msg = $8 WHERE id = $9"
+    )
+    .bind(s.parent_task_id)
+    .bind(&s.name)
+    .bind(&s.state)
+    .bind(s.order_idx)
+    .bind(s.started_at)
+    .bind(s.finished_at)
+    .bind(s.duration_ms)
+    .bind(&s.error_msg)
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "updated": false })));
+    web::Json(serde_json::json!({ "updated": true, "id": id, "state": s.state }))
+}
+
+#[actix_web::delete("/api/v1/sub-tasks/{id}")]
+async fn delete_sub_task(
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> impl Responder {
+    // W3 BA-W3-9: sub_task delete (per id)
+    let id = path.into_inner();
+    let _ = sqlx::query("DELETE FROM batch_transaction.sub_task WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| web::Json(serde_json::json!({ "error": e.to_string(), "deleted": false })));
+    web::Json(serde_json::json!({ "deleted": true, "id": id }))
+}
+
 #[post("/api/v1/workers/enqueue")]
 async fn enqueue_task(
     state: web::Data<AppState>,
@@ -1545,6 +1588,8 @@ async fn main() -> std::io::Result<()> {
             .service(list_data_migrations)
             .service(list_sub_tasks)
             .service(upsert_sub_task)
+            .service(update_sub_task)
+            .service(delete_sub_task)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
