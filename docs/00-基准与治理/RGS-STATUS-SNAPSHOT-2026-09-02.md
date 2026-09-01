@@ -38,11 +38,13 @@
 
 **git stash 3 个**:
 
-| stash | 内容 | 推荐处理 |
-|---|---|---|
-| `stash@{0}` | On wbs/WF-1-debug-log: dirty-cargo-lock-pre-rebase | 等用户决策是否 drop |
-| `stash@{1}` | On main: REQ-001/005/007-ADD1/038 + worktrees 残留 (per 上一 session 协调) | 同上 |
-| `stash@{2}` | On main: RGS-REQ-007-ADD1 GM 后台需求 + worktrees/ dir (per 上一 session 协调) | 同上 |
+| stash | 内容 | 创建时间 (git stash list 实测) | 推荐处理 |
+|---|---|---|---|
+| `stash@{0}` | On wbs/WF-1-debug-log: dirty-cargo-lock-pre-rebase | 2026-08-26 19:09 JST | 等用户决策是否 drop |
+| `stash@{1}` | On main: REQ-001/005/007-ADD1/038 + worktrees 残留 (per 多 session 协调) | 2026-08-25 07:02 JST | 同上 |
+| `stash@{2}` | On main: RGS-REQ-007-ADD1 GM 后台需求 + worktrees/ dir (per 上一 session 协调) | 2026-08-25 06:45 JST | 同上 |
+
+**stash 实证分析** (v0.6.13 hotfix 新增): 3 个 stash 全是 WBS v0.2 (84edf26, 2026-09-01 22:20 JST) **之前**的 8/25-8/26 老 stash, 跟本会话 9/2 hotfix 全部无关, 不影响 main HEAD. 内容 (REQ-001/005/007-ADD1/038 + REQ-007-ADD1 GM 后台) 是上游 session 协调未决需求, 由 Ulysses 拍板 drop / apply / pop / branch-and-apply。
 
 ## 1. 7 phase + 6 E 子桶落地状态
 
@@ -238,6 +240,7 @@
 | **v0.6.10** | **2026-09-02 09:15** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (94/144 → 100/151 commit, 跨 9/2 08:52-09:15 JST 净增 6 commit = 9980ebe/b9f2979/7afcf08/abcc752/c3c52cb + 文档热修系), 跟 WBS v0.4.7 跟踪表 (commit c3c52cb) §1.1 E3 W2-W6 39 commit + 4 hotfix = 43 commit 关联同步, per L13 自指字段 deferred 实时查询 + 实时 `git rev-list --count` 表达式守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.11** | **2026-09-02 09:18** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表自指字段统一更新到 v0.6.10 时 (main HEAD `ee3e81d` + 100/152 commit) + 加 "后续 hotfix 同步更新此行 或以 §7 修订历史最新行为准" 指针 — L13 自指字段全 deferred 实时查询 + 终态收敛避免无止境 hotfix 循环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.12** | **2026-09-02 09:21** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 "已清理 1 项" 事实修正 — 之前 v0.6.2 误判 PowerShell Remove-Item 删除成功, 实测路径在 .worktrees/feat-auto-20260901-3e13c819/ 内部 (12 老 worktree 之一, Permission denied 未清), 物理目录仍在; 改为 "已 prune 元数据" + 标注 L12 派生约束只要求不入 commit 不要求清空, 事实修正 (L12 + L11 派生约束), 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.13** | **2026-09-02 09:24** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 3 git stash 表格新增 "创建时间" 列 + 实证分析段 — 3 stash 全是 WBS v0.2 (84edf26, 2026-09-01 22:20 JST) 之前的 8/25-8/26 老 stash, 跟本会话 9/2 hotfix 全部无关, 不影响 main HEAD, 内容是上游 session 协调未决需求, 由 Ulysses 拍板 drop / apply / pop / branch-and-apply, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
