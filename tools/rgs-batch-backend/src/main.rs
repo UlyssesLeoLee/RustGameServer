@@ -423,6 +423,30 @@ impl AuditLogger {
 }
 
 
+
+
+// ────────── data_source Master M-3 (W2 BA-W2-8) ──────────
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct DataSource {
+    id: Uuid,
+    name: String,
+    source_type: String,        // postgres / mysql / http / s3 / kafka
+    connection_ref: String,     // 引用, 不存原值凭据 (per 8/27 11:06 硬 ban)
+    enabled: bool,
+    last_sync_at: Option<chrono::DateTime<chrono::Utc>>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct TaskDef {
+    id: Uuid,
+    name: String,
+    handler: String,            // rust handler name (per 5 域 gRPC client wrapper)
+    params_schema: serde_json::Value,  // JSON schema for task params
+    enabled: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
 // ────────── Cron 调度 (W2 BA-W2-5, GAP-3 mavis self-remind) ──────────
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -578,6 +602,7 @@ async fn version() -> impl Responder {
             "BA-W2-5: cron 调度 (60s 周期 + /api/v1/cron/stats + mavis_reminder_active, per GAP-3)",
             "BA-W2-6: audit_event T-3 永久保留 (operator + action + params_hash + result + trace_id, per REQ F-10 + ADR-0058)",
             "BA-W2-7: Prometheus 完整 12 指标 (task total/succeeded/failed/running + duration avg + worker pool active/max/queue + DLQ size/exhausted + cron executions/active, per BA-W2-7)",
+            "BA-W2-8: data_source + task_def Master M-3 + M-1 list endpoint (per BAS-001 v0.3 三分类, Master 5 表 4/5 已 list)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -833,6 +858,34 @@ async fn worker_status(state: web::Data<AppState>) -> impl Responder {
     web::Json(state.worker_pool.status())
 }
 
+#[get("/api/v1/data-sources")]
+async fn list_data_sources(state: web::Data<AppState>) -> impl Responder {
+    // W2 BA-W2-8: Master M-3 data_source 列表 (per BAS-001 v0.3 三分类, Master 5 表之一)
+    let rows: Result<Vec<DataSource>, _> = sqlx::query_as::<_, DataSource>(
+        "SELECT id, name, source_type, connection_ref, enabled, last_sync_at, created_at FROM batch_master.data_source ORDER BY name ASC"
+    )
+    .fetch_all(&state.db)
+    .await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "data_sources": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/task-defs")]
+async fn list_task_defs(state: web::Data<AppState>) -> impl Responder {
+    // W2 BA-W2-8: Master M-1 task_def 列表 (per BAS-001 v0.3 三分类, Master 5 表之一)
+    let rows: Result<Vec<TaskDef>, _> = sqlx::query_as::<_, TaskDef>(
+        "SELECT id, name, handler, params_schema, enabled, created_at FROM batch_master.task_def ORDER BY name ASC"
+    )
+    .fetch_all(&state.db)
+    .await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "task_defs": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
 #[post("/api/v1/workers/enqueue")]
 async fn enqueue_task(
     state: web::Data<AppState>,
@@ -1035,6 +1088,8 @@ async fn main() -> std::io::Result<()> {
             .service(cron_stats)
             .service(log_audit)
             .service(query_audit)
+            .service(list_data_sources)
+            .service(list_task_defs)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
