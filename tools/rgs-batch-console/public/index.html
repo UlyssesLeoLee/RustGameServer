@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!-- rgs-batch-console index.html (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, 2026-09-02 01:50 JST Mavis 接手代签) -->
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>rgs-batch-console v0.1.0</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h1 { color: #333; }
+    .status { padding: 0.5em; background: #e0f0e0; border-radius: 4px; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>rgs-batch-console v0.1.0</h1>
+  <p class="status">✅ 服务运行中 (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1)</p>
+  <ul>
+    <li><a href="/api/v1/health">/api/v1/health</a> - 健康检查</li>
+    <li><a href="/api/v1/version">/api/v1/version</a> - 版本信息</li>
+    <li><a href="/api/v1/token-estimate?text=hello">/api/v1/token-estimate?text=hello</a> - token 估算</li>
+  </ul>
+  <p>后续 7 页面 (per W4 BA-W4-7): gm-grant / schedule / log-process / data-migration / tasks / audit / settings</p>
+</body>
+</html>

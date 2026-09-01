@@ -1,0 +1,13 @@
+{
+  "name": "rgs-batch-console",
+  "version": "0.1.0",
+  "description": "rgs-batch-console Node 22 + 原生 http + 0 依赖, per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, AGENTS.md v0.4 §7 batch 域母规范",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "smoke": "node -e \"require('node:http').get('http://127.0.0.1:8789/api/v1/health', r => { console.log('status=' + r.statusCode); process.exit(r.statusCode === 200 ? 0 : 1) })\""
+  },
+  "engines": { "node": ">=22.0.0" },
+  "private": true,
+  "license": "Apache-2.0"
+}
