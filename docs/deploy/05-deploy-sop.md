@@ -1,10 +1,10 @@
 # 05-deploy-sop.md — 部署标准操作程序
 
 > **文档 ID**：`RGS-DEPLOY-SOP-001`
-> **版本**：v0.1（NO-GO 状态）
-> **生效日期**：2026-08-21
+> **版本**：v0.2（NO-GO 状态，9/1 加 §6 k3s 单节点部署派生约束）
+> **生效日期**：2026-08-21（v0.1）/ 2026-09-01 22:30 JST（v0.2）
 > **状态**：🔴 NO-GO 占位
-> **关联**：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3`
+> **关联**：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6` + `RGS-EXEC-001 v0.3` + `RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md §7.5`
 
 ---
 
@@ -233,3 +233,55 @@ pwsh -File docs/deploy/phase-0-5-step-3-render-observability.ps1
 - 治理：`RGS-PLAN-001 v0.8 §3.3` + `RGS-ENV-001 v0.3 §6`
 - 架构：`RGS-ARC-051`（COC/CEM/PFAU）+ `RGS-ADR-0052`（Active-Active）
 - 设计：5 域 DTL（015/016/018/019/020/026/031）
+
+---
+
+## 6. k3s 单节点部署派生约束（per OPEN-QA v0.3 §7.5）
+
+> **来源**：`RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md` §7.5（2026-09-01 07:55 JST Mavis 接手代签）
+> **触发**：8/27 WSL 单节点 k3s `cluster-reset` A 路径失败 + 9/1 节点 `ulyssespc` 注册未恢复
+> **状态**：🟡 占位（SRE 介入，Ulysses 真身操作，per §0.4 Mavis 处理边界）
+> **关联 DDD Review §7.2 P2**: k3s PLEG 死锁 + cluster-reset 派生约束写入 RGS 部署 SOP
+
+### 6.1 派生约束 5 条（per 9/1 07:55 JST 教训）
+
+1. **WSL reboot 后 k3s 不会自动恢复** — 必须完全卸载（`k3s-uninstall.sh`）+ 重新安装 + 重 apply manifest
+2. **8/27 部署 manifest 用了 `PLACEHOLDER_*` 模板占位符** — 应改为 kustomize / helm template，不依赖 sed 替换（per D3 改造）
+3. **`cluster-reset` 不是单节点 k3s 修复方法** — 单节点用完全卸载 + 重装（per k3s 官方建议：cluster-reset 适用于多节点 etcd quorum 重建场景）
+4. **测试 agent 不应承担 SRE 工作** — k3s 部署恢复 / manifest apply / 证书生成属于 SRE 范畴，Mavis 仅负责"等 SRE 修好后跑 ST 重跑 + 写测试代码"
+5. **Mavis 处理 k3s 问题的尝试边界**（per 22:03 JST Ulysses "k3s 你可以帮我重启" 授权）：
+   - ✅ 可做：`wsl --shutdown`, `chmod 644 kubeconfig`, `kubectl scale 0→N`, 读 `kubectl get pods` / `kubectl describe pod` / `kubectl logs` / `kubectl exec curl localhost:port`
+   - ❌ 不应做：卸载 k3s, 重 apply 18 manifest（需完整 SRE 工具链）, 修证书, 改 yaml, `k3s-uninstall.sh`
+
+### 6.2 失败日志特征（per 9/1 07:55 JST journalctl 实证）
+
+```
+E0901 ... kubelet.go:3516] "Unable to register mirror pod because node is not registered yet"
+                          err="node \"ulyssespc\" not found" node="ulyssespc"
+E0901 ... kubelet_node_status.go:396] "Error getting the current node from lister"
+                          err="node \"ulyssespc\" not found"
+E0901 ... kubelet.go:2646] "Skipping pod synchronization"
+                          err="container runtime status check may not have completed yet"
+I... "Unable to set control-plane role label: nodes \"ulyssespc\" not found"
+```
+
+**根因**：WSL 单节点 k3s, hostname 变化 / etcd 漂移 / PLEG 死锁（per 8/26 JST HPA 强启动风暴历史，`RGS-OPEN-QA-2026-08-27-k3s-deploy v0.4 §0`）。cluster-reset 后 kubelet 期待手动 register, 单进程 k3s 包含 server+agent 通常自动 join, **这次未自动**。
+
+### 6.3 SRE 介入 Checklist（per 9/1 22:03 JST Ulysses 授权范围）
+
+> ⏳ 以下步骤需 Ulysses 真身 / SRE 操作，**Mavis 不在授权范围**
+
+- [ ] 完全卸载 k3s：`/usr/local/bin/k3s-uninstall.sh`（server 端）
+- [ ] 重新安装 k3s（不带 `--cluster-reset`）：`curl -sfL https://get.k3s.io | sh -`
+- [ ] 验证节点 `ulyssespc` 自动注册：`kubectl get nodes` 应见 `ulyssespc` Ready
+- [ ] 重 apply 8/27 manifest + 8/29 9:30 / 17:15 两次 secret 命名修订（per `RGS-OPEN-QA-2026-08-27-k3s-deploy v0.4`）
+- [ ] 5 域 mTLS 证书重生（per `scripts/phase-0-5-step-4-gen-certs.ps1`）
+- [ ] 验证 18 pod 1/1 Running + e2e-smoke baseline ≥10 PASS（per 8/27 baseline 7/5 PASS/FAIL）
+
+### 6.4 Mavis 续跑路径（per 9/1 22:25 JST Phase D 拍板）
+
+- SRE 修好 k3s 后 Mavis 派 ST-fix worker 续跑 st-11/st-12 mTLS 业务级 ST（per OPEN-QA v0.3 §7.6）
+- Mavis 跑 `git push origin main` 推 33 commits
+- DDD Review 终审决议 6 项 P1 backlog（per `RGS-DDD-2026-09-01-PT-WORKERS_v0.1.md` §6）
+- 完成 Q8/Q9/Q10/Q11 收尾（per OPEN-QA v0.3 §7.4 ⏳ 阻塞项）
+
