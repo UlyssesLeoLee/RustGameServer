@@ -620,3 +620,56 @@ node tools/rgs-web/server.js
 - per 2026-08-27 11:06 JST env value hard ban
 - per 2026-09-01 13:03 / 13:05 JST envoy 独立 deployment 偏好
 - per 2026-09-01 14:58 JST 拍板决策必须用选项
+
+### A.5 v0.2 升版增量（per Ulysses 4 + 2 ask_user 决策，2026-09-01 16:41 JST）
+
+> **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 DETAILED-DESIGN 各章节：
+
+**1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+- §1.10 `/api/webhook/github` 新增：HMAC-SHA256 验签 + UNIQUE(provider, delivery_id) 重放保护 + 事务
+- §1.11 `/api/webhook/gitlab` 新增：X-Gitlab-Token 等值比较（恒定时间防 timing attack）
+- 错误码：401 验签失败 / 400 缺必填头 / 500 SQLite 写失败
+- 性能 < 200ms（per NFR-33）
+
+**2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+- §2.1 SQLite 单文件 `data/olu.db` + 6 表 schema + PRAGMA (WAL / busy_timeout=5000 / synchronous=NORMAL / foreign_keys=ON)
+- §2.4 备份策略：cron / Windows 任务计划 / rgs-web 启动检查 3 选 1，默认 cron
+- §3.1 lib/sqlite.js + lib/backup-batch.js + data/olu.db + data/backups/olu-YYYY-MM-DD.db
+- §3.2 mavis hook 改 SQLite INSERT（不静默降级 jsonl，per §7.1 派生约束 fail-fast）
+- §3.3 启动 SOP 加 `npm install better-sqlite3` + `cloudflared --version` + cron 配置
+
+**3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+- §3.1 lib/cloudflared.js
+- §3.3 启动 SOP 加 cloudflared 装 + 启动
+- §5.4 127.0.0.1 only 硬约束：cloudflared 是 outbound tunnel，不破硬约束
+
+**4. webhook 验签 + 重放保护**（per F-32/F-33）
+- §1.10/§1.11 详细签名
+- §3.1 lib/webhook-verifier.js
+- §5.1 凭据管理增 GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_TOKEN
+- §5.2 写并发：webhook 端点每条 webhook 1 事务（原子性）
+
+**5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+- §2.4 备份策略（VACUUM INTO + sha256 + 90 天清理 + 写 nfr_op_010_snapshots 表）
+- §3.1 lib/backup-batch.js
+- §3.3 cron 启动 SOP
+
+**已知缺口**（v0.2 新增）：
+- cloudflared 二进制需 Ulysses 手动装
+- GITHUB_WEBHOOK_SECRET + GITLAB_WEBHOOK_TOKEN 注入路径
+- better-sqlite3 Windows 编译风险
+- 备份 batch 触发方式
+- mavis runtime hook 写 ai_ledger 表 schema 兼容性
+- 4 周落地工作量是否够
+- v0.2 6 NFR 实测基线未建立
+
+**派生决策引用**：per 2026-09-01 14:58 JST + per "Never auto-install software" 硬约束
+
+---
+
+## 修订历史
+
+| 版本 | 日期 | 修订者 | 修订内容 |
+|---|---|---|---|
+| v0.1 | 2026-09-01 15:44 JST | 架构师（**Mavis 接手 agent per DEC-008**）| 首版（commit `a896ca9`）|
+| **v0.2** | **2026-09-01 16:41 JST** | **架构师（**Mavis 接手 agent per DEC-008**）** | **v0.2 升版**：① §1.10/§1.11 webhook 端点 ② §2.1 SQLite 6 表 + PRAGMA ③ §2.4 备份策略 ④ §3.1 lib/sqlite.js / cloudflared.js / backup-batch.js ⑤ §3.3 启动 SOP + cloudflared + cron ⑥ §5.1 webhook secret ⑦ §5.2 webhook 事务 ⑧ §5.4 cloudflared 进程隔离 |
