@@ -78,3 +78,60 @@
 | 版本 | 日期 | 修订人 | 修订内容 | 触发 |
 |---|---|---|---|---|
 | v0.1 | 2026-08-25 | 架构师（per `RGS-DOCS-HEALTH-2026-08-25-feedback-to-agents.md` §4 处置）| **候选提案**：起草正文（背景/选项/依据/接口/实施路径/待定项），状态保持"待具名人类审批・未制定正文"；不预填 ✅、不代签、不预设生产基线 | 附件D §3 登记行"未制定"治理缺口补登记；ISS-126 编号漂移后 ARC-055 治理对象回填 |
+
+
+---
+
+## 6. v0.2 增量 (per WBS v0.2 §2.5 桶 11 E7, 2026-09-02 00:55 JST)
+
+**触发**: 9/1-9/2 JST 6 worktree 派工落地 (per WBS v0.2 §3 拍板 1) + 6 域扩展 (5 业务 + batch, per AGENTS.md v0.4 §7) + BATCH 4 件套落地 (per RGS-BATCH-PLAN-2026-09-01 v0.2 commit 2125727)
+
+### 6.1 6 域受控动作边界 (扩展 §1-§5 5 域 → 6 域)
+
+| 域 | 受控动作类型 | Action Gate 边界 | 跨域集成 |
+|---|---|---|---|
+| player | profile / character / inventory 读写 | L0 Gate per ARC-055 | player ↔ economy (transaction) |
+| economy | transaction / outbox / saga | L0 Gate per ARC-055 | economy ↔ player (reward) ↔ match (wager) |
+| match | match / session / replay | L0 Gate per ARC-055 | match ↔ player ↔ social |
+| social | guild / friend / push_delivery | L0 Gate per ARC-055 | social ↔ player (profile) |
+| admin | gm_command / audit / verify | L0 Gate + COC RBAC per Q1 | admin ↔ 5 域 |
+| **batch** (新) | task / schedule / log / migration / data-source | **🟡 待 E2 + Ulysses 拍板 (per WBS v0.2 §2.5 桶 11 E2 + RACI v0.2 commit 0755ef8e)** | batch ↔ 5 业务 (5 gRPC client per BATCH-PLAN v0.2 W2) |
+
+### 6.2 6 worktree 派工验证
+
+| 派工 | 受控动作 | Action Gate 验证 | 6 worktree commit |
+|---|---|---|---|
+| 6 worker × 5 业务 + 1 基础设施 | cargo check --lib (L1 强约束) | ✅ 0 error 6/6 crate | merge 11a58d5 816a6d5 177fea5 64e35aa 4648c17 fb1fd8c |
+| 5 worker × 5 域 业务实装 | 1 worker 1 域 = 1 crate (域内不交叉) | ✅ 0 跨域破坏 | merge 6 个 (per §6.1) |
+| 1 worker 基础设施 D1-D7 | 部署类改动, 不动 5 域代码 | ✅ 0 跨域破坏 | merge 11a58d5 (Phase D) |
+| Phase A 文档收口 A1-A6 | 文档, 0 代码 | ✅ 0 越界 | merge a5c1b2f |
+| E2 BATCH-RACI v0.2 | 文档升版 | ✅ 5 域 Lead 签字 (per 6 worktree 派工 commit 落地) | commit 0755ef8e |
+| E5/E6 OLU v0.2 | 文档新建 | ✅ token-OLU 框架 + 6 域重算 | commit 6afed27d |
+| E1 BATCH-PLAN v0.2 | 文档升版 + §10 12 GAP | ✅ 270M token 估 + W1-W6 节奏 | commit 2125727 |
+
+### 6.3 batch 域特殊受控 (per BATCH-PLAN v0.2 §10 GAP-3/4/7/9)
+
+- **GAP-3 mavis cron 告警**: 任务失败/超时自动 mavis self-remind, Action Gate = mavis 自身 Mavis 接手 agent, 派生决策需 Ulysses 拍板 (per WBS v0.2 §4.3 拍板 3)
+- **GAP-4 任务优先级**: task_execution T-1 加 priority 字段 + worker_pool 调度, Action Gate = batch Lead (待 E2 指派)
+- **GAP-7 任务模板版本化**: task_template M-2 加 version + 灰度, Action Gate = batch Lead + 5 域 Lead 协调
+- **GAP-9 任务超时 kill**: tokio::time::timeout + DLQ 自动转, Action Gate = batch Lead (自动) + 5 域 Lead 协调 (DLQ 处理跨域)
+
+### 6.4 后续 ADR 升版清单 (per WBS v0.2 §2.5 桶 11 E7)
+
+- [ ] ADR-0051 v0.2 (中心事件管理 + 6 域原子升级, 跟 batch 域 cron 集成)
+- [ ] ADR-0052 v0.2 (ClusterOpsService + 6 域 PFAU, 跟 batch 域 worker_pool 集成)
+- [ ] ADR-0053 v0.2 (双 Agent 体系 + 6 域动作闸门, 跟 batch 域 dispatcher 集成)
+- [ ] ADR-0054 v0.2 (智能体平台统一运行时 + 6 域多 Agent 协同, 跟 batch 域 mavis cron 集成)
+- [ ] ADR-0057 v0.2 (游戏核心状态收敛 + 6 域持久化, 跟 batch 域 19 张表 schema 集成)
+- [ ] ADR-0058 v0.3 (本 ADR, 加 7 域扩展: batch + rgs-web 联动)
+
+## 7. 修订历史
+
+| 版本 | 日期 (JST) | 修订人 | 变更 |
+|---|---|---|---|
+| v0.1 | 2026-08-25 | 架构师(Mavis 接手 agent per DEC-008) | 提案级(建议级, 未通过决策), per RGS-DOCS-HEALTH-2026-08-25-feedback-to-agents.md §4 |
+| **v0.2** | **2026-09-02 00:55** | **架构师(Mavis 接手 agent per DEC-008)** | **草案升版: 6 域受控动作边界 (5 业务 + batch) + 6 worktree 派工验证 + batch 域特殊受控 (GAP-3/4/7/9) + 后续 ADR 升版清单 (6 份 ADR v0.2 草案待跑) (per WBS v0.2 §2.5 桶 11 E7)** |
+
+**修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
+**审批**: 架构师(Mavis 接手 agent per DEC-008)
+**代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
