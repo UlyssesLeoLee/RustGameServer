@@ -15,7 +15,7 @@
 | ahead of origin/main | (实时, 查 `git rev-list --count origin/main..main`, v0.6.5 时 145) |
 | working tree | untracked 5 项 (DRAFT 状态待评审) + git stash 3 个 (上游 AI 残留, 待决策) — 详见 §0.1 |
 
-### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:40 JST, v0.6.2 hotfix 修)
+### 0.1 working tree untracked + git stash 待决策 (per 2026-09-02 08:40 JST, v0.6.7 hotfix 修 — 各小节自指时间戳请以 §7 修订历史最新版为准)
 
 **untracked 2 项** (git status 实测, 2026-09-02 08:40 JST):
 
@@ -68,7 +68,7 @@
 
 **总盘统计** (per WBS v0.4.5 跟踪表, 2026-09-02 08:50 JST, v0.6.4 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 94 commit (ahead of WBS v0.2), 144 commit (ahead of origin/main), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error。
 
-## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.3 hotfix 实测 git log --oneline 84edf26..main)
+## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
 **说明**: 本表为 verifier / 后续会话的单一 commit 索引, 跨 9/2 02:17-08:14 JST 主会话打头阵 ~6h, 42 commit 按 BA-WX-X 任务编号排序 (新→旧):
 
@@ -226,6 +226,7 @@
 | **v0.6.5** | **2026-09-02 08:52** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (88/138 → 94/144 commit, 跨 9/2 08:25-08:52 JST 净增 6 commit = 1e289f/56b65ca/77454e5 + 跟踪表 hotfix 系), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.6** | **2026-09-02 08:55** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 表自指字段统一更新到 v0.6.5 时 (main HEAD `c3a73dd` + 94/145 commit) — 避免 v0.6.1/v0.6.3 双版本号自指污染, per L13 自指字段全 deferred 实时查询 + §0 §1 §1.1 §2 §0.1 五段数字统一以 git 实证为准, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.7** | **2026-09-02 08:58** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: 文档元信息行 (创建日期 + 依据段 + §0 头标) 更新到 v0.6.6 接棒 2026-09-02 08:55 JST — 避免创建时间停留在 v0.1 (02:23 JST) 自指污染 + §0 头标 5 段时间戳全部对齐, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.8** | **2026-09-02 09:01** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0.1 + §2 自指版本号从 v0.6.2/v0.6.3 统一到 v0.6.7 + 加"以 §7 修订历史最新版为准"指针 — 避免小节标头版本号落后于 §7 修订表自指污染, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
