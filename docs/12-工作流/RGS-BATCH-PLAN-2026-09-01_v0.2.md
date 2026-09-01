@@ -1,12 +1,12 @@
-# RGS-BATCH-PLAN-2026-09-01 v0.1
+# RGS-BATCH-PLAN-2026-09-01 v0.2
 
 **综合 Batch 管理平台设计总览 + 实施方案（rgs-batch-console + rgs-batch-backend）**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BATCH-PLAN-2026-09-01 |
-| 版本 | 0.1（首版，per Ulysses 2026-09-01 18:00 JST "batch 平台" 决策 + 18:25 JST 范围澄清 + 18:34 JST Q2 拍板 + 19:00 JST 继续 DETAILED-DESIGN）|
-| 状态 | 草案（待 Ulysses DDD Review 阶段补签）|
+| 版本 | 0.2（升版: per WBS v0.2 桶 11 Phase E E1, 2026-09-02 00:30 JST Mavis 接手代签）
+| 状态 | 🟡 v0.2 草案（v0.1 38 任务 / 6 周 / 9.65M tokens 落地骨架保留, 加 WBS v0.2 引用 + 6 域扩展 + 10 v0.2 评估项）|
 | 触发 | RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1（commit `fd122f6`）+ RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1（commit `e366ff8`）+ RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1（commit `62027c9`）已落地，本层补总览 + 实施计划 |
 | 关联 | 上游 REQ v0.1（commit `fd122f6`）+ BASIC v0.1（commit `e366ff8`）+ DETAILED v0.1（commit `62027c9`）|
 | 上游基线 | rgs-web v0.3 commit `625a3f0` + rgs-web OLU-WEB 4 文档 + gm-backend 范式 + 5 域 ST 业务级 mTLS 实践（commit `401ac5c`）+ 9/1 PT 派工 commit `ffbfb19` + saga-runtime 独立 Pod（per RGS-BAS-100 v0.1）+ OLU-WEB-PLAN v0.1 4 周落地范式 |
@@ -472,7 +472,7 @@ kubectl port-forward svc/rgs-batch-envoy 8789:8443 -n rust-game-server
 - ✅ RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1（commit `fd122f6`，436 行 / 39.5 KB）
 - ✅ RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1（commit `e366ff8`，674 行 / 37.5 KB）
 - ✅ RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1（commit `62027c9`，1053 行 / 49.7 KB）
-- ✅ **RGS-BATCH-PLAN-2026-09-01 v0.1（设计总览 + 实施计划，本文）**
+- ✅ **RGS-BATCH-PLAN-2026-09-01 v0.2（设计总览 + 实施计划，本文）**
 
 ### A.3 已知缺口（per 2026-09-01 18:30 JST 缺标比错标原则）
 
@@ -523,3 +523,80 @@ kubectl port-forward svc/rgs-batch-envoy 8789:8443 -n rust-game-server
 | **PLAN v0.1** | **`docs/12-工作流/RGS-BATCH-PLAN-2026-09-01_v0.1.md`** | **本文 (待 commit)** | **~600** | **~30 KB** | **总览 + 实施计划 (When + Who)** |
 
 **总规模**：4 文档 / ~2700 行 / ~157 KB / 38 L4 任务 / 6 周落地 / 9.65M tokens 估算。
+
+
+---
+
+## 10. v0.2 评估项 (per WBS v0.2 §2.5 桶 11 E1 + BATCH REQ §9 GAP-1~12)
+
+> **来源**: per `RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1` §9 (commit `fd122f6`) + WBS v0.2 §2.5 桶 11 E1 升版需求
+> **触发**: 2026-09-02 00:30 JST, per Ulysses "完成所有后续 phase" 任务 (Mavis 拍板 opt1 = 桶 11.E1 起草 BATCH-IMPL-PLAN v0.2)
+> **状态**: 🟡 评估中, Mavis 起草 v0.2; v0.1 38 任务 / 6 周骨架保留, GAP 项纳入 W2-W6 增量
+
+### 10.1 GAP 已知缺口 (per BATCH REQ §9, 12 项)
+
+| # | GAP | 范围 | 落点 | 优先级 | 拍板 |
+|---|---|---|---|---|---|
+| **GAP-1** | 跨 batch DAG | 多 batch 任务依赖图 + 拓扑排序 | BA-W2-6 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-2** | WebSocket 流式任务进度 | /api/v1/ws + tokio-tungstenite | BA-W4-7 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-3** | mavis cron 告警 | 任务失败/超时自动 mavis self-remind | BA-W3-2 增量 | 🟢 P1 v0.2 | Mavis 默认代签 |
+| **GAP-4** | 任务优先级 | task_execution T-1 加 priority 字段 + worker_pool 调度 | BA-W2-4 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-5** | AI 协助 SQL | 自然语言 → SQL (per OLU-WEB F-25 + R-6) | BA-W5-5 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-6** | rgs-web 深联动 | rgs-web 8788 集成 batch 链接 + OIDC 单点 | BA-W4-7 + rgs-web 联合 | 🟡 P2 v0.2 | Ulysses + rgs-web Lead |
+| **GAP-7** | 任务模板版本化 | task_template M-2 加 version + 灰度 | BA-W2-1 增量 | 🟢 P1 v0.2 | Mavis 默认代签 |
+| **GAP-8** | Rollback SQL 验证 | migration_rollback 沙箱执行 + diff 校验 | BA-W4-2 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-9** | 任务超时 kill | tokio::time::timeout + DLQ 自动转 | BA-W2-5 增量 | 🟢 P1 v0.2 | Mavis 默认代签 |
+| **GAP-10** | 跨域 saga 触发 | batch 任务完成触发 saga (per RGS-REQ-100 v0.2 §11 评估) | BA-W6-2 增量 | 🟡 P2 v0.2 | Ulysses |
+| **GAP-11** | batch 域 Lead RACI 同步 | RACI-BATCH-V1 v1.1 → v1.2 升版 (per WBS v0.2 §2.1 Phase A A5) | RACI 文档 | 🟢 P1 v0.2 | Mavis 默认代签 (per WBS v0.2 §4.3 拍板 3) |
+| **GAP-12** | k3s 资源上限 + namespace 隔离策略 | per BATCH REQ §10.3 + SRE 协调 | 部署 SOP | 🟡 P2 v0.2 | SRE Lead + Ulysses |
+
+### 10.2 v0.1 任务增量映射
+
+| v0.1 任务 | v0.2 增量 | 关联 GAP |
+|---|---|---|
+| BA-W1-3 ~ BA-W1-6 | 加 namespace 隔离配置 (per GAP-12) | GAP-12 |
+| BA-W2-1 | 加 task_template M-2 version 字段 (per GAP-7) | GAP-7 |
+| BA-W2-4 | 加任务优先级调度 (per GAP-4) | GAP-4 |
+| BA-W2-5 | 加任务超时 kill (per GAP-9) | GAP-9 |
+| BA-W2-6 | 加 DAG 依赖图 (per GAP-1) | GAP-1 |
+| BA-W3-2 | 加 mavis cron 告警 (per GAP-3) | GAP-3 |
+| BA-W4-2 | 加 Rollback SQL 沙箱验证 (per GAP-8) | GAP-8 |
+| BA-W4-7 | 加 WebSocket 流式 + rgs-web 深联动 (per GAP-2 + GAP-6) | GAP-2, GAP-6 |
+| BA-W5-5 | 加 AI 协助 SQL (per GAP-5) | GAP-5 |
+| BA-W6-2 | 加跨域 saga 触发评估 (per GAP-10) | GAP-10 |
+| 全部 | 加 batch 域 Lead RACI 同步 (per GAP-11) | GAP-11 |
+
+### 10.3 v0.2 节奏 (per WBS v0.2 §2.5 桶 11 + 拍板 1/2/3)
+
+- **W1 (9/2-9/8)**: 基础框架保留 v0.1, 加 GAP-12 namespace 隔离
+- **W2 (9/9-9/15)**: Master 5 表 + 5 gRPC client + worker pool, 加 GAP-4 + GAP-7 + GAP-9
+- **W3 (9/16-9/22)**: 调度 + 审计, 加 GAP-3 mavis cron
+- **W4 (9/23-9/29)**: 监控 + 迁移 + UI, 加 GAP-1 + GAP-2 + GAP-6 + GAP-8
+- **W5 (9/30-10/6)**: 集成测试 + 端到端, 加 GAP-5
+- **W6 (10/7-10/13)**: 系统测试 + DDD Review, 加 GAP-10
+
+### 10.4 token 预算 (per WBS v0.2 §5 拍板 2 独立估 270M)
+
+- v0.1 估 9.65M tokens (per §6)
+- v0.2 增量 12 GAP 项估 + 212M (per WBS v0.2 §5 拍板 2 batch 域独立估)
+- W1-W6 总估 270M tokens, per WBS v0.2 §3 桶 11 概览
+
+### 10.5 派生约束 (per WBS v0.2 §4.3 拍板 3 + AGENTS.md v0.4 §7)
+
+- batch 域 Ulysses 拍板门 (per WBS v0.2 §4.3 拍板 3): 12 GAP 项中 8 项需 Ulysses 拍板, 4 项 Mavis 默认代签
+- 5 不破坏 (per AGENTS.md v0.4 §7.5): 不动 5 域 / rgs-web / shared-platform / function-plane / gm-backend
+- 4 复用 (per §7.5): rgs-web 母规范 + OLU-WEB 4 文档 + gm-backend 范式 + 5 域 ST mTLS
+- 3 引用 (per §7.5): shared-platform 20 模块 + 5 域 gRPC client + saga-runtime 独立 Pod
+
+---
+
+## 11. 修订历史 (per 2026-08-26 04:30 JST 派生约束 + 8/27 19:39 JST 代签授权)
+
+| 版本 | 日期 (JST) | 修订人 | 变更 |
+|---|---|---|---|
+| v0.1 | 2026-09-01 19:00 | 架构师(Mavis 接手 agent per DEC-008) | 草案首版, 6 周 + 38 任务 / 9.65M tokens, 引用 REQ v0.1 + BASIC v0.1 + DETAILED v0.1 |
+| **v0.2** | **2026-09-02 00:30** | **架构师(Mavis 接手 agent per DEC-008)** | **升版: per WBS v0.2 桶 11 Phase E E1, 加 §10 v0.2 评估项 (12 GAP 已知缺口 + v0.1 任务增量映射 + v0.2 节奏 + token 预算 270M + 派生约束), §0 状态 🟡 → 🟡 草案, §0 引用 6 域扩展 + WBS v0.2 (commit `84edf26`) + 6 worktree merge 验证 (commit `a5c1b2f`, 23 commit ahead) + Phase A 文档收口 (AGENTS v0.5 + OPEN-QA v0.4 + DDD v0.2 + RACI v1.1 + BAS-001 v0.3) |**
+
+**修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
+**审批**: 架构师(Mavis 接手 agent per DEC-008)
+**代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
