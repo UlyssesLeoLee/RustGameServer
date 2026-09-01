@@ -603,6 +603,7 @@ async fn version() -> impl Responder {
             "BA-W2-6: audit_event T-3 永久保留 (operator + action + params_hash + result + trace_id, per REQ F-10 + ADR-0058)",
             "BA-W2-7: Prometheus 完整 12 指标 (task total/succeeded/failed/running + duration avg + worker pool active/max/queue + DLQ size/exhausted + cron executions/active, per BA-W2-7)",
             "BA-W2-8: data_source + task_def Master M-3 + M-1 list endpoint (per BAS-001 v0.3 三分类, Master 5 表 4/5 已 list)",
+            "BA-W3-1: task_execution + log_event Transaction T-2 + T-5 高级查询 (per task_id/result/duration/level/target 过滤, 动态 SQL)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -734,6 +735,38 @@ struct DlqEntry {
     next_retry_at: Option<chrono::DateTime<chrono::Utc>>,
     last_retry_at: Option<chrono::DateTime<chrono::Utc>>,
     created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct TaskExecution {
+    id: Uuid,
+    task_id: Uuid,           // 引用 batch_transaction.batch_task (主表)
+    attempt: i32,            // 第 N 次执行
+    started_at: chrono::DateTime<chrono::Utc>,
+    finished_at: Option<chrono::DateTime<chrono::Utc>>,
+    duration_ms: Option<i64>,
+    result: String,          // success / failure / timeout
+    error_msg: Option<String>,
+    trace_id: String,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+struct LogEvent {
+    id: Uuid,
+    level: String,           // INFO / WARN / ERROR / DEBUG
+    target: String,          // rgs-batch-backend / rgs-batch-worker 等
+    message: String,
+    task_id: Option<Uuid>,
+    trace_id: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TaskExecutionQuery {
+    task_id: Option<Uuid>,
+    result: Option<String>,
+    min_duration_ms: Option<i64>,
+    limit: Option<i64>,
 }
 
 const DLQ_MAX_RETRIES_DEFAULT: i32 = 3;
@@ -882,6 +915,52 @@ async fn list_task_defs(state: web::Data<AppState>) -> impl Responder {
     .await;
     match rows {
         Ok(list) => web::Json(serde_json::json!({ "task_defs": list, "count": list.len() })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[get("/api/v1/task-executions")]
+async fn list_task_executions(
+    state: web::Data<AppState>,
+    query: web::Query<TaskExecutionQuery>,
+) -> impl Responder {
+    // W3 BA-W3-1: Transaction T-2 task_execution 高级查询 (per task_id/result/duration 过滤)
+    let limit = query.limit.unwrap_or(50).min(500);
+    let mut sql = String::from("SELECT id, task_id, attempt, started_at, finished_at, duration_ms, result, error_msg, trace_id FROM batch_transaction.task_execution WHERE 1=1");
+    if let Some(tid) = query.task_id { sql.push_str(&format!(" AND task_id = '{}'", tid)); }
+    if let Some(r) = &query.result { sql.push_str(&format!(" AND result = '{}'", r)); }
+    if let Some(d) = query.min_duration_ms { sql.push_str(&format!(" AND duration_ms >= {}", d)); }
+    sql.push_str(&format!(" ORDER BY started_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<TaskExecution>, _> = sqlx::query_as::<_, TaskExecution>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "executions": list, "count": list.len(), "sql": sql })),
+        Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct LogEventQuery {
+    level: Option<String>,
+    target: Option<String>,
+    task_id: Option<Uuid>,
+    limit: Option<i64>,
+}
+
+#[get("/api/v1/logs")]
+async fn list_logs(
+    state: web::Data<AppState>,
+    query: web::Query<LogEventQuery>,
+) -> impl Responder {
+    // W3 BA-W3-1: Transaction T-5 log_event 高级查询 (per level/target/task_id 过滤)
+    let limit = query.limit.unwrap_or(100).min(1000);
+    let mut sql = String::from("SELECT id, level, target, message, task_id, trace_id, created_at FROM batch_transaction.log_event WHERE 1=1");
+    if let Some(lv) = &query.level { sql.push_str(&format!(" AND level = '{}'", lv)); }
+    if let Some(t) = &query.target { sql.push_str(&format!(" AND target LIKE '%{}%'", t)); }
+    if let Some(tid) = query.task_id { sql.push_str(&format!(" AND task_id = '{}'", tid)); }
+    sql.push_str(&format!(" ORDER BY created_at DESC LIMIT {}", limit));
+    let rows: Result<Vec<LogEvent>, _> = sqlx::query_as::<_, LogEvent>(&sql).fetch_all(&state.db).await;
+    match rows {
+        Ok(list) => web::Json(serde_json::json!({ "logs": list, "count": list.len() })),
         Err(e) => web::Json(serde_json::json!({ "error": e.to_string(), "count": 0 })),
     }
 }
@@ -1090,6 +1169,8 @@ async fn main() -> std::io::Result<()> {
             .service(query_audit)
             .service(list_data_sources)
             .service(list_task_defs)
+            .service(list_task_executions)
+            .service(list_logs)
     })
     .bind((BIND_HOST, BIND_PORT))?
     .run()
