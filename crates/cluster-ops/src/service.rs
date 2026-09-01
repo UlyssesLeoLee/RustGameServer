@@ -517,51 +517,48 @@ mod tests {
 
     #[tokio::test]
     async fn list_active_nodes_excludes_unhealthy() {
-        let s = svc();
         let repo = Arc::new(InMemoryClusterNodeRepository::new());
         let svc2 = ClusterOpsServiceImpl::new(
             repo.clone(),
             Arc::new(InMemoryFeatureFlagRepository::new()),
         );
-        let n1 = svc2
-            .register_node(
-                "h-ok1".to_string(),
-                "10.0.0.1".to_string(),
-                NodeRole::Primary,
-                "0.1.0".to_string(),
-            )
+        // 注册 2 节点
+        svc2.register_node(
+            "h-ok1".to_string(),
+            "10.0.0.1".to_string(),
+            NodeRole::Primary,
+            "0.1.0".to_string(),
+        )
+        .await
+        .unwrap();
+        svc2.register_node(
+            "h-ok2".to_string(),
+            "10.0.0.2".to_string(),
+            NodeRole::Replica,
+            "0.1.0".to_string(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(svc2.list_active_nodes().await.unwrap().len(), 2);
+
+        // 把 2 节点 last_heartbeat 推到 120s 前, 然后用 60s 阈值扫
+        for n in repo
+            .list_healthy()
             .await
-            .unwrap();
-        let n2 = svc2
-            .register_node(
-                "h-ok2".to_string(),
-                "10.0.0.2".to_string(),
-                NodeRole::Replica,
-                "0.1.0".to_string(),
-            )
-            .await
-            .unwrap();
-        // 通过 repository 直接 mark_unhealthy
+            .unwrap()
+        {
+            let mut n = n;
+            n.last_heartbeat_at = Utc::now() - chrono::Duration::seconds(120);
+            repo.save(&n).await.unwrap();
+        }
         let stale = repo
-            .mark_stale_unhealthy(Utc::now() + chrono::Duration::seconds(1))
+            .mark_stale_unhealthy(Utc::now() - chrono::Duration::seconds(60))
             .await
             .unwrap();
         assert_eq!(stale, 2);
-        // 重新让 n1 仍 healthy: 重置 last_heartbeat
-        let mut revived = repo.find_by_id(n1.id).await.unwrap().unwrap();
-        revived.last_heartbeat_at = Utc::now() + chrono::Duration::seconds(10);
-        repo.save(&revived).await.unwrap();
+        // 现在 list_active_nodes 应返回 0 (全部 Unhealthy)
         let active = svc2.list_active_nodes().await.unwrap();
-        // revived 状态仍 Unhealthy (mark_stale_unhealthy 不回滚)
-        // 所以 active 只应包含 n2? 实际: 只看 status==Healthy, 两者均 Unhealthy → 0
-        let _ = (n1, n2);
-        // 直接通过 repo 找一个 Healthy 节点 (重置 n1 status)
-        let mut revived2 = repo.find_by_id(n1.id).await.unwrap().unwrap();
-        revived2.status = NodeStatus::Healthy;
-        repo.save(&revived2).await.unwrap();
-        let active2 = svc2.list_active_nodes().await.unwrap();
-        assert_eq!(active2.len(), 1);
-        assert_eq!(active2[0].id, n1.id);
+        assert!(active.is_empty());
     }
 
     #[tokio::test]

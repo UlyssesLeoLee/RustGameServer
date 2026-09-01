@@ -467,9 +467,9 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 任意 hostname/ip/version 字符串下:
-        /// - new() 必产生 Healthy + enabled_at=Some + status=Healthy
-        /// - 字段透传不丢失
+        // 任意 hostname/ip/version 字符串下:
+        // - new() 必产生 Healthy + enabled_at=Some + status=Healthy
+        // - 字段透传不丢失
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(64))]
 

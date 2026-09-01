@@ -23,10 +23,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-use cluster_ops::entity::{ClusterNode, FeatureFlag, FlagScope, NodeRole, NodeStatus};
+use cluster_ops::entity::{FlagScope, NodeRole, NodeStatus};
 use cluster_ops::repository::{
-    ClusterNodeRepository, FeatureFlagRepository, InMemoryClusterNodeRepository,
-    InMemoryFeatureFlagRepository,
+    ClusterNodeRepository, InMemoryClusterNodeRepository, InMemoryFeatureFlagRepository,
 };
 use cluster_ops::service::{ClusterOpsService, ClusterOpsServiceImpl};
 
@@ -84,10 +83,10 @@ async fn test_register_heartbeat_list_full_flow() {
     let loaded = node_repo.find_by_id(n1.id).await.unwrap().unwrap();
     assert_eq!(loaded.last_heartbeat_at, h.last_heartbeat_at);
 
-    // 验证 3 节点 role 各不相同
-    let role_set: std::collections::HashSet<_> =
-        [n1.role, n2.role, n3.role].into_iter().collect();
-    assert_eq!(role_set.len(), 3, "3 节点应有 3 个不同 role");
+    // 验证 3 节点 role 各不相同 (NodeRole 未 derive Hash, 用两两 != 断言替代 HashSet)
+    assert_ne!(n1.role, n2.role);
+    assert_ne!(n1.role, n3.role);
+    assert_ne!(n2.role, n3.role);
 }
 
 /// 场景 2: 重复 hostname 在 service 层被拒 (Conflict error)
