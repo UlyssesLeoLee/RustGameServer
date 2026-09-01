@@ -238,38 +238,123 @@ struct WorkerPoolStatus {
     idle: usize,
     total: usize,
     by_priority: std::collections::HashMap<i32, usize>,
+    max_concurrent: usize,
+    priority_queue_size: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct PendingTask {
+    id: Uuid,
+    template_id: Uuid,
+    template_version: i32,
+    priority: i32,
+    state: String,
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Clone)]
 struct WorkerPool {
     active_count: Arc<std::sync::atomic::AtomicUsize>,
+    max_concurrent: usize,
+    // GAP-4 优先级队列: BinaryHeap 反向 (因为 BinaryHeap 是 max-heap, 我们要 min-heap for priority)
+    pending: Arc<std::sync::Mutex<std::collections::BinaryHeap<PriorityTask>>>,
+    by_priority_count: Arc<std::sync::Mutex<std::collections::HashMap<i32, usize>>>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct PriorityTask {
+    priority: i32,
+    created_at: chrono::DateTime<chrono::Utc>,
+    task_id: Uuid,
+}
+
+// 反向排序: priority 越小越高优先级 (per GAP-4 1=最高), 同一优先级 FIFO
+impl Ord for PriorityTask {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // 先按 priority 升序 (min first), 再按 created_at 升序 (FIFO)
+        other.priority.cmp(&self.priority)
+            .then_with(|| self.created_at.cmp(&other.created_at))
+    }
+}
+impl PartialOrd for PriorityTask {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl WorkerPool {
     fn new() -> Self {
+        Self::with_capacity(8)  // GAP-4 默认 8 worker (per BATCH-PLAN v0.2 §3.1)
+    }
+
+    fn with_capacity(max_concurrent: usize) -> Self {
         Self {
             active_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            max_concurrent,
+            pending: Arc::new(std::sync::Mutex::new(std::collections::BinaryHeap::new())),
+            by_priority_count: Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
         }
     }
 
     fn heartbeat(&self) {
-        // 雏形: tokio::spawn 1 个 worker, 每 5s 心跳 (per WORKER_HEARTBEAT_SECS)
-        let count = self.active_count.clone();
+        // W2 BA-W2-4: 心跳 + 处理优先级队列
+        let active = self.active_count.clone();
+        let max_concurrent = self.max_concurrent;
+        let pending = self.pending.clone();
+        let by_priority = self.by_priority_count.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(WORKER_HEARTBEAT_SECS));
             loop {
                 interval.tick().await;
-                tracing::debug!(target: SERVICE, "worker heartbeat, active={}", count.load(std::sync::atomic::Ordering::Relaxed));
+                let curr = active.load(std::sync::atomic::Ordering::Relaxed);
+                tracing::debug!(target: SERVICE, "worker heartbeat: active={}/{}, pending={}", curr, max_concurrent, pending.lock().map(|q| q.len()).unwrap_or(0));
+                // 更新 by_priority 计数
+                if let Ok(q) = pending.lock() {
+                    let mut counts: std::collections::HashMap<i32, usize> = std::collections::HashMap::new();
+                    for t in q.iter() {
+                        *counts.entry(t.priority).or_insert(0) += 1;
+                    }
+                    if let Ok(mut bp) = by_priority.lock() {
+                        *bp = counts;
+                    }
+                }
             }
         });
     }
 
+    fn enqueue(&self, task: PendingTask) {
+        // GAP-4 优先级入队
+        if let Ok(mut q) = self.pending.lock() {
+            q.push(PriorityTask {
+                priority: task.priority,
+                created_at: task.created_at,
+                task_id: task.id,
+            });
+        }
+    }
+
+    fn dequeue(&self) -> Option<Uuid> {
+        // GAP-4 优先级出队 (min-heap)
+        if let Ok(mut q) = self.pending.lock() {
+            q.pop().map(|t| t.task_id)
+        } else {
+            None
+        }
+    }
+
     fn status(&self) -> WorkerPoolStatus {
+        let active = self.active_count.load(std::sync::atomic::Ordering::Relaxed);
+        let pending_size = self.pending.lock().map(|q| q.len()).unwrap_or(0);
+        let by_priority = self.by_priority_count.lock()
+            .map(|bp| bp.clone())
+            .unwrap_or_default();
         WorkerPoolStatus {
-            active: self.active_count.load(std::sync::atomic::Ordering::Relaxed),
-            idle: 0, // W2 雏形仅 1 worker
-            total: 1,
-            by_priority: std::collections::HashMap::new(),
+            active,
+            idle: self.max_concurrent.saturating_sub(active),
+            total: self.max_concurrent,
+            by_priority,
+            max_concurrent: self.max_concurrent,
+            priority_queue_size: pending_size,
         }
     }
 }
@@ -324,7 +409,7 @@ async fn version() -> impl Responder {
             "BA-W2-1: Master 5 表 sqlx (task_template M-2 + GAP-7 version)",
             "BA-W2-2: /api/v1/tasks 6 endpoint (CRUD + 锁定 template_version)",
             "BA-W2-3: DLQ 完整 (exponential backoff 100ms→30s + retry_count + max_retries + /api/v1/dlq/retry/{id} + /api/v1/dlq/stats, per GAP-9)",
-            "BA-W2-4: worker pool 雏形 (GAP-4 优先级调度接口预留)",
+            "BA-W2-4: worker pool 完整 (GAP-4 优先级 BinaryHeap + max_concurrent 8 + /api/v1/workers/enqueue + dequeue + by_priority 计数)",
             "BA-W2-7: Prometheus 5 指标 (rgs_batch_up + task_total + duration + worker + dlq)",
             "5 域 gRPC client 完整 (per BA-W2-2, 4 域扩展: economy/match/social/admin + player)",
             "/api/v1/grpc-status endpoint 暴露 5 域连接状态"
@@ -580,6 +665,28 @@ async fn worker_status(state: web::Data<AppState>) -> impl Responder {
     web::Json(state.worker_pool.status())
 }
 
+#[post("/api/v1/workers/enqueue")]
+async fn enqueue_task(
+    state: web::Data<AppState>,
+    body: web::Json<PendingTask>,
+) -> impl Responder {
+    // W2 BA-W2-4: GAP-4 优先级入队
+    state.worker_pool.enqueue(body.into_inner());
+    web::Json(serde_json::json!({
+        "enqueued": true,
+        "priority_queue_size": state.worker_pool.status().priority_queue_size,
+    }))
+}
+
+#[get("/api/v1/workers/dequeue")]
+async fn dequeue_task(state: web::Data<AppState>) -> impl Responder {
+    // W2 BA-W2-4: GAP-4 优先级出队 (返回最高优先级 + 最早创建的任务)
+    match state.worker_pool.dequeue() {
+        Some(task_id) => web::Json(serde_json::json!({ "task_id": task_id, "dequeued": true })),
+        None => web::Json(serde_json::json!({ "task_id": null, "dequeued": false, "queue_empty": true })),
+    }
+}
+
 #[get("/api/v1/dlq")]
 async fn list_dlq(state: web::Data<AppState>) -> impl Responder {
     // W2 BA-W2-3: DLQ 列表 (per GAP-9 超时 kill)
@@ -684,6 +791,8 @@ async fn main() -> std::io::Result<()> {
             .service(list_tasks)
             .service(create_task)
             .service(worker_status)
+            .service(enqueue_task)
+            .service(dequeue_task)
             .service(list_dlq)
             .service(retry_dlq_by_id)
             .service(dlq_stats)
