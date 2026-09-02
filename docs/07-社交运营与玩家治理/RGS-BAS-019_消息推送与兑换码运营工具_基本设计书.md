@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-022§8 ARC-037展开为推送组件设计与同意校验时序、兑换码数据模型与核销时序 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充推送内容脱敏校验组件（FR-OPT-006）②补充`used_count`并发递增的条件更新机制，防止高并发下超发（FR-OPT-012、NFR-OPT-003）③补充`RedemptionCodeBatch`核销进度查询字段与GM二次确认预览字段（FR-OPT-015、RSK-OPT-002） | FR-OPT-006、FR-OPT-012、FR-OPT-015、RSK-OPT-002 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1（组件划分 + 推送内容脱敏校验 FR-OPT-006 落地）/§2.2（发送时序，同意边界 + 频率限制 + 渠道投递）/§3.1（数据模型，RedemptionCodeBatch/RedemptionCode/RedemptionRecord 生命周期）/§3.2（核销时序，幂等防重放 + 条件更新防超发）共 4 个"本功能日志设计"小节全部新增；每节均含 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`/`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；字段名前缀 `push.*`（区别于 BAS-002 `mnt.*` / BAS-003 `gm.*` / BAS-004 `log.*` / BAS-005 `plugin.*` / BAS-009 `gov.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.3.1/§4.3.2 保持拼写一致（FR-LOG-013）；覆盖 ARC-037 消息推送与兑换码域全链路——组件生命周期（consent store / gateway adapter / sanitizer / dispatcher 启停）/ 推送内容脱敏（FR-OPT-006 拒绝/通过 + 隐私保护 payload dump debug-only）/ 推送发送（到达/点击运营KPI + 失败/重试/DLQ §6.2 强制全采样）/ 推送渠道（APNs/FCM/NATS/邮件/短信 release 必出）/ 兑换码批次生成与二次确认预览（合规审计 §6.2 强制全采样）/ 兑换码核销验证（错误/过期/已用 释放可见）/ 条件更新防超发（并发竞态检测 §6.2 强制全采样）/ 奖励发放结果（合规审计 §6.2 强制全采样）；§4.1 标准化检查清单新增 4 项 log 章节上线检查项（每功能 log 章节存在性 / release 必出 grep 验证 / debug-only 四铁律合规 / release 必出宏未被 `#[cfg]` 守护）；§5 追溯性新增 AC-OPT-006（debug-only 宏 release 完全剔除）与 AC-OPT-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4（commit 32d9eb6）/ BAS-002 v0.4（commit f1401a3）/ BAS-003 v0.3（commit 75a001c）/ BAS-004 v0.3 §12（commit 47e26b0+0ee6262）/ BAS-005 v0.3（commit 20b84a1）/ BAS-009 v0.7（commit 9a628cf）形成统一规范 | §2.1、§2.2、§3.1、§3.2、§4.1、§5 |
+| 0.4 | 2026-09-02 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §1.1 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 8 actor: Client / PushDispatcher / ConsentStore / PushGatewayAdapter / APNs-FCM-NATS / RedemptionService / DB / Economy) + 異常分支表 (9 行) + 决策点矩阵 (5 行) + 验证点清单 (9 行), 覆盖推送发送 + 兑换码核销两个主路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界与 Saga 跨域标注 (per BAS-100 v0.1); 与既有 §2.2 发送时序 / §3.2 核销时序 互为详细化引用 | §1.1 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -36,6 +37,7 @@
 ## 目录
 
 1. [前言](#1-前言)
+   1.1 [処理フロー（处理流程 / Processing Flow）](#11-処理フロー处理流程--processing-flow)
 2. [推送组件设计](#2-推送组件设计)
 3. [兑换码数据模型与核销时序](#3-兑换码数据模型与核销时序)
 4. [标准化检查清单](#4-标准化检查清单)
@@ -46,6 +48,115 @@
 # 1. 前言
 
 本文档细化RGS-REQ-022定义的ARC-037，全部组件依附既有PL/AD限界上下文运行，不新建独立限界上下文。
+
+### 1.1 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 详细时序见 §2.2 发送时序 / §3.2 核销时序, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+#### 1.1.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as 玩家客户端
+    participant PD as PushDispatcher
+    participant CS as ConsentStore
+    participant PGA as PushGatewayAdapter
+    participant APNs as APNs/FCM/NATS
+    participant RS as RedemptionService
+    participant DB as player_db/social_db
+    participant EC as Economy (FR-EC-003)
+
+    Note over Client,EC: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Client,EC: 事务边界: DB 写入同事务; EC 调用走 Saga 跨域, per BAS-100 v0.1
+
+    rect rgb(240, 248, 255)
+        Note over Client,APNs: 主路径 1: 推送发送 (per §2.2 详细时序)
+        Client->>PD: 业务事件触发推送需求
+        PD->>CS: 校验玩家对该类别同意状态
+        alt 未同意
+            PD-->>Client: 记录跳过原因,直接丢弃
+        else 已同意
+            PD->>PD: 频率限制校验 (FR-OPT-004)
+            alt 超限
+                PD-->>Client: 丢弃或排队至下一窗口
+            else 未超限
+                PD->>PGA: 投递至第三方网关
+                PGA->>APNs: 推送 (apns/fcm/nats/email/sms)
+                APNs-->>PGA: 投递回执 (delivered)
+                PGA-->>PD: 成功
+            end
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Client,EC: 主路径 2: 兑换码核销 (per §3.2 详细时序)
+        Client->>RS: 提交兑换码
+        RS->>RS: 速率限制 (账号+IP, NFR-OPT-002)
+        RS->>DB: 查询 RedemptionCode
+        alt 不存在
+            RS-->>Client: 拒绝 "码不存在"
+        else 已过期 / 已用完
+            RS-->>Client: 拒绝 "已过期" / "已用完"
+        else 可用
+            RS->>DB: 幂等校验 (code, account_id) -> RedemptionRecord
+            alt 已存在
+                RS-->>Client: 直接返回既有结果 (幂等, NFR-OPT-003)
+            else 不存在
+                RS->>DB: 条件更新 used_count (FR-OPT-012 防超发)
+                alt 受影响行数 = 0
+                    RS-->>Client: 拒绝 "已用完" (并发竞态)
+                else 受影响行数 = 1
+                    RS->>DB: 追加 RedemptionRecord (同事务)
+                    RS->>EC: 发放 reward_spec (FR-EC-003 既有路径)
+                    EC-->>RS: 发放成功
+                    RS-->>Client: 核销成功
+                end
+            end
+        end
+    end
+
+    Note over Client,EC: 异常通路 (DLQ + 重试): 网关失败 / EC 不可达 -> ARC-009 消费者标准模式 (重试 3 次 指数退避 100/200/400ms) -> DLQ 报警
+```
+
+#### 1.1.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| 推送未同意 | ConsentStore 查询=false | 记录跳过原因, 直接丢弃 | 无感知 (符合预期) | 无 |
+| 推送频率超限 | 当前窗口已超 limit | 丢弃或排队至下一窗口 (配置决定) | 延迟收到或未收到 | 下一窗口自动重发 (如配置排队) |
+| 第三方网关 5xx | APNs/FCM 5xx 或超时 | 重试 3 次 指数退避 100/200/400ms (per ARC-009) | 推送延迟 | DLQ 路由, 运营 SRE 介入 |
+| 兑换码不存在 | RedemptionCode 查询 0 行 | 拒绝 "码不存在" | 提示"码不存在" | 无 (用户重新输入) |
+| 兑换码过期 | expire_at < now | 拒绝 "已过期" | 提示"已过期" | 无 (用户放弃) |
+| 兑换码已用完 (预检) | used_count >= max_uses_per_code | 拒绝 "已用完" | 提示"已用完" | 无 (用户放弃) |
+| 条件更新竞态 | UPDATE 受影响行数=0 (并发) | 拒绝 "已用完" (实际并发命中) | 提示"已用完" | 事务回滚 (本事务不写 RedemptionRecord) |
+| EC 发放失败 | economy 域不可达 / request_id 冲突 | 整体回滚 (used_count 递增 + RedemptionRecord 全部回滚) | 提示"服务暂不可用" | Saga 补偿 / DLQ 报警 |
+| 事务提交失败 | DB 写失败 (网络/约束冲突) | 整体回滚 | 提示"核销失败,请重试" | 客户端重试 (幂等键 request_id 保证) |
+
+#### 1.1.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| 推送通道选择 | 玩家在线状态 + 设备类型 | 在线 -> NATS 实时; 离线 -> APNs (iOS) / FCM (Android) | 强制 APNs/FCM (即使在线) | 用户感知: 实时 (NATS) / 系统通知 (APNs/FCM) |
+| 频率超限处理 | 类别配置 (drop vs queue) | drop: 丢弃; queue: 排队至下一窗口 | 强制 drop (紧急公告场景, operator 临时关闭) | 用户感知: 未收到 / 延迟收到 |
+| 兑换码可用性 | used_count < max_uses_per_code AND expire_at > now | 接受核销 | 拒绝 "已用完" / "已过期" | 用户感知: 进入核销流程 / 拒绝 |
+| 幂等命中 | RedemptionRecord(code, account_id) 已存在 | 直接返回既有结果 (NFR-OPT-003) | 重发奖励 (不推荐, 可能超发) | 用户感知: 重复提交无副作用 |
+| 条件更新结果 | UPDATE RedemptionCode SET used_count = used_count + 1 WHERE code = ? AND used_count < max_uses_per_code 受影响行数 | =1 -> 继续; =0 -> 拒绝 "已用完" | 不条件更新 (先读后写, 高并发竞态) | 用户感知: 防超发保证 |
+
+#### 1.1.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| ConsentStore 查询 | 玩家对该推送类别的同意状态 | query result = true (同意) | 直接丢弃, 记录 `push.dispatch.consent_denied` |
+| 频率限制预检 | 当前窗口内该类别推送计数 | count < limit (未超限) | 丢弃或排队, 记录 `push.dispatch.frequency_limited` |
+| 兑换码存在性 | RedemptionCode.code 唯一索引查询 | result row exists (码存在) | 拒绝"码不存在", 记录 `push.redemption.code_not_found` |
+| 兑换码有效期 | expire_at > now() | expire_at 严格大于当前时间 | 拒绝"已过期", 记录 `push.redemption.expired` |
+| 兑换码可用量 (预检) | used_count < max_uses_per_code | 严格小于 | 拒绝"已用完", 记录 `push.redemption.used_up` |
+| 幂等性 | RedemptionRecord(code, account_id) 唯一索引 | 0 行 (本账号本码首次) 或 1 行 (已存在, 走幂等返回) | 不写新记录, 记录 `push.redemption.idempotent_replay` |
+| 条件更新成功 | UPDATE 受影响行数 | = 1 (严格条件更新成功) | 拒绝"已用完" (实际并发命中), 记录 `push.redemption.used_count_conditional_update_failed` |
+| EC 发放成功 | economy 域 request_id 返回 success | success = true | 整体回滚 (used_count + RedemptionRecord), 记录 `push.redemption.reward_grant_failed` |
+| 事务提交 | DB tx_id COMMIT 返回 | tx_id 成功写入 | 整体回滚, 记录 `push.redemption.transaction_rolled_back` |
 
 ---
 
