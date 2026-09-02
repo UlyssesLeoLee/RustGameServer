@@ -52,6 +52,11 @@ target-bucket-*/**
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
 .worker-tmp/
 
+# commit 模板临时目录 (per 2026-09-02 16:10 JST L12 派生约束二次发现)
+# 内容: 临时 commit message 文件 (commit-msg.txt 等), commit 落地后即失效
+# 与 .worker-tmp/ 同源, 派生约束 L12 兜底
+.gitmessage-tmp/
+
 # scripts/_scratch/ (per 2026-08-27 16:48 self-review)
 # 其他 session 跑 RGS-INC-002 cross-ref 验证时的临时 Python 脚本 + 临时输出
 # 15 个文件 622KB,跑完即失效,不入 git 也不归档
