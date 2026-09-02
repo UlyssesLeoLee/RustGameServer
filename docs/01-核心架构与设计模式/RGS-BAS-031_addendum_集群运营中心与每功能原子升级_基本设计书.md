@@ -22,6 +22,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | — | 初版制定。将RGS-REQ-031 ARC-051展开为ClusterOpsService的组件图、`admin_db`新增Schema、Feature元数据与PFAU状态机、CEM探针订阅器设计、API契约字段级定义、RBAC角色矩阵扩展、整合既有ARC-018／021／042／019／039的强制联动点 | 全部 |
 | 0.2 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | — | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，all_36 + compile_plus_runtime）：§3.1-3.6（feature_registry/feature_version_history/pfa_run_state/event_schema_registry+event_producer_registry/event_dlq_view/coc_audit_view 6 张表 lifecycle）+ §4.1（Feature 元数据生命周期状态机）+ §5.5（CEM 探针全链路综合）+ §6.4（ClusterOpsService API 契约全链路综合）+ §10.5（性能/可用性/隔离/审计综合）共 10 个"本功能日志设计"小节全部新增；每节均含 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），字段名前缀 `coc.*`（区别于 BAS-002 `mnt.*` / BAS-003 `gm.*` / BAS-004 `log.*` / BAS-005 `plugin.*` / BAS-009 `gov.*` / BAS-019 `push.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.3.1/§4.3.2 保持拼写一致（FR-LOG-013）；显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`/`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；覆盖 ARC-051 集群运营中心 + 每功能原子升级全链路——Feature 元数据 CRUD / 不可变审计 / PFAU 实例状态机 / 灰度批次推进 / CEM 探针订阅 / 事件总线可达性 / DLQ 视图 / API 调用 receive/complete/失败 / 性能 SLO 降级 / 隔离边界违反 | 全部 |
+| 0.3 | 2026-09-02 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §6.5 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 7 actor: GM Operator / AdminService / ClusterOpsService / FeatureRegistry / PFAURunner / CEMProbeAggregator / admin_db) + 異常分支表 (8 行: RBAC 拒绝 / 节点 canary 失败 / 状态机非法迁移 / 节点心跳超时 / 集群脑裂 / Saga 步骤失败 / DLQ 累积 / Feature 删除合规缺失) + 决策点矩阵 (5 行: PFAU 灰度批次推进 / 回滚 vs 继续 / DLQ 重放 vs 丢弃 / 弃用 vs 删除 / CEM 探针 vs 直连) + 验证点清单 (7 行: RBAC / 状态机迁移 / 批次确认节点数 / mTLS 握手 / 事务提交 / Saga 补偿 / trace_id 串联), 覆盖 Feature 元数据生命周期 (per §4.1) + PFAU 编排 (per §4.2/§4.3) 两个主路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界与 Saga 跨域编排标注 (per BAS-100 v0.1); 与既有 §4.1 生命周期 / §4.2 PFAU 状态机 / §4.3 灰度批次推进规则 互为详细化引用; 与 BAS-019 §1.1 范式一致 (commit `d52eaad`) | §6.5 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -44,6 +45,7 @@
 4. [Feature 元数据与 PFAU 状态机](#4-feature-元数据与-pfau-状态机)
 5. [CEM 探针订阅器设计](#5-cem-探针订阅器设计)
 6. [API 契约字段级定义](#6-api-契约字段级定义)
+   6.5 [処理フロー（处理流程 / Processing Flow）](#65-処理フロー处理流程--processing-flow)
 7. [COC UI 页面构成与复用 VIZ 渲染能力](#7-coc-ui-页面构成与复用-viz-渲染能力)
 8. [RBAC 角色矩阵扩展](#8-rbac-角色矩阵扩展)
 9. [与既有 ARC-018／021／042／019／039 的强制联动点](#9-与既有-arc-018021042019039-的强制联动点)
@@ -823,6 +825,118 @@ message DlqEvent {
 - `coc.api.declare_feature_upgrade.stream_progress` 是**高频**事件（每 PFAU 推进 1 批），release 必出 + 全采样——**不能**挂 `#[cfg]`，是 PFAU 编排进度可观测性的核心数据流
 - `coc.api.discard_dlq_event.*` 是**高危操作**白名单（per BAS-004 v0.3 §6.2），所有派生事件 release 必出便于合规审计
 - `coc.api.debug.request_envelope` 完整 dump 含元数据（auth token 等敏感字段）——**严格** `#[cfg(debug_assertions)]` 守护，release 完全剔除
+
+## 6.5 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 详细时序见 §4.1 Feature 元数据生命周期 / §4.2 PFAU 状态机 / §4.3 灰度批次推进规则, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+> 与 BAS-019 §1.1 范式一致 (commit `d52eaad`)
+
+### 6.5.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GM as GM Operator
+    participant AS as AdminService
+    participant COS as ClusterOpsService
+    participant FR as FeatureRegistry
+    participant PR as PFAURunner
+    participant CEM as CEMProbeAggregator
+    participant DB as admin_db
+
+    Note over GM,DB: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over GM,DB: 事务边界: 单次 PFAU 状态机迁移是单事务; 跨批次推进是 Saga 编排, per BAS-100 v0.1
+
+    rect rgb(240, 248, 255)
+        Note over GM,DB: 主路径 1: Feature 元数据生命周期 (per §4.1)
+        GM->>AS: RegisterFeature (RBAC=cluster_admin)
+        AS->>AS: RBAC + 限流校验 (FR-COC-041)
+        AS->>COS: 转发 (FR-COC-020, 不绕过统一入口)
+        COS->>DB: BEGIN; INSERT feature_registry
+        DB-->>COS: feature_id
+        COS->>DB: COMMIT
+        COS-->>AS: ok
+        AS-->>GM: 201 Created
+
+        GM->>AS: DeclareFeatureUpgrade (FR-PFAU-010)
+        AS->>COS: 转发
+        COS->>DB: BEGIN; UPDATE current_version=target_version, status=upgrade_pending
+        DB-->>COS: ok
+        COS->>DB: COMMIT; INSERT feature_version_history
+        DB-->>COS: history_id
+        COS-->>AS: ok
+        AS-->>GM: 200 OK
+    end
+
+    rect rgb(255, 250, 240)
+        Note over GM,DB: 主路径 2: PFAU 编排 (per §4.2/§4.3)
+        GM->>AS: StartPFAU (FR-PFAU-011)
+        AS->>COS: 转发
+        COS->>PR: 启动 PFAU 实例
+        PR->>DB: INSERT pfa_run_state (state=declared)
+        PR->>PR: 选 canary 节点 (按 batch_size_pct)
+
+        loop 每个 canary 批次 (Saga 跨域编排)
+            PR->>CEM: 订阅 canary 节点的事件探针
+            CEM-->>PR: 节点回执 (confirmed / failed)
+            PR->>DB: UPDATE pfa_run_state.current_batch, confirmed_node_ids
+            PR->>DB: 写 coc.pfa_run_state.batch_advanced 事件
+        end
+
+        alt 全部批次确认
+            PR->>DB: UPDATE pfa_run_state.state=completed; UPDATE feature_registry.current_version=to_version
+            PR->>DB: INSERT feature_version_history (state=active)
+            PR-->>COS: 升级完成
+            COS-->>AS: 200 OK
+            AS-->>GM: 完成
+        else 任一批次失败 (FR-PFAU-012 失败处理)
+            PR->>DB: UPDATE pfa_run_state.state=failed
+            PR-->>COS: 升级失败
+            GM->>AS: RollbackPFAU (高危, RBAC=cluster_admin)
+            AS->>COS: 转发
+            COS->>PR: 启动反向 PFAU 实例 (Saga 补偿)
+            PR->>DB: 沿 PFAU 状态机反向推进 (per §4.2 rollback 方向)
+        end
+    end
+
+    Note over GM,DB: 异常通路: 节点失联 / 集群脑裂 -> COS 健康检查告警 (per §10.3); DLQ 累积 -> DLQOperator 重放或丢弃 (per §5.4)
+```
+
+### 6.5.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| RBAC 拒绝 | 操作者角色不足 (FR-COC-041, 如 `cluster_operator` 调用 `RegisterFeature`) | AdminService 拒绝 (per BAS-003 §7.2) | 403 PERMISSION_DENIED + 写 `coc.api.<method>.rbac_denied` + 审计 | 无 (按设计意图) |
+| 节点 canary 失败 | 任一 canary 节点回执 failed (版本不兼容 / 网络超时 / 健康检查不通过) | `pfa_run_state.state=failed` + 触发 `RollbackPFAU` | GM 收到 PFAU 失败告警 (per §6.4 `coc.api.declare_feature_upgrade.stream_progress` 含 `failed_count`) | Saga 反向 PFAU 恢复旧版本 (per §4.2 rollback 方向) |
+| 状态机非法迁移 | 非法 status 迁移 (如 `removed` → `active`, per §4.1) | AdminService 拒绝 (写 `coc.feature.lifecycle.invalid_transition_attempted`) | 400 INVALID_ARGUMENT + 告警 | 无 (按设计意图) |
+| 节点心跳超时 | `pfa_run_state.last_heartbeat_at` 超过阈值 (per §4.3) | 写 `coc.pfa_run_state.heartbeat_timeout` + 自动 `PausePFAU` | GM 收到 PFAU 暂停告警 | SRE 人工 Resume / Rollback |
+| 集群脑裂 / 节点失联 | PFAU 编排器与 canary 节点通信失败 (per §10.3 可用性) | `PausePFAU` + 告警 | GM 收到 PFAU 暂停告警 | SRE 介入, 重建连接后 Resume |
+| 跨域 Saga 步骤失败 | 反向 PFAU 沿状态机推进时某步失败 (per §4.2 rollback) | 写 DLQ + 报警 | GM 收到补偿失败告警 (高危) | SRE 介入, 手动恢复版本 (per §11 风险与未决事项) |
+| DLQ 累积超阈值 | `event_dlq_view.last_1h_count` 超过阈值 (per §3.5) | 写 `coc.event_dlq_view.high_dlq_count_detected` + 告警 | GM 收到 DLQ 告警 | GM 手动 `ReplayEvents` 或 `DiscardDLQEvent` (高危, 需理由) |
+| Feature 删除时合规缺失 | `RemoveFeature` 触发时无 `compliance_review_ref` (per §4.1) | AdminService 拒绝 (写 `coc.feature.lifecycle.invalid_transition_attempted`) | 400 FAILED_PRECONDITION | 无 (按设计意图) |
+
+### 6.5.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| PFAU 灰度批次推进 | 当前批次 canary 节点 `confirmed_node_ids.count` 满足阈值 (per §4.3) | 推进 `current_batch+1`, 进入下一批 canary | `PausePFAU` (人工) / `RollbackPFAU` (高危) | GM 看到批次进度 (per §6.4 `coc.api.declare_feature_upgrade.stream_progress`), 正常推进 / 收到暂停或回滚告警 |
+| 回滚 vs 继续 (PFAU 失败时) | 任一批次 `failed_node_ids.count` 超阈值 (per §4.3) | 自动 `pfa_run_state.state=failed`, 等待人工 `RollbackPFAU` | 自动反向 PFAU (per §4.2 rollback 方向) | GM 决定回滚时机, 减少自动回滚风险; 反向 PFAU 失败时写 DLQ |
+| DLQ 重放 vs 丢弃 | DLQ 事件超 retention / 数据回灌需求 | `ReplayEvents` (高危, RBAC=cluster_admin) | `DiscardDLQEvent` (高危, 需理由) | 数据回灌 vs 永久丢失, GM 按合规要求选择 (per §3.5 `coc.event_dlq_view.high_dlq_count_detected`) |
+| 弃用 vs 删除 | Feature 已 `active` 但需下线 | `DeprecateFeature` (标记 `deprecated`, 保留实例) | `RemoveFeature` (物理删除, 需合规评审 per FR-MNT-013) | 数据保留 vs 数据清除, 按合规与运营需求 (per §4.1) |
+| CEM 探针 vs 直连 | Producer SDK 是否在用 | 探针订阅 (CEM 默认, 不改造各 App Publisher SDK) | Producer SDK 直连 (如已有 SDK) | 部署侵入性低 vs 直连性能高, 按 ARC-042 集群部署原则 (per §5.1 探针部署形态) |
+
+### 6.5.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| AdminService 入口 RBAC | 操作者角色匹配 (FR-COC-041) | 角色 ∈ {`cluster_operator`, `cluster_admin`} | 返回 403 PERMISSION_DENIED, 写 `coc.api.<method>.rbac_denied` + `operation_audit` 审计 (per BAS-003 §7) |
+| Feature 状态机迁移 | 迁移合法性 (per §4.1) | `from_status` → `to_status` 在状态机允许范围 | 返回 400 INVALID_ARGUMENT, 写 `coc.feature.lifecycle.invalid_transition_attempted` |
+| PFAU 批次确认节点数 | `confirmed_node_ids.count` ≥ 阈值 (per §4.3 灰度批次推进规则) | 全部 canary 节点 confirmed | 状态机迁移到 `failed`, 触发 `RollbackPFAU` (per §4.2) |
+| mTLS 握手 (CEM 探针订阅) | 探针节点证书校验 (per §5.3 探针关键约束) | client cert 校验通过 (per RGS-BAS-003-mTLS v0.1 决策) | 探针订阅失败, 写 `coc.cem.probe.handshake_failed` + 告警 |
+| 事务提交 (admin_db) | `feature_registry` / `pfa_run_state` / `feature_version_history` 写入同事务 | COMMIT 成功, `db_tx_id` 已回执 | 整体回滚, 写 `coc.api.<method>.failed.unexpected` + `trace_id` 串联 (per §6.4) |
+| 跨域 Saga 补偿 | 反向 PFAU 推进时旧版本已生效 (per §4.2 rollback) | `feature_registry.current_version` 回退成功 | DLQ + 告警, SRE 介入 (per §10.3 可用性) |
+| trace_id 串联 | AdminService 入口到 admin_db 写入全链路 trace_id 相同 (per BAS-004 v0.3 §4.4) | 所有事件 `trace_id` 一致 | 不阻断流程, 但缺失 trace_id 时写 `coc.api.debug.missing_trace_id` (debug-only 兜底) |
 
 # 7. COC UI 页面构成与复用 VIZ 渲染能力
 
