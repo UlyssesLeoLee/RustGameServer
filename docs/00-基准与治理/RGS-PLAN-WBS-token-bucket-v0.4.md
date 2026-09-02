@@ -37,7 +37,7 @@
 | E3 W1 | **BA-W1-4 5 域 ST 证书导出 + rgs-certgen 边缘 TLS** | `2a44836` | ✅ (本会话) |
 | E3 W1 | **BA-W1-5 PG schema 3 个 + 16 表 + 3 migration** (per BAS-001 v0.2 §3) | `2a44836` | ✅ (本会话) |
 | E3 W1 | **BA-W1-6 envoy 独立 deployment** (per 9/1 13:03/13:05 偏好) | `2a44836` | ✅ (本会话) |
-| **E3 W2-W6** | **BA-W2-1~9 + W3-1~11 + W4-1~11 + W5-1~7 + W6-1~6 = 37/40 L4 任务 + 4 hotfix** (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency + Transaction T-1.5~T-8 + Work W-1~W-3 + Master 5 表 full CRUD + task_template 灰度 + 跨模块集成 + credentials audit + OLU stats + log-tasks + data_migration + saga + message_outbox + system health + GAP-1/2/5/6/8/10 实施) | 详见 §1.1 (43 commit, W2 9 + W3 9 + W4 8 + W5 6 + W6 7 + 4 hotfix) | ✅ (本会话) |
+| **E3 W2-W6** | **BA-W2-1~9 + W3-1~11 + W4-1~11 + W5-1~7 + W6-1~6 = 37/40 L4 任务** (sqlx + 5 域 gRPC + DLQ + worker pool + cron + audit + Prometheus 12 + data_source + concurrency + Transaction T-1.5~T-8 + Work W-1~W-3 + Master 5 表 full CRUD + task_template 灰度 + 跨模块集成 + credentials audit + OLU stats + log-tasks + data_migration + saga + message_outbox + system health + GAP-1/2/5/6/8/10 实施) | 详见 §1.1 (commit 净增数实时查 `git log 84edf26..main --oneline | wc -l`, W2 9 + W3 9 + W4 8 + W5 6 + W6 7 = 39 commit 静态索引) | ✅ (本会话) |
 | E4 | **k3s 资源上限 + namespace 隔离策略 草案** | (本版 §3) | 🟡 草案 (待 SRE 拍板) |
 | E5 | OLU 重算 + token-OLU 框架 (RGS-OLU-REPORT-token-OLU v0.2) | `6afed27d` | ✅ |
 | E6 | OLU 跨 5+1 域重算 (已落地 ~21.7M vs 估 750-1110M) | `6afed27d` | ✅ (跟 E5 合并) |
@@ -209,6 +209,7 @@
 | **v0.4.7** | **2026-09-02 09:12** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.1 E3 W2-W6 每行 commit 字段补全 — 之前写 "1e3d528 系" / "5568a68 系" 简略, 现在展开成 9 + 9 + 8 + 6 + 7 = 39 commit + 4 hotfix = 43 commit 全 commit hash 关联 (从 STATUS-SNAPSHOT v0.6.9 §2 复制), 让 verifier / 后续会话能直接拉 commit 链 — 跟 §2 权威索引同步, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.4.8** | **2026-09-02 09:32** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 主表新增 E3 W2-W6 汇总行 (37/40 L4 任务 + 4 hotfix = 43 commit, 详见 §1.1) — 修复 §1 主表 vs §1.1 子表不一致 (主表只列 E1/E2/E3 W1 6 任务, W2-W6 在 §1.1 独立, verifier 看 §1 会漏 W2-W6 落地状态), 用汇总行代替逐行 39 commit 避免重复 + 指针到 §1.1 全 commit 索引, L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.4.9** | **2026-09-02 10:14** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §4.1 新增 "PH-3 评审启动源" 段 — 4 DRAFT partitioned SQL (c2acf02) + 评审启动材料 RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 (commit 999ff5d + 24ce59c), 5 域 Lead 已派工签字 + SRE + DBA 待 Phase C 介入 / 评审启动, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 + 5 项实施前置条件, L12 + L13 派生约束守护, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.4.10** | **2026-09-02 11:23** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 主表 E3 W2-W6 汇总行"43 commit, W2 9 + W3 9 + W4 8 + W5 6 + W6 7 + 4 hotfix" 老数字改实时 `git log --oneline | wc -l` 表达式 (per L13 终极守护 v0.6.23 + v0.6.32 + STATUS-SNAPSHOT v0.6.32 同步), §1.1 仍为 39 commit 静态索引, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
