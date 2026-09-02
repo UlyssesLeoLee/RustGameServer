@@ -1,0 +1,73 @@
+#!/usr/bin/env pwsh
+# pre-commit hook — RGS 派生约束 L12 硬 ban 兜底 (per B1, 2026-09-02 11:00 JST 拍板)
+#
+# 守护:
+# - L12 临时 log / .txt / .tmp_search* 不入 commit
+# - worktree 残留 (target-bucket-* / untracked 空目录) 拦截
+# - 跟踪 doc 单文件 ≤80KB 软警告 (A4 候选, 非硬 ban)
+# - 凭据硬 ban (8/27 11:06 JST) — 检查 .env / printenv / Get-ChildItem env: 痕迹
+#
+# 退出码:
+# 0 — 通过
+# 1 — 拦截, 提示修复
+#
+# 安装: git config core.hooksPath scripts/git-hooks
+# 跳过 (紧急): git commit --no-verify
+
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
+
+$root = git rev-parse --show-toplevel
+Set-Location $root
+
+$failed = $false
+$warnings = @()
+
+# 1) L12 临时 log / .txt 拦截
+$staged = git diff --cached --name-only
+foreach ($f in $staged) {
+    if ($f -match '\.log$|\.tmp$|\.tmp_search' -or $f -match 'COMMIT_MSG_TMP') {
+        Write-Host "[L12] 临时文件禁止入 commit: $f" -ForegroundColor Red
+        $failed = $true
+    }
+}
+
+# 2) worktree 残留检查 (派生约束 L12 hard hook)
+$untracked = git status --porcelain | Select-String '^\?\?' | ForEach-Object { ($_ -replace '^\?\?\s+', '').Trim() }
+foreach ($entry in $untracked) {
+    if ($entry -match '^target-bucket-' -or $entry -match '^\.worktrees/[^/]+/?$') {
+        Write-Host "[worktree] untracked 残留建议清理: $entry (git clean -fd)" -ForegroundColor Yellow
+        $warnings += $entry
+    }
+}
+
+# 3) 凭据硬 ban (8/27 11:06 JST)
+$diff = git diff --cached
+if ($diff -match 'Get-ChildItem env:|\$env:\w+ expand|printenv|cat \.env') {
+    Write-Host "[env-ban] 检测到凭据操作痕迹, 立即禁止 (8/27 11:06 JST 硬 ban)" -ForegroundColor Red
+    $failed = $true
+}
+
+# 4) 跟踪 doc 80KB 软警告 (A4 候选)
+$largeDocs = $staged | Where-Object { $_ -match '\.md$' -and (Test-Path $_) } | ForEach-Object {
+    $len = (Get-Item $_ -ErrorAction SilentlyContinue).Length
+    if ($len -and $len -gt 80KB) { @{ path = $_; size = $len } }
+} | Where-Object { $_ }
+foreach ($d in $largeDocs) {
+    Write-Host "[A4-candidate] 单 doc >80KB 软警告: $($d.path) ($([math]::Round($d.size/1KB, 1)) KB) — 不阻塞, 进 L-CANDIDATES 候选清单" -ForegroundColor DarkYellow
+    $warnings += $d.path
+}
+
+# 输出
+if ($warnings.Count -gt 0) {
+    Write-Host ""
+    Write-Host "[pre-commit] $($warnings.Count) 条警告 (不阻塞, 见上)" -ForegroundColor DarkYellow
+}
+
+if ($failed) {
+    Write-Host ""
+    Write-Host "[pre-commit] 拦截 — 修复后重试, 或 git commit --no-verify 跳过 (仅紧急)" -ForegroundColor Red
+    exit 1
+}
+
+exit 0

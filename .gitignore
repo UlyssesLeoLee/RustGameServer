@@ -41,6 +41,12 @@ tools/rgs-web/node_modules/
 # 排除于各子 crate 自身的 .gitignore 或本文件后续追加)
 target/
 
+# Per-bucket cargo build 残留 (per 2026-09-02 11:00 JST B1 派生约束)
+# 派生约束: 派生约束 L12 硬 ban 兜底, 多 worker 并行 PT 派工时
+# 各自用 target-bucket-<id>/ 避免 lock, 派工结束必须清理
+target-bucket-*/
+target-bucket-*/**
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
@@ -61,6 +67,12 @@ docs/00-基准与治理/.test-evidence/*/manifest.json
 # audit-*.js (per 2026-08-28 ut-vs-dtl 核对批次)
 # 临时 Node.js 审计脚本,跑完即失效
 audit-*.js
+
+# _archive/ 文档归档区 (per 2026-09-02 11:00 JST B4 派生约束)
+# 跟踪 doc 冻结归档 + 旧版 test-evidence 批量归档入仓,
+# docs/_archive/<doc>/README.md 必须入 git, 其他文件保持原样
+# 例外: 任何 .log / .tmp / 0 字节文件在 _archive/ 下仍按 L12 派生约束禁入
+# (此规则不显式 deny _archive/, 由 L12 + pre-commit hook 兜底)
 
 # node_modules (per 2026-08-28 audit 引入 glob 包)
 node_modules/
