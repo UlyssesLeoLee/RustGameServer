@@ -281,8 +281,50 @@ per WT-8-brief-master.md §DoD + AGENTS.md v0.4 §2 派生约束 L1/L11/L12:
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-09-01 23:04 | Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手 | w3 match 协调任务初次落地: match 域 4 阶段状态 + Q1-Q11 0 任务确认 + 联调 0 任务签字 + 桶 9 st-13 责任划分 + matchmaker_v2 67KB P2 follow-up |
-
+| v0.2 | 2026-09-02 14:11 JST | 架构师(Mavis 接手 agent per DEC-008) | 二审流程升级 (per B3 派生约束 9/2 10:18 JST 拍板): 加 §9 二审签字栏 (Mavis 自审 1 次停手 + Ulysses 二审必到, ⏳ 待签) + 修订历史本行 |
 **修订人**: Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师 (Mavis 接手 agent per DEC-008)
 **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
 **match 域 Lead 签字**: ⏳ 待 DDD Review 阶段 (桶 7 Phase A A6 BAS-001 §9.7 5 域 Lead 一审 + 桶 8 业务实装完结) 联合补签
+
+---
+
+## 9. 二审签字栏 (per DDD-REVIEW-TEMPLATE-v0.2, B3 派生约束落地)
+
+> **适用**: 本文档 v0.1 → v0.2 二审流程升级 (per AGENTS.md v0.6.3 §3.x, 9/2 10:18 JST 拍板).
+> **模板**: docs/14-项目治理/DDD-REVIEW-TEMPLATE-v0.2.md §1 二审流程图 + §2 文档结构模板.
+
+### 9.1 Mavis 自审 (1 次停手, per B3 派生约束)
+
+| 项 | 状态 | 备注 |
+|---|---|---|
+| 代签三件套齐全 (per 8/27 19:39/20:56/21:59 JST 三次强化) | ✅ | author / 审批 / 修订人 |
+| DoD 段 (per D2 L1/L1.1/L1.2) | ✅ | L1 cargo check 0 error (本批 N 文档 0 改动 Rust) |
+| Evidence 段 (commit SHA / file:line) | ✅ | git log + Read 实证 |
+| 派生约束守护段 (L11/L12/L13/L14) | ✅ | 8/27 11:06 JST 凭据硬 ban |
+| 缺标比错标 (per 8/26 JST) | ✅ | §N 已知缺口段保留 |
+| 禁回溯叙事 (per 8/26 JST) | ✅ | 无 "per X 历史形态" |
+| 凭据硬 ban (per 8/27 11:06 JST) | ✅ | 无 env value 痕迹 |
+
+**Mavis 自审停手声明**: 自审 1 次完成, 不再回头改稿, 进 Ulysses 二审.
+
+签字: Mavis (架构师接手 agent per DEC-008) — 日期: 2026-09-02 14:11 JST
+
+### 9.2 Ulysses 二审 (必到, per B3 派生约束, ⏳ 待签)
+
+| 项 | 状态 | 备注 |
+|---|---|---|
+| 自指字段 deferred 实时查询 (L13) | ⏳ | git log + grep 实证 |
+| 派生约束守护 (L1/L1.1/L1.2 + L11/L12/L13/L14) | ⏳ | cargo check / test 状态 |
+| 业务 vs 治理指标 (per v0.1.1 §9.4 里程碑重定义) | ⏳ | hotfix 数 / commit ahead / md 行数 |
+| commit ahead 合理性 | ⏳ | 应在 ±20 commit 范围 |
+| 跟 RGS-CRITIQUE-IMPROVEMENT 一致性 | ⏳ | 拍板项已执行 vs 仅承诺 |
+| 跟 RGS-WEEKLY 一致性 (若存在) | ⏳ | 周报双指标对齐 |
+
+**Ulysses 二审决定**:
+
+- [ ] ✅ 通过 — 落地, 状态机结束
+- [ ] 🟡 有条件通过 — 通过但 Mavis 需在 <日期> 前补 <具体项>
+- [ ] ❌ 打回 — 回到 Mavis 改稿, 重走 9.1 → 9.2 循环 (打回次数: 0/2/3)
+
+签字: Ulysses (一人公司 12 角色 per DEC-008) — 日期: ⏳ 待签
