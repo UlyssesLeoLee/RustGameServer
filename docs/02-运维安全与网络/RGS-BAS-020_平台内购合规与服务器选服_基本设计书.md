@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-020 |
-| 版本 | 0.3 |
+| 版本 | 0.5 |
 | 父文档 | RGS-REQ-023 需求定义书（ARC-038） |
 | 制定日 | 2026-08-16 |
 | 最终更新日 | 2026-08-16 |
@@ -23,6 +23,7 @@
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充平台官方验证接口不可用时的待重试队列设计（RSK-PLT-001）②补充`PaymentOrder`平台内购扩展字段与沙盒/生产环境隔离（FR-PLT-004、FR-PLT-005）③补充合服冲突解决规则的配置表字段级设计（FR-PLT-021） | FR-PLT-004、FR-PLT-005、FR-PLT-021、RSK-PLT-001 |
 | 0.3 | 2026-08-17 | 架构师 | — | 审计发现FR-PLT-012"账号数据必须按逻辑服隔离"此前仅在§3选服路由中体现路由决策，未涉及数据归属键设计。新增§3.3，确立`realm_id`归属键原则与账号级/角色级数据归属维度的区分，具体表结构变更留待多服架构启用后详细设计阶段补齐 | FR-PLT-012 |
 | 0.4 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1/§2.2/§2.3/§2.4/§2.5/§3.1/§3.2/§3.3/§4.1/§4.2/§5.1/§5.2 全部 12 个 ## L2 功能段加"本功能日志设计" 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；字段名前缀统一 `pay.*`（platform IAP compliance & realm selection 域），与 BAS-002 `mnt.*` / BAS-003 `ops.*` / BAS-006 `pay.*` 之前的命名空间隔离待统一（**已知缺口**：BAS-006 同样使用 `pay.*` 前缀，与本BAS-020的 `pay.*` 命名空间需在 ARCH 主会话后续以 RACI 矩阵统一协调）；显式区分合规审计强制项（`info!` 级别 release 必出 + §6.2 强制全采样，覆盖内购订单/退款/补单/选服主服选择/合规越权阻止/合服步骤/反违规告警）、安全告警（`error!` 强制全采样，覆盖跨服越权/反违规/资产不一致）、平台回调细节（`debug!`/`trace!` 级别 debug-only，`#[cfg(debug_assertions)]` 守护，release build 完全剔除零运行时开销，覆盖 webhook payload/平台官方响应/envelope dump）、算法性能/中间状态（`debug!` 守护，覆盖缓存命中/版本链快照）；**支付凭证/卡号/PayPal 账号 → 禁止记录**（per BAS-004 v0.3 §5.1 黑名单，本节所有 `pay.*` 字段集已规避，仅 debug 守护项中允许 envelope 结构）；覆盖 ARC-005/009/038 + FR-PLT-001〜005/010〜013/020〜023 + RSK-PLT-001 + TBD-PLT-001/002 + NFR-PLT-001/002/003/004 + NFR-OP-008 + FR-LOG-010/011/012/013/040 + AC-LOG-006/007 等全系列相关追溯依据；§6 追溯性新增 AC-PLT-006（`pay.*` debug-only 宏 release 完全剔除）与 AC-PLT-007（每功能段须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 / BAS-010 v0.5 §7.1 形成统一规范 | §2.1〜2.5、§3.1〜3.3、§4.1〜4.2、§5.1〜5.2、§6 |
+| 0.5 | 2026-09-02 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1, commit `0db8507`, 范式 commit `d52eaad`): 本篇 4 要素已含 3 个 (异常分支/决策/验证需求已在 §2.1-§5.2 12 个本功能日志设计子节隐式覆盖), 补 1 个主流程图段。新增 §1.1 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 9 actor: 玩家客户端 / ReceiptVerifier / AppStore-GooglePlay 平台官方 / PaymentOrder DB / Economy 域 / RefundNotificationHandler / RealmRouter / RealmDirectoryService / MergeConflictRuleSet) + 異常分支表 (8 行: 收据签名无效 / 沙盒-生产环境不匹配 / 平台接口不可用 / 重复唯一索引命中 / 跨服越权 / 选服目标服不可用 / 合服资产不一致 / 跳过演练直接正式执行) + 决策点矩阵 (6 行: 平台通道选择 / 幂等命中 vs 重新校验 / 退款追回模式 / 选服路由主服命中 vs 首次登录 / 合服冲突规则应用 / 演练 vs 正式执行) + 验证点清单 (7 行: 收据签名验证 / 沙盒-生产环境一致 / 幂等键匹配 / 退款签名验证 / 跨服 realm_id 一致性 / 合服资产一致性 / 选服目标服可分配), 覆盖收据校验 + 退款追回 + 选服路由 + 合服执行 4 个主路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界标注 (DB 写入同事务, 跨域 Economy 走 Saga per BAS-100 v0.1); 与既有 §2.2 收据校验时序 (文字流) / §2.5 退款处理时序 (文字流) / §3.2 选服时序 (文字流) / §4.2 合服执行流程 (文字流) 互为详细化引用; 保留 §5.1 注: PendingReceiptVerification 定时重试为常态运维面, OLU 运维负荷未核算 (ISS-065) | §1.1 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +38,7 @@
 ## 目录
 
 1. [前言](#1-前言)
+   1.1 [処理フロー（处理流程 / Processing Flow）](#11-処理フロー处理流程--processing-flow)
 2. [平台收据校验组件设计](#2-平台收据校验组件设计)
 3. [选服路由设计](#3-选服路由设计)
 4. [合服/分服执行流程](#4-合服分服执行流程)
@@ -48,6 +50,153 @@
 # 1. 前言
 
 本文档细化RGS-REQ-023定义的ARC-038，全部组件依附既有PL/AD限界上下文运行，不新建独立限界上下文。
+
+### 1.1 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, 范式 commit `d52eaad` = BAS-019)
+> 本篇 4 要素已含 3 个 (异常分支/决策/验证需求已在 §2.1-§5.2 12 个本功能日志设计子节隐式覆盖), 补 1 个主流程图段
+> 详细时序见 §2.2 收据校验时序 / §2.5 退款处理时序 / §3.2 选服时序 / §4.2 合服执行流程, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+#### 1.1.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as 玩家客户端
+    participant RV as ReceiptVerifier
+    participant Plat as AppStore/GooglePlay 平台官方
+    participant DB as PaymentOrder DB
+    participant EC as Economy 域 (FR-EC-003)
+    participant RH as RefundNotificationHandler
+    participant RR as RealmRouter
+    participant RDS as RealmDirectoryService
+    participant MCR as MergeConflictRuleSet
+
+    Note over Client,MCR: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Client,MCR: 事务边界: PaymentOrder 写入 + 幂等索引 同事务; Economy 调用走 Saga 跨域 (per BAS-100 v0.1); 合服作业跨库事务由 §4.2 步骤 4 单事务保证
+
+    rect rgb(240, 248, 255)
+        Note over Client,EC: 主路径 1: 收据校验 + 权益发放 (per §2.2 详细时序)
+        Client->>RV: 提交平台收据 (platform_type + raw_receipt)
+        RV->>Plat: 平台官方接口验证 (App Store verifyReceipt / Google Play productPurchases.get)
+        alt 4xx 签名无效 (status: 21002/21005)
+            Plat-->>RV: 拒绝 (invalid_signature)
+            RV-->>Client: 拒绝 "签名无效" (FR-PLT-004 失败原因分类)
+        else 沙盒/生产环境不匹配
+            Plat-->>RV: platform_environment ≠ server 配置
+            RV-->>Client: 拒绝 "环境不匹配" (per §2.4 platform_environment 字段)
+        else 5xx/超时 平台不可用
+            Plat-->>RV: 超时/5xx
+            RV->>DB: 写入 PendingReceiptVerification (status=pending, per §2.3 RSK-PLT-001)
+            RV-->>Client: 投递待重试队列 (指数退避 100/200/400ms)
+        else 验证成功
+            Plat-->>RV: provider_txn_id
+            RV->>DB: 查询 PaymentOrder (idempotency 键 = provider_txn_id)
+            alt 幂等命中 (FR-PLT-005/ARC-009)
+                DB-->>RV: 返回既有 PaymentOrder
+                RV-->>Client: 直接返回既有结果 (不重复发放)
+            else 新订单
+                RV->>DB: 写入 PaymentOrder (含 platform_type + platform_environment 扩展字段, per §2.4)
+                RV->>EC: 发放 reward_spec (Saga 跨域, per FR-EC-003)
+                EC-->>RV: 发放成功
+                RV-->>Client: 内购成功
+            end
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Client,DB: 主路径 2: 退款追回 (per §2.5 详细时序)
+        Plat-->>RH: 异步推送退款通知 (App Store Server Notifications / Google Play RTDN)
+        RH->>RH: 验证平台签名 (JWS / Pub/Sub message signature)
+        alt 签名验证失败 (可能伪造)
+            RH-->>Plat: 拒绝 (per NFR-PLT-002)
+        else 签名通过
+            RH->>DB: 依 provider_txn_id 关联 PaymentOrder
+            alt 关联 miss
+                RH->>RH: 记录 pay.refund.related_to_order.miss (异常)
+            else 关联命中
+                RH->>DB: 触发权益追回 (依 TBD-PLT-001 模式: deduct / mark_debt / skip)
+                DB->>DB: 更新 refund_status 状态机 (none → clawback_pending → clawback_done, per §2.4)
+                RH-->>Plat: 处理完成
+            end
+        end
+    end
+
+    rect rgb(248, 255, 248)
+        Note over Client,RDS: 主路径 3: 选服路由 (per §3.2 详细时序, FR-PLT-012 realm_id 隔离)
+        Client->>RR: 鉴权成功后路由请求 (含可选 realm_hint)
+        RR->>DB: 查询账号 primary_realm_id
+        alt 主服命中
+            DB-->>RR: 返回 primary_realm_id
+            RR-->>Client: 直接路由至主服 (跳过选服界面)
+        else 首次登录
+            RR->>RDS: 请求服务器列表 (含状态: normal/full/maintenance)
+            RDS-->>RR: 返回可见服务器列表
+            RR-->>Client: 展示选服界面
+            Client->>RR: 玩家选择 chosen_realm_id
+            RR->>DB: 写入 primary_realm_id (同事务 + 审计)
+            RR-->>Client: 路由至选中服 (含 realm_id 注入会话上下文)
+        end
+        RR->>RR: realm_id 注入会话上下文 (per §3.3 ARC-005 服务器权威原则)
+        Note over Client,RDS: 下游业务请求必须校验 realm_id 一致性, 防止跨服越权
+    end
+
+    rect rgb(255, 248, 248)
+        Note over Client,MCR: 主路径 4: 合服执行 (per §4.1/§4.2 详细流程, FR-PLT-021)
+        Note over Client,MCR: 合服 5 步: 评审 → 演练 → 演练评审 → 正式执行 → 被合并服退场
+        MCR->>MCR: 步骤 1 评审锁定 (draft → locked, 运营+架构师签署)
+        MCR->>MCR: 步骤 2 演练环境执行 (生产数据快照, 资产一致性校验)
+        alt 演练失败
+            MCR->>MCR: 回到步骤 1 修正规则 (FR-PLT-021 禁止跳过演练)
+        else 演练通过
+            MCR->>MCR: 步骤 3 演练结果评审
+            MCR->>MCR: 步骤 4 维护窗口正式执行 (源服维护模式 + 数据合并 + 资产一致性校验)
+            alt 资产不一致
+                MCR->>MCR: 触发 pay.merge.job.asset_consistency_check_failed (SRE 立即介入)
+            else 资产一致
+                MCR->>MCR: 步骤 5 被合并服按 ARC-018 退场流程下线
+            end
+        end
+    end
+
+    Note over Client,MCR: 异常通路 (DLQ + 重试 + 告警): 平台 5xx -> PendingReceiptVerification 重试 3 次 -> 超限 abandoned + 转人工; 跨服越权 -> P1 安全告警; 跳过演练直接执行 -> 反违规告警
+```
+
+#### 1.1.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| 收据签名无效 | App Store status: 21002/21005 等 (FR-PLT-004 失败原因分类) | 拒绝内购, 写 audit (pay.receipt.verify.failed.invalid_signature) | 提示"签名无效" | 客户端重新获取收据 |
+| 沙盒/生产环境不匹配 | platform_environment 字段与 server 配置不一致 (FR-PLT-004) | 拒绝内购, 写 audit (pay.payment_order.environment_mismatch, 反欺诈信号) | 提示"环境错误" | 客户端确认 SDK 配置 |
+| 平台接口不可用 | 平台官方接口超时/5xx (区别于"签名无效") | 写入 PendingReceiptVerification 待重试队列 (RSK-PLT-001, 指数退避) | 延迟收到权益 | 定时任务重试, 超限 abandoned + 转人工 |
+| 重复唯一索引命中 | (platform_type, provider_txn_id) 复合唯一索引命中 (FR-PLT-005) | 幂等返回既有 PaymentOrder (不重复发放, per ARC-009) | 直接成功 (无副作用) | 无 |
+| 跨服越权访问 | 下游业务服务校验请求 realm_id ≠ 会话上下文 (per §3.3 FR-PLT-012) | 业务服务拒绝 + 写 audit (pay.realm.isolation.mismatch_detected, P1 安全告警) | 提示"服务暂不可用" | 客户端重新进入大厅 |
+| 选服目标服不可用 | 玩家选择的 chosen_realm_id 状态非 normal (full/maintenance) | 拒绝路由 + 写 audit (pay.realm.route.realm_unavailable) | 提示"该服当前不可用" | 客户端重新选服 |
+| 合服资产不一致 | 合服后 total_characters/total_inventory_items/total_currency 与演练 delta 不一致 (FR-PLT-021) | 触发 pay.merge.job.asset_consistency_check_failed (SRE 立即介入) | 玩家无感 (维护模式) | 回滚到维护模式, 回到步骤 1 修正 |
+| 跳过演练直接正式执行 | 合服作业跳过步骤 2 演练直接进入步骤 4 (FR-PLT-021 明确禁止) | 触发 pay.merge.job.skipped_drill_attempt (反违规告警, P1) | 玩家无感 (维护模式) | 强制回到步骤 2 演练 |
+
+#### 1.1.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| 平台通道选择 | platform_type 字段 (app_store / google_play) | app_store → App Store verifyReceipt; google_play → Google Play productPurchases.get | 强制单一平台 (运营限定) | 用户感知: 标准内购 / 限定内购 |
+| 幂等命中 vs 重新校验 | PaymentOrder 查询 (provider_txn_id) 命中既有记录 (FR-PLT-005/ARC-009) | 命中: 直接返回既有结果 (不重复发放); 未命中: 走新订单流程 | 强制走重新校验 (怀疑幂等索引损坏) | 用户感知: 即时成功 / 重新发放 |
+| 退款追回模式 | TBD-PLT-001 详设确定: deduct / mark_debt / skip | deduct: 扣除等价物; mark_debt: 标记负债; skip: 不追回 (合规要求) | 强制 deduct (财务优先) | 玩家感知: 资产扣减 / 负债标记 / 维持现状 |
+| 选服路由: 主服命中 vs 首次登录 | 账号 primary_realm_id 记录存在性 (per §3.2) | 命中: 直接路由; 首次: 展示服务器列表 | 强制重新选服 (运营活动) | 用户感知: 直接进入游戏 / 选服界面 |
+| 合服冲突规则应用 | MergeConflictRuleSet 已锁定 (per §4.1) | character_name_conflict: auto_rename / require_manual_rename; unique_item: stack_additively / keep_both / keep_earliest | 强制 auto_rename (运营效率) | 玩家感知: 角色自动改名 / 道具合并 / 道具并存 |
+| 演练 vs 正式执行 | 合服作业步骤 1-5 顺序 (per §4.2, FR-PLT-021 强制) | 演练通过 → 正式执行; 演练失败 → 回到步骤 1 修正 | 跳过演练直接正式 (FR-PLT-021 禁止, 触发反违规告警) | 玩家感知: 维护时长; 内部: 合规追溯完整 / 反违规事件 |
+
+#### 1.1.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| 收据签名验证 | App Store status=0 / Google Play 有效 purchase state (FR-PLT-004) | 200 OK + 有效签名 + platform_environment 匹配 | 拒绝 (按失败原因分类: invalid_signature / env_mismatch / platform_unavailable) |
+| 沙盒/生产环境一致 | platform_environment 字段与 server 配置一致 (per §2.4 FR-PLT-004) | sandbox ↔ sandbox; production ↔ production | 拒绝 + 写 audit (pay.payment_order.environment_mismatch, 反欺诈信号) |
+| 幂等键匹配 | (platform_type, provider_txn_id) 复合唯一索引 (per §2.4 索引) | 0 行 (新订单) 或 1 行 (幂等命中) | 0 行: 走新订单流程; 1 行: 直接返回既有结果 |
+| 退款签名验证 | App Store JWS / Google Play Pub/Sub message signature (per §2.5 NFR-PLT-002) | 签名有效 | 拒绝 (pay.refund.signature.failed, 可能伪造通知攻击) |
+| 跨服 realm_id 一致性 | 下游业务请求 realm_id == 会话上下文 (per §3.3 FR-PLT-012) | 严格一致 | 拒绝 + 写 audit (pay.realm.isolation.mismatch_detected, P1 安全告警) |
+| 合服资产一致性 | 合服后 total_characters/total_inventory_items/total_currency 与演练 delta 一致 (per §4.2 步骤 4) | delta = 0 (或容差范围内) | 触发 asset_consistency_check_failed (SRE 立即介入) + 回滚到维护模式 |
+| 选服目标服可分配 | chosen_realm_id ∈ RealmDirectoryService 可分配列表 (per §3.2) | 状态 normal 且 ∈ 可见列表 | 拒绝 + 写 audit (pay.realm.route.realm_unavailable, 引导重新选服) |
 
 ---
 
