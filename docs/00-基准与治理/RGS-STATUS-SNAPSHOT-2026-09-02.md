@@ -88,7 +88,7 @@
 | E7 | DDD 13 域终审 | ✅ 1/1 | 1 | — |
 | E8 | 12 GAP 实施 (24 人·天) | ✅ 12/12 全部落地 | 12 | GAP-1/2/3/4/5/6/7/8/9/10 实施 + GAP-11 (RACI v0.2 commit `0755ef8e`) + GAP-12 (BA-W1-3 namespace 隔离 commit `2a44836`), per WBS v0.4.5 §4 (2026-09-02 08:25 JST) |
 
-**总盘统计** (per WBS v0.4.9 跟踪表 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1, 2026-09-02 10:17 JST, v0.6.24 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), 落地 117 commit (ahead of WBS v0.2, 实时查 `git rev-list --count 84edf26..main`), 169 commit (ahead of origin/main, 实时查 `git rev-list --count origin/main..main`), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 4 DRAFT partitioned SQL 评审启动材料 v0.1.1 就绪 (commit `999ff5d` + `24ce59c`), WBS v0.4.9 §4.1 PH-3 评审启动源固化 (commit `3501f52`)。
+**总盘统计** (per WBS v0.4.9 跟踪表 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1, 2026-09-02 10:17 JST, v0.6.24 hotfix 实时更新): 12 子桶中 10 ✅ + 1 🔒 (Phase C SRE) + 1 📋 (E4 草案 待 SRE 拍板), **落地 commit 数实时查 `git rev-list --count 84edf26..main`** (per L13 终极守护 v0.6.23 + VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数, 不在 hotfix 里手写数字), 22 测试函数 (11 UT + 11 E2E) cargo check --tests 0 error, 4 DRAFT partitioned SQL 评审启动材料 v0.1.1 就绪 (commit `999ff5d` + `24ce59c`), WBS v0.4.9 §4.1 PH-3 评审启动源固化 (commit `3501f52`)。
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
@@ -305,6 +305,7 @@
 | **v0.6.29** | **2026-09-02 10:47** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 顶部"说明"段改为实时 git log 表达式 + 拆 §2.1-§2.3 (实施 39 commit 静态) + §2.4 (文档 hotfix 22 commit 实时增长) — 实施 / 文档分别引用, 避免 42 commit 老数字自指污染 (per L13 终极守护 + VERIFIER-COMMANDS v0.1 §1.1), 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.30** | **2026-09-02 10:50** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 commit 链总合计 "60 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 18)" 改为实时 `git rev-list --count 84edf26..main` 表达式 (per L13 终极守护 v0.6.23 + v0.6.29 + VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数), 60 commit 老数字自指污染闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.31** | **2026-09-02 11:02** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 22 commit → 25 commit (补 bce33cb v0.6.29 + 49944d1 v0.6.30 + 6e9ee47 SESSION-CLOSEOUT v0.1), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.32** | **2026-09-02 11:05** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计"落地 117 commit / 169 commit" 老数字删除, 改"实时查 `git rev-list --count 84edf26..main`" 表达式 (per L13 终极守护 v0.6.23 + VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数, 不在 hotfix 里手写数字), 117/169 commit 自指污染闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
