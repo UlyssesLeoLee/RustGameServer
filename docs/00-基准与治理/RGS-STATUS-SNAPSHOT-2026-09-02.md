@@ -156,7 +156,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (22 commit)
+### 文档 / 跟踪表 hotfix (25 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -182,6 +182,9 @@
 | `82671df` | rgs-batch-backend/TEST-RUN-PLAN v0.1 (22 测试函数运行计划文档, 11 UT 立即可跑 + 11 E2E 等 Phase C, 3 步运行命令 + L1+L11+L12+L14 派生约束守护) |
 | `f4b2795` | RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 (4 DRAFT partitioned SQL 评审召集时序文档, 5 阶段时序 Phase 0 启动 / Phase 1 SRE / Phase 2 DBA / Phase 3 3 域 Lead 并行 / Phase 4 架构师总审批, topological 依赖 + 评审截止时间 + checklist + L11+L12+L13 派生约束守护) |
 | `579f4a9` | RGS-VERIFIER-COMMANDS v0.1 (verifier 取数命令清单, 5 大类 6 命令组: git 状态 / hotfix 索引 / 测试函数 / git stash / DRAFT SQL 评审 / working tree 残留, L13 终极守护实现) |
+| `bce33cb` | STATUS-SNAPSHOT v0.6.29 (§2 顶部"说明"段改为实时 git log 表达式 + 拆静态/动态两段) |
+| `49944d1` | STATUS-SNAPSHOT v0.6.30 (§2 commit 链总合计 60 commit 老数字改为实时 git rev-list 表达式) |
+| `6e9ee47` | RGS-SESSION-CLOSEOUT v0.1 (9/2 02:17-11:00 JST 主会话打头阵 + hotfix 阶段收口文档, 40 commit + 6 跟踪文档 + 5 派生约束 + 6 受阻项 + 6 拍板决策点 + verifier 实证命令) |
 
 **commit 链总合计**: 实时查 `git rev-list --count 84edf26..main` (per L13 终极守护 v0.6.23 + v0.6.29) — 任何冲突以 git 实证为准。**完整权威源 = `git log 84edf26..main --oneline`**, 配合 VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数。
 
@@ -301,6 +304,7 @@
 | **v0.6.28** | **2026-09-02 10:44** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 派生约束更新表新增 L14 派生约束 (plumbing 节点字符串 brace 跟踪, per AGENTS.md commit `faf40a8` 入档, 9/2 03:08 JST W2 BA-W2-3/5/6 patch 经验), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.29** | **2026-09-02 10:47** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 顶部"说明"段改为实时 git log 表达式 + 拆 §2.1-§2.3 (实施 39 commit 静态) + §2.4 (文档 hotfix 22 commit 实时增长) — 实施 / 文档分别引用, 避免 42 commit 老数字自指污染 (per L13 终极守护 + VERIFIER-COMMANDS v0.1 §1.1), 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.30** | **2026-09-02 10:50** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 commit 链总合计 "60 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 18)" 改为实时 `git rev-list --count 84edf26..main` 表达式 (per L13 终极守护 v0.6.23 + v0.6.29 + VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数), 60 commit 老数字自指污染闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.31** | **2026-09-02 11:02** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 22 commit → 25 commit (补 bce33cb v0.6.29 + 49944d1 v0.6.30 + 6e9ee47 SESSION-CLOSEOUT v0.1), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
