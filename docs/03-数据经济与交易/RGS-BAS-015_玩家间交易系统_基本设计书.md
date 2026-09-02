@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-018§8 ARC-032展开为交易Saga组件设计、数据模型、防欺诈字段级设计 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①新增`TradeVisibilityGuard`组件落地FR-TRD-006交易目标可见性限制②补充`TradeOffer`索引/唯一性约束与`TradeAuditLog`字段级设计（FR-TRD-015〜018）③补充并发调包/双花的乐观锁校验机制与Saga补偿自身失败的升级分支（RSK-TRD-002） | FR-TRD-006、FR-TRD-015〜018、RSK-TRD-002 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1（状态机迁移）/§2.2（组件划分与资产冻结解冻）/§2.3（TradeVisibilityGuard目标可见性校验，**注：原`### 2.3`升至`## 2.3`以与§2.1/§2.2保持H2层级一致**）/§3.1（数据模型迁移与归档）/§4.1（Saga原子成立/Saga补偿/RSK-TRD-002升级分支/乐观锁/反作弊联动）/§5.1（上线前检查清单执行跟踪）/§5.2（代码评审检查清单执行跟踪）共 7 个"本功能日志设计"小节全部新增；每节均含 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`/`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；字段名前缀统一为 `trade.*`（区别于 BAS-002 `mnt.*` / BAS-003 `gm.*` / BAS-005 `plugin.*` / BAS-007 `db.*` / BAS-009 `gov.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.6.1/§4.6.2 保持拼写一致（FR-LOG-013）；**交易域特殊强制**：①交易发起/接受/拒绝/取消/超时/完成/补偿/升级 8 类生命周期事件 → `info!` 强制全采样（资产不可逆，全链路审计）②双账户资产变更（atomic_transfer）→ `info!` 强制全采样 + `trace_id` 关联（财务一致性证据）③RSK-TRD-002 升级分支（`CompensationFailed` 状态迁移）→ `error!` 强制全采样（与 NFR-AV-005 可用性 + 财务数据完整性挂钩，P0 告警链路立即捕获）④反作弊联动（高频/大额/异常时序）→ `error!` 强制全采样（与既有反作弊链路联锁）⑤撮合引擎/价格波动 → debug-only（性能敏感，release 剔除）；§5.1/§5.2 检查清单新增 log 章节上线检查项；§6 追溯性新增 AC-TRD-006（debug-only 宏 release 完全剔除）与 AC-TRD-007（每功能 BAS 文档须含本功能 log 章节），与 BAS-001 v1.5 §4.8.3.4（commit 32d9eb6）/ BAS-007 v0.3（commit e711d09）/ BAS-009 v0.7（commit 9a628cf）/ BAS-004 v0.3（commit 47e26b0+0ee6262）形成统一规范 | §2.1、§2.2、§2.3、§3.1、§4.1、§5.1、§5.2、§6 |
+| 0.4 | 2026-09-02 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §2.4 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 8 actor: Initiator / Target / TradeOfferService / TradeVisibilityGuard / TradeOfferStateMachine / DB / EC 域 (FR-EC-003) / TradeSettlementSaga / GM 人工核账队列) + 異常分支表 (8 行, 覆盖可见性校验失败 / 资产冻结失败 / 状态并发变化 / 乐观锁失效 / EC Saga 步骤失败 / 事务提交失败 / 补偿本身失败 RSK-TRD-002 / 幂等命中) + 决策点矩阵 (6 行, 覆盖可见性范围评估 / 接受时状态 / 乐观锁校验 / Saga 失败补偿 / 反作弊联动 / 补偿失败升级) + 验证点清单 (8 行, 与 §2.1 / §2.2 / §2.3 / §4.1 既定 4 节呼应); trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界与 Saga 跨域标注 (per BAS-100 v0.1, TradeSettlementSaga 4 步资产转移同事务 + EC 跨域走 Saga); 与既有 §2.1 状态机 / §2.3 可见性校验 / §4 交易成立时序 互为详细化引用, §2.4 为全景流程 + 异常分支 + 决策点 + 验证点汇总 | §2.4、§6 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +38,7 @@
 
 1. [前言](#1-前言)
 2. [交易状态机与组件设计](#2-交易状态机与组件设计)
+   - 2.4 [処理フロー（处理流程 / Processing Flow）](#24-処理フロー处理流程--processing-flow)
 3. [数据模型](#3-数据模型)
 4. [交易成立时序](#4-交易成立时序)
 5. [标准化检查清单](#5-标准化检查清单)
@@ -149,6 +151,155 @@ Offered → Expired（超时自动迁移，不需人工触发）
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
 - `trade.visibility.debug.friend_party_list_dump` 在大型好友列表/队伍下可能 3KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏玩家社交关系
 - `trade.visibility.scope.config_changed` 是**治理事件**（与 TBD-TRD-001 评审结果绑定）—— release 必出 + §6.2 强制全采样，便于 SRE/Gov 团队按 `changed_by` 维度追溯历次范围变更
+
+---
+
+
+
+## 2.4 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 详细时序见 §4 交易成立时序, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+### 2.4.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Initiator as 发起方玩家
+    actor Target as 目标方玩家
+    participant TOS as TradeOfferService
+    participant TVG as TradeVisibilityGuard
+    participant TOSM as TradeOfferStateMachine
+    participant DB as player_db (TradeOffer/TradeAuditLog)
+    participant ECN as EC 域 (FR-EC-003 路径)
+    participant TSS as TradeSettlementSaga
+    participant GMQ as GM 人工核账队列
+
+    Note over Initiator,GMQ: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Initiator,GMQ: 事务边界: 资产原子转移同事务; EC 跨域走 Saga, per BAS-100 v0.1
+    Note over Initiator,GMQ: FR-TRD-006 可见性校验为同步阻塞, 与异步任务进度更新区分
+
+    rect rgb(240, 248, 255)
+        Note over Initiator,DB: 主路径 1: 挂单创建与可见性校验 (Draft → Offered)
+        Initiator->>TOS: 发起挂单 (initiator_items)
+        TOS->>TVG: 同步校验目标可见性 (FR-TRD-006)
+        alt 范围外 (out_of_scope_*)
+            TVG-->>TOS: 拒绝 (无冻结副作用)
+            TOS-->>Initiator: 拒绝"目标不可见"
+        else 范围内
+            TOS->>TOSM: Draft → Offered 状态迁移
+            TOSM->>DB: 冻结 initiator_items (BEGIN)
+            TOSM->>DB: 插入 TradeOffer row (snapshot_version=1)
+            TOSM->>DB: 追加 TradeAuditLog (event_type=created)
+            TOSM->>DB: COMMIT
+            TOSM-->>TOS: 挂单成功 (trade_id, expire_at)
+            TOS-->>Initiator: 返回 trade_id
+            TOS->>Target: 通知挂单 (复用 ARC-010 事件基础设施)
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Target,DB: 主路径 2: 接受与过期取消 (Offered → Accepted / Cancelled / Expired)
+        Target->>TOS: 接受挂单 (trade_id)
+        TOS->>TOSM: 校验当前 state == Offered
+        alt 已不在 Offered (并发)
+            TOSM-->>TOS: 拒绝"挂单状态已变"
+            TOS-->>Target: 拒绝
+        else Offered
+            TOSM->>DB: snapshot_version 锁定 (FR-TRD-014 乐观锁基线)
+            TOSM->>TOSM: Offered → Accepted 状态迁移
+            TOSM->>DB: 追加 TradeAuditLog (event_type=accepted)
+            TOSM->>DB: COMMIT
+            TOSM-->>TOS: 已接受
+            TOS-->>Target: 已接受
+            TOS-->>Initiator: 通知已接受
+        end
+    end
+
+    rect rgb(240, 255, 240)
+        Note over Target,GMQ: 主路径 3: 交易成立与原子结算 (Accepted → Settled, 含 Saga 补偿)
+        Target->>TOS: 触发结算 (trade_id, snapshot_version)
+        TOS->>TSS: 启动 TradeSettlementSaga
+        TSS->>DB: 乐观锁校验 snapshot_version (FR-TRD-014)
+        alt 快照失效 (并发操作使其失效)
+            TSS-->>TOS: 拒绝"快照已失效" (FR-TRD-014)
+            TOS-->>Target: 拒绝 + 提示重新挂单
+        else 快照有效
+            TSS->>ECN: 调用 FR-EC-003 路径 (Saga 步骤 1: deduct_initiator)
+            ECN-->>TSS: success
+            TSS->>ECN: 步骤 2: deduct_target
+            ECN-->>TSS: success
+            TSS->>ECN: 步骤 3: grant_initiator
+            ECN-->>TSS: success
+            TSS->>ECN: 步骤 4: grant_target
+            ECN-->>TSS: success
+            TSS->>DB: BEGIN 原子事务
+            TSS->>DB: Accepted → Settled 状态迁移
+            TSS->>DB: 追加 TradeAuditLog (event_type=settled)
+            TSS->>DB: COMMIT
+            TSS-->>TOS: 结算成功
+            TOS-->>Target: 核销成功
+            TOS-->>Initiator: 通知结算成功
+        end
+    end
+
+    rect rgb(255, 240, 240)
+        Note over Target,GMQ: 主路径 4: 补偿与升级 (Saga 失败 / RSK-TRD-002 最坏分支)
+        TSS->>ECN: 任一步失败
+        ECN-->>TSS: 失败 (步骤 N)
+        TSS->>ECN: 反向补偿 N-1...1 (回滚资产)
+        alt 补偿成功
+            TSS->>DB: 状态保持 Accepted (供重试)
+            TSS->>DB: 追加 TradeAuditLog (event_type=compensated)
+            TSS-->>TOS: 提示"服务暂不可用请重试"
+        else 补偿失败 (RSK-TRD-002 最坏分支)
+            TSS->>DB: 强制迁移至 CompensationFailed 中间态
+            TSS->>DB: 追加 TradeAuditLog (event_type=escalated)
+            TSS->>GMQ: 推入人工核账队列
+            TSS-->>TOS: 提示"已转人工核实"
+        end
+    end
+
+    Note over Initiator,GMQ: 异常通路 (DLQ + 重试): EC 域不可达 -> ARC-009 消费者标准模式 (重试 3 次 指数退避 100/200/400ms) -> DLQ 报警
+```
+
+### 2.4.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| 目标可见性校验失败 | TradeVisibilityGuard 评估 target 不在 	rade_visibility_scope 范围 | Draft → Offered 迁移直接拒绝 (无冻结副作用, per FR-TRD-006) | 提示"目标不可见" | 无 (无副作用) |
+| 资产冻结失败 | initiator 资产已被其他途径占用 / 余额不足 | Draft → Offered 迁移拒绝 | 提示"资产已被占用" | 无 (无副作用) |
+| 接受时状态非 Offered | 并发操作导致 state 已变 (Cancelled / Expired / Accepted) | 拒绝"挂单状态已变" | 提示"挂单已变化" | 无 (无副作用) |
+| 乐观锁校验失败 | snapshot_version 不匹配 (FR-TRD-014 触发, 双花/调包防护) | 拒绝进入原子事务 | 提示"快照已失效，请重新挂单" | 无 (无副作用) |
+| EC 域步骤失败 | FR-EC-003 路径任一步返回失败 (步骤 1-4) | Saga 反向补偿 N-1...1 | 提示"服务暂不可用" | 资产恢复至冻结前状态, 状态保持 Accepted 供重试 |
+| 事务提交失败 | DB 写失败 (网络/约束冲突/死锁) | 整体回滚 | 提示"结算失败请重试" | 客户端重试 (幂等键 	rade_id+state, per FR-TRD-012) |
+| 补偿本身失败 (RSK-TRD-002) | Saga 补偿路径任一步也失败 (回滚时资产写入失败) | 强制迁移至 CompensationFailed 中间态 | 提示"已转人工核实" | GM 人工核账队列介入 (per FR-TRD-016), 期间禁止相关资产被其他操作占用 |
+| 重复提交幂等命中 | 	rade_id+state 已为 Settled 重复提交 | 直接返回既有 Settled 结果 (FR-TRD-012) | 重复提交无副作用 | 无 |
+
+### 2.4.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| 可见性范围评估 | 	rade_visibility_scope 配置 (friend_only/party_only/friend_or_party) + 目标玩家关系 | 范围内 → 允许挂单 | 范围外 → 拒绝 (无冻结) | 用户感知: 进入挂单流程 / 拒绝"目标不可见" |
+| 接受时状态校验 | 挂单 state == Offered | 继续 (锁定 snapshot_version) | state ≠ Offered → 拒绝 | 用户感知: 进入结算流程 / 拒绝"挂单已变化" |
+| 乐观锁校验 | UPDATE ... WHERE trade_id=? AND snapshot_version=? 受影响行数 | = 1 → 进入原子事务 | = 0 → 拒绝 (FR-TRD-014, 快照失效) | 用户感知: 进入结算 / 拒绝"快照已失效" |
+| Saga 失败补偿策略 | EC 步骤 N 失败 | 反向补偿 N-1...1, 状态保持 Accepted | 部分补偿 + DLQ 人工介入 | 用户感知: 资产自动回退 (per ARC-009) |
+| 反作弊联动触发 | 反作弊规则检测 (高频/大额/异常时序, RSK-TRD-002 联动) | 拒绝该笔挂单 + 写 	rade.anti_fraud.* | 仅告警 (低风险) | 用户感知: 拒绝 (反作弊), 反作弊团队可按 player_id 维度做行为画像 |
+| 补偿失败升级 (RSK-TRD-002) | Saga 补偿本身失败 | 强制迁移至 CompensationFailed + 推入 GM 人工核账队列 | 不升级 (错误, 资产不一致) | 用户感知: 提示"已转人工", 资产冻结至人工核实完成 |
+
+### 2.4.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| 可见性校验 | TradeVisibilityGuard 评估结果 | target 在 	rade_visibility_scope 范围内 | 拒绝挂单 (无冻结副作用), 记录 	rade.visibility.check.failed |
+| 资产冻结 (Draft → Offered) | initiator 资产可冻结 (未被占用, 余额/物品充足) | 冻结成功 | 拒绝迁移, 记录 	rade.state.draft_to_offered.rejected |
+| 接受时状态 | 挂单 state == Offered | 严格相等 | 拒绝"挂单已变化", 记录 	rade.state.offered_to_accepted.rejected |
+| 乐观锁校验 (FR-TRD-014) | UPDATE ... WHERE trade_id=? AND snapshot_version=? 受影响行数 | = 1 (无并发失效) | 拒绝进入原子事务, 记录 	rade.settlement.snapshot.stale_rejected (反作弊联动) |
+| Saga 步骤完成 | EC 4 步全部成功 (deduct_initiator/deduct_target/grant_initiator/grant_target) | 4/4 成功 | 反向补偿已执行步骤, 记录 	rade.settlement.atomic_transfer.failed |
+| 事务提交 (Accepted → Settled) | TradeOffer + TradeAuditLog 同事务写入 | tx_id COMMIT 成功 | 整体回滚, 记录 	rade.settlement.transaction_rolled_back |
+| 补偿执行 | Saga 反向补偿 N-1...1 全部成功 | 资产恢复至冻结前状态 | 升级至 CompensationFailed + GM 人工核账队列, 记录 	rade.settlement.compensation_failed.escalated (P0 告警) |
+| 幂等性 (FR-TRD-012) | 	rade_id+state 重复提交命中 | state 已是 Settled 时直接返回既有结果 | 不重复执行, 记录 	rade.settlement.idempotent_replay.detected |
 
 ---
 
@@ -329,6 +480,7 @@ Offered → Expired（超时自动迁移，不需人工触发）
 | TBD-TRD-001〜002、RSK-TRD-001〜002 | §5.1 |
 | **AC-TRD-006** | §2.1、§2.2、§2.3、§3.1、§4.1、§5.1、§5.2（debug-only 宏 release 完全剔除——跨 7 个"本功能日志设计"小节 + §5.1/§5.2 log 章节上线检查项多点验证，与 BAS-001 v1.5 §4.8.3.4 / BAS-007 v0.3 / BAS-009 v0.7 / BAS-004 v0.3 §12 形成统一规范） |
 | **AC-TRD-007** | §2.1、§2.2、§2.3、§3.1、§4.1、§5.1、§5.2（每功能 BAS 文档须含本功能 log 设计章节，跨 7 个新小节 + §5.1/§5.2 多点验证） |
+| **AC-TRD-008（処理フロー四要素）** | §2.4（mermaid sequenceDiagram 8 actor + 異常分支表 8 行 + 决策点矩阵 6 行 + 验证点清单 8 行，与 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §3 必含四要素一致；trace_id 贯穿全链路 per BAS-004 v0.3 §4.4；事务边界 + Saga 跨域标注 per BAS-100 v0.1；与 BAS-019 v0.4 §1.1 范式对齐） |
 
 ---
 
