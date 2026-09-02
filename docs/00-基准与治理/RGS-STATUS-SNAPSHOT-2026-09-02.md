@@ -156,7 +156,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (21 commit)
+### 文档 / 跟踪表 hotfix (22 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -181,6 +181,7 @@
 | `24ce59c` | RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 (§1.1 新增"已签方背景"段, 6 角色已派工 + 2 角色待 Phase C / DBA 评审启动, 派工 vs 评审签字分离) |
 | `82671df` | rgs-batch-backend/TEST-RUN-PLAN v0.1 (22 测试函数运行计划文档, 11 UT 立即可跑 + 11 E2E 等 Phase C, 3 步运行命令 + L1+L11+L12+L14 派生约束守护) |
 | `f4b2795` | RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 (4 DRAFT partitioned SQL 评审召集时序文档, 5 阶段时序 Phase 0 启动 / Phase 1 SRE / Phase 2 DBA / Phase 3 3 域 Lead 并行 / Phase 4 架构师总审批, topological 依赖 + 评审截止时间 + checklist + L11+L12+L13 派生约束守护) |
+| `579f4a9` | RGS-VERIFIER-COMMANDS v0.1 (verifier 取数命令清单, 5 大类 6 命令组: git 状态 / hotfix 索引 / 测试函数 / git stash / DRAFT SQL 评审 / working tree 残留, L13 终极守护实现) |
 
 **commit 链总合计**: 60 commit (W2 8 + W3 8 + W4 8 + W5 5 + W6 7 + 文档 18) — 跟 `git rev-list --count 84edf26..main` 实时查询对齐, 差 = W1 (af84884 + 2a44836) + 跟踪表 hotfix (WBS v0.4.1 ~ v0.4.8 + 本快照 v0.6.1 ~ v0.6.20 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1)。**完整权威源 = `git log 84edf26..main --oneline`**, 任何跟本表冲突的描述以 git 实证为准。
 
@@ -295,6 +296,7 @@
 | **v0.6.24** | **2026-09-02 10:17** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1 总盘统计实时更新 (110/162 → 117/169 commit, 跨 9/2 09:55-10:17 JST 净增 7 commit = v0.6.20/21/22/23 + v0.4.9 + v0.1.1 + 本 commit, 跟 WBS v0.4.9 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1 同步), per L13 自指字段 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.25** | **2026-09-02 10:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 19 commit → 20 commit (补 82671df rgs-batch-backend/TEST-RUN-PLAN v0.1 22 测试函数运行计划文档), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.26** | **2026-09-02 10:33** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 20 commit → 21 commit (补 f4b2795 RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 评审召集时序文档), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.27** | **2026-09-02 10:41** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 21 commit → 22 commit (补 579f4a9 RGS-VERIFIER-COMMANDS v0.1 verifier 取数命令清单, L13 终极守护实现), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
