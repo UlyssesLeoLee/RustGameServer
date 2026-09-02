@@ -36,8 +36,8 @@ git log --oneline 84edf26..main | wc -l
 # 列出本会话全部 hotfix commit (L13 守护 §0 终极 + §1 实时更新 + §2 索引固化)
 git log --oneline 84edf26..main | grep -E "snapshot.*v0\.6\.[0-9]+ hotfix|wbs.*v0\.4\.[0-9]+ hotfix" | wc -l
 
-# 列出 4 大跟踪文档 commit (L13 + L11 + L12 守护)
-git log --oneline 84edf26..main | grep -E "RGS-STATUS-SNAPSHOT|RGS-PLAN-WBS|RGS-DB-PARTITIONED|TEST-RUN-PLAN"
+# 列出 7 大跟踪文档 commit (L13 + L11 + L12 守护)
+git log --oneline 84edf26..main | grep -E "RGS-STATUS-SNAPSHOT|RGS-PLAN-WBS|RGS-DB-PARTITIONED|TEST-RUN-PLAN|VERIFIER-COMMANDS|SESSION-CLOSEOUT"
 ```
 
 ### 1.3 22 测试函数状态 (L1 派生约束 60s 限时)
@@ -117,11 +117,12 @@ Get-ChildItem docs/ddd-review 2>&1
 
 ## 4. 关联文档
 
-- `RGS-STATUS-SNAPSHOT-2026-09-02.md` v0.6.26 (主快照, §0 §1 §2 引用本命令清单)
+- `RGS-STATUS-SNAPSHOT-2026-09-02.md` v0.6.33 (主跟踪快照, §0 §1 §2 + L11/L12/L13/L14 派生约束守护)
 - `RGS-PLAN-WBS-token-bucket-v0.4.md` v0.4.9 (WBS 跟踪表, §1.1 + §4 + §4.1 引用本命令清单)
 - `RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md` v0.1.1 (评审启动材料)
 - `RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE-2026-09-02.md` v0.1 (评审召集时序)
 - `tools/rgs-batch-backend/TEST-RUN-PLAN-2026-09-02.md` v0.1 (22 测试函数运行计划)
+- `RGS-SESSION-CLOSEOUT-2026-09-02.md` v0.1 (9/2 02:17-11:00 JST 会话收口文档, 7 跟踪文档归集 + 5 派生约束 + 10 受阻项 + 6 拍板决策点)
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
@@ -132,3 +133,4 @@ Get-ChildItem docs/ddd-review 2>&1
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-09-02 10:38 | 架构师(Mavis 接手 agent per DEC-008) | 初版: verifier 取数命令清单 (5 大类 6 命令组: git 状态 / hotfix 索引 / 测试函数 / git stash / DRAFT SQL 评审 / working tree 残留), L13 终极守护实现, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化 |
+| **v0.1.1** | **2026-09-02 11:11** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §1.2 grep 命令 + §4 关联文档扩 4 → 7 大跟踪文档 (补 VERIFIER-COMMANDS 自己 + SESSION-CLOSEOUT v0.1 + STATUS-SNAPSHOT 升 v0.6.26 → v0.6.33), 7 大跟踪文档完整闭环, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
