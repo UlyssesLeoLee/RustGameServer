@@ -181,6 +181,31 @@ git config commit.template .gitmessage
 
 ---
 
+## 3.x DDD Review 二审流程 (per 9/2 10:18 JST B3 拍板, W1 D2 落地)
+
+**强约束**: **所有 DDD Review 阶段材料 (UT+IT / ST / 13 域终审 / DB-DRAFT / PT 派工 / 部署恢复 / 跨域 saga / batch v0.1) 必须走二审流程, 不可跳过 Ulysses 二审** (per B3 派生约束, 打破 AI 自指闭环).
+
+**完整模板**: `docs/14-项目治理/DDD-REVIEW-TEMPLATE-v0.2.md` (11.8 KB, 含二审流程图 + 文档结构 + 签字栏 2 段 + 打回循环上限)
+
+**流程总览**:
+1. 起草 (Mavis): 用模板 v0.2 起 DDD Review 文档, 路径 `docs/14-项目管理/ddd-review/RGS-DDD-<date>-<topic>_v0.X.md`
+2. Mavis 自审 (1 次停手): 自查代签/DoD/Evidence/派生约束/缺标/禁回溯/凭据, **停手不再回头改稿**
+3. Ulysses 二审 (必到): 必查自指字段/派生约束/业务指标/commit ahead/RGS-CRITIQUE 一致性, 决定 ✅/🟡/❌
+4. 打回循环上限 2 次, 第 3 次强制 ✅ 或 🟡 冻结
+
+**v0.1 → v0.2 关键变化**:
+- 一审角色: Mavis 写+审 → Mavis 写+**自审 1 次后停手**
+- 二审角色: (无) → **Ulysses 必审**
+- 签字栏: 1 栏 → 2 栏 (Mavis 自审 + Ulysses 二审)
+- 状态机: `⏳ → ✅` → `⏳ → 🟡 → ⏳ → ✅/❌/🟡`
+
+**已知缺口** (per v0.1.1 §6):
+- Ulysses 二审时间窗口不定, 可能拖慢 DDD Review
+- 跨域 saga / batch 域 DDD Review 需主会话打头阵 (per §2.3 L4)
+- Mavis 自审 vs Ulysses 二审"业务深度"评估待 12/2 季度评审
+
+---
+
 ## 4. 关键决策记录 (per 8/31 OPEN-QA v0.2)
 
 ### 4.1 admin 域 Q1-Q2 决策
@@ -575,6 +600,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 9/2 10:18 JST 自我批评与改善拍板 (per ask_user B+C+D 全选 + 6 域不缩 + 跟踪 doc 冻结归档, **A 类未拍板进候选清单**): §0 元信息加 v0.6 + §8 新增派生约束 L1-L14 冻结期 (6 个月, 新约束走候选清单季度评审) + §9 新增项目批评与改善 (5 大问题 + 4 类方案 16 条 + 拍板 + 1 周 sprint + 6 周路线图 + 里程碑重定义 + DoD 升级) + §10 修订历史本行 |
 | v0.6.1 | 2026-09-02 10:54 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: Q1 实际选择 = B+C+D (A 不选). 修正 §9.2 表 A 行改 "未拍板 (进候选清单)" + §9.6 sprint 删 A1/A3/A4 任务 + §9.6 加范围说明. 配套: RGS-CRITIQUE-IMPROVEMENT v0.1.1 同步修正 §3.1-3.4 / §4.1 / §5.1 / §6 / §7 |
 | v0.6.2 | 2026-09-02 11:05 | 架构师(Mavis 接手 agent per DEC-008) | D2 + D3 派生约束落地 (per 9/2 11:00 JST 拍板): §2.1 L1 升级 L1/L1.1/L1.2 三件套表 (cargo check / cargo test --lib / E2E) + §2.6 新增 D3 commit 模板段 (type / scope / DoD / Evidence / 代签 / 派生约束守护) + §10 修订历史本行 |
+| v0.6.3 | 2026-09-02 14:07 | 架构师(Mavis 接手 agent per DEC-008) | B3 派生约束落地 (per 9/2 10:18 JST 拍板, W1 D2 任务): 新增 `docs/14-项目治理/DDD-REVIEW-TEMPLATE-v0.2.md` (11.8 KB, 二审流程图 + 文档结构 + 签字栏 2 段 + 打回循环上限) + §3.x 新增 DDD Review 二审流程段 (Mavis 自审 1 次停手 + Ulysses 二审必到) + §10 修订历史本行 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
