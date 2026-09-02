@@ -515,6 +515,18 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 
 **例外**: 涉及 env value 打印 (8/27 11:06 JST 硬 ban) / 凭据泄露 / 安全相关 = 立即生效, 不走季度评审
 
+**L-CAND-006 例外段 (per 9/3 07:31 JST 拍板, 9/3 落地)**:
+
+- **例外触发**: L-CAND-006 (k8s secret 导出硬 ban, 安全类, 候选清单 commit `ee3c7e7`) 在 SRE Lead 拍板悬空期间生效
+- **生效范围**: 阶段 B (5 域 certs 导出) 走新 SOP, 不等 R4 季度评审
+- **新 SOP**:
+  1. k8s secret 导出走 `certs/` gitignored 目录 (per L12 派生约束兜底)
+  2. 仅 cert SHA-256 fingerprint + cert subject 写 `certs/MANIFEST.toml`
+  3. cert 内容**永不入 commit** (per 8/27 11:06 JST 硬 ban 一致性延伸)
+  4. cert 链验证用 `openssl x509 -noout -fingerprint -sha256` 比对 fingerprint (k3s 节点已装 openssl)
+- **配套**: 公告 `docs/14-项目治理/L-CAND-006-EXCEPTION-PATH-2026-09-03_v0.1.md` 落档
+- **保留**: L-CAND-006 在 R4 季度评审 (累计 5M tokens 触发) 时正式升 AGENTS.md §1.2 段, 例外段可废止
+
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指
 
 ---
@@ -606,6 +618,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.6 | 2026-09-02 17:33 | 架构师(Mavis 接手 agent per DEC-008) | Phase C 阶段 A 启动公告 (per 9/2 17:32 JST 拍板, W37 D2 启动): 新增 `docs/14-项目治理/RGS-PHASE-C-KICKOFF-2026-09-02_v0.1.md` (8.6 KB, 启动条件 + 阶段 A 4 步派工 SRE + 阶段 A 完成解锁阶段 B + SRE 拍板 4 选项 + 派生约束守护 + 已知缺口 + W37 后续工作 5 天) |
 | v0.6.7 | 2026-09-02 18:16 | 架构师(Mavis 接手 agent per DEC-008) | W37 周报 v0.1 启动预热 (per 9/2 17:32 JST 拍板, 选项 1 Mavis-side): 新增 `docs/14-项目治理/RGS-WEEKLY-2026-W37_v0.1.md` (7.3 KB, 双指标 + 5 天工作 + W36 末节点 + 风险评估 + 派生约束守护), 沿用 v0.3 模板 |
 | v0.6.8 | 2026-09-02 18:39 | 架构师(Mavis 接手 agent per DEC-008) | 3 worker worktree 并行收口 (per 9/2 18:29 JST 派工, 9/1 8 worker 25 min 派工基线): ① `feat/w37-l15-candidate` L-CANDIDATES v0.2 升版 (commit `ee3c7e7`, 1 file, +81/-13, 4 条 L15 候选: L-CAND-004 保留位 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 硬 ban / L-CAND-007 9 月新教训) ② `feat/w37-critique-v0.2` RGS-CRITIQUE-IMPROVEMENT v0.2 升版 (commit `dae4c91`, 1 file, +501, 5 大问题重评 + 6 域 60 项生产可用 checklist) ③ `feat/w37-e2e-fillin` 5 域 E2E Phase C marker (commit `a88a5d6`, 5 files, +273, 各 1 编译期锚定函数, cargo check 5 域 0 error 总 5.05s). 3 merge 0 conflict (ort strategy), --no-ff 保留 3 worker 拓扑 |
+| v0.6.9 | 2026-09-03 07:35 | 架构师(Mavis 接手 agent per DEC-008) | R1 业务冲刺拍板落地 (per 9/3 07:31 JST ask_user 4 项拍板): ① §8 加 L-CAND-006 例外段 (k8s secret 导出硬 ban 安全类, 不等 R4 季度评审, 9/3 当天落地) ② `scripts/cleanup-tmp-files.ps1` + `scripts/pre-commit-tmp-check.ps1` (L12 兜底, 临时文件不入 commit) ③ 仓库盘点 + token 标准推进 R1-R5 路线图落档 `docs/14-项目治理/RGS-DEVPLAN-2026-09-02_v0.3.md` (21.3 KB) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
