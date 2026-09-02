@@ -124,11 +124,52 @@
 
 ---
 
+## 4.4 「補缺口 1+2+5+6」完工 (per 2026-09-02 15:02 JST Ulysses 拍板)
+
+> **本节为 v0.1 → v0.2 升级内容**: §3 已知缺口 1+2+5+6 (主会可独立补 4 项) 全部完工, 4 commit 落地, 1 个独立验证报告产出, 1 缺口 (4 季度评审扩量 + 3 PH-4) 仍超 scope, 1 缺口 (7 worktree 目录残余) 需 Ulysses 介入清理。
+
+### 4.4.1 缺口补全 commit 列表 (4 commit + 1 报告)
+
+| 缺口 | commit | 文件 | 摘要 |
+|---|---|---|---|
+| **1** BAS-014 重编号 50+ 内部交叉引用 | `fd8286b` | `RGS-BAS-014_排行榜任务成就与玩家治理_基本设计书.md` | spot-check 验证报告 74 总引用, 0 重编号遗漏; 11 处内部 §N.M 引用 +1 修复 (L283 §2.3.1→§3.3.1, L285 §2.3.1→§3.3.1, L354 §2.6→§3.6, L574 §2.5→§3.5, L583 §2.3.1→§3.3.1, L588 整段 5 个 §N.M +1, L590-592 §5.3→§6.3, L593-594 §6.4→§7.4); 跨文档引用 (BAS-001/003/004/005/009 + RGS-REQ-017) 不动; 修订历史加 v0.5 段; spotcheck 报告 docs/14-项目治理/.bas-014-spotcheck-v2.txt (主会话备份 D:\tmp\bas-flow-backup-2026-09-02\) |
+| **2** 9 篇 mermaid 块结构验证 | `1902191` | `RGS-BAS-MERMAID-VERIFY-2026-09-02_v0.1.md` (新建) | 9/9 PASS (块结构 + 必要元素); @mermaid-js/parser 1.2.1 不支持 sequenceDiagram (仅支持 architecture/gitGraph/info 等新类型); mermaid-cli puppeteer 下载超时取消; 改用本地自写 sequenceDiagram 块结构检查器 (verify-seq.js); 4 类检查: 必有 sequenceDiagram 头 / 至少 1 actor/participant / 块结构平衡 (stack 跟踪 alt/else/loop/rect/opt/par/critical/break/note 配对 end) / message 格式; 9 篇累计 9 actor + 72 participant = 81 角色, 306 message; DDD Review L0 第 7 项 "mermaid 语法" 状态: 块结构 PASS, 完整渲染留二审阶段 (per RGS-BAS-FLOW-STANDARD §3.1 GitHub 渲染兜底) |
+| **5** BAS-020 顶部版本号 + 最终更新日同步 | `aa51242` | `RGS-BAS-020_平台内购合规与服务器选服_基本设计书.md` | 头部版本字段 0.5 → 0.6; 最终更新日 2026-08-16 → 2026-09-02 (v0.4 9/1 + v0.5 9/2 实际修订日期未同步); 修订历史加 v0.6 段; 跳号说明: v0.3→v0.5 是 worker-2 ffc0dae 处理 (实际对齐修订历史 v0.5, 非跳号), v0.5→v0.6 是本次「補缺口 5」 |
+| **6** BAS-003-mTLS 补审批栏 | `95db60b` | `RGS-BAS-003-mTLS-决策补充-v0.1.md` | 新增 §4.1 审批栏（承認欄 / Approval）段 (per BAS-001 v0.2 §审批栏 5 列表头: 角色/姓名-责任/审批日/备注); 5 行: 制定(v0.1 8/29) / 评审技术(v0.2 9/1) / 评审业务(v0.3 9/2) / 补缺治理(v0.4 9/2) / 审批负责人(待 Ulysses 二审补); 修订说明加 v0.4 段; 待 Ulysses DDD Review 二审时补充"审批（负责人）"角色 (per 9/2 10:18 JST B3 拍板 Mavis 一审停手 + Ulysses 二审必到) |
+
+### 4.4.2 已识别但未补的缺口 (3 项)
+
+| 缺口 | 状态 | 原因 | 后续 |
+|---|---|---|---|
+| **3** BAS-024 §1.1.4 灰度/金丝雀发布 | ❌ 不补 | PH-4 实施阶段任务, 超本任务 scope | PH-4 实测补齐 (per worker-3 报告 §11.4 已知缺口) |
+| **4** 27 篇已有 mermaid BAS 扩量 | ❌ 不补 | 季度评审范围, 超本任务 scope | 9/2 季度评审 (12/2 JST) 进 L-CANDIDATES 候选清单 |
+| **7** D:\rgs-docs-flow-2\ 目录残余 | ❌ 不补 | 需 Ulysses 介入 (safety policy 禁 Remove-Item -Recurse -Force) | 建议: 安全策略解除后用 mavis-trash 或 explorer 手动删 4 个目录; git 已不引用, 无功能性影响 |
+
+### 4.4.3 缺口补全 5 项派生约束守护 (per AGENTS.md §6 / §8)
+
+- ✅ **L1 (cargo check)**: N/A (本次 4 commit 全为文档变更, 无代码改动)
+- ✅ **L3 (跨工具链决策)**: mermaid-cli 不可达时用本地 JS 检查器 + GitHub 渲染兜底 (per 缺口 2)
+- ✅ **L11 (cargo build lock)**: 类比 — mermaid-cli puppeteer 下载超时改用本地 JS, 不轮询 (per 缺口 2)
+- ✅ **L12 (临时 log 不入 commit)**: 9 个临时文件 (spotcheck.ps1 / .bas-014-spotcheck-v2.txt / extract.ps1 / verify-seq.js / 9 .mmd / verify-seq-report.json) 全部在 D:\tmp\bas-flow-backup-2026-09-02\ 备份, 不入 commit
+- ✅ **L13 (plumbing byte-level)**: BOM 修复用 UTF8Encoding($false) 排除 (per 缺口 2 验证器)
+
+### 4.4.4 DDD Review 二审必查 (per 9/2 10:18 JST B3 拍板)
+
+9 篇補「処理フロー」段 + 4 commit 「補缺口」 = 13 commit 全部需 **Ulysses 二审**:
+
+- 缺口 1: BAS-014 §3-§9 重编号 50+ 内部交叉引用一致性 (commit `fd8286b`)
+- 缺口 2: 9 篇 mermaid 块结构 + 必要元素 + 完整渲染 (commit `1902191` 报告 + 9 篇补全 commit)
+- 缺口 5: BAS-020 顶部 v0.6 + 最终更新日 9/2 (commit `aa51242`)
+- 缺口 6: BAS-003-mTLS §4.1 审批栏 + 审批（负责人）角色 (commit `95db60b`)
+
+---
+
 ## 5. 修订历史
 
 | 版本 | 日期 (JST) | 修订人 | 审批 | 摘要 |
 |---|---|---|---|---|
 | v0.1 | 2026-09-02 14:25 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 初版: W36 业务里程碑 (「処理フロー」标准化 + 9 篇补全 + DDD L0 必查) + 0 hotfix + 7 已知缺口 |
+| v0.2 | 2026-09-02 15:30 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 升级: §4.4 「補缺口 1+2+5+6 完工」段 (4 commit 落地, 1 验证报告, 3 已知缺口未补); v0.1 §3 缺口 1+2+5+6 状态从 "未补" 升级为 "已补", 3 缺口 (3 PH-4 / 4 季度评审 / 7 worktree 残余) 仍超 scope; DDD Review 二审必查 4 commit |
 
 ---
 
