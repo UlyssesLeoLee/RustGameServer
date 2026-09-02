@@ -156,7 +156,7 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (31 commit)
+### 文档 / 跟踪表 hotfix (32 commit)
 
 | commit | 摘要 |
 |---|---|
@@ -191,6 +191,7 @@
 | `92d47c8` | RGS-SESSION-CLOSEOUT v0.1.1 (§0 + §1.3 + §2.3 + §3 + §6 + §7 升版 STATUS-SNAPSHOT v0.6.30 → v0.6.34 + VERIFIER-COMMANDS v0.1 → v0.1.1 + 加 7 大跟踪文档完整闭环, 自指字段全 deferred 实时查询) |
 | `819fe3c` | STATUS-SNAPSHOT v0.6.35 (§2 文档 hotfix 段从 28 → 29 commit 补 SESSION-CLOSEOUT v0.1.1 升版) |
 | `11fd3d7` | WBS v0.4.10 (§1 主表 E3 W2-W6 汇总行 43 commit 老数字改实时 git log 表达式, L13 终极守护 v0.6.23 + v0.6.32 同步) |
+| `8b70468` | RGS-PHASE-C-SRE-HANDOFF v0.1 (Phase C SRE 介入 Handoff: 4 阶段 23 项 checklist: A k3s 节点 / B 5 域 mTLS / C 22 测试 / D 评审启动, L11+L12+L13+L14+OPEN-QA §7.5 派生约束守护) |
 
 **commit 链总合计**: 实时查 `git rev-list --count 84edf26..main` (per L13 终极守护 v0.6.23 + v0.6.29) — 任何冲突以 git 实证为准。**完整权威源 = `git log 84edf26..main --oneline`**, 配合 VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数。
 
@@ -316,6 +317,7 @@
 | **v0.6.34** | **2026-09-02 11:14** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 26 commit → 28 commit (补 f94f5e0 v0.6.33 + 14adbf8 VERIFIER-COMMANDS v0.1.1), 7 大跟踪文档完整闭环, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.35** | **2026-09-02 11:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 28 commit → 29 commit (补 92d47c8 SESSION-CLOSEOUT v0.1.1 升版), 7 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.36** | **2026-09-02 11:26** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 29 commit → 31 commit (补 819fe3c v0.6.35 + 11fd3d7 WBS v0.4.10), 7 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.37** | **2026-09-02 11:33** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 31 commit → 32 commit (补 8b70468 PHASE-C-SRE-HANDOFF v0.1), 8 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
