@@ -40,6 +40,61 @@
 | gm-backend → admin-service | ✅ 已实装 (W21) | 仅需证书轮换策略 + 1 年有效期 + Vault 集成 |
 | 5 域内部 (admin → 5 域, 5 域之间) | ❌ 不上 | 0 token 投入(决策记录即可) |
 
+## 3.1 処理フロー（简化版 / Simplified Flow）
+
+> 本节是子文档豁免版 (per RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §1 子文档豁免段, 2026-09-02 13:59 JST 主会话拍板)
+> 4 要素完整要求不适用, 改为 1 段精简流程说明 + 1 张合并表 (异常 / 补偿 / 验证合并)
+> 详细日志设计见 §7, 详细 mTLS 事件命名空间见 §7 与 BAS-003 §4.5 边界段
+
+gm-backend → admin-service 的 mTLS 双向认证流程, 涉及 gm-backend / admin-service / Vault 三个 actor 与 admin-service / gm-backend 双向 5 个时序步骤(初始化握手 → 业务调用 → 证书轮换 → 5 域内部走 JWT-only → 异常处理):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant GB as gm-backend
+    participant AS as admin-service
+    participant V as Vault
+    participant P5 as 5 域 (player/economy/match/social/cluster-ops)
+    participant OP as OTel/Prometheus
+
+    Note over GB,OP: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over GB,OP: 5 域内部走 JWT-only 不经 mTLS 链路, per §1 决策
+
+    rect rgb(240, 248, 255)
+        Note over GB,AS: 主路径: gm-backend → admin-service mTLS 双向认证
+        GB->>V: 拉取 client cert (per §3 1 年有效期 + Vault 集成)
+        V-->>GB: client cert + key
+        GB->>AS: gRPC 握手 (mTLS, client cert 校验)
+        AS->>V: 拉取 server cert (trust chain)
+        V-->>AS: server cert + CA bundle
+        AS-->>GB: 握手完成 (server cert 校验 + client cert 校验)
+        GB->>AS: GM 业务调用 (gRPC + JWT, per W17)
+        AS->>OP: 写 mtls.handshake.completed + gm.*.received (按 trace_id 串联)
+    end
+
+    rect rgb(255, 250, 240)
+        Note over GB,P5: 备选路径: 5 域内部 (admin → 5 域, 5 域之间) 走 JWT-only
+        AS->>P5: gRPC 调用 (无 mTLS, 仅 JWT + NetworkPolicy)
+        P5-->>AS: 响应
+        AS->>OP: 写 mtls.policy.mtls_not_applied (决策留痕, §7)
+    end
+
+    Note over GB,OP: 异常通路: 握手失败 / 证书即将过期 / 证书被吊销 -> §7 事件 release 必出 + SRE 介入
+```
+
+### 3.1.1 異常 / 补偿 / 验证合并表
+
+| 类别 | 触发条件 | 处理动作 / 验证通过标准 / 失败补偿 |
+|---|---|---|
+| **異常: 握手失败** | client cert 不可信 / 过期 / 主体名不匹配 / TLS 版本不兼容 | 写 `mtls.handshake.failed` (release 必出, per §7); gm-backend 重试 3 次 指数退避 100/200/400ms (per ARC-009 消费者标准模式); 仍失败则返回 503 + DLQ 报警 |
+| **異常: 证书即将过期** | 证书剩余有效期 < 30 天 | 写 `mtls.cert.expiry_warning` (release 必出, per §7); admin-service / gm-backend 自动从 Vault 拉取新证书并热加载; 失败则写 `mtls.cert.rotation.completed` 含失败原因 |
+| **異常: 证书被吊销** | 证书从 Vault CRL 列表移除 (admin-service 实例被入侵强制吊销) | 写 `mtls.cert.revoked` (release 必出, per §7 + NFR-SE-001); gm-backend 立即停止连接, 走 DLQ 报警 + 安全应急响应 |
+| **異常: Vault 不可达** | Vault 服务不可达 (证书轮换路径) | 复用 BAS-003 §3 Vault 不可达降级逻辑; gm-backend 走本地缓存证书 (≤24h); 写 `mtls.cert.rotation.failed` (debug-only, 内部告警) |
+| **补偿: 反向重连** | admin-service 重启或证书热加载后 | gm-backend 主动重握手, 走 mtls.handshake.completed 路径; 客户端不感知切换 (per §7 与 BAS-003 §3 AdminService 事件串联) |
+| **验证: 握手完成** | 双向 mTLS 握手成功 (client cert 校验 + server cert 校验) | 写 `mtls.handshake.completed` (release 必出, 100% 强制全采样, per §7); 含 `peer_cn` / `client_cert_serial` (仅 SN 末 8 位) / `tls_version` / `cipher_suite`; 约 200B/条 |
+| **验证: 5 域走 JWT-only** | admin → player/economy/match/social/cluster-ops 任一调用 | 写 `mtls.policy.mtls_not_applied` (release 必出, 决策留痕, per §7); 含 `src_service` / `dst_service` / `expected_auth= jwt_only`; 约 200B/条 |
+| **验证: trace_id 串联** | mTLS 握手与后续 gm.*.received 共享 trace_id | gm-backend 在 gRPC metadata 注入 trace_id; admin-service 接收时关联 (per §7 与 §3 AdminService 事件串联段) |
+
 ## 4. 决策留痕
 
 - **决策日**: 2026-08-29 05:28 JST
@@ -96,3 +151,11 @@
 > **节省 token**: 拒绝全 9 域 mTLS, 节省 ~12M tokens(per 桶 4 token 预算 25M 缩到 13M)
 
 > **v0.2 修订说明（2026-09-01）**: 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，all_35 + compile_plus_runtime），新增 §7 决策落地的运行时事件日志设计 9 事件（5 列详尽版，字段前缀 `mtls.*`，debug-only 守护要点段 + 与 BAS-003 §4.5 边界说明 + 与 §3 AdminService 事件串联说明）。commit 沿用 `BAS-003 v0.3` + `BAS-004 v0.3` 引用格式。
+
+> **v0.3 修订说明（2026-09-02）**: 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §1 子文档豁免段, 主会话打头阵判断): 新增 §3.1 処理フロー（简化版 / Simplified Flow）段, 1 段精简流程说明 (mermaid sequenceDiagram, 5 actor: gm-backend / admin-service / Vault / 5 域 / OTel-Prometheus) + 1 张异常/补偿/验证合并表 (8 行: 握手失败 / 证书即将过期 / 证书被吊销 / Vault 不可达 / 反向重连 / 握手完成验证 / 5 域走 JWT-only 验证 / trace_id 串联验证), 覆盖 gm-backend → admin-service mTLS 双向认证 + 5 域走 JWT-only 备选路径 + 异常通路三个路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 与 §7 决策落地的运行时事件日志设计 9 事件 互为详细化引用; 与 BAS-019 §1.1 范式一致 (commit `d52eaad`); 与 BAS-031 §6.5 同期补全 (commit 25cd934). 代签三行齐全 (per 8/27 19:39/20:56/21:59 JST 三次强化):
+> - 修订人: Mavis (接手 agent per DEC-008)
+> - 审批: 架构师 (Mavis 接手 agent per DEC-008)
+> - 修订日: 2026-09-02
+> - 影响需求: §3.1
+> - 引用: RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 (commit 0db8507) §1 子文档豁免段
+> - 关联 commit: BAS-031 §6.5 同期补全 (commit 25cd934) / BAS-019 §1.1 范式 (commit d52eaad)
