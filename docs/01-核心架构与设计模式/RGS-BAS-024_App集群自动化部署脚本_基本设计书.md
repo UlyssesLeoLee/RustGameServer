@@ -22,6 +22,7 @@
 | 0.1 | 2026-08-17 | 架构师 | — | 初版制定。将RGS-REQ-027 ARC-042展开为集群清单Schema、依赖图算法、编排状态机、CLI工具设计、与ARC-018脚手架检查清单的强制联动方式 | 全部 |
 | 0.2 | 2026-08-17 | 架构师 | — | 补齐设计缺口：NFR-DEP-003要求给出可度量的部署时长具体基准，此前正文无任何数字。新增§9A，给出基于依赖图层级数与单App部署耗时的估算目标（P50 10分钟/P99 20分钟），并声明估算不含灾备重建的基础设施状态恢复耗时（RSK-DEP-002），须PH-4实测校准 | NFR-DEP-003 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部36个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1/§3.1.1/§3.2.1/§3.3.1/§4.1/§5.1/§6.1.1/§6.2.1/§7.1/§8.1/§9.1/§9A.1/§10.1 全部13个 ## L2/L3 功能段加"本功能日志设计" 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；字段名前缀统一 `deploy.*`（deployment 部署域），与 BAS-001 `log.*` / BAS-002 `mnt.*` / BAS-003 `ops.*` / BAS-010 `pat.*` 区分；显式区分部署任务执行（启动/暂停/恢复/回滚）→ `info!`/`warn!` release 必出 + §6.2 强制全采样（部署动作审计）、镜像拉取/版本校验 → `info!` release 必出（per FR-DEP-001）、灰度/金丝雀发布 → `info!` release 必出 + §6.2 强制全采样（per FR-DEP-007/008）、部署失败/超时 → `error!` §6.2 强制全采样（per FR-DEP-009 + NFR-OP-008 SLA 保障）、部署详细日志（kubectl exec 输出）→ `debug!`/`trace!` debug-only `#[cfg(debug_assertions)]` 守护 release 完全剔除、部署配置变更 → `info!` release 必出（per §9 审计联动 + 状态表持久化）；覆盖 ARC-018 挂载脚手架联动 + ARC-042 DEP 域架构 + ARC-009 状态机 + RGS-BAS-022 容量分档 + RGS-BAS-003 §7 审计留痕 + NFR-DEP-001〜003 + FR-DEP-001〜009 + NFR-PE-008 性能监控 + NFR-OP-008 排查SLA + FR-LOG-010/011/012/013/040 日志规范 + RSK-DEP-001 集群清单遗漏 + RSK-DEP-002 灾备基础设施恢复等全系列相关追溯依据；§11 追溯性新增 AC-DEP-005（`deploy.*` debug-only 宏 release 完全剔除）与 AC-DEP-006（每功能 BAS 文档须含本功能 log 章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §2.1/§3.1.1/§3.2.1/§3.3.1/§4.1/§5.1/§6.1.1/§6.2.1/§7.1/§8.1/§9.1/§9A.1/§10.1/§11 |
+| 0.4 | 2026-09-02 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §1.1 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 8 actor: Operator/CLI/ManifestLoader/DependencyGraph/TopologicalSorter/OrchestrationStateMachine/ARC-018 Scaffold + Helm Release (既有)/k3s Cluster/AuditLog (PG)) 覆盖部署流水线主路径 + 回滚旁支 + Dry-run 路径 + 異常分支表 (15 行, 含 manifest schema 失败 / 依赖图校验失败 (无环/基础设施前置/孤儿引用) / 拓扑排序失败 / Helm 5xx / 健康检查失败 / 续跑上游未 SUCCEEDED / Helm diff 失败 / 配置漂移 / 回滚失败 (revision/chart/K8s 三类) / 回滚超时 / 部分回滚 / AuditLog 事务失败) + 决策点矩阵 (8 行, Dry-run vs Apply / 续跑跳过规则 / 失败 pause vs continue / 续跑 vs 回滚 / 拓扑粒度 / 回滚正 vs 逆拓扑 / 灰度金丝雀 / 灾备重建) + 验证点清单 (15 行, manifest 加载 / 依赖图构建 / 校验三件套 (无环/基础设施前置/孤儿) / 拓扑排序 / 状态机迁移 / Helm Release 成功 / 健康检查 / AuditLog 同事务 / 续跑幂等性 / Dry-run 边界 / Helm diff 成功 / 回滚 revision/chart/K8s RBAC); trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界 (状态表 + audit_log 同事务, per §4 末段) 标注, Helm Release 异步触发不在事务内; 部署详细日志 Helm kubectl 输出走 debug-only (per §3.3 / §4 / §6 既有 log 设计); 与既有 §4 编排状态机 / §5 幂等性 / §6 Dry-run 与回滚 互为详细化引用, 不破坏既有结构; 修订历史加 v0.4 段 (代签三行齐全 per 8/27 19:39 / 20:56 / 21:59 JST 三次强化); 本篇 4 要素 0 个已有 (全空, 部署脚本文档无业务交易流程), 补 4 个, 流程图侧重部署流水线 (CI/CD -> Registry -> k3s apply), 異常表侧重部署失败 / 回滚 / 健康检查失败 / 配置漂移, 不硬套交易流程 | §1.1 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +38,7 @@
 ## 目录
 
 1. [前言](#1-前言)
+   1.1 [処理フロー（处理流程 / Processing Flow）](#11-処理フロー处理流程--processing-flow)
 2. [集群清单 Schema](#2-集群清单-schema)
 3. [依赖图构建与校验](#3-依赖图构建与校验)
 4. [编排状态机](#4-编排状态机)
@@ -53,6 +55,159 @@
 # 1. 前言
 
 本文档展开RGS-REQ-027定义的DEP域需求，给出集群清单格式、依赖图算法、编排状态机与工具形态的具体设计。核心原则（继承ARC-042）：编排层是**既有ARC-018挂载脚手架之上的一层薄编排**，不引入新的部署执行机制，所有实际部署动作仍是既有GitOps/Helm Release流程。
+
+### 1.1 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 本段覆盖**部署流水线**主路径: CLI 触发 -> manifest 加载 -> 依赖图构建+校验 -> 拓扑排序 -> 编排状态机 (per-level 并行 Helm Release) -> 健康检查 -> SUCCEEDED/回滚
+> 详细时序见 §4 编排状态机 / §5 幂等性 / §6 Dry-run 与回滚, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+#### 1.1.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Operator as 运维/开发者
+    participant CLI as deploy-cluster CLI
+    participant MM as ManifestLoader
+    participant DG as DependencyGraph
+    participant TS as TopologicalSorter
+    participant SM as OrchestrationStateMachine
+    participant SC as ARC-018 Scaffold
+    participant Helm as Helm Release (既有)
+    participant K8s as k3s Cluster
+    participant Audit as AuditLog (PostgreSQL)
+
+    Note over Operator,Audit: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Operator,Audit: 事务边界: 状态表写入同事务 (PG, §4); Helm Release 异步触发, 不在事务内
+
+    rect rgb(240, 248, 255)
+        Note over Operator,Audit: 主路径: 部署流水线 (per §4 状态机详细时序)
+        Operator->>CLI: deploy-cluster apply --cluster-id=X --manifest-version=Y
+        CLI->>MM: 加载 cluster-manifest.yaml (§2)
+        MM-->>CLI: 校验 schema (YAML 格式 + manifest_version 兼容)
+        alt manifest 校验失败
+            CLI-->>Operator: 拒绝执行, 输出错误
+        else 校验通过
+            CLI->>DG: 构建依赖图 (§3.1)
+            DG->>DG: 校验规则 (§3.2: 无环 / 基础设施前置 / 孤儿引用)
+            alt 校验失败
+                CLI-->>Operator: 拒绝执行, 输出违规 App 列表
+            else 校验通过
+                DG->>TS: 拓扑排序 (§3.3)
+                TS-->>CLI: 返回 levels[] (每层并行)
+                CLI->>Audit: 写入 run_id + PENDING 状态 (同事务)
+                CLI->>SM: 启动编排循环
+                loop 每个 level (并行)
+                    loop 每个 app in level
+                        SM->>Audit: 状态 PENDING -> RUNNING
+                        SM->>SC: invoke_scaffold(app.scaffold_ref, target_version)
+                        SC->>Helm: helm upgrade --install (既有)
+                        Helm->>K8s: apply manifests
+                        K8s-->>Helm: apply 结果
+                        Helm-->>SC: 部署完成
+                        SC->>K8s: kubectl rollout status / health probe
+                        alt 健康检查失败 / Helm 5xx
+                            SC-->>SM: FAILED
+                            SM->>Audit: 状态 RUNNING -> FAILED
+                            SM-->>CLI: pause_run() (不继续下一层级, §4 伪代码)
+                        else 健康检查通过
+                            SC-->>SM: SUCCEEDED
+                            SM->>Audit: 状态 RUNNING -> SUCCEEDED
+                        end
+                    end
+                end
+                alt 任一 level 失败
+                    CLI-->>Operator: 报告失败, 提示续跑或回滚
+                else 全部 SUCCEEDED
+                    CLI->>Audit: run 终态 COMPLETED
+                    CLI-->>Operator: 部署完成
+                end
+            end
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Operator,Audit: 旁支: 回滚流程 (per §6.2 详细时序)
+        Operator->>CLI: deploy-cluster rollback <run_id>
+        CLI->>Audit: 读取 run_id 下 SUCCEEDED App 列表
+        CLI->>TS: 逆拓扑排序 (业务域在前, 基础设施层在后)
+        CLI->>SM: 启动回滚循环
+        loop 每个 app (逆拓扑序)
+            SM->>SC: helm rollback (到该 run 执行前的 revision)
+            SC->>Helm: helm rollback <release> <revision>
+            Helm->>K8s: 还原 manifests
+            K8s-->>Helm: 还原结果
+            alt 还原失败
+                SM->>Audit: 状态 FAILED, 写入 partial_rollback
+                SM-->>CLI: 报告部分失败, 需人工介入
+            else 还原成功
+                SM->>Audit: 状态 -> ROLLED_BACK
+            end
+        end
+        CLI-->>Operator: 回滚完成
+    end
+
+    Note over Operator,Audit: 异常通路 (DLQ + 重试): Helm 临时不可用 -> ARC-009 标准模式 (重试 3 次 100/200/400ms) -> DLQ 报警
+    Note over CLI,Audit: Dry-run 路径: 走 manifest 加载 + 图构建 + 拓扑排序 + helm diff, **不**进入 RUNNING 阶段, 无副作用 (per §6.1)
+```
+
+#### 1.1.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| manifest schema 校验失败 | YAML 格式错误 / manifest_version 不兼容 / 缺必填字段 (§2) | 拒绝执行, 输出错误位置 | CLI 立即报错退出 | 运维修复 manifest, 重提 |
+| 依赖图校验失败 (无环) | 图中检测到循环依赖 (§3.2 校验规则) | 拒绝执行, 输出循环路径 | CLI 立即报错退出 | 运维修复 depends_on 关系 |
+| 依赖图校验失败 (基础设施前置) | 业务域 app 缺少基础设施层依赖 (§3.2 校验规则) | 拒绝执行, 输出违规 App | CLI 立即报错退出 | 运维补充 depends_on (GW/EVT/CFG/TRD 等) |
+| 依赖图校验失败 (孤儿引用) | depends_on 指向不存在的 app_id (§3.2 校验规则) | 拒绝执行, 输出孤儿引用 | CLI 立即报错退出 | 运维修复引用, 或补充被引用 app |
+| 拓扑排序失败 (与无环同时) | 检测到循环依赖无法排序 (§3.3) | 同无环失败, 拒绝执行 | CLI 立即报错退出 | 运维修复依赖图 |
+| Helm Release 5xx / 超时 | helm upgrade --install 返回非 0 / 超时 (§4 伪代码) | 状态 RUNNING -> FAILED, pause_run() | 部署停止, 报告失败 App 列表 | 续跑 (--resume) / 回滚 (--rollback) |
+| 健康检查失败 | kubectl rollout status 失败 / readiness probe 失败 (§4 状态机) | 状态 RUNNING -> FAILED, pause_run() | 部署停止, 报告失败 App | 续跑 (修复后) / 回滚 |
+| 续跑时上游未 SUCCEEDED | 续跑 run_id, 某 app 上游依赖非 SUCCEEDED (BLOCKED 状态, §4) | 跳过 (status 不变, 由上游修复后自动解锁) | 续跑部分推进, 上游修复后下游继续 | 修复上游失败 app, 重新 --resume |
+| Helm diff 失败 (Dry-run) | helm diff / --dry-run chart 解析错误 / kubeconfig 不可达 (§6.1) | dry-run 终止, 输出错误, 不进入 RUNNING | CLI 输出错误退出 | 运维修复 chart / kubeconfig, 重跑 dry-run |
+| 配置漂移 (drift) | Dry-run 时 current_revision != target_version (§6.1) | 记录 `deploy.dry_run.drift_detected`, 报告有差异 App | dry-run 输出有差异列表 (不阻断) | 运维评估: 接受漂移 (更新 manifest) / 强制 apply |
+| 回滚失败 (revision 不存在) | helm rollback 目标 revision 不存在 (§6.2 流程) | 状态记 FAILED, 写入 `deploy.rollback.app_rollback_failed`, 错误分类"revision 不存在" | 部分回滚, 报告失败 App | 运维人工选定有效 revision, 重新 rollback |
+| 回滚失败 (chart 损坏) | chart 文件损坏 / 哈希不匹配 (§6.2) | 状态记 FAILED, 错误分类"chart 损坏" | 部分回滚 | 运维重新挂载 chart, 重新 rollback |
+| 回滚失败 (K8s 拒绝) | RBAC 不足 / namespace 不可写 (§6.2) | 状态记 FAILED, 错误分类"K8s 拒绝" | 部分回滚 | 运维检查 RBAC, 重新 rollback |
+| 回滚超时 (单 App) | helm rollback 调用超过 P99 估算 (§6.2) | 状态记 FAILED, 写入 `deploy.rollback.timeout` | 部分回滚, 该 App 状态不明 | 运维 kubectl 手动查 App 状态, 决定续走 |
+| 部分回滚 (partial) | 部分 App 回滚成功 / 部分失败 (§6.2) | 写入 `deploy.rollback.partial_rollback`, 列出 succeeded[] / failed[] | 报告需人工介入 | 运维决定: 续走失败 App / 接受当前状态 |
+| 事务提交失败 (AuditLog) | PostgreSQL 状态表写失败 (同事务, §4 末段) | 整体中断, 状态表保持一致 | CLI 报错退出 | 运维查 DB 连接, 重新 apply |
+
+#### 1.1.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| Dry-run vs Apply | CLI 子命令 (deploy-cluster plan/validate vs apply, §6.1 / §8) | plan/validate -> Dry-run (走图构建+拓扑+helm diff, **不**进入 RUNNING) | apply -> 真部署 (走完整状态机) | 用户感知: dry-run 报告无副作用, apply 真改集群 |
+| 续跑 (resume) 跳过规则 | run_id 已有 SUCCEEDED 的 app (§5 幂等性) | 跳过 (status=SUCCEEDED, 续跑时不再调用 helm) | 重跑 (强制重新部署) | 用户感知: 续跑只处理未成功的 app, 节省时间 |
+| 失败时 pause vs continue | 某 app 状态变 FAILED (§4 伪代码末段) | pause_run() 停止, 不继续下一 level | 强制 continue (不推荐, 风险高) | 用户感知: 部署立即停止, 等运维决策 |
+| 续跑 (--resume) vs 回滚 (--rollback) | 失败后用户决策 (CLI 子命令, §6.2 / §8) | --resume: 修复后重跑 FAILED app | --rollback: 逆拓扑回滚已 SUCCEEDED app | 用户感知: 续跑推进部署, 回滚撤回已部署 |
+| 拓扑排序粒度 (level 数量) | 依赖图结构 (§3.3 拓扑排序) | 1 个 level (无依赖): 全并行; N 个 level (强依赖): 严格串行 | 强制 1 个 level (忽略依赖, 风险高) | 性能: 无依赖最快, 强依赖串行最慢 |
+| 回滚顺序 (正 vs 逆拓扑) | §6.2 流程 (刻意与部署相反) | 逆拓扑: 业务域 App 先回滚, 基础设施层后回滚 | 正拓扑: 基础设施层先回滚 (危险, 业务域仍依赖) | 用户感知: 逆拓扑安全, 业务域不依赖已回滚的基础设施 |
+| 灰度/金丝雀发布 | TBD-DEP-001 决议 (per §10 选型建议) | CLI 生成参数化 Pipeline 触发请求 (per §10 决议) | 不做灰度 (全量发布, 风险高) | 用户感知: 灰度逐步放量, 异常自动回滚 |
+| 灾备重建 (DR) 跑批 | RSK-DEP-002 灾备基础设施恢复 (per §9A 局限声明) | 灾备重建独立 run, 走完整状态机 (时长另算) | 跳过 (灾备失效) | 用户感知: 灾备可用, RTO 受 run 时长约束 |
+
+#### 1.1.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| manifest 加载 | YAML 格式 + manifest_version 兼容 (§2 schema) | 解析成功, 必填字段齐全, 版本兼容 | 拒绝执行, 输出错误位置 |
+| 依赖图构建 | §3.1 构建算法 (邻接表 + DFS) | 所有 app 节点已添加, depends_on 边已记录 | 拒绝执行, 报告构建失败 app |
+| 依赖图校验 (无环) | §3.2 校验规则 - 无环 | DFS 后无 back edge | 拒绝执行, 输出循环路径 |
+| 依赖图校验 (基础设施前置) | §3.2 校验规则 - 业务域 app 依赖 GW/EVT/CFG/TRD 等 | 业务域 app 的 depends_on ⊇ 基础设施层 (per §2 预置清单) | 拒绝执行, 输出违规业务域 app |
+| 依赖图校验 (孤儿引用) | §3.2 校验规则 - depends_on 指向存在的 app_id | 所有引用都解析成功 | 拒绝执行, 输出孤儿引用 |
+| 拓扑排序结果 | §3.3 拓扑排序, levels[] 每层 app 并行 | 每层 app 数量 ≥ 0, levels 顺序与依赖图一致 | 排序失败 (同无环失败) 拒绝执行 |
+| 状态机迁移 (PENDING -> RUNNING) | §4 状态表, 同事务写状态变更 | tx_id 成功提交 | 整体中断, 状态表保持一致 |
+| Helm Release 成功 | helm upgrade --install 返回 0 (既有 ARC-018) | exit code = 0 | 状态 -> FAILED, pause_run() |
+| 健康检查 (readiness probe) | kubectl rollout status 通过 (K8s 标准) | rollout status: complete | 状态 -> FAILED, pause_run() |
+| AuditLog 写入 | 同事务: 状态表 + audit_log (§4 末段 + RGS-BAS-003 §7 复用) | tx_id 成功提交 | 整体回滚, 状态表保持一致 |
+| 续跑幂等性 | 已 SUCCEEDED app 不重复 helm 调用 (NFR-DEP-004, §5) | status=SUCCEEDED -> 跳过 | 续跑只处理 RUNNING/FAILED/BLOCKED |
+| Dry-run 边界 (per §6.1) | dry-run **不**进入 RUNNING 状态机, 无 K8s 副作用 | 状态表无 RUNNING 记录, helm --dry-run 仅 diff 不 apply | 写 `deploy.dry_run.phase_skipped` 审计边界 |
+| Helm diff 成功 | helm diff / --dry-run 返回 0 (§6.1) | exit code = 0, 输出 diff (可有可无 drift) | dry-run 终止, 写 `deploy.dry_run.helm_diff_failed` |
+| 回滚 revision 有效 | helm rollback 目标 revision 存在 (§6.2) | revision 在 history 列表中 | 失败, 错误分类"revision 不存在" |
+| 回滚 chart 完整 | chart tarball / OCI artifact 哈希匹配 (§6.2) | 哈希匹配 (per §2 scaffold_ref) | 失败, 错误分类"chart 损坏" |
+| 回滚 K8s RBAC | ServiceAccount 有 rollback 权限 (§6.2) | kubectl auth can-i rollback 成功 | 失败, 错误分类"K8s 拒绝" |
+
+---
 
 # 2. 集群清单 Schema
 
