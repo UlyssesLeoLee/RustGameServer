@@ -603,6 +603,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.3 | 2026-09-02 14:07 | 架构师(Mavis 接手 agent per DEC-008) | B3 派生约束落地 (per 9/2 10:18 JST 拍板, W1 D2 任务): 新增 `docs/14-项目治理/DDD-REVIEW-TEMPLATE-v0.2.md` (11.8 KB, 二审流程图 + 文档结构 + 签字栏 2 段 + 打回循环上限) + §3.x 新增 DDD Review 二审流程段 (Mavis 自审 1 次停手 + Ulysses 二审必到) + §10 修订历史本行 |
 | v0.6.4 | 2026-09-02 15:42 | 架构师(Mavis 接手 agent per DEC-008) | C1 派生约束落地 (per 9/2 10:18 JST 拍板, W1 D5 任务): 新增 `docs/14-项目治理/RGS-BATCH-V0.1-FREEZE-2026-09-02_v0.1.md` (6.6 KB, 冻结范围 + 12 GAP 状态 + 触发解冻条件 + batch Lead 责任 + 已知缺口). batch 域 v0.1 文档冻结不再升 v0.2, 直至 Phase C SRE 介入 + 5 域 E2E 跑通 |
 | v0.6.5 | 2026-09-02 16:10 | 架构师(Mavis 接手 agent per DEC-008) | 全做 4 候选落地 (per 9/2 16:10 JST 拍板): ① D4 周报 v0.3 `RGS-WEEKLY-2026-W36_v0.3.md` (8.8 KB, 业务 vs 治理双指标 + W37 后续工作) ② Phase C SRE 介入准备 `RGS-PHASE-C-PREP-2026-09-02_v0.1.md` (11.3 KB, 4 阶段 23 步 + 6 测试包 + 集群摸底) ③ 5 域 ST 业务 mTLS 1 跳摸底 `RGS-K3S-CLUSTER-STATUS-2026-09-02_v0.1.md` (7.0 KB, 主会话打头阵 HTTP 部分落地, gRPC 列入 Phase C) |
+| v0.6.6 | 2026-09-02 17:33 | 架构师(Mavis 接手 agent per DEC-008) | Phase C 阶段 A 启动公告 (per 9/2 17:32 JST 拍板, W37 D2 启动): 新增 `docs/14-项目治理/RGS-PHASE-C-KICKOFF-2026-09-02_v0.1.md` (8.6 KB, 启动条件 + 阶段 A 4 步派工 SRE + 阶段 A 完成解锁阶段 B + SRE 拍板 4 选项 + 派生约束守护 + 已知缺口 + W37 后续工作 5 天) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
