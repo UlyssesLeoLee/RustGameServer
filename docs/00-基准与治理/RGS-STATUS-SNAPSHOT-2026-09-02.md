@@ -259,6 +259,7 @@
 | L13 | §6 自指字段 (main HEAD / ahead of X) 改 deferred 实时查询, 避免回溯改写链式 hotfix | v0.4.1 hotfix 经验: 写"main HEAD = 本 commit" 形成自指, 每次 hotfix 都得改 HEAD 字段, 违反 per 8/27 JST "不追溯改写历史" 派生约束 |
 | L11 | cargo check 1 次拿 status, 不 polling 多轮编译 | 9/1 PT 派工 8 worker 经验 |
 | L12 | 临时 log / .txt / .tmp_search* 不入 commit | 9/1 PT 派工 8 worker 经验 |
+| **L14** | **plumbing 节点字符串 brace 跟踪 (per AGENTS.md commit `faf40a8` 入档, 9/2 03:08 JST)** | **9/2 02:17-08:14 JST W2 BA-W2-3/5/6 patch 经验: plumbing 节点字符串拼接时, 大括号 `{` / `}` 必须 byte-level 配对跟踪, 否则 cargo check 报 unmatched `}` 错误; 跨节点传递 brace 配对要 verify after patch** |
 
 ## 7. 修订历史
 
@@ -297,6 +298,7 @@
 | **v0.6.25** | **2026-09-02 10:25** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 19 commit → 20 commit (补 82671df rgs-batch-backend/TEST-RUN-PLAN v0.1 22 测试函数运行计划文档), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.26** | **2026-09-02 10:33** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 20 commit → 21 commit (补 f4b2795 RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 评审召集时序文档), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.27** | **2026-09-02 10:41** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 21 commit → 22 commit (补 579f4a9 RGS-VERIFIER-COMMANDS v0.1 verifier 取数命令清单, L13 终极守护实现), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.28** | **2026-09-02 10:44** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 派生约束更新表新增 L14 派生约束 (plumbing 节点字符串 brace 跟踪, per AGENTS.md commit `faf40a8` 入档, 9/2 03:08 JST W2 BA-W2-3/5/6 patch 经验), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
