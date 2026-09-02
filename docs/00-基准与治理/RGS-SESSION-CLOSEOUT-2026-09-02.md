@@ -2,8 +2,8 @@
 
 > **创建日期**: 2026-09-02 11:00 JST
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008) 代签 Ulysses
-> **状态**: 🟢 收口就绪 (主会话打头阵 ~8.5h, 40 commit 净增)
-> **关联**: STATUS-SNAPSHOT v0.6.30 + WBS v0.4.9 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1 + DB-PARTITIONED-REVIEW-SEQUENCE v0.1 + rgs-batch-backend/TEST-RUN-PLAN v0.1 + RGS-VERIFIER-COMMANDS v0.1
+> **状态**: 🟢 收口就绪 (主会话打头阵 ~8.5h, commit 净增数实时查 `git log 84edf26..main --oneline | wc -l`)
+> **关联**: STATUS-SNAPSHOT v0.6.34 (L13 终极守护完全闭环) + WBS v0.4.9 + DB-PARTITIONED-REVIEW-CHECKLIST v0.1.1 + DB-PARTITIONED-REVIEW-SEQUENCE v0.1 + rgs-batch-backend/TEST-RUN-PLAN v0.1 + RGS-VERIFIER-COMMANDS v0.1.1 + RGS-SESSION-CLOSEOUT v0.1 (本文档自指)
 
 ## 0. 收口目标
 
@@ -28,7 +28,7 @@
 
 ### 1.3 阶段 3: 9/2 08:14-11:00 JST (本会话持续, ~2.75h)
 
-- 40 commit 净增 (STATUS-SNAPSHOT v0.6.1 → v0.6.30 + WBS v0.4.5 → v0.4.9 + 5 个新文档)
+- commit 净增数实时查 `git log 84edf26..main --oneline | wc -l` (STATUS-SNAPSHOT v0.6.1 → v0.6.34 + WBS v0.4.5 → v0.4.9 + 6 个新文档)
 - 关键节点:
   - 08:25 JST: WBS v0.4.5 (88 commit 误算修正)
   - 08:30-09:55 JST: STATUS-SNAPSHOT v0.6.1-19 (L11/L12/L13 三重守护 18 次 hotfix)
@@ -67,7 +67,7 @@
 
 ### 2.3 文档 hotfix (22 commit, 实时增长)
 
-- 跟踪表 hotfix: 22 commit (STATUS-SNAPSHOT v0.6.1-v0.6.30 + WBS v0.4.1-v0.4.9 + 5 个新文档)
+- 跟踪表 hotfix: 实时查 `git log 84edf26..main --oneline | grep -E "snapshot.*v0\.6\.[0-9]+ hotfix|wbs.*v0\.4\.[0-9]+ hotfix" | wc -l` (STATUS-SNAPSHOT v0.6.1-v0.6.34 + WBS v0.4.1-v0.4.9 + 6 个新文档)
 - 实时查 `git log 84edf26..main --oneline | wc -l` 拿最新
 
 ## 3. 派生约束守护 (5 大约束全部固化)
@@ -75,7 +75,7 @@
 - **L1** cargo check 60s 1 次拿 status, 1 worker 1 crate (per 9/1 PT 派工 8 worker 经验)
 - **L11** cargo check 1 次拿 status, 不 polling 多轮编译 (per PID 51296 + task_output wait 9/1 经验)
 - **L12** 临时 log / .txt / .tmp_search* 不入 commit (per 9/1 PT 派工 8 worker 经验)
-- **L13** 自指字段全 deferred 实时查询 (v0.6.11 + v0.6.23 + v0.6.29 + v0.6.30 + VERIFIER-COMMANDS v0.1 终极守护)
+- **L13** 自指字段全 deferred 实时查询 (v0.6.11 + v0.6.23 + v0.6.29 + v0.6.30 + v0.6.32 + v0.6.34 + VERIFIER-COMMANDS v0.1.1 终极守护)
 - **L14** plumbing 节点字符串 brace 跟踪 (per AGENTS.md commit `faf40a8` 入档, 9/2 03:08 JST)
 
 ## 4. 受阻项 (需外部条件)
@@ -136,3 +136,4 @@ git log --oneline 84edf26..main | grep -E 'snapshot.*v0\.6\.[0-9]+ hotfix|wbs.*v
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
 | v0.1 | 2026-09-02 11:00 | 架构师(Mavis 接手 agent per DEC-008) | 初版: 9/2 02:17-11:00 JST 主会话打头阵 + hotfix 阶段收口文档, 40 commit + 6 跟踪文档 + 5 派生约束 + 6 受阻项 + 6 拍板决策点 + verifier 实证命令, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化 |
+| **v0.1.1** | **2026-09-02 11:17** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §0 + §1.3 + §2.3 + §3 + §6 + §7 升版 STATUS-SNAPSHOT v0.6.30 → v0.6.34 + VERIFIER-COMMANDS v0.1 → v0.1.1 + 加 7 大跟踪文档完整闭环 (v0.1 SESSION-CLOSEOUT 自指) + 6 个新文档 (从 5 升 6, 补 SESSION-CLOSEOUT 自己), 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
