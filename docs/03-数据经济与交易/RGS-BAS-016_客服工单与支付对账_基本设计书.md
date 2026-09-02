@@ -23,6 +23,7 @@
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充工单状态机迁移条件表与去重字段（FR-SUP-002、FR-SUP-007）②补充SLA分级数值基准表（FR-SUP-003）③补充`SupportTicket`/`PaymentOrder`索引与唯一性约束④补充对账批处理异常分支（服务商侧数据延迟/不可用）与"比对条件写反"防护（RSK-SUP-002） | FR-SUP-002、FR-SUP-003、FR-SUP-007、RSK-SUP-002 |
 | 0.3 | 2026-08-16 | 架构师 | — | **补齐跨文档字段清单同步**（RGS-BAS-010 PAT-CR-004处置）：`PaymentOrder`表补入RGS-BAS-020§2.5此前单向追加、未同步回本表的`payment_channel`/`platform_type`/`platform_environment`/`refund_status`四字段，本表重申为该逻辑表的唯一权威字段清单 | FR-PLT-003〜005 |
 | 0.4 | 2026-09-01 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1（组件划分架构边界观察）／§2.2（SupportTicket 数据模型 schema 事件）／§2.3（工单状态机迁移 + 玩家-客服对话内容脱敏）／§2.4（SLA 分级基准预警 + 升级通知）／§3.1（PaymentOrder 数据模型 schema 事件 + 跨文档字段同步）／§3.2（对账批处理全链路 + 双重布尔校验 + 幂等键 + 资产结算补偿）／§3.3（对账异常分支 + RSK-SUP-002 防护 + 服务商侧不可用告警）／§4.1（上线前检查清单执行）／§4.2（代码评审检查清单执行）共 9 个"本功能日志设计"小节全部新增；每节均含 5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），显式区分 `info!`／`warn!`／`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`／`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；字段名前缀 `cs.*`（区别于 BAS-002 `mnt.*` ／ BAS-003 `gm.*` ／ BAS-004 `log.*` ／ BAS-005 `plugin.*` ／ BAS-009 `gov.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.6.1／§4.6.2 保持拼写一致（FR-LOG-013）；**客服工单域特殊考虑**（合规审计 + 隐私双重约束）—— ①工单创建／分配／处理／关闭 → release 必出 + 强制全采样（FR-SUP-001〜005 强约束）；②玩家-客服对话内容 → 脱敏（邮箱／手机哈希化 per BAS-004 §5.1，对话原文 dump 仅 debug-only）；③支付对账（订单／退款／差异）→ release 必出 + 强制全采样（NFR-EC 合规）；④**支付凭证／卡号 → 禁止记录**（per BAS-004 §5.1 + §4.4 release 必出宏清单，SDK 黑名单拦截）；⑤工单 SLA 警告／超时 → `warn!` 强制全采样（per BAS-009 治理事件必出模式）；⑥对账双重布尔校验（RSK-SUP-002 防护）→ release 必出 + 强制全采样 + 快照可追溯；⑦对账服务商侧不可用 → 触发告警通道（per RGS-BAS-003 §6）；§4.1 上线前检查清单新增 log 章节上线检查项（log_chapter_present + release_required_grep_passed + debug_only_compliant + release_required_macro_no_cfg 共 4 项 CI 验证事件）；§4.2 代码评审检查清单新增 log 章节代码评审检查项（admin_bypass / provider_txn_id_uniqueness / dual_boolean_direction / dedup_prompt_not_block / conversation_pii_log / payment_credential_log_attempt 共 6 项静态扫描事件）；§5 追溯性新增 AC-SUP-006（debug-only 宏 release 完全剔除）与 AC-SUP-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4（commit 32d9eb6）／ BAS-003 v0.3 §13（commit 75a001c）／ BAS-004 v0.3 §12（commit 47e26b0+0ee6262）／ BAS-005 v0.3 §11（commit 20b84a1）／ BAS-009 v0.7 §7（commit 9a628cf）形成统一规范 | §2.1、§2.2、§2.3、§2.4、§3.1、§3.2、§3.3、§4.1、§4.2、§5 |
+| 0.5 | 2026-09-02 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §1.1 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 8 actor: 玩家/客服/TicketService/TicketEscalationNotifier/AdminService/ReconciliationJob/支付服务商/Economy + DB) 覆盖客服工单流 + 支付对账流两个主路径 + 異常分支表 (12 行, 含 dedup_key 命中 / 非法迁移 / 关闭缺 summary / 静默期超时 / 支付凭证拦截 / 服务商拉取失败 / 服务商持续不可用 / 双重布尔校验失败 / 补偿后仍异常 / 补偿超阈值 / EC 发放失败 / 事务提交失败) + 决策点矩阵 (8 行, 含 dedup_key 提示vs拒绝 / SLA 分级 / 处置决定是否走 AdminService / 关闭留痕检查 / 补偿阈值 / 窗口重叠 / 幂等键 / RSK-SUP-002 双重布尔方向) + 验证点清单 (11 行, 含 dedup_key 哈希 / 状态机迁移 / 关闭留痕 / 对话 PII 脱敏 / 支付凭证拦截 / 双重布尔校验 / 幂等键唯一性 / 窗口连续性 / 补偿阈值 / EC 发放 / 事务提交); trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界与 Saga 跨域标注 (per BAS-100 v0.1); 与既有 §2.3 状态机迁移 / §3.2 对账批处理时序 / §3.3 异常分支 互为详细化引用; 本篇 4 要素 0 个已有 (Process=True 但无 mermaid / 異常表 / 决策表 / 验证表), 补 4 个 | §1.1 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +38,7 @@
 ## 目录
 
 1. [前言](#1-前言)
+   1.1 [処理フロー（处理流程 / Processing Flow）](#11-処理フロー处理流程--processing-flow)
 2. [客服工单组件设计](#2-客服工单组件设计)
 3. [支付对账数据模型与时序](#3-支付对账数据模型与时序)
 4. [标准化检查清单](#4-标准化检查清单)
@@ -47,6 +49,125 @@
 # 1. 前言
 
 本文档细化RGS-REQ-019定义的ARC-033，全部组件依附既有AD（GM后台）/EC（经济）限界上下文运行，不新建独立限界上下文。
+
+### 1.1 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 本段覆盖客服工单流 + 支付对账流两个主路径, 详细时序见 §2.3 状态机迁移 / §3.2 对账批处理时序 / §3.3 异常分支, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+#### 1.1.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Player as 玩家客户端
+    actor Agent as 客服/GM
+    participant TS as TicketService
+    participant EN as TicketEscalationNotifier
+    participant AS as AdminService (AD)
+    participant RJ as ReconciliationJob
+    participant Provider as 支付服务商
+    participant DB as payment_db
+    participant EC as Economy (FR-EC-003)
+
+    Note over Player,EC: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Player,EC: 事务边界: DB 写入同事务; EC 调用走 Saga 跨域, per BAS-100 v0.1
+
+    rect rgb(240, 248, 255)
+        Note over Player,EN: 主路径 1: 客服工单 (per §2.3 详细时序)
+        Player->>TS: 提交工单 (category + 内容)
+        TS->>TS: 计算 dedup_key (player_id + category + 窗口, FR-SUP-007)
+        alt dedup_key 命中
+            TS-->>Player: 提示"检测到相似工单" (不强制拒绝, §2.2)
+        else 无命中
+            TS->>DB: 插入 SupportTicket (state=待受理)
+            TS->>EN: 启动 SLA 计时
+            EN->>EN: SLA 分级计算 (FR-SUP-003, §2.4)
+            Agent->>TS: 认领工单 (待受理 → 处理中)
+            Agent->>TS: 标记需补充信息 (处理中 → 待玩家补充信息)
+            Player->>TS: 补充回复 (待玩家补充信息 → 处理中)
+            alt 涉及账号状态变更
+                Agent->>AS: 提交处置决定 (admin_action_ref)
+                AS-->>TS: 处置完成 (引用 admin_action_id)
+            end
+            Agent->>TS: 关闭工单 (resolution_summary 留痕, FR-SUP-005)
+            TS->>DB: 状态迁移 (处理中 → 已解决/已驳回)
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over RJ,EC: 主路径 2: 支付对账 (per §3.2 详细时序)
+        Note over RJ: 定时任务触发 (NFR-SUP-002)
+        RJ->>Provider: 拉取对账文件/API (时间窗口)
+        alt 拉取失败
+            RJ-->>RJ: 跳过本轮, 告警 (RGS-BAS-003 §6)
+            Note over RJ: 下一周期窗口重叠补齐 (§3.3)
+        else 拉取成功
+            RJ->>DB: 按 provider_txn_id 关联 PaymentOrder
+            RJ->>RJ: 双重布尔校验 (RSK-SUP-002: ①provider_paid ②internal_NOT_FINAL)
+            alt 校验通过 + 状态不一致
+                RJ->>RJ: 阈值评估 (TBD-SUP-002)
+                alt 未超阈值
+                    RJ->>EC: 复用 FR-EC-003 自动发放
+                    EC-->>RJ: 发放成功
+                    RJ->>DB: PaymentOrder.state = 已补偿
+                else 超阈值
+                    RJ->>TS: 创建 SupportTicket (category=payment_issue)
+                    Note over RJ: 转人工复核, 不自动发放
+                end
+            end
+        end
+    end
+
+    Note over Player,EC: 异常通路 (DLQ + 重试): 服务商不可达 / EC 不可达 -> ARC-009 标准模式 (重试 3 次 100/200/400ms) -> DLQ 报警
+    Note over TS,EN: SLA 超时升级: EN 定时扫描 -> 超时触发告警通道 (RGS-BAS-003 §6) + 写入审计
+```
+
+#### 1.1.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| 客服工单 dedup_key 命中 | `(dedup_key)` 唯一索引命中 (FR-SUP-007) | 提示玩家"检测到相似工单" (不强制拒绝, §2.2) | 提示合并或继续新建 | 玩家选择合并, 旧工单更新 last_merge_ref |
+| 客服工单非法状态迁移 | 工单已关闭时尝试认领 (state machine §2.3) | 拒绝迁移, 写 `cs.ticket.transition.rejected.invalid` | 提示"工单已关闭" | 无 (状态不变) |
+| 客服工单关闭缺 resolution_summary | `处理中 → 已解决` 但 summary 为空 (FR-SUP-005 强制留痕) | 拒绝关闭, 写 `cs.ticket.transition.rejected.empty_resolution` | 提示"必须填写处理结论" | 客服补填 summary |
+| 客服工单静默期超时 | `待玩家补充信息` 超过 7 天 (§2.3 状态机) | 自动转 `已驳回`, 写 `cs.ticket.lifecycle.auto_rejected.timeout` | 玩家可能不知情, 但工单已收尾 | 无 (玩家可重新提交) |
+| 客服工单对话含支付凭证 | 玩家-客服对话含卡号/CVV/credential_token (BAS-004 v0.3 §5.1 黑名单) | SDK 层拦截丢弃, 写 `cs.ticket.conversation.payment_credential_blocked` | 无 (静默拦截) | 无 (PII 不入库) |
+| 对账服务商拉取失败 | 支付服务商 API 5xx/超时/连接重置 (§3.3 异常分支) | 本轮跳过 + 告警 (RGS-BAS-003 §6), 不误判"无交易" | 用户无感 (NFR-EC 合规后台处理) | 下一周期窗口重叠补齐 |
+| 对账服务商持续不可用 | 不可用达到告警阈值 (典型 15min, NFR-OP-005 P1) | 触发 P1 告警, 写 `cs.recon.provider.unavailable_extended` | 用户支付可能延迟到账 | 人工介入 / 切换备用渠道 |
+| 对账比对条件写反 | RSK-SUP-002 防护: 双重布尔校验任一不满足 (§3.3 末段) | 拒绝"待补偿"判定, 写 `cs.recon.compare.dual_boolean_check.failed` | 用户无感 (阻断资金损失风险) | 代码评审 §4.2 检查项 |
+| 对账双重布尔校验通过后仍异常 | 人工复核发现仍存在状态/金额/缺失本地记录 (DR 防护) | 转人工复核, 写 `cs.recon.compare.inconsistency.escalated_to_human` | 用户延迟收到补偿 | 人工走 §2 客服工单流程 |
+| 补偿超阈值 | 补偿金额超过 TBD-SUP-002 阈值 (§3.2 时序第 4 步) | 创建 SupportTicket 转人工, 不自动发放 | 玩家延迟收到补偿 | 客服走 §2 工单流程 |
+| EC 发放失败 | economy 域不可达 / request_id 冲突 | 整体回滚 (PaymentOrder 状态不变), 写 DLQ | 提示"服务暂不可用" | Saga 补偿 / DLQ 报警 |
+| 事务提交失败 | DB 写失败 (网络/约束冲突) | 整体回滚, 写 `cs.recon.batch.failed` | 提示"对账失败,请重试" | 客户端重试 (幂等键 provider_txn_id 保证) |
+
+#### 1.1.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| 客服工单 dedup_key 命中 | `(dedup_key)` 唯一索引命中 (FR-SUP-007) | 提示玩家"检测到相似工单", 让玩家选择合并/继续新建 | 强制拒绝 (类似 RGS-BAS-014 举报去重) | 玩家感知: 选择合并 (旧工单继承新内容) / 继续新建 (新 ticket_id) |
+| 客服工单 SLA 分级 | `category ∈ {ban_appeal / item_anomaly / payment_issue / other}` (§2.4 数值基准) | 按 category 查 SLA 数值 (FR-SUP-003, 默认建议值 TBD-SUP-001) | 全部统一同一 SLA (不推荐) | 玩家感知: ban_appeal 优先, other 最长 |
+| 客服工单处置决定执行 | 是否涉及账号状态变更 (§2.1 边界) | 是 -> 调 `AdminService` (唯一处置入口, §2.1) | 否 -> TicketService 自处理 (修改 ticket 自身状态) | 审计: 是 -> 关联 `admin_action_ref`, 否 -> 纯 ticket lifecycle |
+| 客服工单关闭方式 | `resolution_summary` 留痕检查 (FR-SUP-005) | 非空 -> 允许关闭 (已解决/已驳回) | 空 -> 拒绝关闭, 强制留痕 | 治理: 强制全审计, 不允许"静默关闭" |
+| 对账补偿阈值 | 补偿金额 vs TBD-SUP-002 阈值 (§3.2 时序第 4 步) | 未超 -> 复用 FR-EC-003 自动发放 | 超 -> 创建 SupportTicket 转人工 | 玩家感知: 自动到账 (小金额) / 延迟到账 (大金额, 需人工) |
+| 对账窗口重叠 | 本次对账失败 (服务商不可达) | 下一周期窗口与上次成功窗口重叠 (避免比对空档, §3.3) | 不重叠 (可能漏单) | 治理: 强制重叠, 漏单风险 < 1% |
+| 对账幂等键 | `provider_txn_id` (NFR-SUP-004) | 命中既有补偿 -> 跳过 (不重复发放) | 不命中 -> 进入补偿流程 | 财务安全: 防止重放攻击导致超发 |
+| 对账 RSK-SUP-002 防护 | 双重布尔校验方向 (§3.3 末段 + §4.2 代码评审) | ① provider_paid=true ② internal_NOT_IN[已发货,已补偿] | 任一不满足 -> 拒绝"待补偿" | 阻断级: 写反即资金损失风险, `error!` 强制全采样 |
+
+#### 1.1.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| 客服工单 dedup_key 计算 | `player_id + category + 滚动时间窗口哈希` (FR-SUP-007, §2.2) | dedup_key 唯一 (无碰撞) | 碰撞 -> 提示玩家合并 (命中走幂等路径) |
+| 客服工单状态机迁移 | 迁移条件 vs §2.3 状态机表拒绝条件 | 当前状态允许目标迁移 | 拒绝迁移, 写 `cs.ticket.transition.rejected.invalid` |
+| 客服工单关闭留痕 | `resolution_summary` 非空 (FR-SUP-005, §2.3 拒绝条件) | 字符串长度 > 0 | 拒绝关闭, 写 `cs.ticket.transition.rejected.empty_resolution` |
+| 客服工单对话 PII 脱敏 | 邮箱/手机哈希化 (BAS-004 v0.3 §5.1, §2.3 log 设计) | 命中模式 -> 哈希化 + 记录 `cs.ticket.conversation.redaction_applied` | 漏命中 -> 走 PII 扫描兜底 (debug-only dump) |
+| 客服工单支付凭证拦截 | 卡号/CVV/credential_token 黑名单 (BAS-004 v0.3 §5.1) | SDK 拦截丢弃 + 记录 `cs.ticket.conversation.payment_credential_blocked` | 漏拦截 -> 阻断级 (PII 不入库) |
+| 对账双重布尔校验 | ① provider_paid=true ② internal_NOT_IN[已发货,已补偿] (RSK-SUP-002, §3.3 末段) | 两个条件均 true | 任一 false -> 拒绝"待补偿", 写 `cs.recon.compare.dual_boolean_check.failed` |
+| 对账幂等键唯一性 | `provider_txn_id` 在本批内 + 历史批内唯一 (NFR-SUP-004) | 唯一 (无重复) | 重复 -> 跳过本批, 引用 previous_batch_id |
+| 对账窗口连续性 | 上一批成功窗口与本批窗口连续 (避免单次失败空档, §3.3) | 连续 (overlap_seconds >= 0) | 不连续 -> 扩展窗口 (window_overlap_extended) |
+| 对账补偿阈值 | 补偿金额 vs TBD-SUP-002 阈值 (§3.2 时序) | amount < threshold -> 自动; >= threshold -> 人工 | 边界值 -> 强制走人工 (保守) |
+| EC 发放成功 | economy 域 request_id 返回 success (FR-EC-003 既有路径) | success = true | 失败 -> 整体回滚, 写 `push.redemption.reward_grant_failed` 范式 (`cs.recon.compensation.ec_failed`) |
+| 事务提交 | DB tx_id COMMIT 返回 (同事务: PaymentOrder.state + audit_log) | tx_id 成功写入 | 失败 -> 整体回滚, 写 `cs.recon.batch.failed` |
 
 ---
 
