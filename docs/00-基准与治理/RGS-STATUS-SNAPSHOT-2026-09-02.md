@@ -92,7 +92,7 @@
 
 ## 2. E3 W2-W6 + E8 6 GAP 实施 commit 权威索引 (per 2026-09-02 08:45 JST, v0.6.4 hotfix 实测 git log --oneline 84edf26..main — §2 自指时间戳请以 §7 修订历史最新版为准)
 
-**说明**: 本表为 verifier / 后续会话的单一 commit 索引, 跨 9/2 02:17-08:14 JST 主会话打头阵 ~6h, 42 commit 按 BA-WX-X 任务编号排序 (新→旧):
+**说明**: 本表为 verifier / 后续会话的单一 commit 索引, 跨 9/2 02:17-08:14 JST 主会话打头阵 + 后续 hotfix 阶段。**本表 §2.1-§2.3 是 W2-W6 实施 commit (39 commit, 静态索引), §2.4 是文档/跟踪表 hotfix 段 (22 commit, 实时增长)。实施 + 文档合计 = 实时查 `git log 84edf26..main --oneline | wc -l`**, 任何冲突以 git 实证为准 (per VERIFIER-COMMANDS v0.1 §1.1)。
 
 ### E3 W2 (8 commit: W2 模板 + 8 子任务 + 1 hotfix)
 
@@ -299,6 +299,7 @@
 | **v0.6.26** | **2026-09-02 10:33** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 20 commit → 21 commit (补 f4b2795 RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 评审召集时序文档), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.27** | **2026-09-02 10:41** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 21 commit → 22 commit (补 579f4a9 RGS-VERIFIER-COMMANDS v0.1 verifier 取数命令清单, L13 终极守护实现), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.28** | **2026-09-02 10:44** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §6 派生约束更新表新增 L14 派生约束 (plumbing 节点字符串 brace 跟踪, per AGENTS.md commit `faf40a8` 入档, 9/2 03:08 JST W2 BA-W2-3/5/6 patch 经验), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.29** | **2026-09-02 10:47** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 顶部"说明"段改为实时 git log 表达式 + 拆 §2.1-§2.3 (实施 39 commit 静态) + §2.4 (文档 hotfix 22 commit 实时增长) — 实施 / 文档分别引用, 避免 42 commit 老数字自指污染 (per L13 终极守护 + VERIFIER-COMMANDS v0.1 §1.1), 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
