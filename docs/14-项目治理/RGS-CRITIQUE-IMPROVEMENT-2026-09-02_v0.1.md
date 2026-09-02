@@ -100,49 +100,65 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 
 ---
 
-## 3. 改善方案 (4 类, 16 条, 拍板落地)
+## 3. 改善方案 (4 类, 16 条, 拍板结果)
+
+> **拍板结果总览** (per Q&A, 2026-09-02 10:18 JST):
+> - **B 类流程自审 (B1-B4)**: 全部 4 条进入 1 周 sprint
+> - **C 类业务重排 (C1-C4)**: 3 条采纳 (C1/C2/C3), C4 不采纳 (6 域不缩)
+> - **D 类 DoD 升级 (D1-D4)**: 全部 4 条进入 sprint
+> - **A 类文档减肥 (A1-A4)**: Q1 未选, 4 条全部进候选清单 (per B2 季度评审机制), 仅 A2 跨类例外 = 实质跟 Q3 跟踪 doc 冻结归档同条
 
 ### 3.1 A 类: 文档减肥 (省 30-50% md 行数)
 
+**Q1 拍板**: A 类 4 条全部**未拍板**, 进候选清单 (per B2 季度评审机制)
+
 | ID | 措施 | 收益 | 成本 | 风险 | 状态 |
 |---|---|---|---|---|---|
-| A1 | RGS-BAS-037 (265KB) 拆 4 份 ≤70KB | 读得动 | 中 (重排) | 引用断链, 需 grep 全文 | 待启动 |
-| A2 | 跟踪文档版本冻结: STATUS-SNAPSHOT v0.6.10-v0.6.25 移 `docs/_archive/`, 只维护 v0.6.26+ | 噪音降 | 低 | 老 commit 引用需 redirect | **已拍板** |
-| A3 | AGENTS.md 6 个月一归档: 当前 v0.5 → `AGENTS_v0.5_archive.md`, 主 AGENTS.md 只留派生约束 L1-L14 + 拍板规则 | 治理更聚焦 | 低 | 历史回溯需 git log | 待启动 |
-| A4 | `document-registry.toml` 强制登记新 doc 路径 + 大小上限 80KB | 防巨型 doc 再出现 | 低 (改 file) | 流程摩擦 | 待启动 |
+| A1 | RGS-BAS-037 (265KB) 拆 4 份 ≤70KB | 读得动 | 中 (重排) | 引用断链, 需 grep 全文 | **候选清单** |
+| A2 | 跟踪文档版本冻结: STATUS-SNAPSHOT v0.6.10-v0.6.25 移 `docs/_archive/`, 只维护 v0.6.26+ | 噪音降 | 低 | 老 commit 引用需 redirect | **跨类拍板 (per Q3, 见 §4.3)** |
+| A3 | AGENTS.md 6 个月一归档: 当前 v0.5 → `AGENTS_v0.5_archive.md`, 主 AGENTS.md 只留派生约束 L1-L14 + 拍板规则 | 治理更聚焦 | 低 | 历史回溯需 git log | **候选清单** |
+| A4 | `document-registry.toml` 强制登记新 doc 路径 + 大小上限 80KB | 防巨型 doc 再出现 | 低 (改 file) | 流程摩擦 | **候选清单** |
 
-**预期**: md 行数从 117,450 降到 ~70,000 (-40%), 单文档 ≤ 80KB
+**预期 (A 类若全启)**: md 行数从 117,450 降到 ~70,000 (-40%), 单文档 ≤ 80KB
+
+**注**: A2 实质 = Q3 跟踪 doc 冻结归档, 因此作为 Q3 的子条目落地, 不算 A 类本身拍板. sprint 内执行.
 
 ### 3.2 B 类: 流程 / 工具自我审视
 
+**Q1 拍板**: B 类 4 条全部拍板, 进入 1 周 sprint
+
 | ID | 措施 | 收益 | 成本 | 风险 | 状态 |
 |---|---|---|---|---|---|
-| B1 | 加 `pre-commit` hook 自动 `git worktree list` + `git status --porcelain` 检查 untracked target-* | 防 L12 重犯 | 低 | CI 时间 +5s | 待启动 |
+| B1 | 加 `pre-commit` hook 自动 `git worktree list` + `git status --porcelain` 检查 untracked target-* | 防 L12 重犯 | 低 | CI 时间 +5s | **已拍板** |
 | B2 | 派生约束 L1-L14 **冻结 6 个月**, 不再加 L15. 新约束进"候选清单"季度评审 | 打破 L 永远增长 | 极低 | 真有重大教训需追溯加 | **已拍板** |
 | B3 | **DDD Review 二审 = Ulysses 必审**, Mavis 改稿不写稿; Ulysses 一审前 Mavis 自审 1 次停手 | 打破 AI 自指 | 中 (改流程) | 拖慢 DDD Review | **已拍板** |
-| B4 | `.test-evidence/2026-08-28-*` 移到 `docs/_archive/test-evidence-2026-08-28/` 后加 .gitignore 不再跟踪 | 仓库瘦身 | 低 | 审计痕迹丢失, 需先建 _archive/ | 待启动 |
+| B4 | `.test-evidence/2026-08-28-*` 移到 `docs/_archive/test-evidence-2026-08-28/` 后加 .gitignore 不再跟踪 | 仓库瘦身 | 低 | 审计痕迹丢失, 需先建 _archive/ | **已拍板** |
 
 **预期**: hotfix 频率从 9/1 一天 60+ 降到 <10/天 (剩 hotfix 才有信息量)
 
 ### 3.3 C 类: 业务 / 实现优先级重排
 
+**Q1+Q2 拍板**: C1/C2/C3 采纳, C4 不采纳 (6 域不缩 per Q2)
+
 | ID | 措施 | 收益 | 成本 | 风险 | 状态 |
 |---|---|---|---|---|---|
 | C1 | **冻结 batch 域文档 v0.1**, 等 Phase C 跑通 5 域业务 mTLS 再回到 v0.2 评估 | 集中火力 | 极低 (暂停 commit) | 文档过期 | **已拍板** |
-| C2 | **DoD 升级**: 跨域 saga / 5 域主链路 commit 必须 E2E 跑通 (不是 cargo check) | 业务可用 | 高 (补 5 域 E2E) | 跑通前不合并 | 待启动 |
-| C3 | **"派生约束 L1-L14 闭环" ≠ 项目完成**; 新指标 = "5 域 + batch 域生产可用 checklist" | 回归业务 | 中 (改 STATUS-SNAPSHOT 模板) | 治理派有意见 | 待启动 |
-| C4 | **6 域 → 3 域收敛**做 PoC: player / economy / admin 跑通 E2E → 再扩 match / social / batch | 减少并行 | 中 (砍 scope) | 推倒 6 域决策 | **不采纳** (Ulysses 选 6 域继续不缩) |
+| C2 | **DoD 升级**: 跨域 saga / 5 域主链路 commit 必须 E2E 跑通 (不是 cargo check) | 业务可用 | 高 (补 5 域 E2E) | 跑通前不合并 | **已拍板** |
+| C3 | **"派生约束 L1-L14 闭环" ≠ 项目完成**; 新指标 = "5 域 + batch 域生产可用 checklist" | 回归业务 | 中 (改 STATUS-SNAPSHOT 模板) | 治理派有意见 | **已拍板** |
+| C4 | **6 域 → 3 域收敛**做 PoC: player / economy / admin 跑通 E2E → 再扩 match / social / batch | 减少并行 | 中 (砍 scope) | 推倒 6 域决策 | **不采纳** (per Q2: 6 域继续不缩) |
 
 **预期**: 里程碑 = "5 域生产可用" 而不是 "7 大跟踪文档 v0.6.39"
 
 ### 3.4 D 类: 完成定义 (DoD) 升级
 
+**Q1 拍板**: D 类 4 条全部拍板, 进入 1 周 sprint
+
 | ID | 措施 | 收益 | 成本 | 风险 | 状态 |
 |---|---|---|---|---|---|
-| D1 | `cargo check --tests` + `cargo test --lib` + 至少 1 E2E 跑通 (三件套) | 业务真验证 | 中 (E2E 补齐) | 时间 | 待启动 |
+| D1 | `cargo check --tests` + `cargo test --lib` + 至少 1 E2E 跑通 (三件套) | 业务真验证 | 中 (E2E 补齐) | 时间 | **已拍板** |
 | D2 | AGENTS.md §2.1 L1 升级为 L1: cargo check, L1.1: cargo test --lib, L1.2: E2E (Phase C 后必跑) | 清晰分层 | 低 | 派生约束命名规范要调 | **已拍板** |
-| D3 | **commit 模板**: `type(scope): summary` + DoD 段 (1-3 行) + Evidence (commit / file:line) | 自描述 | 低 | 老 commit 兼容 | 待启动 |
-| D4 | **每周 status report** 必含 "本周末未达成业务里程碑清单" + "本周末 hotfix 数" 双指标 | 治理/业务并列 | 低 | 报告格式 | 待启动 |
+| D3 | **commit 模板**: `type(scope): summary` + DoD 段 (1-3 行) + Evidence (commit / file:line) | 自描述 | 低 | 老 commit 兼容 | **已拍板** |
+| D4 | **每周 status report** 必含 "本周末未达成业务里程碑清单" + "本周末 hotfix 数" 双指标 | 治理/业务并列 | 低 | 报告格式 | **已拍板** |
 
 **预期**: commit 频率 = 业务节奏, 不是 hotfix 节奏
 
@@ -152,14 +168,14 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 
 ### 4.1 Q1 优先级 (多选)
 
-| 选项 | 选择 |
-|---|---|
-| A 文档减肥 (A1-A4) | ✅ |
-| B 流程自审 (B1-B4) | ✅ |
-| C 业务重排 (C1-C4) | ✅ |
-| D DoD 升级 (D1-D4) | ✅ |
+| 选项 | 选择 | 备注 |
+|---|---|---|
+| A 文档减肥 (A1-A4) | ❌ 未选 | 4 条进候选清单 (per B2 季度评审机制), 仅 A2 跨类例外落地 |
+| B 流程自审 (B1-B4) | ✅ | 全部 4 条进入 1 周 sprint |
+| C 业务重排 (C1-C4) | ✅ | C1/C2/C3 采纳, C4 不采纳 (per Q2 6 域不缩) |
+| D DoD 升级 (D1-D4) | ✅ | 全部 4 条进入 1 周 sprint |
 
-**结论**: 4 类全选, 按"低成本/高收益"排序 A → B → C → D, 1 周 sprint 落地
+**结论**: 3 类全选 (B+C+D) + 6 域不缩 + 跟踪 doc 冻结归档. A 类 4 条进候选清单, 季度评审 (3/2 / 6/2 / 9/2 / 12/2 JST) 走起. 1 周 sprint 内 B+C+D 共 11 条任务 (B1-B4 + C1-C3 + D1-D4) 落地.
 
 ### 4.2 Q2 范围 (单选)
 
@@ -177,23 +193,23 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 
 ## 5. 落地 checklist (1 周 sprint)
 
+> **范围说明**: A 类 (A1/A3/A4) 未拍板, 不进 1 周 sprint. 仅 A2 (跨类, 实质 = Q3 跟踪 doc 冻结归档) 落地. B+C+D 共 11 条任务在 sprint 内.
+
 ### 5.1 Week 1 (2026-09-02 ~ 09-08 JST)
 
-| Day | 任务 | 负责 | DoD |
-|---|---|---|---|
-| D1 (9/2) | A2: STATUS-SNAPSHOT v0.6.10-v0.6.25 移 `docs/_archive/`, 7 大件同步 | Mavis | 7 跟踪 doc 索引更新, 老引用 0 断 |
-| D1 (9/2) | AGENTS.md v0.6 升版: 加 §9 (本批评与改善), 修订历史加 v0.6 | Mavis | 派生约束 L1-L14 冻结段入档 |
-| D2 (9/3) | B2: 派生约束 L1-L14 冻结 6 个月, 候选清单建档 | Mavis | AGENTS.md L15 入口删, 候选清单 `docs/14-项目治理/L-CANDIDATES.md` |
-| D2 (9/3) | B3: DDD Review 流程改: Ulysses 二审必到, Mavis 一审停手 | Mavis + Ulysses | DDD Review 模板 v0.2 出, 含二审签字栏 |
-| D3 (9/4) | B1: pre-commit hook 加 worktree 残留检查 | Mavis | `.git/hooks/pre-commit` 启用, 阻 untracked target-* |
-| D3 (9/4) | B4: `.test-evidence/2026-08-28-*` 移 `docs/_archive/`, 加 .gitignore | Mavis | 主分支 0 个 v1/v2/v3 老 log |
-| D4 (9/5) | A1: RGS-BAS-037 拆 4 份 ≤70KB (运维 SOP / 部署 / 监控 / 应急) | Mavis | 4 份 doc + RGS-BAS-037 重定向指针 |
-| D4 (9/5) | D2: AGENTS.md L1 升级为 L1/L1.1/L1.2 三件套 | Mavis | §2.1 重写, commit 模板联动 |
-| D5 (9/6) | C1: batch 域 v0.1 冻结公告, GitHub issue 标 "Phase C 后回归" | Mavis + batch Lead | commit `freeze/batch-v0.1` + issue 入 backlog |
-| D5 (9/6) | D3: commit 模板 `type(scope): summary` + DoD + Evidence | Mavis | `.gitmessage` 入仓, 文档化在 AGENTS.md |
-| D6 (9/7) | A3: AGENTS_v0.5_archive.md 归档, 主 AGENTS.md 缩到 ≤20KB | Mavis | v0.5 派生约束全保留, 段级引用归档 |
-| D6 (9/7) | A4: `document-registry.toml` 强制 80KB 上限, CI 校验 | Mavis | CI 跑 `audit-doc-size.js` 阻 >80KB |
-| D7 (9/8) | 周 status report: 业务里程碑 vs hotfix 数 双指标 | Mavis | `docs/14-项目治理/RGS-WEEKLY-2026-W36.md` |
+| Day | 任务 | 负责 | DoD | 关联 |
+|---|---|---|---|---|
+| D1 (9/2) | 跟踪 doc 冻结: STATUS-SNAPSHOT v0.6.10-v0.6.25 移 `docs/_archive/`, 7 大件同步 | Mavis | 7 跟踪 doc 索引更新, 老引用 0 断 | A2 / Q3 |
+| D1 (9/2) | AGENTS.md v0.6 升版: 加 §8 (L 冻结) + §9 (本批评与改善), 修订历史加 v0.6 | Mavis | 派生约束 L1-L14 冻结段入档, §9.6 sprint 表对齐拍板 | 本 commit + hotfix |
+| D2 (9/3) | B2: 派生约束 L1-L14 冻结 6 个月, 候选清单建档 | Mavis | AGENTS.md L15 入口删, 候选清单 `docs/14-项目治理/L-CANDIDATES.md` | B2 |
+| D2 (9/3) | B3: DDD Review 流程改: Ulysses 二审必到, Mavis 一审停手 | Mavis + Ulysses | DDD Review 模板 v0.2 出, 含二审签字栏 | B3 |
+| D3 (9/4) | B1: pre-commit hook 加 worktree 残留检查 | Mavis | `.git/hooks/pre-commit` 启用, 阻 untracked target-* | B1 |
+| D3 (9/4) | B4: `.test-evidence/2026-08-28-*` 移 `docs/_archive/`, 加 .gitignore | Mavis | 主分支 0 个 v1/v2/v3 老 log | B4 |
+| D4 (9/5) | D2: AGENTS.md §2.1 L1 升级为 L1/L1.1/L1.2 三件套 | Mavis | §2.1 重写, commit 模板联动 | D2 |
+| D5 (9/6) | C1: batch 域 v0.1 冻结公告, GitHub issue 标 "Phase C 后回归" | Mavis + batch Lead | commit `freeze/batch-v0.1` + issue 入 backlog | C1 |
+| D5 (9/6) | D3: commit 模板 `type(scope): summary` + DoD + Evidence | Mavis | `.gitmessage` 入仓, 文档化在 AGENTS.md | D3 |
+| D6 (9/7) | A 类 4 条 (A1/A3/A4) 进候选清单, L-CANDIDATES.md 入档 | Mavis | 候选清单首条 = A1 BAS-037 拆分 | A 类 (未拍板) |
+| D7 (9/8) | D4 周 status report: 业务里程碑 vs hotfix 数 双指标 | Mavis | `docs/14-项目治理/RGS-WEEKLY-2026-W36.md` | D4 |
 
 ### 5.2 Week 2-6 (Phase C 跑通后)
 
@@ -209,11 +225,13 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 
 ## 6. 已知缺口 (per 8/26 JST 缺标比错标)
 
-- **C 类 C4 不采纳**: 6 域 → 3 域 PoC 推倒, 已拍板为不缩
-- **A1 BAS-037 拆分风险**: 4 份后跨引用维护成本 +20%, 1 周 sprint 内未必全完成
+- **A 类 4 条未拍板**: A1/A3/A4 进候选清单 (per B2), 季度评审 (3/2 / 6/2 / 9/2 / 12/2 JST) 走起, 不阻塞 1 周 sprint
+- **C4 不采纳**: 6 域 → 3 域 PoC 推倒, 已拍板为不缩 (per Q2)
+- **A2 跨类落地**: 实质 = Q3 跟踪 doc 冻结归档, 在 D1 同批处理
+- **A1 BAS-037 拆分风险 (候选)**: 4 份后跨引用维护成本 +20%, 1 周 sprint 内未必全完成, 进候选清单
 - **B3 DDD Review 二审必到**: Ulysses 时间窗口不定, 拖慢 DDD Review 风险高
 - **D1 E2E 跑通**: 等 Phase C SRE 介入, W2 才能真启动
-- **跟踪 doc 冻结 A2**: 老 commit 引用 redirect 工作量未精算, 可能 1-2 天额外工时
+- **A 类若全启, 跨引用维护成本**: 1-2 天额外工时 (per 6/2 季度评审)
 
 ---
 
@@ -221,7 +239,8 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
-| v0.1 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: 5 大问题 + 4 类方案 (16 条) + 拍板 (A+B+C+D 全选 / 6 域不缩 / 冻结归档) + 1 周 sprint checklist, 7 跟踪 doc 体系 1 周内冻结归档, 派生约束 L1-L14 冻结 6 个月 |
+| v0.1 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: 5 大问题 + 4 类方案 (16 条) + 拍板 (A+B+C+D 全选默认错 / 6 域不缩 / 冻结归档) + 1 周 sprint checklist, 7 跟踪 doc 体系 1 周内冻结归档, 派生约束 L1-L14 冻结 6 个月 |
+| v0.1.1 | 2026-09-02 10:54 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: Q1 实际拍板 = B+C+D (A 不选). 修正 §3.1 A 类状态 (4 条全部进候选清单, 仅 A2 跨类落地), §3.2-3.4 B/C/D 状态全部标 "已拍板", §4.1 Q1 改 "3 类 (B+C+D)", §5.1 sprint 删 A1/A3/A4 任务 + 加 A 类进候选清单 (D6) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

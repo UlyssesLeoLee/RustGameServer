@@ -455,14 +455,14 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 4. **工作区卫生** — `target-bucket-8-*` / `.worktrees/` / `.test-evidence/2026-08-28-*-v1/v2/v3` 未清理 (L12 派生约束没防住)
 5. **DoD 偏轻** — `cargo check --tests 0 error` ≠ 业务跑通, 5 域 E2E 待 Phase C
 
-### 9.2 4 类方案 (16 条, 拍板 A+B+C+D 全选)
+### 9.2 4 类方案 (16 条, 拍板结果)
 
 | 类 | 状态 | 优先级 |
 |---|---|---|
-| **A 文档减肥** A1-A4 | ✅ 全选, md 行数 117K→70K (-40%), 单 doc ≤80KB | W1 (9/2-9/8) |
-| **B 流程自审** B1-B4 | ✅ 全选, hotfix 频率 60+→<10/天 | W1 (9/2-9/8) |
-| **C 业务重排** C1-C4 | ✅ C1/C2/C3 采纳, **C4 不采纳** (6 域不缩 per 拍板) | W1 (C1) + W2-3 (C2/C3) |
-| **D DoD 升级** D1-D4 | ✅ 全选, L1 升级 L1/L1.1/L1.2 三件套 + commit 模板 + 周报双指标 | W1 (D2/D3/D4) + W2 (D1) |
+| **A 文档减肥** A1-A4 | ❌ **未拍板 (Q1 实际不选)**, 4 条进候选清单 (per B2 季度评审), 仅 A2 跨类落地 (= Q3 跟踪 doc 冻结归档) | 候选 (3/2 季度评审) |
+| **B 流程自审** B1-B4 | ✅ 全部 4 条拍板, hotfix 频率 60+→<10/天 | W1 (9/2-9/8) |
+| **C 业务重排** C1-C4 | ✅ C1/C2/C3 拍板, **C4 不采纳** (6 域不缩 per Q2) | W1 (C1) + W2-3 (C2/C3) |
+| **D DoD 升级** D1-D4 | ✅ 全部 4 条拍板, L1 升级 L1/L1.1/L1.2 三件套 + commit 模板 + 周报双指标 | W1 (D2/D3/D4) + W2 (D1) |
 
 ### 9.3 关键拍板 (per 14:58 JST ask_user 规则)
 
@@ -489,14 +489,16 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 
 ### 9.6 1 周 sprint checklist (per v0.1 §5.1)
 
+> **范围说明**: A 类 (A1/A3/A4) 未拍板, 不进 sprint. 仅 A2 跨类 (实质 = Q3 冻结归档) 落地. B+C+D 共 11 条任务在 sprint 内.
+
 ```
 D1 (9/2): A2 跟踪 doc 冻结 + AGENTS.md v0.6 升版 (本 commit)
 D2 (9/3): B2 L-CANDIDATES.md 候选清单 + B3 DDD Review 二审模板 v0.2
 D3 (9/4): B1 pre-commit hook + B4 .test-evidence 归档
-D4 (9/5): A1 BAS-037 拆 4 份 + D2 L1 升级三件套
+D4 (9/5): D2 L1 升级三件套
 D5 (9/6): C1 batch v0.1 冻结 + D3 commit 模板 .gitmessage
-D6 (9/7): A3 AGENTS v0.5 归档 + A4 document-registry 80KB 上限 CI
-D7 (9/8): 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
+D6 (9/7): A 类 4 条 (A1/A3/A4) 进候选清单 L-CANDIDATES.md
+D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 ```
 
 ### 9.7 已知缺口 (per 8/26 JST 缺标比错标)
@@ -519,7 +521,8 @@ D7 (9/8): 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.3 | 2026-09-01 16:00 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 PT 派工 8 worker 完结 (commit ffbfb19) + 5 域 ST 业务级 mTLS 全完成 (commit 401ac5c): 加 L9/L11/L12 派生约束 (临时越界流程化 + cargo build dir lock 防御 + 临时 log 不入 commit 防御) |
 | v0.4 | 2026-09-01 19:24 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 batch 域 4 件套落地 (REQ `fd122f6` + BASIC `e366ff8` + DETAILED `62027c9` + PLAN `e70ed71`, 2576 行 / 165.2 KB / 23 处自审 fix): §0 元信息更新 5 域→6 域 + §7 新增 batch 域派生约束 (12 条约束 + 已知缺口 + brief 模板 + 5 不破坏 + 4 复用 + 3 引用 + 38 L4 任务入口) |
 | v0.5 | 2026-09-01 23:57 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 22:20 JST WBS v0.2 落地 (commit `84edf26` 4 拍板 B/B/B/A) + 9/1 23:57 JST 6 worktree merge 落地 (桶 7+10+8 并行, 22 commit ahead, 6 crate cargo check --lib 0 error): §0 元信息加 WBS v0.2 + §3.2 加 RACI v1.2 (5→6 域 batch 扩展, 待 A5 落档) + §6 简报模板引 WBS v0.2 引用 + §7 保留 v0.4 batch 域派生约束 + §8 本修订历史 |
-| v0.6 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 9/2 10:18 JST 自我批评与改善拍板 (per ask_user A+B+C+D 全选 / 6 域不缩 / 跟踪 doc 冻结归档): §0 元信息加 v0.6 + §8 新增派生约束 L1-L14 冻结期 (6 个月, 新约束走候选清单季度评审) + §9 新增项目批评与改善 (5 大问题 + 4 类方案 16 条 + 拍板 + 1 周 sprint + 6 周路线图 + 里程碑重定义 + DoD 升级) + §10 修订历史本行 |
+| v0.6 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 9/2 10:18 JST 自我批评与改善拍板 (per ask_user B+C+D 全选 + 6 域不缩 + 跟踪 doc 冻结归档, **A 类未拍板进候选清单**): §0 元信息加 v0.6 + §8 新增派生约束 L1-L14 冻结期 (6 个月, 新约束走候选清单季度评审) + §9 新增项目批评与改善 (5 大问题 + 4 类方案 16 条 + 拍板 + 1 周 sprint + 6 周路线图 + 里程碑重定义 + DoD 升级) + §10 修订历史本行 |
+| v0.6.1 | 2026-09-02 10:54 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: Q1 实际选择 = B+C+D (A 不选). 修正 §9.2 表 A 行改 "未拍板 (进候选清单)" + §9.6 sprint 删 A1/A3/A4 任务 + §9.6 加范围说明. 配套: RGS-CRITIQUE-IMPROVEMENT v0.1.1 同步修正 §3.1-3.4 / §4.1 / §5.1 / §6 / §7 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
