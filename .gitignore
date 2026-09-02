@@ -82,3 +82,13 @@ audit-*.js
 # node_modules (per 2026-08-28 audit 引入 glob 包)
 node_modules/
 package-lock.json
+
+# certs/ (per L-CAND-006 例外路径 9/3 08:39 JST commit 932ab3c)
+# k8s secret 导出目录, cert 内容永不入 commit
+# 第 1 层防御: gitignore 排除 (certs/* 文件白名单只放过 MANIFEST.toml)
+# 第 2 层防御: scripts/pre-commit-tmp-check.ps1 (per 9/3 07:31 JST 拍板)
+# 配套: docs/14-项目治理/L-CAND-006-EXCEPTION-PATH-2026-09-03_v0.1.md
+certs/*
+!certs/MANIFEST.toml
+!certs/MANIFEST.example.toml
+certs/.*  # 隐藏文件也排除

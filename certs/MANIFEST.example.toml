@@ -1,0 +1,66 @@
+# certs/MANIFEST.example.toml — 5 域 cert fingerprint 模板 (per L-CAND-006)
+#
+# 用途: k8s secret 导出后, 仅 cert SHA-256 fingerprint + subject + issuer + dates 写 MANIFEST.toml
+#       cert 完整内容 (certs/<domain>-tls.yaml) 在 .gitignore 内, 不入 commit
+# 调用: openssl x509 -in certs/<domain>-tls.yaml -noout -fingerprint -sha256 -subject -issuer -dates
+# 配套: docs/14-项目治理/L-CAND-006-EXCEPTION-PATH-2026-09-03_v0.1.md §1.2
+# token 预算: 5 域 × 20K = 100K (per L-CAND-006 落地清单 6/8)
+
+# 创建时间 (per openssl x509 -dates notBefore)
+created_at = "2026-09-09 09:00:00 JST"  # SRE Lead 拍板后阶段 B 启动时
+
+# 5 域 + 1 CA = 6 个 cert 块
+# 每块 4 字段: fingerprint_sha256 / subject / issuer / not_before / not_after
+
+[ca]
+fingerprint_sha256 = "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB"
+subject = "CN = rgs-ca"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+[player]
+fingerprint_sha256 = "11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11:11"
+subject = "CN = player-service"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+[economy]
+fingerprint_sha256 = "22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22:22"
+subject = "CN = economy-service"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+[match]
+fingerprint_sha256 = "33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33:33"
+subject = "CN = match-service"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+[social]
+fingerprint_sha256 = "44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44"
+subject = "CN = social-service"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+[admin]
+fingerprint_sha256 = "55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55:55"
+subject = "CN = admin-service"
+issuer = "CN = rgs-ca"
+not_before = "Sep  9 09:00:00 2026 GMT"
+not_after = "Sep  9 09:00:00 2027 GMT"
+
+# cert 链验证 SOP (per L-CAND-006 §1.4):
+# 1. k8s 节点: openssl x509 -in certs/<domain>-tls.yaml -noout -fingerprint -sha256
+# 2. 跨机器: openssl s_client -connect <domain>-service:50051 </dev/null 2>/dev/null | openssl x509 -noout -fingerprint -sha256
+# 3. 对比 fingerprint 一致 = cert 链 OK
+# 4. 不一致 = cert 链 MISMATCH, 退出 1
+
+# 派生约束守护:
+# - 8/27 11:06 JST 凭据硬 ban: 完整 cert 不入 commit, 仅 fingerprint (公开信息)
+# - L12: certs/ 在 .gitignore, MANIFEST.toml / MANIFEST.example.toml 在白名单
+# - L-CAND-006 候选保留: 12/2 季度评审时本例外段升 AGENTS.md §1.2 正式段
