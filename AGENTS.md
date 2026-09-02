@@ -50,21 +50,29 @@
 
 ## 2. Worker 工作流规则 (per 8/31 测试阶段 4 阶段迭代教训)
 
-### 2.1 L1 + L2 合并: Cargo 编译/测试策略
+### 2.1 L1 + L2 合并: Cargo 编译/测试策略 (D2 升级 L1/L1.1/L1.2 三件套)
 
-**强约束**: **Worker 必须在提交前跑至少一次 `cargo check --tests` (限时 60s 内应出结果) 作为编译验证下限, 不允许跳过验证直接 commit; 但不得要求跑完整 `cargo test`**。
+**强约束 (per 9/2 10:18 JST D2 拍板)**: DoD 升级为 L1/L1.1/L1.2 三件套, 跨域 saga / 5 域主链路 commit 必须三件全过.
+
+| 级别 | 命令 | 限时 | 适用 | 状态 |
+|---|---|---|---|---|
+| **L1** (compile 验证下限) | `cargo check --tests` | 60s | 所有 commit | **必跑** (W1 D4 启用) |
+| **L1.1** (lib 测试) | `cargo test --lib` | 120s | 5 域 main commit | **必跑** (W1 D4 启用) |
+| **L1.2** (E2E 业务级) | `cargo test --test '*' -- --test-threads=1` + 1 业务 mTLS 跑通 | 300s+ | 跨域 saga / 5 域主链路 | **必跑** (W2 Phase C 介入后) |
 
 **反面**:
 - ❌ 简报里写 "DoD = cargo test 全过" → worker 卡在长编译 polling 循环
 - ❌ 简报里写 "DoD = 不跑 cargo, 只写不验" → worker commit 38 编译错误
 - ❌ Worker 用 `Start-Sleep + Get-Process cargo` 轮询 → 反 pattern, 浪费轮次
+- ❌ commit 跨域 saga 但 L1.2 E2E 未跑 → 业务未真验证, 治理指标 ≠ 业务跑通
 
 **正面**:
-- ✅ 简报里写 "DoD = cargo check --tests 通过" (快, 几秒)
+- ✅ 简报里写 "DoD = L1 (cargo check --tests 0 error) + L1.1 (cargo test --lib 跑通) 通过"
 - ✅ Worker 触发编译后直接返回, 等任务完成信号
-- ✅ 最终 `cargo test` 由主会话在 worker 全部完成后统一跑
+- ✅ 跨域 commit 前主会话跑 L1.2 E2E (per C2 派生约束 + Phase C SRE 介入)
+- ✅ 最终 `cargo test` (workspace 全跑) 由主会话在 worker 全部完成后统一跑
 
-**证据**: 8/31 UT v1 (5 worker polling 失败) + UT v2 (38 编译错误) + UT v3 hotfix (全部 cargo check 0 error)
+**证据**: 8/31 UT v1 (5 worker polling 失败) + UT v2 (38 编译错误) + UT v3 hotfix (全部 cargo check 0 error) + 9/2 D2 拍板升级 L1 → L1/L1.1/L1.2
 
 ### 2.2 L3: 跨工具链决策前先查 workspace 依赖
 
@@ -108,6 +116,49 @@
 3. 如 baseline 已 FAIL → 跳过测试, 转 k3s 容器诊断
 4. k3s 诊断: `kubectl get pods -o jsonpath='{.items[*].status.containerStatuses[*].restartCount}'` + `kubectl describe pod` + `kubectl logs` + `kubectl exec curl localhost:port`
 5. 历史经验: HPA minReplicas 强启动风暴会导致 SandboxChanged 风暴, 容器在跑但 HTTP 不响应, 表现与 Q8 一致
+
+### 2.6 D3 commit 模板 (per 9/2 10:18 JST 拍板, W1 D5 落地)
+
+**强约束**: **所有 commit 必须按 `.gitmessage` 模板填写, 否则 pre-commit hook 拒收 (轻警告) + L1 派生约束禁空 commit**。
+
+**启用方式**:
+```bash
+git config commit.template .gitmessage
+```
+
+**模板结构** (`.gitmessage` 完整内容):
+1. **标题行**: `<type>(<scope>): <summary>` (50 字符内, 首字母小写, 无句号)
+2. **body 段**: 详细说明, 72 字符换行, 段落用空行分隔
+3. **DoD 段**: L1 / L1.1 / L1.2 三件套状态 (per §2.1)
+4. **Evidence 段**: commit SHA / file:line / 测试函数名 / 监控指标
+5. **代签段**: Mavis 默认代签 Ulysses (per 8/27 19:39/20:56/21:59 JST 三次强化)
+6. **派生约束守护段**: L1/L11/L12/L13/L14 全部 ✅ 状态
+
+**type 枚举**:
+- `feat` — 新功能
+- `fix` — bug 修复
+- `docs` — 文档变更
+- `chore` — 杂项 (workspace / 工具 / 卫生)
+- `test` — 测试变更
+- `refactor` — 重构
+- `perf` — 性能优化
+
+**scope 枚举**:
+- 域: `player` / `economy` / `match` / `social` / `admin` / `batch`
+- 平台: `shared-platform` / `cluster-ops` / `gm-backend` / `function-plane`
+- 工具: `rgs-testkit` / `rgs-arc-olu` / `rgs-certgen` / `rgs-hello` / `rgs-asset-download` / `rgs-overflow-alert`
+- 元: `agents` / `critique` / `snapshot` / `wbs` / `closeout` / `verifier`
+
+**反面**:
+- ❌ `git commit -m "fix"` 空标题
+- ❌ `git commit -m "update"` 无 type 无 scope
+- ❌ 标题超 50 字符
+- ❌ 漏 DoD 段 / Evidence 段 / 代签段
+
+**正面**:
+- ✅ `fix(player): wins_le_total 计算错误 (#4 player profile)`
+- ✅ `feat(batch): GAP-1 跨 batch DAG 拓扑排序 endpoint`
+- ✅ `docs(critique): RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.1.1 + AGENTS.md v0.6.1 升版`
 
 ---
 
@@ -523,6 +574,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.5 | 2026-09-01 23:57 | 架构师(Mavis 接手 agent per DEC-008) | 9/1 22:20 JST WBS v0.2 落地 (commit `84edf26` 4 拍板 B/B/B/A) + 9/1 23:57 JST 6 worktree merge 落地 (桶 7+10+8 并行, 22 commit ahead, 6 crate cargo check --lib 0 error): §0 元信息加 WBS v0.2 + §3.2 加 RACI v1.2 (5→6 域 batch 扩展, 待 A5 落档) + §6 简报模板引 WBS v0.2 引用 + §7 保留 v0.4 batch 域派生约束 + §8 本修订历史 |
 | v0.6 | 2026-09-02 10:18 | 架构师(Mavis 接手 agent per DEC-008) | 9/2 10:18 JST 自我批评与改善拍板 (per ask_user B+C+D 全选 + 6 域不缩 + 跟踪 doc 冻结归档, **A 类未拍板进候选清单**): §0 元信息加 v0.6 + §8 新增派生约束 L1-L14 冻结期 (6 个月, 新约束走候选清单季度评审) + §9 新增项目批评与改善 (5 大问题 + 4 类方案 16 条 + 拍板 + 1 周 sprint + 6 周路线图 + 里程碑重定义 + DoD 升级) + §10 修订历史本行 |
 | v0.6.1 | 2026-09-02 10:54 | 架构师(Mavis 接手 agent per DEC-008) | hotfix: Q1 实际选择 = B+C+D (A 不选). 修正 §9.2 表 A 行改 "未拍板 (进候选清单)" + §9.6 sprint 删 A1/A3/A4 任务 + §9.6 加范围说明. 配套: RGS-CRITIQUE-IMPROVEMENT v0.1.1 同步修正 §3.1-3.4 / §4.1 / §5.1 / §6 / §7 |
+| v0.6.2 | 2026-09-02 11:05 | 架构师(Mavis 接手 agent per DEC-008) | D2 + D3 派生约束落地 (per 9/2 11:00 JST 拍板): §2.1 L1 升级 L1/L1.1/L1.2 三件套表 (cargo check / cargo test --lib / E2E) + §2.6 新增 D3 commit 模板段 (type / scope / DoD / Evidence / 代签 / 派生约束守护) + §10 修订历史本行 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

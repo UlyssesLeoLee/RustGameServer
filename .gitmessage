@@ -1,0 +1,50 @@
+# <type>(<scope>): <summary>  ← 50 字符内, 首字母小写, 无句号
+#
+# type: feat / fix / docs / chore / test / refactor / perf
+# scope: 域 / crate / 平台 / 工具
+#       域: player / economy / match / social / admin / batch
+#       平台: shared-platform / cluster-ops / gm-backend / function-plane
+#       工具: rgs-testkit / rgs-arc-olu / rgs-certgen / rgs-hello / rgs-asset-download / rgs-overflow-alert
+#       元: agents / critique / snapshot / wbs / closeout / verifier / agents / agents / agents / agents / agents
+#
+# body: 详细说明 (per 8/27 11:06 JST 凭据硬 ban, 永不打印 env value)
+#       72 字符换行, 段落用空行分隔
+#
+# ─────────────────────── DoD 段 (1-3 行) ───────────────────────
+# DoD: L1 cargo check 0 error | L1.1 cargo test --lib 跑通 | L1.2 E2E 业务级 (Phase C 后)
+#
+# ─────────────────────── Evidence 段 ───────────────────────
+# Evidence: commit SHA / file:line / 测试函数名 / 监控指标
+#
+# ─────────────────────── 代签段 (per 8/27 19:39/20:56/21:59 JST 三次强化) ───────────────────────
+# 代签: Mavis 默认代签 Ulysses (修订人 = Ulysses — Mavis 接手)
+#
+# ─────────────────────── 派生约束守护 (per 9/2 10:18 JST 拍板) ───────────────────────
+# L1  cargo check --tests 0 error (必跑)
+# L11 cargo build dir lock 不轮询 (per 8/31 PT 派工)
+# L12 临时 log / .txt / .tmp_search* 不入 commit (pre-commit hook 兜底)
+# L13 自指字段 deferred 实时查询 (git log + grep 实证)
+# L14 plumbing 节点字符串 brace 跟踪 (per 9/2 W2 BA-W2 patch)
+#
+# 完整约束清单 per AGENTS.md v0.6.1 §8
+# 候选清单 per docs/14-项目治理/L-CANDIDATES.md
+# 改善方案 per docs/14-项目治理/RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.1.1
+# ─────────────────────────────────────────────────────────────────────
+#
+# 示例:
+# feat(player): 新增 player profile 多语言支持 endpoint
+#
+# 改 player-service/src/service.rs L420-L480:
+# - 新增 PlayerProfileI18nService
+# - 复用 rgs-i18n-service / rgs-testkit NoOp
+# - 7 域 batch 集成预留 (per BATCH-PLAN v0.2 W4)
+#
+# DoD: L1 cargo check -p player-service --tests 0 error (1 次拿 status)
+#      L1.1 cargo test -p player-service --lib 137 tests passed
+#      L1.2 待 Phase C 介入后 E2E 跑
+#
+# Evidence: 5 域 ST commit 401ac5c, rgs-i18n-service L42-L98
+# 代签: Mavis 接手 (per 8/27 19:39 JST 强化)
+#
+# 派生约束: L1 ✅ / L11 ✅ / L12 ✅ (pre-commit hook) / L13 ✅ / L14 N/A
+# ─────────────────────────────────────────────────────────────────────
