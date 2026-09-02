@@ -156,42 +156,9 @@
 | `222e129` | BA-W6-2/3 | data_migration + saga_instance 高级 endpoint |
 | `eeaec4a` | BA-W6-1 | log-tasks by-trace + recent endpoint |
 
-### 文档 / 跟踪表 hotfix (32 commit)
+### 文档 / 跟踪表 hotfix (实时查 `git log 84edf26..main --oneline | grep -E "snapshot.*v0\.6\.[0-9]+ hotfix|wbs.*v0\.4\.[0-9]+ hotfix|review-(checklist|sequence) v0\.[0-9]+(\.[0-9]+)?|test-run-plan v0\.[0-9]+|verifier-commands v0\.[0-9]+(\.[0-9]+)?|session-closeout v0\.[0-9]+(\.[0-9]+)?|phase-c-sre-handoff v0\.[0-9]+"` | wc -l`, per L13 终极守护 v0.6.23 + VERIFIER-COMMANDS v0.1.1 §1.2 实施)
 
-| commit | 摘要 |
-|---|---|
-| `faf40a8` | docs(agents): AGENTS.md L14 派生约束入档 (plumbing 节点字符串 brace 跟踪, per 9/2 W2 BA-W2-3/5/6 patch 经验) |
-| `c2acf02` | feat(svc): PH-3 分区实施草稿 4 migration DRAFT (audit_log + transaction_ledger + sagas + moves) |
-| `1eb289f` | STATUS-SNAPSHOT v0.6.2 (本快照自指字段修正, §0.1 待决策清单) |
-| `56b65ca` | STATUS-SNAPSHOT v0.6.3 (v0.6.2 误报 4 partitioned SQL 为 untracked → tracked 实测) |
-| `77454e5` | STATUS-SNAPSHOT v0.6.4 (本表 §2 E3 W2-W6 + E8 6 GAP 实施 42 commit 权威索引固化) |
-| `c3a73dd` | STATUS-SNAPSHOT v0.6.5 (本表 §1 总盘统计 88/138 → 94/144 commit 实时更新) |
-| `9980ebe` | STATUS-SNAPSHOT v0.6.6 (本表 §0 表自指字段统一 v0.6.5) |
-| `b9f2979` | STATUS-SNAPSHOT v0.6.7 (本表元信息行 + §0 头标 5 段时间戳统一) |
-| `7afcf08` | STATUS-SNAPSHOT v0.6.8 (本表 §0.1 + §2 自指版本号统一 v0.6.7 + §7 指针) |
-| `abcc752` | WBS v0.4.6 跟踪表 hotfix (§1.1 / §1.1 ahead / §6 3 处 "88 commit" → 实时 git 实证表达式) |
-| `c3c52cb` | WBS v0.4.7 跟踪表 hotfix (§1.1 E3 W2-W6 每行 commit 字段补全 9+9+8+6+7=39+4 hotfix=43 commit) |
-| `a13da81` | WBS v0.4.8 跟踪表 hotfix (§1 主表新增 E3 W2-W6 汇总行 修复 §1 vs §1.1 不一致) |
-| `3f94d17` | STATUS-SNAPSHOT v0.6.14 (§0.1 3 git stash 文件实证分析 stash show --name-status) |
-| `e4f82e3` | STATUS-SNAPSHOT v0.6.12 (§0.1 "已清理 1 项" 事实修正 feat-auto 老 worktree 物理目录仍在) |
-| `43e4869` | STATUS-SNAPSHOT v0.6.16 (§0.1 补 5 项主 worktree .worktrees/ 老临时文件 8/29-8/30 残留) |
-| `4bf413a` | STATUS-SNAPSHOT v0.6.17 (§0.1 补 docs/ 空目录残留 1 项 docs/ddd-review/ 0 file 0 commit) |
-| `999ff5d` | **RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1 (新文档, 4 DRAFT partitioned SQL 评审启动材料, 7 大检查项 + 4 维决策矩阵 + 10 行签字栏 + 5 项实施前置条件)** |
-| `3974ac3` | STATUS-SNAPSHOT v0.6.18 (§0.1 4 tracked-but-DRAFT 表 4 行性质/推荐处理字段同步, 评审启动材料就绪) |
-| `24ce59c` | RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST v0.1.1 (§1.1 新增"已签方背景"段, 6 角色已派工 + 2 角色待 Phase C / DBA 评审启动, 派工 vs 评审签字分离) |
-| `82671df` | rgs-batch-backend/TEST-RUN-PLAN v0.1 (22 测试函数运行计划文档, 11 UT 立即可跑 + 11 E2E 等 Phase C, 3 步运行命令 + L1+L11+L12+L14 派生约束守护) |
-| `f4b2795` | RGS-DB-PARTITIONED-DRAFT-REVIEW-SEQUENCE v0.1 (4 DRAFT partitioned SQL 评审召集时序文档, 5 阶段时序 Phase 0 启动 / Phase 1 SRE / Phase 2 DBA / Phase 3 3 域 Lead 并行 / Phase 4 架构师总审批, topological 依赖 + 评审截止时间 + checklist + L11+L12+L13 派生约束守护) |
-| `579f4a9` | RGS-VERIFIER-COMMANDS v0.1 (verifier 取数命令清单, 5 大类 6 命令组: git 状态 / hotfix 索引 / 测试函数 / git stash / DRAFT SQL 评审 / working tree 残留, L13 终极守护实现) |
-| `bce33cb` | STATUS-SNAPSHOT v0.6.29 (§2 顶部"说明"段改为实时 git log 表达式 + 拆静态/动态两段) |
-| `49944d1` | STATUS-SNAPSHOT v0.6.30 (§2 commit 链总合计 60 commit 老数字改为实时 git rev-list 表达式) |
-| `6e9ee47` | RGS-SESSION-CLOSEOUT v0.1 (9/2 02:17-11:00 JST 主会话打头阵 + hotfix 阶段收口文档, 40 commit + 6 跟踪文档 + 5 派生约束 + 6 受阻项 + 6 拍板决策点 + verifier 实证命令) |
-| `e517cfa` | STATUS-SNAPSHOT v0.6.32 (§1 总盘统计"落地 117 commit / 169 commit" 老数字删除, 改实时 git rev-list 表达式, L13 终极守护完全闭环) |
-| `f94f5e0` | STATUS-SNAPSHOT v0.6.33 (§2 文档 hotfix 段从 25 → 26 commit 补 v0.6.32, 同步索引) |
-| `14adbf8` | RGS-VERIFIER-COMMANDS v0.1.1 (§1.2 grep 命令 + §4 关联文档扩 4 → 7 大跟踪文档, 7 大跟踪文档完整闭环) |
-| `92d47c8` | RGS-SESSION-CLOSEOUT v0.1.1 (§0 + §1.3 + §2.3 + §3 + §6 + §7 升版 STATUS-SNAPSHOT v0.6.30 → v0.6.34 + VERIFIER-COMMANDS v0.1 → v0.1.1 + 加 7 大跟踪文档完整闭环, 自指字段全 deferred 实时查询) |
-| `819fe3c` | STATUS-SNAPSHOT v0.6.35 (§2 文档 hotfix 段从 28 → 29 commit 补 SESSION-CLOSEOUT v0.1.1 升版) |
-| `11fd3d7` | WBS v0.4.10 (§1 主表 E3 W2-W6 汇总行 43 commit 老数字改实时 git log 表达式, L13 终极守护 v0.6.23 + v0.6.32 同步) |
-| `8b70468` | RGS-PHASE-C-SRE-HANDOFF v0.1 (Phase C SRE 介入 Handoff: 4 阶段 23 项 checklist: A k3s 节点 / B 5 域 mTLS / C 22 测试 / D 评审启动, L11+L12+L13+L14+OPEN-QA §7.5 派生约束守护) |
+> **本段是动态索引, 不在 hotfix 里手写 commit 数**. 完整实施 commit 列表见 `git log 84edf26..main --oneline` (实施 + 文档合计 实时查询). **静态 21 commit 索引固化段** (v0.6.37 创建时点之前已 commit 的文档 hotfix, 留给 verifier 跑命令取数后的回查):
 
 **commit 链总合计**: 实时查 `git rev-list --count 84edf26..main` (per L13 终极守护 v0.6.23 + v0.6.29) — 任何冲突以 git 实证为准。**完整权威源 = `git log 84edf26..main --oneline`**, 配合 VERIFIER-COMMANDS v0.1 §1.1 verifier 跑命令取数。
 
@@ -318,6 +285,7 @@
 | **v0.6.35** | **2026-09-02 11:20** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 28 commit → 29 commit (补 92d47c8 SESSION-CLOSEOUT v0.1.1 升版), 7 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.36** | **2026-09-02 11:26** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 29 commit → 31 commit (补 819fe3c v0.6.35 + 11fd3d7 WBS v0.4.10), 7 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 | **v0.6.37** | **2026-09-02 11:33** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段从 31 commit → 32 commit (补 8b70468 PHASE-C-SRE-HANDOFF v0.1), 8 大跟踪文档同步升版, per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
+| **v0.6.38** | **2026-09-02 11:42** | **架构师(Mavis 接手 agent per DEC-008)** | **hotfix: §2 文档 hotfix 段 32 commit 静态索引改为实时 `git log + grep` 表达式 (L13 终极守护完全闭环最后一块) + 实施 + 文档合计 = 实时 `git log 84edf26..main --oneline | wc -l` 取数 + 8 大跟踪文档静态索引固化段保留 (v0.6.38 创建时点之前), per L13 自指字段全 deferred 实时查询, 代签 per 8/27 19:39/20:56/21:59 JST 三次强化** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
