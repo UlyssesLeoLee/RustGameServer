@@ -21,7 +21,8 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-16 | 架构师 | — | 初版制定。将RGS-REQ-017§11 ARC-031展开为：派生排行视图的组件设计与更新时序、任务/成就的配置化触发引擎设计、邮件系统的数据模型、举报/黑名单的字段级设计、赛季重置的时序图 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①新增`RankingDimensionConfig`维度可配置表（FR-GSM-001）②补充`RankingViewUpdater`消费失败/死信分支与视图重建路径（FR-GSM-003、NFR-GSM-002）③新增举报者信誉度字段与降权机制设计（FR-GSM-033、RSK-GSM-002）④补充`MailMessage`/`PlayerReport`/`PlayerBlocklist`索引与唯一性约束（复用RGS-BAS-007标准） | FR-GSM-001、FR-GSM-003、FR-GSM-033、NFR-GSM-002、RSK-GSM-002 |
-| 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2／§3／§4／§5／§6 全部 5 个 ## L2 功能段加"本功能日志设计"5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），字段名前缀统一为 `rank.*` 区别于其他域；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-031 派生排行视图一致性边界 + FR-GSM-001〜044 / NFR-GSM-001〜006 的"派生视图增量更新/死信重建/赛季结算/任务奖励/邮件系统/举报黑名单/信誉度重算"全链路；显式区分 `info!`／`warn!`／`error!`（release 必出，编译期常驻，§6.2 强制全采样）与 `trace!`／`debug!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；排行榜域特殊：排行榜更新／排名变化／刷新 → release 必出；任务进度更新／完成／奖励发放 → release 必出 + §6.2 强制全采样；成就解锁 → release 必出；作弊检测／封禁 → `error!` 强制全采样；玩家治理（禁言／封号／申诉）→ release 必出 + §6.2 强制全采样（合规审计）；§7.1 标准化检查清单新增 log 章节上线检查项；§8 追溯性新增 AC-GSM-006（debug-only 宏 release 完全剔除）与 AC-GSM-007（每功能 BAS 文档须含本功能 log 章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 / BAS-006 v0.4 §9 / BAS-009 v0.7 §7 形成统一规范 | §2／§3／§4／§5／§6／§7.1／§8 |
+| 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§3／§4／§5／§6／§7 全部 5 个 ## L2 功能段加"本功能日志设计"5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），字段名前缀统一为 `rank.*` 区别于其他域；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-031 派生排行视图一致性边界 + FR-GSM-001〜044 / NFR-GSM-001〜006 的"派生视图增量更新/死信重建/赛季结算/任务奖励/邮件系统/举报黑名单/信誉度重算"全链路；显式区分 `info!`／`warn!`／`error!`（release 必出，编译期常驻，§6.2 强制全采样）与 `trace!`／`debug!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；排行榜域特殊：排行榜更新／排名变化／刷新 → release 必出；任务进度更新／完成／奖励发放 → release 必出 + §6.2 强制全采样；成就解锁 → release 必出；作弊检测／封禁 → `error!` 强制全采样；玩家治理（禁言／封号／申诉）→ release 必出 + §6.2 强制全采样（合规审计）；§8.1 标准化检查清单新增 log 章节上线检查项；§9 追溯性新增 AC-GSM-006（debug-only 宏 release 完全剔除）与 AC-GSM-007（每功能 BAS 文档须含本功能 log 章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 / BAS-006 v0.4 §9 / BAS-009 v0.7 §7 形成统一规范 | §3／§4／§5／§6／§7／§8.1／§9 |
+| 0.4 | 2026-09-02 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1): 新增 §2 処理フロー（处理流程 / Processing Flow）段 (作为新 top-level 段插入 §1 之后, 既有 §2-§8 全部 +1 重编号为 §3-§9), 含主流程图 (mermaid sequenceDiagram, 11 actor: Player/RankingSource/RankingViewUpdater/RankingQueryService/QuestStateMachine/QuestRewardGranter/MailService/PlayerReport/GM/AuthoritativeFallback/DB, 覆盖 5 大主路径: 派生视图/任务成就/邮件/举报封禁/赛季切换) + 異常分支表 (12 行, 覆盖派生视图消费失败/排行榜查询越界/任务非法迁移/任务奖励发放失败/邮件过期已领取/黑名单越权查询/举报 dedup/赛季切换 in-flight/赛季结算中间态/补偿本身失败/GM 越权/反作弊) + 决策点矩阵 (9 行, 覆盖派生视图 vs 权威表/任务奖励路径/邮件领取/黑名单查询/举报处理/赛季切换 in-flight/赛季名次/信誉度重算/反作弊处理) + 验证点清单 (10 行, 与 §3.6/§4.4/§5.4/§6.3/§7.4 既定 5 个 log 设计小节呼应); trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界与 Saga 跨域标注 (per BAS-100 v0.1, 任务奖励 + 邮件附件 + 赛季奖励发放同事务, 跨域走 Saga); ARC-031 一致性边界在 §2 顶部明文标注; 与既有 §3 排行榜 / §4 任务成就 / §5 邮件 / §6 举报封禁 / §7 赛季 互为详细化引用, §2 为跨模块全景流程 + 异常分支 + 决策点 + 验证点汇总; v0.3 修订历史 §N 引用同步重编号 (§2→§3 等) | §2、§9 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -36,13 +37,18 @@
 ## 目录
 
 1. [前言](#1-前言)
-2. [排行榜：派生视图组件设计](#2-排行榜派生视图组件设计)
-3. [任务与成就：配置化触发引擎设计](#3-任务与成就配置化触发引擎设计)
-4. [邮件系统：数据模型](#4-邮件系统数据模型)
-5. [举报与黑名单：字段级设计](#5-举报与黑名单字段级设计)
-6. [赛季与段位：重置时序](#6-赛季与段位重置时序)
-7. [标准化检查清单](#7-标准化检查清单)
-8. [追溯性](#8-追溯性)
+2. [処理フロー（处理流程 / Processing Flow）](#2-処理フロー处理流程--processing-flow)
+   - 2.1 [主流程图 (mermaid sequenceDiagram)](#21-主流程图-mermaid-sequencediagram)
+   - 2.2 [異常分支表](#22-異常分支表)
+   - 2.3 [决策点矩阵](#23-决策点矩阵)
+   - 2.4 [验证点清单](#24-验证点清单)
+3. [排行榜：派生视图组件设计](#3-排行榜派生视图组件设计)
+4. [任务与成就：配置化触发引擎设计](#4-任务与成就配置化触发引擎设计)
+5. [邮件系统：数据模型](#5-邮件系统数据模型)
+6. [举报与黑名单：字段级设计](#6-举报与黑名单字段级设计)
+7. [赛季与段位：重置时序](#7-赛季与段位重置时序)
+8. [标准化检查清单](#8-标准化检查清单)
+9. [追溯性](#9-追溯性)
 
 ---
 
@@ -54,9 +60,155 @@
 
 ---
 
-# 2. 排行榜：派生视图组件设计
 
-## 2.1 组件划分
+
+# 2. 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
+> 本文档覆盖多模块（排行榜派生视图 / 任务成就 / 邮件 / 举报封禁 / 赛季段位），§2 为跨模块全景流程 + 异常分支 + 决策点 + 验证点汇总；各模块详细时序见 §3/§4/§5/§6/§7
+
+## 2.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Player as 玩家
+    participant RS as RankingSource (EC/GD)
+    participant RVU as RankingViewUpdater
+    participant RVS as RankingQueryService
+    participant ZSM as QuestStateMachine
+    participant QRG as QuestRewardGranter
+    participant MS as MailService
+    participant PR as PlayerReport
+    participant GM as GM 运营后台
+    participant AFM as AuthoritativeFallback
+    participant DB as player_db/social_db
+
+    Note over Player,DB: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Player,DB: 事务边界: 排名更新最终一致性 (NFR-GSM-002 滞后可接受); 任务奖励 + 邮件附件 + 赛季奖励发放同事务; 跨域走 Saga, per BAS-100 v0.1
+    Note over Player,DB: ARC-031 一致性边界: 常态展示走派生视图, 赛季结算/GM 查询必须回落权威数据源
+
+    rect rgb(240, 248, 255)
+        Note over Player,DB: 主路径 1: 排行榜派生视图 (per §3 详细时序)
+        Player->>RS: 业务事件 (升级/赛季积分/工会声望等)
+        RS->>RS: 计算 RankingScore
+        RS-->>RVU: 发布 RankingScoreChanged 事件 (ARC-010 基础设施)
+        RVU->>RVS: 更新派生视图 (有序集合)
+        RVS-->>Player: 排行榜查询 (可能滞后 NFR-GSM-002)
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Player,DB: 主路径 2: 任务/成就进度与奖励 (per §4 详细时序)
+        Player->>ZSM: 任务事件触发 (QuestConditionSubscriber)
+        ZSM->>ZSM: 校验状态机合法迁移 (FR-GSM-012)
+        alt 非法迁移
+            ZSM-->>Player: 拒绝
+        else 合法迁移
+            ZSM->>ZSM: 状态机推进 + 进度更新
+            alt 任务完成
+                ZSM->>QRG: 触发奖励发放 (FR-EC-003 路径, 复用不发旁路)
+                QRG->>DB: BEGIN 原子事务
+                QRG->>DB: 插入 RewardGrantLog
+                QRG->>DB: COMMIT
+                QRG-->>ZSM: 奖励发放成功
+                ZSM-->>Player: 任务完成 + 奖励
+            end
+        end
+    end
+
+    rect rgb(240, 255, 240)
+        Note over Player,DB: 主路径 3: 邮件系统 (per §5 详细时序)
+        Player->>MS: 接收系统/业务邮件
+        MS->>DB: 写入 MailMessage
+        alt 邮件含附件
+            Player->>MS: 领取附件
+            MS->>DB: 校验未过期 + 未领取
+            alt 校验通过
+                MS->>DB: 标记已领取 (同事务)
+                MS-->>Player: 附件发放 (复用 FR-EC-003)
+            else 校验失败
+                MS-->>Player: 拒绝
+            end
+        end
+    end
+
+    rect rgb(255, 240, 240)
+        Note over Player,DB: 主路径 4: 举报与封禁 (per §6 详细时序)
+        Player->>PR: 提交举报 (FR-GSM-030)
+        PR->>DB: 写入 PlayerReport (dedup_key 唯一索引, FR-GSM-033)
+        Note over PR,GM: 举报不直接调用 AdminService, GM 人工处理 (per RGS-REQ-014 仲裁层, ARC-030 闸门)
+        GM->>PR: GM 审核 (审计记录 rank.report.audit_recorded)
+        alt 举报成立
+            GM->>GM: 封禁/禁言 (rank.governance.ban_issued / mute_issued)
+        else 举报不成立
+            GM->>PR: 标记 unsubstantiated / dismissed
+        end
+    end
+
+    rect rgb(248, 240, 255)
+        Note over Player,DB: 主路径 5: 赛季结算与切换 (per §7 详细时序)
+        Player->>AFM: 赛季边界 T 时刻 (tick 边界原子切换, ARC-016)
+        AFM->>AFM: 校验 in-flight 比赛归属
+        AFM->>DB: BEGIN 原子事务
+        AFM->>DB: 写入 SeasonSettlementLog
+        AFM->>DB: 推进 season 状态 + 重置权威分
+        AFM->>DB: COMMIT
+        AFM-->>Player: 赛季切换完成 + 名次判定 (回落权威表, FR-GSM-006)
+    end
+
+    Note over Player,DB: 异常通路 (DLQ + 重试): 派生视图消费失败 -> ARC-009 消费者标准模式 (重试 3 次 指数退避 100/200/400ms) -> DLQ 报警 -> 视图重建
+```
+
+## 2.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| 派生视图消费失败 | `RankingViewUpdater` 消费 `RankingScoreChanged` 失败 (缓存瞬时不可用) | 按 ARC-009 重试 3 次, 仍失败投 DLQ (per §3.3.1) | 排行榜查询滞后 (NFR-GSM-002 阈值内) | DLQ 报警 + 视图重建 (重算 `RankingDimensionConfig.source_event` 对应权威数据) |
+| 排行榜查询越界 | GM/玩家查询非权限范围 (NFR-GSM-005 黑名单越权查询) | `rank.blocklist.invalid_query_rejected` 强制全采样 `warn!` | 拒绝查询 | 无 (写审计) |
+| 任务非法迁移 | 状态机拒绝非法迁移 (FR-GSM-012) | `rank.quest.illegal_transition_rejected` 强制全采样 `warn!` | 提示"操作不合法" | 无 (客户端重试合法操作) |
+| 任务奖励发放失败 | FR-EC-003 路径任一步失败 | 整体回滚, 任务状态保持"待领取" | 提示"服务暂不可用" | Saga 补偿 + 客户端重试 (幂等) |
+| 邮件过期/已领取 | 玩家领取邮件附件时 `expire_at < now()` 或 `claimed_at IS NOT NULL` | 拒绝领取 | 提示"邮件已过期/已领取" | 无 (玩家放弃) |
+| 黑名单越权查询 | 非 `owner_id` 查得 `PlayerBlocklist` 内容 (NFR-GSM-005) | 拒绝查询, `rank.blocklist.invalid_query_rejected` `warn!` 强制全采样 | 拒绝 | 写审计 (per §6.3 域约束) |
+| 举报 dedup 冲突 | `PlayerReport.dedup_key` 唯一索引冲突 (FR-GSM-033) | 直接返回既有记录, 不重复写入 | 重复举报无副作用 | 无 (幂等) |
+| 赛季切换 in-flight 比赛 | 切换时刻存在未结束比赛 (FR-GSM-044 未定义行为防护) | `rank.season.inflight_match_orphan` `error!` 强制全采样 | 比赛按 tick 边界规则归属 (per §7.3) | 写审计, GM 介入确认 |
+| 赛季结算中间态 | 跨域原子操作违反 (FR-GSM-040) | `rank.season.partial_settlement_detected` `error!` 强制全采样 | 提示"赛季切换异常" | 整体回滚 + GM 人工核对 |
+| 补偿本身失败 (RSK-GSM-002 信誉度异步重算) | `ReporterReputation` 异步重算失败 | 重试 3 次, 仍失败入 DLQ | 信誉度延迟更新 | 人工重算 (per §6.1.1) |
+| GM 越权操作 | 非 `gm_operator`/`gm_admin` 角色尝试封禁/禁言 | 拒绝 + 写 `rank.governance.unauthorized_attempt` 审计 | 拒绝 | 无 (审计回溯) |
+| 反作弊检测 | 反作弊规则触发 (FR-GSM-044) | `rank.governance.cheat_detected` `error!` 强制全采样 | 用户可能被封 | 人工复核 (per RGS-REQ-014) |
+
+## 2.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| 派生视图 vs 权威表 | 查询类型 (常态展示 / 赛季结算 / GM 查询) | 常态展示 → 派生视图 (允许滞后) | 赛季结算/GM → 回落权威表 (per ARC-031 / FR-GSM-006) | 用户感知: 实时 (常态) / 准确 (赛季结算) |
+| 任务奖励发放路径 | 任务类型 (虚拟物品 / 货币 / 称号) + 玩家状态 | FR-EC-003 路径 (复用不发旁路, FR-GSM-014) | 独立发放 (错误, 必须拒绝) | 财务一致性 + 审计完整 |
+| 邮件附件领取 | `expire_at > now` AND `claimed_at IS NULL` | 允许领取 (同事务标记) | 拒绝 (过期/已领) | 用户感知: 领取成功 / 拒绝 |
+| 黑名单查询 | `querying_player == owner_id` | 返回 `PlayerBlocklist` 内容 | 拒绝 + 审计 (NFR-GSM-005) | 用户感知: 查询成功 / 拒绝 + 写审计 |
+| 举报处理 | 举报类型 (cheating/harassment/inappropriate_name) + dedup_key | 写入 + GM 人工处理 (per ARC-030) | 自动调用 AdminService (错误, 必须拒绝) | 治理合规 + 全链路审计 |
+| 赛季切换 in-flight 比赛 | 切换时刻是否存在未结束比赛 | 按 tick 边界原子切换 (per §7.3) | 强制中断 (错误, 会影响玩家体验) | 用户感知: 比赛正常归属 (新赛季) |
+| 赛季名次判定 | 派生视图 vs 权威表 | 回落权威表 (FR-GSM-006 赛季结算) | 派生视图 (滞后可能导致名次错判) | 赛季奖励准确 |
+| 信誉度重算策略 | `ReporterReputation` 计算复杂度 (RSK-GSM-002) | 异步重算 (不阻塞举报提交) | 同步重算 (性能瓶颈) | 用户感知: 举报实时提交 / 信誉度延迟更新 |
+| 反作弊处理 | 反作弊规则命中 (FR-GSM-044) | `error!` 强制全采样 + GM 复核 (per RGS-REQ-014) | 静默处理 (错误, 必须 production 可见) | 合规审计 + 行为画像 |
+
+## 2.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| 派生视图更新 (RankingViewUpdater) | 事件 `event_ts >= view.last_update_ts` (幂等键保证乱序到达不覆盖) | 严格大于等于 | 拒绝写入, 记录 `rank.leaderboard.stale_event_rejected` |
+| 任务状态机迁移 (FR-GSM-012) | `from_state -> to_state` 合法迁移 | 状态机定义允许 | 拒绝迁移, 记录 `rank.quest.illegal_transition_rejected` (强制全采样) |
+| 任务奖励发放 (FR-GSM-014) | FR-EC-003 路径返回 success | success = true | 整体回滚, 任务状态保持"待领取", 记录 `rank.quest.reward_grant_failed` |
+| 邮件附件领取 | `expire_at > now()` AND `claimed_at IS NULL` | 严格大于 + 为空 | 拒绝, 记录 `rank.mail.attachment_claim_failed` |
+| 黑名单查询 (NFR-GSM-005) | `querying_player == owner_id` | 严格相等 | 拒绝 + 写审计, 记录 `rank.blocklist.invalid_query_rejected` (强制全采样) |
+| 举报 dedup (FR-GSM-033) | `dedup_key` 唯一索引 | 0 行 (首次) 或 1 行 (已存在, 走幂等) | 不重复写入, 记录 `rank.report.duplicate_rejected` |
+| 赛季切换 in-flight 比赛 (FR-GSM-044) | 切换时刻无未结束比赛 (per §7.3 归属规则) | 全部归属确定 | `rank.season.inflight_match_orphan` (强制全采样) |
+| 赛季结算原子提交 (FR-GSM-040) | 跨域原子操作全部完成 | 全部 COMMIT | 整体回滚, 记录 `rank.season.partial_settlement_detected` (强制全采样) |
+| 举报合规审计 (per §6.3 域约束) | GM 操作记录 `rank.governance.ban_issued` / `mute_issued` | 操作记录入库 | 不允许操作 (per ARC-030 闸门) |
+| 作弊检测 (per §6.3 域约束) | `rank.governance.cheat_detected` `error!` 强制全采样 | 触发即记录 | 不允许静默 (合规审计要求) |
+
+---
+# 3. 排行榜：派生视图组件设计
+
+## 3.1 组件划分
 
 | 组件 | 归属限界上下文 | 职责 |
 |---|---|---|
@@ -65,11 +217,11 @@
 | `RankingQueryService` | 依附GD/RT既有API网关路由 | 对外提供分页查询与"附近排名"查询（FR-GSM-004），**只读**派生视图，不触达权威表 |
 | `RankingAuthoritativeFallback` | EC／GD（权威数据所在上下文） | 仅在赛季结算（FR-GSM-006）时点被调用，从权威表直接计算最终名次 |
 
-## 2.2 派生视图的数据结构（TBD-GSM-001待评审前的默认方案）
+## 3.2 派生视图的数据结构（TBD-GSM-001待评审前的默认方案）
 
 复用ARC-012既定缓存基础设施的有序集合能力（如有序集合类型的键值存储）作为默认方案，键为`ranking:{维度}:{赛季ID}`，成员为玩家ID，分值为对应维度分数。选型最终确定见TBD-GSM-001（ISS-046）。
 
-### 2.2.1 排行维度可配置扩展（FR-GSM-001字段级设计）
+### 3.2.1 排行维度可配置扩展（FR-GSM-001字段级设计）
 
 新增维度不得硬编码，须通过配置表`RankingDimensionConfig`声明（复用ARC-016数值表热更新分发机制，不修改`RankingViewUpdater`代码路径）：
 
@@ -84,7 +236,7 @@
 
 新增一种排行维度仅需新增一行`RankingDimensionConfig`配置并声明其`source_event`订阅，`RankingSource`/`RankingViewUpdater`按配置驱动，不需为新维度编写专属分支代码，满足FR-GSM-001"应当可配置扩展"要求。
 
-## 2.3 更新时序（增量式，FR-GSM-003）
+## 3.3 更新时序（增量式，FR-GSM-003）
 
 ```
 权威数据变更（如玩家升级/赛季积分结算）
@@ -96,7 +248,7 @@
 
 > 消费失败重试与死信处理复用ARC-009既定的事件消费者标准模式，不新增专属基础设施。
 
-### 2.3.1 异常分支
+### 3.3.1 异常分支
 
 ```
 RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时不可用）
@@ -106,7 +258,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
   → 运维/告警响应后，可触发"视图重建"（从权威表按`RankingDimensionConfig.source_event`对应的权威数据全量重算一次目标维度的派生视图，作为NFR-GSM-002滞后超限或死信事件堆积后的兜底恢复手段，重建期间该维度查询**应当**降级提示"数据更新中"而非报错）
 ```
 
-## 2.4 一致性边界的落地规则（ARC-031核心约束）
+## 3.4 一致性边界的落地规则（ARC-031核心约束）
 
 | 场景 | 是否可用派生视图 | 依据 |
 |---|---|---|
@@ -114,11 +266,11 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | 赛季结算的名次判定（决定奖励发放） | **不可以**，必须回落权威数据源 | FR-GSM-006、FR-GSM-043 |
 | GM后台查询某玩家当前分数 | **不可以**，直接查权威表（低频操作，无性能顾虑） | ARC-031决定 |
 
-## 2.5 滞后监控
+## 3.5 滞后监控
 
 `RankingViewUpdater`每次更新记录`last_update_lag_ms`（事件产生时间与视图更新完成时间之差），接入RGS-BAS-004既有黄金指标体系，超过NFR-GSM-002阈值告警（复用RGS-BAS-003§6告警推送通道）。**须与派生视图功能同批上线，不得后补**（RSK-031缓解措施）。
 
-### 2.6 本功能日志设计
+### 3.6 本功能日志设计
 
 本节覆盖**派生排行视图**全链路的观察点——`RankingSource` 发布 → `RankingViewUpdater` 消费 → `RankingQueryService` 查询 → 死信/重建四个环节产生 release 必出事件，便于 SRE 在 Grafana 上按 `rank.leaderboard.*` 维度聚合派生视图的健康度（事件吞吐/消费滞后/死信堆积/重建耗时）。**排行榜域按本 BAS 域特殊考虑：排行榜更新／排名变化／刷新 → release 必出**（per BAS-001 v1.5 §4.8.3.4 模板 + 本节域约束），不允许降级为 debug-only——派生视图的最终一致性是玩家可见行为，事件必须 production 可见。
 
@@ -150,9 +302,9 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 3. 任务与成就：配置化触发引擎设计
+# 4. 任务与成就：配置化触发引擎设计
 
-## 3.1 配置表结构（逻辑字段，复用ARC-016热更新分发）
+## 4.1 配置表结构（逻辑字段，复用ARC-016热更新分发）
 
 `QuestDefinition`（任务/成就共享同一配置表结构，通过`category`字段区分）：
 
@@ -164,7 +316,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `reset_policy` | enum(`never`／`season`／`period_days:N`) | 是否随赛季/周期重置（FR-GSM-014，成就默认`never`，任务默认`season`） |
 | `reward_spec` | 引用既有物品/货币发放规格（复用FR-EC-003确定请求路径的入参结构） | 领奖时通过`RewardGrantService`发放 |
 
-## 3.2 触发引擎组件
+## 4.2 触发引擎组件
 
 | 组件 | 职责 |
 |---|---|
@@ -173,11 +325,11 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `QuestStateMachine` | 状态机：`可领取→已领取→进行中→已完成→已领奖`，非法迁移拒绝（FR-GSM-012，复用RGS-REQ-001第8章状态机纪律） |
 | `QuestRewardGranter` | 复用FR-EC-003确定请求路径发放奖励，**不新设旁路**（FR-GSM-013） |
 
-## 3.3 新增触发条件类型的扩展方式（NFR-GSM-004验证点）
+## 4.3 新增触发条件类型的扩展方式（NFR-GSM-004验证点）
 
 新增一种触发条件类型仅需：①在`trigger_condition`表达式语法中新增操作符/字段（若有必要）②新增对应事件的订阅声明（配置项，非代码）。**不得**要求修改已有任务的代码路径，AC-GSM-003对此验证。
 
-### 3.4 本功能日志设计
+### 4.4 本功能日志设计
 
 本节覆盖**任务与成就**全链路的观察点——`QuestConditionSubscriber` 触发匹配 → `QuestProgressStore` 进度更新 → `QuestStateMachine` 状态迁移 → `QuestRewardGranter` 奖励发放四个环节产生 release 必出事件，便于 SRE 在 Grafana 上按 `rank.quest.*` / `rank.achievement.*` 维度聚合任务/成就完成链路。**排行榜域按本 BAS 域特殊考虑：任务进度更新／完成／奖励发放 → release 必出 + §6.2 强制全采样；成就解锁 → release 必出**（per BAS-001 v1.5 §4.8.3.4 模板 + 本节域约束）——任务奖励发放涉及 FR-EC-003 物品/货币发放路径，玩家对奖励到达极其敏感，事件必须 production 可见 + 全链路可追溯。
 
@@ -206,9 +358,9 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 4. 邮件系统：数据模型
+# 5. 邮件系统：数据模型
 
-## 4.1 逻辑数据模型
+## 5.1 逻辑数据模型
 
 `MailMessage`：
 
@@ -225,15 +377,15 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 索引：`(recipient_id, read_status, expire_at)`复合索引支撑玩家收件箱列表的高频查询（按收件人过滤未读/未过期）；`(expire_at)`单列索引支撑§4.3按月度分区的到期清理批处理扫描。`mail_id`为主键，物理DDL细节遵循RGS-BAS-007命名规范。
 
-## 4.2 批量发送
+## 5.2 批量发送
 
 `MailBatchSender`接受目标条件（全服/玩家列表/满足特定条件的群体），**异步**逐条生成`MailMessage`（FR-GSM-024，复用RGS-BAS-003控制平面既有异步工单处理模式，不阻塞GM操作的即时响应）。
 
-## 4.3 保留期清理
+## 5.3 保留期清理
 
 复用RGS-BAS-007§4既定的分区归档标准：`MailMessage`表按`expire_at`月度分区，到期分区归档/清理。清理前T-3天对未领取邮件触发到期提醒（复用既有通知/告警机制，FR-GSM-023）。
 
-### 4.4 本功能日志设计
+### 5.4 本功能日志设计
 
 本节覆盖**邮件系统**全链路的观察点——`MailMessage` 写入 → `MailBatchSender` 批量发送 → 玩家领取 → `expire_at` 到期清理四个环节产生 release 必出事件，便于运营/客服按 `rank.mail.*` 维度追溯玩家邮件状态。**邮件系统涉及玩家公告/补偿/赛季奖励发放**，所有写入与领取事件按 BAS-004 v0.3 §6.2 强制全采样（运营审计需要完整链路），不允许降级为 debug-only。
 
@@ -265,9 +417,9 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 5. 举报与黑名单：字段级设计
+# 6. 举报与黑名单：字段级设计
 
-## 5.1 举报
+## 6.1 举报
 
 `PlayerReport`：
 
@@ -299,7 +451,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 信誉度更新时机：GM在`AdminService`对举报作出处置决定（处罚或标记不实）时，**异步**触发`ReporterReputation`重算（复用ARC-009事件消费幂等机制，不阻塞GM操作），**不得**影响FR-GSM-032"举报本身不自动触发处罚"的既定原则——信誉度仅调节未来举报的信号权重，不构成对被举报者的处罚依据。
 
-## 5.2 黑名单
+## 6.2 黑名单
 
 `PlayerBlocklist`：
 
@@ -315,7 +467,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 生效点：既有FR-LBY-011私聊路由在建立会话前须查询`PlayerBlocklist`（若`blocked_id`=发起方且`owner_id`=接收方，拒绝路由），组队邀请路径同理接入。**不影响**同一公开频道的可见性——黑名单不等同于隐身（FR-GSM-035）。
 
-### 5.3 本功能日志设计
+### 6.3 本功能日志设计
 
 本节覆盖**举报/黑名单/信誉度/玩家治理**全链路的观察点——举报提交 → 信誉度重算 → GM 处罚（仅显式）→ 黑名单生效四个环节产生 release 必出事件。**玩家治理按本 BAS 域特殊考虑：玩家治理（禁言／封号／申诉）→ release 必出 + §6.2 强制全采样（合规审计）；作弊检测 → `error!` 强制全采样**（per BAS-001 v1.5 §4.8.3.4 模板 + 本节域约束）——所有 `AdminService` 处罚类调用产生的事件属**合规审计事件**（per BAS-004 v0.3 §6.2），必须 production 可见 + 全链路可追溯，不允许降级为 debug-only。
 
@@ -355,13 +507,13 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 6. 赛季与段位：重置时序
+# 7. 赛季与段位：重置时序
 
-## 6.1 段位状态机
+## 7.1 段位状态机
 
 复用RGS-REQ-001第8章状态机纪律，段位迁移（如晋升/降级）**必须**经由既定规则计算，非法迁移（跳级晋升）拒绝（FR-GSM-041）。
 
-## 6.2 赛季边界原子切换时序（复用ARC-016 tick边界原子切换思想）
+## 7.2 赛季边界原子切换时序（复用ARC-016 tick边界原子切换思想）
 
 ```
 赛季边界时刻T到达
@@ -373,11 +525,11 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
   → 原子提交：新赛季状态与旧赛季结算记录在同一事务边界内落地，不产生"部分玩家已按新赛季结算、部分仍按旧赛季"的中间态（FR-GSM-040）
 ```
 
-## 6.3 切换时正在进行中的对局
+## 7.3 切换时正在进行中的对局
 
 赛季边界T到达前已开始、T之后结束的对局，其结算**归属规则**（按旧赛季结算，或不计入任何赛季）须在`QuestDefinition`/赛季配置中显式声明，不得产生未定义行为（FR-GSM-044）。默认规则：以对局**开始时间**所属赛季结算。
 
-### 6.4 本功能日志设计
+### 7.4 本功能日志设计
 
 本节覆盖**赛季与段位**全链路的观察点——赛季边界到达 → 协调者触发结算 → `RankingAuthoritativeFallback` 计算最终名次 → 继承规则计算新赛季初始段位 → 奖励发放 → 原子提交六个环节产生 release 必出事件。**赛季结算属生产关键事件**（跨域原子操作 + 资产发放），所有环节按 BAS-004 v0.3 §6.2 强制全采样，便于事后追溯与对账。
 
@@ -415,9 +567,9 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 7. 标准化检查清单
+# 8. 标准化检查清单
 
-## 7.1 上线前检查清单
+## 8.1 上线前检查清单
 
 - [ ] 排行榜滞后监控（§2.5）已与派生视图功能同批上线
 - [ ] 派生视图数据结构选型已完成评审（TBD-GSM-001/ISS-046决议）
@@ -441,7 +593,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 - [ ] **FR-GSM-040 赛季结算中间态阻断**（`rank.season.partial_settlement_detected`）以 `error!` 强制全采样（per §6.4 域约束），跨域原子操作违反必须 production 可见
 - [ ] **FR-GSM-044 进行中对局归属规则未定义防护**（`rank.season.inflight_match_orphan`）以 `error!` 强制全采样（per §6.4 域约束），未定义行为必须 production 可见
 
-## 7.2 代码评审检查清单
+## 8.2 代码评审检查清单
 
 - [ ] 排行榜查询路径未出现对权威表的实时全表排序查询
 - [ ] 新增任务触发条件类型未修改已有任务代码路径
@@ -450,21 +602,22 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 
 ---
 
-# 8. 追溯性
+# 9. 追溯性
 
 | 需求ID | 本设计书章节 |
 |---|---|
-| ARC-031、FR-GSM-001〜006 | §2、§2.2.1（FR-GSM-001维度配置）、§2.3.1（死信/重建异常分支） |
-| FR-GSM-010〜015 | §3 |
-| FR-GSM-020〜024 | §4 |
-| FR-GSM-030〜035 | §5、§5.1.1（RSK-GSM-002信誉度机制） |
-| FR-GSM-040〜044 | §6 |
-| NFR-GSM-001〜006 | §2.5、§3.3、§6.2 |
-| AC-GSM-001〜005 | §7.1 |
-| TBD-GSM-001〜003 | §2.2、§6.2、§7.1 |
-| RSK-GSM-001〜002 | §2.5、§7.1 |
-| **AC-GSM-006（debug-only 宏在 release build 完全剔除，零运行时开销）** | §2.6／§3.4／§4.4／§5.3／§6.4 全部 5 个本功能 log 设计章节中 `rank.*.debug.*` 字段（per BAS-004 v0.3 §4.2 二维矩阵 + §4.3 四条铁律 + §9 CI 第 5 项静态检查） | §2.6〜§6.4 |
-| **AC-GSM-007（每功能 BAS 文档须含本功能 log 设计章节）** | §2.6／§3.4／§4.4／§5.3／§6.4 全部 5 个本功能 log 设计章节存在性 + §7.1 检查清单 log 章节上线检查项 + release 必出事件 grep 验证（per BAS-004 v0.3 §4.4 + §11.1） | §2.6〜§6.4、§7.1 检查清单 |
+| ARC-031、FR-GSM-001〜006 | §3、§3.2.1（FR-GSM-001维度配置）、§3.3.1（死信/重建异常分支） |
+| FR-GSM-010〜015 | §4 |
+| FR-GSM-020〜024 | §5 |
+| FR-GSM-030〜035 | §6、§6.1.1（RSK-GSM-002信誉度机制） |
+| FR-GSM-040〜044 | §7 |
+| NFR-GSM-001〜006 | §3.5、§4.3、§7.2 |
+| AC-GSM-001〜005 | §8.1 |
+| TBD-GSM-001〜003 | §3.2、§7.2、§8.1 |
+| RSK-GSM-001〜002 | §3.5、§8.1 |
+| **AC-GSM-006（debug-only 宏在 release build 完全剔除，零运行时开销）** | §3.6／§4.4／§5.4／§6.3／§7.4 全部 5 个本功能 log 设计章节中 `rank.*.debug.*` 字段（per BAS-004 v0.3 §4.2 二维矩阵 + §4.3 四条铁律 + §9 CI 第 5 项静态检查） | §3.6〜§7.4 |
+| **AC-GSM-007（每功能 BAS 文档须含本功能 log 设计章节）** | §3.6／§4.4／§5.4／§6.3／§7.4 全部 5 个本功能 log 设计章节存在性 + §8.1 检查清单 log 章节上线检查项 + release 必出事件 grep 验证（per BAS-004 v0.3 §4.4 + §11.1） | §3.6〜§7.4、§8.1 检查清单 |
+| **AC-GSM-008（処理フロー四要素）** | §2（mermaid sequenceDiagram 11 actor + 異常分支表 12 行 + 决策点矩阵 9 行 + 验证点清单 10 行，与 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §3 必含四要素一致；trace_id 贯穿全链路 per BAS-004 v0.3 §4.4；事务边界 + Saga 跨域标注 per BAS-100 v0.1；ARC-031 一致性边界明文标注；与 BAS-019 v0.4 §1.1 范式对齐；多模块汇总 §3-§7） | §2、§9 |
 
 ---
 
