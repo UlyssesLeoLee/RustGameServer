@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-018 |
-| 版本 | 0.4 |
+| 版本 | 0.5 |
 | 父文档 | RGS-REQ-021 需求定义书（ARC-036） |
 | 制定日 | 2026-08-16 |
 | 最终更新日 | 2026-09-01 |
@@ -23,6 +23,7 @@
 | 0.2 | 2026-08-16 | 架构师 | — | 补强字段级细节：①补充解绑"至少保留一种登录方式"的字段级校验逻辑（FR-IDN-005）②补充绑定/解绑审计日志字段与实名认证信息独立访问权限设计（FR-IDN-007、FR-IDN-013）③补充第三方IdP不可用时的降级时序（RSK-IDN-002） | FR-IDN-005、FR-IDN-007、FR-IDN-013、RSK-IDN-002 |
 | 0.3 | 2026-08-17 | 架构师 | — | 审计发现FR-IDN-014（未成年人保护限制的触发与解除留痕）此前仅在§4.1提及`restriction_flags`写入，无独立审计留痕设计，与FR-IDN-007/§2.4已有的绑定/解绑审计留痕待遇不一致。新增§4.3 `MinorRestrictionAuditLog`设计，复用既有独立权限域治理思想 | FR-IDN-014 |
 | 0.4 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1/§2.2/§2.3/§2.4/§3.1/§3.2/§4.1/§4.2/§4.3 全部 9 个 ## L2 功能段加"本功能日志设计" 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），字段名前缀 `auth.*` 区别于既有 `mnt.*`/`gm.*`/`db.*` 命名空间；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖账号身份第三方登录与合规域（ARC-036）"组件启动/降级 / 数据模型 CRUD / 解绑前置校验 / 绑定解绑审计 / 第三方登录冲突 / IdP 不可用降级 / 合规规则热更新 / 实名认证 Vault 访问 / 未成年人限制触发与解除"全链路；**账号身份域特殊强制**（per NFR-SE-012 + 合规要求）：登录/登出/Token 刷新/第三方登录/凭证错误/锁定/找回/实名认证/防沉迷验证 → `info!`/`warn!`/`error!` 强制全采样（release 必出，§6.2 强制全量采集范围），`auth.login.attempt.received`/`auth.login.session.established`/`auth.login.failed.no_alternative`/`auth.identity.bind.rejected.conflict`/`auth.identity.unbind.rejected.last_method`/`auth.login.idp_verification.retry.exhausted`/`auth.compliance.real_name.verification.*`/`auth.compliance.vault.access.*`/`auth.compliance.minor.restriction.*` 均为强制全采样白名单；debug-only 字段（`#[cfg(debug_assertions)]` 守护，release build 完全剔除零运行时开销）含 `auth.login.debug.request_header_dump`/`auth.login.debug.request_body_dump`/`auth.compliance.debug.vault.encrypted_payload_dump`/`auth.compliance.debug.rule_set.full_dump`；**安全/合规硬约束**（per BAS-004 v0.3 §5.1 脱敏黑名单 + §5.1 末段 IP 末段掩码）：`*token*`/`*password*`/`*credential*` 字段**禁止记录**（SDK 层面拦截），`auth.identity.client_context.ip_changed` 末段掩码（`203.0.113.0/24`），`auth.identity.client_context.geo` 仅记录粗粒度区域；§5.1 检查清单新增 6 条 log 章节上线检查项；§6 追溯性新增 AC-IDN-LOG-001（debug-only 宏 release 完全剔除）/ AC-IDN-LOG-002（每功能 BAS 文档须含本功能 log 设计章节）/ AC-IDN-LOG-003（账号身份域安全/合规字段强制全采样无遗漏），与 BAS-001 v1.5 §4.8.3.4 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §2.1/§2.2/§2.3/§2.4/§3.1/§3.2/§4.1/§4.2/§4.3/§5.1/§6 |
+| 0.5 | 2026-09-02 | Ulysses — Mavis 接手 (per DEC-008) | 架构师 (Mavis 接手 agent per DEC-008) | 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1, commit `0db8507`, 范式 commit `d52eaad`): 新增 §1.1 処理フロー（处理流程 / Processing Flow）段, 含主流程图 (mermaid sequenceDiagram, 8 actor: 玩家客户端 / 网关 GW / IdPTokenVerifier / IdentityFederationService / AccountIdentityLink DB / ComplianceRuleEngine / 外部 IdP (Apple-Google-Steam) / 审计日志表) + 異常分支表 (8 行: IdP 4xx 令牌无效 / IdP 5xx 不可用降级 / 绑定冲突 / 解绑剩余方式=0 / 实名认证缺失 / 游客转正不匹配 / 跨服越权 / 实名 Vault 越权) + 决策点矩阵 (6 行: IdP 通道选择 / 首次登录 vs 主服命中 / 游客转正 vs 新账号 / 合规规则版本选择 / Vault 访问授权决策 / 限制触发 vs 解除) + 验证点清单 (7 行: IdP token 签名验证 / binding 唯一索引 / 剩余登录方式数 / 合规规则匹配 / Vault 访问角色匹配 / 未成年判定 / 审计写入成功), 覆盖第三方登录 + 解绑前置校验 + 合规规则判定 + 实名认证 Vault + 未成年人保护 5 个主路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 事务边界标注 (DB 写入同事务, 审计 + 业务表同事务); 与既有 §3 第三方登录时序 (文字流) / §3.2 IdP 不可用降级 / §2.3 解绑前置校验 / §4.1 合规规则判定 / §4.2 Vault 访问 / §4.3 未成年保护 互为详细化引用 | §1.1 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -37,6 +38,7 @@
 ## 目录
 
 1. [前言](#1-前言)
+   1.1 [処理フロー（处理流程 / Processing Flow）](#11-処理フロー处理流程--processing-flow)
 2. [身份联合组件设计](#2-身份联合组件设计)
 3. [第三方登录时序](#3-第三方登录时序)
 4. [合规规则引擎设计](#4-合规规则引擎设计)
@@ -48,6 +50,150 @@
 # 1. 前言
 
 本文档细化RGS-REQ-021定义的ARC-036，全部组件依附既有GW（网关）/PL（玩家）限界上下文运行，不新建独立限界上下文。
+
+### 1.1 処理フロー（处理流程 / Processing Flow）
+
+> 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, 范式 commit `d52eaad` = BAS-019)
+> 详细时序见 §3 第三方登录时序 / §3.2 IdP 不可用降级 / §2.3 解绑前置校验 / §4.1 合规规则判定 / §4.2 Vault 访问 / §4.3 未成年保护, 本段为全景流程 + 异常分支 + 决策点 + 验证点汇总
+
+#### 1.1.1 主流程图 (mermaid sequenceDiagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as 玩家客户端
+    participant GW as 网关 GW
+    participant IdPV as IdPTokenVerifier
+    participant IFS as IdentityFederationService
+    participant IdP as 外部 IdP (Apple/Google/Steam)
+    participant DB as AccountIdentityLink DB
+    participant CRE as ComplianceRuleEngine
+    participant Audit as 审计日志表 (IdentityBindingAuditLog / MinorRestrictionAuditLog)
+
+    Note over Client,Audit: trace_id 贯穿全链路, per BAS-004 v0.3 §4.4
+    Note over Client,Audit: 事务边界: IdP verify 不入事务; AccountIdentityLink 写入 + Audit 写入 同事务; 跨域 Saga N/A (本域独立)
+
+    rect rgb(240, 248, 255)
+        Note over Client,DB: 主路径 1: 第三方登录 + 绑定判定 (per §3 详细时序)
+        Client->>GW: 提交第三方登录 (idp_type + idp_token)
+        GW->>IdPV: 验证 token 签名与有效期
+        IdPV->>IdP: 平台官方接口验证
+        alt 4xx 令牌无效
+            IdP-->>IdPV: 拒绝 (invalid_signature)
+            IdPV-->>GW: 验证失败 (区别于不可用)
+            GW-->>Client: 拒绝登录 "令牌无效"
+        else 5xx/超时 IdP 不可用
+            IdP-->>IdPV: 超时/5xx
+            IdPV-->>GW: 重试 3 次 (指数退避 100/200/400ms, per ARC-009)
+            GW-->>Client: 拒绝 "IdP 服务暂时不可用" (引导改用其他登录方式)
+        else 验证成功
+            IdP-->>IdPV: idp_subject_id
+            IdPV->>IFS: 取得 idp_subject_id
+            IFS->>DB: 查询 AccountIdentityLink (idp_type, idp_subject_id)
+            alt 已绑定
+                DB-->>IFS: 返回 account_id
+                IFS->>CRE: 合规规则判定 (per §4.1)
+                CRE->>DB: 查询 ComplianceRuleSet (region)
+                CRE->>CRE: 判定 restriction_flags
+                CRE-->>IFS: 判定完成 (含 restriction_flags)
+                IFS-->>GW: 建立会话 (FR-GW-002 复用)
+                GW-->>Client: 登录成功 (含 realm_id 注入 per BAS-020 §3.3)
+            else 未绑定 + 游客转正
+                IFS-->>Client: 触发 FR-IDN-003 转正流程
+                IFS->>DB: 写入 AccountIdentityLink (transaction: link + audit)
+                DB->>Audit: 同事务写入 IdentityBindingAuditLog (bind)
+                IFS-->>GW: 建立会话 (保留游客进度)
+            else 未绑定 + 新账号
+                IFS->>DB: 创建 account_id + 写入 AccountIdentityLink
+                DB->>Audit: 同事务写入 IdentityBindingAuditLog (bind)
+                IFS-->>GW: 建立会话
+            end
+        end
+    end
+
+    rect rgb(255, 250, 240)
+        Note over Client,DB: 主路径 2: 解绑前置校验 (per §2.3 详细逻辑)
+        Client->>IFS: 解绑请求 (idp_type)
+        IFS->>DB: 查该 account_id 剩余 AccountIdentityLink 数
+        alt 剩余方式数 = 0
+            IFS-->>Client: 拒绝 "至少保留一种登录方式" (FR-IDN-005)
+            IFS->>Audit: 写入 IdentityBindingAuditLog (action=bind_rejected_conflict, per §2.4)
+        else 剩余方式数 >= 1
+            IFS->>DB: 事务内删除 AccountIdentityLink + 更新 is_guest_capable
+            DB->>Audit: 同事务写入 IdentityBindingAuditLog (unbind)
+            IFS-->>Client: 解绑成功
+        end
+    end
+
+    rect rgb(248, 255, 248)
+        Note over Client,Audit: 主路径 3: 合规规则判定 + 未成年保护 (per §4.1/§4.3 详细逻辑)
+        Client->>CRE: 关键操作触发合规判定 (登录/付费/...)
+        CRE->>DB: 查询 ComplianceRuleSet (region, hot-reload per ARC-016)
+        alt 玩家地区无对应规则 (fallback)
+            CRE->>CRE: 降级使用默认配置
+            CRE-->>Client: 判定完成 (含 restriction_flags)
+        else 命中规则
+            CRE->>CRE: 应用 minor_playtime_limit_minutes 等
+            alt 触发限制
+                CRE->>DB: 写入 MinorRestrictionAuditLog (restriction_triggered, per §4.3)
+                CRE-->>Client: 应用限制
+            else 解除限制 (周期重置/认证更新)
+                CRE->>DB: 写入 MinorRestrictionAuditLog (restriction_lifted)
+                CRE-->>Client: 解除限制
+            end
+        end
+    end
+
+    rect rgb(255, 248, 248)
+        Note over Client,Audit: 主路径 4: 实名认证 Vault 访问 (per §4.2 详细权限域)
+        Client->>CRE: 合规/法务角色申请 Vault 解密访问
+        CRE->>CRE: 角色匹配 + 申请理由校验
+        alt 授权通过
+            CRE->>DB: 写 access_log_ref (同事务)
+            CRE-->>Client: 解密 payload 返回
+        else 拒绝
+            CRE-->>Client: 拒绝 + 写审计 (denied, per FR-IDN-013)
+        end
+    end
+
+    Note over Client,Audit: 异常通路 (DLQ + 重试 + 告警): IdP 5xx -> 重试 3 次 -> DLQ 报警; Vault 频率超限 -> P1 告警; 业务服务绕过 CRE -> 触发 AC-IDN-LOG-003 P1 告警
+```
+
+#### 1.1.2 異常分支表
+
+| 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
+|---|---|---|---|---|
+| IdP 4xx 令牌无效 | IdPTokenVerifier 验证返回 4xx (status: 21002/21005 等) | 拒绝登录, 区别于不可用 (per §3.2 RSK-IDN-002) | 提示"令牌无效" | 客户端重新获取 IdP token |
+| IdP 5xx 服务不可用 | IdPTokenVerifier 验证超时/5xx | 重试 3 次 指数退避 100/200/400ms (per ARC-009) | 提示"IdP 服务暂时不可用" | 引导改用其他 IdP / 游客登录 (per §3.2 降级) |
+| 绑定冲突 | 写入 AccountIdentityLink 时 (idp_type, idp_subject_id) 复合唯一索引命中 (FR-IDN-006) | 拒绝绑定, 不触发任何数据合并 | 提示"该第三方账号已被绑定" | 客服工单人工处理 (RGS-REQ-019) |
+| 解绑剩余方式=0 | 剩余登录方式数 = 0 (FR-IDN-005) | 服务器侧强制拒绝 (ARC-005 服务器权威原则) | 提示"至少保留一种登录方式" | 客户端引导先绑定其他方式 |
+| 实名认证缺失 | 业务操作要求实名认证但 ComplianceProfile.verification_status ≠ 已认证 | 拒绝业务操作, 引导走认证流程 | 提示"请先完成实名认证" | 客户端触发认证 UI |
+| 游客转正不匹配 | FR-IDN-003 转正时检测到原游客账号无 is_guest_capable=true | 拒绝转正, 不丢失游客账号进度 | 提示"该账号无法转正" | 客户端提示"继续游客模式" |
+| 跨服越权访问 (per BAS-020 §3.3 FR-PLT-012) | 业务请求携带 realm_id 与会话上下文不一致 | 业务服务拒绝 + 写 audit (per BAS-020 pay.realm.isolation.mismatch_detected) | 提示"服务暂不可用" | 客户端重新进入大厅 |
+| 实名 Vault 越权访问 | 非合规/法务角色尝试访问 IdentityVerificationVault (FR-IDN-013) | 拒绝 + 写 access_log_ref | 提示"权限不足" | 申请合规角色 |
+
+#### 1.1.3 决策点矩阵
+
+| 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
+|---|---|---|---|---|
+| IdP 通道选择 | 玩家在线状态 + 设备类型 + 业务场景 | iOS → Apple; Android → Google; 跨端 → 客户端声明的 idp_type | 强制单一 IdP (运营场景) | 用户感知: 标准登录 / 限定登录 |
+| 首次登录 vs 主服命中 | 账号 AccountIdentityLink 存在性 + 主服记录 (per BAS-020 §3.2) | 命中 → 直接路由主服; 首次 → 展示服务器列表 | 强制重新选服 (运营活动) | 用户感知: 直接进入游戏 / 选服界面 |
+| 游客转正 vs 新账号 | AccountIdentityLink 查询结果 + 客户端声明 (FR-IDN-003) | 转正: 客户端声明 guest_promote=true, 写入 link 保留进度; 新账号: client 声明 new_account | 强制走其中一种 | 用户感知: 保留进度 / 新账号 |
+| 合规规则版本选择 | ComplianceRuleSet 热更新 tick 边界 (per ARC-016) | 新版本生效: 切换到新 rule_set_version | 保留旧版本 (合规要求回退) | 用户感知: 限制生效 / 维持现状 |
+| Vault 访问授权决策 | reader 角色 + 申请理由 + 频率限制 (FR-IDN-013) | 授权: 角色 ∈ {compliance, legal} + 理由非空 + 1h 内 ≤ N 次 | 拒绝 + 告警 | 用户感知: 解密返回 / 拒绝 |
+| 限制触发 vs 解除 | ComplianceRuleEngine 判定结果 + ComplianceProfile.restriction_flags 当前值 | 触发: 命中规则写入 MinorRestrictionAuditLog (restriction_triggered); 解除: 周期重置或认证更新写入 (restriction_lifted) | 维持现状 (重复触发幂等) | 用户感知: 应用新限制 / 解除限制 |
+
+#### 1.1.4 验证点清单
+
+| 验证时机 | 验证内容 | 通过标准 | 失败处理 |
+|---|---|---|---|
+| IdP token 签名验证 | IdPTokenVerifier 验证 token 签名与有效期 (per §3) | 200 OK + 有效签名 | 拒绝登录 (4xx 走 "令牌无效" / 5xx 走 "IdP 不可用", per §3.2 区分) |
+| AccountIdentityLink 唯一索引 | (idp_type, idp_subject_id) 复合唯一索引查询 (FR-IDN-006) | 0 行 (本 IdP 首次) 或 1 行 (已绑定, 走既有路径) | 拒绝绑定 + 写 IdentityBindingAuditLog (bind_rejected_conflict, per §2.4) |
+| 剩余登录方式数 | 解绑前置校验 (FR-IDN-005): count(剩余 link 记录) + is_guest_capable | >= 1 (允许解绑) | 拒绝解绑 + 写 audit (unbind_rejected.last_method, per §2.3 强制全采样) |
+| 合规规则匹配 | ComplianceRuleEngine 查询 ComplianceRuleSet (region) | region 命中 + rule_set_version 已加载 | 降级使用默认规则 + 写 audit (judgment.fallback.using_default, per §4.1) |
+| Vault 访问角色匹配 | reader_id ∈ {compliance, legal} + access_reason 非空 (FR-IDN-013) | 角色匹配 + 理由填写 | 拒绝 + 写 audit (vault.access.denied, 触发 P1 告警 per §4.2) |
+| 未成年判定 | ComplianceProfile.age_bracket 派生 restriction_flags 命中规则 (per §4.3) | 命中 rule_set_version 的 minor_playtime_limit_minutes | 不触发限制 / 触发 MinorRestrictionAuditLog (restriction_triggered) |
+| 审计写入成功 | DB tx_id COMMIT 返回 (IdentityBindingAuditLog / MinorRestrictionAuditLog / vault.access_log_ref) | tx_id 成功写入 | 整体回滚, 业务操作失败 (写 audit_log.write_failed per §2.4/§4.2/§4.3 强制全采样) |
 
 ---
 
