@@ -133,6 +133,26 @@
 - **入档日期**: —
 - **下次评审**: 2026-12-02 JST
 
+#### L-CAND-009: 5 worker 派工 3 选项约束 (per 9/3 12:36 JST 入档)
+
+- **来源**: 9/3 11:08 JST 5 worker 派工 race condition 异常 (CHECKLIST 5 域 commit 归属散收, commit `6c5173a`) + 9/3 12:36 JST ask_user 拍板 l12-formal-now
+- **来源 commit**: `6c5173a` (audit) + `747b6d5` (v0.6.10 升版 ad-hoc 案例库) + `111d4ad` (5 worker E2E stub 实证新约束 0 race condition)
+- **类型**: 治理类 (5 worker 派工 SOP 标准化)
+- **现状 (9/3 12:36 JST)**: 5 worker 派工约束已升 L12 正式派生约束 (per 9/3 12:36 JST ask_user 拍板, AGENTS.md v0.6.11), 不需 12/2 季度评审单独拍板
+- **L1-L14 冻结期合规**: 9/2 10:18 JST 拍板 L1-L14 冻结 6 个月 (至 2027-03-02), 9/3 12:36 JST 拍板"5 worker 派工约束升 L12 正式"是 L12 段位升 (L12 已存在, 仅 ad-hoc 升正式), 不增 L15, 合规
+- **措施** (L12.2 段已落地):
+  1. 5 worker 派工 3 选项: 独立 worktree / 写不 commit 主会话统一 / 1 worker 串行
+  2. per-worker `CARGO_TARGET_DIR=target-r1-<scope>` 覆盖全局 `E:/DevCache/cargo/target`
+  3. 5 worker staggered 启动 30s 间隔
+  4. DoD 简报明文 "worker 不 commit, 报告即可"
+  5. race condition 异常留 audit commit trail (per 9/3 11:58 JST 选项 B 落地)
+  6. 不 amend / rebase / filter-branch 改写历史 (per 8/27 JST 禁回溯叙事)
+- **收益**: 5 worker 派工 0 race condition (per 9/3 12:09 JST 实证 commit `111d4ad`)
+- **成本**: 简报模板加 5 行强制约束
+- **风险**: 跟 9/1 14:15-15:10 JST 8 worker 派工基线一致, 0 新风险
+- **入档日期**: 2026-09-03 12:36 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 确认 L12 正式段升是否维持)
+
 ---
 
 ## 2. 季度评审机制 (per AGENTS.md v0.6.1 §8)
@@ -154,6 +174,7 @@
 |---|---|---|---|
 | v0.1 | 2026-09-02 11:00 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: A 类 4 条候选清单 (A1/A3/A4 + 1 保留位) + 季度评审机制, per AGENTS.md v0.6.1 §8 + RGS-CRITIQUE-IMPROVEMENT v0.1.1 §3.1 |
 | v0.2 | 2026-09-02 18:30 | 架构师(Mavis 接手 agent per DEC-008) | L15 候选 v0.2: 加 4 条 W37 反思候选 (L-CAND-004 SRE 拍板超时 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 导出硬 ban / L-CAND-007 派生约束版本锁), 类型分布 治理 1 / 业务 2 / 安全 1, 来源 W37 v0.1 + Phase C KICKOFF + 8/27 11:06 JST hard ban, 12/2 Q4 季度评审; L-CAND-006 例外路径写明 (per 8/27 安全派生约束例外条款, §0 第 4 项); 季度评审机制表 12/2 行扩到 7 条候选 + 1 保留位; 顶部 "依据" 段补 W37 v0.1 + Phase C KICKOFF 关联 |
+| v0.3 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 升正式候选清单对齐: 加 L-CAND-009 (5 worker 派工 3 选项约束, per 9/3 12:36 JST ask_user 拍板 l12-formal-now), 类型治理类, 来源 9/3 11:08 JST race condition + commit `6c5173a` audit + 9/3 12:09 JST 实证 commit `111d4ad` 0 race condition; L12.2 段已落地 (3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit + audit commit trail); 12/2 季度评审确认 L12 正式段升是否维持; 季度评审机制表 12/2 行扩到 8 条候选 + 1 保留位 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

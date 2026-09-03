@@ -307,7 +307,34 @@ git config commit.template .gitmessage
 - **检查工具**: worker 报告里 grep `Waiting for|build dir lock` 应该 < 5 次
 - **配套**: 简报明文 "30 min 必须出 commit, 失败也没关系, 占位 commit 也行", 避免 worker 长时间 polling 编译
 
-#### L12: PT 派工临时 log 不入 commit 防御
+#### L12: PT 派工临时 log 不入 commit 防御 + 5 worker 派工 3 选项 (per 9/3 12:36 JST 升 v0.6.11 正式派生)
+
+**派生约束 L12 (升正式, per 9/3 12:36 JST ask_user 拍板 l12-formal-now)**:
+
+- **L12.1 临时 log / .txt / .tmp_search* 不入 commit** (per 9/1 14:15-15:10 JST 8 worker PT 派工教训):
+  - 简报明文 "临时 log / .txt / .tmp_search* 不入 commit, 主会话 merge 后清理"
+  - 8 worker 临时文件 7 worktree 根污染教训, 强约束
+  - 检查工具: `git status` merge 前应该 0 untracked (除 .gitignore 没列的临时 log)
+  - 配套: `scripts/cleanup-tmp-files.ps1` (per 9/3 07:31 JST 拍板) + `scripts/pre-commit-tmp-check.ps1`
+
+- **L12.2 5 worker 并发派工 3 选项** (per 9/3 11:08 JST race condition 教训, commit `6c5173a`):
+  - **触发场景**: 5 worker (player / economy / match / social / admin) 并发派工, 共享主仓库
+  - **根因**: 5 worker 各自 `git add` + `git commit`, 互相捕获 untracked 文件, 5 域文件被 3 commit 散收 (title 与 content 不匹配)
+  - **3 选项** (按 token 预算 / 跨 worker 协调成本 选):
+    1. **5 worker 独立 worktree** (per 8/31 W37 模式 ut/player / ut/economy / ut/match / ut/social / ut/admin), 各 worktree commit 后主会话 merge, 工作流最重但 0 race condition
+    2. **5 worker 写文件不 commit, 主会话统一 git add 5 files + 1 commit** (per 9/3 11:08 JST 教训推荐), token 预算中等, 0 race condition
+    3. **1 worker 串行 5 域**, 失去"5 worker 并行"形式, 0 race condition 但 token 节奏慢
+  - **per-worker `CARGO_TARGET_DIR=target-r1-<scope>` 覆盖全局** (per 9/3 08:42 JST L11 dir lock 修复):
+    - 全局 `CARGO_TARGET_DIR=E:/DevCache/cargo/target` 让 5 worktree 各自 `target/` 失效
+    - worker 内部 `$env:CARGO_TARGET_DIR = "target-r1-<scope>"` 覆盖
+  - **staggered 启动**: 5 worker 间隔 30s, 避免同时 cargo registry lock 抢锁
+  - **DoD 简报明文**: "worker 不 commit, 报告即可" 避免 race condition
+  - **追溯改写禁**: 不 amend / rebase / filter-branch 改写历史 (per 8/27 JST 禁回溯叙事)
+  - **race condition 异常**: 留 audit commit trail (per 9/3 11:58 JST 选项 B 落地模式)
+  - **首次实证**: 5 worker E2E stub 派工 commit `111d4ad` (5 files 一次性 commit, 0 race condition, per 9/3 12:09 JST)
+
+- **L12.3 候选清单入档**:
+  - L-CANDIDATES.md 加 L-CAND-009: "5 worker 派工 3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit" (per 9/3 12:36 JST 入档, 12/2 季度评审确认)
 
 #### L14 | plumbing 节点字符串处理: 含多 newline 时需 substring 提取 + brace 跟踪,不能简单 indexOf + 1 | 9/2 W2 BA-W2-3/5/6 patch 经验 |
 - 例: Patch A 替换 push_dlq body 时 marker 含 `}\n    }\n}\n#[get...` 4 边界,简单 `indexOf('}') + 1` 找到第 1 个 `}` (字符串里) 而非函数关闭
@@ -638,6 +665,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.8 | 2026-09-02 18:39 | 架构师(Mavis 接手 agent per DEC-008) | 3 worker worktree 并行收口 (per 9/2 18:29 JST 派工, 9/1 8 worker 25 min 派工基线): ① `feat/w37-l15-candidate` L-CANDIDATES v0.2 升版 (commit `ee3c7e7`, 1 file, +81/-13, 4 条 L15 候选: L-CAND-004 保留位 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 硬 ban / L-CAND-007 9 月新教训) ② `feat/w37-critique-v0.2` RGS-CRITIQUE-IMPROVEMENT v0.2 升版 (commit `dae4c91`, 1 file, +501, 5 大问题重评 + 6 域 60 项生产可用 checklist) ③ `feat/w37-e2e-fillin` 5 域 E2E Phase C marker (commit `a88a5d6`, 5 files, +273, 各 1 编译期锚定函数, cargo check 5 域 0 error 总 5.05s). 3 merge 0 conflict (ort strategy), --no-ff 保留 3 worker 拓扑 |
 | v0.6.9 | 2026-09-03 07:35 | 架构师(Mavis 接手 agent per DEC-008) | R1 业务冲刺拍板落地 (per 9/3 07:31 JST ask_user 4 项拍板): ① §8 加 L-CAND-006 例外段 (k8s secret 导出硬 ban 安全类, 不等 R4 季度评审, 9/3 当天落地) ② `scripts/cleanup-tmp-files.ps1` + `scripts/pre-commit-tmp-check.ps1` (L12 兜底, 临时文件不入 commit) ③ 仓库盘点 + token 标准推进 R1-R5 路线图落档 `docs/14-项目治理/RGS-DEVPLAN-2026-09-02_v0.3.md` (21.3 KB) |
 | v0.6.10 | 2026-09-03 12:00 | 架构师(Mavis 接手 agent per DEC-008) | 5 worker 并发派工 race condition 教训升 L12 案例库 (per 9/3 11:08 JST CHECKLIST 5 域 commit 归属异常 audit commit `6c5173a`): §6.3 PT 派工简报模板 加 5 worker 并发派工约束子段 (3 选项: 独立 worktree / 写不 commit 主会话统一 / 1 worker 串行, per-worker CARGO_TARGET_DIR, staggered 启动, DoD 简报明文 "worker 不 commit 报告即可", 不修历史, race condition 异常留 audit commit trail) |
+| v0.6.11 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 派生约束 升正式 (per 9/3 12:36 JST ask_user 拍板 l12-formal-now): §2 L12 段从"PT 派工临时 log 不入 commit 防御"扩为 "L12.1 临时 log 防御 + L12.2 5 worker 派工 3 选项 + L12.3 候选清单 L-CAND-009 入档" (L1-L14 冻结期内 L12 正式段升, 不走 L15 候选); L-CANDIDATES.md 加 L-CAND-009 (5 worker 派工 3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
