@@ -1235,23 +1235,34 @@ mod tests {
     }
 
     /// verify_recent: n 大于总条数, 全部扫描通过
+    ///
+    /// 修复 (R2 2026-09-03): 之前测试构造 3 条 entry 全部使用 prev_hash = "0"*64,
+    /// 这不是有效链 (仅首条应该 prev_hash = "0"*64, 后续应续接 prev.hash).
+    /// 现参照 `verify_recent_returns_ok_for_clean_chain` 模式, 用 latest() 拿
+    /// 上一条 hash 构造有效链, 让 n=100 > total=3 时全扫通过.
     #[tokio::test]
     async fn verify_recent_n_larger_than_total() {
         let repo = InMemoryAuditLogRepository::new();
         let actor = Uuid::new_v4();
-        for _ in 0..3 {
+        for i in 0..3 {
+            let prev_hash = if i == 0 {
+                "0".repeat(64)
+            } else {
+                repo.latest().await.unwrap().unwrap().hash
+            };
             let e = AuditLogEntry::new(
                 actor,
-                "x".to_string(),
+                format!("action.{i}"),
                 "y".to_string(),
                 "{}".to_string(),
-                "0".repeat(64),
+                prev_hash,
             );
             repo.append(&e).await.unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(2));
         }
         // n=100, 但只有 3 条 → 应扫全部 3 条
         let report = repo.verify_recent(100).await.unwrap();
-        assert!(report.is_ok());
+        assert!(report.is_ok(), "n > total 时干净链应通过, got {:?}", report);
         assert_eq!(report.checked, 3);
     }
 }
