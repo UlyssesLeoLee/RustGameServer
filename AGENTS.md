@@ -368,6 +368,24 @@ git config commit.template .gitmessage
 - 单 commit 跨多个 crate → 不允许
 ```
 
+#### 5 worker 并发派工约束 (per 9/3 11:08 JST race condition 教训, commit `6c5173a`)
+
+**背景**: 9/3 11:08 JST 5 worker 派工 (5 域 checklist 文档) 共享主仓库, 各自 `git add` + `git commit`, 5 域文件被 3 个 commit 散收 (player+admin / economy+social / match), commit 标题与 content 不匹配.
+
+**强约束 (per 9/3 11:08 JST race condition 教训)**:
+
+- **5 worker 共享主仓库时, 不推荐各自 `git add .` + `git commit`**
+- 3 选项 (按 token 预算 / 跨 worker 协调成本 选):
+  1. **5 worker 独立 worktree** (per 8/31 W37 模式 ut/player / ut/economy / ut/match / ut/social / ut/admin), 各 worktree commit 后主会话 merge, 工作流最重但 0 race condition
+  2. **5 worker 写文件不 commit, 主会话统一 git add 5 files + 1 commit** (per 9/3 11:08 JST 教训推荐), token 预算中等, 0 race condition
+  3. **1 worker 串行 5 域**, 失去"5 worker 并行"形式, 0 race condition 但 token 节奏慢
+- **per-worker CARGO_TARGET_DIR** (per 9/3 08:42 JST L11 dir lock 修复):
+  - 全局 `CARGO_TARGET_DIR=E:/DevCache/cargo/target` (Windows 缓存) 让 5 worktree 各自 `target/` 失效
+  - worker 内部设 `$env:CARGO_TARGET_DIR = "target-r1-<scope>"` 覆盖全局
+- **staggered 启动**: 5 worker 间隔 30s 启动, 避免同时 cargo registry lock 抢锁
+- **DoD 简报明文**: "worker 不 commit, 报告即可" 避免 race condition (per 选项 2)
+- **追溯改写禁**: 不 amend / rebase / filter-branch 改写历史 (per 8/27 JST 禁回溯叙事), race condition 异常留 audit commit trail (per 9/3 11:58 JST 选项 B 落地模式)
+
 ### 6.4 模板 (per ST worker / 主会话 ST)
 
 ```markdown
@@ -619,6 +637,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.7 | 2026-09-02 18:16 | 架构师(Mavis 接手 agent per DEC-008) | W37 周报 v0.1 启动预热 (per 9/2 17:32 JST 拍板, 选项 1 Mavis-side): 新增 `docs/14-项目治理/RGS-WEEKLY-2026-W37_v0.1.md` (7.3 KB, 双指标 + 5 天工作 + W36 末节点 + 风险评估 + 派生约束守护), 沿用 v0.3 模板 |
 | v0.6.8 | 2026-09-02 18:39 | 架构师(Mavis 接手 agent per DEC-008) | 3 worker worktree 并行收口 (per 9/2 18:29 JST 派工, 9/1 8 worker 25 min 派工基线): ① `feat/w37-l15-candidate` L-CANDIDATES v0.2 升版 (commit `ee3c7e7`, 1 file, +81/-13, 4 条 L15 候选: L-CAND-004 保留位 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 硬 ban / L-CAND-007 9 月新教训) ② `feat/w37-critique-v0.2` RGS-CRITIQUE-IMPROVEMENT v0.2 升版 (commit `dae4c91`, 1 file, +501, 5 大问题重评 + 6 域 60 项生产可用 checklist) ③ `feat/w37-e2e-fillin` 5 域 E2E Phase C marker (commit `a88a5d6`, 5 files, +273, 各 1 编译期锚定函数, cargo check 5 域 0 error 总 5.05s). 3 merge 0 conflict (ort strategy), --no-ff 保留 3 worker 拓扑 |
 | v0.6.9 | 2026-09-03 07:35 | 架构师(Mavis 接手 agent per DEC-008) | R1 业务冲刺拍板落地 (per 9/3 07:31 JST ask_user 4 项拍板): ① §8 加 L-CAND-006 例外段 (k8s secret 导出硬 ban 安全类, 不等 R4 季度评审, 9/3 当天落地) ② `scripts/cleanup-tmp-files.ps1` + `scripts/pre-commit-tmp-check.ps1` (L12 兜底, 临时文件不入 commit) ③ 仓库盘点 + token 标准推进 R1-R5 路线图落档 `docs/14-项目治理/RGS-DEVPLAN-2026-09-02_v0.3.md` (21.3 KB) |
+| v0.6.10 | 2026-09-03 12:00 | 架构师(Mavis 接手 agent per DEC-008) | 5 worker 并发派工 race condition 教训升 L12 案例库 (per 9/3 11:08 JST CHECKLIST 5 域 commit 归属异常 audit commit `6c5173a`): §6.3 PT 派工简报模板 加 5 worker 并发派工约束子段 (3 选项: 独立 worktree / 写不 commit 主会话统一 / 1 worker 串行, per-worker CARGO_TARGET_DIR, staggered 启动, DoD 简报明文 "worker 不 commit 报告即可", 不修历史, race condition 异常留 audit commit trail) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
