@@ -47,6 +47,13 @@ target/
 target-bucket-*/
 target-bucket-*/**
 
+# Per-worker cargo build dir (per 2026-09-03 08:42 JST L11 dir lock 修复)
+# 全局 CARGO_TARGET_DIR=E:/DevCache/cargo/target 让 5 worktree 各自 target/ 失效,
+# worker 内部 $env:CARGO_TARGET_DIR = "target-r1-<scope>" 覆盖全局
+# 派工结束必须清理, .gitignore 兜底防未清理污染 git status
+target-r1-*/
+target-r1-*/**
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
