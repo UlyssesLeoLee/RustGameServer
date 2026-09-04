@@ -35,6 +35,12 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+/// 5 域公共 helper（per 2026-09-04 扫描 P0-2）
+pub fn grpc_err(method: &'static str, e: Error) -> Status {
+    tracing::error!(method = method, error = %e, "method={} failed", method);
+    tonic::Status::from(e)
+}
+
 #[async_trait]
 pub trait MatchService: Send + Sync {
     async fn health_check(&self) -> Result<bool>;
@@ -729,7 +735,7 @@ pub mod grpc_service {
                 .impl_
                 .health_check()
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("health_check", e))?;
             Ok(Response::new(common_proto::HealthCheckResponse {
                 status: if healthy {
                     common_proto::Status::Ok as i32
@@ -763,7 +769,7 @@ pub mod grpc_service {
                 .impl_
                 .find_match_by_id(match_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?
+                .map_err(|e| grpc_err("find_match_by_id", e))?
                 .ok_or_else(|| Status::not_found(format!("match {}", id_str)))?;
             Ok(Response::new(match_proto::Match {
                 id: Some(common_proto::EntityId {
@@ -790,7 +796,7 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::EnqueueMatchmakingRequest>,
         ) -> std::result::Result<Response<match_proto::EnqueueMatchmakingResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("enqueue_matchmaking", e))?;
             let req = request.into_inner();
             let player = req
                 .player
@@ -813,7 +819,7 @@ pub mod grpc_service {
                     req.rank_score_max,
                 )
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("enqueue_matchmaking", e))?;
             let resp = match result {
                 crate::matchmaker_v2::EnqueueResult::Queued {
                     ticket_id,
@@ -838,10 +844,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::CancelMatchmakingRequest>,
         ) -> std::result::Result<Response<match_proto::CancelMatchmakingResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("cancel_matchmaking", e))?;
             let req = request.into_inner();
             let ticket_id = conv::parse_uuid(&req.ticket_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             tracing::debug!(
                 service = "match-service",
                 method = "CancelMatchmaking",
@@ -854,7 +860,7 @@ pub mod grpc_service {
             let cancelled = v2
                 .cancel_matchmaking(ticket_id, "")
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("cancel_matchmaking", e))?;
             Ok(Response::new(match_proto::CancelMatchmakingResponse { cancelled }))
         }
 
@@ -862,14 +868,14 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::GetMatchmakingStatusRequest>,
         ) -> std::result::Result<Response<match_proto::GetMatchmakingStatusResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("map_err", e))?;
             let req = request.into_inner();
             let ticket_id = conv::parse_uuid(&req.ticket_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let status = v2
                 .get_matchmaking_status(ticket_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             Ok(Response::new(match_proto::GetMatchmakingStatusResponse {
                 status: conv::ticket_status_to_proto(status.status),
                 match_id: status.match_id.map(|u| u.to_string()).unwrap_or_default(),
@@ -880,7 +886,7 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::CreateMatchRequest>,
         ) -> std::result::Result<Response<match_proto::CreateMatchResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("map", e))?;
             let req = request.into_inner();
             let host = req
                 .host
@@ -919,7 +925,7 @@ pub mod grpc_service {
                     req.ai_difficulty,
                 )
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("max", e))?;
             Ok(Response::new(match_proto::CreateMatchResponse {
                 match_id: result.match_id.to_string(),
                 mode: conv::game_mode_to_proto(result.mode),
@@ -931,10 +937,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::JoinMatchRequest>,
         ) -> std::result::Result<Response<match_proto::JoinMatchResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("unwrap_or_default", e))?;
             let req = request.into_inner();
             let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let player = req
                 .player
                 .as_ref()
@@ -960,7 +966,7 @@ pub mod grpc_service {
             let result = v2
                 .join_match(match_id, session_player, room_code, room_password)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("is_empty", e))?;
             Ok(Response::new(match_proto::JoinMatchResponse {
                 joined: result.joined,
                 turn_index: result.turn_index,
@@ -971,10 +977,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::LeaveMatchRequest>,
         ) -> std::result::Result<Response<match_proto::LeaveMatchResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("leave_match", e))?;
             let req = request.into_inner();
             let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let player = req
                 .player
                 .as_ref()
@@ -995,7 +1001,7 @@ pub mod grpc_service {
             let result = v2
                 .leave_match(match_id, &player_id, req.surrender)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("leave_match", e))?;
             Ok(Response::new(match_proto::LeaveMatchResponse {
                 left: result.left,
                 match_result: result.match_result,
@@ -1006,10 +1012,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::GetMatchStateRequest>,
         ) -> std::result::Result<Response<match_proto::GetMatchStateResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("get_match_state", e))?;
             let req = request.into_inner();
             let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let player = req
                 .player
                 .as_ref()
@@ -1018,7 +1024,7 @@ pub mod grpc_service {
             let state = v2
                 .get_match_state(match_id, &session_player)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("get_match_state", e))?;
             let pending_moves: Vec<match_proto::Move> = state
                 .session
                 .pending_moves
@@ -1037,10 +1043,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::SubmitMoveRequest>,
         ) -> std::result::Result<Response<match_proto::SubmitMoveResponse>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("unwrap_or", e))?;
             let req = request.into_inner();
             let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let player = req
                 .player
                 .as_ref()
@@ -1062,7 +1068,7 @@ pub mod grpc_service {
             let result = v2
                 .submit_move(match_id, &session_player, req.turn_index, entity_move)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("submit_move", e))?;
             Ok(Response::new(match_proto::SubmitMoveResponse {
                 accepted: result.accepted,
                 new_turn_index: result.new_turn_index,
@@ -1075,10 +1081,10 @@ pub mod grpc_service {
             &self,
             request: Request<match_proto::SubscribeMatchRequest>,
         ) -> std::result::Result<Response<Self::SubscribeMatchStream>, Status> {
-            let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
+            let v2 = self.impl_.v2().map_err(|e| grpc_err("unwrap_or_default", e))?;
             let req = request.into_inner();
             let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("v2_call", e))?;
             let player = req
                 .player
                 .as_ref()
@@ -1087,7 +1093,7 @@ pub mod grpc_service {
             let receiver = v2
                 .subscribe_match(match_id, &session_player, req.full_snapshot_first)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("subscribe_match", e))?;
             Ok(Response::new(MatchEventStream::new(receiver)))
         }
     }
@@ -1660,3 +1666,4 @@ mod tests {
         assert!(matches!(err, Error::NotFound { .. }));
     }
 }
+
