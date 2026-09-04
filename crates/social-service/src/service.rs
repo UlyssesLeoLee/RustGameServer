@@ -13,6 +13,12 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+/// 5 域公共 helper（per 2026-09-04 扫描 P0-2）
+pub fn grpc_err(method: &'static str, e: Error) -> Status {
+    tracing::error!(method = method, error = %e, "method={} failed", method);
+    tonic::Status::from(e)
+}
+
 #[async_trait]
 pub trait SocialService: Send + Sync {
     async fn health_check(&self) -> Result<bool>;
@@ -321,7 +327,7 @@ pub mod grpc_service {
                 .impl_
                 .health_check()
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("health_check", e))?;
             Ok(Response::new(common_proto::HealthCheckResponse {
                 status: if healthy {
                     common_proto::Status::Ok as i32
@@ -355,7 +361,7 @@ pub mod grpc_service {
                 .impl_
                 .find_guild_by_id(guild_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?
+                .map_err(|e| grpc_err("find_guild_by_id", e))?
                 .ok_or_else(|| Status::not_found(format!("guild {}", id_str)))?;
             Ok(Response::new(social_proto::Guild {
                 id: Some(common_proto::EntityId {
