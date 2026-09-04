@@ -12,6 +12,8 @@ description = "GM 后台 APIGW (actix-web 4 + RBAC + mTLS, HTTP→AdminService g
 name = "gm-backend"
 path = "src/main.rs"
 
+[lints]
+workspace = true
 [dependencies]
 tokio = { workspace = true }
 serde = { workspace = true }

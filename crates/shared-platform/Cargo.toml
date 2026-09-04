@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 description = "公共服务库（tracing 初始化 / config / error / mTLS / sqlx + common.proto 编译）"
 
+[lints]
+workspace = true
 [dependencies]
 # 公共服务
 tokio = { workspace = true }

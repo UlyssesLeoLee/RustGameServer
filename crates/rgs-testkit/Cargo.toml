@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 description = "RustGameServer 测试套件骨架（mock + helper + fixture）"
 
+[lints]
+workspace = true
 [dependencies]
 # 公共能力（5 域 + cluster-ops + shared-platform 共用）
 tokio = { workspace = true }

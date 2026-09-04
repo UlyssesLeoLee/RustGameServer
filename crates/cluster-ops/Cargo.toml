@@ -12,6 +12,8 @@ description = "5 域集群运营微服务（per DTL-020 §3 / ARC-008 5 独立 D
 name = "cluster-ops"
 path = "src/main.rs"
 
+[lints]
+workspace = true
 [dependencies]
 # workspace 公共服务
 tokio = { workspace = true }

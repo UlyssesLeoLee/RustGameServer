@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 description = "Function Plane mock (per RGS-INC-001 v0.2 §8/§9/§15)"
 
+[lints]
+workspace = true
 [dependencies]
 tokio = { workspace = true }
 serde = { workspace = true }

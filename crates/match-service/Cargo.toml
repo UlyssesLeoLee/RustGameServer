@@ -25,6 +25,8 @@ harness = false
 default = ["tracing"]
 tracing = []
 
+[lints]
+workspace = true
 [dependencies]
 # workspace 公共服务
 tokio = { workspace = true }

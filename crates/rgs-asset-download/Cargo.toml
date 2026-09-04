@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 description = "RustGameServer 客户端资源分发的断点续传与可恢复下载（per RGS-DTL-041 / SPEC-DTL-041 v0.2）"
 
+[lints]
+workspace = true
 [dependencies]
 # 既有 workspace 公共依赖
 tokio = { workspace = true }

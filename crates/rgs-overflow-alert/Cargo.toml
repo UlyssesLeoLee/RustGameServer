@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 description = "超限排队 + 邮件告警中间件（per 2026-08-27 Ulysses 拍板；5 域业务服务限流 / NATS JS 排队 / SMTP 告警降级日志）"
 
+[lints]
+workspace = true
 [dependencies]
 # workspace 公共服务
 tokio = { workspace = true }

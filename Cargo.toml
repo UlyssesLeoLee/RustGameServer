@@ -74,3 +74,22 @@ strip = "symbols"
 [profile.dev]
 opt-level = 0
 debug = 1
+
+# 2026-09-05 P1-6: workspace 集中 lint policy
+# - unsafe_code = "forbid" (5 域主链路 + 平台层全禁 unsafe)
+# - missing_debug_implementations = "warn" (公共 API 应可调试)
+# - clippy::unwrap_used = "warn" (生产路径 unwrap 警告, 已在 test 范围 #[allow])
+# - clippy::expect_used = "warn" (同 unwrap)
+# - clippy::result_large_err = "allow" (per clippy.toml large-error-ignored, sqlx::Error + tonic::Status 必要)
+# - clippy::all = "warn" (中等严格度, 不直接 deny 避免 baseline warning 爆炸)
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+result_large_err = "allow"
