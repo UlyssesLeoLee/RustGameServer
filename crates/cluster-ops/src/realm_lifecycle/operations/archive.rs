@@ -300,52 +300,9 @@ impl ArchiveOperator {
         policy: &ArchivePolicy,
         bucket: &str,
         key: &str,
-        bytes: &[u8],
-    ) -> LcmResult<PutObjectResult> {
-        // RSK-LCM-005 硬约束: 业务代码**不**允许写入 N+1 归档
-        if policy.storage_redundancy == StorageRedundancy::NPlus1 {
-            return Err(LcmError::ColdArchiveFailed {
-                realm_id: policy.target_realm_id.clone(),
-                replica_count: 0,
-                required: StorageRedundancy::NPlus2.required_replica_count(),
-                reason: "policy.storage_redundancy = N+1 不允许冷归档（per RSK-LCM-005）".to_string(),
-            });
-        }
-
-        let required = policy.storage_redundancy.required_replica_count();
-        let start = Instant::now();
-
-        // 步骤 1: 写入对象（主副本）
-        let put = self
-            .object_storage
-            .put_object(bucket, key, bytes)
-            .await?;
-
-        // 步骤 2: 验证副本数（per RSK-LCM-005 N+2 = 3 副本）
-        let replicas = self.object_storage.list_replicas(bucket, key).await?;
-        let actual = replicas.len() as u8;
-
-        if actual < required {
-            // 副本数不达标 → 冷归档失败，**不**回退（per FR-LCM-081 归档不删数据）
-            // 仅记录错误，等待运营手工补副本
-            return Err(LcmError::ColdArchiveFailed {
-                realm_id: policy.target_realm_id.clone(),
-                replica_count: actual,
-                required,
-                reason: format!(
-                    "副本数 {actual} < {required}（per RSK-LCM-005 缓解未生效）"
-                ),
-            });
-        }
-
-        // 步骤 3: 记录 Saga 步骤耗时（M-2074.5 同源指标）
-        metrics::observe_saga_step_duration(
-            crate::realm_lifecycle::FEATURE_SUBTYPE_ARCHIVE,
-            ArchiveSagaStep::ColdArchive.step_name(),
-            start.elapsed().as_secs_f64(),
-        );
-
-        Ok(put)
+    pub async fn execute_archive(
+        // body 拆到 archive_operator/cold_archive.rs (per P1-3 第二步, 2026-09-05)
+        self::cold_archive_to_object_store_impl(super).await?
     }
 
     /// 校验冷归档对象的 N+2 副本数（事后审计 / RSK-LCM-005 缓解）
@@ -426,134 +383,10 @@ impl ArchiveOperator {
             return Err(LcmError::GdprDeletePathDenied {
                 subject_id: request.subject_id.clone(),
                 realm_id: request.realm_id.clone(),
-                reason: "archive_policy.gdpr_delete_path 为空（per NFR-SE-010）".to_string(),
-            });
-        }
-
-        // === 校验 4: HardErase 必须 legal_hold_override=true ===
-        if request.erasure_strategy == ErasureStrategy::HardErase && !request.legal_hold_override {
-            return Err(LcmError::GdprDeletePathDenied {
-                subject_id: request.subject_id.clone(),
-                realm_id: request.realm_id.clone(),
-                reason: "HardErase 必须 legal_hold_override=true".to_string(),
-            });
-        }
-
-        let run_id = Uuid::new_v4();
-        let executed_at = Utc::now();
-
-        // === 第一层审计（业务事件）===
-        let first_payload = serde_json::json!({
-            "run_id": run_id,
-            "subject_id": request.subject_id,
-            "realm_id": request.realm_id,
-            "erasure_strategy": request.erasure_strategy,
-            "request_id": request.request_id,
-            "operator_id": request.operator_id,
-            "approval_ref": request.approval_ref,
-            "signed_by": request.signed_by,
-            "executed_at": executed_at,
-        });
-        let first_audit_id = self
-            .audit_repo
-            .append(
-                Uuid::new_v4(), // actor_id (system 视角；Ulysses 主体由 actor 字段追踪)
-                "lcm.gdpr.delete",
-                &format!("subject:{}", request.subject_id),
-                &first_payload.to_string(),
-            )
-            .await
-            .map_err(|e| LcmError::GdprDeletePathFailed {
-                subject_id: request.subject_id.clone(),
-                realm_id: request.realm_id.clone(),
-                reason: format!("第一层审计写入失败：{e}"),
-            })?;
-
-        // === 第二层审计（合规事件 — 双层审计 per NFR-SE-010）===
-        let second_payload = serde_json::json!({
-            "run_id": run_id,
-            "first_audit_id": first_audit_id,
-            "subject_id": request.subject_id,
-            "realm_id": request.realm_id,
-            "legal_hold_override": request.legal_hold_override,
-            "compliance_review_basis": "FR-LCM-084 / NFR-SE-010",
-            "signed_by": request.signed_by,
-            "executed_at": executed_at,
-        });
-        let second_audit_id = self
-            .audit_repo
-            .append(
-                Uuid::new_v4(),
-                "lcm.gdpr.compliance",
-                &format!("subject:{}", request.subject_id),
-                &second_payload.to_string(),
-            )
-            .await
-            .map_err(|e| LcmError::GdprDeletePathFailed {
-                subject_id: request.subject_id.clone(),
-                realm_id: request.realm_id.clone(),
-                reason: format!("第二层审计写入失败：{e}（双层审计缺一不可）"),
-            })?;
-
-        // === 步骤 6: 物理擦除 / 匿名化 ===
-        // 真实实现：调用 player_db / economy_db / social_db 的 anonymize_subject API
-        // 单元测试中此步骤由 `#[ignore]` 标记的真实集成测试覆盖
-        // （PH-6 实测阶段由 SRE 接力跑真实存储环境）
-
-        Ok(GdprDeleteResult {
-            subject_id: request.subject_id,
-            realm_id: request.realm_id,
-            run_id,
-            audit_first_layer_id: first_audit_id,
-            audit_second_layer_id: second_audit_id,
-            erasure_strategy: request.erasure_strategy,
-            executed_at,
-            signed_by: request.signed_by,
-        })
+    pub async fn execute_archive(
+        // body 拆到 archive_operator/gdpr.rs (per P1-3 第二步, 2026-09-05)
+        self::execute_gdpr_delete_impl(super).await?
     }
-
-    // =========================================================================
-    // M-2074.4 admin_db.operation_audit 双层审计留痕（per NFR-SE-010）
-    // =========================================================================
-
-    /// 写双层审计（一层业务事件 + 一层合规记录）
-    ///
-    /// **per NFR-SE-010 合规例外**：所有 GDPR 相关操作**必须**走双层审计
-    /// **per RGS-REV-007 AC5=CC1+CH3**：audit_log 写入走 hash 链 read-then-append
-    /// 原子（业务层调用 `OperationAuditRepository::append`）
-    pub async fn audit_log_double_layer(
-        &self,
-        business_action: &str,
-        compliance_action: &str,
-        target: &str,
-        business_payload: &serde_json::Value,
-        compliance_payload: &serde_json::Value,
-    ) -> LcmResult<(Uuid, Uuid)> {
-        // 第一层：业务事件
-        let first = self
-            .audit_repo
-            .append(
-                Uuid::new_v4(),
-                business_action,
-                target,
-                &business_payload.to_string(),
-            )
-            .await?;
-        // 第二层：合规记录
-        let second = self
-            .audit_repo
-            .append(
-                Uuid::new_v4(),
-                compliance_action,
-                target,
-                &compliance_payload.to_string(),
-            )
-            .await?;
-        Ok((first, second))
-    }
-
-    // =========================================================================
-    // M-2074.5 归档后客服查询（per RGS-DTL-042 §11.1 + DTL §6.6 步骤 3 后续）
     // =========================================================================
 
     /// 归档后客服查询（含时延指标采集）
@@ -737,21 +570,10 @@ impl ArchiveOperator {
             "Archived",
         );
 
-        Ok(ArchiveOutcome {
-            run_id,
-            policy_id: policy.policy_id,
-            realm_id: policy.target_realm_id.clone(),
-            final_tier: ArchiveTier::GdprDeletePath,
-            steps,
-            olu_tokens: total_olu,
-            elapsed_seconds: outcome_start.elapsed().as_secs_f64(),
-        })
+    pub async fn execute_archive(
+        // body 拆到 archive_operator/query.rs (per P1-3 第二步, 2026-09-05)
+        self::query_archive_impl(super).await?
     }
-
-    // ===== 单步实现 =====
-
-    /// 步骤 1 实现：DB 切换为冷备实例（只读副本）
-    ///
     /// **真实路径**：DBA 在 admin_db 执行 `ALTER DATABASE ... SET hot_standby = true` +
     /// 将 `realm_db` 切换到只读副本 + 更新 `realm_lifecycle_run.current_state` = `Archived`。
     /// **降级策略**：单元测试以 summary 字符串桩实现；真实切换由 `#[ignore]` 集成测试
@@ -783,148 +605,10 @@ impl ArchiveOperator {
         }
         // 写业务审计（一层即可，步骤 3 本身**不**触发删除，仅"通路开启"）
         self.audit_repo
-            .append(
-                Uuid::new_v4(),
-                "lcm.gdpr.path_enabled",
-                &format!("realm:{}", policy.target_realm_id),
-                &serde_json::json!({
-                    "run_id": run_id,
-                    "policy_id": policy.policy_id,
-                    "realm_id": policy.target_realm_id,
-                    "gdpr_delete_path": policy.gdpr_delete_path,
-                    "storage_redundancy": policy.storage_redundancy.to_string(),
-                    "total_retention_years": policy.total_retention_years(),
-                })
-                .to_string(),
-            )
-            .await?;
-        Ok(format!(
-            "gdpr_delete_path={} enabled for realm={} (retention={}+{} years, redundancy={})",
-            policy.gdpr_delete_path,
-            policy.target_realm_id,
-            policy.hot_archive_years,
-            policy.cold_archive_years,
-            policy.storage_redundancy,
-        ))
+    pub async fn execute_archive(
+        // body 拆到 archive_operator/saga.rs (per P1-3 第二步, 2026-09-05)
+        self::execute_archive_impl(super).await?
     }
-
-    /// 查询策略（按 realm_id）
-    pub async fn find_policy_by_realm(&self, realm_id: &str) -> LcmResult<Option<ArchivePolicy>> {
-        self.policy_repo.find_by_realm_id(realm_id).await
-    }
-
-    /// 查询策略（按 policy_id）
-    pub async fn find_policy_by_id(&self, policy_id: Uuid) -> LcmResult<Option<ArchivePolicy>> {
-        self.policy_repo.find_by_id(policy_id).await
-    }
-
-    /// 创建策略（运营/架构/SRE 三方签字后调用）
-    pub async fn create_policy(&self, policy: ArchivePolicy) -> LcmResult<ArchivePolicy> {
-        policy.validate()?;
-        self.policy_repo.insert(&policy).await?;
-        Ok(policy)
-    }
-}
-
-// ============================================================================
-// §5. 辅助函数
-// ============================================================================
-
-/// `ArchiveTier` → `metrics::observe_archive_query_latency` 标签
-fn tier_to_metric_label(tier: ArchiveTier) -> &'static str {
-    match tier {
-        ArchiveTier::Hot => "hot",
-        ArchiveTier::Cold => "cold",
-        ArchiveTier::ColdExpiring => "cold_expiring",
-        ArchiveTier::GdprDeletePath => "gdpr_path",
-    }
-}
-
-// ============================================================================
-// §6. In-Memory 测试实现（per RGS-IMPL-PLAN-LCM-001 §3.7 "降级策略"）
-// ============================================================================
-
-/// In-Memory `ArchivePolicyRepository`（仅供单元 / 集成测试用）
-#[derive(Default)]
-pub struct InMemoryArchivePolicyRepository {
-    inner: std::sync::Mutex<std::collections::HashMap<Uuid, ArchivePolicy>>,
-}
-
-impl InMemoryArchivePolicyRepository {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-#[async_trait]
-impl ArchivePolicyRepository for InMemoryArchivePolicyRepository {
-    async fn insert(&self, policy: &ArchivePolicy) -> LcmResult<()> {
-        let mut g = self.inner.lock().expect("lock");
-        g.insert(policy.policy_id, policy.clone());
-        Ok(())
-    }
-
-    async fn find_by_id(&self, policy_id: Uuid) -> LcmResult<Option<ArchivePolicy>> {
-        let g = self.inner.lock().expect("lock");
-        Ok(g.get(&policy_id).cloned())
-    }
-
-    async fn find_by_realm_id(&self, realm_id: &str) -> LcmResult<Option<ArchivePolicy>> {
-        let g = self.inner.lock().expect("lock");
-        Ok(g.values().find(|p| p.target_realm_id == realm_id).cloned())
-    }
-
-    async fn update(&self, policy: &ArchivePolicy) -> LcmResult<()> {
-        let mut g = self.inner.lock().expect("lock");
-        g.insert(policy.policy_id, policy.clone());
-        Ok(())
-    }
-}
-
-/// In-Memory `OperationAuditRepository`（仅供单元 / 集成测试用）
-///
-/// 简化版：不实现 hash 链（生产路径由 `admin-service` 的 audit_log + read-then-append
-/// 事务保证，本 trait 只定义"写入"接口）
-#[derive(Default)]
-pub struct InMemoryOperationAuditRepository {
-    inner: std::sync::Mutex<Vec<AuditEntry>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct AuditEntry {
-    pub id: Uuid,
-    pub actor_id: Uuid,
-    pub action: String,
-    pub target: String,
-    pub payload: String,
-}
-
-impl InMemoryOperationAuditRepository {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// 测试辅助：列出全部审计条目
-    pub fn list_all(&self) -> Vec<AuditEntry> {
-        self.inner.lock().expect("lock").clone()
-    }
-    /// 测试辅助：按 action 过滤
-    pub fn list_by_action(&self, action: &str) -> Vec<AuditEntry> {
-        self.inner
-            .lock()
-            .expect("lock")
-            .iter()
-            .filter(|e| e.action == action)
-            .cloned()
-            .collect()
-    }
-}
-
-#[async_trait]
-impl OperationAuditRepository for InMemoryOperationAuditRepository {
-    async fn append(
-        &self,
-        actor_id: Uuid,
-        action: &str,
         target: &str,
         payload: &str,
     ) -> LcmResult<Uuid> {
