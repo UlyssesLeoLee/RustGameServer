@@ -121,7 +121,7 @@ pub async fn handle_rpc(
 
     let response_body = MockResponse::new(
         rpc_code,
-        &map_category(&category),
+        map_category(&category),
         &rpc_name,
         &rgs_backend,
         &rgs_rpc,
@@ -135,7 +135,7 @@ pub async fn handle_rpc(
     HttpResponse::Ok().json(response_body)
 }
 
-fn map_category(path_category: &str) -> String {
+fn map_category(path_category: &str) -> &'static str {
     match path_category {
         "scene" => "场景/移动",
         "character" => "角色养成",
@@ -149,7 +149,7 @@ fn map_category(path_category: &str) -> String {
         "leaderboard" => "排行榜/图鉴",
         "gm" => "GM/运维",
         "misc" => "未分类",
-        _ => path_category.to_string(),
+        _ => "未知",
     }
 }
 

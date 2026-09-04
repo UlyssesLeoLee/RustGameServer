@@ -1,25 +1,21 @@
 // rgs-flash-mock build.rs
-// 编译 RGS 5 域 + card + common proto (gRPC client only, server=false)
 //
-// 路径: 跨 crates/ 引用, 因为 mock 跟 RGS 独立 workspace 但需要 RGS proto 类型
-// per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §2.2 文件结构
+// v0.1 stub 模式: handlers 返 JSON 文档化 RGS routing, 不实际用 gRPC client
+// v0.2+ 加回 tonic_build (需要修复 common.proto 路径解析, per `shared-platform/proto` include path)
+//
+// per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §1.2 5-10 sprint 路线图:
+//   - W1 (v0.1, 本 turn): scaffold + 22 RPC stub 模式
+//   - W2 (v0.2): 加 7 域 gRPC client (player/economy/match/social/admin/card/gm-backend)
+//                   + 修复 proto 路径 + 加回 tonic-build
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let proto_paths = &[
-        // RGS 6 域 + card + common
-        "../../crates/shared-platform/proto/common/v1/common.proto",
-        "../../crates/player-service/proto/player/v1/player.proto",
-        "../../crates/economy-service/proto/economy/v1/economy.proto",
-        "../../crates/match-service/proto/match/v1/match.proto",
-        "../../crates/admin-service/proto/admin/v1/admin.proto",
-        "../../crates/card-service/proto/card/v1/card.proto",
-    ];
-    let include_paths = &["../../crates"];
-
-    tonic_build::configure()
-        .build_server(false)  // mock 只用 client, 不需要 server
-        .build_client(true)
-        .compile(proto_paths, include_paths)?;
-
+    // v0.1: no-op (待 v0.2 加回 tonic-build, 修复 common.proto 路径解析)
+    // v0.2 实现 (待办):
+    //   let proto_paths = &[ ... 7 域 proto ... ];
+    //   let include_paths = &["../../crates", "../../crates/shared-platform/proto"];
+    //   tonic_build::configure()
+    //       .build_server(false)
+    //       .build_client(true)
+    //       .compile_protos(proto_paths, include_paths)?;
     Ok(())
 }

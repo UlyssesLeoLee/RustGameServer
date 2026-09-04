@@ -3,7 +3,7 @@
 //! 加载环境变量 + 5 域 gRPC endpoint + mTLS cert 路径 (per 8/27 11:06 JST hard ban: 凭据走 env var 永不打印)
 //! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §2.1 工具链
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::env;
 
 #[derive(Debug, Clone)]
