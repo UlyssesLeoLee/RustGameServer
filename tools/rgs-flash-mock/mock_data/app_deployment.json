@@ -1,0 +1,467 @@
+{
+  "_module_meta": {
+    "module_name": "app_deployment",
+    "module_name_zh": "单 app 独立更新 (per RGS-PLUGIN-APP-ARCH §3.4)",
+    "protocol_id": 905,
+    "module_size_bytes": 0,
+    "rgs_7domain_route": "cluster-ops",
+    "rgs_services": [
+      "cluster_opsService"
+    ],
+    "total_cmds": 10,
+    "w3_phase": "abstract",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 10,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "rgs-flash-mock 跨域抽象 module (per RGS-TEST-DESIGN-2026-09-05 v0.1 §2.1-2.8)",
+    "rgs_translation": "5 域 + 平台层 + function-plane 跨域抽象 app_deployment",
+    "rgs_file_ref": "跨域 cluster-ops 域 — 见 TEST-CASES v0.1 §2.app_deployment",
+    "abstract_module": true,
+    "_rgs_7domain_route": "cluster-ops",
+    "_rgs_rpc_invoker": "cluster_ops.AppDeploymentService.Deploy"
+  },
+  "rpcs": {
+    "90501": {
+      "rpc_code": 90501,
+      "rpc_name_zh": "app_deployment RPC #1",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#1",
+      "rgs_proto_method": "abstract.app_deployment.rpc_1",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 1,
+        "result": "stub_app_deployment_1"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90502": {
+      "rpc_code": 90502,
+      "rpc_name_zh": "app_deployment RPC #2",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#2",
+      "rgs_proto_method": "abstract.app_deployment.rpc_2",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 2,
+        "result": "stub_app_deployment_2"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90503": {
+      "rpc_code": 90503,
+      "rpc_name_zh": "app_deployment RPC #3",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#3",
+      "rgs_proto_method": "abstract.app_deployment.rpc_3",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 3,
+        "result": "stub_app_deployment_3"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90504": {
+      "rpc_code": 90504,
+      "rpc_name_zh": "app_deployment RPC #4",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#4",
+      "rgs_proto_method": "abstract.app_deployment.rpc_4",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 4,
+        "result": "stub_app_deployment_4"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90505": {
+      "rpc_code": 90505,
+      "rpc_name_zh": "app_deployment RPC #5",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#5",
+      "rgs_proto_method": "abstract.app_deployment.rpc_5",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 5,
+        "result": "stub_app_deployment_5"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90506": {
+      "rpc_code": 90506,
+      "rpc_name_zh": "app_deployment RPC #6",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#6",
+      "rgs_proto_method": "abstract.app_deployment.rpc_6",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 6,
+        "result": "stub_app_deployment_6"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90507": {
+      "rpc_code": 90507,
+      "rpc_name_zh": "app_deployment RPC #7",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#7",
+      "rgs_proto_method": "abstract.app_deployment.rpc_7",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 7,
+        "result": "stub_app_deployment_7"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90508": {
+      "rpc_code": 90508,
+      "rpc_name_zh": "app_deployment RPC #8",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#8",
+      "rgs_proto_method": "abstract.app_deployment.rpc_8",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 8,
+        "result": "stub_app_deployment_8"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90509": {
+      "rpc_code": 90509,
+      "rpc_name_zh": "app_deployment RPC #9",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#9",
+      "rgs_proto_method": "abstract.app_deployment.rpc_9",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 9,
+        "result": "stub_app_deployment_9"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90510": {
+      "rpc_code": 90510,
+      "rpc_name_zh": "app_deployment RPC #10",
+      "rgs_backend": "app_deployment-service:port",
+      "rgs_rpc": "app_deployment#10",
+      "rgs_proto_method": "abstract.app_deployment.rpc_10",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "app_deployment",
+        "rpc_seq": 10,
+        "result": "stub_app_deployment_10"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    }
+  }
+}

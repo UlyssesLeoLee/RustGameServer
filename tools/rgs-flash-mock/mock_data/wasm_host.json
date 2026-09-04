@@ -1,0 +1,379 @@
+{
+  "_module_meta": {
+    "module_name": "wasm_host",
+    "module_name_zh": "Wasmtime 嵌入 / fuel / epoch (per function-plane/src/wasm_host.rs)",
+    "protocol_id": 981,
+    "module_size_bytes": 0,
+    "rgs_7domain_route": "function-plane",
+    "rgs_services": [
+      "function_planeService"
+    ],
+    "total_cmds": 8,
+    "w3_phase": "abstract",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 8,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "rgs-flash-mock 跨域抽象 module (per RGS-TEST-DESIGN-2026-09-05 v0.1 §2.1-2.8)",
+    "rgs_translation": "5 域 + 平台层 + function-plane 跨域抽象 wasm_host",
+    "rgs_file_ref": "跨域 function-plane 域 — 见 TEST-CASES v0.1 §2.wasm_host",
+    "abstract_module": true,
+    "_rgs_7domain_route": "function-plane",
+    "_rgs_rpc_invoker": "function_plane.WasmHostService.Execute"
+  },
+  "rpcs": {
+    "98101": {
+      "rpc_code": 98101,
+      "rpc_name_zh": "wasm_host RPC #1",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#1",
+      "rgs_proto_method": "abstract.wasm_host.rpc_1",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 1,
+        "result": "stub_wasm_host_1"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98102": {
+      "rpc_code": 98102,
+      "rpc_name_zh": "wasm_host RPC #2",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#2",
+      "rgs_proto_method": "abstract.wasm_host.rpc_2",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 2,
+        "result": "stub_wasm_host_2"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98103": {
+      "rpc_code": 98103,
+      "rpc_name_zh": "wasm_host RPC #3",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#3",
+      "rgs_proto_method": "abstract.wasm_host.rpc_3",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 3,
+        "result": "stub_wasm_host_3"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98104": {
+      "rpc_code": 98104,
+      "rpc_name_zh": "wasm_host RPC #4",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#4",
+      "rgs_proto_method": "abstract.wasm_host.rpc_4",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 4,
+        "result": "stub_wasm_host_4"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98105": {
+      "rpc_code": 98105,
+      "rpc_name_zh": "wasm_host RPC #5",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#5",
+      "rgs_proto_method": "abstract.wasm_host.rpc_5",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 5,
+        "result": "stub_wasm_host_5"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98106": {
+      "rpc_code": 98106,
+      "rpc_name_zh": "wasm_host RPC #6",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#6",
+      "rgs_proto_method": "abstract.wasm_host.rpc_6",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 6,
+        "result": "stub_wasm_host_6"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98107": {
+      "rpc_code": 98107,
+      "rpc_name_zh": "wasm_host RPC #7",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#7",
+      "rgs_proto_method": "abstract.wasm_host.rpc_7",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 7,
+        "result": "stub_wasm_host_7"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "98108": {
+      "rpc_code": 98108,
+      "rpc_name_zh": "wasm_host RPC #8",
+      "rgs_backend": "wasm_host-service:port",
+      "rgs_rpc": "wasm_host#8",
+      "rgs_proto_method": "abstract.wasm_host.rpc_8",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "wasm_host",
+        "rpc_seq": 8,
+        "result": "stub_wasm_host_8"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    }
+  }
+}

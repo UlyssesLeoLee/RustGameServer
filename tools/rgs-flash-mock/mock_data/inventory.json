@@ -1,0 +1,555 @@
+{
+  "_module_meta": {
+    "module_name": "inventory",
+    "module_name_zh": "跨域 inventory 同步 (item + deck + currency)",
+    "protocol_id": 906,
+    "module_size_bytes": 0,
+    "rgs_7domain_route": "player",
+    "rgs_services": [
+      "playerService"
+    ],
+    "total_cmds": 12,
+    "w3_phase": "abstract",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 12,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "rgs-flash-mock 跨域抽象 module (per RGS-TEST-DESIGN-2026-09-05 v0.1 §2.1-2.8)",
+    "rgs_translation": "5 域 + 平台层 + function-plane 跨域抽象 inventory",
+    "rgs_file_ref": "跨域 player 域 — 见 TEST-CASES v0.1 §2.inventory",
+    "abstract_module": true,
+    "_rgs_7domain_route": "player",
+    "_rgs_rpc_invoker": "player.PlayerService.SyncInventory"
+  },
+  "rpcs": {
+    "90601": {
+      "rpc_code": 90601,
+      "rpc_name_zh": "inventory RPC #1",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#1",
+      "rgs_proto_method": "abstract.inventory.rpc_1",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 1,
+        "result": "stub_inventory_1"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90602": {
+      "rpc_code": 90602,
+      "rpc_name_zh": "inventory RPC #2",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#2",
+      "rgs_proto_method": "abstract.inventory.rpc_2",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 2,
+        "result": "stub_inventory_2"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90603": {
+      "rpc_code": 90603,
+      "rpc_name_zh": "inventory RPC #3",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#3",
+      "rgs_proto_method": "abstract.inventory.rpc_3",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 3,
+        "result": "stub_inventory_3"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90604": {
+      "rpc_code": 90604,
+      "rpc_name_zh": "inventory RPC #4",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#4",
+      "rgs_proto_method": "abstract.inventory.rpc_4",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 4,
+        "result": "stub_inventory_4"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90605": {
+      "rpc_code": 90605,
+      "rpc_name_zh": "inventory RPC #5",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#5",
+      "rgs_proto_method": "abstract.inventory.rpc_5",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 5,
+        "result": "stub_inventory_5"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90606": {
+      "rpc_code": 90606,
+      "rpc_name_zh": "inventory RPC #6",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#6",
+      "rgs_proto_method": "abstract.inventory.rpc_6",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 6,
+        "result": "stub_inventory_6"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90607": {
+      "rpc_code": 90607,
+      "rpc_name_zh": "inventory RPC #7",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#7",
+      "rgs_proto_method": "abstract.inventory.rpc_7",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 7,
+        "result": "stub_inventory_7"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90608": {
+      "rpc_code": 90608,
+      "rpc_name_zh": "inventory RPC #8",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#8",
+      "rgs_proto_method": "abstract.inventory.rpc_8",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 8,
+        "result": "stub_inventory_8"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90609": {
+      "rpc_code": 90609,
+      "rpc_name_zh": "inventory RPC #9",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#9",
+      "rgs_proto_method": "abstract.inventory.rpc_9",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 9,
+        "result": "stub_inventory_9"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90610": {
+      "rpc_code": 90610,
+      "rpc_name_zh": "inventory RPC #10",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#10",
+      "rgs_proto_method": "abstract.inventory.rpc_10",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 10,
+        "result": "stub_inventory_10"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90611": {
+      "rpc_code": 90611,
+      "rpc_name_zh": "inventory RPC #11",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#11",
+      "rgs_proto_method": "abstract.inventory.rpc_11",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 11,
+        "result": "stub_inventory_11"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "90612": {
+      "rpc_code": 90612,
+      "rpc_name_zh": "inventory RPC #12",
+      "rgs_backend": "inventory-service:port",
+      "rgs_rpc": "inventory#12",
+      "rgs_proto_method": "abstract.inventory.rpc_12",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "inventory",
+        "rpc_seq": 12,
+        "result": "stub_inventory_12"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    }
+  }
+}

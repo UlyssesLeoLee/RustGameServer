@@ -1,0 +1,555 @@
+{
+  "_module_meta": {
+    "module_name": "gm_handler",
+    "module_name_zh": "GM 操作跨域 (per gm_handlers 4 RPC)",
+    "protocol_id": 941,
+    "module_size_bytes": 0,
+    "rgs_7domain_route": "admin",
+    "rgs_services": [
+      "adminService"
+    ],
+    "total_cmds": 12,
+    "w3_phase": "abstract",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 12,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "rgs-flash-mock 跨域抽象 module (per RGS-TEST-DESIGN-2026-09-05 v0.1 §2.1-2.8)",
+    "rgs_translation": "5 域 + 平台层 + function-plane 跨域抽象 gm_handler",
+    "rgs_file_ref": "跨域 admin 域 — 见 TEST-CASES v0.1 §2.gm_handler",
+    "abstract_module": true,
+    "_rgs_7domain_route": "admin",
+    "_rgs_rpc_invoker": "admin.GmHandlerService.Issue"
+  },
+  "rpcs": {
+    "94101": {
+      "rpc_code": 94101,
+      "rpc_name_zh": "gm_handler RPC #1",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#1",
+      "rgs_proto_method": "abstract.gm_handler.rpc_1",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 1,
+        "result": "stub_gm_handler_1"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94102": {
+      "rpc_code": 94102,
+      "rpc_name_zh": "gm_handler RPC #2",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#2",
+      "rgs_proto_method": "abstract.gm_handler.rpc_2",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 2,
+        "result": "stub_gm_handler_2"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94103": {
+      "rpc_code": 94103,
+      "rpc_name_zh": "gm_handler RPC #3",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#3",
+      "rgs_proto_method": "abstract.gm_handler.rpc_3",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 3,
+        "result": "stub_gm_handler_3"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94104": {
+      "rpc_code": 94104,
+      "rpc_name_zh": "gm_handler RPC #4",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#4",
+      "rgs_proto_method": "abstract.gm_handler.rpc_4",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 4,
+        "result": "stub_gm_handler_4"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94105": {
+      "rpc_code": 94105,
+      "rpc_name_zh": "gm_handler RPC #5",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#5",
+      "rgs_proto_method": "abstract.gm_handler.rpc_5",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 5,
+        "result": "stub_gm_handler_5"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94106": {
+      "rpc_code": 94106,
+      "rpc_name_zh": "gm_handler RPC #6",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#6",
+      "rgs_proto_method": "abstract.gm_handler.rpc_6",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 6,
+        "result": "stub_gm_handler_6"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94107": {
+      "rpc_code": 94107,
+      "rpc_name_zh": "gm_handler RPC #7",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#7",
+      "rgs_proto_method": "abstract.gm_handler.rpc_7",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 7,
+        "result": "stub_gm_handler_7"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94108": {
+      "rpc_code": 94108,
+      "rpc_name_zh": "gm_handler RPC #8",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#8",
+      "rgs_proto_method": "abstract.gm_handler.rpc_8",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 8,
+        "result": "stub_gm_handler_8"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94109": {
+      "rpc_code": 94109,
+      "rpc_name_zh": "gm_handler RPC #9",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#9",
+      "rgs_proto_method": "abstract.gm_handler.rpc_9",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 9,
+        "result": "stub_gm_handler_9"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94110": {
+      "rpc_code": 94110,
+      "rpc_name_zh": "gm_handler RPC #10",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#10",
+      "rgs_proto_method": "abstract.gm_handler.rpc_10",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 10,
+        "result": "stub_gm_handler_10"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94111": {
+      "rpc_code": 94111,
+      "rpc_name_zh": "gm_handler RPC #11",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#11",
+      "rgs_proto_method": "abstract.gm_handler.rpc_11",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 11,
+        "result": "stub_gm_handler_11"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "94112": {
+      "rpc_code": 94112,
+      "rpc_name_zh": "gm_handler RPC #12",
+      "rgs_backend": "gm_handler-service:port",
+      "rgs_rpc": "gm_handler#12",
+      "rgs_proto_method": "abstract.gm_handler.rpc_12",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "gm_handler",
+        "rpc_seq": 12,
+        "result": "stub_gm_handler_12"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    }
+  }
+}

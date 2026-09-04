@@ -1,0 +1,687 @@
+{
+  "_module_meta": {
+    "module_name": "realm_lifecycle",
+    "module_name_zh": "realm archive/split/merge (per LCM drill)",
+    "protocol_id": 968,
+    "module_size_bytes": 0,
+    "rgs_7domain_route": "cluster-ops",
+    "rgs_services": [
+      "cluster_opsService"
+    ],
+    "total_cmds": 15,
+    "w3_phase": "abstract",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 15,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "rgs-flash-mock 跨域抽象 module (per RGS-TEST-DESIGN-2026-09-05 v0.1 §2.1-2.8)",
+    "rgs_translation": "5 域 + 平台层 + function-plane 跨域抽象 realm_lifecycle",
+    "rgs_file_ref": "跨域 cluster-ops 域 — 见 TEST-CASES v0.1 §2.realm_lifecycle",
+    "abstract_module": true,
+    "_rgs_7domain_route": "cluster-ops",
+    "_rgs_rpc_invoker": "cluster_ops.RealmLifecycleService.Archive"
+  },
+  "rpcs": {
+    "96801": {
+      "rpc_code": 96801,
+      "rpc_name_zh": "realm_lifecycle RPC #1",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#1",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_1",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 1,
+        "result": "stub_realm_lifecycle_1"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96802": {
+      "rpc_code": 96802,
+      "rpc_name_zh": "realm_lifecycle RPC #2",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#2",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_2",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 2,
+        "result": "stub_realm_lifecycle_2"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96803": {
+      "rpc_code": 96803,
+      "rpc_name_zh": "realm_lifecycle RPC #3",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#3",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_3",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 3,
+        "result": "stub_realm_lifecycle_3"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96804": {
+      "rpc_code": 96804,
+      "rpc_name_zh": "realm_lifecycle RPC #4",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#4",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_4",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 4,
+        "result": "stub_realm_lifecycle_4"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96805": {
+      "rpc_code": 96805,
+      "rpc_name_zh": "realm_lifecycle RPC #5",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#5",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_5",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 5,
+        "result": "stub_realm_lifecycle_5"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96806": {
+      "rpc_code": 96806,
+      "rpc_name_zh": "realm_lifecycle RPC #6",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#6",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_6",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 6,
+        "result": "stub_realm_lifecycle_6"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96807": {
+      "rpc_code": 96807,
+      "rpc_name_zh": "realm_lifecycle RPC #7",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#7",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_7",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 7,
+        "result": "stub_realm_lifecycle_7"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96808": {
+      "rpc_code": 96808,
+      "rpc_name_zh": "realm_lifecycle RPC #8",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#8",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_8",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 8,
+        "result": "stub_realm_lifecycle_8"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96809": {
+      "rpc_code": 96809,
+      "rpc_name_zh": "realm_lifecycle RPC #9",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#9",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_9",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 9,
+        "result": "stub_realm_lifecycle_9"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96810": {
+      "rpc_code": 96810,
+      "rpc_name_zh": "realm_lifecycle RPC #10",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#10",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_10",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 10,
+        "result": "stub_realm_lifecycle_10"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96811": {
+      "rpc_code": 96811,
+      "rpc_name_zh": "realm_lifecycle RPC #11",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#11",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_11",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 11,
+        "result": "stub_realm_lifecycle_11"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96812": {
+      "rpc_code": 96812,
+      "rpc_name_zh": "realm_lifecycle RPC #12",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#12",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_12",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 12,
+        "result": "stub_realm_lifecycle_12"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96813": {
+      "rpc_code": 96813,
+      "rpc_name_zh": "realm_lifecycle RPC #13",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#13",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_13",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 13,
+        "result": "stub_realm_lifecycle_13"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96814": {
+      "rpc_code": 96814,
+      "rpc_name_zh": "realm_lifecycle RPC #14",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#14",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_14",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 14,
+        "result": "stub_realm_lifecycle_14"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    },
+    "96815": {
+      "rpc_code": 96815,
+      "rpc_name_zh": "realm_lifecycle RPC #15",
+      "rgs_backend": "realm_lifecycle-service:port",
+      "rgs_rpc": "realm_lifecycle#15",
+      "rgs_proto_method": "abstract.realm_lifecycle.rpc_15",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:string",
+        "payload:json"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "abstract_module": "realm_lifecycle",
+        "rpc_seq": 15,
+        "result": "stub_realm_lifecycle_15"
+      },
+      "error_codes": {
+        "1001": "PARAM_INVALID",
+        "1003": "PERM_DENIED",
+        "2004": "NOT_FOUND",
+        "3001": "STATE_INVALID",
+        "4001": "RATE_LIMITED",
+        "5001": "INTERNAL"
+      },
+      "boundary_cases": [
+        "empty_string",
+        "i32_max",
+        "i32_min",
+        "string_4096_chars",
+        "special_chars",
+        "negative",
+        "idempotent_3x",
+        "concurrent_10x"
+      ],
+      "exception_cases": [
+        "network_drop",
+        "deadline_5s",
+        "reentrant_3x",
+        "mtls_cert_expired",
+        "secret_redaction"
+      ]
+    }
+  }
+}
