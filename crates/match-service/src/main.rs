@@ -8,19 +8,11 @@
 //!                       (per RGS-REV-008 AC-1 / verify-A+C)。
 //!
 //! 桶 9 补完: 注入 MatchmakerServiceV2 (per RGS-DTL-038 §4.2 + §5)
+//!
+//! 2026-09-04 P0-1 重构：5 域 main.rs 抽公共骨架到 `shared_platform::service_bootstrap`。
 
 use anyhow::Context;
-use std::env;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tracing_subscriber::fmt;
-use tracing_subscriber::EnvFilter;
-
-use shared_platform::messaging::{build_messaging_client, MessagingConfig};
-use shared_platform::outbox::PgOutboxRepository;
-use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
-use shared_platform::producer::{Producer, ProducerConfig};
-use shared_platform::tls::load_server_tls_config;
 
 use match_service::db;
 use match_service::matchmaker_v2::MatchmakerServiceV2;
@@ -32,46 +24,18 @@ use match_service::repository_v2::{
 };
 use match_service::service::grpc_service::MatchGrpcService;
 use match_service::service::MatchServiceImpl;
-
-// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C / RGS-REV-009 HI-1）
-//
-// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
-// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
-// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
-//
-// RGS-REV-009 HI-1：server 端 mTLS bypass 计数已迁移到 shared-platform
-// `SERVER_MTLS_BYPASSED_TOTAL`（与 client 端 `MTLS_BYPASSED_TOTAL` 对称），
-// 通过 `server_mtls_bypassed_total()` getter 读取。
+use shared_platform::service_bootstrap::{self, BootstrapConfig};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    shared_platform::install_default_crypto_provider();
+    // 1. 公共 bootstrap
+    let cfg = BootstrapConfig::for_match(env!("CARGO_PKG_VERSION"))?;
+    service_bootstrap::init_tracing(cfg.service_name);
+    let _otel = service_bootstrap::init_otel_optional(&cfg);
 
-    fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,match-service=debug")),
-        )
-        .init();
+    tracing::info!(target: "match-service", "starting service at {}, db={}", cfg.grpc_addr, cfg.database_url);
 
-    // 55.45 OTLP exporter 条件初始化（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45 §3.3）
-    // 默认 OTEL_SDK_DISABLED=true（53.12 任务未完成），即不真正启用
-    // 53.12 完成后：去掉 OTEL_SDK_DISABLED env → 实际初始化
-    let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
-        "match-service",
-        env!("CARGO_PKG_VERSION"),
-        "dev",
-    );
-
-    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:50053".to_string())
-        .parse()
-        .context("invalid GRPC_ADDR")?;
-    let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
-
-    tracing::info!(target: "match-service", "starting service at {}, db={}", addr, database_url);
-
-    // 55.15: 真实 DB pool + migrations（InMemory 留作测试用）
+    // 2. DB pool + migrations（域特定：v1 + v2 repo 共 5 张表）
     let pool = match db::pool_from_env().await {
         Ok(p) => p,
         Err(e) => {
@@ -90,14 +54,12 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(PgMatchParticipantRepository::new(pool.clone()));
 
     // ===== v2 仓库 (卡牌游戏 session/turn 业务) =====
-    // 桶 9 补完: 注入 PgGameSessionRepository / PgMoveRepository / PgMatchmakingTicketRepository
     let v2_sessions: Arc<dyn match_service::repository_v2::GameSessionRepository> =
         Arc::new(PgGameSessionRepository::new(pool.clone()));
     let v2_moves: Arc<dyn match_service::repository_v2::MoveRepository> =
         Arc::new(PgMoveRepository::new(pool.clone()));
     let v2_tickets: Arc<dyn match_service::repository_v2::MatchmakingTicketRepository> =
         Arc::new(PgMatchmakingTicketRepository::new(pool.clone()));
-
     let mut matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(
         v2_sessions,
         v2_moves,
@@ -105,8 +67,6 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // W36 (2026-08-30): 跨域 SaveReplay saga — 注入 replay-service gRPC 客户端
-    // mTLS fail-closed (per RGS-REV-007 CH4 / DEC-015 P1): 默认强制 mTLS
-    // 注入失败: 仅 warn + 降级 (replay_client=None, session 结束不触发 SaveReplay, 0 破坏)
     match build_replay_client() {
         Ok(client) => {
             tracing::info!(
@@ -114,7 +74,6 @@ async fn main() -> anyhow::Result<()> {
                 "replay-service gRPC client ready (endpoint={})",
                 client_endpoint()
             );
-            // matchmaker_v2 持有 Arc, 借用 Arc::get_mut 注入
             if let Some(mv2_mut) = Arc::get_mut(&mut matchmaker_v2) {
                 mv2_mut.set_replay_client(client);
             } else {
@@ -133,118 +92,54 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    tracing::info!(target: "match-service", "match-service started, DB pool size: {}", pool.size());
+    tracing::info!(target: "match-service", "{}-service started, DB pool size: {}", cfg.service_name, pool.size());
 
-    // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
-    let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
+    // 3. outbox relay 后台（公共）
+    service_bootstrap::spawn_outbox_relay(pool.clone(), cfg.service_name, cfg.nats_uri.clone()).await;
 
-    // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
-    // dev/test fallback: NATS 不可用时跳过 relay，gRPC server 继续运行
-    let nats_uri = env::var("NATS_URI").unwrap_or_else(|_| "nats://localhost:4222".to_string());
-    match build_messaging_client(&MessagingConfig {
-        uri: nats_uri.clone(),
-        name: "match-service".to_string(),
-    })
-    .await
-    {
-        Ok((nats_client, js_ctx)) => {
-            let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
-            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
-            tokio::spawn(async move {
-                // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
-                let _nats_keepalive = nats_client;
-                Arc::new(relay).run().await;
-            });
-            tracing::info!(target: "match-service", "outbox relay started (NATS={})", nats_uri);
-        }
-        Err(e) => {
-            tracing::warn!(
-                target: "match-service",
-                "outbox relay DISABLED — NATS connect failed: {}; outbox rows will accumulate, manual recovery required",
-                e
-            );
-        }
-    }
+    // 4. mTLS server builder（公共）
+    let mut server = service_bootstrap::build_server_with_mtls(&cfg)?;
 
-    // 桶 9 补完: 使用 with_matchmaker_v2 注入 v2 matchmaker
+    // 5. 域 service wiring（域特定：MatchServiceImpl with v2 matchmaker）
     let service_impl = Arc::new(MatchServiceImpl::with_matchmaker_v2(
         matches,
         participants,
         matchmaker_v2,
     ));
     let grpc = MatchGrpcService::new(service_impl);
+    let svc = match_service::proto::v1::match_service_server::MatchServiceServer::new(grpc);
 
-    // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
-    // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。
+    // 6. health + serve（公共）
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<match_service::proto::v1::match_service_server::MatchServiceServer<MatchGrpcService>>()
         .await;
-    health_reporter
-        .set_service_status("", tonic_health::ServingStatus::Serving)
-        .await;
+    service_bootstrap::set_serving_defaults(&mut health_reporter).await;
 
-    // 55.26 fail-closed mTLS（per RGS-REV-008 AC-1 / verify-A+C）
-    // 默认强制 mTLS；仅 RGS_ALLOW_INSECURE_GRPC=1 / "true" 显式 opt-out 才允许 insecure gRPC（dev/test only）。
-    // 不设置 / 0 / 任意其他值 → 任何 TLS 加载失败都通过 .context() 上抛 → main 返 Err → 进程退出 1。
-    let allow_insecure = env::var("RGS_ALLOW_INSECURE_GRPC")
-        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
-
-    let mut server_builder = tonic::transport::Server::builder();
-    if allow_insecure {
-        tracing::warn!(
-            target: "match-service",
-            "⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)"
-        );
-        shared_platform::channel::SERVER_MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
-    } else {
-        let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
-        let tls_config = load_server_tls_config(
-            &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
-        )
-        .context(
-            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
-        )?;
-        server_builder = server_builder
-            .tls_config(tls_config)
-            .context("tls_config")?;
-        tracing::info!(target: "match-service", "mTLS ENABLED — gRPC client cert verification required");
-    }
-
-    tracing::info!(target: "match-service", "binding gRPC server at {}", addr);
-    let svc = match_service::proto::v1::match_service_server::MatchServiceServer::new(grpc);
-    server_builder
+    server
         .add_service(svc)
         .add_service(health_service)
-        .serve(addr)
-        .await
-        .context("tonic server failed")?;
+        .serve(cfg.grpc_addr)
+        .await?;
     Ok(())
 }
 
 // ============================================================================
 // W36 (2026-08-30): replay-service gRPC 客户端构造辅助函数
 // - mTLS fail-closed (per RGS-REV-007 CH4 / DEC-015 P1)
-// - 默认强制 mTLS; RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out (dev/test only)
-// - 失败仅 warn, 降级为 None (matchmaker_v2 不触发 SaveReplay, 业务 0 破坏)
 // ============================================================================
 
-/// 全局: 缓存 endpoint (供 tracing info 显示)
 fn client_endpoint() -> String {
     std::env::var("REPLAY_GRPC_ENDPOINT")
         .unwrap_or_else(|_| "http://replay-service:50057".to_string())
 }
 
-/// 构造 ReplayClient (mTLS fail-closed)
 fn build_replay_client() -> anyhow::Result<Arc<dyn match_service::ReplayClientTrait>> {
     use match_service::{ReplayClient, ReplayClientConfig};
 
     let endpoint = std::env::var("REPLAY_GRPC_ENDPOINT")
         .unwrap_or_else(|_| "http://replay-service:50057".to_string());
 
-    // mTLS 配置: RGS_TLS_DIR/replay-client.{pem,key} + RGS_TLS_DIR/ca.pem
     let allow_insecure = std::env::var("RGS_ALLOW_INSECURE_GRPC")
         .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
 
