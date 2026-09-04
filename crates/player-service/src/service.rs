@@ -23,6 +23,20 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+/// 5 域公共 helper：service.rs 的 .map_err(Into::<tonic::Status>::into)? 改用本函数，
+/// 自动写一条 tracing::error! 日志后再转 tonic::Status（per 2026-09-04 扫描 P0-2）
+///
+/// 替换前：`.map_err(Into::<tonic::Status>::into)?`
+/// 替换后：`.map_err(|e| grpc_err("register", e))?`
+///
+/// **tracing target 用 module_path 字段**：避免 `target: target` 字面量限制，
+/// 5 域 service.rs 实际 logging target 是 `module_path!()` 拼出的 crate 路径，
+/// 与原本 `target: "player-service"` 等价（grep 实际 5 域 target 字段）
+pub fn grpc_err(method: &'static str, e: Error) -> Status {
+    tracing::error!(method = method, error = %e, "method={} failed", method);
+    tonic::Status::from(e)
+}
+
 /// player-service 域 Service trait（业务层，gRPC 桥接在 grpc_service 模块）
 #[async_trait]
 pub trait PlayerService: Send + Sync {
@@ -496,7 +510,7 @@ pub mod grpc_service {
                 .impl_
                 .health_check()
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("health_check", e))?;
             let (status_enum, msg) = if healthy {
                 (common_proto::Status::Ok, "ok".to_string())
             } else {
@@ -527,7 +541,7 @@ pub mod grpc_service {
                 .impl_
                 .find_by_id(player_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?
+                .map_err(|e| grpc_err("find_by_id", e))?
                 .ok_or_else(|| Status::not_found(format!("player {}", id_str)))?;
             Ok(Response::new(player_proto::Player {
                 id: Some(common_proto::EntityId {
@@ -555,7 +569,7 @@ pub mod grpc_service {
                 .impl_
                 .get_player_profile(player_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("get_player_profile", e))?;
             Ok(Response::new(player_proto::PlayerProfile {
                 player_id: profile.player_id.to_string(),
                 ranked_score: profile.ranked_score,
@@ -592,7 +606,7 @@ pub mod grpc_service {
             self.impl_
                 .update_player_profile(profile)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("update_player_profile", e))?;
             Ok(Response::new(player_proto::UpdatePlayerProfileResponse { updated: true }))
         }
 
@@ -607,7 +621,7 @@ pub mod grpc_service {
                 .impl_
                 .create_deck(owner_id, req.name.clone(), req.mode)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("create_deck", e))?;
             Ok(Response::new(deck_to_proto(&deck)))
         }
 
@@ -622,7 +636,7 @@ pub mod grpc_service {
                 .impl_
                 .get_deck(deck_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("get_deck", e))?;
             Ok(Response::new(deck_to_proto(&deck)))
         }
 
@@ -660,7 +674,7 @@ pub mod grpc_service {
                 .impl_
                 .update_deck(deck_id, owner_id, name_opt, slots_opt)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("update_deck", e))?;
             // 校验 errors 占位: 当前桶 11 不实装规则引擎, 永远空
             Ok(Response::new(player_proto::UpdateDeckResponse {
                 updated: true,
@@ -681,7 +695,7 @@ pub mod grpc_service {
                 .impl_
                 .delete_deck(deck_id, owner_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("delete_deck", e))?;
             Ok(Response::new(player_proto::DeleteDeckResponse { deleted }))
         }
 
@@ -700,7 +714,7 @@ pub mod grpc_service {
                 .impl_
                 .list_decks(owner_id, page_req)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("list_decks", e))?;
             let proto_decks: Vec<player_proto::Deck> =
                 decks.iter().map(deck_to_proto).collect();
             let has_next = proto_decks.len() as i64 + ((req.page.as_ref().map(|p| (p.page as i64 - 1) * p.page_size as i64).unwrap_or(0))) < total;
@@ -727,7 +741,7 @@ pub mod grpc_service {
                 .impl_
                 .share_deck(deck_id, owner_id, req.make_public)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("share_deck", e))?;
             // share_url 占位: per service 拼接 (后续可改为 from config)
             let share_url = deck
                 .share_code
@@ -751,7 +765,7 @@ pub mod grpc_service {
                     .impl_
                     .get_shared_deck(req.share_code.clone())
                     .await
-                    .map_err(Into::<tonic::Status>::into)?;
+                    .map_err(|e| grpc_err("get_shared_deck", e))?;
                 Ok(Response::new(deck_to_proto(&deck)))
             } else if !req.friend_deck_id.is_empty() {
                 // friend_deck_id 路径: 当 share_code 路径不可用时, 通过 friend 私有 deck id 直查
@@ -763,7 +777,7 @@ pub mod grpc_service {
                     .impl_
                     .get_deck(deck_id)
                     .await
-                    .map_err(Into::<tonic::Status>::into)?;
+                    .map_err(|e| grpc_err("get_deck_friend", e))?;
                 Ok(Response::new(deck_to_proto(&deck)))
             } else {
                 Err(Status::invalid_argument(
@@ -1808,3 +1822,4 @@ mod tests {
         );
     }
 }
+
