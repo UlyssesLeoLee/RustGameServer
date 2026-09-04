@@ -1,0 +1,84 @@
+# rgs-flash-mock k3s Deployment
+# per AGENTS.md v0.6.11 §7.1 batch 域母规范 + RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §5.6
+# 0.0.0.0:8791, 跟 rgs-batch-backend 8790 sequential
+# 独立 deployment (per 9/1 13:05 JST envoy 独立 deployment 偏好)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rgs-flash-mock
+  namespace: rust-game-server
+  labels:
+    app: rgs-flash-mock
+    version: v0.1.0
+    component: verification-harness
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rgs-flash-mock
+  template:
+    metadata:
+      labels:
+        app: rgs-flash-mock
+        version: v0.1.0
+    spec:
+      serviceAccountName: rgs-flash-mock
+      containers:
+        - name: rgs-flash-mock
+          image: rust-game-server/rgs-flash-mock:v0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8791
+              protocol: TCP
+          env:
+            # 8/27 11:06 JST 凭据硬 ban: 凭据走 env var, 永不打 value
+            - name: RUST_LOG
+              value: "info,rgs_flash_mock=debug"
+            - name: RGS_GAP_MOCK_BIND
+              value: "0.0.0.0:8791"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            # 5 域 + card 6 域 gRPC endpoint (mTLS)
+            - name: GRPC_PLAYER_ENDPOINT
+              value: "https://player-service:50051"
+            - name: GRPC_ECONOMY_ENDPOINT
+              value: "https://economy-service:50052"
+            - name: GRPC_MATCH_ENDPOINT
+              value: "https://match-service:50053"
+            - name: GRPC_SOCIAL_ENDPOINT
+              value: "https://social-service:50054"
+            - name: GRPC_ADMIN_ENDPOINT
+              value: "https://admin-service:50055"
+            - name: GRPC_CARD_ENDPOINT
+              value: "https://card-service:50061"
+            # cert path (per 8/27 凭据走 env var, cert 内容不入 commit, 走 L-CAND-006 k8s secret 挂载)
+          volumeMounts:
+            - name: rgs-certs
+              mountPath: /etc/rgs/certs
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8791
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8791
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: rgs-certs
+          secret:
+            secretName: rgs-flash-mock-tls
+            defaultMode: 0400

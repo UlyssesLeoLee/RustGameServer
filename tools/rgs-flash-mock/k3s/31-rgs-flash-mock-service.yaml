@@ -1,0 +1,23 @@
+# rgs-flash-mock k3s Service
+# per AGENTS.md v0.6.11 §7.1 batch 域母规范 + RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §5.6
+# ClusterIP (per AGENTS.md §7.1 batch 母规范, 不直接 NodePort)
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rgs-flash-mock
+  namespace: rust-game-server
+  labels:
+    app: rgs-flash-mock
+    component: verification-harness
+spec:
+  type: ClusterIP
+  selector:
+    app: rgs-flash-mock
+  ports:
+    - name: http
+      port: 8791
+      targetPort: 8791
+      protocol: TCP
+  # k8s ClusterIP service, 内部 svc://rgs-flash-mock:8791 访问
+  # 外部访问通过 envoy 独立 deployment (per 9/1 13:05 JST 偏好)
