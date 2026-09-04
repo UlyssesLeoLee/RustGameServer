@@ -15,6 +15,12 @@ use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
+
+/// 5 域公共 helper（per 2026-09-04 扫描 P0-2）
+pub fn grpc_err(method: &'static str, e: Error) -> Status {
+    tracing::error!(method = method, error = %e, "method={} failed", method);
+    tonic::Status::from(e)
+}
 use uuid::Uuid;
 
 #[async_trait]
@@ -224,7 +230,7 @@ pub mod grpc_service {
                 .impl_
                 .health_check()
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("health_check", e))?;
             Ok(Response::new(common_proto::HealthCheckResponse {
                 status: if healthy {
                     common_proto::Status::Ok as i32
@@ -266,7 +272,7 @@ pub mod grpc_service {
                 .impl_
                 .find_user_by_id(user_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?
+                .map_err(|e| grpc_err("find_user_by_id", e))?
                 .ok_or_else(|| Status::not_found(format!("admin {}", id_str)))?;
             Ok(Response::new(admin_proto::AdminOp {
                 id: Some(common_proto::EntityId {
