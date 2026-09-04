@@ -1,0 +1,77 @@
+{
+  "_module_meta": {
+    "module_name": "group_control",
+    "module_name_zh": "跨服时空 (跨服分桶)",
+    "protocol_id": 221,
+    "module_size_bytes": 21487,
+    "rgs_7domain_route": "batch (active-active 跨服) + player (发奖) + social (联盟跨服)",
+    "rgs_services": ["BatchService.GroupControlService", "BatchService.GroupControlReward"],
+    "total_cmds": 2,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 2,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\group_control\\group_control_rpc.erl (3.1KB) + group_control_mgr.erl (12.8KB) + c_group_control_mgr.erl (8.6KB)",
+    "rgs_translation": "group_control_mgr active-active 跨服 → RGS batch 域 active-active saga 触发 (per DDD v0.1 §3.11 + audit v0.3 §3.6) + 跨服分桶 enum GrpcDomain 5 桶",
+    "rgs_file_ref": "DDD v0.2 addendum §4.11 L672-687 + group_control_rpc.erl L22-85 (handle/3 + do_receive/3)",
+    "known_gaps": [
+      "RGS batch 域 GroupControlService 待 v0.2 实装 (per addendum §4.11 + DDD v0.1 §3.11)",
+      "跨服分桶 enum GrpcDomain 5 桶是 RGS 架构决策, 闪烁之光 ets 全局共享, 实现模式差异大 (per audit v0.3 §3.6)",
+      "?GROUP_CONTROL_NO_REWARD / REWARD_RECEIVED / REWARD_NOT_RECEIVED 3 态 enum 跟 RGS group_control_rewards Transaction 状态机 1:1 映射待 v0.2 验证",
+      "c_group_control_mgr.erl 跨服中心化管理 vs RGS active-active 多 master 模式, 一致性策略待 v0.2 决策"
+    ]
+  },
+  "rpcs": {
+    "22100": {
+      "rpc_code": 22100,
+      "rpc_name_zh": "跨服阶段信息",
+      "rgs_backend": "batch-backend:8790 + cluster_ops (新)",
+      "rgs_rpc": "GetGroupControlInfo",
+      "rgs_proto_method": "BatchService.GetGroupControlInfo",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "group_id": "stub_group_1",
+        "step": 2,
+        "server_info": [
+          { "srv_id": "stub_srv_1", "val": 8000, "rank": 1 },
+          { "srv_id": "stub_srv_2", "val": 7500, "rank": 2 }
+        ],
+        "rewards": [
+          { "step": 1, "state": "REWARD_RECEIVED" },
+          { "step": 2, "state": "REWARD_NOT_RECEIVED" }
+        ]
+      },
+      "rgs_partial_reason": "RGS GroupControlStage Master 表 + group_control_mgr:get/1 跨服分桶 5 桶 enum 待 v0.2 实装 (per addendum §4.11 + audit v0.3 §3.6)",
+      "biz_flow_ref": "group_control_rpc.erl L22-26 (handle/3) + group_control_mgr:query_group_control_info/0 + get_group_control_reward/2"
+    },
+    "22101": {
+      "rpc_code": 22101,
+      "rpc_name_zh": "跨服阶段奖励",
+      "rgs_backend": "batch-backend:8790 + player-service:50051 + economy-service:50052",
+      "rgs_rpc": "ClaimGroupControlReward",
+      "rgs_proto_method": "BatchService.ClaimGroupControlReward",
+      "gap_status": "Partial",
+      "request_fields": [
+        "step:16"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "step": 2,
+        "gains": [
+          { "gain_type": "diamond", "value": 100 },
+          { "gain_type": "item", "item_id": 6001, "count": 5 }
+        ],
+        "reward_state": "REWARD_RECEIVED"
+      },
+      "rgs_partial_reason": "RGS group_control_rewards Transaction 3 态状态机 + do_receive 角色进程 (per group_control_rpc.erl L79-85) 1:1 翻译, role_gain:do_notice 跟 RGS economy gain 模式整合待 v0.2 验证",
+      "biz_flow_ref": "group_control_rpc.erl L28-42 (handle/3) + L78-85 (do_receive/3) + has_reward/3 (L72-76 状态机) + role_gain:do_notice/2 + var:set_var (角色进程字典)"
+    }
+  }
+}

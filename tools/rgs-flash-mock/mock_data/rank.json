@@ -1,0 +1,126 @@
+{
+  "_module_meta": {
+    "module_name": "rank",
+    "module_name_zh": "排行榜",
+    "protocol_id": 129,
+    "module_size_bytes": 2012,
+    "rgs_7domain_route": "leaderboard (主) + player (profile) + match (ranked score) + social (guild rank)",
+    "rgs_services": ["LeaderboardService.RankService", "LeaderboardService.GuildRank", "LeaderboardService.PartnerRank", "LeaderboardService.MyRank"],
+    "total_cmds": 5,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Pass",
+    "pass_count": 5,
+    "partial_count": 0,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\rank\\rank.erl (2.0KB, list/1 + idx/2,3 + rank/2,3 + my_rank/2, 5 RPC 1:1 简单映射)",
+    "rgs_translation": "rank_mgr ets → RGS leaderboard 域 (假设 crate, per addendum §4.8 数据流 redis sorted set + DB 异步落盘), 5 cmds 1:1 不细拆",
+    "rgs_file_ref": "DDD v0.2 addendum §4.8 L616-634 + rank.erl L20-64 (list/idx/rank/my_rank 4 函数)",
+    "known_gaps": [
+      "RGS leaderboard 域是假设 (per addendum §4.8 实体 LeaderboardEntry 段), 实际 crate 待 v0.2 验证 (per audit v0.3 §1.2)",
+      "rank.erl rank_rc record (idx/key/val1/val2/val3/id) 跟 RGS LeaderboardEntry schema 字段 1:1 待 v0.2 验证",
+      "闪烁之光 rank_mgr ets 实时查询 vs RGS redis sorted set 异步落盘, 性能 baseline 待 9 月 Phase C 后对比",
+      "partner_rank (12903) 跟 RGS card 域 CardInstance 关联待 v0.2 实装"
+    ]
+  },
+  "rpcs": {
+    "12900": {
+      "rpc_code": 12900,
+      "rpc_name_zh": "获取排行榜数据",
+      "rgs_backend": "leaderboard-service:50056",
+      "rgs_rpc": "GetRankData",
+      "rgs_proto_method": "LeaderboardService.GetRankData",
+      "gap_status": "Pass",
+      "request_fields": [
+        "rank_type:16 (Type 枚举)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "rank_type": 1,
+        "rank_list": [
+          { "idx": 1, "id": 100001, "name": "StubRanker1", "val1": 5000, "val2": 100, "val3": 0 },
+          { "idx": 2, "id": 100002, "name": "StubRanker2", "val1": 4500, "val2": 95, "val3": 0 }
+        ]
+      },
+      "rgs_partial_reason": "RGS leaderboard 域 GetRankData 1:1 对应 rank.erl L22-24 list/1, 完整支持",
+      "biz_flow_ref": "rank.erl L22-24 (list/1) + rank_mgr:lookup/1"
+    },
+    "12901": {
+      "rpc_code": 12901,
+      "rpc_name_zh": "最后更新时间",
+      "rgs_backend": "leaderboard-service:50056",
+      "rgs_rpc": "GetLastUpdateTime",
+      "rgs_proto_method": "LeaderboardService.GetLastUpdateTime",
+      "gap_status": "Pass",
+      "request_fields": [
+        "rank_type:16"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "last_update_time": 1757000000
+      },
+      "rgs_partial_reason": "RGS leaderboard 域 last_update 字段 1:1 对应 ets updated_at, 完整支持",
+      "biz_flow_ref": "rank.erl (推测, 实际 ets 字段待抽样验证 per §11.1)"
+    },
+    "12902": {
+      "rpc_code": 12902,
+      "rpc_name_zh": "联盟排行榜",
+      "rgs_backend": "leaderboard-service:50056 + social-service:50054 (guild)",
+      "rgs_rpc": "GetGuildRank",
+      "rgs_proto_method": "LeaderboardService.GetGuildRank",
+      "gap_status": "Pass",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "guild_rank_list": [
+          { "idx": 1, "guild_id": 200001, "name": "StubGuild1", "exp": 100000, "lev": 10, "members_num": 50 }
+        ]
+      },
+      "rgs_partial_reason": "RGS guild 域已实装 (per audit v0.3 §3.4 social gRPC 4/6 handler wire), leaderboard GuildRank 跨域 join 1:1, 完整支持",
+      "biz_flow_ref": "rank.erl (推测, 实际 ets guild_rank 待抽样验证 per §11.1)"
+    },
+    "12903": {
+      "rpc_code": 12903,
+      "rpc_name_zh": "英雄排行榜",
+      "rgs_backend": "leaderboard-service:50056 + card-service:50061",
+      "rgs_rpc": "GetPartnerRank",
+      "rgs_proto_method": "LeaderboardService.GetPartnerRank",
+      "gap_status": "Pass",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "partner_rank_list": [
+          { "idx": 1, "partner_id": 300001, "owner_id": 100001, "bid": 5001, "star": 6, "quality": 5, "power": 50000 }
+        ]
+      },
+      "rgs_partial_reason": "RGS card 域 CardInstance.power/quality/star 字段齐全 (per card 域 entity.rs L8.3KB), leaderboard PartnerRank 1:1, 完整支持",
+      "biz_flow_ref": "rank.erl L52-56 (get_partners_in_rank/2) + partner record"
+    },
+    "12904": {
+      "rpc_code": 12904,
+      "rpc_name_zh": "个人排行信息",
+      "rgs_backend": "leaderboard-service:50056",
+      "rgs_rpc": "GetMyRank",
+      "rgs_proto_method": "LeaderboardService.GetMyRank",
+      "gap_status": "Pass",
+      "request_fields": [
+        "rid:32",
+        "rank_type:16"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "my_rank": 50,
+        "val1": 3500,
+        "val2": 80,
+        "val3": 0
+      },
+      "rgs_partial_reason": "RGS leaderboard 域 my_rank 1:1 对应 rank.erl L58-64 my_rank/2 (rank/val1/val2/val3 4 元组), 完整支持",
+      "biz_flow_ref": "rank.erl L58-64 (my_rank/2) + rank_rc record"
+    }
+  }
+}

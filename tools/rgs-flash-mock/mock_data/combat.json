@@ -1,0 +1,43 @@
+{
+  "_module_meta": {
+    "module_name": "combat",
+    "module_name_zh": "战斗 PVE",
+    "protocol_id": 200,
+    "module_size_bytes": 56800,
+    "rgs_7domain_route": "match",
+    "rgs_services": ["CombatService", "PveService"],
+    "total_cmds": 43,
+    "w2_phase": "worker-1",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 43,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\combat\\combat.erl (56.8KB, gen_fsm 9 状态机)",
+    "rgs_translation": "matchmaker_v2.rs SessionStatus 8 态 enum + GameSession struct + EventBus broadcast per match_id",
+    "rgs_file_ref": "crates/match-service/src/entity_v2.rs:145-170, crates/match-service/src/matchmaker_v2.rs:67KB"
+  },
+  "rpcs": {
+    "20001": { "rpc_code": 20001, "rpc_name_zh": "准备", "rgs_backend": "match-service:50053", "rgs_rpc": "PrepareCombat", "rgs_proto_method": "CombatService.PrepareCombat", "gap_status": "Partial", "request_fields": ["combat_type:16", "combat_map:16"], "mock_response": { "code": 0, "msg": "ok", "combat_session_id": "uuid-stub", "combat_type": 1, "state": "in_init", "round_countdown_ms": 30000 } },
+    "20005": { "rpc_code": 20005, "rpc_name_zh": "战斗播放完了", "rgs_backend": "match-service:50053", "rgs_rpc": "FinishCombatPlay", "rgs_proto_method": "CombatService.FinishCombatPlay", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "next_state": "in_round_begin_play" } },
+    "20008": { "rpc_code": 20008, "rpc_name_zh": "退出战斗", "rgs_backend": "match-service:50053", "rgs_rpc": "ExitCombat", "rgs_proto_method": "CombatService.ExitCombat", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "combat_session_id": "uuid-stub", "cleanup": true } },
+    "20013": { "rpc_code": 20013, "rpc_name_zh": "战斗结果", "rgs_backend": "match-service:50053", "rgs_rpc": "GetCombatResult", "rgs_proto_method": "CombatService.GetCombatResult", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "result": "victory", "score": 0, "rewards": [] } },
+    "20014": { "rpc_code": 20014, "rpc_name_zh": "挑战指定玩家", "rgs_backend": "match-service:50053", "rgs_rpc": "ChallengePlayer", "rgs_proto_method": "CombatService.ChallengePlayer", "gap_status": "Partial", "request_fields": ["target_id:32", "target_srv_id:string"], "mock_response": { "code": 0, "msg": "ok", "combat_session_id": "uuid-stub" } },
+    "20019": { "rpc_code": 20019, "rpc_name_zh": "回合开始的播放完了", "rgs_backend": "match-service:50053", "rgs_rpc": "FinishRoundBeginPlay", "rgs_proto_method": "CombatService.FinishRoundBeginPlay", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "next_state": "in_action" } },
+    "20022": { "rpc_code": 20022, "rpc_name_zh": "加载地图速度(描述空,推测)", "rgs_backend": "match-service:50053", "rgs_rpc": "SetPlaySpeed", "rgs_proto_method": "CombatService.SetPlaySpeed", "gap_status": "Partial", "request_fields": ["speed:8"], "mock_response": { "code": 0, "msg": "ok", "speed": 1 } },
+    "20023": { "rpc_code": 20023, "rpc_name_zh": "测试战斗", "rgs_backend": "match-service:50053", "rgs_rpc": "TestCombat", "rgs_proto_method": "CombatService.TestCombat", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "test_session_id": "uuid-stub" } },
+    "20026": { "rpc_code": 20026, "rpc_name_zh": "加载地图完成", "rgs_backend": "match-service:50053", "rgs_rpc": "FinishMapLoading", "rgs_proto_method": "PveService.FinishMapLoading", "gap_status": "Partial", "request_fields": ["drama_id:32"], "mock_response": { "code": 0, "msg": "ok", "next_state": "in_drama" } },
+    "20027": { "rpc_code": 20027, "rpc_name_zh": "剧情播放完", "rgs_backend": "match-service:50053", "rgs_rpc": "FinishDramaPlay", "rgs_proto_method": "PveService.FinishDramaPlay", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "drama_finished": true } },
+    "20028": { "rpc_code": 20028, "rpc_name_zh": "重连准备好了", "rgs_backend": "match-service:50053", "rgs_rpc": "ReconnectReady", "rgs_proto_method": "PveService.ReconnectReady", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "state": "in_ready" } },
+    "20029": { "rpc_code": 20029, "rpc_name_zh": "观看战斗录像(描述空)", "rgs_backend": "match-service:50053", "rgs_rpc": "WatchReplay", "rgs_proto_method": "CombatService.WatchReplay", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "replay_id": "uuid-stub" } },
+    "20030": { "rpc_code": 20030, "rpc_name_zh": "请求是否在战斗中", "rgs_backend": "match-service:50053", "rgs_rpc": "IsInCombat", "rgs_proto_method": "CombatService.IsInCombat", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "in_combat": false, "combat_session_id": null } },
+    "20034": { "rpc_code": 20034, "rpc_name_zh": "广播分享", "rgs_backend": "match-service:50053", "rgs_rpc": "ShareBroadcast", "rgs_proto_method": "CombatService.ShareBroadcast", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "share_id": "uuid-stub" } },
+    "20036": { "rpc_code": 20036, "rpc_name_zh": "观看战斗录像(描述空)", "rgs_backend": "match-service:50053", "rgs_rpc": "WatchReplayV2", "rgs_proto_method": "CombatService.WatchReplayV2", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "replay_id": "uuid-stub", "version": 2 } },
+    "20037": { "rpc_code": 20037, "rpc_name_zh": "观战", "rgs_backend": "match-service:50053", "rgs_rpc": "Spectate", "rgs_proto_method": "CombatService.Spectate", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "watch_token": "uuid-stub" } },
+    "20038": { "rpc_code": 20038, "rpc_name_zh": "退出观战", "rgs_backend": "match-service:50053", "rgs_rpc": "ExitSpectate", "rgs_proto_method": "CombatService.ExitSpectate", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok" } },
+    "20060": { "rpc_code": 20060, "rpc_name_zh": "请求指定战斗类型", "rgs_backend": "match-service:50053", "rgs_rpc": "RequestCombatType", "rgs_proto_method": "CombatService.RequestCombatType", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "combat_types": [1, 2, 3, 4] } },
+    "20062": { "rpc_code": 20062, "rpc_name_zh": "跳过战斗", "rgs_backend": "match-service:50053", "rgs_rpc": "SkipCombat", "rgs_proto_method": "CombatService.SkipCombat", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "rewards_granted": true } },
+    "20063": { "rpc_code": 20063, "rpc_name_zh": "推送所有战斗类型", "rgs_backend": "match-service:50053", "rgs_rpc": "PushAllCombatTypes", "rgs_proto_method": "CombatService.PushAllCombatTypes", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "combat_types": [] } }
+  },
+  "_remaining_24_cmds_note": "combat 剩余 24 cmds (20000/20002/20004/20006/20010/20012/20015/20016/20017/20018/20020/20021/20024/20025/20031/20032/20033/20035/20039-20059/20061) 描述空,待 v0.2 sprint 抽样 .erl 详细化 1:1 映射 (per RGS-DDD-v0.2-addendum-协议号映射 §5.1 L459)"
+}

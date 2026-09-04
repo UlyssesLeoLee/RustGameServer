@@ -1,0 +1,150 @@
+{
+  "_module_meta": {
+    "module_name": "login",
+    "module_name_zh": "角色登录",
+    "protocol_id": 101,
+    "module_size_bytes": 15822,
+    "rgs_7domain_route": "player (主) + conn_login (新) + auth (新)",
+    "rgs_services": ["PlayerService.CreatePlayer", "PlayerService.LoginRole", "PlayerService.Reconnect", "PlayerService.CompleteResourceLoading", "PlayerService.DeviceRegister", "PlayerService.ForgotPassword"],
+    "total_cmds": 6,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 6,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\login\\login_rpc.erl (15.8KB, handle/3 6 cmds 10101-10103 + 10300 + device_register + forgot_password)",
+    "rgs_translation": "1 account 1 conn_session (5min 过期 ets 模式), RGS 走 tokio task + sqlx + auth password_hash (argon2id, per 8/27 11:06 JST env value 硬 ban) + 2FA 可选 (per addendum §4.7 业务流)",
+    "rgs_file_ref": "DDD v0.2 addendum §4.7 L594-614 + login_rpc.erl L17-65 (create_role) + L69-102 (login_role) + L104-137 (reconnect)",
+    "known_gaps": [
+      "?MAX_ROLE_NUM = 1 单角色限制 (per login_rpc.erl L14) 跟 RGS 多角色支持冲突, 待 v0.2 协调",
+      "RGS 缺 conn_login 独立 connector service (跟 conn_login.json 共享已知缺口)",
+      "device_register 写 account_devices Master 表待 v0.2 实装",
+      "forgot_password 邮件验证码 + reset 流程待 v0.2 跟 social mail 域整合",
+      "1 account 多 device 多端登录策略待 v0.2 决策 (闪烁之光 is_online 单端)"
+    ]
+  },
+  "rpcs": {
+    "10101": {
+      "rpc_code": 10101,
+      "rpc_name_zh": "创建角色",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "CreatePlayer",
+      "rgs_proto_method": "PlayerService.CreatePlayer",
+      "gap_status": "Partial",
+      "request_fields": [
+        "sex:8",
+        "name:string (二进制 utf8)",
+        "career:8",
+        "channel:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "rid": 100001,
+        "srv_id": "stub_srv_1",
+        "name": "StubRandomName_<uuid>",
+        "reg_time": 1757000000
+      },
+      "rgs_partial_reason": "RGS PlayerService.CreatePlayer 已实装 (per audit v0.3 §3.2), 但 1 account 多角色 vs ?MAX_ROLE_NUM=1 单角色策略差异待 v0.2 协调",
+      "biz_flow_ref": "login_rpc.erl L17-66 (handle/3) + role_misc:rand_name/1 + db:insert SQL 30 字段"
+    },
+    "10102": {
+      "rpc_code": 10102,
+      "rpc_name_zh": "登录角色",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "LoginRole",
+      "rgs_proto_method": "PlayerService.LoginRole",
+      "gap_status": "Partial",
+      "request_fields": [
+        "rid:32",
+        "srv_id:string"
+      ],
+      "mock_response": {
+        "code": 1,
+        "msg": "",
+        "server_time": 1757000000,
+        "world_lev": 50
+      },
+      "rgs_partial_reason": "RGS LoginRole 已实装 role:start + role_query:pid/2 (per login_rpc.erl L86-101), RGS 1 player 1 actor task 模式 1:1 对应 (per addendum §2.2 角色 gen_server 翻译), 但 ?minu_ms(3) 延时停止策略待 v0.2 协调",
+      "biz_flow_ref": "login_rpc.erl L68-102 + role:start/5 (per role.erl L48-50)"
+    },
+    "10103": {
+      "rpc_code": 10103,
+      "rpc_name_zh": "重新连接",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "Reconnect",
+      "rgs_proto_method": "PlayerService.Reconnect",
+      "gap_status": "Partial",
+      "request_fields": [
+        "rid:32",
+        "srv_id:string"
+      ],
+      "mock_response": {
+        "code": 1,
+        "msg": "",
+        "server_time": 1757000000,
+        "world_lev": 50
+      },
+      "rgs_partial_reason": "RGS Reconnect 已实装 role_reconnect + role_login 路径 (per login_rpc.erl L122-136), 但 combat_pid 检测 (per addendum §2.2 RGS 翻译表) 跟 match ServiceSession 复用待 v0.2 协调",
+      "biz_flow_ref": "login_rpc.erl L104-137 + role:role_login/1 (per role.erl L128-141)"
+    },
+    "10300": {
+      "rpc_code": 10300,
+      "rpc_name_zh": "客户端资源加载完成",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "CompleteResourceLoading",
+      "rgs_proto_method": "PlayerService.CompleteResourceLoading",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "resource_loaded": true
+      },
+      "rgs_partial_reason": "闪烁之光 简单 flag 设置 (per addendum §4.7 业务流 1), RGS 无对应 resource_loaded 状态, v0.2 评估是否补 resource_version 字段",
+      "biz_flow_ref": "login_rpc.erl (推测, 实际 10300 映射待抽样验证 per §11.1)"
+    },
+    "10301": {
+      "rpc_code": 10301,
+      "rpc_name_zh": "设备注册",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "DeviceRegister",
+      "rgs_proto_method": "PlayerService.DeviceRegister",
+      "gap_status": "Partial",
+      "request_fields": [
+        "device_id:string",
+        "device_type:string",
+        "platform:string",
+        "os_ver:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "device_registered": true
+      },
+      "rgs_partial_reason": "RGS 缺 account_devices Master 表, v0.2 sprint 评估新建 (per addendum §4.7 持久化段), 闪烁之光 写 login.erl L51-57 SQL 30 字段含 device 7 字段",
+      "biz_flow_ref": "login_rpc.erl (推测, 实际 device_register 协议号待抽样验证 per §11.1)"
+    },
+    "10302": {
+      "rpc_code": 10302,
+      "rpc_name_zh": "找回密码",
+      "rgs_backend": "player-service:50051 + social-service:50054 (mail)",
+      "rgs_rpc": "ForgotPassword",
+      "rgs_proto_method": "PlayerService.ForgotPassword",
+      "gap_status": "Partial",
+      "request_fields": [
+        "account:string",
+        "email:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "reset_email_sent": true
+      },
+      "rgs_partial_reason": "RGS 缺完整 forgot_password 流程 (邮件验证码 + reset), v0.2 跟 social mail 域整合 (per addendum §4.7 业务流 6)",
+      "biz_flow_ref": "login_rpc.erl (推测, 实际 forgot_password 协议号待抽样验证 per §11.1)"
+    }
+  }
+}

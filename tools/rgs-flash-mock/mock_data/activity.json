@@ -1,0 +1,73 @@
+{
+  "_module_meta": {
+    "module_name": "activity",
+    "module_name_zh": "活跃度宝箱",
+    "protocol_id": 203,
+    "module_size_bytes": 3097,
+    "rgs_7domain_route": "batch (主, task_templates) + player (发奖) + economy (奖励扣/加)",
+    "rgs_services": ["BatchService.ActivityService", "BatchService.ClaimActivityChest"],
+    "total_cmds": 2,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 2,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\activity\\activity.erl (3.1KB, box/1 + reward/2 + zero_flush/1 + five_flush/1) + activity_rpc.erl (0.9KB)",
+    "rgs_translation": "var:get_var 角色进程字典 → RGS batch 域 task_templates Master + player_activity_progress Transaction 2 表 (per DDD v0.1 §3.12 + addendum §4.12), 走 task + instance table 模板化",
+    "rgs_file_ref": "DDD v0.2 addendum §4.12 L689-704 + activity.erl L33-66 (box/1 + reward/2) + zero_flush/1 + five_flush/1 (cron 重置)",
+    "known_gaps": [
+      "RGS batch 域 ActivityService 2 RPC 1:1 映射待 v0.2 实装 (per addendum §4.12)",
+      "?var_day_five_activity_box 角色进程字典 → RGS player_activity_progress.chest_claimed_ids[] JSONB 字段 1:1 翻译 (per addendum §4.12 数据流)",
+      "0 点 + 5 点刷新 (per activity.erl L68-80 zero_flush/five_flush) 跟 RGS 0 点 cron (per audit v0.3 §3.6) 协调待 v0.2 验证",
+      "?log_activity 日志类型 (per L51 log:log_gain) 跟 RGS audit_event 永久保留 (per 9/1 batch 域 NFR-29) 整合待 v0.2 验证"
+    ]
+  },
+  "rpcs": {
+    "20300": {
+      "rpc_code": 20300,
+      "rpc_name_zh": "已领取宝箱列表",
+      "rgs_backend": "batch-backend:8790 + player-service:50051",
+      "rgs_rpc": "GetClaimedChests",
+      "rgs_proto_method": "BatchService.GetClaimedChests",
+      "gap_status": "Partial",
+      "request_fields": [
+        "player_id:string (rid)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "claimed_chests": [10, 30, 50],
+        "total_points": 75,
+        "available_chests": [70, 90, 100]
+      },
+      "rgs_partial_reason": "RGS player_activity_progress Transaction chest_claimed_ids[] JSONB 字段 1:1 对应 ?var_day_five_activity_box 角色进程字典, 模板化 (per addendum §4.12 业务流 1)",
+      "biz_flow_ref": "activity.erl L31-34 (box/1) + var:get_var 角色进程字典"
+    },
+    "20301": {
+      "rpc_code": 20301,
+      "rpc_name_zh": "领取活跃宝箱",
+      "rgs_backend": "batch-backend:8790 + player-service:50051 + economy-service:50052",
+      "rgs_rpc": "ClaimActivityChest",
+      "rgs_proto_method": "BatchService.ClaimActivityChest",
+      "gap_status": "Partial",
+      "request_fields": [
+        "player_id:string (rid)",
+        "actvty:16 (宝箱档位 / 活跃度)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "actvty": 70,
+        "gains": [
+          { "gain_type": "diamond", "value": 20 },
+          { "gain_type": "item", "item_id": 6001, "count": 3 }
+        ],
+        "new_claimed_list": [10, 30, 50, 70]
+      },
+      "rgs_partial_reason": "RGS claim 流程 5 步 (per activity.erl L37-66): 校验 total_points → 查 activity_data Master → role_gain:do_notice (player) → 更新 chest_claimed_ids (player) → log:log_gain (audit), 走 batch 域 task + instance table 模式 (per addendum §4.12 业务流 2)",
+      "biz_flow_ref": "activity.erl L36-66 (reward/2) + 6 步: case Activity >= Actvty → lists:member 查重 → activity_data:get → role_gain:do_notice → var:set_var 更新 claimed → log:log_gain"
+    }
+  }
+}

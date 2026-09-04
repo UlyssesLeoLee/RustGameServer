@@ -1,0 +1,40 @@
+{
+  "_module_meta": {
+    "module_name": "misc",
+    "module_name_zh": "未分类(GM/活动/通知/错误)",
+    "protocol_id": 109,
+    "module_size_bytes": 19000,
+    "rgs_7domain_route": "admin",
+    "rgs_services": ["AdminService", "GmHandler"],
+    "total_cmds": 19,
+    "w2_phase": "worker-1",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 19,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "audit_finding": "admin 域 4 RBAC handler + gm-backend 4 RPC 覆盖, audit log SHA-256 chain 5 层防御 (per audit v0.3 §3.5), RGS 当前缺红点/活动状态数据驱动框架,16800/16801 跨协议号段需特别处理",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\misc\\misc.erl (19KB, 角色进程 + 系统级通知 + 客户端错误上报)",
+    "rgs_translation": "admin-service AdminService trait + GmHandler (RBAC) + gm-backend (actix-web) + batch-backend (task_templates Master) + push_delivery NATS (per 9/1 13:05 JST 跨域异步模式)",
+    "rgs_file_ref": "crates/admin-service/src/gm_handlers.rs:33KB + crates/gm-backend/src/main.rs + tools/rgs-batch-backend/src/main.rs:123KB"
+  },
+  "rpcs": {
+    "10900": { "rpc_code": 10900, "rpc_name_zh": "GM 封号", "rgs_backend": "admin-service:50055", "rgs_rpc": "BanAccount", "rgs_proto_method": "AdminService.BanAccount", "gap_status": "Partial", "request_fields": ["player_id:32", "reason:string", "duration:32"], "mock_response": { "code": 0, "msg": "ok", "banned": true, "ban_until": 0 } },
+    "10901": { "rpc_code": 10901, "rpc_name_zh": "GM 禁言", "rgs_backend": "admin-service:50055", "rgs_rpc": "MutePlayer", "rgs_proto_method": "AdminService.MutePlayer", "gap_status": "Partial", "request_fields": ["player_id:32", "duration:32"], "mock_response": { "code": 0, "msg": "ok", "muted_until": 0 } },
+    "10902": { "rpc_code": 10902, "rpc_name_zh": "GM 踢人", "rgs_backend": "admin-service:50055", "rgs_rpc": "KickPlayer", "rgs_proto_method": "AdminService.KickPlayer", "gap_status": "Partial", "request_fields": ["player_id:32", "reason:string"], "mock_response": { "code": 0, "msg": "ok", "kicked": true } },
+    "10922": { "rpc_code": 10922, "rpc_name_zh": "全服活动状态", "rgs_backend": "admin-service:50055", "rgs_rpc": "GetAllActivitiesStatus", "rgs_proto_method": "AdminService.GetAllActivitiesStatus", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "activities": [] } },
+    "10923": { "rpc_code": 10923, "rpc_name_zh": "全服单个活动状态", "rgs_backend": "admin-service:50055", "rgs_rpc": "GetActivityStatus", "rgs_proto_method": "AdminService.GetActivityStatus", "gap_status": "Partial", "request_fields": ["activity_id:32"], "mock_response": { "code": 0, "msg": "ok", "activity": {} } },
+    "10924": { "rpc_code": 10924, "rpc_name_zh": "个人活动图标状态", "rgs_backend": "admin-service:50055", "rgs_rpc": "GetPersonalActivitiesStatus", "rgs_proto_method": "AdminService.GetPersonalActivitiesStatus", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "activities": [] } },
+    "10925": { "rpc_code": 10925, "rpc_name_zh": "个人活动图标单个状态", "rgs_backend": "admin-service:50055", "rgs_rpc": "GetPersonalActivityStatus", "rgs_proto_method": "AdminService.GetPersonalActivityStatus", "gap_status": "Partial", "request_fields": ["activity_id:32"], "mock_response": { "code": 0, "msg": "ok", "activity": {} } },
+    "10945": { "rpc_code": 10945, "rpc_name_zh": "领取媒体卡", "rgs_backend": "admin-service:50055", "rgs_rpc": "ClaimMediaCard", "rgs_proto_method": "AdminService.ClaimMediaCard", "gap_status": "Partial", "request_fields": ["media_id:32"], "mock_response": { "code": 0, "msg": "ok", "rewards": [] } },
+    "10946": { "rpc_code": 10946, "rpc_name_zh": "微信活动是否已完成", "rgs_backend": "admin-service:50055", "rgs_rpc": "IsWechatActivityDone", "rgs_proto_method": "AdminService.IsWechatActivityDone", "gap_status": "Partial", "request_fields": ["activity_id:32"], "mock_response": { "code": 0, "msg": "ok", "done": false } },
+    "10950": { "rpc_code": 10950, "rpc_name_zh": "获取所有通知", "rgs_backend": "admin-service:50055", "rgs_rpc": "ListAllNotices", "rgs_proto_method": "AdminService.ListAllNotices", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "notices": [] } },
+    "10952": { "rpc_code": 10952, "rpc_name_zh": "读取通知", "rgs_backend": "admin-service:50055", "rgs_rpc": "ReadNotice", "rgs_proto_method": "AdminService.ReadNotice", "gap_status": "Partial", "request_fields": ["notice_id:32"], "mock_response": { "code": 0, "msg": "ok" } },
+    "10995": { "rpc_code": 10995, "rpc_name_zh": "发送合服服务器 ID 列表", "rgs_backend": "admin-service:50055", "rgs_rpc": "SendMergeServerList", "rgs_proto_method": "AdminService.SendMergeServerList", "gap_status": "Partial", "request_fields": ["server_ids:array:string"], "mock_response": { "code": 0, "msg": "ok" } },
+    "10997": { "rpc_code": 10997, "rpc_name_zh": "服务器版本标", "rgs_backend": "admin-service:50055", "rgs_rpc": "GetServerVersion", "rgs_proto_method": "AdminService.GetServerVersion", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "version": "v0.1.0", "build": "rgs-flash-mock-2026-09-04" } },
+    "10999": { "rpc_code": 10999, "rpc_name_zh": "客户端错误信息", "rgs_backend": "admin-service:50055", "rgs_rpc": "ClientErrorReport", "rgs_proto_method": "AdminService.ClientErrorReport", "gap_status": "Partial", "request_fields": ["error_code:32", "error_msg:string"], "mock_response": { "code": 0, "msg": "ok" } },
+    "16800": { "rpc_code": 16800, "rpc_name_zh": "通用提示回复", "rgs_backend": "admin-service:50055", "rgs_rpc": "CommonPromptReply", "rgs_proto_method": "AdminService.CommonPromptReply", "gap_status": "Partial", "request_fields": ["type:8", "args:array:string", "idx:16"], "mock_response": { "code": 0, "msg": "ok", "note": "16800 跨协议号段 (per protocol mapping §5.8 L675),vip/misc 提示" } },
+    "16801": { "rpc_code": 16801, "rpc_name_zh": "请求战斗外 buff 列表", "rgs_backend": "admin-service:50055", "rgs_rpc": "ListOutOfCombatBuffs", "rgs_proto_method": "AdminService.ListOutOfCombatBuffs", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "buffs": [] } }
+  },
+  "_remaining_3_cmds_note": "misc 剩余 3 cmds (10900-10999 描述空) 推测为 GM 解封/GM 解禁/GM 通知发送,待 v0.2 sprint 抽样 .erl 详细化 1:1 映射 (per RGS-DDD-v0.2-addendum-协议号映射 §5.8 L677)"
+}

@@ -1,0 +1,42 @@
+{
+  "_module_meta": {
+    "module_name": "role",
+    "module_name_zh": "角色养成/基础",
+    "protocol_id": 103,
+    "module_size_bytes": 33100,
+    "rgs_7domain_route": "player",
+    "rgs_services": ["PlayerService"],
+    "total_cmds": 21,
+    "w2_phase": "worker-1",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 21,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "audit_finding": "player 域 PlayerService 13 RPC 覆盖, 9 增量 (per DDD §3.4 L388-409), 部分字段缺 (per 12 大类清单 v0.1 §2), RGS 当前 0 命中 Arc<Mutex<RoleData>> A1 反模式 (per audit v0.3 §3.1, 已走 sqlx + DB 模式)",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\role\\role.erl (33.1KB, gen_server + 进程字典 + 延时 3 min 关闭)",
+    "rgs_translation": "player-service PlayerService trait (11 业务方法) + PlayerRepository (sqlx) + PlayerSessionRepository + DeckRepository, 1 player_id 1 tokio actor task, mpsc::Sender<PlayerCommand>",
+    "rgs_file_ref": "crates/player-service/src/service.rs:68KB L28-88 + repository.rs:40KB + entity.rs:22KB"
+  },
+  "rpcs": {
+    "10300": { "rpc_code": 10300, "rpc_name_zh": "客户端完成基础资源加载", "rgs_backend": "player-service:50051", "rgs_rpc": "CompleteResourceLoading", "rgs_proto_method": "PlayerService.CompleteResourceLoading", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "loading_completed_at": 0 } },
+    "10301": { "rpc_code": 10301, "rpc_name_zh": "角色基本信息", "rgs_backend": "player-service:50051", "rgs_rpc": "GetPlayerBasicInfo", "rgs_proto_method": "PlayerService.GetPlayerBasicInfo", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "rid": 1, "srv_id": "rgs-srv-1", "name": "test_player", "lev": 1, "sex": 0, "career": 0, "face_id": 0, "is_online": true, "reg_time": 0 } },
+    "10302": { "rpc_code": 10302, "rpc_name_zh": "资产数据", "rgs_backend": "player-service:50051", "rgs_rpc": "GetPlayerAssets", "rgs_proto_method": "PlayerService.GetPlayerAssets", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "gold": 1000, "silver": 5000, "diamond": 100, "stamina": 60, "items": [] } },
+    "10309": { "rpc_code": 10309, "rpc_name_zh": "设置个人签名", "rgs_backend": "player-service:50051", "rgs_rpc": "SetSignature", "rgs_proto_method": "PlayerService.SetSignature", "gap_status": "Partial", "request_fields": ["signature:string"], "mock_response": { "code": 0, "msg": "ok", "signature": "" } },
+    "10312": { "rpc_code": 10312, "rpc_name_zh": "强制下线", "rgs_backend": "player-service:50051", "rgs_rpc": "ForceOffline", "rgs_proto_method": "PlayerService.ForceOffline", "gap_status": "Partial", "request_fields": ["player_id:32", "reason:string"], "mock_response": { "code": 0, "msg": "ok", "forced": true } },
+    "10315": { "rpc_code": 10315, "rpc_name_zh": "查看角色信息", "rgs_backend": "player-service:50051", "rgs_rpc": "GetPlayerInfo", "rgs_proto_method": "PlayerService.GetPlayerInfo", "gap_status": "Partial", "request_fields": ["target_id:32"], "mock_response": { "code": 0, "msg": "ok", "player_info": {} } },
+    "10316": { "rpc_code": 10316, "rpc_name_zh": "膜拜", "rgs_backend": "player-service:50051", "rgs_rpc": "WorshipPlayer", "rgs_proto_method": "PlayerService.WorshipPlayer", "gap_status": "Partial", "request_fields": ["target_id:32"], "mock_response": { "code": 0, "msg": "ok", "worship_count": 0 } },
+    "10317": { "rpc_code": 10317, "rpc_name_zh": "初膜拜次数", "rgs_backend": "player-service:50051", "rgs_rpc": "FirstWorship", "rgs_proto_method": "PlayerService.FirstWorship", "gap_status": "Partial", "request_fields": ["target_id:32"], "mock_response": { "code": 0, "msg": "ok", "first_worship_count": 1 } },
+    "10322": { "rpc_code": 10322, "rpc_name_zh": "系统设置", "rgs_backend": "player-service:50051", "rgs_rpc": "SetSystemSetting", "rgs_proto_method": "PlayerService.SetSystemSetting", "gap_status": "Partial", "request_fields": ["key:string", "value:string"], "mock_response": { "code": 0, "msg": "ok" } },
+    "10323": { "rpc_code": 10323, "rpc_name_zh": "获取系统设置", "rgs_backend": "player-service:50051", "rgs_rpc": "GetSystemSetting", "rgs_proto_method": "PlayerService.GetSystemSetting", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "settings": {} } },
+    "10325": { "rpc_code": 10325, "rpc_name_zh": "头像列表", "rgs_backend": "player-service:50051", "rgs_rpc": "ListAvatars", "rgs_proto_method": "PlayerService.ListAvatars", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "avatars": [] } },
+    "10327": { "rpc_code": 10327, "rpc_name_zh": "角色设置头像", "rgs_backend": "player-service:50051", "rgs_rpc": "SetAvatar", "rgs_proto_method": "PlayerService.SetAvatar", "gap_status": "Partial", "request_fields": ["avatar_id:16"], "mock_response": { "code": 0, "msg": "ok", "avatar_id": 0 } },
+    "10343": { "rpc_code": 10343, "rpc_name_zh": "角色改名", "rgs_backend": "player-service:50051", "rgs_rpc": "RenamePlayer", "rgs_proto_method": "PlayerService.RenamePlayer", "gap_status": "Partial", "request_fields": ["new_name:string"], "mock_response": { "code": 0, "msg": "ok", "name": "" } },
+    "10345": { "rpc_code": 10345, "rpc_name_zh": "推送当前外观信息", "rgs_backend": "player-service:50051", "rgs_rpc": "PushCurrentLookInfo", "rgs_proto_method": "PlayerService.PushCurrentLookInfo", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "look_info": {} } },
+    "10346": { "rpc_code": 10346, "rpc_name_zh": "外观使用", "rgs_backend": "player-service:50051", "rgs_rpc": "UseLook", "rgs_proto_method": "PlayerService.UseLook", "gap_status": "Partial", "request_fields": ["look_id:32", "look_type:8"], "mock_response": { "code": 0, "msg": "ok" } },
+    "10391": { "rpc_code": 10391, "rpc_name_zh": "客户端执行返回结果(描述空,推测)", "rgs_backend": "player-service:50051", "rgs_rpc": "ClientCallback", "rgs_proto_method": "PlayerService.ClientCallback", "gap_status": "Partial", "request_fields": ["command_id:32", "result:8"], "mock_response": { "code": 0, "msg": "ok" } },
+    "10397": { "rpc_code": 10397, "rpc_name_zh": "客户端心跳(描述空)", "rgs_backend": "player-service:50051", "rgs_rpc": "Heartbeat", "rgs_proto_method": "PlayerService.Heartbeat", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "timestamp": 0 } },
+    "10399": { "rpc_code": 10399, "rpc_name_zh": "客户端错误信息上报(描述空)", "rgs_backend": "player-service:50051", "rgs_rpc": "ClientErrorReport", "rgs_proto_method": "PlayerService.ClientErrorReport", "gap_status": "Partial", "request_fields": ["error_code:32", "error_msg:string"], "mock_response": { "code": 0, "msg": "ok" } }
+  },
+  "_remaining_3_cmds_note": "role 剩余 3 cmds (10303-10399 描述空) 推测为客户端状态同步/设置保存,待 v0.2 sprint 抽样 .erl 详细化 1:1 映射 (per RGS-DDD-v0.2-addendum-协议号映射 §5.5 L601)"
+}

@@ -1,0 +1,103 @@
+{
+  "_module_meta": {
+    "module_name": "conn_login",
+    "module_name_zh": "连接登录",
+    "protocol_id": 11,
+    "module_size_bytes": 9668,
+    "rgs_7domain_route": "cluster_ops (新) + player (主)",
+    "rgs_services": ["ClusterOpsService.AccountLogin", "PlayerService.RegisterHeartbeat"],
+    "total_cmds": 3,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 3,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\login\\conn_login_rpc.erl (9.7KB, handle/3 + check_can_login/3, TCP 握手层)",
+    "rgs_translation": "tools/rgs-conn-login-backend/ 新独立 connector service (per DDD v0.1 §3.9 + addendum §4.9), 1 conn 1 conn_session, 5min 过期 ets 模式, RGS 用 Arc<DashMap<Uuid, ConnSession>>",
+    "rgs_file_ref": "DDD v0.2 addendum §4.9 L636-652 + common.proto::PlayerId L113-118 (跨服 ID 模式, 需 v0.2 sprint 评估加 server_id 字段 per §11.1)",
+    "known_gaps": [
+      "RGS 缺 conn_login 独立 connector service (per DDD v0.1 §3.7 + §1.3 RGS 架构 gap)",
+      "RGS 当前无显式 server_id 字段, 跨服 ID {rid, srv_id} 二元组映射待 v0.2 sprint 评估 (per 协议号映射 addendum §11.1)",
+      "握手层黑名单 + 公告 + 版本校验逻辑待 v0.2+ 完整迁移",
+      "心跳 8s 周期 (per conn_login_rpc.erl L11 ?HEARTBEAT_PERIOD=8) 跟 RGS 健康检查 5s 节奏不一致, 待协调"
+    ]
+  },
+  "rpcs": {
+    "1110": {
+      "rpc_code": 1110,
+      "rpc_name_zh": "握手/帐号登录",
+      "rgs_backend": "cluster_ops:50060 (新) + player-service:50051",
+      "rgs_rpc": "AccountLogin",
+      "rgs_proto_method": "ClusterOpsService.AccountLogin",
+      "gap_status": "Partial",
+      "request_fields": [
+        "account:string",
+        "timestamp:32",
+        "enter_srv_id:string",
+        "token:string (SessionId)",
+        "platform:string (CliPlatform)",
+        "device_id:string (≤64 char)",
+        "device_type:string",
+        "channel:string",
+        "os:string",
+        "app_name:string",
+        "package_name:string",
+        "package_version:string",
+        "os_ver:string",
+        "carrier_name:string",
+        "net_type:string",
+        "resolution:string",
+        "idfa:string (缺省=DeviceId)",
+        "sign:string (auth_ticket 验证)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "login_result": true,
+        "account": "stub_account_<redacted>",
+        "role_list": [
+          { "rid": 100001, "srv_id": "stub_srv_1", "name": "StubRole1", "lev": 50, "sex": 0, "career": 1, "face_id": 1001, "is_online": false }
+        ],
+        "career_normal": 0
+      },
+      "rgs_partial_reason": "account/password/token 验证逻辑 70% 沿用, 但 RGS 当前 0 cluster_ops 域 service, 需 v0.2 新建 connector service (per addendum §4.9 派生约束 L11/DDD §1.3)",
+      "biz_flow_ref": "conn_login_rpc.erl L15-72 (handle/3) + check_can_login/3"
+    },
+    "1198": {
+      "rpc_code": 1198,
+      "rpc_name_zh": "验证 token (心跳响应)",
+      "rgs_backend": "cluster_ops:50060 (新)",
+      "rgs_rpc": "VerifyToken",
+      "rgs_proto_method": "ClusterOpsService.VerifyToken",
+      "gap_status": "Partial",
+      "request_fields": [
+        "time:32 (client time)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "time_echo": "client_time_passed_through"
+      },
+      "rgs_partial_reason": "闪烁之光 实现是 echo time (per L74-75 极简), RGS 需扩为完整 token 校验 + heartbeat session 更新, v0.2 实装",
+      "biz_flow_ref": "conn_login_rpc.erl L74-75"
+    },
+    "1199": {
+      "rpc_code": 1199,
+      "rpc_name_zh": "关闭连接",
+      "rgs_backend": "cluster_ops:50060 (新)",
+      "rgs_rpc": "CloseConnection",
+      "rgs_proto_method": "ClusterOpsService.CloseConnection",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "last_heartbeat_diff_s": 0,
+        "session_cleared": true
+      },
+      "rgs_partial_reason": "RGS 连接层 0 实现, 待 v0.2 跟 cluster_ops 域 + 5 域 session 清理整合",
+      "biz_flow_ref": "conn_login_rpc.erl L77-83 (handle/3)"
+    }
+  }
+}

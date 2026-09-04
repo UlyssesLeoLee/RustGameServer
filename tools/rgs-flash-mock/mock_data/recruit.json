@@ -1,0 +1,97 @@
+{
+  "_module_meta": {
+    "module_name": "recruit",
+    "module_name_zh": "伙伴招募 (卡池召唤)",
+    "protocol_id": 211,
+    "module_size_bytes": 32538,
+    "rgs_7domain_route": "card (主, OpenPack saga) + player (扣钻石/加伙伴) + economy (扣费)",
+    "rgs_services": ["CardService.RecruitService", "CardService.ListPools", "CardService.ClaimShareReward"],
+    "total_cmds": 3,
+    "w2_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 3,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\recruit\\recruit.erl (32.5KB, init/0 + five_flush/1 + info/1 + draw/4 + broadcast/2 + shared_reward/1, gen_server 1 玩家 1 process)",
+    "rgs_translation": "recruit_mgr ets + DB → RGS card 域 OpenPack saga 3 步 (扣费→抽卡→落盘) per DTL-100 Q-003 + DDD addendum §4.10, 复用 card-service::cards + drop_tables (per DEC-038-06 强制公开)",
+    "rgs_file_ref": "DDD v0.2 addendum §4.10 L654-670 + recruit.erl L74-83 (info/1) + L86-100 (draw/4)",
+    "known_gaps": [
+      "RGS card 域 RecruitService 3 RPC 1:1 映射待 v0.2 实装 (per addendum §4.10)",
+      "recruit.erl draw/4 4 变体 (once/multi×3 cost_type free/coin/diamond, per L94+) → RGS 1 个 Recruit rpc + cost_type enum 简化 (per addendum §4.10 + DTL-100 saga 模式)",
+      "?recruit_const_free_times 每日免费次数限制 RGS 待 v0.2 协调 (per DDD v0.1 §3.10)",
+      "recruit_share_rewards Transaction 跟 RGS economy outbox+saga 模式整合待 v0.2 验证 (per addendum §4.10)"
+    ]
+  },
+  "rpcs": {
+    "21100": {
+      "rpc_code": 21100,
+      "rpc_name_zh": "召唤池列表",
+      "rgs_backend": "card-service:50061",
+      "rgs_rpc": "ListPools",
+      "rgs_proto_method": "CardService.ListPools",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "pools": [
+          { "pool_id": 1, "name": "StubStandardPool", "drop_table_id": 100, "price": 100, "status": "active", "version": 1, "open_dun_list": [] }
+        ],
+        "cd_end": 0,
+        "free_times": 1,
+        "coin_times": 10,
+        "share": 0,
+        "day_share": 0
+      },
+      "rgs_partial_reason": "RGS RecruitPool Master 实体待 v0.2 实装 (per addendum §4.10 数据流), 沿用 card-service::drop_tables (per DEC-038-06)",
+      "biz_flow_ref": "recruit.erl L74-83 (info/1) + recruit_data:get_all/0 + open_dun_list/3"
+    },
+    "21101": {
+      "rpc_code": 21101,
+      "rpc_name_zh": "召唤 (抽卡)",
+      "rgs_backend": "card-service:50061 + economy-service:50052 + player-service:50051",
+      "rgs_rpc": "Recruit",
+      "rgs_proto_method": "CardService.Recruit",
+      "gap_status": "Partial",
+      "request_fields": [
+        "group_id:16 (卡池 ID)",
+        "times:16 (1 单抽 / 10 十连)",
+        "cost_type:8 (0=free / 1=coin / 2=diamond)"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "partners_added": [
+          { "partner_id": 400001, "bid": 5001, "lev": 1, "star": 1, "star_step": 0, "quality": 3, "power": 1000 }
+        ],
+        "cost_deducted": 100,
+        "cost_type": "coin"
+      },
+      "rgs_partial_reason": "RGS OpenPack saga 3 步 (per DTL-100 + addendum §4.10): 扣费→抽卡→落盘, 已实装 card-service OpenPack RPC, recruit.erl draw/4 4 变体映射为 1 Recruit + cost_type enum 简化 (per addendum §4.10 跨域 saga)",
+      "biz_flow_ref": "recruit.erl L86-100 (draw/4) + check_cond/4 + do_draw/4 4 变体 (per L94+ ?recruit_type_once/?recruit_cost_type_free/coin/diamond)"
+    },
+    "21103": {
+      "rpc_code": 21103,
+      "rpc_name_zh": "分享奖励",
+      "rgs_backend": "card-service:50061 + economy-service:50052",
+      "rgs_rpc": "ClaimShareReward",
+      "rgs_proto_method": "CardService.ClaimShareReward",
+      "gap_status": "Partial",
+      "request_fields": [
+        "pool_id:16"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "share_reward_claimed": true,
+        "reward_gains": [
+          { "gain_type": "diamond", "value": 50 }
+        ]
+      },
+      "rgs_partial_reason": "RGS recruit_share_rewards Transaction 表待 v0.2 实装, 跟 RGS economy outbox+saga 模式整合待验证 (per addendum §4.10)",
+      "biz_flow_ref": "recruit.erl shared_reward/1 (推测, 实际函数实现待抽样验证 per §11.1) + 23200 协议号分段重叠 (per 协议号映射 addendum §2.2)"
+    }
+  }
+}

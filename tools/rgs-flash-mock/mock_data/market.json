@@ -1,0 +1,42 @@
+{
+  "_module_meta": {
+    "module_name": "market",
+    "module_name_zh": "经济/市场",
+    "protocol_id": 235,
+    "module_size_bytes": 4400,
+    "rgs_7domain_route": "economy",
+    "rgs_services": ["MarketService"],
+    "total_cmds": 19,
+    "w2_phase": "worker-1",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 18,
+    "not_implemented_count": 1,
+    "not_applicable_count": 0,
+    "audit_finding": "economy 域 MarketService 19 增量 RPC, RGS Auction entity (per trade_entity.rs:13KB) 是 start_price/buyout_price/current_bid 模式, 闪烁之光 market_silver_shop 是 摊位 cell 模式, 需扩展 entity (per DDD §3.5 L482-486 schema)",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\market\\market.erl (4.4KB, 金币仙市 + 铜钱仙市 + 摊位 cell 模式)",
+    "source_extra": "market_gold.erl (52KB) + market_silver.erl (122KB) 未抽样(已知缺口, per v0.2-1 §10.1 缺标比错标)",
+    "rgs_translation": "economy-service MarketService trait + PgMarketRepository (摊位 cell 模式) + trade_saga 跨域 saga 触发 (per DTL-100 Q-003)",
+    "rgs_file_ref": "crates/economy-service/src/trade_entity.rs:13KB + trade_service.rs:53KB + trade_saga.rs:43KB"
+  },
+  "rpcs": {
+    "23500": { "rpc_code": 23500, "rpc_name_zh": "获取金币仙市指定分类数据", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetGoldMarketCategory", "rgs_proto_method": "MarketService.GetGoldMarketCategory", "gap_status": "Partial", "request_fields": ["category:8"], "mock_response": { "code": 0, "msg": "ok", "items": [], "category": 0 } },
+    "23501": { "rpc_code": 23501, "rpc_name_zh": "购买金币仙市物品", "rgs_backend": "economy-service:50052", "rgs_rpc": "BuyFromGoldMarket", "rgs_proto_method": "MarketService.BuyFromGoldMarket", "gap_status": "Partial", "request_fields": ["base_id:32", "num:16"], "mock_response": { "code": 0, "msg": "ok", "transaction_id": "uuid-stub" } },
+    "23502": { "rpc_code": 23502, "rpc_name_zh": "出售物品到金币仙市", "rgs_backend": "economy-service:50052", "rgs_rpc": "SellToGoldMarket", "rgs_proto_method": "MarketService.SellToGoldMarket", "gap_status": "Partial", "request_fields": ["item_id:32", "num:16"], "mock_response": { "code": 0, "msg": "ok", "earned": 0 } },
+    "23504": { "rpc_code": 23504, "rpc_name_zh": "摆摊上架", "rgs_backend": "economy-service:50052", "rgs_rpc": "ListOnStall", "rgs_proto_method": "MarketService.ListOnStall", "gap_status": "Partial", "request_fields": ["package_type:8", "item_id:32", "num:16", "percent:8", "cell_id:8"], "mock_response": { "code": 0, "msg": "ok", "listing_id": "uuid-stub" } },
+    "23505": { "rpc_code": 23505, "rpc_name_zh": "购买铜钱仙市物品", "rgs_backend": "economy-service:50052", "rgs_rpc": "BuyFromSilverMarket", "rgs_proto_method": "MarketService.BuyFromSilverMarket", "gap_status": "Partial", "request_fields": ["type:8", "id:32", "num:16"], "mock_response": { "code": 0, "msg": "ok", "transaction_id": "uuid-stub" } },
+    "23506": { "rpc_code": 23506, "rpc_name_zh": "摆摊下架", "rgs_backend": "economy-service:50052", "rgs_rpc": "TakeOffStall", "rgs_proto_method": "MarketService.TakeOffStall", "gap_status": "Partial", "request_fields": ["cell_id:8"], "mock_response": { "code": 0, "msg": "ok" } },
+    "23507": { "rpc_code": 23507, "rpc_name_zh": "获取铜钱摊位数据", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetSilverStallData", "rgs_proto_method": "MarketService.GetSilverStallData", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "stalls": [] } },
+    "23508": { "rpc_code": 23508, "rpc_name_zh": "获取铜钱物品价格", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetSilverItemPrice", "rgs_proto_method": "MarketService.GetSilverItemPrice", "gap_status": "Partial", "request_fields": ["item_base_id:32"], "mock_response": { "code": 0, "msg": "ok", "price": 0 } },
+    "23509": { "rpc_code": 23509, "rpc_name_zh": "刷新铜钱仙市数据", "rgs_backend": "economy-service:50052", "rgs_rpc": "RefreshSilverMarket", "rgs_proto_method": "MarketService.RefreshSilverMarket", "gap_status": "Partial", "request_fields": ["refresh_type:8"], "mock_response": { "code": 0, "msg": "ok", "items": [] } },
+    "23510": { "rpc_code": 23510, "rpc_name_zh": "分页获取铜钱仙市数据", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetSilverMarketPaginated", "rgs_proto_method": "MarketService.GetSilverMarketPaginated", "gap_status": "Partial", "request_fields": ["page:16", "num:16"], "mock_response": { "code": 0, "msg": "ok", "items": [], "total": 0 } },
+    "23511": { "rpc_code": 23511, "rpc_name_zh": "提取铜钱仙市摊位收益", "rgs_backend": "economy-service:50052", "rgs_rpc": "ClaimSilverEarnings", "rgs_proto_method": "MarketService.ClaimSilverEarnings", "gap_status": "Partial", "request_fields": ["cell_id:8"], "mock_response": { "code": 0, "msg": "ok", "amount": 0 } },
+    "23512": { "rpc_code": 23512, "rpc_name_zh": "释放新摊位", "rgs_backend": "economy-service:50052", "rgs_rpc": "ReleaseSilverStall", "rgs_proto_method": "MarketService.ReleaseSilverStall", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "new_cell_id": 0 } },
+    "23513": { "rpc_code": 23513, "rpc_name_zh": "重新上架", "rgs_backend": "economy-service:50052", "rgs_rpc": "ReList", "rgs_proto_method": "MarketService.ReList", "gap_status": "Partial", "request_fields": ["cell_id:8", "percent:8", "num:16"], "mock_response": { "code": 0, "msg": "ok" } },
+    "23514": { "rpc_code": 23514, "rpc_name_zh": "一键操作", "rgs_backend": "economy-service:50052", "rgs_rpc": "OneKeySell", "rgs_proto_method": "MarketService.OneKeySell", "gap_status": "Partial", "request_fields": ["type:8"], "mock_response": { "code": 0, "msg": "ok", "sold_count": 0 } },
+    "23516": { "rpc_code": 23516, "rpc_name_zh": "获取仙市多个物品价格(新)", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetSilverMultiplePrices", "rgs_proto_method": "MarketService.GetSilverMultiplePrices", "gap_status": "NotImplemented", "request_fields": ["base_ids:array:32"], "mock_response": { "code": 0, "msg": "ok", "prices": {}, "note": "RGS 缺批量价格查询,需 v0.2 补" } },
+    "23518": { "rpc_code": 23518, "rpc_name_zh": "推送变更物品数量", "rgs_backend": "economy-service:50052", "rgs_rpc": "PushSilverItemCount", "rgs_proto_method": "MarketService.PushSilverItemCount", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "count_changes": [] } },
+    "23519": { "rpc_code": 23519, "rpc_name_zh": "请求铜钱仙市是否有可提现摊位", "rgs_backend": "economy-service:50052", "rgs_rpc": "HasWithdrawableStall", "rgs_proto_method": "MarketService.HasWithdrawableStall", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "has_withdrawable": false } },
+    "23520": { "rpc_code": 23520, "rpc_name_zh": "请求当前已购买数量", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetTodayPurchaseCount", "rgs_proto_method": "MarketService.GetTodayPurchaseCount", "gap_status": "Partial", "mock_response": { "code": 0, "msg": "ok", "today_purchased": 0 } }
+  }
+}
