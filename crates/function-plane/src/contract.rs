@@ -257,3 +257,146 @@ pub struct InvocationResult {
     /// `true` when the function returned normally.
     pub success: bool,
 }
+
+// =============================================================================
+// coc.policy decision contract (per RGS-INC-001 v0.3 §X.2 决策契约)
+// =============================================================================
+//
+// Phase 0 mock POC: 三态决策 (Allow / RequireSecondReview / Deny) + params_hash
+// (SHA-256 of serialized input) for 决策可重放 (per §X.6 护栏 7). Decision logic
+// is intentionally trivial (高额 grant + 黑名单). Phase 1+ will replace this
+// with full `WasmHost::call(name, json_input)` API and extend the WASM module
+// to consult `host_query_db` / `host_get_state` per §8.3 / §X.3.
+
+/// Three-state decision returned by the `coc.policy` WASM module
+/// (per RGS-INC-001 v0.3 §X.2 决策 schema).
+///
+/// 三态语义锁定 (per §X.2):
+/// - `Allow`              = 走 Rust 现有 audit_log 落库路径
+/// - `RequireSecondReview` = 写 `second_review` 表 + NATS `rgs.ad.review.requested`
+///                          异步通知 SuperAdmin，**不**立即执行操作
+/// - `Deny`               = 写 audit_log (decision=denied) + 返 `permission_denied`，
+///                          **不**写 `second_review`，**不**执行操作
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CocDecision {
+    /// 直接执行（走 Rust 现有 audit_log 落库路径）
+    Allow,
+    /// 需 SuperAdmin 二审（写 second_review 表 + 异步通知）
+    RequireSecondReview,
+    /// 拒绝（写 audit_log decision=denied + 返 permission_denied）
+    Deny,
+}
+
+impl CocDecision {
+    /// WAT `compute(a, b) -> i32` decision code encoding used by the Phase 0
+    /// mock (per RGS-INC-001 v0.3 §X.1 line 323 `WasmHost.call`):
+    /// - 0 = Allow
+    /// - 1 = RequireSecondReview
+    /// - 2 = Deny
+    ///
+    /// Phase 1+ will replace this with a real JSON-typed ABI; the encoding
+    /// is documented in [`CocDecision::from_wat_code`] for forward symmetry.
+    pub fn to_wat_code(self) -> i32 {
+        match self {
+            Self::Allow => 0,
+            Self::RequireSecondReview => 1,
+            Self::Deny => 2,
+        }
+    }
+
+    /// Decode WAT `compute` return code back to a [`CocDecision`].
+    /// Returns `None` for any other value (out-of-range or future codes).
+    pub fn from_wat_code(code: i32) -> Option<Self> {
+        match code {
+            0 => Some(Self::Allow),
+            1 => Some(Self::RequireSecondReview),
+            2 => Some(Self::Deny),
+            _ => None,
+        }
+    }
+
+    /// `lowercase` JSON name, mirrors `serde(rename_all = "snake_case")`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Allow => "allow",
+            Self::RequireSecondReview => "require_second_review",
+            Self::Deny => "deny",
+        }
+    }
+}
+
+/// Input to the `coc.policy` WASM module (per RGS-INC-001 v0.3 §X.2 决策契约).
+///
+/// Mirrors the gm_handlers `ban_account` line 83-89 解析路径:
+/// - `actor_id`  = 操作者 admin_id
+/// - `action`    = "player.ban" / "player.unban" / "economy.grant" / ...
+/// - `target_id` = account_id / 设备 id / ...
+/// - `context`   = 玩家最近 N 次封禁 / 操作时间 / 金额 / ...
+/// - `trace_id`  = OTel trace_id (per §3.3 透传)
+///
+/// POC 字段增量 (per §X.6 简化 POC 决策逻辑, §X.3 集成设计 P0 阶段):
+/// - `amount`            高额 grant 检测 (> 1000 货币 → RequireSecondReview)
+/// - `target_blacklisted` 黑名单检测 (= true → Deny，黑名单优先级 > 高额)
+///
+/// Phase 1+ 真实决策逻辑会扩展到完整 `host_query_db` + `host_get_state` 调用
+/// (per §8.3 capability 白名单 + §X.3 集成设计).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CocPolicyInput {
+    /// 操作者 admin_id (gm_handlers line 83 解析)
+    pub actor_id: Uuid,
+    /// GM action 字符串 (e.g. "player.ban" / "player.unban" / "economy.grant")
+    pub action: String,
+    /// 目标 account_id / 设备 id
+    pub target_id: String,
+    /// 决策上下文（玩家最近 N 次封禁 / 操作时间 / 金额 / ...）
+    pub context: serde_json::Value,
+    /// OTel trace_id (per §3.3 透传)
+    pub trace_id: String,
+    /// POC 字段：grant 类操作的货币金额；其他 action 填 0
+    pub amount: i64,
+    /// POC 字段：target_id 是否在 admin-service 黑名单
+    pub target_blacklisted: bool,
+}
+
+impl CocPolicyInput {
+    /// Compute the canonical `params_hash = SHA-256(serde_json::to_vec(self))` hex.
+    ///
+    /// Per RGS-INC-001 v0.3 §X.4 / §X.5 + §X.6 护栏 7 (决策可重放), this hash
+    /// is the decision-replay anchor: every `audit_log` / `second_review` row
+    /// carries `coc_params_hash = <this>`, so out-of-band replay of the
+    /// decision logic is a byte-exact reproduction of the original call.
+    ///
+    /// Stability note: callers MUST pass a JSON-stable `context` value (e.g.
+    /// primitive, ordered struct, or pre-serialized `Value`). `serde_json`
+    /// preserves insertion order for the `Map` variant in `serde_json::Value`,
+    /// so building a `Value` via `json!{{}}` / `Value::Object` (BTreeMap
+    /// underlying) is stable across runs.
+    pub fn params_hash(&self) -> String {
+        use sha2::{Digest, Sha256};
+        let bytes = serde_json::to_vec(self).expect("CocPolicyInput is always serializable");
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        hex::encode(hasher.finalize())
+    }
+}
+
+/// Output of the `coc.policy` WASM module (per RGS-INC-001 v0.3 §X.2 决策契约).
+///
+/// 三态决策 + 决策理由 + 4 字段审计锚 (per §X.6 护栏 7 决策可重放):
+/// - `module_version` / `module_hash` / `params_hash` 全落 `audit_log` /
+///   `second_review` 表 (per §X.5 second_review.coc_module_version /
+///   coc_module_hash / coc_params_hash)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CocPolicyOutput {
+    /// 决策 (3 态: Allow / RequireSecondReview / Deny)
+    pub decision: CocDecision,
+    /// 决策理由 (落 audit_log 用)
+    pub reason: String,
+    /// 当前加载 module 版本 (per §X.5 second_review.coc_module_version)
+    pub module_version: String,
+    /// 当前加载 module SHA-256 (per §X.4 Registry SHA-256 校验 + §X.5 second_review.coc_module_hash)
+    pub module_hash: String,
+    /// input 序列化 SHA-256 (per §X.4 决策可重放 + §X.5 second_review.coc_params_hash)
+    pub params_hash: String,
+}

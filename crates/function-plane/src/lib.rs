@@ -40,8 +40,8 @@ pub mod registry;
 pub mod wasm_host;
 
 pub use contract::{
-    FunctionContext, FunctionMetadata, FunctionStatus, InvocationRequest, InvocationResult,
-    Runtime, TriggerType,
+    CocDecision, CocPolicyInput, CocPolicyOutput, FunctionContext, FunctionMetadata, FunctionStatus,
+    InvocationRequest, InvocationResult, Runtime, TriggerType,
 };
 pub use error::{FunctionPlaneError, Result};
 pub use gateway::FunctionGateway;

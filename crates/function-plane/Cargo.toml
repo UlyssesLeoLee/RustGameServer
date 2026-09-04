@@ -19,6 +19,10 @@ chrono = { workspace = true }
 tracing = { workspace = true }
 async-trait = { workspace = true }
 wasmtime = { workspace = true }
+# 2026-09-05 启用：coc.policy params_hash + module_hash (per RGS-INC-001 v0.3 §X.2 / §X.4 / §X.6 护栏 7 决策可重放)
+# 沿用 admin-service §55.13 升级模式（FNV-1a → SHA-256）
+sha2 = "0.10"
+hex = "0.4"
 
 [dev-dependencies]
 wat = { workspace = true }

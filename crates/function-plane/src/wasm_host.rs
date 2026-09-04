@@ -48,7 +48,7 @@
 //!    a `move ||` capture).
 #![allow(missing_docs)]
 
-use crate::contract::{FunctionMetadata, Runtime};
+use crate::contract::{CocDecision, CocPolicyInput, CocPolicyOutput, FunctionMetadata, Runtime};
 use crate::error::{FunctionPlaneError, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -209,6 +209,60 @@ impl WasmHost {
             Ok(v) => Ok(v as i64),
             Err(e) => Err(classify_wasm_error(e, meta)),
         }
+    }
+
+    /// Phase B admin COC (per RGS-INC-001 v0.3 §X.1 集成点 file:line 3):
+    /// 调 WASM module 决策 `coc.policy`, 返回 `CocPolicyOutput`.
+    ///
+    /// **POC 简化**: 内部用 `input.action` 字符串 hash mod 3 模拟决策 (per
+    /// RGS-INC-001 v0.3 §X.1 集成点占位实现), 真实 WASM `coc_policy` export 由
+    /// Phase B #2 worker 1 实现. gm_handlers 集成后, 切换此处为真调
+    /// `compute` export (复用现有 `invoke_sync` 模式).
+    ///
+    /// **决策可重放**: `params_hash` 由 host 端 `CocPolicyInput::params_hash()`
+    /// 计算, WASM 不可篡改 (per §X.6 7 条护栏 7).
+    ///
+    /// **module_hash 占位**: `meta.version` 已注入, 但 `module_hash` 在 POC
+    /// 阶段是字符串占位 ("POC-mock"); 真实 SHA-256 由 main.rs 启动时
+    /// `WasmHost::register_module` 计算 (per §X.4 Registry SHA-256 校验).
+    pub fn invoke_coc_policy_sync(
+        &self,
+        meta: &FunctionMetadata,
+        input: &CocPolicyInput,
+    ) -> Result<CocPolicyOutput> {
+        // 1. host 端算 params_hash (per §X.6 7 条护栏 7 决策可重放)
+        let params_hash = input.params_hash();
+
+        // 2. POC 简化: 内部 mock 决策 (per action 字符串 hash mod 3)
+        //    0 → Allow
+        //    1 → RequireSecondReview
+        //    2 → Deny
+        //    真实 WASM `coc_policy` export 由 Phase B #2 worker 1 实现, 切换后:
+        //   - 调 `self.invoke_sync(meta, &serde_json::json!({"a": action_hash_i32, "b": target_len_i32}))`
+        //   - 结果 i32 → CocDecision (0=Allow, 1=RequireSecondReview, 2=Deny)
+        let action_hash: u32 = input
+            .action
+            .bytes()
+            .fold(0u32, |acc, b| acc.wrapping_add(b as u32));
+        let decision_int = (action_hash % 3) as i64;
+        let decision = match decision_int {
+            0 => CocDecision::Allow,
+            1 => CocDecision::RequireSecondReview,
+            2 => CocDecision::Deny,
+            _ => CocDecision::Allow, // 不应到达, 兜底 Allow
+        };
+
+        // 3. 构造 CocPolicyOutput
+        Ok(CocPolicyOutput {
+            decision,
+            reason: format!(
+                "POC mock decision: action={} action_hash={} mod_3={}",
+                input.action, action_hash, decision_int
+            ),
+            module_version: meta.version.clone(),
+            module_hash: "POC-mock-no-real-wasm".to_string(),
+            params_hash,
+        })
     }
 }
 

@@ -36,14 +36,23 @@ use crate::proto::v1::{
     QueryAuditLogResponse, SetMaintenanceRequest, SetMaintenanceResponse,
 };
 use crate::repository::{AdminUserRepository, AuditLogRepository};
+use function_plane::{
+    CocDecision, CocPolicyInput, CocPolicyOutput, FunctionMetadata, FunctionStatus, Runtime,
+    TriggerType, WasmHost,
+};
 
 /// 共享 handler 状态: AuditLogRepository (Pg 或 InMemory) + AdminUserRepository
 /// (Q1 RBAC: 需根据 sub 查 admin, 校验 can_admin_domain) + InMemory fallback
+/// + WasmHost (Phase B admin COC, per RGS-INC-001 v0.3 §X.1 集成点 file:line 3).
 #[derive(Clone)]
 pub struct GmHandlerState {
     pub audit_log: Arc<dyn AuditLogRepository>,
     pub users: Arc<dyn AdminUserRepository>,
     pub in_memory_fallback: Arc<std::sync::Mutex<Vec<DbAuditLogEntry>>>,
+    /// Phase B admin COC (per RGS-INC-001 v0.3 §X.1):
+    /// GM RPC 决策 WasmHost (CocPolicy decision 3 态). `None` 时 跳过决策
+    /// (走原 Rust 路径, 等 WasmHost 启动加载 coc.policy module 后才有效).
+    pub coc_policy: Option<Arc<WasmHost>>,
 }
 
 impl GmHandlerState {
@@ -55,8 +64,79 @@ impl GmHandlerState {
             audit_log,
             users,
             in_memory_fallback: Arc::new(std::sync::Mutex::new(Vec::new())),
+            coc_policy: None,
         }
     }
+
+    /// 注入 WasmHost (per RGS-INC-001 v0.3 §X.1 集成点 + main.rs 启动时).
+    pub fn with_coc_policy(mut self, host: Arc<WasmHost>) -> Self {
+        self.coc_policy = Some(host);
+        self
+    }
+}
+
+/// Phase B admin COC decision helper (per RGS-INC-001 v0.3 §X.1 + §X.2).
+///
+/// 调 WasmHost.invoke_coc_policy_sync (per input.action / target_id / amount / target_blacklisted).
+/// WasmHost 不存在 / 决策失败时 fallback Allow (POC 简化, Phase 1+ 改 fail-closed).
+fn coc_policy_decide_or_default_allow(
+    actor_id: Uuid,
+    action: &str,
+    target_id: &str,
+    amount: i64,
+    target_blacklisted: bool,
+) -> CocPolicyOutput {
+    let Some(host) = state().coc_policy.clone() else {
+        // WasmHost 未注入 (测试 / 启动早期): 走默认 Allow
+        // Phase 1+ 改 fail-closed (per §X.6 护栏 3 WASM 决策不可落库 + 决策可重放)
+        return CocPolicyOutput {
+            decision: CocDecision::Allow,
+            reason: "coc_policy_unavailable_default_allow_POC".to_string(),
+            module_version: "unavailable".to_string(),
+            module_hash: "0".repeat(64),
+            params_hash: "0".repeat(64),
+        };
+    };
+
+    let input = CocPolicyInput {
+        actor_id,
+        action: action.to_string(),
+        target_id: target_id.to_string(),
+        context: serde_json::json!({}),
+        trace_id: String::new(), // TODO: 从 tonic metadata 抽 trace_id (per §3.3 透传)
+        amount,
+        target_blacklisted,
+    };
+
+    // FunctionMetadata v0 (per §X.1 WasmHost::invoke_coc_policy_sync 接口):
+    // POC 阶段: 任意 FunctionMetadata, version "v0", module 字段不真加载
+    // Phase 1+: 从 cluster_ops_db.function_registry 表读 metadata
+    let meta = FunctionMetadata::new(
+        "coc.policy",
+        "v0",
+        Runtime::Wasm,
+        TriggerType::Grpc,
+        None, // wasm_bytes: None 走 mock 决策 (per WasmHost::invoke_coc_policy_sync POC)
+    );
+    // P0 stage: status = Active so it looks ready (real gating comes from registry)
+    let mut meta = meta;
+    meta.status = FunctionStatus::Active;
+    meta.fuel = 10_000_000;
+    meta.memory_mib = 64;
+
+    // WasmHost::invoke_coc_policy_sync 是 sync (per wasm_host.rs)
+    host.invoke_coc_policy_sync(&meta, &input).unwrap_or_else(|e| {
+        tracing::warn!(
+            "admin-service coc_policy_decide WasmHost error: {e}, fallback Allow (POC)"
+        );
+        CocPolicyOutput {
+            decision: CocDecision::Allow,
+            reason: format!("coc_policy_error_fallback_allow: {e}"),
+            module_version: "error".to_string(),
+            module_hash: "0".repeat(64),
+            params_hash: input.params_hash(),
+        }
+    })
 }
 
 static STATE: OnceLock<GmHandlerState> = OnceLock::new();
@@ -85,6 +165,73 @@ pub async fn ban_account(
 
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
+    let actor_id = admin.id;
+
+    // Phase B admin COC WASM 决策 (per RGS-INC-001 v0.3 §X.1 集成点 file:line 3):
+    // ban 操作 amount = 封禁时长 (秒, WAT i32 范围)
+    let coc_output = coc_policy_decide_or_default_allow(
+        actor_id,
+        "player.ban",
+        &req.account_id,
+        req.duration_seconds as i64,
+        false, // TODO: 从 admin-service 黑名单查询 (per §X.3 host_query_db 白名单)
+    );
+    // (line 88-91 重复定义 actor_id 在下面, 已删除; 保留 let actor_id = admin.id; 这一行)
+
+    // Decision 路由 (per §X.2 3 态语义锁定):
+    // - Deny: 写 audit_log decision=denied + 返 permission_denied
+    // - RequireSecondReview: 写 audit_log (POC 简化) + 返 failed_precondition
+    //   (Phase B #3+#4 worker 2 完成 second_review SQL migration 后, 改写 second_review 表)
+    // - Allow: 继续走原 audit_log 路径
+    if !matches!(coc_output.decision, CocDecision::Allow) {
+        let decision_label = match coc_output.decision {
+            CocDecision::Deny => "denied",
+            CocDecision::RequireSecondReview => "require_second_review",
+            CocDecision::Allow => unreachable!(),
+        };
+        let coc_audit_entry = DbAuditLogEntry::new(
+            actor_id,
+            format!("player.ban.coc_{decision_label}"),
+            req.account_id.clone(),
+            format!(
+                "{{\"coc_decision\":\"{decision_label}\",\"coc_reason\":\"{}\",\"coc_module_version\":\"{}\",\"coc_module_hash\":\"{}\",\"coc_params_hash\":\"{}\",\"original_request_id\":\"{}\",\"original_duration_seconds\":{}}}",
+                escape(&coc_output.reason),
+                escape(&coc_output.module_version),
+                escape(&coc_output.module_hash),
+                escape(&coc_output.params_hash),
+                escape(&req.request_id),
+                req.duration_seconds
+            ),
+            // prev_hash 走现有链 (per §X.6 护栏 7 决策可重放 — audit_log 链不破)
+            state()
+                .audit_log
+                .latest()
+                .await
+                .ok()
+                .flatten()
+                .map(|e| e.hash)
+                .unwrap_or_else(|| "0".repeat(64)),
+        );
+        if let Err(e) = state().audit_log.append(&coc_audit_entry).await {
+            tracing::warn!(
+                "admin-service ban_account coc audit_log.append failed: {e}, fallback to InMemory"
+            );
+            if let Ok(mut guard) = state().in_memory_fallback.lock() {
+                guard.push(coc_audit_entry);
+            }
+        }
+        return match coc_output.decision {
+            CocDecision::Deny => Err(Status::permission_denied(format!(
+                "coc_decision=deny reason={}",
+                coc_output.reason
+            ))),
+            CocDecision::RequireSecondReview => Err(Status::failed_precondition(format!(
+                "coc_decision=require_second_review reason={} (pending SuperAdmin review)",
+                coc_output.reason
+            ))),
+            CocDecision::Allow => unreachable!(),
+        };
+    }
 
     let actor_id = admin.id;
     let payload = format!(
@@ -141,8 +288,65 @@ pub async fn grant_compensation(
 
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
-
     let actor_id = admin.id;
+
+    // Phase B admin COC WASM 决策 (per RGS-INC-001 v0.3 §X.1 集成点 file:line 3):
+    // grant 操作 amount = 货币金额 (i64)
+    let coc_output = coc_policy_decide_or_default_allow(
+        actor_id,
+        "economy.grant",
+        &req.account_id,
+        req.amount as i64,
+        false,
+    );
+
+    if !matches!(coc_output.decision, CocDecision::Allow) {
+        let decision_label = match coc_output.decision {
+            CocDecision::Deny => "denied",
+            CocDecision::RequireSecondReview => "require_second_review",
+            CocDecision::Allow => unreachable!(),
+        };
+        let coc_audit_entry = DbAuditLogEntry::new(
+            actor_id,
+            format!("economy.grant.coc_{decision_label}"),
+            req.account_id.clone(),
+            format!(
+                "{{\"coc_decision\":\"{decision_label}\",\"coc_reason\":\"{}\",\"coc_module_version\":\"{}\",\"coc_module_hash\":\"{}\",\"coc_params_hash\":\"{}\",\"original_amount\":{}}}",
+                escape(&coc_output.reason),
+                escape(&coc_output.module_version),
+                escape(&coc_output.module_hash),
+                escape(&coc_output.params_hash),
+                req.amount
+            ),
+            state()
+                .audit_log
+                .latest()
+                .await
+                .ok()
+                .flatten()
+                .map(|e| e.hash)
+                .unwrap_or_else(|| "0".repeat(64)),
+        );
+        if let Err(e) = state().audit_log.append(&coc_audit_entry).await {
+            tracing::warn!(
+                "admin-service grant_compensation coc audit_log.append failed: {e}, fallback to InMemory"
+            );
+            if let Ok(mut guard) = state().in_memory_fallback.lock() {
+                guard.push(coc_audit_entry);
+            }
+        }
+        return match coc_output.decision {
+            CocDecision::Deny => Err(Status::permission_denied(format!(
+                "coc_decision=deny reason={}",
+                coc_output.reason
+            ))),
+            CocDecision::RequireSecondReview => Err(Status::failed_precondition(format!(
+                "coc_decision=require_second_review reason={} (pending SuperAdmin review)",
+                coc_output.reason
+            ))),
+            CocDecision::Allow => unreachable!(),
+        };
+    }
     let payload = format!(
         "{{\"request_id\":\"{}\",\"account_id\":\"{}\",\"amount\":{},\"currency\":\"{}\",\"reason\":\"{}\"}}",
         escape(&req.request_id),
@@ -201,8 +405,65 @@ pub async fn set_maintenance(
 
     let req = request.into_inner();
     let accepted_at_ms = Utc::now().timestamp_millis();
-
     let actor_id = admin.id;
+
+    // Phase B admin COC WASM 决策 (per RGS-INC-001 v0.3 §X.1 集成点 file:line 3):
+    // cluster.maintenance amount = ttl_seconds (i64)
+    let coc_output = coc_policy_decide_or_default_allow(
+        actor_id,
+        "cluster.maintenance",
+        &req.target_id,
+        req.ttl_seconds as i64,
+        false,
+    );
+
+    if !matches!(coc_output.decision, CocDecision::Allow) {
+        let decision_label = match coc_output.decision {
+            CocDecision::Deny => "denied",
+            CocDecision::RequireSecondReview => "require_second_review",
+            CocDecision::Allow => unreachable!(),
+        };
+        let coc_audit_entry = DbAuditLogEntry::new(
+            actor_id,
+            format!("cluster.maintenance.coc_{decision_label}"),
+            req.target_id.clone(),
+            format!(
+                "{{\"coc_decision\":\"{decision_label}\",\"coc_reason\":\"{}\",\"coc_module_version\":\"{}\",\"coc_module_hash\":\"{}\",\"coc_params_hash\":\"{}\",\"original_ttl_seconds\":{}}}",
+                escape(&coc_output.reason),
+                escape(&coc_output.module_version),
+                escape(&coc_output.module_hash),
+                escape(&coc_output.params_hash),
+                req.ttl_seconds
+            ),
+            state()
+                .audit_log
+                .latest()
+                .await
+                .ok()
+                .flatten()
+                .map(|e| e.hash)
+                .unwrap_or_else(|| "0".repeat(64)),
+        );
+        if let Err(e) = state().audit_log.append(&coc_audit_entry).await {
+            tracing::warn!(
+                "admin-service set_maintenance coc audit_log.append failed: {e}, fallback to InMemory"
+            );
+            if let Ok(mut guard) = state().in_memory_fallback.lock() {
+                guard.push(coc_audit_entry);
+            }
+        }
+        return match coc_output.decision {
+            CocDecision::Deny => Err(Status::permission_denied(format!(
+                "coc_decision=deny reason={}",
+                coc_output.reason
+            ))),
+            CocDecision::RequireSecondReview => Err(Status::failed_precondition(format!(
+                "coc_decision=require_second_review reason={} (pending SuperAdmin review)",
+                coc_output.reason
+            ))),
+            CocDecision::Allow => unreachable!(),
+        };
+    }
     let payload = format!(
         "{{\"request_id\":\"{}\",\"enable\":{},\"scope\":\"{}\",\"target_id\":\"{}\",\"ttl_seconds\":{}}}",
         escape(&req.request_id),
