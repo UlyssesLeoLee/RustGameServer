@@ -22,6 +22,13 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+/// 5 域公共 helper（per 2026-09-04 扫描 P0-2）
+/// 替换 `.map_err(Into::<tonic::Status>::into)?` → `.map_err(|e| grpc_err("method", e))?`
+pub fn grpc_err(method: &'static str, e: Error) -> Status {
+    tracing::error!(method = method, error = %e, "method={} failed", method);
+    tonic::Status::from(e)
+}
+
 #[async_trait]
 pub trait EconomyService: Send + Sync {
     async fn health_check(&self) -> Result<bool>;
@@ -352,7 +359,7 @@ pub mod grpc_service {
                 .impl_
                 .health_check()
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("health_check", e))?;
             Ok(Response::new(common_proto::HealthCheckResponse {
                 status: if healthy {
                     common_proto::Status::Ok as i32
@@ -378,7 +385,7 @@ pub mod grpc_service {
                 .impl_
                 .find_account_by_id(account_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?
+                .map_err(|e| grpc_err("find_account_by_id", e))?
                 .ok_or_else(|| Status::not_found(format!("account {}", id_str)))?;
             Ok(Response::new(economy_proto::Account {
                 id: Some(common_proto::EntityId {
@@ -415,7 +422,7 @@ pub mod grpc_service {
                     req.ends_at_unix,
                 )
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("create_auction", e))?;
             Ok(Response::new(economy_proto::CreateAuctionResponse {
                 auction_id: auction.auction_id.to_string(),
                 started_at: Some(common_proto::Timestamp {
@@ -441,7 +448,7 @@ pub mod grpc_service {
                 .trade
                 .bid_auction(auction_id, req.bidder_id, req.amount, req.idempotency_key)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("bid_auction", e))?;
             Ok(Response::new(economy_proto::BidAuctionResponse {
                 bid_id: result.bid_id.to_string(),
                 is_highest: result.is_highest,
@@ -464,7 +471,7 @@ pub mod grpc_service {
                 .trade
                 .cancel_auction(auction_id, req.seller_id)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("cancel_auction", e))?;
             Ok(Response::new(economy_proto::CancelAuctionResponse {
                 cancelled: true,
                 refunded: result.refunded,
@@ -483,7 +490,7 @@ pub mod grpc_service {
                 .trade
                 .list_auctions(filter, page_req.page, page_req.page_size)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("list_auctions", e))?;
             let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::ListAuctionResponse {
@@ -506,7 +513,7 @@ pub mod grpc_service {
                 .trade
                 .get_trade_history(req.player_id, page_req.page, page_req.page_size)
                 .await
-                .map_err(Into::<tonic::Status>::into)?;
+                .map_err(|e| grpc_err("get_trade_history", e))?;
             let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::GetTradeHistoryResponse {
