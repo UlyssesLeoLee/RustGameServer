@@ -1,0 +1,112 @@
+{
+  "_module_meta": {
+    "module_name": "convert",
+    "module_name_zh": "资产兑换/神格许愿",
+    "protocol_id": 236,
+    "module_size_bytes": 7889,
+    "rgs_7domain_route": "economy (主)",
+    "rgs_services": [
+      "EconomyService.ConvertService"
+    ],
+    "total_cmds": 5,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 5,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\convert\\convert_rpc.erl (1.4KB, handle/3 5 cmds 23600-23604) + convert.erl (7.9KB, gen_server convert_assets/3 + wish/1 + reward/1 + push_info/1 + push_ext_rate/1)",
+    "rgs_translation": "economy-service ConvertService trait + ConvertRepository (sqlx PgConvertRepo) + convert_assets/3 (类型+ID 兑换) + wish 神格许愿 + push_info + push_ext_rate (跨协议号段 236 = 活动运营子类, per 协议号映射 §2.2 L117)",
+    "rgs_file_ref": "DDD v0.2 addendum §4.12 + 协议号映射 §2.3 L164 (holiday_lev_gift.erl → EconomyService.ConvertService, per REQ §2 #27) + convert_rpc.erl L16-50 (handle/3 5 函数 + 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 convert_assets 业务 (per convert_rpc.erl L16-22, convert.erl convert_assets/3), v0.2 sprint 实装 1:1 翻译",
+      "RGS 缺 wish 神格许愿状态机 (per convert_rpc.erl L40-46, convert.erl wish/1), 跨域 push 业务, v0.2 sprint 实装",
+      "RGS 缺 push_info 主动 push 模式 (per convert_rpc.erl L25-27, convert.erl push_info/1), 需 RGS push_delivery NATS 集成 (per 8/27 Q7 决策)",
+      "RGS 缺 push_ext_rate 额外奖励比例 push (per convert_rpc.erl L49-51, convert.erl push_ext_rate/1), v0.2 sprint 实装",
+      "convert.erl (7.9KB) 含 convert_assets/wish/reward/push_info/push_ext_rate 5 函数, 完整覆盖但内部业务 (e.g. wish rate 概率) 未读, 推测实现"
+    ]
+  },
+  "rpcs": {
+    "23600": {
+      "rpc_code": 23600,
+      "rpc_name_zh": "资产兑换",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "ConvertAssets",
+      "rgs_proto_method": "ConvertService.ConvertAssets",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8",
+        "id:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS ConvertService.ConvertAssets 走 convert:convert_assets/3 (per convert_rpc.erl L16-22), 跨域 gain 模式, RGS 缺 convert_assets 业务 (类型+ID 兑换), v0.2 sprint 实装",
+      "biz_flow_ref": "convert_rpc.erl L16-22 (handle/3 23600) + convert.erl convert_assets/3"
+    },
+    "23601": {
+      "rpc_code": 23601,
+      "rpc_name_zh": "神格许愿状态",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "PushWishStatus",
+      "rgs_proto_method": "ConvertService.PushWishStatus",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok"
+      },
+      "rgs_partial_reason": "RGS PushWishStatus 走 convert:push_info/1 (per convert_rpc.erl L25-27, return ok), 主动 push 模式, RGS 缺 push_info 业务 + push_delivery NATS 集成 (per 8/27 Q7 决策), v0.2 sprint 实装",
+      "biz_flow_ref": "convert_rpc.erl L25-27 (handle/3 23601) + convert.erl push_info/1 (主动 push)"
+    },
+    "23602": {
+      "rpc_code": 23602,
+      "rpc_name_zh": "领取礼包",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "ClaimConvertReward",
+      "rgs_proto_method": "ConvertService.ClaimConvertReward",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS ClaimConvertReward 走 convert:reward/1 (per convert_rpc.erl L31-37), 礼包领取, RGS 缺 convert:reward 业务, v0.2 sprint 实装",
+      "biz_flow_ref": "convert_rpc.erl L31-37 (handle/3 23602) + convert.erl reward/1"
+    },
+    "23603": {
+      "rpc_code": 23603,
+      "rpc_name_zh": "神格许愿",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "Wish",
+      "rgs_proto_method": "ConvertService.Wish",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS Wish 走 convert:wish/1 (per convert_rpc.erl L40-46), 神格许愿, RGS 缺 wish 业务 + 概率模型 (具体概率未读), v0.2 sprint 实装",
+      "biz_flow_ref": "convert_rpc.erl L40-46 (handle/3 23603) + convert.erl wish/1 (神格许愿)"
+    },
+    "23604": {
+      "rpc_code": 23604,
+      "rpc_name_zh": "额外奖励比例",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "PushExtRate",
+      "rgs_proto_method": "ConvertService.PushExtRate",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok"
+      },
+      "rgs_partial_reason": "RGS PushExtRate 走 convert:push_ext_rate/1 (per convert_rpc.erl L49-51, return ok), 主动 push 额外奖励比例, RGS 缺 push_ext_rate 业务, v0.2 sprint 实装",
+      "biz_flow_ref": "convert_rpc.erl L49-51 (handle/3 23604) + convert.erl push_ext_rate/1 (主动 push)"
+    }
+  }
+}

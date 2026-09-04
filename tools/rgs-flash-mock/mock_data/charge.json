@@ -1,0 +1,95 @@
+{
+  "_module_meta": {
+    "module_name": "charge",
+    "module_name_zh": "充值",
+    "protocol_id": 210,
+    "module_size_bytes": 39888,
+    "rgs_7domain_route": "economy",
+    "rgs_services": ["ChargeService"],
+    "total_cmds": 3,
+    "w3_phase": "worker-1",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 3,
+    "not_applicable_count": 0,
+    "audit_finding": "economy 域 0/3 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 ChargeService 实体 + charge_packages Master + first_charge_rewards Master + charge_records Transaction + three_day_rebate Master, W14 落地",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\charge\\charge_rpc.erl (1.0KB, handle/3 3 cmds 21000/21001/21005) + charge.erl (13.1KB) + charge_lib.erl (2.5KB) + charge_mgr.erl (5.0KB) + charge_misc.erl (13.8KB) + charge_mltest_return.erl (3.9KB) + charge_ver.erl (548B)",
+    "rgs_translation": "economy-service:50052 ChargeService (新), 1 player 1 tokio actor task, ChargePackageRepository + FirstChargeRewardRepository + ChargeRecordRepository + ThreeDayRebateRepository (sqlx), 走 economy 域 saga + mTLS 业务级 ST 模式 (per 8/27 11:06 JST 凭据硬 ban + 5 域 ST 业务 mTLS 实践 commit 401ac5c)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.36 L1069-1077 (协议号映射 3 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §4 (跟 market W2-2.4 模式 1:1 复用, economy 域)",
+    "known_gaps": [
+      "RGS 0/3 wire ChargeService RPC (per DDD v0.1 §2.3 + addendum §5.36, 全部 ❌ NotImplemented)",
+      "charge.erl + 6 个 .erl 共 39.9KB 未完整抽样 (per 抽样方法 §3.2), 仅 charge_rpc.erl 1.0KB 抽样, 业务流/支付回调/三方网关/对账/退款/补发 80% 推测 (per addendum §10.1 已知缺口)",
+      "charge_misc:push_first_gift/1 (per charge_rpc.erl L18) 暗示 first_gift 主推入口, RGS 需建 first_charge_rewards Master + charge_records Transaction",
+      "charge_misc:take_first_gift/2 返 {ok, Msg, NewRole} | {false, Msg} (per charge_rpc.erl L23) → RGS 走 economy 域 3 步 saga: 校验首充 → 扣位 → 发奖",
+      "charge_misc:info_triple_rebate/1 返 3 倍返利信息 (per charge_rpc.erl L31) → RGS 需建 three_day_rebate Master + player_three_day_rebate_progress Transaction",
+      "charge_mltest_return.erl 3.9KB 推测是 mTLS + 第三方支付回调入口 → RGS 走 mTLS 业务级 ST 模式 (per 8/27 11:06 JST 凭据硬 ban + 5 域 ST 业务 mTLS 实践)",
+      "charge_ver.erl 548B 推测是版本校验 + checksum → RGS 走 charge_verifications Transaction",
+      "1 charge 缺 pay.erl 跨协议号 (per 协议号分段.md L119 210 + 166 实际未 166), 实际是 charge=210, pay.erl 协议号段未启用 (per addendum §2.2 协议号 vs 玩法模块)"
+    ]
+  },
+  "rpcs": {
+    "21000": {
+      "rpc_code": 21000,
+      "rpc_name_zh": "首充礼包信息",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetFirstChargeInfo",
+      "rgs_proto_method": "ChargeService.GetFirstChargeInfo",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "first_gift_list": [
+          {"gift_id": 30001, "charge_amount": 100, "rewards": [{"item_id": 1001, "count": 1000}], "status": 0},
+          {"gift_id": 30002, "charge_amount": 500, "rewards": [{"item_id": 1005, "count": 1}], "status": 0}
+        ],
+        "has_first_charged": false
+      },
+      "rgs_partial_reason": "RGS 0 ChargeService 实体, 缺 charge_packages Master + first_charge_rewards Master + charge_records Transaction, 3 cmds 全部 ❌ NotImplemented (per addendum §5.36)",
+      "biz_flow_ref": "charge_rpc.erl L17-19 (handle/3) + charge_misc:push_first_gift/1 (charge_misc.erl 推测, 跟 activity.erl box/1 模式 1:1)"
+    },
+    "21001": {
+      "rpc_code": 21001,
+      "rpc_name_zh": "领取首充礼包",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "ClaimFirstCharge",
+      "rgs_proto_method": "ChargeService.ClaimFirstCharge",
+      "gap_status": "NotImplemented",
+      "request_fields": ["id:32"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "id": 30001,
+        "rewards_granted": [{"item_id": 1001, "count": 1000}]
+      },
+      "rgs_partial_reason": "RGS 0 ChargeService.ClaimFirstCharge, 缺 charge_misc:take_first_gift/2 业务 (per charge_rpc.erl L22-28) 1:1 翻译, 走 economy 域 3 步 saga: 校验首充 → 扣位 → 发奖 (per market W2-2.4 OpenPack saga 模式 1:1 复用)",
+      "biz_flow_ref": "charge_rpc.erl L22-28 (handle/3) + charge_misc:take_first_gift/2 (charge_misc.erl 推测)"
+    },
+    "21005": {
+      "rpc_code": 21005,
+      "rpc_name_zh": "三倍返利信息",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetThreeDayRebate",
+      "rgs_proto_method": "ChargeService.GetThreeDayRebate",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "rebate_info": {
+          "day": 1,
+          "total_days": 3,
+          "rebate_percent": 300,
+          "charged_amount": 0,
+          "rebate_amount": 0,
+          "status": 0,
+          "rewards": [{"item_id": 1001, "count": 0}]
+        }
+      },
+      "rgs_partial_reason": "RGS 0 ChargeService.GetThreeDayRebate, 缺 charge_misc:info_triple_rebate/1 业务 (per charge_rpc.erl L31-32) 1:1 翻译, 需建 three_day_rebate Master + player_three_day_rebate_progress Transaction + 3 日连续返利 cron + batch saga 模式",
+      "biz_flow_ref": "charge_rpc.erl L31-32 (handle/3) + charge_misc:info_triple_rebate/1 (charge_misc.erl 推测)"
+    }
+  }
+}

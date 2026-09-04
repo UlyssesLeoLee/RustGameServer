@@ -1,0 +1,75 @@
+{
+  "_module_meta": {
+    "module_name": "login_days",
+    "module_name_zh": "七日登录",
+    "protocol_id": 211,
+    "module_size_bytes": 7939,
+    "rgs_7domain_route": "batch",
+    "rgs_services": ["LoginDaysService"],
+    "total_cmds": 2,
+    "w3_phase": "worker-1",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 2,
+    "not_applicable_count": 0,
+    "audit_finding": "batch 域 0/2 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 LoginDaysService 实体 + login_days_rewards Master + player_login_days_progress Transaction, W18 落地",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_login_days\\login_days_rpc.erl (910B, handle/3 2 cmds 21100/21101) + login_days.erl (7.0KB, 推测 ~8 exports: info/reward/check/reset/timer/...)",
+    "rgs_translation": "batch-backend:8790 LoginDaysService (新), 1 player 1 tokio actor task, LoginDaysRepository (sqlx) + PlayerLoginDaysProgressRepository, 走 batch 域 task_templates Master + player_instance Transaction 模式 (per addendum §4.12 activity 模式 1:1 复用)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.41 L1116-1123 (协议号映射 2 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §4 (跟 activity 模式 1:1 复用, per L689-704)",
+    "known_gaps": [
+      "RGS 0/2 wire LoginDaysService RPC (per DDD v0.1 §2.3 + addendum §5.41, 全部 ❌ NotImplemented)",
+      "login_days.erl 7.0KB 仅 L1-100 抽样, 剩余 L100+ exports (check/reset/timer) 未抽样 read, 业务流/状态机 70% 推测 (per addendum §10.1 已知缺口)",
+      "login_days:info/1 返 StatusList (per login_days_rpc.erl L17) → RGS 需建 typed Vec<LoginDaysStatus> { day, status, rewards[] }",
+      "login_days:reward/2 返 {ok, Msg, NewRole} | {false, Msg} 模式 (per login_days_rpc.erl L22-27) → RGS 走 batch 域 task 模板 + player_instance table 模式 (per activity W2-2.6 实证)",
+      "7-day 周期 reset 逻辑 (推测, login_days.erl L100+ 未抽样) → RGS 走 cron + batch saga daily reset 模式 (per addendum §6.6 typed struct)",
+      "player_login_days_progress Transaction 表 + 跨 5 域 (player / economy 奖励发放) 跨域 saga 模式 (per activity W2-2.6 实证复用)",
+      "notice:alert 提示未在 login_days_rpc.erl 出现, 但 7 日连续登录应配套 push_delivery 模式 (per addendum §4.7)"
+    ]
+  },
+  "rpcs": {
+    "21100": {
+      "rpc_code": 21100,
+      "rpc_name_zh": "获取七日登录信息",
+      "rgs_backend": "batch-backend:8790",
+      "rgs_rpc": "GetLoginDaysInfo",
+      "rgs_proto_method": "LoginDaysService.GetLoginDaysInfo",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "status_list": [
+          {"day": 1, "status": 0, "rewards": [{"item_id": 1001, "count": 100}]},
+          {"day": 2, "status": 0, "rewards": [{"item_id": 1002, "count": 200}]},
+          {"day": 3, "status": 0, "rewards": [{"item_id": 1001, "count": 300}]},
+          {"day": 4, "status": 0, "rewards": [{"item_id": 1003, "count": 1}]},
+          {"day": 5, "status": 0, "rewards": [{"item_id": 1002, "count": 500}]},
+          {"day": 6, "status": 0, "rewards": [{"item_id": 1004, "count": 1}]},
+          {"day": 7, "status": 0, "rewards": [{"item_id": 1005, "count": 1}]}
+        ],
+        "current_day": 1
+      },
+      "rgs_partial_reason": "RGS 0 LoginDaysService 实体, 缺 login_days_rewards Master (7 day 模板) + player_login_days_progress Transaction, 2 cmds 全部 ❌ NotImplemented (per addendum §5.41)",
+      "biz_flow_ref": "login_days_rpc.erl L16-18 (handle/3) + login_days.erl info/1 (推测, 跟 activity.erl box/1 模式 1:1)"
+    },
+    "21101": {
+      "rpc_code": 21101,
+      "rpc_name_zh": "领取七日登录奖励",
+      "rgs_backend": "batch-backend:8790",
+      "rgs_rpc": "ClaimLoginDaysReward",
+      "rgs_proto_method": "LoginDaysService.ClaimLoginDaysReward",
+      "gap_status": "NotImplemented",
+      "request_fields": ["day:8"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "day": 1,
+        "rewards_granted": [{"item_id": 1001, "count": 100}]
+      },
+      "rgs_partial_reason": "RGS 0 LoginDaysService.ClaimLoginDaysReward, 缺 login_days:reward/2 业务 (per login_days_rpc.erl L21-27) 1:1 翻译, 走 batch 域 task + player_instance table 模式 (per activity W2-2.6 实证) + 5 步 saga: 校验 → 进度检查 → 扣进度 → 发奖 → 更新状态",
+      "biz_flow_ref": "login_days_rpc.erl L21-27 (handle/3) + login_days.erl reward/2 (推测, 跟 activity.erl reward/2 模式 1:1)"
+    }
+  }
+}

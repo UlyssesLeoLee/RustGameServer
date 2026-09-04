@@ -1,0 +1,83 @@
+{
+  "_module_meta": {
+    "module_name": "honor",
+    "module_name_zh": "称号",
+    "protocol_id": 233,
+    "module_size_bytes": 16892,
+    "rgs_7domain_route": "player",
+    "rgs_services": ["HonorService"],
+    "total_cmds": 3,
+    "w3_phase": "worker-1",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 3,
+    "not_applicable_count": 0,
+    "audit_finding": "player 域 0/3 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 HonorService 实体 + honors Master + honor_activations Transaction, W16 落地",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\honor\\honor_rpc.erl (1.3KB, handle/3 3 cmds 23300/23301/23303) + honor.erl (15.5KB, 推测 ~12 exports, 跟 avatar.erl 结构相似)",
+    "rgs_translation": "PlayerService.HonorService (新), 1 player 1 tokio actor task, HonorRepository (sqlx) + HonorActivationRepository, mpsc::Sender<HonorCommand>, 模式跟 AvatarService 1:1 复用 (per avatar.erl L 结构推测)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.35 L1059-1067 (协议号映射 3 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §6.5 typed struct 字段 (honor.erl 进程字典 → RoleState.m_honor 字段)",
+    "known_gaps": [
+      "RGS 0/3 wire HonorService RPC (per DDD v0.1 §2.3 + addendum §5.35, 全部 ❌ NotImplemented)",
+      "honor_data:get/1 ets 缓存 (推测, 跟 avatar_data 模式 1:1) → RGS 需建 honors Master 表",
+      "honor.erl 完整 exports (12+) 未抽样 read, 仅 honor_rpc.erl 1.3KB 抽样, 业务流/状态机 80% 推测 (per addendum §10.1 已知缺口)",
+      "honor:info/1 返 {ok, Used, Frames} 3 元组 (per honor_rpc.erl L18) → RGS 需建 typed struct HonorInfo { used: HonorId, frames: Vec<Honor> }",
+      "honor:use/2 (per honor_rpc.erl L23-30) 跟 avatar:use/2 模式 1:1, RGS 复用 AvatarService 实装经验",
+      "honor:activate/2 (per honor_rpc.erl L34-44) 走 role:send_buff_begin/flush/clean 3 步 → RGS outbox 5 状态机 (per addendum §6.3-§6.4)",
+      "notice:alert/2 设置成功/激活成功/失败 3 模式 (per honor_rpc.erl L25, L28, L38, L42) → RGS ErrorCode enum + i18n string"
+    ]
+  },
+  "rpcs": {
+    "23300": {
+      "rpc_code": 23300,
+      "rpc_name_zh": "称号列表",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ListHonors",
+      "rgs_proto_method": "HonorService.ListHonors",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "used": 0,
+        "frames": []
+      },
+      "rgs_partial_reason": "RGS 0 HonorService 实体, 缺 honors Master 表 (honor_data:get/1 ets 翻译), 3 cmds 全部 ❌ NotImplemented (per addendum §5.35)",
+      "biz_flow_ref": "honor_rpc.erl L17-19 (handle/3) + honor.erl info/1 (推测, 跟 avatar:frames/1 模式 1:1)"
+    },
+    "23301": {
+      "rpc_code": 23301,
+      "rpc_name_zh": "使用称号",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "UseHonor",
+      "rgs_proto_method": "HonorService.UseHonor",
+      "gap_status": "NotImplemented",
+      "request_fields": ["base_id:32"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "used_base_id": 0
+      },
+      "rgs_partial_reason": "RGS 0 HonorService.UseHonor, 缺 honor:use/2 业务 (per honor_rpc.erl L22-30) 1:1 翻译, notice:alert 设置成功提示走 i18n 模式",
+      "biz_flow_ref": "honor_rpc.erl L22-30 (handle/3) + honor.erl use/2 (推测)"
+    },
+    "23303": {
+      "rpc_code": 23303,
+      "rpc_name_zh": "激活称号",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ActivateHonor",
+      "rgs_proto_method": "HonorService.ActivateHonor",
+      "gap_status": "NotImplemented",
+      "request_fields": ["base_id:32"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "activated_base_id": 0
+      },
+      "rgs_partial_reason": "RGS 0 HonorService.ActivateHonor, 缺 honor:activate/2 (honor_rpc.erl L33-44) 业务, 走 role:send_buff_begin/flush/clean 3 步事务包装 → RGS outbox 5 状态机 (per addendum §6.3-§6.4 + A1 P1 反模式规避)",
+      "biz_flow_ref": "honor_rpc.erl L33-44 (handle/3) + honor.erl activate/2 (推测)"
+    }
+  }
+}

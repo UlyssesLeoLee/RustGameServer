@@ -1,0 +1,111 @@
+{
+  "_module_meta": {
+    "module_name": "avatar",
+    "module_name_zh": "头像框",
+    "protocol_id": 215,
+    "module_size_bytes": 18127,
+    "rgs_7domain_route": "player",
+    "rgs_services": ["AvatarService"],
+    "total_cmds": 4,
+    "w3_phase": "worker-1",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 4,
+    "not_applicable_count": 0,
+    "audit_finding": "player 域 0/4 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 AvatarService 实体 + avatar_frames Master + avatar_frame_bonuses Master + avatar_frame_activations Transaction + DB 三分类 schema, W15 落地",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\avatar\\avatar_rpc.erl (1.4KB, handle/3 4 cmds 21500/21501/21503/21504) + avatar.erl (16.6KB, 16 exports: init/login/frames/use/activate/add/check/del/init_frame/make_avatar/set_timer/sync/update/log + gm_activate/2)",
+    "rgs_translation": "PlayerService.AvatarService (新), 1 player 1 tokio actor task, AvatarFrameRepository (sqlx) + AvatarFrameBonusRepository + AvatarFrameActivationRepository, mpsc::Sender<AvatarCommand>, 14s timer 翻译 (avatar.erl set_timer/1, per L addendum 推测 L33 4 周期 14s = 14*1000ms 定时器超时检测)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.28 L984-993 (协议号映射 4 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §6.5 typed struct 字段 (avatar.erl 进程字典 → RoleState.m_avatar: MAvatar 字段)",
+    "known_gaps": [
+      "RGS 0/4 wire AvatarService RPC (per DDD v0.1 §2.3 + addendum §5.28, 全部 ❌ NotImplemented)",
+      "avatar_data:get/1 ets 缓存 (per avatar.erl L48) → RGS 需建 avatar_frame_data Master 表",
+      "make_avatar_profile_add/2 函数 (per avatar.erl L50) → RGS 需建 profile_attr attr_list (avatar.erl L48 21504 调用) Master 翻译",
+      "m_avatar record 字段 used: BaseId + frames: [AvatarFrame] (per avatar.erl L75) → RGS PlayerProfile.avatar_frame_id + PlayerProfile.avatar_frames JSONB 字段",
+      "set_timer/1 14s 周期 (推测) → RGS tokio::time::interval(14000ms) + jitter",
+      "make_avatar/4 (avatar.erl L51) 走 role:send_buff_begin/flush/clean 3 模式 → RGS 走 outbox 5 状态机模式 (per addendum §6.3-§6.4)",
+      "notice:alert/2 玩家提示 (avatar_rpc.erl L25, L28, L38, L42) → RGS ErrorCode enum + i18n string (per addendum §3.2.2)"
+    ]
+  },
+  "rpcs": {
+    "21500": {
+      "rpc_code": 21500,
+      "rpc_name_zh": "头像框列表",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ListAvatarFrames",
+      "rgs_proto_method": "AvatarService.ListAvatarFrames",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "frames": [
+          {
+            "base_id": 10001,
+            "name": "default_avatar",
+            "used": true,
+            "expire_at": 0,
+            "is_default": true
+          }
+        ]
+      },
+      "rgs_partial_reason": "RGS 0 AvatarService 实体, 缺 avatar_frames Master 表 (avatar_data:get/1 ets 翻译), 4 cmds 全部 ❌ NotImplemented (per addendum §5.28)",
+      "biz_flow_ref": "avatar_rpc.erl L17-19 (handle/3) + avatar.erl L71-78 (init/0 默认头像框) + avatar.erl L82-84 (login/1 重载 + set_timer)"
+    },
+    "21501": {
+      "rpc_code": 21501,
+      "rpc_name_zh": "使用头像框",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "UseAvatarFrame",
+      "rgs_proto_method": "AvatarService.UseAvatarFrame",
+      "gap_status": "NotImplemented",
+      "request_fields": ["base_id:32"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "used_base_id": 10001
+      },
+      "rgs_partial_reason": "RGS 0 AvatarService.UseAvatarFrame, 缺 avatar:use/2 业务 (avatar.erl L99-110) 1:1 翻译, notice:alert 设置成功提示走 i18n 模式",
+      "biz_flow_ref": "avatar_rpc.erl L22-30 (handle/3) + avatar.erl L99-110 (use/2) + avatar.erl L82-84 (set_timer/1)"
+    },
+    "21503": {
+      "rpc_code": 21503,
+      "rpc_name_zh": "激活头像框",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ActivateAvatarFrame",
+      "rgs_proto_method": "AvatarService.ActivateAvatarFrame",
+      "gap_status": "NotImplemented",
+      "request_fields": ["base_id:32"],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "activated_base_id": 10002,
+        "bonus_applied": true
+      },
+      "rgs_partial_reason": "RGS 0 AvatarService.ActivateAvatarFrame, 缺 avatar:activate/2 (avatar.erl L34-43) + gm_activate/2 (avatar.erl L47-63) + make_avatar/4 (avatar.erl L51) 4 入参业务, 走 role:send_buff_begin/flush/clean 3 步事务包装 → RGS outbox 5 状态机 (per addendum §6.3-§6.4 + A1 P1 反模式规避)",
+      "biz_flow_ref": "avatar_rpc.erl L33-44 (handle/3) + avatar.erl L34-43 (activate/2) + avatar.erl L47-63 (gm_activate/2) + avatar.erl L51 (make_avatar/4)"
+    },
+    "21504": {
+      "rpc_code": 21504,
+      "rpc_name_zh": "获取属性加成信息",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "GetAvatarFrameBonus",
+      "rgs_proto_method": "AvatarService.GetAvatarFrameBonus",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "attr_list": [
+          {"attr_type": "atk", "value": 100},
+          {"attr_type": "hp", "value": 500},
+          {"attr_type": "def", "value": 50}
+        ]
+      },
+      "rgs_partial_reason": "RGS 0 AvatarService.GetAvatarFrameBonus, 缺 profile_attr:attr_list/1 (avatar.erl L48) 业务, 需建 profile_attr Master + avatar_frame_bonuses Master 两表 (DB 三分类横展, per 9/1 18:30 JST)",
+      "biz_flow_ref": "avatar_rpc.erl L47-49 (handle/3) + avatar.erl L48 (profile_attr:attr_list/1) + avatar.erl L50-51 (make_avatar_profile_add/2 + make_avatar/4)"
+    }
+  }
+}

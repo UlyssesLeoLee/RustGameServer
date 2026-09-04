@@ -1,0 +1,43 @@
+{
+  "_module_meta": {
+    "module_name": "guild_dun",
+    "module_name_zh": "联盟副本",
+    "protocol_id": 213,
+    "module_size_bytes": 63200,
+    "rgs_7domain_route": "match (主) + social (跨 guild)",
+    "rgs_services": ["GuildDunService"],
+    "total_cmds": 10,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 10,
+    "not_applicable_count": 0,
+    "audit_finding": "match 域 GuildDunService gRPC 0/10 wire (per audit v0.3 §3.3), 30 新 module 阶段, 待 W11 补, 跨域 saga 跨 match + social + leaderboard",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild_dun\\guild_dun.erl (12.8KB) + guild_dun_rpc.erl (3.3KB handle/3 10 RPC) + guild_dun_mgr.erl (7.5KB ets) + guild_dun_lib.erl (28.7KB 业务核心) + guild_dun_rank.erl (6.4KB 排行榜) + proto_227.erl (6.9KB pack/unpack)",
+    "rgs_translation": "match-service GuildDunService (新) + sqlx PgGuildDunRepository + match v2 DungeonService Saga 复用 + 跨域 social GuildService 验证 guild_id + leaderboard 域 guild_dun_rank 排行榜 + BoxState {unclaimed/claimed} + BossState {active/dead/cd}",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.16 1:1 映射 + §6.2 30 新 module #7 落地 W11",
+    "known_gaps": [
+      "RGS match 0 GuildDunService trait 0/10 wire (per audit v0.3 §3.3)",
+      "guild_dun_lib.erl 28.7KB 业务核心未抽样 (per v0.2-1 §10.1 已知缺口, W11 实装阶段详抽)",
+      "guild_dun_lib:combat_start/4 (per guild_dun_rpc.erl L45-51) 跨域战斗触发 — 跟 match v2 CreateMatch 整合 + 跨 social guild 验证",
+      "guild_dun_lib:auto_combat/2 扫荡 (per L74-83) DoCount/AllDps/BestPartnerId/AwardList/PartnerDpsList 6 字段 — 跟 match 战斗结算 schema 整合",
+      "guild_dun_rank_guild/1 + guild_dun_rank_role/3 排行榜 (per L86-95) — 跨域 leaderboard 域 + lists:keysort 排序",
+      "guild_bag #guild_bag{id={0, <<>>}} 未入帮过滤 (per L13-14 注释) — 跟 social GuildService.get_guild_bag 协调",
+      "guild_dun_mgr.erl 7.5KB ets 缓存 (m_boss + m_chapter + m_box) — 跟 RGS sqlx PgGuildDunRepository 1:1 翻译待 v0.2 W11 详抽",
+      "boss_id (32-bit) + formation_type (8-bit) + pos_info (formation 阵位信息, 复杂 record) — 跟 match v2 PVE 阵位 schema 整合"
+    ]
+  },
+  "rpcs": {
+    "21300": { "rpc_code": 21300, "rpc_name_zh": "请求联盟副本信息", "rgs_backend": "match-service:50053 + social-service:50054", "rgs_rpc": "GetGuildDungeonInfo", "rgs_proto_method": "GuildDunService.GetGuildDungeonInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "dun_info": null, "note": "guild_dun_lib:get_info/1 走 ets 实时, 推 push 模式 (per L17-19)" } },
+    "21303": { "rpc_code": 21303, "rpc_name_zh": "请求联盟副本宝箱", "rgs_backend": "match-service:50053 + social-service:50054", "rgs_rpc": "ListGuildDungeonChests", "rgs_proto_method": "GuildDunService.ListGuildDungeonChests", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "chests": [] } },
+    "21304": { "rpc_code": 21304, "rpc_name_zh": "领取联盟章节宝箱", "rgs_backend": "match-service:50053 + player-service:50051 + economy-service:50052", "rgs_rpc": "ClaimChapterChest", "rgs_proto_method": "GuildDunService.ClaimChapterChest", "gap_status": "NotImplemented", "request_fields": ["chapter_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "chapter_id": 0, "num": 0, "note": "3 域跨域事务 (match + player + economy)" } },
+    "21305": { "rpc_code": 21305, "rpc_name_zh": "加 buff", "rgs_backend": "match-service:50053 + social-service:50054", "rgs_rpc": "AddGuildDungeonBuff", "rgs_proto_method": "GuildDunService.AddGuildDungeonBuff", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "result": true } },
+    "21308": { "rpc_code": 21308, "rpc_name_zh": "挑战联盟副本", "rgs_backend": "match-service:50053 + social-service:50054", "rgs_rpc": "ChallengeGuildDungeon", "rgs_proto_method": "GuildDunService.ChallengeGuildDungeon", "gap_status": "NotImplemented", "request_fields": ["boss_id:32", "formation_type:8", "pos_info:array<{pos,partner_id}>"], "mock_response": { "code": 0, "msg": "ok", "result": true, "note": "combat_start/4 触发 match v2 CreateMatch saga" } },
+    "21311": { "rpc_code": 21311, "rpc_name_zh": "请求购买挑战次数信息", "rgs_backend": "match-service:50053", "rgs_rpc": "GetBuyChallengeCountInfo", "rgs_proto_method": "GuildDunService.GetBuyChallengeCountInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "result": true, "count": 0 } },
+    "21312": { "rpc_code": 21312, "rpc_name_zh": "购买挑战次数", "rgs_backend": "match-service:50053 + economy-service:50052", "rgs_rpc": "BuyGuildDungeonCount", "rgs_proto_method": "GuildDunService.BuyGuildDungeonCount", "gap_status": "NotImplemented", "request_fields": ["type:8"], "mock_response": { "code": 0, "msg": "购买挑战次数成功！", "result": true, "count": 0, "buy_count": 0, "type": 0 } },
+    "21317": { "rpc_code": 21317, "rpc_name_zh": "扫荡", "rgs_backend": "match-service:50053 + player-service:50051 + economy-service:50052", "rgs_rpc": "SweepGuildDungeon", "rgs_proto_method": "GuildDunService.SweepGuildDungeon", "gap_status": "NotImplemented", "request_fields": ["boss_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "do_count": 0, "all_dps": 0, "best_partner_id": 0, "award_list": [], "partner_dps_list": [], "note": "auto_combat/2 6 字段响应" } },
+    "21318": { "rpc_code": 21318, "rpc_name_zh": "请求联盟伤害排行榜", "rgs_backend": "match-service:50053 + leaderboard-service:50056", "rgs_rpc": "GetGuildDamageRanking", "rgs_proto_method": "GuildDunService.GetGuildDamageRanking", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "my_name": "", "my_rank": 0, "my_max_id": 0, "my_day_dps": 0, "owner_id": 0, "owner_name": "", "face_id": 0, "lev": 0, "power": 0, "avatar_bid": 0, "push_list": [] } },
+    "21319": { "rpc_code": 21319, "rpc_name_zh": "请求个人伤害排行榜", "rgs_backend": "match-service:50053 + leaderboard-service:50056", "rgs_rpc": "GetPlayerDamageRanking", "rgs_proto_method": "GuildDunService.GetPlayerDamageRanking", "gap_status": "NotImplemented", "request_fields": ["boss_id:32", "start_num:32", "end_num:32"], "mock_response": { "code": 0, "msg": "ok", "my_rank": 0, "my_dps": 0, "push_list": [] } }
+  }
+}

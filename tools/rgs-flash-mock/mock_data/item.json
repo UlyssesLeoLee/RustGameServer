@@ -1,0 +1,217 @@
+{
+  "_module_meta": {
+    "module_name": "item",
+    "module_name_zh": "物品/背包",
+    "protocol_id": 105,
+    "module_size_bytes": 12012,
+    "rgs_7domain_route": "player (主)",
+    "rgs_services": [
+      "PlayerService.ItemService",
+      "PlayerService.PackageService"
+    ],
+    "total_cmds": 10,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 10,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\item\\item_rpc.erl (4.3KB, handle/3 10 cmds 10500-10528) + item.erl (12KB, gen_server) + package.erl (28.3KB, p_bag/p_eqm 双背包)",
+    "rgs_translation": "player-service ItemService trait + PackageRepository (sqlx PgPackageRepo) + 双背包 (p_bag/p_eqm 1:1 翻译) + role_gain:do_notice → economy gain 1:1 (per addendum §4 业务流)",
+    "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L130 (item → PlayerService.ItemService, per REQ §2 #20) + item_rpc.erl L22-118 (handle/3 9 函数 + 1 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 account_devices Master 表 (per addendum §10.4 数据缺口 #4), 10520/10523 装备/道具合成业务依赖 Master 表",
+      "item_lib:to_cli_items3 1:1 翻译待 v0.2 sprint 实装 (per item_rpc.erl L23-29 CliItems 转换函数)",
+      "装备背包扩容 (10526) 走 package:add_volume, RGS 缺显式扩容配置 Master (per item_rpc.erl L105-114)",
+      "?package_type_bag 枚举值 (p_bag=1/p_eqm=2/...) 待 v0.2 跨域协调 (per item_rpc.erl L59)",
+      "var:get_var/set_var Role 进程字典 → RGS Player KV Store 1:1 翻译待 v0.2 sprint (per item_rpc.erl L97 L102 10524/10525)",
+      "role:send_buff_begin/clean/flush 事务模式 → RGS sqlx transaction 1:1 翻译待 v0.2 实装 (per item_rpc.erl L39-52)"
+    ]
+  },
+  "rpcs": {
+    "10500": {
+      "rpc_code": 10500,
+      "rpc_name_zh": "获取背包物品",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "GetBagItems",
+      "rgs_proto_method": "ItemService.GetBagItems",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "volume": 100,
+        "open_times": 0,
+        "items": []
+      },
+      "rgs_partial_reason": "RGS ItemService.GetBagItems 已实装 (per audit v0.3 §3.2), 但 item_lib:to_cli_items3 1:1 翻译 (per item_rpc.erl L22-24) 待 v0.2 sprint",
+      "biz_flow_ref": "item_rpc.erl L22-24 (handle/3 10500) + item.erl p_bag 字段 + package.erl #package record"
+    },
+    "10501": {
+      "rpc_code": 10501,
+      "rpc_name_zh": "获取装备背包物品",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "GetEquipmentBagItems",
+      "rgs_proto_method": "ItemService.GetEquipmentBagItems",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "volume": 50,
+        "open_times": 0,
+        "items": []
+      },
+      "rgs_partial_reason": "RGS GetEquipmentBagItems 走 p_eqm #package, 但 month_card:package_vol(Role) 月卡加成 (per item_rpc.erl L27-29) 跟 RGS 缺月卡域整合, v0.2 协调",
+      "biz_flow_ref": "item_rpc.erl L27-29 (handle/3 10501) + p_eqm #package + month_card:package_vol/1"
+    },
+    "10515": {
+      "rpc_code": 10515,
+      "rpc_name_zh": "使用物品",
+      "rgs_backend": "player-service:50051 + item-service (跨子服务)",
+      "rgs_rpc": "UseItem",
+      "rgs_proto_method": "ItemService.UseItem",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32",
+        "num:32",
+        "args:binary"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "base_id": 0,
+        "msg_detail": "StubUseItem_Result_<uuid>"
+      },
+      "rgs_partial_reason": "RGS ItemService.UseItem 业务逻辑依赖 item_use.erl (6.8KB, 11 函数 use_item), RGS 当前 0 实现 use_item 模块, v0.2 sprint 实装 1:1 翻译 (per item_rpc.erl L32-54)",
+      "biz_flow_ref": "item_rpc.erl L32-54 (handle/3 10515) + item_use.erl use/4 + role:send_buff_begin/clean/flush 事务"
+    },
+    "10520": {
+      "rpc_code": 10520,
+      "rpc_name_zh": "删除背包物品",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "DeleteBagItem",
+      "rgs_proto_method": "ItemService.DeleteBagItem",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32",
+        "type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "id": 0,
+        "type": 1
+      },
+      "rgs_partial_reason": "RGS ItemService.DeleteBagItem 走 role_gain:do/2 + role_trigger:fire 事件 (per item_rpc.erl L59-69), RGS 当前缺显式 evt_del_item 事件, v0.2 sprint 补",
+      "biz_flow_ref": "item_rpc.erl L57-69 (handle/3 10520) + role_gain:do/2 (loss) + role_trigger:fire(#evt_del_item{})"
+    },
+    "10522": {
+      "rpc_code": 10522,
+      "rpc_name_zh": "出售物品",
+      "rgs_backend": "player-service:50051 + economy-service:50052 (跨域)",
+      "rgs_rpc": "SellItems",
+      "rgs_proto_method": "ItemService.SellItems",
+      "gap_status": "Partial",
+      "request_fields": [
+        "storage:8",
+        "sell_list:array"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "msg_detail": "StubSellItems_Result_<uuid>"
+      },
+      "rgs_partial_reason": "RGS SellItems 跨 player + economy 域 (item_misc:sell/3, per item_rpc.erl L72-80), RGS 跨域 saga 实装中, v0.2 sprint 验证跨域事务",
+      "biz_flow_ref": "item_rpc.erl L72-80 (handle/3 10522) + item_misc.erl sell/3 (5.4KB)"
+    },
+    "10523": {
+      "rpc_code": 10523,
+      "rpc_name_zh": "道具合成处理",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ComposeItem",
+      "rgs_proto_method": "ItemService.ComposeItem",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32",
+        "flag:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS ItemService.ComposeItem 走 item_product:make/3 (3KB, per item_rpc.erl L83-92), RGS 缺 compose_item 业务模块, v0.2 sprint 实装",
+      "biz_flow_ref": "item_rpc.erl L83-92 (handle/3 10523) + item_product.erl make/3 + role:send_buff_begin/clean/flush"
+    },
+    "10524": {
+      "rpc_code": 10524,
+      "rpc_name_zh": "设置自动出售",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "SetAutoSellConfig",
+      "rgs_proto_method": "ItemService.SetAutoSellConfig",
+      "gap_status": "Partial",
+      "request_fields": [
+        "quality_list:array"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok"
+      },
+      "rgs_partial_reason": "RGS SetAutoSellConfig 走 var:set_var(Role, other, ?var_other_auto_sell_eqm, L1) (per item_rpc.erl L95-98), RGS 缺 var_other_auto_sell_eqm 字段 + Player KV Store 1:1 翻译待 v0.2 实装",
+      "biz_flow_ref": "item_rpc.erl L95-98 (handle/3 10524) + var:set_var/4 + ?var_other_auto_sell_eqm (品质 list 1-5)"
+    },
+    "10525": {
+      "rpc_code": 10525,
+      "rpc_name_zh": "获取自动出售设置",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "GetAutoSellConfig",
+      "rgs_proto_method": "ItemService.GetAutoSellConfig",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "quality_list": []
+      },
+      "rgs_partial_reason": "RGS GetAutoSellConfig 走 var:get_var(Role, other, ?var_other_auto_sell_eqm, []) (per item_rpc.erl L101-102), 跟 10524 共享 var_other_auto_sell_eqm 字段, 1:1 翻译待 v0.2",
+      "biz_flow_ref": "item_rpc.erl L101-102 (handle/3 10525) + var:get_var/4"
+    },
+    "10526": {
+      "rpc_code": 10526,
+      "rpc_name_zh": "装备背包扩容",
+      "rgs_backend": "player-service:50051",
+      "rgs_rpc": "ExpandEquipmentBag",
+      "rgs_proto_method": "ItemService.ExpandEquipmentBag",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "扩容成功"
+      },
+      "rgs_partial_reason": "RGS ExpandEquipmentBag 走 package:add_volume/2 (per item_rpc.erl L105-114), RGS 缺 package:add_volume 函数 + push_package_volume 推送, v0.2 sprint 实装",
+      "biz_flow_ref": "item_rpc.erl L105-114 (handle/3 10526) + package:add_volume/2 + package:push_package_volume/2 + notice:alert/2"
+    },
+    "10528": {
+      "rpc_code": 10528,
+      "rpc_name_zh": "装备预计产出时间",
+      "rgs_backend": "player-service:50051 + match-service:50053 (dungeon, 跨域)",
+      "rgs_rpc": "GetEquipmentProductionTime",
+      "rgs_proto_method": "ItemService.GetEquipmentProductionTime",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "production_time_remaining_ms": 0
+      },
+      "rgs_partial_reason": "RGS GetEquipmentProductionTime 走 dungeon:push_item_speed/1 跨域 (per item_rpc.erl L117-119), 跨 player + match 域, RGS 缺 dungeon:push_item_speed 跨域调用, v0.2 sprint 实装",
+      "biz_flow_ref": "item_rpc.erl L117-119 (handle/3 10528) + dungeon:push_item_speed/1 (跨域 push)"
+    }
+  }
+}

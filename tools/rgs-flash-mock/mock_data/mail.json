@@ -1,0 +1,151 @@
+{
+  "_module_meta": {
+    "module_name": "mail",
+    "module_name_zh": "邮件",
+    "protocol_id": 108,
+    "module_size_bytes": 21812,
+    "rgs_7domain_route": "social (主)",
+    "rgs_services": [
+      "SocialService.MailService"
+    ],
+    "total_cmds": 6,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 6,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\mail\\mail_rpc.erl (5.1KB, handle/3 6 cmds 10800-10810) + mail.erl (21.8KB, gen_server) + feedback.erl (3.2KB, GM 反馈子模块)",
+    "rgs_translation": "social-service MailService trait + MailRepository (sqlx PgMailRepo) + role#m_mail 列表 → m_mail Master/Transaction 表 + role_gain:do 邮件附件 1:1 + log:save(log_mail) 永久保留 (per 8/27 NFR-29)",
+    "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L131 (mail → SocialService.MailService, per REQ §2 #24) + mail_rpc.erl L18-77 (handle/3 6 函数 + 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 push_delivery 集成 (per 8/27 ST Q7 决策), 10800 notice_below:send(mail) 跟 RGS NATS push_delivery 整合待 v0.2 sprint",
+      "RGS 缺完整邮件 Master/Transaction 分离 (per 9/1 18:30 JST DB 三分类横展), 当前 mail 表设计待 v0.2 sprint 协调",
+      "feedback:submit/3 (10810) 走 GM 反馈子模块, RGS 缺 feedback 域或跟 admin 域整合, v0.2 sprint 评估",
+      "RGS 缺 server_id 字段 (per 协议号映射 addendum §11.1), mail sess {Id, SrvId} 二元组 1:1 翻译待 v0.2 sprint",
+      "mail:recv_rewards/2 附件收取走 role_gain:do, RGS 当前 economy gain 模式 1:1 翻译待 v0.2 实装",
+      "del_mail/3 软删除 (per mail_rpc.erl L116-123) RGS 缺 mail soft-delete 模式, v0.2 sprint 实装"
+    ]
+  },
+  "rpcs": {
+    "10800": {
+      "rpc_code": 10800,
+      "rpc_name_zh": "分页读取邮件列表",
+      "rgs_backend": "social-service:50054",
+      "rgs_rpc": "ListMails",
+      "rgs_proto_method": "MailService.ListMails",
+      "gap_status": "Partial",
+      "request_fields": [
+        "page:16",
+        "page_size:16"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "mails": [],
+        "total_count": 0,
+        "has_unread": true
+      },
+      "rgs_partial_reason": "RGS MailService.ListMails 已实装 (#role.m_mail → mail list, per mail_rpc.erl L18-23), 但 notice_below:send(mail) 红点推送 (per Q7 NATS push_delivery 决策) 跟 RGS 缺 push_delivery 整合, v0.2 sprint 验证",
+      "biz_flow_ref": "mail_rpc.erl L18-23 (handle/3 10800) + role#m_mail 列表 + notice_below:send(mail) 红点"
+    },
+    "10801": {
+      "rpc_code": 10801,
+      "rpc_name_zh": "提取单个邮件的附件",
+      "rgs_backend": "social-service:50054 + economy-service:50052 (跨域 gain)",
+      "rgs_rpc": "ClaimMailAttachment",
+      "rgs_proto_method": "MailService.ClaimMailAttachment",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32",
+        "srv_id:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "收取附件成功",
+        "id": 0,
+        "srv_id": "stub_srv_1",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS ClaimMailAttachment 走 recv_rewards/2 + role_gain:do (per mail_rpc.erl L26-33 + L82-98), 跨域 gain 模式 + log:save(log_mail) 永久保留, v0.2 sprint 验证 5 域事务",
+      "biz_flow_ref": "mail_rpc.erl L26-33 (handle/3 10801) + mail_rpc.erl L82-98 recv_rewards/2 + role_gain:do/2 + notice:assets/1"
+    },
+    "10802": {
+      "rpc_code": 10802,
+      "rpc_name_zh": "一键提取附件",
+      "rgs_backend": "social-service:50054 + economy-service:50052 (跨域 gain)",
+      "rgs_rpc": "ClaimAllMailAttachments",
+      "rgs_proto_method": "MailService.ClaimAllMailAttachments",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "收取附件成功",
+        "claimed_list": [],
+        "claimed_count": 0
+      },
+      "rgs_partial_reason": "RGS ClaimAllMailAttachments 走 recv_all_rewards/4 (per mail_rpc.erl L36-43 + L101-113), RGS 缺批量附件收取 + role:send_buff_begin 事务, v0.2 sprint 实装 1:1 翻译",
+      "biz_flow_ref": "mail_rpc.erl L36-43 (handle/3 10802) + mail_rpc.erl L101-113 recv_all_rewards/4 + log:buff_start/commit"
+    },
+    "10804": {
+      "rpc_code": 10804,
+      "rpc_name_zh": "删除邮件",
+      "rgs_backend": "social-service:50054",
+      "rgs_rpc": "DeleteMails",
+      "rgs_proto_method": "MailService.DeleteMails",
+      "gap_status": "Partial",
+      "request_fields": [
+        "del_ids:array"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "删除成功",
+        "deleted_ids": []
+      },
+      "rgs_partial_reason": "RGS DeleteMails 走 del_mail/3 (per mail_rpc.erl L45-48 + L116-123), 软删除模式 (仅删空附件邮件, per L120-121), RGS 缺 soft-delete 业务, v0.2 sprint 实装",
+      "biz_flow_ref": "mail_rpc.erl L45-48 (handle/3 10804) + mail_rpc.erl L116-123 del_mail/3"
+    },
+    "10805": {
+      "rpc_code": 10805,
+      "rpc_name_zh": "读取邮件",
+      "rgs_backend": "social-service:50054",
+      "rgs_rpc": "ReadMail",
+      "rgs_proto_method": "MailService.ReadMail",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32",
+        "srv_id:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "读取邮件成功",
+        "id": 0,
+        "srv_id": "stub_srv_1",
+        "read_time": 1757000000,
+        "has_attachment": 0
+      },
+      "rgs_partial_reason": "RGS ReadMail 走 lists:keyreplace 标记 read_time (per mail_rpc.erl L51-65), RGS 缺 read_time 字段 + status enum (?mail_read, per L59), v0.2 sprint 实装",
+      "biz_flow_ref": "mail_rpc.erl L51-65 (handle/3 10805) + ?mail_read status enum + date:unixtime()"
+    },
+    "10810": {
+      "rpc_code": 10810,
+      "rpc_name_zh": "GM反馈",
+      "rgs_backend": "social-service:50054 + admin-service:50055 (跨域 GM)",
+      "rgs_rpc": "SubmitFeedback",
+      "rgs_proto_method": "MailService.SubmitFeedback",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8",
+        "title:string",
+        "content:string"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "您的建议我们已经收到,感谢您对游戏的支持!",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS SubmitFeedback 走 feedback:submit/3 (per mail_rpc.erl L68-74), RGS 缺 feedback 域, v0.2 sprint 评估 跟 admin 域 feedback handler 整合",
+      "biz_flow_ref": "mail_rpc.erl L68-74 (handle/3 10810) + feedback.erl submit/3 (3.2KB)"
+    }
+  }
+}

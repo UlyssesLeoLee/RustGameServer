@@ -1,0 +1,35 @@
+{
+  "_module_meta": {
+    "module_name": "days_rank",
+    "module_name_zh": "7 天排行 (七日活跃排行/活动排行)",
+    "protocol_id": 227,
+    "module_size_bytes": 1172,
+    "rgs_7domain_route": "leaderboard (主, DaysRankService 4 RPC 全部新) + player (基础信息) + batch (活动维度, 跨域任务)",
+    "rgs_services": ["LeaderboardService.DaysRankService"],
+    "total_cmds": 4,
+    "w3_phase": "worker-5",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 4,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_days_rank\\days_rank_rpc.erl (1.2KB, handle/3 4 cmds 22700-22704) + days_rank.erl (6.5KB, push_info/reward 业务函数) + days_rank_mgr.erl (27.6KB, gen_server list/rank_info 业务函数, 跨服排行核心)",
+    "rgs_translation": "days_rank_mgr 跨服排行 ets + days_rank 角色 record 内嵌 → RGS leaderboard 域 DaysRankService + sqlx PgDaysRankRepository + redis sorted set 跨服 + DB 异步落盘, 4 RPC 全部新, RGS DaysRankService 待 v0.2 sprint 实装, 7 天周期 + 跨服分桶模式 跟 RGS 群控 active-active 5 桶 (per W2 group_control W2-2.5) 整合待 v0.2 协调",
+    "rgs_file_ref": "DDD v0.2 addendum §5.30 L1006-1015 (days_rank 4 cmds) + days_rank_rpc.erl L17-41 handle/3 4 cmds + days_rank_mgr.erl 27.6KB 业务核心",
+    "known_gaps": [
+      "4 cmds 全部 NotImplemented (新), RGS 缺 DaysRankService, 4 RPC 1:1 映射待 v0.2 sprint 实装 (per addendum §5.30)",
+      "22700 ListActiveDailyRanks 走 days_rank_mgr:list/0 1:1 翻译, 进行中列表 (per days_rank_rpc.erl L17-19) → RGS days_rank_activities Master 表 + status=active 字段 1:1 翻译待 v0.2 验证 (per addendum §5.30)",
+      "22701 GetDailyRankInfo 走 days_rank_mgr:rank_info/2 1:1 翻译, 排行榜信息 (per days_rank_rpc.erl L22-27) → RGS 返 {Id, ET (end_time), Idx (player_index), Acc (player_score)} 4 元组 1:1 翻译, 跨服分桶 5 桶 enum 整合待 v0.2 (per addendum §5.30 + W2 group_control 经验)",
+      "22703 GetDailyRankInfoV2 走 days_rank:push_info/1 1:1 翻译, V2 推送模式 (per days_rank_rpc.erl L30-32) → RGS 主动 push 走 push_delivery NATS (per Q7 决策), V1 拉模式 / V2 推模式差异 待 v0.2 验证 (per addendum §5.30)",
+      "22704 GetDailyRankInfoV3 走 days_rank:reward/2 1:1 翻译, V3 领奖模式 (per days_rank_rpc.erl L35-41) → RGS 跨域 player 发奖 (role_gain:do_notice) + leaderboard 域 mark_claimed 1:1 翻译待 v0.2 验证 (per addendum §5.30)",
+      "V1/V2/V3 三种版本 (22701/22703/22704) 是 闪烁之光 反模式, RGS 应整合为 1 ListActiveDailyRanks + 1 GetDailyRankInfo (拉) + 1 ClaimDailyRankReward (领奖) 3 RPC (per 借鉴分析 .md §4 #5 反例 + handoff v0.1 §2.1.3 L-CAND-010 候选)",
+      "7 天周期 跟 RGS leaderboard 域 (rank.erl 5 cmds W2-2.2 5 PASS) 周期管理整合待 v0.2 sprint 协调, 跨服分桶 5 桶 (active-active) 跟 W2 group_control 5 桶 enum 整合待 v0.2 验证"
+    ]
+  },
+  "rpcs": {
+    "22700": { "rpc_code": 22700, "rpc_name_zh": "进行中列表", "rgs_backend": "leaderboard-service:50056 + batch-backend:8790", "rgs_rpc": "ListActiveDailyRanks", "rgs_proto_method": "LeaderboardService.DaysRankService.ListActiveDailyRanks", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "active_ranks": [{ "rank_id": 1001, "name": "StubDailyRank_7Day", "type": 1, "start_at": 1757000000, "end_at": 1757604800, "status": "active" }] }, "rgs_partial_reason": "RGS ListActiveDailyRanks 走 days_rank_mgr:list/0 1:1 翻译, active_ranks[] 数组 + 跨域 batch 域 (活动维度) 字段映射待 v0.2 验证 (per addendum §5.30)", "biz_flow_ref": "days_rank_rpc.erl L17-19 (handle/3) + days_rank_mgr.erl list/0" },
+    "22701": { "rpc_code": 22701, "rpc_name_zh": "排行榜信息 (V1, 拉模式)", "rgs_backend": "leaderboard-service:50056", "rgs_rpc": "GetDailyRankInfo", "rgs_proto_method": "LeaderboardService.DaysRankService.GetDailyRankInfo", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "ok", "id": 1001, "end_time": 1757604800, "my_index": 5, "my_score": 800, "rankings": [{ "idx": 1, "rid": 100001, "srv_id": "rgs-srv-1", "name": "TopPlayerA", "score": 1500 }, { "idx": 2, "rid": 100002, "srv_id": "rgs-srv-1", "name": "TopPlayerB", "score": 1200 }] }, "rgs_partial_reason": "RGS GetDailyRankInfo 走 days_rank_mgr:rank_info/2 1:1 翻译, 返 4 元组 {Id, ET (end_time), Idx (my_index), Acc (my_score)} + rankings[] Top N 数组, 跨服分桶 5 桶 enum 整合待 v0.2 (per addendum §5.30)", "biz_flow_ref": "days_rank_rpc.erl L22-27 (handle/3) + days_rank_mgr.erl rank_info/2" },
+    "22703": { "rpc_code": 22703, "rpc_name_zh": "排行榜信息 (V2, 推模式)", "rgs_backend": "leaderboard-service:50056", "rgs_rpc": "GetDailyRankInfoV2", "rgs_proto_method": "LeaderboardService.DaysRankService.GetDailyRankInfoV2", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "note": "V2 推模式, 主动 push 走 push_delivery NATS (per Q7 决策), 客户端无返回值" }, "rgs_partial_reason": "RGS GetDailyRankInfoV2 走 days_rank:push_info/1 1:1 翻译, V2 主动 push 模式 走 push_delivery NATS, V1 拉模式 / V2 推模式差异待 v0.2 验证 (per addendum §5.30 + Q7 决策)", "biz_flow_ref": "days_rank_rpc.erl L30-32 (handle/3) + days_rank.erl push_info/1" },
+    "22704": { "rpc_code": 22704, "rpc_name_zh": "排行榜信息 (V3, 领奖模式)", "rgs_backend": "leaderboard-service:50056 + player-service:50051", "rgs_rpc": "GetDailyRankInfoV3", "rgs_proto_method": "LeaderboardService.DaysRankService.GetDailyRankInfoV3", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "id": 1001, "gains": [{ "gain_type": "diamond", "value": 500 }] }, "rgs_partial_reason": "RGS GetDailyRankInfoV3 走 days_rank:reward/2 1:1 翻译, V3 领奖模式, 跨域 player 发奖 (role_gain:do_notice) + leaderboard mark_claimed 1:1 翻译, V1/V2/V3 三种版本是 闪烁之光 反模式待 v0.2 整合 (per addendum §5.30 + 借鉴分析 .md §4 #5 反例)", "biz_flow_ref": "days_rank_rpc.erl L35-41 (handle/3) + days_rank.erl reward/2" }
+  }
+}

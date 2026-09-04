@@ -1,0 +1,51 @@
+{
+  "_module_meta": {
+    "module_name": "adventure",
+    "module_name_zh": "冒险 (Adventure + Plunder)",
+    "protocol_id": 206,
+    "module_size_bytes": 108165,
+    "rgs_7domain_route": "match",
+    "rgs_services": ["AdventureService"],
+    "total_cmds": 17,
+    "w3_phase": "worker-3",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 17,
+    "not_applicable_count": 0,
+    "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.9 L681-703), RGS match-service AdventureService 当前 0 实装,需 v0.2+ sprint 补; 业务含 房间探索 + 事件操作 + 掠夺反击 3 大类; adventure_action.erl 34KB + adventure_plunder.erl 24KB + adventure.erl 36KB + adventure_mgr.erl 6KB 总 100KB+ 业务逻辑待 1:1 逆推; 跨域依赖 combat (事件战斗) + partner (card 域伙伴状态) + player (资产兑换)",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\adventure\\adventure_rpc.erl (4.3KB, 16 明确 cmds + 1 描述空) + adventure.erl (36.9KB, 冒险主逻辑) + adventure_mgr.erl (6.8KB, 房间/状态管理) + adventure_action.erl (34.1KB, 事件操作 do_evt) + adventure_plunder.erl (24.8KB, 掠夺 + 反击)",
+    "rgs_translation": "match-service AdventureService trait + PgAdventureRoomRepository (Master 房间配置) + PlayerAdventureProgressRepository (Transaction 玩家进度) + AdventureEventLogRepository (Transaction 事件流水) + PlunderLogRepository (Transaction 掠夺日志) + DashMap<i64, PlunderSession> 反击 session + match v2 CreateMatch 战斗 FSM + card 域 PartnerService 伙伴状态 + economy outbox 资产兑换 + drop_lib:drop_notice (per adventure_rpc.erl L101)",
+    "rgs_file_ref": "crates/match-service/src/adventure_service.rs (待 v0.2 sprint 新建) + crates/card-service/src/partner_service.rs (partner 状态) + crates/economy-service/src/saga_orchestrator.rs (资产兑换 20611) + crates/drop-lib/ (待 v0.2 sprint 新建 drop notice 模式)",
+    "known_gaps": [
+      "RGS match-service 当前 0 AdventureService 实现,需 v0.2+ sprint 新建 (per addendum §5.9 L681 + DDD v0.1 §3.1 战斗 PVE 框架未含)",
+      "adventure 业务 100KB+ 是 6 module 中最大之一 (含 action.erl 34KB + plunder.erl 24KB), v0.2 sprint 抽样 1:1 逆推 需主会话打头阵 (per AGENTS.md §2.3 L4)",
+      "事件操作 (20620) 4 状态 {false, ok, {ok, NRole}, {pass, NRole}} (per adventure_rpc.erl L93-105) 是 RGS 业务流核心, {pass} 表示 pass-through 走下一事件, RGS 走 enum AdventureOpResult {Reject, Ok, Pass, Fail} 4 变体",
+      "adventure_notice_msg 进程字典 (per adventure_rpc.erl L94-101 erase) + drop_lib:drop_notice/1 模式, RGS 走 outbox pattern + notice queue (per 借鉴分析 .md §3 #1 共享平台模式)",
+      "掠夺反击 (20690-20692) 跨服 {rid:32, srv_id:string} + 跨服 5 桶 (per audit v0.3 §3.6), 走 PlunderSession Work 表 (24h TTL 反击窗口期)",
+      "一键扫荡 (20604) 4 元组返 {?true, <<>>, Num, Lose, AllItems} (per adventure_rpc.erl L30-35) 走 bag_items + items 合并, RGS 走 batch_rewards + auto_explore saga (3 步 扫荡→合并→落盘)",
+      "资产兑换 (20611) exchange_energy 走 角色进程字典 + economy outbox, RGS 走跨域 economy ConvertService (per addendum §5.25 复用)",
+      "复活伙伴 (20610) rebirth_partner 走 角色进程 m_partner 字典, RGS 走 card 域 PartnerService.Rebirth + 跨域 outbox",
+      "1 cmd 描述空 (per addendum §5.9 L701) 推测为 掠夺事件通知, RGS 走 push_delivery 模式 (per social addendum §4.9)"
+    ]
+  },
+  "rpcs": {
+    "20600": { "rpc_code": 20600, "rpc_name_zh": "基本信息获取", "rgs_backend": "match-service:50053", "rgs_rpc": "GetAdventureBaseInfo", "rgs_proto_method": "AdventureService.GetAdventureBaseInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet", "note": "30 新 module,待 v0.2 sprint 实装" } },
+    "20601": { "rpc_code": 20601, "rpc_name_zh": "BUFF 信息获取", "rgs_backend": "match-service:50053", "rgs_rpc": "ListAdventureBuffs", "rgs_proto_method": "AdventureService.ListAdventureBuffs", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20602": { "rpc_code": 20602, "rpc_name_zh": "房间信息获取", "rgs_backend": "match-service:50053", "rgs_rpc": "ListAdventureRooms", "rgs_proto_method": "AdventureService.ListAdventureRooms", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20604": { "rpc_code": 20604, "rpc_name_zh": "一键扫荡", "rgs_backend": "match-service:50053", "rgs_rpc": "OneKeySweep", "rgs_proto_method": "AdventureService.OneKeySweep", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20605": { "rpc_code": 20605, "rpc_name_zh": "结算重置", "rgs_backend": "match-service:50053", "rgs_rpc": "ResetSettlement", "rgs_proto_method": "AdventureService.ResetSettlement", "gap_status": "NotImplemented", "request_fields": ["next_id:32"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20606": { "rpc_code": 20606, "rpc_name_zh": "获取冒险背包信息", "rgs_backend": "match-service:50053", "rgs_rpc": "GetAdventureBag", "rgs_proto_method": "AdventureService.GetAdventureBag", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20607": { "rpc_code": 20607, "rpc_name_zh": "领取进度奖励", "rgs_backend": "match-service:50053 + economy-service:50052", "rgs_rpc": "ClaimProgressReward", "rgs_proto_method": "AdventureService.ClaimProgressReward", "gap_status": "NotImplemented", "request_fields": ["num:32"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20608": { "rpc_code": 20608, "rpc_name_zh": "进入指定房间号", "rgs_backend": "match-service:50053", "rgs_rpc": "EnterRoom", "rgs_proto_method": "AdventureService.EnterRoom", "gap_status": "NotImplemented", "request_fields": ["room_id:32"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20609": { "rpc_code": 20609, "rpc_name_zh": "获取伙伴情况信息", "rgs_backend": "match-service:50053 + card-service:50061", "rgs_rpc": "GetPartnerStatus", "rgs_proto_method": "AdventureService.GetPartnerStatus", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20610": { "rpc_code": 20610, "rpc_name_zh": "复活指定伙伴", "rgs_backend": "match-service:50053 + card-service:50061", "rgs_rpc": "RevivePartner", "rgs_proto_method": "AdventureService.RevivePartner", "gap_status": "NotImplemented", "request_fields": ["partner_id:32"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20611": { "rpc_code": 20611, "rpc_name_zh": "资产兑换", "rgs_backend": "match-service:50053 + economy-service:50052", "rgs_rpc": "ConvertAsset", "rgs_proto_method": "AdventureService.ConvertAsset", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20620": { "rpc_code": 20620, "rpc_name_zh": "事件操作", "rgs_backend": "match-service:50053", "rgs_rpc": "OperateEvent", "rgs_proto_method": "AdventureService.OperateEvent", "gap_status": "NotImplemented", "request_fields": ["idx:32", "action:8", "ext_list:list<uint8>"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20626": { "rpc_code": 20626, "rpc_name_zh": "掠夺事件操作", "rgs_backend": "match-service:50053", "rgs_rpc": "PlunderEvent", "rgs_proto_method": "AdventureService.PlunderEvent", "gap_status": "NotImplemented", "request_fields": ["idx:32", "formation_type:8", "pos_info:list<{pos:8, partner_id:32}>"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20690": { "rpc_code": 20690, "rpc_name_zh": "请求掠夺日志", "rgs_backend": "match-service:50053", "rgs_rpc": "GetPlunderLog", "rgs_proto_method": "AdventureService.GetPlunderLog", "gap_status": "NotImplemented", "request_fields": ["type:8"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20691": { "rpc_code": 20691, "rpc_name_zh": "查看反击玩家信息", "rgs_backend": "match-service:50053", "rgs_rpc": "GetCounterattackTarget", "rgs_proto_method": "AdventureService.GetCounterattackTarget", "gap_status": "NotImplemented", "request_fields": ["log_id:32"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } },
+    "20692": { "rpc_code": 20692, "rpc_name_zh": "反击玩家", "rgs_backend": "match-service:50053", "rgs_rpc": "Counterattack", "rgs_proto_method": "AdventureService.Counterattack", "gap_status": "NotImplemented", "request_fields": ["log_id:32", "formation_type:8", "pos_info:list<{pos:8, partner_id:32}>"], "mock_response": { "code": 1, "msg": "RGS AdventureService not implemented yet" } }
+  },
+  "_remaining_1_cmds_note": "adventure 剩余 1 cmd 描述空 (per addendum §5.9 L701) 推测为 掠夺事件通知 (push_delivery 模式),待 v0.2 sprint 抽样 adventure_plunder.erl 完整 24KB 详细化 1:1 映射 (RGS 需 push_delivery 跨域 saga 框架先实装)"
+}

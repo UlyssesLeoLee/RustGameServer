@@ -1,0 +1,38 @@
+{
+  "_module_meta": {
+    "module_name": "formation",
+    "module_name_zh": "阵法",
+    "protocol_id": 112,
+    "module_size_bytes": 28100,
+    "rgs_7domain_route": "player",
+    "rgs_services": ["FormationService"],
+    "total_cmds": 6,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 6,
+    "not_applicable_count": 0,
+    "audit_finding": "player 域 FormationService gRPC 0/6 wire (per audit v0.3 §3.2), 30 新 module 阶段, 待 W6 补, 跨域 saga 跨 player + card + match",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\formation\\formation.erl (7.8KB 状态机) + formation_rpc.erl (2.3KB handle/3 6 RPC) + formation_lib.erl (17.9KB 业务核心) + proto_112.erl (7.5KB pack/unpack)",
+    "rgs_translation": "player-service FormationService (新) + sqlx PgFormationRepository + 阵位 enum (9 positions) + 跨域 card PartnerService 验证 partner_id + match v2 combat formation 整合 + partner_lib:ref_partner_stronger 战力重算 + role_misc:calc_power 同步",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.19 1:1 映射 + §6.2 30 新 module #10 落地 W6",
+    "known_gaps": [
+      "RGS player 0 FormationService trait 0/6 wire (per audit v0.3 §3.2)",
+      "formation_lib.erl 17.9KB 业务核心 (get_info/use_formation/do_pos/use_item 4 函数) — 需 v0.2 W6 实装阶段详抽",
+      "formation 阵位 PosId (per L31-39) — 9 阵位 enum 映射 (RGS TCG 阵位 5 阵位 vs 闪烁之光 9 阵位 协调)",
+      "sys_conn:pack_send(11007, {[]}) (per L25 + L49) 主动推 partner_stronger — 跟 RGS push_delivery NATS 整合 (per audit v0.3 §3.4 push_delivery 22KB)",
+      "role_misc:calc_power 战力重算 (per L26 + L36 + L50) — 跨域 player + card 聚合, RGS 应走 saga 模式",
+      "FunctionalFormation SysType (per L57-67) — 1 玩家多阵法 (主战/矿战/活动战), 跟 RGS deck/formation 1:N 关系协调",
+      "?T('使用阵法成功'/'阵法设置成功') i18n — 跟 RGS I18nString 转换 (per common.proto L73-77)"
+    ]
+  },
+  "rpcs": {
+    "11200": { "rpc_code": 11200, "rpc_name_zh": "请求自身阵法", "rgs_backend": "player-service:50051", "rgs_rpc": "GetMyFormation", "rgs_proto_method": "FormationService.GetMyFormation", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "formation": null, "note": "formation_lib:get_info/1 走角色进程推, RGS 走 push_delivery NATS" } },
+    "11201": { "rpc_code": 11201, "rpc_name_zh": "更换自身阵法", "rgs_backend": "player-service:50051 + card-service:50061", "rgs_rpc": "ChangeFormation", "rgs_proto_method": "FormationService.ChangeFormation", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "使用阵法成功", "result": true, "note": "use_formation/2 触发 partner_lib:ref_partner_stronger + role_misc:calc_power" } },
+    "11202": { "rpc_code": 11202, "rpc_name_zh": "伙伴上阵/下阵/交换", "rgs_backend": "player-service:50051 + card-service:50061", "rgs_rpc": "SetPartnerSlot", "rgs_proto_method": "FormationService.SetPartnerSlot", "gap_status": "NotImplemented", "request_fields": ["id:32", "pos_id:8"], "mock_response": { "code": 0, "msg": "ok", "result": true, "new_power": 0, "new_pos": [], "note": "do_pos/3 返回 NewPos/NewPower 推 push 模式" } },
+    "11204": { "rpc_code": 11204, "rpc_name_zh": "阵法道具", "rgs_backend": "player-service:50051 + card-service:50061", "rgs_rpc": "UseFormationItem", "rgs_proto_method": "FormationService.UseFormationItem", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "note": "use_item/2 触发 use_formation 同流程" } },
+    "11211": { "rpc_code": 11211, "rpc_name_zh": "获取功能阵法信息", "rgs_backend": "player-service:50051", "rgs_rpc": "GetFunctionalFormation", "rgs_proto_method": "FormationService.GetFunctionalFormation", "gap_status": "NotImplemented", "request_fields": ["sys_type:8"], "mock_response": { "code": 0, "msg": "ok", "note": "formation:push_sys_formation/2 走 push 模式 (per L57-59)" } },
+    "11212": { "rpc_code": 11212, "rpc_name_zh": "设置功能阵法", "rgs_backend": "player-service:50051 + card-service:50061", "rgs_rpc": "SetFunctionalFormation", "rgs_proto_method": "FormationService.SetFunctionalFormation", "gap_status": "NotImplemented", "request_fields": ["sys_type:8", "formation_type:8", "pos_info:array<{pos,partner_id}>"], "mock_response": { "code": 0, "msg": "阵法设置成功", "result": true, "sys_type": 0, "note": "set_sys_formation/4 1 玩家多阵法" } }
+  }
+}

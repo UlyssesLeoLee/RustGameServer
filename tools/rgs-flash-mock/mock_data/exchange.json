@@ -1,0 +1,161 @@
+{
+  "_module_meta": {
+    "module_name": "exchange",
+    "module_name_zh": "兑换商店",
+    "protocol_id": 134,
+    "module_size_bytes": 26457,
+    "rgs_7domain_route": "economy (主)",
+    "rgs_services": [
+      "EconomyService.ExchangeService"
+    ],
+    "total_cmds": 6,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 6,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\exchange\\exchange_rpc.erl (3.1KB, handle/3 6 cmds 13401-13419) + exchange.erl (26.5KB, gen_server) + exchange_artifact.erl (6.9KB) + exchange_gift.erl (5.2KB) + exchange_lib.erl (3.8KB)",
+    "rgs_translation": "economy-service ExchangeService trait + ExchangeRepository (sqlx PgExchangeRepo) + exchange_data:get_by_eid/1 Master 1:1 + role_gain:do 扣除积分 + 神秘商店 is_mystery 1 RPC 抽象 (避免 6 变体重复模式, per 借鉴分析 .md §4 #5 反例)",
+    "rgs_file_ref": "DDD v0.2 addendum §4.5 + 协议号映射 §2.3 L141 (exchange → EconomyService.ExchangeService, per REQ §2 #25) + exchange_rpc.erl L15-91 (handle/3 6 函数 + 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 exchange_data Master 表 (per exchange_rpc.erl L26-30), 13402 兑换业务依赖, v0.2 sprint 实装 Master",
+      "RGS 缺 mystery 神秘商店状态机 (per exchange.erl mystery/2 mystery_refresh/2 mystery_buy/3), 13403/13405/13407 业务依赖, v0.2 sprint 实装",
+      "RGS 缺 var_day_exchange_half 字段 (半价 flag, per exchange_rpc.erl L16, L33, L36), v0.2 sprint 评估是否补 Player KV Store",
+      "exchange:get_ext/2 扩展列表 (13402 兑换后, per L37), RGS 缺 post-purchase hook, v0.2 sprint 评估",
+      "exchange_artifact.erl (6.9KB) + exchange_gift.erl (5.2KB) + exchange_lib.erl (3.8KB) 子模块未抽样, 业务实现仅根据 6 RPC 推测",
+      "13419 神格兑换 1 RPC 1:1 翻译, 但 exchange:exchange_soul/2 内部业务 (per L84-90) RGS 缺对应实现, v0.2 sprint 实装"
+    ]
+  },
+  "rpcs": {
+    "13401": {
+      "rpc_code": 13401,
+      "rpc_name_zh": "兑换商店商品当天已购买次数",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetExchangeDayBuyCount",
+      "rgs_proto_method": "ExchangeService.GetExchangeDayBuyCount",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "is_half": 0,
+        "type": 1,
+        "buy_count_list": []
+      },
+      "rgs_partial_reason": "RGS ExchangeService.GetExchangeDayBuyCount 走 exchange:buy_num_list/2 (per exchange_rpc.erl L15-22), 闪烁之光 走 ets 实时查询, RGS 缺 ExchangeBuyCount Repository, v0.2 sprint 实装",
+      "biz_flow_ref": "exchange_rpc.erl L15-22 (handle/3 13401) + exchange:buy_num_list/2 + var:get_var(?var_day_exchange_half)"
+    },
+    "13402": {
+      "rpc_code": 13402,
+      "rpc_name_zh": "兑换",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "Exchange",
+      "rgs_proto_method": "ExchangeService.Exchange",
+      "gap_status": "Partial",
+      "request_fields": [
+        "eid:32",
+        "enum:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "type": 1,
+        "eid": 0,
+        "is_half": 0,
+        "ext_list": []
+      },
+      "rgs_partial_reason": "RGS Exchange 走 exchange_data:get_by_eid/1 + exchange:buy/3 (per exchange_rpc.erl L25-39), 跨域 gain 模式 + post-purchase get_ext 钩子, RGS 缺 exchange_data Master + 跨域事务, v0.2 sprint 验证",
+      "biz_flow_ref": "exchange_rpc.erl L25-39 (handle/3 13402) + exchange_data:get_by_eid/1 + exchange:buy/3 + exchange:get_ext/2"
+    },
+    "13403": {
+      "rpc_code": 13403,
+      "rpc_name_zh": "请求神秘商店数据",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetMysteryShopData",
+      "rgs_proto_method": "ExchangeService.GetMysteryShopData",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "count": 0,
+        "free_count": 0,
+        "num": 0,
+        "refresh_time": 1757000000,
+        "item_list": []
+      },
+      "rgs_partial_reason": "RGS GetMysteryShopData 走 exchange:is_mystery/1 + exchange:mystery/2 (per exchange_rpc.erl L42-53), RGS 缺 is_mystery enum + mystery 业务, v0.2 sprint 实装",
+      "biz_flow_ref": "exchange_rpc.erl L42-53 (handle/3 13403) + exchange:is_mystery/1 + exchange:mystery/2 (7 字段返回)"
+    },
+    "13405": {
+      "rpc_code": 13405,
+      "rpc_name_zh": "自动刷新",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "MysteryShopRefresh",
+      "rgs_proto_method": "ExchangeService.MysteryShopRefresh",
+      "gap_status": "Partial",
+      "request_fields": [
+        "type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "count": 0,
+        "free_count": 0,
+        "num": 0,
+        "refresh_time": 1757000000,
+        "item_list": []
+      },
+      "rgs_partial_reason": "RGS MysteryShopRefresh 走 exchange:mystery_refresh/2 (per exchange_rpc.erl L56-67), RGS 缺 mystery_refresh 业务, v0.2 sprint 实装 (抽象 1 RPC + type enum 避免 6 变体重复模式 per 借鉴分析 .md §4 #5)",
+      "biz_flow_ref": "exchange_rpc.erl L56-67 (handle/3 13405) + exchange:is_mystery/1 + exchange:mystery_refresh/2"
+    },
+    "13407": {
+      "rpc_code": 13407,
+      "rpc_name_zh": "神秘商店购买",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "MysteryShopBuy",
+      "rgs_proto_method": "ExchangeService.MysteryShopBuy",
+      "gap_status": "Partial",
+      "request_fields": [
+        "order:32",
+        "type:8",
+        "buy_type:8"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "order": 0
+      },
+      "rgs_partial_reason": "RGS MysteryShopBuy 走 exchange:mystery_buy/3 (per exchange_rpc.erl L70-81), buy_type 区分货币类型 (钻石/积分/...), RGS 缺 mystery_buy 业务 + 货币类型抽象, v0.2 sprint 实装",
+      "biz_flow_ref": "exchange_rpc.erl L70-81 (handle/3 13407) + exchange:is_mystery/1 + exchange:mystery_buy/3"
+    },
+    "13419": {
+      "rpc_code": 13419,
+      "rpc_name_zh": "神格兑换",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "ExchangeSoul",
+      "rgs_proto_method": "ExchangeService.ExchangeSoul",
+      "gap_status": "Partial",
+      "request_fields": [
+        "num:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true
+      },
+      "rgs_partial_reason": "RGS ExchangeSoul 走 exchange:exchange_soul/2 (per exchange_rpc.erl L84-90), RGS 缺 exchange_soul 业务 (神格 → 其他货币转换), v0.2 sprint 实装",
+      "biz_flow_ref": "exchange_rpc.erl L84-90 (handle/3 13419) + exchange:exchange_soul/2"
+    }
+  }
+}

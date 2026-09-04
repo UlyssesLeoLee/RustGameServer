@@ -1,0 +1,34 @@
+{
+  "_module_meta": {
+    "module_name": "guild_skill",
+    "module_name_zh": "联盟技能",
+    "protocol_id": 237,
+    "module_size_bytes": 16200,
+    "rgs_7domain_route": "social",
+    "rgs_services": ["GuildSkillService"],
+    "total_cmds": 4,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 4,
+    "not_applicable_count": 0,
+    "audit_finding": "social 域 GuildSkillService gRPC 0/4 wire (per audit v0.3 §3.4), 30 新 module 阶段, 待 W11 补, 业务最简单 (4 cmds)",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild_skill\\guild_skill.erl (14.8KB gen_server + ets 缓存) + guild_skill_rpc.erl (1.3KB handle/3 4 RPC)",
+    "rgs_translation": "social-service GuildSkillService (新) + sqlx PgGuildSkillRepository + Career enum (5 careers) + SkillGroup enum (4 groups) + guild_skill:info/activate/outline 3 业务函数 1:1 翻译",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.29 1:1 映射 + §6.2 30 新 module #17 落地 W11",
+    "known_gaps": [
+      "RGS social 0 GuildSkillService trait 0/4 wire (per audit v0.3 §3.4)",
+      "guild_skill.erl 14.8KB 业务核心 (info/activate/outline 3 函数) — 需 v0.2 W11 实装阶段详抽",
+      "Career 5 enum 映射 (per guild_skill_rpc.erl L17-23 Career 参数) — 跟 player PlayerService.career 字段协调",
+      "GroupId 分组 ID (per L36-37) — 业务推 1:1 echo (per L37 {reply, {Career, Id}} 极简), RGS 需评估是否真存 DB",
+      "?T(i18n) '激活成功' (per L30) — RGS I18nString 转换 (per common.proto L73-77)"
+    ]
+  },
+  "rpcs": {
+    "23700": { "rpc_code": 23700, "rpc_name_zh": "联盟技能信息", "rgs_backend": "social-service:50054", "rgs_rpc": "GetGuildSkillInfo", "rgs_proto_method": "GuildSkillService.GetGuildSkillInfo", "gap_status": "NotImplemented", "request_fields": ["career:8"], "mock_response": { "code": 0, "msg": "ok", "info": null, "note": "guild_skill:info/2 Career 参数过滤技能列表" } },
+    "23701": { "rpc_code": 23701, "rpc_name_zh": "激活指定职业的联盟技能", "rgs_backend": "social-service:50054 + player-service:50051", "rgs_rpc": "ActivateGuildSkill", "rgs_proto_method": "GuildSkillService.ActivateGuildSkill", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "激活成功", "result": true, "career": 0, "id": 0, "note": "guild_skill:activate/2 Opt 字段 career 默认 0" } },
+    "23702": { "rpc_code": 23702, "rpc_name_zh": "更新分组 ID", "rgs_backend": "social-service:50054", "rgs_rpc": "UpdateGroupId", "rgs_proto_method": "GuildSkillService.UpdateGroupId", "gap_status": "NotImplemented", "request_fields": ["career:8", "id:32"], "mock_response": { "code": 0, "msg": "ok", "career": 0, "id": 0, "note": "原 erl 是 echo 极简, RGS 需 v0.2 评估是否真存 DB" } },
+    "23703": { "rpc_code": 23703, "rpc_name_zh": "联盟技能概要信息(红点)", "rgs_backend": "social-service:50054", "rgs_rpc": "GetGuildSkillSummary", "rgs_proto_method": "GuildSkillService.GetGuildSkillSummary", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "outline": null, "note": "guild_skill:outline/1 用于红点 push_delivery 模式 (per audit v0.3 §3.4 push_delivery 22KB)" } }
+  }
+}

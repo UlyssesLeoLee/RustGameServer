@@ -1,0 +1,75 @@
+{
+  "_module_meta": {
+    "module_name": "checkin",
+    "module_name_zh": "每日签到",
+    "protocol_id": 141,
+    "module_size_bytes": 10476,
+    "rgs_7domain_route": "batch",
+    "rgs_services": ["CheckinService"],
+    "total_cmds": 2,
+    "w3_phase": "worker-1",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 2,
+    "not_applicable_count": 0,
+    "audit_finding": "batch 域 0/2 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 CheckinService 实体 + checkin_rewards Master + player_checkin_progress Transaction, W19 落地",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_checkin\\checkin_rpc.erl (1.1KB, handle/3 2 cmds 14100/14101) + checkin.erl (9.4KB, 推测 ~6 exports: info/reward/check/reset/m_checkin/...)",
+    "rgs_translation": "batch-backend:8790 CheckinService (新), 1 player 1 tokio actor task, CheckinRepository (sqlx) + PlayerCheckinProgressRepository, 走 batch 域 task_templates Master + player_instance Transaction 模式 (per addendum §4.12 activity 模式 1:1 复用)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.42 L1125-1132 (协议号映射 2 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §4 (跟 activity 模式 1:1 复用, per L689-704)",
+    "known_gaps": [
+      "RGS 0/2 wire CheckinService RPC (per DDD v0.1 §2.3 + addendum §5.42, 全部 ❌ NotImplemented)",
+      "checkin.erl 9.4KB 仅 L1-80 抽样, 剩余 L80+ exports (check/reset) 未抽样 read, 业务流/状态机 70% 推测 (per addendum §10.1 已知缺口)",
+      "m_checkin record 字段 day + status (per checkin_rpc.erl L23) → RGS 需建 typed struct PlayerCheckinProgress { day: u8, status: CheckinStatus }",
+      "checkin:info/1 返 Info tuple (per checkin_rpc.erl L19) → RGS 需建 typed struct CheckinInfo { current_day, total_days, rewards[], current_status }",
+      "checkin:reward/1 返 {ok, NewRole#m_checkin{day=NewDay, status=NewStatus}} (per checkin_rpc.erl L23-28) → RGS 走 batch 域 task + player_instance table 模式",
+      "daily reset cron 模式 (推测) → RGS 走 batch saga daily reset + 跨 0 点 UTC+9 触发 (per addendum §6.6 typed struct)",
+      "city.hrl include (per checkin_rpc.erl L15) 暗示跟 city 域有交互 → RGS 跨域 city-service 待 v0.2 sprint 评估 (per DDD v0.1 §2.3 30 新 module 表)"
+    ]
+  },
+  "rpcs": {
+    "14100": {
+      "rpc_code": 14100,
+      "rpc_name_zh": "签到信息",
+      "rgs_backend": "batch-backend:8790",
+      "rgs_rpc": "GetCheckinInfo",
+      "rgs_proto_method": "CheckinService.GetCheckinInfo",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "info": {
+          "current_day": 1,
+          "total_days": 30,
+          "today_status": 0,
+          "rewards": [
+            {"day": 1, "status": 0, "rewards": [{"item_id": 1001, "count": 50}]},
+            {"day": 2, "status": 0, "rewards": [{"item_id": 1001, "count": 50}]}
+          ]
+        }
+      },
+      "rgs_partial_reason": "RGS 0 CheckinService 实体, 缺 checkin_rewards Master (30 day 模板) + player_checkin_progress Transaction, 2 cmds 全部 ❌ NotImplemented (per addendum §5.42)",
+      "biz_flow_ref": "checkin_rpc.erl L18-20 (handle/3) + checkin.erl info/1 (推测, 跟 activity.erl box/1 模式 1:1)"
+    },
+    "14101": {
+      "rpc_code": 14101,
+      "rpc_name_zh": "领取签到奖励",
+      "rgs_backend": "batch-backend:8790",
+      "rgs_rpc": "ClaimCheckinReward",
+      "rgs_proto_method": "CheckinService.ClaimCheckinReward",
+      "gap_status": "NotImplemented",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "new_day": 1,
+        "new_status": 1,
+        "rewards_granted": [{"item_id": 1001, "count": 50}]
+      },
+      "rgs_partial_reason": "RGS 0 CheckinService.ClaimCheckinReward, 缺 checkin:reward/1 业务 (per checkin_rpc.erl L23-29) 1:1 翻译, 走 batch 域 task + player_instance table 模式 (per activity W2-2.6 实证) + 4 步 saga: 校验当日 → 扣状态 → 发奖 → 更新进度",
+      "biz_flow_ref": "checkin_rpc.erl L23-29 (handle/3) + checkin.erl reward/1 (推测, 跟 activity.erl reward/2 模式 1:1)"
+    }
+  }
+}

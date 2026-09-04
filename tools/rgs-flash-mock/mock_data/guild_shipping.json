@@ -1,0 +1,44 @@
+{
+  "_module_meta": {
+    "module_name": "guild_shipping",
+    "module_name_zh": "联盟远航",
+    "protocol_id": 238,
+    "module_size_bytes": 68400,
+    "rgs_7domain_route": "social",
+    "rgs_services": ["GuildShippingService"],
+    "total_cmds": 11,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 11,
+    "not_applicable_count": 0,
+    "audit_finding": "social 域 GuildShippingService gRPC 0/11 wire (per audit v0.3 §3.4), 30 新 module 阶段, 待 W11 补, 跨域 saga 跨 social + match + economy + player",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild_shipping\\guild_shipping.erl (57.8KB 业务核心) + guild_shipping_rpc.erl (3.9KB handle/3 11 RPC) + guild_shipping_mgr.erl (6.7KB ets + cron) + proto_238.erl (16.9KB pack/unpack)",
+    "rgs_translation": "social-service GuildShippingService (新) + sqlx PgGuildShippingRepository + 跨域 saga OrderSaga (下单→起航→完成→领奖) + cron tick 加速远航 + NATS push 互助加速 + 跨 batch 域 active-active 跨服订单分发",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.15 1:1 映射 + §6.2 30 新 module #6 落地 W11",
+    "known_gaps": [
+      "RGS social 0 GuildShippingService trait 0/11 wire (per audit v0.3 §3.4)",
+      "guild_shipping.erl 57.8KB 业务核心未抽样 (per v0.2-1 §10.1 已知缺口, W11 实装阶段详细抽样)",
+      "guild_shipping:sail/3 起航 5 步状态机 (per guild_shipping_rpc.erl L29-36 + guild_shipping.erl 内部) — 需 v0.2 sprint 详抽",
+      "guild_shipping:finish/2 秒掉订单 (per L39-48) 涉及 role:send_buff_begin/flush/clean 3 段事务包装 — 跟 economy 域事务整合待协调",
+      "assist_list/1 互助列表 (per L63-69) 跨服查询 — 跟 cluster_ops 域跨服 5 桶分桶协调 (per audit v0.3 §3.6)",
+      "speedup/2 + donate/2 互助加速/资助 — 跨域事务 social + player + economy (item_bid) 3 域, 需 saga 模式",
+      "is_rate + is_double 双倍奖励 (per L97-98) — 跟 batch 域 active-active 活动配置整合",
+      "?guild_shipping_order_status_reward 枚举 1 状态 (per L44) — RGS 需 order_status enum 5 状态机 (created/sailing/finished/rewarded/expired)"
+    ]
+  },
+  "rpcs": {
+    "23800": { "rpc_code": 23800, "rpc_name_zh": "联盟远航信息", "rgs_backend": "social-service:50054", "rgs_rpc": "GetShippingInfo", "rgs_proto_method": "GuildShippingService.GetShippingInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "orders": [], "buy_order_times": 0, "is_assist": false } },
+    "23801": { "rpc_code": 23801, "rpc_name_zh": "查看订单信息", "rgs_backend": "social-service:50054", "rgs_rpc": "ListShippingOrders", "rgs_proto_method": "GuildShippingService.ListShippingOrders", "gap_status": "NotImplemented", "request_fields": ["order_id:32"], "mock_response": { "code": 0, "msg": "ok", "order": null } },
+    "23802": { "rpc_code": 23802, "rpc_name_zh": "远航起航", "rgs_backend": "social-service:50054 + match-service:50053", "rgs_rpc": "StartShipping", "rgs_proto_method": "GuildShippingService.StartShipping", "gap_status": "NotImplemented", "request_fields": ["order_id:32", "partner_ids:array<32>", "is_success:8"], "mock_response": { "code": 0, "msg": "开始护送", "result": true, "order_id": 0, "note": "guild_shipping:sail/3 5 步状态机待 v0.2 W11 详抽" } },
+    "23803": { "rpc_code": 23803, "rpc_name_zh": "秒掉订单", "rgs_backend": "social-service:50054 + economy-service:50052", "rgs_rpc": "InstantCompleteOrder", "rgs_proto_method": "GuildShippingService.InstantCompleteOrder", "gap_status": "NotImplemented", "request_fields": ["order_id:32"], "mock_response": { "code": 0, "msg": "完成订单", "result": true, "order_id": 0, "order_status": 1, "note": "role:send_buff_begin/flush/clean 3 段事务" } },
+    "23804": { "rpc_code": 23804, "rpc_name_zh": "购买付费订单", "rgs_backend": "social-service:50054 + economy-service:50052", "rgs_rpc": "BuyPaidOrder", "rgs_proto_method": "GuildShippingService.BuyPaidOrder", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "购买成功", "result": true } },
+    "23806": { "rpc_code": 23806, "rpc_name_zh": "互助列表", "rgs_backend": "social-service:50054", "rgs_rpc": "ListHelpRequests", "rgs_proto_method": "GuildShippingService.ListHelpRequests", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "count": 0, "assist_list": [] } },
+    "23807": { "rpc_code": 23807, "rpc_name_zh": "互助加速", "rgs_backend": "social-service:50054 + player-service:50051", "rgs_rpc": "HelpAccelerate", "rgs_proto_method": "GuildShippingService.HelpAccelerate", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string", "order_id:32"], "mock_response": { "code": 0, "msg": "ok", "note": "跨域事务 social+player, 需 saga 模式" } },
+    "23808": { "rpc_code": 23808, "rpc_name_zh": "资助", "rgs_backend": "social-service:50054 + economy-service:50052 + player-service:50051", "rgs_rpc": "Sponsor", "rgs_proto_method": "GuildShippingService.Sponsor", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string", "order_id:32", "item_bid:32"], "mock_response": { "code": 0, "msg": "资助成功", "rid": 0, "srv_id": "", "order_id": 0, "item_bid": 0, "note": "3 域跨域事务 (social + economy + player)" } },
+    "23809": { "rpc_code": 23809, "rpc_name_zh": "领取奖励", "rgs_backend": "social-service:50054 + player-service:50051", "rgs_rpc": "ClaimShippingReward", "rgs_proto_method": "GuildShippingService.ClaimShippingReward", "gap_status": "NotImplemented", "request_fields": ["order_id:32", "is_double:8"], "mock_response": { "code": 0, "msg": "成功领取订单奖励", "order_id": 0, "is_rate": false, "is_double": false } },
+    "23810": { "rpc_code": 23810, "rpc_name_zh": "求助", "rgs_backend": "social-service:50054", "rgs_rpc": "RequestHelp", "rgs_proto_method": "GuildShippingService.RequestHelp", "gap_status": "NotImplemented", "request_fields": ["order_id:32", "item_bid:32"], "mock_response": { "code": 0, "msg": "求助成功", "result": true } },
+    "23812": { "rpc_code": 23812, "rpc_name_zh": "刷新次数", "rgs_backend": "social-service:50054", "rgs_rpc": "RefreshShippingCount", "rgs_proto_method": "GuildShippingService.RefreshShippingCount", "gap_status": "NotImplemented", "request_fields": ["order_id:32"], "mock_response": { "code": 0, "msg": "成功刷新订单", "result": true } }
+  }
+}

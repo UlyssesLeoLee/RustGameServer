@@ -1,0 +1,101 @@
+{
+  "_module_meta": {
+    "module_name": "lev_gift",
+    "module_name_zh": "等级好礼",
+    "protocol_id": 212,
+    "module_size_bytes": 10399,
+    "rgs_7domain_route": "economy (主, 跨 holiday 活动运营)",
+    "rgs_services": [
+      "EconomyService.LevGiftService"
+    ],
+    "total_cmds": 4,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 4,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_lev_gift\\lev_gift_rpc.erl (1.3KB, handle/3 4 cmds 21200-21204) + lev_gift.erl (10.4KB, gifts_info/1 + get_label_status/1 + gain/2 + buy/2)",
+    "rgs_translation": "economy-service LevGiftService trait + LevGiftRepository (sqlx PgLevGiftRepo) + lev_gift:gifts_info/1 Master 1:1 + get_label_status/1 status enum + gain/2 领取 + buy/2 购买 (跨域 player + economy, per addendum §4)",
+    "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L155 (adventure.erl → BatchService.LevGiftService, per REQ §2 #32 — 实际 holiday_lev_gift.erl → EconomyService, per §2.3 L164 跨域协调) + lev_gift_rpc.erl L17-46 (handle/3 4 函数 + 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 LevGift Master 表 (per lev_gift_rpc.erl L17-23, lev_gift:gifts_info/1), v0.2 sprint 实装 (含等级 → 礼包映射)",
+      "RGS 缺 get_label_status 业务 (per lev_gift_rpc.erl L26-28), 红点推送模式 (已领取/可领取/未达等级), v0.2 sprint 实装",
+      "RGS 缺 gain 领取 (per lev_gift_rpc.erl L31-37) + buy 购买 (per lev_gift_rpc.erl L40-46) 业务流程, 跨域 gain 模式, v0.2 sprint 实装",
+      "RGS 缺 跨服活动运营整合 (lev_gift 走 holiday_mgr 跨服, per addendum §4), v0.2 sprint 协调 batch 域 + economy 域 + active-active 跨服分桶",
+      "lev_gift.erl (10.4KB) 4 函数完整覆盖, 但内部业务 (e.g. buy 价格策略) 未详细 read"
+    ]
+  },
+  "rpcs": {
+    "21200": {
+      "rpc_code": 21200,
+      "rpc_name_zh": "等级好礼信息",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetLevGiftInfo",
+      "rgs_proto_method": "LevGiftService.GetLevGiftInfo",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "gifts": []
+      },
+      "rgs_partial_reason": "RGS GetLevGiftInfo 走 lev_gift:gifts_info/1 (per lev_gift_rpc.erl L17-23), RGS 缺 LevGift Master 表 (等级 → 礼包 映射), v0.2 sprint 实装",
+      "biz_flow_ref": "lev_gift_rpc.erl L17-23 (handle/3 21200) + lev_gift.erl gifts_info/1"
+    },
+    "21202": {
+      "rpc_code": 21202,
+      "rpc_name_zh": "获取状态",
+      "rgs_backend": "economy-service:50052",
+      "rgs_rpc": "GetLevGiftStatus",
+      "rgs_proto_method": "LevGiftService.GetLevGiftStatus",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "status": "StubLevGiftStatus_<uuid>"
+      },
+      "rgs_partial_reason": "RGS GetLevGiftStatus 走 lev_gift:get_label_status/1 (per lev_gift_rpc.erl L26-28), 状态 enum (已领取/可领取/未达等级/...), RGS 缺 status enum, v0.2 sprint 实装",
+      "biz_flow_ref": "lev_gift_rpc.erl L26-28 (handle/3 21202) + lev_gift.erl get_label_status/1"
+    },
+    "21203": {
+      "rpc_code": 21203,
+      "rpc_name_zh": "领取等级奖励",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "ClaimLevGift",
+      "rgs_proto_method": "LevGiftService.ClaimLevGift",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "id": 0
+      },
+      "rgs_partial_reason": "RGS ClaimLevGift 走 lev_gift:gain/2 (per lev_gift_rpc.erl L31-37), 跨域 gain 模式 + 状态机 (领取后状态变更), RGS 缺 gain 业务, v0.2 sprint 实装",
+      "biz_flow_ref": "lev_gift_rpc.erl L31-37 (handle/3 21203) + lev_gift.erl gain/2"
+    },
+    "21204": {
+      "rpc_code": 21204,
+      "rpc_name_zh": "购买等级奖励",
+      "rgs_backend": "economy-service:50052 + player-service:50051 (跨域 gain)",
+      "rgs_rpc": "BuyLevGift",
+      "rgs_proto_method": "LevGiftService.BuyLevGift",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "id": 0
+      },
+      "rgs_partial_reason": "RGS BuyLevGift 走 lev_gift:buy/2 (per lev_gift_rpc.erl L40-46), 跨域 gain 模式 (扣货币+发奖励), RGS 缺 buy 业务 + 价格策略, v0.2 sprint 实装",
+      "biz_flow_ref": "lev_gift_rpc.erl L40-46 (handle/3 21204) + lev_gift.erl buy/2"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "_module_meta": {
+    "module_name": "map",
+    "module_name_zh": "地图 (场景地图/单位操作/角色移动)",
+    "protocol_id": 102,
+    "module_size_bytes": 2211,
+    "rgs_7domain_route": "player (主, MapService 6 RPC 全部 N-A for TCG) — 闪烁之光 有 open world 地图, RGS TCG 走 match 域回合制无地图概念",
+    "rgs_services": ["PlayerService.MapService"],
+    "total_cmds": 6,
+    "w3_phase": "worker-5",
+    "gap_status_overall": "NotApplicable",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 0,
+    "not_applicable_count": 6,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\map\\map_rpc.erl (2.2KB, handle/3 2 cmds 10200/10215, 含 unit_action:action/3 + map:role_move/4) + map.erl (32.7KB, role_enter/role_move 业务函数) + map_mgr.erl (14.3KB, gen_server map 进程管理) + map_grid.erl (16KB, AOI 网格) + map_single.erl (3.2KB, 单人副本) + map_lib.erl (1.1KB)",
+    "rgs_translation": "闪烁之光 open world 地图 + AOI 网格 + 移动同步 → RGS TCG 无地图概念, 6 RPC 全部 N-A (per REQ §2 #23 + handoff v0.1 §2.2 家园系统 N-A 决策), RGS MapService N-A 跳过实装, 走 match 域回合制战斗无地图需求 (per addendum §5.21 + 借鉴分析 .md §4 #3 决策)",
+    "rgs_file_ref": "DDD v0.2 addendum §5.21 L899-907 (map 6 cmds 全 N-A) + map_rpc.erl L13-53 handle/3 2 cmds + map.erl 32.7KB 业务核心",
+    "known_gaps": [
+      "6 cmds 全部 NotApplicable (N-A), RGS TCG 无地图概念 (per REQ §2 #23 + handoff v0.1 §2.2 家园系统 N-A 决策), RGS MapService 跳过实装, 6 RPC 全部走 stub NotApplicable 状态",
+      "10200 unit_action:action/3 操作地图单位 (per map_rpc.erl L13-30) → RGS N/A, TCG 回合制无单位操作, 6 步 handle 模式 {ok, Msg, Time, NewRole} / {ok, NewRole} / {ok, Msg, Time} / {ok, Msg} / ok / {false, Msg} 1:1 翻译模式可参考 (per addendum §5.21)",
+      "10215 map:role_move/4 角色移动 (per map_rpc.erl L43-53) 5 步 guard 校验 (#role{pos = undefined} / pos.map_pid not is_pid / pos.map_bid =/= BaseId / status =/= ?status_normal / 实际移动) → RGS N/A, TCG 走 match 域回合制无移动, guard 模式可参考 (per addendum §5.21)",
+      "map_mgr.erl 14.3KB gen_server map 进程管理 + map_grid.erl 16KB AOI 网格 → RGS 全部 N/A 跳过, 但 AOI 9 宫格 / 视野同步 / 区域触发 业务模式可参考 (per addendum §5.21 + 借鉴分析 .md §4 #3)",
+      "map_single.erl 3.2KB 单人副本 → RGS match 域 已有副本模式 (per addendum §4.1 combat FSM), 不重复实装, 闪烁之光 单一地图池 → RGS 多副本池 enum 简化 (per addendum §5.21)",
+      "10201 (注释, 推测请求进入指定地图) 跟 map:role_enter/2 业务函数 → RGS N/A, 走 match 域 combat FSM 1:1 翻译 (per addendum §5.21)"
+    ]
+  },
+  "rpcs": {
+    "10200": { "rpc_code": 10200, "rpc_name_zh": "操作地图单位", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "OperateMapUnit", "rgs_proto_method": "PlayerService.MapService.OperateMapUnit", "gap_status": "NotApplicable", "request_fields": ["battle_id:32", "id:32", "action:16"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "battle_id": 0, "id": 0, "time": 0, "note": "RGS TCG 无地图概念, 走 match 域回合制战斗" }, "rgs_partial_reason": "RGS TCG 无地图概念, 6 步 handle 模式 {ok, Msg, Time, NewRole} / {ok, NewRole} / {ok, Msg, Time} / {ok, Msg} / ok / {false, Msg} 1:1 翻译模式可参考, RGS N/A 跳过实装 (per addendum §5.21 + REQ §2 #23)", "biz_flow_ref": "map_rpc.erl L13-30 (handle/3) + unit_action:action/3" },
+    "10201": { "rpc_code": 10201, "rpc_name_zh": "请求进入指定地图 (推测, 注释掉)", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "EnterMap", "rgs_proto_method": "PlayerService.MapService.EnterMap", "gap_status": "NotApplicable", "request_fields": ["map_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "note": "RGS TCG 无地图概念, 走 match 域回合制战斗" }, "rgs_partial_reason": "RGS TCG 无地图概念, 走 match 域回合制战斗 (combat FSM 1:1 翻译, per addendum §4.1), RGS N/A 跳过实装 (per addendum §5.21)", "biz_flow_ref": "map_rpc.erl L32-40 (handle/3, 注释掉, 推测协议号 10201, 实际未启用) + map.erl role_enter/2" },
+    "10205": { "rpc_code": 10205, "rpc_name_zh": "地图加载 (描述空, 推测)", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "LoadMap", "rgs_proto_method": "PlayerService.MapService.LoadMap", "gap_status": "NotApplicable", "request_fields": ["map_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "map_loaded": true, "note": "RGS TCG 无地图概念" }, "rgs_partial_reason": "RGS TCG 无地图概念, AOI 9 宫格 / 视野同步 / 区域触发 业务模式可参考, RGS N/A 跳过实装 (per addendum §5.21)", "biz_flow_ref": "map_rpc.erl (推测, 协议号 10205, 实际 handle/3 未抽样验证) + map.erl (推测)" },
+    "10208": { "rpc_code": 10208, "rpc_name_zh": "单位查询 (描述空, 推测)", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "QueryUnit", "rgs_proto_method": "PlayerService.MapService.QueryUnit", "gap_status": "NotApplicable", "request_fields": ["unit_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "unit_info": { "id": 0, "type": 0, "pos": { "x": 0, "y": 0 } }, "note": "RGS TCG 无地图概念" }, "rgs_partial_reason": "RGS TCG 无地图概念, AOI 9 宫格 / 视野同步业务模式可参考, RGS N/A 跳过实装 (per addendum §5.21)", "biz_flow_ref": "map_rpc.erl (推测, 协议号 10208, 实际 handle/3 未抽样验证) + map.erl (推测)" },
+    "10210": { "rpc_code": 10210, "rpc_name_zh": "视野同步 (描述空, 推测)", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "SyncVision", "rgs_proto_method": "PlayerService.MapService.SyncVision", "gap_status": "NotApplicable", "request_fields": ["x:32", "y:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "vision_range": 0, "visible_units": [], "note": "RGS TCG 无地图概念" }, "rgs_partial_reason": "RGS TCG 无地图概念, AOI 9 宫格 / 视野同步 / 区域触发 业务模式可参考, RGS N/A 跳过实装 (per addendum §5.21)", "biz_flow_ref": "map_rpc.erl (推测, 协议号 10210, 实际 handle/3 未抽样验证) + map_grid.erl (推测)" },
+    "10215": { "rpc_code": 10215, "rpc_name_zh": "角色移动", "rgs_backend": "player-service:50051 (N-A)", "rgs_rpc": "MovePlayer", "rgs_proto_method": "PlayerService.MapService.MovePlayer", "gap_status": "NotApplicable", "request_fields": ["base_id:32", "x:32", "y:32", "dir:8"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "x": 0, "y": 0, "dir": 0, "note": "RGS TCG 无地图概念, 走 match 域回合制" }, "rgs_partial_reason": "RGS TCG 无地图概念, 5 步 guard 校验 (#role{pos = undefined} / pos.map_pid not is_pid / pos.map_bid =/= BaseId / status =/= ?status_normal / 实际移动) 1:1 翻译模式可参考, RGS N/A 跳过实装 (per addendum §5.21 + REQ §2 #23)", "biz_flow_ref": "map_rpc.erl L43-53 (handle/3) + map.erl role_move/4" }
+  }
+}

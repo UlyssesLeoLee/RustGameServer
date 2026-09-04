@@ -1,0 +1,84 @@
+{
+  "_module_meta": {
+    "module_name": "power_gift",
+    "module_name_zh": "战力礼包",
+    "protocol_id": 234,
+    "module_size_bytes": 4944,
+    "rgs_7domain_route": "batch (主) + economy (跨)",
+    "rgs_services": [
+      "BatchService.PowerGiftService",
+      "EconomyService.MarketService (re-claimed, per DDD §7.4)"
+    ],
+    "total_cmds": 3,
+    "w3_phase": "worker-2",
+    "gap_status_overall": "Partial",
+    "pass_count": 0,
+    "partial_count": 3,
+    "not_implemented_count": 0,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_power_gift\\power_gift_rpc.erl (1.1KB, handle/3 3 cmds 23400-23403) + power_gift.erl (4.9KB, gifts_info/1 + get_label_status/1 + gain/2)",
+    "rgs_translation": "batch-service PowerGiftService trait (per 协议号映射 §2.3 L162 holiday_checkin.erl → BatchService.PowerGiftService) + batch 域 task_templates 战力阈值 Master + 跨域 economy gain 模式 (1:1 翻译 per DDD §3.5)",
+    "rgs_file_ref": "DDD v0.2 addendum §4 + 协议号映射 §2.3 L162-163 (holiday_checkin.erl/holiday_power_gift.erl → BatchService/EconomyService) + power_gift_rpc.erl L17-35 (handle/3 3 函数 + 容错匹配)",
+    "known_gaps": [
+      "RGS 缺 power_gift Master 表 (per power_gift_rpc.erl L17-23, power_gift:gifts_info/1), 战力阈值 → 礼包 映射, v0.2 sprint 实装",
+      "RGS 缺 get_label_status 业务 (per power_gift_rpc.erl L25-27), 红点推送 (已领取/可领取/未达战力), v0.2 sprint 实装",
+      "RGS 缺 gain 领取 (per power_gift_rpc.erl L30-36), 跨 batch + economy 域事务, v0.2 sprint 实装",
+      "power_gift 跟 lev_gift 模式高度相似 (3 vs 4 cmds, 同一套骨架复制多份, per 借鉴分析 .md §4 #5 反例), RGS 应抽取为 1 PowerGift/LevelGift 通用框架 (1 RPC + type enum), 避免复制",
+      "RGS 当前 batch 域 task_templates Master 表待 v0.2 实装, power_gift/lev_gift 业务都依赖此表",
+      "power_gift.erl (4.9KB) 3 函数完整覆盖, 但 buy 函数缺失 (跟 lev_gift 不同, 仅 gain 无 buy), 业务简化"
+    ]
+  },
+  "rpcs": {
+    "23400": {
+      "rpc_code": 23400,
+      "rpc_name_zh": "战力礼包信息",
+      "rgs_backend": "batch-service:8790",
+      "rgs_rpc": "GetPowerGiftInfo",
+      "rgs_proto_method": "PowerGiftService.GetPowerGiftInfo",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "gifts": []
+      },
+      "rgs_partial_reason": "RGS PowerGiftService.GetPowerGiftInfo 走 power_gift:gifts_info/1 (per power_gift_rpc.erl L17-23), RGS 缺 PowerGift Master 表, v0.2 sprint 实装 (走 batch 域 task_templates Master 模式)",
+      "biz_flow_ref": "power_gift_rpc.erl L17-23 (handle/3 23400) + power_gift.erl gifts_info/1"
+    },
+    "23402": {
+      "rpc_code": 23402,
+      "rpc_name_zh": "获取状态",
+      "rgs_backend": "batch-service:8790",
+      "rgs_rpc": "GetPowerGiftStatus",
+      "rgs_proto_method": "PowerGiftService.GetPowerGiftStatus",
+      "gap_status": "Partial",
+      "request_fields": [],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "status": "StubPowerGiftStatus_<uuid>"
+      },
+      "rgs_partial_reason": "RGS PowerGiftService.GetPowerGiftStatus 走 power_gift:get_label_status/1 (per power_gift_rpc.erl L25-27), RGS 缺 status enum, v0.2 sprint 实装",
+      "biz_flow_ref": "power_gift_rpc.erl L25-27 (handle/3 23402) + power_gift.erl get_label_status/1"
+    },
+    "23403": {
+      "rpc_code": 23403,
+      "rpc_name_zh": "领取战力礼包奖励",
+      "rgs_backend": "batch-service:8790 + economy-service:50052 + player-service:50051 (跨 batch+economy+player 3 域)",
+      "rgs_rpc": "ClaimPowerGift",
+      "rgs_proto_method": "PowerGiftService.ClaimPowerGift",
+      "gap_status": "Partial",
+      "request_fields": [
+        "id:32"
+      ],
+      "mock_response": {
+        "code": 0,
+        "msg": "ok",
+        "result": true,
+        "id": 0
+      },
+      "rgs_partial_reason": "RGS PowerGiftService.ClaimPowerGift 走 power_gift:gain/2 (per power_gift_rpc.erl L30-36), 跨 batch + economy + player 3 域事务, RGS 缺 gain 业务 + 跨域事务, v0.2 sprint 实装",
+      "biz_flow_ref": "power_gift_rpc.erl L30-36 (handle/3 23403) + power_gift.erl gain/2"
+    }
+  }
+}

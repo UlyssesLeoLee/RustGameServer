@@ -1,0 +1,38 @@
+{
+  "_module_meta": {
+    "module_name": "vip",
+    "module_name_zh": "VIP/充值 (VIP 等级/月卡/累充/等级奖励)",
+    "protocol_id": 167,
+    "module_size_bytes": 1212,
+    "rgs_7domain_route": "economy (主, VipService 6 RPC 全部新) + batch (累充活动) + player (基础信息) + payment-gateway (RGS N/A, 闪烁之光 走第三方支付 RGS TCG 重设计)",
+    "rgs_services": ["EconomyService.VipService"],
+    "total_cmds": 6,
+    "w3_phase": "worker-5",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 6,
+    "not_applicable_count": 0,
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\vip\\vip_rpc.erl (1.2KB, handle/3 6 cmds 16700-16713) + vip.erl (6.3KB, cli_info/push/lev_reward/push2/tired_charge 5 业务函数) + month_card.erl (16.4KB, 月卡 push) + charge.erl (推测, 充值核心)",
+    "rgs_translation": "vip.erl 角色 record 内嵌 + charge:cli_info → RGS economy 域 VipService + sqlx PgVipRepository + 3 表 (vip_levels Master + month_card_subscriptions Transaction + accumulated_charge_rewards Master), 6 RPC 全部新, RGS VipService 待 v0.2 sprint 实装, 闪烁之光 商城/召唤抽卡 跟 RGS TCG 抽卡/开包 不同 (per 12-大类-RPC-清单 §9 决策) 业务模型重设计",
+    "rgs_file_ref": "DDD v0.2 addendum §5.24 L935-946 (vip 6 cmds) + vip_rpc.erl L12-46 handle/3 6 cmds + month_card.erl 16.4KB 月卡核心",
+    "known_gaps": [
+      "6 cmds 全部 NotImplemented (新), RGS 缺 VipService, 6 RPC 1:1 映射待 v0.2 sprint 实装 (per addendum §5.24)",
+      "16700 GetChargeInfo 走 charge:cli_info/1 (per vip_rpc.erl L13) → RGS 充值信息查询 (累计充值 + 首充礼包 + 三日返利), 闪烁之光 走第三方支付 (苹果/微信/支付宝) RGS N/A (web-only per 9/1 13:05 JST), 充值渠道对接待 v0.2 评估 (per addendum §5.24)",
+      "16705 PushMonthlyCardInfo 走 month_card:push/1 1:1 翻译, 月卡推送 (per vip_rpc.erl L17) → RGS month_card_subscriptions Transaction 表, 月卡类型 (普通/至尊/永久) 字段映射待 v0.2 验证 (per addendum §5.24)",
+      "16710 GetVipInfo 走 vip:push/1 1:1 翻译, VIP 信息 (等级/经验/特权) (per vip_rpc.erl L22) → RGS vip_levels Master + player_vip_states Work 2 表横展, VIP 等级 0-15 enum 1:1 翻译待 v0.2 验证 (per addendum §5.24)",
+      "16711 ClaimVipLevelReward 走 vip:lev_reward/2 1:1 翻译, VIP 等级奖励 (per vip_rpc.erl L27-32) → RGS 跨域 economy 发奖 + 跨域 batch 域 (VIP 升级活动), 跨域 saga 整合待 v0.2 验证 (per addendum §5.24)",
+      "16712 GetAccumulatedChargeRewards 走 vip:push2/1 1:1 翻译, 累充奖励信息 (per vip_rpc.erl L36) → RGS accumulated_charge_rewards Master 表, 累充档位 (1元/100元/1000元) 字段映射待 v0.2 验证 (per addendum §5.24)",
+      "16713 ClaimAccumulatedChargeReward 走 vip:tired_charge/2 1:1 翻译, 累充奖励领取 (per vip_rpc.erl L40-46) → RGS 跨域 economy 发奖 (role_gain:do_notice), List 返剩余累充档位 1:1 翻译待 v0.2 验证 (per addendum §5.24)",
+      "VIP 模块 跟 9/1 NFR-29 audit 永久保留 + NFR-32 mTLS 业务级 4 派生约束整合待 v0.2 验证, 16800-16801 跨协议号段 vip/misc 提示 (per W2 worker-1 misc.json 16800-16801, §15.6) 已覆盖, 不重复"
+    ]
+  },
+  "rpcs": {
+    "16700": { "rpc_code": 16700, "rpc_name_zh": "获取充值信息", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetChargeInfo", "rgs_proto_method": "EconomyService.VipService.GetChargeInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "charge_info": { "total_charged": 0, "first_charge_claimed": false, "three_day_rebate_claimed": false, "charge_history": [] } }, "rgs_partial_reason": "RGS GetChargeInfo 1:1 翻译 charge:cli_info/1, total_charged 累计 + first_charge_claimed 首充 + three_day_rebate 三日返利 字段映射待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L12-13 (handle/3) + charge.erl cli_info/1" },
+    "16705": { "rpc_code": 16705, "rpc_name_zh": "推送月卡信息", "rgs_backend": "economy-service:50052", "rgs_rpc": "PushMonthlyCardInfo", "rgs_proto_method": "EconomyService.VipService.PushMonthlyCardInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "month_card": { "type": 0, "expire_at": 0, "daily_reward_claimed": false, "remaining_days": 0 } }, "rgs_partial_reason": "RGS PushMonthlyCardInfo 走 month_card:push/1 1:1 翻译, type enum (1=普通月卡/2=至尊月卡/3=永久卡) 字段映射待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L16-18 (handle/3) + month_card.erl push/1" },
+    "16710": { "rpc_code": 16710, "rpc_name_zh": "VIP 信息", "rgs_backend": "economy-service:50052", "rgs_rpc": "GetVipInfo", "rgs_proto_method": "EconomyService.VipService.GetVipInfo", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "vip_info": { "vip_lev": 0, "vip_exp": 0, "next_lev_exp": 100, "privileges": [] } }, "rgs_partial_reason": "RGS GetVipInfo 走 vip:push/1 1:1 翻译, vip_lev 0-15 + vip_exp + next_lev_exp 字段映射待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L21-23 (handle/3) + vip.erl push/1" },
+    "16711": { "rpc_code": 16711, "rpc_name_zh": "VIP 领取等级奖励", "rgs_backend": "economy-service:50052 + player-service:50051", "rgs_rpc": "ClaimVipLevelReward", "rgs_proto_method": "EconomyService.VipService.ClaimVipLevelReward", "gap_status": "NotImplemented", "request_fields": ["level:8"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "level": 1, "gains": [{ "gain_type": "diamond", "value": 100 }, { "gain_type": "item", "item_id": 6001, "count": 10 }] }, "rgs_partial_reason": "RGS ClaimVipLevelReward 走 vip:lev_reward/2 1:1 翻译, 跨域 economy 发奖 (role_gain:do_notice) + 跨域 player 更新 (var:set_var) 待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L26-32 (handle/3) + vip.erl lev_reward/2" },
+    "16712": { "rpc_code": 16712, "rpc_name_zh": "累充奖励信息", "rgs_backend": "economy-service:50052 + batch-backend:8790", "rgs_rpc": "GetAccumulatedChargeRewards", "rgs_proto_method": "EconomyService.VipService.GetAccumulatedChargeRewards", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "accumulated_rewards": [{ "charge_threshold": 100, "claimed": false, "rewards": [{ "item_id": 6001, "count": 10 }] }, { "charge_threshold": 1000, "claimed": false, "rewards": [{ "item_id": 6002, "count": 5 }] }] }, "rgs_partial_reason": "RGS GetAccumulatedChargeRewards 走 vip:push2/1 1:1 翻译, 跨域 batch 域 (累充活动 task_templates) 字段映射待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L35-37 (handle/3) + vip.erl push2/1" },
+    "16713": { "rpc_code": 16713, "rpc_name_zh": "领取累充奖励", "rgs_backend": "economy-service:50052 + player-service:50051", "rgs_rpc": "ClaimAccumulatedChargeReward", "rgs_proto_method": "EconomyService.VipService.ClaimAccumulatedChargeReward", "gap_status": "NotImplemented", "request_fields": ["id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "msg_zh": "", "id": 5001, "list": [{ "charge_threshold": 100, "claimed": true }] }, "rgs_partial_reason": "RGS ClaimAccumulatedChargeReward 走 vip:tired_charge/2 1:1 翻译, List 返剩余累充档位 1:1 翻译, 跨域 economy 发奖 (role_gain:do_notice) + 跨域 player 更新 (var:set_var) 待 v0.2 验证 (per addendum §5.24)", "biz_flow_ref": "vip_rpc.erl L40-46 (handle/3) + vip.erl tired_charge/2" }
+  }
+}

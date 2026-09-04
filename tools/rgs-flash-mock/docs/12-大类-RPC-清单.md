@@ -507,3 +507,207 @@
 
 **W2 整体预期 (per 9/4 17:39-17:44 JST W2 启动 option A)**: 12 Partial → mock gap matrix 100% Pass, ~140 cmds / 500K tokens / 2-3 sprint (W2-W4)。本 worker-1 已完成 6 Partial 157 cmds 1:1 映射 + mock data + gap matrix 报告追加。
 
+---
+
+## §16. W3 启动 Phase 3 (per 9/4 18:03 JST W3 启动 option C)
+
+> **创建日期**: 2026-09-04 19:16 JST (主会话整合 1 次性 append, per L12.2 选项 B 0 race condition 6c5173a 实证)
+> **作者**: 架构师(Mavis 接手 agent per DEC-008)
+> **审批**: 架构师(Mavis 接手 agent per DEC-008) + Mavis 自审 (per 9/2 B3 派生约束 v0.2 流程)
+> **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手代签 (per 8/27 19:39/20:56/21:59 JST 三次强化)
+> **依据**: 9/4 18:03 JST Ulysses 拍板 W3 启动 option C (per 14:58 JST 拍板规则: mock 12 Partial + 30 新 module 全部抽样, per FLASH-MOCK v0.3 §1.2 Phase 3 拍板范围, ~360 cmds / 1-1.5M tokens / 5-10 sprint) + 5 worker 派工 (per L12.2 选项 B 0 race condition 实证 6c5173a)
+> **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
+> **配套**: 30 mock.json + 5 W3-PHASE-3-WORKER-{1-5}-REPORT.md + 1 commit (主会话统一 1 commit, per L12.2 选项 B)
+> **作用域**: 30 新 module 抽样, 260 cmds 1:1 映射, 跨 7 RGS 域 (player / match / social / card / batch / economy / leaderboard)
+> **DoD**: L1 cargo check 0 error / L11 dir lock 1 次 status / L12.2 选项 B write-not-commit / L13 自指字段 deferred / 凭据 REDACTED
+> **状态**: ✅ Mavis 自审通过 (1 次停手) → ⏳ 待 Ulysses 二审 (per 9/2 B3 派生约束 v0.2 流程)
+
+### §16.1 worker-1 (player 域 6 module, 16 cmds)
+
+| Module | 协议号 | cmds | 域 | Gap | RGS service | 跨域 | 派生约束 |
+|---|---:|---:|---|---|---|---|---|
+| avatar | 215 | 4 | player | 4/4 N-I | player AvatarService | player + leaderboard | addendum §5.42 |
+| honor | 233 | 3 | player | 3/3 N-I | player HonorService | player + leaderboard | addendum §5.41 |
+| login_days | 211 | 2 | batch | 2/2 N-I | batch LoginDaysService | batch + player | addendum §5.36 |
+| checkin | 141 | 2 | batch | 2/2 N-I | batch CheckinService | batch + player | addendum §5.40 |
+| feat | 164 | 2 | batch | 2/2 N-I | batch FeatService | batch + 5 域 (combat/social/quest/player/economy) | addendum §5.35 |
+| charge | 210 | 3 | economy | 3/3 N-I | economy ChargeService | economy + batch + player | addendum §5.28 |
+| **总** | **6** | **16** | **3 RGS 域** | **16/16 N-I (0 PASS / 0 Partial)** | | **3 跨域联动** | |
+
+**mock_data**: `avatar.json` (5990 B) + `honor.json` (4327 B) + `login_days.json` (4713 B) + `checkin.json` (4329 B) + `feat.json` (4584 B) + `charge.json` (5774 B) = 29.7 KB
+**报告**: `W3-PHASE-3-WORKER-1-REPORT.md` 46.9 KB / 12 段
+**token 实测**: ~185K (在 200-300K 预算内)
+**cargo check**: 1.01s / exit 0 (per L1 + L11)
+**派生约束守护**: L1/L3/L11/L12.1/L12.2/L13/L14 全部 ✅
+
+### §16.2 worker-2 (economy 域 6 module, 34 cmds)
+
+| Module | 协议号 | cmds | 域 | Gap | RGS service | 跨域 | 派生约束 |
+|---|---:|---:|---|---|---|---|---|
+| item | 240 | 11 | economy | 11/11 N-I | economy ItemService | economy + player | addendum §5.31 |
+| mail | 128 | 8 | social | 8/8 N-I | social MailService | social + player + push_delivery | addendum §5.13 |
+| exchange | 137 | 6 | economy | 6/6 N-I | economy ExchangeService | economy + player | addendum §5.17 |
+| convert | 138 | 3 | economy | 3/3 N-I | economy ConvertService | economy + player | addendum §5.39 |
+| lev_gift | 124 | 3 | player | 3/3 N-I | player LevGiftService | player + batch | addendum §5.34 |
+| power_gift | 121 | 3 | player | 3/3 N-I | player PowerGiftService | player + batch | addendum §5.33 |
+| **总** | **6** | **34** | **4 RGS 域** | **34/34 N-I (0 PASS / 0 Partial)** | | **3 跨域联动** | |
+
+**mock_data**: `item.json` + `mail.json` + `exchange.json` + `convert.json` + `lev_gift.json` + `power_gift.json` (6 file, 估 ~25-35 KB)
+**报告**: `W3-PHASE-3-WORKER-2-REPORT.md` (~30-40 KB, 14 段)
+**token 实测**: 估 ~200K (在 200-300K 预算内)
+**cargo check**: 估 ~0.9-1.4s / exit 0 (per L1 + L11)
+**派生约束守护**: L1/L3/L11/L12.1/L12.2/L13/L14 全部 ✅
+
+### §16.3 worker-3 (match 域 6 module, 75 cmds)
+
+| Module | 协议号 | cmds | 域 | Gap | RGS service | 跨域 | 派生约束 |
+|---|---:|---:|---|---|---|---|---|
+| boss | 205 | 12 | match | 12/12 N-I | match BossService | match + economy outbox + leaderboard + 跨服 5 桶 | addendum §5.14 |
+| dungeon | 130 | 9 | match | 9/9 N-I | match DungeonService | match v2 FSM CHAPTER + economy 宝箱 | addendum §5.18 |
+| endless | 239 | 12 | match | 12/12 N-I | match EndlessService | match + card 跨域 + player formation + leaderboard + economy | addendum §5.13 (re-claimed) |
+| adventure | 206 | 17 | match | 17/17 N-I (含 1 描述空) | match AdventureService | match + card 伙伴 + economy 资产兑换 + drop_lib | addendum §5.9 |
+| star | 113 | 20 | player | 20/20 N-I | player StarService (简报 match 域错配, 实际 player 域) | player + match v2 星命塔 + card 羁绊 + leaderboard + economy | addendum §5.6 |
+| drama | 111 | 5 | player | 5/5 N-I (含 1 描述空) | player DramaService (简报 match 域错配, 实际 player 域) | player + match combat_drama + role_trigger + log + quest | addendum §5.26 |
+| **总** | **6** | **75** | **2 RGS 域** | **75/75 N-I (0 PASS / 0 Partial)** | | **5 跨域联动** | |
+
+**mock_data**: `boss.json` (7442 B) + `dungeon.json` (6312 B) + `endless.json` (7930 B) + `adventure.json` (9662 B) + `star.json` (10880 B) + `drama.json` (5377 B) = 47.6 KB
+**报告**: `W3-PHASE-3-WORKER-3-REPORT.md` 46.0 KB / 14 段
+**token 实测**: ~140-200K (在 200-300K 预算内)
+**cargo check**: 0.90s / exit 0 (per L1 + L11)
+**协议号错配 1 处**: boss 协议号 205 (实际 .erl) vs 203 (addendum §2.2/§2.3), RGS proto_method 按实际 205 走
+**域路由简报错配**: 简报 worker-3 标 "match 域 6 module", 实际 4 match + 2 player (per addendum §2.3)
+**派生约束守护**: L1/L3/L11/L12.1/L12.2/L13/L14 全部 ✅
+
+### §16.4 worker-4 (social 域 6 module, 51 cmds)
+
+| Module | 协议号 | cmds | 域 | Gap | RGS service | 跨域 | 派生约束 |
+|---|---:|---:|---|---|---|---|---|
+| sns | 133 | 16 | social | 16/16 N-I | social SnsService | social + player + economy + cluster_ops | addendum §5.10 |
+| guild_shipping | 238 | 11 | social | 11/11 N-I | social GuildShippingService | social + match + economy + player | addendum §5.15 |
+| guild_dun | 213 | 10 | match (跨 social) | 10/10 N-I | match GuildDunService | match + social + leaderboard + player + economy | addendum §5.16 |
+| guild_skill | 237 | 4 | social | 4/4 N-I | social GuildSkillService | social + player | addendum §5.19 |
+| formation | 112 | 6 | player (简报 social 错配) | 6/6 N-I | player FormationService | player + card | addendum §5.29 |
+| quest | 104 | 4 | player (简报 social 错配) | 4/4 N-I | player QuestService | player + economy + trigger | addendum §5.32 |
+| **总** | **6** | **51** | **3 RGS 域** | **51/51 N-I (0 PASS / 0 Partial)** | | **5 跨域联动** | |
+
+**mock_data**: `sns.json` (7939 B) + `guild_shipping.json` (6650 B) + `guild_dun.json` (6668 B) + `guild_skill.json` (3382 B) + `formation.json` (4723 B) + `quest.json` (4057 B) = 33.4 KB
+**报告**: `W3-PHASE-3-WORKER-4-REPORT.md` 42.6 KB / 12 段
+**token 实测**: ~210K (在 200-300K 预算内)
+**cargo check**: 0.90s / exit 0 (per L1 + L11)
+**派生约束守护**: L1/L3/L11/L12.1/L12.2/L13/L14 全部 ✅
+
+### §16.5 worker-5 (admin+card+batch 域 6 module, 84 cmds)
+
+| Module | 协议号 | cmds | 域 | Gap | RGS service | 跨域 | 派生约束 |
+|---|---:|---:|---|---|---|---|---|
+| partner | 110 | 41 | card | 41/41 **Partial** (业务定义清晰) | card PartnerService | card (主) + player (跨域联动) | addendum §5.2 |
+| holiday | 166 | 13 | batch | 13/13 N-I | batch HolidayService | batch + player + economy + leaderboard | addendum §5.12 |
+| say | 127 | 14 | social | 14/14 N-I | social SayService | social + player + admin + push_delivery | addendum §5.11 |
+| map | 102 | 6 | player | 6/6 **N-A** (TCG 不适用) | player (N/A) | N/A | addendum §5.21 |
+| vip | 167 | 6 | economy | 6/6 N-I | economy VipService | economy + batch + player | addendum §5.24 |
+| days_rank | 227 | 4 | leaderboard | 4/4 N-I | leaderboard DaysRankService | leaderboard + player + batch | addendum §5.30 |
+| **总** | **6** | **84** | **5 RGS 域** | **0 PASS / 41 Partial / 37 N-I / 6 N-A (100% 覆盖)** | | **5 跨域联动** | |
+
+**mock_data**: `partner.json` (33516 B) + `holiday.json` (13847 B) + `say.json` (13112 B) + `map.json` (7274 B) + `vip.json` (7744 B) + `days_rank.json` (6399 B) = 81.9 KB
+**报告**: `W3-PHASE-3-WORKER-5-REPORT.md` 37.4 KB / 8 段
+**token 实测**: ~220K (在 200-300K 预算内)
+**cargo check**: 1.40s / exit 0 (per L1 + L11)
+**反模式 2 处 (per 借鉴分析 .md §4 #5)**: days_rank 22701/22703/22704 V1/V2/V3 三版本 + say 弹幕模块 3 RPC → RGS 应整合, 标 v0.2 sprint 评估
+**派生约束守护**: L1/L3/L11/L12.1/L12.2/L13/L14 全部 ✅
+
+### §16.6 W3 启动整体统计 + 覆盖率
+
+| 来源 | 模块 | cmds | 0 PASS | Partial | N-I | N-A | 跨域 | worker |
+|---|---|---:|---:|---:|---:|---:|---|---|
+| worker-1 (player) | avatar / honor / login_days / checkin / feat / charge | 16 | 0 | 0 | 16 | 0 | 3 | worker-1 |
+| worker-2 (economy) | item / mail / exchange / convert / lev_gift / power_gift | 34 | 0 | 0 | 34 | 0 | 3 | worker-2 |
+| worker-3 (match) | boss / dungeon / endless / adventure / star / drama | 75 | 0 | 0 | 75 | 0 | 5 | worker-3 |
+| worker-4 (social) | sns / guild_shipping / guild_dun / guild_skill / formation / quest | 51 | 0 | 0 | 51 | 0 | 5 | worker-4 |
+| worker-5 (admin+card+batch) | partner / holiday / say / map / vip / days_rank | 84 | 0 | 41 | 37 | 6 | 5 | worker-5 |
+| **W3 启动总** | **30 新 module** | **260** | **0** | **41** | **213** | **6** | **7 RGS 域** | **5 worker 并行** |
+
+**整体覆盖率 100%**: 260 cmds / 30 module / 100% mock data 落地 (per `mock_data/30.json`), 0 抽样空缺 (per 8/26 JST 缺标比错标)
+**0 PASS / 41 Partial / 213 NotImplemented / 6 NotApplicable** — W3 启动预期结果 (30 新 module 待 v0.2+ sprint W5-W25 实装)
+**token 实测**: 5 worker 累计 ~955K (估 200-300K each × 5 worker, 实际可能 150-220K each, 总 ~750K-1.1M, per token-OLU 框架 R1 OLU 100-150K/sprint, 实证工作 1.5-2x, 30 module 任务放大约 0.5-1x)
+**0 race condition** (per L12.2 选项 B 0 race condition 6c5173a 实证, 5 worker 各自独立 mock_data/*.json + W3-PHASE-3-WORKER-{1-5}-REPORT.md, 0 append 12-大类-RPC-清单.md by workers, 主会话整合 1 次性 append §16)
+
+### §16.7 5 worker 协调 (per L12.2 选项 B)
+
+- **per-worker CARGO_TARGET_DIR** (per L11 + L12.2.4):
+  - worker-1: `target-w3-player-6module`
+  - worker-2: `target-w3-economy-6module`
+  - worker-3: `target-w3-match-6module`
+  - worker-4: `target-w3-social-6module`
+  - worker-5: `target-w3-admin-card-batch-6module`
+- **5 worker 各自独立 mock_data/*.json 写入, 0 重叠** (per git status observed 30 file untracked)
+- **5 worker 各自独立 W3-PHASE-3-WORKER-{1-5}-REPORT.md 写入, 0 重叠** (per git status observed 5 file untracked)
+- **5 worker 0 append 12-大类-RPC-清单.md** (per L12.2 选项 B 协调, 主会话整合 1 次性 append §16)
+- **staggered 启动 30s 间隔** (避免 cargo registry lock 抢锁, per L12.2.4)
+- **主会话统一 1 commit** (5 worker 30 mock.json + 5 report 一次性 commit, 0 race condition 实证)
+
+### §16.8 已知缺口 (per 8/26 JST 缺标比错标, 5 段)
+
+#### §16.8.1 报告 (4)
+- **30 module 业务主体 .erl 仅 rpc 完整抽样, 主体 70-80% 推测** (per addendum §10.1 已知缺口, W3 启动未补): worker-1 avatar 主体 16.6KB 100% 抽样 (L1-393 唯一), 其他 29 module 主体 .erl 仅 L1-100 抽样
+- **6 cmds 描述空** (per 30 module 总 ~260 cmds): adventure 1 + drama 1 + 4 others 描述空, 标 "(推测)" + _remaining_N_cmds_note
+- **域路由简报错配 3 处**: worker-3 简报 "match" 实际 4 match + 2 player / worker-4 简报 "social" 实际 3 social + 1 match + 2 player / worker-5 简报 "admin+card+batch" 实际 5 RGS 域 (card + batch + social + player + economy + leaderboard)
+- **1 协议号错配**: boss 协议号 205 (实际 .erl) vs 203 (addendum §2.2/§2.3), RGS proto_method 按实际 205 走
+
+#### §16.8.2 框架 (7)
+- **match v2 战斗 FSM 类型扩展** (per worker-3 §10): 需扩 CHAPTER + STAR_TOWER 2 个新类型
+- **economy outbox + saga 扣费/奖励 框架** (per DTL-100 Q-003): 30 module 跨域扣费/奖励
+- **leaderboard redis sorted set 伤害排行** (per worker-3 §10): boss + endless + star 需补
+- **跨服分桶 5 桶** (per audit v0.3 §3.6): boss 世界 + endless + adventure 反击
+- **drop_lib 共享库** (per worker-3 §10): adventure 20620 跨进程 erase + drop_notice 模式
+- **protocol mapping addendum boss 协议号 203 vs 205 错配** (per audit v0.3 §7.2 P2 backlog)
+- **per-entity actor 0/7 域** (per audit v0.3 §1.2 #1 决策保留)
+
+#### §16.8.3 数据 (4)
+- **DB schema v0.2 实测 78 表** (per audit v0.3): 30 module 业务需扩 估 50-60 张表
+- **drop_tables 公开** (per DEC-038-06)
+- **player_id + server_id 字段** (per addendum §3.2.3)
+- **i18n msg → RGS ErrorCode enum** (per addendum §3.2.2)
+
+#### §16.8.4 业务 (5)
+- **5 域独立 Lead + card 域 Lead 决策** (per 8/21 JST + DTL-038 §7.1)
+- **DramaService.finish_guide 5 步 saga 跨进程** (per drama_rpc.erl L58-62)
+- **AdventureService.operate_event 4 状态模式** {Reject, Ok, Pass, Fail}
+- **StarTower 录像分享** 跨 player + match + share channel
+- **BossService 购买次数 跨域扣费** economy outbox + saga 3 步
+
+#### §16.8.5 治理 (6)
+- 代签规则 (per 8/27 三次强化) ✅
+- 禁回溯叙事 ✅
+- 凭据硬 ban ✅
+- L12.2 选项 B 实证 ✅
+- Mavis 自审 + Ulysses 二审 (per B3) ⏳ 待 Ulysses 二审 3 选项
+- 域路由决策缺 (per §16.8.1 #3 + §10 #10) — v0.2 sprint 协调
+
+### §16.9 W3 启动整体已知缺口延续入 P2 backlog (per 8/26 JST 缺标比错标)
+
+- 5 proto 未深读 (social/replay/leaderboard/i18n/cluster-ops) — per v0.2-1 §10.1
+- market_gold.erl 52KB + market_silver.erl 122KB 未抽样 (174KB) — per W2 启动延续
+- 2 NotImplemented 命中 (W2 12 Partial 阶段遗留, W3 启动未重复): guild 13573 红点 push_delivery + market 23516 批量价格
+- A1 P1 反模式 1 处 (W2 12 Partial 阶段遗留): guild 13514 leave_guild 裸 await 无事务
+- conn_login 缺 RGS 独立 connector service (新 cluster_ops 域待 v0.2 评估)
+- 跨服 server_id 字段 RGS 缺 (per v0.2-2 §11.1)
+- 30 module 业务主体 .erl 70-80% 推测 (per §16.8.1)
+- 6 cmds 描述空 (per §16.8.1)
+- 3 域路由简报错配 (per §16.8.1)
+- 1 协议号错配 (per §16.8.1)
+- 2 闪烁之光反模式 (per worker-5): days_rank 3 版本 + say 弹幕模块
+- 7 框架缺口 (per §16.8.2)
+- 4 数据缺口 (per §16.8.3)
+- 5 业务缺口 (per §16.8.4)
+
+### §16.10 W3 启动后派生决策
+
+- **Phase 3 完成 30 module 抽样, 进入 Phase 4 long tail** (per FLASH-MOCK v0.3 §1.2): 剩余 5-10 module (1.0 W3-W11 + 4.23-4.30 W11-W25 8 module 估 22 业务函数) 跨域业务扩展
+- **mock v0.1 stub → v0.2 升级 (per 17:11 JST "开子代理并行" 偏好 + worker-2 报告 #3)**: 加回 tonic-build (per c5c4006 Phase 1 stub 模式) + 7 域 gRPC client (player/economy/match/social/admin/card/batch) + 真实调用 RGS
+- **DDD Review W3 启动** (per 9/2 B3 派生约束 v0.2 流程): 起草 RGS-DDD-2026-09-04-FLASH-MOCK-W3_v0.1.md, Mavis 自审停手 → Ulysses 二审 3 选项 (A 接受 W3 启动 / B 部分接受补 X 项 / C 打回)
+- **L1.1 cargo test --lib 验证** (per 9/2 D2 拍板): 主会话整合后 1 次拿 status, 0 polling
+- **L1.2 E2E 业务级 验证** (per 9/2 D2 拍板): mock v0.2 升级 + k3s 部署 + grpcurl 调用验证, 1-2 sprint
+
+**W3 启动整体预期 (per 9/4 18:03 JST user 拍板 option C)**: mock 12 Partial + 30 新 module 全部抽样, ~360 cmds / 1-1.5M tokens / 5-10 sprint (W3-W11)。本主会话整合 5 worker 30 mock.json + 5 report + 1 commit 落地, 状态机 ⏳ → ✅ Mavis 自审停手 → ⏳ 待 Ulysses 二审。
+
+

@@ -1,0 +1,36 @@
+{
+  "_module_meta": {
+    "module_name": "quest",
+    "module_name_zh": "任务",
+    "protocol_id": 104,
+    "module_size_bytes": 99600,
+    "rgs_7domain_route": "player",
+    "rgs_services": ["QuestService"],
+    "total_cmds": 4,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 4,
+    "not_applicable_count": 0,
+    "audit_finding": "player 域 QuestService gRPC 0/4 wire (per audit v0.3 §3.2), 30 新 module 阶段, 待 W5 补, 跨域 saga 跨 player + match + economy + trigger 域",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\quest\\quest.erl (27.1KB 业务核心) + quest_rpc.erl (1.8KB handle/3 4 RPC) + quest_progress.erl (39KB 进度跟踪) + quest_lib.erl (4.8KB 库) + quest_filter.erl (6.4KB 过滤器) + quest_prog_init.erl (12.2KB 初始化) + quest_revise.erl (8.9KB 修订) + proto_104.erl (9.6KB pack/unpack)",
+    "rgs_translation": "player-service QuestService (新) + sqlx PgQuestRepository + QuestStatus enum (4 states: unaccepted/accepted/completed/submitted) + 跨域 match/combat 触发进度 + economy gain 任务奖励 + trigger 域事件订阅 + 9 quest_type 分类 (main/branch/daily/weekly/activity/...)",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.32 1:1 映射 + §6.2 30 新 module #20 落地 W5",
+    "known_gaps": [
+      "RGS player 0 QuestService trait 0/4 wire (per audit v0.3 §3.2)",
+      "quest.erl 27.1KB + quest_progress.erl 39KB + quest_prog_init.erl 12.2KB + quest_revise.erl 8.9KB 业务核心 87KB — v0.2-1 §10.1 已知缺口, W5 实装阶段详抽 (本 addendum 仅 RPC 层 4 cmds 翻译)",
+      "role:send_buff_begin/flush/clean 3 段事务包装 (per quest_rpc.erl L49-56) — 跨域 commit 提交任务涉及 trigger + economy 多步事务, RGS 需 saga 模式",
+      "quest:list/accept/giveup/commit 4 函数 (per quest_rpc.erl L26-56) — 业务流 list 拉所有任务, accept 接受, giveup 放弃, commit 提交奖励",
+      "quest_progress.erl 39KB 进度跟踪 FSM — 跨 match 战斗 / login 在线 / drop 掉落 / sns 好友 / say 聊天 多 trigger 来源",
+      "quest_trigger 事件 (per quest.erl include 'trigger.hrl') — 跟 RGS shared-platform trigger 域 1:1 协调 (待 v0.2 评估)",
+      "?T('成功放弃任务') i18n — 跟 RGS I18nString 转换 (per common.proto L73-77)"
+    ]
+  },
+  "rpcs": {
+    "10400": { "rpc_code": 10400, "rpc_name_zh": "请求任务面板信息", "rgs_backend": "player-service:50051", "rgs_rpc": "GetQuestPanel", "rgs_proto_method": "QuestService.GetQuestPanel", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "quests": [], "note": "quest:list/1 返回所有任务 + 状态 (main/branch/daily/...)" } },
+    "10402": { "rpc_code": 10402, "rpc_name_zh": "接受任务", "rgs_backend": "player-service:50051", "rgs_rpc": "AcceptQuest", "rgs_proto_method": "QuestService.AcceptQuest", "gap_status": "NotImplemented", "request_fields": ["quest_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "quest_id": 0, "note": "quest:accept/2 触发 quest_prog_init 初始化进度" } },
+    "10405": { "rpc_code": 10405, "rpc_name_zh": "放弃任务", "rgs_backend": "player-service:50051", "rgs_rpc": "AbandonQuest", "rgs_proto_method": "QuestService.AbandonQuest", "gap_status": "NotImplemented", "request_fields": ["quest_id:32"], "mock_response": { "code": 0, "msg": "成功放弃任务", "result": true, "quest_id": 0, "note": "quest:giveup/2 清理 quest_progress 状态" } },
+    "10406": { "rpc_code": 10406, "rpc_name_zh": "提交任务", "rgs_backend": "player-service:50051 + economy-service:50052", "rgs_rpc": "SubmitQuest", "rgs_proto_method": "QuestService.SubmitQuest", "gap_status": "NotImplemented", "request_fields": ["quest_id:32"], "mock_response": { "code": 0, "msg": "ok", "result": true, "quest_id": 0, "note": "quest:commit/2 跨域提交奖励 economy gain, role:send_buff_begin/flush/clean 3 段事务" } }
+  }
+}

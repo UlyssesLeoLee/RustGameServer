@@ -61,6 +61,16 @@ target-r1-*/**
 target-w2-*/
 target-w2-*/**
 
+# W3 启动 5 worker per-worker build dir (per 2026-09-04 18:03 JST W3 启动 Phase 3)
+# worker-1: $env:CARGO_TARGET_DIR = "target-w3-player-6module"
+# worker-2: $env:CARGO_TARGET_DIR = "target-w3-economy-6module"
+# worker-3: $env:CARGO_TARGET_DIR = "target-w3-match-6module"
+# worker-4: $env:CARGO_TARGET_DIR = "target-w3-social-6module"
+# worker-5: $env:CARGO_TARGET_DIR = "target-w3-admin-card-batch-6module"
+# 派工结束必须清理, .gitignore 兜底防未清理污染 git status
+target-w3-*/
+target-w3-*/**
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)

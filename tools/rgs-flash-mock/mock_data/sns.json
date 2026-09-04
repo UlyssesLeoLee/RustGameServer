@@ -1,0 +1,49 @@
+{
+  "_module_meta": {
+    "module_name": "sns",
+    "module_name_zh": "好友",
+    "protocol_id": 133,
+    "module_size_bytes": 47000,
+    "rgs_7domain_route": "social",
+    "rgs_services": ["SnsService"],
+    "total_cmds": 16,
+    "w3_phase": "worker-4",
+    "gap_status_overall": "NotImplemented",
+    "pass_count": 0,
+    "partial_count": 0,
+    "not_implemented_count": 16,
+    "not_applicable_count": 0,
+    "audit_finding": "social 域 SnsService gRPC 0/16 wire (per RGS-DDD-GAP-AUDIT v0.3 §3.4 D10), 30 新 module 阶段, 待 W5 补",
+    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\sns\\sns_rpc.erl (4.3KB) + friend.erl (27.7KB gen_server) + friend_mgr.erl (6.7KB ets) + sns_black.erl (4KB) + friend_lib.erl (2.4KB) + friend_cross.erl (1.4KB) + proto_133.erl (30KB pack/unpack)",
+    "rgs_translation": "social-service SnsService (新) + sqlx PgSnsRepository + DashMap<Uuid, Friend> in-memory 缓存 + NATS push_delivery for red_dot (per audit v0.3 §3.4 push_delivery 22KB 模式)",
+    "rgs_file_ref": "RGS-DDD v0.2 addendum §5.10 1:1 映射 + §3.2.9 sns 好友模式 + §6.2 30 新 module #8 落地 W5",
+    "known_gaps": [
+      "RGS social 0 SnsService trait 0/16 wire (per audit v0.3 §3.4 D10)",
+      "friend.erl friend:req_add/reply_add/del/present/batch_* 8+ 函数未 1:1 翻译 (per sns_rpc.erl L20-126)",
+      "RGS 0 m_friend record 22 字段 (per friend.hrl + proto_133.erl L25-96 friend_tmp 23 字段) — 需 v0.2 sprint 评估 friend entity schema",
+      "friend_cross.erl 跨服好友 1.4KB (per addendum §3.2.9 cross-srv_id 处理) — 跟 v0.2 cluster_ops 域协调",
+      "sns_black.erl 黑名单 4KB (13330/13332/13333) — 跟 RGS social service 黑名单 list 整合",
+      "role_misc:check_cd(rpc_13314, 1000) 1s 冷却 (per sns_rpc.erl L70-75) — RGS 应映射为 rate limit 中间件",
+      "var:get_var(Role, five, ?var_day_five_friend_present_max, ...) 5 点刷新 (per sns_rpc.erl L15-16) — 跟 batch domain cron 0/5 点刷新协调",
+      "RGS 缺 friend_req_list ets 全局缓存 (per sns_rpc.erl L61 + L65 erase) — 跟 5 域跨服 push_delivery 整合"
+    ]
+  },
+  "rpcs": {
+    "13300": { "rpc_code": 13300, "rpc_name_zh": "获取好友信息", "rgs_backend": "social-service:50054", "rgs_rpc": "GetFriendList", "rgs_proto_method": "SnsService.GetFriendList", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "present_count": 0, "draw_count": 0, "draw_all": 50, "friend_list": [] } },
+    "13303": { "rpc_code": 13303, "rpc_name_zh": "增加好友请求", "rgs_backend": "social-service:50054", "rgs_rpc": "SendFriendRequest", "rgs_proto_method": "SnsService.SendFriendRequest", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string"], "mock_response": { "code": 0, "msg": "ok", "result": true, "request_msg": "请求已发送" } },
+    "13305": { "rpc_code": 13305, "rpc_name_zh": "B回复A加好友申请", "rgs_backend": "social-service:50054", "rgs_rpc": "HandleFriendRequest", "rgs_proto_method": "SnsService.HandleFriendRequest", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string", "agreed:8"], "mock_response": { "code": 0, "msg": "ok", "rid": 0, "srv_id": "", "result": true } },
+    "13306": { "rpc_code": 13306, "rpc_name_zh": "批量增加好友", "rgs_backend": "social-service:50054", "rgs_rpc": "BatchAddFriends", "rgs_proto_method": "SnsService.BatchAddFriends", "gap_status": "NotImplemented", "request_fields": ["ids:array<{rid,srv_id}>"], "mock_response": { "code": 0, "msg": "请求已发送，请耐心等待", "result": true } },
+    "13307": { "rpc_code": 13307, "rpc_name_zh": "删除好友", "rgs_backend": "social-service:50054", "rgs_rpc": "RemoveFriend", "rgs_proto_method": "SnsService.RemoveFriend", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string"], "mock_response": { "code": 0, "msg": "删除成功", "rid": 0, "srv_id": "", "result": true } },
+    "13309": { "rpc_code": 13309, "rpc_name_zh": "批量删除好友 (V2)", "rgs_backend": "social-service:50054", "rgs_rpc": "BatchRemoveFriends", "rgs_proto_method": "SnsService.BatchRemoveFriends", "gap_status": "NotImplemented", "request_fields": ["ids:array<{rid,srv_id}>"], "mock_response": { "code": 0, "msg": "ok", "del_ids": [] } },
+    "13311": { "rpc_code": 13311, "rpc_name_zh": "获取好友申请列表", "rgs_backend": "social-service:50054", "rgs_rpc": "ListFriendRequests", "rgs_proto_method": "SnsService.ListFriendRequests", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "friend_req_list": [] } },
+    "13312": { "rpc_code": 13312, "rpc_name_zh": "一键清空好友申请列表", "rgs_backend": "social-service:50054", "rgs_rpc": "ClearAllFriendRequests", "rgs_proto_method": "SnsService.ClearAllFriendRequests", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "result": true } },
+    "13314": { "rpc_code": 13314, "rpc_name_zh": "查找角色", "rgs_backend": "social-service:50054", "rgs_rpc": "SearchRole", "rgs_proto_method": "SnsService.SearchRole", "gap_status": "NotImplemented", "request_fields": ["name:string"], "mock_response": { "code": 0, "msg": "ok", "roles": [], "note": "role_misc:check_cd(rpc_13314,1000) 1s 冷却待 rate limit 中间件协调" } },
+    "13316": { "rpc_code": 13316, "rpc_name_zh": "好友体力赠送", "rgs_backend": "social-service:50054", "rgs_rpc": "SendStamina", "rgs_proto_method": "SnsService.SendStamina", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string", "type:8"], "mock_response": { "code": 0, "msg": "ok", "rid": 0, "srv_id": "", "present_count": 0, "draw_count": 0, "result": true, "type": 0, "present": 0, "draw": 0 } },
+    "13317": { "rpc_code": 13317, "rpc_name_zh": "一键赠送", "rgs_backend": "social-service:50054", "rgs_rpc": "BatchSendStamina", "rgs_proto_method": "SnsService.BatchSendStamina", "gap_status": "NotImplemented", "request_fields": ["type:8", "ids:array<{rid,srv_id}>"], "mock_response": { "code": 0, "msg": "ok", "type": 0, "list": [] } },
+    "13320": { "rpc_code": 13320, "rpc_name_zh": "获取好友推存", "rgs_backend": "social-service:50054", "rgs_rpc": "GetFriendRecommend", "rgs_proto_method": "SnsService.GetFriendRecommend", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "recommend_list": [], "note": "role_misc:check_cd(rpc_13320,1000) 1s 冷却待 rate limit 协调" } },
+    "13330": { "rpc_code": 13330, "rpc_name_zh": "获取黑名单列表信息", "rgs_backend": "social-service:50054", "rgs_rpc": "ListBlacklist", "rgs_proto_method": "SnsService.ListBlacklist", "gap_status": "NotImplemented", "request_fields": [], "mock_response": { "code": 0, "msg": "ok", "blacklist": [] } },
+    "13332": { "rpc_code": 13332, "rpc_name_zh": "增加黑名单", "rgs_backend": "social-service:50054", "rgs_rpc": "AddBlacklist", "rgs_proto_method": "SnsService.AddBlacklist", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string"], "mock_response": { "code": 0, "msg": "ok", "rid": 0, "srv_id": "", "result": true } },
+    "13333": { "rpc_code": 13333, "rpc_name_zh": "删除黑名单", "rgs_backend": "social-service:50054", "rgs_rpc": "RemoveBlacklist", "rgs_proto_method": "SnsService.RemoveBlacklist", "gap_status": "NotImplemented", "request_fields": ["rid:32", "srv_id:string"], "mock_response": { "code": 0, "msg": "ok", "rid": 0, "srv_id": "", "result": true } },
+    "13334": { "rpc_code": 13334, "rpc_name_zh": "一键同意好友申请", "rgs_backend": "social-service:50054", "rgs_rpc": "BatchAcceptFriendRequests", "rgs_proto_method": "SnsService.BatchAcceptFriendRequests", "gap_status": "NotImplemented", "request_fields": ["ids:array<{rid,srv_id}>"], "mock_response": { "code": 0, "msg": "ok", "del_ids": [] } }
+  }
+}
