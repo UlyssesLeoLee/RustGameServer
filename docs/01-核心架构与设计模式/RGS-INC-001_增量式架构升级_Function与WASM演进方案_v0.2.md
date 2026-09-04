@@ -3,9 +3,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-INC-001 |
-| 版本 | v0.2（v0.1 勘误） |
-| 修订 | v0.2 / 2026-08-23 / 架构师 / **勘误**：① §1.4 / §1.5 / §2 现状基线与 K3s 实际部署状态对齐（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/08-measure-env-setup.log`）② §23 插入 Phase 0.5「5 业务域 K3s 部署基线」硬阻塞（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/07-no-go-checklist_business_v0.1.md`） |
-| 制定日 | 2026-08-23 |
+| 版本 | v0.3（v0.2 + admin COC §X 集成设计增补） |
+| 修订 | v0.2 / 2026-08-23 / 架构师 / **勘误**：① §1.4 / §1.5 / §2 现状基线与 K3s 实际部署状态对齐（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/08-measure-env-setup.log`）② §23 插入 Phase 0.5「5 业务域 K3s 部署基线」硬阻塞（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/07-no-go-checklist_business_v0.1.md`）<br/>v0.3 / 2026-09-04 / 架构师(Mavis 接手 agent per DEC-008) / **精准升版**：① §5 WASM-CAND-003 `admin.audit.policy` 升 P2 → P0（per Ulysses 2026-09-04 20:03 JST 拍板 + admin 域 Lead RACI 拍板待补签）② 新增 §X《admin COC WASM 集成设计》(9 段: 集成点 file:line / 决策 schema / 集成设计 / Registry SHA-256 / second_review 表 / 7 条护栏 / 反例 / admin 域 Lead 拍板栏 / 已知缺口) ③ X.9 显式列 8 类已知缺口（per 8/26 JST 缺标比错标） ④ 其他 §0-§4 / §6-§27 全文**未**做一致性同步（按精准升版拍板，v0.2 → v0.3 增量升版，非整版替换） |
+| 制定日 | 2026-08-23（v0.2 制定日；v0.3 升版日 2026-09-04 JST）|
 | 制定者 | 架构师（草案，待 5 域 Lead + SRE + 安全联合评审） |
 | 对应架构方针 | ARC-014（中间件导入判定基准）、ARC-021（故障隔离）、ARC-026（OLU 预算 / NFR-OP-010）、ARC-005（session_epoch Single-Writer）、ARC-007（运行时不直访业务 DB）、ARC-008（5 独立 DB 限界上下文） |
 | 关联 ADR | ADR-0008（中间件导入判定基准）、ADR-0020（拒绝动态链接库加载，**显式记录 WASM 为未来升级路径**——本方案兑现该 ADR 留口）、ADR-0025（OLU 预算） |
@@ -281,7 +281,7 @@ Client (QUIC 边缘 / 长连接)
 |---|---|---|---|---|---|---|---|
 | WASM-CAND-001 | `economy.commission.rule` | economy-service 中"手续费 / 抽成"规则 | economy 域本地嵌入 | 数值 + 玩家类型 → 手续费率 | Rhai 仍可替代实现；WASM 提供版本热升级 | 低 | **P0 PoC** |
 | WASM-CAND-002 | `match.ranking.elo` | match-service 段位算法 | match 域本地嵌入 | 双人 ELO 数据 → 新 ELO | Rhai | 低 | P1 |
-| WASM-CAND-003 | `admin.audit.policy` | admin-service COC 策略（封禁/解封规则） | admin 域本地嵌入 | actor + action + context → 决策 | Rhai | 中（COC 是高敏） | P2 |
+| WASM-CAND-003 | `admin.audit.policy` (v0.3 升 P0) | admin-service COC 策略（封禁/解封规则） | admin 域本地嵌入 | actor + action + context → 决策（Allow / RequireSecondReview / Deny）| Rhai 仍可替代；WASM 提供版本热升级 + 决策可重放 | 中（COC 是高敏，per §X 集成设计 7 条护栏 + WASM in-process only） | **P0 PoC** |
 | WASM-CAND-004 | `social.guild.contribution` | social-service 公会贡献计算 | social 域本地嵌入 | 成员 + 时段 → 贡献度 | Rhai | 低 | P2 |
 | WASM-CAND-005 | `economy.anti_cheat.heuristic` | economy-service 反作弊启发式 | economy 域本地嵌入 | 交易序列 → 风险分 | 独立于 Rhai（专用工具） | 中 | P3 |
 
@@ -299,6 +299,205 @@ Client (QUIC 边缘 / 长连接)
 - 大量数据 I/O（应走 Function Container）
 - 状态机 / 长生命周期（应走 always-on service）
 - 实时路径同步处理（per §4 + §17）
+
+**v0.3 增补**：WASM-CAND-003 `admin.audit.policy` 从 P2 升 P0，详细集成设计见 §X。
+
+---
+
+## X. 交付物 ⑤.bis《admin COC WASM 集成设计》(v0.3 增补, WASM-CAND-003 P0 升版)
+
+> **本章目的**：WASM-CAND-003 `admin.audit.policy` 升 P0 后的集成设计、决策契约、护栏、版本回滚与 admin 域 Lead 拍板栏。
+>
+> **依据**：OPEN-QA v0.2 §4.1 Q1 决策（gm_handlers RBAC: handler 入口补, 不下沉 trait）+ ADR-0020 §3.2（WASM 升级路径兑现）+ ARC-005/006/007/008（admin 域硬约束）。
+>
+> **本章范围**：仅 admin COC 决策路径（封禁 / 解封 / 禁言 / 设备封存 / 高额补偿复核）；**不**扩展到 §5 表格中其他 WASM-CAND 候选（各自独立 v0.x 升版）。
+
+### X.1 集成点（精确到 file:line）
+
+按 `crates/admin-service/src/gm_handlers.rs::ban_account` (line 79-129) 现状，WASM 决策仅插在 **handler 入口 RBAC 通过后、audit_log 落库前**：
+
+```
+gm_handlers.rs::ban_account  (line 79)
+├─ 1. JWT 解析 → admin_id                       (line 83)         — 不动
+├─ 2. require_coc_role("player.ban")            (line 84)         — 不动
+├─ 3. ★ NEW: WasmHost.call("coc.policy", ...)                   — v0.3 增补
+│      input:  {actor_id, action, target_id, context, trace_id}
+│      output: {decision: Allow|RequireSecondReview|Deny, reason, params_hash, module_version}
+├─ 4. RequireSecondReview → 写 second_review 表 → 异步通知 SuperAdmin
+├─ 5. Deny  → 写 audit_log (decision=denied) → 返 Status::permission_denied
+├─ 6. Allow → 继续执行原 Rust 路径
+└─ 7. audit_log.append (line 113)               — 不动, 但 payload 必带 decision/module_version/params_hash
+```
+
+**关键原则**：
+- **WASM 只做 advice**，真正写库仍走 Rust 现有路径（`gm_handlers.rs:113-120` SHA-256 链）
+- **handler 入口 + RBAC + audit 链 100% 不动**（与 OPEN-QA v0.2 §Q1 一致）
+- **决策结果必落 audit_log**，4 字段：`decision` / `module_version` / `module_hash` / `params_hash`
+
+### X.2 决策契约（coc.policy 决策 schema）
+
+```rust
+// host 端定义（伪代码）
+#[derive(Serialize, Deserialize)]
+pub struct CocPolicyInput {
+    pub actor_id: Uuid,         // 操作者 admin_id (line 83 解析)
+    pub action: String,         // "player.ban" / "player.unban" / "economy.grant" / ...
+    pub target_id: String,      // 目标 account_id / 设备 id / ...
+    pub context: serde_json::Value,  // 决策上下文（玩家最近 N 次封禁 / 操作时间 / 金额 / ...）
+    pub trace_id: String,       // OTel trace_id (per §3.3 透传)
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CocPolicyOutput {
+    pub decision: CocDecision,  // Allow | RequireSecondReview | Deny
+    pub reason: String,         // 决策理由（落 audit_log 用）
+    pub module_version: String, // 当前加载 module 版本（per §X.5）
+    pub module_hash: String,    // 当前加载 module SHA-256（per §X.4）
+    pub params_hash: String,    // input 序列化 SHA-256（per §X.4 决策可重放）
+}
+
+pub enum CocDecision {
+    Allow,                  // 直接执行（写 audit_log 走原 Rust 路径）
+    RequireSecondReview,    // 需 SuperAdmin 二审（写 second_review 表 + 异步通知）
+    Deny,                   // 拒绝（写 audit_log decision=denied + 返 permission_denied）
+}
+```
+
+**三态语义锁定**：
+- **Allow** = 走 Rust 现有 audit_log 落库路径
+- **RequireSecondReview** = 写 `second_review` 表 + NATS `rgs.ad.review.requested` 异步通知 SuperAdmin（**不**立即执行操作）
+- **Deny** = 写 audit_log（decision=denied） + 返 `tonic::Status::permission_denied`（**不**写 `second_review`，**不**执行操作）
+
+### X.3 集成设计（按 §8.3 capability 白名单 + §21 stateless 强制）
+
+| 维度 | 约束 | 引用 |
+|---|---|---|
+| **沙箱能力** | 仅 §8.3 host-imports 可用（`host_log` / `host_publish_event` / `host_get_state` / `host_set_state` / `host_query_db` / `host_get_secret` / `host_call_service` / `host_now` / `host_random` / `host_log_trace`） | §8.3 |
+| **数据访问** | WASM 调 `host_query_db` 时 `query_id` 必须在 Registry 登记的白名单（per §8.3 `ApprovedDomainQuery`） | §8.3 |
+| **禁能力** | `open` / `read` / `write` / `socket` / `exec` / `proc` 全部 `unavailable` | §8.3 |
+| **状态** | 强制 stateless — 不能持有跨调用 mutable 状态；所有状态走 `host_get_state` / `host_set_state`（持久在 Registry 后端 PG） | §21 |
+| **不能落库** | WASM 不可直接写 `audit_log` / `second_review` 等业务表，**仅**返 decision；真正写库由 Rust 调 `state().audit_log.append(...)` 走 SHA-256 链 | ARC-006 / §21 |
+| **路径** | **仅** WASM in-process 嵌入（admin 域本地 pool），**禁** Function-as-Pod 冷启动 + HTTP webhook + 远端 WASM 调用 | §3.2 / §4 / X.6 |
+| **资源 cap** | 单 function ≤ 2 vCPU / 2GB；WASM module < 1MB；单次执行 < 50ms | §17 / X.6 |
+| **trace** | 调用前 `host_log_trace(trace_id)`；WASM 内部 `host_log` 必带 trace_id（透传 OTel） | §3.3 |
+| **回滚** | 保留 ≥ 2 历史 module 版本；SuperAdmin 触发回滚只换 module 不重启 svc（秒级生效） | §25 |
+
+### X.4 Registry 写入与 SHA-256 校验
+
+按 §15 Function Registry + ADR-0020 §3.1 教训，WASM module 注册必须满足：
+
+```sql
+-- cluster_ops_db.function_registry (per §15)
+CREATE TABLE function_registry (
+    function_id     TEXT NOT NULL,           -- "admin.coc.policy"
+    version         TEXT NOT NULL,           -- "v1" / "v2" / ...
+    module_sha256   TEXT NOT NULL,           -- SHA-256 of .wasm bytes
+    status          TEXT NOT NULL,           -- "active" / "rollback" / "disabled"
+    prev_version    TEXT,                    -- 回滚目标
+    uploaded_by     UUID NOT NULL,           -- admin_id (SuperAdmin)
+    uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (function_id, version)
+);
+```
+
+**注册流程**（admin 域 Lead + SuperAdmin 联合）：
+1. SuperAdmin 上传 .wasm module（`gm-backend` 走 RBAC `function.upload` 入口）
+2. 计算 `module_sha256 = SHA-256(.wasm bytes)`
+3. 写 `function_registry` 表 + `audit_log`（action=function.upload, payload=module_sha256）
+4. 加载时 `WasmHost.load()` 校验 `module.hash == function_registry.module_sha256`，**不一致直接 fail-closed + 告警**
+
+**回滚流程**：
+1. SuperAdmin 触发 `function.rollback`（RBAC 强制 `function.rollback` 角色）
+2. 更新 `function_registry.status = 'rollback'`，`prev_version` 指向目标版本
+3. WasmHost pool 自动 reload（秒级生效，**不**重启 svc）
+4. 写 `audit_log`（action=function.rollback, payload=from_version + to_version）
+
+### X.5 second_review 表（复核工作流数据载体）
+
+```sql
+-- admin_db.second_review (per X.2 RequireSecondReview 决策)
+CREATE TABLE second_review (
+    review_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id      UUID NOT NULL,           -- gm_handlers 入口的 request_id
+    actor_id        UUID NOT NULL,           -- 操作者 admin_id
+    action          TEXT NOT NULL,           -- "player.ban" / "economy.grant" / ...
+    target_id       TEXT NOT NULL,           -- 目标 account_id / ...
+    coc_decision    TEXT NOT NULL,           -- "RequireSecondReview"
+    coc_reason      TEXT NOT NULL,           -- WASM 决策理由
+    coc_module_version TEXT NOT NULL,        -- 决策时加载的 module version
+    coc_module_hash TEXT NOT NULL,           -- 决策时加载的 module sha256
+    coc_params_hash TEXT NOT NULL,           -- CocPolicyInput 序列化 SHA-256
+    original_request JSONB NOT NULL,         -- gm_handlers 入口 request 完整 payload
+    status          TEXT NOT NULL DEFAULT 'pending',  -- pending / approved / rejected
+    reviewer_id     UUID,                    -- 复核者 admin_id
+    reviewed_at     TIMESTAMPTZ,
+    review_comment  TEXT,
+    trace_id        TEXT NOT NULL,           -- OTel trace_id
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_second_review_status_created ON second_review (status, created_at);
+```
+
+**状态机**：`pending → approved` (SuperAdmin 通过) / `pending → rejected` (SuperAdmin 拒绝)
+**批准后**：`gm-backend` 异步执行原 GM 操作（重放 `original_request`），写 `audit_log`（action=player.ban + reviewer_id）
+**SLA**：默认 24h 复核窗口，超时自动 reject（per batch 域 cron 每日 03:00 UTC 扫表）
+
+### X.6 7 条护栏（必加，缺一不可）
+
+1. **Capability 白名单强制**（per §8.3）：WASM 禁 `open/read/write/socket/exec/proc`，仅 host-imports 可用
+2. **Domain API 而非 Raw DB**（per §8.3）：WASM 调 `host_query_db` 时 `query_id` 必须在 Registry 登记的 `ApprovedDomainQuery` 列表
+3. **WASM 决策不可落库**（per ARC-006 + §21）：WASM 不直接写 `audit_log` / `second_review`，仅返 decision；真正写库由 Rust 走现有路径
+4. **Registry SHA-256 校验**（per ADR-0020 §3.1 + §15）：每次 `WasmHost.call` 前校验 `module.hash == function_registry.module_sha256`，不一致直接 fail-closed + 告警
+5. **版本热升级 + 即时回滚**（per §25）：保留 ≥ 2 历史 module 版本；SuperAdmin 触发回滚只换 module 不重启 svc（秒级生效）
+6. **全链路 trace 透传**（per §3.3）：WASM 调用前 `host_log_trace(trace_id)`；WASM 内部 `host_log` 必带 trace_id
+7. **决策可重放**（per §18）：每次决策 `params_hash + module_version + module_hash + decision` 4 字段全落 audit_log / second_review，出事后能逐字回放
+
+### X.7 绝对不用的反例
+
+| 反例 | 原因 | 引用 |
+|---|---|---|
+| ❌ Function-as-Pod + KEDA 冷启动 | 封禁延迟窗口 1-2s，玩家继续作恶 | §3.2 |
+| ❌ HTTP webhook Function | 攻击面大 + 跨网络，违反 ARC-007 | §3.2 / ARC-007 |
+| ❌ WASM 远端调用 | 违反 §3.2 "不可走 WASM 远程调用" | §3.2 |
+| ❌ WASM 直接写 `audit_log` / `second_review` 表 | 违反 ARC-006 OCC + §21 stateless 强制 | ARC-006 / §21 |
+| ❌ WASM 持有跨调用 mutable 状态 | 违反 §21 强制 stateless | §21 |
+| ❌ WASM 走 `dlopen` cdylib 加载 | 违反 ADR-0020 + Rust 无稳定 ABI | ADR-0020 |
+| ❌ WASM 决策结果不经 audit_log 落库 | 违反 ARC-006 + RGS-SEC-100 审计链强制 | ARC-006 / RGS-SEC-100 |
+| ❌ rgs-certgen 生产路径走 WASM | CA 私钥穿越 Pod 边界，违反 §33 / §34 | §33 / §34 |
+| ❌ realtime 主路径（PH-5+ 撮合 / 战斗结算）走 WASM | 违反 §3.2 实时主路径保护 8 条硬约束 | §3.2 |
+
+### X.8 admin 域 Lead 拍板栏（per RGS-RACI-ADMIN-V1 v1.1 §2 任务 6 运营决策）
+
+| 拍板项 | 当前 | 拍板 | 备注 |
+|---|---|---|---|
+| WASM-CAND-003 升 P0 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per RGS-RACI-ADMIN-V1 §2 任务 6 运营决策 |
+| admin 域本地 in-process 嵌入（不引入 Function Gateway / KEDA） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 X.6 第 6 条护栏绑定 |
+| second_review 表 schema (X.5) | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 需 admin 域 Lead + DBA 联合评审 |
+| 7 条护栏（X.6）完整性 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per ARC-005/006/007/008 + §3.2 + §21 + §25 |
+| 决策 schema 3 态语义（X.2 Allow / RequireSecondReview / Deny）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 OPEN-QA v0.2 §Q1 决策一致 |
+| 回滚 SLA（秒级，X.4） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per §25 + WasmHost 现有 reload API |
+| 失败 fail-closed（X.4 SHA-256 不一致）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 RGS-SEC-100 审计链 + 8/26 缺标比错标一致 |
+
+**v0.3 升版 admin 域 Lead 签字**（per RGS-RACI-ADMIN-V1 §4 5 域 Lead 联合签字栏规则，admin 域 Lead 列必须 Ulysses 本人签字；本签字由 Mavis 起草 + Ulysses 本人 commit 时确认）：
+
+> **admin 域 Lead 签字**: Ulysses (一人公司 12 角色 per DEC-008 — 兼 admin 域 Lead / 架构师 / Saga 召集人) — 日期: 2026-09-04 JST — 拍板依据: 7 项全签 (per Ulysses 2026-09-04 21:17 JST RGS-RACI-ADMIN-V1 v1.1 §2 任务 6 运营决策 + RGS-DDD-2026-09-04-INC-001-v0.3 一审材料 🟡 有条件通过) — 代签授权: per 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses; admin 域 Lead 真实签字仍由 Ulysses 本人 commit 时确认)
+
+**admin 域 Lead 签字行**（per RGS-RACI-ADMIN-V1 §4 + DEC-008 一人公司 12 角色治理基线）:
+
+> ✅ **已签**: Ulysses (一人公司 12 角色 per DEC-008 — 兼 admin 域 Lead / 架构师 / Saga 召集人) — 日期: 2026-09-04 JST — 7 项全签 (per Ulysses 2026-09-04 21:17 JST 拍板) — **代签方式**: Mavis 跨边界代签 (per Ulysses 2026-09-04 23:05 JST 显式授权, **挑战 DEC-008 + RGS-RACI-ADMIN-V1 v1.1 §4 边界突破**; 默认规则"5 域 Lead 列必须 Ulysses 本人签字, 不允许 Mavis 代签"被本次显式授权覆盖, 一次性边界突破, **不**写入新规则, 仅在 RGS-INC-001 v0.3 commit `c028556` 透明声明)
+
+### X.9 已知缺口（per 8/26 JST 缺标比错标）
+
+- [ ] **WasmHost::call 集成代码**：`crates/function-plane/src/wasm_host.rs` 现有引擎已能嵌入，**但** `gm_handlers.rs` 未接线（无 `WasmHost.call("coc.policy", ...)` 调用）。需 admin 域 Lead + shared-platform 联合评审
+- [ ] **`coc.policy` WASM module 模板**：当前 `crates/function-plane/tests/ut_wasm_host_extra.rs` 仅测占位 module，**无** `coc.policy` 实际 module（需写 .wat / .wasm 模板）
+- [ ] **`function_registry` 表 migration**：`cluster_ops_db.function_registry` 表 schema 已在 §15 定义，**但** SQL migration 尚未实装（per §X.4）
+- [ ] **`second_review` 表 migration**：`admin_db.second_review` 表 schema 已在 X.5 定义，**但** SQL migration 尚未实装
+- [ ] **`host_query_db` 白名单**：`ApprovedDomainQuery` 注册流程未起，admin 域 COC 决策需查询"玩家最近 N 次封禁"等白名单 query_id 未登记
+- [ ] **UT/IT 覆盖**：admin 域 IT commit `67f82d6` (11 tests) + UT commit `04a9838` (13+ tests) **均未**覆盖 WASM 决策路径
+- [ ] **WasmHost 资源 cap 实测**：§17 资源 cap 数字（≤ 2 vCPU / 2GB / < 50ms）为设计目标，**未**实测
+- [ ] **24h 复核 SLA 超时自动 reject**：per X.5，需 batch 域 cron 集成（per RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1 §9 GAP-5 评估）
+- [ ] **RGS-INC-001 v0.3 §0-§4 / §6-§27 全文同步**：本 v0.3 仅升 §5 + 新增 §X，其他章节保持 v0.2 状态，**未做**全文一致性同步（按 Ulysses 2026-09-04 拍板精准升版决定）
 
 ---
 
