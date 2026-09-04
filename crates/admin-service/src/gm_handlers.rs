@@ -1117,3 +1117,62 @@ mod tests {
         assert!(matches!(err, Error::AdminSessionExpired(_)));
     }
 }
+
+// =============================================================================
+// Phase B admin COC 决策流 UT (per RGS-INC-001 v0.3 §X.1 + §X.2 + DDD Review §9 已知缺口 #10)
+//
+// 范围: 测 GmHandlerState coc_policy 字段初始化 (2 场景) + CocDecision 序列化 (1 场景).
+// 简化: 6 场景 RPC 集成测试 (3 RPC × RequireSecondReview / Deny) 需要 mock WasmHost + 完整 gRPC
+//       入口 + JWT, 标已知缺口后续 Phase 1+ 补 (DDD Review §9 已知缺口 #10 升级).
+//
+// 参考: crates/function-plane/tests/ut_coc_policy_wasm.rs (worker 1 写的 5/5 UT 覆盖 CocPolicy
+//        决策 schema 数据结构), 本测试覆盖 host 端 GmHandlerState 集成.
+// =============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 1/9: GmHandlerState::new 默认 coc_policy = None (POC: 走 fallback Allow)
+    #[test]
+    fn test_gm_handler_state_new_coc_policy_none() {
+        let audit = Arc::new(InMemoryAuditLogRepository::new()) as Arc<dyn AuditLogRepository>;
+        let users = Arc::new(InMemoryAdminUserRepository::new()) as Arc<dyn AdminUserRepository>;
+        let state = GmHandlerState::new(audit, users);
+        assert!(
+            state.coc_policy.is_none(),
+            "GmHandlerState::new should set coc_policy = None (POC default)"
+        );
+    }
+
+    /// 2/9: GmHandlerState::with_coc_policy 注入 WasmHost 后 Some(host)
+    #[test]
+    fn test_gm_handler_state_with_coc_policy_some() {
+        let audit = Arc::new(InMemoryAuditLogRepository::new()) as Arc<dyn AuditLogRepository>;
+        let users = Arc::new(InMemoryAdminUserRepository::new()) as Arc<dyn AdminUserRepository>;
+        let host = WasmHost::new().expect("WasmHost::new should succeed");
+        let state = GmHandlerState::new(audit, users).with_coc_policy(Arc::new(host));
+        assert!(
+            state.coc_policy.is_some(),
+            "GmHandlerState::with_coc_policy should set coc_policy = Some(Arc<WasmHost>)"
+        );
+    }
+
+    /// 3/9: CocDecision 序列化 (per RGS-INC-001 v0.3 §X.2 3 态 snake_case 编码)
+    #[test]
+    fn test_coc_decision_serde_snake_case() {
+        let cases = [
+            (CocDecision::Allow, "\"allow\""),
+            (CocDecision::RequireSecondReview, "\"require_second_review\""),
+            (CocDecision::Deny, "\"deny\""),
+        ];
+        for (decision, expected_json) in cases {
+            let json = serde_json::to_string(&decision).expect("serialize");
+            assert_eq!(
+                json, expected_json,
+                "CocDecision::{:?} should serialize to {}",
+                decision, expected_json
+            );
+        }
+    }
+}

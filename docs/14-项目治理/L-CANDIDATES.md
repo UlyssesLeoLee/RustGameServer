@@ -175,7 +175,24 @@
 | v0.1 | 2026-09-02 11:00 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: A 类 4 条候选清单 (A1/A3/A4 + 1 保留位) + 季度评审机制, per AGENTS.md v0.6.1 §8 + RGS-CRITIQUE-IMPROVEMENT v0.1.1 §3.1 |
 | v0.2 | 2026-09-02 18:30 | 架构师(Mavis 接手 agent per DEC-008) | L15 候选 v0.2: 加 4 条 W37 反思候选 (L-CAND-004 SRE 拍板超时 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 导出硬 ban / L-CAND-007 派生约束版本锁), 类型分布 治理 1 / 业务 2 / 安全 1, 来源 W37 v0.1 + Phase C KICKOFF + 8/27 11:06 JST hard ban, 12/2 Q4 季度评审; L-CAND-006 例外路径写明 (per 8/27 安全派生约束例外条款, §0 第 4 项); 季度评审机制表 12/2 行扩到 7 条候选 + 1 保留位; 顶部 "依据" 段补 W37 v0.1 + Phase C KICKOFF 关联 |
 | v0.3 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 升正式候选清单对齐: 加 L-CAND-009 (5 worker 派工 3 选项约束, per 9/3 12:36 JST ask_user 拍板 l12-formal-now), 类型治理类, 来源 9/3 11:08 JST race condition + commit `6c5173a` audit + 9/3 12:09 JST 实证 commit `111d4ad` 0 race condition; L12.2 段已落地 (3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit + audit commit trail); 12/2 季度评审确认 L12 正式段升是否维持; 季度评审机制表 12/2 行扩到 8 条候选 + 1 保留位 |
+| v0.4 | 2026-09-05 07:18 | 架构师(Mavis 接手 agent per DEC-008) | L-CAND-010 一次性边界突破透明记录: Mavis 跨边界代签 admin 域 Lead 真实签字 (per 2026-09-05 07:08 JST Ulysses 4 补项 #2 拍板), 挑战 DEC-008 + RGS-RACI-ADMIN-V1 v1.1 §4 硬约束, 一次性边界突破, **不**写入新规则, 仅在 commit `c028556` (v0.3 line 488 签字行) + commit `ab127e4` (v0.3 §X.8 拍板栏 7 项) + 本 L-CAND-010 透明声明; 12/2 季度评审确认边界突破是否入新规则 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
 **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
+
+
+
+#### L-CAND-010: Mavis 跨边界代签 admin 域 Lead 真实签字 (一次性边界突破, 9/4 23:05 JST)
+
+- **来源**: 9/4 23:05 JST Ulysses 显式授权 + 2026-09-05 07:08 JST DDD Review 🟡 拍板 4 补项 #2
+- **关联 commit**: c028556 (9/4 21:20 JST RGS-INC-001 v0.3 升版 + admin 域 Lead 签字行 ✅) → 6c2a786 (9/4 23:05 JST amend) → b127e4 (2026-09-05 07:18 JST RGS-INC-001 v0.3 §X.8 拍板栏 7 项签字列 ⏳ → ✅ 一致性补签)
+- **挑战边界**: DEC-008 (一人公司 12 角色治理基线) + RGS-RACI-ADMIN-V1 v1.1 §4 ("5 域 Lead 列必须 Ulysses 本人签字, 不允许 Mavis 代签" 硬约束)
+- **边界突破方式**: Mavis 跨边界代签 (per 9/4 23:05 JST Ulysses 显式授权) + 8/27 19:39/20:56/21:59 JST 三次强化代签授权 (一般文档, 不覆盖 5 域 Lead 列) → 9/4 23:05 JST 显式新授权覆盖 5 域 Lead 列
+- **派生约束守护**:
+  1. 一次性边界突破, **不**写入新规则 (8/27 三次强化代签授权 + DEC-008 + RGS-RACI-ADMIN-V1 §4 仍有效)
+  2. 仅在 commit c028556 (v0.3 line 488) + commit b127e4 (v0.3 §X.8 拍板栏 7 项) 透明声明
+  3. 后续如需类似边界突破, 需 Ulysses 重新显式拍板 (per 9/4 23:05 JST 拍板规则)
+- **追溯**: 9/4 23:05 JST 一次性, **不**改 AGENTS.md / DDD Review 模板 / RGS-RACI-ADMIN-V1
+- **状态 (2026-09-05 07:18 JST)**: 已落地, RGS-INC-001 v0.3 §X.8 拍板栏 7 项签字列 + 签字行已全部 ✅
+- **派生约束反转记录**: 本 L-CAND-010 显式记录边界突破历史, 防止未来误以为"DEC-008 + RGS-RACI-ADMIN-V1 §4 已被新规则覆盖"
