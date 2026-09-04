@@ -6,20 +6,12 @@
 //! 55.22 wire-up：实例化 PgOutboxRepository + OutboxRelay 后台轮询（per RGS-REV-007 CH1+CH2+AH1 / DEC-015 P1）。
 //! 55.26 fail-closed mTLS：默认强制 mTLS；RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out
 //!                       (per RGS-REV-008 AC-1 / verify-A+C)。
+//!
+//! 2026-09-04 P0-1 重构：5 域 main.rs 抽公共骨架到 `shared_platform::service_bootstrap`。
 
-use anyhow::Context;
-use std::env;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tracing_subscriber::fmt;
-use tracing_subscriber::EnvFilter;
 
-use shared_platform::messaging::{build_messaging_client, MessagingConfig};
-use shared_platform::outbox::PgOutboxRepository;
-use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
-use shared_platform::producer::{Producer, ProducerConfig};
-use shared_platform::tls::load_server_tls_config;
-
+use shared_platform::service_bootstrap::{self, BootstrapConfig};
 use social_service::db;
 use social_service::repository::{
     GuildMemberRepository, GuildRepository, PgGuildMemberRepository, PgGuildRepository,
@@ -27,45 +19,16 @@ use social_service::repository::{
 use social_service::service::grpc_service::SocialGrpcService;
 use social_service::service::SocialServiceImpl;
 
-// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C / RGS-REV-009 HI-1）
-//
-// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
-// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
-// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
-//
-// RGS-REV-009 HI-1：server 端 mTLS bypass 计数已迁移到 shared-platform
-// `SERVER_MTLS_BYPASSED_TOTAL`（与 client 端 `MTLS_BYPASSED_TOTAL` 对称），
-// 通过 `server_mtls_bypassed_total()` getter 读取。
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    shared_platform::install_default_crypto_provider();
+    // 1. 公共 bootstrap
+    let cfg = BootstrapConfig::for_social(env!("CARGO_PKG_VERSION"))?;
+    service_bootstrap::init_tracing(cfg.service_name);
+    let _otel = service_bootstrap::init_otel_optional(&cfg);
 
-    fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,social-service=debug")),
-        )
-        .init();
+    tracing::info!(target: "social-service", "starting service at {}, db={}", cfg.grpc_addr, cfg.database_url);
 
-    // 55.45 OTLP exporter 条件初始化（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45 §3.3）
-    // 默认 OTEL_SDK_DISABLED=true（53.12 任务未完成），即不真正启用
-    // 53.12 完成后：去掉 OTEL_SDK_DISABLED env → 实际初始化
-    let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
-        "social-service",
-        env!("CARGO_PKG_VERSION"),
-        "dev",
-    );
-
-    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:50054".to_string())
-        .parse()
-        .context("invalid GRPC_ADDR")?;
-    let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
-
-    tracing::info!(target: "social-service", "starting service at {}, db={}", addr, database_url);
-
-    // 55.15: 真实 DB pool + migrations（InMemory 留作测试用）
+    // 2. DB pool + migrations（域特定：2 张表 guilds + guild_members）
     let pool = match db::pool_from_env().await {
         Ok(p) => p,
         Err(e) => {
@@ -77,93 +40,33 @@ async fn main() -> anyhow::Result<()> {
         tracing::error!(target: "social-service", "DB migrations failed: {}", e);
         std::process::exit(1);
     }
-
     let guilds: Arc<dyn GuildRepository> = Arc::new(PgGuildRepository::new(pool.clone()));
     let members: Arc<dyn GuildMemberRepository> =
         Arc::new(PgGuildMemberRepository::new(pool.clone()));
+    tracing::info!(target: "social-service", "{}-service started, DB pool size: {}", cfg.service_name, pool.size());
 
-    tracing::info!(target: "social-service", "social-service started, DB pool size: {}", pool.size());
+    // 3. outbox relay 后台（公共）
+    service_bootstrap::spawn_outbox_relay(pool.clone(), cfg.service_name, cfg.nats_uri.clone()).await;
 
-    // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
-    let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
+    // 4. mTLS server builder（公共）
+    let mut server = service_bootstrap::build_server_with_mtls(&cfg)?;
 
-    // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
-    // dev/test fallback: NATS 不可用时跳过 relay，gRPC server 继续运行
-    let nats_uri = env::var("NATS_URI").unwrap_or_else(|_| "nats://localhost:4222".to_string());
-    match build_messaging_client(&MessagingConfig {
-        uri: nats_uri.clone(),
-        name: "social-service".to_string(),
-    })
-    .await
-    {
-        Ok((nats_client, js_ctx)) => {
-            let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
-            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
-            tokio::spawn(async move {
-                // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
-                let _nats_keepalive = nats_client;
-                Arc::new(relay).run().await;
-            });
-            tracing::info!(target: "social-service", "outbox relay started (NATS={})", nats_uri);
-        }
-        Err(e) => {
-            tracing::warn!(
-                target: "social-service",
-                "outbox relay DISABLED — NATS connect failed: {}; outbox rows will accumulate, manual recovery required",
-                e
-            );
-        }
-    }
-
+    // 5. 域 service wiring（域特定：SocialServiceServer）
     let service_impl = Arc::new(SocialServiceImpl::new(guilds, members));
     let grpc = SocialGrpcService::new(service_impl);
+    let svc = social_service::proto::v1::social_service_server::SocialServiceServer::new(grpc);
 
-    // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
-    // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。
+    // 6. health + serve（公共）
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<social_service::proto::v1::social_service_server::SocialServiceServer<SocialGrpcService>>()
         .await;
-    health_reporter
-        .set_service_status("", tonic_health::ServingStatus::Serving)
-        .await;
+    service_bootstrap::set_serving_defaults(&mut health_reporter).await;
 
-    // 55.26 fail-closed mTLS（per RGS-REV-008 AC-1 / verify-A+C）
-    // 默认强制 mTLS；仅 RGS_ALLOW_INSECURE_GRPC=1 / "true" 显式 opt-out 才允许 insecure gRPC（dev/test only）。
-    // 不设置 / 0 / 任意其他值 → 任何 TLS 加载失败都通过 .context() 上抛 → main 返 Err → 进程退出 1。
-    let allow_insecure = env::var("RGS_ALLOW_INSECURE_GRPC")
-        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
-
-    let mut server_builder = tonic::transport::Server::builder();
-    if allow_insecure {
-        tracing::warn!(
-            target: "social-service",
-            "⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)"
-        );
-        shared_platform::channel::SERVER_MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
-    } else {
-        let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
-        let tls_config = load_server_tls_config(
-            &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
-        )
-        .context(
-            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
-        )?;
-        server_builder = server_builder
-            .tls_config(tls_config)
-            .context("tls_config")?;
-        tracing::info!(target: "social-service", "mTLS ENABLED — gRPC client cert verification required");
-    }
-
-    tracing::info!(target: "social-service", "binding gRPC server at {}", addr);
-    let svc = social_service::proto::v1::social_service_server::SocialServiceServer::new(grpc);
-    server_builder
+    server
         .add_service(svc)
         .add_service(health_service)
-        .serve(addr)
-        .await
-        .context("tonic server failed")?;
+        .serve(cfg.grpc_addr)
+        .await?;
     Ok(())
 }
