@@ -42,7 +42,7 @@ pub struct UpdateMallItemRequest {
 static NEXT_ITEM_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 pub async fn list_mall_items(state: web::Data<AppState>) -> HttpResponse {
-    let items = state.mall_items.lock().unwrap();
+    let items = state.mall_items.lock();
     HttpResponse::Ok().json(json!({"items": items.clone()}))
 }
 
@@ -65,7 +65,7 @@ pub async fn create_mall_item(
         category: body.category.clone(),
         enabled: true,
     };
-    state.mall_items.lock().unwrap().push(item.clone());
+    state.mall_items.lock().push(item.clone());
     HttpResponse::Ok().json(json!({"status": "created", "item": item}))
 }
 
@@ -75,7 +75,7 @@ pub async fn update_mall_item(
     body: web::Json<UpdateMallItemRequest>,
 ) -> HttpResponse {
     let id = path.into_inner();
-    let mut items = state.mall_items.lock().unwrap();
+    let mut items = state.mall_items.lock();
     let item = match items.iter_mut().find(|i| i.id == id) {
         Some(i) => i,
         None => return HttpResponse::NotFound().json(json!({"error": "not_found"})),
@@ -92,10 +92,11 @@ pub async fn delete_mall_item(
     path: web::Path<u64>,
 ) -> HttpResponse {
     let id = path.into_inner();
-    let mut items = state.mall_items.lock().unwrap();
+    let mut items = state.mall_items.lock();
     let pos = items.iter().position(|i| i.id == id);
     match pos {
         Some(p) => { items.remove(p); HttpResponse::Ok().json(json!({"status": "deleted"})) }
         None => HttpResponse::NotFound().json(json!({"error": "not_found"})),
     }
 }
+

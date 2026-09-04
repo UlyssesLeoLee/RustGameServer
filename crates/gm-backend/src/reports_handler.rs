@@ -21,7 +21,7 @@ pub struct ReportEntry {
 
 /// 启动时填充 mock 报表 (5 类 × 14 天)
 pub fn seed_reports(state: &AppState) {
-    let mut reports = state.reports.lock().unwrap();
+    let mut reports = state.reports.lock();
     let kinds = ["revenue", "dau", "conversion", "churn"];
     for kind in kinds {
         for d in 0..14 {
@@ -46,6 +46,7 @@ pub fn seed_reports(state: &AppState) {
 }
 
 pub async fn list_reports(state: web::Data<AppState>) -> HttpResponse {
-    let reports = state.reports.lock().unwrap();
+    let reports = state.reports.lock();
     HttpResponse::Ok().json(json!({"reports": reports.clone()}))
 }
+

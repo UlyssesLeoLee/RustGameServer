@@ -39,6 +39,8 @@ uuid = { workspace = true }
 jsonwebtoken = "9"
 # bcrypt 密码哈希 (ROPE_CS 同等功能)
 bcrypt = "0.16"
+# 2026-09-05 P1-4: 7 个 Mutex<Vec> 改 parking_lot::Mutex (非毒, ~10x 更快)
+parking_lot = "0.12"
 # 异步 broadcast (SSE 实时事件流)
 tokio-stream = { version = "0.1", features = ["sync"] }
 # 随机数 (mock 数据生成)

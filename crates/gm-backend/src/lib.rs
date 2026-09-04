@@ -168,22 +168,22 @@ pub trait AuditStore: Send + Sync + 'static {
 
 #[derive(Default, Clone)]
 pub struct InMemoryAuditStore {
-    entries: Arc<std::sync::Mutex<Vec<AuditLogEntry>>>,
+    entries: Arc<parking_lot::Mutex<Vec<AuditLogEntry>>>,
 }
 
 impl InMemoryAuditStore {
     pub fn new() -> Self { Self::default() }
-    pub fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
+    pub fn append(&self, entry: AuditLogEntry) { self.entries.lock().push(entry); }
 }
 
 impl AuditStore for InMemoryAuditStore {
-    fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
+    fn append(&self, entry: AuditLogEntry) { self.entries.lock().push(entry); }
     fn list_entries(
         &self,
         limit: usize,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<AuditLogEntry>> + Send + '_>> {
         Box::pin(async move {
-            let guard = self.entries.lock().unwrap();
+            let guard = self.entries.lock();
             guard.iter().rev().take(limit).cloned().collect()
         })
     }
@@ -201,17 +201,17 @@ pub struct AppState {
     /// ROPE_CS 移植: SSE 实时事件总线
     pub broadcast_tx: tokio::sync::broadcast::Sender<BroadcastEntry>,
     /// ROPE_CS 移植: admin 列表 (init 时 ensure_default_admin 创建 superadmin)
-    pub admins: Arc<std::sync::Mutex<Vec<AdminRecord>>>,
+    pub admins: Arc<parking_lot::Mutex<Vec<AdminRecord>>>,
     /// ROPE_CS 移植: mall items
-    pub mall_items: Arc<std::sync::Mutex<Vec<MallItem>>>,
+    pub mall_items: Arc<parking_lot::Mutex<Vec<MallItem>>>,
     /// ROPE_CS 移植: grants
-    pub grants: Arc<std::sync::Mutex<Vec<GrantEntry>>>,
+    pub grants: Arc<parking_lot::Mutex<Vec<GrantEntry>>>,
     /// ROPE_CS 移植: tickets
-    pub tickets: Arc<std::sync::Mutex<Vec<TicketEntry>>>,
+    pub tickets: Arc<parking_lot::Mutex<Vec<TicketEntry>>>,
     /// ROPE_CS 移植: reports
-    pub reports: Arc<std::sync::Mutex<Vec<ReportEntry>>>,
+    pub reports: Arc<parking_lot::Mutex<Vec<ReportEntry>>>,
     /// ROPE_CS 移植: servers 列表 + state (5 假 server 初始化)
-    pub servers: Arc<std::sync::Mutex<Vec<ServerEntry>>>,
+    pub servers: Arc<parking_lot::Mutex<Vec<ServerEntry>>>,
 }
 
 impl AppState {
@@ -235,12 +235,12 @@ impl AppState {
             client
         };
         let (broadcast_tx, _) = tokio::sync::broadcast::channel(100);
-        let admins = Arc::new(std::sync::Mutex::new(Vec::<AdminRecord>::new()));
-        let mall_items = Arc::new(std::sync::Mutex::new(Vec::<MallItem>::new()));
-        let grants = Arc::new(std::sync::Mutex::new(Vec::<GrantEntry>::new()));
-        let tickets = Arc::new(std::sync::Mutex::new(Vec::<TicketEntry>::new()));
-        let reports = Arc::new(std::sync::Mutex::new(Vec::<ReportEntry>::new()));
-        let servers = Arc::new(std::sync::Mutex::new(vec![
+        let admins = Arc::new(parking_lot::Mutex::new(Vec::<AdminRecord>::new()));
+        let mall_items = Arc::new(parking_lot::Mutex::new(Vec::<MallItem>::new()));
+        let grants = Arc::new(parking_lot::Mutex::new(Vec::<GrantEntry>::new()));
+        let tickets = Arc::new(parking_lot::Mutex::new(Vec::<TicketEntry>::new()));
+        let reports = Arc::new(parking_lot::Mutex::new(Vec::<ReportEntry>::new()));
+        let servers = Arc::new(parking_lot::Mutex::new(vec![
             ServerEntry { id: "player-1".into(), name: "Player Shard 1".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 1284, last_updated: Some(Utc::now().to_rfc3339()) },
             ServerEntry { id: "player-2".into(), name: "Player Shard 2".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 982, last_updated: Some(Utc::now().to_rfc3339()) },
             ServerEntry { id: "match-1".into(), name: "Match Service 1".into(), region: Some("us-west-2".into()), status: "running".into(), online_players: 421, last_updated: Some(Utc::now().to_rfc3339()) },
@@ -263,7 +263,7 @@ impl AppState {
 
     /// ROPE_CS 移植: ensure_default_admin — 创建默认 superadmin (admin/adminpass)
     pub async fn ensure_default_admin(&self) {
-        let mut admins = self.admins.lock().unwrap();
+        let mut admins = self.admins.lock();
         if !admins.iter().any(|a| a.username == "admin") {
             let hashed = bcrypt::hash("adminpass", 12).unwrap_or_default();
             admins.push(AdminRecord {
@@ -572,3 +572,4 @@ pub fn register_health_routes(cfg: &mut web::ServiceConfig) {
 async fn ping() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ok"})) }
 async fn healthz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "healthy"})) }
 async fn readyz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ready"})) }
+

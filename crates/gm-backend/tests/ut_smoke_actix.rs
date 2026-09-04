@@ -49,7 +49,7 @@ async fn jwt_wrong_secret_fails() {
 async fn ensure_default_admin_creates_superadmin() {
     let state = test_state();
     state.ensure_default_admin().await;
-    let admins = state.admins.lock().unwrap();
+    let admins = state.admins.lock();
     assert_eq!(admins.len(), 1);
     assert_eq!(admins[0].username, "admin");
     assert_eq!(admins[0].role, "superadmin");
@@ -169,3 +169,4 @@ async fn admin_record_clone() {
     let b = a.clone();
     assert_eq!(a.username, b.username);
 }
+

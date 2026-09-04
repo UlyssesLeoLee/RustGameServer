@@ -26,12 +26,12 @@ pub struct ServerStats {
 }
 
 pub async fn list_servers(state: web::Data<AppState>) -> HttpResponse {
-    let servers = state.servers.lock().unwrap();
+    let servers = state.servers.lock();
     HttpResponse::Ok().json(json!({"servers": servers.clone()}))
 }
 
 pub async fn get_server_stats(state: web::Data<AppState>) -> HttpResponse {
-    let servers = state.servers.lock().unwrap();
+    let servers = state.servers.lock();
     let total = servers.len() as u32;
     let running = servers.iter().filter(|s| s.status == "running").count() as u32;
     HttpResponse::Ok().json(ServerStats { total, running })
@@ -42,7 +42,7 @@ pub async fn start_server(
     path: web::Path<String>,
 ) -> HttpResponse {
     let id = path.into_inner();
-    let mut servers = state.servers.lock().unwrap();
+    let mut servers = state.servers.lock();
     let server = match servers.iter_mut().find(|s| s.id == id) {
         Some(s) => s,
         None => return HttpResponse::NotFound().json(json!({"error": "not_found"})),
@@ -58,7 +58,7 @@ pub async fn stop_server(
     path: web::Path<String>,
 ) -> HttpResponse {
     let id = path.into_inner();
-    let mut servers = state.servers.lock().unwrap();
+    let mut servers = state.servers.lock();
     let server = match servers.iter_mut().find(|s| s.id == id) {
         Some(s) => s,
         None => return HttpResponse::NotFound().json(json!({"error": "not_found"})),
@@ -71,7 +71,7 @@ pub async fn stop_server(
 
 /// Prometheus 风格 /gm/metrics
 pub async fn metrics(state: web::Data<AppState>) -> HttpResponse {
-    let servers = state.servers.lock().unwrap();
+    let servers = state.servers.lock();
     let total_connections: u32 = servers.iter().map(|s| s.online_players).sum();
     let total = servers.len() as u32;
     let running = servers.iter().filter(|s| s.status == "running").count() as u32;
@@ -83,3 +83,4 @@ pub async fn metrics(state: web::Data<AppState>) -> HttpResponse {
         .content_type("text/plain; charset=utf-8")
         .body(body)
 }
+

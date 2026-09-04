@@ -52,12 +52,12 @@ pub async fn create_ticket(
         created_at: now.clone(),
         updated_at: now,
     };
-    state.tickets.lock().unwrap().push(ticket.clone());
+    state.tickets.lock().push(ticket.clone());
     HttpResponse::Ok().json(json!({"status": "received", "ticket": ticket}))
 }
 
 pub async fn list_tickets(state: web::Data<AppState>) -> HttpResponse {
-    let tickets = state.tickets.lock().unwrap();
+    let tickets = state.tickets.lock();
     HttpResponse::Ok().json(json!({"tickets": tickets.clone()}))
 }
 
@@ -67,7 +67,7 @@ pub async fn update_ticket_status(
     body: web::Json<UpdateTicketStatusRequest>,
 ) -> HttpResponse {
     let id = path.into_inner();
-    let mut tickets = state.tickets.lock().unwrap();
+    let mut tickets = state.tickets.lock();
     let ticket = match tickets.iter_mut().find(|t| t.id == id) {
         Some(t) => t,
         None => return HttpResponse::NotFound().json(json!({"error": "not_found"})),
@@ -80,3 +80,4 @@ pub async fn update_ticket_status(
     ticket.updated_at = Utc::now().to_rfc3339();
     HttpResponse::Ok().json(json!({"ticket": ticket.clone()}))
 }
+

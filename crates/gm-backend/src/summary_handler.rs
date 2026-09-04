@@ -9,15 +9,15 @@ use crate::AppState;
 /// GET /gm/summary — 一次拉取 Dashboard 全部数据 (per ROPE_CS dashboard 风格)
 pub async fn summary(state: web::Data<AppState>) -> HttpResponse {
     // 直接从 InMemory 聚合 (生产应调各 5 域 gRPC)
-    let grants_count = state.grants.lock().unwrap().len() as u32;
+    let grants_count = state.grants.lock().len() as u32;
     let broadcasts_count = state.audit_store.list_entries(1000).await.iter()
         .filter(|e| e.action == "broadcast").count() as u32;
-    let tickets = state.tickets.lock().unwrap();
+    let tickets = state.tickets.lock();
     let tickets_open = tickets.iter().filter(|t| t.status != "resolved").count() as u32;
     let tickets_total = tickets.len() as u32;
     drop(tickets);
-    let mall_count = state.mall_items.lock().unwrap().len() as u32;
-    let servers = state.servers.lock().unwrap();
+    let mall_count = state.mall_items.lock().len() as u32;
+    let servers = state.servers.lock();
     let total = servers.len() as u32;
     let running = servers.iter().filter(|s| s.status == "running").count() as u32;
     drop(servers);
@@ -45,7 +45,8 @@ pub async fn summary(state: web::Data<AppState>) -> HttpResponse {
         },
         "servers": {
             "stats": { "total": total, "running": running },
-            "list": state.servers.lock().unwrap().clone(),
+            "list": state.servers.lock().clone(),
         },
     }))
 }
+

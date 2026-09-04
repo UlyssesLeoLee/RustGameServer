@@ -48,11 +48,12 @@ pub async fn grant_item(
         admin,
         created_at: Utc::now().to_rfc3339(),
     };
-    state.grants.lock().unwrap().push(entry.clone());
+    state.grants.lock().push(entry.clone());
     HttpResponse::Ok().json(json!({"status": "granted", "grant": entry}))
 }
 
 pub async fn list_grants(state: web::Data<AppState>) -> HttpResponse {
-    let grants = state.grants.lock().unwrap();
+    let grants = state.grants.lock();
     HttpResponse::Ok().json(json!({"grants": grants.clone()}))
 }
+

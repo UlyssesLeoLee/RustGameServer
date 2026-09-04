@@ -33,7 +33,7 @@ pub async fn login(
     state: web::Data<AppState>,
     body: web::Json<LoginRequest>,
 ) -> HttpResponse {
-    let admins = state.admins.lock().unwrap();
+    let admins = state.admins.lock();
     let admin = admins.iter().find(|a| a.username == body.username);
     match admin {
         Some(a) => {
@@ -79,7 +79,7 @@ pub async fn create_admin(
     if body.username.trim().is_empty() || body.password.len() < 6 {
         return HttpResponse::BadRequest().json(json!({"error": "missing_or_invalid_fields"}));
     }
-    let mut admins = state.admins.lock().unwrap();
+    let mut admins = state.admins.lock();
     if admins.iter().any(|a| a.username == body.username) {
         return HttpResponse::Conflict().json(json!({"error": "username_exists"}));
     }
@@ -99,7 +99,7 @@ pub async fn list_admins(
     if !is_superadmin(&req) {
         return HttpResponse::Forbidden().json(json!({"error": "forbidden"}));
     }
-    let admins = state.admins.lock().unwrap();
+    let admins = state.admins.lock();
     let out: Vec<_> = admins.iter().map(|a| json!({
         "id": a.username,
         "username": a.username,
@@ -113,3 +113,4 @@ fn is_superadmin(req: &HttpRequest) -> bool {
         .map(|c: Claims| c.roles.iter().any(|r| r == "GM_ADMIN"))
         .unwrap_or(false)
 }
+
