@@ -9,6 +9,7 @@
 #![allow(clippy::doc_overindented_list_items, clippy::doc_lazy_continuation)]
 
 pub mod archive;
+pub mod archive_storage;
 
 // ===== 其它 5 个操作器占位（per RGS-DTL-042 §5.2 表格） =====
 pub mod new_realm {
