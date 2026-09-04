@@ -471,13 +471,13 @@ CREATE INDEX idx_second_review_status_created ON second_review (status, created_
 
 | 拍板项 | 当前 | 拍板 | 备注 |
 |---|---|---|---|
-| WASM-CAND-003 升 P0 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per RGS-RACI-ADMIN-V1 §2 任务 6 运营决策 |
-| admin 域本地 in-process 嵌入（不引入 Function Gateway / KEDA） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 X.6 第 6 条护栏绑定 |
-| second_review 表 schema (X.5) | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 需 admin 域 Lead + DBA 联合评审 |
-| 7 条护栏（X.6）完整性 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per ARC-005/006/007/008 + §3.2 + §21 + §25 |
-| 决策 schema 3 态语义（X.2 Allow / RequireSecondReview / Deny）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 OPEN-QA v0.2 §Q1 决策一致 |
-| 回滚 SLA（秒级，X.4） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| per §25 + WasmHost 现有 reload API |
-| 失败 fail-closed（X.4 SHA-256 不一致）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ⏳ 待签（admin 域 Lead 本人 commit 时补签）| 与 RGS-SEC-100 审计链 + 8/26 缺标比错标一致 |
+| WASM-CAND-003 升 P0 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| per RGS-RACI-ADMIN-V1 §2 任务 6 运营决策 |
+| admin 域本地 in-process 嵌入（不引入 Function Gateway / KEDA） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| 与 X.6 第 6 条护栏绑定 |
+| second_review 表 schema (X.5) | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| 需 admin 域 Lead + DBA 联合评审 |
+| 7 条护栏（X.6）完整性 | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| per ARC-005/006/007/008 + §3.2 + §21 + §25 |
+| 决策 schema 3 态语义（X.2 Allow / RequireSecondReview / Deny）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| 与 OPEN-QA v0.2 §Q1 决策一致 |
+| 回滚 SLA（秒级，X.4） | ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| per §25 + WasmHost 现有 reload API |
+| 失败 fail-closed（X.4 SHA-256 不一致）| ✅ 已同意（per Ulysses 2026-09-04 21:17 JST 拍板）| ✅ 已签（per 2026-09-04 23:05 JST 显式授权 Mavis 跨边界代签, 一次性边界突破）| 与 RGS-SEC-100 审计链 + 8/26 缺标比错标一致 |
 
 **v0.3 升版 admin 域 Lead 签字**（per RGS-RACI-ADMIN-V1 §4 5 域 Lead 联合签字栏规则，admin 域 Lead 列必须 Ulysses 本人签字；本签字由 Mavis 起草 + Ulysses 本人 commit 时确认）：
 
