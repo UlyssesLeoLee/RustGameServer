@@ -37,6 +37,7 @@ fn lock_env() -> std::sync::MutexGuard<'static, ()> {
     }
 }
 fn clear_env() {
+    // 2026-09-05 P1-6 跟进: Rust 1.86+ 提供 safe std::env::remove_var, 不需 unsafe 块
     for k in [
         "PLAYER_MAX_INFLIGHT",
         "ECONOMY_MAX_INFLIGHT",
@@ -46,12 +47,13 @@ fn clear_env() {
         "NATS_OVERFLOW_MAX_PENDING",
         "ALERT_DEDUP_WINDOW_SECS",
     ] {
-        unsafe { std::env::remove_var(k); }
+        std::env::remove_var(k);
     }
 }
 fn set_env(pairs: &[(&str, &str)]) {
+    // 2026-09-05 P1-6 跟进: Rust 1.86+ 提供 safe std::env::set_var
     for (k, v) in pairs {
-        unsafe { std::env::set_var(k, v); }
+        std::env::set_var(k, v);
     }
 }
 

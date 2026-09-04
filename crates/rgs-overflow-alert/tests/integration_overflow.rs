@@ -69,19 +69,15 @@ fn clear_all_overflow_env() {
         "MATCH_MAX_INFLIGHT",
         "SOCIAL_MAX_INFLIGHT",
     ] {
-        // SAFETY: test-only env clear
-        unsafe {
-            std::env::remove_var(k);
-        }
+        // 2026-09-05 P1-6 跟进: Rust 1.86+ 提供 safe std::env::remove_var
+        std::env::remove_var(k);
     }
 }
 
 fn set_envs(pairs: &[(&str, &str)]) {
-    // SAFETY: test-only env set
-    unsafe {
-        for (k, v) in pairs {
+    // 2026-09-05 P1-6 跟进: Rust 1.86+ 提供 safe std::env::set_var
+    for (k, v) in pairs {
             std::env::set_var(k, v);
-        }
     }
 }
 

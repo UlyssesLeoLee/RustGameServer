@@ -83,7 +83,7 @@ debug = 1
 # - clippy::result_large_err = "allow" (per clippy.toml large-error-ignored, sqlx::Error + tonic::Status 必要)
 # - clippy::all = "warn" (中等严格度, 不直接 deny 避免 baseline warning 爆炸)
 [workspace.lints.rust]
-unsafe_code = "warn"
+unsafe_code = "deny"
 missing_debug_implementations = "warn"
 rust_2018_idioms = { level = "warn", priority = -1 }
 [workspace.lints.clippy]
