@@ -8,20 +8,11 @@
 //! 55.22 wire-up：实例化 PgOutboxRepository + OutboxRelay 后台轮询（per RGS-REV-007 CH1+CH2+AH1 / DEC-015 P1）。
 //! 55.26 fail-closed mTLS：默认强制 mTLS；RGS_ALLOW_INSECURE_GRPC=1 显式 opt-out
 //!                       (per RGS-REV-008 AC-1 / verify-A+C)。
+//!
+//! 2026-09-04 P0-1 重构：5 域 main.rs 抽公共骨架到 `shared_platform::service_bootstrap`。
 
-use anyhow::Context;
-use std::env;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing_subscriber::fmt;
-use tracing_subscriber::EnvFilter;
-
-use shared_platform::messaging::{build_messaging_client, MessagingConfig};
-use shared_platform::outbox::PgOutboxRepository;
-use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
-use shared_platform::producer::{Producer, ProducerConfig};
-use shared_platform::tls::load_server_tls_config;
 
 use economy_service::db;
 use economy_service::entity::Currency;
@@ -36,57 +27,25 @@ use economy_service::service::grpc_service::EconomyGrpcService;
 use economy_service::service::EconomyServiceImpl;
 use economy_service::trade_repository::{PgTradeRepository, TradeRepository};
 use economy_service::trade_service::TradeServiceImpl;
-
-// mTLS bypass 计数（55.26 fail-closed 防线，per RGS-REV-008 AC-1 / verify-A+C / RGS-REV-009 HI-1）
-//
-// 进程内 counter：每次 `RGS_ALLOW_INSECURE_GRPC=1` 启动导致 gRPC 走明文时 +1。
-// 监控集成（Prometheus exporter / scrape handler → `mTLS_bypassed_total`）
-// 由后续任务处理；本 PR 仅做 fail-closed 防线本身。
-//
-// RGS-REV-009 HI-1：server 端 mTLS bypass 计数已迁移到 shared-platform
-// `SERVER_MTLS_BYPASSED_TOTAL`（与 client 端 `MTLS_BYPASSED_TOTAL` 对称），
-// 通过 `server_mtls_bypassed_total()` getter 读取。
+use shared_platform::service_bootstrap::{self, BootstrapConfig};
 
 /// 单次 Saga 预留金额（最小单位：分/钻/代币）
-///
-/// 与 55.12 saga_orchestrator.rs 测试默认值对齐（per TEST_AMOUNT）
 const SAGA_RESERVE_AMOUNT: i64 = 100;
-
 /// Saga 恢复轮询间隔（秒）
 const SAGA_RECOVER_INTERVAL_SECS: u64 = 30;
-
 /// 单次恢复扫描上限（防列表爆炸）
 const SAGA_RECOVER_BATCH: i64 = 100;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    shared_platform::install_default_crypto_provider();
+    // 1. 公共 bootstrap
+    let cfg = BootstrapConfig::for_economy(env!("CARGO_PKG_VERSION"))?;
+    service_bootstrap::init_tracing(cfg.service_name);
+    let _otel = service_bootstrap::init_otel_optional(&cfg);
 
-    fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,economy-service=debug")),
-        )
-        .init();
+    tracing::info!(target: "economy-service", "starting service at {}, db={}", cfg.grpc_addr, cfg.database_url);
 
-    // 55.45 OTLP exporter 条件初始化（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45 §3.3）
-    // 默认 OTEL_SDK_DISABLED=true（53.12 任务未完成），即不真正启用
-    // 53.12 完成后：去掉 OTEL_SDK_DISABLED env → 实际初始化
-    let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
-        "economy-service",
-        env!("CARGO_PKG_VERSION"),
-        "dev",
-    );
-
-    let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:50052".to_string())
-        .parse()
-        .context("invalid GRPC_ADDR")?;
-    let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required")?;
-
-    tracing::info!(target: "economy-service", "starting service at {}, db={}", addr, database_url);
-
-    // 55.15: 真实 DB pool + migrations（InMemory 留作测试用）
+    // 2. DB pool + migrations（域特定：5 张表，4 个 repo + 1 saga repo）
     let pool = match db::pool_from_env().await {
         Ok(p) => p,
         Err(e) => {
@@ -98,17 +57,15 @@ async fn main() -> anyhow::Result<()> {
         tracing::error!(target: "economy-service", "DB migrations failed: {}", e);
         std::process::exit(1);
     }
-
     let accounts: Arc<dyn AccountRepository> = Arc::new(PgAccountRepository::new(pool.clone()));
     let ledger: Arc<dyn TransactionLedgerRepository> =
         Arc::new(PgTransactionLedgerRepository::new(pool.clone()));
     let reservations: Arc<dyn ReservationRepository> =
         Arc::new(PgReservationRepository::new(pool.clone()));
     let sagas: Arc<dyn SagaRepository> = Arc::new(PgSagaRepository::new(pool.clone()));
+    tracing::info!(target: "economy-service", "{}-service started, DB pool size: {}", cfg.service_name, pool.size());
 
-    tracing::info!(target: "economy-service", "economy-service started, DB pool size: {}", pool.size());
-
-    // 55.23: 构造 SagaOrchestrator + ReserveHandler/ConfirmHandler（per RGS-REV-007 AC4 收尾）
+    // 3. Saga 编排器 + 崩溃恢复后台任务（域特定：仅 economy 有）
     let reserve_handler: Arc<dyn economy_service::saga_orchestrator::SagaStepHandler> =
         Arc::new(ReserveHandler::new(
             reservations.clone(),
@@ -123,9 +80,6 @@ async fn main() -> anyhow::Result<()> {
         reservations.clone(),
         vec![reserve_handler, confirm_handler],
     ));
-
-    // 55.23: 启动崩溃恢复后台任务（per RGS-DTL-100 §3 Saga 决策与执行）
-    // 周期扫描 sagas.status IN ('running', 'compensating') 并 resume
     {
         let orch = orchestrator.clone();
         let sagas_for_recover = sagas.clone();
@@ -146,54 +100,23 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     Err(e) => {
-                        tracing::warn!(
-                            target: "saga",
-                            "saga list_running failed: {}",
-                            e
-                        );
+                        tracing::warn!(target: "saga", "saga list_running failed: {}", e);
                     }
                 }
                 tokio::time::sleep(Duration::from_secs(SAGA_RECOVER_INTERVAL_SECS)).await;
             }
         });
     }
-
     tracing::info!(target: "saga", "saga orchestrator started");
 
-    // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
-    let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
+    // 4. outbox relay 后台（公共）
+    service_bootstrap::spawn_outbox_relay(pool.clone(), cfg.service_name, cfg.nats_uri.clone()).await;
 
-    // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
-    // dev/test fallback: NATS 不可用时跳过 relay，gRPC server 继续运行
-    let nats_uri = env::var("NATS_URI").unwrap_or_else(|_| "nats://localhost:4222".to_string());
-    match build_messaging_client(&MessagingConfig {
-        uri: nats_uri.clone(),
-        name: "economy-service".to_string(),
-    })
-    .await
-    {
-        Ok((nats_client, js_ctx)) => {
-            let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
-            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
-            tokio::spawn(async move {
-                // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
-                let _nats_keepalive = nats_client;
-                Arc::new(relay).run().await;
-            });
-            tracing::info!(target: "economy-service", "outbox relay started (NATS={})", nats_uri);
-        }
-        Err(e) => {
-            tracing::warn!(
-                target: "economy-service",
-                "outbox relay DISABLED — NATS connect failed: {}; outbox rows will accumulate, manual recovery required",
-                e
-            );
-        }
-    }
+    // 5. mTLS server builder（公共）
+    let mut server = service_bootstrap::build_server_with_mtls(&cfg)?;
 
+    // 6. 域 service wiring（域特定：EconomyServiceServer + 双 service 实现）
     let service_impl = Arc::new(EconomyServiceImpl::new(accounts.clone(), ledger.clone()));
-    // trade 域: TradeRepository (Pg) + TradeServiceImpl 业务实现 (per RGS-DTL-038 §4.4 + DEC-038-04)
-    // mTLS fail-closed: 与主服务共用 mTLS 配置 (per BAS-003)
     let trade_repo: Arc<dyn TradeRepository> = Arc::new(PgTradeRepository::new(pool.clone()));
     let trade_impl = Arc::new(TradeServiceImpl::new(
         trade_repo,
@@ -201,53 +124,19 @@ async fn main() -> anyhow::Result<()> {
         ledger.clone() as Arc<dyn TransactionLedgerRepository>,
     ));
     let grpc = EconomyGrpcService::new(service_impl, trade_impl);
+    let svc = economy_service::proto::v1::economy_service_server::EconomyServiceServer::new(grpc);
 
-    // grpc.health.v1.Health 服务（k8s exec 探针 + mTLS，per RGS-OPS-101）
-    // DB pool/migrations 已在此之前成功（失败已 exit(1)），此时注册即代表"可服务"。
+    // 7. health + serve（公共）
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<economy_service::proto::v1::economy_service_server::EconomyServiceServer<EconomyGrpcService>>()
         .await;
-    health_reporter
-        .set_service_status("", tonic_health::ServingStatus::Serving)
-        .await;
+    service_bootstrap::set_serving_defaults(&mut health_reporter).await;
 
-    // 55.26 fail-closed mTLS（per RGS-REV-008 AC-1 / verify-A+C）
-    // 默认强制 mTLS；仅 RGS_ALLOW_INSECURE_GRPC=1 / "true" 显式 opt-out 才允许 insecure gRPC（dev/test only）。
-    // 不设置 / 0 / 任意其他值 → 任何 TLS 加载失败都通过 .context() 上抛 → main 返 Err → 进程退出 1。
-    let allow_insecure = env::var("RGS_ALLOW_INSECURE_GRPC")
-        .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
-
-    let mut server_builder = tonic::transport::Server::builder();
-    if allow_insecure {
-        tracing::warn!(
-            target: "economy-service",
-            "⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)"
-        );
-        shared_platform::channel::SERVER_MTLS_BYPASSED_TOTAL.fetch_add(1, Ordering::Relaxed);
-    } else {
-        let tls_dir = env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
-        let tls_config = load_server_tls_config(
-            &std::path::PathBuf::from(format!("{}/server.pem", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/server.key", tls_dir)),
-            &std::path::PathBuf::from(format!("{}/ca.pem", tls_dir)),
-        )
-        .context(
-            "mTLS config load failed (set RGS_ALLOW_INSECURE_GRPC=1 to bypass for dev/test)",
-        )?;
-        server_builder = server_builder
-            .tls_config(tls_config)
-            .context("tls_config")?;
-        tracing::info!(target: "economy-service", "mTLS ENABLED — gRPC client cert verification required");
-    }
-
-    tracing::info!(target: "economy-service", "binding gRPC server at {}", addr);
-    let svc = economy_service::proto::v1::economy_service_server::EconomyServiceServer::new(grpc);
-    server_builder
+    server
         .add_service(svc)
         .add_service(health_service)
-        .serve(addr)
-        .await
-        .context("tonic server failed")?;
+        .serve(cfg.grpc_addr)
+        .await?;
     Ok(())
 }
