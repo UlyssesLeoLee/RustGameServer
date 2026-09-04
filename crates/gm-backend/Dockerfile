@@ -1,6 +1,6 @@
 # gm-backend Dockerfile (per RGS-IMPL-005 §3, 单 binary distroless)
 # 复用顶层 Dockerfile 模式(builder + distroless runtime),只打包 /app/bin/gm-backend
-FROM rust:1.98-slim AS chef
+FROM rust:1.98.1-slim AS chef
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev ca-certificates protobuf-compiler && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef --locked

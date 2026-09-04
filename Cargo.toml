@@ -24,7 +24,9 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.98"
+# 2026-09-05 升级 1.98 → 1.98.1 (per https://blog.rust-lang.org/2026/09/03/Rust-1.98.1/)
+# 修复 vtable miscompilation UB (issue 161441).
+rust-version = "1.98.1"
 license = "Apache-2.0"
 repository = "https://github.com/UlyssesLeoLee/RustGameServer"
 authors = ["Ulysses <UlyssesLeoLee@users.noreply.github.com>"]

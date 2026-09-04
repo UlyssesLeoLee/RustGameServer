@@ -176,7 +176,7 @@ services:
   # 54.5/54.6/54.7 业务实现后改为具体 distroless image（53.13 后）
 
   player-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-player-service
     working_dir: /app
     volumes:
@@ -196,7 +196,7 @@ services:
     restart: unless-stopped
 
   economy-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-economy-service
     working_dir: /app
     volumes:
@@ -216,7 +216,7 @@ services:
     restart: unless-stopped
 
   match-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-match-service
     working_dir: /app
     volumes:
@@ -236,7 +236,7 @@ services:
     restart: unless-stopped
 
   social-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-social-service
     working_dir: /app
     volumes:
@@ -256,7 +256,7 @@ services:
     restart: unless-stopped
 
   admin-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-admin-service
     working_dir: /app
     volumes:
@@ -274,3 +274,4 @@ services:
     ports:
       - "${ADMIN_SERVICE_PORT:-50055}:50055"
     restart: unless-stopped
+
