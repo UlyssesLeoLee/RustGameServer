@@ -22,6 +22,8 @@ async-trait = { workspace = true }
 prost = { workspace = true }
 # 54.9 启用：gRPC client 运行时（tonic transport）
 tonic = { workspace = true }
+# 2026-09-04 P0-1 service_bootstrap 抽 health reporter (per 5 域 main.rs 模板)
+tonic-health = { workspace = true }
 # 54.9 启用：mTLS 证书（直接版本，不靠 workspace.dependencies）
 rustls = "0.23"
 # 54.9 启用：异步重试

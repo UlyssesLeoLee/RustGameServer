@@ -4900,6 +4900,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",

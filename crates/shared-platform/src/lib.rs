@@ -37,6 +37,7 @@ pub mod outbox_relay;
 pub mod producer;
 pub mod rbac;
 pub mod retry;
+pub mod service_bootstrap;
 pub mod span_helpers;
 pub mod subject;
 pub mod tls;
