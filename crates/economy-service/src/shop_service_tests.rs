@@ -262,39 +262,43 @@ mod tests {
     async fn mystery_shop_list_returns_items_when_unlocked() {
         let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
         let player_id = Uuid::new_v4().to_string();
-        let mut repo = v3_repo.lock().await;
-        repo.mystery_shops.insert(
-            10,
-            MysteryShop {
-                mystery_shop_id: 10,
-                unlock_level: 10,
-                refresh_cost: 50,
-                max_refresh: 5,
-            },
-        );
-        repo.mystery_states.insert(
-            (player_id.clone(), 10),
-            MysteryShopState {
-                player_id: player_id.clone(),
-                mystery_shop_id: 10,
-                unlocked: true,
-                unlocked_at: Some(Utc::now()),
-                refresh_count: 1,
-                refreshed_at: Utc::now(),
-                current_items: vec![ShopItemEntity {
-                    item_id: "rare".to_string(),
-                    sku: "RR".to_string(),
-                    name: "Rare".to_string(),
-                    price_amount: 100,
-                    price_currency: 2,
-                    stock: 1,
-                    vip_level_required: 0,
-                    level_required: 0,
-                    limit_per_player: 0,
-                    tag: "rare".to_string(),
-                }],
-            },
-        );
+        // 配置阶段: 用 scoped block 让 lock guard 在 service 调用前 drop
+        // (避免 re-entrant lock: service.mystery_shop_list 内部会再 lock(self.repo))
+        {
+            let mut repo = v3_repo.lock().await;
+            repo.mystery_shops.insert(
+                10,
+                MysteryShop {
+                    mystery_shop_id: 10,
+                    unlock_level: 10,
+                    refresh_cost: 50,
+                    max_refresh: 5,
+                },
+            );
+            repo.mystery_states.insert(
+                (player_id.clone(), 10),
+                MysteryShopState {
+                    player_id: player_id.clone(),
+                    mystery_shop_id: 10,
+                    unlocked: true,
+                    unlocked_at: Some(Utc::now()),
+                    refresh_count: 1,
+                    refreshed_at: Utc::now(),
+                    current_items: vec![ShopItemEntity {
+                        item_id: "rare".to_string(),
+                        sku: "RR".to_string(),
+                        name: "Rare".to_string(),
+                        price_amount: 100,
+                        price_currency: 2,
+                        stock: 1,
+                        vip_level_required: 0,
+                        level_required: 0,
+                        limit_per_player: 0,
+                        tag: "rare".to_string(),
+                    }],
+                },
+            );
+        }
         let out = svc.mystery_shop_list(player_id, 10).await.unwrap();
         assert_eq!(out.items.len(), 1);
         assert_eq!(out.refresh_count, 1);
