@@ -62,6 +62,10 @@ pub enum Error {
         step: String,
         reason: String,
     },
+
+    /// 未实现占位 (per 9/4 MD Phase 2: 90 RPC stub 阶段, 真实业务陆续填)
+    #[error("unimplemented: {0}")]
+    Unimplemented(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -106,6 +110,7 @@ impl From<Error> for tonic::Status {
             Error::AccountFrozen(_) => tonic::Status::new(Code::PermissionDenied, e.to_string()),
             Error::IdempotencyConflict(_) => tonic::Status::new(Code::AlreadyExists, e.to_string()),
             Error::SagaFailed { .. } => tonic::Status::new(Code::Aborted, e.to_string()),
+            Error::Unimplemented(_) => tonic::Status::new(Code::Unimplemented, e.to_string()),
         }
     }
 }

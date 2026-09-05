@@ -3,16 +3,24 @@ package economy.v1;
 import "common/v1/common.proto";
 option go_package = "github.com/ulyssesleolee/rustgameserver/proto/economy/v1;economyv1";
 
-// EconomyService —— 5 域经济微服务 gRPC API（per RGS-DTL-015 + RGS-DTL-038 §4 economy v2）
+// EconomyService —— 5 域经济微服务 gRPC API
 //
 // v1 (per RGS-DTL-015):
 //   - HealthCheck / GetAccount
 //
-// v2 增量 (per RGS-DTL-038 §4.4 DEC-038-04 trade 域归属 + 9 DEC 全 A 拍板):
+// v2 增量 (per RGS-DTL-038 §4.4):
 //   - CreateAuction / BidAuction / CancelAuction / ListAuction / GetTradeHistory
 //
-// 范围: trade 域 = economy-service v2 内置 (per DEC-038-04 A), 卡牌实例当作新型资产;
-// 公开拍卖撮合 = economy 内子模块; 跨域 saga (card-service 协同) 用 TODO 占位待 W36+ 接入.
+// v3 增量 (per 闪烁之光借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC):
+//   - 商店类 (20): ShopList/ShopBuy/ShopRefresh/.../MysteryShop*
+//   - 充值类 (15): Recharge*/MonthlyCard*/FirstRecharge*/...
+//   - 抽卡类 (15): Summon*/TenPull*/SinglePull*/...
+//   - 拍卖行 (15): 在 v2 5 RPC 基础上扩 10 RPC (AuctionBid/Buyout/Search/...)
+//   - 限时 (10): FlashSale*/FlashSaleCountdown/...
+//   - 基金/特权 (10): Fund*/Privilege*/...
+//   - 活动 (5): ActivityList/ActivityClaim/ActivityTemplate (数据驱动 9 套 → 1 套 + 配置)
+//
+// 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 活动运营 RPC → 1 套 ActivityService + 配置
 service EconomyService {
   // v1 健康检查
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
@@ -20,39 +28,130 @@ service EconomyService {
   // v1 账户查询
   rpc GetAccount(common.v1.EntityId) returns (Account);
 
-  // === v2 增量: trade 域 (per RGS-DTL-038 §4.4 + §6.2/§6.3) ===
-
-  // CreateAuction —— 卖家创建公开拍卖
-  // 输入: seller_id + card_id + min_price + currency_type
-  // 输出: 新 auction_id
-  // 业务: 卡牌实例 escrowed 化, status=Active, 截止时间默认 24h
+  // === v2 trade 域 (per RGS-DTL-038 §4.4) ===
   rpc CreateAuction(CreateAuctionRequest) returns (CreateAuctionResponse);
-
-  // BidAuction —— 玩家对拍卖出价
-  // 输入: auction_id + bidder_id + amount
-  // 输出: bid_id + is_highest
-  // 业务: 高于当前最高价则覆盖; 旧最高出价者退还 (补偿); auction 截止则触发自动成交
-  //       (per §6.2 Trade saga 4 步 + §6.3 ExecuteAuction saga 触发)
   rpc BidAuction(BidAuctionRequest) returns (BidAuctionResponse);
-
-  // CancelAuction —— 卖家撤单
-  // 输入: auction_id + seller_id
-  // 输出: cancelled + refunded
-  // 业务: 仅 Active 可撤; 退还所有出价者货币; 卖家卡牌解锁 (TODO 跨域)
   rpc CancelAuction(CancelAuctionRequest) returns (CancelAuctionResponse);
-
-  // ListAuction —— 公开拍卖列表
-  // 输入: filter (active / closed / all) + page
-  // 输出: auctions[] + page
   rpc ListAuction(ListAuctionRequest) returns (ListAuctionResponse);
-
-  // GetTradeHistory —— 玩家交易历史
-  // 输入: player_id + page
-  // 输出: trades[] (含买家和卖家视角) + page
   rpc GetTradeHistory(GetTradeHistoryRequest) returns (GetTradeHistoryResponse);
+
+  // === v3 商店类 (20, proto_134 + proto_236 选) ===
+  // 通用商店
+  rpc ShopList(ShopListRequest) returns (ShopListResponse);
+  rpc ShopBuy(ShopBuyRequest) returns (ShopBuyResponse);
+  rpc ShopRefresh(ShopRefreshRequest) returns (ShopRefreshResponse);
+  rpc ShopRecord(ShopRecordRequest) returns (ShopRecordResponse);
+  // 神秘商店 (proto_134 23405-23408 等)
+  rpc MysteryShopList(MysteryShopListRequest) returns (MysteryShopListResponse);
+  rpc MysteryShopBuy(MysteryShopBuyRequest) returns (MysteryShopBuyResponse);
+  rpc MysteryShopRefresh(MysteryShopRefreshRequest) returns (MysteryShopRefreshResponse);
+  rpc MysteryShopUnlock(MysteryShopUnlockRequest) returns (MysteryShopUnlockResponse);
+  // 兑换商店 (proto_236)
+  rpc ExchangeList(ExchangeListRequest) returns (ExchangeListResponse);
+  rpc ExchangeDo(ExchangeDoRequest) returns (ExchangeDoResponse);
+  rpc ExchangeRecord(ExchangeRecordRequest) returns (ExchangeRecordResponse);
+  // 神格许愿 (proto_236)
+  rpc WishList(WishListRequest) returns (WishListResponse);
+  rpc WishDraw(WishDrawRequest) returns (WishDrawResponse);
+  rpc WishReward(WishRewardRequest) returns (WishRewardResponse);
+  // 积分商城
+  rpc PointShopList(PointShopListRequest) returns (PointShopListResponse);
+  rpc PointShopBuy(PointShopBuyRequest) returns (PointShopBuyResponse);
+  // 礼包码
+  rpc GiftCodeRedeem(GiftCodeRedeemRequest) returns (GiftCodeRedeemResponse);
+  rpc GiftCodeQuery(GiftCodeQueryRequest) returns (GiftCodeQueryResponse);
+  // 战利品
+  rpc LootRoll(LootRollRequest) returns (LootRollResponse);
+  rpc LootClaim(LootClaimRequest) returns (LootClaimResponse);
+
+  // === v3 充值类 (15, proto_167 + proto_210 + proto_234) ===
+  rpc RechargeList(RechargeListRequest) returns (RechargeListResponse);
+  rpc RechargeDo(RechargeDoRequest) returns (RechargeDoResponse);
+  rpc RechargeOrderQuery(RechargeOrderQueryRequest) returns (RechargeOrderQueryResponse);
+  rpc RechargeOrderFinish(RechargeOrderFinishRequest) returns (RechargeOrderFinishResponse);
+  rpc MonthlyCardInfo(MonthlyCardInfoRequest) returns (MonthlyCardInfoResponse);
+  rpc MonthlyCardClaim(MonthlyCardClaimRequest) returns (MonthlyCardClaimResponse);
+  rpc MonthlyCardBuy(MonthlyCardBuyRequest) returns (MonthlyCardBuyResponse);
+  rpc FirstRechargeList(FirstRechargeListRequest) returns (FirstRechargeListResponse);
+  rpc FirstRechargeClaim(FirstRechargeClaimRequest) returns (FirstRechargeClaimResponse);
+  rpc FirstRechargeStatus(FirstRechargeStatusRequest) returns (FirstRechargeStatusResponse);
+  rpc PowerPackList(PowerPackListRequest) returns (PowerPackListResponse);
+  rpc PowerPackBuy(PowerPackBuyRequest) returns (PowerPackBuyResponse);
+  rpc GrowthFundList(GrowthFundListRequest) returns (GrowthFundListResponse);
+  rpc GrowthFundBuy(GrowthFundBuyRequest) returns (GrowthFundBuyResponse);
+  rpc GrowthFundClaim(GrowthFundClaimRequest) returns (GrowthFundClaimResponse);
+
+  // === v3 抽卡类 (15, proto_232 + proto_210 部分) ===
+  rpc SummonList(SummonListRequest) returns (SummonListResponse);
+  rpc SummonInfo(SummonInfoRequest) returns (SummonInfoResponse);
+  rpc SummonSinglePull(SummonSinglePullRequest) returns (SummonSinglePullResponse);
+  rpc SummonTenPull(SummonTenPullRequest) returns (SummonTenPullResponse);
+  rpc SummonFree(SummonFreeRequest) returns (SummonFreeResponse);
+  rpc SummonPity(SummonPityRequest) returns (SummonPityResponse);
+  rpc SummonShareReward(SummonShareRewardRequest) returns (SummonShareRewardResponse);
+  rpc SummonRecord(SummonRecordRequest) returns (SummonRecordResponse);
+  rpc SummonBoxList(SummonBoxListRequest) returns (SummonBoxListResponse);
+  rpc SummonBoxUnlock(SummonBoxUnlockRequest) returns (SummonBoxUnlockResponse);
+  rpc SummonFeaturedDraw(SummonFeaturedDrawRequest) returns (SummonFeaturedDrawResponse);
+  rpc SummonResetPity(SummonResetPityRequest) returns (SummonResetPityResponse);
+  rpc SummonExchange(SummonExchangeRequest) returns (SummonExchangeResponse);
+  rpc SummonBannerList(SummonBannerListRequest) returns (SummonBannerListResponse);
+  rpc SummonGuaranteedInfo(SummonGuaranteedInfoRequest) returns (SummonGuaranteedInfoResponse);
+
+  // === v3 拍卖行扩展 (15, v2 5 + 扩 10, proto_134 部分 + proto_235) ===
+  // 公开拍卖 v2 (5): CreateAuction/BidAuction/CancelAuction/ListAuction/GetTradeHistory
+  // v3 扩展 (10): MyListings/Search/Buyout/Relist/AutoBid/SavedSearch/MyBids/...
+  rpc AuctionMyListings(AuctionMyListingsRequest) returns (AuctionMyListingsResponse);
+  rpc AuctionSearch(AuctionSearchRequest) returns (AuctionSearchResponse);
+  rpc AuctionBuyout(AuctionBuyoutRequest) returns (AuctionBuyoutResponse);
+  rpc AuctionRelist(AuctionRelistRequest) returns (AuctionRelistResponse);
+  rpc AuctionAutoBid(AuctionAutoBidRequest) returns (AuctionAutoBidResponse);
+  rpc AuctionMyBids(AuctionMyBidsRequest) returns (AuctionMyBidsResponse);
+  rpc AuctionSavedSearch(AuctionSavedSearchRequest) returns (AuctionSavedSearchResponse);
+  rpc AuctionWatchList(AuctionWatchListRequest) returns (AuctionWatchListResponse);
+  rpc AuctionWatch(AuctionWatchRequest) returns (AuctionWatchResponse);
+  rpc AuctionUnwatch(AuctionUnwatchRequest) returns (AuctionUnwatchResponse);
+
+  // === v3 限时/FlashSale (10, proto_134 + proto_235) ===
+  rpc FlashSaleList(FlashSaleListRequest) returns (FlashSaleListResponse);
+  rpc FlashSaleInfo(FlashSaleInfoRequest) returns (FlashSaleInfoResponse);
+  rpc FlashSaleBuy(FlashSaleBuyRequest) returns (FlashSaleBuyResponse);
+  rpc FlashSaleCountdown(FlashSaleCountdownRequest) returns (FlashSaleCountdownResponse);
+  rpc FlashSaleRecord(FlashSaleRecordRequest) returns (FlashSaleRecordResponse);
+  rpc FlashSaleSubscribe(FlashSaleSubscribeRequest) returns (FlashSaleSubscribeResponse);
+  rpc FlashSaleHot(FlashSaleHotRequest) returns (FlashSaleHotResponse);
+  rpc FlashSaleRecommend(FlashSaleRecommendRequest) returns (FlashSaleRecommendResponse);
+  rpc FlashSaleStock(FlashSaleStockRequest) returns (FlashSaleStockResponse);
+  rpc FlashSaleClaim(FlashSaleClaimRequest) returns (FlashSaleClaimResponse);
+
+  // === v3 基金/特权 (10, proto_245 + proto_247) ===
+  // 基金 (proto_247)
+  rpc FundList(FundListRequest) returns (FundListResponse);
+  rpc FundBuy(FundBuyRequest) returns (FundBuyResponse);
+  rpc FundClaim(FundClaimRequest) returns (FundClaimResponse);
+  rpc FundStatus(FundStatusRequest) returns (FundStatusResponse);
+  // 特权 (proto_245)
+  rpc PrivilegeList(PrivilegeListRequest) returns (PrivilegeListResponse);
+  rpc PrivilegeActivate(PrivilegeActivateRequest) returns (PrivilegeActivateResponse);
+  rpc PrivilegeBuy(PrivilegeBuyRequest) returns (PrivilegeBuyResponse);
+  // 基金/特权剩余 3 个
+  rpc FundProgress(FundProgressRequest) returns (FundProgressResponse);
+  rpc PrivilegeDaily(PrivilegeDailyRequest) returns (PrivilegeDailyResponse);
+  rpc PrivilegeRewards(PrivilegeRewardsRequest) returns (PrivilegeRewardsResponse);
+
+  // === v3 活动 (5, proto_166 数据驱动模板, 9 套 → 1 套 + 配置) ===
+  // 数据驱动反例: 不写 9 个 holiday_* 重复 RPC
+  // 1 个 ActivityList + 1 个 ActivityClaim + 1 个 ActivityTemplate 即可
+  rpc ActivityList(ActivityListRequest) returns (ActivityListResponse);
+  rpc ActivityClaim(ActivityClaimRequest) returns (ActivityClaimResponse);
+  rpc ActivityTemplate(ActivityTemplateRequest) returns (ActivityTemplateResponse);
+  rpc ActivityProgress(ActivityProgressRequest) returns (ActivityProgressResponse);
+  rpc ActivitySubscribe(ActivitySubscribeRequest) returns (ActivitySubscribeResponse);
 }
 
-// === v1 message ===
+// =====================================================
+// v1 message
+// =====================================================
 
 message Account {
   common.v1.EntityId id = 1;
@@ -61,49 +160,46 @@ message Account {
   string display_name = 4;
 }
 
-// === v2 增量 message: trade 域 (per RGS-DTL-038 §4.4) ===
+// =====================================================
+// v2 trade 域 message
+// =====================================================
 
-// 拍卖状态
 enum AuctionStatus {
   AUCTION_STATUS_UNSPECIFIED = 0;
-  AUCTION_STATUS_ACTIVE = 1;    // 进行中
-  AUCTION_STATUS_SOLD = 2;      // 已成交
-  AUCTION_STATUS_CANCELLED = 3; // 已撤单
-  AUCTION_STATUS_EXPIRED = 4;   // 已过期
+  AUCTION_STATUS_ACTIVE = 1;
+  AUCTION_STATUS_SOLD = 2;
+  AUCTION_STATUS_CANCELLED = 3;
+  AUCTION_STATUS_EXPIRED = 4;
 }
 
-// 拍卖过滤器
 enum AuctionFilter {
   AUCTION_FILTER_UNSPECIFIED = 0;
-  AUCTION_FILTER_ACTIVE = 1;  // 进行中
-  AUCTION_FILTER_CLOSED = 2;  // 已结束 (含 SOLD / CANCELLED / EXPIRED)
-  AUCTION_FILTER_ALL = 3;      // 全部
+  AUCTION_FILTER_ACTIVE = 1;
+  AUCTION_FILTER_CLOSED = 2;
+  AUCTION_FILTER_ALL = 3;
 }
 
-// 单条拍卖 (ListAuction / GetTradeHistory 共用)
 message Auction {
   string auction_id = 1;
   string seller_id = 2;
-  string card_id = 3;          // 卡牌静态 ID (card.card_id)
-  string card_instance_id = 4; // 卡牌实例 ID (card_instances.instance_id)
+  string card_id = 3;
+  string card_instance_id = 4;
   int64 min_price = 5;
   common.v1.CurrencyType currency_type = 6;
-  int64 highest_bid = 7;       // 0 = 尚无人出价
-  string highest_bidder = 8;   // "" = 尚无人出价
+  int64 highest_bid = 7;
+  string highest_bidder = 8;
   AuctionStatus status = 9;
   common.v1.Timestamp started_at = 10;
   common.v1.Timestamp ends_at = 11;
-  common.v1.Timestamp closed_at = 12; // 0 = 未结束
+  common.v1.Timestamp closed_at = 12;
 }
 
-// CreateAuction
 message CreateAuctionRequest {
   string seller_id = 1;
   string card_id = 2;
   string card_instance_id = 3;
   int64 min_price = 4;
   common.v1.CurrencyType currency_type = 5;
-  // 可选: 截止时间 (秒, Unix epoch). 0 = 默认 24h 后.
   int64 ends_at_unix = 6;
 }
 message CreateAuctionResponse {
@@ -112,36 +208,31 @@ message CreateAuctionResponse {
   common.v1.Timestamp ends_at = 3;
 }
 
-// BidAuction
 message BidAuctionRequest {
   string auction_id = 1;
   string bidder_id = 2;
   int64 amount = 3;
-  // 幂等键 (e.g. "bid-{auction_id}-{bidder_id}-{ts}"), 避免双花
   string idempotency_key = 4;
 }
 message BidAuctionResponse {
   string bid_id = 1;
-  bool is_highest = 2;        // true = 本次出价为当前最高
-  int64 current_highest = 3;  // 当前最高价
-  bool auction_ended = 4;     // true = 出价后 auction 已到期, 触发 ExecuteAuction saga
-  // 当 is_highest=true 且 amount > 之前最高价, old_highest_bidder 收到退款
-  string refunded_to = 5;     // "" = 无人退款
-  int64 refund_amount = 6;    // 退款金额 (0 = 无退款)
+  bool is_highest = 2;
+  int64 current_highest = 3;
+  bool auction_ended = 4;
+  string refunded_to = 5;
+  int64 refund_amount = 6;
 }
 
-// CancelAuction
 message CancelAuctionRequest {
   string auction_id = 1;
   string seller_id = 2;
 }
 message CancelAuctionResponse {
   bool cancelled = 1;
-  int64 refunded = 2;         // 退还给当前最高出价者的货币
-  string refunded_to = 3;     // "" = 无出价者
+  int64 refunded = 2;
+  string refunded_to = 3;
 }
 
-// ListAuction
 message ListAuctionRequest {
   AuctionFilter filter = 1;
   common.v1.PageRequest page = 2;
@@ -151,13 +242,1171 @@ message ListAuctionResponse {
   common.v1.PageResponse page = 2;
 }
 
-// GetTradeHistory
 message GetTradeHistoryRequest {
   string player_id = 1;
   common.v1.PageRequest page = 2;
 }
 message GetTradeHistoryResponse {
-  // trades 包含: 玩家作为卖家的成交拍卖 + 玩家作为买家的成交拍卖 + 玩家参与的撤单
   repeated Auction trades = 1;
   common.v1.PageResponse page = 2;
+}
+
+// =====================================================
+// v3 公共 message
+// =====================================================
+
+// 商品条目 (商店/神秘商店/限时/兑换通用)
+message ShopItem {
+  string item_id = 1;
+  string sku = 2;
+  string name = 3;
+  int64 price_amount = 4;
+  common.v1.CurrencyType price_currency = 5;
+  int32 stock = 6;             // -1 = unlimited
+  int32 vip_level_required = 7;
+  int32 level_required = 8;
+  int32 limit_per_player = 9;  // 0 = unlimited
+  string tag = 10;             // "hot"/"new"/"discount"
+}
+
+// =====================================================
+// v3 商店类 (20) message
+// =====================================================
+
+// 通用商店
+message ShopListRequest {
+  string player_id = 1;
+  int32 shop_id = 2;
+  common.v1.PageRequest page = 3;
+}
+message ShopListResponse {
+  repeated ShopItem items = 1;
+  common.v1.Timestamp refreshed_at = 2;
+  common.v1.Timestamp next_refresh_at = 3;
+  common.v1.PageResponse page = 4;
+}
+
+message ShopBuyRequest {
+  string player_id = 1;
+  int32 shop_id = 2;
+  string item_id = 3;
+  int32 quantity = 4;
+  string idempotency_key = 5;
+}
+message ShopBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  int32 remaining_stock = 4;
+  int32 remaining_player_limit = 5;
+}
+
+message ShopRefreshRequest {
+  string player_id = 1;
+  int32 shop_id = 2;
+  bool use_currency = 3;
+}
+message ShopRefreshResponse {
+  repeated ShopItem new_items = 1;
+  common.v1.Timestamp refreshed_at = 2;
+  int64 cost_amount = 3;
+}
+
+message ShopRecordRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message ShopRecordResponse {
+  repeated ShopRecordEntry entries = 1;
+  common.v1.PageResponse page = 2;
+}
+message ShopRecordEntry {
+  string record_id = 1;
+  int32 shop_id = 2;
+  string item_id = 3;
+  int32 quantity = 4;
+  int64 cost_amount = 5;
+  common.v1.CurrencyType cost_currency = 6;
+  common.v1.Timestamp bought_at = 7;
+}
+
+// 神秘商店
+message MysteryShopListRequest {
+  string player_id = 1;
+  int32 mystery_shop_id = 2;
+}
+message MysteryShopListResponse {
+  repeated ShopItem items = 1;
+  int32 refresh_count = 2;
+  common.v1.Timestamp refreshed_at = 3;
+  int32 unlock_level = 4;
+}
+
+message MysteryShopBuyRequest {
+  string player_id = 1;
+  int32 mystery_shop_id = 2;
+  string item_id = 3;
+  string idempotency_key = 4;
+}
+message MysteryShopBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  int32 remaining_refresh_count = 4;
+}
+
+message MysteryShopRefreshRequest {
+  string player_id = 1;
+  int32 mystery_shop_id = 2;
+}
+message MysteryShopRefreshResponse {
+  repeated ShopItem new_items = 1;
+  int32 refresh_count = 2;
+  int64 cost_amount = 3;
+}
+
+message MysteryShopUnlockRequest {
+  string player_id = 1;
+  int32 mystery_shop_id = 2;
+}
+message MysteryShopUnlockResponse {
+  bool unlocked = 1;
+  common.v1.Timestamp unlocked_at = 2;
+  int32 cost_amount = 3;
+}
+
+// 兑换
+message ExchangeListRequest {
+  string player_id = 1;
+  int32 exchange_id = 2;
+}
+message ExchangeListResponse {
+  repeated ShopItem items = 1;
+  int64 player_points = 2;
+}
+
+message ExchangeDoRequest {
+  string player_id = 1;
+  int32 exchange_id = 2;
+  string item_id = 3;
+  int32 quantity = 4;
+  string idempotency_key = 5;
+}
+message ExchangeDoResponse {
+  bool success = 1;
+  int64 cost_points = 2;
+  int32 remaining_player_limit = 3;
+}
+
+message ExchangeRecordRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message ExchangeRecordResponse {
+  repeated ShopRecordEntry entries = 1;
+  common.v1.PageResponse page = 2;
+}
+
+// 神格许愿
+message WishListRequest {
+  string player_id = 1;
+  int32 wish_pool_id = 2;
+}
+message WishListResponse {
+  repeated ShopItem pool_items = 1;
+  int32 free_count = 2;
+  common.v1.Timestamp next_free_at = 3;
+}
+
+message WishDrawRequest {
+  string player_id = 1;
+  int32 wish_pool_id = 2;
+  int32 count = 3;
+  string idempotency_key = 4;
+}
+message WishDrawResponse {
+  repeated string drawn_item_ids = 1;
+  int32 four_star_count = 2;
+  int32 five_star_count = 3;
+  int64 cost_amount = 4;
+  common.v1.CurrencyType cost_currency = 5;
+}
+
+message WishRewardRequest {
+  string player_id = 1;
+  int32 wish_pool_id = 2;
+  int32 reward_tier = 3;
+}
+message WishRewardResponse {
+  bool claimed = 1;
+  int64 cost_amount = 2;
+}
+
+// 积分商城
+message PointShopListRequest {
+  string player_id = 1;
+  int32 point_type = 2;       // 1=竞技,2=公会,3=成就
+  common.v1.PageRequest page = 3;
+}
+message PointShopListResponse {
+  repeated ShopItem items = 1;
+  int64 player_points = 2;
+  common.v1.PageResponse page = 3;
+}
+
+message PointShopBuyRequest {
+  string player_id = 1;
+  int32 point_type = 2;
+  string item_id = 3;
+  int32 quantity = 4;
+  string idempotency_key = 5;
+}
+message PointShopBuyResponse {
+  bool success = 1;
+  int64 cost_points = 2;
+  int64 remaining_points = 3;
+}
+
+// 礼包码
+message GiftCodeRedeemRequest {
+  string player_id = 1;
+  string code = 2;
+  int32 server_id = 3;
+  string idempotency_key = 4;
+}
+message GiftCodeRedeemResponse {
+  bool success = 1;
+  string error_msg = 2;       // "expired" / "already_used" / "not_exist"
+  repeated ShopItem rewards = 3;
+}
+
+message GiftCodeQueryRequest {
+  string player_id = 1;
+  string code = 2;
+  int32 server_id = 3;
+}
+message GiftCodeQueryResponse {
+  bool exists = 1;
+  string code = 2;
+  string reward_template = 3;
+  common.v1.Timestamp valid_from = 4;
+  common.v1.Timestamp valid_to = 5;
+  int32 max_uses = 6;
+  int32 current_uses = 7;
+}
+
+// 战利品
+message LootRollRequest {
+  string player_id = 1;
+  int32 loot_table_id = 2;
+  int32 roll_count = 3;
+  string idempotency_key = 4;
+}
+message LootRollResponse {
+  repeated string rolled_item_ids = 1;
+  int32 rare_count = 2;
+  int32 epic_count = 3;
+  int32 legendary_count = 4;
+}
+
+message LootClaimRequest {
+  string player_id = 1;
+  int32 loot_table_id = 2;
+  string batch_id = 3;
+}
+message LootClaimResponse {
+  bool success = 1;
+  repeated ShopItem items = 2;
+}
+
+// =====================================================
+// v3 充值类 (15) message
+// =====================================================
+
+// 充值档位
+message RechargeTier {
+  int32 tier_id = 1;
+  string sku = 2;
+  int64 amount_cents = 3;       // 真实货币分
+  common.v1.CurrencyType currency_given = 4;
+  int64 currency_amount = 5;   // 给予游戏内货币
+  int32 bonus_pct = 6;          // 额外赠送百分比
+  int32 first_bonus_pct = 7;    // 首充奖励百分比
+  string tag = 8;
+}
+
+// 充值
+message RechargeListRequest {
+  string player_id = 1;
+  int32 channel = 2;            // 1=appstore,2=google,3=wechat,4=alipay
+}
+message RechargeListResponse {
+  repeated RechargeTier tiers = 1;
+  bool first_recharge_available = 2;
+  int32 player_vip_level = 3;
+}
+
+message RechargeDoRequest {
+  string player_id = 1;
+  int32 tier_id = 2;
+  int32 channel = 3;
+  string idempotency_key = 4;
+}
+message RechargeDoResponse {
+  string order_id = 1;
+  int64 amount_cents = 2;
+  int32 channel = 3;
+  common.v1.Timestamp created_at = 4;
+  int64 expires_at_unix = 5;
+}
+
+message RechargeOrderQueryRequest {
+  string player_id = 1;
+  string order_id = 2;
+}
+message RechargeOrderQueryResponse {
+  string order_id = 1;
+  string status = 2;            // "pending" / "paid" / "delivered" / "failed" / "refunded"
+  int64 amount_cents = 3;
+  int64 currency_amount = 4;
+  common.v1.Timestamp created_at = 5;
+  common.v1.Timestamp paid_at = 6;
+  common.v1.Timestamp delivered_at = 7;
+}
+
+message RechargeOrderFinishRequest {
+  string player_id = 1;
+  string order_id = 2;
+  string channel_receipt = 3;   // 渠道回执 (e.g. apple verify)
+  string idempotency_key = 4;
+}
+message RechargeOrderFinishResponse {
+  bool success = 1;
+  int64 currency_amount = 2;
+  int64 bonus_amount = 3;
+  int64 first_bonus_amount = 4;
+  int64 total_credit = 5;
+}
+
+// 月卡
+message MonthlyCardInfoRequest {
+  string player_id = 1;
+}
+message MonthlyCardInfoResponse {
+  bool owned = 1;
+  common.v1.Timestamp activated_at = 2;
+  common.v1.Timestamp expires_at = 3;
+  int32 daily_reward = 4;
+  int64 daily_currency = 5;
+  int32 days_claimed = 6;
+  int32 total_days = 7;
+}
+
+message MonthlyCardClaimRequest {
+  string player_id = 1;
+  int32 day_index = 2;
+  string idempotency_key = 3;
+}
+message MonthlyCardClaimResponse {
+  bool success = 1;
+  int64 currency_amount = 2;
+  int32 remaining_days = 3;
+  common.v1.Timestamp next_claim_at = 4;
+}
+
+message MonthlyCardBuyRequest {
+  string player_id = 1;
+  int32 monthly_card_id = 2;
+  int32 channel = 3;
+  string idempotency_key = 4;
+}
+message MonthlyCardBuyResponse {
+  bool success = 1;
+  string order_id = 2;
+  int64 cost_cents = 3;
+  common.v1.Timestamp activated_at = 4;
+  common.v1.Timestamp expires_at = 5;
+}
+
+// 首充
+message FirstRechargeListRequest {
+  string player_id = 1;
+}
+message FirstRechargeListResponse {
+  repeated RechargeTier tiers = 1;
+  int32 claimed_count = 2;
+  int32 total_count = 3;
+  int64 total_bonus = 4;
+}
+
+message FirstRechargeClaimRequest {
+  string player_id = 1;
+  int32 tier_id = 2;
+  string idempotency_key = 3;
+}
+message FirstRechargeClaimResponse {
+  bool success = 1;
+  int64 bonus_amount = 2;
+  int32 remaining_tiers = 3;
+}
+
+message FirstRechargeStatusRequest {
+  string player_id = 1;
+}
+message FirstRechargeStatusResponse {
+  bool any_recharged = 1;
+  int32 total_recharged_tiers = 2;
+  int64 total_spent_cents = 3;
+  int32 claimed_tier_count = 4;
+}
+
+// 战力礼包
+message PowerPackListRequest {
+  string player_id = 1;
+}
+message PowerPackListResponse {
+  repeated ShopItem packs = 1;
+  int32 current_power_rank = 2;
+  int32 next_reward_power = 3;
+}
+
+message PowerPackBuyRequest {
+  string player_id = 1;
+  int32 pack_id = 2;
+  string idempotency_key = 3;
+}
+message PowerPackBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  int32 new_power_rank = 3;
+}
+
+// 成长基金 (proto_247)
+message GrowthFundListRequest {
+  string player_id = 1;
+}
+message GrowthFundListResponse {
+  repeated FundTier tiers = 1;
+  int32 max_level = 2;
+  int64 cost_amount = 3;
+  common.v1.CurrencyType cost_currency = 4;
+  bool owned = 5;
+}
+message FundTier {
+  int32 level = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  bool claimed = 4;
+}
+
+message GrowthFundBuyRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+  string idempotency_key = 3;
+}
+message GrowthFundBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.Timestamp activated_at = 3;
+}
+
+message GrowthFundClaimRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+  int32 level = 3;
+  string idempotency_key = 4;
+}
+message GrowthFundClaimResponse {
+  bool success = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  int32 next_claim_level = 4;
+}
+
+// =====================================================
+// v3 抽卡类 (15) message
+// =====================================================
+
+// 抽卡池
+message SummonPool {
+  int32 pool_id = 1;
+  string name = 2;
+  int32 pool_type = 3;          // 1=常驻,2=限时,3=联动,4=新手
+  int32 cost_type = 4;          // 1=钻石单抽,2=钻石十连,3=代币,4=友情
+  int64 single_cost = 5;
+  int64 ten_cost = 6;
+  int32 pity_4star = 7;          // 4 星保底次数
+  int32 pity_5star = 8;          // 5 星保底次数
+  int32 featured_item_id = 9;    // UP 角色
+  common.v1.Timestamp starts_at = 10;
+  common.v1.Timestamp ends_at = 11;
+}
+
+// 抽卡结果
+message SummonResult {
+  string result_id = 1;
+  int32 pool_id = 2;
+  repeated string item_ids = 3;  // 抽到的卡牌 ID 列表
+  int32 rarity_4 = 4;
+  int32 rarity_5 = 5;
+  int32 rarity_3 = 6;
+  int32 new_pity_count = 7;      // 累计保底计数
+  bool hit_pity = 8;             // 触发保底
+  bool is_featured = 9;          // 是否为 UP 角色
+}
+
+message SummonListRequest {
+  string player_id = 1;
+}
+message SummonListResponse {
+  repeated SummonPool pools = 1;
+  int32 current_pity_count = 2;
+  int32 guaranteed_remaining = 3; // 大保底剩余
+}
+
+message SummonInfoRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+}
+message SummonInfoResponse {
+  SummonPool pool = 1;
+  int32 player_pity_count = 2;
+  int32 player_four_star_count = 3;
+  int32 player_five_star_count = 4;
+  int32 free_remaining = 5;
+  common.v1.Timestamp next_free_at = 6;
+  int32 total_pulls = 7;
+}
+
+message SummonSinglePullRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  string idempotency_key = 3;
+}
+message SummonSinglePullResponse {
+  SummonResult result = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+}
+
+message SummonTenPullRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  string idempotency_key = 3;
+}
+message SummonTenPullResponse {
+  repeated SummonResult results = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  int32 rarity_4_count = 4;
+  int32 rarity_5_count = 5;
+}
+
+message SummonFreeRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  string idempotency_key = 3;
+}
+message SummonFreeResponse {
+  SummonResult result = 1;
+  bool available = 2;
+  common.v1.Timestamp next_free_at = 3;
+}
+
+message SummonPityRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+}
+message SummonPityResponse {
+  int32 current_count = 1;
+  int32 pity_threshold = 2;
+  int32 guaranteed_remaining = 3;
+  int32 next_featured_pity = 4;
+}
+
+message SummonShareRewardRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  int32 share_target = 3;     // 1=微信,2=qq,3=微博
+  string idempotency_key = 4;
+}
+message SummonShareRewardResponse {
+  bool success = 1;
+  int64 reward_amount = 2;
+  int32 remaining_shares = 3;
+}
+
+message SummonRecordRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  common.v1.PageRequest page = 3;
+}
+message SummonRecordResponse {
+  repeated SummonResult results = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message SummonBoxListRequest {
+  string player_id = 1;
+  int32 box_id = 2;
+}
+message SummonBoxListResponse {
+  repeated ShopItem box_items = 1;
+  int32 unlock_progress = 2;
+  int32 unlock_required = 3;
+  bool unlocked = 4;
+}
+
+message SummonBoxUnlockRequest {
+  string player_id = 1;
+  int32 box_id = 2;
+  string idempotency_key = 3;
+}
+message SummonBoxUnlockResponse {
+  bool success = 1;
+  repeated ShopItem rewards = 2;
+  int32 remaining_boxes = 3;
+}
+
+message SummonFeaturedDrawRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  int32 featured_id = 3;
+  string idempotency_key = 4;
+}
+message SummonFeaturedDrawResponse {
+  SummonResult result = 1;
+  int64 cost_amount = 2;
+  bool used_pity = 3;
+}
+
+message SummonResetPityRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  string idempotency_key = 3;
+}
+message SummonResetPityResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  int32 new_pity_count = 3;
+}
+
+message SummonExchangeRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+  int32 from_item_id = 3;
+  int32 to_item_id = 4;
+  string idempotency_key = 5;
+}
+message SummonExchangeResponse {
+  bool success = 1;
+  int32 shards_remaining = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  int64 cost_amount = 4;
+}
+
+message SummonBannerListRequest {
+  string player_id = 1;
+}
+message SummonBannerListResponse {
+  repeated SummonPool featured = 1;
+  repeated SummonPool standard = 2;
+  repeated SummonPool event = 3;
+}
+
+message SummonGuaranteedInfoRequest {
+  string player_id = 1;
+  int32 pool_id = 2;
+}
+message SummonGuaranteedInfoResponse {
+  bool guaranteed_active = 1;
+  int32 guaranteed_type = 2;        // 4=4 星, 5=5 星
+  int32 guaranteed_remaining = 3;
+  int32 featured_id = 4;
+}
+
+// =====================================================
+// v3 拍卖行扩展 (10) message
+// =====================================================
+
+message AuctionMyListingsRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message AuctionMyListingsResponse {
+  repeated Auction auctions = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message AuctionSearchRequest {
+  string player_id = 1;
+  string keyword = 2;
+  int32 rarity = 3;             // 0=any
+  int32 min_price = 4;          // 0=any
+  int32 max_price = 5;          // 0=any
+  common.v1.PageRequest page = 6;
+}
+message AuctionSearchResponse {
+  repeated Auction auctions = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message AuctionBuyoutRequest {
+  string player_id = 1;
+  string auction_id = 2;
+  string idempotency_key = 3;
+}
+message AuctionBuyoutResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  common.v1.Timestamp bought_at = 4;
+}
+
+message AuctionRelistRequest {
+  string player_id = 1;
+  string auction_id = 2;
+  int64 new_min_price = 3;
+  int64 duration_secs = 4;
+  string idempotency_key = 5;
+}
+message AuctionRelistResponse {
+  bool success = 1;
+  common.v1.Timestamp new_ends_at = 2;
+  int64 new_min_price = 3;
+  int64 cost_amount = 4;
+}
+
+message AuctionAutoBidRequest {
+  string player_id = 1;
+  string auction_id = 2;
+  int64 max_amount = 3;
+}
+message AuctionAutoBidResponse {
+  bool registered = 1;
+  int64 max_amount = 2;
+  int32 current_proxy_count = 3;
+}
+
+message AuctionMyBidsRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message AuctionMyBidsResponse {
+  repeated Auction active_bids = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message AuctionSavedSearchRequest {
+  string player_id = 1;
+  string keyword = 2;
+  int32 rarity = 3;
+  int32 min_price = 4;
+  int32 max_price = 5;
+  int32 notify_channel = 6;   // 1=邮件,2=站内,3=微信
+  string idempotency_key = 7;
+}
+message AuctionSavedSearchResponse {
+  bool saved = 1;
+  int32 saved_search_id = 2;
+  bool notify_on_match = 3;
+}
+
+message AuctionWatchListRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message AuctionWatchListResponse {
+  repeated Auction watched = 1;
+  common.v1.PageResponse page = 2;
+}
+
+message AuctionWatchRequest {
+  string player_id = 1;
+  string auction_id = 2;
+  string idempotency_key = 3;
+}
+message AuctionWatchResponse {
+  bool watched = 1;
+  int32 watch_count = 2;
+}
+
+message AuctionUnwatchRequest {
+  string player_id = 1;
+  string auction_id = 2;
+  string idempotency_key = 3;
+}
+message AuctionUnwatchResponse {
+  bool unwatched = 1;
+  int32 watch_count = 2;
+}
+
+// =====================================================
+// v3 限时/FlashSale (10) message
+// =====================================================
+
+message FlashSaleItem {
+  int32 flash_sale_id = 1;
+  int32 item_id = 2;
+  string name = 3;
+  int64 price_amount = 4;
+  int64 original_price = 5;
+  common.v1.CurrencyType price_currency = 6;
+  int32 stock = 7;
+  int32 sold = 8;
+  common.v1.Timestamp starts_at = 9;
+  common.v1.Timestamp ends_at = 10;
+  int32 discount_pct = 11;
+  string tag = 12;
+}
+
+message FlashSaleListRequest {
+  string player_id = 1;
+  int32 category = 2;     // 0=all,1=hot,2=coming
+}
+message FlashSaleListResponse {
+  repeated FlashSaleItem items = 1;
+  common.v1.Timestamp now = 2;
+}
+
+message FlashSaleInfoRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+}
+message FlashSaleInfoResponse {
+  FlashSaleItem item = 1;
+  int32 player_bought_count = 2;
+  int32 player_limit = 3;
+  int64 remaining_secs = 4;
+}
+
+message FlashSaleBuyRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+  int32 quantity = 3;
+  string idempotency_key = 4;
+}
+message FlashSaleBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  int32 remaining_stock = 4;
+  int32 player_remaining_limit = 5;
+}
+
+message FlashSaleCountdownRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+}
+message FlashSaleCountdownResponse {
+  int64 remaining_secs = 1;
+  common.v1.Timestamp ends_at = 2;
+  int32 sold = 3;
+  int32 stock = 4;
+}
+
+message FlashSaleRecordRequest {
+  string player_id = 1;
+  common.v1.PageRequest page = 2;
+}
+message FlashSaleRecordResponse {
+  repeated FlashSaleRecordEntry entries = 1;
+  common.v1.PageResponse page = 2;
+}
+message FlashSaleRecordEntry {
+  string record_id = 1;
+  int32 flash_sale_id = 2;
+  int32 item_id = 3;
+  int32 quantity = 4;
+  int64 cost_amount = 5;
+  common.v1.CurrencyType cost_currency = 6;
+  common.v1.Timestamp bought_at = 7;
+}
+
+message FlashSaleSubscribeRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+  int32 notify_before_secs = 3;
+  string idempotency_key = 4;
+}
+message FlashSaleSubscribeResponse {
+  bool subscribed = 1;
+  int32 subscribe_id = 2;
+  int32 notify_before_secs = 3;
+}
+
+message FlashSaleHotRequest {
+  string player_id = 1;
+  int32 top_n = 2;       // 0=10
+}
+message FlashSaleHotResponse {
+  repeated FlashSaleItem items = 1;
+  int32 generated_at_unix = 2;
+}
+
+message FlashSaleRecommendRequest {
+  string player_id = 1;
+  int32 count = 2;       // 0=5
+}
+message FlashSaleRecommendResponse {
+  repeated FlashSaleItem items = 1;
+  string reason = 2;     // "popular" / "personalized"
+}
+
+message FlashSaleStockRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+}
+message FlashSaleStockResponse {
+  int32 stock = 1;
+  int32 sold = 2;
+  int64 remaining_secs = 3;
+}
+
+message FlashSaleClaimRequest {
+  string player_id = 1;
+  int32 flash_sale_id = 2;
+  string idempotency_key = 3;
+}
+message FlashSaleClaimResponse {
+  bool claimed = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  int32 remaining_claims = 4;
+}
+
+// =====================================================
+// v3 基金/特权 (10) message
+// =====================================================
+
+// 基金 (proto_247)
+message FundListRequest {
+  string player_id = 1;
+}
+message FundListResponse {
+  repeated FundTier tiers = 1;
+  int32 max_level = 2;
+  int64 cost_amount = 3;
+  common.v1.CurrencyType cost_currency = 4;
+  bool owned = 5;
+  common.v1.Timestamp expires_at = 6;
+}
+
+message FundBuyRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+  string idempotency_key = 3;
+}
+message FundBuyResponse {
+  bool success = 1;
+  int64 cost_amount = 2;
+  common.v1.CurrencyType cost_currency = 3;
+  common.v1.Timestamp activated_at = 4;
+  common.v1.Timestamp expires_at = 5;
+}
+
+message FundClaimRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+  int32 level = 3;
+  string idempotency_key = 4;
+}
+message FundClaimResponse {
+  bool success = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  int32 next_claim_level = 4;
+}
+
+message FundStatusRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+}
+message FundStatusResponse {
+  bool owned = 1;
+  int32 current_level = 2;
+  int32 max_level = 3;
+  int32 claimed_count = 4;
+  int32 total_claimed = 5;
+  common.v1.Timestamp expires_at = 6;
+}
+
+message FundProgressRequest {
+  string player_id = 1;
+  int32 fund_id = 2;
+}
+message FundProgressResponse {
+  int32 current_level = 1;
+  int32 current_xp = 2;
+  int32 xp_to_next = 3;
+  int64 unclaimed_amount = 4;
+}
+
+// 特权 (proto_245)
+message PrivilegeListRequest {
+  string player_id = 1;
+}
+message PrivilegeListResponse {
+  repeated PrivilegeItem items = 1;
+  int32 player_active_count = 2;
+}
+
+message PrivilegeItem {
+  int32 privilege_id = 1;
+  string name = 2;
+  int64 cost_amount = 3;
+  common.v1.CurrencyType cost_currency = 4;
+  int32 duration_days = 5;
+  repeated string perks = 6;     // 权益描述
+  bool owned = 7;
+  common.v1.Timestamp expires_at = 8;
+}
+
+message PrivilegeActivateRequest {
+  string player_id = 1;
+  int32 privilege_id = 2;
+  string idempotency_key = 3;
+}
+message PrivilegeActivateResponse {
+  bool success = 1;
+  common.v1.Timestamp activated_at = 2;
+  common.v1.Timestamp expires_at = 3;
+}
+
+message PrivilegeBuyRequest {
+  string player_id = 1;
+  int32 privilege_id = 2;
+  int32 channel = 3;
+  string idempotency_key = 4;
+}
+message PrivilegeBuyResponse {
+  bool success = 1;
+  string order_id = 2;
+  int64 cost_cents = 3;
+  common.v1.Timestamp activated_at = 4;
+  common.v1.Timestamp expires_at = 5;
+}
+
+message PrivilegeDailyRequest {
+  string player_id = 1;
+  int32 privilege_id = 2;
+  string idempotency_key = 3;
+}
+message PrivilegeDailyResponse {
+  bool claimed = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  common.v1.Timestamp next_claim_at = 4;
+}
+
+message PrivilegeRewardsRequest {
+  string player_id = 1;
+  int32 privilege_id = 2;
+}
+message PrivilegeRewardsResponse {
+  repeated PrivilegeRewardEntry entries = 1;
+}
+message PrivilegeRewardEntry {
+  int32 day = 1;
+  bool claimed = 2;
+  int64 reward_amount = 3;
+  common.v1.CurrencyType reward_currency = 4;
+  bool available = 5;
+}
+
+// =====================================================
+// v3 活动 (5) message - 数据驱动模板
+// =====================================================
+//
+// 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 高度重复 → 1 套 ActivityService + 配置
+// 不写 9 套 holiday_*_request/_response, 而是用 1 套通用模板 + activity_id 区分
+// 配置由 ActivityTemplate 描述, 玩家状态用 ActivityProgress 跟踪
+
+enum ActivityType {
+  ACTIVITY_TYPE_UNSPECIFIED = 0;
+  ACTIVITY_TYPE_HOLIDAY = 1;        // 节日活动
+  ACTIVITY_TYPE_SIGNIN = 2;          // 签到
+  ACTIVITY_TYPE_ACHIEVEMENT = 3;     // 成就
+  ACTIVITY_TYPE_BATTLEPASS = 4;      // 战令
+  ACTIVITY_TYPE_RETURN = 5;          // 回归
+  ACTIVITY_TYPE_INVITE = 6;          // 拉新
+  ACTIVITY_TYPE_LEVEL_REWARD = 7;    // 等级奖励
+  ACTIVITY_TYPE_DAILY = 8;           // 日常
+  ACTIVITY_TYPE_WEEKLY = 9;          // 周常
+}
+
+// 活动模板 (从配置文件加载)
+message ActivityTemplate {
+  int32 activity_id = 1;
+  string name = 2;
+  ActivityType type = 3;
+  common.v1.Timestamp starts_at = 4;
+  common.v1.Timestamp ends_at = 5;
+  int32 max_progress = 6;          // 0 = no progress
+  int32 min_level = 7;
+  int32 max_level = 8;             // 0 = no limit
+  string template_json = 9;        // 活动配置 (JSON: reward tiers, conditions, etc.)
+  bool enabled = 10;
+}
+
+message ActivityListRequest {
+  string player_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool active_only = 4;
+}
+message ActivityListResponse {
+  repeated ActivityTemplate templates = 1;
+  int32 total = 2;
+  int32 active_count = 3;
+}
+
+message ActivityClaimRequest {
+  string player_id = 1;
+  int32 activity_id = 2;
+  int32 tier = 3;                  // 领取的奖励 tier (1-based)
+  string idempotency_key = 4;
+}
+message ActivityClaimResponse {
+  bool success = 1;
+  int64 reward_amount = 2;
+  common.v1.CurrencyType reward_currency = 3;
+  int32 remaining_tiers = 4;
+  string error_msg = 5;            // "expired" / "level_too_low" / "already_claimed" / "progress_not_enough"
+}
+
+message ActivityTemplateRequest {
+  string player_id = 1;
+  int32 activity_id = 2;
+}
+message ActivityTemplateResponse {
+  ActivityTemplate template = 1;
+  int32 player_progress = 2;
+  repeated int32 claimed_tiers = 3;
+  bool subscribed = 4;
+}
+
+message ActivityProgressRequest {
+  string player_id = 1;
+  int32 activity_id = 2;
+  int32 progress_delta = 3;        // 增量上报
+  string source = 4;               // "battle" / "shop" / "summon" / etc.
+  string idempotency_key = 5;
+}
+message ActivityProgressResponse {
+  int32 new_progress = 1;
+  bool tier_unlocked = 2;
+  int32 new_unlocked_tier = 3;
+}
+
+message ActivitySubscribeRequest {
+  string player_id = 1;
+  int32 activity_id = 2;
+  int32 notify_channel = 3;        // 1=邮件,2=站内,3=推送
+  string idempotency_key = 4;
+}
+message ActivitySubscribeResponse {
+  bool subscribed = 1;
+  int32 notify_channel = 2;
+  int32 subscriber_count = 3;
 }
