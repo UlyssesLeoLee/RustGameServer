@@ -1,0 +1,56 @@
+syntax = "proto3";
+package replay_extra.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/replay_extra/v1;replayextrav1";
+
+// replay-extra-service —— 视频/录像 扩展域
+// 上游依据: 9/4 MD §2 视频/录像 199 RPC
+// 完整 199 RPC 拆 4 子系统: 录像存储 / 录像分享 / 视频上传 / 评论互动
+// replay-service 已有 lifecycle, 此处扩 4 类业务
+
+service ReplayExtraService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 录像存储
+  rpc SaveReplay(SaveReplayRequest) returns (SaveReplayResponse);
+  rpc GetReplay(GetReplayRequest) returns (GetReplayResponse);
+  rpc DeleteReplay(DeleteReplayRequest) returns (DeleteReplayResponse);
+
+  // 分享
+  rpc ShareReplay(ShareReplayRequest) returns (ShareReplayResponse);
+  rpc GetSharedReplay(GetSharedReplayRequest) returns (GetSharedReplayResponse);
+
+  // 视频上传
+  rpc UploadVideo(UploadVideoRequest) returns (UploadVideoResponse);
+  rpc GetVideo(GetVideoRequest) returns (GetVideoResponse);
+
+  // 评论
+  rpc PostComment(PostCommentRequest) returns (PostCommentResponse);
+  rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
+}
+
+message SaveReplayRequest { string player_id = 1; bytes data = 2; int32 duration_secs = 3; string title = 4; }
+message SaveReplayResponse { string replay_id = 1; }
+message GetReplayRequest { string replay_id = 1; }
+message GetReplayResponse { ReplayRecord record = 1; }
+message DeleteReplayRequest { string replay_id = 1; string player_id = 2; }
+message DeleteReplayResponse { bool success = 1; }
+
+message ShareReplayRequest { string replay_id = 1; string player_id = 2; string channel = 3; }
+message ShareReplayResponse { string share_url = 1; }
+message GetSharedReplayRequest { string share_url = 1; }
+message GetSharedReplayResponse { ReplayRecord record = 1; int32 view_count = 2; }
+
+message UploadVideoRequest { string player_id = 1; bytes data = 2; int32 duration_secs = 3; string title = 4; }
+message UploadVideoResponse { string video_id = 1; int32 upload_progress = 2; }
+message GetVideoRequest { string video_id = 1; }
+message GetVideoResponse { VideoRecord record = 1; }
+
+message PostCommentRequest { string target_id = 1; string player_id = 2; string content = 3; int32 target_type = 4; }
+message PostCommentResponse { string comment_id = 1; }
+message GetCommentsRequest { string target_id = 1; int32 target_type = 2; int32 page = 3; int32 page_size = 4; }
+message GetCommentsResponse { repeated Comment comments = 1; int32 total = 2; }
+
+message ReplayRecord { string replay_id = 1; string player_id = 2; string title = 3; int32 duration_secs = 4; int64 created_at_ms = 5; int32 view_count = 6; }
+message VideoRecord { string video_id = 1; string player_id = 2; string title = 3; int32 duration_secs = 4; int32 view_count = 5; }
+message Comment { string comment_id = 1; string target_id = 2; string player_id = 3; string content = 4; int64 posted_at_ms = 5; }

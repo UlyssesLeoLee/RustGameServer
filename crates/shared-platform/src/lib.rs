@@ -25,6 +25,7 @@
 pub mod channel;
 pub mod client;
 pub mod consumer;
+pub mod data_driven;
 pub mod dlq;
 pub mod grpc_tracing;
 pub mod json_logging;
@@ -51,6 +52,9 @@ pub use client::{
 pub use consumer::{
     deserialize_envelope, nak_with_delay, process_with_retry, ConsumerConfig, ConsumerError,
     ConsumerHandler, DeserializedMessage,
+};
+pub use data_driven::{
+    HolidayActivity, HolidayConfig, PvpConfig, PvpMode, PvpModeConfig,
 };
 pub use dlq::DlqEntry;
 pub use grpc_tracing::{

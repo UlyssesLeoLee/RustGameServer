@@ -1,0 +1,43 @@
+syntax = "proto3";
+package operate.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/operate/v1;operatev1";
+
+// operate-service —— 运营活动 域
+// 上游依据: 9/4 MD §2 付费/商业化 43 + 运营 47 = 90 RPC (per 路线图 §1.2 经济 90 已 W3 覆盖)
+// 本服务聚焦付费/商业化 + 礼包 + 推送 (per 9/4 MD §2 43 RPC 拆分)
+
+service OperateService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 礼包 (~10 RPC)
+  rpc ListGiftPacks(ListGiftPacksRequest) returns (ListGiftPacksResponse);
+  rpc PurchaseGiftPack(PurchaseGiftPackRequest) returns (PurchaseGiftPackResponse);
+
+  // 充值 (~8 RPC)
+  rpc GetRechargePackages(GetRechargePackagesRequest) returns (GetRechargePackagesResponse);
+  rpc CompleteRecharge(CompleteRechargeRequest) returns (CompleteRechargeResponse);
+
+  // 推送 (~6 RPC)
+  rpc SchedulePush(SchedulePushRequest) returns (SchedulePushResponse);
+  rpc CancelPush(CancelPushRequest) returns (CancelPushResponse);
+}
+
+message ListGiftPacksRequest { int32 category = 1; }
+message ListGiftPacksResponse { repeated GiftPack packs = 1; }
+message PurchaseGiftPackRequest { string player_id = 1; int32 pack_id = 2; }
+message PurchaseGiftPackResponse { bool success = 1; repeated Reward rewards = 2; }
+
+message GetRechargePackagesRequest {}
+message GetRechargePackagesResponse { repeated RechargePackage packages = 1; }
+message CompleteRechargeRequest { string player_id = 1; int32 package_id = 2; string receipt = 3; }
+message CompleteRechargeResponse { bool success = 1; int32 new_balance = 2; }
+
+message SchedulePushRequest { string title = 1; string content = 2; int32 target_segment = 3; int64 fire_at_ms = 4; }
+message SchedulePushResponse { string push_id = 1; }
+message CancelPushRequest { string push_id = 1; }
+message CancelPushResponse { bool success = 1; }
+
+message GiftPack { int32 pack_id = 1; string name = 2; int32 price_cents = 3; int32 original_price_cents = 4; int32 limit_per_player = 5; }
+message Reward { int32 item_id = 1; int32 count = 2; }
+message RechargePackage { int32 package_id = 1; string name = 2; int32 amount_cents = 3; int32 bonus_cents = 4; int32 currency_amount = 5; }

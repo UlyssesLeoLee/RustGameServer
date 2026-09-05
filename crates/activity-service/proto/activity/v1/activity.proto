@@ -1,0 +1,178 @@
+syntax = "proto3";
+package activity.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/activity/v1;activityv1";
+
+// activity-service —— 活动运营域
+// 上游依据: 9/4 MD §2 活动运营 184 RPC + §4 反例
+// 9 个 holiday_* 高度重复变体 (per 9/4 MD §0):
+//   春节/元宵/端午/中秋/圣诞/周年庆/夏日祭/万圣节/感恩节
+// 反例原则: 不为每个活动重写 1 套 service, 走 shared_platform::HolidayConfig 数据驱动
+// 完整 184 RPC 涵盖:
+//   - 9 holiday_* (基础信息/奖池/抽奖/任务/领取/排行榜/兑换/排行) ~ 90 RPC
+//   - 签到 (月签/累计签/补签) ~ 15 RPC
+//   - 成就 (~ 20 RPC)
+//   - 战令 (~ 15 RPC)
+//   - 回归玩家 (~ 10 RPC)
+//   - 推送/拉新/问卷 (~ 24 RPC)
+
+service ActivityService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 9 holiday_* 数据驱动 (per 9/4 MD §4 反例, 1 套代码 + activity_id 路由)
+  rpc GetHolidayInfo(GetHolidayInfoRequest) returns (GetHolidayInfoResponse);
+  rpc GetHolidayPrizePool(GetHolidayPrizePoolRequest) returns (GetHolidayPrizePoolResponse);
+  rpc DrawHolidayPrize(DrawHolidayPrizeRequest) returns (DrawHolidayPrizeResponse);
+  rpc GetHolidayTasks(GetHolidayTasksRequest) returns (GetHolidayTasksResponse);
+  rpc ClaimHolidayReward(ClaimHolidayRewardRequest) returns (ClaimHolidayRewardResponse);
+  rpc GetHolidayLeaderboard(GetHolidayLeaderboardRequest) returns (GetHolidayLeaderboardResponse);
+
+  // 签到
+  rpc GetSigninStatus(GetSigninStatusRequest) returns (GetSigninStatusResponse);
+  rpc DoSignin(DoSigninRequest) returns (DoSigninResponse);
+  rpc Resignin(ResigninRequest) returns (ResigninResponse);
+
+  // 成就
+  rpc GetAchievements(GetAchievementsRequest) returns (GetAchievementsResponse);
+  rpc ClaimAchievement(ClaimAchievementRequest) returns (ClaimAchievementResponse);
+}
+
+message GetHolidayInfoRequest {
+  string activity_id = 1;  // 9 个 holiday_* 之一
+}
+message GetHolidayInfoResponse {
+  string activity_id = 1;
+  string activity_name = 2;
+  int64 opens_at_ms = 3;
+  int64 closes_at_ms = 4;
+  string config_json = 5;
+  bool is_open = 6;
+}
+
+message GetHolidayPrizePoolRequest {
+  string activity_id = 1;
+  int32 pool_index = 2;
+}
+message GetHolidayPrizePoolResponse {
+  string activity_id = 1;
+  int32 pool_index = 2;
+  repeated PrizeItem prizes = 3;
+  int64 total_score = 4;
+}
+
+message DrawHolidayPrizeRequest {
+  string activity_id = 1;
+  string player_id = 2;
+  int32 draw_count = 3;
+}
+message DrawHolidayPrizeResponse {
+  string player_id = 1;
+  string activity_id = 2;
+  repeated PrizeItem drawn = 3;
+  bool is_lucky = 4;
+}
+
+message GetHolidayTasksRequest {
+  string activity_id = 1;
+  string player_id = 2;
+}
+message GetHolidayTasksResponse {
+  string player_id = 1;
+  string activity_id = 2;
+  repeated TaskProgress tasks = 3;
+}
+
+message ClaimHolidayRewardRequest {
+  string activity_id = 1;
+  string player_id = 2;
+  string task_id = 3;
+}
+message ClaimHolidayRewardResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+}
+
+message GetHolidayLeaderboardRequest {
+  string activity_id = 1;
+  int32 top_n = 2;
+}
+message GetHolidayLeaderboardResponse {
+  string activity_id = 1;
+  repeated LeaderboardRow rows = 2;
+}
+
+message GetSigninStatusRequest {
+  string player_id = 1;
+  int32 month = 2;
+}
+message GetSigninStatusResponse {
+  string player_id = 1;
+  int32 signed_days = 2;
+  int32 total_days = 3;
+  bool can_resignin = 4;
+}
+
+message DoSigninRequest {
+  string player_id = 1;
+  int32 day = 2;
+}
+message DoSigninResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+  int32 streak_days = 3;
+}
+
+message ResigninRequest {
+  string player_id = 1;
+  int32 day = 2;
+}
+message ResigninResponse {
+  bool success = 1;
+  int32 cost = 2;
+}
+
+message GetAchievementsRequest {
+  string player_id = 1;
+  int32 category = 2;
+}
+message GetAchievementsResponse {
+  string player_id = 1;
+  repeated AchievementProgress achievements = 2;
+}
+
+message ClaimAchievementRequest {
+  string player_id = 1;
+  int32 achievement_id = 2;
+}
+message ClaimAchievementResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+}
+
+message PrizeItem {
+  int32 item_id = 1;
+  int32 count = 2;
+  bool is_rare = 3;
+}
+
+message TaskProgress {
+  string task_id = 1;
+  int32 current = 2;
+  int32 target = 3;
+  bool claimed = 4;
+}
+
+message LeaderboardRow {
+  int32 rank = 1;
+  string player_id = 2;
+  string display_name = 3;
+  int64 score = 4;
+}
+
+message AchievementProgress {
+  int32 achievement_id = 1;
+  string name = 2;
+  int32 current = 3;
+  int32 target = 4;
+  bool claimed = 5;
+}

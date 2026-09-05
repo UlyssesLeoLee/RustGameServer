@@ -1,0 +1,42 @@
+syntax = "proto3";
+package pvp_full.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/pvp_full/v1;pvpfullv1";
+
+// pvp-full-service —— PVP/竞技 完整版域
+// 上游依据: 9/4 MD §2 PVP/竞技 151 RPC + §4 反例
+// 完整 151 RPC 拆 12 变体 (per shared_platform::PvpMode ALL: 9 模式 + 3 扩展)
+// 反例原则 (per 9/4 MD §4): 1 套代码 + PvpMode 路由, 不为每个变体重写
+
+service PvpFullService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 通用 6 变体路由 (~30 RPC, mode 路由)
+  rpc GetPvpInfo(GetPvpInfoRequest) returns (GetPvpInfoResponse);
+  rpc MatchPlayer(MatchPlayerRequest) returns (MatchPlayerResponse);
+  rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
+  rpc GetSeasonInfo(GetSeasonInfoRequest) returns (GetSeasonInfoResponse);
+  rpc ClaimReward(ClaimRewardRequest) returns (ClaimRewardResponse);
+  rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse);
+}
+
+message GetPvpInfoRequest { string mode = 1; string player_id = 2; }  // mode = PvpMode.as_str()
+message GetPvpInfoResponse { string mode = 1; string display_name = 2; int32 daily_limit = 3; int32 daily_used = 4; bool cross_server = 5; }
+
+message MatchPlayerRequest { string mode = 1; string player_id = 2; int32 score = 3; }
+message MatchPlayerResponse { string match_id = 1; string opponent_id = 2; int32 wait_ms = 3; }
+
+message ReportResultRequest { string mode = 1; string match_id = 2; string player_id = 3; bool won = 4; }
+message ReportResultResponse { int32 new_score = 1; int32 new_rank = 2; bool promoted = 3; }
+
+message GetSeasonInfoRequest { string mode = 1; }
+message GetSeasonInfoResponse { string season_id = 1; int64 ends_at_ms = 2; int32 total_players = 3; }
+
+message ClaimRewardRequest { string mode = 1; string player_id = 2; int32 rank = 3; }
+message ClaimRewardResponse { bool success = 1; repeated PrizeItem rewards = 2; }
+
+message GetLeaderboardRequest { string mode = 1; int32 top_n = 2; }
+message GetLeaderboardResponse { repeated RankRow rows = 1; }
+
+message PrizeItem { int32 item_id = 1; int32 count = 2; bool is_rare = 3; }
+message RankRow { int32 rank = 1; string player_id = 2; string display_name = 3; int32 score = 4; }

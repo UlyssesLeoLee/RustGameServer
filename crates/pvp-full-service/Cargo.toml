@@ -1,0 +1,34 @@
+[package]
+name = "pvp-full-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "PVP/竞技完整版域微服务 (per 9/4 MD §2 PVP/竞技 151 RPC, 6-12 变体数据驱动)"
+
+[features]
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }

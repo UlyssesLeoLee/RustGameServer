@@ -1,0 +1,53 @@
+syntax = "proto3";
+package gm_extra.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/gm_extra/v1;gmextrav1";
+
+// gm-extra-service —— GM/运维 扩展域
+// 上游依据: 9/4 MD §2 GM/运维 37 RPC
+// 完整 37 RPC 拆 5 子系统: 封号 / 禁言 / 踢人 / 世界等级 / 广播
+// admin-service 已有雏形, 此处补 5 类业务
+
+service GmExtraService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 封号
+  rpc BanAccount(BanAccountRequest) returns (BanAccountResponse);
+  rpc UnbanAccount(UnbanAccountRequest) returns (UnbanAccountResponse);
+
+  // 禁言
+  rpc MutePlayer(MutePlayerRequest) returns (MutePlayerResponse);
+  rpc UnmutePlayer(UnmutePlayerRequest) returns (UnmutePlayerResponse);
+
+  // 踢人
+  rpc KickPlayer(KickPlayerRequest) returns (KickPlayerResponse);
+
+  // 世界等级
+  rpc SetWorldLevel(SetWorldLevelRequest) returns (SetWorldLevelResponse);
+  rpc GetWorldLevel(GetWorldLevelRequest) returns (GetWorldLevelResponse);
+
+  // 广播
+  rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
+  rpc GetAuditLog(GetAuditLogRequest) returns (GetAuditLogResponse);
+}
+
+message BanAccountRequest { string gm_id = 1; string player_id = 2; string reason = 3; int64 duration_secs = 4; }
+message BanAccountResponse { bool success = 1; string ban_id = 2; }
+message UnbanAccountRequest { string gm_id = 1; string player_id = 2; }
+message UnbanAccountResponse { bool success = 1; }
+message MutePlayerRequest { string gm_id = 1; string player_id = 2; string channel = 3; int64 duration_secs = 4; }
+message MutePlayerResponse { bool success = 1; }
+message UnmutePlayerRequest { string gm_id = 1; string player_id = 2; string channel = 3; }
+message UnmutePlayerResponse { bool success = 1; }
+message KickPlayerRequest { string gm_id = 1; string player_id = 2; string reason = 3; }
+message KickPlayerResponse { bool success = 1; }
+message SetWorldLevelRequest { string gm_id = 1; int32 new_level = 2; }
+message SetWorldLevelResponse { bool success = 1; }
+message GetWorldLevelRequest {}
+message GetWorldLevelResponse { int32 world_level = 1; }
+message BroadcastRequest { string gm_id = 1; string content = 2; int32 channel = 3; int32 repeat = 4; }
+message BroadcastResponse { bool success = 1; }
+message GetAuditLogRequest { string gm_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetAuditLogResponse { repeated AuditEntry entries = 1; int32 total = 2; }
+
+message AuditEntry { string entry_id = 1; string gm_id = 2; string command = 3; string target_id = 4; int64 timestamp_ms = 5; string result = 6; }

@@ -19,6 +19,15 @@ members = [
     "crates/i18n-service",
     "crates/leaderboard-service",
     "crates/replay-service",
+    # W9 sub8 扩域: 8 子系统 (per 9/4 MD §2 + 路线图 §0.3)
+    "crates/activity-service",
+    "crates/social-extra-service",
+    "crates/guild-service",
+    "crates/leaderboard-extra-service",
+    "crates/gm-extra-service",
+    "crates/pvp-full-service",
+    "crates/replay-extra-service",
+    "crates/operate-service",
 ]
 resolver = "2"
 
