@@ -17,6 +17,7 @@ use network_gateway::router::RouteTable;
 use network_gateway::server::GatewayAdminService;
 use network_gateway::stats::GatewayStats;
 use network_gateway::tcp;
+use network_gateway::{web_conn, zone};
 use tonic::transport::Server;
 use tracing::{info, warn};
 
@@ -33,7 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .init();
 
-    let routes = Arc::new(RouteTable::new());
+    // W7 扩展: 用 8 域 demo 路由表 (per 9/4 改进路线图 Phase 2 7 域)
+    let routes = Arc::new(RouteTable::with_phase15_demo());
     let stats = Arc::new(GatewayStats::new());
     let admin = GatewayAdminService::new(Arc::clone(&routes), Arc::clone(&stats));
 
@@ -43,10 +45,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!(
         admin_grpc = %admin_addr,
         tcp = %tcp_addr,
-        "network-gateway starting (Phase 1 骨架, W6 0.5 SRE·d)"
+        routes = routes.len(),
+        "network-gateway starting (W7 Phase 1.5 stub)"
     );
 
-    // 并发跑 admin gRPC + TCP 监听
+    // 并发跑 admin gRPC + TCP 监听 + web_conn stub + zone stub
+    // Phase 1.5 真实实装: 启 BEAM 跑 web_conn.erl + zone 启动
     let admin_task = tokio::spawn(async move {
         let svc = admin.into_server();
         if let Err(e) = Server::builder().add_service(svc).serve(admin_addr).await {
@@ -54,9 +58,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let tcp_task = tokio::spawn(async move {
-        if let Err(e) = tcp::serve(&tcp_addr, routes, stats).await {
-            warn!(err = %e, "TCP listener exited");
+    let tcp_task = tokio::spawn({
+        let routes = Arc::clone(&routes);
+        let stats = Arc::clone(&stats);
+        async move {
+            if let Err(e) = tcp::serve(&tcp_addr, routes, stats).await {
+                warn!(err = %e, "TCP listener exited");
+            }
+        }
+    });
+
+    // W7 扩展: web_conn (8000) + zone (per 9/4 MD §3 拓扑) stub 启动
+    let web_conn_task = tokio::spawn(async move {
+        let cfg = web_conn::WebConnConfig::default_local();
+        if let Err(e) = web_conn::start(cfg).await {
+            warn!(err = %e, "web_conn stub exited");
+        }
+    });
+
+    let zone_task = tokio::spawn(async move {
+        // Phase 1.5 stub: 仅 center 节点起 (port 8000), zone 节点 Phase 4 k3s StatefulSet 推进
+        let cfg = zone::ZoneConfig::default_center("sszg_center_6");
+        if let Err(e) = zone::start(cfg).await {
+            warn!(err = %e, "zone stub exited");
         }
     });
 
@@ -64,6 +88,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::select! {
         r = admin_task => { warn!("admin task finished: {:?}", r); }
         r = tcp_task => { warn!("tcp task finished: {:?}", r); }
+        r = web_conn_task => { warn!("web_conn task finished: {:?}", r); }
+        r = zone_task => { warn!("zone task finished: {:?}", r); }
     }
     Ok(())
 }

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-gateway-routes
+  namespace: rust-game-server
+  labels:
+    app: network-gateway
+    domain: network
+data:
+  # W7 8 域 demo 路由 (per 9/4 改进路线图 Phase 2 7 域 + cluster_ops)
+  # Phase 1.5 推进: 1351 条全 codegen (build.rs 从 9/4 API 清单 TSV)
+  # 格式: code,name,service,method,address
+  routes.tsv: |
+    # code<TAB>name<TAB>target_service<TAB>target_method<TAB>target_addr
+    # player (proto_101.erl, 账号/角色)
+    10101	create_character	player.v1.PlayerService	CreateCharacter	http://player-service:50051
+    10102	login	player.v1.PlayerService	Login	http://player-service:50051
+    10103	logout	player.v1.PlayerService	Logout	http://player-service:50051
+    # economy (proto_201.erl, 经济/商城)
+    20101	add_currency	economy.v1.EconomyService	AddCurrency	http://economy-service:50052
+    20102	buy_item	economy.v1.EconomyService	BuyItem	http://economy-service:50052
+    # scene (proto_102.erl, 场景/移动, NEW per 9/4)
+    10201	enter_scene	scene.v1.SceneService	EnterScene	http://scene-service:50053
+    10202	leave_scene	scene.v1.SceneService	LeaveScene	http://scene-service:50053
+    10203	move	scene.v1.SceneService	Move	http://scene-service:50053
+    # battle (proto_200.erl, 战斗/PVE, NEW per 9/4)
+    20001	start_pve	battle.v1.BattleService	StartPve	http://battle-service:50054
+    20002	end_pve	battle.v1.BattleService	EndPve	http://battle-service:50054
+    20003	cast_skill	battle.v1.BattleService	CastSkill	http://battle-service:50054
+    # batch (per 9/1 REQ, 批量任务)
+    30101	submit_task	batch.v1.BatchService	SubmitTask	http://batch-service:50055
+    30102	query_status	batch.v1.BatchService	QueryStatus	http://batch-service:50055
+    # admin (后台管理)
+    40101	issue_gm_command	admin.v1.AdminService	IssueGmCommand	http://admin-service:50056
+    # cluster_ops (健康检查/metrics)
+    50101	health_check	cluster_ops.v1.ClusterOpsService	HealthCheck	http://cluster-ops:50057
+  # Phase 1.5: 全 1351 条路由 codegen, 真实数据源 9/4 API 清单-全量提取-2026-09-04.tsv
+  # 当前 demo 14 条 (7 域 + cluster_ops) 覆盖 W6+W7 阶段
+  metadata.json: |
+    {
+      "version": "0.1.0-w7",
+      "total_routes": 14,
+      "phase": "1.5-stub",
+      "data_source": "9/4 API 清单-全量提取-2026-09-04.tsv",
+      "domains": ["player", "economy", "scene", "battle", "batch", "admin", "cluster_ops"],
+      "notes": "Phase 1.5 推进: 1351 条全 codegen, build.rs 加载"
+    }

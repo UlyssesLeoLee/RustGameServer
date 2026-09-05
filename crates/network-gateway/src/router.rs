@@ -37,6 +37,91 @@ pub const DEFAULT_ROUTES: &[(u32, &str, &str, &str, &str)] = &[
     ),
 ];
 
+/// W7 扩展: 8 域 demo 路由表 (per 9/4 改进路线图 Phase 2 7 域 + 1 cluster_ops)
+///
+/// 协议码区间 (per 9/4 API 清单):
+/// - 101xx-103xx player (账号/角色)
+/// - 201xx-205xx economy (经济/商城)
+/// - 102xx-103xx scene (场景/移动) — NEW per 9/4
+/// - 200xx-205xx battle (战斗/PVE) — NEW per 9/4
+/// - 301xx batch (批量任务) — per 9/1 REQ
+/// - 401xx admin (后台管理)
+/// - 501xx cluster_ops (健康检查)
+///
+/// Phase 1.5 推进: 1351 条全 codegen, 本表仅 8 条 demo 覆盖 7 域
+pub const PHASE1_5_DEMO_ROUTES: &[(u32, &str, &str, &str, &str)] = &[
+    // player (1)
+    (
+        10101,
+        "create_character",
+        "player.v1.PlayerService",
+        "CreateCharacter",
+        "http://127.0.0.1:50051",
+    ),
+    // economy (1)
+    (
+        20101,
+        "add_currency",
+        "economy.v1.EconomyService",
+        "AddCurrency",
+        "http://127.0.0.1:50052",
+    ),
+    // scene (2, NEW per 9/4)
+    (
+        10201,
+        "enter_scene",
+        "scene.v1.SceneService",
+        "EnterScene",
+        "http://127.0.0.1:50053",
+    ),
+    (
+        10202,
+        "leave_scene",
+        "scene.v1.SceneService",
+        "LeaveScene",
+        "http://127.0.0.1:50053",
+    ),
+    // battle (2, NEW per 9/4)
+    (
+        20001,
+        "start_pve",
+        "battle.v1.BattleService",
+        "StartPve",
+        "http://127.0.0.1:50054",
+    ),
+    (
+        20002,
+        "end_pve",
+        "battle.v1.BattleService",
+        "EndPve",
+        "http://127.0.0.1:50054",
+    ),
+    // batch (1, per 9/1 REQ)
+    (
+        30101,
+        "submit_task",
+        "batch.v1.BatchService",
+        "SubmitTask",
+        "http://127.0.0.1:50055",
+    ),
+    // admin (1)
+    (
+        40101,
+        "issue_gm_command",
+        "admin.v1.AdminService",
+        "IssueGmCommand",
+        "http://127.0.0.1:50056",
+    ),
+    // cluster_ops (1)
+    (
+        50101,
+        "health_check",
+        "cluster_ops.v1.ClusterOpsService",
+        "HealthCheck",
+        "http://127.0.0.1:50057",
+    ),
+];
+
 /// 协议网关路由表 (动态 + 静态混合)
 ///
 /// Phase 1 骨架: 内部用 std::sync::RwLock (避免新增 dep), Phase 1.5 评估 parking_lot 复用.
@@ -66,6 +151,24 @@ impl Default for RouteTable {
 impl RouteTable {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// W7 扩展: 用 8 域 demo 路由表构造 (per 9/4 改进路线图 Phase 2)
+    pub fn with_phase15_demo() -> Self {
+        let mut map = HashMap::new();
+        for (code, name, svc, method, addr) in PHASE1_5_DEMO_ROUTES {
+            let entry = RouteEntry {
+                code: *code,
+                name: (*name).to_string(),
+                target_service: (*svc).to_string(),
+                target_method: (*method).to_string(),
+                target_addr: (*addr).to_string(),
+            };
+            map.insert(*code, entry);
+        }
+        Self {
+            inner: Arc::new(RwLock::new(map)),
+        }
     }
 
     /// 查表 (返回克隆, 无锁后访问)
@@ -152,5 +255,51 @@ mod tests {
     fn len_matches_list() {
         let rt = RouteTable::new();
         assert_eq!(rt.len(), rt.list().len());
+    }
+
+    // ===== W7 扩展: 8 域 demo 路由表测试 =====
+
+    #[test]
+    fn phase15_demo_has_nine_routes() {
+        // 7 域 + cluster_ops = 8 域, 部分域 (scene/battle) 2 条 demo
+        // 实际: player 1 + economy 1 + scene 2 + battle 2 + batch 1 + admin 1 + cluster_ops 1 = 9
+        assert_eq!(PHASE1_5_DEMO_ROUTES.len(), 9, "8 域 demo 路由条数 (含 scene/battle 各 2)");
+    }
+
+    #[test]
+    fn phase15_demo_with_factory_constructs_table() {
+        let rt = RouteTable::with_phase15_demo();
+        assert_eq!(rt.len(), 9);
+    }
+
+    #[test]
+    fn phase15_demo_covers_seven_domains() {
+        // 验证 7 域 (player / economy / scene / battle / batch / admin / cluster_ops) 都有
+        let rt = RouteTable::with_phase15_demo();
+        let domains: std::collections::HashSet<_> = rt
+            .list()
+            .iter()
+            .map(|e| e.target_service.split('.').next().unwrap_or("?").to_string())
+            .collect();
+        // 7 域: player / economy / scene / battle / batch / admin / cluster_ops
+        assert!(domains.contains("player"));
+        assert!(domains.contains("economy"));
+        assert!(domains.contains("scene"));
+        assert!(domains.contains("battle"));
+        assert!(domains.contains("batch"));
+        assert!(domains.contains("admin"));
+        assert!(domains.contains("cluster_ops"));
+        assert_eq!(domains.len(), 7);
+    }
+
+    #[test]
+    fn phase15_demo_all_codes_hit() {
+        let rt = RouteTable::with_phase15_demo();
+        for (code, name, _svc, method, _addr) in PHASE1_5_DEMO_ROUTES {
+            let entry = rt.get(*code).expect("all 8 codes must hit");
+            assert_eq!(entry.code, *code);
+            assert_eq!(entry.name, *name);
+            assert_eq!(entry.target_method, *method);
+        }
     }
 }
