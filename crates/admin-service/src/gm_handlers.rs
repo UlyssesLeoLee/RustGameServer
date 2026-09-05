@@ -723,6 +723,8 @@ mod tests {
     use super::*;
     use crate::entity::AdminRole;
     use crate::error::Error;
+    use crate::InMemoryAdminUserRepository;
+    use crate::InMemoryAuditLogRepository;
 
     /// helper: 建启用 + 指定 role + scope 的 AdminUser
     fn admin(role: AdminRole, scope: Option<&str>) -> AdminUser {
@@ -1116,22 +1118,17 @@ mod tests {
         let err = require_coc_role(&da, "player.ban").unwrap_err();
         assert!(matches!(err, Error::AdminSessionExpired(_)));
     }
-}
 
-// =============================================================================
-// Phase B admin COC 决策流 UT (per RGS-INC-001 v0.3 §X.1 + §X.2 + DDD Review §9 已知缺口 #10)
-//
-// 范围: 测 GmHandlerState coc_policy 字段初始化 (2 场景) + CocDecision 序列化 (1 场景).
-// 简化: 6 场景 RPC 集成测试 (3 RPC × RequireSecondReview / Deny) 需要 mock WasmHost + 完整 gRPC
-//       入口 + JWT, 标已知缺口后续 Phase 1+ 补 (DDD Review §9 已知缺口 #10 升级).
-//
-// 参考: crates/function-plane/tests/ut_coc_policy_wasm.rs (worker 1 写的 5/5 UT 覆盖 CocPolicy
-//        决策 schema 数据结构), 本测试覆盖 host 端 GmHandlerState 集成.
-// =============================================================================
-
-#[cfg(test)]
-mod tests {
-    use super::*;
+    // =========================================================================
+    // Phase B admin COC 决策流 UT (per RGS-INC-001 v0.3 §X.1 + §X.2 + DDD Review §9 已知缺口 #10)
+    //
+    // 范围: 测 GmHandlerState coc_policy 字段初始化 (2 场景) + CocDecision 序列化 (1 场景).
+    // 简化: 6 场景 RPC 集成测试 (3 RPC × RequireSecondReview / Deny) 需要 mock WasmHost + 完整 gRPC
+    //       入口 + JWT, 标已知缺口后续 Phase 1+ 补 (DDD Review §9 已知缺口 #10 升级).
+    //
+    // 参考: crates/function-plane/tests/ut_coc_policy_wasm.rs (worker 1 写的 5/5 UT 覆盖 CocPolicy
+    //        决策 schema 数据结构), 本测试覆盖 host 端 GmHandlerState 集成.
+    // =========================================================================
 
     /// 1/9: GmHandlerState::new 默认 coc_policy = None (POC: 走 fallback Allow)
     #[test]
@@ -1176,3 +1173,4 @@ mod tests {
         }
     }
 }
+
