@@ -572,6 +572,48 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 - **配套**: 公告 `docs/14-项目治理/L-CAND-006-EXCEPTION-PATH-2026-09-03_v0.1.md` 落档
 - **保留**: L-CAND-006 在 R4 季度评审 (累计 5M tokens 触发) 时正式升 AGENTS.md §1.2 段, 例外段可废止
 
+### 8.x L15-L18 派生约束 (per 9/5 12:08 JST 拍板, 紧急批准突破 L1-L14 冻结期)
+
+**拍板依据**: 9/5 W1 报告 §R3 + `D:\sszgC\phase0-worker-report.md` §5 候选清单 + 9/5 12:08 JST ask_user 拍板
+**打破冻结范围**: 4 条新约束 (L15/L16/L17/L18) 立即生效, 不走 12/2 季度评审
+**强约束性质**: 安全 / 工具链 / 数据迁移 / 业务补全 4 类均属"立即生效"例外 (per §8 头段"env value / 凭据 / 安全"扩展)
+
+#### L15 | 跨工具链 native binary 必 file ELF 验证
+
+- **场景**: wsl 内 cp Windows binary (.exe) 当 Linux binary 用, 或 PATH 上同名 .exe 抢先
+- **必做**: 装 native binary 后, `file $(which $TOOL) | grep ELF` (Linux) 或 `Get-Item $TOOL | Select-Object` (Windows)
+- **反例**: 9/5 11:30 JST v0.1 部署诊断报告 0/5 业务可用 错报 4h+, 12:08 JST W1 用 Windows 原生 grpcurl.exe 跑 5/5 PASS 翻正
+- **配套**: 装 native binary 后跑 1 个 e2e-smoke baseline (per §2.5 L6 FAIL 排查 checklist)
+- **影响范围**: wsl/k3s/CI/CD 全工具链
+
+#### L16 | 主会话统一 commit 拍板合并顺序
+
+- **场景**: N worker 并发 N worktree 改 N crate (W2-W6 5 worker 5 worktree 改 5 crate 实证)
+- **必做**:
+  1. 列出 N worker 涉及 crate + 跟原 5 域的 modify 关系
+  2. 拍板合并顺序: NEW crate (无冲突) 先合, 改原 5 域的 worker 后合
+  3. 拆 N commit (1 worker 1 commit), 不允许 1 commit 跨 worker
+- **配套**: per §6.3 L12.2 5 worker 派工 3 选项 (独立 worktree / 写不 commit 主会话统一 / 1 worker 串行)
+- **反例**: 9/3 11:08 JST race condition 5 域 commit 归属异常 (3 commit 散收 5 域文件), 9/5 12:30 JST W2-W6 5 worktree 合并顺序未定
+- **影响范围**: 5+ worker 派工的 commit 阶段
+
+#### L17 | InMemory 5 域 → PgRepository 6/7 域扩展 (Phase 3 落库)
+
+- **场景**: 5 域 (player/economy/match/social/admin) 历史 InMemory Repository, 新增 6/7 域 (batch/scene/battle/network) 默认也是 InMemory
+- **必做**: Phase 3 接 pg 时, 5 域 InMemory → PgRepository 改造 + migration 落地
+- **估**: 5-8 SRE·d 落库 + migration (per `D:\sszgC\phase0-worker-report.md` §5 L17 候选)
+- **证据**: 9/1 18:00 JST batch 域扩展 + 9/5 W2-W6 scaffold 全 InMemory
+- **配套**: ARC-008 7 域 DB 扩展 (per W2-W6 worker 报告)
+- **影响范围**: Phase 3 数据层 + DB migration 工具链
+
+#### L18 | 闪烁之光 113 条"无标题"+ 43 条"未提取" RPC 补全
+
+- **场景**: 当前 4 子系统 scaffold 503 RPC, 闪烁之光全集 1351 RPC, 缺 848 RPC (活动/公会/PVP/邮件/录像 等 8 大类)
+- **必做**: Phase 3 推 worker 7-9 补 8 子系统 (W7 活动 30 / W8 公会+PVP 30 / W9 邮件+录像 20)
+- **证据**: 9/4 MD §0 + 9/5 W9 8 子系统 + battle-rpc-list.tsv 241 RPC 索引
+- **保留**: W4/W5/W6 的 stub 待填真实业务逻辑 (per W2-W6 worker 报告 §X)
+- **影响范围**: Phase 3 业务实现 + 跨域 saga 触发
+
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指
 
 ---
@@ -642,6 +684,78 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 - **D1 E2E**: 等 Phase C, W2 才能启动
 - **A2 老 commit 引用 redirect**: 工作量未精算, 1-2 天额外
 
+### 9.7 8 域扩展 (per 9/5 12:08 JST 拍板, Phase 0 推进落地)
+
+> **触发**: 9/5 12:08 JST 4 拍板 4 拍板 B/B/B/A 落地 + W1-W6 6 worker Phase 0 完结 (per `D:\sszgC\phase0-worker-report.md` §0)
+
+#### 9.7.1 8 域全景 (5 业务域 + batch + 2 NEW 域 + 1 网关)
+
+| 域 | 类别 | Lead | 状态 | RACI | 来源 |
+|---|---|---|---|---|---|
+| player | 业务域 | Ulysses (8/21 5 域独立 Lead) | 🟢 v1.3 | `RGS-RACI-PLAYER-V1_v1.3` | 5 域原始 |
+| economy | 业务域 | Ulysses | 🟢 v1.3 | `RGS-RACI-ECONOMY-V1_v1.3` | 5 域原始 |
+| match | 业务域 | Ulysses | 🟢 v1.3 | `RGS-RACI-MATCH-V1_v1.3` | 5 域原始 |
+| social | 业务域 | Ulysses | 🟢 v1.3 | `RGS-RACI-SOCIAL-V1_v1.3` | 5 域原始 |
+| admin | 业务域 | Ulysses | 🟢 v1.3 | `RGS-RACI-ADMIN-V1_v1.3` | 5 域原始 |
+| **batch** | 6 域 (工具域) | (待 E2 + Ulysses 拍板) | 🟡 v1.3 占位 | `RGS-RACI-BATCH-V1_v1.3` | 9/1 扩展 |
+| **scene** | 7 域 (NEW 域) | (NEW 域 Lead 待拍板) | 🟡 v1.1 NEW | `RGS-RACI-SCENE-V1_v1.1` | 9/5 W4 NEW crate |
+| **battle** | 7 域 (NEW 域) | (NEW 域 Lead 待拍板) | 🟡 v1.1 NEW | `RGS-RACI-BATTLE-V1_v1.1` | 9/5 W5 NEW crate |
+| **network-gateway** | 8 网关 (NEW) | (NEW 网关 Lead 待拍板) | 🟡 v1.1 NEW | `RGS-RACI-NETWORK-GATEWAY-V1_v1.1` | 9/5 W6 NEW crate |
+
+**6 域 → 8 域扩展基线** (per 8/21 JST 决策 + 9/1 batch + 9/5 NEW 2 域 + 网关):
+- 业务域 (5) → 业务域 (5) + 工具域 (1) + NEW 域 (2) + 网关 (1) = 9 个治理单元
+- 5 域独立 Lead 兼任禁止原则 (per DEC-005) 仍适用: 9 个治理单元各 1 Lead 决策权
+- 一人公司模式 (DEC-008) 下 Lead 真实身份 = Ulysses, 但决策权矩阵独立
+- 8 域 RACI 同步 v1.3 升版 (6 域 v1.1 → v1.3 + 3 NEW 域 v1.1 落档)
+
+#### 9.7.2 v1.1 → v1.3 升版要点
+
+**v1.1 (8/26 JST 起点)**:
+- 5 域 Lead RACI 基础 (player/economy/match/social/admin) + 6 维度 × 7 角色 = 42 单元矩阵
+- 适用: 5 域业务任务 + 1 治理任务 (per RGS-SPEC-CROSS-011 DDD Review 模板)
+- 基础配套: RGS-RACI-001 v0.1 + RGS-ADR-0055 v0.1
+
+**v1.2 (9/1 9/2 演进, 中间态)**:
+- 5 域 → 6 域 batch 扩展 (per WBS v0.2 桶 11 E2)
+- batch 域 RACI 矩阵 + 决策路径 + DDD Review 节点 (8 节点 E1-E8)
+- 6 域 Lead 联合签字栏 (5 域 ✅ + batch ⏳)
+
+**v1.3 (9/5 拍板升版, 当前)**:
+- 6 域 → 8 域 (5 + batch + scene + battle + network-gateway) 扩展
+- 5 域 RACI v1.1 → v1.3: 加 8 域扩展交叉引用 + 加 scene/battle/network-gateway 协调签字栏
+- batch RACI v1.1 → v1.3: 加 8 域扩展 + 加 scene/battle/network 集成决策
+- 3 NEW 域 RACI v1.1 落档: scene-service / battle-service / network-gateway
+- 派生决策权分配 (per 8/21 + 9/1 + 9/5 三阶段):
+  - player/economy/match/social/admin: 5 域 Lead 真实身份 = Ulysses, 决策权独立
+  - batch: 决策权 Mavis 接手代签 (per WBS v0.2 §4.3 拍板 3)
+  - scene/battle/network: NEW 域 Lead 待 E2 + Ulysses 拍板指派
+- 跨域仲裁: saga 召集人 (per RGS-IMPL-100) 在 8 域跨域任务时召集
+
+#### 9.7.3 8 域 DDD Review 节点 (per AGENTS.md §3.x + §7 配套)
+
+| 节点 | 触发 | 必填 |
+|---|---|---|
+| E1 BATCH-IMPL-PLAN v0.2 升版 | 9/8 之前 | 5 域 Lead + batch Lead + 架构师签字 |
+| E2 BATCH-RACI-V1 v0.1 | 9/8 之前 | 5 域 Lead + 架构师 + Ulysses 拍板 |
+| **E2.5 SCENE/BATTLE/NETWORK 域 Lead 指派** | **9/8 之前** | **Ulysses 拍板 (3 NEW 域 Lead 真实身份)** |
+| E3 rgs-batch-console + rgs-batch-backend 38 L4 任务 | 9/15 之前 | 架构师 + 5 域 Lead 协调签字 |
+| **E3.5 scene-service / battle-service scaffold 落地** | **9/22 之前 (per W2-W6 Phase 1)** | **架构师 + 8 域 Lead 协调签字** |
+| E4 k3s 资源策略 | 9/15 之前 | SRE Lead + 架构师 + Ulysses 拍板 |
+| E5 OLU 重算 + token-OLU 框架 | 9/22 之前 | 5 域 + batch Lead + 架构师签字 |
+| **E5.5 8 域 OLU 跨域重算** | **9/29 之前** | **8 域 Lead + 架构师签字** |
+| E6 OLU 跨 5+1 域 重算 | 9/29 之前 | 5 域 + batch Lead + 架构师签字 |
+| E7 ADR 升版 | 10/6 之前 | 5 域 Lead + 架构师签字 |
+| E8 BATCH v0.2 评估项 (GAP-1~12) | 10/13 之前 | 5 域 + batch Lead + 架构师 + Ulysses 拍板 |
+| **E9 协议网关 8 SRE·d 完整实装** | **10/20 之前 (per ADR-006 Option A)** | **network-gateway Lead + 架构师 + Ulysses 拍板** |
+
+#### 9.7.4 已知缺口 (per 8/26 JST 缺标比错标)
+
+- **3 NEW 域 Lead 真实身份待 E2.5 拍板** — 当前 Mavis 接手代签, 9/8 之前 Ulysses 拍板指派
+- **network-gateway 域 vs saga 召集人决策权边界** — 协议网关层 vs 业务 saga 触发层, 需 ADR 升版
+- **scene/battle 域 × 5 域跨域任务未枚举** — per W4/W5 报告 503 RPC 跨域依赖未完整画矩阵
+- **8 域 cargo check --lib 跨域验证** — per L1 三件套, 8 域 workspace 完整编译待 W2 跑
+- **L18 闪烁之光 848 RPC 补全** — 8 子系统 (W7-W9) 派工未启动, 9/15 之前需拍板
+
 ---
 
 ## 10. 修订历史
@@ -666,6 +780,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.9 | 2026-09-03 07:35 | 架构师(Mavis 接手 agent per DEC-008) | R1 业务冲刺拍板落地 (per 9/3 07:31 JST ask_user 4 项拍板): ① §8 加 L-CAND-006 例外段 (k8s secret 导出硬 ban 安全类, 不等 R4 季度评审, 9/3 当天落地) ② `scripts/cleanup-tmp-files.ps1` + `scripts/pre-commit-tmp-check.ps1` (L12 兜底, 临时文件不入 commit) ③ 仓库盘点 + token 标准推进 R1-R5 路线图落档 `docs/14-项目治理/RGS-DEVPLAN-2026-09-02_v0.3.md` (21.3 KB) |
 | v0.6.10 | 2026-09-03 12:00 | 架构师(Mavis 接手 agent per DEC-008) | 5 worker 并发派工 race condition 教训升 L12 案例库 (per 9/3 11:08 JST CHECKLIST 5 域 commit 归属异常 audit commit `6c5173a`): §6.3 PT 派工简报模板 加 5 worker 并发派工约束子段 (3 选项: 独立 worktree / 写不 commit 主会话统一 / 1 worker 串行, per-worker CARGO_TARGET_DIR, staggered 启动, DoD 简报明文 "worker 不 commit 报告即可", 不修历史, race condition 异常留 audit commit trail) |
 | v0.6.11 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 派生约束 升正式 (per 9/3 12:36 JST ask_user 拍板 l12-formal-now): §2 L12 段从"PT 派工临时 log 不入 commit 防御"扩为 "L12.1 临时 log 防御 + L12.2 5 worker 派工 3 选项 + L12.3 候选清单 L-CAND-009 入档" (L1-L14 冻结期内 L12 正式段升, 不走 L15 候选); L-CANDIDATES.md 加 L-CAND-009 (5 worker 派工 3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit) |
+| **v0.6.12** | **2026-09-05 12:30** | **架构师(Mavis 接手 agent per DEC-008)** | **9/5 W1-W6 6 worker Phase 0 完结 + 派生约束 L15-L18 紧急批准 (per 9/5 12:08 JST 拍板, 突破 L1-L14 冻结期) + 6/7/8 域 RACI v1.1 → v1.3 升版**: ① §0 元信息加 W1-W6 6 worker Phase 0 + 改进路线图 + ADR-006 ② §8.x 新增 L15-L18 派生约束 (L15 native binary file ELF 验证 / L16 主会话统一 commit 拍板合并顺序 / L17 InMemory 5 域 → PgRepository 6/7 域扩展 / L18 闪烁之光 848 RPC 补全 8 子系统) ③ §9.7 新增 8 域扩展 (5 + batch + scene + battle + network-gateway) ④ 6 域 RACI v1.1 → v1.3 升版 (player/economy/match/social/admin/batch) + 3 NEW 域 RACI v1.1 落档 (scene-service / battle-service / network-gateway) ⑤ L-CANDIDATES v0.4 同步: L15-L18 转正 (移出候选) + L-CAND-010/011 入档 (12/2 季度评审) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

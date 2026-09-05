@@ -1,13 +1,17 @@
-# RGS-RACI-BATCH-V1 批量域 Lead 责任矩阵 v0.2 (per 2026-09-02 00:40 JST Mavis 接手代签)
+# RGS-RACI-BATCH-V1 批量域 Lead 责任矩阵 v1.3 (per 2026-09-05 12:30 JST Mavis 接手代签, 8 域扩展)
 
 > **创建日期**: 2026-09-02 00:40 JST
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
+> **升版**: 2026-09-05 12:30 JST v1.3 (per 9/5 12:08 JST 拍板, 8 域扩展 + 派生约束 L15-L18)
 > **依据**:
 > - AGENTS.md v0.4 §7 batch 域派生约束 (commit `30c7bae`)
+> - AGENTS.md v0.6.12 §8.x L15-L18 派生约束 (per 9/5 12:08 JST 拍板)
+> - AGENTS.md v0.6.12 §9.7 8 域扩展全景
 > - WBS v0.2 §7 桶 11 Phase E (commit `84edf26`)
-> - 5 域 RACI v1.1 模板 (player / economy / match / social / admin)
+> - 5 域 RACI v1.3 模板 (player / economy / match / social / admin, per 9/5 12:08 JST 拍板)
 > **关联**:
-> - 5 域 RACI: `docs/14-项目管理/RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_*.md`
+> - 5 域 RACI: `docs/14-项目管理/RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_*.md` (v1.3)
+> - 3 NEW 域 RACI: `docs/14-项目管理/RGS-RACI-{SCENE,BATTLE,NETWORK-GATEWAY}-V1_*.md` (v1.1)
 > - BATCH 4 件套: `docs/00-基準与治理/batch/RGS-BATCH-{REQUIREMENTS,BASIC,DETAILED,PLAN}-2026-09-01_v0.1.md`
 > - AGENTS.md §7 batch 域派生约束: 12 条 + 5 不破坏 + 4 复用 + 3 引用
 
@@ -127,6 +131,7 @@ batch 域是 6 域扩展中的**第 6 域** (per AGENTS.md v0.4 §7 + DEC-008),*
 |---|---|---|---|
 | v1.0 | (占位) | — | 6 域扩展基线 (per AGENTS.md v0.4 §7) |
 | **v1.1** | **2026-09-02 00:40 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **batch 域 RACI 矩阵 + 决策路径 + DDD Review 节点 (per WBS v0.2 §4.3 拍板 3 + §2.5 桶 11 Phase E)** |
+| **v1.3** | **2026-09-05 12:30 JST** | **架构师(Mavis 接手 agent per DEC-008)** | **8 域扩展升版 (per 9/5 12:08 JST 拍板, 6 域 → 8 域 + 1 网关)**: 加 AGENTS.md §9.7 8 域全景交叉引用 (player / economy / match / social / admin / batch / **scene NEW** / **battle NEW** / **network-gateway NEW**) + 加 scene/battle/network-gateway 3 NEW 域协调签字栏 (⏳ 待 E2.5 拍板) + 加派生约束 L15-L18 引用 (per 9/5 12:08 JST 紧急批准, 突破 L1-L14 冻结期) + 加 5 域 × batch × scene/battle 跨域任务占位 (5 域 gRPC client + 8 域 audit 共享, per BATCH REQ §F-7/NFR-32). **filename 留 v1.1 避免破坏既有 5 处引用 (per 9/5 12:08 JST 拍板 保守路径), 内部版本 v1.3 (per AGENTS.md §9.7.2)** |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

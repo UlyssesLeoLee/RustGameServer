@@ -1,11 +1,11 @@
-# RGS-RACI-ADMIN-V1 管理域 Lead 责任矩阵 v1.0（Admin Domain Lead RACI v1.0）
+# RGS-RACI-ADMIN-V1 管理域 Lead 责任矩阵 v1.3（Admin Domain Lead RACI v1.3, per 9/5 12:08 JST 8 域扩展拍板）
 
 **RGS-RACI-ADMIN-V1**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-RACI-ADMIN-V1 |
-| 版本 | v1.0（per WF-1-55.78 P2 5 域 Lead RACI v1.0；基于 RGS-RACI-001 v0.1 160 单元矩阵 + RGS-ADR-0055 v0.1 4 治理角色升版） |
+| 版本 | v1.3（per 9/5 12:08 JST 拍板, 6 域 → 8 域 + 1 网关 升版, AGENTS.md §9.7 配套; 基于 v1.1 5 域 Lead 联合签字栏 + RGS-RACI-001 v0.1 160 单元 + RGS-ADR-0055 v0.1 4 治理角色升版） |
 | 状态 | 规格草案 + 已知缺口（见 §A.3），待 player 域 Lead 联合具名 DDD Review |
 | 源 RACI | RGS-RACI-001 v0.1（commit `14786a5`，2026-08-26 09:30 JST，5 域 × 8 阶段 × 4 角色 = 160 单元） |
 | 源 ADR | RGS-ADR-0055 v0.1（per WF-1-55.49，2026-08-25 06:26 JST，commit `d6a56c6`，DEC-005 5 域独立 Lead + DEC-008 一人公司 12 角色兼容论证） |
@@ -114,6 +114,9 @@
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
 | v1.0 | 2026-08-26 | 架构师（Mavis 接手 agent per DEC-008）| 初版（per WF-1-55.78 P2 5 域 Lead RACI v1.0；基于 RGS-RACI-001 v0.1 160 单元 + RGS-ADR-0055 v0.1 升版） |
+| v1.1 | 2026-09-02 | 架构师（Mavis 接手 agent per DEC-008）| 5 域 Lead 联合签字栏（per 6 worktree 派工 9/1-9/2 22:00 JST 6 merge commit 落地） |
+| v1.2 | 2026-09-02 | 架构师（Mavis 接手 agent per DEC-008）| 5 → 6 域 batch 扩展（per WBS v0.2 桶 11 E2 拍板 3 + 6 worktree 派工 9/1-9/2 23:57 JST 6 merge commit 落地；含 batch 域 5 域 Lead 协调签字栏） |
+| **v1.3** | **2026-09-05 12:30** | **架构师（Mavis 接手 agent per DEC-008）** | **8 域扩展升版 (per 9/5 12:08 JST 拍板, 6 域 → 8 域 + 1 网关)**: 加 AGENTS.md §9.7 8 域全景交叉引用 + 加 scene/battle/network-gateway 3 NEW 域协调签字栏 (⏳ 待 E2.5 拍板) + 加派生约束 L15-L18 引用 (per 9/5 12:08 JST 紧急批准) + 加 5 域 × scene/battle 跨域任务占位 (Phase 3 估 3-5 SRE·d). **filename 留 v1.1 避免破坏既有 5 处引用 (per 9/5 12:08 JST 拍板 保守路径), 内部版本 v1.3 (per AGENTS.md §9.7.2)** |
 
 ## A. v1.0 升版增量
 

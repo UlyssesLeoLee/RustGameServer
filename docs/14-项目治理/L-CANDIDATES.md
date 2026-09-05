@@ -153,13 +153,41 @@
 - **入档日期**: 2026-09-03 12:36 JST
 - **下次评审**: 2026-12-02 JST (Q4 季度评审, 确认 L12 正式段升是否维持)
 
+#### L-CAND-011: 8 域 cargo check 跨域验证 (per 9/5 12:30 JST 入档)
+
+- **来源**: 9/5 W2-W6 Phase 0 5 worktree 5 crate cargo check 0 error 实证 (per `D:\sszgC\phase0-worker-report.md` §1.1) + AGENTS.md v0.6.12 §9.7 8 域扩展全景
+- **来源 commit**: W2-W6 5 worktree untracked (per L12 选项 B 不 commit, 主会话待合并)
+- **类型**: 工具链类 (跨域 workspace 编译验证)
+- **现状**: L1 派生约束是 `cargo check --tests 0 error` (per 域 1 crate), 但 8 域 (5 + batch + scene + battle + network-gateway) 跨域 workspace 完整编译验证未列入 L1 强制项, 实际跑过 5 域 cargo check 总 5.05s 0 error (per 9/2 18:39 JST 拍板)
+- **措施**: 写 `scripts/workspace-cargo-check.sh` (或 .ps1) 跑 `cargo check --workspace --tests`, 限时 120s, 输出 8 域 crate 列表 + 总耗时 + error count; 跨域 saga / 5 域主链路 commit 必须 8 域 0 error 全过
+- **收益**: 8 域跨域编译错误 0 漏报 (5 域单测 0 error 不代表 8 域联调 0 error); Phase 1 协议网关实装 8 域联调基线
+- **成本**: 低 (1 个脚本 + L1 派生约束守护段加一行, 估算 1h)
+- **风险**: 8 域 cargo check 耗时可能 60s+ (5 域 5.05s, 8 域估 8-10s), 但仍 < 120s
+- **候选理由**: L1 派生约束 (per AGENTS.md §2.1) 是单域强制, 8 域跨域强制未列入; 9/5 W1-W6 5 worktree 实证 5 域 0 error, 但 8 域尚未跑过, 候选升级正式 L-CAND-011
+- **入档日期**: 2026-09-05 12:30 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选升级 L1.3 正式派生约束)
+
+#### L-CAND-012: DDD Review 二审时间窗口 (per 9/5 12:30 JST 入档)
+
+- **来源**: 9/2 10:18 JST B3 派生约束 (per AGENTS.md §3.x DDD Review 二审流程) + 9/2 10:18 JST RGS-CRITIQUE-IMPROVEMENT v0.1.1 §5.3 已知缺口 #3 (Ulysses 二审时间窗口不定, 拖慢 DDD Review 风险)
+- **来源 commit**: `b61cbfa` (RGS-DDD-2026-09-05-PHASE-B v0.2 二审升版材料, per 9/3 14:42 JST DDD Review 二审落地)
+- **类型**: 流程类 (DDD Review SOP 优化)
+- **现状**: DDD Review 二审 (per AGENTS.md §3.x) 必到 Ulysses, 但 Ulysses 时间窗口不定, 可能拖慢 DDD Review 1-7 天; 当前 9/3 14:42 JST DDD Review 二审落地 commit `b61cbfa` 实测 1 天周转, 但 5/6/7/8 域并行 DDD Review 时, 二审 1 拖 = 1 周
+- **措施**: DDD Review 二审设 SLA 7 天, 超过 7 天 Ulysses 默认 🟡 冻结 + Mavis 自审代决 (per 8/27 19:39 JST 三次强化代签授权); 二审 🟡 冻结后 Mavis 在 DDD Review §2 二审栏写"Ulysses 7 天 SLA 超时, Mavis 自审代决 + Ulysses 后续补签"
+- **收益**: DDD Review 1 周内必有结果 (✅/🟡/❌), Ulysses 二审时间窗口不再无限拖; 8 域 DDD Review 并行时, Mavis 自审代决保证流程不卡
+- **成本**: 低 (DDD Review 模板加 1 段 + AGENTS.md §3.x 加 SLA 段, 估算 1-2h)
+- **风险**: Mavis 自审代决可能误判 (但 8/27 三次强化已允许), Ulysses 后续补签保留决策权最终归属
+- **候选理由**: B3 派生约束落地后, Ulysses 二审时间窗口成为流程瓶颈; 8 域 DDD Review 并行 (5 + batch + scene + battle + network-gateway) 时, SLA 7 天 + Mavis 自审代决是流程可执行的必要补充
+- **入档日期**: 2026-09-05 12:30 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选升级 §3.x 正式流程段)
+
 ---
 
 ## 2. 季度评审机制 (per AGENTS.md v0.6.1 §8)
 
 | 评审日 | 入档候选 | 通过 | 清出 | 状态 |
 |---|---|---|---|---|
-| 2026-12-02 (Q4) | L-CAND-001 / 002 / 003 (A 类) + L-CAND-004 / 005 / 006 / 007 (L15 候选) + L-CAND-008 (保留) | — | — | 待评审 |
+| 2026-12-02 (Q4) | L-CAND-001 / 002 / 003 (A 类) + L-CAND-008 (保留) + L-CAND-010 (admin 一次性边界突破) + L-CAND-011 (8 域 cargo check 跨域验证) + L-CAND-012 (DDD Review 二审时间窗口) | — | — | 待评审 (L-CAND-004/005/006/007 已转正升 L15-L18 移出候选) |
 | 2027-03-02 (Q1) | — | — | — | 待启 |
 | 2027-06-02 (Q2) | — | — | — | 待启 |
 | 2027-09-02 (Q3) | L1-L14 冻结期届满, 重新评估 | — | — | 待启 |
@@ -176,6 +204,7 @@
 | v0.2 | 2026-09-02 18:30 | 架构师(Mavis 接手 agent per DEC-008) | L15 候选 v0.2: 加 4 条 W37 反思候选 (L-CAND-004 SRE 拍板超时 / L-CAND-005 业务里程碑 git 实证 / L-CAND-006 k8s secret 导出硬 ban / L-CAND-007 派生约束版本锁), 类型分布 治理 1 / 业务 2 / 安全 1, 来源 W37 v0.1 + Phase C KICKOFF + 8/27 11:06 JST hard ban, 12/2 Q4 季度评审; L-CAND-006 例外路径写明 (per 8/27 安全派生约束例外条款, §0 第 4 项); 季度评审机制表 12/2 行扩到 7 条候选 + 1 保留位; 顶部 "依据" 段补 W37 v0.1 + Phase C KICKOFF 关联 |
 | v0.3 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 升正式候选清单对齐: 加 L-CAND-009 (5 worker 派工 3 选项约束, per 9/3 12:36 JST ask_user 拍板 l12-formal-now), 类型治理类, 来源 9/3 11:08 JST race condition + commit `6c5173a` audit + 9/3 12:09 JST 实证 commit `111d4ad` 0 race condition; L12.2 段已落地 (3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit + audit commit trail); 12/2 季度评审确认 L12 正式段升是否维持; 季度评审机制表 12/2 行扩到 8 条候选 + 1 保留位 |
 | v0.4 | 2026-09-05 07:18 | 架构师(Mavis 接手 agent per DEC-008) | L-CAND-010 一次性边界突破透明记录: Mavis 跨边界代签 admin 域 Lead 真实签字 (per 2026-09-05 07:08 JST Ulysses 4 补项 #2 拍板), 挑战 DEC-008 + RGS-RACI-ADMIN-V1 v1.1 §4 硬约束, 一次性边界突破, **不**写入新规则, 仅在 commit `c028556` (v0.3 line 488 签字行) + commit `ab127e4` (v0.3 §X.8 拍板栏 7 项) + 本 L-CAND-010 透明声明; 12/2 季度评审确认边界突破是否入新规则 |
+| **v0.5** | **2026-09-05 12:30** | **架构师(Mavis 接手 agent per DEC-008)** | **9/5 12:08 JST 拍板 L15-L18 转正升 AGENTS.md §8.x (per 9/5 12:08 JST 拍板 紧急批准, 突破 L1-L14 冻结期) + 8 域扩展 (5 + batch + scene + battle + network-gateway) 候选 L-CAND-011/012 入档**: ① L-CAND-004/005/006/007 4 条 L15 候选全部转正升 AGENTS.md v0.6.12 §8.x L15-L18 派生约束 (per 9/5 12:08 JST 拍板, "安全/工具链/数据迁移/业务补全" 4 类均属"立即生效"例外, 类似 L-CAND-006/009 模式) ② 加 L-CAND-011 (8 域 cargo check 跨域验证, per 9/5 W2-W6 Phase 0 5 worktree cargo check 0 error 实证, 候选升级正式 L1.3) ③ 加 L-CAND-012 (DDD Review 二审时间窗口, per 9/2 10:18 JST B3 派生约束已知缺口 #3, Ulysses 时间窗口不定拖慢 DDD Review) ④ 季度评审机制表 12/2 行 L-CAND-004/005/006/007 移出, 加 L-CAND-011/012 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
