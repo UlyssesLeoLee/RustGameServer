@@ -18,9 +18,10 @@ pub mod service;
 
 pub use error::{Error, Result};
 pub use repository::{
-    DeckRepository, InMemoryDeckRepository, InMemoryPlayerRepository,
-    InMemoryPlayerSessionRepository, Page, PageRequest, PgDeckRepository, PgPlayerRepository,
-    PgPlayerSessionRepository, PlayerRepository, PlayerSessionRepository,
+    CharacterRepository, DeckRepository, InMemoryCharacterRepository, InMemoryDeckRepository,
+    InMemoryPlayerRepository, InMemoryPlayerSessionRepository, Page, PageRequest,
+    PgCharacterRepository, PgDeckRepository, PgPlayerRepository, PgPlayerSessionRepository,
+    PlayerRepository, PlayerSessionRepository,
 };
 
 pub mod proto;

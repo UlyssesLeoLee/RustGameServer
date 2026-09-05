@@ -38,10 +38,12 @@ fn make_service() -> (
         player_service::repository::InMemoryPlayerSessionRepository::new(),
     );
     let decks = Arc::new(InMemoryDeckRepository::new());
+    let characters = Arc::new(player_service::repository::InMemoryCharacterRepository::new());
     let svc = PlayerServiceImpl::new(
         players.clone() as Arc<dyn player_service::repository::PlayerRepository>,
         sessions.clone() as Arc<dyn player_service::repository::PlayerSessionRepository>,
         decks.clone() as Arc<dyn DeckRepository>,
+        characters.clone() as Arc<dyn player_service::repository::CharacterRepository>,
     );
     (svc, players, decks)
 }

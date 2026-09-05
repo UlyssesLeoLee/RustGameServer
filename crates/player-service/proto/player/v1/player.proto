@@ -20,6 +20,70 @@ service PlayerService {
   rpc ListDecks(ListDecksRequest) returns (ListDecksResponse);
   rpc ShareDeck(ShareDeckRequest) returns (ShareDeckResponse);
   rpc GetSharedDeck(GetSharedDeckRequest) returns (Deck);
+
+  // ========================================================================
+  // 账号 + 角色 15 RPC (per Phase 2 账号+角色 范围, 9/5 11:50 JST 4 拍板)
+  // 上游参考: 闪烁之光 proto_101.erl (101xx) + proto_103.erl (103xx)
+  // ========================================================================
+
+  // ----- 角色生命周期 (proto_101.erl 10101-10103) -----
+
+  // 10101 创建角色
+  rpc CreateCharacter(CreateCharacterRequest) returns (CreateCharacterResponse);
+
+  // 10102 登录指定角色
+  rpc LoginCharacter(LoginCharacterRequest) returns (LoginCharacterResponse);
+
+  // 10103 角色重连
+  rpc ReconnectCharacter(ReconnectCharacterRequest) returns (ReconnectCharacterResponse);
+
+  // ----- 角色信息查询 (proto_103.erl 10301-10302, 10315) -----
+
+  // 10301 获取角色基础信息
+  rpc GetCharacterProfile(GetCharacterProfileRequest) returns (CharacterProfile);
+
+  // 10302 角色资产信息 (跨域: economy-service 余额, 本桶 12 占位)
+  rpc GetCharacterAssets(GetCharacterAssetsRequest) returns (CharacterAssets);
+
+  // 10315 查看角色信息
+  rpc GetCharacterInfo(GetCharacterInfoRequest) returns (CharacterInfo);
+
+  // ----- 角色维护 (proto_103.erl 10343) -----
+
+  // 10343 个人改名
+  rpc RenameCharacter(RenameCharacterRequest) returns (RenameCharacterResponse);
+
+  // ----- 时间 / 系统 (proto_103.erl 10380) -----
+
+  // 10380 注册时间与开服时间
+  rpc GetServerTime(GetServerTimeRequest) returns (ServerTimeInfo);
+
+  // ----- 客户端通知 (proto_103.erl 10394-10397) -----
+
+  // 10394 服务端通知游客模式超时
+  rpc GuestModeTimeout(GuestModeTimeoutRequest) returns (GuestModeTimeoutResponse);
+
+  // 10395 客户端通知查验身份认证（防沉迷）
+  rpc AntiAddictionCheck(AntiAddictionCheckRequest) returns (AntiAddictionCheckResponse);
+
+  // 10396 强制关闭客户端
+  rpc ForceDisconnect(ForceDisconnectRequest) returns (ForceDisconnectResponse);
+
+  // 10397 客户端进入后台
+  rpc EnterBackground(EnterBackgroundRequest) returns (EnterBackgroundResponse);
+
+  // ----- 头像 (proto_103.erl 10325, 10327) -----
+
+  // 10325 头像列表
+  rpc GetAvatarList(GetAvatarListRequest) returns (AvatarList);
+
+  // 10327 设置头像
+  rpc SetAvatar(SetAvatarRequest) returns (SetAvatarResponse);
+
+  // ----- 新增 (11000 心跳) -----
+
+  // 11000 心跳 (RGS 新增, 闪烁之光用 web_conn.erl 8000 端口)
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
 // ============================================================================
@@ -169,3 +233,258 @@ message GetSharedDeckRequest {
   string friend_id = 3;        // TODO: 迁 common.v1.PlayerId
   string friend_deck_id = 4;
 }
+
+// ============================================================================
+// 账号 + 角色 15 RPC message (per Phase 2 9/5 11:50 JST 4 拍板)
+// 上游参考: 闪烁之光 proto_101.erl (10101-10103) + proto_103.erl (10301-10397)
+// ============================================================================
+
+// ----- 10101 创建角色 -----
+
+message CreateCharacterRequest {
+  string request_id = 1;
+  string account_id = 2;       // 所属账号 (TODO: 迁 common.v1.PlayerId)
+  string character_name = 3;   // 角色名
+  int32 class_id = 4;          // 职业 ID (1=warrior 2=mage 3=priest ...)
+  int32 faction_id = 5;        // 阵营 ID (1=order 2=chaos ...)
+  string device_id = 6;        // 设备指纹
+  string client_ip = 7;        // 客户端 IP
+}
+
+message CreateCharacterResponse {
+  bool created = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string character_name = 3;
+  int32 class_id = 4;
+  int32 faction_id = 5;
+  common.v1.Timestamp created_at = 6;
+  string session_id = 7;       // 创建后默认登录的 session id
+}
+
+// ----- 10102 登录指定角色 -----
+
+message LoginCharacterRequest {
+  string request_id = 1;
+  string account_id = 2;       // TODO: 迁 common.v1.PlayerId
+  string character_id = 3;     // TODO: 迁 common.v1.PlayerId
+  string device_id = 4;
+  string client_ip = 5;
+}
+
+message LoginCharacterResponse {
+  bool logged_in = 1;
+  string session_id = 2;
+  common.v1.Timestamp expires_at = 3;
+  CharacterInfo info = 4;
+}
+
+// ----- 10103 角色重连 -----
+
+message ReconnectCharacterRequest {
+  string request_id = 1;
+  string session_id = 2;
+  string client_ip = 3;        // 客户端可能换了 IP
+}
+
+message ReconnectCharacterResponse {
+  bool reconnected = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string character_name = 3;
+  common.v1.Timestamp new_expires_at = 4;
+}
+
+// ----- 10301 获取角色基础信息 -----
+
+message GetCharacterProfileRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+}
+
+// 角色基础信息 (聚合 Player + PlayerProfile)
+message CharacterProfile {
+  string character_id = 1;     // TODO: 迁 common.v1.PlayerId
+  string character_name = 2;
+  int32 level = 3;
+  int32 vip_level = 4;
+  int32 class_id = 5;
+  int32 faction_id = 6;
+  int32 status = 7;            // common.v1.Status as int32
+  int32 ranked_score = 8;
+  string ranked_tier = 9;
+  uint32 total_matches = 10;
+  uint32 total_wins = 11;
+  string preferred_locale = 12; // BCP-47
+  common.v1.Timestamp created_at = 13;
+  common.v1.Timestamp last_login_at = 14;
+}
+
+// ----- 10302 角色资产信息 -----
+
+message GetCharacterAssetsRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+}
+
+// 角色资产 (跨域: economy-service 余额; 桶 12 占位, 0 余额返回)
+message CharacterAssets {
+  string character_id = 1;     // TODO: 迁 common.v1.PlayerId
+  repeated AssetEntry entries = 2;
+  common.v1.Timestamp queried_at = 3;
+}
+
+message AssetEntry {
+  string code = 1;             // "GOLD" / "GEM" / "STAMINA" / "TICKET"
+  int64 amount = 2;
+  common.v1.Timestamp updated_at = 3;
+}
+
+// ----- 10315 查看角色信息 -----
+
+message GetCharacterInfoRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+}
+
+message CharacterInfo {
+  string character_id = 1;     // TODO: 迁 common.v1.PlayerId
+  string character_name = 2;
+  int32 level = 3;
+  int32 vip_level = 4;
+  int32 class_id = 5;
+  int32 faction_id = 6;
+  int32 status = 7;
+  int32 current_avatar_id = 8;
+  string signature = 9;        // 个人签名 (per 10309 协议码)
+  common.v1.Timestamp created_at = 10;
+  common.v1.Timestamp last_login_at = 11;
+}
+
+// ----- 10343 个人改名 -----
+
+message RenameCharacterRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string new_name = 3;
+}
+
+message RenameCharacterResponse {
+  bool renamed = 1;
+  string old_name = 2;
+  string new_name = 3;
+}
+
+// ----- 10380 注册时间与开服时间 -----
+
+message GetServerTimeRequest {
+  string request_id = 1;
+}
+
+message ServerTimeInfo {
+  int64 server_time_unix = 1;     // 当前 server 时间 (unix seconds)
+  int64 server_open_time_unix = 2; // 开服时间
+  string timezone = 3;             // IANA TZ, e.g. "Asia/Tokyo"
+}
+
+// ----- 10394 服务端通知游客模式超时 -----
+
+message GuestModeTimeoutRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  int32 timeout_seconds = 3;   // 超时秒数
+}
+
+message GuestModeTimeoutResponse {
+  bool acknowledged = 1;
+  common.v1.Timestamp deadline_at = 2;
+}
+
+// ----- 10395 客户端通知查验身份认证（防沉迷） -----
+
+message AntiAddictionCheckRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string id_card_hash = 3;     // 身份证 hash (per 法规, 桶 12 占位)
+  bool is_adult = 4;           // 客户端自报
+}
+
+message AntiAddictionCheckResponse {
+  bool acknowledged = 1;
+  bool is_adult = 2;           // 服务端确认
+  int32 max_play_minutes = 3;  // 每日上限 (未成年人 < 18: 90 min, 18+: 不限)
+}
+
+// ----- 10396 强制关闭客户端 -----
+
+message ForceDisconnectRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string reason = 3;           // 强制关闭原因
+}
+
+message ForceDisconnectResponse {
+  bool disconnect_issued = 1;
+  string session_id = 2;       // 被强制断开的 session
+}
+
+// ----- 10397 客户端进入后台 -----
+
+message EnterBackgroundRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  string session_id = 3;
+}
+
+message EnterBackgroundResponse {
+  bool in_background = 1;
+  common.v1.Timestamp background_since = 2;
+}
+
+// ----- 10325 头像列表 -----
+
+message GetAvatarListRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+}
+
+message AvatarList {
+  repeated AvatarInfo avatars = 1;
+  int32 current_avatar_id = 2;
+  int32 total_owned = 3;
+}
+
+message AvatarInfo {
+  int32 avatar_id = 1;
+  string name = 2;
+  string url = 3;              // 头像图片 URL (per CDN)
+  bool owned = 4;
+  bool unlock_by_default = 5;   // 默认解锁 (true = 新角色自动拥有)
+}
+
+// ----- 10327 设置头像 -----
+
+message SetAvatarRequest {
+  string request_id = 1;
+  string character_id = 2;     // TODO: 迁 common.v1.PlayerId
+  int32 avatar_id = 3;
+}
+
+message SetAvatarResponse {
+  bool set = 1;
+  int32 current_avatar_id = 2;
+}
+
+// ----- 11000 心跳 (RGS 新增) -----
+
+message HeartbeatRequest {
+  string request_id = 1;
+  string session_id = 2;
+  string character_id = 3;     // TODO: 迁 common.v1.PlayerId (optional)
+  int64 client_time_unix = 4;  // 客户端时间 (用于时钟漂移检测)
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+  int64 server_time_unix = 2;
+  common.v1.Timestamp session_expires_at = 3;
+}
+

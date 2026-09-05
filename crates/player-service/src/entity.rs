@@ -297,6 +297,113 @@ impl PlayerProfile {
     }
 }
 
+// ============================================================================
+// 闪烁之光 100% 兼容 Phase 2 — 账号+角色 15 RPC entity (per 9/5 11:50 JST 4 拍板)
+// 上游参考: 闪烁之光 proto_101.erl (10101-10103) + proto_103.erl (10301-10397)
+// 桶 12 增量: 不破坏既有 Player/PlayerSession/PlayerProfile/Deck/DeckSlot
+// ============================================================================
+
+/// 闪烁之光 风格 "角色" 实体
+///
+/// 与 Player 的区别: Player 是 RGS 抽象 (账号 + 等级 + vip 通用),
+/// Character 是闪烁之光 MMORPG 抽象 (角色 = 1 账号下多角色, 含职业/阵营/头像/签名).
+///
+/// 当前桶 12 仅占位实现, 1 账号 1 角色 (per 闪烁之光 入门流程: 注册 → 创建角色 → 登录).
+/// 后续 v0.2 评估: 1 账号 N 角色 (per proto_101.erl 10101 "创建角色" + 10102 "登录指定角色").
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Character {
+    /// 角色 ID (UUID, 主键)
+    pub id: Uuid,
+    /// 所属账号 ID (per 闪烁之光 1 账号 1 角色 v0.1)
+    pub account_id: Uuid,
+    /// 角色名 (unique, 业务校验)
+    pub name: String,
+    /// 职业 ID (1=warrior 2=mage 3=priest 4=rogue 5=ranger, 当前桶 12 占位)
+    pub class_id: i32,
+    /// 阵营 ID (1=order 2=chaos 3=neutral, 当前桶 12 占位)
+    pub faction_id: i32,
+    /// 等级 (默认 1)
+    pub level: i32,
+    /// VIP 等级 (0 = 非 VIP)
+    pub vip_level: i32,
+    /// 当前头像 ID (per proto_103.erl 10327, 默认 1)
+    pub current_avatar_id: i32,
+    /// 个人签名 (per proto_103.erl 10309, 默认空)
+    pub signature: String,
+    /// 角色状态 (active / banned / disabled, 复用 PlayerStatus)
+    pub status: PlayerStatus,
+    /// 是否在后台 (per proto_103.erl 10397, 默认 false)
+    pub in_background: bool,
+    /// 最近登录时间 (None = 从未登录)
+    pub last_login_at: Option<DateTime<Utc>>,
+    /// 创建时间
+    pub created_at: DateTime<Utc>,
+    /// 更新时间
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Character {
+    /// 工厂: 新建角色 (默认 1 级 / vip 0 / avatar 1 / 空签名 / active / class+faction 透传)
+    pub fn new(account_id: Uuid, name: String, class_id: i32, faction_id: i32) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Uuid::new_v4(),
+            account_id,
+            name,
+            class_id,
+            faction_id,
+            level: 1,
+            vip_level: 0,
+            current_avatar_id: 1,
+            signature: String::new(),
+            status: PlayerStatus::Active,
+            in_background: false,
+            last_login_at: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    /// 角色是否处于可登录/可改名的活跃状态
+    pub fn is_active(&self) -> bool {
+        !matches!(self.status, PlayerStatus::Banned | PlayerStatus::Disabled)
+    }
+}
+
+/// 角色资产快照 (per proto_103.erl 10302)
+///
+/// 跨域引用: 真实余额归属 economy-service, 桶 12 占位返回空 entries.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct CharacterAssetsSnapshot {
+    /// 所属角色 ID
+    pub character_id: Uuid,
+    /// 资产条目 (e.g. "GOLD" -> 1000, "GEM" -> 50, "STAMINA" -> 60)
+    pub entries: Vec<AssetEntry>,
+    /// 快照时间
+    pub queried_at: DateTime<Utc>,
+}
+
+/// 单条资产 (per proto CharacterAssets.AssetEntry)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AssetEntry {
+    /// 资产代码 (e.g. "GOLD" / "GEM" / "STAMINA" / "TICKET")
+    pub code: String,
+    /// 余额
+    pub amount: i64,
+    /// 最近更新时间
+    pub updated_at: DateTime<Utc>,
+}
+
+impl AssetEntry {
+    pub fn new(code: String, amount: i64) -> Self {
+        Self {
+            code,
+            amount,
+            updated_at: Utc::now(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -379,5 +486,45 @@ mod tests {
         assert_eq!(p.total_wins, 0);
         assert_eq!(p.collection_count, 0);
         assert_eq!(p.preferred_locale, "zh-CN");
+    }
+
+    // ----- 桶 12 增量: 闪烁之光 风格 角色 entity UT (per 9/5 11:50 JST 4 拍板) -----
+
+    #[test]
+    fn character_new_defaults() {
+        let account_id = Uuid::new_v4();
+        let c = Character::new(account_id, "alice".to_string(), 1, 1);
+        assert_eq!(c.account_id, account_id);
+        assert_eq!(c.name, "alice");
+        assert_eq!(c.class_id, 1);
+        assert_eq!(c.faction_id, 1);
+        assert_eq!(c.level, 1);
+        assert_eq!(c.vip_level, 0);
+        assert_eq!(c.current_avatar_id, 1);
+        assert!(c.signature.is_empty());
+        assert_eq!(c.status, PlayerStatus::Active);
+        assert!(!c.in_background);
+        assert!(c.last_login_at.is_none());
+        assert!(c.is_active());
+    }
+
+    #[test]
+    fn character_banned_is_not_active() {
+        let mut c = Character::new(Uuid::new_v4(), "bob".to_string(), 1, 1);
+        c.status = PlayerStatus::Banned;
+        assert!(!c.is_active());
+    }
+
+    #[test]
+    fn asset_entry_new_records_amount() {
+        let e = AssetEntry::new("GOLD".to_string(), 1000);
+        assert_eq!(e.code, "GOLD");
+        assert_eq!(e.amount, 1000);
+    }
+
+    #[test]
+    fn character_assets_snapshot_default_is_empty() {
+        let s = CharacterAssetsSnapshot::default();
+        assert!(s.entries.is_empty());
     }
 }

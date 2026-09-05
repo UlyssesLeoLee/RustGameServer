@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
 
-use crate::entity::{Deck, DeckSlot, DeckStatus, Player, PlayerSession, PlayerStatus};
+use crate::entity::{Deck, DeckSlot, DeckStatus, Player, PlayerSession, PlayerStatus, Character};
 use crate::Result;
 
 /// 分页请求（per common.proto PageRequest）
@@ -97,6 +97,26 @@ pub trait DeckRepository: Send + Sync {
     ) -> Result<Page<Deck>>;
     /// 按 share_code 查询（用于 GetSharedDeck；要求 is_public=true）
     async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>>;
+}
+
+/// 闪烁之光 风格 Character Repository trait (per 9/5 11:50 JST 4 拍板 桶 12 增量)
+///
+/// 桶 12 占位: 当前 InMemory + sqlx Pg impl 留给主会话在 Phase 2 业务化时实装.
+/// 当前仅 InMemoryCharacterRepository (测试用) + trait 抽象.
+#[async_trait]
+pub trait CharacterRepository: Send + Sync {
+    /// 创建角色（id 由 entity 提供）
+    async fn create(&self, entity: &Character) -> Result<Character>;
+    /// 按 id 查询
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Character>>;
+    /// 按 account_id 查询（v0.1 1 账号 1 角色，返回首个匹配）
+    async fn find_by_account_id(&self, account_id: Uuid) -> Result<Option<Character>>;
+    /// 按 name 查询（unique index）
+    async fn find_by_name(&self, name: &str) -> Result<Option<Character>>;
+    /// 全量更新
+    async fn update(&self, entity: &Character) -> Result<Character>;
+    /// 按 id 删除
+    async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
 }
 
 // ============================================================================
@@ -695,6 +715,130 @@ impl DeckRepository for InMemoryDeckRepository {
 }
 
 // ============================================================================
+// 闪烁之光 Character Repository impls (per 9/5 11:50 JST 4 拍板 桶 12 增量)
+// ============================================================================
+
+// InMemoryCharacterRepository (单测用)
+pub struct InMemoryCharacterRepository {
+    inner: Mutex<HashMap<Uuid, Character>>,
+}
+
+impl InMemoryCharacterRepository {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for InMemoryCharacterRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl CharacterRepository for InMemoryCharacterRepository {
+    async fn create(&self, entity: &Character) -> Result<Character> {
+        self.inner.lock().unwrap().insert(entity.id, entity.clone());
+        Ok(entity.clone())
+    }
+
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Character>> {
+        Ok(self.inner.lock().unwrap().get(&id).cloned())
+    }
+
+    async fn find_by_account_id(&self, account_id: Uuid) -> Result<Option<Character>> {
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .values()
+            .find(|c| c.account_id == account_id)
+            .cloned())
+    }
+
+    async fn find_by_name(&self, name: &str) -> Result<Option<Character>> {
+        Ok(self
+            .inner
+            .lock()
+            .unwrap()
+            .values()
+            .find(|c| c.name == name)
+            .cloned())
+    }
+
+    async fn update(&self, entity: &Character) -> Result<Character> {
+        self.inner.lock().unwrap().insert(entity.id, entity.clone());
+        Ok(entity.clone())
+    }
+
+    async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
+        Ok(self.inner.lock().unwrap().remove(&id).is_some())
+    }
+}
+
+// ============================================================================
+// PgCharacterRepository (sqlx 实现, 占位 — per 9/5 11:50 JST 4 拍板 桶 12)
+// ============================================================================
+//
+// 当前桶 12 仅占位: characters 表 DDL 未实装 (per 改进路线图 §5 已知缺口).
+// 真实表 schema 跟 P1 DDL 走, 当前 impl 全返 Database 错误, 让 main.rs 编译通过
+// 但运行时调用会 fail-closed (per AGENTS §3 fail-closed 默认).
+
+/// sqlx PgPool 实现 (桶 12 占位)
+#[allow(dead_code)] // 桶 12 占位: 当前 impl 全返 Internal error, pool 字段暂未使用
+pub struct PgCharacterRepository {
+    pool: PgPool,
+}
+
+impl PgCharacterRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl CharacterRepository for PgCharacterRepository {
+    async fn create(&self, _entity: &Character) -> Result<Character> {
+        // TODO(per 9/5 改进路线图 §5): characters 表 DDL 落 + ON CONFLICT 改名 unique 约束
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.create not yet implemented (桶 12 占位, characters 表 DDL 待实装)"
+        )))
+    }
+
+    async fn find_by_id(&self, _id: Uuid) -> Result<Option<Character>> {
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.find_by_id not yet implemented (桶 12 占位)"
+        )))
+    }
+
+    async fn find_by_account_id(&self, _account_id: Uuid) -> Result<Option<Character>> {
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.find_by_account_id not yet implemented (桶 12 占位)"
+        )))
+    }
+
+    async fn find_by_name(&self, _name: &str) -> Result<Option<Character>> {
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.find_by_name not yet implemented (桶 12 占位)"
+        )))
+    }
+
+    async fn update(&self, _entity: &Character) -> Result<Character> {
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.update not yet implemented (桶 12 占位)"
+        )))
+    }
+
+    async fn delete_by_id(&self, _id: Uuid) -> Result<bool> {
+        Err(crate::Error::Internal(anyhow::anyhow!(
+            "PgCharacterRepository.delete_by_id not yet implemented (桶 12 占位)"
+        )))
+    }
+}
+
+// ============================================================================
 // helpers
 // ============================================================================
 
@@ -916,5 +1060,66 @@ mod tests {
         let found = repo.find_by_id(d.id).await.unwrap().unwrap();
         assert!(!found.is_public);
         assert!(found.share_code.is_none());
+    }
+
+    // ----- 桶 12 增量: 闪烁之光 Character Repository UT (per 9/5 11:50 JST 4 拍板) -----
+
+    #[tokio::test]
+    async fn in_memory_character_create_and_find() {
+        let repo = InMemoryCharacterRepository::new();
+        let account = Uuid::new_v4();
+        let c = Character::new(account, "alice".to_string(), 1, 1);
+        let id = c.id;
+        repo.create(&c).await.unwrap();
+        let found = repo.find_by_id(id).await.unwrap().unwrap();
+        assert_eq!(found.id, c.id);
+        assert_eq!(found.account_id, account);
+        assert_eq!(found.name, "alice");
+        assert_eq!(found.class_id, 1);
+    }
+
+    #[tokio::test]
+    async fn in_memory_character_find_by_account() {
+        let repo = InMemoryCharacterRepository::new();
+        let account = Uuid::new_v4();
+        let c = Character::new(account, "bob".to_string(), 2, 1);
+        repo.create(&c).await.unwrap();
+        let found = repo.find_by_account_id(account).await.unwrap().unwrap();
+        assert_eq!(found.id, c.id);
+        // 不存在 account 返回 None
+        assert!(repo.find_by_account_id(Uuid::new_v4()).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_character_find_by_name_unique() {
+        let repo = InMemoryCharacterRepository::new();
+        let c = Character::new(Uuid::new_v4(), "carol".to_string(), 1, 1);
+        repo.create(&c).await.unwrap();
+        let found = repo.find_by_name("carol").await.unwrap().unwrap();
+        assert_eq!(found.id, c.id);
+        assert!(repo.find_by_name("nobody").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn in_memory_character_update_name() {
+        let repo = InMemoryCharacterRepository::new();
+        let mut c = Character::new(Uuid::new_v4(), "dave".to_string(), 1, 1);
+        repo.create(&c).await.unwrap();
+        c.name = "dave-renamed".to_string();
+        c.updated_at = Utc::now();
+        repo.update(&c).await.unwrap();
+        let found = repo.find_by_id(c.id).await.unwrap().unwrap();
+        assert_eq!(found.name, "dave-renamed");
+    }
+
+    #[tokio::test]
+    async fn in_memory_character_delete_by_id() {
+        let repo = InMemoryCharacterRepository::new();
+        let c = Character::new(Uuid::new_v4(), "eve".to_string(), 1, 1);
+        let id = c.id;
+        repo.create(&c).await.unwrap();
+        assert!(repo.delete_by_id(id).await.unwrap());
+        assert!(repo.find_by_id(id).await.unwrap().is_none());
+        assert!(!repo.delete_by_id(id).await.unwrap());
     }
 }
