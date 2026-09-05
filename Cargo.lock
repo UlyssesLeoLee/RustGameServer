@@ -4084,6 +4084,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "scene-service"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "async-trait",
+ "chrono",
+ "prost",
+ "rgs-testkit",
+ "serde",
+ "serde_json",
+ "shared-platform",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "tonic-health",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
