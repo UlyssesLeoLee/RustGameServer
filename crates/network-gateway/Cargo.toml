@@ -1,0 +1,39 @@
+[package]
+name = "network-gateway"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "网络协议网关 (per 9/4 改进路线图 Phase 1): TCP 二进制 ↔ 5 域 gRPC 路由 + EPMD/dist 协议 stub"
+
+[[bin]]
+name = "network-gateway"
+path = "src/bin/main.rs"
+
+[features]
+default = []
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server (admin RPC 端)
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+# 二进制帧处理 (per 9/4 MD §0 自研二进制 + Phase 1 TCP 4 字节长度 + payload)
+# 注: workspace.dependencies 无 bytes/futures-util, 沿用 5 域 direct dep 模式
+bytes = "1"
+futures-util = "0.3"
+
+[build-dependencies]
+tonic-build = { workspace = true }
