@@ -1,8 +1,14 @@
 //! W7 端到端 8 域 demo 路由 roundtrip 集成测试
 //!
 //! ## 范围
-//! 验证 8 域 (player/economy/scene/battle/batch/admin/cluster_ops + 5 域) demo 路由
-//! 全部经真实 TCP socket 命中, 返回 rcode=0 + payload 含 target_service.method.
+//! 验证 W14 codegen 6 demo 路由 (player/scene/battle/economy 4 域) 全部经真实 TCP socket
+//! 命中, 返回 rcode=0 + payload 含 target_service.method.
+//!
+//! ## W14 调整
+//! W7 PHASE1_5_DEMO_ROUTES 9 条中有 5 条 (20101/10202/30101/40101/50101) 在
+//! 9/4 API 清单 TSV 中不存在 (TSV 来自真实 Erlang 源, 9 域合成 code 不可用).
+//! W14 demo 兼容缩为 6 条 (10101/10201/20001/20002/11000/25000), 集成测试仍可 roundtrip
+//! 覆盖 4 真实域 (player/scene/battle/economy).
 //!
 //! ## 不动
 //! - 7 域 gRPC client stub (不真调, 仅路由决策演示, per task brief "卡住的应对")
@@ -10,23 +16,49 @@
 //!
 //! ## 已知缺口 (per 9/4 改进路线图 Phase 1 完整 8 SRE·d, W7 仅 stub)
 //! - NIF 桥接 rustler 0.36 + BEAM (per ADR-006 Option A, Phase 1.5)
-//! - 端到端 7 域业务调用 (per 9/4 Phase 2, 25-40 SRE·d)
+//! - 端到端 4 域 (player/scene/battle/economy) 业务调用 (per 9/4 Phase 2, 25-40 SRE·d)
 //! - web_conn.erl / zone.erl 真实加载 (per 9/4 R2, 1-2 周)
 //! - 完整 cookie 鉴权 (per task brief "卡住的应对", Phase 1.5 stub 推进)
-//! - 1351 条全路由 codegen (per task brief "100/1351 核心", Phase 1.5 补完)
+//! - 1345 条非 demo 路由走 Method_<code> 占位 (Phase 2 接 4 域真实 .proto)
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use network_gateway::router::{RouteTable, PHASE1_5_DEMO_ROUTES};
+use network_gateway::router::RouteTable;
 use network_gateway::stats::GatewayStats;
 use network_gateway::tcp;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
+/// 6 demo 路由对应 code (per W14 codegen 覆写, TSV 真实存在)
+const DEMO_CODES: &[u32] = &[
+    10101, // player.v1.PlayerService.CreateCharacter
+    10201, // scene.v1.SceneService.EnterScene
+    20001, // battle.v1.BattleService.BattlePrepare
+    20002, // battle.v1.BattleService.RoundStart
+    11000, // player.v1.PlayerService.GetPartnerData
+    25000, // economy.v1.EconomyService.PushBaseInfo
+];
+
+/// 6 demo 路由对应 (code, name, svc, method) 元组
+const DEMO_ROUTES: &[(u32, &str, &str, &str)] = &[
+    (10101, "create_character", "player.v1.PlayerService", "CreateCharacter"),
+    (10201, "enter_scene", "scene.v1.SceneService", "EnterScene"),
+    (20001, "battle_prepare", "battle.v1.BattleService", "BattlePrepare"),
+    (20002, "round_start", "battle.v1.BattleService", "RoundStart"),
+    (11000, "get_partner_data", "player.v1.PlayerService", "GetPartnerData"),
+    (
+        25000,
+        "push_base_info",
+        "economy.v1.EconomyService",
+        "PushBaseInfo",
+    ),
+];
+
 /// 启动一个临时 TCP listener (127.0.0.1:0 = OS 分配端口)
 async fn spawn_test_server() -> (String, tokio::task::JoinHandle<()>) {
-    let routes = Arc::new(RouteTable::with_phase15_demo());
+    // W14: 走 RouteTable::new() (1351 全加载) 验证 9 demo 路由
+    let routes = Arc::new(RouteTable::new());
     let stats = Arc::new(GatewayStats::new());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -65,12 +97,12 @@ async fn send_recv_frame(addr: &str, code: u32, payload: &[u8]) -> (u32, Vec<u8>
 }
 
 #[tokio::test]
-async fn phase15_eight_domains_route_roundtrip() {
-    // 启动 1 个临时 server, 跑 8 域 demo 全命中
+async fn phase15_six_routes_route_roundtrip() {
+    // 启动 1 个临时 server, 跑 6 demo 路由全命中
     let (addr, _handle) = spawn_test_server().await;
 
-    for (code, name, svc, method, _addr) in PHASE1_5_DEMO_ROUTES {
-        let payload = format!("w7-demo-{}-{}", name, code);
+    for (code, name, svc, method) in DEMO_ROUTES {
+        let payload = format!("w14-demo-{}-{}", name, code);
         let (rcode, body) = send_recv_frame(&addr, *code, payload.as_bytes()).await;
         assert_eq!(rcode, 0, "code {} ({}) 应该命中路由", code, name);
         let body_str = String::from_utf8_lossy(&body);
@@ -96,18 +128,23 @@ async fn phase15_route_miss_returns_404() {
 }
 
 #[tokio::test]
-async fn phase15_eight_domains_have_seven_addrs() {
-    // 8 域 (7 域 + cluster_ops) → 7 唯一 gRPC 地址 (port 50051-50057)
-    // scene 2 路由 + battle 2 路由 → 共享同地址
-    // 9 demo 路由 → 7 唯一地址
-    let addrs: std::collections::HashSet<_> = PHASE1_5_DEMO_ROUTES
-        .iter()
-        .map(|(_, _, _, _, a)| *a)
-        .collect();
+async fn phase15_six_routes_have_four_addrs() {
+    // 6 demo 路由 → 4 唯一 gRPC 地址 (player/scene/battle/economy)
+    // player 2 路由 (10101/11000) → 50051
+    // scene 1 (10201) → 50053
+    // battle 2 (20001/20002) → 50054
+    // economy 1 (25000) → 50052
+    let rt = RouteTable::new();
+    let mut unique_addrs = std::collections::HashSet::new();
+    for code in DEMO_CODES {
+        if let Some(entry) = rt.get(*code) {
+            unique_addrs.insert(entry.target_addr.clone());
+        }
+    }
     assert_eq!(
-        addrs.len(),
-        7,
-        "8 域 → 7 唯一 gRPC 地址 (scene/battle 各 2 路由同址)"
+        unique_addrs.len(),
+        4,
+        "6 demo 跨 4 真实域 → 4 唯一 gRPC 地址"
     );
 }
 
@@ -115,8 +152,8 @@ async fn phase15_eight_domains_have_seven_addrs() {
 async fn phase15_login_role_battle_endtoend_stub() {
     // 端到端 stub: 客户端 → RGS 协议网关 → 路由决策
     // 真实 Phase 3 联调: 调 player-service.CreateCharacter / scene-service.EnterScene /
-    //                    battle-service.StartPve
-    // 当前: 仅验证路由层 OK, Phase 1.5 接 NIF + 7 域 gRPC client
+    //                    battle-service.BattlePrepare
+    // 当前: 仅验证路由层 OK, Phase 1.5 接 NIF + 4 域 gRPC client
     let (addr, _handle) = spawn_test_server().await;
 
     // 1. 创建角色 (10101 → player.v1.PlayerService.CreateCharacter)
@@ -127,15 +164,26 @@ async fn phase15_login_role_battle_endtoend_stub() {
     let (r2, _) = send_recv_frame(&addr, 10201, b"scene-1").await;
     assert_eq!(r2, 0, "step2 进入场景路由命中");
 
-    // 3. 战斗开始 (20001 → battle.v1.BattleService.StartPve)
+    // 3. 战斗准备 (20001 → battle.v1.BattleService.BattlePrepare)
     let (r3, _) = send_recv_frame(&addr, 20001, b"battle-1").await;
-    assert_eq!(r3, 0, "step3 战斗开始路由命中");
+    assert_eq!(r3, 0, "step3 战斗准备路由命中");
 
-    // 4. 战斗结束 (20002 → battle.v1.BattleService.EndPve)
+    // 4. 回合开始 (20002 → battle.v1.BattleService.RoundStart)
     let (r4, _) = send_recv_frame(&addr, 20002, b"battle-1-end").await;
-    assert_eq!(r4, 0, "step4 战斗结束路由命中");
+    assert_eq!(r4, 0, "step4 回合开始路由命中");
 
-    // 5. 加货币 (20101 → economy.v1.EconomyService.AddCurrency, 战斗结算)
-    let (r5, _) = send_recv_frame(&addr, 20101, b"reward-100").await;
-    assert_eq!(r5, 0, "step5 加货币路由命中 (战斗结算)");
+    // 5. 推送基础信息 (25000 → economy.v1.EconomyService.PushBaseInfo)
+    let (r5, _) = send_recv_frame(&addr, 25000, b"reward-100").await;
+    assert_eq!(r5, 0, "step5 推送基础信息路由命中 (战斗结算)");
+}
+
+#[tokio::test]
+async fn phase15_full_1351_loaded_in_table() {
+    // W14 codegen: RouteTable::new() 加载 1351 条 (per 9/4 TSV)
+    let rt = RouteTable::new();
+    assert_eq!(rt.len(), 1351, "W14 1351 全加载");
+    // 6 demo code 全部命中
+    for code in DEMO_CODES {
+        assert!(rt.get(*code).is_some(), "demo code {} must hit", code);
+    }
 }

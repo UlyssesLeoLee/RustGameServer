@@ -1,0 +1,48 @@
+# W15: 7 域 svc DNS 命名 (per 9/4 改进路线图 Phase 2)
+#
+# 占位配置, Phase 1.5 拍板 k3s svc DNS 命名后落地.
+# 5 域 svc 已有 k3s service (per W1 §1.1 22/22 Running 1/1):
+#   - player-service.rust-game-server.svc.cluster.local:50051
+#   - economy-service.rust-game-server.svc.cluster.local:50052
+#   - match-service.rust-game-server.svc.cluster.local:50053
+#   - social-service.rust-game-server.svc.cluster.local:50054
+#   - admin-service.rust-game-server.svc.cluster.local:50055
+#   - cluster-ops.rust-game-server.svc.cluster.local:50056
+#
+# 3 NEW 域 svc (scene/battle/batch) 待 W4/W5 5 worktree merge + k3s 部署后落地
+#
+# Per L20 候选 (W10 §5.4): k8s mTLS cert 没 IP SAN, 必须 -servername <domain>.service
+# 这里用 <svc>.svc.cluster.local 形式作 dev 默认
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-gateway-svc-dns
+  namespace: rust-game-server
+  labels:
+    app: network-gateway
+    domain: network
+    phase: "w15-stub"
+data:
+  # 7 域 svc DNS (per 5 域 default_port + 3 NEW 域占位)
+  player.fqdn: "player-service.rust-game-server.svc.cluster.local"
+  player.port: "50051"
+  economy.fqdn: "economy-service.rust-game-server.svc.cluster.local"
+  economy.port: "50052"
+  match.fqdn: "match-service.rust-game-server.svc.cluster.local"
+  match.port: "50053"
+  social.fqdn: "social-service.rust-game-server.svc.cluster.local"
+  social.port: "50054"
+  admin.fqdn: "admin-service.rust-game-server.svc.cluster.local"
+  admin.port: "50055"
+  cluster-ops.fqdn: "cluster-ops.rust-game-server.svc.cluster.local"
+  cluster-ops.port: "50056"
+  # 3 NEW 域占位 (per W4/W5 估算, SRE Lead 拍板待 Phase 1.5)
+  scene.fqdn: "scene-service.rust-game-server.svc.cluster.local"
+  scene.port: "50057"
+  battle.fqdn: "battle-service.rust-game-server.svc.cluster.local"
+  battle.port: "50058"
+  batch.fqdn: "batch-service.rust-game-server.svc.cluster.local"
+  batch.port: "50059"
+  # mTLS servername 后缀 (per L20 候选 W10 §5.4)
+  domain_suffix: ".svc.cluster.local"

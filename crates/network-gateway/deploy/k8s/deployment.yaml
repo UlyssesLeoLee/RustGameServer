@@ -59,6 +59,41 @@ spec:
             - name: tls-certs
               mountPath: /etc/network-gateway/tls
               readOnly: true
+            # W15: 7 域 gRPC client pool mTLS 证书 (复用 W10 5 域 cert, 3 NEW 域待抽)
+            - name: client-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+            # W15: 7 域 k3s svc DNS 配置 (Phase 1.5 拍板 svc DNS 命名)
+            - name: svc-dns
+              mountPath: /etc/rgs/svc-dns
+              readOnly: true
+          env:
+            # W15: client pool 配置 (cert dir + 默认 host + 7 域 svc DNS)
+            - name: RGS_NETWORK_GATEWAY_CLIENT_CERT_DIR
+              value: "/etc/rgs/certs"
+            - name: RGS_NETWORK_GATEWAY_DEFAULT_HOST
+              value: "player-service.rust-game-server.svc.cluster.local"
+            - name: RGS_NETWORK_GATEWAY_DOMAIN_SUFFIX
+              value: ".svc.cluster.local"
+            # W15: 7 域 svc DNS 端点 (per 5 域 default_port + 3 NEW 域占位)
+            - name: RGS_SVC_PLAYER_HOST
+              value: "player-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_ECONOMY_HOST
+              value: "economy-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_MATCH_HOST
+              value: "match-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_SOCIAL_HOST
+              value: "social-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_ADMIN_HOST
+              value: "admin-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_CLUSTER_OPS_HOST
+              value: "cluster-ops.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_SCENE_HOST
+              value: "scene-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_BATTLE_HOST
+              value: "battle-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_BATCH_HOST
+              value: "batch-service.rust-game-server.svc.cluster.local"
           livenessProbe:
             tcpSocket:
               port: tcp-binary
@@ -83,6 +118,14 @@ spec:
         - name: tls-certs
           secret:
             secretName: network-gateway-tls
+        # W15: 7 域 mTLS client cert (per W10 D:\sszgC\certs\ 5 域 + cluster_ops, 3 NEW 域待抽)
+        - name: client-tls
+          secret:
+            secretName: network-gateway-client-tls
+        # W15: 7 域 svc DNS 配置 (configmap, Phase 1.5 拍板命名后落地)
+        - name: svc-dns
+          configMap:
+            name: network-gateway-svc-dns
 ---
 # Erlang cookie secret stub (per 8/27 11:06 JST hard ban, value 走 kubectl apply --from-literal=...)
 # 真实部署: kubectl create secret generic network-gateway-secret -n rust-game-server \

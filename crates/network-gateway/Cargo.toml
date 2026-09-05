@@ -15,6 +15,10 @@ path = "src/bin/main.rs"
 [features]
 default = []
 tracing = []
+# W13: 启用 NIF (rustler 0.36 绑定 + librgs_nif.so 给 Erlang/OTP 26 加载)
+# 默认关闭, 5 域编译模式不受影响. 启用命令: cargo build --features nif
+# 需 Erlang 26 (apt 源 25 上限, Phase 1.5 装 Erlang Solutions PPA, per ADR-007)
+nif = ["dep:rustler"]
 
 [dependencies]
 # workspace 公共服务
@@ -26,10 +30,15 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 async-trait = { workspace = true }
-# gRPC server (admin RPC 端)
+# gRPC server (admin RPC 端) + W15 7 域 client pool
 tonic = { workspace = true }
 tonic-health = { workspace = true }
 prost = { workspace = true }
+# W15: 复用 shared-platform 的 mTLS Channel 工厂 (per RGS-SPEC-CROSS-002 + W10 5 域 mTLS 验证)
+shared-platform = { path = "../shared-platform" }
+# W13: rustler 0.36 NIF 绑定 (per ADR-007, gated by feature nif, 默认不引入 BEAM 依赖)
+# 注: workspace.dependencies 无 rustler, 沿用 5 域 direct dep 模式 (per bytes/futures-util)
+rustler = { version = "0.36", optional = true }
 # 二进制帧处理 (per 9/4 MD §0 自研二进制 + Phase 1 TCP 4 字节长度 + payload)
 # 注: workspace.dependencies 无 bytes/futures-util, 沿用 5 域 direct dep 模式
 bytes = "1"
