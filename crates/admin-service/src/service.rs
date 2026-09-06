@@ -686,7 +686,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 let err = s
                     .create_admin("".into(), "h".into(), role, None)
@@ -706,7 +706,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 s.create_admin(name.clone(), "h1".into(), AdminRole::SuperAdmin, None)
                     .await
@@ -728,7 +728,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 let actor = Uuid::new_v4();
                 let mut entries = Vec::with_capacity(n);

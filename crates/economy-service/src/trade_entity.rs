@@ -14,18 +14,18 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuctionStatus {
-    /// 进行中
+    // 进行中
     Active,
-    /// 已成交
+    // 已成交
     Sold,
-    /// 已撤单
+    // 已撤单
     Cancelled,
-    /// 已过期
+    // 已过期
     Expired,
 }
 
 impl AuctionStatus {
-    /// proto / SQL 双向转换
+    // proto / SQL 双向转换
     pub fn as_i32(self) -> i32 {
         match self {
             AuctionStatus::Active => 1,
@@ -64,11 +64,11 @@ impl AuctionStatus {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuctionFilter {
-    /// 仅进行中
+    // 仅进行中
     Active,
-    /// 已结束 (sold / cancelled / expired)
+    // 已结束 (sold / cancelled / expired)
     Closed,
-    /// 全部
+    // 全部
     All,
 }
 
@@ -93,34 +93,34 @@ impl AuctionFilter {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Auction {
     pub auction_id: Uuid,
-    /// 卖家 player_id (跨服务边界, 用 String)
+    // 卖家 player_id (跨服务边界, 用 String)
     pub seller_id: String,
-    /// 卡牌静态 ID (catalog 引用, card.card_id)
+    // 卡牌静态 ID (catalog 引用, card.card_id)
     pub card_id: String,
-    /// 卡牌实例 ID (card_instances.instance_id 跨域软引用)
+    // 卡牌实例 ID (card_instances.instance_id 跨域软引用)
     pub card_instance_id: String,
-    /// 起拍价 / 一口价 (最小单位: 分 / 钻 / 代币)
+    // 起拍价 / 一口价 (最小单位: 分 / 钻 / 代币)
     pub min_price: i64,
-    /// 货币类型 (1=soft 2=hard 3=card_value, per common.proto CurrencyType)
+    // 货币类型 (1=soft 2=hard 3=card_value, per common.proto CurrencyType)
     pub currency_type: i32,
-    /// 当前最高价 (0 = 无人出价)
+    // 当前最高价 (0 = 无人出价)
     pub highest_bid: i64,
-    /// 当前最高出价者 player_id ("" = 无人)
+    // 当前最高出价者 player_id ("" = 无人)
     pub highest_bidder: String,
     pub status: AuctionStatus,
     pub started_at: DateTime<Utc>,
     pub ends_at: DateTime<Utc>,
     pub closed_at: Option<DateTime<Utc>>,
-    /// 成交时买家 ID
+    // 成交时买家 ID
     pub winner_id: Option<String>,
-    /// 成交价
+    // 成交价
     pub final_price: i64,
-    /// 跨域 saga 关联 (ExecuteAuction saga_id, 崩溃恢复用)
+    // 跨域 saga 关联 (ExecuteAuction saga_id, 崩溃恢复用)
     pub saga_id: Option<Uuid>,
 }
 
 impl Auction {
-    /// 工厂：新建拍卖（默认 Active / 24h 后到期）
+    // 工厂：新建拍卖（默认 Active / 24h 后到期）
     pub fn new(
         seller_id: String,
         card_id: String,
@@ -149,17 +149,17 @@ impl Auction {
         }
     }
 
-    /// 业务规则：拍卖是否活跃
+    // 业务规则：拍卖是否活跃
     pub fn is_active(&self) -> bool {
         self.status == AuctionStatus::Active && Utc::now() < self.ends_at
     }
 
-    /// 业务规则：是否到期
+    // 业务规则：是否到期
     pub fn is_expired(&self) -> bool {
         self.status == AuctionStatus::Active && Utc::now() >= self.ends_at
     }
 
-    /// 业务规则：出价是否合法（>= min_price, > 当前 highest_bid）
+    // 业务规则：出价是否合法（>= min_price, > 当前 highest_bid）
     pub fn is_valid_bid(&self, amount: i64, bidder_id: &str) -> Result<(), &'static str> {
         if !self.is_active() {
             return Err("auction not active");
@@ -181,13 +181,13 @@ impl Auction {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PrivateTradeStatus {
-    /// 已提议
+    // 已提议
     Proposed,
-    /// 已接受
+    // 已接受
     Accepted,
-    /// 已完成
+    // 已完成
     Completed,
-    /// 已取消
+    // 已取消
     Cancelled,
 }
 
@@ -234,7 +234,7 @@ pub struct PrivateTrade {
 }
 
 impl PrivateTrade {
-    /// 工厂：新建私下交易提议
+    // 工厂：新建私下交易提议
     pub fn new(
         proposer_id: String,
         counterparty_id: String,
@@ -337,8 +337,8 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 出价合法规则: amount >= min_price 且 amount > highest_bid
-        /// 且 bidder != seller → Ok; 否则 Err.
+        // 出价合法规则: amount >= min_price 且 amount > highest_bid
+        // 且 bidder != seller → Ok; 否则 Err.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(512))]
 

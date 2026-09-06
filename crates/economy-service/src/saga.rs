@@ -24,11 +24,11 @@ use crate::Result;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SagaType {
-    /// 转账（A 账户 → B 账户）
+    // 转账（A 账户 → B 账户）
     Transfer,
-    /// 每日奖励
+    // 每日奖励
     DailyReward,
-    /// 商城购买（货币 → 物品）
+    // 商城购买（货币 → 物品）
     Purchase,
 }
 
@@ -36,17 +36,17 @@ pub enum SagaType {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SagaStatus {
-    /// 待启动
+    // 待启动
     Pending,
-    /// 执行中
+    // 执行中
     Running,
-    /// 补偿中
+    // 补偿中
     Compensating,
-    /// 已完成
+    // 已完成
     Completed,
-    /// 失败（补偿完成后无法挽回）
+    // 失败（补偿完成后无法挽回）
     Failed,
-    /// 已中止
+    // 已中止
     Aborted,
 }
 
@@ -54,37 +54,37 @@ pub enum SagaStatus {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SagaStepStatus {
-    /// 待执行
+    // 待执行
     Pending,
-    /// 执行中
+    // 执行中
     Running,
-    /// 已完成
+    // 已完成
     Completed,
-    /// 失败
+    // 失败
     Failed,
-    /// 已补偿
+    // 已补偿
     Compensated,
 }
 
 /// Saga 步骤
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SagaStep {
-    /// 步骤名
+    // 步骤名
     pub name: String,
-    /// 状态
+    // 状态
     pub status: SagaStepStatus,
-    /// 关联资源 ID（可选，如 account_id）
+    // 关联资源 ID（可选，如 account_id）
     pub resource_id: Option<Uuid>,
-    /// 错误信息
+    // 错误信息
     pub error: Option<String>,
-    /// 开始时间
+    // 开始时间
     pub started_at: Option<DateTime<Utc>>,
-    /// 完成时间
+    // 完成时间
     pub completed_at: Option<DateTime<Utc>>,
 }
 
 impl SagaStep {
-    /// 工厂：新建待执行步骤
+    // 工厂：新建待执行步骤
     pub fn new(name: String, resource_id: Option<Uuid>) -> Self {
         Self {
             name,
@@ -96,26 +96,26 @@ impl SagaStep {
         }
     }
 
-    /// 标记运行中
+    // 标记运行中
     pub fn mark_running(&mut self) {
         self.status = SagaStepStatus::Running;
         self.started_at = Some(Utc::now());
     }
 
-    /// 标记完成
+    // 标记完成
     pub fn mark_completed(&mut self) {
         self.status = SagaStepStatus::Completed;
         self.completed_at = Some(Utc::now());
     }
 
-    /// 标记失败
+    // 标记失败
     pub fn mark_failed(&mut self, error: String) {
         self.status = SagaStepStatus::Failed;
         self.error = Some(error);
         self.completed_at = Some(Utc::now());
     }
 
-    /// 标记已补偿
+    // 标记已补偿
     pub fn mark_compensated(&mut self) {
         self.status = SagaStepStatus::Compensated;
         self.completed_at = Some(Utc::now());
@@ -125,30 +125,30 @@ impl SagaStep {
 /// Saga 实体
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Saga {
-    /// Saga ID
+    // Saga ID
     pub id: Uuid,
-    /// 类型
+    // 类型
     pub saga_type: SagaType,
-    /// 触发 command_id（per RGS-DTL-100 §6 幂等性）
+    // 触发 command_id（per RGS-DTL-100 §6 幂等性）
     pub command_id: Uuid,
-    /// 业务幂等键
+    // 业务幂等键
     pub idempotency_key: String,
-    /// 当前步骤索引
+    // 当前步骤索引
     pub current_step: usize,
-    /// 步骤列表
+    // 步骤列表
     pub steps: Vec<SagaStep>,
-    /// 状态
+    // 状态
     pub status: SagaStatus,
-    /// 创建时间
+    // 创建时间
     pub created_at: DateTime<Utc>,
-    /// 更新时间
+    // 更新时间
     pub updated_at: DateTime<Utc>,
-    /// 完成时间
+    // 完成时间
     pub completed_at: Option<DateTime<Utc>>,
 }
 
 impl Saga {
-    /// 工厂：新建 Saga（Pending）
+    // 工厂：新建 Saga（Pending）
     pub fn new(
         saga_type: SagaType,
         command_id: Uuid,
@@ -174,17 +174,17 @@ impl Saga {
         }
     }
 
-    /// 当前步骤
+    // 当前步骤
     pub fn current(&self) -> Option<&SagaStep> {
         self.steps.get(self.current_step)
     }
 
-    /// 当前步骤可变引用
+    // 当前步骤可变引用
     pub fn current_mut(&mut self) -> Option<&mut SagaStep> {
         self.steps.get_mut(self.current_step)
     }
 
-    /// 推进到下一步
+    // 推进到下一步
     pub fn advance(&mut self) -> bool {
         if self.current_step + 1 < self.steps.len() {
             self.current_step += 1;
@@ -195,7 +195,7 @@ impl Saga {
         }
     }
 
-    /// 开始执行
+    // 开始执行
     pub fn start(&mut self) {
         self.status = SagaStatus::Running;
         if let Some(step) = self.current_mut() {
@@ -204,14 +204,14 @@ impl Saga {
         self.updated_at = Utc::now();
     }
 
-    /// 标记完成
+    // 标记完成
     pub fn complete(&mut self) {
         self.status = SagaStatus::Completed;
         self.completed_at = Some(Utc::now());
         self.updated_at = self.completed_at.unwrap();
     }
 
-    /// 触发补偿（per RGS-DTL-100 §4 补偿模式）
+    // 触发补偿（per RGS-DTL-100 §4 补偿模式）
     pub fn compensate(&mut self) {
         self.status = SagaStatus::Compensating;
         // 反向遍历已完成步骤执行补偿
@@ -223,7 +223,7 @@ impl Saga {
         self.updated_at = Utc::now();
     }
 
-    /// 失败（无法挽回）
+    // 失败（无法挽回）
     pub fn fail(&mut self) {
         self.status = SagaStatus::Failed;
         self.completed_at = Some(Utc::now());
@@ -246,10 +246,10 @@ impl SagaStepNewNoResource for SagaStep {
 #[async_trait]
 pub trait SagaRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Saga>>;
-    /// 按 command_id 查（per RGS-DTL-100 §6 幂等性）
+    // 按 command_id 查（per RGS-DTL-100 §6 幂等性）
     async fn find_by_command_id(&self, command_id: Uuid) -> Result<Option<Saga>>;
     async fn save(&self, entity: &Saga) -> Result<Saga>;
-    /// 列出待恢复的 Running 状态 Saga（崩溃恢复用）
+    // 列出待恢复的 Running 状态 Saga（崩溃恢复用）
     async fn list_running(&self, limit: i64) -> Result<Vec<Saga>>;
 }
 
@@ -574,8 +574,8 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 状态机步进不变式: 在任意 step 数下, advance() 推进
-        /// current_step 直到末尾; 此后 advance() 必须返 false.
+        // 状态机步进不变式: 在任意 step 数下, advance() 推进
+        // current_step 直到末尾; 此后 advance() 必须返 false.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(1024))]
 
@@ -609,8 +609,8 @@ mod tests {
             }
         }
 
-        /// 状态机失败传播: 任一 step 标 Failed + 调 compensate(),
-        /// 仅 Completed 步被标 Compensated (反向遍历).
+        // 状态机失败传播: 任一 step 标 Failed + 调 compensate(),
+        // 仅 Completed 步被标 Compensated (反向遍历).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(1024))]
 
@@ -670,7 +670,7 @@ mod tests {
             }
         }
 
-        /// current() 在 current_step 越界时必须返 None (防御性).
+        // current() 在 current_step 越界时必须返 None (防御性).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 

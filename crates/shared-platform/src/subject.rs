@@ -200,7 +200,7 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// domain_event(name, type, v=1..=999) → parse 后 (Domain, name.type.vN)
+    // domain_event(name, type, v=1..=999) → parse 后 (Domain, name.type.vN)
     proptest! {
         #[test]
         fn domain_event_format_then_parse(
@@ -221,7 +221,7 @@ mod proptests {
         }
     }
 
-    /// saga_event(type, event) → parse 后 (Saga, type.event)
+    // saga_event(type, event) → parse 后 (Saga, type.event)
     proptest! {
         #[test]
         fn saga_event_format_then_parse(

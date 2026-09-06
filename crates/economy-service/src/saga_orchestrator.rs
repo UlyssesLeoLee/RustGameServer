@@ -45,21 +45,21 @@ use crate::Result;
 /// 每个实现负责执行一个 step + 反向补偿
 #[async_trait::async_trait]
 pub trait SagaStepHandler: Send + Sync {
-    /// step 名
+    // step 名
     fn name(&self) -> &str;
-    /// 执行 step
+    // 执行 step
     async fn execute(&self, saga: &mut Saga) -> Result<()>;
-    /// 反向补偿（per RGS-DTL-100 §4 补偿模式）
-    ///
-    /// `resource_id` 为被补偿 step 的 resource_id（避免依赖 saga.current()，
-    /// 编排器补偿阶段 saga.current_step 指针停在失败步，与"已完成的步"不对齐）。
+    // 反向补偿（per RGS-DTL-100 §4 补偿模式）
+    //
+    // `resource_id` 为被补偿 step 的 resource_id（避免依赖 saga.current()，
+    // 编排器补偿阶段 saga.current_step 指针停在失败步，与"已完成的步"不对齐）。
     async fn compensate(&self, saga: &mut Saga, resource_id: Option<Uuid>) -> Result<()>;
 }
 
 /// SagaOrchestrator
 pub struct SagaOrchestrator {
     pub sagas: Arc<dyn SagaRepository>,
-    /// Reservation 仓储（编排器补偿阶段可读取 saga 关联的所有 reservations 做诊断 / 审计）
+    // Reservation 仓储（编排器补偿阶段可读取 saga 关联的所有 reservations 做诊断 / 审计）
     pub reservations: Arc<dyn ReservationRepository>,
     handlers: Vec<Arc<dyn SagaStepHandler>>,
 }
@@ -77,12 +77,12 @@ impl SagaOrchestrator {
         }
     }
 
-    /// 执行 Saga（步进式）
-    ///
-    /// 接受 3 个入口状态（per verify-C CC-2 修复）：
-    /// - Pending: 新建 saga，正常 start() + 步进
-    /// - Running: 崩溃恢复 resume，跳过 start() 直接续跑当前 step
-    /// - Compensating: 崩溃恢复 resume 补偿未完成 step
+    // 执行 Saga（步进式）
+    //
+    // 接受 3 个入口状态（per verify-C CC-2 修复）：
+    // - Pending: 新建 saga，正常 start() + 步进
+    // - Running: 崩溃恢复 resume，跳过 start() 直接续跑当前 step
+    // - Compensating: 崩溃恢复 resume 补偿未完成 step
     pub async fn execute(&self, saga: &mut Saga) -> Result<()> {
         tracing::debug!(
             operation = "saga_step_enter",
@@ -157,20 +157,20 @@ impl SagaOrchestrator {
         Ok(())
     }
 
-    /// 反向补偿
-    ///
-    /// 顺序（per RGS-REV-009 V1 LO-4 修复，WF-1-55.37）：
-    /// 1. 收集 Completed step 列表（在 saga.compensate() 改 status 前）
-    /// 2. **先**调 handler.compensate (实际退款 + 写 ledger) — handler 自身幂等性保证
-    /// 3. 再 saga.compensate() 标 status=Compensating
-    /// 4. 持久化 Compensating 状态
-    /// 5. saga.fail() 标终态 + 持久化
-    ///
-    /// 修复动机（旧版 bug）：旧顺序为 saga.compensate → save → handler.compensate。
-    /// 若系统在 save 后、handler.compensate 前崩溃，则 step 标 Compensated (filter 排除)
-    /// 但实际退款未发生 → resume(Compensating) 不再调 handler.compensate → 资金丢失。
-    /// 新顺序：handler.compensate 崩溃 → step 仍 Completed → resume 重跑 handler.compensate
-    /// （handler 用 saga_idem_key 查 ledger, 已存在则跳过 apply_atomic, 防止 +amount 重复）。
+    // 反向补偿
+    //
+    // 顺序（per RGS-REV-009 V1 LO-4 修复，WF-1-55.37）：
+    // 1. 收集 Completed step 列表（在 saga.compensate() 改 status 前）
+    // 2. **先**调 handler.compensate (实际退款 + 写 ledger) — handler 自身幂等性保证
+    // 3. 再 saga.compensate() 标 status=Compensating
+    // 4. 持久化 Compensating 状态
+    // 5. saga.fail() 标终态 + 持久化
+    //
+    // 修复动机（旧版 bug）：旧顺序为 saga.compensate → save → handler.compensate。
+    // 若系统在 save 后、handler.compensate 前崩溃，则 step 标 Compensated (filter 排除)
+    // 但实际退款未发生 → resume(Compensating) 不再调 handler.compensate → 资金丢失。
+    // 新顺序：handler.compensate 崩溃 → step 仍 Completed → resume 重跑 handler.compensate
+    // （handler 用 saga_idem_key 查 ledger, 已存在则跳过 apply_atomic, 防止 +amount 重复）。
     pub async fn compensate(&self, saga: &mut Saga) -> Result<()> {
         tracing::debug!(
             operation = "saga_step_enter",
@@ -210,7 +210,7 @@ impl SagaOrchestrator {
         Ok(())
     }
 
-    /// 通过 saga_id 重新加载并继续执行（崩溃恢复）
+    // 通过 saga_id 重新加载并继续执行（崩溃恢复）
     pub async fn resume(&self, saga_id: Uuid) -> Result<()> {
         tracing::debug!(
             operation = "saga_step_enter",
@@ -269,9 +269,9 @@ async fn load_active_account(
 pub struct ReserveHandler {
     reservations: Arc<dyn ReservationRepository>,
     accounts: Arc<dyn AccountRepository>,
-    /// 单次预留金额
+    // 单次预留金额
     amount: i64,
-    /// 单次预留货币
+    // 单次预留货币
     currency: Currency,
 }
 
@@ -619,7 +619,7 @@ mod tests {
     const TEST_AMOUNT: i64 = 100;
     const TEST_INITIAL_BALANCE: i64 = 500;
 
-    /// 构造带共享 ledger 的 in-memory 依赖四件套（per RGS-REV-007 AC3 修复）
+    // 构造带共享 ledger 的 in-memory 依赖四件套（per RGS-REV-007 AC3 修复）
     struct TestEnv {
         orch: SagaOrchestrator,
         #[allow(dead_code)]
@@ -667,7 +667,7 @@ mod tests {
         }
     }
 
-    /// 失败 step handler —— 用于触发补偿路径测试
+    // 失败 step handler —— 用于触发补偿路径测试
     struct FailingHandler {
         name: String,
     }
@@ -697,12 +697,12 @@ mod tests {
         saga
     }
 
-    /// AccountRepository wrapper：模拟 apply_atomic OCC 失败（per RGS-REV-009 CR-1 真测试需要）
-    ///
-    /// 用法：构造 wrapper 包 InMemoryAccountRepository，occ_fail_remaining > 0 时
-    /// apply_atomic 直接返 Error::Validation("simulated OCC conflict")，其他方法委托 inner。
-    /// 这样能在不依赖 PG 集成测试的前提下，验证 ReserveHandler.execute 真实生产路径
-    /// 在 OCC 失败时确实清理 reservation（修复 CR-1 资金幻影 bug）。
+    // AccountRepository wrapper：模拟 apply_atomic OCC 失败（per RGS-REV-009 CR-1 真测试需要）
+    //
+    // 用法：构造 wrapper 包 InMemoryAccountRepository，occ_fail_remaining > 0 时
+    // apply_atomic 直接返 Error::Validation("simulated OCC conflict")，其他方法委托 inner。
+    // 这样能在不依赖 PG 集成测试的前提下，验证 ReserveHandler.execute 真实生产路径
+    // 在 OCC 失败时确实清理 reservation（修复 CR-1 资金幻影 bug）。
     struct OccFailingAccountRepository {
         inner: Arc<InMemoryAccountRepository>,
         occ_fail_remaining: tokio::sync::Mutex<usize>,
@@ -980,14 +980,14 @@ mod tests {
         assert_eq!(account.balance, TEST_AMOUNT - 1);
     }
 
-    /// RGS-REV-009 CR-1 真测试: 真实 ReserveHandler.execute 路径 OCC 失败时清理 reservation
-    ///
-    /// 之前 service.rs 内的 `apply_atomic_with_reservation_occ_conflict_cleans_reservation`
-    /// (RGS-REV-008 CC-4) 测的是**死代码 helper** — 0 生产调用。V1+V2 共识 CC-4 修复打偏靶。
-    ///
-    /// 本 test 用 OccFailingAccountRepository wrapper 强制第一次 apply_atomic 返 OCC 失败，
-    /// 直接驱动真实生产路径 ReserveHandler.execute (saga_orchestrator.rs:248-289)，
-    /// 验证修复后 dangling reservation 被清理 — 这是 CR-1 修复的回归锚定。
+    // RGS-REV-009 CR-1 真测试: 真实 ReserveHandler.execute 路径 OCC 失败时清理 reservation
+    //
+    // 之前 service.rs 内的 `apply_atomic_with_reservation_occ_conflict_cleans_reservation`
+    // (RGS-REV-008 CC-4) 测的是**死代码 helper** — 0 生产调用。V1+V2 共识 CC-4 修复打偏靶。
+    //
+    // 本 test 用 OccFailingAccountRepository wrapper 强制第一次 apply_atomic 返 OCC 失败，
+    // 直接驱动真实生产路径 ReserveHandler.execute (saga_orchestrator.rs:248-289)，
+    // 验证修复后 dangling reservation 被清理 — 这是 CR-1 修复的回归锚定。
     #[tokio::test]
     async fn reserve_handler_cleans_reservation_on_occ_failure() {
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
@@ -1066,10 +1066,10 @@ mod tests {
         );
     }
 
-    /// RGS-REV-009 CR-1 补充测试: 验证修复后 happy path 不受影响
-    ///
-    /// 第二个 apply_atomic 调用（OccFailingAccountRepository occ_fail_remaining=0 后）
-    /// 应该走 inner.apply_atomic 成功路径，reservation 仍被 save 成功（不误清理）。
+    // RGS-REV-009 CR-1 补充测试: 验证修复后 happy path 不受影响
+    //
+    // 第二个 apply_atomic 调用（OccFailingAccountRepository occ_fail_remaining=0 后）
+    // 应该走 inner.apply_atomic 成功路径，reservation 仍被 save 成功（不误清理）。
     #[tokio::test]
     async fn reserve_handler_occ_fail_then_success_does_not_over_cleanup() {
         // 验证: 第一次 OCC 失败 cleanup, 第二次成功路径 reservation 正常持久化
@@ -1107,8 +1107,8 @@ mod tests {
     // 以下 2 个测试锚定该修复的 2 个失败场景.
     // ============================================================================
 
-    /// 场景 1: 账户被冻结 → ReserveHandler.execute 返 AccountFrozen Error,
-    /// reservation 必须被 delete_by_id 清理 (不残留 dangling).
+    // 场景 1: 账户被冻结 → ReserveHandler.execute 返 AccountFrozen Error,
+    // reservation 必须被 delete_by_id 清理 (不残留 dangling).
     #[tokio::test]
     async fn reserve_handler_cleans_reservation_on_load_account_failure_frozen() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1157,8 +1157,8 @@ mod tests {
         );
     }
 
-    /// 场景 2: 账户不存在 → ReserveHandler.execute 返 NotFound Error,
-    /// reservation 必须被 delete_by_id 清理.
+    // 场景 2: 账户不存在 → ReserveHandler.execute 返 NotFound Error,
+    // reservation 必须被 delete_by_id 清理.
     #[tokio::test]
     async fn reserve_handler_cleans_reservation_on_load_account_failure_not_found() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1264,7 +1264,7 @@ mod tests {
     //   4. None (saga_id 不存在) → NotFound
     // ============================================================================
 
-    /// DC-1.1: resume(Pending) → start() + 步进至 Completed
+    // DC-1.1: resume(Pending) → start() + 步进至 Completed
     #[tokio::test]
     async fn resume_pending_saga_starts_and_advances() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1285,7 +1285,7 @@ mod tests {
         assert_eq!(loaded.steps[1].status, SagaStepStatus::Completed);
     }
 
-    /// DC-1.2: resume(Running, current_step=1) → 跳过 start() 续跑 confirm 步, 无 double-debit
+    // DC-1.2: resume(Running, current_step=1) → 跳过 start() 续跑 confirm 步, 无 double-debit
     #[tokio::test]
     async fn resume_running_saga_continues_current_step() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1338,20 +1338,20 @@ mod tests {
         );
     }
 
-    /// DC-1.3 (RGS-REV-009 HI-2-stub): resume(Compensating) 用真实 ReserveHandler + ConfirmHandler
-    ///
-    /// 这是 55.12 真实资金幻影回归点（per RGS-REV-009 V1 HIGH DC-1-TEST-NO-DOUBLE-COMP）：
-    /// 旧 DC-1.3 test 用 stub `CompensateRecorder` + `FailingHandler`, 仅验证"handler.compensate 被调一次",
-    /// 没覆盖真实生产路径. 新实现验证：
-    ///
-    /// 1. step 0 (reserve) 真实执行: account -100, reservation Reserved
-    /// 2. 模拟崩溃场景: reserve.compensate 部分执行（账户 +100, reservation Compensated,
-    ///    step 0 标 Compensated, status=Compensating）, 但 saga.fail() 未持久化
-    /// 3. resume(saga_id) → 跳过 start() → 重跑 step 1 (confirm) → 假设再次失败
-    /// 4. 再次触发 compensate() → step 0 已是 Compensated (不是 Completed) → filter 为空
-    /// 5. **不会**再次调 reserve.compensate → 不会凭空 +100 二次退款
-    ///
-    /// 关键断言: account balance 整轮只 +100 一次 (回到 500), 不是 +100 二次 (变成 600 = 资金幻影).
+    // DC-1.3 (RGS-REV-009 HI-2-stub): resume(Compensating) 用真实 ReserveHandler + ConfirmHandler
+    //
+    // 这是 55.12 真实资金幻影回归点（per RGS-REV-009 V1 HIGH DC-1-TEST-NO-DOUBLE-COMP）：
+    // 旧 DC-1.3 test 用 stub `CompensateRecorder` + `FailingHandler`, 仅验证"handler.compensate 被调一次",
+    // 没覆盖真实生产路径. 新实现验证：
+    //
+    // 1. step 0 (reserve) 真实执行: account -100, reservation Reserved
+    // 2. 模拟崩溃场景: reserve.compensate 部分执行（账户 +100, reservation Compensated,
+    //    step 0 标 Compensated, status=Compensating）, 但 saga.fail() 未持久化
+    // 3. resume(saga_id) → 跳过 start() → 重跑 step 1 (confirm) → 假设再次失败
+    // 4. 再次触发 compensate() → step 0 已是 Compensated (不是 Completed) → filter 为空
+    // 5. **不会**再次调 reserve.compensate → 不会凭空 +100 二次退款
+    //
+    // 关键断言: account balance 整轮只 +100 一次 (回到 500), 不是 +100 二次 (变成 600 = 资金幻影).
     #[tokio::test]
     async fn resume_compensating_saga_does_not_double_refund_with_real_handlers() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1473,7 +1473,7 @@ mod tests {
         );
     }
 
-    /// DC-1.4: resume(不存在的 saga_id) → NotFound("Saga", ...)
+    // DC-1.4: resume(不存在的 saga_id) → NotFound("Saga", ...)
     #[tokio::test]
     async fn resume_nonexistent_saga_returns_not_found() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1496,7 +1496,7 @@ mod tests {
     //       本组 test 锚定该 invariant。
     // ============================================================================
 
-    /// DC-1.5: resume(Completed) → Validation("...already in terminal state (Completed)...")
+    // DC-1.5: resume(Completed) → Validation("...already in terminal state (Completed)...")
     #[tokio::test]
     async fn resume_completed_saga_returns_validation_err() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1516,9 +1516,9 @@ mod tests {
         );
     }
 
-    /// DC-1.6: resume(Failed) → Validation（终态不可逆）
-    ///
-    /// 直接构造 Failed 终态保存（不依赖 compensate 完整路径，以保持 test 聚焦于 resume 终态检查）。
+    // DC-1.6: resume(Failed) → Validation（终态不可逆）
+    //
+    // 直接构造 Failed 终态保存（不依赖 compensate 完整路径，以保持 test 聚焦于 resume 终态检查）。
     #[tokio::test]
     async fn resume_failed_saga_returns_validation_err() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1538,10 +1538,10 @@ mod tests {
         );
     }
 
-    /// DC-1.7: resume(Aborted) → Validation（终态不可逆）
-    ///
-    /// 直接构造 Aborted 终态保存。Aborted 在 saga_orchestrator.rs:94-99 与 Failed/Completed
-    /// 同属 terminal 状态，execute() 进入即返 Validation。
+    // DC-1.7: resume(Aborted) → Validation（终态不可逆）
+    //
+    // 直接构造 Aborted 终态保存。Aborted 在 saga_orchestrator.rs:94-99 与 Failed/Completed
+    // 同属 terminal 状态，execute() 进入即返 Validation。
     #[tokio::test]
     async fn resume_aborted_saga_returns_validation_err() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1584,17 +1584,17 @@ mod tests {
     //   3. 关键断言: 账户余额只 +100 一次 (回到 500), 不 +200 二次 (变成 600 = 资金幻影)
     // ============================================================================
 
-    /// LO-4: compete() crash retry 行为 — handler.compensate 第一次崩溃 + resume 重跑 idempotent
-    ///
-    /// 模拟崩溃窗口: handler.compensate 第一次调用时 (在旧实现中) 完成了
-    /// 实际退款 (account +100, ledger write), 但进程在 saga.compensate() 标
-    /// step=Compensated 之前崩了 → 持久化状态: step 仍 Completed, 余额已 refund
-    /// 部分完成. 修复后, 重新调 orch.compensate():
-    ///   - collect Completed: step 0 仍 Completed (旧版会被标 Compensated, 但我们
-    ///     模拟的是崩溃在 saga.save 之前的状态, 所以 step 仍 Completed)
-    ///   - 调 handler.compensate: 内部 find_ledger_by_idempotency_key 命中 → 跳过
+    // LO-4: compete() crash retry 行为 — handler.compensate 第一次崩溃 + resume 重跑 idempotent
+    //
+    // 模拟崩溃窗口: handler.compensate 第一次调用时 (在旧实现中) 完成了
+    // 实际退款 (account +100, ledger write), 但进程在 saga.compensate() 标
+    // step=Compensated 之前崩了 → 持久化状态: step 仍 Completed, 余额已 refund
+    // 部分完成. 修复后, 重新调 orch.compensate():
+    //   - collect Completed: step 0 仍 Completed (旧版会被标 Compensated, 但我们
+    //     模拟的是崩溃在 saga.save 之前的状态, 所以 step 仍 Completed)
+    //   - 调 handler.compensate: 内部 find_ledger_by_idempotency_key 命中 → 跳过
     //      apply_atomic → 无 +amount 重复
-    ///   - 标 saga.compensate() + save → 终态 Failed
+    //   - 标 saga.compensate() + save → 终态 Failed
     #[tokio::test]
     async fn compete_recovery_after_handler_crash_retries_handler() {
         let env = make_env(TEST_INITIAL_BALANCE).await;
@@ -1726,8 +1726,8 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// transfer saga happy path 余额守恒: 任意 (initial, amount) 组合下,
-        /// reserve + confirm 完整跑完后, 账户余额 = initial - amount.
+        // transfer saga happy path 余额守恒: 任意 (initial, amount) 组合下,
+        // reserve + confirm 完整跑完后, 账户余额 = initial - amount.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -1740,7 +1740,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let amount = amount.min(initial); // 余额足够
                     let env = make_env(initial).await;
                     let account_id = account_id_in_env(&env);
@@ -1775,8 +1775,8 @@ mod tests {
             }
         }
 
-        /// transfer saga 失败时余额守恒: 余额足够, 在 confirm 阶段注入失败,
-        /// 触发补偿, 终余额必须 == initial (无丢失, 无幻影).
+        // transfer saga 失败时余额守恒: 余额足够, 在 confirm 阶段注入失败,
+        // 触发补偿, 终余额必须 == initial (无丢失, 无幻影).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -1789,7 +1789,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let amount = amount.min(initial);
                     let env = make_env(initial).await;
                     let account_id = account_id_in_env(&env);

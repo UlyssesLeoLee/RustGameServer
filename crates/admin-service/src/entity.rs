@@ -16,39 +16,39 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AdminRole {
-    /// 超级管理员
+    // 超级管理员
     SuperAdmin,
-    /// 域管理员（player/economy/match/social/admin）
+    // 域管理员（player/economy/match/social/admin）
     DomainAdmin,
-    /// 审计员（只读）
+    // 审计员（只读）
     Auditor,
-    /// 客服
+    // 客服
     Support,
 }
 
 /// 管理员账号（per RGS-DTL-019 §3.1 COC RBAC）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AdminUser {
-    /// 管理员 ID
+    // 管理员 ID
     pub id: Uuid,
-    /// 用户名（唯一）
+    // 用户名（唯一）
     pub username: String,
-    /// 密码哈希（argon2id）
+    // 密码哈希（argon2id）
     pub password_hash: String,
-    /// 角色
+    // 角色
     pub role: AdminRole,
-    /// 关联域（None = 全域 / 跨域管理员）
+    // 关联域（None = 全域 / 跨域管理员）
     pub domain_scope: Option<String>,
-    /// 创建时间
+    // 创建时间
     pub created_at: DateTime<Utc>,
-    /// 最近登录时间
+    // 最近登录时间
     pub last_login_at: Option<DateTime<Utc>>,
-    /// 停用时间（None = 启用中）
+    // 停用时间（None = 启用中）
     pub disabled_at: Option<DateTime<Utc>>,
 }
 
 impl AdminUser {
-    /// 工厂：新建管理员
+    // 工厂：新建管理员
     pub fn new(username: String, password_hash: String, role: AdminRole) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -62,12 +62,12 @@ impl AdminUser {
         }
     }
 
-    /// 是否启用
+    // 是否启用
     pub fn is_active(&self) -> bool {
         self.disabled_at.is_none()
     }
 
-    /// 是否有权操作指定域
+    // 是否有权操作指定域
     pub fn can_admin_domain(&self, domain: &str) -> bool {
         match self.role {
             AdminRole::SuperAdmin => true,
@@ -85,26 +85,26 @@ impl AdminUser {
 /// 审计日志条目（per RGS-SEC-100 §7 hash 链防篡改）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AuditLogEntry {
-    /// 日志 ID
+    // 日志 ID
     pub id: Uuid,
-    /// 操作者 ID（管理员 / 系统）
+    // 操作者 ID（管理员 / 系统）
     pub actor_id: Uuid,
-    /// 操作（per ARC-051 COC 命令命名空间：player.ban / economy.grant 等）
+    // 操作（per ARC-051 COC 命令命名空间：player.ban / economy.grant 等）
     pub action: String,
-    /// 操作目标（如 player_id / guild_id）
+    // 操作目标（如 player_id / guild_id）
     pub target: String,
-    /// payload JSON
+    // payload JSON
     pub payload: String,
-    /// 前一条 hash（hash 链）
+    // 前一条 hash（hash 链）
     pub prev_hash: String,
-    /// 当前条目 hash = sha256(actor_id + action + target + payload + prev_hash + created_at)
+    // 当前条目 hash = sha256(actor_id + action + target + payload + prev_hash + created_at)
     pub hash: String,
-    /// 时间
+    // 时间
     pub created_at: DateTime<Utc>,
 }
 
 impl AuditLogEntry {
-    /// 工厂：新建审计日志（prev_hash 由调用方提供 = 上条 hash；首条 prev_hash = "0" * 64）
+    // 工厂：新建审计日志（prev_hash 由调用方提供 = 上条 hash；首条 prev_hash = "0" * 64）
     pub fn new(
         actor_id: Uuid,
         action: String,
@@ -198,8 +198,8 @@ mod tests {
         assert_eq!(e2.prev_hash, e1.hash);
     }
 
-    /// 55.13 AC5=CC1：1000 随机输入验证 hash 全部不同（防碰撞基本性质）。
-    /// SHA-256 在 32 字节输出上生日攻击需 2^128 次，1000 条全不同概率上确近乎 1。
+    // 55.13 AC5=CC1：1000 随机输入验证 hash 全部不同（防碰撞基本性质）。
+    // SHA-256 在 32 字节输出上生日攻击需 2^128 次，1000 条全不同概率上确近乎 1。
     #[test]
     fn compute_hash_collision_resistance_basic() {
         use std::collections::HashSet;
@@ -222,10 +222,10 @@ mod tests {
         assert_eq!(seen.len(), 1000);
     }
 
-    /// 55.13 AC5=CH3：构造 action/target 拼接碰撞（FNV-1a 旧版缺陷）。
-    /// `action="a|" target="b"` vs `action="a" target="b|"` —— 旧版 `"|"` 分隔
-    /// 会产生同一字符串，因此旧 FNV-1a 给出同一 hash。SHA-256 + 长度前缀下两
-    /// 个输入 hash 必不同。
+    // 55.13 AC5=CH3：构造 action/target 拼接碰撞（FNV-1a 旧版缺陷）。
+    // `action="a|" target="b"` vs `action="a" target="b|"` —— 旧版 `"|"` 分隔
+    // 会产生同一字符串，因此旧 FNV-1a 给出同一 hash。SHA-256 + 长度前缀下两
+    // 个输入 hash 必不同。
     #[test]
     fn compute_hash_separator_independence() {
         let actor = Uuid::nil();
@@ -249,9 +249,9 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// 权限矩阵 (per ARC-051 COC RBAC): SuperAdmin 全域 ✓;
-    /// DomainAdmin 仅匹配其 domain_scope; Auditor / Support 一律 false。
-    /// proptest 跑 256 组随机 (role, domain, scope) 组合确保模型正确。
+    // 权限矩阵 (per ARC-051 COC RBAC): SuperAdmin 全域 ✓;
+    // DomainAdmin 仅匹配其 domain_scope; Auditor / Support 一律 false。
+    // proptest 跑 256 组随机 (role, domain, scope) 组合确保模型正确。
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -324,7 +324,7 @@ mod proptests {
             prop_assert!(!u.can_admin_domain(&target));
         }
 
-        /// 55.13 AC5 不变式: hash 长度永远是 64 hex (SHA-256)。
+        // 55.13 AC5 不变式: hash 长度永远是 64 hex (SHA-256)。
         #[test]
         fn hash_length_invariant(
             action in "[a-z.]{1,32}",
@@ -341,7 +341,7 @@ mod proptests {
             prop_assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
         }
 
-        /// 55.13 不变式: prev_hash 变化 → 当前 hash 也变 (无前缀缓存).
+        // 55.13 不变式: prev_hash 变化 → 当前 hash 也变 (无前缀缓存).
         #[test]
         fn prev_hash_changes_propagate(
             action in "[a-z.]{1,8}",

@@ -16,29 +16,29 @@ use crate::Result;
 /// Auction Repository trait
 #[async_trait]
 pub trait TradeRepository: Send + Sync {
-    /// 创建拍卖（upsert by id）
+    // 创建拍卖（upsert by id）
     async fn save_auction(&self, a: &Auction) -> Result<Auction>;
-    /// 按 ID 查询
+    // 按 ID 查询
     async fn find_auction_by_id(&self, id: Uuid) -> Result<Option<Auction>>;
-    /// 列表查询（带 filter + 分页）
+    // 列表查询（带 filter + 分页）
     async fn list_auctions(
         &self,
         filter: AuctionFilter,
         page: u32,
         page_size: u32,
     ) -> Result<(Vec<Auction>, u64)>;
-    /// 玩家相关 (作为卖家或出价者) 的历史
+    // 玩家相关 (作为卖家或出价者) 的历史
     async fn list_auctions_by_player(
         &self,
         player_id: &str,
         page: u32,
         page_size: u32,
     ) -> Result<(Vec<Auction>, u64)>;
-    /// 到期扫描 (active + ends_at < now)，W36+ 后台任务调用
+    // 到期扫描 (active + ends_at < now)，W36+ 后台任务调用
     async fn list_expired_active(&self, limit: i64) -> Result<Vec<Auction>>;
-    /// OCC 更新（仅 status / highest_bid / highest_bidder / closed_at / winner / final_price / saga_id 可变）
+    // OCC 更新（仅 status / highest_bid / highest_bidder / closed_at / winner / final_price / saga_id 可变）
     async fn update_auction(&self, a: &Auction) -> Result<Auction>;
-    /// 删除（测试用）
+    // 删除（测试用）
     async fn delete_auction(&self, id: Uuid) -> Result<bool>;
 
     // --- PrivateTrade（私下交易）---
@@ -653,8 +653,8 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 拍卖列表 filter 守恒: 注入 N 条拍卖 (Active / Sold / Cancelled),
-        /// list_auctions(filter) 返回的 total 必须 == 匹配 filter 的数量.
+        // 拍卖列表 filter 守恒: 注入 N 条拍卖 (Active / Sold / Cancelled),
+        // list_auctions(filter) 返回的 total 必须 == 匹配 filter 的数量.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -668,7 +668,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let repo = InMemoryTradeRepository::new();
                     // 注入 active
                     for i in 0..n_active {

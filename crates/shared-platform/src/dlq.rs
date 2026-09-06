@@ -170,7 +170,7 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// 任意字节 payload → base64 encode → decode 必须严格保真
+    // 任意字节 payload → base64 encode → decode 必须严格保真
     proptest! {
         #[test]
         fn dlq_payload_round_trip(

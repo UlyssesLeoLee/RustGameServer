@@ -26,11 +26,11 @@ use uuid::Uuid;
 pub trait EconomyService: Send + Sync {
     async fn health_check(&self) -> Result<bool>;
 
-    /// 存款（idempotent）
-    ///
-    /// **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
-    /// helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
-    /// 详见 RGS-REV-009 V3 M-1。
+    // 存款（idempotent）
+    //
+    // **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
+    // helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
+    // 详见 RGS-REV-009 V3 M-1。
     #[deprecated(
         note = "考虑用 apply_atomic_with_reservation 走 saga 路径, 该 helper 实现完整 reservation cleanup 防止 dangling reservation. 详情见 RGS-REV-009 V3 M-1."
     )]
@@ -41,11 +41,11 @@ pub trait EconomyService: Send + Sync {
         idempotency_key: String,
     ) -> Result<TransactionLedger>;
 
-    /// 取款（OCC + 幂等）
-    ///
-    /// **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
-    /// helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
-    /// 详见 RGS-REV-009 V3 M-1。
+    // 取款（OCC + 幂等）
+    //
+    // **Deprecated**: 新代码应走 saga 路径,通过 `EconomyServiceImpl::apply_atomic_with_reservation`
+    // helper 完成,该 helper 实现完整的 reservation cleanup 防止 dangling reservation 堆积。
+    // 详见 RGS-REV-009 V3 M-1。
     #[deprecated(
         note = "考虑用 apply_atomic_with_reservation 走 saga 路径, 该 helper 实现完整 reservation cleanup 防止 dangling reservation. 详情见 RGS-REV-009 V3 M-1."
     )]
@@ -56,10 +56,10 @@ pub trait EconomyService: Send + Sync {
         idempotency_key: String,
     ) -> Result<TransactionLedger>;
 
-    /// 查询余额
+    // 查询余额
     async fn get_balance(&self, account_id: Uuid) -> Result<Account>;
 
-    /// 冻结账户
+    // 冻结账户
     async fn freeze_account(&self, account_id: Uuid, reason: String) -> Result<Account>;
 }
 
@@ -80,22 +80,22 @@ impl EconomyServiceImpl {
         self.accounts.find_by_id(id).await
     }
 
-    /// Saga step handler 内部 helper（per RGS-REV-007 AC4 / DEC-015 P1 / RGS-REV-008 CC-4）：
-    /// 一次性完成「持久化 reservation + 扣减余额 + 原子账户 OCC 更新 + 写账目」四步。
-    ///
-    /// 业务语义：handler 调它做 ReserveHandler.execute / ConfirmHandler.execute 的核心动作。
-    /// 失败语义：调用方负责根据返回的 Error 决定是否触发补偿（confirm 失败 → reserve 补偿）。
-    ///
-    /// 顺序保证：
-    /// 1. 先 reservation.save —— 失败时不进入下一步
-    /// 2. 再 try_debit —— 余额不足时返回 InsufficientFunds（不写账目），
-    ///    并**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复）
-    /// 3. 再 apply_atomic —— OCC + 账目原子更新（per AC3 修复）；
-    ///    失败时**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复），
-    ///    避免 dangling reservation 堆积
-    /// 4. happy path：返 (updated_account, saved_entry, saved_reservation) 三元组
-    ///
-    /// 返回 (更新后 Account, 写后 Ledger, 持久化后 Reservation)。
+    // Saga step handler 内部 helper（per RGS-REV-007 AC4 / DEC-015 P1 / RGS-REV-008 CC-4）：
+    // 一次性完成「持久化 reservation + 扣减余额 + 原子账户 OCC 更新 + 写账目」四步。
+    //
+    // 业务语义：handler 调它做 ReserveHandler.execute / ConfirmHandler.execute 的核心动作。
+    // 失败语义：调用方负责根据返回的 Error 决定是否触发补偿（confirm 失败 → reserve 补偿）。
+    //
+    // 顺序保证：
+    // 1. 先 reservation.save —— 失败时不进入下一步
+    // 2. 再 try_debit —— 余额不足时返回 InsufficientFunds（不写账目），
+    //    并**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复）
+    // 3. 再 apply_atomic —— OCC + 账目原子更新（per AC3 修复）；
+    //    失败时**清理已持久化的 reservation**（per RGS-REV-008 CC-4 / verify-C 修复），
+    //    避免 dangling reservation 堆积
+    // 4. happy path：返 (updated_account, saved_entry, saved_reservation) 三元组
+    //
+    // 返回 (更新后 Account, 写后 Ledger, 持久化后 Reservation)。
     #[allow(clippy::too_many_arguments)]
     pub async fn apply_atomic_with_reservation(
         &self,
@@ -315,7 +315,7 @@ pub mod grpc_service {
         }
     }
 
-    /// Auction → proto.Auction 转换
+    // Auction → proto.Auction 转换
     fn auction_to_proto(a: &crate::trade_entity::Auction) -> economy_proto::Auction {
         economy_proto::Auction {
             auction_id: a.auction_id.to_string(),
@@ -532,8 +532,8 @@ mod tests {
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
     use crate::reservation::{InMemoryReservationRepository, ReservationRepository};
 
-    /// 构造带共享 ledger 的 service（per RGS-REV-007 AC3 修复）
-    /// 共享 ledger HashMap 让 apply_atomic 可原子写两侧
+    // 构造带共享 ledger 的 service（per RGS-REV-007 AC3 修复）
+    // 共享 ledger HashMap 让 apply_atomic 可原子写两侧
     fn make_service_paired() -> (
         EconomyServiceImpl,
         Arc<InMemoryAccountRepository>,
@@ -878,9 +878,9 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// apply_atomic_with_reservation happy path 余额守恒:
-        /// 任意 (initial, amount) 组合下, 余额足够时, helper 成功后
-        /// 账户余额 = initial - amount, reservation 1 条, ledger 1 条.
+        // apply_atomic_with_reservation happy path 余额守恒:
+        // 任意 (initial, amount) 组合下, 余额足够时, helper 成功后
+        // 账户余额 = initial - amount, reservation 1 条, ledger 1 条.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -893,7 +893,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let amount = amount.min(initial);
                     let (svc, acc_repo, led_repo) = make_service_paired();
                     let res_repo = Arc::new(InMemoryReservationRepository::new());
@@ -932,9 +932,9 @@ mod tests {
             }
         }
 
-        /// apply_atomic_with_reservation 余额不足时不变量:
-        /// 任意 (initial, amount > initial) 组合下, helper 返 InsufficientFunds,
-        /// 账户余额不变, reservation 已清理 (无 dangling).
+        // apply_atomic_with_reservation 余额不足时不变量:
+        // 任意 (initial, amount > initial) 组合下, helper 返 InsufficientFunds,
+        // 账户余额不变, reservation 已清理 (无 dangling).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -947,7 +947,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let (svc, acc_repo, _led_repo) = make_service_paired();
                     let res_repo = Arc::new(InMemoryReservationRepository::new());
                     let res_repo_dyn: Arc<dyn ReservationRepository> = res_repo.clone();

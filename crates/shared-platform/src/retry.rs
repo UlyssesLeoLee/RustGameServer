@@ -209,8 +209,8 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// 任意 attempt 在 [0, 30] 内 → 退避必须落在 [0, max_interval * 1.2]
-    /// (jitter 上界是 ±20% max, 防止雪崩)
+    // 任意 attempt 在 [0, 30] 内 → 退避必须落在 [0, max_interval * 1.2]
+    // (jitter 上界是 ±20% max, 防止雪崩)
     proptest! {
         #[test]
         fn backoff_bounded_by_max_plus_jitter(
@@ -236,7 +236,7 @@ mod proptests {
         }
     }
 
-    /// 退避必须非负 (u64 不会负, 但 base=0 + jitter 下界可能为 0, 不应 panic)
+    // 退避必须非负 (u64 不会负, 但 base=0 + jitter 下界可能为 0, 不应 panic)
     proptest! {
         #[test]
         fn backoff_never_panics_on_small_initial(

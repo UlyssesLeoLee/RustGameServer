@@ -23,29 +23,29 @@ pub trait AccountRepository: Send + Sync {
         player_id: Uuid,
         currency: Currency,
     ) -> Result<Option<Account>>;
-    /// OCC 乐观锁更新（version 必须匹配）
+    // OCC 乐观锁更新（version 必须匹配）
     async fn update_with_version(&self, account: &Account) -> Result<Account>;
     async fn save(&self, entity: &Account) -> Result<Account>;
     async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
-    /// 原子事务：OCC 更新账户余额 + 写入账目（per RGS-REV-007 AC3 / RGS-DTL-015 §3）
-    ///
-    /// 实现要求：
-    /// - Pg: 同一 sqlx::Transaction 内先 UPDATE accounts (OCC) 再 INSERT transaction_ledger
-    /// - InMemory: 用 Mutex 模拟事务隔离，保证两步不被并发交错
-    ///
-    /// 入参：account 包含新 balance + 新 version；ledger 包含完整 entry
-    /// 返回：(更新后 account, 保存后 ledger) — 若 OCC 冲突返 Error::Validation
+    // 原子事务：OCC 更新账户余额 + 写入账目（per RGS-REV-007 AC3 / RGS-DTL-015 §3）
+    //
+    // 实现要求：
+    // - Pg: 同一 sqlx::Transaction 内先 UPDATE accounts (OCC) 再 INSERT transaction_ledger
+    // - InMemory: 用 Mutex 模拟事务隔离，保证两步不被并发交错
+    //
+    // 入参：account 包含新 balance + 新 version；ledger 包含完整 entry
+    // 返回：(更新后 account, 保存后 ledger) — 若 OCC 冲突返 Error::Validation
     async fn apply_atomic(
         &self,
         account: &Account,
         ledger: &TransactionLedger,
     ) -> Result<(Account, TransactionLedger)>;
 
-    /// 幂等键查 ledger（per RGS-DTL-100 §6 / RGS-REV-009 V1 LO-4 修复）
-    ///
-    /// handler.compensate 崩溃恢复时使用：调 apply_atomic 退款前先查,
-    /// 若 idempotency_key 已存在, 则跳过 apply_atomic (避免重复 +amount 资金幻影).
-    /// 返回 Some 表示该补偿账目已写入, None 表示尚未写入.
+    // 幂等键查 ledger（per RGS-DTL-100 §6 / RGS-REV-009 V1 LO-4 修复）
+    //
+    // handler.compensate 崩溃恢复时使用：调 apply_atomic 退款前先查,
+    // 若 idempotency_key 已存在, 则跳过 apply_atomic (避免重复 +amount 资金幻影).
+    // 返回 Some 表示该补偿账目已写入, None 表示尚未写入.
     async fn find_ledger_by_idempotency_key(&self, key: &str) -> Result<Option<TransactionLedger>>;
 }
 
@@ -53,9 +53,9 @@ pub trait AccountRepository: Send + Sync {
 #[async_trait]
 pub trait TransactionLedgerRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<TransactionLedger>>;
-    /// 幂等键查重（per RGS-DTL-100 §6 幂等性）
+    // 幂等键查重（per RGS-DTL-100 §6 幂等性）
     async fn find_by_idempotency_key(&self, key: &str) -> Result<Option<TransactionLedger>>;
-    /// 按 saga_id 列所有账目
+    // 按 saga_id 列所有账目
     async fn list_by_saga(&self, saga_id: Uuid) -> Result<Vec<TransactionLedger>>;
     async fn save(&self, entity: &TransactionLedger) -> Result<TransactionLedger>;
 }
@@ -333,8 +333,8 @@ impl TransactionLedgerRepository for PgTransactionLedgerRepository {
 
 pub struct InMemoryAccountRepository {
     pub(crate) inner: Mutex<HashMap<Uuid, Account>>,
-    /// 可选共享 ledger HashMap（per RGS-REV-007 AC3 修复：apply_atomic 需要原子写两侧）
-    /// None 时 apply_atomic 退化为仅更新 account（向后兼容简单测试）
+    // 可选共享 ledger HashMap（per RGS-REV-007 AC3 修复：apply_atomic 需要原子写两侧）
+    // None 时 apply_atomic 退化为仅更新 account（向后兼容简单测试）
     ledger: Option<Arc<Mutex<HashMap<Uuid, TransactionLedger>>>>,
 }
 
@@ -346,7 +346,7 @@ impl InMemoryAccountRepository {
         }
     }
 
-    /// 绑定共享 ledger HashMap（用于 apply_atomic 原子双写）
+    // 绑定共享 ledger HashMap（用于 apply_atomic 原子双写）
     pub fn with_shared_ledger(
         mut self,
         ledger: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
@@ -464,9 +464,9 @@ impl AccountRepository for InMemoryAccountRepository {
 }
 
 pub struct InMemoryTransactionLedgerRepository {
-    /// HashMap 句柄: 可与 InMemoryAccountRepository.with_shared_ledger 共享,
-    /// 实现 apply_atomic 原子双写 (per RGS-REV-007 AC3).
-    /// IT/测试可通过 `inner` 拿到句柄, 业务代码无需直接访问.
+    // HashMap 句柄: 可与 InMemoryAccountRepository.with_shared_ledger 共享,
+    // 实现 apply_atomic 原子双写 (per RGS-REV-007 AC3).
+    // IT/测试可通过 `inner` 拿到句柄, 业务代码无需直接访问.
     pub inner: Arc<Mutex<HashMap<Uuid, TransactionLedger>>>,
 }
 
@@ -639,9 +639,9 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// apply_atomic 余额守恒: 任意 (initial, amount) 组合下,
-        /// apply_atomic 成功后账户 balance = initial - amount, version + 1.
-        /// 用 amount <= initial 保证 try_debit 成功, 避免 race。
+        // apply_atomic 余额守恒: 任意 (initial, amount) 组合下,
+        // apply_atomic 成功后账户 balance = initial - amount, version + 1.
+        // 用 amount <= initial 保证 try_debit 成功, 避免 race。
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(512))]
 
@@ -654,7 +654,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let amount = amount.min(initial);
                     let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
                     let acc_repo = Arc::new(

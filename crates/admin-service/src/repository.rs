@@ -1290,7 +1290,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let repo = InMemoryAdminUserRepository::new();
                 let u = AdminUser::new(
                     username.clone(),
@@ -1314,7 +1314,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let repo = InMemoryAuditLogRepository::new();
                 let actor = Uuid::new_v4();
                 let mut all = Vec::with_capacity(n);

@@ -1,0 +1,35 @@
+[package]
+name = "batch-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "batch 域 (6 域扩展) service scaffold — per RGS-BATCH-REQUIREMENTS-2026-09-01 v0.1 + AGENTS.md §7 (5 域 → 6 域 batch 域独立 Lead 不兼任 5 域, DB 三分类 batch_master / batch_transaction / batch_work)"
+
+[[bin]]
+name = "batch-service"
+path = "src/main.rs"
+
+# Phase 0 scaffold (per 改进路线图 §1 Phase 0 + W11 42df673 RACI v1.1 batch 域扩展 + W25 任务 brief):
+# - 仅占位入口: 启动打印 ready, 0 业务实装
+# - 业务实装 (13 proto + 3 子域 + DB 三分类) 留 Phase 1+ 续 (per W25 任务 brief "卡住 fallback")
+# - 复用 5 域 tonic + shared-platform 模式 (per AGENTS §7.1 + DEC-038-01~09 派生)
+# - 实际完整实装 (rgs-batch-backend + rgs-batch-console) 在 tools/ 下 (per AGENTS §7.1), 本 crate 仅 workspace 注册占位
+[features]
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }

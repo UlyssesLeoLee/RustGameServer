@@ -20,39 +20,39 @@ use crate::Result;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ReservationStatus {
-    /// 已预留（待 confirm / compensate）
+    // 已预留（待 confirm / compensate）
     Reserved,
-    /// 已确认（实际扣款）
+    // 已确认（实际扣款）
     Confirmed,
-    /// 已补偿（释放）
+    // 已补偿（释放）
     Compensated,
-    /// 已过期
+    // 已过期
     Expired,
 }
 
 /// 资金预留（per RGS-DTL-100 §3.2 关键能力）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Reservation {
-    /// Reservation ID
+    // Reservation ID
     pub id: Uuid,
-    /// 关联 Saga ID
+    // 关联 Saga ID
     pub saga_id: Uuid,
-    /// 关联账户 ID
+    // 关联账户 ID
     pub account_id: Uuid,
-    /// 金额
+    // 金额
     pub amount: i64,
-    /// 货币
+    // 货币
     pub currency: Currency,
-    /// 状态
+    // 状态
     pub status: ReservationStatus,
-    /// 创建时间
+    // 创建时间
     pub created_at: DateTime<Utc>,
-    /// 过期时间（默认 5 分钟）
+    // 过期时间（默认 5 分钟）
     pub expires_at: DateTime<Utc>,
 }
 
 impl Reservation {
-    /// 工厂：新建 reservation（默认 5 分钟过期）
+    // 工厂：新建 reservation（默认 5 分钟过期）
     pub fn new(saga_id: Uuid, account_id: Uuid, amount: i64, currency: Currency) -> Self {
         let now = Utc::now();
         Self {
@@ -67,7 +67,7 @@ impl Reservation {
         }
     }
 
-    /// 确认（业务侧调用，表示资金预留已最终生效）
+    // 确认（业务侧调用，表示资金预留已最终生效）
     pub fn confirm(&mut self) {
         tracing::debug!(
             operation = "reservation_state_change",
@@ -83,7 +83,7 @@ impl Reservation {
         self.status = ReservationStatus::Confirmed;
     }
 
-    /// 补偿（业务侧调用，saga compensate 阶段释放占用）
+    // 补偿（业务侧调用，saga compensate 阶段释放占用）
     pub fn compensate(&mut self) {
         tracing::debug!(
             operation = "reservation_state_change",
@@ -99,18 +99,18 @@ impl Reservation {
         self.status = ReservationStatus::Compensated;
     }
 
-    /// 释放（per RGS-REV-009 CR-1: handler 失败路径专用, 防止 dangling reservation）
-    ///
-    /// 与 `compensate()` 的语义区别:
-    /// - `compensate()`: saga compensate 阶段由 handler.compensate 主动调用,
-    ///   配套 account.credit(refund_amount) 退款, 是业务"反向操作"语义.
-    /// - `release()`: handler.execute **失败路径**上的兜底清理(eg. 账户冻结 /
-    ///   OCC 冲突 / InsufficientFunds), **没有任何账户侧操作**, reservation
-    ///   是"没参与业务"的状态, 直接标记 Compensated + 让后续 compensate
-    ///   走 idempotent skip 路径, 避免凭空 +amount 资金幻影.
-    ///
-    /// 调用后 reserve_id 对应的 reservation 进入 Compensated 终态, 不应被再次
-    /// `confirm()` / `compensate()` / `release()`(幂等性由调用方保证).
+    // 释放（per RGS-REV-009 CR-1: handler 失败路径专用, 防止 dangling reservation）
+    //
+    // 与 `compensate()` 的语义区别:
+    // - `compensate()`: saga compensate 阶段由 handler.compensate 主动调用,
+    //   配套 account.credit(refund_amount) 退款, 是业务"反向操作"语义.
+    // - `release()`: handler.execute **失败路径**上的兜底清理(eg. 账户冻结 /
+    //   OCC 冲突 / InsufficientFunds), **没有任何账户侧操作**, reservation
+    //   是"没参与业务"的状态, 直接标记 Compensated + 让后续 compensate
+    //   走 idempotent skip 路径, 避免凭空 +amount 资金幻影.
+    //
+    // 调用后 reserve_id 对应的 reservation 进入 Compensated 终态, 不应被再次
+    // `confirm()` / `compensate()` / `release()`(幂等性由调用方保证).
     pub fn release(&mut self) {
         tracing::debug!(
             operation = "reservation_state_change",
@@ -126,12 +126,12 @@ impl Reservation {
         self.status = ReservationStatus::Compensated;
     }
 
-    /// 标记过期
+    // 标记过期
     pub fn mark_expired(&mut self) {
         self.status = ReservationStatus::Expired;
     }
 
-    /// 是否过期
+    // 是否过期
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }
@@ -368,10 +368,10 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 不重叠不变式: 同一 (account_id, currency) 维度上, 多个 saga
-        /// 可各自 reservation, 但每条 reservation 的 amount 守恒.
-        /// 这里验证: 任意 N 条 reservation 持久化后, list_by_saga
-        /// 必须返回 N 条, 金额总和 = 注入时累加.
+        // 不重叠不变式: 同一 (account_id, currency) 维度上, 多个 saga
+        // 可各自 reservation, 但每条 reservation 的 amount 守恒.
+        // 这里验证: 任意 N 条 reservation 持久化后, list_by_saga
+        // 必须返回 N 条, 金额总和 = 注入时累加.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(512))]
 
@@ -383,7 +383,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let repo = InMemoryReservationRepository::new();
                     let saga_id = Uuid::new_v4();
                     let mut total = 0i64;
@@ -401,9 +401,9 @@ mod tests {
             }
         }
 
-        /// 状态机不变式: confirm / compensate / release 终态都是终态;
-        /// mark_expired 是另一终态. 终态后 idempotent 调用结果应一致
-        /// (确认现有行为 — 状态机不再自动拒绝重复调用).
+        // 状态机不变式: confirm / compensate / release 终态都是终态;
+        // mark_expired 是另一终态. 终态后 idempotent 调用结果应一致
+        // (确认现有行为 — 状态机不再自动拒绝重复调用).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 

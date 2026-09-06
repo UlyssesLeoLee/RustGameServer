@@ -60,7 +60,7 @@ pub struct OpenPackInput {
     pub series_id: String,
     pub pack_count: u32,
     pub pack_size: u32,
-    /// 单价 (按 series.price 决定 currency_type)
+    // 单价 (按 series.price 决定 currency_type)
     pub price: i64,
     pub currency_type: i32,
     pub idempotency_key: String,
@@ -94,7 +94,7 @@ impl OpenPackSaga {
         }
     }
 
-    /// 执行 3 步
+    // 执行 3 步
     pub async fn execute(&self, input: OpenPackInput) -> Result<OpenPackOutput> {
         let saga_id = Uuid::new_v4();
         let currency = parse_currency(input.currency_type)?;
@@ -194,7 +194,7 @@ impl OpenPackSaga {
         })
     }
 
-    /// step 1: DebitCurrency (per §6.1 step 1)
+    // step 1: DebitCurrency (per §6.1 step 1)
     async fn step1_debit_currency(
         &self,
         input: &OpenPackInput,
@@ -238,7 +238,7 @@ impl OpenPackSaga {
         Ok(total)
     }
 
-    /// 补偿 step 1: 退 currency (idempotent by refund key)
+    // 补偿 step 1: 退 currency (idempotent by refund key)
     async fn compensate_step1_debit(
         &self,
         input: &OpenPackInput,
@@ -303,10 +303,10 @@ pub struct BidAuctionOutput {
     pub saga_id: Uuid,
     pub is_highest: bool,
     pub auction_ended: bool,
-    /// 旧最高出价者 (有则收到退款)
+    // 旧最高出价者 (有则收到退款)
     pub refunded_to: Option<Uuid>,
     pub refund_amount: i64,
-    /// 触发 ExecuteAuction 时填入
+    // 触发 ExecuteAuction 时填入
     pub execute_auction_output: Option<ExecuteAuctionOutput>,
 }
 
@@ -338,13 +338,13 @@ impl BidAuctionSaga {
         }
     }
 
-    /// 设置 ExecuteAuctionSaga 依赖 (避免循环构造)
+    // 设置 ExecuteAuctionSaga 依赖 (避免循环构造)
     pub fn with_execute_auction_saga(mut self, saga: Arc<ExecuteAuctionSaga>) -> Self {
         self.execute_auction_saga = Some(saga);
         self
     }
 
-    /// 执行 4 步
+    // 执行 4 步
     pub async fn execute(&self, input: BidAuctionInput) -> Result<BidAuctionOutput> {
         let saga_id = Uuid::new_v4();
 
@@ -498,7 +498,7 @@ impl BidAuctionSaga {
         })
     }
 
-    /// 退旧出价者 (helper)
+    // 退旧出价者 (helper)
     async fn refund_bidder(
         &self,
         bidder: Uuid,
@@ -556,7 +556,7 @@ pub struct ExecuteAuctionInput {
     pub card_instance_id: Uuid,
     pub final_price: i64,
     pub currency_type: i32,
-    /// 平台手续费 (basis points, 500 = 5%)
+    // 平台手续费 (basis points, 500 = 5%)
     pub tax_bps: i64,
 }
 
@@ -595,7 +595,7 @@ impl ExecuteAuctionSaga {
         }
     }
 
-    /// 执行 5 步
+    // 执行 5 步
     pub async fn execute(&self, input: ExecuteAuctionInput) -> Result<ExecuteAuctionOutput> {
         let saga_id = Uuid::new_v4();
         let _currency = parse_currency(input.currency_type)?;
@@ -712,7 +712,7 @@ fn parse_currency(currency_type: i32) -> Result<Currency> {
 mod tests {
     use super::*;
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
-    use crate::trade_entity::{Auction, AuctionStatus};
+    use crate::trade_entity::Auction;
     use crate::trade_repository::InMemoryTradeRepository;
     use crate::trade_saga_clients::{MockCardClient, MockTradeClient};
     use std::sync::Arc;
@@ -1106,10 +1106,10 @@ mod tests {
         use proptest::prelude::*;
         use std::sync::Arc;
 
-        /// OpenPack saga 余额守恒:
-        /// 任意 (initial, price, pack_count) 组合下:
-        ///   - 余额足够 → 扣 price*pack_count, 终余额 = initial - debit
-        ///   - 余额不足 → 返 InsufficientFunds, 余额不变
+        // OpenPack saga 余额守恒:
+        // 任意 (initial, price, pack_count) 组合下:
+        //   - 余额足够 → 扣 price*pack_count, 终余额 = initial - debit
+        //   - 余额不足 → 返 InsufficientFunds, 余额不变
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -1123,7 +1123,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let led = Arc::new(InMemoryTransactionLedgerRepository::new());
                     let acc = Arc::new(
                         InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
@@ -1175,8 +1175,8 @@ mod tests {
             }
         }
 
-        /// ExecuteAuction tax 守恒: 任意 (final_price, tax_bps) 下
-        /// tax = floor(final_price * tax_bps / 10000), seller_amount = final_price - tax
+        // ExecuteAuction tax 守恒: 任意 (final_price, tax_bps) 下
+        // tax = floor(final_price * tax_bps / 10000), seller_amount = final_price - tax
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(1024))]
 

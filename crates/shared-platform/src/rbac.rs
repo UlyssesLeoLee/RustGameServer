@@ -599,7 +599,7 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// 任意合法 permission 字符串 (resource:action) → permission_matches 行为必须确定性
+    // 任意合法 permission 字符串 (resource:action) → permission_matches 行为必须确定性
     proptest! {
         #[test]
         fn permission_matches_wildcard_deterministic(

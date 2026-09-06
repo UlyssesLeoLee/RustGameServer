@@ -19,31 +19,31 @@ use crate::Result;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum InboxStatus {
-    /// 已处理
+    // 已处理
     Processed,
-    /// 处理失败（可重试）
+    // 处理失败（可重试）
     Failed,
 }
 
 /// Inbox 实体（per RGS-DTL-100 §6 幂等性）
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InboxEntry {
-    /// Inbox ID
+    // Inbox ID
     pub id: Uuid,
-    /// command_id（业务幂等键）
+    // command_id（业务幂等键）
     pub command_id: Uuid,
-    /// handler 名称（如 "saga.transfer"）
+    // handler 名称（如 "saga.transfer"）
     pub handler: String,
-    /// 处理结果 JSON
+    // 处理结果 JSON
     pub result: String,
-    /// 状态
+    // 状态
     pub status: InboxStatus,
-    /// 处理时间
+    // 处理时间
     pub processed_at: DateTime<Utc>,
 }
 
 impl InboxEntry {
-    /// 工厂：新建已处理 inbox
+    // 工厂：新建已处理 inbox
     pub fn new(command_id: Uuid, handler: String, result: String) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -59,9 +59,9 @@ impl InboxEntry {
 /// Inbox Repository trait
 #[async_trait]
 pub trait InboxRepository: Send + Sync {
-    /// 按 (command_id, handler) 查（幂等性 check）
+    // 按 (command_id, handler) 查（幂等性 check）
     async fn find_by_command(&self, command_id: Uuid, handler: &str) -> Result<Option<InboxEntry>>;
-    /// 追加处理结果
+    // 追加处理结果
     async fn append(&self, entry: &InboxEntry) -> Result<InboxEntry>;
 }
 
@@ -228,9 +228,9 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// at-least-once 幂等: 同一 (command_id, handler) 多次 append,
-        /// find_by_command 必须返第一条 (后续 append 被 InMemory HashMap 覆盖
-        /// 但语义等价于"幂等键命中" — 业务层视作重复消息跳过).
+        // at-least-once 幂等: 同一 (command_id, handler) 多次 append,
+        // find_by_command 必须返第一条 (后续 append 被 InMemory HashMap 覆盖
+        // 但语义等价于"幂等键命中" — 业务层视作重复消息跳过).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -242,7 +242,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let repo = InMemoryInboxRepository::new();
                     let cmd_id = Uuid::new_v4();
                     let handler = "h-dedup".to_string();
@@ -272,8 +272,8 @@ mod tests {
             }
         }
 
-        /// (command_id, handler) 是去重 key: 不同 handler 各自独立
-        /// 持有 (cmd_id, handler) 维度, 同 cmd_id 不同 handler 不冲突.
+        // (command_id, handler) 是去重 key: 不同 handler 各自独立
+        // 持有 (cmd_id, handler) 维度, 同 cmd_id 不同 handler 不冲突.
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -285,7 +285,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let repo = InMemoryInboxRepository::new();
                     let cmd_id = Uuid::new_v4();
                     for h in &handlers {

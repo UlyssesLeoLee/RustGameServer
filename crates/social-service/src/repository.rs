@@ -451,7 +451,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let repo = InMemoryGuildRepository::new();
                 let leader = Uuid::from_bytes(leader_bytes);
                 let g = Guild::new(name.clone(), desc.clone(), leader);
@@ -479,7 +479,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let repo = InMemoryGuildRepository::new();
                 let leader = Uuid::from_bytes(leader_bytes);
                 let mut g = Guild::new(name1, "".to_string(), leader);
@@ -503,7 +503,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let repo = InMemoryGuildMemberRepository::new();
                 let gid = Uuid::from_bytes(guild_bytes);
                 let pid = Uuid::from_bytes(player_bytes);

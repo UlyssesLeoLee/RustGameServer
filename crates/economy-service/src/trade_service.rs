@@ -34,7 +34,7 @@ pub const AUCTION_FEE_BPS: i64 = 500; // basis points, 5%
 /// TradeService trait —— 5 RPC 业务接口
 #[async_trait]
 pub trait TradeService: Send + Sync {
-    /// 卖家创建公开拍卖
+    // 卖家创建公开拍卖
     async fn create_auction(
         &self,
         seller_id: String,
@@ -45,7 +45,7 @@ pub trait TradeService: Send + Sync {
         ends_at_unix: i64,
     ) -> Result<Auction>;
 
-    /// 玩家出价（含旧最高出价者补偿 + 自动成交判定）
+    // 玩家出价（含旧最高出价者补偿 + 自动成交判定）
     async fn bid_auction(
         &self,
         auction_id: Uuid,
@@ -54,14 +54,14 @@ pub trait TradeService: Send + Sync {
         idempotency_key: String,
     ) -> Result<BidResult>;
 
-    /// 卖家撤单（含退还当前最高出价者）
+    // 卖家撤单（含退还当前最高出价者）
     async fn cancel_auction(
         &self,
         auction_id: Uuid,
         seller_id: String,
     ) -> Result<CancelResult>;
 
-    /// 公开拍卖列表
+    // 公开拍卖列表
     async fn list_auctions(
         &self,
         filter: AuctionFilter,
@@ -69,7 +69,7 @@ pub trait TradeService: Send + Sync {
         page_size: u32,
     ) -> Result<(Vec<Auction>, u64)>;
 
-    /// 玩家交易历史
+    // 玩家交易历史
     async fn get_trade_history(
         &self,
         player_id: String,
@@ -100,8 +100,8 @@ pub struct CancelResult {
 /// TradeService 业务实现
 pub struct TradeServiceImpl {
     trades: Arc<dyn TradeRepository>,
-    /// 跨域 mock: 当前用 economy 内的 account 完成货币扣减 / 退还
-    /// W36+ 接入 saga orchestrator 后, 此处改为调用 saga 步骤 (per §6.2 + §6.3)
+    // 跨域 mock: 当前用 economy 内的 account 完成货币扣减 / 退还
+    // W36+ 接入 saga orchestrator 后, 此处改为调用 saga 步骤 (per §6.2 + §6.3)
     accounts: Arc<dyn AccountRepository>,
     ledger: Arc<dyn TransactionLedgerRepository>,
 }
@@ -119,7 +119,7 @@ impl TradeServiceImpl {
         }
     }
 
-    /// 货币类型转换: common.proto CurrencyType (1/2/3) → economy Currency
+    // 货币类型转换: common.proto CurrencyType (1/2/3) → economy Currency
     fn parse_currency(currency_type: i32) -> Result<Currency> {
         match currency_type {
             1 => Ok(Currency::Gold),     // soft = gold
@@ -132,7 +132,7 @@ impl TradeServiceImpl {
         }
     }
 
-    /// 内部 helper: 退货币（per §6.2 step 2 失败补偿 / §6.3 step 2 失败补偿 / 撤单退款）
+    // 内部 helper: 退货币（per §6.2 step 2 失败补偿 / §6.3 step 2 失败补偿 / 撤单退款）
     async fn refund_currency(
         &self,
         player_id: &str,
@@ -685,7 +685,7 @@ impl ExecuteTradeServiceImpl {
         Self { trades }
     }
 
-    /// 提议私下交易
+    // 提议私下交易
     pub async fn propose(
         &self,
         proposer_id: String,
@@ -715,7 +715,7 @@ impl ExecuteTradeServiceImpl {
         self.trades.save_private_trade(&trade).await
     }
 
-    /// 取消私下交易
+    // 取消私下交易
     pub async fn cancel(&self, trade_id: Uuid, requester_id: String) -> Result<PrivateTrade> {
         let mut trade = self
             .trades
@@ -739,7 +739,7 @@ impl ExecuteTradeServiceImpl {
         self.trades.update_private_trade(&trade).await
     }
 
-    /// 接受私下交易 (W36+ TODO: 触发跨域 saga ExecuteTrade)
+    // 接受私下交易 (W36+ TODO: 触发跨域 saga ExecuteTrade)
     pub async fn accept(&self, trade_id: Uuid, requester_id: String) -> Result<PrivateTrade> {
         let mut trade = self
             .trades
@@ -782,7 +782,7 @@ mod tests {
     use chrono::Utc;
     use std::sync::Arc;
 
-    /// 构造共享 ledger 的测试服务
+    // 构造共享 ledger 的测试服务
     fn make_service() -> (
         TradeServiceImpl,
         Arc<InMemoryAccountRepository>,
@@ -1425,9 +1425,9 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// 出价总额守恒: 多个 bidder 连续出价 (递增), 最后的 highest_bid
-        /// 等于最后一次出价金额; 当前最高出价者余额 = initial - his bid;
-        /// 已被 outbid 的旧最高出价者余额 = initial (full refund).
+        // 出价总额守恒: 多个 bidder 连续出价 (递增), 最后的 highest_bid
+        // 等于最后一次出价金额; 当前最高出价者余额 = initial - his bid;
+        // 已被 outbid 的旧最高出价者余额 = initial (full refund).
         proptest! {
             #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -1441,7 +1441,7 @@ mod tests {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(async {
+                let _ = rt.block_on(async {
                     let (svc, acc_repo, _led_repo) = make_service();
                     let seller = Uuid::new_v4();
                     // 创建拍卖
@@ -1459,7 +1459,7 @@ mod tests {
 
                     // bid_count 个 bidder 依次递增出价
                     let mut bidders = Vec::new();
-                    for i in 0..bid_count {
+                    for _i in 0..bid_count {
                         let b = Uuid::new_v4();
                         bidders.push(b);
                         fund(&acc_repo, b, Currency::Gold, initial).await;

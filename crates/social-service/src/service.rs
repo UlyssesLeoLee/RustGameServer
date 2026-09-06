@@ -754,7 +754,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 let leader = Uuid::from_bytes(leader_bytes);
                 let g = s.create_guild(name.clone(), desc.clone(), leader).await.unwrap();
@@ -778,7 +778,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 s.create_guild(name.clone(), "".to_string(), Uuid::from_bytes(l1))
                     .await
@@ -802,7 +802,7 @@ mod proptests {
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let _ = rt.block_on(async {
                 let s = svc();
                 let err = s
                     .create_guild(name, "".to_string(), Uuid::from_bytes(leader_bytes))
