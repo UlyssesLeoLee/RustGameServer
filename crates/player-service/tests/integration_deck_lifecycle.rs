@@ -20,7 +20,7 @@
 //! ## 跳过机制
 //! - 无需 DATABASE_URL (InMemory 路径)
 
-use player_service::entity::{Deck, DeckSlot, DeckStatus};
+use player_service::entity::{DeckSlot, DeckStatus};
 use player_service::repository::{
     DeckRepository, InMemoryDeckRepository, InMemoryPlayerRepository, PageRequest,
 };
