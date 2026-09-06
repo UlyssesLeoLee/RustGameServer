@@ -1,0 +1,247 @@
+# 52-network-gateway.yaml
+# 角色: network-gateway 域 NEW (Phase 1 协议网关, TCP 二进制 + Erlang 分布式 + 8 域 gRPC 桥接)
+# 状态: 🟡 占位 — Phase 1.5 k8s yaml 落档, 不真 apply (per W20 brief 4)
+# 真实部署: Phase 4 灰度前 SRE Lead 推 image `0.1.0-network-gateway` + apply
+# 关联:
+#   - W6 1dd9afc (协议网关骨架) + W7 379f2cd (Phase 1.5 stub 扩展: 8 域路由 demo 9 条 + cookie + NIF + web_conn + zone)
+#   - 改进路线图 §1 Phase 1 (TCP 4 字节长度帧 + EPMD 4369 + dist_proto + 1351 codegen + PHP↔Erlang cookie)
+#   - ADR-006 (Erlang 协议层选型, Option A rustler 推荐) + ADR-007 (rustler 选型)
+#   - 9/4 改进路线图 §1.5 Phase (per W7 报告 §6.1 Phase 1.5 stub 状态表)
+#   - W15 client pool mTLS 7 域 cert 模式 (5 域 ca.pem + 3 NEW 域 ca-sbn.pem 双 CA 共存)
+#   - ca-sbn.pem 是 Phase 1.5 临时 mini-CA
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-gateway-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: network-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/domain: network
+    rust-game-server.io/phase: "1.5-placeholder"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-gateway
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: network-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0-network-gateway"
+    rust-game-server.io/domain: network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-gateway
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0-network-gateway"
+        rust-game-server.io/domain: network
+    spec:
+      serviceAccountName: network-gateway-account
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: network-gateway
+          # Phase 1.5 占位 image tag, 真实推送等 Phase 4 SRE Lead 协调
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-network-gateway
+          imagePullPolicy: IfNotPresent
+          command: ["/app/bin/network-gateway"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          # 4 ports per W7 deployment.yaml (TCP 二进制 + admin-gRPC + web_conn HTTP + EPMD)
+          ports:
+            - name: tcp-binary
+              containerPort: 7001
+              protocol: TCP
+            - name: admin-grpc
+              containerPort: 50090
+              protocol: TCP
+            - name: web-conn
+              containerPort: 8000
+              protocol: TCP
+            - name: epmd
+              containerPort: 4369
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: "info,network_gateway=debug"
+            - name: RGS_NETWORK_GATEWAY_TCP_ADDR
+              value: "0.0.0.0:7001"
+            - name: RGS_NETWORK_GATEWAY_ADMIN_GRPC_ADDR
+              value: "0.0.0.0:50090"
+            - name: RGS_NETWORK_GATEWAY_WEB_CONN_ADDR
+              value: "0.0.0.0:8000"
+            - name: RGS_NETWORK_GATEWAY_EPMD_ADDR
+              value: "0.0.0.0:4369"
+            # Erlang cookie via secret, REDACTED filter at log (per 8/27 11:06 JST)
+            - name: ERLANG_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: network-gateway-secret
+                  key: erlang-cookie
+            # W15: client pool 配置 (7 域 gRPC 业务级, 双 CA 共存)
+            - name: RGS_NETWORK_GATEWAY_CLIENT_CERT_DIR
+              value: "/etc/rgs/certs"
+            - name: RGS_NETWORK_GATEWAY_DEFAULT_HOST
+              value: "player-service.rust-game-server.svc.cluster.local"
+            - name: RGS_NETWORK_GATEWAY_DOMAIN_SUFFIX
+              value: ".svc.cluster.local"
+            # 7 域 svc DNS 端点 (per W7 报告 §2.2 + W15 client pool 派生)
+            - name: RGS_SVC_PLAYER_HOST
+              value: "player-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_ECONOMY_HOST
+              value: "economy-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_MATCH_HOST
+              value: "match-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_SOCIAL_HOST
+              value: "social-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_ADMIN_HOST
+              value: "admin-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_CLUSTER_OPS_HOST
+              value: "cluster-ops.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_SCENE_HOST
+              value: "scene-service.rust-game-server.svc.cluster.local"
+            - name: RGS_SVC_BATTLE_HOST
+              value: "battle-service.rust-game-server.svc.cluster.local"
+            # 8 域 mTLS 双 CA: 5 域 ca.pem + 3 NEW 域 ca-sbn.pem
+            - name: RGS_SSL_CA_FILE_5DOMAIN
+              value: "/etc/rgs/certs/ca.pem"
+            - name: RGS_SSL_CA_FILE_3NEW
+              value: "/etc/rgs/certs/ca-sbn.pem"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "network-gateway"
+          livenessProbe:
+            tcpSocket:
+              port: tcp-binary
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: admin-grpc
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-network-gateway-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
+              - secret:
+                  name: rgs-secret-ca-sbn
+                  items:
+                    - key: ca-sbn.pem
+                      path: ca-sbn.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-gateway
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: network-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: network-gateway
+  ports:
+    - name: tcp-binary
+      port: 7001
+      targetPort: 7001
+      protocol: TCP
+    - name: admin-grpc
+      port: 50090
+      targetPort: 50090
+      protocol: TCP
+    - name: web-conn
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+    - name: epmd
+      port: 4369
+      targetPort: 4369
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+---
+# Erlang cookie secret stub (per 8/27 11:06 JST hard ban, value 走 kubectl apply --from-literal=...)
+# 真实部署: kubectl create secret generic network-gateway-secret -n rust-game-server \
+#   --from-literal=erlang-cookie=<REDACTED, 主会话运维生成>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: network-gateway-secret
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: network-gateway
+    rust-game-server.io/domain: network
+type: Opaque
+stringData:
+  # 占位, 主会话用 kubectl apply --from-literal=erlang-cookie=... 覆盖
+  # 任何 log/echo 必须 REDACTED (per 8/27 11:06 JST)
+  erlang-cookie: "REPLACE_ME_AT_DEPLOY_TIME"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: network-gateway-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: network-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-gateway

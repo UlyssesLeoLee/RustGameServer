@@ -1,0 +1,234 @@
+# 51-battle-service.yaml
+# 角色: battle 域 NEW (Phase 2 子系统, 241 RPC, 10-15 SRE·d) Deployment + Service + HPA + PDB + ServiceAccount
+# 状态: 🟡 占位 — Phase 1.5 k8s yaml 落档, 不真 apply (per W20 brief 4 "不真 apply 仅落 docs + cert 模拟")
+# 真实部署: Phase 4 灰度前 SRE Lead 推 image `0.1.0-battle-service` + apply
+# 关联:
+#   - W5 commit b6b19b7 (crates/battle-service 250 RPC scaffold)
+#   - 改进路线图 §1 Phase 2 (battle + PVE 241 RPC, 10-15 SRE·d)
+#   - 9 个 holiday_* 活动 → 数据驱动框架 (per 改进路线图 §0.2 + §4 R7 + 9/4 MD §4 反例)
+#   - 6 个 PVP 变体 → 1 套 PvPService + PvpMode enum (per W5 commit 反例 → 数据驱动)
+#   - DB 三分类 battle_master / battle_transaction / battle_work (per 9/1 18:30 JST 派生)
+#   - 7 域独立 Lead (per 8/21 JST 5 域拒绝兼任 → 扩 7 域)
+#   - ca-sbn.pem 是 Phase 1.5 临时 mini-CA
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: battle-service-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: battle
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/domain: battle
+    rust-game-server.io/phase: "1.5-placeholder"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battle-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: battle
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0-battle-service"
+    rust-game-server.io/domain: battle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: battle
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: battle
+        app.kubernetes.io/component: domain-service
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0-battle-service"
+        rust-game-server.io/domain: battle
+    spec:
+      serviceAccountName: battle-service-account
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: battle
+          # Phase 1.5 占位 image tag, 真实推送等 Phase 4 SRE Lead 协调
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-battle-service
+          imagePullPolicy: IfNotPresent
+          command: ["/app/bin/battle-service"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: grpc
+              containerPort: 50058
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: "info,battle-service=debug,sqlx=warn,tonic=warn"
+            # battle main.rs 默认 GRPC_ADDR=0.0.0.0:50059, 用 env 覆盖为 50058
+            - name: GRPC_ADDR
+              value: "0.0.0.0:50058"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: battle-db-credentials
+                  key: url
+                  optional: true  # Phase 1.5 占位, 真实 DB 待 Phase 2 实施
+            - name: NATS_URI
+              value: "nats://nats:4222"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "battle-service"
+            - name: RGS_DOMAIN
+              value: "battle"
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "0"
+          resources:
+            requests:
+              cpu: 300m
+              memory: 384Mi
+            limits:
+              cpu: 1500m
+              memory: 1.5Gi
+          livenessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50058
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca-sbn.pem
+                - -tls-server-name=battle.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50058
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca-sbn.pem
+                - -tls-server-name=battle.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-battle-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca-sbn
+                  items:
+                    - key: ca-sbn.pem
+                      path: ca-sbn.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: battle-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: battle
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: battle
+  ports:
+    - name: grpc
+      port: 50058
+      targetPort: 50058
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: battle-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: battle
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: battle-service
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: battle-service-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: battle
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: battle
