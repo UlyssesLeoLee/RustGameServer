@@ -27,6 +27,13 @@ pub mod trade_service;
 pub mod trade_saga;
 pub mod trade_saga_clients;
 
+// v3 增量: 商店 + 抽卡 + 限时 + 充值 + 基金/特权 + 活动 (per 9/4 MD Phase 2)
+// 数据驱动反例: 9 个 holiday_* 活动 → 1 套 ActivityService (per 9/4 MD §4)
+pub mod shop_entity;
+pub mod shop_service;
+#[cfg(test)]
+mod shop_service_tests;
+
 pub use error::{Error, Result};
 pub use inbox::{InboxEntry, InboxRepository, InboxStatus, PgInboxRepository};
 pub use repository::{
@@ -53,6 +60,18 @@ pub use trade_saga::{
 pub use trade_saga_clients::{
     AuctionLockState, CardClient, CardGrpcClient, CardSource, MockCardClient, MockTradeClient,
     TradeClient,
+};
+
+// v3 增量 re-exports (per 9/4 MD Phase 2)
+pub use shop_entity::{
+    InMemoryEconomyV3Repository, MysteryShop, ShopItemEntity, ShopRecord,
+    ActivityPlayerState, ActivityTemplateEntity, ActivityType, FlashSaleItemEntity,
+    FundPlayerState, GrowthFund, LootTable, MonthlyCardState, PrivilegeItemEntity,
+    RechargeOrder, SummonPoolEntity, SummonResultEntity,
+};
+pub use shop_service::{
+    ShopServiceImpl, ShopService, RechargeService, SummonService, FlashSaleService,
+    FundService, ActivityService,
 };
 
 pub mod proto;

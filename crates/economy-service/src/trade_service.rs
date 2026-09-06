@@ -658,6 +658,534 @@ pub mod grpc_service {
                 }),
             }))
         }
+
+        // ====================================================================
+        // v3 增量: 90 RPC stub 桥接 (per 9/4 MD Phase 2 economy + 商城)
+        // TradeGrpcService 路径: 全 Unimplemented (实际业务在 EconomyGrpcService)
+        // ====================================================================
+
+        async fn shop_list(
+            &self,
+            _request: Request<economy_proto::ShopListRequest>,
+        ) -> std::result::Result<Response<economy_proto::ShopListResponse>, Status> {
+            Err(Status::unimplemented("shop_list"))
+        }
+        async fn shop_buy(
+            &self,
+            _request: Request<economy_proto::ShopBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::ShopBuyResponse>, Status> {
+            Err(Status::unimplemented("shop_buy"))
+        }
+        async fn shop_refresh(
+            &self,
+            _request: Request<economy_proto::ShopRefreshRequest>,
+        ) -> std::result::Result<Response<economy_proto::ShopRefreshResponse>, Status> {
+            Err(Status::unimplemented("shop_refresh"))
+        }
+        async fn shop_record(
+            &self,
+            _request: Request<economy_proto::ShopRecordRequest>,
+        ) -> std::result::Result<Response<economy_proto::ShopRecordResponse>, Status> {
+            Err(Status::unimplemented("shop_record"))
+        }
+        async fn mystery_shop_list(
+            &self,
+            _request: Request<economy_proto::MysteryShopListRequest>,
+        ) -> std::result::Result<Response<economy_proto::MysteryShopListResponse>, Status> {
+            Err(Status::unimplemented("mystery_shop_list"))
+        }
+        async fn mystery_shop_buy(
+            &self,
+            _request: Request<economy_proto::MysteryShopBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::MysteryShopBuyResponse>, Status> {
+            Err(Status::unimplemented("mystery_shop_buy"))
+        }
+        async fn mystery_shop_refresh(
+            &self,
+            _request: Request<economy_proto::MysteryShopRefreshRequest>,
+        ) -> std::result::Result<Response<economy_proto::MysteryShopRefreshResponse>, Status> {
+            Err(Status::unimplemented("mystery_shop_refresh"))
+        }
+        async fn mystery_shop_unlock(
+            &self,
+            _request: Request<economy_proto::MysteryShopUnlockRequest>,
+        ) -> std::result::Result<Response<economy_proto::MysteryShopUnlockResponse>, Status> {
+            Err(Status::unimplemented("mystery_shop_unlock"))
+        }
+        async fn exchange_list(
+            &self,
+            _request: Request<economy_proto::ExchangeListRequest>,
+        ) -> std::result::Result<Response<economy_proto::ExchangeListResponse>, Status> {
+            Err(Status::unimplemented("exchange_list"))
+        }
+        async fn exchange_do(
+            &self,
+            _request: Request<economy_proto::ExchangeDoRequest>,
+        ) -> std::result::Result<Response<economy_proto::ExchangeDoResponse>, Status> {
+            Err(Status::unimplemented("exchange_do"))
+        }
+        async fn exchange_record(
+            &self,
+            _request: Request<economy_proto::ExchangeRecordRequest>,
+        ) -> std::result::Result<Response<economy_proto::ExchangeRecordResponse>, Status> {
+            Err(Status::unimplemented("exchange_record"))
+        }
+        async fn wish_list(
+            &self,
+            _request: Request<economy_proto::WishListRequest>,
+        ) -> std::result::Result<Response<economy_proto::WishListResponse>, Status> {
+            Err(Status::unimplemented("wish_list"))
+        }
+        async fn wish_draw(
+            &self,
+            _request: Request<economy_proto::WishDrawRequest>,
+        ) -> std::result::Result<Response<economy_proto::WishDrawResponse>, Status> {
+            Err(Status::unimplemented("wish_draw"))
+        }
+        async fn wish_reward(
+            &self,
+            _request: Request<economy_proto::WishRewardRequest>,
+        ) -> std::result::Result<Response<economy_proto::WishRewardResponse>, Status> {
+            Err(Status::unimplemented("wish_reward"))
+        }
+        async fn point_shop_list(
+            &self,
+            _request: Request<economy_proto::PointShopListRequest>,
+        ) -> std::result::Result<Response<economy_proto::PointShopListResponse>, Status> {
+            Err(Status::unimplemented("point_shop_list"))
+        }
+        async fn point_shop_buy(
+            &self,
+            _request: Request<economy_proto::PointShopBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::PointShopBuyResponse>, Status> {
+            Err(Status::unimplemented("point_shop_buy"))
+        }
+        async fn gift_code_redeem(
+            &self,
+            _request: Request<economy_proto::GiftCodeRedeemRequest>,
+        ) -> std::result::Result<Response<economy_proto::GiftCodeRedeemResponse>, Status> {
+            Err(Status::unimplemented("gift_code_redeem"))
+        }
+        async fn gift_code_query(
+            &self,
+            _request: Request<economy_proto::GiftCodeQueryRequest>,
+        ) -> std::result::Result<Response<economy_proto::GiftCodeQueryResponse>, Status> {
+            Err(Status::unimplemented("gift_code_query"))
+        }
+        async fn loot_roll(
+            &self,
+            _request: Request<economy_proto::LootRollRequest>,
+        ) -> std::result::Result<Response<economy_proto::LootRollResponse>, Status> {
+            Err(Status::unimplemented("loot_roll"))
+        }
+        async fn loot_claim(
+            &self,
+            _request: Request<economy_proto::LootClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::LootClaimResponse>, Status> {
+            Err(Status::unimplemented("loot_claim"))
+        }
+
+        // 充值类 (15)
+        async fn recharge_list(
+            &self,
+            _request: Request<economy_proto::RechargeListRequest>,
+        ) -> std::result::Result<Response<economy_proto::RechargeListResponse>, Status> {
+            Err(Status::unimplemented("recharge_list"))
+        }
+        async fn recharge_do(
+            &self,
+            _request: Request<economy_proto::RechargeDoRequest>,
+        ) -> std::result::Result<Response<economy_proto::RechargeDoResponse>, Status> {
+            Err(Status::unimplemented("recharge_do"))
+        }
+        async fn recharge_order_query(
+            &self,
+            _request: Request<economy_proto::RechargeOrderQueryRequest>,
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderQueryResponse>, Status> {
+            Err(Status::unimplemented("recharge_order_query"))
+        }
+        async fn recharge_order_finish(
+            &self,
+            _request: Request<economy_proto::RechargeOrderFinishRequest>,
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderFinishResponse>, Status> {
+            Err(Status::unimplemented("recharge_order_finish"))
+        }
+        async fn monthly_card_info(
+            &self,
+            _request: Request<economy_proto::MonthlyCardInfoRequest>,
+        ) -> std::result::Result<Response<economy_proto::MonthlyCardInfoResponse>, Status> {
+            Err(Status::unimplemented("monthly_card_info"))
+        }
+        async fn monthly_card_claim(
+            &self,
+            _request: Request<economy_proto::MonthlyCardClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::MonthlyCardClaimResponse>, Status> {
+            Err(Status::unimplemented("monthly_card_claim"))
+        }
+        async fn monthly_card_buy(
+            &self,
+            _request: Request<economy_proto::MonthlyCardBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::MonthlyCardBuyResponse>, Status> {
+            Err(Status::unimplemented("monthly_card_buy"))
+        }
+        async fn first_recharge_list(
+            &self,
+            _request: Request<economy_proto::FirstRechargeListRequest>,
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeListResponse>, Status> {
+            Err(Status::unimplemented("first_recharge_list"))
+        }
+        async fn first_recharge_claim(
+            &self,
+            _request: Request<economy_proto::FirstRechargeClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeClaimResponse>, Status> {
+            Err(Status::unimplemented("first_recharge_claim"))
+        }
+        async fn first_recharge_status(
+            &self,
+            _request: Request<economy_proto::FirstRechargeStatusRequest>,
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeStatusResponse>, Status> {
+            Err(Status::unimplemented("first_recharge_status"))
+        }
+        async fn power_pack_list(
+            &self,
+            _request: Request<economy_proto::PowerPackListRequest>,
+        ) -> std::result::Result<Response<economy_proto::PowerPackListResponse>, Status> {
+            Err(Status::unimplemented("power_pack_list"))
+        }
+        async fn power_pack_buy(
+            &self,
+            _request: Request<economy_proto::PowerPackBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::PowerPackBuyResponse>, Status> {
+            Err(Status::unimplemented("power_pack_buy"))
+        }
+        async fn growth_fund_list(
+            &self,
+            _request: Request<economy_proto::GrowthFundListRequest>,
+        ) -> std::result::Result<Response<economy_proto::GrowthFundListResponse>, Status> {
+            Err(Status::unimplemented("growth_fund_list"))
+        }
+        async fn growth_fund_buy(
+            &self,
+            _request: Request<economy_proto::GrowthFundBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::GrowthFundBuyResponse>, Status> {
+            Err(Status::unimplemented("growth_fund_buy"))
+        }
+        async fn growth_fund_claim(
+            &self,
+            _request: Request<economy_proto::GrowthFundClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::GrowthFundClaimResponse>, Status> {
+            Err(Status::unimplemented("growth_fund_claim"))
+        }
+
+        // 抽卡类 (15)
+        async fn summon_list(
+            &self,
+            _request: Request<economy_proto::SummonListRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonListResponse>, Status> {
+            Err(Status::unimplemented("summon_list"))
+        }
+        async fn summon_info(
+            &self,
+            _request: Request<economy_proto::SummonInfoRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonInfoResponse>, Status> {
+            Err(Status::unimplemented("summon_info"))
+        }
+        async fn summon_single_pull(
+            &self,
+            _request: Request<economy_proto::SummonSinglePullRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonSinglePullResponse>, Status> {
+            Err(Status::unimplemented("summon_single_pull"))
+        }
+        async fn summon_ten_pull(
+            &self,
+            _request: Request<economy_proto::SummonTenPullRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonTenPullResponse>, Status> {
+            Err(Status::unimplemented("summon_ten_pull"))
+        }
+        async fn summon_free(
+            &self,
+            _request: Request<economy_proto::SummonFreeRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonFreeResponse>, Status> {
+            Err(Status::unimplemented("summon_free"))
+        }
+        async fn summon_pity(
+            &self,
+            _request: Request<economy_proto::SummonPityRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonPityResponse>, Status> {
+            Err(Status::unimplemented("summon_pity"))
+        }
+        async fn summon_share_reward(
+            &self,
+            _request: Request<economy_proto::SummonShareRewardRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonShareRewardResponse>, Status> {
+            Err(Status::unimplemented("summon_share_reward"))
+        }
+        async fn summon_record(
+            &self,
+            _request: Request<economy_proto::SummonRecordRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonRecordResponse>, Status> {
+            Err(Status::unimplemented("summon_record"))
+        }
+        async fn summon_box_list(
+            &self,
+            _request: Request<economy_proto::SummonBoxListRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonBoxListResponse>, Status> {
+            Err(Status::unimplemented("summon_box_list"))
+        }
+        async fn summon_box_unlock(
+            &self,
+            _request: Request<economy_proto::SummonBoxUnlockRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonBoxUnlockResponse>, Status> {
+            Err(Status::unimplemented("summon_box_unlock"))
+        }
+        async fn summon_featured_draw(
+            &self,
+            _request: Request<economy_proto::SummonFeaturedDrawRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonFeaturedDrawResponse>, Status> {
+            Err(Status::unimplemented("summon_featured_draw"))
+        }
+        async fn summon_reset_pity(
+            &self,
+            _request: Request<economy_proto::SummonResetPityRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonResetPityResponse>, Status> {
+            Err(Status::unimplemented("summon_reset_pity"))
+        }
+        async fn summon_exchange(
+            &self,
+            _request: Request<economy_proto::SummonExchangeRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonExchangeResponse>, Status> {
+            Err(Status::unimplemented("summon_exchange"))
+        }
+        async fn summon_banner_list(
+            &self,
+            _request: Request<economy_proto::SummonBannerListRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonBannerListResponse>, Status> {
+            Err(Status::unimplemented("summon_banner_list"))
+        }
+        async fn summon_guaranteed_info(
+            &self,
+            _request: Request<economy_proto::SummonGuaranteedInfoRequest>,
+        ) -> std::result::Result<Response<economy_proto::SummonGuaranteedInfoResponse>, Status> {
+            Err(Status::unimplemented("summon_guaranteed_info"))
+        }
+
+        // 拍卖行扩展 (10)
+        async fn auction_my_listings(
+            &self,
+            _request: Request<economy_proto::AuctionMyListingsRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionMyListingsResponse>, Status> {
+            Err(Status::unimplemented("auction_my_listings"))
+        }
+        async fn auction_search(
+            &self,
+            _request: Request<economy_proto::AuctionSearchRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionSearchResponse>, Status> {
+            Err(Status::unimplemented("auction_search"))
+        }
+        async fn auction_buyout(
+            &self,
+            _request: Request<economy_proto::AuctionBuyoutRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionBuyoutResponse>, Status> {
+            Err(Status::unimplemented("auction_buyout"))
+        }
+        async fn auction_relist(
+            &self,
+            _request: Request<economy_proto::AuctionRelistRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionRelistResponse>, Status> {
+            Err(Status::unimplemented("auction_relist"))
+        }
+        async fn auction_auto_bid(
+            &self,
+            _request: Request<economy_proto::AuctionAutoBidRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionAutoBidResponse>, Status> {
+            Err(Status::unimplemented("auction_auto_bid"))
+        }
+        async fn auction_my_bids(
+            &self,
+            _request: Request<economy_proto::AuctionMyBidsRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionMyBidsResponse>, Status> {
+            Err(Status::unimplemented("auction_my_bids"))
+        }
+        async fn auction_saved_search(
+            &self,
+            _request: Request<economy_proto::AuctionSavedSearchRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionSavedSearchResponse>, Status> {
+            Err(Status::unimplemented("auction_saved_search"))
+        }
+        async fn auction_watch_list(
+            &self,
+            _request: Request<economy_proto::AuctionWatchListRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionWatchListResponse>, Status> {
+            Err(Status::unimplemented("auction_watch_list"))
+        }
+        async fn auction_watch(
+            &self,
+            _request: Request<economy_proto::AuctionWatchRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionWatchResponse>, Status> {
+            Err(Status::unimplemented("auction_watch"))
+        }
+        async fn auction_unwatch(
+            &self,
+            _request: Request<economy_proto::AuctionUnwatchRequest>,
+        ) -> std::result::Result<Response<economy_proto::AuctionUnwatchResponse>, Status> {
+            Err(Status::unimplemented("auction_unwatch"))
+        }
+
+        // 限时 (10)
+        async fn flash_sale_list(
+            &self,
+            _request: Request<economy_proto::FlashSaleListRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleListResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_list"))
+        }
+        async fn flash_sale_info(
+            &self,
+            _request: Request<economy_proto::FlashSaleInfoRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleInfoResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_info"))
+        }
+        async fn flash_sale_buy(
+            &self,
+            _request: Request<economy_proto::FlashSaleBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleBuyResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_buy"))
+        }
+        async fn flash_sale_countdown(
+            &self,
+            _request: Request<economy_proto::FlashSaleCountdownRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleCountdownResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_countdown"))
+        }
+        async fn flash_sale_record(
+            &self,
+            _request: Request<economy_proto::FlashSaleRecordRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleRecordResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_record"))
+        }
+        async fn flash_sale_subscribe(
+            &self,
+            _request: Request<economy_proto::FlashSaleSubscribeRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleSubscribeResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_subscribe"))
+        }
+        async fn flash_sale_hot(
+            &self,
+            _request: Request<economy_proto::FlashSaleHotRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleHotResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_hot"))
+        }
+        async fn flash_sale_recommend(
+            &self,
+            _request: Request<economy_proto::FlashSaleRecommendRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleRecommendResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_recommend"))
+        }
+        async fn flash_sale_stock(
+            &self,
+            _request: Request<economy_proto::FlashSaleStockRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleStockResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_stock"))
+        }
+        async fn flash_sale_claim(
+            &self,
+            _request: Request<economy_proto::FlashSaleClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::FlashSaleClaimResponse>, Status> {
+            Err(Status::unimplemented("flash_sale_claim"))
+        }
+
+        // 基金/特权 (10)
+        async fn fund_list(
+            &self,
+            _request: Request<economy_proto::FundListRequest>,
+        ) -> std::result::Result<Response<economy_proto::FundListResponse>, Status> {
+            Err(Status::unimplemented("fund_list"))
+        }
+        async fn fund_buy(
+            &self,
+            _request: Request<economy_proto::FundBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::FundBuyResponse>, Status> {
+            Err(Status::unimplemented("fund_buy"))
+        }
+        async fn fund_claim(
+            &self,
+            _request: Request<economy_proto::FundClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::FundClaimResponse>, Status> {
+            Err(Status::unimplemented("fund_claim"))
+        }
+        async fn fund_status(
+            &self,
+            _request: Request<economy_proto::FundStatusRequest>,
+        ) -> std::result::Result<Response<economy_proto::FundStatusResponse>, Status> {
+            Err(Status::unimplemented("fund_status"))
+        }
+        async fn privilege_list(
+            &self,
+            _request: Request<economy_proto::PrivilegeListRequest>,
+        ) -> std::result::Result<Response<economy_proto::PrivilegeListResponse>, Status> {
+            Err(Status::unimplemented("privilege_list"))
+        }
+        async fn privilege_activate(
+            &self,
+            _request: Request<economy_proto::PrivilegeActivateRequest>,
+        ) -> std::result::Result<Response<economy_proto::PrivilegeActivateResponse>, Status> {
+            Err(Status::unimplemented("privilege_activate"))
+        }
+        async fn privilege_buy(
+            &self,
+            _request: Request<economy_proto::PrivilegeBuyRequest>,
+        ) -> std::result::Result<Response<economy_proto::PrivilegeBuyResponse>, Status> {
+            Err(Status::unimplemented("privilege_buy"))
+        }
+        async fn fund_progress(
+            &self,
+            _request: Request<economy_proto::FundProgressRequest>,
+        ) -> std::result::Result<Response<economy_proto::FundProgressResponse>, Status> {
+            Err(Status::unimplemented("fund_progress"))
+        }
+        async fn privilege_daily(
+            &self,
+            _request: Request<economy_proto::PrivilegeDailyRequest>,
+        ) -> std::result::Result<Response<economy_proto::PrivilegeDailyResponse>, Status> {
+            Err(Status::unimplemented("privilege_daily"))
+        }
+        async fn privilege_rewards(
+            &self,
+            _request: Request<economy_proto::PrivilegeRewardsRequest>,
+        ) -> std::result::Result<Response<economy_proto::PrivilegeRewardsResponse>, Status> {
+            Err(Status::unimplemented("privilege_rewards"))
+        }
+
+        // 活动 (5) - 数据驱动
+        async fn activity_list(
+            &self,
+            _request: Request<economy_proto::ActivityListRequest>,
+        ) -> std::result::Result<Response<economy_proto::ActivityListResponse>, Status> {
+            Err(Status::unimplemented("activity_list"))
+        }
+        async fn activity_claim(
+            &self,
+            _request: Request<economy_proto::ActivityClaimRequest>,
+        ) -> std::result::Result<Response<economy_proto::ActivityClaimResponse>, Status> {
+            Err(Status::unimplemented("activity_claim"))
+        }
+        async fn activity_template(
+            &self,
+            _request: Request<economy_proto::ActivityTemplateRequest>,
+        ) -> std::result::Result<Response<economy_proto::ActivityTemplateResponse>, Status> {
+            Err(Status::unimplemented("activity_template"))
+        }
+        async fn activity_progress(
+            &self,
+            _request: Request<economy_proto::ActivityProgressRequest>,
+        ) -> std::result::Result<Response<economy_proto::ActivityProgressResponse>, Status> {
+            Err(Status::unimplemented("activity_progress"))
+        }
+        async fn activity_subscribe(
+            &self,
+            _request: Request<economy_proto::ActivitySubscribeRequest>,
+        ) -> std::result::Result<Response<economy_proto::ActivitySubscribeResponse>, Status> {
+            Err(Status::unimplemented("activity_subscribe"))
+        }
     }
 }
 
