@@ -1,0 +1,573 @@
+syntax = "proto3";
+package scene.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/scene/v1;scenev1";
+
+// ============================================================================
+// 7 域 scene-service —— 场景 / 移动 / 单位 / 棋盘 / 任务 / 伙伴 / 剧情 / 阵法
+// per 9/4 MD §2 闪烁之光 148 RPC 借鉴 + 改进路线图 Phase 2
+// 7 域独立 Lead (per 9/1 18:00 JST batch 域扩展 + 8/21 JST 5 域独立 Lead 原则)
+// 设计原则：数据驱动 + 反"一活动一模块"反例 (per 9/4 MD §4)
+// ============================================================================
+
+service SceneService {
+  // ---------- 场景切换 (10 条, per 9/5 路线图 §Phase 2 场景 10 RPC) ----------
+  rpc EnterScene(EnterSceneRequest) returns (EnterSceneResponse);
+  rpc LeaveScene(LeaveSceneRequest) returns (LeaveSceneResponse);
+  rpc ListScenes(ListScenesRequest) returns (ListScenesResponse);
+  rpc GetSceneInfo(GetSceneInfoRequest) returns (SceneInfo);
+  rpc NotifySceneReady(NotifySceneReadyRequest) returns (NotifySceneReadyResponse);
+  rpc ListAvailableScenes(ListAvailableScenesRequest) returns (ListAvailableScenesResponse);
+  rpc SwitchSceneServer(SwitchSceneServerRequest) returns (SwitchSceneServerResponse);
+  rpc GetCurrentScene(GetCurrentSceneRequest) returns (SceneInstance);
+  rpc ReserveSceneSlot(ReserveSceneSlotRequest) returns (ReserveSceneSlotResponse);
+  rpc GetSceneLoadProgress(GetSceneLoadProgressRequest) returns (SceneLoadProgress);
+
+  // ---------- 移动 (15 条) ----------
+  rpc RequestMove(MoveRequest) returns (MoveResponse);
+  rpc MoveConfirm(MoveConfirmRequest) returns (MoveConfirmResponse);
+  rpc MoveCancel(MoveCancelRequest) returns (MoveCancelResponse);
+  rpc MoveEventStream(MoveEvent) returns (MoveEventAck);
+  rpc UnitMoveStream(UnitMoveEvent) returns (UnitMoveAck);
+  rpc GetCurrentPosition(GetCurrentPositionRequest) returns (Position);
+  rpc SetPosition(SetPositionRequest) returns (SetPositionResponse);
+  rpc GetPathTo(GetPathToRequest) returns (GetPathToResponse);
+  rpc GetCoordinateTransform(GetCoordinateTransformRequest) returns (GetCoordinateTransformResponse);
+  rpc Teleport(TeleportRequest) returns (TeleportResponse);
+  rpc SubscribeMoveEvents(SubscribeMoveEventsRequest) returns (stream MoveEvent);
+  rpc GetMoveSpeed(GetMoveSpeedRequest) returns (GetMoveSpeedResponse);
+  rpc AdjustMoveSpeed(AdjustMoveSpeedRequest) returns (AdjustMoveSpeedResponse);
+  rpc BatchMove(BatchMoveRequest) returns (BatchMoveResponse);
+  rpc ValidatePath(ValidatePathRequest) returns (ValidatePathResponse);
+
+  // ---------- 地图单位 (20 条) ----------
+  rpc OperateMapUnit(OperateMapUnitRequest) returns (OperateMapUnitResponse);
+  rpc UnitSpawn(UnitSpawnRequest) returns (UnitSpawnResponse);
+  rpc UnitDespawn(UnitDespawnRequest) returns (UnitDespawnResponse);
+  rpc UnitList(UnitListRequest) returns (UnitListResponse);
+  rpc UnitUpdate(UnitUpdateRequest) returns (UnitUpdateResponse);
+  rpc NpcList(NpcListRequest) returns (NpcListResponse);
+  rpc MonsterList(MonsterListRequest) returns (MonsterListResponse);
+  rpc UnitSpeak(UnitSpeakRequest) returns (UnitSpeakResponse);
+  rpc UnitEnterScene(UnitEnterSceneEvent) returns (UnitEnterSceneAck);
+  rpc UnitLeaveScene(UnitLeaveSceneEvent) returns (UnitLeaveSceneAck);
+  rpc UnitUpdateEvent(UnitUpdateEventMsg) returns (UnitUpdateEventAck);
+  rpc UnitAct(UnitActRequest) returns (UnitActResponse);
+  rpc UnitInfo(UnitInfoRequest) returns (UnitInfoResponse);
+  rpc GetUnitById(GetUnitByIdRequest) returns (MapUnit);
+  rpc SubscribeUnitEvents(SubscribeUnitEventsRequest) returns (stream UnitEvent);
+  rpc ListUnitsByType(ListUnitsByTypeRequest) returns (ListUnitsByTypeResponse);
+  rpc BatchSpawnUnits(BatchSpawnUnitsRequest) returns (BatchSpawnUnitsResponse);
+  rpc GetUnitsInRange(GetUnitsInRangeRequest) returns (GetUnitsInRangeResponse);
+  rpc UpdateUnitStatus(UpdateUnitStatusRequest) returns (UpdateUnitStatusResponse);
+  rpc UnitAiTick(UnitAiTickRequest) returns (UnitAiTickResponse);
+
+  // ---------- 主场景 (10 条) ----------
+  rpc ClientInitData(ClientInitDataRequest) returns (ClientInitDataResponse);
+  rpc GetRoleBaseInfo(GetRoleBaseInfoRequest) returns (RoleBaseInfo);
+  rpc GetRoleAssetInfo(GetRoleAssetInfoRequest) returns (RoleAssetInfo);
+  rpc ShowMainScene(ShowMainSceneRequest) returns (ShowMainSceneResponse);
+  rpc GetAvatarList(AvatarListRequest) returns (AvatarListResponse);
+  rpc GetAvatarFrameList(AvatarFrameListRequest) returns (AvatarFrameListResponse);
+  rpc SetAvatar(SetAvatarRequest) returns (SetAvatarResponse);
+  rpc SetAvatarFrame(SetAvatarFrameRequest) returns (SetAvatarFrameResponse);
+  rpc ClientDynamicCfg(ClientDynamicCfgRequest) returns (ClientDynamicCfgResponse);
+  rpc ForceCloseClient(ForceCloseClientRequest) returns (ForceCloseClientResponse);
+
+  // ---------- 棋盘小游戏 (15 条, per 闪烁之光 proto_231.erl 棋盘格子) ----------
+  rpc GetBaseData(GetBaseDataRequest) returns (GetBaseDataResponse);
+  rpc GetGridData(GetGridDataRequest) returns (GridData);
+  rpc EnterGrid(EnterGridRequest) returns (EnterGridResponse);
+  rpc LeaveGrid(LeaveGridRequest) returns (LeaveGridResponse);
+  rpc MoveToCell(MoveToCellRequest) returns (MoveToCellResponse);
+  rpc BuyGridCell(BuyGridCellRequest) returns (BuyGridCellResponse);
+  rpc SellGridCell(SellGridCellRequest) returns (SellGridCellResponse);
+  rpc GetGridState(GetGridStateRequest) returns (GridState);
+  rpc UpgradeGridCell(UpgradeGridCellRequest) returns (UpgradeGridCellResponse);
+  rpc CollectGridReward(CollectGridRewardRequest) returns (CollectGridRewardResponse);
+  rpc GetGridBoard(GetGridBoardRequest) returns (GridBoard);
+  rpc GetGridConfig(GetGridConfigRequest) returns (GridConfig);
+  rpc ListGridBoards(ListGridBoardsRequest) returns (ListGridBoardsResponse);
+  rpc ResetGridBoard(ResetGridBoardRequest) returns (ResetGridBoardResponse);
+  rpc GetGridLeaderboard(GetGridLeaderboardRequest) returns (GetGridLeaderboardResponse);
+
+  // ---------- 场景任务 (15 条, per 闪烁之光 proto_104.erl 已接任务) ----------
+  rpc GetQuestPanel(GetQuestPanelRequest) returns (QuestPanel);
+  rpc AcceptQuest(AcceptQuestRequest) returns (AcceptQuestResponse);
+  rpc CompleteQuest(CompleteQuestRequest) returns (CompleteQuestResponse);
+  rpc AbandonQuest(AbandonQuestRequest) returns (AbandonQuestResponse);
+  rpc GetQuestReward(GetQuestRewardRequest) returns (GetQuestRewardResponse);
+  rpc TrackQuest(TrackQuestRequest) returns (TrackQuestResponse);
+  rpc UntrackQuest(UntrackQuestRequest) returns (UntrackQuestResponse);
+  rpc GetTrackedQuests(GetTrackedQuestsRequest) returns (GetTrackedQuestsResponse);
+  rpc UpdateQuestProgress(UpdateQuestProgressRequest) returns (UpdateQuestProgressResponse);
+  rpc GetQuestDetail(GetQuestDetailRequest) returns (QuestDetail);
+  rpc GetDailyQuests(GetDailyQuestsRequest) returns (GetDailyQuestsResponse);
+  rpc ClaimDailyQuestReward(ClaimDailyQuestRewardRequest) returns (ClaimDailyQuestRewardResponse);
+  rpc GetSceneQuestProgress(GetSceneQuestProgressRequest) returns (GetSceneQuestProgressResponse);
+  rpc GetMainTaskList(GetMainTaskListRequest) returns (GetMainTaskListResponse);
+  rpc ClaimTaskReward(ClaimTaskRewardRequest) returns (ClaimTaskRewardResponse);
+
+  // ---------- 场景伙伴 (10 条, per 闪烁之光 proto_110.erl 伙伴) ----------
+  rpc GetPartnerList(GetPartnerListRequest) returns (GetPartnerListResponse);
+  rpc SummonPartner(SummonPartnerRequest) returns (SummonPartnerResponse);
+  rpc BattlePartner(BattlePartnerRequest) returns (BattlePartnerResponse);
+  rpc RestPartner(RestPartnerRequest) returns (RestPartnerResponse);
+  rpc GetPartnerDetail(GetPartnerDetailRequest) returns (PartnerDetail);
+  rpc UpgradePartner(UpgradePartnerRequest) returns (UpgradePartnerResponse);
+  rpc GetPartnerLineup(GetPartnerLineupRequest) returns (GetPartnerLineupResponse);
+  rpc SetPartnerLineup(SetPartnerLineupRequest) returns (SetPartnerLineupResponse);
+  rpc GetPartnerBuffs(GetPartnerBuffsRequest) returns (GetPartnerBuffsResponse);
+  rpc DismissPartner(DismissPartnerRequest) returns (DismissPartnerResponse);
+
+  // ---------- 剧情 (15 条, per 闪烁之光 proto_111.erl 剧情播放) ----------
+  rpc PlayDrama(PlayDramaRequest) returns (PlayDramaResponse);
+  rpc SkipDrama(SkipDramaRequest) returns (SkipDramaResponse);
+  rpc GetDramaList(GetDramaListRequest) returns (GetDramaListResponse);
+  rpc GetDramaConfig(DramaConfigRequest) returns (DramaConfig);
+  rpc DramaChoice(DramaChoiceRequest) returns (DramaChoiceResponse);
+  rpc DramaEnd(DramaEndRequest) returns (DramaEndResponse);
+  rpc GetDramaProgress(GetDramaProgressRequest) returns (GetDramaProgressResponse);
+  rpc ReplayDrama(ReplayDramaRequest) returns (ReplayDramaResponse);
+  rpc PauseDrama(PauseDramaRequest) returns (PauseDramaResponse);
+  rpc ResumeDrama(ResumeDramaRequest) returns (ResumeDramaResponse);
+  rpc GetDramaBranch(DramaBranchRequest) returns (DramaBranch);
+  rpc SetDramaSpeed(SetDramaSpeedRequest) returns (SetDramaSpeedResponse);
+  rpc UnlockDrama(UnlockDramaRequest) returns (UnlockDramaResponse);
+  rpc DramaReward(DramaRewardRequest) returns (DramaRewardResponse);
+  rpc GetActiveDrama(GetActiveDramaRequest) returns (GetActiveDramaResponse);
+
+  // ---------- 阵法 (8 条, per 闪烁之光 proto_112.erl 阵法) ----------
+  rpc GetArrayList(GetArrayListRequest) returns (GetArrayListResponse);
+  rpc GetArrayDetail(GetArrayDetailRequest) returns (ArrayDetail);
+  rpc SetArray(SetArrayRequest) returns (SetArrayResponse);
+  rpc GetArraySkill(GetArraySkillRequest) returns (GetArraySkillResponse);
+  rpc UpgradeArray(UpgradeArrayRequest) returns (UpgradeArrayResponse);
+  rpc ActivateArraySkill(ActivateArraySkillRequest) returns (ActivateArraySkillResponse);
+  rpc GetActiveArray(GetActiveArrayRequest) returns (GetActiveArrayResponse);
+  rpc ResetArray(ResetArrayRequest) returns (ResetArrayResponse);
+
+  // ---------- 副本入口 (15 条, per 闪烁之光 proto_130.erl 剧情副本) ----------
+  rpc EnterInstance(EnterInstanceRequest) returns (EnterInstanceResponse);
+  rpc LeaveInstance(LeaveInstanceRequest) returns (LeaveInstanceResponse);
+  rpc GetInstanceState(GetInstanceStateRequest) returns (InstanceState);
+  rpc GetInstanceConfig(GetInstanceConfigRequest) returns (InstanceConfig);
+  rpc GetInstanceList(GetInstanceListRequest) returns (GetInstanceListResponse);
+  rpc GetInstanceDetail(GetInstanceDetailRequest) returns (InstanceDetail);
+  rpc MatchInstance(MatchInstanceRequest) returns (MatchInstanceResponse);
+  rpc CancelMatchInstance(CancelMatchInstanceRequest) returns (CancelMatchInstanceResponse);
+  rpc GetInstanceRanking(GetInstanceRankingRequest) returns (GetInstanceRankingResponse);
+  rpc ClaimInstanceReward(ClaimInstanceRewardRequest) returns (ClaimInstanceRewardResponse);
+  rpc GetInstanceProgress(GetInstanceProgressRequest) returns (GetInstanceProgressResponse);
+  rpc SweepInstance(SweepInstanceRequest) returns (SweepInstanceResponse);
+  rpc GetInstanceBuff(GetInstanceBuffRequest) returns (GetInstanceBuffResponse);
+  rpc SetInstanceAutoBattle(SetInstanceAutoBattleRequest) returns (SetInstanceAutoBattleResponse);
+  rpc GetInstanceHistory(GetInstanceHistoryRequest) returns (GetInstanceHistoryResponse);
+
+  // ---------- buff / 屏幕提示 (10 条, per 闪烁之光 proto_168.erl) ----------
+  rpc AddBuff(AddBuffRequest) returns (AddBuffResponse);
+  rpc RemoveBuff(RemoveBuffRequest) returns (RemoveBuffResponse);
+  rpc GetBuffList(GetBuffListRequest) returns (GetBuffListResponse);
+  rpc GetBuffDetail(GetBuffDetailRequest) returns (BuffDetail);
+  rpc UpdateBuff(UpdateBuffRequest) returns (UpdateBuffResponse);
+  rpc ScreenTip(ScreenTipRequest) returns (ScreenTipResponse);
+  rpc SubscribeScreenTip(SubscribeScreenTipRequest) returns (stream ScreenTipEvent);
+  rpc GetOutOfBattleBuffs(GetOutOfBattleBuffsRequest) returns (GetOutOfBattleBuffsResponse);
+  rpc ClearBuffs(ClearBuffsRequest) returns (ClearBuffsResponse);
+  rpc BuffTick(BuffTickRequest) returns (BuffTickResponse);
+
+  // ---------- 空间 / 签名 (5 条, per 闪烁之光 proto_103.erl 空间背景/签名) ----------
+  rpc GetSpaceInfo(GetSpaceInfoRequest) returns (SpaceInfo);
+  rpc GetSpaceBackgroundList(GetSpaceBackgroundListRequest) returns (GetSpaceBackgroundListResponse);
+  rpc SetSpaceBackground(SetSpaceBackgroundRequest) returns (SetSpaceBackgroundResponse);
+  rpc UpdateSign(UpdateSignRequest) returns (UpdateSignResponse);
+  rpc GetSign(GetSignRequest) returns (GetSignResponse);
+}
+
+// ============================================================================
+// 消息定义
+// ============================================================================
+
+// ---- 场景 ----
+message SceneInfo {
+  string scene_id = 1;
+  string name = 2;
+  string description = 3;
+  string map_resource_id = 4;
+  int32 max_players = 5;
+  int32 min_level = 6;
+  int32 max_level = 7;
+  string scene_type = 8;
+  repeated string allowed_pvp = 9;
+  common.v1.Timestamp created_at = 10;
+}
+
+message SceneInstance {
+  string instance_id = 1;
+  string scene_id = 2;
+  string owner_id = 3;
+  int32 player_count = 4;
+  int32 capacity = 5;
+  common.v1.Status status = 6;
+  common.v1.Timestamp created_at = 7;
+  int64 server_node_id = 8;
+}
+
+message SceneLoadProgress {
+  string instance_id = 1;
+  int32 total = 2;
+  int32 loaded = 3;
+  float percentage = 4;
+  common.v1.Status status = 5;
+}
+
+message EnterSceneRequest { string player_id = 1; string scene_id = 2; int32 entry_x = 3; int32 entry_y = 4; }
+message EnterSceneResponse { SceneInstance instance = 1; Position spawn = 2; }
+message LeaveSceneRequest { string player_id = 1; string instance_id = 2; }
+message LeaveSceneResponse { bool left = 1; int32 duration_seconds = 2; }
+message ListScenesRequest { int32 page = 1; int32 page_size = 2; }
+message ListScenesResponse { repeated SceneInfo scenes = 1; int32 total = 2; }
+message GetSceneInfoRequest { string scene_id = 1; }
+message NotifySceneReadyRequest { string player_id = 1; string instance_id = 2; }
+message NotifySceneReadyResponse { bool ready = 1; }
+message ListAvailableScenesRequest { string player_id = 1; int32 player_level = 2; }
+message ListAvailableScenesResponse { repeated SceneInfo scenes = 1; }
+message SwitchSceneServerRequest { string player_id = 1; int64 target_node_id = 2; }
+message SwitchSceneServerResponse { string new_instance_id = 1; int64 new_node_id = 2; }
+message GetCurrentSceneRequest { string player_id = 1; }
+message ReserveSceneSlotRequest { string player_id = 1; string scene_id = 2; }
+message ReserveSceneSlotResponse { string reservation_id = 1; int32 expires_in = 2; }
+message GetSceneLoadProgressRequest { string player_id = 1; string instance_id = 2; }
+
+// ---- 移动 ----
+message Position { int32 x = 1; int32 y = 2; int32 dir = 3; string map_id = 4; }
+message MoveRequest { string player_id = 1; string instance_id = 2; int32 target_x = 3; int32 target_y = 4; int32 dir = 5; }
+message MoveResponse { Position current = 1; bool accepted = 2; int32 eta_ms = 3; }
+message MoveConfirmRequest { string player_id = 1; int32 x = 2; int32 y = 3; }
+message MoveConfirmResponse { bool confirmed = 1; int32 cost_ms = 2; }
+message MoveCancelRequest { string player_id = 1; string instance_id = 2; }
+message MoveCancelResponse { bool cancelled = 1; }
+message MoveEvent { string player_id = 1; string instance_id = 2; Position from = 3; Position to = 4; int64 timestamp_ms = 5; int32 speed = 6; }
+message MoveEventAck { bool received = 1; }
+message UnitMoveEvent { string instance_id = 1; string unit_id = 2; int32 target_x = 3; int32 target_y = 4; int64 timestamp_ms = 5; }
+message UnitMoveAck { bool received = 1; }
+message GetCurrentPositionRequest { string player_id = 1; string instance_id = 2; }
+message SetPositionRequest { string player_id = 1; string instance_id = 2; int32 x = 3; int32 y = 4; }
+message SetPositionResponse { bool ok = 1; }
+message GetPathToRequest { string player_id = 1; string instance_id = 2; int32 from_x = 3; int32 from_y = 4; int32 to_x = 5; int32 to_y = 6; }
+message GetPathToResponse { repeated Position path = 1; int32 distance = 2; }
+message GetCoordinateTransformRequest { string from_space = 1; string to_space = 2; int32 x = 3; int32 y = 4; }
+message GetCoordinateTransformResponse { int32 x = 1; int32 y = 2; }
+message TeleportRequest { string player_id = 1; string instance_id = 2; int32 to_x = 3; int32 to_y = 4; string reason = 5; }
+message TeleportResponse { bool ok = 1; Position new_pos = 2; }
+message SubscribeMoveEventsRequest { string instance_id = 1; }
+message GetMoveSpeedRequest { string player_id = 1; }
+message GetMoveSpeedResponse { int32 base_speed = 1; int32 buff_speed = 2; int32 total = 3; }
+message AdjustMoveSpeedRequest { string player_id = 1; int32 delta = 2; int32 duration_ms = 3; }
+message AdjustMoveSpeedResponse { int32 new_speed = 1; int32 expires_in = 2; }
+message BatchMoveRequest { repeated string player_ids = 1; string instance_id = 2; int32 target_x = 3; int32 target_y = 4; }
+message BatchMoveResponse { int32 success = 1; int32 failed = 2; }
+message ValidatePathRequest { string instance_id = 1; repeated Position path = 2; }
+message ValidatePathResponse { bool valid = 1; repeated int32 invalid_indices = 2; }
+
+// ---- 单位 ----
+message MapUnit {
+  string unit_id = 1;
+  int32 battle_id = 2;
+  int32 base_id = 3;
+  string name = 4;
+  int32 status = 5;
+  int32 speed = 6;
+  Position pos = 7;
+  int32 level = 8;
+  repeated Appearance looks = 9;
+}
+
+message Appearance {
+  int32 looks_type = 1;
+  int32 looks_mode = 2;
+  int32 looks_val = 3;
+  string looks_str = 4;
+}
+
+message OperateMapUnitRequest { int32 battle_id = 1; int32 id = 2; int32 code = 3; }
+message OperateMapUnitResponse { int32 result = 1; string msg = 2; int32 battle_id = 3; int32 id = 4; int32 time = 5; }
+message UnitSpawnRequest { string instance_id = 1; int32 base_id = 2; int32 x = 3; int32 y = 4; }
+message UnitSpawnResponse { string unit_id = 1; bool ok = 2; }
+message UnitDespawnRequest { string unit_id = 1; string instance_id = 2; }
+message UnitDespawnResponse { bool ok = 1; }
+message UnitListRequest { string instance_id = 1; }
+message UnitListResponse { repeated MapUnit units = 1; }
+message UnitUpdateRequest { string unit_id = 1; int32 status = 2; int32 x = 3; int32 y = 4; }
+message UnitUpdateResponse { bool ok = 1; }
+message NpcListRequest { string instance_id = 1; }
+message NpcListResponse { repeated MapUnit npcs = 1; }
+message MonsterListRequest { string instance_id = 1; int32 area_id = 2; }
+message MonsterListResponse { repeated MapUnit monsters = 1; }
+message UnitSpeakRequest { string unit_id = 1; string msg = 2; }
+message UnitSpeakResponse { bool broadcast = 1; }
+message UnitEnterSceneEvent { MapUnit unit = 1; }
+message UnitEnterSceneAck { bool received = 1; }
+message UnitLeaveSceneEvent { int32 battle_id = 1; int32 id = 2; }
+message UnitLeaveSceneAck { bool received = 1; }
+message UnitUpdateEventMsg { MapUnit unit = 1; }
+message UnitUpdateEventAck { bool received = 1; }
+message UnitActRequest { string unit_id = 1; int32 act_type = 2; int32 num = 3; }
+message UnitActResponse { bool ok = 1; }
+message UnitInfoRequest { string unit_id = 1; }
+message UnitInfoResponse { MapUnit unit = 1; }
+message GetUnitByIdRequest { string unit_id = 1; }
+message SubscribeUnitEventsRequest { string instance_id = 1; }
+message UnitEvent { string unit_id = 1; string event_type = 2; MapUnit unit = 3; int64 timestamp_ms = 4; }
+message ListUnitsByTypeRequest { string instance_id = 1; string unit_type = 2; }
+message ListUnitsByTypeResponse { repeated MapUnit units = 1; }
+message BatchSpawnUnitsRequest { string instance_id = 1; repeated UnitSpawnRequest units = 2; }
+message BatchSpawnUnitsResponse { int32 spawned = 1; repeated string unit_ids = 2; }
+message GetUnitsInRangeRequest { string instance_id = 1; int32 center_x = 2; int32 center_y = 3; int32 radius = 4; }
+message GetUnitsInRangeResponse { repeated MapUnit units = 1; }
+message UpdateUnitStatusRequest { string unit_id = 1; int32 status = 2; }
+message UpdateUnitStatusResponse { bool ok = 1; }
+message UnitAiTickRequest { string unit_id = 1; int64 tick = 2; }
+message UnitAiTickResponse { int32 action = 1; int32 target_x = 2; int32 target_y = 3; }
+
+// ---- 主场景 ----
+message ClientInitDataRequest { string player_id = 1; }
+message ClientInitDataResponse { map<string, string> configs = 1; }
+message GetRoleBaseInfoRequest { string player_id = 1; }
+message RoleBaseInfo { string player_id = 1; string name = 2; int32 level = 3; int32 vip = 4; int32 face = 5; int32 avatar = 6; int32 sex = 7; }
+message GetRoleAssetInfoRequest { string player_id = 1; }
+message RoleAssetInfo { string player_id = 1; repeated AssetItem items = 2; }
+message AssetItem { int32 item_id = 1; int32 count = 2; int32 type = 3; }
+message ShowMainSceneRequest { string player_id = 1; string scene_id = 2; }
+message ShowMainSceneResponse { bool ok = 1; }
+message AvatarListRequest { string player_id = 1; }
+message AvatarListResponse { repeated int32 avatar_ids = 1; }
+message AvatarFrameListRequest { string player_id = 1; }
+message AvatarFrameListResponse { repeated int32 frame_ids = 1; }
+message SetAvatarRequest { string player_id = 1; int32 avatar_id = 2; }
+message SetAvatarResponse { bool ok = 1; }
+message SetAvatarFrameRequest { string player_id = 1; int32 frame_id = 2; }
+message SetAvatarFrameResponse { bool ok = 1; }
+message ClientDynamicCfgRequest { string player_id = 1; }
+message ClientDynamicCfgResponse { string config_blob = 1; }
+message ForceCloseClientRequest { string player_id = 1; string reason = 2; }
+message ForceCloseClientResponse { bool ok = 1; }
+
+// ---- 棋盘 ----
+message GridData {
+  string board_id = 1;
+  string player_id = 2;
+  int32 rows = 3;
+  int32 cols = 4;
+  repeated GridCell cells = 5;
+  int32 turn = 6;
+}
+
+message GridCell { int32 row = 1; int32 col = 2; int32 cell_type = 3; int32 owner = 4; int32 level = 5; }
+message GridState { string board_id = 1; common.v1.Status status = 2; int32 round = 3; }
+message GridBoard { string board_id = 1; string name = 2; int32 rows = 3; int32 cols = 4; }
+message GridConfig { string config_id = 1; string name = 2; map<string, string> params = 3; }
+message GetBaseDataRequest { string config_id = 1; }
+message GetBaseDataResponse { map<string, string> data = 1; }
+message GetGridDataRequest { string player_id = 1; string board_id = 2; }
+message EnterGridRequest { string player_id = 1; string board_id = 2; }
+message EnterGridResponse { GridData data = 1; }
+message LeaveGridRequest { string player_id = 1; string board_id = 2; }
+message LeaveGridResponse { bool ok = 1; }
+message MoveToCellRequest { string player_id = 1; string board_id = 2; int32 row = 3; int32 col = 4; }
+message MoveToCellResponse { bool ok = 1; int32 dice = 2; int32 target_cell = 3; }
+message BuyGridCellRequest { string player_id = 1; string board_id = 2; int32 row = 3; int32 col = 4; }
+message BuyGridCellResponse { bool ok = 1; int32 cost = 2; int32 new_owner = 3; }
+message SellGridCellRequest { string player_id = 1; string board_id = 2; int32 row = 3; int32 col = 4; }
+message SellGridCellResponse { bool ok = 1; int32 gain = 2; }
+message GetGridStateRequest { string board_id = 1; }
+message UpgradeGridCellRequest { string player_id = 1; string board_id = 2; int32 row = 3; int32 col = 4; }
+message UpgradeGridCellResponse { bool ok = 1; int32 new_level = 2; int32 cost = 3; }
+message CollectGridRewardRequest { string player_id = 1; string board_id = 2; int32 row = 3; int32 col = 4; }
+message CollectGridRewardResponse { int32 reward = 1; string currency = 2; }
+message GetGridBoardRequest { string board_id = 1; }
+message GetGridConfigRequest { string config_id = 1; }
+message ListGridBoardsRequest { int32 page = 1; int32 page_size = 2; }
+message ListGridBoardsResponse { repeated GridBoard boards = 1; int32 total = 2; }
+message ResetGridBoardRequest { string board_id = 1; }
+message ResetGridBoardResponse { bool ok = 1; }
+message GetGridLeaderboardRequest { string board_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetGridLeaderboardResponse { repeated GridLeaderboardEntry entries = 1; }
+message GridLeaderboardEntry { string player_id = 1; int32 score = 2; int32 rank = 3; }
+
+// ---- 任务 ----
+message QuestPanel { string player_id = 1; repeated QuestInfo quests = 2; int32 total = 3; }
+message QuestInfo { string quest_id = 1; string name = 2; int32 status = 3; int32 progress = 4; int32 target = 5; }
+message QuestDetail { string quest_id = 1; string name = 2; string description = 3; int32 status = 4; int32 progress = 5; int32 target = 6; repeated QuestReward rewards = 7; }
+message QuestReward { int32 item_id = 1; int32 count = 2; }
+message GetQuestPanelRequest { string player_id = 1; }
+message AcceptQuestRequest { string player_id = 1; string quest_id = 2; }
+message AcceptQuestResponse { bool ok = 1; int32 status = 2; }
+message CompleteQuestRequest { string player_id = 1; string quest_id = 2; }
+message CompleteQuestResponse { bool ok = 1; int32 status = 2; }
+message AbandonQuestRequest { string player_id = 1; string quest_id = 2; }
+message AbandonQuestResponse { bool ok = 1; }
+message GetQuestRewardRequest { string player_id = 1; string quest_id = 2; }
+message GetQuestRewardResponse { repeated QuestReward rewards = 1; }
+message TrackQuestRequest { string player_id = 1; string quest_id = 2; }
+message TrackQuestResponse { bool ok = 1; }
+message UntrackQuestRequest { string player_id = 1; string quest_id = 2; }
+message UntrackQuestResponse { bool ok = 1; }
+message GetTrackedQuestsRequest { string player_id = 1; }
+message GetTrackedQuestsResponse { repeated string quest_ids = 1; }
+message UpdateQuestProgressRequest { string player_id = 1; string quest_id = 2; int32 delta = 3; }
+message UpdateQuestProgressResponse { int32 new_progress = 1; int32 target = 2; }
+message GetQuestDetailRequest { string player_id = 1; string quest_id = 2; }
+message GetDailyQuestsRequest { string player_id = 1; }
+message GetDailyQuestsResponse { repeated QuestInfo quests = 1; }
+message ClaimDailyQuestRewardRequest { string player_id = 1; string quest_id = 2; }
+message ClaimDailyQuestRewardResponse { bool ok = 1; }
+message GetSceneQuestProgressRequest { string player_id = 1; string scene_id = 2; }
+message GetSceneQuestProgressResponse { int32 completed = 1; int32 total = 2; }
+message GetMainTaskListRequest { string player_id = 1; }
+message GetMainTaskListResponse { repeated QuestInfo tasks = 1; }
+message ClaimTaskRewardRequest { string player_id = 1; string task_id = 2; }
+message ClaimTaskRewardResponse { bool ok = 1; }
+
+// ---- 伙伴 ----
+message PartnerInfo { string partner_id = 1; string name = 2; int32 level = 3; int32 star = 4; int32 rarity = 5; int32 status = 6; }
+message PartnerDetail { string partner_id = 1; string name = 2; int32 level = 3; int32 star = 4; int32 rarity = 5; int32 status = 6; int32 hp = 7; int32 atk = 8; int32 def = 9; repeated string skills = 10; }
+message GetPartnerListRequest { string player_id = 1; }
+message GetPartnerListResponse { repeated PartnerInfo partners = 1; }
+message SummonPartnerRequest { string player_id = 1; int32 summon_type = 2; }
+message SummonPartnerResponse { PartnerInfo partner = 1; }
+message BattlePartnerRequest { string player_id = 1; string partner_id = 2; }
+message BattlePartnerResponse { bool ok = 1; }
+message RestPartnerRequest { string player_id = 1; string partner_id = 2; }
+message RestPartnerResponse { bool ok = 1; }
+message GetPartnerDetailRequest { string player_id = 1; string partner_id = 2; }
+message UpgradePartnerRequest { string player_id = 1; string partner_id = 2; int32 target_level = 3; }
+message UpgradePartnerResponse { int32 new_level = 1; int32 cost = 2; }
+message GetPartnerLineupRequest { string player_id = 1; }
+message GetPartnerLineupResponse { repeated string partner_ids = 1; }
+message SetPartnerLineupRequest { string player_id = 1; repeated string partner_ids = 2; }
+message SetPartnerLineupResponse { bool ok = 1; }
+message GetPartnerBuffsRequest { string player_id = 1; }
+message GetPartnerBuffsResponse { repeated BuffDetail buffs = 1; }
+message DismissPartnerRequest { string player_id = 1; string partner_id = 2; }
+message DismissPartnerResponse { bool ok = 1; }
+
+// ---- 剧情 ----
+message DramaInfo { string drama_id = 1; string name = 2; int32 status = 3; int32 chapter = 4; }
+message DramaConfig { string drama_id = 1; string name = 2; map<string, string> params = 3; }
+message DramaConfigRequest { string drama_id = 1; }
+message DramaChoice { string drama_id = 1; string branch_id = 2; string label = 3; }
+message DramaBranch { string drama_id = 1; string branch_id = 2; string label = 3; repeated DramaChoice choices = 4; }
+message DramaBranchRequest { string drama_id = 1; }
+message PlayDramaRequest { string player_id = 1; string drama_id = 2; }
+message PlayDramaResponse { bool ok = 1; int32 chapter = 2; }
+message SkipDramaRequest { string player_id = 1; string drama_id = 2; }
+message SkipDramaResponse { bool ok = 1; int32 reward = 2; }
+message GetDramaListRequest { string player_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetDramaListResponse { repeated DramaInfo dramas = 1; int32 total = 2; }
+message DramaChoiceRequest { string player_id = 1; string drama_id = 2; string branch_id = 3; }
+message DramaChoiceResponse { bool ok = 1; int32 next_chapter = 2; }
+message DramaEndRequest { string player_id = 1; string drama_id = 2; }
+message DramaEndResponse { bool ok = 1; }
+message GetDramaProgressRequest { string player_id = 1; string drama_id = 2; }
+message GetDramaProgressResponse { int32 chapter = 1; int32 total = 2; }
+message ReplayDramaRequest { string player_id = 1; string drama_id = 2; }
+message ReplayDramaResponse { bool ok = 1; }
+message PauseDramaRequest { string player_id = 1; string drama_id = 2; }
+message PauseDramaResponse { bool ok = 1; }
+message ResumeDramaRequest { string player_id = 1; string drama_id = 2; }
+message ResumeDramaResponse { bool ok = 1; }
+message SetDramaSpeedRequest { string player_id = 1; string drama_id = 2; int32 speed = 3; }
+message SetDramaSpeedResponse { bool ok = 1; }
+message UnlockDramaRequest { string player_id = 1; string drama_id = 2; }
+message UnlockDramaResponse { bool ok = 1; }
+message DramaRewardRequest { string player_id = 1; string drama_id = 2; }
+message DramaRewardResponse { repeated QuestReward rewards = 1; }
+message GetActiveDramaRequest { string player_id = 1; }
+message GetActiveDramaResponse { DramaInfo drama = 1; }
+
+// ---- 阵法 ----
+message ArrayInfo { string array_id = 1; string name = 2; int32 level = 3; int32 star = 4; }
+message ArrayDetail { string array_id = 1; string name = 2; int32 level = 3; int32 star = 4; int32 hp_bonus = 5; int32 atk_bonus = 6; int32 def_bonus = 7; }
+message GetArrayListRequest { string player_id = 1; }
+message GetArrayListResponse { repeated ArrayInfo arrays = 1; }
+message GetArrayDetailRequest { string player_id = 1; string array_id = 2; }
+message SetArrayRequest { string player_id = 1; string array_id = 2; int32 slot = 3; }
+message SetArrayResponse { bool ok = 1; }
+message GetArraySkillRequest { string player_id = 1; string array_id = 2; }
+message GetArraySkillResponse { repeated string skill_ids = 1; }
+message UpgradeArrayRequest { string player_id = 1; string array_id = 2; int32 target_level = 3; }
+message UpgradeArrayResponse { int32 new_level = 1; int32 cost = 2; }
+message ActivateArraySkillRequest { string player_id = 1; string array_id = 2; string skill_id = 3; }
+message ActivateArraySkillResponse { bool ok = 1; }
+message GetActiveArrayRequest { string player_id = 1; }
+message GetActiveArrayResponse { ArrayInfo array = 1; }
+message ResetArrayRequest { string player_id = 1; string array_id = 2; }
+message ResetArrayResponse { bool ok = 1; }
+
+// ---- 副本 ----
+message InstanceState { string instance_id = 1; common.v1.Status status = 2; int32 progress = 3; int32 wave = 4; int64 started_at = 5; }
+message InstanceConfig { string instance_id = 1; string name = 2; int32 max_wave = 3; int32 reward_tier = 4; }
+message InstanceDetail { string instance_id = 1; string name = 2; int32 level = 3; int32 difficulty = 4; int32 reward_score = 5; }
+message EnterInstanceRequest { string player_id = 1; string instance_id = 2; }
+message EnterInstanceResponse { bool ok = 1; string ticket = 2; }
+message LeaveInstanceRequest { string player_id = 1; string instance_id = 2; }
+message LeaveInstanceResponse { bool ok = 1; int32 reward = 2; }
+message GetInstanceStateRequest { string player_id = 1; string instance_id = 2; }
+message GetInstanceConfigRequest { string instance_id = 1; }
+message GetInstanceListRequest { string player_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetInstanceListResponse { repeated InstanceDetail instances = 1; int32 total = 2; }
+message GetInstanceDetailRequest { string instance_id = 1; }
+message MatchInstanceRequest { string player_id = 1; string instance_id = 2; }
+message MatchInstanceResponse { string ticket = 1; int32 wait_ms = 2; }
+message CancelMatchInstanceRequest { string player_id = 1; string ticket = 2; }
+message CancelMatchInstanceResponse { bool ok = 1; }
+message GetInstanceRankingRequest { string instance_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetInstanceRankingResponse { repeated InstanceRankingEntry entries = 1; }
+message InstanceRankingEntry { string player_id = 1; int32 score = 2; int32 rank = 3; }
+message ClaimInstanceRewardRequest { string player_id = 1; string instance_id = 2; }
+message ClaimInstanceRewardResponse { bool ok = 1; int32 reward = 2; }
+message GetInstanceProgressRequest { string player_id = 1; string instance_id = 2; }
+message GetInstanceProgressResponse { int32 wave = 1; int32 max_wave = 2; }
+message SweepInstanceRequest { string player_id = 1; string instance_id = 2; int32 times = 3; }
+message SweepInstanceResponse { int32 reward = 1; int32 cost = 2; }
+message GetInstanceBuffRequest { string player_id = 1; string instance_id = 2; }
+message GetInstanceBuffResponse { repeated BuffDetail buffs = 1; }
+message SetInstanceAutoBattleRequest { string player_id = 1; string instance_id = 2; bool enable = 3; }
+message SetInstanceAutoBattleResponse { bool ok = 1; }
+message GetInstanceHistoryRequest { string player_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetInstanceHistoryResponse { repeated InstanceState history = 1; }
+
+// ---- buff / 屏幕提示 ----
+message BuffDetail { string buff_id = 1; string name = 2; int32 level = 3; int32 duration_ms = 4; int32 source = 5; }
+message ScreenTipEvent { string text = 1; int32 level = 2; int64 timestamp_ms = 3; }
+message AddBuffRequest { string target_id = 1; string buff_id = 2; int32 level = 3; int32 duration_ms = 4; }
+message AddBuffResponse { bool ok = 1; }
+message RemoveBuffRequest { string target_id = 1; string buff_id = 2; }
+message RemoveBuffResponse { bool ok = 1; }
+message GetBuffListRequest { string target_id = 1; }
+message GetBuffListResponse { repeated BuffDetail buffs = 1; }
+message GetBuffDetailRequest { string target_id = 1; string buff_id = 2; }
+message UpdateBuffRequest { string target_id = 1; string buff_id = 2; int32 new_duration_ms = 3; int32 new_level = 4; }
+message UpdateBuffResponse { bool ok = 1; }
+message ScreenTipRequest { string player_id = 1; string text = 2; int32 level = 3; }
+message ScreenTipResponse { bool broadcast = 1; }
+message SubscribeScreenTipRequest { string player_id = 1; }
+message GetOutOfBattleBuffsRequest { string player_id = 1; }
+message GetOutOfBattleBuffsResponse { repeated BuffDetail buffs = 1; }
+message ClearBuffsRequest { string target_id = 1; }
+message ClearBuffsResponse { int32 removed = 1; }
+message BuffTickRequest { string target_id = 1; int64 tick = 2; }
+message BuffTickResponse { int32 expired = 1; }
+
+// ---- 空间 / 签名 ----
+message SpaceInfo { string player_id = 1; string background_id = 2; string sign = 3; int32 visits = 4; int32 likes = 5; }
+message GetSpaceInfoRequest { string player_id = 1; }
+message GetSpaceBackgroundListRequest { string player_id = 1; }
+message GetSpaceBackgroundListResponse { repeated string background_ids = 1; }
+message SetSpaceBackgroundRequest { string player_id = 1; string background_id = 2; }
+message SetSpaceBackgroundResponse { bool ok = 1; }
+message UpdateSignRequest { string player_id = 1; string sign = 2; }
+message UpdateSignResponse { bool ok = 1; }
+message GetSignRequest { string player_id = 1; }
+message GetSignResponse { string sign = 1; }

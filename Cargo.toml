@@ -20,6 +20,7 @@ members = [
     "crates/leaderboard-service",
     "crates/replay-service",
     "crates/network-gateway",
+    "crates/scene-service",
 ]
 resolver = "2"
 
