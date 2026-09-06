@@ -116,3 +116,8 @@ certs/*
 !certs/MANIFEST.toml
 !certs/MANIFEST.example.toml
 certs/.*  # 隐藏文件也排除
+
+# W22-W25 worker 错写路径遗留 (per 9/6 18:08 JST session reconnect)
+/.worktrees/
+/docs/00-*/*handoff*
+
