@@ -1,0 +1,45 @@
+[package]
+name = "battle-service"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "7 域战斗微服务 (per 路线图 §3 W5 / 9/4 MD §2 战斗与 PVE 核心 241 RPC / 闪烁之光借鉴)"
+
+[[bin]]
+name = "battle-service"
+path = "src/main.rs"
+
+[features]
+default = ["tracing"]
+tracing = []
+
+[dependencies]
+# workspace 公共服务
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+# gRPC server
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+# 7 域独立 DB 原则 (per ARC-008 + 7 域扩展)
+sqlx = { workspace = true }
+# 5 域对齐 mTLS + outbox
+shared-platform = { path = "../shared-platform" }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[dev-dependencies]
+# 6 域 rgs-testkit dev-dep 接入 (per rgs-testkit 强约束: 禁 InMemory, 用 NoOp)
+rgs-testkit = { path = "../rgs-testkit" }

@@ -1,0 +1,551 @@
+syntax = "proto3";
+package battle.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/battle/v1;battlev1";
+
+// ============================================================
+// battle-service v0.1 (per 闪烁之光 借鉴 + RGS-IMPL-PLAN 7 域扩展)
+//
+// 任务来源: D:\sszgC\改进路线图.md §3 Phase 2 / §0.1 7 域 ready=True
+// 上游分析: E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\
+//   - API清单-全量提取-2026-09-04.tsv (12 个战斗类 proto_*.erl, 249 条)
+//   - API清单与RGS借鉴分析-2026-09-04.md §2/§4 (反例: 6 PVP 变体 + 9 holiday_*)
+//
+// 域职责 (7 域独立 Lead, per 8/21 JST 5 域独立 → 9/1 JST batch 域 → 9/5 JST battle 域):
+//   1. BattleEngineService  - 战斗引擎 (proto_200, 31 RPC: 初始化/准备/回合/技能/录像/观战)
+//   2. PvPService           - 1 个服务覆盖 6 个 PVP 变体 (proto_202 + proto_243 数据驱动)
+//   3. BossService          - PVE BOSS (proto_205, 15 RPC: 个人/世界 BOSS)
+//   4. RoomService          - 房间战 + 矿战 (proto_206, 46 RPC: 房间/技能/事件/矿脉)
+//   5. InstanceService      - 副本 (proto_207, 6 RPC: 副本基本信息/挑战日志)
+//   6. EndlessTowerService  - 无尽塔 (proto_239, 12 RPC: 派出/雇佣/BUFF)
+//   7. EscortService        - 护送 (proto_240, 17 RPC: 发起/掠夺/反击)
+//   8. HolyEquipService     - 圣器养成 (proto_241, 23 RPC: 进阶/升级/任务/幻化)
+//   9. GuildWarService      - 公会战 (proto_242, 17 RPC: 防守/进攻/排行)
+//  10. CrossServerService   - 跨服 PVP (proto_243, 19 RPC: 跨服挑战/录像)
+//  11. ExpeditionService    - 远征 (proto_244, 15 RPC: 关卡/支援/雇佣)
+//  12. HolidayActivityService - 1 个服务覆盖 9 个 holiday_* 变体 (proto_248, 18 RPC: 元宵/灯会/活动, 数据驱动)
+//
+// 反例原则 (per 9/4 MD §4 + 路线图 §0.3):
+//   - 6 个 PVP 变体 不重复 6 套代码, 1 个 PvPService + PvPConfig (ranked/casual/cross-server/...)
+//   - 9 个 holiday_* 活动 不重复 9 套代码, 1 个 HolidayActivityService + ActivityConfig (bid:93031/...)
+//
+// 协议码: 20000-20063 + 20200-20282 + 20500-20542 + 20600-20660 + 20700-20706
+//       + 23900-23911 + 24000-24020 + 24100-24135 + 24200-24223 + 24300-24318
+//       + 24400-24415 + 24801-24818 (合计 249 条, 9/4 报告 §2 写 241, 实际 249)
+//
+// 状态: 初版, 8 业务实装 + 241 stub Unimplemented, 30 min 出报告 (per 路线图 §3 W5)
+// ============================================================
+
+// ===== 通用 message (跨服务复用) =====
+
+message EmptyRequest {
+  string request_id = 1;
+  common.v1.PlayerId player = 2;
+}
+
+message EmptyResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message BattleId {
+  string battle_id = 1;
+}
+
+message BattleState {
+  string battle_id = 1;
+  string battle_type = 2;     // "pve" / "pvp" / "boss" / "endless" / ...
+  uint32 turn_index = 3;
+  common.v1.Status status = 4; // common.v1.Status
+  int64 created_at_ms = 5;
+  int64 updated_at_ms = 6;
+  // 战斗状态 JSON (业务层解析, 与 match-service 保持一致)
+  string snapshot_json = 7;
+}
+
+message BattleAction {
+  common.v1.PlayerId actor = 1;
+  string action_type = 2;     // "use_skill" / "attack" / "defend" / "flee" / ...
+  uint32 skill_id = 3;
+  string target_id = 4;
+  string payload_json = 5;
+}
+
+message BattleResult {
+  string battle_id = 1;
+  bool victory = 2;
+  int32 stars = 3;
+  // 奖励列表 (item_id, count)
+  repeated BattleReward rewards = 4;
+  string summary_json = 5;
+}
+
+message BattleReward {
+  int32 item_id = 1;
+  int32 count = 2;
+  string description = 3;
+}
+
+message BattleLog {
+  uint32 turn_index = 1;
+  int64 occurred_at_ms = 2;
+  string actor_id = 3;
+  string text = 4;
+  string payload_json = 5;
+}
+
+message RoomId {
+  string room_id = 1;
+}
+
+message RoomInfo {
+  string room_id = 1;
+  string room_name = 2;
+  uint32 max_players = 3;
+  uint32 current_players = 4;
+  common.v1.Status status = 5;
+  string host_id = 6;
+  int64 created_at_ms = 7;
+}
+
+message BuffInfo {
+  uint32 buff_id = 1;
+  string name = 2;
+  uint32 duration_turns = 3;
+  string effect_json = 4;
+}
+
+message CompanionInfo {
+  string companion_id = 1;
+  string name = 2;
+  uint32 level = 3;
+  uint32 stars = 4;
+  string element = 5;
+}
+
+message InstanceInfo {
+  string instance_id = 1;
+  string name = 2;
+  uint32 difficulty = 3;
+  uint32 required_level = 4;
+  bool unlocked = 5;
+}
+
+message BountyInfo {
+  uint32 bounty_id = 1;
+  string target_player = 2;
+  int32 reward_amount = 3;
+  int64 expires_at_ms = 4;
+}
+
+message ActivityTemplate {
+  string activity_id = 1;      // bid: 93031/93032/93033 / "lantern" / "adventure" / ...
+  string activity_name = 2;
+  int64 opens_at_ms = 3;
+  int64 closes_at_ms = 4;
+  string config_json = 5;       // 数据驱动, 业务层解析
+}
+
+message ActivityReward {
+  string activity_id = 1;
+  int32 item_id = 2;
+  int32 count = 3;
+  string description = 4;
+  bool claimed = 5;
+}
+
+message CrossServerEntry {
+  uint32 entry_id = 1;
+  string player_id = 2;
+  string player_name = 3;
+  uint32 rank_score = 4;
+  uint32 server_id = 5;
+}
+
+message GuildWarEntry {
+  string guild_id = 1;
+  string guild_name = 2;
+  uint32 stars = 3;
+  uint32 rank = 4;
+}
+
+// ============================================================================
+// 1. BattleEngineService - 战斗引擎 (proto_200.erl, 31 RPC)
+// ============================================================================
+
+service BattleEngineService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 战斗生命周期 (per proto_200 20000-20009) ===
+  rpc BattleInit(EmptyRequest) returns (BattleState);                    // 20000 战斗初始化数据
+  rpc BattlePrepare(EmptyRequest) returns (BattleState);                 // 20001 战斗准备
+  rpc BattleStart(BattleId) returns (BattleState);                       // 20002 回合开始
+  rpc BattleAction(BattleId) returns (BattleState);                      // 20004 使用技能的战斗播报
+  rpc BattlePlayComplete(EmptyRequest) returns (EmptyResponse);           // 20005 客户端播放完成
+  rpc BattleEnd(BattleId) returns (BattleResult);                        // 20006 战斗结果
+  rpc BattleExit(EmptyRequest) returns (EmptyResponse);                  // 20008 退出战斗
+  rpc BattleExitForInstance(EmptyRequest) returns (EmptyResponse);       // 20009 退出战斗(神装副本1队)
+
+  // === 战斗重连 / 切磋 (per 20013-20020) ===
+  rpc BattleReconnect(EmptyRequest) returns (BattleState);                // 20013 战斗重连
+  rpc BattleDuelRequest(EmptyRequest) returns (EmptyResponse);            // 20014 战斗切磋请求
+  rpc BattleDuelResponse(EmptyRequest) returns (EmptyResponse);           // 20015 同不同意切磋
+  rpc BattleDuelConfirm(EmptyRequest) returns (EmptyResponse);            // 20016 确认切磋
+  rpc BattleRoundStartComplete(EmptyRequest) returns (EmptyResponse);    // 20019 回合开始播放完成
+  rpc BattleNextWave(EmptyRequest) returns (EmptyResponse);               // 20020 下一波怪物
+  rpc BattleChangeSpeed(EmptyRequest) returns (EmptyResponse);            // 20022 改变战斗播放速度
+
+  // === 地图 / 推送 (per 20026-20040) ===
+  rpc BattleMapLoadComplete(EmptyRequest) returns (EmptyResponse);       // 20026 地图加载完成
+  rpc BattlePushUnit(EmptyRequest) returns (EmptyResponse);              // 20027 推送战斗单位
+  rpc BattleReconnectReady(EmptyRequest) returns (EmptyResponse);         // 20028 重连准备好了
+  rpc BattleWatchReplay(EmptyRequest) returns (EmptyResponse);           // 20029 观看战斗录像
+  rpc BattleRequestState(EmptyRequest) returns (BattleState);            // 20030 请求战斗状态
+  rpc BattleDuelSettle(EmptyRequest) returns (BattleResult);             // 20033 切磋的结算
+  rpc BattleShareReplay(EmptyRequest) returns (EmptyResponse);           // 20034 录像分享
+  rpc BattleCrossServerWatchReplay(EmptyRequest) returns (EmptyResponse);// 20036 跨服查看录像
+  rpc BattleSpectate(EmptyRequest) returns (EmptyResponse);              // 20037 观战
+  rpc BattleSpectateExit(EmptyRequest) returns (EmptyResponse);          // 20038 退出观战
+  rpc BattleSpectateInit(EmptyRequest) returns (EmptyResponse);          // 20039 观战初始化
+  rpc BattleSpectateExitNotify(EmptyRequest) returns (EmptyResponse);    // 20040 退出观战通知
+
+  // === 战斗类型选择 (per 20060-20063) ===
+  rpc BattleRequestType(EmptyRequest) returns (EmptyResponse);           // 20060 请求指定战斗类型
+  rpc BattleEnterMock(EmptyRequest) returns (EmptyResponse);             // 20061 进入指定战斗类型假战斗
+  rpc BattleSkip(EmptyRequest) returns (EmptyResponse);                   // 20062 跳过战斗
+  rpc BattleAllTypes(EmptyRequest) returns (EmptyResponse);               // 20063 当前所有战斗类型
+}
+
+// ============================================================================
+// 2. PvPService - 1 套代码覆盖 6 个 PVP 变体 (proto_202.erl, 30 RPC, 数据驱动 PvPMode)
+// ============================================================================
+
+service PvPService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 挑战玩家 / 列表 (per 20200-20223, 6 变体共享) ===
+  rpc GetPlayerInfo(EmptyRequest) returns (EmptyResponse);               // 20200 个人信息
+  rpc GetChallengeList(EmptyRequest) returns (EmptyResponse);            // 20201 挑战列表
+  rpc GetChallengeeInfo(EmptyRequest) returns (EmptyResponse);           // 20202 获取挑战玩家信息
+  rpc ChallengePlayer(EmptyRequest) returns (EmptyResponse);             // 20203 挑战玩家
+  rpc ViewOpponentHero(EmptyRequest) returns (EmptyResponse);            // 20204 查看对方英雄
+  rpc RefreshList(EmptyRequest) returns (EmptyResponse);                 // 20206 刷新列表
+  rpc BuyChallengeCount(EmptyRequest) returns (EmptyResponse);           // 20207 购买挑战次数
+  rpc GetChallengeReward(EmptyRequest) returns (EmptyResponse);          // 20208 挑战次数奖励信息
+  rpc ClaimChallengeReward(EmptyRequest) returns (EmptyResponse);        // 20209 领取挑战次数奖励
+  rpc GetChallengeeMatchup(EmptyRequest) returns (EmptyResponse);        // 20210 获取挑战玩家阵法
+
+  // === 排行榜 (per 20220-20223) ===
+  rpc GetTopThreeRanking(EmptyRequest) returns (EmptyResponse);          // 20220 前三排行榜信息
+  rpc GetRankingInfo(EmptyRequest) returns (EmptyResponse);              // 20221 排行榜信息
+  rpc GetLog(EmptyRequest) returns (EmptyResponse);                      // 20222 日志记录
+  rpc MarkDefenseFail(EmptyRequest) returns (EmptyResponse);             // 20223 防守失败标识
+
+  // === 赛程 (per 20250-20263) ===
+  rpc GetScheduleState(EmptyRequest) returns (EmptyResponse);            // 20250 赛程整体实时状态
+  rpc GetPersonalInfo(EmptyRequest) returns (EmptyResponse);             // 20251 个人基本信息
+  rpc GetMyMatch(EmptyRequest) returns (EmptyResponse);                  // 20252 我的比赛信息
+  rpc GetBetting(EmptyRequest) returns (EmptyResponse);                  // 20253 竞猜信息
+  rpc PlaceBet(EmptyRequest) returns (EmptyResponse);                    // 20254 竞猜押注
+  rpc GetMyBetting(EmptyRequest) returns (EmptyResponse);                // 20255 我的竞猜信息
+  rpc GetLastResult(EmptyRequest) returns (EmptyResponse);               // 20256 上次比赛结果
+  rpc GetMyPkInfo(EmptyRequest) returns (EmptyResponse);                 // 20258 我的PK信息
+  rpc GetTop32(EmptyRequest) returns (EmptyResponse);                    // 20260 获取32强信息
+  rpc GetTop4(EmptyRequest) returns (EmptyResponse);                     // 20261 获取4强信息
+  rpc GetTopBettingSlots(EmptyRequest) returns (EmptyResponse);          // 20262 获取32/4强竞猜位置
+  rpc GetTopMatchup(EmptyRequest) returns (EmptyResponse);               // 20263 获取指定位置对战信息
+
+  // === 弹窗 (per 20280-20282) ===
+  rpc GetChampionTopThree(EmptyRequest) returns (EmptyResponse);         // 20280 前三排行榜(冠军赛)
+  rpc GetChampionRanking(EmptyRequest) returns (EmptyResponse);          // 20281 排行榜(冠军赛)
+  rpc ChampionPopup(EmptyRequest) returns (EmptyResponse);               // 20282 冠军信息弹窗
+}
+
+// ============================================================================
+// 3. BossService - PVE BOSS (proto_205.erl, 15 RPC)
+// ============================================================================
+
+service BossService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 个人 BOSS (per 20500-20502) ===
+  rpc GetPersonalBossInfo(EmptyRequest) returns (EmptyResponse);         // 20500 个人BOSS信息
+  rpc ChallengePersonalBoss(EmptyRequest) returns (EmptyResponse);       // 20501 挑战个人BOSS
+  rpc SweepPersonalBoss(EmptyRequest) returns (EmptyResponse);           // 20502 扫荡个人BOSS
+
+  // === 世界 BOSS (per 20530-20542) ===
+  rpc GetWorldBossPlayerInfo(EmptyRequest) returns (EmptyResponse);      // 20530 世界BOSS个人信息
+  rpc BuyWorldBossCount(EmptyRequest) returns (EmptyResponse);           // 20531 购买挑战次数
+  rpc ChallengeWorldBoss(EmptyRequest) returns (EmptyResponse);          // 20532 挑战世界BOSS
+  rpc ReviveWorldBoss(EmptyRequest) returns (EmptyResponse);             // 20533 刷新复活世界BOSS
+  rpc GetWorldBossInfo(EmptyRequest) returns (EmptyResponse);            // 20535 世界BOSS信息
+  rpc RefreshBossInfo(EmptyRequest) returns (EmptyResponse);             // 20536 刷新指定BOSS信息
+  rpc GetBossDamageRank(EmptyRequest) returns (EmptyResponse);           // 20537 BOSS伤害排行
+  rpc GetBossKillLog(EmptyRequest) returns (EmptyResponse);              // 20538 BOSS击杀记录
+  rpc GetSubscribedBoss(EmptyRequest) returns (EmptyResponse);           // 20540 已设置提醒的BOSS
+  rpc SetBossSubscription(EmptyRequest) returns (EmptyResponse);         // 20541 设置提醒
+  rpc PushBossSettlement(EmptyRequest) returns (EmptyResponse);          // 20542 推送BOSS结算
+}
+
+// ============================================================================
+// 4. RoomService - 房间战 + 矿战 (proto_206.erl, 46 RPC)
+// ============================================================================
+
+service RoomService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 房间基础 (per 20600-20612) ===
+  rpc GetRoomBasicInfo(EmptyRequest) returns (EmptyResponse);           // 20600 基本信息
+  rpc GetRoomBuff(EmptyRequest) returns (EmptyResponse);                 // 20601 BUFF信息
+  rpc GetRoomInfo(EmptyRequest) returns (EmptyResponse);                 // 20602 房间信息
+  rpc UpdateRoomInfo(EmptyRequest) returns (EmptyResponse);              // 20603 服务端通知更新
+  rpc GetCurrentCompanion(EmptyRequest) returns (EmptyResponse);         // 20604 获取当前伙伴信息
+  rpc SetActiveCompanion(EmptyRequest) returns (EmptyResponse);          // 20605 设置上阵伙伴
+  rpc GetRoomInventory(EmptyRequest) returns (EmptyResponse);            // 20606 背包内容
+  rpc UseRoomSkill(EmptyRequest) returns (EmptyResponse);                // 20607 技能使用
+  rpc ExploreRoom(EmptyRequest) returns (EmptyResponse);                 // 20608 探索指定房间
+  rpc GetSkillInfo(EmptyRequest) returns (EmptyResponse);                // 20609 技能信息
+  rpc SelectCompanion(EmptyRequest) returns (EmptyResponse);             // 20610 选择伙伴
+  rpc GetUnitRoomList(EmptyRequest) returns (EmptyResponse);             // 20611 请求单位房间列表
+
+  // === 事件 / 商店 (per 20620-20636) ===
+  rpc RoomEventOp(EmptyRequest) returns (EmptyResponse);                 // 20620 事件操作
+  rpc RoomEventOp1(EmptyRequest) returns (EmptyResponse);                // 20621 (无标题) 事件操作扩展
+  rpc RoomEventOp3(EmptyRequest) returns (EmptyResponse);                // 20623 (无标题) 事件操作扩展
+  rpc RoomEventOp4(EmptyRequest) returns (EmptyResponse);                // 20624 (无标题) 事件操作扩展
+  rpc RoomEventOp5(EmptyRequest) returns (EmptyResponse);                // 20625 (无标题) 事件操作扩展
+  rpc RoomEventOp7(EmptyRequest) returns (EmptyResponse);                // 20627 (无标题) 事件操作扩展
+  rpc RoomEventOp8(EmptyRequest) returns (EmptyResponse);                // 20628 (无标题) 事件操作扩展
+  rpc RoomEventOp10(EmptyRequest) returns (EmptyResponse);               // 20630 (无标题) 事件操作扩展
+  rpc RoomEventOp11(EmptyRequest) returns (EmptyResponse);               // 20631 (无标题) 事件操作扩展
+  rpc RoomEventOp12(EmptyRequest) returns (EmptyResponse);               // 20632 (无标题) 事件操作扩展
+  rpc BuyMysteryItem(EmptyRequest) returns (EmptyResponse);              // 20633 购买神秘商品
+  rpc ShowRewards(EmptyRequest) returns (EmptyResponse);                 // 20634 奖励展示
+  rpc ClaimClearReward(EmptyRequest) returns (EmptyResponse);            // 20635 领取通关奖励
+  rpc BuyGhostPotion(EmptyRequest) returns (EmptyResponse);              // 20636 购买驱魂药剂
+
+  // === 矿脉 (per 20640-20660) ===
+  rpc GetMineBasic(EmptyRequest) returns (EmptyResponse);                // 20640 矿脉基础协议
+  rpc GetMineInfo(EmptyRequest) returns (EmptyResponse);                 // 20641 矿脉信息
+  rpc GetMineAux(EmptyRequest) returns (EmptyResponse);                  // 20642 (无标题) 矿脉辅助数据
+  rpc ChallengeMine(EmptyRequest) returns (EmptyResponse);               // 20643 挑战矿脉
+  rpc GetMineLog(EmptyRequest) returns (EmptyResponse);                  // 20644 日志记录
+  rpc ChangeFormation(EmptyRequest) returns (EmptyResponse);             // 20646 改变布阵
+  rpc GetMineChallengeReward(EmptyRequest) returns (EmptyResponse);      // 20647 矿战挑战次数奖励
+  rpc ClaimMineChallengeReward(EmptyRequest) returns (EmptyResponse);    // 20648 领取矿战挑战次数奖励
+  rpc GetMineAux2(EmptyRequest) returns (EmptyResponse);                 // 20649 (无标题) 矿脉辅助数据2
+  rpc AbandonOccupation(EmptyRequest) returns (EmptyResponse);           // 20651 放弃占领
+  rpc GetMineFormation(EmptyRequest) returns (EmptyResponse);            // 20652 (无标题) 矿脉阵法
+  rpc GetMineStatus(EmptyRequest) returns (EmptyResponse);               // 20653 (无标题) 矿脉状态
+  rpc BuyMiner(EmptyRequest) returns (EmptyResponse);                    // 20654 购买旷工
+  rpc BuyMineCount(EmptyRequest) returns (EmptyResponse);                // 20655 购买次数
+  rpc Counterattack(EmptyRequest) returns (EmptyResponse);               // 20656 反击
+  rpc GetMineRedDot(EmptyRequest) returns (EmptyResponse);               // 20657 红点情况
+  rpc GetMineAux3(EmptyRequest) returns (EmptyResponse);                 // 20658 (无标题) 矿脉辅助数据3
+  rpc GetMineWarRedDot(EmptyRequest) returns (EmptyResponse);            // 20659 矿战红点情况
+  rpc AbandonOnBattleEnd(EmptyRequest) returns (EmptyResponse);          // 20660 战斗结束时放弃占领
+}
+
+// ============================================================================
+// 5. InstanceService - 副本 (proto_207.erl, 6 RPC)
+// ============================================================================
+
+service InstanceService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetInstanceBasic(EmptyRequest) returns (EmptyResponse);            // 20700 基本信息
+  rpc GetInstanceList(EmptyRequest) returns (EmptyResponse);             // 20701 列表信息
+  rpc ChallengeInstance(EmptyRequest) returns (EmptyResponse);           // 20702 挑战
+  rpc GetInstanceLog(EmptyRequest) returns (EmptyResponse);              // 20703 挑战日志
+  rpc GetInstanceRedDot(EmptyRequest) returns (EmptyResponse);           // 20706 是否显示红点
+}
+
+// ============================================================================
+// 6. EndlessTowerService - 无尽塔 (proto_239.erl, 12 RPC)
+// ============================================================================
+
+service EndlessTowerService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetEndlessBasic(EmptyRequest) returns (EmptyResponse);             // 23900 推送基础信息
+  rpc ChallengeEndless(EmptyRequest) returns (EmptyResponse);            // 23901 挑战无尽
+  rpc GetEndlessBattle(EmptyRequest) returns (EmptyResponse);            // 23902 战斗界面信息
+  rpc GetFirstClearReward(EmptyRequest) returns (EmptyResponse);         // 23903 首通奖励展示
+  rpc ClaimClearReward(EmptyRequest) returns (EmptyResponse);            // 23904 领取通关奖励
+  rpc GetDeployedCompanion(EmptyRequest) returns (EmptyResponse);        // 23905 已派出伙伴
+  rpc GetHiredCompanion(EmptyRequest) returns (EmptyResponse);           // 23906 已雇佣伙伴
+  rpc GetHireableCompanion(EmptyRequest) returns (EmptyResponse);        // 23907 可雇佣伙伴
+  rpc DeployCompanion(EmptyRequest) returns (EmptyResponse);             // 23908 派出伙伴
+  rpc HireCompanion(EmptyRequest) returns (EmptyResponse);               // 23909 雇佣伙伴
+  rpc GetBuffList(EmptyRequest) returns (EmptyResponse);                 // 23910 BUFF列表
+  rpc SelectBuff(EmptyRequest) returns (EmptyResponse);                  // 23911 BUFF选择
+}
+
+// ============================================================================
+// 7. EscortService - 护送 (proto_240.erl, 17 RPC)
+// ============================================================================
+
+service EscortService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetEscortData(EmptyRequest) returns (EmptyResponse);               // 24000 护送数据
+  rpc RefreshEscortQuality(EmptyRequest) returns (EmptyResponse);        // 24001 刷新护送品质
+  rpc StartEscort(EmptyRequest) returns (EmptyResponse);                 // 24002 发起护送
+  rpc QuickComplete(EmptyRequest) returns (EmptyResponse);                // 24003 快速完成
+  rpc ClaimEscortReward(EmptyRequest) returns (EmptyResponse);           // 24004 领取护送奖励
+  rpc PushPlunderChange(EmptyRequest) returns (EmptyResponse);           // 24005 推送可掠夺信息
+  rpc GetSelfEscortBasic(EmptyRequest) returns (EmptyResponse);          // 24006 自身护送基础
+  rpc GetPlunderInfo(EmptyRequest) returns (EmptyResponse);              // 24010 请求掠夺信息
+  rpc Plunder(EmptyRequest) returns (EmptyResponse);                     // 24011 掠夺
+  rpc PlunderSettle(EmptyRequest) returns (EmptyResponse);               // 24012 掠夺结算
+  rpc GetPlunderLog(EmptyRequest) returns (EmptyResponse);               // 24013 掠夺日志
+  rpc GetLogPlunderInfo(EmptyRequest) returns (EmptyResponse);           // 24014 日志掠夺信息
+  rpc CounterattackEscort(EmptyRequest) returns (EmptyResponse);         // 24015 反击
+  rpc RequestHelp(EmptyRequest) returns (EmptyResponse);                 // 24017 求助
+  rpc PushPlunderLogUpdate(EmptyRequest) returns (EmptyResponse);        // 24018 推送掠夺日志更新
+  rpc GetNextPlunderBatch(EmptyRequest) returns (EmptyResponse);         // 24019 请求下一批可掠夺
+  rpc PushDoubleTimeOpen(EmptyRequest) returns (EmptyResponse);         // 24020 推送双倍时间开启
+}
+
+// ============================================================================
+// 8. HolyEquipService - 圣器养成 (proto_241.erl, 23 RPC)
+// ============================================================================
+
+service HolyEquipService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 圣器 (per 24100-24109) ===
+  rpc GetHolyData(EmptyRequest) returns (EmptyResponse);                 // 24100 请求圣器数据
+  rpc HolyAdvance(EmptyRequest) returns (EmptyResponse);                  // 24101 圣器进阶
+  rpc HolySkillLevel(EmptyRequest) returns (EmptyResponse);              // 24103 圣技升级
+  rpc HolySealUse(EmptyRequest) returns (EmptyResponse);                 // 24104 圣印使用
+  rpc ClaimHolyReward(EmptyRequest) returns (EmptyResponse);             // 24106 领取奖励
+  rpc UpdateHoly(EmptyRequest) returns (EmptyResponse);                  // 24107 更新圣器
+  rpc ActivateHoly(EmptyRequest) returns (EmptyResponse);                // 24108 激活圣器
+  rpc GetClaimedRewardList(EmptyRequest) returns (EmptyResponse);        // 24109 已领取奖励列表
+
+  // === 任务 (per 24120-24124) ===
+  rpc GetHolyTask(EmptyRequest) returns (EmptyResponse);                 // 24120 任务信息
+  rpc UpdateHolyTask(EmptyRequest) returns (EmptyResponse);              // 24121 任务信息更新
+  rpc SubmitHolyTask(EmptyRequest) returns (EmptyResponse);              // 24122 提交任务
+  rpc HolyRecast(EmptyRequest) returns (EmptyResponse);                  // 24123 圣器重铸
+  rpc FirstOpenHolyUi(EmptyRequest) returns (EmptyResponse);             // 24124 第一次打开圣器界面
+
+  // === 幻化 (per 24125-24135) ===
+  rpc GetIllusionData(EmptyRequest) returns (EmptyResponse);             // 24125 请求神器幻化数据
+  rpc UpdateIllusionData(EmptyRequest) returns (EmptyResponse);           // 24126 更新幻化数据
+  rpc ActivateIllusion(EmptyRequest) returns (EmptyResponse);            // 24127 激活幻化
+  rpc GetIllusionTask(EmptyRequest) returns (EmptyResponse);             // 24128 幻化任务信息
+  rpc UpdateIllusionTask(EmptyRequest) returns (EmptyResponse);          // 24129 幻化任务信息更新
+  rpc SubmitIllusionTask(EmptyRequest) returns (EmptyResponse);          // 24130 提交幻化任务
+  rpc UnlockIllusion(EmptyRequest) returns (EmptyResponse);             // 24131 解锁幻化神器
+  rpc EquipIllusion(EmptyRequest) returns (EmptyResponse);               // 24132 穿戴幻化神器
+  rpc IllusionExpire(EmptyRequest) returns (EmptyResponse);              // 24133 幻化过期
+  rpc HolyRefine(EmptyRequest) returns (EmptyResponse);                  // 24135 神器精炼
+}
+
+// ============================================================================
+// 9. GuildWarService - 公会战 (proto_242.erl, 17 RPC)
+// ============================================================================
+
+service GuildWarService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetGuildWarDetail(EmptyRequest) returns (EmptyResponse);           // 24200 联盟战详细信息
+  rpc GetCurrentDefense(EmptyRequest) returns (EmptyResponse);           // 24201 当前防守信息
+  rpc StartGuildWar(EmptyRequest) returns (EmptyResponse);               // 24202 发起战斗
+  rpc GetGuildWarStatus(EmptyRequest) returns (EmptyResponse);           // 24204 联盟战状态
+  rpc GetGuildWarMatchup(EmptyRequest) returns (EmptyResponse);          // 24205 请求对战信息
+  rpc PushTowerState(EmptyRequest) returns (EmptyResponse);              // 24206 防御塔状态
+  rpc PushTotalStars(EmptyRequest) returns (EmptyResponse);              // 24207 总星数变化
+  rpc GetOwnDefenseFormation(EmptyRequest) returns (EmptyResponse);      // 24208 本联盟防御阵
+  rpc GetDefenseLog(EmptyRequest) returns (EmptyResponse);               // 24209 阵地防守日志
+  rpc PushNewLog(EmptyRequest) returns (EmptyResponse);                  // 24210 推送新日志
+  rpc GetAttackLog(EmptyRequest) returns (EmptyResponse);                // 24212 进攻日志
+  rpc GetWarRanking(EmptyRequest) returns (EmptyResponse);               // 24213 战绩排行榜
+  rpc PushWarResult(EmptyRequest) returns (EmptyResponse);               // 24214 推送联盟战结果
+  rpc GetWarBoxData(EmptyRequest) returns (EmptyResponse);               // 24220 联盟战宝箱数据
+  rpc ClaimWarBox(EmptyRequest) returns (EmptyResponse);                 // 24221 领取联盟战宝箱
+  rpc PushWarBoxClaimed(EmptyRequest) returns (EmptyResponse);           // 24223 推送宝箱被领取
+}
+
+// ============================================================================
+// 10. CrossServerService - 跨服 PVP (proto_243.erl, 19 RPC, 复用 PvPService 的数据驱动模式)
+// ============================================================================
+
+service CrossServerService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetPlayerInfo(EmptyRequest) returns (EmptyResponse);               // 24300 个人信息
+  rpc GetChallengeList(EmptyRequest) returns (EmptyResponse);            // 24301 挑战列表
+  rpc GetChallengeeInfo(EmptyRequest) returns (EmptyResponse);           // 24302 获取挑战玩家信息
+  rpc ChallengePlayer(EmptyRequest) returns (EmptyResponse);             // 24303 挑战玩家
+  rpc RefreshList(EmptyRequest) returns (EmptyResponse);                 // 24304 刷新列表
+  rpc BuyChallengeCount(EmptyRequest) returns (EmptyResponse);           // 24305 购买挑战次数
+  rpc BatchChallenge(EmptyRequest) returns (EmptyResponse);              // 24306 一键挑战
+  rpc GetTopThree(EmptyRequest) returns (EmptyResponse);                 // 24308 前三排行榜
+  rpc GetRanking(EmptyRequest) returns (EmptyResponse);                  // 24309 排行榜信息
+  rpc GetLog(EmptyRequest) returns (EmptyResponse);                      // 24310 日志记录
+  rpc GetTopPlayerShow(EmptyRequest) returns (EmptyResponse);            // 24311 大神风采
+  rpc PushActivityOpen(EmptyRequest) returns (EmptyResponse);            // 24312 推送活动开启
+  rpc PushHeroRedDot(EmptyRequest) returns (EmptyResponse);              // 24313 英雄殿红点
+  rpc PushReportRedDot(EmptyRequest) returns (EmptyResponse);            // 24314 战报红点
+  rpc ClearCooldown(EmptyRequest) returns (EmptyResponse);               // 24315 清除冷却时间
+  rpc ViewOpponentHero(EmptyRequest) returns (EmptyResponse);            // 24316 查看对方英雄
+  rpc PushChallengeRedDot(EmptyRequest) returns (EmptyResponse);         // 24317 挑战次数红点
+  rpc ShareReplay(EmptyRequest) returns (EmptyResponse);                // 24318 天梯录像分享
+}
+
+// ============================================================================
+// 11. ExpeditionService - 远征 (proto_244.erl, 15 RPC)
+// ============================================================================
+
+service ExpeditionService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  rpc GetExpeditionData(EmptyRequest) returns (EmptyResponse);           // 24400 请求远征数据
+  rpc GetStageBoss(EmptyRequest) returns (EmptyResponse);                 // 24401 获取关卡守将
+  rpc ClaimStageBox(EmptyRequest) returns (EmptyResponse);               // 24402 领取关卡宝箱
+  rpc ChallengeStage(EmptyRequest) returns (EmptyResponse);              // 24403 挑战
+  rpc GetMySupport(EmptyRequest) returns (EmptyResponse);                // 24405 我的支援
+  rpc GetSupportingMe(EmptyRequest) returns (EmptyResponse);             // 24406 支援我的
+  rpc DeployCompanion(EmptyRequest) returns (EmptyResponse);             // 24407 派出伙伴
+  rpc HireCompanion(EmptyRequest) returns (EmptyResponse);               // 24408 雇佣伙伴
+  rpc GetActiveCompanion(EmptyRequest) returns (EmptyResponse);         // 24409 上阵伙伴信息
+  rpc GetChallengeRedDot(EmptyRequest) returns (EmptyResponse);          // 24410 挑战红点
+  rpc GetDeployRedDot(EmptyRequest) returns (EmptyResponse);             // 24411 派遣红点
+  rpc SelectDifficulty(EmptyRequest) returns (EmptyResponse);            // 24412 选择远征难度
+  rpc AutoSweepSettle(EmptyRequest) returns (EmptyResponse);             // 24414 自动扫荡结算
+  rpc GetExpeditionLog(EmptyRequest) returns (EmptyResponse);            // 24415 远征日志
+}
+
+// ============================================================================
+// 12. HolidayActivityService - 1 套代码覆盖 9 个 holiday_* 变体 (proto_248.erl, 18 RPC, 数据驱动 ActivityConfig)
+// ============================================================================
+
+service HolidayActivityService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // === 元宵灯会 (per 24801-24803) ===
+  rpc GetLanternBasic(EmptyRequest) returns (EmptyResponse);             // 24801 请求元宵灯会基础信息
+  rpc GetLanternPool(EmptyRequest) returns (EmptyResponse);              // 24802 元宵灯会奖池
+  rpc LanternDraw(EmptyRequest) returns (EmptyResponse);                 // 24803 元宵灯会抽奖
+
+  // === 欢食元宵 (per 24804-24807) ===
+  rpc GetFoodBasic(EmptyRequest) returns (EmptyResponse);                // 24804 欢食元宵基础信息
+  rpc ShowClearReward(EmptyRequest) returns (EmptyResponse);             // 24805 通关奖励展示
+  rpc MakeItem(EmptyRequest) returns (EmptyResponse);                    // 24806 制作物品
+  rpc ClaimLevelBox(EmptyRequest) returns (EmptyResponse);               // 24807 领取等级礼包
+
+  // === 副本 + 任务 (per 24808-24812) ===
+  rpc ChallengeActivityInstance(EmptyRequest) returns (EmptyResponse);  // 24808 挑战副本
+  rpc BuyActivityCount(EmptyRequest) returns (EmptyResponse);            // 24809 购买挑战次数
+  rpc GetAdventureTask(EmptyRequest) returns (EmptyResponse);           // 24810 元宵冒险任务信息
+  rpc PushTaskChange(EmptyRequest) returns (EmptyResponse);              // 24811 推送任务变化
+  rpc ClaimTask(EmptyRequest) returns (EmptyResponse);                   // 24812 任务领取
+
+  // === 9 个 holiday_* 抽象为统一接口 (per 9/4 MD §4 反例) ===
+  // bid 93031/93032/93033 通过 activity_id 字段路由, 不重写 9 套
+  rpc GetActivityById(EmptyRequest) returns (EmptyResponse);             // 24813/24815/24817 任务信息 (按 activity_id)
+  rpc ClaimActivityById(EmptyRequest) returns (EmptyResponse);           // 24814/24816/24818 任务领取 (按 activity_id)
+}

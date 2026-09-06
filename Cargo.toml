@@ -21,6 +21,7 @@ members = [
     "crates/replay-service",
     "crates/network-gateway",
     "crates/scene-service",
+    "crates/battle-service",
 ]
 resolver = "2"
 
