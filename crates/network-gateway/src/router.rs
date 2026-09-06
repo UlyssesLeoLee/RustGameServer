@@ -31,7 +31,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::proto::v1 as gateway_proto_v1;
 
-/// build.rs codegen 1351 条路由 (per W14 task)
+// build.rs codegen 1351 条路由 (per W14 task)
 include!(concat!(env!("OUT_DIR"), "/generated_routes.rs"));
 
 pub type RouteEntry = gateway_proto_v1::RouteEntry;
@@ -143,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn test_each_route_has_gRPC_target() {
+    fn test_each_route_has_grpc_target() {
         // 每条都有 svc + method
         let rt = RouteTable::new();
         for entry in rt.list() {
