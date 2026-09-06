@@ -233,6 +233,33 @@ impl PlayerServiceImpl {
         }
     }
 
+    /// 3 参便捷构造（兼容 W25 之前的 test, 默认 InMemoryCharacterRepository）
+    /// per 9/6 18:53 JST 修 W2 + W25 集成冲突
+    pub fn new_without_character(
+        players: Arc<dyn PlayerRepository>,
+        sessions: Arc<dyn PlayerSessionRepository>,
+        decks: Arc<dyn DeckRepository>,
+    ) -> Self {
+        use crate::repository::InMemoryCharacterRepository;
+        let characters: Arc<dyn CharacterRepository> = Arc::new(InMemoryCharacterRepository::default());
+        Self {
+            players,
+            sessions,
+            decks,
+            characters,
+        }
+    }
+
+    /// 4 参完整构造 (alias of new, 给 mtls_mock_phase_c 等传 4 args 的 test)
+    pub fn new_with_character(
+        players: Arc<dyn PlayerRepository>,
+        sessions: Arc<dyn PlayerSessionRepository>,
+        decks: Arc<dyn DeckRepository>,
+        characters: Arc<dyn CharacterRepository>,
+    ) -> Self {
+        Self::new(players, sessions, decks, characters)
+    }
+
     /// gRPC GetPlayer 用：直接通过 Repository 查（绕开 trait）
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Player>> {
         tracing::debug!(

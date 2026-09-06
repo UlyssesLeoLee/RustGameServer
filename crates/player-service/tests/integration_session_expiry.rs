@@ -45,7 +45,7 @@ fn make_service() -> (
     let players = Arc::new(InMemoryPlayerRepository::new());
     let sessions = Arc::new(InMemoryPlayerSessionRepository::new());
     let decks = Arc::new(InMemoryDeckRepository::new());
-    let svc = PlayerServiceImpl::new(
+    let svc = PlayerServiceImpl::new_without_character(
         players.clone() as Arc<dyn player_service::repository::PlayerRepository>,
         sessions.clone() as Arc<dyn player_service::repository::PlayerSessionRepository>,
         decks.clone() as Arc<dyn DeckRepository>,
@@ -92,7 +92,7 @@ async fn test_register_creates_24h_session() {
     assert!(!session.is_expired(), "新建 24h session 必未到期");
 
     // 验证: 通过 service.heartbeat 滑动 expires_at (用 4 参构造的 service 走同一 sessions)
-    let svc2 = PlayerServiceImpl::new(
+    let svc2 = PlayerServiceImpl::new_without_character(
         players.clone() as Arc<dyn player_service::repository::PlayerRepository>,
         sessions.clone() as Arc<dyn player_service::repository::PlayerSessionRepository>,
         decks.clone() as Arc<dyn DeckRepository>,
@@ -125,7 +125,7 @@ async fn test_heartbeat_slides_expiry_multiple_times() {
     let session_id = session.id;
 
     // 用 4 参构造的 service 走同一 sessions
-    let svc2 = PlayerServiceImpl::new(
+    let svc2 = PlayerServiceImpl::new_without_character(
         Arc::new(InMemoryPlayerRepository::new()),
         sessions.clone() as Arc<dyn player_service::repository::PlayerSessionRepository>,
         decks.clone() as Arc<dyn DeckRepository>,
@@ -169,7 +169,7 @@ async fn test_expired_session_heartbeat_returns_session_expired() {
 
     // 核心断言: heartbeat 必返 SessionExpired
     // 用 4 参构造的 service 走同一 sessions
-    let svc2 = PlayerServiceImpl::new(
+    let svc2 = PlayerServiceImpl::new_without_character(
         Arc::new(InMemoryPlayerRepository::new()),
         sessions.clone() as Arc<dyn player_service::repository::PlayerSessionRepository>,
         decks.clone() as Arc<dyn DeckRepository>,
