@@ -1,0 +1,75 @@
+syntax = "proto3";
+package social_extra.v1;
+import "common/v1/common.proto";
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/social_extra/v1;socialextra1";
+
+// social-extra-service —— 社交扩展域
+// 上游依据: 9/4 MD §2 社交 123 RPC
+// 涵盖: 邮件 / 好友 / 家园 / 聊天 / 主页 / 录像互动
+// 完整 123 RPC 拆 5 子系统
+
+service SocialExtraService {
+  rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
+
+  // 邮件 (~25 RPC)
+  rpc SendMail(SendMailRequest) returns (SendMailResponse);
+  rpc GetMailbox(GetMailboxRequest) returns (GetMailboxResponse);
+  rpc ReadMail(ReadMailRequest) returns (ReadMailResponse);
+  rpc ClaimMailAttachment(ClaimMailAttachmentRequest) returns (ClaimMailAttachmentResponse);
+  rpc DeleteMail(DeleteMailRequest) returns (DeleteMailResponse);
+
+  // 好友 (~30 RPC)
+  rpc AddFriend(AddFriendRequest) returns (AddFriendResponse);
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  rpc GetFriendList(GetFriendListRequest) returns (GetFriendListResponse);
+  rpc GetFriendProfile(GetFriendProfileRequest) returns (GetFriendProfileResponse);
+
+  // 家园 (~30 RPC)
+  rpc GetHome(GetHomeRequest) returns (GetHomeResponse);
+  rpc DecorateHome(DecorateHomeRequest) returns (DecorateHomeResponse);
+  rpc VisitHome(VisitHomeRequest) returns (VisitHomeResponse);
+
+  // 聊天 (~20 RPC)
+  rpc SendChat(SendChatRequest) returns (SendChatResponse);
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
+}
+
+message SendMailRequest { string from = 1; string to = 2; string title = 3; string body = 4; repeated Attachment attachments = 5; }
+message SendMailResponse { string mail_id = 1; }
+message GetMailboxRequest { string player_id = 1; int32 page = 2; int32 page_size = 3; }
+message GetMailboxResponse { repeated MailSummary mails = 1; int32 total = 2; }
+message ReadMailRequest { string player_id = 1; string mail_id = 2; }
+message ReadMailResponse { MailDetail mail = 1; }
+message ClaimMailAttachmentRequest { string player_id = 1; string mail_id = 2; }
+message ClaimMailAttachmentResponse { repeated Attachment claimed = 1; }
+message DeleteMailRequest { string player_id = 1; string mail_id = 2; }
+message DeleteMailResponse { bool success = 1; }
+
+message AddFriendRequest { string player_id = 1; string target_id = 2; }
+message AddFriendResponse { bool success = 1; }
+message RemoveFriendRequest { string player_id = 1; string target_id = 2; }
+message RemoveFriendResponse { bool success = 1; }
+message GetFriendListRequest { string player_id = 1; }
+message GetFriendListResponse { repeated FriendSummary friends = 1; }
+message GetFriendProfileRequest { string player_id = 1; string target_id = 2; }
+message GetFriendProfileResponse { FriendProfile profile = 1; }
+
+message GetHomeRequest { string player_id = 1; }
+message GetHomeResponse { HomeData home = 1; }
+message DecorateHomeRequest { string player_id = 1; int32 slot = 2; int32 item_id = 3; }
+message DecorateHomeResponse { HomeData home = 1; }
+message VisitHomeRequest { string visitor_id = 1; string host_id = 2; }
+message VisitHomeResponse { HomeData home = 1; int32 visit_count_today = 2; }
+
+message SendChatRequest { string from = 1; string to = 2; string content = 3; int32 channel = 4; }
+message SendChatResponse { string message_id = 1; int64 sent_at_ms = 2; }
+message GetChatHistoryRequest { string player_id = 1; string peer_id = 2; int32 page = 3; }
+message GetChatHistoryResponse { repeated ChatMessage messages = 1; }
+
+message Attachment { int32 item_id = 1; int32 count = 2; }
+message MailSummary { string mail_id = 1; string title = 2; int64 sent_at_ms = 3; bool has_attachment = 4; bool read = 5; }
+message MailDetail { string mail_id = 1; string title = 2; string body = 3; repeated Attachment attachments = 4; int64 sent_at_ms = 5; bool read = 6; }
+message FriendSummary { string player_id = 1; string display_name = 2; int32 level = 3; int64 last_online_ms = 4; }
+message FriendProfile { string player_id = 1; string display_name = 2; int32 level = 3; int32 vip_level = 4; string signature = 5; }
+message HomeData { string player_id = 1; int32 theme_id = 2; repeated int32 slots = 3; int32 visit_count = 4; }
+message ChatMessage { string message_id = 1; string from = 2; string to = 3; string content = 4; int64 sent_at_ms = 5; int32 channel = 6; }

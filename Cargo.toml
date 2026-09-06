@@ -23,6 +23,14 @@ members = [
     "crates/scene-service",
     "crates/battle-service",
     "crates/batch-service",
+    "crates/activity-service",
+    "crates/gm-extra-service",
+    "crates/guild-service",
+    "crates/leaderboard-extra-service",
+    "crates/operate-service",
+    "crates/pvp-full-service",
+    "crates/replay-extra-service",
+    "crates/social-extra-service",
 ]
 resolver = "2"
 
