@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+// 协议网关 (network-gateway) 管理面 gRPC schema (per W6 Phase 1 协议网关 骨架)
+// 5 域 / scene / battle 7 域客户端走 TCP 二进制 + 协议码, 管理面走本 gRPC API.
+//
+// 范围: Phase 1 (per 9/4 改进路线图.md Phase 1) 协议网关 8 SRE·d, 本骨架仅 0.5 SRE·d
+// (W6 task). 实际 gRPC ↔ 5 域 player-service 路由在 Phase 1.5 补, Phase 2 业务接入.
+
+option go_package = "github.com/ulyssesleolee/rustgameserver/proto/gateway/v1;gatewayv1";
+
+service GatewayAdmin {
+  // 健康检查 (k8s exec 探针 + mTLS 走 grpc_health_probe 模式, per Phase 0.5 探针修复)
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // 列出当前已注册路由 (协议码 → 目标 gRPC method 映射)
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse);
+
+  // 注册一条路由 (协议码 → 目标 service.method)
+  // Phase 1 骨架: 启动时从静态配置表加载, RegisterRoute 预留动态注册 API
+  rpc RegisterRoute(RegisterRouteRequest) returns (RegisterRouteResponse);
+
+  // 累计统计: 收包数 / 转发数 / 失败数 / 路由 miss 数
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+// ============================================================================
+// Health
+// ============================================================================
+
+message HealthCheckRequest {
+  // 预留, 后续可加 service_name 做 per-component 健康
+}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  // "ok" / "degraded" / "starting"
+  string status = 2;
+  // ISO-8601, 仅调试用
+  string timestamp = 3;
+}
+
+// ============================================================================
+// Routes
+// ============================================================================
+
+message ListRoutesRequest {
+}
+
+message ListRoutesResponse {
+  repeated RouteEntry routes = 1;
+  // 当前已注册路由条数
+  uint32 total = 2;
+}
+
+message RouteEntry {
+  // 协议码, e.g. 10101 (per 9/4 协议码全量 TSV, proto_101.erl 第 1 条)
+  uint32 code = 1;
+  // 协议名 (可选, 调试用), e.g. "create_character"
+  string name = 2;
+  // 目标 gRPC service, e.g. "player.v1.PlayerService"
+  string target_service = 3;
+  // 目标 gRPC method, e.g. "CreateCharacter"
+  string target_method = 4;
+  // 目标 host:port, e.g. "http://127.0.0.1:50051"
+  string target_addr = 5;
+}
+
+message RegisterRouteRequest {
+  RouteEntry route = 1;
+}
+
+message RegisterRouteResponse {
+  bool success = 1;
+  // "" / "code already registered" / etc
+  string error = 2;
+}
+
+// ============================================================================
+// Stats
+// ============================================================================
+
+message GetStatsRequest {
+}
+
+message GetStatsResponse {
+  // 收包数 (按 code 维度 + 总数)
+  uint64 total_received = 1;
+  // 成功转发数
+  uint64 total_forwarded = 2;
+  // 失败数 (gRPC 错误 / 协议错 / 路由 miss)
+  uint64 total_failed = 3;
+  // 路由 miss 数 (收到未注册 code)
+  uint64 total_route_miss = 4;
+  // 当前 TCP 连接数
+  uint64 active_connections = 5;
+}
