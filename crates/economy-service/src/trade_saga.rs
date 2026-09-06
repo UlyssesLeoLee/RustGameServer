@@ -316,6 +316,7 @@ pub struct BidAuctionSaga {
     accounts: Arc<dyn AccountRepository>,
     ledger: Arc<dyn TransactionLedgerRepository>,
     trade_client: Arc<dyn TradeClient>,
+    #[allow(dead_code)] // 预留: BidAuction 链路后续接 card cross-validation
     card_client: Arc<dyn CardClient>,
     execute_auction_saga: Option<Arc<ExecuteAuctionSaga>>,
 }
@@ -571,8 +572,11 @@ pub struct ExecuteAuctionOutput {
 
 /// ExecuteAuction saga —— 5 步 + 全补偿链
 pub struct ExecuteAuctionSaga {
+    #[allow(dead_code)] // 预留: ExecuteAuction 步骤 1-2 后续接入 trades/accounts/ledger 全链
     trades: Arc<dyn TradeRepository>,
+    #[allow(dead_code)] // 预留: ExecuteAuction 步骤 1-2 后续接入 trades/accounts/ledger 全链
     accounts: Arc<dyn AccountRepository>,
+    #[allow(dead_code)] // 预留: ExecuteAuction 步骤 1-2 后续接入 trades/accounts/ledger 全链
     ledger: Arc<dyn TransactionLedgerRepository>,
     trade_client: Arc<dyn TradeClient>,
     card_client: Arc<dyn CardClient>,
@@ -712,7 +716,7 @@ fn parse_currency(currency_type: i32) -> Result<Currency> {
 mod tests {
     use super::*;
     use crate::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
-    use crate::trade_entity::{Auction, AuctionStatus};
+    use crate::trade_entity::Auction;
     use crate::trade_repository::InMemoryTradeRepository;
     use crate::trade_saga_clients::{MockCardClient, MockTradeClient};
     use std::sync::Arc;

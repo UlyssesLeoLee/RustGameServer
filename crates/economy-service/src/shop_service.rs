@@ -1088,7 +1088,7 @@ impl ShopService for ShopServiceImpl {
         if quantity <= 0 {
             return Err(Error::Validation("quantity must be > 0".to_string()));
         }
-        let mut repo = self.repo.lock().await;
+        let repo = self.repo.lock().await;
         let key = (shop_id, item_id.clone());
         let item = repo.shop_items.get(&key).cloned().ok_or_else(|| {
             Error::NotFound {

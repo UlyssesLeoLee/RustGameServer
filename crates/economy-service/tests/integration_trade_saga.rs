@@ -34,7 +34,7 @@ use economy_service::trade_saga::{
     BidAuctionInput, BidAuctionSaga, ExecuteAuctionInput, ExecuteAuctionSaga, OpenPackInput,
     OpenPackSaga,
 };
-use economy_service::trade_saga_clients::{CardClient, MockCardClient, MockTradeClient, TradeClient};
+use economy_service::trade_saga_clients::{MockCardClient, MockTradeClient};
 
 // ============================================================================
 // 测试装配套件

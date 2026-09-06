@@ -52,6 +52,7 @@ mod tests {
     }
 
     /// 准备一个有钻石账户的玩家
+    #[allow(dead_code)] // 预留: 后续钻石相关 RPC (钻石商店/钻石兑换) 接入后使用
     async fn setup_player_with_diamond(
         acc_repo: &Arc<InMemoryAccountRepository>,
         diamond: i64,
@@ -832,7 +833,7 @@ mod tests {
                 }],
             },
         );
-        let roll = svc
+        let _roll = svc
             .loot_roll(player_id.clone(), 1, 1, "k1".to_string())
             .await
             .unwrap();
