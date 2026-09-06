@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use thiserror::Error;
+#[allow(unused_imports)] // Mutex 仅 w15 test 用; OnceCell 生产/测试都用
 use tokio::sync::{Mutex, OnceCell};
 use tonic::transport::Channel;
 use tracing::info;
