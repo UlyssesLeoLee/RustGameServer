@@ -10,14 +10,12 @@ use function_plane::{
 };
 
 fn meta(id: &str, version: &str, status: FunctionStatus) -> FunctionMetadata {
-    // 提供最小有效 wasm magic bytes (per 9/7 14:00 JST 调优: Wasm runtime 必须有 wasm_bytes)
-    let mut m = FunctionMetadata::new(
-        id,
-        version,
-        Runtime::Wasm,
-        TriggerType::Grpc,
-        Some(b"\\0asm\\x01\\x00\\x00\\x00".to_vec()),
-    );
+    // 9/7 14:00 JST 调优: 默认传 wasm_bytes, 部分测试需 None 走错误路径
+    meta_with_bytes(id, version, status, Some(b"\\0asm\\x01\\x00\\x00\\x00".to_vec()))
+}
+
+fn meta_with_bytes(id: &str, version: &str, status: FunctionStatus, wasm_bytes: Option<Vec<u8>>) -> FunctionMetadata {
+    let mut m = FunctionMetadata::new(id, version, Runtime::Wasm, TriggerType::Grpc, wasm_bytes);
     m.status = status;
     m
 }
@@ -52,7 +50,7 @@ async fn ut_registry_register_wasm_without_bytes_is_rejected() {
     let reg = InMemoryRegistry::new();
     // Wasm runtime + no bytes → ContractInvalid per §15.3
     let err = reg
-        .register(meta("fn.bytes", "v0.1.0", FunctionStatus::Active))
+        .register(meta_with_bytes("fn.bytes", "v0.1.0", FunctionStatus::Active, None))
         .await
         .expect_err("Wasm without bytes must error");
     match err {

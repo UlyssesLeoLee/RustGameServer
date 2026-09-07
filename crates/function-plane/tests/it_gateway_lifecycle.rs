@@ -207,6 +207,10 @@ async fn it_gateway_container_runtime_invocation_is_contractinvalid() {
     // short-circuit on the `needs_compile` check (only Wasm Active triggers
     // a host compile; Container falls through to plain registry.register).
     reg.register(m).await.expect("registry write");
+    // 9/7 14:30 JST 调优: set_status Active 让 invoke 走到 Container 校验, 而不是先 NotActive
+    reg.set_status("fn.box", "v0.1.0", FunctionStatus::Active)
+        .await
+        .expect("set status");
 
     let req = InvocationRequest {
         function_id: "fn.box".into(),
