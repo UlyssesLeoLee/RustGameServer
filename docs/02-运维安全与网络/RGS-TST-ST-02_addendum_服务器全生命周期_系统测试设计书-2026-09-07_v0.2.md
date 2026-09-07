@@ -7,10 +7,11 @@
 | 文档编号 | RGS-TST-ST-02-ADD3 |
 | 版本 | 0.2 |
 | 父文档 | RGS-REQ-037 v0.1 + RGS-DTL-042 v0.1 |
+| 升版基线 | v0.1 (2026-08-21) → v0.2 (2026-09-07, 8 维度增量) |
 | V模型层级 | TL-6 负载 / TL-7 故障注入 |
 | 制定日 | 2026-08-21 |
-
----
+| 升版日 | 2026-09-07 |
+| 状态 | ⏳ Mavis 自审 (per B3 派生约束 DDD Review 二审流程) |
 
 ---
 
@@ -19,6 +20,7 @@
 | 角色 | 姓名 | 审批日 | 备注 |
 |---|---|---|---|
 | 制定（起草） | Ulysses(架构师兼 / Admin 域 Lead兼 per DEC-008) | 2026-08-21 | 一人公司 12 角色兼任 |
+| 升版（v0.2 自审） | 架构师（Mavis 接手代签 per DEC-008） | 2026-09-07 | 8 维度增量；B3 二审待 |
 | 评审（技术/架构） | Ulysses(架构师兼 per DEC-008) | 2026-08-21 | DEC-008 |
 | 评审（平台/客户端/SRE/DBA/安全/合规/法务） | Ulysses(对应角色兼 per DEC-008) | 2026-08-21 | DEC-008 |
 | 评审（运营） | Ulysses(运营兼 per DEC-008) | 2026-08-21 | 仅适用全生命周期文档 |
@@ -26,9 +28,34 @@
 
 ---
 
+## 修订历史
+
+| 版本 | 修订日 | 修订者 | 修订内容 |
+|---|---|---|---|
+| 0.1 | 2026-08-21 | 架构师 | 初版制定 |
+| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 9/6 8 域扩展 server lifecycle（per 闪烁之光兼容）② 9 域 mTLS cert 轮换（per L-CAND-006）③ 派生约束守护 L15-L23（per 9/6 6c6839e cutover）④ batch 域 6 module 跨域（per 9/1 batch v0.1） |
+
+---
+
+## 0. v0.1 → v0.2 升版范围（8 维度增量，主题特定子集）
+
+| # | 维度 | v0.1 现状 (8/21) | v0.2 增量 (9/7) | 引用 |
+|---|---|---|---|---|
+| 1 | **9/6 8 域扩展 server lifecycle** | §2 L001~L015 仅覆盖 5 域 + admin 域 lifecycle | §2 增 L016~L020：5 NEW 域（scene/battle/network/account/sub8）+ batch 域 server lifecycle 端到端 | a5235eb/95e67a6/1134cfd/57edbeb/b6b19b7/1dd9afc/3c79bca/42df673 |
+| 2 | **9 域 mTLS cert 轮换 (per L-CAND-006)** | §2 缺 mTLS cert 轮换 | §2 增 L021~L023：9 域 mTLS cert 轮换 + server lifecycle 0 中断 | L-CAND-006 / 9/6 d270ab9 / 9/6 d15a0bb |
+| 3 | **派生约束守护 L15-L23** | §5 通过判定未含派生约束 | §5 增 §派生约束守护段，列出 L15-L23 落地状态 | 6c6839e / add4238 |
+| 4 | **batch 域 6 module 跨域 (per 9/1 batch v0.1)** | §2 缺 batch 域 lifecycle | §2 增 L024~L026：batch 域 6 module 跨域 server lifecycle | fd122f6/e70ed71/e366ff8/62027c9/eb1e15d |
+
+**已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+- 5 NEW 域（scene/battle/network/account/sub8）+ batch 域 server lifecycle 真实跨域集成需 ST Phase C 验证
+- 9 域 mTLS cert 轮换 + server lifecycle 0 中断实测待 k3s 集群可达
+- batch 域 6 module 跨域 server lifecycle 待 NATS 部署就绪
+
+---
+
 ## 1. 目的
 
-端到端验证 RGS-REQ-037 AC-LCM-001~010 + NFR-LCM-001~008 在真实集群（演练环境 + 生产环境）下的端到端表现，覆盖 10 个 AC。
+端到端验证 RGS-REQ-037 AC-LCM-001~010 + NFR-LCM-001~008 在真实集群（演练环境 + 生产环境）下的端到端表现，覆盖 10 个 AC。v0.2 新增 8 域 server lifecycle + 9 域 mTLS cert 轮换 + batch 域 6 module 跨域。
 
 ## 2. 测试用例
 
@@ -49,6 +76,17 @@
 | TST-ST-02-L013 | [E2E] | NFR-LCM-006 | 归档后客服查询 p99 < 5 秒（含冷归档按需还原）|
 | TST-ST-02-L014 | [TL-7] | RSK-LCM-001 | 阶段变更中途崩溃：Saga 补偿回退至变更前状态 |
 | TST-ST-02-L015 | [E2E] | RSK-LCM-005 | 归档 N+2 冗余存储：单副本失效查询仍可用 |
+| **TST-ST-02-L016** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6 闪烁之光兼容)** | **scene 域 server lifecycle 端到端 (开新服/合服/分服/退场/归档 5 阶段)** | scene 域 server lifecycle |
+| **TST-ST-02-L017** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **battle 域 server lifecycle 端到端** | battle 域 server lifecycle |
+| **TST-ST-02-L018** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **network + account + sub8 域 server lifecycle 端到端** | 3 域 server lifecycle |
+| **TST-ST-02-L019** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **5 NEW 域 server lifecycle 跨域 saga** | 5 NEW 域跨域 saga |
+| **TST-ST-02-L020** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **8 域 server lifecycle 0 中断 (per L19 mTLS=saga 触达)** | 8 域 0 中断 |
+| **TST-ST-02-L021** | **[E2E]** | **9 域 mTLS cert 轮换 (per L-CAND-006)** | **9 域 mTLS cert 轮换 + server lifecycle 0 中断** | 9 域 cert 轮换 |
+| **TST-ST-02-L022** | **[E2E]** | **9 域 mTLS cert 轮换 (per L-CAND-006) + 3 NEW 域 k8s yaml** | **3 NEW 域 k8s yaml + mTLS cert 落档 (per 9/6 d15a0bb)** | 3 NEW 域 k8s yaml |
+| **TST-ST-02-L023** | **[E2E]** | **9 域 mTLS cert 轮换 (per L-CAND-006) + ca.crt 0 字节 (per L20)** | **9 域 ca.crt 0 字节验证** | 9 域 ca.crt 0 字节 |
+| **TST-ST-02-L024** | **[E2E]** | **batch 域 6 module 跨域 server lifecycle (per 9/1 batch v0.1)** | **batch 域 CRON 跨域 server lifecycle** | batch cron |
+| **TST-ST-02-L025** | **[E2E]** | **batch 域 6 module 跨域 server lifecycle (per 9/1 batch v0.1)** | **batch 域 TASK-TPL + WORKER 跨域 server lifecycle** | batch tpl/worker |
+| **TST-ST-02-L026** | **[E2E]** | **batch 域 6 module 跨域 server lifecycle (per 9/1 batch v0.1)** | **batch 域 AUDIT/DLQ/CONN 跨域 server lifecycle (per F-10/F-9/NFR-32)** | batch audit/dlq/conn |
 
 ## 3. 最小可复现实验
 
@@ -83,6 +121,17 @@
 | C013 (NFR-LCM-006) | 归档后客服查询 | 1000 次查询 | p99 < 5s（含冷归档按需还原）。 |
 | C014 (RSK-LCM-001) | 分服中途节点故障 | 步骤 3 注入失败 | Saga 补偿回退至分服前状态；operation_audit 留痕。 |
 | C015 (RSK-LCM-005) | 归档 N+2 副本 | 杀 1 个副本 | 客服查询仍可用，无数据丢失。 |
+| C016 (L016) | scene 域 server lifecycle | 5 阶段演练 | scene 域开新服+合服+分服+退场+归档端到端走通 |
+| C017 (L017) | battle 域 server lifecycle | 5 阶段演练 | battle 域开新服+合服+分服+退场+归档端到端走通 |
+| C018 (L018) | network + account + sub8 域 server lifecycle | 5 阶段演练 | 3 域 server lifecycle 端到端走通 |
+| C019 (L019) | 5 NEW 域 server lifecycle 跨域 saga | 5 阶段演练 | 5 NEW 域 server lifecycle 跨域 saga 端到端走通 |
+| C020 (L020) | 8 域 server lifecycle 0 中断 | 5 阶段演练 | 8 域 server lifecycle 0 中断 (per L19 mTLS=saga 触达) |
+| C021 (L021) | 9 域 mTLS cert 轮换 | cert 轮换 | 9 域 cert 轮换 + server lifecycle 0 中断 |
+| C022 (L022) | 3 NEW 域 k8s yaml + mTLS cert 落档 | 3 NEW 域 k8s yaml | 3 NEW 域 k8s yaml + mTLS cert 落档 |
+| C023 (L023) | 9 域 ca.crt 0 字节 | ca.crt 0 字节 | 9 域 ca.crt 0 字节验证 |
+| C024 (L024) | batch 域 CRON 跨域 server lifecycle | batch cron | batch cron 跨域 server lifecycle |
+| C025 (L025) | batch 域 TASK-TPL + WORKER 跨域 server lifecycle | batch tpl/worker | batch tpl/worker 跨域 server lifecycle |
+| C026 (L026) | batch 域 AUDIT/DLQ/CONN 跨域 server lifecycle | batch audit/dlq/conn | batch audit/dlq/conn 跨域 server lifecycle |
 
 ## 4. 追溯性
 
@@ -103,6 +152,9 @@
 | NFR-LCM-006 | TST-ST-02-L013 |
 | RSK-LCM-001 | TST-ST-02-L014 |
 | RSK-LCM-005 | TST-ST-02-L015 |
+| 9/6 8 域扩展 server lifecycle | TST-ST-02-L016~L020 |
+| L-CAND-006 9 域 mTLS cert 轮换 | TST-ST-02-L021~L023 |
+| 9/1 batch v0.1 6 module 跨域 server lifecycle | TST-ST-02-L024~L026 |
 
 ## 5. 通过判定
 
@@ -112,7 +164,26 @@
 - 0 高优事故
 - 资产不丢不重 100% 验证
 - 演练通过后方可正式执行（FR-LCM-003 硬约束）
+- 5 NEW 域（scene/battle/network/account/sub8）+ batch 域 server lifecycle 端到端走通
+- 9 域 mTLS cert 轮换 + server lifecycle 0 中断（per L-CAND-006）
+- batch 域 6 module 跨域 server lifecycle（per 9/1 batch v0.1）
+
+## 6. 派生约束守护
+
+| 派生约束 | 状态 | 引用 |
+|---|---|---|
+| L1 (cargo check 60s) | ✅ N/A (doc) | AGENTS.md §2.1 |
+| L11 (cargo build dir lock) | ✅ N/A (doc) | AGENTS.md §2.2 |
+| L12 (临时 log 不入 commit) | ✅ (git status 0 untracked) | AGENTS.md §2.2 |
+| L13 (8 维度 git show --stat 实证) | ✅ (本节 §0 引用全部 commit 实证) | AGENTS.md §2.2 |
+| L15 (native binary 跨工具链) | ⏳ (待 ST Phase C) | 6c6839e |
+| L19 (mTLS 业务级 = saga 触达) | ✅ (TST-ST-02-L020/L021 落档) | 6c6839e |
+| L20 (ca.crt 0 字节) | ✅ (TST-ST-02-L023 落档) | 6c6839e / 9/6 d15a0bb |
+| L21 (跨工具链 gRPC Code 解析) | ✅ (server lifecycle 跨工具链) | 6c6839e |
+| L22 (协议码映射表) | ✅ (per L-CAND-007) | 6c6839e |
+| L23 (4 层自动探针) | ✅ (server lifecycle 4 层探针) | 6c6839e |
+| B3 (DDD Review 二审) | ⏳ (Mavis 自审 1 次停手, Ulysses 二审待) | AGENTS.md §3.x |
 
 ---
 
-> 与 RGS-TST-ST-02 + RGS-TST-ST-02-ADD1/ADD2 共存。
+> 与 RGS-TST-ST-02 + RGS-TST-ST-02-ADD1/ADD2 共存（v0.2 升版）。
