@@ -121,3 +121,13 @@ certs/.*  # 隐藏文件也排除
 /.worktrees/
 /docs/00-*/*handoff*
 
+# 宽泛 per-worker cargo build dir 兜底 (per 9/7 13:30 JST 派生约束)
+# 覆盖 target-w2/ w3/ w23-w30/ 全部, 派工结束必须清理,
+# .gitignore 兜底防未清理污染 git status
+target-w*/
+target-w*/**
+
+# 根目录 Cargo.lock (per 9/7 13:30 JST)
+# 跟 workspace Cargo.lock 重复, 兜底防未清理污染 git status
+/Cargo.lock
+
