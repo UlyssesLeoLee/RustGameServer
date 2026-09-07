@@ -10,7 +10,14 @@ use function_plane::{
 };
 
 fn meta(id: &str, version: &str, status: FunctionStatus) -> FunctionMetadata {
-    let mut m = FunctionMetadata::new(id, version, Runtime::Wasm, TriggerType::Grpc, None);
+    // 提供最小有效 wasm magic bytes (per 9/7 14:00 JST 调优: Wasm runtime 必须有 wasm_bytes)
+    let mut m = FunctionMetadata::new(
+        id,
+        version,
+        Runtime::Wasm,
+        TriggerType::Grpc,
+        Some(b"\\0asm\\x01\\x00\\x00\\x00".to_vec()),
+    );
     m.status = status;
     m
 }

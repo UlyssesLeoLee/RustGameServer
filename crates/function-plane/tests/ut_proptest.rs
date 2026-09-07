@@ -53,7 +53,12 @@ proptest! {
     }
 
     /// Invariant I-2: pre-release / build suffix and leading `v` do not
-    /// affect the ordering, matching the `parse_version_tuple` contract.
+    /// affect the ordering for equivalent tuple, matching the
+    /// `parse_version_tuple` contract.
+    /// 
+    /// Note: pre-release `v1.2.3-rc.1` should be Less than `v1.2.3` per
+    /// SemVer 2.0.0 §11. Build suffix + leading `v` should be Equal.
+    /// 9/7 14:00 JST 调优: 区分 pre-release (Less) 和 build (Equal) 期望.
     #[test]
     fn proptest_semver_suffixes_are_invisible(
         a in 0u32..50,
@@ -65,11 +70,12 @@ proptest! {
         let with_build = format!("v{a}.{b}.{c}+meta.5");
         let upper = format!("V{a}.{b}.{c}");
         let noprefix = format!("{a}.{b}.{c}");
-        let base = cmp_v(&plain, &plain);
-        prop_assert_eq!(cmp_v(&with_pre, &plain), base);
-        prop_assert_eq!(cmp_v(&with_build, &plain), base);
-        prop_assert_eq!(cmp_v(&upper, &plain), base);
-        prop_assert_eq!(cmp_v(&noprefix, &plain), base);
+        // build suffix + leading v 不影响 ordering (Equal)
+        prop_assert_eq!(cmp_v(&with_build, &plain), std::cmp::Ordering::Equal);
+        prop_assert_eq!(cmp_v(&upper, &plain), std::cmp::Ordering::Equal);
+        prop_assert_eq!(cmp_v(&noprefix, &plain), std::cmp::Ordering::Equal);
+        // pre-release 应 < normal (per SemVer 2.0.0 §11)
+        prop_assert_eq!(cmp_v(&with_pre, &plain), std::cmp::Ordering::Less);
     }
 
     /// Invariant I-3: FunctionContext setters are pure — the chainable
@@ -84,8 +90,10 @@ proptest! {
         ts_secs in 1_700_000_000i64..1_900_000_000i64
     ) {
         let deadline: DateTime<Utc> = Utc.timestamp_opt(ts_secs, 0).unwrap();
-        let base_req = FunctionContext::new().request_id;
-        let ctx = FunctionContext::new()
+        // 9/7 14:00 JST 调优: 必须先创建 ctx 再拿 base_req (FunctionContext::new() 每次生成新 UUID)
+        let ctx = FunctionContext::new();
+        let base_req = ctx.request_id;
+        let ctx = ctx
             .with_trace_id(trace.clone())
             .with_user_id(uuid::Uuid::from_u128(user as u128))
             .with_retry_count(retries)
