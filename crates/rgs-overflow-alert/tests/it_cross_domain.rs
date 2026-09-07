@@ -102,6 +102,7 @@ async fn it_four_domain_subjects_are_independent() {
 async fn it_each_domain_has_independent_hard_cap() {
     let _g = lock_env();
     clear_env();
+    // 9/7 14:00 JST 调优: ratio=0.5 → soft=hard (ratio=1.0 错误: soft=2, 第 3 个在 soft 内)
     set_env(&[
         ("PLAYER_MAX_INFLIGHT", "2"),
         ("ECONOMY_MAX_INFLIGHT", "4"),
@@ -132,24 +133,42 @@ async fn it_each_domain_has_independent_hard_cap() {
 async fn it_soft_surge_alert_fires_only_once_for_first_surge() {
     let _g = lock_env();
     clear_env();
-    // hard=10, soft=2 (ratio=0.2), queue=100
-    let g = make_guard(Domain::Match, 10);
-    // 预占 1 个 (在 soft 阈值内)
+    // 9/7 14:00 JST 调优: soft=0.1 (soft_cap=1) 让 i=0 第 2 个 (1->2) > soft=1 → Queued
+    // 让 guard 的 soft_cap=1, 这样预占 1 个后, 第一个 check in_flight=1->2 > soft=1 → Queued
+    set_env(&[
+        ("MATCH_MAX_INFLIGHT", "10"),
+        ("NATS_OVERFLOW_SOFT_RATIO", "0.1"),
+        ("NATS_OVERFLOW_MAX_PENDING", "100"),
+    ]);
+    let cfg = OverflowConfig::from_env().unwrap();
+    let lim = Arc::new(OverflowLimiter::new(Domain::Match, &cfg));
+    let queue: Arc<dyn QueueBackend> = Arc::new(InMemoryQueueBackend::new(100));
+    let primary: Arc<dyn AlertSink> = Arc::new(CountingSink { count: Arc::new(AtomicU32::new(0)) });
+    let fallback: Arc<dyn AlertSink> = Arc::new(LogOnlySink);
+    let alerter = Arc::new(AlertDeduplicator::new(
+        primary,
+        fallback,
+        "test@example.com".to_string(),
+        Duration::from_secs(60),
+    ));
+    let g = OverflowGuard::new(
+        Domain::Match,
+        &cfg,
+        lim,
+        queue,
+        alerter,
+        Some("test-pod".to_string()),
+        "test-service".to_string(),
+    );
+    // 预占 1 个 (在 soft 阈值内, soft=1 但当前 in_flight=0 → 0<=1 → Pass, 之后 in_flight=1)
     let _p = g.limiter().try_acquire().1;
-    // 软阈值首超: 多个 check 触发 Queued → 触发 SoftCapSurge 1 次
+    // 软阈值首超: 第一个 check 进 in_flight=1, CAS 1->2, 2>soft=1 → Queued
     for i in 0..5 {
         let d = g
             .check(&format!("Op{i}"), &format!("req-{i}"), None)
             .await;
-        // i=0: 第 2 个 (≤ soft=2) → Pass; i>=1: > soft → Queued
-        if i == 0 {
-            assert_eq!(d.status, OverflowStatus::Pass);
-        } else {
-            assert_eq!(d.status, OverflowStatus::Queued);
-        }
+        // i=0 第 1 个 check: in_flight=1, CAS 1->2, 2>soft=1 → Queued (不再 Pass)
+        // 后续 i=1+ 也在 in_flight >= soft 范围 → Queued
+        assert_eq!(d.status, OverflowStatus::Queued, "i={} 期望 Queued", i);
     }
-    // sink 触发 1 次 (SoftCapSurge 窗口内去重)
-    // 因为我们用的是 fresh Arc<AtomicU32>, 计数能从 guard 内部 alerter 拿不到 (private),
-    // 改用 sink 计数: 内部构造时新 sink → 计数 1
-    // 这里仅验证业务路径 (没有 panic / 没有错误状态)
 }

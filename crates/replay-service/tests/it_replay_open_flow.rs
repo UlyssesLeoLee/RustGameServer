@@ -62,12 +62,14 @@ async fn test_replay_after_card_open_pattern() {
 
 #[tokio::test]
 async fn test_chunk_size_clamp_to_min_max() {
-    // StreamReplay chunk_size 边界: 0 → DEFAULT_CHUNK_SIZE
-    // (实际拿不到 DEFAULT, 但能确认 stream_replay 不 panic 即 OK)
+    // 9/7 14:00 JST 调优: 测试缺少 save_replay 步骤, stream_replay 找不到 replay_id 报错
     let (svc, _repo, _storage) = make_svc();
-    let m = ReplayMeta::new(Uuid::new_v4(), "p".into(), None, ReplayMode::Casual, "k".into());
-    let r = Replay { meta: m.clone(), data: vec![0u8; 256] };
+    let match_id = Uuid::new_v4();
+    let meta = svc
+        .save_replay(match_id, "p".into(), None, ReplayMode::Casual, vec![0u8; 256], 60, 0, None)
+        .await
+        .unwrap();
     // chunk_size=0 → 用 DEFAULT, 仍然 OK
-    let s = svc.stream_replay(r.meta.replay_id, 0, 0).await;
-    assert!(s.is_ok());
+    let s = svc.stream_replay(meta.replay_id, 0, 0).await;
+    assert!(s.is_ok(), "chunk_size=0 应该走 DEFAULT 不报错, 实际: {:?}", s.err());
 }

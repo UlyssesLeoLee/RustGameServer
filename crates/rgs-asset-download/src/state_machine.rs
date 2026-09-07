@@ -411,6 +411,8 @@ impl DownloadStateMachine {
     }
 
     /// 是否处于终态（Completed / Failed / Cancelled / Expired）。
+    /// Paused 是准终态（per 9/7 14:00 JST 调优 + 9/1 PT 派工 9.3 状态机规约）：
+    /// 业务侧已停止 in-flight 槽位释放,等用户 Resume 才继续
     pub fn is_terminal(&self) -> bool {
         matches!(
             self.state,
@@ -418,6 +420,7 @@ impl DownloadStateMachine {
                 | DownloadState::Failed
                 | DownloadState::Cancelled
                 | DownloadState::Expired
+                | DownloadState::Paused
         )
     }
 
