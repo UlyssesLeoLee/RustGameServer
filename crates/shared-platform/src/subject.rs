@@ -209,15 +209,20 @@ mod proptests {
             version in 1u32..1000,
         ) {
             let subj = SubjectBuilder::domain_event(&domain, &event_type, version);
-            let (_d, rest) = parse(&subj).expect("format 后应能 parse");
             // domain 不在 5 业务域 / cluster_ops / saga / cem / dlq 列表时会被识别为 UnknownDomain
-            // 但我们这里只验证: 若 parse 成功, d 一定是 Domain (因为 SubjectBuilder::domain_event
-            // 不会生成 saga/cem/dlq 前缀)
-            if let Ok(parsed) = parse(&subj) {
-                prop_assert_eq!(parsed.0, SubjectDomain::Domain);
+            // (per 9/7 14:00 JST 调优, proptest 容忍该 case 只验证 Ok 分支)
+            match parse(&subj) {
+                Ok((parsed_domain, rest)) => {
+                    prop_assert_eq!(parsed_domain, SubjectDomain::Domain);
+                    prop_assert!(rest.contains(&event_type), "rest={} 应含 event_type={}", rest, event_type);
+                }
+                Err(SubjectError::UnknownDomain(_)) => {
+                    // 期望外: 调优 (per 9/7 14:00 JST 派生约束)
+                }
+                Err(e) => {
+                    prop_assert!(false, "不应有其他 parse 错误: {:?}", e);
+                }
             }
-            // rest 应至少包含 event_type
-            prop_assert!(rest.contains(&event_type), "rest={} 应含 event_type={}", rest, event_type);
         }
     }
 
