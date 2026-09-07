@@ -115,17 +115,19 @@ async fn it_each_domain_has_independent_hard_cap() {
     assert_eq!(cfg.hard_cap(Domain::Social), 0);
     // soft=hard (ratio=1.0) → 全部 Pass 直到 hard 满
     let p_lim = OverflowLimiter::new(Domain::Player, &cfg);
-    let _p1 = p_lim.try_acquire().1.expect("p1");
-    let _p2 = p_lim.try_acquire().1.expect("p2");
-    let (out, _) = p_lim.try_acquire();
+    // 9/7 15:30 JST 调优: 用 Box::leak 强制 _p1 _p2 持有到 test end, 防止 Rust NLL 提前 drop
+    let _p1 = Box::leak(Box::new(p_lim.try_acquire().1.expect("p1")));
+    let _p2 = Box::leak(Box::new(p_lim.try_acquire().1.expect("p2")));
+    let (out, _permit_drop) = p_lim.try_acquire();
+    // _p1 _p2 通过 Box::leak 永久持有, 不会被 NLL drop
     assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Rejected);
     // economy 独立
     let e_lim = OverflowLimiter::new(Domain::Economy, &cfg);
     for _ in 0..4 {
-        let (out, _) = e_lim.try_acquire();
+        let (out, _permit_drop) = e_lim.try_acquire();
         assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Pass);
     }
-    let (out, _) = e_lim.try_acquire();
+    let (out, _permit_drop) = e_lim.try_acquire();
     assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Rejected);
 }
 
