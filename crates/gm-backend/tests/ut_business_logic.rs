@@ -24,22 +24,22 @@ use gm_backend::{
 
 #[test]
 fn parse_audit_type_all_valid_variants() {
-    // 5 valid lowercase
-    assert_eq!(parse_audit_type("all"), Some(0));
-    assert_eq!(parse_audit_type("trade"), Some(1));
-    assert_eq!(parse_audit_type("gacha"), Some(2));
-    assert_eq!(parse_audit_type("match"), Some(3));
-    assert_eq!(parse_audit_type("compensation"), Some(4));
+    // 5 valid lowercase (per 9/7 14:00 JST 调优: AuditType enum 起始是 0 Unspecified, All=1, Trade=2, ...)
+    assert_eq!(parse_audit_type("all"), Some(1));
+    assert_eq!(parse_audit_type("trade"), Some(2));
+    assert_eq!(parse_audit_type("gacha"), Some(3));
+    assert_eq!(parse_audit_type("match"), Some(4));
+    assert_eq!(parse_audit_type("compensation"), Some(5));
 }
 
 #[test]
 fn parse_audit_type_case_insensitive() {
     // 大写 / 混合大小写
-    assert_eq!(parse_audit_type("ALL"), Some(0));
-    assert_eq!(parse_audit_type("Trade"), Some(1));
-    assert_eq!(parse_audit_type("GACHA"), Some(2));
-    assert_eq!(parse_audit_type("MaTcH"), Some(3));
-    assert_eq!(parse_audit_type("Compensation"), Some(4));
+    assert_eq!(parse_audit_type("ALL"), Some(1));
+    assert_eq!(parse_audit_type("Trade"), Some(2));
+    assert_eq!(parse_audit_type("GACHA"), Some(3));
+    assert_eq!(parse_audit_type("MaTcH"), Some(4));
+    assert_eq!(parse_audit_type("Compensation"), Some(5));
 }
 
 #[test]
