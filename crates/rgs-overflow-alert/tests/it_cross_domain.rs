@@ -123,9 +123,12 @@ async fn it_each_domain_has_independent_hard_cap() {
     assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Rejected);
     // economy 独立
     let e_lim = OverflowLimiter::new(Domain::Economy, &cfg);
+    // 9/7 15:45 JST 调优: 4 次 permit 全部 Box::leak 持有, 防止 NLL drop
+    let mut _e_permits: Vec<&mut rgs_overflow_alert::limiter::InFlightGuard> = Vec::new();
     for _ in 0..4 {
-        let (out, _permit_drop) = e_lim.try_acquire();
+        let (out, permit) = e_lim.try_acquire();
         assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Pass);
+        _e_permits.push(Box::leak(Box::new(permit.expect("permit"))));
     }
     let (out, _permit_drop) = e_lim.try_acquire();
     assert_eq!(out, rgs_overflow_alert::limiter::AcquireOutcome::Rejected);
