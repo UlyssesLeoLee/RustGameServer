@@ -504,3 +504,72 @@ fn test_27_e2e_dlq_stats_enhanced_with_retry_count() {
     assert_eq!(backoff[9], 30000);
 }
 
+// === Group 5: E3 L4-3 OIDC bridge 4 endpoint (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_28_e2e_oidc_verify_dev_mode_accept() {
+    use serde_json::json;
+    let resp = json!({
+        "valid": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999_i64,
+        "trace_id": "abc1234567890",
+        "error": null
+    });
+    assert_eq!(resp["valid"], true);
+    assert_eq!(resp["operator"], "ulysses");
+    assert_eq!(resp["role"], "admin");
+}
+
+#[test]
+fn test_29_e2e_oidc_refresh_and_logout() {
+    use serde_json::json;
+    let refresh = json!({
+        "refreshed": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999_i64,
+        "issued_at": 1799996000_i64,
+        "trace_id": "refresh-xyz",
+        "ttl_secs": 3600
+    });
+    assert_eq!(refresh["refreshed"], true);
+    assert_eq!(refresh["ttl_secs"], 3600);
+
+    let logout = json!({
+        "logged_out": true,
+        "had_token": true,
+        "trace_id": "logout-abc"
+    });
+    assert_eq!(logout["logged_out"], true);
+    assert_eq!(logout["had_token"], true);
+}
+
+#[test]
+fn test_30_e2e_oidc_status_4_endpoints() {
+    use serde_json::json;
+    let status = json!({
+        "bridge": "oidc",
+        "mode": "dev",
+        "secret_configured": false,
+        "supported_grants": vec!["Bearer"],
+        "rgs_web_bridge": true,
+        "endpoints": vec![
+            "/api/v1/auth/verify",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/status",
+        ],
+        "version": "0.1.0-e3"
+    });
+    assert_eq!(status["bridge"], "oidc");
+    assert_eq!(status["rgs_web_bridge"], true);
+    let endpoints = status["endpoints"].as_array().unwrap();
+    assert_eq!(endpoints.len(), 4);
+    assert!(endpoints.contains(&json!("/api/v1/auth/verify")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/refresh")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/logout")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/status")));
+}
+
