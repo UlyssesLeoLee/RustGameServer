@@ -6,15 +6,15 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/replay/v1;rep
 // ============================================================
 // replay-service v1 (per RGS-DTL-038 §3 DEC-038-03 推荐 A — cluster-ops 对象存储)
 // 上游: RGS-REQ-038 §FR-008 战斗回放
-// 状态: 草案, 待 DDD Review 拍板 (9 DEC 2026-08-29 已 9A 全过, 桶 13 实施)
+// 状态: W9 L18 派工 (per 9/8 20:08 JST 拍板启动 L18 W7-W9 派工) + 5 RPC scaffold
 //
 // 域职责 (per DEC-038-03):
 // - 元数据: PostgreSQL (replays 表, per DTL-038 §7.1 #7)
 // - 回放数据: 对象存储 (cluster-ops S3-兼容), 本地用 LocalFs 模拟
-// - 4 RPC: SaveReplay / GetReplay / ListReplays / StreamReplay
-// - 5 message: Replay / ReplayMeta / ReplayList / SaveReplayRequest / SaveReplayResponse
-//
-// 集成: match-service session 结束自动调 SaveReplay (TODO, 完整集成推 W36+)
+// - W9 L18 10 RPC: SaveReplay / GetReplay / ListReplays / StreamReplay /
+//                  GetReplayInfo / DeleteReplay / LikeReplay / UnlikeReplay / CollectReplay
+//                  (5 新增: L18 W9 录像+社交层点赞/收集, per 9/4 MD §0 闪烁之光录像回放"点赞/收集"参考)
+// - 集成: match-service session 结束自动调 SaveReplay (TODO, 完整集成推 W36+)
 // 生命周期:
 //   - 热数据: 默认 90 天 (天梯) / 7 天 (休闲) / 自定义 (房间)
 //   - 过期清理: 启动时检查 + cron job (TODO)
@@ -36,6 +36,24 @@ service ReplayService {
   // 流式读取回放 (server streaming, 按 chunk 推送, 适合大回放)
   // 每 chunk 包含一段 bytes + offset 标识, 客户端可断点续传
   rpc StreamReplay(StreamReplayRequest) returns (stream ReplayChunk);
+
+  // W9 L18 派工: 5 新增 RPC (per 9/8 20:08 JST Ulysses 拍板 L18 W7-W9 派工)
+  // 录像基础 + 社交层点赞/收集 (参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层, 不照搬)
+
+  // L18-6: 拉取回放聚合信息 (metadata + uploader, 用于前端展示)
+  rpc GetReplayInfo(GetReplayInfoRequest) returns (ReplayInfo);
+
+  // L18-7: 上传者本人删除 (owner check, 与内部 cleanup 用的 delete_replay 区分)
+  rpc DeleteReplay(DeleteReplayRequest) returns (DeleteReplayResponse);
+
+  // L18-8: 点赞 (返回新的点赞总数)
+  rpc LikeReplay(LikeReplayRequest) returns (LikeReplayResponse);
+
+  // L18-9: 取消点赞 (返回新的点赞总数)
+  rpc UnlikeReplay(UnlikeReplayRequest) returns (UnlikeReplayResponse);
+
+  // L18-10: 收集到 collection (前端合集页/专辑页)
+  rpc CollectReplay(CollectReplayRequest) returns (CollectReplayResponse);
 }
 
 // ----------------------------------------------------------------------------
@@ -152,4 +170,73 @@ message StreamReplayRequest {
   uint32 chunk_size = 3;
   // 起始 offset (用于断点续传, 0 = 从头)
   uint64 start_offset = 4;
+}
+
+// ----------------------------------------------------------------------------
+// W9 L18 5 新增 RPC message (录像基础 2 + 点赞 2 + 收集 1)
+// 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层 (借鉴不照搬)
+// ----------------------------------------------------------------------------
+
+// ReplayInfo: 录像聚合信息 (metadata + uploader, 前端展示用, 区别 ReplayMeta 偏存储层)
+message ReplayInfo {
+  string replay_id = 1;        // UUID
+  string uploader_id = 2;      // 上传者 player_id (UUID 字符串)
+  string match_id = 3;         // 关联 match_id
+  int32 mode = 4;              // ReplayMode 数值
+  int32 duration_secs = 5;     // 比赛时长
+  int64 created_at_ms = 6;     // 创建时间 (epoch millis, 前端直接展示)
+  int32 like_count = 7;        // 当前点赞数
+  int32 collect_count = 8;     // 当前收集次数
+}
+
+// GetReplayInfo: 拉取录像聚合信息
+message GetReplayInfoRequest {
+  string request_id = 1;
+  string replay_id = 2;
+}
+
+// DeleteReplay: 上传者本人删除 (owner check)
+message DeleteReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+  string player_id = 3;        // 操作者, 必须 == uploader
+}
+
+message DeleteReplayResponse {
+  bool success = 1;            // true = 删除成功, false = replay 不存在或非 owner
+}
+
+// LikeReplay: 点赞 (幂等, 重复点赞返回当前总数)
+message LikeReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+  string player_id = 3;
+}
+
+message LikeReplayResponse {
+  int32 like_count = 1;        // 操作后的点赞总数
+}
+
+// UnlikeReplay: 取消点赞
+message UnlikeReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+  string player_id = 3;
+}
+
+message UnlikeReplayResponse {
+  int32 like_count = 1;        // 操作后的点赞总数 (未点过赞时返回 0)
+}
+
+// CollectReplay: 收集到 collection (专辑页)
+message CollectReplayRequest {
+  string request_id = 1;
+  string replay_id = 2;
+  string player_id = 3;
+  string collection_id = 4;    // 目标 collection UUID
+}
+
+message CollectReplayResponse {
+  bool success = 1;            // true = 收集成功 (幂等: 重复收集也 true)
+  int32 collect_count = 2;     // 操作后的收集次数
 }
