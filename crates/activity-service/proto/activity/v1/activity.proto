@@ -35,6 +35,39 @@ service ActivityService {
   // 成就
   rpc GetAchievements(GetAchievementsRequest) returns (GetAchievementsResponse);
   rpc ClaimAchievement(ClaimAchievementRequest) returns (ClaimAchievementResponse);
+
+  // W7 L18 9/8 20:08 JST 拍板启动 - 战令/签到扩展/回归/推送/拉新/问卷 18 新 RPC 首批
+  // 接受 §1.3 NO-GO 风险 per 9/8 20:08 JST Ulysses 拍板 (后续可能返工)
+
+  // 问卷 (W7 L18 1/18, 9a2af0f)
+  rpc SubmitSurvey(SubmitSurveyRequest) returns (SubmitSurveyResponse);
+
+  // 战令 (W7 L18 5/18, 9/8 派工)
+  rpc GetBattlePassInfo(GetBattlePassInfoRequest) returns (GetBattlePassInfoResponse);
+  rpc BuyBattlePass(BuyBattlePassRequest) returns (BuyBattlePassResponse);
+  rpc AdvanceBattlePassXp(AdvanceBattlePassXpRequest) returns (AdvanceBattlePassXpResponse);
+  rpc ClaimBattlePassReward(ClaimBattlePassRewardRequest) returns (ClaimBattlePassRewardResponse);
+  rpc GetBattlePassLeaderboard(GetBattlePassLeaderboardRequest) returns (GetBattlePassLeaderboardResponse);
+
+  // 签到扩展 (W7 L18 5/18)
+  rpc GetSigninCalendar(GetSigninCalendarRequest) returns (GetSigninCalendarResponse);
+  rpc ClaimMonthReward(ClaimMonthRewardRequest) returns (ClaimMonthRewardResponse);
+  rpc GetSigninLeaderboard(GetSigninLeaderboardRequest) returns (GetSigninLeaderboardResponse);
+  rpc GetSigninStats(GetSigninStatsRequest) returns (GetSigninStatsResponse);
+  rpc AdvanceSignin(AdvanceSigninRequest) returns (AdvanceSigninResponse);
+
+  // 回归玩家 (W7 L18 4/18)
+  rpc IsReturningPlayer(IsReturningPlayerRequest) returns (IsReturningPlayerResponse);
+  rpc GetReturnReward(GetReturnRewardRequest) returns (GetReturnRewardResponse);
+  rpc ClaimReturnReward(ClaimReturnRewardRequest) returns (ClaimReturnRewardResponse);
+  rpc ListReturnActivities(ListReturnActivitiesRequest) returns (ListReturnActivitiesResponse);
+
+  // 推送 (W7 L18 2/18)
+  rpc GetPushList(GetPushListRequest) returns (GetPushListResponse);
+  rpc MarkPushRead(MarkPushReadRequest) returns (MarkPushReadResponse);
+
+  // 拉新 (W7 L18 1/18)
+  rpc GetInviteStatus(GetInviteStatusRequest) returns (GetInviteStatusResponse);
 }
 
 message GetHolidayInfoRequest {
@@ -175,4 +208,226 @@ message AchievementProgress {
   int32 current = 3;
   int32 target = 4;
   bool claimed = 5;
+}
+
+message SubmitSurveyRequest {
+  string player_id = 1;
+  int32 survey_id = 2;
+  string answers_json = 3;  // 简单 JSON 字符串, 不引入 serde_json proto 选项
+}
+message SubmitSurveyResponse {
+  bool success = 1;
+  int32 reward_item_id = 2;  // 问卷奖励道具 ID
+  int32 reward_count = 3;
+}
+
+// ============================================================
+// W7 L18 战令 (Battle Pass) 5 RPC
+// per 9/4 MD §2 活动运营 + 9/8 20:08 JST 派工
+// ============================================================
+
+message BattlePassReward {
+  int32 level = 1;
+  int32 item_id = 2;
+  int32 count = 3;
+  bool is_premium = 4;  // 高级战令奖励
+}
+
+message GetBattlePassInfoRequest {
+  string player_id = 1;
+  uint32 season_id = 2;
+}
+message GetBattlePassInfoResponse {
+  string player_id = 1;
+  uint32 season_id = 2;
+  uint32 level = 3;
+  uint32 xp = 4;
+  uint32 next_level_xp = 5;
+  bool is_premium = 6;
+}
+
+message BuyBattlePassRequest {
+  string player_id = 1;
+  uint32 season_id = 2;
+}
+message BuyBattlePassResponse {
+  bool success = 1;
+  uint32 price = 2;
+}
+
+message AdvanceBattlePassXpRequest {
+  string player_id = 1;
+  uint32 season_id = 2;
+  uint32 xp = 3;
+}
+message AdvanceBattlePassXpResponse {
+  string player_id = 1;
+  uint32 season_id = 2;
+  uint32 new_level = 3;
+  uint32 current_xp = 4;
+}
+
+message ClaimBattlePassRewardRequest {
+  string player_id = 1;
+  uint32 season_id = 2;
+  uint32 level = 3;
+}
+message ClaimBattlePassRewardResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+}
+
+message GetBattlePassLeaderboardRequest {
+  uint32 season_id = 1;
+  uint32 top_n = 2;
+}
+message GetBattlePassLeaderboardResponse {
+  uint32 season_id = 1;
+  repeated LeaderboardRow rows = 2;
+}
+
+// ============================================================
+// W7 L18 签到扩展 (Signin Extension) 5 RPC
+// ============================================================
+
+message SigninDayReward {
+  int32 day = 1;
+  int32 item_id = 2;
+  int32 count = 3;
+}
+
+message GetSigninCalendarRequest {
+  string player_id = 1;
+  uint32 month = 2;
+}
+message GetSigninCalendarResponse {
+  string player_id = 1;
+  uint32 month = 2;
+  repeated SigninDayReward days = 3;
+  repeated int32 signed_days = 4;
+}
+
+message ClaimMonthRewardRequest {
+  string player_id = 1;
+  uint32 month = 2;
+}
+message ClaimMonthRewardResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+}
+
+message GetSigninLeaderboardRequest {
+  uint32 month = 1;
+  uint32 top_n = 2;
+}
+message GetSigninLeaderboardResponse {
+  uint32 month = 1;
+  repeated LeaderboardRow rows = 2;
+}
+
+message GetSigninStatsRequest {
+  string player_id = 1;
+}
+message GetSigninStatsResponse {
+  string player_id = 1;
+  uint32 total_days = 2;
+  uint32 streak_max = 3;
+  uint32 miss_count = 4;
+}
+
+message AdvanceSigninRequest {
+  string player_id = 1;
+  uint32 day = 2;
+}
+message AdvanceSigninResponse {
+  bool success = 1;
+  repeated PrizeItem rewards = 2;
+}
+
+// ============================================================
+// W7 L18 回归玩家 (Returning Player) 4 RPC
+// ============================================================
+
+message ReturnActivity {
+  uint32 reward_id = 1;
+  int32 item_id = 2;
+  int32 count = 3;
+  int64 expires_at_ms = 4;
+  string name = 5;
+}
+
+message IsReturningPlayerRequest {
+  string player_id = 1;
+}
+message IsReturningPlayerResponse {
+  string player_id = 1;
+  bool is_returning = 2;
+  int64 last_login_ms = 3;
+}
+
+message GetReturnRewardRequest {
+  string player_id = 1;
+}
+message GetReturnRewardResponse {
+  string player_id = 1;
+  repeated ReturnActivity rewards = 2;
+  bool already_claimed = 3;
+}
+
+message ClaimReturnRewardRequest {
+  string player_id = 1;
+  uint32 reward_id = 2;
+}
+message ClaimReturnRewardResponse {
+  bool success = 1;
+  PrizeItem reward = 2;
+}
+
+message ListReturnActivitiesRequest {
+}
+message ListReturnActivitiesResponse {
+  repeated ReturnActivity activities = 1;
+}
+
+// ============================================================
+// W7 L18 推送 (Push) 2 RPC
+// ============================================================
+
+message PushItem {
+  uint32 push_id = 1;
+  string title = 2;
+  string body = 3;
+  int64 created_at_ms = 4;
+  bool is_read = 5;
+}
+
+message GetPushListRequest {
+  string player_id = 1;
+  int64 since_ms = 2;
+}
+message GetPushListResponse {
+  string player_id = 1;
+  repeated PushItem items = 2;
+}
+
+message MarkPushReadRequest {
+  string player_id = 1;
+  uint32 push_id = 2;
+}
+message MarkPushReadResponse {
+  bool success = 1;
+}
+
+// ============================================================
+// W7 L18 拉新 (Invite) 1 RPC
+// ============================================================
+
+message GetInviteStatusRequest {
+  string player_id = 1;
+}
+message GetInviteStatusResponse {
+  string player_id = 1;
+  string invite_code = 2;
+  uint32 invited_count = 3;
+  repeated PrizeItem rewards = 4;
 }
