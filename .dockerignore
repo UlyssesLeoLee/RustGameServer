@@ -1,0 +1,60 @@
+# RustGameServer .dockerignore — per W45-f GAP-W45-38 (Mavis 主会话加, Ulysses 拍板 9/9 02:00 JST 推荐)
+# 作用: build context 30GB+ -> ~100MB, 5 域 build 30-60 min (从 90+ min 减 50%+)
+# 依据: 9/8 21:32 JST option-1-repat 拍板覆盖 9/6 17:08 越界
+# Mavis 接手代签 Ulysses, 9/9 02:00 JST
+
+# Cargo build artifacts (1-5GB per crate, 5 域 33 crates workspace)
+target/
+target-*/
+**/target/
+
+# Git internals (1-2GB)
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Local run logs and worker temp (per L12.1)
+.run-logs/
+.worker-tmp/
+.serena/
+.tmp_search*/
+*.log
+*.tmp
+
+# Docs and scripts (build context 不需要)
+docs/
+scripts/
+tools/
+
+# Worktrees (per L22 兜底)
+.worktrees/
+**/.worktrees/
+
+# 工具链 + IDE
+.vscode/
+.idea/
+*.swp
+
+# CI/CD
+.cargo/
+**/Cargo.lock.local
+
+# 测试产物
+tests/fixtures/scratch/
+**/proptest-regressions/
+
+# k3s 部署
+docs/deploy/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Don't ignore Cargo.toml + Cargo.lock + src/ + crates/ + proto/ (build 必要)
+!Cargo.toml
+!Cargo.lock
+!src/
+!crates/
+!proto/
+!build.rs

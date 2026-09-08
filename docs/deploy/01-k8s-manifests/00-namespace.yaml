@@ -36,10 +36,10 @@ metadata:
   namespace: rust-game-server
 spec:
   hard:
-    requests.cpu: "12"
-    requests.memory: "12Gi"
-    limits.cpu: "48"
-    limits.memory: "48Gi"
+    requests.cpu: "16"
+    requests.memory: "16Gi"
+    limits.cpu: "64"
+    limits.memory: "64Gi"
     pods: "60"
     persistentvolumeclaims: "20"
     services: "30"
