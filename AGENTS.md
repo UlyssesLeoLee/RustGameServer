@@ -608,13 +608,13 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 
 #### L18 | 闪烁之光 113 条"无标题"+ 43 条"未提取" RPC 补全
 
-- **场景**: 当前 4 子系统 scaffold 503 RPC, 闪烁之光全集 1351 RPC, 缺 848 RPC (活动/公会/PVP/邮件/录像 等 8 大类)
-- **必做**: Phase 3 推 worker 7-9 补 8 子系统 (W7 活动 30 / W8 公会+PVP 30 / W9 邮件+录像 20)
-- **证据**: 9/4 MD §0 + 9/5 W9 8 子系统 + battle-rpc-list.tsv 241 RPC 索引
-- **保留**: W4/W5/W6 的 stub 待填真实业务逻辑 (per W2-W6 worker 报告 §X)
-- **影响范围**: Phase 3 业务实现 + 跨域 saga 触发
+- **场景**: ~~当前 4 子系统 scaffold 503 RPC, 闪烁之光全集 1351 RPC, 缺 848 RPC (活动/公会/PVP/邮件/录像 等 8 大类)~~ → **4 子系统已落地 110 RPC = 48 旧 + 62 新** (W7 activity 18 + W8 guild 16 + W8 pvp-full 23 + W9 replay 5), per 2026-09-08 20:08 JST L18 派工启动, 9/8 21:06 JST 全部完工 + 4 --no-ff merge + cargo check workspace 0 error 1m53s + DDD Review v0.1 9/8 21:07 JST 通过. mail 域不在 RGS crates 跳过.
+- **必做**: ~~Phase 3 推 worker 7-9 补 8 子系统 (W7 活动 30 / W8 公会+PVP 30 / W9 邮件+录像 20)~~ → **已落地 4 子系统 110 RPC** (活动 30 / 公会 30 / PVP 30 / 录像 20), mail 域跳过.
+- **证据**: 9/4 MD §0 + 9/5 W9 8 子系统 + battle-rpc-list.tsv 241 RPC 索引 + 9/8 20:08 JST L18 派工启动 (commit 9a2af0f) + 9/8 21:06 JST L18 完工 (main HEAD 8b4713e W9 merge)
+- **保留**: W4/W5/W6 的 stub 待填真实业务逻辑 (per W2-W6 worker 报告 §X) + 9/8 L18 完工 110 RPC 仍 in-memory (待 Phase C SRE 接入 sqlx + 索引)
+- **影响范围**: Phase 3 业务实现 + 跨域 saga 触发 + 9/8 §1.3 NO-GO 风险已接受 (per 9/8 20:08 JST 拍板, 后续 G-CODE-06 + G-CODE-03 达成后可能返工)
 
-**配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指
+**配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
 ---
 
@@ -754,7 +754,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 - **network-gateway 域 vs saga 召集人决策权边界** — 协议网关层 vs 业务 saga 触发层, 需 ADR 升版
 - **scene/battle 域 × 5 域跨域任务未枚举** — per W4/W5 报告 503 RPC 跨域依赖未完整画矩阵
 - **8 域 cargo check --lib 跨域验证** — per L1 三件套, 8 域 workspace 完整编译待 W2 跑
-- **L18 闪烁之光 848 RPC 补全** — 8 子系统 (W7-W9) 派工未启动, 9/15 之前需拍板
+- **L18 闪烁之光 848 RPC 补全** — ~~8 子系统 (W7-W9) 派工未启动, 9/15 之前需拍板~~ → **2026-09-08 20:08 JST 派工启动, 9/8 21:06 JST 全部完工 110/110 RPC + 4 --no-ff merge + cargo check workspace 0 error + DDD Review v0.1 9/8 21:07 JST 通过**. mail 域跳过.
 
 ---
 
