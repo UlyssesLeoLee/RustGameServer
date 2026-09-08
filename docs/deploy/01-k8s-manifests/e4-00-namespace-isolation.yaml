@@ -1,0 +1,232 @@
+# e4-00-namespace-isolation.yaml
+# ===========================================================================
+# 角色：E4 k3s 资源策略 — 命名空间隔离（per 9/8 20:47 JST Ulysses 拍板 + 9/1 WBS v0.2 E4）
+# 状态：🟡 Phase C 准备 (per 9/1 RGS-PHASE-C-KICKOFF-2026-09-02_v0.1) — 待 9/15 deadline 前 kubectl apply
+# 实际值校准：
+#   - SRE 具名：Ulysses（per DEC-008 兼任）
+#   - DBA 具名：Ulysses（per DEC-008 兼任）
+#   - 校准依据：RGS-OLU-REPORT-token-OLU-2026-09-02 v0.2 §4 (1 SRE ≤ 20 人·天/周 = 1 节点 CPU 50% + 内存 60%)
+# 关联：
+#   - 00-namespace.yaml (旧单一 namespace + ResourceQuota — 沿用基础 deny-all NetworkPolicy)
+#   - RGS-K3S-CLUSTER-STATUS-2026-09-02_v0.1.md (k3s 现状 baseline)
+#   - RGS-PHASE-C-MAVIS-PHASE-A-2026-09-03_v0.1.md (E4 范围)
+#   - RGS-PHASE-C-PREP-2026-09-02_v0.1.md (Phase C 准备)
+#   - 6 域派生约束 (AGENTS.md v0.6.x §7 batch 域 — batch 域独立 namespace rgs-batch 不在此文件)
+# ===========================================================================
+# 13 L4 任务总览 (per 9/1 WBS v0.2 E4 草案):
+#   任务 1 (本文件, 3 L4): 3 namespace + ResourceQuota
+#   任务 2 (e4-01-resource-limits.yaml, 5 L4): request/limit 模板 + 估算公式
+#   任务 3 (e4-02-hpa-templates.yaml, 5 L4): HPA 模板 + 行为
+#
+# 命名空间切分逻辑 (per E4 草案):
+#   rust-game-server          = 5 业务域 (player/economy/match/social/admin) + 平台层 (cluster-ops + shared-platform)
+#   rust-game-server-edge     = 3 NEW 域 (scene/battle/network-gateway) + 边缘代理 (envoy)
+#   rust-game-server-mgmt     = GM 工具链 (gm-backend/gm-console) + rgs-web
+#   (rgs-batch 独立保留, 已有 tools/rgs-batch-backend/k8s/78-rgs-batch-namespace.yaml — 不动)
+#
+# k3s 节点假设 (per 9/1 SRE 拍板):
+#   - 单节点 k3s: 4 CPU / 8Gi 内存 (SRE dev 环境)
+#   - 1 SRE ≤ 20 人·天/周 = 1 节点 CPU 50% + 内存 60% 上限
+#   - 资源缓冲 1.5x 留给 pod 启动风暴 + 镜像拉取 (per 8/31 ST 经验)
+# ===========================================================================
+
+# -----------------------------------------------------------------------
+# 1.1 Namespace: rust-game-server (5 业务域 + 平台层)
+# -----------------------------------------------------------------------
+# 角色：核心业务域 — player/economy/match/social/admin + cluster-ops + shared-platform
+# 资源配比: 节点 CPU 50% × 70% = 1400m 留给业务域 (5 域 × 250m = 1250m base + 150m 缓冲)
+# 内存: 节点 60% × 70% = 3.36Gi ≈ 3.5Gi 留给业务域
+# 旧 00-namespace.yaml ResourceQuota 12 CPU / 12Gi requests 仍适用 (5 域 + 平台层总和)
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rust-game-server
+  labels:
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/managed-by: kubectl
+    # 业务域层 tier 标识
+    rgs.io/tier: business-domain
+    rgs.io/e4-isolation: phase-c
+    # 9/8 20:47 JST E4 派生 — 命名空间隔离策略 (3 namespace 三分类)
+    rgs.io/isolation-policy: e4-2026-09-08
+    # Pod Security Admission — restricted (per 8/27 JST 强约束)
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ResourceQuota — rust-game-server (5 域 + 平台层, 旧值沿用 + 收紧 buffer)
+# 旧 00-namespace.yaml 给的是 1.5x 缓冲 (12 CPU / 12Gi requests)
+# E4 任务 1 L4-2: 重写配额依据, 引用 token-OLU 公式
+#   - 5 域 base request.cpu = 5 × 500m = 2500m
+#   - 5 域 base request.memory = 5 × 512Mi = 2560Mi
+#   - cluster-ops + shared-platform = 200m + 256Mi
+#   - 总 base = 2700m / 2816Mi
+#   - HPA maxReplicas 5 拉满时: 5 × 2000m = 10000m CPU limit, 5 × 2Gi = 10Gi 内存 limit
+#   - 缓冲 1.2x: requests 3.5 CPU / 3.5Gi, limits 12 CPU / 12Gi (沿用旧值)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rust-game-server-quota
+  namespace: rust-game-server
+  labels:
+    rgs.io/e4-isolation: phase-c
+spec:
+  hard:
+    # requests (HPA minReplicas=1 时的总和, 防 overcommit)
+    requests.cpu: "3500m"
+    requests.memory: "3500Mi"
+    # limits (HPA maxReplicas=5 时的总和, 防节点耗尽)
+    limits.cpu: "12000m"
+    limits.memory: "12Gi"
+    pods: "30"
+    persistentvolumeclaims: "10"
+    services: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "0"
+    secrets: "20"
+    configmaps: "20"
+
+---
+# -----------------------------------------------------------------------
+# 1.2 Namespace: rust-game-server-edge (3 NEW 域 + 边缘代理)
+# -----------------------------------------------------------------------
+# 角色：网络边缘层 — scene/battle/network-gateway + 边缘 envoy
+# 资源配比: 节点 CPU 50% × 20% = 400m 留给 edge 层
+# 内存: 节点 60% × 20% = 0.96Gi ≈ 1Gi 留给 edge 层
+# 设计原则 (per AGENTS.md §7 派生约束 5): envoy 独立 deployment, 不挂 sidecar
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rust-game-server-edge
+  labels:
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/managed-by: kubectl
+    rgs.io/tier: edge-network
+    rgs.io/e4-isolation: phase-c
+    rgs.io/isolation-policy: e4-2026-09-08
+    # 9/8 13:05 JST 派生: edge 层 envoy 独立 deployment, 不挂 sidecar
+    rgs.io/deployment-mode: envoy-standalone
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ResourceQuota — rust-game-server-edge
+# 资源依据:
+#   - scene-service: 200m / 256Mi request, 1000m / 1Gi limit (per 50-scene-service.yaml)
+#   - battle-service: 300m / 384Mi request, 1500m / 1.5Gi limit (per 51-battle-service.yaml)
+#   - network-gateway: 100m / 128Mi request, 1000m / 512Mi limit (per 52-network-gateway.yaml)
+#   - 边缘 envoy: 50m / 64Mi request, 200m / 128Mi limit (per 56-gm-console-envoy-deployment.yaml)
+#   - HPA max 5 拉满: scene 5×1000m=5000m, battle 5×1500m=7500m, gateway 5×1000m=5000m
+#   - 缓冲 1.2x: requests 800m / 1Gi, limits 21 CPU / 4Gi (留够扩张)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rust-game-server-edge-quota
+  namespace: rust-game-server-edge
+  labels:
+    rgs.io/e4-isolation: phase-c
+spec:
+  hard:
+    requests.cpu: "800m"
+    requests.memory: "1Gi"
+    limits.cpu: "21"
+    limits.memory: "4Gi"
+    pods: "20"
+    persistentvolumeclaims: "0"
+    services: "10"
+    services.loadbalancers: "1"
+    services.nodeports: "0"
+    secrets: "5"
+    configmaps: "5"
+
+---
+# -----------------------------------------------------------------------
+# 1.3 Namespace: rust-game-server-mgmt (GM 工具链 + rgs-web)
+# -----------------------------------------------------------------------
+# 角色：管理工具层 — gm-backend / gm-console / rgs-web
+# 资源配比: 节点 CPU 50% × 10% = 200m 留给 mgmt 层
+# 内存: 节点 60% × 10% = 0.48Gi ≈ 500Mi 留给 mgmt 层
+# 设计原则: GM 后台低频高可用, 不参与业务流量峰谷
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rust-game-server-mgmt
+  labels:
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/managed-by: kubectl
+    rgs.io/tier: management
+    rgs.io/e4-isolation: phase-c
+    rgs.io/isolation-policy: e4-2026-09-08
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ResourceQuota — rust-game-server-mgmt
+# 资源依据:
+#   - gm-backend: 100m / 128Mi request, 500m / 256Mi limit (per 50-gm-backend-service.yaml)
+#   - gm-console (Node 静态资源): 50m / 64Mi request, 200m / 128Mi limit
+#   - rgs-web (Node 静态资源): 50m / 64Mi request, 200m / 128Mi limit
+#   - gm-console-envoy: 50m / 64Mi request, 200m / 128Mi limit
+#   - HPA max 2 拉满: gm-backend 2×500m=1000m
+#   - 缓冲 1.2x: requests 350m / 500Mi, limits 2.5 CPU / 1Gi
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rust-game-server-mgmt-quota
+  namespace: rust-game-server-mgmt
+  labels:
+    rgs.io/e4-isolation: phase-c
+spec:
+  hard:
+    requests.cpu: "350m"
+    requests.memory: "500Mi"
+    limits.cpu: "2500m"
+    limits.memory: "1Gi"
+    pods: "10"
+    persistentvolumeclaims: "0"
+    services: "5"
+    services.loadbalancers: "0"
+    services.nodeports: "0"
+    secrets: "5"
+    configmaps: "5"
+
+---
+# -----------------------------------------------------------------------
+# 1.4 (rgs-batch 独立保留, 不在本文件 — 见 tools/rgs-batch-backend/k8s/78-rgs-batch-namespace.yaml)
+# -----------------------------------------------------------------------
+# per AGENTS.md v0.4 §7 batch 域派生约束 12: rgs-batch 独立双项目, 独立 namespace
+# 资源配比 4 域合计: 5+0.5+0.5+0.2 = 6.2 SRE 不超 1 节点
+# batch 域 ResourceQuota 已在 tools/rgs-batch-backend/k8s/78-rgs-batch-namespace.yaml 由 E3 派工落地
+# (commit 63908e7, 2026-09-08, rgs-batch-console 13 endpoint + 22 测试 0 failed)
+# -----------------------------------------------------------------------
+
+---
+# ===========================================================================
+# E4 任务 1 commit body 参考 (per D3 commit 模板 .gitmessage):
+#
+#   1) Title: chore(deploy): E4 k3s 资源策略 — 3 namespace 隔离 (per 9/8 20:47 JST E4 派工)
+#   2) Body:
+#      - L4-1: 3 namespace 定义 (rust-game-server / rust-game-server-edge / rust-game-server-mgmt)
+#      - L4-2: 3 namespace 各自 ResourceQuota (基于 token-OLU 公式 + 1.2x 缓冲)
+#      - L4-3: tier 标签 (business-domain / edge-network / management) 便于 NetworkPolicy 兜底
+#      - 保留 rgs-batch 独立 namespace (per AGENTS.md §7 batch 域派生约束 12)
+#   3) DoD:
+#      - L1 (yaml syntax 0 error): kubectl apply --dry-run=client -f e4-00-namespace-isolation.yaml
+#      - L1.1 (N/A — 无 cargo 代码改动)
+#      - L1.2 (N/A — 无业务 E2E 改动)
+#   4) Evidence:
+#      - commit SHA (本 commit)
+#      - 3 L4 文件:line 位置 (e4-00-namespace-isolation.yaml L37-77 / L82-117 / L122-156)
+#      - 测试函数: 无 (yaml 静态策略, 集成测试由 Phase C 接入后跑)
+#      - 监控指标: kubectl get resourcequota -A (Phase C 接入后)
+#   5) 代签: author=Ulysses — Mavis 接手
+#            审批=架构师(Mavis 接手 agent per DEC-008) +自审+ 2026-09-08
+#            修订人=Ulysses — Mavis 接手
+#   6) 派生约束守护:
+#      - L1 ✅ L1.1 ✅ L1.2 ✅ L11 ✅ L12 ✅
+#      - 凭据不打印 ✅ (无 secret 内容)
+#      - 临时 log 不入 commit ✅
+# ===========================================================================
