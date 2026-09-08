@@ -71,6 +71,49 @@ target-w2-*/**
 target-w3-*/
 target-w3-*/**
 
+# W41 启动 6 worker per-worker build dir (per 2026-09-08 14:21 JST W41 派工 Phase 1)
+# worker-1 ut-account:   $env:CARGO_TARGET_DIR = "target-r41-account"
+# worker-2 ut-economy:   $env:CARGO_TARGET_DIR = "target-r41-economy"
+# worker-3 ut-scene:     $env:CARGO_TARGET_DIR = "target-r41-scene"
+# worker-4 ut-battle:    $env:CARGO_TARGET_DIR = "target-r41-battle"
+# worker-5 ut-network:   $env:CARGO_TARGET_DIR = "target-r41-network"
+# worker-6 ut-sub8:      $env:CARGO_TARGET_DIR = "target-r41-sub8"
+# 派工结束必须清理, .gitignore 兜底防未清理污染 git status
+target-r4*/
+target-r4*/**
+
+# W41 启动 6 worker per-worker build dir 补充 (per 2026-09-08 14:21 JST W41 派工 Phase 1)
+# worker-1 ut-account:   $env:CARGO_TARGET_DIR = "target-r41-account"
+# worker-2 ut-economy:   $env:CARGO_TARGET_DIR = "target-r41-economy"
+# worker-3 ut-scene:     $env:CARGO_TARGET_DIR = "target-r41-scene"
+# worker-4 ut-battle:    $env:CARGO_TARGET_DIR = "target-r41-battle"
+# worker-5 ut-network:   $env:CARGO_TARGET_DIR = "target-r41-network"
+# worker-6 ut-sub8:      $env:CARGO_TARGET_DIR = "target-r41-sub8"
+# 派工结束必须清理, .gitignore 兜底防未清理污染 git status
+target-r17-*/
+target-r17-*/**
+
+target-r22-*/
+target-r22-*/**
+
+target-r34-*/
+target-r34-*/**
+
+target-r41-*/
+target-r41-*/**
+
+# W17 6 worker per-worker build dir 兜底 (per 2026-09-05 13:07 JST W17 派工)
+target-r17-*/
+target-r17-*/**
+target-r22-*/
+target-r22-*/**
+target-r34-*/
+target-r34-*/**
+
+# W2 login/rank/conn_login/recruit/group_control/activity 6 module per-worker build dir (W2 派生)
+target-r8-check/
+target-r8-check/**
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)
