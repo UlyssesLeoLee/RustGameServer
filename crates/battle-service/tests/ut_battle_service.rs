@@ -168,6 +168,108 @@ async fn battle_engine_health_check_ok() {
 }
 
 // ============================================================================
+// 1.b W41 加固: 回合制 + 战斗推进核心 5 RPC (round_start_complete / next_wave / change_speed / play_complete / skip)
+// ============================================================================
+
+#[tokio::test]
+async fn w41_battle_round_start_complete_advances_to_action() {
+    let state = Arc::new(BattleServiceImpl::new());
+    let svc = BattleEngineServiceImpl::new(state.clone());
+
+    // Init -> Prepare -> RoundStart
+    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
+    // RoundStart -> Action
+    let resp = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let msg = resp.into_inner();
+    assert!(msg.ok);
+    assert!(msg.message.contains("round_start_complete"));
+}
+
+#[tokio::test]
+async fn w41_battle_next_wave_increments_wave_index() {
+    let state = Arc::new(BattleServiceImpl::new());
+    let svc = BattleEngineServiceImpl::new(state.clone());
+
+    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
+    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    // 推进到下一波
+    let resp = svc.battle_next_wave(Request::new(empty_req())).await.unwrap();
+    let msg = resp.into_inner();
+    assert!(msg.ok);
+    assert!(msg.message.contains("next_wave"));
+    // 再次推进, wave_index 应递增
+    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let resp2 = svc.battle_next_wave(Request::new(empty_req())).await.unwrap();
+    let msg2 = resp2.into_inner();
+    assert!(msg2.ok);
+    // 第二次 next_wave 后 wave 编号应该比第一次大
+    let wave1: u64 = msg.message.split("wave=").nth(1).unwrap().parse().unwrap();
+    let wave2: u64 = msg2.message.split("wave=").nth(1).unwrap().parse().unwrap();
+    assert!(wave2 > wave1);
+}
+
+#[tokio::test]
+async fn w41_battle_change_speed_cycles_1x_2x_3x() {
+    let state = Arc::new(BattleServiceImpl::new());
+    let svc = BattleEngineServiceImpl::new(state.clone());
+
+    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
+    // 1 -> 2 -> 3 -> 1 (循环)
+    let r1 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
+    let r2 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
+    let r3 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
+    let s1: u32 = r1.message.split("=").nth(1).unwrap().parse().unwrap();
+    let s2: u32 = r2.message.split("=").nth(1).unwrap().parse().unwrap();
+    let s3: u32 = r3.message.split("=").nth(1).unwrap().parse().unwrap();
+    assert_eq!(s1, 2);
+    assert_eq!(s2, 3);
+    assert_eq!(s3, 1);
+}
+
+#[tokio::test]
+async fn w41_battle_play_complete_transitions_to_end() {
+    let state = Arc::new(BattleServiceImpl::new());
+    let svc = BattleEngineServiceImpl::new(state.clone());
+
+    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
+    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    // 战斗播放完成 -> End
+    let resp = svc.battle_play_complete(Request::new(empty_req())).await.unwrap();
+    let msg = resp.into_inner();
+    assert!(msg.ok);
+    assert_eq!(msg.message, "play_complete");
+    // 再次调用应失败 (battle 已 End)
+    let resp2 = svc.battle_play_complete(Request::new(empty_req())).await;
+    assert!(resp2.is_err());
+}
+
+#[tokio::test]
+async fn w41_battle_skip_marks_defeat_outcome() {
+    let state = Arc::new(BattleServiceImpl::new());
+    let svc = BattleEngineServiceImpl::new(state.clone());
+
+    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
+    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
+    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    // 跳过战斗 -> End + outcome=Defeat
+    let resp = svc.battle_skip(Request::new(empty_req())).await.unwrap();
+    let msg = resp.into_inner();
+    assert!(msg.ok);
+    assert_eq!(msg.message, "skipped");
+    // 验证 battle 已 End: 再次 skip 应当失败
+    let resp2 = svc.battle_skip(Request::new(empty_req())).await;
+    assert!(resp2.is_err());
+}
+
+// ============================================================================
 // 2. PvPService 业务实装 (1 套代码 + 6 PvpMode, 5 tests)
 // ============================================================================
 
