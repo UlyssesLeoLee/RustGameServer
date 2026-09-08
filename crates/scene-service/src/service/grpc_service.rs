@@ -548,45 +548,123 @@ impl SceneServiceTrait for SceneGrpcService {
     }
     async fn move_cancel(
         &self,
-        _req: Request<scene_proto::MoveCancelRequest>,
+        request: Request<scene_proto::MoveCancelRequest>,
     ) -> std::result::Result<Response<scene_proto::MoveCancelResponse>, Status> {
-        Err(Status::unimplemented("move_cancel: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let instance_id = uuid::Uuid::parse_str(&req.instance_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid instance_id: {}", e)))?;
+        let cancelled = self.inner.move_cancel(player_id, instance_id).await?;
+        Ok(Response::new(scene_proto::MoveCancelResponse { cancelled }))
     }
     async fn unit_move_stream(
         &self,
-        _req: Request<scene_proto::UnitMoveEvent>,
+        request: Request<scene_proto::UnitMoveEvent>,
     ) -> std::result::Result<Response<scene_proto::UnitMoveAck>, Status> {
-        Err(Status::unimplemented("unit_move_stream: stub"))
+        let req = request.into_inner();
+        let instance_id = uuid::Uuid::parse_str(&req.instance_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid instance_id: {}", e)))?;
+        let unit_id = uuid::Uuid::parse_str(&req.unit_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid unit_id: {}", e)))?;
+        let received = self
+            .inner
+            .unit_move_stream(instance_id, unit_id, req.target_x, req.target_y)
+            .await?;
+        Ok(Response::new(scene_proto::UnitMoveAck { received }))
     }
     async fn get_current_position(
         &self,
-        _req: Request<scene_proto::GetCurrentPositionRequest>,
+        request: Request<scene_proto::GetCurrentPositionRequest>,
     ) -> std::result::Result<Response<scene_proto::Position>, Status> {
-        Err(Status::unimplemented("get_current_position: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let pos = self.inner.get_current_position(player_id).await?;
+        Ok(Response::new(scene_proto::Position {
+            x: pos.x,
+            y: pos.y,
+            dir: pos.dir,
+            map_id: req.instance_id,
+        }))
     }
     async fn set_position(
         &self,
-        _req: Request<scene_proto::SetPositionRequest>,
+        request: Request<scene_proto::SetPositionRequest>,
     ) -> std::result::Result<Response<scene_proto::SetPositionResponse>, Status> {
-        Err(Status::unimplemented("set_position: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let instance_id = uuid::Uuid::parse_str(&req.instance_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid instance_id: {}", e)))?;
+        let ok = self
+            .inner
+            .set_position(player_id, instance_id, req.x, req.y)
+            .await?;
+        Ok(Response::new(scene_proto::SetPositionResponse { ok }))
     }
     async fn get_path_to(
         &self,
-        _req: Request<scene_proto::GetPathToRequest>,
+        request: Request<scene_proto::GetPathToRequest>,
     ) -> std::result::Result<Response<scene_proto::GetPathToResponse>, Status> {
-        Err(Status::unimplemented("get_path_to: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let path = self
+            .inner
+            .get_path_to(player_id, req.from_x, req.from_y, req.to_x, req.to_y)
+            .await?;
+        let resp_path: Vec<scene_proto::Position> = path
+            .into_iter()
+            .map(|p| scene_proto::Position {
+                x: p.x,
+                y: p.y,
+                dir: p.dir,
+                map_id: String::new(),
+            })
+            .collect();
+        let distance = ((req.to_x - req.from_x).abs() + (req.to_y - req.from_y).abs()) as i32;
+        Ok(Response::new(scene_proto::GetPathToResponse {
+            path: resp_path,
+            distance,
+        }))
     }
     async fn get_coordinate_transform(
         &self,
-        _req: Request<scene_proto::GetCoordinateTransformRequest>,
+        request: Request<scene_proto::GetCoordinateTransformRequest>,
     ) -> std::result::Result<Response<scene_proto::GetCoordinateTransformResponse>, Status> {
-        Err(Status::unimplemented("get_coordinate_transform: stub"))
+        let req = request.into_inner();
+        let pos = self
+            .inner
+            .get_coordinate_transform(&req.from_space, &req.to_space, req.x, req.y)
+            .await?;
+        Ok(Response::new(scene_proto::GetCoordinateTransformResponse {
+            x: pos.x,
+            y: pos.y,
+        }))
     }
     async fn teleport(
         &self,
-        _req: Request<scene_proto::TeleportRequest>,
+        request: Request<scene_proto::TeleportRequest>,
     ) -> std::result::Result<Response<scene_proto::TeleportResponse>, Status> {
-        Err(Status::unimplemented("teleport: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let instance_id = uuid::Uuid::parse_str(&req.instance_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid instance_id: {}", e)))?;
+        let ok = self
+            .inner
+            .teleport(player_id, instance_id, req.to_x, req.to_y, &req.reason)
+            .await?;
+        Ok(Response::new(scene_proto::TeleportResponse {
+            ok,
+            new_pos: Some(scene_proto::Position {
+                x: req.to_x,
+                y: req.to_y,
+                dir: 0,
+                map_id: req.instance_id,
+            }),
+        }))
     }
     async fn subscribe_move_events(
         &self,
@@ -596,15 +674,33 @@ impl SceneServiceTrait for SceneGrpcService {
     }
     async fn get_move_speed(
         &self,
-        _req: Request<scene_proto::GetMoveSpeedRequest>,
+        request: Request<scene_proto::GetMoveSpeedRequest>,
     ) -> std::result::Result<Response<scene_proto::GetMoveSpeedResponse>, Status> {
-        Err(Status::unimplemented("get_move_speed: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let total = self.inner.get_move_speed(player_id).await?;
+        Ok(Response::new(scene_proto::GetMoveSpeedResponse {
+            base_speed: 100,
+            buff_speed: 0,
+            total,
+        }))
     }
     async fn adjust_move_speed(
         &self,
-        _req: Request<scene_proto::AdjustMoveSpeedRequest>,
+        request: Request<scene_proto::AdjustMoveSpeedRequest>,
     ) -> std::result::Result<Response<scene_proto::AdjustMoveSpeedResponse>, Status> {
-        Err(Status::unimplemented("adjust_move_speed: stub"))
+        let req = request.into_inner();
+        let player_id = uuid::Uuid::parse_str(&req.player_id)
+            .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
+        let new_speed = self
+            .inner
+            .adjust_move_speed(player_id, req.delta, req.duration_ms)
+            .await?;
+        Ok(Response::new(scene_proto::AdjustMoveSpeedResponse {
+            new_speed,
+            expires_in: req.duration_ms,
+        }))
     }
     async fn batch_move(
         &self,
