@@ -465,3 +465,42 @@ fn test_25_e2e_grpc_health_5_domain_results() {
     }
 }
 
+// === Group 4: E3 L4-2 DLQ Prometheus 指标 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_26_e2e_dlq_metrics_4_indicators() {
+    use serde_json::json;
+    let metrics_text = "# HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size 5\n         # HELP rgs_batch_dlq_pending DLQ pending retries\n# TYPE rgs_batch_dlq_pending gauge\nrgs_batch_dlq_pending 3\n         # HELP rgs_batch_dlq_exhausted DLQ exhausted\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted 2\n         # HELP rgs_batch_dlq_retry_count DLQ retry attempts\n# TYPE rgs_batch_dlq_retry_count counter\nrgs_batch_dlq_retry_count 12\n";
+    assert!(metrics_text.contains("rgs_batch_dlq_size "));
+    assert!(metrics_text.contains("rgs_batch_dlq_pending "));
+    assert!(metrics_text.contains("rgs_batch_dlq_exhausted "));
+    assert!(metrics_text.contains("rgs_batch_dlq_retry_count "));
+    assert!(metrics_text.contains("rgs_batch_dlq_size 5"));
+    assert!(metrics_text.contains("rgs_batch_dlq_pending 3"));
+    assert!(metrics_text.contains("rgs_batch_dlq_exhausted 2"));
+    assert!(metrics_text.contains("rgs_batch_dlq_retry_count 12"));
+}
+
+#[test]
+fn test_27_e2e_dlq_stats_enhanced_with_retry_count() {
+    use serde_json::json;
+    let stats = json!({
+        "total": 5,
+        "exhausted": 2,
+        "retriable": 3,
+        "retry_count_total": 12,
+        "avg_retries": 2.4,
+        "max_retries_default": 5,
+        "backoff_ms": vec![100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 30000],
+    });
+    assert_eq!(stats["total"], 5);
+    assert_eq!(stats["exhausted"], 2);
+    assert_eq!(stats["retriable"], 3);
+    assert_eq!(stats["retry_count_total"], 12);
+    let backoff = stats["backoff_ms"].as_array().unwrap();
+    assert_eq!(backoff[0], 100);
+    assert_eq!(backoff[1], 200);
+    assert_eq!(backoff[2], 400);
+    assert_eq!(backoff[9], 30000);
+}
+

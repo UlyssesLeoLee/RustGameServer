@@ -1053,12 +1053,43 @@ async fn dlq_stats(state: web::Data<AppState>) -> impl Responder {
         "SELECT COUNT(*) FROM batch_work.dlq_entry WHERE retry_count >= max_retries"
     ).fetch_one(&state.db).await.unwrap_or(0);
     let retriable: i64 = total - exhausted;
+    let retry_count_total: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(retry_count), 0) FROM batch_work.dlq_entry"
+    ).fetch_one(&state.db).await.unwrap_or(0);
+    let avg_retries: f64 = if total > 0 { retry_count_total as f64 / total as f64 } else { 0.0 };
     web::Json(serde_json::json!({
         "total": total,
         "exhausted": exhausted,
         "retriable": retriable,
+        "retry_count_total": retry_count_total,
+        "avg_retries": avg_retries,
         "max_retries_default": DLQ_MAX_RETRIES_DEFAULT,
+        "backoff_ms": vec![100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 30000],
     }))
+}
+
+// E3 L4-2 DLQ Prometheus 指标 (per 9/8 20:47 JST 派工)
+#[get("/api/v1/dlq/metrics")]
+async fn dlq_metrics(state: web::Data<AppState>) -> impl Responder {
+    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let exhausted: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM batch_work.dlq_entry WHERE retry_count >= max_retries"
+    ).fetch_one(&state.db).await.unwrap_or(0);
+    let retry_count_total: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(retry_count), 0) FROM batch_work.dlq_entry"
+    ).fetch_one(&state.db).await.unwrap_or(0);
+    let pending = total - exhausted;
+    let body = format!(
+        "# HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size {}\n\
+         # HELP rgs_batch_dlq_pending DLQ pending retries\n# TYPE rgs_batch_dlq_pending gauge\nrgs_batch_dlq_pending {}\n\
+         # HELP rgs_batch_dlq_exhausted DLQ exhausted\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted {}\n\
+         # HELP rgs_batch_dlq_retry_count DLQ retry attempts\n# TYPE rgs_batch_dlq_retry_count counter\nrgs_batch_dlq_retry_count {}\n",
+        total, pending, exhausted, retry_count_total
+    );
+    HttpResponse::Ok()
+        .content_type("text/plain; version=0.0.4")
+        .body(body)
 }
 #[get("/api/v1/workers")]
 async fn worker_status(state: web::Data<AppState>) -> impl Responder {
@@ -2590,6 +2621,10 @@ async fn metrics(state: web::Data<AppState>) -> impl Responder {
         .fetch_one(&state.db).await.unwrap_or(0);
     let dlq_exhausted: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry WHERE retry_count >= max_retries")
         .fetch_one(&state.db).await.unwrap_or(0);
+    let dlq_retry_count: i64 = sqlx::query_scalar("SELECT COALESCE(SUM(retry_count), 0) FROM batch_work.dlq_entry")
+        .fetch_one(&state.db).await.unwrap_or(0);
+    let dlq_pending: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM batch_work.dlq_entry WHERE retry_count < max_retries")
+        .fetch_one(&state.db).await.unwrap_or(0);
     // task duration: avg over succeeded tasks (per BA-W2-7 histogram 简化版)
     let avg_duration_secs: f64 = sqlx::query_scalar::<_, Option<f64>>(
         "SELECT AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) FROM batch_transaction.batch_task WHERE state = 'succeeded' AND started_at IS NOT NULL AND finished_at IS NOT NULL"
@@ -2601,10 +2636,10 @@ async fn metrics(state: web::Data<AppState>) -> impl Responder {
     let worker_metrics = state.worker_pool.status();
 
     let body = format!(
-        "# HELP rgs_batch_up Service up\n# TYPE rgs_batch_up gauge\nrgs_batch_up 1\n         # HELP rgs_batch_task_total Total tasks\n# TYPE rgs_batch_task_total counter\nrgs_batch_task_total {}\n         # HELP rgs_batch_task_succeeded_total Succeeded tasks\n# TYPE rgs_batch_task_succeeded_total counter\nrgs_batch_task_succeeded_total {}\n         # HELP rgs_batch_task_failed_total Failed tasks\n# TYPE rgs_batch_task_failed_total counter\nrgs_batch_task_failed_total {}\n         # HELP rgs_batch_task_running Running tasks\n# TYPE rgs_batch_task_running gauge\nrgs_batch_task_running {}\n         # HELP rgs_batch_task_duration_seconds_avg Average task duration\n# TYPE rgs_batch_task_duration_seconds_avg gauge\nrgs_batch_task_duration_seconds_avg {:.3}\n         # HELP rgs_batch_worker_pool_active Active workers\n# TYPE rgs_batch_worker_pool_active gauge\nrgs_batch_worker_pool_active {}\n         # HELP rgs_batch_worker_pool_max Max workers\n# TYPE rgs_batch_worker_pool_max gauge\nrgs_batch_worker_pool_max {}\n         # HELP rgs_batch_worker_pool_priority_queue Priority queue size\n# TYPE rgs_batch_worker_pool_priority_queue gauge\nrgs_batch_worker_pool_priority_queue {}\n         # HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size {}\n         # HELP rgs_batch_dlq_exhausted DLQ exhausted retries\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted {}\n         # HELP rgs_batch_cron_executions_total Cron executions\n# TYPE rgs_batch_cron_executions_total counter\nrgs_batch_cron_executions_total {}\n         # HELP rgs_batch_cron_active_schedules Active cron schedules\n# TYPE rgs_batch_cron_active_schedules gauge\nrgs_batch_cron_active_schedules {}\n",
+        "# HELP rgs_batch_up Service up\n# TYPE rgs_batch_up gauge\nrgs_batch_up 1\n         # HELP rgs_batch_task_total Total tasks\n# TYPE rgs_batch_task_total counter\nrgs_batch_task_total {}\n         # HELP rgs_batch_task_succeeded_total Succeeded tasks\n# TYPE rgs_batch_task_succeeded_total counter\nrgs_batch_task_succeeded_total {}\n         # HELP rgs_batch_task_failed_total Failed tasks\n# TYPE rgs_batch_task_failed_total counter\nrgs_batch_task_failed_total {}\n         # HELP rgs_batch_task_running Running tasks\n# TYPE rgs_batch_task_running gauge\nrgs_batch_task_running {}\n         # HELP rgs_batch_task_duration_seconds_avg Average task duration\n# TYPE rgs_batch_task_duration_seconds_avg gauge\nrgs_batch_task_duration_seconds_avg {:.3}\n         # HELP rgs_batch_worker_pool_active Active workers\n# TYPE rgs_batch_worker_pool_active gauge\nrgs_batch_worker_pool_active {}\n         # HELP rgs_batch_worker_pool_max Max workers\n# TYPE rgs_batch_worker_pool_max gauge\nrgs_batch_worker_pool_max {}\n         # HELP rgs_batch_worker_pool_priority_queue Priority queue size\n# TYPE rgs_batch_worker_pool_priority_queue gauge\nrgs_batch_worker_pool_priority_queue {}\n         # HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size {}\n         # HELP rgs_batch_dlq_pending DLQ pending retries\n# TYPE rgs_batch_dlq_pending gauge\nrgs_batch_dlq_pending {}\n         # HELP rgs_batch_dlq_exhausted DLQ exhausted retries\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted {}\n         # HELP rgs_batch_dlq_retry_count DLQ total retry attempts\n# TYPE rgs_batch_dlq_retry_count counter\nrgs_batch_dlq_retry_count {}\n         # HELP rgs_batch_cron_executions_total Cron executions\n# TYPE rgs_batch_cron_executions_total counter\nrgs_batch_cron_executions_total {}\n         # HELP rgs_batch_cron_active_schedules Active cron schedules\n# TYPE rgs_batch_cron_active_schedules gauge\nrgs_batch_cron_active_schedules {}\n",
         task_total, task_succeeded, task_failed, task_running, avg_duration_secs,
         worker_metrics.active, worker_metrics.max_concurrent, worker_metrics.priority_queue_size,
-        dlq_size, dlq_exhausted, cron_exec, cron_active
+        dlq_size, dlq_pending, dlq_exhausted, dlq_retry_count, cron_exec, cron_active
     );
     HttpResponse::Ok()
         .content_type("text/plain; version=0.0.4")
@@ -2845,6 +2880,7 @@ async fn main() -> std::io::Result<()> {
             .service(list_dlq)
             .service(retry_dlq_by_id)
             .service(dlq_stats)
+            .service(dlq_metrics)
             .service(metrics)
             .service(grpc_status)
             .service(grpc_mtls_config)
