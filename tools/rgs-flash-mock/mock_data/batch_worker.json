@@ -1,0 +1,45 @@
+{
+  "module": "batch-worker",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend worker pool 调度 mock fixture (per E3 L4-1 + 9/1 BATCH REQ F-4 多 worker 并发 + GAP-4 优先级调度 1-10 + BinaryHeap min-heap)",
+  "scenarios": [
+    {
+      "scenario": "HP-WORKER-001",
+      "name": "注册 100 task, 并发 10 worker 处理 (per BA-W2-4)",
+      "request": {"method": "POST", "url": "/api/v1/workers/enqueue", "body": {"count": 100, "priority": 1}},
+      "response": {"enqueued": 100, "priority_queue_size": 100, "max_concurrent": 8}
+    },
+    {
+      "scenario": "HP-WORKER-002",
+      "name": "worker 失败 3 次自动 DLQ (per E3 L4-2 + GAP-9)",
+      "request": {"method": "POST", "url": "/api/v1/workers/enqueue", "body": {"template_id": "00000000-0000-0000-0000-000000000001", "will_fail": true}},
+      "response": {"enqueued": true, "dlq_after_3_retries": true, "max_retries": 5}
+    },
+    {
+      "scenario": "EC-WORKER-001",
+      "name": "worker_pool 满 (10/10) 拒绝新任务",
+      "request": {"method": "POST", "url": "/api/v1/workers/enqueue"},
+      "response": {"error": "worker pool full", "active": 8, "max": 8, "status": 503}
+    },
+    {
+      "scenario": "BV-WORKER-001",
+      "name": "worker 数量边界 1/10/100",
+      "request": {"method": "POST", "url": "/api/v1/workers/concurrency", "body": {"max_concurrent": 1}},
+      "response": {"max_concurrent_set": true, "max_concurrent": 1, "note": "with_capacity 重建需重启"}
+    },
+    {
+      "scenario": "EX-WORKER-001",
+      "name": "worker 进程被 kill",
+      "request": {"method": "GET", "url": "/api/v1/workers"},
+      "response": {"active": 0, "idle": 0, "total": 8, "by_priority": {}, "priority_queue_size": 0}
+    }
+  ],
+  "endpoints": {
+    "worker_status": "GET /api/v1/workers",
+    "enqueue_task": "POST /api/v1/workers/enqueue",
+    "dequeue_task": "GET /api/v1/workers/dequeue",
+    "set_concurrency": "POST /api/v1/workers/concurrency"
+  },
+  "priority_levels": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "default_max_concurrent": 8
+}
