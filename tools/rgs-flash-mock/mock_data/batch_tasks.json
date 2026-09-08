@@ -1,0 +1,63 @@
+{
+  "module": "batch-tasks",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend task CRUD 业务级 mock fixture (per E3 L4-1 任务调度 + 9/1 BATCH REQ F-1 定时执行 + F-4 多 worker 并发)",
+  "scenarios": [
+    {
+      "scenario": "HP-TASK-001",
+      "name": "POST /api/v1/tasks 创建任务 (锁定 template_version, per GAP-7)",
+      "request": {
+        "method": "POST",
+        "url": "/api/v1/tasks",
+        "body": {
+          "template_id": "00000000-0000-0000-0000-000000000001",
+          "params": {"player_id": "p-001", "amount": 100},
+          "priority": 1
+        }
+      },
+      "response": {
+        "id": "00000000-0000-0000-0000-000000000010",
+        "template_id": "00000000-0000-0000-0000-000000000001",
+        "template_version": 2,
+        "state": "pending",
+        "priority": 1
+      }
+    },
+    {
+      "scenario": "HP-TASK-002",
+      "name": "GET /api/v1/tasks 列表 (按 priority + created_at DESC LIMIT 50, per GAP-4)",
+      "request": {"method": "GET", "url": "/api/v1/tasks"},
+      "response": {
+        "tasks": [
+          {"id": "00000000-0000-0000-0000-000000000010", "state": "pending", "priority": 1},
+          {"id": "00000000-0000-0000-0000-000000000011", "state": "running", "priority": 3},
+          {"id": "00000000-0000-0000-0000-000000000012", "state": "succeeded", "priority": 5}
+        ],
+        "count": 3
+      }
+    },
+    {
+      "scenario": "EC-TASK-001",
+      "name": "template_id 不存在 → 404",
+      "request": {"method": "POST", "url": "/api/v1/tasks", "body": {"template_id": "ffffffff-ffff-ffff-ffff-ffffffffffff"}},
+      "response": {"error": "template not found", "status": 404}
+    },
+    {
+      "scenario": "BV-TASK-001",
+      "name": "priority 边界 1/5/10",
+      "request": {"method": "POST", "url": "/api/v1/tasks", "body": {"template_id": "00000000-0000-0000-0000-000000000001", "priority": 1}},
+      "response": {"accepted": true, "priority": 1}
+    },
+    {
+      "scenario": "EX-TASK-001",
+      "name": "DB 不可达 → 503",
+      "request": {"method": "GET", "url": "/api/v1/tasks"},
+      "response": {"error": "DB connection failed", "status": 503}
+    }
+  ],
+  "endpoints": {
+    "list_tasks": "GET /api/v1/tasks",
+    "create_task": "POST /api/v1/tasks",
+    "task_templates": "GET /api/v1/task-templates"
+  }
+}

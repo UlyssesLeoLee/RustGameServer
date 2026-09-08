@@ -1,0 +1,72 @@
+{
+  "module": "batch-audit",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend audit_event T-3 永久保留 + 5 域 gRPC 实测 mock fixture (per E3 L4-5 + 9/1 BATCH REQ F-10 操作审计 + NFR-29 永久保留 + ADR-0058)",
+  "scenarios": [
+    {
+      "scenario": "HP-AUDIT-001",
+      "name": "执行 batch task 时 audit_log 5 字段全记录 (per BA-W2-6)",
+      "request": {"method": "POST", "url": "/api/v1/audit/log"},
+      "response": {
+        "id": "00000000-0000-0000-0000-000000000030",
+        "operator": "ulysses",
+        "action": "create_task",
+        "params_hash": "a1b2c3d4e5f6g7h8",
+        "result": "success",
+        "trace_id": "trace-001"
+      }
+    },
+    {
+      "scenario": "HP-AUDIT-002",
+      "name": "audit_event T-3 永久保留验证 (per NFR-29, retention_days=0)",
+      "request": {"method": "GET", "url": "/api/v1/audit/query"},
+      "response": {
+        "events": [
+          {"id": "00000000-0000-0000-0000-000000000030", "operator": "ulysses", "action": "create_task"},
+          {"id": "00000000-0000-0000-0000-000000000031", "operator": "system", "action": "5_domain_grpc_call"}
+        ],
+        "retention_days": 0,
+        "retention_label": "permanent (T-3, NFR-29)",
+        "count": 2
+      }
+    },
+    {
+      "scenario": "HP-AUDIT-3",
+      "name": "5 域 gRPC 调用开始/结束/失败 audit 触发 (per E3 L4-5)",
+      "request": {"method": "GET", "url": "/api/v1/audit/query?action=5_domain_grpc_call"},
+      "response": {
+        "events": [
+          {"action": "5_domain_grpc_call", "domain": "player-service", "result": "started", "trace_id": "trace-001"},
+          {"action": "5_domain_grpc_call", "domain": "player-service", "result": "failed", "trace_id": "trace-001", "error": "timeout"},
+          {"action": "5_domain_grpc_call", "domain": "economy-service", "result": "started", "trace_id": "trace-002"},
+          {"action": "5_domain_grpc_call", "domain": "economy-service", "result": "succeeded", "trace_id": "trace-002"}
+        ],
+        "count": 4
+      }
+    },
+    {
+      "scenario": "EC-AUDIT-001",
+      "name": "audit_log 字段缺失 → 400",
+      "request": {"method": "POST", "url": "/api/v1/audit/log", "body": {"operator": "ulysses"}},
+      "response": {"error": "action required", "status": 400}
+    },
+    {
+      "scenario": "BV-AUDIT-001",
+      "name": "params hash 边界 0 字节/1KB/1MB",
+      "request": {"method": "POST", "url": "/api/v1/audit/log"},
+      "response": {"logged": true, "params_hash_size": 16}
+    },
+    {
+      "scenario": "EX-AUDIT-001",
+      "name": "audit_log DB 不可达",
+      "request": {"method": "POST", "url": "/api/v1/audit/log"},
+      "response": {"error": "DB connection failed", "status": 503}
+    }
+  ],
+  "endpoints": {
+    "log_audit": "POST /api/v1/audit/log",
+    "query_audit": "GET /api/v1/audit/query",
+    "list_audit_events": "GET /api/v1/audit-events"
+  },
+  "audit_fields": ["id", "operator", "action", "params_hash", "result", "trace_id", "resource_type", "resource_id", "created_at"]
+}

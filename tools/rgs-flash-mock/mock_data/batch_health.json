@@ -1,0 +1,95 @@
+{
+  "module": "batch-health",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend 5 域 gRPC mTLS health 业务级 mock fixture (per E3 L4-1 + 9/4 17:47 JST 测试数据归 mock 项目)",
+  "scenarios": [
+    {
+      "scenario": "HP-HEALTH-001",
+      "name": "5 域 health 全 healthy",
+      "domains": {
+        "player-service": "healthy",
+        "economy-service": "healthy",
+        "match-service": "healthy",
+        "social-service": "healthy",
+        "admin-service": "healthy"
+      },
+      "expected": {
+        "mtls_ready": true,
+        "all_healthy": true,
+        "healthy_count": 5,
+        "total": 5
+      }
+    },
+    {
+      "scenario": "HP-HEALTH-002",
+      "name": "5 域 health 全 unhealthy (k3s 不可达)",
+      "domains": {
+        "player-service": "unhealthy:k3s unreachable",
+        "economy-service": "unhealthy:k3s unreachable",
+        "match-service": "unhealthy:k3s unreachable",
+        "social-service": "unhealthy:k3s unreachable",
+        "admin-service": "unhealthy:k3s unreachable"
+      },
+      "expected": {
+        "mtls_ready": true,
+        "all_healthy": false,
+        "healthy_count": 0,
+        "total": 5
+      },
+      "note": "per E3 9/8 20:47 NO-GO 风险, k3s 不可达时不假装跑通"
+    },
+    {
+      "scenario": "EC-HEALTH-001",
+      "name": "1 域 unreachable 1 域 timeout",
+      "domains": {
+        "player-service": "unhealthy:connection refused",
+        "economy-service": "unhealthy:timeout 5s",
+        "match-service": "healthy",
+        "social-service": "healthy",
+        "admin-service": "healthy"
+      },
+      "expected": {
+        "mtls_ready": true,
+        "all_healthy": false,
+        "healthy_count": 3,
+        "total": 5
+      }
+    },
+    {
+      "scenario": "BV-HEALTH-001",
+      "name": "5 域并发调用 1/10/100/1000 边界",
+      "domains": {
+        "concurrent_1": "1 call healthy",
+        "concurrent_10": "10 calls all healthy",
+        "concurrent_100": "100 calls all healthy",
+        "concurrent_1000": "1000 calls all healthy"
+      },
+      "expected": {
+        "all_healthy": true
+      }
+    },
+    {
+      "scenario": "EX-HEALTH-001",
+      "name": "mTLS 证书失效",
+      "domains": {
+        "all_domains": "unhealthy:tls handshake failed"
+      },
+      "expected": {
+        "mtls_ready": false,
+        "all_healthy": false
+      }
+    }
+  ],
+  "endpoints": {
+    "grpc_health": "GET /api/v1/grpc-health",
+    "grpc_mtls_config": "GET /api/v1/grpc-mtls-config",
+    "grpc_status": "GET /api/v1/grpc-status"
+  },
+  "ports": {
+    "player-service": 50051,
+    "economy-service": 50052,
+    "match-service": 50053,
+    "social-service": 50054,
+    "admin-service": 50055
+  }
+}

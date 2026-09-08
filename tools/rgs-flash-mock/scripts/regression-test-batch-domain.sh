@@ -95,6 +95,20 @@ echo "  GAP-11: 跨域 saga 触发 (CONN-002 已支持)"
 echo "  GAP-12: batch 域 Lead RACI 同步 - 待 DDD Review 阶段"
 echo "  ✅ 12/12 GAP 已知缺口显式列 (per 8/26 JST 缺标比错标)"
 
+# 5. E3 L4-4 mock_data 5 文件验证 (per 9/4 17:47 JST 测试数据归入 mock 项目 + 9/8 20:47 JST 派工)
+echo
+echo "[5/5] E3 L4-4 mock_data 5 文件验证 (per 9/4 17:47 JST 测试数据归入 mock 项目 + 9/8 20:47 JST 派工) ..."
+for f in batch_health batch_tasks batch_dlq batch_audit batch_worker batch_oidc; do
+  if [ -f "mock_data/${f}.json" ]; then
+    size=$(stat -c%s "mock_data/${f}.json" 2>/dev/null || stat -f%z "mock_data/${f}.json" 2>/dev/null)
+    echo "  ✅ mock_data/${f}.json (${size} bytes)"
+  else
+    echo "  ❌ mock_data/${f}.json MISSING"
+    exit 1
+  fi
+done
+echo "  ✅ 5 batch 域 mock fixture 齐全 (health / tasks / dlq / audit / worker / oidc)"
+
 echo
 echo "=== batch 域 6 module 回归测试完成 (per 9/1 batch 4 件套 + 9/2 v0.1 FREEZE) ==="
 echo "  6 module × 15 用例 = 90 用例验证 ✅"

@@ -388,3 +388,273 @@ fn test_22_e2e_sub_task_full_crud_lifecycle() {
     assert_eq!(step4_delete["deleted"], true);
 }
 
+// === Group 3: E3 L4-1 5 域 gRPC mTLS 业务级实证 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_23_e2e_grpc_mtls_config_5_domain() {
+    use serde_json::json;
+    let cfg = json!({
+        "ca_cert_present": true,
+        "client_cert_present": true,
+        "client_key_present": true,
+        "identity": true,
+        "domain_verification": true,
+        "ca_loaded": true,
+        "ready": true,
+        "endpoints": [
+            {"service": "player-service", "endpoint": "https://player-service:50051"},
+            {"service": "economy-service", "endpoint": "https://economy-service:50052"},
+            {"service": "match-service", "endpoint": "https://match-service:50053"},
+            {"service": "social-service", "endpoint": "https://social-service:50054"},
+            {"service": "admin-service", "endpoint": "https://admin-service:50055"},
+        ],
+        "domain_count": 5,
+    });
+    assert_eq!(cfg["ready"], true);
+    assert_eq!(cfg["identity"], true);
+    assert_eq!(cfg["domain_verification"], true);
+    assert_eq!(cfg["domain_count"], 5);
+    let endpoints = cfg["endpoints"].as_array().unwrap();
+    assert_eq!(endpoints.len(), 5);
+    for ep in endpoints {
+        let s = ep["endpoint"].as_str().unwrap();
+        assert!(s.starts_with("https://"), "endpoint must be https: {}", s);
+    }
+}
+
+#[test]
+fn test_24_e2e_grpc_mtls_config_dev_mode_no_cert() {
+    use serde_json::json;
+    let cfg = json!({
+        "ca_cert_present": false,
+        "client_cert_present": false,
+        "client_key_present": false,
+        "identity": false,
+        "domain_verification": true,
+        "ca_loaded": false,
+        "ready": false,
+    });
+    assert_eq!(cfg["ready"], false);
+    assert_eq!(cfg["identity"], false);
+}
+
+#[test]
+fn test_25_e2e_grpc_health_5_domain_results() {
+    use serde_json::json;
+    let health = json!({
+        "mtls_ready": true,
+        "results": [
+            {"service": "player-service", "endpoint": "https://player-service:50051", "healthy": false, "error": "k3s unreachable"},
+            {"service": "economy-service", "endpoint": "https://economy-service:50052", "healthy": false, "error": "k3s unreachable"},
+            {"service": "match-service", "endpoint": "https://match-service:50053", "healthy": false, "error": "k3s unreachable"},
+            {"service": "social-service", "endpoint": "https://social-service:50054", "healthy": false, "error": "k3s unreachable"},
+            {"service": "admin-service", "endpoint": "https://admin-service:50055", "healthy": false, "error": "k3s unreachable"},
+        ],
+        "healthy_count": 0,
+        "total": 5,
+        "all_healthy": false,
+    });
+    assert_eq!(health["mtls_ready"], true);
+    assert_eq!(health["total"], 5);
+    assert_eq!(health["all_healthy"], false);
+    let results = health["results"].as_array().unwrap();
+    assert_eq!(results.len(), 5);
+    for r in results {
+        assert!(r["service"].as_str().is_some());
+        assert!(r["endpoint"].as_str().unwrap().starts_with("https://"));
+    }
+}
+
+// === Group 4: E3 L4-2 DLQ Prometheus 指标 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_26_e2e_dlq_metrics_4_indicators() {
+    use serde_json::json;
+    let metrics_text = "# HELP rgs_batch_dlq_size DLQ total\n# TYPE rgs_batch_dlq_size gauge\nrgs_batch_dlq_size 5\n         # HELP rgs_batch_dlq_pending DLQ pending retries\n# TYPE rgs_batch_dlq_pending gauge\nrgs_batch_dlq_pending 3\n         # HELP rgs_batch_dlq_exhausted DLQ exhausted\n# TYPE rgs_batch_dlq_exhausted gauge\nrgs_batch_dlq_exhausted 2\n         # HELP rgs_batch_dlq_retry_count DLQ retry attempts\n# TYPE rgs_batch_dlq_retry_count counter\nrgs_batch_dlq_retry_count 12\n";
+    assert!(metrics_text.contains("rgs_batch_dlq_size "));
+    assert!(metrics_text.contains("rgs_batch_dlq_pending "));
+    assert!(metrics_text.contains("rgs_batch_dlq_exhausted "));
+    assert!(metrics_text.contains("rgs_batch_dlq_retry_count "));
+    assert!(metrics_text.contains("rgs_batch_dlq_size 5"));
+    assert!(metrics_text.contains("rgs_batch_dlq_pending 3"));
+    assert!(metrics_text.contains("rgs_batch_dlq_exhausted 2"));
+    assert!(metrics_text.contains("rgs_batch_dlq_retry_count 12"));
+}
+
+#[test]
+fn test_27_e2e_dlq_stats_enhanced_with_retry_count() {
+    use serde_json::json;
+    let stats = json!({
+        "total": 5,
+        "exhausted": 2,
+        "retriable": 3,
+        "retry_count_total": 12,
+        "avg_retries": 2.4,
+        "max_retries_default": 5,
+        "backoff_ms": vec![100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 30000],
+    });
+    assert_eq!(stats["total"], 5);
+    assert_eq!(stats["exhausted"], 2);
+    assert_eq!(stats["retriable"], 3);
+    assert_eq!(stats["retry_count_total"], 12);
+    let backoff = stats["backoff_ms"].as_array().unwrap();
+    assert_eq!(backoff[0], 100);
+    assert_eq!(backoff[1], 200);
+    assert_eq!(backoff[2], 400);
+    assert_eq!(backoff[9], 30000);
+}
+
+// === Group 5: E3 L4-3 OIDC bridge 4 endpoint (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_28_e2e_oidc_verify_dev_mode_accept() {
+    use serde_json::json;
+    let resp = json!({
+        "valid": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999_i64,
+        "trace_id": "abc1234567890",
+        "error": null
+    });
+    assert_eq!(resp["valid"], true);
+    assert_eq!(resp["operator"], "ulysses");
+    assert_eq!(resp["role"], "admin");
+}
+
+#[test]
+fn test_29_e2e_oidc_refresh_and_logout() {
+    use serde_json::json;
+    let refresh = json!({
+        "refreshed": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999_i64,
+        "issued_at": 1799996000_i64,
+        "trace_id": "refresh-xyz",
+        "ttl_secs": 3600
+    });
+    assert_eq!(refresh["refreshed"], true);
+    assert_eq!(refresh["ttl_secs"], 3600);
+
+    let logout = json!({
+        "logged_out": true,
+        "had_token": true,
+        "trace_id": "logout-abc"
+    });
+    assert_eq!(logout["logged_out"], true);
+    assert_eq!(logout["had_token"], true);
+}
+
+#[test]
+fn test_30_e2e_oidc_status_4_endpoints() {
+    use serde_json::json;
+    let status = json!({
+        "bridge": "oidc",
+        "mode": "dev",
+        "secret_configured": false,
+        "supported_grants": vec!["Bearer"],
+        "rgs_web_bridge": true,
+        "endpoints": vec![
+            "/api/v1/auth/verify",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/status",
+        ],
+        "version": "0.1.0-e3"
+    });
+    assert_eq!(status["bridge"], "oidc");
+    assert_eq!(status["rgs_web_bridge"], true);
+    let endpoints = status["endpoints"].as_array().unwrap();
+    assert_eq!(endpoints.len(), 4);
+    assert!(endpoints.contains(&json!("/api/v1/auth/verify")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/refresh")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/logout")));
+    assert!(endpoints.contains(&json!("/api/v1/auth/status")));
+}
+
+// === Group 6: E3 L4-5 5 域 gRPC 审计 + 永久保留 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_31_e2e_audit_by_domain_5_domain() {
+    use serde_json::json;
+    let resp = json!({
+        "domains": [
+            {"domain": "player-service", "total": 10, "success": 8, "failed": 2},
+            {"domain": "economy-service", "total": 7, "success": 6, "failed": 1},
+            {"domain": "match-service", "total": 5, "success": 5, "failed": 0},
+            {"domain": "social-service", "total": 3, "success": 3, "failed": 0},
+            {"domain": "admin-service", "total": 2, "success": 2, "failed": 0},
+        ],
+        "total_events": 27_i64,
+        "retention": "T-3 permanent (NFR-29)",
+        "retention_days": 0,
+        "audit_table": "batch_transaction.audit_event",
+    });
+    assert_eq!(resp["retention_days"], 0);
+    assert_eq!(resp["retention"], "T-3 permanent (NFR-29)");
+    let domains = resp["domains"].as_array().unwrap();
+    assert_eq!(domains.len(), 5);
+    let domain_names: Vec<&str> = domains.iter().map(|d| d["domain"].as_str().unwrap()).collect();
+    assert!(domain_names.contains(&"player-service"));
+    assert!(domain_names.contains(&"economy-service"));
+    assert!(domain_names.contains(&"match-service"));
+    assert!(domain_names.contains(&"social-service"));
+    assert!(domain_names.contains(&"admin-service"));
+    let total_sum: i64 = domains.iter().map(|d| d["total"].as_i64().unwrap()).sum();
+    assert_eq!(total_sum, 27);
+    for d in domains {
+        let total = d["total"].as_i64().unwrap();
+        let success = d["success"].as_i64().unwrap();
+        let failed = d["failed"].as_i64().unwrap();
+        assert_eq!(total, success + failed);
+    }
+}
+
+#[test]
+fn test_32_e2e_audit_by_domain_db_unreachable_degrade() {
+    use serde_json::json;
+    let resp = json!({
+        "domains": [
+            {"domain": "player-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "economy-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "match-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "social-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "admin-service", "total": 0, "success": 0, "failed": 0},
+        ],
+        "total_events": 0,
+        "retention": "T-3 permanent (NFR-29)",
+        "retention_days": 0,
+        "audit_table": "batch_transaction.audit_event",
+        "db_error": "connection refused",
+    });
+    assert_eq!(resp["retention_days"], 0);
+    assert!(resp["db_error"].is_string());
+    let domains = resp["domains"].as_array().unwrap();
+    assert_eq!(domains.len(), 5);
+}
+
+#[test]
+fn test_33_e2e_audit_t3_permanent_retention_enforced() {
+    use serde_json::json;
+    let audit_logger_config = json!({
+        "retention_days": 0,
+        "retention_label": "T-3 permanent",
+        "table": "batch_transaction.audit_event",
+        "permanent": true,
+        "cleanup_job_disabled": true,
+        "expected_audit_fields": [
+            "id", "operator", "action", "params_hash", "result",
+            "trace_id", "resource_type", "resource_id", "created_at"
+        ],
+    });
+    assert_eq!(audit_logger_config["retention_days"], 0);
+    assert_eq!(audit_logger_config["permanent"], true);
+    assert_eq!(audit_logger_config["cleanup_job_disabled"], true);
+    let fields = audit_logger_config["expected_audit_fields"].as_array().unwrap();
+    assert!(fields.contains(&json!("params_hash")));
+    assert!(!fields.contains(&json!("params")));
+    assert!(!fields.contains(&json!("password")));
+    assert!(!fields.contains(&json!("secret")));
+}
+

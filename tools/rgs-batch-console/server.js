@@ -68,6 +68,9 @@ function proxyToBackend(req, res, backendPath, methodOverride) {
   // 透传 trace id (per REQ NFR-30 分布式追踪), 不传 token / cookie
   if (req.headers['x-trace-id']) headers['X-Trace-Id'] = req.headers['x-trace-id'];
   if (req.headers['x-operator']) headers['X-Operator'] = req.headers['x-operator'];
+  // E3 L4-3 OIDC bridge: 透传 Authorization Bearer (per GAP-6 rgs-web 联动)
+  // 永不打 log, 只 forward (per 8/27 11:06 JST 硬 ban)
+  if (req.headers['authorization']) headers['Authorization'] = req.headers['authorization'];
 
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
@@ -150,6 +153,8 @@ const localHandlers = {
         'BA-W1-3: /api/v1/sagas 3 endpoint (list/get/status 代理 backend)',
         'BA-W1-4: /api/v1/grpc-status (代理 backend 5 域 gRPC client health)',
         'E3 派工 13 endpoint 补完 (per 9/8 20:30 JST E3 派工)',
+        'E3 L4-3 OIDC bridge 4 endpoint: /api/v1/auth/{verify,refresh,logout,status} (per 9/8 20:47 JST 派工)',
+        'OIDC bearer 透传 (per GAP-6 rgs-web 联动 + 8/27 11:06 JST 硬 ban 永不打 log)',
         'REDACTED filter: 凭据 per 8/27 11:06 JST 硬 ban, 代理时脱敏 password/secret/token',
         'lockfile 派生约束 (per 8/27 19:06 JST): SIGINT 时清理 .lock',
         '127.0.0.1 only (per rgs-web 母规范 + NFR-31, 不监听 0.0.0.0)',
@@ -190,6 +195,12 @@ const proxyRoutes = [
   { method: 'GET',  pattern: /^\/api\/v1\/sagas$/,                              backend: (m) => '/api/v1/saga-instances' },
   { method: 'GET',  pattern: /^\/api\/v1\/sagas\/([0-9a-fA-F-]{36})\/status$/, backend: (m) => `/api/v1/saga-instances/${m[1]}` },
   { method: 'GET',  pattern: /^\/api\/v1\/sagas\/([0-9a-fA-F-]{36})$/,         backend: (m) => `/api/v1/saga-instances/${m[1]}` },
+  // /api/v1/auth/* 4 endpoint OIDC bridge (per E3 L4-3, 9/8 20:47 JST 派工)
+  // 透传 Authorization Bearer token (per GAP-6 rgs-web 联动 + 8/27 11:06 JST 硬 ban 永不打 log)
+  { method: 'GET',  pattern: /^\/api\/v1\/auth\/verify$/,                       backend: (m) => '/api/v1/auth/verify' },
+  { method: 'POST', pattern: /^\/api\/v1\/auth\/refresh$/,                      backend: (m) => '/api/v1/auth/refresh' },
+  { method: 'POST', pattern: /^\/api\/v1\/auth\/logout$/,                       backend: (m) => '/api/v1/auth/logout' },
+  { method: 'GET',  pattern: /^\/api\/v1\/auth\/status$/,                       backend: (m) => '/api/v1/auth/status' },
 ];
 
 const server = http.createServer((req, res) => {

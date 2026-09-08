@@ -1,0 +1,76 @@
+{
+  "module": "batch-dlq",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend DLQ 端到端 + Prometheus 指标 mock fixture (per E3 L4-2 + 9/1 BATCH REQ F-9 dead-letter 处理 + BA-W2-3 指数退避 100ms→30s)",
+  "scenarios": [
+    {
+      "scenario": "HP-DLQ-001",
+      "name": "task 失败 3 次自动入 DLQ (per BA-W2-3 + exponential backoff)",
+      "request": {
+        "method": "POST",
+        "url": "/api/v1/tasks",
+        "body": {"template_id": "00000000-0000-0000-0000-000000000001", "params": {"will_fail": true}}
+      },
+      "expected_dlq": {
+        "id": "00000000-0000-0000-0000-000000000020",
+        "template_id": "00000000-0000-0000-0000-000000000001",
+        "template_version": 2,
+        "retry_count": 3,
+        "max_retries": 5,
+        "next_retry_at": "2026-09-08T12:00:00Z",
+        "reason": "5 domain call failed 3 times (player-service unreachable)"
+      }
+    },
+    {
+      "scenario": "HP-DLQ-002",
+      "name": "DLQ 离线分析可读 (per BA-W2-3 + ADR-0058)",
+      "request": {"method": "GET", "url": "/api/v1/dlq"},
+      "response": {
+        "entries": [
+          {"id": "00000000-0000-0000-0000-000000000020", "retry_count": 3, "exhausted": false},
+          {"id": "00000000-0000-0000-0000-000000000021", "retry_count": 5, "exhausted": true}
+        ],
+        "count": 2
+      }
+    },
+    {
+      "scenario": "HP-DLQ-METRICS",
+      "name": "DLQ Prometheus 4 指标 (per E3 L4-2: dlq_size + dlq_retry_count + dlq_pending + dlq_exhausted)",
+      "request": {"method": "GET", "url": "/api/v1/dlq/metrics"},
+      "response": {
+        "metrics": {
+          "rgs_batch_dlq_size": 5,
+          "rgs_batch_dlq_pending": 3,
+          "rgs_batch_dlq_exhausted": 2,
+          "rgs_batch_dlq_retry_count": 12
+        },
+        "format": "prometheus text 0.0.4"
+      }
+    },
+    {
+      "scenario": "EC-DLQ-001",
+      "name": "DLQ 满 (quota 1000) 拒绝新条目",
+      "request": {"method": "POST", "url": "/api/v1/dlq", "body": {"template_id": "00000000-0000-0000-0000-000000000001"}},
+      "response": {"error": "DLQ quota exceeded", "status": 503, "quota": 1000}
+    },
+    {
+      "scenario": "BV-DLQ-001",
+      "name": "DLQ payload 边界 0 字节/1MB/10MB",
+      "request": {"method": "POST", "url": "/api/v1/dlq", "body": {"params": {"size": "1MB"}}},
+      "response": {"accepted": true, "size_bytes": 1048576}
+    },
+    {
+      "scenario": "EX-DLQ-001",
+      "name": "DLQ 离线分析时 rgs-batch-backend 不可达",
+      "request": {"method": "GET", "url": "/api/v1/dlq"},
+      "response": {"error": "rgs-batch-backend unreachable", "status": 503}
+    }
+  ],
+  "endpoints": {
+    "list_dlq": "GET /api/v1/dlq",
+    "dlq_stats": "GET /api/v1/dlq/stats",
+    "dlq_metrics": "GET /api/v1/dlq/metrics",
+    "retry_dlq": "GET /api/v1/dlq/retry/{id}"
+  },
+  "backoff_ms": [100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 30000]
+}

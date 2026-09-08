@@ -1,0 +1,105 @@
+{
+  "module": "batch-oidc",
+  "version": "0.1.0",
+  "description": "rgs-batch-backend OIDC bridge 4 endpoint mock fixture (per E3 L4-3 + GAP-6 rgs-web 8788 联动 + 9/1 BATCH REQ NFR-30 凭据 hash 不存原值)",
+  "scenarios": [
+    {
+      "scenario": "HP-OIDC-001",
+      "name": "GET /api/v1/auth/verify dev 模式 (无 RGS_BATCH_OIDC_SECRET, 接受任何 token)",
+      "request": {
+        "method": "GET",
+        "url": "/api/v1/auth/verify",
+        "headers": {"Authorization": "Bearer test-token-123"}
+      },
+      "response": {
+        "valid": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999,
+        "trace_id": "abc1234567890",
+        "error": null
+      }
+    },
+    {
+      "scenario": "HP-OIDC-002",
+      "name": "POST /api/v1/auth/refresh 续期 token (per E3 L4-3)",
+      "request": {
+        "method": "POST",
+        "url": "/api/v1/auth/refresh",
+        "body": {"token": "old-token-xyz", "ttl_secs": 3600}
+      },
+      "response": {
+        "refreshed": true,
+        "operator": "ulysses",
+        "role": "admin",
+        "expires_at": 1799999999,
+        "issued_at": 1799996000,
+        "trace_id": "refresh-xyz",
+        "ttl_secs": 3600
+      }
+    },
+    {
+      "scenario": "HP-OIDC-003",
+      "name": "POST /api/v1/auth/logout (per E3 L4-3 失效处理)",
+      "request": {
+        "method": "POST",
+        "url": "/api/v1/auth/logout",
+        "headers": {"Authorization": "Bearer valid-token"}
+      },
+      "response": {"logged_out": true, "had_token": true, "trace_id": "logout-abc"}
+    },
+    {
+      "scenario": "HP-OIDC-004",
+      "name": "GET /api/v1/auth/status 状态",
+      "request": {"method": "GET", "url": "/api/v1/auth/status"},
+      "response": {
+        "bridge": "oidc",
+        "mode": "dev",
+        "secret_configured": false,
+        "supported_grants": ["Bearer"],
+        "rgs_web_bridge": true,
+        "endpoints": [
+          "/api/v1/auth/verify",
+          "/api/v1/auth/refresh",
+          "/api/v1/auth/logout",
+          "/api/v1/auth/status"
+        ],
+        "version": "0.1.0-e3"
+      }
+    },
+    {
+      "scenario": "EC-OIDC-001",
+      "name": "无 Authorization 头 → 401",
+      "request": {"method": "GET", "url": "/api/v1/auth/verify"},
+      "response": {
+        "valid": false,
+        "error": "missing or invalid Authorization header",
+        "status": 401,
+        "headers": {"WWW-Authenticate": "Bearer"}
+      }
+    },
+    {
+      "scenario": "EC-OIDC-002",
+      "name": "production 模式 token 签名错 → 401",
+      "request": {
+        "method": "GET",
+        "url": "/api/v1/auth/verify",
+        "headers": {"Authorization": "Bearer wrong-token"},
+        "env": {"RGS_BATCH_OIDC_SECRET": "expected-hash"}
+      },
+      "response": {
+        "valid": false,
+        "error": "token signature invalid",
+        "status": 401
+      }
+    }
+  ],
+  "endpoints": {
+    "verify": "GET /api/v1/auth/verify",
+    "refresh": "POST /api/v1/auth/refresh",
+    "logout": "POST /api/v1/auth/logout",
+    "status": "GET /api/v1/auth/status"
+  },
+  "rgs_web_bridge": "http://127.0.0.1:8788 (per GAP-6)",
+  "security_note": "per 8/27 11:06 JST 硬 ban, token 永不打 log, 只存 hash"
+}
