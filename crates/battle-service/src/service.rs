@@ -417,14 +417,145 @@ impl BattleEngineServiceTrait for BattleEngineServiceImpl {
         Err(Error::BattleNotFound("no battle".to_string()))
     }
 
-    // 22 stub
-    async fn battle_play_complete(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattlePlayComplete") }
+    // 5 stub 实装 (W41 加固): 回合制 + 战斗推进核心 (per 改进路线图 §Phase 2 战斗+PVE)
+    // 其余 17 stub 保持 Phase 3 占位
+    async fn battle_round_start_complete(&self, req: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> {
+        // 回合开始完成: RoundStart → Action (状态机)
+        let inner = req.into_inner();
+        let player = require_player_id(&inner)?;
+        let mut store = self.state.store.write().await;
+        let pid = player.player_id.as_ref().map(|e| e.id.clone()).unwrap_or_default();
+        for entry in store.battles.values_mut() {
+            if entry.player_id == pid && entry.phase == BattlePhase::RoundStart {
+                if entry.phase.can_transition_to(BattlePhase::Action) {
+                    entry.phase = BattlePhase::Action;
+                    entry.turn_index += 1;
+                    entry.updated_at_ms = now_ms();
+                    return Ok(Response::new(pb::EmptyResponse {
+                        ok: true,
+                        message: format!("round_start_complete,turn={}", entry.turn_index),
+                    }));
+                }
+            }
+        }
+        Err(Error::BattleNotFound("no round_start battle".to_string()))
+    }
+    async fn battle_next_wave(&self, req: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> {
+        // 下一波: wave_index++ + 重置 phase = RoundStart (per 战斗推进)
+        let inner = req.into_inner();
+        let player = require_player_id(&inner)?;
+        let mut store = self.state.store.write().await;
+        let pid = player.player_id.as_ref().map(|e| e.id.clone()).unwrap_or_default();
+        for entry in store.battles.values_mut() {
+            if entry.player_id == pid
+                && entry.phase != BattlePhase::Exited
+                && entry.phase != BattlePhase::End
+            {
+                let mut snap: serde_json::Value =
+                    serde_json::from_str(&entry.snapshot_json).unwrap_or_else(|_| serde_json::json!({}));
+                let wave = snap.get("wave_index").and_then(|v| v.as_u64()).unwrap_or(0) + 1;
+                snap["wave_index"] = serde_json::json!(wave);
+                snap["last_event"] = serde_json::json!("next_wave");
+                entry.snapshot_json = serde_json::to_string(&snap).unwrap_or_else(|_| "{}".to_string());
+                entry.phase = BattlePhase::RoundStart;
+                entry.turn_index = 1;
+                entry.updated_at_ms = now_ms();
+                return Ok(Response::new(pb::EmptyResponse {
+                    ok: true,
+                    message: format!("next_wave,wave={}", wave),
+                }));
+            }
+        }
+        Err(Error::BattleNotFound("no active battle".to_string()))
+    }
+    async fn battle_change_speed(&self, req: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> {
+        // 战斗速度变更: 1x/2x/3x (per 战斗加速)
+        let inner = req.into_inner();
+        let player = require_player_id(&inner)?;
+        let mut store = self.state.store.write().await;
+        let pid = player.player_id.as_ref().map(|e| e.id.clone()).unwrap_or_default();
+        for entry in store.battles.values_mut() {
+            if entry.player_id == pid
+                && entry.phase != BattlePhase::Exited
+                && entry.phase != BattlePhase::End
+            {
+                let mut snap: serde_json::Value =
+                    serde_json::from_str(&entry.snapshot_json).unwrap_or_else(|_| serde_json::json!({}));
+                let prev = snap.get("speed").and_then(|v| v.as_u64()).unwrap_or(1);
+                let next = if prev >= 3 { 1 } else { prev + 1 };
+                snap["speed"] = serde_json::json!(next);
+                entry.snapshot_json = serde_json::to_string(&snap).unwrap_or_else(|_| "{}".to_string());
+                entry.updated_at_ms = now_ms();
+                return Ok(Response::new(pb::EmptyResponse {
+                    ok: true,
+                    message: format!("speed={}", next),
+                }));
+            }
+        }
+        Err(Error::BattleNotFound("no active battle".to_string()))
+    }
+    async fn battle_play_complete(&self, req: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> {
+        // 战斗播放完成: phase = End, outcome = Victory (per 战斗结束)
+        let inner = req.into_inner();
+        let player = require_player_id(&inner)?;
+        let mut store = self.state.store.write().await;
+        let pid = player.player_id.as_ref().map(|e| e.id.clone()).unwrap_or_default();
+        for entry in store.battles.values_mut() {
+            if entry.player_id == pid
+                && entry.phase != BattlePhase::Exited
+                && entry.phase != BattlePhase::End
+            {
+                if entry.phase.can_transition_to(BattlePhase::End) {
+                    entry.phase = BattlePhase::End;
+                    entry.outcome = BattleOutcome::Victory;
+                    let mut snap: serde_json::Value =
+                        serde_json::from_str(&entry.snapshot_json).unwrap_or_else(|_| serde_json::json!({}));
+                    snap["play_completed"] = serde_json::json!(true);
+                    entry.snapshot_json =
+                        serde_json::to_string(&snap).unwrap_or_else(|_| "{}".to_string());
+                    entry.updated_at_ms = now_ms();
+                    return Ok(Response::new(pb::EmptyResponse {
+                        ok: true,
+                        message: "play_complete".to_string(),
+                    }));
+                }
+            }
+        }
+        Err(Error::BattleNotFound("no active battle".to_string()))
+    }
+    async fn battle_skip(&self, req: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> {
+        // 跳过战斗: phase = End, outcome = Defeat (per 跳过战斗, 用于压低难度 / 战败速通)
+        let inner = req.into_inner();
+        let player = require_player_id(&inner)?;
+        let mut store = self.state.store.write().await;
+        let pid = player.player_id.as_ref().map(|e| e.id.clone()).unwrap_or_default();
+        for entry in store.battles.values_mut() {
+            if entry.player_id == pid
+                && entry.phase != BattlePhase::Exited
+                && entry.phase != BattlePhase::End
+            {
+                if entry.phase.can_transition_to(BattlePhase::End) {
+                    entry.phase = BattlePhase::End;
+                    entry.outcome = BattleOutcome::Defeat;
+                    let mut snap: serde_json::Value =
+                        serde_json::from_str(&entry.snapshot_json).unwrap_or_else(|_| serde_json::json!({}));
+                    snap["skipped"] = serde_json::json!(true);
+                    entry.snapshot_json =
+                        serde_json::to_string(&snap).unwrap_or_else(|_| "{}".to_string());
+                    entry.updated_at_ms = now_ms();
+                    return Ok(Response::new(pb::EmptyResponse {
+                        ok: true,
+                        message: "skipped".to_string(),
+                    }));
+                }
+            }
+        }
+        Err(Error::BattleNotFound("no active battle".to_string()))
+    }
+    // 17 stub (Phase 3 占位)
     async fn battle_exit_for_instance(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleExitForInstance") }
     async fn battle_duel_response(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleDuelResponse") }
     async fn battle_duel_confirm(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleDuelConfirm") }
-    async fn battle_round_start_complete(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleRoundStartComplete") }
-    async fn battle_next_wave(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleNextWave") }
-    async fn battle_change_speed(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleChangeSpeed") }
     async fn battle_map_load_complete(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleMapLoadComplete") }
     async fn battle_push_unit(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattlePushUnit") }
     async fn battle_reconnect_ready(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleReconnectReady") }
@@ -437,7 +568,6 @@ impl BattleEngineServiceTrait for BattleEngineServiceImpl {
     async fn battle_spectate_exit_notify(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleSpectateExitNotify") }
     async fn battle_request_type(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleRequestType") }
     async fn battle_enter_mock(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleEnterMock") }
-    async fn battle_skip(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleSkip") }
     async fn battle_all_types(&self, _: Request<pb::EmptyRequest>) -> Result<Response<pb::EmptyResponse>> { stub_unimplemented("BattleAllTypes") }
     async fn health_check(&self, _: Request<common_pb::HealthCheckRequest>) -> Result<Response<common_pb::HealthCheckResponse>> {
         Ok(Response::new(common_pb::HealthCheckResponse {
