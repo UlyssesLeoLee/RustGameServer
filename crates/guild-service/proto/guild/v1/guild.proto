@@ -7,6 +7,7 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/guild/v1;guil
 // 上游依据: 9/4 MD §2 公会 97 RPC
 // 完整 97 RPC 拆 6 子系统: 公会 CRUD / 成员管理 / 申请 / 捐献 / 副本 / 战争
 // social-service 已有 GetGuild 1 条, 此处扩 8 类业务
+// W8 L18: +16 RPC (副本/技能/远航/公会战 4 类, scaffold per 9/8 20:08 JST 拍板)
 
 service GuildService {
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
@@ -31,6 +32,34 @@ service GuildService {
   // 捐献 (~12)
   rpc Donate(DonateRequest) returns (DonateResponse);
   rpc GetDonationRank(GetDonationRankRequest) returns (GetDonationRankResponse);
+
+  // ===== W8 L18 scaffold start: 副本/技能/远航/公会战 (16 RPC) =====
+
+  // 公会副本 (Guild Dungeon) 4
+  rpc GetGuildDungeonInfo(GetGuildDungeonInfoRequest) returns (GetGuildDungeonInfoResponse);
+  rpc StartGuildDungeon(StartGuildDungeonRequest) returns (StartGuildDungeonResponse);
+  rpc ReportGuildDungeonProgress(ReportGuildDungeonProgressRequest) returns (ReportGuildDungeonProgressResponse);
+  rpc ClaimGuildDungeonReward(ClaimGuildDungeonRewardRequest) returns (ClaimGuildDungeonRewardResponse);
+
+  // 公会技能 (Guild Skill) 4
+  rpc GetGuildSkills(GetGuildSkillsRequest) returns (GetGuildSkillsResponse);
+  rpc UpgradeGuildSkill(UpgradeGuildSkillRequest) returns (UpgradeGuildSkillResponse);
+  rpc DonateToGuildSkill(DonateToGuildSkillRequest) returns (DonateToGuildSkillResponse);
+  rpc ClaimGuildSkillBonus(ClaimGuildSkillBonusRequest) returns (ClaimGuildSkillBonusResponse);
+
+  // 公会远航 (Guild Shipping) 4
+  rpc GetShippingRoutes(GetShippingRoutesRequest) returns (GetShippingRoutesResponse);
+  rpc StartShipping(StartShippingRequest) returns (StartShippingResponse);
+  rpc ClaimShippingReward(ClaimShippingRewardRequest) returns (ClaimShippingRewardResponse);
+  rpc ListShippingHistory(ListShippingHistoryRequest) returns (ListShippingHistoryResponse);
+
+  // 公会战 (Guild War) 4
+  rpc GetGuildWarSchedule(GetGuildWarScheduleRequest) returns (GetGuildWarScheduleResponse);
+  rpc JoinGuildWar(JoinGuildWarRequest) returns (JoinGuildWarResponse);
+  rpc ReportGuildWarResult(ReportGuildWarResultRequest) returns (ReportGuildWarResultResponse);
+  rpc GetGuildWarLeaderboard(GetGuildWarLeaderboardRequest) returns (GetGuildWarLeaderboardResponse);
+
+  // ===== W8 L18 scaffold end =====
 }
 
 message CreateGuildRequest { string leader_id = 1; string guild_name = 2; string notice = 3; int32 capacity = 4; }
@@ -66,3 +95,64 @@ message GetDonationRankResponse { repeated DonationRow rows = 1; }
 message GuildInfo { string guild_id = 1; string name = 2; string leader_id = 3; string notice = 4; int32 level = 5; int32 member_count = 6; int32 capacity = 7; int64 created_at_ms = 8; }
 message GuildMember { string player_id = 1; string display_name = 2; int32 role = 3; int32 contribution = 4; int64 joined_at_ms = 5; }
 message DonationRow { int32 rank = 1; string player_id = 2; string display_name = 3; int32 contribution = 4; }
+
+// ===== W8 L18 scaffold messages (16) =====
+
+// --- Guild Dungeon (4) ---
+message GetGuildDungeonInfoRequest { string guild_id = 1; string dungeon_id = 2; }
+message GetGuildDungeonInfoResponse { string dungeon_id = 1; string name = 2; int32 difficulty = 3; int32 boss_hp = 4; int32 recommended_level = 5; }
+
+message StartGuildDungeonRequest { string guild_id = 1; string dungeon_id = 2; string leader_id = 3; }
+message StartGuildDungeonResponse { string dungeon_id = 1; int64 start_at_ms = 2; int32 boss_hp = 3; int32 duration_sec = 4; }
+
+message ReportGuildDungeonProgressRequest { string guild_id = 1; string dungeon_id = 2; int32 boss_hp_remaining = 3; }
+message ReportGuildDungeonProgressResponse { int32 boss_hp_remaining = 1; bool is_defeated = 2; int64 updated_at_ms = 3; }
+
+message ClaimGuildDungeonRewardRequest { string guild_id = 1; string dungeon_id = 2; string player_id = 3; }
+message ClaimGuildDungeonRewardResponse { int32 gold = 1; int32 exp = 2; int32 item_count = 3; bool claimed = 4; }
+
+// --- Guild Skill (4) ---
+message GetGuildSkillsRequest { string guild_id = 1; }
+message GetGuildSkillsResponse { repeated GuildSkill skills = 1; int32 skill_count = 2; }
+
+message UpgradeGuildSkillRequest { string guild_id = 1; string skill_id = 2; string leader_id = 3; }
+message UpgradeGuildSkillResponse { string skill_id = 1; int32 new_level = 2; int32 cost_gold = 3; int32 cost_contribution = 4; }
+
+message DonateToGuildSkillRequest { string guild_id = 1; string skill_id = 2; int32 amount = 3; string player_id = 4; }
+message DonateToGuildSkillResponse { string skill_id = 1; int32 new_level = 2; int32 donated_total = 3; }
+
+message ClaimGuildSkillBonusRequest { string guild_id = 1; string skill_id = 2; string player_id = 3; }
+message ClaimGuildSkillBonusResponse { int32 gold = 1; int32 exp = 2; bool claimed = 3; }
+
+// --- Guild Shipping (4) ---
+message GetShippingRoutesRequest {}
+message GetShippingRoutesResponse { repeated ShippingRoute routes = 1; int32 route_count = 2; }
+
+message StartShippingRequest { string guild_id = 1; string route_id = 2; string leader_id = 3; }
+message StartShippingResponse { string ship_id = 1; int64 arrival_at_ms = 2; int32 duration_sec = 3; }
+
+message ClaimShippingRewardRequest { string guild_id = 1; string ship_id = 2; string player_id = 3; }
+message ClaimShippingRewardResponse { int32 gold = 1; int32 item_count = 2; bool claimed = 3; }
+
+message ListShippingHistoryRequest { string guild_id = 1; int32 top_n = 2; }
+message ListShippingHistoryResponse { repeated ShippingHistoryRow rows = 1; int32 total = 2; }
+
+// --- Guild War (4) ---
+message GetGuildWarScheduleRequest {}
+message GetGuildWarScheduleResponse { repeated GuildWar wars = 1; int32 war_count = 2; }
+
+message JoinGuildWarRequest { string guild_id = 1; string war_id = 2; string player_id = 3; }
+message JoinGuildWarResponse { string team_id = 1; int32 team_size = 2; int64 joined_at_ms = 3; }
+
+message ReportGuildWarResultRequest { string war_id = 1; string winner_guild_id = 2; }
+message ReportGuildWarResultResponse { bool updated = 1; string war_id = 2; string winner_guild_id = 3; int64 ended_at_ms = 4; }
+
+message GetGuildWarLeaderboardRequest { string war_id = 1; int32 top_n = 2; }
+message GetGuildWarLeaderboardResponse { repeated GuildWarRow rows = 1; int32 total = 2; }
+
+// --- supporting messages ---
+message GuildSkill { string skill_id = 1; string name = 2; int32 level = 3; int32 max_level = 4; int32 cost_gold = 5; int32 cost_contribution = 6; }
+message ShippingRoute { string route_id = 1; string name = 2; int32 distance_km = 3; int32 duration_sec = 4; int32 reward_gold = 5; }
+message ShippingHistoryRow { string ship_id = 1; string route_id = 2; int32 reward_gold = 3; int64 arrived_at_ms = 4; }
+message GuildWar { string war_id = 1; string name = 2; int64 start_at_ms = 3; int32 max_guilds = 4; string status = 5; }
+message GuildWarRow { int32 rank = 1; string guild_id = 2; string guild_name = 3; int32 score = 4; }
