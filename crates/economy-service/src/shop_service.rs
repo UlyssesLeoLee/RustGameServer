@@ -947,6 +947,36 @@ pub trait ActivityService: Send + Sync {
         notify_channel: i32,
         idempotency_key: String,
     ) -> Result<ActivitySubscribeOutput>;
+
+    // =========================================================================
+    // W41 增广度: 3 个数据驱动 helper method
+    // 用模板 + ActivityType 索引提供 9 holiday_* 运营数据访问
+    // 不暴露新 gRPC RPC, 仅作为 ActivityService trait 内部 helper
+    // =========================================================================
+
+    /// 按 ActivityType 过滤活动 (page/page_size 分页)
+    /// 配合 9 holiday_* 模板使用: activity_get_by_type(player, Holiday, 0, 10) → 9 个 holiday
+    async fn activity_get_by_type(
+        &self,
+        player_id: String,
+        activity_type: i32,
+        page: u32,
+        page_size: u32,
+    ) -> Result<ActivityListOutput>;
+
+    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
+    async fn activity_count_unclaimed_tiers(
+        &self,
+        player_id: String,
+        activity_id: i32,
+    ) -> Result<i32>;
+
+    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
+    /// activity_type == Holiday + enabled + now in [starts_at, ends_at]
+    async fn activity_get_active_holiday_count(
+        &self,
+        player_id: String,
+    ) -> Result<i32>;
 }
 
 #[derive(Debug, Clone)]
@@ -1605,5 +1635,318 @@ impl ShopService for ShopServiceImpl {
             success: true,
             items: vec![], // 真实发放走 inventory module
         })
+    }
+}
+
+// ============================================================================
+// 活动 (8 RPC) impl ActivityService for ShopServiceImpl — W41 增广度
+// 数据驱动: 9 holiday_* 活动 → 1 套 ActivityService + ActivityType + 模板 (per 9/4 MD §4)
+// ============================================================================
+
+#[async_trait]
+impl ActivityService for ShopServiceImpl {
+    /// 列出所有可见活动 (用模板 + 玩家状态合并)
+    async fn activity_list(
+        &self,
+        _player_id: String,
+        page: u32,
+        page_size: u32,
+        active_only: bool,
+    ) -> Result<ActivityListOutput> {
+        let repo = self.repo.lock().await;
+        let now = Utc::now();
+        let page_size = if page_size == 0 { 20 } else { page_size };
+        let mut templates: Vec<ActivityTemplateEntity> = repo
+            .activity_templates
+            .values()
+            .filter(|t| {
+                t.enabled && (!active_only || (now >= t.starts_at && now <= t.ends_at))
+            })
+            .cloned()
+            .collect();
+        templates.sort_by_key(|t| t.activity_id);
+        let total = templates.len() as i32;
+        let active_count = templates.len() as i32;
+        let start = (page as usize).saturating_mul(page_size as usize);
+        let end = (start + page_size as usize).min(templates.len());
+        let slice = if start < templates.len() {
+            templates[start..end].to_vec()
+        } else {
+            vec![]
+        };
+        Ok(ActivityListOutput {
+            templates: slice,
+            total,
+            active_count,
+        })
+    }
+
+    /// 领取活动奖励 tier
+    async fn activity_claim(
+        &self,
+        player_id: String,
+        activity_id: i32,
+        tier: i32,
+        idempotency_key: String,
+    ) -> Result<ActivityClaimOutput> {
+        // 幂等: 用 ledger idempotency_key
+        if self
+            .ledger
+            .find_by_idempotency_key(&idempotency_key)
+            .await?
+            .is_some()
+        {
+            return Err(Error::IdempotencyConflict(idempotency_key));
+        }
+        let mut repo = self.repo.lock().await;
+        // 校验活动存在 (template 仅用作存在性校验, 业务字段用 tiers)
+        if !repo.activity_templates.contains_key(&activity_id) {
+            return Err(Error::NotFound {
+                entity: "ActivityTemplate",
+                id: activity_id.to_string(),
+            });
+        }
+        let tiers = repo
+            .activity_reward_tiers
+            .get(&activity_id)
+            .cloned()
+            .unwrap_or_default();
+        let target = tiers
+            .iter()
+            .find(|t| t.tier == tier)
+            .cloned()
+            .ok_or_else(|| Error::NotFound {
+                entity: "ActivityRewardTier",
+                id: format!("{}-{}", activity_id, tier),
+            })?;
+        let state = repo
+            .activity_player_states
+            .entry((player_id.clone(), activity_id))
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+        if state.progress < target.progress_required {
+            return Err(Error::Validation(format!(
+                "progress {} < required {}",
+                state.progress, target.progress_required
+            )));
+        }
+        if state.claimed_tiers.contains(&tier) {
+            return Ok(ActivityClaimOutput {
+                success: false,
+                reward_amount: 0,
+                reward_currency: 0,
+                remaining_tiers: state.claimed_tiers.len() as i32,
+                error_msg: "tier_already_claimed".to_string(),
+            });
+        }
+        state.claimed_tiers.push(tier);
+        let remaining = tiers.len() as i32 - state.claimed_tiers.len() as i32;
+        Ok(ActivityClaimOutput {
+            success: true,
+            reward_amount: target.reward_amount,
+            reward_currency: target.reward_currency,
+            remaining_tiers: remaining,
+            error_msg: String::new(),
+        })
+    }
+
+    /// 查询活动详情 + 玩家进度
+    async fn activity_template(
+        &self,
+        player_id: String,
+        activity_id: i32,
+    ) -> Result<ActivityTemplateOutput> {
+        let repo = self.repo.lock().await;
+        let template = repo
+            .activity_templates
+            .get(&activity_id)
+            .cloned()
+            .ok_or_else(|| Error::NotFound {
+                entity: "ActivityTemplate",
+                id: activity_id.to_string(),
+            })?;
+        let state = repo
+            .activity_player_states
+            .get(&(player_id, activity_id))
+            .cloned()
+            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
+        Ok(ActivityTemplateOutput {
+            template,
+            player_progress: state.progress,
+            claimed_tiers: state.claimed_tiers,
+            subscribed: state.subscribed,
+        })
+    }
+
+    /// 进度增量上报 (per idempotency_key 幂等)
+    async fn activity_progress(
+        &self,
+        player_id: String,
+        activity_id: i32,
+        progress_delta: i32,
+        source: String,
+        idempotency_key: String,
+    ) -> Result<ActivityProgressOutput> {
+        if progress_delta < 0 {
+            return Err(Error::Validation("progress_delta must be >= 0".to_string()));
+        }
+        if self
+            .ledger
+            .find_by_idempotency_key(&idempotency_key)
+            .await?
+            .is_some()
+        {
+            return Err(Error::IdempotencyConflict(idempotency_key));
+        }
+        let mut repo = self.repo.lock().await;
+        let template = repo
+            .activity_templates
+            .get(&activity_id)
+            .cloned()
+            .ok_or_else(|| Error::NotFound {
+                entity: "ActivityTemplate",
+                id: activity_id.to_string(),
+            })?;
+        let tiers = repo
+            .activity_reward_tiers
+            .get(&activity_id)
+            .cloned()
+            .unwrap_or_default();
+        let state = repo
+            .activity_player_states
+            .entry((player_id.clone(), activity_id))
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+        let _ = source; // 预留: source 走 audit log, W42 接入
+        state.progress = (state.progress + progress_delta).min(template.max_progress);
+        let unlocked = tiers
+            .iter()
+            .find(|t| t.progress_required == state.progress && !state.claimed_tiers.contains(&t.tier))
+            .cloned();
+        Ok(ActivityProgressOutput {
+            new_progress: state.progress,
+            tier_unlocked: unlocked.is_some(),
+            new_unlocked_tier: unlocked.map(|t| t.tier).unwrap_or(0),
+        })
+    }
+
+    /// 订阅活动通知
+    async fn activity_subscribe(
+        &self,
+        player_id: String,
+        activity_id: i32,
+        notify_channel: i32,
+        idempotency_key: String,
+    ) -> Result<ActivitySubscribeOutput> {
+        if self
+            .ledger
+            .find_by_idempotency_key(&idempotency_key)
+            .await?
+            .is_some()
+        {
+            return Err(Error::IdempotencyConflict(idempotency_key));
+        }
+        let mut repo = self.repo.lock().await;
+        if !repo.activity_templates.contains_key(&activity_id) {
+            return Err(Error::NotFound {
+                entity: "ActivityTemplate",
+                id: activity_id.to_string(),
+            });
+        }
+        let state = repo
+            .activity_player_states
+            .entry((player_id.clone(), activity_id))
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+        state.subscribed = true;
+        state.notify_channel = notify_channel;
+        let subscriber_count = repo
+            .activity_player_states
+            .values()
+            .filter(|s| s.activity_id == activity_id && s.subscribed)
+            .count() as i32;
+        Ok(ActivitySubscribeOutput {
+            subscribed: true,
+            notify_channel,
+            subscriber_count,
+        })
+    }
+
+    // ===== W41 增广度: 3 个数据驱动 helper =====
+
+    /// 按 ActivityType 过滤活动 (page/page_size 分页)
+    async fn activity_get_by_type(
+        &self,
+        _player_id: String,
+        activity_type: i32,
+        page: u32,
+        page_size: u32,
+    ) -> Result<ActivityListOutput> {
+        let repo = self.repo.lock().await;
+        let target = ActivityType::from_i32(activity_type);
+        let page_size = if page_size == 0 { 20 } else { page_size };
+        let mut templates: Vec<ActivityTemplateEntity> = repo
+            .activity_templates
+            .values()
+            .filter(|t| t.activity_type == target)
+            .cloned()
+            .collect();
+        templates.sort_by_key(|t| t.activity_id);
+        let total = templates.len() as i32;
+        let active_count = templates.len() as i32;
+        let start = (page as usize).saturating_mul(page_size as usize);
+        let end = (start + page_size as usize).min(templates.len());
+        let slice = if start < templates.len() {
+            templates[start..end].to_vec()
+        } else {
+            vec![]
+        };
+        Ok(ActivityListOutput {
+            templates: slice,
+            total,
+            active_count,
+        })
+    }
+
+    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
+    async fn activity_count_unclaimed_tiers(
+        &self,
+        player_id: String,
+        activity_id: i32,
+    ) -> Result<i32> {
+        let repo = self.repo.lock().await;
+        let tiers = repo
+            .activity_reward_tiers
+            .get(&activity_id)
+            .cloned()
+            .unwrap_or_default();
+        let state = repo
+            .activity_player_states
+            .get(&(player_id, activity_id))
+            .cloned()
+            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
+        let unlocked: i32 = tiers
+            .iter()
+            .filter(|t| state.progress >= t.progress_required)
+            .map(|t| if state.claimed_tiers.contains(&t.tier) { 0 } else { 1 })
+            .sum();
+        Ok(unlocked)
+    }
+
+    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
+    async fn activity_get_active_holiday_count(
+        &self,
+        _player_id: String,
+    ) -> Result<i32> {
+        let repo = self.repo.lock().await;
+        let now = Utc::now();
+        let count = repo
+            .activity_templates
+            .values()
+            .filter(|t| {
+                t.activity_type == ActivityType::Holiday
+                    && t.enabled
+                    && now >= t.starts_at
+                    && now <= t.ends_at
+            })
+            .count() as i32;
+        Ok(count)
     }
 }

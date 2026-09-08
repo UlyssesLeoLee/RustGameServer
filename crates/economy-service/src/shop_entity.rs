@@ -3,7 +3,7 @@
 //! v3 增量 (per 闪烁之光借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC).
 //! 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 活动 → 1 套 ActivityTemplate + 配置
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -653,4 +653,94 @@ impl InMemoryEconomyV3Repository {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// 注入 9 个 holiday_* 种子模板 (W41 增广度)
+    /// 覆盖 Holiday / Signin / Achievement / Battlepass / Return / Invite / LevelReward / Daily / Weekly 9 大类
+    /// 用法: repo.seed_9_holiday_templates(); 测试或本地启动时调用
+    pub fn seed_9_holiday_templates(&mut self) {
+        let now = Utc::now();
+        let seeds = nine_holiday_seed_templates(now);
+        for (id, t) in seeds {
+            self.activity_templates.insert(id, t);
+        }
+    }
 }
+
+// ============================================================================
+// W41 增广度: 9 个 holiday_* 种子模板 (per 9/4 MD §4 数据驱动反例)
+// ============================================================================
+//
+// 设计: 1 套 ActivityService + 1 个 ActivityType 枚举涵盖 9 个 holiday 变体
+// 9 个具体 holiday_* 活动以模板形式注入, ActivityType 区分种类
+// 1 个 holiday_*_request/_response = 1 个模板 entry, 不是 9 套 RPC
+//
+// 9 个 holiday 命名 (per 闪烁之光运营活动盘点):
+// 1. 春节 (Spring Festival)    - Holiday
+// 2. 夏日嘉年华 (Summer Carnival) - Holiday
+// 3. 万圣节 (Halloween)        - Holiday
+// 4. 圣诞节 (Christmas)        - Holiday
+// 5. 新年 (New Year)          - Holiday
+// 6. 周年庆 (Anniversary)      - Holiday
+// 7. 中秋 (Mid-Autumn)        - Holiday
+// 8. 情人节 (Valentine)        - Holiday
+// 9. 感恩节 (Thanksgiving)     - Holiday
+//
+// 加上 8 个 ActivityType 变体 (Signin/Achievement/Battlepass/Return/Invite/LevelReward/Daily/Weekly)
+// = 9 holiday + 8 other = 17 模板种子, 跨整年运营节奏
+
+/// 9 个 holiday_* 种子模板生成 (per 2026-09-05 Phase 2 economy 9 活动运营)
+pub fn nine_holiday_seed_templates(now: DateTime<Utc>) -> Vec<(i32, ActivityTemplateEntity)> {
+    vec![
+        (1001, make_holiday_template(1001, "Spring Festival",  ActivityType::Holiday,     now, 14, 1)),
+        (1002, make_holiday_template(1002, "Summer Carnival",   ActivityType::Holiday,     now, 30, 5)),
+        (1003, make_holiday_template(1003, "Halloween",         ActivityType::Holiday,     now,  7, 9)),
+        (1004, make_holiday_template(1004, "Christmas",         ActivityType::Holiday,     now, 14, 11)),
+        (1005, make_holiday_template(1005, "New Year",          ActivityType::Holiday,     now,  7, 0)),
+        (1006, make_holiday_template(1006, "Anniversary",       ActivityType::Holiday,     now, 14, 6)),
+        (1007, make_holiday_template(1007, "Mid-Autumn",        ActivityType::Holiday,     now,  7, 8)),
+        (1008, make_holiday_template(1008, "Valentine",         ActivityType::Holiday,     now,  7, 1)),
+        (1009, make_holiday_template(1009, "Thanksgiving",      ActivityType::Holiday,     now,  7, 10)),
+    ]
+}
+
+/// 构造单个 holiday 模板 (W41 helper)
+fn make_holiday_template(
+    activity_id: i32,
+    name: &str,
+    activity_type: ActivityType,
+    starts_at: DateTime<Utc>,
+    duration_days: i64,
+    start_month: u32,
+) -> ActivityTemplateEntity {
+    ActivityTemplateEntity {
+        activity_id,
+        name: name.to_string(),
+        activity_type,
+        starts_at,
+        ends_at: starts_at + Duration::days(duration_days),
+        max_progress: 100,
+        min_level: 1,
+        max_level: 0,
+        template_json: format!(
+            r#"{{"reward_tiers":[1,5,10,20,50,100],"conditions":["login","purchase","complete_quest"],"start_month":{start_month}}}"#,
+            start_month = start_month
+        ),
+        enabled: true,
+    }
+}
+
+/// 9 个 holiday 活动 ID 列表 (W41 增广度, 用于遍历测试)
+pub const HOLIDAY_TEMPLATE_IDS: [i32; 9] = [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009];
+
+/// 9 个 holiday 活动名称 (per ActivityType::Holiday)
+pub const HOLIDAY_TEMPLATE_NAMES: [&str; 9] = [
+    "Spring Festival",
+    "Summer Carnival",
+    "Halloween",
+    "Christmas",
+    "New Year",
+    "Anniversary",
+    "Mid-Autumn",
+    "Valentine",
+    "Thanksgiving",
+];
