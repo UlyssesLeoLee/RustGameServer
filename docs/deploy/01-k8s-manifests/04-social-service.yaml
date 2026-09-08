@@ -44,8 +44,6 @@ spec:
         rust-game-server.io/domain: social
     spec:
       serviceAccountName: social-service-account
-      imagePullSecrets:
-        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -54,7 +52,7 @@ spec:
       containers:
         - name: social
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
           command: ["/app/bin/social-service"]
           securityContext:
             allowPrivilegeEscalation: false

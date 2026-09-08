@@ -90,7 +90,7 @@ spec:
         - name: OTEL_SERVICE_NAME
           value: network-gateway
         image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-network-gateway
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         # 2026-09-08 W36: 验证 52-network-gateway.yaml probe 已为 tcpSocket
         # (per W30 §3.1 describe pod, 11:18 09-08 实测), 不需改.
         # 注: network-gateway binary 0ms exit 0 (W30 §3.3 根因), 即使 tcpSocket

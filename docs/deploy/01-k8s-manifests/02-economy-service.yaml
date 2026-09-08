@@ -56,8 +56,6 @@ spec:
         rust-game-server.io/saga-critical: "true"
     spec:
       serviceAccountName: economy-service-account
-      imagePullSecrets:
-        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -66,7 +64,7 @@ spec:
       containers:
         - name: economy
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
           command: ["/app/bin/economy-service"]
           securityContext:
             allowPrivilegeEscalation: false

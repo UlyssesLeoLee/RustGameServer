@@ -65,7 +65,7 @@ spec:
         - name: RGS_ALLOW_INSECURE_GRPC
           value: "0"
         image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-battle-service
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         # 2026-09-08 W36: 镜像内无 /bin/grpc_health_probe binary (W30 §2.2 实证),
         # 改 tcpSocket probe on 50058.  注: battle binary 是 W5 stub, 1 秒后 exit 0
         # (W30 §2.3 主根因), 即使 tcpSocket 探针 pass 也会 CrashLoopBackOff —
