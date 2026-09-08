@@ -7,20 +7,51 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/pvp_full/v1;p
 // 上游依据: 9/4 MD §2 PVP/竞技 151 RPC + §4 反例
 // 完整 151 RPC 拆 12 变体 (per shared_platform::PvpMode ALL: 9 模式 + 3 扩展)
 // 反例原则 (per 9/4 MD §4): 1 套代码 + PvpMode 路由, 不为每个变体重写
+// W8 L18: 7 → 30 RPC (新增 23, 排位 8 + 赛季 8 + 匹配 7)
 
 service PvpFullService {
   rpc HealthCheck(common.v1.HealthCheckRequest) returns (common.v1.HealthCheckResponse);
 
-  // 通用 6 变体路由 (~30 RPC, mode 路由)
+  // 通用 6 变体路由 (~7 RPC, mode 路由) — 已有
   rpc GetPvpInfo(GetPvpInfoRequest) returns (GetPvpInfoResponse);
   rpc MatchPlayer(MatchPlayerRequest) returns (MatchPlayerResponse);
   rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
   rpc GetSeasonInfo(GetSeasonInfoRequest) returns (GetSeasonInfoResponse);
   rpc ClaimReward(ClaimRewardRequest) returns (ClaimRewardResponse);
   rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse);
+
+  // === 排位 (Rank) 8 RPC ===
+  rpc GetCurrentRank(GetCurrentRankRequest) returns (GetCurrentRankResponse);
+  rpc GetRankLeaderboard(GetRankLeaderboardRequest) returns (GetRankLeaderboardResponse);
+  rpc ReportRankMatchResult(ReportRankMatchResultRequest) returns (ReportRankMatchResultResponse);
+  rpc ClaimRankSeasonReward(ClaimRankSeasonRewardRequest) returns (ClaimRankSeasonRewardResponse);
+  rpc GetRankHistory(GetRankHistoryRequest) returns (GetRankHistoryResponse);
+  rpc GetRankTierConfig(GetRankTierConfigRequest) returns (GetRankTierConfigResponse);
+  rpc GetRankStreakBonus(GetRankStreakBonusRequest) returns (GetRankStreakBonusResponse);
+  rpc ResetRankSeason(ResetRankSeasonRequest) returns (ResetRankSeasonResponse);
+
+  // === 赛季 (Season) 8 RPC ===
+  rpc GetCurrentSeason(GetCurrentSeasonRequest) returns (GetCurrentSeasonResponse);
+  rpc ListSeasons(ListSeasonsRequest) returns (ListSeasonsResponse);
+  rpc GetSeasonRewardPool(GetSeasonRewardPoolRequest) returns (GetSeasonRewardPoolResponse);
+  rpc GetSeasonPassInfo(GetSeasonPassInfoRequest) returns (GetSeasonPassInfoResponse);
+  rpc AdvanceSeasonPass(AdvanceSeasonPassRequest) returns (AdvanceSeasonPassResponse);
+  rpc ClaimSeasonPassReward(ClaimSeasonPassRewardRequest) returns (ClaimSeasonPassRewardResponse);
+  rpc GetSeasonLeaderboard(GetSeasonLeaderboardRequest) returns (GetSeasonLeaderboardResponse);
+  rpc GetSeasonStats(GetSeasonStatsRequest) returns (GetSeasonStatsResponse);
+
+  // === 匹配 (Match) 7 RPC ===
+  rpc StartMatch(StartMatchRequest) returns (StartMatchResponse);
+  rpc CancelMatch(CancelMatchRequest) returns (CancelMatchResponse);
+  rpc GetMatchStatus(GetMatchStatusRequest) returns (GetMatchStatusResponse);
+  rpc ReportMatchResult(ReportMatchResultRequest) returns (ReportMatchResultResponse);
+  rpc GetMatchHistory(GetMatchHistoryRequest) returns (GetMatchHistoryResponse);
+  rpc GetMatchStats(GetMatchStatsRequest) returns (GetMatchStatsResponse);
+  rpc GetMatchReward(GetMatchRewardRequest) returns (GetMatchRewardResponse);
 }
 
-message GetPvpInfoRequest { string mode = 1; string player_id = 2; }  // mode = PvpMode.as_str()
+// ===== 通用 6 变体路由 =====
+message GetPvpInfoRequest { string mode = 1; string player_id = 2; }
 message GetPvpInfoResponse { string mode = 1; string display_name = 2; int32 daily_limit = 3; int32 daily_used = 4; bool cross_server = 5; }
 
 message MatchPlayerRequest { string mode = 1; string player_id = 2; int32 score = 3; }
@@ -40,3 +71,80 @@ message GetLeaderboardResponse { repeated RankRow rows = 1; }
 
 message PrizeItem { int32 item_id = 1; int32 count = 2; bool is_rare = 3; }
 message RankRow { int32 rank = 1; string player_id = 2; string display_name = 3; int32 score = 4; }
+
+// ===== 排位 (Rank) 8 RPC =====
+message GetCurrentRankRequest { string player_id = 1; string mode = 2; }
+message GetCurrentRankResponse { string mode = 1; string player_id = 2; int32 score = 3; string tier = 4; int32 tier_level = 5; }
+
+message GetRankLeaderboardRequest { string mode = 1; string tier = 2; int32 top_n = 3; }
+message GetRankLeaderboardResponse { string mode = 1; string tier = 2; repeated RankRow rows = 3; }
+
+message ReportRankMatchResultRequest { string mode = 1; string player_id = 2; bool win = 3; int32 score_delta = 4; }
+message ReportRankMatchResultResponse { string mode = 1; int32 new_score = 2; string new_tier = 3; bool promoted = 4; }
+
+message ClaimRankSeasonRewardRequest { string mode = 1; string player_id = 2; string season_id = 3; }
+message ClaimRankSeasonRewardResponse { bool success = 1; repeated PrizeItem rewards = 2; string tier_achieved = 3; }
+
+message GetRankHistoryRequest { string mode = 1; string player_id = 2; int32 top_n = 3; }
+message GetRankHistoryResponse { string mode = 1; repeated RankHistoryEntry history = 2; }
+
+message GetRankTierConfigRequest { string mode = 1; string tier = 2; }
+message GetRankTierConfigResponse { string mode = 1; string tier = 2; int32 min_score = 3; int32 max_score = 4; int32 daily_bonus = 5; }
+
+message GetRankStreakBonusRequest { string mode = 1; string player_id = 2; }
+message GetRankStreakBonusResponse { string mode = 1; int32 streak_count = 2; int32 bonus_score = 3; }
+
+message ResetRankSeasonRequest { string mode = 1; string season_id = 2; }
+message ResetRankSeasonResponse { string season_id = 1; int32 players_reset = 2; int32 tiers_distributed = 3; }
+
+// ===== 赛季 (Season) 8 RPC =====
+message GetCurrentSeasonRequest { string mode = 1; }
+message GetCurrentSeasonResponse { string mode = 1; string season_id = 2; int64 starts_at_ms = 3; int64 ends_at_ms = 4; int32 duration_days = 5; }
+
+message ListSeasonsRequest { string mode = 1; int32 top_n = 2; }
+message ListSeasonsResponse { string mode = 1; repeated SeasonSummary seasons = 2; }
+
+message GetSeasonRewardPoolRequest { string mode = 1; string season_id = 2; }
+message GetSeasonRewardPoolResponse { string mode = 1; string season_id = 2; int32 total_items = 3; int32 rare_items = 4; int32 total_gold = 5; }
+
+message GetSeasonPassInfoRequest { string mode = 1; string player_id = 2; string season_id = 3; }
+message GetSeasonPassInfoResponse { string mode = 1; int32 current_level = 2; int32 current_xp = 3; int32 total_xp = 4; bool premium = 5; }
+
+message AdvanceSeasonPassRequest { string mode = 1; string player_id = 2; string season_id = 3; int32 xp = 4; }
+message AdvanceSeasonPassResponse { string mode = 1; int32 new_level = 2; int32 new_xp = 3; bool level_up = 4; }
+
+message ClaimSeasonPassRewardRequest { string mode = 1; string player_id = 2; string season_id = 3; int32 level = 4; }
+message ClaimSeasonPassRewardResponse { bool success = 1; repeated PrizeItem rewards = 2; int32 level = 3; }
+
+message GetSeasonLeaderboardRequest { string mode = 1; string season_id = 2; int32 top_n = 3; }
+message GetSeasonLeaderboardResponse { string mode = 1; string season_id = 2; repeated RankRow rows = 3; }
+
+message GetSeasonStatsRequest { string mode = 1; string season_id = 2; }
+message GetSeasonStatsResponse { string mode = 1; string season_id = 2; int32 total_matches = 3; int32 total_players = 4; int32 total_rewards_claimed = 5; }
+
+// ===== 匹配 (Match) 7 RPC =====
+message StartMatchRequest { string mode = 1; string player_id = 2; }
+message StartMatchResponse { string mode = 1; string match_id = 2; int64 started_at_ms = 3; }
+
+message CancelMatchRequest { string mode = 1; string player_id = 2; }
+message CancelMatchResponse { string mode = 1; bool cancelled = 2; }
+
+message GetMatchStatusRequest { string mode = 1; string match_id = 2; }
+message GetMatchStatusResponse { string mode = 1; string match_id = 2; string status = 3; int64 updated_at_ms = 4; }
+
+message ReportMatchResultRequest { string mode = 1; string match_id = 2; string winner_team = 3; }
+message ReportMatchResultResponse { string mode = 1; string match_id = 2; bool updated = 3; int32 reward_count = 4; }
+
+message GetMatchHistoryRequest { string mode = 1; string player_id = 2; int32 top_n = 3; }
+message GetMatchHistoryResponse { string mode = 1; string player_id = 2; repeated MatchHistoryEntry history = 3; }
+
+message GetMatchStatsRequest { string mode = 1; string player_id = 2; }
+message GetMatchStatsResponse { string mode = 1; string player_id = 2; int32 total_wins = 3; int32 total_losses = 4; int32 current_streak = 5; }
+
+message GetMatchRewardRequest { string mode = 1; string match_id = 2; }
+message GetMatchRewardResponse { string mode = 1; string match_id = 2; repeated PrizeItem rewards = 3; }
+
+// ===== 子结构 =====
+message RankHistoryEntry { int64 timestamp_ms = 1; int32 score = 2; string tier = 3; }
+message SeasonSummary { string season_id = 1; int64 starts_at_ms = 2; int64 ends_at_ms = 3; bool active = 4; }
+message MatchHistoryEntry { string match_id = 1; int64 timestamp_ms = 2; bool win = 3; int32 score_delta = 4; }
