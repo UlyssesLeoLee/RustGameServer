@@ -89,18 +89,42 @@ fn main() -> Result<()> {
         unique_count
     );
 
+    // W41 加固: 校验 113 条"无标题"占位 (per 改进路线图 v0.2 §6 已知缺口)
+    // 9/4 API 清单-全量提取-2026-09-04.tsv 提取时 113 条 title="(无标题)" 占位
+    // codegen 时已映射为 name="Unknown_<code>", method 走 Method_<code> 占位
+    // 这里加 hard assert: 113 数应稳定, 若变 112/114 必有 TSV 提取回归
+    let untitled_count = count_untitled(&content);
+    assert!(
+        untitled_count == 113,
+        "untitled placeholder count regression: expected 113, got {} (per 改进路线图 v0.2 §6 已知缺口)",
+        untitled_count
+    );
+
     let generated = render_generated_rs(&entries);
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR set by cargo"));
     let out_path = out_dir.join(GENERATED_FILE_NAME);
     let mut f = fs::File::create(&out_path)?;
     f.write_all(generated.as_bytes())?;
     println!(
-        "cargo:warning=network-gateway: codegen {} routes -> {}",
+        "cargo:warning=network-gateway: codegen {} routes ({} untitled placeholders, per 改进路线图 v0.2 §6) -> {}",
         entries.len(),
+        untitled_count,
         out_path.display()
     );
 
     Ok(())
+}
+
+/// 统计 TSV 中 title="(无标题)" 的行数 (per 改进路线图 v0.2 §6 已知缺口 113 条占位)
+fn count_untitled(content: &str) -> usize {
+    content
+        .lines()
+        .filter(|line| {
+            // TSV 列: file \t code \t title; 仅第 3 列 = "(无标题)" 计入
+            let parts: Vec<&str> = line.split('\t').collect();
+            parts.len() >= 3 && parts[2].trim() == "(无标题)"
+        })
+        .count()
 }
 
 /// 定位 TSV 数据源 (per AGENTS.md §1.1 引用必须 git 实证)
