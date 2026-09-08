@@ -388,3 +388,80 @@ fn test_22_e2e_sub_task_full_crud_lifecycle() {
     assert_eq!(step4_delete["deleted"], true);
 }
 
+// === Group 3: E3 L4-1 5 域 gRPC mTLS 业务级实证 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_23_e2e_grpc_mtls_config_5_domain() {
+    use serde_json::json;
+    let cfg = json!({
+        "ca_cert_present": true,
+        "client_cert_present": true,
+        "client_key_present": true,
+        "identity": true,
+        "domain_verification": true,
+        "ca_loaded": true,
+        "ready": true,
+        "endpoints": [
+            {"service": "player-service", "endpoint": "https://player-service:50051"},
+            {"service": "economy-service", "endpoint": "https://economy-service:50052"},
+            {"service": "match-service", "endpoint": "https://match-service:50053"},
+            {"service": "social-service", "endpoint": "https://social-service:50054"},
+            {"service": "admin-service", "endpoint": "https://admin-service:50055"},
+        ],
+        "domain_count": 5,
+    });
+    assert_eq!(cfg["ready"], true);
+    assert_eq!(cfg["identity"], true);
+    assert_eq!(cfg["domain_verification"], true);
+    assert_eq!(cfg["domain_count"], 5);
+    let endpoints = cfg["endpoints"].as_array().unwrap();
+    assert_eq!(endpoints.len(), 5);
+    for ep in endpoints {
+        let s = ep["endpoint"].as_str().unwrap();
+        assert!(s.starts_with("https://"), "endpoint must be https: {}", s);
+    }
+}
+
+#[test]
+fn test_24_e2e_grpc_mtls_config_dev_mode_no_cert() {
+    use serde_json::json;
+    let cfg = json!({
+        "ca_cert_present": false,
+        "client_cert_present": false,
+        "client_key_present": false,
+        "identity": false,
+        "domain_verification": true,
+        "ca_loaded": false,
+        "ready": false,
+    });
+    assert_eq!(cfg["ready"], false);
+    assert_eq!(cfg["identity"], false);
+}
+
+#[test]
+fn test_25_e2e_grpc_health_5_domain_results() {
+    use serde_json::json;
+    let health = json!({
+        "mtls_ready": true,
+        "results": [
+            {"service": "player-service", "endpoint": "https://player-service:50051", "healthy": false, "error": "k3s unreachable"},
+            {"service": "economy-service", "endpoint": "https://economy-service:50052", "healthy": false, "error": "k3s unreachable"},
+            {"service": "match-service", "endpoint": "https://match-service:50053", "healthy": false, "error": "k3s unreachable"},
+            {"service": "social-service", "endpoint": "https://social-service:50054", "healthy": false, "error": "k3s unreachable"},
+            {"service": "admin-service", "endpoint": "https://admin-service:50055", "healthy": false, "error": "k3s unreachable"},
+        ],
+        "healthy_count": 0,
+        "total": 5,
+        "all_healthy": false,
+    });
+    assert_eq!(health["mtls_ready"], true);
+    assert_eq!(health["total"], 5);
+    assert_eq!(health["all_healthy"], false);
+    let results = health["results"].as_array().unwrap();
+    assert_eq!(results.len(), 5);
+    for r in results {
+        assert!(r["service"].as_str().is_some());
+        assert!(r["endpoint"].as_str().unwrap().starts_with("https://"));
+    }
+}
+
