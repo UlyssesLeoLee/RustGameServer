@@ -1,24 +1,52 @@
 <!DOCTYPE html>
-<!-- rgs-batch-console index.html (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, 2026-09-02 01:50 JST Mavis 接手代签) -->
+<!-- rgs-batch-console index.html (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, 2026-09-02 01:50 JST Mavis 接手代签; E3 升 v0.2 9/8 20:30 JST) -->
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>rgs-batch-console v0.1.0</title>
+  <title>rgs-batch-console v0.2.0-e3</title>
   <style>
     body { font-family: sans-serif; margin: 2em; }
     h1 { color: #333; }
+    h2 { color: #555; margin-top: 1.5em; }
     .status { padding: 0.5em; background: #e0f0e0; border-radius: 4px; }
+    .proxy { padding: 0.5em; background: #f0e8d0; border-radius: 4px; }
+    code { background: #f4f4f4; padding: 0.1em 0.3em; border-radius: 3px; }
     a { color: #0066cc; }
   </style>
 </head>
 <body>
-  <h1>rgs-batch-console v0.1.0</h1>
-  <p class="status">✅ 服务运行中 (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1)</p>
+  <h1>rgs-batch-console v0.2.0-e3</h1>
+  <p class="status">✅ 服务运行中 (per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, 9/8 E3 派工 13 endpoint 完工)</p>
+
+  <h2>本地 endpoint (4 个)</h2>
   <ul>
-    <li><a href="/api/v1/health">/api/v1/health</a> - 健康检查</li>
-    <li><a href="/api/v1/version">/api/v1/version</a> - 版本信息</li>
-    <li><a href="/api/v1/token-estimate?text=hello">/api/v1/token-estimate?text=hello</a> - token 估算</li>
+    <li><a href="/api/v1/health"><code>GET /api/v1/health</code></a> - 健康检查</li>
+    <li><a href="/api/v1/version"><code>GET /api/v1/version</code></a> - 版本信息</li>
+    <li><a href="/api/v1/token-estimate?text=hello"><code>GET /api/v1/token-estimate?text=...</code></a> - token 估算</li>
   </ul>
+
+  <h2>代理 endpoint (9 个, 转发到 rgs-batch-backend:8790)</h2>
+  <p class="proxy">⚠️ 这些 endpoint 转发到 <code>rgs-batch-backend:8790</code>, 需先启动后端</p>
+  <h3>/api/v1/tasks (6 个)</h3>
+  <ul>
+    <li><code>GET /api/v1/tasks</code> - 任务列表</li>
+    <li><code>GET /api/v1/tasks/{id}</code> - 任务详情</li>
+    <li><code>POST /api/v1/tasks</code> - 创建任务</li>
+    <li><code>POST /api/v1/tasks/{id}/cancel</code> - 取消任务</li>
+    <li><code>GET /api/v1/tasks/{id}/status</code> - 任务状态</li>
+    <li><code>GET /api/v1/tasks/{id}/log</code> - 任务日志</li>
+  </ul>
+  <h3>/api/v1/sagas (3 个)</h3>
+  <ul>
+    <li><code>GET /api/v1/sagas</code> - saga 列表</li>
+    <li><code>GET /api/v1/sagas/{id}</code> - saga 详情</li>
+    <li><code>GET /api/v1/sagas/{id}/status</code> - saga 状态</li>
+  </ul>
+  <h3>grpc-status (1 个)</h3>
+  <ul>
+    <li><a href="/api/v1/grpc-status"><code>GET /api/v1/grpc-status</code></a> - 5 域 gRPC client 健康</li>
+  </ul>
+
   <p>后续 7 页面 (per W4 BA-W4-7): gm-grant / schedule / log-process / data-migration / tasks / audit / settings</p>
 </body>
 </html>
