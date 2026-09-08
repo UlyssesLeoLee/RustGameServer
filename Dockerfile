@@ -34,7 +34,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     rm -rf /var/lib/apt/lists/*
 
 # ==================== runtime base（distroless cc） ====================
-FROM gcr.io/distroless/cc-debian12:nonroot AS runtime-base
+# per W45-h 9/9 06:00 JST 诊断: cc-debian12 glibc 2.36 跟 binary 链 GLIBC_2.38 不匹配
+# 改 cc-debian13 (glibc 2.38) 匹配 rust:1.98-slim builder
+FROM gcr.io/distroless/cc-debian13:nonroot AS runtime-base
 WORKDIR /app
 COPY --from=builder /app/target/release/ /app/bin/
 COPY --from=health-probe /bin/grpc_health_probe /bin/grpc_health_probe
