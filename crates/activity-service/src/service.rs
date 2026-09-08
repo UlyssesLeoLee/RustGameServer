@@ -73,6 +73,8 @@ pub struct ActivityServiceImpl {
     signins: Arc<RwLock<HashMap<Uuid, PlayerSignin>>>,
     /// 玩家成就: player_id -> Vec<Achievement>
     achievements: Arc<RwLock<HashMap<Uuid, Vec<Achievement>>>>,
+    /// W7 L18: 玩家已提交问卷 (player_id, survey_id) 防重复
+    submitted_surveys: Arc<RwLock<std::collections::HashSet<(Uuid, u32)>>>,
 }
 
 impl ActivityServiceImpl {
@@ -82,6 +84,7 @@ impl ActivityServiceImpl {
             player_tasks: Arc::new(RwLock::new(HashMap::new())),
             signins: Arc::new(RwLock::new(HashMap::new())),
             achievements: Arc::new(RwLock::new(HashMap::new())),
+            submitted_surveys: Arc::new(RwLock::new(std::collections::HashSet::new())),
         }
     }
 
@@ -276,6 +279,32 @@ impl ActivityServiceImpl {
         }
         Ok(())
     }
+
+    // ========== W7 L18 问卷 (1 个, 模板) ==========
+    // 9/8 20:08 JST Ulysses 拍板启动 L18 W7-W9 派工, 接受 §1.3 NO-GO 风险
+
+    /// 提交问卷, 简单 in-memory 已提交集合防重复
+    pub async fn submit_survey(
+        &self,
+        player_id: Uuid,
+        survey_id: u32,
+        answers_json: &str,
+    ) -> Result<(u32, u32)> {
+        if answers_json.is_empty() {
+            return Err(Error::InvalidRequest("answers_json is empty".into()));
+        }
+        // 防重复: 同 player + survey 只能提交 1 次
+        let key = (player_id, survey_id);
+        let mut submitted = self.submitted_surveys.write().await;
+        if submitted.contains(&key) {
+            return Err(Error::PlayerState(format!("survey {} already submitted", survey_id)));
+        }
+        submitted.insert(key);
+        // 简单奖励: survey_id % 5 决定道具, count = survey_id
+        let item_id = 8000u32 + (survey_id % 5) as u32;
+        let count = survey_id.max(1);
+        Ok((item_id, count))
+    }
 }
 
 impl Default for ActivityServiceImpl {
@@ -421,5 +450,33 @@ mod tests {
         let p = Uuid::new_v4();
         let r = svc.claim_achievement(p, 999).await;
         assert!(r.is_err());
+    }
+
+    // ========== W7 L18 问卷 UT (1 个, 模板) ==========
+
+    #[tokio::test]
+    async fn submit_survey_first_succeeds() {
+        let svc = ActivityServiceImpl::new();
+        let p = Uuid::new_v4();
+        let (item_id, count) = svc.submit_survey(p, 3, "{\"q1\":\"a\"}").await.unwrap();
+        assert_eq!(item_id, 8000 + 3 % 5);
+        assert_eq!(count, 3);
+    }
+
+    #[tokio::test]
+    async fn submit_survey_duplicate_fails() {
+        let svc = ActivityServiceImpl::new();
+        let p = Uuid::new_v4();
+        svc.submit_survey(p, 3, "{\"q1\":\"a\"}").await.unwrap();
+        let r = svc.submit_survey(p, 3, "{\"q1\":\"b\"}").await;
+        assert!(matches!(r, Err(Error::PlayerState(_))));
+    }
+
+    #[tokio::test]
+    async fn submit_survey_empty_answers_fails() {
+        let svc = ActivityServiceImpl::new();
+        let p = Uuid::new_v4();
+        let r = svc.submit_survey(p, 3, "").await;
+        assert!(matches!(r, Err(Error::InvalidRequest(_))));
     }
 }

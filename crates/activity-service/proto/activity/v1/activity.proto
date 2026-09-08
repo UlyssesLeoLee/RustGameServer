@@ -35,6 +35,13 @@ service ActivityService {
   // 成就
   rpc GetAchievements(GetAchievementsRequest) returns (GetAchievementsResponse);
   rpc ClaimAchievement(ClaimAchievementRequest) returns (ClaimAchievementResponse);
+
+  // W7 L18 9/8 20:08 JST 拍板启动 - 战令/签到扩展/回归/推送/拉新/问卷 18 新 RPC 首批
+  // 接受 §1.3 NO-GO 风险 per 9/8 20:08 JST Ulysses 拍板 (后续可能返工)
+  // 模板: SubmitSurvey (1 in 1 out, 最简单, worker 复制基础)
+
+  // 问卷 (W7 1 个)
+  rpc SubmitSurvey(SubmitSurveyRequest) returns (SubmitSurveyResponse);
 }
 
 message GetHolidayInfoRequest {
@@ -175,4 +182,15 @@ message AchievementProgress {
   int32 current = 3;
   int32 target = 4;
   bool claimed = 5;
+}
+
+message SubmitSurveyRequest {
+  string player_id = 1;
+  int32 survey_id = 2;
+  string answers_json = 3;  // 简单 JSON 字符串, 不引入 serde_json proto 选项
+}
+message SubmitSurveyResponse {
+  bool success = 1;
+  int32 reward_item_id = 2;  // 问卷奖励道具 ID
+  int32 reward_count = 3;
 }
