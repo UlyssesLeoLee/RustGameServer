@@ -1,0 +1,271 @@
+# e4-01-resource-limits.yaml
+# ===========================================================================
+# 角色：E4 k3s 资源策略 — 资源上限 + request/limit 模板（per 9/8 20:47 JST Ulysses 拍板 + 9/1 WBS v0.2 E4）
+# 状态：🟡 Phase C 准备 — 模板 + LimitRange, 待 9/15 deadline 前 kubectl apply
+#
+# 13 L4 任务分块 (本文件 = 任务 2, 5 L4):
+#   L4-1: 5 域 svc (player/economy/match/social/admin) request/limit 模板
+#   L4-2: batch svc (batch-console/batch-backend/envoy) request/limit 模板
+#   L4-3: 3 NEW 域 svc (scene/battle/network-gateway) request/limit 模板
+#   L4-4: 工具 svc (gm-backend/gm-console/rgs-web) request/limit 模板
+#   L4-5: 资源估算公式 (per 9/1 18:00 JST SRE 拍板)
+#
+# 关联：
+#   - 00-namespace.yaml + e4-00-namespace-isolation.yaml (本套 E4 文件第一段)
+#   - RGS-OLU-REPORT-token-OLU-2026-09-02 v0.2 §4 (token-OLU 公式)
+#   - RGS-PHASE-C-MAVIS-PHASE-A-2026-09-03_v0.1.md (E4 范围)
+#   - 8/27 11:06 JST hard ban: 凭据永不打印
+# ===========================================================================
+
+# -----------------------------------------------------------------------
+# L4-1: 5 域 svc request/limit 模板 (per 9/1 WBS v0.2 E4)
+# -----------------------------------------------------------------------
+# 适用: player / economy / match / social / admin (per 01-05 yaml)
+# 模板值:
+#   requests.cpu: 500m (1 SRE 业务域 base — 5 域合 2500m)
+#   requests.memory: 512Mi (5 域合 2560Mi)
+#   limits.cpu: 2000m (HPA maxReplicas=5 拉满时 5 域合 10000m, 留 2000m 缓冲)
+#   limits.memory: 2Gi (5 域合 10Gi, ResourceQuota 12Gi 留 2Gi 缓冲)
+#
+# 依据 (per 9/1 18:00 JST SRE 拍板):
+#   - 1 SRE ≤ 20 人·天/周 = 1 节点 CPU 50% (4 核 × 50% = 2 CPU = 2000m)
+#   - 内存 60% (8Gi × 60% = 4.8Gi)
+#   - 5 域均分: 每域 2000m / 5 = 400m ≈ 500m (向上取整)
+#   - 内存均分: 4.8Gi / 5 = 960Mi ≈ 1Gi, 业务域限 512Mi (HPA 弹性 + QPS 缓冲)
+#   - HPA maxReplicas=5 时 1 域上限: 500m × 10 (1:10 burst) = 5000m, 限 2000m (容器层 OOM 防护)
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: domain-5domain-limits
+  namespace: rust-game-server
+  labels:
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+spec:
+  limits:
+    - type: Container
+      default:
+        # limits — 容器层硬上限 (HPA 拉满时节点不超 12 CPU)
+        cpu: 2000m
+        memory: 2Gi
+      defaultRequest:
+        # requests — 调度层软下限 (1 域 1 pod 资源保证)
+        cpu: 500m
+        memory: 512Mi
+      max:
+        # 单容器上限 (防止单 pod 独占节点)
+        cpu: 4000m
+        memory: 4Gi
+      min:
+        # 单容器下限 (防止极小请求抢占调度)
+        cpu: 100m
+        memory: 128Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi
+      min:
+        storage: 1Gi
+
+---
+# -----------------------------------------------------------------------
+# L4-2: batch svc request/limit 模板
+# -----------------------------------------------------------------------
+# 适用: rgs-batch-console / rgs-batch-backend / rgs-batch-envoy
+# (per tools/rgs-batch-backend/k8s/70/71/75, E3 派工 commit 63908e7 已落地)
+# 模板值 (per E3 实测):
+#   rgs-batch-console (Node.js):
+#     requests: cpu 50m / memory 64Mi
+#     limits: cpu 200m / memory 128Mi
+#   rgs-batch-backend (Rust + actix-web):
+#     requests: cpu 100m / memory 128Mi
+#     limits: cpu 500m / memory 512Mi
+#   rgs-batch-envoy (边缘代理):
+#     requests: cpu 50m / memory 64Mi
+#     limits: cpu 200m / memory 128Mi
+# 合计 (3 pod): requests 200m / 256Mi, limits 900m / 768Mi
+# HPA maxReplicas=3: requests 600m / 768Mi, limits 2700m / 2304Mi
+# ResourceQuota 已在 rgs-batch namespace 由 E3 落地 (per AGENTS.md §7 派生约束 5)
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: domain-batch-limits
+  namespace: rgs-batch
+  labels:
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: batch
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: 1000m
+        memory: 1Gi
+      min:
+        cpu: 25m
+        memory: 32Mi
+
+---
+# -----------------------------------------------------------------------
+# L4-3: 3 NEW 域 svc (scene/battle/network-gateway) request/limit 模板
+# -----------------------------------------------------------------------
+# 适用: scene-service / battle-service / network-gateway
+# 模板值 (per 50/51/52 现有 yaml + E4 调整):
+#   scene-service (轻量实时域):
+#     requests: cpu 200m / memory 256Mi
+#     limits: cpu 1000m / memory 1Gi
+#   battle-service (中量实时域, 状态计算):
+#     requests: cpu 300m / memory 384Mi
+#     limits: cpu 1500m / memory 1.5Gi
+#   network-gateway (Erlang/OTP 边缘网关, 启动慢):
+#     requests: cpu 100m / memory 128Mi
+#     limits: cpu 1000m / memory 512Mi
+# HPA maxReplicas=5 拉满时合计: 17.5 CPU / 15Gi (ResourceQuota edge 21 CPU / 4Gi 不够, 见下方说明)
+# 注意: edge namespace 4Gi 内存预算偏紧, 5 pod × 1.5Gi = 7.5Gi 实际需求;
+#       9/15 deadline 前需 Phase C 接入后实测调整, 暂以 requests 上限约束
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: domain-3new-limits
+  namespace: rust-game-server-edge
+  labels:
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 3new-edge
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 1500m
+        memory: 1.5Gi
+      defaultRequest:
+        cpu: 200m
+        memory: 256Mi
+      max:
+        cpu: 2000m
+        memory: 2Gi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+---
+# -----------------------------------------------------------------------
+# L4-4: 工具 svc (gm-backend / gm-console / rgs-web) request/limit 模板
+# -----------------------------------------------------------------------
+# 适用: gm-backend (actix-web) / gm-console (Node 静态) / rgs-web (Node 静态) / gm-console-envoy
+# 模板值 (per 50-gm-backend-service.yaml + 56-gm-console-envoy-deployment.yaml + RGS-WEB-BASIC §2.1):
+#   gm-backend:
+#     requests: cpu 100m / memory 128Mi
+#     limits: cpu 500m / memory 256Mi
+#   gm-console (Node 静态资源 serving):
+#     requests: cpu 50m / memory 64Mi
+#     limits: cpu 200m / memory 128Mi
+#   rgs-web (Node 静态资源 serving, 0 依赖):
+#     requests: cpu 50m / memory 64Mi
+#     limits: cpu 200m / memory 128Mi
+#   gm-console-envoy (独立 deployment, per AGENTS.md §7 派生约束 5):
+#     requests: cpu 50m / memory 64Mi
+#     limits: cpu 200m / memory 128Mi
+# HPA maxReplicas=2 拉满时合计: 2.2 CPU / 1.28Gi (ResourceQuota mgmt 2.5 CPU / 1Gi 偏紧)
+# 注意: mgmt namespace 1Gi 内存预算偏紧, 2 pod × 256Mi (gm-backend) = 512Mi, 加上其他 4 × 128Mi = 512Mi, 合计 1Gi
+#       Phase C 接入后实测, 必要时扩容 ResourceQuota
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: domain-mgmt-limits
+  namespace: rust-game-server-mgmt
+  labels:
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: mgmt-tools
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      max:
+        cpu: 1000m
+        memory: 512Mi
+      min:
+        cpu: 25m
+        memory: 32Mi
+
+---
+# -----------------------------------------------------------------------
+# L4-5: 资源估算公式 (per 9/1 18:00 JST SRE 拍板 + RGS-OLU-REPORT-token-OLU-2026-09-02 v0.2 §4)
+# -----------------------------------------------------------------------
+# 公式 1: 1 SRE ≤ 20 人·天/周 = 1 节点 CPU 50% + 内存 60%
+#   推导: 1 SRE dev 集群假设 = 1 节点 4 CPU / 8Gi
+#         业务域占 50% (2 CPU) + 内存 60% (4.8Gi) 是单 SRE 单元上限
+#         1 SRE = 1 节点 = 5 域 (业务均分) + edge + mgmt + 平台
+#
+# 公式 2: token-OLU 换算 (per RGS-OLU-REPORT-token-OLU-2026-09-02 v0.2 §6.2)
+#   1 人·天 ≈ 100K-300K tokens (含输入 + 输出 + 决策对话 + 验证往返)
+#   1 人·周 ≈ 500K-1.5M tokens
+#   1 SRE 上限 = 1 人·周 ≈ 1M tokens
+#   5 域独立 Lead × 14-18 周 = 80-120M tokens (待 SRE Lead + PM 校准)
+#
+# 公式 3: 资源 buffer 推导 (per 8/31 ST 经验 HPA 启动风暴)
+#   启动风暴因子: 1.5x (HPA minReplicas=1 → maxReplicas=5 同时拉起的瞬时请求)
+#   镜像拉取因子: 1.2x (新镜像 cold start 时 cpu/memory 翻倍)
+#   总缓冲: 1.5x × 1.2x = 1.8x, 实操取 1.5x (留 0.3x 给 HPA 平滑)
+#   ResourceQuota = base × 1.5 (本文件 3 namespace ResourceQuota 沿用 1.2-1.5x 缓冲)
+#
+# 公式 4: HPA 扩容预测 (per 9/1 18:30 JST batch 域派生 + 8/31 HPA minReplicas 强启动风暴教训)
+#   maxReplicas 推导: peak_qps / single_pod_qps × safety_factor
+#     - 5 域 (业务域): peak_qps 1000 / single_pod_qps 200 = 5, safety_factor 1.0 → max 5
+#     - batch (低频任务): peak_qps 100 / single_pod_qps 50 = 2, safety_factor 1.5 → max 3
+#     - 3 NEW 域 (实时): peak_qps 800 / single_pod_qps 200 = 4, safety_factor 1.25 → max 5
+#     - 工具 svc (管理): peak_qps 50 / single_pod_qps 25 = 2, safety_factor 1.0 → max 2
+#   minReplicas 推导: baseline_pods + 1 (rolling update 期间保可用)
+#     - 5 域: 1 + 1 = 2 (业务域高可用, 沿用 01-05 yaml minReplicas=2)
+#     - batch: 0 + 1 = 1 (低频, 接受单点)
+#     - 3 NEW 域: 0 + 1 = 1 (实时但 StatefulSet-like, 单实例够)
+#     - 工具 svc: 0 + 1 = 1 (管理工具, 单实例可)
+#
+# 公式 5: 平均负载 (CPU/memory) 与扩容触发线
+#   - CPU 70% 触发扩容 (per 5 域 yaml 现有 HPA, 沿用)
+#   - 内存 75% 触发扩容 (per 5 域 yaml 现有 HPA, 沿用)
+#   - stabilizationWindow 5min (scaleDown) / 0s (scaleUp) — 防抖动
+#
+# 已知缺口 (per 9/1 WBS v0.2 E4 §"缺标比错标"):
+#   - 9/15 deadline 前未实测, ResourceQuota 1.5x 缓冲可能偏紧 (HPA 5 拉满 5×2Gi=10Gi vs quota 12Gi OK)
+#   - 工具 svc 实际 peak_qps 未知 (mgmt 流量低, 暂估)
+#   - 3 NEW 域 HPA 实战指标未跑 (Phase C 接入后)
+#   - rgs-web 资源基线: 0 依赖 Node 静态资源, 沿用 gm-console 同档 (50m/64Mi-200m/128Mi)
+#   - batch 域 1 写者约束 (per AGENTS.md §7 派生约束 8) 不影响 HPA 多实例, 暂保持 max=3
+# -----------------------------------------------------------------------
+
+---
+# ===========================================================================
+# E4 任务 2 commit body 参考 (per D3 commit 模板 .gitmessage):
+#
+#   1) Title: chore(deploy): E4 k3s 资源策略 — request/limit 模板 + 资源估算公式 (per 9/8 20:47 JST E4 派工)
+#   2) Body:
+#      - L4-1: 5 域 svc LimitRange (500m/512Mi-2Gi/2Gi, max 4Gi/4 CPU)
+#      - L4-2: batch svc LimitRange (100m/128Mi-500m/512Mi, max 1Gi/1 CPU)
+#      - L4-3: 3 NEW 域 svc LimitRange (200m/256Mi-1.5Gi/1.5Gi, max 2Gi/2 CPU)
+#      - L4-4: 工具 svc LimitRange (50m/64Mi-500m/256Mi, max 1Gi/1 CPU)
+#      - L4-5: 资源估算公式 (5 条, 引用 token-OLU + SRE 拍板 + HPA 启动风暴)
+#   3) DoD:
+#      - L1: kubectl apply --dry-run=client -f e4-01-resource-limits.yaml
+#      - L1.1: N/A
+#      - L1.2: N/A
+#   4) Evidence:
+#      - commit SHA
+#      - 4 LimitRange + 5 公式位置 (e4-01-resource-limits.yaml L33-65 / L82-99 / L116-131 / L160-176)
+#   5) 代签: author=Ulysses — Mavis 接手
+#            审批=架构师(Mavis 接手 agent per DEC-008) +自审+ 2026-09-08
+#            修订人=Ulysses — Mavis 接手
+#   6) 派生约束守护: L1 ✅ L1.1 ✅ L1.2 ✅ L11 ✅ L12 ✅ 凭据不打印 ✅
+# ===========================================================================
