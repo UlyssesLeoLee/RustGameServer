@@ -947,4 +947,219 @@ mod tests {
         assert_eq!(template.activity_type, ActivityType::Holiday);
         assert!(template.enabled);
     }
+
+    // ==================== W41 增广度: 9 holiday_* 种子模板 + ActivityService impl ====================
+
+    use crate::shop_service::ActivityService;
+    use crate::shop_entity::{nine_holiday_seed_templates, HOLIDAY_TEMPLATE_IDS, HOLIDAY_TEMPLATE_NAMES, ActivityRewardTier};
+
+    #[test]
+    fn nine_holiday_seed_templates_returns_9_variants() {
+        // 数据驱动: 1 套 + 模板 = 9 个 holiday 变体
+        let now = Utc::now();
+        let seeds = nine_holiday_seed_templates(now);
+        assert_eq!(seeds.len(), 9);
+        for (id, t) in &seeds {
+            assert_eq!(t.activity_type, ActivityType::Holiday);
+            assert!(t.enabled);
+            assert!(t.ends_at > t.starts_at);
+            assert!(HOLIDAY_TEMPLATE_IDS.contains(id));
+        }
+        // 9 个 name 跟 ID 一一对应
+        for (i, expected) in HOLIDAY_TEMPLATE_NAMES.iter().enumerate() {
+            let id = HOLIDAY_TEMPLATE_IDS[i];
+            let t = seeds.iter().find(|(aid, _)| *aid == id).unwrap();
+            assert_eq!(&t.1.name, expected);
+        }
+    }
+
+    #[tokio::test]
+    async fn seed_9_holiday_templates_inserts_into_repo() {
+        // InMemoryEconomyV3Repository.seed_9_holiday_templates helper
+        let (_svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let repo = v3_repo.lock().await;
+        assert_eq!(repo.activity_templates.len(), 9);
+        for id in HOLIDAY_TEMPLATE_IDS.iter() {
+            assert!(repo.activity_templates.contains_key(id));
+        }
+    }
+
+    #[tokio::test]
+    async fn activity_list_returns_seeded_holiday_templates() {
+        // activity_list 列出所有可见活动
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let out = svc
+            .activity_list(Uuid::new_v4().to_string(), 0, 20, false)
+            .await
+            .unwrap();
+        assert_eq!(out.total, 9);
+        assert_eq!(out.active_count, 9);
+    }
+
+    #[tokio::test]
+    async fn activity_get_by_type_filters_holiday() {
+        // activity_get_by_type 用 ActivityType 过滤 (per 9/4 MD §4 数据驱动)
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let out = svc
+            .activity_get_by_type(Uuid::new_v4().to_string(), 1 /* Holiday */, 0, 20)
+            .await
+            .unwrap();
+        assert_eq!(out.total, 9);
+        for t in &out.templates {
+            assert_eq!(t.activity_type, ActivityType::Holiday);
+        }
+    }
+
+    #[tokio::test]
+    async fn activity_get_active_holiday_count_returns_seeded_count() {
+        // 9 个种子都 enabled + 现在 in range → 9
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let count = svc
+            .activity_get_active_holiday_count(Uuid::new_v4().to_string())
+            .await
+            .unwrap();
+        assert_eq!(count, 9);
+    }
+
+    #[tokio::test]
+    async fn activity_template_returns_player_progress() {
+        // activity_template 查详情 + 玩家进度 (0 初始)
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let player_id = Uuid::new_v4().to_string();
+        let out = svc
+            .activity_template(player_id.clone(), 1001 /* Spring Festival */)
+            .await
+            .unwrap();
+        assert_eq!(out.template.name, "Spring Festival");
+        assert_eq!(out.player_progress, 0);
+        assert!(out.claimed_tiers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn activity_progress_increments_and_unlocks_tier() {
+        // 进度上报 + 解锁 tier (前提: 配 reward tier)
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        // 配 1 个 reward tier: progress_required=10, reward=100
+        v3_repo.lock().await.activity_reward_tiers.insert(
+            1001,
+            vec![ActivityRewardTier {
+                tier: 1,
+                progress_required: 10,
+                reward_amount: 100,
+                reward_currency: 2, // Diamond
+                reward_items: vec![],
+            }],
+        );
+        let player_id = Uuid::new_v4().to_string();
+        let out = svc
+            .activity_progress(
+                player_id.clone(),
+                1001,
+                10,
+                "test".to_string(),
+                "prog-1".to_string(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(out.new_progress, 10);
+        assert!(out.tier_unlocked);
+        assert_eq!(out.new_unlocked_tier, 1);
+
+        // 幂等: 同一 idempotency_key 第二次失败
+        let err = svc
+            .activity_progress(player_id, 1001, 10, "test".to_string(), "prog-1".to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, crate::Error::IdempotencyConflict(_)));
+    }
+
+    #[tokio::test]
+    async fn activity_claim_rewards_tier_and_marks_claimed() {
+        // claim: progress >= required → 成功; 再 claim 同一 tier 报 tier_already_claimed
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        v3_repo.lock().await.activity_reward_tiers.insert(
+            1001,
+            vec![ActivityRewardTier {
+                tier: 1,
+                progress_required: 10,
+                reward_amount: 100,
+                reward_currency: 2,
+                reward_items: vec![],
+            }],
+        );
+        let player_id = Uuid::new_v4().to_string();
+        // 先 progress 到 10
+        svc.activity_progress(
+            player_id.clone(),
+            1001,
+            10,
+            "test".to_string(),
+            "prog-x".to_string(),
+        )
+        .await
+        .unwrap();
+        // claim
+        let out = svc
+            .activity_claim(player_id.clone(), 1001, 1, "claim-1".to_string())
+            .await
+            .unwrap();
+        assert!(out.success);
+        assert_eq!(out.reward_amount, 100);
+        assert_eq!(out.reward_currency, 2);
+        // 再 claim 同一 tier
+        let out2 = svc
+            .activity_claim(player_id, 1001, 1, "claim-2".to_string())
+            .await
+            .unwrap();
+        assert!(!out2.success);
+        assert_eq!(out2.error_msg, "tier_already_claimed");
+    }
+
+    #[tokio::test]
+    async fn activity_subscribe_records_notification_channel() {
+        // subscribe: 标 subscribed + record notify_channel
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        let player_id = Uuid::new_v4().to_string();
+        let out = svc
+            .activity_subscribe(player_id.clone(), 1001, 1 /* push */, "sub-1".to_string())
+            .await
+            .unwrap();
+        assert!(out.subscribed);
+        assert_eq!(out.notify_channel, 1);
+        assert_eq!(out.subscriber_count, 1);
+        // 状态持久化
+        let tpl = svc.activity_template(player_id, 1001).await.unwrap();
+        assert!(tpl.subscribed);
+    }
+
+    #[tokio::test]
+    async fn activity_count_unclaimed_tiers_starts_at_zero() {
+        // 初始无 reward tier → 0 unclaimed
+        let (svc, _acc_repo, _led_repo, v3_repo) = make_ctx();
+        v3_repo.lock().await.seed_9_holiday_templates();
+        v3_repo.lock().await.activity_reward_tiers.insert(
+            1001,
+            vec![ActivityRewardTier {
+                tier: 1,
+                progress_required: 5,
+                reward_amount: 50,
+                reward_currency: 1,
+                reward_items: vec![],
+            }],
+        );
+        let player_id = Uuid::new_v4().to_string();
+        let count = svc
+            .activity_count_unclaimed_tiers(player_id, 1001)
+            .await
+            .unwrap();
+        assert_eq!(count, 0); // progress=0 < required=5
+    }
 }
