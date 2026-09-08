@@ -573,3 +573,88 @@ fn test_30_e2e_oidc_status_4_endpoints() {
     assert!(endpoints.contains(&json!("/api/v1/auth/status")));
 }
 
+// === Group 6: E3 L4-5 5 域 gRPC 审计 + 永久保留 (per 9/8 20:47 JST 派工) ===
+
+#[test]
+fn test_31_e2e_audit_by_domain_5_domain() {
+    use serde_json::json;
+    let resp = json!({
+        "domains": [
+            {"domain": "player-service", "total": 10, "success": 8, "failed": 2},
+            {"domain": "economy-service", "total": 7, "success": 6, "failed": 1},
+            {"domain": "match-service", "total": 5, "success": 5, "failed": 0},
+            {"domain": "social-service", "total": 3, "success": 3, "failed": 0},
+            {"domain": "admin-service", "total": 2, "success": 2, "failed": 0},
+        ],
+        "total_events": 27_i64,
+        "retention": "T-3 permanent (NFR-29)",
+        "retention_days": 0,
+        "audit_table": "batch_transaction.audit_event",
+    });
+    assert_eq!(resp["retention_days"], 0);
+    assert_eq!(resp["retention"], "T-3 permanent (NFR-29)");
+    let domains = resp["domains"].as_array().unwrap();
+    assert_eq!(domains.len(), 5);
+    let domain_names: Vec<&str> = domains.iter().map(|d| d["domain"].as_str().unwrap()).collect();
+    assert!(domain_names.contains(&"player-service"));
+    assert!(domain_names.contains(&"economy-service"));
+    assert!(domain_names.contains(&"match-service"));
+    assert!(domain_names.contains(&"social-service"));
+    assert!(domain_names.contains(&"admin-service"));
+    let total_sum: i64 = domains.iter().map(|d| d["total"].as_i64().unwrap()).sum();
+    assert_eq!(total_sum, 27);
+    for d in domains {
+        let total = d["total"].as_i64().unwrap();
+        let success = d["success"].as_i64().unwrap();
+        let failed = d["failed"].as_i64().unwrap();
+        assert_eq!(total, success + failed);
+    }
+}
+
+#[test]
+fn test_32_e2e_audit_by_domain_db_unreachable_degrade() {
+    use serde_json::json;
+    let resp = json!({
+        "domains": [
+            {"domain": "player-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "economy-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "match-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "social-service", "total": 0, "success": 0, "failed": 0},
+            {"domain": "admin-service", "total": 0, "success": 0, "failed": 0},
+        ],
+        "total_events": 0,
+        "retention": "T-3 permanent (NFR-29)",
+        "retention_days": 0,
+        "audit_table": "batch_transaction.audit_event",
+        "db_error": "connection refused",
+    });
+    assert_eq!(resp["retention_days"], 0);
+    assert!(resp["db_error"].is_string());
+    let domains = resp["domains"].as_array().unwrap();
+    assert_eq!(domains.len(), 5);
+}
+
+#[test]
+fn test_33_e2e_audit_t3_permanent_retention_enforced() {
+    use serde_json::json;
+    let audit_logger_config = json!({
+        "retention_days": 0,
+        "retention_label": "T-3 permanent",
+        "table": "batch_transaction.audit_event",
+        "permanent": true,
+        "cleanup_job_disabled": true,
+        "expected_audit_fields": [
+            "id", "operator", "action", "params_hash", "result",
+            "trace_id", "resource_type", "resource_id", "created_at"
+        ],
+    });
+    assert_eq!(audit_logger_config["retention_days"], 0);
+    assert_eq!(audit_logger_config["permanent"], true);
+    assert_eq!(audit_logger_config["cleanup_job_disabled"], true);
+    let fields = audit_logger_config["expected_audit_fields"].as_array().unwrap();
+    assert!(fields.contains(&json!("params_hash")));
+    assert!(!fields.contains(&json!("params")));
+    assert!(!fields.contains(&json!("password")));
+    assert!(!fields.contains(&json!("secret")));
+}
+

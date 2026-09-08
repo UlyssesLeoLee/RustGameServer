@@ -2767,6 +2767,58 @@ async fn grpc_health_check(state: web::Data<AppState>) -> impl Responder {
     }))
 }
 
+// ────────── 5 域 gRPC 审计实测 (E3 L4-5, per 9/8 20:47 JST 派工) ──────────
+
+#[get("/api/v1/audit/by-domain")]
+async fn audit_by_domain(state: web::Data<AppState>) -> impl Responder {
+    // E3 L4-5: 按 5 域 gRPC 域分组的 audit 事件 (per REQ F-10 + ADR-0058 T-3 永久保留)
+    let rows: Result<Vec<(String, i64, i64, i64)>, _> = sqlx::query_as(
+        "SELECT COALESCE(resource_type, '\"'\"'unknown'\"'\"') AS domain, \
+                COUNT(*) AS total, \
+                COUNT(*) FILTER (WHERE result = '\"'\"'success'\"'\"') AS success, \
+                COUNT(*) FILTER (WHERE result IN ('\"'\"'failure'\"'\"', '\"'\"'error'\"'\"')) AS failed \
+         FROM batch_transaction.audit_event \
+         WHERE action LIKE '\"'\"'5_domain_grpc_call'\"'\"' OR resource_type IN ('\"'\"'player-service'\"'\"','\"'\"'economy-service'\"'\"','\"'\"'match-service'\"'\"','\"'\"'social-service'\"'\"','\"'\"'admin-service'\"'\"') \
+         GROUP BY resource_type \
+         ORDER BY total DESC"
+    )
+    .fetch_all(&state.db)
+    .await;
+    match rows {
+        Ok(list) => {
+            let total_events: i64 = list.iter().map(|(_, t, _, _)| t).sum();
+            web::Json(serde_json::json!({
+                "domains": list.into_iter().map(|(d, t, s, f)| serde_json::json!({
+                    "domain": d,
+                    "total": t,
+                    "success": s,
+                    "failed": f,
+                })).collect::<Vec<_>>(),
+                "total_events": total_events,
+                "retention": "T-3 permanent (NFR-29)",
+                "retention_days": 0,
+                "audit_table": "batch_transaction.audit_event",
+            }))
+        }
+        Err(e) => {
+            tracing::error!(target: SERVICE, "audit_by_domain query failed: {}", e);
+            web::Json(serde_json::json!({
+                "domains": GrpcDomain::all().iter().map(|d| serde_json::json!({
+                    "domain": d.service_name(),
+                    "total": 0_i64,
+                    "success": 0_i64,
+                    "failed": 0_i64,
+                })).collect::<Vec<_>>(),
+                "total_events": 0_i64,
+                "retention": "T-3 permanent (NFR-29)",
+                "retention_days": 0,
+                "audit_table": "batch_transaction.audit_event",
+                "db_error": e.to_string(),
+            }))
+        }
+    }
+}
+
 // ────────── OIDC bridge 4 endpoint (E3 L4-3, per 9/8 20:47 JST 派工) ──────────
 //
 // 设计:
@@ -3052,6 +3104,7 @@ async fn main() -> std::io::Result<()> {
             .service(grpc_status)
             .service(grpc_mtls_config)
             .service(grpc_health_check)
+            .service(audit_by_domain)
             .service(auth_verify)
             .service(auth_refresh)
             .service(auth_logout)
