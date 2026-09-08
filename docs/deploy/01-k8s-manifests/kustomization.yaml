@@ -65,6 +65,7 @@ resources:
   - 42-grafana-pvc.yaml
   - 42-grafana-service.yaml
   - 50-gm-backend-service.yaml
+  - 50-scene-service.yaml
   - 50-secret-admin-tls.yaml
   - 50-secret-ca.yaml
   - 50-secret-cluster-ops-tls.yaml
@@ -72,6 +73,8 @@ resources:
   - 50-secret-match-tls.yaml
   - 50-secret-player-tls.yaml
   - 50-secret-social-tls.yaml
+  - 51-battle-service.yaml
+  - 52-network-gateway.yaml
   - 55-gm-console-envoy-configmap.yaml
   - 56-gm-console-envoy-deployment.yaml
   - 57-gm-console-envoy-service.yaml

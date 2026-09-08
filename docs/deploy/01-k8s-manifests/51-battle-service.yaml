@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"domain-service","app.kubernetes.io/name":"battle","app.kubernetes.io/part-of":"rust-game-server","app.kubernetes.io/version":"0.1.0-battle-service","rust-game-server.io/domain":"battle"},"name":"battle-service","namespace":"rust-game-server"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/name":"battle"}},"template":{"metadata":{"labels":{"app.kubernetes.io/component":"domain-service","app.kubernetes.io/name":"battle","app.kubernetes.io/part-of":"rust-game-server","app.kubernetes.io/version":"0.1.0-battle-service","rust-game-server.io/domain":"battle"}},"spec":{"containers":[{"command":["/app/bin/battle-service"],"env":[{"name":"RUST_LOG","value":"info,battle-service=debug,sqlx=warn,tonic=warn"},{"name":"GRPC_ADDR","value":"0.0.0.0:50058"},{"name":"DATABASE_URL","valueFrom":{"secretKeyRef":{"key":"url","name":"battle-db-credentials","optional":true}}},{"name":"NATS_URI","value":"nats://nats:4222"},{"name":"RGS_TLS_DIR","value":"/etc/rgs/certs"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4317"},{"name":"OTEL_SERVICE_NAME","value":"battle-service"},{"name":"RGS_DOMAIN","value":"battle"},{"name":"RGS_ALLOW_INSECURE_GRPC","value":"0"}],"image":"ghcr.io/ulyssesleolee/rustgameserver:0.1.0-battle-service","imagePullPolicy":"IfNotPresent","livenessProbe":{"exec":{"command":["/bin/grpc_health_probe","-addr=127.0.0.1:50058","-tls","-tls-client-cert=/etc/rgs/certs/server.pem","-tls-client-key=/etc/rgs/certs/server.key","-tls-ca-cert=/etc/rgs/certs/ca-sbn.pem","-tls-server-name=battle.service","-connect-timeout=2s"]},"failureThreshold":3,"initialDelaySeconds":30,"periodSeconds":30,"timeoutSeconds":5},"name":"battle","ports":[{"containerPort":50058,"name":"grpc","protocol":"TCP"},{"containerPort":9464,"name":"metrics","protocol":"TCP"}],"readinessProbe":{"exec":{"command":["/bin/grpc_health_probe","-addr=127.0.0.1:50058","-tls","-tls-client-cert=/etc/rgs/certs/server.pem","-tls-client-key=/etc/rgs/certs/server.key","-tls-ca-cert=/etc/rgs/certs/ca-sbn.pem","-tls-server-name=battle.service","-connect-timeout=2s"]},"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":10,"timeoutSeconds":3},"resources":{"limits":{"cpu":"1500m","memory":"1.5Gi"},"requests":{"cpu":"300m","memory":"384Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"volumeMounts":[{"mountPath":"/etc/rgs/certs","name":"rgs-tls","readOnly":true}]}],"imagePullSecrets":[{"name":"ghcr-pull"}],"securityContext":{"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"serviceAccountName":"battle-service-account","volumes":[{"name":"rgs-tls","projected":{"sources":[{"secret":{"items":[{"key":"tls.crt","path":"server.pem"},{"key":"tls.key","path":"server.key"}],"name":"rgs-secret-battle-tls"}},{"secret":{"items":[{"key":"ca-sbn.pem","path":"ca-sbn.pem"}],"name":"rgs-secret-ca-sbn"}}]}}]}}}}
+  creationTimestamp: "2026-09-06T10:40:59Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/name: battle
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: 0.1.0-battle-service
+    rust-game-server.io/domain: battle
+  name: battle-service
+  namespace: rust-game-server
+  resourceVersion: "190531"
+  uid: 5be2598e-2018-46b0-9836-86b073d8d520
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: battle
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: domain-service
+        app.kubernetes.io/name: battle
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: 0.1.0-battle-service
+        rust-game-server.io/domain: battle
+    spec:
+      containers:
+      - command:
+        - /app/bin/battle-service
+        env:
+        - name: RUST_LOG
+          value: info,battle-service=debug,sqlx=warn,tonic=warn
+        - name: GRPC_ADDR
+          value: 0.0.0.0:50058
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: url
+              name: battle-db-credentials
+              optional: true
+        - name: NATS_URI
+          value: nats://nats:4222
+        - name: RGS_TLS_DIR
+          value: /etc/rgs/certs
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector:4317
+        - name: OTEL_SERVICE_NAME
+          value: battle-service
+        - name: RGS_DOMAIN
+          value: battle
+        - name: RGS_ALLOW_INSECURE_GRPC
+          value: "0"
+        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-battle-service
+        imagePullPolicy: IfNotPresent
+        # 2026-09-08 W36: 镜像内无 /bin/grpc_health_probe binary (W30 §2.2 实证),
+        # 改 tcpSocket probe on 50058.  注: battle binary 是 W5 stub, 1 秒后 exit 0
+        # (W30 §2.3 主根因), 即使 tcpSocket 探针 pass 也会 CrashLoopBackOff —
+        # 探针修复只解决 yaml vs image 不匹配, binary stub 仍需主会话派 W37 修
+        # (per brief 卡住 §: "battle / network binary stub 改 sleep infinity 5-10 行
+        # .rs: 报告里写"主会话派 W37 修 binary 或 yaml 改 lifecycle.preStop"").
+        livenessProbe:
+          tcpSocket:
+            port: 50058
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: battle
+        ports:
+        - containerPort: 50058
+          name: grpc
+          protocol: TCP
+        - containerPort: 9464
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 50058
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 1536Mi
+          requests:
+            cpu: 300m
+            memory: 384Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/rgs/certs
+          name: rgs-tls
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: ghcr-pull
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: battle-service-account
+      serviceAccountName: battle-service-account
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: rgs-tls
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+              - key: tls.crt
+                path: server.pem
+              - key: tls.key
+                path: server.key
+              name: rgs-secret-battle-tls
+          - secret:
+              items:
+              - key: ca-sbn.pem
+                path: ca-sbn.pem
+              name: rgs-secret-ca-sbn
+status:
+  conditions:
+  - lastTransitionTime: "2026-09-06T10:40:59Z"
+    lastUpdateTime: "2026-09-06T10:40:59Z"
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: "False"
+    type: Available
+  - lastTransitionTime: "2026-09-06T10:51:00Z"
+    lastUpdateTime: "2026-09-06T10:51:00Z"
+    message: ReplicaSet "battle-service-7b4bbbb79" has timed out progressing.
+    reason: ProgressDeadlineExceeded
+    status: "False"
+    type: Progressing
+  observedGeneration: 1
+  replicas: 1
+  terminatingReplicas: 0
+  unavailableReplicas: 1
+  updatedReplicas: 1
