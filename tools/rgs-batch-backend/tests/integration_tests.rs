@@ -119,7 +119,7 @@ fn test_11_version_endpoint_json() {
     let s = v.to_string();
     assert!(s.contains("\"backend\":\"0.2.0-w2\""));
     assert_eq!(v["w2_features"].as_array().unwrap().len(), 3);
-
+}
 
 // === W3 BA-W3-11 E2E 集成测试 (跨 13 张表 join, 镜像 BA-W5-6 integration test) ===
 
@@ -237,8 +237,48 @@ fn test_16_e2e_credentials_audit_8_27_hard_ban() {
 
 #[test]
 fn test_17_e2e_prometheus_metrics_12() {
-    // 镜像 /api/v1/metrics 端点, 验证 12 个 Prometheus 指标 (BA-W2-7)
-    let metrics_text = "# HELP rgs_batch_up Service up\n# TYPE rgs_batch_up gauge\nrgs_batch_up 1\n# HELP rgs_batch_task_total Total tasks\n# TYPE rgs_batch_task_total counter\nrgs_batch_task_total 500\n";
+    // 镜像 /api/v1/metrics 端点, 验证 13 个 Prometheus 指标 (BA-W2-7)
+    // W2 BA-W2-7 完整版: 12+ 指标 (rgs_batch_up + task*5 + worker*3 + dlq*2 + cron*2)
+    let metrics_text = "\
+# HELP rgs_batch_up Service up\n\
+# TYPE rgs_batch_up gauge\n\
+rgs_batch_up 1\n\
+# HELP rgs_batch_task_total Total tasks\n\
+# TYPE rgs_batch_task_total counter\n\
+rgs_batch_task_total 500\n\
+# HELP rgs_batch_task_succeeded_total Succeeded tasks\n\
+# TYPE rgs_batch_task_succeeded_total counter\n\
+rgs_batch_task_succeeded_total 480\n\
+# HELP rgs_batch_task_failed_total Failed tasks\n\
+# TYPE rgs_batch_task_failed_total counter\n\
+rgs_batch_task_failed_total 15\n\
+# HELP rgs_batch_task_running Currently running\n\
+# TYPE rgs_batch_task_running gauge\n\
+rgs_batch_task_running 4\n\
+# HELP rgs_batch_task_duration_seconds_avg Average duration\n\
+# TYPE rgs_batch_task_duration_seconds_avg gauge\n\
+rgs_batch_task_duration_seconds_avg 1.25\n\
+# HELP rgs_batch_worker_pool_active Active workers\n\
+# TYPE rgs_batch_worker_pool_active gauge\n\
+rgs_batch_worker_pool_active 4\n\
+# HELP rgs_batch_worker_pool_max Max workers\n\
+# TYPE rgs_batch_worker_pool_max gauge\n\
+rgs_batch_worker_pool_max 8\n\
+# HELP rgs_batch_worker_pool_priority_queue Queue size\n\
+# TYPE rgs_batch_worker_pool_priority_queue gauge\n\
+rgs_batch_worker_pool_priority_queue 3\n\
+# HELP rgs_batch_dlq_size DLQ size\n\
+# TYPE rgs_batch_dlq_size gauge\n\
+rgs_batch_dlq_size 2\n\
+# HELP rgs_batch_dlq_exhausted DLQ exhausted\n\
+# TYPE rgs_batch_dlq_exhausted gauge\n\
+rgs_batch_dlq_exhausted 0\n\
+# HELP rgs_batch_cron_executions_total Cron executions\n\
+# TYPE rgs_batch_cron_executions_total counter\n\
+rgs_batch_cron_executions_total 100\n\
+# HELP rgs_batch_cron_active_schedules Active cron schedules\n\
+# TYPE rgs_batch_cron_active_schedules gauge\n\
+rgs_batch_cron_active_schedules 5\n";
     let required_metrics = vec![
         "rgs_batch_up",
         "rgs_batch_task_total",
@@ -347,4 +387,4 @@ fn test_22_e2e_sub_task_full_crud_lifecycle() {
     assert_eq!(step3_update["state"], "succeeded");
     assert_eq!(step4_delete["deleted"], true);
 }
-}
+

@@ -1,11 +1,12 @@
 {
   "name": "rgs-batch-console",
-  "version": "0.1.0",
-  "description": "rgs-batch-console Node 22 + 原生 http + 0 依赖, per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1, AGENTS.md v0.4 §7 batch 域母规范",
+  "version": "0.2.0-e3",
+  "description": "rgs-batch-console Node 22 + 原生 http + 0 依赖, per BATCH-PLAN v0.2 §3.1 W1 BA-W1-1~4, AGENTS.md v0.4 §7 batch 域母规范, E3 派工 13 endpoint (9/8 20:30 JST E3 派工)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "smoke": "node -e \"require('node:http').get('http://127.0.0.1:8789/api/v1/health', r => { console.log('status=' + r.statusCode); process.exit(r.statusCode === 200 ? 0 : 1) })\""
+    "smoke": "node -e \"require('node:http').get('http://127.0.0.1:8789/api/v1/health', r => { console.log('status=' + r.statusCode); process.exit(r.statusCode === 200 ? 0 : 1) })\"",
+    "test:health": "node -e \"const http = require('node:http'); const endpoints = ['/api/v1/health', '/api/v1/version', '/api/v1/token-estimate?text=hello', '/api/v1/grpc-status']; let pending = endpoints.length; for (const ep of endpoints) { http.get('http://127.0.0.1:8789' + ep, r => { console.log(ep, r.statusCode); pending--; if (pending === 0) process.exit(0); }).on('error', e => { console.error(ep, e.message); pending--; if (pending === 0) process.exit(1); }); }\""
   },
   "engines": { "node": ">=22.0.0" },
   "private": true,
