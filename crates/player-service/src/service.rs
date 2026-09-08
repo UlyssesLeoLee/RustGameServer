@@ -849,8 +849,8 @@ impl PlayerService for PlayerServiceImpl {
     // ----- 10343 个人改名 — stub 占位 -----
 
     async fn rename_character(&self, character_id: Uuid, new_name: String) -> Result<Character> {
-        // stub 占位: 仅做基础校验 + 简单 update.
-        // 真实业务: 走改名卡 / 改名费用 / 冷却时间 (per 闪烁之光 10343).
+        // 加固 (W41): 除基础校验外, 加禁词过滤 (系统保留 / 管理员 / 客服 / 控制字符).
+        // 真实业务: 走改名卡 / 改名费用 / 冷却时间 (per 闪烁之光 10343) — 跨桶 TODO.
         let new_name = new_name.trim().to_string();
         if new_name.is_empty() {
             return Err(Error::Validation("new_name must not be empty".to_string()));
@@ -858,6 +858,7 @@ impl PlayerService for PlayerServiceImpl {
         if new_name.len() > 64 {
             return Err(Error::Validation("new_name too long (max 64)".to_string()));
         }
+        validate_character_name(&new_name)?;
         if self.characters.find_by_name(&new_name).await?.is_some() {
             return Err(Error::NicknameTaken(new_name));
         }
@@ -869,6 +870,10 @@ impl PlayerService for PlayerServiceImpl {
                 entity: "Character",
                 id: character_id.to_string(),
             })?;
+        if character.name == new_name {
+            // 名字未变, 直接返回 (避免无意义的 updated_at 变化)
+            return Ok(character);
+        }
         character.name = new_name;
         character.updated_at = chrono::Utc::now();
         self.characters.update(&character).await
@@ -1061,10 +1066,12 @@ impl PlayerService for PlayerServiceImpl {
         &self,
         session_id: Uuid,
         character_id: Option<Uuid>,
-        _client_time_unix: i64,
+        client_time_unix: i64,
     ) -> Result<(bool, i64, chrono::DateTime<Utc>)> {
-        // stub 占位: 滑动 session + 返回 server time.
-        // 真实业务: 检测时钟漂移 (> 30s 警告) + 推 NATS 心跳.
+        // 加固 (W41): 除滑动 session 外, 增加客户端时钟漂移检测.
+        // - 漂移 > 30s: tracing::warn! (运营可观测, 不阻断业务)
+        // - 漂移 > 300s: tracing::error! (强异常, 建议 ops 介入)
+        // - 漂移为负 (客户端时钟倒退): 同样 warn (常见 NTP 重启)
         let mut session = self
             .sessions
             .find_by_id(session_id)
@@ -1072,6 +1079,30 @@ impl PlayerService for PlayerServiceImpl {
             .ok_or(Error::SessionExpired)?;
         if session.is_expired() {
             return Err(Error::SessionExpired);
+        }
+        // 时钟漂移检测 (per W41 加固; 不阻断业务, 仅日志)
+        let now_unix = chrono::Utc::now().timestamp();
+        if client_time_unix > 0 {
+            let drift = (client_time_unix - now_unix).abs();
+            if drift > 300 {
+                tracing::error!(
+                    target: "player-service",
+                    session_id = %session_id,
+                    client_time_unix = client_time_unix,
+                    server_time_unix = now_unix,
+                    drift_seconds = drift,
+                    "heartbeat client clock drift > 300s"
+                );
+            } else if drift > 30 {
+                tracing::warn!(
+                    target: "player-service",
+                    session_id = %session_id,
+                    client_time_unix = client_time_unix,
+                    server_time_unix = now_unix,
+                    drift_seconds = drift,
+                    "heartbeat client clock drift > 30s"
+                );
+            }
         }
         session.heartbeat();
         let saved_session = self.sessions.save(&session).await?;
@@ -1092,12 +1123,45 @@ impl PlayerService for PlayerServiceImpl {
                 )));
             }
         }
-        Ok((true, chrono::Utc::now().timestamp(), saved_session.expires_at))
+        Ok((true, now_unix, saved_session.expires_at))
     }
 }
 
 fn is_active_for_update(p: &Player) -> bool {
     !matches!(p.status, PlayerStatus::Banned | PlayerStatus::Disabled)
+}
+
+/// W41 加固: 校验角色名 (rename_character 用).
+///
+/// 禁词规则 (per 闪烁之光 v0.1 + RGS-DTL-018 §3.1 角色名规范):
+/// - 长度: 1-64 (trim 后, 已在 caller 校验)
+/// - 禁词 (case-insensitive): admin / system / gm / moderator / support / official
+/// - 控制字符: 不允许 `\t \n \r` 等 (允许空格和中日韩)
+/// - 连续空格: 不允许 ≥ 4 个连续空格
+fn validate_character_name(name: &str) -> Result<()> {
+    const FORBIDDEN: &[&str] = &[
+        "admin", "system", "gm", "moderator", "support", "official",
+    ];
+    let lower = name.to_ascii_lowercase();
+    for f in FORBIDDEN {
+        if lower == *f || lower.contains(&format!("{} ", f)) || lower.contains(&format!(" {}", f)) {
+            return Err(Error::Validation(format!(
+                "character name contains forbidden keyword: {}",
+                f
+            )));
+        }
+    }
+    if name.chars().any(|c| c.is_control()) {
+        return Err(Error::Validation(
+            "character name contains control characters".to_string(),
+        ));
+    }
+    if name.contains("    ") {
+        return Err(Error::Validation(
+            "character name contains 4+ consecutive spaces".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 /// 桶 12 helper: 校验 player (账号) 是否可创建/登录角色.
@@ -2821,5 +2885,85 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    // ----- W41 加固: rename_character 禁词过滤 -----
+
+    #[tokio::test]
+    async fn rename_character_forbidden_keyword_fails() {
+        let (svc, _, _, _, _) = make_service().await;
+        let account = svc.register("rn-acct".to_string()).await.unwrap();
+        let (char1, _) = svc
+            .create_character(
+                account.id,
+                "og-name".to_string(),
+                1,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
+            .await
+            .unwrap();
+        // 禁词 "admin" 含在名字中
+        let err = svc
+            .rename_character(char1.id, "cool-admin".to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[tokio::test]
+    async fn rename_character_unchanged_name_noop() {
+        let (svc, _, _, _, _) = make_service().await;
+        let account = svc.register("rn2-acct".to_string()).await.unwrap();
+        let (char1, _) = svc
+            .create_character(
+                account.id,
+                "stable-name".to_string(),
+                1,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
+            .await
+            .unwrap();
+        let orig_updated = char1.updated_at;
+        // 同名改名应 noop (不报错, updated_at 不变)
+        let result = svc
+            .rename_character(char1.id, "stable-name".to_string())
+            .await
+            .unwrap();
+        assert_eq!(result.name, "stable-name");
+        assert_eq!(result.updated_at, orig_updated);
+    }
+
+    // ----- W41 加固: validate_character_name 单元测试 -----
+
+    #[test]
+    fn validate_character_name_rejects_4spaces() {
+        let err = validate_character_name("hello    world").unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[test]
+    fn validate_character_name_rejects_control_chars() {
+        let err = validate_character_name("hello\nworld").unwrap_err();
+        assert!(matches!(err, Error::Validation(_)));
+    }
+
+    #[test]
+    fn validate_character_name_allows_cjk() {
+        // 中文名应通过
+        assert!(validate_character_name("闪烁之光").is_ok());
+        assert!(validate_character_name("Hello World").is_ok());
+        assert!(validate_character_name("user-123").is_ok());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_case_insensitive() {
+        // 大小写不敏感: Admin / ADMIN 都应拒绝
+        assert!(validate_character_name("Admin").is_err());
+        assert!(validate_character_name("ADMIN").is_err());
+        assert!(validate_character_name("system user").is_err());
     }
 }
