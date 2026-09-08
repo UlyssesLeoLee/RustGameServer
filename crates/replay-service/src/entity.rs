@@ -244,6 +244,51 @@ impl ReplayChunk {
     }
 }
 
+// ============================================================================
+// W9 L18 5 新增 RPC 业务实体 (录像基础 2 + 点赞 2 + 收集 1)
+// 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层
+// ============================================================================
+
+/// ReplayInfo: 录像聚合信息 (metadata + uploader + 社交层计数)
+///
+/// 与 ReplayMeta 区别:
+/// - ReplayMeta 偏存储层 (含 object_key, expires_at, duration_secs)
+/// - ReplayInfo 偏展示层 (含 uploader_id, like_count, collect_count)
+///
+/// 用于前端录像详情页 / 列表卡片 / 缩略图悬浮预览.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ReplayInfo {
+    pub replay_id: Uuid,
+    pub uploader_id: String,
+    pub match_id: Uuid,
+    pub mode: ReplayMode,
+    pub duration_secs: u32,
+    pub created_at: DateTime<Utc>,
+    pub like_count: u32,
+    pub collect_count: u32,
+}
+
+impl ReplayInfo {
+    /// 工厂: 从 ReplayMeta + 社交层计数构造
+    pub fn from_meta(meta: &ReplayMeta, like_count: u32, collect_count: u32) -> Self {
+        Self {
+            replay_id: meta.replay_id,
+            uploader_id: meta.player_a.clone(),
+            match_id: meta.match_id,
+            mode: meta.mode,
+            duration_secs: meta.duration_secs,
+            created_at: meta.created_at,
+            like_count,
+            collect_count,
+        }
+    }
+
+    /// 转 created_at 到 epoch millis (前端直接展示)
+    pub fn created_at_ms(&self) -> i64 {
+        self.created_at.timestamp_millis()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,11 +1,20 @@
 //! replay-service 域 Service 业务实装 (per RGS-DTL-038 §3 DEC-038-03 + 桶 13)
 //!
-//! ## 4 RPC (per replay.proto ReplayService)
+//! ## W9 L18 10 RPC (per replay.proto ReplayService)
 //! 1. HealthCheck
 //! 2. SaveReplay (内部 / match-service session 结束调用)
 //! 3. GetReplay (一次性拉完整回放)
 //! 4. ListReplays (按 player / mode 过滤 + 分页)
 //! 5. StreamReplay (server streaming, 大回放用)
+//!
+//! W9 L18 5 新增 (per 9/8 20:08 JST Ulysses 拍板 L18 W7-W9 派工):
+//! 6. GetReplayInfo (录像聚合信息, metadata + uploader + 社交层计数)
+//! 7. DeleteReplay (owner check, 区别内部 cleanup 用的 delete_replay)
+//! 8. LikeReplay (幂等点赞)
+//! 9. UnlikeReplay (幂等取消点赞)
+//! 10. CollectReplay (收集到 collection 专辑页)
+//!
+//! 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层 (借鉴不照搬)
 //!
 //! ## 设计原则
 //! - 元数据走 ReplayRepository (PostgreSQL)
@@ -18,16 +27,18 @@
 //! - 启动时检查过期 (delete_expired cron, TODO)
 //! - 默认 TTL: 天梯 90d / 休闲 7d / 房间 30d
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use bytes::Bytes;
 use chrono::Utc;
 use futures::stream::{self, Stream, StreamExt};
+use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
-use crate::entity::{Replay, ReplayChunk, ReplayFilter, ReplayMeta, ReplayMode};
+use crate::entity::{Replay, ReplayChunk, ReplayFilter, ReplayInfo, ReplayMeta, ReplayMode};
 use crate::error::Error;
 use crate::repository::{PageRequest, ReplayRepository};
 use crate::storage::{build_object_key, StorageBackend};
@@ -94,21 +105,109 @@ pub trait ReplayDomainService: Send + Sync {
     /// 7. 清理过期元数据 (cron job 用, TODO 启动时调用)
     /// 返回: (清理元数据数量, 清理对象 key 列表)
     async fn cleanup_expired(&self) -> Result<(u64, Vec<String>)>;
+
+    // ============================================================================
+    // W9 L18 5 新增 RPC trait 方法 (录像基础 2 + 点赞 2 + 收集 1)
+    // ============================================================================
+
+    /// 8. GetReplayInfo (L18-6): 拉取录像聚合信息 (metadata + uploader + 社交层计数)
+    async fn get_replay_info(&self, replay_id: Uuid) -> Result<ReplayInfo>;
+
+    /// 9. DeleteReplay (L18-7): owner check 删除 (区别于内部 cleanup 的 delete_replay)
+    /// 业务流:
+    /// 1. 校验参数 (replay_id + player_id)
+    /// 2. 查元数据, 取 uploader (player_a)
+    /// 3. owner check: uploader == player_id 否则 NotAuthorized
+    /// 4. 删对象 (best-effort) + 删元数据
+    /// 返回: true = 删除成功, false = replay 不存在
+    async fn delete_replay_by_owner(
+        &self,
+        replay_id: Uuid,
+        player_id: Uuid,
+    ) -> Result<bool>;
+
+    /// 10. LikeReplay (L18-8): 幂等点赞, 返回操作后的点赞总数
+    /// 业务流:
+    /// 1. 校验参数 (replay_id 存在)
+    /// 2. likes[replay_id].insert(player_id) 幂等
+    /// 3. 返回 likes[replay_id].len()
+    async fn like_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32>;
+
+    /// 11. UnlikeReplay (L18-9): 幂等取消点赞, 返回操作后的点赞总数
+    /// 业务流:
+    /// 1. 校验参数
+    /// 2. likes[replay_id].remove(player_id) 幂等
+    /// 3. 返回 likes[replay_id].len()
+    async fn unlike_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32>;
+
+    /// 12. CollectReplay (L18-10): 收集到 collection 专辑页, 幂等
+    /// 业务流:
+    /// 1. 校验参数
+    /// 2. collections[replay_id].insert(collection_id) 幂等
+    /// 3. 返回 (true, collections[replay_id].len())
+    async fn collect_replay(
+        &self,
+        replay_id: Uuid,
+        player_id: Uuid,
+        collection_id: Uuid,
+    ) -> Result<(bool, u32)>;
 }
 
 // ============================================================================
 // ServiceImpl
 // ============================================================================
 
+/// 共享存储类型别名 (W9 L18 5 新增 RPC 用)
+///
+/// - likes: replay_id -> 点赞 player_id 集合 (HashSet 天然去重, 幂等)
+/// - collections: replay_id -> collection_id 集合 (专辑页收集, 幂等)
+///
+/// per 任务简报: 共享存储 (likes / collections HashMap<Uuid, HashSet<Uuid>>)
+pub type LikesMap = std::collections::HashMap<Uuid, HashSet<Uuid>>;
+pub type CollectionsMap = std::collections::HashMap<Uuid, HashSet<Uuid>>;
+
 pub struct ReplayServiceImpl {
     repo: Arc<dyn ReplayRepository>,
     storage: Arc<dyn StorageBackend>,
+    // W9 L18 5 新增 RPC 用共享存储
+    likes: Arc<RwLock<LikesMap>>,
+    collections: Arc<RwLock<CollectionsMap>>,
 }
 
 impl ReplayServiceImpl {
     /// 工厂: 注入 repo + storage
     pub fn new(repo: Arc<dyn ReplayRepository>, storage: Arc<dyn StorageBackend>) -> Self {
-        Self { repo, storage }
+        Self {
+            repo,
+            storage,
+            likes: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            collections: Arc::new(RwLock::new(std::collections::HashMap::new())),
+        }
+    }
+
+    /// 工厂: 注入预填充的共享存储 (测试用)
+    pub fn with_social_storage(
+        repo: Arc<dyn ReplayRepository>,
+        storage: Arc<dyn StorageBackend>,
+        likes: Arc<RwLock<LikesMap>>,
+        collections: Arc<RwLock<CollectionsMap>>,
+    ) -> Self {
+        Self {
+            repo,
+            storage,
+            likes,
+            collections,
+        }
+    }
+
+    /// 暴露 likes 共享存储 (测试 / 查询用)
+    pub fn likes_handle(&self) -> Arc<RwLock<LikesMap>> {
+        self.likes.clone()
+    }
+
+    /// 暴露 collections 共享存储 (测试 / 查询用)
+    pub fn collections_handle(&self) -> Arc<RwLock<CollectionsMap>> {
+        self.collections.clone()
     }
 }
 
@@ -319,6 +418,141 @@ impl ReplayDomainService for ReplayServiceImpl {
         // 3. 删元数据
         let removed = self.repo.delete_expired(now).await?;
         Ok((removed, expired_keys))
+    }
+
+    // ============================================================================
+    // W9 L18 5 新增 RPC 业务实装 (per 9/8 20:08 JST 拍板 L18 W7-W9 派工)
+    // 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层 (借鉴不照搬)
+    // ============================================================================
+
+    async fn get_replay_info(&self, replay_id: Uuid) -> Result<ReplayInfo> {
+        // 1. 校验
+        if replay_id.is_nil() {
+            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+        }
+        // 2. 拉元数据
+        let meta = self
+            .repo
+            .find_by_id(replay_id)
+            .await?
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        // 3. 拼装 ReplayInfo (从元数据 + 共享存储读 like/collect count)
+        let likes = self.likes.read().await;
+        let collections = self.collections.read().await;
+        let like_count = likes.get(&replay_id).map(|s| s.len() as u32).unwrap_or(0);
+        let collect_count = collections
+            .get(&replay_id)
+            .map(|s| s.len() as u32)
+            .unwrap_or(0);
+        Ok(ReplayInfo::from_meta(&meta, like_count, collect_count))
+    }
+
+    async fn delete_replay_by_owner(
+        &self,
+        replay_id: Uuid,
+        player_id: Uuid,
+    ) -> Result<bool> {
+        // 1. 校验
+        if replay_id.is_nil() {
+            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+        }
+        if player_id.is_nil() {
+            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+        }
+        // 2. 查元数据
+        let meta = self.repo.find_by_id(replay_id).await?;
+        let meta = match meta {
+            Some(m) => m,
+            None => return Ok(false),
+        };
+        // 3. owner check: uploader (player_a) 必须 == player_id
+        let uploader = Uuid::parse_str(&meta.player_a).map_err(|_| {
+            Error::Validation(format!("invalid uploader UUID: '{}'", meta.player_a))
+        })?;
+        if uploader != player_id {
+            return Err(Error::Validation(format!(
+                "not owner: player_id={} but uploader={}",
+                player_id, uploader
+            )));
+        }
+        // 4. 删对象 (best-effort) + 删元数据
+        let _ = self.storage.delete(&meta.object_key).await;
+        self.repo.delete(replay_id).await?;
+        // 5. 顺手清掉 likes / collections 计数 (避免悬挂)
+        self.likes.write().await.remove(&replay_id);
+        self.collections.write().await.remove(&replay_id);
+        Ok(true)
+    }
+
+    async fn like_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32> {
+        // 1. 校验
+        if replay_id.is_nil() {
+            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+        }
+        if player_id.is_nil() {
+            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+        }
+        // 2. 校验 replay 存在
+        self.repo
+            .find_by_id(replay_id)
+            .await?
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        // 3. 幂等插入
+        let mut likes = self.likes.write().await;
+        let set = likes.entry(replay_id).or_default();
+        set.insert(player_id);
+        Ok(set.len() as u32)
+    }
+
+    async fn unlike_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32> {
+        // 1. 校验
+        if replay_id.is_nil() {
+            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+        }
+        if player_id.is_nil() {
+            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+        }
+        // 2. 校验 replay 存在
+        self.repo
+            .find_by_id(replay_id)
+            .await?
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        // 3. 幂等删除
+        let mut likes = self.likes.write().await;
+        if let Some(set) = likes.get_mut(&replay_id) {
+            set.remove(&player_id);
+            Ok(set.len() as u32)
+        } else {
+            Ok(0)
+        }
+    }
+
+    async fn collect_replay(
+        &self,
+        replay_id: Uuid,
+        player_id: Uuid,
+        collection_id: Uuid,
+    ) -> Result<(bool, u32)> {
+        // 1. 校验
+        if replay_id.is_nil() {
+            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+        }
+        if player_id.is_nil() {
+            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+        }
+        if collection_id.is_nil() {
+            return Err(Error::Validation("collection_id must not be nil UUID".to_string()));
+        }
+        // 2. 校验 replay 存在
+        self.repo
+            .find_by_id(replay_id)
+            .await?
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        // 3. 幂等插入
+        let mut collections = self.collections.write().await;
+        let set = collections.entry(replay_id).or_default();
+        let was_new = set.insert(collection_id);
+        Ok((was_new || true, set.len() as u32))
     }
 }
 
@@ -552,6 +786,104 @@ pub mod grpc_service {
                     .map_err(Into::<tonic::Status>::into)
             });
             Ok(Response::new(Box::pin(outer)))
+        }
+
+        // ========================================================================
+        // W9 L18 5 新增 RPC gRPC 桥接 (per 9/8 20:08 JST 拍板 L18 W7-W9 派工)
+        // ========================================================================
+
+        async fn get_replay_info(
+            &self,
+            request: Request<replay_proto::GetReplayInfoRequest>,
+        ) -> std::result::Result<Response<replay_proto::ReplayInfo>, Status> {
+            let req = request.get_ref();
+            let id = parse_uuid(&req.replay_id, "replay_id")?;
+            let info = self
+                .impl_
+                .get_replay_info(id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            // 先算好 created_at_ms (避免 info.uploader_id String move 之后再用 info)
+            let created_at_ms = info.created_at_ms();
+            let mode_proto = mode_to_proto(info.mode);
+            Ok(Response::new(replay_proto::ReplayInfo {
+                replay_id: info.replay_id.to_string(),
+                uploader_id: info.uploader_id,
+                match_id: info.match_id.to_string(),
+                mode: mode_proto,
+                duration_secs: info.duration_secs as i32,
+                created_at_ms,
+                like_count: info.like_count as i32,
+                collect_count: info.collect_count as i32,
+            }))
+        }
+
+        async fn delete_replay(
+            &self,
+            request: Request<replay_proto::DeleteReplayRequest>,
+        ) -> std::result::Result<Response<replay_proto::DeleteReplayResponse>, Status> {
+            let req = request.get_ref();
+            let replay_id = parse_uuid(&req.replay_id, "replay_id")?;
+            let player_id = parse_uuid(&req.player_id, "player_id")?;
+            let success = self
+                .impl_
+                .delete_replay_by_owner(replay_id, player_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(replay_proto::DeleteReplayResponse { success }))
+        }
+
+        async fn like_replay(
+            &self,
+            request: Request<replay_proto::LikeReplayRequest>,
+        ) -> std::result::Result<Response<replay_proto::LikeReplayResponse>, Status> {
+            let req = request.get_ref();
+            let replay_id = parse_uuid(&req.replay_id, "replay_id")?;
+            let player_id = parse_uuid(&req.player_id, "player_id")?;
+            let count = self
+                .impl_
+                .like_replay(replay_id, player_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(replay_proto::LikeReplayResponse {
+                like_count: count as i32,
+            }))
+        }
+
+        async fn unlike_replay(
+            &self,
+            request: Request<replay_proto::UnlikeReplayRequest>,
+        ) -> std::result::Result<Response<replay_proto::UnlikeReplayResponse>, Status> {
+            let req = request.get_ref();
+            let replay_id = parse_uuid(&req.replay_id, "replay_id")?;
+            let player_id = parse_uuid(&req.player_id, "player_id")?;
+            let count = self
+                .impl_
+                .unlike_replay(replay_id, player_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(replay_proto::UnlikeReplayResponse {
+                like_count: count as i32,
+            }))
+        }
+
+        async fn collect_replay(
+            &self,
+            request: Request<replay_proto::CollectReplayRequest>,
+        ) -> std::result::Result<Response<replay_proto::CollectReplayResponse>, Status> {
+            let req = request.get_ref();
+            let replay_id = parse_uuid(&req.replay_id, "replay_id")?;
+            let player_id = parse_uuid(&req.player_id, "player_id")?;
+            let collection_id = parse_uuid(&req.collection_id, "collection_id")?;
+            let (success, count) = self
+                .impl_
+                .collect_replay(replay_id, player_id, collection_id)
+                .await
+                .map_err(Into::<tonic::Status>::into)?;
+            Ok(Response::new(replay_proto::CollectReplayResponse {
+                success,
+                collect_count: count as i32,
+            }))
         }
     }
 }
