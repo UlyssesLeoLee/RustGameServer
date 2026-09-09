@@ -733,6 +733,49 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 - **证据**: 9/9 20:15 JST shim v0.5 dispatch design (commit 5acc8e9, SHIM_V05_DISPATCH_DESIGN.md §3.4 决策 #4)
 - **影响范围**: shim v0.5 dispatch table 实施 (1-2 天, Mavis 主会话)
 
+#### L25 | 端口管理统一 .env (single source of truth, per 9/10 07:35 JST Ulysses 拍板)
+
+- **背景**: 9/10 07:35 JST Ulysses 拍板端口管理统一 .env, 避免 8/27 起的 k3s 端口混乱 (52551 vs 6443) + WSL2 portproxy 漂移
+- **强约束**: **所有端口变量放 `D:\RustGameServer\.env` # 10. 端口管理段, 单一可信源, 改端口必须改 .env + .env.example + 跑 `pwsh scripts/sync-ports-env.ps1` (admin)**
+  - .env # 10. 端口管理段: K3S_API_PORT / K3S_API_PORT_INTERNAL / WSL2_IP / 5 域 gRPC 50051-50055 + CARD 50061 / METRICS_PORT 9464 / QUIC_PORT 7000 / ADMIN_HTTP_PORT 8080 / SHIM_PORT 9001 / RGS_PROXY_PORT 8084 / RGS_FLASH_MOCK_PORT 8791 / RGS_WEB_PORT 3000 / GM_BACKEND_PORT 8081 / PG_PORT_LOCAL 15432 / NATS_PORT_LOCAL 14222 (14 个 K=V)
+  - scripts/sync-ports-env.ps1 (8 KB) 同步: 读 .env 端口段 → 写 WSL2 /etc/systemd/system/k3s.service.env (K3S_KUBECONFIG_OUTPUT/MODE) → Windows netsh portproxy 52551→WSL2:6443 (需 admin 提权, 弹 UAC) → 更新 ~/.kube/config server URL → 验证 kubectl get nodes
+  - scripts/run-sync-ports-as-admin.ps1 (2 KB) 提权封装: `Start-Process pwsh -Verb RunAs`, 弹 UAC Ulysses 点 yes
+  - scripts/debug-add-52551-portproxy.ps1 (1 KB) 调试: 单条 netsh portproxy 加 (不重启 k3s)
+  - 改端口禁: 直接改 yaml 硬编码 / 改 k3s.service ExecStart 硬编码 / 改 kubeconfig server 硬编码
+- **证据**: 9/10 07:50 JST admin 提权跑 sync-ports-env.ps1 完, kubectl get nodes 走 52551 通 (per commit `bc4dae0` + .env.example 端口段 14 行)
+- **影响范围**: 所有 .env / .env.example / k8s yaml / 5 域 deployment / 工具链 binary (rgs-shim / rgs-flash-mock / gm-backend / rgs-web)
+
+#### L26 | k3s 1.36 K3S_HTTPS_LISTEN_PORT env var 不被支持 (会让 internal client 找错端口破坏 cluster)
+
+- **背景**: 9/10 07:46 JST 改 K3S_HTTPS_LISTEN_PORT=52551 (per .env K3S_API_PORT_INTERNAL), k3s controller 找 52551 但 API server 仍监听 6443 → etcd 找不到 + 节点注册失败 + 整个 cluster broken, kubelet 报 `dial tcp 127.0.0.1:52551: connect: connection refused`
+- **强约束**: **k3s 1.36 改 HTTPS listen port 不能用 K3S_HTTPS_LISTEN_PORT env var, 必须改 `/etc/systemd/system/k3s.service` 的 ExecStart 加 `--https-listen-port=...` 一次性手动操作 (wsl -u root 写)**
+  - 永久修端口: `ExecStart=/usr/local/bin/k3s server --tls-san=127.0.0.1 --tls-san=localhost --tls-san=172.28.176.169` (同时加 tls-san 让 cert SAN 包含 127.0.0.1)
+  - sync-ports-env.ps1 **不**改 ExecStart (单次手动操作, 不进 .env 自动同步)
+  - 改完 restart k3s 等 60s (k3s 启动时间)
+  - kubeconfig cert CA 跟新 cert 不匹配, 需重生成 (`wsl -u root cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config`)
+- **证据**: 9/10 07:46 JST K3S_HTTPS_LISTEN_PORT=52551 → 5 域 pod 全 CrashLoopBackOff 12h; 9/10 07:56 JST 改 ExecStart 加 --tls-san + restart → cluster 恢复 Ready (commit `bc4dae0` 不含此修改, 是 WSL2 端单次操作)
+- **影响范围**: 所有改 k3s listen port 操作 (per .env K3S_API_PORT_INTERNAL)
+
+#### L27 | WSL2 netsh portproxy 需 admin 提权 + kubectl apply 走 portproxy 拉 openapi 第二次 close
+
+- **背景**: 9/10 07:50 JST Windows 端加 netsh portproxy 52551→WSL2:6443 需 admin 权限, 提权 (Start-Process -Verb RunAs 弹 UAC) 后 Ulysses 点 yes 即可. 但 kubectl apply 走 52551 拉 openapi schema 第二次请求会被 server 主动 close (`forcibly closed by the remote host`)
+- **强约束**: **kubectl apply 走 WSL2 内 `k3s kubectl` (直连 6443, 完美工作) 不走 Windows 52551 portproxy**
+  - WSL2 内: `wsl -e bash -c 'k3s kubectl apply -f /mnt/d/RustGameServer/<yaml>'` (直连 6443, 绕开 portproxy 二次 close bug)
+  - Windows kubectl `get nodes` / `get pods` 走 52551 OK (单次请求, 不拉 openapi)
+  - portproxy 52551 适用: kubectl get / describe / logs (单次或小 payload)
+  - portproxy 52551 不适用: kubectl apply / kubectl edit (拉 openapi schema 大 payload)
+- **证据**: 9/10 07:55 JST kubectl get nodes 52551 通 (per 9/10 07:57 JST 实证), 但 kubectl apply 52551 `error validating data: failed to download openapi: wsarecv: forcibly closed`. 改 `wsl -e k3s kubectl apply` 直连 6443 后 OK (5 域 deployment configured)
+- **影响范围**: 所有 kubectl apply / edit / patch 操作
+
+#### L28 | kubeconfig cert CA 必须跟 k3s 当前 cert 匹配 (k3s 重启 cert 重生成后必须从 WSL2 k3s.yaml 重写)
+
+- **背景**: 9/10 07:56 JST k3s.service ExecStart 加 --tls-san 重启后, k3s 重新生成 cert (k3s 1.36 cert 跟 hostname + 启动 flags 绑), Windows 端 8/27 旧 kubeconfig CA 跟新 cert 不匹配, kubectl 报 `tls: failed to verify certificate: x509: certificate signed by unknown authority`
+- **强约束**: **k3s 重启 (改 ExecStart / 改 tls-san / 改 host) 后必须从 WSL2 `/etc/rancher/k3s/k3s.yaml` 复制新 cert 到 Windows `~/.kube/config`**
+  - 步骤: 1) `wsl -u root cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config.bak-<ts>` (备份)  2) `wsl -u root cat /etc/rancher/k3s/k3s.yaml | Set-Content ~/.kube/config` (覆盖)  3) 改 server URL 端口: 替换 `server: https://127.0.0.1:6443` → `server: https://127.0.0.1:52551` (因为 Windows 走 portproxy 52551)  4) 验证 `kubectl get nodes`
+  - sync-ports-env.ps1 自动化: 写 WSL2 k3s.service.env (K3S_KUBECONFIG_OUTPUT/MODE=666) + 更新 Windows kubeconfig (但 .env 不含 cert 内容, 改 ExecStart 不会自动重写 kubeconfig)
+- **证据**: 9/10 07:56 JST 改 k3s.service ExecStart → kubectl 52551 TLS error → 复制 k3s.yaml → 改 server URL 52551 → kubectl get nodes 通
+- **影响范围**: 所有 k3s cert 重生成场景 (改 ExecStart / 改 host / 重装 k3s)
+
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
 ---
@@ -900,6 +943,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.10 | 2026-09-03 12:00 | 架构师(Mavis 接手 agent per DEC-008) | 5 worker 并发派工 race condition 教训升 L12 案例库 (per 9/3 11:08 JST CHECKLIST 5 域 commit 归属异常 audit commit `6c5173a`): §6.3 PT 派工简报模板 加 5 worker 并发派工约束子段 (3 选项: 独立 worktree / 写不 commit 主会话统一 / 1 worker 串行, per-worker CARGO_TARGET_DIR, staggered 启动, DoD 简报明文 "worker 不 commit 报告即可", 不修历史, race condition 异常留 audit commit trail) |
 | v0.6.11 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 派生约束 升正式 (per 9/3 12:36 JST ask_user 拍板 l12-formal-now): §2 L12 段从"PT 派工临时 log 不入 commit 防御"扩为 "L12.1 临时 log 防御 + L12.2 5 worker 派工 3 选项 + L12.3 候选清单 L-CAND-009 入档" (L1-L14 冻结期内 L12 正式段升, 不走 L15 候选); L-CANDIDATES.md 加 L-CAND-009 (5 worker 派工 3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit) |
 | **v0.6.12** | **2026-09-05 12:30** | **架构师(Mavis 接手 agent per DEC-008)** | **9/5 W1-W6 6 worker Phase 0 完结 + 派生约束 L15-L18 紧急批准 (per 9/5 12:08 JST 拍板, 突破 L1-L14 冻结期) + 6/7/8 域 RACI v1.1 → v1.3 升版**: ① §0 元信息加 W1-W6 6 worker Phase 0 + 改进路线图 + ADR-006 ② §8.x 新增 L15-L18 派生约束 (L15 native binary file ELF 验证 / L16 主会话统一 commit 拍板合并顺序 / L17 InMemory 5 域 → PgRepository 6/7 域扩展 / L18 闪烁之光 848 RPC 补全 8 子系统) ③ §9.7 新增 8 域扩展 (5 + batch + scene + battle + network-gateway) ④ 6 域 RACI v1.1 → v1.3 升版 (player/economy/match/social/admin/batch) + 3 NEW 域 RACI v1.1 落档 (scene-service / battle-service / network-gateway) ⑤ L-CANDIDATES v0.4 同步: L15-L18 转正 (移出候选) + L-CAND-010/011 入档 (12/2 季度评审) |
+| **v0.6.13** | **2026-09-10 08:00** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 07:35 JST Ulysses 拍板端口管理统一 .env + 派生约束 L25-L28 升至正式 (per 9/10 07:50 JST admin 提权 + WSL2 --tls-san 修复 + portproxy 52551 落地实证)**: ① §8.x 新增 L25 (端口管理 .env 14 个 K=V + sync-ports-env.ps1 3 件套) + L26 (k3s 1.36 K3S_HTTPS_LISTEN_PORT env var 不被支持, 改 ExecStart 加 --https-listen-port/--tls-san 一次性手动) + L27 (kubectl apply 走 WSL2 内 k3s kubectl 直连 6443, 绕开 portproxy 52551 拉 openapi 二次 close) + L28 (k3s 重启 cert 重生成后必须从 WSL2 /etc/rancher/k3s/k3s.yaml 复制新 cert + 改 server URL 52551 到 Windows kubeconfig) ② .env + .env.example 加 # 10. 端口管理段 14 个 K=V (K3S_API_PORT=52551 / K3S_API_PORT_INTERNAL=6443 / 5 域 gRPC 50051-50055 + CARD 50061 / METRICS_PORT 9464 / QUIC_PORT 7000 / ADMIN_HTTP_PORT 8080 / SHIM_PORT 9001 / RGS_PROXY_PORT 8084 / RGS_FLASH_MOCK_PORT 8791 / RGS_WEB_PORT 3000 / GM_BACKEND_PORT 8081 / PG_PORT_LOCAL 15432 / NATS_PORT_LOCAL 14222) ③ scripts/sync-ports-env.ps1 (8 KB) + run-sync-ports-as-admin.ps1 (2 KB) + debug-add-52551-portproxy.ps1 (1 KB) ④ 5 域 yaml commit `bc4dae0` (imagePullSecrets: ghcr-pull + IfNotPresent + 0.1.0-cc13) ⑤ WSL2 k3s.service ExecStart 改 `--tls-san=127.0.0.1 --tls-san=localhost --tls-san=172.28.176.169` (单次手动, wsl -u root 写) ⑥ kubeconfig 用 WSL2 k3s.yaml 复制新 cert + 改 server URL 52551 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
