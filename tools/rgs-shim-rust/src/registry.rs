@@ -16,7 +16,6 @@
 // - 业务覆盖率 1.9% (10/514 real cmd)
 
 use crate::handlers;
-use crate::handlers_social;
 use crate::rgs::RgsClient;
 use std::pin::Pin;
 use std::future::Future;
@@ -62,95 +61,10 @@ impl Registry {
         // shim-internal RGS 测试 cmd (Erlang 10400=quest_list/11001=partner_list, 不复用)
         map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)", source: "shim" });
         map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)", source: "shim" });
-
-        // v0.5.0 (per 2026-09-09 19:32 JST Mavis 派工 w1): 53 个 player 域 stub 替换为 real handler
-        // 来源: zsyz_server/src/proto/proto_103.erl + proto_104.erl + proto_105.erl + proto_108.erl + proto_109.erl
-        // 业务覆盖: player 域 65/65 (100%) — 12 已有 + 53 新增
-        // 注: or_insert 语义, 这里先 insert 优先; stubs 阶段仍保留, 但会被覆盖
-        map.insert(10312, CmdEntry { handler: handlers::handle_10312, name: "10312 empty (RGS)", source: "zsyz" });
-        map.insert(10316, CmdEntry { handler: handlers::handle_10316, name: "10316 view_role_idx", source: "zsyz" });
-        map.insert(10317, CmdEntry { handler: handlers::handle_10317, name: "10317 worship", source: "zsyz" });
-        map.insert(10318, CmdEntry { handler: handlers::handle_10318, name: "10318 friend_list", source: "zsyz" });
-        map.insert(10322, CmdEntry { handler: handlers::handle_10322, name: "10322 ping_xx", source: "zsyz" });
-        map.insert(10325, CmdEntry { handler: handlers::handle_10325, name: "10325 face_list", source: "zsyz" });
-        map.insert(10327, CmdEntry { handler: handlers::handle_10327, name: "10327 set_face", source: "zsyz" });
-        map.insert(10343, CmdEntry { handler: handlers::handle_10343, name: "10343 rename", source: "zsyz" });
-        map.insert(10345, CmdEntry { handler: handlers::handle_10345, name: "10345 bag_use_list", source: "zsyz" });
-        map.insert(10346, CmdEntry { handler: handlers::handle_10346, name: "10346 del_item", source: "zsyz" });
-        map.insert(10347, CmdEntry { handler: handlers::handle_10347, name: "10347 asset_icons", source: "zsyz" });
-        map.insert(10348, CmdEntry { handler: handlers::handle_10348, name: "10348 power (RGS player.GetPlayer)", source: "zsyz" });
-        map.insert(10380, CmdEntry { handler: handlers::handle_10380, name: "10380 reg_day", source: "zsyz" });
-        map.insert(10391, CmdEntry { handler: handlers::handle_10391, name: "10391 chat_send", source: "zsyz" });
-        map.insert(10395, CmdEntry { handler: handlers::handle_10395, name: "10395 notify", source: "zsyz" });
-        map.insert(10397, CmdEntry { handler: handlers::handle_10397, name: "10397 online_status", source: "zsyz" });
-        map.insert(10399, CmdEntry { handler: handlers::handle_10399, name: "10399 feedback", source: "zsyz" });
-        // quest 域
-        map.insert(10402, CmdEntry { handler: handlers::handle_10402, name: "10402 accept_quest (RGS player.UpdateProfile)", source: "zsyz" });
-        map.insert(10405, CmdEntry { handler: handlers::handle_10405, name: "10405 finish_quest", source: "zsyz" });
-        map.insert(10406, CmdEntry { handler: handlers::handle_10406, name: "10406 giveup_quest", source: "zsyz" });
-        // 物品/装备 域
-        map.insert(10500, CmdEntry { handler: handlers::handle_10500, name: "10500 bag_list", source: "zsyz" });
-        map.insert(10501, CmdEntry { handler: handlers::handle_10501, name: "10501 equip_list", source: "zsyz" });
-        map.insert(10515, CmdEntry { handler: handlers::handle_10515, name: "10515 use_item", source: "zsyz" });
-        map.insert(10520, CmdEntry { handler: handlers::handle_10520, name: "10520 move_item", source: "zsyz" });
-        map.insert(10522, CmdEntry { handler: handlers::handle_10522, name: "10522 batch_use", source: "zsyz" });
-        map.insert(10523, CmdEntry { handler: handlers::handle_10523, name: "10523 sell_item", source: "zsyz" });
-        map.insert(10524, CmdEntry { handler: handlers::handle_10524, name: "10524 star_up", source: "zsyz" });
-        map.insert(10525, CmdEntry { handler: handlers::handle_10525, name: "10525 star_list", source: "zsyz" });
-        map.insert(10526, CmdEntry { handler: handlers::handle_10526, name: "10526 storage_info", source: "zsyz" });
-        map.insert(10528, CmdEntry { handler: handlers::handle_10528, name: "10528 exp_pool", source: "zsyz" });
-        map.insert(10535, CmdEntry { handler: handlers::handle_10535, name: "10535 bag_clear", source: "zsyz" });
-        map.insert(10536, CmdEntry { handler: handlers::handle_10536, name: "10536 equip_refresh", source: "zsyz" });
-        // 邮件 域
-        map.insert(10800, CmdEntry { handler: handlers::handle_10800, name: "10800 mail_list", source: "zsyz" });
-        map.insert(10801, CmdEntry { handler: handlers::handle_10801, name: "10801 mail_read", source: "zsyz" });
-        map.insert(10802, CmdEntry { handler: handlers::handle_10802, name: "10802 mail_unread", source: "zsyz" });
-        map.insert(10804, CmdEntry { handler: handlers::handle_10804, name: "10804 mail_delete", source: "zsyz" });
-        map.insert(10805, CmdEntry { handler: handlers::handle_10805, name: "10805 mail_attach", source: "zsyz" });
-        map.insert(10810, CmdEntry { handler: handlers::handle_10810, name: "10810 mail_issue", source: "zsyz" });
-        // 10900-10999 杂项
-        map.insert(10900, CmdEntry { handler: handlers::handle_10900, name: "10900 silence", source: "zsyz" });
-        map.insert(10901, CmdEntry { handler: handlers::handle_10901, name: "10901 ban", source: "zsyz" });
-        map.insert(10902, CmdEntry { handler: handlers::handle_10902, name: "10902 stop_role", source: "zsyz" });
-        map.insert(10905, CmdEntry { handler: handlers::handle_10905, name: "10905 battle_state", source: "zsyz" });
-        map.insert(10906, CmdEntry { handler: handlers::handle_10906, name: "10906 ping_state", source: "zsyz" });
-        map.insert(10922, CmdEntry { handler: handlers::handle_10922, name: "10922 activity_list", source: "zsyz" });
-        map.insert(10923, CmdEntry { handler: handlers::handle_10923, name: "10923 activity_join", source: "zsyz" });
-        map.insert(10924, CmdEntry { handler: handlers::handle_10924, name: "10924 activity_my", source: "zsyz" });
-        map.insert(10925, CmdEntry { handler: handlers::handle_10925, name: "10925 activity_query", source: "zsyz" });
-        map.insert(10926, CmdEntry { handler: handlers::handle_10926, name: "10926 activity_open", source: "zsyz" });
-        map.insert(10927, CmdEntry { handler: handlers::handle_10927, name: "10927 activity_end", source: "zsyz" });
-        map.insert(10945, CmdEntry { handler: handlers::handle_10945, name: "10945 giftcard", source: "zsyz" });
-        map.insert(10946, CmdEntry { handler: handlers::handle_10946, name: "10946 giftcard_status", source: "zsyz" });
-        map.insert(10950, CmdEntry { handler: handlers::handle_10950, name: "10950 board", source: "zsyz" });
-        map.insert(10952, CmdEntry { handler: handlers::handle_10952, name: "10952 board_action", source: "zsyz" });
-        map.insert(10955, CmdEntry { handler: handlers::handle_10955, name: "10955 sdk_ping", source: "zsyz" });
-        map.insert(10956, CmdEntry { handler: handlers::handle_10956, name: "10956 sdk_ack", source: "zsyz" });
-        map.insert(10999, CmdEntry { handler: handlers::handle_10999, name: "10999 sdk_notify", source: "zsyz" });
-
         // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 自动注册 766 全 zsyz send cmd stub
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
-        // 注: w1 已替换 53 player 域 cmd, 这里只注册 w2-w5 范围的 stub (partner/battle/social/welfare/admin)
         crate::registry_stubs::register_stubs(&mut map);
-        // v0.4.1 (per 2026-09-09 19:30 JST Mavis 派工 w4): social 域 14 POC handler
-        // 来源: proto_130.erl (dungeon 4) + proto_133.erl (friend 4) + proto_134.erl (exchange 2) + proto_135.erl (guild 4)
-        // 完整 93 cmd 扩需 1-2 周, 当前 14 handler 字节级对齐 erlang pack(srv, ...)
-        // 已知缺口 (per 9/9 19:30 派工): 79/93 cmd 仍 stub (13001-13004/13007-13040 副本 + 13301-13334 好友 + 13402-13420 兑换 + 13501-13576 公会 + 13601-13608 + 16601-16900 跨服)
-        map.insert(13000, CmdEntry { handler: handlers_social::handle_13000_dungeon_list, name: "dungeon_list (proto_130)", source: "zsyz" });
-        map.insert(13005, CmdEntry { handler: handlers_social::handle_13005_dungeon_battle, name: "dungeon_battle (proto_130)", source: "zsyz" });
-        map.insert(13006, CmdEntry { handler: handlers_social::handle_13006_dungeon_count, name: "dungeon_count (proto_130)", source: "zsyz" });
-        map.insert(13011, CmdEntry { handler: handlers_social::handle_13011_buff_list, name: "buff_list (proto_130)", source: "zsyz" });
-        map.insert(13300, CmdEntry { handler: handlers_social::handle_13300_friend_list, name: "friend_list (proto_133)", source: "zsyz" });
-        map.insert(13303, CmdEntry { handler: handlers_social::handle_13303_add_friend, name: "add_friend (proto_133)", source: "zsyz" });
-        map.insert(13311, CmdEntry { handler: handlers_social::handle_13311_friend_req_list, name: "friend_req_list (proto_133)", source: "zsyz" });
-        map.insert(13315, CmdEntry { handler: handlers_social::handle_13315_delete_friend, name: "delete_friend (proto_133)", source: "zsyz" });
-        map.insert(13401, CmdEntry { handler: handlers_social::handle_13401_exchange_list, name: "exchange_list (proto_134)", source: "zsyz" });
-        map.insert(13408, CmdEntry { handler: handlers_social::handle_13408_exchange_action, name: "exchange_action (proto_134)", source: "zsyz" });
-        map.insert(13500, CmdEntry { handler: handlers_social::handle_13500_create_guild, name: "create_guild (proto_135)", source: "zsyz" });
-        map.insert(13518, CmdEntry { handler: handlers_social::handle_13518_guild_info, name: "guild_info (proto_135, RGS social.GetGuild)", source: "zsyz" });
-        map.insert(13519, CmdEntry { handler: handlers_social::handle_13519_guild_members, name: "guild_members (proto_135)", source: "zsyz" });
-        map.insert(13523, CmdEntry { handler: handlers_social::handle_13523_donate_info, name: "donate_info (proto_135)", source: "zsyz" });
 
         // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 派工): battle 域 66 cmd 真实 handler
         // 范围: 19800-19807 + 19901-19908 (战斗/录像, 15) + 25100-25841 (任务/成就/城市/矿脉, 51)
@@ -162,11 +76,11 @@ impl Registry {
         map.insert(19804, CmdEntry { handler: handlers::handle_replay_rewards, name: "replay_rewards", source: "zsyz" });
         map.insert(19805, CmdEntry { handler: handlers::handle_claim_replay_reward, name: "claim_replay_reward", source: "zsyz" });
         map.insert(19806, CmdEntry { handler: handlers::handle_battle_status, name: "battle_status", source: "zsyz" });
-        map.insert(19807, CmdEntry { handler: handlers::handle_battle_result, name: "battle_opponent", source: "zsyz" });
+        map.insert(19807, CmdEntry { handler: handlers::handle_battle_opponent, name: "battle_opponent", source: "zsyz" });
         map.insert(19901, CmdEntry { handler: handlers::handle_replay_query, name: "replay_query", source: "zsyz" });
         map.insert(19902, CmdEntry { handler: handlers::handle_replay_paged_query, name: "replay_paged_query", source: "zsyz" });
         map.insert(19903, CmdEntry { handler: handlers::handle_replay_like, name: "replay_like", source: "zsyz" });
-        map.insert(19904, CmdEntry { handler: handlers::handle_replay_query, name: "replay_op", source: "zsyz" });
+        map.insert(19904, CmdEntry { handler: handlers::handle_replay_op, name: "replay_op", source: "zsyz" });
         map.insert(19905, CmdEntry { handler: handlers::handle_replay_share, name: "replay_share", source: "zsyz" });
         map.insert(19906, CmdEntry { handler: handlers::handle_replay_like_count, name: "replay_like_count", source: "zsyz" });
         map.insert(19907, CmdEntry { handler: handlers::handle_replay_hero, name: "replay_hero", source: "zsyz" });
@@ -228,6 +142,51 @@ impl Registry {
         map.insert(25839, CmdEntry { handler: handlers::handle_bbs_type, name: "bbs_type", source: "zsyz" });
         map.insert(25840, CmdEntry { handler: handlers::handle_bbs_praise, name: "bbs_praise", source: "zsyz" });
         map.insert(25841, CmdEntry { handler: handlers::handle_bbs_full, name: "bbs_full", source: "zsyz" });
+
+        // Phase 4 w3 round 2 (per 2026-09-09 20:17 JST Mavis 派工续做): battle 域 37 cmd 真实 handler
+        // 范围: 20000-20221 (战斗/HP/能量 + 战斗详细, 37 cmd)
+        // 来源: H5 zsyz_client proto_mate.js + zsyz_server/src/proto/proto_200.erl + proto_202.erl
+        // stub-20000..stub-20063 (26) + stub-20200..stub-20221 (11) 全部升级为 real handler
+        // --- 战斗/HP/能量 (20000-20036) ---
+        map.insert(20000, CmdEntry { handler: handlers::handle_battle_start, name: "battle_start", source: "zsyz" });
+        map.insert(20001, CmdEntry { handler: handlers::handle_battle_start_ack, name: "battle_start_ack", source: "zsyz" });
+        map.insert(20002, CmdEntry { handler: handlers::handle_battle_detail, name: "battle_detail", source: "zsyz" });
+        map.insert(20004, CmdEntry { handler: handlers::handle_battle_round, name: "battle_round", source: "zsyz" });
+        map.insert(20005, CmdEntry { handler: handlers::handle_battle_simple_ack, name: "battle_simple_ack", source: "zsyz" });
+        map.insert(20006, CmdEntry { handler: handlers::handle_battle_finish, name: "battle_finish", source: "zsyz" });
+        map.insert(20008, CmdEntry { handler: handlers::handle_battle_quit, name: "battle_quit", source: "zsyz" });
+        map.insert(20009, CmdEntry { handler: handlers::handle_battle_misc_09, name: "battle_misc_09", source: "zsyz" });
+        map.insert(20013, CmdEntry { handler: handlers::handle_battle_setup, name: "battle_setup", source: "zsyz" });
+        map.insert(20014, CmdEntry { handler: handlers::handle_battle_target, name: "battle_target", source: "zsyz" });
+        map.insert(20015, CmdEntry { handler: handlers::handle_battle_misc_15, name: "battle_misc_15", source: "zsyz" });
+        map.insert(20016, CmdEntry { handler: handlers::handle_battle_misc_16, name: "battle_misc_16", source: "zsyz" });
+        map.insert(20019, CmdEntry { handler: handlers::handle_battle_done, name: "battle_done", source: "zsyz" });
+        map.insert(20020, CmdEntry { handler: handlers::handle_battle_init, name: "battle_init", source: "zsyz" });
+        map.insert(20022, CmdEntry { handler: handlers::handle_battle_speed, name: "battle_speed", source: "zsyz" });
+        map.insert(20026, CmdEntry { handler: handlers::handle_battle_drama, name: "battle_drama", source: "zsyz" });
+        map.insert(20027, CmdEntry { handler: handlers::handle_battle_spec, name: "battle_spec", source: "zsyz" });
+        map.insert(20028, CmdEntry { handler: handlers::handle_battle_spec_ack, name: "battle_spec_ack", source: "zsyz" });
+        map.insert(20029, CmdEntry { handler: handlers::handle_battle_replay_request, name: "battle_replay_request", source: "zsyz" });
+        map.insert(20030, CmdEntry { handler: handlers::handle_battle_in_combat, name: "battle_in_combat", source: "zsyz" });
+        map.insert(20033, CmdEntry { handler: handlers::handle_battle_defender, name: "battle_defender", source: "zsyz" });
+        map.insert(20034, CmdEntry { handler: handlers::handle_battle_share, name: "battle_share", source: "zsyz" });
+        map.insert(20036, CmdEntry { handler: handlers::handle_battle_replay_detail, name: "battle_replay_detail", source: "zsyz" });
+        // --- 战斗/combat_type (20060-20063) ---
+        map.insert(20060, CmdEntry { handler: handlers::handle_battle_combat_type, name: "battle_combat_type", source: "zsyz" });
+        map.insert(20062, CmdEntry { handler: handlers::handle_battle_combat_type_ack, name: "battle_combat_type_ack", source: "zsyz" });
+        map.insert(20063, CmdEntry { handler: handlers::handle_battle_type_list, name: "battle_type_list", source: "zsyz" });
+        // --- 战斗详细/竞技场 (20200-20221) ---
+        map.insert(20200, CmdEntry { handler: handlers::handle_arena_state_full, name: "arena_state_full", source: "zsyz" });
+        map.insert(20201, CmdEntry { handler: handlers::handle_arena_f_list, name: "arena_f_list", source: "zsyz" });
+        map.insert(20202, CmdEntry { handler: handlers::handle_arena_view, name: "arena_view", source: "zsyz" });
+        map.insert(20203, CmdEntry { handler: handlers::handle_arena_view_ack, name: "arena_view_ack", source: "zsyz" });
+        map.insert(20206, CmdEntry { handler: handlers::handle_arena_challenge, name: "arena_challenge", source: "zsyz" });
+        map.insert(20207, CmdEntry { handler: handlers::handle_arena_clear_cd, name: "arena_clear_cd", source: "zsyz" });
+        map.insert(20208, CmdEntry { handler: handlers::handle_arena_combat_log, name: "arena_combat_log", source: "zsyz" });
+        map.insert(20209, CmdEntry { handler: handlers::handle_arena_buy_count, name: "arena_buy_count", source: "zsyz" });
+        map.insert(20220, CmdEntry { handler: handlers::handle_arena_rank, name: "arena_rank", source: "zsyz" });
+        map.insert(20221, CmdEntry { handler: handlers::handle_arena_worship, name: "arena_worship", source: "zsyz" });
+        map.insert(20204, CmdEntry { handler: handlers::handle_arena_set_pos, name: "arena_set_pos", source: "zsyz" });
         Registry { map }
     }
 
@@ -262,19 +221,3 @@ impl Registry {
         v
     }
 }
-// Cmd registry (per 9/9 13:50 JST v0.2 模式, Rust 重写 v0.3.0)
-// 6 个内置 cmd; 后续 worker 扩自己域时, 加新表项 + handler 函数
-//
-// 设计: handler 取 owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
-// 返回 Pin<Box<dyn Future + Send>> 不绑 lifetime, 避免 HRTB 复杂度
-// & self 的 lifetime 也不进 future (entry.handler 是 fn pointer, 不是闭包)
-//
-// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 拍板):
-// - 10101 / 10102 / 10103 / 10200 来自 zsyz_server proto_101.erl + proto_102.erl (真 zsyz cmd)
-// - 10400 / 11001 是 shim-internal RGS 测试 cmd (Erlang 10400=quest_list, 11001=partner_list, 不复用)
-// - 业务覆盖率 1.2% (4/514 real cmd), 1-2 周 4 worker 扩 (per 9/9 13:45 JST 拍板 A)
-//
-// v0.3.2 (per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景"):
-// - 战斗场景 cmd 6 个: 10215 move / 10300 ping / 10301 role_info / 10302 assets / 10309 signature / 10315 view_role
-// - 来源: zsyz_server proto_102.erl (10215) + proto_103.erl (10300/10301/10302/10309/10315)
-// - 业务覆盖率 1.9% (10/514 real cmd)
