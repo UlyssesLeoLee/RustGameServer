@@ -130,7 +130,7 @@ admin:   '📋 0 条审计'         ← admin.QueryAuditLog({limit: 5})
 
 ## 7. 已知缺口 (per 9/9 12:30 JST 缺标比错标)
 
-- **GAP-1**: admin.QueryAuditLog 路由 `audit_log_partitioned` 返 0 (seed 在主表). 修法: seed 改插 `_y202609` partition, 或 handler 同时查 2 表. P3, 不阻塞 demo.
+- **GAP-1 ✅ (per 9/9 12:50 JST commit 7ba8dfe)**: admin.QueryAuditLog 返 0. 根因不是 partition 路由, 是 handler 调 `list_by_actor(Uuid::nil(), ...)` + `.reverse()` 两个 bug. 修法: repo 加 `list_latest(limit)` + handler 改用 + 删 reverse. 实证: 2 条真 audit log (RGS_DEMO_HEALTHCHECK + RGS_DEMO_QUERY_AUDIT) DESC 顺序返回. **原报告误判 partition 路由, 真因是 handler 逻辑 bug**.
 - **GAP-2**: match.GetMatch(id) 用 player_uuid 调 NOT_FOUND (按 match_id 查). 修法: 用真实 match_id seed. P3, 不阻塞 (主面板用其他 3 卡片 OK).
 - **GAP-3**: social 域只有 1 个 RPC (GetGuild), ListGuilds/Members/Join/Leave 等未派. v0.2 评估.
 - **GAP-4**: game.html 资源条/HP/MP/EXP 仍是 mock 数据 (1,288,500 gold 等), 没从 economy.GetAccount 拿真数. v0.2 评估.
