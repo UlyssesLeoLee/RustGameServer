@@ -4,6 +4,7 @@
 
 mod frame;
 mod handlers;
+mod handlers_social;
 mod registry;
 mod rgs;
 mod registry_stubs;
