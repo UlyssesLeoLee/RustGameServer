@@ -1,0 +1,26 @@
+[workspace]
+
+[package]
+name = "rgs-shim"
+version = "0.3.0"
+edition = "2021"
+description = "zsyz SmartSocket (Erlang binary) → RGS gRPC shim — production-grade Rust rewrite (per 9/9 14:20 JST Ulysses 拍板, 完整对接 RGS + 100% 正常 + 性能更优 + 无移植隐患)"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+bytes = "1"
+thiserror = "1"
+anyhow = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures-util = "0.3"
+parking_lot = "0.12"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
