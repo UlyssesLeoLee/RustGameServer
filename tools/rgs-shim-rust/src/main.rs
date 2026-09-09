@@ -97,7 +97,7 @@ async fn handle_connection(
             }
             // 解析 cmd + payload
             let cmd = u16::from_be_bytes([buf[idx + 4], buf[idx + 5]]);
-            let payload_len = len - 2;
+            let payload_len = len.saturating_sub(2);
             let payload = buf[idx + 6..idx + 6 + payload_len].to_vec();
             frame_count += 1;
             info!(%addr, frame = frame_count, cmd, payload_len, "frame");
