@@ -2667,3 +2667,688 @@ pub fn handle_10803(
         Response { cmd, payload: out }
     })
 }
+
+// ---- w3 battle/arena handlers (per 9/9 22:00 JST Phase 4 续做) ----
+
+pub fn handle_battle_opponent(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
+            "id": "11111111-1111-1111-1111-111111111111"
+        })).await;
+        let p = rgs_resp.response.unwrap_or(serde_json::json!({}));
+        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("MavisHero").to_string();
+        tracing::info!(cmd, "19807 battle_opponent");
+        let mut out = Vec::with_capacity(64);
+        out.write_u32(0);                             // code
+        out.write_u32(0x22222222);                    // rid
+        out.write_string("rgs-uat-1");                 // srv_id
+        out.write_string(&name);                      // name
+        out.write_u8(18);                             // lev
+        out.write_u8(0);                              // vip
+        out.write_u8(1);                              // online
+        out.write_u32(99999);                         // power
+        out.write_u32(0);                             // face_id
+        out.write_u32(0);                             // avatar_bid
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_replay_op(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (id, op_type) = if payload.len() >= 5 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), if payload.len() >= 6 { p.read_u8() } else { 0u8 })
+        } else {
+            (0u32, 0u8)
+        };
+        tracing::info!(cmd, id, op_type, "replay_op");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (replay op)");
+        out.write_u32(id);
+        out.write_u8(op_type);
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_start(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let _ = rgs.call("match", "StartMatch", serde_json::json!({"combat_type": 0, "combat_map": 0})).await;
+        tracing::info!(cmd, "battle_start");
+        let mut out = Vec::with_capacity(8);
+        out.write_u16(0);    // combat_type
+        out.write_u32(0);    // combat_map
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_start_ack(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_start_ack");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle start ack)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_detail(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_detail");
+        let mut out = Vec::with_capacity(64);
+        out.write_u16(0);                  // pos
+        out.write_u32(0x11111111);         // owner_id
+        out.write_string("rgs-uat-1");     // owner_srv_id
+        out.write_u32(0);                  // total_distance
+        out.write_u16(0);                  // order_list count
+        out.write_u16(0);                  // skill_plays count
+        out.write_u16(0);                  // round_buff count
+        out.write_u32(30);                 // countdown_time
+        out.write_u16(0);                  // action_count
+        out.write_u16(0);                  // combat_type
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_round(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_round");
+        let mut out = Vec::with_capacity(16);
+        out.write_u16(0);   // skill_plays count
+        out.write_u16(0);   // round_buff count
+        out.write_u16(0);   // action_count
+        out.write_u16(0);   // star_list count
+        out.write_u16(0);   // combat_type
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_simple_ack(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_simple_ack");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+pub fn handle_battle_finish(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let _ = rgs.call("battle", "BattleEnd", serde_json::json!({"result": 1})).await;
+        tracing::info!(cmd, "battle_finish");
+        let mut out = Vec::with_capacity(32);
+        out.write_u8(1);     // result (1=victory)
+        out.write_u16(0);    // item_rewards count
+        out.write_u8(0);     // show_panel_type
+        out.write_u32(now_unix());  // current_time
+        out.write_u32(0);    // best_time
+        out.write_u16(0);    // combat_type
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_quit(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_quit");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle quit)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_misc_09(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_misc_09");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle misc)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_setup(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_setup");
+        let mut out = Vec::with_capacity(64);
+        out.write_u16(0);     // combat_type
+        out.write_u16(0);     // formation count
+        out.write_u16(0);     // objects count
+        out.write_u8(0);      // is_auto
+        out.write_u16(0);     // buffs count
+        out.write_u8(0);      // current_wave
+        out.write_u16(0);     // total_wave
+        out.write_u8(1);      // play_speed
+        out.write_u32(0);     // combat_map
+        out.write_u16(0);     // extra_args count
+        out.write_u8(0);      // pause
+        out.write_u8(0);      // dragon_difficulty
+        out.write_u32(0);     // wave_time
+        out.write_u16(0);     // action_count
+        out.write_u16(0);     // star_list count
+        out.write_u8(0);      // a_object_num
+        out.write_string("MavisHero");  // target_role_name
+        out.write_string("MavisHero");  // actor_role_name
+        out.write_u32(0);     // begin_time
+        out.write_u8(0);      // suppress
+        out.write_u8(0);      // flag
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_target(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (tid, tsrv) = if payload.len() >= 8 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_string())
+        } else {
+            (0u32, "rgs-uat-1".to_string())
+        };
+        tracing::info!(cmd, tid = format!("0x{:08x}", tid), %tsrv, "battle_target");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (target locked)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_misc_15(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_misc_15");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle misc 15)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_misc_16(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_misc_16");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle misc 16)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_done(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_done");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+pub fn handle_battle_init(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_init");
+        let mut out = Vec::with_capacity(32);
+        out.write_u16(0);    // combat_type
+        out.write_u16(0);    // formation count
+        out.write_u16(0);    // objects count
+        out.write_u8(0);     // is_auto
+        out.write_u16(0);    // buffs count
+        out.write_u16(0);    // distance_info count
+        out.write_u8(0);     // current_wave
+        out.write_u16(0);    // total_wave
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_speed(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let speed = if !payload.is_empty() { payload[0] } else { 1u8 };
+        tracing::info!(cmd, speed, "battle_speed");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (speed set)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_drama(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_drama");
+        let mut out = Vec::with_capacity(8);
+        out.write_u32(0);
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_spec(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_spec");
+        let mut out = Vec::with_capacity(64);
+        out.write_u16(0);                 // combat_type
+        out.write_u16(0);                 // formation count
+        out.write_u16(0);                 // objects count
+        out.write_u8(0);                  // is_auto
+        out.write_u8(0);                  // current_wave
+        out.write_u16(0);                 // total_wave
+        out.write_u8(1);                  // play_speed
+        out.write_u16(0);                 // extra_args count
+        out.write_string("MavisHero");    // target_role_name
+        out.write_u8(0);                  // a_object_num
+        out.write_string("MavisHero");    // actor_role_name
+        out.write_u8(0);                  // suppress
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_spec_ack(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_spec_ack");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle spec ack)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_replay_request(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let rid = if payload.len() >= 4 {
+            let mut p: &[u8] = &payload[..];
+            p.read_u32()
+        } else {
+            0u32
+        };
+        tracing::info!(cmd, rid, "battle_replay_request");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (replay request)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_in_combat(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_in_combat");
+        let mut out = Vec::with_capacity(4);
+        out.write_u8(0);  // is_in_combat = 0
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_defender(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_defender");
+        let mut out = Vec::with_capacity(32);
+        out.write_u8(0);
+        out.write_string("MavisDefender");
+        out.write_string("MavisGuild");
+        out.write_u32(1);  // def_lev
+        out.write_u32(0);  // def_face_id
+        out.write_u32(0);  // replay_id
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_share(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let replay_id = if payload.len() >= 4 {
+            let mut p: &[u8] = &payload[..];
+            p.read_u32()
+        } else {
+            0u32
+        };
+        tracing::info!(cmd, replay_id, "battle_share");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (battle share)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_replay_detail(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (rid, _rsrv) = if payload.len() >= 8 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_string())
+        } else {
+            (0u32, "rgs-uat-1".to_string())
+        };
+        tracing::info!(cmd, rid, "battle_replay_detail");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (replay detail)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_combat_type(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let ct = if payload.len() >= 2 {
+            let mut p: &[u8] = &payload[..];
+            p.read_u16()
+        } else {
+            0u16
+        };
+        tracing::info!(cmd, ct, "battle_combat_type");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(ct);
+        out.write_u8(0);  // type
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_combat_type_ack(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_combat_type_ack");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (combat type ack)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_battle_type_list(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "battle_type_list");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // type_list count
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_state_full(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_state_full");
+        let mut out = Vec::with_capacity(32);
+        out.write_u32(1);    // rank
+        out.write_u32(1000); // score
+        out.write_u32(5);    // can_combat_num
+        out.write_u32(0);    // buy_combat_num
+        out.write_u32(0);    // ref_time
+        out.write_u32(0);    // start_time
+        out.write_u32(0);    // end_time
+        out.write_u32(0);    // cont_win
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_f_list(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_f_list");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // f_list count
+        out.write_u8(0);   // type
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_view(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (rid, srv_id) = if payload.len() >= 8 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_string())
+        } else {
+            (0u32, "rgs-uat-1".to_string())
+        };
+        tracing::info!(cmd, rid, %srv_id, "arena_view");
+        let mut out = Vec::with_capacity(48);
+        out.write_u32(rid);
+        out.write_string(&srv_id);
+        out.write_string("MavisHero");
+        out.write_u16(1);   // lev
+        out.write_u32(0);   // face
+        out.write_u32(100); // power
+        out.write_u32(0);   // score
+        out.write_u8(0);    // formation_type
+        out.write_u8(0);    // formation_lev
+        out.write_u16(0);   // p_list count
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_view_ack(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (rid, _) = if payload.len() >= 8 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_string())
+        } else {
+            (0u32, "rgs-uat-1".to_string())
+        };
+        tracing::info!(cmd, rid, "arena_view_ack");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (arena view ack)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_challenge(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_challenge");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (arena challenge)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_clear_cd(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_clear_cd");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (arena clear cd)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_combat_log(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_combat_log");
+        let mut out = Vec::with_capacity(8);
+        out.write_u32(0);  // had_combat_num
+        out.write_u16(0);  // num_list count
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_buy_count(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let num = if !payload.is_empty() { payload[0] } else { 0u8 };
+        tracing::info!(cmd, num, "arena_buy_count");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (arena buy count)");
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_rank(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_rank");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // rank_list count
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_worship(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "arena_worship");
+        let mut out = Vec::with_capacity(16);
+        out.write_u32(1);    // rank
+        out.write_u32(1000); // score
+        out.write_u32(0);    // worship
+        out.write_u16(0);    // rank_list count
+        Response { cmd, payload: out }
+    })
+}
+
+pub fn handle_arena_set_pos(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (rid, pos) = if payload.len() >= 8 {
+            let mut p: &[u8] = &payload[..];
+            let r = p.read_u32();
+            let _ = p.read_string();
+            let pos = if p.len() >= 2 { p.read_u16() } else { 0u16 };
+            (r, pos)
+        } else {
+            (0u32, 0u16)
+        };
+        tracing::info!(cmd, rid, pos, "arena_set_pos");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);
+        out.write_string("OK (arena set pos)");
+        Response { cmd, payload: out }
+    })
+}
+
