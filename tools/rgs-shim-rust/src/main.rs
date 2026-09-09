@@ -6,6 +6,7 @@ mod frame;
 mod handlers;
 mod handlers_social;
 mod handlers_w2;
+mod handlers_w2_extra;
 mod registry;
 mod rgs;
 mod registry_stubs;
