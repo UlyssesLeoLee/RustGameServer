@@ -56,10 +56,12 @@ spec:
         runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: match
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
-          imagePullPolicy: Never
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+          imagePullPolicy: IfNotPresent
           command: ["/app/bin/match-service"]
           securityContext:
             allowPrivilegeEscalation: false

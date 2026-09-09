@@ -61,10 +61,12 @@ spec:
         runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: economy
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0
-          imagePullPolicy: Never
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+          imagePullPolicy: IfNotPresent
           command: ["/app/bin/economy-service"]
           securityContext:
             allowPrivilegeEscalation: false
