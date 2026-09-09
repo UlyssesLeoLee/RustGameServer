@@ -1,25 +1,7 @@
-// RGS SmartSocket Shim (Node.js, 0 third-party deps per rgs-proxy 母规范)
-// Listens on TCP 9001 (zsyz SmartSocket default port), parses big-endian binary frames,
-// forwards to RGS via rgs-proxy 8084, wraps responses back into zsyz frames.
-//
-// Per 2026-09-09 13:35 JST Ulysses 拍板:
-// 真 zsyz C++ 客户端 (zsyz_client) 0 修改, 把 server URL 从 localhost:9001
-// 改到 localhost:9001 (this shim 假装是 zsyz_server Erlang), 透明转发到 RGS gRPC
-//
-// Frame 格式 (per zsyz_client_core/frameworks/game_core/thirdparty/Libnetwork/GameTcpClient.h):
-//   | len:32 (BE) | cmd:16 (BE) | payload... |
-//   len = byte_size(cmd) + byte_size(payload) = 2 + payload_len
-//
-// 字节序: big-endian (大端, network byte order)
-//
-// Cmd IDs (per zsyz_server/src/proto/proto_101.erl):
-//   10101 cli: register (sex:u8, name:str, career:i16, playform:str)
-//   10101 srv: register response (code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32)
-//   10102 cli: enter server (rid:u32, srv_id:str)
-//   10102 srv: enter response (code:u8, msg:str, timestamp:u32, world_lev:u16)
-//   10103 cli: same as 10102 (alias)
-//   10103 srv: same as 10102
-
+// RGS SmartSocket Shim v0.2.0 — PoC expansion (per 9/9 13:45 JST Ulysses 拍板 A)
+// 重构: cmdRegistry 模式 (每个 worker 扩自己域时, 只需加表项 + 写 handler)
+// 新增: cmd 10200 (地图进入) + cmd 10400 (heartbeat → RGS HealthCheck) + cmd 11001 (role list → RGS player ListPlayers)
+// 其它 cmd: 透传 stub
 'use strict';
 
 const net = require('node:net');
@@ -27,61 +9,51 @@ const http = require('node:http');
 
 const SHIM_PORT = Number(process.env.SHIM_PORT || 9001);
 const RGS_PROXY = process.env.RGS_PROXY || 'http://127.0.0.1:8084';
-const SHIM_VERSION = '0.1.0';
+const SHIM_VERSION = '0.2.0';
 
-// === Big-endian read/write helpers ===
-function beReadU8(buf, off) { return buf[off]; }
-function beReadU16(buf, off) { return (buf[off] << 8) | buf[off+1]; }
-function beReadU32(buf, off) { return ((buf[off]<<24) | (buf[off+1]<<16) | (buf[off+2]<<8) | buf[off+3]) >>> 0; }
-function beReadI16(buf, off) {
-  const v = beReadU16(buf, off);
-  return v & 0x8000 ? v - 0x10000 : v;
-}
-function beReadString(buf, off) {
-  // String: u32 len + len bytes (no terminator)
-  const len = beReadU32(buf, off);
-  return buf.slice(off+4, off+4+len).toString('utf8');
-}
+// =============================================================================
+// 1) Big-endian read/write helpers
+// =============================================================================
+function beU8(b, o) { return b[o]; }
+function beI16(b, o) { const v = (b[o]<<8)|b[o+1]; return v & 0x8000 ? v - 0x10000 : v; }
+function beU16(b, o) { return (b[o]<<8)|b[o+1]; }
+function beU32(b, o) { return ((b[o]<<24)|(b[o+1]<<16)|(b[o+2]<<8)|b[o+3]) >>> 0; }
+function beStr(b, o) { const len = beU32(b, o); return { v: b.slice(o+4, o+4+len).toString('utf8'), n: 4+len }; }
 
-function beWriteU8(v) { const b = Buffer.alloc(1); b[0] = v & 0xff; return b; }
-function beWriteU16(v) { const b = Buffer.alloc(2); b[0] = (v>>8) & 0xff; b[1] = v & 0xff; return b; }
-function beWriteU32(v) { const b = Buffer.alloc(4); b[0]=(v>>>24)&0xff; b[1]=(v>>>16)&0xff; b[2]=(v>>>8)&0xff; b[3]=v&0xff; return b; }
-function beWriteI16(v) { return beWriteU16(v & 0xffff); }
-function beWriteString(s) {
-  const sBuf = Buffer.from(s, 'utf8');
-  return Buffer.concat([beWriteU32(sBuf.length), sBuf]);
-}
+const wU8 = v => { const b = Buffer.alloc(1); b[0] = v & 0xff; return b; };
+const wI16 = v => { const b = Buffer.alloc(2); const n = v & 0xffff; b[0] = n>>8; b[1] = n & 0xff; return b; };
+const wU16 = v => { const b = Buffer.alloc(2); b[0] = (v>>8) & 0xff; b[1] = v & 0xff; return b; };
+const wU32 = v => { const b = Buffer.alloc(4); b[0]=(v>>>24)&0xff; b[1]=(v>>>16)&0xff; b[2]=(v>>>8)&0xff; b[3]=v&0xff; return b; };
+const wStr = s => { const sb = Buffer.from(s, 'utf8'); return Buffer.concat([wU32(sb.length), sb]); };
 
-// === Frame helpers ===
+// =============================================================================
+// 2) Frame parser/builder
+// =============================================================================
 function parseFrame(buf) {
-  // buf: 6-byte header + payload
   if (buf.length < 6) return null;
-  const len = beReadU32(buf, 0);
-  const cmd = beReadU16(buf, 4);
-  const payloadLen = len - 2; // len = 2 (cmd) + payload
+  const len = beU32(buf, 0);
+  const cmd = beU16(buf, 4);
+  const payloadLen = len - 2;
   if (buf.length < 6 + payloadLen) return null;
   return { cmd, payload: buf.slice(6, 6 + payloadLen) };
 }
-
 function buildFrame(cmd, payload) {
-  const len = 2 + payload.length;
-  return Buffer.concat([beWriteU32(len), beWriteU16(cmd), payload]);
+  return Buffer.concat([wU32(2 + payload.length), wU16(cmd), payload]);
 }
 
-// === RGS gRPC call via rgs-proxy ===
+// =============================================================================
+// 3) RGS gRPC call helper
+// =============================================================================
 function rgsCall(domain, rpc, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body || {});
     const u = new URL(`${RGS_PROXY}/${domain}/${rpc}`);
     const req = http.request({
-      method: 'POST',
-      hostname: u.hostname,
-      port: u.port || 80,
-      path: u.pathname,
+      method: 'POST', hostname: u.hostname, port: u.port || 80, path: u.pathname,
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
     }, (res) => {
       const chunks = [];
-      res.on('data', (c) => chunks.push(c));
+      res.on('data', c => chunks.push(c));
       res.on('end', () => {
         try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
         catch (e) { reject(e); }
@@ -89,115 +61,169 @@ function rgsCall(domain, rpc, body) {
     });
     req.on('error', reject);
     req.setTimeout(5000, () => { req.destroy(); reject(new Error('TIMEOUT')); });
-    req.write(data);
-    req.end();
+    req.write(data); req.end();
   });
 }
 
-// === Cmd dispatch ===
-async function dispatch(cmd, payload) {
-  console.log(`[shim] cmd=${cmd} payload_len=${payload.length}`);
+// =============================================================================
+// 4) Cmd handlers (per 9/9 13:45 JST v0.2 扩展)
+// =============================================================================
+// 每个 handler signature: async (payload, ctx) => { cmd, payload } (响应 cmd + payload)
+// ctx: { socket, direction, raw }
 
-  // 10101 cli: register (sex:u8, name:str, career:i16, playform:str)
-  // 10101 srv: code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32
-  if (cmd === 10101) {
-    let off = 0;
-    const sex = beReadU8(payload, off); off += 1;
-    const name = beReadString(payload, off); off += 4 + Buffer.byteLength(name, 'utf8');
-    const career = beReadI16(payload, off); off += 2;
-    const playform = beReadString(payload, off);
-    console.log(`[shim] 10101 register: sex=${sex} name=${name} career=${career} playform=${playform}`);
+// ---- Login group (10101-10103, proto_101) ----
+async function handleRegisterCli(payload) {
+  let o = 0;
+  const sex = beU8(payload, o); o += 1;
+  const { v: name, n: n1 } = beStr(payload, o); o += n1;
+  const career = beI16(payload, o); o += 2;
+  const { v: playform, n: n2 } = beStr(payload, o);
+  console.log(`[shim] 10101 register: sex=${sex} name=${name} career=${career} playform=${playform}`);
 
-    // 调 RGS player.GetPlayer 拿玩家真数据 (per 9/9 13:35 拍板)
-    const player = await rgsCall('player', 'GetPlayer', { id: '11111111-1111-1111-1111-111111111111' });
-    if (!player.ok) {
-      console.log(`[shim] RGS player error: ${player.error}`);
-      // 返 code=1 (失败) + msg
-      const resp = Buffer.concat([
-        beWriteU8(1), beWriteString('RGS 不可达: ' + (player.error || 'unknown')),
-        beWriteU32(0), beWriteString(''), beWriteString('MavisHero'),
-        beWriteU32(Math.floor(Date.now()/1000))
-      ]);
-      return { cmd: 10101, payload: resp };
-    }
-    // 成功: code=0, msg='OK', rid=player_uuid_first8, srv_id='rgs-uat-1', name=display_name
-    const displayName = player.response?.display_name || 'MavisHero';
-    const uuidPrefix = (player.response?.id?.id || '').slice(0, 8) || '00000000';
-    const rid = parseInt(uuidPrefix, 16) >>> 0; // 8 hex → uint32
-    const resp = Buffer.concat([
-      beWriteU8(0), beWriteString('OK (via RGS)'),
-      beWriteU32(rid), beWriteString('rgs-uat-1'),
-      beWriteString(displayName), beWriteU32(Math.floor(Date.now()/1000))
-    ]);
-    return { cmd: 10101, payload: resp };
-  }
+  // 调 RGS player.GetPlayer 拿真数据
+  const player = await rgsCall('player', 'GetPlayer', { id: '11111111-1111-1111-1111-111111111111' });
+  const ok = player.ok;
+  const displayName = player.response?.display_name || 'MavisHero';
+  const uuid = player.response?.id?.id || '11111111-1111-1111-1111-111111111111';
+  const rid = parseInt(uuid.slice(0, 8), 16) >>> 0;
 
-  // 10102 cli: enter server (rid:u32, srv_id:str)
-  // 10102 srv: code:u8, msg:str, timestamp:u32, world_lev:u16
-  if (cmd === 10102 || cmd === 10103) {
-    let off = 0;
-    const rid = beReadU32(payload, off); off += 4;
-    const srvId = beReadString(payload, off);
-    console.log(`[shim] ${cmd} enter_server: rid=${rid} srv_id=${srvId}`);
-
-    // 返 code=0, msg='OK', timestamp=now, world_lev=52
-    const resp = Buffer.concat([
-      beWriteU8(0), beWriteString('OK (RGS server ready)'),
-      beWriteU32(Math.floor(Date.now()/1000)), beWriteU16(52)
-    ]);
-    return { cmd, payload: resp };
-  }
-
-  // 其它 cmd: 返空响应 (RGS stub)
-  console.log(`[shim] ${cmd}: stub (not implemented)`);
-  return { cmd, payload: Buffer.alloc(0) };
+  // srv: code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32
+  return { cmd: 10101, payload: Buffer.concat([
+    wU8(ok ? 0 : 1),
+    wStr(ok ? 'OK (via RGS player.GetPlayer)' : 'RGS 不可达: ' + (player.error || 'unknown')),
+    wU32(rid), wStr('rgs-uat-1'), wStr(displayName), wU32(Math.floor(Date.now()/1000))
+  ])};
 }
 
-// === TCP server ===
+async function handleEnterServerCli(payload) {
+  let o = 0;
+  const rid = beU32(payload, o); o += 4;
+  const { v: srvId, n } = beStr(payload, o);
+  console.log(`[shim] 10102/10103 enter_server: rid=0x${rid.toString(16)} srv_id=${srvId}`);
+  // srv: code:u8, msg:str, timestamp:u32, world_lev:u16
+  return { cmd: 10102, payload: Buffer.concat([
+    wU8(0), wStr('OK (RGS server ready)'),
+    wU32(Math.floor(Date.now()/1000)), wU16(52)
+  ])};
+}
+
+// ---- Map group (10200, proto_102) ----
+async function handleMapEnterCli(payload) {
+  let o = 0;
+  const battleId = beU32(payload, o); o += 4;
+  const id = beU32(payload, o); o += 4;
+  const code = beI16(payload, o);
+  console.log(`[shim] 10200 map_enter: battle_id=${battleId} id=${id} code=${code}`);
+  // srv: code:u8, msg:str
+  return { cmd: 10200, payload: Buffer.concat([wU8(0), wStr('OK (RGS map)')])};
+}
+
+// ---- Heartbeat (10400, 自定义) ----
+async function handleHeartbeatCli(payload) {
+  const t0 = Date.now();
+  // 并发调 5 域 HealthCheck
+  const results = await Promise.allSettled([
+    rgsCall('player', 'HealthCheck'),
+    rgsCall('economy', 'HealthCheck'),
+    rgsCall('match', 'HealthCheck'),
+    rgsCall('social', 'HealthCheck'),
+    rgsCall('admin', 'HealthCheck'),
+  ]);
+  const okCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+  const dt = Date.now() - t0;
+  console.log(`[shim] 10400 heartbeat: ${okCount}/5 域 OK in ${dt}ms`);
+  // srv: code:u8, msg:str, ok_count:u8, total:u8
+  return { cmd: 10400, payload: Buffer.concat([
+    wU8(0), wStr(`OK ${okCount}/5 RGS 域 in ${dt}ms`),
+    wU8(okCount), wU8(5)
+  ])};
+}
+
+// ---- Role list (11001, 调 RGS player ListPlayers — 假设有, 没则降级) ----
+async function handleRoleListCli(payload) {
+  console.log(`[shim] 11001 role_list: querying RGS player`);
+  // 先试 ListPlayers (可能 RGS 没实装, 降级用 GetPlayer)
+  let players = await rgsCall('player', 'ListPlayers', { limit: 5 });
+  if (!players.ok) {
+    // 降级: 拿单个 player (MavisHero)
+    const single = await rgsCall('player', 'GetPlayer', { id: '11111111-1111-1111-1111-111111111111' });
+    players = single.ok ? { ok: true, response: { players: [single.response] } } : { ok: false };
+  }
+  const list = players.response?.players || (players.response ? [players.response] : []);
+  console.log(`[shim] 11001 role_list: ${list.length} players from RGS`);
+  // srv: code:u8, msg:str, count:u8, [name:str, level:u8 (fake from uuid hash), ...]
+  const items = list.slice(0, 5).map(p => {
+    const dn = p.display_name || '?';
+    // 模拟 level from uuid hash
+    const level = ((p.id?.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 100) + 1;
+    return Buffer.concat([wStr(dn), wU8(level)]);
+  });
+  return { cmd: 11001, payload: Buffer.concat([
+    wU8(0), wStr(`OK (RGS) ${list.length} players`),
+    wU8(list.length), ...items
+  ])};
+}
+
+// =============================================================================
+// 5) Cmd registry (worker 加新 cmd 只需 +表项 + 写 handler)
+// =============================================================================
+const CMD_REGISTRY = {
+  10101: handleRegisterCli,      // proto_101: register
+  10102: handleEnterServerCli,   // proto_101: enter_server
+  10103: handleEnterServerCli,   // proto_101: enter_server alias
+  10200: handleMapEnterCli,      // proto_102: map_enter (战斗地图)
+  10400: handleHeartbeatCli,     // 自定义: heartbeat → RGS 5 域 HealthCheck
+  11001: handleRoleListCli,      // 自定义: role list → RGS player ListPlayers
+  // TODO worker 扩: 20000-29999 (战斗), 30000-39999 (聊天/好友), 40000-49999 (任务/工会/排行)
+};
+
+async function dispatch(cmd, payload) {
+  const handler = CMD_REGISTRY[cmd];
+  if (!handler) {
+    console.log(`[shim] ${cmd}: stub (no handler registered)`);
+    return { cmd, payload: Buffer.alloc(0) };
+  }
+  return await handler(payload);
+}
+
+// =============================================================================
+// 6) TCP server
+// =============================================================================
 const server = net.createServer((socket) => {
   const remote = `${socket.remoteAddress}:${socket.remotePort}`;
   console.log(`[shim] + client ${remote}`);
   let buf = Buffer.alloc(0);
-  let cmd_count = 0;
+  let frameCount = 0;
 
   socket.on('data', (chunk) => {
     buf = Buffer.concat([buf, chunk]);
-    // 解析所有完整帧
     while (true) {
       if (buf.length < 6) break;
-      const len = beReadU32(buf, 0);
-      const totalLen = 4 + len;  // 4-byte len + len bytes (cmd+payload)
+      const len = beU32(buf, 0);
+      const totalLen = 4 + len;
       if (buf.length < totalLen) break;
-      const frame = parseFrame(buf);
-      if (!frame) break;
+      const f = parseFrame(buf);
       buf = buf.slice(totalLen);
-      cmd_count++;
-      console.log(`[shim] ${remote} frame #${cmd_count}: cmd=${frame.cmd} payload_len=${frame.payload.length}`);
-
-      // 异步 dispatch
-      dispatch(frame.cmd, frame.payload).then((resp) => {
-        const outFrame = buildFrame(resp.cmd, resp.payload);
-        socket.write(outFrame);
+      if (!f) break;
+      frameCount++;
+      console.log(`[shim] ${remote} frame #${frameCount}: cmd=${f.cmd} payload_len=${f.payload.length}`);
+      dispatch(f.cmd, f.payload).then(resp => {
+        const out = buildFrame(resp.cmd, resp.payload);
+        socket.write(out);
         console.log(`[shim] ${remote} → cmd=${resp.cmd} payload_len=${resp.payload.length}`);
-      }).catch((err) => {
-        console.error(`[shim] dispatch error: ${err.message}`);
-        // 返空帧
-        socket.write(buildFrame(frame.cmd, Buffer.alloc(0)));
+      }).catch(err => {
+        console.error(`[shim] ${remote} dispatch error: ${err.message}`);
+        socket.write(buildFrame(f.cmd, Buffer.alloc(0)));
       });
     }
   });
-
-  socket.on('close', () => {
-    console.log(`[shim] - client ${remote} (${cmd_count} frames)`);
-  });
-  socket.on('error', (err) => {
-    console.error(`[shim] ! client ${remote} error: ${err.message}`);
-  });
+  socket.on('close', () => console.log(`[shim] - client ${remote} (${frameCount} frames)`));
+  socket.on('error', err => console.error(`[shim] ! ${remote} error: ${err.message}`));
 });
 
 server.listen(SHIM_PORT, '0.0.0.0', () => {
   console.log(`[shim] RGS SmartSocket shim v${SHIM_VERSION} listening on 0.0.0.0:${SHIM_PORT}`);
   console.log(`[shim] RGS proxy: ${RGS_PROXY}`);
-  console.log(`[shim] Connect: zsyz_client → tcp://localhost:${SHIM_PORT} (was 9001, same)`);
-  console.log(`[shim] Supported: cmd 10101 (register), 10102/10103 (enter_server)`);
+  console.log(`[shim] Registered cmds: ${Object.keys(CMD_REGISTRY).join(', ')}`);
+  console.log(`[shim] Total: ${Object.keys(CMD_REGISTRY).length} cmds (514 unique in zsyz_server, ${514 - Object.keys(CMD_REGISTRY).length} TODO)`);
 });
