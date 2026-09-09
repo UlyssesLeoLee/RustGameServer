@@ -63,6 +63,8 @@ pub trait AuditLogRepository: Send + Sync {
     async fn list_by_actor(&self, actor_id: Uuid, limit: i64) -> Result<Vec<AuditLogEntry>>;
     /// 取最近一条（用于 hash 链续接）
     async fn latest(&self) -> Result<Option<AuditLogEntry>>;
+    /// 取最近 N 条（无 actor 过滤, 按 created_at DESC, per RGS-SHANSHUO-GAME v0.2 修 QueryAuditLog 返 0 bug 9/9 12:35 JST）
+    async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>>;
     /// 55.13 原子 append：read latest (FOR UPDATE) + insert + 提交由调用方事务管理。
     /// 实现层在事务内串行化 latest 读取，保证 hash 链 read-then-append 不出现
     /// 并发串号（per RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1）。
@@ -257,6 +259,17 @@ impl AuditLogRepository for PgAuditLogRepository {
         Ok(row.map(row_to_audit))
     }
 
+    async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>> {
+        let rows = sqlx::query(
+            "SELECT id, actor_id, action, target, payload, prev_hash, hash, created_at \
+             FROM audit_log ORDER BY created_at DESC LIMIT $1",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows.into_iter().map(row_to_audit).collect())
+    }
+
     async fn append_atomic(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -431,6 +444,19 @@ impl AuditLogRepository for InMemoryAuditLogRepository {
             .values()
             .max_by_key(|e| e.created_at)
             .cloned())
+    }
+
+    async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>> {
+        let mut v: Vec<AuditLogEntry> = self
+            .inner
+            .lock()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
+        v.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        v.truncate(limit as usize);
+        Ok(v)
     }
 
     async fn append_atomic(
@@ -888,6 +914,9 @@ mod tests {
             async fn latest(&self) -> Result<Option<AuditLogEntry>> {
                 self.inner.latest().await
             }
+            async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>> {
+                self.inner.list_latest(limit).await
+            }
             async fn append_atomic(
                 &self,
                 _tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -1169,6 +1198,9 @@ mod tests {
                 _actor: Uuid,
                 _limit: i64,
             ) -> Result<Vec<AuditLogEntry>> {
+                Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
+            }
+            async fn list_latest(&self, _limit: i64) -> Result<Vec<AuditLogEntry>> {
                 Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
             }
             async fn append_atomic(

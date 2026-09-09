@@ -521,18 +521,12 @@ pub async fn query_audit_log(
         req.limit as usize
     };
 
-    let entries: Vec<DbAuditLogEntry> = match state().audit_log.latest().await {
-        Ok(_) => match state()
-            .audit_log
-            .list_by_actor(Uuid::nil(), limit as i64 + 1)
-            .await
-        {
-            Ok(mut v) => {
-                v.reverse();
-                v
-            }
-            Err(_) => in_memory_latest(limit),
-        },
+    let entries: Vec<DbAuditLogEntry> = match state()
+        .audit_log
+        .list_latest(limit as i64 + 1)
+        .await
+    {
+        Ok(v) => v,
         Err(_) => in_memory_latest(limit),
     };
 
