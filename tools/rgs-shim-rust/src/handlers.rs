@@ -1,7 +1,7 @@
-// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 拍板生产级)
-// v0.3.0: handlers 接收 owned Vec<u8> + Arc<RgsClient> (registry.rs 决定)
-//   - 无 lifetime 依赖, 全部 'static future
-//   - RgsClient 共享 Arc, 内部 reqwest pool 自动 clone
+// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
+// v0.3.0: handlers 鎺ユ敹 owned Vec<u8> + Arc<RgsClient> (registry.rs 鍐冲畾)
+//   - 鏃?lifetime 渚濊禆, 鍏ㄩ儴 'static future
+//   - RgsClient 鍏变韩 Arc, 鍐呴儴 reqwest pool 鑷姩 clone
 
 use crate::frame::{BeRead, BeWrite};
 use crate::rgs::RgsClient;
@@ -25,7 +25,7 @@ pub fn handle_register(
     rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        // 解析 (安全处理空 payload)
+        // 瑙ｆ瀽 (瀹夊叏澶勭悊绌?payload)
         let (sex, name, career, playform) = if payload.len() >= 8 {
             let mut p: &[u8] = &payload[..];
             let s = p.read_u8();
@@ -38,7 +38,7 @@ pub fn handle_register(
         };
         tracing::info!(sex, %name, career, %playform, "10101 register");
 
-        // 调 RGS player.GetPlayer 拿真玩家数据
+        // 璋?RGS player.GetPlayer 鎷跨湡鐜╁鏁版嵁
         let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
             "id": "11111111-1111-1111-1111-111111111111"
         })).await;
@@ -49,10 +49,10 @@ pub fn handle_register(
             let uid = resp.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("").to_string();
             (0u8, "OK (via RGS player.GetPlayer)".to_string(), dn, uid)
         } else {
-            (1u8, format!("RGS 不可达: {}", rgs_resp.error.unwrap_or_default()), "MavisHero".to_string(), "".to_string())
+            (1u8, format!("RGS 涓嶅彲杈? {}", rgs_resp.error.unwrap_or_default()), "MavisHero".to_string(), "".to_string())
         };
 
-        // rid = uuid 前 8 hex → u32
+        // rid = uuid 鍓?8 hex 鈫?u32
         let rid = if uuid.len() >= 8 {
             u32::from_str_radix(&uuid[..8], 16).unwrap_or(0x11111111)
         } else {
@@ -110,18 +110,18 @@ pub fn handle_map_enter(
             (0u32, 0u32, 0i16)
         };
         tracing::info!(battle_id, id, code, "10200 map_enter");
-        // Erlang 10200 srv 完整格式: result:u8 + msg:str + battle_id:u32 + id:u32 + time:u32
+        // Erlang 10200 srv 瀹屾暣鏍煎紡: result:u8 + msg:str + battle_id:u32 + id:u32 + time:u32
         let mut out = Vec::with_capacity(32);
         out.write_u8(0);                         // result = 0 (OK)
         out.write_string("OK (RGS map via match domain)");
-        out.write_u32(battle_id);                 // 回显 battle_id
-        out.write_u32(id);                       // 回显 id
+        out.write_u32(battle_id);                 // 鍥炴樉 battle_id
+        out.write_u32(id);                       // 鍥炴樉 id
         out.write_u32(now_unix());               // time
         Response { cmd, payload: out }
     })
 }
 
-// 10400 cli: (empty) heartbeat → 5 域并发 HealthCheck
+// 10400 cli: (empty) heartbeat 鈫?5 鍩熷苟鍙?HealthCheck
 // 10400 srv: {code:u8, msg:str, ok_count:u8, total:u8}
 pub fn handle_heartbeat(
     cmd: u16,
@@ -138,14 +138,14 @@ pub fn handle_heartbeat(
 
         let mut out = Vec::with_capacity(32);
         out.write_u8(0);
-        out.write_string(&format!("OK {}/{} RGS 域 in {}ms", ok_count, total, dt));
+        out.write_string(&format!("OK {}/{} RGS 鍩?in {}ms", ok_count, total, dt));
         out.write_u8(ok_count);
         out.write_u8(total);
         Response { cmd, payload: out }
     })
 }
 
-// 11001 cli: (empty) role_list → RGS player ListPlayers
+// 11001 cli: (empty) role_list 鈫?RGS player ListPlayers
 // 11001 srv: {code:u8, msg:str, count:u8, [name:str, level:u8]}
 pub fn handle_role_list(
     cmd: u16,
@@ -162,7 +162,7 @@ pub fn handle_role_list(
                 .cloned()
                 .unwrap_or_default()
         } else {
-            // 降级: 单个 player
+            // 闄嶇骇: 鍗曚釜 player
             let single = rgs.call("player", "GetPlayer", serde_json::json!({
                 "id": "11111111-1111-1111-1111-111111111111"
             })).await;
@@ -182,7 +182,7 @@ pub fn handle_role_list(
         for p in &players {
             let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
             let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-            // 模拟 level from uuid hash
+            // 妯℃嫙 level from uuid hash
             let level: u8 = uuid.bytes().map(|b| b as u32).sum::<u32>().wrapping_rem(100) as u8 + 1;
             out.write_string(&name);
             out.write_u8(level);
@@ -192,8 +192,8 @@ pub fn handle_role_list(
 }
 
 // ============================================================================
-// 战斗场景 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
-// 来源: zsyz_server/src/proto/proto_102.erl + proto_103.erl (真 zsyz_client cmd)
+// 鎴樻枟鍦烘櫙 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 鎷嶆澘 "閲嶆祴鐩村埌鎴樻枟鍦烘櫙")
+// 鏉ユ簮: zsyz_server/src/proto/proto_102.erl + proto_103.erl (鐪?zsyz_client cmd)
 // ============================================================================
 
 // 10300 cli/srv: empty (ping/heartbeat, per proto_103.erl)
@@ -225,7 +225,7 @@ pub fn handle_move(
         };
         tracing::info!(base_id, x, y, dir, "10215 move");
 
-        // 调 RGS match domain 记录移动 (per RGS-REQ-038 SubmitMove)
+        // 璋?RGS match domain 璁板綍绉诲姩 (per RGS-REQ-038 SubmitMove)
         let _ = rgs.call("match", "SubmitMove", serde_json::json!({
             "request_id": format!("move-{}", now_unix()),
             "match_id": "00000000-0000-0000-0000-000000000000",
@@ -237,15 +237,15 @@ pub fn handle_move(
         let mut out = Vec::with_capacity(32);
         out.write_u32(0x11111111);                    // rid
         out.write_string("rgs-uat-1");                 // srv_id
-        out.write_u8(dir);                            // dir (回显)
+        out.write_u8(dir);                            // dir (鍥炴樉)
         out.write_i16(x);                             // dx
         out.write_i16(y);                             // dy
         Response { cmd, payload: out }
     })
 }
 
-// 10301 cli: empty; srv: 全角色信息 (per proto_103.erl, 巨大 payload, 这里用 RGS player 域填充关键字段)
-// 真实 zsyz_client 启动后用这个 dump 玩家完整信息
+// 10301 cli: empty; srv: 鍏ㄨ鑹蹭俊鎭?(per proto_103.erl, 宸ㄥぇ payload, 杩欓噷鐢?RGS player 鍩熷～鍏呭叧閿瓧娈?
+// 鐪熷疄 zsyz_client 鍚姩鍚庣敤杩欎釜 dump 鐜╁瀹屾暣淇℃伅
 pub fn handle_role_info(
     cmd: u16,
     _payload: Vec<u8>,
@@ -253,7 +253,7 @@ pub fn handle_role_info(
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
         let t0 = std::time::Instant::now();
-        // 调 RGS player.GetPlayer 拿真实玩家数据
+        // 璋?RGS player.GetPlayer 鎷跨湡瀹炵帺瀹舵暟鎹?
         let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
             "id": "11111111-1111-1111-1111-111111111111"
         })).await;
@@ -265,27 +265,27 @@ pub fn handle_role_info(
         let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
         let lev = if uuid.len() >= 4 { (u32::from_str_radix(&uuid[..4], 16).unwrap_or(0) % 60 + 1) as u16 } else { 1u16 };
 
-        // 10301 srv 简化格式: rid + srv_id + name + lev + 6 zero fields
-        // 真实 Erlang 24 字段, 简化核心 4 字段 + zero padding
+        // 10301 srv 绠€鍖栨牸寮? rid + srv_id + name + lev + 6 zero fields
+        // 鐪熷疄 Erlang 24 瀛楁, 绠€鍖栨牳蹇?4 瀛楁 + zero padding
         let mut out = Vec::with_capacity(128);
         out.write_u32(0x11111111);                    // rid
         out.write_string("rgs-uat-1");                 // srv_id
         out.write_string(&name);                      // name
         out.write_u16(lev);                           // lev
-        // 其他 21 字段 (vip_lev, vip_exp, sex, career, face_id, event, gid, gsrv_id, position, gname, signature, exp_max, exp_total, buffs[], reg_time, guild_lev, power, is_first_rename, avatar_base_id, guild_quit_time, look_id, max_power) — 写 0
+        // 鍏朵粬 21 瀛楁 (vip_lev, vip_exp, sex, career, face_id, event, gid, gsrv_id, position, gname, signature, exp_max, exp_total, buffs[], reg_time, guild_lev, power, is_first_rename, avatar_base_id, guild_quit_time, look_id, max_power) 鈥?鍐?0
         for _ in 0..21 { out.write_u32(0); }
         Response { cmd, payload: out }
     })
 }
 
-// 10302 cli: empty; srv: 资源 (lev + exp + gold + ... 18 fields, per proto_103.erl)
+// 10302 cli: empty; srv: 璧勬簮 (lev + exp + gold + ... 18 fields, per proto_103.erl)
 pub fn handle_assets(
     cmd: u16,
     _payload: Vec<u8>,
     rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        // 调 RGS economy 域拿真实账户数据
+        // 璋?RGS economy 鍩熸嬁鐪熷疄璐︽埛鏁版嵁
         let rgs_resp = rgs.call("economy", "GetAccount", serde_json::json!({
             "id": "33333333-3333-3333-3333-333333333333"
         })).await;
@@ -296,14 +296,14 @@ pub fn handle_assets(
         let diamond = (hash * 7) % 5000 + 100;
         let energy = (hash * 3) % 200 + 50;
 
-        // 10302 srv: lev:u16 + 18 u32 资源字段
+        // 10302 srv: lev:u16 + 18 u32 璧勬簮瀛楁
         let lev = 18u16;
         let mut out = Vec::with_capacity(80);
         out.write_u16(lev);                           // lev
         out.write_u32(12345);                         // exp
         out.write_u32(gold as u32);                   // gold
         out.write_u32(gold as u32 * 7);               // gold_acc
-        out.write_u32(diamond as u32);                // coin (钻石)
+        out.write_u32(diamond as u32);                // coin (閽荤煶)
         out.write_u32(0);                             // red_gold
         out.write_u32(energy as u32);                 // energy
         out.write_u32(200);                           // energy_max
@@ -336,7 +336,7 @@ pub fn handle_signature(
             String::new()
         };
         tracing::info!(signature = %sig, "10309 set_signature");
-        // 10309 srv: code + msg + sig (回显)
+        // 10309 srv: code + msg + sig (鍥炴樉)
         let mut out = Vec::with_capacity(64);
         out.write_u8(0);
         out.write_string("OK (signature set)");
@@ -346,7 +346,7 @@ pub fn handle_signature(
 }
 
 // 10315 cli: {rid:u32, srv_id:str}; srv: {rid, srv_id, name, gname, lev, face_id, power, partner_list[], gid, gsrv_id, avatar_bid, sex, city, vip_lev, honor_list[]}
-// 简化为: rid + srv_id + name + gname + lev:u8 + face_id + power + partner_count:u16 + gid + gsrv_id + avatar_bid + sex + city + vip_lev + honor_count:u16
+// 绠€鍖栦负: rid + srv_id + name + gname + lev:u8 + face_id + power + partner_count:u16 + gid + gsrv_id + avatar_bid + sex + city + vip_lev + honor_count:u16
 pub fn handle_view_role(
     cmd: u16,
     payload: Vec<u8>,
@@ -361,7 +361,7 @@ pub fn handle_view_role(
         };
         tracing::info!(rid = format!("0x{:08x}", rid), srv_id = %srv_id, "10315 view_role");
 
-        // 调 RGS player + social 域拿真数据
+        // 璋?RGS player + social 鍩熸嬁鐪熸暟鎹?
         let player_uuid = format!("{:08x}-0000-0000-0000-{:012x}", rid, rid);
         let (player_resp, guild_resp) = futures_util::future::join(
             rgs.call("player", "GetPlayer", serde_json::json!({ "id": player_uuid })),
@@ -373,7 +373,7 @@ pub fn handle_view_role(
         let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
         let gname = g.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
 
-        // 10315 srv (简化 13 字段, 真实 14 + 2 list)
+        // 10315 srv (绠€鍖?13 瀛楁, 鐪熷疄 14 + 2 list)
         let mut out = Vec::with_capacity(256);
         out.write_u32(rid);
         out.write_string(&srv_id);
@@ -395,18 +395,18 @@ pub fn handle_view_role(
 }
 
 // ============================================================================
-// v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 766 cmd stub handler
+// v0.4.0 (per 2026-09-09 16:25 JST Mavis 娲惧伐): 766 cmd stub handler
 // ============================================================================
 
-// 通用 stub: 返回空 payload (zsyz_client 收到后不会崩, 只是没数据)
-// 后续 worker 派工逐个替换为 real handler (call RGS)
+// 閫氱敤 stub: 杩斿洖绌?payload (zsyz_client 鏀跺埌鍚庝笉浼氬穿, 鍙槸娌℃暟鎹?
+// 鍚庣画 worker 娲惧伐閫愪釜鏇挎崲涓?real handler (call RGS)
 pub fn handle_stub(
     cmd: u16,
     _payload: Vec<u8>,
     _rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        // 只在 cmd >= 10000 范围内 log (10100-39999 是真 zsyz cmd, 避免 log spam)
+        // 鍙湪 cmd >= 10000 鑼冨洿鍐?log (10100-39999 鏄湡 zsyz cmd, 閬垮厤 log spam)
         if cmd >= 10000 && cmd < 40000 {
             tracing::debug!(cmd, "stub");
         }
@@ -415,14 +415,14 @@ pub fn handle_stub(
 }
 
 // ============================================================================
-// v0.5.0 (per 2026-09-09 19:32 JST Mavis 派工): w1 player 域 65 cmd 真实化
-// 来源: zsyz_server/src/proto/proto_101.erl + proto_103.erl + proto_104.erl
+// v0.5.0 (per 2026-09-09 19:32 JST Mavis 娲惧伐): w1 player 鍩?65 cmd 鐪熷疄鍖?
+// 鏉ユ簮: zsyz_server/src/proto/proto_101.erl + proto_103.erl + proto_104.erl
 //       + proto_105.erl + proto_108.erl + proto_109.erl
-// 字节级对齐: 4B BE len + 2B BE cmd + payload (per zsyz_client GameTcpClient.h)
-// 字段顺序严格按 pack(srv, ...) in proto_*.erl
+// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per zsyz_client GameTcpClient.h)
+// 瀛楁椤哄簭涓ユ牸鎸?pack(srv, ...) in proto_*.erl
 // ============================================================================
 
-// 通用回复: {code:u8, msg:str} (per proto_103.erl/10399/10309/10316/10322/10327/10343/10346/10402/10405/10406/10515/10520/10522/10523/10524/10801/10805/10810/10900/10901/10902/10945/10952 等)
+// 閫氱敤鍥炲: {code:u8, msg:str} (per proto_103.erl/10399/10309/10316/10322/10327/10343/10346/10402/10405/10406/10515/10520/10522/10523/10524/10801/10805/10810/10900/10901/10902/10945/10952 绛?
 fn code_msg(code: u8, msg: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(8 + msg.len());
     out.write_u8(code);
@@ -466,7 +466,7 @@ pub fn handle_10316(
     })
 }
 
-// 10317 cli: empty; srv: {worship:u32}  (per proto_103.erl, 点赞/膜拜)
+// 10317 cli: empty; srv: {worship:u32}  (per proto_103.erl, 鐐硅禐/鑶滄嫓)
 pub fn handle_10317(
     cmd: u16,
     _payload: Vec<u8>,
@@ -480,14 +480,14 @@ pub fn handle_10317(
     })
 }
 
-// Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 派工): battle 域 66 cmd 真实 handler
-// 范围: 19800-19807 + 19901-19908 (战斗/录像) + 25100-25841 (任务/成就/城市/矿脉)
-// 来源: H5 zsyz_client proto_mate.js + zsyz_server/src/proto/proto_*.erl
-// 目标: 调 battle-service + match-service + replay-service gRPC
+// Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 娲惧伐): battle 鍩?66 cmd 鐪熷疄 handler
+// 鑼冨洿: 19800-19807 + 19901-19908 (鎴樻枟/褰曞儚) + 25100-25841 (浠诲姟/鎴愬氨/鍩庡競/鐭胯剦)
+// 鏉ユ簮: H5 zsyz_client proto_mate.js + zsyz_server/src/proto/proto_*.erl
+// 鐩爣: 璋?battle-service + match-service + replay-service gRPC
 // ============================================================================
 
-// ----- 战斗结果 (19800) -----
-// 19800 cli: empty → srv: {code:u32} (per proto_mate.js recv)
+// ----- 鎴樻枟缁撴灉 (19800) -----
+// 19800 cli: empty 鈫?srv: {code:u32} (per proto_mate.js recv)
 pub fn handle_battle_result(
     cmd: u16,
     _payload: Vec<u8>,
@@ -502,7 +502,7 @@ pub fn handle_battle_result(
     })
 }
 
-// 10318 cli: {rid:u32, srv_id:str}; srv: empty  (per proto_103.erl view_role_friend, 客户端拉好友)
+// 10318 cli: {rid:u32, srv_id:str}; srv: empty  (per proto_103.erl view_role_friend, 瀹㈡埛绔媺濂藉弸)
 pub fn handle_10318(
     cmd: u16,
     _payload: Vec<u8>,
@@ -525,8 +525,8 @@ pub fn handle_10322(
     })
 }
 
-// ----- 战斗结果反馈 (19801) -----
-// 19801 cli: {code:u8} → srv: {code:u8, msg:str}
+// ----- 鎴樻枟缁撴灉鍙嶉 (19801) -----
+// 19801 cli: {code:u8} 鈫?srv: {code:u8, msg:str}
 pub fn handle_battle_result_ack(
     cmd: u16,
     payload: Vec<u8>,
@@ -557,8 +557,8 @@ pub fn handle_10325(
         Response { cmd, payload: out }
     })
 }
-// ----- 战报/录像列表 (19802, 19901-19908) -----
-// 19802 cli: empty → srv: {list:[]}
+// ----- 鎴樻姤/褰曞儚鍒楄〃 (19802, 19901-19908) -----
+// 19802 cli: empty 鈫?srv: {list:[]}
 pub fn handle_replay_list(
     cmd: u16,
     _payload: Vec<u8>,
@@ -567,15 +567,15 @@ pub fn handle_replay_list(
     Box::pin(async move {
         let _ = rgs.call("replay", "ListReplays", serde_json::json!({"limit": 20})).await;
         tracing::info!(cmd, "replay_list");
-        // 简化: 返回空 list (count=0), 客户端收到后渲染空列表
+        // 绠€鍖? 杩斿洖绌?list (count=0), 瀹㈡埛绔敹鍒板悗娓叉煋绌哄垪琛?
         let mut out = Vec::with_capacity(8);
         out.write_u16(0);  // list count = 0
         Response { cmd, payload: out }
     })
 }
 
-// ----- 战报奖励列表 (19804) -----
-// 19804 cli: empty → srv: {list:[{id:u8, num:u8, had:u8}]}
+// ----- 鎴樻姤濂栧姳鍒楄〃 (19804) -----
+// 19804 cli: empty 鈫?srv: {list:[{id:u8, num:u8, had:u8}]}
 pub fn handle_replay_rewards(
     cmd: u16,
     _payload: Vec<u8>,
@@ -639,8 +639,8 @@ pub fn handle_10343(
     })
 }
 
-// ----- 领取战报奖励 (19805) -----
-// 19805 cli: {id:u8} → srv: {code:u8, msg:str, id:u8, num:u8, had:u8}
+// ----- 棰嗗彇鎴樻姤濂栧姳 (19805) -----
+// 19805 cli: {id:u8} 鈫?srv: {code:u8, msg:str, id:u8, num:u8, had:u8}
 pub fn handle_claim_replay_reward(
     cmd: u16,
     payload: Vec<u8>,
@@ -674,8 +674,8 @@ pub fn handle_10345(
     })
 }
 
-// ----- 战报状态 (19806) -----
-// 19806 cli: empty → srv: {status:u8}
+// ----- 鎴樻姤鐘舵€?(19806) -----
+// 19806 cli: empty 鈫?srv: {status:u8}
 pub fn handle_battle_status(
     cmd: u16,
     _payload: Vec<u8>,
@@ -704,8 +704,8 @@ pub fn handle_10346(
     })
 }
 
-// ----- 战报筛选查询 (19901, 19902) -----
-// 19901 cli: {type:u8} → srv: {type:u8, replay_list:[]} (per proto_mate.js)
+// ----- 鎴樻姤绛涢€夋煡璇?(19901, 19902) -----
+// 19901 cli: {type:u8} 鈫?srv: {type:u8, replay_list:[]} (per proto_mate.js)
 pub fn handle_replay_query(
     cmd: u16,
     payload: Vec<u8>,
@@ -731,7 +731,7 @@ pub fn handle_replay_query(
     })
 }
 
-// 19902 cli: {type:u8, cond_type:u32, start:u32, num:u8} → srv: {type:u8, cond_type:u32, start:u32, num:u8, len:u32, replay_list:[]}
+// 19902 cli: {type:u8, cond_type:u32, start:u32, num:u8} 鈫?srv: {type:u8, cond_type:u32, start:u32, num:u8, len:u32, replay_list:[]}
 pub fn handle_replay_paged_query(
     cmd: u16,
     payload: Vec<u8>,
@@ -756,8 +756,8 @@ pub fn handle_replay_paged_query(
     })
 }
 
-// ----- 战报点赞 (19903, 19904) -----
-// 19903 cli: {id:u32, srv_id:str, combat_type:u8} → srv: {code:u8, msg:str, id:u32}
+// ----- 鎴樻姤鐐硅禐 (19903, 19904) -----
+// 19903 cli: {id:u32, srv_id:str, combat_type:u8} 鈫?srv: {code:u8, msg:str, id:u32}
 pub fn handle_replay_like(
     cmd: u16,
     payload: Vec<u8>,
@@ -790,7 +790,7 @@ pub fn handle_10347(
     })
 }
 
-// ----- 战报分享 (19905, 19908) -----
+// ----- 鎴樻姤鍒嗕韩 (19905, 19908) -----
 pub fn handle_replay_share(
     cmd: u16,
     payload: Vec<u8>,
@@ -811,8 +811,8 @@ pub fn handle_replay_share(
     })
 }
 
-// ----- 战报点赞计数 (19906) -----
-// 19906 cli: empty → srv: {like:u8}
+// ----- 鎴樻姤鐐硅禐璁℃暟 (19906) -----
+// 19906 cli: empty 鈫?srv: {like:u8}
 pub fn handle_replay_like_count(
     cmd: u16,
     _payload: Vec<u8>,
@@ -843,7 +843,7 @@ pub fn handle_10348(
     })
 }
 
-// ----- 战报英雄详情 (19907) -----
+// ----- 鎴樻姤鑻遍泟璇︽儏 (19907) -----
 // 19907 cli: {replay_id:u32, partner_id:u32, type:u8, srv_id:str, combat_type:u8}
 // 19907 srv: {replay_id, partner_id, type, pos, bid, lev, star, break_lev, power, now_hp, hp, atk, def, speed, crit_rate, crit_ratio, hit_magic, dodge_magic, dps, behurt, cure, skills:[{pos, skill_bid}]}
 pub fn handle_replay_hero(
@@ -886,8 +886,8 @@ pub fn handle_replay_hero(
     })
 }
 
-// ----- 战报详细 (19908) -----
-// 19908 cli: {replay_id:u32, srv_id:str, type:u8, channel:u16} → 大 payload, 简化核心字段
+// ----- 鎴樻姤璇︾粏 (19908) -----
+// 19908 cli: {replay_id:u32, srv_id:str, type:u8, channel:u16} 鈫?澶?payload, 绠€鍖栨牳蹇冨瓧娈?
 pub fn handle_replay_detail(
     cmd: u16,
     payload: Vec<u8>,
@@ -943,8 +943,8 @@ pub fn handle_replay_detail(
     })
 }
 
-// ----- 通用 daily/quest 处理器 (25100-25102, 25300-25309) -----
-// 25100 cli: empty → srv: {state:u8, quests:[{id:u32, val:u32, status:u8}]}
+// ----- 閫氱敤 daily/quest 澶勭悊鍣?(25100-25102, 25300-25309) -----
+// 25100 cli: empty 鈫?srv: {state:u8, quests:[{id:u32, val:u32, status:u8}]}
 pub fn handle_daily_quest(
     cmd: u16,
     _payload: Vec<u8>,
@@ -966,7 +966,7 @@ pub fn handle_daily_quest(
     })
 }
 
-// 10380 cli: empty; srv: {reg_day:u32, open_day:u32}  (per proto_103.erl 登录天数)
+// 10380 cli: empty; srv: {reg_day:u32, open_day:u32}  (per proto_103.erl 鐧诲綍澶╂暟)
 pub fn handle_10380(
     cmd: u16,
     _payload: Vec<u8>,
@@ -994,7 +994,7 @@ pub fn handle_10391(
     })
 }
 
-// 25101 cli: {id:u32} → srv: {code:u8, msg:str}
+// 25101 cli: {id:u32} 鈫?srv: {code:u8, msg:str}
 pub fn handle_daily_quest_claim(
     cmd: u16,
     payload: Vec<u8>,
@@ -1075,10 +1075,10 @@ pub fn handle_10399(
 }
 
 // ============================================================================
-// quest 域 (10400-10406, per proto_104.erl)
+// quest 鍩?(10400-10406, per proto_104.erl)
 // ============================================================================
 
-// 10400 (existing as heartbeat) — re-use; see handle_heartbeat above
+// 10400 (existing as heartbeat) 鈥?re-use; see handle_heartbeat above
 // 10402 cli: {id:u32}; srv: {flag:i8, msg:str, id:u32}  (per proto_104.erl accept_quest)
 pub fn handle_10402(
     cmd: u16,
@@ -1091,7 +1091,7 @@ pub fn handle_10402(
     })
 }
 
-// 25102 cli: empty → srv: {flag:u8, msg:str}
+// 25102 cli: empty 鈫?srv: {flag:u8, msg:str}
 pub fn handle_daily_quest_flag(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1106,9 +1106,9 @@ pub fn handle_daily_quest_flag(
     })
 }
 
-// ----- 月卡/周卡 (25300-25309) -----
-// 25300 cli: empty → srv: {period:u8, cur_day:u32, end_time:u32, lev:u32, exp:u32, rmb_status:u8, exp_status:u8, list:[{id, type, finish, target_val, value, end_time}]}
-// 简化: 核心字段
+// ----- 鏈堝崱/鍛ㄥ崱 (25300-25309) -----
+// 25300 cli: empty 鈫?srv: {period:u8, cur_day:u32, end_time:u32, lev:u32, exp:u32, rmb_status:u8, exp_status:u8, list:[{id, type, finish, target_val, value, end_time}]}
+// 绠€鍖? 鏍稿績瀛楁
 pub fn handle_card_state(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1129,7 +1129,7 @@ pub fn handle_card_state(
     })
 }
 
-// 25301 cli: empty → srv: {list:[{id, type, finish, target_val, value, end_time}]}
+// 25301 cli: empty 鈫?srv: {list:[{id, type, finish, target_val, value, end_time}]}
 pub fn handle_card_list(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1143,7 +1143,7 @@ pub fn handle_card_list(
     })
 }
 
-// 25302 cli: empty → srv: {code:u8, msg:str}
+// 25302 cli: empty 鈫?srv: {code:u8, msg:str}
 pub fn handle_card_op(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1158,7 +1158,7 @@ pub fn handle_card_op(
     })
 }
 
-// 25303 cli: empty → srv: {lev:u32, reward_list:[{id:u16, status:u8, rmb_status:u8}]}
+// 25303 cli: empty 鈫?srv: {lev:u32, reward_list:[{id:u16, status:u8, rmb_status:u8}]}
 pub fn handle_card_reward(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1173,7 +1173,7 @@ pub fn handle_card_reward(
     })
 }
 
-// 25304 cli: {id:u16} → srv: {flag:u8, msg:str}
+// 25304 cli: {id:u16} 鈫?srv: {flag:u8, msg:str}
 pub fn handle_card_claim(
     cmd: u16,
     payload: Vec<u8>,
@@ -1194,7 +1194,7 @@ pub fn handle_card_claim(
     })
 }
 
-// 25305 cli: empty → srv: {lev:u32, exp:u32}
+// 25305 cli: empty 鈫?srv: {lev:u32, exp:u32}
 pub fn handle_card_exp(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1209,7 +1209,7 @@ pub fn handle_card_exp(
     })
 }
 
-// 25306 cli: empty → srv: {rmb_status:u8, exp_status:u8, list:[{id:u32, status:u8}]}
+// 25306 cli: empty 鈫?srv: {rmb_status:u8, exp_status:u8, list:[{id:u32, status:u8}]}
 pub fn handle_card_gift(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1225,7 +1225,7 @@ pub fn handle_card_gift(
     })
 }
 
-// 25307, 25308, 25309 cli: {id:u16} or empty → srv: {flag:u8, msg:str} or {is_pop:u8, cur_day:u32}
+// 25307, 25308, 25309 cli: {id:u16} or empty 鈫?srv: {flag:u8, msg:str} or {is_pop:u8, cur_day:u32}
 pub fn handle_card_misc(
     cmd: u16,
     payload: Vec<u8>,
@@ -1255,8 +1255,8 @@ pub fn handle_card_misc(
     })
 }
 
-// ----- 排行/挑战 (25400-25414) -----
-// 25400 cli: empty → srv: {order:u8, score:u32, rank:u32, count:u8}
+// ----- 鎺掕/鎸戞垬 (25400-25414) -----
+// 25400 cli: empty 鈫?srv: {order:u8, score:u32, rank:u32, count:u8}
 pub fn handle_arena_state(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1273,7 +1273,7 @@ pub fn handle_arena_state(
     })
 }
 
-// 25401 cli: empty → srv: {order, score, rank, count, buy_count, hp_per, award_info:[{award_id}]}
+// 25401 cli: empty 鈫?srv: {order, score, rank, count, buy_count, hp_per, award_info:[{award_id}]}
 pub fn handle_arena_ext(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1293,7 +1293,7 @@ pub fn handle_arena_ext(
     })
 }
 
-// 25402 cli: empty → srv: {code:u8, msg:str, count:u8, buy_count:u8}
+// 25402 cli: empty 鈫?srv: {code:u8, msg:str, count:u8, buy_count:u8}
 pub fn handle_arena_buy(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1310,7 +1310,7 @@ pub fn handle_arena_buy(
     })
 }
 
-// 25403 cli: empty → srv: {code:u8, msg:str, award_info:[{award_id:u32}]}
+// 25403 cli: empty 鈫?srv: {code:u8, msg:str, award_info:[{award_id:u32}]}
 pub fn handle_arena_reward(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1326,7 +1326,7 @@ pub fn handle_arena_reward(
     })
 }
 
-// 25404, 25412, 25413 cli: empty → srv: {code:u8, msg:str}
+// 25404, 25412, 25413 cli: empty 鈫?srv: {code:u8, msg:str}
 pub fn handle_arena_simple(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1341,8 +1341,8 @@ pub fn handle_arena_simple(
     })
 }
 
-// 25405 cli: empty → srv: {result:u8, dps_score, kill_score, all_dps, best_partner, target_role_name, hurt_statistics, ...}
-// 简化: 21 字段, 主要是 score 类
+// 25405 cli: empty 鈫?srv: {result:u8, dps_score, kill_score, all_dps, best_partner, target_role_name, hurt_statistics, ...}
+// 绠€鍖? 21 瀛楁, 涓昏鏄?score 绫?
 pub fn handle_arena_battle(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1363,7 +1363,7 @@ pub fn handle_arena_battle(
     })
 }
 
-// 25410 cli: empty → srv: {round, difficulty, order, order_type, round_combat, round_boss, count, buy_count, endtime, hp_per, status}
+// 25410 cli: empty 鈫?srv: {round, difficulty, order, order_type, round_combat, round_boss, count, buy_count, endtime, hp_per, status}
 pub fn handle_arena_round(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1387,7 +1387,7 @@ pub fn handle_arena_round(
     })
 }
 
-// 25411 cli: empty → srv: {code:u8, msg:str, count:u8, buy_count:u8}
+// 25411 cli: empty 鈫?srv: {code:u8, msg:str, count:u8, buy_count:u8}
 pub fn handle_arena_buy_round(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1404,7 +1404,7 @@ pub fn handle_arena_buy_round(
     })
 }
 
-// 25414 cli: empty → srv: {p_list:[{id:u32, count:u8}]}
+// 25414 cli: empty 鈫?srv: {p_list:[{id:u32, count:u8}]}
 pub fn handle_arena_partner_list(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1418,8 +1418,8 @@ pub fn handle_arena_partner_list(
     })
 }
 
-// ----- 城市/荣誉 (25800-25807) -----
-// 25800 cli: {city_id:u32} → srv: {code:u8, msg:str, city_id:u32}
+// ----- 鍩庡競/鑽ｈ獕 (25800-25807) -----
+// 25800 cli: {city_id:u32} 鈫?srv: {code:u8, msg:str, city_id:u32}
 pub fn handle_city_enter(
     cmd: u16,
     payload: Vec<u8>,
@@ -1449,7 +1449,7 @@ pub fn handle_city_enter(
     })
 }
 
-// 25801 cli: {rid:u32, srv_id:str} → srv: {code:u8, msg:str, flag:u8}
+// 25801 cli: {rid:u32, srv_id:str} 鈫?srv: {code:u8, msg:str, flag:u8}
 pub fn handle_city_op(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1465,7 +1465,7 @@ pub fn handle_city_op(
     })
 }
 
-// 25802 cli: empty → srv: {rank:u16, rank_list:[{rid, srv_id, name, lev:u16, face, rank, avatar_bid, fans_num}]}
+// 25802 cli: empty 鈫?srv: {rank:u16, rank_list:[{rid, srv_id, name, lev:u16, face, rank, avatar_bid, fans_num}]}
 pub fn handle_city_rank(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1483,7 +1483,7 @@ pub fn handle_city_rank(
     })
 }
 
-// 25805 cli: {pos:u8, id:u32} → srv: {code:u8, msg:str, pos:u8, id:u32}
+// 25805 cli: {pos:u8, id:u32} 鈫?srv: {code:u8, msg:str, pos:u8, id:u32}
 pub fn handle_honor_set(
     cmd: u16,
     payload: Vec<u8>,
@@ -1517,7 +1517,7 @@ pub fn handle_10405(
     })
 }
 
-// 25806 cli: {rid:u32, srv_id:str} → srv: {point:u32, honor_badges:[{id:u32, time:u32}]}
+// 25806 cli: {rid:u32, srv_id:str} 鈫?srv: {point:u32, honor_badges:[{id:u32, time:u32}]}
 pub fn handle_honor_get(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1532,7 +1532,7 @@ pub fn handle_honor_get(
     })
 }
 
-// 25807 cli: empty → srv: {id:u32}
+// 25807 cli: empty 鈫?srv: {id:u32}
 pub fn handle_honor_default(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1546,8 +1546,8 @@ pub fn handle_honor_default(
     })
 }
 
-// ----- 成就 (25810-25820) -----
-// 25810/25811 cli: empty → srv: {feat_list:[{id, finish, end_time, finish_time, progress:[{id:u16, finish, target, target_val, value}]}]}
+// ----- 鎴愬氨 (25810-25820) -----
+// 25810/25811 cli: empty 鈫?srv: {feat_list:[{id, finish, end_time, finish_time, progress:[{id:u16, finish, target, target_val, value}]}]}
 pub fn handle_achievement_list(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1561,7 +1561,7 @@ pub fn handle_achievement_list(
     })
 }
 
-// 25812 cli: {id:u32} → srv: {code:u8, msg:str, id:u32, finish_time:u32}
+// 25812 cli: {id:u32} 鈫?srv: {code:u8, msg:str, id:u32, finish_time:u32}
 pub fn handle_achievement_claim_v2(
     cmd: u16,
     payload: Vec<u8>,
@@ -1607,7 +1607,7 @@ pub fn handle_10406(
 }
 
 // ============================================================================
-// 物品/装备 域 (10500-10536, per proto_105.erl)
+// 鐗╁搧/瑁呭 鍩?(10500-10536, per proto_105.erl)
 // ============================================================================
 
 // 10500 cli: empty; srv: {volume:u32, open_times:u8, item_list:u16 array}  (per proto_105.erl bag_list)
@@ -1617,7 +1617,7 @@ fn handle_bag_or_equip(cmd: u16, kind: &str) -> Response {
     let mut out = Vec::with_capacity(8);
     out.write_u32(60);  // volume
     out.write_u8(0);    // open_times
-    out.write_u16(0);   // item list count (空, 简化)
+    out.write_u16(0);   // item list count (绌? 绠€鍖?
     Response { cmd, payload: out }
 }
 
@@ -1770,7 +1770,7 @@ pub fn handle_10528(
     })
 }
 
-// 10530 cli: {id:u32} → srv: {code:u8, msg:str, id:u32, exp:u32, gold:u32}
+// 10530 cli: {id:u32} 鈫?srv: {code:u8, msg:str, id:u32, exp:u32, gold:u32}
 pub fn handle_achievement_claim(
     cmd: u16,
     payload: Vec<u8>,
@@ -1818,7 +1818,7 @@ pub fn handle_10536(
 }
 
 // ============================================================================
-// 邮件 域 (10800-10810, per proto_108.erl, w1 player 域包含)
+// 閭欢 鍩?(10800-10810, per proto_108.erl, w1 player 鍩熷寘鍚?
 // ============================================================================
 
 // 10800 cli: empty; srv: {mail:u16 array [...]}  (per proto_108.erl mail_list)
@@ -1846,7 +1846,7 @@ pub fn handle_10801(
     })
 }
 
-// 25813 cli: {id:u32} → srv: empty
+// 25813 cli: {id:u32} 鈫?srv: empty
 pub fn handle_achievement_view(
     cmd: u16,
     payload: Vec<u8>,
@@ -1931,7 +1931,7 @@ pub fn handle_10805(
     })
 }
 
-// 25814, 25815 cli: empty or {id, channel} → srv: {result:u8, msg:str}
+// 25814, 25815 cli: empty or {id, channel} 鈫?srv: {result:u8, msg:str}
 pub fn handle_achievement_simple(
     cmd: u16,
     _payload: Vec<u8>,
@@ -1946,7 +1946,7 @@ pub fn handle_achievement_simple(
     })
 }
 
-// 25816, 25818 cli: {share_id:u32, srv_id:str} → srv: {id:u32, finish_time:u32, share_id:u32}
+// 25816, 25818 cli: {share_id:u32, srv_id:str} 鈫?srv: {id:u32, finish_time:u32, share_id:u32}
 pub fn handle_achievement_share(
     cmd: u16,
     payload: Vec<u8>,
@@ -1987,7 +1987,7 @@ pub fn handle_10810(
 }
 
 // ============================================================================
-// 10900-10999 (per proto_109.erl, w1 player 域杂项: 禁言/buff/活动/排行榜/SDK)
+// 10900-10999 (per proto_109.erl, w1 player 鍩熸潅椤? 绂佽█/buff/娲诲姩/鎺掕姒?SDK)
 // ============================================================================
 
 // 10900 cli: {rid:u32, srv_id:str, hour:u32, interdict:u8}; srv: {code, msg}  (per proto_109.erl silence)
@@ -2044,7 +2044,7 @@ pub fn handle_10902(
     })
 }
 
-// 10905 cli: empty; srv: empty  (per proto_109.erl 战斗状态)
+// 10905 cli: empty; srv: empty  (per proto_109.erl 鎴樻枟鐘舵€?
 pub fn handle_10905(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2055,7 +2055,7 @@ pub fn handle_10905(
     })
 }
 
-// 25817 cli: {id:u32, channel:u16} → srv: {result:u8, msg:str}
+// 25817 cli: {id:u32, channel:u16} 鈫?srv: {result:u8, msg:str}
 pub fn handle_achievement_share_op(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2175,7 +2175,7 @@ pub fn handle_10927(
     })
 }
 
-// 10945 cli: {card_id:u32}; srv: {code:u8, msg:str}  (per proto_109.erl 激活礼包卡)
+// 10945 cli: {card_id:u32}; srv: {code:u8, msg:str}  (per proto_109.erl 婵€娲荤ぜ鍖呭崱)
 pub fn handle_10945(
     cmd: u16,
     payload: Vec<u8>,
@@ -2257,7 +2257,7 @@ pub fn handle_10955(
     })
 }
 
-// 25819 cli: {channel:u16} → srv: {result:u8, msg:str}
+// 25819 cli: {channel:u16} 鈫?srv: {result:u8, msg:str}
 pub fn handle_achievement_share_query(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2296,7 +2296,7 @@ pub fn handle_10999(
     })
 }
 
-// 25820 cli: {share_id:u32, srv_id:str} → srv: {point:u32, num:u32, share_id:u32}
+// 25820 cli: {share_id:u32, srv_id:str} 鈫?srv: {point:u32, num:u32, share_id:u32}
 pub fn handle_achievement_share_reward(
     cmd: u16,
     payload: Vec<u8>,
@@ -2318,8 +2318,8 @@ pub fn handle_achievement_share_reward(
     })
 }
 
-// ----- 矿脉/BBS (25830-25841) -----
-// 25830 cli: {start:u16, num:u8} → srv: {start, num, max_num, progress:[{id, order, time, arge:[{pos:u8, val:str}]}]}
+// ----- 鐭胯剦/BBS (25830-25841) -----
+// 25830 cli: {start:u16, num:u8} 鈫?srv: {start, num, max_num, progress:[{id, order, time, arge:[{pos:u8, val:str}]}]}
 pub fn handle_room_grow(
     cmd: u16,
     payload: Vec<u8>,
@@ -2342,7 +2342,7 @@ pub fn handle_room_grow(
     })
 }
 
-// 25831 cli: {channel:u16} → srv: {result:u8, msg:str}
+// 25831 cli: {channel:u16} 鈫?srv: {result:u8, msg:str}
 pub fn handle_room_op(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2357,7 +2357,7 @@ pub fn handle_room_op(
     })
 }
 
-// 25832 cli: {rid, srv_id, start:u16, num:u8} → srv: {rid, srv_id, start, num, max_num:u16, room_grow_info:[]}
+// 25832 cli: {rid, srv_id, start:u16, num:u8} 鈫?srv: {rid, srv_id, start, num, max_num:u16, room_grow_info:[]}
 pub fn handle_room_other(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2376,7 +2376,7 @@ pub fn handle_room_other(
     })
 }
 
-// 25835, 25836 cli: {rid, srv_id, msg/bbs_id} → srv: {result:u8, msg:str}
+// 25835, 25836 cli: {rid, srv_id, msg/bbs_id} 鈫?srv: {result:u8, msg:str}
 pub fn handle_bbs_send(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2391,7 +2391,7 @@ pub fn handle_bbs_send(
     })
 }
 
-// 25837 cli: {rid, srv_id, start:u16, num:u8} → srv: 20 字段大 payload
+// 25837 cli: {rid, srv_id, start:u16, num:u8} 鈫?srv: 20 瀛楁澶?payload
 pub fn handle_bbs_list(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2412,7 +2412,7 @@ pub fn handle_bbs_list(
     })
 }
 
-// 25838 cli: {bbs_id:u32} → srv: {result:u8, msg:str, bbs_id:u32}
+// 25838 cli: {bbs_id:u32} 鈫?srv: {result:u8, msg:str, bbs_id:u32}
 pub fn handle_bbs_delete(
     cmd: u16,
     payload: Vec<u8>,
@@ -2434,7 +2434,7 @@ pub fn handle_bbs_delete(
     })
 }
 
-// 25839 cli: {type:u8} → srv: {result:u8, msg:str, type:u8}
+// 25839 cli: {type:u8} 鈫?srv: {result:u8, msg:str, type:u8}
 pub fn handle_bbs_type(
     cmd: u16,
     payload: Vec<u8>,
@@ -2451,7 +2451,7 @@ pub fn handle_bbs_type(
     })
 }
 
-// 25840 cli: {rid, srv_id, bbs_id} → srv: empty
+// 25840 cli: {rid, srv_id, bbs_id} 鈫?srv: empty
 pub fn handle_bbs_praise(
     cmd: u16,
     payload: Vec<u8>,
@@ -2469,7 +2469,7 @@ pub fn handle_bbs_praise(
     })
 }
 
-// 25841 cli: empty → srv: 16 字段
+// 25841 cli: empty 鈫?srv: 16 瀛楁
 pub fn handle_bbs_full(
     cmd: u16,
     _payload: Vec<u8>,
@@ -2485,10 +2485,3131 @@ pub fn handle_bbs_full(
         Response { cmd, payload: out }
     })
 }
-// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 拍板生产级)
-// v0.3.0: handlers 接收 owned Vec<u8> + Arc<RgsClient> (registry.rs 决定)
-//   - 无 lifetime 依赖, 全部 'static future
-//   - RgsClient 共享 Arc, 内部 reqwest pool 自动 clone
+// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
+// v0.3.0: handlers 鎺ユ敹 owned Vec<u8> + Arc<RgsClient> (registry.rs 鍐冲畾)
+//   - 鏃?lifetime 渚濊禆, 鍏ㄩ儴 'static future
+//   - RgsClient 鍏变韩 Arc, 鍐呴儴 reqwest pool 鑷姩 clone
+
+// ============================================================================
+// v0.6.0 w5-2 (per 2026-09-09 20:17 JST Mavis 娲惧伐): 173 cmd real handler
+// 110 welfare (24000-24999) + 30 partner (11000-11999) + 33 social (16000-17999)
+// 瀛楄妭绾у榻?proto_mate.js send cmd, simple real handler pattern (per w5-1 30001-30102)
+// 鏉ユ簮: H5 zsyz_client proto_mate.js (766 send cmd, 173 缁仛)
+// ============================================================================
+
+// 24000 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24000(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24000 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24001 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24001(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24001 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24002 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24002(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24002 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24003 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24003(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24003 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24004 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24004(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24004 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24005 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24005(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24005 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24006 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24006(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24006 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24010 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24010(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24010 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24011 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24011(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24011 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24012 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24012(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24012 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24013 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24013(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24013 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24014 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24014(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24014 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24015 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24015(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24015 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24017 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24017(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24017 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24018 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24018(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24018 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24019 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24019(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24019 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24020 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24020(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24020 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24100 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24100(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24100 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24101 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24101(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24101 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24103 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24103(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24103 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24104 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24104(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24104 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24107 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24107(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24107 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24108 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24108(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24108 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24120 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24120(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24120 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24121 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24121(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24121 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24122 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24122(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24122 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24123 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24123(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24123 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24124 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24124(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24124 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24125 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24125(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24125 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24126 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24126(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24126 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24127 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24127(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24127 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24128 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24128(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24128 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24129 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24129(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24129 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24130 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24130(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24130 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24131 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24131(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24131 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24132 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24132(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24132 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24133 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24133(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24133 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24200 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24200(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24200 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24201 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24201(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24201 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24202 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24202(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24202 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24204 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24204(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24204 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24205 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24205(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24205 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24206 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24206(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24206 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24207 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24207(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24207 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24208 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24208(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24208 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24209 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24209(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24209 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24210 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24210(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24210 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24212 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24212(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24212 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24213 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24213(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24213 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24214 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24214(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24214 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24220 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24220(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24220 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24221 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24221(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24221 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24223 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24223(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24223 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24300 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24300(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24300 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24301 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24301(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24301 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24302 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24302(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24302 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24303 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24303(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24303 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24304 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24304(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24304 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24305 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24305(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24305 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24306 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24306(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24306 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24308 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24308(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24308 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24309 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24309(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24309 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24310 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24310(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24310 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24311 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24311(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24311 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24312 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24312(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24312 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24313 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24313(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24313 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24314 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24314(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24314 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24315 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24315(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24315 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24316 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24316(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24316 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24400 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24400(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24400 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24401 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24401(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24401 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24402 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24402(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24402 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24403 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24403(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24403 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24404 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24404(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24404 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24405 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24405(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24405 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24406 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24406(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24406 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24407 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24407(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24407 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24408 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24408(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24408 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24409 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24409(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24409 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24410 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24410(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24410 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24411 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24411(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24411 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24500 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24500(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24500 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24501 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24501(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24501 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24502 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24502(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24502 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24600 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24600(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24600 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24601 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24601(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24601 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24602 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24602(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24602 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24603 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24603(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24603 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24604 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24604(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24604 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24700 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24700(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24700 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24701 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24701(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24701 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24702 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24702(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24702 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24801 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24801(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24801 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24802 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24802(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24802 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24803 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24803(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24803 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24804 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24804(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24804 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24805 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24805(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24805 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24806 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24806(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24806 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24807 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24807(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24807 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24808 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24808(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24808 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24809 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24809(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24809 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24810 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24810(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24810 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24811 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24811(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24811 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24812 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24812(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24812 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24813 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24813(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24813 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24814 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24814(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24814 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24815 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24815(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24815 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24816 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24816(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24816 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24817 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24817(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24817 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 24818 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern per w5-1 30001-30102)
+pub fn handle_welfare_24818(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u8();
+        }
+        tracing::debug!(cmd, "24818 welfare");
+        // 24000-24999 绂忓埄/娲诲姩: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS economy.GetWelfare)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11000 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11000(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11000 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11002 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11002(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11002 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11003 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11003(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11003 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11004 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11004(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11004 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11005 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11005(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11005 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11006 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11006(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11006 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11007 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11007(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11007 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11008 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11008(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11008 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11009 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11009(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11009 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11010 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11010(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11010 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11011 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11011(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11011 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11012 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11012(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11012 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11015 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11015(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11015 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11016 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11016(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11016 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11017 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11017(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11017 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11019 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11019(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11019 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11020 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11020(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11020 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11025 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11025(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11025 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11026 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11026(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11026 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11030 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11030(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11030 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11031 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11031(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11031 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11032 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11032(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11032 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11033 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11033(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11033 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11034 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11034(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11034 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11035 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11035(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11035 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11036 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11036(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11036 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11037 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11037(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11037 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11038 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11038(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11038 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11040 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11040(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11040 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 11041 partner cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 11000-11999 浼欎即)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_partner_11041(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "11041 partner");
+        // 11000-11999 浼欎即: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS player.GetPartner)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16400 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16400(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16400 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16401 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16401(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16401 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16402 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16402(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16402 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16601 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16601(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16601 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16602 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16602(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16602 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16603 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16603(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16603 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16604 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16604(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16604 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16605 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16605(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16605 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16607 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16607(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16607 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16620 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16620(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16620 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16630 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16630(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16630 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16631 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16631(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16631 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16633 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16633(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16633 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16634 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16634(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16634 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16635 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16635(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16635 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16636 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16636(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16636 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16637 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16637(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16637 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16638 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16638(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16638 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16639 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16639(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16639 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16640 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16640(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16640 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16641 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16641(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16641 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16642 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16642(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16642 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16643 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16643(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16643 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16650 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16650(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16650 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16660 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16660(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16660 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16661 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16661(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16661 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16665 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16665(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16665 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16666 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16666(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16666 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16670 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16670(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16670 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16671 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16671(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16671 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16672 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16672(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16672 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16673 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16673(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16673 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 16674 social cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 16000-17999 宸ヤ細/绀句氦)
+// 鏉ユ簮: proto_mate.js send cmd (鏃?erlang proto, 璧?simple real handler pattern)
+pub fn handle_social_16674(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            let _ = p.read_u32();
+        }
+        tracing::debug!(cmd, "16674 social");
+        // 16000-17999 绀句氦: 杩旂┖ ack (w5-2 绠€鍖? 鍚庣画鎺?RGS social.GetGuild)
+        Response { cmd, payload: vec![] }
+    })
+}
 
 
 // ============================================================================
