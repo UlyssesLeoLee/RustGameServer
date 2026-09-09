@@ -693,6 +693,46 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 - **证据**: 9/9 18:30 JST mega-v2 set -e 退出因 `cp: cannot stat 'cluster-ops-service'`, 修对 `cluster-ops` 后 OK
 - **影响范围**: 所有 RGS image build Dockerfile (COPY target/release/*)
 
+#### L21 | 5 worker 并发 cargo registry lock 抢锁 (per-worker 隔离)
+
+- **背景**: 5 worker 并发 `cargo build --release` 共享 target/ build dir, 多个 worker 报告"等待多轮编译"
+- **强约束**: **PT 派工简报必须明文 "DoD = cargo check --tests 1 次拿 status, 修到 0 error, 不要 polling 多轮编译", 避免 8 cargo 进程互锁**
+  - per-worker `CARGO_TARGET_DIR=target/<scope>-<n>` 隔离 (per L11.4 修, 但 Phase 4 5 worker 没全设, 实际 5 worker 串行 cargo build 时 OK)
+  - 30 min 时间窗内 `cargo build --release` 经常跑不完, 留主会话跑 (per w3 报告 1m05s, w1 4m45s)
+  - 5 worker cargo lock 抢锁 → 错开时间, 30 min 后重试
+- **证据**: 9/9 19:38-20:15 JST 5 worker Phase 4 派工, 多次 cargo build --release 30 min 内 timeout, 改 cargo check 14.59s 跑 OK
+- **影响范围**: 所有 PT 派工 (Phase 4 5 worker 续做也适用)
+
+#### L22 | worker 写错 worktree (写到 main 而非 worktree, 需防呆)
+
+- **背景**: 9/9 20:08 JST w4 worker 写错到 main, 后续 `git checkout -- .` + `git clean -f` revert, 重新写到 worktree. 同样 w5 worker 也有
+- **强约束**: **worker 必须先 `cd <worktree>` 改文件, 不在 main repo 改**
+  - 防呆方案: `.git/hooks/post-checkout` 警告 (但 worker 不会触发 hook, 除非在 git 仓库内)
+  - 简报明文 "worktree 路径 D:/rgs-shim-w<N>, 不在 D:/RustGameServer 改"
+  - worker report 自查: `git -C .` 不在 main 路径
+- **证据**: 9/9 20:08 JST w4 + w5 报告, main 分支意外污染 → `git checkout -- .` + `git clean -f` 清理
+- **影响范围**: 所有 5 worker 派工
+
+#### L23 | Phase 4 30 min 占位 commit vs 1-2 周全 cmd 业务覆盖时间维度不同
+
+- **背景**: 9/9 19:38 JST 5 worker 派工简报, brief 同时要求 "30 min 必须出 commit" (L11 占位 DoD) + "1-2 周全 65-192 cmd 业务覆盖". 两条要求时间维度不同
+- **强约束**: **简报明确写"30 min = 占位 commit 门槛, 1-2 周 = 全 cmd 业务覆盖完成时间"**
+  - 30 min 内: 占位 commit (real handler 至少 1 个, 字节级对齐 erlang, registry.rs map.insert 优先于 stub)
+  - 1-2 周: 全范围 cmd stub → real handler 替换, 字节级 100% 测试, 50 rps 性能
+  - worker 自己根据 cmd 范围复杂度分配时间, 简单 cmd (e.g. ack 空回) 30 min 全做, 复杂 cmd (e.g. skill_plays/objects 嵌套) 1-2 周
+- **证据**: 9/9 20:08 JST w1 (53 cmd 30 min 完成, AI 加速) + w3 (66 cmd 30 min) + w4 (14 POC 28 min) + w2 (200 cmd 90 min) + w5 (10 cmd 41s). 5 worker 实际 1.5h 完成 343 cmd, AI 加速远超 L11 30 min 占位 DoD
+- **影响范围**: 所有 PT 派工
+
+#### L24 | shim v0.5 dispatch table 实施需 stub fallback 兼容 5 worker 进度差异
+
+- **背景**: 9/9 20:15 JST 5 worker 续做 423 cmd stub 2-3 天, 完成前 shim v0.5 dispatch 实施需兼容部分 cmd 仍 stub
+- **强约束**: **shim v0.5 dispatch table `unknown` 分支走 stub fallback (返 `code:0, msg:"OK" + 关键字段回显`), 不阻塞 5 worker 续做**
+  - dispatch table 形式: `match cmd { 10000-10999 => dispatch_player, ..., _ => handle_stub }`
+  - stub fallback 兼容未注册 cmd, 跟 Phase 4 v0.4.0 默认行为一致
+  - 5 worker 续做期间, shim 仍可跑, 部分 cmd 走 stub, 业务覆盖 44.8% → 100% 渐进
+- **证据**: 9/9 20:15 JST shim v0.5 dispatch design (commit 5acc8e9, SHIM_V05_DISPATCH_DESIGN.md §3.4 决策 #4)
+- **影响范围**: shim v0.5 dispatch table 实施 (1-2 天, Mavis 主会话)
+
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
 ---
