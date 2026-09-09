@@ -31,6 +31,7 @@ members = [
     "crates/pvp-full-service",
     "crates/replay-extra-service",
     "crates/social-extra-service",
+    "tools/rgs-grpc-bridge",
 ]
 resolver = "2"
 

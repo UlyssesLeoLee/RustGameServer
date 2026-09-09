@@ -114,6 +114,10 @@ target-r34-*/**
 target-r8-check/
 target-r8-check/**
 
+# 2026-09-10 7:30 JST 配 rgs-grpc-bridge 独立 build dir (per L11 per-worker CARGO_TARGET_DIR 派生)
+target-bridge/
+target-bridge/**
+
 # Worker 临时脚手架目录(per 2026-08-26 清理决议)
 # 内容: WT 清理 / DTL-036 v0.2 patch 等一次性 Python 脚本
 # 任务执行后脚手架即失效,不入 git 也不归档(参考 .run-logs/ / .git-trash/ 治理先例)

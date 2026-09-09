@@ -1,0 +1,33 @@
+[package]
+name = "rgs-grpc-bridge"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "RGS gRPC-Web bridge: 浏览器 HTTP/1.1 + JSON (application/json) -> RGS 5 域 gRPC server (per DTL-038 决策 + 9/10 JST Ulysses 拍板 opt2 独立 bridge)"
+
+[[bin]]
+name = "rgs-grpc-bridge"
+path = "src/main.rs"
+
+[dependencies]
+# workspace 公共
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# tonic 0.12 client 调 backend gRPC server (mTLS or insecure)
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+prost = { workspace = true }
+# actix-web 4 HTTP server (浏览器 fetch 直接 POST JSON, bridge 内部编码到 protobuf)
+actix-web = "4"
+# rustls crypto provider (mTLS 模式需要; insecure 跳过)
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
+
+[build-dependencies]
+tonic-build = { workspace = true }
