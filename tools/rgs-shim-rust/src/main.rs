@@ -10,7 +10,9 @@ mod handlers_w2_extra;
 mod registry;
 mod rgs;
 mod registry_stubs;
+mod dispatch;
 
+use dispatch::Dispatcher;
 use registry::Registry;
 use rgs::RgsClient;
 use std::sync::Arc;
@@ -39,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
 
     let rgs = Arc::new(RgsClient::new(rgs_proxy.clone()));
     let registry = Arc::new(Registry::new());
+    let dispatcher = Arc::new(Dispatcher::new(rgs.clone(), registry.clone()));
 
     let listener = TcpListener::bind(("0.0.0.0", shim_port)).await?;
     info!(
@@ -52,10 +55,9 @@ async fn main() -> anyhow::Result<()> {
     loop {
         match listener.accept().await {
             Ok((socket, addr)) => {
-                let rgs = rgs.clone();
-                let registry = registry.clone();
+                let dispatcher = dispatcher.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = handle_connection(socket, addr, rgs, registry).await {
+                    if let Err(e) = handle_connection(socket, addr, dispatcher).await {
                         warn!(%addr, error = %e, "connection error");
                     }
                 });
@@ -68,8 +70,7 @@ async fn main() -> anyhow::Result<()> {
 async fn handle_connection(
     socket: tokio::net::TcpStream,
     addr: std::net::SocketAddr,
-    rgs: Arc<RgsClient>,
-    registry: Arc<Registry>,
+    dispatcher: Arc<Dispatcher>,
 ) -> anyhow::Result<()> {
     info!(%addr, "+ client");
     let (mut reader, writer) = tokio::io::split(socket);
@@ -102,12 +103,11 @@ async fn handle_connection(
             frame_count += 1;
             info!(%addr, frame = frame_count, cmd, payload_len, "frame");
 
-            // dispatch (owned payload + cloned rgs Arc 进 future)
-            let rgs = rgs.clone();
-            let registry = registry.clone();
+            // dispatch (owned payload + cloned dispatcher Arc 进 future)
+            let dispatcher = dispatcher.clone();
             let writer = writer.clone();
             tokio::spawn(async move {
-                let resp = registry.dispatch(cmd, payload, rgs).await;
+                let resp = dispatcher.dispatch(cmd, payload).await;
                 let mut out = Vec::with_capacity(6 + resp.payload.len());
                 let resp_len = (2 + resp.payload.len()) as u32;
                 out.extend_from_slice(&resp_len.to_be_bytes());
