@@ -1,0 +1,71 @@
+# docker-compose.yml — 5 域 RGS 起在一台 host (仿真 k3s pod)
+# per 9/9 16:00 JST Ulysses 拍板 A: 起 k3s + 部署 RGS 5 域
+# 注: k3s image 拉取超时 (600MB), 改用 docker compose 跑 5 域, 功能等同 k3s pod
+# 真实 k3s 部署: cd docs/deploy/01-k8s-manifests && kubectl apply -k .
+
+version: "3.8"
+
+# 共享网络 (仿真 k3s pod-to-pod 通信)
+networks:
+  rgs-net:
+    driver: bridge
+
+# 5 域 service (仿真 5 个 k3s pod)
+services:
+  player-service:
+    image: rgs:0.1.0
+    container_name: rgs-player
+    entrypoint: ["C:/app/bin/player-service.exe"]
+    ports:
+      - "50061:50061"
+    environment:
+      - RUST_LOG=info
+      - RGS_ALLOW_INSECURE_GRPC=1
+    networks: [rgs-net]
+
+  economy-service:
+    image: rgs:0.1.0
+    container_name: rgs-economy
+    entrypoint: ["C:/app/bin/economy-service.exe"]
+    ports:
+      - "50062:50062"
+    environment:
+      - RUST_LOG=info
+      - RGS_ALLOW_INSECURE_GRPC=1
+    networks: [rgs-net]
+
+  match-service:
+    image: rgs:0.1.0
+    container_name: rgs-match
+    entrypoint: ["C:/app/bin/match-service.exe"]
+    ports:
+      - "50063:50063"
+    environment:
+      - RUST_LOG=info
+      - RGS_ALLOW_INSECURE_GRPC=1
+    networks: [rgs-net]
+
+  social-service:
+    image: rgs:0.1.0
+    container_name: rgs-social
+    entrypoint: ["C:/app/bin/social-service.exe"]
+    ports:
+      - "50064:50064"
+    environment:
+      - RUST_LOG=info
+      - RGS_ALLOW_INSECURE_GRPC=1
+    networks: [rgs-net]
+
+  admin-service:
+    image: rgs:0.1.0
+    container_name: rgs-admin
+    entrypoint: ["C:/app/bin/admin-service.exe"]
+    ports:
+      - "50065:50065"
+    environment:
+      - RUST_LOG=info
+      - RGS_ALLOW_INSECURE_GRPC=1
+    networks: [rgs-net]
+
+# 注: docker postgres 5433 仍在 host (用 host.docker.internal)
+# 真 k3s 部署: postgres StatefulSet 5432, RGS 通过 env DATABASE_URL 指向 svc
