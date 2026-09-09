@@ -395,6 +395,62 @@ pub fn handle_view_role(
 }
 
 // ============================================================================
+// 战斗回合 cmd (v0.4.0 worker 派工 w2/economy, per 2026-09-09 19:34 JST Mavis 派工)
+// 来源: zsyz_server/src/proto/proto_200.erl (战斗/HP/能量/技能/buff)
+// 20000-20015 = 战斗前置 + 回合 (proto_200.erl 早期 pack)
+// ============================================================================
+
+// 20000 cli: empty; srv: {combat_type:u16, combat_map:u32}  (per proto_200.erl)
+pub fn handle_combat_enter(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        // 调 RGS match domain 拿 combat 状态 (per 20000 proto: 进入战斗)
+        let _ = rgs.call("match", "GetMatch", serde_json::json!({
+            "match_id": "00000000-0000-0000-0000-000000000000"
+        })).await;
+        tracing::info!(cmd, "20000 combat_enter");
+
+        // 20000 srv: combat_type:u16 + combat_map:u32
+        let mut out = Vec::with_capacity(8);
+        out.write_u16(1);                              // combat_type = 1 (PVE)
+        out.write_u32(10001);                           // combat_map = 10001 (新手副本)
+        Response { cmd, payload: out }
+    })
+}
+
+// 20001 cli: empty; srv: {code:u8, msg:str}  (per proto_200.erl, 战斗开始 ack)
+pub fn handle_combat_start_ack(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "20001 combat_start_ack");
+        // 20001 srv: code:u8 + msg:str
+        let mut out = Vec::with_capacity(32);
+        out.write_u8(0);                                // code = 0 (OK)
+        out.write_string("OK (combat start acknowledged)");
+        Response { cmd, payload: out }
+    })
+}
+
+// 20005 cli: empty; srv: empty  (per proto_200.erl, 战斗准备就绪 heart-beat)
+pub fn handle_combat_ready(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!(cmd, "20005 combat_ready");
+        // 20005 srv: empty (per proto_200.erl pack(20005, srv, {}))
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// ============================================================================
 // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 766 cmd stub handler
 // ============================================================================
 

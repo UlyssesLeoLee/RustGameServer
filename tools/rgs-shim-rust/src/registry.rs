@@ -61,6 +61,12 @@ impl Registry {
         // shim-internal RGS 测试 cmd (Erlang 10400=quest_list/11001=partner_list, 不复用)
         map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)", source: "shim" });
         map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)", source: "shim" });
+        // v0.4.1 (per 2026-09-09 19:34 JST Mavis 派工 w2/economy): 战斗回合 cmd 3 个 real handler
+        // 覆盖 registry_stubs 自动注册的 stub-20000/20001/20005 (or_insert 语义: 先插先得)
+        // 来源: zsyz_server/src/proto/proto_200.erl (20000=combat_enter / 20001=combat_start_ack / 20005=combat_ready)
+        map.insert(20000, CmdEntry { handler: handlers::handle_combat_enter, name: "combat_enter (RGS match GetMatch)", source: "zsyz" });
+        map.insert(20001, CmdEntry { handler: handlers::handle_combat_start_ack, name: "combat_start_ack (code+msg)", source: "zsyz" });
+        map.insert(20005, CmdEntry { handler: handlers::handle_combat_ready, name: "combat_ready (empty payload)", source: "zsyz" });
         // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 自动注册 766 全 zsyz send cmd stub
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
