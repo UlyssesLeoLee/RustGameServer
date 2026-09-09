@@ -65,6 +65,11 @@ impl Registry {
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
         crate::registry_stubs::register_stubs(&mut map);
+        // v0.4.1 (per 2026-09-09 19:32 JST Mavis 派工 — 5 worker 并发): e2e/social worker
+        // 覆盖 93 social 域 cmd 的 33 real handler (proto_130 chat + proto_133 friend +
+        //          proto_135 guild + proto_136 cross-server + proto_166 activity + proto_168 tip)
+        // 剩余 60 cmd 保持 stub (后续 worker 派工或留 v0.4.2 扩)
+        crate::handlers_social::register_social_real(&mut map);
         Registry { map }
     }
 
