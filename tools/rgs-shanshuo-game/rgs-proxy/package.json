@@ -1,0 +1,13 @@
+{
+  "name": "rgs-proxy",
+  "version": "1.0.0",
+  "description": "gRPC-Web proxy: RGS 5+3 域 gRPC → HTTP JSON for browser fetch",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.0",
+    "@grpc/proto-loader": "^0.7.13"
+  }
+}
