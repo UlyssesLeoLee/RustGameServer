@@ -6,6 +6,7 @@ mod frame;
 mod handlers;
 mod registry;
 mod rgs;
+mod registry_stubs;
 
 use registry::Registry;
 use rgs::RgsClient;

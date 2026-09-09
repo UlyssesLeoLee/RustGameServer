@@ -61,6 +61,10 @@ impl Registry {
         // shim-internal RGS 测试 cmd (Erlang 10400=quest_list/11001=partner_list, 不复用)
         map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)", source: "shim" });
         map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)", source: "shim" });
+        // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 自动注册 766 全 zsyz send cmd stub
+        // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
+        // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
+        crate::registry_stubs::register_stubs(&mut map);
         Registry { map }
     }
 

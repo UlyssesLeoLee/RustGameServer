@@ -393,3 +393,23 @@ pub fn handle_view_role(
         Response { cmd, payload: out }
     })
 }
+
+// ============================================================================
+// v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 766 cmd stub handler
+// ============================================================================
+
+// 通用 stub: 返回空 payload (zsyz_client 收到后不会崩, 只是没数据)
+// 后续 worker 派工逐个替换为 real handler (call RGS)
+pub fn handle_stub(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        // 只在 cmd >= 10000 范围内 log (10100-39999 是真 zsyz cmd, 避免 log spam)
+        if cmd >= 10000 && cmd < 40000 {
+            tracing::debug!(cmd, "stub");
+        }
+        Response { cmd, payload: vec![] }
+    })
+}
