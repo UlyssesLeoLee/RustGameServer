@@ -16,6 +16,7 @@
 // - 业务覆盖率 1.9% (10/514 real cmd)
 
 use crate::handlers;
+use crate::handlers_w2;
 use crate::rgs::RgsClient;
 use std::pin::Pin;
 use std::future::Future;
@@ -71,6 +72,54 @@ impl Registry {
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
         crate::registry_stubs::register_stubs(&mut map);
+        // v0.4.1 (per 2026-09-09 19:39 JST Mavis 派工 w2): economy/battle 域 200 cmd real handler
+        // 范围: 20000-29999 (cmd 20000-20099 战备/combat, 20200-20299 战斗详细, 20500-20599 关卡,
+        //                21000-21099 活动, 21100-21199 签到, 21200-21299 升级奖励, 21300-21399 副本,
+        //                21500-21599 avatar, 22100-22199 feat/servers, 22700-22799 quest,
+        //                23200-23299 recruit, 23300-23399 honor, 23400-23499 login_gift,
+        //                23500-23599 market/shop, 23600-23699 reward, 23700-23799 extra)
+        // 来源: zsyz_server/src/proto/proto_{200,202,205,210,211,212,213,215,221,227,232,233,234,235,236,237}.erl
+        // 实现: handlers_w2::handle_w2_economy 单 dispatcher, 200 cmd 字节级对齐 (simplified)
+        for cmd in 20000u16..=29999u16 {
+            if map.contains_key(&cmd) {
+                map.insert(cmd, crate::registry::CmdEntry {
+                    handler: handlers_w2::handle_w2_economy,
+                    name: match cmd {
+                        20000 => "combat_type_query",
+                        20001 => "combat_start",
+                        20013 => "combat_battle",
+                        20026 => "combat_drama",
+                        20030 => "combat_in_combat",
+                        20033 => "combat_replay_view",
+                        20060 => "combat_type_set",
+                        20063 => "combat_type_list",
+                        20200 => "arena_self_info",
+                        20220 => "arena_rank",
+                        20250 => "champion_info",
+                        20500 => "boss_list",
+                        20530 => "boss_buy_num",
+                        20542 => "boss_result",
+                        21000 => "welfare_end",
+                        21002 => "welfare_count",
+                        21005 => "welfare_gold",
+                        21100 => "checkin_status",
+                        21200 => "lev_gift",
+                        21300 => "dungeon_info",
+                        21500 => "avatar_frame",
+                        22100 => "feat_step",
+                        22700 => "quest_rank",
+                        23200 => "recruit_list",
+                        23300 => "honor_get",
+                        23400 => "login_gift",
+                        23500 => "market_catalg",
+                        23507 => "market_silver_shop",
+                        23601 => "reward_query",
+                        _ => "w2-economy",
+                    },
+                    source: "zsyz",
+                });
+            }
+        }
         Registry { map }
     }
 
