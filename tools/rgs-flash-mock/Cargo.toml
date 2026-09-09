@@ -5,7 +5,7 @@
 name = "rgs-flash-mock"
 version = "0.1.0"
 edition = "2021"
-description = "rgs-flash-mock (Rust + actix-web 4 + tokio + tonic 0.12 gRPC client + mTLS, per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1, 闪烁之光 1351 RPC gateway/verification harness, 12 大类 PoC v0.1 = 22 RPC)"
+description = "⚠️ DEPRECATED 2026-09-09: rgs-flash-mock 22 RPC stub PoC (per Ulysses 零 mock 原则) — 替代方案: tools/rgs-shanshuo-game/ (100% 真实 RGS 5+3 域 gRPC, commit ffe1778). 原 description: (Rust + actix-web 4 + tokio + tonic 0.12 gRPC client + mTLS, per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1, 闪烁之光 1351 RPC gateway/verification harness, 12 大类 PoC v0.1 = 22 RPC)"
 license = "Apache-2.0"
 
 [[bin]]

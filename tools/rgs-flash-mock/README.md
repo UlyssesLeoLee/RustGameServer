@@ -1,6 +1,20 @@
 # rgs-flash-mock — 闪烁之光 1351 RPC gateway/verification harness
 
-> **Status**: v0.1 PoC (12 大类 22 RPC 抽样 stub 模式)
+> ## ⚠️ **DEPRECATED** (per 2026-09-09 12:35 JST Ulysses 拍板)
+>
+> **本项目 (rgs-flash-mock) 已被标记为 deprecated, 不再维护。**
+>
+> **原因**: per Ulysses 2026-09-09 11:31 JST "闪烁之光前端本身就是用来验证 rgs 功能的, 所以不需要多余的为此设置 mock, 目的就是让 rgs 完全取代 erlang 版本"。零 mock 原则 — 真实 RGS 5 域 gRPC server + 真实 DB, 不用 stub。
+>
+> **替代方案**: [`tools/rgs-shanshuo-game/`](../rgs-shanshuo-game/README.md) — 闪烁之光 RGS 版 PoC, 100% 真实 RGS 5+3 域 gRPC 联动 (commit `ffe1778`, 9/9 12:30 JST 完工)。
+>
+> **保留原因**: 短期保留 (v0.2 不删) — 旧 v0.1 PoC 22 RPC stub 测试可作为回归 baseline 参考; 真正替代已落地在 `tools/rgs-shanshuo-game/`。
+>
+> **端口 8791**: 已 DOWN (per 9/9 12:35 JST 验证)。如需重启, 需 Ulysses 显式拍板。
+>
+> 详见 [`DEPRECATED.md`](./DEPRECATED.md)
+
+> **Status**: v0.1 PoC (12 大类 22 RPC 抽样 stub 模式) — **DEPRECATED, 见上**
 > **Design**: [`docs/14-项目治理/RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.1.md`](../../docs/14-项目治理/RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.1.md)
 > **Audit**: [`RGS-DDD-2026-09-04-GAP-AUDIT_v0.3`](../../docs/14-项目治理/RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md) (bb9f977)
 > **Overlap**: [`RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2`](../../docs/14-项目治理/RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md) (2e3d9ee)
