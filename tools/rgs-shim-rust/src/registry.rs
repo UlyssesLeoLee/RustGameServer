@@ -151,6 +151,83 @@ impl Registry {
         map.insert(13518, CmdEntry { handler: handlers_social::handle_13518_guild_info, name: "guild_info (proto_135, RGS social.GetGuild)", source: "zsyz" });
         map.insert(13519, CmdEntry { handler: handlers_social::handle_13519_guild_members, name: "guild_members (proto_135)", source: "zsyz" });
         map.insert(13523, CmdEntry { handler: handlers_social::handle_13523_donate_info, name: "donate_info (proto_135)", source: "zsyz" });
+
+        // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 派工): battle 域 66 cmd 真实 handler
+        // 范围: 19800-19807 + 19901-19908 (战斗/录像, 15) + 25100-25841 (任务/成就/城市/矿脉, 51)
+        // 覆盖 stub-19800..stub-19908 + stub-25100..stub-25841
+        // --- 战斗结果 / 录像 (19800-19807, 19901-19908) ---
+        map.insert(19800, CmdEntry { handler: handlers::handle_battle_result, name: "battle_result", source: "zsyz" });
+        map.insert(19801, CmdEntry { handler: handlers::handle_battle_result_ack, name: "battle_result_ack", source: "zsyz" });
+        map.insert(19802, CmdEntry { handler: handlers::handle_replay_list, name: "replay_list", source: "zsyz" });
+        map.insert(19804, CmdEntry { handler: handlers::handle_replay_rewards, name: "replay_rewards", source: "zsyz" });
+        map.insert(19805, CmdEntry { handler: handlers::handle_claim_replay_reward, name: "claim_replay_reward", source: "zsyz" });
+        map.insert(19806, CmdEntry { handler: handlers::handle_battle_status, name: "battle_status", source: "zsyz" });
+        map.insert(19807, CmdEntry { handler: handlers::handle_battle_opponent, name: "battle_opponent", source: "zsyz" });
+        map.insert(19901, CmdEntry { handler: handlers::handle_replay_query, name: "replay_query", source: "zsyz" });
+        map.insert(19902, CmdEntry { handler: handlers::handle_replay_paged_query, name: "replay_paged_query", source: "zsyz" });
+        map.insert(19903, CmdEntry { handler: handlers::handle_replay_like, name: "replay_like", source: "zsyz" });
+        map.insert(19904, CmdEntry { handler: handlers::handle_replay_op, name: "replay_op", source: "zsyz" });
+        map.insert(19905, CmdEntry { handler: handlers::handle_replay_share, name: "replay_share", source: "zsyz" });
+        map.insert(19906, CmdEntry { handler: handlers::handle_replay_like_count, name: "replay_like_count", source: "zsyz" });
+        map.insert(19907, CmdEntry { handler: handlers::handle_replay_hero, name: "replay_hero", source: "zsyz" });
+        map.insert(19908, CmdEntry { handler: handlers::handle_replay_detail, name: "replay_detail", source: "zsyz" });
+        // --- 日常任务 (25100-25102) ---
+        map.insert(25100, CmdEntry { handler: handlers::handle_daily_quest, name: "daily_quest", source: "zsyz" });
+        map.insert(25101, CmdEntry { handler: handlers::handle_daily_quest_claim, name: "daily_quest_claim", source: "zsyz" });
+        map.insert(25102, CmdEntry { handler: handlers::handle_daily_quest_flag, name: "daily_quest_flag", source: "zsyz" });
+        // --- 月卡/周卡 (25300-25309) ---
+        map.insert(25300, CmdEntry { handler: handlers::handle_card_state, name: "card_state", source: "zsyz" });
+        map.insert(25301, CmdEntry { handler: handlers::handle_card_list, name: "card_list", source: "zsyz" });
+        map.insert(25302, CmdEntry { handler: handlers::handle_card_op, name: "card_op", source: "zsyz" });
+        map.insert(25303, CmdEntry { handler: handlers::handle_card_reward, name: "card_reward", source: "zsyz" });
+        map.insert(25304, CmdEntry { handler: handlers::handle_card_claim, name: "card_claim", source: "zsyz" });
+        map.insert(25305, CmdEntry { handler: handlers::handle_card_exp, name: "card_exp", source: "zsyz" });
+        map.insert(25306, CmdEntry { handler: handlers::handle_card_gift, name: "card_gift", source: "zsyz" });
+        map.insert(25307, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_07", source: "zsyz" });
+        map.insert(25308, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_08", source: "zsyz" });
+        map.insert(25309, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_09", source: "zsyz" });
+        // --- 竞技场/挑战 (25400-25414) ---
+        map.insert(25400, CmdEntry { handler: handlers::handle_arena_state, name: "arena_state", source: "zsyz" });
+        map.insert(25401, CmdEntry { handler: handlers::handle_arena_ext, name: "arena_ext", source: "zsyz" });
+        map.insert(25402, CmdEntry { handler: handlers::handle_arena_buy, name: "arena_buy", source: "zsyz" });
+        map.insert(25403, CmdEntry { handler: handlers::handle_arena_reward, name: "arena_reward", source: "zsyz" });
+        map.insert(25404, CmdEntry { handler: handlers::handle_arena_simple, name: "arena_simple_04", source: "zsyz" });
+        map.insert(25405, CmdEntry { handler: handlers::handle_arena_battle, name: "arena_battle", source: "zsyz" });
+        map.insert(25410, CmdEntry { handler: handlers::handle_arena_round, name: "arena_round", source: "zsyz" });
+        map.insert(25411, CmdEntry { handler: handlers::handle_arena_buy_round, name: "arena_buy_round", source: "zsyz" });
+        map.insert(25412, CmdEntry { handler: handlers::handle_arena_simple, name: "arena_simple_12", source: "zsyz" });
+        map.insert(25413, CmdEntry { handler: handlers::handle_arena_simple, name: "arena_simple_13", source: "zsyz" });
+        map.insert(25414, CmdEntry { handler: handlers::handle_arena_partner_list, name: "arena_partner_list", source: "zsyz" });
+        // --- 城市/荣誉 (25800-25807) ---
+        map.insert(25800, CmdEntry { handler: handlers::handle_city_enter, name: "city_enter", source: "zsyz" });
+        map.insert(25801, CmdEntry { handler: handlers::handle_city_op, name: "city_op", source: "zsyz" });
+        map.insert(25802, CmdEntry { handler: handlers::handle_city_rank, name: "city_rank", source: "zsyz" });
+        map.insert(25805, CmdEntry { handler: handlers::handle_honor_set, name: "honor_set", source: "zsyz" });
+        map.insert(25806, CmdEntry { handler: handlers::handle_honor_get, name: "honor_get", source: "zsyz" });
+        map.insert(25807, CmdEntry { handler: handlers::handle_honor_default, name: "honor_default", source: "zsyz" });
+        // --- 成就 (25810-25820) ---
+        map.insert(25810, CmdEntry { handler: handlers::handle_achievement_list, name: "achievement_list_10", source: "zsyz" });
+        map.insert(25811, CmdEntry { handler: handlers::handle_achievement_list, name: "achievement_list_11", source: "zsyz" });
+        map.insert(25812, CmdEntry { handler: handlers::handle_achievement_claim, name: "achievement_claim", source: "zsyz" });
+        map.insert(25813, CmdEntry { handler: handlers::handle_achievement_view, name: "achievement_view", source: "zsyz" });
+        map.insert(25814, CmdEntry { handler: handlers::handle_achievement_simple, name: "achievement_simple_14", source: "zsyz" });
+        map.insert(25815, CmdEntry { handler: handlers::handle_achievement_simple, name: "achievement_simple_15", source: "zsyz" });
+        map.insert(25816, CmdEntry { handler: handlers::handle_achievement_share, name: "achievement_share_16", source: "zsyz" });
+        map.insert(25817, CmdEntry { handler: handlers::handle_achievement_share_op, name: "achievement_share_op", source: "zsyz" });
+        map.insert(25818, CmdEntry { handler: handlers::handle_achievement_share, name: "achievement_share_18", source: "zsyz" });
+        map.insert(25819, CmdEntry { handler: handlers::handle_achievement_share_query, name: "achievement_share_query", source: "zsyz" });
+        map.insert(25820, CmdEntry { handler: handlers::handle_achievement_share_reward, name: "achievement_share_reward", source: "zsyz" });
+        // --- 矿脉/BBS (25830-25841) ---
+        map.insert(25830, CmdEntry { handler: handlers::handle_room_grow, name: "room_grow", source: "zsyz" });
+        map.insert(25831, CmdEntry { handler: handlers::handle_room_op, name: "room_op_31", source: "zsyz" });
+        map.insert(25832, CmdEntry { handler: handlers::handle_room_other, name: "room_other", source: "zsyz" });
+        map.insert(25835, CmdEntry { handler: handlers::handle_bbs_send, name: "bbs_send_35", source: "zsyz" });
+        map.insert(25836, CmdEntry { handler: handlers::handle_bbs_send, name: "bbs_send_36", source: "zsyz" });
+        map.insert(25837, CmdEntry { handler: handlers::handle_bbs_list, name: "bbs_list", source: "zsyz" });
+        map.insert(25838, CmdEntry { handler: handlers::handle_bbs_delete, name: "bbs_delete", source: "zsyz" });
+        map.insert(25839, CmdEntry { handler: handlers::handle_bbs_type, name: "bbs_type", source: "zsyz" });
+        map.insert(25840, CmdEntry { handler: handlers::handle_bbs_praise, name: "bbs_praise", source: "zsyz" });
+        map.insert(25841, CmdEntry { handler: handlers::handle_bbs_full, name: "bbs_full", source: "zsyz" });
         Registry { map }
     }
 
