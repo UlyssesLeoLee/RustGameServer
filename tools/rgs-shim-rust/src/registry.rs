@@ -1,19 +1,19 @@
-// Cmd registry (per 9/9 13:50 JST v0.2 模式, Rust 重写 v0.3.0)
-// 6 个内置 cmd; 后续 worker 扩自己域时, 加新表项 + handler 函数
+// Cmd registry (per 9/9 13:50 JST v0.2 妯″紡, Rust 閲嶅啓 v0.3.0)
+// 6 涓唴缃?cmd; 鍚庣画 worker 鎵╄嚜宸卞煙鏃? 鍔犳柊琛ㄩ」 + handler 鍑芥暟
 //
-// 设计: handler 取 owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
-// 返回 Pin<Box<dyn Future + Send>> 不绑 lifetime, 避免 HRTB 复杂度
-// & self 的 lifetime 也不进 future (entry.handler 是 fn pointer, 不是闭包)
+// 璁捐: handler 鍙?owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
+// 杩斿洖 Pin<Box<dyn Future + Send>> 涓嶇粦 lifetime, 閬垮厤 HRTB 澶嶆潅搴?
+// & self 鐨?lifetime 涔熶笉杩?future (entry.handler 鏄?fn pointer, 涓嶆槸闂寘)
 //
-// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 拍板):
-// - 10101 / 10102 / 10103 / 10200 来自 zsyz_server proto_101.erl + proto_102.erl (真 zsyz cmd)
-// - 10400 / 11001 是 shim-internal RGS 测试 cmd (Erlang 10400=quest_list, 11001=partner_list, 不复用)
-// - 业务覆盖率 1.2% (4/514 real cmd), 1-2 周 4 worker 扩 (per 9/9 13:45 JST 拍板 A)
+// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 鎷嶆澘):
+// - 10101 / 10102 / 10103 / 10200 鏉ヨ嚜 zsyz_server proto_101.erl + proto_102.erl (鐪?zsyz cmd)
+// - 10400 / 11001 鏄?shim-internal RGS 娴嬭瘯 cmd (Erlang 10400=quest_list, 11001=partner_list, 涓嶅鐢?
+// - 涓氬姟瑕嗙洊鐜?1.2% (4/514 real cmd), 1-2 鍛?4 worker 鎵?(per 9/9 13:45 JST 鎷嶆澘 A)
 //
-// v0.3.2 (per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景"):
-// - 战斗场景 cmd 6 个: 10215 move / 10300 ping / 10301 role_info / 10302 assets / 10309 signature / 10315 view_role
-// - 来源: zsyz_server proto_102.erl (10215) + proto_103.erl (10300/10301/10302/10309/10315)
-// - 业务覆盖率 1.9% (10/514 real cmd)
+// v0.3.2 (per 2026-09-09 15:10 JST Ulysses 鎷嶆澘 "閲嶆祴鐩村埌鎴樻枟鍦烘櫙"):
+// - 鎴樻枟鍦烘櫙 cmd 6 涓? 10215 move / 10300 ping / 10301 role_info / 10302 assets / 10309 signature / 10315 view_role
+// - 鏉ユ簮: zsyz_server proto_102.erl (10215) + proto_103.erl (10300/10301/10302/10309/10315)
+// - 涓氬姟瑕嗙洊鐜?1.9% (10/514 real cmd)
 
 use crate::handlers;
 use crate::handlers_social;
@@ -22,8 +22,8 @@ use std::pin::Pin;
 use std::future::Future;
 use std::sync::Arc;
 
-// 注意: 返回 future 不能 bind lifetime, 所以 future bound = 'static
-// (handler 内部 clone Arc, 不持有外部引用)
+// 娉ㄦ剰: 杩斿洖 future 涓嶈兘 bind lifetime, 鎵€浠?future bound = 'static
+// (handler 鍐呴儴 clone Arc, 涓嶆寔鏈夊閮ㄥ紩鐢?
 pub type AsyncHandler = fn(
     u16,                 // cmd
     Vec<u8>,             // payload owned
@@ -34,7 +34,7 @@ pub struct CmdEntry {
     pub handler: AsyncHandler,
     #[allow(dead_code)]
     pub name: &'static str,
-    /// 来源: "zsyz" = 真 zsyz_client cmd (per proto_*.erl); "shim" = shim-internal RGS 测试
+    /// 鏉ユ簮: "zsyz" = 鐪?zsyz_client cmd (per proto_*.erl); "shim" = shim-internal RGS 娴嬭瘯
     #[allow(dead_code)]
     pub source: &'static str,
 }
@@ -46,27 +46,27 @@ pub struct Registry {
 impl Registry {
     pub fn new() -> Self {
         let mut map = std::collections::HashMap::new();
-        // 真 zsyz_client cmd (per zsyz_server/src/proto/proto_101.erl + proto_102.erl)
+        // 鐪?zsyz_client cmd (per zsyz_server/src/proto/proto_101.erl + proto_102.erl)
         map.insert(10101, CmdEntry { handler: handlers::handle_register, name: "register", source: "zsyz" });
         map.insert(10102, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server", source: "zsyz" });
         map.insert(10103, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server (alias)", source: "zsyz" });
         map.insert(10200, CmdEntry { handler: handlers::handle_map_enter, name: "map_enter", source: "zsyz" });
-        // 战斗场景 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
-        // 来源: proto_102.erl + proto_103.erl
+        // 鎴樻枟鍦烘櫙 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 鎷嶆澘 "閲嶆祴鐩村埌鎴樻枟鍦烘櫙")
+        // 鏉ユ簮: proto_102.erl + proto_103.erl
         map.insert(10215, CmdEntry { handler: handlers::handle_move, name: "move (RGS match SubmitMove)", source: "zsyz" });
         map.insert(10300, CmdEntry { handler: handlers::handle_ping, name: "ping (empty payload)", source: "zsyz" });
         map.insert(10301, CmdEntry { handler: handlers::handle_role_info, name: "role_info (RGS player.GetPlayer)", source: "zsyz" });
         map.insert(10302, CmdEntry { handler: handlers::handle_assets, name: "assets (RGS economy.GetAccount)", source: "zsyz" });
         map.insert(10309, CmdEntry { handler: handlers::handle_signature, name: "signature (set/edit)", source: "zsyz" });
         map.insert(10315, CmdEntry { handler: handlers::handle_view_role, name: "view_role (RGS player+social)", source: "zsyz" });
-        // shim-internal RGS 测试 cmd (Erlang 10400=quest_list/11001=partner_list, 不复用)
-        map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)", source: "shim" });
+        // shim-internal RGS 娴嬭瘯 cmd (Erlang 10400=quest_list/11001=partner_list, 涓嶅鐢?
+        map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 鍩?HealthCheck)", source: "shim" });
         map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)", source: "shim" });
 
-        // v0.5.0 (per 2026-09-09 19:32 JST Mavis 派工 w1): 53 个 player 域 stub 替换为 real handler
-        // 来源: zsyz_server/src/proto/proto_103.erl + proto_104.erl + proto_105.erl + proto_108.erl + proto_109.erl
-        // 业务覆盖: player 域 65/65 (100%) — 12 已有 + 53 新增
-        // 注: or_insert 语义, 这里先 insert 优先; stubs 阶段仍保留, 但会被覆盖
+        // v0.5.0 (per 2026-09-09 19:32 JST Mavis 娲惧伐 w1): 53 涓?player 鍩?stub 鏇挎崲涓?real handler
+        // 鏉ユ簮: zsyz_server/src/proto/proto_103.erl + proto_104.erl + proto_105.erl + proto_108.erl + proto_109.erl
+        // 涓氬姟瑕嗙洊: player 鍩?65/65 (100%) 鈥?12 宸叉湁 + 53 鏂板
+        // 娉? or_insert 璇箟, 杩欓噷鍏?insert 浼樺厛; stubs 闃舵浠嶄繚鐣? 浣嗕細琚鐩?
         map.insert(10312, CmdEntry { handler: handlers::handle_10312, name: "10312 empty (RGS)", source: "zsyz" });
         map.insert(10316, CmdEntry { handler: handlers::handle_10316, name: "10316 view_role_idx", source: "zsyz" });
         map.insert(10317, CmdEntry { handler: handlers::handle_10317, name: "10317 worship", source: "zsyz" });
@@ -84,11 +84,11 @@ impl Registry {
         map.insert(10395, CmdEntry { handler: handlers::handle_10395, name: "10395 notify", source: "zsyz" });
         map.insert(10397, CmdEntry { handler: handlers::handle_10397, name: "10397 online_status", source: "zsyz" });
         map.insert(10399, CmdEntry { handler: handlers::handle_10399, name: "10399 feedback", source: "zsyz" });
-        // quest 域
+        // quest 鍩?
         map.insert(10402, CmdEntry { handler: handlers::handle_10402, name: "10402 accept_quest (RGS player.UpdateProfile)", source: "zsyz" });
         map.insert(10405, CmdEntry { handler: handlers::handle_10405, name: "10405 finish_quest", source: "zsyz" });
         map.insert(10406, CmdEntry { handler: handlers::handle_10406, name: "10406 giveup_quest", source: "zsyz" });
-        // 物品/装备 域
+        // 鐗╁搧/瑁呭 鍩?
         map.insert(10500, CmdEntry { handler: handlers::handle_10500, name: "10500 bag_list", source: "zsyz" });
         map.insert(10501, CmdEntry { handler: handlers::handle_10501, name: "10501 equip_list", source: "zsyz" });
         map.insert(10515, CmdEntry { handler: handlers::handle_10515, name: "10515 use_item", source: "zsyz" });
@@ -101,14 +101,14 @@ impl Registry {
         map.insert(10528, CmdEntry { handler: handlers::handle_10528, name: "10528 exp_pool", source: "zsyz" });
         map.insert(10535, CmdEntry { handler: handlers::handle_10535, name: "10535 bag_clear", source: "zsyz" });
         map.insert(10536, CmdEntry { handler: handlers::handle_10536, name: "10536 equip_refresh", source: "zsyz" });
-        // 邮件 域
+        // 閭欢 鍩?
         map.insert(10800, CmdEntry { handler: handlers::handle_10800, name: "10800 mail_list", source: "zsyz" });
         map.insert(10801, CmdEntry { handler: handlers::handle_10801, name: "10801 mail_read", source: "zsyz" });
         map.insert(10802, CmdEntry { handler: handlers::handle_10802, name: "10802 mail_unread", source: "zsyz" });
         map.insert(10804, CmdEntry { handler: handlers::handle_10804, name: "10804 mail_delete", source: "zsyz" });
         map.insert(10805, CmdEntry { handler: handlers::handle_10805, name: "10805 mail_attach", source: "zsyz" });
         map.insert(10810, CmdEntry { handler: handlers::handle_10810, name: "10810 mail_issue", source: "zsyz" });
-        // 10900-10999 杂项
+        // 10900-10999 鏉傞」
         map.insert(10900, CmdEntry { handler: handlers::handle_10900, name: "10900 silence", source: "zsyz" });
         map.insert(10901, CmdEntry { handler: handlers::handle_10901, name: "10901 ban", source: "zsyz" });
         map.insert(10902, CmdEntry { handler: handlers::handle_10902, name: "10902 stop_role", source: "zsyz" });
@@ -128,15 +128,15 @@ impl Registry {
         map.insert(10956, CmdEntry { handler: handlers::handle_10956, name: "10956 sdk_ack", source: "zsyz" });
         map.insert(10999, CmdEntry { handler: handlers::handle_10999, name: "10999 sdk_notify", source: "zsyz" });
 
-        // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 自动注册 766 全 zsyz send cmd stub
-        // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
-        // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
-        // 注: w1 已替换 53 player 域 cmd, 这里只注册 w2-w5 范围的 stub (partner/battle/social/welfare/admin)
+        // v0.4.0 (per 2026-09-09 16:25 JST Mavis 娲惧伐): 鑷姩娉ㄥ唽 766 鍏?zsyz send cmd stub
+        // 鏉ユ簮: H5 zsyz_client proto_mate.js 鎻愬彇, 鍩熷垎甯?welfare=110/partner=108/battle=103/social=93/...
+        // stub 杩斿洖绌?payload (鍚庣画 worker 娲惧伐閫愪釜鏇挎崲涓?real handler)
+        // 娉? w1 宸叉浛鎹?53 player 鍩?cmd, 杩欓噷鍙敞鍐?w2-w5 鑼冨洿鐨?stub (partner/battle/social/welfare/admin)
         crate::registry_stubs::register_stubs(&mut map);
-        // v0.4.1 (per 2026-09-09 19:30 JST Mavis 派工 w4): social 域 14 POC handler
-        // 来源: proto_130.erl (dungeon 4) + proto_133.erl (friend 4) + proto_134.erl (exchange 2) + proto_135.erl (guild 4)
-        // 完整 93 cmd 扩需 1-2 周, 当前 14 handler 字节级对齐 erlang pack(srv, ...)
-        // 已知缺口 (per 9/9 19:30 派工): 79/93 cmd 仍 stub (13001-13004/13007-13040 副本 + 13301-13334 好友 + 13402-13420 兑换 + 13501-13576 公会 + 13601-13608 + 16601-16900 跨服)
+        // v0.4.1 (per 2026-09-09 19:30 JST Mavis 娲惧伐 w4): social 鍩?14 POC handler
+        // 鏉ユ簮: proto_130.erl (dungeon 4) + proto_133.erl (friend 4) + proto_134.erl (exchange 2) + proto_135.erl (guild 4)
+        // 瀹屾暣 93 cmd 鎵╅渶 1-2 鍛? 褰撳墠 14 handler 瀛楄妭绾у榻?erlang pack(srv, ...)
+        // 宸茬煡缂哄彛 (per 9/9 19:30 娲惧伐): 79/93 cmd 浠?stub (13001-13004/13007-13040 鍓湰 + 13301-13334 濂藉弸 + 13402-13420 鍏戞崲 + 13501-13576 鍏細 + 13601-13608 + 16601-16900 璺ㄦ湇)
         map.insert(13000, CmdEntry { handler: handlers_social::handle_13000_dungeon_list, name: "dungeon_list (proto_130)", source: "zsyz" });
         map.insert(13005, CmdEntry { handler: handlers_social::handle_13005_dungeon_battle, name: "dungeon_battle (proto_130)", source: "zsyz" });
         map.insert(13006, CmdEntry { handler: handlers_social::handle_13006_dungeon_count, name: "dungeon_count (proto_130)", source: "zsyz" });
@@ -152,10 +152,10 @@ impl Registry {
         map.insert(13519, CmdEntry { handler: handlers_social::handle_13519_guild_members, name: "guild_members (proto_135)", source: "zsyz" });
         map.insert(13523, CmdEntry { handler: handlers_social::handle_13523_donate_info, name: "donate_info (proto_135)", source: "zsyz" });
 
-        // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 派工): battle 域 66 cmd 真实 handler
-        // 范围: 19800-19807 + 19901-19908 (战斗/录像, 15) + 25100-25841 (任务/成就/城市/矿脉, 51)
-        // 覆盖 stub-19800..stub-19908 + stub-25100..stub-25841
-        // --- 战斗结果 / 录像 (19800-19807, 19901-19908) ---
+        // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 娲惧伐): battle 鍩?66 cmd 鐪熷疄 handler
+        // 鑼冨洿: 19800-19807 + 19901-19908 (鎴樻枟/褰曞儚, 15) + 25100-25841 (浠诲姟/鎴愬氨/鍩庡競/鐭胯剦, 51)
+        // 瑕嗙洊 stub-19800..stub-19908 + stub-25100..stub-25841
+        // --- 鎴樻枟缁撴灉 / 褰曞儚 (19800-19807, 19901-19908) ---
         map.insert(19800, CmdEntry { handler: handlers::handle_battle_result, name: "battle_result", source: "zsyz" });
         map.insert(19801, CmdEntry { handler: handlers::handle_battle_result_ack, name: "battle_result_ack", source: "zsyz" });
         map.insert(19802, CmdEntry { handler: handlers::handle_replay_list, name: "replay_list", source: "zsyz" });
@@ -171,11 +171,11 @@ impl Registry {
         map.insert(19906, CmdEntry { handler: handlers::handle_replay_like_count, name: "replay_like_count", source: "zsyz" });
         map.insert(19907, CmdEntry { handler: handlers::handle_replay_hero, name: "replay_hero", source: "zsyz" });
         map.insert(19908, CmdEntry { handler: handlers::handle_replay_detail, name: "replay_detail", source: "zsyz" });
-        // --- 日常任务 (25100-25102) ---
+        // --- 鏃ュ父浠诲姟 (25100-25102) ---
         map.insert(25100, CmdEntry { handler: handlers::handle_daily_quest, name: "daily_quest", source: "zsyz" });
         map.insert(25101, CmdEntry { handler: handlers::handle_daily_quest_claim, name: "daily_quest_claim", source: "zsyz" });
         map.insert(25102, CmdEntry { handler: handlers::handle_daily_quest_flag, name: "daily_quest_flag", source: "zsyz" });
-        // --- 月卡/周卡 (25300-25309) ---
+        // --- 鏈堝崱/鍛ㄥ崱 (25300-25309) ---
         map.insert(25300, CmdEntry { handler: handlers::handle_card_state, name: "card_state", source: "zsyz" });
         map.insert(25301, CmdEntry { handler: handlers::handle_card_list, name: "card_list", source: "zsyz" });
         map.insert(25302, CmdEntry { handler: handlers::handle_card_op, name: "card_op", source: "zsyz" });
@@ -186,7 +186,7 @@ impl Registry {
         map.insert(25307, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_07", source: "zsyz" });
         map.insert(25308, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_08", source: "zsyz" });
         map.insert(25309, CmdEntry { handler: handlers::handle_card_misc, name: "card_misc_09", source: "zsyz" });
-        // --- 竞技场/挑战 (25400-25414) ---
+        // --- 绔炴妧鍦?鎸戞垬 (25400-25414) ---
         map.insert(25400, CmdEntry { handler: handlers::handle_arena_state, name: "arena_state", source: "zsyz" });
         map.insert(25401, CmdEntry { handler: handlers::handle_arena_ext, name: "arena_ext", source: "zsyz" });
         map.insert(25402, CmdEntry { handler: handlers::handle_arena_buy, name: "arena_buy", source: "zsyz" });
@@ -198,14 +198,14 @@ impl Registry {
         map.insert(25412, CmdEntry { handler: handlers::handle_arena_simple, name: "arena_simple_12", source: "zsyz" });
         map.insert(25413, CmdEntry { handler: handlers::handle_arena_simple, name: "arena_simple_13", source: "zsyz" });
         map.insert(25414, CmdEntry { handler: handlers::handle_arena_partner_list, name: "arena_partner_list", source: "zsyz" });
-        // --- 城市/荣誉 (25800-25807) ---
+        // --- 鍩庡競/鑽ｈ獕 (25800-25807) ---
         map.insert(25800, CmdEntry { handler: handlers::handle_city_enter, name: "city_enter", source: "zsyz" });
         map.insert(25801, CmdEntry { handler: handlers::handle_city_op, name: "city_op", source: "zsyz" });
         map.insert(25802, CmdEntry { handler: handlers::handle_city_rank, name: "city_rank", source: "zsyz" });
         map.insert(25805, CmdEntry { handler: handlers::handle_honor_set, name: "honor_set", source: "zsyz" });
         map.insert(25806, CmdEntry { handler: handlers::handle_honor_get, name: "honor_get", source: "zsyz" });
         map.insert(25807, CmdEntry { handler: handlers::handle_honor_default, name: "honor_default", source: "zsyz" });
-        // --- 成就 (25810-25820) ---
+        // --- 鎴愬氨 (25810-25820) ---
         map.insert(25810, CmdEntry { handler: handlers::handle_achievement_list, name: "achievement_list_10", source: "zsyz" });
         map.insert(25811, CmdEntry { handler: handlers::handle_achievement_list, name: "achievement_list_11", source: "zsyz" });
         map.insert(25812, CmdEntry { handler: handlers::handle_achievement_claim, name: "achievement_claim", source: "zsyz" });
@@ -217,7 +217,7 @@ impl Registry {
         map.insert(25818, CmdEntry { handler: handlers::handle_achievement_share, name: "achievement_share_18", source: "zsyz" });
         map.insert(25819, CmdEntry { handler: handlers::handle_achievement_share_query, name: "achievement_share_query", source: "zsyz" });
         map.insert(25820, CmdEntry { handler: handlers::handle_achievement_share_reward, name: "achievement_share_reward", source: "zsyz" });
-        // --- 矿脉/BBS (25830-25841) ---
+        // --- 鐭胯剦/BBS (25830-25841) ---
         map.insert(25830, CmdEntry { handler: handlers::handle_room_grow, name: "room_grow", source: "zsyz" });
         map.insert(25831, CmdEntry { handler: handlers::handle_room_op, name: "room_op_31", source: "zsyz" });
         map.insert(25832, CmdEntry { handler: handlers::handle_room_other, name: "room_other", source: "zsyz" });
@@ -228,6 +228,184 @@ impl Registry {
         map.insert(25839, CmdEntry { handler: handlers::handle_bbs_type, name: "bbs_type", source: "zsyz" });
         map.insert(25840, CmdEntry { handler: handlers::handle_bbs_praise, name: "bbs_praise", source: "zsyz" });
         map.insert(25841, CmdEntry { handler: handlers::handle_bbs_full, name: "bbs_full", source: "zsyz" });
+                // v0.6.0 w5-2 (per 2026-09-09 20:17 JST Mavis 娲惧伐): 173 cmd real handler
+        // 110 welfare (24000-24999) + 30 partner (11000-11999) + 33 social (16000-17999)
+        // 瀛楄妭绾у榻?proto_mate.js send cmd, simple real handler pattern
+        // 瑕嗙洊 registry_stubs.rs 涓殑瀵瑰簲 stub, 鏀圭敤 real handler
+        // 宸茬煡缂哄彛: main HEAD 鏈?pre-existing build 閿欒 (w2 鍚堝苟閬楃暀), w5-2 鑼冨洿鍐?3 澶勫凡鏈€灏忎慨澶?
+        map.insert(24000, CmdEntry { handler: handlers::handle_welfare_24000, name: "welfare-24000 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24001, CmdEntry { handler: handlers::handle_welfare_24001, name: "welfare-24001 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24002, CmdEntry { handler: handlers::handle_welfare_24002, name: "welfare-24002 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24003, CmdEntry { handler: handlers::handle_welfare_24003, name: "welfare-24003 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24004, CmdEntry { handler: handlers::handle_welfare_24004, name: "welfare-24004 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24005, CmdEntry { handler: handlers::handle_welfare_24005, name: "welfare-24005 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24006, CmdEntry { handler: handlers::handle_welfare_24006, name: "welfare-24006 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24010, CmdEntry { handler: handlers::handle_welfare_24010, name: "welfare-24010 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24011, CmdEntry { handler: handlers::handle_welfare_24011, name: "welfare-24011 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24012, CmdEntry { handler: handlers::handle_welfare_24012, name: "welfare-24012 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24013, CmdEntry { handler: handlers::handle_welfare_24013, name: "welfare-24013 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24014, CmdEntry { handler: handlers::handle_welfare_24014, name: "welfare-24014 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24015, CmdEntry { handler: handlers::handle_welfare_24015, name: "welfare-24015 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24017, CmdEntry { handler: handlers::handle_welfare_24017, name: "welfare-24017 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24018, CmdEntry { handler: handlers::handle_welfare_24018, name: "welfare-24018 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24019, CmdEntry { handler: handlers::handle_welfare_24019, name: "welfare-24019 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24020, CmdEntry { handler: handlers::handle_welfare_24020, name: "welfare-24020 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24100, CmdEntry { handler: handlers::handle_welfare_24100, name: "welfare-24100 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24101, CmdEntry { handler: handlers::handle_welfare_24101, name: "welfare-24101 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24103, CmdEntry { handler: handlers::handle_welfare_24103, name: "welfare-24103 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24104, CmdEntry { handler: handlers::handle_welfare_24104, name: "welfare-24104 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24107, CmdEntry { handler: handlers::handle_welfare_24107, name: "welfare-24107 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24108, CmdEntry { handler: handlers::handle_welfare_24108, name: "welfare-24108 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24120, CmdEntry { handler: handlers::handle_welfare_24120, name: "welfare-24120 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24121, CmdEntry { handler: handlers::handle_welfare_24121, name: "welfare-24121 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24122, CmdEntry { handler: handlers::handle_welfare_24122, name: "welfare-24122 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24123, CmdEntry { handler: handlers::handle_welfare_24123, name: "welfare-24123 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24124, CmdEntry { handler: handlers::handle_welfare_24124, name: "welfare-24124 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24125, CmdEntry { handler: handlers::handle_welfare_24125, name: "welfare-24125 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24126, CmdEntry { handler: handlers::handle_welfare_24126, name: "welfare-24126 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24127, CmdEntry { handler: handlers::handle_welfare_24127, name: "welfare-24127 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24128, CmdEntry { handler: handlers::handle_welfare_24128, name: "welfare-24128 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24129, CmdEntry { handler: handlers::handle_welfare_24129, name: "welfare-24129 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24130, CmdEntry { handler: handlers::handle_welfare_24130, name: "welfare-24130 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24131, CmdEntry { handler: handlers::handle_welfare_24131, name: "welfare-24131 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24132, CmdEntry { handler: handlers::handle_welfare_24132, name: "welfare-24132 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24133, CmdEntry { handler: handlers::handle_welfare_24133, name: "welfare-24133 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24200, CmdEntry { handler: handlers::handle_welfare_24200, name: "welfare-24200 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24201, CmdEntry { handler: handlers::handle_welfare_24201, name: "welfare-24201 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24202, CmdEntry { handler: handlers::handle_welfare_24202, name: "welfare-24202 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24204, CmdEntry { handler: handlers::handle_welfare_24204, name: "welfare-24204 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24205, CmdEntry { handler: handlers::handle_welfare_24205, name: "welfare-24205 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24206, CmdEntry { handler: handlers::handle_welfare_24206, name: "welfare-24206 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24207, CmdEntry { handler: handlers::handle_welfare_24207, name: "welfare-24207 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24208, CmdEntry { handler: handlers::handle_welfare_24208, name: "welfare-24208 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24209, CmdEntry { handler: handlers::handle_welfare_24209, name: "welfare-24209 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24210, CmdEntry { handler: handlers::handle_welfare_24210, name: "welfare-24210 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24212, CmdEntry { handler: handlers::handle_welfare_24212, name: "welfare-24212 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24213, CmdEntry { handler: handlers::handle_welfare_24213, name: "welfare-24213 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24214, CmdEntry { handler: handlers::handle_welfare_24214, name: "welfare-24214 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24220, CmdEntry { handler: handlers::handle_welfare_24220, name: "welfare-24220 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24221, CmdEntry { handler: handlers::handle_welfare_24221, name: "welfare-24221 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24223, CmdEntry { handler: handlers::handle_welfare_24223, name: "welfare-24223 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24300, CmdEntry { handler: handlers::handle_welfare_24300, name: "welfare-24300 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24301, CmdEntry { handler: handlers::handle_welfare_24301, name: "welfare-24301 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24302, CmdEntry { handler: handlers::handle_welfare_24302, name: "welfare-24302 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24303, CmdEntry { handler: handlers::handle_welfare_24303, name: "welfare-24303 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24304, CmdEntry { handler: handlers::handle_welfare_24304, name: "welfare-24304 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24305, CmdEntry { handler: handlers::handle_welfare_24305, name: "welfare-24305 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24306, CmdEntry { handler: handlers::handle_welfare_24306, name: "welfare-24306 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24308, CmdEntry { handler: handlers::handle_welfare_24308, name: "welfare-24308 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24309, CmdEntry { handler: handlers::handle_welfare_24309, name: "welfare-24309 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24310, CmdEntry { handler: handlers::handle_welfare_24310, name: "welfare-24310 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24311, CmdEntry { handler: handlers::handle_welfare_24311, name: "welfare-24311 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24312, CmdEntry { handler: handlers::handle_welfare_24312, name: "welfare-24312 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24313, CmdEntry { handler: handlers::handle_welfare_24313, name: "welfare-24313 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24314, CmdEntry { handler: handlers::handle_welfare_24314, name: "welfare-24314 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24315, CmdEntry { handler: handlers::handle_welfare_24315, name: "welfare-24315 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24316, CmdEntry { handler: handlers::handle_welfare_24316, name: "welfare-24316 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24400, CmdEntry { handler: handlers::handle_welfare_24400, name: "welfare-24400 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24401, CmdEntry { handler: handlers::handle_welfare_24401, name: "welfare-24401 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24402, CmdEntry { handler: handlers::handle_welfare_24402, name: "welfare-24402 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24403, CmdEntry { handler: handlers::handle_welfare_24403, name: "welfare-24403 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24404, CmdEntry { handler: handlers::handle_welfare_24404, name: "welfare-24404 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24405, CmdEntry { handler: handlers::handle_welfare_24405, name: "welfare-24405 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24406, CmdEntry { handler: handlers::handle_welfare_24406, name: "welfare-24406 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24407, CmdEntry { handler: handlers::handle_welfare_24407, name: "welfare-24407 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24408, CmdEntry { handler: handlers::handle_welfare_24408, name: "welfare-24408 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24409, CmdEntry { handler: handlers::handle_welfare_24409, name: "welfare-24409 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24410, CmdEntry { handler: handlers::handle_welfare_24410, name: "welfare-24410 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24411, CmdEntry { handler: handlers::handle_welfare_24411, name: "welfare-24411 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24500, CmdEntry { handler: handlers::handle_welfare_24500, name: "welfare-24500 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24501, CmdEntry { handler: handlers::handle_welfare_24501, name: "welfare-24501 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24502, CmdEntry { handler: handlers::handle_welfare_24502, name: "welfare-24502 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24600, CmdEntry { handler: handlers::handle_welfare_24600, name: "welfare-24600 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24601, CmdEntry { handler: handlers::handle_welfare_24601, name: "welfare-24601 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24602, CmdEntry { handler: handlers::handle_welfare_24602, name: "welfare-24602 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24603, CmdEntry { handler: handlers::handle_welfare_24603, name: "welfare-24603 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24604, CmdEntry { handler: handlers::handle_welfare_24604, name: "welfare-24604 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24700, CmdEntry { handler: handlers::handle_welfare_24700, name: "welfare-24700 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24701, CmdEntry { handler: handlers::handle_welfare_24701, name: "welfare-24701 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24702, CmdEntry { handler: handlers::handle_welfare_24702, name: "welfare-24702 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24801, CmdEntry { handler: handlers::handle_welfare_24801, name: "welfare-24801 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24802, CmdEntry { handler: handlers::handle_welfare_24802, name: "welfare-24802 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24803, CmdEntry { handler: handlers::handle_welfare_24803, name: "welfare-24803 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24804, CmdEntry { handler: handlers::handle_welfare_24804, name: "welfare-24804 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24805, CmdEntry { handler: handlers::handle_welfare_24805, name: "welfare-24805 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24806, CmdEntry { handler: handlers::handle_welfare_24806, name: "welfare-24806 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24807, CmdEntry { handler: handlers::handle_welfare_24807, name: "welfare-24807 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24808, CmdEntry { handler: handlers::handle_welfare_24808, name: "welfare-24808 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24809, CmdEntry { handler: handlers::handle_welfare_24809, name: "welfare-24809 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24810, CmdEntry { handler: handlers::handle_welfare_24810, name: "welfare-24810 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24811, CmdEntry { handler: handlers::handle_welfare_24811, name: "welfare-24811 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24812, CmdEntry { handler: handlers::handle_welfare_24812, name: "welfare-24812 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24813, CmdEntry { handler: handlers::handle_welfare_24813, name: "welfare-24813 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24814, CmdEntry { handler: handlers::handle_welfare_24814, name: "welfare-24814 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24815, CmdEntry { handler: handlers::handle_welfare_24815, name: "welfare-24815 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24816, CmdEntry { handler: handlers::handle_welfare_24816, name: "welfare-24816 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24817, CmdEntry { handler: handlers::handle_welfare_24817, name: "welfare-24817 (w5-2 simple real)", source: "zsyz" });
+        map.insert(24818, CmdEntry { handler: handlers::handle_welfare_24818, name: "welfare-24818 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11000, CmdEntry { handler: handlers::handle_partner_11000, name: "partner-11000 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11002, CmdEntry { handler: handlers::handle_partner_11002, name: "partner-11002 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11003, CmdEntry { handler: handlers::handle_partner_11003, name: "partner-11003 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11004, CmdEntry { handler: handlers::handle_partner_11004, name: "partner-11004 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11005, CmdEntry { handler: handlers::handle_partner_11005, name: "partner-11005 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11006, CmdEntry { handler: handlers::handle_partner_11006, name: "partner-11006 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11007, CmdEntry { handler: handlers::handle_partner_11007, name: "partner-11007 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11008, CmdEntry { handler: handlers::handle_partner_11008, name: "partner-11008 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11009, CmdEntry { handler: handlers::handle_partner_11009, name: "partner-11009 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11010, CmdEntry { handler: handlers::handle_partner_11010, name: "partner-11010 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11011, CmdEntry { handler: handlers::handle_partner_11011, name: "partner-11011 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11012, CmdEntry { handler: handlers::handle_partner_11012, name: "partner-11012 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11015, CmdEntry { handler: handlers::handle_partner_11015, name: "partner-11015 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11016, CmdEntry { handler: handlers::handle_partner_11016, name: "partner-11016 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11017, CmdEntry { handler: handlers::handle_partner_11017, name: "partner-11017 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11019, CmdEntry { handler: handlers::handle_partner_11019, name: "partner-11019 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11020, CmdEntry { handler: handlers::handle_partner_11020, name: "partner-11020 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11025, CmdEntry { handler: handlers::handle_partner_11025, name: "partner-11025 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11026, CmdEntry { handler: handlers::handle_partner_11026, name: "partner-11026 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11030, CmdEntry { handler: handlers::handle_partner_11030, name: "partner-11030 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11031, CmdEntry { handler: handlers::handle_partner_11031, name: "partner-11031 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11032, CmdEntry { handler: handlers::handle_partner_11032, name: "partner-11032 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11033, CmdEntry { handler: handlers::handle_partner_11033, name: "partner-11033 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11034, CmdEntry { handler: handlers::handle_partner_11034, name: "partner-11034 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11035, CmdEntry { handler: handlers::handle_partner_11035, name: "partner-11035 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11036, CmdEntry { handler: handlers::handle_partner_11036, name: "partner-11036 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11037, CmdEntry { handler: handlers::handle_partner_11037, name: "partner-11037 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11038, CmdEntry { handler: handlers::handle_partner_11038, name: "partner-11038 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11040, CmdEntry { handler: handlers::handle_partner_11040, name: "partner-11040 (w5-2 simple real)", source: "zsyz" });
+        map.insert(11041, CmdEntry { handler: handlers::handle_partner_11041, name: "partner-11041 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16400, CmdEntry { handler: handlers::handle_social_16400, name: "social-16400 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16401, CmdEntry { handler: handlers::handle_social_16401, name: "social-16401 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16402, CmdEntry { handler: handlers::handle_social_16402, name: "social-16402 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16601, CmdEntry { handler: handlers::handle_social_16601, name: "social-16601 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16602, CmdEntry { handler: handlers::handle_social_16602, name: "social-16602 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16603, CmdEntry { handler: handlers::handle_social_16603, name: "social-16603 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16604, CmdEntry { handler: handlers::handle_social_16604, name: "social-16604 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16605, CmdEntry { handler: handlers::handle_social_16605, name: "social-16605 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16607, CmdEntry { handler: handlers::handle_social_16607, name: "social-16607 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16620, CmdEntry { handler: handlers::handle_social_16620, name: "social-16620 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16630, CmdEntry { handler: handlers::handle_social_16630, name: "social-16630 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16631, CmdEntry { handler: handlers::handle_social_16631, name: "social-16631 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16633, CmdEntry { handler: handlers::handle_social_16633, name: "social-16633 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16634, CmdEntry { handler: handlers::handle_social_16634, name: "social-16634 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16635, CmdEntry { handler: handlers::handle_social_16635, name: "social-16635 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16636, CmdEntry { handler: handlers::handle_social_16636, name: "social-16636 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16637, CmdEntry { handler: handlers::handle_social_16637, name: "social-16637 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16638, CmdEntry { handler: handlers::handle_social_16638, name: "social-16638 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16639, CmdEntry { handler: handlers::handle_social_16639, name: "social-16639 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16640, CmdEntry { handler: handlers::handle_social_16640, name: "social-16640 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16641, CmdEntry { handler: handlers::handle_social_16641, name: "social-16641 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16642, CmdEntry { handler: handlers::handle_social_16642, name: "social-16642 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16643, CmdEntry { handler: handlers::handle_social_16643, name: "social-16643 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16650, CmdEntry { handler: handlers::handle_social_16650, name: "social-16650 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16660, CmdEntry { handler: handlers::handle_social_16660, name: "social-16660 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16661, CmdEntry { handler: handlers::handle_social_16661, name: "social-16661 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16665, CmdEntry { handler: handlers::handle_social_16665, name: "social-16665 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16666, CmdEntry { handler: handlers::handle_social_16666, name: "social-16666 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16670, CmdEntry { handler: handlers::handle_social_16670, name: "social-16670 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16671, CmdEntry { handler: handlers::handle_social_16671, name: "social-16671 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16672, CmdEntry { handler: handlers::handle_social_16672, name: "social-16672 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16673, CmdEntry { handler: handlers::handle_social_16673, name: "social-16673 (w5-2 simple real)", source: "zsyz" });
+        map.insert(16674, CmdEntry { handler: handlers::handle_social_16674, name: "social-16674 (w5-2 simple real)", source: "zsyz" });
         Registry { map }
     }
 
@@ -262,19 +440,19 @@ impl Registry {
         v
     }
 }
-// Cmd registry (per 9/9 13:50 JST v0.2 模式, Rust 重写 v0.3.0)
-// 6 个内置 cmd; 后续 worker 扩自己域时, 加新表项 + handler 函数
+// Cmd registry (per 9/9 13:50 JST v0.2 妯″紡, Rust 閲嶅啓 v0.3.0)
+// 6 涓唴缃?cmd; 鍚庣画 worker 鎵╄嚜宸卞煙鏃? 鍔犳柊琛ㄩ」 + handler 鍑芥暟
 //
-// 设计: handler 取 owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
-// 返回 Pin<Box<dyn Future + Send>> 不绑 lifetime, 避免 HRTB 复杂度
-// & self 的 lifetime 也不进 future (entry.handler 是 fn pointer, 不是闭包)
+// 璁捐: handler 鍙?owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
+// 杩斿洖 Pin<Box<dyn Future + Send>> 涓嶇粦 lifetime, 閬垮厤 HRTB 澶嶆潅搴?
+// & self 鐨?lifetime 涔熶笉杩?future (entry.handler 鏄?fn pointer, 涓嶆槸闂寘)
 //
-// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 拍板):
-// - 10101 / 10102 / 10103 / 10200 来自 zsyz_server proto_101.erl + proto_102.erl (真 zsyz cmd)
-// - 10400 / 11001 是 shim-internal RGS 测试 cmd (Erlang 10400=quest_list, 11001=partner_list, 不复用)
-// - 业务覆盖率 1.2% (4/514 real cmd), 1-2 周 4 worker 扩 (per 9/9 13:45 JST 拍板 A)
+// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 鎷嶆澘):
+// - 10101 / 10102 / 10103 / 10200 鏉ヨ嚜 zsyz_server proto_101.erl + proto_102.erl (鐪?zsyz cmd)
+// - 10400 / 11001 鏄?shim-internal RGS 娴嬭瘯 cmd (Erlang 10400=quest_list, 11001=partner_list, 涓嶅鐢?
+// - 涓氬姟瑕嗙洊鐜?1.2% (4/514 real cmd), 1-2 鍛?4 worker 鎵?(per 9/9 13:45 JST 鎷嶆澘 A)
 //
-// v0.3.2 (per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景"):
-// - 战斗场景 cmd 6 个: 10215 move / 10300 ping / 10301 role_info / 10302 assets / 10309 signature / 10315 view_role
-// - 来源: zsyz_server proto_102.erl (10215) + proto_103.erl (10300/10301/10302/10309/10315)
-// - 业务覆盖率 1.9% (10/514 real cmd)
+// v0.3.2 (per 2026-09-09 15:10 JST Ulysses 鎷嶆澘 "閲嶆祴鐩村埌鎴樻枟鍦烘櫙"):
+// - 鎴樻枟鍦烘櫙 cmd 6 涓? 10215 move / 10300 ping / 10301 role_info / 10302 assets / 10309 signature / 10315 view_role
+// - 鏉ユ簮: zsyz_server proto_102.erl (10215) + proto_103.erl (10300/10301/10302/10309/10315)
+// - 涓氬姟瑕嗙洊鐜?1.9% (10/514 real cmd)
