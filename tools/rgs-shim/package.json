@@ -1,0 +1,10 @@
+{
+  "name": "rgs-shim",
+  "version": "0.1.0",
+  "description": "zsyz SmartSocket (Erlang binary) → RGS gRPC shim (per 9/9 13:35 JST Ulysses 拍板)",
+  "main": "shim.js",
+  "scripts": {
+    "start": "node shim.js"
+  },
+  "license": "Apache-2.0"
+}
