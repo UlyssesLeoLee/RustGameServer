@@ -38,8 +38,17 @@
 -- 字段与 audit_log 完全一致 (LIKE INCLUDING ALL), 仅 created_at 触发分区
 -- 不在 CREATE 时加触发器 (避免 forward ref), 在下方 ALTER TABLE 加
 -- ============================================================
-CREATE TABLE IF NOT EXISTS audit_log_partitioned (LIKE audit_log INCLUDING ALL)
-    PARTITION BY RANGE (created_at);
+CREATE TABLE IF NOT EXISTS audit_log_partitioned (
+    id UUID NOT NULL,
+    actor_id UUID NOT NULL,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',
+    prev_hash TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
 
 -- 初始分区: 当月 + 下月 (per 14-§2.1 模式, per 0020_lcm_tables.sql:51-67)
 DO $$
