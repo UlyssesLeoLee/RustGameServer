@@ -65,6 +65,20 @@ impl Registry {
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
         crate::registry_stubs::register_stubs(&mut map);
+
+        // v0.5.0 w5 (per 2026-09-09 19:32 JST Mavis 派工): admin/GM 域 9 cmd
+        // 覆盖 registry_stubs.rs 第 14-23 行的 stub-14100..30102, 改用 real handler
+        // 来源: zsyz_server/src/proto/proto_141.erl (14100-14104 签到/checkin) + proto_mate.js (30001-30102 礼包/gift)
+        map.insert(14100, CmdEntry { handler: handlers::handle_gm_14100, name: "gm-14100 checkin_get (proto_141.erl pack srv {day,status})", source: "zsyz" });
+        map.insert(14101, CmdEntry { handler: handlers::handle_gm_14101, name: "gm-14101 checkin_submit (proto_141.erl pack srv {code,msg,day,status})", source: "zsyz" });
+        map.insert(14102, CmdEntry { handler: handlers::handle_gm_14102, name: "gm-14102 checkin_attr_list (proto_141.erl pack srv {attr_list[]})", source: "zsyz" });
+        map.insert(14103, CmdEntry { handler: handlers::handle_gm_14103, name: "gm-14103 checkin_claim (proto_141.erl pack cli {id:u8} srv {code,msg,id:u32,status})", source: "zsyz" });
+        map.insert(14104, CmdEntry { handler: handlers::handle_gm_14104, name: "gm-14104 checkin_done push (proto_141.erl pack srv empty)", source: "zsyz" });
+        map.insert(30001, CmdEntry { handler: handlers::handle_gm_30001, name: "gm-30001 gift_progress (proto_mate.js cli {id,finish,target_val,value} srv empty)", source: "zsyz" });
+        map.insert(30002, CmdEntry { handler: handlers::handle_gm_30002, name: "gm-30002 gift_err_report (proto_mate.js cli {code,msg} srv empty)", source: "zsyz" });
+        map.insert(30100, CmdEntry { handler: handlers::handle_gm_30100, name: "gm-30100 gift_flag_report (proto_mate.js cli {flag,msg} srv empty)", source: "zsyz" });
+        map.insert(30101, CmdEntry { handler: handlers::handle_gm_30101, name: "gm-30101 gift_ack_1 (proto_mate.js cli {code} srv empty)", source: "zsyz" });
+        map.insert(30102, CmdEntry { handler: handlers::handle_gm_30102, name: "gm-30102 gift_ack_2 (proto_mate.js cli {code} srv empty)", source: "zsyz" });
         Registry { map }
     }
 

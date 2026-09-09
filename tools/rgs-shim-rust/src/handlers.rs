@@ -413,3 +413,196 @@ pub fn handle_stub(
         Response { cmd, payload: vec![] }
     })
 }
+
+// ============================================================================
+// Phase 4 w5: admin/GM 域 9 cmd (per 2026-09-09 19:32 JST Mavis 派工)
+// 来源: zsyz_server/src/proto/proto_141.erl (14100-14104 签到/checkin) +
+//       proto_mate.js 字段 (30001-30102 礼包/gift — 无 erl proto, 走 stub 空回)
+// 备注: proto_141.erl 文件名是 141 但内容是签到协议 (签到 = checkin),
+//       registry_stubs.rs 第 14 行注释 "admin-gm" 实际包含 5 个签到 + 4 个礼包 = 9 cmd
+//       字节级对齐 per proto_141.erl pack(srv, ...)
+// ============================================================================
+
+// 14100 cli: empty → srv: {day:u8, status:u8}  (per proto_141.erl pack(14100, srv, {day, status}))
+// 客户端调 14100 拿当前签到天数 + 状态
+pub fn handle_gm_14100(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        // shim 当前未对接 player.checkin 域 (W5 范围外), 返 mock 1
+        // TODO(w5+): 调 RGS player.GetPlayer + checkin status
+        let mut out = Vec::with_capacity(8);
+        out.write_u8(1);     // day = 1
+        out.write_u8(0);     // status = 0 (未签)
+        tracing::info!("14100 checkin_get");
+        Response { cmd, payload: out }
+    })
+}
+
+// 14101 cli: empty → srv: {code:u8, msg:str, day:u8, status:u8}
+// 客户端调 14101 提交签到 (返回新天数 + 状态)
+pub fn handle_gm_14101(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let mut out = Vec::with_capacity(64);
+        out.write_u8(0);                                 // code = 0 (OK)
+        out.write_string("OK (checkin submit)");          // msg
+        out.write_u8(1);                                 // day = 1
+        out.write_u8(1);                                 // status = 1 (已签)
+        tracing::info!("14101 checkin_submit");
+        Response { cmd, payload: out }
+    })
+}
+
+// 14102 cli: empty → srv: {attr_list_len:u16, [id:u32, status:u8]*}
+// 签到奖励属性列表 (mock 1 个)
+pub fn handle_gm_14102(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let mut out = Vec::with_capacity(16);
+        out.write_u16(1);                                 // attr_list 长度
+        out.write_u32(101);                                // id (奖励 ID)
+        out.write_u8(0);                                  // status
+        tracing::debug!("14102 checkin_attr_list");
+        Response { cmd, payload: out }
+    })
+}
+
+// 14103 cli: {id:u8} → srv: {code:u8, msg:str, id:u32, status:u8}
+// 单个签到奖励领取
+pub fn handle_gm_14103(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let id = if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            p.read_u8() as u32
+        } else {
+            0u32
+        };
+        let mut out = Vec::with_capacity(64);
+        out.write_u8(0);                                 // code = 0 (OK)
+        out.write_string("OK (checkin reward claim)");   // msg
+        out.write_u32(id);                                // 回显 id
+        out.write_u8(1);                                  // status = 1 (已领)
+        tracing::info!(id, "14103 checkin_claim");
+        Response { cmd, payload: out }
+    })
+}
+
+// 14104 srv: empty (per proto_141.erl pack(14104, srv, {}))
+// 签到完成推送 — 客户端收到后无需处理
+pub fn handle_gm_14104(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::debug!("14104 checkin_done push");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 30001 cli: {id:u32, finish:u8, target_val:u32, value:u32}
+// 服务端无 proto, 客户端上报礼包进度, shim 返空 ack
+pub fn handle_gm_30001(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (id, finish, target_val, value) = if payload.len() >= 14 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_u8(), p.read_u32(), p.read_u32())
+        } else {
+            (0u32, 0u8, 0u32, 0u32)
+        };
+        tracing::debug!(id, finish, target_val, value, "30001 gift_progress");
+        // 实际场景调 RGS economy 域 GrantCompensation 上报进度 (W5+ TODO)
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 30002 cli: {code:u8, msg:str}
+// 礼包错误码/消息上报, shim 返空 ack
+pub fn handle_gm_30002(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (code, msg) = if payload.len() >= 5 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u8(), p.read_string())
+        } else {
+            (0u8, String::new())
+        };
+        tracing::info!(code, msg = %msg, "30002 gift_err_report");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 30100 cli: {flag:u8, msg:str}
+// 礼包 flag 状态上报 (激活/失效), shim 返空 ack
+pub fn handle_gm_30100(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (flag, msg) = if payload.len() >= 5 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u8(), p.read_string())
+        } else {
+            (0u8, String::new())
+        };
+        tracing::info!(flag, msg = %msg, "30100 gift_flag_report");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 30101 cli: {code:u8}  →  srv: empty (proto_mate.js 未列 srv, 默认 stub 行为)
+pub fn handle_gm_30101(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let code = if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            p.read_u8()
+        } else {
+            0u8
+        };
+        tracing::debug!(code, "30101 gift_ack_1");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 30102 cli: {code:u8}  →  srv: empty
+pub fn handle_gm_30102(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let code = if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            p.read_u8()
+        } else {
+            0u8
+        };
+        tracing::debug!(code, "30102 gift_ack_2");
+        Response { cmd, payload: vec![] }
+    })
+}
