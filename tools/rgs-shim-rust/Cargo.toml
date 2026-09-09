@@ -2,7 +2,7 @@
 
 [package]
 name = "rgs-shim"
-version = "0.3.0"
+version = "0.4.1"
 edition = "2021"
 description = "zsyz SmartSocket (Erlang binary) → RGS gRPC shim — production-grade Rust rewrite (per 9/9 14:20 JST Ulysses 拍板, 完整对接 RGS + 100% 正常 + 性能更优 + 无移植隐患)"
 
