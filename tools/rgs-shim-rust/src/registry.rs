@@ -128,6 +128,24 @@ impl Registry {
         map.insert(10956, CmdEntry { handler: handlers::handle_10956, name: "10956 sdk_ack", source: "zsyz" });
         map.insert(10999, CmdEntry { handler: handlers::handle_10999, name: "10999 sdk_notify", source: "zsyz" });
 
+        // v0.5.1 (per 2026-09-09 20:17 JST Mavis 派工续做 w1): 12 个 player 域 stub 替换为 real handler
+        // 来源: zsyz_server/src/proto/proto_103.erl + proto_105.erl + proto_108.erl
+        // 范围: 10304/10305/10306/10307/10310/10323/10344/10510/10511/10512/10530/10803
+        // 备注: erlang proto_*.erl 有定义但 H5 客户端 766 send cmd 没用, 第一轮 53 跳过, 续做补全
+        // 字节级对齐: 字段顺序严格按 pack(srv, ...)
+        map.insert(10304, CmdEntry { handler: handlers::handle_10304, name: "10304 empty", source: "zsyz" });
+        map.insert(10305, CmdEntry { handler: handlers::handle_10305, name: "10305 assets", source: "zsyz" });
+        map.insert(10306, CmdEntry { handler: handlers::handle_10306, name: "10306 power", source: "zsyz" });
+        map.insert(10307, CmdEntry { handler: handlers::handle_10307, name: "10307 event", source: "zsyz" });
+        map.insert(10310, CmdEntry { handler: handlers::handle_10310, name: "10310 is_show", source: "zsyz" });
+        map.insert(10323, CmdEntry { handler: handlers::handle_10323, name: "10323 code", source: "zsyz" });
+        map.insert(10344, CmdEntry { handler: handlers::handle_10344, name: "10344 lev_energy_change", source: "zsyz" });
+        map.insert(10510, CmdEntry { handler: handlers::handle_10510, name: "10510 item_list", source: "zsyz" });
+        map.insert(10511, CmdEntry { handler: handlers::handle_10511, name: "10511 item_list", source: "zsyz" });
+        map.insert(10512, CmdEntry { handler: handlers::handle_10512, name: "10512 item_list", source: "zsyz" });
+        map.insert(10530, CmdEntry { handler: handlers::handle_10530, name: "10530 empty", source: "zsyz" });
+        map.insert(10803, CmdEntry { handler: handlers::handle_10803, name: "10803 unread_mail", source: "zsyz" });
+
         // v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 自动注册 766 全 zsyz send cmd stub
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)

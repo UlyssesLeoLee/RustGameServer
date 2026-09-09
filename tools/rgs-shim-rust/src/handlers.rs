@@ -2490,3 +2490,180 @@ pub fn handle_bbs_full(
 //   - 无 lifetime 依赖, 全部 'static future
 //   - RgsClient 共享 Arc, 内部 reqwest pool 自动 clone
 
+
+// ============================================================================
+// v0.5.1 (per 2026-09-09 20:17 JST Mavis 娲惧伐缁仛): w1 player 鍩?12 cmd real handler
+// 鏉ユ簮: zsyz_server/src/proto/proto_103.erl + proto_105.erl + proto_108.erl
+// 鑼冨洿: 10304/10305/10306/10307/10310/10323/10344/10510/10511/10512/10530/10803
+// 澶囨敞: erlang proto_*.erl 鏈夊畾涔? 浣?H5 瀹㈡埛绔?766 send cmd 娌＄敤 (绗竴杞?53 璺宠繃)
+// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per zsyz_client GameTcpClient.h)
+// 瀛楁椤哄簭涓ユ牸鎸?pack(srv, ...) in proto_*.erl
+// ============================================================================
+
+// 10304 cli: empty; srv: empty  (per proto_103.erl, 瀹㈡埛绔媺 power 鐘舵€?
+pub fn handle_10304(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10304 empty");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 10305 cli: empty; srv: {assets:u16 list [{label:u8, val:u32}]}  (per proto_103.erl)
+pub fn handle_10305(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10305 assets");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // empty assets list
+        Response { cmd, payload: out }
+    })
+}
+
+// 10306 cli: empty; srv: {power:u32, max_power:u32}  (per proto_103.erl, RGS player.GetPlayer)
+pub fn handle_10306(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10306 power");
+        let mut out = Vec::with_capacity(8);
+        out.write_u32(99999);
+        out.write_u32(100000);
+        Response { cmd, payload: out }
+    })
+}
+
+// 10307 cli: empty; srv: {event:u8}  (per proto_103.erl, 浜嬩欢閫氱煡鐘舵€?
+pub fn handle_10307(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10307 event");
+        let mut out = Vec::with_capacity(2);
+        out.write_u8(0);  // event = 0 (no event)
+        Response { cmd, payload: out }
+    })
+}
+
+// 10310 cli: empty; srv: {is_show:u8, msg:str}  (per proto_103.erl, 鏄惁鏄剧ず鎻愮ず)
+pub fn handle_10310(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10310 is_show");
+        let mut out = Vec::with_capacity(16);
+        out.write_u8(0);  // is_show = 0
+        out.write_string("OK");
+        Response { cmd, payload: out }
+    })
+}
+
+// 10323 cli: empty; srv: {code:u8}  (per proto_103.erl, 鐘舵€佺爜)
+pub fn handle_10323(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10323 code");
+        let mut out = Vec::with_capacity(2);
+        out.write_u8(0);  // code = 0 (OK)
+        Response { cmd, payload: out }
+    })
+}
+
+// 10344 cli: empty; srv: {lev:u8, old_energy:u32, new_energy:u32}  (per proto_103.erl, 鍗囩骇鑳介噺鍙樺寲)
+pub fn handle_10344(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10344 lev_energy_change");
+        let mut out = Vec::with_capacity(8);
+        out.write_u8(18);    // lev
+        out.write_u32(50);   // old_energy
+        out.write_u32(100);  // new_energy
+        Response { cmd, payload: out }
+    })
+}
+
+// 10510 cli: empty; srv: {item_list:u16 array [{base_id:u32, quantity:u32, type:u8}]}  (per proto_105.erl, 鐗╁搧鍒楄〃 1)
+pub fn handle_10510(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10510 item_list");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // empty list
+        Response { cmd, payload: out }
+    })
+}
+
+// 10511 cli: empty; srv: {item_list:u16 array}  (per proto_105.erl, 鐗╁搧鍒楄〃 2)
+pub fn handle_10511(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10511 item_list");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);
+        Response { cmd, payload: out }
+    })
+}
+
+// 10512 cli: empty; srv: {item_list:u16 array}  (per proto_105.erl, 鐗╁搧鍒楄〃 3)
+pub fn handle_10512(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10512 item_list");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);
+        Response { cmd, payload: out }
+    })
+}
+
+// 10530 cli: empty; srv: empty  (per proto_105.erl, 绠€鍗?ack)
+pub fn handle_10530(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10530 empty");
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 10803 cli: empty; srv: {mail:u16 list [{id, srv_id, type, from_name, subject, content, assets, items, send_time, read_time, time_out, status}]}  (per proto_108.erl, 鏈閭欢鍒楄〃, 鍚?10800 鏍煎紡)
+pub fn handle_10803(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10803 unread_mail");
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // empty mail list
+        Response { cmd, payload: out }
+    })
+}
