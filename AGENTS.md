@@ -616,6 +616,85 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
+#### L13 | 5 域 binary 编译 GLIBC 跟 image base GLIBC 对齐 (Phase 4 关键)
+
+- **背景**: 9/9 17:00 JST 5 域 binary 在 k3s CrashLoopBackOff 87 次, 根因 image base `gcr.io/distroless/cc-debian12` 提供 GLIBC max 2.36, 但 5 域 binary 在 WSL2 Ubuntu 24.04 (GLIBC 2.39) 上编译, 链 `__isoc23_strtol` / `__cxa_thread_atexit_impl` / `gnu_get_libc_version` (= GLIBC 2.38+). 差 2 个 minor version
+- **强约束**: **5 域 binary 编译环境 GLIBC 必须 <= image base GLIBC max**
+  - rust 1.83+ 默认链 GLIBC 2.38, image base 必须 ≥ 2.38 (推荐 `gcr.io/distroless/cc-debian13:nonroot` trixie, 2.38)
+  - rust 1.78- 默认链 GLIBC 2.35, image base 可以是 cc-debian12 bookworm
+- **证据**: 9/9 17:55 JST Ulysses 拍板选项 1 (改 cc-debian13), 9/9 19:15 JST 5 域 k3s 1/1 Running, commit b3d4a55
+- **影响范围**: 所有 distroless image + 5 域 binary 部署, 9/8 W7-W9 派工后第一次踩坑
+
+#### L14 | ghcr.io push 凭据处理走 No BOM config.json (8/27 11:06 硬 ban 实施细节)
+
+- **背景**: `nerdctl login` 走 `--password-stdin` 时, sudo stdin 跟 password 互锁, 多次踩坑
+- **强约束**: **凭据处理 pipeline 走 PowerShell `[IO.File]::WriteAllBytes` + WSL `cp` + chmod 600, 不打印不打印不打印**
+  1. PowerShell 端: `[System.IO.File]::WriteAllText("D:\temp\.pat", $pat, [System.Text.UTF8Encoding]$False)` (UTF-8 No BOM, 不加 BOM 否则 nerdctl parse 失败)
+  2. WSL 端: `cp /mnt/d/temp/.pat /tmp/.pat; chmod 600 /tmp/.pat`
+  3. nerdctl 用 `/root/.docker/config.json` (PowerShell 写 D:\temp\config.json, WSL cp 过去, 同样 No BOM)
+  4. `nerdctl --namespace k8s.io push ghcr.io/...` 走 containerd, 跟 nerdctl login 走不同 auth, push 成功但 anonymous GET manifest 401 (per 9/9 19:15 JST)
+- **证据**: 9/9 19:00 JST 多次 401/403 后, 加 UTF-8 No BOM 修, ghcr.io push 54 MB 12.8s exit 0
+- **影响范围**: 所有 ghcr.io / 任何 OCI registry push 凭据
+
+#### L15 | WSL /tmp 跨 sudo bash instance 不共享 (WSL2 特征)
+
+- **背景**: WSL2 每次 `wsl -d Ubuntu -e sudo -S bash -c '...'` 启新 instance, /tmp 跨 instance 不共享 (tmpfs per VM)
+- **强约束**: **WSL 临时文件 (image tar / build context / log) 用 `/mnt/d/temp/` 共享, 不用 /tmp/**
+  - 临时文件命名: `/mnt/d/temp/{k3s-img,k3s-build,k3s-push}.{sh,log,tar,sql}`
+  - PowerShell 端: `D:\temp\` (NTFS, WSL 跟 Windows 共享)
+- **证据**: 9/9 19:00 JST 多次 `cp /tmp/rgs-img-*/bundle-base/rootfs/bin/grpc_health_probe` 找不到, 因为新 WSL instance /tmp reset
+- **影响范围**: 所有 WSL2 + PowerShell 混合工具链
+
+#### L16 | kubectl set image 用 container 短名 (5 域 deployment 命名规范)
+
+- **背景**: k8s deployment 名 = `<domain>-service` (e.g. `player-service`), 但 deployment spec.template.spec.containers[].name = 短名 (e.g. `player`). kubectl set image 第二个参数是 container 名字, 不是 deployment 名字
+- **强约束**: **`kubectl set image deployment/<deploy-name> <container-short-name>=<image>`, 不是 deployment 名字**
+  - 5 域 deploy 短名: `player` / `economy` / `match` / `social` / `admin`
+  - 错误示例: `kubectl set image deployment/player-service player-service=...` → "unable to find container named 'player-service'"
+  - 正确示例: `kubectl set image deployment/player-service player=...`
+- **证据**: 9/9 19:00 JST mega-v3/v4 失败 "unable to find container", mega-v5 改短名后 set image 5 域全部成功
+- **影响范围**: 所有 k8s deployment image 更新
+
+#### L17 | nerdctl 跟 k3s ctr 是不同 containerd 进程 (image 同步必修)
+
+- **背景**: nerdctl 跟 k3s ctr 用不同 containerd 进程 / 不同 socket. nerdctl build image 不会自动 import 到 k3s ctr
+- **强约束**: **image build 后走 `nerdctl save` + `k3s ctr -n k8s.io images import` 显式同步**
+  - nerdctl default containerd 跟 k3s containerd 隔离, 走 `--namespace k8s.io` 让 nerdctl 读 k3s ctr
+  - 但 nerdctl build 仍写到自己 cache, 需要 save + import
+  - 或者直接用 `k3s ctr` 自己的 build (但需要 BuildKit daemon)
+- **证据**: 9/9 19:00 JST nerdctl build :0.1.0-cc13 (sha 277a36de) 在 `nerdctl --namespace k8s.io images` 看到, 但 `k3s ctr -n k8s.io images ls` 看不到, 5 域 pod ImagePullBackOff. 修: `nerdctl save + k3s ctr import` 后 OK
+- **影响范围**: 所有 nerdctl + k3s 混合部署
+
+#### L18 | PSA restricted vs postgres privileged 冲突, baseline 临时越界
+
+- **背景**: k3s 默认 PSA `restricted:latest` 阻止 postgres 启动 (postgres 需要 privileged + root 跑 initdb)
+- **强约束**: **postgres 部署前临时改 ns PSA → baseline, 部署后保留 baseline (不要改回 restricted)**
+  - 命令: `kubectl label --overwrite ns <ns> pod-security.kubernetes.io/enforce=baseline`
+  - 临时越界授权 per 8/27 19:39 + 9/8 15:19 第 6 次强化
+- **证据**: 9/9 19:00 JST postgres 1/1 启动失败 `violates PodSecurity "restricted:latest"`, 改 baseline 后 OK
+- **影响范围**: 所有 stateful workload (postgres / mysql / redis / mongodb / elasticsearch / kafka)
+
+#### L19 | postgres initdb 自动从 secret 注入 5 域 user + db (per 8/27 19:39 临时越界 22-configmap)
+
+- **背景**: postgres image 启动时, `POSTGRES_USER` / `POSTGRES_PASSWORD` env 触发 initdb, 自动建 user + db
+- **强约束**: **postgres deployment envFrom 引用 5 域 db-credentials secret, postgres image 自动 init 5 域 user + db, 不需要 init script / init SQL**
+  - 5 域 user: `player_user` / `economy_user` / `match_user` / `social_user` / `admin_user` / `cluster_ops_user`
+  - 5 域 db: `player_db` / `economy_db` / `match_db` / `social_db` / `admin_db` / `cluster_ops_db`
+  - envFrom: `secretKeyRef: {name: player-db-credentials, key: url}` → 5 域 DATABASE_URL 自动组装
+- **证据**: 9/9 19:00 JST postgres 1/1 启动后, 5 域 user + db 全部自动 init (per `\du` / `\l` 输出)
+- **影响范围**: 所有 5+ 域分布式系统 (ARC-008 5 独立 DB 原则)
+
+#### L20 | cluster-ops 不带 -service suffix (5 域 binary 命名区别)
+
+- **背景**: RGS 仓里 5 域 binary 命名 `<domain>-service` (e.g. `player-service`), 但 platform tool `cluster-ops` 不带 suffix
+- **强约束**: **COPY prebuilt binary 时, cluster-ops 是 `cluster-ops` (8MB), 不是 `cluster-ops-service` (不存在)**
+  - 5 域 binary: `player-service` / `economy-service` / `match-service` / `social-service` / `admin-service`
+  - 平台工具: `cluster-ops` (8MB) / `rgs-certgen` (1.3MB) / `rgs-hello` (336KB) / `function-plane` (1.5MB) / `shared-platform` (4.5MB)
+- **证据**: 9/9 18:30 JST mega-v2 set -e 退出因 `cp: cannot stat 'cluster-ops-service'`, 修对 `cluster-ops` 后 OK
+- **影响范围**: 所有 RGS image build Dockerfile (COPY target/release/*)
+
+**配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
+
 ---
 
 ## 9. 项目批评与改善 (per 9/2 10:18 JST 拍板, RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.1)
