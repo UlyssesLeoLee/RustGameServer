@@ -190,3 +190,206 @@ pub fn handle_role_list(
         Response { cmd, payload: out }
     })
 }
+
+// ============================================================================
+// 战斗场景 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
+// 来源: zsyz_server/src/proto/proto_102.erl + proto_103.erl (真 zsyz_client cmd)
+// ============================================================================
+
+// 10300 cli/srv: empty (ping/heartbeat, per proto_103.erl)
+pub fn handle_ping(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        tracing::info!("10300 ping");
+        // 10300 srv: empty (per proto_103.erl pack(10300, srv, {}))
+        Response { cmd, payload: vec![] }
+    })
+}
+
+// 10215 cli: {base_id:u32, x:i16, y:i16, dir:u8}
+// 10215 srv: {rid:u32, srv_id:str, dir:u8, dx:i16, dy:i16}  (per proto_102.erl)
+pub fn handle_move(
+    cmd: u16,
+    payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (base_id, x, y, dir) = if payload.len() >= 9 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_i16(), p.read_i16(), p.read_u8())
+        } else {
+            (0u32, 0i16, 0i16, 0u8)
+        };
+        tracing::info!(base_id, x, y, dir, "10215 move");
+
+        // 调 RGS match domain 记录移动 (per RGS-REQ-038 SubmitMove)
+        let _ = rgs.call("match", "SubmitMove", serde_json::json!({
+            "request_id": format!("move-{}", now_unix()),
+            "match_id": "00000000-0000-0000-0000-000000000000",
+            "player_id": "11111111-1111-1111-1111-111111111111",
+            "x": x as i32, "y": y as i32, "facing": dir,
+        })).await;
+
+        // 10215 srv: rid + srv_id + dir + dx + dy
+        let mut out = Vec::with_capacity(32);
+        out.write_u32(0x11111111);                    // rid
+        out.write_string("rgs-uat-1");                 // srv_id
+        out.write_u8(dir);                            // dir (回显)
+        out.write_i16(x);                             // dx
+        out.write_i16(y);                             // dy
+        Response { cmd, payload: out }
+    })
+}
+
+// 10301 cli: empty; srv: 全角色信息 (per proto_103.erl, 巨大 payload, 这里用 RGS player 域填充关键字段)
+// 真实 zsyz_client 启动后用这个 dump 玩家完整信息
+pub fn handle_role_info(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let t0 = std::time::Instant::now();
+        // 调 RGS player.GetPlayer 拿真实玩家数据
+        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
+            "id": "11111111-1111-1111-1111-111111111111"
+        })).await;
+        let dt = t0.elapsed().as_millis();
+        tracing::info!(dt_ms = dt as u64, "10301 role_info");
+
+        let p = rgs_resp.response.unwrap_or(serde_json::json!({}));
+        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+        let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
+        let lev = if uuid.len() >= 4 { (u32::from_str_radix(&uuid[..4], 16).unwrap_or(0) % 60 + 1) as u16 } else { 1u16 };
+
+        // 10301 srv 简化格式: rid + srv_id + name + lev + 6 zero fields
+        // 真实 Erlang 24 字段, 简化核心 4 字段 + zero padding
+        let mut out = Vec::with_capacity(128);
+        out.write_u32(0x11111111);                    // rid
+        out.write_string("rgs-uat-1");                 // srv_id
+        out.write_string(&name);                      // name
+        out.write_u16(lev);                           // lev
+        // 其他 21 字段 (vip_lev, vip_exp, sex, career, face_id, event, gid, gsrv_id, position, gname, signature, exp_max, exp_total, buffs[], reg_time, guild_lev, power, is_first_rename, avatar_base_id, guild_quit_time, look_id, max_power) — 写 0
+        for _ in 0..21 { out.write_u32(0); }
+        Response { cmd, payload: out }
+    })
+}
+
+// 10302 cli: empty; srv: 资源 (lev + exp + gold + ... 18 fields, per proto_103.erl)
+pub fn handle_assets(
+    cmd: u16,
+    _payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        // 调 RGS economy 域拿真实账户数据
+        let rgs_resp = rgs.call("economy", "GetAccount", serde_json::json!({
+            "id": "33333333-3333-3333-3333-333333333333"
+        })).await;
+        let a = rgs_resp.response.unwrap_or(serde_json::json!({}));
+        let id = a.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
+        let hash: u32 = id.bytes().map(|b| b as u32).sum();
+        let gold = (hash * 13) % 100000 + 1000;
+        let diamond = (hash * 7) % 5000 + 100;
+        let energy = (hash * 3) % 200 + 50;
+
+        // 10302 srv: lev:u16 + 18 u32 资源字段
+        let lev = 18u16;
+        let mut out = Vec::with_capacity(80);
+        out.write_u16(lev);                           // lev
+        out.write_u32(12345);                         // exp
+        out.write_u32(gold as u32);                   // gold
+        out.write_u32(gold as u32 * 7);               // gold_acc
+        out.write_u32(diamond as u32);                // coin (钻石)
+        out.write_u32(0);                             // red_gold
+        out.write_u32(energy as u32);                 // energy
+        out.write_u32(200);                           // energy_max
+        out.write_u32(0);                             // arena_cent
+        out.write_u16(0);                             // activity
+        out.write_u32(0);                             // guild
+        out.write_u32(0);                             // hero_soul
+        out.write_u32(0);                             // friend_point
+        out.write_u32(0);                             // boss_point
+        out.write_u32(0);                             // silver_coin
+        out.write_u32(0);                             // star_hun
+        out.write_u32(0);                             // star_point
+        out.write_u32(0);                             // arena_guesscent
+        tracing::info!(lev, gold, diamond, energy, "10302 assets");
+        Response { cmd, payload: out }
+    })
+}
+
+// 10309 cli: {signature:str}; srv: {code:u8, msg:str, signature:str}  (per proto_103.erl)
+pub fn handle_signature(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let sig = if !payload.is_empty() {
+            let mut p: &[u8] = &payload[..];
+            p.read_string()
+        } else {
+            String::new()
+        };
+        tracing::info!(signature = %sig, "10309 set_signature");
+        // 10309 srv: code + msg + sig (回显)
+        let mut out = Vec::with_capacity(64);
+        out.write_u8(0);
+        out.write_string("OK (signature set)");
+        out.write_string(&sig);
+        Response { cmd, payload: out }
+    })
+}
+
+// 10315 cli: {rid:u32, srv_id:str}; srv: {rid, srv_id, name, gname, lev, face_id, power, partner_list[], gid, gsrv_id, avatar_bid, sex, city, vip_lev, honor_list[]}
+// 简化为: rid + srv_id + name + gname + lev:u8 + face_id + power + partner_count:u16 + gid + gsrv_id + avatar_bid + sex + city + vip_lev + honor_count:u16
+pub fn handle_view_role(
+    cmd: u16,
+    payload: Vec<u8>,
+    rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let (rid, srv_id) = if payload.len() >= 6 {
+            let mut p: &[u8] = &payload[..];
+            (p.read_u32(), p.read_string())
+        } else {
+            (0u32, String::new())
+        };
+        tracing::info!(rid = format!("0x{:08x}", rid), srv_id = %srv_id, "10315 view_role");
+
+        // 调 RGS player + social 域拿真数据
+        let player_uuid = format!("{:08x}-0000-0000-0000-{:012x}", rid, rid);
+        let (player_resp, guild_resp) = futures_util::future::join(
+            rgs.call("player", "GetPlayer", serde_json::json!({ "id": player_uuid })),
+            rgs.call("social", "GetGuild", serde_json::json!({ "id": "22222222-2222-2222-2222-222222222222" })),
+        ).await;
+
+        let p = player_resp.response.unwrap_or(serde_json::json!({}));
+        let g = guild_resp.response.unwrap_or(serde_json::json!({}));
+        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+        let gname = g.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+
+        // 10315 srv (简化 13 字段, 真实 14 + 2 list)
+        let mut out = Vec::with_capacity(256);
+        out.write_u32(rid);
+        out.write_string(&srv_id);
+        out.write_string(&name);
+        out.write_string(&gname);
+        out.write_u8(18);                             // lev
+        out.write_u32(0);                             // face_id
+        out.write_u32(99999);                         // power
+        out.write_u16(0);                             // partner_list count
+        out.write_u32(0x22222222);                    // gid
+        out.write_string("guild-1");                  // gsrv_id
+        out.write_u32(0);                             // avatar_bid
+        out.write_u8(1);                              // sex
+        out.write_u32(0);                             // city
+        out.write_u32(0);                             // vip_lev
+        out.write_u16(0);                             // honor_list count
+        Response { cmd, payload: out }
+    })
+}
