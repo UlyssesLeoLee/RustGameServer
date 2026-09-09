@@ -4,6 +4,11 @@
 // 设计: handler 取 owned Vec<u8> + Arc<RgsClient> (clone) + cmd,
 // 返回 Pin<Box<dyn Future + Send>> 不绑 lifetime, 避免 HRTB 复杂度
 // & self 的 lifetime 也不进 future (entry.handler 是 fn pointer, 不是闭包)
+//
+// v0.3.1 (per 2026-09-09 14:55 JST Ulysses 拍板):
+// - 10101 / 10102 / 10103 / 10200 来自 zsyz_server proto_101.erl + proto_102.erl (真 zsyz cmd)
+// - 10400 / 11001 是 shim-internal RGS 测试 cmd (Erlang 10400=quest_list, 11001=partner_list, 不复用)
+// - 业务覆盖率 1.2% (4/514 real cmd), 1-2 周 4 worker 扩 (per 9/9 13:45 JST 拍板 A)
 
 use crate::handlers;
 use crate::rgs::RgsClient;
@@ -23,6 +28,9 @@ pub struct CmdEntry {
     pub handler: AsyncHandler,
     #[allow(dead_code)]
     pub name: &'static str,
+    /// 来源: "zsyz" = 真 zsyz_client cmd (per proto_*.erl); "shim" = shim-internal RGS 测试
+    #[allow(dead_code)]
+    pub source: &'static str,
 }
 
 pub struct Registry {
@@ -32,17 +40,17 @@ pub struct Registry {
 impl Registry {
     pub fn new() -> Self {
         let mut map = std::collections::HashMap::new();
-        map.insert(10101, CmdEntry { handler: handlers::handle_register, name: "register" });
-        map.insert(10102, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server" });
-        map.insert(10103, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server (alias)" });
-        map.insert(10200, CmdEntry { handler: handlers::handle_map_enter, name: "map_enter" });
-        map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)" });
-        map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)" });
+        // 真 zsyz_client cmd (per zsyz_server/src/proto/proto_101.erl + proto_102.erl)
+        map.insert(10101, CmdEntry { handler: handlers::handle_register, name: "register", source: "zsyz" });
+        map.insert(10102, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server", source: "zsyz" });
+        map.insert(10103, CmdEntry { handler: handlers::handle_enter_server, name: "enter_server (alias)", source: "zsyz" });
+        map.insert(10200, CmdEntry { handler: handlers::handle_map_enter, name: "map_enter", source: "zsyz" });
+        // shim-internal RGS 测试 cmd (Erlang 10400=quest_list/11001=partner_list, 不复用)
+        map.insert(10400, CmdEntry { handler: handlers::handle_heartbeat, name: "heartbeat (RGS 5 域 HealthCheck)", source: "shim" });
+        map.insert(11001, CmdEntry { handler: handlers::handle_role_list, name: "role_list (RGS player ListPlayers)", source: "shim" });
         Registry { map }
     }
 
-    // dispatch 不 borrow self, 只读 map 是 Copy (HashMap 的 get 返回 Option<&V>)
-    // 改写: clone Arc + 转移 ownership 进 future, 避免 self 生命周期进入 future
     pub fn dispatch(
         &self,
         cmd: u16,
@@ -60,6 +68,16 @@ impl Registry {
 
     pub fn list(&self) -> Vec<u16> {
         let mut v: Vec<u16> = self.map.keys().copied().collect();
+        v.sort();
+        v
+    }
+
+    #[allow(dead_code)]
+    pub fn list_real_zsyz(&self) -> Vec<u16> {
+        let mut v: Vec<u16> = self.map.iter()
+            .filter(|(_, e)| e.source == "zsyz")
+            .map(|(k, _)| *k)
+            .collect();
         v.sort();
         v
     }

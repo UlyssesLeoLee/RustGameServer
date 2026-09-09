@@ -96,7 +96,7 @@ pub fn handle_enter_server(
 }
 
 // 10200 cli: map_enter {battle_id:u32, id:u32, code:i16}
-// 10200 srv: {code:u8, msg:str}
+// 10200 srv: {result:u8, msg:str, battle_id:u32, id:u32, time:u32}  (per proto_102.erl)
 pub fn handle_map_enter(
     cmd: u16,
     payload: Vec<u8>,
@@ -110,9 +110,13 @@ pub fn handle_map_enter(
             (0u32, 0u32, 0i16)
         };
         tracing::info!(battle_id, id, code, "10200 map_enter");
-        let mut out = Vec::with_capacity(16);
-        out.write_u8(0);
-        out.write_string("OK (RGS map)");
+        // Erlang 10200 srv 完整格式: result:u8 + msg:str + battle_id:u32 + id:u32 + time:u32
+        let mut out = Vec::with_capacity(32);
+        out.write_u8(0);                         // result = 0 (OK)
+        out.write_string("OK (RGS map via match domain)");
+        out.write_u32(battle_id);                 // 回显 battle_id
+        out.write_u32(id);                       // 回显 id
+        out.write_u32(now_unix());               // time
         Response { cmd, payload: out }
     })
 }
