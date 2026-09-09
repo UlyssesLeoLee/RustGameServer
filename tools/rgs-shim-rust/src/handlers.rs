@@ -476,6 +476,10 @@ pub fn handle_10317(
         tracing::info!("10317 worship");
         let mut out = Vec::with_capacity(8);
         out.write_u32(0);  // worship count
+        Response { cmd, payload: out }
+    })
+}
+
 // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 派工): battle 域 66 cmd 真实 handler
 // 范围: 19800-19807 + 19901-19908 (战斗/录像) + 25100-25841 (任务/成就/城市/矿脉)
 // 来源: H5 zsyz_client proto_mate.js + zsyz_server/src/proto/proto_*.erl
@@ -512,6 +516,15 @@ pub fn handle_10318(
 
 // 10322 cli: {code:u8}; srv: {code1:u8}  (per proto_103.erl ping_xx)
 pub fn handle_10322(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // ----- 战斗结果反馈 (19801) -----
 // 19801 cli: {code:u8} → srv: {code:u8, msg:str}
 pub fn handle_battle_result_ack(
@@ -534,6 +547,16 @@ pub fn handle_battle_result_ack(
 
 // 10325 cli: empty; srv: {face_list:u16 array [u32]}  (per proto_103.erl face_id list)
 pub fn handle_10325(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let mut out = Vec::with_capacity(4);
+        out.write_u16(0);  // empty face list
+        Response { cmd, payload: out }
+    })
+}
 // ----- 战报/录像列表 (19802, 19901-19908) -----
 // 19802 cli: empty → srv: {list:[]}
 pub fn handle_replay_list(
@@ -612,6 +635,10 @@ pub fn handle_10343(
         out.write_string("OK (rename)");
         out.write_string(&name);
         out.write_u8(sex);
+        Response { cmd, payload: out }
+    })
+}
+
 // ----- 领取战报奖励 (19805) -----
 // 19805 cli: {id:u8} → srv: {code:u8, msg:str, id:u8, num:u8, had:u8}
 pub fn handle_claim_replay_reward(
@@ -635,6 +662,18 @@ pub fn handle_claim_replay_reward(
 
 // 10345 cli: empty; srv: {use_id:u32, list:u16 array [u32]}  (per proto_103.erl bag_use_list)
 pub fn handle_10345(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let mut out = Vec::with_capacity(8);
+        out.write_u32(0);  // use_id
+        out.write_u16(0);  // empty list
+        Response { cmd, payload: out }
+    })
+}
+
 // ----- 战报状态 (19806) -----
 // 19806 cli: empty → srv: {status:u8}
 pub fn handle_battle_status(
@@ -656,32 +695,12 @@ pub fn handle_battle_status(
 
 // 10346 cli: {id:u32}; srv: {code:u8, msg:str, id:u32}  (per proto_103.erl item_delete)
 pub fn handle_10346(
-// ----- 战报触发/查询对手 (19807) -----
-// 19807 cli: empty → srv: {code:u32, rid:u32, srv_id:str, name:str, lev:u8, vip:u8, online:u8, power:u32, face_id:u32, avatar_bid:u32}
-pub fn handle_battle_opponent(
     cmd: u16,
     _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
+    _rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
-            "id": "11111111-1111-1111-1111-111111111111"
-        })).await;
-        let p = rgs_resp.response.unwrap_or(serde_json::json!({}));
-        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("MavisHero").to_string();
-        tracing::info!(cmd, "19807 battle_opponent");
-        let mut out = Vec::with_capacity(64);
-        out.write_u32(0);                             // code
-        out.write_u32(0x22222222);                    // rid
-        out.write_string("rgs-uat-1");                 // srv_id
-        out.write_string(&name);                      // name
-        out.write_u8(18);                             // lev
-        out.write_u8(0);                              // vip
-        out.write_u8(1);                              // online
-        out.write_u32(99999);                         // power
-        out.write_u32(0);                             // face_id
-        out.write_u32(0);                             // avatar_bid
-        Response { cmd, payload: out }
+        let mut out = Vec::with_capacity(4); out.write_u16(0); Response { cmd, payload: out }
     })
 }
 
@@ -762,26 +781,12 @@ pub fn handle_replay_like(
 
 // 10347 cli: empty; srv: {assets:u16 array [{label:u8, val:u32}]}  (per proto_103.erl asset_icons)
 pub fn handle_10347(
-// 19904 cli: {id:u32, type:u8, srv_id:str, combat_type:u8} → srv: {code:u8, msg:str, id:u32, type:u8}
-pub fn handle_replay_op(
     cmd: u16,
-    payload: Vec<u8>,
+    _payload: Vec<u8>,
     _rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        let (id, op_type) = if payload.len() >= 5 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), if payload.len() >= 6 { p.read_u8() } else { 0u8 })
-        } else {
-            (0u32, 0u8)
-        };
-        tracing::info!(cmd, id, op_type, "replay_op");
-        let mut out = Vec::with_capacity(16);
-        out.write_u8(0);
-        out.write_string("OK (replay op)");
-        out.write_u32(id);
-        out.write_u8(op_type);
-        Response { cmd, payload: out }
+        Response { cmd, payload: vec![] }
     })
 }
 
@@ -826,6 +831,18 @@ pub fn handle_replay_like_count(
 
 // 10348 cli: empty; srv: {power:u32, max_power:u32}  (per proto_103.erl power)
 pub fn handle_10348(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let mut out = Vec::with_capacity(8);
+        out.write_u32(0);  // power
+        out.write_u32(0);  // max_power
+        Response { cmd, payload: out }
+    })
+}
+
 // ----- 战报英雄详情 (19907) -----
 // 19907 cli: {replay_id:u32, partner_id:u32, type:u8, srv_id:str, combat_type:u8}
 // 19907 srv: {replay_id, partner_id, type, pos, bid, lev, star, break_lev, power, now_hp, hp, atk, def, speed, crit_rate, crit_ratio, hit_magic, dodge_magic, dps, behurt, cure, skills:[{pos, skill_bid}]}
@@ -966,8 +983,17 @@ pub fn handle_10380(
     })
 }
 
-// 10391 cli: {msg:str}; srv: {type:u8, data:str}  (per proto_103.erl chat_send)
+// 10391 cli: {day:u32}; srv: empty  (per proto_103.erl daily_sign)
 pub fn handle_10391(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25101 cli: {id:u32} → srv: {code:u8, msg:str}
 pub fn handle_daily_quest_claim(
     cmd: u16,
@@ -1060,7 +1086,11 @@ pub fn handle_10402(
     rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        let id = if payload.len() >= 4 {
+        let id = if payload.len() >= 4 { 0u32 } else { 0u32 };
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25102 cli: empty → srv: {flag:u8, msg:str}
 pub fn handle_daily_quest_flag(
     cmd: u16,
@@ -1393,7 +1423,7 @@ pub fn handle_arena_partner_list(
 pub fn handle_city_enter(
     cmd: u16,
     payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
+    rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
         let city_id = if payload.len() >= 4 {
@@ -1404,9 +1434,9 @@ pub fn handle_city_enter(
         };
         let _ = rgs.call("player", "UpdateProfile", serde_json::json!({
             "id": "11111111-1111-1111-1111-111111111111",
-            "quest_id": id,
+            "quest_id": city_id,
         })).await;
-        tracing::info!(id, "10402 accept_quest");
+        tracing::info!(city_id, "10402 accept_quest");
         let mut out = Vec::with_capacity(16);
         out.write_u8(0);
         out.write_string("OK (quest accepted)");
@@ -1478,6 +1508,15 @@ pub fn handle_honor_set(
 
 // 10405 cli: {id:u32}; srv: {flag:i8, msg:str, id:u32}  (per proto_104.erl finish_quest)
 pub fn handle_10405(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25806 cli: {rid:u32, srv_id:str} → srv: {point:u32, honor_badges:[{id:u32, time:u32}]}
 pub fn handle_honor_get(
     cmd: u16,
@@ -1523,7 +1562,7 @@ pub fn handle_achievement_list(
 }
 
 // 25812 cli: {id:u32} → srv: {code:u8, msg:str, id:u32, finish_time:u32}
-pub fn handle_achievement_claim(
+pub fn handle_achievement_claim_v2(
     cmd: u16,
     payload: Vec<u8>,
     _rgs: Arc<RgsClient>,
@@ -1535,11 +1574,12 @@ pub fn handle_achievement_claim(
         } else {
             0u32
         };
-        tracing::info!(id, "10405 finish_quest");
-        let mut out = Vec::with_capacity(16);
+        tracing::info!(id, "25812 achievement_claim");
+        let mut out = Vec::with_capacity(32);
         out.write_u8(0);
-        out.write_string("OK (quest finished)");
+        out.write_string("OK (achievement claimed)");
         out.write_u32(id);
+        out.write_u32(now_unix());
         Response { cmd, payload: out }
     })
 }
@@ -1726,6 +1766,23 @@ pub fn handle_10528(
         let mut out = Vec::with_capacity(8);
         out.write_u32(now_unix());
         out.write_u32(3600);
+        Response { cmd, payload: out }
+    })
+}
+
+// 10530 cli: {id:u32} → srv: {code:u8, msg:str, id:u32, exp:u32, gold:u32}
+pub fn handle_achievement_claim(
+    cmd: u16,
+    payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        let id = if payload.len() >= 4 {
+            let mut p: &[u8] = &payload[..];
+            p.read_u32()
+        } else {
+            0u32
+        };
         tracing::info!(cmd, id, "achievement_claim");
         let mut out = Vec::with_capacity(32);
         out.write_u8(0);
@@ -1780,6 +1837,15 @@ pub fn handle_10800(
 
 // 10801 cli: {id:u32, srv_id:str}; srv: {id:u32, srv_id:str, code:u8, msg:str}  (per proto_108.erl mail_read)
 pub fn handle_10801(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25813 cli: {id:u32} → srv: empty
 pub fn handle_achievement_view(
     cmd: u16,
@@ -1980,6 +2046,15 @@ pub fn handle_10902(
 
 // 10905 cli: empty; srv: empty  (per proto_109.erl 战斗状态)
 pub fn handle_10905(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25817 cli: {id:u32, channel:u16} → srv: {result:u8, msg:str}
 pub fn handle_achievement_share_op(
     cmd: u16,
@@ -2173,6 +2248,15 @@ pub fn handle_10952(
 
 // 10955 cli: empty; srv: empty  (per proto_109.erl)
 pub fn handle_10955(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
+        Response { cmd, payload: vec![] }
+    })
+}
+
 // 25819 cli: {channel:u16} → srv: {result:u8, msg:str}
 pub fn handle_achievement_share_query(
     cmd: u16,
@@ -2199,6 +2283,11 @@ pub fn handle_10956(
 
 // 10999 cli: {msg:str}; srv: empty  (per proto_109.erl sdk_notify)
 pub fn handle_10999(
+    cmd: u16,
+    _payload: Vec<u8>,
+    _rgs: Arc<RgsClient>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
+    Box::pin(async move {
         tracing::info!(cmd, "achievement_share_query");
         let mut out = Vec::with_capacity(16);
         out.write_u8(0);
@@ -2214,16 +2303,6 @@ pub fn handle_achievement_share_reward(
     _rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        let msg = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_string()
-        } else {
-            String::new()
-        };
-        tracing::info!(%msg, "10999 sdk_notify");
-        Response { cmd, payload: vec![] }
-    })
-}
         let share_id = if payload.len() >= 4 {
             let mut p: &[u8] = &payload[..];
             p.read_u32()
@@ -2411,1077 +2490,3 @@ pub fn handle_bbs_full(
 //   - 无 lifetime 依赖, 全部 'static future
 //   - RgsClient 共享 Arc, 内部 reqwest pool 自动 clone
 
-use crate::frame::{BeRead, BeWrite};
-use crate::rgs::RgsClient;
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-pub struct Response {
-    pub cmd: u16,
-    pub payload: Vec<u8>,
-}
-
-fn now_unix() -> u32 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as u32
-}
-
-// 10101 cli: register {sex:u8, name:str, career:i16, playform:str}
-// 10101 srv: {code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32}
-pub fn handle_register(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 解析 (安全处理空 payload)
-        let (sex, name, career, playform) = if payload.len() >= 8 {
-            let mut p: &[u8] = &payload[..];
-            let s = p.read_u8();
-            let n = p.read_string();
-            let c = p.read_i16();
-            let pf = p.read_string();
-            (s, n, c, pf)
-        } else {
-            (0u8, "MavisHero".to_string(), 0i16, "ios".to_string())
-        };
-        tracing::info!(sex, %name, career, %playform, "10101 register");
-
-        // 调 RGS player.GetPlayer 拿真玩家数据
-        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
-            "id": "11111111-1111-1111-1111-111111111111"
-        })).await;
-
-        let (code, msg, display_name, uuid) = if rgs_resp.ok {
-            let resp = rgs_resp.response.unwrap_or(serde_json::json!({}));
-            let dn = resp.get("display_name").and_then(|v| v.as_str()).unwrap_or("MavisHero").to_string();
-            let uid = resp.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("").to_string();
-            (0u8, "OK (via RGS player.GetPlayer)".to_string(), dn, uid)
-        } else {
-            (1u8, format!("RGS 不可达: {}", rgs_resp.error.unwrap_or_default()), "MavisHero".to_string(), "".to_string())
-        };
-
-        // rid = uuid 前 8 hex → u32
-        let rid = if uuid.len() >= 8 {
-            u32::from_str_radix(&uuid[..8], 16).unwrap_or(0x11111111)
-        } else {
-            0x11111111
-        };
-
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(code);
-        out.write_string(&msg);
-        out.write_u32(rid);
-        out.write_string("rgs-uat-1");
-        out.write_string(&display_name);
-        out.write_u32(now_unix());
-        Response { cmd, payload: out }
-    })
-}
-
-// 10102 / 10103 cli: enter_server {rid:u32, srv_id:str}
-// 10102 srv: {code:u8, msg:str, timestamp:u32, world_lev:u16}
-pub fn handle_enter_server(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (rid, srv_id) = if payload.len() >= 6 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_string())
-        } else {
-            (0u32, "rgs-uat-1".to_string())
-        };
-        tracing::info!(rid = format!("0x{:08x}", rid), %srv_id, "10102/10103 enter_server");
-
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);
-        out.write_string("OK (RGS server ready)");
-        out.write_u32(now_unix());
-        out.write_u16(52);
-        Response { cmd, payload: out }
-    })
-}
-
-// 10200 cli: map_enter {battle_id:u32, id:u32, code:i16}
-// 10200 srv: {result:u8, msg:str, battle_id:u32, id:u32, time:u32}  (per proto_102.erl)
-pub fn handle_map_enter(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (battle_id, id, code) = if payload.len() >= 10 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_u32(), p.read_i16())
-        } else {
-            (0u32, 0u32, 0i16)
-        };
-        tracing::info!(battle_id, id, code, "10200 map_enter");
-        // Erlang 10200 srv 完整格式: result:u8 + msg:str + battle_id:u32 + id:u32 + time:u32
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);                         // result = 0 (OK)
-        out.write_string("OK (RGS map via match domain)");
-        out.write_u32(battle_id);                 // 回显 battle_id
-        out.write_u32(id);                       // 回显 id
-        out.write_u32(now_unix());               // time
-        Response { cmd, payload: out }
-    })
-}
-
-// 10400 cli: (empty) heartbeat → 5 域并发 HealthCheck
-// 10400 srv: {code:u8, msg:str, ok_count:u8, total:u8}
-pub fn handle_heartbeat(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let t0 = std::time::Instant::now();
-        let results = rgs.healthcheck_all().await;
-        let dt = t0.elapsed().as_millis();
-        let ok_count = results.iter().filter(|(_, ok)| *ok).count() as u8;
-        let total = results.len() as u8;
-        tracing::info!(ok_count, total, ms = dt as u64, "10400 heartbeat");
-
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);
-        out.write_string(&format!("OK {}/{} RGS 域 in {}ms", ok_count, total, dt));
-        out.write_u8(ok_count);
-        out.write_u8(total);
-        Response { cmd, payload: out }
-    })
-}
-
-// 11001 cli: (empty) role_list → RGS player ListPlayers
-// 11001 srv: {code:u8, msg:str, count:u8, [name:str, level:u8]}
-pub fn handle_role_list(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let rgs_resp = rgs.call("player", "ListPlayers", serde_json::json!({"limit": 5})).await;
-        let players: Vec<serde_json::Value> = if rgs_resp.ok {
-            rgs_resp.response
-                .as_ref()
-                .and_then(|r| r.get("players"))
-                .and_then(|p| p.as_array())
-                .cloned()
-                .unwrap_or_default()
-        } else {
-            // 降级: 单个 player
-            let single = rgs.call("player", "GetPlayer", serde_json::json!({
-                "id": "11111111-1111-1111-1111-111111111111"
-            })).await;
-            if single.ok {
-                single.response.into_iter().collect()
-            } else {
-                vec![]
-            }
-        };
-
-        tracing::info!(count = players.len(), "11001 role_list");
-
-        let mut out = Vec::with_capacity(32 + players.len() * 32);
-        out.write_u8(0);
-        out.write_string(&format!("OK (RGS) {} players", players.len()));
-        out.write_u8(players.len() as u8);
-        for p in &players {
-            let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-            let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-            // 模拟 level from uuid hash
-            let level: u8 = uuid.bytes().map(|b| b as u32).sum::<u32>().wrapping_rem(100) as u8 + 1;
-            out.write_string(&name);
-            out.write_u8(level);
-        }
-        Response { cmd, payload: out }
-    })
-}
-
-// ============================================================================
-// 战斗场景 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
-// 来源: zsyz_server/src/proto/proto_102.erl + proto_103.erl (真 zsyz_client cmd)
-// ============================================================================
-
-// 10300 cli/srv: empty (ping/heartbeat, per proto_103.erl)
-pub fn handle_ping(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        tracing::info!("10300 ping");
-        // 10300 srv: empty (per proto_103.erl pack(10300, srv, {}))
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 10215 cli: {base_id:u32, x:i16, y:i16, dir:u8}
-// 10215 srv: {rid:u32, srv_id:str, dir:u8, dx:i16, dy:i16}  (per proto_102.erl)
-pub fn handle_move(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (base_id, x, y, dir) = if payload.len() >= 9 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_i16(), p.read_i16(), p.read_u8())
-        } else {
-            (0u32, 0i16, 0i16, 0u8)
-        };
-        tracing::info!(base_id, x, y, dir, "10215 move");
-
-        // 调 RGS match domain 记录移动 (per RGS-REQ-038 SubmitMove)
-        let _ = rgs.call("match", "SubmitMove", serde_json::json!({
-            "request_id": format!("move-{}", now_unix()),
-            "match_id": "00000000-0000-0000-0000-000000000000",
-            "player_id": "11111111-1111-1111-1111-111111111111",
-            "x": x as i32, "y": y as i32, "facing": dir,
-        })).await;
-
-        // 10215 srv: rid + srv_id + dir + dx + dy
-        let mut out = Vec::with_capacity(32);
-        out.write_u32(0x11111111);                    // rid
-        out.write_string("rgs-uat-1");                 // srv_id
-        out.write_u8(dir);                            // dir (回显)
-        out.write_i16(x);                             // dx
-        out.write_i16(y);                             // dy
-        Response { cmd, payload: out }
-    })
-}
-
-// 10301 cli: empty; srv: 全角色信息 (per proto_103.erl, 巨大 payload, 这里用 RGS player 域填充关键字段)
-// 真实 zsyz_client 启动后用这个 dump 玩家完整信息
-pub fn handle_role_info(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let t0 = std::time::Instant::now();
-        // 调 RGS player.GetPlayer 拿真实玩家数据
-        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
-            "id": "11111111-1111-1111-1111-111111111111"
-        })).await;
-        let dt = t0.elapsed().as_millis();
-        tracing::info!(dt_ms = dt as u64, "10301 role_info");
-
-        let p = rgs_resp.response.unwrap_or(serde_json::json!({}));
-        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-        let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-        let lev = if uuid.len() >= 4 { (u32::from_str_radix(&uuid[..4], 16).unwrap_or(0) % 60 + 1) as u16 } else { 1u16 };
-
-        // 10301 srv 简化格式: rid + srv_id + name + lev + 6 zero fields
-        // 真实 Erlang 24 字段, 简化核心 4 字段 + zero padding
-        let mut out = Vec::with_capacity(128);
-        out.write_u32(0x11111111);                    // rid
-        out.write_string("rgs-uat-1");                 // srv_id
-        out.write_string(&name);                      // name
-        out.write_u16(lev);                           // lev
-        // 其他 21 字段 (vip_lev, vip_exp, sex, career, face_id, event, gid, gsrv_id, position, gname, signature, exp_max, exp_total, buffs[], reg_time, guild_lev, power, is_first_rename, avatar_base_id, guild_quit_time, look_id, max_power) — 写 0
-        for _ in 0..21 { out.write_u32(0); }
-        Response { cmd, payload: out }
-    })
-}
-
-// 10302 cli: empty; srv: 资源 (lev + exp + gold + ... 18 fields, per proto_103.erl)
-pub fn handle_assets(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 调 RGS economy 域拿真实账户数据
-        let rgs_resp = rgs.call("economy", "GetAccount", serde_json::json!({
-            "id": "33333333-3333-3333-3333-333333333333"
-        })).await;
-        let a = rgs_resp.response.unwrap_or(serde_json::json!({}));
-        let id = a.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-        let hash: u32 = id.bytes().map(|b| b as u32).sum();
-        let gold = (hash * 13) % 100000 + 1000;
-        let diamond = (hash * 7) % 5000 + 100;
-        let energy = (hash * 3) % 200 + 50;
-
-        // 10302 srv: lev:u16 + 18 u32 资源字段
-        let lev = 18u16;
-        let mut out = Vec::with_capacity(80);
-        out.write_u16(lev);                           // lev
-        out.write_u32(12345);                         // exp
-        out.write_u32(gold as u32);                   // gold
-        out.write_u32(gold as u32 * 7);               // gold_acc
-        out.write_u32(diamond as u32);                // coin (钻石)
-        out.write_u32(0);                             // red_gold
-        out.write_u32(energy as u32);                 // energy
-        out.write_u32(200);                           // energy_max
-        out.write_u32(0);                             // arena_cent
-        out.write_u16(0);                             // activity
-        out.write_u32(0);                             // guild
-        out.write_u32(0);                             // hero_soul
-        out.write_u32(0);                             // friend_point
-        out.write_u32(0);                             // boss_point
-        out.write_u32(0);                             // silver_coin
-        out.write_u32(0);                             // star_hun
-        out.write_u32(0);                             // star_point
-        out.write_u32(0);                             // arena_guesscent
-        tracing::info!(lev, gold, diamond, energy, "10302 assets");
-        Response { cmd, payload: out }
-    })
-}
-
-// 10309 cli: {signature:str}; srv: {code:u8, msg:str, signature:str}  (per proto_103.erl)
-pub fn handle_signature(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let sig = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_string()
-        } else {
-            String::new()
-        };
-        tracing::info!(signature = %sig, "10309 set_signature");
-        // 10309 srv: code + msg + sig (回显)
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(0);
-        out.write_string("OK (signature set)");
-        out.write_string(&sig);
-        Response { cmd, payload: out }
-    })
-}
-
-// 10315 cli: {rid:u32, srv_id:str}; srv: {rid, srv_id, name, gname, lev, face_id, power, partner_list[], gid, gsrv_id, avatar_bid, sex, city, vip_lev, honor_list[]}
-// 简化为: rid + srv_id + name + gname + lev:u8 + face_id + power + partner_count:u16 + gid + gsrv_id + avatar_bid + sex + city + vip_lev + honor_count:u16
-pub fn handle_view_role(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (rid, srv_id) = if payload.len() >= 6 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_string())
-        } else {
-            (0u32, String::new())
-        };
-        tracing::info!(rid = format!("0x{:08x}", rid), srv_id = %srv_id, "10315 view_role");
-
-        // 调 RGS player + social 域拿真数据
-        let player_uuid = format!("{:08x}-0000-0000-0000-{:012x}", rid, rid);
-        let (player_resp, guild_resp) = futures_util::future::join(
-            rgs.call("player", "GetPlayer", serde_json::json!({ "id": player_uuid })),
-            rgs.call("social", "GetGuild", serde_json::json!({ "id": "22222222-2222-2222-2222-222222222222" })),
-        ).await;
-
-        let p = player_resp.response.unwrap_or(serde_json::json!({}));
-        let g = guild_resp.response.unwrap_or(serde_json::json!({}));
-        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-        let gname = g.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-
-        // 10315 srv (简化 13 字段, 真实 14 + 2 list)
-        let mut out = Vec::with_capacity(256);
-        out.write_u32(rid);
-        out.write_string(&srv_id);
-        out.write_string(&name);
-        out.write_string(&gname);
-        out.write_u8(18);                             // lev
-        out.write_u32(0);                             // face_id
-        out.write_u32(99999);                         // power
-        out.write_u16(0);                             // partner_list count
-        out.write_u32(0x22222222);                    // gid
-        out.write_string("guild-1");                  // gsrv_id
-        out.write_u32(0);                             // avatar_bid
-        out.write_u8(1);                              // sex
-        out.write_u32(0);                             // city
-        out.write_u32(0);                             // vip_lev
-        out.write_u16(0);                             // honor_list count
-        Response { cmd, payload: out }
-    })
-}
-
-// ============================================================================
-// v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 766 cmd stub handler
-// ============================================================================
-
-// 通用 stub: 返回空 payload (zsyz_client 收到后不会崩, 只是没数据)
-// 后续 worker 派工逐个替换为 real handler (call RGS)
-pub fn handle_stub(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 只在 cmd >= 10000 范围内 log (10100-39999 是真 zsyz cmd, 避免 log spam)
-        if cmd >= 10000 && cmd < 40000 {
-            tracing::debug!(cmd, "stub");
-        }
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// ============================================================================
-// Phase 4 w5: admin/GM 域 9 cmd (per 2026-09-09 19:32 JST Mavis 派工)
-// 来源: zsyz_server/src/proto/proto_141.erl (14100-14104 签到/checkin) +
-//       proto_mate.js 字段 (30001-30102 礼包/gift — 无 erl proto, 走 stub 空回)
-// 备注: proto_141.erl 文件名是 141 但内容是签到协议 (签到 = checkin),
-//       registry_stubs.rs 第 14 行注释 "admin-gm" 实际包含 5 个签到 + 4 个礼包 = 9 cmd
-//       字节级对齐 per proto_141.erl pack(srv, ...)
-// ============================================================================
-
-// 14100 cli: empty → srv: {day:u8, status:u8}  (per proto_141.erl pack(14100, srv, {day, status}))
-// 客户端调 14100 拿当前签到天数 + 状态
-pub fn handle_gm_14100(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // shim 当前未对接 player.checkin 域 (W5 范围外), 返 mock 1
-        // TODO(w5+): 调 RGS player.GetPlayer + checkin status
-        let mut out = Vec::with_capacity(8);
-        out.write_u8(1);     // day = 1
-        out.write_u8(0);     // status = 0 (未签)
-        tracing::info!("14100 checkin_get");
-        Response { cmd, payload: out }
-    })
-}
-
-// 14101 cli: empty → srv: {code:u8, msg:str, day:u8, status:u8}
-// 客户端调 14101 提交签到 (返回新天数 + 状态)
-pub fn handle_gm_14101(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(0);                                 // code = 0 (OK)
-        out.write_string("OK (checkin submit)");          // msg
-        out.write_u8(1);                                 // day = 1
-        out.write_u8(1);                                 // status = 1 (已签)
-        tracing::info!("14101 checkin_submit");
-        Response { cmd, payload: out }
-    })
-}
-
-// 14102 cli: empty → srv: {attr_list_len:u16, [id:u32, status:u8]*}
-// 签到奖励属性列表 (mock 1 个)
-pub fn handle_gm_14102(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let mut out = Vec::with_capacity(16);
-        out.write_u16(1);                                 // attr_list 长度
-        out.write_u32(101);                                // id (奖励 ID)
-        out.write_u8(0);                                  // status
-        tracing::debug!("14102 checkin_attr_list");
-        Response { cmd, payload: out }
-    })
-}
-
-// 14103 cli: {id:u8} → srv: {code:u8, msg:str, id:u32, status:u8}
-// 单个签到奖励领取
-pub fn handle_gm_14103(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let id = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_u8() as u32
-        } else {
-            0u32
-        };
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(0);                                 // code = 0 (OK)
-        out.write_string("OK (checkin reward claim)");   // msg
-        out.write_u32(id);                                // 回显 id
-        out.write_u8(1);                                  // status = 1 (已领)
-        tracing::info!(id, "14103 checkin_claim");
-        Response { cmd, payload: out }
-    })
-}
-
-// 14104 srv: empty (per proto_141.erl pack(14104, srv, {}))
-// 签到完成推送 — 客户端收到后无需处理
-pub fn handle_gm_14104(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        tracing::debug!("14104 checkin_done push");
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 30001 cli: {id:u32, finish:u8, target_val:u32, value:u32}
-// 服务端无 proto, 客户端上报礼包进度, shim 返空 ack
-pub fn handle_gm_30001(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (id, finish, target_val, value) = if payload.len() >= 14 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_u8(), p.read_u32(), p.read_u32())
-        } else {
-            (0u32, 0u8, 0u32, 0u32)
-        };
-        tracing::debug!(id, finish, target_val, value, "30001 gift_progress");
-        // 实际场景调 RGS economy 域 GrantCompensation 上报进度 (W5+ TODO)
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 30002 cli: {code:u8, msg:str}
-// 礼包错误码/消息上报, shim 返空 ack
-pub fn handle_gm_30002(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (code, msg) = if payload.len() >= 5 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u8(), p.read_string())
-        } else {
-            (0u8, String::new())
-        };
-        tracing::info!(code, msg = %msg, "30002 gift_err_report");
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 30100 cli: {flag:u8, msg:str}
-// 礼包 flag 状态上报 (激活/失效), shim 返空 ack
-pub fn handle_gm_30100(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (flag, msg) = if payload.len() >= 5 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u8(), p.read_string())
-        } else {
-            (0u8, String::new())
-        };
-        tracing::info!(flag, msg = %msg, "30100 gift_flag_report");
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 30101 cli: {code:u8}  →  srv: empty (proto_mate.js 未列 srv, 默认 stub 行为)
-pub fn handle_gm_30101(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let code = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_u8()
-        } else {
-            0u8
-        };
-        tracing::debug!(code, "30101 gift_ack_1");
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 30102 cli: {code:u8}  →  srv: empty
-pub fn handle_gm_30102(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let code = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_u8()
-        } else {
-            0u8
-        };
-        tracing::debug!(code, "30102 gift_ack_2");
-        Response { cmd, payload: vec![] }
-    })
-}
-// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 拍板生产级)
-// v0.3.0: handlers 接收 owned Vec<u8> + Arc<RgsClient> (registry.rs 决定)
-//   - 无 lifetime 依赖, 全部 'static future
-//   - RgsClient 共享 Arc, 内部 reqwest pool 自动 clone
-
-use crate::frame::{BeRead, BeWrite};
-use crate::rgs::RgsClient;
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-pub struct Response {
-    pub cmd: u16,
-    pub payload: Vec<u8>,
-}
-
-fn now_unix() -> u32 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as u32
-}
-
-// 10101 cli: register {sex:u8, name:str, career:i16, playform:str}
-// 10101 srv: {code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32}
-pub fn handle_register(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 解析 (安全处理空 payload)
-        let (sex, name, career, playform) = if payload.len() >= 8 {
-            let mut p: &[u8] = &payload[..];
-            let s = p.read_u8();
-            let n = p.read_string();
-            let c = p.read_i16();
-            let pf = p.read_string();
-            (s, n, c, pf)
-        } else {
-            (0u8, "MavisHero".to_string(), 0i16, "ios".to_string())
-        };
-        tracing::info!(sex, %name, career, %playform, "10101 register");
-
-        // 调 RGS player.GetPlayer 拿真玩家数据
-        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
-            "id": "11111111-1111-1111-1111-111111111111"
-        })).await;
-
-        let (code, msg, display_name, uuid) = if rgs_resp.ok {
-            let resp = rgs_resp.response.unwrap_or(serde_json::json!({}));
-            let dn = resp.get("display_name").and_then(|v| v.as_str()).unwrap_or("MavisHero").to_string();
-            let uid = resp.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("").to_string();
-            (0u8, "OK (via RGS player.GetPlayer)".to_string(), dn, uid)
-        } else {
-            (1u8, format!("RGS 不可达: {}", rgs_resp.error.unwrap_or_default()), "MavisHero".to_string(), "".to_string())
-        };
-
-        // rid = uuid 前 8 hex → u32
-        let rid = if uuid.len() >= 8 {
-            u32::from_str_radix(&uuid[..8], 16).unwrap_or(0x11111111)
-        } else {
-            0x11111111
-        };
-
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(code);
-        out.write_string(&msg);
-        out.write_u32(rid);
-        out.write_string("rgs-uat-1");
-        out.write_string(&display_name);
-        out.write_u32(now_unix());
-        Response { cmd, payload: out }
-    })
-}
-
-// 10102 / 10103 cli: enter_server {rid:u32, srv_id:str}
-// 10102 srv: {code:u8, msg:str, timestamp:u32, world_lev:u16}
-pub fn handle_enter_server(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (rid, srv_id) = if payload.len() >= 6 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_string())
-        } else {
-            (0u32, "rgs-uat-1".to_string())
-        };
-        tracing::info!(rid = format!("0x{:08x}", rid), %srv_id, "10102/10103 enter_server");
-
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);
-        out.write_string("OK (RGS server ready)");
-        out.write_u32(now_unix());
-        out.write_u16(52);
-        Response { cmd, payload: out }
-    })
-}
-
-// 10200 cli: map_enter {battle_id:u32, id:u32, code:i16}
-// 10200 srv: {result:u8, msg:str, battle_id:u32, id:u32, time:u32}  (per proto_102.erl)
-pub fn handle_map_enter(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (battle_id, id, code) = if payload.len() >= 10 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_u32(), p.read_i16())
-        } else {
-            (0u32, 0u32, 0i16)
-        };
-        tracing::info!(battle_id, id, code, "10200 map_enter");
-        // Erlang 10200 srv 完整格式: result:u8 + msg:str + battle_id:u32 + id:u32 + time:u32
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);                         // result = 0 (OK)
-        out.write_string("OK (RGS map via match domain)");
-        out.write_u32(battle_id);                 // 回显 battle_id
-        out.write_u32(id);                       // 回显 id
-        out.write_u32(now_unix());               // time
-        Response { cmd, payload: out }
-    })
-}
-
-// 10400 cli: (empty) heartbeat → 5 域并发 HealthCheck
-// 10400 srv: {code:u8, msg:str, ok_count:u8, total:u8}
-pub fn handle_heartbeat(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let t0 = std::time::Instant::now();
-        let results = rgs.healthcheck_all().await;
-        let dt = t0.elapsed().as_millis();
-        let ok_count = results.iter().filter(|(_, ok)| *ok).count() as u8;
-        let total = results.len() as u8;
-        tracing::info!(ok_count, total, ms = dt as u64, "10400 heartbeat");
-
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);
-        out.write_string(&format!("OK {}/{} RGS 域 in {}ms", ok_count, total, dt));
-        out.write_u8(ok_count);
-        out.write_u8(total);
-        Response { cmd, payload: out }
-    })
-}
-
-// 11001 cli: (empty) role_list → RGS player ListPlayers
-// 11001 srv: {code:u8, msg:str, count:u8, [name:str, level:u8]}
-pub fn handle_role_list(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let rgs_resp = rgs.call("player", "ListPlayers", serde_json::json!({"limit": 5})).await;
-        let players: Vec<serde_json::Value> = if rgs_resp.ok {
-            rgs_resp.response
-                .as_ref()
-                .and_then(|r| r.get("players"))
-                .and_then(|p| p.as_array())
-                .cloned()
-                .unwrap_or_default()
-        } else {
-            // 降级: 单个 player
-            let single = rgs.call("player", "GetPlayer", serde_json::json!({
-                "id": "11111111-1111-1111-1111-111111111111"
-            })).await;
-            if single.ok {
-                single.response.into_iter().collect()
-            } else {
-                vec![]
-            }
-        };
-
-        tracing::info!(count = players.len(), "11001 role_list");
-
-        let mut out = Vec::with_capacity(32 + players.len() * 32);
-        out.write_u8(0);
-        out.write_string(&format!("OK (RGS) {} players", players.len()));
-        out.write_u8(players.len() as u8);
-        for p in &players {
-            let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-            let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-            // 模拟 level from uuid hash
-            let level: u8 = uuid.bytes().map(|b| b as u32).sum::<u32>().wrapping_rem(100) as u8 + 1;
-            out.write_string(&name);
-            out.write_u8(level);
-        }
-        Response { cmd, payload: out }
-    })
-}
-
-// ============================================================================
-// 战斗场景 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
-// 来源: zsyz_server/src/proto/proto_102.erl + proto_103.erl (真 zsyz_client cmd)
-// ============================================================================
-
-// 10300 cli/srv: empty (ping/heartbeat, per proto_103.erl)
-pub fn handle_ping(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        tracing::info!("10300 ping");
-        // 10300 srv: empty (per proto_103.erl pack(10300, srv, {}))
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// 10215 cli: {base_id:u32, x:i16, y:i16, dir:u8}
-// 10215 srv: {rid:u32, srv_id:str, dir:u8, dx:i16, dy:i16}  (per proto_102.erl)
-pub fn handle_move(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (base_id, x, y, dir) = if payload.len() >= 9 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_i16(), p.read_i16(), p.read_u8())
-        } else {
-            (0u32, 0i16, 0i16, 0u8)
-        };
-        tracing::info!(base_id, x, y, dir, "10215 move");
-
-        // 调 RGS match domain 记录移动 (per RGS-REQ-038 SubmitMove)
-        let _ = rgs.call("match", "SubmitMove", serde_json::json!({
-            "request_id": format!("move-{}", now_unix()),
-            "match_id": "00000000-0000-0000-0000-000000000000",
-            "player_id": "11111111-1111-1111-1111-111111111111",
-            "x": x as i32, "y": y as i32, "facing": dir,
-        })).await;
-
-        // 10215 srv: rid + srv_id + dir + dx + dy
-        let mut out = Vec::with_capacity(32);
-        out.write_u32(0x11111111);                    // rid
-        out.write_string("rgs-uat-1");                 // srv_id
-        out.write_u8(dir);                            // dir (回显)
-        out.write_i16(x);                             // dx
-        out.write_i16(y);                             // dy
-        Response { cmd, payload: out }
-    })
-}
-
-// 10301 cli: empty; srv: 全角色信息 (per proto_103.erl, 巨大 payload, 这里用 RGS player 域填充关键字段)
-// 真实 zsyz_client 启动后用这个 dump 玩家完整信息
-pub fn handle_role_info(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let t0 = std::time::Instant::now();
-        // 调 RGS player.GetPlayer 拿真实玩家数据
-        let rgs_resp = rgs.call("player", "GetPlayer", serde_json::json!({
-            "id": "11111111-1111-1111-1111-111111111111"
-        })).await;
-        let dt = t0.elapsed().as_millis();
-        tracing::info!(dt_ms = dt as u64, "10301 role_info");
-
-        let p = rgs_resp.response.unwrap_or(serde_json::json!({}));
-        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-        let uuid = p.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-        let lev = if uuid.len() >= 4 { (u32::from_str_radix(&uuid[..4], 16).unwrap_or(0) % 60 + 1) as u16 } else { 1u16 };
-
-        // 10301 srv 简化格式: rid + srv_id + name + lev + 6 zero fields
-        // 真实 Erlang 24 字段, 简化核心 4 字段 + zero padding
-        let mut out = Vec::with_capacity(128);
-        out.write_u32(0x11111111);                    // rid
-        out.write_string("rgs-uat-1");                 // srv_id
-        out.write_string(&name);                      // name
-        out.write_u16(lev);                           // lev
-        // 其他 21 字段 (vip_lev, vip_exp, sex, career, face_id, event, gid, gsrv_id, position, gname, signature, exp_max, exp_total, buffs[], reg_time, guild_lev, power, is_first_rename, avatar_base_id, guild_quit_time, look_id, max_power) — 写 0
-        for _ in 0..21 { out.write_u32(0); }
-        Response { cmd, payload: out }
-    })
-}
-
-// 10302 cli: empty; srv: 资源 (lev + exp + gold + ... 18 fields, per proto_103.erl)
-pub fn handle_assets(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 调 RGS economy 域拿真实账户数据
-        let rgs_resp = rgs.call("economy", "GetAccount", serde_json::json!({
-            "id": "33333333-3333-3333-3333-333333333333"
-        })).await;
-        let a = rgs_resp.response.unwrap_or(serde_json::json!({}));
-        let id = a.get("id").and_then(|v| v.get("id")).and_then(|v| v.as_str()).unwrap_or("");
-        let hash: u32 = id.bytes().map(|b| b as u32).sum();
-        let gold = (hash * 13) % 100000 + 1000;
-        let diamond = (hash * 7) % 5000 + 100;
-        let energy = (hash * 3) % 200 + 50;
-
-        // 10302 srv: lev:u16 + 18 u32 资源字段
-        let lev = 18u16;
-        let mut out = Vec::with_capacity(80);
-        out.write_u16(lev);                           // lev
-        out.write_u32(12345);                         // exp
-        out.write_u32(gold as u32);                   // gold
-        out.write_u32(gold as u32 * 7);               // gold_acc
-        out.write_u32(diamond as u32);                // coin (钻石)
-        out.write_u32(0);                             // red_gold
-        out.write_u32(energy as u32);                 // energy
-        out.write_u32(200);                           // energy_max
-        out.write_u32(0);                             // arena_cent
-        out.write_u16(0);                             // activity
-        out.write_u32(0);                             // guild
-        out.write_u32(0);                             // hero_soul
-        out.write_u32(0);                             // friend_point
-        out.write_u32(0);                             // boss_point
-        out.write_u32(0);                             // silver_coin
-        out.write_u32(0);                             // star_hun
-        out.write_u32(0);                             // star_point
-        out.write_u32(0);                             // arena_guesscent
-        tracing::info!(lev, gold, diamond, energy, "10302 assets");
-        Response { cmd, payload: out }
-    })
-}
-
-// 10309 cli: {signature:str}; srv: {code:u8, msg:str, signature:str}  (per proto_103.erl)
-pub fn handle_signature(
-    cmd: u16,
-    payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let sig = if !payload.is_empty() {
-            let mut p: &[u8] = &payload[..];
-            p.read_string()
-        } else {
-            String::new()
-        };
-        tracing::info!(signature = %sig, "10309 set_signature");
-        // 10309 srv: code + msg + sig (回显)
-        let mut out = Vec::with_capacity(64);
-        out.write_u8(0);
-        out.write_string("OK (signature set)");
-        out.write_string(&sig);
-        Response { cmd, payload: out }
-    })
-}
-
-// 10315 cli: {rid:u32, srv_id:str}; srv: {rid, srv_id, name, gname, lev, face_id, power, partner_list[], gid, gsrv_id, avatar_bid, sex, city, vip_lev, honor_list[]}
-// 简化为: rid + srv_id + name + gname + lev:u8 + face_id + power + partner_count:u16 + gid + gsrv_id + avatar_bid + sex + city + vip_lev + honor_count:u16
-pub fn handle_view_role(
-    cmd: u16,
-    payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        let (rid, srv_id) = if payload.len() >= 6 {
-            let mut p: &[u8] = &payload[..];
-            (p.read_u32(), p.read_string())
-        } else {
-            (0u32, String::new())
-        };
-        tracing::info!(rid = format!("0x{:08x}", rid), srv_id = %srv_id, "10315 view_role");
-
-        // 调 RGS player + social 域拿真数据
-        let player_uuid = format!("{:08x}-0000-0000-0000-{:012x}", rid, rid);
-        let (player_resp, guild_resp) = futures_util::future::join(
-            rgs.call("player", "GetPlayer", serde_json::json!({ "id": player_uuid })),
-            rgs.call("social", "GetGuild", serde_json::json!({ "id": "22222222-2222-2222-2222-222222222222" })),
-        ).await;
-
-        let p = player_resp.response.unwrap_or(serde_json::json!({}));
-        let g = guild_resp.response.unwrap_or(serde_json::json!({}));
-        let name = p.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-        let gname = g.get("display_name").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-
-        // 10315 srv (简化 13 字段, 真实 14 + 2 list)
-        let mut out = Vec::with_capacity(256);
-        out.write_u32(rid);
-        out.write_string(&srv_id);
-        out.write_string(&name);
-        out.write_string(&gname);
-        out.write_u8(18);                             // lev
-        out.write_u32(0);                             // face_id
-        out.write_u32(99999);                         // power
-        out.write_u16(0);                             // partner_list count
-        out.write_u32(0x22222222);                    // gid
-        out.write_string("guild-1");                  // gsrv_id
-        out.write_u32(0);                             // avatar_bid
-        out.write_u8(1);                              // sex
-        out.write_u32(0);                             // city
-        out.write_u32(0);                             // vip_lev
-        out.write_u16(0);                             // honor_list count
-        Response { cmd, payload: out }
-    })
-}
-
-// ============================================================================
-// 战斗回合 cmd (v0.4.0 worker 派工 w2/economy, per 2026-09-09 19:34 JST Mavis 派工)
-// 来源: zsyz_server/src/proto/proto_200.erl (战斗/HP/能量/技能/buff)
-// 20000-20015 = 战斗前置 + 回合 (proto_200.erl 早期 pack)
-// ============================================================================
-
-// 20000 cli: empty; srv: {combat_type:u16, combat_map:u32}  (per proto_200.erl)
-pub fn handle_combat_enter(
-    cmd: u16,
-    _payload: Vec<u8>,
-    rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 调 RGS match domain 拿 combat 状态 (per 20000 proto: 进入战斗)
-        let _ = rgs.call("match", "GetMatch", serde_json::json!({
-            "match_id": "00000000-0000-0000-0000-000000000000"
-        })).await;
-        tracing::info!(cmd, "20000 combat_enter");
-
-        // 20000 srv: combat_type:u16 + combat_map:u32
-        let mut out = Vec::with_capacity(8);
-        out.write_u16(1);                              // combat_type = 1 (PVE)
-        out.write_u32(10001);                           // combat_map = 10001 (新手副本)
-        Response { cmd, payload: out }
-    })
-}
-
-// 20001 cli: empty; srv: {code:u8, msg:str}  (per proto_200.erl, 战斗开始 ack)
-pub fn handle_combat_start_ack(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        tracing::info!(cmd, "20001 combat_start_ack");
-        // 20001 srv: code:u8 + msg:str
-        let mut out = Vec::with_capacity(32);
-        out.write_u8(0);                                // code = 0 (OK)
-        out.write_string("OK (combat start acknowledged)");
-        Response { cmd, payload: out }
-    })
-}
-
-// 20005 cli: empty; srv: empty  (per proto_200.erl, 战斗准备就绪 heart-beat)
-pub fn handle_combat_ready(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        tracing::info!(cmd, "20005 combat_ready");
-        // 20005 srv: empty (per proto_200.erl pack(20005, srv, {}))
-        Response { cmd, payload: vec![] }
-    })
-}
-
-// ============================================================================
-// v0.4.0 (per 2026-09-09 16:25 JST Mavis 派工): 766 cmd stub handler
-// ============================================================================
-
-// 通用 stub: 返回空 payload (zsyz_client 收到后不会崩, 只是没数据)
-// 后续 worker 派工逐个替换为 real handler (call RGS)
-pub fn handle_stub(
-    cmd: u16,
-    _payload: Vec<u8>,
-    _rgs: Arc<RgsClient>,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
-    Box::pin(async move {
-        // 只在 cmd >= 10000 范围内 log (10100-39999 是真 zsyz cmd, 避免 log spam)
-        if cmd >= 10000 && cmd < 40000 {
-            tracing::debug!(cmd, "stub");
-        }
-        Response { cmd, payload: vec![] }
-    })
-}
