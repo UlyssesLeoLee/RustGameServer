@@ -16,6 +16,7 @@
 // - 业务覆盖率 1.9% (10/514 real cmd)
 
 use crate::handlers;
+use crate::handlers_social;
 use crate::rgs::RgsClient;
 use std::pin::Pin;
 use std::future::Future;
@@ -65,6 +66,24 @@ impl Registry {
         // 来源: H5 zsyz_client proto_mate.js 提取, 域分布 welfare=110/partner=108/battle=103/social=93/...
         // stub 返回空 payload (后续 worker 派工逐个替换为 real handler)
         crate::registry_stubs::register_stubs(&mut map);
+        // v0.4.1 (per 2026-09-09 19:30 JST Mavis 派工 w4): social 域 14 POC handler
+        // 来源: proto_130.erl (dungeon 4) + proto_133.erl (friend 4) + proto_134.erl (exchange 2) + proto_135.erl (guild 4)
+        // 完整 93 cmd 扩需 1-2 周, 当前 14 handler 字节级对齐 erlang pack(srv, ...)
+        // 已知缺口 (per 9/9 19:30 派工): 79/93 cmd 仍 stub (13001-13004/13007-13040 副本 + 13301-13334 好友 + 13402-13420 兑换 + 13501-13576 公会 + 13601-13608 + 16601-16900 跨服)
+        map.insert(13000, CmdEntry { handler: handlers_social::handle_13000_dungeon_list, name: "dungeon_list (proto_130)", source: "zsyz" });
+        map.insert(13005, CmdEntry { handler: handlers_social::handle_13005_dungeon_battle, name: "dungeon_battle (proto_130)", source: "zsyz" });
+        map.insert(13006, CmdEntry { handler: handlers_social::handle_13006_dungeon_count, name: "dungeon_count (proto_130)", source: "zsyz" });
+        map.insert(13011, CmdEntry { handler: handlers_social::handle_13011_buff_list, name: "buff_list (proto_130)", source: "zsyz" });
+        map.insert(13300, CmdEntry { handler: handlers_social::handle_13300_friend_list, name: "friend_list (proto_133)", source: "zsyz" });
+        map.insert(13303, CmdEntry { handler: handlers_social::handle_13303_add_friend, name: "add_friend (proto_133)", source: "zsyz" });
+        map.insert(13311, CmdEntry { handler: handlers_social::handle_13311_friend_req_list, name: "friend_req_list (proto_133)", source: "zsyz" });
+        map.insert(13315, CmdEntry { handler: handlers_social::handle_13315_delete_friend, name: "delete_friend (proto_133)", source: "zsyz" });
+        map.insert(13401, CmdEntry { handler: handlers_social::handle_13401_exchange_list, name: "exchange_list (proto_134)", source: "zsyz" });
+        map.insert(13408, CmdEntry { handler: handlers_social::handle_13408_exchange_action, name: "exchange_action (proto_134)", source: "zsyz" });
+        map.insert(13500, CmdEntry { handler: handlers_social::handle_13500_create_guild, name: "create_guild (proto_135)", source: "zsyz" });
+        map.insert(13518, CmdEntry { handler: handlers_social::handle_13518_guild_info, name: "guild_info (proto_135, RGS social.GetGuild)", source: "zsyz" });
+        map.insert(13519, CmdEntry { handler: handlers_social::handle_13519_guild_members, name: "guild_members (proto_135)", source: "zsyz" });
+        map.insert(13523, CmdEntry { handler: handlers_social::handle_13523_donate_info, name: "donate_info (proto_135)", source: "zsyz" });
         Registry { map }
     }
 
