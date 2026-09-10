@@ -1,19 +1,23 @@
-//! admin 域 BotAi 派生 (per DDD Review v0.2 §5.1 M2 + M4)
+//! admin 域 BotAi 派生 (per DDD Review v0.2 §5.1 M2 + M4 + DDD Review v0.3.1 §7.3 Phase C)
 //!
 //! PoC 行为序列 (per erlang C2 GM 注入 + A1 admin ban 场景):
-//! - `Init`           启动初始化 (内部跑 1 个 stub GmCommand, 演示 GM 链路, per M4)
+//! - `Init`           启动初始化 (内部跑 1 个 mTLS GmCommand, 演示真实 tonic Channel, per M4)
 //! - `Heartbeat`      周期心跳
 //! - `RandProto(100)` 10% 概率触发协议随机化 (千分位, per erlang C1)
-//! - `GmCommand`      GM 命令注入 (走 `GmClient::issue` stub, per erlang C2 + M4)
-//! - `BanAccount`     admin 封号场景 (走 `GmClient::issue` stub, per erlang A1)
+//! - `GmCommand`      GM 命令注入 (走 `GmClient::issue` 真实 mTLS 通道, per erlang C2 + M4)
+//! - `BanAccount`     admin 封号场景 (走 `GmClient::issue` 真实 mTLS 通道, per erlang A1)
 //!
-//! 真实 admin mTLS 调用 (走 `admin-service::issue_gm_command` + `BanAccount` 等
-//! RPC) 留 wave 3 接. 本 PoC 走 `GmClient` stub, 立即返回 `Ok(GmResponse { ok: true, .. })`.
+//! 真实 admin mTLS 调用 (走 `tonic::transport::Channel` + 客户端 mTLS 凭据) 已替换
+//! stub. 当前 **k3s baseline 0/12 阶段** (per 9/10 16:36 JST 拍板 "接受 baseline
+//! 等 SRE 介入"), 真实 RPC 必失败, 但 client 框架已就位 + 返 `Ok + GmResponse
+//! { ok: false, error }` 不 panic.
 //!
 //! # 强约束 (per 8/27 11:06 JST hard ban + AGENTS.md §1.2)
 //!
 //! - 凭据 (mTLS cert path) 走 `Option<String>` 配置, **不读 env, 不打印值**
 //! - GM 指令不打印明文, 只 `cmd_len` 长度 (per DDD Review v0.2 §3 erlang C2 中文指令)
+//! - k3s baseline 0/12 阶段走 `with_skip_verify(true)`, cert 未导出 fallback,
+//!   1 行 warn (不打 cert path / endpoint 内容)
 
 use async_trait::async_trait;
 use tracing::debug;
@@ -23,38 +27,44 @@ use crate::bot::ai::BotAi;
 use crate::bot::gm::GmClient;
 use crate::bot::Bot;
 
-/// admin 域 BotAi (per DDD Review v0.2 §5.1 M2 + M4)
+/// admin 域 BotAi (per DDD Review v0.2 §5.1 M2 + M4 + DDD Review v0.3.1 §7.3)
 ///
 /// 6 派生基线 — `act_list` = `[Init, Heartbeat, RandProto(100), GmCommand, BanAccount]`,
-/// `handle` 全 OK stub (走 `GmClient::issue`). 真实 admin mTLS gRPC 调用留 wave 3.
+/// `handle` 走 `GmClient::issue` 真实 mTLS (k3s baseline 0/12 阶段必失败, 返
+/// `GmResponse { ok: false, error }` 不 panic).
 ///
-/// # GM 注入链路 (per DDD Review v0.2 §5.1 M4 + erlang C2)
+/// # GM 注入链路 (per DDD Review v0.2 §5.1 M4 + erlang C2 + DDD Review v0.3.1 §7.3)
 ///
-/// `AdminBotAi` 内部持 1 个 `GmClient` (走 `GmClient::new(admin_endpoint)`),
-/// 演示完整 GM 注入链路: `Bot` → `BotAi::handle(GmCommand)` → `GmClient::issue` →
-///
-/// (未来) `admin-service::issue_gm_command` mTLS gRPC. 当前 stub 立即返回 `Ok`,
-/// 真实连接留待 wave 3 worker 接 admin mTLS.
+/// `AdminBotAi` 内部持 1 个 `GmClient` (默认 `GmClient::with_endpoint("https://127.0.0.1:50055")
+/// .with_skip_verify(true)`, 走 lazy tonic Channel), 演示完整 GM 注入链路:
+/// `Bot` → `BotAi::handle(GmCommand)` → `GmClient::issue` → (lazy) `tonic Channel`
+/// → (k3s baseline 0/12 阶段) connection refused → `Ok(GmResponse { ok: false, error })`.
 #[derive(Clone, Debug)]
 pub struct AdminBotAi {
-    /// GM 客户端 (per DDD Review v0.2 §5.1 M4)
+    /// GM 客户端 (per DDD Review v0.2 §5.1 M4 + v0.3.1 §7.3)
     ///
     /// 字段保留为 `Option`, 默认 `None` 时构造默认 stub `GmClient`. 调用方
-    /// 可在 `AdminBotAi::with_gm_client(...)` 注入真实 (future) 端点.
+    /// 可在 `AdminBotAi::with_gm_client(...)` 注入真实端点.
     gm_client: Option<GmClient>,
 }
 
 impl Default for AdminBotAi {
     fn default() -> Self {
-        // 默认 endpoint = admin-service:8443 (跟 player 域 bot_smoke.rs 一致)
+        // 默认 endpoint = https://127.0.0.1:50055 (admin-service default port, per
+        // crates/admin-service/src/main.rs:62) + skip_verify (k3s baseline 0/12 阶段,
+        // per 9/10 16:36 JST 拍板)
         Self {
-            gm_client: Some(GmClient::new("https://admin-service:8443")),
+            gm_client: Some(
+                GmClient::new("https://placeholder:8443")
+                    .with_endpoint("https://127.0.0.1:50055")
+                    .with_skip_verify(true),
+            ),
         }
     }
 }
 
 impl AdminBotAi {
-    /// 构造 admin 域 BotAi (用默认 endpoint, 走 GmClient stub)
+    /// 构造 admin 域 BotAi (用默认 endpoint + skip verify, 走真实 lazy mTLS Channel)
     pub fn new() -> Self {
         Self::default()
     }
@@ -66,20 +76,38 @@ impl AdminBotAi {
         }
     }
 
-    /// 内部 helper: 跑 1 个 stub GM 命令 (用于 init 阶段演示 GM 链路)
+    /// 拿内部 GmClient 引用 (供集成测试断言 channel 状态, per DDD Review v0.3.1 §7.3)
+    ///
+    /// 默认 `GmClient` 应持真实 lazy mTLS Channel (per wave 3 升级). 测试用
+    /// `bot_admin_real_grpc_client_init` + `bot_admin_5_acts_layout_with_mtls_channel`
+    /// 验证 channel 存在 + endpoint + skip_verify 配置正确.
+    pub fn gm_client(&self) -> Option<&GmClient> {
+        self.gm_client.as_ref()
+    }
+
+    /// 内部 helper: 跑 1 个 mTLS GM 命令 (用于 init 阶段演示 GM 链路, 真实 mTLS 通路)
+    ///
+    /// 真实 RPC 调用 (k3s baseline 0/12 阶段必失败) — 返 `Ok` 而非 `Err`,
+    /// 让 bot supervisor 决定重试/掉线, 不 panic.
     async fn issue_gm_stub(&self, bot: &Bot, cmd: &str) -> anyhow::Result<()> {
         if let Some(gm) = &self.gm_client {
             // PoC: 不打印 cmd 明文 (中文 + 凭据走 Option, per 8/27 11:06 JST 硬 ban)
             // 只打 cmd_len + bot_id, 供调试可见但不泄露
             let resp = gm.issue(cmd).await?;
             debug!(
+                target: "rgs_testkit::bot::ai::admin",
                 bot_id = bot.id(),
                 cmd_len = cmd.len(),
                 gm_ok = resp.ok,
-                "AdminBotAi GM stub issue"
+                has_error = resp.error.is_some(),
+                "AdminBotAi GM real mTLS issue (k3s baseline 0/12: gm_ok=false 预期)"
             );
         } else {
-            debug!(bot_id = bot.id(), "AdminBotAi GM client not configured, skip");
+            debug!(
+                target: "rgs_testkit::bot::ai::admin",
+                bot_id = bot.id(),
+                "AdminBotAi GM client not configured, skip"
+            );
         }
         Ok(())
     }
@@ -88,8 +116,8 @@ impl AdminBotAi {
 #[async_trait]
 impl BotAi for AdminBotAi {
     async fn init(&self, bot: &Bot) -> anyhow::Result<()> {
-        debug!(bot_id = bot.id(), "AdminBotAi::init");
-        // 演示 GM 注入链路: init 阶段跑 1 个 stub GmCommand (per M4)
+        debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::init");
+        // 演示 GM 注入链路: init 阶段跑 1 个 mTLS GmCommand (per M4 + v0.3.1 §7.3)
         self.issue_gm_stub(bot, "设等级 1").await?;
         Ok(())
     }
@@ -111,30 +139,30 @@ impl BotAi for AdminBotAi {
     async fn handle(&self, bot: &Bot, act: ActKind) -> anyhow::Result<()> {
         match act {
             ActKind::Init => {
-                debug!(bot_id = bot.id(), "AdminBotAi::handle Init");
+                debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::handle Init");
                 Ok(())
             }
             ActKind::Heartbeat => {
-                debug!(bot_id = bot.id(), "AdminBotAi::handle Heartbeat");
-                // PoC stub: 真实 admin health check 留 wave 3
+                debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::handle Heartbeat");
+                // PoC stub: 真实 admin health check 走 mTLS lazy channel (k3s baseline 0/12 阶段失败)
                 Ok(())
             }
             ActKind::RandProto(p) => {
-                debug!(bot_id = bot.id(), rand_proto_prob = p, "AdminBotAi::handle RandProto");
+                debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), rand_proto_prob = p, "AdminBotAi::handle RandProto");
                 Ok(())
             }
             ActKind::Custom(name) if name == "GmCommand" => {
-                // 演示 GM 注入链路 (per DDD Review v0.2 §5.1 M4)
+                // 演示 GM 注入链路 (per DDD Review v0.2 §5.1 M4 + v0.3.1 §7.3)
                 self.issue_gm_stub(bot, "加经验 100").await
             }
             ActKind::Custom(name) if name == "BanAccount" => {
                 // admin ban 场景 (per erlang A1) - 通过 GM 通道下 ban 指令
-                debug!(bot_id = bot.id(), "AdminBotAi::handle BanAccount via GM");
+                debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::handle BanAccount via GM");
                 self.issue_gm_stub(bot, "ban_account 3600 违规").await
             }
             // 未识别 act: 不 panic, 记 debug + 返 Ok (PoC 宽容)
             other => {
-                debug!(bot_id = bot.id(), ?other, "AdminBotAi::handle unknown act, skip");
+                debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), ?other, "AdminBotAi::handle unknown act, skip");
                 Ok(())
             }
         }
@@ -180,9 +208,23 @@ mod tests {
 
     #[tokio::test]
     async fn admin_ai_with_gm_client_works() {
-        let gm = GmClient::new("https://admin-staging:8443");
+        let gm = GmClient::new("https://placeholder:8443")
+            .with_endpoint("https://admin-staging:8443")
+            .with_skip_verify(true);
         let ai = AdminBotAi::with_gm_client(gm);
         let bot = dummy_bot();
         ai.init(&bot).await.expect("init with custom gm");
+    }
+
+    #[tokio::test]
+    async fn admin_ai_default_has_real_mtls_channel() {
+        // wave 3 升级验证: 默认 AdminBotAi 持真实 lazy mTLS Channel
+        // 注: tonic 0.12 connect_lazy 需要 tokio runtime (hyper-util executor),
+        // 所以用 #[tokio::test] 而不是 #[test]
+        let ai = AdminBotAi::new();
+        let gm = ai.gm_client().expect("default gm_client");
+        assert!(gm.channel().is_some(), "默认 GmClient 应建 lazy mTLS Channel");
+        assert!(gm.skip_verify(), "k3s baseline 0/12 阶段默认 skip verify");
+        assert_eq!(gm.endpoint(), Some("https://127.0.0.1:50055"));
     }
 }
