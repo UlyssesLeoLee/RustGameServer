@@ -1,19 +1,23 @@
-//! player 域 BotAi 集成测试 (per DDD Review v0.3.1 §7.3 wave 3 mTLS 真实接入)
+//! player 域 BotAi 集成测试 (per DDD Review v0.3.1 §7.3 wave 3 mTLS 真实接入 +
+//! DDD Review v0.3.2 §7.3 L1.2 wave 4 真实 RPC 接入)
 //!
 //! 验证目标:
 //! - `PlayerBotAi` impl BotAi (init / act_list / handle)
 //! - wave 3 升级: 真实 `tonic::transport::Channel` + mTLS config 框架替换 stub
+//! - wave 4 升级: 真实 gRPC 调用 (`PlayerServiceClient::heartbeat` / `get_player_profile`),
+//!   2s timeout, 失败容忍 (Unreachable → Ok, 不 panic)
 //! - skip_verify 模式 (默认, k3s baseline 0/12) → lazy Channel 构造成功
 //! - 真实 mTLS 模式 (cert 缺失) → channel 降级 stub, handle 仍 Ok
 //! - 凭据不读 env, 不打印 (per 8/27 11:06 JST 硬 ban)
 //!
-//! **不调真实 5 域 gRPC** (per DDD Review v0.3.1 §7.3 + k3s baseline 0/12, 9/10 WipeCluster
-//! 重建后 cert 未导出), 走 lazy Channel 框架, 实际 RPC 留 wave 4 SRE 介入.
+//! **真实 RPC 预期失败** (per DDD Review v0.3.2 §7.3 L1.2 + k3s baseline 0/12, 9/10 16:36 JST
+//! 拍板"接受 baseline 等 SRE 介入"), 走 `RpcCallOutcome::Unreachable` 分支 + warn log,
+//! 不影响业务 (handle 仍 Ok).
 //!
 //! **不依赖 player-service 二进制** (per 任务简报范围外约束), 仅验证 bot 框架内
-//! tonic mTLS Channel 构造 + 配置流程, 不发实际 RPC.
+//! tonic mTLS Channel + generated client + RPC 调用流程.
 
-use rgs_testkit::bot::ai::player::{PlayerBotAi, PlayerMtlsConfig};
+use rgs_testkit::bot::ai::player::{PlayerBotAi, PlayerMtlsConfig, RpcCallOutcome};
 use rgs_testkit::bot::stats::BotStats;
 use rgs_testkit::bot::{ActKind, Bot, BotAi, BotCore};
 
@@ -165,4 +169,101 @@ async fn bot_player_init_twice_is_idempotent() {
     ai.init(&bot).await.expect("second init (idempotent)");
 
     assert!(ai.is_real().await, "二次 init 后仍 is_real = true");
+}
+
+// =============================================================================
+// Wave 4 真实 RPC 接入测试 (per DDD Review v0.3.2 §7.3 L1.2)
+// =============================================================================
+//
+// k3s baseline 0/12 (per 9/10 16:36 JST 拍板"接受 baseline 等 SRE 介入"):
+// 真实 RPC 调用预期 connection refused, 走 `RpcCallOutcome::Unreachable` 分支,
+// handle 仍 Ok, 不 panic. SRE 介入 + k3s baseline 恢复后, `Unreachable` 转 `Ok`.
+
+#[tokio::test]
+async fn bot_player_real_rpc_call_heartbeat_returns_err_on_k3s_unreachable() {
+    // wave 4 核心测试 (per task briefing "Step 3: 集成测试 ~30 min"):
+    // 真实 heartbeat RPC 调用预期 Err (k3s 0/12, connection refused).
+    // 2s timeout 防 hang, 失败容忍: 不 panic, 走 Unreachable 分支.
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-player-real-rpc-hb", "player", stats);
+    let ai = PlayerBotAi::new();
+
+    // init 构造 Channel + 内部调一次真实 heartbeat (预期 Unreachable 但 Ok(()))
+    ai.init(&bot)
+        .await
+        .expect("init should not panic on k3s unreachable");
+    assert!(ai.is_real().await, "skip_verify 模式应构造真实 Channel");
+
+    // 拿 mTLS client 直接调 try_heartbeat, 验证 Unreachable 分支
+    let client = ai
+        .mtls_client()
+        .await
+        .expect("client should be set after init");
+    let outcome = client.try_heartbeat().await;
+    match outcome {
+        RpcCallOutcome::Ok => {
+            // 极小概率: 127.0.0.1:50051 真的有人在 listen (k3s 恢复), 接受
+            eprintln!("heartbeat RPC succeeded (k3s baseline 已恢复?)");
+        }
+        RpcCallOutcome::Unreachable(e) => {
+            // 预期: connection refused 或 timeout, error message 应非空
+            assert!(
+                !e.is_empty(),
+                "Unreachable error message 应非空, got: {}",
+                e
+            );
+            eprintln!("expected: heartbeat RPC unreachable (k3s baseline 0/12): {}", e);
+        }
+    }
+
+    // handle(Heartbeat) 走真实 RPC, 仍 Ok, 不 panic
+    let r = ai.handle(&bot, ActKind::Heartbeat).await;
+    assert!(
+        r.is_ok(),
+        "handle(Heartbeat) 真实 RPC 失败时仍 Ok, got: {:?}",
+        r
+    );
+
+    // 完整 lifecycle 不 panic
+    bot.start().await.expect("bot start");
+    for act in ai.act_list() {
+        ai.handle(&bot, act).await.expect("handle all acts");
+    }
+    bot.stop().await;
+}
+
+#[tokio::test]
+async fn bot_player_real_rpc_call_get_player_profile_returns_err_on_k3s_unreachable() {
+    // wave 4 真实 RPC 调用 GetPlayerProfile 测试 (per task briefing "Step 2: handle(RandProto)"):
+    // RandProto 走 GetPlayerProfile, 预期 Err (k3s 0/12), handle 仍 Ok.
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-player-real-rpc-gpp", "player", stats);
+    let ai = PlayerBotAi::new();
+    ai.init(&bot).await.expect("init");
+
+    let client = ai
+        .mtls_client()
+        .await
+        .expect("client should be set after init");
+    let outcome = client.try_get_player_profile().await;
+    match outcome {
+        RpcCallOutcome::Ok => {
+            eprintln!("get_player_profile RPC succeeded (k3s baseline 已恢复?)");
+        }
+        RpcCallOutcome::Unreachable(e) => {
+            assert!(!e.is_empty(), "Unreachable error message 应非空");
+            eprintln!(
+                "expected: get_player_profile RPC unreachable (k3s baseline 0/12): {}",
+                e
+            );
+        }
+    }
+
+    // handle(RandProto) 走真实 RPC, 仍 Ok, 不 panic
+    let r = ai.handle(&bot, ActKind::RandProto(100)).await;
+    assert!(
+        r.is_ok(),
+        "handle(RandProto) 真实 RPC 失败时仍 Ok, got: {:?}",
+        r
+    );
 }
