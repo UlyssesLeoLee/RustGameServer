@@ -23,6 +23,11 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
+# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2 + L-CAND-016 防御):
+#   social 域 BotAi 走 social-service::proto::v1::SocialServiceClient 调 get_guild / health_check
+#   5 worker 各加 1 域 social-service (per L-CAND-016, 5 worker 公共 proto RPC 调用要同步)
+#   L-CAND-016 防御: 仅 social 域加, 不改其他 4 域; 其他 4 域 (player/economy/match/admin) 由各自 worker 加
+social-service = { path = "../social-service" }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture

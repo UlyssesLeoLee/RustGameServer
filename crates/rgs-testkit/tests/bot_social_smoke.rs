@@ -143,3 +143,67 @@ async fn bot_social_real_grpc_client_with_mtls_marks_configured() {
     );
     // 注: 不调 init() (cert 文件不存在, PEM 读取会 fail), 仅验证配置标记
 }
+
+// =====================================================================
+// wave 4 真实 RPC 调用测试 (per DDD Review v0.3.2 §7.3 L1.2)
+// =====================================================================
+
+#[tokio::test]
+async fn bot_social_real_rpc_call_health_check_returns_ok_on_k3s_unreachable() {
+    // wave 4 真实 RPC 调用验证 (per L-CAND-016 防御: 仅 social proto RPC, 不改其他 4 域)
+    //
+    // 流程:
+    // 1. SocialBotAi::default() + init() 走 wave 3 mTLS 框架
+    // 2. init 内部调 wave 4 真实 health_check (per DDD Review v0.3.2 §7.3)
+    // 3. k3s baseline 0/12 → connection refused → 降级模式 Ok(()) + warn
+    // 4. 测试断言: init 不 panic, 返 Ok, channel_initialized() = true
+    //
+    // 不调真实业务 5 域 gRPC (k3s 不可达, per 9/10 16:36 JST 拍板"接受 baseline 0/12 等 SRE 介入")
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-social-wave4-001", "social", stats);
+    let ai = SocialBotAi::default();
+
+    // init 必须成功, 走 wave 4 真实 health_check (预期连接失败但走降级)
+    ai.init(&bot).await.expect("init with wave 4 real RPC");
+
+    // Channel 必须就绪
+    assert!(ai.channel_initialized(), "init 后 Channel 应已就绪");
+}
+
+#[tokio::test]
+async fn bot_social_real_rpc_call_get_guild_returns_ok_on_k3s_unreachable() {
+    // wave 4 真实 RPC: handle(Guild) 调真实 get_guild
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-social-wave4-002", "social", stats);
+    let ai = SocialBotAi::default();
+
+    ai.init(&bot).await.expect("init");
+    // handle(Guild) 走真实 get_guild RPC, 预期降级模式 Ok(())
+    let r = ai.handle(&bot, ActKind::Guild).await;
+    assert!(r.is_ok(), "handle(Guild) wave 4 真实 RPC 应降级 Ok(())");
+}
+
+#[tokio::test]
+async fn bot_social_real_rpc_full_lifecycle_with_real_rpc_calls() {
+    // wave 4 全生命周期 + 真实 RPC 调用
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-social-wave4-003", "social", stats.clone());
+    let ai = SocialBotAi::default();
+
+    // init 走 wave 4 真实 health_check
+    ai.init(&bot).await.expect("init");
+    assert!(ai.channel_initialized());
+
+    // start 阶段
+    bot.start().await.expect("start");
+    assert_eq!(stats.count().get("social").copied().unwrap_or(0), 1);
+
+    // 跑全 act_list, 每个 act 走真实 RPC (health_check / get_guild)
+    for act in ai.act_list() {
+        ai.handle(&bot, act).await.expect("handle with real RPC");
+    }
+
+    // stop 阶段
+    bot.stop().await;
+    assert!(stats.offline().contains(&"bot-social-wave4-003".to_string()));
+}
