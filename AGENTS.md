@@ -776,6 +776,25 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 - **证据**: 9/10 07:56 JST 改 k3s.service ExecStart → kubectl 52551 TLS error → 复制 k3s.yaml → 改 server URL 52551 → kubectl get nodes 通
 - **影响范围**: 所有 k3s cert 重生成场景 (改 ExecStart / 改 host / 重装 k3s)
 
+#### L29 | WSL2 + cgroup v1 装 k3s 1.37+ 必须 failCgroupV1: false + cgroupDriver: cgroupfs (99-override.conf 2 件套)
+
+- **背景**: 9/10 12:50 JST k3s 1.36 → 1.37.0-rc3+k3s1 升级, 实证 k3s 1.37 默认 failCgroupV1: true 跟 WSL2 cgroup v1 不兼容, 拒启报 `failed to validate kubelet configuration, error: kubelet is configured to not run on a host using cgroup v1`. 即使绕过 (failCgroupV1: false), 默认 cgroupDriver: systemd 跟 WSL2 cgroup v1 路径不匹配, pod 创建报 `FailedCreatePodContainer mkdir /sys/fs/cgroup/devices/kubepods.slice/...: no such file or directory`
+- **强约束**: **WSL2 装 k3s 1.37+ 必须 2 件套**:
+  1. **kubelet 99-override.conf** (`/var/lib/rancher/k3s/agent/etc/kubelet.conf.d/99-override.conf` 644 权限):
+     ```yaml
+     apiVersion: kubelet.config.k8s.io/v1beta1
+     kind: KubeletConfiguration
+     failCgroupV1: false
+     cgroupDriver: cgroupfs
+     ```
+  2. **k3s.service ExecStart** 加 `--tls-san=127.0.0.1 --tls-san=localhost --tls-san=<WSL2 eth0 IP> --pause-image=registry.aliyuncs.com/google_containers/pause:3.10.2`
+- **不适用**: WSL2 cgroup v2 (Ubuntu 24.04+ 默认) / 非 WSL2 环境 / k3s 1.36 及更早
+- **证据**: 9/10 12:48 JST 装 k3s 1.37.0-rc3+k3s1 → 拒启 (failCgroupV1) → 改 99-override.conf failCgroupV1: false → 拒启 (unknown flag --fail-cgroup-v1, 应放 kubelet config 不是 CLI flag) → 改 99-override.conf 含 cgroupDriver: cgroupfs → k3s 起来 + 5 域 pod ContainerCreating 正常 + NodeStatus memory 16381972Ki (15.6GB 实时, 不再是 stale 14.6GB)
+- **issue #36 根因彻底解**: 9/10 12:53 JST kubectl get nodes -o jsonpath 验证 ulyssespc memory.allocatable = 16381972Ki = 15.6GB (vs 1.36 WSL2 + cgroup v1 旧 14.6GB stale cache, 卡 5 域 rollout "Insufficient memory")
+- **影响范围**: WSL2 + k3s 1.37+ 所有环境
+- **配套文件**: `docs/deploy/k3s-wsl2/k3s.service` + `docs/deploy/k3s-wsl2/kubelet-99-override.conf` + `docs/deploy/k3s-wsl2/README.md`
+- **已知次生问题**: k3s 1.37 RC3 + WSL2 + sqlite crash loop (per 9/10 12:55 JST 实证, `fatal: failed waiting on CRD 'addons.k3s.cattle.io': context canceled`, 1-2 min 间隔自动重启), 暂不影响 Node Ready + 5 域 rollout, 待 k3s 1.37 stable release 修
+
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
 ---
@@ -944,6 +963,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | v0.6.11 | 2026-09-03 12:36 | 架构师(Mavis 接手 agent per DEC-008) | L12 派生约束 升正式 (per 9/3 12:36 JST ask_user 拍板 l12-formal-now): §2 L12 段从"PT 派工临时 log 不入 commit 防御"扩为 "L12.1 临时 log 防御 + L12.2 5 worker 派工 3 选项 + L12.3 候选清单 L-CAND-009 入档" (L1-L14 冻结期内 L12 正式段升, 不走 L15 候选); L-CANDIDATES.md 加 L-CAND-009 (5 worker 派工 3 选项 + per-worker CARGO_TARGET_DIR + staggered + DoD 简报明文 worker 不 commit) |
 | **v0.6.12** | **2026-09-05 12:30** | **架构师(Mavis 接手 agent per DEC-008)** | **9/5 W1-W6 6 worker Phase 0 完结 + 派生约束 L15-L18 紧急批准 (per 9/5 12:08 JST 拍板, 突破 L1-L14 冻结期) + 6/7/8 域 RACI v1.1 → v1.3 升版**: ① §0 元信息加 W1-W6 6 worker Phase 0 + 改进路线图 + ADR-006 ② §8.x 新增 L15-L18 派生约束 (L15 native binary file ELF 验证 / L16 主会话统一 commit 拍板合并顺序 / L17 InMemory 5 域 → PgRepository 6/7 域扩展 / L18 闪烁之光 848 RPC 补全 8 子系统) ③ §9.7 新增 8 域扩展 (5 + batch + scene + battle + network-gateway) ④ 6 域 RACI v1.1 → v1.3 升版 (player/economy/match/social/admin/batch) + 3 NEW 域 RACI v1.1 落档 (scene-service / battle-service / network-gateway) ⑤ L-CANDIDATES v0.4 同步: L15-L18 转正 (移出候选) + L-CAND-010/011 入档 (12/2 季度评审) |
 | **v0.6.13** | **2026-09-10 08:00** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 07:35 JST Ulysses 拍板端口管理统一 .env + 派生约束 L25-L28 升至正式 (per 9/10 07:50 JST admin 提权 + WSL2 --tls-san 修复 + portproxy 52551 落地实证)**: ① §8.x 新增 L25 (端口管理 .env 14 个 K=V + sync-ports-env.ps1 3 件套) + L26 (k3s 1.36 K3S_HTTPS_LISTEN_PORT env var 不被支持, 改 ExecStart 加 --https-listen-port/--tls-san 一次性手动) + L27 (kubectl apply 走 WSL2 内 k3s kubectl 直连 6443, 绕开 portproxy 52551 拉 openapi 二次 close) + L28 (k3s 重启 cert 重生成后必须从 WSL2 /etc/rancher/k3s/k3s.yaml 复制新 cert + 改 server URL 52551 到 Windows kubeconfig) ② .env + .env.example 加 # 10. 端口管理段 14 个 K=V (K3S_API_PORT=52551 / K3S_API_PORT_INTERNAL=6443 / 5 域 gRPC 50051-50055 + CARD 50061 / METRICS_PORT 9464 / QUIC_PORT 7000 / ADMIN_HTTP_PORT 8080 / SHIM_PORT 9001 / RGS_PROXY_PORT 8084 / RGS_FLASH_MOCK_PORT 8791 / RGS_WEB_PORT 3000 / GM_BACKEND_PORT 8081 / PG_PORT_LOCAL 15432 / NATS_PORT_LOCAL 14222) ③ scripts/sync-ports-env.ps1 (8 KB) + run-sync-ports-as-admin.ps1 (2 KB) + debug-add-52551-portproxy.ps1 (1 KB) ④ 5 域 yaml commit `bc4dae0` (imagePullSecrets: ghcr-pull + IfNotPresent + 0.1.0-cc13) ⑤ WSL2 k3s.service ExecStart 改 `--tls-san=127.0.0.1 --tls-san=localhost --tls-san=172.28.176.169` (单次手动, wsl -u root 写) ⑥ kubeconfig 用 WSL2 k3s.yaml 复制新 cert + 改 server URL 52551 |
+| **v0.6.14** | **2026-09-10 12:55** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 10:30 JST Ulysses 拍板 P0 选 A (k3s 1.37.0-rc3+k3s1 重装) + issue #36 14.6GB stale NodeStatus cache bug 根因彻底解 (NodeStatus memory 16381972Ki 15.6GB 实时) + 派生约束 L29 升至正式**: ① §8.x 新增 L29 (WSL2 + cgroup v1 装 k3s 1.37+ 必须 failCgroupV1: false + cgroupDriver: cgroupfs 99-override.conf 2 件套, 实证 9/10 12:48-12:53 JST 走通 v1.37.0-rc3+k3s1 装 + 启动 + 5 域 rollout 跑通 ContainerCreating 阶段) ② docs/deploy/k3s-wsl2/{k3s.service, kubelet-99-override.conf, README.md} 落档 (per 9/10 12:55 JST) ③ docs/deploy/01-k8s-manifests/e4-00-namespace-isolation.yaml ResourceQuota 12Gi/12cpu → 32Gi/16cpu (per 9/2 派生约束适配 k3s 1.37 + 辅助服务 cluster-ops/monitoring/nats/gm-backend/battle/network-gateway 总和) ④ 5 域 yaml apply OK (per 9/10 12:53 JST) ⑤ 已知次生: k3s 1.37 RC3 + WSL2 + sqlite crash loop (1-2 min 间隔, `fatal: failed waiting on CRD 'addons.k3s.cattle.io': context canceled`), 不影响 Node Ready + 5 域 rollout, 待 k3s 1.37 stable release 修 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

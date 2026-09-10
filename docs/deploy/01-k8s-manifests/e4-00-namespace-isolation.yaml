@@ -74,17 +74,18 @@ metadata:
 spec:
   hard:
     # requests (HPA minReplicas=1 时的总和, 防 overcommit)
-    requests.cpu: "3500m"
-    requests.memory: "3500Mi"
-    # limits (HPA maxReplicas=5 时的总和, 防节点耗尽)
-    limits.cpu: "12000m"
-    limits.memory: "12Gi"
-    pods: "30"
+    requests.cpu: "8000m"
+    requests.memory: "12Gi"
+    # limits (HPA maxReplicas=5 + cluster-ops/monitoring/nats/gm-backend/battle/network-gateway 总和, 防节点耗尽)
+    # per 9/2 派生约束 + k3s 1.37 升级基线: 12Gi → 32Gi, 12000m → 16
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    pods: "50"
     persistentvolumeclaims: "10"
     services: "20"
     services.loadbalancers: "2"
     services.nodeports: "0"
-    secrets: "20"
+    secrets: "50"
     configmaps: "20"
 
 ---

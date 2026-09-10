@@ -1,0 +1,34 @@
+# k3s 1.37.0-rc3+k3s1 systemd unit (per 9/10 12:48 JST 拍板)
+# 派生约束 L29 (per AGENTS.md v0.6.14+): WSL2 + cgroup v1 装 k3s 1.37 RC3 必须:
+# 1. --tls-san 加 127.0.0.1 / localhost / WSL2 eth0 IP
+# 2. --pause-image 走 aliyun 镜像 (国内网络)
+# 3. kubelet config 99-override.conf 设 failCgroupV1: false + cgroupDriver: cgroupfs
+#    (WSL2 .wslconfig 加 cgroup_v2 但实际 systemd 仍 cgroup v1, k3s 1.37 默认 failCgroupV1: true 会拒启)
+#
+# 安装路径: /etc/systemd/system/k3s.service (symlink OK)
+# 重启: sudo systemctl restart k3s
+# 验证: sudo k3s kubectl get nodes (Ready + NodeStatus memory 跟 WSL2 实际一致)
+
+[Unit]
+Description=Lightweight Kubernetes
+Documentation=https://k3s.io
+Wants=network-online.target
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=notify
+ExecStartPre=-/sbin/modprobe br_netfilter
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/k3s server --tls-san=127.0.0.1 --tls-san=localhost --tls-san=172.28.176.169 --pause-image=registry.aliyuncs.com/google_containers/pause:3.10.2
+KillMode=process
+Delegate=yes
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=infinity
+TimeoutStartSec=0
+Restart=always
+RestartSec=5s
