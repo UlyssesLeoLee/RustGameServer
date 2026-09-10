@@ -1,0 +1,62 @@
+[package]
+name = "rgs-flash-mock"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手"]
+description = "RGS 闪烁之光 mock gateway / verification harness (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3)"
+license = "MIT"
+repository = "https://github.com/UlyssesLeoLee/RustGameServer"
+publish = false
+
+[workspace]
+# 独立 workspace (per design §2.1), 跟 rgs-batch-backend 模式一致
+
+# 注释: [[bin]] 删了, 让 cargo 自动检测 src/main.rs 当 binary 入口 (避免 lib 模式 + AppState 不可见)
+
+[dependencies]
+# HTTP server (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1: 跟 rgs-batch-backend 一致)
+actix-web = "4.4"
+actix-rt = "2.9"
+
+# gRPC client (per §2.1: 跟 RGS 5 域 + card + gm-backend 一致, 复用 mTLS + retry + timeout)
+tonic = { version = "0.12", features = ["transport", "tls"] }
+prost = "0.13"
+
+# mTLS (per §2.1: rustls + rcgen, 跟 5 域 ST 业务 mTLS 一致)
+rustls = "0.23"
+rustls-pemfile = "2.1"
+
+# tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# env / config (per §2.1: envy + figment + .env, 跟 shared-platform::config 一致)
+dotenvy = "0.15"
+envy = "0.4"
+
+# error
+thiserror = "1.0"
+anyhow = "1.0"
+
+# async runtime
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "signal", "net", "time"] }
+
+# metrics
+once_cell = "1.20"
+
+# serial
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# time
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.dev]
+opt-level = 0
+debug = 1
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

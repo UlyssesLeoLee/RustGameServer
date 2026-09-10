@@ -1,79 +1,145 @@
-//! rgs-flash-mock main.rs — server bootstrap + 12 大类 routes 注册
-//!
-//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §2.2 文件结构 + §2.3 数据流
-//! 跟 rgs-batch-backend 单文件起步模式一致 (v0.2+ 拆 5+ 文件)
+// rgs-flash-mock v0.1 — 闪烁之光 mock gateway / verification harness
+// per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
+// per 9/10 14:35 JST Ulysses 拍板 (推荐) Mavis 起骨架 (1-2h PoC)
+//
+// 端口: 0.0.0.0:8791 (RGS_FLASH_MOCK_PORT)
+// 协议: HTTP/JSON (actix-web 4, per §2.1)
+// back: tonic 0.12 gRPC client to RGS 5 域 + card + gm-backend (v0.1 skeleton, v0.2 接 mTLS)
+// 范围: 12 类别 22 RPC stub (per §3 表)
 
-use actix_web::{web, App, HttpServer};
-use rgs_flash_mock::{config::Config, gap_matrix::{initial_rpc_records, GapMatrix}};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use rgs_flash_mock::{AppState, GapMatrix};
 use std::sync::Arc;
-use tracing_subscriber::{fmt, EnvFilter};
+use tokio::sync::Mutex;
+use tracing::info;
+
+const MOCK_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[get("/health")]
+async fn health() -> impl Responder {
+    HttpResponse::Ok().json(serde_json::json!({
+        "status": "ok",
+        "service": "rgs-flash-mock",
+        "version": MOCK_VERSION,
+    }))
+}
+
+#[get("/ready")]
+async fn ready(data: web::Data<AppState>) -> impl Responder {
+    let matrix = data.matrix.lock().await;
+    HttpResponse::Ok().json(serde_json::json!({
+        "status": "ready",
+        "matrix_total": matrix.total(),
+        "matrix_passed": matrix.count_by_status(rgs_flash_mock::RpcStatus::Pass),
+        "matrix_partial": matrix.count_by_status(rgs_flash_mock::RpcStatus::Partial),
+        "matrix_na": matrix.count_by_status(rgs_flash_mock::RpcStatus::NotApplicable),
+    }))
+}
+
+#[get("/coverage")]
+async fn coverage(data: web::Data<AppState>) -> impl Responder {
+    let matrix = data.matrix.lock().await;
+    HttpResponse::Ok().json(matrix.report())
+}
+
+#[get("/")]
+async fn root() -> impl Responder {
+    HttpResponse::Ok().json(serde_json::json!({
+        "service": "rgs-flash-mock",
+        "version": MOCK_VERSION,
+        "description": "RGS 闪烁之光 mock gateway / verification harness (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3)",
+        "endpoints": {
+            "GET /": "this help",
+            "GET /health": "liveness probe",
+            "GET /ready": "readiness probe",
+            "GET /coverage": "gap matrix coverage report",
+            "POST /scene/get": "GetScene (category 1, RPC 101)",
+            "POST /scene/move": "MovePlayer (category 1, RPC 102)",
+            "POST /role/profile": "GetPlayerProfile (category 2, RPC 201)",
+            "POST /role/upgrade_skill": "UpgradeSkill (category 2, RPC 202)",
+            "POST /combat/start": "StartCombat (category 3, RPC 301)",
+            "POST /combat/action": "SubmitAction (category 3, RPC 302)",
+            "POST /pvp/enqueue": "EnqueuePVP (category 4, RPC 401)",
+            "POST /pvp/get": "GetPVPMatch (category 4, RPC 402)",
+            "POST /guild/get": "GetGuild (category 5, RPC 501)",
+            "POST /guild/join": "JoinGuild (category 5, RPC 502)",
+            "POST /econ/account": "GetAccount (category 6, RPC 601)",
+            "POST /econ/auction": "CreateAuction (category 6, RPC 602)",
+            "POST /friend/list": "GetFriendList (category 7, RPC 701)",
+            "POST /friend/send": "SendMessage (category 7, RPC 702)",
+            "POST /event/active": "GetActiveEvent (category 8, RPC 801)",
+            "POST /event/claim": "ClaimReward (category 8, RPC 802)",
+            "POST /pay/recharge": "Recharge (category 9, RPC 901)",
+            "POST /pay/history": "QueryRechargeHistory (category 9, RPC 902)",
+            "POST /rank/leaderboard": "GetLeaderboard (category 10, RPC 1001)",
+            "POST /gm/ban": "BanAccount (category 11, RPC 1101)",
+            "POST /gm/grant": "GrantCompensation (category 11, RPC 1102)",
+        },
+        "rgs_backend": {
+            "player": std::env::var("GRPC_PLAYER_ENDPOINT").unwrap_or_else(|_| "https://player-service:50051".into()),
+            "economy": std::env::var("GRPC_ECONOMY_ENDPOINT").unwrap_or_else(|_| "https://economy-service:50052".into()),
+            "match": std::env::var("GRPC_MATCH_ENDPOINT").unwrap_or_else(|_| "https://match-service:50053".into()),
+            "social": std::env::var("GRPC_SOCIAL_ENDPOINT").unwrap_or_else(|_| "https://social-service:50054".into()),
+            "admin": std::env::var("GRPC_ADMIN_ENDPOINT").unwrap_or_else(|_| "https://admin-service:50055".into()),
+            "card": std::env::var("GRPC_CARD_ENDPOINT").unwrap_or_else(|_| "https://card-service:50061".into()),
+        },
+    }))
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // 1. tracing init (per shared-platform::json_logging 模式)
-    fmt()
+    let _ = dotenvy::dotenv();
+
+    tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,rgs_flash_mock=debug")),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,rgs_flash_mock=info".into()),
         )
         .init();
 
-    // 2. config 加载 (env var, 8/27 11:06 JST 凭据走 env var 永不打印)
-    let cfg = Config::from_env().unwrap_or_else(|e| {
-        eprintln!("config 加载失败: {}", e);
-        std::process::exit(1);
+    let bind = std::env::var("RGS_GAP_MOCK_BIND").unwrap_or_else(|_| "0.0.0.0:8791".into());
+    info!(
+        version = MOCK_VERSION,
+        %bind,
+        "rgs-flash-mock starting (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3, 12 类别 22 RPC stub PoC)"
+    );
+
+    let matrix = Arc::new(Mutex::new(GapMatrix::new()));
+    let state = web::Data::new(AppState {
+        matrix: matrix.clone(),
+        started_at: chrono::Utc::now(),
     });
-
-    tracing::info!(
-        target: "rgs-flash-mock",
-        "starting at {}, service={}, v0.1 stub 模式 (12 大类 22 RPC)",
-        cfg.bind_addr,
-        cfg.service_name,
-    );
-
-    // 3. mTLS cert 验证 (per 8/27 ST 导出 SOP + L-CAND-006 兜底)
-    if let Err(e) = cfg.verify_certs() {
-        tracing::warn!(
-            target: "rgs-flash-mock",
-            "mTLS cert 验证失败 (per 8/27 ST 导出 SOP): {}. v0.1 stub 模式不阻塞启动, v0.2+ 接 gRPC client 时必填",
-            e
-        );
-    }
-
-    // 4. gap matrix 初始化 + 22 RPC 注册
-    let gap_matrix = Arc::new(GapMatrix::new());
-    for record in initial_rpc_records() {
-        gap_matrix.register(record).await;
-    }
-    let rpc_count = gap_matrix.report().await.total_rpcs;
-    tracing::info!(
-        target: "rgs-flash-mock",
-        "gap matrix initialized, {} RPCs registered (12 大类 PoC)",
-        rpc_count
-    );
-
-    let gap_data = web::Data::new(gap_matrix);
-
-    // 5. actix-web server bootstrap
-    let bind_addr = cfg.bind_addr.clone();
-    tracing::info!(
-        target: "rgs-flash-mock",
-        "binding HTTP/JSON server at {} (port 8791, 0.0.0.0, 跟 rgs-batch-backend 8790 sequential)",
-        bind_addr
-    );
 
     HttpServer::new(move || {
         App::new()
-            .app_data(gap_data.clone())
-            // 健康检查
-            .route("/health", web::get().to(rgs_flash_mock::handlers::handle_health))
-            .route("/ready", web::get().to(rgs_flash_mock::handlers::handle_ready))
-            // gap matrix 报告
-            .route("/coverage", web::get().to(rgs_flash_mock::handlers::handle_coverage))
-            // 12 大类 RPC 路由 (POST /rpc/{category}/{rpc_name})
-            .route("/rpc/{category}/{rpc_name}", web::post().to(rgs_flash_mock::handlers::handle_rpc))
+            .app_data(state.clone())
+            .service(root)
+            .service(health)
+            .service(ready)
+            .service(coverage)
+            .service(rgs_flash_mock::handlers::scene::get_scene)
+            .service(rgs_flash_mock::handlers::scene::move_player)
+            .service(rgs_flash_mock::handlers::role::get_profile)
+            .service(rgs_flash_mock::handlers::role::upgrade_skill)
+            .service(rgs_flash_mock::handlers::combat::start_combat)
+            .service(rgs_flash_mock::handlers::combat::submit_action)
+            .service(rgs_flash_mock::handlers::pvp::enqueue_pvp)
+            .service(rgs_flash_mock::handlers::pvp::get_pvp_match)
+            .service(rgs_flash_mock::handlers::guild::get_guild)
+            .service(rgs_flash_mock::handlers::guild::join_guild)
+            .service(rgs_flash_mock::handlers::econ::get_account)
+            .service(rgs_flash_mock::handlers::econ::create_auction)
+            .service(rgs_flash_mock::handlers::friend::list)
+            .service(rgs_flash_mock::handlers::friend::send)
+            .service(rgs_flash_mock::handlers::event::active)
+            .service(rgs_flash_mock::handlers::event::claim)
+            .service(rgs_flash_mock::handlers::pay::recharge)
+            .service(rgs_flash_mock::handlers::pay::history)
+            .service(rgs_flash_mock::handlers::rank::leaderboard)
+            .service(rgs_flash_mock::handlers::gm::ban)
+            .service(rgs_flash_mock::handlers::gm::grant)
     })
-    .bind(&bind_addr)?
+    .bind(&bind)?
     .run()
     .await
 }

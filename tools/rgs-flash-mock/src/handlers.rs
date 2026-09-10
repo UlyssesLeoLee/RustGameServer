@@ -1,194 +1,526 @@
-//! rgs-flash-mock handlers — 12 大类 handler (v0.1 stub 模式)
-//!
-//! v0.1 PoC: 22 RPC 抽样, 每个 handler 返 JSON 文档化 "RGS backend + RGS RPC + status"
-//! v0.2+: 替换为真实 gRPC client 调用 RGS 5 域 + card + gm-backend 7 域 backend
-//!
-//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §3 12 大类 RPC 抽样 + §5.5 错误处理
+// rgs-flash-mock v0.1 — 12 类别 22 RPC stub handlers
+// per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §3
+//
+// v0.1 PoC: HTTP 路由 → 调 RGS gRPC backend (skeleton, v0.2 接 mTLS)
+// 当前 v0.1: 直接返回 stub response + 调 gap_matrix.record_call/record_response
 
-use crate::gap_matrix::{GapMatrix, RpcStatus};
-use actix_web::{web, HttpResponse, Responder};
-use serde::Serialize;
-use std::sync::Arc;
-use std::time::Instant;
+use actix_web::{post, web, HttpResponse};
+use serde::Deserialize;
+use crate::gap_matrix::{RpcCategory, RpcStatus};
+use crate::AppState;
 
-/// 通用 RPC 响应 (mock v0.1: stub 模式)
-#[derive(Debug, Serialize)]
-pub struct MockResponse {
-    pub rpc_code: u32,
-    pub category: String,
-    pub rpc_name: String,
-    pub rgs_backend: String,
-    pub rgs_rpc: String,
-    pub status: String,
-    pub request: serde_json::Value,
-    pub response: serde_json::Value,
-    pub latency_ms: f64,
-    pub note: String,
-}
+// === 1. 场景/移动 (148 total) — RGS TCG 无场景, N-A ===
+pub mod scene {
+    use super::*;
 
-impl MockResponse {
-    fn new(
-        rpc_code: u32,
-        category: &str,
-        rpc_name: &str,
-        rgs_backend: &str,
-        rgs_rpc: &str,
-        status: RpcStatus,
-        request: serde_json::Value,
-        response: serde_json::Value,
-        latency_ms: f64,
-        note: &str,
-    ) -> Self {
-        Self {
-            rpc_code,
-            category: category.to_string(),
-            rpc_name: rpc_name.to_string(),
-            rgs_backend: rgs_backend.to_string(),
-            rgs_rpc: rgs_rpc.to_string(),
-            status: status.as_str().to_string(),
-            request,
-            response,
-            latency_ms,
-            note: note.to_string(),
-        }
+    #[derive(Deserialize)]
+    pub struct GetSceneReq {
+        pub scene_id: Option<u32>,
+        pub player_id: Option<String>,
+    }
+
+    #[post("/scene/get")]
+    pub async fn get_scene(
+        data: web::Data<AppState>,
+        _req: web::Json<GetSceneReq>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(101, RpcCategory::Scene, RpcStatus::NotApplicable, "场景查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(101, RpcStatus::NotApplicable, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 101,
+            "name": "GetScene",
+            "status": "n-a",
+            "reason": "RGS TCG 无场景/移动概念, 标记 N-A (per design §3 category 1)",
+            "mock_response": { "scene_id": 0, "npcs": [], "terrain": "n-a" },
+        }))
+    }
+
+    #[derive(Deserialize)]
+    pub struct MoveReq {
+        pub x: Option<f32>,
+        pub y: Option<f32>,
+    }
+
+    #[post("/scene/move")]
+    pub async fn move_player(
+        data: web::Data<AppState>,
+        _req: web::Json<MoveReq>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(102, RpcCategory::Scene, RpcStatus::NotApplicable, "玩家移动");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(102, RpcStatus::NotApplicable, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 102,
+            "name": "MovePlayer",
+            "status": "n-a",
+            "reason": "RGS TCG 无移动, 标记 N-A",
+            "mock_response": { "moved": false },
+        }))
     }
 }
 
-/// 提取 RPC code from path
-fn extract_rpc_code(category: &str, rpc_name: &str) -> u32 {
-    // 简化的 hash-based RPC code (per 设计 doc §3 抽样表的 code 范围)
-    // 实际生产应该跟 闪烁之光 `code=` 字段对齐
-    let prefix: u32 = match category {
-        "scene" => 100,
-        "character" => 200,
-        "combat" => 300,
-        "pvp" => 400,
-        "guild" => 500,
-        "economy" => 600,
-        "social" => 700,
-        "activity" => 800,
-        "payment" => 900,
-        "leaderboard" => 1000,
-        "gm" => 1100,
-        "misc" => 1200,
-        _ => 0,
-    };
-    prefix + (rpc_name.len() as u32 % 100)
-}
+// === 2. 角色养成 (198 total) — Partial ===
+pub mod role {
+    use super::*;
 
-pub async fn handle_rpc(
-    path: web::Path<(String, String)>,
-    body: web::Json<serde_json::Value>,
-    gap_matrix: web::Data<Arc<GapMatrix>>,
-) -> impl Responder {
-    let (category, rpc_name) = path.into_inner();
-    let request = body.into_inner();
-    let start = Instant::now();
+    #[derive(Deserialize)]
+    pub struct GetProfileReq {
+        pub player_id: Option<String>,
+    }
 
-    let rpc_code = extract_rpc_code(&category, &rpc_name);
-    let latency_ms = start.elapsed().as_secs_f64() * 1000.0;
+    #[post("/role/profile")]
+    pub async fn get_profile(
+        data: web::Data<AppState>,
+        req: web::Json<GetProfileReq>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(201, RpcCategory::Role, RpcStatus::Partial, "玩家档案查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(201, RpcStatus::Partial, latency);
+        drop(matrix);
 
-    // 通过 gap_matrix 推断 RGS backend + status
-    // v0.1 简化: 查初始注册表, 找匹配的 RPC
-    let report = gap_matrix.report().await;
-    let record = report.rpcs.iter().find(|r| {
-        r.category == map_category(&category) && r.rpc_name.eq_ignore_ascii_case(&rpc_name)
-    });
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 201,
+            "name": "GetPlayerProfile",
+            "status": "partial",
+            "reason": "RGS v2 部分实装, 部分字段缺失 (per design §3 category 2)",
+            "rgs_call": "player-service:50051 GetPlayerProfile",
+            "mock_response": {
+                "player_id": req.player_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                "level": 1,
+                "exp": 0,
+                "gold": 0,
+                "vip_level": 0,
+                "missing_fields": ["honor", "title", "avatar_frame"],
+            },
+        }))
+    }
 
-    let (rgs_backend, rgs_rpc, status, response, note) = match record {
-        Some(r) => {
-            let resp = build_stub_response(r.rpc_code, &r.category, &r.rpc_name, &request);
-            (r.rgs_backend.clone(), r.rgs_rpc.clone(), r.status, resp, "v0.1 stub 模式 (待 v0.2 接 gRPC client)".to_string())
-        }
-        None => {
-            // 未知 RPC, 返 NotImplemented
-            let resp = serde_json::json!({
-                "error": "RPC not registered in mock v0.1",
-                "rpc_code": rpc_code,
-            });
-            (
-                "(unknown)".to_string(),
-                "(unknown)".to_string(),
-                RpcStatus::NotImplemented,
-                resp,
-                "v0.1 未注册 RPC, 待 v0.2+ 补".to_string(),
-            )
-        }
-    };
+    #[derive(Deserialize)]
+    pub struct UpgradeReq {
+        pub skill_id: Option<u32>,
+    }
 
-    // 记录调用
-    gap_matrix.record_call_with_status(rpc_code, status, latency_ms).await;
+    #[post("/role/upgrade_skill")]
+    pub async fn upgrade_skill(
+        data: web::Data<AppState>,
+        _req: web::Json<UpgradeReq>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(202, RpcCategory::Role, RpcStatus::Partial, "技能升级");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(202, RpcStatus::Partial, latency);
+        drop(matrix);
 
-    let response_body = MockResponse::new(
-        rpc_code,
-        map_category(&category),
-        &rpc_name,
-        &rgs_backend,
-        &rgs_rpc,
-        status,
-        request,
-        response,
-        latency_ms,
-        &note,
-    );
-
-    HttpResponse::Ok().json(response_body)
-}
-
-fn map_category(path_category: &str) -> &'static str {
-    match path_category {
-        "scene" => "场景/移动",
-        "character" => "角色养成",
-        "combat" => "战斗 PVE",
-        "pvp" => "PVP/竞技",
-        "guild" => "公会",
-        "economy" => "经济",
-        "social" => "社交",
-        "activity" => "活动运营",
-        "payment" => "付费/商业化",
-        "leaderboard" => "排行榜/图鉴",
-        "gm" => "GM/运维",
-        "misc" => "未分类",
-        _ => "未知",
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 202,
+            "name": "UpgradeSkill",
+            "status": "partial",
+            "reason": "卡组养成类比, 不完全对应 (RGS card-service:50061 CardInstance.level)",
+            "mock_response": { "skill_id": 0, "new_level": 1, "cost_gold": 100 },
+        }))
     }
 }
 
-fn build_stub_response(
-    _rpc_code: u32,
-    _category: &str,
-    rpc_name: &str,
-    _request: &serde_json::Value,
-) -> serde_json::Value {
-    // v0.1 stub: 返回结构化 placeholder, 文档化 "v0.2+ 接 gRPC 后会返真实 RGS 响应"
-    serde_json::json!({
-        "mock": true,
-        "rpc": rpc_name,
-        "placeholder": "RGS backend response (v0.2+ via gRPC client)",
-        "v0.2_plan": "Replace with actual tonic::transport::Channel call to RGS 5 域 + card + gm-backend"
-    })
+// === 3. 战斗 PVE (241 total) — Pass ===
+pub mod combat {
+    use super::*;
+
+    #[post("/combat/start")]
+    pub async fn start_combat(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(301, RpcCategory::Combat, RpcStatus::Pass, "开始战斗");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(301, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 301,
+            "name": "StartCombat",
+            "status": "pass",
+            "rgs_call": "match-service:50053 CreateMatch",
+            "mock_response": { "match_id": "stub-match-001", "state": "active", "turn": 1 },
+        }))
+    }
+
+    #[post("/combat/action")]
+    pub async fn submit_action(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(302, RpcCategory::Combat, RpcStatus::Pass, "提交动作");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(302, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 302,
+            "name": "SubmitAction",
+            "status": "pass",
+            "rgs_call": "match-service:50053 SubmitMove",
+            "mock_response": { "accepted": true, "next_turn": 2 },
+        }))
+    }
 }
 
-/// 健康检查
-pub async fn handle_health() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({
-        "status": "ok",
-        "service": "rgs-flash-mock",
-        "version": env!("CARGO_PKG_VERSION"),
-        "mock_v0.1": "12 大类 22 RPC 抽样 stub 模式"
-    }))
+// === 4. PVP/竞技 (151 total) — Pass ===
+pub mod pvp {
+    use super::*;
+
+    #[post("/pvp/enqueue")]
+    pub async fn enqueue_pvp(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(401, RpcCategory::Pvp, RpcStatus::Pass, "PVP 排队");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(401, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 401,
+            "name": "EnqueuePVP",
+            "status": "pass",
+            "rgs_call": "match-service:50053 EnqueueMatchmaking",
+            "mock_response": { "queue_position": 1, "estimated_wait_sec": 5 },
+        }))
+    }
+
+    #[post("/pvp/get")]
+    pub async fn get_pvp_match(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(402, RpcCategory::Pvp, RpcStatus::Pass, "PVP 比赛查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(402, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 402,
+            "name": "GetPVPMatch",
+            "status": "pass",
+            "rgs_call": "match-service:50053 GetMatchState",
+            "mock_response": { "match_id": "stub-pvp-001", "opponent": "stub-opponent", "score": [0, 0] },
+        }))
+    }
 }
 
-/// 就绪探针 (k8s readiness probe)
-pub async fn handle_ready(gap_matrix: web::Data<Arc<GapMatrix>>) -> impl Responder {
-    let report = gap_matrix.report().await;
-    HttpResponse::Ok().json(serde_json::json!({
-        "status": "ready",
-        "rpcs_registered": report.total_rpcs
-    }))
+// === 5. 公会 (97 total) — Partial ===
+pub mod guild {
+    use super::*;
+
+    #[post("/guild/get")]
+    pub async fn get_guild(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(501, RpcCategory::Guild, RpcStatus::Partial, "公会查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(501, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 501,
+            "name": "GetGuild",
+            "status": "partial",
+            "reason": "RGS social gRPC 4/6 handler 未 wire (per FLASH-OVERLAP §3.4)",
+            "rgs_call": "social-service:50054 HealthCheck (get_guild stub)",
+            "mock_response": { "guild_id": null, "members": 0, "missing": ["leave", "dissolve", "kick"] },
+        }))
+    }
+
+    #[post("/guild/join")]
+    pub async fn join_guild(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(502, RpcCategory::Guild, RpcStatus::Partial, "加入公会");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(502, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 502,
+            "name": "JoinGuild",
+            "status": "partial",
+            "reason": "social gRPC handler 未 wire",
+            "mock_response": { "joined": false, "reason": "stub-not-implemented" },
+        }))
+    }
 }
 
-/// GET /coverage — gap matrix 报告
-pub async fn handle_coverage(gap_matrix: web::Data<Arc<GapMatrix>>) -> impl Responder {
-    let report = gap_matrix.report().await;
-    HttpResponse::Ok().json(report)
+// === 6. 经济 (90 total) — Pass ===
+pub mod econ {
+    use super::*;
+
+    #[post("/econ/account")]
+    pub async fn get_account(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(601, RpcCategory::Econ, RpcStatus::Pass, "账户查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(601, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 601,
+            "name": "GetAccount",
+            "status": "pass",
+            "rgs_call": "economy-service:50052 GetAccount",
+            "mock_response": { "gold": 1000, "diamond": 50, "energy": 100 },
+        }))
+    }
+
+    #[post("/econ/auction")]
+    pub async fn create_auction(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(602, RpcCategory::Econ, RpcStatus::Pass, "创建拍卖");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(602, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 602,
+            "name": "CreateAuction",
+            "status": "pass",
+            "rgs_call": "economy-service:50052 CreateAuction",
+            "mock_response": { "auction_id": "stub-auction-001", "price": 100 },
+        }))
+    }
+}
+
+// === 7. 社交 (123 total) — Partial ===
+pub mod friend {
+    use super::*;
+
+    #[post("/friend/list")]
+    pub async fn list(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(701, RpcCategory::Social, RpcStatus::Partial, "好友列表");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(701, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 701,
+            "name": "GetFriendList",
+            "status": "partial",
+            "reason": "RGS social 缺好友/邮件 (per design §3 category 7)",
+            "mock_response": { "friends": [], "missing": ["block", "search", "recommend"] },
+        }))
+    }
+
+    #[post("/friend/send")]
+    pub async fn send(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(702, RpcCategory::Social, RpcStatus::Partial, "发送消息");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(702, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 702,
+            "name": "SendMessage",
+            "status": "partial",
+            "mock_response": { "sent": false, "reason": "stub-not-implemented" },
+        }))
+    }
+}
+
+// === 8. 活动运营 (184 total) — Partial ===
+pub mod event {
+    use super::*;
+
+    #[post("/event/active")]
+    pub async fn active(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(801, RpcCategory::Event, RpcStatus::Partial, "活动查询");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(801, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 801,
+            "name": "GetActiveEvent",
+            "status": "partial",
+            "reason": "RGS 缺数据驱动活动框架 (per handoff v0.1 §2.1.3 反例)",
+            "rgs_call": "batch (task_templates) + card (AddCardToCollection.source=Event)",
+            "mock_response": { "events": [], "missing": ["data_driven_template"] },
+        }))
+    }
+
+    #[post("/event/claim")]
+    pub async fn claim(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(802, RpcCategory::Event, RpcStatus::Partial, "领取奖励");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(802, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 802,
+            "name": "ClaimReward",
+            "status": "partial",
+            "mock_response": { "claimed": false, "reason": "stub-not-implemented" },
+        }))
+    }
+}
+
+// === 9. 付费 (43 total) — Partial ===
+pub mod pay {
+    use super::*;
+
+    #[post("/pay/recharge")]
+    pub async fn recharge(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(901, RpcCategory::Pay, RpcStatus::Partial, "充值");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(901, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 901,
+            "name": "Recharge",
+            "status": "partial",
+            "reason": "RGS 抽卡/开包不同 (per design §3 category 9)",
+            "rgs_call": "economy + payment (mock)",
+            "mock_response": { "order_id": "stub-pay-001", "amount_cny": 0, "diamond_added": 0 },
+        }))
+    }
+
+    #[post("/pay/history")]
+    pub async fn history(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(902, RpcCategory::Pay, RpcStatus::Partial, "充值历史");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(902, RpcStatus::Partial, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 902,
+            "name": "QueryRechargeHistory",
+            "status": "partial",
+            "rgs_call": "economy",
+            "mock_response": { "history": [] },
+        }))
+    }
+}
+
+// === 10. 排行榜 (10 total) — Pass ===
+pub mod rank {
+    use super::*;
+
+    #[post("/rank/leaderboard")]
+    pub async fn leaderboard(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(1001, RpcCategory::Rank, RpcStatus::Pass, "排行榜");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(1001, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 1001,
+            "name": "GetLeaderboard",
+            "status": "pass",
+            "rgs_call": "leaderboard (现有, 跨域共享)",
+            "mock_response": {
+                "rank_type": "level",
+                "entries": [
+                    { "rank": 1, "player_id": "stub-001", "score": 999 },
+                    { "rank": 2, "player_id": "stub-002", "score": 888 },
+                ],
+            },
+        }))
+    }
+}
+
+// === 11. GM (37 total) — Pass ===
+pub mod gm {
+    use super::*;
+
+    #[post("/gm/ban")]
+    pub async fn ban(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(1101, RpcCategory::Gm, RpcStatus::Pass, "封号");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(1101, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 1101,
+            "name": "BanAccount",
+            "status": "pass",
+            "rgs_call": "admin-service:50055 BanAccount + gm-backend:8081 (同 RPC)",
+            "mock_response": { "banned": true, "duration_hours": 24 },
+        }))
+    }
+
+    #[post("/gm/grant")]
+    pub async fn grant(
+        data: web::Data<AppState>,
+    ) -> HttpResponse {
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(1102, RpcCategory::Gm, RpcStatus::Pass, "补偿发放");
+        let start = std::time::Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(1102, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 1102,
+            "name": "GrantCompensation",
+            "status": "pass",
+            "rgs_call": "admin + gm-backend",
+            "mock_response": { "granted": true, "items": [{ "id": 1, "count": 100 }] },
+        }))
+    }
 }
