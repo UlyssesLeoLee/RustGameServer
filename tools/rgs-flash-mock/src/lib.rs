@@ -1,10 +1,15 @@
-// rgs-flash-mock v0.2 lib 入口
+// rgs-flash-mock v0.3 lib 入口
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
 //
 // v0.1 → v0.2 升级:
 //   - 加 grpc_clients 模块 (5 域 mTLS 业务级 tonic client)
 //   - AppState 扩展: matrix + clients + cfg
 //   - main.rs 启动时连接 5 域, 任一域失败仍启动 (Option<Client>)
+// v0.2 → v0.3 升级:
+//   - 5 域 → 7 域 (加 card + leaderboard, per RGS-DTL-038 §4.4 + §3)
+//   - card proto + leaderboard proto compile (build.rs)
+//   - GrpcClients 扩 2 字段: card + leaderboard
+//   - status_report 扩 2 行: 7 域 status
 
 use std::sync::Arc;
 use tokio::sync::Mutex;

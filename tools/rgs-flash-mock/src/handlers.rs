@@ -1,9 +1,11 @@
-// rgs-flash-mock v0.2 — 12 类别 22 RPC stub handlers + 真实 5 域 mTLS gRPC 调用
+// rgs-flash-mock v0.3 — 12 类别 22 RPC stub handlers + 真实 7 域 mTLS gRPC 调用
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §3 + §2.3 数据流
 //
 // v0.1 PoC: HTTP 路由 → 直接返回 stub response
 // v0.2 升级: HTTP 路由 → 调 RGS gRPC backend (mTLS 业务级) → 真实 health check / profile 查询
 //           → 失败 fallback 到 mock response + 记录 last_error
+// v0.3 升级: 7 域 mTLS (5 域 + card + leaderboard) → 真实 HealthCheck + GetPlayerCollection + GetRankedLeaderboard
+//           + 2 新 handler: /card/collection + /rank/leaderboard (升级为真实 leaderboard gRPC 调用)
 
 use actix_web::{post, web, HttpResponse};
 use serde::Deserialize;
@@ -139,7 +141,8 @@ pub mod role {
         data: web::Data<AppState>,
         _req: web::Json<UpgradeReq>,
     ) -> HttpResponse {
-        let grpc_result = call_player_health(&data.clients).await;
+        // v0.3 升级: 调 card gRPC HealthCheck (5 域 player → 7 域 card 新域, per RGS-DTL-038 §4.4)
+        let grpc_result = call_card_health(&data.clients).await;
 
         let mut matrix = data.matrix.lock().await;
         matrix.record_call(202, RpcCategory::Role, RpcStatus::Partial, "技能升级");
@@ -153,7 +156,7 @@ pub mod role {
             "name": "UpgradeSkill",
             "status": "partial",
             "reason": "卡组养成类比, 不完全对应",
-            "rgs_call": "card-service:50061 CardInstance.level (v0.2 未实装, 仅 player health probe)",
+            "rgs_call": "card-service:50061 HealthCheck (v0.3 接入 card 域, 替代 v0.2 player probe)",
             "grpc_probe": grpc_result,
             "mock_response": { "skill_id": 0, "new_level": 1, "cost_gold": 100 },
         }))
@@ -525,8 +528,8 @@ pub mod rank {
 
     #[post("/rank/leaderboard")]
     pub async fn leaderboard(data: web::Data<AppState>) -> HttpResponse {
-        // leaderboard 不在 5 域 (player/economy/match/social/admin), 用 player health probe 占位
-        let grpc_result = call_player_health(&data.clients).await;
+        // v0.3 升级: 真实调 leaderboard GetRankedLeaderboard (7 域新域, per RGS-DTL-038 §3)
+        let grpc_result = call_leaderboard_get_ranked(&data.clients).await;
 
         let mut matrix = data.matrix.lock().await;
         matrix.record_call(1001, RpcCategory::Rank, RpcStatus::Pass, "排行榜");
@@ -541,10 +544,11 @@ pub mod rank {
             "rpc": 1001,
             "name": "GetLeaderboard",
             "status": status_str,
-            "rgs_call": "leaderboard (跨域共享, v0.2 player probe 占位, leaderboard 域在 v0.3 接入)",
+            "rgs_call": "leaderboard-service:50062 GetRankedLeaderboard (v0.3 接入 leaderboard 域, 替代 v0.2 player probe)",
             "grpc_probe": grpc_result,
             "mock_response": {
-                "rank_type": "level",
+                "rank_type": "ranked",
+                "period": "weekly",
                 "entries": [
                     { "rank": 1, "player_id": "stub-001", "score": 999 },
                     { "rank": 2, "player_id": "stub-002", "score": 888 },
@@ -602,6 +606,51 @@ pub mod gm {
             "rgs_call": "admin-service:50055 GrantCompensation (v0.2 HealthCheck probe)",
             "grpc_probe": grpc_result,
             "mock_response": { "granted": true, "items": [{ "id": 1, "count": 100 }] },
+        }))
+    }
+}
+
+// === 12. 卡牌 (v0.3 NEW, per RGS-DTL-038 §4.4) — Pass ===
+pub mod card {
+    use super::*;
+
+    #[derive(Deserialize)]
+    pub struct GetCollectionReq {
+        pub player_id: Option<String>,
+    }
+
+    #[post("/card/collection")]
+    pub async fn get_collection(
+        data: web::Data<AppState>,
+        req: web::Json<GetCollectionReq>,
+    ) -> HttpResponse {
+        // v0.3 NEW: 真实调 card GetPlayerCollection
+        let grpc_result = call_card_get_player_collection(
+            &data.clients,
+            req.player_id.clone().unwrap_or_else(|| "unknown".to_string()),
+        )
+        .await;
+
+        let mut matrix = data.matrix.lock().await;
+        matrix.record_call(1201, RpcCategory::Card, RpcStatus::Pass, "卡牌收藏查询");
+        let start = Instant::now();
+        let latency = start.elapsed().as_millis() as u64;
+        matrix.record_response(1201, RpcStatus::Pass, latency);
+        drop(matrix);
+
+        let status_str = if grpc_result.success { "pass" } else { "pass-fallback" };
+
+        HttpResponse::Ok().json(serde_json::json!({
+            "rpc": 1201,
+            "name": "GetPlayerCollection",
+            "status": status_str,
+            "rgs_call": "card-service:50061 GetPlayerCollection (v0.3 NEW, 7 域 mTLS 业务级)",
+            "grpc_probe": grpc_result,
+            "mock_response": {
+                "player_id": req.player_id.clone().unwrap_or_else(|| "unknown".to_string()),
+                "total_count": 0,
+                "instances": [],
+            },
         }))
     }
 }
@@ -939,6 +988,187 @@ async fn call_admin_ban(clients: &GrpcClients, account_id: &str, reason: &str) -
                 "op": b.op,
                 "accepted_at_ms": b.accepted_at_ms,
                 "disconnected_sessions": b.disconnected_sessions,
+            }));
+        }
+        Ok(Err(e)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some(format!("gRPC error: {}", e));
+        }
+        Err(_) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some("timeout (3s)".to_string());
+        }
+    }
+    result
+}
+
+// === v0.3 NEW: card + leaderboard 域 mTLS 业务级 helper ===
+
+/// card HealthCheck (v0.3 NEW, per RGS-DTL-038 §4.4)
+async fn call_card_health(clients: &GrpcClients) -> GrpcProbeResult {
+    let mut result = GrpcProbeResult::new("card", "HealthCheck");
+    let Some(mut client) = clients.card.clone() else {
+        result.error = Some("card gRPC client not connected".to_string());
+        return result;
+    };
+    let req = Request::new(common::HealthCheckRequest {
+        service: "rgs-flash-mock".to_string(),
+    });
+    let start = Instant::now();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        client.health_check(req),
+    )
+    .await
+    {
+        Ok(Ok(resp)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.success = true;
+            let inner = resp.into_inner();
+            result.response_summary = Some(serde_json::json!({
+                "status": inner.status,
+                "message": inner.message,
+            }));
+        }
+        Ok(Err(e)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some(format!("gRPC error: {}", e));
+        }
+        Err(_) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some("timeout (3s)".to_string());
+        }
+    }
+    result
+}
+
+/// card GetPlayerCollection (v0.3 NEW, per RGS-DTL-038 §4.4)
+async fn call_card_get_player_collection(clients: &GrpcClients, player_id: String) -> GrpcProbeResult {
+    let mut result = GrpcProbeResult::new("card", "GetPlayerCollection");
+    let Some(mut client) = clients.card.clone() else {
+        result.error = Some("card gRPC client not connected".to_string());
+        return result;
+    };
+    use crate::grpc_clients::card::GetPlayerCollectionRequest;
+    use crate::grpc_clients::proto::common::v1 as common_v1;
+    use crate::grpc_clients::proto::common::v1::PageRequest;
+    let req = Request::new(GetPlayerCollectionRequest {
+        request_id: format!("rgs-flash-mock-{}", chrono::Utc::now().timestamp_millis()),
+        player: Some(common_v1::PlayerId {
+            player_id: Some(common_v1::EntityId { id: player_id }),
+            display_name: String::new(),
+            rank_score: 0,
+            level: 0,
+        }),
+        page: Some(PageRequest {
+            page: 1,
+            page_size: 10,
+            cursor: String::new(),
+        }),
+        rarity_filter: 0, // UNSPECIFIED
+        series_id_filter: String::new(),
+    });
+    let start = Instant::now();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        client.get_player_collection(req),
+    )
+    .await
+    {
+        Ok(Ok(resp)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.success = true;
+            let inner = resp.into_inner();
+            result.response_summary = Some(serde_json::json!({
+                "total_count": inner.total_count,
+                "instances_count": inner.instances.len(),
+            }));
+        }
+        Ok(Err(e)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some(format!("gRPC error: {}", e));
+        }
+        Err(_) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some("timeout (3s)".to_string());
+        }
+    }
+    result
+}
+
+/// leaderboard HealthCheck (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02)
+async fn call_leaderboard_health(clients: &GrpcClients) -> GrpcProbeResult {
+    let mut result = GrpcProbeResult::new("leaderboard", "HealthCheck");
+    let Some(mut client) = clients.leaderboard.clone() else {
+        result.error = Some("leaderboard gRPC client not connected".to_string());
+        return result;
+    };
+    let req = Request::new(common::HealthCheckRequest {
+        service: "rgs-flash-mock".to_string(),
+    });
+    let start = Instant::now();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        client.health_check(req),
+    )
+    .await
+    {
+        Ok(Ok(resp)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.success = true;
+            let inner = resp.into_inner();
+            result.response_summary = Some(serde_json::json!({
+                "status": inner.status,
+                "message": inner.message,
+            }));
+        }
+        Ok(Err(e)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some(format!("gRPC error: {}", e));
+        }
+        Err(_) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.error = Some("timeout (3s)".to_string());
+        }
+    }
+    result
+}
+
+/// leaderboard GetRankedLeaderboard (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02)
+async fn call_leaderboard_get_ranked(clients: &GrpcClients) -> GrpcProbeResult {
+    let mut result = GrpcProbeResult::new("leaderboard", "GetRankedLeaderboard");
+    let Some(mut client) = clients.leaderboard.clone() else {
+        result.error = Some("leaderboard gRPC client not connected".to_string());
+        return result;
+    };
+    use crate::grpc_clients::leaderboard::{
+        GetRankedLeaderboardRequest, LeaderboardPeriod,
+    };
+    use crate::grpc_clients::proto::common::v1::PageRequest;
+    let req = Request::new(GetRankedLeaderboardRequest {
+        period: LeaderboardPeriod::Weekly as i32,
+        page: Some(PageRequest {
+            page: 1,
+            page_size: 10,
+            cursor: String::new(),
+        }),
+        season_id: String::new(),
+    });
+    let start = Instant::now();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        client.get_ranked_leaderboard(req),
+    )
+    .await
+    {
+        Ok(Ok(resp)) => {
+            result.latency_ms = start.elapsed().as_millis() as u64;
+            result.success = true;
+            let inner = resp.into_inner();
+            result.response_summary = Some(serde_json::json!({
+                "entries_count": inner.entries.len(),
+                "period": inner.period,
+                "season_id": inner.season_id,
             }));
         }
         Ok(Err(e)) => {

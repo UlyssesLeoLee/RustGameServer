@@ -1,11 +1,12 @@
-// rgs-flash-mock v0.2 — 闪烁之光 mock gateway / verification harness
+// rgs-flash-mock v0.3 — 闪烁之光 mock gateway / verification harness
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
 // per 9/10 14:35 JST Ulysses 拍板 (推荐) Mavis 起骨架 (1-2h PoC)
 // v0.2 升级: 接 5 域 mTLS 业务级 gRPC client (per 9/11 派工)
+// v0.3 升级: 7 域 mTLS 业务级 gRPC client + card + leaderboard 真实调用 (per 9/11 派工 v0.3)
 //
 // 端口: 0.0.0.0:8791 (RGS_FLASH_MOCK_PORT)
 // 协议: HTTP/JSON (actix-web 4, per §2.1)
-// back: tonic 0.12 gRPC client to RGS 5 域 (mTLS 业务级, per 8/27 11:06 JST 硬 ban 走 env var)
+// back: tonic 0.12 gRPC client to RGS 7 域 (mTLS 业务级, per 8/27 11:06 JST 硬 ban 走 env var)
 // 范围: 12 类别 22 RPC stub (per §3 表)
 
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
@@ -81,6 +82,7 @@ async fn root() -> impl Responder {
             "POST /rank/leaderboard": "GetLeaderboard (category 10, RPC 1001)",
             "POST /gm/ban": "BanAccount (category 11, RPC 1101)",
             "POST /gm/grant": "GrantCompensation (category 11, RPC 1102)",
+            "POST /card/collection": "GetPlayerCollection (category 12, RPC 1201, v0.3 NEW)",
         },
         "rgs_backend": {
             "player": std::env::var("GRPC_PLAYER_ENDPOINT").unwrap_or_else(|_| "https://player-service:50051".into()),
@@ -89,6 +91,7 @@ async fn root() -> impl Responder {
             "social": std::env::var("GRPC_SOCIAL_ENDPOINT").unwrap_or_else(|_| "https://social-service:50054".into()),
             "admin": std::env::var("GRPC_ADMIN_ENDPOINT").unwrap_or_else(|_| "https://admin-service:50055".into()),
             "card": std::env::var("GRPC_CARD_ENDPOINT").unwrap_or_else(|_| "https://card-service:50061".into()),
+            "leaderboard": std::env::var("GRPC_LEADERBOARD_ENDPOINT").unwrap_or_else(|_| "https://leaderboard-service:50062".into()),
         },
     }))
 }
@@ -116,7 +119,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    // 连接 5 域 gRPC client (mTLS 业务级, 任一域失败不阻塞启动)
+    // 连接 7 域 gRPC client (mTLS 业务级, 任一域失败不阻塞启动)
     let clients = GrpcClients::from_config(&cfg).await;
     let connected_count = [
         clients.player.is_some(),
@@ -124,19 +127,21 @@ async fn main() -> std::io::Result<()> {
         clients.r#match.is_some(),
         clients.social.is_some(),
         clients.admin.is_some(),
+        clients.card.is_some(),
+        clients.leaderboard.is_some(),
     ].iter().filter(|b| **b).count();
     info!(
         version = MOCK_VERSION,
         grpc_connected = connected_count,
-        grpc_total = 5,
-        "rgs-flash-mock v0.2 starting: 5 域 gRPC client pool initialized (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1)"
+        grpc_total = 7,
+        "rgs-flash-mock v0.3 starting: 7 域 gRPC client pool initialized (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1, 5 域 + card + leaderboard)"
     );
 
     let bind = std::env::var("RGS_GAP_MOCK_BIND").unwrap_or_else(|_| "0.0.0.0:8791".into());
     info!(
         version = MOCK_VERSION,
         %bind,
-        "rgs-flash-mock starting (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3, 12 类别 22 RPC stub + 5 域 mTLS gRPC)"
+        "rgs-flash-mock starting (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3, 12 类别 22 RPC stub + 7 域 mTLS gRPC)"
     );
 
     let matrix = Arc::new(Mutex::new(GapMatrix::new()));
@@ -175,6 +180,7 @@ async fn main() -> std::io::Result<()> {
             .service(rgs_flash_mock::handlers::rank::leaderboard)
             .service(rgs_flash_mock::handlers::gm::ban)
             .service(rgs_flash_mock::handlers::gm::grant)
+            .service(rgs_flash_mock::handlers::card::get_collection)
     })
     .bind(&bind)?
     .run()

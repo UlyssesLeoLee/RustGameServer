@@ -1,7 +1,9 @@
 //! rgs-flash-mock config
 //!
-//! 加载环境变量 + 5 域 gRPC endpoint + mTLS cert 路径 (per 8/27 11:06 JST hard ban: 凭据走 env var 永不打印)
-//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §2.1 工具链
+//! 加载环境变量 + 7 域 gRPC endpoint + mTLS cert 路径 (per 8/27 11:06 JST hard ban: 凭据走 env var 永不打印)
+//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1 工具链
+//!
+//! v0.3 新增 leaderboard_endpoint (5 域 → 7 域 mTLS 业务级, per RGS-DTL-038 §4.4 card + §3 leaderboard)
 
 use anyhow::Result;
 use std::env;
@@ -21,6 +23,7 @@ pub struct Config {
     pub social_endpoint: String,
     pub admin_endpoint: String,
     pub card_endpoint: String,
+    pub leaderboard_endpoint: String,
 }
 
 impl Config {
@@ -45,6 +48,8 @@ impl Config {
             .unwrap_or_else(|_| "https://admin-service:50055".to_string());
         let card_endpoint = env::var("GRPC_CARD_ENDPOINT")
             .unwrap_or_else(|_| "https://card-service:50061".to_string());
+        let leaderboard_endpoint = env::var("GRPC_LEADERBOARD_ENDPOINT")
+            .unwrap_or_else(|_| "https://leaderboard-service:50062".to_string());
 
         let ca_cert = format!("{}/ca.pem", tls_dir);
         let client_cert = format!("{}/rgs-flash-mock-client.pem", tls_dir);
@@ -64,6 +69,7 @@ impl Config {
             social_endpoint,
             admin_endpoint,
             card_endpoint,
+            leaderboard_endpoint,
         })
     }
 
@@ -80,7 +86,7 @@ impl Config {
         Ok(())
     }
 
-    /// 6 域 gRPC endpoint 列表 (跟 gap_matrix 12 大类 1:1 对应)
+    /// 7 域 gRPC endpoint 列表 (跟 gap_matrix 12 大类 1:1 对应, v0.3 加 leaderboard)
     pub fn endpoints(&self) -> Vec<(&str, &str)> {
         vec![
             ("player", &self.player_endpoint),
@@ -89,6 +95,7 @@ impl Config {
             ("social", &self.social_endpoint),
             ("admin", &self.admin_endpoint),
             ("card", &self.card_endpoint),
+            ("leaderboard", &self.leaderboard_endpoint),
         ]
     }
 }

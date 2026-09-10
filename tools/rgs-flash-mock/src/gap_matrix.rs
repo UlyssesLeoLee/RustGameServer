@@ -1,8 +1,8 @@
-// rgs-flash-mock v0.1 — gap matrix (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §4)
-// per-RPC coverage tracking, 12 类别 22 RPC (per §3 表)
+// rgs-flash-mock v0.3 — gap matrix (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §4)
+// per-RPC coverage tracking, 13 类别 23 RPC (per §3 表, v0.3 加 card)
 //
 // Status:
-// - Pass:        RGS 5 域 + card gRPC backend 支持 (5 类别: 战斗/PVP/经济/排行榜/GM)
+// - Pass:        RGS 5 域 + card + leaderboard gRPC backend 支持 (6 类别: 战斗/PVP/经济/排行榜/GM/卡牌)
 // - Partial:     RGS 部分支持 (5 类别: 养成/公会/社交/活动/付费)
 // - NotApplicable: RGS 品类不适用 (1 类别: 场景/移动, RGS TCG 无场景)
 // - NotImplemented: mock v0.1 不抽样 (v0.2+ 补)
@@ -45,7 +45,8 @@ pub enum RpcCategory {
     Pay,          // 9. 付费/商业化 43 RPC
     Rank,         // 10. 排行榜/图鉴 10 RPC
     Gm,           // 11. GM/运维 37 RPC
-    Misc,         // 12. 未分类 29 RPC
+    Card,         // 12. 卡牌/收藏 (v0.3 NEW, per RGS-DTL-038 §4.4) 80 RPC
+    Misc,         // 13. 未分类 29 RPC
 }
 
 impl RpcCategory {
@@ -62,6 +63,7 @@ impl RpcCategory {
             RpcCategory::Pay => "pay",
             RpcCategory::Rank => "rank",
             RpcCategory::Gm => "gm",
+            RpcCategory::Card => "card",
             RpcCategory::Misc => "misc",
         }
     }
@@ -79,6 +81,7 @@ impl RpcCategory {
             RpcCategory::Pay => 43,
             RpcCategory::Rank => 10,
             RpcCategory::Gm => 37,
+            RpcCategory::Card => 80, // v0.3 NEW (per RGS-DTL-038 §4.4 估算)
             RpcCategory::Misc => 29,
         }
     }
@@ -199,7 +202,11 @@ impl GapMatrix {
             (1102, "GrantCompensation", RpcCategory::Gm, RpcStatus::Pass,
              "补偿发放", "admin + gm-backend"),
 
-            // 12. 未分类 (29 total, 0 sampled) — v0.1 不抽样
+            // 12. 卡牌/收藏 (80 total, 1 sampled, v0.3 NEW) — RGS card-service v0.2, Pass
+            (1201, "GetPlayerCollection", RpcCategory::Card, RpcStatus::Pass,
+             "卡牌收藏查询", "card (GetPlayerCollection)"),
+
+            // 13. 未分类 (29 total, 0 sampled) — v0.1 不抽样
             // v0.2+ 补
         ];
 
@@ -248,14 +255,14 @@ impl GapMatrix {
         let zsyz_total: u32 = [
             RpcCategory::Scene, RpcCategory::Role, RpcCategory::Combat, RpcCategory::Pvp,
             RpcCategory::Guild, RpcCategory::Econ, RpcCategory::Social, RpcCategory::Event,
-            RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Misc,
+            RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Card, RpcCategory::Misc,
         ].iter().map(|c| c.total_rpc_in_zsyz()).sum();
 
         let by_category: Vec<CategoryReport> = {
             let mut cats: Vec<RpcCategory> = vec![
                 RpcCategory::Scene, RpcCategory::Role, RpcCategory::Combat, RpcCategory::Pvp,
                 RpcCategory::Guild, RpcCategory::Econ, RpcCategory::Social, RpcCategory::Event,
-                RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Misc,
+                RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Card, RpcCategory::Misc,
             ];
             cats.dedup();
             cats.iter().map(|cat| {

@@ -1,17 +1,20 @@
-//! rgs-flash-mock v0.2 — 5 域 gRPC client pool + mTLS 业务级
+//! rgs-flash-mock v0.3 — 7 域 gRPC client pool + mTLS 业务级
 //!
-//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1 (5 域 tonic 0.12 gRPC client)
+//! per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1 (7 域 tonic 0.12 gRPC client)
 //! per shared-platform::tls load_client_tls pattern (RGS 5 域 ST 业务 mTLS 一致)
 //! per 8/27 11:06 JST 硬 ban: 凭据走 env var, 永不打印
 //!
-//! 5 域:
-//!   - player  → PlayerServiceClient  (player-service:50051)
-//!   - economy → EconomyServiceClient (economy-service:50052)
-//!   - match   → MatchServiceClient   (match-service:50053)
-//!   - social  → SocialServiceClient  (social-service:50054)
-//!   - admin   → AdminServiceClient   (admin-service:50055)
+//! 7 域 (v0.3 加 card + leaderboard, per RGS-DTL-038 §4.4 + §3):
+//!   - player      → PlayerServiceClient      (player-service:50051)
+//!   - economy     → EconomyServiceClient     (economy-service:50052)
+//!   - match       → MatchServiceClient       (match-service:50053)
+//!   - social      → SocialServiceClient      (social-service:50054)
+//!   - admin       → AdminServiceClient       (admin-service:50055)
+//!   - card        → CardServiceClient        (card-service:50061, v0.3 NEW)
+//!   - leaderboard → LeaderboardServiceClient (leaderboard-service:50062, v0.3 NEW)
 //!
 //! v0.1 → v0.2 升级: 真实 5 域 mTLS 业务级 gRPC 调用 (v0.1 全 stub)
+//! v0.2 → v0.3 升级: 7 域 mTLS 业务级 + card/leaderboard proto compile + tonic client
 //!
 //! proto module 布局 (跟 crates/{player,...}-service 一样):
 //!   crate::proto::v1            → player 生成的代码
@@ -19,13 +22,15 @@
 //!   crate::proto::r#match::v1   → match 生成的代码 (alias)
 //!   crate::proto::social::v1    → social 生成的代码
 //!   crate::proto::admin::v1     → admin 生成的代码
+//!   crate::proto::card::v1      → card 生成的代码 (v0.3 NEW)
+//!   crate::proto::leaderboard::v1 → leaderboard 生成的代码 (v0.3 NEW)
 //!   crate::common::v1           → common 生成的代码 (sibling of crate::proto, per 5 域 mode)
 
 use std::path::Path;
 
 use tonic::transport::{Channel, ClientTlsConfig};
 
-/// 5 域 gRPC client 集合
+/// 7 域 gRPC client 集合
 /// 注意: tonic 0.12 的 client 是 cheap clone 的, 用 Arc 共享即可
 #[derive(Clone)]
 pub struct GrpcClients {
@@ -34,9 +39,11 @@ pub struct GrpcClients {
     pub r#match: Option<match_proto::match_service_client::MatchServiceClient<Channel>>,
     pub social: Option<social::social_service_client::SocialServiceClient<Channel>>,
     pub admin: Option<admin::admin_service_client::AdminServiceClient<Channel>>,
+    pub card: Option<card::card_service_client::CardServiceClient<Channel>>,
+    pub leaderboard: Option<leaderboard::leaderboard_service_client::LeaderboardServiceClient<Channel>>,
 }
 
-/// 5 域 gRPC 客户端状态 (per /ready 跟 /coverage 报告)
+/// 7 域 gRPC 客户端状态 (per /ready 跟 /coverage 报告)
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GrpcClientStatus {
     pub domain: String,
@@ -47,11 +54,11 @@ pub struct GrpcClientStatus {
 }
 
 impl GrpcClients {
-    /// 从 env + cert 路径构造 5 域 gRPC client
+    /// 从 env + cert 路径构造 7 域 gRPC client
     ///
     /// - 不强制要求 cert 存在 (RGS_ALLOW_INSECURE_GRPC=1 dev/test 兜底, per shared-platform 模式)
     /// - 任一域 connect 失败 → Option=None + last_error (不 panic)
-    /// - domain_name 跟 5 域 k8s service DNS 一致 (player-service / economy-service / ...)
+    /// - domain_name 跟 7 域 k8s service DNS 一致 (player-service / economy-service / ... / card-service / leaderboard-service)
     pub async fn from_config(cfg: &crate::config::Config) -> Self {
         // mTLS tls config (per shared-platform load_client_tls pattern)
         let tls = load_client_tls_from_paths(
@@ -66,6 +73,8 @@ impl GrpcClients {
             r#match: None,
             social: None,
             admin: None,
+            card: None,
+            leaderboard: None,
         };
 
         // player
@@ -113,10 +122,28 @@ impl GrpcClients {
         )
         .await;
 
+        // card (v0.3 NEW, per RGS-DTL-038 §4.4)
+        clients.card = connect_domain(
+            "card",
+            &cfg.card_endpoint,
+            "card-service",
+            tls.as_ref(),
+        )
+        .await;
+
+        // leaderboard (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02)
+        clients.leaderboard = connect_domain(
+            "leaderboard",
+            &cfg.leaderboard_endpoint,
+            "leaderboard-service",
+            tls.as_ref(),
+        )
+        .await;
+
         clients
     }
 
-    /// 5 域状态 (per /ready + /coverage 报告)
+    /// 7 域状态 (per /ready + /coverage 报告, v0.3 加 card + leaderboard)
     pub fn status_report(&self, cfg: &crate::config::Config) -> Vec<GrpcClientStatus> {
         let now = Some(chrono::Utc::now());
         vec![
@@ -152,6 +179,20 @@ impl GrpcClients {
                 domain: "admin".into(),
                 endpoint: cfg.admin_endpoint.clone(),
                 connected: self.admin.is_some(),
+                last_error: None,
+                last_check_at: now,
+            },
+            GrpcClientStatus {
+                domain: "card".into(),
+                endpoint: cfg.card_endpoint.clone(),
+                connected: self.card.is_some(),
+                last_error: None,
+                last_check_at: now,
+            },
+            GrpcClientStatus {
+                domain: "leaderboard".into(),
+                endpoint: cfg.leaderboard_endpoint.clone(),
+                connected: self.leaderboard.is_some(),
                 last_error: None,
                 last_check_at: now,
             },
@@ -243,6 +284,16 @@ impl NewClient<Channel> for admin::admin_service_client::AdminServiceClient<Chan
         Self::new(channel)
     }
 }
+impl NewClient<Channel> for card::card_service_client::CardServiceClient<Channel> {
+    fn new(channel: Channel) -> Self {
+        Self::new(channel)
+    }
+}
+impl NewClient<Channel> for leaderboard::leaderboard_service_client::LeaderboardServiceClient<Channel> {
+    fn new(channel: Channel) -> Self {
+        Self::new(channel)
+    }
+}
 
 /// 从 PEM 文件构造 ClientTlsConfig (复用 shared-platform load_client_tls 模式)
 /// 返回 None 当任何 cert 缺失 (走 RGS_ALLOW_INSECURE_GRPC 兜底逻辑)
@@ -301,8 +352,8 @@ fn load_client_tls_from_paths(
     Some(tls)
 }
 
-// tonic-build 生成的模块 (5 域 + common)
-// 5 域模块 + common 全部放在 crate::grpc_clients::proto::{domain}::v1 路径下 (统一 4 层深度)
+// tonic-build 生成的模块 (7 域 + common)
+// 7 域模块 + common 全部放在 crate::grpc_clients::proto::{domain}::v1 路径下 (统一 4 层深度)
 // tonic-build 生成 super::super::common::v1 (从 domain::v1 上 2 层到 proto, 再加 common::v1)
 pub mod proto {
     pub mod player {
@@ -331,7 +382,19 @@ pub mod proto {
             tonic::include_proto!("admin.v1");
         }
     }
-    /// common 必须是 5 域的 sibling (sibling of crate::grpc_clients::proto::player::v1)
+    /// card (v0.3 NEW, per RGS-DTL-038 §4.4 — 卡牌游戏新域)
+    pub mod card {
+        pub mod v1 {
+            tonic::include_proto!("card.v1");
+        }
+    }
+    /// leaderboard (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02 — 4 类榜单)
+    pub mod leaderboard {
+        pub mod v1 {
+            tonic::include_proto!("leaderboard.v1");
+        }
+    }
+    /// common 必须是 7 域的 sibling (sibling of crate::grpc_clients::proto::player::v1)
     /// tonic-build 生成 super::super::common::v1 from inside crate::grpc_clients::proto::player::v1
     /// → crate::grpc_clients::proto::common::v1
     pub mod common {
@@ -356,6 +419,14 @@ pub mod social {
 }
 pub mod admin {
     pub use super::proto::admin::v1::*;
+}
+/// card (v0.3 NEW)
+pub mod card {
+    pub use super::proto::card::v1::*;
+}
+/// leaderboard (v0.3 NEW)
+pub mod leaderboard {
+    pub use super::proto::leaderboard::v1::*;
 }
 
 /// 静态断言: cert path 都是字符串, 不暴露 value (per 8/27 11:06 JST 凭据硬 ban)
