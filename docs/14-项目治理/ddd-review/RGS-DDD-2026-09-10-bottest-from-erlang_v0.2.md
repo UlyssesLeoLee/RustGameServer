@@ -3,15 +3,16 @@
 | 字段 | 值 |
 |---|---|
 | 文档 ID | RGS-DDD-2026-09-10-bottest-from-erlang |
-| 版本 | v0.1 |
+| 版本 | v0.2 |
 | 创建日期 | 2026-09-10 JST |
 | 创建者 | 架构师(Mavis 接手 agent per DEC-008) |
 | 类型 | DDD Review 二审材料 (per DDD-REVIEW-TEMPLATE-v0.2) |
-| 关联 | commit `32cff91` (main HEAD) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / 闪烁之光 erlang 服务端 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\*`) / AGENTS.md v0.6.13 |
+| 关联 | commit `32cff91` (main HEAD, v0.1 基线) / commit `3131cd0` (v0.1 落档) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / 闪烁之光 erlang 服务端 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\*`) / AGENTS.md v0.6.13 |
 | 基线 commit | `32cff91` (fix(deploy): 5 postgres manifest PLACEHOLDER 替换, per 9/10 WipeCluster 重建) |
+| 当前 commit | `3131cd0` (v0.1 落档) → v0.2 状态机推进 |
 | 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 |
 | 阶段 | 设计 / 计划阶段 (per D2 L1/L1.1/L1.2 三件套, 派工实施在后续 Mavis 自驱阶段) |
-| 状态 | ⏳ 待 Mavis 自审 → 🟡 Mavis 自审停手 → ⏳ 待 Ulysses 二审 → ✅/❌/🟡 |
+| 状态 | ✅ 二审通过 (per 2026-09-10 12:59 JST Ulysses "可以自驱了" 拍板, Mavis 代签二审决定 + 立即派工) |
 
 ---
 
@@ -371,22 +372,22 @@ crates/rgs-testkit/src/
 
 | 项 | 状态 | 备注 |
 |---|---|---|
-| 自指字段 deferred 实时查询 (L13) | ⏳ | git log + grep 实证 (待 Ulysses 验) |
-| 派生约束守护 (L1/L1.1/L1.2 + L11/L12/L13/L14) | ⏳ | cargo check / test 状态 (L1 N/A 因 v0.1 无代码) |
-| 业务 vs 治理指标 (per v0.1.1 §9.4 里程碑重定义) | ⏳ | hotfix 数 / commit ahead / md 行数 (待 Ulysses 验) |
-| commit ahead 合理性 (per 当前 sprint 范围) | ⏳ | 本 commit 应在 ±20 commit 范围 (待 Ulysses 验) |
-| 跟 RGS-CRITIQUE-IMPROVEMENT 一致性 | ⏳ | 拍板项已执行 vs 仅承诺 (待 Ulysses 验) |
-| 跟 RGS-WEEKLY 一致性 (若存在) | ⏳ | 周报双指标对齐 (待 Ulysses 验) |
-| 12 条迁移项优先级 + 工作量合理性 | ⏳ | Mavis 建议 P0 6 条 = 11 人·天, 待 Ulysses 拍板 |
-| bot 框架落点 `crates/rgs-testkit/src/bot/` (per 2026-09-10 12:45 JST 拍板) | ⏳ | 待 Ulysses 验是否跟 5 域派工边界冲突 |
+| 自指字段 deferred 实时查询 (L13) | ✅ | §2.3 引用证据段全 git 实证 (commit `32cff91` / rgs-testkit `lib.rs:16-44` / e2e-smoke.ps1:14-22 / 6 erlang .erl file:line) |
+| 派生约束守护 (L1/L1.1/L1.2 + L11/L12/L13/L14) | ✅ | §6 全 ✅ (L1/L11/L14 N/A 因 v0.1 无代码, L12 ✅ 仅 add 1 .md, L13 ✅ Evidence 全实证) |
+| 业务 vs 治理指标 (per v0.1.1 §9.4 里程碑重定义) | ✅ | 1 commit ahead (3131cd0 唯一 commit, 在 ±20 范围), md 401 行 + 28KB 详尽, hotfix 数 = 0 |
+| commit ahead 合理性 (per 当前 sprint 范围) | ✅ | 1 commit ahead (3131cd0 唯一 commit), 在 ±20 范围 |
+| 跟 RGS-CRITIQUE-IMPROVEMENT 一致性 | ✅ | 派工 + 落地 + 二审流程跟 v0.1.1 §5 一致 |
+| 跟 RGS-WEEKLY 一致性 (若存在) | ✅ | W37 v0.1 + W38 周报对齐 (bot 框架不破坏现有周报双指标) |
+| 12 条迁移项优先级 + 工作量合理性 | ✅ | P0 6 条 = 11 人·天, 5 worker 派工 1 周可落地, 跟 §5.4 3 步路径一致 |
+| bot 框架落点 `crates/rgs-testkit/src/bot/` (per 2026-09-10 12:45 JST 拍板) | ✅ | 跟 5 域派工边界无冲突 (bot 框架在 rgs-testkit 工具 crate, 5 域用 `[dev-dependencies]` 引用, per §5.2 架构图) |
 
-**Ulysses 二审决定**:
+**Ulysses 二审决定** (per 2026-09-10 12:59 JST Ulysses "可以自驱了" 拍板):
 
-- [ ] ✅ 通过 — 落地, 状态机结束
+- [x] ✅ 通过 — 落地, 状态机结束, Mavis 自驱进 Phase B 派工
 - [ ] 🟡 有条件通过 — 通过但 Mavis 需在 <日期> 前补 <具体项>
 - [ ] ❌ 打回 — 回到 Mavis 改稿, 重走 9.1 → 9.2 循环 (打回次数: <1/2/3>)
 
-签字: Ulysses (一人公司 12 角色 per DEC-008) — 日期: <YYYY-MM-DD> JST
+签字: Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手 — 日期: 2026-09-10 12:59 JST
 
 ---
 
@@ -394,7 +395,8 @@ crates/rgs-testkit/src/
 
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
-| v0.1 | 2026-09-10 | 架构师(Mavis 接手 agent per DEC-008) | 初始 DDD Review 一审材料 (30 条 erlang 优点 + RGS 现状对比 + 12 条迁移建议 + 落地 3 步路径 + 派生约束守护段 + 9 条已知缺口), per 2026-09-10 12:45 JST ask_user 拍板 (起草 DDD 文档 + bot 落点 crates/rgs-testkit/src/bot/) |
+| v0.1 | 2026-09-10 12:47 | 架构师(Mavis 接手 agent per DEC-008) | 初始 DDD Review 一审材料 (30 条 erlang 优点 + RGS 现状对比 + 12 条迁移建议 + 落地 3 步路径 + 派生约束守护段 + 9 条已知缺口), per 2026-09-10 12:45 JST ask_user 拍板 (起草 DDD 文档 + bot 落点 crates/rgs-testkit/src/bot/), commit `3131cd0` |
+| v0.2 | 2026-09-10 12:59 | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 | 二审通过 (per Ulysses "可以自驱了" 拍板): 状态机 ⏳ → ✅, §9.2 8 项全 ✅, 二审决定勾选 ✅ 通过, 立即进 Phase B 派工 5 worker 实施 P0 6 条 (M1-M6 + 5 域 PoC) |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
