@@ -5,10 +5,14 @@
 //! - `DefaultBotAi` 空壳实现, 5 域派生时填充 (per DDD Review v0.2 §5.2 ai/)
 //!
 //! 5 域派生 (wave 2 worker): player / economy / match / social / admin / quest
-//! 当前派生 `player` + `economy` (见 [`player::PlayerBotAi`] / [`economy::EconomyBotAi`]).
+//!
+//! 当前派生: player (PoC) + economy (wave 2) + social (wave 2) + match (wave 2 关键字转义).
+//! 注意: `match` 是 Rust 关键字, 文件名 `match.rs` OK, mod 声明用 `r#match`,
+//! import 路径用 `rgs_testkit::bot::ai::r#match::MatchBotAi`.
 
 pub mod economy;
 pub mod player;
+pub mod r#match;
 pub mod social;
 
 use async_trait::async_trait;
@@ -23,7 +27,7 @@ use crate::bot::Bot;
 /// - `act_list` 行为序列 (per erlang B3 act_list)
 /// - `handle`   处理单个 act
 ///
-/// 默认实现见 [`DefaultBotAi`], 5 域派生见 [`player::PlayerBotAi`].
+/// 默认实现见 [`DefaultBotAi`], 5 域派生见 [`player::PlayerBotAi`] + [`economy::EconomyBotAi`] + [`social::SocialBotAi`] + [`r#match::MatchBotAi`].
 #[async_trait]
 pub trait BotAi: Send + Sync {
     /// 初始化 (Bot 启动时调用 1 次)
