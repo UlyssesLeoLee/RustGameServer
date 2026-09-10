@@ -41,7 +41,7 @@ async fn bot_supervisor_stagger_spawn() {
 
 #[tokio::test]
 async fn bot_ai_player_act_list() {
-    let ai = PlayerBotAi;
+    let ai = PlayerBotAi::new();
     let acts = ai.act_list();
     assert!(acts.contains(&ActKind::Heartbeat));
     assert!(acts.contains(&ActKind::RandProto(100)));
@@ -52,7 +52,7 @@ async fn bot_ai_player_act_list() {
 async fn bot_ai_player_handle_all_acts() {
     let stats = BotStats::new();
     let bot = Bot::new("bot-player-001", "player", stats);
-    let ai = PlayerBotAi;
+    let ai = PlayerBotAi::new();
     ai.init(&bot).await.expect("init");
     for act in ai.act_list() {
         ai.handle(&bot, act).await.expect("handle ok");
