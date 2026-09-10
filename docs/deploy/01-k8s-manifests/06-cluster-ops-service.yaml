@@ -120,11 +120,11 @@ spec:
               value: "0"
           resources:
             requests:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 250m
+              memory: 256Mi
             limits:
-              cpu: 2000m
-              memory: 2Gi
+              cpu: 1000m
+              memory: 1Gi
           livenessProbe:
             tcpSocket:
               port: 50056

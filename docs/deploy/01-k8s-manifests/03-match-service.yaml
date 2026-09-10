@@ -31,7 +31,7 @@ metadata:
     rust-game-server.io/domain: match
     rust-game-server.io/real-time: "true"
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -200,7 +200,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: match-service
-  minReplicas: 3
+  minReplicas: 1
   maxReplicas: 12
   metrics:
     - type: Resource
