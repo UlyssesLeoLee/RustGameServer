@@ -23,6 +23,10 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
+# 9/10 wave 4 admin 域真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   prost 0.13 用于 admin proto client 生成的 `::prost::Message` derive
+#   复用 workspace 版本 (5 域 ST 业务级 mTLS 实践 commit 401ac5c 统一 lock)
+prost = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
@@ -34,6 +38,14 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # 启用: cargo test -p rgs-testkit --features testcontainers
 testcontainers = { version = "0.23", optional = true }
 testcontainers-modules = { version = "0.11", features = ["postgres"], optional = true }
+
+[build-dependencies]
+# 9/10 wave 4 admin 域真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+# - tonic-build 0.12 (workspace) 用于在 build.rs 生成 admin proto client
+# - 仅生成 client (build_server=false), 不引入 server trait
+# - 复用 admin-service/proto/ 源 proto (单一来源, 避免 proto 漂移)
+# - L-CAND-016 防御: 只加 admin proto, 不改其他 4 域
+tonic-build = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

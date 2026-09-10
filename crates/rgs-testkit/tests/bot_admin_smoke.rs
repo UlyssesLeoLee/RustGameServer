@@ -175,3 +175,87 @@ async fn bot_admin_5_acts_layout_with_mtls_channel() {
         "默认 GmClient 应建 lazy mTLS Channel"
     );
 }
+
+#[tokio::test]
+async fn bot_admin_real_rpc_call_ban_account_returns_err_on_k3s_unreachable() {
+    // wave 4 真实 RPC 调用集成测试 (per DDD Review v0.3.2 §7.3 L1.2)
+    //
+    // 验证目标:
+    // - AdminBotAi 默认 GmClient 走 issue_real 真实 admin proto RPC 调用
+    //   (admin_service_client::AdminServiceClient<Channel>::ban_account(...))
+    // - 2s timeout 防 hang (per L11 + 5 域 ST 业务级 mTLS 实践)
+    // - k3s baseline 0/12 阶段, 真实 RPC 必失败 (connection refused), 但不 panic
+    // - 返 Ok + GmResponse { ok: false, error: Some }, 错误容忍模式
+    // - L-CAND-016 防御: 只加 admin proto RPC, 不改其他 4 域
+
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-admin-real-rpc-001", "admin", stats);
+    let ai = AdminBotAi::new();
+
+    // 1. 默认 GmClient 持真实 lazy mTLS Channel
+    let gm = ai
+        .gm_client()
+        .expect("AdminBotAi default should have gm_client");
+    assert!(
+        gm.channel().is_some(),
+        "默认 GmClient 应建 lazy mTLS Channel (wave 3 升级)"
+    );
+
+    // 2. GmCommand 走 issue_real 真实 RPC 调用 (wave 4 升级)
+    //    2s timeout 防 hang, 错误容忍模式
+    let r = ai
+        .handle(&bot, ActKind::Custom("GmCommand".to_string()))
+        .await;
+    assert!(
+        r.is_ok(),
+        "GmCommand handle 应返 Ok (issue_real 真实 RPC, k3s baseline 0/12 必失败但不 panic)"
+    );
+
+    // 3. BanAccount 走 issue_real 真实 RPC 调用 (wave 4 升级)
+    let r = ai
+        .handle(&bot, ActKind::Custom("BanAccount".to_string()))
+        .await;
+    assert!(
+        r.is_ok(),
+        "BanAccount handle 应返 Ok (issue_real 真实 RPC, k3s baseline 0/12 必失败但不 panic)"
+    );
+}
+
+#[tokio::test]
+async fn bot_admin_real_rpc_call_init_does_not_panic() {
+    // wave 4 真实 RPC init 阶段集成测试 (per DDD Review v0.3.2 §7.3 L1.2)
+    //
+    // 验证目标:
+    // - AdminBotAi::init 走 issue_real 真实 RPC (admin proto ban_account)
+    // - 2s timeout 防 hang
+    // - 错误容忍模式: 真实 RPC 失败时返 Ok(()) 不 panic
+
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-admin-real-rpc-init-001", "admin", stats);
+    let ai = AdminBotAi::new();
+
+    // init 阶段走真实 RPC, 不 panic
+    ai.init(&bot)
+        .await
+        .expect("init with real RPC should not panic");
+}
+
+#[tokio::test]
+async fn bot_admin_issue_real_direct_call_returns_error_on_k3s_unreachable() {
+    // wave 4 直接 issue_real 调用测试 (per DDD Review v0.3.2 §7.3 L1.2)
+    //
+    // 验证目标:
+    // - GmClient::issue_real 直接调用走 admin proto client ban_account 真实通路
+    // - k3s baseline 0/12 阶段, 真实 RPC 必失败, 返 Ok + GmResponse { ok: false, error: Some }
+    // - 2s timeout 防 hang
+    let c = GmClient::new("https://placeholder:8443")
+        .with_endpoint("https://127.0.0.1:50055")
+        .with_skip_verify(true);
+
+    let r = c
+        .issue_real("ban_account 3600 违规")
+        .await
+        .expect("issue_real should not panic");
+    assert!(!r.ok, "k3s baseline 0/12 阶段 ok 应 false");
+    assert!(r.error.is_some(), "error 字段应填充");
+}

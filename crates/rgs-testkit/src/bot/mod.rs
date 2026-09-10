@@ -44,6 +44,7 @@
 
 pub mod act;
 pub mod ai;
+pub mod common;
 pub mod gm;
 pub mod stats;
 pub mod supervisor;
