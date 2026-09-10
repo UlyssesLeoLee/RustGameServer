@@ -109,6 +109,9 @@ impl AuditLogRepository for FailingAuditLogRepository {
     async fn latest(&self) -> Result<Option<AuditLogEntry>> {
         self.inner.latest().await
     }
+    async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>> {
+        self.inner.list_latest(limit).await
+    }
     async fn append_atomic(
         &self,
         _tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
