@@ -406,9 +406,10 @@ git config commit.template .gitmessage
   1. **5 worker 独立 worktree** (per 8/31 W37 模式 ut/player / ut/economy / ut/match / ut/social / ut/admin), 各 worktree commit 后主会话 merge, 工作流最重但 0 race condition
   2. **5 worker 写文件不 commit, 主会话统一 git add 5 files + 1 commit** (per 9/3 11:08 JST 教训推荐), token 预算中等, 0 race condition
   3. **1 worker 串行 5 域**, 失去"5 worker 并行"形式, 0 race condition 但 token 节奏慢
-- **per-worker CARGO_TARGET_DIR** (per 9/3 08:42 JST L11 dir lock 修复):
-  - 全局 `CARGO_TARGET_DIR=E:/DevCache/cargo/target` (Windows 缓存) 让 5 worktree 各自 `target/` 失效
-  - worker 内部设 `$env:CARGO_TARGET_DIR = "target-r1-<scope>"` 覆盖全局
+- **per-worker CARGO_TARGET_DIR** (per 9/3 08:42 JST L11 dir lock 修复 + 9/10 13:25 JST L30 升正式):
+  - **D 盘 0 free 防御** (per L30 / L-CAND-013, 9/10 13:25 JST): 全局 fallback `CARGO_TARGET_DIR=E:\DevCache\cargo\<scope>` (E 盘 105GB free, devcache 已存在), worker 简报明文 "per-worker CARGO_TARGET_DIR 强制用 E 盘 devcache 路径, 不写 D 盘"
+  - 旧基线: 全局 `CARGO_TARGET_DIR=E:/DevCache/cargo/target` (Windows 缓存) 让 5 worktree 各自 `target/` 失效
+  - worker 内部设 `$env:CARGO_TARGET_DIR = "target-r1-<scope>"` 覆盖全局 (per-worker 隔离)
 - **staggered 启动**: 5 worker 间隔 30s 启动, 避免同时 cargo registry lock 抢锁
 - **DoD 简报明文**: "worker 不 commit, 报告即可" 避免 race condition (per 选项 2)
 - **追溯改写禁**: 不 amend / rebase / filter-branch 改写历史 (per 8/27 JST 禁回溯叙事), race condition 异常留 audit commit trail (per 9/3 11:58 JST 选项 B 落地模式)
@@ -797,6 +798,119 @@ per 2026-09-01 18:00-19:24 JST Ulysses 决策 + 5 域独立 Lead 原则 + DB 横
 
 **配套**: DDD Review 二审必到 Ulysses (per B3), Mavis 一审停手, 打破 AI 自指. **DDD Review v0.1 已通过 per 2026-09-08 21:07 JST Ulysses (根据测试结果判断质量)**.
 
+### 8.y 防御性约束 L30-L37 (per 9/10 13:25-19:23 JST bot 框架 4 阶段派工 + WipeCluster 重建, 9/10 19:46 JST DDD Review v0.4 拍板)
+
+**拍板依据**: 9/10 13:25-19:23 JST 5 worker 派工 4 阶段 (bot 框架 core / 5 域 BotAi 派生 / mTLS 真实接入 / 真实 RPC 调用) + 9/10 15:14-15:30 JST WipeCluster 重建 4 段历史 + DDD Review v0.4 §7.4 15 L-CAND 候选评估表 (per 9/10 19:46 JST 拍板)
+**L-CAND 入档对应**: L-CAND-013/014/015/016/017 5 候选 (per L-CANDIDATES.md v0.6 commit `cc7a3c9`) + L-CAND-018/019/020/021/022 5 正式化候选. **L-CAND 编号对齐说明**: L-CAND-018-022 入档时引用的 L-约束编号 L20/L21+L22/L23/L24/L25 与 §8.x 现有 L-约束冲突, 本 v0.6.15 正式化为 L30-L37, 12/2 季度评审时一并 remap L-CAND 引用.
+**打破冻结范围**: 8 条新约束 (L30-L37) 立即生效, 不走 12/2 季度评审. 12/2 拍板是否维持.
+
+#### L30 | D 盘 0 free 防御 + E 盘 devcache target fallback (per L-CAND-013)
+
+- **背景**: 9/10 13:25 JST rgs-testkit bot 框架 wave 2 派工 5 worker (1 core + 4 domain) 落地后, 主会话跑 L1.1 `cargo test --workspace --tests` 时, D 盘磁盘空间耗尽 (0 bytes free, 跟 6 个 worker target dirs + 30 个历史 target-* 累计), 编译失败 `os error 112 磁盘空间不足` + LNK1318 非意外的 PDB 错误
+- **强约束**: **per-worker CARGO_TARGET_DIR 强制用 E 盘 devcache 路径, 不写 D 盘**:
+  1. **默认 fallback**: `CARGO_TARGET_DIR=E:\DevCache\cargo\<scope>` (E 盘 105GB free, devcache 已存在)
+  2. **worker brief 明文**: "per-worker CARGO_TARGET_DIR 强制用 E 盘 devcache 路径, 不写 D 盘"
+  3. **D 盘清理策略**: merge 后主会话 `git worktree remove --force` 4 worker worktree (自动清 target) + `git worktree prune` 清理 .git/worktree
+  4. **历史 target 清理**: `D:\RustGameServer\target-*` 30+ 个目录, 由主会话 L11 监控定期清理
+  5. **CI/CD 防御**: AGENTS.md §2.6 D3 commit 模板 + §6.3 PT 派工简报明文 "CARGO_TARGET_DIR=E:\DevCache\cargo\<scope>"
+- **证据**: 9/10 13:25 JST 5 worker + 5 merge + L1.1 主验证全过 (E 盘 fallback 修复), 0 死锁 + 0 空间失败
+- **影响范围**: 所有 PT 派工 (8 worker / 5 worker / 1 worker 都适用)
+- **配套**: per §6.3 PT 派工简报 "per-worker CARGO_TARGET_DIR" 段
+
+#### L31 | 5 worker wave 2 mod.rs 4-way conflict 防御 (per L-CAND-014)
+
+- **背景**: 9/10 13:18-13:25 JST 4 worker (economy + social + match + admin) merge 时, `crates/rgs-testkit/src/bot/ai/mod.rs` 4 次 conflict (每个 worker 都加 `pub mod <domain>;` 行, 顺序错乱); match + admin 各 1 次 conflict, 主会话手修 2 次
+- **强约束**: **5 域派生 mod.rs 防御**:
+  1. **5 worker brief 明文**: "mod.rs 加 `pub mod <domain>;` 在 player 之后, 不要改 player 行", 减少 worker 自主行为
+  2. **conflict resolution 模板**: 主会话手修 mod.rs 时, 一次性写最终版 (5 行 pub mod 合并, 按字母或 worker 提交顺序), 不逐 worker 重复手修
+  3. **L14 plumbing brace 跟踪**: mod.rs 合并是 plumbing 节点字符串处理, 用 `<<<<<<<` `=======` `>>>>>>>` 4 边界 brace 跟踪, 不要简单 indexOf + 1
+  4. **可选 L19 候选**: 5 worker 派生模式应改 L12.2 选项 2 (worker 写文件不 commit, 主会话统一 1 commit), 避免 mod.rs 公共入口冲突
+- **证据**: 9/10 13:25 JST 4 worker merge 0 死锁 + 0 未解决 conflict (2 次手修 1 min 内完成)
+- **影响范围**: 5 域派生 wave 派工 + 任何多 worker 改公共 mod.rs 入口
+
+#### L32 | HPA minReplicas=1 默认值 + metrics-server 必装 (per L-CAND-015)
+
+- **背景**: 9/10 15:14-15:30 JST 主会话按 15:14 JST Ulysses 拍板 opt1 用 `kubectl apply` 拉起 5 域 (per `docs/deploy/01-k8s-manifests/`), 0/12 PASS + 1 SKIP. 根因: `e4-02-hpa-templates.yaml` HPA minReplicas=2 + metrics-server 不可用 (FailedComputeMetricsReplicas 警告) → HPA 反复拉新 pod → CPU Insufficient + SandboxChanged 风暴. 30+ pod 单节点资源耗尽 → k3s API server crash 2 次
+- **强约束**: **5 域 ST 启动前必装 metrics-server + HPA minReplicas=1**:
+  1. **HPA minReplicas=1 默认值**: 改 `docs/deploy/01-k8s-manifests/e4-02-hpa-templates.yaml` minReplicas=1, 避免强启动风暴
+  2. **metrics-server 必装**: 5 域起前先装 k3s metrics-server, HPA 才能正确 compute metric
+  3. **k3s apply 之前先 dry-run**: `kubectl apply --dry-run=client -f <yaml>` 验证 yaml 合法性
+  4. **分批 rollout**: 5 域 + cluster-ops 优先, 等 5 域 Running 后再 apply 基础设施 (postgres / prometheus / grafana / nats / otel)
+  5. **gm-backend image 同步 5 域 tag**: 改用 `0.1.0-cc13` multi-arch (per commit `85bfdf5`), 或推 `0.1.0-gm-backend` 到 ghcr.io
+  6. **多节点扩展**: 单节点资源压力是根本问题, 12/2 季度评审纳入集群扩缩容
+- **证据**: 9/10 15:14-15:30 JST k3s 5 域拉起 0/12 PASS (per commit `85bfdf5` gm-backend image tag 0.1.0-cc13 + commit `340fc16` admin mock list_verify 补)
+- **影响范围**: 所有 5 域 ST 业务级 mTLS 启动 + 任何 HPA 模板应用
+
+#### L33 | 5 域派生公共 struct 字段同步简报明文 (per L-CAND-016)
+
+- **背景**: 9/10 17:30-18:24 JST wave 3 5 worker 5 域 mTLS 真实接入, 5 --no-ff merge 后, MtlsConfig skip_verify 字段 5 处缺失 (admin worker commit `9788404` 在 `gm.rs` MtlsConfig 加 `skip_verify: bool` 字段, 但 social + match worker 在测试中用旧 4 字段 MtlsConfig 初始化, 编译失败 E0063 × 5 处); 主会话手修 commit `4157731` MtlsConfig 兼容 fix
+- **强约束**: **5 worker 派生共享 struct 字段同步简报明文**:
+  1. **5 worker brief 明文**: "worker 加公共 struct 字段时, 必须先跑全 worktree grep 检查 + 同步更新其他 worker 用例"
+  2. **公共 struct 字段同步**: 5 worker 派生共享 struct (MtlsConfig / BotCore / BotAi / 域 proto) 时, 加字段前先扫描其他 worker 用例, 同步更新
+  3. **Cargo.toml 公共依赖合并**: 5 worker 派生 wave 派工前, 主会话手修 1 次 (per L31 防御)
+- **证据**: 9/10 18:24 JST L1 cargo check 0 error 0.49s (主会话修后), L1.1 60 passed 0 failed 0.13s (wave 2 41 + wave 3 5 域 mTLS 真实 client + 4 admin GmClient unit = 60)
+- **影响范围**: 5 域派生共享 struct 派工 + 任何 5+ worker 改公共 struct
+
+#### L34 | 5 域派生统一 mod 入口 (per L-CAND-016)
+
+- **背景**: L31 (mod.rs 4-way conflict) 的可选方案, 5 worker 派生模式强制 L12.2 选项 2 (worker 写文件不 commit, 主会话统一 1 commit), 避免 mod.rs 公共入口冲突
+- **强约束**: **5 域派生统一 mod 入口**:
+  1. **worker 写文件不 commit**: 5 worker 派生时 worker 写 `bot/<domain>.rs` 不写 `pub mod` 声明, 主会话统一写 `mod.rs`
+  2. **主会话统一 1 commit**: 5 worker 落地后, 主会话 `git add 5 files + 1 commit` 包含 5 域 `bot/<domain>.rs` + `mod.rs`
+  3. **L12.2 选项 2 优先**: 5 域派生 wave 派工选 L12.2 选项 2 (per 9/3 11:08 JST race condition 教训推荐)
+- **证据**: 9/3 12:09 JST 5 worker E2E stub 派工 commit `111d4ad` (5 files 一次性 commit, 0 race condition, 实证 0 mod.rs conflict)
+- **影响范围**: 5 域派生 wave 派工 + 任何 5+ worker 改公共 mod 入口
+
+#### L35 | rustls 0.23 crypto provider 防御 (per L-CAND-017)
+
+- **背景**: 9/10 19:23 JST wave 4 5 worker 5 域真实 RPC 接入, 5 --no-ff merge 后 `cargo test` 验证 27 test FAILED panic at `rustls-0.23.43/src/crypto/mod.rs:249:14` (CryptoProvider::install_default required). 根因 workspace `tonic = { features = ["transport", "tls", "tls-roots"] }` 没带 rustls crypto provider (`ring` / `aws-lc-rs`)
+- **强约束**: **mTLS 业务级 0 panic 防御**:
+  1. **rustls workspace dep 强制**: 任何 crate 加 `ClientTlsConfig` (mTLS) 必在 `[dependencies]` 加 `rustls = { workspace = true }` workspace dep
+  2. **rustls features 强制**: workspace `rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }` (rustls 0.23.43 验证)
+  3. **ctor 强制**: workspace `ctor = "0.2"`; 任何 rgs-testkit 引用 mTLS 的 crate 必在 `lib.rs` 加 `#[ctor::ctor] fn _init() { rustls::crypto::ring::default_provider().install_default().expect("rustls crypto provider install"); }`
+  4. **CI pre-commit 检查** (可选): `.git/hooks/pre-commit-mtls` 检查 `[dependencies]` 含 `rustls = { workspace = true }` 时, 必同时含 `ctor = "0.2"` + `lib.rs` 含 `#[ctor::ctor]`
+- **证据**: 9/10 19:23 JST commit `d381cd0` fix(testkit) rustls crypto provider fix (workspace + rgs-testkit lib.rs 5 file 修复)
+- **影响范围**: 所有 mTLS 业务级 crate + 任何 ClientTlsConfig 引用
+
+#### L36 | build.rs 路径防御 (per L-CAND-017)
+
+- **背景**: 9/10 19:23 JST wave 4 3 worker (player / match / admin) build.rs 路径错 `../../` → `../../crates/`, protoc 报 "Could not make proto path relative: ../../player-service/proto/player/v1/player.proto: No such file or directory". 根因 build.rs 编译时 cwd 是 `crates/rgs-testkit`, `../../` 是 `D:\RustGameServer\crates`, 不是 `D:\RustGameServer`
+- **强约束**: **build.rs 路径强制**:
+  1. **build.rs 路径 verify cargo check 0 error**: 5 worker 派生 build.rs 路径必须 verify, 简报明文 "build.rs 路径必须用 `../../crates/<service>/proto/`, 不要省略 `crates/`"
+  2. **common.proto 位置固定**: common.proto 必须在 `crates/shared-platform/proto/common/v1/common.proto` (不在 player-service / rgs-testkit 本地)
+  3. **CI pre-commit 检查** (可选): `.git/hooks/pre-commit-buildrs` 检查 build.rs 路径, 拒绝 `../../<service>/` 但允许 `../../crates/<service>/`
+  4. **5 域派生 build.rs 模板** (可选): 写 `scripts/buildrs-template.sh` 给 5 worker 复用, 路径自动 derive crates/ 前缀
+- **证据**: 9/10 19:23 JST commit `d381cd0` fix(testkit) build.rs 路径 `../../` → `../../crates/` + common.proto 改 shared-platform
+- **影响范围**: 5 域派生 build.rs + 任何 proto 文件引用
+
+#### L37 | RPC 测试设计防御 (per L-CAND-017)
+
+- **背景**: 9/10 19:23 JST wave 4 admin worker 写 `gm_issue_real_no_channel_returns_no_channel_error` 测试, 假设 `build_lazy_channel("not-a-valid-url")` 返 None 触发 "no_channel" 错误, 实际 tonic 0.12 `Endpoint::connect_lazy` 是 infallible, URL 无效时 channel 仍 build 成功 (只是首次 RPC 失败), issue_real 走真实 RPC 返真实 `e.to_string()`. 测试失败 `r.error` 不是 "no_channel"
+- **强约束**: **RPC 测试断言软化**:
+  1. **RPC 测试断言软化**: 5 worker 写真实 RPC 测试时, 断言用 `assert!(r.error.is_some())` 不严格 `assert_eq!(r.error, "specific_string")`, 因为 lazy channel + tonic infallible 行为依赖
+  2. **tonic 0.12 `Endpoint::connect_lazy` 文档化**: `lib.rs` 加 doc comment 说明 `connect_lazy` infallible, URL 无效时 channel 仍 build 成功, 真实 RPC 失败才返 error
+  3. **简报明文**: 5 worker 派工简报加 "RPC 测试断言不要严格 assert_eq! r.error 字符串, 用 is_some()"
+  4. **CI pre-commit 检查** (可选): 拒绝 `assert_eq!(.*r\.error.*"` 模式, 推荐 `assert!(.*r\.error\.is_some\(\))`
+- **证据**: 9/10 19:23 JST commit `d381cd0` fix(testkit) gm.rs 测试断言 `no_channel` → `error is_some`
+- **影响范围**: 5 域派生 RPC 测试 + 任何真实 tonic RPC 测试
+
+**bot 框架 4 阶段派工经验 (per DDD Review v0.4 §7.4)**:
+
+- **wave 1 (bot 框架核心)**: 1 worker, M1-M6 (mod.rs/ai.rs/act.rs/gm.rs/stats.rs/supervisor.rs) + player PoC, commit `16bfb95`, 9 files / 1117 lines, 28 tests, 5/9 13:25 merge
+- **wave 2 (5 域 BotAi 派生)**: 4 worker (economy + social + match + admin), 4 commits `90829d9/61872f5/91e64e7/2f50f0f` + 4 merge `540dd52/d7a34b6/5afe738/8979e3c`, 含 r#match 关键字 + GmClient 集成, mod.rs 4-way conflict 手修 2 次 (per L31)
+- **wave 3 (mTLS 真实接入)**: 5 worker (5 域), 5 commits `b947c97/e62f79f/037edf3/a9ef3e5/9788404` + 5 merge + `4157731` 兼容 fix; Cargo.toml 3 次 conflict (per L31 模式再现) + MtlsConfig skip_verify 字段 5 处缺失 (admin 加字段没通知 social/match, per L33)
+- **wave 4 (真实 RPC 调用)**: 5 worker (5 域), 5 commits `c189700/8febf26/920159b/f5bd50d/259dbf9` + 5 merge + `d381cd0` 验证 fix; 含 M4 升级 + 真实 GmClient.issue_real + build.rs proto 客户端 + path dep; L1.1 27 FAILED → 73 passed (rustls 0.23 crypto provider fix per L35 + build.rs 路径 per L36 + gm.rs 测试断言 per L37)
+
+**9/10 WipeCluster 重建反思 (per DDD Review v0.4 §7.4 4 段历史)**:
+
+1. **14:35 JST 跨 session**: `ca493fe feat(rgs-flash-mock): v0.1 PoC HTTP+actix-web 骨架 + 12 类别 21 RPC stub` (per Ulysses 拍板) — rgs-flash-mock 重新启用 (9/9 12:35 JST deprecated 后 v0.1 重新拍板)
+2. **15:14-15:17 JST 主会话**: `git status` baseline, k3s 1.36.4+k3s1 起来 (ulyssespc node Ready 19m), `kubectl apply` 全部 57 yaml (per `docs/deploy/01-k8s-manifests/`) — 5 域 + cluster-ops + gm-backend + postgres + nats + prometheus + grafana + otel + scene + battle + network-gateway
+3. **15:18-15:25 JST pod rollout 失败** (per AGENTS.md §2.5 L6 ST FAIL 排查顺序):
+   - **HPA minReplicas=2 强启动风暴** (per L32): `e4-02-hpa-templates.yaml` HPA minReplicas=2 + metrics-server 不可用 (FailedComputeMetricsReplicas 警告) → HPA 反复拉新 pod → CPU Insufficient + SandboxChanged 风暴
+   - **gm-backend image tag 不存在**: `50-gm-backend-service.yaml` 旧占位 `0.1.0-gm-backend` + `imagePullPolicy: Never` → ErrImageNeverPull
+   - **30+ pod 单节点资源耗尽**: k3s-server 主进程 crash 2 次 (15:22 + 15:25 area) → API server connection refused
+4. **15:30 JST 修复 + 落 commit** (per L32): scale 5 域到 1 (无效, HPA 立即拉到 2), 删 3 不必要 deployment (scene/battle/network-gateway), 改 `50-gm-backend-service.yaml` image tag 0.1.0-cc13 + IfNotPresent (commit `85bfdf5`), e2e-smoke 12 probe 仍 0/11 PASS + 1 SKIP
+
 ---
 
 ## 9. 项目批评与改善 (per 9/2 10:18 JST 拍板, RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.1)
@@ -964,6 +1078,7 @@ D7 (9/8): D4 周报 RGS-WEEKLY-2026-W36.md (业务里程碑 vs hotfix 双指标)
 | **v0.6.12** | **2026-09-05 12:30** | **架构师(Mavis 接手 agent per DEC-008)** | **9/5 W1-W6 6 worker Phase 0 完结 + 派生约束 L15-L18 紧急批准 (per 9/5 12:08 JST 拍板, 突破 L1-L14 冻结期) + 6/7/8 域 RACI v1.1 → v1.3 升版**: ① §0 元信息加 W1-W6 6 worker Phase 0 + 改进路线图 + ADR-006 ② §8.x 新增 L15-L18 派生约束 (L15 native binary file ELF 验证 / L16 主会话统一 commit 拍板合并顺序 / L17 InMemory 5 域 → PgRepository 6/7 域扩展 / L18 闪烁之光 848 RPC 补全 8 子系统) ③ §9.7 新增 8 域扩展 (5 + batch + scene + battle + network-gateway) ④ 6 域 RACI v1.1 → v1.3 升版 (player/economy/match/social/admin/batch) + 3 NEW 域 RACI v1.1 落档 (scene-service / battle-service / network-gateway) ⑤ L-CANDIDATES v0.4 同步: L15-L18 转正 (移出候选) + L-CAND-010/011 入档 (12/2 季度评审) |
 | **v0.6.13** | **2026-09-10 08:00** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 07:35 JST Ulysses 拍板端口管理统一 .env + 派生约束 L25-L28 升至正式 (per 9/10 07:50 JST admin 提权 + WSL2 --tls-san 修复 + portproxy 52551 落地实证)**: ① §8.x 新增 L25 (端口管理 .env 14 个 K=V + sync-ports-env.ps1 3 件套) + L26 (k3s 1.36 K3S_HTTPS_LISTEN_PORT env var 不被支持, 改 ExecStart 加 --https-listen-port/--tls-san 一次性手动) + L27 (kubectl apply 走 WSL2 内 k3s kubectl 直连 6443, 绕开 portproxy 52551 拉 openapi 二次 close) + L28 (k3s 重启 cert 重生成后必须从 WSL2 /etc/rancher/k3s/k3s.yaml 复制新 cert + 改 server URL 52551 到 Windows kubeconfig) ② .env + .env.example 加 # 10. 端口管理段 14 个 K=V (K3S_API_PORT=52551 / K3S_API_PORT_INTERNAL=6443 / 5 域 gRPC 50051-50055 + CARD 50061 / METRICS_PORT 9464 / QUIC_PORT 7000 / ADMIN_HTTP_PORT 8080 / SHIM_PORT 9001 / RGS_PROXY_PORT 8084 / RGS_FLASH_MOCK_PORT 8791 / RGS_WEB_PORT 3000 / GM_BACKEND_PORT 8081 / PG_PORT_LOCAL 15432 / NATS_PORT_LOCAL 14222) ③ scripts/sync-ports-env.ps1 (8 KB) + run-sync-ports-as-admin.ps1 (2 KB) + debug-add-52551-portproxy.ps1 (1 KB) ④ 5 域 yaml commit `bc4dae0` (imagePullSecrets: ghcr-pull + IfNotPresent + 0.1.0-cc13) ⑤ WSL2 k3s.service ExecStart 改 `--tls-san=127.0.0.1 --tls-san=localhost --tls-san=172.28.176.169` (单次手动, wsl -u root 写) ⑥ kubeconfig 用 WSL2 k3s.yaml 复制新 cert + 改 server URL 52551 |
 | **v0.6.14** | **2026-09-10 12:55** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 10:30 JST Ulysses 拍板 P0 选 A (k3s 1.37.0-rc3+k3s1 重装) + issue #36 14.6GB stale NodeStatus cache bug 根因彻底解 (NodeStatus memory 16381972Ki 15.6GB 实时) + 派生约束 L29 升至正式**: ① §8.x 新增 L29 (WSL2 + cgroup v1 装 k3s 1.37+ 必须 failCgroupV1: false + cgroupDriver: cgroupfs 99-override.conf 2 件套, 实证 9/10 12:48-12:53 JST 走通 v1.37.0-rc3+k3s1 装 + 启动 + 5 域 rollout 跑通 ContainerCreating 阶段) ② docs/deploy/k3s-wsl2/{k3s.service, kubelet-99-override.conf, README.md} 落档 (per 9/10 12:55 JST) ③ docs/deploy/01-k8s-manifests/e4-00-namespace-isolation.yaml ResourceQuota 12Gi/12cpu → 32Gi/16cpu (per 9/2 派生约束适配 k3s 1.37 + 辅助服务 cluster-ops/monitoring/nats/gm-backend/battle/network-gateway 总和) ④ 5 域 yaml apply OK (per 9/10 12:53 JST) ⑤ 已知次生: k3s 1.37 RC3 + WSL2 + sqlite crash loop (1-2 min 间隔, `fatal: failed waiting on CRD 'addons.k3s.cattle.io': context canceled`), 不影响 Node Ready + 5 域 rollout, 待 k3s 1.37 stable release 修 |
+| **v0.6.15** | **2026-09-10 20:15** | **架构师(Mavis 接手 agent per DEC-008)** | **9/10 19:46 JST 拍板 (per ask_user 选项 1) + DDD Review v0.4 季度评审准备 (commit `af187b3`) + L-CANDIDATES v0.6 (commit `cc7a3c9`) 5 防御类候选 + 5 正式化候选入档后, 派生约束 L30-L37 升至正式 (8 条防御性约束)**: ① §6.3 PT 派工简报 "per-worker CARGO_TARGET_DIR" 段加 L30 (D 盘 0 free 防御) 引用 + E 盘 fallback 强制 ② §8.y 新增 L30 (D 盘 0 free 防御 + E 盘 devcache target fallback, per L-CAND-013 / 9/10 13:25 JST) + L31 (5 worker mod.rs 4-way conflict 防御, per L-CAND-014 / 9/10 13:18-13:25 JST) + L32 (HPA minReplicas=1 默认值 + metrics-server 必装, per L-CAND-015 / 9/10 15:14-15:30 JST) + L33 (5 域派生公共 struct 字段同步, per L-CAND-016 / 9/10 17:30-18:24 JST) + L34 (5 域派生统一 mod 入口, per L-CAND-016) + L35 (rustls 0.23 crypto provider 防御, per L-CAND-017 / 9/10 19:23 JST) + L36 (build.rs 路径防御, per L-CAND-017) + L37 (RPC 测试设计防御, per L-CAND-017) ③ bot 框架 4 阶段派工经验 (wave 1 core / wave 2 5 域 BotAi 派生 / wave 3 mTLS 真实接入 / wave 4 真实 RPC 调用, 16 commits, 73 passed 0 failed 6.10s L1.1 实证) ④ 9/10 WipeCluster 重建反思 4 段历史 (rgs-flash-mock ca493fe 重启 → kubectl apply 57 yaml → HPA 风暴 + image tag 缺失 + 30+ pod 单节点资源耗尽 → 修复 + commit `85bfdf5`) ⑤ L-CAND 编号对齐说明: L-CAND-018-022 入档时引用 L20/L21+L22/L23/L24/L25 与 §8.x 现有 L-约束冲突, 12/2 季度评审时一并 remap ⑥ 派生约束守护: L1 N/A (docs) / L11 ✅ (L30 是 L11 升级) / L12 ✅ (no log) / L13 ✅ (git 实证) / L14 ✅ (L31 引用) / 守门 #5 ✅ / 守门 #14 v2 ✅ |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
