@@ -23,6 +23,10 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
+# 2026-09-10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   build.rs 生成的 player proto 代码引用 `prost::Message` trait derive,
+#   rgs-testkit 需要有 prost dep 才能编译
+prost = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
@@ -41,6 +45,12 @@ pretty_assertions = "1"
 tracing-test = "0.2"
 mockall = "0.13"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate"] }
+
+[build-dependencies]
+# 2026-09-10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   build.rs 编译 player.proto + common.proto, 暴露 generated client 给 bot::ai::player 用
+#   player-service 是 [[bin]] only, 不可作 dep, 改 rgs-testkit 内部 build.rs 不越界
+tonic-build = { workspace = true }
 
 [features]
 # 默认关: 不编译 PG 集成 test, CI 跑普通 test 不需要 DATABASE_URL.
