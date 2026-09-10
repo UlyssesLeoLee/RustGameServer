@@ -1,6 +1,6 @@
 //! rgs-testkit build.rs (per DDD Review v0.3.2 §7.3 L1.2 wave 4 真实 RPC 接入)
 //!
-//! 编译 player / match / admin 域 proto + 共享 common.proto,
+//! 编译 player / match / admin 域 proto + 共享 common.proto (在 shared-platform/),
 //! 暴露 `tonic::include_proto!("player.v1")` / `tonic::include_proto!("match.v1")` /
 //! `tonic::include_proto!("admin.v1")` / `tonic::include_proto!("common.v1")` 给
 //! `bot::ai::{player,match,admin}` 模块 namespace 用, 拿到 typed client + request/response
@@ -23,15 +23,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_client(true)
         .compile_protos(
             &[
-                "../../player-service/proto/player/v1/player.proto",
-                "../../match-service/proto/match/v1/match.proto",
-                "../../admin-service/proto/admin/v1/admin.proto",
-                "../../player-service/proto/common/v1/common.proto",
+                "../../crates/player-service/proto/player/v1/player.proto",
+                "../../crates/match-service/proto/match/v1/match.proto",
+                "../../crates/admin-service/proto/admin/v1/admin.proto",
+                "../../crates/shared-platform/proto/common/v1/common.proto",
             ],
             &[
-                "../../player-service/proto",
-                "../../match-service/proto",
-                "../../admin-service/proto",
+                "../../crates/player-service/proto",
+                "../../crates/match-service/proto",
+                "../../crates/admin-service/proto",
+                "../../crates/shared-platform/proto",
             ],
         )?;
     Ok(())

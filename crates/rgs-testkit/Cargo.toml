@@ -23,6 +23,14 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
+# 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C):
+#   rustls 0.23 默认 features 不带 crypto provider, 显式选 ring feature
+#   + bot/mod.rs init_once install_default() 避免 27 test panic
+rustls = { workspace = true }
+# 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C):
+#   ctor 0.2 强制 lib 加载时 install rustls ring crypto provider
+#   避免 27 test panic at rustls-0.23.43/src/crypto/mod.rs:249:14
+ctor = { workspace = true }
 # 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
 #   rgs-testkit build.rs 生成的 proto 代码 (player / match / admin + 共享 common) 引用 `::prost::Message` trait derive,
 #   0.13 必须 workspace dep 才能解析 (5 域 service 同款)

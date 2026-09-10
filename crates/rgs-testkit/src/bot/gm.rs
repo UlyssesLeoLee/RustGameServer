@@ -558,14 +558,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn gm_issue_real_no_channel_returns_no_channel_error() {
-        // channel 未建 (endpoint 解析失败) 场景, issue_real 应返 Ok + GmResponse { ok: false, error: "no_channel" }
+    async fn gm_issue_real_no_channel_returns_error() {
+        // wave 4 admin worker 写测试时假设 build_lazy_channel("not-a-valid-url") 会失败返 None
+        // 但 tonic 0.12 Endpoint::connect_lazy 是 infallible, URL 无效时仍 build 成功(只是首次 RPC 失败)
+        // 因此 issue_real 走真实 RPC 调用, 返真实 error (e.to_string()), 不一定是 "no_channel"
+        // 测试期望: issue_real 一定返某种 error, ok=false, 不 panic
         let c = GmClient::new("not-a-valid-url");
         let r = c
             .issue_real("加经验 100")
             .await
             .expect("issue_real should not panic");
         assert!(!r.ok, "no channel 阶段 ok 应 false");
-        assert_eq!(r.error.as_deref(), Some("no_channel"));
+        assert!(r.error.is_some(), "error 字段应填充 (no_channel 或真实 RPC 错误, 取决于 lazy channel build 行为)");
     }
 }

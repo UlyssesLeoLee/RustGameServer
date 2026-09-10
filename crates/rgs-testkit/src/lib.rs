@@ -49,6 +49,23 @@ pub mod helper;
 pub mod mock;
 pub mod pg_test_db;
 
+#[doc(hidden)]
+pub mod _rustls_init {
+    //! 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C):
+    //! rustls 0.23 默认 features 不带 crypto provider, 必须在第一次 mTLS 操作前
+    //! 显式 install_default() 否则 panic at rustls-0.23.43/src/crypto/mod.rs:249:14
+    //!
+    //! wave 3 + wave 4 5 域 worker 走真实 tonic::transport::Channel + ClientTlsConfig,
+    //! 任何 #[tokio::test] 启动时触发 mTLS 操作都会 panic
+    //!
+    //! 修复: #[ctor::ctor] lib 加载时自动 install rustls ring crypto provider,
+    //! 5 域 test mod 无需手动调用, 线程安全 idempotent
+    #[ctor::ctor]
+    fn _ensure_rustls_crypto_provider() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+}
+
 // ============================================================================
 // 强约束 re-export (per WF-1-55.31 retry, RGS-REV-009 V3 H-1 共识)
 // ============================================================================

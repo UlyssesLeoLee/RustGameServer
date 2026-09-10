@@ -54,6 +54,15 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 async-trait = "0.1"
 # 54.1 启用：gRPC / DB / 时间 / UUID
 tonic = { version = "0.12", features = ["transport", "tls", "tls-roots"] }
+# 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C):
+#   rustls 0.23 默认 features 不带 crypto provider, 必须显式选 ring 或 aws-lc-rs
+#   加 rustls workspace dep + rgs-testkit/lib.rs 显式 install_default() 避免 27 test panic
+#   (rustls-0.23.43/src/crypto/mod.rs:249:14 CryptoProvider::install_default required)
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
+# 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C):
+#   rgs-testkit lib 加载时用 #[ctor::ctor] 自动 install rustls ring crypto provider,
+#   避免 27 test panic (rustls-0.23.43/src/crypto/mod.rs:249:14)
+ctor = "0.2"
 # grpc.health.v1.Health 服务（k8s exec 探针走 grpc_health_probe + mTLS，per Phase 0.5 探针修复）
 tonic-health = "0.12"
 prost = "0.13"
