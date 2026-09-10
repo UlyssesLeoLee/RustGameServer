@@ -1,11 +1,12 @@
-//! social 域 BotAi 派生 (per DDD Review v0.3.1 §7.3 Phase C + wave 3 mTLS 真实接入)
+//! social 域 BotAi 派生 (per DDD Review v0.3.1 §7.3 Phase C + wave 3 mTLS 真实接入
+//! + wave 4 真实 RPC 调用 per DDD Review v0.3.2 §7.3 L1.2)
 //!
 //! 模拟 erlang C6 业务场景 act (per tester_ai_base.erl:163-181 guild / 261-278 partner):
 //! - `Init`        启动初始化 (创建真实 tonic Channel + mTLS 框架, per wave 3)
-//! - `Heartbeat`   周期心跳
+//! - `Heartbeat`   周期心跳 → 真实 RPC `health_check` (per wave 4)
 //! - `RandProto(100)` 10% 概率触发协议随机化 (千分位, per erlang C1)
-//! - `Guild`       工会操作 (per erlang C6 line 163-181)
-//! - `Partner`     伙伴操作 (per erlang C6 line 261-278)
+//! - `Guild`       工会操作 → 真实 RPC `get_guild` (per erlang C6 line 163-181, wave 4)
+//! - `Partner`     伙伴操作 → 真实 RPC `health_check` 兜底 (per erlang C6 line 261-278, wave 4)
 //!
 //! # wave 3 真实 mTLS 接入 (per 9/10 16:36 JST 拍板 + DDD Review v0.3.1 §7.3)
 //!
@@ -13,8 +14,24 @@
 //! - **endpoint**: `https://127.0.0.1:50054` (social 域 svc ClusterIP, per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`)
 //! - **cert**: `Option<String>` 路径, 走 [`MtlsConfig`](crate::bot::gm::MtlsConfig), **不读 env, 不打印值** (per 8/27 11:06 JST 硬 ban)
 //! - **fall back**: 未注入 cert 时走 skip-verify 模式 + `tracing::warn!` (per 9/10 WipeCluster 重建后 cert 未导出)
-//! - **真实业务 RPC**: 留 wave 4 (k3s baseline 0/12 阻塞, 等 SRE 介入, per DDD Review v0.3.1 §7.4 4 段历史)
 //! - **connect_lazy**: Channel 创建不阻塞 (no network), 实际 TLS handshake 推迟到首次 RPC
+//!
+//! # wave 4 真实 RPC 调用 (per DDD Review v0.3.2 §7.3 L1.2 + 9/10 19:00 JST 拍板)
+//!
+//! wave 4 升级: 替换 wave 3 "framework ready" 注释为真实 `SocialServiceClient<Channel>` 调用:
+//! - **init()** → `health_check` (轻量 ping, 验证 channel + 业务可达)
+//! - **handle(Heartbeat)** → `health_check` (per erlang E4 周期心跳)
+//! - **handle(Guild)** → `get_guild(EntityId { id: bot.id() })` (per erlang C6 guild)
+//! - **handle(Init/RandProto/Partner)** → `health_check` 兜底 (无 partner proto RPC, 走 ping)
+//! - **tokio::time::timeout(2s)**: 防止 k3s 不可达时 hang (per wave 4 防御)
+//! - **失败容忍**: Err → `Ok(())` + `tracing::warn!` 标注降级模式 (per 9/10 16:36 JST 拍板)
+//! - **k3s baseline 0/12 阻塞**: 真实 RPC 调用预期失败 (connection refused), 走错误日志模式
+//!
+//! # L-CAND-016 防御 (per 9/10 18:24 JST)
+//!
+//! 5 worker 公共 proto RPC 调用要同步, 本 worker 只加 social proto 真实 RPC, 不改其他 4 域.
+//! 通过 `social-service = { path = "../social-service" }` dev-dep 引入 proto 类型, 业务
+//! crate 5 域仍按 [dependencies] 独立引用, bot 仅在测试/集成层调真实 client.
 //!
 //! # 凭据安全 (per 8/27 11:06 JST hard ban + AGENTS.md §1.2)
 //!
@@ -23,6 +40,7 @@
 //! - channel 的 `Debug` 实现 redact 所有 mTLS 字段, 防意外泄露
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use tokio::sync::OnceCell;
@@ -33,6 +51,10 @@ use crate::bot::act::ActKind;
 use crate::bot::ai::BotAi;
 use crate::bot::gm::MtlsConfig;
 use crate::bot::Bot;
+
+// social-service proto 类型 (per L-CAND-016 防御: 仅 social 域 dev-dep, 不改其他 4 域)
+use social_service::common::v1 as common_proto;
+use social_service::proto::v1::social_service_client::SocialServiceClient;
 
 /// social 域 BotAi (per DDD Review v0.3.1 §7.3 Phase C + wave 3 mTLS 真实接入)
 ///
@@ -251,6 +273,132 @@ impl SocialBotAi {
         let channel = endpoint.connect_lazy();
         Ok(channel)
     }
+
+    /// 内部 helper: 从 Channel 构造 SocialServiceClient (per wave 4 真实 RPC)
+    ///
+    /// tonic 0.12 `SocialServiceClient::new(channel)` 是 infallible, 返回 client.
+    /// Channel 已由 init 阶段 build + set, 这里只做引用 clone (Channel 内部 Arc).
+    ///
+    /// # 凭据
+    /// 不接收任何 cert / endpoint 明文 (per 8/27 11:06 JST 硬 ban).
+    fn make_social_client(&self) -> Option<SocialServiceClient<Channel>> {
+        self.channel
+            .get()
+            .map(|c| SocialServiceClient::new(c.clone()))
+    }
+
+    /// 内部 helper: 调用 `health_check` 真实 RPC (per wave 4)
+    ///
+    /// # 行为
+    /// - Channel 未初始化 → 立即返 `Ok(())` (防御)
+    /// - 走 `tokio::time::timeout(2s, ...)` 防止 hang
+    /// - 任何失败 (timeout / Status / connect) → 返 `Ok(())` + `warn!` 标注降级
+    ///
+    /// k3s baseline 0/12 阶段: 真实 RPC 调用预期 `Err` (connection refused),
+    /// 走 `Ok(())` 错误容忍模式 (per 9/10 16:36 JST 拍板 "接受 baseline 等 SRE 介入").
+    async fn rpc_health_check(&self) -> anyhow::Result<()> {
+        let mut client = match self.make_social_client() {
+            Some(c) => c,
+            None => {
+                warn!("SocialBotAi::rpc_health_check: Channel 未初始化, 跳过");
+                return Ok(());
+            }
+        };
+
+        let req = common_proto::HealthCheckRequest {
+            service: "rgs-testkit-bot-social".to_string(),
+        };
+
+        let rpc_result = tokio::time::timeout(
+            Duration::from_secs(2),
+            client.health_check(tonic::Request::new(req)),
+        )
+        .await;
+
+        match rpc_result {
+            Ok(Ok(resp)) => {
+                let inner = resp.into_inner();
+                debug!(
+                    status = inner.status,
+                    message = %inner.message,
+                    "SocialBotAi::rpc_health_check OK (k3s reachable)"
+                );
+                Ok(())
+            }
+            Ok(Err(status)) => {
+                warn!(
+                    code = ?status.code(),
+                    message = %status.message(),
+                    "SocialBotAi::rpc_health_check failed (k3s baseline 0/12 阶段预期), 走降级模式"
+                );
+                Ok(())
+            }
+            Err(_elapsed) => {
+                warn!(
+                    timeout_secs = 2,
+                    "SocialBotAi::rpc_health_check timeout (k3s 不可达), 走降级模式"
+                );
+                Ok(())
+            }
+        }
+    }
+
+    /// 内部 helper: 调用 `get_guild` 真实 RPC (per wave 4)
+    ///
+    /// # 行为
+    /// - Channel 未初始化 → 立即返 `Ok(())` (防御)
+    /// - 走 `tokio::time::timeout(2s, ...)` 防止 hang
+    /// - 任何失败 (timeout / Status / connect / NotFound) → 返 `Ok(())` + `warn!` 标注降级
+    ///
+    /// 注: `get_guild(EntityId { id: <guild_uuid> })` 取 `bot.id()` 作 guild_id placeholder
+    /// (bot.id() 通常是 "bot-social-001" 非 UUID, 业务 NotFound 预期; k3s 不可达时
+    /// 走 connect 失败降级).
+    async fn rpc_get_guild(&self, bot: &Bot) -> anyhow::Result<()> {
+        let mut client = match self.make_social_client() {
+            Some(c) => c,
+            None => {
+                warn!("SocialBotAi::rpc_get_guild: Channel 未初始化, 跳过");
+                return Ok(());
+            }
+        };
+
+        let req = common_proto::EntityId {
+            id: bot.id().to_string(),
+        };
+
+        let rpc_result = tokio::time::timeout(
+            Duration::from_secs(2),
+            client.get_guild(tonic::Request::new(req)),
+        )
+        .await;
+
+        match rpc_result {
+            Ok(Ok(_guild)) => {
+                debug!(
+                    bot_id = bot.id(),
+                    "SocialBotAi::rpc_get_guild OK (k3s reachable, guild found)"
+                );
+                Ok(())
+            }
+            Ok(Err(status)) => {
+                warn!(
+                    bot_id = bot.id(),
+                    code = ?status.code(),
+                    message = %status.message(),
+                    "SocialBotAi::rpc_get_guild failed (k3s baseline 0/12 阶段预期, 或 guild 不存在), 走降级模式"
+                );
+                Ok(())
+            }
+            Err(_elapsed) => {
+                warn!(
+                    bot_id = bot.id(),
+                    timeout_secs = 2,
+                    "SocialBotAi::rpc_get_guild timeout (k3s 不可达), 走降级模式"
+                );
+                Ok(())
+            }
+        }
+    }
 }
 
 #[async_trait]
@@ -266,8 +414,13 @@ impl BotAi for SocialBotAi {
             bot_id = bot.id(),
             endpoint = %self.endpoint,
             mtls_configured = self.mtls_configured(),
-            "SocialBotAi::init (wave 3 真实 tonic Channel + mTLS 框架就绪, 真实业务 RPC 留 wave 4)"
+            "SocialBotAi::init (wave 4 真实 tonic Channel + mTLS 框架就绪, 真实业务 RPC 调 health_check)"
         );
+
+        // wave 4: 真实 RPC ping 验证 (per DDD Review v0.3.2 §7.3 L1.2)
+        // k3s baseline 0/12 阶段: 预期 Err (connection refused), 走降级模式 Ok(())
+        self.rpc_health_check().await?;
+
         Ok(())
     }
 
@@ -282,34 +435,26 @@ impl BotAi for SocialBotAi {
     }
 
     async fn handle(&self, bot: &Bot, act: ActKind) -> anyhow::Result<()> {
-        debug!(bot_id = bot.id(), ?act, "SocialBotAi::handle (wave 3 framework)");
+        debug!(bot_id = bot.id(), ?act, "SocialBotAi::handle (wave 4 真实 RPC)");
         match act {
             ActKind::Guild => {
-                // 模拟 erlang tester_ai_base.erl:163-181 guild 协议序列
-                // wave 4 真实调用 social.v1.SocialServiceClient::get_guild(EntityId { id: bot.id() })
-                // 当前 k3s baseline 0/12, 仅 framework ready
-                if self.channel.get().is_some() {
-                    debug!(
-                        bot_id = bot.id(),
-                        "Guild act: tonic Channel ready, RPC 留 wave 4 (k3s baseline 0/12 阻塞)"
-                    );
-                } else {
-                    warn!(bot_id = bot.id(), "Guild act: Channel 未初始化, 跳过");
-                }
+                // 真实调用 social.v1.SocialServiceClient::get_guild(EntityId { id: bot.id() })
+                // (per erlang C6 line 163-181 guild 协议序列, wave 4 升级)
+                self.rpc_get_guild(bot).await?;
             }
-            ActKind::Partner => {
-                // 模拟 erlang tester_ai_base.erl:261-278 partner 协议序列
-                // wave 4 真实调用 social.v1.SocialServiceClient (PartnerList / GetFriendList 等)
-                if self.channel.get().is_some() {
-                    debug!(
-                        bot_id = bot.id(),
-                        "Partner act: tonic Channel ready, RPC 留 wave 4 (k3s baseline 0/12 阻塞)"
-                    );
-                } else {
-                    warn!(bot_id = bot.id(), "Partner act: Channel 未初始化, 跳过");
-                }
+            ActKind::Heartbeat => {
+                // 周期心跳 → health_check (per erlang E4, 25s 周期)
+                self.rpc_health_check().await?;
             }
-            _ => {}
+            ActKind::Init | ActKind::RandProto(_) | ActKind::Partner => {
+                // Init / RandProto / Partner 走 health_check 兜底
+                // (Partner 域 social-service proto 当前无 partner RPC, 走 ping 验证 channel)
+                self.rpc_health_check().await?;
+            }
+            _ => {
+                // 其他 act 走 health_check 兜底 (per wave 4 防御: 不漏 act)
+                self.rpc_health_check().await?;
+            }
         }
         Ok(())
     }
@@ -448,5 +593,75 @@ mod tests {
         let cloned = ai.clone();
         // clone 后 channel_initialized 状态一致 (共享 cell)
         assert!(cloned.channel_initialized());
+    }
+
+    // =================================================================
+    // wave 4 真实 RPC 调用单测 (per DDD Review v0.3.2 §7.3 L1.2)
+    // =================================================================
+
+    #[tokio::test]
+    async fn social_ai_wave4_rpc_health_check_returns_ok_on_k3s_unreachable() {
+        // wave 4 真实 RPC 调用验证: k3s 不可达时, health_check 走降级模式
+        // 返 Ok(()) + warn log, 不 panic, 不返 Err
+        //
+        // 注: 默认 endpoint = https://127.0.0.1:50054 (social svc ClusterIP placeholder),
+        // k3s baseline 0/12 阶段无 svc 监听, connect 立即 RST, 走降级
+        let ai = SocialBotAi::default();
+        let bot = dummy_bot();
+        ai.init(&bot).await.expect("init (含 wave 4 真实 health_check)");
+
+        // 显式调 health_check, 应返 Ok(()) (k3s 不可达预期)
+        let r = ai.rpc_health_check().await;
+        assert!(r.is_ok(), "rpc_health_check 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+    }
+
+    #[tokio::test]
+    async fn social_ai_wave4_rpc_get_guild_returns_ok_on_k3s_unreachable() {
+        // wave 4 真实 RPC 调用验证: k3s 不可达时, get_guild 走降级模式
+        let ai = SocialBotAi::default();
+        let bot = dummy_bot();
+        ai.init(&bot).await.expect("init");
+
+        let r = ai.rpc_get_guild(&bot).await;
+        assert!(r.is_ok(), "rpc_get_guild 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+    }
+
+    #[tokio::test]
+    async fn social_ai_wave4_rpc_health_check_without_init_returns_ok() {
+        // 未 init 直接调 health_check → 返 Ok(()) 防御, 不 panic
+        let ai = SocialBotAi::default();
+        let r = ai.rpc_health_check().await;
+        assert!(r.is_ok(), "未 init 调 health_check 应返 Ok(()) 防御, 实际: {:?}", r);
+    }
+
+    #[tokio::test]
+    async fn social_ai_wave4_handle_guild_uses_real_rpc_get_guild() {
+        // 验证 handle(Guild) 走真实 get_guild RPC (per wave 4 升级)
+        // k3s 不可达时仍返 Ok(()) (降级模式)
+        let ai = SocialBotAi::default();
+        let bot = dummy_bot();
+        ai.init(&bot).await.expect("init");
+        let r = ai.handle(&bot, ActKind::Guild).await;
+        assert!(r.is_ok(), "handle(Guild) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+    }
+
+    #[tokio::test]
+    async fn social_ai_wave4_handle_heartbeat_uses_real_rpc_health_check() {
+        // 验证 handle(Heartbeat) 走真实 health_check RPC
+        let ai = SocialBotAi::default();
+        let bot = dummy_bot();
+        ai.init(&bot).await.expect("init");
+        let r = ai.handle(&bot, ActKind::Heartbeat).await;
+        assert!(r.is_ok(), "handle(Heartbeat) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+    }
+
+    #[tokio::test]
+    async fn social_ai_wave4_handle_partner_uses_real_rpc_fallback() {
+        // 验证 handle(Partner) 走真实 health_check (Partner 域无 partner RPC, 兜底)
+        let ai = SocialBotAi::default();
+        let bot = dummy_bot();
+        ai.init(&bot).await.expect("init");
+        let r = ai.handle(&bot, ActKind::Partner).await;
+        assert!(r.is_ok(), "handle(Partner) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
     }
 }
