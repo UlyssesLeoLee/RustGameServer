@@ -34,6 +34,13 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # 启用: cargo test -p rgs-testkit --features testcontainers
 testcontainers = { version = "0.23", optional = true }
 testcontainers-modules = { version = "0.11", features = ["postgres"], optional = true }
+# 9/10 wave 4 mTLS 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   economy 域 worker 加 economy-service 为 rgs-testkit dep,
+#   拿 economy_service::proto::v1::economy_service_client::EconomyServiceClient 真实 RPC 调用
+#   (per wave 3 player.rs 注释: "wave 4 worker 加 <domain>-service 为 rgs-testkit dev-dep 后接"
+#    实际是 lib 依赖因为 bot/ai/economy.rs 在 src/ 不是 tests/)
+#   5 域同步模式 (per L-CAND-016 防御), 本 worker 只加 economy, 不动其他 4 域
+economy-service = { path = "../economy-service" }
 
 [dev-dependencies]
 tokio-test = "0.4"

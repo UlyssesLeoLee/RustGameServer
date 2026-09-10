@@ -1,13 +1,16 @@
-//! economy 域 BotAi 集成测试 (per DDD Review v0.3.1 §7.3 Phase C)
+//! economy 域 BotAi 集成测试 (per DDD Review v0.3.2 §7.3 L1.2 wave 4 真实 RPC 接入)
 //!
-//! 验证目标 (per wave 2 派生 + wave 3 mTLS 真实接入):
+//! 验证目标 (per wave 2 派生 + wave 3 mTLS 真实接入 + wave 4 真实 RPC 接入):
 //! - EconomyBotAi act_list 跟 erlang C6 经济域 act 对应 (Init / Heartbeat / RandProto / Trade / Account)
 //! - init / handle 全 OK stub (默认 stub 模式, 跟 wave 2 EconomyBotAi 兼容)
 //! - 真实 tonic Channel 构造 (with_endpoint + init) 走 mTLS 业务级路径
 //!   (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`, 5 域 ST 业务级 ST 准备)
-//! - k3s baseline 0/12 阻塞 (per 9/10 16:36 JST 拍板), 实际 RPC 留 SRE 介入
+//! - **wave 4**: 真实 `EconomyServiceClient<Channel>::get_account` 调用, 2s timeout,
+//!   k3s baseline 0/12 阶段预期失败 (connection refused), 走 `Ok(())` 错误容忍模式
 //!
 //! 走 `#[tokio::test]` (bot 框架本身无 DB 交互, per bot_smoke.rs 模式)
+
+use std::time::{Duration, Instant};
 
 use rgs_testkit::bot::ai::economy::EconomyBotAi;
 use rgs_testkit::bot::stats::BotStats;
@@ -90,4 +93,56 @@ async fn bot_economy_real_grpc_client_init() {
     ai.handle(&bot, ActKind::Custom("Account".to_string()))
         .await
         .expect("handle Account real client");
+}
+
+/// wave 4 新增: 真实 RPC 调用 `get_account` (per DDD Review v0.3.2 §7.3 L1.2)
+///
+/// 验证 `EconomyBotAi::with_endpoint` + `handle(Account)` 走真实 `EconomyServiceClient::get_account` 路径,
+/// k3s baseline 0/12 阶段预期 connection refused / 2s timeout, 走 `Ok(())` 错误容忍模式不 panic.
+///
+/// (per DDD Review v0.3.2 §7.3 L1.2 + 9/10 19:00 JST Ulysses 选 wave 4 + L-CAND-016 防御:
+///
+/// - 真实 client 构造走 `EconomyServiceClient<Channel>::new(channel)` (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`)
+/// - 真实 RPC 调 `client.get_account(Request<EntityId>)` (per economy-service proto `GetAccount(EntityId) -> Account`)
+/// - 2s timeout 防 hang (per D2 L1.2 E2E 业务级 ST 准备)
+/// - k3s baseline 0/12 → 预期 `Err(Status)` 或 `Err(Elapsed)`, 走 `tracing::warn!` + `Ok(())` 不 panic
+/// - 不动其他 4 域 (per L-CAND-016 防御, 5 worker 公共 proto RPC 调用要同步)
+///
+/// 跟 wave 3 `bot_economy_real_grpc_client_init` 区别:
+/// - wave 3: 走 lazy Channel 路径, 不实际 RPC 调用
+/// - wave 4: 真实 RPC 调用, 验证 k3s 不可达时 2s timeout 内返 `Ok(())` 不 panic
+#[tokio::test]
+async fn bot_economy_real_rpc_call_get_account_returns_err_on_k3s_unreachable() {
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-economy-rpc-001", "economy", stats);
+    let ai = EconomyBotAi::with_endpoint("https://127.0.0.1:50052", "economy-service");
+
+    // init 走真实 client 构造 + 真实 RPC 调用 (k3s 不可达, 2s timeout 内返 Ok(()))
+    let init_start = Instant::now();
+    ai.init(&bot)
+        .await
+        .expect("init with real mTLS + real RPC should not panic");
+    let init_elapsed = init_start.elapsed();
+    assert!(
+        init_elapsed < Duration::from_secs(3),
+        "init 真实 RPC 应在 2s timeout 内完成 (实际 {}ms)",
+        init_elapsed.as_millis()
+    );
+    // 真实 client 已构造
+    assert!(
+        ai.is_real().await,
+        "real client 应已构造 (wave 4 真实 RPC 接入就绪)"
+    );
+
+    // handle Account 走真实 RPC 调用 (k3s 不可达, 2s timeout 内返 Ok(()))
+    let handle_start = Instant::now();
+    ai.handle(&bot, ActKind::Custom("Account".to_string()))
+        .await
+        .expect("handle Account real RPC should not panic on k3s unreachable");
+    let handle_elapsed = handle_start.elapsed();
+    assert!(
+        handle_elapsed < Duration::from_secs(3),
+        "handle Account 真实 RPC 应在 2s timeout 内完成 (实际 {}ms)",
+        handle_elapsed.as_millis()
+    );
 }
