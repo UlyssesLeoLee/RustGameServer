@@ -18,6 +18,9 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+# 9/10 wave 3 mTLS 真实接入 (per DDD Review v0.3.1 §7.3):
+#   bot 框架走真实 tonic::transport::Channel 替换 stub, 用 workspace 的 tls feature
+tonic = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
