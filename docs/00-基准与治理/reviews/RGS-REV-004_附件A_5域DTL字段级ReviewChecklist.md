@@ -58,7 +58,7 @@
 
 ## §A.4 Match 域（Match 域 Lead / Gameplay Engineer）
 
-> 文件：RGS-DTL-026 / RGS-SPEC-DTL-026
+> 文件：RGS-DTL-026 / RGS-SPEC-DTL-026（路径沿用 `docs/07-社交运营与玩家治理/`，per §A.9 第 3 条决议，per DTL-038 同目录先例不迁移）
 > 检查项：§A.1 全部 + 以下域特定
 
 - [ ] **A4.1 房间表**：`match_rooms` / `match_players` / `match_states` 状态机
@@ -72,7 +72,7 @@
 
 ## §A.5 Social 域（Social 域 Lead / Messaging Engineer）
 
-> 文件：RGS-DTL-019（消息分发）/ RGS-DTL-020（通用运营）/ RGS-SPEC-DTL-019/020
+> 文件：RGS-DTL-019（消息推送与兑换码运营工具，per §A.9 第 2 条决议同步，原"消息分发"描述已过期）/ RGS-DTL-020（通用运营）/ RGS-SPEC-DTL-019/020
 > 检查项：§A.1 全部 + 以下域特定
 
 - [ ] **A5.1 消息表**：`messages` / `message_recipients` / `conversations` 表设计
@@ -144,18 +144,21 @@
   - DTL-036（`docs/01-核心架构与设计模式/RGS-DTL-036_Player域_详细设计书.md`，2026-08-21 制定）标题为"Player 域 Atomic App 契约骨架"，只冻结集群契约（`app_id: player-service` / `db: player_db` / gRPC + Event 骨架），明确声明"物理 DDL、字段级 IDL 和容量参数须在 Gate 通过后补齐"（§6 待补齐项）。
   - 实际现状：Player 域 Lead 字段级 Review 同时依赖 DTL-018（子模块级字段已落实）+ DTL-036（契约骨架已冻结，字段级尚未落实），两者存在"时间错位 + 粒度错位"——DTL-018 早于 DTL-036 4 天制定，**REV-004 附件 A §A.2 文件指向仅列 DTL-018**（未列 DTL-036）。
   - **决议待定**：是否将 DTL-036 字段级补齐作为 Q-025 独立任务，还是合并进 DTL-018 v0.2；DTL-036 §6 待补齐项 4 条（账号/角色/会话物理 DDL + proto 字段号 + 字段权威清单 + testkit 夹具）何时启动。
+  - **决议记录（2026-09-10，per 实际制品追溯，非新决议）**：Ulysses（player 域 Lead per DEC-008）已于 2026-08-24 制定 `RGS-DTL-044_player主表_v0.1.md`（WF-1-55.39，per RGS-OPEN-QA-001 v0.2 Q-D-02 + ACTIONS-v0.3 §3 A-02），未采用上述两个选项中的任一个，而是新增第三份文档，同时以 DTL-018 §2（玩家域数据模型）与 DTL-036 §6 第 1 条（账号/角色/会话物理 DDL）为父文档，并在 DTL-044 §7 附录 A 显式交叉引用 DTL-018 §3.2（`session_epoch`）。DTL-036 §6 待补齐项第 1 条已通过 DTL-044 + `crates/player-service/migrations/0001_init.sql`（`players`/`player_sessions`）+ `0004_player_characters_inventory.sql`（`player_characters`/`player_inventory`）落地。**DTL-036 §6 待补齐项第 2-4 条（proto 字段号/错误枚举/兼容窗口、跨域字段权威清单、testkit 契约测试夹具）尚未启动，仍是真实缺口，架构师决议启动时间前本条 checkbox 不勾选。**
 
 - [ ] **[WF-0-5-7 联检前需统一] [域 Lead 决议] DTL-019 §0 描述与源文件标题不一致**
   - REV-004 附件 A §A.5 引用的"RGS-DTL-019 消息分发"描述（per 主对话提示"§0 表 玩家治理/策略/封禁 vs 源文件 消息推送/兑换码 描述不符"）。
   - 源文件（`docs/07-社交运营与玩家治理/RGS-DTL-019_详细设计书.md`）实际标题为"消息推送与兑换码运营工具"，涵盖 PushConsentStore / PushDispatcher / PushGatewayAdapter / PushContentSanitizer 推送组件 + RedemptionCodeBatch / RedemptionCode / RedemptionRecord 兑换码三表。
   - 实际归属：per DTL-019 §0 标题 + 内容 + 表落位（`redemption_code_batches`/`redemption_codes`/`redemption_records` 落位 AD 限界上下文），DTL-019 是 **Social 域的"消息推送+兑换码"组合 DTL**（推送部分 PL 限界上下文 + 兑换码部分 AD 限界上下文），不是"玩家治理/策略/封禁"。
   - **决议待定**：REV-004 附件 A §A.5 §0 表的描述文字是否同步为"消息推送与兑换码运营工具"（推荐）；DTL-019 是否在 §6 后续版本中拆为两个独立 DTL（推送 vs 兑换码），还是维持组合 DTL。
+  - **决议记录（2026-09-10，per 实际制品追溯，非新决议）**：per RGS-OPEN-QA-001 v0.2 Q-D-01 + Q-D-08，DTL 编号顺序与拆分范围已由 Ulysses 定案（Q-D-01："DTL-043 留给消息分发"独立编号，Q-D-08 确认 DTL-019 不拆分），即 DTL-019 维持"消息推送+兑换码"组合 DTL，不拆分为两个文件。本附件 §A.5 "> 文件" 行描述文字已同步为"消息推送与兑换码运营工具"（见上）。
 
 - [ ] **[WF-0-5-7 联检前需统一] [域 Lead 决议] DTL-026 §0 描述与文件名路径归属不一致**
   - REV-004 附件 A §A.4 §0 表对 DTL-026 的归属描述（per 主对话提示"§0 表 社交运营与玩家治理扩展 vs 实际 match 域"）。
   - 源文件路径为 `docs/07-社交运营与玩家治理/RGS-DTL-026_详细设计书.md`（07 目录 = 社交运营与玩家治理），但 DTL-026 文档标题为"匹配系统：队列/评分物理数据库设计・事件线格式・扩圈与跨分片撮合算法详细设计"，内容覆盖 MT 限界上下文（`match_db`）的 queue_entries / match_ratings / match_quality_metrics / rating_settlement_receipts 四表。
   - 实际归属：per DTL-026 §2 DDL（`queue_entries` / `match_ratings` 落位 `match_db`）+ 内容（扩圈算法 + Glicko-2 评分），DTL-026 是 **Match 域**核心 DTL。
   - **决议待定**：DTL-026 文件是否在 NO-GO 解除后从 `docs/07-社交运营与玩家治理/` 移动到 `docs/08-Match域/`（如该目录已建）或 `docs/01-核心架构与设计模式/`，还是仅在文件名加 "(Match 域)" 后缀（推荐：路径迁移）；REV-004 附件 A §A.4 §0 表的归属描述同步。
+  - **决议（Claude（AI worker，per DEC-008 一人公司派生），2026-09-10，待 Ulysses 人类确认）**：维持现路径 `docs/07-社交运营与玩家治理/RGS-DTL-026_详细设计书.md`，不迁移。理由：DTL-038（Match 域详细设计，`docs/07-社交运营与玩家治理/RGS-DTL-038_Match域_详细设计.md`）已是先例——Match 域另一份核心 DTL 同样落位同一 `07-社交运营与玩家治理/` 目录而未新建独立 `08-Match域/`，说明该目录编号体系已实质承载 Match 域文档，DTL-026 与之一致并非孤立异常；单文件路径迁移会产生仓库内大范围引用更新与断链风险，收益（消除目录名语义偏差）不足以抵消该风险，且与 DTL-038 现状不一致会制造新的不一致。本附件 §A.4 "> 文件" 行归属描述已同步（见上）。
 
 **3 处歧义均不阻断本签字（per DEC-008 形式解除 NO-GO）**，但 G-CODE-05 完全关闭（field-level DD Review Gate）须 3 处全部决议落地。
 
