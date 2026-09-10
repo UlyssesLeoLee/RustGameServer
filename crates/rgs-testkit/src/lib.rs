@@ -43,6 +43,7 @@
 //! `cargo test -p rgs-testkit` 必须全过 + 任何新 test crate 加 `MockPool` 引用
 //! 应产生 `#[deprecated]` 警告 (不静默通过).
 
+pub mod bot;
 pub mod fixture;
 pub mod helper;
 pub mod mock;
