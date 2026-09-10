@@ -9,9 +9,11 @@
 
 use std::time::Duration;
 
-use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use tonic::Code;
+
+#[cfg(test)]
+use backoff::backoff::Backoff;
 
 /// 重试配置
 #[derive(Debug, Clone)]

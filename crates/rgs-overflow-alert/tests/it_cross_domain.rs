@@ -55,35 +55,6 @@ fn set_env(pairs: &[(&str, &str)]) {
     }
 }
 
-fn make_guard(domain: Domain, hard: u32) -> OverflowGuard {
-    let key = domain.env_max_inflight();
-    set_env(&[
-        (key, &hard.to_string()),
-        ("NATS_OVERFLOW_SOFT_RATIO", "0.5"),
-        ("NATS_OVERFLOW_MAX_PENDING", "100"),
-    ]);
-    let cfg = OverflowConfig::from_env().unwrap();
-    let lim = Arc::new(OverflowLimiter::new(domain, &cfg));
-    let queue: Arc<dyn QueueBackend> = Arc::new(InMemoryQueueBackend::new(100));
-    let primary: Arc<dyn AlertSink> = Arc::new(CountingSink { count: Arc::new(AtomicU32::new(0)) });
-    let fallback: Arc<dyn AlertSink> = Arc::new(LogOnlySink);
-    let alerter = Arc::new(AlertDeduplicator::new(
-        primary,
-        fallback,
-        "test@example.com".to_string(),
-        Duration::from_secs(60),
-    ));
-    OverflowGuard::new(
-        domain,
-        &cfg,
-        lim,
-        queue,
-        alerter,
-        Some("test-pod".to_string()),
-        "test-service".to_string(),
-    )
-}
-
 #[tokio::test]
 async fn it_four_domain_subjects_are_independent() {
     use rgs_overflow_alert::queue::NatsJsQueueBackend;
