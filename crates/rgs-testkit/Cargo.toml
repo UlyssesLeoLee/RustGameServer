@@ -18,6 +18,9 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+# 9/10 wave 3 真实 mTLS 接入: tonic Channel + ClientTlsConfig 框架 (per DDD Review v0.3.1 §7.3 Phase C)
+# transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
+tonic = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
