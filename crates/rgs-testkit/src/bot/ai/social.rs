@@ -383,6 +383,7 @@ mod tests {
             client_key_path: Some("/etc/rgs/certs/client.key".to_string()),
             ca_cert_path: Some("/etc/rgs/certs/social-ca.pem".to_string()),
             server_name: Some("social.local".to_string()),
+            skip_verify: false,
         };
         let ai = SocialBotAi::with_mtls(mtls);
         assert!(ai.mtls_configured());
@@ -397,6 +398,7 @@ mod tests {
             client_key_path: None, // 缺
             ca_cert_path: Some("/etc/rgs/certs/social-ca.pem".to_string()),
             server_name: Some("social.local".to_string()),
+            skip_verify: false,
         };
         let ai = SocialBotAi::with_mtls(mtls);
         assert!(!ai.mtls_configured(), "字段不全不应视为已配置");
@@ -411,6 +413,7 @@ mod tests {
             client_key_path: Some("/secret/key/should-not-appear.key".to_string()),
             ca_cert_path: Some("/secret/ca/should-not-appear.pem".to_string()),
             server_name: Some("social.local".to_string()),
+            skip_verify: false,
         };
         let ai = SocialBotAi::with_mtls(mtls);
         let dbg = format!("{:?}", ai);

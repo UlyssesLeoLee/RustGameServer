@@ -108,6 +108,7 @@ async fn bot_match_real_grpc_client_custom_endpoint() {
         client_key_path: None,
         ca_cert_path: None,
         server_name: Some("match.service".to_string()),
+        skip_verify: false,
     };
     let grpc = MatchGrpcClient::builder()
         .endpoint("https://match-staging:50053")

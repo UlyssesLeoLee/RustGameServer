@@ -134,6 +134,7 @@ async fn bot_social_real_grpc_client_with_mtls_marks_configured() {
         client_key_path: Some("/etc/rgs/certs/client.key".to_string()),
         ca_cert_path: Some("/etc/rgs/certs/social-ca.pem".to_string()),
         server_name: Some("social.local".to_string()),
+        skip_verify: false,
     };
     let ai = SocialBotAi::with_mtls(mtls);
     assert!(
