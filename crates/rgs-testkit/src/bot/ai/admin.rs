@@ -85,22 +85,30 @@ impl AdminBotAi {
         self.gm_client.as_ref()
     }
 
-    /// 内部 helper: 跑 1 个 mTLS GM 命令 (用于 init 阶段演示 GM 链路, 真实 mTLS 通路)
+    /// 内部 helper: 跑 1 个真实 RPC GM 命令 (wave 4, per DDD Review v0.3.2 §7.3 L1.2)
     ///
-    /// 真实 RPC 调用 (k3s baseline 0/12 阶段必失败) — 返 `Ok` 而非 `Err`,
-    /// 让 bot supervisor 决定重试/掉线, 不 panic.
-    async fn issue_gm_stub(&self, bot: &Bot, cmd: &str) -> anyhow::Result<()> {
+    /// **wave 4 升级** — 走 `GmClient::issue_real` 真实 admin proto RPC 调用
+    /// (admin_service_client::AdminServiceClient<Channel>::ban_account(...))
+    /// 而不是 wave 3 的 `issue` 模拟调用. k3s baseline 0/12 阶段, 真实 RPC
+    /// **会失败** (connection refused), 但调用通路已就位 + 2s timeout + 不
+    /// panic + 走 `Ok(())` 错误容忍模式.
+    ///
+    /// 返 `Ok(())` 即使 RPC 失败, 让 bot supervisor 决定重试/掉线.
+    async fn issue_gm_real(&self, bot: &Bot, cmd: &str) -> anyhow::Result<()> {
         if let Some(gm) = &self.gm_client {
             // PoC: 不打印 cmd 明文 (中文 + 凭据走 Option, per 8/27 11:06 JST 硬 ban)
             // 只打 cmd_len + bot_id, 供调试可见但不泄露
-            let resp = gm.issue(cmd).await?;
+            //
+            // 走 `issue_real` 而非 `issue`: issue_real 真实调用 admin proto
+            // RPC, 走真实 tonic Channel 通路, 失败时返 GmResponse { ok: false }.
+            let resp = gm.issue_real(cmd).await?;
             debug!(
                 target: "rgs_testkit::bot::ai::admin",
                 bot_id = bot.id(),
                 cmd_len = cmd.len(),
                 gm_ok = resp.ok,
                 has_error = resp.error.is_some(),
-                "AdminBotAi GM real mTLS issue (k3s baseline 0/12: gm_ok=false 预期)"
+                "AdminBotAi GM real RPC issue (k3s baseline 0/12: gm_ok=false 预期)"
             );
         } else {
             debug!(
@@ -117,8 +125,9 @@ impl AdminBotAi {
 impl BotAi for AdminBotAi {
     async fn init(&self, bot: &Bot) -> anyhow::Result<()> {
         debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::init");
-        // 演示 GM 注入链路: init 阶段跑 1 个 mTLS GmCommand (per M4 + v0.3.1 §7.3)
-        self.issue_gm_stub(bot, "设等级 1").await?;
+        // 演示 GM 注入链路: init 阶段跑 1 个真实 RPC GmCommand (per M4 + v0.3.2 §7.3 wave 4)
+        // wave 4 升级: 走 issue_gm_real (真实 admin proto RPC 调用) 而非 issue_gm_stub
+        self.issue_gm_real(bot, "设等级 1").await?;
         Ok(())
     }
 
@@ -152,13 +161,15 @@ impl BotAi for AdminBotAi {
                 Ok(())
             }
             ActKind::Custom(name) if name == "GmCommand" => {
-                // 演示 GM 注入链路 (per DDD Review v0.2 §5.1 M4 + v0.3.1 §7.3)
-                self.issue_gm_stub(bot, "加经验 100").await
+                // 演示 GM 注入链路 (per DDD Review v0.2 §5.1 M4 + v0.3.1 §7.3 + v0.3.2 §7.3 wave 4)
+                // wave 4 升级: 走 issue_gm_real 真实 RPC 调用
+                self.issue_gm_real(bot, "加经验 100").await
             }
             ActKind::Custom(name) if name == "BanAccount" => {
                 // admin ban 场景 (per erlang A1) - 通过 GM 通道下 ban 指令
                 debug!(target: "rgs_testkit::bot::ai::admin", bot_id = bot.id(), "AdminBotAi::handle BanAccount via GM");
-                self.issue_gm_stub(bot, "ban_account 3600 违规").await
+                // wave 4 升级: 走 issue_gm_real 真实 RPC 调用 (admin proto ban_account)
+                self.issue_gm_real(bot, "ban_account 3600 违规").await
             }
             // 未识别 act: 不 panic, 记 debug + 返 Ok (PoC 宽容)
             other => {

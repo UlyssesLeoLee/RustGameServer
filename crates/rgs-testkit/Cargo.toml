@@ -23,17 +23,11 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
-<<<<<<< HEAD
 # 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
 #   rgs-testkit build.rs 生成的 proto 代码 (player / match / admin + 共享 common) 引用 `::prost::Message` trait derive,
 #   0.13 必须 workspace dep 才能解析 (5 域 service 同款)
 #   5 worker 公共依赖入口 (per L-CAND-014 模式 + L-CAND-016 防御: 5 worker 同步)
 prost = { workspace = true }
-# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2 + L-CAND-016 防御):
-#   social 域 BotAi 走 social-service::proto::v1::SocialServiceClient 调 get_guild / health_check
-#   5 worker 各加 1 域 social-service (per L-CAND-016, 5 worker 公共 proto RPC 调用要同步)
-#   L-CAND-016 防御: 仅 social 域加, 不改其他 4 域; 其他 4 域 (player/economy/match/admin) 由各自 worker 加
-social-service = { path = "../social-service" }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
@@ -51,6 +45,8 @@ testcontainers-modules = { version = "0.11", features = ["postgres"], optional =
 #   (per wave 3 player.rs 注释: "wave 4 worker 加 <domain>-service 为 rgs-testkit dev-dep 后接"
 #    实际是 lib 依赖因为 bot/ai/<domain>.rs 在 src/ 不是 tests/)
 #   5 域同步模式 (per L-CAND-016 防御), 本 worker 只加各自域, 不动其他 4 域
+#   - economy 域: economy-service path dep + get_account RPC (per commit c189700)
+#   - social 域: social-service path dep + get_guild/health_check RPC (per commit f5bd50d)
 economy-service = { path = "../economy-service" }
 social-service = { path = "../social-service" }
 
