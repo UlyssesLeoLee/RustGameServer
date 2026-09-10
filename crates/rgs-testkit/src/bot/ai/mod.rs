@@ -8,6 +8,7 @@
 //! 当前 PoC 只派生 `player` (见 [`player::PlayerBotAi`]).
 
 pub mod player;
+pub mod social;
 
 use async_trait::async_trait;
 
