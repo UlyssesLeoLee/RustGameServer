@@ -20,6 +20,11 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
+# wave 3: 5 域 BotAi 真实 gRPC client 框架 (per DDD Review v0.3.1 §7.3 Phase C)
+# - workspace.dependencies 已声明 tonic 0.12 + transport + tls + tls-roots
+# - 仅 import tonic::transport::{Channel, ClientTlsConfig, Endpoint}, 不引 5 域 proto
+# - 真实 mTLS 调用待 SRE 介入 (L1.2 E2E 阻塞, k3s baseline 0/12)
+tonic = { workspace = true }
 # DB 测试 fixture
 # migrate feature required for #[sqlx::test] macro (per WF-1-55.31 retry)
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "uuid", "chrono"] }
