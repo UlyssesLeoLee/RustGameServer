@@ -9,6 +9,7 @@
 
 pub mod economy;
 pub mod player;
+pub mod social;
 
 use async_trait::async_trait;
 
