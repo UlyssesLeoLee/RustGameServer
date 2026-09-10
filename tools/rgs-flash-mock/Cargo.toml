@@ -22,8 +22,9 @@ actix-rt = "2.9"
 tonic = { version = "0.12", features = ["transport", "tls"] }
 prost = "0.13"
 
-# mTLS (per §2.1: rustls + rcgen, 跟 5 域 ST 业务 mTLS 一致)
-rustls = "0.23"
+# mTLS (per §2.1: rustls + ring, 跟 5 域 ST 业务 mTLS 一致)
+#   ring feature: 避开 aws-lc-rs glibc 2.38 跨镜像问题 (per shared-platform::tls install_default_crypto_provider)
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 rustls-pemfile = "2.1"
 
 # tracing
@@ -50,6 +51,10 @@ serde_json = "1.0"
 
 # time
 chrono = { version = "0.4", features = ["serde"] }
+
+# v0.2 mTLS 业务级 5 域 gRPC client
+[build-dependencies]
+tonic-build = { version = "0.12", features = ["prost"] }
 
 [profile.dev]
 opt-level = 0

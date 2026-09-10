@@ -1,19 +1,32 @@
-// rgs-flash-mock v0.1 lib 入口
+// rgs-flash-mock v0.2 lib 入口
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
 //
-// 解决: cargo 自动 main.rs + sub-module 模式触发 lib 编译, AppState 在 main.rs 不可见
-// 修法: AppState 跟 sub-modules 放 lib.rs, main.rs 仅启 actix-web
+// v0.1 → v0.2 升级:
+//   - 加 grpc_clients 模块 (5 域 mTLS 业务级 tonic client)
+//   - AppState 扩展: matrix + clients + cfg
+//   - main.rs 启动时连接 5 域, 任一域失败仍启动 (Option<Client>)
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+pub mod config;
 pub mod gap_matrix;
+pub mod grpc_clients;
 pub mod handlers;
 
 pub use gap_matrix::{CoverageReport, GapMatrix, RpcCategory, RpcStatus};
+pub use grpc_clients::{GrpcClientStatus, GrpcClients};
+
+/// 安装 ring 作为 rustls 默认 crypto provider (per shared-platform::tls 同模式)
+/// 调用方应在 main 入口调用一次, 后续 TLS 操作不会 panic
+pub fn install_default_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
 
 /// 全局 app state (per main.rs 共享)
 pub struct AppState {
     pub matrix: Arc<Mutex<GapMatrix>>,
+    pub clients: GrpcClients,
+    pub cfg: Arc<config::Config>,
     pub started_at: chrono::DateTime<chrono::Utc>,
 }

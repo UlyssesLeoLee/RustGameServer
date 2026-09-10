@@ -1,14 +1,15 @@
-// rgs-flash-mock v0.1 — 闪烁之光 mock gateway / verification harness
+// rgs-flash-mock v0.2 — 闪烁之光 mock gateway / verification harness
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
 // per 9/10 14:35 JST Ulysses 拍板 (推荐) Mavis 起骨架 (1-2h PoC)
+// v0.2 升级: 接 5 域 mTLS 业务级 gRPC client (per 9/11 派工)
 //
 // 端口: 0.0.0.0:8791 (RGS_FLASH_MOCK_PORT)
 // 协议: HTTP/JSON (actix-web 4, per §2.1)
-// back: tonic 0.12 gRPC client to RGS 5 域 + card + gm-backend (v0.1 skeleton, v0.2 接 mTLS)
+// back: tonic 0.12 gRPC client to RGS 5 域 (mTLS 业务级, per 8/27 11:06 JST 硬 ban 走 env var)
 // 范围: 12 类别 22 RPC stub (per §3 表)
 
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
-use rgs_flash_mock::{AppState, GapMatrix};
+use rgs_flash_mock::{config, AppState, GapMatrix, GrpcClients};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::info;
@@ -27,12 +28,18 @@ async fn health() -> impl Responder {
 #[get("/ready")]
 async fn ready(data: web::Data<AppState>) -> impl Responder {
     let matrix = data.matrix.lock().await;
+    let grpc_status = data.clients.status_report(&data.cfg);
+    let grpc_connected = grpc_status.iter().filter(|s| s.connected).count();
     HttpResponse::Ok().json(serde_json::json!({
         "status": "ready",
+        "version": MOCK_VERSION,
         "matrix_total": matrix.total(),
         "matrix_passed": matrix.count_by_status(rgs_flash_mock::RpcStatus::Pass),
         "matrix_partial": matrix.count_by_status(rgs_flash_mock::RpcStatus::Partial),
         "matrix_na": matrix.count_by_status(rgs_flash_mock::RpcStatus::NotApplicable),
+        "grpc_connected": grpc_connected,
+        "grpc_total": grpc_status.len(),
+        "grpc_status": grpc_status,
     }))
 }
 
@@ -97,16 +104,46 @@ async fn main() -> std::io::Result<()> {
         )
         .init();
 
+    // 安装 ring 作为 rustls 默认 crypto provider (per shared-platform::tls 同模式)
+    rgs_flash_mock::install_default_crypto_provider();
+
+    // 加载 config (per 8/27 11:06 JST 凭据走 env var, 永不打印)
+    let cfg = match config::Config::from_env() {
+        Ok(c) => Arc::new(c),
+        Err(e) => {
+            eprintln!("config load failed: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // 连接 5 域 gRPC client (mTLS 业务级, 任一域失败不阻塞启动)
+    let clients = GrpcClients::from_config(&cfg).await;
+    let connected_count = [
+        clients.player.is_some(),
+        clients.economy.is_some(),
+        clients.r#match.is_some(),
+        clients.social.is_some(),
+        clients.admin.is_some(),
+    ].iter().filter(|b| **b).count();
+    info!(
+        version = MOCK_VERSION,
+        grpc_connected = connected_count,
+        grpc_total = 5,
+        "rgs-flash-mock v0.2 starting: 5 域 gRPC client pool initialized (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 §2.1)"
+    );
+
     let bind = std::env::var("RGS_GAP_MOCK_BIND").unwrap_or_else(|_| "0.0.0.0:8791".into());
     info!(
         version = MOCK_VERSION,
         %bind,
-        "rgs-flash-mock starting (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3, 12 类别 22 RPC stub PoC)"
+        "rgs-flash-mock starting (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3, 12 类别 22 RPC stub + 5 域 mTLS gRPC)"
     );
 
     let matrix = Arc::new(Mutex::new(GapMatrix::new()));
     let state = web::Data::new(AppState {
         matrix: matrix.clone(),
+        clients,
+        cfg: cfg.clone(),
         started_at: chrono::Utc::now(),
     });
 
