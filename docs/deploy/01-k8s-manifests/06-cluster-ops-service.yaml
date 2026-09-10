@@ -73,7 +73,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cluster-ops
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.2-cluster-ops
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops  # 0.1.0 已 WSL2 本地 cache, 绕过 ghcr.io QPS (per 9/10 23:55 JST Ulysses 拍板本地预拉)
           imagePullPolicy: Always
           command: ["/app/bin/cluster-ops"]
           securityContext:
