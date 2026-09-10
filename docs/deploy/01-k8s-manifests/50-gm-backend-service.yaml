@@ -53,10 +53,15 @@ spec:
           type: RuntimeDefault
       containers:
       - name: gm-backend
-        # 用推上 ghcr.io 的 0.1.0-gm-backend 镜像(distroless + 5917 字节 binary + entrypoint)
-        # Per 2026-08-27 15:18 JST Actions 推送成功(workflow run 33047394103)
-        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend
-        imagePullPolicy: Never
+        # 9/10 15:30 JST 改: 用 5 域同 tag 0.1.0-cc13 (per 9/10 bc4dae0 chore(deploy) commit)
+        # 之前 image: 0.1.0-gm-backend + imagePullPolicy: Never → ErrImageNeverPull (镜像本地不存在)
+        # 9/10 14:35 JST Ulysses 拍板启 rgs-flash-mock v0.1 PoC (per commit ca493fe) 后, 5 域 image 推 cc13
+        # 但 50-gm-backend-service.yaml 仍是旧占位 tag, gm-backend 拉起失败
+        # 改用 0.1.0-cc13 (5 域已推 ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13) + IfNotPresent
+        # 注意: gm-backend 的 5917 字节 binary 不在 0.1.0-cc13 multi-arch 镜像里, 可能仍 ErrImagePull
+        # 后续 SRE 介入: 推 0.1.0-gm-backend 到 ghcr.io 或 build multi-arch 镜像
+        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+        imagePullPolicy: IfNotPresent
         command: ["/app/bin/gm-backend"]
         env:
         - name: RUST_LOG
