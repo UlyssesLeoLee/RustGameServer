@@ -187,7 +187,7 @@
 
 | 评审日 | 入档候选 | 通过 | 清出 | 状态 |
 |---|---|---|---|---|
-| 2026-12-02 (Q4) | L-CAND-001 / 002 / 003 (A 类) + L-CAND-008 (保留) + L-CAND-010 (admin 一次性边界突破) + L-CAND-011 (8 域 cargo check 跨域验证) + L-CAND-012 (DDD Review 二审时间窗口) | — | — | 待评审 (L-CAND-004/005/006/007 已转正升 L15-L18 移出候选) |
+| 2026-12-02 (Q4) | L-CAND-001 / 002 / 003 (A 类) + L-CAND-008 (保留) + L-CAND-010 (admin 一次性边界突破) + L-CAND-011 (8 域 cargo check 跨域验证) \+\ L-CAND-012\ \(DDD\ Review\ 二审时间窗口\)\ \+\ L-CAND-013\ \(D\ 盘\ 0\ free\ 防御\)\ \+\ L-CAND-014\ \(mod\.rs\ 4-way\ conflict\ 防御\)\ \| — | — | 待评审 (L-CAND-004/005/006/007 已转正升 L15-L18 移出候选) |
 | 2027-03-02 (Q1) | — | — | — | 待启 |
 | 2027-06-02 (Q2) | — | — | — | 待启 |
 | 2027-09-02 (Q3) | L1-L14 冻结期届满, 重新评估 | — | — | 待启 |
@@ -225,3 +225,39 @@
 - **追溯**: 9/4 23:05 JST 一次性, **不**改 AGENTS.md / DDD Review 模板 / RGS-RACI-ADMIN-V1
 - **状态 (2026-09-05 07:18 JST)**: 已落地, RGS-INC-001 v0.3 §X.8 拍板栏 7 项签字列 + 签字行已全部 ✅
 - **派生约束反转记录**: 本 L-CAND-010 显式记录边界突破历史, 防止未来误以为"DEC-008 + RGS-RACI-ADMIN-V1 §4 已被新规则覆盖"
+#### L-CAND-013: D 盘 0 free 防御 + E 盘 devcache target fallback (per 9/10 13:25 JST 入档)
+
+- **来源**: 9/10 13:25 JST rgs-testkit bot 框架 wave 2 派工 5 worker (1 core + 4 domain) 落地后, 主会话跑 L1.1 cargo test --workspace --tests 时, D 盘磁盘空间耗尽 (0 bytes free, 跟 6 个 worker target dirs + 30 个历史 target-* 累计), 编译失败 os error 112 磁盘空间不足 + LNK1318 非意外的 PDB 错误
+- **来源 commit**: 8979e3c (merge bottest/admin, 5 worker 全部落地), E:\DevCache\cargo\bottest-main 验证 fallback
+- **类型**: 防御性约束 (基础设施类)
+- **现状**: L11 per-worker CARGO_TARGET_DIR=target-r1-<scope> (per 9/3 08:42 JST 修复) 是 per-worktree 隔离, 但**未约束** target dir 物理位置 (D 盘 vs E 盘 vs 共享盘); D 盘 workspace 历史累计 30+ target-* 目录 (历史 worker 派工残留), 单 cargo test --workspace 编译时把 D 盘撑爆
+- **措施** (L11 升级约束):
+  1. **默认 fallback**: CARGO_TARGET_DIR=E:\DevCache\cargo\<scope> (E 盘 105GB free, devcache 已存在)
+  2. **D 盘 target-* 防御**: worker brief 明文 "per-worker CARGO_TARGET_DIR 强制用 E 盘 devcache 路径, 不写 D 盘"
+  3. **D 盘清理策略**: merge 后主会话 git worktree remove --force 4 worker worktree (自动清 target), git worktree prune 清理 .git/worktree
+  4. **历史 target 清理**: D:\RustGameServer\target-* (per 9/10 13:25 JST 经验) 30+ 个目录, 由主会话 L11 监控定期清理
+  5. **CI/CD 防御**: AGENTS.md §2.6 D3 commit 模板 + §6.3 PT 派工简报明文 "CARGO_TARGET_DIR=E:\DevCache\cargo\bottest-<scope>"
+- **收益**: 5 worker + 5 merge + L1.1 主验证全过 (per 9/10 13:25 JST), 0 死锁 + 0 空间失败; E 盘 105GB free 远够
+- **成本**: 低 (worker brief 1 行 + E 盘 mkdir)
+- **风险**: E 盘 devcache 路径写死 (Windows only, Linux/macOS 需 fallback ~/.cache/cargo/<scope>); 跨平台 CI 需配置
+- **候选方案**: L11 升正式 (per AGENTS.md §2.1) + AGENTS.md §6.3 PT 派工模板加 CARGO_TARGET_DIR 强制项
+- **入档日期**: 2026-09-10 13:25 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L11 升正式)
+
+#### L-CAND-014: 5 worker wave 2 mod.rs 4-way conflict 防御 (per 9/10 13:25 JST 入档)
+
+- **来源**: 9/10 13:18-13:25 JST 4 worker (economy + social + match + admin) merge 时, crates/rgs-testkit/src/bot/ai/mod.rs 4 次 conflict (每个 worker 都加 pub mod <domain>; 行, 顺序错乱); match + admin 各 1 次 conflict, 主会话手修 2 次
+- **来源 commit**: 5afe738 (merge bottest/match, conflict 1), 8979e3c (merge bottest/admin, conflict 2)
+- **类型**: 防御性约束 (git merge 流程)
+- **现状**: L12.2 选项 1 (5 worker 独立 worktree) 假设 worker 改不同文件, 但 ai/mod.rs 是 5 域派生的**公共 mod 声明入口**, 每个 worker 都改这一行 pub mod <domain>;, 必然 conflict
+- **措施** (L12.2 升级 + L14 plumbing 经验):
+  1. **5 域派生 mod.rs 防御**: 5 worker brief 明文 "mod.rs 加 pub mod <domain>; 在 player 之后, 不要改 player 行", 减少 worker 自主行为
+  2. **conflict resolution 模板**: 主会话手修 mod.rs 时, 一次性写最终版 (5 行 pub mod 合并, 按字母或 worker 提交顺序), 不逐 worker 重复手修
+  3. **L14 plumbing brace 跟踪**: mod.rs 合并是 plumbing 节点字符串处理, 用 <<<<<<< ======= >>>>>>> 4 边界 brace 跟踪 (per 9/2 W2 BA-W2-3/5/6 patch 经验), 不要简单 indexOf + 1
+  4. **可选 L19 候选**: 5 worker 派生模式应改 L12.2 选项 2 (worker 写文件不 commit, 主会话统一 1 commit), 避免 mod.rs 公共入口冲突
+- **收益**: 5 worker merge 0 死锁 + 0 未解决 conflict (2 次手修 1 min 内完成)
+- **成本**: 低 (worker brief 1 行 + 主会话手修模板)
+- **风险**: worker 仍可能改公共 mod (防御不彻底, mod.rs 公共行始终 1 文件)
+- **候选方案**: L12.2 升级 (5 域派生场景用选项 2, worker 写不 commit) 或 L19 候选 (5 域派生强制统一 mod 入口)
+- **入档日期**: 2026-09-10 13:25 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审)
