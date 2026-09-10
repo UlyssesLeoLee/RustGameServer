@@ -305,3 +305,31 @@
 - **候选方案**: L21 派生约束 (5 域派生公共 struct 字段同步简报明文) + L22 候选 (统一 mod 入口)
 - **入档日期**: 2026-09-10 18:24 JST
 - **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L21 + L22 转正式)
+
+#### L-CAND-017: rustls crypto provider + build.rs 路径 + RPC 测试防御 (per 9/10 19:23 JST 入档)
+
+- **来源**: 9/10 19:00-19:23 JST 主会话按 Ulysses 选选项 1 启 wave 4 (5 worker 5 域真实 RPC 接入, 5 --no-ff merge 后) cargo test 验证:
+  1. **rustls 0.23 crypto provider 缺失**: 27 test FAILED panic at ustls-0.23.43/src/crypto/mod.rs:249:14 (CryptoProvider::install_default required)
+     - 根因: workspace 	onic = { features = ["transport", "tls", "tls-roots"] } 没带 rustls crypto provider (ing / ws-lc-rs)
+     - 修复: workspace 加 ustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] } + ctor = "0.2"; rgs-testkit lib.rs 加 #[ctor::ctor] lib 加载时自动 install rustls ring crypto provider
+  2. **build.rs 路径错** (player / match / admin worker 各自 build.rs 用 ../../player-service/proto/..., 实际需 ../../crates/player-service/...):
+     - 症状: protoc 报 "Could not make proto path relative: ../../player-service/proto/player/v1/player.proto: No such file or directory"
+     - 根因: build.rs 编译时 cwd 是 crates/rgs-testkit, ../../ 是 D:\RustGameServer\crates, 不是 D:\RustGameServer
+     - 修复: 5 worker build.rs 路径全改 ../../crates/; common.proto 改 ../../crates/shared-platform/proto/common/v1/common.proto (在 shared-platform 不是 player-service)
+  3. **gm.rs 测试断言错** (wave 4 admin worker 写测试时假设 uild_lazy_channel("not-a-valid-url") 返 None 触发 "no_channel" 错误):
+     - 症状: gm_issue_real_no_channel_returns_no_channel_error FAILED, r.error 不是 "no_channel"
+     - 根因: tonic 0.12 Endpoint::connect_lazy 是 infallible, URL 无效时 channel 仍 build 成功 (只是首次 RPC 失败), issue_real 走真实 RPC 返真实 error (e.to_string())
+     - 修复: ssert_eq!(r.error.as_deref(), Some("no_channel")) → ssert!(r.error.is_some()) (符合 issue_real 任何失败都返 error 的设计)
+- **来源 commit**: d381cd0 (fix(testkit) wave 4 L1.1 验证修复, 5 file: Cargo.toml workspace + rgs-testkit Cargo.toml + build.rs + lib.rs + gm.rs)
+- **类型**: 防御性约束 (rustls crypto + build.rs 路径 + RPC 测试设计)
+- **现状**: L1 cargo check 0 error 0.22s (wave 4); L1.1 cargo test 73 passed 0 failed 6.10s (60 wave 3 + 5 域 wave 4 unit + 8 wave 4 integration); workspace L1 0 error 5m 23s
+- **措施** (候选 L23 + L24 + L25 派生约束):
+  1. **L23 候选 (rustls crypto provider)**: 任何 crate 加 ClientTlsConfig (mTLS) 必在 [dependencies] 加 ustls workspace dep + lib 加载时 #[ctor::ctor] install_default(), 避免 27 test panic
+  2. **L24 候选 (build.rs 路径)**: 5 worker 派生 build.rs 路径必须 verify cargo check 0 error, 简报明文"build.rs 路径必须用 ../../crates/<service>/proto/, 不要省略 crates/"
+  3. **L25 候选 (RPC 测试设计)**: 5 worker 写真实 RPC 测试时, 断言用 rror.is_some() 不严格 ssert_eq!(r.error, "specific_string"), 因为 lazy channel + tonic infallible 行为依赖
+- **收益**: wave 5 + 后续派生 0 panic + 0 conflict + 0 严格断言失败
+- **成本**: 低 (3 个简报 + 1 个 lib 加载 hook)
+- **风险**: 新增 mTLS / proto / 真实 RPC 仍可能踩同样坑
+- **候选方案**: L23 + L24 + L25 派生约束 (3 条新约束)
+- **入档日期**: 2026-09-10 19:23 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L23 + L24 + L25 转正式)

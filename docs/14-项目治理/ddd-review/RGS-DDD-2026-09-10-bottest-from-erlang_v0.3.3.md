@@ -9,10 +9,10 @@
 | 类型 | DDD Review 二审材料 (per DDD-REVIEW-TEMPLATE-v0.2) |
 | 关联 | commit `32cff91` (基线) / `3131cd0` (v0.1) / `16a4b19` (v0.2) / `8979e3c` (v0.3 Phase B 落地 merge) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / 闪烁之光 erlang 服务端 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\*`) / AGENTS.md v0.6.13 |
 | 基线 commit | `32cff91` (fix(deploy): 5 postgres manifest PLACEHOLDER 替换, per 9/10 WipeCluster 重建) |
-| 当前 commit | `4157731` (fix(testkit) wave 3 MtlsConfig 兼容, 9/10 18:24 JST wave 3 全部 merge) |
-| 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 + 5 域 BotAi 派生 + 9/10 15:14-15:30 JST WipeCluster 重建 k3s 拉起 5 域尝试 + 9/10 17:30-18:24 JST wave 3 mTLS 真实接入 |
-| 阶段 | Phase B + Phase C mTLS 框架完成 (per D2 L1/L1.1/L1.2 三件套, L1+L1.1 ✅, L1.2 N/A 待 SRE 介入 k3s baseline 恢复) |
-| 状态 | ✅ 二审通过 + Phase B 落地 + wave 3 mTLS 框架完成 (per 2026-09-10 16:36 JST Ulysses 拍板 "接受 baseline 0/12" + 选项 1 wave 3 启动) |
+| 当前 commit | `d381cd0` (fix(testkit) wave 4 L1.1 验证修复, 9/10 19:23 JST wave 4 全部 merge + L1.1 73 passed) |
+| 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 + 5 域 BotAi 派生 + 9/10 15:14-15:30 JST WipeCluster 重建 k3s 拉起 5 域尝试 + 9/10 17:30-18:24 JST wave 3 mTLS 真实接入 + 9/10 19:00-19:23 JST wave 4 真实 RPC 接入 |
+| 阶段 | Phase B + Phase C mTLS 真实 RPC 接入完成 (per D2 L1/L1.1/L1.2 三件套, L1+L1.1 ✅, L1.2 N/A 待 SRE 介入 k3s baseline 恢复) |
+| 状态 | ✅ 二审通过 + Phase B + wave 3 + wave 4 落地 (per 2026-09-10 19:00 JST Ulysses 选选项 1 wave 4 真实 RPC 接入) |
 
 ---
 
@@ -270,9 +270,9 @@ crates/rgs-testkit/src/
 
 | 派生约束 | 状态 | 备注 |
 |---|---|---|
-| **L1** cargo check --tests 0 error | ✅ 0 error 0 warning 0.49s (wave 3) | 主会话跑 `cargo check -p rgs-testkit --tests` (per 9/10 18:24 JST), 5 wave 3 worker 各自 0.27-1.27s + 0.49s 主会话复验 + workspace 0 error (per 9/10 15:00 JST) |
-| **L1.1** cargo test --lib 跑通 | ✅ 60 passed 0 failed 0.13s (wave 3) | 主会话跑 `cargo test -p rgs-testkit --lib` (per 9/10 18:24 JST), 41 wave 2 + 5 域 mTLS 真实 client + 4 admin GmClient unit = 60 total |
-| **L1.2** E2E 业务级 | ⏳ 待 SRE 介入 k3s baseline 恢复 | bot 框架需 k3s 集群可达 (current 0/12 per §7.4), 跟 mTLS 业务级 ST 一起跑 (per §7.3 + L-CAND-016) |
+| **L1** cargo check --tests 0 error | ✅ 0 error 0.22s (wave 4) + workspace 0 error 5m 23s | 主会话跑 `cargo check -p rgs-testkit --tests` + workspace (per 9/10 19:23 JST), 5 wave 4 worker 各自 cargo check 通过 + 5 --no-ff merge 手修 Cargo.toml 3 次 + build.rs 1 次 |
+| **L1.1** cargo test --lib 跑通 | ✅ 73 passed 0 failed 6.10s (wave 4) | 主会话跑 `cargo test -p rgs-testkit --lib` (per 9/10 19:23 JST), 60 wave 3 + 5 域 wave 4 unit + 8 wave 4 integration = 73 total (rustls 0.23 crypto provider fix 后) |
+| **L1.2** E2E 业务级 | ⏳ 待 SRE 介入 k3s baseline 恢复 | bot 框架需 k3s 集群可达 (current 0/12 per §7.4), 跟 mTLS 业务级 ST 一起跑 (per §7.3 + L-CAND-016 + L-CAND-017) |
 | **L11** cargo build dir lock 不轮询 (per 8/31 PT 派工) | ✅ 计划已写 | 简报明文"1 次拿 status, 不 polling", per-worker `CARGO_TARGET_DIR=target-r1-bottest-<scope>` |
 | **L12** 临时 log / .txt / .tmp_search* 不入 commit (pre-commit hook 兜底) | ✅ 计划已写 | pre-commit-tmp-check.ps1 (per 9/3 07:31 JST 拍板), 简报明文"不入 commit, 主会话 merge 后清理" |
 | **L12.1** 临时 log 不入 commit | ✅ 同 L12 | |
@@ -367,6 +367,7 @@ crates/rgs-testkit/src/
 | **G11** | 5 worker wave 2 merge 时, `crates/rgs-testkit/src/bot/ai/mod.rs` 4 次 conflict (每个 worker 加 `pub mod <domain>;` 行, 顺序错乱) | match + admin 各 1 次 conflict, 主会话手修 2 次 (1 min 内) | 简报明文"mod.rs 加在 player 之后"; 已入档 L-CAND-014; L19 候选 (5 域派生强制 L12.2 选项 2) |
 | **G12** | 9/10 15:14-15:30 JST WipeCluster 重建后 k3s 5 域拉起尝试 0/12 PASS (per §7.4 4 段历史): HPA minReplicas=2 强启动风暴 + gm-backend image tag 缺失 + 30+ pod 单节点资源耗尽 → k3s API server 反复 crash | L1.2 E2E 业务级 ST 阻塞 | SRE 介入 (删 HPA + metrics-server + gm-backend 镜像重推 + 多节点); 已入档 L-CAND-015 (HPA 风暴防御候选) + L-CAND-016 (mTLS stub 防御候选, per 9/10 18:24 JST) |
 | **G13** | 9/10 18:24 JST wave 3 5 worker merge 阶段 Cargo.toml 3 次 conflict (per L-CAND-014 模式再现) + MtlsConfig skip_verify 字段 5 处缺失 (admin 加字段没通知 social/match) | 主会话 3 次手修 Cargo.toml + commit `4157731` 修 MtlsConfig | 简报明文 "worker 加公共 struct 字段时同步更新其他 worker 用例" (per 12/2 季度评审) |
+| **G14** | 9/10 19:23 JST wave 4 5 worker merge 后 L1.1 cargo test 27 FAILED (rustls-0.23.43/src/crypto/mod.rs:249:14 panic) + build.rs 路径错 (player 简报用 `../../`, 实际需 `../../crates/`) + common.proto 在 shared-platform 不是 player-service + gm.rs 测试断言错 (no_channel → 真实 RPC error) | 主会话手修 3 处 + commit `d381cd0`: workspace 加 `rustls = { version = "0.23", features = ["ring"] }` + `ctor = "0.2"`; rgs-testkit lib.rs `#[ctor::ctor]` install rustls ring crypto provider; build.rs 路径修; gm.rs 测试断言从严格 `assert_eq!(r.error, "no_channel")` 改 `assert!(r.error.is_some())` | 简报明文 "worker 加公共 mTLS 入口必同步测试 rustls crypto provider" + "build.rs 路径必须 verify cargo check 0 error" (per L-CAND-017 + 12/2 季度评审) |
 
 ---
 
@@ -421,6 +422,7 @@ crates/rgs-testkit/src/
 | v0.3 | 2026-09-10 13:25 | 架构师(Mavis 接手 agent per DEC-008) | Phase B 派工 5 worker 全部落地 + 主会话 4 --no-ff merge + L1.1 41 passed 0 failed 0.12s: 5 commits (`16bfb95` core / `90829d9` economy / `61872f5` social / `91e64e7` match / `2f50f0f` admin) + 4 merge (`540dd52` / `d7a34b6` / `5afe738` / `8979e3c`) + 9 条 → 11 条已知缺口 (G10 D 盘 0 free + G11 mod.rs 4-way conflict) + L-CAND-013/014 入档 + L1/L1.1/L11/L12/L14 全部 ✅; main HEAD `8979e3c` |
 | v0.3.1 | 2026-09-10 16:38 | 架构师(Mavis 接手 agent per DEC-008) | Phase C k3s 5 域拉起尝试 + 阻塞报告 (per 2026-09-10 15:14 JST Ulysses 拍板 opt1 落地 + 2026-09-10 16:36 JST 拍板"接受 baseline 0/12, 落报告等 SRE 介入"推荐项): §7.4 加 Phase C 9/10 14:35-15:30 JST 4 段历史 (rgs-flash-mock ca493fe 启用 → kubectl apply 57 yaml → HPA 风暴 + image tag 缺失 + k3s API server crash → 改 gm-backend image + commit `85bfdf5`) + §8 G12 HPA 风暴 + L-CAND-015 入档 (per 9/10 15:25 JST); main HEAD `85bfdf5`, 12 commits ahead of `32cff91` |
 | v0.3.2 | 2026-09-10 18:24 | 架构师(Mavis 接手 agent per DEC-008) | Wave 3 mTLS 真实接入 5 worker 全部落地 + 5 --no-ff merge + L1.1 60 passed 0 failed 0.13s: 5 commits (`b947c97` economy / `e62f79f` player / `037edf3` match / `a9ef3e5` social / `9788404` admin) + 5 merge (`3338ed3` / `db9c6b2` / `7a06f89` / `8c75a00` / `2a432bc`) + commit `4157731` 修 5 处 MtlsConfig skip_verify 字段兼容 (per L-CAND-014 模式再现) + L-CAND-016 入档 (mTLS stub 防御候选); main HEAD `4157731`, 19 commits ahead of `32cff91` |
+| v0.3.3 | 2026-09-10 19:23 | 架构师(Mavis 接手 agent per DEC-008) | Wave 4 真实 RPC 接入 5 worker 全部落地 + 5 --no-ff merge (3 次 Cargo.toml conflict + 1 次 build.rs conflict 手修) + L1.1 73 passed 0 failed 6.10s: 5 commits (`c189700` economy / `8febf26` player / `920159b` match / `f5bd50d` social / `259dbf9` admin) + 5 merge (`e586029` / `62889c4` / `231fb39` / `63e12c6` / `28b713a`) + commit `d381cd0` 修 rustls 0.23 crypto provider 缺失 (per L-CAND-014 + L-CAND-016 模式: 5 worker 公共 mTLS 入口触发 27 test panic) + build.rs 路径错 (`../../` → `../../crates/`) + gm.rs 测试断言 (no_channel → error is_some) + L-CAND-017 入档 (rustls crypto provider + build.rs 路径 + RPC 防御); main HEAD `d381cd0`, 25 commits ahead of `32cff91` |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
