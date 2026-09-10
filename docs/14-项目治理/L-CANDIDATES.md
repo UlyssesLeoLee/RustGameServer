@@ -284,3 +284,24 @@
 - **候选方案**: L20 派生约束 (5 域 ST 启动前必装 metrics-server + HPA minReplicas=1)
 - **入档日期**: 2026-09-10 16:38 JST
 - **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L20 转正式)
+
+#### L-CAND-016: mTLS stub 防御 (5 域 wave 3 派生公共 struct 字段同步 + Cargo.toml 3 次 conflict) (per 9/10 18:24 JST 入档)
+
+- **来源**: 9/10 17:30-18:24 JST 主会话按 16:36 JST 拍板选项 1 启 wave 3 (5 worker 5 域 mTLS 真实接入, 5 --no-ff merge 后):
+  1. **Cargo.toml 3 次 conflict**: 5 worker 都加 	onic = { workspace = true } 行 (per L-CAND-014 模式, 类似 wave 2 mod.rs 4-way conflict), 主会话手修 3 次
+  2. **MtlsConfig skip_verify 字段 5 处缺失**: wave 3 admin worker (commit 9788404) 在 gm.rs MtlsConfig 加 skip_verify: bool 字段 (M4 升级), 但 social + match worker 在测试中用旧 4 字段 MtlsConfig 初始化, 编译失败 E0063 × 5 处 (3 在 social.rs unit test + 1 在 bot_social_smoke.rs + 1 在 bot_match_smoke.rs), 主会话手修 1 次
+  3. **公共 struct 字段同步问题**: 5 worker 跨域派生共享 MtlsConfig struct, admin 域加字段没通知其他 4 域, 编译失败
+- **来源 commit**: 947c97 (economy) + 62f79f (player) +  37edf3 (match) + 9ef3e5 (social) + 9788404 (admin) + 5 merge (3338ed3 / db9c6b2 / 7a06f89 / 8c75a00 / 2a432bc) + 4157731 (MtlsConfig 兼容 fix) + DDD Review v0.3.2 (per 9/10 18:24 JST)
+- **类型**: 防御性约束 (5 域派生公共依赖 + 公共 struct 同步)
+- **现状**: L1 cargo check 0 error 0.49s (主会话修后), L1.1 60 passed 0 failed 0.13s (wave 2 41 + wave 3 5 域 mTLS 真实 client + 4 admin GmClient unit = 60)
+- **措施** (候选 L21 派生约束):
+  1. **公共 struct 字段同步**: 5 worker 派生共享 struct (MtlsConfig / BotCore / BotAi / 域 proto) 时, 加字段前先扫描其他 worker 用例, 同步更新
+  2. **Cargo.toml 公共依赖合并**: 5 worker 派生 wave 派工前, 主会话手修 1 次 (per L-CAND-014 防御)
+  3. **wave 派工简报明文**: 简报加 "worker 加公共 struct 字段时, 必须先跑全 worktree grep 检查 + 同步更新其他 worker 用例" (per 12/2 季度评审)
+  4. **可选 L22 候选**: 5 域派生统一 mod 入口 (per L-CAND-014 L19 候选), 避免 5 worker 各自写 pub mod
+- **收益**: wave 4 + 后续派生 0 conflict 0 编译失败
+- **成本**: 低 (1 行简报 + 1 文件 grep 流程)
+- **风险**: wave 4 + 后续 5 域派生还是会有新冲突, 但 L21 + L22 候选能显著降低
+- **候选方案**: L21 派生约束 (5 域派生公共 struct 字段同步简报明文) + L22 候选 (统一 mod 入口)
+- **入档日期**: 2026-09-10 18:24 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L21 + L22 转正式)
