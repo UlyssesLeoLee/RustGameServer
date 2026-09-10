@@ -261,3 +261,26 @@
 - **候选方案**: L12.2 升级 (5 域派生场景用选项 2, worker 写不 commit) 或 L19 候选 (5 域派生强制统一 mod 入口)
 - **入档日期**: 2026-09-10 13:25 JST
 - **下次评审**: 2026-12-02 JST (Q4 季度评审)
+
+#### L-CAND-015: HPA minReplicas=2 强启动风暴 + SandboxChanged 风暴防御 (per 9/10 15:25 JST 入档)
+
+- **来源**: 9/10 15:14-15:30 JST 主会话按 Ulysses 拍板 opt1 用 kubectl apply 拉起 5 域 (per docs/deploy/01-k8s-manifests/), 0/12 PASS + 1 SKIP. 根因 (per AGENTS.md §2.5 L6 ST FAIL 排查顺序):
+  1. **HPA minReplicas=2 强启动风暴**: 4-02-hpa-templates.yaml 设 minReplicas=2, metrics-server 不可用 (FailedComputeMetricsReplicas 警告), HPA 反复拉新 pod → CPU Insufficient + SandboxChanged 风暴
+  2. **gm-backend image tag 不存在**: 50-gm-backend-service.yaml 旧占位  .1.0-gm-backend + imagePullPolicy: Never → ErrImageNeverPull
+  3. **30+ pod 单节点资源耗尽**: k3s-server 主进程 crash 2 次 (15:22 + 15:25 area) → API server connection refused
+- **来源 commit**: 85bfdf5 (fix(deploy) gm-backend image tag 0.1.0-cc13, per 9/10 15:30 JST) + DDD Review v0.3.1 (per 9/10 16:38 JST, §7.4 4 段历史 + §8 G12)
+- **类型**: 防御性约束 (K8s 启动 / 资源 / HPA 类)
+- **现状**: L1.2 E2E 业务级 ST 阻塞 (12 probe 0/12 PASS), 5 域 gRPC 业务级 mTLS 验证无法跑; HPA 模板存在但 metrics-server 未配, 单节点资源压力
+- **措施** (候选 L20 派生约束):
+  1. **HPA minReplicas=1 默认值**: 改 4-02-hpa-templates.yaml minReplicas=1, 避免强启动风暴
+  2. **metrics-server 必装**: 5 域起前先装 k3s metrics-server, HPA 才能正确 compute metric
+  3. **k3s apply 之前先 dry-run**: kubectl apply --dry-run=client -f <yaml> 验证 yaml 合法性
+  4. **分批 rollout**: 5 域 + cluster-ops 优先, 等 5 域 Running 后再 apply 基础设施 (postgres / prometheus / grafana / nats / otel)
+  5. **gm-backend image 同步 5 域 tag**: 改用 0.1.0-cc13 multi-arch (per 85bfdf5), 或推 0.1.0-gm-backend 到 ghcr.io
+  6. **多节点扩展**: 单节点资源压力是根本问题, 12/2 季度评审纳入集群扩缩容
+- **收益**: 12/2 季度评审对齐, Phase C 业务级 ST 路径清晰
+- **成本**: 低 (1 yaml 改 minReplicas=1 + metrics-server 装 1 个 deployment)
+- **风险**: HPA minReplicas=1 仍可能 CPU 不足, 但 5 域 + cluster-ops + gm-backend + postgres = 8 pod, 单节点跑得动
+- **候选方案**: L20 派生约束 (5 域 ST 启动前必装 metrics-server + HPA minReplicas=1)
+- **入档日期**: 2026-09-10 16:38 JST
+- **下次评审**: 2026-12-02 JST (Q4 季度评审, 候选 L20 转正式)

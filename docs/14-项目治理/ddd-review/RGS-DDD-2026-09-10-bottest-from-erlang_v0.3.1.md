@@ -9,10 +9,10 @@
 | 类型 | DDD Review 二审材料 (per DDD-REVIEW-TEMPLATE-v0.2) |
 | 关联 | commit `32cff91` (基线) / `3131cd0` (v0.1) / `16a4b19` (v0.2) / `8979e3c` (v0.3 Phase B 落地 merge) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / 闪烁之光 erlang 服务端 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\*`) / AGENTS.md v0.6.13 |
 | 基线 commit | `32cff91` (fix(deploy): 5 postgres manifest PLACEHOLDER 替换, per 9/10 WipeCluster 重建) |
-| 当前 commit | `8979e3c` (merge bottest/admin, v0.3 Phase B 全部 5 worker 落地) |
-| 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 + 5 域 BotAi 派生 |
-| 阶段 | Phase B 派工实施完成 (per D2 L1/L1.1/L1.2 三件套, L1+L1.1 ✅, L1.2 N/A 待 Phase C) |
-| 状态 | ✅ 二审通过 + Phase B 落地 (per 2026-09-10 12:59 JST Ulysses "可以自驱了" 拍板 → 13:25 JST 5 worker + 5 merge + L1.1 41 passed) |
+| 当前 commit | `85bfdf5` (fix(deploy) gm-backend image tag 0.1.0-cc13, 9/10 15:30 JST WipeCluster 重建后) |
+| 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 + 5 域 BotAi 派生 + 9/10 15:14-15:30 JST WipeCluster 重建 k3s 拉起 5 域尝试 |
+| 阶段 | Phase B 派工实施完成 + Phase C k3s 拉起阻塞 (per D2 L1/L1.1/L1.2 三件套, L1+L1.1 ✅, L1.2 N/A 待 SRE 介入) |
+| 状态 | ✅ 二审通过 + Phase B 落地 + 9/10 15:30 JST k3s 5 域 baseline 0/12 PASS 等 SRE 介入 (per 2026-09-10 15:14 JST Ulysses 拍板 opt1 落地) |
 
 ---
 
@@ -317,20 +317,36 @@ crates/rgs-testkit/src/
 - [x] 跑 `cargo test -p rgs-testkit --lib` (L1.1) — 41 passed 0 failed 0.12s
 - [x] 派生约束 L1 + L1.1 + L11 + L12 + L14 全部 ✅ (per §6)
 
-### 7.3 Phase C — 5 域集成 + 业务级 mTLS 验证 (⏳ 待 Phase C SRE 介入)
+### 7.3 Phase C — 5 域集成 + 业务级 mTLS 验证 (⏳ 阻塞: 9/10 15:30 JST k3s 5 域 baseline 0/12 等 SRE 介入)
 
 - [ ] 5 域真实 gRPC mTLS 接入 (替换 stub, 走 5 域 ST 业务级 mTLS 实践 commit `401ac5c` 证书导出 SOP)
 - [ ] `scripts/bot-driver.ps1` 主入口 (跨 5 域启动)
-- [ ] k3s 集群可达验证 (per `32cff91` + RGS-OPEN-QA-2026-09-09-k3s-cc13-fix.md)
+- [x] k3s 集群可达验证 (per `32cff91` + RGS-OPEN-QA-2026-09-09-k3s-cc13-fix.md) — 15:14 JST 尝试拉起 5 域失败, 0/12 PASS (per §7.4 4 段历史)
 - [ ] mTLS 业务级 ST (跟现有 `scripts/st/st-01..16-*.ps1` 集成, L1.2)
 - [ ] `tools/rgs-flash-mock/scripts/bot-smoke.sh` (备选, per 9/4 17:47 JST 守门)
 
-### 7.4 Phase D — 文档治理 + 季度评审 (⏳)
+### 7.4 Phase D — 文档治理 + 季度评审 (⏳ 9/10 14:35-15:30 JST 4 段历史已记录)
 
-- [x] `L-CANDIDATES.md` 加 `L-CAND-013` (D 盘 0 free 防御) + `L-CAND-014` (mod.rs 4-way conflict 防御)
-- [ ] 12/2 季度评审: 复盘 bot 框架落地, 评估 P1 5 条 + P2 1 条是否进入下季度
-- [ ] `AGENTS.md` 派生约束守护段补 bot 框架相关 L-约束 (L19? 5 worker 派生模式强制 L12.2 选项 2)
-- [ ] `RGS-CRITIQUE-IMPROVEMENT-2026-09-02` 升版 (v0.3?), 加 bot 框架章节
+**9/10 14:35-15:30 JST 4 段历史** (per 2026-09-10 15:14 JST Ulysses 拍板 "主会话用 kubectl apply 拉起 5 域" opt1 + 2026-09-10 16:36 JST 拍板 "接受 baseline 0/12 等 SRE 介入" 推荐项):
+
+1. **14:35 JST 跨 session**: `ca493fe feat(rgs-flash-mock): v0.1 PoC HTTP+actix-web 骨架 + 12 类别 21 RPC stub` (per Ulysses 拍板) — rgs-flash-mock 重新启用 (9/9 12:35 JST deprecated 后 v0.1 重新拍板)
+2. **15:14-15:17 JST 主会话**: `git status` baseline, k3s 1.36.4+k3s1 起来 (ulyssespc node Ready 19m), `kubectl apply` 全部 57 yaml (per docs/deploy/01-k8s-manifests/) — 5 域 + cluster-ops + gm-backend + postgres + nats + prometheus + grafana + otel + scene + battle + network-gateway
+3. **15:18-15:25 JST pod rollout 失败 (per AGENTS.md §2.5 L6 ST FAIL 排查顺序)**:
+   - **HPA minReplicas=2 强启动风暴**: `e4-02-hpa-templates.yaml` HPA minReplicas=2 + metrics-server 不可用 (FailedComputeMetricsReplicas 警告) → HPA 反复拉新 pod → CPU Insufficient + SandboxChanged 风暴
+   - **gm-backend image tag 不存在**: `50-gm-backend-service.yaml` 旧占位 `0.1.0-gm-backend` + `imagePullPolicy: Never` → ErrImageNeverPull
+   - **30+ pod 单节点资源耗尽**: k3s-server 主进程 crash 2 次 (15:22 + 15:25 area) → API server connection refused
+4. **15:30 JST 修复 + 落 commit**: scale 5 域到 1 (无效, HPA 立即拉到 2), 删 3 不必要 deployment (scene/battle/network-gateway), 改 `50-gm-backend-service.yaml` image tag 0.1.0-cc13 + IfNotPresent (commit `85bfdf5`), e2e-smoke 12 probe 仍 0/11 PASS + 1 SKIP
+
+**SRE 介入建议 (等 Ulysses 拍板)**:
+- 修 HPA minReplicas=2 风暴 (删 HPA 或 scale 0 + 等资源回收)
+- 装 metrics-server (k3s metrics-server 单独 deployment)
+- 推 gm-backend 镜像到 ghcr.io (`0.1.0-gm-backend` tag)
+- 单节点 → 多节点 (避免单点资源压力)
+
+- [x] `L-CANDIDATES.md` 加 `L-CAND-013` (D 盘 0 free 防御) + `L-CAND-014` (mod.rs 4-way conflict 防御) + `L-CAND-015` (HPA 风暴 + 启动风暴防御, per 9/10 15:25 JST)
+- [ ] 12/2 季度评审: 复盘 bot 框架落地, 评估 P1 5 条 + P2 1 条是否进入下季度 + 9/10 15:14-15:30 JST 4 段历史回顾
+- [ ] `AGENTS.md` 派生约束守护段补 bot 框架相关 L-约束 (L19? 5 worker 派生模式强制 L12.2 选项 2) + L20? (HPA 风暴防御, per L-CAND-015)
+- [ ] `RGS-CRITIQUE-IMPROVEMENT-2026-09-02` 升版 (v0.3?), 加 bot 框架章节 + 9/10 WipeCluster 重建反思章节
 
 ---
 
@@ -349,6 +365,7 @@ crates/rgs-testkit/src/
 | **G9** | v0.1 文档未在二审通过后, 在 `L-CANDIDATES.md` 加 L-CAND-010 | 二审通过后立即补 | Phase D |
 | **G10** | D 盘磁盘空间耗尽 (0 bytes free, 6 worker target dirs + 30 历史 target-* 累计), `cargo test --workspace --tests` 失败 `os error 112 磁盘空间不足` | 主会话 L1.1 跑测试被阻塞 | 主会话 fallback `CARGO_TARGET_DIR=E:\DevCache\cargo\bottest-main` (E 盘 105GB free), L1.1 41 passed; 已入档 L-CAND-013 |
 | **G11** | 5 worker wave 2 merge 时, `crates/rgs-testkit/src/bot/ai/mod.rs` 4 次 conflict (每个 worker 加 `pub mod <domain>;` 行, 顺序错乱) | match + admin 各 1 次 conflict, 主会话手修 2 次 (1 min 内) | 简报明文"mod.rs 加在 player 之后"; 已入档 L-CAND-014; L19 候选 (5 域派生强制 L12.2 选项 2) |
+| **G12** | 9/10 15:14-15:30 JST WipeCluster 重建后 k3s 5 域拉起尝试 0/12 PASS (per §7.4 4 段历史): HPA minReplicas=2 强启动风暴 + gm-backend image tag 缺失 + 30+ pod 单节点资源耗尽 → k3s API server 反复 crash | L1.2 E2E 业务级 ST 阻塞 | SRE 介入 (删 HPA + metrics-server + gm-backend 镜像重推 + 多节点); 已入档 L-CAND-015 (HPA 风暴防御候选) |
 
 ---
 
@@ -401,6 +418,7 @@ crates/rgs-testkit/src/
 | v0.1 | 2026-09-10 12:47 | 架构师(Mavis 接手 agent per DEC-008) | 初始 DDD Review 一审材料 (30 条 erlang 优点 + RGS 现状对比 + 12 条迁移建议 + 落地 3 步路径 + 派生约束守护段 + 9 条已知缺口), per 2026-09-10 12:45 JST ask_user 拍板 (起草 DDD 文档 + bot 落点 crates/rgs-testkit/src/bot/), commit `3131cd0` |
 | v0.2 | 2026-09-10 12:59 | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 | 二审通过 (per Ulysses "可以自驱了" 拍板): 状态机 ⏳ → ✅, §9.2 8 项全 ✅, 二审决定勾选 ✅ 通过, 立即进 Phase B 派工 5 worker 实施 P0 6 条 (M1-M6 + 5 域 PoC) |
 | v0.3 | 2026-09-10 13:25 | 架构师(Mavis 接手 agent per DEC-008) | Phase B 派工 5 worker 全部落地 + 主会话 4 --no-ff merge + L1.1 41 passed 0 failed 0.12s: 5 commits (`16bfb95` core / `90829d9` economy / `61872f5` social / `91e64e7` match / `2f50f0f` admin) + 4 merge (`540dd52` / `d7a34b6` / `5afe738` / `8979e3c`) + 9 条 → 11 条已知缺口 (G10 D 盘 0 free + G11 mod.rs 4-way conflict) + L-CAND-013/014 入档 + L1/L1.1/L11/L12/L14 全部 ✅; main HEAD `8979e3c` |
+| v0.3.1 | 2026-09-10 16:38 | 架构师(Mavis 接手 agent per DEC-008) | Phase C k3s 5 域拉起尝试 + 阻塞报告 (per 2026-09-10 15:14 JST Ulysses 拍板 opt1 落地 + 2026-09-10 16:36 JST 拍板"接受 baseline 0/12, 落报告等 SRE 介入"推荐项): §7.4 加 Phase C 9/10 14:35-15:30 JST 4 段历史 (rgs-flash-mock ca493fe 启用 → kubectl apply 57 yaml → HPA 风暴 + image tag 缺失 + k3s API server crash → 改 gm-backend image + commit `85bfdf5`) + §8 G12 HPA 风暴 + L-CAND-015 入档 (per 9/10 15:25 JST); main HEAD `85bfdf5`, 12 commits ahead of `32cff91` |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
