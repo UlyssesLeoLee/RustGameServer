@@ -54,7 +54,7 @@ spec:
       containers:
         - name: social
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["/app/bin/social-service"]
           securityContext:
             allowPrivilegeEscalation: false

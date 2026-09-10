@@ -66,7 +66,7 @@ spec:
       containers:
         - name: economy
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["/app/bin/economy-service"]
           securityContext:
             allowPrivilegeEscalation: false

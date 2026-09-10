@@ -74,7 +74,7 @@ spec:
       containers:
         - name: cluster-ops
           image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["/app/bin/cluster-ops"]
           securityContext:
             allowPrivilegeEscalation: false
