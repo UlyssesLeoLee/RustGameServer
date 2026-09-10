@@ -18,6 +18,9 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+# gRPC client (per DDD Review v0.3.1 §7.3 Phase C mTLS 业务级 ST 准备)
+# bot 框架 wave 3 起需要真实 tonic Channel + mTLS (per 5 域 ST 业务级 mTLS 实践 commit 401ac5c)
+tonic = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
