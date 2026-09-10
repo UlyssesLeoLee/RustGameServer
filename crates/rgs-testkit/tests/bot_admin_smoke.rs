@@ -106,3 +106,72 @@ async fn bot_admin_ai_5_acts_layout() {
     assert_eq!(acts[3], ActKind::Custom("GmCommand".to_string()));
     assert_eq!(acts[4], ActKind::Custom("BanAccount".to_string()));
 }
+
+#[tokio::test]
+async fn bot_admin_real_grpc_client_init() {
+    // wave 3 mTLS 真实接入集成测试 (per DDD Review v0.3.1 §7.3 Phase C)
+    //
+    // 验证目标:
+    // - AdminBotAi 默认持真实 tonic Channel (lazy, 0 网络往返)
+    // - endpoint = https://127.0.0.1:50055 (admin-service default port)
+    // - skip_verify = true (k3s baseline 0/12 阶段, per 9/10 16:36 JST 拍板)
+    // - issue(cmd) 不 panic, 返 Ok + GmResponse { ok: false, error: Some }
+    //   (k3s baseline 0/12 阶段真实 RPC 必失败, 不 panic 不静默吞)
+    //
+    // 真实连接待 SRE 介入 k3s baseline 恢复后跑 (per DDD Review v0.3.1 §7.3)
+
+    let stats = BotStats::new();
+    let bot = Bot::new("bot-admin-mtls-001", "admin", stats);
+    let ai = AdminBotAi::new();
+
+    // 1. 默认 AdminBotAi 持真实 lazy mTLS Channel
+    let gm = ai
+        .gm_client()
+        .expect("AdminBotAi default should have gm_client");
+    assert!(
+        gm.channel().is_some(),
+        "默认 GmClient 应建 lazy mTLS Channel (wave 3 升级)"
+    );
+    assert!(gm.skip_verify(), "k3s baseline 0/12 阶段默认 skip verify");
+    assert_eq!(gm.endpoint(), Some("https://127.0.0.1:50055"));
+
+    // 2. init 走真实 mTLS 通道, 不 panic
+    //    (k3s baseline 0/12 阶段真实 RPC 必失败, 返 Ok + error 字段填充)
+    ai.init(&bot).await.expect("init with real mTLS channel");
+
+    // 3. GmCommand handle 走真实 mTLS 通道, 不 panic
+    let r = ai
+        .handle(&bot, ActKind::Custom("GmCommand".to_string()))
+        .await;
+    assert!(
+        r.is_ok(),
+        "GmCommand handle 应返 Ok (real mTLS, k3s baseline 0/12 必失败但不 panic)"
+    );
+
+    // 4. BanAccount handle 走真实 mTLS 通道, 不 panic
+    let r = ai
+        .handle(&bot, ActKind::Custom("BanAccount".to_string()))
+        .await;
+    assert!(
+        r.is_ok(),
+        "BanAccount handle 应返 Ok (real mTLS, k3s baseline 0/12 必失败但不 panic)"
+    );
+}
+
+#[tokio::test]
+async fn bot_admin_5_acts_layout_with_mtls_channel() {
+    // 静态验证: AdminBotAi 默认 = 真实 lazy mTLS Channel
+    // 注: tonic 0.12 connect_lazy 需要 tokio runtime, 用 #[tokio::test]
+    let ai = AdminBotAi::new();
+    let acts = ai.act_list();
+    assert_eq!(acts.len(), 5, "act_list 应为 5 acts");
+
+    // 1 个 GmClient 默认 = 真实 lazy mTLS Channel
+    let gm = ai
+        .gm_client()
+        .expect("AdminBotAi default should have gm_client");
+    assert!(
+        gm.channel().is_some(),
+        "默认 GmClient 应建 lazy mTLS Channel"
+    );
+}

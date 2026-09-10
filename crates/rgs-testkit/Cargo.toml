@@ -18,6 +18,10 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+# wave 3 升级: rgs-testkit bot 框架 mTLS 真实接入 (per DDD Review v0.3.1 §7.3 Phase C)
+# - tonic 0.12 + transport + tls + tls-roots, 跟 5 域 ST 业务级 mTLS 实践 commit 401ac5c 对齐
+# - 5 域 binary 也用同 workspace tonic, lock 一致
+tonic = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
