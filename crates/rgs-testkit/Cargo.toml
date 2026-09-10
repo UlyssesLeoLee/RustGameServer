@@ -23,6 +23,10 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
+# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   rgs-testkit build.rs 生成的 match proto 引用 `::prost::Message`,
+#   0.13 必须 workspace dep 才能解析 (match-service 同款)
+prost = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
 # DB 测试 fixture
@@ -32,8 +36,16 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 # 54.x 接入 testcontainers-rs (feature-gated; 默认不编译,避免无 Docker 环境编译失败)
 # 启用: cargo test -p rgs-testkit --features testcontainers
+#       (需 Docker daemon 在 host 上运行)
 testcontainers = { version = "0.23", optional = true }
 testcontainers-modules = { version = "0.11", features = ["postgres"], optional = true }
+
+[build-dependencies]
+# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   rgs-testkit 自己 compile match proto 拿 MatchServiceClient<Channel>
+#   L-CAND-016 防御: match 域 worker 只加 match proto, 不改其他 4 域
+#   server 在 match-service 已编, build_server=false 避免重复
+tonic-build = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

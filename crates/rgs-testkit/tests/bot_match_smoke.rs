@@ -126,3 +126,72 @@ async fn bot_match_real_grpc_client_custom_endpoint() {
     );
     ai.init(&bot).await.expect("init with custom grpc");
 }
+
+/// wave 4 (per DDD Review v0.3.2 §7.3 L1.2 + 2026-09-10 19:00 JST 拍板):
+/// 验真实 RPC 调用 (`MatchServiceClient::enqueue_matchmaking`) 走
+/// `tokio::time::timeout(2s)`, 失败时返 `Ok(())` 不 panic.
+///
+/// 预期: k3s baseline 0/12 阶段, `connection refused` (127.0.0.1:50053 不可达),
+/// `tracing::warn!` + `Ok(())` 错误容忍模式, 不 panic 不静默吞.
+#[tokio::test]
+async fn bot_match_real_rpc_call_enqueue_pvp_returns_err_on_k3s_unreachable() {
+    // r#match 关键字 import (per L19 + 9/3 11:08 JST 派生约束) — wave 4 验 typed 客户端可构造
+    let ai = MatchBotAi::new();
+    let bot = Bot::new("bot-match-rpc-001", "match", BotStats::new());
+
+    // typed MatchServiceClient<Channel> 应可构造 (per wave 4 rgs-testkit build.rs 生成)
+    let client_opt = ai.match_service_client();
+    assert!(
+        client_opt.is_some(),
+        "MatchServiceClient<Channel> 应可构造 (per wave 4 typed client)"
+    );
+
+    // 真实 RPC 调用: enqueue_matchmaking — k3s baseline 0/12 预期失败
+    // 走 `Ok(())` 错误容忍, 不 panic 不 Err
+    let result = ai.enqueue_matchmaking(&bot).await;
+    assert!(
+        result.is_ok(),
+        "enqueue_matchmaking 应返 Ok(()) (k3s 不可达 走错误容忍, 不 panic)"
+    );
+
+    // 真实 RPC 调用: create_match — 同样预期失败, 走 Ok(())
+    let result = ai.create_match(&bot).await;
+    assert!(
+        result.is_ok(),
+        "create_match 应返 Ok(()) (k3s 不可达 走错误容忍, 不 panic)"
+    );
+
+    // 2s timeout 防御: 整个测试应在 5s 内完成 (2s * 2 RPC + 余量)
+    let start = std::time::Instant::now();
+    let _ = ai.enqueue_matchmaking(&bot).await;
+    let _ = ai.create_match(&bot).await;
+    let elapsed = start.elapsed();
+    assert!(
+        elapsed < std::time::Duration::from_secs(5),
+        "2 次真实 RPC 调用 (2s timeout each) 应在 5s 内完成, 实际耗时: {elapsed:?}"
+    );
+}
+
+/// wave 4: 自定义 endpoint RPC 真实调用 (per `tokio::time::timeout(2s)` 防 hang)
+///
+/// 同上一个 test, 但走自定义 endpoint, 验证 typed `MatchServiceClient<Channel>`
+/// 可在自定义 endpoint 上构造, 真实 RPC 失败时走 `Ok(())` 容忍.
+#[tokio::test]
+async fn bot_match_real_rpc_custom_endpoint_returns_ok() {
+    let grpc = MatchGrpcClient::builder()
+        .endpoint("https://match-staging.invalid:50053")
+        .skip_verify(true)
+        .build();
+    let ai = MatchBotAi::with_grpc_client(grpc);
+    let bot = Bot::new("bot-match-rpc-002", "match", BotStats::new());
+
+    // typed client 仍可构造 (per wave 4)
+    assert!(
+        ai.match_service_client().is_some(),
+        "自定义 endpoint typed client 应可构造"
+    );
+
+    // 真实 RPC 调用预期失败, 走 Ok(()) 容忍
+    let result = ai.enqueue_matchmaking(&bot).await;
+    assert!(result.is_ok(), "自定义 endpoint enqueue_matchmaking 应返 Ok(())");
+}
