@@ -5,9 +5,10 @@
 //! - `DefaultBotAi` 空壳实现, 5 域派生时填充 (per DDD Review v0.2 §5.2 ai/)
 //!
 //! 5 域派生 (wave 2 worker): player / economy / match / social / admin / quest
-//! 当前 PoC 只派生 `player` (见 [`player::PlayerBotAi`]).
+//! PoC 派生: `player` (见 [`player::PlayerBotAi`]) + `admin` (见 [`admin::AdminBotAi`]).
 
 pub mod player;
+pub mod admin;
 
 use async_trait::async_trait;
 
