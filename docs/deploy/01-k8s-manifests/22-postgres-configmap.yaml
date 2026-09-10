@@ -10,8 +10,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME  # 实际值：postgres-config
-  namespace: PLACEHOLDER_NAMESPACE
+  name: postgres-config  # 实际值：postgres-config
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/component: database

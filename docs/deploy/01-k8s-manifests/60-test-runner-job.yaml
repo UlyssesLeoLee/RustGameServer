@@ -22,7 +22,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: test-runner
-  namespace: PLACEHOLDER_NAMESPACE  # 实际:rgs-dev
+  namespace: rust-game-server  # 实际:rgs-dev
   labels:
     app.kubernetes.io/name: test-runner
     app.kubernetes.io/component: ci-tool
@@ -180,7 +180,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: rgs-test-runner
-  namespace: PLACEHOLDER_NAMESPACE  # 实际:rgs-dev
+  namespace: rust-game-server  # 实际:rgs-dev
   labels:
     app.kubernetes.io/name: test-runner
 ---

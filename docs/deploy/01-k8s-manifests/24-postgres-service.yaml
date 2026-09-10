@@ -10,8 +10,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: PLACEHOLDER_POSTGRES_SVC_NAME  # 实际值：postgres
-  namespace: PLACEHOLDER_NAMESPACE
+  name: postgres  # 实际值：postgres
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/component: database

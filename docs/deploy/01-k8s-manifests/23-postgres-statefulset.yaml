@@ -11,8 +11,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: PLACEHOLDER_POSTGRES_DEPLOY_NAME  # 实际值：postgres
-  namespace: PLACEHOLDER_NAMESPACE
+  name: postgres  # 实际值：postgres
+  namespace: rust-game-server
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/component: database
@@ -31,7 +31,7 @@ spec:
         app.kubernetes.io/name: postgres
         app.kubernetes.io/component: database
     spec:
-      serviceAccountName: PLACEHOLDER_POSTGRES_SA  # 实际值：postgres-service-account
+      serviceAccountName: postgres-service-account  # 实际值：postgres-service-account
       securityContext:
         fsGroup: 999         # postgres 用户 UID
         runAsUser: 999
@@ -47,12 +47,12 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: PLACEHOLDER_POSTGRES_SUPERUSER_SECRET
+                  name: postgres-superuser
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: PLACEHOLDER_POSTGRES_SUPERUSER_SECRET
+                  name: postgres-superuser
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_INITDB_ARGS
               value: "--encoding=UTF8 --locale=C"
@@ -72,11 +72,11 @@ spec:
               subPath: initdb.sql
           resources:
             requests:
-              cpu: PLACEHOLDER_POSTGRES_CPU_REQ     # 实际值：500m
-              memory: PLACEHOLDER_POSTGRES_MEM_REQ  # 实际值：1Gi
+              cpu: 500m     # 实际值：500m
+              memory: 1Gi  # 实际值：1Gi
             limits:
-              cpu: PLACEHOLDER_POSTGRES_CPU_LIM     # 实际值：2000m
-              memory: PLACEHOLDER_POSTGRES_MEM_LIM  # 实际值：4Gi
+              cpu: 2000m     # 实际值：2000m
+              memory: 4Gi  # 实际值：4Gi
           livenessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres"]
@@ -94,10 +94,10 @@ spec:
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
-            claimName: PLACEHOLDER_POSTGRES_PVC_NAME
+            claimName: postgres-data-pvc
         - name: postgres-config
           configMap:
-            name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME
+            name: postgres-config
         - name: postgres-initdb
           configMap:
-            name: PLACEHOLDER_POSTGRES_CONFIGMAP_NAME
+            name: postgres-config
