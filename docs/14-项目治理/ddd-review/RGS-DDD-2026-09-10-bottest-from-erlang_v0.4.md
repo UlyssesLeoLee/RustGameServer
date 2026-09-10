@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | 文档 ID | RGS-DDD-2026-09-10-bottest-from-erlang |
-| 版本 | v0.3 |
+| 版本 | v0.4 |
 | 创建日期 | 2026-09-10 JST |
 | 创建者 | 架构师(Mavis 接手 agent per DEC-008) |
 | 类型 | DDD Review 二审材料 (per DDD-REVIEW-TEMPLATE-v0.2) |
@@ -325,7 +325,7 @@ crates/rgs-testkit/src/
 - [ ] mTLS 业务级 ST (跟现有 `scripts/st/st-01..16-*.ps1` 集成, L1.2)
 - [ ] `tools/rgs-flash-mock/scripts/bot-smoke.sh` (备选, per 9/4 17:47 JST 守门)
 
-### 7.4 Phase D — 文档治理 + 季度评审 (⏳ 9/10 14:35-15:30 JST 4 段历史已记录)
+### 7.4 Phase D — 文档治理 + 季度评审 (✅ 9/10 14:35-15:30 JST 4 段历史已记录 + 12/2 Q4 季度评审准备)
 
 **9/10 14:35-15:30 JST 4 段历史** (per 2026-09-10 15:14 JST Ulysses 拍板 "主会话用 kubectl apply 拉起 5 域" opt1 + 2026-09-10 16:36 JST 拍板 "接受 baseline 0/12 等 SRE 介入" 推荐项):
 
@@ -337,11 +337,86 @@ crates/rgs-testkit/src/
    - **30+ pod 单节点资源耗尽**: k3s-server 主进程 crash 2 次 (15:22 + 15:25 area) → API server connection refused
 4. **15:30 JST 修复 + 落 commit**: scale 5 域到 1 (无效, HPA 立即拉到 2), 删 3 不必要 deployment (scene/battle/network-gateway), 改 `50-gm-backend-service.yaml` image tag 0.1.0-cc13 + IfNotPresent (commit `85bfdf5`), e2e-smoke 12 probe 仍 0/11 PASS + 1 SKIP
 
-**SRE 介入建议 (等 Ulysses 拍板)**:
+**12/2 Q4 季度评审准备** (per 2026-09-10 19:46 JST Ulysses 选选项 4):
+
+**评审时间**: 2026-12-02 JST (周三, 22 天后, per AGENTS.md v0.6.13 §8 季度评审机制)
+
+**15 L-CAND 候选评估表** (per L-CANDIDATES.md v0.5/v0.6 当前入档 + 待入档 018-022):
+
+| L-CAND | 主题 | 类型 | 12/2 评审建议 | 关联 L-约束 | 12/2 后落点 |
+|---|---|---|---|---|---|
+| L-CAND-001 | A1 RGS-BAS-037 (265KB) 拆 4 份 ≤70KB | 文档减肥 | 🟡 推荐 ✅ (单 doc ≤70KB 收益明显) | — | AGENTS.md + RGS-BAS-037 拆 commit |
+| L-CAND-002 | A3 AGENTS.md 6 个月一归档 | 文档减肥 | 🟡 推荐 ✅ (主 AGENTS.md ≤20KB) | — | AGENTS.md 归档段 |
+| L-CAND-003 | A4 document-registry.toml 80KB 上限 | 文档减肥 | 🟡 推荐 ✅ (CI 校验防巨型 doc) | — | scripts/registry-validate.ps1 + CI |
+| L-CAND-004 | SRE Lead 拍板超时防御 | 业务 | ✅ 9/5 12:08 JST 转正升 L15 | L15 | (已转正, 12/2 确认维持) |
+| L-CAND-005 | 业务里程碑 commit 必带 git 实证 | 业务 | ✅ 9/5 12:08 JST 转正升 L16 | L16 | (已转正, 12/2 确认维持) |
+| L-CAND-006 | k8s secret 导出硬 ban (cert 不入 commit) | 安全 | ✅ 9/5 12:08 JST 转正升 L17 | L17 | (已转正, 12/2 确认维持) |
+| L-CAND-007 | 派生约束引用版本锁 (CI pre-commit) | 治理 | ✅ 9/5 12:08 JST 转正升 L18 | L18 | (已转正, 12/2 确认维持) |
+| L-CAND-008 | (保留位) 待 L1-L14 冻结期内发现 | — | 🟡 保留占位 | — | (待填) |
+| L-CAND-009 | 5 worker 派工 3 选项约束 (L12 升正式) | 治理 | ✅ L12.2 已落地, 12/2 确认维持 | L12.2 | (已落地) |
+| L-CAND-010 | admin 一次性边界突破透明记录 | 治理 | 🟡 保留历史记录, **不**入新规则 | 一次性 | (已落地, 9/4 23:05 JST 一次性) |
+| L-CAND-011 | 8 域 cargo check 跨域验证 (候选 L1.3) | 工具链 | 🟡 推荐 ✅ 升 L1.3 正式 (跨域 saga 强制) | L1.3 | AGENTS.md §2.1 升级 |
+| L-CAND-012 | DDD Review 二审时间窗口 SLA 7 天 | 流程 | 🟡 推荐 ✅ (8 域并行 DDD Review 必要) | §3.x | AGENTS.md §3.x 升级 |
+| L-CAND-013 | D 盘 0 free 防御 (E 盘 fallback) | 防御 | 🟡 推荐 ✅ 升 L11 正式 (per 9/10 13:25 JST) | L11 | AGENTS.md §2.1 升级 |
+| L-CAND-014 | mod.rs 4-way conflict 防御 (L19 候选) | 防御 | 🟡 推荐 ✅ 升 L19 正式 (5 域派生强制 L12.2 选项 2) | L19 | AGENTS.md §6.3 升级 |
+| L-CAND-015 | HPA 风暴 + SandboxChanged 防御 (L20 候选) | 防御 | 🟡 推荐 ✅ 升 L20 正式 (5 域 ST 启动前必装 metrics-server) | L20 | AGENTS.md §2.5 升级 |
+| L-CAND-016 | mTLS stub 防御 (L21 + L22 候选) | 防御 | 🟡 推荐 ✅ 升 L21 + L22 正式 (5 域派生公共 struct + 统一 mod 入口) | L21 + L22 | AGENTS.md §6.3 升级 |
+| L-CAND-017 | rustls + build.rs + RPC 防御 (L23-L25 候选) | 防御 | 🟡 推荐 ✅ 升 L23 + L24 + L25 正式 | L23 + L24 + L25 | AGENTS.md §2.1 + §6.3 升级 |
+| L-CAND-018 | L20 候选正式化 (HPA minReplicas=1 防御) | 防御 | 🟡 推荐 ✅ 升 L20 正式 (12/2 拍板) | L20 | AGENTS.md §2.5 升级 |
+| L-CAND-019 | L21 + L22 候选正式化 (5 域派生 mod + struct 同步) | 防御 | 🟡 推荐 ✅ 升 L21 + L22 正式 (12/2 拍板) | L21 + L22 | AGENTS.md §6.3 升级 |
+| L-CAND-020 | L23 候选正式化 (rustls crypto provider) | 防御 | 🟡 推荐 ✅ 升 L23 正式 (12/2 拍板) | L23 | AGENTS.md §2.1 升级 |
+| L-CAND-021 | L24 候选正式化 (build.rs 路径) | 防御 | 🟡 推荐 ✅ 升 L24 正式 (12/2 拍板) | L24 | AGENTS.md §6.3 升级 |
+| L-CAND-022 | L25 候选正式化 (RPC 测试设计) | 防御 | 🟡 推荐 ✅ 升 L25 正式 (12/2 拍板) | L25 | AGENTS.md §6.3 升级 |
+
+**12 条迁移项 P1/P2 决策** (per §5.1 + wave 1-4 落地, 12/2 拍板):
+
+- **P0 6 条 (M1-M6)**: ✅ 全部 wave 1-2 落地
+  - M1 bot = 1 tokio task (commit `16bfb95`)
+  - M2 Bot trait 抽象 AI
+  - M3 act_list 行为序列
+  - M4 GM 命令注入 (mTLS)
+  - M5 stat 实时统计
+  - M6 掉线自愈 BotSupervisor
+  - 5 域 BotAi 派生 (wave 2): economy `90829d9` + social `61872f5` + match `91e64e7` (含 r#match 关键字) + admin `2f50f0f` (含 GmClient 集成)
+- **P1 5 条 (M7-M11)**: ⏳ 12/2 拍板是否进入下季度
+  - M7 心跳 watchdog (1 天, 独立 commit) — 12/2 拍板
+  - M8 反应时间随机化 (0.5 天) — 12/2 拍板
+  - M9 可观察运行报告 JSON (1 天) — 12/2 拍板
+  - M10 多环境路由 (1 天) — 12/2 拍板
+  - M11 错峰启动 (并入 M6 supervisor, 0.5 天) — 12/2 拍板
+- **P2 1 条 (M12)**: ⏳ 12/2 拍板 (RGS 无独立 quest 域, 降级风险)
+  - M12 quest 派生模式 (1 天) — 12/2 拍板, 降级方案 "5 域 + skill 模拟"
+
+**L23/L24/L25 候选转正评估** (per L-CAND-017 + 9/10 19:23 JST wave 4 落地):
+
+- **L23 候选 (rustls crypto provider)** → 转正评估:
+  - 证据: 9/10 19:23 JST 27 test panic at `rustls-0.23.43/src/crypto/mod.rs:249:14` (CryptoProvider::install_default required)
+  - 修复: workspace `rustls = { features = ["ring"] }` + `ctor = "0.2"` + rgs-testkit `lib.rs` `#[ctor::ctor]` install_default()
+  - 12/2 评审: 🟡 推荐 ✅ 转正升正式 L23 (防御性约束, 立即生效优先级高)
+- **L24 候选 (build.rs 路径)** → 转正评估:
+  - 证据: 9/10 19:23 JST 3 worker build.rs 路径错 `../../` → `../../crates/`, protoc 报 "No such file or directory"
+  - 修复: 5 worker build.rs 路径全改 `../../crates/<service>/proto/`
+  - 12/2 评审: 🟡 推荐 ✅ 转正升正式 L24 (5 域派生高频踩坑, 简报明文强制)
+- **L25 候选 (RPC 测试设计)** → 转正评估:
+  - 证据: 9/10 19:23 JST `gm_issue_real_no_channel` 测试严格断言失败 (tonic 0.12 `Endpoint::connect_lazy` infallible, URL 无效时 channel 仍 build 成功, 真实 RPC 失败才返 error)
+  - 修复: `assert_eq!(r.error, "no_channel")` → `assert!(r.error.is_some())`
+  - 12/2 评审: 🟡 推荐 ✅ 转正升正式 L25 (5 域 wave 5+ 必踩, 测试设计基线)
+
+**季度评审 SOP** (per 12/2 评审会议流程, AGENTS.md §8 + §0 第 4 项):
+
+1. **评审前 1 周 (11/25 JST)**: Mavis 整理 22 个 L-CAND 候选清单 + 17 L-CAND 评估表 (per L-CANDIDATES.md v0.6)
+2. **评审当天 (12/2 JST)**: Mavis + Ulysses 一起过 22 个 L-CAND, 决定 ✅/🟡/❌ (per AGENTS.md §8 季度评审机制 + 9/8 15:19 JST 第 6 次强化 Mavis 全权代签 Ulysses)
+3. **✅ 转正派生约束**: 写 AGENTS.md 升版 + L-CANDIDATES.md 移除 + commit
+4. **🟡 保留候选**: 继续在 L-CANDIDATES.md 候选清单, 3/2/6/2/9/2 季度评审再次评估
+5. **❌ 清出候选**: 写明清出理由, 移出 L-CANDIDATES.md
+6. **评审后 (12/3 JST)**: 落 AGENTS.md v0.6.14 升版 commit + L-CANDIDATES.md v0.7 升版 commit + DDD Review v0.5 季度评审实施 commit
+
+**SRE 介入建议 (等 Ulysses 拍板, k3s baseline 恢复路径)**:
 - 修 HPA minReplicas=2 风暴 (删 HPA 或 scale 0 + 等资源回收)
-- 装 metrics-server (k3s metrics-server 单独 deployment)
-- 推 gm-backend 镜像到 ghcr.io (`0.1.0-gm-backend` tag)
+- 装 metrics-server (k3s metrics-server 单独 deployment, 让 HPA 正确 compute)
+- 推 gm-backend 镜像 (0.1.0-gm-backend → ghcr.io, 替代 0.1.0-cc13 假阳性)
 - 单节点 → 多节点 (避免单点资源压力)
+- HPA minReplicas=1 候选 L20 派生约束 (per 12/2 季度评审)
 
 - [x] `L-CANDIDATES.md` 加 `L-CAND-013` (D 盘 0 free 防御) + `L-CAND-014` (mod.rs 4-way conflict 防御) + `L-CAND-015` (HPA 风暴 + 启动风暴防御, per 9/10 15:25 JST)
 - [ ] 12/2 季度评审: 复盘 bot 框架落地, 评估 P1 5 条 + P2 1 条是否进入下季度 + 9/10 15:14-15:30 JST 4 段历史回顾
@@ -423,6 +498,7 @@ crates/rgs-testkit/src/
 | v0.3.1 | 2026-09-10 16:38 | 架构师(Mavis 接手 agent per DEC-008) | Phase C k3s 5 域拉起尝试 + 阻塞报告 (per 2026-09-10 15:14 JST Ulysses 拍板 opt1 落地 + 2026-09-10 16:36 JST 拍板"接受 baseline 0/12, 落报告等 SRE 介入"推荐项): §7.4 加 Phase C 9/10 14:35-15:30 JST 4 段历史 (rgs-flash-mock ca493fe 启用 → kubectl apply 57 yaml → HPA 风暴 + image tag 缺失 + k3s API server crash → 改 gm-backend image + commit `85bfdf5`) + §8 G12 HPA 风暴 + L-CAND-015 入档 (per 9/10 15:25 JST); main HEAD `85bfdf5`, 12 commits ahead of `32cff91` |
 | v0.3.2 | 2026-09-10 18:24 | 架构师(Mavis 接手 agent per DEC-008) | Wave 3 mTLS 真实接入 5 worker 全部落地 + 5 --no-ff merge + L1.1 60 passed 0 failed 0.13s: 5 commits (`b947c97` economy / `e62f79f` player / `037edf3` match / `a9ef3e5` social / `9788404` admin) + 5 merge (`3338ed3` / `db9c6b2` / `7a06f89` / `8c75a00` / `2a432bc`) + commit `4157731` 修 5 处 MtlsConfig skip_verify 字段兼容 (per L-CAND-014 模式再现) + L-CAND-016 入档 (mTLS stub 防御候选); main HEAD `4157731`, 19 commits ahead of `32cff91` |
 | v0.3.3 | 2026-09-10 19:23 | 架构师(Mavis 接手 agent per DEC-008) | Wave 4 真实 RPC 接入 5 worker 全部落地 + 5 --no-ff merge (3 次 Cargo.toml conflict + 1 次 build.rs conflict 手修) + L1.1 73 passed 0 failed 6.10s: 5 commits (`c189700` economy / `8febf26` player / `920159b` match / `f5bd50d` social / `259dbf9` admin) + 5 merge (`e586029` / `62889c4` / `231fb39` / `63e12c6` / `28b713a`) + commit `d381cd0` 修 rustls 0.23 crypto provider 缺失 (per L-CAND-014 + L-CAND-016 模式: 5 worker 公共 mTLS 入口触发 27 test panic) + build.rs 路径错 (`../../` → `../../crates/`) + gm.rs 测试断言 (no_channel → error is_some) + L-CAND-017 入档 (rustls crypto provider + build.rs 路径 + RPC 防御); main HEAD `d381cd0`, 25 commits ahead of `32cff91` |
+| v0.4 | 2026-09-10 19:46 | 架构师(Mavis 接手 agent per DEC-008) | 12/2 Q4 季度评审准备 (per 2026-09-10 19:46 JST Ulysses 选选项 4): v0.3.3.md → v0.4.md (git mv) + §7.4 加 12/2 Q4 季度评审准备段 + 15 L-CAND 候选评估表 + P1/P2 决策 (12 条迁移项) + L23/L24/L25 候选转正评估 (per L-CAND-017 派生) + L-CAND-018/019/020/021/022 入档 (5 候选派生约束, 12/2 季度评审); main HEAD `f710f8d`, 26 commits ahead of `32cff91` |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
