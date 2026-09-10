@@ -23,9 +23,10 @@ tracing-subscriber = { workspace = true }
 #   transport + tls + tls-roots features: enable Endpoint::connect_lazy + ClientTlsConfig
 #   5 域 ST 业务级 mTLS 实践 commit 401ac5c
 tonic = { workspace = true }
-# 2026-09-10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
-#   build.rs 生成的 player proto 代码引用 `prost::Message` trait derive,
-#   rgs-testkit 需要有 prost dep 才能编译
+# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   rgs-testkit build.rs 生成的 proto 代码 (player / match / admin + 共享 common) 引用 `::prost::Message` trait derive,
+#   0.13 必须 workspace dep 才能解析 (5 域 service 同款)
+#   5 worker 公共依赖入口 (per L-CAND-014 模式 + L-CAND-016 防御: 5 worker 同步)
 prost = { workspace = true }
 # gRPC mock server (per 53.3 → 54.x: tonic gRPC fixture)
 mockito = "1"
@@ -39,12 +40,20 @@ uuid = { version = "1", features = ["v4", "serde"] }
 testcontainers = { version = "0.23", optional = true }
 testcontainers-modules = { version = "0.11", features = ["postgres"], optional = true }
 # 9/10 wave 4 mTLS 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
-#   economy 域 worker 加 economy-service 为 rgs-testkit dep,
-#   拿 economy_service::proto::v1::economy_service_client::EconomyServiceClient 真实 RPC 调用
+#   economy + social 域 worker 加各自 service 为 rgs-testkit dep (path),
+#   拿真实 service_client::XxxServiceClient 走真实 RPC 调用
 #   (per wave 3 player.rs 注释: "wave 4 worker 加 <domain>-service 为 rgs-testkit dev-dep 后接"
-#    实际是 lib 依赖因为 bot/ai/economy.rs 在 src/ 不是 tests/)
-#   5 域同步模式 (per L-CAND-016 防御), 本 worker 只加 economy, 不动其他 4 域
+#    实际是 lib 依赖因为 bot/ai/<domain>.rs 在 src/ 不是 tests/)
+#   5 域同步模式 (per L-CAND-016 防御), 本 worker 只加各自域, 不动其他 4 域
 economy-service = { path = "../economy-service" }
+social-service = { path = "../social-service" }
+
+[build-dependencies]
+# 9/10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
+#   rgs-testkit build.rs 编译 player + match + admin 域 proto + 共享 common.proto
+#   server 在 5 域 service 已编, build_server=false 避免重复
+#   L-CAND-016 防御: 5 worker 各自 build.rs 内容已主会话手修合并 (per L-CAND-014 模式再现)
+tonic-build = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -52,12 +61,6 @@ pretty_assertions = "1"
 tracing-test = "0.2"
 mockall = "0.13"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate"] }
-
-[build-dependencies]
-# 2026-09-10 wave 4 真实 RPC 接入 (per DDD Review v0.3.2 §7.3 L1.2):
-#   build.rs 编译 player.proto + common.proto, 暴露 generated client 给 bot::ai::player 用
-#   player-service 是 [[bin]] only, 不可作 dep, 改 rgs-testkit 内部 build.rs 不越界
-tonic-build = { workspace = true }
 
 [features]
 # 默认关: 不编译 PG 集成 test, CI 跑普通 test 不需要 DATABASE_URL.

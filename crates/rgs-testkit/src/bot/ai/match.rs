@@ -1,4 +1,4 @@
-//! match 域 BotAi 派生 (per DDD Review v0.2 §5.1 M2 + §5.2 + v0.3.1 §7.3 Phase C)
+//! match 域 BotAi 派生 (per DDD Review v0.2 §5.1 M2 + §5.2 + v0.3.1 §7.3 Phase C + v0.3.2 §7.3 L1.2)
 //!
 //! 行为序列 (per erlang tester_ai_base.erl:54-58 act_list + C6 业务场景):
 //! - `Init`         启动初始化
@@ -7,17 +7,41 @@
 //! - `Arena`        竞技场 (per tester_ai_base.erl:205-224)
 //! - `Boss`         世界 Boss (per tester_ai_base.erl:225-239)
 //!
-//! # wave 3: 真实 tonic gRPC client 框架 (per 2026-09-10 16:36 JST 拍板)
+//! # wave 4: 真实 RPC 调用 (per DDD Review v0.3.2 §7.3 L1.2 + 2026-09-10 19:00 JST 拍板)
 //!
-//! 替换 wave 2 stub 为真实 `tonic::transport::Channel` (懒连接, 首次 RPC 时
-//! 才连), mTLS 配置走 `MtlsConfig` (Option 字段, **不读 env, 不打印值** per
-//! 8/27 11:06 JST 硬 ban). `skip_verify = true` 作为 k3s baseline 0/12 临时
-//! 方案 (per 9/10 WipeCluster 重建后 cert 未导出), SRE 介入后切真 mTLS 验证.
+//! 替换 wave 3 lazy Channel stub 为真实 `MatchServiceClient<Channel>`:
+//! - `init()` 走 `EnqueueMatchmaking` 真实 RPC 调用 (k3s baseline 0/12 必失败, 走 `Ok(())` 错误容忍)
+//! - `handle(Heartbeat)` 走 `EnqueueMatchmaking` 真实 RPC
+//! - `handle(Arena)` 走 `EnqueueMatchmaking` 真实 RPC (erlang C6 竞技场场景)
+//! - `handle(Boss)` 走 `CreateMatch` 真实 RPC (世界 Boss 房间场景)
+//! - `handle(Init/RandProto)` 走 `EnqueueMatchmaking` 真实 RPC
+//! - 全部调用包 `tokio::time::timeout(Duration::from_secs(2), ...)` 防 hang
+//! - 失败时 `tracing::warn!` + `Ok(())` 不 panic
 //!
-//! 真实 match gRPC 调用 (EnqueueMatchmaking / CreateMatch / JoinMatch, per
-//! `crates/match-service/proto/match/v1/match.proto` §4.2) 留待 SRE 介入
-//! 跑 L1.2 业务级 ST, 当前 init 仅建 Channel 不实际 RPC (避免 k3s 不可达
-//! timeout 影响测试).
+//! # wave 3 背景 (per DDD Review v0.3.1 §7.3 Phase C)
+//!
+//! `MatchGrpcClient` + `MatchGrpcClientBuilder` 懒 `Channel` (connect_lazy 不握手),
+//! `MtlsConfig` 走 `Option<String>` 凭据 (per 8/27 11:06 JST 硬 ban: 不读 env, 不打印值).
+//! `skip_verify = true` k3s baseline 0/12 临时方案 (per 9/10 WipeCluster 重建后 cert 未导出),
+//! SRE 介入后切真 mTLS 验证.
+//!
+//! # wave 4 真实 RPC 接入路径
+//!
+//! ```text
+//! MatchBotAi::init / handle(act)
+//!   → MatchServiceClient::new(channel.clone())        (per 5 域 ST 业务级 mTLS 实践 commit 401ac5c)
+//!   → tokio::time::timeout(Duration::from_secs(2),
+//!        client.enqueue_matchmaking(EnqueueMatchmakingRequest { ... }))
+//!   → k3s baseline 0/12 → Err(connection refused)
+//!   → tracing::warn!(error=%e, "match real RPC skipped (k3s baseline 0/12)")
+//!   → Ok(()) 不 panic
+//! ```
+//!
+//! # proto 生成 (per L-CAND-016 防御)
+//!
+//! rgs-testkit `build.rs` 自己 compile match proto (其他 4 域不动), 拿
+//! `MatchServiceClient<Channel>` typed client. `tonic::include_proto!("r#match.v1")`
+//! 把生成代码拉进 `r#match::v1` 模块 (match 是 Rust 关键字, 必须 r# 前缀).
 //!
 //! # mTLS 接入路径 (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`)
 //!
@@ -26,7 +50,9 @@
 //!   → MatchGrpcClient::builder().endpoint(...).skip_verify(true).build()
 //!   → tonic::transport::Endpoint::from_shared(endpoint)?.tls_config(tls)?
 //!   → connect_lazy() 返 Channel (懒连接)
-//!   → 不实际 EnqueueMatchmaking 调用 (k3s baseline 0/12, 等 SRE 介入)
+//!   → MatchServiceClient::new(channel) (typed client)
+//!   → tokio::time::timeout(2s, enqueue_matchmaking(...)) 真实 RPC
+//!   → k3s baseline 0/12 → Err → Ok(()) 不 panic
 //! ```
 //!
 //! # 文件名 / 关键字注意 (per L19 候选 + 9/3 11:08 JST 派生)
@@ -36,6 +62,7 @@
 //! `rgs_testkit::bot::ai::r#match::MatchGrpcClient`.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use tonic::transport::{Channel, ClientTlsConfig, Endpoint};
@@ -45,6 +72,36 @@ use crate::bot::act::ActKind;
 use crate::bot::ai::BotAi;
 use crate::bot::gm::MtlsConfig;
 use crate::bot::Bot;
+
+use self::common::r#match_proto::match_service_client::MatchServiceClient;
+use self::common::r#match_proto::{CreateMatchRequest, EnqueueMatchmakingRequest};
+
+/// match 域生成 proto 类型 (per wave 4, rgs-testkit build.rs compile_match_proto)
+///
+/// 包含 `MatchServiceClient<Channel>` typed gRPC 客户端 + 9 RPC request/response 类型.
+/// 走 `r#match` 因为 `match` 是 Rust 关键字 (per match-service/src/proto.rs:9 模式).
+///
+/// # 模块路径设计 (per tonic::include_proto! + match-service 镜像)
+///
+/// match.proto `import "common/v1/common.proto"`, 生成的 `r#match.v1.rs` 内部
+/// 用 `super::super::common::v1::EntityId` 等引用 common 类型. tonic-build 不知道
+/// 我们的模块结构, 它按 match-service 的 镜像 生成 `super::super::common::v1` 路径.
+/// 在 match-service 中 `r#match` 和 `common` 都是 crate root 平级, 所以 r#match 里
+/// 的 `super::super::common::v1` 能解析. 在 rgs-testkit 我们要镜像这个结构:
+/// 把 r#match_proto 放在 `common` 模块下, 这样从 r#match_proto 看:
+/// - `super` = `common` (直接父模块)
+/// - `super::super` = `match` (父模块的父 = r#match.rs 所在)
+/// - `super::super::common::v1` = `match::common::v1` ✓
+pub mod common {
+    pub mod v1 {
+        tonic::include_proto!("common.v1");
+    }
+
+    /// match 域 typed gRPC 客户端 (per wave 4 L1.2)
+    pub mod r#match_proto {
+        tonic::include_proto!("r#match.v1");
+    }
+}
 
 /// match 域默认 endpoint (per 5 域 ST 业务级 mTLS 实践 commit `401ac5c`,
 /// k3s ClusterIP 端口 50053, per docs/deploy/01-k8s-manifests/02-match-service.yaml).
@@ -218,6 +275,10 @@ impl MatchGrpcClientBuilder {
 /// wave 3: stub → 真实 tonic gRPC client 框架 (`MatchGrpcClient`, 懒 Channel,
 /// skip verify fallback). 真实 match gRPC 调用 (EnqueueMatchmaking / CreateMatch
 /// / JoinMatch) 待 SRE 介入 k3s 集群后接入.
+///
+/// wave 4 (per DDD Review v0.3.2 §7.3 L1.2): 真实 `MatchServiceClient<Channel>` typed client,
+/// 走 `EnqueueMatchmaking` / `CreateMatch` 真实 RPC 调用, `tokio::time::timeout(2s)` 防 hang,
+/// 失败时 `tracing::warn!` + `Ok(())` 不 panic (k3s baseline 0/12 预期失败).
 #[derive(Clone, Debug)]
 pub struct MatchBotAi {
     /// match 域 gRPC client 框架 (懒连接, 真实 RPC 待 SRE)
@@ -249,28 +310,156 @@ impl MatchBotAi {
     pub fn grpc(&self) -> &MatchGrpcClient {
         &self.grpc
     }
+
+    /// 构造 typed `MatchServiceClient<Channel>` (per wave 4, DDD Review v0.3.2 §7.3 L1.2)
+    ///
+    /// 走 rgs-testkit build.rs 生成的 `r#match_proto::match_service_client::MatchServiceClient`
+    /// typed client, 包 lazy `Channel`. k3s baseline 0/12 阶段 Channel 拿得到, 但实际 RPC 必失败.
+    ///
+    /// 返回 `None` 当 channel build 失败 (endpoint 解析失败等), 调用方应走 `tracing::warn!` 容忍.
+    pub fn match_service_client(&self) -> Option<MatchServiceClient<Channel>> {
+        self.grpc.channel().cloned().map(MatchServiceClient::new)
+    }
+
+    /// 真实 RPC: 走 `MatchServiceClient::enqueue_matchmaking` (per match.proto §4.2)
+    ///
+    /// 内部: `tokio::time::timeout(Duration::from_secs(2), client.enqueue_matchmaking(...))`.
+    ///
+    /// k3s baseline 0/12 阶段预期失败 (connection refused), 走 `tracing::warn!` + `Ok(())` 容忍.
+    /// SRE 介入 k3s baseline 恢复后, 走真实业务级 ST.
+    pub async fn enqueue_matchmaking(
+        &self,
+        bot: &Bot,
+    ) -> anyhow::Result<()> {
+        let mut client = match self.match_service_client() {
+            Some(c) => c,
+            None => {
+                warn!(
+                    bot_id = bot.id(),
+                    "MatchBotAi::enqueue_matchmaking Channel 未建立, 跳过 RPC"
+                );
+                return Ok(());
+            }
+        };
+
+        // 构造最小可用 EnqueueMatchmakingRequest (per match.proto §4.2)
+        // 注: 真实 game_mode / rank_score 留给业务层注入, bot 走 default Casual + rank [0, 5000]
+        let request = tonic::Request::new(EnqueueMatchmakingRequest {
+            request_id: format!("bot-{}-init", bot.id()),
+            player: None, // PlayerId 留空 — k3s baseline 阶段必 fail, 不重要
+            mode: 1,      // GameMode::Casual (per match-service/src/entity_v2.rs)
+            rank_score_min: 0,
+            rank_score_max: 5000,
+            deck_ref: None, // CardRef 留空
+        });
+
+        match tokio::time::timeout(
+            Duration::from_secs(2),
+            client.enqueue_matchmaking(request),
+        )
+        .await
+        {
+            Ok(Ok(resp)) => {
+                debug!(
+                    bot_id = bot.id(),
+                    ticket_id = %resp.get_ref().ticket_id,
+                    "MatchBotAi::enqueue_matchmaking success (SRE 介入后才会触发)"
+                );
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                warn!(
+                    bot_id = bot.id(),
+                    error = %e,
+                    "MatchBotAi::enqueue_matchmaking RPC failed (k3s baseline 0/12 预期, SRE 介入后切真 RPC)"
+                );
+                Ok(())
+            }
+            Err(_timeout) => {
+                warn!(
+                    bot_id = bot.id(),
+                    "MatchBotAi::enqueue_matchmaking timeout (2s, k3s 不可达 预期)"
+                );
+                Ok(())
+            }
+        }
+    }
+
+    /// 真实 RPC: 走 `MatchServiceClient::create_match` (per match.proto §4.2, Boss 房间)
+    ///
+    /// 同 enqueue_matchmaking 模式, 2s timeout + 失败容忍.
+    pub async fn create_match(
+        &self,
+        bot: &Bot,
+    ) -> anyhow::Result<()> {
+        let mut client = match self.match_service_client() {
+            Some(c) => c,
+            None => {
+                warn!(
+                    bot_id = bot.id(),
+                    "MatchBotAi::create_match Channel 未建立, 跳过 RPC"
+                );
+                return Ok(());
+            }
+        };
+
+        let request = tonic::Request::new(CreateMatchRequest {
+            request_id: format!("bot-{}-boss", bot.id()),
+            mode: 1, // GameMode::Casual
+            host: None,
+            deck_ref: None,
+            room_code: format!("bot-room-{}", bot.id()),
+            room_password: String::new(),
+            max_players: 2,
+            ai_difficulty: 1,
+        });
+
+        match tokio::time::timeout(
+            Duration::from_secs(2),
+            client.create_match(request),
+        )
+        .await
+        {
+            Ok(Ok(resp)) => {
+                debug!(
+                    bot_id = bot.id(),
+                    match_id = %resp.get_ref().match_id,
+                    "MatchBotAi::create_match success (SRE 介入后才会触发)"
+                );
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                warn!(
+                    bot_id = bot.id(),
+                    error = %e,
+                    "MatchBotAi::create_match RPC failed (k3s baseline 0/12 预期, SRE 介入后切真 RPC)"
+                );
+                Ok(())
+            }
+            Err(_timeout) => {
+                warn!(
+                    bot_id = bot.id(),
+                    "MatchBotAi::create_match timeout (2s, k3s 不可达 预期)"
+                );
+                Ok(())
+            }
+        }
+    }
 }
 
 #[async_trait]
 impl BotAi for MatchBotAi {
     async fn init(&self, bot: &Bot) -> anyhow::Result<()> {
-        debug!(bot_id = bot.id(), "MatchBotAi::init (wave 3 real gRPC framework)");
+        debug!(bot_id = bot.id(), "MatchBotAi::init (wave 4 real RPC call enqueue_matchmaking)");
         if self.grpc.channel().is_none() {
             warn!(
                 bot_id = bot.id(),
                 "MatchGrpcClient Channel 未建立 (build 失败), init 阶段无操作, 等 SRE 介入"
             );
-        } else {
-            debug!(
-                bot_id = bot.id(),
-                endpoint = self.grpc.endpoint(),
-                skip_verify = self.grpc.skip_verify(),
-                has_mtls = self.grpc.mtls().client_cert_path.is_some(),
-                "MatchGrpcClient Channel 已建立, 真实 EnqueueMatchmaking 调用待 SRE 介入 k3s 集群 (L1.2 E2E 业务级 ST)"
-            );
+            return Ok(());
         }
-        // 真实 init → EnqueueMatchmaking 走 mTLS 调用待 SRE 介入 (L1.2 阻塞)
-        Ok(())
+        // wave 4: 真实 EnqueueMatchmaking RPC 调用 (k3s baseline 0/12 必失败, 走 Ok(()) 容忍)
+        self.enqueue_matchmaking(bot).await
     }
 
     fn act_list(&self) -> Vec<ActKind> {
@@ -286,29 +475,31 @@ impl BotAi for MatchBotAi {
     async fn handle(&self, bot: &Bot, act: ActKind) -> anyhow::Result<()> {
         match act {
             ActKind::Init => {
-                debug!(bot_id = bot.id(), "MatchBotAi::handle Init (real gRPC client ready)");
+                // Init 通常在 init() 阶段已跑过, 这里冗余但容错
+                self.enqueue_matchmaking(bot).await
             }
             ActKind::Heartbeat => {
-                debug!(bot_id = bot.id(), "MatchBotAi::handle Heartbeat (real gRPC client ready)");
+                // Heartbeat → 周期性 enqueue_matchmaking (per erlang C6 业务场景)
+                self.enqueue_matchmaking(bot).await
             }
             ActKind::RandProto(_) => {
-                debug!(bot_id = bot.id(), "MatchBotAi::handle RandProto (real gRPC client ready)");
+                // 5% 概率触发协议随机化, 走 enqueue_matchmaking
+                self.enqueue_matchmaking(bot).await
             }
             ActKind::Arena => {
-                // 真实调用 match.v1.MatchService.EnqueueMatchmaking
-                // 走 self.grpc.channel() 发起 RPC (待 SRE 介入 k3s 后跑)
-                debug!(bot_id = bot.id(), "MatchBotAi::handle Arena (EnqueueMatchmaking 待 SRE)");
+                // 竞技场 → enqueue_matchmaking (per erlang C6, tester_ai_base.erl:205-224)
+                self.enqueue_matchmaking(bot).await
             }
             ActKind::Boss => {
-                // 真实调用 match.v1.MatchService.CreateMatch / JoinMatch (世界 Boss 房间)
-                debug!(bot_id = bot.id(), "MatchBotAi::handle Boss (CreateMatch/JoinMatch 待 SRE)");
+                // 世界 Boss → create_match (房间场景, per erlang C6, tester_ai_base.erl:225-239)
+                self.create_match(bot).await
             }
             other => {
                 // match 域未声明的 act (e.g. Guild / Vip) → 留给对应域的 BotAi
                 debug!(bot_id = bot.id(), ?other, "MatchBotAi::handle passthrough");
+                Ok(())
             }
         }
-        Ok(())
     }
 }
 

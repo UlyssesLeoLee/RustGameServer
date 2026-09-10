@@ -1,61 +1,38 @@
 //! rgs-testkit build.rs (per DDD Review v0.3.2 §7.3 L1.2 wave 4 真实 RPC 接入)
 //!
-//! 编译 player.proto + common.proto, 暴露 `tonic::include_proto!("player.v1")` 给
-//! `bot::ai::player` 模块用, 拿到 `PlayerServiceClient` / `HeartbeatRequest` /
-//! `GetPlayerProfileRequest` 等 generated 类型.
+//! 编译 player / match / admin 域 proto + 共享 common.proto,
+//! 暴露 `tonic::include_proto!("player.v1")` / `tonic::include_proto!("match.v1")` /
+//! `tonic::include_proto!("admin.v1")` / `tonic::include_proto!("common.v1")` 给
+//! `bot::ai::{player,match,admin}` 模块 namespace 用, 拿到 typed client + request/response
 //!
-//! # 设计动机 (per task briefing "wave 4 worker 加 player-service 为 rgs-testkit dev-dep")
+//! 5 worker 公共入口 (per L-CAND-014 模式 + L-CAND-016 防御):
+//! - player / match / admin 域 worker 各自 build.rs 内容已主会话手修合并
+//! - economy / social 域 worker 走 path dep (`economy-service` / `social-service`),
+//!   不需要 rgs-testkit build.rs 编
 //!
-//! - `player-service` 当前是 `[[bin]]` only, 无 `[lib]`, 不可作为 rgs-testkit 的 dep
-//! - 加 `[lib]` 到 player-service Cargo.toml 越界 (任务简报: "不动 player-service")
-//! - 退而求其次: 在 rgs-testkit 内部 `build.rs` 重新编译 player proto, 用 `include_proto!`
-//!   宏拿 generated 类型. 不改 player-service 任何文件 (Cargo.toml / build.rs / service.rs / proto 都不动)
+//! L-CAND-016 防御: 5 worker 公共 proto RPC 调用要同步, 本 build.rs 是
+//! 5 worker 协同产物, 后续新增 5 域派生需更新 build.rs 路径列表
 //!
-//! # L-CAND-016 防御 (per 9/10 18:24 JST)
-//!
-//! - 本 worker 只编 player 域 proto, 不编其他 4 域 proto (economy / match / social / admin)
-//! - 5 域 worker 各自编自己域 proto, 避免 race condition
-//! - common.proto 是共享的, 5 域 worker 都需, 但 `tonic::include_proto!("common.v1")` 在 player
-//!   域只用于本域生成的代码, 不会跟其他 4 域冲突
-//!
-//! # 强约束 (per 8/27 11:06 JST 硬 ban)
-//!
-//! - 凭据 (mTLS cert path) 走 `Option<String>`, 编译期不涉及
-//! - 此 build.rs 只编 proto, 不读 cert, 不打印 secret
-//!
-//! # proto 路径
-//!
-//! - `player.proto` 在 `crates/player-service/proto/player/v1/`
-//! - `common.proto` 在 `crates/shared-platform/proto/common/v1/`
-//! - 都从 rgs-testkit crate root 算起, 用相对路径
-//!
-//! # 编译选项
-//!
-//! - `build_server(false)`: rgs-testkit 只用 client, 不需要 server
-//! - `build_client(true)`: 暴露 `PlayerServiceClient<Channel>` 等
-//!
-//! # 不重复声明
-//!
-//! 跟 `crates/player-service/build.rs` 同步存在, 各自编各自的 crate. `tonic-build` 不会冲突.
+//! k3s baseline 0/12 (per 9/10 16:36 JST 拍板 "接受 baseline 等 SRE 介入"):
+//! - 真实 RPC 调用预期失败 (connection refused), 走 `Ok(())` 错误容忍模式
+//! - 真实 cert 路径 placeholder (5 域 ST 业务级 mTLS 实践 commit 401ac5c cert 导出 SOP, SRE 介入后切换)
 
-use std::io::Result;
-
-fn main() -> Result<()> {
-    // 仅在 player 域 (本 worker scope) 编 player proto
-    // 不编其他 4 域 proto (per L-CAND-016 防御)
-    let protos: &[&str] = &[
-        "../player-service/proto/player/v1/player.proto",
-        "../shared-platform/proto/common/v1/common.proto",
-    ];
-    let includes: &[&str] = &[
-        "../player-service/proto",
-        "../shared-platform/proto",
-    ];
-
-    tonic_build::configure()
-        .build_server(false) // rgs-testkit 只用 client, 不需要 server
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _ = tonic_build::configure()
+        .build_server(false)
         .build_client(true)
-        .compile_protos(protos, includes)?;
-
+        .compile_protos(
+            &[
+                "../../player-service/proto/player/v1/player.proto",
+                "../../match-service/proto/match/v1/match.proto",
+                "../../admin-service/proto/admin/v1/admin.proto",
+                "../../player-service/proto/common/v1/common.proto",
+            ],
+            &[
+                "../../player-service/proto",
+                "../../match-service/proto",
+                "../../admin-service/proto",
+            ],
+        )?;
     Ok(())
 }
