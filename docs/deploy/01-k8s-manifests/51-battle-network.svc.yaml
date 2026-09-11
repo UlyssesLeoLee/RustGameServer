@@ -1,0 +1,93 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"domain-service","app.kubernetes.io/name":"battle","app.kubernetes.io/part-of":"rust-game-server"},"name":"battle-service","namespace":"rust-game-server"},"spec":{"ports":[{"name":"grpc","port":50058,"protocol":"TCP","targetPort":50058},{"name":"metrics","port":9464,"protocol":"TCP","targetPort":9464}],"selector":{"app.kubernetes.io/name":"battle"},"type":"ClusterIP"}}
+    creationTimestamp: "2026-09-06T10:40:59Z"
+    labels:
+      app.kubernetes.io/component: domain-service
+      app.kubernetes.io/name: battle
+      app.kubernetes.io/part-of: rust-game-server
+    name: battle-service
+    namespace: rust-game-server
+    resourceVersion: "189705"
+    uid: 904c866a-209f-4e10-88ad-2e7598d6f27b
+  spec:
+    clusterIP: 10.43.184.187
+    clusterIPs:
+    - 10.43.184.187
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: grpc
+      port: 50058
+      protocol: TCP
+      targetPort: 50058
+    - name: metrics
+      port: 9464
+      protocol: TCP
+      targetPort: 9464
+    selector:
+      app.kubernetes.io/name: battle
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"gateway","app.kubernetes.io/name":"network-gateway","app.kubernetes.io/part-of":"rust-game-server"},"name":"network-gateway","namespace":"rust-game-server"},"spec":{"ports":[{"name":"tcp-binary","port":7001,"protocol":"TCP","targetPort":7001},{"name":"admin-grpc","port":50090,"protocol":"TCP","targetPort":50090},{"name":"web-conn","port":8000,"protocol":"TCP","targetPort":8000},{"name":"epmd","port":4369,"protocol":"TCP","targetPort":4369},{"name":"metrics","port":9464,"protocol":"TCP","targetPort":9464}],"selector":{"app.kubernetes.io/name":"network-gateway"},"type":"ClusterIP"}}
+    creationTimestamp: "2026-09-06T10:41:00Z"
+    labels:
+      app.kubernetes.io/component: gateway
+      app.kubernetes.io/name: network-gateway
+      app.kubernetes.io/part-of: rust-game-server
+    name: network-gateway
+    namespace: rust-game-server
+    resourceVersion: "189730"
+    uid: 55c3bb51-59f1-4ea4-a10d-2d59ae306419
+  spec:
+    clusterIP: 10.43.4.135
+    clusterIPs:
+    - 10.43.4.135
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: tcp-binary
+      port: 7001
+      protocol: TCP
+      targetPort: 7001
+    - name: admin-grpc
+      port: 50090
+      protocol: TCP
+      targetPort: 50090
+    - name: web-conn
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    - name: epmd
+      port: 4369
+      protocol: TCP
+      targetPort: 4369
+    - name: metrics
+      port: 9464
+      protocol: TCP
+      targetPort: 9464
+    selector:
+      app.kubernetes.io/name: network-gateway
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""

@@ -1,0 +1,10 @@
+[2m2026-09-09T03:09:44.009564Z[0m [32m INFO[0m [2motel[0m[2m:[0m OTel exporter env detected (endpoint=http://otel-collector:4317, sample=0.1) — awaiting 53.12 OTel SDK 启用 [3mservice[0m[2m=[0m"admin-service" [3mendpoint[0m[2m=[0mhttp://otel-collector:4317 [3msample_ratio[0m[2m=[0m0.1
+[2m2026-09-09T03:09:44.010062Z[0m [32m INFO[0m [2madmin-service[0m[2m:[0m starting service at 0.0.0.0:50065, db=postgresql://admin_user:ulysses_local@127.0.0.1:5433/admin_db
+[2m2026-09-09T03:09:44.046005Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m relation "_sqlx_migrations" already exists, skipping
+[2m2026-09-09T03:09:44.174622Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m trigger "audit_log_no_update" for relation "audit_log_partitioned" does not exist, skipping
+[2m2026-09-09T03:09:44.194269Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m trigger "audit_log_no_delete" for relation "audit_log_partitioned" does not exist, skipping
+[2m2026-09-09T03:09:44.258489Z[0m [32m INFO[0m [2madmin-service[0m[2m:[0m audit_log startup verify PASS, checked=0 entries
+[2m2026-09-09T03:09:44.258757Z[0m [32m INFO[0m [2madmin-service[0m[2m:[0m admin-service started, DB pool size: 2
+[2m2026-09-09T03:09:46.306300Z[0m [33m WARN[0m [2madmin-service[0m[2m:[0m outbox relay DISABLED — NATS connect failed: NATS connect error: IO error: 由于目标计算机积极拒绝，无法连接。 (os error 10061); outbox rows will accumulate, manual recovery required
+[2m2026-09-09T03:09:46.306745Z[0m [33m WARN[0m [2madmin-service[0m[2m:[0m ⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)
+[2m2026-09-09T03:09:46.306959Z[0m [32m INFO[0m [2madmin-service[0m[2m:[0m binding gRPC server at 0.0.0.0:50065

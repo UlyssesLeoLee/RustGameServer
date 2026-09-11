@@ -1,0 +1,254 @@
+# 05-admin-service.yaml
+# 角色：admin 域（含 COC 集群运营中心控制面）Deployment + Service + HPA + PDB
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - admin 域 Lead：Ulysses（per DEC-008 兼任 + DEC-005 独立配置 + COC 控制面属 admin 域独立控制面）
+#   - binary size：8,392,192 bytes（per `cargo build --release --workspace` 2026-08-24 实测）
+#   - service.rs：421 行（per src/service.rs 2026-08-23）
+#   - 校准依据：RGS-INC-002 §4（admin 1 副本 / 低流量高权限 / COC 操作手密集）
+# 关联：
+#   - DTL-031 + SP-031 admin 域
+#   - ARC-051 集群运营中心（COC）
+#   - ARC-051 中心事件管理（CEM）
+#   - ARC-051 每功能原子升级（PFAU）
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-service-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+    app.kubernetes.io/component: coc-control-plane   # 关键标签 — COC 控制面
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/coc: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+    app.kubernetes.io/component: coc-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0"
+    rust-game-server.io/coc: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # COC 控制面单实例避免 audit log 撕裂
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: admin
+        app.kubernetes.io/component: coc-control-plane
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0"
+        rust-game-server.io/coc: "true"
+    spec:
+      serviceAccountName: admin-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: admin
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+          imagePullPolicy: IfNotPresent
+          command: ["/app/bin/admin-service"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: grpc
+              containerPort: 50055
+              protocol: TCP
+            - name: coc-web
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: "info,admin-service=debug,sqlx=warn,tonic=warn"
+            - name: GRPC_ADDR
+              value: "0.0.0.0:50055"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: admin-db-credentials
+                  key: url
+            - name: NATS_URI
+              value: "nats://nats:4222"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "admin-service"
+            - name: RGS_DOMAIN
+              value: "admin"
+            - name: COC_BIND_ADDR
+              value: "0.0.0.0:8080"
+            - name: ADMIN_AUDIT_LOG_RETENTION_DAYS
+              value: "365"
+            - name: COC_OPERATOR_REQUIRE_MFA
+              value: "true"
+            - name: PFAU_CONFIRM_DUAL_OPERATOR
+              value: "true"
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "0"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50055
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=admin.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50055
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=admin.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+            - name: coc-tls
+              mountPath: /etc/rgs/coc
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-admin-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
+        - name: coc-tls
+          secret:
+            secretName: coc-ops-secret
+            items:
+              - key: coc-admin-password
+                path: coc-admin-password
+              - key: coc-mfa-seed
+                path: coc-mfa-seed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+    app.kubernetes.io/component: coc-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: admin
+  ports:
+    - name: grpc
+      port: 50055
+      targetPort: 50055
+      protocol: TCP
+    - name: coc-web
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: admin-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: admin-service
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600   # COC 操作慢缩容
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+      selectPolicy: Max
+---
+# admin 域单实例 — 用 maxUnavailable 保留重启窗口
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: admin-service-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin

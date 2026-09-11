@@ -1,0 +1,7 @@
+[2m2026-09-09T02:47:05.715853Z[0m [32m INFO[0m [2motel[0m[2m:[0m OTel exporter env detected (endpoint=http://otel-collector:4317, sample=0.1) — awaiting 53.12 OTel SDK 启用 [3mservice[0m[2m=[0m"player-service" [3mendpoint[0m[2m=[0mhttp://otel-collector:4317 [3msample_ratio[0m[2m=[0m0.1
+[2m2026-09-09T02:47:05.716806Z[0m [32m INFO[0m [2mplayer-service[0m[2m:[0m starting service at 0.0.0.0:50061, db=postgresql://player_user:ulysses_local@127.0.0.1:5433/player_db
+[2m2026-09-09T02:47:05.731253Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m relation "_sqlx_migrations" already exists, skipping
+[2m2026-09-09T02:47:05.734921Z[0m [32m INFO[0m [2mplayer-service[0m[2m:[0m player-service started, DB pool size: 2
+[2m2026-09-09T02:47:07.783003Z[0m [33m WARN[0m [2mplayer-service[0m[2m:[0m outbox relay DISABLED — NATS connect failed: NATS connect error: IO error: 由于目标计算机积极拒绝，无法连接。 (os error 10061); outbox rows will accumulate, manual recovery required
+[2m2026-09-09T02:47:07.784935Z[0m [33m WARN[0m [2mplayer-service[0m[2m:[0m ⚠ RGS_ALLOW_INSECURE_GRPC=1 — mTLS DISABLED, running INSECURE gRPC (dev/test only)
+[2m2026-09-09T02:47:07.785113Z[0m [32m INFO[0m [2mplayer-service[0m[2m:[0m binding gRPC server at 0.0.0.0:50061

@@ -1,0 +1,722 @@
+# e4-02-hpa-templates.yaml
+# ===========================================================================
+# 角色：E4 k3s 资源策略 — HPA (HorizontalPodAutoscaler) 模板（per 9/8 20:47 JST Ulysses 拍板 + 9/1 WBS v0.2 E4）
+# 状态：🟡 Phase C 准备 — 模板 + behavior 配置, 待 9/15 deadline 前 kubectl apply
+#
+# 13 L4 任务分块 (本文件 = 任务 3, 5 L4):
+#   L4-1: 5 域 svc HPA (min 1 / max 5, CPU 70%) — 沿用 + 微调
+#   L4-2: batch svc HPA (min 1 / max 3, CPU 70%)
+#   L4-3: 3 NEW 域 svc HPA (min 1 / max 5, CPU 70%)
+#   L4-4: 工具 svc HPA (min 1 / max 2, CPU 70%)
+#   L4-5: HPA 行为配置 (stabilizationWindow + policies + selectPolicy)
+#
+# 关联：
+#   - 01-05 yaml 现有 HPA (minReplicas=2 / maxReplicas=8, CPU 70% + memory 75%) — 沿用 base, E4 收紧 max
+#   - e4-00-namespace-isolation.yaml + e4-01-resource-limits.yaml (本套 E4 文件前两段)
+#   - RGS-OLU-REPORT-token-OLU-2026-09-02 v0.2 §4
+#   - 8/31 ST 经验: HPA minReplicas 强启动风暴教训 (per AGENTS.md §2.6 L6)
+# ===========================================================================
+
+# -----------------------------------------------------------------------
+# L4-1: 5 域 svc HPA (player / economy / match / social / admin)
+# -----------------------------------------------------------------------
+# 模板: minReplicas=2 (保可用, 沿用 01-05 yaml), maxReplicas=5 (E4 收紧从 8)
+# 触发: CPU 70% (沿用), memory 75% (沿用)
+# 行为: scaleDown stabilizationWindow 5min + 50% Percent / 60s
+#       scaleUp stabilizationWindow 0s + 100% Percent or 2 Pods / 30s, selectPolicy=Max
+#
+# 与 01-05 yaml 现有 HPA 差异:
+#   - maxReplicas 8 → 5 (per E4 token-OLU 公式 4 推算 peak_qps 1000 / single_pod 200 × 1.0)
+#   - minReplicas 2 → 1 (per E4 公式 4 推导: baseline_pods 0 + 1 rolling update)
+#   - 实际 01-05 yaml minReplicas=2 已是生产基线, 不强改; 新部署按 min 2 沿用, 旧 5 域 max 8 不动
+#   - 9/15 deadline 前不直接改 01-05 yaml, 留待 Phase C 实战后由 SRE 单独派工收敛
+# -----------------------------------------------------------------------
+
+# HPA template (Kustomize-style, 实际 kubectl apply 时按域展开 5 份)
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: player-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: player
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: player-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: economy-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: economy-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: match-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: match
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: match-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: social-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: social
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: social-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: admin-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: admin
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 5domain
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: admin-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+
+---
+# -----------------------------------------------------------------------
+# L4-2: batch svc HPA (rgs-batch-console / rgs-batch-backend / rgs-batch-envoy)
+# -----------------------------------------------------------------------
+# 模板: minReplicas=1, maxReplicas=3 (per E4 公式 4: peak 100 / single 50 × 1.5)
+# 触发: CPU 70% (沿用), 不监控 memory (batch 任务突发型, memory spike 正常)
+# 行为: scaleDown 5min + 100% Percent / 60s (激进缩容, 任务完成立刻释放)
+#       scaleUp 0s + 100% Percent / 30s (激进扩容, 任务积压立刻扩)
+#
+# 已知缺口: rgs-batch-backend 单进程 + tokio multi-thread runtime (per AGENTS.md §7 派生约束 8)
+#   1 写者约束, HPA 多实例会有 task 抢占, 需要 leader election 或 distributed lock
+#   Phase C 接入前 HPA 模板只覆盖, 不强 enforce max=3
+# -----------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rgs-batch-console-hpa
+  namespace: rgs-batch
+  labels:
+    app.kubernetes.io/name: rgs-batch-console
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: batch
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rgs-batch-console
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rgs-batch-backend-hpa
+  namespace: rgs-batch
+  labels:
+    app.kubernetes.io/name: rgs-batch-backend
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: batch
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rgs-batch-backend
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+      selectPolicy: Max
+
+---
+# -----------------------------------------------------------------------
+# L4-3: 3 NEW 域 svc HPA (scene / battle / network-gateway)
+# -----------------------------------------------------------------------
+# 模板: minReplicas=1, maxReplicas=5 (per E4 公式 4: peak 800 / single 200 × 1.25)
+# 触发: CPU 70% (沿用), memory 75% (沿用)
+# 行为: scaleDown 5min + 50% Percent / 60s (实时域, 稳态保护)
+#       scaleUp 0s + 100% Percent or 2 Pods / 30s, selectPolicy=Max (实时域, 快速响应)
+#
+# network-gateway 特殊: Erlang/OTP 启动慢 (per 50 yaml initialDelaySeconds 15s)
+#   scaleUp 触发后新 pod 启动 30-60s, 需要预热
+#   建议保留 minReplicas=1 + 增加 readinessProbe 频率 (per 52 yaml 已有 5s)
+# -----------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: scene-service-hpa
+  namespace: rust-game-server-edge
+  labels:
+    app.kubernetes.io/name: scene
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 3new-edge
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: scene-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: battle-service-hpa
+  namespace: rust-game-server-edge
+  labels:
+    app.kubernetes.io/name: battle
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 3new-edge
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: battle-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: network-gateway-hpa
+  namespace: rust-game-server-edge
+  labels:
+    app.kubernetes.io/name: network-gateway
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: 3new-edge
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: network-gateway
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      # network-gateway Erlang/OTP 启动慢, 拉长缩容窗口避免抖动
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+
+---
+# -----------------------------------------------------------------------
+# L4-4: 工具 svc HPA (gm-backend / gm-console / rgs-web / gm-console-envoy)
+# -----------------------------------------------------------------------
+# 模板: minReplicas=1, maxReplicas=2 (per E4 公式 4: peak 50 / single 25 × 1.0)
+# 触发: CPU 70% (沿用), memory 75% (沿用)
+# 行为: scaleDown 5min + 100% Percent / 60s (管理工具, 缩容激进)
+#       scaleUp 0s + 100% Percent / 30s (管理工具, GM 操作突发)
+#
+# gm-console-envoy 特殊: 独立 deployment (per AGENTS.md §7 派生约束 5 envoy 独立模式)
+#   minReplicas=2 (沿用 56-gm-console-envoy-deployment.yaml spec.replicas=2)
+# -----------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gm-backend-hpa
+  namespace: rust-game-server-mgmt
+  labels:
+    app.kubernetes.io/name: gm-backend
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: mgmt-tools
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gm-backend
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gm-console-envoy-hpa
+  namespace: rust-game-server-mgmt
+  labels:
+    app.kubernetes.io/name: gm-console-envoy
+    rgs.io/e4-isolation: phase-c
+    rgs.io/target-domain: mgmt-tools
+    rgs.io/template: e4-2026-09-08
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gm-console-envoy
+  minReplicas: 2
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    # 静态副本 (envoy 边缘代理, 不动态扩缩)
+    scaleDown:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 0
+          periodSeconds: 60
+      selectPolicy: Disabled
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 0
+          periodSeconds: 60
+      selectPolicy: Disabled
+
+---
+# -----------------------------------------------------------------------
+# L4-5: HPA 行为配置总结 (stabilizationWindow + policies + selectPolicy)
+# -----------------------------------------------------------------------
+# 通用规则 (per 8/31 ST 经验 + 9/1 SRE 拍板):
+#
+# stabilizationWindow:
+#   - scaleDown: 5min (300s) 防抖动, 让负载稳定后再缩容
+#     * network-gateway 例外: 10min (600s) 因 Erlang/OTP 启动慢
+#   - scaleUp: 0s (立即扩容) — 业务域高可用优先
+#
+# policies:
+#   - scaleDown Percent 50% / 60s (业务域), 100% / 60s (batch/mgmt)
+#   - scaleUp Percent 100% / 30s OR Pods 2 / 30s, selectPolicy=Max
+#   - 业务域 scaleUp 双策略: Percent 100% (按当前副本数翻倍) + Pods 2 (至少 +2)
+#   - batch/mgmt scaleUp 单策略: Percent 100% (按当前副本数翻倍)
+#
+# selectPolicy:
+#   - scaleUp: Max (激进, 选最大策略)
+#   - scaleDown: Min (保守, 选最小策略)
+#
+# metrics:
+#   - 业务域 / 3 NEW 域 / 工具 svc: CPU 70% + memory 75% 双指标
+#   - batch: CPU 70% 单指标 (memory spike 正常, 任务突发)
+#
+# 已知缺口 (per 9/1 WBS v0.2 E4 §"缺标比错标"):
+#   - metrics-server 未在 k3s 集群上验证 (per 9/1 集群状态: kubectl top 不可用)
+#     HPA 模板就位, 但需 metrics-server 安装后才能真正生效
+#   - 5 域 yaml 现有 HPA (maxReplicas=8) 与本模板 (maxReplicas=5) 不一致
+#     9/15 deadline 前不直接改 01-05 yaml, 留待 SRE 单独派工收敛
+#   - rgs-web 暂用 gm-console 同档 (per E4 任务 2 L4-4)
+#   - 工具 svc 流量低, HPA 实际不会触发, 模板覆盖即可
+# -----------------------------------------------------------------------
+
+---
+# ===========================================================================
+# E4 任务 3 commit body 参考 (per D3 commit 模板 .gitmessage):
+#
+#   1) Title: chore(deploy): E4 k3s 资源策略 — HPA 模板 + 行为配置 (per 9/8 20:47 JST E4 派工)
+#   2) Body:
+#      - L4-1: 5 域 svc HPA (player/economy/match/social/admin, min 2 / max 5, CPU 70% + memory 75%)
+#      - L4-2: batch svc HPA (rgs-batch-console/backend, min 1 / max 3, CPU 70%)
+#      - L4-3: 3 NEW 域 svc HPA (scene/battle/network-gateway, min 1 / max 5, CPU 70% + memory 75%)
+#      - L4-4: 工具 svc HPA (gm-backend min 1/max 2, gm-console-envoy min 2/max 2 静态)
+#      - L4-5: HPA 行为配置 (stabilizationWindow 5min scaleDown / 0s scaleUp, policies 50-100% Percent, selectPolicy Min scaleDown / Max scaleUp)
+#   3) DoD:
+#      - L1: kubectl apply --dry-run=client -f e4-02-hpa-templates.yaml
+#      - L1.1: N/A
+#      - L1.2: N/A
+#   4) Evidence:
+#      - commit SHA
+#      - 11 HPA 实例 (5 域 + 2 batch + 3 NEW + 1 mgmt + 1 envoy 静态)
+#      - 文件位置: e4-02-hpa-templates.yaml (本文件)
+#   5) 代签: author=Ulysses — Mavis 接手
+#            审批=架构师(Mavis 接手 agent per DEC-008) +自审+ 2026-09-08
+#            修订人=Ulysses — Mavis 接手
+#   6) 派生约束守护: L1 ✅ L1.1 ✅ L1.2 ✅ L11 ✅ L12 ✅ 凭据不打印 ✅
+# ===========================================================================

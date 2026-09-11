@@ -1,0 +1,247 @@
+# 02-economy-service.yaml
+# 角色：economy 域 Deployment + Service + HPA + PDB
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - economy 域 Lead：Ulysses（per DEC-008 兼任 + DEC-005 独立配置）
+#   - binary size：8,664,064 bytes（per `cargo build --release --workspace` 2026-08-24 实测 — 6 域最大）
+#   - service.rs：718 行（per src/service.rs 2026-08-23 — 6 域最大，事务密集）
+#   - 校准依据：RGS-INC-002 §4（economy CPU 1000m / 事务密集 / Q-003 Saga 跨域核心）
+# 关联：
+#   - DTL-015/016 + SP-015/016 + Q-003 Saga 状态机
+#   - ARC-008 5 独立 DB 原则
+#   - RGS-BAS-100 Saga 事务框架
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: economy-service-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+    # Q-003 跨域核心 — 单独标签便于 NetworkPolicy 隔离
+    rust-game-server.io/saga-critical: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: economy-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0"
+    rust-game-server.io/domain: economy
+    rust-game-server.io/saga-critical: "true"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # economy 域事务敏感 — 全可用滚动
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: economy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: economy
+        app.kubernetes.io/component: domain-service
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0"
+        rust-game-server.io/domain: economy
+        rust-game-server.io/saga-critical: "true"
+    spec:
+      serviceAccountName: economy-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: economy
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+          imagePullPolicy: IfNotPresent
+          command: ["/app/bin/economy-service"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: grpc
+              containerPort: 50052
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: "info,economy-service=debug,sqlx=warn,tonic=warn"
+            - name: GRPC_ADDR
+              value: "0.0.0.0:50052"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: economy-db-credentials
+                  key: url
+            - name: NATS_URI
+              value: "nats://nats:4222"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "economy-service"
+            - name: RGS_DOMAIN
+              value: "economy"
+            - name: ECONOMY_SAGA_TIMEOUT_SEC
+              value: "30"
+            - name: ECONOMY_TX_RETRY_MAX
+              value: "3"
+            - name: ECONOMY_CURRENCY_DECIMALS
+              value: "2"
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "0"
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+            limits:
+              cpu: 4000m
+              memory: 4Gi
+          livenessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50052
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=economy.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/grpc_health_probe
+                - -addr=127.0.0.1:50052
+                - -tls
+                - -tls-client-cert=/etc/rgs/certs/server.pem
+                - -tls-client-key=/etc/rgs/certs/server.key
+                - -tls-ca-cert=/etc/rgs/certs/ca.pem
+                - -tls-server-name=economy.service
+                - -connect-timeout=2s
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-economy-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: economy-service
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+    app.kubernetes.io/component: domain-service
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: economy
+  ports:
+    - name: grpc
+      port: 50052
+      targetPort: 50052
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: economy-service-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: economy-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600   # economy 事务慢缩容（避免事务中缩容）
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: economy-service-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: economy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: economy

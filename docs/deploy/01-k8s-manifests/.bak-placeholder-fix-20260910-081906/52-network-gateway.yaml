@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"gateway","app.kubernetes.io/name":"network-gateway","app.kubernetes.io/part-of":"rust-game-server","app.kubernetes.io/version":"0.1.0-network-gateway","rust-game-server.io/domain":"network"},"name":"network-gateway","namespace":"rust-game-server"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/name":"network-gateway"}},"template":{"metadata":{"labels":{"app.kubernetes.io/component":"gateway","app.kubernetes.io/name":"network-gateway","app.kubernetes.io/part-of":"rust-game-server","app.kubernetes.io/version":"0.1.0-network-gateway","rust-game-server.io/domain":"network"}},"spec":{"containers":[{"command":["/app/bin/network-gateway"],"env":[{"name":"RUST_LOG","value":"info,network_gateway=debug"},{"name":"RGS_NETWORK_GATEWAY_TCP_ADDR","value":"0.0.0.0:7001"},{"name":"RGS_NETWORK_GATEWAY_ADMIN_GRPC_ADDR","value":"0.0.0.0:50090"},{"name":"RGS_NETWORK_GATEWAY_WEB_CONN_ADDR","value":"0.0.0.0:8000"},{"name":"RGS_NETWORK_GATEWAY_EPMD_ADDR","value":"0.0.0.0:4369"},{"name":"ERLANG_COOKIE","valueFrom":{"secretKeyRef":{"key":"erlang-cookie","name":"network-gateway-secret"}}},{"name":"RGS_NETWORK_GATEWAY_CLIENT_CERT_DIR","value":"/etc/rgs/certs"},{"name":"RGS_NETWORK_GATEWAY_DEFAULT_HOST","value":"player-service.rust-game-server.svc.cluster.local"},{"name":"RGS_NETWORK_GATEWAY_DOMAIN_SUFFIX","value":".svc.cluster.local"},{"name":"RGS_SVC_PLAYER_HOST","value":"player-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_ECONOMY_HOST","value":"economy-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_MATCH_HOST","value":"match-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_SOCIAL_HOST","value":"social-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_ADMIN_HOST","value":"admin-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_CLUSTER_OPS_HOST","value":"cluster-ops.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_SCENE_HOST","value":"scene-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SVC_BATTLE_HOST","value":"battle-service.rust-game-server.svc.cluster.local"},{"name":"RGS_SSL_CA_FILE_5DOMAIN","value":"/etc/rgs/certs/ca.pem"},{"name":"RGS_SSL_CA_FILE_3NEW","value":"/etc/rgs/certs/ca-sbn.pem"},{"name":"RGS_TLS_DIR","value":"/etc/rgs/certs"},{"name":"OTEL_EXPORTER_OTLP_ENDPOINT","value":"http://otel-collector:4317"},{"name":"OTEL_SERVICE_NAME","value":"network-gateway"}],"image":"ghcr.io/ulyssesleolee/rustgameserver:0.1.0-network-gateway","imagePullPolicy":"IfNotPresent","livenessProbe":{"failureThreshold":3,"initialDelaySeconds":15,"periodSeconds":10,"tcpSocket":{"port":"tcp-binary"},"timeoutSeconds":3},"name":"network-gateway","ports":[{"containerPort":7001,"name":"tcp-binary","protocol":"TCP"},{"containerPort":50090,"name":"admin-grpc","protocol":"TCP"},{"containerPort":8000,"name":"web-conn","protocol":"TCP"},{"containerPort":4369,"name":"epmd","protocol":"TCP"},{"containerPort":9464,"name":"metrics","protocol":"TCP"}],"readinessProbe":{"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":5,"tcpSocket":{"port":"admin-grpc"},"timeoutSeconds":3},"resources":{"limits":{"cpu":"1000m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"volumeMounts":[{"mountPath":"/etc/rgs/certs","name":"rgs-tls","readOnly":true}]}],"imagePullSecrets":[{"name":"ghcr-pull"}],"securityContext":{"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"serviceAccountName":"network-gateway-account","volumes":[{"name":"rgs-tls","projected":{"sources":[{"secret":{"items":[{"key":"tls.crt","path":"server.pem"},{"key":"tls.key","path":"server.key"}],"name":"rgs-secret-network-gateway-tls"}},{"secret":{"items":[{"key":"ca.pem","path":"ca.pem"}],"name":"rgs-secret-ca"}},{"secret":{"items":[{"key":"ca-sbn.pem","path":"ca-sbn.pem"}],"name":"rgs-secret-ca-sbn"}}]}}]}}}}
+  creationTimestamp: "2026-09-06T10:41:00Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/name: network-gateway
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: 0.1.0-network-gateway
+    rust-game-server.io/domain: network
+  name: network-gateway
+  namespace: rust-game-server
+  resourceVersion: "190532"
+  uid: afceb4de-8f90-4cb6-9828-5b47e9c2f55b
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/name: network-gateway
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: 0.1.0-network-gateway
+        rust-game-server.io/domain: network
+    spec:
+      containers:
+      - command:
+        - /app/bin/network-gateway
+        env:
+        - name: RUST_LOG
+          value: info,network_gateway=debug
+        - name: RGS_NETWORK_GATEWAY_TCP_ADDR
+          value: 0.0.0.0:7001
+        - name: RGS_NETWORK_GATEWAY_ADMIN_GRPC_ADDR
+          value: 0.0.0.0:50090
+        - name: RGS_NETWORK_GATEWAY_WEB_CONN_ADDR
+          value: 0.0.0.0:8000
+        - name: RGS_NETWORK_GATEWAY_EPMD_ADDR
+          value: 0.0.0.0:4369
+        - name: ERLANG_COOKIE
+          valueFrom:
+            secretKeyRef:
+              key: erlang-cookie
+              name: network-gateway-secret
+        - name: RGS_NETWORK_GATEWAY_CLIENT_CERT_DIR
+          value: /etc/rgs/certs
+        - name: RGS_NETWORK_GATEWAY_DEFAULT_HOST
+          value: player-service.rust-game-server.svc.cluster.local
+        - name: RGS_NETWORK_GATEWAY_DOMAIN_SUFFIX
+          value: .svc.cluster.local
+        - name: RGS_SVC_PLAYER_HOST
+          value: player-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_ECONOMY_HOST
+          value: economy-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_MATCH_HOST
+          value: match-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_SOCIAL_HOST
+          value: social-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_ADMIN_HOST
+          value: admin-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_CLUSTER_OPS_HOST
+          value: cluster-ops.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_SCENE_HOST
+          value: scene-service.rust-game-server.svc.cluster.local
+        - name: RGS_SVC_BATTLE_HOST
+          value: battle-service.rust-game-server.svc.cluster.local
+        - name: RGS_SSL_CA_FILE_5DOMAIN
+          value: /etc/rgs/certs/ca.pem
+        - name: RGS_SSL_CA_FILE_3NEW
+          value: /etc/rgs/certs/ca-sbn.pem
+        - name: RGS_TLS_DIR
+          value: /etc/rgs/certs
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector:4317
+        - name: OTEL_SERVICE_NAME
+          value: network-gateway
+        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-network-gateway
+        imagePullPolicy: Never
+        # 2026-09-08 W36: 验证 52-network-gateway.yaml probe 已为 tcpSocket
+        # (per W30 §3.1 describe pod, 11:18 09-08 实测), 不需改.
+        # 注: network-gateway binary 0ms exit 0 (W30 §3.3 根因), 即使 tcpSocket
+        # 探针 pass 也会 CrashLoopBackOff — 需主会话派 W37 修 binary (per brief 卡住 §).
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: tcp-binary
+          timeoutSeconds: 3
+        name: network-gateway
+        ports:
+        - containerPort: 7001
+          name: tcp-binary
+          protocol: TCP
+        - containerPort: 50090
+          name: admin-grpc
+          protocol: TCP
+        - containerPort: 8000
+          name: web-conn
+          protocol: TCP
+        - containerPort: 4369
+          name: epmd
+          protocol: TCP
+        - containerPort: 9464
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          tcpSocket:
+            port: admin-grpc
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: "1"
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/rgs/certs
+          name: rgs-tls
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: ghcr-pull
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: network-gateway-account
+      serviceAccountName: network-gateway-account
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: rgs-tls
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+              - key: tls.crt
+                path: server.pem
+              - key: tls.key
+                path: server.key
+              name: rgs-secret-network-gateway-tls
+          - secret:
+              items:
+              - key: ca.pem
+                path: ca.pem
+              name: rgs-secret-ca
+          - secret:
+              items:
+              - key: ca-sbn.pem
+                path: ca-sbn.pem
+              name: rgs-secret-ca-sbn
+status:
+  conditions:
+  - lastTransitionTime: "2026-09-06T10:41:00Z"
+    lastUpdateTime: "2026-09-06T10:41:00Z"
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: "False"
+    type: Available
+  - lastTransitionTime: "2026-09-06T10:51:01Z"
+    lastUpdateTime: "2026-09-06T10:51:01Z"
+    message: ReplicaSet "network-gateway-6744786d48" has timed out progressing.
+    reason: ProgressDeadlineExceeded
+    status: "False"
+    type: Progressing
+  observedGeneration: 1
+  replicas: 1
+  terminatingReplicas: 0
+  unavailableReplicas: 1
+  updatedReplicas: 1

@@ -1,0 +1,36 @@
+# 25-postgres-networkpolicy.yaml
+# 角色：PostgreSQL NetworkPolicy（补齐 Ingress 放行 — default-deny-all 下若无此规则，所有域连接超时）
+# 背景：allow-dns-and-api 只声明了 policyTypes: [Egress]，只放行"客户端出站到 postgres:5432"，
+#       未放行"postgres 入站接受连接"。default-deny-all 对所有 Pod 同时拒绝 Ingress + Egress，
+#       导致 6 业务域全部在 sqlx pool 建连阶段 timeout（Client→postgres 出站包被 postgres 侧 Ingress 丢弃）。
+# 关联：ARC-008 5 独立 DB 原则，30-nats-networkpolicy.yaml（同构模式）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # 6 业务域（domain-service + coc-control-plane + cluster-control-plane）访问 5432
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: domain-service
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: coc-control-plane
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: cluster-control-plane
+      ports:
+        - protocol: TCP
+          port: 5432

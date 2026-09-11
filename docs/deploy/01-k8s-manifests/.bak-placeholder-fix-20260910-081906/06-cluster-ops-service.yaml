@@ -1,0 +1,207 @@
+# 06-cluster-ops-service.yaml
+# 角色：cluster-ops 域 Deployment + Service + PDB（Active-Active 固定 3 副本，禁 HPA）
+# 状态：🟢 NO-GO 解除后实际值落地（per RGS-DEC-NOGO-001 + DEC-008 12 角色签字 2026-08-24）
+# 实际值校准：
+#   - cluster-ops 域 Lead：Ulysses（SRE 兼任，per DEC-008）
+#   - binary size：8,384,512 bytes（per `cargo build --release --workspace` 2026-08-24 实测）
+#   - service.rs：323 行（per src/service.rs 2026-08-23）
+#   - 校准依据：ADR-0052 Active-Active 固定 3 副本 + topologySpreadConstraints 跨节点
+# 重要约束（per ADR-0052）：
+#   - Active-Active 固定 3 副本
+#   - **禁 HPA**（弹性扩缩会破坏 all-reachable 假设）
+#   - all-reachable PFAU 容错哲学：每个节点都能响应 PFAU 操作
+# 关联：
+#   - ADR-0052 Active-Active ClusterOpsService 与 all-reachable PFAU 容错哲学
+#   - ARC-051 集群运营中心
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-ops-service-account
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: cluster-ops
+    app.kubernetes.io/component: cluster-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+    rust-game-server.io/active-active: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-ops
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: cluster-ops
+    app.kubernetes.io/component: cluster-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/version: "0.1.0"
+    rust-game-server.io/active-active: "true"
+spec:
+  replicas: 3   # 固定，**禁 HPA**
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # Active-Active 必须全可用
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-ops
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cluster-ops
+        app.kubernetes.io/component: cluster-control-plane
+        app.kubernetes.io/part-of: rust-game-server
+        app.kubernetes.io/version: "0.1.0"
+        rust-game-server.io/active-active: "true"
+    spec:
+      # 强制分布到不同节点（per ADR-0052 — Active-Active 需跨节点）
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: cluster-ops
+      serviceAccountName: cluster-ops-service-account
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cluster-ops
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops
+          imagePullPolicy: IfNotPresent
+          command: ["/app/bin/cluster-ops"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: grpc
+              containerPort: 50056
+              protocol: TCP
+            - name: pfau
+              containerPort: 9090
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: "info,cluster-ops=debug,sqlx=warn,tonic=warn"
+            - name: GRPC_ADDR
+              value: "0.0.0.0:50056"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cluster-ops-db-credentials
+                  key: url
+            - name: NATS_URI
+              value: "nats://nats:4222"
+            - name: RGS_TLS_DIR
+              value: "/etc/rgs/certs"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "cluster-ops"
+            - name: RGS_DOMAIN
+              value: "cluster-ops"
+            - name: PFAU_REACHABILITY_MODE
+              value: "all-reachable"   # per ADR-0052
+            - name: PFAU_ATOMIC_TIMEOUT_SEC
+              value: "60"
+            - name: PFAU_ROLLBACK_TIMEOUT_SEC
+              value: "30"
+            - name: RGS_ALLOW_INSECURE_GRPC
+              value: "0"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            tcpSocket:
+              port: 50056
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 50056
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: rgs-tls
+              mountPath: /etc/rgs/certs
+              readOnly: true
+      volumes:
+        - name: rgs-tls
+          projected:
+            sources:
+              - secret:
+                  name: rgs-secret-cluster-ops-tls
+                  items:
+                    - key: tls.crt
+                      path: server.pem
+                    - key: tls.key
+                      path: server.key
+              - secret:
+                  name: rgs-secret-ca
+                  items:
+                    - key: ca.pem
+                      path: ca.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-ops
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: cluster-ops
+    app.kubernetes.io/component: cluster-control-plane
+    app.kubernetes.io/part-of: rust-game-server
+spec:
+  # Headless — Active-Active 需 DNS A 记录直接指向每个 pod（per ADR-0052 all-reachable）
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: cluster-ops
+  ports:
+    - name: grpc
+      port: 50056
+      targetPort: 50056
+      protocol: TCP
+    - name: pfau
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+---
+# cluster-ops 域 **禁 HPA**（per ADR-0052 — 固定 3 副本，破坏 all-reachable 假设）
+# 若需横向扩缩，须先修改 ADR-0052 并经架构师 + SRE 联合签字
+---
+# Active-Active — minAvailable=2 保持多数派
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cluster-ops-pdb
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/name: cluster-ops
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-ops
