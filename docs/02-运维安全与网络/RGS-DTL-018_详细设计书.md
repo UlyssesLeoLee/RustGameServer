@@ -299,6 +299,222 @@ fn get_current_restriction_flags(account_id: AccountId) -> u64 {
 
 后续详细设计建议顺序：与RGS-DTL-017/020/021同批次并行推进。
 
+> **v0.3 升版补登（per ULYS-1 后续测试设计补全任务）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：各IdP（Apple/Google/Steam...）适配子模块各自的SDK调用细节、`ComplianceRuleSet`各地区具体规则的填值（TBD-IDN-001）"——这两项在 v0.3 仍属本文档范围外（SDK 调用属实现阶段；地区规则填值须经法务评审），但**身份联合（含绑定/解绑/冲突）、IdP 降级、合规规则引擎（含未成年人限制留痕）、独立权限域** 的测试设计已在 v0.3 由本文档§7「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+# 7. 后续测试设计补全（v0.3 test-design follow-up，per ULYS-1）
+
+## 7.1 范围与既有占位
+
+原 v0.1 仅给出"各 IdP 适配子模块 SDK 调用、`ComplianceRuleSet` 各地区规则填值"两类不覆盖项；v0.1/v0.3 均**未**为本文档 §3 协议格式、§4 解绑校验/IdP 降级、§5 合规判定配套测试设计。本次补全聚焦 v0.1 已落实的逻辑（DTL 既有章节正文）的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL018-IDP-001~004 | IdP 验证与降级（含重试、退避、错误分类） | §3 / §4.2 | UT/IT | FR-IDN-001/002、ARC-009 |
+| TC-DTL018-BIND-001~004 | 绑定/解绑/冲突检测 | §2 / §4.1 | UT/IT | FR-IDN-006/007、BR-IDN-003 |
+| TC-DTL018-COMPL-001~005 | 合规规则引擎与未成年人限制 | §5 | UT/IT | FR-CMP-001~005、TBD-IDN-001 |
+| TC-DTL018-DDL-001~002 | DDL 唯一索引/独立权限域 | §2 | IT | FR-IDN-006、§4.2 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`）。
+
+## 7.2 IdP 验证与降级测试用例（TC-DTL018-IDP-NNN）
+
+### TC-DTL018-IDP-001 — IdP Token 验证 happy path
+
+- **层**：IT（含 mock IdP HTTP endpoint）；**对应 DTL §**：§4.2 `verify_idp_token` + §3 `ThirdPartyLoginRequest`
+- **覆盖需求**：FR-IDN-001（第三方登录）
+- **前置条件**：mock IdP endpoint 返回 200 + `sub=ABC123`；`PlayerFixture::player("A")` 已建
+- **Steps**：
+  - **Given**：`idp_type="google"`, `token="valid-token"`, `intent=GUEST_UPGRADE`
+  - **When**：调用 `verify_idp_token("google", "valid-token")`
+  - **Then**：返回 `Ok(IdpSubjectId("ABC123"))`，无重试（首次成功）
+- **断言**：调用次数 = 1（mock IdP HTTP 仅触发一次）；`attempt` 计数 = 0。
+
+### TC-DTL018-IDP-002 — IdP `TokenInvalid`（4xx）区分于 `ServiceUnavailable`
+
+- **层**：UT；**对应 DTL §**：§4.2 第 11-14 行 + 关键边界条件说明
+- **覆盖需求**：FR-IDN-001、§4.2 关键边界条件（两类错误全程保持独立类型，per §4.2 第 36 行）
+- **前置条件**：mock IdP 返回 401（4xx）
+- **Steps**：
+  - **Given**：`call_idp_verify_endpoint` 返回 `Err(IdpCallError::TokenInvalid)`
+  - **When**：`verify_idp_token("apple", "bad-token")`
+  - **Then**：返回 `Err(IdpVerifyError::TokenInvalid)`；**不**重试；**不**调用 `RETRY_BACKOFF.next`
+- **断言**：调用次数 = 1；与 `ServiceUnavailable` 是不同错误类型（**不**合并为单一"验证失败"）。
+
+### TC-DTL018-IDP-003 — IdP `ServiceUnavailable`（5xx/timeout）重试耗尽
+
+- **层**：UT；**对应 DTL §**：§4.2 第 16-23 行
+- **覆盖需求**：ARC-009 标准消费者重试参数量级
+- **前置条件**：mock IdP 连续返回 `ServiceUnavailable`（MAX_IDP_RETRY=3 次）
+- **Steps**：
+  - **Given**：每次重试均返回 `ServiceUnavailable`
+  - **When**：`verify_idp_token("steam", "tok")`
+  - **Then**：
+    - 调用次数 = MAX_IDP_RETRY + 1 = 4
+    - `RETRY_BACKOFF.next` 被调用 3 次（per §4.2 第 19 行）
+    - 返回 `Err(IdpVerifyError::ServiceUnavailable)`（与 TokenInvalid 独立的错误类型）
+- **断言**：重试耗尽后不再继续；与 `TokenInvalid` 在外部不可混淆（per §4.2 第 36 行注释）。
+
+### TC-DTL018-IDP-004 — IdP 不可用 + 玩家有其他登录方式：提示替代登录
+
+- **层**：UT；**对应 DTL §**：§4.2 `handle_login_after_verify_failure` 第 25-32 行
+- **覆盖需求**：FR-IDN-002（IdP 降级）
+- **前置条件**：`IdpVerifyError::ServiceUnavailable`，玩家 hint 显示 `is_guest_capable=true`
+- **Steps**：
+  - **Given**：`account_hint=Some(&hint)`，hint.is_guest_capable=true
+  - **When**：`handle_login_after_verify_failure(ServiceUnavailable, Some(&hint))`
+  - **Then**：返回 `LoginGuidance::SuggestAlternative`（per §4.2 第 32 行）
+- **断言**：玩家有其他登录方式时不返回 `TemporarilyUnavailable`；**不**触发 `emit_alert("idp_unavailable_no_alternative", ...)`。
+
+## 7.3 绑定/解绑/冲突测试用例（TC-DTL018-BIND-NNN）
+
+### TC-DTL018-BIND-001 — 解绑前置校验：剩余登录方式=0 拒绝
+
+- **层**：UT；**对应 DTL §**：§4.1 `precheck_unbind` 第 8-14 行
+- **覆盖需求**：FR-IDN-007（解绑前置校验服务器侧强制）
+- **前置条件**：`remaining_links=0`，`is_guest_capable=false`
+- **Steps**：
+  - **Given**：玩家仅有 1 条 AccountIdentityLink，尝试解绑该 link
+  - **When**：`precheck_unbind(account_id, unbind_link_id)`
+  - **Then**：返回 `Err(UnbindError::WouldLeaveNoLoginMethod)`
+- **断言**：服务器侧强制拒绝，**不**存在客户端提示后可放行的路径（per §4.1 第 15 行注释）。
+
+### TC-DTL018-BIND-002 — 解绑前置校验：游客能力兜底
+
+- **层**：UT；**对应 DTL §**：§4.1
+- **覆盖需求**：FR-IDN-007（解绑前置校验）
+- **前置条件**：`remaining_links=0`，`is_guest_capable=true`
+- **Steps**：
+  - **Given**：玩家账号支持游客登录（`is_guest_capable=true`）
+  - **When**：`precheck_unbind(account_id, unbind_link_id)`
+  - **Then**：返回 `Ok(())`，`remaining_login_methods=0+1=1`
+- **断言**：游客能力被计入 `remaining_login_methods`（per §4.1 第 10-11 行）。
+
+### TC-DTL018-BIND-003 — 绑定冲突检测（FR-IDN-006）
+
+- **层**：IT（Testcontainers PG 18.6）；**对应 DTL §**：§2 DDL `uq_identity_links_idp UNIQUE (idp_type, idp_subject_id)` + §3.1
+- **覆盖需求**：FR-IDN-006（绑定冲突检测）
+- **前置条件**：已存在 `(idp_type='google', idp_subject_id='SUB-A')` 绑定到 `account_id=X`
+- **Steps**：
+  - **When**：`INSERT INTO account_identity_links(idp_type, idp_subject_id, account_id) VALUES ('google', 'SUB-A', 'Y')`
+  - **Then**：PG 拒绝（unique violation）
+  - **When（应用层）**：捕获 unique violation 后写 `identity_binding_audit_logs(action='bind_rejected_conflict')`
+  - **Then**：审计留痕，不将冲突合并入既有数据（per §1.2 "绑定冲突不触发数据合并"约束）
+- **断言**：DB 层唯一索引是冲突检测的物理兜底；应用层不掩盖冲突。
+
+### TC-DTL018-BIND-004 — `precheck_unbind` 与 `execute_unbind` 调用链强制
+
+- **层**：UT；**对应 DTL §**：§4.1 `execute_unbind` 第 16-22 行
+- **覆盖需求**：FR-IDN-007 + §4.1 第 17 行"校验与执行在同一函数调用链内，不允许调用方跳过 precheck 直接执行"
+- **前置条件**：mock `precheck_unbind` 返回 `Err(WouldLeaveNoLoginMethod)`
+- **Steps**：
+  - **Given**：`precheck_unbind` 返回 Err
+  - **When**：`execute_unbind(account_id, link_id)`
+  - **Then**：`delete_identity_link` **不**被调用（被 `?` 提前返回短路）；`append_audit_log` **不**被调用
+- **断言**：不存在绕过 precheck 的执行路径；测试覆盖"调用链强制"约束。
+
+## 7.4 合规规则引擎测试用例（TC-DTL018-COMPL-NNN）
+
+### TC-DTL018-COMPL-001 — 实名认证未完成 → `PAYMENT_DISABLED` 触发
+
+- **层**：UT；**对应 DTL §**：§5 `evaluate_compliance` 第 12-16 行
+- **覆盖需求**：FR-CMP-001（实名认证强制）
+- **前置条件**：`rule_set.require_real_name=true`，`profile.verification_status=未认证`
+- **Steps**：
+  - **Given**：未认证玩家尝试充值
+  - **When**：`evaluate_compliance(account_id, "CN", ctx)`
+  - **Then**：`new_flags & PAYMENT_DISABLED != 0`；首次触发则生成一条 `restriction_triggered` 审计
+- **断言**：flags 与 audit 在同一事务（per §5 第 28 行 + 第 36 行批注）；**不**出现"flags 已更新但 audit 未写"的中间态。
+
+### TC-DTL018-COMPL-002 — 实名认证完成后 → `PAYMENT_DISABLED` 解除
+
+- **层**：UT；**对应 DTL §**：§5 第 13 行（`!= VerificationStatus::Verified`）
+- **覆盖需求**：FR-CMP-002（认证完成解除限制）
+- **前置条件**：`profile.verification_status=已认证`
+- **Steps**：
+  - **Given**：玩家已通过实名认证
+  - **When**：`evaluate_compliance(account_id, "CN", ctx)`
+  - **Then**：`PAYMENT_DISABLED` 位**不**被置位（per §5 第 13 行）；**不**新增 `restriction_triggered`/`restriction_lifted` 审计
+- **断言**：flags diff 判定（per §5 第 26-32 行）正确识别"未变化"。
+
+### TC-DTL018-COMPL-003 — 未成年人每日游玩时长超限 → `PLAYTIME_LIMIT` 触发
+
+- **层**：UT；**对应 DTL §**：§5 第 18-27 行
+- **覆盖需求**：FR-CMP-003（未成年人游玩时长限制）
+- **前置条件**：`rule_set.minor_playtime_limit_minutes=Some(120)`，`profile.age_bracket=Minor`，`query_today_playtime_minutes(account_id)=120`
+- **Steps**：
+  - **Given**：未成年人当天游玩 120 分钟
+  - **When**：`evaluate_compliance(account_id, "CN", ctx)`
+  - **Then**：`new_flags & PLAYTIME_LIMIT != 0`；生成 `restriction_triggered` 审计，`restriction_type='playtime_limit'`
+- **断言**：边界条件 = 120 时即触发（per §5 第 22-23 行 `>= limit_minutes`）。
+
+### TC-DTL018-COMPL-004 — 未成年人游玩时长次日重置
+
+- **层**：UT；**对应 DTL §**：§5 第 24-26 行（`is_daily_reset` 分支）
+- **覆盖需求**：FR-CMP-004（每日重置）
+- **前置条件**：`PLAYTIME_LIMIT` 已置位；`ctx.is_daily_reset=true`
+- **Steps**：
+  - **Given**：跨日首次调用 `evaluate_compliance`，`is_daily_reset=true`
+  - **When**：调用
+  - **Then**：`new_flags &= !PLAYTIME_LIMIT`（per §5 第 25 行）；生成 `restriction_lifted` 审计
+- **断言**：每日重置解除路径生效；flags 与 audit 仍在同一事务。
+
+### TC-DTL018-COMPL-005 — flags 与 audit 同事务写入（不变量测试）
+
+- **层**：IT；**对应 DTL §**：§5 第 36 行注释"flags 变更与审计留痕在同一事务内完成"
+- **覆盖需求**：§5 第 36 行强约束
+- **前置条件**：Testcontainers 启动 `player_db`（含 `compliance_profiles` + `minor_restriction_audit_logs`）
+- **Steps**：
+  - **Given**：mock 让 `persist_profile_and_audit` 内的 audit_log INSERT 失败
+  - **When**：`evaluate_compliance` 调用
+  - **Then**：`compliance_profiles.restriction_flags` **不**被更新（整事务回滚）
+- **断言**：flags 与 audit 是同一事务的强约束；不允许"flags 已更新、audit 未写"的中间态。
+
+## 7.5 DDL/权限域测试用例（TC-DTL018-DDL-NNN）
+
+### TC-DTL018-DDL-001 — `account_identity_links` UNIQUE 约束兜底冲突检测
+
+- **层**：IT；**对应 DTL §**：§2 DDL `CONSTRAINT uq_identity_links_idp UNIQUE (idp_type, idp_subject_id)`
+- **覆盖需求**：FR-IDN-006
+- **前置条件**：PG 18.6 实例
+- **Steps**：
+  - **Given**：已存在 `(idp_type='apple', idp_subject_id='SUB-X')`
+  - **When**：尝试 INSERT 重复键
+  - **Then**：PG 拒绝；`identity_binding_audit_logs.action='bind_rejected_conflict'` 写入一条
+- **断言**：DB 唯一约束与 audit log 联动；与 TC-DTL018-BIND-003 互补。
+
+### TC-DTL018-DDL-002 — `identity_verification_vault` 独立权限域
+
+- **层**：IT + DB role fixtures；**对应 DTL §**：§2 `identity_verification_vault` 表注释 + §4.2 独立权限域
+- **覆盖需求**：§4.2 原始凭证独立存储
+- **前置条件**：PG 实例创建两角色：`app_service_role`（业务服务，无 vault 表权限）、`compliance_auditor_role`（合规/法务，仅 SELECT vault）
+- **Steps**：
+  - **When**：以 `app_service_role` 连接，尝试 `SELECT * FROM identity_verification_vault`
+  - **Then**：PG 拒绝（permission denied）
+  - **When**：以 `compliance_auditor_role` 连接，`SELECT` 同一表
+  - **Then**：成功
+- **断言**：业务服务角色对该表**无任何权限**；合规/法务角色**仅** SELECT；权限矩阵与 §2 第 49 行注释一致。
+
+## 7.6 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 9 | 60% | `PlayerFixture::player()`、`mockall` mocks（IdP endpoint、precheck、evaluate_compliance） |
+| IT（Testcontainers PG 18.6） | 6 | 40% | `pg_test_db`、双 DB 角色 fixtures、`PlayerFixture::player()` |
+
+## 7.7 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL018-IDP-001~004 | FR-IDN-001/002、ARC-009 | RGS-BAS-018 | §3、§4.2 |
+| TC-DTL018-BIND-001~002 | FR-IDN-007 | RGS-BAS-018 | §4.1 |
+| TC-DTL018-BIND-003 | FR-IDN-006 | RGS-BAS-018 | §2、§3.1 |
+| TC-DTL018-BIND-004 | FR-IDN-007 调用链强制 | RGS-BAS-018 | §4.1 |
+| TC-DTL018-COMPL-001~005 | FR-CMP-001~005 | RGS-BAS-018 | §5 |
+| TC-DTL018-DDL-001 | FR-IDN-006 | RGS-BAS-018 | §2 |
+| TC-DTL018-DDL-002 | §4.2 独立权限域 | RGS-BAS-018 | §2、§4.2 |
+
 ---
 
 # 7. 追溯性

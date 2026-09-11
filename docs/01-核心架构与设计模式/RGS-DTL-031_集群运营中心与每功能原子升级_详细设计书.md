@@ -451,3 +451,287 @@ deploy/
 - **不引入新设计**：本节复核对账表不引入任何新需求 / 新设计 / 新决策；如未来父 BAS-031 实质升版（v0.2+），本节相应行将依据 BAS 新内容刷新，本 DTL §1~§11 正文章节按"不改变任何既有决定"原则保持稳定。
 - **开放项**：BAS-031 §11 风险表中的 TBD-COC-003~006 / RSK-COC-002~004 / ISS-092 在 DTL-031 仍由"§11.1 第一行代码前必须完成"清单作为前置 Gate 覆盖，未在 DTL §11.3 重复登记；DTL-031 §11.1 的 6 条 Gate 全部仍为"待 Gate 批准"状态，本 v0.3 升版不解除任何 Gate。
 
+> **v0.3 升版补登（per ULYS-1 后续测试设计补全任务）**：本文档 §11.2「测试证据」表登记 5 类测试契约（Contract test / PFAU 集成测试 / Cluster DAG 测试 / Plugin isolation / Active-Active chaos）的最低要求——v0.1~v0.3 均未为本文档 §11.2 各项测试配套**字段级测试设计**。本次补全聚焦 v0.1 已落实的逻辑 + v0.2/v0.3 新增章节（all-reachable、K8s 健康事实源、Active-Active + OCC/fencing、Plugin 隔离、Cluster DAG 校验）的可测试设计点，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§11.2 证据矩阵未实现"缺口。本节末声明该事实，§11.1 6 条 Gate 全部仍为"待 Gate 批准"状态，本测试设计不解除任何 Gate。
+
+---
+
+## 13. 后续测试设计补全（v0.3 test-design follow-up，per ULYS-1）
+
+### 13.1 范围与既有占位
+
+本文档 §11.2 测试证据表登记 5 类测试契约但**未给出字段级测试设计**；本次补全为 §11.2 每一行最低要求配套 TC 设计，覆盖范围：
+
+| 序号 | 测试主题 | 对应 §11.2 行 | 对应本文档章节 | 测试层 | 关联 Gate |
+|---|---|---|---|---|---|
+| TC-DTL031-CONTRACT-001~003 | Contract test（AdminService 转发、`request_id` 幂等、OCC/fencing） | Contract test | §7 API 契约 + §5 fencing | UT/IT | G-CODE-02 |
+| TC-DTL031-PFAU-001~005 | PFAU 集成测试（失联/分区/旧 ACK/目标集合变化/暂停回滚） | PFAU 集成测试 | §4 状态机 + §5 fencing | IT | G-CODE-03 / ADR-0052 |
+| TC-DTL031-DAG-001~005 | Cluster DAG 测试（环依赖/缺基础设施/并行/失败阻断/逆拓扑回滚） | Cluster DAG 测试 | §6.2 manifest 校验 + §10 Cargo 边界 | UT/IT | G-CODE-05 |
+| TC-DTL031-PLUGIN-001~003 | Plugin isolation（panic/超限/连续异常） | Plugin isolation | §9 + §6 插件边界 | UT/IT | ADR-0020 |
+| TC-DTL031-CHAOS-001~004 | Active-Active chaos（双副本并发/租约丢失/DB failover/跨 AZ） | Active-Active chaos | §5 双副本策略 + ADR-0052 | IT | ADR-0052 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`）。
+
+### 13.2 Contract test 测试用例（TC-DTL031-CONTRACT-NNN）
+
+#### TC-DTL031-CONTRACT-001 — AdminService 转发：所有写命令经 RBAC 校验
+
+- **层**：IT（contract test，per §11.2 第 1 行）；**对应 DTL §**：§6.3 第 4 点强制联动 + §7.1 `RegisterFeature` 等方法
+- **覆盖需求**：§7.1 全部方法、§9 安全
+- **前置条件**：Testcontainers 启动 `admin_db` + 双 ClusterOps 副本（K8s readiness mock）
+- **Steps**：
+  - **Given**：调用 `RegisterFeature` 不携带 `operator_id` / `approval_ref`
+  - **When**：调用
+  - **Then**：返回 `Err(PERMISSION_DENIED)`（per §7.2 第 25 行）；`audit_log` 写入一条 `result=denied`
+- **断言**：所有写命令必须经 AdminService 转发并带 `request_id`、`operator_id`、`expected_version`、`approval_ref`、`trace_id`（per §7.1 第 14 行）；ClusterOpsService 不暴露外部 K8s/DB 凭证（per §6.3 第 4 点）。
+
+#### TC-DTL031-CONTRACT-002 — `request_id` 幂等：重复请求返回首次结果
+
+- **层**：UT；**对应 DTL §**：§5.2 第 1 行 "两副本同时接收同一 `request_id`，仅一个产生副作用"
+- **覆盖需求**：§3.1 幂等记录表约束
+- **前置条件**：已存在 `idempotency(request_id=R, operation='RegisterFeature')` 行
+- **Steps**：
+  - **Given**：相同 `request_id=R`，相同 `operation`
+  - **When**：两次调用 `RegisterFeature`
+  - **Then**：
+    - 第 1 次正常执行（产生副作用 + 写入幂等记录）
+    - 第 2 次返回首次结果（per §3.1 幂等记录表约束），**不**重复执行副作用
+    - `feature_registry` 行数仅 +1
+- **断言**：`request_id` 是强幂等键；重复请求安全重试。
+
+#### TC-DTL031-CONTRACT-003 — OCC 冲突返回 `ABORTED` 而非覆盖
+
+- **层**：UT；**对应 DTL §**：§5.2 第 2 行 + §7.2 第 13 行 `ABORTED` 错误语义
+- **覆盖需求**：§5 双副本策略 OCC 校验
+- **前置条件**：两副本同时更新同一 `feature_id`，副本 A 已写入 `version=2`，副本 B 仍持 `expected_version=1`
+- **Steps**：
+  - **Given**：副本 B 调用 `UpdateFeature(expected_version=1)`
+  - **When**：执行 OCC 校验
+  - **Then**：返回 `Err(ABORTED)`（per §7.2 第 13 行）；客户端处理："重新读取状态后由人工重试"
+- **断言**：OCC 冲突**不**覆盖既有版本；与 §5.2 第 2 行强约束一致。
+
+### 13.3 PFAU 集成测试用例（TC-DTL031-PFAU-NNN）
+
+#### TC-DTL031-PFAU-001 — 单节点失联：自动回滚（per FR-PFAU-022）
+
+- **层**：IT（K8s mock）；**对应 DTL §**：§4.3 第 3 行 + §8.1 第 4 行
+- **覆盖需求**：§4.3"节点因 K8s Pod 退出/健康检查失败而失联时，可按 FR-PFAU-022 触发自动回滚"
+- **前置条件**：PFAU `canary_in_progress`，目标节点列表含 5 个节点
+- **Steps**：
+  - **Given**：目标节点 3 突然从 K8s readiness 列表中消失（Pod 退出）
+  - **When**：协调者检测到节点失联
+  - **Then**：
+    - PFAU 状态进入 `rolling_back`（per §4.2 状态机）
+    - `pfa_run_state.error='node_unreachable'`
+    - 失联节点**不**计入 `current_version` 更新；其余节点版本回到上一批次 ACK 状态
+- **断言**：FR-PFAU-022 自动回滚触发条件；版本不兼容/制品摘要不匹配场景**不**自动回滚（per §4.3 第 3 行后半句）。
+
+#### TC-DTL031-PFAU-002 — 网络分区：超时 120s → `paused`（all-reachable）
+
+- **层**：IT；**对应 DTL §**：§4.3 第 2 行
+- **覆盖需求**：§4.3"任一节点在默认 120 秒规划超时内未 ACK，状态立即进入 `paused`，不得自动跳过"
+- **前置条件**：canary_in_progress 中，节点 N 网络分区
+- **Steps**：
+  - **Given**：注入 mock 节点 N 在 120s 内未返回 ACK
+  - **When**：协调者 deadline 检查
+  - **Then**：
+    - 状态立即 `paused`（per §4.2 状态机分支）
+    - **不**自动跳过节点 N；**不**进入 `canary_confirmed`
+    - 60s 后仍未恢复 → `AlertSeverity::Critical` 升级（per §3.4.5 子步骤 5.4）
+- **断言**：all-reachable 强约束（per §4.3 第 1 行"不是多数派"）；超时立即 paused。
+
+#### TC-DTL031-PFAU-003 — 旧版本 ACK 拒绝：ACK 绑定 `run_id` + Pod UID + 制品摘要
+
+- **层**：IT；**对应 DTL §**：§3.2 目标节点快照第 4 行
+- **覆盖需求**：§3.2"ACK 必须绑定 `run_id`、批次号、目标版本、Pod UID 和制品摘要，防止旧 Pod/旧版本 ACK 被接受"
+- **前置条件**：PFAU 已 `declared`，目标节点已 ready（snapshot 锁定）
+- **Steps**：
+  - **Given**：某旧 Pod（已被替换）试图以旧 `pod_uid` + 旧 `artifact_digest` 提交 ACK
+  - **When**：协调者验证 ACK 绑定
+  - **Then**：ACK 被拒绝；状态维持 `canary_in_progress`；告警"stale ACK from old pod"
+- **断言**：ACK 绑定是版本一致性的物理保证（per §3.2 第 4 行）。
+
+#### TC-DTL031-PFAU-004 — 目标集合变化：新节点加入不自动计入当前批次
+
+- **层**：IT；**对应 DTL §**：§3.2 第 3 行
+- **覆盖需求**：§3.2"运行期间新加入节点不自动计入当前批次；节点集合变化必须触发重新评估或暂停"
+- **前置条件**：canary_in_progress 中，新节点加入 K8s ready 列表
+- **Steps**：
+  - **Given**：原目标节点集合 = {N1, N2, N3}；新增 N4 进入 ready 状态
+  - **When**：协调者检测到目标集合变化
+  - **Then**：状态进入 `paused`；**不**自动将 N4 计入当前批次；运营决策 retry 或 rollback
+- **断言**：节点集合变化触发暂停（per §3.2 第 3 行），不破坏快照一致性。
+
+#### TC-DTL031-PFAU-005 — 暂停后人工 retry：状态机 `paused → retrying`
+
+- **层**：UT；**对应 DTL §**：§4.2 状态机 `paused → retrying` 分支
+- **覆盖需求**：§7.1 `AdvanceCanary` 人工 retry/skip/rollback；skip 必须有理由
+- **前置条件**：PFAU `paused`，`AdvanceCanary` 携带 `decision='retry'`
+- **Steps**：
+  - **When**：`AdvanceCanary(run_id, decision='retry')`
+  - **Then**：状态 `paused → retrying → canary_in_progress`（per §4.2）
+- **断言**：`skip` 决策必须携带 `reason`（per §7.1 第 11 行）；retry 不需要 reason。
+
+### 13.4 Cluster DAG 测试用例（TC-DTL031-DAG-NNN）
+
+#### TC-DTL031-DAG-001 — 环依赖检测：`apps` 清单环引用
+
+- **层**：UT；**对应 DTL §**：§6.2 末尾校验规则
+- **覆盖需求**：§6.2 校验规则"环依赖"
+- **前置条件**：构造 manifest `app_id=A depends_on=[B]`, `app_id=B depends_on=[A]`
+- **Steps**：
+  - **When**：`cluster_manifest_validator.validate(manifest)`
+  - **Then**：返回 `Err(ValidationError::CyclicDependency { cycle: [A, B] })`
+- **断言**：环依赖在执行前失败（per §6.2 第 21 行）。
+
+#### TC-DTL031-DAG-002 — 缺基础设施祖先：`apps` 缺 `event-bus` 等祖先
+
+- **层**：UT；**对应 DTL §**：§6.2 + §10.1 Cargo 边界
+- **覆盖需求**：§6.2"缺少基础设施祖先...在执行前失败"
+- **前置条件**：`apps` 清单含 `app_id=X` 但 X 不依赖 `event-bus`、`config`、`observability` 中的任一
+- **Steps**：
+  - **When**：校验
+  - **Then**：返回 `Err(ValidationError::MissingFoundationApp { app_id: X, missing: ['event-bus', 'config', 'observability'] })`
+- **断言**：foundation_apps 强制依赖生效。
+
+#### TC-DTL031-DAG-003 — 同层并行：5 域 App 各自独立 Helm Release 可并发
+
+- **层**：IT；**对应 DTL §**：§10.2 第 5 行 "五域始终保持在同一 cluster manifest 中"
+- **覆盖需求**：Active-Active 双副本 + 5 域独立部署
+- **前置条件**：5 域 manifest 已冻结；mock Helm/K8s API
+- **Steps**：
+  - **When**：触发 5 域并发部署
+  - **Then**：5 个 Helm Release 各自独立提交；互不阻塞；总耗时 = max(single deploy)，**不** = sum
+- **断言**：5 域独立部署是 §10.2 同层并行模式生效。
+
+#### TC-DTL031-DAG-004 — 失败下游阻断：foundation 失败则 5 域部署不开始
+
+- **层**：IT；**对应 DTL §**：§10.1 + §6.2 拓扑
+- **覆盖需求**：DAG 拓扑依赖
+- **前置条件**：`event-bus` Helm Release 失败
+- **Steps**：
+  - **Given**：`event-bus` 部署失败
+  - **When**：DAG 调度尝试推进 5 域
+  - **Then**：5 域部署**不**开始；DAG 拓扑保持 `event-bus` 失败状态；`cluster_manifest_validator` 拒绝后续推进
+- **断言**：拓扑依赖阻断。
+
+#### TC-DTL031-DAG-005 — 逆拓扑回滚：先回滚下游再回滚上游
+
+- **层**：IT；**对应 DTL §**：§6.2 + §4.2 `rolling_back`
+- **覆盖需求**：§5 双副本策略回滚顺序
+- **前置条件**：5 域均已 `active`，触发版本不兼容回滚
+- **Steps**：
+  - **Given**：回滚决策触发
+  - **When**：执行回滚
+  - **Then**：5 域（下游）先回滚 → foundation（上游）最后回滚；与部署顺序相反
+- **断言**：逆拓扑回滚顺序；避免上游未回滚导致下游被新上游接口 break。
+
+### 13.5 Plugin isolation 测试用例（TC-DTL031-PLUGIN-NNN）
+
+#### TC-DTL031-PLUGIN-001 — Plugin panic 不影响宿主进程
+
+- **层**：UT（沙箱 runtime）；**对应 DTL §**：§9 第 5 行 + §1.2 第 3 行
+- **覆盖需求**：§9"plugin Feature 的异常必须隔离到宿主插件边界"
+- **前置条件**：宿主进程 + 1 个 panic 插件注册
+- **Steps**：
+  - **Given**：插件 P 在 tick 边界抛 panic
+  - **When**：宿主调度层捕获
+  - **Then**：插件 P 被禁用（指数退避）；宿主进程**不**崩溃；其他插件**不**受影响
+- **断言**：panic 隔离到插件边界；与 §1.2"不加载未经 CI/签名校验的动态库" + ADR-0020 一致。
+
+#### TC-DTL031-PLUGIN-002 — 脚本超限：CPU/内存限制触发禁用
+
+- **层**：IT；**对应 DTL §**：§1.2 + ADR-0020
+- **覆盖需求**：§9"连续异常触发禁用和指数退避"
+- **前置条件**：沙箱 runtime 配置 CPU/内存上限
+- **Steps**：
+  - **Given**：插件 P 脚本超内存上限
+  - **When**：沙箱触发 OOM kill
+  - **Then**：插件 P 连续异常计数 +1；达阈值后被禁用；宿主正常服务
+- **断言**：资源限制生效；异常插件隔离。
+
+#### TC-DTL031-PLUGIN-003 — 连续异常指数退避：3 次异常后退避
+
+- **层**：UT；**对应 DTL §**：§9 第 5 行 + §5.2 故障矩阵
+- **覆盖需求**：§9"连续异常触发禁用和指数退避"
+- **前置条件**：插件 P 连续失败 N 次
+- **Steps**：
+  - **Given**：N ∈ {1, 2, 3, 5, 10}
+  - **When**：触发 N 次异常
+  - **Then**：backoff(1)=1min, backoff(2)=2min, backoff(3)=4min, ... 指数退避生效
+- **断言**：与 ARC-009 标准消费者重试参数一致（per RGS-DTL-025§5 同类做法）。
+
+### 13.6 Active-Active chaos 测试用例（TC-DTL031-CHAOS-NNN）
+
+#### TC-DTL031-CHAOS-001 — 双副本并发写：仅一个产生副作用（§5.2 第 1 行）
+
+- **层**：IT（chaos）；**对应 DTL §**：§5.2 第 1 行
+- **覆盖需求**：§5 双副本策略
+- **前置条件**：两副本同时接收同一 `request_id`
+- **Steps**：
+  - **Given**：副本 A 与副本 B 同时收到 `request_id=R`
+  - **When**：两副本并行执行 OCC 校验
+  - **Then**：仅一个副本 OCC 通过产生副作用；另一个返回幂等结果（per §5.2 第 1 行）
+- **断言**：双副本并发安全；副作用唯一性。
+
+#### TC-DTL031-CHAOS-002 — Redis 租约丢失：旧副本写被 fencing token 拒绝
+
+- **层**：IT；**对应 DTL §**：§5.2 第 3 行 + §5.1 第 3 行
+- **覆盖需求**：§5.1"Redis、`admin_db` 或 fencing token 不可用时，控制面写操作 fail-closed"
+- **前置条件**：副本 A 持租约写入，租约过期后副本 A 仍尝试写
+- **Steps**：
+  - **Given**：副本 A 的 Redis 短租约已过期，副本 B 已获新租约
+  - **When**：副本 A 尝试写入
+  - **Then**：fencing token 校验失败，写入拒绝并告警（per §5.2 第 3 行）
+- **断言**：fencing 保护不可绕过；副本 A 的过期租约不可继续生效。
+
+#### TC-DTL031-CHAOS-003 — `admin_db` failover：新副本从 DB 恢复
+
+- **层**：IT；**对应 DTL §**：§5.2 第 4 行
+- **覆盖需求**：§5.2"K8s 发现副本重启，新副本从 `admin_db` 恢复"
+- **前置条件**：副本 A crash；K8s 启动副本 C
+- **Steps**：
+  - **Given**：副本 A crash 后 K8s 启动副本 C
+  - **When**：副本 C 启动
+  - **Then**：副本 C 从 `admin_db` 恢复状态，**不**从内存推断；接管服务
+- **断言**：DB 是状态事实源；副本状态从 DB 加载（per §5.2 第 4 行）。
+
+#### TC-DTL031-CHAOS-004 — Redis 不可用 + DB 可写：写操作 fail-closed
+
+- **层**：IT；**对应 DTL §**：§5.1 第 4 行
+- **覆盖需求**：§5.1"Redis 不可用时，控制面写操作 fail-closed"
+- **前置条件**：Redis 不可用，`admin_db` 仍可写
+- **Steps**：
+  - **Given**：Redis 短租约服务不可用
+  - **When**：副本尝试执行写命令
+  - **Then**：写操作 fail-closed（per §5.1 第 4 行）；仅保留只读状态查询和告警
+- **断言**：fencing 是必要的；缺失时禁止控制面写入（per §5.1 第 4 行末尾）。
+
+### 13.7 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 6 | 30% | `mockall` mocks（fencing、Helm、K8s API）、criterion-style chaos |
+| IT（Testcontainers PG 18.6 + K8s mock） | 14 | 70% | `pg_test_db`（admin_db）、双副本 fixtures、Redis mock |
+
+### 13.8 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档/ADR | DTL 章节 |
+|---|---|---|---|
+| TC-DTL031-CONTRACT-001~003 | §11.2 Contract test | BAS-031 | §5、§7 |
+| TC-DTL031-PFAU-001~005 | §11.2 PFAU 集成测试 | BAS-031、ADR-0052 | §3.2、§4 |
+| TC-DTL031-DAG-001~005 | §11.2 Cluster DAG 测试 | BAS-031、IMPL-001 §2 | §6.2、§10 |
+| TC-DTL031-PLUGIN-001~003 | §11.2 Plugin isolation | BAS-031、ADR-0020 | §1.2、§9 |
+| TC-DTL031-CHAOS-001~004 | §11.2 Active-Active chaos | BAS-031、ADR-0052 | §5 |
+
+### 13.9 Gate 状态声明
+
+本文档 §11.1 6 条 Gate 全部仍为"待 Gate 批准"状态（per `RGS-IMPL-001 §6`）：
+- G-CODE-02 / Q-025：DD Review 待签署
+- G-CODE-03 / ADR-0052：Active-Active / all-reachable 待目标拓扑核验 + 故障注入计划
+- G-CODE-04 / Q-003：跨 DB Saga 待架构 + DBA + 经济 Lead 具名批准
+- G-CODE-05：五域 DTL 契约评审待签署
+- G-CODE-06：Rust 1.98 GA + workspace bootstrap 待验证
+- G-CODE-07：`rgs-testkit` 职责 + OLU 待 QA/SRE 签署
+
+本测试设计为 §11.2 各项"最低要求"配套 TC 设计，**不**解除任何 Gate；§11.1 的 Gate 仍为实施授权的前置条件。
+
