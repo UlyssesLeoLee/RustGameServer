@@ -5,9 +5,9 @@
 //! 范围: admin_db, 物理位置 `lcm_step_execution` (per RGS-ARC-008 5 独立 DB 原则)
 //!
 //! 关联:
-//! - 决策记录: docs/00-基準与治理/lcm/RGS-LCM-STEP-EXECUTION-DECISION_v0.1.md
+//! - 决策记录: docs/00-基准与治理/lcm/RGS-LCM-STEP-EXECUTION-DECISION_v0.1.md
 //! - DDL 落地: crates/admin-service/migrations/0005_lcm_step_execution.sql
-//! - 横展开母规范: docs/00-基準与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.2.md
+//! - 横展开母规范: docs/00-基准与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.2.md
 //!
 //! ## PH-2 待实装
 //!
