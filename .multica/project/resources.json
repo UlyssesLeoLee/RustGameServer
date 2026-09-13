@@ -1,0 +1,23 @@
+{
+  "project_id": "c70ae273-c130-4f34-a7ae-6678fb4f23b3",
+  "project_title": "RGS",
+  "resources": [
+    {
+      "id": "2bc82603-289c-41b1-9bbd-d986644fbf45",
+      "resource_type": "github_repo",
+      "resource_ref": {
+        "url": "https://github.com/UlyssesLeoLee/RustGameServer.git"
+      }
+    },
+    {
+      "id": "7d3feba3-75eb-42de-b6e2-74c2e9f2bd7f",
+      "resource_type": "local_directory",
+      "resource_ref": {
+        "label": "RustGameServer",
+        "daemon_id": "01a0905a-e0e9-7dbc-8ea4-7d96be5a572a",
+        "local_path": "D:\\RustGameServer",
+        "execution_mode": "worktree"
+      }
+    }
+  ]
+}
