@@ -9,6 +9,7 @@
 | 制定者 | 架构师（Ulysses 兼，per DEC-008 一人公司） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
+| 父文档 | RGS-BAS-100 |
 | 关联文档 | RGS-REQ-100（需求）/ RGS-BAS-100（基本）/ RGS-DTL-101~102（同侪）/ RGS-OPS-100（部署）/ RGS-SPEC-CROSS-001~007（横向规范） |
 | 配套标准 | IPA 共通フレーム 2013（SLCP-JCF2013）+ 150 工程日本 SI 业界标准；V 模型映射：UT ↔ DTL（本详细设计书） |
 
