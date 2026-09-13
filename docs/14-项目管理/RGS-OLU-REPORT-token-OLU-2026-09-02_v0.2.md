@@ -5,7 +5,7 @@
 > **状态**: 🟡 v0.2 草案 (per WBS v0.2 §2.5 桶 11 E5/E6 + §3 拍板 2/4)
 > **关联**:
 > - 旧 OLU v0.1: `docs/14-项目管理/RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md` (commit `7acd24f`, 8/27 JST 部署阶段)
-> - WBS v0.2: `docs/00-基準与治理/RGS-PLAN-WBS-token-bucket-v0.2.md` (commit `84edf26`)
+> - WBS v0.2: `docs/00-基准与治理/RGS-PLAN-WBS-token-bucket-v0.2.md` (commit `84edf26`)
 > - BATCH-PLAN v0.2: `docs/12-工作流/RGS-BATCH-PLAN-2026-09-01_v0.2.md` (commit `2125727`, 含 §10 12 GAP + 270M token 预算)
 > - RACI-BATCH v0.2: `docs/14-项目管理/RGS-RACI-BATCH-V1_批量域Lead责任矩阵_v0.2.md` (commit `0755ef8e`)
 

@@ -1,8 +1,8 @@
 //! admin-service LCM（服务器全生命周期管理）模块
 //!
 //! 范围: 仅 admin 域 (per FR-LCM-001 + ARC-051 COC).
-//! 关联: docs/00-基準与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.2.md §6.6.2
-//!       docs/00-基準与治理/lcm/RGS-LCM-STEP-EXECUTION-DECISION_v0.1.md (admin Lead 拍板决策记录)
+//! 关联: docs/00-基准与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.2.md §6.6.2
+//!       docs/00-基准与治理/lcm/RGS-LCM-STEP-EXECUTION-DECISION_v0.1.md (admin Lead 拍板决策记录)
 //!
 //! ## 模块职责
 //!

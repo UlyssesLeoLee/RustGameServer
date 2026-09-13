@@ -12,7 +12,7 @@
 > **关联**:
 > - 5 域 RACI: `docs/14-项目管理/RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_*.md` (v1.3)
 > - 3 NEW 域 RACI: `docs/14-项目管理/RGS-RACI-{SCENE,BATTLE,NETWORK-GATEWAY}-V1_*.md` (v1.1)
-> - BATCH 4 件套: `docs/00-基準与治理/batch/RGS-BATCH-{REQUIREMENTS,BASIC,DETAILED,PLAN}-2026-09-01_v0.1.md`
+> - BATCH 4 件套: `docs/00-基准与治理/batch/RGS-BATCH-{REQUIREMENTS,BASIC,DETAILED,PLAN}-2026-09-01_v0.1.md`
 > - AGENTS.md §7 batch 域派生约束: 12 条 + 5 不破坏 + 4 复用 + 3 引用
 
 ---
