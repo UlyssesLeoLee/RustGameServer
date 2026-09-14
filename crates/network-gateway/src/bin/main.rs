@@ -130,7 +130,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
         let stats = Arc::clone(&stats);
         tokio::spawn(async move {
-            let cfg = ws::WsConfig::default_local();
+            // 用 ws_addr (env RGS_NETWORK_GATEWAY_WS_ADDR 覆盖), 不是 hardcoded default_local
+            let cfg = ws::WsConfig {
+                bind_addr: ws_addr,
+                path: ws::WS_PATH.to_string(),
+                max_connections: 256,
+            };
             if let Err(e) = ws::serve(cfg, router, stats).await {
                 warn!(err = %e, "WS listener exited");
             }

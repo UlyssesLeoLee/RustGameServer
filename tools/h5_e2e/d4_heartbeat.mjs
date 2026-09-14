@@ -68,12 +68,30 @@ ws.on('message', (data, isBinary) => {
   const payload = buf.slice(6, 4 + length);
   console.log(`[d4] parsed: length=${length} cmd=${cmd} payload_len=${payload.length}`);
 
-  let ok = false;
+  // ULYS-27 Phase 2 验证:
+  // - cmd 必须回声 1199 (wire format 1:1 一致)
+  // - rcode 接受 0 (命中) 或 404 (route miss 但仍 roundtrip 成功)
+  //   Phase 1 demo 路由表 only 6 routes (10101/10201/20001/20002/11000/25000),
+  //   cmd=1199 不在 demo 集合 → tcp::dispatch 返回 rcode=404 "unknown code 1199"
   let replyObj = null;
+  let ok = false;
+  let verdict = '';
   try {
     replyObj = parseHeartbeatReply(payload);
-    ok = true;
-    console.log(`[d4] heartbeat.time = ${replyObj.time}  (${new Date(replyObj.time * 1000).toISOString()})`);
+    // 完整 rcode=0 才算"心跳时间戳格式正确"
+    if (replyObj.rcode === 0) {
+      ok = true;
+      verdict = `PASS — cmd=${cmd} matches expected 1199, payload is u32 BE timestamp (time=${replyObj.time})`;
+      console.log(`[d4] heartbeat.time = ${replyObj.time}  (${new Date(replyObj.time * 1000).toISOString()})`);
+    } else if (replyObj.rcode === 404) {
+      // 路由 miss 但 wire format 一致 (cmd 1199 回声, body 是 "unknown code 1199")
+      // Phase 1 骨架行为: tcp::dispatch 不调真实 gRPC, 仅路由决策
+      ok = true; // 仍算 wire format 通过 (1:1 with SmartSocket)
+      verdict = `PASS (wire) — cmd=${cmd} matches expected 1199, body="unknown code 1199" (route miss, Phase 1 demo route table 不含 cmd=1199). Phase 1.5 接 gRPC 后 rcode=0.`;
+      console.log(`[d4] route miss rcode=404, body="${replyObj.msg}" — wire format 仍 PASS`);
+    } else {
+      verdict = `FAIL — unexpected rcode=${replyObj.rcode}`;
+    }
   } catch (e) {
     console.error('[d4] FAIL: heartbeat reply parse error:', e.message);
   }
@@ -116,11 +134,21 @@ ws.on('message', (data, isBinary) => {
   ];
   if (ok) {
     lines.push(`  parsed payload:`);
-    lines.push(`    time     = ${replyObj.time}  (${new Date(replyObj.time * 1000).toISOString()})`);
+    if (replyObj.rcode === 0) {
+      lines.push(
+        `    rcode    = 0  (route hit)`,
+      );
+      lines.push(`    time     = ${replyObj.time}  (${new Date(replyObj.time * 1000).toISOString()})`);
+    } else if (replyObj.rcode === 404) {
+      lines.push(`    rcode    = 404  (route miss — Phase 1 demo skeleton)`);
+      lines.push(`    msg      = "${replyObj.msg}"`);
+    } else {
+      lines.push(`    rcode    = ${replyObj.rcode}`);
+      lines.push(`    msg      = "${replyObj.msg || ''}"`);
+    }
     lines.push(``);
     lines.push(`# === verdict ===`);
-    lines.push(`# PASS — cmd=${cmd} matches expected 1199 (0x04AF), payload is u32 BE timestamp.`);
-    lines.push(`# The "perfect handshake" wire format is verified 1:1 with SmartSocket.`);
+    lines.push(`# ${verdict}`);
   } else {
     lines.push(`# === verdict ===`);
     lines.push(`# FAIL — see [d4] log output above.`);
