@@ -19,6 +19,9 @@
 //! - NIF 桥接 stub (`nif.rs`, 7 域 GrpcTarget + bridge function)
 //! - NIF 桥接 demo (`nif_demo.rs`, W13 PoC rustler 0.36 选型验证)
 //! - web_conn stub (`web_conn.rs`, port 8000 HTTP 入口)
+//! - WebSocket 传输层 (`ws.rs`, ULYS-2.2 W33 + ULYS-27 Phase 2): 路径 /websocket, 端口 8000
+//!   - 与 TCP 路径共享 `Arc<dyn FrameRouter>` 抽象 (codec::FrameRouter)
+//!   - 默认 `RouteTableFrameRouter` (main.rs 内) = `RouteTable + tcp::dispatch`
 //! - Zone 启动 stub (`zone.rs`, center/zone 拓扑)
 //! - 8 域 demo 路由 (per 9/4 改进路线图 Phase 2)
 //!
