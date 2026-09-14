@@ -49,7 +49,7 @@ impl FrameRouter for RouteTableFrameRouter {
 
 /// 起 1 个 0 端口 WS listener, 返回 ws URL + shutdown sender + server_addr
 async fn start_ws_server() -> (std::net::SocketAddr, tokio::sync::oneshot::Sender<()>) {
-    let routes = Arc::new(RouteTable::with_phase15_demo());
+    let routes = Arc::new(RouteTable::new()); // 全 1351 路由表 (cmd=1199/1110 命中)
     let stats = Arc::new(GatewayStats::new());
     let router: Arc<dyn FrameRouter> = Arc::new(RouteTableFrameRouter { routes, stats });
 
@@ -266,6 +266,123 @@ async fn ws_route_miss_returns_404() {
     let payload = &resp_frame.payload;
     let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
     assert_eq!(rcode, 404, "未注册 cmd 应返回 404");
+
+    let _ = ws_client.send(Message::Close(None)).await;
+    let _ = shutdown_tx.send(());
+}
+
+#[tokio::test]
+async fn ws_heartbeat_roundtrip() {
+    // ULYS-27 DoD: Rust binary 直接完成 cmd=1199 心跳往返
+    let (server_addr, shutdown_tx) = start_ws_server().await;
+    let mut ws_client = connect_ws(server_addr, "/websocket")
+        .await
+        .expect("WS handshake ok");
+
+    // 心跳请求 wire: 00 00 00 02 04 AF (length=2, cmd=1199, 空 payload)
+    let heartbeat = Frame {
+        cmd: 1199,
+        payload: Bytes::new(),
+    };
+    let wire = heartbeat.encode();
+    assert_eq!(wire.len(), 6);
+    assert_eq!(&wire[0..4], &[0, 0, 0, 2]);
+    assert_eq!(&wire[4..6], &[0x04, 0xAF]);
+    ws_client
+        .send(Message::Binary(wire.to_vec()))
+        .await
+        .expect("WS send ok");
+
+    let resp_msg = tokio::time::timeout(Duration::from_secs(2), ws_client.next())
+        .await
+        .expect("response timeout")
+        .expect("stream ok")
+        .expect("frame ok");
+    let resp_bytes = match resp_msg {
+        Message::Binary(b) => b,
+        other => panic!("expected binary, got {other:?}"),
+    };
+
+    // 解析响应 frame
+    let mut buf = BytesMut::from(&resp_bytes[..]);
+    let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
+    assert_eq!(resp_frame.cmd, 1199, "响应 cmd 应回声 1199");
+    // 当前 tcp::dispatch 走 RouteTable (cmd=1199 命中 cluster_ops Method_Legacy),
+    // 业务字节 rcode=0 + body 至少 4B rcode
+    assert!(
+        resp_frame.payload.len() >= 4,
+        "心跳响应 payload 至少 4B rcode"
+    );
+    let rcode = u32::from_be_bytes([
+        resp_frame.payload[0],
+        resp_frame.payload[1],
+        resp_frame.payload[2],
+        resp_frame.payload[3],
+    ]);
+    assert_eq!(rcode, 0, "cmd=1199 应在默认路由表命中");
+
+    let body = &resp_frame.payload[4..];
+    let body_str = std::str::from_utf8(body).unwrap_or("");
+    // 默认映射: 1xxx → cluster_ops ClusterOpsService
+    assert!(
+        body_str.contains("ClusterOpsService") || body_str.contains("Method_Legacy"),
+        "心跳响应 body 应含 cluster_ops service/method, got: {body_str}"
+    );
+
+    let _ = ws_client.send(Message::Close(None)).await;
+    let _ = shutdown_tx.send(());
+}
+
+#[tokio::test]
+async fn ws_login_route_dispatch() {
+    // ULYS-27 DoD: Rust binary 直接完成 cmd=1110 登录路由
+    // 验证 cmd=1110 通过 WS 走到 RouteTable 路由决策
+    // (实际 5 域 gRPC client 调通是后续 Phase, 这里验证 dispatcher 路径)
+    let (server_addr, shutdown_tx) = start_ws_server().await;
+    let mut ws_client = connect_ws(server_addr, "/websocket")
+        .await
+        .expect("WS handshake ok");
+
+    // cmd=1110 登录 wire: length=8, cmd=1110, payload=4 字节 (e.g. 0x0001 0002)
+    let payload = Bytes::from_static(&[0x00, 0x01, 0x00, 0x02]);
+    let frame = Frame {
+        cmd: 1110,
+        payload,
+    };
+    let wire = frame.encode();
+    ws_client
+        .send(Message::Binary(wire.to_vec()))
+        .await
+        .expect("WS send ok");
+
+    let resp_msg = tokio::time::timeout(Duration::from_secs(2), ws_client.next())
+        .await
+        .expect("response timeout")
+        .expect("stream ok")
+        .expect("frame ok");
+    let resp_bytes = match resp_msg {
+        Message::Binary(b) => b,
+        other => panic!("expected binary, got {other:?}"),
+    };
+
+    let mut buf = BytesMut::from(&resp_bytes[..]);
+    let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
+    assert_eq!(resp_frame.cmd, 1110, "响应 cmd 应回声 1110");
+    assert!(resp_frame.payload.len() >= 4);
+    let rcode = u32::from_be_bytes([
+        resp_frame.payload[0],
+        resp_frame.payload[1],
+        resp_frame.payload[2],
+        resp_frame.payload[3],
+    ]);
+    assert_eq!(rcode, 0, "cmd=1110 应在默认路由表命中 (1xxx → cluster_ops)");
+
+    let body = &resp_frame.payload[4..];
+    let body_str = std::str::from_utf8(body).unwrap_or("");
+    assert!(
+        body_str.contains("ClusterOpsService") || body_str.contains("Method_Legacy"),
+        "登录响应 body 应含 cluster_ops service/method, got: {body_str}"
+    );
 
     let _ = ws_client.send(Message::Close(None)).await;
     let _ = shutdown_tx.send(());
