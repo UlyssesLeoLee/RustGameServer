@@ -1,0 +1,38 @@
+# tools/h5_e2e/heartbeat_hex.txt — D4 cmd=1199 roundtrip evidence
+#
+# generated:    2026-09-11T23:11:19.293Z
+# ws_url:       ws://127.0.0.1:18000/websocket
+# client_send:  2026-09-11T23:11:19.289Z  (t+7ms)
+# client_recv:  2026-09-11T23:11:19.292Z  (t+10ms)
+# rtt_ms:       3
+#
+# === golden vector from ULYS-2.1 ===
+# client send:  00 00 00 02 04 AF
+#   length      = 0x00000002  (cmd bytes + payload bytes = 2 + 0)
+#   cmd         = 0x04AF      (u16 BE = 1199)
+#   payload     = (empty)
+#
+# expected reply: 00 00 00 06 04 AF <u32 BE time>
+#   length      = 0x00000006  (cmd bytes + payload bytes = 2 + 4)
+#   cmd         = 0x04AF
+#   payload     = <u32 BE timestamp>
+
+[client -> server] (cmd=1199 heartbeat request, 6 bytes)
+  hex: 00 00 00 02 04 af
+  asc: ......
+
+[server -> client] (cmd=1199 heartbeat reply, 10 bytes)
+  hex: 00 00 00 06 04 af 6a a4 8a 97
+  asc: ......j...
+
+  parsed header:
+    length   = 0x00000006  (6)
+    cmd      = 0x04af      (1199)
+    payload  = 4 bytes: 6a a4 8a 97
+
+  parsed payload:
+    time     = 1789168279  (2026-09-11T23:11:19.000Z)
+
+# === verdict ===
+# PASS — cmd=1199 matches expected 1199 (0x04AF), payload is u32 BE timestamp.
+# The "perfect handshake" wire format is verified 1:1 with SmartSocket.
