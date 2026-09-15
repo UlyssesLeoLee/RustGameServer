@@ -274,8 +274,9 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-09-15 JST | worker (ULYS-54 agent) | 初版制定。覆盖 Redis vs Valkey 偏离根因追溯 + 横向 6 处偏离扫描 + 建议 6 项 + 附录 4 节 |
+| 0.2 | 2026-09-15 JST | worker (ULYS-54 agent) | **处置进展同步**（per 用户「处理，并且横展开」指示）：① 立 ADR-0059 候选「缓存组件统一 Valkey」(status=待具名人类审批)，撤销 TS-001 §3.5.1 Redis 决议 ② 拆 ULYS-54.A (ULYS-55) 子任务：立 ADR-0060 正式化 NATS JetStream vs Kafka 偏离 ③ 拆 ULYS-54.B (ULYS-56) 子任务：立 ADR-0061 正式化自研 Outbox vs Debezium CDC 偏离 ④ §5.1 P0 #2 (智能层 L4 范围扩展) 与 §5.2 P1 #5 (Temporal vs 自研 Saga Runtime) **暂不拆子任务**——属重大治理决策需 DEC 拍板，非 agent 单方面可决 |
 
-> **下次评审**: 随 ULYS-54 处置决议同步更新 (取消 / 修订 / 关闭)
+> **下次评审**: 随 ULYS-54 处置决议同步更新 (取消 / 修订 / 关闭) / ULYS-55+ULYS-56 子任务完成后追加 v0.3
 
 
 
