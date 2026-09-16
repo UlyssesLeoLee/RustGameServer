@@ -5,7 +5,7 @@
 //! 2. 协议号 → gRPC method 路由表骨架 — `router.rs`
 //! 3. EPMD 协议 stub (端口 4369, 简单 NodeInfo 响应) — `epmd.rs`
 //! 4. Erlang 分布式协议 stub (net_kernel 模拟) — `dist.rs`
-//! 5. 闪烁之光 自研二进制编解码 stub — `codec.rs`
+//! 5. 闪烁之光 (zsyz) 自研二进制编解码 (Frame + TLV 9 种类型) — `codec.rs`, `tlv.rs`
 //! 6. Admin gRPC 服务 (HealthCheck/ListRoutes/RegisterRoute/GetStats) — `server.rs`
 //!
 //! ## 真实演示 (per task brief)
@@ -64,11 +64,12 @@ pub mod router;
 pub mod server;
 pub mod stats;
 pub mod tcp;
+pub mod tlv;
 pub mod web_conn;
 pub mod zone;
 
 pub use client_pool::{ClientPoolError, GrpcClientPool, SharedClientPool};
-pub use codec::{Frame, FrameError, PROTOCOL_HEADER_LEN};
+pub use codec::{Frame, FrameError, MAX_FRAME, PROTOCOL_HEADER_LEN};
 pub use cookie::{verify_cookie, validate_cookie, CookieError, MAX_COOKIE_LEN};
 pub use nif::{bridge as nif_bridge, BridgeResult, GrpcTarget};
 pub use nif_demo::{add as nif_add, bridge_route as nif_demo_route, echo as nif_echo, version as nif_version};

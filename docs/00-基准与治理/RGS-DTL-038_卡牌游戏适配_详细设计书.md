@@ -9,6 +9,7 @@
 | 制定日期 | 2026-08-29 |
 | 制定人 | 架构师 (Mavis 接手 agent per DEC-008) |
 | 上游依据 | RGS-REQ-038 卡牌游戏适配需求定义书 v0.1 |
+| 父文档 | RGS-REQ-038 |
 | 关联下游 | RGS-BAS-038 (待写) / gm.proto v0.4+ / match.proto v2 / player.proto v2 / common.proto v2 / card.proto v1 / leaderboard.proto v1 / replay.proto v1 / trade.proto v1 / i18n.proto v1 |
 | 状态 | 草案, 待 DDD Review 拍板 (9 个 DEC) |
 
