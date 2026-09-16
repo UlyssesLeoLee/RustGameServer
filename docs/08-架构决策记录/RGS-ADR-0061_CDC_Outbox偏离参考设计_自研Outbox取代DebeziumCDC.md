@@ -6,6 +6,7 @@
 | 标题 | CDC / Outbox 偏离参考设计：自研 Outbox 取代 Debezium CDC（4 状态机 outbox_worker） |
 | 状态 | **待具名人类审批**（per DEC-008 一人公司兼任；本文为候选提案，由 worker (ULYS-56, ULYS-54.B) 起草） |
 | 制定日期 | 2026-09-15 JST |
+| 最新修订 | 2026-09-16 JST（v0.2 — §6 后续工作项 P1+P2 共 9 项候选草案已起草, 存放于 `docs/00-基准与治理/ULYS-56-follow-up-drafts/`） |
 | 制定人 | worker (ULYS-56 agent) |
 | 主对应方针 | ARC-014（未证明需要不引入）、RGS-ADR-0008（中间件导入判定基准）、RGS-ADR-0015（工作流 Saga 适用边界与单一调解者） |
 | 关联上游决议 | RGS-REQ-005 附件 D §4 OSS 许可盘点（**Debezium 主项目未登记**——参考设计默认路径，未被 RGS 实际采用） |
@@ -250,5 +251,6 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-09-15 JST | worker (ULYS-56 agent) | 初版制定。归档自研 Outbox 4 状态机 vs Debezium CDC 偏离事实；Debezium Apache-2.0 合规性评估（§1.4）；「事务内强制 outbox 写入」约束正式化（§2 决定 2）；6 域 outbox 实装证据清单（§1.3）；下游级联清单 6 项；后续工作项 11 项；与 ADR-0059 / ADR-0060 同构处置（三面治理漏洞闭合） |
+| 0.2 | 2026-09-16 JST | worker (ULYS-56 agent, per user 指示 "完成后续") | **§6 后续工作项 P1+P2 共 9 项候选草案已起草**：P1 (4 项) REQ-005/REQ-100/BAS-001/DTL-100 补注候选 + P2 (5 项) ADR-0015 决策链补注 + Outbox 监控指标 + Poison event DLQ + Schema evolution + 跨域事件族清单，存放于 `docs/00-基准与治理/ULYS-56-follow-up-drafts/`。**注**：ADR-0061 多次引用 "RGS-DTL-100 §5.3 事务性消息"，但 RGS-DTL-100 实际章节为 §4 (L403) "Outbox + Inbox Pattern"——已记录于候选草案 `04_DTL-100_§5.3_补注候选.md` §2，建议 v0.3+ 修订 ADR-0061 章节引用。**范围外**：P0 (具名人类审批, per DEC-008) + P3-#1 (INV-001 v0.2+ §4.4 联动, ULYS-54 协调者执行) + P3-#2 (PH-1 启动前 handoff 声明) 不由 ULYS-56 worker 执行。 |
 
 > **下次评审**：随 ULYS-54 处置决议同步更新（批准 / 修订 / 驳回）+ 本 ADR 具名人类审批通过后升级为 Accepted。
