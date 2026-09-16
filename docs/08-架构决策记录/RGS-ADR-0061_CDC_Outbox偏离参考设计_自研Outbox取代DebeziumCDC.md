@@ -6,14 +6,14 @@
 | 标题 | CDC / Outbox 偏离参考设计：自研 Outbox 取代 Debezium CDC（4 状态机 outbox_worker） |
 | 状态 | **待具名人类审批**（per DEC-008 一人公司兼任；本文为候选提案，由 worker (ULYS-56, ULYS-54.B) 起草） |
 | 制定日期 | 2026-09-15 JST |
-| 最新修订 | 2026-09-16 JST（v0.2 — §6 后续工作项 P1+P2 共 9 项候选草案已起草, 存放于 `docs/00-基准与治理/ULYS-56-follow-up-drafts/`） |
+| 最新修订 | 2026-09-16 JST（v0.3 — per user 指示「完成后续工作」二次执行, §6 后续工作项 P1+P2 候选草案已合并至目标文档: REQ-005 附件 D §3 + §4 + §4.3 LC-006 (per ADR-0061) + 修订历史 3.12; REQ-100 §7 BR-111 备注栏 + 修订历史 0.3; BAS-001 §4.7.1 + §5.8 实现驱动源; DTL-100 §4.1 工程方案; ADR-0015 §2 隐含 Outbox 路径备注 + §5 协同决策 + §7 修订历史; ADR-0061 章节引用 §5.3 → §4 修订 + 修订历史 v0.3） |
 | 制定人 | worker (ULYS-56 agent) |
 | 主对应方针 | ARC-014（未证明需要不引入）、RGS-ADR-0008（中间件导入判定基准）、RGS-ADR-0015（工作流 Saga 适用边界与单一调解者） |
 | 关联上游决议 | RGS-REQ-005 附件 D §4 OSS 许可盘点（**Debezium 主项目未登记**——参考设计默认路径，未被 RGS 实际采用） |
-| 关联下游文档 | RGS-REQ-100 §7 + BR-111；RGS-BAS-001 §4.7 事件与可观测性设计 + §5.8 通用表结构；RGS-DTL-100 §5.3 事务性消息；RGS-REV-007 CH1+CH2+AH1 Outbox 升级；RGS-SPEC-CROSS-005 事务性消息；`crates/shared-platform/src/outbox.rs`；`crates/shared-platform/src/outbox_relay.rs`；6 份 `0[0-3]X_outbox.sql` migration |
+| 关联下游文档 | RGS-REQ-100 §7 + BR-111；RGS-BAS-001 §4.7 事件与可观测性设计 + §5.8 通用表结构；RGS-DTL-100 §4 Outbox + Inbox Pattern（per v0.3 修订，原 §5.3 引用为别名）；RGS-REV-007 CH1+CH2+AH1 Outbox 升级；RGS-SPEC-CROSS-005 事务性消息；`crates/shared-platform/src/outbox.rs`；`crates/shared-platform/src/outbox_relay.rs`；6 份 `0[0-3]X_outbox.sql` migration |
 | 关联调查 | `docs/00-基准与治理/ULYS-54-RGS-INV-001_缓存选型与设计偏离调查报告_v0.1.md`（§4.4 横向偏离扫描「自研 Outbox vs Debezium CDC」节 + §5.2 P1 #4 建议「立 ADR-0061」） |
 
-> **状态说明**：本文是候选 ADR，用以正式归档 RGS CDC 路径「参考设计：`PostgreSQL WAL → Debezium → Kafka`」vs「RGS 实际：`事务内强制 Outbox INSERT → 自研 4 状态机 outbox_worker 轮询 → NATS JetStream`」的双轨偏离。偏离已通过 **ADR-0015 Saga 边界 + RGS-REQ-100 §7 BR-111** 隐含「不引入 Debezium」路径形成事实决议，但**没有单点 ADR 显式记录**——这是与 ADR-0059 缓存偏离、ADR-0060 事件总线偏离**同构的治理漏洞**。具名人类审批通过前，本文不构成生产基线变更；REQ-005 附件 D §3/§4、BAS-001 §4.7、DTL-100 §5.3 等下游文档的字面修改在审批通过前不执行。
+> **状态说明**：本文是候选 ADR，用以正式归档 RGS CDC 路径「参考设计：`PostgreSQL WAL → Debezium → Kafka`」vs「RGS 实际：`事务内强制 Outbox INSERT → 自研 4 状态机 outbox_worker 轮询 → NATS JetStream`」的双轨偏离。偏离已通过 **ADR-0015 Saga 边界 + RGS-REQ-100 §7 BR-111** 隐含「不引入 Debezium」路径形成事实决议，但**没有单点 ADR 显式记录**——这是与 ADR-0059 缓存偏离、ADR-0060 事件总线偏离**同构的治理漏洞**。具名人类审批通过前，本文不构成生产基线变更（per DEC-008 一人公司兼任审批机制）；**v0.3 per user 指示「完成后续工作」二次执行后**，§6 后续工作项 P1+P2 候选草案已合并至目标文档字面（per 修订历史 v0.3 详列），下游文档侧已就绪等待具名人类审批通过后即可进入 Accepted 状态。
 
 ---
 
@@ -87,7 +87,7 @@ ULYS-54 §3 + ADR-0059 已揭示 TS-001 §3.5.1 改选 Redis 时绕过 RGS-ADR-0
 
 - `RGS-SPEC-CROSS-003 v0.2`：主题命名空间 `rgs.events.<domain>.<aggregate>.<action>.<version>`（per §L37，如 `rgs.events.economy.wallet.committed.v1`）
 - `RGS-SPEC-CROSS-005`：事务性消息规范（per `outbox.rs` 文件头 L1）
-- `RGS-DTL-100 §5.3`：事务性消息详细设计
+- `RGS-DTL-100 §4`：Outbox + Inbox Pattern 详细设计（per v0.3 修订，原 §5.3 引用为别名）
 - `RGS-REV-007 CH1+CH2+AH1`：Outbox 升级记录（FOR UPDATE SKIP LOCKED + lease + InFlight 状态机）
 
 **1.3.5 零 Debezium 证据**（per 验收标准 5 + ULYS-54 §4.4 复现依据）：
@@ -125,7 +125,7 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 **维持自研 Outbox 路径（4 状态机 outbox_worker + 6 域 `outbox` 表 + `shared_platform` 抽象层），正式归档偏离参考设计的事实，把「事务内强制 outbox 写入」约束正式化，并触发附件 D §3 登记行同步。** 具体内容：
 
 1. **CDC / Outbox 路径产品**：自研 4 状态机 outbox_worker（Pending / InFlight / Sent / Failed + `lease_until` 30s + `FOR UPDATE SKIP LOCKED` 多 relay 并发安全），由 `crates/shared-platform/src/outbox.rs` 定义、`outbox_relay.rs` 调度、6 域 `main.rs` 启动后台轮询、6 份 `outbox` 表承载。**不引入 Debezium**（无 K8s manifest、无 ADR、无 Cargo 依赖）。
-2. **「事务内强制 outbox 写入」约束正式化**：所有业务变更必须在同一 SQL 事务内 INSERT 到本服务的 `outbox` 表（per `outbox.rs` L10-11「业务写 DB + 写 outbox 表必须在同一事务（per DTL-100 §5.3）」+ `outbox.rs` L162-195 `append` 接受 `PgExecutor` 让调用方把「业务写 DB」和「写 outbox」包在同一事务里）。**不在事务内的 DB 变更不会被传播**——这是显式的设计约束，不是 bug。
+2. **「事务内强制 outbox 写入」约束正式化**：所有业务变更必须在同一 SQL 事务内 INSERT 到本服务的 `outbox` 表（per `outbox.rs` L10-11「业务写 DB + 写 outbox 表必须在同一事务（per DTL-100 §4）」+ `outbox.rs` L162-195 `append` 接受 `PgExecutor` 让调用方把「业务写 DB」和「写 outbox」包在同一事务里）。**不在事务内的 DB 变更不会被传播**——这是显式的设计约束，不是 bug。
 3. **协议层 / 抽象层**：保持 `crates/shared-platform::producer` / `consumer` / `messaging` / `outbox` / `outbox_relay` 抽象层，业务域代码不直接接触 NATS SDK，**Debezium SDK 也不渗入业务域**（Debezium 当前零引入）。NFR-MI-005「可替换空间」由抽象层提供——未来若需引入 Debezium，仅需替换共享层实现。
 4. **下游级联（本 ADR 审批通过后执行）**：
    - **RGS-REQ-005 附件 D §3 登记行**：新增「ADR-0061 CDC / Outbox 偏离参考设计: 自研 Outbox 4 状态机取代 Debezium CDC (待具名人类审批)」登记行
@@ -133,7 +133,7 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
    - **RGS-REQ-100 §7 BR-111 备注栏**：补注「per ADR-0061，BR-111『纯开源约束』与 Debezium Apache-2.0 不冲突；Debezium 拒绝理由是 OLU 与设计替代性论证，非 BR-111 合规」
    - **RGS-BAS-001 §4.7 事件与可观测性设计**：补注「自研 Outbox 4 状态机取代 Debezium CDC（per ADR-0061）；§4.7.1 分发器流程不变（按 outbox 表轮询）」
    - **RGS-BAS-001 §5.8 并发控制与 Outbox 通用表结构范式**：补注「per ADR-0061，6 域 `outbox` 表结构由 `crates/shared-platform/src/outbox.rs` 4 状态机驱动」
-   - **RGS-DTL-100 §5.3 事务性消息**：补注「per ADR-0061，`PgExecutor` 接受 + `FOR UPDATE SKIP LOCKED` + 30s lease 是规避 Debezium「捕获所有 DB 变更」能力的工程方案」
+   - **RGS-DTL-100 §4 Outbox + Inbox Pattern**：补注「per ADR-0061，`PgExecutor` 接受 + `FOR UPDATE SKIP LOCKED` + 30s lease 是规避 Debezium「捕获所有 DB 变更」能力的工程方案」（per v0.3 修订，原 §5.3 引用为别名）
    - **RGS-ADR-0015 §决策链**：补注「隐含 Outbox 路径 per ADR-0061」
    - **ULYS-54 INV-001 v0.2+ §4.4**：标注「ADR-0061 候选已立，待审批」（per ULYS-54 处置决议同步；ULYS-56 不修改 INV-001，§6 后续工作项 P3 列入）
    - **代码层**：维持现状（`crates/shared-platform` 4 状态机 + 6 域 `outbox` 表 + 6 个 `main.rs` 启动 outbox relay + `crates/economy-service/tests/integration_outbox.rs`），不引入 Debezium
@@ -194,7 +194,7 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 
 - **偏离参考设计的事实正式归档**：补登记 RGS-REQ-005 §3 ADR-0061 行，治理漏洞闭合（与 ADR-0059 / ADR-0060 同构处置，三面治理漏洞全部关闭）；
 - **DEC 与 ADR 分工明确**：隐含路径（ADR-0015 + REQ-100 §7 BR-111）→ ADR（ADR-0061）沉淀为可追溯记录——**符合 RGS-ADR-0008 §4「驳回须写明未满足哪一条」的反向义务**；
-- **「事务内强制 outbox 写入」约束正式化**：从 `outbox.rs` 文件头注释 + `DTL-100 §5.3` 升为 ADR 级正式约束，未来业务实现 / 代码审查 / 新成员 onboarding 有单点可引；
+- **「事务内强制 outbox 写入」约束正式化**：从 `outbox.rs` 文件头注释 + `DTL-100 §4` 升为 ADR 级正式约束，未来业务实现 / 代码审查 / 新成员 onboarding 有单点可引；
 - **BR-111「纯开源约束」边界澄清**：Debezium 主项目 Apache-2.0 合规，但 RGS 不引入 = OLU + 设计替代性论证（非 BR-111 合规），避免 BR-111 的过度延伸；
 - **ARC-014 / RGS-ADR-0008 闸门执行的先例成立**：与 ADR-0059 / ADR-0060 同构处置，未来类似偏离（自研 vs 引入开源中间件）有模板可循；
 - **6 域全栈零代码层改动**：自研 Outbox 已实装（6 份 `outbox` 表 + outbox_worker + outbox_relay + 6 个 `main.rs` 启动 + 集成测试），本 ADR 不引入新依赖、不撤销已落地；
@@ -203,7 +203,7 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 
 **付出**：
 
-- **下游文档字面更新**：REQ-005 §3/§4、REQ-100 §7 BR-111 备注、BAS-001 §4.7/§5.8、DTL-100 §5.3、ADR-0015 决策链、INV-001 v0.2+ §4.4 共 6 处补注；
+- **下游文档字面更新**：REQ-005 §3/§4、REQ-100 §7 BR-111 备注、BAS-001 §4.7/§5.8、DTL-100 §4（per v0.3 修订，原 §5.3 引用为别名）、ADR-0015 决策链、INV-001 v0.2+ §4.4 共 6 处补注；
 - **失去 Debezium「捕获所有 DB 变更」能力的 trade-off**（per ULYS-54 §4.4 评估）：非事务内 DB 变更不被传播——这是显式设计约束，由 §2 决定 2「事务内强制 outbox 写入」承接；
 - **强制事务内写入的工程负担**：业务实现者必须理解「事务内 INSERT outbox」是事件传播的强制路径——CR（Code Review）闸门须检查 `outbox.append` 与业务 DML 在同一 `Transaction` / `PgExecutor` 内；
 - **BR-111 边界澄清可能引发下游 ADR 复审**：BR-111「禁止 Redis Enterprise / 云专有 / 商业 SaaS / 闭源事务协调器」与 Debezium Apache-2.0 不冲突的结论，可能引发其他 ADR（如 ADR-0044 客户端资源分发自托管）的边界复审——属合理治理循环；
@@ -219,9 +219,9 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 
 ## 5. 关联
 
-- **依赖本决策**：ARC-014（未证明需要不引入）、RGS-ADR-0008（中间件导入判定基准）、RGS-ADR-0015（工作流 Saga 适用边界与单一调解者）、RGS-REQ-100 §7 BR-111（纯开源约束）、RGS-DTL-100 §5.3 事务性消息、RGS-REV-007 CH1+CH2+AH1（Outbox 升级）、RGS-SPEC-CROSS-005 事务性消息
+- **依赖本决策**：ARC-014（未证明需要不引入）、RGS-ADR-0008（中间件导入判定基准）、RGS-ADR-0015（工作流 Saga 适用边界与单一调解者）、RGS-REQ-100 §7 BR-111（纯开源约束）、RGS-DTL-100 §4 Outbox + Inbox Pattern（per v0.3 修订，原 §5.3 引用为别名）、RGS-REV-007 CH1+CH2+AH1（Outbox 升级）、RGS-SPEC-CROSS-005 事务性消息
 - **本决策归档的偏离**：参考设计 §16-18「PostgreSQL WAL → Debezium → Kafka」vs RGS 实际「事务内强制 Outbox INSERT → 自研 4 状态机 outbox_worker 轮询 → NATS JetStream」
-- **本决策触发的下游级联**：RGS-REQ-005 §3 登记行 + §4 OSS 许可盘点补注 + Debezium Apache-2.0 合规备注；RGS-REQ-100 §7 BR-111 备注栏补注；RGS-BAS-001 §4.7/§5.8 补注；RGS-DTL-100 §5.3 补注；RGS-ADR-0015 决策链补注；ULYS-54 INV-001 v0.2+ §4.4 标注
+- **本决策触发的下游级联**：RGS-REQ-005 §3 登记行 + §4 OSS 许可盘点补注 + Debezium Apache-2.0 合规备注；RGS-REQ-100 §7 BR-111 备注栏补注；RGS-BAS-001 §4.7/§5.8 补注；RGS-DTL-100 §4 补注（per v0.3 修订，原 §5.3 引用为别名）；RGS-ADR-0015 决策链补注；ULYS-54 INV-001 v0.2+ §4.4 标注
 - **协同决策**：ADR-0060 事件总线偏离（NATS JetStream vs Kafka，候选待具名审批）——RGS CDC 路径 = 自研 Outbox + NATS JetStream，本 ADR 与 ADR-0060 协同形成完整事件传播栈
 - **冲突 / 延伸事项**：无；与 ADR-0059 缓存偏离、ADR-0060 事件总线偏离同构处置（三面治理漏洞全部闭合）；与 ULYS-55 (ADR-0060 NATS vs Kafka) 无依赖可并行；与 ULYS-54 INV-001 v0.2+ §5.2 P1 #5 (Temporal vs 自研 Saga) 属 DEC 拍板范围暂不拆子任务
 
@@ -235,7 +235,7 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 | **P1** | RGS-REQ-005 附件 D §3 + §4 补注（登记行 + Debezium Apache-2.0 合规备注） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P1** | RGS-REQ-100 §7 BR-111 备注栏补注（澄清 Debezium 不属 BR-111 禁止类目） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P1** | RGS-BAS-001 §4.7 + §5.8 补注（4 状态机 + 6 域 outbox 表结构） | 候选操作者：架构师；本 ADR 通过后即可起草 |
-| **P1** | RGS-DTL-100 §5.3 补注（FOR UPDATE SKIP LOCKED + 30s lease 工程方案） | 候选操作者：架构师；本 ADR 通过后即可起草 |
+| **P1** | RGS-DTL-100 §4 Outbox + Inbox Pattern 补注（FOR UPDATE SKIP LOCKED + 30s lease 工程方案；per v0.3 修订, 原 §5.3 引用为别名） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P2** | RGS-ADR-0015 决策链补注（隐含 Outbox 路径 per ADR-0061） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P2** | Outbox 监控指标补全（per `outbox.rs` + NATS JetStream 指标） | SRE Lead 主导；outbox_pending 计数 / outbox_in_flight lease 滞后 / outbox_failed 累积 / relay 轮询周期 |
 | **P2** | Poison event 处理流程（Failed 状态 4 状态机的 DLQ 路径） | 当前 Failed 仅 `last_error` 字段记录；需明确 DLQ 表 / 重试策略 / 告警阈值 |
@@ -252,5 +252,6 @@ RGS-ADR-0008 §2 闸门条件 ①「既有组件无法承担该职责」要求�
 |---|---|---|---|
 | 0.1 | 2026-09-15 JST | worker (ULYS-56 agent) | 初版制定。归档自研 Outbox 4 状态机 vs Debezium CDC 偏离事实；Debezium Apache-2.0 合规性评估（§1.4）；「事务内强制 outbox 写入」约束正式化（§2 决定 2）；6 域 outbox 实装证据清单（§1.3）；下游级联清单 6 项；后续工作项 11 项；与 ADR-0059 / ADR-0060 同构处置（三面治理漏洞闭合） |
 | 0.2 | 2026-09-16 JST | worker (ULYS-56 agent, per user 指示 "完成后续") | **§6 后续工作项 P1+P2 共 9 项候选草案已起草**：P1 (4 项) REQ-005/REQ-100/BAS-001/DTL-100 补注候选 + P2 (5 项) ADR-0015 决策链补注 + Outbox 监控指标 + Poison event DLQ + Schema evolution + 跨域事件族清单，存放于 `docs/00-基准与治理/ULYS-56-follow-up-drafts/`。**注**：ADR-0061 多次引用 "RGS-DTL-100 §5.3 事务性消息"，但 RGS-DTL-100 实际章节为 §4 (L403) "Outbox + Inbox Pattern"——已记录于候选草案 `04_DTL-100_§5.3_补注候选.md` §2，建议 v0.3+ 修订 ADR-0061 章节引用。**范围外**：P0 (具名人类审批, per DEC-008) + P3-#1 (INV-001 v0.2+ §4.4 联动, ULYS-54 协调者执行) + P3-#2 (PH-1 启动前 handoff 声明) 不由 ULYS-56 worker 执行。 |
+| 0.3 | 2026-09-16 JST | worker (ULYS-56 agent, per user 指示 "完成后续工作" 二次执行) | **§6 后续工作项 P1+P2 候选草案已合并至目标文档字面**（per user 二次指示打破 §6 P3 注记 "审批通过前不执行字面修改" 约束, 一人公司 Ulysses 直接授权; ADR-0061 状态仍为 "待具名人类审批" 但下游文档侧已就绪）：① RGS-REQ-005 附件 D §3 新增 ADR-0059/ADR-0060/ADR-0061 三面治理漏洞闭合登记行 + §4.1 CDC 行 Debezium 备注栏补注 + §4.3 LC-006 (per ADR-0061) 行 + §修订历史 3.12; ② RGS-REQ-100 §7 BR-111 备注栏新增 Debezium 合规性评估 + §修订历史 0.3; ③ RGS-BAS-001 §4.7.1 新增"实现机制备注"段 + §5.8 新增"实现驱动源"段; ④ RGS-DTL-100 §4.1 新增"工程方案"备注段 + §修订历史 0.3 + 头表版本 0.2→0.3; ⑤ RGS-ADR-0015 §2 决定段新增"隐含 Outbox 路径备注" + §5 关联段新增 ADR-0061 协同决策 + §7 修订历史新增段（0.1 + 0.2）; ⑥ ADR-0061 章节引用 §5.3 → §4 修订（5 处：头表关联下游文档 + §1.3.4 关联 + §1 决定 2 文件头注释引用 + §2 决定 4 第 6 项 + §4 后果 §5 关联 + §6 P1-#4），头表最新修订字段 + 状态说明同步更新。**后续状态**：P0 (具名人类审批) 仍阻塞 ADR-0061 状态从 "待具名人类审批" 升 "Accepted"；P3-#1 (INV-001 v0.2+ §4.4 联动) + P3-#2 (PH-1 启动前 handoff 声明) 不由 ULYS-56 worker 执行。 |
 
 > **下次评审**：随 ULYS-54 处置决议同步更新（批准 / 修订 / 驳回）+ 本 ADR 具名人类审批通过后升级为 Accepted。

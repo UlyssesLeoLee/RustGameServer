@@ -45,6 +45,7 @@
 | 3.9 | 2026-08-25 | 架构师 | 登记RGS-REQ-038（核心传输防丢包强化与周边协议选型）：ISS-006/TBD-006**部分决议**（防丢包子问题——QUIC Datagram路径新增FEC编解码层，不引入重传；拥塞控制/发送节奏子问题仍未着手，待PH-4）；启用保留编号ARC-047，§3新增ADR-0047登记行；§1.3新增ISS-120/TBD-105/TBD-NET-001、ISS-121/TBD-106/TBD-NET-002；§2新增RSK-079/RSK-NET-001。同批登记RGS-REQ-007-ADD1（GM后台DNS/CDN基础设施可视化）：§1.3新增ISS-122/TBD-107/TBD-OPS-004、ISS-123/TBD-108/TBD-OPS-005 |
 | 3.10 | 2026-08-25 | 架构师 | **`check-docs-consistency.sh` 巡检发现 24 个域内 ID 缺登记主表**（per `RGS-DOCS-HEALTH-2026-08-25-feedback-to-agents.md` §1 处置）：§1.3 新增 ISS-129〜147（19 个 TBD 域内 ID，覆盖 TBD-CDN-201〜203 / TBD-DTL-041-01〜05 / TBD-DTL-042-01〜07 / TBD-LCM-001〜004）；§2.3 新增 RSK-080〜093（14 个 RSK 域内 ID，覆盖 RSK-CDN-201〜204 / RSK-DTL-041-01〜02 / RSK-DTL-042-01〜02 / RSK-LCM-001〜006）。TBD-DTL-041/042 与 RSK-DTL-041/042 这 4 个三段式 ID 在源文档中**没有直接出现**，系 `check-docs-consistency.sh` 第 3 项正则 `TBD-[A-Z]+-[0-9]+` 三段式对源文档四段式子项 `TBD-DTL-041-01` / `TBD-DTL-042-01` 的截断提取；本批按"每一源文档子项都应有独立 ISS/RSK 追踪条目"原则展开登记。**所有新增条目的"发生概率"与"影响度"列均填"待评估（PH-1 前架构师按 §2.1 基准补全）"**——未代签、未预设值，PH-1 前由架构师校正。 |
 | 3.11 | 2026-08-25 | 主对话（Sonnet 5，自查） | **复核 3.10 发现遗漏 `TBD-LCM-005`/`006`/`007` 三项**（per Ulysses"更新需求文档，确保反应最新的结论"指示触发的复核）：这三个编号此前仅作为其他行备选方案文字中的顺带提及存在，未获独立登记行，`check-docs-consistency.sh` 第 3 项检查只验证编号字符串在正文任意位置出现过，未能识别此类"提及但未登记"情形，误判为已登记。补登 ISS-148〜150，使 TBD-LCM-001〜007（7 项）与 §1.3 全部 22 个 TBD 域内 ID（含四段式展开）真正逐项齐全（ISS-129〜150）。§2.3 RSK 侧经复核**无**同类遗漏，14 个 RSK 域内 ID 均已各自独立登记（RSK-080〜093）。 |
+| 3.12 | 2026-09-16 | 架构师（Ulysses 一人公司兼任 per DEC-008）| per RGS-ADR-0061（待具名人类审批）, §3 ADR 登记表新增 ADR-0059 / ADR-0060 / ADR-0061 三面治理漏洞闭合候选（per ULYS-54 / 55 / 56）, §4.1 CDC 行 Debezium 备注栏新增"未采用 per ADR-0061"补注, §4.3 新增 LC-006 (per ADR-0061) 行（CDC 路径偏离参考设计 Debezium 自研实现季度核对） |
 
 ---
 
@@ -425,6 +426,9 @@
 | ADR-0058 | 运营管控与服务Agent矩阵的受控动作边界（原误登记为ADR-0055，per ISS-126于2026-08-25更正编号） | ARC-055 | 进入实现阶段前 | 待具名人类审批・未制定（提案；见RGS-REQ-034，不得作为生产基线） |
 | ADR-0056 | 游戏性生态与仿真Agent的只读与可复跑边界 | ARC-056 | 进入实现阶段前 | 待具名人类审批・未制定（提案；见RGS-REQ-035，不得作为生产基线） |
 | ADR-0057 | 游戏核心状态收敛与分级持久化架构演进（Tier-1/Tier-2持久化+一致性哈希同节点分片+Reward Saga语义澄清） | ARC-008 | 进入实现阶段前 | **[已制定](../08-架构决策记录/RGS-ADR-0057_游戏核心状态收敛与分级持久化架构演进.md)**（2026-08-25经§5签字栏12角色全签，Accepted；不新增ARC，refines ARC-001/005/007/008/013；不改变Purchase Saga既有补偿设计） |
+| ADR-0059 | 缓存统一 Valkey 替代 Redis（偏离参考设计，待具名人类审批） | ARC-014 | 待决议 | **待具名人类审批・已立候选**（[已制定](../08-架构决策记录/RGS-ADR-0059_缓存统一Valkey替代Redis.md), per ULYS-54 §3 缓存偏离处置, 不触发 RGS-ADR-0008 §2 闸门已补救） |
+| ADR-0060 | 事件总线偏离参考设计 NATS JetStream 替代 Apache Kafka（待具名人类审批） | ARC-014 | 待决议 | **待具名人类审批・已立候选**（[已制定](../08-架构决策记录/RGS-ADR-0060_事件总线偏离_NATS取代ApacheKafka.md), per ULYS-54.A / ULYS-55, 与 ADR-0059 同构处置） |
+| ADR-0061 | CDC / Outbox 偏离参考设计 自研 Outbox 4 状态机取代 Debezium CDC（待具名人类审批） | ARC-014 | 待决议 | **待具名人类审批・已立候选**（[已制定](../08-架构决策记录/RGS-ADR-0061_CDC_Outbox偏离参考设计_自研Outbox取代DebeziumCDC.md), per ULYS-54.B / ULYS-56, 与 ADR-0059 / ADR-0060 同构处置, 三面治理漏洞全部闭合） |
 
 > **ADR-0019／0023／0024／0025列为PH-1的理由**：ADR-0019（埋点规范）依ARC-017"可观测性自PH-1起必须具备"；ADR-0023（客户端SDK）依RSK-003"实时同步方式细节未定导致客户端开发停滞"须在PH-1与客户端团队达成合意；ADR-0024／0025（治理机制）是其余全部领域文档基准化的前置条件，且ISS-032（运维负荷超支）须在新增运维面实际落地前决议。
 
@@ -451,7 +455,7 @@
 | 数据库 | PostgreSQL | PostgreSQL License | ○ | **合规** | BSD系 |
 | 缓存基础设施 | Valkey | BSD-3-Clause | ○ | **合规** | Redis 2024年许可变更后的分支 |
 | 事件基础设施 | Apache Kafka | Apache-2.0 | ○ | **合规** | 导入须经ARC-014判定 |
-| CDC | Debezium | Apache-2.0 | ○ | **合规** | 同上 |
+| CDC | Debezium | Apache-2.0 | ○ | **合规** | 同上；**未采用** per RGS-ADR-0061（自研 Outbox 4 状态机取代，事务内强制 outbox 写入约束）。Debezium 主项目 Apache-2.0 合规（per ADR-0061 §1.4），与 BR-111 纯开源约束不冲突；RGS 拒绝引入的真实理由是 OLU 估算（避免 JVM + Kafka Connect 集群） + 设计替代性（事务内强制 outbox 写入已实现事务一致性 + 事件传播），非 BR-111 合规理由 |
 | Schema Registry | Apicurio Registry / Karapace | Apache-2.0 | ○ | **合规** | ARC-010 |
 | 工作流基础设施 | Temporal | MIT | ○ | **合规** | 导入须经ARC-014判定 |
 | API网关 | Envoy | Apache-2.0 | ○ | **合规** | PH-6以降 |
@@ -493,6 +497,7 @@
 | LC-004 | **不得**将未记载于本表的组件引入核心路径 |
 | LC-005 | **本项目许可为Apache-2.0（ISS-002决议完毕）。GPL／AGPL／LGPL等copyleft系许可的代码不得并入本仓库源码**。CI自动检查依赖许可，检出copyleft系时须使构建失败 |
 | LC-006 | 4.1节的Grafana／Loki虽为AGPL-3.0，但**作为独立进程部署，不与本项目源码链接，故不影响本项目以Apache-2.0分发**。仅当改动后对外提供服务时才产生源码公开义务。**不得作为库并入本项目源码** |
+| LC-006 (per ADR-0061) | CDC 路径偏离参考设计 Debezium 自研实现：每季度核对 ADR-0061 §1.4 Debezium 合规性评估与 §3 备选方案列表，确认 RGS 自研 Outbox 4 状态机仍是当前最优解；如未来出现"非 outbox DB 变更需被传播"业务用例须立新 ADR 重新评估 Debezium 引入（per ADR-0061 §4 已知张力）|
 
 ---
 
