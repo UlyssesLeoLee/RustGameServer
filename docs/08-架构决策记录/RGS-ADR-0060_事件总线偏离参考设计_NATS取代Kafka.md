@@ -1,9 +1,9 @@
-# RGS-ADR-0060: 事件总线偏离参考设计 — NATS JetStream 2.10+ 取代 Apache Kafka
+# RGS-ADR-0060: 事件总线偏离参考设计 — NATS JetStream 2.14 (Latest) 取代 Apache Kafka
 
 | 项目 | 内容 |
 |---|---|
 | 决策编号 | RGS-ADR-0060 |
-| 标题 | 事件总线偏离参考设计：NATS JetStream 2.10+ 取代 Apache Kafka |
+| 标题 | 事件总线偏离参考设计：NATS JetStream 2.14 (Latest) 取代 Apache Kafka |
 | 状态 | **待具名人类审批**（per DEC-008 一人公司兼任；本文为候选提案，由 worker (ULYS-55, ULYS-54.A) 起草） |
 | 制定日期 | 2026-09-15 JST |
 | 制定人 | worker (ULYS-55 agent) |
@@ -21,7 +21,7 @@
 RGS 的事件总线在两份独立登记册上产生了"双轨"决议：
 
 - **上游登记册**：RGS-REQ-005 附件 D §4 OSS 许可盘点 L453（2026-08-19 起登记）把 **Apache Kafka** 登记为「事件基础设施」合规组件，许可 Apache-2.0，备注「**导入须经 ARC-014 判定**」——即选 Kafka 是上游"开放技术栈约束"环节的合规默认，但**任何偏离 Kafka 的备选都必须经过 ARC-014 单点 ADR 闸门**。
-- **下游选型报告**：RGS-TS-001 §3.6.1（v0.6 起 2026-08-22「一致」，v0.7 起 2026-08-24「已决策」）改选 **NATS JetStream 2.10+**，理由 4 条（ARC-010 满足 / 单一二进制 / 持久化一站式 / 比 Kafka 资源占用低一个量级），**且未触发 RGS-ADR-0008 闸门、未补立单点 ADR**。
+- **下游选型报告**：RGS-TS-001 §3.6.1（v0.6 起 2026-08-22「一致」，v0.7 起 2026-08-24「已决策」）改选 **NATS JetStream**（自 v0.6 写 `2.10+`，per ADR-0060 v0.2 升档为 `2.14 (Latest)`），理由 4 条（ARC-010 满足 / 单一二进制 / 持久化一站式 / 比 Kafka 资源占用低一个量级），**且未触发 RGS-ADR-0008 闸门、未补立单点 ADR**。
 
 ### 1.1 与 ADR-0059 缓存偏离的同构性（结构性问题）
 
@@ -30,7 +30,7 @@ ULYS-54 §3 + ADR-0059 已揭示 TS-001 §3.5.1 改选 Redis 时绕过了 RGS-AD
 | 维度 | 缓存偏离 (ADR-0059 已处置) | 事件总线偏离 (本 ADR 处置) |
 |---|---|---|
 | 上游登记 | REQ-005 §4 L452 Valkey (合规) | REQ-005 §4 L453 Apache Kafka (合规, 须 ARC-014 判定) |
-| 下游选型 | TS-001 §3.5.1 Redis 7.2+ | TS-001 §3.6.1 NATS JetStream 2.10+ |
+| 下游选型 | TS-001 §3.5.1 Redis 7.2+ | TS-001 §3.6.1 NATS JetStream 2.14 (Latest)（自 `2.10+` 升档 per ADR-0060 v0.2） |
 | 闸门触发 | ❌ 未触发 | ❌ 未触发 |
 | 决议路径 | 4 次升版 (v0.4→v0.7) 未回头补救 | DEC 拍板 (Q-M-10 + ACTIONS-v0.3 B-09) |
 | 偏离事实 | 零代码层影响 (无 Redis 客户端依赖) | **已生产实装** (5 域 `async-nats` 客户端 + 30-nats-*.yaml 6 份 K8s manifest) |
@@ -42,11 +42,13 @@ ULYS-54 §3 + ADR-0059 已揭示 TS-001 §3.5.1 改选 Redis 时绕过了 RGS-AD
 
 | 维度 | 参考设计 / 上游 | RGS 实际 | 决议来源 |
 |---|---|---|---|
-| 事件总线 | Apache Kafka | NATS JetStream 2.10+ | TS-001 §3.6.1（v0.7 已决策） |
+| 事件总线 | Apache Kafka | NATS JetStream **2.14 (Latest)** | TS-001 §3.6.1（v0.7 已决策；版本号升档 per ADR-0060 v0.2 候选） |
+| 客户端语言 | Java / Scala / 多语言官方客户端 | **Rust (`async-nats = "0.42"`)** — 我们项目实际使用，synadia 同团队维护 | `Cargo.toml` workspace dep + `crates/shared-platform/src/producer.rs:11` |
 | 持久化 | Log 段文件，长期保留 | Stream + Consumer 持久化，可配置保留 | TS-001 §3.6.1 备选 |
 | 顺序保证 | Partition 内强顺序 | Stream 内消息有序 | TS-001 §3.6.1 备选 |
 | 吞吐量 | 百万级 QPS | 十万级 QPS（单节点） | TS-001 §3.6.1 备选 |
-| 运维负担 | JVM + ZooKeeper/KRaft，4-8GB 内存 | Go 单二进制，50-200MB 内存 | TS-001 §3.6.1 备选 |
+| 运维负担 | JVM + ZooKeeper/KRaft，4-8GB 内存 | Go 单二进制（**服务端**，非项目代码），50-200MB 内存 | TS-001 §3.6.1 备选 |
+| 服务端协议 | Apache-2.0（Linux Foundation） | Apache-2.0（CNCF, 2025 license 风波后守住，未改 BSL） | NATS 官方 LICENSE-APACHE-2.0.txt + svix.com FAQ 2026-08-28 |
 | DEC 链 | — | Q-M-10 答复 + ACTIONS-v0.3 B-09 升「已决策」 | DEC-005/006 路径 |
 | ADR | — | **缺失（待本工单产出）** | 本工单 |
 
@@ -69,16 +71,16 @@ RGS-REQ-005 §4 L453 备注栏写「**导入须经 ARC-014 判定**」——TS-0
 
 ## 2. 决定（Decision）
 
-**维持 NATS JetStream 2.10+ 选型，正式归档偏离参考设计的事实，并触发附件 D §3 登记行同步。** 具体内容：
+**维持 NATS JetStream 2.14 (Latest) 选型，正式归档偏离参考设计的事实，并触发附件 D §3 登记行同步。** 具体内容：
 
-1. **事件总线产品**：NATS JetStream 2.10+（per TS-001 §3.6.1 v0.7 + Q-M-10 答复 + ACTIONS-v0.3 B-09）。NATS JetStream 由 Synadia 维护，Apache-2.0 许可（per `Cargo.toml` 依赖元数据 + NATS 官方 LICENSE-APACHE-2.0.txt），单二进制 Go 实现，Stream 持久化 + 消费者组 + 重放 + DLQ 一站式。
+1. **事件总线产品**：NATS JetStream **2.14 (Latest)**（per TS-001 §3.6.1 v0.7 + Q-M-10 答复 + ACTIONS-v0.3 B-09；版本号升档自 `2.10+` → `2.14` per ADR-0060 v0.2）。NATS JetStream 由 Synadia 维护，**服务端** Apache-2.0 许可（CNCF 托管，2025 license 风波后守住 Apache-2.0 未改 BSL；per NATS 官方 LICENSE-APACHE-2.0.txt + svix.com FAQ 2026-08-28），**客户端** `async-nats = "0.42"` 纯 Rust 实现（synadia 同团队维护，无 FFI / cgo），单二进制 Go 服务端（**非项目代码**，仅通过 K8s manifest 部署），Stream 持久化 + 消费者组 + 重放 + DLQ 一站式。
 2. **协议层**：NATS 文本协议（subject-based routing），与 Kafka 二进制协议不通——但**客户端 API 抽象已就位**（`crates/shared-platform/src/producer.rs` + `consumer.rs` + `messaging.rs`），业务域代码不直接接触 NATS SDK，业务可替换空间（per NFR-MI-005）由共享层抽象提供。
 3. **事件命名 + partition_key**：维持 `rgs.events.<domain>.<aggregate>.<action>.<version>`（per RGS-SPEC-CROSS-003 v0.2 §L37），`partition_key` 通过 subject 内嵌（`subject` 内含 aggregate id）实现 Stream 内单 aggregate 有序，与 Kafka partition 语义等价。
 4. **下游级联（本 ADR 审批通过后执行）**：
-   - **RGS-REQ-005 附件 D §3 登记行**：新增「ADR-0060 事件总线偏离参考设计: NATS JetStream 2.10+ 取代 Kafka (待具名人类审批)」登记行
-   - **RGS-REQ-005 附件 D §4 OSS 许可盘点**：L453 行（Apache Kafka）补注「per ADR-0060，事件总线偏离至 NATS JetStream 2.10+ (Apache-2.0)」
-   - **RGS-TS-001 §3.6.1**：补注「偏离参考设计（per ADR-0060 候选）」，状态保持「【已决策：NATS JetStream】」
-   - **RGS-TS-001 §5.1 已决选型表**：「NATS JetStream 2.10+」行补注「(偏离参考设计 Kafka，per ADR-0060)」
+   - **RGS-REQ-005 附件 D §3 登记行**：新增「ADR-0060 事件总线偏离参考设计: NATS JetStream 2.14 (Latest) 取代 Kafka (待具名人类审批)」登记行
+   - **RGS-REQ-005 附件 D §4 OSS 许可盘点**：L453 行（Apache Kafka）补注「per ADR-0060，事件总线偏离至 NATS JetStream 2.14 (Latest) (Apache-2.0)」
+   - **RGS-TS-001 §3.6.1**：补注「偏离参考设计（per ADR-0060 候选）」，状态保持「【已决策：NATS JetStream】」，版本号随 ADR-0060 v0.2 升档为 `2.14 (Latest)`
+   - **RGS-TS-001 §5.1 已决选型表**：「NATS JetStream」行补注「(偏离参考设计 Kafka，per ADR-0060，版本 `2.14 (Latest)`)」
    - **RGS-TS-001 修订历史**：新增 v0.10 条目记录本次偏离正式化
    - **RGS-REQ-031 CEM 中心事件管理**：§「事件基础设施」补注「NATS JetStream, per ADR-0060」
    - **RGS-SPEC-CROSS-003 v0.2**：§L37 主题命名空间补注「基于 NATS JetStream subject 路由, per ADR-0060」
@@ -129,7 +131,7 @@ RGS-REQ-005 §4 L453 备注栏写「**导入须经 ARC-014 判定**」——TS-0
 - **偏离参考设计的事实正式归档**：补登记 RGS-REQ-005 §3 ADR-0060 行，治理漏洞闭合——后续审计 / 招聘 / 评审可定位单点 ADR；
 - **DEC 与 ADR 分工明确**：DEC 是即时决策（per Q-M-10 + ACTIONS-v0.3 B-09），ADR 是可追溯记录——本 ADR 把 DEC 链沉淀为 ADR，**符合 RGS-ADR-0008 §4「驳回须写明未满足哪一条」的反向义务**；
 - **ARC-014 / RGS-ADR-0008 闸门执行的先例成立**：与 ADR-0059 缓存偏离同构处置，未来类似偏离有模板可循；
-- **trade-off 显式记录**：运维简化（单二进制 50-200MB vs JVM + ZooKeeper 4-8GB）换取吞吐上限（十万级 QPS 单节点 vs 百万级 QPS）——这是 RGS 主动接受的代价，与 ARC-014 / OLU 约束一致；
+- **trade-off 显式记录**：运维简化（NATS Server 单二进制 50-200MB vs Kafka JVM + ZooKeeper 4-8GB）换取吞吐上限（NATS 十万级 QPS 单节点 vs Kafka 百万级 QPS）——这是 RGS 主动接受的代价，与 ARC-014 / OLU 约束一致；
 - **5 域全栈零代码层改动**：NATS 已实装、Outbox 已稳定、msg header 已冻结——本 ADR 不引入新依赖、不撤销已落地；
 - **NFR-MI-005 可替换空间**：业务域通过 `crates/shared-platform::producer` / `consumer` 抽象接触事件总线，**NATS SDK 不渗入业务域**（per `crates/shared-platform/src/messaging.rs` 抽象层），未来若需迁移回 Kafka 仅需替换共享层实现。
 
@@ -174,5 +176,6 @@ RGS-REQ-005 §4 L453 备注栏写「**导入须经 ARC-014 判定**」——TS-0
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-09-15 JST | worker (ULYS-55 agent) | 初版制定。归档 NATS JetStream vs Kafka 偏离事实；下游级联清单 7 项；后续工作项 6 项 |
+| 0.2 | 2026-09-16 JST | worker (ULYS-55 agent) | **响应具名人类 Option A 选定**（per ULYS-55 评论 01a0a95b-64a9-7e22-a8bf-63c8e2b8c7a4）：① 版本号升档 `NATS JetStream 2.10+` → `NATS JetStream 2.14 (Latest)`（per Synadia 当前受支持窗口 + 文档澄清 STAN vs JetStream 混淆）② §1.2 加「客户端语言 = Rust (`async-nats = "0.42"`)、「服务端协议 = Apache-2.0 (CNCF 守住 2025 BSL 风波)」两行（回应项目语言调性问题 + 开源协议澄清）④ §2 banner + §1.2 + §4 trade-off 三处版本号同步升档。**状态保持「待具名人类审批」**：具名人类已表达意向 (Option A)，待文档化审批动作（per DEC-008 一人公司兼任） |
 
 > **下次评审**：随 ULYS-54 处置决议同步更新（批准 / 修订 / 驳回）+ 本 ADR 具名人类审批通过后升级为 Accepted。
