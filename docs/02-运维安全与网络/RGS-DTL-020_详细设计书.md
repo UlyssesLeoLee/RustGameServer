@@ -312,6 +312,271 @@ fn execute_merge_job(job_id: MergeJobId, mode: MergeMode) -> Result<MergeReport,
 
 后续详细设计建议顺序：与RGS-DTL-017/018/021同批次并行推进。
 
+> **v0.3 升版补登（per ULYS-1 后续测试设计补全任务）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：各平台（App Store/Google Play）收据验证适配子模块的具体SDK调用、`realm_id`字段在全部既有业务表的逐一列举（多服架构启用后另行确定）"——这两项在 v0.3 仍属本文档范围外（SDK 调用属实现阶段；`realm_id` 字段清单待 TBD-PLT-002 评审后补齐），但**收据校验（含沙盒/生产不匹配拒绝）、待重试队列扫描与终态转移、退款通知校验、`realm_id` 服务器侧强制、合服冲突解决（演练/正式共用代码路径）** 的测试设计已在 v0.3 由本文档§8「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+# 8. 后续测试设计补全（v0.3 test-design follow-up，per ULYS-1）
+
+## 8.1 范围与既有占位
+
+原 v0.1 仅给出"各平台 SDK 调用、`realm_id` 全部业务表清单"两类不覆盖项；v0.1/v0.3 均**未**为本文档 §3 收据协议、§4 待重试/退款、§5 `realm_id`、§6 合服配套测试设计。本次补全聚焦 v0.1 已落实的逻辑（DTL 既有章节正文）的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL020-RCPT-001~005 | 收据校验主流程 + 沙盒/生产不匹配 + 幂等 | §3 / §4.1 | UT/IT | FR-PLT-001~005 |
+| TC-DTL020-RETRY-001~004 | 待重试队列扫描 + 终态转移 + 阈值升级 | §4.2 / §4.3 | UT/IT | NFR-PLT-002 |
+| TC-DTL020-REFUND-001~002 | 退款通知 + 追回方式分发 | §4.4 | UT/IT | FR-PLT-010/011 |
+| TC-DTL020-REALM-001~002 | `realm_id` 服务器侧强制 + 跨服拒绝 | §5 | UT | §3.3、FR-RLM-001 |
+| TC-DTL020-MERGE-001~003 | 合服冲突解决 + 演练/正式代码路径 | §6 | UT/IT | FR-PLT-020~022 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`）。
+
+## 8.2 收据校验测试用例（TC-DTL020-RCPT-NNN）
+
+### TC-DTL020-RCPT-001 — 正常收据提交：发放 + ledger_id 返回
+
+- **层**：IT（含 mock App Store/Google Play SDK）；**对应 DTL §**：§3 `SubmitReceiptRequest` + §4.1 `submit_receipt`
+- **覆盖需求**：FR-PLT-001（内购合规）、FR-EC-003（确定请求路径）
+- **前置条件**：mock 平台 SDK 返回 `verified` 且 `environment=production`；`PlayerFixture::player("A")`、`EconomyFixture::economy("A")`
+- **Steps**：
+  - **Given**：`request_id='req-001'`，`raw_receipt` 合法，`platform_type='app_store'`，部署环境为 production
+  - **When**：`submit_receipt(req)`
+  - **Then**：
+    - `find_payment_order_by_provider_txn` 返回 `None`（首次提交）
+    - `create_payment_order(req, &verified)` 成功
+    - `grant_entitlement_via_commit_transaction(&order)` 调用（per §4.1 第 11 行）
+    - 返回 `Ok(success_response(order))`，`ledger_id` 非空
+- **断言**：`payment_orders` 1 行新增；玩家权益已发放；`failure_category` 为空。
+
+### TC-DTL020-RCPT-002 — 沙盒/生产环境不匹配拒绝
+
+- **层**：IT；**对应 DTL §**：§4.1 第 6-9 行；§2.5 环境不匹配须拒绝
+- **覆盖需求**：§2.5（沙盒/生产不匹配须拒绝）、FR-PLT-002
+- **前置条件**：部署环境为 production；mock SDK 返回 `environment=sandbox`
+- **Steps**：
+  - **Given**：`verified.environment != expected_environment_for_deployment()`，即 sandbox vs production
+  - **When**：`submit_receipt(req)`
+  - **Then**：
+    - 返回 `Ok(reject_response("sandbox_prod_mismatch"))`（per §4.1 第 8 行）
+    - `failure_category="sandbox_prod_mismatch"`
+    - **不**进入 `create_payment_order` 与发放路径
+    - **不**新增 `payment_orders` 行
+- **断言**：§2.5 强约束"环境不匹配须拒绝"生效；客户端应理解为"拒绝"而非"待重试"。
+
+### TC-DTL020-RCPT-003 — 幂等键 `(request_id)` 重复提交返回既有结果
+
+- **层**：IT；**对应 DTL §**：§3 `request_id` 字段 + §4.1 `find_payment_order_by_provider_txn` 第 9-12 行
+- **覆盖需求**：NFR-PLT-001（幂等键）、§3 字段 1 编号最高频访问
+- **前置条件**：已存在 `payment_orders` 由同一 `(platform_type, provider_txn_id)` 创建
+- **Steps**：
+  - **Given**：`request_id='req-001'`，`provider_txn_id='TXN-A'` 已存在
+  - **When**：再次以相同 `request_id` 提交同一收据
+  - **Then**：
+    - `existing_order_response(order)` 返回（per §4.1 第 11 行）
+    - **不**重复发放权益
+    - **不**新增 `payment_orders` 行
+- **断言**：`payment_orders` 行数与 Given 前一致；幂等键避免双重发放。
+
+### TC-DTL020-RCPT-004 — 平台明确拒绝：记录审计 + 返回失败分类
+
+- **层**：UT；**对应 DTL §**：§4.1 第 17-21 行；§2.2 失败原因分类
+- **覆盖需求**：§2.2（记录审计日志含失败原因分类）
+- **前置条件**：mock 平台 SDK 返回 `PlatformVerifyError::Rejected("invalid_signature")`
+- **Steps**：
+  - **Given**：收据签名验证失败
+  - **When**：`submit_receipt(req)`
+  - **Then**：
+    - `append_audit_log(req, "invalid_signature")` 被调用
+    - 返回 `Ok(reject_response("invalid_signature"))`
+    - **不**进入待重试队列（明确拒绝路径）
+- **断言**：审计留痕；与"不可用 → 待重试"路径区分（per §4.1 第 23-26 行）。
+
+### TC-DTL020-RCPT-005 — 平台不可用：投递待重试队列（不判定欺诈）
+
+- **层**：IT；**对应 DTL §**：§4.1 第 23-26 行
+- **覆盖需求**：§2.4（验证接口不可用 → 不判定为欺诈）
+- **前置条件**：mock 平台 SDK 返回 `PlatformVerifyError::Unavailable`
+- **Steps**：
+  - **Given**：平台 SDK 超时或 5xx
+  - **When**：`submit_receipt(req)`
+  - **Then**：
+    - `enqueue_pending_verification(req)` 被调用
+    - `pending_receipt_verifications` 1 行新增（`status='pending'`, `retry_count=0`）
+    - 返回 `Ok(pending_retry_response())`
+    - **不**调用 `append_audit_log`（明确非拒绝，per §3 注释）
+- **断言**：客户端应理解为"已受理，正在后台重试"而非"已拒绝"（per §3 第 7 行注释）。
+
+## 8.3 待重试队列测试用例（TC-DTL020-RETRY-NNN）
+
+### TC-DTL020-RETRY-001 — 扫描路径走 `idx_pending_receipt_scan` 部分索引
+
+- **层**：IT；**对应 DTL §**：§2 DDL `idx_pending_receipt_scan ON pending_receipt_verifications (next_retry_at) WHERE status = 'pending'`
+- **覆盖需求**：§2.4 定时任务扫描路径
+- **前置条件**：PG 18.6 实例，构造 N=1000 行，其中 500 行 `status='resolved'`，500 行 `status='pending'` 且部分 `next_retry_at <= now()`
+- **Steps**：
+  - **When**：执行扫描 query（`SELECT * FROM pending_receipt_verifications WHERE status='pending' AND next_retry_at <= now() ORDER BY next_retry_at`）
+  - **Then**：查询走 `idx_pending_receipt_scan` 部分索引（验证 `EXPLAIN`）；已 resolved 行**不**参与扫描
+- **断言**：部分索引过滤掉 500 行 resolved 记录；扫描成本降低。
+
+### TC-DTL020-RETRY-002 — 重试期间平台明确拒绝：转终态不再重试
+
+- **层**：UT；**对应 DTL §**：§4.2 `scan_and_retry_pending_receipts` 第 11-15 行
+- **覆盖需求**：§4.2 明确结论转拒绝路径
+- **前置条件**：mock 重试过程中平台返回 `PlatformVerifyError::Rejected(category)`
+- **Steps**：
+  - **Given**：pending receipt 进入扫描周期，平台明确拒绝
+  - **When**：`scan_and_retry_pending_receipts(now, max_retry=10)`
+  - **Then**：
+    - `mark_pending_resolved(pending_id)` 被调用（**不**继续重试）
+    - `append_audit_log_for_pending(&pending, &category)` 被调用
+    - `status` 从 `'pending'` 迁移到 `'resolved'`
+- **断言**：明确结论退出待重试状态（per §4.2 第 12 行注释）。
+
+### TC-DTL020-RETRY-003 — 重试次数超 `max_retry=10`：转人工工单
+
+- **层**：IT；**对应 DTL §**：§4.2 第 16-21 行 + §4.3 `max_retry=10`
+- **覆盖需求**：§2.4（超最大重试次数转人工）
+- **前置条件**：mock 让某 pending receipt 连续 `Unavailable`，retry_count=10
+- **Steps**：
+  - **Given**：`retry_count=10`，`max_retry=10`；本次重试仍返回 `Unavailable`
+  - **When**：扫描触发
+  - **Then**：
+    - `next_count = 10+1 = 11`，`11 > 10`，进入超限分支
+    - `mark_pending_abandoned(pending_id)` 被调用
+    - `open_support_ticket(pending_id, "payment_issue")` 被调用
+    - `support_tickets.category='payment_issue'` 写入
+- **断言**：超限转人工（per §4.3 `max_retry=10` 提案值）；不再重试。
+
+### TC-DTL020-RETRY-004 — 指数退避：1 分钟 → 1 小时上限
+
+- **层**：UT；**对应 DTL §**：§4.2 第 23 行 `exponential_backoff(next_count)` + §4.3 提案
+- **覆盖需求**：§4.3 退避基数
+- **前置条件**：`exponential_backoff` 函数，初始 1 分钟，倍增至上限 1 小时
+- **Steps**：
+  - **Given**：`next_count ∈ {1, 2, 3, 7, 8, 9, 10}`
+  - **When**：依次调用
+  - **Then**：`backoff(1)=1m`, `backoff(2)=2m`, `backoff(3)=4m`, ...，`backoff(7)=64m ≈ 1h`（触上限），`backoff(8..10)=1h`（饱和）
+- **断言**：符合 §4.3 提案"初始 1 分钟，倍增至上限 1 小时"。
+
+## 8.4 退款处理测试用例（TC-DTL020-REFUND-NNN）
+
+### TC-DTL020-REFUND-001 — 退款通知：签名校验 + 追回执行
+
+- **层**：IT；**对应 DTL §**：§4.4 `handle_refund_notification` 第 1-6 行
+- **覆盖需求**：FR-PLT-010（退款处理）、§2.3 校验通知来源真实性
+- **前置条件**：mock 平台退款通知（已签名）；`PlayerFixture::player("A")`、`EconomyFixture::economy("A")`
+- **Steps**：
+  - **Given**：`notification.platform_type='app_store'`，`txn_id='TXN-A'`，`payment_orders` 存在
+  - **When**：`handle_refund_notification(notification)`
+  - **Then**：
+    - `verify_notification_signature(notification)` 通过
+    - `find_payment_order_by_provider_txn` 返回订单
+    - `resolve_clawback_method(&order)` 触发（占位，per §4.4 第 6 行注释）
+    - `execute_clawback(&order, clawback_method)` 被调用
+    - `update_refund_status(order.id, RefundStatus::ClawbackDone)` 成功
+    - `append_audit_log_clawback(&order, clawback_method)` 写入审计
+- **断言**：退款链路完整；审计留痕；`refund_status` 终态迁移。
+
+### TC-DTL020-REFUND-002 — `resolve_clawback_method` 占位：TBD-PLT-001 未决时函数签名固定
+
+- **层**：UT；**对应 DTL §**：§4.4 第 6-8 行 + §4.4 末尾注释
+- **覆盖需求**：TBD-PLT-001（追回方式占位）
+- **前置条件**：`resolve_clawback_method` 函数已实现但 TBD-PLT-001 未决
+- **Steps**：
+  - **Given**：TBD-PLT-001 待财务/法务评审
+  - **When**：调用 `resolve_clawback_method(&order)`
+  - **Then**：返回占位值（per §4.4 末尾注释"函数签名固定输出类型供实现阶段接入判定结果"）；后续 `execute_clawback` 接收占位值
+- **断言**：占位不影响调用链路；函数签名稳定供实现阶段接入。
+
+## 8.5 `realm_id` 服务器侧强制测试用例（TC-DTL020-REALM-NNN）
+
+### TC-DTL020-REALM-001 — `realm_id` 与会话一致：通过
+
+- **层**：UT；**对应 DTL §**：§5 `validate_realm_scope` 第 6-12 行
+- **覆盖需求**：§3.3（不信任客户端单独声明）
+- **前置条件**：`session.realm_id='realm-001'`，`requested_realm_id='realm-001'`
+- **Steps**：
+  - **Given**：会话与请求的 `realm_id` 一致
+  - **When**：`validate_realm_scope(&session, requested_realm_id)`
+  - **Then**：返回 `Ok(())`
+- **断言**：合法同服请求通过。
+
+### TC-DTL020-REALM-002 — `realm_id` 与会话不一致：跨服拒绝
+
+- **层**：UT；**对应 DTL §**：§5 第 8-11 行
+- **覆盖需求**：§3.3（不得由客户端自行声明 realm_id）
+- **前置条件**：`session.realm_id='realm-001'`，`requested_realm_id='realm-002'`
+- **Steps**：
+  - **Given**：客户端请求携带其他 realm_id
+  - **When**：`validate_realm_scope(&session, requested_realm_id)`
+  - **Then**：返回 `Err(RealmScopeError::CrossRealmAccessDenied)`（per §5 第 11 行）
+- **断言**：服务器侧强制，**不**信任请求体中的 `realm_id` 单独判定（per §5 第 7-10 行注释）。
+
+## 8.6 合服冲突解决测试用例（TC-DTL020-MERGE-NNN）
+
+### TC-DTL020-MERGE-001 — 未锁定规则集拒绝执行（演练与正式均拒绝）
+
+- **层**：UT；**对应 DTL §**：§6 `execute_merge_job` 第 4-9 行
+- **覆盖需求**：§4.1（须完成评审并锁定后方可执行）
+- **前置条件**：`merge_conflict_rule_sets.locked=false`
+- **Steps**：
+  - **Given**：规则集未锁定（`locked=false`）
+  - **When A**：`execute_merge_job(job_id, MergeMode::Trial)` 演练模式
+    - **Then**：返回 `Err(MergeError::RuleSetNotLocked)`
+  - **When B**：`execute_merge_job(job_id, MergeMode::Formal)` 正式模式
+    - **Then**：同样返回 `Err(MergeError::RuleSetNotLocked)`
+- **断言**：演练与正式均拒绝未锁定规则（per §6 第 7 行注释）。
+
+### TC-DTL020-MERGE-002 — 角色名冲突按 `auto_rename_with_suffix` 自动重命名
+
+- **层**：UT + SQL fixtures；**对应 DTL §**：§6 `apply_name_rule` + §2 `merge_conflict_rule_sets.character_name_conflict_rule`
+- **覆盖需求**：§4.1（角色名冲突解决）
+- **前置条件**：`rule_set.character_name_conflict_rule='auto_rename_with_suffix'`；冲突角色 = "PlayerA"
+- **Steps**：
+  - **Given**：两服各有一个 "PlayerA"
+  - **When**：`apply_name_rule(conflict, "auto_rename_with_suffix", &mut report)`
+  - **Then**：后迁移服角色被重命名为 "PlayerA#001"（或 `#002`）；`report` 含 `name_renamed: 1`
+- **断言**：规则应用正确；`MergeReport` 记录变更。
+
+### TC-DTL020-MERGE-003 — 演练模式不提交持久化变更（与正式模式代码路径一致）
+
+- **层**：IT；**对应 DTL §**：§6 第 21-25 行 + 末尾"演练与正式执行代码路径不得分叉"边界条件
+- **覆盖需求**：§5.2（演练与正式共用同一代码路径）、§4.2 步骤 2（核对资产总量）
+- **前置条件**：Testcontainers 启动目标 DB；`rule_set.locked=true`
+- **Steps**：
+  - **Given**：`execute_merge_job` 进入 `mode=Trial`
+  - **When**：执行完成
+  - **Then**：
+    - `verify_asset_total_consistency(&report)` 被调用
+    - **不**写持久化变更（演练不提交）
+    - `MergeReport` 仍产出供运营审阅
+- **断言**：演练与正式仅在最后是否提交上分叉（per §6 末尾批注）；代码路径共用是 §5.2 代码评审检查项的实现前提。
+
+## 8.7 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 9 | 56% | `PlayerFixture::player()`、`EconomyFixture::economy()`、`mockall` mocks（平台 SDK、verify_notification_signature） |
+| IT（Testcontainers PG 18.6） | 7 | 44% | `pg_test_db`、`PlayerFixture::player()`、`EconomyFixture::economy()` |
+
+## 8.8 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL020-RCPT-001 | FR-PLT-001、FR-EC-003 | RGS-BAS-020 | §3、§4.1 |
+| TC-DTL020-RCPT-002 | §2.5、FR-PLT-002 | RGS-BAS-020 | §4.1 |
+| TC-DTL020-RCPT-003 | NFR-PLT-001 | RGS-BAS-020 | §3、§4.1 |
+| TC-DTL020-RCPT-004 | §2.2 | RGS-BAS-020 | §4.1 |
+| TC-DTL020-RCPT-005 | §2.4 | RGS-BAS-020 | §4.1 |
+| TC-DTL020-RETRY-001 | §2.4 扫描 | RGS-BAS-020 | §2、§4.2 |
+| TC-DTL020-RETRY-002 | §4.2 明确结论转拒绝 | RGS-BAS-020 | §4.2 |
+| TC-DTL020-RETRY-003 | §2.4 超限转人工 | RGS-BAS-020 | §4.2、§4.3 |
+| TC-DTL020-RETRY-004 | §4.3 指数退避 | RGS-BAS-020 | §4.2、§4.3 |
+| TC-DTL020-REFUND-001~002 | FR-PLT-010、TBD-PLT-001 | RGS-BAS-020 | §4.4 |
+| TC-DTL020-REALM-001~002 | §3.3、FR-RLM-001 | RGS-BAS-020 | §5 |
+| TC-DTL020-MERGE-001~003 | FR-PLT-020~022、§5.2 | RGS-BAS-020 | §6 |
+
 ---
 
 # 8. 追溯性
