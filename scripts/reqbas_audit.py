@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""RGS 设计链对账脚本（REQ → BAS → DTL → SPEC）
+
+依据 RGS-PLAN-003 §0「调查方法」：
+    文件名编号配对是错的 —— RGS-REQ-NNN 与 RGS-BAS-NNN 的 NNN 不一一对应。
+    正确配对方法：读文档头部「父文档」行，反向索引到上位文档。
+
+本脚本把该方法机械化，并把「解析失败」与「真实缺口」分成两个桶输出，
+避免把解析失败误报为设计缺失（RGS-PLAN-003 §2.6 BAS-100 "v?" 误判即此类）。
+
+用法：
+    python scripts/reqbas_audit.py [--docs docs] [--json out.json] [--md out.md]
+
+退出码恒为 0；本脚本只做报告，不做判定门禁（CI 落地待 RGS-PLAN-003 §4.2 拍板）。
+"""
+
+import argparse
+import io
+import json
+import os
+import re
+import sys
+from collections import OrderedDict, defaultdict
+
+# 文档类型与其在 IPA 共通フレーム 层级中的上位类型
+LAYER_PARENT = OrderedDict([
+    ("REQ", None),      # L1/L2 需求定义书（顶层，父文档可为其它 REQ）
+    ("BAS", "REQ"),     # L3 基本设计书
+    ("DTL", "BAS"),     # L4 详细设计书
+    ("SPEC", "DTL"),    # L5 实现规格书
+])
+
+FILENAME_RE = re.compile(r"RGS-(SPEC-DTL|REQ|BAS|DTL)-([0-9A-Za-z\-]+?)[_\.]")
+# 头部表格行：| 键 | 值 |
+HEADER_ROW_RE = re.compile(r"^\s*\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*$", re.M)
+DOCNO_RE = re.compile(r"RGS-(SPEC-DTL|REQ|BAS|DTL)-([0-9]{3})")
+
+PARENT_KEYS = ("父文档", "父文書", "父文檔", "親文档", "上位文档", "上位文書")
+NO_PARENT_MARKERS = ("无", "無", "N/A", "n/a", "—", "-", "不适用", "顶层", "本文档为")
+
+
+def read_head(path, nbytes=8000):
+    with io.open(path, encoding="utf-8", errors="replace") as fh:
+        return fh.read(nbytes)
+
+
+def parse_header(text):
+    """从文档头部表格抽取键值对（只取第一张表，遇到 '修订历史' 停止）。"""
+    cut = text.find("修订历史")
+    if cut == -1:
+        cut = text.find("改訂履歴")
+    head = text[:cut] if cut > 0 else text
+    out = {}
+    for key, val in HEADER_ROW_RE.findall(head):
+        key = key.strip().strip("*")
+        if key in ("项目", "---", "内容") or set(key) <= set("-: "):
+            continue
+        out.setdefault(key, val.strip())
+    return out
+
+
+def classify_parent(raw):
+    """返回 (status, parent_docno)。
+
+    status ∈ {"parsed", "declared-root", "unrecognized-parent-format"}
+    """
+    if raw is None:
+        return "no-parent-row", None
+    stripped = raw.strip().strip("*").strip()
+    m = DOCNO_RE.search(stripped)
+    if m:
+        kind = "SPEC" if m.group(1) == "SPEC-DTL" else m.group(1)
+        return "parsed", "%s-%s" % (kind, m.group(2))
+    if any(stripped.startswith(mark) for mark in NO_PARENT_MARKERS) or not stripped:
+        return "declared-root", None
+    return "unrecognized-parent-format", None
+
+
+def docno_from_filename(path):
+    base = os.path.basename(path)
+    m = FILENAME_RE.search(base)
+    if not m:
+        return None
+    kind = "SPEC" if m.group(1) == "SPEC-DTL" else m.group(1)
+    num = m.group(2)
+    return "%s-%s" % (kind, num)
+
+
+def collect(docs_root):
+    docs = []
+    for dirpath, dirnames, filenames in os.walk(docs_root):
+        dirnames[:] = [d for d in dirnames if d != "_archive"]
+        for name in filenames:
+            if not name.endswith(".md") or not name.startswith("RGS-"):
+                continue
+            path = os.path.join(dirpath, name)
+            docno = docno_from_filename(path)
+            if docno is None:
+                continue
+            kind = docno.split("-")[0]
+            if kind not in LAYER_PARENT:
+                continue
+            head = read_head(path)
+            hdr = parse_header(head)
+            raw_parent = None
+            for key in PARENT_KEYS:
+                if key in hdr:
+                    raw_parent = hdr[key]
+                    break
+            status, parent = classify_parent(raw_parent)
+            # SPEC 常把上位 DTL 写在标题/正文而非「父文档」行：按编号同构回退
+            if kind == "SPEC" and status in ("no-parent-row", "unrecognized-parent-format"):
+                m = DOCNO_RE.search(head)
+                if m and m.group(1) == "DTL":
+                    status, parent = "parsed-fallback-body", "DTL-%s" % m.group(2)
+            header_docno = None
+            if "文档编号" in hdr:
+                m = DOCNO_RE.search(hdr["文档编号"])
+                if m:
+                    k = "SPEC" if m.group(1) == "SPEC-DTL" else m.group(1)
+                    header_docno = "%s-%s" % (k, m.group(2))
+            docs.append({
+                "path": path.replace("\\", "/"),
+                "docno": docno,
+                "header_docno": header_docno,
+                "kind": kind,
+                "version": hdr.get("版本"),
+                "status_field": hdr.get("状态") or hdr.get("状態"),
+                "raw_parent": raw_parent,
+                "parent_status": status,
+                "parent": parent,
+            })
+    docs.sort(key=lambda d: (list(LAYER_PARENT).index(d["kind"]), d["docno"], d["path"]))
+    return docs
+
+
+def build_report(docs):
+    by_docno = defaultdict(list)
+    for d in docs:
+        by_docno[d["docno"]].append(d)
+
+    duplicates = {k: [d["path"] for d in v] for k, v in by_docno.items() if len(v) > 1}
+    docno_mismatch = [
+        {"path": d["path"], "filename_docno": d["docno"], "header_docno": d["header_docno"]}
+        for d in docs
+        if d["header_docno"] and d["header_docno"] != d["docno"]
+    ]
+
+    # 反向索引：parent docno -> 子文档列表
+    children = defaultdict(list)
+    for d in docs:
+        if d["parent"]:
+            children[d["parent"]].append(d["docno"])
+
+    parse_buckets = defaultdict(list)
+    for d in docs:
+        parse_buckets[d["parent_status"]].append(d["path"])
+
+    # 链路缺口：某层文档没有任何下一层子文档
+    gaps = defaultdict(list)
+    for kind, child_kind in (("REQ", "BAS"), ("BAS", "DTL"), ("DTL", "SPEC")):
+        for docno, group in sorted(by_docno.items()):
+            if group[0]["kind"] != kind:
+                continue
+            kids = [c for c in children.get(docno, []) if c.startswith(child_kind + "-")]
+            if not kids:
+                gaps["%s_without_%s" % (kind, child_kind)].append(docno)
+
+    # 悬空父引用：父文档编号在仓库中不存在
+    dangling = sorted({
+        "%s -> %s" % (d["docno"], d["parent"])
+        for d in docs
+        if d["parent"] and d["parent"] not in by_docno
+    })
+
+    return {
+        "totals": {k: sum(1 for d in docs if d["kind"] == k) for k in LAYER_PARENT},
+        "parse_buckets": {k: sorted(v) for k, v in parse_buckets.items()},
+        "parse_bucket_counts": {k: len(v) for k, v in parse_buckets.items()},
+        "duplicate_docnos": duplicates,
+        "docno_filename_header_mismatch": docno_mismatch,
+        "dangling_parent_refs": dangling,
+        "chain_gaps": {k: sorted(v) for k, v in gaps.items()},
+        "children_index": {k: sorted(set(v)) for k, v in sorted(children.items())},
+        "docs": docs,
+    }
+
+
+def render_md(rep):
+    L = []
+    L.append("# RGS 设计链对账结果（reqbas_audit.py）\n")
+    L.append("方法：RGS-PLAN-003 §0 —— 读头部「父文档」行反向索引，不按文件名编号机械配对。\n")
+    L.append("## 1. 文档总数\n")
+    L.append("| 层级 | 份数 |")
+    L.append("|---|---:|")
+    for k, v in rep["totals"].items():
+        L.append("| %s | %d |" % (k, v))
+    L.append("\n## 2. 父文档解析分桶（解析失败 ≠ 设计缺口）\n")
+    L.append("| 分桶 | 份数 |")
+    L.append("|---|---:|")
+    for k, v in sorted(rep["parse_bucket_counts"].items()):
+        L.append("| %s | %d |" % (k, v))
+    L.append("\n## 3. 重复文档编号\n")
+    if rep["duplicate_docnos"]:
+        for k, paths in sorted(rep["duplicate_docnos"].items()):
+            L.append("- **%s**：" % k)
+            for p in paths:
+                L.append("  - `%s`" % p)
+    else:
+        L.append("无。")
+    L.append("\n## 4. 文件名编号与头部「文档编号」不一致\n")
+    if rep["docno_filename_header_mismatch"]:
+        L.append("| 文件 | 文件名编号 | 头部编号 |")
+        L.append("|---|---|---|")
+        for m in rep["docno_filename_header_mismatch"]:
+            L.append("| `%s` | %s | %s |" % (m["path"], m["filename_docno"], m["header_docno"]))
+    else:
+        L.append("无。")
+    L.append("\n## 5. 悬空父引用（父文档编号在仓库中不存在）\n")
+    L.append("\n".join("- %s" % x for x in rep["dangling_parent_refs"]) or "无。")
+    L.append("\n## 6. 链路缺口候选（需人工复核，非结论）\n")
+    for k, v in sorted(rep["chain_gaps"].items()):
+        L.append("\n### %s（%d）\n" % (k, len(v)))
+        L.append(", ".join(v) or "无。")
+    return "\n".join(L) + "\n"
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="RGS REQ→BAS→DTL→SPEC 设计链对账")
+    ap.add_argument("--docs", default="docs", help="文档根目录（默认 docs）")
+    ap.add_argument("--json", dest="json_out", help="输出 JSON 报告路径")
+    ap.add_argument("--md", dest="md_out", help="输出 Markdown 报告路径")
+    args = ap.parse_args(argv)
+
+    docs = collect(args.docs)
+    rep = build_report(docs)
+
+    if args.json_out:
+        with io.open(args.json_out, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(rep, ensure_ascii=False, indent=2))
+    if args.md_out:
+        with io.open(args.md_out, "w", encoding="utf-8") as fh:
+            fh.write(render_md(rep))
+    if not args.json_out and not args.md_out:
+        out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        out.write(render_md(rep))
+        out.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
