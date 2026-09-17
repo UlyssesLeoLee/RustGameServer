@@ -36,7 +36,7 @@ FILENAME_RE = re.compile(r"RGS-(SPEC-DTL|REQ|BAS|DTL)-([0-9A-Za-z\-]+?)[_\.]")
 HEADER_ROW_RE = re.compile(r"^\s*\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*$", re.M)
 DOCNO_RE = re.compile(r"RGS-(SPEC-DTL|REQ|BAS|DTL)-([0-9]{3})")
 
-PARENT_KEYS = ("父文档", "父文書", "父文檔", "親文档", "上位文档", "上位文書")
+PARENT_KEYS = ("父文档", "父文書", "父文檔", "親文档", "上位文档", "上位文書", "主文档")
 NO_PARENT_MARKERS = ("无", "無", "N/A", "n/a", "—", "-", "不适用", "顶层", "本文档为")
 
 
@@ -201,6 +201,17 @@ def render_md(rep):
     L.append("|---|---:|")
     for k, v in sorted(rep["parse_bucket_counts"].items()):
         L.append("| %s | %d |" % (k, v))
+    L.append("\n## 2.1 语料核对（按文件名前缀总数 = 已解析 + 已跳过）\n")
+    L.append("| 层级 | 按文件名 | 已解析 | 已跳过 | 平衡 |")
+    L.append("|---|---:|---:|---:|---|")
+    for k, v in rep["corpus_reconciliation"].items():
+        ok = "是" if v["by_filename"] == v["parsed"] + v["skipped"] else "否"
+        L.append("| %s | %d | %d | %d | %s |" % (k, v["by_filename"], v["parsed"], v["skipped"], ok))
+    L.append("\n语料整体平衡：%s\n" % ("是" if rep["corpus_balanced"] else "否"))
+    if rep["skipped_unmatched_filename"]:
+        L.append("\n跳过文件（文件名声明层级前缀，但编号解析失败——不计入该层份数，需人工复核）：\n")
+        for s in rep["skipped_unmatched_filename"]:
+            L.append("- `%s`（声明层级 %s）" % (s["path"], s["declared_kind"]))
     L.append("\n## 3. 重复文档编号\n")
     if rep["duplicate_docnos"]:
         for k, paths in sorted(rep["duplicate_docnos"].items()):
@@ -233,8 +244,9 @@ def main(argv=None):
     ap.add_argument("--md", dest="md_out", help="输出 Markdown 报告路径")
     args = ap.parse_args(argv)
 
-    docs = collect(args.docs)
-    rep = build_report(docs)
+    docs, skipped = collect(args.docs)
+    filename_totals = count_by_filename(args.docs)
+    rep = build_report(docs, skipped, filename_totals)
 
     if args.json_out:
         with io.open(args.json_out, "w", encoding="utf-8") as fh:

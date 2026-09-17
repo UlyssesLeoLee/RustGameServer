@@ -8,7 +8,7 @@
 | 版本 | 0.1（首版，per Ulysses 2026-09-01 18:00 JST "batch 需要一个专门的管理界面和对其支持的前后端功能，应该是一个独立的项目，但可以按照其他功能的方式融入架构，从需求文档开始设计" + 18:25 JST "所有内容的批量，包括但不限于 log、数据整理"）|
 | 状态 | 草案（待 Ulysses DDD Review 阶段补签）|
 | 触发 | 2026-09-01 18:00 JST Ulysses "batch 平台" 决策 + 18:25 JST 范围澄清（综合 batch 平台 / 覆盖 log + 数据整理 + 不限于）|
-| 关联 | RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1（待起草）+ RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1（待起草）+ RGS-BATCH-PLAN-2026-09-01 v0.1（待起草）|
+| 关联 | RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1 + RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1 + RGS-BATCH-PLAN-2026-09-01 v0.2 |
 | 上游规范 | rgs-web 母规范 5 份（per `docs/12-工作流/RGS-WEB-*.md`）+ rgs-web Token 子系统 OLU-WEB 4 份（per `docs/12-工作流/RGS-OLU-WEB-*.md`）+ gm-backend 规范（per `crates/gm-backend/` + `docs/deploy/01-k8s-manifests/50-gm-backend-service.yaml`）+ 5 域 gRPC 协议（per `docs/12-工作流/RGS-INC-002_5域gRPC真实跑通事件复盘_2026-08-26_v0.1.md`）+ shared-platform 横切关注点（per `crates/shared-platform/`，saga 在 `crates/function-plane/`）|
 | 责任人 | 架构师（**Mavis 接手 agent per DEC-008**）|
 | 适用许可 | Apache-2.0（本仓库）|
@@ -26,8 +26,8 @@
 | 层级 | 文档 | 回答 |
 |---|---|---|
 | 需求规约 | **本文档** | What + Why（用户痛点 + 业务目标 + 功能需求 + 非功能需求）|
-| 基本设计 | RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1（待起草）| How 概要（架构 + 技术选型 + 模块划分 + 关键流程）|
-| 详细设计 | RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1（待起草）| How 细节（API 签名 + 数据模型 + 部署 + 运维 + 安全）|
+| 基本设计 | RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1 | How 概要（架构 + 技术选型 + 模块划分 + 关键流程）|
+| 详细设计 | RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1 | How 细节（API 签名 + 数据模型 + 部署 + 运维 + 安全）|
 
 **项目形态**（per 2026-09-01 18:34 JST Ulysses 拍板 Q2 决策）：
 
@@ -532,13 +532,13 @@
 
 ## 10. 后续
 
-### 10.1 待起草文档
+### 10.1 下游文档（状态表更正 2026-09-13：三份均已落盘，原「待起草」标记陈旧）
 
 | 文档 | 状态 | 备注 |
 |---|---|---|
-| RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1 | ⏳ 待起草 | How 概要（架构 + 技术选型 + 模块划分 + 关键流程）|
-| RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1 | ⏳ 待起草 | How 细节（API 签名 + 数据模型 + 部署 + 运维 + 安全）|
-| RGS-BATCH-PLAN-2026-09-01 v0.1 | ⏳ 待起草 | 设计总览 + 4-6 周实施计划 |
+| RGS-BATCH-BASIC-DESIGN-2026-09-01 v0.1 | ✅ 已落盘 | How 概要（架构 + 技术选型 + 模块划分 + 关键流程）|
+| RGS-BATCH-DETAILED-DESIGN-2026-09-01 v0.1 | ✅ 已落盘 | How 细节（API 签名 + 数据模型 + 部署 + 运维 + 安全）|
+| RGS-BATCH-PLAN-2026-09-01 v0.2 | ✅ 已落盘 | 设计总览 + 4-6 周实施计划 |
 
 ### 10.2 待同步事项
 
