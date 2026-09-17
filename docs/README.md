@@ -252,6 +252,23 @@
 | RGS-PM-008 | [收尾管理](14-项目管理/RGS-PM-008_收尾管理_v0.1.md) | PM | 0.1 占位 | 147 / 148：Closure + Retrospective |
 | RGS-PM-009 | [Support 与 Archive](14-项目管理/RGS-PM-009_Support与Archive_v0.1.md) | PM | 0.1 占位 | 117 / 150：GitHub Issues + Releases |
 
+### 1.15 扩展域文档（ULYS-1 同步补全）
+
+> **NEW** per ULYS-1 issue thread 9/4 MD §2 审计识别（per 路线图 §3 W5 + 9/4 MD §2 7 域扩展 + 8/21 JST 5 域独立 → 9/1 JST batch 域 → 9/5 JST battle 域）：8 个代码先行扩展域（crate 已实装但缺正式 REQ/BAS/DTL 三层文档）按 8 域 × 3 文档（部分 2 文档）= 24 份 v0.1 草案统一补全。本节集中列出全部 8 域三层文档。所有文档状态为「草案 / 待评审」，待具名人类审批（per RGS-REQ-013 §6 CR-005）。
+
+| 三层文档 | Battle（战斗） | Scene（场景） | PVP-Full（竞技） | Replay-X（录像扩展）| GM-X（GM 扩展） | LB-X（图鉴扩展） | OPR（运营活动） | Social-X（社交扩展） |
+|---|---|---|---|---|---|---|---|---|
+| 需求定义书（REQ）| [RGS-REQ-040](07-社交运营与玩家治理/RGS-REQ-040_战斗域_需求定义书.md) | [RGS-REQ-041](07-社交运营与玩家治理/RGS-REQ-041_场景域_需求定义书.md) | [RGS-REQ-042](07-社交运营与玩家治理/RGS-REQ-042_竞技域_需求定义书.md) | [RGS-REQ-043](14-项目管理/RGS-REQ-043_录像扩展域_需求定义书.md) | [RGS-REQ-044](02-运维安全与网络/RGS-REQ-044_GM扩展域_需求定义书.md) | [RGS-REQ-045](14-项目管理/RGS-REQ-045_图鉴扩展域_需求定义书.md) | [RGS-REQ-046](07-社交运营与玩家治理/RGS-REQ-046_运营活动域_需求定义书.md) | [RGS-REQ-047](07-社交运营与玩家治理/RGS-REQ-047_社交扩展域_需求定义书.md) |
+| 基本设计书（BAS）| [RGS-BAS-040](07-社交运营与玩家治理/RGS-BAS-040_战斗域_基本设计书.md) | [RGS-BAS-041](07-社交运营与玩家治理/RGS-BAS-041_场景域_基本设计书.md) | [RGS-BAS-042](07-社交运营与玩家治理/RGS-BAS-042_竞技域_基本设计书.md) | [RGS-BAS-043](14-项目管理/RGS-BAS-043_录像扩展域_基本设计书.md) | [RGS-BAS-044](02-运维安全与网络/RGS-BAS-044_GM扩展域_基本设计书.md) | [RGS-BAS-045](14-项目管理/RGS-BAS-045_图鉴扩展域_基本设计书.md) | [RGS-BAS-046](07-社交运营与玩家治理/RGS-BAS-046_运营活动域_基本设计书.md) | [RGS-BAS-047](07-社交运营与玩家治理/RGS-BAS-047_社交扩展域_基本设计书.md) |
+| 详细设计书（DTL）| [RGS-DTL-047](07-社交运营与玩家治理/RGS-DTL-047_战斗域_详细设计书.md) | [RGS-DTL-048](07-社交运营与玩家治理/RGS-DTL-048_场景域_详细设计书.md) | [RGS-DTL-049](07-社交运营与玩家治理/RGS-DTL-049_竞技域_详细设计书.md) | [RGS-DTL-050](14-项目管理/RGS-DTL-050_录像扩展域_详细设计书.md) | [RGS-DTL-051](02-运维安全与网络/RGS-DTL-051_GM扩展域_详细设计书.md) | [RGS-DTL-052](14-项目管理/RGS-DTL-052_图鉴扩展域_详细设计书.md) | [RGS-DTL-053](07-社交运营与玩家治理/RGS-DTL-053_运营活动域_详细设计书.md) | [RGS-DTL-054](07-社交运营与玩家治理/RGS-DTL-054_社交扩展域_详细设计书.md) |
+| 关联 crate | `crates/battle-service/` (2,875 LOC) | `crates/scene-service/` (3,823 LOC) | `crates/pvp-full-service/` (1,402 LOC) | `crates/replay-extra-service/` (386 LOC) | `crates/gm-extra-service/` (416 LOC) | `crates/leaderboard-extra-service/` (405 LOC) | `crates/operate-service/` (384 LOC) | `crates/social-extra-service/` (540 LOC) |
+| Proto gRPC | battle/v1/battle.proto (12 svc / 250 RPC) | scene/v1/scene.proto (1 svc / 148 RPC) | pvp_full/v1/pvp_full.proto (1 svc / 30 RPC) | replay_extra/v1/replay_extra.proto (1 svc / 10 RPC) | gm_extra/v1/gm_extra.proto (1 svc / 10 RPC) | leaderboard_extra/v1/leaderboard_extra.proto (1 svc / 7 RPC) | operate/v1/operate.proto (1 svc / 7 RPC) | social_extra/v1/social_extra.proto (1 svc / 15 RPC) |
+| ARC 编号 | ARC-046（数据驱动 + 反"一活动一模块"）| ARC-049（数据驱动 + AOI 复用）| ARC-050（复用 battle PvP 数据驱动）| ARC-051（复用 replay-service 既有）| ARC-052（复用 gm-backend 既有管控）| ARC-053（复用 leaderboard-service 既有）| ARC-054（复用 ARC-021 插件体系）| ARC-055（复用 social-service / DTL-013）|
+
+**落实原则（per 9/4 MD §4 闪烁之光反例）**：8 域均**严格**遵守"不重复建设 + 不绕过既有基础设施"原则。新增变体（如 PVP 6 变体、holiday_* 9 变体）由 Config 数据驱动（ARC-021 插件体系），**不**新建独立 service / crate。具体活动战斗走 battle HolidayActivityService 既有、好友关系走 social-service 既有、排行榜核心走 leaderboard-service 既有、录像文件存储走 replay-service 既有、跨域玩家匹配走 MT 既有、战斗结算发放走 EC 既有。
+
+**审计发现（per 9/4 MD §2）**：8 个代码先行扩展域合计约 9,748 LOC Rust 代码 + 485 RPC（不计 HealthCheck）。本文档为其三层 REQ/BAS/DTL 文档的同步补全（24 份 v0.1 草案），由 wt-b 子任务（agent/ulys-1/wt-b-extreq）于 2026-09-11 完成。
+
 ## 2. 后续制定文档
 
 | 文档编号 | 文档名 | 制定阶段 | 备注 |

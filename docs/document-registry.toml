@@ -306,3 +306,247 @@ status = "retired"
 owner = "架构负责人"
 allow_reference = false
 note = "由各业务域 DTL 承接；不得再新建集中正文。"
+
+# ULYS-1 子任务：代码先行扩展域（per 9/4 MD §2 审计识别）三层文档 v0.1 补全 — 8 域 × 3 文档 = 24 份
+# battle 域仅缺 BAS + DTL（REQ-040 已先行制定）；其他 7 域（scene/pvp-full/replay-extra/gm-extra/leaderboard-extra/operate/social-extra）均首次补全 REQ/BAS/DTL 三层
+# 8 域共 24 份文档（含 RGS-REQ-040 v0.1），新增 23 份 v0.1 草案。本批按计划文档登记，待具名人类审批。
+# ----------------------------------------------------------------------------
+[[planned_document]]
+id = "RGS-REQ-040"
+title = "战斗域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-REQ-040_战斗域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-046（战斗域数据驱动 + 反\"一活动一模块\"原则）；12 service × 250 RPC；crates/battle-service 2,875 LOC；相关：RGS-BAS-040 / RGS-DTL-047"
+
+[[planned_document]]
+id = "RGS-BAS-040"
+title = "战斗域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-BAS-040_战斗域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-046 落实（6 PVP 变体 + 9 holiday_* 1 服务覆盖）；12 service × 250 RPC；相关：RGS-REQ-040 / RGS-DTL-047"
+
+[[planned_document]]
+id = "RGS-DTL-047"
+title = "战斗域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-DTL-047_战斗域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；battle_db 7 表物理 DDL + 战斗状态机伪代码 + SubmitAction 幂等键；相关：RGS-REQ-040 / RGS-BAS-040"
+
+[[planned_document]]
+id = "RGS-REQ-041"
+title = "场景域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-REQ-041_场景域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-049（场景域数据驱动 + AOI 复用）；1 service × 148 RPC；crates/scene-service 3,823 LOC；相关：RGS-BAS-041 / RGS-DTL-048"
+
+[[planned_document]]
+id = "RGS-BAS-041"
+title = "场景域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-BAS-041_场景域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-049 落实（SceneConfig 数据驱动）；相关：RGS-REQ-041 / RGS-DTL-048"
+
+[[planned_document]]
+id = "RGS-DTL-048"
+title = "场景域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-DTL-048_场景域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；scene_db 6 表物理 DDL + 场景生命周期伪代码 + 触发器服务器权威校验；相关：RGS-REQ-041 / RGS-BAS-041"
+
+[[planned_document]]
+id = "RGS-REQ-042"
+title = "竞技域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-REQ-042_竞技域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-050（竞技域扩展 + 复用 battle PvP 数据驱动）；1 service × 30 RPC；crates/pvp-full-service 1,402 LOC；相关：RGS-BAS-042 / RGS-DTL-049 / RGS-REQ-040"
+
+[[planned_document]]
+id = "RGS-BAS-042"
+title = "竞技域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-BAS-042_竞技域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-050 落实（战斗状态机严格复用 battle PvPService + 排行榜走 GSM 派生视图）；相关：RGS-REQ-042 / RGS-DTL-049"
+
+[[planned_document]]
+id = "RGS-DTL-049"
+title = "竞技域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-DTL-049_竞技域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；pvp_full_db 6 表物理 DDL + UpdateRank 事务边界（含并发防护）+ 段位继承算法；相关：RGS-REQ-042 / RGS-BAS-042"
+
+[[planned_document]]
+id = "RGS-REQ-043"
+title = "录像扩展域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-REQ-043_录像扩展域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-051（录像扩展 + 复用 replay-service 既有存储）；1 service × 10 RPC；crates/replay-extra-service 386 LOC；相关：RGS-BAS-043 / RGS-DTL-050"
+
+[[planned_document]]
+id = "RGS-BAS-043"
+title = "录像扩展域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-BAS-043_录像扩展域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-051 落实（录像文件存储严格复用既有）；相关：RGS-REQ-043 / RGS-DTL-050"
+
+[[planned_document]]
+id = "RGS-DTL-050"
+title = "录像扩展域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-DTL-050_录像扩展域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；replay_extra_db 7 表物理 DDL + 录像删除级联失效算法（RSK-RPL-001 关键路径）；相关：RGS-REQ-043 / RGS-BAS-043"
+
+[[planned_document]]
+id = "RGS-REQ-044"
+title = "GM扩展域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-REQ-044_GM扩展域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-052（GM 扩展 + 复用 gm-backend 既有管控通道）；1 service × 10 RPC；crates/gm-extra-service 416 LOC；相关：RGS-BAS-044 / RGS-DTL-051"
+
+[[planned_document]]
+id = "RGS-BAS-044"
+title = "GM扩展域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-BAS-044_GM扩展域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-052 落实（单玩家 GM 操作严格复用 gm-backend 既有）；相关：RGS-REQ-044 / RGS-DTL-051"
+
+[[planned_document]]
+id = "RGS-DTL-051"
+title = "GM扩展域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-DTL-051_GM扩展域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；gm_extra_db 5 表物理 DDL（含 audit_log_index 月度分区）+ 批量补偿 EC 事务边界；相关：RGS-REQ-044 / RGS-BAS-044"
+
+[[planned_document]]
+id = "RGS-REQ-045"
+title = "图鉴扩展域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-REQ-045_图鉴扩展域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-053（图鉴扩展 + 复用 leaderboard-service 既有）；1 service × 7 RPC；crates/leaderboard-extra-service 405 LOC；相关：RGS-BAS-045 / RGS-DTL-052"
+
+[[planned_document]]
+id = "RGS-BAS-045"
+title = "图鉴扩展域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-BAS-045_图鉴扩展域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-053 落实（排行榜核心严格复用 leaderboard-service 既有）；相关：RGS-REQ-045 / RGS-DTL-052"
+
+[[planned_document]]
+id = "RGS-DTL-052"
+title = "图鉴扩展域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目管理/RGS-DTL-052_图鉴扩展域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；leaderboard_extra_db 7 表物理 DDL + 成就触发条件评估算法（含幂等防护 RSK-LBX-001）；相关：RGS-REQ-045 / RGS-BAS-045"
+
+[[planned_document]]
+id = "RGS-REQ-046"
+title = "运营活动域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-REQ-046_运营活动域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-054（运营活动 + 复用 ARC-021 插件体系）；1 service × 7 RPC；crates/operate-service 384 LOC；相关：RGS-BAS-046 / RGS-DTL-053"
+
+[[planned_document]]
+id = "RGS-BAS-046"
+title = "运营活动域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-BAS-046_运营活动域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-054 落实（具体活动严格复用 battle HolidayActivityService + activity-service 既有）；相关：RGS-REQ-046 / RGS-DTL-053"
+
+[[planned_document]]
+id = "RGS-DTL-053"
+title = "运营活动域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-DTL-053_运营活动域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；operate_db 4 表物理 DDL + 活动日历跨域并行聚合 + 跨域元数据一致性维护（RSK-OPR-001）；相关：RGS-REQ-046 / RGS-BAS-046"
+
+[[planned_document]]
+id = "RGS-REQ-047"
+title = "社交扩展域 需求定义书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-REQ-047_社交扩展域_需求定义书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-055（社交扩展 + 复用 social-service / DTL-013 既有）；1 service × 15 RPC；crates/social-extra-service 540 LOC；相关：RGS-BAS-047 / RGS-DTL-054"
+
+[[planned_document]]
+id = "RGS-BAS-047"
+title = "社交扩展域 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-BAS-047_社交扩展域_基本设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；ARC-055 落实（好友关系/频道聊天核心严格复用既有）；相关：RGS-REQ-047 / RGS-DTL-054"
+
+[[planned_document]]
+id = "RGS-DTL-054"
+title = "社交扩展域 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/07-社交运营与玩家治理/RGS-DTL-054_社交扩展域_详细设计书.md"
+version = "0.1"
+note = "ULYS-1 代码先行扩展域补全；social_extra_db 7 表物理 DDL + 邮件附件领取 EC 事务边界（含幂等防双领 RSK-SOC-001）；相关：RGS-REQ-047 / RGS-BAS-047"
