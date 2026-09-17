@@ -88,7 +88,14 @@ def docno_from_filename(path):
 
 
 def collect(docs_root):
+    """返回 (docs, skipped)。
+
+    skipped 收容「文件名以 RGS-<层>- 开头、但编号无法解析」的文件。
+    必须显式收容而非静默 continue —— 静默丢弃与「按文件名机械配对」
+    是同一类错误（RGS-PLAN-003 §0），只是发生在更上一层。
+    """
     docs = []
+    skipped = []
     for dirpath, dirnames, filenames in os.walk(docs_root):
         dirnames[:] = [d for d in dirnames if d != "_archive"]
         for name in filenames:
@@ -96,10 +103,17 @@ def collect(docs_root):
                 continue
             path = os.path.join(dirpath, name)
             docno = docno_from_filename(path)
-            if docno is None:
-                continue
-            kind = docno.split("-")[0]
-            if kind not in LAYER_PARENT:
+            kind = docno.split("-")[0] if docno else None
+            declared = next(
+                (k for k in LAYER_PARENT if name.startswith("RGS-%s-" % k)), None
+            )
+            if kind not in LAYER_PARENT or (declared and kind != declared):
+                if declared:
+                    skipped.append({
+                        "path": path.replace("\\", "/"),
+                        "declared_kind": declared,
+                        "parsed_docno": docno,
+                    })
                 continue
             head = read_head(path)
             hdr = parse_header(head)
@@ -132,10 +146,25 @@ def collect(docs_root):
                 "parent": parent,
             })
     docs.sort(key=lambda d: (list(LAYER_PARENT).index(d["kind"]), d["docno"], d["path"]))
-    return docs
+    return docs, skipped
 
 
-def build_report(docs):
+def count_by_filename(docs_root):
+    """不经任何解析、纯按文件名前缀统计，用于与解析结果核对总数。"""
+    totals = dict((k, 0) for k in LAYER_PARENT)
+    for dirpath, dirnames, filenames in os.walk(docs_root):
+        dirnames[:] = [d for d in dirnames if d != "_archive"]
+        for name in filenames:
+            if not name.endswith(".md"):
+                continue
+            for k in LAYER_PARENT:
+                if name.startswith("RGS-%s-" % k):
+                    totals[k] += 1
+                    break
+    return totals
+
+
+def build_report(docs, skipped, filename_totals):
     by_docno = defaultdict(list)
     for d in docs:
         by_docno[d["docno"]].append(d)
@@ -174,8 +203,41 @@ def build_report(docs):
         if d["parent"] and d["parent"] not in by_docno
     })
 
+    # SPEC 层 parsed-fallback-body 启发式校验：RGS-SPEC-DTL-NNN 的回退父应为 DTL-NNN
+    fallback_ok, fallback_mismatch = 0, []
+    for d in docs:
+        if d["parent_status"] != "parsed-fallback-body":
+            continue
+        own = d["docno"].split("-", 1)[1]
+        if d["parent"] == "DTL-%s" % own:
+            fallback_ok += 1
+        else:
+            fallback_mismatch.append(
+                {"path": d["path"], "docno": d["docno"], "fallback_parent": d["parent"]}
+            )
+
+    parsed_totals = {k: sum(1 for d in docs if d["kind"] == k) for k in LAYER_PARENT}
+    reconciliation = {
+        k: {
+            "by_filename": filename_totals.get(k, 0),
+            "parsed": parsed_totals[k],
+            "skipped": sum(1 for s in skipped if s["declared_kind"] == k),
+        }
+        for k in LAYER_PARENT
+    }
+    balanced = all(
+        v["by_filename"] == v["parsed"] + v["skipped"] for v in reconciliation.values()
+    )
+
     return {
-        "totals": {k: sum(1 for d in docs if d["kind"] == k) for k in LAYER_PARENT},
+        "totals": parsed_totals,
+        "corpus_reconciliation": reconciliation,
+        "corpus_balanced": balanced,
+        "skipped_unmatched_filename": skipped,
+        "fallback_heuristic": {
+            "confirmed_same_number": fallback_ok,
+            "mismatch": fallback_mismatch,
+        },
         "parse_buckets": {k: sorted(v) for k, v in parse_buckets.items()},
         "parse_bucket_counts": {k: len(v) for k, v in parse_buckets.items()},
         "duplicate_docnos": duplicates,
