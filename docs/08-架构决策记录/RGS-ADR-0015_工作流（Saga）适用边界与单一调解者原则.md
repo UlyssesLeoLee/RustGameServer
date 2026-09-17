@@ -28,6 +28,16 @@ ADR-0007把高频经济操作收进单一事务边界后，仍存在确实跨限
 1. **适用边界**——Saga**仅**用于确实跨限界上下文、且中间态可被业务接受的长流程。同上下文内的原子操作一律用数据库事务，不得用Saga。
 2. **单一调解者（Orchestration，非Choreography）**——每个Saga必须有唯一一个明确的调解者组件持有流程状态并驱动各步骤，禁止"各服务监听事件各自推进"的编排式实现。
 
+> **隐含 Outbox 路径备注（per RGS-ADR-0061, 待具名人类审批, 2026-09-15 ULYS-56 起草）**：
+>
+> 本 ADR §1 背景提及「ADR-0007 把高频经济操作收进单一事务边界后, 仍存在确实跨限界上下文的长流程」，该背景下"事务内强制 outbox 写入"是隐含的工程路径——但本 ADR 未显式归档，直至 RGS-ADR-0061（CDC / Outbox 偏离参考设计，待具名人类审批）正式将这条隐含路径沉淀为 ADR 记录。
+>
+> 关联要点:
+> 1. **6 域 outbox 实装**（per RGS-ADR-0061 §1.3）：admin / cluster_ops / economy / match / player / social 各自持有 outbox 表 + 启动 outbox relay
+> 2. **事务边界强制**：Saga 步骤 Reserve / Commit / Compensate 的每次状态变更都附带 outbox 事件（per RGS-DTL-100 §1.3 购买 Saga + §3.2 角色创建 Saga + §3.3 比赛奖励 Saga 时序图），与 ADR-0007 单事务边界互补——同上下文内 Saga 步骤走单事务，跨上下文通过 outbox + relay 异步传播
+> 3. **唯一可查询流程状态**：本 ADR §2 规则 2 要求"每个 Saga 必须有唯一一个明确的调解者组件持有流程状态"，与 outbox 4 状态机（Pending/InFlight/Sent/Failed）的 `saga_instance` 表状态机正交——saga_instance 是调解者状态，outbox 是事件传播通道
+> 4. **Debezium 不引入**：自研 Outbox 4 状态机取代 Debezium CDC（per RGS-ADR-0061 §1 + §3.1 否决），失去"捕获所有 DB 变更"能力的 trade-off 由"事务内强制 outbox 写入"约束承接（per RGS-ADR-0061 §2 决定 2）
+
 ## 3. 曾考虑并否决的方案（Alternatives Considered）
 
 ### 3.1 两阶段提交（2PC / XA）
@@ -55,3 +65,11 @@ ADR-0007把高频经济操作收进单一事务边界后，仍存在确实跨限
 - 落地设计：RGS-DTL-001§10.3（购买Saga）、RGS-DTL-015（交易Saga与补偿失败升级）、RGS-BAS-009§5.2（账号删除跨库编排）
 - 前置决策：ADR-0007（先把高频操作收进单事务，Saga才不至于泛滥）
 - 兜底机制：RGS-BAS-016（支付对账）
+- 协同决策：RGS-ADR-0061 CDC / Outbox 偏离参考设计（待具名人类审批）—— 本 ADR 隐含的"事务内强制 outbox 写入"路径由 ADR-0061 正式归档，6 域 outbox 实装证据清单见 ADR-0061 §1.3
+
+## 7. 修订历史
+
+| 版本 | 修订日 | 修订者 | 修订内容 |
+|---|---|---|---|
+| 0.1 | 2026-08-17 | 架构师 | 初版制定（per §1 头表） |
+| 0.2 | 2026-09-16 | 架构师（Ulysses 一人公司兼任 per DEC-008）| per RGS-ADR-0061（待具名人类审批），§2 决定段新增"隐含 Outbox 路径备注"，§5 关联段新增 ADR-0061 协同决策引用 |

@@ -3,9 +3,9 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-100 |
-| 版本 | 0.2 |
+| 版本 | 0.3 |
 | 制定日 | 2026-08-21 |
-| 最终更新日 | 2026-08-25 |
+| 最终更新日 | 2026-09-16 |
 | 制定者 | 架构师（Ulysses 兼，per DEC-008 一人公司） |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
@@ -21,6 +21,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。Purchase Saga / Character Creation Saga / Reward Saga / Compensation Flow / Outbox+Inbox 详细时序 + 状态机 + Schema + Reservation 流程。 |
 | 0.2 | 2026-08-25 | 架构师（Ulysses）| 反映RGS-ADR-0057（Accepted）§2.3：§3.3末尾补充交叉引用，确认Reward Saga既有设计语义等价于Outbox+幂等消费者；不改变本节设计本身，不改变Purchase/Character Creation Saga补偿编排，不触发RGS-SPEC-DTL-100/101/102重新版本化（per RGS-ADR-0057§3.3） |
+| 0.3 | 2026-09-16 | 架构师（Ulysses 一人公司兼任 per DEC-008）| per RGS-ADR-0061（待具名人类审批）, §4.1 Outbox 模式（生产端）末尾新增"工程方案"备注段：自研 4 状态机 outbox_worker 取代 Debezium CDC（per ADR-0061 §1 + §3.1 否决）, 事务边界强制 / 多 relay 并发安全 / 去重幂等 / CDC 路径偏离参考设计 4 项补充；不改变本节设计本身（mermaid 流程图不变）, 不触发 RGS-SPEC-DTL-100/101/102 重新版本化 |
 
 ---
 
@@ -451,6 +452,25 @@ CREATE TABLE outbox (
 );
 CREATE INDEX idx_outbox_pending ON outbox (id) WHERE status = 'PENDING';
 ```
+
+> **工程方案（per RGS-ADR-0061, 待具名人类审批, 2026-09-15 ULYS-56 起草）**：
+>
+> §4.1 Outbox 模式（生产端）mermaid 流程图所述「业务事务内 INSERT outbox + 后台 Worker 轮询发布」由 **自研 4 状态机 outbox_worker** 实现，**不引入 Debezium CDC**（per RGS-ADR-0061 §1 全段）。本节是该实现的工程方案详细补充，与 RGS-ADR-0061 §3.1 备选否决论证（拒绝 Debezium CDC）一致。
+>
+> 1. **事务边界强制**：业务 DML 与 outbox INSERT **必须**在同一 SQL 事务内完成。`crates/shared-platform/src/outbox.rs::OutboxRepository::append`（L162-195）接受泛型 `PgExecutor`，调用方把业务 DML 和 outbox INSERT 包在 `pool.begin().await?` 返回的 `Transaction` 内提交。**非事务内的 DB 变更不会被传播**（per RGS-ADR-0061 §2 决定 2 约束正式化）。
+>
+> 2. **4 状态机驱动轮询**：
+>    - `Pending`（初始，待发布）→ `InFlight`（Worker 持锁，`lease_until = NOW() + 30s`）
+>    - `InFlight` → `Sent`（NATS JetStream 发布成功 ACK，`published_at = NOW()`）
+>    - `InFlight` → `Pending`（lease 过期被 reclaim，或发布失败无 ACK）
+>    - 任意状态 → `Failed`（重试超阈值，`last_error` 字段记录，待 DLQ 处置）
+>    - 详见 `crates/shared-platform/src/outbox.rs` L52-75（OutboxStatus 枚举 + Lease 默认 30s）
+>
+> 3. **多 relay 并发安全**：6 域各自 `main.rs` 启动 outbox relay 后台轮询，**多副本并发** 通过 PostgreSQL 原生 `SELECT ... FOR UPDATE SKIP LOCKED` + 30s lease 机制实现（`outbox.rs` L24-26 注释 + L271 reclaim 实现）。无 Debezium Connect 单实例 OR cluster 限制。
+>
+> 4. **去重与幂等**：消费者侧 Inbox（per §4.2）按 `event_id` 去重，与 §4.2 Inbox 模式（消费端）配合实现 at-least-once + 幂等消费。
+>
+> 5. **CDC 路径偏离参考设计**：参考设计 §16-18 默认 `PostgreSQL WAL → Debezium → Kafka`，RGS 实际采用本节所述 `事务内强制 Outbox INSERT → 自研 outbox_worker 轮询 → NATS JetStream`（per RGS-ADR-0060 NATS 偏离 + ADR-0061 CDC 偏离，待具名人类审批）。**Debezium 不引入**（per RGS-ADR-0061 §1.4 评估：主项目 Apache-2.0 合规，但 RGS 拒绝理由是 OLU + 设计替代性，非 BR-111 合规）。
 
 ### 4.2 Inbox 模式（消费端）
 

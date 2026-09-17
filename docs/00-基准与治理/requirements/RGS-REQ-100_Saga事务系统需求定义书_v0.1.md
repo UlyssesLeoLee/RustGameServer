@@ -21,6 +21,7 @@
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师（Ulysses）| 初版。覆盖 L0-L5 状态分层 / OperationPolicy 决策层级 / Saga 触发条件 / 商城购买 / 角色创建 / 比赛奖励 / GM 补偿 / 跨服转移 / 浏览器关闭不影响 Saga / K3s Pod 恢复 / 多副本 OCC / 纯开源约束 / 17 个必答问题。 |
 | 0.2 | 2026-09-01 22:30 JST | 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses) | v0.2 评估: saga-runtime 独立 Pod 落点 (per WBS v0.2 桶 10 Phase D D5, commit 84edf26)。决策项留给 Ulysses 拍板 (per AGENTS.md v0.4 §7 batch 域派生约束 + WBS v0.2 §4.3 拍板 3)。 |
+| 0.3 | 2026-09-16 | 架构师（Ulysses 一人公司兼任 per DEC-008）| per RGS-ADR-0061（待具名人类审批）, §7 BR-111 备注栏新增 Debezium 合规性评估: 主项目 Apache-2.0 与 BR-111 不冲突, RGS 拒绝引入 Debezium 真实理由为 OLU + 设计替代性论证（per ADR-0061 §3.1 否决） |
 
 ---
 
@@ -248,6 +249,15 @@ GM Command 必须：
 - 闭源事务协调器（Temporal Cloud / Cadence 等商业版）
 
 如 Redis 功能确实需要，评估纯开源替代方案（KeyDB / Dragonfly / 自研 PostgreSQL-based 缓存）。
+
+> **备注（per RGS-ADR-0061 §1.4 Debezium 合规性评估，待具名人类审批）**：
+> Debezium 主项目（debezium/debezium GitHub）为 **Apache-2.0** OSI-认可开源许可，不属本 BR-111 禁止的「Redis Enterprise / 云厂商专有服务 / 商业 SaaS / 闭源事务协调器」任何一类。**RGS 未引入 Debezium 的真实理由**（per RGS-ADR-0061 §3.1 否决论证）是:
+> 1. **OLU 估算**：Debezium Connect 需 JVM + Kafka Connect 框架 + WAL slot 配置 + PostgreSQL Connector plugin 部署，增加 NFR-OP-010 预算压力（RGS 当前 6 域 outbox + outbox_relay 是单语言 Rust + 单二进制 NATS JetStream，已纳入预算）。
+> 2. **设计替代性**：事务内强制 outbox 写入约束（per RGS-ADR-0061 §2 决定 2）已实现「事务一致性 + 事件传播」，等价于 Debezium WAL 捕获的核心能力而 OLU 更低。
+> 3. **业务用例覆盖**：6 域 outbox 表（admin / cluster_ops / economy / match / player / social）已覆盖 RGS 全部业务事件族需求（per RGS-ADR-0061 §1.3.3），"非 outbox DB 变更需被传播"业务用例未出现（per RGS-ADR-0061 §4 已知张力）。
+> 4. **Debezium → NATS JetStream 集成无现成 connector**（per RGS-ADR-0061 §4 与 ADR-0060 协同论证），自研 sink connector OLU 进一步增加。
+>
+> 综上，**BR-111 纯开源约束与 Debezium 不冲突**，RGS 拒绝引入 Debezium 应理解为 "OLU + 设计替代性" 论证而非 "BR-111 合规" 论证，避免 BR-111 的过度延伸（per RGS-ADR-0061 §1.4）。
 
 ### BR-112 可观测性
 
