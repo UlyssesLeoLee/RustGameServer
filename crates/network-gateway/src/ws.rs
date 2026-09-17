@@ -164,8 +164,7 @@ async fn accept_ws_with_path(
     use std::sync::Mutex;
     use tokio_tungstenite::tungstenite::http::Response as HttpResponse;
 
-    let path_valid: std::sync::Arc<Mutex<Option<bool>>> =
-        std::sync::Arc::new(Mutex::new(None));
+    let path_valid: std::sync::Arc<Mutex<Option<bool>>> = std::sync::Arc::new(Mutex::new(None));
     let expected = expected_path.to_string();
 
     struct PathCheck {
@@ -334,9 +333,7 @@ mod tests {
         fn handle<'a>(
             &'a self,
             frame: Frame,
-        ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = Bytes> + Send + 'a>,
-        > {
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Bytes> + Send + 'a>> {
             let resp = crate::tcp::dispatch(frame, &self.routes, &self.stats);
             Box::pin(async move { resp })
         }

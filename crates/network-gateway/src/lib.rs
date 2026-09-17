@@ -74,9 +74,11 @@ pub mod zone;
 
 pub use client_pool::{ClientPoolError, GrpcClientPool, SharedClientPool};
 pub use codec::{Frame, FrameError, FrameRouter, MAX_FRAME, PROTOCOL_HEADER_LEN};
-pub use cookie::{verify_cookie, validate_cookie, CookieError, MAX_COOKIE_LEN};
+pub use cookie::{validate_cookie, verify_cookie, CookieError, MAX_COOKIE_LEN};
 pub use nif::{bridge as nif_bridge, BridgeResult, GrpcTarget};
-pub use nif_demo::{add as nif_add, bridge_route as nif_demo_route, echo as nif_echo, version as nif_version};
+pub use nif_demo::{
+    add as nif_add, bridge_route as nif_demo_route, echo as nif_echo, version as nif_version,
+};
 pub use router::{RouteEntry, RouteTable, GENERATED_ROUTES};
 pub use stats::GatewayStats;
 pub use web_conn::{parse_http_path, WebConnConfig, WEB_CONN_PORT};

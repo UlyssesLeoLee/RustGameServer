@@ -100,10 +100,12 @@ impl Frame {
             });
         }
         // length 含 cmd 自身 2B + payload; 整帧 = 4B length + length 字节
-        let total = 4usize.checked_add(length).ok_or(FrameError::LengthOverflow {
-            declared: length,
-            max: MAX_FRAME,
-        })?;
+        let total = 4usize
+            .checked_add(length)
+            .ok_or(FrameError::LengthOverflow {
+                declared: length,
+                max: MAX_FRAME,
+            })?;
         if buf.len() < total {
             return Ok(None);
         }
@@ -177,10 +179,7 @@ impl Frame {
 pub trait FrameRouter: Send + Sync {
     /// 处理一个 Frame, 返回响应字节流 (encoded as `[4B length][2B cmd][payload]`,
     /// payload 内部: `[4B rcode u32 BE][...业务 bytes...]`).
-    fn handle<'a>(
-        &'a self,
-        frame: Frame,
-    ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>>;
+    fn handle<'a>(&'a self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>>;
 }
 
 #[cfg(test)]
@@ -196,10 +195,7 @@ mod frame_router_tests {
     }
 
     impl FrameRouter for CountingRouter {
-        fn handle<'a>(
-            &'a self,
-            frame: Frame,
-        ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
+        fn handle<'a>(&'a self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
             // 走 sync 路径 (RouteTable 是 sync), wrap 成 ready future
             let resp = crate::tcp::dispatch(frame, &self.routes, &self.stats);
             Box::pin(async move { resp })
