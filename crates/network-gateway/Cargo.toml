@@ -43,6 +43,8 @@ rustler = { version = "0.36", optional = true }
 # 注: workspace.dependencies 无 bytes/futures-util, 沿用 5 域 direct dep 模式
 bytes = "1"
 futures-util = "0.3"
+# WebSocket 传输 (Phase 2 ULYS-27 WebSocket + FrameRouter)
+tokio-tungstenite = "0.24"
 
 [build-dependencies]
 tonic-build = { workspace = true }

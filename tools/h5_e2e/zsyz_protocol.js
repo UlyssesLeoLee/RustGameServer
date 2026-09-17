@@ -264,9 +264,20 @@ function buildHeartbeatFrame() {
 }
 
 function parseHeartbeatReply(payload) {
-  // payload = [u32 time] (BE)
+  // payload 格式 (per ULYS-27 tcp::dispatch): [4B rcode u32 BE][...body...]
+  // - rcode=0 + 4B u32 time: 正常心跳 (full body = u32 timestamp)
+  // - rcode=404 + utf8 body: route miss ("unknown code 1199")
+  //   (Phase 1 骨架 demo 路由表 only 6 routes, cmd=1199 不在集合)
   if (payload.length < 4) throw new Error('heartbeat reply too short: ' + payload.length);
-  return { time: payload.readUInt32BE(0) };
+  const rcode = payload.readUInt32BE(0);
+  const rest = payload.slice(4);
+  if (rcode === 0 && rest.length >= 4) {
+    return { rcode: 0, time: rest.readUInt32BE(0) };
+  } else if (rcode === 404) {
+    return { rcode: 404, msg: rest.toString('utf8') };
+  } else {
+    return { rcode, msg: rest.toString('utf8') };
+  }
 }
 
 // ============================================================================
@@ -289,7 +300,7 @@ function buildLoginReply({ code = 0, msg = '', roles = [], least_career = 0 } = 
 }
 
 // ============================================================================
-// Module exports (CommonJS for Node, plus globals for browser)
+// Module exports (CommonJS for Node, plus globals for browser, plus ESM named)
 // ============================================================================
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -321,3 +332,21 @@ if (typeof globalThis !== 'undefined') {
     CMD_LOGIN,
   };
 }
+
+// ESM named exports — 让 d4_heartbeat.mjs / mock_server.mjs (type: module) 能 import
+// (per ULYS-27 Phase 2 §"Rust binary 替代 mock_server.mjs" 验证需要 ESM exports)
+// 注: Node ESM 静态分析时无法识别 module.exports 模式, 必须显式 export.
+export {
+  encodeFrame,
+  decodeFrames,
+  packFields,
+  unpackFields,
+  buildHeartbeatFrame,
+  parseHeartbeatReply,
+  buildLoginReply,
+  LOGIN_REPLY_SCHEMA,
+  CMD_HEARTBEAT,
+  CMD_LOGIN,
+  readU16BE as _readU16BE,
+  readU32BE as _readU32BE,
+};

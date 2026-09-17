@@ -1,0 +1,15 @@
+{
+  "name": "rgs-h5-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "H5 E2E 测试 (per ULYS-27 Phase 2): zsyz_client_h5 SmartSocket ↔ Rust network-gateway WS 链路",
+  "type": "module",
+  "scripts": {
+    "d4-heartbeat": "node d4_heartbeat.mjs",
+    "e2e-login": "node e2e_login.mjs",
+    "mock": "node mock_server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}
