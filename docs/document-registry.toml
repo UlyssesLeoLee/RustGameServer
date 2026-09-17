@@ -158,6 +158,31 @@ path = "docs/02-运维安全与网络/RGS-TST-IT-02_addendum_服务器全生命�
 version = "0.2"
 note = "ARC-038 扩展 + ARC-051 `realm_lifecycle`；33 条 IT 用例覆盖 AdminService / ClusterOpsService PFAU / 业务域 service / RealmDirectoryService / 客服系统 / 归档存储 / 事件总线；相关：RGS-REQ-037 / RGS-DTL-042 / RGS-TST-IT-02 / RGS-TST-IT-02-ADD1 / RGS-TST-IT-02-ADD2"
 
+# ----------------------------------------------------------------------------
+# 核心传输防丢包强化与周边协议选型（ARC-047 防丢包子问题展开）— 2 份
+# 注：与既有 RGS-DTL-038 卡牌/Match 同号不同主题，仅作为 ARC-047 子问题的设计层文档
+[[planned_document]]
+id = "RGS-BAS-038"
+title = "核心传输防丢包强化与周边协议选型 基本设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-BAS-038_核心传输防丢包强化与周边协议选型_基本设计书.md"
+version = "0.1"
+note = "ARC-047 子问题展开；FEC over QUIC Datagram 路径 + 周边协议选型矩阵；不新建独立 ARC；相关：RGS-REQ-038 / RGS-BAS-001 §3.3/§10.4 / RGS-BAS-006 / RGS-BAS-022 / RGS-DTL-038-防丢包"
+
+[[planned_document]]
+id = "RGS-DTL-038-防丢包"
+title = "核心传输防丢包强化 详细设计书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/02-运维安全与网络/RGS-DTL-038_核心传输防丢包强化_详细设计书.md"
+version = "0.1"
+note = "ARC-047 子问题展开；FEC 编解码器伪代码 / QUIC Datagram 帧格式扩展 / rgs-fec 新建 crate 判定；同号不同主题（区别于卡牌 RGS-DTL-038 与 Match 域 RGS-DTL-038）；相关：RGS-REQ-038 / RGS-BAS-038 / RGS-DTL-001 §4 / RGS-DTL-006 / RGS-DTL-007 §3 / RGS-IMPL-001 §1.3"
+
+# ----------------------------------------------------------------------------
+
 [[category]]
 id = "00"
 path = "00-基准与治理"
