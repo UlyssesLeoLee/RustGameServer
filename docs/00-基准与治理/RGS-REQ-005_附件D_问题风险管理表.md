@@ -478,6 +478,7 @@
 | ADR-0058 | 运营管控与服务Agent矩阵的受控动作边界（原误登记为ADR-0055，per ISS-126于2026-08-25更正编号） | ARC-055 | 进入实现阶段前 | 待具名人类审批・未制定（提案；见RGS-REQ-034，不得作为生产基线） |
 | ADR-0056 | 游戏性生态与仿真Agent的只读与可复跑边界 | ARC-056 | 进入实现阶段前 | 待具名人类审批・未制定（提案；见RGS-REQ-035，不得作为生产基线） |
 | ADR-0057 | 游戏核心状态收敛与分级持久化架构演进（Tier-1/Tier-2持久化+一致性哈希同节点分片+Reward Saga语义澄清） | ARC-008 | 进入实现阶段前 | **[已制定](../08-架构决策记录/RGS-ADR-0057_游戏核心状态收敛与分级持久化架构演进.md)**（2026-08-25经§5签字栏12角色全签，Accepted；不新增ARC，refines ARC-001/005/007/008/013；不改变Purchase Saga既有补偿设计） |
+| ADR-0060 | 事件总线偏离参考设计：NATS JetStream 2.14 (Latest) 取代 Apache Kafka（per ULYS-55） | ARC-010 / ARC-014 | PH-1前 | **[已制定](../08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md)**（2026-09-18 JST 具名人类审批通过 = Accepted，per ULYS-55 评论 `01a0b1f3`；归档 RGS-TS-001 §3.6.1 上游登记 Apache Kafka vs 下游选型 NATS JetStream 双轨决议；refines ARC-010 / ARC-014，不新增 ARC） |
 
 > **ADR-0019／0023／0024／0025列为PH-1的理由**：ADR-0019（埋点规范）依ARC-017"可观测性自PH-1起必须具备"；ADR-0023（客户端SDK）依RSK-003"实时同步方式细节未定导致客户端开发停滞"须在PH-1与客户端团队达成合意；ADR-0024／0025（治理机制）是其余全部领域文档基准化的前置条件，且ISS-032（运维负荷超支）须在新增运维面实际落地前决议。
 
@@ -503,7 +504,7 @@
 | ECS | bevy_ecs | MIT / Apache-2.0 | ○ | **合规** | 不含渲染部分，可独立使用（ARC-001） |
 | 数据库 | PostgreSQL | PostgreSQL License | ○ | **合规** | BSD系 |
 | 缓存基础设施 | Valkey | BSD-3-Clause | ○ | **合规** | Redis 2024年许可变更后的分支 |
-| 事件基础设施 | Apache Kafka | Apache-2.0 | ○ | **合规** | 导入须经ARC-014判定 |
+| 事件基础设施 | Apache Kafka | Apache-2.0 | ○ | **合规** | 导入须经ARC-014判定。**实际偏离**：per ADR-0060（2026-09-18 JST Accepted），RGS 事件总线偏离至 NATS JetStream 2.14 (Latest)（Apache-2.0；CNCF 守住 2025 BSL 风波）；Arc-014 闸门回执由 ADR-0060 提供。RGS-REQ-005 §3 已登记 ADR-0060 |
 | CDC | Debezium | Apache-2.0 | ○ | **合规** | 同上 |
 | Schema Registry | Apicurio Registry / Karapace | Apache-2.0 | ○ | **合规** | ARC-010 |
 | 工作流基础设施 | Temporal | MIT | ○ | **合规** | 导入须经ARC-014判定 |

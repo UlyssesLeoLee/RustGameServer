@@ -28,6 +28,8 @@
 | 0.6 | 2026-08-21 | 架构师 | **§6.2 双轨制 OLU**（per user decision 2026-08-21：人·天/周 + token/周 **两种算法都要**，不是 token 取代人·天）：①§6.2.1 人·天/周算法（v0.4 算法，**保留 active**，主用于纯人类开发场景 / SRE Lead + PM 工时核算 / HR 编制申请 / 工时审计）②§6.2.2 token/周算法（v0.5 新增算法，**active**，主用于 AI 协作开发场景 / AI 算力预算 / 决策质量评估）③§6.2.3 双轨对比与切换条件（按开发模式选算法；不允许混算）④§6.2.4 5 域独立 Lead × 14-18 周 **双算法估算**（人·天 ~28-35 / token ~196M-468M）⑤§6.2.5 NFR-OP-010 双轨（人·天 ≤ 20 / token ≤ 20M）⑥§6.2.6 校准路径 4 节点（PH-0.5 / PH-1 / PH-3 / PH-7）。**算法选择原则**：纯人类开发用人·天；AI 协作开发用 token；混合开发按主导模式选 + 双轨并报。**下游级联**：RGS-IMPL-001 资源约束栏加双轨说明；RGS-QA-001 v0.13 §9.5.3 路径 B 标记 OLU 双轨已就位。 |
 | 0.7 | 2026-08-24 | Worker (WF-1-55.48) | **§3.6.1 + §5.1 + §5.2 事件总线决策状态**(per RGS-OPEN-QA-001 v0.2 Q-M-10 答复 + ACTIONS-v0.3 B-09):① §3.6.1 状态从【一致】升为**【已决策:NATS JetStream】**(强化显式决策语义,去除任何"未决/待决"误读空间)② §3.6.1 加 per Q-M-10 答复确认小注(说明 NATS JetStream 已在 `docs/deploy/01-k8s-manifests/30-nats-*.yaml` 落地 + `async-nats` 是 5 域生产代码实际使用库)③ §5.1 已决选型表中"NATS JetStream 2.10+" 显式列出(此前仅按"事件总线 1 项"统计,未在表内单列);§5.2 未决选型表保持 8 条不变(NATS 不在其中)④ **未变更**:16 个分层领域选型、60+ 技术组件、版本号、许可证、ADR 关系、§6.2 双轨制 OLU 段(不属本任务)、TBD 列表。**关联任务**:WF-1-55.48(建跟踪脚本 + 改 TS-001 状态)。 |
 | 0.8 | 2026-08-29 | 架构师 (Mavis 接手 per DEC-008) | **§6.3 WBS 排序原则从"日期"改为"token 桶"**(per Ulysses 04:23 JST 决策):① **新原则**:WBS 不再以"9 月初/9 月中/..."时间盒排序;改为以 **token 预算** 排序工作块(per §6.2.2 token/周算法,1 SRE 上限 ≈ 1M tokens/周)② **避免日期超前限制 agent 进度**:AI 协作下,agent 实际完成速度不与人类工作周强绑定;按日期排序会导致 token 预算未用完时 agent 等待,或 token 预算用完时被强制启动新工作块 ③ **执行机制**:每工作块标 **token 预算** 而非"截止日期";agent 跑完 token 预算或达到质量门即推进下一工作块,无需等日期。**关联文档**:`docs/00-基准与治理/RGS-PLAN-WBS-token-bucket-v0.1.md`(per 2026-08-29 04:23 JST Ulysses 决策落档)。**下游级联**:RGS-PLAN-001 v0.9 / RGS-IMPL-001 WBS 章节 / W6-W11 任务块 标"token 预算"列。 |
+| 0.9 | 2026-09-17 | 架构师 (Mavis 接手 per DEC-008) | **§3.6.1 + §5.1 修订历史预备**(per ULYS-55 v0.2):① §3.6.1 标题「NATS JetStream 2.10+」→「NATS JetStream 2.14 (Latest)」(per Synadia 当前受支持窗口 + 文档澄清 STAN vs JetStream 混淆);版本号升级 ② §3.6.1 决定行同步升档 ③ §5.1 事件总线 ADR 引用补 RGS-ADR-0060 ④ ADR-0060 候选已立(v0.2 状态保持「待具名人类审批」)。**未变更**:16 个分层领域选型、60+ 技术组件、ADR 关系、§6.2 双轨制 OLU 段、TBD 列表。**关联**:ULYS-55 (ULYS-54.A 子任务)、ADR-0060 v0.2。 |
+| 0.10 | 2026-09-18 | worker (ULYS-55 agent) | **§3.6.1 + §5.1 偏离正式化联动**(per ULYS-55 + ADR-0060 v0.3 Accepted):① §3.6.1 标题/决定行/备选表版本号一致性更新「NATS JetStream 2.14 (Latest)」② §3.6.1 引用列追加「**RGS-ADR-0060 事件总线偏离参考设计（2026-09-18 Accepted，归档偏离上游 Apache Kafka 登记 vs 下游 NATS JetStream 选型的双轨决议；ARC-014 闸门回执）**」③ §5.1 事件总线 ADR 引用更新为「RGS-ADR-0060 + RGS-ADR-0015（NATS JetStream 2.14 (Latest), 偏离参考设计 Apache Kafka 已正式归档）」。**未变更**:16 个分层领域选型、60+ 技术组件、ADR 关系、§6.2 双轨制 OLU 段、TBD 列表、§3.6.1 备选表(Kafka/RabbitMQ/Redis Streams/Pulsar)。**关联**:ADR-0060 v0.3 (Accepted 2026-09-18 per ULYS-55 评论 `01a0b1f3`)、RGS-REQ-005 §3 ADR-0060 登记行 + §4 L453 备注补注、ULYS-55 工单关闭。 |
 
 ## 审批栏
 
@@ -355,14 +357,14 @@
 
 ## 3.6 事件总线与消息
 
-### 3.6.1 事件总线：NATS JetStream 2.10+
+### 3.6.1 事件总线：NATS JetStream 2.14 (Latest)（per ADR-0060）
 
 | 项目 | 内容 |
 |---|---|
-| **决定** | **【已决策：NATS JetStream】** 2.10+（含 `nats` Rust client + JetStream 持久化模式） |
+| **决定** | **【已决策：NATS JetStream】** 2.14 (Latest)（含 `nats` Rust client + JetStream 持久化模式，per ADR-0060 v0.2 升档自 `2.10+`） |
 | **理由** | 满足 ARC-010（事件命名 + partition_key 规则）+ ARC-011（Saga 边界）；单一二进制（Go 实现），运维简单；持久化 + 重放 + 消费者组 + DLQ 一站式；比 Kafka 资源占用低一个量级 |
 | **备选** | Apache Kafka（否决：JVM 资源开销、运维复杂度；RGS-ADR-0008 §3.2 备选），RabbitMQ（否决：吞吐/分区能力低于 NATS JetStream；与 ARC-010 partition_key 设计契合度低），Redis Streams（否决：可靠性 + 复制能力弱于 NATS），Apache Pulsar（否决：生态复杂度高） |
-| **引用** | RGS-BAS-001 §4.7 事件与可观测性设计；RGS-ADR-0015 Saga 边界；RGS-REQ-031 CEM 中心事件管理 |
+| **引用** | RGS-BAS-001 §4.7 事件与可观测性设计；RGS-ADR-0015 Saga 边界；RGS-REQ-031 CEM 中心事件管理；**RGS-ADR-0060 事件总线偏离参考设计（2026-09-18 Accepted，归档偏离上游 Apache Kafka 登记 vs 下游 NATS JetStream 选型的双轨决议；ARC-014 闸门回执）** |
 
 > **per Q-M-10 答复确认（2026-08-24, ACTIONS-v0.3 B-09, WF-1-55.48）**：
 > NATS JetStream **已落地且为生产实际使用**，不再是"未决/待决"状态。证据：
@@ -708,7 +710,7 @@
 | RPC/序列化 | 3 | RGS-ADR-0008 |
 | 数据库 | 2 | RGS-ADR-0007 / RGS-ADR-0008 |
 | 缓存 | 1 | RGS-ADR-0008 |
-| 事件总线 | 1 | RGS-ADR-0015（**NATS JetStream 2.10+**，per v0.7 §3.6.1 + Q-M-10 答复确认，状态"**已决策**"） |
+| 事件总线 | 1 | RGS-ADR-0060 + RGS-ADR-0015（**NATS JetStream 2.14 (Latest)**，per v0.10 §3.6.1 + ADR-0060 v0.3 升档，状态「已决策」+ ADR-0060 Accepted 2026-09-18 JST；偏离参考设计 Apache Kafka 已正式归档） |
 | 沙箱脚本 | 1 | RGS-ADR-0020 |
 | 智能层 | 2 | RGS-ADR-0026 / RGS-ADR-0029 |
 | 可观测性 | 4 | RGS-REQ-001 §10 ARC-017 |
