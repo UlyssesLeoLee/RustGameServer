@@ -106,4 +106,5 @@ RGS-REQ-031已定义ARC-051"集群运营中心（COC）+ 中心事件管理（CE
 - 依据：ARC-018（新挂载）、ARC-021（插件热插拔）、ARC-042（集群部署）、ARC-019（GM后台）、ARC-008（独立DB）、ARC-009（幂等）、ARC-015（Expand-Contract）、ARC-035（读写分离）、ARC-039（VIZ只读边界）、RGS-ADR-0020（拒绝动态链接库）、RGS-ADR-0022（业务逻辑不入库）
 - 复用：RGS-REQ-007 AdminService（统一入口）、RGS-REQ-024 VIZ无限画布（渲染能力）、RGS-REQ-008 可观测性（数据源）、RGS-REQ-010 RBAC（角色矩阵扩展）
 - 组件许可：ClusterOpsService所在AD限界上下文的依赖（如事件总线探针SDK）须经附件D§4 OSS许可盘点复核
+- 事件总线偏离备案：**RGS-ADR-0060（2026-09-18 JST Accepted，per ULYS-55 评论 `01a0b1f3`）**——事件总线偏离上游登记 Apache Kafka 至 NATS JetStream 2.14 (Latest)；CEM 探针 SDK 与订阅关系图均以 NATS JetStream subject 路由实现（per ADR-0060 §2 + §3 决定），偏离参考设计的事实已正式归档
 - 落地阶段：PH-7（功能上线前）
