@@ -1,0 +1,29 @@
+# tools/h5_e2e/login_hex.txt — D5 cmd=1110 登录 roundtrip evidence
+#
+# generated:   2026-09-14T02:30:32.521Z
+# ws_url:      ws://127.0.0.1:28000/websocket
+# client_send: 2026-09-14T02:30:32.520Z  (t+5ms)
+# client_recv: 2026-09-14T02:30:32.521Z  (t+6ms)
+# rtt_ms:      1
+#
+# === golden vector (zsyz_client_h5 SmartSocket 1:1) ===
+# client send: [4B length u32 BE][2B cmd=1110 u16 BE][payload: array<{string, string}>]
+# expected reply: [4B length u32 BE][2B cmd=1110 u16 BE][payload: [4B rcode u32 BE][body]]
+#   rcode=0 → 5-domain gRPC chain (Phase 1.5+)
+#   rcode=404 → route miss (Phase 1 demo skeleton)
+
+[client -> server] (cmd=1110 login request, 69 bytes)
+  hex: 00 00 00 41 04 56 00 03 00 08 75 73 65 72 6e 61 6d 65 00 05 61 6c 69 63 65 00 08 70 61 73 73 77 6f 72 64 00 06 73 33 63 72 65 74 00 09 64 65 76 69 63 65 5f 69 64 00 0d 77 69 6e 31 31 2d 6d 75 6c 74 69 63 61
+  asc: ...A.V....username..alice..password..s3cret..device_id..win11-multica
+
+[server -> client] (cmd=1110 login reply, 27 bytes)
+  hex: 00 00 00 17 04 56 00 00 01 94 75 6e 6b 6e 6f 77 6e 20 63 6f 64 65 20 31 31 31 30
+  asc: .....V....unknown code 1110
+
+  parsed header:
+    length   = 0x00000017  (23)
+    cmd      = 0x0456      (1110)
+    payload  = 21 bytes: 00 00 01 94 75 6e 6b 6e 6f 77 6e 20 63 6f 64 65 20 31 31 31 30
+
+# === verdict ===
+# PASS (wire) — cmd=1110 echoed, rcode=404, body="unknown code 1110" (route miss, Phase 1 demo route table doesn't include cmd=1110; Phase 1.5+ adds real 5-domain gRPC chain)

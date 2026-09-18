@@ -19,9 +19,17 @@
 //! 旧 stub 使用 `[code u32][length u32][payload]`, 与 zsyz 客户端 1:1 不一致.
 //! 本实现按 ULYS-2.1 P0 任务改为 `[length u32][cmd u16][payload]`.
 //!
+//! ## ULYS-2.2 扩展 (W33): FrameRouter trait 抽象
+//! - 让 TCP (`tcp.rs`) 和 WebSocket (`ws.rs`) 共享同一份 dispatcher
+//! - 异步签名 (`async fn handle`) 为 Phase 2 接 5 域 gRPC client 预留
+//! - 当前实现走 sync 路径 (沿用 `tcp::dispatch` 的 RouteTable + GatewayStats)
+//!
 //! ## 参考
 //! - zsyz_client_h5/assets/Scripts/sys/game-core-js-min.js (SmartSocket)
 //! - zsyz_server/src/proto/proto_11.erl, proto_101.erl (protocol:pack)
+
+use std::future::Future;
+use std::pin::Pin;
 
 use bytes::{Buf, Bytes, BytesMut};
 
@@ -133,6 +141,117 @@ impl Frame {
     /// 此处为方便入口; 真实解析在 `tlv::unpack_fields`.
     pub fn payload(&self) -> &[u8] {
         &self.payload
+    }
+}
+
+// =====================================================================
+// ULYS-2.2 (W33): FrameRouter trait 抽象 — TCP 和 WebSocket 共享 dispatcher
+// =====================================================================
+//
+// ## 设计动机
+// - 任务 brief 要求 `Arc<dyn FrameRouter>` 作为 WS handler 的入参
+// - `tcp::dispatch` 当前签名是 sync (`fn dispatch(frame, routes, stats) -> Bytes`)
+// - WS 路径需要 async (允许 Phase 2 接 5 域 gRPC client, e.g. tokio::spawn blocking)
+// - 同时保留 sync 实现: 用 boxed future 把 sync 路径装进 async 接口
+//
+// ## 接口
+// ```ignore
+// pub trait FrameRouter: Send + Sync {
+//     fn handle(&self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + '_>>;
+// }
+// ```
+// - 返回 Pin<Box<dyn Future>> 是因为 trait 不能直接含 `async fn` (对象安全要求)
+// - `Send + Sync` 是 ws::handle_session 需要 Arc<dyn FrameRouter> 的前提
+// - 实现者负责 increment stats (counter 在 dispatcher 内部, 不在 trait)
+//
+// ## 默认实现
+// - `RouteTableFrameRouter` 包装 `Arc<RouteTable>` + `Arc<GatewayStats>`
+// - 行为对齐 `tcp::dispatch` (rcode=0 + service.method payload; miss → rcode=404)
+// - Phase 2 接 5 域 gRPC client 时换实现, ws.rs / tcp.rs 都不动
+
+/// FrameRouter: TCP + WebSocket 共享的帧处理器抽象 (per ULYS-2.2 W33)
+///
+/// 异步签名允许未来 Phase 2 接 5 域 gRPC client (跨 await 调用),
+/// 当前 `RouteTableFrameRouter` 实现走 sync 路径, 但通过 `tokio::task::spawn_blocking`
+/// 在 WS handler 中 offload 避免阻塞 reactor.
+pub trait FrameRouter: Send + Sync {
+    /// 处理一个 Frame, 返回响应字节流 (encoded as `[4B length][2B cmd][payload]`,
+    /// payload 内部: `[4B rcode u32 BE][...业务 bytes...]`).
+    fn handle<'a>(
+        &'a self,
+        frame: Frame,
+    ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>>;
+}
+
+#[cfg(test)]
+mod frame_router_tests {
+    use super::*;
+    use crate::router::RouteTable;
+    use crate::stats::GatewayStats;
+    use std::sync::Arc;
+
+    struct CountingRouter {
+        routes: Arc<RouteTable>,
+        stats: Arc<GatewayStats>,
+    }
+
+    impl FrameRouter for CountingRouter {
+        fn handle<'a>(
+            &'a self,
+            frame: Frame,
+        ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
+            // 走 sync 路径 (RouteTable 是 sync), wrap 成 ready future
+            let resp = crate::tcp::dispatch(frame, &self.routes, &self.stats);
+            Box::pin(async move { resp })
+        }
+    }
+
+    #[tokio::test]
+    async fn trait_dyn_compatible() {
+        // 验证 Arc<dyn FrameRouter> 可构造 + 可 await
+        let router: Arc<dyn FrameRouter> = Arc::new(CountingRouter {
+            routes: Arc::new(RouteTable::new()),
+            stats: Arc::new(GatewayStats::new()),
+        });
+
+        // cmd=10101 (u16 范围内, 默认路由表 demo 命中 → rcode=0)
+        let frame = Frame {
+            cmd: 10101,
+            payload: Bytes::from_static(b"hello"),
+        };
+        let resp = router.handle(frame).await;
+        // resp 是 Frame::encode 输出: [4B length][2B cmd][payload]
+        // payload 内部: [4B rcode u32 BE][...业务 bytes...]
+        assert!(
+            resp.len() >= 10,
+            "至少 4B length + 2B cmd + 4B rcode, got {}",
+            resp.len()
+        );
+        let mut buf = BytesMut::from(&resp[..]);
+        let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
+        assert_eq!(resp_frame.cmd, 10101, "响应 cmd 应回声");
+        let payload = &resp_frame.payload;
+        let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
+        assert_eq!(rcode, 0, "10101 路由命中 rcode 应为 0");
+    }
+
+    #[tokio::test]
+    async fn trait_handles_route_miss() {
+        let router: Arc<dyn FrameRouter> = Arc::new(CountingRouter {
+            routes: Arc::new(RouteTable::new()),
+            stats: Arc::new(GatewayStats::new()),
+        });
+        // 55555 选 u16 范围内, 默认路由表未注册 → 404
+        let frame = Frame {
+            cmd: 55555,
+            payload: Bytes::from_static(b""),
+        };
+        let resp = router.handle(frame).await;
+        let mut buf = BytesMut::from(&resp[..]);
+        let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
+        let payload = &resp_frame.payload;
+        let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
+        assert_eq!(rcode, 404, "未注册 cmd 应返回 404");
     }
 }
 
