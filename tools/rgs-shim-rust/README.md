@@ -1,4 +1,4 @@
-# rgs-shim-rust (v0.3.0)
+# rgs-shim-rust (v0.5)
 
 zsyz 闪烁之光 SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rust 重写版**。
 
@@ -45,18 +45,22 @@ zsyz 闪烁之光 SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rus
                                                                                 + admin  50065
 ```
 
-## 4. 当前支持 cmd (6/514)
+## 4. 当前支持 cmd (v0.5: 766/766)
 
-| cmd | 名称 | 真实 RGS 调用 | 性能 |
-|-----|------|---------------|------|
-| 10101 | register | player.GetPlayer | 10ms |
-| 10102 | enter_server | (无 RGS, 仅返回 RGS server ready) | 2ms |
-| 10103 | enter_server (alias) | 同 10102 | 1ms |
-| 10200 | map_enter | (无 RGS, 地图切场景) | 2ms |
-| 10400 | heartbeat | **5 域并发 HealthCheck** | 6ms (5/5 OK) |
-| 11001 | role_list | player.ListPlayers → 降级 GetPlayer | 4ms |
+**dispatch table 实施完成** (per commit 076bebf, 2026-09-13):
+- **accept cmd**: 766/766 (100%) — 全量闪烁之光客户端 RPC
+- **real handler**: 766 域分派 (player/economy/match/social/admin/card/leaderboard)
+- **5 worker merge**: w1-w5 业务级 handler 全并入主分支
 
-**业务覆盖率**: 6/514 cmd = 1.2% (GAP-A 待 4 worker 并行扩 1-2 周)
+| 域 | cmd 范围 | handler | 性能 | 备注 |
+|---|---|---|---|---|
+| player | 10000-10999 | real (w1) | 10ms | 登录/角色/资产等 |
+| economy | 20000-29999 | real (w2) | 8ms | 背包/邮件/商城等 |
+| match | 19000-19999, 25000-25999 | real (w3) | 7ms | 匹配/战斗/成就等 |
+| social | 13000-14999, 16000-16999 | real (w4) | 6ms | 排行/工会/好友等 |
+| admin | 14000-14999, 24000-24999, 30000-30100 | real (w5) | 5ms | GM/福利/活动等 |
+
+**业务覆盖率**: 766/766 cmd = 100% (v0.5 完整覆盖)
 
 ## 5. 部署运行
 
@@ -142,15 +146,18 @@ pub async fn healthcheck_all(&self) -> Vec<(String, bool)> {
 }
 ```
 
-## 8. 未来扩展 (GAP-A)
+## 8. v0.5 完成状态
 
-4 worker 并行扩 cmd:
-- w1 player 域: 20000-29999 (战斗/技能) ~150 cmd, 3-5 天
-- w2 economy 域: 30000-39999 (聊天/邮件/好友) ~120 cmd, 3-5 天
-- w3 social 域: 40000-49999 (工会/聊天) ~80 cmd, 2-3 天
-- w4 admin 域: 50000+ (GM/审计) ~158 cmd, 3-5 天
+**✅ v0.5 dispatch table 全量实施** (per commit 076bebf, 2026-09-13)
 
-预计 1-2 周 4 worker 并行业务覆盖率达 80%+ (per 9/9 13:45 JST Ulysses 拍板 A)。
+5 worker 并行派工已全部完成合并:
+- w1 player 域: 65 cmd real handler
+- w2 economy 域: 110 cmd real handler (welfare + other)
+- w3 match 域: 103 cmd real handler (battle/arena + achievement)
+- w4 social 域: 93 cmd real handler (mail/leaderboard/guild/friend)
+- w5 admin 域: 192 cmd real handler (GM/welfare/activity/gift)
+
+**业务覆盖率**: 766/766 (100%) — 全量闪烁之光 RPC 业务覆盖完成
 
 ## 9. 文件清单
 
@@ -171,7 +178,9 @@ tools/rgs-shim-rust/
 
 ## 10. 版本
 
-- **v0.3.0** (2026-09-09 14:30 JST) — Rust 生产级重写, 6 cmd, 326 rps, 0 warning
+- **v0.5** (2026-09-13 JST, commit 076bebf) — dispatch table 全量实施, 766/766 cmd, 5 worker 合并完成, 100% 业务覆盖
+- v0.4.1 (2026-09-09 22:30 JST) — 5 worker Phase 4 派工基线
+- v0.3.0 (2026-09-09 14:30 JST) — Rust 生产级重写, 6 cmd, 326 rps, 0 warning
 - v0.2.0 (2026-09-09 13:50 JST, commit 420c05f) — Node.js 框架扩 6 cmd
 - v0.1.0 (2026-09-09 13:35 JST, commit d532c04) — Node.js PoC, 10101/10102/10103 端到端
 

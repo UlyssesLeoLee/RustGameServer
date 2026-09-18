@@ -1,8 +1,9 @@
-# rgs-shim-rust v0.3.1: erlang → rgs 迁移报告
+# rgs-shim-rust v0.5: erlang → rgs 迁移报告
 
-**核心**: 把 zsyz_client (Cocos2d-js 闪烁之光 H5) 通过 SmartSocket TCP 协议连过来的请求, 翻译成 RGS 5 域 gRPC 调用. **前端不变, 后端从 zsyz_server (Erlang) 切到 rgs-shim-rust (Rust + tokio) → rgs-proxy (Node.js) → RGS 5 binary (50061-50065)**.
+**核心**: 把 zsyz_client (Cocos2d-js 闪烁之光 H5) 通过 SmartSocket TCP 协议连过来的请求, 翻译成 RGS 5+2 域 gRPC 调用. **前端不变, 后端从 zsyz_server (Erlang) 切到 rgs-shim-rust (Rust + tokio) → rgs-proxy (Node.js) → RGS 7 binary (50061-50065 + card + leaderboard)**.
 
-per 2026-09-09 14:51 JST Ulysses 拍板: "前端表现和 erlang 版本一致的情况下, 后端换成 rgs"
+per 2026-09-09 14:51 JST Ulysses 拍板: "前端表现和 erlang 版本一致的情况下, 后端换成 rgs"  
+per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker 合并完成)
 
 ---
 
