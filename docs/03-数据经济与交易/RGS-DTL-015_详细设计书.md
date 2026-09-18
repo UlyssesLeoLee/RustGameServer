@@ -372,6 +372,212 @@ RGS-BAS-015§2.3与§3中"交易目标可见性范围"（TBD-TRD-001）与"手�
 
 后续详细设计建议顺序：与本文档同批次的RGS-DTL-016（客服工单与支付对账）在其对账流程中同样复用FR-EC-003确定请求路径，两份文档共享同一物理执行语义前提（RGS-DTL-001§3.2），建议后续如需修改该路径的物理设计，同步检视本文档§3与RGS-DTL-016§3.2是否受影响。
 
+> **v0.2 升版补登（per ULYS-1 后续测试设计补全任务，WF-1-55.43 L4 子任务 v0.2 → v0.2-testdesign）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：GM人工核账队列UI、`TradeOfferService`挂单创建/撤销的完整HTTP/gRPC协议线格式细节（仅给出关键字段，非完整IDL）"——这两项在 v0.2 仍属本文档范围外（GM UI属 GM 后台前端；完整 IDL 由实现阶段补），但**`TradeSettlementSaga`/`TradeVisibilityGuard`/`execute_atomic_transfer` 的测试设计** 已在 v0.2 由本文档§6「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计 4 项不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+## 6. 后续测试设计补全（v0.2 test-design follow-up，per ULYS-1）
+
+### 6.1 范围与既有占位
+
+原 v0.1 仅给出"挂单创建/撤销完整 IDL、GM 队列 UI"两类不覆盖项；v0.1 与 v0.2 均**未**为本文档 §3 主流程伪代码配套测试设计。本次补全聚焦 v0.1 已落实的逻辑（DTL 既有章节正文）的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL015-TRADE-SAGA-001~008 | `TradeSettlementSaga` 主流程与故障路径 | §3.1 / §3.2 / §3.4 | UT/IT | FR-TRD-002/010/012/014、RSK-TRD-002 |
+| TC-DTL015-VIS-001~003 | `TradeVisibilityGuard` 可见性校验 | §3.3 | UT | FR-TRD-006、TBD-TRD-001 |
+| TC-DTL015-DDL-001~002 | DDL 索引/分区/CHECK 约束 | §2 | IT | FR-TRD-015~018 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`：单元测试 fake/mockall，集成测试 Testcontainers 真实 PostgreSQL 18.6），不引入新的 trait 抽象（per Q-206 强制规则）。
+
+### 6.2 Saga 主流程测试用例（TC-DTL015-TRADE-SAGA-NNN）
+
+#### TC-DTL015-TRADE-SAGA-001 — 正常路径四步价值转移（happy path）
+
+- **层**：IT；**对应 DTL §**：§3.1 `settle_trade` + §3.4.2 场景 1.0 子步骤 1.1~1.5
+- **覆盖需求**：FR-TRD-010/012、FR-EC-003（价值转移确定请求路径）
+- **前置条件**：
+  - `rgs-testkit` `EconomyFixture::economy(player_id)` 双方各持有余额 ≥ 1 单位（per `with_currency(...)` builder）
+  - `trade_offers` 行 `state='Accepted'`，`snapshot_version=1`，`expire_at>now()`
+  - Testcontainers PostgreSQL 18.6 启动（per RGS-IMPL-001 §3 Q-206）
+- **Steps (Given/When/Then)**：
+  - **Given**：甲方 `account_id=A`，余额 100；乙方 `account_id=B`，余额 50；`TradeOffer` 处于 `Accepted`，`snapshot_version=1`
+  - **When**：调用 `settle_trade(trade_id)`，触发 `execute_atomic_transfer`
+  - **Then**：
+    - `trade_offers.state` 迁移到 `'Settled'`，`updated_at` 刷新
+    - 甲方余额 = 100 - 转移额（per FR-EC-003 路径），乙方余额 = 50 + 获得额
+    - `transaction_ledger` 新增 4 行（甲方 debit、乙方 debit、甲方 credit、乙方 credit）同事务提交
+    - `trade_audit_logs` 追加一行 `event_type='settled'`，`actor_id=NULL`（系统自动触发）
+- **断言**：四步 SQL 在单事务边界内完成（per DTL §3.1 第 25-26 行）；`audit_log` 写入与 `state` 终态迁移在同一事务；`consumed FR-EC-003` 同一路径不重复。
+- **rgs-testkit 引用**：`EconomyFixture::economy("A")`、`EconomyFixture::economy("B")`、`SagaFixture::saga("trade_settle")`（per `crates/rgs-testkit/src/fixture.rs` line 37-44）
+
+#### TC-DTL015-TRADE-SAGA-002 — 快照失效拒绝（FR-TRD-014 防调包）
+
+- **层**：UT（fake OCC）；**对应 DTL §**：§3.1 OCC 校验（line 7-19）；§3.4.2 子步骤 1.2
+- **覆盖需求**：FR-TRD-014、RSK-TRD-002（双花防护）
+- **前置条件**：`TradeOffer.snapshot_version=1`，但 OCC UPDATE 预置 `rows_affected=0`（fake 返回值）
+- **Steps**：
+  - **Given**：`load_trade_offer()` 返回 `snapshot_version=1`，但 OCC UPDATE 返回 0 行（模拟并发占用使快照失效）
+  - **When**：调用 `settle_trade(trade_id)`
+  - **Then**：函数返回 `Err(TradeError::StaleSnapshot { trade_id })`，**不**调用 `execute_atomic_transfer`，**不**更新 `trade_offers.state`，**不**写 `trade_audit_logs`
+- **断言**：`audit_log` 表在测试结束时**不**新增 `settled` 或 `compensated` 行；`transaction_ledger` 行数不变。
+- **rgs-testkit 引用**：`mockall` mock OCC 函数（per RGS-IMPL-001 §3 Q-206："单元测试使用 fake/mockall"）
+
+#### TC-DTL015-TRADE-SAGA-003 — 幂等短路（重复提交返回既有结果）
+
+- **层**：UT；**对应 DTL §**：§3.1 第 21-23 行；§3.4.2 子步骤 1.3
+- **覆盖需求**：FR-TRD-012（幂等键）
+- **前置条件**：`trade_offers.state='Settled'`（已结算）
+- **Steps**：
+  - **Given**：`load_trade_offer()` 返回 `state=Settled`
+  - **When**：再次调用 `settle_trade(trade_id)`
+  - **Then**：函数 `return Ok(())`，**不**调用 OCC UPDATE，**不**调用 `execute_atomic_transfer`，**不**新增 `audit_log` 行
+- **断言**：调用计数：OCC UPDATE = 0、`execute_atomic_transfer` = 0、`append_audit_log` = 0；最终 `trade_audit_logs` 行数与 Given 时一致。
+
+#### TC-DTL015-TRADE-SAGA-004 — 转移中途失败触发补偿路径（场景 4.0）
+
+- **层**：IT；**对应 DTL §**：§3.2 `handle_settlement_failure` + §3.4.5 子步骤 4.1
+- **覆盖需求**：RSK-TRD-002、Saga 补偿语义
+- **前置条件**：四步价值转移在第三步（甲方 credit）失败（如触发 §3.2 `transfer_err`）
+- **Steps**：
+  - **Given**：甲方已 debit 成功、乙方已 debit 成功、甲方 credit 失败；模拟 `compensate_partial_transfer` 返回 `Ok(())`
+  - **When**：`settle_trade` 触发补偿
+  - **Then**：
+    - `compensate_partial_transfer` 已被调用 2 次（撤销甲方 debit、乙方 debit）
+    - `trade_offers.state` **保持** `'Accepted'`（不迁终态，per §3.2 第 11 行批注 + §3.4.5 子步骤 4.1）
+    - `trade_audit_logs` 追加一行 `event_type='compensated'`
+    - 函数返回 `Err(TradeError::SettlementFailedCompensated)`
+- **断言**：甲方/乙方余额回到 Given 前状态；`state` 不变；新 `audit_log` 事件类型为 `compensated`；**不**触发 `AlertSeverity::High`（补偿成功路径不升级）。
+- **rgs-testkit 引用**：`SagaFixture::saga("trade_settle")` + 注入第 3 步失败的 mock transfer
+
+#### TC-DTL015-TRADE-SAGA-005 — 补偿失败升级 `CompensationFailed` 单向门
+
+- **层**：IT；**对应 DTL §**：§3.2 第 16-30 行；§3.4.5 子步骤 4.2/4.3
+- **覆盖需求**：RSK-TRD-002 最坏情形
+- **前置条件**：`compensate_partial_transfer` 自身失败（如回滚时资产写入也失败）
+- **Steps**：
+  - **Given**：同 TC-DTL015-TRADE-SAGA-004 但 `compensate_partial_transfer` 返回 `Err(CompensationErr)`
+  - **When**：`handle_settlement_failure` 进入 Err 分支
+  - **Then**：
+    - `force_state_transition(trade_id, CompensationFailed)` 被调用
+    - `emit_alert(AlertSeverity::High, "trade_compensation_failed", trade_id)` 被触发（mock 验证）
+    - `enqueue_manual_reconciliation(trade_id, compensation_err)` 被调用
+    - `trade_audit_logs` 追加一行 `event_type='escalated'`
+    - 函数返回 `Err(TradeError::CompensationFailedEscalated)`
+- **断言**：再次调用任意资产变更路径涉及该 `trade_id` 时，前置校验拒绝（per §3.2 关键边界条件说明）；验证"禁止资产在人工核实前被其他操作占用"约束生效。
+- **rgs-testkit 引用**：`mockall` mock alert emitter、mock manual queue enqueue；integration 验证前置校验拒绝路径（Testcontainers 真实 PG）
+
+#### TC-DTL015-TRADE-SAGA-006 — OCC 乐观锁与 `CompensationFailed` 状态机的并发冲突
+
+- **层**：IT；**对应 DTL §**：§3.4.5 子步骤 4.3 单向门；§2 DDL `trade_offers.state` CHECK 约束
+- **覆盖需求**：单向门在并发场景下不可被绕过
+- **前置条件**：两个连接同时尝试更新同一 `trade_id`，一个写入 `CompensationFailed`，一个尝试 `Accepted → Settled`
+- **Steps**：
+  - **Given**：`trade_offers.state='CompensationFailed'`（已升级）
+  - **When**：连接 1 尝试 `UPDATE trade_offers SET state='Settled' WHERE trade_id=$1 AND state='Accepted'`（误用旧 version）
+  - **Then**：`rows_affected=0`（CHECK 约束 + WHERE 条件双重拒绝），无副作用
+  - **When（第二个动作）**：连接 2 尝试 `UPDATE trade_offers SET state='Cancelled' WHERE trade_id=$1 AND state='CompensationFailed'`
+  - **Then**：`rows_affected=0`（DDL CHECK 约束拒绝该状态迁移，per §2 约束 + §3.2 单向门声明）
+- **断言**：`trade_offers.state` 在测试期间始终保持 `'CompensationFailed'`；`audit_log` 行数不变。
+
+#### TC-DTL015-TRADE-SAGA-007 — Saga 协调者持久化（场景 3.0 step 3.7）
+
+- **层**：IT；**对应 DTL §**：§3.4.4 子步骤 3.7；RGS-IMPL-001 §3 `saga_orchestrator`
+- **覆盖需求**：跨 DB Saga 协调者状态持久化（per Q-003 待 Gate 审批）
+- **前置条件**：Testcontainers 同时启动 `economy_db` 与 `player_db`，触发跨域 step
+- **Steps**：
+  - **Given**：`economy_db.sagas` 已存在 `saga_id` 行，5 域 step 全部完成
+  - **When**：`saga_orchestrator.commit(saga_id)` 调用
+  - **Then**：`economy_db.sagas.status='completed'`，各域 `outbox` 事件已发出（per Q-205 同事务 Outbox）
+- **断言**：跨域 step 在 `economy_db` 单一事务内完成 + Outbox 写入；协调者崩溃后续跑（per §3.4.6 子步骤 5.6）由 `resume(saga_id)` 重入。
+
+#### TC-DTL015-TRADE-SAGA-008 — 超时 + DLQ（场景 5.0 子步骤 5.1~5.6）
+
+- **层**：IT；**对应 DTL §**：§3.4.6 子步骤 5.1~5.6；RGS-IMPL-001 §3 deadline 策略
+- **覆盖需求**：协调者发现单 step 超 30s deadline → DLQ 落库（per Q-M-06 答复）
+- **前置条件**：Testcontainers 启动 `admin_db`（含 `dlq` 表，per §3.4.6 子步骤 5.3）
+- **Steps**：
+  - **Given**：注入 mock 让某个 step 执行超 30s
+  - **When**：协调者 deadline 检查触发 `mark_failed`
+  - **Then**：`admin_db.dlq` 追加一行（含 `saga_id`、`failed_step`、`error='deadline exceeded'`）；`economy_db.sagas.status='failed'`
+- **断言**：DLQ 写入与 Saga 失败状态在同一事务（per Q-M-06）；30s 未处理 → `admin_db.review_queue` 入队（per子步骤 5.4）。
+
+### 6.3 可见性校验测试用例（TC-DTL015-VIS-NNN）
+
+#### TC-DTL015-VIS-001 — 好友可见允许创建
+
+- **层**：UT；**对应 DTL §**：§3.3 `check_trade_visibility` + `VisibilityScope::FriendOnly`
+- **前置条件**：`VisibilityConfig.trade_visibility_scope=FriendOnly`；`is_friend(A, B)=true`（mock）
+- **Steps**：
+  - **Given**：initiator=A, target=B，A 与 B 在好友关系表内
+  - **When**：`check_trade_visibility(A, B, &cfg)`
+  - **Then**：返回 `Ok(())`，不触发 `TradeError::TargetNotVisible`
+- **断言**：函数路径不进入 `return Err` 分支；未调用 `freeze_assets` 等副作用函数（Draft → Offered 迁移未触发）。
+
+#### TC-DTL015-VIS-002 — 非好友不可见拒绝创建
+
+- **层**：UT；**对应 DTL §**：§3.3
+- **前置条件**：`VisibilityScope=FriendOrParty`，`is_friend(A, B)=false`，`is_same_party(A, B)=false`
+- **Steps**：
+  - **Given**：A 与 B 既非好友也不同队伍
+  - **When**：`check_trade_visibility(A, B, &cfg)`
+  - **Then**：返回 `Err(TradeError::TargetNotVisible { initiator_id: A, target_id: B })`
+- **断言**：调用计数 `freeze_assets = 0`（per §3.3 第 19 行注释：不消耗 FR-TRD-002 冻结路径）。
+
+#### TC-DTL015-VIS-003 — TBD-TRD-001 默认值 `friend_or_party` 配置读取验证
+
+- **层**：UT + 配置 fixtures；**对应 DTL §**：§4 TBD-TRD-001 默认值提案
+- **覆盖需求**：TBD-TRD-001（沿用 RGS-BAS-015§2.3 评审前默认值）
+- **前置条件**：`VisibilityConfig::from_toml("config/trade.toml")` 加载默认配置文件（per RGS-IMPL-001 §4 Q-304 Figment 启动边界合成）
+- **Steps**：
+  - **Given**：配置文件 `trade_visibility_scope = "friend_or_party"`
+  - **When**：`VisibilityConfig::load_from_default()`
+  - **Then**：`cfg.trade_visibility_scope == VisibilityScope::FriendOrParty`
+- **断言**：若配置缺失，应回落到默认值（fail-safe），不 panic。
+
+### 6.4 DDL/约束测试用例（TC-DTL015-DDL-NNN）
+
+#### TC-DTL015-DDL-001 — `trade_offers.state` CHECK 约束覆盖全部枚举
+
+- **层**：IT（Testcontainers PG 18.6）；**对应 DTL §**：§2 DDL CHECK 约束
+- **覆盖需求**：FR-TRD-001/010
+- **前置条件**：PG 18.6 实例上创建本文档 §2 DDL
+- **Steps**：
+  - **When**：尝试 `INSERT INTO trade_offers(state) VALUES ('NotAValidState')`
+  - **Then**：PG 拒绝（CHECK constraint violation）
+- **断言**：依次尝试 7 个合法值（Draft/Offered/Accepted/Settled/Cancelled/Expired/CompensationFailed）均成功；尝试 `''`、`null`、`NotAValidState` 均失败。
+
+#### TC-DTL015-DDL-002 — `trade_audit_logs` 月度分区滚动创建
+
+- **层**：IT；**对应 DTL §**：§2 DDL PARTITION BY RANGE + RGS-BAS-007§4 归档脚本
+- **覆盖需求**：FR-TRD-015~018、NFR-TRD-004（1 年保留）
+- **前置条件**：执行 `RGS-DTL-007§3` 既定分区滚动创建脚本，生成本月 + 下月分区
+- **Steps**：
+  - **When**：跨月（如系统时间 mock 到下月 1 日 00:00）插入 `occurred_at = now()` 的 audit_log
+  - **Then**：插入成功落点下月分区；查询 `pg_partitions` 验证分区存在
+- **断言**：未创建下月分区时插入失败（per RGS-BAS-007§4 既定分区滚动策略）。
+
+### 6.5 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 5 | 38% | `SagaFixture::saga()`、`EconomyFixture::economy()`、`mockall` mocks |
+| IT（Testcontainers PG 18.6） | 8 | 62% | `pg_test_db` (Testcontainers)、`EconomyFixture::economy()`、`SagaFixture::saga()` |
+
+### 6.6 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL015-TRADE-SAGA-001 | FR-TRD-010/012、FR-EC-003 | RGS-BAS-015 | §3.1、§3.4.2 |
+| TC-DTL015-TRADE-SAGA-002 | FR-TRD-014、RSK-TRD-002 | RGS-BAS-015 | §3.1 OCC |
+| TC-DTL015-TRADE-SAGA-003 | FR-TRD-012 | RGS-BAS-015 | §3.1 幂等 |
+| TC-DTL015-TRADE-SAGA-004~005 | RSK-TRD-002、Saga 补偿 | RGS-BAS-015、REV-005 附件 B | §3.2、§3.4.5 |
+| TC-DTL015-TRADE-SAGA-006 | 单向门、CHECK 约束 | RGS-BAS-015 | §2、§3.2 |
+| TC-DTL015-TRADE-SAGA-007 | 跨 DB Saga 协调者 | RGS-IMPL-001 §3 | §3.4.4、§3.4.6 |
+| TC-DTL015-TRADE-SAGA-008 | Saga 超时 + DLQ | RGS-IMPL-001 §3 | §3.4.6 |
+| TC-DTL015-VIS-001~003 | FR-TRD-006、TBD-TRD-001 | RGS-BAS-015 | §3.3、§4 |
+| TC-DTL015-DDL-001~002 | FR-TRD-001/010/015~018、NFR-TRD-004 | RGS-BAS-007/015 | §2 |
+
 ---
 
 ## 追溯性
