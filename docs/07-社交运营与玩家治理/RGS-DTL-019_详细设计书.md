@@ -268,6 +268,215 @@ RGS-BAS-019§3.1"`code`...高熵随机生成，TBD-OPT-002"——本文档提出
 - TBD-OPT-002兑换码生成方式的最终选型评审结论——本文档§4.4给出的是初始提案，非结论。
 - 频率限制（`FR-OPT-004`推送频率、`NFR-OPT-002`兑换码提交速率）各层级的具体阈值数值——均为运营/安全参数，需按PH阶段实测数据与安全评审确定，本文档不给出具体数值。
 
+> **v0.2 升版补登（per ULYS-1 后续测试设计补全任务）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：APNs/FCM第三方网关适配层的具体SDK调用代码、敏感信息正则模式库的具体规则集内容"——这两项在 v0.2 仍属本文档范围外（SDK 调用属实现阶段；规则集维护属既有脱敏基础设施），但**推送三重校验（同意/脱敏/频率限制）、兑换码并发防超发（含条件更新不先读后写）、去重键计算、`used_count` 原子递增** 的测试设计已在 v0.2 由本文档§6「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计 4 项不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+## 6. 后续测试设计补全（v0.2 test-design follow-up，per ULYS-1）
+
+### 6.1 范围与既有占位
+
+原 v0.1 仅给出"APNs/FCM SDK 调用、敏感信息正则模式库规则集"两类不覆盖项；v0.1/v0.2 均**未**为本文档 §3 推送协议、§4 推送/兑换码算法配套测试设计。本次补全聚焦 v0.1 已落实的逻辑（DTL 既有章节正文）的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL019-PUSH-001~005 | 推送发送三重校验 + 频率限制 + 投递结果 | §3 / §4.1 | UT/IT | FR-OPT-001/004、ARC-037 |
+| TC-DTL019-REDEM-001~006 | 兑换码核销：并发防超发 + 幂等 + 多层限流 | §4.2 / §4.3 | UT/IT | FR-OPT-010~015、NFR-OPT-002 |
+| TC-DTL019-DDL-001~002 | DDL 唯一索引/CHECK 约束/部分索引 | §2 | IT | FR-OPT-015、NFR-OPT-002 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`）。
+
+### 6.2 推送发送测试用例（TC-DTL019-PUSH-NNN）
+
+#### TC-DTL019-PUSH-001 — 同意校验：未同意类别静默丢弃（不报错）
+
+- **层**：UT；**对应 DTL §**：§4.1 `dispatch_push` 第 4-9 行
+- **覆盖需求**：FR-OPT-001（推送同意）、ARC-037①
+- **前置条件**：`PlayerFixture::player("A")`；`push_consents(account_id=A, category='friend_invite', consented=false)`
+- **Steps**：
+  - **Given**：玩家 A 对 `category='friend_invite'` 未同意
+  - **When**：`dispatch_push(req, ctx)`
+  - **Then**：
+    - 返回 `Ok(PushDeliveryResult { result_code: DeliveryResultCode::RATE_LIMITED_DROPPED })`（per §4.1 第 7 行）
+    - `record_push_skipped` 被调用（per §4.1 第 5 行）
+    - **不**触发 `ctx.content_sanitizer.matches_forbidden_pattern`（顺序：同意在前）
+    - **不**调用 `ctx.gateway_adapter.deliver`
+- **断言**：未同意场景是"未产生实际投递"的策略性跳过，非错误（per §4.1 第 7-9 行注释）。
+
+#### TC-DTL019-PUSH-002 — 内容脱敏命中禁止模式：拒绝并告警（拒绝优先于频率限制）
+
+- **层**：UT；**对应 DTL §**：§4.1 第 11-17 行
+- **覆盖需求**：FR-OPT-002（推送内容脱敏）、§2.1.1 拒绝而非静默处理
+- **前置条件**：玩家 A 已同意 `category='friend_invite'`；`content_sanitizer.matches_forbidden_pattern(title, body)=true`
+- **Steps**：
+  - **Given**：title 含命中禁止模式（邮箱/手机号/违禁词）
+  - **When**：`dispatch_push(req, ctx)`
+  - **Then**：
+    - 返回 `Err(PushError::SensitiveContentDetected)`（per §4.1 第 14 行）
+    - `record_push_rejected` 被调用
+    - **不**进入频率限制校验（per §4.1 第 11 行注释"先于频率限制校验"）
+    - **不**进入投递路径
+- **断言**：拒绝发送而非静默脱敏后继续（per §2.1.1 既定设计理由）。
+
+#### TC-DTL019-PUSH-003 — 频率限制：超限丢弃 vs 排队
+
+- **层**：UT；**对应 DTL §**：§4.1 第 19-32 行
+- **覆盖需求**：FR-OPT-004（推送频率限制）
+- **前置条件**：玩家 A 已同意，类别配置为 `RATE_LIMITED_DROPPED`
+- **Steps**：
+  - **Given A**：`rate_limiter.check` 返回 `RateLimitOutcome::ExceededDrop`
+    - **When**：调用 `dispatch_push`
+    - **Then**：返回 `Ok(RATE_LIMITED_DROPPED)`，**不**投递
+  - **Given B**：类别配置改为 `RATE_LIMITED_QUEUED`
+    - **Then**：`enqueue_for_next_window` 被调用，返回 `Ok(RATE_LIMITED_QUEUED)`
+- **断言**：频率限制策略由类别配置决定（per §4.1 第 25 行）；两种结果码均**不**为错误。
+
+#### TC-DTL019-PUSH-004 — 网关返回 `DEVICE_TOKEN_EXPIRED` 不无限重试
+
+- **层**：UT；**对应 DTL §**：§4.1 第 21-24 行
+- **覆盖需求**：§2.2 不无限重试
+- **前置条件**：mock gateway_adapter 返回 `result_code=DEVICE_TOKEN_EXPIRED`
+- **Steps**：
+  - **Given**：频率限制 `Ok`，mock gateway 返回 `DEVICE_TOKEN_EXPIRED`
+  - **When**：`dispatch_push`
+  - **Then**：`record_push_failure(TokenExpired)` 被调用，**不**触发重试
+- **断言**：device token 过期是终态，**不**进入重试循环。
+
+#### TC-DTL019-PUSH-005 — 推送结果码枚举完整性
+
+- **层**：UT；**对应 DTL §**：§3 `enum DeliveryResultCode` + `PushDeliveryResult`
+- **覆盖需求**：§3 协议格式 4 个结果码
+- **前置条件**：单元测试枚举值映射
+- **Steps**：
+  - **When**：依次尝试 4 个枚举值 `DELIVERED=0` / `DEVICE_TOKEN_EXPIRED=1` / `RATE_LIMITED_DROPPED=2` / `RATE_LIMITED_QUEUED=3`
+  - **Then**：序列化/反序列化保持编号稳定（per RGS-DTL-001§4.4 编号纪律）
+- **断言**：枚举编号一经分配不得变更（per §3 注释）；与既有 `ResultCode` 编号空间不冲突。
+
+### 6.3 兑换码核销测试用例（TC-DTL019-REDEM-NNN）
+
+#### TC-DTL019-REDEM-001 — 正常核销：四步 SQL 原子化（happy path）
+
+- **层**：IT；**对应 DTL §**：§4.2 SQL 块 + §4.3 `redeem_code` 主流程
+- **覆盖需求**：FR-OPT-010、FR-EC-003（价值发放确定请求路径）
+- **前置条件**：`redemption_codes(code='CODE-A', used_count=0, max_uses_per_code=1)`；`PlayerFixture::player("A")`、`EconomyFixture::economy("A")`
+- **Steps**：
+  - **Given**：`code='CODE-A'` 存在，批次未过期，玩家 A 未核销过
+  - **When**：`redeem_code("CODE-A", A, ctx)`
+  - **Then**：
+    - `conditional_increment_used_count` 返回 `Incremented`（rows_affected=1）
+    - `insert_redemption_record("CODE-A", A)` 成功
+    - `commit_transaction` 触发 `execute_atomic_grant_via_fr_ec_003`（per §4.3 第 30 行）
+    - `redemption_codes.used_count=1`，`redemption_records` 1 行新增
+- **断言**：UPDATE + INSERT 同事务（per §4.2 第 21-24 行注释）；玩家余额增加奖励。
+
+#### TC-DTL019-REDEM-002 — 并发防超发：`used_count` 条件更新不先读后写
+
+- **层**：IT；**对应 DTL §**：§4.2 第 13-22 行；§3.2 强约束
+- **覆盖需求**：FR-OPT-013（并发防超发）、§3.2 "条件更新而非先读后写"硬约束
+- **前置条件**：Testcontainers PG 18.6；模拟 N=100 并发核销同一 `code` 且 `max_uses_per_code=1`
+- **Steps**：
+  - **Given**：`code='CODE-LIMITED'`，`max_uses_per_code=1`，100 个并发核销请求
+  - **When**：所有请求并行执行 `UPDATE redemption_codes SET used_count = used_count + 1 WHERE code='CODE-LIMITED' AND used_count < max_uses_per_code`
+  - **Then**：
+    - 仅 1 个请求 `rows_affected=1`，其余 99 个 `rows_affected=0`
+    - `redemption_records` 仅 1 行（其余请求返回 `AlreadyExhausted`）
+    - **无应用层先 SELECT used_count 的代码路径**（per §4.3 第 24 行注释）
+- **断言**：DB 层条件更新是真正的并发防护；应用层预检即便通过也以本次结果为准（per §4.3 第 31 行）。
+
+#### TC-DTL019-REDEM-003 — 幂等键 `(code, account_id)` 复合主键命中返回既有结果
+
+- **层**：IT；**对应 DTL §**：§2 `redemption_records` DDL 第 21-26 行 + §4.3 `query_redemption_record`
+- **覆盖需求**：FR-OPT-014（幂等键）、NFR-OPT-002
+- **前置条件**：玩家 A 已核销 `code='CODE-A'`
+- **Steps**：
+  - **When**：再次调用 `redeem_code("CODE-A", A, ctx)`
+  - **Then**：
+    - `query_redemption_record("CODE-A", A)` 返回 `Some(existing)`
+    - 返回 `Ok(RedemptionOutcome::AlreadyRedeemed { redeemed_at: existing.redeemed_at })`
+    - `used_count` 不再次递增（per §4.3 第 25 行）
+- **断言**：幂等键短路在 SQL 块之前生效；不消耗 NFR-OPT-002 速率配额。
+
+#### TC-DTL019-REDEM-004 — 多层限流：账号 + IP（FR-NFR-OPT-002）
+
+- **层**：IT；**对应 DTL §**：§4.3 第 17 行 `check_multi_layer`
+- **覆盖需求**：NFR-OPT-002（多层限流）、NFR-SEC-008 复用
+- **前置条件**：mock rate_limiter 行为
+- **Steps**：
+  - **Given A**：账号层超限（`account_id` 命中限流）
+    - **When**：`redeem_code(...)`
+    - **Then**：返回 `Err(RateLimited)`；**不**进入 SQL 块
+  - **Given B**：账号层未超限，IP 层超限
+    - **Then**：同样返回 `Err(RateLimited)`，触发顺序以账号优先（per §4.3 第 17 行）
+- **断言**：账号层优先于 IP 层（防账号层先耗尽前 IP 层就拦截）。
+
+#### TC-DTL019-REDEM-005 — 已过期批次拒绝核销
+
+- **层**：UT；**对应 DTL §**：§4.3 第 19-22 行
+- **覆盖需求**：FR-OPT-012（批次过期）
+- **前置条件**：`record.batch.expire_at < now()`
+- **Steps**：
+  - **Given**：批次已过期
+  - **When**：`redeem_code(code, account_id, ctx)`
+  - **Then**：返回 `Err(RedemptionError::Expired)`
+- **断言**：**不**执行 SQL 块；**不**递增 `used_count`。
+
+#### TC-DTL019-REDEM-006 — 已耗尽 `code`（`used_count=max_uses_per_code`）拒绝
+
+- **层**：UT；**对应 DTL §**：§4.3 第 28-31 行
+- **覆盖需求**：§4.2 失败模式"已用完"
+- **前置条件**：`redemption_codes.used_count = max_uses_per_code`
+- **Steps**：
+  - **Given**：code 已用完
+  - **When**：`redeem_code(code, account_id, ctx)`
+  - **Then**：返回 `Err(RedemptionError::AlreadyExhausted)`（per §4.3 第 31 行）
+- **断言**：即便应用层预检通过，仍以本次条件更新结果为准（per §4.3 第 32-34 行注释）。
+
+### 6.4 DDL 测试用例（TC-DTL019-DDL-NNN）
+
+#### TC-DTL019-DDL-001 — `redemption_records` 复合主键（`code`, `account_id`）幂等强制
+
+- **层**：IT（Testcontainers PG 18.6）；**对应 DTL §**：§2 DDL `PRIMARY KEY (code, account_id)`
+- **覆盖需求**：NFR-OPT-002 幂等键
+- **前置条件**：已存在 `redemption_records(code='CODE-A', account_id=A)`
+- **Steps**：
+  - **When**：尝试 INSERT 重复 `(code='CODE-A', account_id=A)`
+  - **Then**：PG 拒绝（unique violation）
+- **断言**：DB 层主键是幂等性的物理兜底（per §4.2 第 21-24 行注释）；应用层捕获后返回 `AlreadyRedeemed`。
+
+#### TC-DTL019-DDL-002 — `redemption_codes(batch_id)` 索引支撑批次核销进度聚合
+
+- **层**：IT；**对应 DTL §**：§2 DDL `idx_redemption_codes_batch ON redemption_codes (batch_id)`
+- **覆盖需求**：FR-OPT-015（批次核销进度查询）
+- **前置条件**：单批次 1000 个 redemption_codes 行
+- **Steps**：
+  - **When**：执行 `SELECT count(*), sum(used_count) FROM redemption_codes WHERE batch_id=$1 GROUP BY ...`（per §2 第 41-43 行注释）
+  - **Then**：查询走 `idx_redemption_codes_batch` 索引（验证 `EXPLAIN`）
+- **断言**：批次聚合查询**不**全表扫描；索引命中。
+
+### 6.5 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 8 | 53% | `PlayerFixture::player()`、`EconomyFixture::economy()`、`mockall` mocks（rate_limiter、gateway_adapter、content_sanitizer） |
+| IT（Testcontainers PG 18.6） | 6 | 40% | `pg_test_db`、`PlayerFixture::player()`、`EconomyFixture::economy()` |
+| 注： | | | 部分用例同时具有 UT 与 IT 视角 |
+
+### 6.6 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL019-PUSH-001 | FR-OPT-001、ARC-037① | RGS-BAS-019 | §4.1 |
+| TC-DTL019-PUSH-002 | FR-OPT-002、§2.1.1 | RGS-BAS-019 | §4.1 |
+| TC-DTL019-PUSH-003 | FR-OPT-004 | RGS-BAS-019 | §4.1 |
+| TC-DTL019-PUSH-004 | §2.2 不无限重试 | RGS-BAS-019 | §4.1 |
+| TC-DTL019-PUSH-005 | §3 协议编号纪律 | RGS-DTL-001 | §3 |
+| TC-DTL019-REDEM-001 | FR-OPT-010、FR-EC-003 | RGS-BAS-019 | §4.2、§4.3 |
+| TC-DTL019-REDEM-002 | FR-OPT-013、§3.2 强约束 | RGS-BAS-019 | §4.2、§4.3 |
+| TC-DTL019-REDEM-003 | FR-OPT-014、NFR-OPT-002 | RGS-BAS-019 | §2、§4.3 |
+| TC-DTL019-REDEM-004 | NFR-OPT-002、NFR-SEC-008 | RGS-BAS-019 | §4.3 |
+| TC-DTL019-REDEM-005~006 | FR-OPT-012、§4.2 失败模式 | RGS-BAS-019 | §4.3 |
+| TC-DTL019-DDL-001~002 | FR-OPT-015、NFR-OPT-002 | RGS-BAS-019 | §2 |
+
 ---
 
 ## 追溯性

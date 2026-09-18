@@ -68,10 +68,7 @@ struct RouteTableFrameRouter {
 }
 
 impl FrameRouter for RouteTableFrameRouter {
-    fn handle<'a>(
-        &'a self,
-        frame: Frame,
-    ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
+    fn handle<'a>(&'a self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
         // 走 sync 路径 (RouteTable 是 sync), wrap 成 ready future
         let resp = tcp::dispatch(frame, &self.routes, &self.stats);
         Box::pin(async move { resp })
@@ -143,19 +140,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // TCP 路径 (per ULYS-2.2: 默认 OFF, 仅当 RGS_NETWORK_GATEWAY_TCP_ADDR 显式设才起)
-    let tcp_task = std::env::var("RGS_NETWORK_GATEWAY_TCP_ADDR").ok().map(|tcp_addr_str| {
-        let tcp_addr: std::net::SocketAddr = tcp_addr_str
-            .parse()
-            .unwrap_or_else(|_| TCP_BINARY_ADDR.parse().expect("valid TCP_BINARY_ADDR"));
-        info!(addr = %tcp_addr, "TCP listener enabled (per env RGS_NETWORK_GATEWAY_TCP_ADDR)");
-        let routes = Arc::clone(&routes);
-        let stats = Arc::clone(&stats);
-        tokio::spawn(async move {
-            if let Err(e) = tcp::serve(&tcp_addr.to_string(), routes, stats).await {
-                warn!(err = %e, "TCP listener exited");
-            }
-        })
-    });
+    let tcp_task = std::env::var("RGS_NETWORK_GATEWAY_TCP_ADDR")
+        .ok()
+        .map(|tcp_addr_str| {
+            let tcp_addr: std::net::SocketAddr = tcp_addr_str
+                .parse()
+                .unwrap_or_else(|_| TCP_BINARY_ADDR.parse().expect("valid TCP_BINARY_ADDR"));
+            info!(addr = %tcp_addr, "TCP listener enabled (per env RGS_NETWORK_GATEWAY_TCP_ADDR)");
+            let routes = Arc::clone(&routes);
+            let stats = Arc::clone(&stats);
+            tokio::spawn(async move {
+                if let Err(e) = tcp::serve(&tcp_addr.to_string(), routes, stats).await {
+                    warn!(err = %e, "TCP listener exited");
+                }
+            })
+        });
 
     // W7 扩展: web_conn (8000) + zone (per 9/4 MD §3 拓扑) stub 启动
     // W32 fix: 这些 stub 立即返 Ok(()) 是 Phase 1.5 占位预期行为, join! 容忍

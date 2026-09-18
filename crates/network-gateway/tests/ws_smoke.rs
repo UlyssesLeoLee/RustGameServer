@@ -38,10 +38,7 @@ struct RouteTableFrameRouter {
 }
 
 impl FrameRouter for RouteTableFrameRouter {
-    fn handle<'a>(
-        &'a self,
-        frame: Frame,
-    ) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
+    fn handle<'a>(&'a self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + 'a>> {
         let resp = tcp::dispatch(frame, &self.routes, &self.stats);
         Box::pin(async move { resp })
     }
@@ -114,9 +111,9 @@ async fn handle_session(
     expected_path: &str,
     router: Arc<dyn FrameRouter>,
 ) -> std::io::Result<()> {
+    use tokio_tungstenite::accept_hdr_async;
     use tokio_tungstenite::tungstenite::handshake::server::{Callback, Request, Response};
     use tokio_tungstenite::tungstenite::http::Response as HttpResponse;
-    use tokio_tungstenite::accept_hdr_async;
 
     struct PathCheck {
         expected: String,
@@ -345,10 +342,7 @@ async fn ws_login_route_dispatch() {
 
     // cmd=1110 登录 wire: length=8, cmd=1110, payload=4 字节 (e.g. 0x0001 0002)
     let payload = Bytes::from_static(&[0x00, 0x01, 0x00, 0x02]);
-    let frame = Frame {
-        cmd: 1110,
-        payload,
-    };
+    let frame = Frame { cmd: 1110, payload };
     let wire = frame.encode();
     ws_client
         .send(Message::Binary(wire.to_vec()))

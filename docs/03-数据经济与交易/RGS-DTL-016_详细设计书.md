@@ -467,6 +467,270 @@ RGS-BAS-016§2.4已给出SLA分级的"评审前默认建议值"，§3.2/§4.1上
 
 后续详细设计建议顺序：本文档§3.3`execute_atomic_grant_via_fr_ec_003`与RGS-DTL-015§3.1的价值转移路径共享同一物理执行语义前提（RGS-DTL-001§3.2），建议后续如修改该路径需同步检视两份文档；本文档与RGS-DTL-007（数据库设计标准落地示例）、RGS-DTL-015（玩家间交易系统）同批次产出，三者均属03域（数据经济与交易）。
 
+> **v0.3 升版补登（per ULYS-1 后续测试设计补全任务，WF-1-55.43 L4 子任务 v0.3 → v0.3-testdesign）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：`TicketEscalationNotifier`告警推送的具体消息模板、支付服务商对账文件/API的具体解析适配代码（因服务商各异，属实现阶段各自适配范畴）"——这两项在 v0.3 仍属本文档范围外（消息模板属既有告警通道；解析适配属实现阶段各自适配），但**对账批处理（含 RSK-SUP-002 写反防护）、SLA 超时检测、工单状态机、去重键计算** 的测试设计已在 v0.3 由本文档§7「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计 4 项不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+## 7. 后续测试设计补全（v0.3 test-design follow-up，per ULYS-1）
+
+### 7.1 范围与既有占位
+
+原 v0.1 仅给出"`TicketEscalationNotifier`告警模板、支付服务商解析适配代码"两类不覆盖项；v0.1/v0.2/v0.3 均**未**为本文档 §3 对账算法、§4 SLA 检测配套测试设计。本次补全聚焦 v0.1 已落实的逻辑（DTL 既有章节正文）的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL016-RECON-001~006 | 对账批处理主流程与异常分支 | §3.1 / §3.2 / §3.5 / §3.4 | UT/IT | FR-SUP-010/013、RSK-SUP-002 |
+| TC-DTL016-DISPATCH-001~003 | 补偿分发与阈值判定 | §3.3 / §3.4.5 | IT | FR-SUP-014/015、TBD-SUP-002 |
+| TC-DTL016-SLA-001~003 | SLA 超时扫描与状态机 | §4.1 / §4.2 | UT/IT | FR-SUP-001~007、TBD-SUP-001 |
+| TC-DTL016-DEDUP-001~002 | 去重键计算与提示语义 | §4.3 | UT | FR-SUP-007 |
+| TC-DTL016-DDL-001~002 | DDL 唯一索引/CHECK 约束 | §2 | IT | FR-SUP-006、NFR-SUP-004 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`），不引入新的 trait 抽象。
+
+### 7.2 对账批处理测试用例（TC-DTL016-RECON-NNN）
+
+#### TC-DTL016-RECON-001 — 正常对账：单 DB 价值发放（场景 1.0 子步骤 1.1~1.5）
+
+- **层**：IT；**对应 DTL §**：§3.1 `reconciliation_job_run` + §3.3 `execute_atomic_grant_via_fr_ec_003`
+- **覆盖需求**：FR-SUP-010、FR-EC-003（价值发放确定请求路径）
+- **前置条件**：
+  - `EconomyFixture::economy(player_id)` 配置玩家余额 ≥ 订单金额
+  - `payment_orders` 表存在 `order_id=O`，`state='待支付'`
+  - ProviderRecord 列表含 1 条 `provider_status=PaidSuccess`，`amount ≤ threshold`
+- **Steps**：
+  - **Given**：`payment_orders.order_id=O`，state=`'待支付'`，amount=100；ProviderRecord 标记已支付
+  - **When**：`reconciliation_job_run(window)` 触发
+  - **Then**：
+    - `resolve_pending_compensation` 返回 `Some(local_order)`
+    - `dispatch_compensation` 走未超阈值分支（per §3.3 第 18-22 行）
+    - `execute_atomic_grant_via_fr_ec_003` 调用，玩家余额增加 100
+    - `payment_orders.state='已补偿'`
+    - `append_reconciliation_audit_log` 写入一条对账审计
+- **断言**：单事务边界（per §3.1 + RGS-DTL-001§3.2 同事务路径复用）；最终 state=`'已补偿'`，未触发 `create_support_ticket`。
+- **rgs-testkit 引用**：`EconomyFixture::economy(player_id)`、`AdminFixture::admin_action(...)`（per `crates/rgs-testkit/src/fixture.rs` line 108）
+
+#### TC-DTL016-RECON-002 — RSK-SUP-002 写反防护：双重布尔条件
+
+- **层**：UT；**对应 DTL §**：§3.2 `resolve_pending_compensation` 第 16-30 行
+- **覆盖需求**：RSK-SUP-002（比对条件写反防护）
+- **前置条件**：单元测试具名 bool 变量（per §3.2 第 13-16 行注释刻意为之）
+- **Steps**：
+  - **Given A**：local_order.state=`'已发货'`（已终态），provider_status=PaidSuccess
+    - **When**：`resolve_pending_compensation(record)` 调用
+    - **Then**：返回 `None`（条件 ② 不满足，per §3.2 第 19-20 行）
+  - **Given B**：local_order.state=`'待支付'`，provider_status=`'PaidFailed'`
+    - **When**：再次调用
+    - **Then**：返回 `None`（条件 ① 不满足，per §3.2 第 17 行）
+- **断言**：两种"半真半假"组合均返回 `None`，**不**触发 `dispatch_compensation`；验证具名布尔变量写法可被代码评审逐行核对（per §3.2 第 13-16 行注释）。
+- **rgs-testkit 引用**：`mockall` mock `find_payment_order_by_provider_txn_id` 返回 fixture 订单
+
+#### TC-DTL016-RECON-003 — 服务商侧拉取失败：异常分支 §3.5（原 v0.1 §3.4）
+
+- **层**：IT；**对应 DTL §**：§3.5 `handle_fetch_failure`
+- **覆盖需求**：服务商侧数据延迟/不可用异常处理（per RGS-BAS-016§3.3）
+- **前置条件**：Testcontainers 启动 `admin_db` + `economy_db`
+- **Steps**：
+  - **Given**：定时任务触发，mock `fetch_provider_records` 返回 `Err(FetchError::Network)`
+  - **When**：`reconciliation_job_run(window)`
+  - **Then**：
+    - 返回 `Ok(ReconciliationSummary::skipped(window))`（per §3.5 第 9 行）
+    - `emit_alert(AlertSeverity::Medium, "reconciliation_fetch_failed", &err)` 被触发（mock 验证）
+    - `payment_orders` 表无新写入
+    - 游标未推进（per §3.5 第 4-6 行注释，窗口重叠避免漏单）
+- **断言**：下一周期 `reconciliation_job_run(window)` 仍以失败前窗口起点为准；不漏单。
+- **rgs-testkit 引用**：`mockall` mock `fetch_provider_records`、`emit_alert`
+
+#### TC-DTL016-RECON-004 — 跨域 1PC 兜底：admin 域延迟降级（场景 2.0 子步骤 2.2/2.3）
+
+- **层**：IT；**对应 DTL §**：§3.4.3 子步骤 2.2/2.3 + §3.3 `create_support_ticket` 跨域写
+- **覆盖需求**：跨域写失败不允许掩盖（per RGS-IMPL-001 §3.4）
+- **前置条件**：Testcontainers 同时启动 `economy_db` + `admin_db`（含 `support_tickets_outbox`，per `0003_outbox.sql` 类精神）
+- **Steps**：
+  - **Given**：模拟 `admin_db.support_tickets` 写失败（timeout 或 5xx）
+  - **When**：`create_support_ticket` 调用
+  - **Then**：本地缓冲（Outbox）记录该事件，重试由 outbox dispatcher 异步完成
+- **断言**：跨域写失败时 `execute_atomic_grant_via_fr_ec_003` 已发放的奖励**不**自动回滚（避免掩盖）；Outbox 重试成功后才标记完成。
+- **rgs-testkit 引用**：`AdminFixture::admin_action("ops_admin", "create_ticket", player_id)`、`pg_test_db` 双 DB
+
+#### TC-DTL016-RECON-005 — 跨 DB Saga 协调者持久化（场景 3.0 step 3.7）
+
+- **层**：IT；**对应 DTL §**：§3.4.4 子步骤 3.7；RGS-IMPL-001 §3 `saga_orchestrator`
+- **覆盖需求**：跨 DB Saga 协调者状态持久化（per Q-003 待 Gate 审批）
+- **前置条件**：Testcontainers 同时启动 5 域 DB（player/economy/match/social/admin），触发跨域对账 Saga
+- **Steps**：
+  - **Given**：`economy_db.sagas` 已存在 `saga_id` 行，跨域 step 全部完成
+  - **When**：`saga_orchestrator.commit(saga_id)` 调用
+  - **Then**：`economy_db.sagas.status='completed'`，各域 outbox 事件已发出（per Q-205）
+- **断言**：跨域 step 在各 DB 单一事务 + outbox；协调者崩溃后续跑由 `resume(saga_id)` 重入。
+
+#### TC-DTL016-RECON-006 — 对账超时 + DLQ（场景 5.0 子步骤 5.1~5.6）
+
+- **层**：IT；**对应 DTL §**：§3.4.6 子步骤 5.1~5.6
+- **覆盖需求**：对账 step 超 30s deadline → DLQ 落库
+- **前置条件**：Testcontainers 启动 `admin_db`（含 `dlq` 表）
+- **Steps**：
+  - **Given**：mock 让对账 step 超 30s
+  - **When**：协调者 deadline 检查触发
+  - **Then**：`admin_db.dlq` 追加一行（含 `saga_id`、`failed_step`、`error='deadline exceeded'`）；`payment_orders` 长时间停留在 `'待补偿'`
+- **断言**：DLQ 写入与 Saga 失败状态在同一事务；30s 未处理 → `support_tickets` 入队（per §3.4.6 子步骤 5.4）。
+
+### 7.3 补偿分发测试用例（TC-DTL016-DISPATCH-NNN）
+
+#### TC-DTL016-DISPATCH-001 — 未超阈值自动发放（≤200元）
+
+- **层**：IT；**对应 DTL §**：§3.3 第 18-22 行 + §5 TBD-SUP-002 提案（200元）
+- **覆盖需求**：TBD-SUP-002（自动补偿金额阈值）
+- **前置条件**：`order.amount=150`，threshold=200
+- **Steps**：
+  - **Given**：payment_order 处于 `'待补偿'`
+  - **When**：`dispatch_compensation(&order, threshold=200)`
+  - **Then**：
+    - `execute_atomic_grant_via_fr_ec_003(order)` 被调用
+    - `update_order_state(order.order_id, OrderState::已补偿)` 被调用
+    - **不**触发 `create_support_ticket`
+- **断言**：state 终态迁移到 `'已补偿'`；未生成 `support_tickets` 行；FR-EC-003 同一路径调用。
+
+#### TC-DTL016-DISPATCH-002 — 超阈值转人工工单
+
+- **层**：IT；**对应 DTL §**：§3.3 第 24-32 行 + §3.4.5 子步骤 4.1
+- **覆盖需求**：TBD-SUP-002（金额阈值边界）
+- **前置条件**：`order.amount=5000`，threshold=200；`PlayerFixture::player(...)` 创建工单所属玩家
+- **Steps**：
+  - **Given**：payment_order 处于 `'待补偿'`，金额超阈
+  - **When**：`dispatch_compensation(&order, threshold=200)`
+  - **Then**：
+    - `create_support_ticket` 被调用，category=`'payment_issue'`，`related_order_id=order.order_id`
+    - `payment_orders.state` **保持** `'待补偿'`（不迁移到 `'已补偿'`，per §3.3 第 28 行）
+    - `support_tickets.dedup_key` 由 `compute_dedup_key(player_id, category, now, window)` 生成
+- **断言**：未自动发放；待人工复核后由 `AdminService` 既有路径处理；不迁终态。
+
+#### TC-DTL016-DISPATCH-003 — 状态更新 SQL 防护先读后写（per §3.3 第 11-14 行注释）
+
+- **层**：UT + SQL fixture；**对应 DTL §**：§3.3 第 11-14 行
+- **覆盖需求**：RSK-SUP-002 同类（条件更新而非先读后写）
+- **前置条件**：单条 UPDATE 语句而非应用层先查后写
+- **Steps**：
+  - **Given**：payment_order.state=`'已发货'`，`order_id=O`
+  - **When**：执行 `UPDATE payment_orders SET state='待补偿', updated_at=now() WHERE order_id=$1 AND state NOT IN ('已发货', '已补偿')`
+  - **Then**：`rows_affected=0`（WHERE 条件拒绝）
+- **断言**：不产生"先 SELECT 后 UPDATE"竞态窗口；`payment_orders.state` 在测试期间不变。
+
+### 7.4 SLA 超时扫描测试用例（TC-DTL016-SLA-NNN）
+
+#### TC-DTL016-SLA-001 — SLA 截止时间计算
+
+- **层**：UT；**对应 DTL §**：§4.1 `compute_sla_deadline` + §5 TBD-SUP-001
+- **覆盖需求**：TBD-SUP-001（SLA 分级）
+- **前置条件**：`SlaConfig` 注入 TBD-SUP-001 默认值：`payment_issue`=4小时 / `ban_appeal`=24小时 / `item_anomaly`=24小时 / `other`=48小时
+- **Steps**：
+  - **Given A**：category=`PaymentIssue`，created_at=`T0`
+    - **When**：`compute_sla_deadline(PaymentIssue, T0, &cfg)`
+    - **Then**：返回 `T0 + 4h`
+  - **Given B**：category=`BanAppeal`，created_at=`T0`
+    - **Then**：返回 `T0 + 24h`
+- **断言**：4 类 category 各自的 SLA 窗口与 §5 提案一致。
+
+#### TC-DTL016-SLA-002 — 80% SLA 触发提前预警
+
+- **层**：UT；**对应 DTL §**：§4.1 `ticket_escalation_scan` 第 13-18 行
+- **覆盖需求**：FR-SUP-003（提前预警升级）
+- **前置条件**：`SlaConfig::window_for(BanAppeal)=24h`；工单 created_at = T0 - 20h（已过 83%）
+- **Steps**：
+  - **Given**：`ticket.created_at=T0 - 20h`，category=`BanAppeal`
+  - **When**：`ticket_escalation_scan(now=T0, sla_config=&cfg)`
+  - **Then**：`notify_escalation(ticket_id, elapsed_ratio=0.833)` 被调用（mock 验证）
+- **断言**：elapsed_ratio < 0.8 时**不**触发预警（边界值测试）；= 0.8 时触发。
+
+#### TC-DTL016-SLA-003 — 工单状态机：强制关闭需 resolution_summary
+
+- **层**：UT；**对应 DTL §**：§4.2 `transition_ticket` 第 21-27 行
+- **覆盖需求**：FR-SUP-005（强制关闭时必须留痕）
+- **前置条件**：ticket.state=`处理中`，尝试迁移到 `已解决`
+- **Steps**：
+  - **Given A**：`ctx.resolution_summary=None`
+    - **When**：`transition_ticket(ticket_id, TicketState::已解决, &ctx)`
+    - **Then**：返回 `Err(TicketError::ResolutionSummaryRequired)`
+  - **Given B**：`ctx.resolution_summary=Some("退款已发放")`
+    - **Then**：迁移成功，`apply_state_update` 被调用
+- **断言**：强制关闭不留痕的迁移被 DB 层 + 应用层双重拒绝；resolution_summary 为空字符串视为空（per §4.2 第 23 行）。
+
+### 7.5 去重键计算测试用例（TC-DTL016-DEDUP-NNN）
+
+#### TC-DTL016-DEDUP-001 — 滚动窗口哈希：同一窗口生成相同 dedup_key
+
+- **层**：UT；**对应 DTL §**：§4.3 `compute_dedup_key` + `create_ticket_with_dedup_check`
+- **覆盖需求**：FR-SUP-007（去重键）
+- **前置条件**：`PlayerFixture::player("player_A")`、`window=1h`
+- **Steps**：
+  - **Given**：player_id=A，category=`PaymentIssue`，同一窗口内两次 create
+  - **When A**：第一次 `create_ticket_with_dedup_check(...)`
+  - **When B**：第二次（同窗口内）
+  - **Then**：两次 dedup_key 相同（`{A}:PaymentIssue:{bucket}`）；第二次命中 unique violation，返回 `TicketCreated::SimilarExists(existing)`
+- **断言**：提示而非拒绝语义（per §4.3 第 12-14 行注释）；玩家可选择合并或继续新建。
+
+#### TC-DTL016-DEDUP-002 — 跨窗口生成不同 dedup_key（不误判）
+
+- **层**：UT；**对应 DTL §**：§4.3
+- **覆盖需求**：FR-SUP-007（跨窗口不误判）
+- **前置条件**：两次 create 跨窗口边界
+- **Steps**：
+  - **Given**：第一次 create 在 bucket=N，第二次在 bucket=N+1
+  - **When**：两次调用
+  - **Then**：两个 dedup_key 不同；第二次 `Ok(TicketCreated::Fresh(...))` 不命中
+- **断言**：滚动时间窗口哈希正确推进；不跨窗口误判。
+
+### 7.6 DDL/约束测试用例（TC-DTL016-DDL-NNN）
+
+#### TC-DTL016-DDL-001 — `uq_payment_orders_provider_txn_id` 幂等键唯一索引
+
+- **层**：IT（Testcontainers PG 18.6）；**对应 DTL §**：§2 DDL `uq_payment_orders_provider_txn_id`
+- **覆盖需求**：NFR-SUP-004（幂等键双重保证）
+- **前置条件**：PG 18.6 实例创建本文档 §2 DDL
+- **Steps**：
+  - **Given**：已存在 `payment_orders(provider_txn_id='TXN-001')`
+  - **When**：尝试插入第二行 `provider_txn_id='TXN-001'`
+  - **Then**：唯一索引拒绝（unique violation）
+  - **When**：插入 `provider_txn_id=NULL`（待支付阶段允许 NULL，per §2 第 33 行）
+  - **Then**：成功（部分唯一索引仅约束非 NULL，per §2 第 36-37 行）
+- **断言**：`platform_iap` 订单 provider_txn_id 唯一性强制；NULL 不参与约束。
+
+#### TC-DTL016-DDL-002 — `uq_support_tickets_dedup_key` 唯一索引触发提示语义
+
+- **层**：IT；**对应 DTL §**：§2 DDL `uq_support_tickets_dedup_key` + §4.3 `create_ticket_with_dedup_check`
+- **覆盖需求**：FR-SUP-007 + 提示而非拒绝语义（per §4.3 第 12-14 行）
+- **前置条件**：已存在 `support_tickets(dedup_key='A:PaymentIssue:100')`
+- **Steps**：
+  - **When**：`insert_ticket(&draft, &dedup_key='A:PaymentIssue:100')`
+  - **Then**：`DbError::UniqueViolation` 被返回
+  - **When（应用层）**：`create_ticket_with_dedup_check` 捕获 unique violation
+  - **Then**：返回 `Ok(TicketCreated::SimilarExists(existing))` 而非 Err
+- **断言**：数据库层唯一约束仍是物理兜底（per §2 第 41-44 行注释），应用层响应方式是提示，**不**让 unique violation 直接以 HTTP 500 暴露给玩家。
+
+### 7.7 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall） | 8 | 53% | `PlayerFixture::player()`、`EconomyFixture::economy()`、`AdminFixture::admin_action()`、`mockall` mocks |
+| IT（Testcontainers PG 18.6） | 8 | 53% | `pg_test_db`、`EconomyFixture::economy()`、`AdminFixture::admin_action()` |
+| 注： | | | 部分用例同时具有 UT 与 IT 视角（边界条件 + 集成契约） |
+
+### 7.8 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL016-RECON-001 | FR-SUP-010、FR-EC-003 | RGS-BAS-016 | §3.1、§3.3 |
+| TC-DTL016-RECON-002 | RSK-SUP-002 | RGS-BAS-016 | §3.2 |
+| TC-DTL016-RECON-003 | 服务商侧延迟异常 | RGS-BAS-016 | §3.5 |
+| TC-DTL016-RECON-004 | 跨域 1PC 兜底 | RGS-IMPL-001 §3 | §3.4.3 |
+| TC-DTL016-RECON-005 | 跨 DB Saga | RGS-IMPL-001 §3 | §3.4.4 |
+| TC-DTL016-RECON-006 | 对账超时 + DLQ | RGS-IMPL-001 §3 | §3.4.6 |
+| TC-DTL016-DISPATCH-001~002 | TBD-SUP-002 | RGS-BAS-016 | §3.3、§5 |
+| TC-DTL016-DISPATCH-003 | RSK-SUP-002 SQL 防护 | RGS-BAS-016 | §3.3 |
+| TC-DTL016-SLA-001~002 | FR-SUP-003、TBD-SUP-001 | RGS-BAS-016 | §4.1、§5 |
+| TC-DTL016-SLA-003 | FR-SUP-005 | RGS-BAS-016 | §4.2 |
+| TC-DTL016-DEDUP-001~002 | FR-SUP-007 | RGS-BAS-016 | §4.3 |
+| TC-DTL016-DDL-001~002 | NFR-SUP-004、FR-SUP-007 | RGS-BAS-007/016 | §2 |
+
 ---
 
 ## 追溯性

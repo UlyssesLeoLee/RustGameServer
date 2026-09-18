@@ -507,6 +507,17 @@ flowchart TD
 
 ### 4.7.1 Outbox分发器处理流程（ARC-009／010落地，FR-EV-001）
 
+> **实现机制备注（per RGS-ADR-0061, 待具名人类审批）**：
+>
+> §4.7.1 flowchart 所述"分发器周期性轮询各服务的 outbox 表"由 **自研 4 状态机 outbox_worker** 实现，**不引入 Debezium CDC**（per RGS-ADR-0061 §1 全段）。具体实现要点：
+>
+> 1. **状态机**：Pending / InFlight / Sent / Failed + `lease_until` 时间戳，详见 `crates/shared-platform/src/outbox.rs` L52-75（OutboxStatus 枚举）
+> 2. **多 relay 并发**：`FOR UPDATE SKIP LOCKED` + 30s lease + reclaim，详见 `outbox.rs` L24-26 + L271（per RGS-REV-007 CH2）
+> 3. **「事务内强制 outbox 写入」约束**：业务变更与 outbox INSERT 必须在同一 SQL 事务内（per ADR-0061 §2 决定 2 + `outbox.rs` L10-11 + L162-195 `append` 接受 `PgExecutor` 让调用方包在同一事务里）
+> 4. **分发器实例**：6 域（admin-service / cluster-ops / economy-service / match-service / player-service / social-service）各自 `main.rs` 启动 outbox relay 后台轮询，发布至 NATS JetStream（per RGS-ADR-0060 协同）
+> 5. **捕获范围**：仅显式 INSERT outbox 表的变更（per ADR-0061 §1.2 偏离事实表），不在事务内的 DB 变更不会被传播——这是显式设计约束，非 bug
+> 6. **Debezium 不引入论证**：RGS 拒绝 Debezium CDC 的真实理由是 OLU 估算 + 设计替代性 + 业务用例覆盖，非 BR-111 合规（Debezium 主项目 Apache-2.0 完全合规，per ADR-0061 §1.4 + §3.1 否决）
+
 ```mermaid
 flowchart TD
     A[分发器周期性轮询各服务的outbox表<br/>WHERE published_at IS NULL] --> B[按aggregate_id分组<br/>保证同聚合事件顺序,ARC-010]
@@ -930,6 +941,21 @@ erDiagram
 | `updated_at` | 审计与调试 |
 
 各限界上下文的`outbox`表遵循需求定义书DR-013所定义的最低限度列集合，字段级设计已在5.4.1的`ECONOMY_OUTBOX`给出范例，其余限界上下文的`outbox`表结构相同（仅`aggregate_type`取值不同），不再重复绘制。
+
+> **实现驱动源（per RGS-ADR-0061, 待具名人类审批）**：
+>
+> 上述 `outbox` 表"通用表结构范式"（DR-013 最低限度列集合）的实际 schema 与 4 状态机由 `crates/shared-platform/src/outbox.rs` 驱动，6 域 migrations 共同遵循:
+>
+> | 服务 | migration 文件 |
+> |---|---|
+> | admin-service | `crates/admin-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
+> | cluster-ops | `crates/cluster-ops/migrations/0002_outbox.sql` + `0003_outbox_check_idempotent.sql` |
+> | economy-service | `crates/economy-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
+> | match-service | `crates/match-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
+> | player-service | `crates/player-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
+> | social-service | `crates/social-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
+>
+> 表结构仅 `aggregate_type` 取值不同（admin.* / cluster_ops.* / economy.* / match.* / player.* / social.*），与 §5.4.1 `ECONOMY_OUTBOX` 范例一致。`shared_platform` 是库 crate，不持有独立 outbox 表（per RGS-ADR-0061 §1.3.1）。
 
 ---
 

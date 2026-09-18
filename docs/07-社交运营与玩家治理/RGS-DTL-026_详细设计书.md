@@ -477,6 +477,278 @@ license确认：Glicko-2算法本身为公开发表的数学方法，非专利�
 - 运营配置后台（`shard_scope`/连败保护/回填三类开关）的写入侧UI与API细节，本文档只覆盖读取侧消费逻辑。
 - Glicko-2团队场景扩展的精细化（当前为§7声明的简化处理），`solve_new_volatility`具体迭代实现代码。
 
+> **v0.4 升版补登（per ULYS-1 后续测试设计补全任务）**：原 v0.1 修订历史第 0.1 行明确"本版本不覆盖：评分算法本身（ELO/Glicko-2/TrueSkill）的最终选型与具体公式实现（RGS-REQ-029§11已标注为TBD，需另行ADR决定后再补充本文档）、GM/运营配置后台的UI细节"——评分算法选型 v0.2 已在 §7 给出 Glicko-2 最终决定并落实 `RatingSettlement.calculate()` 核心公式 + rating/RD/volatility 同事务幂等持久化（v0.3 修正），GM/运营 UI 细节仍属本文档范围外（属 GM 后台前端），但**Glicko-2 评分公式 UT/IT、扩圈算法（含 n≤500 占位/降级/benchmark）、跨分片 OCC"全有或全无"、状态机、回填复用** 的测试设计已在 v0.4 由本文档§9「后续测试设计补全」落实，补齐 v0.1 审计报告 RGS-REV-001/REV-002 标记的"§X 测试设计 4 项不覆盖"缺口。本节末声明该事实，不修改原不覆盖列表项本身。
+
+---
+
+## 9. 后续测试设计补全（v0.4 test-design follow-up，per ULYS-1）
+
+### 9.1 范围与既有占位
+
+原 v0.1 仅给出"评分算法选型、GM/运营配置后台 UI 细节"两类不覆盖项；评分算法选型已在 v0.2 落实为 Glicko-2（§7）并经 v0.3 修正为 rating/RD/volatility 三项同事务幂等持久化（§7.1）。本次补全聚焦 v0.1 已落实的逻辑 + v0.2/v0.3/v0.4 新增章节的可测试设计点，覆盖范围：
+
+| 序号 | 测试主题 | 对应本文档章节 | 测试层 | 关联需求 |
+|---|---|---|---|---|
+| TC-DTL026-GLICKO-001~005 | Glicko-2 评分公式 UT/IT + 三项状态同事务 | §7 / §7.1 | UT/IT | FR-MM-001/006/008、RSK-MM-002 |
+| TC-DTL026-MATCH-001~004 | 扩圈算法 + n≤500 占位 + 降级策略 | §4.1 / §4.1.1 / §4.1.2 | UT/IT | NFR-PT、NFR-MM-002 |
+| TC-DTL026-OCC-001~003 | 跨分片 OCC "全有或全无"提交 | §5 | IT | FR-MM-010/013 |
+| TC-DTL026-STATE-001~003 | 状态机：确认/放弃/回填 + `enqueued_at` 不重置 | §6 | UT/IT | FR-MM-015/020 |
+| TC-DTL026-DDL-001~002 | DDL 部分索引 + CHECK 约束 + 幂等回执 | §2 | IT | FR-MM-030、NFR-MM-003 |
+
+每条测试用例均遵循 RFC 2119 强度用语（per `RGS-TST-UT-06 §1.4.1`），引用 `crates/rgs-testkit` 既有 fixture（per `RGS-IMPL-001 §3 Q-206`）。
+
+### 9.2 Glicko-2 评分公式测试用例（TC-DTL026-GLICKO-NNN，含 UT/IT）
+
+#### TC-DTL026-GLICKO-001 — `to_glicko2_scale` / `from_glicko2_scale` 标度换算互逆性
+
+- **层**：UT（property-based）；**对应 DTL §**：§7 `glicko2_update` 第 5-8 行（标度换算）
+- **覆盖需求**：FR-MM-006（Glicko-2 评分公式正确性）
+- **前置条件**：`proptest` 生成随机 `rating_value ∈ [0, 3000]`、`rating_deviation ∈ [30, 350]`
+- **Steps**：
+  - **Given**：随机 `(r, rd)`
+  - **When**：`let (r2, rd2) = from_glicko2_scale(to_glicko2_scale(r, rd))`
+  - **Then**：在浮点精度内 `r2 ≈ r`、`rd2 ≈ rd`（互逆性）
+- **断言**：换算函数无精度损失；`MIN_RATING_DEVIATION_INTERNAL_SCALE` 下限生效（per §7 第 22 行）。
+- **rgs-testkit 引用**：`MatchFixture::match_game(player_id)`（per `crates/rgs-testkit/src/fixture.rs` line 87）
+
+#### TC-DTL026-GLICKO-002 — 标准场景：低 RD 玩家战胜高 RD 玩家，rating 上升
+
+- **层**：UT；**对应 DTL §**：§7 `glicko2_update` 全函数
+- **覆盖需求**：FR-MM-006
+- **前置条件**：`player = (rating=1500, rd=50)`（低 RD = 高确信度），`opponent = (1500, 350)`（新玩家高 RD）
+- **Steps**：
+  - **Given**：`outcome = Win`，`tau = 0.5`
+  - **When**：`glicko2_update(player, opponent, Win, 0.5)`
+  - **Then**：
+    - `new_rating_value > 1500`（战胜高 RD 对手应有 rating 提升）
+    - `new_rating_deviation < player.rating_deviation`（RD 降低，per §7 第 14 行 `phi_star = sqrt(phi^2 + sigma^2)` 与 `new_phi` 更新公式）
+    - `new_volatility` 在合理范围 `∈ [player.volatility * 0.5, player.volatility * 1.5]`
+- **断言**：Glicko-2 官方参考实现测试用例 #1 一致；与官方实现偏差 < 1e-6。
+
+#### TC-DTL026-GLICKO-003 — 失败场景：玩家负于预期对手，rating 小幅下降 + RD 收窄
+
+- **层**：UT；**对应 DTL §**：§7 `glicko2_update`
+- **覆盖需求**：FR-MM-006
+- **前置条件**：`player = (1500, 200)`，`opponent = (1500, 200)`（双方预期均等）
+- **Steps**：
+  - **Given**：`outcome = Loss`
+  - **When**：`glicko2_update(player, opponent, Loss, 0.5)`
+  - **Then**：
+    - `new_rating_value < 1500`（预期均等输局小幅下降）
+    - `new_rating_deviation < 200`（RD 收窄，per §7 第 14 行）
+- **断言**：与官方参考实现 #2 一致；验证 `e = 0.5` 时 `delta = v * g * (0 - 0.5)` 方向正确。
+
+#### TC-DTL026-GLICKO-004 — 三项状态同事务持久化（rating/RD/volatility + receipt + outbox）
+
+- **层**：IT（Testcontainers PG 18.6）；**对应 DTL §**：§7.1 `settle_rating_once` 第 12-26 行
+- **覆盖需求**：§7.1 强约束"不得先发布事件再写波动率"
+- **前置条件**：mock 同一事务写入三表：`match_ratings` + `rating_settlement_receipts` + outbox
+- **Steps**：
+  - **Given**：mock 让 `insert_rating_settlement` 失败（duplicate primary key）
+  - **When**：`settle_rating_once(tx, match_ref, player_id, mode, input)`
+  - **Then**：
+    - `match_ratings.rating_value/rating_deviation/volatility` **不**被更新（整事务回滚）
+    - `rating_settlement_receipts` **不**新增行
+    - `outbox` **不**追加 `MatchRatingChanged` 事件
+- **断言**：三项状态原子化（per §7.1 第 12-13 行 + 第 26 行注释）；不允许中间态。
+
+#### TC-DTL026-GLICKO-005 — 幂等回执：相同 `input_hash` 安全重试
+
+- **层**：IT；**对应 DTL §**：§7.1 `settle_rating_once` 第 14-18 行
+- **覆盖需求**：§7.1 强约束"安全重试返回首次的 rating/RD/volatility"
+- **前置条件**：已存在 `rating_settlement_receipts(match_ref, character_id, mode)`，`input_hash=H`
+- **Steps**：
+  - **Given**：相同 `(match_ref, character_id, mode)` 但不同 `input_hash=H2`（冲突重放）
+  - **When**：`settle_rating_once(...)` 调用
+  - **Then**：
+    - 返回 `Err(SettlementError::ConflictingReplay)`（per §7.1 第 15 行）
+    - **不**重算；**不**覆盖既有评分
+    - `match_ratings` 行内容不变
+  - **Given B**：相同 `input_hash=H`（合法重试）
+    - **When**：`settle_rating_once(...)` 调用
+    - **Then**：返回首次的 `RatingUpdate::from(receipt)`，**不**调用 `glicko2_update`
+- **断言**：幂等键 `(match_ref, character_id, mode)` + `input_hash` 双重保证；冲突拒绝、安全重试返回。
+
+### 9.3 扩圈算法测试用例（TC-DTL026-MATCH-NNN）
+
+#### TC-DTL026-MATCH-001 — `tolerance` 容差函数分段线性单调性
+
+- **层**：UT（property-based）；**对应 DTL §**：§4.1 `tolerance` 第 1-13 行
+- **覆盖需求**：§4.1"单调不减"约束
+- **前置条件**：`proptest` 生成随机 `waiting_seconds ∈ [0, 600]`；`ToleranceParams { grace_period_secs: 30, initial_tolerance: 50, widen_rate_per_sec: 2.0, max_tolerance: 400 }`
+- **Steps**：
+  - **Given**：随机 `waiting_seconds`
+  - **When**：`tolerance(waiting_seconds, &params)`
+  - **Then**：随 `waiting_seconds` 单调不减；`t ≤ 30` 时恒为 50；`t > 30` 时 `tolerance ∈ [50, 400]`
+- **断言**：分段线性公式正确（per §4.1 第 5-11 行）；上限 400 不被突破。
+
+#### TC-DTL026-MATCH-002 — `matchmaker_tick` 撮合：候选筛选走 `idx_queue_entries_scan`
+
+- **层**：IT；**对应 DTL §**：§4.2 `matchmaker_tick` 第 1-3 行 + §2 DDL `idx_queue_entries_scan`
+- **覆盖需求**：FR-MM-013
+- **前置条件**：Testcontainers PG 18.6；N=100 个 `WAITING` 条目分散在多个 `mode` 与 `shard_scope`
+- **Steps**：
+  - **When**：`matchmaker_tick("ranked", ShardScope::SHARD_LOCAL, now)`
+  - **Then**：
+    - 扫描 query 走 `idx_queue_entries_scan` 部分索引（验证 `EXPLAIN`）
+    - 返回 `Vec<ProposedMatch>`；候选筛选正确（per §4.2 第 5-10 行 O(n²) 但小 n 占位内）
+- **断言**：部分索引过滤掉非 `WAITING` 条目；候选扫描成本可控。
+
+#### TC-DTL026-MATCH-003 — 降级策略：n>500 拆分撮合轮（场景 1）
+
+- **层**：IT；**对应 DTL §**：§4.1.2 拆分撮合轮（第一步降级）
+- **覆盖需求**：NFR-PT + §4.1.2 降级优先于熔断
+- **前置条件**：Testcontainers PG 18.6；`max_candidates_per_tick=500`，实际 `candidates.len()=1200`
+- **Steps**：
+  - **Given**：`MatchmakerWorker` 调度层 `matchmaker_tick_with_bucket_size(mode, scope, n'=500)`
+  - **When**：单轮触发
+  - **Then**：
+    - 拆分为 `ceil(1200/500) = 3` 个子轮
+    - 每个子轮独立跑完 `matchmaker_tick`；互不共享 `consumed: HashSet`
+    - 总延迟 = 3 × 100ms（每子轮 p99 仍 < 100ms）
+- **断言**：拆分降级触发条件 `candidates.len() > max_candidates_per_tick`；桶大小 n'=500 初值生效。
+
+#### TC-DTL026-MATCH-004 — benchmark 子任务契约（占位 n=500）
+
+- **层**：UT（criterion 占位）；**对应 DTL §**：§4.1.3 子任务契约
+- **覆盖需求**：Q-D-10 硬约束"可信 n 上限只能由 benchmark 实测给出"
+- **前置条件**：`cargo bench -p match-service --bench matchmaking_bench` 可执行；占位 stand-in `matchmaking_bench.rs`
+- **Steps**：
+  - **When**：执行 benchmark 5 档 n ∈ {100, 200, 500, 1000, 2000} 各 100 iteration
+  - **Then**：
+    - n=500 时 p99 < 100ms（**硬性断言**，per §4.1.3 第 3 节）
+    - n > 500 时**仅**记录实测值，**不**做硬性断言
+    - `docs/deploy/matchmaking-bench-report.md` 包含 5 档 p99 实测
+- **断言**：占位 n=500 不构成性能承诺；PH-1 实跑后切换为实测值。
+
+### 9.4 跨分片 OCC 测试用例（TC-DTL026-OCC-NNN）
+
+#### TC-DTL026-OCC-001 — OCC 乐观锁校验：`UPDATE ... WHERE entry_id=$1 AND status='WAITING' AND version=$2`
+
+- **层**：IT；**对应 DTL §**：§5 第 4-9 行 OCC UPDATE 语句
+- **覆盖需求**：§5.1 跨分片竞态防护
+- **前置条件**：`queue_entries(entry_id=E, status='WAITING', version=5)`
+- **Steps**：
+  - **Given**：预期 version=5；实际 DB version=6（已被其他分片 +1）
+  - **When**：`occ_update_entry(E, 5, proposed_match_ref)`
+  - **Then**：`rows_affected=0`（version 不匹配）
+- **断言**：OCC WHERE 条件拒绝并发占用；无副作用。
+
+#### TC-DTL026-OCC-002 — 全有或全无提交：候选组任一失败整体回滚
+
+- **层**：IT；**对应 DTL §**：§5 `commit_proposed_match` 第 8-19 行 + 关键设计要点
+- **覆盖需求**：§5.1"杜绝同一玩家被重复撮合进多个对局"
+- **前置条件**：候选撮合 4 个条目，其中第 3 个 OCC 失败
+- **Steps**：
+  - **Given**：entries[0..2] 成功 OCC，entries[2] OCC 失败（被其他分片抢占）
+  - **When**：`commit_proposed_match(proposal)`
+  - **Then**：
+    - `rollback_succeeded(&succeeded)` 被调用（per §5 第 11 行）
+    - entries[0..2] 的 `status` 回退到 `'WAITING'`，`version` 不变（未被抢占方不受影响）
+    - 返回 `Err(MMError::ConcurrentlyMatched { losing_entry: entries[2].entry_id })`
+- **断言**：全有或全无（per §5 第 23 行注释）；不允许"部分玩家进入这场对局、被抢占的玩家留在队列"的不一致状态。
+
+#### TC-DTL026-OCC-003 — 撮合成立：全部 OCC 通过才创建 `MATCH` 记录
+
+- **层**：IT；**对应 DTL §**：§5 第 22 行 `finalize_match(proposal)`
+- **覆盖需求**：§5"全部条目 OCC 通过后才真正进入§6 MATCH 创建路径"
+- **前置条件**：候选撮合 4 个条目，全部 OCC 通过
+- **Steps**：
+  - **Given**：所有 entries OCC `rows_affected=1`
+  - **When**：`commit_proposed_match(proposal)`
+  - **Then**：
+    - `finalize_match(proposal)` 被调用
+    - `queue_entries` 4 行 `status='MATCHED_PENDING_CONFIRM'`，`match_ref` 非空
+    - `MATCH` 记录（per RGS-BAS-001§5.5 既有表）创建
+- **断言**：撮合成立后条目移交至 §6 状态机确认窗口。
+
+### 9.5 状态机测试用例（TC-DTL026-STATE-NNN）
+
+#### TC-DTL026-STATE-001 — 确认窗口关闭：全员确认通过 → `CONFIRMED` + 创建 `MATCH`
+
+- **层**：IT；**对应 DTL §**：§6 `on_confirmation_window_closed` 第 4-9 行
+- **覆盖需求**：§7.3 全员确认通过
+- **前置条件**：所有 entries `confirmed=true`
+- **Steps**：
+  - **Given**：`query_entries_by_match_ref(M)` 返回所有 confirmed
+  - **When**：`on_confirmation_window_closed(M)`
+  - **Then**：
+    - 所有 entries `status='CONFIRMED'`
+    - `create_match_record(M, &entries)` 被调用
+- **断言**：全员确认通过移交 RGS-BAS-001§5.5 MATCH 状态机。
+
+#### TC-DTL026-STATE-002 — 确认窗口关闭：他人放弃/超时 → `WAITING` 但 `enqueued_at` 不重置
+
+- **层**：IT；**对应 DTL §**：§6 第 15-17 行 + §7.3 边界
+- **覆盖需求**：§7.3"`enqueued_at`按原值保留，等待时长不清零"
+- **前置条件**：entry A confirmed=true，entry B self_abandoned=true，entry C 既未确认也未主动放弃（超时）
+- **Steps**：
+  - **Given**：`on_confirmation_window_closed(M)` 触发
+  - **When**：执行
+  - **Then**：
+    - entry A → `CONFIRMED`
+    - entry B → `ABANDONED`
+    - entry C → `WAITING`，**不**触碰 `enqueued_at` 列（per §6 第 16 行 `reset_to_waiting_preserving_enqueued_at`）
+- **断言**：`enqueued_at` 在 reset 路径上不变；等待时长不清零（per §7.3 设计要点）。
+
+#### TC-DTL026-STATE-003 — 玩家主动退出：WAITING → ABANDONED
+
+- **层**：UT；**对应 DTL §**：§6 状态机表第一行
+- **覆盖需求**：§7.2
+- **前置条件**：`queue_entries(entry_id=E, status='WAITING')`
+- **Steps**：
+  - **When**：`update_status(E, version, Status::Abandoned)` 由玩家主动退出事件触发
+  - **Then**：`status='ABANDONED'`，`match_ref=NULL`
+- **断言**：与 §6 状态机表第一行（WAITING → ABANDONED）一致。
+
+### 9.6 DDL 测试用例（TC-DTL026-DDL-NNN）
+
+#### TC-DTL026-DDL-001 — `idx_queue_entries_scan` 部分索引仅覆盖 `WAITING`
+
+- **层**：IT；**对应 DTL §**：§2 DDL `idx_queue_entries_scan ... WHERE status = 'WAITING'`
+- **覆盖需求**：FR-MM-030
+- **前置条件**：PG 18.6；构造 1000 行 `WAITING` + 500 行 `MATCHED_PENDING_CONFIRM` + 500 行 `ABANDONED`
+- **Steps**：
+  - **When**：`SELECT * FROM queue_entries WHERE mode='ranked' AND shard_scope='SHARD_LOCAL' AND status='WAITING'`
+  - **Then**：查询走 `idx_queue_entries_scan` 部分索引（验证 `EXPLAIN`）；已 MATCHED/ABANDONED 行**不**参与索引
+- **断言**：部分索引只包含 `WAITING` 条目，体积最小化。
+
+#### TC-DTL026-DDL-002 — `rating_settlement_receipts` 复合主键 + 三项状态 CHECK 约束
+
+- **层**：IT；**对应 DTL §**：§2 DDL `rating_settlement_receipts` 第 22-34 行
+- **覆盖需求**：§7.1 三项状态原子化
+- **前置条件**：PG 18.6
+- **Steps**：
+  - **When A**：尝试 INSERT `rating_deviation=0`（违反 `CHECK (rating_deviation > 0)`，per §2 第 28 行）
+    - **Then**：PG 拒绝
+  - **When B**：尝试 INSERT `volatility=0`（违反 `CHECK (volatility > 0)`，per §2 第 30 行）
+    - **Then**：PG 拒绝
+  - **When C**：尝试 INSERT 重复 `(match_ref, character_id, mode)`
+    - **Then**：PG 拒绝（PRIMARY KEY 冲突）
+- **断言**：CHECK 约束防止 RD/σ 错误值；PRIMARY KEY 强制幂等键唯一。
+
+### 9.7 测试层分布与 rgs-testkit 引用一览
+
+| 测试层 | 用例数 | 占比 | 主要 rgs-testkit 引用 |
+|---|---|---|---|
+| UT（fake/mockall + property-based） | 8 | 47% | `MatchFixture::match_game()`、`mockall` mocks、`proptest` 属性测试 |
+| IT（Testcontainers PG 18.6） | 9 | 53% | `pg_test_db`、`MatchFixture::match_game()`、`PlayerFixture::player()` |
+| 注： | | | TC-DTL026-MATCH-004 借用 criterion 框架（非标准 UT/IT） |
+
+### 9.8 追溯性补充
+
+| 测试用例 | 覆盖需求 | 父文档 | DTL 章节 |
+|---|---|---|---|
+| TC-DTL026-GLICKO-001 | FR-MM-006 标度换算 | RGS-REQ-029、RGS-BAS-026 | §7 |
+| TC-DTL026-GLICKO-002~003 | FR-MM-006 Glicko-2 标准场景 | RGS-REQ-029、RGS-BAS-026 | §7 |
+| TC-DTL026-GLICKO-004~005 | §7.1 三项状态同事务 | RGS-REQ-029 | §7.1 |
+| TC-DTL026-MATCH-001~002 | FR-MM-013、NFR-MM-002 | RGS-BAS-026 | §4.1、§4.2 |
+| TC-DTL026-MATCH-003~004 | NFR-PT、Q-D-10 | RGS-BAS-026、Q-D-10 | §4.1.1、§4.1.2、§4.1.3 |
+| TC-DTL026-OCC-001~003 | FR-MM-010/013、§5.1 | RGS-BAS-026 | §5 |
+| TC-DTL026-STATE-001~003 | FR-MM-015/020、§7.3 | RGS-BAS-026 | §6 |
+| TC-DTL026-DDL-001 | FR-MM-030 | RGS-BAS-007/026 | §2 |
+| TC-DTL026-DDL-002 | §7.1 三项状态原子化 | RGS-REQ-029 | §2、§7.1 |
+
 ---
 
 ## 追溯性
