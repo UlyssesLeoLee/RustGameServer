@@ -132,15 +132,15 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 
 **评估**: RGS 主动选 NATS 是「运维简化 > 吞吐上限」的合理 trade-off, 与 ARC-014 / OLU 约束一致, 且有显式 DEC 决策链。但偏离参考设计的事实需在交付时向上声明。
 
-> **ADR-0060 候选已立, 待具名人类审批 (per ULYS-55 / ULYS-54.A, 2026-09-15 JST)**:
-> 详细归档见 `docs/08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md`(178 行, 7 章节)。
+> **ADR-0060 候选已立, 已批准 (per ULYS-55 / ULYS-54.A, 2026-09-15 立候选 + 2026-09-18 JST 具名人类审批通过 / 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429` 「可以merge」)**:
+> 详细归档见 `docs/08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md`(185 行, 7 章节, v0.3 状态 = Accepted)。
 > - **§1 背景**: 与 ADR-0059 缓存偏离的同构性 (上游登记 vs 下游选型双轨); REQ-005 §4 L453 已登记 Apache Kafka, TS-001 §3.6.1 改选 NATS 时未触发 RGS-ADR-0008 闸门、未补立单点 ADR
 > - **§2 决定**: 维持 NATS JetStream 2.10+ 选型 (per DEC-005/006 + Q-M-10 + ACTIONS-v0.3 B-09), 显式记录偏离参考设计的事实, 触发附件 D §3 登记行同步
 > - **§3 备选**: Kafka / RabbitMQ / Redis Streams / Apache Pulsar (逐条否决, 引用 TS-001 §3.6.1 备选表 + 本 ADR 补充论证)
 > - **§4 后果与代价**: trade-off (运维简化 vs 吞吐上限); 5 域全栈零代码层改动 (NATS 已实装); 已知张力 (NATS 5 域单节点 vs Kafka 集群容量对比)
 > - **§5 关联**: ARC-010 / ARC-011 / ARC-014 / RGS-ADR-0008 / RGS-ADR-0015 / RGS-ADR-0051 / RGS-REQ-005 §4 L453 / SPEC-CROSS-003
 > - **§6 后续工作项**: 6 项 (P0 具名审批 / P1 §3+§4 补注 / P2 文档补注 + NATS 性能拐点监控 / P3 INV-001 联动)
-> - **状态**: 待具名人类审批 (per DEC-008 一人公司兼任; ADR 是归档不是签字)
+> - **状态**: **已批准 (Accepted)** (per DEC-008 一人公司兼任, 2026-09-18 JST 具名人类审批通过, 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429`; ADR 是归档不是签字)
 > **本 ADR 与 ADR-0059 缓存偏离同构处置, 与 ULYS-56 (ADR-0061 自研 Outbox vs Debezium) 无依赖可并行**。
 
 ### 4.4 偏离 3 (自研 Outbox vs Debezium CDC)
@@ -287,8 +287,9 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 | 0.1 | 2026-09-15 JST | worker (ULYS-54 agent) | 初版制定。覆盖 Redis vs Valkey 偏离根因追溯 + 横向 6 处偏离扫描 + 建议 6 项 + 附录 4 节 |
 | 0.2 | 2026-09-15 JST | worker (ULYS-54 agent) | **处置进展同步**（per 用户「处理，并且横展开」指示）：① 立 ADR-0059 候选「缓存组件统一 Valkey」(status=待具名人类审批)，撤销 TS-001 §3.5.1 Redis 决议 ② 拆 ULYS-54.A (ULYS-55) 子任务：立 ADR-0060 正式化 NATS JetStream vs Kafka 偏离 ③ 拆 ULYS-54.B (ULYS-56) 子任务：立 ADR-0061 正式化自研 Outbox vs Debezium CDC 偏离 ④ §5.1 P0 #2 (智能层 L4 范围扩展) 与 §5.2 P1 #5 (Temporal vs 自研 Saga Runtime) **暂不拆子任务**——属重大治理决策需 DEC 拍板，非 agent 单方面可决 |
 | 0.3 | 2026-09-15 JST | worker (ULYS-55 agent) | **ADR-0060 候选已立**：在 §4.3 增加「ADR-0060 候选已立，待审批」标注（含 §1-§6 摘要 + 与 ADR-0059 同构处置声明 + ULYS-56 无依赖可并行声明）。ADR-0060 正文 178 行落地 `docs/08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md`，覆盖 ULYS-55 验收 1/2/3/4 全部 4 项。下游 7 处补注（REQ-005 §3/§4 + TS-001 §3.6.1/§5.1/修订历史 + REQ-031 + SPEC-CROSS-003 + TST-S5）由 P1 工作项跟进，待具名人类审批通过后执行 |
+| 0.4 | 2026-09-18 JST | worker (ULYS-55 agent) | **ADR-0060 审批通过 → §4.3 标注升 Accepted**（per ULYS-55 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429`，2026-09-18 JST 具名人类「可以merge」= ADR 审批 go-ahead）。① §4.3 ADR-0060 标注「候选已立, 待具名人类审批」→「候选已立, 已批准」② §4.3 状态行「待具名人类审批」→「已批准 (Accepted)」③ 本表新增本条目。下游 7 处补注仍由 P1 工作项跟进，等待 PR #41 merge 后按 §2 决定 4 顺序执行 |
 
-> **下次评审**: 随 ULYS-54 处置决议同步更新 (取消 / 修订 / 关闭) / ULYS-55+ULYS-56 子任务完成后追加 v0.3
+> **下次评审**: 随 ULYS-54 处置决议同步更新 (ULYS-55 子任务 = ADR-0060 已批准, v0.4; ULYS-56 子任务完成后追加 v0.5)
 
 
 

@@ -4,7 +4,7 @@
 |---|---|
 | 决策编号 | RGS-ADR-0060 |
 | 标题 | 事件总线偏离参考设计：NATS JetStream 2.14 (Latest) 取代 Apache Kafka |
-| 状态 | **待具名人类审批**（per DEC-008 一人公司兼任；本文为候选提案，由 worker (ULYS-55, ULYS-54.A) 起草） |
+| 状态 | **已批准（Accepted）**（per ULYS-55 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429`，具名人类 2026-09-18 JST 「可以merge」= ADR 审批 go-ahead；具名人类一人公司 12 角色 per DEC-008） |
 | 制定日期 | 2026-09-15 JST |
 | 制定人 | worker (ULYS-55 agent) |
 | 主对应方针 | ARC-010（事件命名 + partition_key 规则）、ARC-011（Saga 边界）、ARC-014（未证明需要不引入）、RGS-ADR-0008（中间件导入判定基准） |
@@ -12,7 +12,7 @@
 | 关联下游文档 | RGS-TS-001 §3.6.1 + §5.1；RGS-REQ-031 CEM 中心事件管理；RGS-BAS-001 §4.7 事件与可观测性设计；RGS-ADR-0015 Saga 边界；RGS-ADR-0051 中心事件管理；RGS-SPEC-CROSS-003 跨域事件 Schema v0.2；RGS-TST-S5-outbox-NATS-IT 集成测试；scripts/verify_fail_closed.ps1 |
 | 关联调查 | `docs/00-基准与治理/ULYS-54-RGS-INV-001_缓存选型与设计偏离调查报告_v0.1.md`（§4.3 横向偏离扫描 NATS vs Kafka 节 + §5.2 P1 #3 建议「立 ADR-0060」） |
 
-> **状态说明**：本文是候选 ADR，用以正式归档 RGS 事件总线在「上游登记（Apache Kafka）vs 下游选型（NATS JetStream）」上的双轨决议。RGS-TS-001 §3.6.1 自 v0.6 (2026-08-22) 起标"【一致】"，自 v0.7 (2026-08-24) 起经 Q-M-10 答复 + ACTIONS-v0.3 B-09 升为"**【已决策：NATS JetStream】**"，但**未触发 RGS-ADR-0008 §2 闸门、未复审 RGS-REQ-005 §4 上游登记、未补立单点 ADR**。DEC 是即时决策（per Q-M-10 答复 + ACTIONS-v0.3 B-09 合并动作），ADR 是单点决定的可追溯记录——本 ADR 把这条 DEC 链沉淀为 ADR 记录，闭合治理漏洞。具名人类审批通过前，本文不构成生产基线变更；TS-001 / REQ-031 / SPEC-CROSS-003 等下游文档的字面修改在审批通过前不执行。
+> **状态说明**：本文是候选 ADR，用以正式归档 RGS 事件总线在「上游登记（Apache Kafka）vs 下游选型（NATS JetStream）」上的双轨决议。RGS-TS-001 §3.6.1 自 v0.6 (2026-08-22) 起标"【一致】"，自 v0.7 (2026-08-24) 起经 Q-M-10 答复 + ACTIONS-v0.3 B-09 升为"**【已决策：NATS JetStream】**"，但**未触发 RGS-ADR-0008 §2 闸门、未复审 RGS-REQ-005 §4 上游登记、未补立单点 ADR**。DEC 是即时决策（per Q-M-10 答复 + ACTIONS-v0.3 B-09 合并动作），ADR 是单点决定的可追溯记录——本 ADR 把这条 DEC 链沉淀为 ADR 记录，闭合治理漏洞。**2026-09-18 JST 状态更新（per v0.3）**：具名人类「可以merge」= ADR 审批通过（评论 `01a0b1f3`），本 ADR 升级为生产基线。**下游 7 处补注（§2 决定 4）由 P1 工作项按顺序执行，不再需要等待审批**。TS-001 / REQ-031 / SPEC-CROSS-003 等下游文档的字面修改在 PR #41 合入前不执行（per ULYS-55 评论 `01a0b158` 策略「工单状态保持 `in_progress`」），合入路径走 PR #41 的 GitHub merge flow 与 CI gate。
 
 ---
 
@@ -162,7 +162,7 @@ RGS-REQ-005 §4 L453 备注栏写「**导入须经 ARC-014 判定**」——TS-0
 
 | 优先级 | 工作项 | 备注 |
 |---|---|---|
-| **P0** | 本 ADR 具名人类审批（Ulysses 一人公司 12 角色 per DEC-008） | 审批通过后执行 §2 决定 4 的下游级联 |
+| **P0** | ~~本 ADR 具名人类审批（Ulysses 一人公司 12 角色 per DEC-008）~~ **已完成**（per ULYS-55 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429`，2026-09-18 JST 具名人类「可以merge」= ADR 审批通过） | 状态升至 Accepted；下游级联（§2 决定 4 共 7 处补注）由 P1 工作项执行 |
 | **P1** | RGS-REQ-005 附件 D §3 + §4 补注（登记行 + L453 备注） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P1** | RGS-TS-001 v0.10 升版（§3.6.1 + §5.1 + 修订历史） | 候选操作者：架构师；本 ADR 通过后即可起草 |
 | **P2** | RGS-REQ-031 / SPEC-CROSS-003 / TST-S5 三处补注 | 文档维护者 follow-up |
@@ -176,6 +176,8 @@ RGS-REQ-005 §4 L453 备注栏写「**导入须经 ARC-014 判定**」——TS-0
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-09-15 JST | worker (ULYS-55 agent) | 初版制定。归档 NATS JetStream vs Kafka 偏离事实；下游级联清单 7 项；后续工作项 6 项 |
-| 0.2 | 2026-09-16 JST | worker (ULYS-55 agent) | **响应具名人类 Option A 选定**（per ULYS-55 评论 01a0a95b-64a9-7e22-a8bf-63c8e2b8c7a4）：① 版本号升档 `NATS JetStream 2.10+` → `NATS JetStream 2.14 (Latest)`（per Synadia 当前受支持窗口 + 文档澄清 STAN vs JetStream 混淆）② §1.2 加「客户端语言 = Rust (`async-nats = "0.42"`)、「服务端协议 = Apache-2.0 (CNCF 守住 2025 BSL 风波)」两行（回应项目语言调性问题 + 开源协议澄清）④ §2 banner + §1.2 + §4 trade-off 三处版本号同步升档。**状态保持「待具名人类审批」**：具名人类已表达意向 (Option A)，待文档化审批动作（per DEC-008 一人公司兼任） |
+| 0.2 | 2026-09-16 JST | worker (ULYS-55 agent) | **响应具名人类 Option A 选定**（per ULYS-55 评论 01a0a95b-64a9-7e22-a8bf-63c8e2b8c7a4）：① 版本号升档 `NATS JetStream 2.10+` → `NATS JetStream 2.14 (Latest)`（per Synadia 当前受支持窗口 + 文档澄清 STAN vs JetStream 混淆）② §1.2 加「客户端语言 = Rust (`async-nats = "0.42"`)、「服务端协议 = Apache-2.0 (CNCF 守住 2025 BSL 风波)」两行（回应项目语言调性问题 + 开源协议澄清）④ §2 banner + §1.2 + §4 trade-off 三处版本号同步升档。**状态保持「待具名人类审批」**：具名人类已表达意向 (Option A)，待文档化审批动作（per DEC-008 一人公司兼任；已于 2026-09-18 JST 完成，详见 v0.3） |
 
-> **下次评审**：随 ULYS-54 处置决议同步更新（批准 / 修订 / 驳回）+ 本 ADR 具名人类审批通过后升级为 Accepted。
+| 0.3 | 2026-09-18 JST | worker (ULYS-55 agent) | **具名人类审批通过 → 状态升至 Accepted**（per ULYS-55 评论 `01a0b1f3-c1ef-7035-9f86-41e074845429`，2026-09-18 JST 具名人类「可以merge」= ADR 审批 go-ahead）。① 顶部状态行「待具名人类审批」→「已批准（Accepted）」② §6 P0 行标记 ~~已完成~~ ③ §7 修订历史新增本条目 ④ 下次评审注脚改为「Approved」状态指引。本 ADR 升级为生产基线；§2 决定 4 的下游级联（7 处补注）由 P1 工作项跟进，**不修改 PR #41 现状**——具名人类 merge 信号用于 ADR 文档状态；PR #41 实际合入仍走 GitHub PR flow 与 CI gate |
+
+> **下次评审**：**已批准（Accepted），2026-09-18 JST**。如需修订走 §2 决定 6 撤销流程。下游 7 处补注由 P1 工作项按 §2 决定 4 顺序执行。
