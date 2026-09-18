@@ -1,20 +1,15 @@
-//! TCP 二进制网关 (per 9/4 改进路线图 Phase 1 协议网关 + ULYS-2.1 P0 真实协议对齐)
+//! TCP 二进制网关 (per 9/4 改进路线图 Phase 1 协议网关)
 //!
-//! ## 范围
+//! ## 范围 (W6 0.5 SRE·d 骨架)
 //! - TCP listener 127.0.0.1:7001 (per task brief)
-//! - 帧格式: 与 zsyz_client_h5 客户端 SmartSocket 1:1 对齐 — `[4B length u32 BE][2B cmd u16 BE][payload TLV]`
-//!   (见 `codec.rs`).
-//! - 收到客户端帧 → 路由到 gRPC method (per `router.rs`) → 返回响应帧.
-//!
-//! ## 响应帧约定
-//! 服务端响应也是 zsyz wire 格式: `[length u32][cmd u16][payload]`.
-//! payload 内部约定: `[4B rcode u32 BE][...业务数据...]`.
-//! 路由命中 → rcode=0, 业务数据为 `target_service.target_method` UTF-8 字符串.
-//! 未注册 cmd → rcode=404, 业务数据为 `"unknown code <cmd>"` 字符串.
+//! - 帧格式: [4B code][4B length][lengthB payload] (per codec.rs)
+//! - 收到 10101 演示路由到 player-service.CreateCharacter (gRPC client stub)
+//! - 不做握手 / 加密 / 压缩 (per R3 风险, Phase 2)
 //!
 //! ## 已知缺口
-//! - gRPC client 调通需 player-service 启动 (Phase 1.5 + Phase 3 联调).
-//! - 本骨架仅做路由决策 (rcode + service.method 文本), 实际 gRPC 调用 Phase 1.5.
+//! - gRPC client 调通需 player-service 启动 (Phase 1.5 + Phase 3 联调)
+//! - 连接认证 (Flash socket 策略 / 自研握手) Phase 1.5
+//! - 粘包 / 半包 (本骨架假设一次 read 拿完整帧; Phase 1.5 改 BytesMut 流式解码)
 
 use std::sync::Arc;
 
@@ -23,7 +18,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{debug, info, warn};
 
-use crate::codec::{Frame, FrameError, MAX_FRAME, PROTOCOL_HEADER_LEN};
+use crate::codec::{Frame, FrameError, PROTOCOL_HEADER_LEN};
 use crate::router::RouteTable;
 use crate::stats::GatewayStats;
 
@@ -32,7 +27,7 @@ pub const DEFAULT_TCP_ADDR: &str = "127.0.0.1:7001";
 
 /// 启动 TCP 监听 (主入口, main.rs 调用)
 ///
-/// 每个连接 spawn 一个 task 处理; 流式 BytesMut 循环读帧 → 路由 → 应答.
+/// 每个连接 spawn 一个 task 处理; 简单 read-exact-respond 循环.
 pub async fn serve(
     addr: &str,
     routes: Arc<RouteTable>,
@@ -64,7 +59,7 @@ async fn handle_conn(
 ) -> std::io::Result<()> {
     let mut buf = BytesMut::with_capacity(64 * 1024);
     loop {
-        // 读 header (4B length + 2B cmd = 6B)
+        // 读 header (4B + 4B = 8B)
         if buf.len() < PROTOCOL_HEADER_LEN {
             let n = sock.read_buf(&mut buf).await?;
             if n == 0 {
@@ -97,7 +92,6 @@ async fn handle_conn(
             Err(e) => {
                 warn!(err = %e, "frame decode error");
                 stats.inc_failed();
-                // 错误回包: 用 0 cmd 携带 rcode=400 + 错误描述
                 let resp = build_error_frame(&e);
                 sock.write_all(&resp).await?;
                 return Ok(());
@@ -112,55 +106,46 @@ async fn handle_conn(
 
 /// 派发帧到 gRPC method (Phase 1 骨架: 仅路由决策, 实际 gRPC 调用 Phase 1.5)
 ///
-/// 返回响应 wire 帧: `[length u32][cmd u16][payload]` 其中 cmd 与请求相同,
-/// payload 内部: `[4B rcode u32 BE][...业务 bytes...]`.
-///
-/// - rcode=0: 命中路由, 业务数据 = `target_service.target_method` UTF-8.
-/// - rcode=404: 未注册 cmd, 业务数据 = `"unknown code <cmd>"` UTF-8.
+/// 返回 4 字节 (rcode) + 4 字节 (length) + payload 的应答帧.
 pub fn dispatch(frame: Frame, routes: &RouteTable, stats: &GatewayStats) -> Bytes {
-    let cmd = frame.cmd;
-    let payload = match routes.get(cmd as u32) {
+    let code = frame.code;
+    match routes.get(code) {
         Some(entry) => {
+            // Phase 1.5: 实际调 entry.target_addr 的 entry.target_method
+            // 当前骨架: 返回路由决策结果 (二进制 0=rcode=OK, payload 写 service.method)
             stats.inc_forwarded();
-            let body = format!("{}#{}", entry.target_service, entry.target_method);
-            build_response_payload(0, body.as_bytes())
+            let payload = format!(
+                "{}#{}",
+                entry.target_service, entry.target_method
+            );
+            build_response_frame(0, payload.as_bytes())
         }
         None => {
             stats.inc_route_miss();
-            warn!(cmd = cmd, "route miss");
-            let body = format!("unknown code {}", cmd).into_bytes();
-            build_response_payload(404, &body)
+            warn!(code = code, "route miss");
+            let payload = format!("unknown code {}", code).into_bytes();
+            build_response_frame(404, &payload)
         }
-    };
-    let resp_frame = Frame {
-        cmd,
-        payload: Bytes::from(payload),
-    };
-    resp_frame.encode()
+    }
 }
 
-/// 构造响应 payload: `[4B rcode u32 BE][body]`.
-fn build_response_payload(rcode: u32, body: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(4 + body.len());
+/// 构建应答帧: 4B rcode + 4B length + payload
+fn build_response_frame(rcode: u32, payload: &[u8]) -> Bytes {
+    let mut out = BytesMut::with_capacity(8 + payload.len());
     out.extend_from_slice(&rcode.to_be_bytes());
-    out.extend_from_slice(body);
+    out.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+    out.extend_from_slice(payload);
+    out.freeze()
+}
+
+/// 错误帧 (协议错 / frame decode 失败)
+fn build_error_frame(e: &FrameError) -> Vec<u8> {
+    let payload = e.to_string().into_bytes();
+    let mut out = Vec::with_capacity(8 + payload.len());
+    out.extend_from_slice(&400u32.to_be_bytes());
+    out.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+    out.extend_from_slice(&payload);
     out
-}
-
-/// 错误帧 (协议错 / frame decode 失败): cmd=0, payload=[400 rcode][err.to_string()].
-fn build_error_frame(e: &FrameError) -> Bytes {
-    let payload = build_response_payload(400, e.to_string().as_bytes());
-    let frame = Frame {
-        cmd: 0,
-        payload: Bytes::from(payload),
-    };
-    frame.encode()
-}
-
-/// 路由表 + 入参字节统计 (Phase 1.5 接 7 域真实 .proto 后, 这里 stub 仅路由决策).
-#[allow(dead_code)]
-const fn _max_frame_ref() -> usize {
-    MAX_FRAME
 }
 
 #[cfg(test)]
@@ -168,56 +153,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn dispatch_route_hit_returns_frame() {
+    fn dispatch_route_hit() {
         let routes = RouteTable::new();
         let stats = GatewayStats::new();
         let frame = Frame {
-            cmd: 10101,
+            code: 10101,
             payload: Bytes::from_static(b"hello"),
         };
-        let resp_bytes = dispatch(frame, &routes, &stats);
-        // 解码响应 → 验证 cmd + payload[0..4]=rcode
-        let mut buf = BytesMut::from(&resp_bytes[..]);
-        let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
-        assert_eq!(resp_frame.cmd, 10101, "响应 cmd 应回声");
-        let rcode = u32::from_be_bytes([
-            resp_frame.payload[0],
-            resp_frame.payload[1],
-            resp_frame.payload[2],
-            resp_frame.payload[3],
-        ]);
+        let resp = dispatch(frame, &routes, &stats);
+        // 4B rcode(0) + 4B length + payload
+        assert!(resp.len() > 8);
+        let rcode = u32::from_be_bytes([resp[0], resp[1], resp[2], resp[3]]);
         assert_eq!(rcode, 0);
-        let body = &resp_frame.payload[4..];
-        let body_str = std::str::from_utf8(body).unwrap();
-        assert_eq!(body_str, "player.v1.PlayerService#CreateCharacter");
         let snap = stats.snapshot();
         assert_eq!(snap.total_forwarded, 1);
         assert_eq!(snap.total_route_miss, 0);
     }
 
     #[test]
-    fn dispatch_route_miss_returns_404() {
+    fn dispatch_route_miss() {
         let routes = RouteTable::new();
         let stats = GatewayStats::new();
-        // 65535 = u16 max, 不在任何路由表条目里 (max cmd=10101 等)
         let frame = Frame {
-            cmd: 65535,
+            code: 99999,
             payload: Bytes::from_static(b""),
         };
-        let resp_bytes = dispatch(frame, &routes, &stats);
-        let mut buf = BytesMut::from(&resp_bytes[..]);
-        let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
-        assert_eq!(resp_frame.cmd, 65535);
-        let rcode = u32::from_be_bytes([
-            resp_frame.payload[0],
-            resp_frame.payload[1],
-            resp_frame.payload[2],
-            resp_frame.payload[3],
-        ]);
+        let resp = dispatch(frame, &routes, &stats);
+        let rcode = u32::from_be_bytes([resp[0], resp[1], resp[2], resp[3]]);
         assert_eq!(rcode, 404);
-        let body = &resp_frame.payload[4..];
-        let body_str = std::str::from_utf8(body).unwrap();
-        assert!(body_str.contains("65535"));
         let snap = stats.snapshot();
         assert_eq!(snap.total_route_miss, 1);
     }
@@ -228,22 +191,13 @@ mod tests {
         let stats = GatewayStats::new();
         // received 在 handle_conn 中 increment, 不在 dispatch 中; 这里测 dispatch 不动 received
         let frame = Frame {
-            cmd: 10101,
+            code: 10101,
             payload: Bytes::from_static(b"x"),
         };
         dispatch(frame, &routes, &stats);
         let snap = stats.snapshot();
         // dispatch 只 inc forwarded / route_miss
         assert_eq!(snap.total_received, 0);
-    }
-
-    #[test]
-    fn build_response_payload_format() {
-        let p = build_response_payload(0, b"abc");
-        // 4B rcode(=0) + "abc"
-        assert_eq!(p.len(), 7);
-        assert_eq!(&p[0..4], &[0, 0, 0, 0]);
-        assert_eq!(&p[4..7], b"abc");
     }
 
     #[tokio::test]

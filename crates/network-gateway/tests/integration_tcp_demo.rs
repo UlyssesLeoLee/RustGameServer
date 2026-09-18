@@ -1,16 +1,10 @@
-//! 集成测试: TCP 接 zsyz 真实 wire 协议 → 路由到 5 域 demo service
+//! 集成测试: TCP 接 4 字节 [code][length] + payload → 路由到 player-service.CreateCharacter
 //!
-//! ## 范围 (per ULYS-2.1 P0 + 9/4 改进路线图 Phase 1 协议网关)
+//! ## 范围 (per W6 task "1 真实演示")
 //! - 起 1 个 0 端口 TCP listener (OS 分配)
-//! - 客户端发 zsyz 帧 `[4B length u32 BE][2B cmd u16 BE][payload]`
-//! - 服务端 dispatch 到路由表, 返回 zsyz 帧, payload 内部: `[4B rcode u32 BE][...业务 bytes...]`
+//! - 客户端连, 发 [code=10101][length=5][payload="hello"]
+//! - 服务端 dispatch 到路由表, 返回 [rcode=0][length=37][payload="player.v1.PlayerService#CreateCharacter"]
 //! - 验证 rcode=0 + payload 内容 + stats 计数
-//!
-//! ## 与旧版差异 (per ULYS-2.1)
-//! - 旧: `[4B code u32][4B length u32][payload]` (stub, 与客户端 1:1 不一致)
-//! - 新: `[4B length u32 BE][2B cmd u16 BE][payload]` (zsyz_client_h5 SmartSocket 真实协议)
-//! - 旧 cmd 字段名 `code: u32` → 新 `cmd: u16`
-//! - 旧响应 `[4B rcode][4B length][payload]` → 新响应直接是 frame payload, 内部 `[4B rcode][body]`
 //!
 //! ## 已知缺口
 //! - 实际 gRPC client 调通需 player-service 启动 (Phase 1.5 + Phase 3 联调)
@@ -20,7 +14,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
-use network_gateway::codec::{Frame, PROTOCOL_HEADER_LEN};
 use network_gateway::router::RouteTable;
 use network_gateway::stats::GatewayStats;
 use network_gateway::tcp;
@@ -31,47 +24,39 @@ use tokio::net::TcpStream;
 async fn tcp_demo_route_10101_to_player_create_character() {
     let routes = Arc::new(RouteTable::new());
     let stats = Arc::new(GatewayStats::new());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener); // 释放; serve() 会重新 bind 同 port? 否, 我们用 serve() 替 listener
+                    // 实际: serve 内部 TcpListener::bind, 端口冲突风险 → 让 serve 改用 0 端口
+                    // 简化: 这里直接调 dispatch + 测 TCP 写
+    let _ = addr; // suppress unused
 
     // 验证 dispatch (Phase 1 骨架: routing decision)
-    // cmd=10101 → player.v1.PlayerService#CreateCharacter (per W14 codegen)
-    let frame = Frame {
-        cmd: 10101,
+    let frame = network_gateway::codec::Frame {
+        code: 10101,
         payload: Bytes::from_static(b"hello"),
     };
-    let resp_bytes = tcp::dispatch(frame, &routes, &stats);
-    assert!(resp_bytes.len() > PROTOCOL_HEADER_LEN);
-
-    // 解析响应 frame: [4B length][2B cmd][payload]
-    let mut buf = BytesMut::from(&resp_bytes[..]);
-    let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
-    assert_eq!(resp_frame.cmd, 10101, "响应 cmd 应回声");
-
-    // payload 内部: [4B rcode u32 BE][...业务 bytes...]
-    let payload = &resp_frame.payload;
-    assert!(payload.len() >= 4);
-    let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
+    let resp = tcp::dispatch(frame, &routes, &stats);
+    assert!(resp.len() > 8);
+    let rcode = u32::from_be_bytes([resp[0], resp[1], resp[2], resp[3]]);
     assert_eq!(rcode, 0, "路由 10101 应成功 (默认路由表 demo)");
-    let body = &payload[4..];
-    let body_str = std::str::from_utf8(body).unwrap();
-    assert_eq!(body_str, "player.v1.PlayerService#CreateCharacter");
+    let length = u32::from_be_bytes([resp[4], resp[5], resp[6], resp[7]]) as usize;
+    let payload = &resp[8..8 + length];
+    let payload_str = std::str::from_utf8(payload).unwrap();
+    assert_eq!(payload_str, "player.v1.PlayerService#CreateCharacter");
 }
 
 #[tokio::test]
 async fn tcp_demo_route_miss_returns_404() {
     let routes = RouteTable::new();
     let stats = GatewayStats::new();
-    // cmd=1351 远超默认表的最大 code
-    let frame = Frame {
-        cmd: 1351,
+    let frame = network_gateway::codec::Frame {
+        code: 1351, // 远超默认表的协议码
         payload: Bytes::from_static(b"x"),
     };
-    let resp_bytes = tcp::dispatch(frame, &routes, &stats);
-    let mut buf = BytesMut::from(&resp_bytes[..]);
-    let resp_frame = Frame::decode(&mut buf).unwrap().unwrap();
-    assert_eq!(resp_frame.cmd, 1351);
-    let payload = &resp_frame.payload;
-    let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
-    assert_eq!(rcode, 404, "未注册 cmd 应返回 404");
+    let resp = tcp::dispatch(frame, &routes, &stats);
+    let rcode = u32::from_be_bytes([resp[0], resp[1], resp[2], resp[3]]);
+    assert_eq!(rcode, 404, "未注册 code 应返回 404");
     let snap = stats.snapshot();
     assert_eq!(snap.total_route_miss, 1);
 }
@@ -82,67 +67,64 @@ async fn tcp_serve_client_roundtrip() {
     let routes = Arc::new(RouteTable::new());
     let stats = Arc::new(GatewayStats::new());
 
+    // 用 0 端口拿一个空闲端口
     let probe = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = probe.local_addr().unwrap().port();
     drop(probe);
     let addr = format!("127.0.0.1:{}", port);
 
+    // 启动 serve
     let routes_for_serve = Arc::clone(&routes);
     let stats_for_serve = Arc::clone(&stats);
     let serve_addr = addr.clone();
     let serve_task = tokio::spawn(async move {
+        // serve 用 60ms timeout 退出 (本测试只需要 roundtrip)
         let _ = tokio::time::timeout(
             Duration::from_secs(2),
             tcp::serve(&serve_addr, routes_for_serve, stats_for_serve),
         )
         .await;
     });
+
+    // 给 serve 50ms 启动
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    // 客户端发 zsyz 帧: cmd=10101, payload="hello" (5B)
-    // wire: [4B length=2+5=7][2B cmd=0x2775][5B payload="hello"]
+    // 客户端发 [code=10101][length=5][payload="hello"]
     let mut client = TcpStream::connect(&addr).await.expect("connect ok");
-    let req_frame = Frame {
-        cmd: 10101,
-        payload: Bytes::from_static(b"hello"),
-    };
-    let wire = req_frame.encode();
-    client.write_all(&wire).await.expect("write ok");
+    let mut out = BytesMut::with_capacity(13);
+    out.extend_from_slice(&10101u32.to_be_bytes());
+    out.extend_from_slice(&5u32.to_be_bytes());
+    out.extend_from_slice(b"hello");
+    client.write_all(&out).await.expect("write ok");
     client.flush().await.ok();
 
-    // 读响应 (4B length + 2B cmd + 4B rcode + body 长度未知, 一次读到 EOF)
-    let mut buf = Vec::new();
-    let mut tmp = [0u8; 256];
-    loop {
-        match tokio::time::timeout(Duration::from_secs(1), client.read(&mut tmp)).await {
-            Ok(Ok(0)) => break, // EOF
-            Ok(Ok(n)) => buf.extend_from_slice(&tmp[..n]),
-            Ok(Err(e)) => panic!("read err: {e}"),
-            Err(_) => break, // 1s timeout, 视作收完
-        }
-    }
-    assert!(buf.len() >= PROTOCOL_HEADER_LEN + 4, "至少 6+4=10 字节响应, got {}", buf.len());
-
-    // 解析响应 frame
-    let mut resp_buf = BytesMut::from(&buf[..]);
-    let resp_frame = Frame::decode(&mut resp_buf).unwrap().expect("响应帧解析成功");
-    assert_eq!(resp_frame.cmd, 10101, "响应 cmd 应回声");
-
-    let payload = &resp_frame.payload;
-    let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
+    // 读响应
+    let mut buf = [0u8; 128];
+    let n = tokio::time::timeout(Duration::from_secs(2), client.read(&mut buf))
+        .await
+        .expect("read not timeout")
+        .expect("read ok");
+    assert!(n >= 8, "至少 8 字节响应头, got {}", n);
+    let rcode = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]);
     assert_eq!(rcode, 0, "rcode 应为 0 (route hit)");
-    let body = &payload[4..];
-    let body_str = std::str::from_utf8(body).unwrap();
-    assert_eq!(body_str, "player.v1.PlayerService#CreateCharacter");
+    let length = u32::from_be_bytes([buf[4], buf[5], buf[6], buf[7]]) as usize;
+    let payload = &buf[8..8 + length];
+    let payload_str = std::str::from_utf8(payload).unwrap();
+    assert_eq!(payload_str, "player.v1.PlayerService#CreateCharacter");
 
+    // 关闭连接
     drop(client);
+
+    // 给服务端一点时间处理 close
     tokio::time::sleep(Duration::from_millis(50)).await;
 
+    // 验证 stats
     let snap = stats.snapshot();
     assert_eq!(snap.total_received, 1, "received 计数 = 1");
     assert_eq!(snap.total_forwarded, 1, "forwarded 计数 = 1");
     assert_eq!(snap.total_route_miss, 0);
 
+    // 取消 serve
     serve_task.abort();
 }
 
@@ -169,30 +151,19 @@ async fn tcp_serve_route_miss_increments_stat() {
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     let mut client = TcpStream::connect(&addr).await.expect("connect ok");
-    // cmd=65535 (u16 max), payload 空 → length=2 (仅含 cmd)
-    let req_frame = Frame {
-        cmd: 65535,
-        payload: Bytes::new(),
-    };
-    let wire = req_frame.encode();
-    client.write_all(&wire).await.expect("write ok");
+    let mut out = BytesMut::with_capacity(12);
+    out.extend_from_slice(&99999u32.to_be_bytes()); // 未注册
+    out.extend_from_slice(&0u32.to_be_bytes());
+    client.write_all(&out).await.expect("write ok");
     client.flush().await.ok();
 
-    let mut buf = Vec::new();
-    let mut tmp = [0u8; 256];
-    loop {
-        match tokio::time::timeout(Duration::from_secs(1), client.read(&mut tmp)).await {
-            Ok(Ok(0)) => break,
-            Ok(Ok(n)) => buf.extend_from_slice(&tmp[..n]),
-            Ok(Err(e)) => panic!("read err: {e}"),
-            Err(_) => break,
-        }
-    }
-    let mut resp_buf = BytesMut::from(&buf[..]);
-    let resp_frame = Frame::decode(&mut resp_buf).unwrap().expect("响应帧解析成功");
-    let payload = &resp_frame.payload;
-    let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
-    assert_eq!(rcode, 404, "未注册 cmd 应返回 404");
+    let mut buf = [0u8; 128];
+    let _n = tokio::time::timeout(Duration::from_secs(2), client.read(&mut buf))
+        .await
+        .expect("read not timeout")
+        .expect("read ok");
+    let rcode = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]);
+    assert_eq!(rcode, 404, "未注册 code 应返回 404");
 
     drop(client);
     tokio::time::sleep(Duration::from_millis(50)).await;
