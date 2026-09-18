@@ -5,7 +5,7 @@
 //! 2. 协议号 → gRPC method 路由表骨架 — `router.rs`
 //! 3. EPMD 协议 stub (端口 4369, 简单 NodeInfo 响应) — `epmd.rs`
 //! 4. Erlang 分布式协议 stub (net_kernel 模拟) — `dist.rs`
-//! 5. 闪烁之光 自研二进制编解码 stub — `codec.rs`
+//! 5. 闪烁之光 (zsyz) 自研二进制编解码 (Frame + TLV 9 种类型) — `codec.rs`, `tlv.rs`
 //! 6. Admin gRPC 服务 (HealthCheck/ListRoutes/RegisterRoute/GetStats) — `server.rs`
 //!
 //! ## 真实演示 (per task brief)
@@ -19,6 +19,9 @@
 //! - NIF 桥接 stub (`nif.rs`, 7 域 GrpcTarget + bridge function)
 //! - NIF 桥接 demo (`nif_demo.rs`, W13 PoC rustler 0.36 选型验证)
 //! - web_conn stub (`web_conn.rs`, port 8000 HTTP 入口)
+//! - WebSocket 传输层 (`ws.rs`, ULYS-2.2 W33 + ULYS-27 Phase 2): 路径 /websocket, 端口 8000
+//!   - 与 TCP 路径共享 `Arc<dyn FrameRouter>` 抽象 (codec::FrameRouter)
+//!   - 默认 `RouteTableFrameRouter` (main.rs 内) = `RouteTable + tcp::dispatch`
 //! - Zone 启动 stub (`zone.rs`, center/zone 拓扑)
 //! - 8 域 demo 路由 (per 9/4 改进路线图 Phase 2)
 //!
@@ -64,15 +67,20 @@ pub mod router;
 pub mod server;
 pub mod stats;
 pub mod tcp;
+pub mod tlv;
 pub mod web_conn;
+pub mod ws;
 pub mod zone;
 
 pub use client_pool::{ClientPoolError, GrpcClientPool, SharedClientPool};
-pub use codec::{Frame, FrameError, PROTOCOL_HEADER_LEN};
-pub use cookie::{verify_cookie, validate_cookie, CookieError, MAX_COOKIE_LEN};
+pub use codec::{Frame, FrameError, FrameRouter, MAX_FRAME, PROTOCOL_HEADER_LEN};
+pub use cookie::{validate_cookie, verify_cookie, CookieError, MAX_COOKIE_LEN};
 pub use nif::{bridge as nif_bridge, BridgeResult, GrpcTarget};
-pub use nif_demo::{add as nif_add, bridge_route as nif_demo_route, echo as nif_echo, version as nif_version};
+pub use nif_demo::{
+    add as nif_add, bridge_route as nif_demo_route, echo as nif_echo, version as nif_version,
+};
 pub use router::{RouteEntry, RouteTable, GENERATED_ROUTES};
 pub use stats::GatewayStats;
 pub use web_conn::{parse_http_path, WebConnConfig, WEB_CONN_PORT};
+pub use ws::{serve as ws_serve, WsConfig, DEFAULT_WS_ADDR, WS_PATH};
 pub use zone::{ZoneConfig, ZoneRole};
