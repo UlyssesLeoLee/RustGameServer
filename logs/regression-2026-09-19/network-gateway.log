@@ -1,0 +1,223 @@
+warning: network-gateway@0.1.0: network-gateway: codegen 1351 routes (113 untitled placeholders, per 改进路线图 v0.2 §6) -> E:\DevCache\cargo\target\debug\build\network-gateway-c69ef2fad3cebe5a\out\generated_routes.rs
+warning: variant `Io` is never constructed
+   --> crates\network-gateway\src\ws.rs:149:5
+    |
+147 | enum HttpReject {
+    |      ---------- variant in this enum
+148 |     NotFound,
+149 |     Io(std::io::Error),
+    |     ^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `RouteTableRouter` is never constructed
+   --> crates\network-gateway\src\ws.rs:327:12
+    |
+327 |     struct RouteTableRouter {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: `network-gateway` (lib) generated 1 warning
+warning: `network-gateway` (lib test) generated 2 warnings (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.28s
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\network_gateway-f06313fe03c53e5f.exe)
+
+running 123 tests
+test client_pool::tests::default_endpoints_seven_distinct_ports ... ok
+test client_pool::tests::seven_targets_unique_short_names ... ok
+test client_pool::tests::pool_new_three_new_domains_return_not_deployed ... ok
+test client_pool::tests::w15_bridge_battle_start_battle ... ok
+test client_pool::tests::w15_bridge_economy_get_balance ... ok
+test client_pool::tests::w15_bridge_player_create_character ... ok
+test client_pool::tests::w15_bridge_scene_enter_scene ... ok
+test client_pool::tests::w15_config_summary_matches_all_enum ... ok
+test client_pool::tests::pool_config_summary_has_seven_lines ... ok
+test client_pool::tests::w15_seven_domains_seven_config_lines ... ok
+test client_pool::tests::w15_seven_targets_default_addr_unique ... ok
+test client_pool::tests::w15_channel_pool_laziness_caches ... ok
+test client_pool::tests::w15_four_mtls_domains_try_real_channel_build ... ok
+test client_pool::tests::w15_seven_targets_service_names_unique ... ok
+test client_pool::tests::warn_on_mtls_cert_dir_redaction_safe ... ok
+test client_pool::tests::w15_three_new_domains_return_not_deployed ... ok
+test codec::tests::decode_heartbeat_request ... ok
+test codec::tests::decode_heartbeat_response ... ok
+test codec::tests::decode_length_overflow ... ok
+test codec::tests::decode_keeps_remainder_for_next_frame ... ok
+test codec::tests::decode_partial_header_returns_none ... ok
+test codec::tests::decode_partial_payload_returns_none ... ok
+test client_pool::tests::w15_shared_client_pool_via_arc_mutex ... ok
+test codec::tests::encode_decode_roundtrip_simple ... ok
+test codec::tests::encode_to_appends_into_existing_buf ... ok
+test cookie::tests::control_char_rejected ... ok
+test cookie::tests::cookie_error_display_redacts_value ... ok
+test cookie::tests::empty_cookie_passes ... ok
+test cookie::tests::too_long_cookie_rejected ... ok
+test cookie::tests::valid_cookie_passes ... ok
+test codec::frame_router_tests::trait_handles_route_miss ... ok
+test cookie::tests::verify_length_mismatch ... ok
+test codec::tests::encode_max_payload_size ... ok
+test cookie::tests::verify_match ... ok
+test codec::frame_router_tests::trait_dyn_compatible ... ok
+test dist::tests::capability_default_nonzero ... ok
+test cookie::tests::verify_mismatch ... ok
+test dist::tests::established_predicate ... ok
+test dist::tests::handshake_state_progression ... ok
+test dist::tests::node_full_name_format ... ok
+test dist::tests::state_default_idle ... ok
+test epmd::tests::alive2_req_decode ... ok
+test epmd::tests::alive2_req_decode_too_short_errors ... ok
+test epmd::tests::alive2_resp_roundtrip ... ok
+test epmd::tests::names_resp_empty ... ok
+test epmd::tests::names_resp_one_node ... ok
+test nif::tests::all_seven_targets_distinct_addrs ... ok
+test nif::tests::all_seven_targets_have_service_name ... ok
+test nif::tests::bridge_returns_rcode_zero_for_stub ... ok
+test nif::tests::bridge_seven_targets_round_trip ... ok
+test nif_demo::tests::add_100_200_equals_300 ... ok
+test nif_demo::tests::add_2_3_equals_5 ... ok
+test nif_demo::tests::add_negative_5_plus_5_equals_0 ... ok
+test nif_demo::tests::add_zero_is_identity ... ok
+test nif_demo::tests::bridge_route_battle_battle_action ... ok
+test nif_demo::tests::bridge_route_player_create_or_update ... ok
+test nif_demo::tests::bridge_route_rcode_always_zero ... ok
+test nif_demo::tests::bridge_route_unknown_code_returns_unknown ... ok
+test nif_demo::tests::bridge_route_w14_six_demos ... ok
+test nif_demo::tests::echo_handles_zero_and_negative ... ok
+test nif_demo::tests::echo_returns_value_and_echoed_str ... ok
+test nif_demo::tests::version_format_consistent ... ok
+test nif_demo::tests::version_returns_three_strs ... ok
+test router::tests::phase15_demo_compat_all_codes_hit ... ok
+test router::tests::phase15_demo_compat_covers_real_domains ... ok
+test router::tests::phase15_demo_compat_has_six_routes ... ok
+test stats::tests::snapshot_initially_zero ... ok
+test router::tests::test_default_route_uses_method_code_pattern ... ok
+test router::tests::test_specific_route_10101 ... ok
+test router::tests::test_each_route_has_grpc_target ... ok
+test router::tests::test_all_1351_routes_loaded ... ok
+test router::tests::test_specific_route_10201_enter_scene ... ok
+test server::tests::health_check_returns_ok ... ok
+test router::tests::test_specific_route_11000_partner_data ... ok
+test router::tests::test_specific_route_25000_push_base_info ... ok
+test stats::tests::counters_increment_correctly ... ok
+test router::tests::test_specific_route_20002_round_start ... ok
+test server::tests::get_stats_returns_zero_initially ... ok
+test router::tests::test_routes_have_unique_codes ... ok
+test router::tests::test_routes_cover_real_domains ... ok
+test router::tests::test_unknown_title_fallback ... ok
+test router::tests::test_specific_route_20001_battle_prepare ... ok
+test tcp::tests::build_response_payload_format ... ok
+test server::tests::register_route_duplicate_fails ... ok
+test tlv::tests::array_kv_login_request_roundtrip ... ok
+test tlv::tests::int16_roundtrip ... ok
+test tlv::tests::array_kv_login_request_pack ... ok
+test tlv::tests::bytes_roundtrip ... ok
+test tlv::tests::int32_roundtrip ... ok
+test server::tests::list_routes_returns_default ... ok
+test tcp::tests::dispatch_route_hit_returns_frame ... ok
+test tlv::tests::pack_fields_array_of_strings ... ok
+test tcp::tests::dispatch_received_counter_increments ... ok
+test tcp::tests::dispatch_route_miss_returns_404 ... ok
+test tlv::tests::int8_roundtrip ... ok
+test server::tests::register_route_adds_new ... ok
+test tlv::tests::heartbeat_response_roundtrip ... ok
+test tlv::tests::pack_fields_basic ... ok
+test tlv::tests::str_roundtrip_chinese ... ok
+test tlv::tests::uint16_roundtrip ... ok
+test tlv::tests::str_truncated_returns_err ... ok
+test tlv::tests::type_mismatch_on_pack ... ok
+test tlv::tests::uint32_roundtrip ... ok
+test tlv::tests::unknown_tag_returns_none ... ok
+test web_conn::tests::default_config_local ... ok
+test zone::tests::start_stub_center_ok ... ok
+test web_conn::tests::display_redacts_cookie_value ... ok
+test web_conn::tests::parse_http_get_path ... ok
+test web_conn::tests::parse_http_invalid_returns_none ... ok
+test web_conn::tests::parse_http_post_path ... ok
+test web_conn::tests::start_rejects_zero_port ... ok
+test ws::tests::default_ws_addr_matches_web_conn ... ok
+test web_conn::tests::start_stub_returns_ok_with_default ... ok
+test ws::tests::ws_config_default_has_correct_addr ... ok
+test ws::tests::ws_path_constant_matches_brief ... ok
+test zone::tests::default_center_config ... ok
+test zone::tests::default_zone_config ... ok
+test zone::tests::display_redacts_cookie ... ok
+test zone::tests::start_rejects_empty_zone_name ... ok
+test tlv::tests::uint8_roundtrip ... ok
+test zone::tests::start_rejects_zone_without_center ... ok
+test zone::tests::start_stub_zone_with_center_ok ... ok
+test tcp::tests::serve_smoke_bind_then_close ... ok
+
+test result: ok. 123 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src\bin\main.rs (E:\DevCache\cargo\target\debug\deps\network_gateway-1ffa1aa29db1bb89.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\golden_vectors.rs (E:\DevCache\cargo\target\debug\deps\golden_vectors-fbdc2f1dc2649e59.exe)
+
+running 25 tests
+test frame_header_len_constant ... ok
+test golden_tlv_array_roundtrip ... ok
+test golden_tlv_bytes_roundtrip ... ok
+test golden_tlv_i16_roundtrip ... ok
+test golden_tlv_i32_roundtrip ... ok
+test golden_tlv_i8_roundtrip ... ok
+test golden_tlv_str_roundtrip_ascii ... ok
+test golden_tlv_str_roundtrip_utf8_chinese ... ok
+test golden_tlv_u16_roundtrip ... ok
+test golden_tlv_u8_roundtrip ... ok
+test golden_v1_heartbeat_request_encode ... ok
+test golden_tlv_u32_roundtrip ... ok
+test golden_v1_heartbeat_request_bytes ... ok
+test golden_v1_heartbeat_response_bytes ... ok
+test golden_v2_login_request_payload_bytes ... ok
+test golden_v2_login_request_roundtrip ... ok
+test golden_v3_create_char_response_bytes ... ok
+test negative_unknown_field_type_tag ... ok
+test negative_length_overflow_returns_err ... ok
+test negative_partial_frame_returns_none ... ok
+test negative_truncated_header_returns_none ... ok
+test negative_truncated_str_in_tlv ... ok
+test negative_type_mismatch_in_tlv ... ok
+test golden_tlv_empty_array ... ok
+test manual_heartbeat_response_byte_construction ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_phase15_demo.rs (E:\DevCache\cargo\target\debug\deps\integration_phase15_demo-de4b8cffbc84e76f.exe)
+
+running 5 tests
+test phase15_full_1351_loaded_in_table ... ok
+test phase15_six_routes_have_four_addrs ... ok
+test phase15_login_role_battle_endtoend_stub has been running for over 60 seconds
+test phase15_route_miss_returns_404 has been running for over 60 seconds
+test phase15_six_routes_route_roundtrip has been running for over 60 seconds
+error: test failed, to rerun pass `-p network-gateway --test integration_phase15_demo`
+
+Caused by:
+  process didn't exit successfully: `E:\DevCache\cargo\target\debug\deps\integration_phase15_demo-de4b8cffbc84e76f.exe` (exit code: 1)
+note: test exited abnormally; to see the full output pass --no-capture to the harness.
+     Running tests\integration_tcp_demo.rs (E:\DevCache\cargo\target\debug\deps\integration_tcp_demo-4e7987f6bbba5875.exe)
+
+running 4 tests
+test tcp_demo_route_10101_to_player_create_character ... ok
+test tcp_demo_route_miss_returns_404 ... ok
+test tcp_serve_route_miss_increments_stat ... ok
+test tcp_serve_client_roundtrip ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+     Running tests\ws_smoke.rs (E:\DevCache\cargo\target\debug\deps\ws_smoke-d3c3efaba8262331.exe)
+
+running 5 tests
+test ws_wrong_path_returns_404_http ... ok
+test ws_route_miss_returns_404 ... ok
+test ws_heartbeat_roundtrip ... ok
+test ws_handshake_and_route_roundtrip ... ok
+test ws_login_route_dispatch ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+error: 1 target failed:
+    `-p network-gateway --test integration_phase15_demo`
