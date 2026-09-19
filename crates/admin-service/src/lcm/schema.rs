@@ -52,13 +52,21 @@ impl LcmStepStatus {
 
 /// LCM step execution 内存模型 (Work 表, 24h cleanup)
 ///
-/// 字段对应 DDL `0005_lcm_step_execution.sql` 4 字段 (id / run_id / step_seq /
+/// 字段对应 DDL `0005_lcm_step_execution.sql` 12 字段 (id / run_id / step_seq /
 /// step_name / status / started_at / completed_at / attempt_count / last_error /
 /// step_metadata / expires_at / created_at) + UNIQUE(run_id, step_seq).
+///
+/// ⚠️ ULYS-95 修复 (2026-09-19): `run_id` **不**物化 FK 到 `realm_lifecycle_run.id`,
+/// 跨 crate 边界由应用层校验 (per RGS-BAS-007 §1.5 + RGS-SPEC-CROSS-005 §2).
+/// PH-2 待实装的 `PgLcmStepExecutionRepository::insert` 必须在 INSERT 前
+/// SELECT 校验 run 存在 (1 行 count check); run 删除由 cluster-ops gRPC
+/// `DeleteRealmLifecycleRun` 触发 admin-backend 通知, 应用层级联删除 step 行.
+/// 保留语义: `run_id` 仍是必填 UUID NOT NULL (per BAS-001 v0.3 §6.6.2 字段定义).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LcmStepExecution {
     pub id: Uuid,
-    /// 关联 LCM run (FK → realm_lifecycle_run.id, ON DELETE CASCADE)
+    /// 关联 LCM run (admin_db.realm_lifecycle_run.id; 跨 crate 引用, 应用层校验,
+    /// **不**物化 DDL FK per ULYS-95 修复 + RGS-BAS-007 §1.5)
     pub run_id: Uuid,
     /// 步骤序号 (在 phase 内, 1-based)
     pub step_seq: i32,
@@ -217,5 +225,23 @@ mod tests {
         s.mark_failed("timeout");
         s.mark_in_progress();
         assert_eq!(s.attempt_count, 2, "retry 时 attempt_count 应累加");
+    }
+
+    /// ULYS-95 修复回归: `run_id` 字段保留 UUID NOT NULL 但**不**物化 FK (per
+    /// `0005_lcm_step_execution.sql` + RGS-BAS-007 §1.5). 内存模型可接受任意
+    /// run_id, 真实 DDL 也不会拒 (验证 sqlx migrate apply 不需要 realm_lifecycle_run
+    /// 表存在). 集成层校验由 PH-2 PgLcmStepExecutionRepository::insert 在 INSERT
+    /// 前 SELECT count(*) FROM realm_lifecycle_run WHERE id = $1 实现.
+    #[test]
+    fn lcm_step_execution_run_id_is_unconstrained_per_ulys95() {
+        let arbitrary_run_id = Uuid::new_v4(); // 不要求 run 在 realm_lifecycle_run 存在
+        let s = LcmStepExecution::new_pending(arbitrary_run_id, 1, "provision", 3600);
+        assert_eq!(s.run_id, arbitrary_run_id);
+        // run_id 字段保留 = 构造时传入值 (应用层职责去校验)
+        assert_ne!(
+            s.run_id,
+            Uuid::nil(),
+            "run_id 必须是有效 UUID (本测试断言非 nil)"
+        );
     }
 }
