@@ -1,3 +1,29 @@
+## 0. ULYS-100 实施进展 (2026-09-19 JST)
+
+> **状态变更**: 草案 → **代码已落地 (agent c557dae5 per DEC-008 代签)**, 等 ADR-0061 具名人类审批通过后生效。
+>
+> **前置依赖**: ADR-0061 待具名人类审批 (per DEC-008, 与 ULYS-89 跟踪状态一致)。
+> **落地范围**: 9 个 Prometheus 指标 (per §1.1 + §1.2) + 3 个 recording rules + 7 类告警规则 + 6 域 `/metrics` HTTP endpoint。
+>
+> **实施位置**:
+> - 代码: `crates/shared-platform/src/{metrics,outbox_relay,outbox_metrics_reporter,metrics_endpoint}.rs` + 6 域 `main.rs` (admin / cluster-ops / economy / match / player / social)
+> - 文档: `docs/02-运维安全与网络/RGS-BAS-004_埋点与日志规范_基本设计书.md` v0.4 §3.4
+> - Prometheus 规则: `docker/observability/prometheus-rules/rgs-outbox-alerts.yaml`
+> - Grafana dashboard: `docker/observability/grafana/dashboards/rgs-outbox-overview.json`
+> - 集成测试: `crates/shared-platform/tests/it_outbox_metrics.rs` (10 scenarios)
+>
+> **Stage 4 (PH-4 实测校准阈值)**: 待 PH-4 启动后由 SRE Lead 执行; 当前 §2 阈值为候选草案, 需 PH-4 实测校准后正式化。
+
+---
+
+# ULYS-56 P2-#2 草案: Outbox 监控指标 (SRE Lead 主导)
+
+> **状态**: 草案 (per ADR-0061 §6 P2-#2)。本文件是**候选监控指标 spec 草案**, 候选主导者 SRE Lead, 候选实施者 架构师 + SRE Lead, 待 ADR-0061 审批通过后正式立项。
+>
+> **依据**: RGS-ADR-0061 §6 P2-#2 (Outbox 监控指标补全)
+>
+> **ULYS-56 工作范围声明**: 本文件由 ULYS-56 worker (agent c557dae5) 2026-09-16 起草, 提供指标候选清单, **不直接修改可观测性体系文档**（RGS-GOBS / RGS-BAS-004 §3.2 指标体系 / NFR-OP-001/003 等级要求）。
+
 # ULYS-56 P2-#2 草案: Outbox 监控指标 (SRE Lead 主导)
 
 > **状态**: 草案 (per ADR-0061 §6 P2-#2)。本文件是**候选监控指标 spec 草案**, 候选主导者 SRE Lead, 候选实施者 架构师 + SRE Lead, 待 ADR-0061 审批通过后正式立项。

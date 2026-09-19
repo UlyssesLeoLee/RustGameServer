@@ -1,0 +1,103 @@
+# Prometheus 告警规则: Outbox 监控 (per ULYS-100 P2-#2 + 06_Outbox监控指标草案.md §2)
+#
+# 部署方式: Prometheus 容器挂载本文件 + prometheus.yml 配 rule_files:
+#   rule_files:
+#     - /etc/prometheus/rules/rgs-outbox-alerts.yaml
+#
+# 4 类告警 + 2 类 recording rules (per §1.3 派生指标):
+# 1. OutboxPendingBacklog     warning   pending > 1000 持续 5min
+# 2. OutboxFailedAccumulating critical  failed > 0 持续 1min (DLQ 介入信号)
+# 3. OutboxLeaseExpiringSoon  warning   lease_lag > 25s 持续 1min (接近 30s 阈值)
+# 4. OutboxPublishFailureRateHigh warning failure_rate_5m > 5% 持续 5min
+
+groups:
+  # ============ Recording rules (§1.3 派生指标) ============
+  - name: rgs_outbox_recording_rules
+    interval: 30s
+    rules:
+      - record: rgs_outbox_publish_success_rate_5m
+        expr: |
+          sum by (service, aggregate_type) (rate(rgs_outbox_relay_publish_total{result="success"}[5m]))
+          /
+          sum by (service, aggregate_type) (rate(rgs_outbox_relay_publish_total[5m]))
+      - record: rgs_outbox_publish_failure_rate_5m
+        expr: 1 - rgs_outbox_publish_success_rate_5m
+      - record: rgs_outbox_oldest_pending_age_seconds
+        expr: time() - rgs_outbox_oldest_pending_created_at_seconds
+
+  # ============ Alert rules (§2 告警阈值) ============
+  - name: rgs_outbox_alerts
+    interval: 30s
+    rules:
+      - alert: OutboxPendingBacklog
+        expr: rgs_outbox_pending_count > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox pending backlog growing on {{ $labels.service }}/{{ $labels.aggregate_type }}"
+          description: "{{ $value }} pending outbox rows; check relay publish rate + downstream consumer health"
+
+      - alert: OutboxFailedAccumulating
+        expr: rgs_outbox_failed_count > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Outbox Failed state accumulating on {{ $labels.service }}/{{ $labels.aggregate_type }}"
+          description: "{{ $value }} failed rows; requires DLQ intervention per ADR-0061 P2-#3 (ULYS-101)"
+
+      - alert: OutboxLeaseExpiringSoon
+        expr: rgs_outbox_inflight_lease_lag_seconds > 25
+        for: 1m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox lease about to expire on {{ $labels.service }}"
+          description: "InFlight lease lag {{ $value }}s; approaching 30s reclaim threshold — check NATS publish latency"
+
+      - alert: OutboxPublishFailureRateHigh
+        expr: rgs_outbox_publish_failure_rate_5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox publish failure rate {{ $value | humanizePercentage }} on {{ $labels.service }}/{{ $labels.aggregate_type }}"
+          description: "Check NATS JetStream connectivity. Per ADR-0061, outbox path is self-developed (no Debezium dependency)."
+
+      - alert: OutboxOldestPendingStale
+        # 最旧 Pending 行年龄 > 5min (per §2 隐含阈值, 业务事件应在秒级内 publish)
+        expr: rgs_outbox_oldest_pending_age_seconds > 300
+        for: 1m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox oldest pending age {{ $value }}s on {{ $labels.service }}"
+          description: "Pending events older than 5min indicate relay congestion or NATS availability issue"
+
+      - alert: OutboxInflightCountHigh
+        # InFlight 持续 > 100 表明 relay 拥塞 (per §1.1 阈值)
+        expr: rgs_outbox_inflight_count > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox InFlight count {{ $value }} on {{ $labels.service }}/{{ $labels.aggregate_type }}"
+          description: "Sustained high in-flight count indicates relay congestion — check poll_cycle_duration p99"
+
+      - alert: OutboxPollCycleSlow
+        # relay 单次轮询 p99 > 5s (per §1.1 阈值)
+        expr: histogram_quantile(0.99, sum by (service, le) (rate(rgs_outbox_relay_poll_cycle_duration_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Outbox relay poll cycle p99 {{ $value }}s on {{ $labels.service }}"
+          description: "Slow poll cycle may indicate DB contention or NATS publish backpressure"

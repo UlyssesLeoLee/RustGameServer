@@ -34,6 +34,7 @@ pub mod messaging;
 pub mod metrics;
 pub mod metrics_endpoint;
 pub mod outbox;
+pub mod outbox_metrics_reporter;
 pub mod outbox_relay;
 pub mod producer;
 pub mod rbac;
@@ -71,6 +72,7 @@ pub use outbox::{
     InMemoryOutboxRepository, OutboxEntry, OutboxError, OutboxRepository, OutboxStatus,
     PgOutboxRepository, MIGRATION_TEMPLATE,
 };
+pub use outbox_metrics_reporter::OutboxMetricsReporter;
 pub use outbox_relay::{OutboxRelay, RelayConfig, RelayStats};
 pub use producer::{MessageEnvelope, Producer, ProducerConfig, ProducerError};
 pub use rbac::{

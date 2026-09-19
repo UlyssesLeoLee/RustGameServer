@@ -83,6 +83,65 @@ pub fn parse(subject: &str) -> Result<(SubjectDomain, String), SubjectError> {
     Ok((domain, parts[2..].join(".")))
 }
 
+/// 从 subject 提取 `aggregate_type`（用于 outbox metrics 标签维度）
+///
+/// **目的**: 06_Outbox监控指标草案.md §1.1 表要求 `rgs_outbox_*_count{service, aggregate_type}`。
+/// 6 域 outbox 表 schema (per 6 份 `0[0-3]X_outbox.sql`) 只有 `subject` 列无 `aggregate_type` 列;
+/// ULYS-102 (P2-#4 Schema Evolution) 负责未来添加 `aggregate_type` 列。当前实现从 subject
+/// 推断:
+/// - 域事件 `rgs.<domain>.<event_type>.<version>` → `<domain>.<event_type>` (例如 `economy.transfer`)
+/// - Saga `rgs.saga.<saga_type>.<event>` → `saga.<saga_type>`
+/// - CEM `rgs.cem.<event_type>` → `cem.<event_type>`
+/// - DLQ `rgs.dlq.<source>` → `dlq`
+/// - 解析失败 → `"unknown"` (避免空 label 触发 Prometheus 异常)
+///
+/// 返回 `'static &str` 借用字面量或 `Cow` 是不可能的 (subject 是运行时字符串), 因此返回
+/// `String`, 在 metrics helper 处 `.as_str()` 借用即可。
+pub fn aggregate_type_of(subject: &str) -> String {
+    let parts: Vec<&str> = subject.split('.').collect();
+    if parts.len() < 3 || parts[0] != "rgs" {
+        return "unknown".to_string();
+    }
+    match parts[1] {
+        // 域事件: aggregate_type = "<domain>.<event_type>" (合并前两段业务含义)
+        // 例: rgs.economy.transfer.v1 → "economy.transfer"
+        // 例: rgs.player.registered.v1 → "player.registered"
+        domain @ ("player" | "economy" | "match" | "social" | "admin" | "cluster_ops") => {
+            if parts.len() >= 3 {
+                format!("{}.{}", domain, parts[2])
+            } else {
+                domain.to_string()
+            }
+        }
+        // Saga: aggregate_type = "saga.<saga_type>"
+        "saga" => {
+            if parts.len() >= 3 {
+                format!("saga.{}", parts[2])
+            } else {
+                "saga".to_string()
+            }
+        }
+        // CEM: aggregate_type = "cem.<event_type>"
+        "cem" => {
+            if parts.len() >= 3 {
+                format!("cem.{}", parts[2])
+            } else {
+                "cem".to_string()
+            }
+        }
+        // DLQ: aggregate_type = "dlq"
+        "dlq" => "dlq".to_string(),
+        // 未知前缀: 兜底
+        other => {
+            if parts.len() >= 3 {
+                format!("{}.{}", other, parts[2])
+            } else {
+                other.to_string()
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,6 +249,52 @@ mod tests {
         assert!(subj.starts_with("rgs.player."));
         let (d, _) = parse(&subj).unwrap();
         assert_eq!(d, SubjectDomain::Domain);
+    }
+
+    // ============ ULYS-100 P2-#2 aggregate_type_of 单元测试 ============
+
+    #[test]
+    fn aggregate_type_of_extracts_domain_event_type() {
+        // 域事件: rgs.<domain>.<event_type>.<version> → "<domain>.<event_type>"
+        assert_eq!(aggregate_type_of("rgs.economy.transfer.v1"), "economy.transfer");
+        assert_eq!(aggregate_type_of("rgs.player.registered.v1"), "player.registered");
+        assert_eq!(aggregate_type_of("rgs.match.matchmake.v1"), "match.matchmake");
+        assert_eq!(aggregate_type_of("rgs.social.friend_added.v1"), "social.friend_added");
+        assert_eq!(aggregate_type_of("rgs.admin.lcm_started.v1"), "admin.lcm_started");
+        assert_eq!(aggregate_type_of("rgs.cluster_ops.health_check.v1"), "cluster_ops.health_check");
+    }
+
+    #[test]
+    fn aggregate_type_of_extracts_saga_event() {
+        // Saga: rgs.saga.<saga_type>.<event> → "saga.<saga_type>"
+        assert_eq!(aggregate_type_of("rgs.saga.transfer.step_completed"), "saga.transfer");
+        assert_eq!(aggregate_type_of("rgs.saga.cancel.reverted"), "saga.cancel");
+    }
+
+    #[test]
+    fn aggregate_type_of_extracts_cem_event() {
+        // CEM: rgs.cem.<event_type> → "cem.<event_type>"
+        assert_eq!(aggregate_type_of("rgs.cem.feature_flag_updated"), "cem.feature_flag_updated");
+    }
+
+    #[test]
+    fn aggregate_type_of_dlq_returns_dlq() {
+        assert_eq!(aggregate_type_of("rgs.dlq.rgs.player.registered.v1"), "dlq");
+    }
+
+    #[test]
+    fn aggregate_type_of_invalid_returns_unknown() {
+        // 解析失败 → "unknown"（避免空 label 触发 Prometheus 异常）
+        assert_eq!(aggregate_type_of(""), "unknown");
+        assert_eq!(aggregate_type_of("not.rgs.subject"), "unknown");
+        assert_eq!(aggregate_type_of("rgs"), "unknown");
+        assert_eq!(aggregate_type_of("rgs.x"), "unknown");
+    }
+
+    #[test]
+    fn aggregate_type_of_unknown_prefix_falls_back() {
+        // 非已知域前缀: 兜底为 "<other>.<event>"
+        assert_eq!(aggregate_type_of("rgs.unknown_namespace.event.v1"), "unknown_namespace.event");
     }
 }
 
