@@ -1152,7 +1152,9 @@ fn validate_character_name(name: &str) -> Result<()> {
     ];
     let lower = name.to_ascii_lowercase();
     for f in FORBIDDEN {
-        if lower == *f || lower.contains(&format!("{} ", f)) || lower.contains(&format!(" {}", f)) {
+        // 包含禁词子串即拒绝 (大小写不敏感) — per ULYS-97 fix
+        // 例: "cool-admin" / "Admin" / "system user" / "i-am-gm-42" 全部拒绝
+        if lower.contains(*f) {
             return Err(Error::Validation(format!(
                 "character name contains forbidden keyword: {}",
                 f

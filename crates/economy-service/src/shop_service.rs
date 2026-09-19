@@ -1789,15 +1789,13 @@ impl ActivityService for ShopServiceImpl {
         if progress_delta < 0 {
             return Err(Error::Validation("progress_delta must be >= 0".to_string()));
         }
-        if self
-            .ledger
-            .find_by_idempotency_key(&idempotency_key)
-            .await?
-            .is_some()
-        {
+        // 幂等检查 (ULYS-97 fix): 用 v3 repo 内的 activity_idempotency_keys,
+        // 而非 ledger — ledger 表 schema 要求 account_id NOT NULL REFERENCES accounts,
+        // 但 activity_progress 是玩家级别操作, 不绑特定账户.
+        let mut repo = self.repo.lock().await;
+        if repo.activity_idempotency_keys.contains(&idempotency_key) {
             return Err(Error::IdempotencyConflict(idempotency_key));
         }
-        let mut repo = self.repo.lock().await;
         let template = repo
             .activity_templates
             .get(&activity_id)
@@ -1817,14 +1815,21 @@ impl ActivityService for ShopServiceImpl {
             .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
         let _ = source; // 预留: source 走 audit log, W42 接入
         state.progress = (state.progress + progress_delta).min(template.max_progress);
+        let new_progress = state.progress;
         let unlocked = tiers
             .iter()
             .find(|t| t.progress_required == state.progress && !state.claimed_tiers.contains(&t.tier))
             .cloned();
+        let new_unlocked_tier = unlocked.as_ref().map(|t| t.tier).unwrap_or(0);
+        let tier_unlocked = unlocked.is_some();
+        // 提交成功后写入 idempotency key (per ULYS-97 fix: 此前只查不写导致重复请求累计进度)
+        // 先 drop state 的 mutable borrow, 再插入 key, 避免 borrow checker 冲突.
+        let _ = state;
+        repo.activity_idempotency_keys.insert(idempotency_key);
         Ok(ActivityProgressOutput {
-            new_progress: state.progress,
-            tier_unlocked: unlocked.is_some(),
-            new_unlocked_tier: unlocked.map(|t| t.tier).unwrap_or(0),
+            new_progress,
+            tier_unlocked,
+            new_unlocked_tier,
         })
     }
 
