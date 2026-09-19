@@ -1,0 +1,508 @@
+=== cargo audit (RUSTSEC) ===
+      Loaded 1244 security advisories (from C:/Users/leo19/.cargo/advisory-db/advisory-db-3157b0e258782691)
+    Scanning Cargo.lock for vulnerabilities (669 crate dependencies)
+Crate:     h2
+Version:   0.3.27
+Title:     h2 unbounded empty DATA frames
+Date:      2026-08-17
+ID:        RUSTSEC-2026-0258
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0258
+Solution:  Upgrade to >=0.4.16
+
+Crate:     protobuf
+Version:   2.28.0
+Title:     Crash due to uncontrolled recursion in protobuf crate
+Date:      2024-12-12
+ID:        RUSTSEC-2024-0437
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0437
+Solution:  Upgrade to >=3.7.2
+
+Crate:     rsa
+Version:   0.9.10
+Title:     Marvin Attack: potential key recovery through timing sidechannels
+Date:      2023-11-22
+ID:        RUSTSEC-2023-0071
+URL:       https://rustsec.org/advisories/RUSTSEC-2023-0071
+Severity:  5.9 (medium)
+Solution:  No fixed upgrade is available!
+
+Crate:     rustls-webpki
+Version:   0.102.8
+Title:     CRLs not considered authoritative by Distribution Point due to faulty matching logic
+Date:      2026-03-20
+ID:        RUSTSEC-2026-0049
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0049
+Solution:  Upgrade to >=0.103.10
+
+Crate:     rustls-webpki
+Version:   0.102.8
+Title:     Name constraints for URI names were incorrectly accepted
+Date:      2026-04-14
+ID:        RUSTSEC-2026-0098
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0098
+Solution:  Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6
+
+Crate:     rustls-webpki
+Version:   0.102.8
+Title:     Name constraints were accepted for certificates asserting a wildcard name
+Date:      2026-04-14
+ID:        RUSTSEC-2026-0099
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0099
+Solution:  Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6
+
+Crate:     rustls-webpki
+Version:   0.102.8
+Title:     Reachable panic in certificate revocation list parsing
+Date:      2026-04-22
+ID:        RUSTSEC-2026-0104
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0104
+Solution:  Upgrade to >=0.103.13, <0.104.0-alpha.1 OR >=0.104.0-alpha.7
+
+Crate:     tokio-tar
+Version:   0.3.1
+Title:     `tokio-tar` parses PAX extended headers incorrectly, allows file smuggling
+Date:      2025-10-21
+ID:        RUSTSEC-2025-0111
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0111
+Solution:  No fixed upgrade is available!
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Wasmtime doesn't fully sandbox all the Windows device filenames
+Date:      2024-11-02
+ID:        RUSTSEC-2024-0438
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0438
+Solution:  Upgrade to >=24.0.2, <25.0.0 OR >=25.0.3, <26.0.0 OR >=26.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Race condition could lead to WebAssembly control-flow integrity and type safety violations
+Date:      2024-10-03
+ID:        RUSTSEC-2024-0439
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0439
+Severity:  2.9 (low)
+Solution:  Upgrade to >=21.0.2, <22.0.0 OR >=22.0.1, <23.0.0 OR >=23.0.3, <24.0.0 OR >=24.0.1, <25.0.0 OR >=25.0.2
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Host panic with `fd_renumber` WASIp1 function
+Date:      2025-07-18
+ID:        RUSTSEC-2025-0046
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0046
+Severity:  3.3 (low)
+Solution:  Upgrade to >=34.0.2 OR >=33.0.2, <34.0.0 OR >=24.0.4, <25.0.0
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Unsound API access to a WebAssembly shared linear memory
+Date:      2025-11-11
+ID:        RUSTSEC-2025-0118
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0118
+Severity:  1.8 (low)
+Solution:  Upgrade to >=38.0.4 OR >=37.0.3, <38.0.0 OR >=36.0.3, <37.0.0 OR >=24.0.5, <25.0.0
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Guest-controlled resource exhaustion in WASI implementations
+Date:      2026-02-24
+ID:        RUSTSEC-2026-0020
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0020
+Severity:  6.9 (medium)
+Solution:  Upgrade to >=24.0.6, <25.0.0 OR >=36.0.6, <37.0.0 OR >=40.0.4, <41.0.0 OR >=41.0.4
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Panic adding excessive fields to a `wasi:http/types.fields` instance
+Date:      2026-02-24
+ID:        RUSTSEC-2026-0021
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0021
+Severity:  6.9 (medium)
+Solution:  Upgrade to >=24.0.6, <25.0.0 OR >=36.0.6, <37.0.0 OR >=40.0.4, <41.0.0 OR >=41.0.4
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Panic when lifting `flags` component value
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0085
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0085
+Severity:  5.6 (medium)
+Solution:  Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Host data leakage with 64-bit tables and Winch
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0086
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0086
+Severity:  2.3 (low)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Wasmtime segfault or unused out-of-sandbox load with `f64x2.splat` operator on Cranelift x86-64
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0087
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0087
+Severity:  4.1 (medium)
+Solution:  Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Data leakage between pooling allocator instances
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0088
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0088
+Severity:  2.3 (low)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Host panic when Winch compiler executes `table.fill`
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0089
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0089
+Severity:  5.9 (medium)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Out-of-bounds write or crash when transcoding component model strings
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0091
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0091
+Severity:  6.1 (medium)
+Solution:  Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Panic when transcoding misaligned component model UTF-16 strings
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0092
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0092
+Severity:  5.9 (medium)
+Solution:  Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Heap OOB read in component model UTF-16 to latin1+utf16 string transcoding
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0093
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0093
+Severity:  6.9 (medium)
+Solution:  Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Improperly masked return value from `table.grow` with Winch compiler backend
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0094
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0094
+Severity:  6.1 (medium)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Wasmtime with Winch compiler backend may allow a sandbox-escaping memory access
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0095
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0095
+Severity:  9 (critical)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Miscompiled guest heap access enables sandbox escape on aarch64 Cranelift
+Date:      2026-04-09
+ID:        RUSTSEC-2026-0096
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0096
+Severity:  9 (critical)
+Solution:  Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Stores can mix up type indices between engines
+Date:      2026-07-31
+ID:        RUSTSEC-2026-0222
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0222
+Severity:  3.8 (low)
+Solution:  Upgrade to >=24.0.12, <25.0.0 OR >=36.0.13, <37.0.0 OR >=46.0.2, <47.0.0 OR >=47.0.3
+
+Crate:     wasmtime
+Version:   19.0.2
+Title:     Filesystem sandbox escape when paths or symlinks contain trailing slashes
+Date:      2026-08-20
+ID:        RUSTSEC-2026-0269
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0269
+Severity:  8.8 (high)
+Solution:  Upgrade to >=24.0.13, <25.0.0 OR >=36.0.14, <37.0.0 OR >=46.0.3, <47.0.0 OR >=47.0.4
+
+Crate:     backoff
+Version:   0.4.0
+Warning:   unmaintained
+Title:     `backoff` is unmaintained.
+Date:      2025-03-04
+ID:        RUSTSEC-2025-0012
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0012
+
+Crate:     bincode
+Version:   1.3.3
+Warning:   unmaintained
+Title:     Bincode is unmaintained
+Date:      2025-12-16
+ID:        RUSTSEC-2025-0141
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0141
+
+Crate:     fxhash
+Version:   0.2.1
+Warning:   unmaintained
+Title:     fxhash - no longer maintained
+Date:      2025-09-05
+ID:        RUSTSEC-2025-0057
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0057
+
+Crate:     instant
+Version:   0.1.13
+Warning:   unmaintained
+Title:     `instant` is unmaintained
+Date:      2024-09-01
+ID:        RUSTSEC-2024-0384
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0384
+
+Crate:     mach
+Version:   0.3.2
+Warning:   unmaintained
+Title:     mach is unmaintained
+Date:      2020-07-14
+ID:        RUSTSEC-2020-0168
+URL:       https://rustsec.org/advisories/RUSTSEC-2020-0168
+
+Crate:     paste
+Version:   1.0.15
+Warning:   unmaintained
+Title:     paste - no longer maintained
+Date:      2024-10-07
+ID:        RUSTSEC-2024-0436
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0436
+
+Crate:     rustls-pemfile
+Version:   2.2.0
+Warning:   unmaintained
+Title:     rustls-pemfile is unmaintained
+Date:      2025-11-28
+ID:        RUSTSEC-2025-0134
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0134
+
+Crate:     wasmtime-jit-debug
+Version:   19.0.2
+Warning:   unsound
+Title:     Dump Undefined Memory by `JitDumpFile`
+Date:      2024-07-06
+ID:        RUSTSEC-2024-0442
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0442
+
+error: 27 vulnerabilities found!
+warning: 8 allowed warnings found
+=== cargo tree -i h2@0.3.27 ===
+h2 v0.3.27
+└── actix-http v3.13.5
+    ├── actix-web v4.15.0
+    │   ├── actix-web-lab v0.24.3
+    │   │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+    │   ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+    │   └── rgs-grpc-bridge v0.1.0 (D:\RustGameServer\tools\rgs-grpc-bridge)
+    └── actix-web-lab v0.24.3 (*)
+
+=== cargo tree -i rsa@0.9.10 ===
+warning: nothing to print.
+
+To find dependencies that require specific target platforms, try to use option `--target all` first, and then narrow your search scope accordingly.
+
+=== cargo tree -i protobuf@2.28.0 ===
+protobuf v2.28.0
+└── prometheus v0.13.4
+    ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+    ├── rgs-asset-download v0.1.0 (D:\RustGameServer\crates\rgs-asset-download)
+    └── shared-platform v0.1.0 (D:\RustGameServer\crates\shared-platform)
+        ├── activity-service v0.1.0 (D:\RustGameServer\crates\activity-service)
+        ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+        │   [dev-dependencies]
+        │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+        ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+        ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+        ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service)
+        │   └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit)
+        │       [dev-dependencies]
+        │       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service) (*)
+        │       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+        │       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+        │       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service) (*)
+        │       ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        │       ├── match-service v0.1.0 (D:\RustGameServer\crates\match-service)
+        │       ├── player-service v0.1.0 (D:\RustGameServer\crates\player-service)
+        │       │   [dev-dependencies]
+        │       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        │       ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+
+=== cargo tree -i rustls-webpki@0.102.8 ===
+rustls-webpki v0.102.8
+└── async-nats v0.42.0
+    ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+    └── shared-platform v0.1.0 (D:\RustGameServer\crates\shared-platform)
+        ├── activity-service v0.1.0 (D:\RustGameServer\crates\activity-service)
+        ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+        │   [dev-dependencies]
+        │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+        ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+        ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+        ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service)
+        │   └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit)
+        │       [dev-dependencies]
+        │       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service) (*)
+        │       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+        │       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+        │       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service) (*)
+        │       ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        │       ├── match-service v0.1.0 (D:\RustGameServer\crates\match-service)
+        │       ├── player-service v0.1.0 (D:\RustGameServer\crates\player-service)
+        │       │   [dev-dependencies]
+        │       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+        │       ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+        │       ├── scene-service v0.1.0 (D:\RustGameServer\crates\scene-service)
+
+=== cargo tree -i wasmtime@19.0.2 ===
+wasmtime v19.0.2
+└── function-plane v0.1.0 (D:\RustGameServer\crates\function-plane)
+    └── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+        [dev-dependencies]
+        └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+
+=== cargo tree -i wasmtime-jit-debug@19.0.2 ===
+wasmtime-jit-debug v19.0.2
+├── wasmtime v19.0.2
+│   └── function-plane v0.1.0 (D:\RustGameServer\crates\function-plane)
+│       └── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+│           [dev-dependencies]
+│           └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+└── wasmtime-runtime v19.0.2
+    └── wasmtime v19.0.2 (*)
+
+=== cargo tree -i backoff@0.4.0 ===
+backoff v0.4.0
+└── shared-platform v0.1.0 (D:\RustGameServer\crates\shared-platform)
+    ├── activity-service v0.1.0 (D:\RustGameServer\crates\activity-service)
+    ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+    │   [dev-dependencies]
+    │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+    ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+    ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+    ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+    ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service)
+    │   └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit)
+    │       [dev-dependencies]
+    │       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service) (*)
+    │       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+    │       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+    │       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service) (*)
+    │       ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+    │       ├── match-service v0.1.0 (D:\RustGameServer\crates\match-service)
+    │       ├── player-service v0.1.0 (D:\RustGameServer\crates\player-service)
+    │       │   [dev-dependencies]
+    │       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+    │       ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+    │       ├── scene-service v0.1.0 (D:\RustGameServer\crates\scene-service)
+    │       └── social-service v0.1.0 (D:\RustGameServer\crates\social-service)
+    │           └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit) (*)
+
+=== cargo tree -i bincode@1.3.3 ===
+bincode v1.3.3
+├── wasmtime v19.0.2
+│   └── function-plane v0.1.0 (D:\RustGameServer\crates\function-plane)
+│       └── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+│           [dev-dependencies]
+│           └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+├── wasmtime-cache v19.0.2
+│   └── wasmtime v19.0.2 (*)
+└── wasmtime-environ v19.0.2
+    ├── wasmtime v19.0.2 (*)
+    ├── wasmtime-cranelift v19.0.2
+    │   └── wasmtime v19.0.2 (*)
+    ├── wasmtime-cranelift-shared v19.0.2
+    │   └── wasmtime-cranelift v19.0.2 (*)
+    └── wasmtime-runtime v19.0.2
+        └── wasmtime v19.0.2 (*)
+
+=== cargo tree -i fxhash@0.2.1 ===
+fxhash v0.2.1
+└── fxprof-processed-profile v0.6.0
+    └── wasmtime v19.0.2
+        └── function-plane v0.1.0 (D:\RustGameServer\crates\function-plane)
+            └── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+                [dev-dependencies]
+                └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+
+=== cargo tree -i instant@0.1.13 ===
+instant v0.1.13
+├── backoff v0.4.0
+│   └── shared-platform v0.1.0 (D:\RustGameServer\crates\shared-platform)
+│       ├── activity-service v0.1.0 (D:\RustGameServer\crates\activity-service)
+│       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+│       │   [dev-dependencies]
+│       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+│       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+│       ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+│       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service)
+│       │   └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit)
+│       │       [dev-dependencies]
+│       │       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service) (*)
+│       │       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+│       │       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+│       │       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service) (*)
+│       │       ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       │       ├── match-service v0.1.0 (D:\RustGameServer\crates\match-service)
+│       │       ├── player-service v0.1.0 (D:\RustGameServer\crates\player-service)
+│       │       │   [dev-dependencies]
+│       │       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       │       ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+│       │       ├── scene-service v0.1.0 (D:\RustGameServer\crates\scene-service)
+│       │       └── social-service v0.1.0 (D:\RustGameServer\crates\social-service)
+
+=== cargo tree -i paste@1.0.15 ===
+paste v1.0.15 (proc-macro)
+├── wasmtime v19.0.2
+│   └── function-plane v0.1.0 (D:\RustGameServer\crates\function-plane)
+│       └── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+│           [dev-dependencies]
+│           └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+└── wasmtime-runtime v19.0.2
+    └── wasmtime v19.0.2 (*)
+
+=== cargo tree -i rustls-pemfile@2.2.0 ===
+rustls-pemfile v2.2.0
+├── async-nats v0.42.0
+│   ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+│   └── shared-platform v0.1.0 (D:\RustGameServer\crates\shared-platform)
+│       ├── activity-service v0.1.0 (D:\RustGameServer\crates\activity-service)
+│       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service)
+│       │   [dev-dependencies]
+│       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+│       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+│       ├── cluster-ops v0.1.0 (D:\RustGameServer\crates\cluster-ops)
+│       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service)
+│       │   └── rgs-testkit v0.1.0 (D:\RustGameServer\crates\rgs-testkit)
+│       │       [dev-dependencies]
+│       │       ├── admin-service v0.1.0 (D:\RustGameServer\crates\admin-service) (*)
+│       │       ├── battle-service v0.1.0 (D:\RustGameServer\crates\battle-service)
+│       │       ├── card-service v0.1.0 (D:\RustGameServer\crates\card-service)
+│       │       ├── economy-service v0.1.0 (D:\RustGameServer\crates\economy-service) (*)
+│       │       ├── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       │       ├── match-service v0.1.0 (D:\RustGameServer\crates\match-service)
+│       │       ├── player-service v0.1.0 (D:\RustGameServer\crates\player-service)
+│       │       │   [dev-dependencies]
+│       │       │   └── gm-backend v0.1.0 (D:\RustGameServer\crates\gm-backend)
+│       │       ├── rgs-overflow-alert v0.1.0 (D:\RustGameServer\crates\rgs-overflow-alert)
+│       │       ├── scene-service v0.1.0 (D:\RustGameServer\crates\scene-service)
+
