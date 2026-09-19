@@ -1,0 +1,1736 @@
+   Compiling block-buffer v0.10.4
+   Compiling getrandom v0.4.3
+   Compiling bytes v1.12.1
+   Compiling parking_lot_core v0.9.12
+   Compiling rand_chacha v0.3.1
+   Compiling prost-derive v0.13.5
+   Compiling tokio v1.53.1
+   Compiling async-stream-impl v0.3.6
+   Compiling chrono v0.4.45
+   Compiling tracing-subscriber v0.3.23
+   Compiling assert-json-diff v2.0.2
+   Compiling predicates v3.1.4
+   Compiling ahash v0.8.12
+   Compiling wasmparser v0.201.0
+   Compiling rand_chacha v0.9.0
+   Compiling zstd-sys v2.1.0+zstd.1.5.7
+   Compiling bincode v1.3.3
+   Compiling wasmtime-fiber v19.0.2
+   Compiling half v2.7.1
+   Compiling clap_builder v4.6.7
+   Compiling wasmtime-runtime v19.0.2
+   Compiling criterion-plot v0.5.0
+   Compiling directories-next v2.0.0
+   Compiling digest v0.10.7
+   Compiling uuid v1.26.1
+   Compiling parking_lot v0.12.5
+   Compiling sha2 v0.10.9
+   Compiling http v1.5.0
+   Compiling rand v0.8.8
+   Compiling hmac v0.12.1
+   Compiling signature v2.2.0
+   Compiling md-5 v0.10.6
+   Compiling futures-intrusive v0.5.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling prometheus v0.13.4
+   Compiling rand v0.9.5
+   Compiling hkdf v0.12.4
+   Compiling tempfile v3.27.0
+   Compiling assert_cmd v2.2.2
+   Compiling http-body v1.1.0
+   Compiling ed25519 v2.2.3
+   Compiling signatory v0.27.1
+   Compiling nuid v0.5.0
+   Compiling http-body-util v0.1.5
+   Compiling tokio-stream v0.1.19
+   Compiling rusty-fork v0.3.1
+   Compiling ed25519-dalek v2.2.0
+   Compiling wasmtime-types v19.0.2
+   Compiling axum-core v0.4.5
+   Compiling wasmprinter v0.201.0
+   Compiling tokio-util v0.7.19
+   Compiling prost v0.13.5
+   Compiling tokio-rustls v0.26.5
+   Compiling async-stream v0.3.6
+   Compiling nkeys v0.4.5
+   Compiling tryhard v0.5.2
+   Compiling sqlx-core v0.8.6
+   Compiling backoff v0.4.0
+   Compiling proptest v1.11.0
+   Compiling hashbrown v0.14.5
+   Compiling hashbrown v0.13.2
+   Compiling prost-types v0.13.5
+   Compiling h2 v0.4.19
+   Compiling tower v0.4.13
+   Compiling opentelemetry_sdk v0.24.1
+   Compiling regalloc2 v0.9.3
+   Compiling async-nats v0.42.0
+   Compiling object v0.32.2
+   Compiling wit-parser v0.201.0
+   Compiling axum v0.7.9
+   Compiling ciborium-ll v0.2.2
+   Compiling ciborium v0.2.2
+   Compiling debugid v0.8.0
+   Compiling clap v4.6.7
+   Compiling addr2line v0.21.0
+   Compiling simple_asn1 v0.6.4
+   Compiling prost-build v0.13.5
+   Compiling hyper v1.11.1
+   Compiling cranelift-codegen v0.106.2
+   Compiling wasmtime-wit-bindgen v19.0.2
+   Compiling wasmtime-environ v19.0.2
+   Compiling wasmtime-jit-debug v19.0.2
+   Compiling tracing-opentelemetry v0.25.0
+   Compiling criterion v0.5.1
+   Compiling fxprof-processed-profile v0.6.0
+   Compiling hyper-util v0.1.20
+   Compiling wasmtime-component-macro v19.0.2
+   Compiling hyper-timeout v0.5.2
+   Compiling mockito v1.7.2
+   Compiling zstd-safe v7.3.0
+   Compiling tonic v0.12.3
+   Compiling zstd v0.13.3
+   Compiling cranelift-frontend v0.106.2
+   Compiling cranelift-native v0.106.2
+   Compiling wasmtime-cranelift-shared v19.0.2
+   Compiling cranelift-wasm v0.106.2
+   Compiling wasmtime-cache v19.0.2
+   Compiling tonic-build v0.12.3
+   Compiling jsonwebtoken v9.3.1
+   Compiling sqlx-postgres v0.8.6
+   Compiling wasmtime-cranelift v19.0.2
+   Compiling opentelemetry-proto v0.7.0
+   Compiling tonic-health v0.12.3
+   Compiling opentelemetry-otlp v0.17.0
+   Compiling shared-platform v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\shared-platform)
+   Compiling economy-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\economy-service)
+   Compiling social-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\social-service)
+   Compiling rgs-testkit v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\rgs-testkit)
+   Compiling match-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\match-service)
+   Compiling replay-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\replay-service)
+   Compiling player-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\player-service)
+   Compiling admin-service v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\admin-service)
+   Compiling wasmtime v19.0.2
+   Compiling sqlx-macros-core v0.8.6
+   Compiling function-plane v0.1.0 (C:\Users\leo19\multica_workspaces_desktop-api.multica.ai\ulysses-ca266aa77e9f\ulys-94-139f365b2591\worktree\crates\function-plane)
+   Compiling sqlx-macros v0.8.6
+   Compiling sqlx v0.8.6
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\match_service.lib 和对象 E:\DevCache\cargo\target\debug\deps\match_service.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\player_service.lib 和对象 E:\DevCache\cargo\target\debug\deps\player_service.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\economy_service.lib 和对象 E:\DevCache\cargo\target\debug\deps\economy_service.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\social_service.lib 和对象 E:\DevCache\cargo\target\debug\deps\social_service.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\admin_service.lib 和对象 E:\DevCache\cargo\target\debug\deps\admin_service.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (bin "player-service") generated 1 warning
+warning: `match-service` (bin "match-service") generated 1 warning
+warning: `social-service` (bin "social-service") generated 1 warning
+warning: `economy-service` (bin "economy-service") generated 1 warning
+warning: `admin-service` (bin "admin-service") generated 1 warning
+warning: type `MockCert` is more private than the item `MockMatchMtlsClient::new`
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:31:5
+   |
+31 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockMatchMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:11:1
+   |
+11 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:12:5
+   |
+11 | struct MockCert {
+   |        -------- field in this struct
+12 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `characters`
+  --> crates\player-service\tests\integration_deck_lifecycle.rs:41:9
+   |
+41 |     let characters = Arc::new(player_service::repository::InMemoryCharacterRepository::new());
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_characters`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `duration_secs` is never read
+  --> crates\match-service\tests\ut_save_replay_saga.rs:32:5
+   |
+27 | struct CapturedRequest {
+   |        --------------- field in this struct
+...
+32 |     duration_secs: u32,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `CapturedRequest` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `set_should_fail` is never used
+  --> crates\match-service\tests\ut_save_replay_saga.rs:60:14
+   |
+47 | impl MockReplayClient {
+   | --------------------- method in this implementation
+...
+60 |     async fn set_should_fail(&self, fail: bool) {
+   |              ^^^^^^^^^^^^^^^
+
+warning: unused variable: `g`
+   --> crates\social-service\src\service.rs:547:13
+    |
+547 |         let g = s
+    |             ^ help: if this is intentional, prefix it with an underscore: `_g`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-b5ddd88678cb8d8c.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-b5ddd88678cb8d8c.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `social-service` (test "ut_e2e_phase_c_marker") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_proto_player_v2-481905424ab9f734.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_proto_player_v2-481905424ab9f734.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: type `MockCert` is more private than the item `MockAdminMtlsClient::new`
+  --> crates\admin-service\tests\mtls_mock_phase_c.rs:28:5
+   |
+28 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockAdminMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\admin-service\tests\mtls_mock_phase_c.rs:8:1
+   |
+ 8 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+ --> crates\admin-service\tests\mtls_mock_phase_c.rs:9:5
+  |
+8 | struct MockCert {
+  |        -------- field in this struct
+9 |     domain: String,
+  |     ^^^^^^
+  |
+  = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `player-service` (test "ut_proto_player_v2") generated 1 warning
+warning: `match-service` (test "mtls_mock_phase_c") generated 2 warnings
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-9cde2432c2d720dd.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-9cde2432c2d720dd.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: type `MockCert` is more private than the item `MockPlayerMtlsClient::new`
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:38:5
+   |
+38 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockPlayerMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:16:1
+   |
+16 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:17:5
+   |
+16 | struct MockCert {
+   |        -------- field in this struct
+17 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `match-service` (test "ut_e2e_phase_c_marker") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_deck_share_lifecycle-53029ea561ac387e.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_deck_share_lifecycle-53029ea561ac387e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_player_profile_update_chain-d2b6c013655282d0.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_player_profile_update_chain-d2b6c013655282d0.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_guild_capacity_boundary-9e56e55c8e379435.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_guild_capacity_boundary-9e56e55c8e379435.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_deck_lifecycle-83b8ce4c14da69bc.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_deck_lifecycle-83b8ce4c14da69bc.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_guild_lifecycle-62694382918bdcdf.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_guild_lifecycle-62694382918bdcdf.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (test "integration_deck_share_lifecycle") generated 1 warning
+warning: `player-service` (test "integration_player_profile_update_chain") generated 1 warning
+warning: `player-service` (test "integration_deck_lifecycle") generated 2 warnings (run `cargo fix --test "integration_deck_lifecycle" -p player-service` to apply 1 suggestion)
+warning: `social-service` (test "integration_guild_lifecycle") generated 1 warning
+warning: `social-service` (test "integration_guild_capacity_boundary") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-37a867de888657ac.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-37a867de888657ac.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_push_delivery_atomicity-f1deb2d21d7432bb.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_push_delivery_atomicity-f1deb2d21d7432bb.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_trade_saga-f89528ea2b566858.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_trade_saga-f89528ea2b566858.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_save_replay_saga-79fe02d8ee4c951e.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_save_replay_saga-79fe02d8ee4c951e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_inbox_dedup_under_restart-9d9ca72ff52dbe74.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_inbox_dedup_under_restart-9d9ca72ff52dbe74.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_match_session-4c9a21a18065828b.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_match_session-4c9a21a18065828b.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (test "mtls_mock_phase_c") generated 2 warnings
+warning: `admin-service` (test "mtls_mock_phase_c") generated 2 warnings
+warning: `player-service` (test "ut_e2e_phase_c_marker") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\admin_service-d85b64fd1466ee7f.lib 和对象 E:\DevCache\cargo\target\debug\deps\admin_service-d85b64fd1466ee7f.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_reservation_under_concurrent_saga-d2f8685219d1f61e.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_reservation_under_concurrent_saga-d2f8685219d1f61e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\span_assertion-b028b0db57bc9c06.lib 和对象 E:\DevCache\cargo\target\debug\deps\span_assertion-b028b0db57bc9c06.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `admin-service` (bin "admin-service" test) generated 1 warning
+warning: `economy-service` (test "integration_inbox_dedup_under_restart") generated 1 warning
+warning: `match-service` (test "ut_save_replay_saga") generated 3 warnings
+warning: `match-service` (test "integration_match_session") generated 1 warning
+warning: `social-service` (test "integration_push_delivery_atomicity") generated 1 warning
+warning: `economy-service` (test "integration_trade_saga") generated 1 warning
+warning: `economy-service` (test "span_assertion") generated 1 warning
+warning: `economy-service` (test "integration_reservation_under_concurrent_saga") generated 1 warning
+warning: type `MockCert` is more private than the item `MockEconomyMtlsClient::new`
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:32:5
+   |
+32 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockEconomyMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:11:1
+   |
+11 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:12:5
+   |
+11 | struct MockCert {
+   |        -------- field in this struct
+12 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_session_expiry-a17384284f7e2c29.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_session_expiry-a17384284f7e2c29.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_matchmaker-419574e3d0a12148.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_matchmaker-419574e3d0a12148.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-49c2c5cd72373102.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-49c2c5cd72373102.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_match_end_to_replay_persist-e6e8f1c3210ca272.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_match_end_to_replay_persist-e6e8f1c3210ca272.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `economy-service` (test "ut_e2e_phase_c_marker") generated 1 warning
+warning: `match-service` (test "ut_matchmaker") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_matchmaker_tolerance_window-af2302f6608d7c7e.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_matchmaker_tolerance_window-af2302f6608d7c7e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (test "integration_session_expiry") generated 1 warning
+warning: `match-service` (test "integration_match_end_to_replay_persist") generated 1 warning
+warning: `match-service` (test "integration_matchmaker_tolerance_window") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_proto_match_v2-e9026db091ab47b8.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_proto_match_v2-e9026db091ab47b8.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_match_basic-202c82374b3f6344.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_match_basic-202c82374b3f6344.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: variable does not need to be mutable
+   --> crates\admin-service\src\repository.rs:684:13
+    |
+684 |         let mut u_active = AdminUser::new(
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\chaos_reservation-2a16ba4d00f95a25.lib 和对象 E:\DevCache\cargo\target\debug\deps\chaos_reservation-2a16ba4d00f95a25.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `match-service` (test "ut_proto_match_v2") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_reservation-0516aa74373137a1.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_reservation-0516aa74373137a1.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_player_basic-36771dac0e84939a.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_player_basic-36771dac0e84939a.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `match-service` (test "integration_match_basic") generated 1 warning
+warning: `economy-service` (test "chaos_reservation") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-86f6f386db3ace33.lib 和对象 E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-86f6f386db3ace33.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (test "integration_player_basic") generated 1 warning
+warning: `economy-service` (test "integration_reservation") generated 1 warning
+warning: type `MockCert` is more private than the item `MockSocialMtlsClient::new`
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:51:5
+   |
+51 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockSocialMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:31:1
+   |
+31 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:32:5
+   |
+31 | struct MockCert {
+   |        -------- field in this struct
+32 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `admin-service` (test "ut_e2e_phase_c_marker") generated 1 warning
+warning: `economy-service` (test "mtls_mock_phase_c") generated 2 warnings
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\player_service-6b4170daa0758abc.lib 和对象 E:\DevCache\cargo\target\debug\deps\player_service-6b4170daa0758abc.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_audit_log_chain_under_restart-e3b069992d94774a.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_audit_log_chain_under_restart-e3b069992d94774a.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_outbox-3fec9a3013c1be59.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_outbox-3fec9a3013c1be59.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_admin_basic-d18cd9b6e1653091.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_admin_basic-d18cd9b6e1653091.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\chaos_admin_command_failure_rollback-928c79928f2b0c71.lib 和对象 E:\DevCache\cargo\target\debug\deps\chaos_admin_command_failure_rollback-928c79928f2b0c71.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `player-service` (lib test) generated 1 warning
+warning: `economy-service` (test "integration_outbox") generated 1 warning
+warning: `admin-service` (test "integration_audit_log_chain_under_restart") generated 1 warning
+warning: `admin-service` (test "integration_admin_basic") generated 1 warning
+warning: `admin-service` (test "chaos_admin_command_failure_rollback") generated 1 warning
+warning: `social-service` (test "mtls_mock_phase_c") generated 2 warnings
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\chaos_trade_saga_compensation-08b454ff519c18df.lib 和对象 E:\DevCache\cargo\target\debug\deps\chaos_trade_saga_compensation-08b454ff519c18df.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_match_session_to_replay-80a772ab72706151.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_match_session_to_replay-80a772ab72706151.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_trade_lifecycle-02fc59cf82a33c00.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_trade_lifecycle-02fc59cf82a33c00.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\social_service-91ffcbe872bdd83e.lib 和对象 E:\DevCache\cargo\target\debug\deps\social_service-91ffcbe872bdd83e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_social_basic-ebfd1837f6d587e9.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_social_basic-ebfd1837f6d587e9.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_outbox_atomicity-21a14a49bf627d2a.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_outbox_atomicity-21a14a49bf627d2a.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `economy-service` (test "integration_trade_lifecycle") generated 1 warning
+warning: `economy-service` (test "chaos_trade_saga_compensation") generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\integration_gm_command_permission_chain-51347fce23fed091.lib 和对象 E:\DevCache\cargo\target\debug\deps\integration_gm_command_permission_chain-51347fce23fed091.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `match-service` (test "integration_match_session_to_replay") generated 1 warning
+warning: `social-service` (test "integration_social_basic") generated 1 warning
+warning: `economy-service` (test "integration_outbox_atomicity") generated 1 warning
+warning: `admin-service` (test "integration_gm_command_permission_chain") generated 1 warning
+warning: `social-service` (lib test) generated 2 warnings (run `cargo fix --lib -p social-service --tests` to apply 1 suggestion)
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\match_service-d6ecd654227b09c2.lib 和对象 E:\DevCache\cargo\target\debug\deps\match_service-d6ecd654227b09c2.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\it_save_replay_saga-73ff98603205dcbf.lib 和对象 E:\DevCache\cargo\target\debug\deps\it_save_replay_saga-73ff98603205dcbf.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\economy_service-b17bf585a716104e.lib 和对象 E:\DevCache\cargo\target\debug\deps\economy_service-b17bf585a716104e.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `match-service` (lib test) generated 1 warning
+warning: `match-service` (test "it_save_replay_saga") generated 1 warning
+warning: `economy-service` (lib test) generated 1 warning
+warning: linker stdout: 正在创建库 E:\DevCache\cargo\target\debug\deps\admin_service-a81081fa896c4861.lib 和对象 E:\DevCache\cargo\target\debug\deps\admin_service-a81081fa896c4861.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `admin-service` (lib test) generated 2 warnings (run `cargo fix --lib -p admin-service --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10m 48s
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\admin_service-a81081fa896c4861.exe)
+
+running 120 tests
+test db::tests::sqlx_tracing_sample_ratio_default ... ok
+test gm_handlers::tests::action_target_domain_mapping ... ok
+test db::tests::sqlx_tracing_sample_ratio_valid ... ok
+test error::tests::coc_role_required_to_permission_denied ... ok
+test entity::tests::admin_user_can_admin_domain ... ok
+test entity::tests::compute_hash_separator_independence ... ok
+test error::tests::admin_session_expired_to_unauthenticated ... ok
+test error::tests::audit_log_tamper_to_internal ... ok
+test error::tests::cem_publish_failed_to_unavailable ... ok
+test gm_handlers::tests::rbac_action_target_domain_complete_coverage ... ok
+test error::tests::invalid_credentials_to_unauthenticated ... ok
+test gm_handlers::tests::rbac_auditor_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_auditor_cannot_grant_economy ... ok
+test gm_handlers::tests::rbac_auditor_cannot_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_auditor_with_domain_scope_still_rejected ... ok
+test entity::tests::audit_log_hash_chain_changes ... ok
+test gm_handlers::tests::rbac_disabled_domain_admin_session_expired_precedes_scope ... ok
+test gm_handlers::tests::rbac_disabled_admin_returns_session_expired ... ok
+test gm_handlers::tests::rbac_domain_admin_cluster_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_domain_admin_cluster_can_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_domain_admin_cluster_cannot_grant_economy ... ok
+test gm_handlers::tests::rbac_domain_admin_case_mismatch_rejected ... ok
+test gm_handlers::tests::rbac_domain_admin_economy_cannot_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_domain_admin_economy_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_domain_admin_economy_can_grant_economy ... ok
+test gm_handlers::tests::rbac_domain_admin_match_can_kick_match ... ok
+test gm_handlers::tests::rbac_domain_admin_match_cannot_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_domain_admin_match_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_domain_admin_match_cannot_dissolve_guild ... ok
+test gm_handlers::tests::rbac_domain_admin_match_can_end_match ... ok
+test gm_handlers::tests::rbac_domain_admin_player_can_ban_player ... ok
+test gm_handlers::tests::rbac_domain_admin_player_cannot_grant_economy ... ok
+test gm_handlers::tests::rbac_domain_admin_social_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_domain_admin_player_cannot_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_domain_admin_social_can_promote_guild ... ok
+test gm_handlers::tests::rbac_domain_admin_social_can_dissolve_guild ... ok
+test gm_handlers::tests::rbac_domain_admin_social_cannot_grant_economy ... ok
+test gm_handlers::tests::rbac_domain_admin_with_empty_string_scope_rejects_all ... ok
+test gm_handlers::tests::rbac_domain_admin_with_none_scope_rejects_all ... ok
+test gm_handlers::tests::rbac_same_admin_multi_action_sequence_domain_admin_player ... ok
+test gm_handlers::tests::rbac_same_admin_multi_action_sequence_super_admin ... ok
+test gm_handlers::tests::rbac_session_expired_precedes_rbac_check ... ok
+test gm_handlers::tests::rbac_super_admin_can_grant_economy ... ok
+test gm_handlers::tests::rbac_super_admin_can_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_super_admin_can_ban_player ... ok
+test gm_handlers::tests::rbac_support_cannot_ban_player ... ok
+test gm_handlers::tests::rbac_super_admin_passes_all_eleven_actions ... ok
+test gm_handlers::tests::rbac_support_cannot_grant_economy ... ok
+test gm_handlers::tests::rbac_support_cannot_set_cluster_maintenance ... ok
+test gm_handlers::tests::rbac_support_with_domain_scope_still_rejected ... ok
+test gm_handlers::tests::rbac_unknown_action_super_admin_passes_others_rejected ... ok
+test gm_handlers::tests::test_coc_decision_serde_snake_case ... ok
+test gm_handlers::tests::test_gm_handler_state_new_coc_policy_none ... ok
+test lcm::schema::tests::lcm_step_execution_attempt_count_increments_on_retry ... ok
+test lcm::schema::tests::lcm_step_execution_factory_default_ttl_24h ... ok
+test lcm::schema::tests::lcm_step_execution_failure_records_error ... ok
+test lcm::schema::tests::lcm_step_execution_skipped_for_upstream_failure ... ok
+test lcm::schema::tests::lcm_step_execution_state_machine_lifecycle ... ok
+test lcm::schema::tests::lcm_step_status_as_str_round_trip ... ok
+test pfau::tests::aborted_is_terminal ... ok
+test pfau::tests::canary_ack_all_acked_only_when_total_acked ... ok
+test gm_handlers::tests::test_gm_handler_state_with_coc_policy_some ... ok
+test pfau::tests::completed_is_terminal ... ok
+test pfau::tests::canary_in_progress_can_pause ... ok
+test pfau::tests::canary_ack_zero_total_is_not_all_acked ... ok
+test pfau::tests::declared_can_advance_to_canary_in_progress ... ok
+test pfau::tests::declared_cannot_jump_to_completed ... ok
+test pfau::tests::observing_can_complete ... ok
+test pfau::tests::observing_can_return_to_canary_in_progress ... ok
+test pfau::tests::paused_can_retry_rollback_abort ... ok
+test pfau::tests::rolling_back_can_complete ... ok
+test repository::tests::in_memory_audit_find_by_id_unknown_returns_none ... ok
+test repository::tests::in_memory_admin_user_crud ... ok
+test repository::tests::in_memory_disable_unknown_id_returns_false ... ok
+test repository::tests::in_memory_list_active_excludes_disabled ... ok
+test repository::tests::run_startup_verify_empty_repo_verified_zero ... ok
+test repository::tests::startup_verify_outcome_pattern_match ... ok
+test repository::tests::run_startup_verify_tamper_reason_carries_descriptive_text ... ok
+test repository::tests::verify_chain_ascending_empty_slice ... ok
+test repository::tests::verify_chain_ascending_single_entry_anchor_mismatch ... ok
+test repository::tests::verify_chain_ascending_single_entry_anchor_match ... ok
+test repository::tests::verify_chain_ascending_two_entries_continuous_chain ... ok
+test repository::tests::verify_chain_ascending_two_entries_second_prev_hash_tampered ... ok
+test repository::tests::verify_recent_empty_repo_returns_ok_with_zero ... ok
+test repository::tests::verify_recent_single_entry_window ... ok
+test repository::tests::verify_report_is_ok_semantics ... ok
+test repository::tests::verify_recent_zero_window_returns_empty_ok ... ok
+test entity::tests::compute_hash_collision_resistance_basic ... ok
+test service::tests::audit_log_accepts_any_actor_system_level_write ... ok
+test service::tests::authenticate_unknown_user_returns_invalid_credentials ... ok
+test service::tests::authenticate_wrong_password ... ok
+test repository::tests::run_startup_verify_three_outcomes ... ok
+test service::tests::create_admin_rejects_empty_password_hash ... ok
+test service::tests::create_admin_rejects_empty_username ... ok
+test service::tests::create_and_authenticate_admin ... ok
+test service::tests::disable_admin ... ok
+test service::tests::disable_admin_unknown_id_returns_not_found ... ok
+test service::tests::duplicate_admin_username_conflict ... ok
+test entity::proptests::support_never_can_admin ... ok
+test service::tests::disabled_admin_cannot_authenticate ... ok
+test service::tests::health_check ... ok
+test service::tests::rbac_matrix_full_table ... ok
+test repository::tests::in_memory_audit_log_latest ... ok
+test entity::proptests::auditor_never_can_admin ... ok
+test entity::proptests::domain_admin_without_scope_denies_all ... ok
+test repository::tests::in_memory_list_by_actor_filters_and_sorts ... ok
+test repository::proptests::username_lookup_exact_match ... ok
+test service::tests::audit_log_chains ... ok
+test entity::proptests::super_admin_can_admin_any_domain ... ok
+test repository::tests::verify_recent_n_larger_than_total ... ok
+test service::tests::audit_log_atomic_latest_append ... ok
+test entity::proptests::domain_admin_matches_only_its_scope ... ok
+test service::proptests::create_admin_rejects_empty_username_any_role ... ok
+test repository::tests::verify_recent_detects_chain_break ... ok
+test repository::tests::verify_recent_returns_ok_for_clean_chain ... ok
+test service::proptests::duplicate_username_always_conflicts ... ok
+test service::proptests::audit_log_chain_strict_ordering ... ok
+test entity::proptests::hash_length_invariant ... ok
+test entity::proptests::prev_hash_changes_propagate ... ok
+test repository::proptests::latest_returns_max_created_at ... ok
+
+test result: ok. 120 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
+
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\admin_service-d85b64fd1466ee7f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\chaos_admin_command_failure_rollback.rs (E:\DevCache\cargo\target\debug\deps\chaos_admin_command_failure_rollback-928c79928f2b0c71.exe)
+
+running 4 tests
+test happy_path_no_failure_audit_chain_and_state_correct ... ok
+test audit_append_failure_rolls_back_entire_gm_command ... ok
+test external_side_effect_failure_triggers_compensation ... ok
+test chaos_random_failure_positions_all_rolled_back ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fail_closed_start.rs (E:\DevCache\cargo\target\debug\deps\fail_closed_start-3b9f450b2b905278.exe)
+
+running 1 test
+test admin_service_fail_closed_when_tls_dir_invalid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.26s
+
+     Running tests\integration_admin_basic.rs (E:\DevCache\cargo\target\debug\deps\integration_admin_basic-d18cd9b6e1653091.exe)
+
+running 3 tests
+test outbox_check_constraint_rejects_invalid_status ... FAILED
+test admin_fixture_builder_customizes_action_and_target ... FAILED
+test admin_fixture_creates_audit_log_in_real_pg ... FAILED
+
+failures:
+
+---- outbox_check_constraint_rejects_invalid_status stdout ----
+
+thread 'outbox_check_constraint_rejects_invalid_status' (49912) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:261:14:
+failed to apply migrations: ExecuteMigration(Database(PgDatabaseError { severity: Error, code: "42P01", message: "relation \"realm_lifecycle_run\" does not exist", detail: None, hint: None, position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("namespace.c"), line: Some(434), routine: Some("RangeVarGetRelidExtended") }), 5)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- admin_fixture_builder_customizes_action_and_target stdout ----
+
+thread 'admin_fixture_builder_customizes_action_and_target' (43048) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:261:14:
+failed to apply migrations: ExecuteMigration(Database(PgDatabaseError { severity: Error, code: "42P01", message: "relation \"realm_lifecycle_run\" does not exist", detail: None, hint: None, position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("namespace.c"), line: Some(434), routine: Some("RangeVarGetRelidExtended") }), 5)
+
+---- admin_fixture_creates_audit_log_in_real_pg stdout ----
+
+thread 'admin_fixture_creates_audit_log_in_real_pg' (12392) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:261:14:
+failed to apply migrations: ExecuteMigration(Database(PgDatabaseError { severity: Error, code: "42P01", message: "relation \"realm_lifecycle_run\" does not exist", detail: None, hint: None, position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("namespace.c"), line: Some(434), routine: Some("RangeVarGetRelidExtended") }), 5)
+
+
+failures:
+    admin_fixture_builder_customizes_action_and_target
+    admin_fixture_creates_audit_log_in_real_pg
+    outbox_check_constraint_rejects_invalid_status
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+
+error: test failed, to rerun pass `-p admin-service --test integration_admin_basic`
+     Running tests\integration_audit_log_chain_under_restart.rs (E:\DevCache\cargo\target\debug\deps\integration_audit_log_chain_under_restart-e3b069992d94774a.exe)
+
+running 8 tests
+test startup_verify_report_fields_observable ... ok
+test tampered_audit_entry_fails_hash_recomputation ... ok
+test startup_verify_detects_tamper_after_restart ... ok
+test startup_verify_after_restart_with_new_append ... ok
+test startup_verify_clean_chain_returns_verified ... ok
+test hash_chain_preserved_across_process_restart ... ok
+test baseline_50_audit_entries_form_continuous_hash_chain ... ok
+test startup_verify_incremental_n_limits_checked_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_e2e_phase_c.rs (E:\DevCache\cargo\target\debug\deps\integration_e2e_phase_c-49ae4868918afce2.exe)
+
+running 2 tests
+test e2e_admin_audit_log_marker ... ok
+test e2e_admin_phase_c_marker ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_gm_command_permission_chain.rs (E:\DevCache\cargo\target\debug\deps\integration_gm_command_permission_chain-51347fce23fed091.exe)
+
+running 7 tests
+test handler_rbac_full_matrix_3_roles_x_3_actions ... ok
+test disabled_admin_cannot_issue_any_gm_command ... ok
+test support_admin_ban_rejected_then_promoted_retry_succeeds ... ok
+test handler_rbac_rejection_does_not_write_audit_log ... ok
+test domain_admin_player_only_can_ban_player_not_grant_economy ... ok
+test handler_rbac_passes_preserve_audit_hash_chain ... ok
+test super_admin_can_issue_commands_across_all_domains ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\mtls_mock_phase_c.rs (E:\DevCache\cargo\target\debug\deps\mtls_mock_phase_c-6c403ea43b3eb1c4.exe)
+
+running 3 tests
+test tests::mtls_admin_handshake_success ... ok
+test tests::mtls_admin_handshake_invalid_fingerprint ... ok
+test tests::mtls_admin_handshake_subject_mismatch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_e2e_phase_c_marker.rs (E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-86f6f386db3ace33.exe)
+
+running 1 test
+test ut_e2e_admin_phase_c_marker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_second_review_sql.rs (E:\DevCache\cargo\target\debug\deps\ut_second_review_sql-5f7e9041794db65c.exe)
+
+running 5 tests
+test ut_second_review_columns ... ok
+test ut_second_review_index ... ok
+test ut_second_review_table_exists ... ok
+test ut_second_review_status_default ... ok
+test ut_function_registry_table_columns ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\economy_service-b17bf585a716104e.exe)
+
+running 156 tests
+test db::tests::sqlx_tracing_sample_ratio_default ... ok
+test db::tests::sqlx_tracing_sample_ratio_invalid_falls_back ... ok
+test db::tests::sqlx_tracing_sample_ratio_valid_range ... ok
+test entity::tests::account_credit_debit ... ok
+test entity::tests::account_new_defaults ... ok
+test entity::tests::ledger_idempotency_key_required ... ok
+test error::tests::currency_not_found_to_not_found ... ok
+test error::tests::account_frozen_to_permission_denied ... ok
+test error::tests::idempotency_conflict_to_already_exists ... ok
+test error::tests::occ_conflict_to_aborted ... ok
+test reservation::tests::reservation_default_expiry ... ok
+test error::tests::insufficient_funds_to_failed_precondition ... ok
+test inbox::tests::in_memory_inbox_idempotency ... ok
+test reservation::tests::list_by_saga ... ok
+test repository::tests::in_memory_ledger_idempotency ... ok
+test error::tests::saga_failed_to_aborted ... ok
+test reservation::tests::in_memory_reservation_lifecycle ... ok
+test repository::tests::in_memory_account_occ ... ok
+test saga::tests::in_memory_saga_list_running ... ok
+test saga::tests::in_memory_saga_find_by_command_id ... ok
+test saga::tests::in_memory_saga_save_and_find ... ok
+test inbox::tests::in_memory_inbox_different_handlers_independent ... ok
+test saga::tests::saga_lifecycle ... ok
+test saga_orchestrator::tests::confirm_handler_marks_reservation_consumed ... ok
+test saga_orchestrator::tests::execute_simple_saga_completes ... ok
+test saga_orchestrator::tests::compensate_releases_reservation_and_refunds ... ok
+test saga_orchestrator::tests::compete_recovery_after_handler_crash_retries_handler ... ok
+test saga_orchestrator::tests::reserve_handler_cleans_reservation_on_load_account_failure_not_found ... ok
+test saga_orchestrator::tests::orchestrator_compensate_passes_resource_id_to_handler ... ok
+test saga_orchestrator::tests::reserve_handler_cleans_reservation_on_load_account_failure_frozen ... ok
+test saga_orchestrator::tests::reserve_handler_cleans_reservation_on_occ_failure ... ok
+test saga_orchestrator::tests::reserve_handler_debits_account_atomically ... ok
+test saga_orchestrator::tests::reserve_handler_occ_fail_then_success_does_not_over_cleanup ... ok
+test saga_orchestrator::tests::reserve_handler_persists_reservation ... ok
+test saga_orchestrator::tests::reserve_handler_rejects_insufficient_funds ... ok
+test saga_orchestrator::tests::resume_failed_saga_returns_validation_err ... ok
+test saga_orchestrator::tests::resume_nonexistent_saga_returns_not_found ... ok
+test saga_orchestrator::tests::resume_compensating_saga_does_not_double_refund_with_real_handlers ... ok
+test saga_orchestrator::tests::resume_aborted_saga_returns_validation_err ... ok
+test saga_orchestrator::tests::resume_completed_saga_returns_validation_err ... ok
+test saga_orchestrator::tests::resume_pending_saga_starts_and_advances ... ok
+test saga_orchestrator::tests::resume_running_saga_continues_current_step ... ok
+test reservation::tests::proptests::reservation_state_machine_terminal_states ... ok
+test service::tests::apply_atomic_with_reservation_insufficient_funds_cleans_reservation ... ok
+test saga_orchestrator::tests::saga_full_lifecycle_with_real_handlers ... ok
+test saga::tests::proptests::current_returns_none_when_index_out_of_range ... ok
+test service::tests::apply_atomic_with_reservation_occ_conflict_cleans_reservation ... ok
+test service::tests::apply_atomic_with_reservation_persists_all_three ... ok
+test service::tests::apply_atomic_with_reservation_rejects_non_positive_amount ... ok
+test service::tests::credit_idempotency_conflict ... ok
+test service::tests::credit_increases_balance ... ok
+test service::tests::debit_atomic_balance_and_ledger ... ok
+test service::tests::health_check ... ok
+test service::tests::freeze_account ... ok
+test service::tests::debit_insufficient_funds ... ok
+test shop_service_tests::tests::activity_get_by_type_filters_holiday ... ok
+test shop_service_tests::tests::activity_count_unclaimed_tiers_starts_at_zero ... ok
+test shop_service_tests::tests::activity_list_returns_seeded_holiday_templates ... ok
+test shop_service_tests::tests::activity_claim_rewards_tier_and_marks_claimed ... ok
+test shop_service_tests::tests::activity_get_active_holiday_count_returns_seeded_count ... ok
+test shop_service_tests::tests::activity_progress_increments_and_unlocks_tier ... FAILED
+test shop_service_tests::tests::activity_subscribe_records_notification_channel ... ok
+test shop_service_tests::tests::activity_template_returns_player_progress ... ok
+test shop_service_tests::tests::activity_template_serializes ... ok
+test shop_service_tests::tests::data_driven_activity_type_covers_9_holiday_variants ... ok
+test shop_service_tests::tests::exchange_do_deducts_points_and_returns_limit ... ok
+test shop_service_tests::tests::gift_code_query_returns_not_exists ... ok
+test shop_service_tests::tests::exchange_do_insufficient_points ... ok
+test shop_service_tests::tests::gift_code_query_returns_metadata ... ok
+test shop_service_tests::tests::exchange_do_shop_not_found ... ok
+test shop_service_tests::tests::exchange_list_returns_items_and_points ... ok
+test shop_service_tests::tests::gift_code_redeem_expired ... ok
+test shop_service_tests::tests::gift_code_redeem_already_used_by_player ... ok
+test shop_service_tests::tests::gift_code_redeem_max_uses_reached ... ok
+test shop_service_tests::tests::gift_code_redeem_not_found ... ok
+test shop_service_tests::tests::loot_claim_batch_not_found ... ok
+test shop_service_tests::tests::gift_code_redeem_success ... ok
+test shop_service_tests::tests::loot_roll_empty_table_rejected ... ok
+test shop_service_tests::tests::loot_claim_marks_batch_claimed ... ok
+test shop_service_tests::tests::loot_roll_table_not_found ... ok
+test shop_service_tests::tests::nine_holiday_seed_templates_returns_9_variants ... ok
+test shop_service_tests::tests::point_shop_buy_deducts_points ... ok
+test shop_service_tests::tests::mystery_shop_list_returns_items_when_unlocked ... ok
+test shop_service_tests::tests::shop_buy_idempotency_conflict ... ok
+test shop_service_tests::tests::mystery_shop_list_shop_not_found ... ok
+test shop_service_tests::tests::shop_buy_item_not_found ... ok
+test shop_service_tests::tests::point_shop_list_filters_by_point_type ... ok
+test shop_service_tests::tests::loot_roll_weighted_random ... ok
+test shop_service_tests::tests::shop_buy_quantity_zero_rejected ... ok
+test shop_service_tests::tests::shop_buy_insufficient_funds ... ok
+test shop_service_tests::tests::seed_9_holiday_templates_inserts_into_repo ... ok
+test shop_service_tests::tests::mystery_shop_list_locked_returns_forbidden ... ok
+test shop_service_tests::tests::shop_buy_stock_exhausted ... ok
+test shop_service_tests::tests::shop_buy_deducts_gold_and_records ... ok
+test trade_entity::tests::auction_new_defaults ... ok
+test trade_entity::tests::auction_status_round_trip ... ok
+test shop_service_tests::tests::shop_record_filters_by_player ... ok
+test saga::tests::proptests::compensate_only_marks_completed_steps ... ok
+test trade_entity::tests::auction_valid_bid ... ok
+test shop_service_tests::tests::stub_apis_return_unimplemented ... ok
+test shop_service_tests::tests::wish_draw_stub_unimplemented ... ok
+test trade_repository::tests::in_memory_list_by_player ... ok
+test trade_repository::tests::in_memory_list_active ... ok
+test trade_entity::tests::private_trade_new ... ok
+test trade_repository::tests::in_memory_list_expired_active ... ok
+test trade_repository::tests::in_memory_save_and_find ... ok
+test trade_repository::tests::in_memory_update_auction_status ... ok
+test trade_repository::tests::in_memory_private_trade_save_update ... ok
+test trade_saga::tests::ut_bid_auction_saga_outbid_refund ... ok
+test trade_saga::tests::ut_bid_auction_saga_insufficient_funds ... ok
+test trade_saga::tests::ut_execute_auction_saga_finalize_failure ... ok
+test trade_saga::tests::ut_execute_auction_saga_happy ... ok
+test trade_saga::tests::ut_open_pack_saga_generate_failure_compensates ... ok
+test trade_saga::tests::ut_open_pack_saga_happy ... ok
+test trade_saga_clients::tests::mock_card_add_records_call ... ok
+test trade_saga::tests::ut_open_pack_saga_insufficient_funds ... ok
+test trade_saga_clients::tests::mock_card_generate_returns_drop_result ... ok
+test trade_saga_clients::tests::mock_card_fail_next_propagates ... ok
+test trade_saga_clients::tests::mock_trade_lock_records ... ok
+test trade_saga::tests::ut_bid_auction_saga_happy ... ok
+test trade_saga_clients::tests::mock_trade_transfer_records ... ok
+test trade_service::tests::bid_auction_happy_path ... ok
+test trade_service::tests::bid_auction_below_min ... ok
+test trade_service::tests::bid_auction_idempotency ... ok
+test trade_service::tests::bid_auction_outbid_refund ... ok
+test trade_service::tests::bid_auction_seller_cannot_bid ... ok
+test trade_service::tests::bid_auction_insufficient_funds ... ok
+test trade_service::tests::cancel_auction_happy_path ... ok
+test trade_service::tests::cancel_auction_only_seller ... ok
+test trade_service::tests::create_auction_happy_path ... ok
+test trade_service::tests::create_auction_invalid_inputs ... ok
+test trade_service::tests::list_and_history ... ok
+test trade_service::tests::ut_bid_auction_invalid_zero_amount ... ok
+test trade_service::tests::ut_cancel_auction_happy_no_bids ... ok
+test trade_service::tests::ut_bid_auction_happy_becomes_highest ... ok
+test trade_service::tests::ut_cancel_auction_invalid_not_found ... ok
+test trade_service::tests::ut_create_auction_happy_with_explicit_ends_at ... ok
+test trade_service::tests::ut_get_trade_history_happy_empty ... ok
+test trade_service::tests::ut_create_auction_invalid_currency_type ... ok
+test trade_service::tests::ut_get_trade_history_invalid_empty_player ... ok
+test trade_service::tests::ut_list_auctions_invalid_pagination_capped ... ok
+test trade_service::tests::ut_list_auctions_happy_filter_all ... ok
+test service::tests::proptests::apply_atomic_with_reservation_insufficient_no_dangle ... ok
+test service::tests::proptests::apply_atomic_with_reservation_conservation ... ok
+test trade_entity::tests::proptests::auction_bid_validation ... ok
+test saga::tests::proptests::saga_advance_walks_all_steps ... ok
+test trade_saga::tests::proptests::execute_auction_tax_arithmetic ... ok
+test saga_orchestrator::tests::proptests::transfer_saga_compensation_balance_conservation ... ok
+test saga_orchestrator::tests::proptests::transfer_saga_balance_conservation ... ok
+test trade_saga::tests::proptests::open_pack_balance_conservation ... ok
+test trade_repository::tests::proptests::auction_list_filter_total_matches ... ok
+test repository::tests::proptests::apply_atomic_debit_conservation ... ok
+test reservation::tests::proptests::reservation_amounts_preserved ... ok
+test inbox::tests::proptests::inbox_independent_per_handler ... ok
+test trade_service::tests::proptests::auction_bid_chain_conservation ... ok
+test inbox::tests::proptests::inbox_dedup_same_command_same_handler ... ok
+
+failures:
+
+---- shop_service_tests::tests::activity_progress_increments_and_unlocks_tier stdout ----
+
+thread 'shop_service_tests::tests::activity_progress_increments_and_unlocks_tier' (29904) panicked at crates\economy-service\src\shop_service_tests.rs:1078:14:
+called `Result::unwrap_err()` on an `Ok` value: ActivityProgressOutput { new_progress: 20, tier_unlocked: false, new_unlocked_tier: 0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shop_service_tests::tests::activity_progress_increments_and_unlocks_tier
+
+test result: FAILED. 155 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+error: test failed, to rerun pass `-p economy-service --lib`
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\economy_service-e787e4846d63fb57.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\chaos_reservation.rs (E:\DevCache\cargo\target\debug\deps\chaos_reservation-2a16ba4d00f95a25.exe)
+
+running 3 tests
+test chaos_row_external_delete_returns_not_found ... ignored, P2 stub: PH-2 实测, per RGS-OPEN-QA-001 Q-M-07 答复 row-DELETE 留 PH-2
+test chaos_db_disconnect_mid_reserve_recovers ... ok
+test chaos_deadlock_between_concurrent_sagas_recovered ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\chaos_trade_saga_compensation.rs (E:\DevCache\cargo\target\debug\deps\chaos_trade_saga_compensation-08b454ff519c18df.exe)
+
+running 9 tests
+test chaos_openpack_step1_failure ... ok
+test chaos_execute_auction_step2_failure ... ok
+test chaos_bid_auction_step1_failure ... ok
+test chaos_openpack_step2_failure ... ok
+test chaos_bid_auction_step2_failure_insufficient ... ok
+test chaos_cross_saga_balance_conservation ... ok
+test chaos_execute_auction_step1_failure ... ok
+test chaos_openpack_step3_failure ... ok
+test openpack_happy_path_baseline ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fail_closed_start.rs (E:\DevCache\cargo\target\debug\deps\fail_closed_start-d8fb73966c9cb283.exe)
+
+running 1 test
+test economy_service_fail_closed_when_tls_dir_invalid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.18s
+
+     Running tests\integration_e2e_phase_c.rs (E:\DevCache\cargo\target\debug\deps\integration_e2e_phase_c-a9954efd9c791ca1.exe)
+
+running 2 tests
+test e2e_economy_ledger_outbox_saga_marker ... ok
+test e2e_economy_phase_c_marker ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_inbox_dedup_under_restart.rs (E:\DevCache\cargo\target\debug\deps\integration_inbox_dedup_under_restart-9d9ca72ff52dbe74.exe)
+
+running 3 tests
+test inbox_dedup_simulated_process_restart ... ok
+test inbox_dedup_distinct_handlers_independent ... ok
+test inbox_dedup_5_replays_handler_called_once ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_outbox.rs (E:\DevCache\cargo\target\debug\deps\integration_outbox-3fec9a3013c1be59.exe)
+
+running 2 tests
+test outbox_check_constraint_rejects_invalid_status ... ok
+test outbox_check_constraint_is_idempotent ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+
+     Running tests\integration_outbox_atomicity.rs (E:\DevCache\cargo\target\debug\deps\integration_outbox_atomicity-21a14a49bf627d2a.exe)
+
+running 4 tests
+test outbox_atomic_phase_a_failure_no_outbox ... ok
+test outbox_atomic_phase_b_failure_no_residual ... ok
+test outbox_appends_distinct_ids_dedup_at_relay ... ok
+test outbox_atomic_happy_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_reservation.rs (E:\DevCache\cargo\target\debug\deps\integration_reservation-0516aa74373137a1.exe)
+
+running 3 tests
+test it_reservation_create_success ... ok
+test it_reservation_cleanup_on_failure ... ok
+test it_reservation_conflict_releases ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests\integration_reservation_under_concurrent_saga.rs (E:\DevCache\cargo\target\debug\deps\integration_reservation_under_concurrent_saga-d2f8685219d1f61e.exe)
+
+running 4 tests
+test concurrent_two_sagas_one_account_one_wins ... ok
+test concurrent_two_sagas_same_player_distinct_currency ... ok
+test concurrent_two_sagas_distinct_accounts_both_win ... ok
+test concurrent_two_sagas_same_account_both_lose_balance ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_trade_lifecycle.rs (E:\DevCache\cargo\target\debug\deps\integration_trade_lifecycle-02fc59cf82a33c00.exe)
+
+running 5 tests
+test it_create_auction ... ok
+test it_bid_then_auto_sold ... ok
+test it_bid_auction ... ok
+test it_cancel_auction ... ok
+test it_private_trade_propose_cancel ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_trade_saga.rs (E:\DevCache\cargo\target\debug\deps\integration_trade_saga-f89528ea2b566858.exe)
+
+running 3 tests
+test it_execute_auction_saga_end_to_end ... ok
+test it_open_pack_saga_end_to_end ... ok
+test it_bid_auction_saga_end_to_end ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\mtls_mock_phase_c.rs (E:\DevCache\cargo\target\debug\deps\mtls_mock_phase_c-8f99e7fcd2d126b2.exe)
+
+running 3 tests
+test tests::mtls_economy_handshake_success ... ok
+test tests::mtls_economy_handshake_subject_mismatch ... ok
+test tests::mtls_economy_handshake_invalid_fingerprint ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\span_assertion.rs (E:\DevCache\cargo\target\debug\deps\span_assertion-b028b0db57bc9c06.exe)
+
+running 3 tests
+test span_assertion_reservation_cleanup_tree_shape ... ok
+test span_assertion_reservation_create_tree_shape ... ok
+test span_assertion_apply_atomic_with_reservation_no_panic ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_e2e_phase_c_marker.rs (E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-49c2c5cd72373102.exe)
+
+running 1 test
+test ut_e2e_economy_phase_c_marker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\match_service-d6ecd654227b09c2.exe)
+
+running 120 tests
+test db::tests::sqlx_tracing_sample_ratio_default ... ok
+test db::tests::sqlx_tracing_sample_ratio_invalid_fallback ... ok
+test entity_v2::tests::session_status_accepts_moves ... ok
+test db::tests::sqlx_tracing_sample_ratio_valid ... ok
+test entity::tests::participant_kda ... ok
+test entity::tests::match_lifecycle ... ok
+test entity_v2::tests::move_creation_default_accepted ... ok
+test entity_v2::tests::move_rejected_with_reason ... ok
+test entity_v2::tests::session_cancel_from_creating ... ok
+test entity_v2::tests::session_advance_turn_rotates ... ok
+test entity_v2::tests::session_full_rejects_add ... ok
+test entity_v2::tests::session_illegal_transition_rejected ... ok
+test entity_v2::tests::session_lifecycle_happy_path ... ok
+test entity_v2::tests::session_remove_player_marks_disconnect ... ok
+test entity_v2::tests::session_pause_resume ... ok
+test entity_v2::tests::session_remove_player_surrender ... ok
+test entity_v2::tests::session_room_mode_waiting_to_starting ... ok
+test entity_v2::tests::session_status_display_round_trip ... ok
+test entity_v2::tests::session_status_terminal ... ok
+test entity_v2::tests::game_mode_display ... ok
+test entity_v2::tests::session_remove_player_not_found ... ok
+test entity_v2::tests::ticket_cancelled ... ok
+test error::tests::invalid_team_to_invalid_argument ... ok
+test error::tests::match_already_started_to_failed_precondition ... ok
+test error::tests::match_full_to_resource_exhausted ... ok
+test error::tests::not_in_match_to_failed_precondition ... ok
+test entity_v2::tests::ticket_lifecycle ... ok
+test error::tests::reservation_expired_to_deadline_exceeded ... ok
+test matchmaker::tests::commit_all_succeeds ... ok
+test matchmaker::tests::commit_conflict_rolls_back_succeeded ... ok
+test matchmaker::tests::commit_db_error_rolls_back_succeeded ... ok
+test matchmaker::tests::occ_result_is_ok ... ok
+test matchmaker::tests::commit_empty_proposal_is_committed ... ok
+test matchmaker::tests::tolerance_after_grace_widens_linearly ... ok
+test matchmaker::tests::tolerance_caps_at_max ... ok
+test matchmaker::tests::tolerance_within_grace_period_is_initial ... ok
+test entity::tests::kda_ratio_is_non_negative ... ok
+test entity::tests::kda_ratio_when_zero_deaths_eq_kills_plus_assists ... ok
+test matchmaker_v2::tests::create_match_max_lt_min_rejected ... ok
+test matchmaker_v2::tests::enqueue_empty_player_id_rejected ... ok
+test matchmaker_v2::tests::create_match_room_creates_waiting ... ok
+test matchmaker_v2::tests::cancel_matchmaking_not_found ... ok
+test matchmaker_v2::tests::create_match_duplicate_room_code ... ok
+test matchmaker_v2::tests::cancel_matchmaking_wrong_player_rejected ... ok
+test matchmaker_v2::tests::create_match_room_no_code_rejected ... ok
+test matchmaker_v2::tests::cancel_matchmaking_success ... ok
+test matchmaker_v2::tests::enqueue_matchmaking_matched_two_players ... ok
+test matchmaker_v2::tests::enqueue_matchmaking_queued_no_opponent ... ok
+test matchmaker_v2::tests::enqueue_matchmaking_room_mode_rejected ... ok
+test matchmaker_v2::tests::enqueue_unspecified_mode_rejected ... ok
+test matchmaker_v2::tests::join_match_auto_start_when_ready ... ok
+test matchmaker_v2::tests::get_matchmaking_status_queued ... ok
+test matchmaker_v2::tests::leave_match_all_disconnect_cancels ... ok
+test matchmaker_v2::tests::join_match_duplicate_player_rejected ... ok
+test matchmaker_v2::tests::join_match_wrong_room_password_rejected ... ok
+test matchmaker_v2::tests::join_match_full_session_rejected ... ok
+test matchmaker_v2::tests::leave_match_disconnect_marks_only ... ok
+test matchmaker_v2::tests::leave_match_not_in_match_rejected ... ok
+test matchmaker_v2::tests::leave_match_surrender_ends_session ... ok
+test matchmaker_v2::tests::pause_resume_session ... ok
+test matchmaker_v2::tests::submit_move_end_turn_advances ... ok
+test matchmaker_v2::tests::submit_move_session_not_running_rejected ... ok
+test matchmaker_v2::tests::subscribe_match_not_found ... ok
+test matchmaker_v2::tests::submit_move_surrender_ends ... ok
+test matchmaker_v2::tests::submit_move_wrong_player_rejected ... ok
+test matchmaker_v2::tests::submit_move_wrong_turn_index_rejected ... ok
+test matchmaker_v2::tests::subscribe_match_returns_receiver ... ok
+test matchmaker_v2::tests::timeout_turn_under_3_advances ... ok
+test replay_client::tests::config_insecure_factory ... ok
+test matchmaker_v2::tests::timeout_turn_after_3_loses ... ok
+test replay_client::tests::mock_replay_client_captures_request ... ok
+test entity::tests::match_json_roundtrip_preserves_mode_and_status ... ok
+test replay_client::tests::config_mtls_factory ... ok
+test replay_client::tests::mock_replay_client_propagates_status_error ... ok
+test replay_client::tests::save_replay_request_carries_all_fields ... ok
+test replay_client::tests::save_replay_request_optional_fields_default ... ok
+test repository::tests::in_memory_match_lifecycle ... ok
+test repository_v2::tests::in_memory_game_session_delete ... ok
+test repository_v2::tests::in_memory_game_session_find_by_room_code ... ok
+test repository::tests::in_memory_match_list_by_status ... ok
+test repository::tests::in_memory_participant_list_by_match ... ok
+test repository_v2::tests::in_memory_game_session_list_by_player ... ok
+test repository_v2::tests::in_memory_game_session_lifecycle ... ok
+test repository_v2::tests::in_memory_game_session_list_by_status ... ok
+test repository_v2::tests::in_memory_move_save_and_list ... ok
+test repository_v2::tests::in_memory_ticket_find_matchable ... ok
+test repository_v2::tests::in_memory_ticket_lifecycle ... ok
+test service::conv_tests::game_mode_roundtrip_all_known_values ... ok
+test service::conv_tests::game_mode_to_proto_is_identity_for_known ... ok
+test service::conv_tests::move_to_proto_propagates_optional_result_json ... ok
+test service::conv_tests::move_type_roundtrip_all_known_values ... ok
+test service::conv_tests::player_from_proto_handles_missing_entity_id ... ok
+test service::conv_tests::parse_uuid_valid_and_invalid ... ok
+test service::conv_tests::player_proto_roundtrip_preserves_fields ... ok
+test service::conv_tests::session_player_builder_chain ... ok
+test service::conv_tests::ticket_status_to_proto_mapping ... ok
+test service::tests::cancel_matchmaking_happy ... ok
+test service::tests::cancel_matchmaking_validation_wrong_player ... ok
+test service::tests::create_and_get_match ... ok
+test service::tests::create_duplicate_room_fails ... ok
+test service::tests::create_match_happy_room ... ok
+test service::tests::create_match_validation_max_lt_min ... ok
+test service::tests::enqueue_matchmaking_happy_queued ... ok
+test service::tests::enqueue_matchmaking_validation_rejects_room_mode ... ok
+test service::tests::get_match_state_happy ... ok
+test service::tests::get_match_state_validation_not_found ... ok
+test service::tests::get_matchmaking_status_happy_queued ... ok
+test service::tests::get_matchmaking_status_validation_not_found ... ok
+test service::tests::health_check ... ok
+test service::tests::join_after_start_fails ... ok
+test service::tests::join_match_happy_auto_start ... ok
+test service::tests::join_match_validation_full ... ok
+test service::tests::join_then_start_then_finish ... ok
+test service::tests::leave_match_happy_surrender ... ok
+test service::tests::leave_match_validation_not_in_match ... ok
+test service::tests::submit_move_happy_end_turn_advances ... ok
+test service::tests::start_already_started_fails ... ok
+test service::tests::submit_move_validation_wrong_turn_index ... ok
+test service::tests::subscribe_match_happy_returns_receiver ... ok
+test service::tests::subscribe_match_validation_not_found ... ok
+
+test result: ok. 120 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\match_service-b0cea7b85ebeb870.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fail_closed_start.rs (E:\DevCache\cargo\target\debug\deps\fail_closed_start-8a5dc648226c45da.exe)
+
+running 1 test
+test match_service_fail_closed_when_tls_dir_invalid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.22s
+
+     Running tests\integration_e2e_phase_c.rs (E:\DevCache\cargo\target\debug\deps\integration_e2e_phase_c-a034dd384d7e7705.exe)
+
+running 2 tests
+test e2e_match_matching_saga_marker ... ok
+test e2e_match_phase_c_marker ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_match_basic.rs (E:\DevCache\cargo\target\debug\deps\integration_match_basic-202c82374b3f6344.exe)
+
+running 3 tests
+test match_fixture_builder_customizes_score_and_status ... ok
+test outbox_check_constraint_rejects_invalid_status ... ok
+test match_fixture_inserts_and_reads_back_in_real_pg ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests\integration_match_end_to_replay_persist.rs (E:\DevCache\cargo\target\debug\deps\integration_match_end_to_replay_persist-e6e8f1c3210ca272.exe)
+
+running 2 tests
+test it_replay_saga_gives_up_after_exhausted_retries ... ok
+test it_replay_saga_retries_after_one_transient_failure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests\integration_match_session.rs (E:\DevCache\cargo\target\debug\deps\integration_match_session-4c9a21a18065828b.exe)
+
+running 5 tests
+test it_turn_timeout_auto_lose ... ok
+test it_enqueue_then_match_creates_session ... ok
+test it_disconnect_pause_resume ... ok
+test it_surrender_ends_session ... ok
+test it_submit_move_updates_board ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_match_session_to_replay.rs (E:\DevCache\cargo\target\debug\deps\integration_match_session_to_replay-80a772ab72706151.exe)
+
+running 1 test
+test it_match_session_to_replay_saga_sends_correct_request ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests\integration_matchmaker_tolerance_window.rs (E:\DevCache\cargo\target\debug\deps\integration_matchmaker_tolerance_window-af2302f6608d7c7e.exe)
+
+running 4 tests
+test tolerance_caps_at_max ... ok
+test tolerance_after_grace_widens_linearly ... ok
+test tolerance_grace_period_holds_initial ... ok
+test it_five_players_elo_diff_100_match_within_tolerance_window ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\it_save_replay_saga.rs (E:\DevCache\cargo\target\debug\deps\it_save_replay_saga-73ff98603205dcbf.exe)
+
+running 2 tests
+test it_save_replay_failure_does_not_break_session_end ... ok
+test it_match_service_calls_real_replay_service ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
+
+     Running tests\mtls_mock_phase_c.rs (E:\DevCache\cargo\target\debug\deps\mtls_mock_phase_c-d64b6b26c0c62ae9.exe)
+
+running 3 tests
+test tests::mtls_match_handshake_invalid_fingerprint ... ok
+test tests::mtls_match_handshake_success ... ok
+test tests::mtls_match_handshake_subject_mismatch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_e2e_phase_c_marker.rs (E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-9cde2432c2d720dd.exe)
+
+running 1 test
+test ut_e2e_match_phase_c_marker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_matchmaker.rs (E:\DevCache\cargo\target\debug\deps\ut_matchmaker-419574e3d0a12148.exe)
+
+running 9 tests
+test commit_proposed_match_all_occ_pass_commits ... ok
+test commit_proposed_match_one_conflict_rolls_back_succeeded ... ok
+test commit_proposed_match_version_mismatch_returns_conflict ... ok
+test default_max_candidates_per_tick_is_500_placeholder ... ok
+test tolerance_after_grace_widens_linearly ... ok
+test tolerance_caps_at_max ... ok
+test tolerance_is_monotonic_non_decreasing ... ok
+test tolerance_params_default_aligns_with_dtl_026_proposal ... ok
+test tolerance_within_grace_period_returns_initial ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_proto_match_v2.rs (E:\DevCache\cargo\target\debug\deps\ut_proto_match_v2-e9026db091ab47b8.exe)
+
+running 1 test
+test test_match_v2_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_save_replay_saga.rs (E:\DevCache\cargo\target\debug\deps\ut_save_replay_saga-79fe02d8ee4c951e.exe)
+
+running 6 tests
+test trigger_save_replay_request_contains_match_data ... ok
+test trigger_save_replay_surrender_via_submit_move ... ok
+test trigger_save_replay_skips_when_no_replay_client ... ok
+test trigger_save_replay_surrender_via_leave_match ... ok
+test trigger_save_replay_timeout_3_strikes ... ok
+test trigger_save_replay_skips_for_canceled ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\player_service-6b4170daa0758abc.exe)
+
+running 109 tests
+test db::tests::sqlx_tracing_sample_ratio_default ... ok
+test entity::tests::asset_entry_new_records_amount ... ok
+test db::tests::sqlx_tracing_sample_ratio_invalid_falls_back ... ok
+test entity::tests::character_assets_snapshot_default_is_empty ... ok
+test db::tests::sqlx_tracing_sample_ratio_valid_range ... ok
+test entity::tests::character_banned_is_not_active ... ok
+test entity::tests::character_new_defaults ... ok
+test entity::tests::deck_new_defaults ... ok
+test entity::tests::deck_status_roundtrip ... ok
+test entity::tests::game_mode_roundtrip ... ok
+test entity::tests::player_new_defaults ... ok
+test entity::tests::player_profile_new_defaults ... ok
+test error::tests::already_logged_in_to_status ... ok
+test error::tests::conflict_to_status_already_exists ... ok
+test error::tests::database_to_status_internal ... ok
+test error::tests::error_display_messages_contain_expected_substrings ... ok
+test error::tests::forbidden_account_disabled ... ok
+test error::tests::forbidden_to_status_permission_denied ... ok
+test error::tests::from_anyhow_to_internal ... ok
+test error::tests::internal_to_status_internal ... ok
+test error::tests::invalid_device_to_status_invalid_argument ... ok
+test error::tests::nickname_taken_to_status ... ok
+test entity::tests::deck_total_card_count_sums_slots ... ok
+test error::tests::not_found_to_status ... ok
+test error::tests::session_expired_to_status ... ok
+test error::tests::sqlx_error_wraps_as_database ... ok
+test error::tests::transport_passthrough ... ok
+test error::tests::transport_roundtrip_preserves_code_and_message ... ok
+test error::tests::unauthorized_to_status_unauthenticated ... ok
+test error::tests::unavailable_to_status_unavailable ... ok
+test error::tests::validation_to_status ... ok
+test repository::tests::in_memory_deck_delete_by_id ... ok
+test repository::tests::in_memory_deck_find_by_share_code_only_public ... ok
+test repository::tests::in_memory_character_create_and_find ... ok
+test repository::tests::in_memory_character_delete_by_id ... ok
+test repository::tests::in_memory_character_find_by_name_unique ... ok
+test repository::tests::in_memory_character_update_name ... ok
+test repository::tests::in_memory_character_find_by_account ... ok
+test repository::tests::in_memory_deck_create_and_find ... ok
+test repository::tests::in_memory_deck_list_by_owner_paginated ... ok
+test repository::tests::in_memory_deck_update_share_state ... ok
+test repository::tests::in_memory_deck_update_slots ... ok
+test repository::tests::in_memory_player_list_paginated ... ok
+test repository::tests::in_memory_player_delete ... ok
+test repository::tests::in_memory_player_find_by_name ... ok
+test repository::tests::in_memory_player_save_and_find ... ok
+test repository::tests::in_memory_session_delete_expired ... ok
+test service::tests::anti_addiction_check_minor_90min ... ok
+test service::tests::anti_addiction_check_adult ... ok
+test service::tests::create_character_duplicate_name_fails ... ok
+test service::tests::create_character_invalid_class_fails ... ok
+test service::tests::create_character_empty_name_fails ... ok
+test service::tests::create_character_happy_path ... ok
+test service::tests::create_deck_empty_name_fails ... ok
+test service::tests::create_deck_invalid_mode_fails ... ok
+test service::tests::create_deck_happy_path ... ok
+test service::tests::delete_deck_not_owner_fails ... ok
+test service::tests::delete_deck_happy_path ... ok
+test service::tests::disable_player ... ok
+test service::tests::enter_background_invalid_session_fails ... ok
+test service::tests::enter_background_happy_path ... ok
+test service::tests::find_by_id_returns_player ... ok
+test service::tests::force_disconnect_empty_reason_fails ... ok
+test service::tests::force_disconnect_happy_path ... ok
+test service::tests::get_avatar_list_default_three ... ok
+test service::tests::get_character_assets_empty_per_bucket_12 ... ok
+test service::tests::get_character_info_returns_character ... ok
+test service::tests::get_character_profile_happy_path ... ok
+test service::tests::get_character_profile_not_found_fails ... ok
+test service::tests::get_deck_returns_deck ... ok
+test service::tests::get_player_profile_default ... ok
+test service::tests::get_server_time_returns_trio ... ok
+test service::tests::get_shared_deck_by_code ... ok
+test service::tests::get_shared_deck_empty_code_fails ... ok
+test service::tests::get_shared_deck_unknown_code_fails ... ok
+test service::tests::guest_mode_timeout_happy_path ... ok
+test service::tests::guest_mode_timeout_out_of_range_fails ... ok
+test service::tests::health_check_returns_true ... ok
+test service::tests::heartbeat_rpc_expired_session_fails ... ok
+test service::tests::heartbeat_rpc_happy_path ... ok
+test service::tests::heartbeat_rpc_wrong_character_fails ... ok
+test service::tests::heartbeat_slides_session ... ok
+test service::tests::list_decks_paginated ... ok
+test service::tests::login_character_happy_path ... ok
+test service::tests::login_character_wrong_account_fails ... ok
+test service::tests::reconnect_character_expired_session_fails ... ok
+test service::tests::register_creates_player ... ok
+test service::tests::register_duplicate_nickname_fails ... ok
+test service::tests::register_empty_name_fails ... ok
+test service::tests::rename_character_happy_path ... ok
+test service::tests::set_avatar_happy_path ... ok
+test service::tests::rename_character_empty_name_fails ... ok
+test service::tests::set_avatar_out_of_range_fails ... ok
+test service::tests::share_deck_make_public_generates_share_code ... ok
+test service::tests::update_deck_not_owner_fails ... ok
+test service::tests::rename_character_unchanged_name_noop ... FAILED
+test service::tests::update_player_profile_persists_fields ... ok
+test service::tests::share_deck_unpublic_clears_share_code ... ok
+test service::tests::rename_character_forbidden_keyword_fails ... FAILED
+test service::tests::update_deck_replaces_slots ... ok
+test service::tests::validate_character_name_allows_cjk ... ok
+test service::tests::validate_character_name_rejects_4spaces ... ok
+test service::tests::update_profile_changes_level ... ok
+test service::tests::update_profile_level_out_of_range ... ok
+test service::tests::validate_character_name_rejects_control_chars ... ok
+test service::tests::validate_character_name_rejects_forbidden_case_insensitive ... ok
+test service::tests::validate_deck_slots_returns_empty_per_bucket_11 ... ok
+test entity::tests::player_session_heartbeat_slides_expiry ... ok
+test service::tests::reconnect_character_happy_path ... ok
+
+failures:
+
+---- service::tests::rename_character_unchanged_name_noop stdout ----
+
+thread 'service::tests::rename_character_unchanged_name_noop' (33568) panicked at crates\player-service\src\service.rs:2935:14:
+called `Result::unwrap()` on an `Err` value: NicknameTaken("stable-name")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- service::tests::rename_character_forbidden_keyword_fails stdout ----
+
+thread 'service::tests::rename_character_forbidden_keyword_fails' (24820) panicked at crates\player-service\src\service.rs:2911:14:
+called `Result::unwrap_err()` on an `Ok` value: Character { id: a7199197-e9f2-4139-aa42-3f8ab8690685, account_id: 2eac9c5d-20fb-4eea-93d6-3c1797c83a74, name: "cool-admin", class_id: 1, faction_id: 1, level: 1, vip_level: 0, current_avatar_id: 1, signature: "", status: Active, in_background: false, last_login_at: Some(2026-09-19T05:25:44.222945800Z), created_at: 2026-09-19T05:25:44.222938800Z, updated_at: 2026-09-19T05:25:44.222969900Z }
+
+
+failures:
+    service::tests::rename_character_forbidden_keyword_fails
+    service::tests::rename_character_unchanged_name_noop
+
+test result: FAILED. 107 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p player-service --lib`
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\player_service-bbfdfd267cdcdb34.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fail_closed_start.rs (E:\DevCache\cargo\target\debug\deps\fail_closed_start-cdecee579b62ba36.exe)
+
+running 1 test
+test player_service_fail_closed_when_tls_dir_invalid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.05s
+
+     Running tests\integration_deck_lifecycle.rs (E:\DevCache\cargo\target\debug\deps\integration_deck_lifecycle-83b8ce4c14da69bc.exe)
+
+running 5 tests
+test test_full_lifecycle_create_update_share_pull_delete ... ok
+test test_create_deck_returns_draft_default ... ok
+test test_list_decks_pagination_per_owner ... ok
+test test_share_deck_unpublic_clears_share_code ... ok
+test test_validation_errors_empty_name_and_invalid_mode ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\integration_deck_share_lifecycle.rs (E:\DevCache\cargo\target\debug\deps\integration_deck_share_lifecycle-53029ea561ac387e.exe)
+
+running 4 tests
+test test_get_shared_deck_with_unknown_code_fails ... ok
+test test_share_deck_by_non_owner_fails ... ok
+test test_share_cycles_generate_distinct_codes ... ok
+test test_full_share_lifecycle_5_steps ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_e2e_phase_c.rs (E:\DevCache\cargo\target\debug\deps\integration_e2e_phase_c-a77559b50cb277a7.exe)
+
+running 2 tests
+test e2e_player_phase_c_marker ... ok
+test e2e_player_mtls_health_probe_marker ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_player_basic.rs (E:\DevCache\cargo\target\debug\deps\integration_player_basic-36771dac0e84939a.exe)
+
+running 3 tests
+test player_fixture_builder_customizes_name_and_level ... ok
+test player_fixture_inserts_and_reads_back_in_real_pg ... ok
+test outbox_check_constraint_rejects_invalid_status ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+
+     Running tests\integration_player_profile_update_chain.rs (E:\DevCache\cargo\target\debug\deps\integration_player_profile_update_chain-d2b6c013655282d0.exe)
+
+running 4 tests
+test test_update_unknown_player_returns_not_found ... ok
+test test_profile_update_chain_preserves_fields ... ok
+test test_wins_leq_total_invariant_through_chain ... ok
+test test_profile_chain_accumulates_wins_only_when_matches_grow ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_session_expiry.rs (E:\DevCache\cargo\target\debug\deps\integration_session_expiry-a17384284f7e2c29.exe)
+
+running 4 tests
+test test_delete_expired_cleans_up_only_expired ... ok
+test test_expired_session_heartbeat_returns_session_expired ... ok
+test test_register_creates_24h_session ... ok
+test test_heartbeat_slides_expiry_multiple_times ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\mtls_mock_phase_c.rs (E:\DevCache\cargo\target\debug\deps\mtls_mock_phase_c-8b70398d54ac551b.exe)
+
+running 3 tests
+test tests::mtls_player_handshake_subject_mismatch ... ok
+test tests::mtls_player_handshake_success ... ok
+test tests::mtls_player_handshake_invalid_fingerprint ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_e2e_phase_c_marker.rs (E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-37a867de888657ac.exe)
+
+running 1 test
+test ut_e2e_player_phase_c_marker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_proto_player_v2.rs (E:\DevCache\cargo\target\debug\deps\ut_proto_player_v2-481905424ab9f734.exe)
+
+running 3 tests
+test test_deck_slot_count_range ... ok
+test test_player_profile_with_currencies ... ok
+test test_deck_with_slots ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (E:\DevCache\cargo\target\debug\deps\social_service-91ffcbe872bdd83e.exe)
+
+running 73 tests
+test db::tests::sqlx_tracing_sample_ratio_default ... ok
+test db::tests::sqlx_tracing_sample_ratio_valid ... ok
+test entity::tests::guild_member_initial_role_is_member ... ok
+test entity::tests::guild_member_promote_demote ... ok
+test entity::tests::guild_factory_initial_state ... ok
+test error::tests::unauthorized_to_unauthenticated ... ok
+test error::tests::insufficient_permission_to_permission_denied ... ok
+test error::tests::already_in_guild_to_failed_precondition ... ok
+test error::tests::conflict_to_already_exists ... ok
+test error::tests::guild_dissolved_to_failed_precondition ... ok
+test error::tests::database_to_internal ... ok
+test entity::tests::guild_role_serde_roundtrip ... ok
+test error::tests::guild_full_to_resource_exhausted ... ok
+test error::tests::not_found_to_not_found ... ok
+test error::tests::not_guild_member_to_failed_precondition ... ok
+test error::tests::unavailable_to_unavailable ... ok
+test entity::tests::guild_add_experience_levels_up ... ok
+test entity::tests::guild_multi_level_up ... ok
+test error::tests::forbidden_to_permission_denied ... ok
+test error::tests::validation_to_invalid_argument ... ok
+test push_delivery::tests::delivery_result_code_roundtrip ... ok
+test push_delivery::tests::push_delivery_request_serializes_all_fields ... ok
+test push_delivery::tests::push_delivery_result_contains_code ... ok
+test push_delivery::tests::sanitize_accepts_long_safe_text ... ok
+test push_delivery::tests::sanitize_rejects_banned_patterns ... ok
+test push_delivery::tests::push_dispatcher_happy_path_delivered_first_attempt ... ok
+test push_delivery::tests::push_dispatcher_sanitizer_reject_goes_directly_to_dlq_no_retry ... ok
+test repository::tests::in_memory_guild_crud ... ok
+test repository::tests::in_memory_guild_delete_by_id ... ok
+test repository::tests::in_memory_guild_find_by_name ... ok
+test repository::tests::in_memory_guild_list_by_leader ... ok
+test repository::tests::in_memory_member_delete_by_id ... ok
+test repository::tests::in_memory_member_find_by_player ... ok
+test repository::tests::in_memory_member_list_by_guild ... ok
+test service::tests::create_duplicate_name_fails ... ok
+test service::tests::create_guild_accepts_max_len_name ... ok
+test service::tests::create_guild_adds_leader ... ok
+test service::tests::create_guild_rejects_too_long_name ... ok
+test service::tests::create_guild_rejects_whitespace_only_name ... ok
+test service::tests::dissolve_guild_rejects_nonexistent ... ok
+test service::tests::create_guild_rejects_empty_name ... ok
+test service::tests::dissolve_guild_removes_all ... ok
+test service::tests::find_guild_by_id_returns_none_for_missing ... ok
+test service::tests::health_check ... ok
+test service::tests::join_guild_rejects_already_member ... ok
+test service::tests::join_guild_increments_count ... ok
+test service::tests::join_guild_rejects_nonexistent_guild ... ok
+test service::tests::leave_guild_last_member_dissolves_guild ... ok
+test service::tests::join_guild_rejects_full_guild ... ok
+test service::tests::leave_guild_normal_member_decrements_count ... ok
+test service::tests::leave_guild_rejects_nonexistent_guild ... ok
+test service::tests::promote_to_officer ... ok
+test service::tests::leave_guild_rejects_non_member ... ok
+test push_delivery::tests::push_dispatcher_happy_path_produces_3_deliveries_when_2_succeed_after_1_fail ... ok
+test push_delivery::tests::push_dispatcher_retry_succeeds_on_second_attempt ... ok
+test service::tests::promote_to_officer_rejects_leader ... ok
+test service::tests::promote_to_officer_rejects_nonexistent_member ... ok
+test entity::proptests::guild_level_monotonic_nondecreasing ... ok
+test push_delivery::proptests::delivery_result_code_roundtrip_all_valid ... ok
+test entity::proptests::guild_id_string_roundtrip ... ok
+test entity::proptests::guild_member_new_invariants ... ok
+test entity::proptests::promote_to_officer_idempotent_on_role ... ok
+test push_delivery::tests::push_dispatcher_retry_exhausted_routes_to_dlq ... ok
+test service::tests::leave_guild_leader_transfers_to_earliest_remaining ... ok
+test repository::proptests::guild_member_find_by_player_count ... ok
+test push_delivery::proptests::sanitize_rejects_script_in_title ... ok
+test entity::proptests::guild_new_invariants ... ok
+test service::proptests::create_guild_duplicate_name_fails_random ... ok
+test service::proptests::create_guild_name_too_long_rejected ... ok
+test repository::proptests::guild_in_memory_save_overwrites ... ok
+test repository::proptests::guild_in_memory_save_find_roundtrip ... ok
+test service::proptests::create_guild_happy_path_random_names ... ok
+test push_delivery::proptests::sanitize_passes_for_safe_text ... ok
+
+test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running unittests src\main.rs (E:\DevCache\cargo\target\debug\deps\social_service-e2fcd524f51717f5.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\fail_closed_start.rs (E:\DevCache\cargo\target\debug\deps\fail_closed_start-5b240f771df7ab76.exe)
+
+running 1 test
+test social_service_fail_closed_when_tls_dir_invalid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.13s
+
+     Running tests\integration_e2e_phase_c.rs (E:\DevCache\cargo\target\debug\deps\integration_e2e_phase_c-6caa33cea60c04a3.exe)
+
+running 2 tests
+test e2e_social_guild_push_marker ... ok
+test e2e_social_phase_c_marker ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_guild_capacity_boundary.rs (E:\DevCache\cargo\target\debug\deps\integration_guild_capacity_boundary-9e56e55c8e379435.exe)
+
+running 3 tests
+test guild_capacity_leader_cannot_rejoin_own_guild ... ok
+test guild_capacity_leaving_player_can_rejoin ... ok
+test guild_capacity_boundary_fill_overflow_leave_recover_overflow ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_guild_lifecycle.rs (E:\DevCache\cargo\target\debug\deps\integration_guild_lifecycle-62694382918bdcdf.exe)
+
+running 8 tests
+test guild_lifecycle_leader_member_record_consistent_pre_dissolve ... ok
+test leave_guild_rejects_non_member_state_unchanged ... ok
+test guild_lifecycle_dissolve_clears_officer_records ... ok
+test leave_guild_normal_member_does_not_dissolve ... ok
+test leave_guild_last_member_dissolves_guild ... ok
+test guild_lifecycle_create_join_promote_dissolve_rejoin_fail ... ok
+test leave_guild_leader_transfers_to_oldest_remaining ... ok
+test leave_guild_cascading_leadership_transfer_keeps_guild_intact ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests\integration_push_delivery_atomicity.rs (E:\DevCache\cargo\target\debug\deps\integration_push_delivery_atomicity-f1deb2d21d7432bb.exe)
+
+running 7 tests
+test push_delivery_atomicity_retry_only_resolves_retryable_state ... ok
+test push_delivery_atomicity_sanitizer_reject_is_permanent_not_retryable ... ok
+test push_dispatcher_e2e_sanitizer_reject_bypasses_nats_delivery_subject ... ok
+test push_dispatcher_e2e_happy_path_single_delivery_to_nats ... ok
+test push_delivery_atomicity_partial_failure_retryable_then_full_success ... ok
+test push_dispatcher_e2e_retry_recovers_to_delivered ... ok
+test push_dispatcher_e2e_retry_exhausted_routes_to_dlq_table_and_subject ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\integration_social_basic.rs (E:\DevCache\cargo\target\debug\deps\integration_social_basic-ebfd1837f6d587e9.exe)
+
+running 3 tests
+test social_fixture_builder_customizes_message ... ok
+test outbox_check_constraint_rejects_invalid_status ... ok
+test social_fixture_creates_guild_in_real_pg ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests\mtls_mock_phase_c.rs (E:\DevCache\cargo\target\debug\deps\mtls_mock_phase_c-08b1ae840b5eda0a.exe)
+
+running 3 tests
+test tests::mtls_social_handshake_subject_mismatch ... ok
+test tests::mtls_social_handshake_invalid_fingerprint ... ok
+test tests::mtls_social_handshake_success ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ut_e2e_phase_c_marker.rs (E:\DevCache\cargo\target\debug\deps\ut_e2e_phase_c_marker-b5ddd88678cb8d8c.exe)
+
+running 1 test
+test ut_e2e_social_phase_c_marker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 3 targets failed:
+    `-p admin-service --test integration_admin_basic`
+    `-p economy-service --lib`
+    `-p player-service --lib`
