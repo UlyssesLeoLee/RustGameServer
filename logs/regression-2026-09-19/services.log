@@ -1,0 +1,648 @@
+warning: field `duration_secs` is never read
+  --> crates\match-service\tests\ut_save_replay_saga.rs:32:5
+   |
+27 | struct CapturedRequest {
+   |        --------------- field in this struct
+...
+32 |     duration_secs: u32,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `CapturedRequest` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `MockCert` is more private than the item `MockAdminMtlsClient::new`
+  --> crates\admin-service\tests\mtls_mock_phase_c.rs:28:5
+   |
+28 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockAdminMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\admin-service\tests\mtls_mock_phase_c.rs:8:1
+   |
+ 8 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: method `set_should_fail` is never used
+  --> crates\match-service\tests\ut_save_replay_saga.rs:60:14
+   |
+47 | impl MockReplayClient {
+   | --------------------- method in this implementation
+...
+60 |     async fn set_should_fail(&self, fail: bool) {
+   |              ^^^^^^^^^^^^^^^
+
+warning: field `domain` is never read
+ --> crates\admin-service\tests\mtls_mock_phase_c.rs:9:5
+  |
+8 | struct MockCert {
+  |        -------- field in this struct
+9 |     domain: String,
+  |     ^^^^^^
+  |
+  = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `characters`
+  --> crates\player-service\tests\integration_deck_lifecycle.rs:41:9
+   |
+41 |     let characters = Arc::new(player_service::repository::InMemoryCharacterRepository::new());
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_characters`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `MockCert` is more private than the item `MockMatchMtlsClient::new`
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:31:5
+   |
+31 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockMatchMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:11:1
+   |
+11 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\match-service\tests\mtls_mock_phase_c.rs:12:5
+   |
+11 | struct MockCert {
+   |        -------- field in this struct
+12 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `MockCert` is more private than the item `MockEconomyMtlsClient::new`
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:32:5
+   |
+32 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockEconomyMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:11:1
+   |
+11 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\economy-service\tests\mtls_mock_phase_c.rs:12:5
+   |
+11 | struct MockCert {
+   |        -------- field in this struct
+12 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `MockCert` is more private than the item `MockPlayerMtlsClient::new`
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:38:5
+   |
+38 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockPlayerMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:16:1
+   |
+16 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\player-service\tests\mtls_mock_phase_c.rs:17:5
+   |
+16 | struct MockCert {
+   |        -------- field in this struct
+17 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `g`
+   --> crates\social-service\src\service.rs:547:13
+    |
+547 |         let g = s
+    |             ^ help: if this is intentional, prefix it with an underscore: `_g`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `MockCert` is more private than the item `MockSocialMtlsClient::new`
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:51:5
+   |
+51 |     pub fn new(cert: MockCert) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function `MockSocialMtlsClient::new` is reachable at visibility `pub`
+   |
+note: but type `MockCert` is only usable at visibility `pub(crate)`
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:31:1
+   |
+31 | struct MockCert {
+   | ^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: field `domain` is never read
+  --> crates\social-service\tests\mtls_mock_phase_c.rs:32:5
+   |
+31 | struct MockCert {
+   |        -------- field in this struct
+32 |     domain: String,
+   |     ^^^^^^
+   |
+   = note: `MockCert` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates\admin-service\src\repository.rs:684:13
+    |
+684 |         let mut u_active = AdminUser::new(
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+
+running 120 tests
+....................................................................................... 87/120
+.................................
+test result: ok. 120 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.76s
+
+
+running 3 tests
+admin_fixture_creates_audit_log_in_real_pg --- FAILED
+admin_fixture_builder_customizes_action_and_target --- FAILED
+outbox_check_constraint_rejects_invalid_status --- FAILED
+
+failures:
+
+---- admin_fixture_creates_audit_log_in_real_pg stdout ----
+
+thread 'admin_fixture_creates_audit_log_in_real_pg' (4644) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- admin_fixture_builder_customizes_action_and_target stdout ----
+
+thread 'admin_fixture_builder_customizes_action_and_target' (16108) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+---- outbox_check_constraint_rejects_invalid_status stdout ----
+
+thread 'outbox_check_constraint_rejects_invalid_status' (23996) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+
+failures:
+    admin_fixture_builder_customizes_action_and_target
+    admin_fixture_creates_audit_log_in_real_pg
+    outbox_check_constraint_rejects_invalid_status
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.02s
+
+error: test failed, to rerun pass `-p admin-service --test integration_admin_basic`
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 156 tests
+.......................................................... 58/156
+shop_service_tests::tests::activity_progress_increments_and_unlocks_tier --- FAILED
+....................................................................................... 146/156
+..........
+failures:
+
+---- shop_service_tests::tests::activity_progress_increments_and_unlocks_tier stdout ----
+
+thread 'shop_service_tests::tests::activity_progress_increments_and_unlocks_tier' (36704) panicked at crates\economy-service\src\shop_service_tests.rs:1078:14:
+called `Result::unwrap_err()` on an `Ok` value: ActivityProgressOutput { new_progress: 20, tier_unlocked: false, new_unlocked_tier: 0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shop_service_tests::tests::activity_progress_increments_and_unlocks_tier
+
+test result: FAILED. 155 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `-p economy-service --lib`
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+i..
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+.........
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.79s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 120 tests
+....................................................................................... 87/120
+.................................
+test result: ok. 120 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.76s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+match_fixture_inserts_and_reads_back_in_real_pg --- FAILED
+match_fixture_builder_customizes_score_and_status --- FAILED
+outbox_check_constraint_rejects_invalid_status --- FAILED
+
+failures:
+
+---- match_fixture_inserts_and_reads_back_in_real_pg stdout ----
+
+thread 'match_fixture_inserts_and_reads_back_in_real_pg' (8684) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- match_fixture_builder_customizes_score_and_status stdout ----
+
+thread 'match_fixture_builder_customizes_score_and_status' (42540) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+---- outbox_check_constraint_rejects_invalid_status stdout ----
+
+thread 'outbox_check_constraint_rejects_invalid_status' (26892) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+
+failures:
+    match_fixture_builder_customizes_score_and_status
+    match_fixture_inserts_and_reads_back_in_real_pg
+    outbox_check_constraint_rejects_invalid_status
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.02s
+
+error: test failed, to rerun pass `-p match-service --test integration_match_basic`
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+.........
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 6 tests
+......
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+
+running 109 tests
+....................................................................................... 87/109
+..... 92/109
+service::tests::rename_character_unchanged_name_noop --- FAILED
+..... 98/109
+service::tests::rename_character_forbidden_keyword_fails --- FAILED
+..........
+failures:
+
+---- service::tests::rename_character_unchanged_name_noop stdout ----
+
+thread 'service::tests::rename_character_unchanged_name_noop' (48784) panicked at crates\player-service\src\service.rs:2935:14:
+called `Result::unwrap()` on an `Err` value: NicknameTaken("stable-name")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- service::tests::rename_character_forbidden_keyword_fails stdout ----
+
+thread 'service::tests::rename_character_forbidden_keyword_fails' (37792) panicked at crates\player-service\src\service.rs:2911:14:
+called `Result::unwrap_err()` on an `Ok` value: Character { id: 61ccc458-fe03-441c-be14-ac7b208d1294, account_id: 95410ba9-7b22-4805-92ae-b4a7f1e997fe, name: "cool-admin", class_id: 1, faction_id: 1, level: 1, vip_level: 0, current_avatar_id: 1, signature: "", status: Active, in_background: false, last_login_at: Some(2026-09-19T01:11:25.834718900Z), created_at: 2026-09-19T01:11:25.834714100Z, updated_at: 2026-09-19T01:11:25.834727100Z }
+
+
+failures:
+    service::tests::rename_character_forbidden_keyword_fails
+    service::tests::rename_character_unchanged_name_noop
+
+test result: FAILED. 107 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p player-service --lib`
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.76s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+player_fixture_inserts_and_reads_back_in_real_pg --- FAILED
+player_fixture_builder_customizes_name_and_level --- FAILED
+outbox_check_constraint_rejects_invalid_status --- FAILED
+
+failures:
+
+---- player_fixture_inserts_and_reads_back_in_real_pg stdout ----
+
+thread 'player_fixture_inserts_and_reads_back_in_real_pg' (23928) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- player_fixture_builder_customizes_name_and_level stdout ----
+
+thread 'player_fixture_builder_customizes_name_and_level' (38668) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+---- outbox_check_constraint_rejects_invalid_status stdout ----
+
+thread 'outbox_check_constraint_rejects_invalid_status' (44260) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+
+failures:
+    outbox_check_constraint_rejects_invalid_status
+    player_fixture_builder_customizes_name_and_level
+    player_fixture_inserts_and_reads_back_in_real_pg
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.01s
+
+error: test failed, to rerun pass `-p player-service --test integration_player_basic`
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 73 tests
+.........................................................................
+test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.79s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 3 tests
+social_fixture_builder_customizes_message --- FAILED
+outbox_check_constraint_rejects_invalid_status --- FAILED
+social_fixture_creates_guild_in_real_pg --- FAILED
+
+failures:
+
+---- social_fixture_builder_customizes_message stdout ----
+
+thread 'social_fixture_builder_customizes_message' (35860) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- outbox_check_constraint_rejects_invalid_status stdout ----
+
+thread 'outbox_check_constraint_rejects_invalid_status' (38948) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+---- social_fixture_creates_guild_in_real_pg stdout ----
+
+thread 'social_fixture_creates_guild_in_real_pg' (33432) panicked at E:\DevCache\cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sqlx-core-0.8.6\src\testing\mod.rs:226:14:
+failed to connect to setup test database: PoolTimedOut
+
+
+failures:
+    outbox_check_constraint_rejects_invalid_status
+    social_fixture_builder_customizes_message
+    social_fixture_creates_guild_in_real_pg
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.02s
+
+error: test failed, to rerun pass `-p social-service --test integration_social_basic`
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 6 targets failed:
+    `-p admin-service --test integration_admin_basic`
+    `-p economy-service --lib`
+    `-p match-service --test integration_match_basic`
+    `-p player-service --lib`
+    `-p player-service --test integration_player_basic`
+    `-p social-service --test integration_social_basic`
