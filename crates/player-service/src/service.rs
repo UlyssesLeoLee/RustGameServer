@@ -3001,4 +3001,22 @@ mod tests {
         assert!(validate_character_name("ADMIN").is_err());
         assert!(validate_character_name("system user").is_err());
     }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_with_dash() {
+        // 禁词 "admin" 用连字符分隔时也应拒绝 (per ULYS-91 W41 加固回归 B2)
+        assert!(validate_character_name("cool-admin").is_err());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_with_underscore() {
+        // 禁词 "system" 用下划线分隔时也应拒绝
+        assert!(validate_character_name("system_user").is_err());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_in_middle() {
+        // 禁词 "admin" 在名字中间出现时也应拒绝
+        assert!(validate_character_name("my-admin-buddy").is_err());
+    }
 }
