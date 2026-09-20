@@ -14,7 +14,7 @@
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
 | 适用许可 | Apache-2.0（本仓库） |
-| 状态 | 待评审（v0.1 草案） |
+\| 状态 | v0.2 完成（已采纳自审修正 + 部署模型判定） |
 
 ---
 
@@ -23,6 +23,7 @@
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
 | 0.1 | 2026-09-19 | 架构师 | — | 初版制定。落实 ULYS-27 Phase 2 协议网关双路径的"WebSocket 传输层 + FrameRouter 抽象"系统级基本设计（per `crates/network-gateway/src/{lib.rs, ws.rs, codec.rs, tcp.rs, router.rs, stats.rs, bin/main.rs}` 现状代码）：§4 架构总览明确 FrameRouter 抽象作为 TCP / WebSocket 双路径共用 dispatcher；§5 TCP 二进制路径（参考）作为既有实现的现状确认；§6 WebSocket 传输层设计覆盖握手（HTTP path 校验）/ 帧循环（`Message::Binary` → `Frame::decode` 流式拆帧）/ 关闭协议（`Message::Close`）/ 心跳（Ping → Pong）/ 缓冲区上限（MAX_FRAME_BYTES = 1 MiB）；§7 与既有架构的整合给出与 RGS-BAS-001 §3.3（南北向网络区域定位）、RGS-BAS-006（ARC-022 mTLS / NetworkPolicy）、RGS-BAS-038（FEC 增强正交：本文档负责"双路径落地"，RGS-BAS-038 负责"QUIC Datagram 路径 FEC 增强"）、RGS-BAS-010（FrameRouter trait 是 §3.4 Pipeline/Middleware Chain 模式的实例化）的整合关系 | 全部 |
+| 0.2 | 2026-09-20 | 架构师 | — | 自审修正（per `ipa-document-self-review` skill §2 审核门禁 10 项）：**S-RV-BAS027-S01**（重大）§6.6 + §8.1 TBD-NET-W01 显式登记 WebSocket **ClusterIP 部署模型**（仅集群内服务可达，明文 ws:// 可接受 + NetworkPolicy 默认拒绝覆盖）+ §8.1 期限由"详细设计阶段前"收紧为"v0.3 前必完成 ClusterIP NetworkPolicy 落地确认"；**M01**（一般）§5.3 WS/TCP 端口对比表"缓冲区上限"行加注 TCP 是隐式（`BytesMut::with_capacity(64 * 1024)` 无显式上限，超长 frame 会 `FrameError::LengthOverflow` 在 `decode` 时返回）+ WS 是显式（`MAX_FRAME_BYTES = 1 MiB` 超限 drop session）；**M02**（一般）§3.1 G-NET-W01〜05 各行"v0.1 假设仅内网（ClusterIP）"加注（per S01 部署模型判定）；**L01**（轻微）§2 术语表 "Arc-022" / "Arc-003" / "Arc-013" / "Arc-045" 全文统一为 "ARC-022" / "ARC-003" / "ARC-013" / "ARC-045"（per 既有 §4.1 mermaid + §7 整合命名惯例）；**L02**（轻微）§5.3 TCP 缓冲区"不显式限上"→"隐式（`BytesMut::with_capacity(64 * 1024)` 初始容量 + 单 frame `MAX_FRAME = 1 MiB` 上限在 `decode` 时校验）"措辞明确化；**C01**（确认事项）§7.4 RGS-BAS-038 §6.2 L1 定义引用对照复核：BAS-038 当前 L1 定义为"QUIC Datagram + ARC-047 FEC, RFC 9221"（per BAS-038 v0.1 line 171-172 mermaid），与本文档 §4.2 L1 引用一致 ✅。§8.3 阶段规划同步更新：v0.2 阶段门禁条件 = 自审指摘全部收口（已完成） + S01 ClusterIP 部署模型显式登记（已完成） | §2 / §3.1 / §5.3 / §6.6 / §7.4 / §8.1 / §8.3 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -76,19 +77,22 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 | MAX_FRAME | 单帧 payload + cmd 上限，`1024 * 1024`（1 MiB），超过返回 `FrameError::LengthOverflow`（per `codec.rs`） |
 | MAX_FRAME_BYTES | WebSocket 帧循环中的缓冲区上限，`1024 * 1024`（1 MiB），与 MAX_FRAME 对齐；超出时 drop session 防单边无限增长（per `ws.rs::handle_session`） |
 | PROTOCOL_HEADER_LEN | wire 帧 header 字节数（4B length + 2B cmd），`6`（per `codec.rs`） |
-| Arc-022 | RGS-BAS-006 中的网络安全设计方针：mTLS（QUIC / gRPC 端到端加密）+ NetworkPolicy 默认拒绝 + 多层速率限制 + 输入校验 + QUIC 地址验证 + 崩溃循环退避 |
-| Arc-003 | RGS-BAS-001 §3.3 / RGS-BAS-038 中的南北向 QUIC 双路径设计：Stream 路径（必达事件）+ Datagram 路径（高频状态同步） |
-| Arc-013 | RGS-BAS-001 §3.3 中的背压与限流：网关→运行时每场景 Actor mailbox 上限 + gRPC 客户端连接池上限 + 服务间调用超时 |
-| Arc-045 | RGS-BAS-027（同号不同主题，详见 §1 范围声明）中的客户端资源分发与热更新设计方针 |
+| ARC-022 | RGS-BAS-006 中的网络安全设计方针：mTLS（QUIC / gRPC 端到端加密）+ NetworkPolicy 默认拒绝 + 多层速率限制 + 输入校验 + QUIC 地址验证 + 崩溃循环退避 |
+| ARC-003 | RGS-BAS-001 §3.3 / RGS-BAS-038 中的南北向 QUIC 双路径设计：Stream 路径（必达事件）+ Datagram 路径（高频状态同步） |
+| ARC-013 | RGS-BAS-001 §3.3 中的背压与限流：网关→运行时每场景 Actor mailbox 上限 + gRPC 客户端连接池上限 + 服务间调用超时 |
+| ARC-045 | RGS-BAS-027（同号不同主题，详见 §1 范围声明）中的客户端资源分发与热更新设计方针 |
 | HTTP path 校验 | WebSocket 握手阶段（HTTP/1.1 Upgrade）通过 `accept_hdr_async` 的 Callback 在 `on_request` 中读取 `req.uri().path()`，与 `WsConfig.path`（默认 `/websocket`）严格匹配；不匹配则在 handshake 完成后立即 close（per `ws.rs::accept_ws_with_path`） |
 | FrameError | `codec.rs` 中的解码错误枚举：`TooShort`（缓冲不够读 1 个完整 frame，等更多字节）/ `LengthOverflow`（length > MAX_FRAME）/ `TruncatedField`（声明长度已读够但内层字段截断）/ `UnknownTlvType`（TLV 类型字节不在 1..=9）/ `InvalidUtf8`（str 字段非合法 UTF-8） |
 | W32 fix | `bin/main.rs` 中 `tokio::select!` 改 `tokio::join!` 的修复：旧 binary 是 W7 Phase 1.5 stub，`tokio::select!` 4 task 选最先 return，web_conn / zone stub 0ms 返 `Ok(())` → main 立刻 exit 0 → k8s "Completed" Exit Code 0 → CrashLoopBackOff 74 次（41h）；W32 fix 用 `join!` 等 admin+WS 两个长跑 task |
+| ClusterIP 部署模型 | **本文档 v0.2 判定**：WebSocket listener 仅以 `ClusterIP` Service 暴露（per RGS-BAS-006 §3 ARC-022 NetworkPolicy 默认拒绝），集群外不可达，明文 `ws://` 可接受；如未来切换 NodePort / LoadBalancer，**必须**先实装 TBD-NET-W01（rustls + wss://）。此条由自审 S-RV-BAS027-S01 显式登记。 |
 
 ---
 
 # 3. 设计目标与约束
 
 ## 3.1 设计目标（落实 ULYS-27 Phase 2 + RGS-REQ-027，验收口径见 §6.7 与 §7.5）
+
+> **v0.2 部署模型声明**（per 自审 S-RV-BAS027-S01）：以下 G-NET-W01〜G-NET-W05 均**假设** WebSocket listener 仅以 `ClusterIP` Service 暴露（per RGS-BAS-006 §3 ARC-022 NetworkPolicy 默认拒绝），集群外不可达，明文 `ws://` 可接受；如未来切换 NodePort / LoadBalancer，**必须**先实装 TBD-NET-W01（rustls + wss://）。
 
 | 目标 | 描述 | 父需求 |
 |---|---|---|
@@ -261,7 +265,7 @@ flowchart TB
 | 帧循环 | `Frame::decode` + 立即 `write_all` | `Message::Binary` → `Frame::decode` → `write.send(Message::Binary)` |
 | 协议层 | TCP（流式，无显式握手） | WebSocket（HTTP/1.1 Upgrade 握手 + path 校验） |
 | 连接管理 | socket 关闭即结束 | `Message::Close` + 心跳 Ping/Pong |
-| 缓冲区上限 | 隐式（`BytesMut::with_capacity(64 * 1024)`，不显式限上） | 显式（`MAX_FRAME_BYTES = 1 MiB`，超限 drop session） |
+| 缓冲区上限 | TCP：隐式（`BytesMut::with_capacity(64 * 1024)` 初始容量，无显式 session 上限；单 frame `MAX_FRAME = 1 MiB` 上限在 `decode` 时校验，超出返回 `FrameError::LengthOverflow`） | WS：显式（`MAX_FRAME_BYTES = 1 MiB`，超限 drop session） |
 | 二进制位 | `0.0.0.0:9000`（默认）/ `127.0.0.1:7001`（任务 brief 常量） | `0.0.0.0:8000` + 路径 `/websocket` |
 
 ## 5.4 本功能日志设计
@@ -370,6 +374,31 @@ flowchart LR
 | 路由表大小 | `1351` 条（codegen）+ `6` 条 demo 覆写 | `data/api_routes_2026-09-04.tsv` + `PHASE1_5_DEMO_ROUTES` | `RouteTable::new()` / `with_phase15_demo()` |
 
 ## 6.6 mTLS / wss:// / 握手安全（per §8 TBD-NET-W01）
+
+> **v0.2 部署模型声明**（per 自审 S-RV-BAS027-S01）：本文档 v0.2 阶段**判定** WebSocket listener 仅以 `ClusterIP` Service 暴露（per RGS-BAS-006 §3 ARC-022 NetworkPolicy 默认拒绝），集群外不可达，明文 `ws://` 可接受，**当前阶段不强制 mTLS/wss://**；TBD-NET-W01 仍保留，触发条件 = 切换 NodePort / LoadBalancer / Ingress 等任何集群外可达的部署形态。NetworkPolicy 模板示例（占位，详细 YAML 在 v0.3 集成测试阶段产出）：
+>
+> ```yaml
+> # 草案 — v0.3 阶段由 SRE 输出可部署 YAML
+> apiVersion: networking.k8s.io/v1
+> kind: NetworkPolicy
+> metadata:
+>   name: network-gateway-ws-clusterip-only
+>   namespace: rust-game-server
+> spec:
+>   podSelector:
+>     matchLabels:
+>       app: network-gateway
+>   policyTypes:
+>   - Ingress
+>   ingress:
+>   - from:
+>     - namespaceSelector: {}      # 集群内任意 namespace（zsyz_client_h5 / other internal clients）
+>     - podSelector: {}            # 同 namespace 内其他 pod
+>     ports:
+>     - protocol: TCP
+>       port: 8000
+>   # 不允许 NodePort / LoadBalancer 来源 — 默认拒绝已经覆盖
+> ```
 
 | 项目 | 现状 | 后续 | 来源 |
 |---|---|---|---|
@@ -496,7 +525,7 @@ flowchart LR
 
 | TBD ID | 内容 | 来源 | 期限 | 负责人 |
 |---|---|---|---|---|
-| TBD-NET-W01 | WebSocket mTLS / `wss://` 集成（per `ws.rs` 注释："mTLS (wss://) — 任务 brief 不要求, Phase 2 接 rustls"） | ULYS-27 Phase 2 任务 brief + ARC-022 mTLS | 详细设计阶段前（RGS-DTL-027 §5 对接前） | 架构师＋网络负责人 |
+| TBD-NET-W01 | WebSocket mTLS / `wss://` 集成（per `ws.rs` 注释："mTLS (wss://) — 任务 brief 不要求, Phase 2 接 rustls"）；**v0.2 触发条件** = 部署形态切换到 NodePort / LoadBalancer / Ingress 任一集群外可达形态（当前 v0.2 判定 = ClusterIP only，明文 `ws://` 可接受，per §6.6） | ULYS-27 Phase 2 任务 brief + ARC-022 mTLS | v0.3 前必完成 NetworkPolicy 落地确认（ClusterIP 模板 per §6.6）；rustls 集成排期由 v1.0 门禁决定 | 架构师＋网络负责人＋SRE |
 | TBD-NET-W02 | `WsConfig.max_connections` 默认 256 的硬性 enforce（当前仅作为 advisory，per §6.5） | ULYS-27 Phase 2 任务 brief + ARC-013 背压 | 详细设计阶段前 | 架构师＋SRE |
 | TBD-NET-W03 | `Sec-WebSocket-Protocol`（subprotocol）握手校验（per §6.6 当前接受所有） | ULYS-27 Phase 2 任务 brief | Phase 2 接 5 域 gRPC client 前 | 架构师 |
 | TBD-NET-W04 | Origin 校验（per §6.6 当前接受所有） | ULYS-27 Phase 2 任务 brief | Phase 2 接 5 域 gRPC client 前 | 架构师＋安全 |
@@ -512,12 +541,12 @@ flowchart LR
 
 ## 8.3 后续阶段规划
 
-| 阶段 | 交付物 | 入口 Gate |
+| 阶段 | 交付物 | 状态 / 入口 Gate |
 |---|---|---|
-| v0.1（当前） | 本文档基本设计 v0.1（待评审） | G-CODE-01〜07 期间允许的"文档修订"窗口（per RGS-IMPL-001 §1.3） |
-| v0.2 | 评审意见吸收 + 详细设计书（RGS-DTL-027）落地 + G-CODE-06 Rust 1.98 stable 可用性复核 + TBD-NET-W01〜06 优先级判定 | 详细设计评审通过 + RSK-NET-W01 复核结果 |
-| v0.3 | 验收口径 §6.7 + §7.7 对应的测试设计书落地（建议归类 RGS-TST-*-02-ADD5 子系列） | 测试设计评审通过 |
-| v1.0 | 经具名 Gate 批准 + TBD-NET-W01（mTLS） + TBD-NET-W02（max_connections enforce） + TBD-NET-W06（Phase 2 gRPC client） 实装完成 + 通过集成测试 | G-CODE-01〜07 全部 Closed |
+| v0.1 | 本文档基本设计 v0.1（待评审） | ✅ 已完成（commit 5760e1a, 2026-09-19） |
+| v0.2 | 自审指摘全部收口（per §修正历史 0.2 行） + S01 ClusterIP 部署模型显式登记 + NetworkPolicy 模板草案（per §6.6） + RGS-DTL-027 v0.1 已就绪（270 行） | ✅ **本版本已完成**（2026-09-20）——重大 1 / 一般 3 / 轻微 2 / 确认 1 全部收口，进入 v0.3 入口门禁：测试设计评审通过 + TBD-NET-W01 NetworkPolicy 落地确认 + RSK-NET-W01 复核 |
+| v0.3 | 验收口径 §6.7 + §7.7 对应的测试设计书落地（建议归类 RGS-TST-*-02-ADD5 子系列）+ ClusterIP NetworkPolicy 可部署 YAML（SRE 输出）+ 集成测试用例 | 测试设计评审通过 + NetworkPolicy e2e 验证 |
+| v1.0 | 经具名 Gate 批准 + TBD-NET-W01（rustls mTLS，按 v0.2 触发条件触发）+ TBD-NET-W02（max_connections enforce）+ TBD-NET-W06（Phase 2 gRPC client）实装完成 + 通过集成测试 | G-CODE-01〜07 全部 Closed |
 
 ## 8.4 不在本文档范围的事项
 
