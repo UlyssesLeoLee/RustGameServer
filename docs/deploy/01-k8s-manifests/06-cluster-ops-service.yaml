@@ -73,8 +73,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cluster-ops
-          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cluster-ops  # 0.1.0 已 WSL2 本地 cache, 绕过 ghcr.io QPS (per 9/10 23:55 JST Ulysses 拍板本地预拉)
-          imagePullPolicy: Always
+          image: ghcr.io/ulyssesleolee/rustgameserver:0.1.2-cluster-ops  # 0.1.2 = 0.1.0-cluster-ops base + grpc_health_probe v0.4.56 (per workflow build-cluster-ops-0.1.2.yml)
+          imagePullPolicy: IfNotPresent  # 本地 ctr 已有该 tag (ULYS-111, 9/20 09:30 JST 验)
           command: ["/app/bin/cluster-ops"]
           securityContext:
             allowPrivilegeEscalation: false
