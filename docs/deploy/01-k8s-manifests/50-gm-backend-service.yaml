@@ -71,6 +71,8 @@ spec:
           value: "http://admin-service:50055"
         - name: RGS_DOMAIN
           value: "gm-backend"
+        - name: RGS_TLS_DIR
+          value: "/etc/rgs/certs"
         - name: RGS_ALLOW_INSECURE_GRPC
           value: "0"
         - name: OTEL_SERVICE_NAME
@@ -119,12 +121,25 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+        - name: rgs-tls
+          mountPath: /etc/rgs/certs
+          readOnly: true
       volumes:
       - name: tmp
         # 8Mi 内存 tmpfs (per gm-backend actix-web runtime tmp)
         emptyDir:
           sizeLimit: 8Mi
           medium: Memory
+      - name: rgs-tls
+        # 挂 rgs-secret-ca (per 5 域 pattern) 让 RGS_TLS_DIR=/etc/rgs/certs 非空
+        # 满足 55.26 fail-closed mTLS 检查 (gm-backend 是 HTTP 入口,不需要 client cert)
+        projected:
+          sources:
+            - secret:
+                name: rgs-secret-ca
+                items:
+                  - key: ca.pem
+                    path: ca.pem
       topologySpreadConstraints:
       - labelSelector:
           matchLabels:
