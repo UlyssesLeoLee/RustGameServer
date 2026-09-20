@@ -307,6 +307,7 @@ RGS-REQ-038 §5 FR-NET-002 已硬性否决"KCP 默认块式 Reed-Solomon"。本�
 | FR-NET-010 | 运营工具 ⇔ 运营 API | **HTTPS / gRPC、RBAC** | IF-007 | RGS-BAS-006 §7A |
 | FR-NET-011 | 内部事件基础设施 | **NATS JetStream**（`async-nats`，代码既用） | RGS-DTL-100 §6.2（见 RGS-REQ-038 §7 注：与附件D§4.1 候选 Kafka 不一致，本文不裁决） | 既有 |
 | FR-NET-012 | UDP 不通环境回退 | **TCP/443 或 WebTransport** | FR-GW-008 | 既有 |
+| FR-NET-013 | 浏览器/H5 客户端 + GM 后台实时推送 | **WebSocket (RFC 6455)** | IF-001 浏览器降级 + ULYS-27 PR #40 commit `6c3f440` | `crates/network-gateway/src/ws.rs` (364 行) + RGS-REQ-058 v0.1（ULYS-84 派生）+ RGS-BAS-058 v0.1（ULYS-85 派生）+ RGS-DTL-027 v0.1（已落档，§11 追溯性）；§10 TBD-WSG-001 mTLS 完整化 / TBD-WSG-002 Origin 校验 / TBD-WSG-005 性能基准 走 Phase 1.5 升版 |
 
 ## 6.2 关键业务场景的协议细化（落实 RGS-REQ-038 §7 + 负责人指示解读）
 
