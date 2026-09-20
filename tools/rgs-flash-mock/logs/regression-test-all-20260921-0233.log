@@ -1,0 +1,108 @@
+rgs-flash-mock 整体回归测试日志 — 20260921-0233
+UT: PASS
+IT: FAIL
+ST: PASS
+
+--- UT 输出 ---
+=== rgs-flash-mock UT (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L1.1) ===
+  mock 项目根: /c/Users/leo19/multica_workspaces_desktop-api.multica.ai/ulysses-ca266aa77e9f/ulys-141-754a62d9a8f5/worktree/tools/rgs-flash-mock
+
+[1/3] cargo check --tests (per L1 限时 1200s, Windows 落地) ...
+    warning: `rgs-flash-mock` (lib test) generated 3 warnings (3 duplicates)
+    warning: `rgs-flash-mock` (lib) generated 3 warnings
+        Finished `dev` profile [unoptimized + debuginfo] target(s) in 7m 42s
+  ✅ cargo check 0 error (464s)
+
+[2/3] cargo test --lib (per L1.1 限时 1200s, Windows 落地) ...
+  test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (410s)
+  ✅ 34 个 UT 全过 (per L1.1 验证)
+
+[3/3] UT 覆盖度审计 (3 #[cfg(test)] mod) ...
+  ✅ 3 个 #[cfg(test)] mod (config + gap_matrix + grpc_clients)
+  ✅ 34 个 #[test] 函数
+
+  测试维度覆盖:
+    ✅ RpcStatus 4 状态: 2 个测试
+    ✅ RpcCategory 13 类别: 3 个测试
+    ✅ GapMatrix 22 RPC stub: 13 个测试
+    ✅ record_call 累加: 3 个测试
+    ✅ record_response 延迟: 2 个测试
+    ✅ report 覆盖率: 4 个测试
+    ✅ redact_endpoint 凭据: 5 个测试
+    ✅ endpoints 7 域: 2 个测试
+    ✅ GrpcClientStatus 状态机: 5 个测试
+
+=== rgs-flash-mock UT 完成 ===
+  cargo check --tests (L1) ✅
+  cargo test --lib (L1.1) ✅ (34 passed / 0 failed)
+  UT 覆盖度审计 ✅ (3 mod / 34 测试)
+  派生约束守护: L1 / L1.1 / 8/27 11:06 凭据永不打印 / 8/27 19:39 三次强化代签 / 9/4 17:47 测试脚本归入 mock ✅
+  ULYS-141 强化: cargo check 实测限时 1200s / cargo test --lib 实测限时 1200s (Windows 冷启+cargo lock 余量) ✅
+
+--- IT 输出 ---
+=== rgs-flash-mock IT (per ULYS-141 + RGS-TEST-DESIGN v0.2 §8) ===
+  mock 项目根: /c/Users/leo19/multica_workspaces_desktop-api.multica.ai/ulysses-ca266aa77e9f/ulys-141-754a62d9a8f5/worktree/tools/rgs-flash-mock
+
+[1/4] cargo check --tests (per L1 限时 600s, Windows 落地) ...
+    warning: `rgs-flash-mock` (lib test) generated 3 warnings
+    warning: `rgs-flash-mock` (lib) generated 3 warnings (3 duplicates)
+        Finished `dev` profile [unoptimized + debuginfo] target(s) in 4m 17s
+  ✅ cargo check 0 error (263s)
+
+[2/4] mock_data/ fixture JSON valid 验证 ...
+  ✅ 48/48 fixture JSON valid
+  ✅ fixture 数量 >= 40 (per v0.3 60 module fixture + 跨域抽象, actual 期望 ≥ 40)
+
+[3/4] mock_data cmds 总数验证 (W2 12 + W3 30 + 8 ext 6 + batch 6 + 跨域 6) ...
+  Total cmds: 437
+  ✅ cmds >= 400 (per W3 fixture 期望, actual 数据驱动)
+
+[4/4] 9 个回归脚本执行 (per RGS-TEST-DESIGN v0.2 §10 L2 mock DoD) ...
+  执行 smoke-test.sh ...
+    ✅ smoke-test.sh PASS
+  执行 regression-test-12-partial.sh ...
+    ✅ regression-test-12-partial.sh PASS
+  执行 regression-test-30-new-module.sh ...
+    ✅ regression-test-30-new-module.sh PASS
+  执行 regression-test-60-all-modules.sh ...
+    ✅ regression-test-60-all-modules.sh PASS
+  执行 regression-test-9-domain-mtls.sh ...
+    ✅ regression-test-9-domain-mtls.sh PASS
+  执行 regression-test-8-domain-extension.sh ...
+    ✅ regression-test-8-domain-extension.sh PASS
+  执行 regression-test-batch-domain.sh ...
+    ✅ regression-test-batch-domain.sh PASS
+  执行 regression-test-plugin-poc.sh ...
+
+--- ST 输出 ---
+=== rgs-flash-mock ST (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L2) ===
+  mock 项目根: /c/Users/leo19/multica_workspaces_desktop-api.multica.ai/ulysses-ca266aa77e9f/ulys-141-754a62d9a8f5/worktree/tools/rgs-flash-mock
+
+[1/5] mock server 启动 (127.0.0.1:8791) ...
+    
+    warning: `rgs-flash-mock` (lib) generated 3 warnings
+        Finished `dev` profile [unoptimized + debuginfo] target(s) in 6m 29s
+  ✅ cargo build 成功
+  mock server PID=29921 (binary=E:\DevCache\cargo\target/debug/rgs-flash-mock.exe, 避开 cargo lock 二次拿锁)
+  ✅ mock server 启动 (411 s)
+
+[2/5] /health 探针 (per design §3 ST 阶段) ...
+  ✅ /health: {"service":"rgs-flash-mock","status":"ok","version":"0.1.0"}
+
+[3/5] /ready 探针 (per design §3 ST 阶段) ...
+  ✅ /ready: matrix_total="matrix_total":22, grpc_total="grpc_total":7
+
+[4/5] RPC 抽样 (12 类别 23 RPC stub, per main.rs 实际 endpoint) ...
+  ✅ RPC 抽样: 22/22 (含 11 个 partial-fallback, 0 hard-fail)
+
+[5/5] mock server 关闭 (cleanup) ...
+  ✅ mock server 已关闭, 端口释放
+
+=== rgs-flash-mock ST 完成 ===
+  mock server 启动 ✅
+  /health 探针 ✅
+  /ready 探针 ✅
+  RPC 抽样: 22/22
+  mock server 关闭 ✅
+  ST 通过: 5, 失败: 0
+  派生约束守护: L2 / 8/27 11:06 凭据永不打印 / 8/27 55.26 fail-closed / 8/27 19:39 三次强化代签 / 9/4 17:47 测试脚本归入 mock ✅
