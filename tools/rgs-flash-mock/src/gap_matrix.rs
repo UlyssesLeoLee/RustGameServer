@@ -305,3 +305,249 @@ impl GapMatrix {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    //! UT for rgs-flash-mock gap_matrix (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L1.1)
+    //!
+    //! Coverage:
+    //!   - RpcStatus::as_str() — 4 状态映射
+    //!   - RpcCategory::as_str() — 13 类别名称
+    //!   - RpcCategory::total_rpc_in_zsyz() — 闪烁之光原版 RPC 总数
+    //!   - GapMatrix::new() — 22 RPC stub 注册正确
+    //!   - GapMatrix::count_by_status() — 各状态计数
+    //!   - GapMatrix::record_call() — 调用计数累加
+    //!   - GapMatrix::record_response() — 延迟 + 调用时间戳
+    //!   - GapMatrix::report() — 覆盖率 + by_category 完整性
+    //!
+    //! 派生约束守护 (per AGENTS.md §2.1 L1):
+    //!   - L1: cargo check --tests 0 error
+    //!   - L1.1: cargo test --lib 全过
+    //!   - 凭据永不打印 (8/27 11:06 JST hard ban)
+    //!   - 代签规则 (8/27 19:39/20:56/21:59 JST 三次强化)
+
+    use super::*;
+
+    // ---- RpcStatus ----
+
+    #[test]
+    fn rpc_status_as_str_all_variants() {
+        assert_eq!(RpcStatus::Pass.as_str(), "pass");
+        assert_eq!(RpcStatus::Partial.as_str(), "partial");
+        assert_eq!(RpcStatus::NotApplicable.as_str(), "n-a");
+        assert_eq!(RpcStatus::NotImplemented.as_str(), "not-implemented");
+    }
+
+    #[test]
+    fn rpc_status_total_count_is_four() {
+        // 保证派生约束: 状态机封闭 (per design §4)
+        let all = [
+            RpcStatus::Pass,
+            RpcStatus::Partial,
+            RpcStatus::NotApplicable,
+            RpcStatus::NotImplemented,
+        ];
+        for s in all {
+            // each status maps to non-empty string
+            assert!(!s.as_str().is_empty());
+        }
+        assert_eq!(all.len(), 4);
+    }
+
+    // ---- RpcCategory ----
+
+    #[test]
+    fn rpc_category_as_str_all_13() {
+        // 13 类别 (per v0.3: 12 + card)
+        assert_eq!(RpcCategory::Scene.as_str(), "scene");
+        assert_eq!(RpcCategory::Role.as_str(), "role");
+        assert_eq!(RpcCategory::Combat.as_str(), "combat");
+        assert_eq!(RpcCategory::Pvp.as_str(), "pvp");
+        assert_eq!(RpcCategory::Guild.as_str(), "guild");
+        assert_eq!(RpcCategory::Econ.as_str(), "econ");
+        assert_eq!(RpcCategory::Social.as_str(), "social");
+        assert_eq!(RpcCategory::Event.as_str(), "event");
+        assert_eq!(RpcCategory::Pay.as_str(), "pay");
+        assert_eq!(RpcCategory::Rank.as_str(), "rank");
+        assert_eq!(RpcCategory::Gm.as_str(), "gm");
+        assert_eq!(RpcCategory::Card.as_str(), "card");
+        assert_eq!(RpcCategory::Misc.as_str(), "misc");
+    }
+
+    #[test]
+    fn rpc_category_total_rpc_in_zsyz_matches_design() {
+        // 13 类别 RPC 总数 (per design §3 表, v0.3 加 card=80)
+        assert_eq!(RpcCategory::Scene.total_rpc_in_zsyz(), 148);
+        assert_eq!(RpcCategory::Role.total_rpc_in_zsyz(), 198);
+        assert_eq!(RpcCategory::Combat.total_rpc_in_zsyz(), 241);
+        assert_eq!(RpcCategory::Pvp.total_rpc_in_zsyz(), 151);
+        assert_eq!(RpcCategory::Guild.total_rpc_in_zsyz(), 97);
+        assert_eq!(RpcCategory::Econ.total_rpc_in_zsyz(), 90);
+        assert_eq!(RpcCategory::Social.total_rpc_in_zsyz(), 123);
+        assert_eq!(RpcCategory::Event.total_rpc_in_zsyz(), 184);
+        assert_eq!(RpcCategory::Pay.total_rpc_in_zsyz(), 43);
+        assert_eq!(RpcCategory::Rank.total_rpc_in_zsyz(), 10);
+        assert_eq!(RpcCategory::Gm.total_rpc_in_zsyz(), 37);
+        assert_eq!(RpcCategory::Card.total_rpc_in_zsyz(), 80);
+        assert_eq!(RpcCategory::Misc.total_rpc_in_zsyz(), 29);
+    }
+
+    #[test]
+    fn rpc_category_total_sum_matches_zsyz_full_count() {
+        // 闪烁之光原版 RPC 总和 (148+198+241+151+97+90+123+184+43+10+37+80+29 = 1431)
+        let cats = [
+            RpcCategory::Scene, RpcCategory::Role, RpcCategory::Combat, RpcCategory::Pvp,
+            RpcCategory::Guild, RpcCategory::Econ, RpcCategory::Social, RpcCategory::Event,
+            RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Card,
+            RpcCategory::Misc,
+        ];
+        let sum: u32 = cats.iter().map(|c| c.total_rpc_in_zsyz()).sum();
+        assert_eq!(sum, 1431, "闪烁之光 RPC 总数必须等于 1431 (12 + card v0.3)");
+    }
+
+    // ---- GapMatrix construction ----
+
+    #[test]
+    fn gap_matrix_new_has_22_rpc_stubs() {
+        // 12 类别 22 RPC stub (per design §3 表, v0.3 加 card=1201 GetPlayerCollection)
+        let m = GapMatrix::new();
+        assert_eq!(m.total(), 22, "GapMatrix::new() 必须注册 22 RPC stub");
+    }
+
+    #[test]
+    fn gap_matrix_new_contains_sampled_rpc_codes() {
+        // 抽样 RPC 编号必须存在 (101/102/201/202/301/302/...)
+        let m = GapMatrix::new();
+        let codes = [101, 102, 201, 202, 301, 302, 401, 402, 501, 502, 601, 602, 701, 702, 801, 802, 901, 902, 1001, 1101, 1102, 1201];
+        for c in codes {
+            assert!(m.count_by_status(RpcStatus::Pass) + m.count_by_status(RpcStatus::Partial)
+                + m.count_by_status(RpcStatus::NotApplicable)
+                + m.count_by_status(RpcStatus::NotImplemented) > 0);
+            // 间接验证: count 包含此 code
+            let _ = c;
+        }
+        // 直接通过 report() 验证
+        let r = m.report();
+        let rcode_set: std::collections::HashSet<u32> = r.rpcs.iter().map(|x| x.code).collect();
+        for c in codes {
+            assert!(rcode_set.contains(&c), "code {} 必须在 report.rpcs 中", c);
+        }
+    }
+
+    // ---- GapMatrix::count_by_status ----
+
+    #[test]
+    fn gap_matrix_count_by_status_initial_distribution() {
+        // 初始注册: 2 NotApplicable (scene 101/102) + 8 Partial (role/guild/social/event/pay)
+        //          + 8 Pass (combat/pvp/econ/rank/gm/card 部分) + 0 NotImplemented
+        // 实际: 2 N-A (scene) + 7 Partial (role/guild/social/event/pay 5 类 = 10 个) + 8 Pass + 3 Pass (gm/rank/card) = 22
+        let m = GapMatrix::new();
+        let na = m.count_by_status(RpcStatus::NotApplicable);
+        let p = m.count_by_status(RpcStatus::Pass);
+        let pa = m.count_by_status(RpcStatus::Partial);
+        let ni = m.count_by_status(RpcStatus::NotImplemented);
+        assert_eq!(na + p + pa + ni, 22, "4 状态计数之和必须等于 22 RPC");
+        assert_eq!(na, 2, "scene 2 个 NotApplicable (101/102)");
+        assert_eq!(ni, 0, "v0.1 不抽样, NotImplemented 初始为 0");
+        assert!(p > 0 && pa > 0, "Pass + Partial 都必须有正计数");
+    }
+
+    // ---- GapMatrix::record_call ----
+
+    #[test]
+    fn gap_matrix_record_call_increments_counter() {
+        let mut m = GapMatrix::new();
+        let before = m.report().rpcs.iter().find(|r| r.code == 301).unwrap().call_count;
+        m.record_call(301, RpcCategory::Combat, RpcStatus::Pass, "测试调用");
+        let after = m.report().rpcs.iter().find(|r| r.code == 301).unwrap().call_count;
+        assert_eq!(after, before + 1, "record_call 必须累加 call_count");
+    }
+
+    #[test]
+    fn gap_matrix_record_call_multiple_calls() {
+        let mut m = GapMatrix::new();
+        for _ in 0..5 {
+            m.record_call(201, RpcCategory::Role, RpcStatus::Partial, "多次调用");
+        }
+        let rec = m.report().rpcs.iter().find(|r| r.code == 201).unwrap().clone();
+        assert_eq!(rec.call_count, 5, "5 次 record_call 必须累加到 5");
+    }
+
+    #[test]
+    fn gap_matrix_record_call_unknown_code_is_silent() {
+        // 未知 code 不应 panic (per fail-closed 精神 8/27 55.26)
+        let mut m = GapMatrix::new();
+        m.record_call(99999, RpcCategory::Scene, RpcStatus::Pass, "未知 code");
+        // 不应 panic, count 仍为 0
+        assert_eq!(m.report().rpcs.iter().find(|r| r.code == 99999).map(|r| r.call_count), None);
+    }
+
+    // ---- GapMatrix::record_response ----
+
+    #[test]
+    fn gap_matrix_record_response_sets_latency_and_timestamp() {
+        let mut m = GapMatrix::new();
+        m.record_response(301, RpcStatus::Pass, 42);
+        let rec = m.report().rpcs.iter().find(|r| r.code == 301).unwrap().clone();
+        assert_eq!(rec.last_latency_ms, 42, "latency 必须记录");
+        assert!(rec.last_called_at.is_some(), "last_called_at 必须被设置");
+    }
+
+    #[test]
+    fn gap_matrix_record_response_overwrites_previous_latency() {
+        let mut m = GapMatrix::new();
+        m.record_response(201, RpcStatus::Partial, 100);
+        m.record_response(201, RpcStatus::Partial, 50);
+        let rec = m.report().rpcs.iter().find(|r| r.code == 201).unwrap().clone();
+        assert_eq!(rec.last_latency_ms, 50, "最新 latency 必须覆盖旧值");
+    }
+
+    // ---- GapMatrix::report ----
+
+    #[test]
+    fn gap_matrix_report_metadata_correct() {
+        let m = GapMatrix::new();
+        let r = m.report();
+        assert_eq!(r.service, "rgs-flash-mock");
+        assert_eq!(r.zsyz_total, 1431, "闪烁之光原版 RPC 总数");
+        assert_eq!(r.mock_sampled, 22);
+        // pass + partial + n-a + not-implemented 必须 == mock_sampled
+        assert_eq!(r.pass + r.partial + r.not_applicable + r.not_implemented, r.mock_sampled);
+    }
+
+    #[test]
+    fn gap_matrix_report_has_13_category_breakdown() {
+        let m = GapMatrix::new();
+        let r = m.report();
+        assert_eq!(r.by_category.len(), 13, "13 类别必须全部出现, 包括 0 sampled 的 misc");
+    }
+
+    #[test]
+    fn gap_matrix_report_coverage_pct_in_range() {
+        let m = GapMatrix::new();
+        let r = m.report();
+        // 22/1431 ≈ 1.54%
+        assert!(r.overall_coverage_pct >= 1.0 && r.overall_coverage_pct <= 2.0,
+                "coverage_pct 必须 ~1.54%, 实际 {}", r.overall_coverage_pct);
+    }
+
+    #[test]
+    fn gap_matrix_report_rpcs_sorted_by_code() {
+        let m = GapMatrix::new();
+        let r = m.report();
+        let codes: Vec<u32> = r.rpcs.iter().map(|x| x.code).collect();
+        let mut sorted = codes.clone();
+        sorted.sort();
+        assert_eq!(codes, sorted, "report.rpcs 必须按 code 升序");
+    }
+
+    #[test]
+    fn gap_matrix_category_misc_has_zero_coverage() {
+        // Misc 类别未抽样 (per design v0.1 defer v0.2+)
+        let m = GapMatrix::new();
+        let r = m.report();
+        let misc = r.by_category.iter().find(|c| c.category == "misc").unwrap();
+        assert_eq!(misc.mock_sampled, 0);
+        assert_eq!(misc.coverage_pct, 0.0);
+    }
+}
