@@ -4,9 +4,9 @@
 
 | 项目 | 内容 |
 |---|---|
-| 文档编号 | RGS-DTL-038 |
+| 文档编号 | RGS-DTL-056 |
 | 版本 | 0.1 |
-| 父文档 | RGS-BAS-038（核心传输防丢包强化与周边协议选型 基本设计书） |
+| 父文档 | RGS-BAS-056（核心传输防丢包强化与周边协议选型 基本设计书） |
 | 上游依据 | RGS-REQ-038 v0.1 §5（ARC-047：FEC over QUIC Datagram）/ §7（NFR-NET-001 解码延迟 ≤ 50ms tick 周期）/ §9（方针判定） |
 | 关联文档 | RGS-DTL-006（网络安全 详细设计书）；RGS-DTL-001 §4（player_db 物理 DDL 中 Datagram 消息持久化路径）；RGS-DTL-007 §3（数据库设计标准）；RGS-IMPL-001 §3 Q-201〜Q-207（工程约定）；RGS-SPEC-CROSS-002（gRPC/Proto 风格指南） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 + RGS-IMPL-001 工程边界 |
@@ -22,7 +22,8 @@
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
-| 0.1 | 2026-09-11 | 架构师 | — | 初版制定。落实 RGS-BAS-038 §4/§5/§6 的物理/接口级设计：FEC 编解码器伪代码、QUIC Datagram 帧格式扩展、KCP 补丁式改造字段映射、TCP/UDP 周边接口形态、rgs-fec 新建 crate 判定与既有 crates 对接点 | 全部 |
+| 0.1 | 2026-09-11 | 架构师 | — | 初版制定。落实 RGS-BAS-056 §4/§5/§6 的物理/接口级设计：FEC 编解码器伪代码、QUIC Datagram 帧格式扩展、KCP 补丁式改造字段映射、TCP/UDP 周边接口形态、rgs-fec 新建 crate 判定与既有 crates 对接点 | 全部 |
+| 0.2 | 2026-09-20 | Hermes Agent (c557dae5) per ULYS-87 | — | 编号重命名 RGS-DTL-038 → RGS-DTL-056（ULYS-87 收口 DTL-038 三处冲突：卡牌/Match 域 DTL-038 保留；核心传输防丢包主题 BAS+DTL+SPEC 三层链统一改为 056）。文档主题、父文档 BAS-056、§11 追溯性保持。`docs/document-registry.toml` 注释同步登记 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -51,9 +52,9 @@
 
 # 1. 前言
 
-本文档是 RGS-BAS-038 §4〜§6 的物理/接口级详细设计，**仅**落实 ARC-047（FEC over QUIC Datagram 路径）的工程实现，不涉及：
+本文档是 RGS-BAS-056 §4〜§6 的物理/接口级详细设计，**仅**落实 ARC-047（FEC over QUIC Datagram 路径）的工程实现，不涉及：
 - ARC-003 Stream 路径（由 RGS-DTL-006 §4 网络协议栈设计承担，本文不改其实现）；
-- 周边协议（账号/支付/GM/资源分发/实时语音/位置）的协议字段（已在 RGS-BAS-038 §6 选型矩阵中固化）；
+- 周边协议（账号/支付/GM/资源分发/实时语音/位置）的协议字段（已在 RGS-BAS-056 §6 选型矩阵中固化）；
 - 反作弊 / 限流等业务侧策略（由 RGS-DTL-025 承担）。
 
 > **实施门禁（per RGS-IMPL-001 §1.3）**：在 `G-CODE-01〜G-CODE-07` 未全部通过前，本文 §5/§6 给出的对接点**仅**作为设计层记录；不得依据本文创建 `rgs-fec` crate 的 Rust 代码、`player_db.migrations/*_fec_*` SQL migration 或 k8s 部署制品。代码实现需等待 `G-CODE-06`（Rust 1.98 stable GA + 全量 CI bootstrap）与 `G-CODE-04`（Saga 场景演练）具名批准。
@@ -86,16 +87,16 @@
                                                              │
    注：Stream 路径（必达事件）不经 FEC，                  │
    直接走 ARC-003 Reliable Stream。                         │
-   周边协议（账号/支付/GM）走 TCP/UDP，见 RGS-BAS-038 §6 │
+   周边协议（账号/支付/GM）走 TCP/UDP，见 RGS-BAS-056 §6 │
 ```
 
 ## 2.2 crate 边界
 
 | crate | 角色 | 是否新建 | 依据 |
 |---|---|---|---|
-| `rgs-fec` | FEC 编解码库（encoder/decoder/parity_table/wire_format），纯函数 + trait `FecEncoder`/`FecDecoder` | **新建** | RGS-BAS-038 §5.3；本节 §6 |
+| `rgs-fec` | FEC 编解码库（encoder/decoder/parity_table/wire_format），纯函数 + trait `FecEncoder`/`FecDecoder` | **新建** | RGS-BAS-056 §5.3；本节 §6 |
 | `rgs-contracts-network` | 网络消息契约（含扩展 DatagramFrame 头部） | 已有 crate，**新增** v2 message 变体 | RGS-IMPL-001 §2 Q-105 |
-| `network-gateway`（已存在，2,759 LOC） | QUIC endpoint 集成 | 已有 crate，**新增** FEC codec adapter 调用点 | RGS-BAS-038 §4.2 |
+| `network-gateway`（已存在，2,759 LOC） | QUIC endpoint 集成 | 已有 crate，**新增** FEC codec adapter 调用点 | RGS-BAS-056 §4.2 |
 | `rgs-session-state`（或 player-service 内部子模块） | 解码后状态聚合 | 不新建 crate，复用既有 `player-service/session_state.rs` | RGS-DTL-001 §4 |
 | `rgs-outbox`（已存在，shared-platform） | Datagram 持久化出口 | 已有 crate，**新增** `outbox_datagram_fec` 表 | RGS-DTL-007 §3 + 本节 §5.3 |
 
@@ -103,7 +104,7 @@
 
 # 3. 关键算法与数据结构
 
-## 3.1 单包级 XOR parity FEC（首选实现，per RGS-BAS-038 §5.2 候选①）
+## 3.1 单包级 XOR parity FEC（首选实现，per RGS-BAS-056 §5.2 候选①）
 
 ### 3.1.1 编码器伪代码
 
@@ -129,7 +130,7 @@ pub trait FecEncoder {
 }
 ```
 
-> **算法选择**：本设计**默认采用单包级 XOR parity**（RGS-BAS-038 §5.2 候选①）。理由：
+> **算法选择**：本设计**默认采用单包级 XOR parity**（RGS-BAS-056 §5.2 候选①）。理由：
 > - 解码延迟与分组大小无关（或近似常数），满足 NFR-NET-001（≤ 50ms tick 周期）；
 > - 无第三方依赖，规避 RSK-NET-001（新兴 crate 不可控）；
 > - 25% 冗余度（K=8, M=2）在 ARC-003 既有 2% 丢包率实测下可保证 > 99.99% 投递成功率（per RGS-REQ-038 §7 NFR-NET-004）。
@@ -154,14 +155,14 @@ pub struct FecGroupCache {
 }
 ```
 
-### 3.1.3 冗余度决策表（per RGS-BAS-038 §5.4）
+### 3.1.3 冗余度决策表（per RGS-BAS-056 §5.4）
 
 | 网络状况（per ARC-003 既有 metrics） | 冗余度 (M/K) | 决策来源 |
 |---|---|---|
 | 丢包率 ≤ 1% | M=1, K=8 (12.5%) | RGS-REQ-038 §7 NFR-NET-004 默认 |
 | 1% < 丢包率 ≤ 3% | M=2, K=8 (25%) | RGS-REQ-038 §7 NFR-NET-004 默认 |
 | 3% < 丢包率 ≤ 5% | M=3, K=8 (37.5%) | RGS-REQ-038 §7 NFR-NET-004 上限 |
-| 丢包率 > 5% | 不再增加冗余，触发告警 + 自动切换到 Stream 路径重传 | RGS-BAS-038 §5.4 RSK-NET-002 |
+| 丢包率 > 5% | 不再增加冗余，触发告警 + 自动切换到 Stream 路径重传 | RGS-BAS-056 §5.4 RSK-NET-002 |
 
 > 决策依据为 network-gateway 的 `fec_loss_rate_estimate` Prometheus gauge（per RGS-DTL-004 §3.4 指标目录新增）。
 
@@ -359,13 +360,13 @@ rgs-contracts-network ──> rgs-fec  (DatagramFrame 消息定义反向被引�
 | 与 `rgs-session-state` 的集成代码实施 | 等待 G-CODE-06 | 同上 |
 | 真实压测（4 平台 × 1000 客户端 × 1000 资源样本）下的解码延迟 / 投递成功率验证 | 等待 ST 阶段 | RGS-QA-001 §3.2 实施入口 |
 | 与 ARC-003 Stream 路径的回退链路测试（丢包率 > 5% 时自动切换） | 等待 ST 阶段 | 同上 |
-| `RGS-SPEC-DTL-038-防丢包` 实现规格书 | 等待 BAS-038 + 本 DTL 评审通过 | RGS-IMPL-001 §1.2 SPEC 模板 |
+| `RGS-SPEC-DTL-056-防丢包` 实现规格书 | 等待 BAS-056 + 本 DTL 评审通过 | RGS-IMPL-001 §1.2 SPEC 模板 |
 | 命名冲突说明：在文档注册表 `docs/document-registry.toml` 中明确登记"ARC-047 防丢包子问题展开；与既有 RGS-DTL-038 卡牌/Match 同号但不同主题" | **本设计书同步完成** | — |
 
 ## 8.1 跨文档引用
 
 - **父**：[RGS-REQ-038](../RGS-REQ-038_核心传输防丢包强化与周边协议选型_需求定义书.md) §5/§7/§9
-- **父**：[RGS-BAS-038](RGS-BAS-038_核心传输防丢包强化与周边协议选型_基本设计书.md) §4/§5/§6
+- **父**：[RGS-BAS-056](RGS-BAS-056_核心传输防丢包强化与周边协议选型_基本设计书.md) §4/§5/§6
 - **相关**：[RGS-DTL-006 §4](RGS-DTL-006_详细设计书.md) 网络协议栈物理设计（不改）
 - **相关**：[RGS-DTL-001 §4](RGS-DTL-001_详细设计书.md) player_db.outbox 物理 DDL
 - **相关**：[RGS-DTL-004 §3.4](RGS-DTL-004_详细设计书.md) 指标目录（本文 §7.2 新增指标）
