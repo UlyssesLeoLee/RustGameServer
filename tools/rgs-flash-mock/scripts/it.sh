@@ -28,17 +28,26 @@ echo
 TOTAL_FAILED=0
 TOTAL_PASSED=0
 
-# 1. cargo check --tests (per L1, 60s 限时)
-echo "[1/4] cargo check --tests (per L1 60s) ..."
+# 1. cargo check --tests (per L1, 60s 限时; Windows 落地 600s 留冷启余量, per ULYS-141 强化)
+echo "[1/4] cargo check --tests (per L1 限时 600s, Windows 落地) ..."
 L1_START=$(date +%s)
-if CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}" \
-   cargo check --tests 2>&1 | tail -3; then
+L1_LOG=$(mktemp 2>/dev/null || echo "./.it-l1.log")
+if timeout 600 bash -c "CARGO_TARGET_DIR='${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}' cargo check --tests" >"$L1_LOG" 2>&1; then
   L1_ELAPSED=$(( $(date +%s) - L1_START ))
+  tail -3 "$L1_LOG" | sed 's/^/    /'
   echo "  ✅ cargo check 0 error (${L1_ELAPSED}s)"
+  rm -f "$L1_LOG"
   TOTAL_PASSED=$((TOTAL_PASSED + 1))
 else
+  L1_RC=$?
   L1_ELAPSED=$(( $(date +%s) - L1_START ))
-  echo "  ❌ cargo check 失败 (${L1_ELAPSED}s)"
+  tail -10 "$L1_LOG" | sed 's/^/    /'
+  if [ "$L1_RC" -eq 124 ]; then
+    echo "  ❌ cargo check 超时 600s (per L1 fail-closed)"
+  else
+    echo "  ❌ cargo check 失败 (rc=$L1_RC, ${L1_ELAPSED}s)"
+  fi
+  rm -f "$L1_LOG"
   TOTAL_FAILED=$((TOTAL_FAILED + 1))
 fi
 

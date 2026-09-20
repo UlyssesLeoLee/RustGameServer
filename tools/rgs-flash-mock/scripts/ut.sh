@@ -26,25 +26,46 @@ echo "  mock 项目根: $(pwd)"
 echo
 
 # 1. cargo check --tests (per L1, 60s 限时, 失败 fail-fast)
-echo "[1/3] cargo check --tests (per L1 60s 限时) ..."
+# Windows 实测 (per ULYS-141 强化):
+#   - 冷启动: 60-600s (依赖 1211 deps 大量编译, + cargo lock 排队)
+#   - 暖启动 (target/ 命中): 0.5-46s
+# 文档 AGENTS.md §2.1 L1 写 60s, 实际 Windows 落地用 1200s 留 2-20x 余量
+# (vs Linux ~60s 暖启) — 仍比无上限好, 避免 zombie build 阻塞 orchestrator
+echo "[1/3] cargo check --tests (per L1 限时 1200s, Windows 落地) ..."
 L1_START=$(date +%s)
-if CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}" \
-   cargo check --tests 2>&1 | tail -5; then
+L1_LOG=$(mktemp 2>/dev/null || echo "./.ut-l1.log")
+if timeout 1200 bash -c "CARGO_TARGET_DIR='${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}' cargo check --tests" >"$L1_LOG" 2>&1; then
   L1_ELAPSED=$(( $(date +%s) - L1_START ))
+  tail -3 "$L1_LOG" | sed 's/^/    /'
   echo "  ✅ cargo check 0 error (${L1_ELAPSED}s)"
+  rm -f "$L1_LOG"
 else
+  L1_RC=$?
   L1_ELAPSED=$(( $(date +%s) - L1_START ))
-  echo "  ❌ cargo check 失败 (${L1_ELAPSED}s)"
+  tail -10 "$L1_LOG" | sed 's/^/    /'
+  if [ "$L1_RC" -eq 124 ]; then
+    echo "  ❌ cargo check 超时 1200s (per L1 限时 fail-closed)"
+  else
+    echo "  ❌ cargo check 失败 (rc=$L1_RC, ${L1_ELAPSED}s)"
+  fi
+  rm -f "$L1_LOG"
   exit 1
 fi
 
-# 2. cargo test --lib (per L1.1, 120s 限时)
+# 2. cargo test --lib (per L1.1, 120s 限时; Windows 暖启实测 0.5-2s, 冷启 60-600s)
+# 落地 1200s 留 2-20x 余量 (vs Linux 120s 暖启)
 echo
-echo "[2/3] cargo test --lib (per L1.1 120s 限时) ..."
+echo "[2/3] cargo test --lib (per L1.1 限时 1200s, Windows 落地) ..."
 L11_START=$(date +%s)
-TEST_OUTPUT=$(CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}" \
-              cargo test --lib --no-fail-fast 2>&1) && L11_RC=0 || L11_RC=$?
+L11_LOG=$(mktemp 2>/dev/null || echo "./.ut-l11.log")
+if timeout 1200 bash -c "CARGO_TARGET_DIR='${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}' cargo test --lib --no-fail-fast" >"$L11_LOG" 2>&1; then
+  L11_RC=0
+else
+  L11_RC=$?
+fi
 L11_ELAPSED=$(( $(date +%s) - L11_START ))
+TEST_OUTPUT=$(cat "$L11_LOG")
+rm -f "$L11_LOG"
 # 提取 "test result: ok. N passed; M failed" 行
 SUMMARY_LINE=$(echo "$TEST_OUTPUT" | grep "^test result:" | tail -1 || echo "")
 if [ -n "$SUMMARY_LINE" ]; then
@@ -55,7 +76,10 @@ fi
 # 提取 N passed, M failed
 PASSED=$(echo "$TEST_OUTPUT" | grep "^test result:" | tail -1 | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
 FAILED=$(echo "$TEST_OUTPUT" | grep "^test result:" | tail -1 | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
-if [ "$L11_RC" -eq 0 ] && [ "${FAILED:-0}" -eq 0 ]; then
+if [ "$L11_RC" -eq 124 ]; then
+  echo "  ❌ cargo test --lib 超时 1200s (per L1.1 限时 fail-closed)"
+  exit 2
+elif [ "$L11_RC" -eq 0 ] && [ "${FAILED:-0}" -eq 0 ]; then
   echo "  ✅ ${PASSED} 个 UT 全过 (per L1.1 验证)"
 else
   echo "  ❌ ${PASSED} passed / ${FAILED} failed"
@@ -109,3 +133,4 @@ echo "  cargo check --tests (L1) ✅"
 echo "  cargo test --lib (L1.1) ✅ ($PASSED passed / ${FAILED:-0} failed)"
 echo "  UT 覆盖度审计 ✅ ($UT_MODULES mod / $TEST_FNS 测试)"
 echo "  派生约束守护: L1 / L1.1 / 8/27 11:06 凭据永不打印 / 8/27 19:39 三次强化代签 / 9/4 17:47 测试脚本归入 mock ✅"
+echo "  ULYS-141 强化: cargo check 实测限时 1200s / cargo test --lib 实测限时 1200s (Windows 冷启+cargo lock 余量) ✅"

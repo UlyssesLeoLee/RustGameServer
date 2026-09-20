@@ -16,6 +16,10 @@
 # 输出:
 #   - 退出码: 0 = 全部通过, 1 = 任一层失败
 #   - 日志: tools/rgs-flash-mock/logs/regression-test-all-YYYYMMDD-HHMM.log
+#   - 单层外部限时: UT 1200s (20min) / IT 3600s (60min) / ST 600s (10min)
+#     Windows 冷启实测: cargo check 4-8min, cargo test --lib 1-3min,
+#     IT cargo check + 9 个回归脚本 × 100-600s = 30-60min 总计
+#     内部脚本自身也加了 timeout (per ULYS-141 强化)
 
 set -uo pipefail
 
@@ -47,10 +51,10 @@ IT_FAILED=0
 ST_PASSED=0
 ST_FAILED=0
 
-# 1. UT (L1 + L1.1)
+# 1. UT (L1 + L1.1) — 外部 1200s (20min) 限时, 防 zombie build 阻塞 orchestrator
 echo "[1/3] UT (per L1 + L1.1) ..."
 UT_START=$(date +%s)
-if bash scripts/ut.sh > /tmp/regression-ut.log 2>&1; then
+if timeout 1200 bash scripts/ut.sh > /tmp/regression-ut.log 2>&1; then
   UT_ELAPSED=$(( $(date +%s) - UT_START ))
   UT_PASSED=1
   echo "  ✅ UT 全过 ($UT_ELAPSED s)"
@@ -62,10 +66,11 @@ else
 fi
 
 # 2. IT (cargo check + 60 module fixture + 9 个回归脚本)
+# 外部 3600s (60min) 限时 — Windows 冷启实测: IT cargo check 263s, 9 个回归脚本 × 100-300s = 1100-3000s
 echo
 echo "[2/3] IT (per L2 IT — fixture + 9 回归脚本) ..."
 IT_START=$(date +%s)
-if bash scripts/it.sh > /tmp/regression-it.log 2>&1; then
+if timeout 3600 bash scripts/it.sh > /tmp/regression-it.log 2>&1; then
   IT_ELAPSED=$(( $(date +%s) - IT_START ))
   IT_PASSED=1
   echo "  ✅ IT 全过 ($IT_ELAPSED s)"
@@ -76,11 +81,11 @@ else
   tail -20 /tmp/regression-it.log 2>/dev/null | sed 's/^/    /'
 fi
 
-# 3. ST (mock server 启动 + HTTP 探针 + RPC 抽样)
+# 3. ST (mock server 启动 + HTTP 探针 + RPC 抽样) — 外部 600s (10min) 限时
 echo
 echo "[3/3] ST (per L2 ST — mock server + /health + /ready + 21 RPC 抽样) ..."
 ST_START=$(date +%s)
-if bash scripts/st.sh > /tmp/regression-st.log 2>&1; then
+if timeout 600 bash scripts/st.sh > /tmp/regression-st.log 2>&1; then
   ST_ELAPSED=$(( $(date +%s) - ST_START ))
   ST_PASSED=1
   echo "  ✅ ST 全过 ($ST_ELAPSED s)"

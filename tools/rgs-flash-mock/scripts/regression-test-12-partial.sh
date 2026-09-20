@@ -16,10 +16,20 @@ echo
 
 # 1. cargo check (per L1, 60s 内 1 次拿 status, 不 polling)
 echo "[1/7] cargo check (per L1 60s) ..."
-if cargo check --tests 2>&1 | tail -3; then
+CC_LOG=$(mktemp 2>/dev/null || echo "./.cc.log")
+if timeout 600 bash -c "CARGO_TARGET_DIR='${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}' cargo check --tests" >"$CC_LOG" 2>&1; then
+  tail -3 "$CC_LOG" | sed 's/^/    /'
+  rm -f "$CC_LOG"
   echo "  ✅ cargo check 0 error"
 else
-  echo "  ❌ cargo check 失败"
+  CC_RC=$?
+  tail -10 "$CC_LOG" | sed 's/^/    /'
+  if [ "$CC_RC" -eq 124 ]; then
+    echo "  ❌ cargo check 超时 600s (per ULYS-141 Windows 落地)"
+  else
+    echo "  ❌ cargo check 失败 (rc=$CC_RC)"
+  fi
+  rm -f "$CC_LOG"
   exit 1
 fi
 
