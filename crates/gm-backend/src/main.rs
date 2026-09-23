@@ -68,12 +68,40 @@ async fn main() -> anyhow::Result<()> {
                 .app_data(web::Data::new(health_state.clone()))
                 .configure(register_health_routes)
         };
+        // ULYS-208 (2026-09-23 JST): fail-loud on 8081 health probe.
+        // dev HEAD (pre-fix) 在 bind() 前后有两个 bug:
+        //   (a) `tracing::info!("health probe listening on {}")` 在 bind() 前打印,
+        //       bind 失败时也是这条假阳性日志("listening" 但实际没监听);
+        //   (b) bind() 返回值丢掉,Server 没有 .run() 被调用,8081 永远不监听;
+        //   两条加起来,kubelet readiness/liveness 永远 FAIL 但日志里看不到任何错。
+        // 修复:
+        //   - bind() 错误 unwrap_or_else + std::process::exit(101),让 kubelet 看到容器死了;
+        //   - server.run().await 错误也 exit(101) 同理;
+        //   - bind() 成功后才 print "health probe listening on {}" (顺序保证语义正确)。
+        // 配合 ULYS-188 (cd9ba548) 把 readinessProbe failureThreshold 3→10,
+        //     即便 cni0 / SandboxChanged 风暴造成首次 bind 抖动,exit(101) 后
+        //     kubelet 会拉起新 pod,新 pod namespace 干净可 bind 成功。
+        let server = HttpServer::new(health_app)
+            .bind(health_addr)
+            .unwrap_or_else(|e| {
+                tracing::error!(
+                    target: "gm-backend",
+                    "health probe bind {health_addr} failed: {e} \
+                     (exiting non-zero so kubelet restarts pod; \
+                      see ULYS-208 fail-loud strategy)"
+                );
+                std::process::exit(101);
+            });
         tracing::info!(target: "gm-backend", "health probe listening on {}", health_addr);
-        if let Err(e) = HttpServer::new(health_app).bind(health_addr) {
-            tracing::error!("bind health addr failed: {e}");
-            return;
+        if let Err(e) = server.run().await {
+            tracing::error!(
+                target: "gm-backend",
+                "health probe server exited: {e} \
+                 (exiting non-zero so kubelet restarts pod; \
+                  see ULYS-208 fail-loud strategy)"
+            );
+            std::process::exit(101);
         }
-        // actix-web HttpServer 已经被 move, 重新构造比较复杂, 直接用标准 TcpListener
     });
 
     // 主 HTTP server (8443, 生产模式 mTLS, 当前 dev 跳过)
