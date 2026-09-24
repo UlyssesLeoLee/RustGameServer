@@ -192,6 +192,11 @@ impl PgOutboxRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    /// 提供 pool 访问（per ULYS-100 P2-#2 OutboxMetricsReporter 需要执行聚合 SQL）
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
 }
 
 fn status_to_str(s: OutboxStatus) -> &'static str {

@@ -52,6 +52,10 @@ serde_json = "1.0"
 # time
 chrono = { version = "0.4", features = ["serde"] }
 
+# ACI 跨项目 emitter (per ULYS-191 §4.3.1 brief v0.1)
+# 守门 #11 缺标比错标: git dep 锁 rev=df28c56 (= ULYS-191.1 / ULYS-224 main HEAD)
+aci-emitter = { git = "https://github.com/UlyssesLeoLee/aci-emitter", rev = "df28c56" }
+
 # v0.2 mTLS 业务级 5 域 gRPC client
 [build-dependencies]
 tonic-build = { version = "0.12", features = ["prost"] }

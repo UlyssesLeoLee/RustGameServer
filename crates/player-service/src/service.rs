@@ -858,10 +858,8 @@ impl PlayerService for PlayerServiceImpl {
         if new_name.len() > 64 {
             return Err(Error::Validation("new_name too long (max 64)".to_string()));
         }
-        validate_character_name(&new_name)?;
-        if self.characters.find_by_name(&new_name).await?.is_some() {
-            return Err(Error::NicknameTaken(new_name));
-        }
+
+        // 先取 character (NotFound 检查放最前)
         let mut character = self
             .characters
             .find_by_id(character_id)
@@ -870,10 +868,20 @@ impl PlayerService for PlayerServiceImpl {
                 entity: "Character",
                 id: character_id.to_string(),
             })?;
+
+        // 同名不走查重 — 是 idempotent 语义的核心
         if character.name == new_name {
-            // 名字未变, 直接返回 (避免无意义的 updated_at 变化)
             return Ok(character);
         }
+
+        // 验证新名字 (禁词/长度)
+        validate_character_name(&new_name)?;
+
+        // 查重 (返回 NicknameTaken)
+        if self.characters.find_by_name(&new_name).await?.is_some() {
+            return Err(Error::NicknameTaken(new_name));
+        }
+
         character.name = new_name;
         character.updated_at = chrono::Utc::now();
         self.characters.update(&character).await
@@ -1144,7 +1152,9 @@ fn validate_character_name(name: &str) -> Result<()> {
     ];
     let lower = name.to_ascii_lowercase();
     for f in FORBIDDEN {
-        if lower == *f || lower.contains(&format!("{} ", f)) || lower.contains(&format!(" {}", f)) {
+        // 包含禁词子串即拒绝 (大小写不敏感) — per ULYS-97 fix
+        // 例: "cool-admin" / "Admin" / "system user" / "i-am-gm-42" 全部拒绝
+        if lower.contains(*f) {
             return Err(Error::Validation(format!(
                 "character name contains forbidden keyword: {}",
                 f
@@ -2935,6 +2945,31 @@ mod tests {
             .unwrap();
         assert_eq!(result.name, "stable-name");
         assert_eq!(result.updated_at, orig_updated);
+    }
+
+    #[tokio::test]
+    async fn rename_character_to_new_valid_name_updates_timestamp() {
+        let (svc, _, _, _, _) = make_service().await;
+        let account = svc.register("rn3-acct".to_string()).await.unwrap();
+        let (char1, _) = svc
+            .create_character(
+                account.id,
+                "original-name".to_string(),
+                1,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
+            .await
+            .unwrap();
+        let orig_updated = char1.updated_at;
+        // 改名成合法新名应更新 updated_at
+        let result = svc
+            .rename_character(char1.id, "brand-new-name".to_string())
+            .await
+            .unwrap();
+        assert_eq!(result.name, "brand-new-name");
+        assert!(result.updated_at > orig_updated);
     }
 
     // ----- W41 加固: validate_character_name 单元测试 -----

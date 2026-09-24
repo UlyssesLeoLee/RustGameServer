@@ -17,7 +17,9 @@ use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 
 use shared_platform::messaging::{build_messaging_client, MessagingConfig};
+use shared_platform::metrics_endpoint::bind_metrics_server;
 use shared_platform::outbox::PgOutboxRepository;
+use shared_platform::outbox_metrics_reporter::OutboxMetricsReporter;
 use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
 use shared_platform::producer::{Producer, ProducerConfig};
 use shared_platform::tls::load_server_tls_config;
@@ -138,6 +140,24 @@ async fn main() -> anyhow::Result<()> {
     // 55.22: 实例化 OutboxRepository（per RGS-REV-007 CH1+CH2+AH1）
     let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
 
+    // ULYS-100 P2-#2: 启动 /metrics HTTP endpoint
+    let metrics_port: u16 = env::var("METRICS_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(50058);
+    let metrics_addr = format!("0.0.0.0:{}", metrics_port).parse().unwrap();
+    tokio::spawn(bind_metrics_server(metrics_addr));
+
+    // ULYS-100 P2-#2: 启动 OutboxMetricsReporter
+    tokio::spawn(
+        OutboxMetricsReporter::new(
+            outbox_repo.clone(),
+            "match",
+            std::time::Duration::from_secs(15),
+        )
+        .run(),
+    );
+
     // 55.22: 连接 NATS 并启动 outbox relay 后台轮询
     // dev/test fallback: NATS 不可用时跳过 relay，gRPC server 继续运行
     let nats_uri = env::var("NATS_URI").unwrap_or_else(|_| "nats://localhost:4222".to_string());
@@ -149,7 +169,7 @@ async fn main() -> anyhow::Result<()> {
     {
         Ok((nats_client, js_ctx)) => {
             let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
-            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
+            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default(), "match");
             tokio::spawn(async move {
                 // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
                 let _nats_keepalive = nats_client;

@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-004 |
-| 版本 | 0.3 |
+| 版本 | 0.4 |
 | 父文档 | RGS-REQ-008 需求定义书 第7章（ARC-020） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -20,9 +20,12 @@
 | 0.2 | 2026-08-16 | 架构师 | 追溯性表补齐AC-LOG-001〜005验收标准与设计章节的映射（此前追溯性表仅覆盖ARC/FR/NFR，遗漏AC条目） | §12 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求：§4.2日志级别表升级为**编译期模式（debug build / release build）** × **运行时Profile（debug / release）** 二维矩阵，新增§4.4 debug-only 宏规范（`#[cfg(debug_assertions)]` 守护的 `trace!`/`debug!` 调用，release build 完全剔除零运行时开销）与 §4.5 release 必出宏清单（INFO/WARN/ERROR 编译期常驻）；§8 脚手架补 debug-only 与 release 必出宏的自动生成模板；§9 CI 加 `cfg(debug_assertions)` 守护宏白名单检查；§11 标准化清单补每功能BAS文档的 log 章节检查项；§12 追溯性新增 AC-LOG-006（debug-only 宏在 release build 完全剔除）与 AC-LOG-007（每功能BAS文档须含本功能log设计章节） | §4、§8、§9、§11、§12 |
 
+| 0.4 | 2026-09-19 | 架构师 (Mavis 接手 agent per ULYS-100 P2-#2) | ULYS-100 P2-#2 落地: §3.4 新增 Outbox 9 个 Prometheus 指标 (per RGS-ADR-0061 §6 P2-#2 + 06_Outbox监控指标草案.md §1.1+§1.2) + 3 个派生 recording rules + 7 类告警规则; 实施位置 `crates/shared-platform/src/{metrics,outbox_relay,outbox_metrics_reporter,metrics_endpoint}.rs` + 6 域 `main.rs`; 联动 ULYS-101 (P2-#3 DLQ) + ULYS-102 (P2-#4 Schema Evolution); 文档同步 `docs/02-运维安全与网络/RGS-BAS-004_埋点与日志规范_基本设计书.md` §3.4; 后续 INV-001 横向扫描确认无新增偏离 | §3.4 |
+
 ## 审批栏（承認欄 / Approval）
 
 | 角色 | 姓名 | 审批日 | 备注 |
+
 |---|---|---|---|
 | 制定（起草） | 架构师 | 2026-08-16 | — |
 | 评审（技术） | | | 与RGS-BAS-001§4.8既有trace传播载体/指标采集拓扑的一致性 |
@@ -121,6 +124,48 @@ flowchart TB
 | `rgs_gm_command_duration_ms` | 直方图 | `command`（如`KickSession`） | 对应NFR-OPS-001端到端延迟目标 |
 | `rgs_gm_command_total` | 计数器 | `command`／`result` | — |
 | `rgs_webhook_delivery_duration_ms` | 直方图 | `event_type` | 对应NFR-OPS-002告警推送时延目标 |
+
+
+## 3.4 Outbox 专属指标（落实 ULYS-100 P2-#2 + RGS-ADR-0061 §6 P2-#2）
+
+> **ULYS-100 P2-#2 (2026-09-19 JST)**: 6 域 outbox 4 状态机 (Pending/InFlight/Sent/Failed + lease_until) 落地 Prometheus 监控指标。
+> 实施位置: `crates/shared-platform/src/{metrics,outbox_relay,outbox_metrics_reporter}.rs`。
+> 候选来源: `docs/00-基准与治理/ULYS-56-follow-up-drafts/06_Outbox监控指标草案.md` §1.1 + §1.2 + §2。
+
+| 指标名 | 类型 | 维度标签 | 说明 |
+|---|---|---|---|
+| `rgs_outbox_pending_count` | 仪表 | `service`／`aggregate_type` | 当前 `status='pending'` 的 outbox 行数（per §1.1，>1000 持续 5min 触发 warning） |
+| `rgs_outbox_inflight_count` | 仪表 | `service`／`aggregate_type` | 当前 `status='in_flight' AND lease_until > NOW()` 的行数（>100 持续 5min 触发 warning） |
+| `rgs_outbox_inflight_lease_lag_seconds` | 仪表 | `service` | InFlight 行 lease 剩余时间最大值（>25s 触发 warning） |
+| `rgs_outbox_failed_count` | 仪表 | `service`／`aggregate_type` | 当前 `status='failed'` 的行数（>0 持续 1min 触发 critical，DLQ 介入信号） |
+| `rgs_outbox_relay_poll_cycle_duration_seconds` | 直方图 | `service` | 单次轮询周期耗时 (p99>5s 触发 warning) |
+| `rgs_outbox_relay_publish_total` | 计数器 | `service`／`aggregate_type`／`result` | 发布次数 (result = success/failure/timeout) |
+| `rgs_outbox_event_age_seconds` | 直方图 | `service`／`aggregate_type` | 端到端延迟 (created_at → sent_at) |
+| `rgs_outbox_batch_size` | 直方图 | `service` | 单次轮询批量大小 |
+| `rgs_outbox_oldest_pending_created_at_seconds` | 仪表 | `service` | 最旧 Pending 行 created_at unix 秒 |
+
+**派生 recording rules** (`docker/observability/prometheus-rules/rgs-outbox-alerts.yaml`):
+- `rgs_outbox_publish_success_rate_5m{service, aggregate_type}` = success / total
+- `rgs_outbox_publish_failure_rate_5m` = 1 - success_rate
+- `rgs_outbox_oldest_pending_age_seconds` = time() - oldest_pending_created_at_seconds
+
+**7 类告警规则** (per 06_草案 §2):
+1. `OutboxPendingBacklog` warning (>1000/5min)
+2. `OutboxFailedAccumulating` critical (>0/1min)
+3. `OutboxLeaseExpiringSoon` warning (>25s/1min)
+4. `OutboxPublishFailureRateHigh` warning (>5%/5min)
+5. `OutboxOldestPendingStale` warning (>300s/1min)
+6. `OutboxInflightCountHigh` warning (>100/5min)
+7. `OutboxPollCycleSlow` warning (p99>5s/5min)
+
+**部署架构**:
+- 6 域服务各自 `main.rs` 启动 `bind_metrics_server(METRICS_PORT)` 暴露 `/metrics` + `OutboxMetricsReporter` 周期 15s SQL 聚合更新 gauge
+- Prometheus scrape `rgs-services` job (`docker/observability/prometheus.yml`)
+- Grafana dashboard `rgs-outbox-overview.json` (12 panel)
+
+**联动工单** (per ADR-0061 §6):
+- P2-#3 (DLQ, ULYS-101) 依赖 `rgs_outbox_failed_count` gauge 作为 DLQ 触发信号
+- P2-#4 (Schema Evolution, ULYS-102) 后续为 `aggregate_type` 增加独立 schema 列, 当前从 `subject` 推断
 
 > **高基数（High Cardinality）注记**：`scene_id`／`character_id`等唯一标识符**不得**直接作为指标标签（会导致时序数据库基数爆炸，与NFR-OP-010运维负荷上限冲突）。§3.2表中`scene_id`标签**必须**在详细设计阶段替换为分桶策略（如场景类型、区域分片ID等有限基数维度），此处保留`scene_id`仅为示意，具体分桶方案留待详细设计（RGS-REQ-008§9 TBD-LOG-004）。**逐实体/逐玩家的维度分析**应通过日志/trace的关联ID检索实现，而非通过指标标签。
 

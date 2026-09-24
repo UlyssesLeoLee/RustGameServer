@@ -2,8 +2,10 @@
 # 部署形态:per RGS-BAS-003 §2.1 / 53 部署架构 / Ulysses 2026-08-27 12:43 JST 明确指令
 # "GM 后台的服务器也应该是一个微服务的形式"
 #
-# dev 部署:用 hostPath 挂 binary(本机 cargo build --release -p gm-backend 产出)
-# 待 gm-backend 镜像在 ghcr.io 推送后,改成 image: ghcr.io/...:0.1.0
+# ULYS-111 (2026-09-20 JST) 部署形态:
+# ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13 镜像不含 gm-backend binary,
+# 用本地 build 的 0.1.0-gm-backend-locally 镜像(基于 cc13 + 新增 /app/bin/gm-backend layer)
+# 该镜像已 import 到 k3s ctr (per ULYS-111 修复步骤,build 脚本: ~/work/build_gm_img.py)
 #
 # Ports(per RGS-ARC-005):
 # - 8443 HTTPS(APIGW 入口,GM 浏览器/admin-web 客户端)
@@ -53,16 +55,11 @@ spec:
           type: RuntimeDefault
       containers:
       - name: gm-backend
-        # 9/10 15:30 JST 改: 用 5 域同 tag 0.1.0-cc13 (per 9/10 bc4dae0 chore(deploy) commit)
-        # 之前 image: 0.1.0-gm-backend + imagePullPolicy: Never → ErrImageNeverPull (镜像本地不存在)
-        # 9/10 14:35 JST Ulysses 拍板启 rgs-flash-mock v0.1 PoC (per commit ca493fe) 后, 5 域 image 推 cc13
-        # 但 50-gm-backend-service.yaml 仍是旧占位 tag, gm-backend 拉起失败
-        # 改用 0.1.0-cc13 (5 域已推 ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13) + IfNotPresent
-        # 注意: gm-backend 的 5917 字节 binary 不在 0.1.0-cc13 multi-arch 镜像里, 可能仍 ErrImagePull
-        # 后续 SRE 介入: 推 0.1.0-gm-backend 到 ghcr.io 或 build multi-arch 镜像
-        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-cc13
+        # ULYS-111 (2026-09-20 JST): 本地 build 的 0.1.0-gm-backend-locally 镜像
+        # 基于 cc13 + /app/bin/gm-backend 新 layer,符合 PodSecurity restricted
+        # 镜像 ENTRYPOINT 默认 gm-backend,无需 command override
+        image: ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend-locally
         imagePullPolicy: IfNotPresent
-        command: ["/app/bin/gm-backend"]
         env:
         - name: RUST_LOG
           value: "info,gm-backend=debug"
@@ -74,6 +71,8 @@ spec:
           value: "http://admin-service:50055"
         - name: RGS_DOMAIN
           value: "gm-backend"
+        - name: RGS_TLS_DIR
+          value: "/etc/rgs/certs"
         - name: RGS_ALLOW_INSECURE_GRPC
           value: "0"
         - name: OTEL_SERVICE_NAME
@@ -119,6 +118,28 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: [ALL]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: rgs-tls
+          mountPath: /etc/rgs/certs
+          readOnly: true
+      volumes:
+      - name: tmp
+        # 8Mi 内存 tmpfs (per gm-backend actix-web runtime tmp)
+        emptyDir:
+          sizeLimit: 8Mi
+          medium: Memory
+      - name: rgs-tls
+        # 挂 rgs-secret-ca (per 5 域 pattern) 让 RGS_TLS_DIR=/etc/rgs/certs 非空
+        # 满足 55.26 fail-closed mTLS 检查 (gm-backend 是 HTTP 入口,不需要 client cert)
+        projected:
+          sources:
+            - secret:
+                name: rgs-secret-ca
+                items:
+                  - key: ca.pem
+                    path: ca.pem
       topologySpreadConstraints:
       - labelSelector:
           matchLabels:

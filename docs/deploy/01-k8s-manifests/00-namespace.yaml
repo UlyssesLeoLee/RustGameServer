@@ -49,6 +49,11 @@ spec:
     configmaps: "30"
 ---
 # LimitRange — 域内默认 + 上下限
+# ULYS-111 (2026-09-20 JST) 改: min 从 100m/128Mi 降到 50m/64Mi
+# 理由:grafana/otel-collector/gm-console-envoy 三个 observability/mgmt svc
+#   requests = 50m/64Mi,跟原 min 100m/128Mi 冲突 → pod admission 拒绝 → e2e-smoke grafana FAIL
+# 调整依据: e4-01-resource-limits.yaml L4-4 mgmt 域模板已规划 min=25m/32Mi,
+#   这里降到 50m/64Mi 是 observability 实际 request 下限,仍 > e4 mgmt min 25m,合理
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -67,8 +72,8 @@ spec:
         cpu: 4000m
         memory: 4Gi
       min:
-        cpu: 100m
-        memory: 128Mi
+        cpu: 50m
+        memory: 64Mi
     - type: PersistentVolumeClaim
       max:
         storage: 50Gi

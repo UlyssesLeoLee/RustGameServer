@@ -33,26 +33,15 @@ emit() {
   printf '%s|%s|%s\n' "$1" "$2" "$3"
 }
 
-# 测 TCP 端口可达
+# 测 TCP 端口可达 (用 nc 而非 curl, 因为 gRPC 用 HTTP/0.9 curl 不识别)
 tcp_probe() {
   local name="$1" label="$2" port="$3" pod_ip="$4"
-  local code
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://${pod_ip}:${port}/" 2>/dev/null || echo "000")
-  case "$code" in
-    200|400|404|405|426)
-      emit "$name" "PASS" "ip=${pod_ip} port=${port} http=${code}" ;;
-    000)
-      # 7 = connect failed, 28 = timeout
-      local curl_err
-      curl_err=$(curl -s -o /dev/null -w '%{exitcode}' --max-time 3 "http://${pod_ip}:${port}/" 2>/dev/null || echo "?")
-      emit "$name" "FAIL" "ip=${pod_ip} port=${port} connect-fail curl_exit=${curl_err}" ;;
-    0000|00000|000000|0000000|00000000|000000000|0000000000)
-      # 多 0 错报 (per 9/5 12:00 JST W1 报告 §4.5, race condition 下 echo 失败
-      # 多次输出 0, 之前被 *) 误判 PASS, 这里显式 FAIL)
-      emit "$name" "FAIL" "ip=${pod_ip} port=${port} http=${code} (multi-zero corruption, curl race)" ;;
-    *)
-      emit "$name" "PASS" "ip=${pod_ip} port=${port} http=${code}" ;;
-  esac
+  # 用 nc 检测 TCP 端口可达性, timeout 3 秒
+  if nc -zv -w3 "$pod_ip" "$port" 2>&1 | grep -q "succeeded"; then
+    emit "$name" "PASS" "ip=${pod_ip} port=${port} tcp-ok"
+  else
+    emit "$name" "FAIL" "ip=${pod_ip} port=${port} tcp-fail"
+  fi
 }
 
 # 测 HTTP 端点

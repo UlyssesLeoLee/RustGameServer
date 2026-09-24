@@ -78,21 +78,27 @@ async fn spawn_test_server() -> (String, tokio::task::JoinHandle<()>) {
     (addr.to_string(), handle)
 }
 
-/// TCP 客户端发一帧, 收一帧
+/// TCP 客户端发一帧, 收一帧 (对齐 `tcp.rs`/`codec.rs` wire 格式: `[4B length][2B cmd][payload]`,
+/// 响应 payload 内部为 `[4B rcode][业务数据]`)
 async fn send_recv_frame(addr: &str, code: u32, payload: &[u8]) -> (u32, Vec<u8>) {
+    let cmd = code as u16;
     let mut stream = TcpStream::connect(addr).await.expect("connect ok");
-    let mut frame = Vec::with_capacity(8 + payload.len());
-    frame.extend_from_slice(&code.to_be_bytes());
-    frame.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+    let length = (payload.len() as u32) + 2; // length = payload + 2B cmd
+    let mut frame = Vec::with_capacity(6 + payload.len());
+    frame.extend_from_slice(&length.to_be_bytes());
+    frame.extend_from_slice(&cmd.to_be_bytes());
     frame.extend_from_slice(payload);
     stream.write_all(&frame).await.expect("write ok");
-    let mut header = [0u8; 8];
+
+    let mut header = [0u8; 6];
     stream.read_exact(&mut header).await.expect("read header");
-    let rcode = u32::from_be_bytes([header[0], header[1], header[2], header[3]]);
-    let length = u32::from_be_bytes([header[4], header[5], header[6], header[7]]) as usize;
-    let mut body = vec![0u8; length];
-    stream.read_exact(&mut body).await.expect("read body");
+    let resp_length = u32::from_be_bytes([header[0], header[1], header[2], header[3]]) as usize;
+    let mut rest = vec![0u8; resp_length - 2]; // resp_length 含 2B cmd, 已读走
+    stream.read_exact(&mut rest).await.expect("read body");
     stream.shutdown().await.ok();
+
+    let rcode = u32::from_be_bytes([rest[0], rest[1], rest[2], rest[3]]);
+    let body = rest[4..].to_vec();
     (rcode, body)
 }
 
@@ -119,12 +125,12 @@ async fn phase15_six_routes_route_roundtrip() {
 
 #[tokio::test]
 async fn phase15_route_miss_returns_404() {
-    // 验证未注册 code 返回 404
+    // 验证未注册 code 返回 404 (cmd 是 u16 wire 字段, 55555 在范围内且未注册)
     let (addr, _handle) = spawn_test_server().await;
-    let (rcode, body) = send_recv_frame(&addr, 99999, b"unknown").await;
+    let (rcode, body) = send_recv_frame(&addr, 55555, b"unknown").await;
     assert_eq!(rcode, 404);
     let body_str = String::from_utf8_lossy(&body);
-    assert!(body_str.contains("99999") || body_str.contains("unknown"));
+    assert!(body_str.contains("55555") || body_str.contains("unknown"));
 }
 
 #[tokio::test]

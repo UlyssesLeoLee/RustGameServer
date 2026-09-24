@@ -1,20 +1,20 @@
-﻿# RGS-DTL-038 实现规格书
+﻿# RGS-DTL-056 实现规格书
 
-**RGS-SPEC-DTL-038**
+**RGS-SPEC-DTL-056**
 
 | 项目 | 内容 |
 |---|---|
-| 文档编号 | RGS-SPEC-DTL-038 |
+| 文档编号 | RGS-SPEC-DTL-056 |
 | 版本 | 0.2 |
-| 状态 | 规格草案 + 已知缺口(见 §A.3),待 RGS-DTL-038 具名 DD Review |
-| 源详细设计 | RGS-DTL-038(2026-08-26 当日升版对齐,见 §A.1) |
+| 状态 | 规格草案 + 已知缺口(见 §A.3),待 RGS-DTL-056 具名 DD Review |
+| 源详细设计 | RGS-DTL-056(2026-08-26 当日升版对齐,见 §A.1) |
 | 实现范围 | Match 域 App 与 match_db |
 | 目标基线 | Rust 1.98 stable（当前基线；环境/CI Gate）、Actix Web 4.14.1、PostgreSQL 18.6；环境需先核验 |
 | 规格真源 | 源 DTL 的接口、字段、状态机、错误码、SQL/proto 和非目标 |
 
 ## 1. 使用规则
 
-本规格把 RGS-DTL-038 从详细设计转成可执行的实现清单，不替代源 DTL。若本规格与 RGS-DTL-038 不一致，以 DTL 评审变更为准；不得在代码中自行调和冲突。当前工作区没有对应实现源码，本文件不代表功能已完成。
+本规格把 RGS-DTL-056 从详细设计转成可执行的实现清单，不替代源 DTL。若本规格与 RGS-DTL-056 不一致，以 DTL 评审变更为准；不得在代码中自行调和冲突。当前工作区没有对应实现源码，本文件不代表功能已完成。
 
 实现匹配、队列、房间、结果、RT 绑定、超时、重试、结算和事件关联；match/room ID 不进 metric label。
 
@@ -72,7 +72,7 @@
 
 ## 7. Definition of Done
 
-- RGS-DTL-038 的审批/风险条件已满足；源 DTL 的 TBD 已有批准处置。
+- RGS-DTL-056 的审批/风险条件已满足；源 DTL 的 TBD 已有批准处置。
 - 代码、manifest、migration、proto/schema、配置和测试与 DTL 逐项对账。
 - Cargo fmt、clippy、test、deny、schema、secret、high-cardinality 检查通过。
 - health/readiness/liveness/degraded/draining 语义可由平台与 dashboard 一致识别。
@@ -90,18 +90,19 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响章节 |
 |---|---|---|---|---|---|
-| 0.1 | 2026-08-21 | 架构师 | — | 首版:与源 RGS-DTL-038 v0.1~v0.2 一对一映射的骨架规格 | 全部 |
+| 0.1 | 2026-08-21 | 架构师 | — | 首版:与源 RGS-DTL-056 v0.1~v0.2 一对一映射的骨架规格 | 全部 |
 | 0.2 | 2026-08-26 | 架构师（Mavis 接手 agent per DEC-008）| Ulysses（2026-08-26，per RGS-REV-004 字段级 DD Review） | 对齐源 DTL v0.1→v0.2（同步父文档）+ 头表版本号同步为 0.2;**不引入新设计**——仅落实/复核源 DTL 与父 BAS 既有内容,正文本(本规格 §2~§7)不重写,新增 §A v0.2 对齐说明。不可代签,审批栏姓名字段由 Ulysses 在字段级 DD Review 后补签 | §A(新增) |
+| 0.3 | 2026-09-20 | Hermes Agent (c557dae5) per ULYS-87 | — | 编号重命名 RGS-SPEC-DTL-038 → RGS-SPEC-DTL-056（ULYS-87 收口 DTL-038 三处冲突：核心传输防丢包主题 BAS+DTL+SPEC 三层链统一改为 056）。源 DTL 同步改为 DTL-056；文档主题、父文档 BAS-056、§A.1 保持 | §A.1 |
 
 ---
 
 ## A. v0.2 对齐说明（2026-08-26,基于源 DTL 今日升版沉淀）
 
-> **本节定位**:把源 RGS-DTL-038 v0.1→v0.2 的"今天增量"沉淀为本 SPEC 的实现侧要求。**不引入新设计**——仅落实/复核源 DTL 与父 BAS 既有内容,正文本 §1~§8 不重写,新增内容仅本节。
+> **本节定位**:把源 RGS-DTL-056 v0.1→v0.2 的"今天增量"沉淀为本 SPEC 的实现侧要求。**不引入新设计**——仅落实/复核源 DTL 与父 BAS 既有内容,正文本 §1~§8 不重写,新增内容仅本节。
 
 ### A.1 源 DTL 今日升版增量
 
-- **源 DTL**:RGS-DTL-038
+- **源 DTL**:RGS-DTL-056
 - **源 DTL 今日状态**:0.2(2026-08-21→2026-08-26)
 - **源 DTL 升版路径**:v0.1→v0.2
 - **源 DTL 升版类型**:同步父文档
@@ -112,7 +113,7 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 | 维度 | v0.1 | v0.2 调整 |
 |---|---|---|
 | 实现范围 | 与源 DTL v0.1 同步 | 与源 DTL 0.2 同步(范围不变,仅元数据对齐) |
-| 源 DTL 真源 | RGS-DTL-038 v0.1 | RGS-DTL-038 0.2(具体修订见 §A.1) |
+| 源 DTL 真源 | RGS-DTL-056 v0.1 | RGS-DTL-056 0.2(具体修订见 §A.1) |
 | §7 DoD 状态 | 待源 DTL 具名 DD Review | 仍待源 DTL 具名 DD Review(本 SPEC v0.2 不代签) |
 | §8 Gate 证据 | 待 ①源 DTL DD Review ② Rust 1.98 stable CI ③ PostgreSQL 18.6 迁移演练 ④ K3s 能力核验 | 同 v0.1(不因源 DTL 升版而新增 Gate) |
 
@@ -125,7 +126,7 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 
 ### A.4 引用链与证据
 
-- 源 DTL 修订历史条目:见 RGS-DTL-038 §修订历史表
+- 源 DTL 修订历史条目:见 RGS-DTL-056 §修订历史表
 - 父 BAS 升版条目:见对应父 RGS-BAS-NNN §修订历史表
 - 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表](../RGS-SPEC-000_详细设计规格化总表.md) + 本批 26 份 v0.2 调整说明(2026-08-26 当日 25 份 DTL 升版 + 1 份 DTL-036 双 hotfix 沉淀)
 - 不可代签:本节"审批者"列已由 Ulysses 于 2026-08-26 完成字段级 DD Review 并签字(per RGS-REV-004),原占位状态见 git 历史

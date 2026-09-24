@@ -6,6 +6,12 @@
 //!   - 失败时 in_flight 保留等 lease 过期被另一副本重试
 //!   - OutboxRelay 改用泛型 R: OutboxRepository（trait 加了泛型 append 后非 dyn-safe）
 //!
+//! ULYS-100 P2-#2 升级：wire 8 个 outbox Prometheus 指标
+//!   - 每 tick 观察 poll_cycle_duration + batch_size
+//!   - 每 entry publish 后 observe_outbox_event_age (created_at→sent_at) + record_outbox_publish
+//!   - publish 失败 (giveup) 时 result="failure"，重试 (mark_failed) 时 result="failure" (重试计数)
+//!   - publish 成功时 result="success"
+//!
 //! 设计：
 //! - relay 定时 poll outbox（list_pending 内部用 FOR UPDATE SKIP LOCKED + mark in_flight + lease 30s）
 //! - 每条 entry publish 到 NATS，成功 mark_sent，失败 mark_failed（retry_count+1，in_flight 保留）
@@ -15,11 +21,13 @@
 
 use std::marker::PhantomData;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::time;
 
+use crate::metrics::metrics;
 use crate::outbox::{OutboxEntry, OutboxRepository};
 use crate::producer::{Producer, ProducerError};
+use crate::subject::aggregate_type_of;
 
 /// Relay 配置
 #[derive(Debug, Clone)]
@@ -43,25 +51,49 @@ impl Default for RelayConfig {
 }
 
 /// Outbox Relay（55.17：泛型版，因 OutboxRepository 加了泛型 append 后非 dyn-safe）
+///
+/// **ULYS-100 P2-#2 改造**: `service_name` 用于 Prometheus 标签维度
+/// （`rgs_outbox_*{service="admin"|"economy"|...}`）。6 域各自 `main.rs`
+/// 启动 relay 时传入 `"admin"` / `"economy"` / `"match"` / `"player"` / `"social"` / `"cluster_ops"`。
 pub struct OutboxRelay<R: OutboxRepository + 'static> {
     repo: Arc<R>,
     producer: Arc<Producer>,
     config: RelayConfig,
+    /// Prometheus 标签 service 值（per §1.1 spec）
+    service_name: &'static str,
     _marker: PhantomData<R>,
 }
 
 impl<R: OutboxRepository + 'static> OutboxRelay<R> {
-    pub fn new(repo: Arc<R>, producer: Arc<Producer>, config: RelayConfig) -> Self {
+    /// 构造 relay
+    ///
+    /// `service_name` 必须是 `"admin" | "economy" | "match" | "player" | "social" | "cluster_ops"`
+    /// （6 业务域之一；per ADR-0061 §1.3 6 域 outbox 部署）。
+    pub fn new(
+        repo: Arc<R>,
+        producer: Arc<Producer>,
+        config: RelayConfig,
+        service_name: &'static str,
+    ) -> Self {
         Self {
             repo,
             producer,
             config,
+            service_name,
             _marker: PhantomData,
         }
     }
 
+    /// Prometheus 服务标签（for 业务 helper 调用）
+    fn service(&self) -> &'static str {
+        self.service_name
+    }
+
     /// 单次轮询（一次 batch）
     pub async fn tick(&self) -> crate::outbox::Result<RelayStats> {
+        // ULYS-100：观察整个 tick 周期耗时
+        let tick_start = Instant::now();
+
         let mut stats = RelayStats::default();
         tracing::debug!(
             operation = "outbox_poll",
@@ -73,6 +105,8 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
         // 55.17：list_pending 内部已 mark in_flight + lease 30s + 提交后持锁
         let pending = self.repo.list_pending(self.config.batch_size).await?;
         stats.fetched = pending.len();
+        // ULYS-100：观察批量大小 + 进入 relay 处理阶段
+        metrics().observe_outbox_batch_size(self.service(), stats.fetched);
         tracing::debug!(
             operation = "outbox_poll_result",
             service = "shared-platform",
@@ -83,32 +117,52 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
 
         for entry in pending {
             // entry.status 此时已是 InFlight（list_pending 内部标记）
+            // aggregate_type 从 subject 推断（per subject::aggregate_type_of）
+            let agg = aggregate_type_of(&entry.subject);
             match self.publish_entry(&entry).await {
                 Ok(()) => {
                     self.repo.mark_sent(entry.id).await?;
                     stats.sent += 1;
+                    // ULYS-100：成功 publish + observe event_age（created_at → now）
+                    // 注：mark_sent 内部把 sent_at=now()，但我们此刻只有 created_at。
+                    // 端到端延迟 = Utc::now() - created_at（足够精确，差 < 1ms）
+                    let age_secs = (chrono::Utc::now() - entry.created_at).num_milliseconds() as f64
+                        / 1000.0;
+                    metrics().record_outbox_publish(self.service(), &agg, "success");
+                    metrics().observe_outbox_event_age(self.service(), &agg, age_secs);
                 }
                 Err(e) => {
                     // 55.17：失败时 in_flight 保留，retry_count+1
                     // 另一副本在 lease 过期后通过 list_pending 重试
+                    let error_msg = e.to_string();
+                    // 区分 timeout / failure（per 06_草案 §1.1 result label）
+                    let result_label = if error_msg.contains("timeout") {
+                        "timeout"
+                    } else {
+                        "failure"
+                    };
                     if entry.retry_count + 1 >= self.config.max_retries {
                         self.repo.mark_giveup(entry.id).await?;
                         stats.failed += 1;
+                        metrics().record_outbox_publish(self.service(), &agg, result_label);
                         tracing::warn!(
                             target: "outbox_relay",
                             outbox_id = %entry.id,
                             subject = %entry.subject,
+                            aggregate_type = %agg,
                             retries = entry.retry_count + 1,
                             "outbox entry gave up after max retries"
                         );
                     } else {
                         // mark_failed 内部：retry_count+1, last_error, status 保持 in_flight
-                        self.repo.mark_failed(entry.id, e.to_string()).await?;
+                        self.repo.mark_failed(entry.id, error_msg).await?;
                         stats.retried += 1;
+                        metrics().record_outbox_publish(self.service(), &agg, result_label);
                         tracing::warn!(
                             target: "outbox_relay",
                             outbox_id = %entry.id,
                             subject = %entry.subject,
+                            aggregate_type = %agg,
                             error = %e,
                             "outbox publish failed, lease will expire then retry by another replica"
                         );
@@ -116,6 +170,12 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
                 }
             }
         }
+
+        // ULYS-100：tick 周期耗时 observe（包含 list_pending + 所有 publish + mark_sent/_failed）
+        metrics().observe_outbox_poll_cycle_duration(
+            self.service(),
+            tick_start.elapsed().as_secs_f64(),
+        );
 
         Ok(stats)
     }

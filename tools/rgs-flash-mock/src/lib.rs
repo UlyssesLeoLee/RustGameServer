@@ -14,6 +14,7 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+pub mod aci_emitter_helper;
 pub mod config;
 pub mod gap_matrix;
 pub mod grpc_clients;

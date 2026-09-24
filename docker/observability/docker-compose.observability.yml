@@ -27,6 +27,7 @@ services:
     container_name: rgs-prometheus
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus-rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     networks:
       - rgs-dev-net

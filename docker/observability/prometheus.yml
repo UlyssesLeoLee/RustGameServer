@@ -1,11 +1,16 @@
 # Prometheus 配置（per WBS v0.3 §2A.5 WF-1-53.12）
 # scrape 5 域 + cluster-ops /metrics + OTel Collector 内部 metrics
+# ULYS-100 P2-#2: 加 rule_files 加载 outbox 告警 + recording rules
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
     cluster: rgs-dev
+
+# ULYS-100 P2-#2: outbox 告警 + 派生指标 (per 06_Outbox监控指标草案.md §2)
+rule_files:
+  - /etc/prometheus/rules/rgs-outbox-alerts.yaml
 
 scrape_configs:
   - job_name: prometheus

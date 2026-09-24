@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 // =====================================================================
@@ -642,6 +642,7 @@ pub struct InMemoryEconomyV3Repository {
     pub activity_templates: HashMap<i32, ActivityTemplateEntity>,
     pub activity_player_states: HashMap<(String, i32), ActivityPlayerState>,
     pub activity_reward_tiers: HashMap<i32, Vec<ActivityRewardTier>>, // activity_id → tiers
+    pub activity_idempotency_keys: HashSet<String>, // ULYS-97 fix: idempotency keys consumed by activity_progress
 
     pub auction_auto_bids: Vec<AuctionAutoBid>,
     pub auction_watches: Vec<AuctionWatch>,
