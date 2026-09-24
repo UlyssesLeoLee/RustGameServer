@@ -1,6 +1,7 @@
 {
   "$schema": "https://ulysses-star.local/schemas/aci/v0.1.0-draft.json",
   "aci_version": "0.1.0-draft",
+  "aci_compat_version": "0.1.0-draft",
   "project": "rgs-flash-mock",
   "description": "RGS Flash Mock ACI 契约 v0.1 — 提示词型断言 (LLM-可读)",
   "homepage": "https://github.com/UlyssesLeoLee/RustGameServer/tree/dev/tools/rgs-flash-mock",
@@ -143,5 +144,37 @@
     "docs/architecture/2026-09-22-aci-mock-interface/00-design-analysis.md v0.2",
     "docs/briefs/ulys-191-star-mock-aci-stage1.md v0.1",
     "scripts/_lib_validate.py (风格参考)"
-  ]
+  ],
+  "plugins": {
+    "player": {
+      "plugin_id": "player",
+      "enabled": true,
+      "default_mode": "offline",
+      "modules": {}
+    },
+    "economy": {
+      "plugin_id": "economy",
+      "enabled": true,
+      "default_mode": "offline",
+      "modules": {}
+    },
+    "match": {
+      "plugin_id": "match",
+      "enabled": true,
+      "default_mode": "offline",
+      "modules": {}
+    },
+    "social": {
+      "plugin_id": "social",
+      "enabled": true,
+      "default_mode": "offline",
+      "modules": {}
+    },
+    "admin": {
+      "plugin_id": "admin",
+      "enabled": true,
+      "default_mode": "offline",
+      "modules": {}
+    }
+  }
 }
