@@ -1,0 +1,147 @@
+{
+  "$schema": "https://ulysses-star.local/schemas/aci/v0.1.0-draft.json",
+  "aci_version": "0.1.0-draft",
+  "project": "rgs-flash-mock",
+  "description": "RGS Flash Mock ACI 契约 v0.1 — 提示词型断言 (LLM-可读)",
+  "homepage": "https://github.com/UlyssesLeoLee/RustGameServer/tree/dev/tools/rgs-flash-mock",
+  "supported_layers": [
+    "ut",
+    "it",
+    "st",
+    "e2e"
+  ],
+  "severity_levels": [
+    "critical",
+    "high",
+    "medium",
+    "low",
+    "info"
+  ],
+  "assertion_statuses": [
+    "PASS",
+    "FAIL",
+    "WARN",
+    "SKIP"
+  ],
+  "expect_value_types": [
+    "response_within_ms",
+    "response_status_2xx",
+    "response_status_4xx_5xx",
+    "field_equals",
+    "field_exists",
+    "field_not_exists",
+    "field_in_range",
+    "field_greater_than",
+    "field_less_than",
+    "field_matches_regex",
+    "list_length_at_least",
+    "list_length_equals",
+    "workflow_completes",
+    "event_emitted",
+    "log_contains",
+    "metric_within_threshold",
+    "no_resource_leak"
+  ],
+  "scope_dimensions": [
+    "project",
+    "module",
+    "domain",
+    "subdomain",
+    "operation",
+    "http_method"
+  ],
+  "tags_taxonomy": [
+    "perf",
+    "latency",
+    "timeout",
+    "kms",
+    "memory",
+    "cpu",
+    "io",
+    "auth",
+    "rbac",
+    "concurrency",
+    "race",
+    "deadlock",
+    "regression",
+    "smoke",
+    "soak",
+    "chaos",
+    "edge",
+    "boundary",
+    "negative",
+    "positive"
+  ],
+  "emitter_compatibility": {
+    "bash": "_lib_aci_emit.sh",
+    "python": "_lib_aci_emit.py",
+    "cli_aggregator": "tools/aci-summary/aci_summary.py"
+  },
+  "schema_required_fields": [
+    "assertion_id",
+    "aci_version",
+    "layer",
+    "scope",
+    "expect",
+    "actual",
+    "status",
+    "severity",
+    "reasoning",
+    "captured_at"
+  ],
+  "schema_conditional_fields": {
+    "suggested_fix": "FAIL 时建议填写 (LLM 可直接采纳的修复建议)",
+    "tags": "推荐填写 (帮助 LLM 分类和检索)"
+  },
+  "field_semantics": {
+    "aci_version": "schema 版本号, LLM 看到 v0.2 知道字段含义可能已扩展",
+    "assertion_id": "唯一 ID, 格式 <module>:<id> (例: star-flash-mock:guards:g-1)",
+    "layer": "测试层 (ut/it/st/e2e), 帮助 LLM 判断严重程度",
+    "scope": "标注「哪个项目/模块/域/操作/HTTP 方法」, 帮助 LLM 定位",
+    "expect": "人类可读的「预期是什么」, 格式 {type, value, description}",
+    "actual": "人类可读的「实测是什么」, 格式 {type, value, description}",
+    "status": "结果 (PASS/FAIL/WARN/SKIP), 跟现有 [OK]/[FAIL] 对齐",
+    "severity": "失败严重程度 (LLM 优先处理 critical)",
+    "reasoning": "FAIL 时必填, 「为什么 fail」自然语言, LLM 直接读",
+    "suggested_fix": "FAIL 时建议填, 「怎么修」自然语言, LLM 可直接采纳",
+    "tags": "推荐, 帮助 LLM 分类检索 (perf/latency/kms/concurrency/...)",
+    "captured_at": "RFC3339 时间戳, LLM 判读「最近变差」vs「一直 fail」"
+  },
+  "expect_actual_format": {
+    "common": {
+      "type": "string (expect_value_types 之一)",
+      "value": "any (类型由 type 决定)",
+      "description": "string (人类可读说明, LLM 必读)"
+    },
+    "examples": [
+      {
+        "type": "response_within_ms",
+        "value": 2000,
+        "description": "API response should arrive within 2 seconds"
+      },
+      {
+        "type": "response_status_2xx",
+        "value": 200,
+        "description": "HTTP status code should be in 2xx range"
+      }
+    ]
+  },
+  "backward_compat": {
+    "existing_field": "fixture_assertion",
+    "strategy": "coexist",
+    "note": "v0.1 期间 fixture_assertion + aci_assertion 同时存在, 第 2 笔 brief 全量铺开后观察 1 sprint 决定是否删 fixture_assertion",
+    "deprecation_target": "fixture_assertion (legacy boolean fields, 由 aci_assertion 替代)"
+  },
+  "next_milestones": {
+    "v0.2": "全量 175 fixture 加 aci_assertion (G-ACI-06 b/c 阶段)",
+    "v0.3": "IDE1.0 mock 适配 (per §4.2)",
+    "v0.4": "4 个项目盘点 (per §4.3 + G-ACI-01)",
+    "v0.5": "跨项目统一验证 (per §4.5)",
+    "v1.0": "aci-summary CLI 完整版 + LLM Consumer"
+  },
+  "reference_docs": [
+    "docs/architecture/2026-09-22-aci-mock-interface/00-design-analysis.md v0.2",
+    "docs/briefs/ulys-191-star-mock-aci-stage1.md v0.1",
+    "scripts/_lib_validate.py (风格参考)"
+  ]
+}
