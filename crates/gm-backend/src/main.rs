@@ -68,12 +68,17 @@ async fn main() -> anyhow::Result<()> {
                 .app_data(web::Data::new(health_state.clone()))
                 .configure(register_health_routes)
         };
+        let server = match HttpServer::new(health_app).bind(health_addr) {
+            Ok(server) => server,
+            Err(e) => {
+                tracing::error!("bind health addr failed: {e}");
+                return;
+            }
+        };
         tracing::info!(target: "gm-backend", "health probe listening on {}", health_addr);
-        if let Err(e) = HttpServer::new(health_app).bind(health_addr) {
-            tracing::error!("bind health addr failed: {e}");
-            return;
+        if let Err(e) = server.run().await {
+            tracing::error!("health probe server exited: {e}");
         }
-        // actix-web HttpServer 已经被 move, 重新构造比较复杂, 直接用标准 TcpListener
     });
 
     // 主 HTTP server (8443, 生产模式 mTLS, 当前 dev 跳过)
