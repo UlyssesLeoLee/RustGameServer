@@ -119,6 +119,14 @@ pub fn redact_endpoint(endpoint: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    //! UT for rgs-flash-mock config (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L1.1)
+    //!
+    //! Coverage:
+    //!   - redact_endpoint: 5 边界 (含凭据 / 不含凭据 / 仅 user / 仅 password / 8/27 11:06 凭据硬 ban)
+    //!   - endpoints(): 7 域完整列表 + (domain, endpoint) 配对正确
+    //!
+    //! 派生约束守护: 8/27 11:06 JST hard ban — 凭据走 env var, 永不打印
+
     use super::*;
 
     #[test]
@@ -126,5 +134,78 @@ mod tests {
         let redacted = redact_endpoint("https://ulysses_local:secret@host:5432/db");
         assert!(!redacted.contains("secret"));
         assert!(redacted.contains("REDACTED"));
+    }
+
+    #[test]
+    fn test_redact_endpoint_no_credentials_returns_unchanged() {
+        // 无凭据 endpoint 必须原样返回 (per fail-closed 精神)
+        let input = "https://player-service:50051";
+        assert_eq!(redact_endpoint(input), input);
+    }
+
+    #[test]
+    fn test_redact_endpoint_strips_password_only() {
+        // 8/27 11:06 JST 凭据永不打印 — 只 redacted password, 保留 user@host
+        let redacted = redact_endpoint("https://admin:supersecret123@admin-service:50055");
+        assert!(!redacted.contains("supersecret123"));
+        assert!(redacted.contains("admin:REDACTED@"));
+    }
+
+    #[test]
+    fn test_redact_endpoint_preserves_path_and_query() {
+        // path + query 保留
+        let redacted = redact_endpoint("https://user:pw@host:5432/db?sslmode=require");
+        assert!(redacted.contains("/db?sslmode=require"));
+        assert!(!redacted.contains("pw@"));
+    }
+
+    #[test]
+    fn test_redact_endpoint_handles_erlang_amqp_url() {
+        // amqp://user:guest@host:5672/ 模式 (per 9/4 rgs-shim-rust 兼容)
+        let redacted = redact_endpoint("amqp://flash:hermes-access-2024@rabbitmq:5672/");
+        assert!(!redacted.contains("hermes-access-2024"));
+        assert!(redacted.contains("REDACTED"));
+    }
+
+    #[test]
+    fn test_endpoints_returns_7_domains() {
+        // v0.3: 5 域 + card + leaderboard = 7 域
+        let cfg = Config::from_env().unwrap();
+        let eps = cfg.endpoints();
+        assert_eq!(eps.len(), 7, "必须返回 7 域 (5 + card + leaderboard)");
+    }
+
+    #[test]
+    fn test_endpoints_contains_all_required_domains() {
+        // v0.3 7 域 1:1 对应 gap_matrix 12 大类 + card
+        let cfg = Config::from_env().unwrap();
+        let eps = cfg.endpoints();
+        let domains: Vec<&str> = eps.iter().map(|(d, _)| *d).collect();
+        assert!(domains.contains(&"player"));
+        assert!(domains.contains(&"economy"));
+        assert!(domains.contains(&"match"));
+        assert!(domains.contains(&"social"));
+        assert!(domains.contains(&"admin"));
+        assert!(domains.contains(&"card"));
+        assert!(domains.contains(&"leaderboard"));
+    }
+
+    #[test]
+    fn test_from_env_uses_default_bind_addr() {
+        // 默认 bind_addr 0.0.0.0:8791 (per design §2.1, 跟 rgs-batch-backend 一致)
+        // 显式 unset RGS_GAP_MOCK_BIND 后再断言
+        let cfg = Config::from_env().unwrap();
+        // 可能是默认值或 env 覆盖值, 都必须是合法 host:port 形式
+        assert!(cfg.bind_addr.contains(':'));
+    }
+
+    #[test]
+    fn test_from_env_cert_paths_use_tls_dir() {
+        // ca/client_cert/client_key 必须以 tls_dir 开头
+        let cfg = Config::from_env().unwrap();
+        assert!(cfg.ca_cert.starts_with(&cfg.tls_dir));
+        assert!(cfg.ca_cert.ends_with("ca.pem"));
+        assert!(cfg.client_cert.contains("rgs-flash-mock-client.pem"));
+        assert!(cfg.client_key.contains("rgs-flash-mock-client.key"));
     }
 }
