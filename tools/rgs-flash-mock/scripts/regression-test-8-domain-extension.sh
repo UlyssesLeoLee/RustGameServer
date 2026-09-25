@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # rgs-flash-mock 8 域扩展回归测试 (v0.1, per RGS-TEST-DESIGN v0.2 §8.2)
 # 8 域扩展: scene / battle / network / account / sub8 (8 子系统)
-# per 9/6 闪烁之光 8 域兼容 commit (a5235eb / 95e67a6 / 1134cfd / 57edbeb / b6b19b7 / 1dd9afc)
+# per 9/6 [游戏A] 8 域兼容 commit (a5235eb / 95e67a6 / 1134cfd / 57edbeb / b6b19b7 / 1dd9afc)
 # per 9/4 17:47 JST "测试脚本+数据归入 mock 项目" (per user.md)
 
 set -euo pipefail
@@ -32,7 +32,7 @@ else
   exit 1
 fi
 
-# 2. 8 域扩展 RPC 验证 (per 9/6 闪烁之光 8 域兼容)
+# 2. 8 域扩展 RPC 验证 (per 9/6 [游戏A] 8 域兼容)
 echo
 echo "[2/3] 8 域扩展 RPC 验证 (per 9/6 a5235eb / 95e67a6 / 1134cfd / 57edbeb / b6b19b7 / 1dd9afc) ..."
 echo "  2.1 scene 域 (148 RPC, per 9/6 57edbeb scene-service) - scene_ext fixture"
@@ -75,7 +75,7 @@ echo "  ✅ sub8 → 5 域 + 工具 (8 子系统整合)"
 echo "  ✅ 8 域扩展 22 RPC + 5 域 21 RPC = 43 核心 RPC + 跨域抽象 + 工具 + plugin = 60 module"
 
 echo
-echo "=== 8 域扩展回归测试完成 (per 9/6 闪烁之光 8 域兼容) ==="
+echo "=== 8 域扩展回归测试完成 (per 9/6 [游戏A] 8 域兼容) ==="
 echo "  scene 148 RPC + battle 250 RPC + network 协议网关 + account 15 RPC + sub8 8 子系统 ✅"
 echo "  8 域扩展 22 RPC 验证 ✅"
 echo "  5 域 + 8 域扩展兼容性验证 ✅"

@@ -1,4 +1,4 @@
-# rgs-shim — zsyz SmartSocket → RGS gRPC shim v0.2.0
+# rgs-shim — [游戏A] SmartSocket → RGS gRPC shim v0.2.0
 
 > **Mavis 接手, 2026-09-09 13:50 JST** — v0.2 框架扩展: cmdRegistry 模式 + 6 cmd 跑通.
 > **作者**: Ulysses — Mavis 接手 (per DEC-008) | **审批**: 架构师(Mavis 接手 agent per DEC-008)+自审+2026-09-09 | **修订人**: Ulysses — Mavis 接手
@@ -8,10 +8,10 @@
 
 ## 1. 这是什么
 
-zsyz 客户端 (zsyz_client C++ cocos2d-x + zsyz_client_h5) 通过 **SmartSocket TCP binary protocol** (默认 `localhost:9001`) 与 Erlang zsyz_server 通信。本项目 (v0.2) 让 zsyz 客户端**不改任何源码**就能连 RGS 5 域 gRPC server。
+[游戏A] 客户端 ([游戏A]_client C++ cocos2d-x + [游戏A]_client_h5) 通过 **SmartSocket TCP binary protocol** (默认 `localhost:9001`) 与 Erlang [游戏A]_server 通信。本项目 (v0.2) 让 [游戏A] 客户端**不改任何源码**就能连 RGS 5 域 gRPC server。
 
 ```
-zsyz 客户端 (C++ / H5 / iOS / Android)
+[游戏A] 客户端 (C++ / H5 / iOS / Android)
   ↓ TCP binary (SmartSocket 协议, 端口 9001)
 rgs-shim (本项目, Node.js, 0 第三方依赖)
   ↓ HTTP/JSON (rgs-proxy 协议)
@@ -65,9 +65,9 @@ cd tools/rgs-shim
 node shim.js
 # 输出: [shim] RGS SmartSocket shim v0.2.0 listening on 0.0.0.0:9001
 #       [shim] Registered cmds: 10101, 10102, 10103, 10200, 10400, 11001
-#       [shim] Total: 6 cmds (514 unique in zsyz_server, 508 TODO)
+#       [shim] Total: 6 cmds (514 unique in [游戏A]_server, 508 TODO)
 
-# 3) zsyz 客户端 → tcp://localhost:9001 (原 zsyz_server 端口)
+# 3) [游戏A] 客户端 → tcp://localhost:9001 (原 [游戏A]_server 端口)
 ```
 
 环境变量: `SHIM_PORT` (默认 9001), `RGS_PROXY` (默认 http://127.0.0.1:8084)
@@ -101,9 +101,9 @@ node test-client.js
   - social 域 worker: 40000-49999 (工会/聊天) ~80 cmd
   - admin 域 worker: 50000+ (GM/审计) ~158 cmd
   - **预计**: 3-5 天/worker = 1-2 周 4 worker 并行
-- **GAP-B**: RGS player.GetPlayer 硬编码 UUID, 没接 zsyz 账号体系. 修法: 解析 10101 name → ListPlayers 查 RGS player table.
+- **GAP-B**: RGS player.GetPlayer 硬编码 UUID, 没接 [游戏A] 账号体系. 修法: 解析 10101 name → ListPlayers 查 RGS player table.
 - **GAP-C**: 没压测. 100+ 并发待验.
-- **GAP-D**: 没加密. zsyz_server 真实有 XOR/TEA 加密, shim 当前明文.
+- **GAP-D**: 没加密. [游戏A]_server 真实有 XOR/TEA 加密, shim 当前明文.
 - **GAP-E**: 没 session 管理. 短断重连丢登录态.
 
 ## 8. worker 接入指南
@@ -134,10 +134,10 @@ const CMD_REGISTRY = {
 
 ## 9. 协议参考
 
-- Frame 格式: `zsyz_client_core/frameworks/game_core/thirdparty/Libnetwork/GameTcpClient.h`
-- 字段类型: `zsyz_client_core/frameworks/game_core/net/SmartSocket.h`
-- Cmd 定义: `zsyz_server/src/proto/proto_101-236.erl` (101 = login, 102 = 地图, 103 = 战斗, ...)
-- 完整 cmd 目录: 991 pack defs / 514 unique cmd (10101-23911), 跑 `python zsyz-cmd-catalog.py` 看
+- Frame 格式: `[游戏A]_client_core/frameworks/game_core/thirdparty/Libnetwork/GameTcpClient.h`
+- 字段类型: `[游戏A]_client_core/frameworks/game_core/net/SmartSocket.h`
+- Cmd 定义: `[游戏A]_server/src/proto/proto_101-236.erl` (101 = login, 102 = 地图, 103 = 战斗, ...)
+- 完整 cmd 目录: 991 pack defs / 514 unique cmd (10101-23911), 跑 `python [游戏A]-cmd-catalog.py` 看
 
 ## 10. 修订历史
 

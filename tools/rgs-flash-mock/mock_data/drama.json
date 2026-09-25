@@ -14,7 +14,7 @@
     "not_implemented_count": 5,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.26 L960-970), RGS player-service DramaService 当前 0 实装,需 v0.2+ sprint 补; drama.erl 30KB + drama_cond.erl 14KB + drama_quest.erl 11KB + drama_act.erl 5KB 总 60KB+ 业务逻辑; 4 明确 cmds + 1 描述空 (推测 剧情奖励领取); 跨域依赖 combat (战斗剧情 finish_drama) + role_trigger (事件触发 fire) + log (任务日志) + quest (剧情任务)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\drama\\drama_rpc.erl (2.6KB, 4 明确 cmds 11100/11102/11121/11122 + 1 描述空) + drama.erl (30.7KB, 剧情主逻辑) + drama_cond.erl (14.8KB, 剧情条件) + drama_quest.erl (11.4KB, 剧情任务) + drama_act.erl (5.6KB, 剧情动作)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\drama\\drama_rpc.erl (2.6KB, 4 明确 cmds 11100/11102/11121/11122 + 1 描述空) + drama.erl (30.7KB, 剧情主逻辑) + drama_cond.erl (14.8KB, 剧情条件) + drama_quest.erl (11.4KB, 剧情任务) + drama_act.erl (5.6KB, 剧情动作)",
     "rgs_translation": "player-service DramaService trait + PgDramaConfigRepository (Master 剧情配置) + PlayerDramaProgressRepository (Transaction m_drama record play_list/finish_guide 4 字段) + DramaLogRepository (Transaction 剧情日志) + role_trigger:fire evt_finish_guide (per drama_rpc.erl L58) 跨进程事件 + combat_drama:drama_finish(NRole, {guide_finish, GuideId}) 跨 FSM 转移 + log:save task 任务日志",
     "rgs_file_ref": "crates/player-service/src/drama_service.rs (待 v0.2 sprint 新建) + crates/match-service/src/drama_drama.rs (待 v0.2 sprint 新建, 战斗剧情 cross-FSM) + crates/quest-service/src/trigger.rs (角色事件触发) + crates/log-service/src/task_log.rs (剧情任务日志)",
     "known_gaps": [

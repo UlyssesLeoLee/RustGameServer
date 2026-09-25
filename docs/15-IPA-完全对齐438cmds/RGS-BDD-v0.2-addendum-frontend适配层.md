@@ -1,13 +1,13 @@
-# RGS-BDD-v0.2 addendum — 闪烁之光 client 适配层设计 (gRPC transcoder / JSON-RPC proxy / Flash socket 兼容)
+# RGS-BDD-v0.2 addendum — [游戏A] client 适配层设计 (gRPC transcoder / JSON-RPC proxy / Flash socket 兼容)
 
 > **创建日期**: 2026-09-04 17:11 JST
 > **作者**: 架构师(Mavis 接手 agent per DEC-008)
 > **审批**: 架构师(Mavis 接手 agent per DEC-008) — 待 Ulysses 二审
 > **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 > **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
-> **依据**: 9/4 17:11 JST user 拍板 "**frontend compat 正确设计**" + 9/4 16:45 JST "**完全对齐**" 拍板 (per ask_user option A 第 3 项) + 9/4 16:14 JST "完整 1351 mock" 拍板 + 9/4 16:47 JST "首先补全需求/基本/详细设计, 内容根据闪烁之光代码逆推" 拍板
+> **依据**: 9/4 17:11 JST user 拍板 "**frontend compat 正确设计**" + 9/4 16:45 JST "**完全对齐**" 拍板 (per ask_user option A 第 3 项) + 9/4 16:14 JST "完整 1351 mock" 拍板 + 9/4 16:47 JST "首先补全需求/基本/详细设计, 内容根据[游戏A]代码逆推" 拍板
 > **配套**: `docs/15-IPA-完全对齐438cmds/RGS-REQ-2026-09-04_v0.1.md` + `RGS-BDD-2026-09-04_v0.1.md` + `RGS-DDD-2026-09-04_v0.1.md` (3 件套同 commit `80bcd3b`, addendum v0.2 独立文件) + `RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` (mock 设计 4 阶段, 跟本 addendum 解耦)
-> **作用域**: 闪烁之光 client 协议 (自研 TCP / Flash socket / PHP 假节点) 接入 RGS 8 域 (player / economy / match / social / admin / card / batch / gm-backend) 的**适配层**; 推荐 **gRPC transcoder** 作为优选方案; 跟 §6 BDD v0.1 §3 模块划分 + §4 数据流 + §5 技术选型 + §6 部署架构 + §9 安全架构 一致
+> **作用域**: [游戏A] client 协议 (自研 TCP / Flash socket / PHP 假节点) 接入 RGS 8 域 (player / economy / match / social / admin / card / batch / gm-backend) 的**适配层**; 推荐 **gRPC transcoder** 作为优选方案; 跟 §6 BDD v0.1 §3 模块划分 + §4 数据流 + §5 技术选型 + §6 部署架构 + §9 安全架构 一致
 > **状态**: ⏳ 待 Mavis 自审 → 🟡 Mavis 自审停手 → ⏳ 待 Ulysses 二审 → ✅/🟡/❌ (per DDD-REVIEW-TEMPLATE-v0.2 §3)
 
 ---
@@ -24,73 +24,73 @@
 | **创建日期** | 2026-09-04 17:11 JST |
 | **依据用户拍板** | 9/4 17:11 JST "frontend compat 正确设计" + 9/4 16:45 JST "完全对齐" + 9/4 16:14 JST "完整 1351 mock" + 9/4 16:47 JST "3 件套补全" |
 | **目标读者** | 架构师 / 8 域 Lead (player / economy / match / social / admin / card / batch / gm-backend) / SRE / PM / Ulysses DDD Review |
-| **更新策略** | v0.2 addendum 冻结后, v0.3+ 跟 闪烁之光 client 协议升级同步升版 (per 协议号分段 line 140-145) |
-| **作用域 vs 闪烁之光 client** | 完整 42 modules / 438 cmds / 96 proto (per BDD v0.1 §1.1) 全部经适配层路由到 RGS 8 域 backend |
+| **更新策略** | v0.2 addendum 冻结后, v0.3+ 跟 [游戏A] client 协议升级同步升版 (per 协议号分段 line 140-145) |
+| **作用域 vs [游戏A] client** | 完整 42 modules / 438 cmds / 96 proto (per BDD v0.1 §1.1) 全部经适配层路由到 RGS 8 域 backend |
 | **作用域 vs RGS backend** | 不动 8 域 gRPC proto (per BDD v0.1 §7.3 + audit v0.3 §1.2 #1); 不动 8 域 DB 拓扑 (per ARC-008 5→7→8 域) |
 | **派生约束守护** | L1/L1.1/L1.2 N/A (本 addendum 0 Rust 改动, 纯设计文档) / L11 N/A (0 cargo 跑) / L12 N/A (1 worker 派工, 主会话统一 1 commit) / L13 self-referencing deferred / L14 plumbing N/A |
 
 ---
 
-## 1. 引言 (per BDD v0.1 §4 数据流 + 闪烁之光 client 协议)
+## 1. 引言 (per BDD v0.1 §4 数据流 + [游戏A] client 协议)
 
 ### 1.1 背景 (per 9/4 16:47 JST + 9/4 17:11 JST user 拍板)
 
-Ulysses 2026-09-04 16:47 JST 拍板 "**首先补全需求文档, 基本设计文档, 详细设计文档, 内容根据闪烁之光代码逆推**", 3 件套 v0.1 (REQ + BDD + DDD) 已落 commit `80bcd3b` (per BDD v0.1 §0 baseline 冻结)。
+Ulysses 2026-09-04 16:47 JST 拍板 "**首先补全需求文档, 基本设计文档, 详细设计文档, 内容根据[游戏A]代码逆推**", 3 件套 v0.1 (REQ + BDD + DDD) 已落 commit `80bcd3b` (per BDD v0.1 §0 baseline 冻结)。
 
 Ulysses 2026-09-04 17:11 JST 拍板 "**frontend compat 正确设计**" (per ask_user option A 第 3 项, 跟 9/4 16:45 JST "完全对齐" 拍板 + 9/4 16:14 JST "完整 1351 mock" 拍板 一致), 确认: **RGS 5 域 + card 7 域 backend 不动, 仅在 client 接入层做适配**, 适配层独立 crate, 不污染 8 域 gRPC proto + DB。
 
-本 addendum 是 BDD v0.1 §3.3 模块依赖图 (8 域 + shared-platform + rgs-testkit) 的**接入层扩展** —— 解决 "闪烁之光 client 怎么跟 RGS 8 域 backend 对话" 的问题。
+本 addendum 是 BDD v0.1 §3.3 模块依赖图 (8 域 + shared-platform + rgs-testkit) 的**接入层扩展** —— 解决 "[游戏A] client 怎么跟 RGS 8 域 backend 对话" 的问题。
 
 ### 1.2 目标 (per 借鉴分析 .md + 9/4 16:45 JST 拍板 + 9/4 17:11 JST 拍板)
 
 - **接入层独立**: 适配层独立 crate (`tools/rgs-frontend-compat/` 候选路径, 跟 rgs-flash-mock / rgs-batch-backend 同级), 不动 8 域 gRPC proto
-- **协议类型安全**: 适配层把 闪烁之光 自研 TCP / Flash socket → RGS gRPC mTLS 业务级 (per shared-platform::tls) + tonic 0.12 静态生成 (per BDD v0.1 §5.2)
+- **协议类型安全**: 适配层把 [游戏A] 自研 TCP / Flash socket → RGS gRPC mTLS 业务级 (per shared-platform::tls) + tonic 0.12 静态生成 (per BDD v0.1 §5.2)
 - **业务透传优先**: 业务层 (TCG vs MMORPG) 走透明透传, 不擅自改业务 (per BDD v0.1 §7.3 Hybrid-2 + audit v0.3 §1.2 #1 DB-as-state 决策保留)
 - **性能合理**: 适配层 P50 ≤ 10µs, P99 ≤ 50µs, 端到端 P99 ≤ 200µs (适配层 50µs + RGS 50µs + 网络 100µs)
 - **mTLS fail-closed**: 适配层 → 8 域 backend 全走 mTLS 双向证书 (per BDD v0.1 §9.1), 不引入 cookie / token
-- **不引入 Kafka / Redis**: 跟 闪烁之光 现状一致 (per network-topology.html §一句话 "所有链路都用 Erlang 分布协议或 TCP, 没有 Kafka / Redis 之类的外部中间件")
+- **不引入 Kafka / Redis**: 跟 [游戏A] 现状一致 (per network-topology.html §一句话 "所有链路都用 Erlang 分布协议或 TCP, 没有 Kafka / Redis 之类的外部中间件")
 
 ### 1.3 范围 (per ask_user option A 第 3 项 + BDD v0.1 §1.3)
 
 **In-Scope**:
-- 闪烁之光 client 协议分析 (自研 TCP / Flash socket / PHP 假节点, per 跨盘 4 文件)
+- [游戏A] client 协议分析 (自研 TCP / Flash socket / PHP 假节点, per 跨盘 4 文件)
 - 适配层架构 (gRPC transcoder / JSON-RPC proxy / WebSocket / Flash socket 兼容 4 选项对比)
 - 协议号 → RGS proto 1:1 路由表 (per v0.2-2 worker 438 cmds 完整映射, 路由到 RGS 7 域)
 - 业务层适配 (TCG vs MMORPG 兼容层, 业务透传 vs 业务代理)
-- 安全 (mTLS fail-closed + 凭据走 env var per 8/27 11:06 JST 硬 ban + 闪烁之光 cookie 不用, 改 mTLS)
+- 安全 (mTLS fail-closed + 凭据走 env var per 8/27 11:06 JST 硬 ban + [游戏A] cookie 不用, 改 mTLS)
 - 性能 + 部署 + 测试 4 段 (ASCII 架构图 + 部署拓扑 + E2E 测试方案)
 
 **Out-of-Scope**:
-- 闪烁之光 client 源码改造 (per audit v0.3 §1.2 + 借鉴分析 决策, 不动 client, 适配层适配 client)
+- [游戏A] client 源码改造 (per audit v0.3 §1.2 + 借鉴分析 决策, 不动 client, 适配层适配 client)
 - 8 域 gRPC proto 升版 (per BDD v0.1 §5.8 + FLASH-OVERLAP v0.2 11 维度 keep RGS, 不动)
-- 闪烁之光 Erlang server 替换 (per 9/4 16:45 JST "完全对齐" 拍板, mock 验证 RGS backend 不变)
+- [游戏A] Erlang server 替换 (per 9/4 16:45 JST "完全对齐" 拍板, mock 验证 RGS backend 不变)
 - 12 大类业务层 RPC 1:1 移植 (per BDD v0.1 §1.3 + handoff v0.1 §1 + 适配层只做协议转换, 不动业务)
 
-### 1.4 术语 (per AGENTS.md + 闪烁之光 4 文件 + BDD v0.1 §1.4)
+### 1.4 术语 (per AGENTS.md + [游戏A] 4 文件 + BDD v0.1 §1.4)
 
 | 术语 | 解释 |
 |---|---|
-| **闪烁之光 client** | 跨盘 `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\tester\src\tester.erl` 同款真实协议 client (Lua / AS3 / Unity) |
+| **[游戏A] client** | 跨盘 `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\tester\src\tester.erl` 同款真实协议 client (Lua / AS3 / Unity) |
 | **自研 TCP** | `gen_tcp` + `{packet, 4}` + `<<Len:32, Cmd:16, Body/binary>>` 协议格式 (per 协议栈.md L1-L2) |
 | **Flash socket** | AS3 XMLSocket 旧客户端 (per 协议栈.md §0 客户端入口 + network-topology.html §1 接入面) |
-| **PHP 假节点** | 跨盘 zsyz_server 用 PHP 写 mock 节点 (per 协议栈.md §L4 业务 RPC 旁路, 估计类似), 适配层 RGS 不需要这个 |
+| **PHP 假节点** | 跨盘 [游戏A]_server 用 PHP 写 mock 节点 (per 协议栈.md §L4 业务 RPC 旁路, 估计类似), 适配层 RGS 不需要这个 |
 | **protocol transcoder** | 把一种 wire protocol 翻译成另一种 wire protocol 的中间层, 无业务逻辑 (本 addendum 优选方案) |
 | **gRPC transcoder** | envoy 自带 `grpc_json_transcoder` filter (HTTP/JSON ↔ gRPC) + 第三方 rust 实现 `tonic-grpc-transcode` (per 候选 2) |
 | **JSON-RPC proxy** | HTTP/JSON-RPC 2.0 入口 + gRPC client 出口, 业务无关的纯代理 (per 候选 2) |
 | **WebSocket 适配** | ws 入口 (浏览器/H5 客户端) + gRPC client 出口, 走 actix-web ws (per 候选 3) |
-| **Flash socket 兼容** | AS3 XMLSocket 字节流 + 4 字节包头解析器, 1:1 仿真 闪烁之光 wire format (per 候选 4) |
-| **call_id** | 闪烁之光 client request 唯一标识 (uint32 自增, 适配层映射成 RGS `request_id`) |
-| **chunked frame** | 闪烁之光 大包 (战斗录像 / 资源包) 走 chunk 切分, 适配层透明重组 |
+| **Flash socket 兼容** | AS3 XMLSocket 字节流 + 4 字节包头解析器, 1:1 仿真 [游戏A] wire format (per 候选 4) |
+| **call_id** | [游戏A] client request 唯一标识 (uint32 自增, 适配层映射成 RGS `request_id`) |
+| **chunked frame** | [游戏A] 大包 (战斗录像 / 资源包) 走 chunk 切分, 适配层透明重组 |
 | **fail-closed** | mTLS 证书验证失败 → 立即拒绝, 不降级 (per BDD v0.1 §9.1) |
-| **TCG vs MMORPG** | RGS 是 TCG, 闪烁之光 是 MMORPG; 业务层 90% N-A (per BDD v0.1 §10.4), 适配层业务透传优先 |
+| **TCG vs MMORPG** | RGS 是 TCG, [游戏A] 是 MMORPG; 业务层 90% N-A (per BDD v0.1 §10.4), 适配层业务透传优先 |
 
 ---
 
-## 2. 闪烁之光 client 协议分析 (自研 TCP / Flash socket / PHP 假节点)
+## 2. [游戏A] client 协议分析 (自研 TCP / Flash socket / PHP 假节点)
 
 ### 2.1 5 层协议栈 (per 协议栈.md L1-L5)
 
-| Layer | 名称 | 闪烁之光 实现 (per `docs/architecture/协议栈.md`) | RGS 对应 |
+| Layer | 名称 | [游戏A] 实现 (per `docs/architecture/协议栈.md`) | RGS 对应 |
 |---|---|---|---|
 | **L1** | TCP 传输层 | `gen_tcp:listen(Port, [binary, {packet, 4}, {active, once}, {reuseaddr, true}, {nodelay, true}, {keepalive, true}])` (per 协议栈.md L1) | HTTP/2 + mTLS (gRPC standard, per BDD v0.1 §4.2) |
 | **L2** | 协议编解码 | `proto_lib:pack(Cmd, Data)` / `unpack(Cmd, Bin)` (per 协议栈.md L2) | tonic 0.12 + prost 0.13 静态生成 (per BDD v0.1 §5.2) |
@@ -223,9 +223,9 @@ cfg(zone) ->
 - 中心服宕机: 区服独立运行 (per network-topology.html §为什么不是纯星型 故障域行)
 - 单 zone 宕机: 玩家转移 (per 同上), RGS 适配层面对应 k8s HPA + replica
 
-### 2.6 关键差异 (闪烁之光 vs RGS 客户端接入)
+### 2.6 关键差异 ([游戏A] vs RGS 客户端接入)
 
-| 维度 | 闪烁之光 (per 跨盘 4 文件) | RGS 适配层需求 | 解决 |
+| 维度 | [游戏A] (per 跨盘 4 文件) | RGS 适配层需求 | 解决 |
 |---|---|---|---|
 | **传输层** | TCP `{packet, 4}` 自研 | HTTP/2 (gRPC standard) | 适配层 L1 transcoder |
 | **包格式** | `<<Len:32, Cmd:16, Body>>` 二进制 | protobuf 3 + HTTP/2 frames | 适配层 L2 transcoder |
@@ -246,7 +246,7 @@ cfg(zone) ->
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  闪烁之光 client (Lua / AS3 / Unity / H5)                              │
+│  [游戏A] client (Lua / AS3 / Unity / H5)                              │
 │  TCP 自研协议 <<Len:32, Cmd:16, Body>>                                 │
 └────────┬───────────────────────────────────────────────────────────────┘
          │
@@ -256,7 +256,7 @@ cfg(zone) ->
 │  适配层 (tools/rgs-frontend-compat/, 独立 deployment, envoy 边缘)       │
 │  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────────┐       │
 │  │ TCP      │  │ 协议 transcoder│  │ mTLS    │  │ 业务兼容层   │       │
-│  │ listener │→│ 闪烁之光 ↔ RGS│→│ 客户端   │→│ TCG↔MMORPG   │       │
+│  │ listener │→│ [游戏A] ↔ RGS│→│ 客户端   │→│ TCG↔MMORPG   │       │
 │  │ :8780    │  │ proto 路由表  │  │ cert    │  │ 业务透传     │       │
 │  └──────────┘  └──────────────┘  └──────────┘  └──────────────┘       │
 └────────┬───────────────────────────────────────────────────────────────┘
@@ -278,7 +278,7 @@ cfg(zone) ->
 
 ### 3.2 关键架构决策 (per 9/4 17:11 JST "frontend compat 正确设计" 拍板)
 
-| # | 决策 | 闪烁之光 现状 | RGS 适配层 决策 | 依据 |
+| # | 决策 | [游戏A] 现状 | RGS 适配层 决策 | 依据 |
 |---|---|---|---|---|
 | 1 | 接入层拓扑 | 玩家 → zone 直连 (TCP 自研) | 玩家 → 适配层 (独立 deployment, envoy 边缘) → 8 域 | 9/1 13:05 JST envoy 独立 deployment 偏好 + BDD v0.1 §6.1 |
 | 2 | 协议转换 | Erlang 自研 TCP | **gRPC transcoder** (候选 1, 优选) | 跟 RGS 5 域 + card 7 域 backend 一致 |
@@ -292,12 +292,12 @@ cfg(zone) ->
 
 | 边界 | rgs-flash-mock (per FLASH-MOCK v0.3) | rgs-frontend-compat (本 addendum) |
 |---|---|---|
-| **作用** | gateway / verification harness (验证 RGS backend 覆盖) | 真实 client 接入层 (替代 闪烁之光 zone 节点) |
-| **入口** | HTTP/JSON (actix-web) | TCP 自研 (闪烁之光 协议) + HTTP/2 (H5/Unity 客户端) |
+| **作用** | gateway / verification harness (验证 RGS backend 覆盖) | 真实 client 接入层 (替代 [游戏A] zone 节点) |
+| **入口** | HTTP/JSON (actix-web) | TCP 自研 ([游戏A] 协议) + HTTP/2 (H5/Unity 客户端) |
 | **出口** | gRPC mTLS → 7 域 backend | gRPC mTLS → 8 域 backend (含 batch) |
 | **gap matrix** | 跟踪每个 RPC PASS/FAIL/N-A (per FLASH-MOCK §4) | 不跟踪, 业务透传优先 |
 | **业务层** | 占位 mock, 验证 backend | 业务透传, 不擅自改业务 (per BDD v0.1 §7.3 Hybrid-2) |
-| **目标用户** | rgs-flash-mock 自身 (verification harness) | 闪烁之光 client (Lua / AS3 / Unity / H5) |
+| **目标用户** | rgs-flash-mock 自身 (verification harness) | [游戏A] client (Lua / AS3 / Unity / H5) |
 | **端口** | 0.0.0.0:8791 (per FLASH-MOCK v0.3 §2.1) | 0.0.0.0:8780 (本 addendum §9) |
 | **部署** | 独立 deployment (per AGENTS.md §7.1) | 独立 deployment (per AGENTS.md §7.1) |
 | **关系** | 跟 frontend-compat 解耦, 独立演进 | 跟 flash-mock 解耦, 独立演进 |
@@ -310,7 +310,7 @@ cfg(zone) ->
 
 **架构**:
 ```
-闪烁之光 client (TCP 自研)
+[游戏A] client (TCP 自研)
    ▼
 [rgs-frontend-compat TCP listener :8780]
    │ 1. recv [Len:32, Cmd:16, Body]
@@ -325,8 +325,8 @@ RGS 8 域 backend (mTLS 业务级)
 **技术栈** (per rgs-batch-backend 模式 + BDD v0.1 §5):
 | 组件 | 选型 | 理由 |
 |---|---|---|
-| **TCP listener** | tokio 1.x + `TcpListener` (per BDD v0.1 §5.2) | 跟 rgs-flash-mock 一致, 适配 闪烁之光 自研 TCP |
-| **协议 transcoder** | 手写 `proto_xxx::pack/unpack` Rust port (per 协议栈.md L2) | 1:1 仿真 闪烁之光 wire format, 0 字节丢失 |
+| **TCP listener** | tokio 1.x + `TcpListener` (per BDD v0.1 §5.2) | 跟 rgs-flash-mock 一致, 适配 [游戏A] 自研 TCP |
+| **协议 transcoder** | 手写 `proto_xxx::pack/unpack` Rust port (per 协议栈.md L2) | 1:1 仿真 [游戏A] wire format, 0 字节丢失 |
 | **路由表** | 静态 `HashMap<u16, (RgsMethod, RgsDomain)>` (本 addendum §5) | 编译期生成, 0 反射开销 |
 | **gRPC client** | tonic 0.12 + mTLS (per BDD v0.1 §5.2) | 跟 8 域 backend 一致 |
 | **业务兼容层** | trait `CompatAdapter` + per-module impl (本 addendum §6) | 业务透传优先, N-A 占位 |
@@ -338,19 +338,19 @@ RGS 8 域 backend (mTLS 业务级)
 
 **优势**:
 - 性能最佳: 端到端 P99 ≤ 200µs (适配层 50µs + RGS 50µs + 网络 100µs, per BDD v0.1 §8.2)
-- 1:1 仿真 闪烁之光 wire format, 0 协议改造
+- 1:1 仿真 [游戏A] wire format, 0 协议改造
 - 跟 8 域 gRPC proto + shared-platform 完全一致
 - 业务透传, 不擅自改业务 (per BDD v0.1 §7.3)
 
 **劣势**:
-- 需要写 闪烁之光 proto_xxx.erl 的 Rust port (per 协议栈.md L2, 39 个 protocol segments)
-- 闪烁之光 protocol 升级时 (e.g. holiday_* 新增), 适配层要同步 (per BDD v0.1 §7.4 keep RGS 静态生成)
+- 需要写 [游戏A] proto_xxx.erl 的 Rust port (per 协议栈.md L2, 39 个 protocol segments)
+- [游戏A] protocol 升级时 (e.g. holiday_* 新增), 适配层要同步 (per BDD v0.1 §7.4 keep RGS 静态生成)
 
 ### 4.2 候选 2: JSON-RPC proxy (备选)
 
 **架构**:
 ```
-闪烁之光 client (TCP 自研)
+[游戏A] client (TCP 自研)
    ▼
 [rgs-frontend-compat TCP listener :8780]
    │ 1. recv [Len:32, Cmd:16, Body]
@@ -368,9 +368,9 @@ RGS 8 域 backend (mTLS)
 - envoy 自带 transcoder, 适配层开发量小
 
 **劣势**:
-- 闪烁之光 client 是 TCP 二进制, 强制走 JSON 增加 2 次转换 (TCP→JSON→gRPC)
+- [游戏A] client 是 TCP 二进制, 强制走 JSON 增加 2 次转换 (TCP→JSON→gRPC)
 - envoy transcoder 性能比手写 pack/unpack 慢 ~3x
-- 不支持 闪烁之光 chunked frame + 16 bit Cmd 路由, 需 hack
+- 不支持 [游戏A] chunked frame + 16 bit Cmd 路由, 需 hack
 
 **结论**: ❌ 不推荐, 候选 1 性能更优, 业务透传更直接。
 
@@ -393,7 +393,7 @@ RGS 8 域 backend (mTLS)
 - 双协议支持 (binary + JSON), 浏览器可降级到 JSON
 
 **劣势**:
-- 不支持 闪烁之光 AS3 / Lua / Unity 旧客户端 (per 协议栈.md §0 客户端入口)
+- 不支持 [游戏A] AS3 / Lua / Unity 旧客户端 (per 协议栈.md §0 客户端入口)
 - ws 握手 + frame 切分额外开销 ~50µs
 
 **结论**: 🟡 候选 1 + 候选 3 双协议共存 (TCP + ws), 适配层开 2 listener (`:8780` TCP + `:8781` ws), 复用同一 transcoder。
@@ -406,7 +406,7 @@ AS3 XMLSocket 旧客户端
    ▼
 [actix-web + xml_socket listener :8780]
    │ XMLSocket 字节流 + null-terminated string
-   │ 1:1 仿真 闪烁之光 Flash 客户端
+   │ 1:1 仿真 [游戏A] Flash 客户端
    ▼
 [transcoder (per 候选 1)]
    ▼
@@ -414,7 +414,7 @@ RGS 8 域 backend (mTLS)
 ```
 
 **优势**:
-- 兼容 闪烁之光 AS3 XMLSocket 旧客户端 (per 协议栈.md §0 客户端入口)
+- 兼容 [游戏A] AS3 XMLSocket 旧客户端 (per 协议栈.md §0 客户端入口)
 - 业务方零改造
 
 **劣势**:
@@ -425,7 +425,7 @@ RGS 8 域 backend (mTLS)
 
 ### 4.5 推荐方案 (per 9/4 17:11 JST 拍板 + 性能 + 维护成本)
 
-**v0.2 推荐**: **候选 1 (gRPC transcoder) 单一 listener `:8780`**, 走 闪烁之光 自研 TCP, 1:1 仿真 wire format。
+**v0.2 推荐**: **候选 1 (gRPC transcoder) 单一 listener `:8780`**, 走 [游戏A] 自研 TCP, 1:1 仿真 wire format。
 
 **v0.3+ 可选扩展** (per 业务方需求):
 - H5 客户端 → 候选 3 WebSocket listener `:8781`
@@ -447,7 +447,7 @@ RGS 8 域 backend (mTLS)
 ```rust
 // tools/rgs-frontend-compat/src/routing.rs
 pub struct RouteEntry {
-    pub cmd: u16,                    // 闪烁之光 协议号 (100-65500)
+    pub cmd: u16,                    // [游戏A] 协议号 (100-65500)
     pub rgs_method: &'static str,    // RGS proto method (e.g. "/player.v1.PlayerService/Login")
     pub rgs_domain: RgsDomain,       // 7 域枚举
     pub need_auth: bool,             // per mapping.erl NeedAuth
@@ -475,7 +475,7 @@ pub enum Caller {
 
 ### 5.2 路由表示例 (per mapping.erl:40-83 + BDD v0.1 §3.1 12 Partial)
 
-| Cmd (u16) | 闪烁之光 模块 (per mapping.erl) | RGS method (示例) | RGS 域 | Auth | Caller | 备注 |
+| Cmd (u16) | [游戏A] 模块 (per mapping.erl) | RGS method (示例) | RGS 域 | Auth | Caller | 备注 |
 |---:|---|---|---|---|---|---|
 | 11001 | `partner_rpc` (proto_110) | `/card.v1.CardService/ListCards` | Card | ✅ | object | TCG 卡牌列表 (类比伙伴) |
 | 11002 | `partner_rpc` (proto_110) | `/card.v1.CardService/UpgradeCard` | Card | ✅ | object | TCG 卡牌升级 (类比伙伴升级) |
@@ -513,7 +513,7 @@ pub enum Caller {
 
 ### 5.3 N-A 状态处理 (per BDD v0.1 §10.4 TCG vs MMORPG 90% N-A)
 
-**N-A 业务** (闪烁之光 MMORPG, RGS TCG 不适用):
+**N-A 业务** ([游戏A] MMORPG, RGS TCG 不适用):
 - `proto_102 map_rpc` (地图 / 场景移动) → N-A, TCG 无地图
 - `proto_111 drama_rpc` (剧情) → N-A, TCG 无剧情
 - `proto_168 misc_rpc` (MMORPG 提示信息) → 部分 N-A
@@ -528,7 +528,7 @@ fn handle_na_route(cmd: u16) -> RgsResponse {
 }
 ```
 
-**业务方沟通**: N-A 业务方需在 v0.2 P2 抽样 read 闪烁之光 实际 .erl 模块 (per BDD v0.1 §10.1 P2-4 backlog), 确认 TCG 业务裁剪范围。
+**业务方沟通**: N-A 业务方需在 v0.2 P2 抽样 read [游戏A] 实际 .erl 模块 (per BDD v0.1 §10.1 P2-4 backlog), 确认 TCG 业务裁剪范围。
 
 ### 5.4 未知 Cmd 处理 (per 协议栈.md §协议号 + mapping.erl:91)
 
@@ -540,7 +540,7 @@ fn handle_unknown_cmd(cmd: u16) -> RgsResponse {
 }
 ```
 
-**依据**: 闪烁之光 `mapping.erl:91-92` `code(Type, Code) -> {error, {unknow_mapping, Type, Code}}` 同样返 error。
+**依据**: [游戏A] `mapping.erl:91-92` `code(Type, Code) -> {error, {unknow_mapping, Type, Code}}` 同样返 error。
 
 ---
 
@@ -550,12 +550,12 @@ fn handle_unknown_cmd(cmd: u16) -> RgsResponse {
 
 **业务透传** (per BDD v0.1 §7.3 Hybrid-2 + 9/4 17:11 JST 拍板):
 - 适配层**不**重写业务逻辑
-- 闪烁之光 `Cmd + Body` 1:1 转发到 RGS proto Request (per §5 路由表)
+- [游戏A] `Cmd + Body` 1:1 转发到 RGS proto Request (per §5 路由表)
 - RGS 域 backend 负责业务实现 (per BDD v0.1 §4.2 L5 玩法模块)
 - 业务层 90% N-A 接受 (per BDD v0.1 §10.4), 走 `tonic::Code::Unimplemented` (per §5.3)
 
 **业务代理** (备选, 评估中):
-- 适配层**重写**业务逻辑, e.g. 闪烁之光 `map_rpc.MovePlayer` → RGS `match.v1.SubmitMove` (TCG 走对局动作)
+- 适配层**重写**业务逻辑, e.g. [游戏A] `map_rpc.MovePlayer` → RGS `match.v1.SubmitMove` (TCG 走对局动作)
 - 优势: 业务层 N-A 可被代理绕过
 - 劣势: 适配层变成"业务中心", 维护成本随功能数量线性增长 (per BDD v0.1 §7.6 反例 A1)
 
@@ -566,13 +566,13 @@ fn handle_unknown_cmd(cmd: u16) -> RgsResponse {
 ```rust
 // tools/rgs-frontend-compat/src/compat.rs
 pub trait CompatAdapter: Send + Sync {
-    /// 闪烁之光 Body → RGS Request (per 路由表)
+    /// [游戏A] Body → RGS Request (per 路由表)
     fn transcode_request(&self, cmd: u16, body: &[u8]) -> Result<prost::Message, CompatError>;
 
-    /// RGS Response → 闪烁之光 Body
+    /// RGS Response → [游戏A] Body
     fn transcode_response(&self, cmd: u16, response: prost::Message) -> Result<Vec<u8>, CompatError>;
 
-    /// 业务字段映射 (e.g. 闪烁之光 roleId → RGS player_id)
+    /// 业务字段映射 (e.g. [游戏A] roleId → RGS player_id)
     fn map_business_field(&self, field: &str, value: prost::Value) -> Result<prost::Value, CompatError>;
 }
 
@@ -590,7 +590,7 @@ pub struct TcgCompatAdapter;
 /// TCG 业务代理 (仅 N-A 业务, per §5.3)
 impl CompatAdapter for TcgCompatAdapter {
     fn transcode_request(&self, cmd: u16, body: &[u8]) -> Result<prost::Message, CompatError> {
-        // 闪烁之光 MovePlayer → RGS SubmitMove (TCG 走对局动作)
+        // [游戏A] MovePlayer → RGS SubmitMove (TCG 走对局动作)
         match cmd {
             10201 => handle_map_na(cmd),  // proto_102 N-A
             _ => PassThroughAdapter.transcode_request(cmd, body),
@@ -602,9 +602,9 @@ impl CompatAdapter for TcgCompatAdapter {
 
 ### 6.3 业务字段映射 (TCG vs MMORPG, per BDD v0.1 §7.5 + 借鉴分析 §4 #5 避免)
 
-**示例**: 闪烁之光 `roleId` → RGS `player_id` (per 8 域 proto common.v1.PlayerId)
+**示例**: [游戏A] `roleId` → RGS `player_id` (per 8 域 proto common.v1.PlayerId)
 
-| 闪烁之光 字段 | RGS 字段 | 域 | 映射策略 |
+| [游戏A] 字段 | RGS 字段 | 域 | 映射策略 |
 |---|---|---|---|
 | `RoleId` (u64) | `player_id` (string, UUID) | player | u64 → UUID string (per BDD v0.1 §6.2 玩家 ID 策略) |
 | `MapId` (u32) | (N-A) | — | TCG 无地图, 适配层透传 0 |
@@ -631,7 +631,7 @@ impl CompatAdapter for TcgCompatAdapter {
 
 ---
 
-## 7. 安全 (mTLS fail-closed + 凭据走 env var + 闪烁之光 cookie 不用)
+## 7. 安全 (mTLS fail-closed + 凭据走 env var + [游戏A] cookie 不用)
 
 ### 7.1 mTLS 业务级 (per BDD v0.1 §9.1 + shared-platform::tls)
 
@@ -643,11 +643,11 @@ impl CompatAdapter for TcgCompatAdapter {
 
 **适配层 cert 复用**:
 - 适配层作为 gRPC client 复用 5 域 certs (per L-CAND-006 兜底, cert 内容永不入 commit)
-- 适配层作为 TCP server 走 0.0.0.0:8780, 不强制 mTLS (闪烁之光 client 是 TCP 自研, 走 mTLS 需 client 改造, 不在 v0.2 范围)
+- 适配层作为 TCP server 走 0.0.0.0:8780, 不强制 mTLS ([游戏A] client 是 TCP 自研, 走 mTLS 需 client 改造, 不在 v0.2 范围)
 
-### 7.2 闪烁之光 cookie 不用 (per 协议栈.md §0 客户端入口)
+### 7.2 [游戏A] cookie 不用 (per 协议栈.md §0 客户端入口)
 
-**闪烁之光 session 机制** (per 协议栈.md §协议路由示例):
+**[游戏A] session 机制** (per 协议栈.md §协议路由示例):
 - `connector_mgr:handle` 检查 session, 玩家进程内 `role:rpc` 携带 session_id
 - 旧客户端可能用 cookie 持久化 (per 协议栈.md §0 估计, 未直接看)
 
@@ -717,11 +717,11 @@ where T: prost::Message {
 
 ---
 
-## 8. 性能 (transcoder 开销, 闪烁之光 1ms gen_server → 适配层 5µs + RGS 50µs = 总 55µs)
+## 8. 性能 (transcoder 开销, [游戏A] 1ms gen_server → 适配层 5µs + RGS 50µs = 总 55µs)
 
 ### 8.1 性能分解 (per BDD v0.1 §8.1 + 适配层估算)
 
-| 阶段 | 闪烁之光 Erlang baseline | 适配层 (本 addendum §4.1 候选 1) | RGS 域 backend (per BDD v0.1 §8.1) | 端到端 |
+| 阶段 | [游戏A] Erlang baseline | 适配层 (本 addendum §4.1 候选 1) | RGS 域 backend (per BDD v0.1 §8.1) | 端到端 |
 |---|---|---|---|---|
 | **L1 TCP recv** | 50µs (gen_tcp `{packet, 4}` 解析) | 5µs (tokio TcpStream + bytes crate) | N/A | 5µs |
 | **L2 codec** | 200µs (proto_lib:unpack Erlang term) | 3µs (prost 静态生成) | N/A | 3µs |
@@ -733,9 +733,9 @@ where T: prost::Message {
 | **P50 总** | ~1.5ms (per BDD v0.1 §8.1 #1 估算) | ~20µs | 50µs | ~70µs |
 | **P99 总** | ~2ms (gen_server 排队 + GC) | ~50µs | 100µs (saga 开销) | ~200µs |
 
-**vs 闪烁之光 优势**:
-- **P50**: 1.5ms → 70µs = **21x** 优势 (per BDD v0.1 §8.1 #1 闪烁之光 500µs P50)
-- **P99**: 2ms → 200µs = **10x** 优势 (per BDD v0.1 §8.1 #2 闪烁之光 1ms P99)
+**vs [游戏A] 优势**:
+- **P50**: 1.5ms → 70µs = **21x** 优势 (per BDD v0.1 §8.1 #1 [游戏A] 500µs P50)
+- **P99**: 2ms → 200µs = **10x** 优势 (per BDD v0.1 §8.1 #2 [游戏A] 1ms P99)
 - **端到端 RGS** 优势主要来自 tokio + tonic 静态生成 + gRPC mTLS vs gen_server + Erlang term
 
 ### 8.2 性能基线目标 (per BDD v0.1 §8.2 + 适配层新目标)
@@ -755,8 +755,8 @@ where T: prost::Message {
 
 1. **单元级** (per L1.1): 适配层 `cargo test --lib` (per AGENTS.md §2.1)
 2. **集成级** (per L1.2 E2E): 适配层 → 8 域 backend mTLS 跑通
-3. **压测级** (per Hybrid-3 rgs-loadtest, P3 backlog): N=10/100/1000/10000 闪烁之光 client × 1h
-4. **对比级** (per 9 月 Phase C 后): 同 client (TCP 自研) 测 适配层 + RGS vs 闪烁之光 Erlang server, 输出 P50/P95/P99 对比
+3. **压测级** (per Hybrid-3 rgs-loadtest, P3 backlog): N=10/100/1000/10000 [游戏A] client × 1h
+4. **对比级** (per 9 月 Phase C 后): 同 client (TCP 自研) 测 适配层 + RGS vs [游戏A] Erlang server, 输出 P50/P95/P99 对比
 
 **适配层新增 5 级**:
 5. **路由表压测**: HashMap<u16, RouteEntry> 静态查找 P99 ≤ 1µs (per §5.1)
@@ -768,7 +768,7 @@ where T: prost::Message {
 ### 8.4 已知性能缺口 (per 8/26 JST 缺标比错标)
 
 - 适配层 P99 实测缺 (per BDD v0.1 §8.4, k3s Phase C 跑通后补)
-- 闪烁之光 Erlang server 实际 P99 未测 (per handoff v0.1 §0 + BDD v0.1 §10.3, 9 月 Phase C 阶段 C 后)
+- [游戏A] Erlang server 实际 P99 未测 (per handoff v0.1 §0 + BDD v0.1 §10.3, 9 月 Phase C 阶段 C 后)
 - rgs-loadtest 缺 (per Hybrid-3, P3 backlog, 12/2 季度评审)
 - 适配层 + 8 域端到端 P99 实测缺 (本 addendum v0.2 P2-1 跟进)
 
@@ -784,7 +784,7 @@ where T: prost::Message {
 │ Ingress: envoy 独立 deploy (9/1 13:05) - HTTP/2+mTLS+gm-console      │
 │          + 适配层 envoy 边缘 (TCP :8780 + mTLS termination)           │
 └──────────────────────┬───────────────────────────────────────────────┘
-                       │ TCP 自研 (闪烁之光 协议) OR HTTP/2 (H5 客户端)
+                       │ TCP 自研 ([游戏A] 协议) OR HTTP/2 (H5 客户端)
 ┌──────────────────────┴───────────────────────────────────────────────┐
 │ 适配层 (tools/rgs-frontend-compat, 独立 Deployment)                  │
 │  rgs-frontend-compat(r2,m1) :8780 TCP + 8792 metrics + 8793 health  │
@@ -806,7 +806,7 @@ where T: prost::Message {
 
 | 端口 | 组件 | 依据 |
 |---|---|---|
-| **:8780** | 适配层 TCP listener (闪烁之光 client 入口) | 本 addendum §4.1 候选 1 |
+| **:8780** | 适配层 TCP listener ([游戏A] client 入口) | 本 addendum §4.1 候选 1 |
 | **:8781** | 适配层 WebSocket listener (H5 客户端, 候选 3 备选) | 本 addendum §4.3 |
 | **:8782** | 适配层 XMLSocket listener (AS3 客户端, 候选 4 备选) | 本 addendum §4.4 |
 | **:8791** | rgs-flash-mock HTTP/JSON (per FLASH-MOCK v0.3 §2.1) | 跟适配层解耦, 独立演进 |
@@ -856,7 +856,7 @@ docs/deploy/01-k8s-manifests/
 
 ---
 
-## 10. 测试 (闪烁之光 client + RGS backend 端到端)
+## 10. 测试 ([游戏A] client + RGS backend 端到端)
 
 ### 10.1 测试分层 (per BDD v0.1 §8.3 4 级 + 适配层新增)
 
@@ -866,8 +866,8 @@ docs/deploy/01-k8s-manifests/
 | **L1.1 (lib)** | 适配层 `cargo test --lib` 0 error | cargo test | v0.2 必跑 |
 | **L1.2 (E2E)** | 适配层 → 8 域 mTLS 业务级跑通 | cargo test --test '*' | v0.2 必跑 |
 | **L2 (集成)** | 438 cmds 抽样 22 RPC 路由到 8 域 | rgs-flash-mock (per FLASH-MOCK v0.3) | v0.2 |
-| **L3 (压测)** | N=10/100/1000 闪烁之光 client × 1h | rgs-loadtest (Hybrid-3 P3 backlog) | v0.3+ |
-| **L4 (对比)** | 同 client 测 RGS vs 闪烁之光 Erlang | (per 9 月 Phase C 后) | v0.3+ |
+| **L3 (压测)** | N=10/100/1000 [游戏A] client × 1h | rgs-loadtest (Hybrid-3 P3 backlog) | v0.3+ |
+| **L4 (对比)** | 同 client 测 RGS vs [游戏A] Erlang | (per 9 月 Phase C 后) | v0.3+ |
 
 ### 10.2 适配层单元测试 (per L1.1)
 
@@ -920,16 +920,16 @@ async fn test_e2e_login_unauth() {
 }
 ```
 
-### 10.4 闪烁之光 client + RGS backend 端到端 (per 10.1 L2 + 借鉴分析 §4 #4)
+### 10.4 [游戏A] client + RGS backend 端到端 (per 10.1 L2 + 借鉴分析 §4 #4)
 
 **测试场景**:
 1. 启动 适配层 + 8 域 backend (k3s namespace `rust-game-server-test`)
-2. 启动 闪烁之光 tester 真实 client (per `tester/src/test.erl:39-78` + `tester_ai_base.erl` + `tester_ai_quest.erl`)
+2. 启动 [游戏A] tester 真实 client (per `tester/src/test.erl:39-78` + `tester_ai_base.erl` + `tester_ai_quest.erl`)
 3. 跑 12 大类抽样 22 RPC (per FLASH-MOCK v0.3 §3)
 4. 验证每条 RPC 适配层 → 8 域 → 业务结果
 
 **12 大类抽样** (per FLASH-MOCK v0.3 §3 + 适配层 §5.2):
-| 类别 | 闪烁之光 RPC | RGS 域 | 适配层 验证 |
+| 类别 | [游戏A] RPC | RGS 域 | 适配层 验证 |
 |---|---|---|---|
 | 场景/移动 | `MovePlayer(10201)` | (N-A) | 适配层返 Unimplemented |
 | 角色养成 | `GetPlayerProfile(10301)` | player | 适配层 → player-service GetProfile |
@@ -963,12 +963,12 @@ async fn test_e2e_login_unauth() {
 ### 10.5 已知测试缺口 (per 8/26 JST 缺标比错标)
 
 - 5 个 proto 未深读 (per BDD v0.1 §10.1): social / replay / leaderboard / i18n / cluster-ops — v0.2 P2-1 跟进
-- 闪烁之光 跨盘 .tsv 文件未读 (per BDD v0.1 §10.1 P2-2)
-- 闪烁之光 实际 proto 风格未直接看 (per BDD v0.1 §10.1 P2-4)
+- [游戏A] 跨盘 .tsv 文件未读 (per BDD v0.1 §10.1 P2-2)
+- [游戏A] 实际 proto 风格未直接看 (per BDD v0.1 §10.1 P2-4)
 - 43 条未提取 + 113 条无标题 (per BDD v0.1 §10.1) — v0.2 抽样 22 RPC 验证, 完整 438 RPC 走 v0.3+
 - rgs-loadtest 缺 (per Hybrid-3, P3 backlog) — v0.3+ 评估
 - 适配层 L1.2 E2E 业务 mTLS 跑通缺实测 (per AGENTS.md §2.1 DoD) — v0.2 必跑
-- 闪烁之光 实际 P99 未测 (per BDD v0.1 §10.3 + 9 月 Phase C 阶段 C 后)
+- [游戏A] 实际 P99 未测 (per BDD v0.1 §10.3 + 9 月 Phase C 阶段 C 后)
 
 ---
 
@@ -977,10 +977,10 @@ async fn test_e2e_login_unauth() {
 ### 11.1 报告本身 (addendum v0.2 → v0.3 升版)
 
 - **5 个 proto 未深读** (per BDD v0.1 §10.1): social / replay / leaderboard / i18n / cluster-ops — v0.3 P2-1 跟进
-- **闪烁之光 跨盘 .tsv 文件未读** (per BDD v0.1 §10.1 P2-2): `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\API清单-*.tsv` — 跨盘权限受限, v0.3 P2-2 跟进
-- **闪烁之光 实际 proto 风格未直接看** (per BDD v0.1 §10.1 P2-4): 通过 5 大可取之处 + system prompt 推断, v0.3 P2-4 跨盘 .erl 文件抽样
+- **[游戏A] 跨盘 .tsv 文件未读** (per BDD v0.1 §10.1 P2-2): `E:\[跨盘-某发行商目录]\[游戏A]\server分析\分析产出\API清单-*.tsv` — 跨盘权限受限, v0.3 P2-2 跟进
+- **[游戏A] 实际 proto 风格未直接看** (per BDD v0.1 §10.1 P2-4): 通过 5 大可取之处 + system prompt 推断, v0.3 P2-4 跨盘 .erl 文件抽样
 - **43 条未提取 + 113 条无标题** (per BDD v0.1 §10.1) — 不影响 v0.2 决策
-- **30 新建 module 业务扩展估算 v0.2 粗** (per BDD v0.1 §10.1 P2-3): 需 v0.3+ 抽样 read 闪烁之光 模块细节
+- **30 新建 module 业务扩展估算 v0.2 粗** (per BDD v0.1 §10.1 P2-3): 需 v0.3+ 抽样 read [游戏A] 模块细节
 - **本 addendum 路由表 §5.2 抽样 22 RPC, 完整 438 cmds 路由表 v0.3 P2-5 跟进**
 
 ### 11.2 框架对照 (per audit v0.3 §8.2 + 9 原则 + 6 反模式)
@@ -994,9 +994,9 @@ async fn test_e2e_login_unauth() {
 
 ### 11.3 数据缺口
 
-- **闪烁之光 性能 baseline 未测** (per BDD v0.1 §10.3 + handoff v0.1 §0): 需起 闪烁之光 Erlang server 跑同 client, 9 月 Phase C 阶段 C 后对比
+- **[游戏A] 性能 baseline 未测** (per BDD v0.1 §10.3 + handoff v0.1 §0): 需起 [游戏A] Erlang server 跑同 client, 9 月 Phase C 阶段 C 后对比
 - **RGS 8 域 P99 实测缺** (per BDD v0.1 §10.3): 8 域实测 P99 待补
-- **rgs-testkit 现状** (per BDD v0.1 §10.3): 缺跟 闪烁之光 `tester*.erl` 对比数据
+- **rgs-testkit 现状** (per BDD v0.1 §10.3): 缺跟 [游戏A] `tester*.erl` 对比数据
 - **rgs-loadtest 缺** (per Hybrid-3, P3 backlog, 12/2 季度评审)
 - **适配层 P99 实测缺** (本 addendum v0.2 P2-1 跟进)
 - **适配层 + 8 域端到端 P99 实测缺** (本 addendum v0.2 P2-1 跟进)
@@ -1005,8 +1005,8 @@ async fn test_e2e_login_unauth() {
 ### 11.4 业务缺口
 
 - **batch 域 cron 引擎 + audit_logger + worker_pool 实装** (per BDD v0.1 §10.4 + audit v0.3 §8.1): 待 v0.2 batch worker 跟进
-- **12 大类业务层 30 module 业务扩展** (per BDD v0.1 §10.4 §3.2 Phase 2-4): v0.1 baseline 估算, v0.2+ 跟 闪烁之光 实际业务层抽样 + RGS TCG 业务裁剪
-- **TCG vs MMORPG 业务映射 90% N-A** (per BDD v0.1 §10.4 + handoff v0.1 §1 + audit v0.3 §1.2 #1): 闪烁之光 是 MMORPG, RGS 是 TCG, 适配层走业务透传 + N-A 返 Unimplemented
+- **12 大类业务层 30 module 业务扩展** (per BDD v0.1 §10.4 §3.2 Phase 2-4): v0.1 baseline 估算, v0.2+ 跟 [游戏A] 实际业务层抽样 + RGS TCG 业务裁剪
+- **TCG vs MMORPG 业务映射 90% N-A** (per BDD v0.1 §10.4 + handoff v0.1 §1 + audit v0.3 §1.2 #1): [游戏A] 是 MMORPG, RGS 是 TCG, 适配层走业务透传 + N-A 返 Unimplemented
 - **5 域 binary 未来调外部 LLM 未登记** (per handoff v0.1 §2.2 OLU-WEB F-25): v0.1 不集成, v0.2 评估
 - **业务代理 v0.2 不实装** (per 本 addendum §6.4): v0.3+ 抽样 5-10 个 N-A 业务评估
 
@@ -1018,7 +1018,7 @@ async fn test_e2e_login_unauth() {
 - **5 域 + card + batch + gm-backend Lead 实际身份** (per BDD v0.1 §10.5 + 8/21 JST 决策): 5 域独立真实身份 per 8/21 JST, DDD Review 阶段可补
 - **AGENTS.md v0.x 升版同步** (per BDD v0.1 §10.5 + 8/27 JST + 8/21 JST + 9/1 13:05 JST + 9/1 18:30 JST): 主会话负责, worker 不动 AGENTS.md
 - **DDD Review 二审 (per DDD-REVIEW-TEMPLATE-v0.2)**: 本 addendum v0.2 状态 ⏳ 待 Mavis 自审 → 🟡 Mavis 自审停手 → ⏳ 待 Ulysses 二审
-- **闪烁之光 client Lua/AS3/Unity 改造需求未确认** (per 本 addendum §4.4 候选 4 评估): 业务方 9 月 Phase C 后确认
+- **[游戏A] client Lua/AS3/Unity 改造需求未确认** (per 本 addendum §4.4 候选 4 评估): 业务方 9 月 Phase C 后确认
 
 ---
 
@@ -1030,7 +1030,7 @@ async fn test_e2e_login_unauth() {
 |---|---|---|
 | 代签三件套齐全 (per 8/27 19:39/20:56/21:59 JST 三次强化) | ✅ | author / 审批 / 修订人 三行齐全 (见顶部) |
 | DoD 段 (per D2 L1/L1.1/L1.2) | ✅ | L1/L1.1/L1.2 三件套, 本 addendum 0 Rust 改动 (N/A 通过) |
-| Evidence 段 (commit SHA / file:line / 测试函数名) | ✅ | 闪烁之光 跨盘 4 文件 file:line 引用 + mapping.erl:40-83 路由表抽样 + BDD v0.1 跨文档引用 |
+| Evidence 段 (commit SHA / file:line / 测试函数名) | ✅ | [游戏A] 跨盘 4 文件 file:line 引用 + mapping.erl:40-83 路由表抽样 + BDD v0.1 跨文档引用 |
 | 代签段 (per 8/27 JST 三次强化) | ✅ | Mavis 默认代签 Ulysses (顶部 author / 审批 / 修订人) |
 | 派生约束守护段 (L1/L1.1/L1.2 + L11/L12/L13/L14) | ✅ | §0 + §11 已知缺口 全部 deferred 实时查询; L1/L1.1/L1.2 N/A (0 Rust 改动); L11 N/A (0 cargo 跑); L12 N/A (1 worker 派工, 主会话统一 1 commit); L14 N/A (0 plumbing patch) |
 | 缺标比错标 (per 8/26 JST) | ✅ | §11 5 段已知缺口 显式列 (报告本身 / 框架对照 / 数据 / 业务 / 治理) |
@@ -1051,7 +1051,7 @@ async fn test_e2e_login_unauth() {
 | 一审 vs 二审 业务深度 (per DDD-REVIEW-TEMPLATE-v0.2 §3) | ⏳ 待审 | Mavis 自审 + Ulysses 二审, 业务深度待 12/2 季度评审 |
 | 自指字段 (per L13 self-referencing deferred) | ⏳ 待审 | §11.5 DDD Review 状态机 + §0 状态 = ⏳ 待二审 |
 | 派生约束一致性 (per 8/21 / 8/26 / 8/27 / 9/1 / 9/4 JST) | ⏳ 待审 | §0 顶部派生约束守护段 + §7 安全 + §9 部署 全部一致 |
-| 业务指标 (per BDD v0.1 §8.1 20x-100x 性能 + §9 mTLS 业务级) | ⏳ 待审 | §8.1 端到端 P99 200µs vs 闪烁之光 1ms = 5x 优势 (vs BDD v0.1 §8.1 20x) |
+| 业务指标 (per BDD v0.1 §8.1 20x-100x 性能 + §9 mTLS 业务级) | ⏳ 待审 | §8.1 端到端 P99 200µs vs [游戏A] 1ms = 5x 优势 (vs BDD v0.1 §8.1 20x) |
 | commit ahead (per DDD-REVIEW-TEMPLATE-v0.2) | ⏳ 待审 | 本 addendum 1 file 落地, 主会话统一 1 commit |
 | RGS-CRITIQUE 一致性 (per DDD-REVIEW-TEMPLATE-v0.2) | ⏳ 待审 | §0 引用 9/4 16:47 / 9/4 17:11 / 9/4 16:45 / 9/4 16:14 JST 拍板一致 |
 | **总状态** | **⏳ 待二审 → 🟡/✅/❌** | per DDD-REVIEW-TEMPLATE-v0.2 §3 二审流程 |
@@ -1060,17 +1060,17 @@ async fn test_e2e_login_unauth() {
 
 | 版本 | 日期 | 作者 (per 代签授权) | 主要变更 |
 |---|---|---|---|
-| **v0.2 addendum** | 2026-09-04 17:11 JST | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: 闪烁之光 client 适配层设计 (gRPC transcoder / JSON-RPC proxy / WebSocket / Flash socket 兼容 4 选项对比, 推荐 gRPC transcoder 候选 1), 0-11 段 12 节 (文档元信息 / 引言 / 闪烁之光 client 协议分析 / 适配层架构总览 / 适配层组件设计 / 协议号 → RGS proto 1:1 路由表 / 业务层适配 / 安全 / 性能 / 部署 / 测试 / 已知缺口) + 12 段 签字栏 + 修订历史, 闪烁之光 跨盘 4 文件 file:line 实证 (协议栈.md L1-L5 + mapping.erl:40-83 + tester.erl:39-78 + services.erl:33-56) + 4 选 1 推荐 gRPC transcoder 单一 listener :8780 + 22 RPC 抽样路由表 + 业务透传优先 + 端到端 P99 200µs vs 闪烁之光 1ms = 5x 优势 + mTLS fail-closed + 凭据走 env var + k3s 独立 deployment per AGENTS.md §7.1 + 9/1 13:05 JST envoy 独立 deployment 偏好 + 5 段已知缺口 (报告本身 / 框架对照 / 数据 / 业务 / 治理), per L13 self-referencing deferred + 8/27 11:06 JST 凭据硬 ban 守护 + 8/26 JST 禁回溯叙事守护 + 8/21 JST 5 域独立 Lead 守护 (扩展到 8 域) + 9/4 17:11 JST "frontend compat 正确设计" 拍板 + 9/4 16:45 JST "完全对齐" 拍板 + 9/4 16:14 JST "完整 1351 mock" 拍板 + 9/4 16:47 JST "3 件套补全" 拍板 + 9/1 13:03/13:05 JST envoy 独立 deployment 偏好 + 9/1 18:30 JST DB 三分类横展原则 + 9/1 14:58 JST 拍板决策 ask_user 偏好 + 9/1 12:36 JST L-CAND-006 派生约束升正式 + 闪烁之光 跨盘引用可独立 Read 验证 (per AGENTS.md §1.1) |
+| **v0.2 addendum** | 2026-09-04 17:11 JST | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: [游戏A] client 适配层设计 (gRPC transcoder / JSON-RPC proxy / WebSocket / Flash socket 兼容 4 选项对比, 推荐 gRPC transcoder 候选 1), 0-11 段 12 节 (文档元信息 / 引言 / [游戏A] client 协议分析 / 适配层架构总览 / 适配层组件设计 / 协议号 → RGS proto 1:1 路由表 / 业务层适配 / 安全 / 性能 / 部署 / 测试 / 已知缺口) + 12 段 签字栏 + 修订历史, [游戏A] 跨盘 4 文件 file:line 实证 (协议栈.md L1-L5 + mapping.erl:40-83 + tester.erl:39-78 + services.erl:33-56) + 4 选 1 推荐 gRPC transcoder 单一 listener :8780 + 22 RPC 抽样路由表 + 业务透传优先 + 端到端 P99 200µs vs [游戏A] 1ms = 5x 优势 + mTLS fail-closed + 凭据走 env var + k3s 独立 deployment per AGENTS.md §7.1 + 9/1 13:05 JST envoy 独立 deployment 偏好 + 5 段已知缺口 (报告本身 / 框架对照 / 数据 / 业务 / 治理), per L13 self-referencing deferred + 8/27 11:06 JST 凭据硬 ban 守护 + 8/26 JST 禁回溯叙事守护 + 8/21 JST 5 域独立 Lead 守护 (扩展到 8 域) + 9/4 17:11 JST "frontend compat 正确设计" 拍板 + 9/4 16:45 JST "完全对齐" 拍板 + 9/4 16:14 JST "完整 1351 mock" 拍板 + 9/4 16:47 JST "3 件套补全" 拍板 + 9/1 13:03/13:05 JST envoy 独立 deployment 偏好 + 9/1 18:30 JST DB 三分类横展原则 + 9/1 14:58 JST 拍板决策 ask_user 偏好 + 9/1 12:36 JST L-CAND-006 派生约束升正式 + [游戏A] 跨盘引用可独立 Read 验证 (per AGENTS.md §1.1) |
 
 ### 12.4 附录: 关键引用一览 (跨文档 + 跨盘 file:line 实证)
 
-**闪烁之光 跨盘 4 文件** (per AGENTS.md §1.1 可独立 Read 验证):
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\network-topology.html` (23KB, Hub-and-Spoke + Peer-to-Peer 拓扑, 3 链路)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\architecture\协议栈.md` (4.1KB, L1-L5 5 层协议栈 + 协议格式)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\services.erl` (12.2KB, center/zone 节点配置 line 33-56)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mapping.erl` (5.5KB, 协议路由表 line 40-83)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\tester\src\test.erl` (6.6KB, 真实 client bot line 39-78)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\tester\src\tester.erl` (17KB, 真实 client 入口)
+**[游戏A] 跨盘 4 文件** (per AGENTS.md §1.1 可独立 Read 验证):
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\network-topology.html` (23KB, Hub-and-Spoke + Peer-to-Peer 拓扑, 3 链路)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\architecture\协议栈.md` (4.1KB, L1-L5 5 层协议栈 + 协议格式)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\services.erl` (12.2KB, center/zone 节点配置 line 33-56)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mapping.erl` (5.5KB, 协议路由表 line 40-83)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\tester\src\test.erl` (6.6KB, 真实 client bot line 39-78)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\tester\src\tester.erl` (17KB, 真实 client 入口)
 
 **RGS 跨文档 3 件套** (per commit `80bcd3b`):
 - `D:\RustGameServer\docs\15-IPA-完全对齐438cmds\RGS-REQ-2026-09-04_v0.1.md` (61.4KB)
@@ -1086,7 +1086,7 @@ async fn test_e2e_login_unauth() {
 - `bb9f977` (GAP-AUDIT v0.3, 5 域 + card 架构保留)
 
 **关键 user 拍板 (per 9/4 JST 决策链)**:
-- 9/4 16:47 JST: "首先补全需求文档, 基本设计文档, 详细设计文档, 内容根据闪烁之光代码逆推" → 3 件套 v0.1
+- 9/4 16:47 JST: "首先补全需求文档, 基本设计文档, 详细设计文档, 内容根据[游戏A]代码逆推" → 3 件套 v0.1
 - 9/4 16:14 JST: "完整 1351 mock (long-term)" → FLASH-MOCK v0.3 4 阶段
 - 9/4 16:45 JST: "完全对齐" → 推翻 handoff v0.1 "不做逐条移植" 决策
 - 9/4 17:11 JST: "frontend compat 正确设计" → 本 addendum v0.2
@@ -1100,4 +1100,4 @@ async fn test_e2e_login_unauth() {
 
 ---
 
-**v0.2 addendum 完。** 主会话负责 review + 1 commit (per L12.2 选项 2 落地模式, 1 worker 写文件, 主会话统一 git add + commit)。后续 v0.3+ 跟 闪烁之光 client 协议升级 + 8 域 backend 升版同步。
+**v0.2 addendum 完。** 主会话负责 review + 1 commit (per L12.2 选项 2 落地模式, 1 worker 写文件, 主会话统一 git add + commit)。后续 v0.3+ 跟 [游戏A] client 协议升级 + 8 域 backend 升版同步。

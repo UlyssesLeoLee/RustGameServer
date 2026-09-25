@@ -13,17 +13,17 @@
     "partial_count": 41,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\partner\\partner_rpc.erl (13.9KB, handle/3 41 cmds 11000-11084) + partner.erl (31KB, init/login/do_exchange/partner_compound/partner_compose_by_soul/partner_decompose 7 业务函数) + 12 子模块 (partner_eqm.erl 26KB / partner_break.erl 13.7KB / partner_artifact.erl 12.3KB / partner_gemstone.erl 14.9KB / partner_lib.erl 30.8KB / partner_comment.erl 4.2KB / partner_comment_mgr.erl 5.7KB / partner_field.erl 5.3KB / partner_share.erl 1.9KB / partner_ver.erl 2.1KB / partner_field_lib.erl 2.3KB)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\partner\\partner_rpc.erl (13.9KB, handle/3 41 cmds 11000-11084) + partner.erl (31KB, init/login/do_exchange/partner_compound/partner_compose_by_soul/partner_decompose 7 业务函数) + 12 子模块 (partner_eqm.erl 26KB / partner_break.erl 13.7KB / partner_artifact.erl 12.3KB / partner_gemstone.erl 14.9KB / partner_lib.erl 30.8KB / partner_comment.erl 4.2KB / partner_comment_mgr.erl 5.7KB / partner_field.erl 5.3KB / partner_share.erl 1.9KB / partner_ver.erl 2.1KB / partner_field_lib.erl 2.3KB)",
     "rgs_translation": "非 gen_server,走 role:redirect/3 + role_gain:do/2 资产变更 + partner_lib:ref_partner_by_type/3 刷新 + partner_eqm:login/1 装备重算 → RGS card-service PartnerService + sqlx PgPartnerBagRepository + PartnerInstance 结构体 + TradeSaga 4 步 (compose/decompose 跨域) + outbox event 跨 player 域外观/阵法 (per addendum §3 业务流 + §2.2 角色 record 翻译)",
     "rgs_file_ref": "DDD v0.2 addendum §3 L353-419 (partner 1:1 业务逻辑逆推) + addendum §4.2 §5.2 (协议号 11000-11084) + partner_rpc.erl L14-358 handle/3 41 cmds",
     "known_gaps": [
       "41 cmds 全部 Partial, RGS card 域 PartnerService 7 类业务 (升级/突破/合成/分解/兑换/精炼/穿戴) 业务实现存在但 1:1 字段映射待 v0.2 sprint 验证 (per addendum §5.2)",
-      "闪烁之光 role record 内嵌 #partner_bag{partner_field} 模式 → RGS Player + PlayerProfile struct (per entity.rs 22KB) 抽象层级更高, 序列化差异待协调",
+      "[游戏A] role record 内嵌 #partner_bag{partner_field} 模式 → RGS Player + PlayerProfile struct (per entity.rs 22KB) 抽象层级更高, 序列化差异待协调",
       "role_gain:do/2 原子变更 → RGS sqlx transaction + outbox (per card-service TradeSaga) 事务包装, partner_decompose role_gain:do_mail_and_notice/6 邮件补发需 v0.2 验证 (per addendum §3 业务流 8)",
       "11040 GetHistoricalPartners partner_had 列表 减去 decomposes 模式 → RGS 1 query SQL 1:1 翻译, partner_star_lev 字段 + decomposes 数组 (per partner_rpc.erl L214-215)",
       "11041-11044 评论模块 role_misc:check_cd/1 限流 + string_util:utf8_len > 40 校验 → RGS 限流 middleware + utf8 len validator 待 v0.2 整合",
       "11045-11047 partner_compound + partner_star_lev_up 合成 + 11077 神格合成 (仅 decomposes 后) 业务流 9 步 1:1 翻译, RGS PartnerCompoundSaga + ComposeGodGraceSaga 待 v0.2 实装",
-      "11030-11035 神器模块 partner_artifact 6 cmds, 闪烁之光 走 artifact_compound + artifact_ref + artifact_ref_save + artifact_compound_by_item 4 函数, RGS ArtifactService 待 v0.2 sprint 评估新建 (per addendum §3 业务流)",
+      "11030-11035 神器模块 partner_artifact 6 cmds, [游戏A] 走 artifact_compound + artifact_ref + artifact_ref_save + artifact_compound_by_item 4 函数, RGS ArtifactService 待 v0.2 sprint 评估新建 (per addendum §3 业务流)",
       "11081-11084 宝石模块 partner_gemstone 4 cmds (打孔/镶嵌/升级/卸下), 走 partner_gemstone:* 函数, RGS GemstoneService 待 v0.2 评估新建",
       "11050-11053 助阵阵位 partner_field 模块 (请求信息/保存阵容/升级/解锁阵位) 4 cmds, 走 partner_field:info/save_field/field_lev_up/field_open 4 函数, 跨 player 域阵法联动待 v0.2 协调"
     ]

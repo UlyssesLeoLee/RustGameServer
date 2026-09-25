@@ -1,13 +1,13 @@
 # RGS-WEB-GM-PLAN-2026-08-26 v0.1
 
-**RGS GM 后台总体设计 + 模块清单（参考 E:/ROPE_CS）**
+**RGS GM 后台总体设计 + 模块清单（参考 [跨盘-某发行商目录]）**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-WEB-GM-PLAN-2026-08-26 |
-| 版本 | 0.1（per Ulysses 2026-08-26 13:13 JST "参考 E:/ROPE_CS 的 GM 后台来改善"）|
+| 版本 | 0.1（per Ulysses 2026-08-26 13:13 JST "参考 [跨盘-某发行商目录] 的 GM 后台来改善"）|
 | 状态 | 设计 + v0.2-gm 已落地（10 页面 + 6 API + dark theme）|
-| 触发 | 2026-08-26 12:15 JST "RGS 需要一个网页端的后台" + 13:13 JST "参考 E:/ROPE_CS 改善" |
+| 触发 | 2026-08-26 12:15 JST "RGS 需要一个网页端的后台" + 13:13 JST "参考 [跨盘-某发行商目录] 改善" |
 | 关联 | RGS-WEB-PLAN-2026-08-26 v0.1（总览）+ RGS-WEB-REQUIREMENTS-2026-08-26 v0.1（需求）|
 | 责任人 | 架构师（Mavis 接手 agent per DEC-008）|
 
@@ -15,13 +15,13 @@
 
 ## 0. 文档定位
 
-本文档是 RGS GM Admin Web（rgs-web v0.2-gm）的**模块清单 + 横向对比 E:/ROPE_CS GM 平台 + 落地状态**。回答"做了什么 / 没做 / 未来要做什么"。
+本文档是 RGS GM Admin Web（rgs-web v0.2-gm）的**模块清单 + 横向对比 [跨盘-某发行商目录] GM 平台 + 落地状态**。回答"做了什么 / 没做 / 未来要做什么"。
 
-参考的 E:/ROPE_CS GM 平台是**完整 React + TypeScript + Vite + chart.js + Flask 后端**的成熟 GM 后台,19 页面 30+ 组件。RGS 当前用 zero-deps node 模拟,**保留 10 个核心页面**作为 v0.2-gm 起步,后续可换 React 重写。
+参考的 [跨盘-某发行商目录] GM 平台是**完整 React + TypeScript + Vite + chart.js + Flask 后端**的成熟 GM 后台,19 页面 30+ 组件。RGS 当前用 zero-deps node 模拟,**保留 10 个核心页面**作为 v0.2-gm 起步,后续可换 React 重写。
 
 ---
 
-## 1. E:/ROPE_CS GM 平台 模块清单（参考）
+## 1. [跨盘-某发行商目录] GM 平台 模块清单（参考）
 
 | # | 页面 | 功能 |
 |---|---|---|
@@ -45,7 +45,7 @@
 | 18 | **StreamMonitor** | 实时流监控 |
 | 19 | **Canvas** | 自定义仪表盘 |
 
-ROPE_CS 技术栈：
+[游戏C]_src 技术栈：
 - 前端：React 18 + Vite 5 + chart.js 4 + react-chartjs-2 + react-router 7
 - 后端：Flask + protobuf + WebSocket（control plane）
 - 数据库：SQLite（控制平面）+ PostgreSQL（业务平面）
@@ -55,9 +55,9 @@ ROPE_CS 技术栈：
 
 ## 2. RGS v0.2-gm 模块清单（已落地）
 
-RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心页面**对应 ROPE_CS 的 1-9 + 12:
+RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心页面**对应 [游戏C]_src 的 1-9 + 12:
 
-| # | 页面 | 对应 ROPE_CS | 实现方式 | 落地状态 |
+| # | 页面 | 对应 [游戏C]_src | 实现方式 | 落地状态 |
 |---|---|---|---|---|
 | 1 | **📊 Dashboard** | Dashboard | 4 stat 卡片 + IMPL-PLAN 进度条 + 11 commit 表 | ✅ v0.2 |
 | 2 | **🖥️ Servers** | Servers | 3 table(node/pod/deployment) + k8s 代理 | ✅ v0.2 |
@@ -76,7 +76,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 
 ## 3. RGS v0.2-gm 暂未实现（v0.3+ 计划）
 
-### 3.1 ROPE_CS 有但 RGS 暂不做的
+### 3.1 [游戏C]_src 有但 RGS 暂不做的
 
 | # | 页面 | 暂不做理由 | 后续 v0.3+ 计划 |
 |---|---|---|---|
@@ -120,7 +120,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 
 ## 4. 横向对比
 
-| 维度 | E:/ROPE_CS | RGS v0.2-gm |
+| 维度 | [跨盘-某发行商目录] | RGS v0.2-gm |
 |---|---|---|
 | 前端框架 | React 18 + Vite 5 | 原生 HTML + CSS 变量 |
 | 状态管理 | React Context + useState | 单一 fetch + 30s 轮询 |
@@ -236,7 +236,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 | 8787/8788 端口冲突 | 高 | rgs-web 启动失败 | `RGS_WEB_PORT` 环境变量改 |
 | k3s 代理需 K3S_TOKEN | 高 | 5 域 pod 看不到 | WSL-KUBECONFIG-FIX-2026-08-26.md SOP |
 | /api/k8s 超时 5s | 中 | k8s 资源卡顿 | client timeout 调长 + UI 显示 timeout 状态 |
-| ROPE_CS 19 页面 100% 对齐 | 低 | 永远不可达(人公司无 RBAC) | v0.5 选 5 核心, v1.0 5 域 + cluster-ops |
+| [游戏C]_src 19 页面 100% 对齐 | 低 | 永远不可达(人公司无 RBAC) | v0.5 选 5 核心, v1.0 5 域 + cluster-ops |
 | Windows PowerShell 编码问题 | 中 | 路径含中文 get 失败 | plumbing 路径(git hash-object + update-index) |
 
 ---
@@ -256,7 +256,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
-| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:横向对比 ROPE_CS 19 页面 + RGS 10 页面 v0.2-gm 落地 |
+| 0.1 | 2026-08-26 | 架构师(Mavis 接手 agent per DEC-008)| 初版:横向对比 [游戏C]_src 19 页面 + RGS 10 页面 v0.2-gm 落地 |
 
 ## A. v0.1 升版增量
 
@@ -281,13 +281,13 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 - WebSocket 日志流(等 v0.3)
 - 真实 Players 数据(等 v0.3)
 - Operations SQL 真实查询(等 v0.3,需 kubectl exec)
-- 10 个 ROPE_CS 高级页面(Payment / RBAC / Login / OA / Canvas)永不做(一人公司无需求)
+- 10 个 [游戏C]_src 高级页面(Payment / RBAC / Login / OA / Canvas)永不做(一人公司无需求)
 
 ### A.4 引用链与证据
 
 - 当前 rgs-web PID 14572, 127.0.0.1:8788
 - rgs-web 源码:`tools/rgs-web/{server-no-deps.js, public/index.html}`
-- E:/ROPE_CS GM 平台:19 pages (React + Vite + chart.js)
+- [跨盘-某发行商目录] GM 平台:19 pages (React + Vite + chart.js)
 - WBS v0.8 commit `87a6472`(per WF-1-55.77 P2 3 L4)
 - 11 P0/P1/P2 commit(per RGS-REPORT-2026-08-26-P0P1P2_v0.2)
 - per 2026-08-26 08:40 JST 代签新规则

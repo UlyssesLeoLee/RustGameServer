@@ -13,7 +13,7 @@
     "partial_count": 6,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\login\\login_rpc.erl (15.8KB, handle/3 6 cmds 10101-10103 + 10300 + device_register + forgot_password)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\login\\login_rpc.erl (15.8KB, handle/3 6 cmds 10101-10103 + 10300 + device_register + forgot_password)",
     "rgs_translation": "1 account 1 conn_session (5min 过期 ets 模式), RGS 走 tokio task + sqlx + auth password_hash (argon2id, per 8/27 11:06 JST env value 硬 ban) + 2FA 可选 (per addendum §4.7 业务流)",
     "rgs_file_ref": "DDD v0.2 addendum §4.7 L594-614 + login_rpc.erl L17-65 (create_role) + L69-102 (login_role) + L104-137 (reconnect)",
     "known_gaps": [
@@ -21,7 +21,7 @@
       "RGS 缺 conn_login 独立 connector service (跟 conn_login.json 共享已知缺口)",
       "device_register 写 account_devices Master 表待 v0.2 实装",
       "forgot_password 邮件验证码 + reset 流程待 v0.2 跟 social mail 域整合",
-      "1 account 多 device 多端登录策略待 v0.2 决策 (闪烁之光 is_online 单端)"
+      "1 account 多 device 多端登录策略待 v0.2 决策 ([游戏A] is_online 单端)"
     ]
   },
   "rpcs": {
@@ -103,7 +103,7 @@
         "msg": "ok",
         "resource_loaded": true
       },
-      "rgs_partial_reason": "闪烁之光 简单 flag 设置 (per addendum §4.7 业务流 1), RGS 无对应 resource_loaded 状态, v0.2 评估是否补 resource_version 字段",
+      "rgs_partial_reason": "[游戏A] 简单 flag 设置 (per addendum §4.7 业务流 1), RGS 无对应 resource_loaded 状态, v0.2 评估是否补 resource_version 字段",
       "biz_flow_ref": "login_rpc.erl (推测, 实际 10300 映射待抽样验证 per §11.1)"
     },
     "10301": {
@@ -124,7 +124,7 @@
         "msg": "ok",
         "device_registered": true
       },
-      "rgs_partial_reason": "RGS 缺 account_devices Master 表, v0.2 sprint 评估新建 (per addendum §4.7 持久化段), 闪烁之光 写 login.erl L51-57 SQL 30 字段含 device 7 字段",
+      "rgs_partial_reason": "RGS 缺 account_devices Master 表, v0.2 sprint 评估新建 (per addendum §4.7 持久化段), [游戏A] 写 login.erl L51-57 SQL 30 字段含 device 7 字段",
       "biz_flow_ref": "login_rpc.erl (推测, 实际 device_register 协议号待抽样验证 per §11.1)"
     },
     "10302": {

@@ -58,7 +58,7 @@
 | 2026-08-29 | RGS-CAP-001 §3.3 | `Redis Redlock 单实例约 50k QPS` | Redis Redlock 进入容量基线 |
 | 2026-08-29 | `crates/i18n-service/src/service.rs` | Redis 缓存占位 = `Arc<Mutex<BTreeMap>>` + 5 分钟 TTL; 注释 `W36+ 替换为 redis-rs 真实 client + SETEX 5 分钟` | 占位而非实装, 但已锁定「真实 client = redis-rs」 |
 | 2026-08-29 | RGS-DDD-2026-09-04_v0.2 §3 + §5 | leaderboard 走 Redis sorted set; arena ListRankings 走 Redis P99 < 10ms; 6 个域写 `redis cache + sqlx 兜底` | Redis 作为多个域的热路径 |
-| 2026-09-04 | RGS-BDD-v0.2-addendum-frontend适配层 §1.2 + §7.2 | `不引入 Kafka / Redis: 跟 闪烁之光 现状一致`; `session 持久化: 适配层本地 LRU cache (moka) + Redis 备份 (v0.3+ 评估, per BDD v0.1 §1.3 不引入 Kafka/Redis 一致性)` | **此处出现内部矛盾**: 一面说「不引入 Redis」, 一面又把 Redis 列为 v0.3+ 的备份存储 |
+| 2026-09-04 | RGS-BDD-v0.2-addendum-frontend适配层 §1.2 + §7.2 | `不引入 Kafka / Redis: 跟 [游戏A] 现状一致`; `session 持久化: 适配层本地 LRU cache (moka) + Redis 备份 (v0.3+ 评估, per BDD v0.1 §1.3 不引入 Kafka/Redis 一致性)` | **此处出现内部矛盾**: 一面说「不引入 Redis」, 一面又把 Redis 列为 v0.3+ 的备份存储 |
 | 2026-09-XX | RGS-OPS-001 §1.3 + §2.3 + §2.5 | `Redis 7.2+` + `image: redis:7-alpine` + `REDIS_URL=redis://...` | 部署层固化 Redis, 镜像版本钉到 `redis:7-alpine` |
 
 ### 3.2 偏离的「双轨」证据

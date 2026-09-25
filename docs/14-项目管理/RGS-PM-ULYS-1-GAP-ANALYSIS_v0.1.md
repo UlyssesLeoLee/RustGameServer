@@ -303,7 +303,7 @@
 
 ### 3.2 scene-service（3,846 LOC）
 
-- **Proto**：1 service / 148 RPC（借鉴"闪烁之光"）
+- **Proto**：1 service / 148 RPC（借鉴"[游戏A]"）
 - **测试密度**：src 11 + tests 0 = 11
 - **正式文档**：✅ WT-B 已补（REQ-041 / BAS-041 / DTL-048 / ARC-049）
 - **推荐**：测试密度极低（0.3%），PH-2 前优先补 integration test

@@ -1,8 +1,8 @@
-# RGS-REFERENCE-[游戏D]-[游戏D]_CBT3-PRIVATE-SERVER v0.1 — 借鉴需求汇总
+# RGS-REFERENCE-[游戏D]-[游戏D]_[CBTn]-PRIVATE-SERVER v0.1 — 借鉴需求汇总
 
 **创建日期**: 2026-09-17 JST
 **创建者**: Ulysses (一人公司 12 角色 per DEC-008) — Mavis 接手
-**依据**: [游戏D] [游戏D]_CBT3 PrivateServer 源码逆向分析
+**依据**: [游戏D] [游戏D]_[CBTn] [[PrivateServer]] 源码逆向分析
 **作用域**: RGS 借鉴需求清单（10 条）+ 优先级 + 落地建议
 **状态**: ⏳ 一审（Mavis 自审） / 待 Ulysses 二审
 
@@ -25,7 +25,7 @@
 
 ### 1.1 研究对象
 
-[游戏D]（[游戏D]_CBT3）是[某厂商] 2024 公布的新 IP，**非《逆水寒》续作**，是独立 IP。[游戏D] 内部代号 `[代码名-D]`（DRM Kernel 或类似缩写）。[游戏D]_CBT3 PrivateServer 是 [游戏D] 客户端本地化的服务端工程，让 [游戏D] 客户端脱离网易服务器在本地单机运行。
+[游戏D]（[游戏D]_[CBTn]）是[某厂商] 2024 公布的新 IP，**非《[非相关IP]》续作**，是独立 IP。[游戏D] 内部代号 `[代码名-D]`（DRM Kernel 或类似缩写）。[游戏D]_[CBTn] [[PrivateServer]] 是 [游戏D] 客户端本地化的服务端工程，让 [游戏D] 客户端脱离[某厂商]服务器在本地单机运行。
 
 | 字段 | 值 |
 |---|---|
@@ -34,7 +34,7 @@
 | 客户端 build | 4229938 |
 | 客户端引擎 | Unity（IL2CPP 编译） |
 | 服务端栈 | .NET 8 + C# + Node.js + fengari (Lua) |
-| 原始位置 | `[跨盘-某发行商目录]/[游戏D][游戏D]_CBT3本地端\本地服务端\PrivateServer\PrivateServer` (Buffalo LS220 NAS) |
+| 原始位置 | `[跨盘-某发行商目录]/[游戏D][游戏D]_[CBTn]本地端\本地服务端\[[PrivateServer]]\[[PrivateServer]]` (Buffalo LS220 NAS) |
 | 本地副本 | `[跨盘-某发行商目录]/[游戏D]_privatesrv`（267 MB / 471 文件 / 110 子目录） |
 | 复制时间 | 2026-09-16 21:43 JST |
 
@@ -495,7 +495,7 @@ crates/rgs-protocol/
 | `[代码名-D].Server\[代码名-D].Network\RpcFrameDispatcher.cs` | 1.8 KB | §2.5 |
 | `[代码名-D].Server\[代码名-D].Gameplay\WebTraversal.cs` | 3.0 KB | §2.6 |
 | `[代码名-D].Server\[代码名-D].App\DebugApiServer.cs` | 33.3 KB | §2.7 |
-| `[代码名-D].Server\[代码名-D].App\PrivateServerApplication.cs` | 3.1 KB | §2.5 |
+| `[代码名-D].Server\[代码名-D].App\[[PrivateServer]]Application.cs` | 3.1 KB | §2.5 |
 | `[代码名-D].Server\[代码名-D].Handlers\Game\GameRouter.cs` | 4.2 KB | §2.4 |
 | `[代码名-D].Server\[代码名-D].Handlers\Game\GameRouter.Combat.cs` | 30.5 KB | §2.4 |
 | `[代码名-D].Server\[代码名-D].Handlers\Game\GameRouter.VehicleStory.cs` | 27.6 KB | §2.4 |
@@ -530,7 +530,7 @@ crates/rgs-protocol/
 3. 依赖恢复（`npm ci --ignore-scripts --no-audit --no-fund`）
 4. fengari 校验
 5. 陈旧进程清理（杀所有 [代码名-D].App + 引用 proxy server.js 的 node.exe）
-6. hosts 重定向（30+ 网易内网域名）
+6. hosts 重定向（30+ [某厂商]内网域名）
 7. 证书校验 + 自动重签（CA 链 root→leaf）
 8. fastpatch 生成（UID + watermark branding Lua override）
 9. clean rebuild（删 bin/obj + dotnet build）
@@ -562,7 +562,7 @@ crates/rgs-protocol/
 
 | 版本 | 日期 | 修订人 | 变更 |
 |---|---|---|---|
-| v0.1 | 2026-09-17 JST | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 | 初版。逆向分析 [游戏D] [游戏D]_CBT3 PrivateServer，提炼 8 大亮点 + 10 条借鉴需求 + 优先级落地计划 + 已知缺口与风险。 |
+| v0.1 | 2026-09-17 JST | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 | 初版。逆向分析 [游戏D] [游戏D]_[CBTn] [[PrivateServer]]，提炼 8 大亮点 + 10 条借鉴需求 + 优先级落地计划 + 已知缺口与风险。 |
 
 ---
 
@@ -592,7 +592,7 @@ crates/rgs-protocol/
 **注册/账号 1 个**：
 - `[游戏A]_register`
 
-> **修正说明**：原 9/16 21:42 JST 第一次扫描时将本项目误判为「某 IP 续作 + C#」，实际核实为：[游戏D][游戏D]_CBT3 本地服务端，**Cocos2d-x + Erlang** 客户端、**.NET 8 + C#** 服务端。原文 `E:\[游戏A]-src-winrar`（2.38 GB / [游戏A] 全套）是另一个 MMORPG 项目，与本需求文档无关。
+> **修正说明**：原 9/16 21:42 JST 第一次扫描时将本项目误判为「某 IP 续作 + C#」，实际核实为：[游戏D][游戏D]_[CBTn] 本地服务端，**Cocos2d-x + Erlang** 客户端、**.NET 8 + C#** 服务端。原文 `E:\[游戏A]-src-winrar`（2.38 GB / [游戏A] 全套）是另一个 MMORPG 项目，与本需求文档无关。
 
 ---
 

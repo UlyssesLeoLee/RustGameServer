@@ -86,7 +86,7 @@ handlers_block = "\n// =========================================================
 handlers_block += "// v0.6.0 w5-2 (per 2026-09-09 20:17 JST Mavis 娲惧伐): 173 cmd real handler\n"
 handlers_block += "// 110 welfare (24000-24999) + 30 partner (11000-11999) + 33 social (16000-17999)\n"
 handlers_block += "// 瀛楄妭绾у榻?proto_mate.js send cmd, simple real handler pattern (per w5-1 30001-30102)\n"
-handlers_block += "// 鏉ユ簮: H5 zsyz_client proto_mate.js (766 send cmd, 173 缁仛)\n"
+handlers_block += "// 鏉ユ簮: H5 [游戏A]_client proto_mate.js (766 send cmd, 173 缁仛)\n"
 handlers_block += "// ============================================================================\n\n"
 
 for cmd in welfare:
@@ -100,17 +100,17 @@ for cmd in social:
 registry_block = "\n        // v0.6.0 w5-2 (per 2026-09-09 20:17 JST Mavis 娲惧伐): 173 cmd real handler\n"
 registry_block += "        // 瑕嗙洊 registry_stubs.rs 涓殑瀵瑰簲 stub, 鏀圭敤 real handler\n"
 registry_block += "        // 110 welfare (24000-24999) + 30 partner (11000-11999) + 33 social (16000-17999)\n"
-registry_block += "        map.insert(24000, CmdEntry { handler: handlers::handle_welfare_24000, name: \"welfare-24000 (w5-2 simple real)\", source: \"zsyz\" });\n"
+registry_block += "        map.insert(24000, CmdEntry { handler: handlers::handle_welfare_24000, name: \"welfare-24000 (w5-2 simple real)\", source: \"[游戏A]\" });\n"
 
 # Add all 110 welfare
 for cmd in welfare:
-    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_welfare_{cmd}, name: "welfare-{cmd} (w5-2 simple real)", source: "zsyz" }});\n'
+    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_welfare_{cmd}, name: "welfare-{cmd} (w5-2 simple real)", source: "[游戏A]" }});\n'
 # Add 30 partner
 for cmd in partner:
-    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_partner_{cmd}, name: "partner-{cmd} (w5-2 simple real)\", source: "zsyz" }});\n'
+    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_partner_{cmd}, name: "partner-{cmd} (w5-2 simple real)\", source: "[游戏A]" }});\n'
 # Add 33 social
 for cmd in social:
-    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_social_{cmd}, name: "social-{cmd} (w5-2 simple real)", source: "zsyz" }});\n'
+    registry_block += f'        map.insert({cmd}, CmdEntry {{ handler: handlers::handle_social_{cmd}, name: "social-{cmd} (w5-2 simple real)", source: "[游戏A]" }});\n'
 
 with open(r'/tmp/handlers_w5_2.rs', 'w', encoding='utf-8') as f:
     f.write(handlers_block)

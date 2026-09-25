@@ -14,7 +14,7 @@
     "not_implemented_count": 16,
     "not_applicable_count": 0,
     "audit_finding": "social 域 SnsService gRPC 0/16 wire (per RGS-DDD-GAP-AUDIT v0.3 §3.4 D10), 30 新 module 阶段, 待 W5 补",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\sns\\sns_rpc.erl (4.3KB) + friend.erl (27.7KB gen_server) + friend_mgr.erl (6.7KB ets) + sns_black.erl (4KB) + friend_lib.erl (2.4KB) + friend_cross.erl (1.4KB) + proto_133.erl (30KB pack/unpack)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\sns\\sns_rpc.erl (4.3KB) + friend.erl (27.7KB gen_server) + friend_mgr.erl (6.7KB ets) + sns_black.erl (4KB) + friend_lib.erl (2.4KB) + friend_cross.erl (1.4KB) + proto_133.erl (30KB pack/unpack)",
     "rgs_translation": "social-service SnsService (新) + sqlx PgSnsRepository + DashMap<Uuid, Friend> in-memory 缓存 + NATS push_delivery for red_dot (per audit v0.3 §3.4 push_delivery 22KB 模式)",
     "rgs_file_ref": "RGS-DDD v0.2 addendum §5.10 1:1 映射 + §3.2.9 sns 好友模式 + §6.2 30 新 module #8 落地 W5",
     "known_gaps": [

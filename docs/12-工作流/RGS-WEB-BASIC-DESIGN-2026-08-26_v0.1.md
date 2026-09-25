@@ -286,7 +286,7 @@ http://127.0.0.1:8788/
 
 ### 6.2 一人公司长期运行
 
-- 用 `start_all.ps1`(参考 E:/ROPE_CS)自动拉起
+- 用 `start_all.ps1`(参考 [跨盘-某发行商目录])自动拉起
 - 或 nssm 转 Windows service
 - 或 task scheduler 开机启动
 
@@ -486,7 +486,7 @@ http://127.0.0.1:8788/
 - rgs-web v0.2-gm commit `23d447b`(2026-08-26 13:17 JST)
 - rgs-web v0.1 commit `c076948`(2026-08-26 12:22 JST)
 - REQUIREMENTS v0.1(13.8 KB,21 FR + 21 NFR)
-- GM-PLAN v0.1(11.7 KB,横向对比 ROPE_CS)
+- GM-PLAN v0.1(11.7 KB,横向对比 [游戏C]_src)
 - PLAN v0.1(7.2 KB,设计总览)
 - WSL-KUBECONFIG-FIX-2026-08-26.md(WSL 修复 SOP)
 - 11 P0/P1/P2 commit(per RGS-REPORT-2026-08-26-P0P1P2_v0.2)

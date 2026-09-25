@@ -11,7 +11,7 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/economy/v1;ec
 // v2 增量 (per RGS-DTL-038 §4.4):
 //   - CreateAuction / BidAuction / CancelAuction / ListAuction / GetTradeHistory
 //
-// v3 增量 (per 闪烁之光借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC):
+// v3 增量 (per [游戏A]借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC):
 //   - 商店类 (20): ShopList/ShopBuy/ShopRefresh/.../MysteryShop*
 //   - 充值类 (15): Recharge*/MonthlyCard*/FirstRecharge*/...
 //   - 抽卡类 (15): Summon*/TenPull*/SinglePull*/...

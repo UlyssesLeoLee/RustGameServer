@@ -70,13 +70,13 @@ async function main() {
 
   // Navigate
   await page.addInitScript((wsUrl) => {
-    window.ZSYZ_WS_URL = wsUrl;
+    window.GAMEA_WS_URL = wsUrl;
   }, WS_URL);
 
   await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded' });
 
-  // Wait for the page to set window.__zsyzFrames__
-  await page.waitForFunction(() => Array.isArray(window.__zsyzFrames__));
+  // Wait for the page to set window.__[游戏A]Frames__
+  await page.waitForFunction(() => Array.isArray(window.__[游戏A]Frames__));
 
   // 1) Trigger Connect
   await page.click('#connect-btn');
@@ -85,7 +85,7 @@ async function main() {
   // Wait for first heartbeat roundtrip (send 1199 → recv 1199)
   await page.waitForFunction(
     () => {
-      const f = window.__zsyzFrames__;
+      const f = window.__[游戏A]Frames__;
       const sent = f.some((x) => x.dir === 'send' && x.cmd === 1199);
       const recv = f.some((x) => x.dir === 'recv' && x.cmd === 1199);
       return sent && recv;
@@ -100,7 +100,7 @@ async function main() {
 
   // Wait for login reply
   await page.waitForFunction(
-    () => window.__zsyzFrames__.some((x) => x.dir === 'recv' && x.cmd === 1110),
+    () => window.__[游戏A]Frames__.some((x) => x.dir === 'recv' && x.cmd === 1110),
     { timeout: 5000 }
   );
   console.log('[e2e] ✓ login reply captured');
@@ -113,8 +113,8 @@ async function main() {
   console.log('[e2e] screenshot →', SCREENSHOT_PATH);
 
   // Snapshot the in-browser frames
-  const frames = await page.evaluate(() => window.__zsyzFrames__);
-  const logBuf = await page.evaluate(() => window.__zsyzLogBuf__ || []);
+  const frames = await page.evaluate(() => window.__[游戏A]Frames__);
+  const logBuf = await page.evaluate(() => window.__[游戏A]LogBuf__ || []);
   const errs = consoleErrors.slice();
   const logs = consoleLogs.slice();
 

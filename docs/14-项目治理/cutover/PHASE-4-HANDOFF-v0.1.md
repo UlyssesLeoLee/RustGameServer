@@ -95,7 +95,7 @@
 - ✅ L15 (跨工具链 native binary ELF 验证): ✅ (本 marker 引用, grpcurl-linux 实证 per W10)
 - ✅ L16 (主会话统一 commit 拍板合并顺序): ✅ (本 marker 1 commit 落地, 不抢主会话)
 - ✅ L17 (InMemory → PgRepository 6/7 域扩展): ✅ (本 marker 引用, 6 域 merge 落地)
-- ✅ L18 (闪烁之光 848 RPC 补全): ✅ (本 marker 引用, W7-W9 派工 30+30+20 推进)
+- ✅ L18 ([游戏A] 848 RPC 补全): ✅ (本 marker 引用, W7-W9 派工 30+30+20 推进)
 - ✅ L19 (gRPC handler 触达 = PASS 业务级判据): ✅ (本 marker 引用, 9 域业务级 NotFound 算 business-handler-ok)
 - ✅ L20 (k8s mTLS cert servername CN): ✅ (本 marker 引用, 9 域 cert servername 全部 CN 字段)
 - ✅ L21 (ca.crt 0 字节空文件, 用 ca.pem): ✅ (本 marker 引用, 5 域 ca.pem 648 B + 3 NEW 域 ca-sbn.pem 696 B)

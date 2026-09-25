@@ -4,7 +4,7 @@
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **依据**:
 - 上游 REQ-A: `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` (Mavis 2026-09-17 创建)
-- 上游 REQ-B: `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` + `H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` + `SHIM_V05_DISPATCH_DESIGN.md` (Mavis 2026-09-09 创建)
+- 上游 REQ-B: `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` + `H5_GAMEA_CLIENT_MIGRATION_MATRIX.md` + `SHIM_V05_DISPATCH_DESIGN.md` (Mavis 2026-09-09 创建)
 **作用域**: RGS 已参考的两款商用服务器各自亮点汇总
 **状态**: ⏳ 一审（Mavis 自审） / 待 Ulysses 二审
 **对应工单**: ULYS-134
@@ -22,7 +22,7 @@
 | 上游 REQ-A | `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` v0.1 (commit 7b1bc71f) |
 | 上游 BASIC-A | `docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md` v0.1 (commit 1bece32f) |
 | 上游 REQ-B | `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` (commit 5420542) |
-| 上游 H5-B | `tools/rgs-shim-rust/docs/H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` (commit 54872c39) |
+| 上游 H5-B | `tools/rgs-shim-rust/docs/H5_GAMEA_CLIENT_MIGRATION_MATRIX.md` (commit 54872c39) |
 | 上游 Dispatch-B | `tools/rgs-shim-rust/docs/SHIM_V05_DISPATCH_DESIGN.md` (commit 076bebf3) |
 | 关联 | AGENTS.md §2 / §6 / §7 + 守门 #1 (缺标比错标) |
 
@@ -34,7 +34,7 @@
 
 | 编号 | 服务器 | 来源 | 业务背景 | RGS 关联 |
 |---|---|---|---|---|
-| **A** | [游戏D] [游戏D]_CBT3 PrivateServer ([游戏D]) | NAS `[跨盘-某发行商目录]/[游戏D][游戏D]_CBT3本地端\本地服务端\PrivateServer\PrivateServer`，2026-09-16 21:43 JST 复制到 `[跨盘-某发行商目录]/[游戏D]_privatesrv` (267 MB / 471 文件 / 110 子目录) | [某厂商] 2024 公布的新 IP（非《逆水寒》续作，独立 IP），内部代号 `[代码名-D]`，[游戏D] 客户端本地化的服务端工程，让 [游戏D] 客户端脱离网易服务器在本地单机运行 | **RGS-REFERENCE-[游戏D]-[游戏D]_CBT3-PRIVATE-SERVER_v0.1.md** (8 大技术亮点 + 10 条借鉴需求) + **RGS-BASIC-[游戏D]-[游戏D]_CBT3-INSPIRED-2026-09-17_v0.1.md** (基本设计) |
+| **A** | [游戏D] [游戏D]_[CBTn] [[PrivateServer]] ([游戏D]) | NAS `[跨盘-某发行商目录]/[游戏D][游戏D]_[CBTn]本地端\本地服务端\[[PrivateServer]]\[[PrivateServer]]`，2026-09-16 21:43 JST 复制到 `[跨盘-某发行商目录]/[游戏D]_privatesrv` (267 MB / 471 文件 / 110 子目录) | [某厂商] 2024 公布的新 IP（非《[非相关IP]》续作，独立 IP），内部代号 `[代码名-D]`，[游戏D] 客户端本地化的服务端工程，让 [游戏D] 客户端脱离[某厂商]服务器在本地单机运行 | **RGS-REFERENCE-[游戏D]-[游戏D]_[CBTn]-PRIVATE-SERVER_v0.1.md** (8 大技术亮点 + 10 条借鉴需求) + **RGS-BASIC-[游戏D]-[游戏D]_[CBTn]-INSPIRED-2026-09-17_v0.1.md** (基本设计) |
 | **B** | [游戏A]_server (《[游戏A]》商用游戏服务端) | E 盘 `[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\[游戏A]_server\` Erlang 源码（43 个 `proto_*.erl` + 991 pack defs + 514 unique cmd）+ `[游戏A]_client_h5\` H5 客户端源码（766 send cmd / 875 recv cmd per `proto_mate.js`） | [某厂商] MMORPG 商用服务端，Erlang/OTP + SmartSocket TCP 二进制协议，5 域业务 + Cocos2d-js H5 客户端 | **rgs-shim-rust** (SmartSocket BE → RGS gRPC 桥) + `tools/rgs-shim-rust/docs/` (3 份设计文档) |
 
 ### 1.2 对照维度（8 项）
@@ -52,7 +52,7 @@
 
 ---
 
-## 2. 服务器 A — [游戏D] [游戏D]_CBT3 PrivateServer 的 8 大技术亮点
+## 2. 服务器 A — [游戏D] [游戏D]_[CBTn] [[PrivateServer]] 的 8 大技术亮点
 
 > **来源**: `RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` §2（已落档 Mavis 2026-09-17 创建），本节为摘要索引。
 

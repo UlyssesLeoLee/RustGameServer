@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const HOST = '127.0.0.1';
 const PORT = 9001;
-const PROTO_MATE = 'E:/BaiduNetdiskDownload/闪烁之光/server分析/zsyz_client_h5/temp/quick-scripts/src/assets/Scripts/net/proto_mate.js';
+const PROTO_MATE = 'E:/[跨盘-某发行商目录]/[游戏A]/server分析/[游戏A]_client_h5/temp/quick-scripts/src/assets/Scripts/net/proto_mate.js';
 
 // 帧构造
 function makeFrame(cmd, payload = null) {

@@ -1,7 +1,7 @@
 //! WebSocket 传输层 (per ULYS-2 任务 B / W33)
 //!
 //! ## 设计
-//! - 路径 `/websocket`, 端口默认 8000 (对齐原 zsyz_server `web_conn.erl` 8000)
+//! - 路径 `/websocket`, 端口默认 8000 (对齐原 [游戏A]_server `web_conn.erl` 8000)
 //! - 帧格式复用 `codec::Frame::decode/encode` ([4B code][4B length][payload])
 //! - 业务 dispatcher 走 `Arc<dyn FrameRouter>` (per ULYS-2.2 codec.rs)
 //! - 当前 Phase 1.5 骨架: WS 收到 binary frame → Frame::decode → router.handle → binary 回包
@@ -19,8 +19,8 @@
 //!
 //! ## 参考
 //! - 9/12 ULYS-2 任务 B 派工 brief
-//! - zsyz_client_h5 SmartSocket.connect: `ws(s)://host:port/websocket`, binary frame
-//! - zsyz_server `web_conn.erl` 端口 8000
+//! - [游戏A]_client_h5 SmartSocket.connect: `ws(s)://host:port/websocket`, binary frame
+//! - [游戏A]_server `web_conn.erl` 端口 8000
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ use tracing::{debug, info, warn};
 use crate::codec::{Frame, FrameError, FrameRouter};
 use crate::stats::GatewayStats;
 
-/// 默认 WS 监听地址 (per 任务 brief + zsyz_server web_conn.erl: 8000)
+/// 默认 WS 监听地址 (per 任务 brief + [游戏A]_server web_conn.erl: 8000)
 pub const DEFAULT_WS_ADDR: &str = "0.0.0.0:8000";
 
 /// WebSocket 路径 (per 任务 brief, 客户端写死 /websocket)
@@ -297,7 +297,7 @@ where
                 // 忽略 (客户端响应我们 ping, 但当前我们不发 ping)
             }
             Message::Text(_) => {
-                // 任务 brief 只支持 binary frame; Text 忽略 (per zsyz_client_h5 send 是 binary)
+                // 任务 brief 只支持 binary frame; Text 忽略 (per [游戏A]_client_h5 send 是 binary)
                 debug!("WS text frame ignored (binary-only)");
             }
             Message::Frame(_) => {
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn default_ws_addr_matches_web_conn() {
-        // zsyz_server web_conn.erl: 端口 8000
+        // [游戏A]_server web_conn.erl: 端口 8000
         assert_eq!(DEFAULT_WS_ADDR, "0.0.0.0:8000");
     }
 

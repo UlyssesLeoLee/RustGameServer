@@ -59,7 +59,7 @@
 本报告是 W3 启动 worker-3 (per 9/4 18:03 JST Ulysses 拍板 option C, mock 12 Partial + 30 新 module 全部抽样, FLASH-MOCK v0.3 §1.2 Phase 3 拍板范围, ~360 cmds / 1-1.5M tokens / 5-10 sprint) 的第一批次交付物, 验证 match 域 6 module (boss / dungeon / endless / adventure / star / drama) 在 RGS 5 域 + card + gm-backend 7 域 backend 的 gap matrix 覆盖率。
 
 **核心方法**:
-- 抽样 read 闪烁之光 6 RPC 接口文件 (boss_rpc.erl 2.7KB + dungeon_rpc.erl 2.1KB + endless_rpc.erl 2.4KB + adventure_rpc.erl 4.3KB + star_rpc.erl 5.3KB + drama_rpc.erl 2.6KB), 1:1 抽出 74 明确 cmds + 1 描述空 = 75 cmds
+- 抽样 read [游戏A] 6 RPC 接口文件 (boss_rpc.erl 2.7KB + dungeon_rpc.erl 2.1KB + endless_rpc.erl 2.4KB + adventure_rpc.erl 4.3KB + star_rpc.erl 5.3KB + drama_rpc.erl 2.6KB), 1:1 抽出 74 明确 cmds + 1 描述空 = 75 cmds
 - 抽取 6 module 全部 cmds 1:1 映射到 RGS 7 域 service (per addendum §5.6/5.9/5.13/5.14/5.18/5.26)
 - 写 6 mock.json data file (47.6KB 总), 含 _module_meta (10+ 字段含 source/rgs_translation/audit_finding/known_gaps) + rpcs dict + mock_response schema, 供 v0.2+ sprint 接 gRPC client 时复用
 - 写本报告 12 段, 概要 6 module 业务 gap + 已知缺口 + token 消耗
@@ -128,11 +128,11 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ---
 
-## 4. 6 module 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 4. 6 module 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 4.1 boss (12 cmds, 20500-20541) — match BossService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\boss\boss_rpc.erl` (2.7KB) + boss.erl (10.9KB) + world_boss.erl (13.3KB) + world_boss_mgr.erl (9.2KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\boss\boss_rpc.erl` (2.7KB) + boss.erl (10.9KB) + world_boss.erl (13.3KB) + world_boss_mgr.erl (9.2KB)
 > **RGS 翻译**: match BossService trait + PgBossRepository (Master) + DamageLeaderboardRepository (Transaction) + match v2 CreateMatch 进战斗 FSM + economy outbox 购买次数扣费 saga + leaderboard redis sorted set 伤害排行
 > **gap 整体**: ❌ NotImplemented (12/12)
 
@@ -155,7 +155,7 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ### 4.2 dungeon (9 cmds, 13000-13011) — match DungeonService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\dungeon\dungeon_rpc.erl` (2.1KB) + dungeon.erl (35.4KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\dungeon\dungeon_rpc.erl` (2.1KB) + dungeon.erl (35.4KB)
 > **RGS 翻译**: match DungeonService trait + PgDungeonRepository (Master 章节配置) + PlayerDungeonProgressRepository (Transaction 玩家进度) + DungeonBuffRepository (Work 当前激活 BUFF) + combat v2 CreateMatch 章节循环 + economy outbox 宝箱奖励 saga
 > **gap 整体**: ❌ NotImplemented (9/9)
 
@@ -175,7 +175,7 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ### 4.3 endless (12 cmds, 23900-23911) — match EndlessService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\endless\endless_rpc.erl` (2.4KB) + endless.erl (31.6KB) + endless_mgr.erl (3.6KB) + endless_employ.erl (7.8KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\endless\endless_rpc.erl` (2.4KB) + endless.erl (31.6KB) + endless_mgr.erl (3.6KB) + endless_employ.erl (7.8KB)
 > **RGS 翻译**: match EndlessService trait + PgEndlessConfigRepository (Master) + PlayerEndlessProgressRepository (Transaction) + EndlessRewardRepository (Work 24h TTL) + EndlessPartnerHireRepository (Work 跨服雇佣 24h) + match v2 CreateMatch + card 域 PartnerService 跨域 + leaderboard redis sorted set 排行 + economy outbox 奖励 saga
 > **gap 整体**: ❌ NotImplemented (12/12)
 
@@ -198,7 +198,7 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ### 4.4 adventure (17 cmds, 20600-20692) — match AdventureService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\adventure\adventure_rpc.erl` (4.3KB) + adventure.erl (36.9KB) + adventure_mgr.erl (6.8KB) + adventure_action.erl (34.1KB) + adventure_plunder.erl (24.8KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\adventure\adventure_rpc.erl` (4.3KB) + adventure.erl (36.9KB) + adventure_mgr.erl (6.8KB) + adventure_action.erl (34.1KB) + adventure_plunder.erl (24.8KB)
 > **RGS 翻译**: match AdventureService trait + PgAdventureRoomRepository (Master) + PlayerAdventureProgressRepository (Transaction) + AdventureEventLogRepository (Transaction) + PlunderLogRepository (Transaction) + DashMap<i64, PlunderSession> 反击 session + match v2 CreateMatch + card 域 PartnerService + economy outbox 资产兑换
 > **gap 整体**: ❌ NotImplemented (16/16 + 1 描述空)
 
@@ -226,7 +226,7 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ### 4.5 star (20 cmds, 11300-11333) — player StarService (注意: 简报 match 域, addendum 实际 player 域)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\star\star_rpc.erl` (5.3KB) + star.erl (14.3KB) + star_tower.erl (11.3KB) + star_tower_mgr.erl (6KB) + star_natal.erl (14.6KB) + star_divination.erl (9.9KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\star\star_rpc.erl` (5.3KB) + star.erl (14.3KB) + star_tower.erl (11.3KB) + star_tower_mgr.erl (6KB) + star_natal.erl (14.6KB) + star_divination.erl (9.9KB)
 > **RGS 翻译**: player StarService trait + PgStarConfigRepository (Master) + PlayerStarRepository (Transaction m_star record 20+ 字段) + StarTowerRepository (Transaction) + StarReplayRepository (Transaction) + match v2 CreateMatch 战斗 FSM 星命塔 + card 域 PartnerService 羁绊伙伴 + leaderboard redis sorted set 塔排行 + economy outbox 占卜奖励
 > **gap 整体**: ❌ NotImplemented (20/20)
 
@@ -257,7 +257,7 @@ per 9/4 18:03 JST W3 启动 option C, mock 12 Partial + 30 新 module 全部抽�
 
 ### 4.6 drama (5 cmds, 11100-11122, 4 明确 + 1 描述空) — player DramaService (注意: 简报 match 域, addendum 实际 player 域)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\drama\drama_rpc.erl` (2.6KB) + drama.erl (30.7KB) + drama_cond.erl (14.8KB) + drama_quest.erl (11.4KB) + drama_act.erl (5.6KB)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\drama\drama_rpc.erl` (2.6KB) + drama.erl (30.7KB) + drama_cond.erl (14.8KB) + drama_quest.erl (11.4KB) + drama_act.erl (5.6KB)
 > **RGS 翻译**: player DramaService trait + PgDramaConfigRepository (Master) + PlayerDramaProgressRepository (Transaction m_drama record play_list/finish_guide 4 字段) + DramaLogRepository (Transaction) + role_trigger:fire evt_finish_guide 跨进程事件 + combat_drama:drama_finish 跨 FSM 转移 + log:save task 任务日志
 > **gap 整体**: ❌ NotImplemented (4/4 + 1 描述空)
 
@@ -464,7 +464,7 @@ per 9/4 18:03 JST Ulysses 拍板 W3 启动 option C, mock 12 Partial + 30 新 mo
 | 6 module 业务跨域 (5 域) | P1 | 已拆 6 独立 mock.json, 不引入新域, RGS proto_method 按 addendum 1:1 真实域路由 |
 | 322KB 业务待 v0.2 sprint 详细化 | P1 | 已标 "(推测)" + 描述空 1:1 标 _remaining_N_cmds_note, 不假装覆盖 |
 | 域路由简报错配 (match vs player) | P2 | RGS proto_method 按 addendum §2.3 实际域路由 (4 match + 2 player), 简报 worker 派工域仅作任务分配 |
-| 闪烁之光 协议 schema push 未实装 | P2 (per audit v0.3 §7.2) | 跟 RGS-SPEC-CROSS-002 v0.2 升版联动, mock stub 模式不阻塞 |
+| [游戏A] 协议 schema push 未实装 | P2 (per audit v0.3 §7.2) | 跟 RGS-SPEC-CROSS-002 v0.2 升版联动, mock stub 模式不阻塞 |
 | 业务层 12 大类 90% RGS TCG 不适用 (per handoff v0.1 §1) | P1 | mock N-A 状态 + gap matrix 报告, 不假装覆盖 |
 | mock 单点故障影响 RGS backend 验证 | P2 | mTLS fail-closed + health/ready endpoint + k3s 1 replica + 监控 alert (per 设计 doc §7) |
 | env value 凭据泄露 (per 8/27 11:06 JST 硬 ban) | P1 | REDACTED filter + 0 env value 出现 + 凭据走 env var 不打印 |
@@ -487,17 +487,17 @@ per 9/4 18:03 JST Ulysses 拍板 W3 启动 option C, mock 12 Partial + 30 新 mo
 
 ### 11.2 v0.2+ 详细化 (per protocol mapping addendum §3.3 + §5.6/5.9/5.13/5.14/5.18/5.26)
 
-- 抽样 read 闪烁之光 6 module 子模块 .erl (boss.erl 10.9KB + world_boss.erl 13.3KB + dungeon.erl 35.4KB + endless.erl 31.6KB + endless_employ.erl 7.8KB + adventure.erl 36.9KB + adventure_action.erl 34.1KB + adventure_plunder.erl 24.8KB + star.erl 14.3KB + star_tower.erl 11.3KB + star_natal.erl 14.6KB + star_divination.erl 9.9KB + drama.erl 30.7KB + drama_cond.erl 14.8KB + drama_quest.erl 11.4KB) 总 300KB+ 业务逻辑 1:1 逆推到 RGS Rust 设计
-- 闪烁之光 实际 pack/unpack tuple 字段顺序验证 (per §3.2.1 通用 wire 格式)
-- 闪烁之光 i18n msg 字符串 → RGS ErrorCode enum 转换规则 (per §3.2.2)
+- 抽样 read [游戏A] 6 module 子模块 .erl (boss.erl 10.9KB + world_boss.erl 13.3KB + dungeon.erl 35.4KB + endless.erl 31.6KB + endless_employ.erl 7.8KB + adventure.erl 36.9KB + adventure_action.erl 34.1KB + adventure_plunder.erl 24.8KB + star.erl 14.3KB + star_tower.erl 11.3KB + star_natal.erl 14.6KB + star_divination.erl 9.9KB + drama.erl 30.7KB + drama_cond.erl 14.8KB + drama_quest.erl 11.4KB) 总 300KB+ 业务逻辑 1:1 逆推到 RGS Rust 设计
+- [游戏A] 实际 pack/unpack tuple 字段顺序验证 (per §3.2.1 通用 wire 格式)
+- [游戏A] i18n msg 字符串 → RGS ErrorCode enum 转换规则 (per §3.2.2)
 - 跨服 srv_id 字符串 → RGS PlayerId.server_id 字段 (per §3.2.3) 评估是否加
 - boss 协议号 205 vs 203 错配 addendum 协调 (per §7.1 #4 + §10 #10)
 
 ### 11.3 长期 (W4-W25, per 设计 doc §1.2 + §6.4)
 
 - 渐进式补完 30 新 module 详细 entity / repository / saga
-- gRPC server front (兼容 闪烁之光 现代客户端)
-- WebSocket 适配 (兼容老 闪烁之光 Flash socket 客户端)
+- gRPC server front (兼容 [游戏A] 现代客户端)
+- WebSocket 适配 (兼容老 [游戏A] Flash socket 客户端)
 - SQLite 持久化 gap matrix + Prometheus metrics
 - 性能 baseline 测试 (跟 Erlang server 同 client P50/P95/P99 对比, 待 Phase C 后)
 
@@ -534,7 +534,7 @@ per 9/4 18:03 JST Ulysses 拍板 W3 启动 option C, mock 12 Partial + 30 新 mo
 
 - §7 已知缺口 5 段 (报告/框架/数据/业务/治理) + 1 协议号错配 全部显式列出
 - 2 cmds 描述空标 "(推测)" 不假装覆盖 (adventure 1 + drama 1)
-- 闪烁之光 6 RPC 接口文件 (~21KB) 实际 read 完整, 6 module 子模块 .erl (~300KB) 待 v0.2 sprint 主会话抽样补全明示
+- [游戏A] 6 RPC 接口文件 (~21KB) 实际 read 完整, 6 module 子模块 .erl (~300KB) 待 v0.2 sprint 主会话抽样补全明示
 - 75 NotImplemented 命中 (6 module 全部) 显式标注
 - boss 协议号 205 vs 203 错配 + 简报 worker 派工域 vs addendum 实际域路由错配 显式标注
 

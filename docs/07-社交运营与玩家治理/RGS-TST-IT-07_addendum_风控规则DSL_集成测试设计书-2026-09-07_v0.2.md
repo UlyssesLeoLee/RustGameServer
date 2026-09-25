@@ -20,7 +20,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定 |
-| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 8 域扩展（per 9/6 闪烁之光兼容）② admin-coc §X 引用（per 9/5 ae9702d/6c2a786/ab127e4/3695f3b）③ 风控 + coc_policy 决策树（per gm_handlers.rs L79-129）④ 派生约束守护 L15-L23（per 9/6 6c6839e cutover） |
+| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 8 域扩展（per 9/6 [游戏A]兼容）② admin-coc §X 引用（per 9/5 ae9702d/6c2a786/ab127e4/3695f3b）③ 风控 + coc_policy 决策树（per gm_handlers.rs L79-129）④ 派生约束守护 L15-L23（per 9/6 6c6839e cutover） |
 
 ## 审批栏
 
@@ -70,7 +70,7 @@
 | TST-IT-07-R012 | [TL-2] | DTL-025 v0.3 §6.4：NATS 延迟/乱序时以清单和 `fence_epoch` 拒绝旧版本 | — | — |
 | TST-IT-07-R013 | [TL-7] | DTL-025 v0.3 §6.5：节点与规则清单分区后租约失效即 fail-closed，恢复验签后才执行 | — | — |
 | TST-IT-07-R014 | [TL-2] | DTL-025 v0.3 §6.6：回滚的目标版本、审批、节点确认和未确认节点审计完整 | — | — |
-| **TST-IT-07-R015** | **[TL-2]** | **8 域扩展 DSL 推送 (per 9/6 闪烁之光兼容)** | **scene 域 DSL 推送** | scene DSL 5 规则 |
+| **TST-IT-07-R015** | **[TL-2]** | **8 域扩展 DSL 推送 (per 9/6 [游戏A]兼容)** | **scene 域 DSL 推送** | scene DSL 5 规则 |
 | **TST-IT-07-R016** | **[TL-2]** | **8 域扩展 DSL 推送 (per 9/6)** | **battle 域 DSL 推送** | battle DSL 5 规则 |
 | **TST-IT-07-R017** | **[TL-2]** | **8 域扩展 DSL 推送 (per 9/6)** | **network + account + sub8 DSL 推送** | network/account/sub8 DSL 15 规则 |
 | **TST-IT-07-R018** | **[TL-2]** | **batch 域 DSL 推送 (per 9/1 batch v0.1)** | **batch 域 DSL 推送 + coc 联动** | batch DSL 5 规则 |

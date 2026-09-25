@@ -1,12 +1,12 @@
-# RGS-DDD v0.2 addendum — 闪烁之光 438 cmds → RGS proto 1:1 完整映射表
+# RGS-DDD v0.2 addendum — [游戏A] 438 cmds → RGS proto 1:1 完整映射表
 
 > **创建日期**: 2026-09-04 17:17 JST
 > **作者**: 架构师(Mavis 接手 agent per DEC-008)
 > **审批**: 架构师(Mavis 接手 agent per DEC-008) + Mavis 自审 (per 9/2 B3 派生约束 v0.2 流程)
 > **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手代签 (per 8/27 19:39/20:56/21:59 JST 三次强化)
-> **依据**: user 9/4 17:11 JST 拍板 "frontend compat 正确设计" + RGS-DDD-2026-09-04 v0.1 §7 (per addendum 主表展开) + 闪烁之光 6 文件 (api_module_summary.txt / 协议号分段.md / proto_*.erl 抽样 10 个 / proto_lib.erl / services.erl) + 闪烁之光 协议 schema 抽样 10 个 (proto_200.erl/proto_110.erl/proto_135.erl/proto_206.erl/proto_235.erl/proto_133.erl/proto_108.erl/proto_168.erl/proto_11.erl/proto_101.erl) + common.proto (RGS 共享 proto 模式)
+> **依据**: user 9/4 17:11 JST 拍板 "frontend compat 正确设计" + RGS-DDD-2026-09-04 v0.1 §7 (per addendum 主表展开) + [游戏A] 6 文件 (api_module_summary.txt / 协议号分段.md / proto_*.erl 抽样 10 个 / proto_lib.erl / services.erl) + [游戏A] 协议 schema 抽样 10 个 (proto_200.erl/proto_110.erl/proto_135.erl/proto_206.erl/proto_235.erl/proto_133.erl/proto_108.erl/proto_168.erl/proto_11.erl/proto_101.erl) + common.proto (RGS 共享 proto 模式)
 > **配套**: `RGS-DDD-2026-09-04_v0.1.md` (主 doc) + `RGS-REQ-2026-09-04_v0.1.md` (需求) + `RGS-BDD-2026-09-04_v0.1.md` (基本设计) + `RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` (4 阶段路线图)
-> **作用域**: 闪烁之光 协议号 1:1 → RGS proto 命名映射, 438 cmds / 42 modules / 41 协议号段 (per 协议号分段.md L51) 全覆盖
+> **作用域**: [游戏A] 协议号 1:1 → RGS proto 命名映射, 438 cmds / 42 modules / 41 协议号段 (per 协议号分段.md L51) 全覆盖
 > **状态**: ⏳ 待 Mavis 自审 → 🟡 → ⏳ 待 Ulysses 二审 → ✅/🟡/❌
 > **DoD (per L1/L1.1/L1.2 + L13)**: L1 N/A (纯 doc) / L1.1 N/A / L1.2 N/A / L11 N/A (单 worker) / L12 N/A (不 commit, 1 doc) / L13 ahead/md 行数 deferred 实时查询 / L14 N/A (无 plumbing 改)
 
@@ -40,19 +40,19 @@
 |---|---|---|
 | **基线 commit** | `2e3d9ee` (FLASH-OVERLAP v0.2 已落 main) | per DDD v0.1 §0.3 (L13 deferred 实时查询) |
 | **addendum v0.2 commit** | 待主会话 `git add` + 1 commit (per L12.2 选项 2 "5 worker 写文件不 commit, 主会话统一 commit" 模式) | per L12.2 + 9/4 17:11 JST 派工 |
-| **闪烁之光 RPC 总数** | 438 (42 modules, per api_module_summary.txt L1-45) | `E:\...\zsyz_server\docs\api_module_summary.txt` L1-45 |
-| **闪烁之光 协议号段** | 41 段 (per 协议号分段.md L51 "总 46 个协议号段, 但实际 `proto_*.erl` 文件有 45 个") | `E:\...\zsyz_server\docs\architecture\协议号分段.md` L51 |
-| **闪烁之光 proto_*.erl** | 45 .erl (proto_11/101/102/103/104/105/108/109/110/111/112/113/114/127/129/130/133/134/135/141/164/166/167/168/200/202/203/205/206/210/211/212/213/215/221/227/232/233/234/235/236/237/238/239 + rpc_cfg) | `Get-ChildItem E:\...\src\proto\*.erl` |
-| **闪烁之光 src/gen_proto/cfg/** | **目录不存在** (本 addendum §3 抽样调整) | `Test-Path E:\...\src\gen_proto\cfg` = False |
+| **[游戏A] RPC 总数** | 438 (42 modules, per api_module_summary.txt L1-45) | `E:\...\[游戏A]_server\docs\api_module_summary.txt` L1-45 |
+| **[游戏A] 协议号段** | 41 段 (per 协议号分段.md L51 "总 46 个协议号段, 但实际 `proto_*.erl` 文件有 45 个") | `E:\...\[游戏A]_server\docs\architecture\协议号分段.md` L51 |
+| **[游戏A] proto_*.erl** | 45 .erl (proto_11/101/102/103/104/105/108/109/110/111/112/113/114/127/129/130/133/134/135/141/164/166/167/168/200/202/203/205/206/210/211/212/213/215/221/227/232/233/234/235/236/237/238/239 + rpc_cfg) | `Get-ChildItem E:\...\src\proto\*.erl` |
+| **[游戏A] src/gen_proto/cfg/** | **目录不存在** (本 addendum §3 抽样调整) | `Test-Path E:\...\src\gen_proto\cfg` = False |
 | **RGS 现有 proto RPC 数** | 69 / 12 proto (per handoff v0.1 §0) | `crates/*/proto/*/v1/*.proto` |
 | **RGS 7 域 backend** | player(50051) + economy(50052) + match(50053) + social(50054) + admin(50055) + card(50061) + gm-backend(8081) | per 5 域 main.rs + card/main.rs + gm-backend/main.rs |
 | **RGS 共享 proto** | `D:\RustGameServer\crates\shared-platform\proto\common\v1\common.proto` 2.9KB (L1-129, Status/ErrorCode/EntityId/Timestamp/PageRequest/PageResponse/HealthCheck/CardRef/CardType/CardRarity/GameMode/Currency/Locale/I18nString) | Read common.proto L1-129 |
 
 ### 0.3 已知缺口 (per 8/26 JST 缺标比错标, 5 段详见 §11)
 
-- **报告**: gen_proto/cfg 目录不存在 (per 0.2), 抽样调整为 proto_NNN.erl / 闪烁之光 5 域 ST 业务 mTLS cert 导出 SOP / 30 新 module 详细业务 v0.2 详细
+- **报告**: gen_proto/cfg 目录不存在 (per 0.2), 抽样调整为 proto_NNN.erl / [游戏A] 5 域 ST 业务 mTLS cert 导出 SOP / 30 新 module 详细业务 v0.2 详细
 - **框架**: per-entity actor 0/7 域 (audit v0.3 §1.2 #1 决策保留) / 协议 schema push 7 域未实装
-- **数据**: 闪烁之光 performance baseline 待 Phase C 后 / DB schema v0.2 实测 78 表
+- **数据**: [游戏A] performance baseline 待 Phase C 后 / DB schema v0.2 实测 78 表
 - **业务**: 438 cmds - 12 Partial ~140 = 298 cmds 30 新 module 业务验证 v0.2 详细 / conn_login 独立 connector service
 - **治理**: Mavis 自审 + Ulysses 二审 (per B3) / Ulysses 二审时间窗口不定 / 凭据 REDACTED
 
@@ -62,24 +62,24 @@
 
 ### 1.1 背景
 
-RGS-DDD-2026-09-04 v0.1 (commit `80bcd3b`, 96KB) §7.4 已建立闪烁之光 **41 协议号段 → RGS service 1:1 高层映射** (per 协议号分段.md L51), 但**未展开到 438 cmds 粒度**。
+RGS-DDD-2026-09-04 v0.1 (commit `80bcd3b`, 96KB) §7.4 已建立[游戏A] **41 协议号段 → RGS service 1:1 高层映射** (per 协议号分段.md L51), 但**未展开到 438 cmds 粒度**。
 
 user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把 v0.1 §7.4 41 段**展开成完整 438 cmds 1:1 映射表**, 抽样 read .erl 验证协议 schema, 边界 case / 冲突检测 / 迁移路径显式列出, **作为 v0.2 sprint 派工的精确 1:1 索引** (W2-W25, per FLASH-MOCK v0.3 §1.2 4 阶段路线图)。
 
 ### 1.2 目标
 
 1. **完整覆盖**: 438 cmds / 42 modules / 41 协议号段 1:1 映射 (主表 §5, 按 api_module_summary.txt 顺序)
-2. **schema 验证**: 抽样 read 10 个 `proto_*.erl` 验证 闪烁之光 request/response 字段 (per §3 抽样清单)
-3. **RGS proto 命名**: 闪烁之光 cmd → RGS gRPC RPC (snake_case per common.proto 风格) + 7 域 service 路由 (per §4)
+2. **schema 验证**: 抽样 read 10 个 `proto_*.erl` 验证 [游戏A] request/response 字段 (per §3 抽样清单)
+3. **RGS proto 命名**: [游戏A] cmd → RGS gRPC RPC (snake_case per common.proto 风格) + 7 域 service 路由 (per §4)
 4. **gap 状态**: 12 Partial Pass/Partial/NotApplicable + 30 新 module NotImplemented (per §6 矩阵, 跟 v0.1 §2.1 一致)
-5. **边界 + 冲突**: 10001/11000/13500/20001/20200/20300/21000/22000/23000/23900 关键边界 (per §7) + 闪烁之光 5 大类 vs RGS 0-65535 范围冲突检测 (per §8)
+5. **边界 + 冲突**: 10001/11000/13500/20001/20200/20300/21000/22000/23000/23900 关键边界 (per §7) + [游戏A] 5 大类 vs RGS 0-65535 范围冲突检测 (per §8)
 6. **迁移路径**: v0.1 (12 Partial 详细) → v0.2 (本 addendum 438 cmds 索引) → v1.0 (100% 覆盖) (per §9)
 
 ### 1.3 范围
 
 **In-Scope (本 v0.2 addendum)**:
 - 438 cmds 完整 1:1 映射主表 (§5, per api_module_summary.txt L47-568 顺序)
-- 闪烁之光 协议 schema 抽样 10 个 (per §3, 验证 pack/unpack tuple 字段)
+- [游戏A] 协议 schema 抽样 10 个 (per §3, 验证 pack/unpack tuple 字段)
 - RGS 7 域 proto 命名 + service 路由 (per §4, 沿用 v0.1 §7.4)
 - 协议号分段 (per §2, 1xx / 2xx 大类横展)
 - 边界 case (per §7) + 冲突检测 (per §8) + 迁移路径 (per §9) + 测试矩阵 (per §10)
@@ -87,26 +87,26 @@ user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把
 - 代签栏 (per §12, 8/27 JST 三次强化)
 
 **Out-of-Scope (addendum 范围外)**:
-- 闪烁之光 自研 TCP/Flash socket 协议 (per DDD v0.1 §11.1 已知缺口, v0.2 升级) — 本 addendum 仅 cmd → RGS gRPC 命名映射
-- 闪烁之光 实际 proto 风格 wire 适配 (per DDD v0.1 §0.3) — 待 v0.2 worker 实证 (本 addendum 仅抽样 read schema)
-- 闪烁之光 .erl 源码逐条翻译 (per REQ v0.1 §1.3 范围外) — 本 addendum 仅 cmd 编号 → RGS RPC 命名 + 7 域路由
+- [游戏A] 自研 TCP/Flash socket 协议 (per DDD v0.1 §11.1 已知缺口, v0.2 升级) — 本 addendum 仅 cmd → RGS gRPC 命名映射
+- [游戏A] 实际 proto 风格 wire 适配 (per DDD v0.1 §0.3) — 待 v0.2 worker 实证 (本 addendum 仅抽样 read schema)
+- [游戏A] .erl 源码逐条翻译 (per REQ v0.1 §1.3 范围外) — 本 addendum 仅 cmd 编号 → RGS RPC 命名 + 7 域路由
 - 30 新 module 详细 entity / repository / saga (per DDD v0.1 §1.3 out-of-scope) — 业务验证 W2-W25 阶段
 
 ---
 
-## 2. 协议号分段 (per 闪烁之光 architecture/协议号分段.md)
+## 2. 协议号分段 (per [游戏A] architecture/协议号分段.md)
 
 ### 2.1 协议号约定 (per 协议号分段.md L11-15)
 
 > 命令号, 约定有效范围: **100~65500**, 模块号有效范围: **1~655**。
 > 实际命令号 = 协议号 × 100 + 段内偏移 (0~99)。
-> (per 闪烁之光 `mapping.erl:22` 注释)
+> (per [游戏A] `mapping.erl:22` 注释)
 
-注意: 闪烁之光 实际 cmd 范围是 4 位数 (10001-29900), 不是 5 位 (per api_module_summary.txt 全文 ≤ 29900), 与协议号分段.md L13 注释 "100~65500" 不一致 — 这是文档/代码 2 段式表达 (per 8/27 21:59 JST 禁回溯叙事, 不追溯改写协议号分段.md, 记录于此作为已知缺口 §11.1)。
+注意: [游戏A] 实际 cmd 范围是 4 位数 (10001-29900), 不是 5 位 (per api_module_summary.txt 全文 ≤ 29900), 与协议号分段.md L13 注释 "100~65500" 不一致 — 这是文档/代码 2 段式表达 (per 8/27 21:59 JST 禁回溯叙事, 不追溯改写协议号分段.md, 记录于此作为已知缺口 §11.1)。
 
 ### 2.2 协议号段 → 模块映射 (per 协议号分段.md L19-27)
 
-| 协议号段 | 实际命令号 | 用途 | 闪烁之光 module | RGS 7 域映射 |
+| 协议号段 | 实际命令号 | 用途 | [游戏A] module | RGS 7 域映射 |
 |---|---|---|---|---|
 | 11~12 | 1100-1299 | 连接登录 | `conn_login` (3) | cluster-ops (per REQ §2 #34) |
 | 101~113 | 10100-11399 | 角色基础 (login/map/role/quest/item/mail/misc/partner/drama/formation/star) | `login` (6) + `map` (6) + `role` (21) + `quest` (4) + `item` (10) + `mail` (6) + `misc` (19) + `partner` (41) + `drama` (5) + `formation` (6) + `star` (20) = 144 cmds | player + card + admin (per REQ §2) |
@@ -120,7 +120,7 @@ user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把
 
 ### 2.3 协议号 vs 玩法模块 (per 协议号分段.md L102-147)
 
-| 协议号 | 玩法模块 | 闪烁之光 服务 | RGS service (per DDD v0.1 §7.4) |
+| 协议号 | 玩法模块 | [游戏A] 服务 | RGS service (per DDD v0.1 §7.4) |
 |---|---|---|---|
 | 11 | `conn_login.erl` | (连接层) | `ClusterOpsService.AccountLogin` (per cluster_ops.proto:1.4KB) |
 | 101 | `login.erl` | (连接层) | `PlayerService.CreatePlayer` (per login_rpc.erl:19-66) |
@@ -166,11 +166,11 @@ user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把
 | 238 | `notice.erl` | `notice_mgr` | `SocialService.GuildShippingService` (per REQ §2 #18) |
 | 239 | `mail_2.erl` | `mail` | `MatchService.EndlessService` (re-claimed, per DDD §7.4) |
 
-**总映射**: 41 协议号 → 41 RGS service (1:1, per DDD v0.1 §7.4 L1074), 闪烁之光 协议号 = 业务模块名 (per §2.1 约定)。
+**总映射**: 41 协议号 → 41 RGS service (1:1, per DDD v0.1 §7.4 L1074), [游戏A] 协议号 = 业务模块名 (per §2.1 约定)。
 
 ---
 
-## 3. 闪烁之光 协议 schema 抽样 (per proto_*.erl 抽样 10 个)
+## 3. [游戏A] 协议 schema 抽样 (per proto_*.erl 抽样 10 个)
 
 ### 3.1 抽样清单 (per 简报 "抽样 5-10 个代表", 实际抽样 10 个)
 
@@ -209,13 +209,13 @@ pack(Cmd, cli, {V0_a, V0_b}) -> D_a_t_a = <<V0_a:8, V0_b:32>>, {ok, <<(byte_size
 ```erlang
 %% 通用结果: code:8 + msg:string (i18n 错误信息)
 %% code: 0=success, 1+=error (per 业务定义)
-%% msg: error 提示 (i18n 字符串, per 闪烁之光 lang/ 目录)
+%% msg: error 提示 (i18n 字符串, per [游戏A] lang/ 目录)
 pack(Cmd, srv, {V0_code, V0_msg}) ->
     D_a_t_a = <<V0_code:8, (protocol:pack(string, V0_msg))/binary>>,
     {ok, <<(byte_size(D_a_t_a) + 2):32, Cmd:16, D_a_t_a/binary>>};
 ```
 
-注: 这跟 RGS `ErrorCode` enum (per common.proto L13-21) 略不同, 闪烁之光 用 8-bit code + i18n msg, RGS 用 enum + Status. RGS 应保留 ErrorCode enum 但 service 内部用 `Result<tonic::Status, ErrorCode>` 模式 (per DDD v0.1 §8.1 L1095-1118)。
+注: 这跟 RGS `ErrorCode` enum (per common.proto L13-21) 略不同, [游戏A] 用 8-bit code + i18n msg, RGS 用 enum + Status. RGS 应保留 ErrorCode enum 但 service 内部用 `Result<tonic::Status, ErrorCode>` 模式 (per DDD v0.1 §8.1 L1095-1118)。
 
 #### 3.2.3 跨服 ID 模式 (per proto_11.erl L28 + proto_133.erl L29 + proto_135.erl L37)
 
@@ -240,7 +240,7 @@ pack(Cmd, srv, {V0_code, V0_msg}) ->
 (length(V0_list)):16, (list_to_binary([<<V1_partner_id:32, V1_bid:32, V1_lev:16, ...>> || #partner_base_p{...} <- V0_list]))/binary
 ```
 
-注: RGS 用 `repeated <Field>` (per common.proto PageRequest L32-36, PageResponse L38-42), 闪烁之光 用 length-prefixed tuple — 语义等价。
+注: RGS 用 `repeated <Field>` (per common.proto PageRequest L32-36, PageResponse L38-42), [游戏A] 用 length-prefixed tuple — 语义等价。
 
 #### 3.2.5 combat 战斗模式 (per proto_200.erl L42-78)
 
@@ -254,7 +254,7 @@ pack(Cmd, srv, {V0_code, V0_msg}) ->
 %% - 其他: current_wave/total_wave/play_speed/combat_map/extra_args/pause/dragon_difficulty/wave_time/action_count/star_list/...
 ```
 
-注: combat 是 闪烁之光 协议最复杂的 module, 23+ 嵌套字段, pack 二进制流可读性差。RGS 映射为 `Move` (per `crates/match-service/src/entity_v2.rs:145,156,170` `Move::PlayCard` + `deck_card_id: Option<String>` 跨 DB 弱引用), 抽象层级更高, 通过 `Move` enum 9 变体 (per DDD §3.1) 简化 闪烁之光 大量 cmd 差异。
+注: combat 是 [游戏A] 协议最复杂的 module, 23+ 嵌套字段, pack 二进制流可读性差。RGS 映射为 `Move` (per `crates/match-service/src/entity_v2.rs:145,156,170` `Move::PlayCard` + `deck_card_id: Option<String>` 跨 DB 弱引用), 抽象层级更高, 通过 `Move` enum 9 变体 (per DDD §3.1) 简化 [游戏A] 大量 cmd 差异。
 
 #### 3.2.6 partner 伙伴模式 (per proto_110.erl L31-46)
 
@@ -299,7 +299,7 @@ pack(Cmd, srv, {V0_code, V0_msg}) ->
 %% - cells: array of #market_silver_shop_cell{cell_id/item_base_id/num/price/expiry/item_attrs/status}
 ```
 
-注: RGS market 19 cmds 完整映射, 但 RGS 当前 `Auction` 实体 (per `crates/economy-service/src/trade_entity.rs` L13KB) 是 `start_price/buyout_price/current_bid` 模式, 闪烁之光 `market_silver_shop` 是 摊位 cell 模式, 需扩展 entity (per DDD §3.5 L482-486 schema)。
+注: RGS market 19 cmds 完整映射, 但 RGS 当前 `Auction` 实体 (per `crates/economy-service/src/trade_entity.rs` L13KB) 是 `start_price/buyout_price/current_bid` 模式, [游戏A] `market_silver_shop` 是 摊位 cell 模式, 需扩展 entity (per DDD §3.5 L482-486 schema)。
 
 #### 3.2.9 sns 好友模式 (per proto_133.erl L25-96)
 
@@ -338,9 +338,9 @@ pack(Cmd, srv, {V0_code, V0_msg}) ->
 ### 3.3 抽样已知缺口 (per 8/26 JST 缺标比错标)
 
 - **gen_proto/cfg 目录不存在** (per §0.2): 实际抽样调整为 src/proto/proto_NNN.erl, 10 个抽样足够覆盖 41 协议号
-- **pack/unpack 字段顺序 隐式** (per 10 个抽样): 闪烁之光 字段顺序是约定, 不显式标注 (vs RGS proto3 field number), 转换需严格按 read .erl 验证
+- **pack/unpack 字段顺序 隐式** (per 10 个抽样): [游戏A] 字段顺序是约定, 不显式标注 (vs RGS proto3 field number), 转换需严格按 read .erl 验证
 - **跨服 srv_id 字符串** (per §3.2.3): RGS 缺显式 server_id 字段, v0.2 sprint 需评估是否加
-- **i18n msg 字符串** (per §3.2.2): 闪烁之光 用字符串, RGS 用 `I18nString` (per common.proto L73-77) + `ErrorCode` enum, 转换需做 msg → enum 映射
+- **i18n msg 字符串** (per §3.2.2): [游戏A] 用字符串, RGS 用 `I18nString` (per common.proto L73-77) + `ErrorCode` enum, 转换需做 msg → enum 映射
 - **combat 23+ 嵌套字段** (per §3.2.5): RGS 通过 `Move` enum 9 变体抽象, 需在 v0.2 sprint 评估每 cmd 对应 Move 变体
 
 ---
@@ -417,7 +417,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
   - 例: `PlayerService`, `GuildService`, `ArenaService`, `MarketService`
 - **RPC 命名**: `rpc <MethodName>(<Request>) returns (<Response>);` (PascalCase, per common.proto + DDD v0.1 §7.2)
   - 例: `GetPlayer(EntityId) returns (Player)`, `CreateGuild(CreateGuildRequest) returns (Guild)`
-  - 闪烁之光 1:1 命名映射: snake_case 协议描述 → PascalCase RPC (per §5 主表)
+  - [游戏A] 1:1 命名映射: snake_case 协议描述 → PascalCase RPC (per §5 主表)
 - **ID 包装**: `EntityId { string id = 1; }` (per common.proto L23-25)
 - **分页**: `PageRequest { uint32 page = 1; uint32 page_size = 2; string cursor = 3; }` + `PageResponse` (per common.proto L32-42)
 - **错误码**: `tonic::Status` + `ErrorCode` enum (per DDD v0.1 §7.2 L1018 + §8.1 L1109-1118)
@@ -428,14 +428,14 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ## 5. 438 cmds 完整 1:1 映射表 (主表, per api_module_summary.txt 顺序)
 
-> **说明**: 本表按 api_module_summary.txt L47-568 顺序, 42 modules 全列。每行 6 列: cmd | 类别 | 闪烁之光 RPC (cmd 描述) | RGS proto (7 域 service) | RGS RPC (snake_case → PascalCase) | gap 状态
+> **说明**: 本表按 api_module_summary.txt L47-568 顺序, 42 modules 全列。每行 6 列: cmd | 类别 | [游戏A] RPC (cmd 描述) | RGS proto (7 域 service) | RGS RPC (snake_case → PascalCase) | gap 状态
 > **类别**: 12 Partial = RGS 已覆盖 | 30 新 = RGS 未实装 | Map N-A = TCG 不适用
 > **gap 状态**: Pass (✅) / Partial (🟡) / NotImplemented (❌) / NotApplicable (N-A)
-> **空 cmd 描述行**: 闪烁之光 描述为空的行 (per api_module_summary.txt L51-55 等), 推测功能并标注 "(描述空, 推测)"
+> **空 cmd 描述行**: [游戏A] 描述为空的行 (per api_module_summary.txt L51-55 等), 推测功能并标注 "(描述空, 推测)"
 
 ### 5.1 combat (43 cmds, 20000-20063) → match + PveService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 20001 | Partial | 准备 | match CombatService | `PrepareCombat(combat_type, combat_map)` | 🟡 |
 | 20005 | Partial | 战斗播放完了 | match CombatService | `FinishCombatPlay()` | 🟡 |
@@ -462,7 +462,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.2 partner (41 cmds, 11000-11084) → card PartnerService + player PlayerService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 11000 | Partial | 请求全部英雄信息 | card PartnerService | `GetAllPartners(sort_type)` | 🟡 |
 | 11003 | Partial | 英雄升级 | card PartnerService | `UpgradePartner(partner_id, item_id)` | 🟡 |
@@ -510,7 +510,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.3 guild (29 cmds, 13500-13574) → social GuildService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 13500 | Partial | 创建联盟 | social GuildService | `CreateGuild(name, sign, apply_type, apply_lev)` | 🟡 |
 | 13501 | Partial | 获取联盟列表 | social GuildService | `ListGuilds(page, flag, num, name)` | 🟡 |
@@ -545,7 +545,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.4 arena (26 cmds, 20200-20281) → match ArenaService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 20200 | Partial | 个人信息 | match ArenaService | `GetArenaState(arena_type=Main)` | 🟡 |
 | 20201 | Partial | 挑战列表 | match ArenaService | `ListChallengeTargets(arena_type=Main)` | 🟡 |
@@ -578,7 +578,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.5 role (21 cmds, 10300-10399) → player PlayerService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10300 | Partial | 客户端完成基础资源加载 | player PlayerService | `CompleteResourceLoading()` | 🟡 |
 | 10301 | Partial | 角色基本信息 | player PlayerService | `GetPlayerBasicInfo()` | 🟡 |
@@ -604,7 +604,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.6 star (20 cmds, 11300-11333) → player StarService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 11300 | 新 | 获取星命系统数据 | player StarService | `GetStarSystem()` | ❌ |
 | 11302 | 新 | 星命套装羁绊伙伴 | player StarService | `BindStarSuitPartner(star_id, partner_id)` | ❌ |
@@ -631,7 +631,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.7 market (19 cmds, 23500-23520) → economy MarketService
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23500 | Partial | 获取金币仙市指定分类数据 | economy MarketService | `GetGoldMarketCategory(catalg)` | 🟡 |
 | 23501 | Partial | 购买金币仙市物品 | economy MarketService | `BuyFromGoldMarket(base_id, num)` | 🟡 |
@@ -656,7 +656,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.8 misc (19 cmds, 10900-10999) → admin + gm-backend
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10900 | Partial | GM 封号 | admin AdminService | `BanAccount(player_id, reason, duration)` | 🟡 |
 | 10901 | Partial | GM 禁言 | admin AdminService | `MutePlayer(player_id, duration)` | 🟡 |
@@ -680,7 +680,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.9 adventure (17 cmds, 20600-20692) → match AdventureService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 20600 | 新 | 基本信息获取 | match AdventureService | `GetAdventureBaseInfo()` | ❌ |
 | 20601 | 新 | BUFF 信息获取 | match AdventureService | `ListAdventureBuffs()` | ❌ |
@@ -704,7 +704,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.10 sns (16 cmds, 13300-13334) → social SnsService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 13300 | 新 | 获取好友信息 | social SnsService | `GetFriendList()` | ❌ |
 | 13303 | 新 | 增加好友请求 | social SnsService | `SendFriendRequest(rid, srv_id)` | ❌ |
@@ -727,7 +727,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.11 say (14 cmds, 12700-12768) → social SayService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 12700 | 新 | 聊天框列表 | social SayService | `ListChatFrames()` | ❌ |
 | 12701 | 新 | 使用聊天框 | social SayService | `UseChatFrame(frame_id)` | ❌ |
@@ -748,7 +748,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.12 holiday (13 cmds, 16601-16639) → batch HolidayService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 16601 | 新 | 所有活动(第一次打开请求) | batch HolidayService | `ListAllActivities()` | ❌ |
 | 16602 | 新 | 请求所有活动未领取奖励 | batch HolidayService | `ListUnclaimedRewards()` | ❌ |
@@ -768,7 +768,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.13 endless (12 cmds, 23900-23911) → match EndlessService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23900 | 新 | 通关奖励展示 | match EndlessService | `GetPassRewards(max_round, current_round, ...)` | ❌ |
 | 23901 | 新 | 挑战无尽试炼 | match EndlessService | `ChallengeEndless(formation_type, pos_info)` | ❌ |
@@ -787,7 +787,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.14 boss (12 cmds, 20500-20541) → match BossService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 20500 | 新 | 获取个人 BOSS 信息 | match BossService | `GetPersonalBossInfo()` | ❌ |
 | 20501 | 新 | 挑战个人 BOSS | match BossService | `ChallengePersonalBoss(boss_id)` | ❌ |
@@ -806,7 +806,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.15 guild_shipping (11 cmds, 23800-23812) → social GuildShippingService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23800 | 新 | 联盟远航信息 | social GuildShippingService | `GetShippingInfo()` | ❌ |
 | 23801 | 新 | 查看订单信息 | social GuildShippingService | `ListShippingOrders()` | ❌ |
@@ -824,7 +824,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.16 guild_dun (10 cmds, 21300-21319) → match GuildDunService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 21300 | 新 | 请求联盟副本信息 | match GuildDunService | `GetGuildDungeonInfo()` | ❌ |
 | 21303 | 新 | 请求联盟副本宝箱 | match GuildDunService | `ListGuildDungeonChests()` | ❌ |
@@ -841,7 +841,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.17 item (10 cmds, 10500-10528) → player ItemService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10500 | 新 | 获取背包物品 | player ItemService | `GetBagItems()` | ❌ |
 | 10501 | 新 | 获取装备背包物品 | player ItemService | `GetEquipmentBagItems()` | ❌ |
@@ -858,7 +858,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.18 dungeon (9 cmds, 13000-13011) → match DungeonService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 13000 | 新 | 请求剧情副本相关信息 | match DungeonService | `GetStoryDungeonInfo()` | ❌ |
 | 13002 | 新 | 制作关卡 | match DungeonService | `CreateDungeonLevel(template_id)` | ❌ |
@@ -874,7 +874,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.19 formation (6 cmds, 11200-11212) → player FormationService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 11200 | 新 | 请求自身阵法 | player FormationService | `GetMyFormation()` | ❌ |
 | 11201 | 新 | 更换自身阵法 | player FormationService | `ChangeFormation(formation_type, formation_lev)` | ❌ |
@@ -887,7 +887,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.20 login (6 cmds, 10101-10103) → player PlayerService (Partial)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10101 | Partial | 创建角色 | player PlayerService | `CreatePlayer(sex, name, career, playform)` | ❌ |
 | 10102 | Partial | 登录角色 | player PlayerService | `SelectRole(rid, srv_id)` | 🟡 |
@@ -898,7 +898,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.21 map (6 cmds, 10200-10215) → player MapService (N-A for TCG)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10200 | Map N-A | 操作地图单位 | player MapService | `OperateMapUnit(unit_id, op)` | N-A |
 | 10215 | Map N-A | 角色移动 | player MapService | `MovePlayer(x, y, z)` | N-A |
@@ -908,7 +908,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.22 mail (6 cmds, 10800-10810) → social MailService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10800 | 新 | 分页读取邮件列表 | social MailService | `ListMails(page, num)` | ❌ |
 | 10801 | 新 | 提取单个邮件的附件 | social MailService | `ClaimAttachment(mail_id)` | ❌ |
@@ -921,7 +921,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.23 exchange (6 cmds, 13401-13419) → economy ExchangeService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 13401 | 新 | 兑换商店商品当天已购买次数 | economy ExchangeService | `GetExchangePurchaseCount(exchange_id)` | ❌ |
 | 13402 | 新 | 兑换 | economy ExchangeService | `Exchange(exchange_id, count)` | ❌ |
@@ -934,7 +934,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.24 vip (6 cmds, 16700-16713) → economy VipService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 16700 | 新 | 获取充值信息 | economy VipService | `GetChargeInfo()` | ❌ |
 | 16705 | 新 | 推送月卡信息 | economy VipService | `PushMonthlyCardInfo()` | ❌ |
@@ -947,7 +947,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.25 convert (5 cmds, 23600-23604) → economy ConvertService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23600 | 新 | 资产兑换 | economy ConvertService | `ConvertAsset(from_type, to_type, amount)` | ❌ |
 | 23601 | 新 | 神格许愿状态 | economy ConvertService | `GetGodWishStatus()` | ❌ |
@@ -959,7 +959,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.26 drama (5 cmds, 11100-11122) → player DramaService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 11100 | 新 | 剧情播放 | player DramaService | `PlayDrama(drama_id)` | ❌ |
 | 11102 | 新 | 跳过剧情 | player DramaService | `SkipDrama(drama_id)` | ❌ |
@@ -971,7 +971,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.27 rank (5 cmds, 12900-12904) → leaderboard RankService (Partial)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 12900 | Partial | 获取排行榜数据 | leaderboard RankService | `GetLeaderboard(rank_type, page)` | 🟡 |
 | 12901 | Partial | 获取排行榜最后更新时间 | leaderboard RankService | `GetLeaderboardUpdateTime(rank_type)` | 🟡 |
@@ -983,7 +983,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.28 avatar (4 cmds, 21500-21504) → player AvatarService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 21500 | 新 | 头像框列表 | player AvatarService | `ListAvatarFrames()` | ❌ |
 | 21501 | 新 | 使用头像框 | player AvatarService | `UseAvatarFrame(frame_id)` | ❌ |
@@ -994,7 +994,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.29 guild_skill (4 cmds, 23700-23703) → social GuildSkillService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23700 | 新 | 联盟技能信息 | social GuildSkillService | `GetGuildSkillInfo()` | ❌ |
 | 23701 | 新 | 激活指定职业的联盟技能 | social GuildSkillService | `ActivateGuildSkill(skill_id, career)` | ❌ |
@@ -1005,7 +1005,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.30 days_rank (4 cmds, 22700-22704) → leaderboard DaysRankService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 22700 | 新 | 进行中列表 | leaderboard DaysRankService | `ListActiveDailyRanks()` | ❌ |
 | 22701 | 新 | 排行榜信息 | leaderboard DaysRankService | `GetDailyRankInfo(rank_id)` | ❌ |
@@ -1016,7 +1016,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.31 lev_gift (4 cmds, 21200-21204) → batch LevGiftService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 21200 | 新 | 等级好礼信息 | batch LevGiftService | `GetLevelGiftInfo()` | ❌ |
 | 21202 | 新 | 获取状态 | batch LevGiftService | `GetLevelGiftStatus(level)` | ❌ |
@@ -1027,7 +1027,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.32 quest (4 cmds, 10400-10406) → player QuestService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 10400 | 新 | 请求任务面板信息 | player QuestService | `GetQuestPanel()` | ❌ |
 | 10402 | 新 | 接受任务 | player QuestService | `AcceptQuest(quest_id)` | ❌ |
@@ -1038,7 +1038,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.33 conn_login (3 cmds, 1110-1199) → cluster-ops ClusterOpsService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 1110 | 新 | 帐号登录处理 | cluster-ops ClusterOpsService | `AccountLogin(args)` | ❌ |
 | 1198 | 新 | (描述空) 服务器时间 | cluster-ops ClusterOpsService | `GetServerTime()` | ❌ |
@@ -1048,7 +1048,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.34 power_gift (3 cmds, 23400-23403) → batch PowerGiftService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23400 | 新 | 战力礼包信息 | batch PowerGiftService | `GetPowerGiftInfo()` | ❌ |
 | 23402 | 新 | (描述空) 战力礼包状态 | batch PowerGiftService | `GetPowerGiftStatus(power_threshold)` | ❌ |
@@ -1058,7 +1058,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.35 honor (3 cmds, 23300-23303) → player HonorService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23300 | 新 | 称号列表 | player HonorService | `ListHonors()` | ❌ |
 | 23301 | 新 | 使用称号 | player HonorService | `UseHonor(honor_id)` | ❌ |
@@ -1068,7 +1068,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.36 charge (3 cmds, 21000-21005) → economy ChargeService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 21000 | 新 | 首充礼包信息 | economy ChargeService | `GetFirstChargeInfo()` | ❌ |
 | 21001 | 新 | 领取首充礼包 | economy ChargeService | `ClaimFirstCharge()` | ❌ |
@@ -1078,7 +1078,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.37 recruit (3 cmds, 23200-23203) → card RecruitService (Partial)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 23200 | Partial | 召唤池列表 | card RecruitService | `ListRecruitPools()` | 🟡 |
 | 23201 | Partial | 召唤 | card RecruitService | `Recruit(pool_id, count)` | 🟡 |
@@ -1088,7 +1088,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.38 group_control (2 cmds, 22100-22101) → batch GroupControlService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 22100 | 新 | 查看跨服时空的信息 | batch GroupControlService | `GetCrossServerStageInfo()` | ❌ |
 | 22101 | 新 | 领取跨服阶段的奖励 | batch GroupControlService | `ClaimCrossServerStageReward(stage_id)` | ❌ |
@@ -1097,7 +1097,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.39 activity (2 cmds, 20300-20301) → batch ActivityService (Partial)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 20300 | Partial | 活跃已领取宝箱 | batch ActivityService | `ListActiveBonusChests()` | 🟡 |
 | 20301 | Partial | 领取活跃宝箱 | batch ActivityService | `ClaimActiveBonusChest(chest_id)` | 🟡 |
@@ -1106,7 +1106,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.40 feat (2 cmds, 16400-16402) → batch FeatService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 16400 | 新 | 成就信息 | batch FeatService | `GetFeatList()` | ❌ |
 | 16402 | 新 | 领取成就奖励 | batch FeatService | `ClaimFeatReward(feat_id)` | ❌ |
@@ -1115,7 +1115,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.41 login_days (2 cmds, 21100-21101) → batch LoginDaysService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 21100 | 新 | 获取信息 | batch LoginDaysService | `GetLoginDaysInfo()` | ❌ |
 | 21101 | 新 | 领取奖励 | batch LoginDaysService | `ClaimLoginDaysReward(days)` | ❌ |
@@ -1124,7 +1124,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 5.42 checkin (2 cmds, 14100-14101) → batch CheckinService (新)
 
-| cmd | 类别 | 闪烁之光 RPC | RGS proto | RGS RPC | gap |
+| cmd | 类别 | [游戏A] RPC | RGS proto | RGS RPC | gap |
 |---:|---|---|---|---|---|
 | 14100 | 新 | 签到信息 | batch CheckinService | `GetCheckinInfo()` | ❌ |
 | 14101 | 新 | 领取签到奖励 | batch CheckinService | `ClaimCheckinReward(day)` | ❌ |
@@ -1200,12 +1200,12 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ---
 
-## 7. 协议号边界 case (per 闪烁之光 12 大类 + 41 协议号段 关键边界)
+## 7. 协议号边界 case (per [游戏A] 12 大类 + 41 协议号段 关键边界)
 
 ### 7.1 10001 (login 起始) / 10101 (创建角色) / 10103 (重连)
 
 - 10001 在 api_module_summary.txt 实际未出现 (L436 起始为 10101)
-- 10101/10102/10103 是 闪烁之光 角色登录 3 cmd, RGS `CreatePlayer` / `SelectRole` / `ReconnectRole` 映射 (per DDD §3.7), 10101 缺 (per audit v0.3)
+- 10101/10102/10103 是 [游戏A] 角色登录 3 cmd, RGS `CreatePlayer` / `SelectRole` / `ReconnectRole` 映射 (per DDD §3.7), 10101 缺 (per audit v0.3)
 - 边界: 10001-10099 段保留 (per 协议号分段.md L29-32 0-10 心跳/系统保留), RGS `ClusterOpsService` 不应占用 10000 段
 
 ### 7.2 11000 (partner 起始) / 11084 (partner 终止)
@@ -1258,7 +1258,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 7.11 边界 case 总结 (per 10 关键边界)
 
-| 边界 | 范围 | 闪烁之光 业务 | RGS service | 验证 |
+| 边界 | 范围 | [游戏A] 业务 | RGS service | 验证 |
 |---|---|---|---|---|
 | 0-99 | 心跳/系统保留 | 无 | ClusterOpsService (per REQ §2 #34) | ✅ 协议号分段.md L29-32 保留 |
 | 10001-10103 | 角色登录 | login (6) | PlayerService | ✅ RGS CreatePlayer 缺, 10102/10103 已有 (per DDD §3.7) |
@@ -1272,11 +1272,11 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ---
 
-## 8. 协议号冲突检测 (per 闪烁之光 5 大类 10000-19999 + 20000-29900 vs RGS 5 域 + card + gm-backend 0-65535 范围)
+## 8. 协议号冲突检测 (per [游戏A] 5 大类 10000-19999 + 20000-29900 vs RGS 5 域 + card + gm-backend 0-65535 范围)
 
-### 8.1 闪烁之光 协议号范围 (per 协议号分段.md + api_module_summary.txt)
+### 8.1 [游戏A] 协议号范围 (per 协议号分段.md + api_module_summary.txt)
 
-| 类别 | 协议号段 | 实际命令号段 | 闪烁之光 module |
+| 类别 | 协议号段 | 实际命令号段 | [游戏A] module |
 |---|---|---|---|
 | **连接登录** | 11-12 | 1100-1299 | conn_login (3) |
 | **角色基础** | 101-113 | 10100-11399 | login/map/role/quest/item/mail/misc/partner/drama/formation/star (144) |
@@ -1305,12 +1305,12 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 **RGS 协议号范围**: 0-65535 (gRPC method name 字符串长度限制), 实际 full method name 格式 `/<package>.<service>/<method>` (e.g. `/common.v1.HealthCheck/Check`), 长度 << 65535 字符, 0 冲突。
 
-### 8.3 冲突检测 (per 闪烁之光 5 大类 10000-19999 + 20000-29900 vs RGS 7 域)
+### 8.3 冲突检测 (per [游戏A] 5 大类 10000-19999 + 20000-29900 vs RGS 7 域)
 
-| 冲突检测项 | 闪烁之光 | RGS | 冲突? |
+| 冲突检测项 | [游戏A] | RGS | 冲突? |
 |---|---|---|---|
 | **协议号格式** | 4-5 位数字 (1100-23911) | gRPC method name 字符串 | **无冲突** (格式不同) |
-| **cmd 编号唯一性** | 41 协议号段 × 100 + offset = 438 cmds, 1:1 唯一 | gRPC method 全局唯一 (package.service.method) | **无冲突** (RGS 走 gRPC method 命名, 闪烁之光 走 cmd 数字) |
+| **cmd 编号唯一性** | 41 协议号段 × 100 + offset = 438 cmds, 1:1 唯一 | gRPC method 全局唯一 (package.service.method) | **无冲突** (RGS 走 gRPC method 命名, [游戏A] 走 cmd 数字) |
 | **wire 协议** | 自研 TCP/Flash socket (size:32 + cmd:16 + data) | tonic gRPC + protobuf + mTLS | **冲突存在** (需 adapter 转换, per DDD v0.1 §11.1 已知缺口, v0.2 评估) |
 | **业务命名** | 协议号 = 业务模块 (per 协议号分段.md) | gRPC method = 业务方法 | **无冲突** (RGS 沿用 1:1 命名映射, per §5 主表) |
 | **跨服 server_id** | {rid:32, srv_id:string} | RGS 缺显式 server_id (per §3.3 已知缺口) | **冲突存在** (需 v0.2 sprint 评估) |
@@ -1335,7 +1335,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 ### 9.2 v0.2 状态 (本 addendum, 待主会话 commit per L12.2)
 
 - 438 cmds 完整 1:1 映射 (per §5 主表, **本 addendum 核心**)
-- 闪烁之光 协议 schema 抽样 10 个 (per §3, 验证 pack/unpack 字段)
+- [游戏A] 协议 schema 抽样 10 个 (per §3, 验证 pack/unpack 字段)
 - 协议号边界 case (per §7, 10 关键边界)
 - 冲突检测 (per §8, 2 冲突已知: wire 协议 + server_id)
 - gap 矩阵 7 域 (per §6, 12 Partial + 30 新 module + Map N-A)
@@ -1343,11 +1343,11 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 ### 9.3 v1.0 状态 (目标, per 4 阶段路线图 v0.3 §1.2)
 
 - 438 cmds 100% 覆盖 (12 Partial Pass ✅ + 30 新 module Pass ✅ + Map N-A 标记)
-- 闪烁之光 实际 wire 协议 adapter (per §8.4 已知冲突)
+- [游戏A] 实际 wire 协议 adapter (per §8.4 已知冲突)
 - 性能 P50/P95/P99 全面超过 (per DDD v0.1 §9.1 + 9/4 16:45 JST "全面超过" 拍板)
 - 5 域 ST 业务 mTLS 跑通 (per 8/27 ST 业务 mTLS commit `401ac5c`)
 - 7 域 DB 78 表 Master/Transaction/Work 三分类实测 (per DDD v0.1 §6.1 估算)
-- 闪烁之光 performance baseline 对比 (待 Phase C 阶段 C 后)
+- [游戏A] performance baseline 对比 (待 Phase C 阶段 C 后)
 
 ### 9.4 升版路径 (4 阶段, per FLASH-MOCK v0.3 §1.2)
 
@@ -1380,7 +1380,7 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 | **cluster-ops** | conn_login (3) | 3 | 3 RPC (独立 connector service) | tonic gRPC | ✅ mTLS |
 | **总计** | 42 module | 438 cmds | 438 RPC (1:1) | 7 域 + 4 工具 | 全 mTLS |
 
-### 10.2 闪烁之光 client → RGS backend 端到端验证 (per Phase 1 mock v0.1 + Phase 2-4 业务实现)
+### 10.2 [游戏A] client → RGS backend 端到端验证 (per Phase 1 mock v0.1 + Phase 2-4 业务实现)
 
 | 验证层 | 工具 | 数量 | 引用 |
 |---|---|---:|---|
@@ -1391,11 +1391,11 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 | **mock v0.1** | `tools/rgs-flash-mock/` | 22 RPC (per DDD v0.1 §9.3) | per `c5c4006` 5e6c727 |
 | **gap matrix coverage** | `GET /coverage` | 100% (42 × 438) | per REQ v0.1 G-4 |
 
-### 10.3 闪烁之光 客户端 → RGS 后端 端到端 验证路径 (per 9/4 17:11 JST "frontend compat")
+### 10.3 [游戏A] 客户端 → RGS 后端 端到端 验证路径 (per 9/4 17:11 JST "frontend compat")
 
 ```text
-[闪烁之光 client] --(自研 TCP/Flash socket, size:32+cmd:16+data)-->
-  [RGS adapter layer / 闪烁之光 wire → tonic gRPC method] --(tonic gRPC + mTLS)-->
+[[游戏A] client] --(自研 TCP/Flash socket, size:32+cmd:16+data)-->
+  [RGS adapter layer / [游戏A] wire → tonic gRPC method] --(tonic gRPC + mTLS)-->
     [RGS 7 域 backend (player/match/social/economy/admin/batch/card)] --(sqlx + outbox + saga)-->
       [RGS 7 域 DB] (player_db/economy_db/match_db/social_db/admin_db/batch_db/card_db)
 ```
@@ -1408,26 +1408,26 @@ message Currency { CurrencyType type = 1; int64 amount = 2; }
 
 ### 11.1 报告
 
-- **闪烁之光 实际 proto 风格未直接验证** (per DDD v0.1 §0.3 + §11.1) — 本 addendum 抽样 10 个 proto_*.erl 验证 schema, 但**未跑真实 wire 抓包** (待 Phase 1 mock v0.1 + 闪烁之光 client 抓包)
+- **[游戏A] 实际 proto 风格未直接验证** (per DDD v0.1 §0.3 + §11.1) — 本 addendum 抽样 10 个 proto_*.erl 验证 schema, 但**未跑真实 wire 抓包** (待 Phase 1 mock v0.1 + [游戏A] client 抓包)
 - **gen_proto/cfg 目录不存在** (per §0.2) — 实际抽样调整为 src/proto/proto_NNN.erl, 已覆盖 10 个代表 module, 但 41 协议号段未全抽样 (combat / partner / guild / adventure / market / sns / mail / vip / conn_login / login = 10 个, 缺 31 个)
 - **43 combat cmds 描述空 24 cmds** (per §5.1) — 推测功能, 待 v0.2 sprint 详细验证
-- **闪烁之光 113 条 无标题 cmds** (per REQ v0.1 §1.1 借鉴分析 .md) — 本 addendum §5 主表 仅 19 明确 + 24 推测, 剩余 113 待 v0.2 worker 实证
+- **[游戏A] 113 条 无标题 cmds** (per REQ v0.1 §1.1 借鉴分析 .md) — 本 addendum §5 主表 仅 19 明确 + 24 推测, 剩余 113 待 v0.2 worker 实证
 - **30 新 module 详细业务** (DTL-038 / 9 原则 / 6 反模式) — 本 addendum 仅 RPC 命名 + 7 域路由, 详细 entity / repository / saga 待 v0.2 sprint
 - **RGS-SPEC-CROSS-002 v0.2 升版 P1 0.5d** (per DDD v0.1 §11.1) — wire 协议 adapter 是 P1 待办
 - **5 域 ST 业务 mTLS cert 导出 SOP** (per 8/27 ST 导出 SOP) — 7 域 + leaderboard + cluster-ops 9 域 业务级 mTLS 跑通待 Phase 2 W2
 
 ### 11.2 框架
 
-- **per-entity actor 0/7 域** (per DDD v0.1 §11.2 + audit v0.3 §1.2 #1 决策保留) — DB-as-state 适合 TCG 100K+ 在线, 闪烁之光 1 player 1 process 模式不直接迁移
+- **per-entity actor 0/7 域** (per DDD v0.1 §11.2 + audit v0.3 §1.2 #1 决策保留) — DB-as-state 适合 TCG 100K+ 在线, [游戏A] 1 player 1 process 模式不直接迁移
 - **协议 schema push 7 域未实装** (per DDD v0.1 §11.2) — 框架原则 #4 (协议 schema push) 待 v0.2 评估
 - **per-entity actor 缺 RGS 决策记录** (per 8/27 21:59 JST 三次强化代签) — v0.2 补 ADR
-- **wire 协议 adapter 缺 RGS 设计** (per §8.4) — 闪烁之光 size:32+cmd:16+data → tonic gRPC method 转换层 v0.2 sprint 必补
-- **server_id 字段 缺 RGS schema** (per §3.3 + §8.4) — 闪烁之光 跨服 {rid:32, srv_id:string} → RGS 需评估加 server_id 字段
+- **wire 协议 adapter 缺 RGS 设计** (per §8.4) — [游戏A] size:32+cmd:16+data → tonic gRPC method 转换层 v0.2 sprint 必补
+- **server_id 字段 缺 RGS schema** (per §3.3 + §8.4) — [游戏A] 跨服 {rid:32, srv_id:string} → RGS 需评估加 server_id 字段
 
 ### 11.3 数据
 
-- **闪烁之光 performance baseline 待 9 月 Phase C 阶段 C 后** (per DDD v0.1 §9.3 + §11.3) — Erlang vs Rust P50/P95/P99 对比
-- **闪烁之光 DB schema 实际表** (per `src/db/db.erl` 14KB + `sup_db_buffer.erl` 2.8KB) — v0.2 抽样 read, 6 域 + card 7 域 78 表 三分类 v0.1 估算, v0.2 实测
+- **[游戏A] performance baseline 待 9 月 Phase C 阶段 C 后** (per DDD v0.1 §9.3 + §11.3) — Erlang vs Rust P50/P95/P99 对比
+- **[游戏A] DB schema 实际表** (per `src/db/db.erl` 14KB + `sup_db_buffer.erl` 2.8KB) — v0.2 抽样 read, 6 域 + card 7 域 78 表 三分类 v0.1 估算, v0.2 实测
 - **跨域 saga 性能指标** (P99 延迟 / 跨服 P99 50ms 目标) — Phase 2-4 实测
 - **RGS mock v0.1 22 RPC 跑通** (per DDD v0.1 §9.3) — 已 commit `c5c4006` 5e6c727, 需 Phase 2-4 业务实现后实测
 - **6 域 + card 7 域 独立 DB schema 78 表** (per DDD v0.1 §6.1) — v0.1 估算, v0.2 实测 (需抽样 db.erl)

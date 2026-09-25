@@ -188,7 +188,7 @@ pub fn handle_w2_extra(
             // ===== welfare 福利 (24000-24818, 110 cmd) =====
             // 大部分 welfare cmd 是简单状态查询 / 通知, 返回 {code:u8, msg:str}
             // 复杂列表 (t:9) 返回 u16 count=0 占位
-            // 来源: zsyz_client mod/welfare 模块 (无服务端 proto_240.erl)
+            // 来源: [游戏A]_client mod/welfare 模块 (无服务端 proto_240.erl)
             24000 => enc_empty_list(),  // cli={rid,srv_id}, srv={plunders[]} (帮派掠夺列表, 复杂)
             24001 => enc_code_msg(0, "OK"),
             24002 => enc_code_msg(0, "OK"),

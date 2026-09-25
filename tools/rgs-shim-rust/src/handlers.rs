@@ -1,4 +1,4 @@
-// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
+// [游戏A] SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
 // v0.3.0: handlers 鎺ユ敹 owned Vec<u8> + Arc<RgsClient> (registry.rs 鍐冲畾)
 //   - 鏃?lifetime 渚濊禆, 鍏ㄩ儴 'static future
 //   - RgsClient 鍏变韩 Arc, 鍐呴儴 reqwest pool 鑷姩 clone
@@ -193,7 +193,7 @@ pub fn handle_role_list(
 
 // ============================================================================
 // 鎴樻枟鍦烘櫙 cmd (v0.3.2, per 2026-09-09 15:10 JST Ulysses 鎷嶆澘 "閲嶆祴鐩村埌鎴樻枟鍦烘櫙")
-// 鏉ユ簮: zsyz_server/src/proto/proto_102.erl + proto_103.erl (鐪?zsyz_client cmd)
+// 鏉ユ簮: [游戏A]_server/src/proto/proto_102.erl + proto_103.erl (鐪?[游戏A]_client cmd)
 // ============================================================================
 
 // 10300 cli/srv: empty (ping/heartbeat, per proto_103.erl)
@@ -245,7 +245,7 @@ pub fn handle_move(
 }
 
 // 10301 cli: empty; srv: 鍏ㄨ鑹蹭俊鎭?(per proto_103.erl, 宸ㄥぇ payload, 杩欓噷鐢?RGS player 鍩熷～鍏呭叧閿瓧娈?
-// 鐪熷疄 zsyz_client 鍚姩鍚庣敤杩欎釜 dump 鐜╁瀹屾暣淇℃伅
+// 鐪熷疄 [游戏A]_client 鍚姩鍚庣敤杩欎釜 dump 鐜╁瀹屾暣淇℃伅
 pub fn handle_role_info(
     cmd: u16,
     _payload: Vec<u8>,
@@ -398,7 +398,7 @@ pub fn handle_view_role(
 // v0.4.0 (per 2026-09-09 16:25 JST Mavis 娲惧伐): 766 cmd stub handler
 // ============================================================================
 
-// 閫氱敤 stub: 杩斿洖绌?payload (zsyz_client 鏀跺埌鍚庝笉浼氬穿, 鍙槸娌℃暟鎹?
+// 閫氱敤 stub: 杩斿洖绌?payload ([游戏A]_client 鏀跺埌鍚庝笉浼氬穿, 鍙槸娌℃暟鎹?
 // 鍚庣画 worker 娲惧伐閫愪釜鏇挎崲涓?real handler (call RGS)
 pub fn handle_stub(
     cmd: u16,
@@ -406,7 +406,7 @@ pub fn handle_stub(
     _rgs: Arc<RgsClient>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>> {
     Box::pin(async move {
-        // 鍙湪 cmd >= 10000 鑼冨洿鍐?log (10100-39999 鏄湡 zsyz cmd, 閬垮厤 log spam)
+        // 鍙湪 cmd >= 10000 鑼冨洿鍐?log (10100-39999 鏄湡 [游戏A] cmd, 閬垮厤 log spam)
         if cmd >= 10000 && cmd < 40000 {
             tracing::debug!(cmd, "stub");
         }
@@ -416,9 +416,9 @@ pub fn handle_stub(
 
 // ============================================================================
 // v0.5.0 (per 2026-09-09 19:32 JST Mavis 娲惧伐): w1 player 鍩?65 cmd 鐪熷疄鍖?
-// 鏉ユ簮: zsyz_server/src/proto/proto_101.erl + proto_103.erl + proto_104.erl
+// 鏉ユ簮: [游戏A]_server/src/proto/proto_101.erl + proto_103.erl + proto_104.erl
 //       + proto_105.erl + proto_108.erl + proto_109.erl
-// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per zsyz_client GameTcpClient.h)
+// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per [游戏A]_client GameTcpClient.h)
 // 瀛楁椤哄簭涓ユ牸鎸?pack(srv, ...) in proto_*.erl
 // ============================================================================
 
@@ -482,7 +482,7 @@ pub fn handle_10317(
 
 // Phase 4 w3 (per 2026-09-09 19:32 JST Mavis 娲惧伐): battle 鍩?66 cmd 鐪熷疄 handler
 // 鑼冨洿: 19800-19807 + 19901-19908 (鎴樻枟/褰曞儚) + 25100-25841 (浠诲姟/鎴愬氨/鍩庡競/鐭胯剦)
-// 鏉ユ簮: H5 zsyz_client proto_mate.js + zsyz_server/src/proto/proto_*.erl
+// 鏉ユ簮: H5 [游戏A]_client proto_mate.js + [游戏A]_server/src/proto/proto_*.erl
 // 鐩爣: 璋?battle-service + match-service + replay-service gRPC
 // ============================================================================
 
@@ -2485,7 +2485,7 @@ pub fn handle_bbs_full(
         Response { cmd, payload: out }
     })
 }
-// zsyz SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
+// [游戏A] SmartSocket cmd handlers (per 9/9 14:20 JST Ulysses 鎷嶆澘鐢熶骇绾?
 // v0.3.0: handlers 鎺ユ敹 owned Vec<u8> + Arc<RgsClient> (registry.rs 鍐冲畾)
 //   - 鏃?lifetime 渚濊禆, 鍏ㄩ儴 'static future
 //   - RgsClient 鍏变韩 Arc, 鍐呴儴 reqwest pool 鑷姩 clone
@@ -2494,7 +2494,7 @@ pub fn handle_bbs_full(
 // v0.6.0 w5-2 (per 2026-09-09 20:17 JST Mavis 娲惧伐): 173 cmd real handler
 // 110 welfare (24000-24999) + 30 partner (11000-11999) + 33 social (16000-17999)
 // 瀛楄妭绾у榻?proto_mate.js send cmd, simple real handler pattern (per w5-1 30001-30102)
-// 鏉ユ簮: H5 zsyz_client proto_mate.js (766 send cmd, 173 缁仛)
+// 鏉ユ簮: H5 [游戏A]_client proto_mate.js (766 send cmd, 173 缁仛)
 // ============================================================================
 
 // 24000 welfare cmd (per 2026-09-09 20:17 JST Mavis 娲惧伐 w5-2: 24000-24999 绂忓埄/娲诲姩)
@@ -5614,10 +5614,10 @@ pub fn handle_social_16674(
 
 // ============================================================================
 // v0.5.1 (per 2026-09-09 20:17 JST Mavis 娲惧伐缁仛): w1 player 鍩?12 cmd real handler
-// 鏉ユ簮: zsyz_server/src/proto/proto_103.erl + proto_105.erl + proto_108.erl
+// 鏉ユ簮: [游戏A]_server/src/proto/proto_103.erl + proto_105.erl + proto_108.erl
 // 鑼冨洿: 10304/10305/10306/10307/10310/10323/10344/10510/10511/10512/10530/10803
 // 澶囨敞: erlang proto_*.erl 鏈夊畾涔? 浣?H5 瀹㈡埛绔?766 send cmd 娌＄敤 (绗竴杞?53 璺宠繃)
-// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per zsyz_client GameTcpClient.h)
+// 瀛楄妭绾у榻? 4B BE len + 2B BE cmd + payload (per [游戏A]_client GameTcpClient.h)
 // 瀛楁椤哄簭涓ユ牸鎸?pack(srv, ...) in proto_*.erl
 // ============================================================================
 

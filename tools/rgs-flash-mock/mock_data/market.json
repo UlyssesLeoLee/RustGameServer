@@ -13,8 +13,8 @@
     "partial_count": 18,
     "not_implemented_count": 1,
     "not_applicable_count": 0,
-    "audit_finding": "economy 域 MarketService 19 增量 RPC, RGS Auction entity (per trade_entity.rs:13KB) 是 start_price/buyout_price/current_bid 模式, 闪烁之光 market_silver_shop 是 摊位 cell 模式, 需扩展 entity (per DDD §3.5 L482-486 schema)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\market\\market.erl (4.4KB, 金币仙市 + 铜钱仙市 + 摊位 cell 模式)",
+    "audit_finding": "economy 域 MarketService 19 增量 RPC, RGS Auction entity (per trade_entity.rs:13KB) 是 start_price/buyout_price/current_bid 模式, [游戏A] market_silver_shop 是 摊位 cell 模式, 需扩展 entity (per DDD §3.5 L482-486 schema)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\market\\market.erl (4.4KB, 金币仙市 + 铜钱仙市 + 摊位 cell 模式)",
     "source_extra": "market_gold.erl (52KB) + market_silver.erl (122KB) 未抽样(已知缺口, per v0.2-1 §10.1 缺标比错标)",
     "rgs_translation": "economy-service MarketService trait + PgMarketRepository (摊位 cell 模式) + trade_saga 跨域 saga 触发 (per DTL-100 Q-003)",
     "rgs_file_ref": "crates/economy-service/src/trade_entity.rs:13KB + trade_service.rs:53KB + trade_saga.rs:43KB"

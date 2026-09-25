@@ -14,7 +14,7 @@
     "not_implemented_count": 9,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.18 L859-873), RGS match-service DungeonService 当前 0 实装,需 v0.2+ sprint 补; 剧情副本走 角色进程模式 (per dungeon.erl L1-500), 含 combat_loop 章节循环 (L21 combat_loop:push_loop(NRole, ?COMBAT_TYPE_CHAPTER) 进战斗 FSM) + 快速战斗/扫荡 + 章节宝箱 + BUFF 系统; 跨域依赖 combat (战斗 FSM) + player (扣费) + economy (宝箱奖励)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\dungeon\\dungeon_rpc.erl (2.1KB, 9 cmds 13000-13011) + dungeon.erl (35.4KB, 剧情副本完整业务)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\dungeon\\dungeon_rpc.erl (2.1KB, 9 cmds 13000-13011) + dungeon.erl (35.4KB, 剧情副本完整业务)",
     "rgs_translation": "match-service DungeonService trait + PgDungeonRepository (Master 章节配置) + PlayerDungeonProgressRepository (Transaction 玩家进度) + DungeonBuffRepository (Work 当前激活 BUFF) + combat v2 CreateMatch 进战斗 FSM (?COMBAT_TYPE_CHAPTER 章节循环) + economy outbox 宝箱奖励 saga + DashMap<i32, DungeonBuff> 实时 BUFF",
     "rgs_file_ref": "crates/match-service/src/dungeon_service.rs (待 v0.2 sprint 新建) + crates/combat-service/src/loop.rs (待 v0.2 sprint 新建, per ?COMBAT_TYPE_CHAPTER) + crates/economy-service/src/saga_orchestrator.rs (宝箱奖励)",
     "known_gaps": [

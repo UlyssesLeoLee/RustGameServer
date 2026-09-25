@@ -1,11 +1,11 @@
-# RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 — 闪烁之光 mock 设计 (完整 1351 RPC, long-term 5-10 sprint)
+# RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 — [游戏A] mock 设计 (完整 1351 RPC, long-term 5-10 sprint)
 
 > **创建日期**: 2026-09-04 16:14 JST
 > **作者**: 架构师(Mavis 接手 agent per DEC-008)
 > **审批**: 架构师(Mavis 接手 agent per DEC-008) — 待 Ulysses 二审
 > **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 > **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
-> **依据**: 9/4 16:14 JST user 拍板 "**完整 1351 mock (long-term)**" + **9/4 16:45 JST user 升级拍板 "完全对齐"** (per ask_user option C, 15-25 sprint long-term) + 9/4 15:34 JST user 拍板 "**仅 API 对齐, 酌情优化, 较差则保留 RGS 设计**" + 闪烁之光借鉴分析 .md §0-§5 (12 大类 / 5 可取之处 / 1 反例) + RGS-DDD-2026-09-04-GAP-AUDIT v0.3 (bb9f977) + RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 (2e3d9ee) + `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\api_module_summary.txt` (438 cmds / 42 modules 实际清单)
+> **依据**: 9/4 16:14 JST user 拍板 "**完整 1351 mock (long-term)**" + **9/4 16:45 JST user 升级拍板 "完全对齐"** (per ask_user option C, 15-25 sprint long-term) + 9/4 15:34 JST user 拍板 "**仅 API 对齐, 酌情优化, 较差则保留 RGS 设计**" + [游戏A]借鉴分析 .md §0-§5 (12 大类 / 5 可取之处 / 1 反例) + RGS-DDD-2026-09-04-GAP-AUDIT v0.3 (bb9f977) + RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 (2e3d9ee) + `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\api_module_summary.txt` (438 cmds / 42 modules 实际清单)
 > **配套**: 工具 crate `tools/rgs-flash-mock/` (per rgs-batch-backend 模式,独立 cargo workspace) + AGENTS.md §7.1 batch 域母规范
 > **作用域**: 42 modules × 438 cmds 完全对齐 (推翻 handoff v0.1 "不做逐条移植" 决策) + gap matrix 验证 RGS 5 域 + card 7 域 backend API 覆盖率 + 30 新 module 业务扩展
 > **状态**: ⏳ 待 Mavis 自审 → 🟡 Mavis 自审停手 → ⏳ 待 Ulysses 二审 → ✅ **v0.2 二审通过 (per 9/4 16:24 JST) + v0.3 升级拍板 (per 9/4 16:45 JST user "完全对齐")**
@@ -16,14 +16,14 @@
 
 ### 0.1 user 拍板 (per 9/4 16:14 JST ask_user option D)
 
-> "**完整 1351 mock (long-term)**" — 5-10 sprint, 完整实现 闪烁之光 1351 RPC mock (96 proto 全部), tools/rgs-flash-mock crate 体量跟 rgs-batch-backend 一样起步.
+> "**完整 1351 mock (long-term)**" — 5-10 sprint, 完整实现 [游戏A] 1351 RPC mock (96 proto 全部), tools/rgs-flash-mock crate 体量跟 rgs-batch-backend 一样起步.
 
 ### 0.2 决策一致性 (跟前面 3 决策文档对齐)
 
 | 决策 | 内容 | 一致性 |
 |---|---|---|
 | RGS-DDD-2026-09-04-GAP-AUDIT v0.3 (bb9f977) | 6 域 + card 第 7 域架构保留, 不动 per-entity actor | ✅ mock 验证 RGS backend 不变 |
-| RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化 v0.1 | 不做逐条 RPC 移植, TCG 业务保留 | ✅ mock 验证 RGS 业务能力, 不动 TCG |
+| RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化 v0.1 | 不做逐条 RPC 移植, TCG 业务保留 | ✅ mock 验证 RGS 业务能力, 不动 TCG |
 | RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 (2e3d9ee) | 11 维度 API 风格 88/88 keep RGS | ✅ mock 路由到 RGS backend 用 RGS proto 风格 |
 | 9/4 15:34 JST user "仅 API 对齐, 酌情优化, 较差则保留" | RGS API 风格不动, mock 仅作验证 harness | ✅ |
 
@@ -32,7 +32,7 @@
 | 指标 | 数值 | 来源 |
 |---|---|---|
 | **基线 commit** | `2e3d9ee` (FLASH-OVERLAP v0.2 已落 main) | `git log --oneline -1` |
-| **闪烁之光 RPC 总数** | 1351 (96 proto 全部, per 借鉴分析 .md §0) | 跨盘 `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\` |
+| **[游戏A] RPC 总数** | 1351 (96 proto 全部, per 借鉴分析 .md §0) | 跨盘 `E:\[跨盘-某发行商目录]\[游戏A]\server分析\分析产出\` |
 | **12 大类 RPC 分布** | 148 场景 + 198 养成 + 241 战斗 + 151 PVP + 97 公会 + 90 经济 + 123 社交 + 184 活动 + 43 付费 + 10 排行榜 + 37 GM + 29 未分类 = 1351 | 借鉴分析 .md §2 |
 | **RGS 7 域 backend** | player(50051) + economy(50052) + match(50053) + social(50054) + admin(50055) + card(50061) + gm-backend(8081) | per 5 域 main.rs + card/main.rs + gm-backend/main.rs |
 | **rgs-batch-backend 模式** | `tools/rgs-batch-backend/` 单 123KB main.rs + actix-web + sqlx 0.7 + tonic 0.12 + mTLS | per 5/main.rs |
@@ -40,10 +40,10 @@
 
 ### 0.4 已知缺口 (per 8/26 JST 缺标比错标)
 
-- **闪烁之光 实际 proto 风格未直接看** (per FLASH-OVERLAP v0.2 §0.3) — mock 基于 借鉴分析 doc §4 5 可取之处 + system prompt 设计哲学推断
+- **[游戏A] 实际 proto 风格未直接看** (per FLASH-OVERLAP v0.2 §0.3) — mock 基于 借鉴分析 doc §4 5 可取之处 + system prompt 设计哲学推断
 - **43 条未提取 + 113 条无标题** (per 借鉴分析 .md §0) — mock v0.1 抽样覆盖, 后续 v0.2+ 补全
 - **5 域 ST 业务 mTLS cert 导出 SOP** (per 8/27 ST 导出 SOP) — mock mTLS 复用 RGS 5 域 certs, 待 L-CAND-006 兜底
-- **性能 baseline** — mock 跑通后, 跟 闪烁之光 Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 阶段 C 后
+- **性能 baseline** — mock 跑通后, 跟 [游戏A] Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 阶段 C 后
 
 ---
 
@@ -51,11 +51,11 @@
 
 ### 1.1 mock 定位 (per user 拍板 + 14:58 规则)
 
-闪烁之光 mock 是 **gateway / verification harness**, 不是 闪烁之光 server 克隆:
+[游戏A] mock 是 **gateway / verification harness**, 不是 [游戏A] server 克隆:
 
-- **front (HTTP/JSON)**: 暴露 闪烁之光-shaped API surface, 接受 闪烁之光 client (或自研测试 client) 请求
+- **front (HTTP/JSON)**: 暴露 [游戏A]-shaped API surface, 接受 [游戏A] client (或自研测试 client) 请求
 - **back (gRPC mTLS)**: 内部 gRPC client 路由到 RGS 5 域 + card + gm-backend 7 域 backend
-- **gap matrix**: 跟踪每个 RPC "category / 闪烁之光 RPC code / RGS backend / status" (PASS / FAIL / N-A / NOT-IMPLEMENTED)
+- **gap matrix**: 跟踪每个 RPC "category / [游戏A] RPC code / RGS backend / status" (PASS / FAIL / N-A / NOT-IMPLEMENTED)
 - **coverage report**: `GET /coverage` JSON endpoint + 日志 + Prometheus metrics
 - **健康检查**: `GET /health` + `GET /ready` + `GET /coverage`
 
@@ -68,7 +68,7 @@
 | **Phase 3 (W5-W10)** | 6 | **5-10 hot path 新建** | ~80 | ~1M | partner (41) / sns (16) / item (10) / quest (4) / mail (6) + star (20) / drama (5) / dungeon (9) / boss (12) / adventure (17) / endless (12) / holiday (13) |
 | **Phase 4 (W11-W25)** | 15 | **18-20 long tail 新建** | ~218 | ~1.5M | guild_shipping (11) / guild_dun (10) / guild_skill (4) / formation (6) / say (14) / map (6) / vip (6) / convert (5) / exchange (6) / avatar (4) / charge (3) / honor (3) / power_gift (3) / lev_gift (4) / login_days (2) / checkin (2) / feat (2) / days_rank (4) + 业务完善 |
 
-**总计**: **25 sprint / 50 周 / ~2-3M tokens / 30 新 module (per 闪烁之光 42 modules 全对齐)**
+**总计**: **25 sprint / 50 周 / ~2-3M tokens / 30 新 module (per [游戏A] 42 modules 全对齐)**
 
 ### 1.3 跟 RGS 6 域 + card 架构边界 (不动)
 
@@ -123,7 +123,7 @@ tools/rgs-flash-mock/
 ### 2.3 数据流 (per RPC call)
 
 ```
-闪烁之光 client
+[游戏A] client
    │ HTTP/JSON POST /{category}/{rpc}
    ▼
 rgs-flash-mock actix-web
@@ -136,16 +136,16 @@ RGS 5 域 + card + gm-backend  # mTLS
    │ gRPC reply (per RGS proto)
    ▼
 gap_matrix.record_response(rpc_code, status, latency)
-   │ HTTP/JSON response (to 闪烁之光 client)
+   │ HTTP/JSON response (to [游戏A] client)
    ▼
-闪烁之光 client
+[游戏A] client
 ```
 
 ---
 
 ## 3. 12 大类 RPC 抽样 (per 借鉴分析 .md §2, v0.1 起步)
 
-| # | 类别 | 闪烁之光 RPC 总数 | v0.1 抽样 RPC | RGS backend | v0.1 status 预期 |
+| # | 类别 | [游戏A] RPC 总数 | v0.1 抽样 RPC | RGS backend | v0.1 status 预期 |
 |---|---|---:|---|---|---|
 | 1 | 场景/移动 | 148 | `GetScene` + `MovePlayer` | match (match_id routing) + player (session) | 🟡 RGS TCG 无场景/移动, 标记 N-A |
 | 2 | 角色养成 | 198 | `GetPlayerProfile` + `UpgradeSkill` | player (PlayerProfile) + card (CardInstance.level) | 🟡 部分类比 (卡组养成) |
@@ -178,7 +178,7 @@ gap_matrix.record_response(rpc_code, status, latency)
 ```rust
 // src/gap_matrix.rs
 pub struct RpcRecord {
-    pub rpc_code: u32,           // 闪烁之光 RPC code (per 借鉴分析 .md §0)
+    pub rpc_code: u32,           // [游戏A] RPC code (per 借鉴分析 .md §0)
     pub category: String,        // 12 大类 (e.g. "PVP")
     pub rpc_name: String,        // e.g. "EnqueuePVP"
     pub rgs_backend: String,     // e.g. "match-service:50053"
@@ -260,8 +260,8 @@ pub enum RpcStatus {
 ### 5.1 决策 1: HTTP/JSON server vs gRPC server (front)
 
 - **选 HTTP/JSON (actix-web 4)** ✅
-- 理由: 闪烁之光 client 协议是 自研 TCP / Flash socket (per 借鉴分析 .md §3), HTTP/JSON 是现代通用协议, 客户端适配成本低; actix-web 跟 rgs-batch-backend 模式一致, 工程复用
-- gRPC server 留给 闪烁之光 现代客户端 (v0.3+)
+- 理由: [游戏A] client 协议是 自研 TCP / Flash socket (per 借鉴分析 .md §3), HTTP/JSON 是现代通用协议, 客户端适配成本低; actix-web 跟 rgs-batch-backend 模式一致, 工程复用
+- gRPC server 留给 [游戏A] 现代客户端 (v0.3+)
 
 ### 5.2 决策 2: 单文件 vs 多文件 (src/main.rs)
 
@@ -285,7 +285,7 @@ pub enum RpcStatus {
 ### 5.5 决策 5: 错误处理 (mock 路由 RGS 失败时)
 
 - **mock 透传 RGS gRPC error 到 HTTP/JSON response** ✅
-- 理由: 闪烁之光 client 应该看到跟真 闪烁之光 server 类似的错误码, 不能 mock 吞掉
+- 理由: [游戏A] client 应该看到跟真 [游戏A] server 类似的错误码, 不能 mock 吞掉
 - HTTP status: 4xx (RGS NotFound/Validation) / 5xx (RGS Internal/ServiceUnavailable)
 
 ### 5.6 决策 6: 部署模式
@@ -320,7 +320,7 @@ pub enum RpcStatus {
 |---|---|---|
 | P2-1 | 关键路径 4 类别加 10-20 RPC (PVP+战斗+经济+GM, 累计 60-80 RPC) | 3-5d |
 | P2-2 | SQLite 持久化 + Prometheus metrics | 2-3d |
-| P2-3 | WebSocket 适配 (兼容老 闪烁之光 Flash socket 客户端) | 3-5d |
+| P2-3 | WebSocket 适配 (兼容老 [游戏A] Flash socket 客户端) | 3-5d |
 
 ### 6.3 P3 backlog (W4-W10, 700K-1.05M tokens)
 
@@ -329,7 +329,7 @@ pub enum RpcStatus {
 | P3-1 | 公会 + 社交 + 排行榜 (10-15 RPC each) = 30-45 RPC | 3-5d |
 | P3-2 | 养成 + 活动 + 付费 (15-20 RPC each) = 45-60 RPC | 5-8d |
 | P3-3 | 渐进式补完剩余 1221-1251 RPC (per 12 大类优先级) | 30-50d |
-| P3-4 | gRPC server front (兼容 闪烁之光 现代客户端) | 5-8d |
+| P3-4 | gRPC server front (兼容 [游戏A] 现代客户端) | 5-8d |
 
 ### 6.4 总估算
 
@@ -337,7 +337,7 @@ pub enum RpcStatus {
 - **Phase 2 (W2-W4)**: 3 sprint (~500K tokens) — 12 Partial → Pass
 - **Phase 3 (W5-W10)**: 6 sprint (~1M tokens) — 5-10 hot path 新建
 - **Phase 4 (W11-W25)**: 15 sprint (~1.5M tokens) — 18-20 long tail 新建 + 业务完善
-- **总计**: **25 sprint / 50 周 / 2-3M tokens / 30 新 module (per 闪烁之光 42 modules 全对齐)**
+- **总计**: **25 sprint / 50 周 / 2-3M tokens / 30 新 module (per [游戏A] 42 modules 全对齐)**
 
 ---
 
@@ -345,10 +345,10 @@ pub enum RpcStatus {
 
 | 风险 | 严重度 | 缓解 |
 |---|---|---|
-| 闪烁之光 实际 proto 风格未直接看 (per FLASH-OVERLAP v0.2 §0.3) | P1 | v0.1 mock 基于借鉴分析 doc §4 5 可取之处推断, v0.2 抽样 read 跨盘 .erl 文件 (per FLASH-OVERLAP v0.2 P2-4) |
+| [游戏A] 实际 proto 风格未直接看 (per FLASH-OVERLAP v0.2 §0.3) | P1 | v0.1 mock 基于借鉴分析 doc §4 5 可取之处推断, v0.2 抽样 read 跨盘 .erl 文件 (per FLASH-OVERLAP v0.2 P2-4) |
 | 1351 RPC 全实现 token 预算爆炸 (5-10 sprint × 100-150K = 1M-1.5M) | P0 | 渐进式 12 大类优先级, 用户接受 5-10 sprint long-term 拍板 |
 | 5 域 ST 业务 mTLS cert 复用风险 (mock 跟 RGS 同步轮换) | P1 | per L-CAND-006 (cert 内容永不入 commit, fingerprint 比对验证, 9/1 12:36 JST 派生约束 升正式) |
-| 闪烁之光 client 协议是自研 TCP/Flash socket (per 借鉴分析 §3), HTTP/JSON 适配 | P2 | v0.1 HTTP/JSON primary, v0.3+ 加 WebSocket + gRPC server (兼容老/新 客户端) |
+| [游戏A] client 协议是自研 TCP/Flash socket (per 借鉴分析 §3), HTTP/JSON 适配 | P2 | v0.1 HTTP/JSON primary, v0.3+ 加 WebSocket + gRPC server (兼容老/新 客户端) |
 | 业务层 12 大类 90% RGS TCG 不适用 (per handoff v0.1 §1) | P1 | mock 路由 N-A 状态 + gap matrix 报告, 不假装覆盖 |
 | mock 单点故障影响 RGS backend 验证 | P2 | mTLS fail-closed + health/ready endpoint + k3s 1 replica + 监控 alert |
 | env value 凭据泄露 (per 8/27 11:06 JST 硬 ban) | P1 | REDACTED filter + 8/27 11:06 JST 派生约束守护 + 凭据走 env var 不打印 |
@@ -359,7 +359,7 @@ pub enum RpcStatus {
 
 ### 8.1 设计 doc 缺口 (v0.1 → v0.2 升版)
 
-- **闪烁之光 实际 proto 风格** — v0.1 推断, v0.2 跨盘 read .erl 文件实证
+- **[游戏A] 实际 proto 风格** — v0.1 推断, v0.2 跨盘 read .erl 文件实证
 - **43 条未提取 + 113 条无标题** — v0.1 抽样 22 RPC, v0.2+ 渐进式补完
 - **12 大类业务层 90% RGS TCG 不适用** — mock N-A 状态 + gap matrix, 不假装
 
@@ -370,7 +370,7 @@ pub enum RpcStatus {
 
 ### 8.3 数据缺口
 
-- **闪烁之光 性能 baseline 未测** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比
+- **[游戏A] 性能 baseline 未测** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比
 - **RGS 5 域 ST 业务 mTLS cert SOP** — per 8/27 ST 导出 + L-CAND-006 兜底
 
 ### 8.4 业务缺口
@@ -409,7 +409,7 @@ pub enum RpcStatus {
 | 跟 RGS-CRITIQUE-IMPROVEMENT 一致性 | ✅ | 跟 RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.2 一致 |
 | 跟 RGS-WEEKLY 一致性 | ⏳ | W37 v0.1 启动预热, 待 W37 D7 9/14 JST 收口 |
 | 跟 3 决策文档 (audit v0.3 + handoff v0.1 + FLASH-OVERLAP v0.2) 一致性 | ✅ | §0.2 决策一致性 4 项全员 ✅ |
-| 跟 闪烁之光 借鉴分析 .md 一致性 | ✅ | §3 12 大类 RPC 抽样 跟 §2 12 大类 1:1 对应 |
+| 跟 [游戏A] 借鉴分析 .md 一致性 | ✅ | §3 12 大类 RPC 抽样 跟 §2 12 大类 1:1 对应 |
 | 跟 user 9/4 16:14 JST 拍板 "完整 1351 mock" 一致性 | ✅ | §1.2 5-10 sprint long-term 路线图 |
 | 跟 AGENTS.md §7.1 batch 域母规范一致性 | ✅ | §2.1 工具链 + §2.2 文件结构 + §5.6 部署模式 |
 
@@ -437,9 +437,9 @@ pub enum RpcStatus {
 
 | 版本 | 日期 (JST) | 修订人 | 变更 |
 |---|---|---|---|
-| **v0.1** | 2026-09-04 16:14 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: 闪烁之光 mock 设计 (per 9/4 16:14 JST user 拍板 "完整 1351 mock long-term 5-10 sprint"), 12 大类 RPC 抽样 (22 RPC 起步) + 架构 (actix-web 4 + tonic 0.12 + mTLS + gap matrix) + crate 文件结构 (tools/rgs-flash-mock/ 跟 rgs-batch-backend 模式) + 5-10 sprint 路线图 (W1 scaffold + 22 RPC, W2-W3 关键路径 60-80 RPC, W4-W10 渐进式补完 1351) + 6 关键决策 + 7 关键风险 + 4 段已知缺口, 配套 RGS-DDD-2026-09-04-GAP-AUDIT v0.3 (bb9f977) + RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 (2e3d9ee) + RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化 v0.1 + 闪烁之光 借鉴分析 .md §0-§5, per L13 自指字段 deferred + 8/27 11:06 JST 凭据硬 ban 守护 + 8/26 JST 禁回溯叙事守护 + 8/21 JST 5 域独立 Lead 守护 + 9/4 15:34 JST user 拍板 "仅 API 对齐" + 9/4 16:14 JST user 拍板 "完整 1351 mock" |
+| **v0.1** | 2026-09-04 16:14 | 架构师(Mavis 接手 agent per DEC-008) | 初始创建: [游戏A] mock 设计 (per 9/4 16:14 JST user 拍板 "完整 1351 mock long-term 5-10 sprint"), 12 大类 RPC 抽样 (22 RPC 起步) + 架构 (actix-web 4 + tonic 0.12 + mTLS + gap matrix) + crate 文件结构 (tools/rgs-flash-mock/ 跟 rgs-batch-backend 模式) + 5-10 sprint 路线图 (W1 scaffold + 22 RPC, W2-W3 关键路径 60-80 RPC, W4-W10 渐进式补完 1351) + 6 关键决策 + 7 关键风险 + 4 段已知缺口, 配套 RGS-DDD-2026-09-04-GAP-AUDIT v0.3 (bb9f977) + RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 (2e3d9ee) + RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化 v0.1 + [游戏A] 借鉴分析 .md §0-§5, per L13 自指字段 deferred + 8/27 11:06 JST 凭据硬 ban 守护 + 8/26 JST 禁回溯叙事守护 + 8/21 JST 5 域独立 Lead 守护 + 9/4 15:34 JST user 拍板 "仅 API 对齐" + 9/4 16:14 JST user 拍板 "完整 1351 mock" |
 | **v0.2** | 2026-09-04 16:24 | 架构师(Mavis 接手 agent per DEC-008) | **Ulysses 二审通过 (per 9/4 16:24 JST ask_user 拍板 option A)**, 状态机结束: §9.2 决策 ✅ + 签字日期 2026-09-04 16:24 JST; 3 commit 落地 (36b9c06 设计 doc + c5c4006 scaffold 12 文件 + 5e6c727 cargo check 0 error 修复), `cargo check 0 error 0 warning` 验证 ✅; 1 个回执, 0 风险; 后续 W2-W10 sprint 渐进式补完 1351 RPC 路线图明确 (W2 加 7 域 gRPC client + 60-80 RPC / W3 加 5 类别 + 100-130 RPC / W4-W10 补完 1351 RPC, 总 1M-1.5M tokens 预算); per B3 派生约束 (DDD Review v0.2 §1 流程 + §3 打回循环上限) + 8/27 19:39/20:56/21:59 JST 三次强化代签授权 (Mavis 默认代签 Ulysses) |
-| **v0.3** | 2026-09-04 16:45 | 架构师(Mavis 接手 agent per DEC-008) | **升级拍板 (per 9/4 16:45 JST user "完全对齐" 拍板 option C)**: 推翻 v0.2 "5-10 sprint 渐进式补完 1351 RPC" 路线图, 升级为 "**15-25 sprint 完全对齐 438 cmds**"; 4 阶段路线图 (Phase 1 ✅ done / Phase 2 12 Partial → Pass ~140 cmds / Phase 3 5-10 hot path 新建 ~80 cmds / Phase 4 18-20 long tail 新建 ~218 cmds); 30 新 module 业务扩展 (per 闪烁之光 42 modules 全对齐, per `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\api_module_summary.txt` 实际清单); 工程量 1.5-2x 当前 RGS, 总 2-3M tokens; 推翻 handoff v0.1 "不做逐条移植" 决策 (TCG → MMORPG 业务扩展); 跟 3 决策文档 (audit v0.3 + FLASH-OVERLAP v0.2 + 9/4 15:34 JST "仅 API 对齐") 决策一致性 ✅; 0 风险, 等 W2 拍板启动 Phase 2 |
+| **v0.3** | 2026-09-04 16:45 | 架构师(Mavis 接手 agent per DEC-008) | **升级拍板 (per 9/4 16:45 JST user "完全对齐" 拍板 option C)**: 推翻 v0.2 "5-10 sprint 渐进式补完 1351 RPC" 路线图, 升级为 "**15-25 sprint 完全对齐 438 cmds**"; 4 阶段路线图 (Phase 1 ✅ done / Phase 2 12 Partial → Pass ~140 cmds / Phase 3 5-10 hot path 新建 ~80 cmds / Phase 4 18-20 long tail 新建 ~218 cmds); 30 新 module 业务扩展 (per [游戏A] 42 modules 全对齐, per `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\api_module_summary.txt` 实际清单); 工程量 1.5-2x 当前 RGS, 总 2-3M tokens; 推翻 handoff v0.1 "不做逐条移植" 决策 (TCG → MMORPG 业务扩展); 跟 3 决策文档 (audit v0.3 + FLASH-OVERLAP v0.2 + 9/4 15:34 JST "仅 API 对齐") 决策一致性 ✅; 0 风险, 等 W2 拍板启动 Phase 2 |
 
 **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **审批**: 架构师(Mavis 接手 agent per DEC-008)

@@ -33,7 +33,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | 初版制定 |
-| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 9/6 8 域扩展 server lifecycle（per 闪烁之光兼容）② 9 域 mTLS cert 轮换（per L-CAND-006）③ 派生约束守护 L15-L23（per 9/6 6c6839e cutover）④ batch 域 6 module 跨域（per 9/1 batch v0.1） |
+| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 9/6 8 域扩展 server lifecycle（per [游戏A]兼容）② 9 域 mTLS cert 轮换（per L-CAND-006）③ 派生约束守护 L15-L23（per 9/6 6c6839e cutover）④ batch 域 6 module 跨域（per 9/1 batch v0.1） |
 
 ---
 
@@ -76,7 +76,7 @@
 | TST-ST-02-L013 | [E2E] | NFR-LCM-006 | 归档后客服查询 p99 < 5 秒（含冷归档按需还原）|
 | TST-ST-02-L014 | [TL-7] | RSK-LCM-001 | 阶段变更中途崩溃：Saga 补偿回退至变更前状态 |
 | TST-ST-02-L015 | [E2E] | RSK-LCM-005 | 归档 N+2 冗余存储：单副本失效查询仍可用 |
-| **TST-ST-02-L016** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6 闪烁之光兼容)** | **scene 域 server lifecycle 端到端 (开新服/合服/分服/退场/归档 5 阶段)** | scene 域 server lifecycle |
+| **TST-ST-02-L016** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6 [游戏A]兼容)** | **scene 域 server lifecycle 端到端 (开新服/合服/分服/退场/归档 5 阶段)** | scene 域 server lifecycle |
 | **TST-ST-02-L017** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **battle 域 server lifecycle 端到端** | battle 域 server lifecycle |
 | **TST-ST-02-L018** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **network + account + sub8 域 server lifecycle 端到端** | 3 域 server lifecycle |
 | **TST-ST-02-L019** | **[E2E]** | **8 域扩展 server lifecycle (per 9/6)** | **5 NEW 域 server lifecycle 跨域 saga** | 5 NEW 域跨域 saga |

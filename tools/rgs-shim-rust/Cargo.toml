@@ -4,7 +4,7 @@
 name = "rgs-shim"
 version = "0.5"
 edition = "2021"
-description = "zsyz SmartSocket (Erlang binary) → RGS gRPC shim — production-grade Rust rewrite (per 9/9 14:20 JST Ulysses 拍板, 完整对接 RGS + 100% 正常 + 性能更优 + 无移植隐患; v0.5: 766/766 cmd dispatch table 实施, 5 worker 合并完成)"
+description = "[游戏A] SmartSocket (Erlang binary) → RGS gRPC shim — production-grade Rust rewrite (per 9/9 14:20 JST Ulysses 拍板, 完整对接 RGS + 100% 正常 + 性能更优 + 无移植隐患; v0.5: 766/766 cmd dispatch table 实施, 5 worker 合并完成)"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }

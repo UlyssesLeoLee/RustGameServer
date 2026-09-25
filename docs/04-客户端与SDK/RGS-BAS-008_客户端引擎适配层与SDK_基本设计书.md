@@ -315,7 +315,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | 项目 | 内容 |
 |---|---|
 | 分发形式 | UE插件模块（`.uplugin`），内含预编译核心SDK静态/动态库 + C++绑定代码 |
-| API风格 | `UActorComponent`（如`URgsClientComponent`），暴露`UFUNCTION`供Blueprint调用（连接、发送输入）与`UPROPERTY`/委托（`DECLARE_DYNAMIC_MULTICAST_DELEGATE`）供快照更新事件订阅 |
+| API风格 | `UActorComponent`（如`URgsClientComponent`），暴露`UFUNCTION`供Blueprint调用（连接、发送输入）与`UP[游戏C]RTY`/委托（`DECLARE_DYNAMIC_MULTICAST_DELEGATE`）供快照更新事件订阅 |
 | 生命周期集成 | 组件`TickComponent`中轮询核心SDK事件队列，转换为UE委托广播；`BeginPlay`/`EndPlay`对应连接建立/断开 |
 | 线程模型 | 同Unity，核心SDK网络线程与UE游戏线程隔离，回调须经`AsyncTask(ENamedThreads::GameThread, ...)`封送回游戏线程 |
 
@@ -333,7 +333,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | `sdk.ue.delegate_broadcast` | `DECLARE_DYNAMIC_MULTISKAGUE` 委托广播（`SnapshotReceived` 等） | 高频（每 tick 多次） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 100-200B/条（release 剔除） |
 | `sdk.ue.dispatch_failure` | 封送回游戏线程失败（任务系统异常） | 极少（**生产事件**） | release 必出（100% 强制全采样） | 含`callback_kind`/`task_system_state`/`error`；约 350B/条 |
 | `sdk.ue.game_thread_violation` | 检测到 C++ 侧回调未封送（在核心SDK 线程直接访问 UE GameThread API） | 极少（**P0 事件**） | release 必出（100% 强制全采样） | 含`callback_kind`/`thread_id`/`expected_thread`（`GameThread`）/`ue_engine_version`/`client_version`/`platform`/`device_id_hash`；约 500B/条 |
-| `sdk.ue.blueprint_binding_failure` | Blueprint 侧的 UFUNCTION/UPROPERTY 绑定失败（如命名变更导致蓝图节点失效） | 偶发（升级 SDK 时） | release 必出（100% 强制全采样） | 含`blueprint_class_name_hash`/`binding_kind`/`function_name`；约 300B/条 |
+| `sdk.ue.blueprint_binding_failure` | Blueprint 侧的 UFUNCTION/UP[游戏C]RTY 绑定失败（如命名变更导致蓝图节点失效） | 偶发（升级 SDK 时） | release 必出（100% 强制全采样） | 含`blueprint_class_name_hash`/`binding_kind`/`function_name`；约 300B/条 |
 | `sdk.ue.debug.delegate_listener_dump` | 全部委托监听者列表 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 | `sdk.ue.debug.async_task_queue_state` | UE 任务系统队列状态（`ENamedThreads::GameThread` 队列深度） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 

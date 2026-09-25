@@ -14,7 +14,7 @@
     "not_implemented_count": 0,
     "not_applicable_count": 0,
     "audit_finding": "player 域 PlayerService 13 RPC 覆盖, 9 增量 (per DDD §3.4 L388-409), 部分字段缺 (per 12 大类清单 v0.1 §2), RGS 当前 0 命中 Arc<Mutex<RoleData>> A1 反模式 (per audit v0.3 §3.1, 已走 sqlx + DB 模式)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\role\\role.erl (33.1KB, gen_server + 进程字典 + 延时 3 min 关闭)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\role\\role.erl (33.1KB, gen_server + 进程字典 + 延时 3 min 关闭)",
     "rgs_translation": "player-service PlayerService trait (11 业务方法) + PlayerRepository (sqlx) + PlayerSessionRepository + DeckRepository, 1 player_id 1 tokio actor task, mpsc::Sender<PlayerCommand>",
     "rgs_file_ref": "crates/player-service/src/service.rs:68KB L28-88 + repository.rs:40KB + entity.rs:22KB"
   },

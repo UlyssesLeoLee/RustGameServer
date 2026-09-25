@@ -14,7 +14,7 @@
     "not_implemented_count": 0,
     "not_applicable_count": 0,
     "audit_finding": "admin 域 4 RBAC handler + gm-backend 4 RPC 覆盖, audit log SHA-256 chain 5 层防御 (per audit v0.3 §3.5), RGS 当前缺红点/活动状态数据驱动框架,16800/16801 跨协议号段需特别处理",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\misc\\misc.erl (19KB, 角色进程 + 系统级通知 + 客户端错误上报)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\misc\\misc.erl (19KB, 角色进程 + 系统级通知 + 客户端错误上报)",
     "rgs_translation": "admin-service AdminService trait + GmHandler (RBAC) + gm-backend (actix-web) + batch-backend (task_templates Master) + push_delivery NATS (per 9/1 13:05 JST 跨域异步模式)",
     "rgs_file_ref": "crates/admin-service/src/gm_handlers.rs:33KB + crates/gm-backend/src/main.rs + tools/rgs-batch-backend/src/main.rs:123KB"
   },

@@ -16,7 +16,7 @@
     "partial_count": 10,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\item\\item_rpc.erl (4.3KB, handle/3 10 cmds 10500-10528) + item.erl (12KB, gen_server) + package.erl (28.3KB, p_bag/p_eqm 双背包)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\item\\item_rpc.erl (4.3KB, handle/3 10 cmds 10500-10528) + item.erl (12KB, gen_server) + package.erl (28.3KB, p_bag/p_eqm 双背包)",
     "rgs_translation": "player-service ItemService trait + PackageRepository (sqlx PgPackageRepo) + 双背包 (p_bag/p_eqm 1:1 翻译) + role_gain:do_notice → economy gain 1:1 (per addendum §4 业务流)",
     "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L130 (item → PlayerService.ItemService, per REQ §2 #20) + item_rpc.erl L22-118 (handle/3 9 函数 + 1 容错匹配)",
     "known_gaps": [

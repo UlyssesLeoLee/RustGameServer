@@ -14,7 +14,7 @@
     "not_implemented_count": 4,
     "not_applicable_count": 0,
     "audit_finding": "player 域 QuestService gRPC 0/4 wire (per audit v0.3 §3.2), 30 新 module 阶段, 待 W5 补, 跨域 saga 跨 player + match + economy + trigger 域",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\quest\\quest.erl (27.1KB 业务核心) + quest_rpc.erl (1.8KB handle/3 4 RPC) + quest_progress.erl (39KB 进度跟踪) + quest_lib.erl (4.8KB 库) + quest_filter.erl (6.4KB 过滤器) + quest_prog_init.erl (12.2KB 初始化) + quest_revise.erl (8.9KB 修订) + proto_104.erl (9.6KB pack/unpack)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\quest\\quest.erl (27.1KB 业务核心) + quest_rpc.erl (1.8KB handle/3 4 RPC) + quest_progress.erl (39KB 进度跟踪) + quest_lib.erl (4.8KB 库) + quest_filter.erl (6.4KB 过滤器) + quest_prog_init.erl (12.2KB 初始化) + quest_revise.erl (8.9KB 修订) + proto_104.erl (9.6KB pack/unpack)",
     "rgs_translation": "player-service QuestService (新) + sqlx PgQuestRepository + QuestStatus enum (4 states: unaccepted/accepted/completed/submitted) + 跨域 match/combat 触发进度 + economy gain 任务奖励 + trigger 域事件订阅 + 9 quest_type 分类 (main/branch/daily/weekly/activity/...)",
     "rgs_file_ref": "RGS-DDD v0.2 addendum §5.32 1:1 映射 + §6.2 30 新 module #20 落地 W5",
     "known_gaps": [

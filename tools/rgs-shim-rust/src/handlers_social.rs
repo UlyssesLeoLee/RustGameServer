@@ -1,5 +1,5 @@
 // Social domain handlers (per 2026-09-09 19:30 JST Mavis 派工 w4)
-// 来源: zsyz_server/src/proto/proto_130.erl (dungeon) + proto_133.erl (friend)
+// 来源: [游戏A]_server/src/proto/proto_130.erl (dungeon) + proto_133.erl (friend)
 //       proto_134.erl (exchange/mall) + proto_135.erl (guild)
 //       proto_166.erl (mail) + proto_168.erl (cross-server)
 //
@@ -256,7 +256,7 @@ pub fn handle_13408_exchange_action(
 
 // ============================================================================
 // w4 social 续做 79 handler (per 2026-09-09 20:17 JST Mavis 派工 shim 续做)
-// 来源: zsyz_server/src/proto/proto_130.erl + proto_133.erl + proto_134.erl
+// 来源: [游戏A]_server/src/proto/proto_130.erl + proto_133.erl + proto_134.erl
 //       proto_135.erl + proto_166.erl
 // 字节级对齐 erlang pack(srv, ...): BE + len:u32+bytes 字符串 + 字段顺序严格
 // 风格跟第一轮 14 POC 一样 (per 9/9 19:30 JST POC template)

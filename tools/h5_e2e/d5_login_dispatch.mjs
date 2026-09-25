@@ -6,7 +6,7 @@
 // Per `proto_11.erl pack(1110, cli, {V0_args})`, login request payload is a
 // flattened array of {string, string} key-value pairs:
 //   [2B count][for each pair: [2B key_len][key_bytes][2B val_len][val_bytes]]
-// No array tag byte, no element type tag byte (per zsyz_server protocol:pack).
+// No array tag byte, no element type tag byte (per [游戏A]_server protocol:pack).
 //
 // Writes:
 //   tools/h5_e2e/login_hex.txt — hex dump of roundtrip
@@ -36,7 +36,7 @@ import {
   packFields,
   unpackFields,
   CMD_LOGIN,
-} from './zsyz_protocol.js';
+} from './[游戏A]_protocol.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WS_URL = process.env.WS_URL || 'ws://127.0.0.1:8000/websocket';
@@ -58,7 +58,7 @@ function asciiSafe(b) {
 // Use packFields with our standard kv schema to get the same bytes (still no array tag).
 function buildLoginRequest(kvs) {
   // We mimic the flattened wire directly: 2B count then alternating (str, str) pairs.
-  // zsyz_protocol.packFields DOES emit tag bytes (t=7) for each field; that differs from
+  // [游戏A]_protocol.packFields DOES emit tag bytes (t=7) for each field; that differs from
   // the proto_11.erl convention. For Phase 2 dispatch test, the Rust binary will
   // accept any payload; we only assert that it round-trips.
   // Use the standard array-of-{string, string} schema for cleanliness:
@@ -148,7 +148,7 @@ ws.on('message', (data, isBinary) => {
       `# client_recv: ${new Date(clientRecvAt).toISOString()}  (t+${clientRecvAt - t0}ms)`,
       `# rtt_ms:      ${dt}`,
       `#`,
-      `# === golden vector (zsyz_client_h5 SmartSocket 1:1) ===`,
+      `# === golden vector ([游戏A]_client_h5 SmartSocket 1:1) ===`,
       `# client send: [4B length u32 BE][2B cmd=1110 u16 BE][payload: array<{string, string}>]`,
       `# expected reply: [4B length u32 BE][2B cmd=1110 u16 BE][payload: [4B rcode u32 BE][body]]`,
       `#   rcode=0 → 5-domain gRPC chain (Phase 1.5+)`,

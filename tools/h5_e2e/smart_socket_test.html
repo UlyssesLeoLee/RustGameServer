@@ -3,11 +3,11 @@
   tools/h5_e2e/smart_socket_test.html
 
   Browser harness that exercises the EXACT same SmartSocket code path as
-  zsyz_client_h5/assets/Scripts/sys/game-core-js-min.js, but with the host/port
+  [游戏A]_client_h5/assets/Scripts/sys/game-core-js-min.js, but with the host/port
   + WebSocket target overridden via window globals so we can point at the local
   mock_server.mjs (or the future RGS network-gateway once ULYS-2.2 lands).
 
-  This file is NOT zsyz_client_h5 itself — zsyz_client_h5 is Cocos Creator source
+  This file is NOT [游戏A]_client_h5 itself — [游戏A]_client_h5 is Cocos Creator source
   with no pre-built bundle, so we can't `page.goto()` its index.html. Instead
   this page re-implements the protocol-shaping piece of SmartSocket:
 
@@ -19,13 +19,13 @@
   …plus the 1-second heartbeat tick from `tick()` and `setTickTimer()`.
 
   If ULYS-2.1+2.2+2.3 are running, set window globals before connecting:
-      window.ZSYZ_WS_URL = 'ws://127.0.0.1:8000/websocket'
-      window.ZSYZ_TEST_LOGIN = true       // also send a login frame
+      window.GAMEA_WS_URL = 'ws://127.0.0.1:8000/websocket'
+      window.GAMEA_TEST_LOGIN = true       // also send a login frame
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>zsyz SmartSocket E2E test harness</title>
+<title>[游戏A] SmartSocket E2E test harness</title>
 <style>
   body { font: 13px/1.5 -apple-system, Segoe UI, sans-serif; margin: 16px; color: #222; }
   h1 { font-size: 16px; margin: 0 0 8px; }
@@ -39,7 +39,7 @@
 </style>
 </head>
 <body>
-<h1>zsyz SmartSocket E2E harness</h1>
+<h1>[游戏A] SmartSocket E2E harness</h1>
 <p>
   Target: <code id="target-url"></code>
   Status: <span id="status">disconnected</span>
@@ -51,15 +51,15 @@
 </p>
 <pre id="log"></pre>
 
-<script src="./zsyz_protocol.browser.js"></script>
+<script src="./[游戏A]_protocol.browser.js"></script>
 <script>
 'use strict';
 
 // ============ Minimal SmartSocket clone (matches game-core-js-min.js) ============
 // Reference: assets/Scripts/sys/game-core-js-min.js line 3 (the entire minified
 // SmartSocket block). Differences from the original:
-//   - host/port pulled from window.ZSYZ_WS_URL if set (D2 host/port override)
-//   - frame events also exposed to Playwright via window.__zsyz_frames__
+//   - host/port pulled from window.GAMEA_WS_URL if set (D2 host/port override)
+//   - frame events also exposed to Playwright via window.__[游戏A]_frames__
 //   - console.log for human-visible trace (puppeteer page.on('console'))
 const SmartSocket = {
   idx: 0,
@@ -78,7 +78,7 @@ const SmartSocket = {
   on1199(t) {
     this.restHeartbeat();
     this.setTime(t.time);
-    window.__zsyzLog__('recv cmd=1199 heartbeat time=' + t.time);
+    window.__[游戏A]Log__('recv cmd=1199 heartbeat time=' + t.time);
   },
   tick() {
     this.send(1199, {});
@@ -107,13 +107,13 @@ const SmartSocket = {
     ws.binaryType = 'arraybuffer';
     const net_id = ++this.idx;
     this.ws = ws;
-    window.__zsyzLog__('opening WS to ' + url + ' (net_id=' + net_id + ')');
+    window.__[游戏A]Log__('opening WS to ' + url + ' (net_id=' + net_id + ')');
     ws.onopen = () => {
       if (net_id !== this.idx) return;
-      window.__zsyzLog__('onopen');
+      window.__[游戏A]Log__('onopen');
       document.getElementById('status').textContent = 'connected';
       document.getElementById('status').className = 'connected';
-      window.__zsyzFrames__.push({ dir: 'open', at: Date.now(), url });
+      window.__[游戏A]Frames__.push({ dir: 'open', at: Date.now(), url });
       this.setTickTimer();
       this.restHeartbeat();
       // First heartbeat immediately (matches SmartSocket.tick behavior)
@@ -121,14 +121,14 @@ const SmartSocket = {
     };
     ws.onclose = () => {
       if (net_id !== this.idx) return;
-      window.__zsyzLog__('onclose');
+      window.__[游戏A]Log__('onclose');
       document.getElementById('status').textContent = 'disconnected';
       document.getElementById('status').className = 'disconnected';
-      window.__zsyzFrames__.push({ dir: 'close', at: Date.now() });
+      window.__[游戏A]Frames__.push({ dir: 'close', at: Date.now() });
       this.stopHeart();
       this.ws = null;
     };
-    ws.onerror = (e) => window.__zsyzLog__('onerror ' + (e && e.message || ''));
+    ws.onerror = (e) => window.__[游戏A]Log__('onerror ' + (e && e.message || ''));
     ws.onmessage = (t) => {
       this.restHeartbeat();
       this.doRecv(t.data);
@@ -142,27 +142,27 @@ const SmartSocket = {
   // send(cmd, data) → builds wire frame and ws.send()s.
   send(cmd, data) {
     try {
-      if (this.ws == null) { window.__zsyzLog__('send: socket not connected'); return; }
+      if (this.ws == null) { window.__[游戏A]Log__('send: socket not connected'); return; }
       // packFields gives us the payload TLV bytes
       // (the real client calls Proto.send[cmd] schema; here we hardcode per-cmd)
-      const payload = window.ZSYZ.packPayload(cmd, data);
-      const fullCmd = window.ZSYZ.encodeFrame(cmd, payload);
-      window.__zsyzFrames__.push({
+      const payload = window.GAMEA.packPayload(cmd, data);
+      const fullCmd = window.GAMEA.encodeFrame(cmd, payload);
+      window.__[游戏A]Frames__.push({
         dir: 'send',
         at: Date.now(),
         cmd,
         payloadLen: payload.length,
-        hex: window.__zsyz_toHex(new Uint8Array(fullCmd)),
+        hex: window.__[游戏A]_toHex(new Uint8Array(fullCmd)),
       });
-      window.__zsyzLog__('send cmd=' + cmd + ' hex=' + window.__zsyz_toHex(new Uint8Array(fullCmd)));
+      window.__[游戏A]Log__('send cmd=' + cmd + ' hex=' + window.__[游戏A]_toHex(new Uint8Array(fullCmd)));
       this.ws.send(fullCmd);
     } catch (e) {
-      window.__zsyzLog__('send error: ' + e.message);
+      window.__[游戏A]Log__('send error: ' + e.message);
     }
   },
   doRecv(blob) {
     if (!this.ws || this.ws.net_id === undefined || this.ws !== this.ws) return; // (sanity)
-    if (typeof blob === 'string') { window.__zsyzLog__('recv=text= ' + blob); return; }
+    if (typeof blob === 'string') { window.__[游戏A]Log__('recv=text= ' + blob); return; }
     let bytes;
     if (this.buffer == null) bytes = new Uint8Array(blob);
     else bytes = this.buffer.concat(Array.from(new Uint8Array(blob)));
@@ -172,28 +172,28 @@ const SmartSocket = {
     if (e.length < 6) { this.buffer = e; return; }
     const t = new DataView(e.buffer, e.byteOffset, e.byteLength);
     const i = t.getUint32(0, false);
-    if (i > 80000) { window.__zsyzLog__('data_to_long: ' + i); if (this.ws) this.ws.close(); return; }
+    if (i > 80000) { window.__[游戏A]Log__('data_to_long: ' + i); if (this.ws) this.ws.close(); return; }
     const totalLen = i + 4;
     const bufLen = e.length;
     if (bufLen < totalLen) { this.buffer = e; return; }
     const cmd = t.getUint16(4, false);
-    window.__zsyzFrames__.push({
+    window.__[游戏A]Frames__.push({
       dir: 'recv',
       at: Date.now(),
       cmd,
       payloadLen: i - 2,
-      hex: window.__zsyz_toHex(e.slice(0, totalLen)),
+      hex: window.__[游戏A]_toHex(e.slice(0, totalLen)),
     });
-    window.__zsyzLog__('recv cmd=' + cmd + ' hex=' + window.__zsyz_toHex(e.slice(0, totalLen)));
+    window.__[游戏A]Log__('recv cmd=' + cmd + ' hex=' + window.__[游戏A]_toHex(e.slice(0, totalLen)));
     try {
       // Parse payload per cmd (uses per-cmd schema)
-      const data = window.ZSYZ.unpackPayload(cmd, e, 6, i - 2);
+      const data = window.GAMEA.unpackPayload(cmd, e, 6, i - 2);
       this.msg_list.push({ cmd, data });
       // Dispatch
       const fns = this.cmd_func_list[cmd] || [];
       for (let i = 0; i < fns.length; i++) fns[i](data);
     } catch (err) {
-      window.__zsyzLog__('unpackData_error cmd=' + cmd + ' err=' + err.message);
+      window.__[游戏A]Log__('unpackData_error cmd=' + cmd + ' err=' + err.message);
     }
     if (totalLen < bufLen) this.unpackBuffer(e.slice(totalLen));
     else this.buffer = null;
@@ -204,16 +204,16 @@ SmartSocket.init();
 window.gcore = { SmartSocket };
 
 // ============ page-level plumbing ============
-window.__zsyzFrames__ = [];
-window.__zsyzLogBuf__ = [];
-window.__zsyzLog__ = (msg) => {
+window.__[游戏A]Frames__ = [];
+window.__[游戏A]LogBuf__ = [];
+window.__[游戏A]Log__ = (msg) => {
   const line = '[' + new Date().toISOString() + '] ' + msg;
-  window.__zsyzLogBuf__.push(line);
+  window.__[游戏A]LogBuf__.push(line);
   const el = document.getElementById('log');
-  if (el) el.textContent = window.__zsyzLogBuf__.join('\n');
+  if (el) el.textContent = window.__[游戏A]LogBuf__.join('\n');
 };
 
-window.__zsyz_toHex = function (u8) {
+window.__[游戏A]_toHex = function (u8) {
   let s = '';
   for (let i = 0; i < u8.length; i++) {
     const h = u8[i].toString(16);
@@ -224,7 +224,7 @@ window.__zsyz_toHex = function (u8) {
 };
 
 document.getElementById('connect-btn').onclick = () => {
-  const url = window.ZSYZ_WS_URL || 'ws://127.0.0.1:18000/websocket';
+  const url = window.GAMEA_WS_URL || 'ws://127.0.0.1:18000/websocket';
   document.getElementById('target-url').textContent = url;
   window.gcore.SmartSocket.connect(url);
 };
@@ -236,7 +236,7 @@ document.getElementById('login-btn').onclick = () => window.gcore.SmartSocket.se
 
 // Auto-connect on load if URL provided
 window.addEventListener('DOMContentLoaded', () => {
-  const url = window.ZSYZ_WS_URL || 'ws://127.0.0.1:18000/websocket';
+  const url = window.GAMEA_WS_URL || 'ws://127.0.0.1:18000/websocket';
   document.getElementById('target-url').textContent = url;
 });
 </script>

@@ -13,7 +13,7 @@
     "partial_count": 43,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\combat\\combat.erl (56.8KB, gen_fsm 9 状态机)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\combat\\combat.erl (56.8KB, gen_fsm 9 状态机)",
     "rgs_translation": "matchmaker_v2.rs SessionStatus 8 态 enum + GameSession struct + EventBus broadcast per match_id",
     "rgs_file_ref": "crates/match-service/src/entity_v2.rs:145-170, crates/match-service/src/matchmaker_v2.rs:67KB"
   },

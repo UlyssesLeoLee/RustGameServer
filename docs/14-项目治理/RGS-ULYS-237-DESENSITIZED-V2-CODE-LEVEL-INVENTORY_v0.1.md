@@ -20,11 +20,11 @@
 | 总行数 | 18,979 |
 | 真名 → 代号 替换行数 | **300** |
 | 跳过行数 (非注释行) | 11,222 |
-| 跳过行数 (含代码字面量, 守护测试夹具) | **219** |
+| 跳过行数 (含代码字面量, 守护测试夹具) | **219** (v0.4 已解除 — 详见后续 v0.4 inventory §1.2) |
 | 修改的代码语义 | **零** (只动注释 / Cargo.toml `description` / Markdown 正文) |
 
 > **D-Boy 请重点看**: v0.1 标 P0 的 12 份 GAMED 文档已落 v0.2 注释层脱敏; crates/network-gateway + crates/gm-backend 注释层已脱敏; v0.3 又把 on-disk 文件名 `[游戏D]` 代号化 (`*GAMED*`)。**全文 grep `ANANTA` 在本仓库 HEAD 应返回 0 行**。
-> 测试夹具 (`pack_str(&mut buf, "闪烁之光")` 等) **未触动** — 详见 §3。
+> 测试夹具 (`pack_str(&mut buf, "闪烁之光")` 等) v0.2 守护; **v0.4 已改** → 同字节数占位字符 `"中文测试"`, 详见后续 `RGS-ULYS-237-DESENSITIZED-V4-COMPREHENSIVE-INVENTORY_v0.1.md` §1.2。
 
 ---
 
@@ -171,6 +171,26 @@ per v0.1 P1, 单独 turn 处理。
 
 跨链 / 元文档中所有 ANANTA 引用已批量替换为 GAMED (15 处, 含 v0.1 + v0.2 inventory + REFERENCE-LIST 摘要索引)。
 `RGS-DETAILED-ANANTA-*` (10 份 planned, 当前不在 HEAD 中) 的元清单提及, 同步替换为 `RGS-DETAILED-GAMED-*` (待 D-Boy 决定是否生成)。
+
+### 6.4 v0.4 全面 sweep 落地  ← 2026-09-25 23:51 JST 决策
+
+**v0.4 决策**: 接受 D-Boy 「闪烁之光和无限大网易雷火逆水寒都要脱敏, 类似的都要全面脱敏」(per ULYS-237 reply 2026-09-25 23:51 JST) 反馈,
+v0.4 在 v0.3 基础上做第四轮全面 sweep:
+
+| v0.2 守护项 | v0.4 解禁 / 处理方式 |
+|---|---|
+| 测试夹具 `pack_str(&mut buf, "闪烁之光")` | → `pack_str(&mut buf, "中文测试")` (同字节数 12 字节) |
+| 测试断言 `assert_eq!(s, "闪烁之光")` | → `assert_eq!(s, "中文测试")` (字节数 12 不变) |
+| `validate_character_name("闪烁之光")` | → `validate_character_name("中文测试")` |
+| `AGENTS.md` `闪烁之光` 提及 (4 处) | → `[游戏A]` (per v0.4 解禁) |
+| `zsyz_server` / `zsyz_client_h5` / `zsyz wire` 全仓注释 | → `[游戏A]_server` / `[游戏A]_client_h5` / `[游戏A]` (v0.2 漏掉, v0.4 补) |
+| `tools/rgs-flash-mock/mock_data/*.json` 业务说明字段 | → 全文本替换 (v0.2 仅 source 字段) |
+| `tools/h5_e2e/` 注释 + `zsyz_protocol.js` 文件名 | → 全文本替换 (v0.2 未触达) |
+| `tools/rgs-shim-rust/{Cargo.toml, docs, src, bench}` | → 全文本替换 (v0.2 仅 proto 注释) |
+| `docs/02-运维安全与网络/{RGS-BAS-027, RGS-DTL-027, ...}` `zsyz` 提及 | → 全文本替换 (v0.2 漏掉) |
+| `逆水寒` (in GAMED 文档反例说明) | → `[非相关IP]` (v0.4 新加) |
+
+v0.4 详细 inventory: `docs/14-项目治理/RGS-ULYS-237-DESENSITIZED-V4-COMPREHENSIVE-INVENTORY_v0.1.md`。
 
 ---
 

@@ -112,7 +112,7 @@ Mavis 收到通知后会:
 4. 等待 6 个 gRPC port listen(50051-50056)
 5. 调 gRPC `HealthCheck` 验证服务
 6. **rgs-web 接 5 域真实 gRPC**(commit v0.3-gm)
-7. 19 页面 ROPE_CS 完备(15 页面落地,4 页面 per DEC-008 不做)
+7. 19 页面 [游戏C]_src 完备(15 页面落地,4 页面 per DEC-008 不做)
 
 ---
 

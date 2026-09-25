@@ -14,7 +14,7 @@
     "not_implemented_count": 12,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.14 L788-805), RGS match-service BossService 当前 0 实装,需 v0.2+ sprint 补; 个人 BOSS 走 角色进程模式 (per boss.erl L1-100), 世界 BOSS 走 world_boss_mgr ets + 跨服分桶 (per world_boss.erl L1-200, world_boss_mgr.erl L1-150); 跨域依赖 economy (购买次数扣费) + leaderboard (伤害排行) + social (联盟 boss)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\boss\\boss_rpc.erl (2.7KB) + boss.erl (10.9KB, 个人 BOSS) + world_boss.erl (13.3KB, 世界 BOSS) + world_boss_mgr.erl (9.2KB, 世界 BOSS 管理 ets)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\boss\\boss_rpc.erl (2.7KB) + boss.erl (10.9KB, 个人 BOSS) + world_boss.erl (13.3KB, 世界 BOSS) + world_boss_mgr.erl (9.2KB, 世界 BOSS 管理 ets)",
     "rgs_translation": "match-service BossService trait + PgBossRepository (Master) + BossInstanceRepository (Work, 24h 战斗实例) + DamageLeaderboardRepository (Transaction, 伤害流水) + match v2 CreateMatch 进战斗 FSM + economy outbox 购买次数扣费 saga + leaderboard redis sorted set 伤害排行 + DashMap<i64, BossReminder> 提醒配置",
     "rgs_file_ref": "crates/match-service/src/boss_service.rs (待 v0.2 sprint 新建) + crates/economy-service/src/saga_orchestrator.rs (购买次数扣费) + crates/leaderboard-service/src/redis_set.rs (伤害排行)",
     "known_gaps": [

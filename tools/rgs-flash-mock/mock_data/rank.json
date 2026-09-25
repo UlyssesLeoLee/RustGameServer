@@ -13,13 +13,13 @@
     "partial_count": 0,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\rank\\rank.erl (2.0KB, list/1 + idx/2,3 + rank/2,3 + my_rank/2, 5 RPC 1:1 简单映射)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\rank\\rank.erl (2.0KB, list/1 + idx/2,3 + rank/2,3 + my_rank/2, 5 RPC 1:1 简单映射)",
     "rgs_translation": "rank_mgr ets → RGS leaderboard 域 (假设 crate, per addendum §4.8 数据流 redis sorted set + DB 异步落盘), 5 cmds 1:1 不细拆",
     "rgs_file_ref": "DDD v0.2 addendum §4.8 L616-634 + rank.erl L20-64 (list/idx/rank/my_rank 4 函数)",
     "known_gaps": [
       "RGS leaderboard 域是假设 (per addendum §4.8 实体 LeaderboardEntry 段), 实际 crate 待 v0.2 验证 (per audit v0.3 §1.2)",
       "rank.erl rank_rc record (idx/key/val1/val2/val3/id) 跟 RGS LeaderboardEntry schema 字段 1:1 待 v0.2 验证",
-      "闪烁之光 rank_mgr ets 实时查询 vs RGS redis sorted set 异步落盘, 性能 baseline 待 9 月 Phase C 后对比",
+      "[游戏A] rank_mgr ets 实时查询 vs RGS redis sorted set 异步落盘, 性能 baseline 待 9 月 Phase C 后对比",
       "partner_rank (12903) 跟 RGS card 域 CardInstance 关联待 v0.2 实装"
     ]
   },

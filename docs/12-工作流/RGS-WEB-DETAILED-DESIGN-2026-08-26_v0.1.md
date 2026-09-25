@@ -337,7 +337,7 @@ server.listen(PORT, '127.0.0.1', () => {
 }
 ```
 
-**设计参考**:ROPE_CS 的 dark theme + Tailwind-style CSS 变量
+**设计参考**:[游戏C]_src 的 dark theme + Tailwind-style CSS 变量
 
 ### 3.3 布局(grid)
 

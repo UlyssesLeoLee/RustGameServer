@@ -45,22 +45,22 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 - login_rpc.erl 10300-10302 (设备注册/找回密码) 协议号是推测, 实际未抽样 read 验证
 - recruit.erl shared_reward/1 函数 (21103 协议号对应) 实现未抽样 read
 - RGS leaderboard 域 (rank 对应) 是假设 crate, 实际待 v0.2 sprint 验证 (per addendum §4.8)
-- rank.erl 5 cmds 协议号 (12900-12904) 实际 erl mapping 推测, 闪烁之光 协议号分段.md L51 仅确认协议号 129 = rank 模块, 5 cmds 数量跟 rank_rpc.erl 1.1KB 一致
+- rank.erl 5 cmds 协议号 (12900-12904) 实际 erl mapping 推测, [游戏A] 协议号分段.md L51 仅确认协议号 129 = rank 模块, 5 cmds 数量跟 rank_rpc.erl 1.1KB 一致
 - RGS-DDD-2026-09-04 v0.2 主 doc (per 39d817b 升版) §3.7-§3.12 6 module 业务扩写 vs v0.1 §3 5-30 行 each 差异未做详细 diff
 - 6 Partial 实际 .erl 抽样 L80-L137 范围 (per 抽样方法 §3.2), 部分完整业务函数 (do_draw/4 4 变体 L94+ / role_query:pid/2 / role:start/5) 未完整覆盖
 
 ---
 
-## 1. 6 Partial 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 1. 6 Partial 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 1.1 conn_login (协议号 11, 3 cmds) — cluster_ops (新) + player (主)
 
 **业务核心**: TCP 握手层, 1 conn 1 conn_session 5min 过期 (per addendum §4.9 + conn_login_rpc.erl L15-83)
 
-| RPC code | 业务 | 闪烁之光 实现 (per conn_login_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per conn_login_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 1110 | 握手/帐号登录 | handle/3 (L15-72) + check_can_login/3: auth_ticket → check_can_login → 查 role 列表 → 返 role_list | tools/rgs-conn-login-backend/ 新独立 connector service, 1:1 翻译 ets 5min 过期 → Arc<DashMap<Uuid, ConnSession>> | Partial | RGS 0 cluster_ops 域 service, 需 v0.2 新建 |
-| 1198 | 验证 token (心跳响应) | handle/3 (L74-75) echo time 极简 | ClusterOpsService.VerifyToken, 扩为完整 token 校验 + heartbeat session 更新 | Partial | 闪烁之光 极简 echo, RGS 需扩 |
+| 1198 | 验证 token (心跳响应) | handle/3 (L74-75) echo time 极简 | ClusterOpsService.VerifyToken, 扩为完整 token 校验 + heartbeat session 更新 | Partial | [游戏A] 极简 echo, RGS 需扩 |
 | 1199 | 关闭连接 | handle/3 (L77-83) 清理 conn_session | ClusterOpsService.CloseConnection, 跟 5 域 session 清理整合 | Partial | RGS 连接层 0 实现 |
 
 **RGS backend 路由**:
@@ -79,7 +79,7 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 
 **业务核心**: 角色登录全流程 (per addendum §4.7 + login_rpc.erl L17-137)
 
-| RPC code | 业务 | 闪烁之光 实现 (per login_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per login_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 10101 | 创建角色 | handle/3 (L17-66) 30 字段 INSERT INTO role, ?MAX_ROLE_NUM=1 | PlayerService.CreatePlayer, 1:1 翻译 SQL 30 字段, ?MAX_ROLE_NUM 单角色策略待协调 | Partial | RGS 多角色 vs ?MAX_ROLE_NUM=1 冲突 |
 | 10102 | 登录角色 | handle/3 (L68-102) check_login + role:start/5 + role_query:pid/2 | PlayerService.LoginRole, 1 player 1 actor task (per addendum §2.2 角色 gen_server 翻译) | Partial | ?minu_ms(3) 延时停止策略待协调 |
@@ -103,7 +103,7 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 
 **业务核心**: 排行榜 5 维度 (per addendum §4.8 + rank.erl L20-64)
 
-| RPC code | 业务 | 闪烁之光 实现 (per rank.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per rank.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 12900 | 获取排行榜数据 | list/1 (L22-24) + rank_mgr:lookup/1 ets 查询 | LeaderboardService.GetRankData, 1:1 翻译 | **Pass** | RGS leaderboard 域 crate 待 v0.2 验证 |
 | 12901 | 最后更新时间 | (推测, ets 字段 updated_at) | LeaderboardService.GetLastUpdateTime, 1:1 | **Pass** | ets 字段映射待验证 |
@@ -129,7 +129,7 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 
 **业务核心**: 伙伴招募 (per addendum §4.10 + recruit.erl L1-100)
 
-| RPC code | 业务 | 闪烁之光 实现 (per recruit.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per recruit.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 21100 | 召唤池列表 | info/1 (L74-83) + recruit_data:get_all/0 | CardService.ListPools, RecruitPool Master 实体待 v0.2 实装 | Partial | RGS 缺 RecruitPool Master, 沿用 drop_tables |
 | 21101 | 召唤 (抽卡) | draw/4 (L86-100) + check_cond/4 + do_draw/4 4 变体 (L94+) | CardService.Recruit, OpenPack saga 3 步 (扣费→抽卡→落盘) 已实装 | Partial | draw/4 4 变体映射为 1 Recruit + cost_type enum 简化 |
@@ -151,7 +151,7 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 
 **业务核心**: 跨服时空 (per addendum §4.11 + group_control_rpc.erl L22-85)
 
-| RPC code | 业务 | 闪烁之光 实现 (per group_control_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per group_control_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 22100 | 跨服阶段信息 | handle/3 (L22-26) + group_control_mgr:query_group_control_info/0 + get_group_control_reward/2 (L54-70) | BatchService.GetGroupControlInfo, 跨服分桶 enum GrpcDomain 5 桶 (per audit v0.3 §3.6) | Partial | RGS 缺 GroupControlStage Master, 跨服分桶待实装 |
 | 22101 | 跨服阶段奖励 | handle/3 (L28-42) + do_receive/3 (L78-85) + has_reward/3 (L72-76) 状态机 | BatchService.ClaimGroupControlReward, group_control_rewards Transaction 3 态状态机 1:1 翻译 | Partial | role_gain:do_notice 跟 RGS economy gain 模式整合待验证 |
@@ -171,7 +171,7 @@ worker-2 负责 6 Partial (login/rank/conn_login/recruit/group_control/activity)
 
 **业务核心**: 活跃度宝箱 (per addendum §4.12 + activity.erl L33-80)
 
-| RPC code | 业务 | 闪烁之光 实现 (per activity.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per activity.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 20300 | 已领取宝箱列表 | box/1 (L31-34) + var:get_var 角色进程字典 | BatchService.GetClaimedChests, player_activity_progress Transaction chest_claimed_ids[] JSONB 字段 1:1 | Partial | RGS 缺 player_activity_progress Transaction |
 | 20301 | 领取活跃宝箱 | reward/2 (L36-66) 6 步: 校验 total_points → 查 activity_data → role_gain:do_notice → var:set_var → log:log_gain | BatchService.ClaimActivityChest, 走 batch 域 task + instance table 模式 | Partial | activity_data Master 表待实装, 0/5 点 cron 待 v0.2 协调 |
@@ -327,7 +327,7 @@ Get-ChildItem mock_data\*.json | ForEach-Object { Get-Content $_ -Raw | ConvertF
 1. **6 Partial 实际 .erl 抽样**: 仅 4 个 rpc.erl 完整 read (login_rpc.erl + conn_login_rpc.erl + group_control_rpc.erl + activity.erl + rank.erl + recruit.erl L1-100), group_control_mgr.erl 12.8KB / c_group_control_mgr.erl 8.6KB 未抽样 read
 2. **协议号映射**: login_rpc.erl 10300-10302 (设备注册/找回密码) 协议号是推测, 实际未抽样 read 验证
 3. **recruit.erl shared_reward/1 函数**: 21103 协议号对应函数实现未抽样 read
-4. **rank.erl 5 cmds 协议号 12900-12904**: 实际 erl mapping 推测, 闪烁之光 协议号分段.md L51 仅确认协议号 129 = rank 模块
+4. **rank.erl 5 cmds 协议号 12900-12904**: 实际 erl mapping 推测, [游戏A] 协议号分段.md L51 仅确认协议号 129 = rank 模块
 5. **RGS leaderboard 域**: rank 对应是假设 crate, 实际待 v0.2 sprint 验证 (per addendum §4.8)
 
 ### 6.2 框架缺口 (per audit v0.3 §8.2)
@@ -339,7 +339,7 @@ Get-ChildItem mock_data\*.json | ForEach-Object { Get-Content $_ -Raw | ConvertF
 ### 6.3 数据缺口
 
 - **RGS 5 域 ST 业务 mTLS cert 导出 SOP** (per 8/27 ST 导出 + L-CAND-006 兜底) — 6 Partial mock 跨域调用需 cert 复用
-- **闪烁之光 性能 baseline** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 后
+- **[游戏A] 性能 baseline** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 后
 - **43 条未提取 + 113 条无标题** (per 借鉴分析 .md §0) — 6 Partial 完整覆盖, 12 Partial 累计 21 cmds 抽样
 
 ### 6.4 业务缺口

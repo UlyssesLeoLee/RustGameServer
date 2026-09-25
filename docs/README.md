@@ -265,7 +265,7 @@
 | Proto gRPC | battle/v1/battle.proto (12 svc / 250 RPC) | scene/v1/scene.proto (1 svc / 148 RPC) | pvp_full/v1/pvp_full.proto (1 svc / 30 RPC) | replay_extra/v1/replay_extra.proto (1 svc / 10 RPC) | gm_extra/v1/gm_extra.proto (1 svc / 10 RPC) | leaderboard_extra/v1/leaderboard_extra.proto (1 svc / 7 RPC) | operate/v1/operate.proto (1 svc / 7 RPC) | social_extra/v1/social_extra.proto (1 svc / 15 RPC) |
 | ARC 编号 | ARC-046（数据驱动 + 反"一活动一模块"）| ARC-049（数据驱动 + AOI 复用）| ARC-050（复用 battle PvP 数据驱动）| ARC-051（复用 replay-service 既有）| ARC-052（复用 gm-backend 既有管控）| ARC-053（复用 leaderboard-service 既有）| ARC-054（复用 ARC-021 插件体系）| ARC-055（复用 social-service / DTL-013）|
 
-**落实原则（per 9/4 MD §4 闪烁之光反例）**：8 域均**严格**遵守"不重复建设 + 不绕过既有基础设施"原则。新增变体（如 PVP 6 变体、holiday_* 9 变体）由 Config 数据驱动（ARC-021 插件体系），**不**新建独立 service / crate。具体活动战斗走 battle HolidayActivityService 既有、好友关系走 social-service 既有、排行榜核心走 leaderboard-service 既有、录像文件存储走 replay-service 既有、跨域玩家匹配走 MT 既有、战斗结算发放走 EC 既有。
+**落实原则（per 9/4 MD §4 [游戏A]反例）**：8 域均**严格**遵守"不重复建设 + 不绕过既有基础设施"原则。新增变体（如 PVP 6 变体、holiday_* 9 变体）由 Config 数据驱动（ARC-021 插件体系），**不**新建独立 service / crate。具体活动战斗走 battle HolidayActivityService 既有、好友关系走 social-service 既有、排行榜核心走 leaderboard-service 既有、录像文件存储走 replay-service 既有、跨域玩家匹配走 MT 既有、战斗结算发放走 EC 既有。
 
 **审计发现（per 9/4 MD §2）**：8 个代码先行扩展域合计约 9,748 LOC Rust 代码 + 485 RPC（不计 HealthCheck）。本文档为其三层 REQ/BAS/DTL 文档的同步补全（24 份 v0.1 草案），由 wt-b 子任务（agent/ulys-1/wt-b-extreq）于 2026-09-11 完成。
 

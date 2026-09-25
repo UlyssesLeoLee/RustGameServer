@@ -1,4 +1,4 @@
-//! 黄金向量测试: 锁定 zsyz wire 协议的字节级行为 (1:1 对齐 zsyz_server)
+//! 黄金向量测试: 锁定 [游戏A] wire 协议的字节级行为 (1:1 对齐 [游戏A]_server)
 //!
 //! ## 范围 (per ULYS-2.1 P0 + 任务 brief §"黄金向量 (tests/golden_vectors.rs)")
 //!
@@ -9,9 +9,9 @@
 //! - **Vector 13-17**: 5 个 negative test
 //!
 //! ## 数据来源
-//! - Vector 1/2/3: 反推自 `E:/BaiduNetdiskDownload/闪烁之光/server分析/zsyz_server/src/proto/proto_11.erl`
+//! - Vector 1/2/3: 反推自 `E:/[跨盘-某发行商目录]/[游戏A]/server分析/[游戏A]_server/src/proto/proto_11.erl`
 //!   和 `proto_101.erl` 的 `pack/3` 字节序列 (Erlang wire 格式与 `protocol:pack` 1:1, 无 type tag).
-//! - Vector 4-17: 协议级断言, 不依赖 zsyz 端.
+//! - Vector 4-17: 协议级断言, 不依赖 [游戏A] 端.
 //!
 //! ## Wire 格式关键事实 (per ULYS-2 §2 关键事实 F2 + F3)
 //! - 帧: `[4B length u32 BE][2B cmd u16 BE][payload TLV]`
@@ -316,13 +316,13 @@ fn golden_tlv_str_roundtrip_ascii() {
 #[test]
 fn golden_tlv_str_roundtrip_utf8_chinese() {
     let schema = vec![FieldSchema::scalar("s", FieldType::Str)];
-    let v = map(&[("s", json!("闪烁之光"))]);
+    let v = map(&[("s", json!("中文测试"))]);
     let mut out = Vec::new();
     pack_fields(&mut out, &schema, &v).unwrap();
     let len = u16::from_be_bytes([out[0], out[1]]);
-    assert_eq!(len, 12, "闪烁之光 UTF-8 = 12 字节");
+    assert_eq!(len, 12, "中文测试 UTF-8 = 12 字节");
     let (d, _) = unpack_fields(&out, &schema).unwrap();
-    assert_eq!(d.get("s").unwrap().as_str().unwrap(), "闪烁之光");
+    assert_eq!(d.get("s").unwrap().as_str().unwrap(), "中文测试");
 }
 
 #[test]
