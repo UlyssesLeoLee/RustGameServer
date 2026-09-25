@@ -82,7 +82,7 @@ enum CardType {
   CARD_TYPE_CREATURE = 1;   // 生物
   CARD_TYPE_SPELL = 2;      // 法术
   CARD_TYPE_EQUIPMENT = 3;  // 装备
-  CARD_TYPE_LAND = 4;       // 地 (MTG)
+  CARD_TYPE_LAND = 4;       // 地 ([游戏F])
   CARD_TYPE_TRAP = 5;       // 陷阱 (YGO)
   CARD_TYPE_HERO = 6;       // 英雄
 }
