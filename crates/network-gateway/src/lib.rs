@@ -5,7 +5,7 @@
 //! 2. 协议号 → gRPC method 路由表骨架 — `router.rs`
 //! 3. EPMD 协议 stub (端口 4369, 简单 NodeInfo 响应) — `epmd.rs`
 //! 4. Erlang 分布式协议 stub (net_kernel 模拟) — `dist.rs`
-//! 5. 闪烁之光 (zsyz) 自研二进制编解码 (Frame + TLV 9 种类型) — `codec.rs`, `tlv.rs`
+//! 5. [游戏A] ([游戏A]) 自研二进制编解码 (Frame + TLV 9 种类型) — `codec.rs`, `tlv.rs`
 //! 6. Admin gRPC 服务 (HealthCheck/ListRoutes/RegisterRoute/GetStats) — `server.rs`
 //!
 //! ## 真实演示 (per task brief)

@@ -5,7 +5,7 @@
 //! - gRPC boundary 才转 tonic::Status
 //! - sqlx::Error / anyhow::Error 显式 From impl, 不使用 `#[from]` (控制 enum 大小)
 //!
-//! 业务错误码 (per 闪烁之光借鉴 + 战斗域):
+//! 业务错误码 (per [游戏A]借鉴 + 战斗域):
 //! - NotFound: 战斗/房间/BOSS/副本/护送/圣器/公会战 不存在
 //! - Validation: 参数非法 (空 battle_id / 数值超界 ...)
 //! - Conflict: 战斗状态机非法转移 / 资源不足 / 次数耗尽

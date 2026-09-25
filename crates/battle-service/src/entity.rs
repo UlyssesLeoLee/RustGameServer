@@ -1,4 +1,4 @@
-//! battle-service 域 entity 定义 (per 9/4 MD §2 + W5 简报 + 闪烁之光借鉴)
+//! battle-service 域 entity 定义 (per 9/4 MD §2 + W5 简报 + [游戏A]借鉴)
 //!
 //! 域核心 entity (7 域独立, per ARC-008 5 独立 DB → 7 域扩展):
 //! - **BattlePhase**: 战斗阶段状态机 (Init → Prepare → RoundStart → Action → RoundEnd → End)

@@ -2,7 +2,7 @@
 //!
 //! ## 范围
 //! Erlang/OTP distributed protocol (dist_proto), 客户端节点互联的二进制协议.
-//! 闪烁之光 zone 节点 -hidden 启动 (per 9/4 MD §3), 靠 cluster_srv/cluster_cli
+//! [游戏A] zone 节点 -hidden 启动 (per 9/4 MD §3), 靠 cluster_srv/cluster_cli
 //! 自行管理连接对象, 不加入默认全网广播. RGS 协议网关需兼容 net_kernel:monitor_nodes
 //! + net_adm:ping 流程.
 //!
@@ -60,14 +60,14 @@ impl Default for DistState {
     }
 }
 
-/// 节点身份 (per net_kernel, 闪烁之光节点名 `name@host`)
+/// 节点身份 (per net_kernel, [游戏A]节点名 `name@host`)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DistNode {
     /// 节点名 (e.g. "sszg_center_6")
     pub name: String,
     /// 主机 (e.g. "10.0.0.1" / "center.cluster.local")
     pub host: String,
-    /// 是否 hidden 节点 (per 9/4 MD §3, 闪烁之光全部 -hidden)
+    /// 是否 hidden 节点 (per 9/4 MD §3, [游戏A]全部 -hidden)
     pub hidden: bool,
 }
 

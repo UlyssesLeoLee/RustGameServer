@@ -2,7 +2,7 @@
 //!
 //! ## 范围
 //! 协议网关 (network-gateway) 是 RGS 7 域 gRPC 业务在 Erlang 侧的入口.
-//! 闪烁之光客户端 → web_conn.erl (BEAM) → NIF 调 RGS gRPC 业务域 → 返回字节流.
+//! [游戏A]客户端 → web_conn.erl (BEAM) → NIF 调 RGS gRPC 业务域 → 返回字节流.
 //!
 //! ## 7 域 gRPC 目标 (per 9/4 改进路线图 Phase 2)
 //! - player-service: 账号/角色/资产 (proto_code 101xx-103xx)

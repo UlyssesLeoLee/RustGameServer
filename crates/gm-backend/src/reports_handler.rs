@@ -1,4 +1,4 @@
-//! reports_handler — 报表 (per ROPE_CS gm_platform/modules/analytics 移植)
+//! reports_handler — 报表 (per [游戏C]_src gm_platform/modules/analytics 移植)
 //! 2026-09-01 actix-web 重写
 
 use actix_web::{web, HttpResponse};

@@ -1,4 +1,4 @@
-//! mall_handler — 商品 CRUD (per ROPE_CS gm_platform/modules/economy 移植)
+//! mall_handler — 商品 CRUD (per [游戏C]_src gm_platform/modules/economy 移植)
 //! 2026-09-01 actix-web 重写, 内存 mock
 
 use actix_web::{web, HttpResponse};

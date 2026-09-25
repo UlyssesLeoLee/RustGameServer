@@ -1,4 +1,4 @@
-//! battle-service —— 7 域战斗微服务 (per 路线图 §3 W5 + 9/4 MD §2 + 闪烁之光借鉴)
+//! battle-service —— 7 域战斗微服务 (per 路线图 §3 W5 + 9/4 MD §2 + [游戏A]借鉴)
 //!
 //! 域职责 (7 域独立 Lead, per 8/21 JST 5 域 → 9/1 JST batch 域 → 9/5 JST battle 域):
 //!   1. BattleEngineService  - 战斗引擎 (proto_200, 31 RPC)

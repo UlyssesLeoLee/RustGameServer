@@ -1,4 +1,4 @@
-//! players_handler — 玩家列表 + 统计 (per ROPE_CS gm_platform/modules/player 移植)
+//! players_handler — 玩家列表 + 统计 (per [游戏C]_src gm_platform/modules/player 移植)
 //! 2026-09-01 actix-web 重写, 内存 mock 数据 (生产应接 player-service gRPC)
 
 use actix_web::{web, HttpResponse};
@@ -48,7 +48,7 @@ pub struct PlayerStatsResponse {
     pub high_value: u32,
 }
 
-/// 生成 mock 玩家数据 (per ROPE_CS — 无外部数据源时使用)
+/// 生成 mock 玩家数据 (per [游戏C]_src — 无外部数据源时使用)
 fn generate_mock_players(count: usize) -> Vec<PlayerEntry> {
     let mut rng = rand::thread_rng();
     let statuses = ["online", "offline", "banned"];

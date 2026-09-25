@@ -4,10 +4,10 @@ import "common/v1/common.proto";
 option go_package = "github.com/ulyssesleolee/rustgameserver/proto/battle/v1;battlev1";
 
 // ============================================================
-// battle-service v0.1 (per 闪烁之光 借鉴 + RGS-IMPL-PLAN 7 域扩展)
+// battle-service v0.1 (per [游戏A] 借鉴 + RGS-IMPL-PLAN 7 域扩展)
 //
 // 任务来源: D:\sszgC\改进路线图.md §3 Phase 2 / §0.1 7 域 ready=True
-// 上游分析: E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\
+// 上游分析: [跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\分析产出\
 //   - API清单-全量提取-2026-09-04.tsv (12 个战斗类 proto_*.erl, 249 条)
 //   - API清单与RGS借鉴分析-2026-09-04.md §2/§4 (反例: 6 PVP 变体 + 9 holiday_*)
 //

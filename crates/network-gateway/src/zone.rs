@@ -1,7 +1,7 @@
 //! Zone 启动 stub (per 9/4 改进路线图 Phase 1 协议网关 + 9/4 MD §3 zone 拓扑)
 //!
 //! ## 范围
-//! 闪烁之光 zone 节点 (per 9/4 MD §3 网络拓扑) 是 center 节点的下属分片.
+//! [游戏A] zone 节点 (per 9/4 MD §3 网络拓扑) 是 center 节点的下属分片.
 //! zone 启动脚本 (sname -hidden, e.g. `erl -sname sszg_zone_1 -setcookie XXXX
 //! -hidden -s zone start`) 加载 web_conn.erl, 注册到 center, 处理地图分片业务.
 //!
@@ -45,7 +45,7 @@ pub struct ZoneConfig {
     pub center_node: String,
     /// 监听端口 (per 9/4 MD §3, web_conn 默认 8000, dist 端口 OS 分配)
     pub listen_port: u16,
-    /// 是否 hidden 节点 (per 9/4 MD §3, 闪烁之光全部 -hidden)
+    /// 是否 hidden 节点 (per 9/4 MD §3, [游戏A]全部 -hidden)
     pub hidden: bool,
     /// Erlang cookie (per 8/27 11:06 JST hard ban, 不打印)
     pub cookie: Vec<u8>,

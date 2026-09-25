@@ -1,4 +1,4 @@
-//! canvas_handler — Canvas 画布指令 (per ROPE_CS gm_platform/modules/canvas 移植)
+//! canvas_handler — Canvas 画布指令 (per [游戏C]_src gm_platform/modules/canvas 移植)
 //! 2026-09-01 actix-web 重写, mock 转发 (生产应接 match-service / game-server)
 
 use actix_web::{web, HttpResponse};

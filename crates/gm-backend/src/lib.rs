@@ -5,18 +5,18 @@
 //!
 //! ## 2026-09-01 actix-web 重写 (per Ulysses 决策)
 //! 替换原 axum 0.7 → actix-web 4.0, 保留 5 现有 GM endpoint + JWT + admin gRPC client +
-//! circuit breaker, 补全 ROPE_CS 9 端点 + 4 业务模块 + SSE 实时事件流.
+//! circuit breaker, 补全 [游戏C]_src 9 端点 + 4 业务模块 + SSE 实时事件流.
 //!
 //! ## 公开 API
 //! - `GmConfig::from_env()` — 配载 + 解析
-//! - `AppState` — handler 共享状态 (含 8 个 ROPE_CS 移植的内存模块)
+//! - `AppState` — handler 共享状态 (含 8 个 [游戏C]_src 移植的内存模块)
 //! - `register_routes(cfg)` — 把全部 15+ 端点 + SSE 注册到 actix-web ServiceConfig
 //! - `register_health_routes(cfg)` — 探针路由 (8081, 走 /healthz /readyz)
 //! - 业务 handler: health_view, ban_account, grant_compensation, set_maintenance,
 //!   query_audit, login, list_players, broadcast, list_anchors, send_canvas_command,
 //!   list_servers, start_server, stop_server, list_mall_items, create_mall_item, ...
 //! - JWT middleware: `JwtAuth` (actix-web Transform)
-//! - bcrypt password hash (ROPE_CS 同等功能)
+//! - bcrypt password hash ([游戏C]_src 同等功能)
 //!
 //! main.rs 只做 entry point, 把所有可测部分放在这里.
 
@@ -65,7 +65,7 @@ pub mod circuit_breaker;
 // 5 GM 业务 handler (per gm.proto v0.4)
 pub mod business_handler;
 
-// 补全 4 端点 + SSE handler (per ROPE_CS 移植)
+// 补全 4 端点 + SSE handler (per [游戏C]_src 移植)
 pub mod auth_handler;
 pub mod players_handler;
 pub mod broadcast_handler;
@@ -190,7 +190,7 @@ impl AuditStore for InMemoryAuditStore {
 }
 
 // ============================================================================
-// AppState — 含 8 个 ROPE_CS 移植的内存模块
+// AppState — 含 8 个 [游戏C]_src 移植的内存模块
 // ============================================================================
 
 #[derive(Clone)]
@@ -198,19 +198,19 @@ pub struct AppState {
     pub config: Arc<GmConfig>,
     pub audit_store: Arc<dyn AuditStore>,
     pub admin_grpc: Option<Arc<AdminGrpcClient>>,
-    /// ROPE_CS 移植: SSE 实时事件总线
+    /// [游戏C]_src 移植: SSE 实时事件总线
     pub broadcast_tx: tokio::sync::broadcast::Sender<BroadcastEntry>,
-    /// ROPE_CS 移植: admin 列表 (init 时 ensure_default_admin 创建 superadmin)
+    /// [游戏C]_src 移植: admin 列表 (init 时 ensure_default_admin 创建 superadmin)
     pub admins: Arc<std::sync::Mutex<Vec<AdminRecord>>>,
-    /// ROPE_CS 移植: mall items
+    /// [游戏C]_src 移植: mall items
     pub mall_items: Arc<std::sync::Mutex<Vec<MallItem>>>,
-    /// ROPE_CS 移植: grants
+    /// [游戏C]_src 移植: grants
     pub grants: Arc<std::sync::Mutex<Vec<GrantEntry>>>,
-    /// ROPE_CS 移植: tickets
+    /// [游戏C]_src 移植: tickets
     pub tickets: Arc<std::sync::Mutex<Vec<TicketEntry>>>,
-    /// ROPE_CS 移植: reports
+    /// [游戏C]_src 移植: reports
     pub reports: Arc<std::sync::Mutex<Vec<ReportEntry>>>,
-    /// ROPE_CS 移植: servers 列表 + state (5 假 server 初始化)
+    /// [游戏C]_src 移植: servers 列表 + state (5 假 server 初始化)
     pub servers: Arc<std::sync::Mutex<Vec<ServerEntry>>>,
 }
 
@@ -261,7 +261,7 @@ impl AppState {
         }
     }
 
-    /// ROPE_CS 移植: ensure_default_admin — 创建默认 superadmin (admin/adminpass)
+    /// [游戏C]_src 移植: ensure_default_admin — 创建默认 superadmin (admin/adminpass)
     pub async fn ensure_default_admin(&self) {
         let mut admins = self.admins.lock().unwrap();
         if !admins.iter().any(|a| a.username == "admin") {
@@ -534,13 +534,13 @@ pub fn register_routes(cfg: &mut web::ServiceConfig) {
                     // admin 管理
                     .route("/admins", web::post().to(auth_handler::create_admin))
                     .route("/admins", web::get().to(auth_handler::list_admins))
-                    // 4 补全端点 (ROPE_CS 移植)
+                    // 4 补全端点 ([游戏C]_src 移植)
                     .route("/players", web::get().to(list_players))
                     .route("/broadcast", web::post().to(broadcast))
                     .route("/broadcasts", web::get().to(list_broadcasts))
                     .route("/canvas/anchors", web::get().to(list_anchors))
                     .route("/canvas/send", web::post().to(send_canvas_command))
-                    // 4 业务模块 (ROPE_CS 移植)
+                    // 4 业务模块 ([游戏C]_src 移植)
                     .route("/servers", web::get().to(list_servers))
                     .route("/servers/{id}/start", web::post().to(start_server))
                     .route("/servers/{id}/stop", web::post().to(stop_server))

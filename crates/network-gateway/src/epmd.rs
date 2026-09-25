@@ -1,7 +1,7 @@
 //! EPMD 协议 stub (per 9/4 改进路线图 Phase 1 协议网关)
 //!
 //! ## 范围
-//! EPMD (Erlang Port Mapper Daemon) 端口 4369, 闪烁之光分布式集群依赖.
+//! EPMD (Erlang Port Mapper Daemon) 端口 4369, [游戏A]分布式集群依赖.
 //! 客户端分布节点 + 互联都先问 EPMD 节点名 → 端口映射.
 //!
 //! ## 协议概要 (per Erlang/OTP epmd 模块)
@@ -48,7 +48,7 @@ pub mod cmd {
 pub struct NodeInfo {
     /// 节点名 (e.g. "sszg_center_6")
     pub name: String,
-    /// 节点端口 (gen_tcp:listen 端口, 闪烁之光用 8000+ 区间)
+    /// 节点端口 (gen_tcp:listen 端口, [游戏A]用 8000+ 区间)
     pub port: u16,
     /// 节点类型: 0x77 (老) / 0x6E (new hidden) / 0x6F (old hidden)
     pub node_type: u8,
