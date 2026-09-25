@@ -1,4 +1,4 @@
-//! support_handler — 客服工单 (per ROPE_CS gm_platform/modules/support 移植)
+//! support_handler — 客服工单 (per [游戏C]_src gm_platform/modules/support 移植)
 //! 2026-09-01 actix-web 重写
 
 use actix_web::{web, HttpRequest, HttpResponse};

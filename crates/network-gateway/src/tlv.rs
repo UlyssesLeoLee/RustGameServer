@@ -1,4 +1,4 @@
-//! zsyz TLV 9 种字段类型 (与 `protocol:pack` + Erlang 字节序 1:1 对齐)
+//! [游戏A] TLV 9 种字段类型 (与 `protocol:pack` + Erlang 字节序 1:1 对齐)
 //!
 //! ## 类型表 (per ULYS-2.1 §TLV 类型)
 //!
@@ -31,7 +31,7 @@
 //! 注: 数组元素类型由 schema 决定, wire 上不写类型 tag (与 Erlang `protocol:array` 1:1).
 //!
 //! ## 与 `proto_mate` 的对应
-//! - `proto_mate` 是 zsyz 的前端 TS 协议生成器, 输出 `{cmd, name, fields}` 表
+//! - `proto_mate` 是 [游戏A] 的前端 TS 协议生成器, 输出 `{cmd, name, fields}` 表
 //! - 每个 field 是 `{type, name}` 元组, type ∈ {int8,uint8,int16,uint16,int32,uint32,string,bytes,array}
 //! - wire 编码完全等同于上述 `protocol:pack` 输出 (per F2 + F3 关键事实, per ULYS-2 §2)
 //!

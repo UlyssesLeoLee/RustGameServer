@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "7 域战斗微服务 (per 路线图 §3 W5 / 9/4 MD §2 战斗与 PVE 核心 241 RPC / 闪烁之光借鉴)"
+description = "7 域战斗微服务 (per 路线图 §3 W5 / 9/4 MD §2 战斗与 PVE 核心 241 RPC / [游戏A]借鉴)"
 
 [[bin]]
 name = "battle-service"

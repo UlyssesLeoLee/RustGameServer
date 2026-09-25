@@ -1,4 +1,4 @@
-//! auth_handler — 登录 + admin 管理 (per ROPE_CS gm_platform/modules/account 移植)
+//! auth_handler — 登录 + admin 管理 (per [游戏C]_src gm_platform/modules/account 移植)
 //! 2026-09-01 actix-web 重写 + 内存版 admin store (生产应接 admin_db.gm_users)
 
 use actix_web::{web, HttpRequest, HttpResponse};

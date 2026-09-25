@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "7 域场景微服务 — 场景/移动/单位/棋盘/任务/伙伴/剧情/阵法/副本/buff/空间（per 9/4 MD §2 闪烁之光 148 RPC 借鉴）"
+description = "7 域场景微服务 — 场景/移动/单位/棋盘/任务/伙伴/剧情/阵法/副本/buff/空间（per 9/4 MD §2 [游戏A] 148 RPC 借鉴）"
 
 [[bin]]
 name = "scene-service"

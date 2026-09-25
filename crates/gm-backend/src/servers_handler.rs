@@ -1,4 +1,4 @@
-//! servers_handler — 服务管控 (per ROPE_CS gm_platform/modules/system 移植)
+//! servers_handler — 服务管控 (per [游戏C]_src gm_platform/modules/system 移植)
 //! 2026-09-01 actix-web 重写, 内存 mock (生产应接 cluster-ops gRPC)
 
 use actix_web::{web, HttpResponse};

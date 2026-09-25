@@ -99,7 +99,7 @@ pub trait DeckRepository: Send + Sync {
     async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>>;
 }
 
-/// 闪烁之光 风格 Character Repository trait (per 9/5 11:50 JST 4 拍板 桶 12 增量)
+/// [游戏A] 风格 Character Repository trait (per 9/5 11:50 JST 4 拍板 桶 12 增量)
 ///
 /// 桶 12 占位: 当前 InMemory + sqlx Pg impl 留给主会话在 Phase 2 业务化时实装.
 /// 当前仅 InMemoryCharacterRepository (测试用) + trait 抽象.
@@ -715,7 +715,7 @@ impl DeckRepository for InMemoryDeckRepository {
 }
 
 // ============================================================================
-// 闪烁之光 Character Repository impls (per 9/5 11:50 JST 4 拍板 桶 12 增量)
+// [游戏A] Character Repository impls (per 9/5 11:50 JST 4 拍板 桶 12 增量)
 // ============================================================================
 
 // InMemoryCharacterRepository (单测用)
@@ -1062,7 +1062,7 @@ mod tests {
         assert!(found.share_code.is_none());
     }
 
-    // ----- 桶 12 增量: 闪烁之光 Character Repository UT (per 9/5 11:50 JST 4 拍板) -----
+    // ----- 桶 12 增量: [游戏A] Character Repository UT (per 9/5 11:50 JST 4 拍板) -----
 
     #[tokio::test]
     async fn in_memory_character_create_and_find() {

@@ -1,4 +1,4 @@
-//! summary_handler — Dashboard 聚合数据 (per ROPE_CS gm_platform/server.js /gm/summary 移植)
+//! summary_handler — Dashboard 聚合数据 (per [游戏C]_src gm_platform/server.js /gm/summary 移植)
 //! 2026-09-01 actix-web 重写
 
 use actix_web::{web, HttpResponse};
@@ -6,7 +6,7 @@ use serde_json::json;
 
 use crate::AppState;
 
-/// GET /gm/summary — 一次拉取 Dashboard 全部数据 (per ROPE_CS dashboard 风格)
+/// GET /gm/summary — 一次拉取 Dashboard 全部数据 (per [游戏C]_src dashboard 风格)
 pub async fn summary(state: web::Data<AppState>) -> HttpResponse {
     // 直接从 InMemory 聚合 (生产应调各 5 域 gRPC)
     let grants_count = state.grants.lock().unwrap().len() as u32;

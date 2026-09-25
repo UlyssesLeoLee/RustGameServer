@@ -4,7 +4,7 @@
 //! - tracing 初始化
 //! - 配载
 //! - actix-web HttpServer 双端口 (8443 主 + 8081 探针)
-//! - ROPE_CS 移植: ensure_default_admin + seed_reports
+//! - [游戏C]_src 移植: ensure_default_admin + seed_reports
 //!
 //! 2026-09-01: axum 0.7 → actix-web 4 重写 (per Ulysses 决策)
 

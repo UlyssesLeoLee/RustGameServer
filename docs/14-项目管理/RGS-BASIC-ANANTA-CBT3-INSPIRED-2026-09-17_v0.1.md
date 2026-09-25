@@ -1,9 +1,9 @@
-# RGS-BASIC-ANANTA-CBT3-INSPIRED v0.1 — 基本设计
+# RGS-BASIC-[游戏D]-[游戏D]_CBT3-INSPIRED v0.1 — 基本设计
 
 **创建日期**: 2026-09-17 JST
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **依据**: `RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md`（借鉴需求汇总）
-**作用域**: ANANTA 借鉴项目的架构级基本设计
+**作用域**: [游戏D] 借鉴项目的架构级基本设计
 **状态**: ⏳ 一审（Mavis 自审） / 待 Ulysses 二审
 **下游**: 后续 RGS-DETAILED-*（每个 REQ 一份详细设计）
 
@@ -34,10 +34,10 @@
 
 | Sprint | REQ 编号 | 详细度 |
 |---|---|---|
-| Sprint N（9 人日 / 2 周） | REQ-ANANTA-001 + REQ-ANANTA-004 | **详细设计** |
-| Sprint N+1（14 人日 / 3 周） | REQ-ANANTA-002 + REQ-ANANTA-005 | 概要设计 |
-| Sprint N+2（12 人日 / 2.5 周） | REQ-ANANTA-003 + REQ-ANANTA-006 + REQ-ANANTA-007 + REQ-ANANTA-008 | 概要设计 |
-| 待评估 | REQ-ANANTA-009 + REQ-ANANTA-010 | 备注 |
+| Sprint N（9 人日 / 2 周） | REQ-[游戏D]-001 + REQ-[游戏D]-004 | **详细设计** |
+| Sprint N+1（14 人日 / 3 周） | REQ-[游戏D]-002 + REQ-[游戏D]-005 | 概要设计 |
+| Sprint N+2（12 人日 / 2.5 周） | REQ-[游戏D]-003 + REQ-[游戏D]-006 + REQ-[游戏D]-007 + REQ-[游戏D]-008 | 概要设计 |
+| 待评估 | REQ-[游戏D]-009 + REQ-[游戏D]-010 | 备注 |
 
 ### 1.3 不做什么（per REQ 文档 §5.4）
 
@@ -45,7 +45,7 @@
 |---|---|
 | self-signed 证书 + hosts 劫持 | RGS 是生产级 mTLS，不需要 CBT 本地化 |
 | 客户端 IL2CPP dump 工具 | Unity 专有，RGS 客户端栈可能不同 |
-| ANANTA 的 Configs/ 195 MB 全部 JSON | RGS Master 表不需要全部 JSON，需评估 |
+| [游戏D] 的 Configs/ 195 MB 全部 JSON | RGS Master 表不需要全部 JSON，需评估 |
 | fengari JS 版 Lua 解释器 | RGS 客户端不是 Lua 主导 |
 
 ---
@@ -125,7 +125,7 @@
 
 ## 3. Sprint N 详细设计（REQ-001 + REQ-004）
 
-### 3.1 REQ-ANANTA-001: rgs-proto-dump
+### 3.1 REQ-[游戏D]-001: rgs-proto-dump
 
 #### 3.1.1 架构
 
@@ -222,9 +222,9 @@ rgs-proto-dump check \
     --strict   # fail if mismatch
 ```
 
-#### 3.1.4 ANANTA 兼容层（自动生成）
+#### 3.1.4 [游戏D] 兼容层（自动生成）
 
-参考 ANANTA `RpcFrameDispatcher.cs` 的 `frame.Mode == 0x08` 处理（客户端未实现 invoke 自动 ack）：
+参考 [游戏D] `RpcFrameDispatcher.cs` 的 `frame.Mode == 0x08` 处理（客户端未实现 invoke 自动 ack）：
 
 ```rust
 // crates/rgs-network/src/compat.rs (由 rgs-proto-dump 生成)
@@ -246,7 +246,7 @@ pub fn handle_unimplemented_invoke(
 - ✅ CLI 三种命令（export / diff / check）跑通
 - ✅ CI 集成示例（GitHub Actions workflow 片段）
 
-### 3.2 REQ-ANANTA-004: rgs-protocol/builds/<version>/
+### 3.2 REQ-[游戏D]-004: rgs-protocol/builds/<version>/
 
 #### 3.2.1 目录结构
 
@@ -357,7 +357,7 @@ jobs:
 
 ## 4. Sprint N+1 设计（概要）
 
-### 4.1 REQ-ANANTA-002: rgs-config-loader（业务配置 JSON）
+### 4.1 REQ-[游戏D]-002: rgs-config-loader（业务配置 JSON）
 
 **架构**：
 ```
@@ -396,7 +396,7 @@ crates/rgs-config-loader/
 
 **DoD**: L1 + L1.1 + L1.2（6 域 E2E 业务跑通）
 
-### 4.2 REQ-ANANTA-005: rgs-debug
+### 4.2 REQ-[游戏D]-005: rgs-debug
 
 **架构**：
 ```
@@ -412,7 +412,7 @@ crates/rgs-debug/
 **关键设计**：
 - 默认监听 `127.0.0.1:7878`（区别 rgs-web 8788 / gm-console 8080）
 - `config.debug.enabled = false` 默认关闭
-- 内嵌 `debug-panel.html`（跟 ANANTA `DebugPanel/index.html` 同款）
+- 内嵌 `debug-panel.html`（跟 [游戏D] `DebugPanel/index.html` 同款）
 - 提供 JSON API：
   - `GET /api/sessions` —— 当前所有 Session
   - `GET /api/rpc-stats` —— RPC 流量统计
@@ -429,7 +429,7 @@ crates/rgs-debug/
 
 ## 5. Sprint N+2 设计（概要）
 
-### 5.1 REQ-ANANTA-003: Rust trait 多文件实现规范化
+### 5.1 REQ-[游戏D]-003: Rust trait 多文件实现规范化
 
 **关键规则**（文档化）：
 ```rust
@@ -452,7 +452,7 @@ impl PlayerHandler for PlayerService { /* profile */ }
 
 **配套文档**：`docs/13-实施经验/RGS-HANDLER-PARTIAL-PATTERN_v0.1.md`
 
-### 5.2 REQ-ANANTA-006: DB migration KNOWN_ISSUES 段
+### 5.2 REQ-[游戏D]-006: DB migration KNOWN_ISSUES 段
 
 **格式约定**：
 ```sql
@@ -466,18 +466,18 @@ CREATE TABLE player.profile (...);
 
 **配套**：DDD Review 二审流程新增"KNOWN_ISSUES 段完整性"检查项。
 
-### 5.3 REQ-ANANTA-007: 玩法层纯数据驱动模式
+### 5.3 REQ-[游戏D]-007: 玩法层纯数据驱动模式
 
 **核心约束**：
-- 玩法核心逻辑控制在 5-10 KB（参考 ANANTA `WebTraversal.cs` 3 KB）
+- 玩法核心逻辑控制在 5-10 KB（参考 [游戏D] `WebTraversal.cs` 3 KB）
 - 所有数值 / ID / 阈值在 `configs/match/*.json`
 - 配合 REQ-002 共用 `rgs-config-loader`
 
 **改造范围**：match 域 + 战斗玩法层优先。
 
-### 5.4 REQ-ANANTA-008: 一键启动编排器
+### 5.4 REQ-[游戏D]-008: 一键启动编排器
 
-**13 步流程**（per ANANTA `Run-All.ps1`）：
+**13 步流程**（per [游戏D] `Run-All.ps1`）：
 
 | 步骤 | 内容 |
 |---|---|
@@ -501,7 +501,7 @@ CREATE TABLE player.profile (...);
 
 ## 6. 待评估设计
 
-### 6.1 REQ-ANANTA-009: saga-runtime 单 binary 多 server
+### 6.1 REQ-[游戏D]-009: saga-runtime 单 binary 多 server
 
 **待评估项**：
 - saga-runtime 当前是否已经支持多 server？
@@ -509,7 +509,7 @@ CREATE TABLE player.profile (...);
 
 **评估前置**：先看 `crates/saga-runtime/` 当前架构。
 
-### 6.2 REQ-ANANTA-010: Lua via mlua 跨语言脚本
+### 6.2 REQ-[游戏D]-010: Lua via mlua 跨语言脚本
 
 **待评估项**：
 - `mlua` crate 维护活跃度（最近 commit 时间）
@@ -747,8 +747,8 @@ ConfigRegistry::get_item(id) → O(1) 读
 
 ### 11.1 协议兼容性限制
 
-- ANANTA 的 Unity IL2CPP dump 工具未公开（REQ-001 需自研 binary parser）
-- ANANTA 协议格式细节（protobuf 自定义字段、压缩算法）未深入逆向
+- [游戏D] 的 Unity IL2CPP dump 工具未公开（REQ-001 需自研 binary parser）
+- [游戏D] 协议格式细节（protobuf 自定义字段、压缩算法）未深入逆向
 - 第一版 REQ-001 只支持"method id 表"对比，不支持"参数 schema 自动生成"
 
 ### 11.2 配置迁移风险
@@ -773,7 +773,7 @@ ConfigRegistry::get_item(id) → O(1) 读
 | 文档 | 路径 | 关系 |
 |---|---|---|
 | REQ（上游） | `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` | 本文档的输入 |
-| ANANTA 源码（参考） | `D:\PrivateServer\` | 逆向分析对象 |
+| [游戏D] 源码（参考） | `[跨盘-某发行商目录]/[游戏D]_privatesrv\` | 逆向分析对象 |
 | AGENTS.md | `D:\RustGameServer\AGENTS.md` | 仓库级守门 |
 | RACI（6 域） | `docs/14-项目管理/RGS-RACI-*-V1_*.md` | 6 域 Lead 协调 |
 | WBS | `docs/14-项目管理/RGS-PM-001_WBS流程_v0.1.md` | 落地排期 |
@@ -782,16 +782,16 @@ ConfigRegistry::get_item(id) → O(1) 读
 
 | REQ | DETAILED 文档路径 |
 |---|---|
-| REQ-ANANTA-001 | `docs/14-项目管理/RGS-DETAILED-ANANTA-001-rgs-proto-dump_v0.1.md` |
-| REQ-ANANTA-004 | `docs/14-项目管理/RGS-DETAILED-ANANTA-004-rgs-protocol-builds_v0.1.md` |
-| REQ-ANANTA-002 | `docs/14-项目管理/RGS-DETAILED-ANANTA-002-rgs-config-loader_v0.1.md` |
-| REQ-ANANTA-005 | `docs/14-项目管理/RGS-DETAILED-ANANTA-005-rgs-debug_v0.1.md` |
-| REQ-ANANTA-003 | `docs/14-项目管理/RGS-DETAILED-ANANTA-003-handler-partial-pattern_v0.1.md` |
-| REQ-ANANTA-006 | `docs/14-项目管理/RGS-DETAILED-ANANTA-006-db-known-issues_v0.1.md` |
-| REQ-ANANTA-007 | `docs/14-项目管理/RGS-DETAILED-ANANTA-007-data-driven-gameplay_v0.1.md` |
-| REQ-ANANTA-008 | `docs/14-项目管理/RGS-DETAILED-ANANTA-008-start-rgs-stack_v0.1.md` |
-| REQ-ANANTA-009 | `docs/14-项目管理/RGS-DETAILED-ANANTA-009-saga-runtime-multi-server_v0.1.md`（待评估） |
-| REQ-ANANTA-010 | `docs/14-项目管理/RGS-DETAILED-ANANTA-010-mlua-config_v0.1.md`（待评估） |
+| REQ-[游戏D]-001 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-001-rgs-proto-dump_v0.1.md` |
+| REQ-[游戏D]-004 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-004-rgs-protocol-builds_v0.1.md` |
+| REQ-[游戏D]-002 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-002-rgs-config-loader_v0.1.md` |
+| REQ-[游戏D]-005 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-005-rgs-debug_v0.1.md` |
+| REQ-[游戏D]-003 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-003-handler-partial-pattern_v0.1.md` |
+| REQ-[游戏D]-006 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-006-db-known-issues_v0.1.md` |
+| REQ-[游戏D]-007 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-007-data-driven-gameplay_v0.1.md` |
+| REQ-[游戏D]-008 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-008-start-rgs-stack_v0.1.md` |
+| REQ-[游戏D]-009 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-009-saga-runtime-multi-server_v0.1.md`（待评估） |
+| REQ-[游戏D]-010 | `docs/14-项目管理/RGS-DETAILED-[游戏D]-010-mlua-config_v0.1.md`（待评估） |
 
 ---
 
