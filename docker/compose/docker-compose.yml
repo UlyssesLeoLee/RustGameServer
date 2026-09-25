@@ -1,6 +1,6 @@
 # docker-compose dev profile（per WBS v0.3 §2A.5 WF-1-53.8）
 # 6 独立 PG 18.6 容器（per ARC-008 5 独立 DB + cluster_ops_db 第 6）
-# 5 域服务占位（53.8 接受：用 rust:1.98-slim 跑 cargo run --release 占位）
+# 5 域服务占位（53.8 接受：用 rust:1.98.1-slim 跑 cargo run --release 占位）
 # 规范：RGS-SPEC-000 §2.4 + RGS-OPS-001 §2.3
 
 name: rgs-dev
@@ -172,11 +172,11 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # ============ 5 域服务占位（53.8 接受：暂用 rust:1.98-slim 跑 cargo run --release）============
+  # ============ 5 域服务占位（53.8 接受：暂用 rust:1.98.1-slim 跑 cargo run --release）============
   # 54.5/54.6/54.7 业务实现后改为具体 distroless image（53.13 后）
 
   player-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-player-service
     working_dir: /app
     volumes:
@@ -196,7 +196,7 @@ services:
     restart: unless-stopped
 
   economy-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-economy-service
     working_dir: /app
     volumes:
@@ -216,7 +216,7 @@ services:
     restart: unless-stopped
 
   match-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-match-service
     working_dir: /app
     volumes:
@@ -236,7 +236,7 @@ services:
     restart: unless-stopped
 
   social-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-social-service
     working_dir: /app
     volumes:
@@ -256,7 +256,7 @@ services:
     restart: unless-stopped
 
   admin-service:
-    image: rust:1.98-slim
+    image: rust:1.98.1-slim
     container_name: rgs-admin-service
     working_dir: /app
     volumes:
