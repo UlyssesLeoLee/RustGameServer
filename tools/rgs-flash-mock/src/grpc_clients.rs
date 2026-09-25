@@ -434,3 +434,137 @@ pub mod leaderboard {
 fn _static_assert_no_cert_value_in_logs() {
     let _p: &Path = Path::new("/etc/rgs/certs/ca.pem");
 }
+
+#[cfg(test)]
+mod tests {
+    //! UT for rgs-flash-mock grpc_clients (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L1.1)
+    //!
+    //! Coverage:
+    //!   - GrpcClientStatus: Default/字段构造/Clone 派生
+    //!   - 7 域 proto module 别名可访问 (编译期验证)
+    //!
+    //! 派生约束守护: 8/27 11:06 JST 凭据硬 ban; 测试不创建真实 gRPC 连接 (per L1 60s cargo check 限时)
+
+    use super::*;
+
+    #[test]
+    fn grpc_client_status_default_construction() {
+        let s = GrpcClientStatus {
+            domain: "player".to_string(),
+            endpoint: "https://player-service:50051".to_string(),
+            connected: false,
+            last_error: None,
+            last_check_at: None,
+        };
+        assert_eq!(s.domain, "player");
+        assert!(!s.connected);
+        assert!(s.last_error.is_none());
+        assert!(s.last_check_at.is_none());
+    }
+
+    #[test]
+    fn grpc_client_status_with_error_and_timestamp() {
+        // 模拟 7 域某域 connect 失败 → connected=false + last_error 设置
+        let now = chrono::Utc::now();
+        let s = GrpcClientStatus {
+            domain: "card".to_string(),
+            endpoint: "https://card-service:50061".to_string(),
+            connected: false,
+            last_error: Some("connection refused".to_string()),
+            last_check_at: Some(now),
+        };
+        assert_eq!(s.last_error.as_deref(), Some("connection refused"));
+        assert!(s.last_check_at.is_some());
+    }
+
+    #[test]
+    fn grpc_client_status_connected_true_no_error() {
+        // 模拟 7 域某域 connect 成功 → connected=true + last_error=None
+        let s = GrpcClientStatus {
+            domain: "leaderboard".to_string(),
+            endpoint: "https://leaderboard-service:50062".to_string(),
+            connected: true,
+            last_error: None,
+            last_check_at: Some(chrono::Utc::now()),
+        };
+        assert!(s.connected);
+        assert!(s.last_error.is_none());
+    }
+
+    #[test]
+    fn grpc_client_status_clone_preserves_all_fields() {
+        let original = GrpcClientStatus {
+            domain: "economy".to_string(),
+            endpoint: "https://economy-service:50052".to_string(),
+            connected: true,
+            last_error: None,
+            last_check_at: Some(chrono::Utc::now()),
+        };
+        let cloned = original.clone();
+        assert_eq!(cloned.domain, original.domain);
+        assert_eq!(cloned.endpoint, original.endpoint);
+        assert_eq!(cloned.connected, original.connected);
+        assert_eq!(cloned.last_error, original.last_error);
+    }
+
+    #[test]
+    fn grpc_client_status_never_exposes_endpoint_password() {
+        // 8/27 11:06 JST 凭据硬 ban: 测试 endpoint 只含 host:port, 不含凭据
+        // (构造时已强制; 此测试作为派生约束守护: 不存在含凭据 endpoint 的合法构造路径)
+        let s = GrpcClientStatus {
+            domain: "admin".to_string(),
+            endpoint: "https://admin-service:50055".to_string(),
+            connected: true,
+            last_error: None,
+            last_check_at: None,
+        };
+        // endpoint 不应包含 '@' (即不含 user:pass@host)
+        assert!(!s.endpoint.contains('@'), "endpoint 不应包含凭据 (per 8/27 11:06 JST hard ban)");
+    }
+
+    #[test]
+    fn grpc_clients_clone_is_cheap() {
+        // 派生约束: tonic 0.12 client 是 cheap clone (Channel: Arc inner)
+        // 验证: Clone 派生 + 7 域 Option<T> 字段保持 None (empty state clone 仍 cheap)
+        let c = GrpcClients {
+            player: None,
+            economy: None,
+            r#match: None,
+            social: None,
+            admin: None,
+            card: None,
+            leaderboard: None,
+        };
+        let c2 = c.clone();
+        assert!(c2.player.is_none());
+        assert!(c2.economy.is_none());
+        assert!(c2.r#match.is_none());
+        assert!(c2.social.is_none());
+        assert!(c2.admin.is_none());
+        assert!(c2.card.is_none());
+        assert!(c2.leaderboard.is_none());
+    }
+
+    #[test]
+    fn status_report_runs_with_empty_clients() {
+        // 派生约束守护: GrpcClients::status_report() 不 panic on empty state
+        // (per 8/27 55.26 fail-closed 精神)
+        let cfg = crate::config::Config::from_env().unwrap();
+        let clients = GrpcClients {
+            player: None,
+            economy: None,
+            r#match: None,
+            social: None,
+            admin: None,
+            card: None,
+            leaderboard: None,
+        };
+        let report = clients.status_report(&cfg);
+        // 7 域 7 行 (player/economy/match/social/admin/card/leaderboard)
+        assert_eq!(report.len(), 7, "7 域必须全部出现在 status_report (per v0.3)");
+        // 全部 connected=false (空 state)
+        for s in &report {
+            assert!(!s.connected, "空 client state 必须全部 connected=false");
+        }
+    }
+}

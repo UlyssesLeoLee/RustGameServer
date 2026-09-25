@@ -68,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
                 .app_data(web::Data::new(health_state.clone()))
                 .configure(register_health_routes)
         };
-        // ULYS-208 (2026-09-23 JST): fail-loud on 8081 health probe.
+// ULYS-208 (2026-09-23 JST): fail-loud on 8081 health probe.
         // dev HEAD (pre-fix) 在 bind() 前后有两个 bug:
         //   (a) `tracing::info!("health probe listening on {}")` 在 bind() 前打印,
         //       bind 失败时也是这条假阳性日志("listening" 但实际没监听);
@@ -81,6 +81,11 @@ async fn main() -> anyhow::Result<()> {
         // 配合 ULYS-188 (cd9ba548) 把 readinessProbe failureThreshold 3→10,
         //     即便 cni0 / SandboxChanged 风暴造成首次 bind 抖动,exit(101) 后
         //     kubelet 会拉起新 pod,新 pod namespace 干净可 bind 成功。
+        //
+        // ULYS-141 合并 (2026-09-25 JST): 保留 ULYS-208 fail-loud 语义;
+        // agent/minimaxm3/ulys-141 的 chore(agent) 550fe168 在 main.rs 上有
+        // 一个过时的中间编辑 (let server = match... + tracing::error! + return,
+        // 未做 fail-loud), 取舍 = 丢弃, 保 HEAD 权威版本。
         let server = HttpServer::new(health_app)
             .bind(health_addr)
             .unwrap_or_else(|e| {
