@@ -298,23 +298,23 @@ impl PlayerProfile {
 }
 
 // ============================================================================
-// 闪烁之光 100% 兼容 Phase 2 — 账号+角色 15 RPC entity (per 9/5 11:50 JST 4 拍板)
-// 上游参考: 闪烁之光 proto_101.erl (10101-10103) + proto_103.erl (10301-10397)
+// [游戏A] 100% 兼容 Phase 2 — 账号+角色 15 RPC entity (per 9/5 11:50 JST 4 拍板)
+// 上游参考: [游戏A] proto_101.erl (10101-10103) + proto_103.erl (10301-10397)
 // 桶 12 增量: 不破坏既有 Player/PlayerSession/PlayerProfile/Deck/DeckSlot
 // ============================================================================
 
-/// 闪烁之光 风格 "角色" 实体
+/// [游戏A] 风格 "角色" 实体
 ///
 /// 与 Player 的区别: Player 是 RGS 抽象 (账号 + 等级 + vip 通用),
-/// Character 是闪烁之光 MMORPG 抽象 (角色 = 1 账号下多角色, 含职业/阵营/头像/签名).
+/// Character 是[游戏A] MMORPG 抽象 (角色 = 1 账号下多角色, 含职业/阵营/头像/签名).
 ///
-/// 当前桶 12 仅占位实现, 1 账号 1 角色 (per 闪烁之光 入门流程: 注册 → 创建角色 → 登录).
+/// 当前桶 12 仅占位实现, 1 账号 1 角色 (per [游戏A] 入门流程: 注册 → 创建角色 → 登录).
 /// 后续 v0.2 评估: 1 账号 N 角色 (per proto_101.erl 10101 "创建角色" + 10102 "登录指定角色").
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Character {
     /// 角色 ID (UUID, 主键)
     pub id: Uuid,
-    /// 所属账号 ID (per 闪烁之光 1 账号 1 角色 v0.1)
+    /// 所属账号 ID (per [游戏A] 1 账号 1 角色 v0.1)
     pub account_id: Uuid,
     /// 角色名 (unique, 业务校验)
     pub name: String,
@@ -488,7 +488,7 @@ mod tests {
         assert_eq!(p.preferred_locale, "zh-CN");
     }
 
-    // ----- 桶 12 增量: 闪烁之光 风格 角色 entity UT (per 9/5 11:50 JST 4 拍板) -----
+    // ----- 桶 12 增量: [游戏A] 风格 角色 entity UT (per 9/5 11:50 JST 4 拍板) -----
 
     #[test]
     fn character_new_defaults() {

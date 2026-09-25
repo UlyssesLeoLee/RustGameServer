@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// 坐标 (per 闪烁之光 proto_102.erl)
+/// 坐标 (per [游戏A] proto_102.erl)
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
@@ -122,7 +122,7 @@ impl SceneInstance {
     }
 }
 
-/// 地图单位 (per 闪烁之光 proto_102.erl map_unit)
+/// 地图单位 (per [游戏A] proto_102.erl map_unit)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MapUnit {
     pub id: Uuid,
@@ -161,7 +161,7 @@ impl MapUnit {
     }
 }
 
-/// 玩家空间 (per 闪烁之光 proto_103.erl 空间背景/签名)
+/// 玩家空间 (per [游戏A] proto_103.erl 空间背景/签名)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SpaceInfo {
     pub player_id: Uuid,

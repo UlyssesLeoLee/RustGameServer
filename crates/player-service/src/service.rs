@@ -93,8 +93,8 @@ pub trait PlayerService: Send + Sync {
     async fn get_shared_deck(&self, share_code: String) -> Result<Deck>;
 
     // ========================================================================
-    // 闪烁之光 100% 兼容 Phase 2 — 账号+角色 15 RPC (per 9/5 11:50 JST 4 拍板)
-    // 上游参考: 闪烁之光 proto_101.erl (101xx) + proto_103.erl (103xx)
+    // [游戏A] 100% 兼容 Phase 2 — 账号+角色 15 RPC (per 9/5 11:50 JST 4 拍板)
+    // 上游参考: [游戏A] proto_101.erl (101xx) + proto_103.erl (103xx)
     // 桶 12 增量: 不破坏既有 11 个方法, 全部 15 个为新加, 5 真实逻辑 + 10 stub
     // ========================================================================
 
@@ -598,7 +598,7 @@ impl PlayerService for PlayerServiceImpl {
     }
 
     // ========================================================================
-    // 桶 12 增量: 闪烁之光 账号+角色 15 RPC impl (per 9/5 11:50 JST 4 拍板)
+    // 桶 12 增量: [游戏A] 账号+角色 15 RPC impl (per 9/5 11:50 JST 4 拍板)
     // 5 真实逻辑: create_character / login_character / reconnect_character /
     //             get_character_profile / get_character_assets
     // 10 stub (per §卡住的应对): 返回 Unimplemented 风格 (per 业务逻辑占位)
@@ -850,7 +850,7 @@ impl PlayerService for PlayerServiceImpl {
 
     async fn rename_character(&self, character_id: Uuid, new_name: String) -> Result<Character> {
         // 加固 (W41): 除基础校验外, 加禁词过滤 (系统保留 / 管理员 / 客服 / 控制字符).
-        // 真实业务: 走改名卡 / 改名费用 / 冷却时间 (per 闪烁之光 10343) — 跨桶 TODO.
+        // 真实业务: 走改名卡 / 改名费用 / 冷却时间 (per [游戏A] 10343) — 跨桶 TODO.
         let new_name = new_name.trim().to_string();
         if new_name.is_empty() {
             return Err(Error::Validation("new_name must not be empty".to_string()));
@@ -907,7 +907,7 @@ impl PlayerService for PlayerServiceImpl {
         timeout_seconds: i32,
     ) -> Result<(bool, chrono::DateTime<Utc>)> {
         // stub 占位: 仅校验 + 计算 deadline.
-        // 真实业务: 游客模式配额管理 (per 闪烁之光 10394).
+        // 真实业务: 游客模式配额管理 (per [游戏A] 10394).
         if !(60..=86400).contains(&timeout_seconds) {
             return Err(Error::Validation(format!(
                 "timeout_seconds {} out of range 60-86400",
@@ -1141,7 +1141,7 @@ fn is_active_for_update(p: &Player) -> bool {
 
 /// W41 加固: 校验角色名 (rename_character 用).
 ///
-/// 禁词规则 (per 闪烁之光 v0.1 + RGS-DTL-018 §3.1 角色名规范):
+/// 禁词规则 (per [游戏A] v0.1 + RGS-DTL-018 §3.1 角色名规范):
 /// - 长度: 1-64 (trim 后, 已在 caller 校验)
 /// - 禁词 (case-insensitive): admin / system / gm / moderator / support / official
 /// - 控制字符: 不允许 `\t \n \r` 等 (允许空格和中日韩)
@@ -1492,7 +1492,7 @@ pub mod grpc_service {
         }
 
         // ========================================================================
-        // 桶 12 增量: 闪烁之光 账号+角色 15 RPC gRPC 桥接 (per 9/5 11:50 JST 4 拍板)
+        // 桶 12 增量: [游戏A] 账号+角色 15 RPC gRPC 桥接 (per 9/5 11:50 JST 4 拍板)
         // ========================================================================
 
         async fn create_character(
@@ -2316,7 +2316,7 @@ mod tests {
     }
 
     // ========================================================================
-    // 桶 12 增量: 闪烁之光 账号+角色 15 RPC UT (per 9/5 11:50 JST 4 拍板)
+    // 桶 12 增量: [游戏A] 账号+角色 15 RPC UT (per 9/5 11:50 JST 4 拍板)
     // 5 真实逻辑 (Create/Login/Reconnect/Profile/Assets) + 10 stub
     // ========================================================================
 

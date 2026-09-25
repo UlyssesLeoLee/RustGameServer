@@ -6,7 +6,7 @@
 | 版本 | v0.1 |
 | 关联 issue | Multica **ULYS-134** (`01a0be20-14fe-7eb0-9fab-741c140b9c23`) |
 | 状态 | 🟢 v0.1 初版（per D-Boy 9/21 JST "继续推进" directive，承接 9/20 10:45 agent 帖子中途掉线重启）|
-| 关联交付 | `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` v0.2 §2.1（5 项可立即执行）+ `RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md` §2.1+§2.2（9 原则 + 6 反模式 fingerprint）+ `RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` §3.1+§3.2（5 可取之处 + 1 反例）|
+| 关联交付 | `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` v0.2 §2.1（5 项可立即执行）+ `RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md` §2.1+§2.2（9 原则 + 6 反模式 fingerprint）+ `RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` §3.1+§3.2（5 可取之处 + 1 反例）|
 | 修订人 | Ulysses（一人公司 12 角色 per DEC-008）— Mavis 接手 |
 | 审批 | 架构师（Mavis 接手 agent per DEC-008）|
 | 代签授权 | 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses) |
@@ -15,20 +15,20 @@
 
 ## 0. 一句话结论
 
-RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, Erlang/OTP 第三方 MMORPG）** 与 **② Erlang/OTP 商用游戏服务器设计参考框架**（per D-Boy 2026-09-04 14:30 JST paste 的 system prompt，9 原则 + 6 反模式）。本清单逐条列这两款参考为 RGS 贡献了哪些"亮点"（即可直接采纳 / 已经采纳 / 登记为 backlog 的架构/工程/业务层借鉴点）。
+RGS 实际参考的"两款商用服务器"是 **① [游戏A]（[游戏A]_server, Erlang/OTP 第三方 MMORPG）** 与 **② Erlang/OTP 商用游戏服务器设计参考框架**（per D-Boy 2026-09-04 14:30 JST paste 的 system prompt，9 原则 + 6 反模式）。本清单逐条列这两款参考为 RGS 贡献了哪些"亮点"（即可直接采纳 / 已经采纳 / 登记为 backlog 的架构/工程/业务层借鉴点）。
 
 > **注**: "Erlang/OTP 设计参考框架"严格说不是单一一款商用 server，而是行业 30+ 年商用 Erlang 游戏服务器（WhatsApp、Mochi Media、Wooga、FarmVille、Discord、Ericsson AXD301 等）沉淀的设计语言，由 D-Boy 9/4 14:30 JST 以 system prompt 形式贴给 RGS 团队作为"9 原则 + 6 反模式"基线，**RGS 一致对齐 = 等同于参考一款成熟的商用 server 设计基线**。
 
 ---
 
-## 1. 闪烁之光 (zsyz_server) 参考亮点清单
+## 1. [游戏A] ([游戏A]_server) 参考亮点清单
 
-**参考对象**: 第三方 MMORPG "闪烁之光" 服务端源码，437 个 `.erl` / `.hrl`（per `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\README.md` L30），1351 条 RPC 已成功提取 1351/1394（97.0%，per 借鉴分析 .md §0）。
-**关联证据**: `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` + `RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` + `RGS-REQ-2026-09-04_v0.2.md` + `RGS-DDD-v0.2-addendum-协议号映射.md` + `RGS-DDD-v0.2-addendum-业务逻辑逆推.md` + `RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` + `RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md`。
+**参考对象**: 第三方 MMORPG "[游戏A]" 服务端源码，437 个 `.erl` / `.hrl`（per `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\README.md` L30），1351 条 RPC 已成功提取 1351/1394（97.0%，per 借鉴分析 .md §0）。
+**关联证据**: `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` + `RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` + `RGS-REQ-2026-09-04_v0.2.md` + `RGS-DDD-v0.2-addendum-协议号映射.md` + `RGS-DDD-v0.2-addendum-业务逻辑逆推.md` + `RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` + `RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md`。
 
 ### 1.1 协议层亮点（5 条可取之处 + 1 条反例 per 借鉴分析 doc §4）
 
-| # | 亮点 | 闪烁之光 做法 | RGS 落地 | 决策 | 关联 |
+| # | 亮点 | [游戏A] 做法 | RGS 落地 | 决策 | 关联 |
 |---|---|---|---|---|---|
 | 1.1.1 | **契约即代码生成源** | 一条 `#rpc{code, log_title, req, reply}` 记录同时驱动编解码生成 + 按命令的运维审计标题 | `tonic-build` + `prost` 编译期生成 + admin 域 `audit_log.action` 字段 | **keep RGS** + **Hybrid-1** = admin 域 audit_log 增 `log_title` 字段 | OVERLAP §6.1 / handoff §2.1.1 |
 | 1.1.2 | **随包自带 bot 真实协议压测器** | `tester*.erl` 用真实协议自动跑测的压测/回归工具直接放代码库 | `rgs-testkit`（NoOp mock + 测用 InMemory repo + chaos 测试） | **keep RGS** + **Hybrid-3** = 评估 rgs-testkit 加 bot 压测工具（压测 real protocol） | OVERLAP §6.3 / handoff §2.1.5 |
@@ -39,7 +39,7 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 ### 1.2 业务层亮点（按 12 大类 per 借鉴分析 doc §2 + REQ v0.2）
 
-| # | 大类 | 闪烁之光 RPC 数 | RGS 业务映射（TCG）| 决策 | 关联 |
+| # | 大类 | [游戏A] RPC 数 | RGS 业务映射（TCG）| 决策 | 关联 |
 |---|---|---:|---|---|---|
 | 1.2.1 | 场景/移动 | 148 | 不适用（TCG 玩家客户端无移动） | ❌ 不借鉴 | REQ v0.2 §1.4 |
 | 1.2.2 | 角色养成 | 198 | 卡组养成（DeckRepository 桶 11 增量） | 🟡 部分借鉴（设计模式不字段） | REQ v0.2 §6.4 |
@@ -52,18 +52,18 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 ### 1.3 网络层亮点（per 9/4 16:47 JST directive + RGS-BAS-027 WebSocket 网络网关）
 
-| # | 亮点 | 闪烁之光 做法 | RGS 落地 | 决策 | 关联 |
+| # | 亮点 | [游戏A] 做法 | RGS 落地 | 决策 | 关联 |
 |---|---|---|---|---|---|
 | 1.3.1 | **TCP/WebSocket 帧结构** | `[4B length u32 BE][2B cmd u16 BE][payload]`，length = payload_len + 2 | `crates/network-gateway/src/codec.rs` + `ws.rs` + `golden_vectors.rs` | ✅ **完美对接**（per ULYS-2 sub-issue A/B/C/D，9/12 chat 升级执行阶段）| HANDOFF §2.3 / RGS-DTL-027 |
 | 1.3.2 | **9 TLV 字段类型** | int8/uint8/int16/uint16/int32/uint32/str/bytes/array | 同款 9 TLV | ✅ 已落 `codec.rs` | HANDOFF §2.3 |
 | 1.3.3 | **协议码空间 u16 + O(1) 派发** | u16 (0-65535), 1351 条已用（proto_11~proto_284） | tonic 自动 dispatch ✅（0 处 `HashMap<u*,*>` 派发，反模式 A6 不命中）| ✅ **keep RGS**（per GAP-AUDIT §2.1 原则 #8） | GAP-AUDIT §2.1 |
-| 1.3.4 | **WebSocket 路径 `/websocket` + 端口 8000** | `zsyz_server/src/web_conn.erl` 端口 8000 | `crates/network-gateway/src/ws.rs` + `bin/main.rs` 默认 ON @ 0.0.0.0:8000 | ✅ 1:1 对齐 | HANDOFF §2.3 / RGS-DTL-027 |
+| 1.3.4 | **WebSocket 路径 `/websocket` + 端口 8000** | `[游戏A]_server/src/web_conn.erl` 端口 8000 | `crates/network-gateway/src/ws.rs` + `bin/main.rs` 默认 ON @ 0.0.0.0:8000 | ✅ 1:1 对齐 | HANDOFF §2.3 / RGS-DTL-027 |
 | 1.3.5 | **心跳 cmd=1199** | 心跳帧 | RGS 同款 | ✅ 已落（per ULYS-2.4 E2E 验收） | HANDOFF §2.3 |
-| 1.3.6 | **握手 cmd=1110 登录流** | zsyz_client_h5 (Cocos Creator H5) 真实登录流 | RGS `puppeteer + H5 浏览器跑通 cmd=1110 登录握手` | ✅ ULYS-6 (ULYS-2.4) E2E | HANDOFF §2.3 |
+| 1.3.6 | **握手 cmd=1110 登录流** | [游戏A]_client_h5 (Cocos Creator H5) 真实登录流 | RGS `puppeteer + H5 浏览器跑通 cmd=1110 登录握手` | ✅ ULYS-6 (ULYS-2.4) E2E | HANDOFF §2.3 |
 
 ### 1.4 业务逻辑亮点（per DDD-v0.2-addendum-业务逻辑逆推，5 抽样 .erl）
 
-| # | 亮点 | 闪烁之光 业务 | RGS 翻译模式 | 性能比 | 关联 |
+| # | 亮点 | [游戏A] 业务 | RGS 翻译模式 | 性能比 | 关联 |
 |---|---|---|---|---|---|
 | 1.4.1 | **DB roundtrip** | ~1ms（mysql）| ~500µs（sqlx + connection pool）| **2x 优势** | DDD addendum 业务逻辑逆推 §5 / REQ v0.2 §11 |
 | 1.4.2 | **序列化/反序列化** | ~50µs（term_to_binary）| ~2µs（serde + bincode）| **25x 优势** | 同上 |
@@ -75,9 +75,9 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 ### 1.5 网络拓扑亮点（per RGS-DDD-v0.2 §2.2）
 
-| # | 亮点 | 闪烁之光 做法 | RGS 做法 | 决策 | 关联 |
+| # | 亮点 | [游戏A] 做法 | RGS 做法 | 决策 | 关联 |
 |---|---|---|---|---|---|
-| 1.5.1 | **center + zone 2 节点** | 闪烁之光显式 center/zone 分层 | RGS active-active 7 域（无 center，DB-as-state）| ✅ 架构差异（per audit v0.3 §1.2 #1）| REQ v0.2 §2.2 |
+| 1.5.1 | **center + zone 2 节点** | [游戏A]显式 center/zone 分层 | RGS active-active 7 域（无 center，DB-as-state）| ✅ 架构差异（per audit v0.3 §1.2 #1）| REQ v0.2 §2.2 |
 | 1.5.2 | **sup_db_buffer 缓冲写盘** | Erlang gen_server 缓冲 | RGS `shared-platform::outbox` | ✅ 等价实现（per audit v0.3 §4 #5）| GAP-AUDIT §3.1 |
 | 1.5.3 | **cluster_srv/cluster_msg 集群 RPC** | Erlang 集群 RPC | RGS NATS (outbox relay publish) + tonic gRPC mTLS | ✅ 更现代 + 跨语言 | REQ v0.2 §2.2 |
 | 1.5.4 | **role_data + role_query 角色进程** | Erlang 1 player 1 process | RGS DB-as-state（无 per-entity actor）| ✅ 架构差异记录在 ADR-0060（5 域 P1-12 backlog）| GAP-AUDIT §3.1-3.6 + §7 P1-12 |
@@ -131,7 +131,7 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 ## 3. 总体采纳情况汇总
 
-| 维度 | 闪烁之光 | Erlang/OTP 框架 | 合计 |
+| 维度 | [游戏A] | Erlang/OTP 框架 | 合计 |
 |---|---:|---:|---:|
 | 已落地亮点 | 11（协议层 4 + 网络层 4 + 业务逻辑 3）| 22（7 域原则 #2/#5/#8）| **33** |
 | 部分采纳 / 待评估 | 6（业务层 4 + 网络拓扑 2）| 18（原则 #3/#6/#7/#9 部分命中）| **24** |
@@ -147,11 +147,11 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 ### 4.1 已完成的 DoD 项
 - [x] **L1**: 文档形式合规（代签授权 / DoD / 派生约束守护 / 缺标 / 禁回溯 / 凭据硬 ban）
 - [x] **L1.1**: 关联文档全部引用 absolute path 或可验证路径（per AGENTS.md §1.1"引用必须可独立验证"）
-- [x] **L1.2**: 跨盘引用 3 处（`E:\BaiduNetdiskDownload\闪烁之光\server分析\`）已写盘可 Read 复核
+- [x] **L1.2**: 跨盘引用 3 处（`[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\`）已写盘可 Read 复核
 
 ### 4.2 跟踪项（per 多 issue 关联）
 - Multica **ULYS-134** (`01a0be20-14fe-7eb0-9fab-741c140b9c23`) — 本 issue 主交付
-- Multica **ULYS-2** (`01a092ae-2faa-799b-b07e-ae6a9b80c166`) — 闪烁之光网络层完美对接（5 sub-issue ULYS-3~7）
+- Multica **ULYS-2** (`01a092ae-2faa-799b-b07e-ae6a9b80c166`) — [游戏A]网络层完美对接（5 sub-issue ULYS-3~7）
 - Multica **ULYS-111** — gm-backend 挂 rgs-secret-ca + RGS_TLS_DIR env（gm-backend Hybrid-1 落地准备）
 - Multica **ULYS-94** — WSL/k3s/e2e-smoke 12 探针恢复（per D-Boy 2026-09-20 14:17 拍板授权）
 
@@ -167,9 +167,9 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 | P2 | 框架原则 #7 热冷分层 + 战斗录像（DashMap 热 + sled/redb 冷）| 5d | 无 |
 | P2 | 框架原则 #6 AbortHandle 去抖工具 | 3d | 无 |
 | P2 | 框架原则 #3 split_by_srv 显式抽象 | 5d | 无 |
-| P2 | 闪烁之光 跨盘 .erl 抽样业务层映射（12 大类 v0.2）| 3-5d | 无 |
+| P2 | [游戏A] 跨盘 .erl 抽样业务层映射（12 大类 v0.2）| 3-5d | 无 |
 | P3 | 框架原则 #1 per-entity actor 评估 ADR | 5d | 无 |
-| P3 | 新建 `rgs-loadtest` crate（Hybrid-3 闪烁之光 `tester*.erl` 借鉴）| 3-5d | 无 |
+| P3 | 新建 `rgs-loadtest` crate（Hybrid-3 [游戏A] `tester*.erl` 借鉴）| 3-5d | 无 |
 | Q4 | L-CAND-010 候选升 AGENTS.md 正式段（数据驱动框架强制）| 1d | 2026-12-02 Q4 季度评审 |
 
 ---
@@ -188,16 +188,16 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 | 文档 | 用途 | 路径 |
 |---|---|---|
-| RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化 v0.2 | 闪烁之光 5 项可立即执行 + §2.3 网络层完美对接路线图 | `docs/00-基准与治理/RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` |
-| RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 | 闪烁之光 API 11 维度对比矩阵 + 5 可取之处 + 1 反例 | `docs/14-项目治理/RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` |
+| RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化 v0.2 | [游戏A] 5 项可立即执行 + §2.3 网络层完美对接路线图 | `docs/00-基准与治理/RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` |
+| RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04 v0.2 | [游戏A] API 11 维度对比矩阵 + 5 可取之处 + 1 反例 | `docs/14-项目治理/RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` |
 | RGS-DDD-2026-09-04-GAP-AUDIT v0.3 | 6 域 9 原则 + 6 反模式全量审计（81KB）| `docs/14-项目治理/RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md` |
-| RGS-DDD-v0.2-addendum-协议号映射 | 闪烁之光 438 cmds → RGS proto 1:1 完整映射表 | `docs/15-IPA-完全对齐438cmds/RGS-DDD-v0.2-addendum-协议号映射.md` |
+| RGS-DDD-v0.2-addendum-协议号映射 | [游戏A] 438 cmds → RGS proto 1:1 完整映射表 | `docs/15-IPA-完全对齐438cmds/RGS-DDD-v0.2-addendum-协议号映射.md` |
 | RGS-DDD-v0.2-addendum-业务逻辑逆推 | 12 Partial module 业务逻辑 1:1 扩写（5 抽样 .erl）| `docs/15-IPA-完全对齐438cmds/RGS-DDD-v0.2-addendum-业务逻辑逆推.md` |
-| RGS-REQ-2026-09-04 v0.2 | RGS 完全对齐闪烁之光 438 cmds 需求文档 | `docs/15-IPA-完全对齐438cmds/RGS-REQ-2026-09-04_v0.2.md` |
+| RGS-REQ-2026-09-04 v0.2 | RGS 完全对齐[游戏A] 438 cmds 需求文档 | `docs/15-IPA-完全对齐438cmds/RGS-REQ-2026-09-04_v0.2.md` |
 | RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3 | 4 阶段路线图（mock → API 对齐 → 业务层 → 性能 baseline）| `docs/14-项目治理/RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` |
-| 跨盘引用 1 | 闪烁之光 全量 API 清单（1351 行 TSV）| `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\API清单-全量提取-2026-09-04.tsv` |
-| 跨盘引用 2 | 闪烁之光 按文件分组清单（96 行 TSV）| `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\API清单-按文件分组-2026-09-04.tsv` |
-| 跨盘引用 3 | 闪烁之光 12 大类 + 网络拓扑 + 可取之处 + 反例全文（MD）| `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\API清单与RGS借鉴分析-2026-09-04.md` |
+| 跨盘引用 1 | [游戏A] 全量 API 清单（1351 行 TSV）| `[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\分析产出\API清单-全量提取-2026-09-04.tsv` |
+| 跨盘引用 2 | [游戏A] 按文件分组清单（96 行 TSV）| `[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\分析产出\API清单-按文件分组-2026-09-04.tsv` |
+| 跨盘引用 3 | [游戏A] 12 大类 + 网络拓扑 + 可取之处 + 反例全文（MD）| `[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\分析产出\API清单与RGS借鉴分析-2026-09-04.md` |
 
 ---
 
@@ -205,4 +205,4 @@ RGS 实际参考的"两款商用服务器"是 **① 闪烁之光（zsyz_server, 
 
 | 版本 | 日期 | 修订人 | 内容 |
 |---|---|---|---|
-| v0.1 | 2026-09-21 | Mavis (Ulysses 代签 per DEC-008) | 初版。承接 ULYS-134 9/20 10:45 agent 帖子中途掉线（"Now Section 3 — zsyz_server highlights"），按 D-Boy 9/21 JST "继续推进" directive 重启完整交付。覆盖两款商用服务器参考：① 闪烁之光 (zsyz_server) 24 条亮点 + ② Erlang/OTP 设计参考框架（9 原则 + 6 反模式）67 条亮点，合计 91 条。|
+| v0.1 | 2026-09-21 | Mavis (Ulysses 代签 per DEC-008) | 初版。承接 ULYS-134 9/20 10:45 agent 帖子中途掉线（"Now Section 3 — [游戏A]_server highlights"），按 D-Boy 9/21 JST "继续推进" directive 重启完整交付。覆盖两款商用服务器参考：① [游戏A] ([游戏A]_server) 24 条亮点 + ② Erlang/OTP 设计参考框架（9 原则 + 6 反模式）67 条亮点，合计 91 条。|

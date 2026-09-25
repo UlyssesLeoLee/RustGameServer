@@ -1,7 +1,7 @@
 //! web_conn stub (per 9/4 改进路线图 Phase 1 协议网关 + ADR-006 Option A)
 //!
 //! ## 范围
-//! web_conn.erl 是闪烁之光 HTTP 入口 (per 9/4 MD §3 客户端入口), 端口 8000,
+//! web_conn.erl 是[游戏A] HTTP 入口 (per 9/4 MD §3 客户端入口), 端口 8000,
 //! 处理轻量 HTTP 请求 (e.g. /login /register /gm 页面). RGS 协议网关在
 //! Option A (rustler+BEAM) 模式下加载 web_conn.erl, 由 BEAM 内部处理 HTTP
 //! 业务, 仅在需要 RGS 业务时走 NIF 调 7 域 gRPC.

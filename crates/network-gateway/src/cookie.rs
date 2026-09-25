@@ -1,7 +1,7 @@
 //! Erlang cookie 鉴权 stub (per 9/4 改进路线图 Phase 1 PHP↔Erlang cookie 兼容)
 //!
 //! ## 范围
-//! 闪烁之光 PHP 配置 / 旧 Erlang 集群用 cookie 鉴权 (per 9/4 MD §3), 节点启动时
+//! [游戏A] PHP 配置 / 旧 Erlang 集群用 cookie 鉴权 (per 9/4 MD §3), 节点启动时
 //! `erl -setcookie <cookie> -name <node>@<host> -hidden`. RGS 协议网关需识别对方
 //! cookie 并决定是否接受 dist 连接.
 //!

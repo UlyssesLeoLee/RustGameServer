@@ -1,6 +1,6 @@
 //! economy-service 商店 + 抽卡 + 限时 + 充值 实体定义
 //!
-//! v3 增量 (per 闪烁之光借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC).
+//! v3 增量 (per [游戏A]借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC).
 //! 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 活动 → 1 套 ActivityTemplate + 配置
 
 use chrono::{DateTime, Duration, Utc};
@@ -675,7 +675,7 @@ impl InMemoryEconomyV3Repository {
 // 9 个具体 holiday_* 活动以模板形式注入, ActivityType 区分种类
 // 1 个 holiday_*_request/_response = 1 个模板 entry, 不是 9 套 RPC
 //
-// 9 个 holiday 命名 (per 闪烁之光运营活动盘点):
+// 9 个 holiday 命名 (per [游戏A]运营活动盘点):
 // 1. 春节 (Spring Festival)    - Holiday
 // 2. 夏日嘉年华 (Summer Carnival) - Holiday
 // 3. 万圣节 (Halloween)        - Holiday

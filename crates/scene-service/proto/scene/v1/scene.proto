@@ -5,7 +5,7 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/scene/v1;scen
 
 // ============================================================================
 // 7 域 scene-service —— 场景 / 移动 / 单位 / 棋盘 / 任务 / 伙伴 / 剧情 / 阵法
-// per 9/4 MD §2 闪烁之光 148 RPC 借鉴 + 改进路线图 Phase 2
+// per 9/4 MD §2 [游戏A] 148 RPC 借鉴 + 改进路线图 Phase 2
 // 7 域独立 Lead (per 9/1 18:00 JST batch 域扩展 + 8/21 JST 5 域独立 Lead 原则)
 // 设计原则：数据驱动 + 反"一活动一模块"反例 (per 9/4 MD §4)
 // ============================================================================
@@ -74,7 +74,7 @@ service SceneService {
   rpc ClientDynamicCfg(ClientDynamicCfgRequest) returns (ClientDynamicCfgResponse);
   rpc ForceCloseClient(ForceCloseClientRequest) returns (ForceCloseClientResponse);
 
-  // ---------- 棋盘小游戏 (15 条, per 闪烁之光 proto_231.erl 棋盘格子) ----------
+  // ---------- 棋盘小游戏 (15 条, per [游戏A] proto_231.erl 棋盘格子) ----------
   rpc GetBaseData(GetBaseDataRequest) returns (GetBaseDataResponse);
   rpc GetGridData(GetGridDataRequest) returns (GridData);
   rpc EnterGrid(EnterGridRequest) returns (EnterGridResponse);
@@ -91,7 +91,7 @@ service SceneService {
   rpc ResetGridBoard(ResetGridBoardRequest) returns (ResetGridBoardResponse);
   rpc GetGridLeaderboard(GetGridLeaderboardRequest) returns (GetGridLeaderboardResponse);
 
-  // ---------- 场景任务 (15 条, per 闪烁之光 proto_104.erl 已接任务) ----------
+  // ---------- 场景任务 (15 条, per [游戏A] proto_104.erl 已接任务) ----------
   rpc GetQuestPanel(GetQuestPanelRequest) returns (QuestPanel);
   rpc AcceptQuest(AcceptQuestRequest) returns (AcceptQuestResponse);
   rpc CompleteQuest(CompleteQuestRequest) returns (CompleteQuestResponse);
@@ -108,7 +108,7 @@ service SceneService {
   rpc GetMainTaskList(GetMainTaskListRequest) returns (GetMainTaskListResponse);
   rpc ClaimTaskReward(ClaimTaskRewardRequest) returns (ClaimTaskRewardResponse);
 
-  // ---------- 场景伙伴 (10 条, per 闪烁之光 proto_110.erl 伙伴) ----------
+  // ---------- 场景伙伴 (10 条, per [游戏A] proto_110.erl 伙伴) ----------
   rpc GetPartnerList(GetPartnerListRequest) returns (GetPartnerListResponse);
   rpc SummonPartner(SummonPartnerRequest) returns (SummonPartnerResponse);
   rpc BattlePartner(BattlePartnerRequest) returns (BattlePartnerResponse);
@@ -120,7 +120,7 @@ service SceneService {
   rpc GetPartnerBuffs(GetPartnerBuffsRequest) returns (GetPartnerBuffsResponse);
   rpc DismissPartner(DismissPartnerRequest) returns (DismissPartnerResponse);
 
-  // ---------- 剧情 (15 条, per 闪烁之光 proto_111.erl 剧情播放) ----------
+  // ---------- 剧情 (15 条, per [游戏A] proto_111.erl 剧情播放) ----------
   rpc PlayDrama(PlayDramaRequest) returns (PlayDramaResponse);
   rpc SkipDrama(SkipDramaRequest) returns (SkipDramaResponse);
   rpc GetDramaList(GetDramaListRequest) returns (GetDramaListResponse);
@@ -137,7 +137,7 @@ service SceneService {
   rpc DramaReward(DramaRewardRequest) returns (DramaRewardResponse);
   rpc GetActiveDrama(GetActiveDramaRequest) returns (GetActiveDramaResponse);
 
-  // ---------- 阵法 (8 条, per 闪烁之光 proto_112.erl 阵法) ----------
+  // ---------- 阵法 (8 条, per [游戏A] proto_112.erl 阵法) ----------
   rpc GetArrayList(GetArrayListRequest) returns (GetArrayListResponse);
   rpc GetArrayDetail(GetArrayDetailRequest) returns (ArrayDetail);
   rpc SetArray(SetArrayRequest) returns (SetArrayResponse);
@@ -147,7 +147,7 @@ service SceneService {
   rpc GetActiveArray(GetActiveArrayRequest) returns (GetActiveArrayResponse);
   rpc ResetArray(ResetArrayRequest) returns (ResetArrayResponse);
 
-  // ---------- 副本入口 (15 条, per 闪烁之光 proto_130.erl 剧情副本) ----------
+  // ---------- 副本入口 (15 条, per [游戏A] proto_130.erl 剧情副本) ----------
   rpc EnterInstance(EnterInstanceRequest) returns (EnterInstanceResponse);
   rpc LeaveInstance(LeaveInstanceRequest) returns (LeaveInstanceResponse);
   rpc GetInstanceState(GetInstanceStateRequest) returns (InstanceState);
@@ -164,7 +164,7 @@ service SceneService {
   rpc SetInstanceAutoBattle(SetInstanceAutoBattleRequest) returns (SetInstanceAutoBattleResponse);
   rpc GetInstanceHistory(GetInstanceHistoryRequest) returns (GetInstanceHistoryResponse);
 
-  // ---------- buff / 屏幕提示 (10 条, per 闪烁之光 proto_168.erl) ----------
+  // ---------- buff / 屏幕提示 (10 条, per [游戏A] proto_168.erl) ----------
   rpc AddBuff(AddBuffRequest) returns (AddBuffResponse);
   rpc RemoveBuff(RemoveBuffRequest) returns (RemoveBuffResponse);
   rpc GetBuffList(GetBuffListRequest) returns (GetBuffListResponse);
@@ -176,7 +176,7 @@ service SceneService {
   rpc ClearBuffs(ClearBuffsRequest) returns (ClearBuffsResponse);
   rpc BuffTick(BuffTickRequest) returns (BuffTickResponse);
 
-  // ---------- 空间 / 签名 (5 条, per 闪烁之光 proto_103.erl 空间背景/签名) ----------
+  // ---------- 空间 / 签名 (5 条, per [游戏A] proto_103.erl 空间背景/签名) ----------
   rpc GetSpaceInfo(GetSpaceInfoRequest) returns (SpaceInfo);
   rpc GetSpaceBackgroundList(GetSpaceBackgroundListRequest) returns (GetSpaceBackgroundListResponse);
   rpc SetSpaceBackground(SetSpaceBackgroundRequest) returns (SetSpaceBackgroundResponse);

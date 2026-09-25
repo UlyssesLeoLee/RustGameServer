@@ -1,6 +1,6 @@
-//! 闪烁之光 (zsyz) 自研二进制协议编解码 (per ULYS-2.1 / zsyz_client_h5 SmartSocket)
+//! [游戏A] ([游戏A]) 自研二进制协议编解码 (per ULYS-2.1 / [游戏A]_client_h5 SmartSocket)
 //!
-//! ## Wire 帧格式 (与 zsyz_client_h5/assets/Scripts/sys/game-core-js-min.js SmartSocket 1:1)
+//! ## Wire 帧格式 (与 [游戏A]_client_h5/assets/Scripts/sys/game-core-js-min.js SmartSocket 1:1)
 //! ```text
 //! [4B length u32 BE] [2B cmd u16 BE] [payload TLV]
 //! ```
@@ -16,7 +16,7 @@
 //! - TLV 类型字段不在 1-9 范围 → `FrameError::UnknownTlvType(t)`.
 //!
 //! ## 与旧 stub 的差异
-//! 旧 stub 使用 `[code u32][length u32][payload]`, 与 zsyz 客户端 1:1 不一致.
+//! 旧 stub 使用 `[code u32][length u32][payload]`, 与 [游戏A] 客户端 1:1 不一致.
 //! 本实现按 ULYS-2.1 P0 任务改为 `[length u32][cmd u16][payload]`.
 //!
 //! ## ULYS-2.2 扩展 (W33): FrameRouter trait 抽象
@@ -25,8 +25,8 @@
 //! - 当前实现走 sync 路径 (沿用 `tcp::dispatch` 的 RouteTable + GatewayStats)
 //!
 //! ## 参考
-//! - zsyz_client_h5/assets/Scripts/sys/game-core-js-min.js (SmartSocket)
-//! - zsyz_server/src/proto/proto_11.erl, proto_101.erl (protocol:pack)
+//! - [游戏A]_client_h5/assets/Scripts/sys/game-core-js-min.js (SmartSocket)
+//! - [游戏A]_server/src/proto/proto_11.erl, proto_101.erl (protocol:pack)
 
 use std::future::Future;
 use std::pin::Pin;

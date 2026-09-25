@@ -13,7 +13,7 @@ option go_package = "github.com/ulyssesleolee/rustgameserver/proto/replay/v1;rep
 // - 回放数据: 对象存储 (cluster-ops S3-兼容), 本地用 LocalFs 模拟
 // - W9 L18 10 RPC: SaveReplay / GetReplay / ListReplays / StreamReplay /
 //                  GetReplayInfo / DeleteReplay / LikeReplay / UnlikeReplay / CollectReplay
-//                  (5 新增: L18 W9 录像+社交层点赞/收集, per 9/4 MD §0 闪烁之光录像回放"点赞/收集"参考)
+//                  (5 新增: L18 W9 录像+社交层点赞/收集, per 9/4 MD §0 [游戏A]录像回放"点赞/收集"参考)
 // - 集成: match-service session 结束自动调 SaveReplay (TODO, 完整集成推 W36+)
 // 生命周期:
 //   - 热数据: 默认 90 天 (天梯) / 7 天 (休闲) / 自定义 (房间)
@@ -38,7 +38,7 @@ service ReplayService {
   rpc StreamReplay(StreamReplayRequest) returns (stream ReplayChunk);
 
   // W9 L18 派工: 5 新增 RPC (per 9/8 20:08 JST Ulysses 拍板 L18 W7-W9 派工)
-  // 录像基础 + 社交层点赞/收集 (参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层, 不照搬)
+  // 录像基础 + 社交层点赞/收集 (参考 9/4 MD §0 [游戏A]录像回放"点赞/收集"社交层, 不照搬)
 
   // L18-6: 拉取回放聚合信息 (metadata + uploader, 用于前端展示)
   rpc GetReplayInfo(GetReplayInfoRequest) returns (ReplayInfo);
@@ -174,7 +174,7 @@ message StreamReplayRequest {
 
 // ----------------------------------------------------------------------------
 // W9 L18 5 新增 RPC message (录像基础 2 + 点赞 2 + 收集 1)
-// 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层 (借鉴不照搬)
+// 参考 9/4 MD §0 [游戏A]录像回放"点赞/收集"社交层 (借鉴不照搬)
 // ----------------------------------------------------------------------------
 
 // ReplayInfo: 录像聚合信息 (metadata + uploader, 前端展示用, 区别 ReplayMeta 偏存储层)

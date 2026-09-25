@@ -1,4 +1,4 @@
-//! broadcast_handler — 公告 + SSE 实时事件流 (per ROPE_CS gm_platform/modules/activity 移植)
+//! broadcast_handler — 公告 + SSE 实时事件流 (per [游戏C]_src gm_platform/modules/activity 移植)
 //! 2026-09-01 actix-web 重写 + actix-web-lab SSE
 //!
 //! ## 2026-09-01 22:30 JST Phase D D6 修复
@@ -84,7 +84,7 @@ pub async fn list_broadcasts(state: web::Data<AppState>) -> HttpResponse {
 }
 
 // ============================================================================
-// SSE 实时事件流 (per ROPE_CS /gm/events)
+// SSE 实时事件流 (per [游戏C]_src /gm/events)
 // ============================================================================
 
 pub async fn sse_events(
