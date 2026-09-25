@@ -2,7 +2,7 @@
 
 **创建日期**: 2026-09-17 JST
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
-**依据**: `RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md`（借鉴需求汇总）
+**依据**: `RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md`（借鉴需求汇总）
 **作用域**: [游戏D] 借鉴项目的架构级基本设计
 **状态**: ⏳ 一审（Mavis 自审） / 待 Ulysses 二审
 **下游**: 后续 RGS-DETAILED-*（每个 REQ 一份详细设计）
@@ -18,7 +18,7 @@
 | 修订人 | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 |
 | 创建日期 | 2026-09-17 JST |
 | 基线 commit | D:\RustGameServer 当前 main (per 2026-09-17 JST) |
-| 上游 REQ | `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` |
+| 上游 REQ | `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` |
 | 下游 DETAILED | 待拆分（每个 REQ 一份 v0.1） |
 | 关联 | AGENTS.md §2 / §7 + 守门#9 DB 三分类横展原则 |
 
@@ -75,7 +75,7 @@
 │                │                                               │
 └────────────────┼────────────────────────────────────────────┘
                  │
-   ┌─────────────┼─────────────┐  ← 本项目新增（借鉴 ANANTA）
+   ┌─────────────┼─────────────┐  ← 本项目新增（借鉴 [游戏D]）
    │             │             │
    ▼             ▼             ▼
 ┌─────────┐ ┌─────────┐ ┌─────────────────┐
@@ -772,7 +772,7 @@ ConfigRegistry::get_item(id) → O(1) 读
 
 | 文档 | 路径 | 关系 |
 |---|---|---|
-| REQ（上游） | `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` | 本文档的输入 |
+| REQ（上游） | `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` | 本文档的输入 |
 | [游戏D] 源码（参考） | `[跨盘-某发行商目录]/[游戏D]_privatesrv\` | 逆向分析对象 |
 | AGENTS.md | `D:\RustGameServer\AGENTS.md` | 仓库级守门 |
 | RACI（6 域） | `docs/14-项目管理/RGS-RACI-*-V1_*.md` | 6 域 Lead 协调 |

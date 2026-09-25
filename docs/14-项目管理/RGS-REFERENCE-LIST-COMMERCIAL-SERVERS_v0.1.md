@@ -3,7 +3,7 @@
 **创建日期**: 2026-09-20 JST
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **依据**:
-- 上游 REQ-A: `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` (Mavis 2026-09-17 创建)
+- 上游 REQ-A: `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` (Mavis 2026-09-17 创建)
 - 上游 REQ-B: `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` + `H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` + `SHIM_V05_DISPATCH_DESIGN.md` (Mavis 2026-09-09 创建)
 **作用域**: RGS 已参考的两款商用服务器各自亮点汇总
 **状态**: ⏳ 一审（Mavis 自审） / 待 Ulysses 二审
@@ -19,8 +19,8 @@
 | 审批 | 架构师(Mavis 接手 agent per DEC-008) + 自审 2026-09-20 JST |
 | 修订人 | Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手 |
 | 创建日期 | 2026-09-20 JST |
-| 上游 REQ-A | `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` v0.1 (commit 7b1bc71f) |
-| 上游 BASIC-A | `docs/14-项目管理/RGS-BASIC-ANANTA-CBT3-INSPIRED-2026-09-17_v0.1.md` v0.1 (commit 1bece32f) |
+| 上游 REQ-A | `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` v0.1 (commit 7b1bc71f) |
+| 上游 BASIC-A | `docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md` v0.1 (commit 1bece32f) |
 | 上游 REQ-B | `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` (commit 5420542) |
 | 上游 H5-B | `tools/rgs-shim-rust/docs/H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` (commit 54872c39) |
 | 上游 Dispatch-B | `tools/rgs-shim-rust/docs/SHIM_V05_DISPATCH_DESIGN.md` (commit 076bebf3) |
@@ -54,7 +54,7 @@
 
 ## 2. 服务器 A — [游戏D] [游戏D]_CBT3 PrivateServer 的 8 大技术亮点
 
-> **来源**: `RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` §2（已落档 Mavis 2026-09-17 创建），本节为摘要索引。
+> **来源**: `RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` §2（已落档 Mavis 2026-09-17 创建），本节为摘要索引。
 
 | # | 亮点 | [游戏D] 关键事实 | RGS 借鉴状态 (per §3) |
 |---|---|---|---|

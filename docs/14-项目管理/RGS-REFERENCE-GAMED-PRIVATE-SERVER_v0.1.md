@@ -29,7 +29,7 @@
 
 | 字段 | 值 |
 |---|---|
-| IP 官方名 | 《无限大》（[游戏D]） |
+| IP 官方名 | [游戏D] |
 | 内部代号 | [代码名-D] |
 | 客户端 build | 4229938 |
 | 客户端引擎 | Unity（IL2CPP 编译） |
@@ -491,7 +491,7 @@ crates/rgs-protocol/
 | `[代码名-D].Server\ClientData\4229938\RpcSurface.json` | 1475 methods / 290.7 KB | §2.1 |
 | `[代码名-D].Server\ClientData\4229938\MethodId.dump.cs` | 159.5 KB | §2.1 |
 | `[代码名-D].Proxy\proxy\rpc_schema.json` | 267.1 KB | §2.1 |
-| `Drmk.Proxy\proxy\server.js` | 3444 行 / 119.5 KB | §1.1 |
+| `[代码名-D].Proxy\proxy\server.js` | 3444 行 / 119.5 KB | §1.1 |
 | `[代码名-D].Server\[代码名-D].Network\RpcFrameDispatcher.cs` | 1.8 KB | §2.5 |
 | `[代码名-D].Server\[代码名-D].Gameplay\WebTraversal.cs` | 3.0 KB | §2.6 |
 | `[代码名-D].Server\[代码名-D].App\DebugApiServer.cs` | 33.3 KB | §2.7 |
@@ -592,7 +592,7 @@ crates/rgs-protocol/
 **注册/账号 1 个**：
 - `[游戏A]_register`
 
-> **修正说明**：原 9/16 21:42 JST 第一次扫描时将本项目误判为"逆水寒无限大 + C#"，实际核实为：[游戏D][游戏D]_CBT3 本地服务端，**Cocos2d-x + Erlang** 客户端、**.NET 8 + C#** 服务端。原文 `E:\[游戏A]-src-winrar`（2.38 GB / [游戏A] 全套）是另一个 MMORPG 项目，与本需求文档无关。
+> **修正说明**：原 9/16 21:42 JST 第一次扫描时将本项目误判为「某 IP 续作 + C#」，实际核实为：[游戏D][游戏D]_CBT3 本地服务端，**Cocos2d-x + Erlang** 客户端、**.NET 8 + C#** 服务端。原文 `E:\[游戏A]-src-winrar`（2.38 GB / [游戏A] 全套）是另一个 MMORPG 项目，与本需求文档无关。
 
 ---
 
