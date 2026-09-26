@@ -16,5 +16,8 @@ fn e2e_admin_audit_log_marker() {
     // 真跑需 SRE Lead 拍板触发 + audit_log startup verify (per RGS-PHASE-C-PREP §1 阶段 C)
     // 当前: 仅编译期锚定
     let verify_window: usize = 1000; // Q2 决策: 最近 1000 条 verify
-    assert_eq!(verify_window, 1000, "admin audit_log verify 1000 条锚定 (per Q2 决策)");
+    assert_eq!(
+        verify_window, 1000,
+        "admin audit_log verify 1000 条锚定 (per Q2 决策)"
+    );
 }

@@ -358,7 +358,10 @@ impl DropTable {
         // 生产环境应替换为 rand crate (per DTL-038 §6.1 业务层, 当前桶 10 占位)
         let mut hasher = DefaultHasher::new();
         self.version.hash(&mut hasher);
-        Utc::now().timestamp_nanos_opt().unwrap_or(0).hash(&mut hasher);
+        Utc::now()
+            .timestamp_nanos_opt()
+            .unwrap_or(0)
+            .hash(&mut hasher);
         let r = (hasher.finish() as f64) / (u64::MAX as f64);
         let mut acc = 0.0_f64;
         for e in &self.entries {

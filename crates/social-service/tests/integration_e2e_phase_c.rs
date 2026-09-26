@@ -16,5 +16,8 @@ fn e2e_social_guild_push_marker() {
     // 真跑需 SRE Lead 拍板触发 + NATS dispatcher + admin 审计 (per RGS-PHASE-C-PREP §1 阶段 C C6)
     // 当前: 仅编译期锚定
     let guild_capacity: usize = 50; // per Q5 决策
-    assert_eq!(guild_capacity, 50, "social guild capacity 50 锚定 (per Q5 决策)");
+    assert_eq!(
+        guild_capacity, 50,
+        "social guild capacity 50 锚定 (per Q5 决策)"
+    );
 }

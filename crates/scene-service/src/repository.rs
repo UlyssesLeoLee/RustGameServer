@@ -257,14 +257,22 @@ mod tests {
 
     #[test]
     fn scene_is_level_allowed() {
-        let s = Scene::new("scene-1".to_string(), "新手村".to_string(), "res-0".to_string());
+        let s = Scene::new(
+            "scene-1".to_string(),
+            "新手村".to_string(),
+            "res-0".to_string(),
+        );
         assert!(s.is_level_allowed(1));
         assert!(s.is_level_allowed(50));
     }
 
     #[test]
     fn scene_level_range() {
-        let mut s = Scene::new("scene-1".to_string(), "新手村".to_string(), "res-0".to_string());
+        let mut s = Scene::new(
+            "scene-1".to_string(),
+            "新手村".to_string(),
+            "res-0".to_string(),
+        );
         s.min_level = 10;
         s.max_level = 20;
         assert!(!s.is_level_allowed(5));

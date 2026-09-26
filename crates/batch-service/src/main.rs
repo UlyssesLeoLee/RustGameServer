@@ -16,8 +16,8 @@
 //! - env value 硬 ban: BATCH_DB_PASSWORD 等凭据走 env, 永不打印 (per 8/27 11:06 JST + REQ NFR-30)
 
 use std::env;
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

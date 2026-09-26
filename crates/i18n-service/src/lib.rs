@@ -19,9 +19,7 @@ pub mod service;
 
 pub use error::{Error, Result};
 pub use repository::{I18nRepository, InMemoryI18nRepository, PgI18nRepository};
-pub use service::{
-    GetTextResult, GetTextsResult, I18nService, I18nServiceImpl, TtlCache,
-};
+pub use service::{GetTextResult, GetTextsResult, I18nService, I18nServiceImpl, TtlCache};
 
 pub mod proto {
     #![allow(clippy::all)]

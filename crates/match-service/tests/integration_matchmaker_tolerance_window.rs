@@ -69,11 +69,7 @@ fn tolerance_grace_period_holds_initial() {
     assert_eq!(p.grace_period_secs, GRACE, "grace 应为 5s");
 
     // 步 1: t=0 边界 (刚好 grace 期内)
-    assert_eq!(
-        tolerance_v1(0, &p),
-        INITIAL,
-        "t=0 应等于 initial_tolerance"
-    );
+    assert_eq!(tolerance_v1(0, &p), INITIAL, "t=0 应等于 initial_tolerance");
 
     // 步 2: t=grace/2 (中间)
     assert_eq!(
@@ -139,11 +135,7 @@ fn tolerance_caps_at_max() {
     );
 
     // 步 2: t=200 (已超 20s, 应 cap)
-    assert_eq!(
-        tolerance_v1(200, &p),
-        MAX,
-        "t=200 应 cap 在 max=400"
-    );
+    assert_eq!(tolerance_v1(200, &p), MAX, "t=200 应 cap 在 max=400");
 
     // 步 3: t=10000 (远超, 应 cap)
     assert_eq!(

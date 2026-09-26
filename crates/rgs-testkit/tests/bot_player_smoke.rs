@@ -62,7 +62,10 @@ async fn bot_player_real_grpc_client_init() {
     assert!(ai.is_real().await, "skip_verify 模式应构造真实 Channel");
 
     // 验证内部 PlayerMtlsClient 拿到正确 endpoint + domain (凭据不打印)
-    let client = ai.mtls_client().await.expect("client should be set after init");
+    let client = ai
+        .mtls_client()
+        .await
+        .expect("client should be set after init");
     let cfg = client.config();
     assert_eq!(cfg.endpoint.as_deref(), Some("https://127.0.0.1:50051"));
     assert_eq!(cfg.domain.as_deref(), Some("player-service"));
@@ -121,10 +124,7 @@ async fn bot_player_with_real_mtls_config_falls_back_on_missing_cert() {
         .expect("init should not panic on missing cert");
 
     // is_real = false (降级)
-    assert!(
-        !ai.is_real().await,
-        "cert 缺失应降级 stub, is_real = false"
-    );
+    assert!(!ai.is_real().await, "cert 缺失应降级 stub, is_real = false");
 
     // handle 仍 Ok (走 stub 路径)
     for act in ai.act_list() {
@@ -212,7 +212,10 @@ async fn bot_player_real_rpc_call_heartbeat_returns_err_on_k3s_unreachable() {
                 "Unreachable error message 应非空, got: {}",
                 e
             );
-            eprintln!("expected: heartbeat RPC unreachable (k3s baseline 0/12): {}", e);
+            eprintln!(
+                "expected: heartbeat RPC unreachable (k3s baseline 0/12): {}",
+                e
+            );
         }
     }
 

@@ -29,10 +29,7 @@ pub struct LoginResponse {
 // POST /gm/login
 // ============================================================================
 
-pub async fn login(
-    state: web::Data<AppState>,
-    body: web::Json<LoginRequest>,
-) -> HttpResponse {
+pub async fn login(state: web::Data<AppState>, body: web::Json<LoginRequest>) -> HttpResponse {
     let admins = state.admins.lock().unwrap();
     let admin = admins.iter().find(|a| a.username == body.username);
     match admin {
@@ -42,13 +39,21 @@ pub async fn login(
                 return HttpResponse::Unauthorized().json(json!({"error": "invalid_credentials"}));
             }
             let roles = if a.role == "superadmin" {
-                vec!["GM_READ".to_string(), "GM_WRITE".to_string(), "GM_ADMIN".to_string()]
+                vec![
+                    "GM_READ".to_string(),
+                    "GM_WRITE".to_string(),
+                    "GM_ADMIN".to_string(),
+                ]
             } else {
                 vec!["GM_READ".to_string(), "GM_WRITE".to_string()]
             };
-            let token = match issue_jwt(&state.config.jwt_secret, &a.username, roles.clone(), 3600) {
+            let token = match issue_jwt(&state.config.jwt_secret, &a.username, roles.clone(), 3600)
+            {
                 Ok(t) => t,
-                Err(e) => return HttpResponse::InternalServerError().json(json!({"error": "jwt_issue_failed", "detail": e.to_string()})),
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .json(json!({"error": "jwt_issue_failed", "detail": e.to_string()}))
+                }
             };
             HttpResponse::Ok().json(LoginResponse { token })
         }
@@ -92,19 +97,21 @@ pub async fn create_admin(
     HttpResponse::Ok().json(json!({"status": "created", "username": body.username}))
 }
 
-pub async fn list_admins(
-    state: web::Data<AppState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn list_admins(state: web::Data<AppState>, req: HttpRequest) -> HttpResponse {
     if !is_superadmin(&req) {
         return HttpResponse::Forbidden().json(json!({"error": "forbidden"}));
     }
     let admins = state.admins.lock().unwrap();
-    let out: Vec<_> = admins.iter().map(|a| json!({
-        "id": a.username,
-        "username": a.username,
-        "role": a.role,
-    })).collect();
+    let out: Vec<_> = admins
+        .iter()
+        .map(|a| {
+            json!({
+                "id": a.username,
+                "username": a.username,
+                "role": a.role,
+            })
+        })
+        .collect();
     HttpResponse::Ok().json(json!({"admins": out}))
 }
 

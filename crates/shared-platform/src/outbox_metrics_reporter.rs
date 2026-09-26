@@ -49,7 +49,11 @@ impl OutboxMetricsReporter {
     /// 构造 reporter
     ///
     /// `service_name` 必须是 `"admin" | "economy" | "match" | "player" | "social" | "cluster_ops"`
-    pub fn new(repo: Arc<PgOutboxRepository>, service_name: &'static str, interval: Duration) -> Self {
+    pub fn new(
+        repo: Arc<PgOutboxRepository>,
+        service_name: &'static str,
+        interval: Duration,
+    ) -> Self {
         Self {
             repo,
             service_name,

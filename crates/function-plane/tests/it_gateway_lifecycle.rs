@@ -219,7 +219,10 @@ async fn it_gateway_container_runtime_invocation_is_contractinvalid() {
         context: FunctionContext::new(),
         extra: Default::default(),
     };
-    let err = gw.invoke(req).await.expect_err("Container runtime must error");
+    let err = gw
+        .invoke(req)
+        .await
+        .expect_err("Container runtime must error");
     match err {
         FunctionPlaneError::ContractInvalid(msg) => {
             assert!(

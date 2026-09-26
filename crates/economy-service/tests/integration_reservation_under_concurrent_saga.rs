@@ -58,9 +58,7 @@ struct ConcurrencyEnv {
 
 fn bootstrap() -> ConcurrencyEnv {
     let led = Arc::new(InMemoryTransactionLedgerRepository::new());
-    let acc = Arc::new(
-        InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
-    );
+    let acc = Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()));
     let res = Arc::new(InMemoryReservationRepository::new());
     let sag = Arc::new(InMemorySagaRepository::new());
     ConcurrencyEnv {
@@ -122,16 +120,16 @@ async fn concurrent_two_sagas_one_account_one_wins() {
     let mut saga2 = make_saga(acc_id, "k-conc-a-2");
 
     // 并发跑 2 个 saga: 1 成功 1 OCC 冲突 (per RGS-REV-009 V1 LO-4)
-    let (r1, r2) = tokio::join!(
-        orch.execute(&mut saga1),
-        orch.execute(&mut saga2),
-    );
+    let (r1, r2) = tokio::join!(orch.execute(&mut saga1), orch.execute(&mut saga2),);
 
     let oks = [&r1, &r2].iter().filter(|r| r.is_ok()).count();
     let errs = [&r1, &r2].iter().filter(|r| r.is_err()).count();
     assert_eq!(oks + errs, 2, "must produce exactly 2 results");
     assert_eq!(oks, 1, "exactly 1 saga should win");
-    assert_eq!(errs, 1, "exactly 1 saga should lose (OCC or InsufficientFunds)");
+    assert_eq!(
+        errs, 1,
+        "exactly 1 saga should lose (OCC or InsufficientFunds)"
+    );
 
     // 终态余额: 100 - 80 = 20 (成功那一个)
     let final_acc = env
@@ -160,11 +158,7 @@ async fn concurrent_two_sagas_one_account_one_wins() {
     // ledger: 1 条 spend (winner)
     let winner_saga = if r1.is_ok() { saga1.id } else { saga2.id };
     let ledger_entries = env.ledger.list_by_saga(winner_saga).await.unwrap();
-    assert_eq!(
-        ledger_entries.len(),
-        1,
-        "winner's ledger has 1 spend entry"
-    );
+    assert_eq!(ledger_entries.len(), 1, "winner's ledger has 1 spend entry");
     assert_eq!(ledger_entries[0].amount, -80, "spend amount is 80");
 }
 
@@ -185,10 +179,7 @@ async fn concurrent_two_sagas_same_account_both_lose_balance() {
     let mut saga1 = make_saga(acc_id, "k-conc-b-1");
     let mut saga2 = make_saga(acc_id, "k-conc-b-2");
 
-    let (r1, r2) = tokio::join!(
-        orch.execute(&mut saga1),
-        orch.execute(&mut saga2),
-    );
+    let (r1, r2) = tokio::join!(orch.execute(&mut saga1), orch.execute(&mut saga2),);
 
     assert!(r1.is_err(), "saga1 must fail (InsufficientFunds)");
     assert!(r2.is_err(), "saga2 must fail (InsufficientFunds)");
@@ -242,10 +233,7 @@ async fn concurrent_two_sagas_distinct_accounts_both_win() {
     let mut saga1 = make_saga(acc1, "k-conc-c-1");
     let mut saga2 = make_saga(acc2, "k-conc-c-2");
 
-    let (r1, r2) = tokio::join!(
-        orch.execute(&mut saga1),
-        orch.execute(&mut saga2),
-    );
+    let (r1, r2) = tokio::join!(orch.execute(&mut saga1), orch.execute(&mut saga2),);
 
     assert!(r1.is_ok(), "saga1 must succeed (independent account)");
     assert!(r2.is_ok(), "saga2 must succeed (independent account)");

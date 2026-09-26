@@ -100,10 +100,7 @@ impl OpenPackSaga {
         let currency = parse_currency(input.currency_type)?;
         // 步骤状态记录: (step_name, completed, instance_ids)
         let mut added_instance_ids: Vec<Uuid> = Vec::new();
-        let debited = match self
-            .step1_debit_currency(&input, saga_id, currency)
-            .await
-        {
+        let debited = match self.step1_debit_currency(&input, saga_id, currency).await {
             Ok(d) => d,
             Err(e) => {
                 // step 1 失败: 无补偿
@@ -138,12 +135,7 @@ impl OpenPackSaga {
         for card_id in &card_ids {
             match self
                 .card_client
-                .add_card_to_collection(
-                    input.player_id,
-                    card_id,
-                    CardSource::Pack,
-                    saga_id,
-                )
+                .add_card_to_collection(input.player_id, card_id, CardSource::Pack, saga_id)
                 .await
             {
                 Ok(instance_id) => added_instance_ids.push(instance_id),
@@ -451,11 +443,16 @@ impl BidAuctionSaga {
                 let exec_input = ExecuteAuctionInput {
                     auction_id: input.auction_id,
                     winner_id: input.bidder_id,
-                    seller_id: Uuid::parse_str(&auction.seller_id)
-                        .map_err(|_| Error::Validation(format!("invalid seller uuid: {}", auction.seller_id)))?,
+                    seller_id: Uuid::parse_str(&auction.seller_id).map_err(|_| {
+                        Error::Validation(format!("invalid seller uuid: {}", auction.seller_id))
+                    })?,
                     card_id: auction.card_id.clone(),
-                    card_instance_id: Uuid::parse_str(&auction.card_instance_id)
-                        .map_err(|_| Error::Validation(format!("invalid card_instance_id: {}", auction.card_instance_id)))?,
+                    card_instance_id: Uuid::parse_str(&auction.card_instance_id).map_err(|_| {
+                        Error::Validation(format!(
+                            "invalid card_instance_id: {}",
+                            auction.card_instance_id
+                        ))
+                    })?,
                     final_price: input.amount,
                     currency_type,
                     tax_bps: crate::trade_service::AUCTION_FEE_BPS,
@@ -614,7 +611,12 @@ impl ExecuteAuctionSaga {
 
         // step 1: trade.FinalizeAuction
         self.trade_client
-            .finalize_auction(input.auction_id, input.winner_id, input.final_price, saga_id)
+            .finalize_auction(
+                input.auction_id,
+                input.winner_id,
+                input.final_price,
+                saga_id,
+            )
             .await?;
 
         // step 2: economy.TransferCurrency (winner → seller, amount - tax)
@@ -641,12 +643,7 @@ impl ExecuteAuctionSaga {
         // step 4: card.AddCardToCollection (winner, source=TRADE)
         let new_card_instance_id = self
             .card_client
-            .add_card_to_collection(
-                input.winner_id,
-                &input.card_id,
-                CardSource::Trade,
-                saga_id,
-            )
+            .add_card_to_collection(input.winner_id, &input.card_id, CardSource::Trade, saga_id)
             .await?;
 
         // step 5: economy.AddTransactionLog (写双账目: 卖家收入 + 平台 tax)
@@ -729,9 +726,7 @@ mod tests {
         Arc<MockTradeClient>,
     ) {
         let led = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let acc = Arc::new(
-            InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
-        );
+        let acc = Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()));
         let trades = Arc::new(InMemoryTradeRepository::new());
         let card = Arc::new(MockCardClient::new());
         let trade = Arc::new(MockTradeClient::new());

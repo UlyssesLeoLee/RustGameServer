@@ -10,8 +10,13 @@ use crate::AppState;
 pub async fn summary(state: web::Data<AppState>) -> HttpResponse {
     // 直接从 InMemory 聚合 (生产应调各 5 域 gRPC)
     let grants_count = state.grants.lock().unwrap().len() as u32;
-    let broadcasts_count = state.audit_store.list_entries(1000).await.iter()
-        .filter(|e| e.action == "broadcast").count() as u32;
+    let broadcasts_count = state
+        .audit_store
+        .list_entries(1000)
+        .await
+        .iter()
+        .filter(|e| e.action == "broadcast")
+        .count() as u32;
     let tickets = state.tickets.lock().unwrap();
     let tickets_open = tickets.iter().filter(|t| t.status != "resolved").count() as u32;
     let tickets_total = tickets.len() as u32;

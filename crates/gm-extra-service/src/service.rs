@@ -57,7 +57,10 @@ impl GmExtraServiceImpl {
         if (role as u8) >= (required as u8) {
             Ok(())
         } else {
-            Err(Error::PermissionDenied(format!("gm {} lacks role {:?}", gm_id, required)))
+            Err(Error::PermissionDenied(format!(
+                "gm {} lacks role {:?}",
+                gm_id, required
+            )))
         }
     }
 
@@ -69,22 +72,36 @@ impl GmExtraServiceImpl {
         }
     }
 
-    pub async fn ban_account(&self, gm_id: &str, player_id: &str, reason: &str, duration_secs: i64) -> Result<String> {
+    pub async fn ban_account(
+        &self,
+        gm_id: &str,
+        player_id: &str,
+        reason: &str,
+        duration_secs: i64,
+    ) -> Result<String> {
         self.check_gm(gm_id, GmRole::SuperAdmin)?;
         if duration_secs <= 0 {
             return Err(Error::InvalidRequest("duration must be > 0".into()));
         }
         let rec = BanRecord::new(gm_id, player_id, reason, BanScope::All, duration_secs);
         let bid = rec.ban_id.to_string();
-        self.bans.write().await.entry(player_id.to_string()).or_default().push(rec);
-        self.record_audit(gm_id, "ban_account", player_id, "ok").await;
+        self.bans
+            .write()
+            .await
+            .entry(player_id.to_string())
+            .or_default()
+            .push(rec);
+        self.record_audit(gm_id, "ban_account", player_id, "ok")
+            .await;
         Ok(bid)
     }
 
     pub async fn unban_account(&self, gm_id: &str, player_id: &str) -> Result<()> {
         self.check_gm(gm_id, GmRole::SuperAdmin)?;
         let mut bans = self.bans.write().await;
-        let list = bans.get_mut(player_id).ok_or_else(|| Error::PlayerNotFound(player_id.into()))?;
+        let list = bans
+            .get_mut(player_id)
+            .ok_or_else(|| Error::PlayerNotFound(player_id.into()))?;
         let count = list.iter().filter(|b| b.active).count();
         if count == 0 {
             return Err(Error::PlayerNotFound(player_id.into()));
@@ -92,24 +109,43 @@ impl GmExtraServiceImpl {
         for b in list.iter_mut() {
             b.active = false;
         }
-        self.record_audit(gm_id, "unban_account", player_id, "ok").await;
+        self.record_audit(gm_id, "unban_account", player_id, "ok")
+            .await;
         Ok(())
     }
 
-    pub async fn mute_player(&self, gm_id: &str, player_id: &str, channel: &str, duration_secs: i64) -> Result<()> {
+    pub async fn mute_player(
+        &self,
+        gm_id: &str,
+        player_id: &str,
+        channel: &str,
+        duration_secs: i64,
+    ) -> Result<()> {
         self.check_gm(gm_id, GmRole::Operator)?;
         if duration_secs <= 0 {
             return Err(Error::InvalidRequest("duration must be > 0".into()));
         }
-        self.bans.write().await.entry(player_id.to_string()).or_default()
-            .push(BanRecord::new(gm_id, player_id, &format!("mute {}", channel), BanScope::Chat, duration_secs));
-        self.record_audit(gm_id, "mute_player", player_id, "ok").await;
+        self.bans
+            .write()
+            .await
+            .entry(player_id.to_string())
+            .or_default()
+            .push(BanRecord::new(
+                gm_id,
+                player_id,
+                &format!("mute {}", channel),
+                BanScope::Chat,
+                duration_secs,
+            ));
+        self.record_audit(gm_id, "mute_player", player_id, "ok")
+            .await;
         Ok(())
     }
 
     pub async fn unmute_player(&self, gm_id: &str, player_id: &str, channel: &str) -> Result<()> {
         self.check_gm(gm_id, GmRole::Operator)?;
-        self.record_audit(gm_id, "unmute_player", player_id, channel).await;
+        self.record_audit(gm_id, "unmute_player", player_id, channel)
+            .await;
         Ok(())
     }
 
@@ -118,17 +154,22 @@ impl GmExtraServiceImpl {
         if reason.is_empty() {
             return Err(Error::InvalidRequest("reason required".into()));
         }
-        self.record_audit(gm_id, "kick_player", player_id, reason).await;
+        self.record_audit(gm_id, "kick_player", player_id, reason)
+            .await;
         Ok(())
     }
 
     pub async fn set_world_level(&self, gm_id: &str, new_level: u32) -> Result<()> {
         self.check_gm(gm_id, GmRole::SuperAdmin)?;
         if new_level == 0 || new_level > 200 {
-            return Err(Error::InvalidRequest(format!("level {} out of range", new_level)));
+            return Err(Error::InvalidRequest(format!(
+                "level {} out of range",
+                new_level
+            )));
         }
         *self.world_level.write().await = new_level;
-        self.record_audit(gm_id, "set_world_level", "", &new_level.to_string()).await;
+        self.record_audit(gm_id, "set_world_level", "", &new_level.to_string())
+            .await;
         Ok(())
     }
 
@@ -136,24 +177,44 @@ impl GmExtraServiceImpl {
         *self.world_level.read().await
     }
 
-    pub async fn broadcast(&self, gm_id: &str, content: &str, channel: u32, repeat: u32) -> Result<()> {
+    pub async fn broadcast(
+        &self,
+        gm_id: &str,
+        content: &str,
+        channel: u32,
+        repeat: u32,
+    ) -> Result<()> {
         self.check_gm(gm_id, GmRole::Operator)?;
         if content.is_empty() {
             return Err(Error::InvalidRequest("content required".into()));
         }
-        self.record_audit(gm_id, "broadcast", &format!("ch{}x{}", channel, repeat), "ok").await;
+        self.record_audit(
+            gm_id,
+            "broadcast",
+            &format!("ch{}x{}", channel, repeat),
+            "ok",
+        )
+        .await;
         Ok(())
     }
 
     pub async fn get_audit_log(&self, _gm_id: &str, page: u32, page_size: u32) -> Vec<AuditEntry> {
         let audit = self.audit.read().await;
         let start = page as usize * page_size as usize;
-        audit.iter().rev().skip(start).take(page_size as usize).cloned().collect()
+        audit
+            .iter()
+            .rev()
+            .skip(start)
+            .take(page_size as usize)
+            .cloned()
+            .collect()
     }
 }
 
 impl Default for GmExtraServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

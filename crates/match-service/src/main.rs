@@ -100,11 +100,7 @@ async fn main() -> anyhow::Result<()> {
     let v2_tickets: Arc<dyn match_service::repository_v2::MatchmakingTicketRepository> =
         Arc::new(PgMatchmakingTicketRepository::new(pool.clone()));
 
-    let mut matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(
-        v2_sessions,
-        v2_moves,
-        v2_tickets,
-    ));
+    let mut matchmaker_v2 = Arc::new(MatchmakerServiceV2::new(v2_sessions, v2_moves, v2_tickets));
 
     // W36 (2026-08-30): 跨域 SaveReplay saga — 注入 replay-service gRPC 客户端
     // mTLS fail-closed (per RGS-REV-007 CH4 / DEC-015 P1): 默认强制 mTLS
@@ -275,8 +271,7 @@ fn build_replay_client() -> anyhow::Result<Arc<dyn match_service::ReplayClientTr
         );
         ReplayClientConfig::insecure(endpoint)
     } else {
-        let tls_dir =
-            std::env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
+        let tls_dir = std::env::var("RGS_TLS_DIR").unwrap_or_else(|_| "/etc/rgs/certs".to_string());
         let ca = format!("{}/ca.pem", tls_dir);
         let cert = format!("{}/replay-client.pem", tls_dir);
         let key = format!("{}/replay-client.key", tls_dir);
@@ -292,7 +287,7 @@ fn build_replay_client() -> anyhow::Result<Arc<dyn match_service::ReplayClientTr
         ReplayClientConfig::mtls(endpoint, "replay-service", ca, cert, key)
     };
 
-    let client = ReplayClient::try_connect_lazy(config)
-        .context("replay-service client init failed")?;
+    let client =
+        ReplayClient::try_connect_lazy(config).context("replay-service client init failed")?;
     Ok(Arc::new(client) as Arc<dyn match_service::ReplayClientTrait>)
 }

@@ -38,9 +38,24 @@ fn card_series_status_packable() {
 #[test]
 fn drop_table_validate_ok_and_sum_le_one() {
     let dt = DropTable::new(vec![
-        DropEntry { rarity: CardRarity::Common, count: 4, probability: 0.7, card_id: None },
-        DropEntry { rarity: CardRarity::Rare, count: 1, probability: 0.2, card_id: None },
-        DropEntry { rarity: CardRarity::Legendary, count: 1, probability: 0.05, card_id: None },
+        DropEntry {
+            rarity: CardRarity::Common,
+            count: 4,
+            probability: 0.7,
+            card_id: None,
+        },
+        DropEntry {
+            rarity: CardRarity::Rare,
+            count: 1,
+            probability: 0.2,
+            card_id: None,
+        },
+        DropEntry {
+            rarity: CardRarity::Legendary,
+            count: 1,
+            probability: 0.05,
+            card_id: None,
+        },
     ]);
     assert!(dt.validate().is_ok());
     // 0.7 + 0.2 + 0.05 = 0.95 ≤ 1.0
@@ -61,7 +76,13 @@ fn card_stats_custom_attrs() {
     let mut s = CardStats::default();
     s.custom.insert("taunt".to_string(), 1);
     s.custom.insert("shield".to_string(), 3);
-    let c = Card::new("c".into(), "s".into(), "x".into(), CardType::Creature, CardRarity::Common);
+    let c = Card::new(
+        "c".into(),
+        "s".into(),
+        "x".into(),
+        CardType::Creature,
+        CardRarity::Common,
+    );
     assert_eq!(c.stats.attack, 0);
     assert_eq!(s.custom.get("taunt"), Some(&1));
 }

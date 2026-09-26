@@ -40,7 +40,9 @@ pub async fn create_ticket(
     if body.player_id.trim().is_empty() || body.message.trim().is_empty() {
         return HttpResponse::BadRequest().json(json!({"error": "missing_fields"}));
     }
-    let admin = extract_claims(&req).map(|c: Claims| c.sub).unwrap_or_else(|| "unknown".to_string());
+    let admin = extract_claims(&req)
+        .map(|c: Claims| c.sub)
+        .unwrap_or_else(|| "unknown".to_string());
     let id = NEXT_TICKET_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let now = Utc::now().to_rfc3339();
     let ticket = TicketEntry {
@@ -74,7 +76,8 @@ pub async fn update_ticket_status(
     };
     let allowed = ["open", "pending", "resolved"];
     if !allowed.contains(&body.status.as_str()) {
-        return HttpResponse::BadRequest().json(json!({"error": "invalid_status", "allowed": allowed}));
+        return HttpResponse::BadRequest()
+            .json(json!({"error": "invalid_status", "allowed": allowed}));
     }
     ticket.status = body.status.clone();
     ticket.updated_at = Utc::now().to_rfc3339();

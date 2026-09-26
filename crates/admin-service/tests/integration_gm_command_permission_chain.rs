@@ -9,7 +9,7 @@
 //! 1. `issue_gm_command_with_rbac` wrapper: 应用层 RBAC 封装 (模拟 gm_handlers 实际
 //!    production 行为应在 handler 入口做此 check, 当前 src/gm_handlers.rs 仅写 audit
 //!    log; 链路测试在 wrapper 层做断言, 隔离测试)
- //! 2. Support 拒绝 → 提升 → 重试成功 3 步链路 (per IT-AGENT-BRIEFING §3.5)
+//! 2. Support 拒绝 → 提升 → 重试成功 3 步链路 (per IT-AGENT-BRIEFING §3.5)
 //! 3. DomainAdmin(player) 只能 player.ban, 不能 economy.grant (权限边界)
 //! 4. SuperAdmin 跨域全权
 //! 5. 失败路径: 已停用 admin 拒绝 (disabled_at)
@@ -70,8 +70,13 @@ async fn issue_gm_command_with_rbac(
     payload: &str,
 ) -> Result<(), Error> {
     check_rbac(admin, action)?;
-    svc.audit_log(admin.id, action.to_string(), target.to_string(), payload.to_string())
-        .await?;
+    svc.audit_log(
+        admin.id,
+        action.to_string(),
+        target.to_string(),
+        payload.to_string(),
+    )
+    .await?;
     Ok(())
 }
 
@@ -177,7 +182,10 @@ async fn support_admin_ban_rejected_then_promoted_retry_succeeds() {
         r#"{"reason":"promoted retry"}"#,
     )
     .await;
-    assert!(result.is_ok(), "SuperAdmin retry player.ban 应成功, 实得: {result:?}");
+    assert!(
+        result.is_ok(),
+        "SuperAdmin retry player.ban 应成功, 实得: {result:?}"
+    );
 
     // Step 5: audit_log 链上应有 1 条 player.ban entry
     let audit_repo: Arc<dyn AuditLogRepository> = match () {
@@ -219,7 +227,10 @@ async fn support_admin_ban_rejected_then_promoted_retry_succeeds() {
     );
     // 验证: prev_hash 是 64 hex 字符
     assert_eq!(second_entry.prev_hash.len(), 64);
-    assert!(second_entry.prev_hash.chars().all(|c| c.is_ascii_hexdigit()));
+    assert!(second_entry
+        .prev_hash
+        .chars()
+        .all(|c| c.is_ascii_hexdigit()));
     // 验证: second_entry.hash 与 prev_hash 不同 (SHA-256 链)
     assert_ne!(second_entry.hash, second_entry.prev_hash);
 }
@@ -246,31 +257,17 @@ async fn domain_admin_player_only_can_ban_player_not_grant_economy() {
         .unwrap();
 
     // player.ban → ok
-    da = svc
-        .find_user_by_id(da.id)
-        .await
-        .unwrap()
-        .unwrap();
-    let r1 = issue_gm_command_with_rbac(
-        &svc,
-        &da,
-        "player.ban",
-        "p-1",
-        "{}",
-    )
-    .await;
-    assert!(r1.is_ok(), "DomainAdmin(player) 调 player.ban 应 ok, got {r1:?}");
+    da = svc.find_user_by_id(da.id).await.unwrap().unwrap();
+    let r1 = issue_gm_command_with_rbac(&svc, &da, "player.ban", "p-1", "{}").await;
+    assert!(
+        r1.is_ok(),
+        "DomainAdmin(player) 调 player.ban 应 ok, got {r1:?}"
+    );
 
     // economy.grant → 拒绝
-    let err = issue_gm_command_with_rbac(
-        &svc,
-        &da,
-        "economy.grant",
-        "acc-1",
-        r#"{"amount":100}"#,
-    )
-    .await
-    .unwrap_err();
+    let err = issue_gm_command_with_rbac(&svc, &da, "economy.grant", "acc-1", r#"{"amount":100}"#)
+        .await
+        .unwrap_err();
     assert!(
         matches!(err, Error::COCRoleRequired { .. }),
         "DomainAdmin(player) 调 economy.grant 应被 RBAC 拒, got {err:?}"
@@ -312,10 +309,19 @@ async fn super_admin_can_issue_commands_across_all_domains() {
 
     // 验证: 5 条 audit_log 已写入 (latest.prev_hash 必不等于初始 0)
     let last = svc
-        .audit_log(root.id, "noop".to_string(), "x".to_string(), "{}".to_string())
+        .audit_log(
+            root.id,
+            "noop".to_string(),
+            "x".to_string(),
+            "{}".to_string(),
+        )
         .await
         .unwrap();
-    assert_ne!(last.prev_hash, "0".repeat(64), "5 条后第 6 条 prev_hash 必连续");
+    assert_ne!(
+        last.prev_hash,
+        "0".repeat(64),
+        "5 条后第 6 条 prev_hash 必连续"
+    );
 }
 
 // ============================================================================
@@ -428,21 +434,11 @@ async fn handler_rbac_full_matrix_3_roles_x_3_actions() {
         .await
         .unwrap();
     let auditor = svc
-        .create_admin(
-            "a".to_string(),
-            "h".to_string(),
-            AdminRole::Auditor,
-            None,
-        )
+        .create_admin("a".to_string(), "h".to_string(), AdminRole::Auditor, None)
         .await
         .unwrap();
     let support = svc
-        .create_admin(
-            "s".to_string(),
-            "h".to_string(),
-            AdminRole::Support,
-            None,
-        )
+        .create_admin("s".to_string(), "h".to_string(), AdminRole::Support, None)
         .await
         .unwrap();
 
@@ -517,15 +513,9 @@ async fn handler_rbac_rejection_does_not_write_audit_log() {
         .unwrap();
 
     // Support 调 player.ban → 应被 RBAC 拒
-    let err = issue_gm_command_with_rbac(
-        &svc,
-        &support,
-        "player.ban",
-        "no-audit-target",
-        "{}",
-    )
-    .await
-    .unwrap_err();
+    let err = issue_gm_command_with_rbac(&svc, &support, "player.ban", "no-audit-target", "{}")
+        .await
+        .unwrap_err();
     assert!(matches!(err, Error::COCRoleRequired { .. }));
 
     // 验证: audit_log 链上不应有 "no-audit-target" 相关 entry

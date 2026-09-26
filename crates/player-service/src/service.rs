@@ -82,12 +82,7 @@ pub trait PlayerService: Send + Sync {
     async fn list_decks(&self, owner_id: Uuid, page_req: PageRequest) -> Result<(Vec<Deck>, i64)>;
 
     /// 开启/取消分享
-    async fn share_deck(
-        &self,
-        deck_id: Uuid,
-        owner_id: Uuid,
-        make_public: bool,
-    ) -> Result<Deck>;
+    async fn share_deck(&self, deck_id: Uuid, owner_id: Uuid, make_public: bool) -> Result<Deck>;
 
     /// 通过 share_code 拉取公开卡组
     async fn get_shared_deck(&self, share_code: String) -> Result<Deck>;
@@ -131,10 +126,7 @@ pub trait PlayerService: Send + Sync {
     async fn get_character_profile(&self, character_id: Uuid) -> Result<PlayerProfile>;
 
     /// 10302 角色资产信息 (per proto_103.erl, 跨域 economy 占位)
-    async fn get_character_assets(
-        &self,
-        character_id: Uuid,
-    ) -> Result<CharacterAssetsSnapshot>;
+    async fn get_character_assets(&self, character_id: Uuid) -> Result<CharacterAssetsSnapshot>;
 
     // ----- 10315 查看角色信息 — stub -----
 
@@ -158,11 +150,8 @@ pub trait PlayerService: Send + Sync {
 
     // ----- 10395 客户端通知查验身份认证（防沉迷） — stub -----
 
-    async fn anti_addiction_check(
-        &self,
-        character_id: Uuid,
-        is_adult: bool,
-    ) -> Result<(bool, i32)>; // (is_adult_confirmed, max_play_minutes)
+    async fn anti_addiction_check(&self, character_id: Uuid, is_adult: bool)
+        -> Result<(bool, i32)>; // (is_adult_confirmed, max_play_minutes)
 
     // ----- 10396 强制关闭客户端 — stub -----
 
@@ -241,7 +230,8 @@ impl PlayerServiceImpl {
         decks: Arc<dyn DeckRepository>,
     ) -> Self {
         use crate::repository::InMemoryCharacterRepository;
-        let characters: Arc<dyn CharacterRepository> = Arc::new(InMemoryCharacterRepository::default());
+        let characters: Arc<dyn CharacterRepository> =
+            Arc::new(InMemoryCharacterRepository::default());
         Self {
             players,
             sessions,
@@ -404,10 +394,13 @@ impl PlayerService for PlayerServiceImpl {
 
     async fn update_player_profile(&self, profile: PlayerProfile) -> Result<PlayerProfile> {
         // 验证 player 存在
-        self.players.find_by_id(profile.player_id).await?.ok_or_else(|| Error::NotFound {
-            entity: "Player",
-            id: profile.player_id.to_string(),
-        })?;
+        self.players
+            .find_by_id(profile.player_id)
+            .await?
+            .ok_or_else(|| Error::NotFound {
+                entity: "Player",
+                id: profile.player_id.to_string(),
+            })?;
         // TODO(DTL-038 §7.2): player_profiles 表实装后, 持久化 + 审计
         tracing::info!(
             target: "player-service",
@@ -432,10 +425,13 @@ impl PlayerService for PlayerServiceImpl {
             return Err(Error::Validation(format!("invalid mode: {}", mode)));
         }
         // 验证 player 存在
-        self.players.find_by_id(owner_id).await?.ok_or_else(|| Error::NotFound {
-            entity: "Player",
-            id: owner_id.to_string(),
-        })?;
+        self.players
+            .find_by_id(owner_id)
+            .await?
+            .ok_or_else(|| Error::NotFound {
+                entity: "Player",
+                id: owner_id.to_string(),
+            })?;
         // 业务规则占位 (per DTL-038 §9.1 P2 规则引擎 TODO)
         let _validation_errors = Self::validate_deck_slots(&[]);
 
@@ -540,12 +536,7 @@ impl PlayerService for PlayerServiceImpl {
         Ok((page.items, page.total))
     }
 
-    async fn share_deck(
-        &self,
-        deck_id: Uuid,
-        owner_id: Uuid,
-        make_public: bool,
-    ) -> Result<Deck> {
+    async fn share_deck(&self, deck_id: Uuid, owner_id: Uuid, make_public: bool) -> Result<Deck> {
         let mut deck = self
             .decks
             .find_by_id(deck_id)
@@ -586,7 +577,9 @@ impl PlayerService for PlayerServiceImpl {
 
     async fn get_shared_deck(&self, share_code: String) -> Result<Deck> {
         if share_code.trim().is_empty() {
-            return Err(Error::Validation("share_code must not be empty".to_string()));
+            return Err(Error::Validation(
+                "share_code must not be empty".to_string(),
+            ));
         }
         self.decks
             .find_by_share_code(&share_code)
@@ -616,10 +609,14 @@ impl PlayerService for PlayerServiceImpl {
         // 1. 参数校验
         let name = name.trim().to_string();
         if name.is_empty() {
-            return Err(Error::Validation("character name must not be empty".to_string()));
+            return Err(Error::Validation(
+                "character name must not be empty".to_string(),
+            ));
         }
         if name.len() > 64 {
-            return Err(Error::Validation("character name too long (max 64)".to_string()));
+            return Err(Error::Validation(
+                "character name too long (max 64)".to_string(),
+            ));
         }
         if !(1..=5).contains(&class_id) {
             return Err(Error::Validation(format!(
@@ -656,7 +653,12 @@ impl PlayerService for PlayerServiceImpl {
             return Err(Error::NicknameTaken(name));
         }
         // 4. 1 账号 1 角色 (v0.1) — 防重复创建
-        if self.characters.find_by_account_id(account_id).await?.is_some() {
+        if self
+            .characters
+            .find_by_account_id(account_id)
+            .await?
+            .is_some()
+        {
             return Err(Error::Conflict(format!(
                 "account {} already has a character",
                 account_id
@@ -811,10 +813,7 @@ impl PlayerService for PlayerServiceImpl {
         Ok(PlayerProfile::new(character_id))
     }
 
-    async fn get_character_assets(
-        &self,
-        character_id: Uuid,
-    ) -> Result<CharacterAssetsSnapshot> {
+    async fn get_character_assets(&self, character_id: Uuid) -> Result<CharacterAssetsSnapshot> {
         // 校验角色存在
         self.characters
             .find_by_id(character_id)
@@ -987,7 +986,14 @@ impl PlayerService for PlayerServiceImpl {
             .find_by_id(session_id)
             .await?
             .ok_or(Error::SessionExpired)?;
-        if session.player_id != character_id && self.characters.find_by_id(character_id).await?.map(|c| c.account_id) != Some(session.player_id) {
+        if session.player_id != character_id
+            && self
+                .characters
+                .find_by_id(character_id)
+                .await?
+                .map(|c| c.account_id)
+                != Some(session.player_id)
+        {
             return Err(Error::Forbidden(format!(
                 "session {} not bound to character {}",
                 session_id, character_id
@@ -1116,14 +1122,14 @@ impl PlayerService for PlayerServiceImpl {
         let saved_session = self.sessions.save(&session).await?;
         // 校验 character_id (optional)
         if let Some(cid) = character_id {
-            let character = self
-                .characters
-                .find_by_id(cid)
-                .await?
-                .ok_or_else(|| Error::NotFound {
-                    entity: "Character",
-                    id: cid.to_string(),
-                })?;
+            let character =
+                self.characters
+                    .find_by_id(cid)
+                    .await?
+                    .ok_or_else(|| Error::NotFound {
+                        entity: "Character",
+                        id: cid.to_string(),
+                    })?;
             if character.account_id != session.player_id {
                 return Err(Error::Forbidden(format!(
                     "character {} not bound to session {}",
@@ -1147,9 +1153,7 @@ fn is_active_for_update(p: &Player) -> bool {
 /// - 控制字符: 不允许 `\t \n \r` 等 (允许空格和中日韩)
 /// - 连续空格: 不允许 ≥ 4 个连续空格
 fn validate_character_name(name: &str) -> Result<()> {
-    const FORBIDDEN: &[&str] = &[
-        "admin", "system", "gm", "moderator", "support", "official",
-    ];
+    const FORBIDDEN: &[&str] = &["admin", "system", "gm", "moderator", "support", "official"];
     let lower = name.to_ascii_lowercase();
     for f in FORBIDDEN {
         if lower.contains(f) {
@@ -1266,8 +1270,9 @@ pub mod grpc_service {
             request: Request<player_proto::GetPlayerProfileRequest>,
         ) -> std::result::Result<Response<player_proto::PlayerProfile>, Status> {
             let req = request.get_ref();
-            let player_id = Uuid::parse_str(&req.player_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.player_id)))?;
+            let player_id = Uuid::parse_str(&req.player_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.player_id))
+            })?;
             let profile = self
                 .impl_
                 .get_player_profile(player_id)
@@ -1288,10 +1293,12 @@ pub mod grpc_service {
         async fn update_player_profile(
             &self,
             request: Request<player_proto::UpdatePlayerProfileRequest>,
-        ) -> std::result::Result<Response<player_proto::UpdatePlayerProfileResponse>, Status> {
+        ) -> std::result::Result<Response<player_proto::UpdatePlayerProfileResponse>, Status>
+        {
             let req = request.get_ref();
-            let player_id = Uuid::parse_str(&req.player_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.player_id)))?;
+            let player_id = Uuid::parse_str(&req.player_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.player_id))
+            })?;
             // proto3 optional 字段: profile 是 Option<PlayerProfile>
             let proto_profile = req
                 .profile
@@ -1310,7 +1317,9 @@ pub mod grpc_service {
                 .update_player_profile(profile)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            Ok(Response::new(player_proto::UpdatePlayerProfileResponse { updated: true }))
+            Ok(Response::new(player_proto::UpdatePlayerProfileResponse {
+                updated: true,
+            }))
         }
 
         async fn create_deck(
@@ -1418,9 +1427,14 @@ pub mod grpc_service {
                 .list_decks(owner_id, page_req)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let proto_decks: Vec<player_proto::Deck> =
-                decks.iter().map(deck_to_proto).collect();
-            let has_next = proto_decks.len() as i64 + ((req.page.as_ref().map(|p| (p.page as i64 - 1) * p.page_size as i64).unwrap_or(0))) < total;
+            let proto_decks: Vec<player_proto::Deck> = decks.iter().map(deck_to_proto).collect();
+            let has_next = proto_decks.len() as i64
+                + (req
+                    .page
+                    .as_ref()
+                    .map(|p| (p.page as i64 - 1) * p.page_size as i64)
+                    .unwrap_or(0))
+                < total;
             Ok(Response::new(player_proto::ListDecksResponse {
                 decks: proto_decks,
                 page: Some(common_proto::PageResponse {
@@ -1498,8 +1512,9 @@ pub mod grpc_service {
             request: Request<player_proto::CreateCharacterRequest>,
         ) -> std::result::Result<Response<player_proto::CreateCharacterResponse>, Status> {
             let req = request.get_ref();
-            let account_id = Uuid::parse_str(&req.account_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.account_id)))?;
+            let account_id = Uuid::parse_str(&req.account_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.account_id))
+            })?;
             let (character, session) = self
                 .impl_
                 .create_character(
@@ -1531,10 +1546,12 @@ pub mod grpc_service {
             request: Request<player_proto::LoginCharacterRequest>,
         ) -> std::result::Result<Response<player_proto::LoginCharacterResponse>, Status> {
             let req = request.get_ref();
-            let account_id = Uuid::parse_str(&req.account_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.account_id)))?;
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let account_id = Uuid::parse_str(&req.account_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.account_id))
+            })?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let (character, session) = self
                 .impl_
                 .login_character(
@@ -1560,10 +1577,12 @@ pub mod grpc_service {
         async fn reconnect_character(
             &self,
             request: Request<player_proto::ReconnectCharacterRequest>,
-        ) -> std::result::Result<Response<player_proto::ReconnectCharacterResponse>, Status> {
+        ) -> std::result::Result<Response<player_proto::ReconnectCharacterResponse>, Status>
+        {
             let req = request.get_ref();
-            let session_id = Uuid::parse_str(&req.session_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.session_id)))?;
+            let session_id = Uuid::parse_str(&req.session_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.session_id))
+            })?;
             let (character, session) = self
                 .impl_
                 .reconnect_character(session_id, req.client_ip.clone())
@@ -1585,8 +1604,9 @@ pub mod grpc_service {
             request: Request<player_proto::GetCharacterProfileRequest>,
         ) -> std::result::Result<Response<player_proto::CharacterProfile>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let profile = self
                 .impl_
                 .get_character_profile(character_id)
@@ -1626,8 +1646,9 @@ pub mod grpc_service {
             request: Request<player_proto::GetCharacterAssetsRequest>,
         ) -> std::result::Result<Response<player_proto::CharacterAssets>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let snap = self
                 .impl_
                 .get_character_assets(character_id)
@@ -1660,8 +1681,9 @@ pub mod grpc_service {
             request: Request<player_proto::GetCharacterInfoRequest>,
         ) -> std::result::Result<Response<player_proto::CharacterInfo>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let character = self
                 .impl_
                 .get_character_info(character_id)
@@ -1675,8 +1697,9 @@ pub mod grpc_service {
             request: Request<player_proto::RenameCharacterRequest>,
         ) -> std::result::Result<Response<player_proto::RenameCharacterResponse>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let old_name = self
                 .impl_
                 .get_character_info(character_id)
@@ -1716,8 +1739,9 @@ pub mod grpc_service {
             request: Request<player_proto::GuestModeTimeoutRequest>,
         ) -> std::result::Result<Response<player_proto::GuestModeTimeoutResponse>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let (ack, deadline) = self
                 .impl_
                 .guest_mode_timeout(character_id, req.timeout_seconds)
@@ -1735,10 +1759,12 @@ pub mod grpc_service {
         async fn anti_addiction_check(
             &self,
             request: Request<player_proto::AntiAddictionCheckRequest>,
-        ) -> std::result::Result<Response<player_proto::AntiAddictionCheckResponse>, Status> {
+        ) -> std::result::Result<Response<player_proto::AntiAddictionCheckResponse>, Status>
+        {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let (is_adult, max_min) = self
                 .impl_
                 .anti_addiction_check(character_id, req.is_adult)
@@ -1756,8 +1782,9 @@ pub mod grpc_service {
             request: Request<player_proto::ForceDisconnectRequest>,
         ) -> std::result::Result<Response<player_proto::ForceDisconnectResponse>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let (issued, session_id) = self
                 .impl_
                 .force_disconnect(character_id, req.reason.clone())
@@ -1774,10 +1801,12 @@ pub mod grpc_service {
             request: Request<player_proto::EnterBackgroundRequest>,
         ) -> std::result::Result<Response<player_proto::EnterBackgroundResponse>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
-            let session_id = Uuid::parse_str(&req.session_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.session_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
+            let session_id = Uuid::parse_str(&req.session_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.session_id))
+            })?;
             let (in_bg, since) = self
                 .impl_
                 .enter_background(character_id, session_id)
@@ -1797,8 +1826,9 @@ pub mod grpc_service {
             request: Request<player_proto::GetAvatarListRequest>,
         ) -> std::result::Result<Response<player_proto::AvatarList>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let character = self
                 .impl_
                 .get_character_info(character_id)
@@ -1832,8 +1862,9 @@ pub mod grpc_service {
             request: Request<player_proto::SetAvatarRequest>,
         ) -> std::result::Result<Response<player_proto::SetAvatarResponse>, Status> {
             let req = request.get_ref();
-            let character_id = Uuid::parse_str(&req.character_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.character_id)))?;
+            let character_id = Uuid::parse_str(&req.character_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+            })?;
             let new_id = self
                 .impl_
                 .set_avatar(character_id, req.avatar_id)
@@ -1850,14 +1881,13 @@ pub mod grpc_service {
             request: Request<player_proto::HeartbeatRequest>,
         ) -> std::result::Result<Response<player_proto::HeartbeatResponse>, Status> {
             let req = request.get_ref();
-            let session_id = Uuid::parse_str(&req.session_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.session_id)))?;
+            let session_id = Uuid::parse_str(&req.session_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.session_id))
+            })?;
             let character_id = if !req.character_id.is_empty() {
-                Some(
-                    Uuid::parse_str(&req.character_id).map_err(|_| {
-                        Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
-                    })?,
-                )
+                Some(Uuid::parse_str(&req.character_id).map_err(|_| {
+                    Status::invalid_argument(format!("invalid uuid: {}", req.character_id))
+                })?)
             } else {
                 None
             };
@@ -2201,10 +2231,7 @@ mod tests {
             .await
             .unwrap();
         assert!(!created.is_public);
-        let shared = svc
-            .share_deck(created.id, owner.id, true)
-            .await
-            .unwrap();
+        let shared = svc.share_deck(created.id, owner.id, true).await.unwrap();
         assert!(shared.is_public);
         assert!(shared.share_code.is_some());
         let code = shared.share_code.clone().unwrap();
@@ -2220,15 +2247,9 @@ mod tests {
             .create_deck(owner.id, "deck".to_string(), 1)
             .await
             .unwrap();
-        let shared = svc
-            .share_deck(created.id, owner.id, true)
-            .await
-            .unwrap();
+        let shared = svc.share_deck(created.id, owner.id, true).await.unwrap();
         assert!(shared.share_code.is_some());
-        let unshared = svc
-            .share_deck(created.id, owner.id, false)
-            .await
-            .unwrap();
+        let unshared = svc.share_deck(created.id, owner.id, false).await.unwrap();
         assert!(!unshared.is_public);
         assert!(unshared.share_code.is_none());
     }
@@ -2241,10 +2262,7 @@ mod tests {
             .create_deck(owner.id, "deck".to_string(), 1)
             .await
             .unwrap();
-        let shared = svc
-            .share_deck(created.id, owner.id, true)
-            .await
-            .unwrap();
+        let shared = svc.share_deck(created.id, owner.id, true).await.unwrap();
         let code = shared.share_code.clone().unwrap();
         let pulled = svc.get_shared_deck(code.clone()).await.unwrap();
         assert_eq!(pulled.id, created.id);
@@ -2264,10 +2282,7 @@ mod tests {
     #[tokio::test]
     async fn get_shared_deck_empty_code_fails() {
         let (svc, _, _, _, _) = make_service().await;
-        let err = svc
-            .get_shared_deck("".to_string())
-            .await
-            .unwrap_err();
+        let err = svc.get_shared_deck("".to_string()).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -2351,7 +2366,14 @@ mod tests {
         let (svc, _, _, _, _) = make_service().await;
         let account = svc.register("acct".to_string()).await.unwrap();
         let err = svc
-            .create_character(account.id, "".to_string(), 1, 1, "d".to_string(), "1.1.1.1".to_string())
+            .create_character(
+                account.id,
+                "".to_string(),
+                1,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -2362,7 +2384,14 @@ mod tests {
         let (svc, _, _, _, _) = make_service().await;
         let account = svc.register("acct".to_string()).await.unwrap();
         let err = svc
-            .create_character(account.id, "bob".to_string(), 99, 1, "d".to_string(), "1.1.1.1".to_string())
+            .create_character(
+                account.id,
+                "bob".to_string(),
+                99,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -2384,7 +2413,14 @@ mod tests {
         .unwrap();
         // 第二次同名 → NicknameTaken
         let err = svc
-            .create_character(account.id, "carol".to_string(), 1, 1, "d".to_string(), "1.1.1.1".to_string())
+            .create_character(
+                account.id,
+                "carol".to_string(),
+                1,
+                1,
+                "d".to_string(),
+                "1.1.1.1".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, Error::NicknameTaken(_)));
@@ -2512,10 +2548,7 @@ mod tests {
     #[tokio::test]
     async fn get_character_profile_not_found_fails() {
         let (svc, _, _, _, _) = make_service().await;
-        let err = svc
-            .get_character_profile(Uuid::new_v4())
-            .await
-            .unwrap_err();
+        let err = svc.get_character_profile(Uuid::new_v4()).await.unwrap_err();
         assert!(matches!(err, Error::NotFound { .. }));
     }
 
@@ -2645,7 +2678,10 @@ mod tests {
     #[tokio::test]
     async fn guest_mode_timeout_out_of_range_fails() {
         let (svc, _, _, _, _) = make_service().await;
-        let err = svc.guest_mode_timeout(Uuid::new_v4(), 30).await.unwrap_err();
+        let err = svc
+            .guest_mode_timeout(Uuid::new_v4(), 30)
+            .await
+            .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -2666,10 +2702,7 @@ mod tests {
             )
             .await
             .unwrap();
-        let (is_adult, max_min) = svc
-            .anti_addiction_check(char1.id, true)
-            .await
-            .unwrap();
+        let (is_adult, max_min) = svc.anti_addiction_check(char1.id, true).await.unwrap();
         assert!(is_adult);
         assert_eq!(max_min, 0); // 18+ 不限
     }
@@ -2689,10 +2722,7 @@ mod tests {
             )
             .await
             .unwrap();
-        let (is_adult, max_min) = svc
-            .anti_addiction_check(char1.id, false)
-            .await
-            .unwrap();
+        let (is_adult, max_min) = svc.anti_addiction_check(char1.id, false).await.unwrap();
         assert!(!is_adult);
         assert_eq!(max_min, 90);
     }
@@ -2749,10 +2779,7 @@ mod tests {
             )
             .await
             .unwrap();
-        let (ok, since) = svc
-            .enter_background(char1.id, session.id)
-            .await
-            .unwrap();
+        let (ok, since) = svc.enter_background(char1.id, session.id).await.unwrap();
         assert!(ok);
         assert!(since <= chrono::Utc::now());
     }
@@ -2813,10 +2840,7 @@ mod tests {
     #[tokio::test]
     async fn set_avatar_out_of_range_fails() {
         let (svc, _, _, _, _) = make_service().await;
-        let err = svc
-            .set_avatar(Uuid::new_v4(), 99)
-            .await
-            .unwrap_err();
+        let err = svc.set_avatar(Uuid::new_v4(), 99).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -2853,10 +2877,7 @@ mod tests {
         let mut session = PlayerSession::new(account_id, "d".to_string(), "1.1.1.1".to_string());
         session.expires_at = chrono::Utc::now() - chrono::Duration::hours(1);
         sessions.save(&session).await.unwrap();
-        let err = svc
-            .heartbeat_rpc(session.id, None, 0)
-            .await
-            .unwrap_err();
+        let err = svc.heartbeat_rpc(session.id, None, 0).await.unwrap_err();
         assert!(matches!(err, Error::SessionExpired));
     }
 

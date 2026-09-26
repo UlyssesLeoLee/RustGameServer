@@ -30,7 +30,7 @@ pub mod repository_v2;
 // W36 (2026-08-30): 跨域 SaveReplay saga — match-service → replay-service gRPC client
 pub mod replay_client;
 pub use replay_client::{
-    ReplayClient, ReplayClientConfig, ReplayClientTrait, ReplayClientTlsConfig, SaveReplayOutcome,
+    ReplayClient, ReplayClientConfig, ReplayClientTlsConfig, ReplayClientTrait, SaveReplayOutcome,
     SaveReplayRequest,
 };
 
@@ -47,7 +47,7 @@ pub use entity_v2::{
 };
 pub use matchmaker_v2::{
     CreateMatchResult, EnqueueResult, EventBus, JoinMatchResult, LeaveMatchResult, MatchEvent,
-    MatchState, MatchmakingStatus, MatchmakerServiceV2, SubmitMoveResult, TicketStatus,
+    MatchState, MatchmakerServiceV2, MatchmakingStatus, SubmitMoveResult, TicketStatus,
 };
 pub use repository_v2::{
     GameSessionRepository, InMemoryGameSessionRepository, InMemoryMatchmakingTicketRepository,

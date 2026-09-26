@@ -34,7 +34,10 @@ use network_gateway::tlv::{
 use serde_json::{json, Value};
 
 fn map(pairs: &[(&str, Value)]) -> HashMap<String, Value> {
-    pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect()
+    pairs
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.clone()))
+        .collect()
 }
 
 fn bytes_to_hex(b: &[u8]) -> String {
@@ -179,8 +182,9 @@ fn golden_v3_create_char_response_bytes() {
         0x00, 0x00, 0x00, 0x15, // length = 21
         0x10, 0x14, // cmd = 10100
         0x00, // code = 0 (int8)
-        0x00, 0x05, 0x6F, 0x6B, // str len=5? 实际是 len=2 + "ok" (2B) → len=2 not 5
-        // 修正: "ok" 是 2 字节, 不是 5 字节!
+        0x00, 0x05, 0x6F,
+        0x6B, // str len=5? 实际是 len=2 + "ok" (2B) → len=2 not 5
+              // 修正: "ok" 是 2 字节, 不是 5 字节!
     ];
     // 上面手动构造有 bug, 用 tlv 反推:
     let _ = wire; // 占位, 实际用下方的 pack 测试

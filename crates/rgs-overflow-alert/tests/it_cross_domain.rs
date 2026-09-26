@@ -10,7 +10,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rgs_overflow_alert::alert::{AlertDeduplicator, AlertError, AlertEvent, AlertSink, LogOnlySink};
+use rgs_overflow_alert::alert::{
+    AlertDeduplicator, AlertError, AlertEvent, AlertSink, LogOnlySink,
+};
 use rgs_overflow_alert::config::OverflowConfig;
 use rgs_overflow_alert::domain::Domain;
 use rgs_overflow_alert::guard::{OverflowGuard, OverflowStatus};
@@ -46,12 +48,16 @@ fn clear_env() {
         "NATS_OVERFLOW_MAX_PENDING",
         "ALERT_DEDUP_WINDOW_SECS",
     ] {
-        unsafe { std::env::remove_var(k); }
+        unsafe {
+            std::env::remove_var(k);
+        }
     }
 }
 fn set_env(pairs: &[(&str, &str)]) {
     for (k, v) in pairs {
-        unsafe { std::env::set_var(k, v); }
+        unsafe {
+            std::env::set_var(k, v);
+        }
     }
 }
 
@@ -119,7 +125,9 @@ async fn it_soft_surge_alert_fires_only_once_for_first_surge() {
     let cfg = OverflowConfig::from_env().unwrap();
     let lim = Arc::new(OverflowLimiter::new(Domain::Match, &cfg));
     let queue: Arc<dyn QueueBackend> = Arc::new(InMemoryQueueBackend::new(100));
-    let primary: Arc<dyn AlertSink> = Arc::new(CountingSink { count: Arc::new(AtomicU32::new(0)) });
+    let primary: Arc<dyn AlertSink> = Arc::new(CountingSink {
+        count: Arc::new(AtomicU32::new(0)),
+    });
     let fallback: Arc<dyn AlertSink> = Arc::new(LogOnlySink);
     let alerter = Arc::new(AlertDeduplicator::new(
         primary,
@@ -140,9 +148,7 @@ async fn it_soft_surge_alert_fires_only_once_for_first_surge() {
     let _p = g.limiter().try_acquire().1;
     // 软阈值首超: 第一个 check 进 in_flight=1, CAS 1->2, 2>soft=1 → Queued
     for i in 0..5 {
-        let d = g
-            .check(&format!("Op{i}"), &format!("req-{i}"), None)
-            .await;
+        let d = g.check(&format!("Op{i}"), &format!("req-{i}"), None).await;
         // i=0 第 1 个 check: in_flight=1, CAS 1->2, 2>soft=1 → Queued (不再 Pass)
         // 后续 i=1+ 也在 in_flight >= soft 范围 → Queued
         assert_eq!(d.status, OverflowStatus::Queued, "i={} 期望 Queued", i);

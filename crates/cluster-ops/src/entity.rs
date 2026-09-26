@@ -431,12 +431,7 @@ mod tests {
     #[test]
     fn feature_flag_default_disabled_version_zero() {
         let admin = Uuid::new_v4();
-        let f = FeatureFlag::new(
-            "k".to_string(),
-            FlagScope::Global,
-            "*".to_string(),
-            admin,
-        );
+        let f = FeatureFlag::new("k".to_string(), FlagScope::Global, "*".to_string(), admin);
         assert!(!f.enabled);
         assert_eq!(f.version, 0);
         assert_eq!(f.updated_by, admin);

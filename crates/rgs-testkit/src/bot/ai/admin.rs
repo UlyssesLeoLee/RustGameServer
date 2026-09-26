@@ -234,7 +234,10 @@ mod tests {
         // 所以用 #[tokio::test] 而不是 #[test]
         let ai = AdminBotAi::new();
         let gm = ai.gm_client().expect("default gm_client");
-        assert!(gm.channel().is_some(), "默认 GmClient 应建 lazy mTLS Channel");
+        assert!(
+            gm.channel().is_some(),
+            "默认 GmClient 应建 lazy mTLS Channel"
+        );
         assert!(gm.skip_verify(), "k3s baseline 0/12 阶段默认 skip verify");
         assert_eq!(gm.endpoint(), Some("https://127.0.0.1:50055"));
     }

@@ -79,7 +79,11 @@ async fn guild_capacity_boundary_fill_overflow_leave_recover_overflow() {
     // ----- 步骤 1: create_guild (leader 占 1 席) -----
     let leader_id = Uuid::new_v4();
     let guild = svc
-        .create_guild("Capacity".to_string(), "boundary test".to_string(), leader_id)
+        .create_guild(
+            "Capacity".to_string(),
+            "boundary test".to_string(),
+            leader_id,
+        )
         .await
         .expect("create_guild 必成功");
     assert_eq!(guild.member_count, 1, "create 后 leader 占 1 席");
@@ -95,7 +99,8 @@ async fn guild_capacity_boundary_fill_overflow_leave_recover_overflow() {
     }
     let after_fill = svc.find_guild_by_id(guild.id).await.unwrap().unwrap();
     assert_eq!(
-        after_fill.member_count, ACTUAL_MAX_MEMBERS,
+        after_fill.member_count,
+        ACTUAL_MAX_MEMBERS,
         "补满后 member_count={} (leader + {} 玩家)",
         ACTUAL_MAX_MEMBERS,
         ACTUAL_MAX_MEMBERS - 1

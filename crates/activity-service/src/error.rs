@@ -28,7 +28,9 @@ impl From<Error> for tonic::Status {
         use tonic::Code;
         match e {
             Error::ActivityNotFound(_) => tonic::Status::new(Code::NotFound, e.to_string()),
-            Error::ActivityNotOpen(_) => tonic::Status::new(Code::FailedPrecondition, e.to_string()),
+            Error::ActivityNotOpen(_) => {
+                tonic::Status::new(Code::FailedPrecondition, e.to_string())
+            }
             Error::InvalidRequest(_) => tonic::Status::new(Code::InvalidArgument, e.to_string()),
             Error::PlayerState(_) => tonic::Status::new(Code::FailedPrecondition, e.to_string()),
             Error::Internal(_) => tonic::Status::new(Code::Internal, e.to_string()),

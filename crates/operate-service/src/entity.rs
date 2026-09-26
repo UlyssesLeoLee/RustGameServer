@@ -13,8 +13,20 @@ pub struct GiftPack {
 }
 
 impl GiftPack {
-    pub fn new(pack_id: u32, name: &str, price_cents: u32, original_price_cents: u32, limit: u32) -> Self {
-        Self { pack_id, name: name.into(), price_cents, original_price_cents, limit_per_player: limit }
+    pub fn new(
+        pack_id: u32,
+        name: &str,
+        price_cents: u32,
+        original_price_cents: u32,
+        limit: u32,
+    ) -> Self {
+        Self {
+            pack_id,
+            name: name.into(),
+            price_cents,
+            original_price_cents,
+            limit_per_player: limit,
+        }
     }
 
     pub fn discount_pct(&self) -> u32 {
@@ -100,7 +112,13 @@ mod tests {
 
     #[test]
     fn recharge_total_with_bonus() {
-        let p = RechargePackage { package_id: 1, name: "x".into(), amount_cents: 100, bonus_cents: 50, currency_amount: 100 };
+        let p = RechargePackage {
+            package_id: 1,
+            name: "x".into(),
+            amount_cents: 100,
+            bonus_cents: 50,
+            currency_amount: 100,
+        };
         assert_eq!(p.total_currency(), 150);
     }
 

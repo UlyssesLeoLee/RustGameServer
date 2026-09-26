@@ -26,7 +26,13 @@ pub struct Mail {
 }
 
 impl Mail {
-    pub fn new(from: &str, to: &str, title: &str, body: &str, attachments: Vec<Attachment>) -> Self {
+    pub fn new(
+        from: &str,
+        to: &str,
+        title: &str,
+        body: &str,
+        attachments: Vec<Attachment>,
+    ) -> Self {
         Self {
             mail_id: Uuid::new_v4(),
             from: from.to_string(),
@@ -108,7 +114,16 @@ mod tests {
 
     #[test]
     fn mail_factory_creates_unread() {
-        let m = Mail::new("sys", "p1", "Welcome", "Hi", vec![Attachment { item_id: 100, count: 1 }]);
+        let m = Mail::new(
+            "sys",
+            "p1",
+            "Welcome",
+            "Hi",
+            vec![Attachment {
+                item_id: 100,
+                count: 1,
+            }],
+        );
         assert!(!m.read);
         assert!(!m.claimed);
         assert!(m.has_unclaimed_attachment());

@@ -417,8 +417,7 @@ impl GmClient {
         // 构造 admin proto client (per wave 4 build.rs 生成的 admin_service_client 模块)
         //
         // L-CAND-016 防御: 只用 admin proto, 不 import 其他 4 域 proto.
-        let mut client =
-            admin_proto::admin_service_client::AdminServiceClient::new(channel);
+        let mut client = admin_proto::admin_service_client::AdminServiceClient::new(channel);
 
         // 真实 RPC 调用 (per DDD Review v0.3.2 §7.3 L1.2 wave 4 准备)
         //
@@ -553,7 +552,10 @@ mod tests {
             .issue_real("ban_account 3600 违规")
             .await
             .expect("issue_real should not panic");
-        assert!(!r.ok, "k3s baseline 0/12 阶段 ok 应 false (真实 RPC 必失败)");
+        assert!(
+            !r.ok,
+            "k3s baseline 0/12 阶段 ok 应 false (真实 RPC 必失败)"
+        );
         assert!(r.error.is_some(), "error 字段应填充");
     }
 
@@ -569,6 +571,9 @@ mod tests {
             .await
             .expect("issue_real should not panic");
         assert!(!r.ok, "no channel 阶段 ok 应 false");
-        assert!(r.error.is_some(), "error 字段应填充 (no_channel 或真实 RPC 错误, 取决于 lazy channel build 行为)");
+        assert!(
+            r.error.is_some(),
+            "error 字段应填充 (no_channel 或真实 RPC 错误, 取决于 lazy channel build 行为)"
+        );
     }
 }

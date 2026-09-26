@@ -35,16 +35,16 @@ pub mod common {
         tonic::include_proto!("common.v1");
     }
 }
+pub mod config;
 pub mod entity;
 pub mod error;
 pub mod service;
-pub mod config;
 
-pub use error::{Error, Result};
 pub use entity::{
     BattleMode, BattleOutcome, BattlePhase, EscortQuality, HolidayActivity, HolidayReward,
     MineResource, PvpMode, PvpRanking, RoomBuff, RoomType,
 };
+pub use error::{Error, Result};
 pub use service::{
     BattleServiceImpl, BossServiceImpl, CrossServerServiceImpl, EndlessTowerServiceImpl,
     EscortServiceImpl, ExpeditionServiceImpl, GuildWarServiceImpl, HolidayActivityServiceImpl,

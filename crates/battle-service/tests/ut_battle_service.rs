@@ -18,19 +18,20 @@ use battle_service::error::Error;
 use battle_service::proto::v1 as pb;
 use battle_service::service::{
     BattleEngineServiceImpl, BattleEngineServiceTrait, BattleServiceImpl, BossServiceImpl,
-    BossServiceTrait, CrossServerServiceImpl, CrossServerServiceTrait,
-    EndlessTowerServiceImpl, EndlessTowerServiceTrait, EscortServiceImpl, EscortServiceTrait,
-    ExpeditionServiceImpl, ExpeditionServiceTrait, GuildWarServiceImpl, GuildWarServiceTrait,
-    HolidayActivityServiceImpl, HolidayActivityServiceTrait, HolyEquipServiceImpl,
-    HolyEquipServiceTrait, InstanceServiceImpl, InstanceServiceTrait, PvPServiceImpl,
-    PvPServiceTrait, RoomServiceImpl, RoomServiceTrait,
+    BossServiceTrait, CrossServerServiceImpl, CrossServerServiceTrait, EndlessTowerServiceImpl,
+    EndlessTowerServiceTrait, EscortServiceImpl, EscortServiceTrait, ExpeditionServiceImpl,
+    ExpeditionServiceTrait, GuildWarServiceImpl, GuildWarServiceTrait, HolidayActivityServiceImpl,
+    HolidayActivityServiceTrait, HolyEquipServiceImpl, HolyEquipServiceTrait, InstanceServiceImpl,
+    InstanceServiceTrait, PvPServiceImpl, PvPServiceTrait, RoomServiceImpl, RoomServiceTrait,
 };
 use std::sync::Arc;
 use tonic::Request;
 
 fn player_id() -> common_pb::PlayerId {
     common_pb::PlayerId {
-        player_id: Some(common_pb::EntityId { id: "p1".to_string() }),
+        player_id: Some(common_pb::EntityId {
+            id: "p1".to_string(),
+        }),
         display_name: "Player1".to_string(),
         rank_score: 1500,
         level: 30,
@@ -83,7 +84,10 @@ async fn battle_start_advances_turn() {
 
     // 完整生命周期: Init -> Prepare -> RoundStart
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let resp = svc.battle_start(Request::new(pb::BattleId { battle_id })).await.unwrap();
+    let resp = svc
+        .battle_start(Request::new(pb::BattleId { battle_id }))
+        .await
+        .unwrap();
     let s = resp.into_inner();
     assert!(s.turn_index >= 1);
 }
@@ -98,9 +102,22 @@ async fn battle_end_returns_victory_with_rewards() {
 
     // 完整生命周期: Init -> Prepare -> RoundStart -> Action -> End
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: battle_id.clone() })).await.unwrap();
-    let _ = svc.battle_action(Request::new(pb::BattleId { battle_id: battle_id.clone() })).await.unwrap();
-    let result = svc.battle_end(Request::new(pb::BattleId { battle_id })).await.unwrap();
+    let _ = svc
+        .battle_start(Request::new(pb::BattleId {
+            battle_id: battle_id.clone(),
+        }))
+        .await
+        .unwrap();
+    let _ = svc
+        .battle_action(Request::new(pb::BattleId {
+            battle_id: battle_id.clone(),
+        }))
+        .await
+        .unwrap();
+    let result = svc
+        .battle_end(Request::new(pb::BattleId { battle_id }))
+        .await
+        .unwrap();
     let r = result.into_inner();
     assert!(r.victory);
     assert_eq!(r.stars, 3);
@@ -112,7 +129,11 @@ async fn battle_end_without_init_returns_invalid_transition() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let result = svc.battle_end(Request::new(pb::BattleId { battle_id: "nonexistent".to_string() })).await;
+    let result = svc
+        .battle_end(Request::new(pb::BattleId {
+            battle_id: "nonexistent".to_string(),
+        }))
+        .await;
     assert!(result.is_err());
 }
 
@@ -134,7 +155,10 @@ async fn battle_reconnect_finds_active_battle() {
     let init = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _battle_id = init.into_inner().battle_id;
 
-    let resp = svc.battle_reconnect(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_reconnect(Request::new(empty_req()))
+        .await
+        .unwrap();
     let s = resp.into_inner();
     assert!(!s.battle_id.is_empty());
 }
@@ -144,7 +168,10 @@ async fn battle_duel_request_ok() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let resp = svc.battle_duel_request(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_duel_request(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().ok);
 }
 
@@ -154,7 +181,10 @@ async fn battle_request_state_returns_current() {
     let svc = BattleEngineServiceImpl::new(state.clone());
 
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
-    let resp = svc.battle_request_state(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_request_state(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(!resp.into_inner().battle_id.is_empty());
 }
 
@@ -163,7 +193,12 @@ async fn battle_engine_health_check_ok() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let resp = svc.health_check(Request::new(common_pb::HealthCheckRequest { service: "battle-engine".to_string() })).await.unwrap();
+    let resp = svc
+        .health_check(Request::new(common_pb::HealthCheckRequest {
+            service: "battle-engine".to_string(),
+        }))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("ok"));
 }
 
@@ -179,9 +214,17 @@ async fn w41_battle_round_start_complete_advances_to_action() {
     // Init -> Prepare -> RoundStart
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
+    let _ = svc
+        .battle_start(Request::new(pb::BattleId {
+            battle_id: "x".to_string(),
+        }))
+        .await
+        .unwrap();
     // RoundStart -> Action
-    let resp = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_round_start_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.ok);
     assert!(msg.message.contains("round_start_complete"));
@@ -194,16 +237,33 @@ async fn w41_battle_next_wave_increments_wave_index() {
 
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
-    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .battle_start(Request::new(pb::BattleId {
+            battle_id: "x".to_string(),
+        }))
+        .await
+        .unwrap();
+    let _ = svc
+        .battle_round_start_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
     // 推进到下一波
-    let resp = svc.battle_next_wave(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_next_wave(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.ok);
     assert!(msg.message.contains("next_wave"));
     // 再次推进, wave_index 应递增
-    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
-    let resp2 = svc.battle_next_wave(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .battle_round_start_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let resp2 = svc
+        .battle_next_wave(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg2 = resp2.into_inner();
     assert!(msg2.ok);
     // 第二次 next_wave 后 wave 编号应该比第一次大
@@ -220,9 +280,21 @@ async fn w41_battle_change_speed_cycles_1x_2x_3x() {
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
     // 1 -> 2 -> 3 -> 1 (循环)
-    let r1 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
-    let r2 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
-    let r3 = svc.battle_change_speed(Request::new(empty_req())).await.unwrap().into_inner();
+    let r1 = svc
+        .battle_change_speed(Request::new(empty_req()))
+        .await
+        .unwrap()
+        .into_inner();
+    let r2 = svc
+        .battle_change_speed(Request::new(empty_req()))
+        .await
+        .unwrap()
+        .into_inner();
+    let r3 = svc
+        .battle_change_speed(Request::new(empty_req()))
+        .await
+        .unwrap()
+        .into_inner();
     let s1: u32 = r1.message.split("=").nth(1).unwrap().parse().unwrap();
     let s2: u32 = r2.message.split("=").nth(1).unwrap().parse().unwrap();
     let s3: u32 = r3.message.split("=").nth(1).unwrap().parse().unwrap();
@@ -238,10 +310,21 @@ async fn w41_battle_play_complete_transitions_to_end() {
 
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
-    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .battle_start(Request::new(pb::BattleId {
+            battle_id: "x".to_string(),
+        }))
+        .await
+        .unwrap();
+    let _ = svc
+        .battle_round_start_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
     // 战斗播放完成 -> End
-    let resp = svc.battle_play_complete(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .battle_play_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.ok);
     assert_eq!(msg.message, "play_complete");
@@ -257,8 +340,16 @@ async fn w41_battle_skip_marks_defeat_outcome() {
 
     let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
-    let _ = svc.battle_start(Request::new(pb::BattleId { battle_id: "x".to_string() })).await.unwrap();
-    let _ = svc.battle_round_start_complete(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .battle_start(Request::new(pb::BattleId {
+            battle_id: "x".to_string(),
+        }))
+        .await
+        .unwrap();
+    let _ = svc
+        .battle_round_start_complete(Request::new(empty_req()))
+        .await
+        .unwrap();
     // 跳过战斗 -> End + outcome=Defeat
     let resp = svc.battle_skip(Request::new(empty_req())).await.unwrap();
     let msg = resp.into_inner();
@@ -278,7 +369,10 @@ async fn pvp_get_challenge_list_returns_6_modes() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = PvPServiceImpl::new(state);
 
-    let resp = svc.get_challenge_list(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .get_challenge_list(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.message.contains("6_modes_available"));
 }
@@ -288,7 +382,10 @@ async fn pvp_challenge_increments_count() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = PvPServiceImpl::new(state.clone());
 
-    let resp = svc.challenge_player(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .challenge_player(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().ok);
 }
 
@@ -299,7 +396,10 @@ async fn pvp_challenge_exhausted_at_daily_limit() {
 
     // Ranked 模式 daily_limit=10, 跑 11 次应该最后一次失败
     for _ in 0..10 {
-        let _ = svc.challenge_player(Request::new(empty_req())).await.unwrap();
+        let _ = svc
+            .challenge_player(Request::new(empty_req()))
+            .await
+            .unwrap();
     }
     let result = svc.challenge_player(Request::new(empty_req())).await;
     assert!(matches!(result, Err(Error::ChallengeExhausted(_))));
@@ -310,9 +410,18 @@ async fn pvp_buy_challenge_count_resets() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = PvPServiceImpl::new(state.clone());
 
-    let _ = svc.challenge_player(Request::new(empty_req())).await.unwrap();
-    let _ = svc.challenge_player(Request::new(empty_req())).await.unwrap();
-    let resp = svc.buy_challenge_count(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .challenge_player(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let _ = svc
+        .challenge_player(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let resp = svc
+        .buy_challenge_count(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().ok);
 }
 
@@ -321,7 +430,12 @@ async fn pvp_health_check_returns_6_variants() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = PvPServiceImpl::new(state);
 
-    let resp = svc.health_check(Request::new(common_pb::HealthCheckRequest { service: "pvp".to_string() })).await.unwrap();
+    let resp = svc
+        .health_check(Request::new(common_pb::HealthCheckRequest {
+            service: "pvp".to_string(),
+        }))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("6 variants"));
 }
 
@@ -334,8 +448,14 @@ async fn boss_personal_create_and_list() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BossServiceImpl::new(state.clone());
 
-    let _ = svc.challenge_personal_boss(Request::new(empty_req())).await.unwrap();
-    let resp = svc.get_personal_boss_info(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .challenge_personal_boss(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let resp = svc
+        .get_personal_boss_info(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.message.contains("personal_boss_count="));
 }
@@ -345,8 +465,14 @@ async fn boss_sweep_increments_count() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BossServiceImpl::new(state.clone());
 
-    let _ = svc.challenge_personal_boss(Request::new(empty_req())).await.unwrap();
-    let resp = svc.sweep_personal_boss(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .challenge_personal_boss(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let resp = svc
+        .sweep_personal_boss(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("swept="));
 }
 
@@ -355,8 +481,14 @@ async fn boss_world_challenge_decrements_hp() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BossServiceImpl::new(state.clone());
 
-    let _ = svc.challenge_world_boss(Request::new(empty_req())).await.unwrap();
-    let info = svc.get_world_boss_info(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .challenge_world_boss(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let info = svc
+        .get_world_boss_info(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(info.into_inner().message.contains("hp="));
 }
 
@@ -392,7 +524,12 @@ async fn room_health_check_ok() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = RoomServiceImpl::new(state);
 
-    let resp = svc.health_check(Request::new(common_pb::HealthCheckRequest { service: "room".to_string() })).await.unwrap();
+    let resp = svc
+        .health_check(Request::new(common_pb::HealthCheckRequest {
+            service: "room".to_string(),
+        }))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("ok"));
 }
 
@@ -405,7 +542,10 @@ async fn instance_challenge_increments_stars() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = InstanceServiceImpl::new(state);
 
-    let resp = svc.challenge_instance(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .challenge_instance(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.message.contains("stars="));
 }
@@ -415,8 +555,14 @@ async fn instance_list_returns_count() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = InstanceServiceImpl::new(state);
 
-    let _ = svc.challenge_instance(Request::new(empty_req())).await.unwrap();
-    let resp = svc.get_instance_list(Request::new(empty_req())).await.unwrap();
+    let _ = svc
+        .challenge_instance(Request::new(empty_req()))
+        .await
+        .unwrap();
+    let resp = svc
+        .get_instance_list(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("instances_tracked="));
 }
 
@@ -429,7 +575,10 @@ async fn endless_challenge_advances_floor() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = EndlessTowerServiceImpl::new(state);
 
-    let resp = svc.challenge_endless(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .challenge_endless(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.message.contains("floor=1"));
 }
@@ -439,7 +588,10 @@ async fn endless_get_deployed_companion() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = EndlessTowerServiceImpl::new(state);
 
-    let resp = svc.get_deployed_companion(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .get_deployed_companion(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("companion_pool="));
 }
 
@@ -452,7 +604,10 @@ async fn escort_refresh_quality_random_pick() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = EscortServiceImpl::new(state);
 
-    let resp = svc.refresh_escort_quality(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .refresh_escort_quality(Request::new(empty_req()))
+        .await
+        .unwrap();
     let msg = resp.into_inner();
     assert!(msg.message.contains("quality="));
 }
@@ -463,7 +618,10 @@ async fn escort_start_and_claim() {
     let svc = EscortServiceImpl::new(state.clone());
 
     let _ = svc.start_escort(Request::new(empty_req())).await.unwrap();
-    let resp = svc.claim_escort_reward(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .claim_escort_reward(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("reward_multiplier="));
 }
 
@@ -494,7 +652,10 @@ async fn holy_skill_level_up() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = HolyEquipServiceImpl::new(state);
 
-    let resp = svc.holy_skill_level(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .holy_skill_level(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("skill_level="));
 }
 
@@ -507,7 +668,10 @@ async fn guild_war_start_increments_stars() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = GuildWarServiceImpl::new(state);
 
-    let resp = svc.start_guild_war(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .start_guild_war(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("stars="));
 }
 
@@ -521,7 +685,10 @@ async fn cross_server_batch_challenge_uses_pvp_config() {
     let svc = CrossServerServiceImpl::new(state);
 
     // CrossServer 模式 daily_limit=5, 一键 5 个应该 OK
-    let resp = svc.batch_challenge(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .batch_challenge(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("batch_5_used="));
 }
 
@@ -534,7 +701,10 @@ async fn expedition_challenge_increments_stars() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = ExpeditionServiceImpl::new(state);
 
-    let resp = svc.challenge_stage(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .challenge_stage(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert!(resp.into_inner().message.contains("stage_1_stars="));
 }
 
@@ -547,7 +717,10 @@ async fn holiday_lantern_basic() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = HolidayActivityServiceImpl::new(state);
 
-    let resp = svc.get_lantern_basic(Request::new(empty_req())).await.unwrap();
+    let resp = svc
+        .get_lantern_basic(Request::new(empty_req()))
+        .await
+        .unwrap();
     assert_eq!(resp.into_inner().message, "lantern_basic");
 }
 
@@ -566,12 +739,26 @@ async fn holiday_get_activity_by_id_routes_9_variants() {
     let svc = HolidayActivityServiceImpl::new(state);
 
     // 1 套代码覆盖 9 个 holiday_*
-    for activity_id in ["93031", "93032", "93033", "lantern", "food", "spring", "summer", "halloween", "anniv"] {
+    for activity_id in [
+        "93031",
+        "93032",
+        "93033",
+        "lantern",
+        "food",
+        "spring",
+        "summer",
+        "halloween",
+        "anniv",
+    ] {
         let mut req = empty_req();
         req.request_id = activity_id.to_string();
         let resp = svc.get_activity_by_id(Request::new(req)).await.unwrap();
         let msg = resp.into_inner();
-        assert!(msg.message.contains(activity_id), "activity {} not routed", activity_id);
+        assert!(
+            msg.message.contains(activity_id),
+            "activity {} not routed",
+            activity_id
+        );
     }
 }
 

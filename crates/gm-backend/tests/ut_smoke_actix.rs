@@ -12,13 +12,14 @@
 use actix_web::{test, web, App};
 use gm_backend::{
     circuit_breaker::{CircuitBreaker, CircuitState},
-    health_view, issue_jwt, list_mall_items, login, register_routes, verify_jwt, AdminRecord, AppState,
-    GmConfig, LoginRequest,
+    health_view, issue_jwt, list_mall_items, login, register_routes, verify_jwt, AdminRecord,
+    AppState, GmConfig, LoginRequest,
 };
 use std::time::Duration;
 
 fn test_state() -> AppState {
-    let config = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
+    let config =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
     AppState::new(config)
 }
 
@@ -33,7 +34,13 @@ async fn gm_config_for_test_ok() {
 #[actix_web::test]
 async fn jwt_roundtrip_ok() {
     let secret = "test-secret-123";
-    let token = issue_jwt(secret, "admin", vec!["GM_READ".into(), "GM_ADMIN".into()], 3600).unwrap();
+    let token = issue_jwt(
+        secret,
+        "admin",
+        vec!["GM_READ".into(), "GM_ADMIN".into()],
+        3600,
+    )
+    .unwrap();
     let claims = verify_jwt(secret, &token).unwrap();
     assert_eq!(claims.sub, "admin");
     assert!(claims.roles.contains(&"GM_ADMIN".to_string()));

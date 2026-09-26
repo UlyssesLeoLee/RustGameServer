@@ -23,9 +23,7 @@ use std::time::Duration;
 
 use match_service::entity_v2::{GameMode, Move, MoveType, SessionPlayer};
 use match_service::matchmaker_v2::MatchmakerServiceV2;
-use match_service::replay_client::{
-    ReplayClientTrait, SaveReplayOutcome, SaveReplayRequest,
-};
+use match_service::replay_client::{ReplayClientTrait, SaveReplayOutcome, SaveReplayRequest};
 use match_service::repository_v2::{
     GameSessionRepository, InMemoryGameSessionRepository, InMemoryMatchmakingTicketRepository,
     InMemoryMoveRepository,
@@ -73,7 +71,8 @@ fn make_player(id: &str, elo: u32) -> SessionPlayer {
 fn make_service_with_replay(
     mock: Arc<MockReplayClient>,
 ) -> (Arc<MatchmakerServiceV2>, Arc<InMemoryGameSessionRepository>) {
-    let sessions: Arc<InMemoryGameSessionRepository> = Arc::new(InMemoryGameSessionRepository::new());
+    let sessions: Arc<InMemoryGameSessionRepository> =
+        Arc::new(InMemoryGameSessionRepository::new());
     let svc = Arc::new(MatchmakerServiceV2::with_replay_client(
         sessions.clone(),
         Arc::new(InMemoryMoveRepository::new()),
@@ -93,16 +92,10 @@ async fn it_match_session_to_replay_saga_sends_correct_request() {
 
     // 1) 构造 Running session: Casual, p1 (host) vs p2
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Casual,
-        make_player("p1", 1500),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Casual, make_player("p1", 1500), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2", 1500))
-        .expect("add p2");
+    session.add_player(make_player("p2", 1500)).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session.current_player_id = Some("p1".to_string());

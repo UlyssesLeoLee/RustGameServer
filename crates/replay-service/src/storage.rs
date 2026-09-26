@@ -97,11 +97,7 @@ impl StorageBackend for LocalFsBackend {
         let path = self.resolve(key)?;
         if let Some(parent) = path.parent() {
             tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                crate::Error::Storage(format!(
-                    "mkdir failed for {}: {}",
-                    parent.display(),
-                    e
-                ))
+                crate::Error::Storage(format!("mkdir failed for {}: {}", parent.display(), e))
             })?;
         }
         tokio::fs::write(&path, &data)
@@ -148,19 +144,18 @@ impl StorageBackend for LocalFsBackend {
         let mut stack = vec![base];
         while let Some(dir) = stack.pop() {
             let mut entries = tokio::fs::read_dir(&dir).await.map_err(|e| {
-                crate::Error::Storage(format!(
-                    "read_dir failed for {}: {}",
-                    dir.display(),
-                    e
-                ))
+                crate::Error::Storage(format!("read_dir failed for {}: {}", dir.display(), e))
             })?;
-            while let Some(entry) = entries.next_entry().await.map_err(|e| {
-                crate::Error::Storage(format!("next_entry failed: {}", e))
-            })? {
+            while let Some(entry) = entries
+                .next_entry()
+                .await
+                .map_err(|e| crate::Error::Storage(format!("next_entry failed: {}", e)))?
+            {
                 let entry_path = entry.path();
-                let file_type = entry.file_type().await.map_err(|e| {
-                    crate::Error::Storage(format!("file_type failed: {}", e))
-                })?;
+                let file_type = entry
+                    .file_type()
+                    .await
+                    .map_err(|e| crate::Error::Storage(format!("file_type failed: {}", e)))?;
                 if file_type.is_dir() {
                     stack.push(entry_path);
                 } else if file_type.is_file() {
@@ -260,12 +255,7 @@ impl StorageBackend for InMemoryBackend {
     }
 
     async fn size(&self, key: &str) -> Result<Option<u64>> {
-        Ok(self
-            .inner
-            .lock()
-            .unwrap()
-            .get(key)
-            .map(|v| v.len() as u64))
+        Ok(self.inner.lock().unwrap().get(key).map(|v| v.len() as u64))
     }
 }
 
@@ -276,11 +266,22 @@ impl StorageBackend for InMemoryBackend {
 /// 生成对象存储 key (per ReplayMeta)
 /// 格式: `replays/{YYYY}/{MM}/rp-{replay_id}.dat`
 /// 注: created_at 决定目录分桶, 便于运维清理 (按月归档)
-pub fn build_object_key(replay_id: &uuid::Uuid, created_at: chrono::DateTime<chrono::Utc>) -> String {
+pub fn build_object_key(
+    replay_id: &uuid::Uuid,
+    created_at: chrono::DateTime<chrono::Utc>,
+) -> String {
     format!(
         "replays/{:04}/{:02}/rp-{}.dat",
-        created_at.format("%Y").to_string().parse::<u32>().unwrap_or(1970),
-        created_at.format("%m").to_string().parse::<u32>().unwrap_or(1),
+        created_at
+            .format("%Y")
+            .to_string()
+            .parse::<u32>()
+            .unwrap_or(1970),
+        created_at
+            .format("%m")
+            .to_string()
+            .parse::<u32>()
+            .unwrap_or(1),
         replay_id
     )
 }
@@ -388,10 +389,7 @@ mod tests {
         let data = backend.get("replays/2026/08/rp-1.dat").await.unwrap();
         assert_eq!(data, Some(Bytes::from_static(b"payload")));
         assert_eq!(
-            backend
-                .size("replays/2026/08/rp-1.dat")
-                .await
-                .unwrap(),
+            backend.size("replays/2026/08/rp-1.dat").await.unwrap(),
             Some(7)
         );
         assert!(backend.exists("replays/2026/08/rp-1.dat").await.unwrap());
@@ -401,10 +399,7 @@ mod tests {
     async fn local_fs_delete_roundtrip() {
         let tmp = tempfile::tempdir().unwrap();
         let backend = LocalFsBackend::new(tmp.path());
-        backend
-            .put("k", Bytes::from_static(b"v"))
-            .await
-            .unwrap();
+        backend.put("k", Bytes::from_static(b"v")).await.unwrap();
         assert!(backend.delete("k").await.unwrap());
         assert!(!backend.delete("k").await.unwrap());
         assert!(!backend.exists("k").await.unwrap());

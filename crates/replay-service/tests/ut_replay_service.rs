@@ -25,7 +25,11 @@ use replay_service::repository::{InMemoryReplayRepository, PageRequest, ReplayRe
 use replay_service::service::{ReplayDomainService, ReplayServiceImpl};
 use replay_service::storage::{InMemoryBackend, StorageBackend};
 
-fn make_svc() -> (ReplayServiceImpl, Arc<InMemoryReplayRepository>, Arc<InMemoryBackend>) {
+fn make_svc() -> (
+    ReplayServiceImpl,
+    Arc<InMemoryReplayRepository>,
+    Arc<InMemoryBackend>,
+) {
     let repo: Arc<InMemoryReplayRepository> = Arc::new(InMemoryReplayRepository::new());
     let storage: Arc<InMemoryBackend> = Arc::new(InMemoryBackend::new());
     let svc = ReplayServiceImpl::new(
@@ -216,7 +220,10 @@ async fn list_replays_filters_by_player_a_with_pagination() {
     let (page1, total1, has_next1) = svc
         .list_replays(
             &filter,
-            PageRequest { page: 1, page_size: 10 },
+            PageRequest {
+                page: 1,
+                page_size: 10,
+            },
         )
         .await
         .unwrap();
@@ -228,7 +235,10 @@ async fn list_replays_filters_by_player_a_with_pagination() {
     let (page2, total2, has_next2) = svc
         .list_replays(
             &filter,
-            PageRequest { page: 2, page_size: 10 },
+            PageRequest {
+                page: 2,
+                page_size: 10,
+            },
         )
         .await
         .unwrap();
@@ -276,7 +286,13 @@ async fn list_replays_excludes_expired_by_default() {
     // 默认 include_expired=false → 应只返 1 个 (active)
     let filter = ReplayFilter::default();
     let (items, total, _) = svc
-        .list_replays(&filter, PageRequest { page: 1, page_size: 20 })
+        .list_replays(
+            &filter,
+            PageRequest {
+                page: 1,
+                page_size: 20,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total, 1);
@@ -288,7 +304,13 @@ async fn list_replays_excludes_expired_by_default() {
         ..Default::default()
     };
     let (_items2, total2, _) = svc
-        .list_replays(&filter_all, PageRequest { page: 1, page_size: 20 })
+        .list_replays(
+            &filter_all,
+            PageRequest {
+                page: 1,
+                page_size: 20,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total2, 2);
@@ -317,10 +339,7 @@ async fn stream_replay_chunks_split_correctly() {
         .await
         .unwrap();
     // 用 1024 byte chunk (刚好不触发 clamp)
-    let mut stream = svc
-        .stream_replay(meta.replay_id, 1024, 0)
-        .await
-        .unwrap();
+    let mut stream = svc.stream_replay(meta.replay_id, 1024, 0).await.unwrap();
     let mut collected: Vec<u8> = Vec::new();
     let mut last_chunk_idx: u32 = 0;
     let mut chunk_count: u32 = 0;

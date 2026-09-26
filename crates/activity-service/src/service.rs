@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use shared_platform::data_driven::{HolidayConfig, HolidayActivity};
+use shared_platform::data_driven::{HolidayActivity, HolidayConfig};
 
 use crate::entity::{Achievement, PlayerSignin};
 use crate::error::{Error, Result};
@@ -41,9 +41,24 @@ impl PlayerHolidayTasks {
             activity_id: activity_id.to_string(),
             // 默认 3 个任务 (1 套模板, 9 个 holiday_* 复用)
             tasks: vec![
-                TaskProgress { task_id: "daily_kill".into(), current: 0, target: 10, claimed: false },
-                TaskProgress { task_id: "daily_login".into(), current: 0, target: 7, claimed: false },
-                TaskProgress { task_id: "spend".into(), current: 0, target: 1000, claimed: false },
+                TaskProgress {
+                    task_id: "daily_kill".into(),
+                    current: 0,
+                    target: 10,
+                    claimed: false,
+                },
+                TaskProgress {
+                    task_id: "daily_login".into(),
+                    current: 0,
+                    target: 7,
+                    claimed: false,
+                },
+                TaskProgress {
+                    task_id: "spend".into(),
+                    current: 0,
+                    target: 1000,
+                    claimed: false,
+                },
             ],
         }
     }
@@ -206,8 +221,16 @@ impl InviteState {
             invite_code,
             invited_count: 0,
             rewards: vec![
-                PrizeItem { item_id: 4001, count: 1, is_rare: false },
-                PrizeItem { item_id: 4002, count: 5, is_rare: false },
+                PrizeItem {
+                    item_id: 4001,
+                    count: 1,
+                    is_rare: false,
+                },
+                PrizeItem {
+                    item_id: 4002,
+                    count: 5,
+                    is_rare: false,
+                },
             ],
         }
     }
@@ -391,7 +414,11 @@ impl ActivityServiceImpl {
             return Err(Error::PlayerState("task not complete".into()));
         }
         t.claimed = true;
-        Ok(vec![PrizeItem { item_id: 5001, count: 1, is_rare: false }])
+        Ok(vec![PrizeItem {
+            item_id: 5001,
+            count: 1,
+            is_rare: false,
+        }])
     }
 
     // ========== 签到 ==========
@@ -403,11 +430,7 @@ impl ActivityServiceImpl {
             .unwrap_or_else(|| PlayerSignin::new(player_id, month))
     }
 
-    pub async fn do_signin(
-        &self,
-        player_id: Uuid,
-        day: u32,
-    ) -> Result<Vec<PrizeItem>> {
+    pub async fn do_signin(&self, player_id: Uuid, day: u32) -> Result<Vec<PrizeItem>> {
         let month = 9u32; // 简化
         let mut map = self.signins.write().await;
         let s = map
@@ -417,7 +440,11 @@ impl ActivityServiceImpl {
             return Err(Error::InvalidRequest(format!("day {} not signable", day)));
         }
         s.sign(day);
-        Ok(vec![PrizeItem { item_id: 2001, count: 1, is_rare: false }])
+        Ok(vec![PrizeItem {
+            item_id: 2001,
+            count: 1,
+            is_rare: false,
+        }])
     }
 
     pub async fn resignin(&self, player_id: Uuid, day: u32) -> Result<u32> {
@@ -455,14 +482,20 @@ impl ActivityServiceImpl {
         let a = achievements
             .into_iter()
             .find(|a| a.achievement_id == achievement_id)
-            .ok_or_else(|| Error::InvalidRequest(format!("achievement {} not found", achievement_id)))?;
+            .ok_or_else(|| {
+                Error::InvalidRequest(format!("achievement {} not found", achievement_id))
+            })?;
         if !a.is_complete() {
             return Err(Error::PlayerState("achievement not complete".into()));
         }
         if a.claimed {
             return Err(Error::PlayerState("already claimed".into()));
         }
-        Ok(vec![PrizeItem { item_id: 7001, count: 1, is_rare: true }])
+        Ok(vec![PrizeItem {
+            item_id: 7001,
+            count: 1,
+            is_rare: true,
+        }])
     }
 
     pub async fn advance_achievement(
@@ -502,7 +535,10 @@ impl ActivityServiceImpl {
         let key = (player_id, survey_id);
         let mut submitted = self.submitted_surveys.write().await;
         if submitted.contains(&key) {
-            return Err(Error::PlayerState(format!("survey {} already submitted", survey_id)));
+            return Err(Error::PlayerState(format!(
+                "survey {} already submitted",
+                survey_id
+            )));
         }
         submitted.insert(key);
         // 简单奖励: survey_id % 5 决定道具, count = survey_id
@@ -524,26 +560,27 @@ impl ActivityServiceImpl {
             return Err(Error::InvalidRequest("season_id must be > 0".into()));
         }
         let map = self.battle_pass.read().await;
-        let s = map.get(&(player_id, season_id)).cloned().unwrap_or_else(|| BattlePassState::new(player_id, season_id));
+        let s = map
+            .get(&(player_id, season_id))
+            .cloned()
+            .unwrap_or_else(|| BattlePassState::new(player_id, season_id));
         Ok((s.level, s.xp, s.next_level_xp(), s.is_premium))
     }
 
     /// 购买战令高级版
-    pub async fn buy_battle_pass(
-        &self,
-        player_id: Uuid,
-        season_id: u32,
-    ) -> Result<(bool, u32)> {
+    pub async fn buy_battle_pass(&self, player_id: Uuid, season_id: u32) -> Result<(bool, u32)> {
         if season_id == 0 {
             return Err(Error::InvalidRequest("season_id must be > 0".into()));
         }
         let mut map = self.battle_pass.write().await;
-        let s = map.entry((player_id, season_id)).or_insert_with(|| BattlePassState::new(player_id, season_id));
+        let s = map
+            .entry((player_id, season_id))
+            .or_insert_with(|| BattlePassState::new(player_id, season_id));
         if s.is_premium {
             return Err(Error::PlayerState("battle pass already bought".into()));
         }
         s.is_premium = true;
-        Ok((true, 168))  // 168 钻
+        Ok((true, 168)) // 168 钻
     }
 
     /// 增加战令 XP, 返回新等级
@@ -561,7 +598,9 @@ impl ActivityServiceImpl {
             return Err(Error::InvalidRequest("xp must be > 0".into()));
         }
         let mut map = self.battle_pass.write().await;
-        let s = map.entry((player_id, season_id)).or_insert_with(|| BattlePassState::new(player_id, season_id));
+        let s = map
+            .entry((player_id, season_id))
+            .or_insert_with(|| BattlePassState::new(player_id, season_id));
         s.apply_xp(xp);
         Ok((s.level, s.xp))
     }
@@ -580,17 +619,29 @@ impl ActivityServiceImpl {
             return Err(Error::InvalidRequest("level must be > 0".into()));
         }
         let mut map = self.battle_pass.write().await;
-        let s = map.entry((player_id, season_id)).or_insert_with(|| BattlePassState::new(player_id, season_id));
+        let s = map
+            .entry((player_id, season_id))
+            .or_insert_with(|| BattlePassState::new(player_id, season_id));
         if s.claimed_levels.contains(&level) {
-            return Err(Error::PlayerState(format!("level {} already claimed", level)));
+            return Err(Error::PlayerState(format!(
+                "level {} already claimed",
+                level
+            )));
         }
         if s.level < level {
-            return Err(Error::PlayerState(format!("player level {} < required {}", s.level, level)));
+            return Err(Error::PlayerState(format!(
+                "player level {} < required {}",
+                s.level, level
+            )));
         }
         s.claimed_levels.insert(level);
         // 简单奖励: level 决定 item_id
         let item_id = 6000u32 + level;
-        Ok(vec![PrizeItem { item_id, count: 1, is_rare: level % 5 == 0 }])
+        Ok(vec![PrizeItem {
+            item_id,
+            count: 1,
+            is_rare: level % 5 == 0,
+        }])
     }
 
     /// 战令排行榜 (按 level 降序, 取 top_n)
@@ -630,34 +681,39 @@ impl ActivityServiceImpl {
             return Err(Error::InvalidRequest("month must be 1..=12".into()));
         }
         let cfg = self.signin_calendar_config.read().await;
-        let days = cfg
-            .get(&month)
-            .cloned()
-            .unwrap_or_default();
+        let days = cfg.get(&month).cloned().unwrap_or_default();
         if days.is_empty() {
             return Err(Error::ActivityNotFound(format!("month {}", month)));
         }
         let map = self.signin_ext.read().await;
-        let s = map.get(&(player_id, month)).cloned().unwrap_or_else(|| SigninExtState::new(player_id, month));
+        let s = map
+            .get(&(player_id, month))
+            .cloned()
+            .unwrap_or_else(|| SigninExtState::new(player_id, month));
         Ok((days, s.signed_days))
     }
 
     /// 领取月累计奖励 (签满 7/15/30 触发)
-    pub async fn claim_month_reward(
-        &self,
-        player_id: Uuid,
-        month: u32,
-    ) -> Result<Vec<PrizeItem>> {
+    pub async fn claim_month_reward(&self, player_id: Uuid, month: u32) -> Result<Vec<PrizeItem>> {
         if month == 0 || month > 12 {
             return Err(Error::InvalidRequest("month must be 1..=12".into()));
         }
         let map = self.signin_ext.read().await;
-        let s = map.get(&(player_id, month)).cloned().unwrap_or_else(|| SigninExtState::new(player_id, month));
+        let s = map
+            .get(&(player_id, month))
+            .cloned()
+            .unwrap_or_else(|| SigninExtState::new(player_id, month));
         // 7/15/30 累计奖励, 简化为按月签天数
         if s.total_days < 7 {
-            return Err(Error::PlayerState("not enough signin days for monthly reward".into()));
+            return Err(Error::PlayerState(
+                "not enough signin days for monthly reward".into(),
+            ));
         }
-        Ok(vec![PrizeItem { item_id: 2100 + month, count: (s.total_days / 7) as u32, is_rare: s.total_days >= 30 }])
+        Ok(vec![PrizeItem {
+            item_id: 2100 + month,
+            count: (s.total_days / 7) as u32,
+            is_rare: s.total_days >= 30,
+        }])
     }
 
     /// 签到排行榜 (按 total_days 降序, top_n)
@@ -684,10 +740,7 @@ impl ActivityServiceImpl {
     }
 
     /// 获取签到统计
-    pub async fn get_signin_stats(
-        &self,
-        player_id: Uuid,
-    ) -> Result<(u32, u32, u32)> {
+    pub async fn get_signin_stats(&self, player_id: Uuid) -> Result<(u32, u32, u32)> {
         // (total_days, streak_max, miss_count)
         let map = self.signin_ext.read().await;
         let mut total_days = 0u32;
@@ -704,17 +757,15 @@ impl ActivityServiceImpl {
     }
 
     /// GM 补签: 直接添加某天到 signed_days
-    pub async fn advance_signin(
-        &self,
-        player_id: Uuid,
-        day: u32,
-    ) -> Result<Vec<PrizeItem>> {
+    pub async fn advance_signin(&self, player_id: Uuid, day: u32) -> Result<Vec<PrizeItem>> {
         if day == 0 || day > 31 {
             return Err(Error::InvalidRequest("day must be 1..=31".into()));
         }
         let month = 9u32; // 简化
         let mut map = self.signin_ext.write().await;
-        let s = map.entry((player_id, month)).or_insert_with(|| SigninExtState::new(player_id, month));
+        let s = map
+            .entry((player_id, month))
+            .or_insert_with(|| SigninExtState::new(player_id, month));
         if s.signed_days.contains(&day) {
             return Err(Error::PlayerState(format!("day {} already signed", day)));
         }
@@ -722,19 +773,23 @@ impl ActivityServiceImpl {
         s.signed_days.sort();
         s.total_days += 1;
         s.streak_max = s.streak_max.max(s.total_days);
-        Ok(vec![PrizeItem { item_id: 2001, count: 1, is_rare: false }])
+        Ok(vec![PrizeItem {
+            item_id: 2001,
+            count: 1,
+            is_rare: false,
+        }])
     }
 
     // ========== W7 L18 回归玩家 (Returning Player) 4 RPC ==========
 
     /// 是否回归玩家
-    pub async fn is_returning_player(
-        &self,
-        player_id: Uuid,
-    ) -> Result<(bool, i64)> {
+    pub async fn is_returning_player(&self, player_id: Uuid) -> Result<(bool, i64)> {
         // (is_returning, last_login_ms)
         let map = self.returning.read().await;
-        let s = map.get(&player_id).cloned().unwrap_or_else(|| ReturningPlayerState::new(player_id, 0));
+        let s = map
+            .get(&player_id)
+            .cloned()
+            .unwrap_or_else(|| ReturningPlayerState::new(player_id, 0));
         Ok((s.is_returning, s.last_login_ms))
     }
 
@@ -745,7 +800,10 @@ impl ActivityServiceImpl {
     ) -> Result<(Vec<ReturnActivityConfig>, bool)> {
         // (rewards, already_claimed_all)
         let map = self.returning.read().await;
-        let s = map.get(&player_id).cloned().unwrap_or_else(|| ReturningPlayerState::new(player_id, 0));
+        let s = map
+            .get(&player_id)
+            .cloned()
+            .unwrap_or_else(|| ReturningPlayerState::new(player_id, 0));
         if !s.is_returning {
             return Err(Error::PlayerState("player is not returning".into()));
         }
@@ -754,18 +812,19 @@ impl ActivityServiceImpl {
     }
 
     /// 领取回归玩家奖励
-    pub async fn claim_return_reward(
-        &self,
-        player_id: Uuid,
-        reward_id: u32,
-    ) -> Result<PrizeItem> {
+    pub async fn claim_return_reward(&self, player_id: Uuid, reward_id: u32) -> Result<PrizeItem> {
         let mut map = self.returning.write().await;
-        let s = map.entry(player_id).or_insert_with(|| ReturningPlayerState::new(player_id, 0));
+        let s = map
+            .entry(player_id)
+            .or_insert_with(|| ReturningPlayerState::new(player_id, 0));
         if !s.is_returning {
             return Err(Error::PlayerState("player is not returning".into()));
         }
         if s.claimed_rewards.contains(&reward_id) {
-            return Err(Error::PlayerState(format!("reward {} already claimed", reward_id)));
+            return Err(Error::PlayerState(format!(
+                "reward {} already claimed",
+                reward_id
+            )));
         }
         let cfg = self
             .return_activities_config
@@ -774,7 +833,11 @@ impl ActivityServiceImpl {
             .ok_or_else(|| Error::InvalidRequest(format!("reward_id {} not found", reward_id)))?
             .clone();
         s.claimed_rewards.insert(reward_id);
-        Ok(PrizeItem { item_id: cfg.item_id, count: cfg.count, is_rare: false })
+        Ok(PrizeItem {
+            item_id: cfg.item_id,
+            count: cfg.count,
+            is_rare: false,
+        })
     }
 
     /// 列出所有回归活动
@@ -785,16 +848,9 @@ impl ActivityServiceImpl {
     // ========== W7 L18 推送 (Push) 2 RPC ==========
 
     /// 获取推送列表 (since_ms 之后)
-    pub async fn get_push_list(
-        &self,
-        player_id: Uuid,
-        since_ms: i64,
-    ) -> Result<Vec<PushRecord>> {
+    pub async fn get_push_list(&self, player_id: Uuid, since_ms: i64) -> Result<Vec<PushRecord>> {
         let map = self.push_list.read().await;
-        let items = map
-            .get(&player_id)
-            .cloned()
-            .unwrap_or_default();
+        let items = map.get(&player_id).cloned().unwrap_or_default();
         let filtered: Vec<PushRecord> = items
             .into_iter()
             .filter(|p| p.created_at_ms > since_ms)
@@ -803,11 +859,7 @@ impl ActivityServiceImpl {
     }
 
     /// 标记推送已读
-    pub async fn mark_push_read(
-        &self,
-        player_id: Uuid,
-        push_id: u32,
-    ) -> Result<bool> {
+    pub async fn mark_push_read(&self, player_id: Uuid, push_id: u32) -> Result<bool> {
         let mut map = self.push_list.write().await;
         let list = map.entry(player_id).or_insert_with(Vec::new);
         let p = list
@@ -903,7 +955,9 @@ mod tests {
     async fn advance_and_claim_task() {
         let svc = ActivityServiceImpl::new();
         let p = Uuid::new_v4();
-        svc.advance_task(p, "lantern", "daily_kill", 10).await.unwrap();
+        svc.advance_task(p, "lantern", "daily_kill", 10)
+            .await
+            .unwrap();
         let rewards = svc.claim_task(p, "lantern", "daily_kill").await.unwrap();
         assert_eq!(rewards.len(), 1);
     }
@@ -1237,12 +1291,15 @@ mod tests {
         // 注入 non-returning 状态
         {
             let mut map = svc.returning.write().await;
-            map.insert(p, ReturningPlayerState {
-                player_id: p,
-                last_login_ms: 1_000_000,
-                is_returning: false,
-                claimed_rewards: HashSet::new(),
-            });
+            map.insert(
+                p,
+                ReturningPlayerState {
+                    player_id: p,
+                    last_login_ms: 1_000_000,
+                    is_returning: false,
+                    claimed_rewards: HashSet::new(),
+                },
+            );
         }
         let r = svc.get_return_reward(p).await;
         assert!(matches!(r, Err(Error::PlayerState(_))));
@@ -1298,12 +1355,15 @@ mod tests {
         let p = Uuid::new_v4();
         {
             let mut map = svc.returning.write().await;
-            map.insert(p, ReturningPlayerState {
-                player_id: p,
-                last_login_ms: 1_000_000,
-                is_returning: false,
-                claimed_rewards: HashSet::new(),
-            });
+            map.insert(
+                p,
+                ReturningPlayerState {
+                    player_id: p,
+                    last_login_ms: 1_000_000,
+                    is_returning: false,
+                    claimed_rewards: HashSet::new(),
+                },
+            );
         }
         let r = svc.claim_return_reward(p, 1).await;
         assert!(matches!(r, Err(Error::PlayerState(_))));
@@ -1328,12 +1388,18 @@ mod tests {
         {
             let mut map = svc.push_list.write().await;
             map.entry(p).or_insert_with(Vec::new).push(PushRecord {
-                push_id: 100, title: "old".into(), body: "old".into(),
-                created_at_ms: 1000, is_read: false,
+                push_id: 100,
+                title: "old".into(),
+                body: "old".into(),
+                created_at_ms: 1000,
+                is_read: false,
             });
             map.entry(p).or_insert_with(Vec::new).push(PushRecord {
-                push_id: 200, title: "new".into(), body: "new".into(),
-                created_at_ms: 2000, is_read: false,
+                push_id: 200,
+                title: "new".into(),
+                body: "new".into(),
+                created_at_ms: 2000,
+                is_read: false,
             });
         }
         let items = svc.get_push_list(p, 1500).await.unwrap();
@@ -1348,8 +1414,11 @@ mod tests {
         {
             let mut map = svc.push_list.write().await;
             map.entry(p).or_insert_with(Vec::new).push(PushRecord {
-                push_id: 1, title: "t".into(), body: "b".into(),
-                created_at_ms: 100, is_read: false,
+                push_id: 1,
+                title: "t".into(),
+                body: "b".into(),
+                created_at_ms: 100,
+                is_read: false,
             });
         }
         let ok = svc.mark_push_read(p, 1).await.unwrap();
@@ -1388,11 +1457,18 @@ mod tests {
         // 注入 invites 状态
         {
             let mut map = svc.invites.write().await;
-            map.insert(p, InviteState {
-                invite_code: code1.clone(),
-                invited_count: 5,
-                rewards: vec![PrizeItem { item_id: 9999, count: 1, is_rare: true }],
-            });
+            map.insert(
+                p,
+                InviteState {
+                    invite_code: code1.clone(),
+                    invited_count: 5,
+                    rewards: vec![PrizeItem {
+                        item_id: 9999,
+                        count: 1,
+                        is_rare: true,
+                    }],
+                },
+            );
         }
         let (code2, count2, rewards2) = svc.get_invite_status(p).await.unwrap();
         assert_eq!(code1, code2);

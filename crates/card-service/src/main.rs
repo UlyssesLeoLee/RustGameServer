@@ -10,8 +10,8 @@ use anyhow::Context;
 use std::env;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt;
+use tracing_subscriber::EnvFilter;
 
 use shared_platform::tls::load_server_tls_config;
 
@@ -47,7 +47,8 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or_else(|_| "0.0.0.0:50061".to_string())
         .parse()
         .context("invalid GRPC_ADDR")?;
-    let database_url = env::var("DATABASE_URL").context("DATABASE_URL env required (per ARC-008 card_db)")?;
+    let database_url =
+        env::var("DATABASE_URL").context("DATABASE_URL env required (per ARC-008 card_db)")?;
 
     tracing::info!(target: "card-service", "starting service at {}, db={}", addr, database_url);
 
