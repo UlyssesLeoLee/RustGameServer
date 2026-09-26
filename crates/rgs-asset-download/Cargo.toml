@@ -29,7 +29,7 @@ url = "2"
 tokio-util = { version = "0.7", features = ["rt"] }
 
 # metrics（10 项 rgs_asset_download_*，独立 Registry；不与 shared-platform 耦合以避免拖入 sqlx）
-prometheus = { version = "0.13", default-features = false }
+prometheus = { version = "0.14", default-features = false }
 
 # ResumeTokenStore SQLite backend（per M-2064.5）
 rusqlite = { version = "0.32", default-features = false, features = ["bundled"] }
