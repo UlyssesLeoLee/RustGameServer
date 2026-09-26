@@ -434,6 +434,7 @@ battle_db 共 7 张表（battle_actors / battle_actions / pvp_configs / activity
 # 7. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - battle_db 7 张表的物理 DDL（含 OCC + 跨库约束 + 索引）
 - 战斗状态机 5 阶段推进伪代码（含 OCC 提交点）
 - SubmitAction 幂等键构造（NFR-BAT-004 断线重连防双发）
@@ -443,6 +444,7 @@ battle_db 共 7 张表（battle_actors / battle_actions / pvp_configs / activity
 - 5 项对接点（EC / MT / GSM / ARC-021 插件 / Scene）
 
 本版本明确不覆盖、留待后续：
+
 - 6 个 PVP 变体的 VariantHandler 内部算法 — 业务层实现
 - 9 个 holiday_* 的 ActivityHandler 内部算法 — 业务层实现
 - 战斗客户端预测算法 — 属 ARC-002 既有同步层

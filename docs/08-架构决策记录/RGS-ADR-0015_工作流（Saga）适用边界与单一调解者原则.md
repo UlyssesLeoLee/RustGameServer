@@ -33,6 +33,7 @@ ADR-0007把高频经济操作收进单一事务边界后，仍存在确实跨限
 > 本 ADR §1 背景提及「ADR-0007 把高频经济操作收进单一事务边界后, 仍存在确实跨限界上下文的长流程」，该背景下"事务内强制 outbox 写入"是隐含的工程路径——但本 ADR 未显式归档，直至 RGS-ADR-0061（CDC / Outbox 偏离参考设计，待具名人类审批）正式将这条隐含路径沉淀为 ADR 记录。
 >
 > 关联要点:
+>
 > 1. **6 域 outbox 实装**（per RGS-ADR-0061 §1.3）：admin / cluster_ops / economy / match / player / social 各自持有 outbox 表 + 启动 outbox relay
 > 2. **事务边界强制**：Saga 步骤 Reserve / Commit / Compensate 的每次状态变更都附带 outbox 事件（per RGS-DTL-100 §1.3 购买 Saga + §3.2 角色创建 Saga + §3.3 比赛奖励 Saga 时序图），与 ADR-0007 单事务边界互补——同上下文内 Saga 步骤走单事务，跨上下文通过 outbox + relay 异步传播
 > 3. **唯一可查询流程状态**：本 ADR §2 规则 2 要求"每个 Saga 必须有唯一一个明确的调解者组件持有流程状态"，与 outbox 4 状态机（Pending/InFlight/Sent/Failed）的 `saga_instance` 表状态机正交——saga_instance 是调解者状态，outbox 是事件传播通道

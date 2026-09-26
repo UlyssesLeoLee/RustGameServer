@@ -52,6 +52,7 @@
 ## 1.2 本文范围
 
 详细设计 **不重复** 需求文档, 重点是:
+
 - **架构决策** (域归属 / 9 DEC 候选方案)
 - **proto v2 message 草稿** (common / match / player / card 4 份)
 - **session 状态机** (turn-based, 完整状态转移图)
@@ -109,11 +110,13 @@
 ## 2.3 session / turn 抽象 (通用)
 
 session 是卡牌游戏的核心抽象, 跨 3 类游戏都适用:
+
 - **TCG/CCG**: turn-based, 复杂效果链
 - **休闲卡牌**: turn-based 或 实时 (UNO), 固定规则
 - **集换式**: 同 TCG
 
 session 不绑定具体游戏规则, 只承载:
+
 - 玩家列表 (2-N)
 - 模式 (天梯 / 休闲 / 房间 / AI)
 - 战牌状态 (Board snapshot)
@@ -891,6 +894,7 @@ message OpenPackResponse {
 ## 5.5 强制踢出 (gm.proto v0.4 新增)
 
 per RGS-REQ-038 §FR-010:
+
 - GM 调用 `BanAccount(force_disconnect_session=true)`
 - gm-backend → match-service `ForceDisconnectSession(match_id, player_id, reason)`
 - match-service 立即将该玩家置为 LEAVE, 判负
@@ -925,6 +929,7 @@ End: 返回 OpenPackResponse
 ```
 
 补偿链 (从后向前):
+
 - 步骤 4 失败 → 重试 3 次 → 仍失败 → 标 saga 失败 + 告警
 - 步骤 3 失败 → 步骤 2 不需补偿 (无副作用) → 步骤 1 退货币
 - 步骤 2 失败 → 步骤 1 退货币
@@ -972,6 +977,7 @@ End: 返回 TradeResult
 ```
 
 补偿链 (任意失败):
+
 - 步骤 5 失败 → 重试 + 告警
 - 步骤 4 失败 → 步骤 3 还原 (saga_id 关联)
 - 步骤 3 失败 → 步骤 2 退货币 (赢家 → 卖家)

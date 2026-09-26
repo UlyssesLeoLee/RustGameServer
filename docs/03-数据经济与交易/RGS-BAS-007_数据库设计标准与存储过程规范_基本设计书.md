@@ -64,6 +64,7 @@
 | `db.standard.debug.amend_request_full_payload` | 修订申请的完整 payload（含敏感字段，**仅** debug-only 守护） | 1/月 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除，避免误开 RUST_LOG=debug 泄漏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.standard.debug.amend_request_full_payload` 可能含 ADR 全文 draft——release build 完全剔除，避免 RUST_LOG=debug 误开时未发布 ADR 草案泄漏
 - `db.standard.*` 系列均为 `info!` 级别（release 必出，§4.8.3.2 二维矩阵 `info!` 行常驻），便于 DBA 团队按 `dtl_doc_id` 维度追溯标准符合性
 
@@ -95,6 +96,7 @@
 | `db.naming.debug.violation_redacted_diff` | 违规位置的完整 diff（敏感字段已脱敏，**仅** debug-only 守护） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.naming.debug.table_column_dump` 在大型 workspace 下可能 20KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `db.naming.violation.detected` 全部为 `warn!` 级别（release 常驻，§4.8.3.2 二维矩阵 `warn!` 行常驻），便于 CI 门禁 + DBA 复盘
 
@@ -128,6 +130,7 @@
 | `db.index.debug.histogram_snapshot` | 索引列基数与选择性 histogram dump | 1/周 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 3-15KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.sql.debug.bind_values_dump` **含 PII 风险**——若 SQL 含 `player_id`/邮箱/Token，release build 必须完全剔除；该字段仅供开发/测试环境复现慢查询
 - `db.sql.slow_query` 与 `db.sql.execution.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：慢查询是 NFR-PE-008 性能预算达成与否的核心证据，缺失将无法事后追责；连接断开/约束冲突影响 NFR-AV-005 可用性，必须 100% 落盘
 - `db.index.*` 系列均为 `info!`/`warn!` 级别（release 常驻），便于 DBA 按 `table_name` 维度聚合
@@ -162,6 +165,7 @@
 | `db.partition.debug.partition_key_distribution` | 分区键分布 histogram dump（检查数据倾斜） | 1/周 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 10-50KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.partition.debug.partition_list_dump` 与 `db.partition.debug.partition_key_distribution` 在大型表（如 `operation_audit` 3 年 36 个分区）下可能 50KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `db.partition.detached` 与 `db.partition.creation.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：分区误 `DETACH` 直接破坏 NFR-SE-010"仅追加"约束，影响 NFR-AV-005 数据可恢复性，必须 100% 留痕
 - `db.partition.creation.failed` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），挂 `error!` 立即触发告警链路
@@ -210,6 +214,7 @@ flowchart LR
 | `db.migration.debug.bind_values_dump` | 迁移中数据迁移语句的 bind values dump（用于复现失败） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.5-5KB/条（**含 PII 风险**——若含 `player_id` 等业务数据，release 必须剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.migration.debug.sql_redacted_dump` 与 `db.migration.debug.bind_values_dump` **含 PII/Schema 泄漏风险**——若迁移涉及业务数据回填（如旧版数据迁移到新结构），release build 必须完全剔除
 - `db.migration.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：迁移失败若不立即告警，可能导致生产库长期处于"半迁移"状态，影响 NFR-AV-005 + NFR-SE-010
 - `db.migration.drift.detected` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），挂 `error!` 立即触发告警
@@ -242,6 +247,7 @@ flowchart TD
 | `db.expand_contract.debug.consumer_switch_audit_trail` | 各消费者切换的完整审计记录（含切换前后 diff） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.expand_contract.debug.dual_write_consistency_check` 与 `db.expand_contract.debug.consumer_switch_audit_trail` 在大表下可能 20KB+ —— release build 完全剔除
 - `db.expand_contract.contract.applied` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：Contract 阶段直接破坏 NFR-SE-010"仅追加"约束（删除旧列/表），若未正确判定全部消费者已切换，可能导致业务回滚/查询失败，必须 100% 留痕
 - `db.expand_contract.combined.violation` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），CI 拦截后立即告警
@@ -277,6 +283,7 @@ flowchart TD
 | `db.backup.debug.recovery_drill_timing_breakdown` | 恢复演练各阶段耗时分解 dump（用于定位瓶颈） | 1/季度 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.backup.debug.backup_metadata_dump` 与 `db.backup.debug.recovery_drill_timing_breakdown` **严禁**包含备份**数据内容**——若含 `player_id`/邮箱/Token 等业务数据，**不允许**走任何日志通道（既不 debug-only 也不 release）
 - `db.backup.scheduled.failed` 与 `db.backup.recovery.drill_rto_exceeded` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：备份失败意味着 NFR-AV-005 不可恢复性风险；RTO 超标直接影响 NFR-AV-004 合同义务
 - `db.backup.recovery.real_disaster_*` 全部为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），触发立即升级 SRE Lead + DBA
@@ -322,6 +329,7 @@ flowchart LR
 | `db.stored_procedure.debug.audit_diff_dump` | 审计发现与已登记例外的逐项 diff | 1/季度 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.stored_procedure.debug.request_full_payload` 含触发器/存储过程定义 SQL——release build 必须完全剔除，避免未审批 SQL 定义被误开 RUST_LOG=debug 时泄漏
 - `db.stored_procedure.unauthorized.detected` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：未登记的存储过程/触发器直接破坏 ARC-023"业务逻辑不入库"决定，影响 NFR-MA-002 可维护性，必须 100% 留痕并告警
 - `db.stored_procedure.exception.approved` 与 `db.stored_procedure.exception.adr_registered` 为 §7 例外白名单的"写入事件"——必须有完整留痕，否则无法对账 AC-DBS-004
@@ -355,6 +363,7 @@ flowchart LR
 | `db.pool.debug.deadlock_query_dump` | 死锁双方的 SQL 完整 dump（用于事后复盘） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（**严禁生产日志泄漏**完整 SQL） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.pool.debug.connection_lifecycle_dump` 与 `db.pool.debug.deadlock_query_dump` **严禁含明文 connection string** 与**完整 SQL**（可能含 `player_id`/业务数据）——release build 必须完全剔除
 - `db.pool.exhausted.timeout` 与 `db.pool.connection.deadlock_detected` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：连接池耗尽/死锁是 P0 级可用性事件，缺失将无法事后复盘 NFR-AV-005 违反根因
 - `db.pool.acquired` 与 `db.pool.released` **不**在强制全采样白名单——原因：1000/s 频率下全采样 200KB/s × 86400s ≈ 17GB/日，超过 NFR-OP-002 成本约束（PH-1〜PH-3 阶段 100% 全采样，PH-4 后按 `trace_sample_ratio` 降级，**异常饱和度/死锁事件本身仍强制全采样**）
@@ -389,6 +398,7 @@ flowchart LR
 | `db.checklist.debug.violation_redacted_diff` | 违规位置的完整 diff（敏感字段已脱敏，**仅** debug-only 守护） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `db.checklist.debug.full_audit_trail` 含评审员完整核对记录——release build 必须完全剔除，避免 RUST_LOG=debug 误开时审计记录泄漏
 - `db.checklist.violation.detected` 为 `warn!` 级别（§4.8.3.2 二维矩阵 `warn!` 行 release 常驻 + 强制全采样），CI 门禁 + DBA 复盘的核心信号
 - §9.1 检查清单的 6 条现有 checklist 项（命名/索引/分区/迁移/备份/存储过程）**全部对应** §1-§8 各自的 release 必出事件——任一项 fail 等价于对应 §X 的 `*.violation.detected`/`*.failed` 事件已发生，可按 `dtl_doc_id` 维度交叉验证

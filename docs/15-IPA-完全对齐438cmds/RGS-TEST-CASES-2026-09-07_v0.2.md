@@ -22,6 +22,7 @@
 | **总计** | **~876** | **+90 (+10%)** | **~966** | |
 
 **v0.2 用例 ID 命名扩展** (per v0.1 §0, 增 3 类):
+
 ```
 HP-{module_code}-{rpc_seq}    业务路径 (HAPPY PATH)
 EC-{module_code}-{rpc_seq}    错误码 (ERROR CODE)
@@ -35,6 +36,7 @@ BATCH-{nnn}                  batch 域 (NEW, 6 module × 15 用例 = 90 用例)
 ```
 
 **module_code 增补 (batch 域 6 module)**:
+
 - `CRON` — batch.cron 定时任务 (BATCH-001)
 - `TASK-TPL` — batch.task_templates 模板版本化 (BATCH-002)
 - `WORKER` — batch.worker_pool 多 worker 并发 (BATCH-003)
@@ -59,6 +61,7 @@ BATCH-{nnn}                  batch 域 (NEW, 6 module × 15 用例 = 90 用例)
 ## 2. 18 跨域抽象 module (维持 v0.1 + §2.9 batch 域 6 module 新增)
 
 ### 2.1 ~ 2.8 维持 v0.1 (per f7e78eb §2.1 ~ §2.8)
+
 - 2.1 player 域 3 module (PROFILE-SYNC / SESSION / INVENTORY) = 45 用例
 - 2.2 economy 域 3 module (TRADE / LEDGER / SAGA) = 45 用例
 - 2.3 match 域 3 module (MATCHMAKING-V2 / SPECTATOR / REPLAY) = 45 用例

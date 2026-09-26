@@ -119,6 +119,7 @@ pub enum Domain {
 ```
 
 **关键设计**：
+
 - **不含** `Admin` / `ClusterOps` 变体（编译期防越界）
 - `serde(rename_all = "lowercase")`：序列化时为 `"player"` 等小写
 - `Hash` derive：用于 `HashMap<Domain, ...>` 做 per-domain 配置
@@ -147,6 +148,7 @@ impl FromStr for Domain { /* from_str case-insensitive */ }
 ## 3.3 测试
 
 5 个测试：
+
 - `as_str_returns_lowercase`
 - `env_max_inflight_keys_match_dotenv`（锚定 .env.example §9 实际 env 名）
 - `from_str_round_trip` / `from_str_case_insensitive`
@@ -352,6 +354,7 @@ pub fn try_acquire(&self) -> (AcquireOutcome, Option<InFlightGuard>) {
 ```
 
 **为什么不用 fetch_update 乐观重试**：
+
 - 乐观重试在 1000 并发下让所有 task 都 +1 成功（in_flight 突破 hard，**失去限流意义**）
 - compare_exchange + 不重试 = 每个 task 只有 1 次"抢"机会，CAS 失败直接 Rejected
 
@@ -482,6 +485,7 @@ pub fn subject_for(domain: Domain) -> String {
 ```
 
 **关键设计**：
+
 - 复用 `shared_platform::messaging::build_messaging_client`（**不**自己引独立 NATS）
 - 复用 `SubjectBuilder::domain_event`（per RGS-SPEC-CROSS-005）
 - subject filter = `rgs.*.overflow.v1`（一个 stream 覆盖 4 域）
@@ -575,6 +579,7 @@ pub async fn notify(&self, event: &AlertEvent) {
 ```
 
 **关键设计**：
+
 - 锁释放后再 await sink（避免 sink 慢时锁住 state）
 - 失败 fallback：SMTP 失败 → LogOnlySink，**不**上抛
 - 窗口内同 key 跳过（**不**记 last，避免拖长窗口）
@@ -584,6 +589,7 @@ pub async fn notify(&self, event: &AlertEvent) {
 **主题**：`[RGS-ALERT] <domain> overflow @ <RFC3339>`
 
 **正文**（纯文本）：
+
 ```
 RGS 超限告警
 
@@ -689,6 +695,7 @@ pub async fn check(&self, op: &str, request_id: &str, business_json: Option<&str
 ```
 
 **关键设计**：
+
 - **Queued 路径 permit 保留**（per FR-OFLOW-006 / §5.6）—— 之前立即 drop 导致 in_flight 永远不涨到 hard
 - Queued 失败（QueueFull / 其他 error）→ 退化为 Rejected + 告警
 
@@ -816,6 +823,7 @@ impl player_proto::PlayerService for PlayerService {
 ```
 
 **重要约定**：
+
 - **Pass** 路径：业务持 `_guard` 直到 function 结束 drop
 - **Queued** 路径：业务**不**持 guard（已经入队，消费者在独立 task 处理）；返回 `ResourceExhausted` 给 client
 - **Rejected** 路径：直接返回 `ResourceExhausted`
@@ -901,6 +909,7 @@ stringData:
 ## 13.2 4 域挂点单元测试
 
 每域 `service.rs` 内 mock limiter + mock queue + mock sink，验证：
+
 - 软上限内 → handler 正常返回
 - 超软上限 → handler 返回 enqueue ack（不入队 0 次就直接 fail）
 - 超硬上限 → handler 返回 ResourceExhausted 且调用了 alert sink ≥ 1 次

@@ -145,11 +145,13 @@ git worktree prune --dry-run
 **强制规则**（明文违反 = 视为本方案违规）：
 
 1. **改动前协调**：多 session 并发操作同一仓库时，**改动前**必须跑：
+
    ```bash
    git fetch --all
    git status --short
    git log --oneline -5
    ```
+
    任一命令输出不符合预期（本地有非本 session 改动 / main 推进 / stash 列表非空）时，**先**：
    - 在 `docs/deploy/<phase>-handoff.md`（或本项目当前活跃 handoff 文档）登记"本 session 正在编辑：文件列表 + 时间戳"，**或**
    - 在主对话 channel 同步"本 session 接管了哪些文件 / 时间窗口"
@@ -158,9 +160,11 @@ git worktree prune --dry-run
    - ❌ **不允许**对 working tree 中有非本 session 改动的文件执行 `git stash`（含 `git stash --include-untracked`）而不在 handoff 留底
    - ❌ **不允许**stash 后 drop 别人 worktree 中正在用的改动而不通知
    - ✅ **必须**的 stash 写法（明文记原因 + 接手人）：
+
      ```bash
      git stash push -m "原因: <具体原因，例如"handoff §11 修订已被 7426802 包含，避免重复"> 接手: <session-id 或 'main' 或 'drop 计划'> $(date -Iseconds)"
      ```
+
    - ✅ **优先**的替代：保留在 working tree（让别的 session 看见并显式 merge），不要用 stash 当"临时回收站"
 
 3. **违反处置**：
@@ -202,6 +206,7 @@ L4 任务 worktree 的分支命名规则（**替代 §2 通用 `codex/wt-<task>`
 ```
 
 **L4-ID 格式**（per RGS-WBS-001 v0.3 §6.1）：
+
 - `WF-<L1>-<L3>-<L4>`（实施阶段，如 `WF-1-54.1`）
 - `WF-<L1>.<L2>-<L4>`（跨阶段，如 `WF-0.5-1`）
 - L1 = 阶段（0 / 0.5 / 1 / 2 / 3 / 4 / 5 / 6 / 7）
@@ -228,6 +233,7 @@ D:\RustGameServer-worktrees\
 | `scripts/wbs_merge.ps1` | 跑 3 脚本验证 + 合并回 main + 清理 worktree | `pwsh -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1` |
 
 **与通用 `scripts/worktree.ps1` 的关系**：
+
 - 通用 `worktree.ps1`：自由 task 名 + `codex/wt-<task>` 分支 + 端口块管理
 - WBS 专用 `wbs_*.ps1`：固定 L4 ID → `wbs/<L4-ID>` 分支 + 自带 `.wbs-task-marker` + 跨会话恢复
 - 两者并行存在，**WBS L4 任务优先用 `wbs_*.ps1`**，非 WBS 自由探索任务仍可用 `worktree.ps1`
@@ -254,6 +260,7 @@ D:\RustGameServer-worktrees\
 ```
 
 **跨会话恢复**：
+
 - 重新打开 worktree 时，agent 先读 `.wbs-task-marker` 知道当前 status / progress
 - 修改后调 `wbs_task_progress.ps1` 更新 marker
 - 同时维护 `.wbs-task-log.txt` 追加历史记录
@@ -275,6 +282,7 @@ WBS L4 任务按 owner 分配 worktree：
 | 55-58 静态分析/CR/构建/CI | Platform | WF-1-55.X ~ WF-1-58.X | wbs/WF-1-55.X 等 |
 
 **冲突检测规则**：
+
 - 同一 owner 在同一时间只能 worktree 1 个 L4 任务（避免 1 人多 worktree 状态混淆）
 - 跨域 DTL-021~025 的 L4 任务必须等 5 域 DTL §1-§3 联检（WF-0.5-7）通过后才能 start
 - shared-platform DTL-032~040 的 L4 任务必须等 CROSS-001~007（WF-0.5-6）v0.2 填完
@@ -303,10 +311,12 @@ pwsh -NoProfile -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
 ### 11.6 多 session 协调 / 禁止静默 stash（per §6.7，2026-08-24 加）
 
 > 详见 §6.7。本节是 §6.7 的**索引**——L4 任务 worktree 模式下，所有 4 个 `wbs_*.ps1` 脚本**必须**遵守 §6.7 规则：
+>
 > 1. 改动前 `git fetch` + `git status`，检查无他人在途改动
 > 2. stash 必须 `git stash push -m "原因: ... 接手: ..."` 明文记录，不允许静默 stash
 
 **WBS 脚本对 §6.7 的合规检查**（手工 review 用，`wbs_*.ps1` **不**自动检查——避免脚本复杂化）：
+
 - `wbs_create_worktree.ps1` 创建前应输出 `git fetch --all; git status --short` 结果（≥ 1 行）
 - `wbs_merge.ps1` 合并前应输出 `git stash list` 结果，**如非空**应 human-in-the-loop 确认
 - `wbs_task_progress.ps1` 标 done 前应输出 `git log --oneline <branch>..main` 结果，**如非 0**应 human-in-the-loop 确认
@@ -319,6 +329,7 @@ pwsh -NoProfile -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
 
 - ❌ **不允许**：`git worktree remove --force <path>` 无前置 clean 的强删（**这是反模式**）
 - ✅ **允许**的清理流程（已合并入 main 的 worktree）：
+
   ```bash
   # 1. 在目标 worktree 内手动 clean
   cd D:/RustGameServer-worktrees/<name>
@@ -331,6 +342,7 @@ pwsh -NoProfile -File scripts/wbs_merge.ps1 -L4Id WF-1-54.1
   git worktree remove D:/RustGameServer-worktrees/<name>   # 不加 --force
   git branch -d <branch>                                    # 不加 -D
   ```
+
 - 🔁 **如标准 remove 失败**（"worktree contains modified or untracked files"）：
   - 第 1 步：人审签字（一人公司 = Ulysses per DEC-008），明确"接受丢失 untracked 文件"
   - 第 2 步：备份 untracked 到 `D:/RustGameServer/.git-trash/<worktree>-<timestamp>/`

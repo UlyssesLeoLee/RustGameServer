@@ -25,6 +25,7 @@
 | 收工落档 | (本文件) | v0.41 |
 
 **推 origin**:
+
 - `46bbb62..f6d0d42..c9b34ef` 已推 main
 
 ## 3. 遗留(下次会话)
@@ -32,7 +33,7 @@
 ### 3.1 镜像推 GHCR(0.1.0 prod 镜像)
 
 - **阻塞**: `$env:GHCR_PAT` 401,需 Ulysses 重生 fine-grained PAT
-- **修复**: 去 https://github.com/settings/personal-access-tokens/new
+- **修复**: 去 <https://github.com/settings/personal-access-tokens/new>
   - Repository access: `UlyssesLeoLee/RustGameServer`(必须)
   - Permissions: `Actions: Read and write` + `Contents: Read`
   - Expiration: 7 days

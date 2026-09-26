@@ -199,6 +199,7 @@ sequenceDiagram
 | `cs.component.debug.escalation_tick_simulation` | SLA 升级判定的时间推进模拟 dump（用于测试 SLA 边界） | 极低（CI 测试） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cs.component.debug.boundary_dag_dump` 在多节点集群下可能 3KB+ —— release build 完全剔除，避免 `RUST_LOG=debug` 误开时撑爆生产日志通道
 - `cs.component.escalation_notifier.tick_heartbeat` 是**生产事件**（per BAS-004 §4.4 release 必出宏清单"业务关键事件"）—— release 必出 + 强制全采样，便于 SRE 按 `node_id` 维度聚合 SLA 扫描存活率
 - `cs.component.admin_audit_link_dropped` 是**安全事件**（`AdminService` 是处置执行唯一入口，通道断开即失去"绕过检测"）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
@@ -239,6 +240,7 @@ sequenceDiagram
 | `cs.schema.support_ticket.debug.dedup_key_window_collision_analysis` | 滚动时间窗口内 `dedup_key` 冲突详细分析（含来源玩家哈希／分类／窗口） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cs.schema.support_ticket.uniqueness_violation.detected` 是**阻断级**信号（`dedup_key` 命中应"提示"而非"拒绝"，触发即代码缺陷）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `cs.schema.support_ticket.dedup_key_collision.prompted` 是**正常业务路径**（FR-SUP-007 设计要求）—— release 必出 + 强制全采样，便于 SRE 按 `category` 维度聚合"提示-合并"率
 - `cs.schema.support_ticket.dedup_key_computed` 中 `player_id` 必须哈希化（per BAS-004 §5.1）—— 严禁明文 `player_id` 入日志
@@ -280,6 +282,7 @@ sequenceDiagram
 | `cs.ticket.debug.conversation_pii_scan_match_dump` | PII 扫描命中的原文片段 dump（仅 debug build 留存用于规则迭代） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 完全剔除，避免 PII 泄漏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束）：
+
 - `cs.ticket.conversation.message_logged` 是**合规审计关键事件**（FR-SUP-006 强制留痕）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `cs.ticket.conversation.payment_credential_blocked` 是**安全事件**（支付凭证拦截）—— release 必出 + `warn!` 强制全采样，**绝不**记录明文卡号／CVV／token
 - `cs.ticket.transition.rejected.empty_resolution` 是**FR-SUP-005 强制留痕**保障—— release 必出 + `error!` 强制全采样
@@ -316,6 +319,7 @@ sequenceDiagram
 | `cs.sla.debug.escalation_chain_simulation` | 升级链推演 dump（哪条工单会按什么路径升级） | 极低（CI 测试） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单）：
+
 - `cs.sla.warning.approaching` ／ `warning.breached` 是**异常但已处理**事件（per BAS-004 v0.3 §4.4 释放必出宏清单对应行）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
 - `cs.sla.audit.grade_violation` ／ `breach_rate_exceeded` 是**SRE 运营关注信号**—— release 必出 + `warn!` 强制全采样，便于周报聚合
 - `cs.sla.baseline.review_registered` 是**重大治理事件**（TBD-SUP-001 决议）—— release 必出 + 强制全采样，便于 SLA 历年变更审计
@@ -366,6 +370,7 @@ sequenceDiagram
 | `cs.payment.schema.debug.cross_table_field_diff` | 跨文档字段同步前后两表字段清单 diff（BAS-016 vs BAS-020） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RGS-BAS-010 §7.1）：
+
 - `cs.payment.schema.cross_table_field_sync_failed` 是**阻断级**信号（违反单一真相来源原则）—— release 必出 + `error!` 强制全采样，触发 CI 阻断告警
 - `cs.payment.schema.uniqueness_violation.*` 是**重放攻击防护信号**（NFR-SUP-004 幂等保证）—— release 必出 + `error!` 强制全采样
 - `cs.payment.schema.cross_table_field_sync_applied` 是**重大治理事件**（跨 BAS 同步）—— release 必出 + 强制全采样，便于审计回溯每次字段扩展
@@ -414,6 +419,7 @@ sequenceDiagram
 | `cs.recon.debug.provider_file_headers_dump` | 服务商侧对账文件 HTTP 响应 headers dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单）：
+
 - `cs.recon.dual_boolean_check.passed` 是**RSK-SUP-002 防护可追溯点**（§3.3 末段要求"各自记录比对依据快照"）—— release 必出 + 强制全采样，`snapshot_id` 关联 SRE 排查时拉取 debug-only 原始快照
 - `cs.recon.compensation.auto_issued` 是**资产结算关键事件**（每次发放均产生）—— release 必出 + 强制全采样，便于 SRE 按 `order_id` 维度聚合
 - `cs.recon.idempotency.duplicate_batch_skipped` 是**幂等键保护信号**（NFR-SUP-004）—— release 必出 + 强制全采样，便于排查重放攻击
@@ -454,6 +460,7 @@ sequenceDiagram
 | `cs.recon.debug.provider_unavailable_timeline` | 服务商侧不可用时间线 dump（含每次重试的精确时间） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RGS-BAS-003 §6 告警联动）：
+
 - `cs.recon.provider.unavailable_extended` 是**P1 告警触发信号**（NFR-OP-005 24×365）—— release 必出 + `error!` 强制全采样，**不**挂 `#[cfg]`
 - `cs.recon.compare.reversed_condition.detected` 是**RSK-SUP-002 阻断级信号**（比对条件写反即资金损失风险）—— release 必出 + `error!` 强制全采样 + 触发应急响应通道
 - `cs.recon.compare.missing_local_record.escalated` 是**资产安全事件**（玩家已付款但无订单）—— release 必出 + `error!` 强制全采样，自动生成 `SupportTicket`（`category=payment_issue`）转人工
@@ -503,6 +510,7 @@ sequenceDiagram
 | `cs.prelaunch.debug.grep_pattern_dump` | CI 静态扫描使用的 grep 模式 dump（含 BAS-004 §4.4 释放必出宏清单） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + BAS-005 v0.3 §10.2 + BAS-009 v0.7 §6.1 模式）：
+
 - `cs.prelaunch.recon.fault_injection_failed` 是**阻断级信号**（上线阻断）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `cs.prelaunch.checklist.passed` 是**上线门禁通过信号**—— release 必出 + 强制全采样，便于运维审计上线历史
 - `cs.prelaunch.log_chapter.*` 是**log 章节自身上线检查**（per BAS-005 v0.3 §10.2 + BAS-009 v0.7 §6.1 自检模式）—— release 必出 + 强制全采样，构成"log 章节自描述 self-check"闭环
@@ -549,6 +557,7 @@ sequenceDiagram
 | `cs.review.debug.pii_pattern_match_dump` | PII 模式匹配 dump（哪些代码位置匹配 `email`／`phone`／`card` 正则） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除，**不**记录明文 PII） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + §6.2 + BAS-005 v0.3 §10.2 + BAS-009 v0.7 §6.1 模式）：
+
 - `cs.review.admin_bypass.detected` ／ `provider_txn_id.uniqueness_missing` ／ `dual_boolean.reversed_detected` ／ `dedup_key.behavior_wrong` ／ `conversation.pii_log_detected` ／ `payment_credential.log_attempt_detected` ／ `cross_table_sync_check_failed` 全部是**阻断级**信号（PR 合并阻断）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `cs.review.conversation.pii_log_detected` ／ `payment_credential.log_attempt_detected` 是**合规审计关键信号**（per §2.3 客服工单域特殊考虑 + BAS-004 v0.3 §5.1）—— release 必出 + `error!` 强制全采样，便于 SRE 合规审计回溯
 - `cs.review.log_chapter.*` 是**log 章节自身代码评审检查**（per §4.1 自检模式 + BAS-005 v0.3 §10.2）—— release 必出 + 强制全采样，构成"log 章节 self-check"闭环

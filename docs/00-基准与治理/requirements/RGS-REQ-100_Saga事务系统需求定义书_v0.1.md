@@ -252,6 +252,7 @@ GM Command 必须：
 
 > **备注（per RGS-ADR-0061 §1.4 Debezium 合规性评估，待具名人类审批）**：
 > Debezium 主项目（debezium/debezium GitHub）为 **Apache-2.0** OSI-认可开源许可，不属本 BR-111 禁止的「Redis Enterprise / 云厂商专有服务 / 商业 SaaS / 闭源事务协调器」任何一类。**RGS 未引入 Debezium 的真实理由**（per RGS-ADR-0061 §3.1 否决论证）是:
+>
 > 1. **OLU 估算**：Debezium Connect 需 JVM + Kafka Connect 框架 + WAL slot 配置 + PostgreSQL Connector plugin 部署，增加 NFR-OP-010 预算压力（RGS 当前 6 域 outbox + outbox_relay 是单语言 Rust + 单二进制 NATS JetStream，已纳入预算）。
 > 2. **设计替代性**：事务内强制 outbox 写入约束（per RGS-ADR-0061 §2 决定 2）已实现「事务一致性 + 事件传播」，等价于 Debezium WAL 捕获的核心能力而 OLU 更低。
 > 3. **业务用例覆盖**：6 域 outbox 表（admin / cluster_ops / economy / match / player / social）已覆盖 RGS 全部业务事件族需求（per RGS-ADR-0061 §1.3.3），"非 outbox DB 变更需被传播"业务用例未出现（per RGS-ADR-0061 §4 已知张力）。

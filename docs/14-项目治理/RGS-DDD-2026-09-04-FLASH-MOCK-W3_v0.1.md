@@ -119,6 +119,7 @@ W3 启动 = 完整 100% mock 覆盖率 = 12 Partial (W2 done) + 30 新 module �
 | **总** | **5 worker** | **30 module** | **7 RGS 域** | **260** | **~230KB** | **~208KB** | **~955K** | **0.9-1.4s each** |
 
 **协调机制 (per L12.2 选项 B 0 race condition 实证 6c5173a)**:
+
 - per-worker CARGO_TARGET_DIR 各自独立: `target-w3-{player,economy,match,social,admin-card-batch}-6module` (per L11 + L12.2.4)
 - staggered 启动 30s 间隔 (避免 cargo registry lock 抢锁, per L12.2.4)
 - 5 worker 各自独立 mock_data/*.json + W3-PHASE-3-WORKER-{1-5}-REPORT.md 写入, 0 重叠
@@ -139,6 +140,7 @@ W3 启动 = 完整 100% mock 覆盖率 = 12 Partial (W2 done) + 30 新 module �
 | **累计** | **42 module** | **447** | **0** | **41** | **400** | **6** | **7 RGS 域** | **7 worker** |
 
 **整体覆盖率 100%** (per 8/26 JST 缺标比错标 + 17:47 JST user 偏好"以备回归测试"):
+
 - 42 mock.json / 447 cmds / 100% 协议号覆盖
 - 0 PASS / 41 Partial (partner 41) / 400 NotImplemented (W2 147 + W3 253) / 6 NotApplicable (map 6)
 - 0 cmds 抽样空缺 (per 8/26 JST 缺标比错标 5 段已知缺口 显式列出)
@@ -156,6 +158,7 @@ match v2 战斗 FSM (per audit v0.3 §1.2 #1 决策保留 DB-as-state, 不引入
 ```
 
 **跨域 saga 模式** (per DTL-100 Q-003 + 9/1 18:30 JST DB 三分类横展):
+
 - 30 module 中跨域 module: 6 (worker-5 5 跨域 + worker-3 boss 跨域)
 - 跨域步骤: 主域 1 step → economy outbox 扣费 → 跨域 success → 主域 confirm → 跨域 commit
 - 失败 rollback: economy outbox reverse + 主域 reverse + 状态机 revert

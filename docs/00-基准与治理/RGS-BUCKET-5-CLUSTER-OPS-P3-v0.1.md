@@ -11,6 +11,7 @@
 ### 1.1 3 文件位置
 
 `crates/cluster-ops/tests-disabled/` 下:
+
 | 文件 | 字节 | 引用模块 |
 |---|---|---|
 | `ut_feature_adapter.rs` | 8,115 | `cluster_ops::realm_lifecycle::feature_adapter` |
@@ -20,6 +21,7 @@
 ### 1.2 新版已覆盖范围
 
 `crates/cluster-ops/src/realm_lifecycle/tests/` 下:
+
 | 文件 | 字节 | 覆盖 |
 |---|---|---|
 | `ut_saga.rs` (新版) | 23,134 | 7.5x 内容深度, 详尽版 4 IT PASS(per W25 跑测 cluster-ops 56/56) |
@@ -33,6 +35,7 @@
 - `ut_olu.rs` 旧 7,322 字节 vs 新(无 olu 测试目录) = **0x 需新建**
 
 **关键发现**:
+
 - `ut_saga.rs` 旧版 = 5 smoke 测试镜像,新版 = 详尽测试
 - `ut_feature_adapter.rs` / `ut_olu.rs` **新版不存在对应测试**,但 3 文件本身已"镜像"`realm_lifecycle::` 模块位置(6b9a8d0 重构 + b369d2e saga 重构)
 

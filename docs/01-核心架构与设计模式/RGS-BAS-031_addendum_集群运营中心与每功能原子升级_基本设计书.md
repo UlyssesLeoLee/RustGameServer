@@ -177,6 +177,7 @@ CREATE INDEX idx_feature_registry_owner ON feature_registry (owner_team);
 | `coc.feature_registry.debug.full_row_dump` | 完整行 dump（含 `depends_on` 数组 / `notes` 等大字段） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3）：
+
 - `coc.feature_registry.debug.read_query_plan` 是**高频**事件（GM 后台查询 feature 元数据），**必须** `#[cfg(debug_assertions)]` 守护
 - `coc.feature_registry.status_transitioned` 与 §4.1 Feature 元数据生命周期状态机一一对应——是 PFAU 编排可观测性的"持久化层回声"，与 §4.2 PFAU 状态机的 `pfa_run_state.*` 事件按 `feature_id` + `pfa_run_id` 串联
 
@@ -277,6 +278,7 @@ CREATE INDEX idx_pfa_run_state_state ON pfa_run_state (state) WHERE state IN ('d
 | `coc.pfa_run_state.debug.batch_progression_timeline` | 批次推进完整时间线（每批次开始/结束时刻 + 节点回执延迟） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-8KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.pfa_run_state.node_confirmed` 是**高频**事件（每批次 canary N 节点回执），release 必出 + 100% 全采样（per BAS-004 v0.3 §6.2 配置热更新强制全采样）——**不能**挂 `#[cfg]`，这是 PFAU 编排进度的核心证据链
 - `coc.pfa_run_state.debug.batch_progression_timeline` 在大集群下可能 8KB+ —— release 完全剔除
 
@@ -326,6 +328,7 @@ CREATE INDEX idx_event_producer_app ON event_producer_registry (app_id);
 | `coc.event_producer_registry.debug.producer_inventory` | 某 feature_id 的全部 Producer 清单（含 app_version 分布） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.event_producer_registry.producer_heartbeat` 是**高频**事件（每 App × 事件类型 × 5-15min）——release 必出但**5-15% 抽样**（避免日志通道被心跳淹没），per BAS-004 v0.3 §6.1 采样率
 - `coc.event_schema_registry.debug.full_schema_dump` 可能含 protobuf 描述符（10KB+）——release 完全剔除
 
@@ -465,6 +468,7 @@ Feature 元数据生命周期是 §3.1 `coc.feature_registry.status_transitioned
 | `coc.feature.lifecycle.debug.full_history_timeline` | 某 feature_id 的完整生命周期时间线（所有 status 迁移 + 对应 PFAU 实例） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（生命周期长度决定，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.feature.lifecycle.invalid_transition_attempted` 是**安全告警**——release 必出，便于按 `operator_id` 维度识别异常操作模式
 - `coc.feature.lifecycle.debug.full_history_timeline` 涉及多年 Feature 累积的完整时间线，release 完全剔除
 
@@ -521,6 +525,7 @@ Feature 元数据生命周期是 §3.1 `coc.feature_registry.status_transitioned
 ```
 
 **关键约束**：
+
 - 任一状态迁移**必须**写一条审计记录至`operation_audit`（FR-COC-040）
 - `paused` 状态**必须**含 `pause_reason` 字段
 - 跨节点一致性确认（FR-PFAU-020）通过"运行时通过既有健康检查端点声明'我已加载目标版本' → 控制面收集所有节点声明"实现
@@ -628,6 +633,7 @@ CEM 探针订阅器（CEMProbeAggregator）作为AD限界上下文的**附属进
 | `coc.cem.probe.debug.consumer_group_state` | Consumer Group 完整状态 dump（成员/分区分配/lag 分布） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.cem.probe.event_sampled` 是**高频**事件（10-100/s 集群），release 必出但**5-10% 抽样**避免日志通道淹没
 - `coc.cem.probe.debug.event_payload_sample` **必须** `#[cfg(debug_assertions)]` 守护——事件 payload 可能含 PII（运营 ID / 玩家 ID / 业务字段），release 误开 RUST_LOG=debug 时**不能**泄漏
 - `coc.cem.probe.replay_started` / `replay_completed` / `replay_failed` 是**数据回灌事件**——release 必出 + 全采样（合规审计要求"谁在何时重放了哪些事件"必须可追溯）
@@ -822,6 +828,7 @@ message DlqEvent {
 | `coc.api.debug.stream_chunk_trace` | server stream 每条推送 chunk 的延迟与大小 | 业务触发同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.api.declare_feature_upgrade.stream_progress` 是**高频**事件（每 PFAU 推进 1 批），release 必出 + 全采样——**不能**挂 `#[cfg]`，是 PFAU 编排进度可观测性的核心数据流
 - `coc.api.discard_dlq_event.*` 是**高危操作**白名单（per BAS-004 v0.3 §6.2），所有派生事件 release 必出便于合规审计
 - `coc.api.debug.request_envelope` 完整 dump 含元数据（auth token 等敏感字段）——**严格** `#[cfg(debug_assertions)]` 守护，release 完全剔除
@@ -973,6 +980,7 @@ sequenceDiagram
 | `cluster_admin` | 全部 COC 页面 | 全部 COC 写操作（含按 Feature 回滚、批量升级、DLQ 重放） | SRE 高级 / 架构师 |
 
 **与既有 GM 后台 RBAC 的关系**：
+
 - `cluster_operator` 是既有 `operator` 角色的**子集**（仅含 COC 相关权限），不继承 `operator` 的"账号管控"等权限
 - `cluster_admin` 是既有 `admin` 角色的**超集**（含既有 `admin` 的全部权限 + COC 高危操作），**不**改变既有 `admin` 的语义
 - 新角色**必须**经架构评审通过，登记至 RGS-REQ-001 §7 角色矩阵
@@ -1040,6 +1048,7 @@ RGS-BAS-024 §4 编排状态机追加:
 | `coc.nfr.debug.coc_metrics_dump` | COC 域全部 Prometheus 指标完整 dump（运维排障用） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（指标数量决定，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `coc.nfr.isolation_boundary_violated` 是**安全告警**——release 必出，便于按 `source_session` 维度识别异常访问模式
 - `coc.nfr.debug.coc_metrics_dump` 涉及全部 COC 域指标，release 完全剔除避免 RUST_LOG=debug 误开时撑爆
 

@@ -1,6 +1,7 @@
 # RGS-REV-010 V2 正确性审查报告
 
 ## 元数据
+
 - 审查范围: 49f8731..3ead5f6 (22 commit: 11 修复 + 11 merge)
 - 审查维度: Correctness (资金一致性 / Saga 崩溃恢复 / 事务边界 / 状态机正确性)
 - 审查者: V2 (verifier sub-agent)
@@ -39,6 +40,7 @@
 ## V2 详细发现 (按 RGS-REV-009 issue 编号)
 
 ### [CR-1] 资金幻影真修 — ✅ 真修且锚定真路径
+
 - **commit**: eafafe8 (WF-1-55.27)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:248-296, 305-320`
 - **证据**:
@@ -53,10 +55,12 @@
 - **评级**: CRITICAL→✅ 真修, V2 无任何 CRITICAL 残留
 
 ### [CR-2] outbox CHECK 静默失效 — ✅ 6 域幂等修复
+
 - **commit**: 13a67bc (WF-1-55.28)
 - **文件**: 6 域 `migrations/0003/0004_outbox_check.sql`
 - **证据**:
   - SQL body (DDL) 在 6 域完全相同:
+
     ```sql
     DO $$ BEGIN
         ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
@@ -65,6 +69,7 @@
         WHEN duplicate_object THEN NULL;
     END $$;
     ```
+
   - fresh DB 路径: 约束未存在 → ADD CONSTRAINT 创建 → 后续 1b30878 CHECK 失效问题被堵
   - 已部署环境路径: 约束已存在 → `EXCEPTION WHEN duplicate_object THEN NULL` → no-op
   - 6 域文件大小: 856-860 字节 (差异仅为注释 + service name)
@@ -73,6 +78,7 @@
 - **评级**: CRITICAL→✅
 
 ### [HI-2-stub] DC-1.3 真 handler 替换 — ✅ 3 阶段崩溃恢复真测试
+
 - **commit**: 13010ce (WF-1-55.29)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:1207-1284` (resume_compensating_saga_does_not_double_refund_with_real_handlers)
 - **证据**:
@@ -87,6 +93,7 @@
 - **评级**: HIGH→✅
 
 ### [HI-3] fail-closed 启动 test — ✅ 6 域 integration test 一致
+
 - **commit**: ce35f10 (WF-1-55.32)
 - **文件**: 6 域 `tests/fail_closed_start.rs` (admin/cluster-ops/economy/match/player/social)
 - **证据**:
@@ -103,11 +110,13 @@
 - **评级**: HIGH→✅ (test 文件结构一致, 6 域 diff 已 diff-equal 确认)
 
 ### [HI-D] DC-1 3 终态 test — ✅ 终态不可逆 invariant 锚定
+
 - **commit**: 7e258d3 (WF-1-55.33)
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:1380-1443`
 - **证据**:
   - 3 个新 test: `resume_completed_saga_returns_validation_err` / `resume_failed_saga_returns_validation_err` / `resume_aborted_saga_returns_validation_err`
   - 锚定 `saga_orchestrator.rs:94-99` 早返 Validation:
+
     ```rust
     SagaStatus::Completed | SagaStatus::Failed | SagaStatus::Aborted => {
         return Err(Error::Validation(format!(
@@ -116,6 +125,7 @@
         )));
     }
     ```
+
   - 每个 test 直接构造对应终态 + 持久化, 然后 `env.orch.resume(saga_id).await.unwrap_err()` 验证返 Validation
   - 3 个断言都验证 msg 包含 "terminal" 或对应终态名
 - **执行结果**: 3 个 test 全过
@@ -123,6 +133,7 @@
 - **评级**: MEDIUM→✅
 
 ### [P2 ME-1] EconomyService::credit/debit deprecation — ✅ 引导走 saga 路径
+
 - **commit**: 2f334fc (WF-1-55.34)
 - **文件**: `crates/economy-service/src/service.rs:34-36, 49-51`
 - **证据**:
@@ -133,6 +144,7 @@
 - **评级**: MEDIUM→✅
 
 ### [P2 LO-4] 补偿半途崩溃 + 幂等性 — ✅ 3 关键断言锚定防 +amount 资金幻影
+
 - **commit**: 6d8c127 (WF-1-55.37) — **本任务重点**
 - **文件**:
   - `crates/economy-service/src/saga_orchestrator.rs:141-183` (compete() 调换顺序)
@@ -156,6 +168,7 @@
 - **评级**: MEDIUM→✅ 完美修复
 
 ### [P1 HI-2-pg] PgTestDatabase fixture — ✅ 127 行 sqlx 0.8, feature-gated
+
 - **commit**: d7b016c (WF-1-55.31)
 - **文件**:
   - `crates/rgs-testkit/src/pg_test_db.rs` (127 行) + `crates/rgs-testkit/README.md` (176 行)
@@ -171,6 +184,7 @@
 - **评级**: MEDIUM→✅
 
 ### [ME-2] admin migration 注释 0002→0003 — ✅ 修正
+
 - **commit**: 385fd7e (WF-1-55.35)
 - **文件**: `crates/admin-service/migrations/0003_outbox.sql:1`
 - **证据**: L1 注释从 `-- admin-service migration 0002_outbox` 改为 `-- admin-service migration 0003_outbox`, 与文件名一致
@@ -178,6 +192,7 @@
 - **评级**: MEDIUM→✅
 
 ### [ME-3] clippy 1.98 lint 名升级 — ⚠️ 已知不可执行修复
+
 - **commit**: 385fd7e (WF-1-55.35)
 - **证据**:
   - scan 范围 (`scripts/` / `.github/workflows/` / `clippy.toml` / `Makefile` / `docs/00-基准与治理/`) 未发现老式 `-A pedantic` / `-A nursery` / `-A cargo` 写法
@@ -187,6 +202,7 @@
 - **评级**: MEDIUM→⚠️ 已知遗留 (非修复问题)
 
 ### [LO-1/2/3] rgs-certgen pre-existing + doctest — ✅ 3 clippy 错误修复
+
 - **commit**: e0de669 (WF-1-55.36)
 - **文件**: `crates/rgs-certgen/src/main.rs:65, 74, 99` + `crates/shared-platform/src/json_logging.rs` (61 行 doctest)
 - **证据**:
@@ -199,6 +215,7 @@
 - **评级**: LOW→✅
 
 ### [HI-1] mTLS server 端 getter — ✅ 6 域迁移至 shared-platform
+
 - **commit**: 3022f12 (WF-1-55.30)
 - **文件**:
   - `crates/shared-platform/src/channel.rs:89-100` (SERVER_MTLS_BYPASSED_TOTAL + getter)
@@ -271,6 +288,7 @@
 ## 验证结果
 
 ### cargo test --workspace --lib
+
 - **总测试数**: **218 passed / 0 failed / 0 ignored** (基线 RGS-REV-009 期望 215+, 实际 218 ✅)
 - 分布:
   - admin-service: 18 passed
@@ -284,10 +302,12 @@
 - 关键 V2-relevant test 15/15 全过 (含 3 终态 + 2 CR-1 + 1 LO-4 + 1 HI-2-stub + 3 DC-1 + 5 既有)
 
 ### cargo clippy (排除 rgs-certgen)
+
 - **0 warning, 0 error** (43.38s 完成)
 - Lint flags: `-D warnings -A clippy::pedantic -A clippy::nursery -A clippy::cargo` (新式写法, clippy 1.98 兼容)
 
 ### 6 域 migration diff 一致性
+
 - **6 域 DDL 完全相同** (admin `0004`, 其余 5 域 `0003`, body 一致)
 - fail_closed_start.rs 6 域结构一致, 仅 binary name / test fn name / service name 差异
 - 6 域 main.rs 全部使用 `server_mtls_bypassed_total` getter

@@ -87,6 +87,7 @@
 > D4 派生约束 (per 9/2 10:18 JST 拍板): **每周 status report 必含"业务里程碑 vs 治理指标"双指标**.
 
 **W37 重点**:
+
 - **业务指标** 上升优先 (5 域 ST mTLS, 阶段 A/B/C 跑通)
 - **治理指标** 自动退二线 (per v0.1.1 §9.4 里程碑重定义, 业务指标取代 commit ahead)
 - **hotfix 数** 维持 < 5/天 (B1 pre-commit hook 兜底)

@@ -20,6 +20,7 @@
 ### 2.1 上游缺什么
 
 `crates/economy-service/proto/economy/v1/economy.proto` 现状:
+
 - `rpc HealthCheck(...)` (现成)
 - `rpc GetAccount(...)` (现成)
 - ❌ `rpc AddBalance(...)` (缺,GrantCompensation 链路需要)
@@ -29,6 +30,7 @@
 ### 2.2 gm.proto v0.3 锁定影响
 
 per RGS-PLAN-WBS-token-bucket-v0.3 §7.2 拍板 4:
+
 - **gm.proto 保持 v0.3**(不升 v0.4 引入 common.proto)
 - 这意味着 gm-backend 的 `GrantCompensationRequest` 字段保持现状
 - 但 economy.proto 仍可独立扩展(不受 gm.proto 锁定)
@@ -36,6 +38,7 @@ per RGS-PLAN-WBS-token-bucket-v0.3 §7.2 拍板 4:
 ### 2.3 admin.proto 需要扩
 
 admin-service 需要在 admin.proto 加:
+
 - `rpc GrantCompensation(GrantCompensationRequest) returns (GrantCompensationResponse)` (per S4 Phase 2 step 2 已加)
 - 但 admin-service **handler 内部需要调 economy-service AddBalance gRPC**
 - 现状:admin_handler `grant_compensation` 只写 audit_log,**没调 economy RPC**
@@ -55,6 +58,7 @@ admin-service 需要在 admin.proto 加:
 ## 3. 落档到 W29
 
 **W28 桶 2c 实际产出**:
+
 - **链路 B 已实装**(W22 commit `c2abd12`,5 IT PASS) — 不再做
 - **链路 C 落档 W29**(20M tokens,需 economy.proto v0.2 + admin.proto v0.4 + handler 改 + e2e IT)
 - **链路 D 落档 W30**(类比链路 C 估 30-40M tokens,5 域都需扩 proto)

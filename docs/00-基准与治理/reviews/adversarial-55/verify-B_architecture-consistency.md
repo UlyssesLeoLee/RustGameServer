@@ -38,6 +38,7 @@
 ## 3. OutboxRelay 泛型化影响矩阵
 
 **关键变更**（commit 55af339, 55.17）：
+
 - `OutboxRepository::append` 签名升级为 `async fn append<'e, E: PgExecutor<'e>>(&self, entry: &OutboxEntry, executor: E) -> Result<()>`（`outbox.rs:164-168`）
 - 因 trait 含泛型方法，**`OutboxRepository` 失去 dyn-safe 性质**（Rust 限制：含泛型方法的 trait 不能 `dyn Trait`）
 - `OutboxRelay` 同步改为 `pub struct OutboxRelay<R: OutboxRepository + 'static>`（`outbox_relay.rs:46-51`）
@@ -55,6 +56,7 @@
 **全仓 grep 结果**：`dyn OutboxRepository` / `Box<dyn OutboxRepository>` / `Arc<dyn OutboxRepository>` **零匹配**。所有调用方都使用具体类型 `Arc<PgOutboxRepository>` 或 `Arc<InMemoryOutboxRepository>`，泛型推断无歧义。
 
 **泛型实例化模式**（6 域 main.rs 全部一致）：
+
 ```rust
 let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
 let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
@@ -71,6 +73,7 @@ tokio::spawn(async move {
 ## 4. mTLS API 一致性矩阵
 
 **关键变更**（commit ec43377, 55.18）：
+
 - 新增 `pub fn load_server_tls_config(server_cert_path: &Path, server_key_path: &Path, client_ca_cert_path: &Path) -> Result<ServerTlsConfig, TlsError>`（`tls.rs:92-118`）
 - 拆分 `build_secure_channel`（默认 mTLS）+ `build_insecure_channel`（显式 opt-out + `mTLS_bypassed_total++`）
 - `RpcChannelConfig.require_tls: bool` 默认 `true`（fail-closed，`channel.rs:72`）
@@ -87,6 +90,7 @@ tokio::spawn(async move {
 **全仓 grep 验证**：`load_server_tls_config` 6/6 域使用相同 3-path 模式；`server_builder.tls_config(...)` 配 `if let Some(tls_cfg)` fallback 模板 6/6 一致。
 
 **`RpcChannelConfig.require_tls` fail-closed 验证**（`channel.rs:60-75`）：
+
 - `Default` impl 中 `require_tls: true` ✓
 - `build_channel` 行为矩阵（`channel.rs:90-98`）：
   - `tls=Some, _` → mTLS
@@ -117,6 +121,7 @@ tokio::spawn(async move {
 ### 6.1 `SagaStepHandler::compensate` 第二参数（55.12）
 
 - `economy-service/src/saga_orchestrator.rs:37-47`：
+
   ```rust
   pub trait SagaStepHandler: Send + Sync {
       fn name(&self) -> &str;
@@ -124,6 +129,7 @@ tokio::spawn(async move {
       async fn compensate(&self, saga: &mut Saga, resource_id: Option<Uuid>) -> Result<()>;
   }
   ```
+
 - 实现者：`ReserveHandler::compensate`（line 272）、`ConfirmHandler::compensate`（line 377）、`FailingHandler::compensate`（line 507）、`RecordingHandler::compensate`（line 785）— **4/4 全部更新到 2 参数签名**。
 - 调用方：`SagaOrchestrator::compensate`（line 123-141）正确传递 `step.resource_id`。
 - **范围**：trait 是 economy-service 私有，**未跨域泄漏**。shared-platform 零匹配 `SagaStepHandler`。
@@ -137,11 +143,13 @@ tokio::spawn(async move {
 ### 6.3 `Authorizer` trait
 
 - `shared-platform/src/rbac.rs:128-131`：
+
   ```rust
   pub trait Authorizer: Send + Sync {
       fn check(&self, subject: &Subject, permission: &str, resource: &str) -> CheckResult;
   }
   ```
+
 - 实现：`SimpleAuthorizer`（`rbac.rs:164-212`），覆盖 5 角色 + scope 校验。
 - 55.14 修复（commit 68822d2）：
   - DomainAdmin 缺 `domain_scope` → 显式 deny（line 172-178）— 旧版 *:* 全权绕过已堵
@@ -181,6 +189,7 @@ tokio::spawn(async move {
 | `admin-service/migrations/0002_audit_prev_hash_unique.sql:1` | `RGS-REV-007 AC5=CC1+CH3 / DEC-015 P1` | ✓ |
 
 **用户预期 vs 实际**：
+
 - 用户说 "55.17 shared-platform/outbox.rs 引用 DTL-100 §3 §4 §5" — 实际只引用 §5.3（outbox 主题本身只关心 §5.3；§3 状态机、§4 补偿在 `economy-service/src/saga_orchestrator.rs` 引用）。这是**模块化切分**，不算错，但**outbox.rs 文件头注释可补充一句"§3 状态机见 saga_orchestrator.rs"**。→ LOW-2
 
 ---
@@ -223,11 +232,13 @@ tokio::spawn(async move {
   - shared-platform 暴露 `pub const MIGRATION_TEMPLATE: &str`，注释说"54.11 模板：各域 migrations 应包含本表"。
   - **全仓零调用**：`grep MIGRATION_TEMPLATE` 仅在 `lib.rs:65`（pub use）和 `outbox.rs:464`（定义）出现，**6 域 migration 没有任何一个 include 或复制该模板**。
   - 字段定义已**漂移**：
+
     | 字段 | MIGRATION_TEMPLATE | 6 域 outbox migration 实际 |
     |------|--------------------|----------------------------|
     | subject | `TEXT NOT NULL`（无限长）| `VARCHAR(256) NOT NULL`（5 域限制 256）|
     | payload | `TEXT NOT NULL` | `JSONB NOT NULL`（5 域均用 JSONB）|
     | status | `TEXT NOT NULL DEFAULT 'pending' CHECK (...)` | `VARCHAR(16) NOT NULL DEFAULT 'pending'`（**无 CHECK 约束**）|
+
 - **影响**：
   - 模板与现实分叉，未来若有人按 MIGRATION_TEMPLATE 生成新域 migration，会出现 status 无 CHECK、字段类型不一致问题。
   - 共享库应有"单一真相"，当前是"参考文档已脱钩"。
@@ -339,6 +350,7 @@ tokio::spawn(async move {
 <DTL 追溯样本>: DTL-019 / DTL-100 / ARC-051 / DEC-005 / DEC-015 / RGS-REV-007 §3.5/§4/§5/§6/CH1/CH2/CH3/CH4/AC2/AC3/AC4/AC5/AC6/CM5/AH1/M6 / RGS-SPEC-CROSS-002/005/006 / RGS-SEC-100 §7 / RGS-DEC-018 M6-A
 
 **审核局限性**:
+
 - 仅静态代码阅读 + git log/diff，未跑 `cargo build` / `cargo clippy` / 集成测试
 - 未验证 sqlx 0.8.6 在 0002 collision 下的**具体错误信息**（虽然 sqlx 文档明确声明"version numbers must be unique"）
 - 未跑 `cargo metadata --no-deps` 验证依赖图闭环
@@ -346,6 +358,7 @@ tokio::spawn(async move {
 - 未审计 outbox `InMemory` 实现与 `Pg` 实现在并发场景下的语义对齐（仅看代码，未跑 stress test）
 
 **未涵盖**:
+
 - 实际部署 / k3s 集成测试
 - NATS JetStream 真实连接验证
 - mTLS 证书签发 / 轮转流程

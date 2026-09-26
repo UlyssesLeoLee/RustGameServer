@@ -3,6 +3,7 @@
 > **目的**:核对 2026-08-28 ut 实施批次(commit `b4df2ed` + `3e8d9ca`)的测试结果是否与 DTL/BAS 详细设计预期一致,识别"测试通过 ≠ 设计达标"差异
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 09:06 JST)
 > **关联**:
+>
 > - 测试 evidence:`docs/00-基准与治理/.test-evidence/2026-08-28-audit-v2/` (16 个 artifact)
 > - 工具脚本:`scripts/test-evidence.ps1` (本次修订 v4)
 > - 跨反馈:`RGS-TST-PEERREVIEW-2026-08-28-feedback-handling.md`
@@ -12,6 +13,7 @@
 ## 0. 关键结论
 
 **测试通过率 ≠ 设计达标率**。本次核对发现 **3 类差异**:
+
 1. **fixture 缺失(13 fail)** — 5 域 sqlx::test 在没有 `DATABASE_URL` env 时 panic,fixture 环境问题,**不是设计不符**。但导致"看似通过"的统计被掩盖,本次 evidence v2 修正确认。
 2. **gm-backend 字段级协议 stub vs 真实**(5 endpoint)— `propagation_status` / `services[]` / `entries+has_more` 仍是 stub,**测试通过但 DTL 协议未达**,per 2026-08-28 跨反馈 F8 处置已识别
 3. **DTL-040 Admin 域契约骨架未审批** — `gm-backend` 引用的 DTL-040 自标"**待评审・不得作为实施授权**",但 gm-backend 19/19 PASS 已上线,设计/实施顺序倒挂
@@ -36,6 +38,7 @@
 | **TOTAL** | **271** | **13** | **1** | 95.4% 通过 |
 
 **fixture 缺失的 13 fail 一览**:
+
 - player-service: `player_fixture_inserts_and_reads_back_in_real_pg` / `outbox_check_constraint_rejects_invalid_status` / `player_fixture_builder_customizes_name_and_level`
 - economy-service: `outbox_check_constraint_is_idempotent`(手写 `std::env::var("DATABASE_URL")`,无 `#[pg_test]` 宏)
 - match-service: `match_fixture_inserts_and_reads_back_in_real_pg` / `match_fixture_builder_customizes_score_and_status` / `outbox_check_constraint_rejects_invalid_status`
@@ -81,6 +84,7 @@
 | **合计** | 22 ID(per F7 处置段)/ 19 测试函数 | **19/19 PASS** | **⚠️ 测试通过但 DTL 字段级未达 100%** |
 
 **DTL 协议字段差异**(per 2026-08-28 跨反馈 F8 处置已识别):
+
 - D001 `QueryHealthViewResponse` 当前 stub 返回 `{service, admin_endpoint, mode}`,DTL-003 §3.4 协议要求 `services[]` (5 子字段:service_name/ready/queue_depth/db_pool_usage_ratio/checked_at_ms)
 - D004 `SetMaintenanceModeResponse` 当前 stub 返回 `{status, op}`,DTL-003 §3.3 协议要求新增 `propagation_status` (PROPAGATING/CONVERGED)
 - D005 `QueryAuditLogResponse` 当前 stub 返回 `{items, next}`,DTL-003 §3.4 协议要求 `entries[]` + `has_more`
@@ -210,7 +214,8 @@
 **整体**:9/9 crate 测试通过,但 **5 域 fixture 缺失(13 fail)** + **gm-backend 字段级未达协议(per D4)** + **2 域算法/PFAU 无 UT(D7/D9)** = **3 类未达 DDL 预期**
 
 **结论**:**测试通过 ≠ 设计达标**。建议:
-1. **D1~D3**(fixture 缺失):CI 注入 DATABASE_URL 即解,本机跑测时 `export DATABASE_URL=postgres://...` 
+
+1. **D1~D3**(fixture 缺失):CI 注入 DATABASE_URL 即解,本机跑测时 `export DATABASE_URL=postgres://...`
 2. **D4**(gm-backend 字段级):per F8 处置 v0.2 实装
 3. **D5**(DTL-040 引用):已修
 4. **D6**(DTL-040 审批):DDD Review 阶段补

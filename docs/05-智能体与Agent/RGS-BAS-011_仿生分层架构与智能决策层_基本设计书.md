@@ -117,6 +117,7 @@ flowchart TB
 | `bio.component.debug.partition_assignment_dump` | 消费者组 partition 分配详细（broker、leader、replica） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3）：
+
 - `bio.component.debug.startup_envelope` 含配置键名，**不**含值（值已脱敏），但**仍**守护——避免 RUST_LOG=debug 误开时泄漏 Secret 引用名
 - `bio.component.queue.depth_breach` 触发即代表 ARC-013 背压在生效，**不**视为异常，但必须 release 必出以便 SRE 识别持续性积压（区别于偶发尖峰）
 
@@ -149,6 +150,7 @@ flowchart TB
 | `bio.deploy.debug.network_policy_yaml_dump` | 渲染后 NetworkPolicy 完整 YAML | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.deploy.langgraph_api_detected` / `bio.deploy.llm_endpoint_external_detected` / `bio.deploy.unauthorized_write_attempt.blocked` 均为**P0 安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 P0 告警链路立即捕获
 - `bio.deploy.debug.dependency_tree_dump` 在大型 workspace 下可能 30KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `bio.deploy.zero_output_verified` 周期性执行时按"每小时一次"频率，**不**视为高频日志（成本可控）
@@ -190,6 +192,7 @@ flowchart TB
 | `bio.olu.debug.olu_breakdown_full` | OLU 各项工单/告警的完整明细（按周聚合） | 每周 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.olu.baseline_metric_recorded` / `bio.olu.incremental_metric_recorded` 是**预算诚实性的事实依据**——release 必出 + §6.2 强制全采样，便于财务对账与 P-1 预算复核
 - `bio.olu.baseline_budget_overrun` / `bio.olu.incremental_budget_overrun` 触发即代表申领值偏小——`warn!` 级别（**非** `error!`），属预算管理问题而非安全事件，但必须 release 必出供 SRE 复盘
 
@@ -238,6 +241,7 @@ flowchart TB
 | `bio.subscribe.debug.consumer_lag_snapshot` | 消费者 lag 详细（partition 维度） | 周期性（如每 30s） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.subscribe.environment_production_blocked` / `bio.subscribe.publish_attempt_rejected` / `bio.subscribe.config_storage_read_blocked` 均为**P0 安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.subscribe.event_skipped.switch_off` 是**关闭态零产出的可观测性证据**（FR-NEURO-051）——必须 release 必出，便于 AC-NEURO-012① 验收脚本能够证明"开关为 false 时无任何分析进入 LangGraph"
 - `bio.subscribe.debug.event_payload_envelope` 不含事件值，**仅**含 schema/字节数——但仍守护以避免 RUST_LOG=debug 误开时泄漏事件结构信息
@@ -265,6 +269,7 @@ flowchart TB
 | `bio.switch.debug.config_storage_path` | ARC-016 配置存储中开关键的物理路径（key 名称） | 部署期 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.switch.state_read` **必须** debug-only —— 集群级典型 100-1000 reads/s，若 release 必出将撑爆日志通道（**与 BAS-004 v0.3 §4.4 规则 #2 一致**：高频路径禁止 release 必出）
 - `bio.switch.self_write_attempt.detected.unblocked` 是**最高级安全事件**——意味着 FR-NEURO-042 双锁方法彻底失效，必须 `error!` + release 必出 + §6.2 强制全采样
 - `bio.switch.flip_dual_operator_violation` 配置错而非攻击——`warn!` 级别（**非** `error!`），release 常驻
@@ -287,6 +292,7 @@ flowchart TB
 | `bio.redact.debug.full_field_value_dump` | 字段值完整 dump（仅在合规审计场景下手动开启，**默认** debug-only 守护） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.redact.unredacted_event_detected` 是**P0 安全事件**（未脱敏数据流入分析管线）——`error!` 级别，release 常驻 + §6.2 强制全采样，且必须**就地丢弃**该事件（不得进入 LangGraph）
 - `bio.redact.debug.full_field_value_dump` 是**合规审计专用**——默认不开启，仅在 NFR-SE-012 触发合规调查时手动启用，**严禁**默认 release 必出
 - 智能层**不**自行实现脱敏（per ARC-020 "脱敏优先于清洗"），仅消费已完成脱敏的事件并校验——本节日志反映"校验结果"而非"脱敏动作"
@@ -328,6 +334,7 @@ flowchart TB
 | `bio.graph.debug.token_count_breakdown` | Token 计费明细（input/output/cache_read/cache_write 分桶） | 周期性 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + §5.1）：
+
 - `bio.graph.debug.full_prompt` **可能含个人提示**（用户在事件中的 PII 即使源头已脱敏，LLM 也可能回填或重新引入）——**严禁** release 必出
 - `bio.graph.debug.intermediate_node_outputs` 在多节点图下可能 50KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `bio.llm.token_cost.aggregated` 周期聚合（每 5min），按成本监控可观测性需求，release 必出 + §6.2 强制全采样（**与 BAS-004 §4.5 release 必出宏清单"业务关键事件"对齐**——成本是关键业务信号）
@@ -379,6 +386,7 @@ flowchart TB
 | `bio.graph_def.debug.spec_checksum_intermediate` | `spec_checksum` 计算中间过程（per §5A.4 可核对性） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.graph_def.activated.invalid_state` 是**P0 安全事件**（绕过评审直接激活）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.graph_def.audit_log.write_failed` 即使是偶发 DB 错误，也必须 release 必出——审计完整性是 §5A.4 可核对性的基础
 - `bio.graph_def.audit_log.write_succeeded` 不含 `spec_checksum` 值（避免高频日志重复同一哈希），但 `db_tx_id` 足够供事后追溯
@@ -409,6 +417,7 @@ flowchart TB
 | `bio.db_def.debug.full_table_schema_dump` | `AnalysisGraphDefinition`/`AnalysisGraphAuditLog` 完整 schema dump（含约束/索引/权限） | 部署期 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.db_def.dual_active_violation` / `bio.db_def.foreign_key_violation` / `bio.db_def.update_audit_rejected` / `bio.db_def.role_permission_drift` 均为**P0 安全/数据完整性事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.db_def.role_permission_drift` 是**最高级安全事件**——意味着 `AnalysisGraphAuditLog` 可能已被篡改，必须**立即**告警 + 触发 §5A.4.2 审计完整性核对
 
@@ -465,6 +474,7 @@ flowchart TB
 | `bio.crud.debug.graph_spec_full_dump` | graph_spec_ref 完整内容 dump（含节点定义/边条件） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.crud.register.production_subscription_blocked` 是**P0 安全事件**（草稿态污染生产事件流）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.crud.update.version_chain_broken` 触发即代表 FR-NEURO-046 "版本化保留"约束被破坏——`error!` 级别
 - `bio.crud.deprecate.historical_data_preserved` 是**合规事件**（per NFR-NEURO-009）——release 必出，事后审计可证"废弃不物理删除"
@@ -495,6 +505,7 @@ flowchart TB
 | `bio.scenario.debug.full_scenario_catalog_dump` | 完整场景目录 dump（含 `feature_domain` × `scenario_kind` 索引） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.scenario.cross_domain_recommendation_reference_undetected` 是**P0 安全事件**（违反 FR-NEURO-034 级联禁令）——`error!` 级别，release 常驻 + §6.2 强制全采样，必须立即 drop 该 Recommendation
 - `bio.scenario.future_domain_rejected.pre_approved` 触发即代表目录表被绕过——`error!` 级别，与 §5A.2 同等告警等级
 - 场景目录本身是**设计期产物**（非运行时高频），全部事件低频 release 必出，**不**触发成本/采样顾虑
@@ -542,6 +553,7 @@ flowchart TB
 | `bio.reconcile.debug.spec_content_diff` | 重新计算 hash 时 `graph_spec_ref` 实际内容的完整 diff | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.reconcile.subscription.unregistered_consumer` 是**P0 安全事件**（per §5A.4.2 ②类不一致，**安全等级不低于闸门绕过告警**）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.reconcile.spec_checksum.mismatch` 是**P0 安全事件**（per FR-NEURO-042 防护失效 + §5A.4.2 处置规则：立即告警 + 临时置为 `已废弃` 级别的订阅暂停，待人工排查）——`error!` 级别，必须 release 必出
 - `bio.reconcile.audit.completeness_mismatch` 是**缺陷流程事件**（区别于篡改安全事件）——`warn!` 级别（**非** `error!`），但**仍** release 必出 + §6.2 强制全采样（按缺陷流程处理）
@@ -579,6 +591,7 @@ flowchart TB
 | `bio.recommendation.debug.full_payload_envelope` | Recommendation 完整 JSON dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.recommendation.risk_tier.self_downgrade_attempt` / `bio.recommendation.evidence_field.structured_parse_attempt` / `bio.recommendation.executable_payload_detected` 均为**P0 安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.recommendation.suppressed.below_threshold` 触发频次可能很高（多数事件预期走此分支）——release 必出（per §4.5 release 必出宏清单"业务关键事件"）但**不**计 §6.2 强制全采样白名单的"异常信号"（属正常业务路径），避免淹没告警通道
 - `bio.recommendation.debug.evidence_full_text` **可能含 PII**（即便源头脱敏，LLM 也可能回填）——**严禁** release 必出
@@ -634,6 +647,7 @@ sequenceDiagram
 | `bio.gate.debug.gate_decision_trace` | 闸门 1/2/3 判定决策的完整 trace（含每步判定结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.gate1.fuzzy_match.detected` / `bio.gate1.runtime_config.detected` / `bio.gate2.range_check.detected_clamped` / `bio.gate3.low_risk_notification.self_declared_attempt` / `bio.gate.bypass.detected` / `bio.gate.cascade.detected` 均为**P0 安全事件**（违反 §7A.2/7A.3 闸门核心约束）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.gate.submission.received` / `bio.gate.submission.completed.*` 是**GM 指令级事件**（per BAS-004 §6.2 强制全采样白名单"全部 GM 指令"）——必须 release 必出，便于审计与责任溯源
 - `bio.gate.debug.full_submission_envelope` **可能含可执行 payload 尝试**（即便闸门会拒绝）——**严禁** release 必出
@@ -671,6 +685,7 @@ sequenceDiagram
 | `bio.isolation.debug.circuit_breaker_state_transitions` | 熔断器状态转移的详细时序 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.isolation.queue.backpressure.drop` / `bio.isolation.queue.circuit_breaker.open` 是**降级/背压拒绝路径核心事件**（per BAS-004 v0.3 §6.2 强制全采样白名单）——`warn!` 级别（**非** `error!`，属"已正确处理但非预期路径"），release 常驻 + §6.2 强制全采样
 - `bio.isolation.pod_crashed.no_impact.failed` 是**架构验证失败事件**（违反 §7 全局降级原则）——`error!` 级别，release 常驻 + §6.2 强制全采样，必须**立即**触发 P0 告警
 - `bio.isolation.recommendation_buffered` / `bio.isolation.recommendation.flush_after_recovery` 是**未提交状态的存量**——release 必出，便于 SRE 识别"长时间未消化"的风险
@@ -706,6 +721,7 @@ sequenceDiagram
 | `bio.tier.debug.tier_classification_dump` | 全部组件确定性级别映射 dump | 部署期 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.tier.l4_sync_call.detected` / `bio.tier.l2_config_mutation.detected` / `bio.tier.static_analysis.failed` 均为**P0 安全事件**（违反 ARC-030 确定性分级核心约束）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.tier.l3_observation_only.verifying` 是**周期性安全基线心跳**（5min 一次）——release 必出，便于 SRE 识别"L4 → L3 边界被突破"的灾难情形
 
@@ -756,6 +772,7 @@ flowchart LR
 | `bio.gate.debug.full_audit_trail` | 闸门判定的完整审计追踪（含每步判定依据） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.gate.deployment.location_violation` / `bio.gate.adversarial_test.detected_bypass` 均为**P0 安全事件**（违反 §7A.2/7A.5 核心约束）——`error!` 级别，release 常驻 + §6.2 强制全采样，触发**立即冻结**闸门 + 告警 + 启动 P0 应急响应
 - `bio.gate.coverage.test_above_baseline` 周期性（CI 每次构建）——release 必出便于 SRE 识别覆盖率回归
 
@@ -787,6 +804,7 @@ flowchart LR
 | `bio.leakage.debug.full_prohibition_check_dump` | §7A.3 五类禁止路径的完整核查 dump | 周期性 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - §7A.3 五类禁止路径**每一类**都有专属 `bio.leakage.*.detected` 事件——任意一个触发即代表 ARC-030 隔离失效，**全部**须 `error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.leakage.dual_lock_drift` 是**FR-NEURO-042 双锁方法的状态信号**——周期核对是预防性检查，drift 触发即代表双锁之一被异常放宽
 - `bio.leakage.dual_lock_verified` 周期性（每小时）执行，release 必出便于审计与 §5A.4.2 核对任务联动
@@ -820,6 +838,7 @@ flowchart LR
 | `bio.replay.debug.replay_diff_envelope` | 重放输出与原输出的 diff（即便必然不同也记录 diff 范围） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.replay.snapshot.persisted` 是**业务数据持久化事件**（per §7A.4 与 FR-LOG-040）——必须 release 必出 + §6.2 强制全采样，**不**受日志采样配置影响
 - `bio.replay.snapshot_not_found` 是**P0 合规事件**（违反 FR-NEURO-038 可复核性）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.replay.sampling_excluded_verified` 是**FR-LOG-040 与快照业务数据隔离的证据**——周期核对，release 必出
@@ -856,6 +875,7 @@ flowchart LR
 | `bio.gate.quality.debug.regression_test_report` | 回归测试完整报告（含每个测试用例的详细结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-100KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.gate.quality.regression_test_failed` / `bio.gate.change.merged_without_review` / `bio.gate.change.loosening_detected` 均为**P0 安全事件**（违反 §7A.5 闸门自身质量约束）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.gate.quality.coverage_check_passed` 周期执行，release 必出便于 SRE 识别覆盖率回归趋势
 - `bio.gate.quality.debug.coverage_html_dump` 在大型闸门实现下可能 500KB+ —— release build 完全剔除
@@ -889,6 +909,7 @@ flowchart LR
 | `bio.boundary.debug.real_time_graph_decision_trace` | NPC 实时行为图完整决策 trace（每 tick 每 NPC） | 取决于 NPC 数量 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.boundary.ecs_to_langgraph.detected` / `bio.boundary.langgraph_to_ecs_sync_call.detected` 均为**P0 安全事件**（双向违反 L0/L1 ↔ L4 边界）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.boundary.ecs_real_time_graph.tick_completed` **必须** debug-only —— 集群级 NPC 数量决定高频 tick 评估，release 必出将撑爆日志通道
 - `bio.boundary.ecs_real_time_graph.tick_overrun` 是**性能事件**（违反 NFR-PE-*）——`warn!` 级别（**非** `error!`），release 常驻 + §6.2 强制全采样（per BAS-004 v0.3 §6.2"降级/背压拒绝路径"语义对齐）
@@ -927,6 +948,7 @@ flowchart LR
 | `bio.checklist.debug.full_run_report` | 完整 12 项检查报告 dump（含每项的详细输入/输出） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.checklist.deploy.item_failed` / `bio.checklist.deploy.deploy_blocked` 是**部署期阻断事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - §9.1 全部 12 项均 release 必出（**不**仅失败项）——便于 SRE 在 Grafana 上按 `checklist_item` 维度聚合"通过率"指标
 - `bio.checklist.debug.full_run_report` 在大清单下可能 30KB+ —— release build 完全剔除
@@ -956,6 +978,7 @@ flowchart LR
 | `bio.checklist.debug.full_turnon_run_report` | 完整 4 项检查报告 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.checklist.turnon.cr011_blocked` / `bio.checklist.turnon.olu_balance_insufficient` 是**阻断事件**（前置条件不足）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.checklist.turnon.flip_propagation_timeout` 是**告警事件**（**不**阻断，仅告警）——`warn!` 级别（**非** `error!`），release 常驻 + §6.2 强制全采样
 - `bio.checklist.turnon.responsibility_attribution_recorded` 是**责任溯源事件**（per ISS-043 负责人独立决议）——release 必出，事后审计可证"开关开启是 X 决定的"
@@ -993,6 +1016,7 @@ flowchart LR
 | `bio.checklist.debug.full_gate_check_report` | 完整 10 项闸门检查报告 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `bio.checklist.gate.exact_match_violation` / `bio.checklist.gate.range_clamp_violation` / `bio.checklist.gate.risk_tier_self_declared` 均为**P0 闸门违规事件**（违反 §7A.2/7A.3 闸门核心约束）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `bio.checklist.gate.adversarial_test_run` 周期执行，release 必出便于 SRE 识别对抗性测试回归
 - `bio.checklist.gate.instrumentation_side_effect_test` 是**埋点无副作用证据**——release 必出 + §6.2 强制全采样，便于 NFR-NEURO-008 合规验收

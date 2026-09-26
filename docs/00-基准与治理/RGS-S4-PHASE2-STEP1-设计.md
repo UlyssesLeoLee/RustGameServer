@@ -10,6 +10,7 @@
 ## 1. 范围
 
 ### 1.1 Step 1 范围 (本 commit)
+
 - ✅ build.rs 纳入 `admin.proto` (gm-backend 作 client-only)
 - ✅ lib.rs 加 `AdminGrpcClient` + `AppState.admin_grpc: Option<Arc<...>>`
 - ✅ HealthView 调 admin-service gRPC `HealthCheck`, 500ms timeout, 失败降级
@@ -18,6 +19,7 @@
 - ✅ 36/36 UT 不变
 
 ### 1.2 Step 2+ 范围 (后续)
+
 - ⏳ admin-service 加 5 GM RPC (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog)
 - ⏳ gm-backend BanAccount / GrantCompensation 调 admin-service gRPC, 失败降级 InMemory AuditStore
 - ⏳ SetMaintenance 调 admin-service, propagation_status 从 admin 返回
@@ -32,22 +34,26 @@
 ## 2. 关键设计决策
 
 ### 2.1 fail-open for connection init
+
 - `AppState::new()` 调 `tonic::transport::Channel::connect(admin_grpc_endpoint).await`
 - **失败不 panic**, 设 `admin_grpc = None` + `tracing::warn!`
 - 原因: gm-backend 启动时 admin-service 可能未就绪 (k8s rollout 顺序)
 - 运行时 admin-service 不可达 → HealthView 失败降级 (ready=false), 不让 8081 探针误判 gm-backend 自己挂
 
 ### 2.2 client-only tonic-build
+
 - `tonic_build::configure().build_server(false).build_client(true).compile_protos(...)`
 - 原因: gm-backend 不是 gRPC server, 只做 client; build_server(false) 防 Rpc/Service trait 不生成, 减少编译时间
 
 ### 2.3 common.proto 共享
+
 - admin.proto `import "common/v1/common.proto"`
 - shared-platform crate 已有 `proto/common/v1/common.proto`
 - build.rs 用 `.include_path("../shared-platform/proto")` 让 tonic-build 找得到
 - 这是 v0.4 统一 proto 仓库的过渡方案 (per gm.proto v0.3 注释)
 
 ### 2.4 失败降级: HealthView 行为
+
 ```
 admin_grpc.is_some() AND gRPC 500ms 内返回 Ok:
   → services[0].ready = response.healthy

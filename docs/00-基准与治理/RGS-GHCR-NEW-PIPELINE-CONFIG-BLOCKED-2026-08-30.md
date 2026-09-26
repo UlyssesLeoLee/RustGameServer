@@ -16,6 +16,7 @@
 **目的**: GitHub-hosted runner 上 build prod 镜像(5 业务域 + 5 卡牌域 = 10 binary 共享 `/app/bin/`,k3s manifest 用 command 分流)+ push 到 ghcr.io
 
 **关键设计**:
+
 - **触发**: `workflow_dispatch`(由 fine-grained PAT 调 REST API)
 - **认证**: `GITHUB_TOKEN`(permissions: `packages: write`, `contents: read`),不用任何长期 PAT
 - **不卡 rust-ci gate**: 信任 main HEAD 已 PASS(节省 15+ 分钟)
@@ -28,6 +29,7 @@
 **输出镜像**: `ghcr.io/ulyssesleolee/rustgameserver:0.1.0` + `:latest`
 
 **关联 manifest**:
+
 - 5 业务域(01-05)+ cluster-ops(06): `ghcr.io/ulyssesleolee/rustgameserver:0.1.0`
 - gm-backend(50): `ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend`(独立 workflow 已 publish)
 
@@ -36,6 +38,7 @@
 **目的**: 用 `$env:GHCR_PAT` 调 GitHub REST API 触发 workflow_dispatch
 
 **关键设计**:
+
 - 只打印 length + prefix(4 字符)做 sanity,**不打印 secret 内容**(per 8/27 hard ban)
 - 兼容 ssh / https remote URL 解析
 - 默认 tag=0.1.0, push_latest=true
@@ -67,11 +70,13 @@ f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT 
 | `POST /repos/.../dispatches` | 未试 | ❌ `Bad credentials 401` |
 
 **结论**: 两次会话间(12:55→14:30,约 1.5h)Ulysses 大概率更新了 PAT,
+
 - 之前是"docker login OK + push 拒"形态(老 fine-grained 但有 Packages: read scope)
 - 现在是"docker login + REST 全 401"形态(可能新 fine-grained 没给任何 package scope,
   或 Ulysses 把 PAT 重生成了"只 Actions: write"但记错了 user/repo 范围)
 
 **根因猜测**(per fine-grained PAT 文档):
+
 - 新的 fine-grained PAT 可能:
   (a) 没勾选任何 Repository access(默认"Public Repositories (read-only)",这只给 public repo 读权限)
   (b) 勾了 UlyssesLeoLee/RustGameServer 但 Permissions: Actions 没勾 Write(只勾了 Read)
@@ -81,12 +86,14 @@ f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT 
 ### 2.2 BLOCK-PIPELINE-001: $env:GHCR_PAT 认证失败
 
 **现状**:
+
 - `docker login ghcr.io` 返 `denied: denied`
 - `POST /repos/UlyssesLeoLee/RustGameServer/actions/workflows/build-prod-0.1.0.yml/dispatches` 返 401
 - 无法触发新 workflow build 0.1.0 镜像
 - 0.1.0 prod 镜像仍 GHCR 不存在(8/30 下午状态)
 
 **已尝试 endpoint(全部 401)**:
+
 - `GET /user`
 - `GET /repos/UlyssesLeoLee/RustGameServer`
 - `GET /repos/UlyssesLeoLee/RustGameServer/actions/permissions`
@@ -100,10 +107,11 @@ f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT 
 
 ### 3.1 PAT 重新生成(必做)
 
-去 https://github.com/settings/personal-access-tokens/new 生成 fine-grained PAT:
+去 <https://github.com/settings/personal-access-tokens/new> 生成 fine-grained PAT:
+
 - **Token name**: `rgs-deploy-2026-08-30`(便于审计)
 - **Expiration**: 7 days(short-lived, deploy 完即失效)
-- **Repository access**: 
+- **Repository access**:
   - ☑ `Only select repositories` → 选 `UlyssesLeoLee/RustGameServer`(必须,**不能**"Public Repositories (read-only)" 默认)
 - **Repository permissions**(只勾以下 2 项,**不要多**):
   - ☑ **Actions**: Read and write
@@ -111,6 +119,7 @@ f6d0d42 ci: 新式 GHCR pipeline - build-prod-0.1.0 workflow + fine-grained PAT 
 - **Account permissions**: 都不勾(只 repo-level 够用)
 
 生成后:
+
 ```powershell
 # 设置新 PAT(覆盖 $env:GHCR_PAT 旧值)
 $env:GHCR_PAT = '新 PAT 字符串'
@@ -123,9 +132,10 @@ pwsh -NoProfile -File scripts/trigger-build-prod.ps1 -Tag 0.1.0 -PushLatest true
 ```
 
 预期:
+
 - `POST https://api.github.com/...` → HTTP 204 No Content
 - GitHub Actions 触发 build-prod-0.1.0.yml
-- https://github.com/UlyssesLeoLee/RustGameServer/actions/workflows/build-prod-0.1.0.yml 出现新 run
+- <https://github.com/UlyssesLeoLee/RustGameServer/actions/workflows/build-prod-0.1.0.yml> 出现新 run
 
 ### 3.3 等 30-45 分钟(实际 build 时间)
 
@@ -178,6 +188,7 @@ kubectl -n rust-game-server set image deploy/player-service \
 ### 4.4 镜像数澄清
 
 v0.39 写"14 卡牌域镜像未推"是误解。实际 k3s manifest 用 3 个 tag:
+
 - `0.1.0` (5 业务域 + 5 卡牌域 = 10 binary,k3s command 分流)
 - `0.1.0-cluster-ops` (cluster-ops 单独, 已 publish 8/27)
 - `0.1.0-gm-backend` (gm-backend 单独, 已 publish 8/27)

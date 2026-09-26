@@ -30,6 +30,7 @@ per 2026-09-07 12:35 JST 拍板 (scope=opt4 全部 v0.2 综合 8 维度), 本 ad
 | 8 | **cutover 收口** | §5 仅 "0 高优事故" | §5 增 13 commit 推远端 + 派生约束 L15-L23 落地 (per 9/6 6c6839e cutover 收口) | 6c6839e / add4238 |
 
 **ST 特定增量** (per W5 任务简报, 跟 IT-04 addendum 不同, ST 强调端到端业务级 9 域 mTLS):
+
 - **envoy 独立 deployment 偏好**: per 9/1 13:03/13:05 JST Ulysses 决策 (所有 nginx → envoy + 独立 deployment 模式, 不选 istio sidecar), CDN 边缘策略 §3.2 故障注入场景应明确 envoy 独立 deployment 验证
 - **9 域 mTLS 业务级 11 步 v3**: per 9/6 d270ab9, §6.5 EX-ST-MTLS-9D-001 11 步 E2E 模拟器
 - **派生约束守护**: L1/L11/L12/L15-L23 + 9/1 batch 12 派生约束 + B3 二审流程 (per AGENTS.md §6.2 + 9/2 10:18 JST D2 拍板)
@@ -107,6 +108,7 @@ per 2026-09-07 12:35 JST 拍板 (scope=opt4 全部 v0.2 综合 8 维度), 本 ad
 - 0 高优事故
 
 **v0.2 增补**:
+
 - envoy 独立 deployment 验证 (per 9/1 13:03/13:05 JST 偏好)
 - 9 域 mTLS 业务级 11 步 v3 端到端验证 (per 9/6 d270ab9)
 - rgs-flash-mock v0.3 60 module fixture 回归 (per 9/4 v0.3 设计书)

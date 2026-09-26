@@ -23,6 +23,7 @@
 **触发**：Ulysses 2026-09-05 12:08 JST 拍板"6 域 → 8 域 + 1 网关"扩展（per `D:\sszgC\phase0-worker-report.md` §1.1 7 域 crate 完整 + §6.7 RACI v1.3 升版缺标），承接 Phase 0 W4 worker 完结（scene-service 148 RPC scaffold + 56 UT + 28 真实 RPC）。
 
 **来源**：
+
 - W4 worker 9/5 Phase 0 派工 148 RPC scaffold（场景/移动/副本/视野/同步/传送 6 子系统）
 - RGS-RACI-001 v0.1 提供 5 域 × 8 阶段 × 4 治理角色 = 160 单元的横向通用矩阵
 - RGS-ADR-0055 v0.1 提供 5 域独立 Lead 兼任禁止的治理基线
@@ -42,6 +43,7 @@
 | **签字单元** | **6 × 8 = 48** | 每格 1 个责任字母 R/A/C/I（per RGS-ADR-0055 v0.1 §4 RACI 定义） |
 
 **RACI 字母**：
+
 - **R**（Responsible）：执行者，对结果负直接责任
 - **A**（Accountable）：最终责任者，1 项任务只能有 1 个 A
 - **C**（Consulted）：双向咨询，需主动征求 + 记录意见
@@ -61,6 +63,7 @@
 | 6. NPC 事件（scene.npc_event v0.1 + 场景触发）| **A** | C | I | C | C | I | C | C |
 
 **矩阵解读**：
+
 - scene 域 Lead 在 6 任务中 6 次 A（场景全任务域 Lead 主责）
 - 架构师 C 全部（横向咨询），但不直接 A（避免 scene 域 Lead 与架构师兼任）
 - SRE 在跨服传送 A（基础设施 + 跨集群路由决策）

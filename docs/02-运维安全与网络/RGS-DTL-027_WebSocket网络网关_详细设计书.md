@@ -57,6 +57,7 @@
 本文档是 `crates/network-gateway` crate WebSocket 传输层（`src/ws.rs`，364 行）的物理/接口级详细设计，落实 9/12 ULYS-2 任务 B（ULYS-27 合并前置）派工 brief 与 `crates/network-gateway/src/codec.rs` 中 `FrameRouter` trait 抽象（ULYS-2.2 W33）的实现约束，并明确与 `crates/network-gateway/src/tcp.rs`（TCP 路径）的关系与差异。
 
 本文档**仅**落实 `crates/network-gateway` crate 内 WebSocket 路径的物理/接口设计；不涉及：
+
 - **网络协议栈总体设计**（由 RGS-DTL-006 §2/§3 网络安全 + ARC-022 纵深防御承担，本网关作为 L4 应用输入校验实现点之一）；
 - **5 域业务 gRPC client 接入**（由各域 DTL 各自承担；本文 §5.3 仅定义 `FrameRouter` trait 抽象接口与默认 `RouteTableFrameRouter` 实现的边界）；
 - **QUIC 演进路径**（由 RGS-DTL-038 §4 QUIC Datagram 帧格式扩展承担，与本文 WS 路径互斥；§10 TBD-WSG-004 记录未来 Phase 2 gRPC 接入窗口期）；
@@ -67,6 +68,7 @@
 ## 1.1 范围
 
 **In Scope**：
+
 1. `ws.rs::serve` 启动流程（bind / accept / spawn）；
 2. `ws.rs::handle_conn` → `accept_ws_with_path` 握手路径校验；
 3. `ws.rs::handle_session` 帧循环（Binary / Close / Ping / Pong / Text / Frame 分支）；
@@ -79,6 +81,7 @@
 10. §10 TBD 收口（9 条；含 mTLS、Origin 校验、gRPC 演进、性能基准、idle timeout、graceful shutdown 等）。
 
 **Out of Scope**：
+
 1. TCP 路径物理实现（`crates/network-gateway/src/tcp.rs` 详见其代码注释；本文 §8 仅做对比）；
 2. 7 域业务 gRPC client 接入实现（各域 DTL 承担；本文 §5.3 仅约束 trait 接口边界）；
 3. WebSocket 子协议（`Sec-WebSocket-Protocol`）协商（§10 TBD-WSG-002）；
@@ -130,8 +133,6 @@
 4. **追溯性**：§11 列 `上游依据 → 本文 §5-*` 映射；不重写 RGS-IMPL-001 §1.3。
 5. **实施门禁**：本文 §5 物理实现层已存在（`crates/network-gateway/src/ws.rs` 已落地）；§5 设计描述即为该既有代码的事后文档化；不重新设计。
 6. **真实证据**：本文所有性能/行为结论均锚定 `cargo test -p network-gateway --test ws_smoke` 5 用例（2026-09-19 14:26 JST regression 实测全 PASS）的覆盖范围；超出此范围的预测明确标注"未实测"并落入 §10 TBD。
-
-
 
 ---
 

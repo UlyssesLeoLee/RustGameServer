@@ -29,10 +29,12 @@
 > OTel SDK 启用还在依赖 53.12 / 54.13 任务；本答复给出方向。
 
 跟踪表 RGS-OPEN-QA-001-ACTIONS v0.3 §3 B-04 + §4：
+
 - B-04：5 域 OTLP exporter 配置（本任务交付）
 - 关联项：producer/consumer traceparent 注入提取（已部分就位 via 55.16 gRPC traceparent 模式）+ sqlx-tracing feature 启用
 
 **前置事实**（per 父疑问答复 + WBS 状态）：
+
 1. `async-nats` 0.42 已在 5 域生产代码使用，支持 NATS 2.2+ header（**不需升级依赖**）
 2. `shared-platform/src/{producer,consumer,messaging,outbox_relay}.rs` 已实现 publish/consume 基础设施
 3. workspace Cargo.toml 注释标注"opentelemetry 启用待 53.12 OTel SDK 接入（54.13）"
@@ -40,6 +42,7 @@
 5. 5 域目前未配置 OTLP exporter
 
 **Q-M-03 答复关键判断**：
+
 - PH-1 建议 10-20% 采样（**采纳**：本任务默认 0.10 = 10%）
 - 53.12 任务未完成时不应启用 OTel feature
 - 基础设施可前置就位（feature flag + env gate）
@@ -49,6 +52,7 @@
 ## 2. 当前状态（per 55.45 实施前）
 
 ### 2.1 已具备能力
+
 - `shared-platform/src/grpc_tracing.rs`（55.16）：gRPC traceparent 注入/提取已实装
   - `client_interceptor`：从当前 OTel Span 提取 trace_id → 注入 gRPC metadata
   - `server_interceptor`：从 metadata 提取 traceparent → 关联到当前 Span
@@ -57,12 +61,14 @@
 - `shared-platform/Cargo.toml` 已有 opentelemetry/opentelemetry_sdk/opentelemetry-otlp 依赖（**但 bridge 未挂**）
 
 ### 2.2 缺失能力（本任务补齐）
+
 1. NATS JetStream traceparent 注入（producer 端）
 2. NATS JetStream traceparent 提取（consumer 端）
 3. sqlx 采样率配置（10-20%，per Q-M-03 答复）
 4. 5 域 OTLP exporter env-gated 初始化代码
 
 ### 2.3 阻塞
+
 - **OTel SDK 启用** = 53.12 任务（tracing-opentelemetry bridge 实装） → 当前 53.12 未完成
 - 54.13 Prometheus metrics 任务 = 独立路径，与本任务正交
 - 5 域 OTel 全链路贯通 = 待 53.12 + 55.45 合并后 B-CODE-04 重测
@@ -76,17 +82,20 @@
 **文件**：`crates/shared-platform/src/producer.rs`
 
 **新增内容**：
+
 - `current_nats_trace_ids()` 私有 helper：从当前 OTel Span 提取 (trace_id, span_id)，OTel 未启用时 fallback 新 UUID
 - `build_traceparent_headers()` 私有 helper：构造包含 traceparent 的 NATS `HeaderMap`
 - `publish_bytes` 改用 `publish_with_headers` API（async-nats 0.42 原生），注入 traceparent header
 - 新增 4 个单元测试覆盖 fallback 路径
 
 **容错设计**：
+
 - OTel 未启用时 `Span::current().context().span().span_context().is_valid()` = false → 走 fallback 路径
 - fallback 路径生成新 UUID traceparent → 单进程兼容，不报错
 - 5 域 publish 路径**不感知** OTel 是否启用
 
 **复用**：
+
 - `build_traceparent` / `parse_traceparent` 从 `grpc_tracing.rs` 升级为 `pub(crate)`（DRY）
 - 复用相同的 W3C Trace Context 格式：`00-{32 hex}-{32 hex}-01`
 
@@ -95,12 +104,14 @@
 **文件**：`crates/shared-platform/src/consumer.rs`
 
 **新增内容**：
+
 - `extract_traceparent_from_headers()` 公开 helper：从 NATS `HeaderMap` 提取 traceparent → (trace_id, span_id)
 - `link_current_span_to_parent()` 私有 helper：把父 trace_id/span_id 关联到当前 Span（OTel context 继承）
 - `process_with_retry` 签名扩展：新增 `headers: HeaderMap` 参数（5 域调用方需传入）
 - 新增 4 个单元测试覆盖 header 缺失/合法/非法/no-otel fallback
 
 **容错设计**：
+
 - header 缺失 → no-op（不影响业务处理）
 - header 格式非法 → no-op（fallback None）
 - OTel 未启用 → no-op（Span 无 OTel context，set_parent 无副作用）
@@ -110,15 +121,18 @@
 **文件**：`crates/{player,economy,match,social,admin}-service/src/db.rs`（5 份）
 
 **新增内容**：
+
 - `sqlx_tracing_sample_ratio()` 公开函数：读 `SQLX_TRACING_SAMPLE_RATIO` env，默认 0.10
 - 容错：非法值（负数/超 1.0/解析失败）回落默认；env 未设置也回落到默认
 - 每个域各 2-3 个单元测试
 
 **Cargo.toml 改动**（5 份）：
+
 - 新增 `[features] default = ["tracing"] tracing = []` 段
 - 注释：sqlx 0.8.6 已硬依赖 tracing（emit query span 默认开启），此 feature flag 作为域级总开关
 
 **为什么不直接给 sqlx 加 tracing feature**：
+
 - sqlx 0.8.6 在 `sqlx-core/Cargo.toml` 中将 `tracing = "0.1.37"` 声明为**硬依赖**（非 optional）
 - 没有公开的 `tracing` feature 标志（与早期 sqlx 0.7 行为不同）
 - 因此本任务的 "tracing feature" 实现为**域级** feature flag（per domain 隔离），预留 53.12 完成后按域启用/禁用策略
@@ -126,11 +140,13 @@
 ### 3.4 5 域 OTLP exporter 条件编译（env-gated）
 
 **文件**：
+
 - `crates/shared-platform/src/tracing_init.rs`（新增 `init_otel_exporter_optional` + `OtelExporterGuard`）
 - `crates/shared-platform/src/lib.rs`（re-export）
 - `crates/{player,economy,match,social,admin}-service/src/main.rs`（5 份调用）
 
 **新增 `init_otel_exporter_optional(service_name, service_version, deployment_env) -> OtelExporterGuard`**：
+
 - 默认 `OTEL_SDK_DISABLED=true`（53.12 任务未完成）→ 返回 no-op guard
 - 53.12 完成后 → 设置 `OTEL_SDK_DISABLED=false` → 实际初始化 OTLP exporter
 - 端点：`OTEL_EXPORTER_OTLP_ENDPOINT` env，默认 `http://otel-collector:4317`
@@ -140,6 +156,7 @@
 - Drop guard 优雅关闭（flush 残余 span）
 
 **5 域 main.rs 改动**（每域各 6 行）：
+
 ```rust
 // 55.45 OTLP exporter 条件初始化（per RGS-OPEN-QA-001 Q-M-03 + WBS WF-1-55.45 §3.3）
 // 默认 OTEL_SDK_DISABLED=true（53.12 任务未完成），即不真正启用
@@ -158,6 +175,7 @@ let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
 ### 4.1 53.12 任务完成（tracing-opentelemetry bridge 实装）
 
 当 53.12 任务交付：
+
 1. **tracing-opentelemetry bridge 启用**：`init_tracing_with_otel` 真正可工作
 2. **OTel SDK enabled**：将 `OTEL_SDK_DISABLED` env 设为 `false`（或不设置）
 3. **5 域部署清单**：
@@ -180,6 +198,7 @@ let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
 
 55.45 提供的"OTel 启用钩子"（`init_otel_exporter_optional`）需要 53.12 完成后才能真正生效。
 **两个任务的边界**：
+
 - **55.45（基础设施）**：W3C traceparent 注入提取 + env 解析 + guard 包装 + 5 域接入
 - **53.12（SDK 启用）**：tracing-opentelemetry bridge 实装 + OTel subscriber 接管全局
 - **正交关系**：55.45 提供的代码在 53.12 之前 = no-op；53.12 完成后 = 自动激活
@@ -205,6 +224,7 @@ let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
 > B-04: 5 域 OTLP exporter 配置（per Q-M-03 + WBS WF-1-55.45）
 
 **55.45 状态**：✅ 完成（基础设施就位 + env-gated；待 53.12 激活）
+
 - 代码：5 域 main.rs 各加 `init_otel_exporter_optional` 调用
 - 文档：本文件 §3.4
 - 验证：cargo check --workspace pass（feature flag 关闭）
@@ -214,6 +234,7 @@ let _otel_guard = shared_platform::tracing_init::init_otel_exporter_optional(
 
 **55.45 不直接处理**——属于 53.12 + 55.45 合并后的集成测试任务。
 **前置条件**：
+
 1. 53.12 任务完成（tracing-opentelemetry bridge 启用）
 2. 55.45 任务完成（本任务）
 3. 5 域 dev/staging 环境部署 OTel collector

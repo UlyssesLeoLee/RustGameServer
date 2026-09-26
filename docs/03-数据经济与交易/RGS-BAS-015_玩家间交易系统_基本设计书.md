@@ -88,6 +88,7 @@ Offered → Expired（超时自动迁移，不需人工触发）
 | `trade.state.debug.transition_graph_snapshot` | 状态机迁移图快照（用于离线回放与状态机正确性分析） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.state.debug.full_state_dump` **含双方全部资产详情**（物品 ID / 数量 / 货币额）—— release build **必须**完全剔除，**严禁**进生产日志通道（即使 RUST_LOG=debug 误开）
 - 8 类 release 必出事件均为 `info!` 级别（release 常驻，per §4.8.3.2 二维矩阵 `info!` 行），SRE 需在 Loki/Grafana 按 `trade_id` 维度做单笔交易时间线回放——本节是交易域**可审计性**的运行时事实依据
 
@@ -124,6 +125,7 @@ Offered → Expired（超时自动迁移，不需人工触发）
 | `trade.visibility.debug.scope_config_dump` | `trade_visibility_scope` 配置项完整 dump（含 `friend_only`/`party_only`/`friend_or_party` 三态） | 偶发（配置变更时） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.offer_service.debug.freeze_assets_full_dump` 在大额交易下可能 10KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `trade.audit_log.write.failed` 是**审计写失败 P0 告警**（同 BAS-003 §7 关键设计纪律）—— release 必出 + 强制全采样，便于 P0 告警链路立即捕获并触发资产一致性回查
 - 4 个组件的 release 必出事件均为 `info!` 级别（per §4.8.3.2 二维矩阵 `info!` 行常驻），便于 SRE 按 `trade_id` 维度做跨组件时间线拼接
@@ -149,12 +151,11 @@ Offered → Expired（超时自动迁移，不需人工触发）
 | `trade.visibility.debug.friend_party_list_dump` | 校验时双方好友列表 / 队伍成员列表完整 dump（用于离线复审"为何 out_of_scope"） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-3KB/条（release 剔除，**含玩家关系数据严禁进生产**） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.visibility.debug.friend_party_list_dump` 在大型好友列表/队伍下可能 3KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏玩家社交关系
 - `trade.visibility.scope.config_changed` 是**治理事件**（与 TBD-TRD-001 评审结果绑定）—— release 必出 + §6.2 强制全采样，便于 SRE/Gov 团队按 `changed_by` 维度追溯历次范围变更
 
 ---
-
-
 
 ## 2.4 処理フロー（处理流程 / Processing Flow）
 
@@ -268,38 +269,38 @@ sequenceDiagram
 
 | 异常点 | 触发条件 | 处理动作 | 用户感知 | 补偿动作 |
 |---|---|---|---|---|
-| 目标可见性校验失败 | TradeVisibilityGuard 评估 target 不在 	rade_visibility_scope 范围 | Draft → Offered 迁移直接拒绝 (无冻结副作用, per FR-TRD-006) | 提示"目标不可见" | 无 (无副作用) |
+| 目标可见性校验失败 | TradeVisibilityGuard 评估 target 不在  rade_visibility_scope 范围 | Draft → Offered 迁移直接拒绝 (无冻结副作用, per FR-TRD-006) | 提示"目标不可见" | 无 (无副作用) |
 | 资产冻结失败 | initiator 资产已被其他途径占用 / 余额不足 | Draft → Offered 迁移拒绝 | 提示"资产已被占用" | 无 (无副作用) |
 | 接受时状态非 Offered | 并发操作导致 state 已变 (Cancelled / Expired / Accepted) | 拒绝"挂单状态已变" | 提示"挂单已变化" | 无 (无副作用) |
 | 乐观锁校验失败 | snapshot_version 不匹配 (FR-TRD-014 触发, 双花/调包防护) | 拒绝进入原子事务 | 提示"快照已失效，请重新挂单" | 无 (无副作用) |
 | EC 域步骤失败 | FR-EC-003 路径任一步返回失败 (步骤 1-4) | Saga 反向补偿 N-1...1 | 提示"服务暂不可用" | 资产恢复至冻结前状态, 状态保持 Accepted 供重试 |
-| 事务提交失败 | DB 写失败 (网络/约束冲突/死锁) | 整体回滚 | 提示"结算失败请重试" | 客户端重试 (幂等键 	rade_id+state, per FR-TRD-012) |
+| 事务提交失败 | DB 写失败 (网络/约束冲突/死锁) | 整体回滚 | 提示"结算失败请重试" | 客户端重试 (幂等键  rade_id+state, per FR-TRD-012) |
 | 补偿本身失败 (RSK-TRD-002) | Saga 补偿路径任一步也失败 (回滚时资产写入失败) | 强制迁移至 CompensationFailed 中间态 | 提示"已转人工核实" | GM 人工核账队列介入 (per FR-TRD-016), 期间禁止相关资产被其他操作占用 |
-| 重复提交幂等命中 | 	rade_id+state 已为 Settled 重复提交 | 直接返回既有 Settled 结果 (FR-TRD-012) | 重复提交无副作用 | 无 |
+| 重复提交幂等命中 |  rade_id+state 已为 Settled 重复提交 | 直接返回既有 Settled 结果 (FR-TRD-012) | 重复提交无副作用 | 无 |
 
 ### 2.4.3 决策点矩阵
 
 | 决策点 | 条件 | 主分支 | 备选分支 | 触发后果 |
 |---|---|---|---|---|
-| 可见性范围评估 | 	rade_visibility_scope 配置 (friend_only/party_only/friend_or_party) + 目标玩家关系 | 范围内 → 允许挂单 | 范围外 → 拒绝 (无冻结) | 用户感知: 进入挂单流程 / 拒绝"目标不可见" |
+| 可见性范围评估 |  rade_visibility_scope 配置 (friend_only/party_only/friend_or_party) + 目标玩家关系 | 范围内 → 允许挂单 | 范围外 → 拒绝 (无冻结) | 用户感知: 进入挂单流程 / 拒绝"目标不可见" |
 | 接受时状态校验 | 挂单 state == Offered | 继续 (锁定 snapshot_version) | state ≠ Offered → 拒绝 | 用户感知: 进入结算流程 / 拒绝"挂单已变化" |
 | 乐观锁校验 | UPDATE ... WHERE trade_id=? AND snapshot_version=? 受影响行数 | = 1 → 进入原子事务 | = 0 → 拒绝 (FR-TRD-014, 快照失效) | 用户感知: 进入结算 / 拒绝"快照已失效" |
 | Saga 失败补偿策略 | EC 步骤 N 失败 | 反向补偿 N-1...1, 状态保持 Accepted | 部分补偿 + DLQ 人工介入 | 用户感知: 资产自动回退 (per ARC-009) |
-| 反作弊联动触发 | 反作弊规则检测 (高频/大额/异常时序, RSK-TRD-002 联动) | 拒绝该笔挂单 + 写 	rade.anti_fraud.* | 仅告警 (低风险) | 用户感知: 拒绝 (反作弊), 反作弊团队可按 player_id 维度做行为画像 |
+| 反作弊联动触发 | 反作弊规则检测 (高频/大额/异常时序, RSK-TRD-002 联动) | 拒绝该笔挂单 + 写  rade.anti_fraud.* | 仅告警 (低风险) | 用户感知: 拒绝 (反作弊), 反作弊团队可按 player_id 维度做行为画像 |
 | 补偿失败升级 (RSK-TRD-002) | Saga 补偿本身失败 | 强制迁移至 CompensationFailed + 推入 GM 人工核账队列 | 不升级 (错误, 资产不一致) | 用户感知: 提示"已转人工", 资产冻结至人工核实完成 |
 
 ### 2.4.4 验证点清单
 
 | 验证时机 | 验证内容 | 通过标准 | 失败处理 |
 |---|---|---|---|
-| 可见性校验 | TradeVisibilityGuard 评估结果 | target 在 	rade_visibility_scope 范围内 | 拒绝挂单 (无冻结副作用), 记录 	rade.visibility.check.failed |
-| 资产冻结 (Draft → Offered) | initiator 资产可冻结 (未被占用, 余额/物品充足) | 冻结成功 | 拒绝迁移, 记录 	rade.state.draft_to_offered.rejected |
-| 接受时状态 | 挂单 state == Offered | 严格相等 | 拒绝"挂单已变化", 记录 	rade.state.offered_to_accepted.rejected |
-| 乐观锁校验 (FR-TRD-014) | UPDATE ... WHERE trade_id=? AND snapshot_version=? 受影响行数 | = 1 (无并发失效) | 拒绝进入原子事务, 记录 	rade.settlement.snapshot.stale_rejected (反作弊联动) |
-| Saga 步骤完成 | EC 4 步全部成功 (deduct_initiator/deduct_target/grant_initiator/grant_target) | 4/4 成功 | 反向补偿已执行步骤, 记录 	rade.settlement.atomic_transfer.failed |
-| 事务提交 (Accepted → Settled) | TradeOffer + TradeAuditLog 同事务写入 | tx_id COMMIT 成功 | 整体回滚, 记录 	rade.settlement.transaction_rolled_back |
-| 补偿执行 | Saga 反向补偿 N-1...1 全部成功 | 资产恢复至冻结前状态 | 升级至 CompensationFailed + GM 人工核账队列, 记录 	rade.settlement.compensation_failed.escalated (P0 告警) |
-| 幂等性 (FR-TRD-012) | 	rade_id+state 重复提交命中 | state 已是 Settled 时直接返回既有结果 | 不重复执行, 记录 	rade.settlement.idempotent_replay.detected |
+| 可见性校验 | TradeVisibilityGuard 评估结果 | target 在  rade_visibility_scope 范围内 | 拒绝挂单 (无冻结副作用), 记录  rade.visibility.check.failed |
+| 资产冻结 (Draft → Offered) | initiator 资产可冻结 (未被占用, 余额/物品充足) | 冻结成功 | 拒绝迁移, 记录  rade.state.draft_to_offered.rejected |
+| 接受时状态 | 挂单 state == Offered | 严格相等 | 拒绝"挂单已变化", 记录  rade.state.offered_to_accepted.rejected |
+| 乐观锁校验 (FR-TRD-014) | UPDATE ... WHERE trade_id=? AND snapshot_version=? 受影响行数 | = 1 (无并发失效) | 拒绝进入原子事务, 记录  rade.settlement.snapshot.stale_rejected (反作弊联动) |
+| Saga 步骤完成 | EC 4 步全部成功 (deduct_initiator/deduct_target/grant_initiator/grant_target) | 4/4 成功 | 反向补偿已执行步骤, 记录  rade.settlement.atomic_transfer.failed |
+| 事务提交 (Accepted → Settled) | TradeOffer + TradeAuditLog 同事务写入 | tx_id COMMIT 成功 | 整体回滚, 记录  rade.settlement.transaction_rolled_back |
+| 补偿执行 | Saga 反向补偿 N-1...1 全部成功 | 资产恢复至冻结前状态 | 升级至 CompensationFailed + GM 人工核账队列, 记录  rade.settlement.compensation_failed.escalated (P0 告警) |
+| 幂等性 (FR-TRD-012) |  rade_id+state 重复提交命中 | state 已是 Settled 时直接返回既有结果 | 不重复执行, 记录  rade.settlement.idempotent_replay.detected |
 
 ---
 
@@ -351,6 +352,7 @@ sequenceDiagram
 | `trade.ddl.debug.explain_plan_dump` | 高频 OCC 冲突查询的执行计划 dump（用于索引复核） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.ddl.debug.partition_health_dump` 在大型分区下可能 10KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `trade.audit_log.archive_purge_blocked` 是**审计完整性事件**（per FR-TRD-016）—— `error!` 级别 + release 必出 + §6.2 强制全采样，便于 DBA 团队按 `blocker_rule` 维度追溯历次阻断
 - `trade.offer.occ_conflict_detected` 触发即代表双花/调包防护生效——release 必出 + `warn!`（**非** `error!`，属正常防护动作），便于反作弊系统按 `concurrent_actor_id` 维度做高频模式识别
@@ -396,6 +398,7 @@ sequenceDiagram
 | `trade.matching_engine.debug.price_curve_dump` | 撮合引擎价格曲线 / 供需比 dump（**性能敏感**——撮合 tick 高频，**仅** debug-only 守护） | 100-1000/s（撮合 tick 高频） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.2-1KB/条（release 剔除，**严禁进生产日志通道**——撑爆风险） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.settlement.debug.full_saga_state_dump` 在大额交易下可能 15KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `trade.matching_engine.debug.price_curve_dump` 是**撮合 tick 高频**事件（100-1000/s）—— release 完全剔除是性能硬性要求，**严禁**进生产日志通道
 - `trade.settlement.compensation_failed.escalated` 是**金融事故级** P0 告警—— `error!` 级别 + release 必出 + §6.2 强制全采样 + GM 人工核账队列联动，便于事故响应团队按 `trade_id` 维度做资产追回
@@ -435,6 +438,7 @@ sequenceDiagram
 | `trade.checklist.debug.compensation_failed_linkage_dump` | `CompensationFailed` 联调验证的完整事件序列 dump | 1/上线 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.checklist.debug.fault_injection_log` 在多场景注入下可能 50KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `trade.checklist.pre_launch.item.failed` 是**上线阻断级**事件（per §5.1 全部项须通过才能放行）—— `error!` 级别 + release 必出 + §6.2 强制全采样，便于 release manager 按 `item_kind` 维度快速定位失败项
 - 7 类检查项的 `passed` 事件均为 `info!` 级别（per §4.8.3.2 二维矩阵 `info!` 行常驻），便于上线审计团队按 `run_id` 维度回放历次上线流程
@@ -462,6 +466,7 @@ sequenceDiagram
 | `trade.review.debug.violation_code_snippet` | 违规位置的代码片段（用于复审"为何命中反模式"） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `trade.review.debug.diff_against_baseline` 在大型 diff 下可能 10KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏未发布代码
 - `trade.review.code.item.flagged` 是**变更阻断级**事件（per §5.2 全部项须通过才能合并）—— `error!` 级别 + release 必出 + §6.2 强制全采样，便于 release manager 按 `offending_file` 维度快速定位违规位置
 - 2 类检查项的 `passed` 事件均为 `info!` 级别（per §4.8.3.2 二维矩阵 `info!` 行常驻），便于审计团队按 `commit_sha` 维度回放历次代码评审

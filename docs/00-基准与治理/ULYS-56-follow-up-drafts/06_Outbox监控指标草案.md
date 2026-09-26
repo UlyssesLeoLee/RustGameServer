@@ -6,6 +6,7 @@
 > **落地范围**: 9 个 Prometheus 指标 (per §1.1 + §1.2) + 3 个 recording rules + 7 类告警规则 + 6 域 `/metrics` HTTP endpoint。
 >
 > **实施位置**:
+>
 > - 代码: `crates/shared-platform/src/{metrics,outbox_relay,outbox_metrics_reporter,metrics_endpoint}.rs` + 6 域 `main.rs` (admin / cluster-ops / economy / match / player / social)
 > - 文档: `docs/02-运维安全与网络/RGS-BAS-004_埋点与日志规范_基本设计书.md` v0.4 §3.4
 > - Prometheus 规则: `docker/observability/prometheus-rules/rgs-outbox-alerts.yaml`

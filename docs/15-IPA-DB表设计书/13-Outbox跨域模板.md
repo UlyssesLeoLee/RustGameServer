@@ -91,11 +91,13 @@ CREATE INDEX IF NOT EXISTS idx_outbox_command_id ON outbox (command_id);
 ### 3.1 反 pattern（per 0003_outbox_check_idempotent.sql 注释）
 
 **问题**：
+
 - 0002 写入 outbox 表时，把 `CHECK (status IN (...))` 内联在 `CREATE TABLE IF NOT EXISTS` 块内
 - 0002 部署成功后，0003/0004 在已部署环境跑 `CREATE TABLE IF NOT EXISTS` → PG 静默跳过整个块 → **CHECK 约束永不生效**
 - 后果：业务层写入时即使 `status='invalid'`，DB 也不报错——纯应用层校验，违反"defense in depth"
 
 **修复模式（per 0003_outbox_check_idempotent.sql）**：
+
 ```sql
 -- 0003_outbox_check_idempotent.sql
 DO $$
@@ -125,6 +127,7 @@ END $$;
 ### 3.3 防御策略（PH-2 评审）
 
 建议所有未来 outbox 类高频写表的 CHECK 约束：
+
 - **不要**内联在 `CREATE TABLE IF NOT EXISTS` 块内
 - **必须**用 `DO $$ ... ALTER TABLE ADD CONSTRAINT ... $$` 幂等模式
 - 详细规则应写入 RGS-BAS-007 v0.3 + RGS-IMPL-002 v0.2

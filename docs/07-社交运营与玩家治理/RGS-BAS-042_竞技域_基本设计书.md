@@ -148,6 +148,7 @@ RGS-REQ-042 给出了竞技域 1 service × 30 RPC 的业务需求，本文是�
 | SeasonArchiver | 赛季归档（per RGS-BAS-014 §5 既有） | `ArchiveSeason` |
 
 **状态机**：
+
 ```
 Init → Running → Settling → Archiving → End
 ```
@@ -352,6 +353,7 @@ season_configs:
 # 9. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - 竞技域 1 service 的组件划分、子组件职责与接口边界
 - 战斗结算 → 段位变更、赛季结算、观战的核心时序
 - SeasonConfig 数据驱动 Schema 的逻辑层
@@ -359,6 +361,7 @@ season_configs:
 - ARC-050 反例原则的落实机制
 
 本版本明确不覆盖、留待后续：
+
 - Rust trait / SQL DDL / Helm 模板 — 属 RGS-DTL-049 详细设计职责
 - 战斗状态机 — 属 battle PvPService 既有职责
 - 段位保护算法 — 属 RGS-BAS-026 §4 既有

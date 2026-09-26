@@ -63,6 +63,7 @@
 **核心原则（per 2026-09-01 18:30 JST 拍板）**：
 
 > 基本设计阶段的数据库表设计必须横展开三类，分门别类管理：
+>
 > 1. **Work**（作業中 / ワークデータ） — 流程中临时，session-bound，业务完成后清理
 > 2. **Transaction**（トランザクション / 履歴） — 事件流水，append-only，不删不改
 > 3. **Master**（マスタ） — 参考数据，slowly changing，业务开始时 snapshot，SCD 策略
@@ -101,6 +102,7 @@
 | cleanup SOP | per [14-分区策略与生命周期 §7](../15-IPA-DB表设计书/14-分区策略与生命周期.md)（v0.2 新增, commit `2264011`）|
 
 **判定问句**：
+
 - 这张表是不是"业务执行中临时存在"？
 - 业务完成后，这张表的数据是否需要保留？
 - 如果答案是"不需要保留"→ **Work 表**
@@ -120,6 +122,7 @@
 | 边界说明 | `realm_lifecycle_run` 虽 LCM 业务，但因 5 状态机 + 按月分区 + 不允许运行时修改，**归 Transaction** 而非 Master；详见 §6.6 LCM step execution 归类说明 |
 
 **判定问句**：
+
 - 这张表是不是"业务事件的历史记录"？
 - 写入后是否需要"事后追溯"或"重新计算"？
 - 如果答案是"是"→ **Transaction 表**
@@ -138,6 +141,7 @@
 | 例子 | `players` / `player_characters` / `player_inventory` / `decks` / `accounts` / `matches` / `admin_users` / 5 张 LCM plan 表（new_realm_plan / split_plan / merge_conflict_rule_set_v2 / retire_plan / archive_policy） |
 
 **判定问句**：
+
 - 这张表是不是"业务实体的当前状态"？
 - 业务过程中是否需要"读 current state"？
 - 如果答案是"是"→ **Master 表**
@@ -211,6 +215,7 @@
 > **v0.2 调整**：v0.1 列了 17 张 Master，v0.2 修正为 21 张（拆分 `cards` + `card_series` + `card_collections`；加 `languages`；加 `cluster_nodes` + `feature_flags`；LCM 5 plan 表归 Master，`realm_lifecycle_run` 改归 Transaction 见 §3.2 T-01）。**注**：与 [15-IPA-DB表设计书/README §库/域 全局映射](../15-IPA-DB表设计书/README.md) 表述保持 42 张总表数不变（Master+Transaction+Work 重新分配）。
 
 **Master 横展开要点**：
+
 - 5 核心业务域 + 5 工具域（Card×3 / I18n×2 / Leaderboard / ClusterOps×2）共 21 张核心 Master 表
 - 5 张 LCM plan 表共置 admin_db（per FR-LCM-001，详见 [17-不合理设计 P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) — **非 ARC-008 violation, 是 FR-LCM-001 设计选择**）
 - 21 张主表全部有 `version` OCC 列或 `status` 状态机
@@ -236,6 +241,7 @@
 > **v0.2 调整**：v0.1 列了 11 张 Transaction，v0.2 修正为 12 张（`realm_lifecycle_run` 从 v0.1 Master M-09 改归 Transaction T-01——5 状态机 + 已按月分区 + 完成后 3-5 年保留 = 典型 Transaction 特征；详见 §6.6）。
 
 **Transaction 横展开要点**：
+
 - 6 域 outbox **共享物理模板**（per [13-Outbox跨域模板](../15-IPA-DB表设计书/13-Outbox跨域模板.md)），保证跨域一致性
 - `audit_log` 必须按月分区（per RGS-BAS-007 §4 + 17-P0-02 修复项）
 - `transaction_ledger` / `sagas` / `moves` 建议 PH-3 实施按月分区（per §9.4 SQL 模板）
@@ -255,6 +261,7 @@
 | W-08 | `downloads` (SQLite) | downloads.sqlite | AssetDownload (工具) | 短期（断点续传完成清理）| [12-AssetDownload域](../15-IPA-DB表设计书/12-AssetDownload域_downloads_sqlite.md) |
 
 **Work 横展开要点**：
+
 - 6 张核心 Work 表全部有 `expires_at` 或同义字段 + cleanup job
 - 2 张 Economy 域的"中期"表（auctions / private_trades）寿命长于典型 Work，但仍是"业务流程存在，结束后清理"模式，归 Work；cleanup SOP per [14-§7.2](../15-IPA-DB表设计书/14-分区策略与生命周期.md)（commit `2264011`）已落地
 - 跨域不物化 FK（per RGS-BAS-007 §1.5）
@@ -282,11 +289,13 @@
 | PH6-S-05 | `private_messages` | social_db | Social | Work | 双方都读后 30 天 | 私聊消息（按 GDPR 规则）|
 
 **判定依据**（per §2.1 Work 判定问句）：
+
 - "业务执行中临时存在" → 邀请/申请/私聊都是临时过程
 - "业务完成后清理" → 接受/拒绝/过期后清理
 - 满足 Work 特征 → 归 Work 而非 Master
 
 **PH-6 实施路径**：
+
 1. Social Lead 业务确认（Q6 PH-6 决策已隐含确认）
 2. social-service 新增 migration `0004_social_work_tables.sql`
 3. 14-§7 cleanup SOP 引用 + cleanup job 实装
@@ -362,6 +371,7 @@
 | LCM (共置 admin_db) | admin_db | cluster-ops (LCM 子模块) | 5+1=6 | Master(5 plan) + Transaction(1 run) | [06-Admin域 §6.4-§6.9](../15-IPA-DB表设计书/06-Admin域_admin_db.md) |
 
 **横展开观察**：
+
 - 工具域以 **Master 表为主**（配置/特性/参考数据）
 - 唯一 Work 表 = `downloads` (SQLite 异构)
 - 唯一 Tool-Transaction 表 = `replay_metadata`
@@ -381,10 +391,12 @@
 | 跨域事务 | 走 Saga 模式（per RGS-BAS-100 Saga 分布式事务基本设计书 + RGS-REQ-100 Saga 分布式事务需求定义书）|
 
 **正例**（per `crates/economy-service/migrations/0001_init.sql:5-15`）：
+
 - `accounts.player_id` = UUID，UNIQUE 约束 `(player_id, currency)`，**无物理 FK 指向 player_db.players.id`
 - 应用层在 saga 启动时校验 player 存在 + 余额可扣
 
 **反例**（不允许）：
+
 - `accounts` 加 `FOREIGN KEY (player_id) REFERENCES player_db.players(id)` — 跨库 FK，破坏 ARC-008 6+ 独立 DB 原则
 
 ## 6.2 OCC 模式（per Master 表）
@@ -429,12 +441,14 @@
 | 修改规则 | OCC `version` + 应用层 `WHERE version = ?` | 禁止 UPDATE/DELETE | ⚠️ 状态机更新（需应用层校验合法状态转移）|
 
 **判定**：
+
 - 分区已实施 ✅
 - append-only 实际行为（虽然有 `status` 流转，但**不会修改核心数据**，只是状态机推进）✅
 - 业务角色是"执行 run 记录"而非"业务实体的当前状态" ✅
 - 综合 → **归 Transaction**（T-01）
 
 **v0.2 调整**：
+
 - v0.1 列 M-09（Master）
 - v0.2 改 T-01（Transaction）
 - 引用 [02-Master §3.1 M-21] 已删 `realm_lifecycle_run` 行
@@ -471,11 +485,13 @@ CREATE INDEX IF NOT EXISTS idx_lcm_step_status ON lcm_step_execution (status, st
 ```
 
 **归类判定**：
+
 - "业务执行中临时存在"（step 执行中 → 完成后 24h 清理）✅
 - "业务完成后清理" ✅
 - → **归 Work**
 
 **PH-2 待 admin Lead 拍板**：
+
 1. 是否实装 `lcm_step_execution` Work 表？
 2. 保留期 24h vs 7d vs 30d？
 3. 跨 step 状态共享用 `step_metadata` JSONB 是否合理？
@@ -516,6 +532,7 @@ CREATE INDEX IF NOT EXISTS idx_lcm_step_status ON lcm_step_execution (status, st
 ## 7.4 其他横展开内容（per Ulysses 2026-09-01 18:30 JST）
 
 > "其他横展内容遵循日本 IPA SEC 规则" — 适用于：
+>
 > - 数据横展开（本文档）
 > - 功能横展开（per RGS-BAS-001 业务逻辑层）
 > - 部署横展开（per RGS-OPS-001 部署运营）
@@ -545,10 +562,12 @@ CREATE INDEX IF NOT EXISTS idx_lcm_step_status ON lcm_step_execution (status, st
 | `db.bas_dbb_001.debug.category_assignment_full_payload` | 分类修订申请的完整 payload（含敏感 ADR 草案，**仅** debug-only 守护）| 1/月 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除）| 约 1-3KB/条（release 剔除，避免 RUST_LOG=debug 误开泄漏）|
 
 **debug-only 守护要点**（落实 RGS-BAS-004 v0.3 §4.4）：
+
 - `db.bas_dbb_001.debug.category_assignment_full_payload` 可能含 ADR 全文 draft —— release build 完全剔除，避免 RUST_LOG=debug 误开时未发布 ADR 草案泄漏
 - `db.bas_dbb_001.*` 系列均为 `info!` 级别（release 必出，per RGS-BAS-004 v0.3 §4.8.3.2 二维矩阵 `info!` 行常驻），便于 DBA 团队按 `dtl_doc_id` 维度追溯三分类符合性
 
 **数据库域特殊强制**（per RGS-BAS-007 v0.3 §6.2 强制全采样白名单）：
+
 - `db.bas_dbb_001.three_category_drift.detected` / `db.bas_dbb_001.cross_domain_fk.detected` = release 必出
 - `db.bas_dbb_001.work_table_cleanup.detected_drift` / `db.bas_dbb_001.lcm_step_execution.drift`（v0.2 新增） = release 必出
 - 用于季度治理评审自动发现"文档与代码漂移"
@@ -603,6 +622,7 @@ docs/15-IPA-DB表设计书/  (18 个 detail 文件, commit 215cdb4)
 ```
 
 **RGS-DB-BAS-001 ↔ 15-IPA-DB表设计书/ 关系**：
+
 - **本文档 = 横轴**（三分类原则 + 跨域映射）
 - **15-IPA-DB表设计书/ = 纵轴**（每张表的 column 级别 detail）
 - 两者合起来 = RGS 全部 42 张表的"标准 + 三分类 + detail" 三层文档体系

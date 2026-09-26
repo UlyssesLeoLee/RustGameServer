@@ -12,6 +12,7 @@
 ### 0.1 当前状态(v0.2, per commit `ec0f11a`)
 
 gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
+
 - `health_view` 返回 `{service, admin_endpoint, mode}` 扁平对象,无 `services[]` 数组
 - `set_maintenance` 返回 `{status, op}`,无 `propagation_status` 字段
 - `query_audit` 返回 `{items, next}`,字段名 ≠ DTL-003 协议
@@ -45,6 +46,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 **目标**:`crates/gm-backend/proto/gm/v1/gm.proto` 编译通过,生成 Rust 代码
 
 **任务**:
+
 - [ ] proto 验证: `protoc gm.proto --rust_out=.` 编译通过
 - [ ] 引入 `tonic-build` 0.12 + `prost` 0.13(已 dev-deps)
 - [ ] `gm-backend/build.rs` 加 proto 编译入口
@@ -58,6 +60,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 **目标**:5 个 GM endpoint 调 admin-service gRPC,字段对齐 DTL-003 §3
 
 **任务**:
+
 - [ ] `AdminServiceClient` 注入(per `gm_config.admin_grpc_endpoint`)
 - [ ] 替换 `AuditStore::append()` 默认实现为 gRPC `BanAccount` / `GrantCompensation` 调用
 - [ ] 替换 `query_audit` stub 为 `QueryAuditLog` gRPC 调用,返回 `entries[] + has_more`
@@ -72,6 +75,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 **目标**:admin-service 不可达时,gm-backend 优雅降级,返回明确错误码
 
 **任务**:
+
 - [ ] tonic Status → HTTP status 映射(UNAVAILABLE → 503,DEADLINE_EXCEEDED → 504)
 - [ ] retry 策略:首次失败 100ms,再次 200ms,3 次后 fail
 - [ ] circuit breaker:连续 5 次失败 → 半开(30s 后重试)
@@ -85,6 +89,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 **目标**:5 endpoint 集成测试覆盖 + chaos 注入
 
 **任务**:
+
 - [ ] `crates/gm-backend/tests/it_gm_admin_grpc.rs` 5 endpoint 真接测试
 - [ ] mock admin-service 用 `rgs_testkit::TonicGrpcMock`(已有,54.x 实装)
 - [ ] chaos:admin-service 不可达 + 慢响应 + 5xx
@@ -98,6 +103,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 **目标**:S4 完结,所有文档同步
 
 **任务**:
+
 - [ ] `evidence 2026-08-28-S4` batch 落档
 - [ ] `RGS-TST-IT-08` 文档 v0.2 升级(per `crates/gm-backend/proto/gm/v1/gm.proto` 字段级协议)
 - [ ] `RGS-TST-UT-08` 文档 v0.3 升级(模块 D 字段级实装完成)
@@ -133,6 +139,7 @@ gm-backend 5 个 GM endpoint 当前是 **stub 状态**:
 ---
 
 **关联 commit**:
+
 - `ec0f11a` TBD-08-01~05/07 + UT-08 模块 D 字段级 v0.2(per F8)
 - 本批:proto schema 立项(`crates/gm-backend/proto/gm/v1/gm.proto`)
 - v0.3 实施 commit:预计 2026-09-04 完成

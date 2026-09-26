@@ -134,6 +134,7 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 
 > **ADR-0060 候选已立, 待具名人类审批 (per ULYS-55 / ULYS-54.A, 2026-09-15 JST)**:
 > 详细归档见 `docs/08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md`(178 行, 7 章节)。
+>
 > - **§1 背景**: 与 ADR-0059 缓存偏离的同构性 (上游登记 vs 下游选型双轨); REQ-005 §4 L453 已登记 Apache Kafka, TS-001 §3.6.1 改选 NATS 时未触发 RGS-ADR-0008 闸门、未补立单点 ADR
 > - **§2 决定**: 维持 NATS JetStream 2.10+ 选型 (per DEC-005/006 + Q-M-10 + ACTIONS-v0.3 B-09), 显式记录偏离参考设计的事实, 触发附件 D §3 登记行同步
 > - **§3 备选**: Kafka / RabbitMQ / Redis Streams / Apache Pulsar (逐条否决, 引用 TS-001 §3.6.1 备选表 + 本 ADR 补充论证)
@@ -160,7 +161,8 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 - **已实装**: 自研 saga_runtime (BAS-100 §3 Saga Runtime 内部模块: Engine / State Machine / Scheduler / Retry / Timeout / Compensation / Recovery / Event Router), K3s Deployment 3+ replicas
 - **决策链**: RGS-REQ-100 §7 方案 C「saga-runtime 完全外包 (e.g. Temporal / Apache Airflow) 拒绝」+ 理由「不绑闭源 Saga 协调器」+ 「纯开源约束」
 
-**评估**: 
+**评估**:
+
 - Temporal 当前是 **MIT 开源** (temporal.io 仍维护开源版, 仅 Temporal Cloud 是 SaaS), 不属「闭源事务协调器」, RGS 拒绝 Temporal 的理由失实
 - BR-111「纯开源约束」成立, 但 Temporal 满足
 - RGS 选择自研的代价: ~5 份 ADR + 2 份 REQ/BAS + 9 张 saga 表 + 一整套状态机 + 恢复机制, OLU 极高
@@ -206,14 +208,14 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 
 ### 5.2 中期处理 (P1, 不阻断但需正式化)
 
-3. **正式化 NATS JetStream vs Kafka 偏离**
+1. **正式化 NATS JetStream vs Kafka 偏离**
    - 动作: 立 ADR-0060 「事件总线偏离参考设计: NATS JetStream 取代 Kafka」, 显式记录 trade-off (运维简化 vs 吞吐上限)
    - 备注: 与 DEC-005/006 链一致, 仅作正式归档
 
-4. **正式化「Debezium 不引入」决议**
+2. **正式化「Debezium 不引入」决议**
    - 动作: 立 ADR-0061 「自研 Outbox 取代 Debezium CDC」, 记录自研路径的「事务内强制 outbox 写入」约束 + 已捕获事件族的范围 (目前 5 域 + cluster_ops + shared_platform)
 
-5. **重新评估 Temporal vs 自研 Saga Runtime**
+3. **重新评估 Temporal vs 自研 Saga Runtime**
    - 动作: 立 ADR-0062 「Saga Runtime 偏离参考设计: 自研路径 vs Temporal (MIT 开源)」
    - 关键论证: Temporal 当前为 MIT 开源 (temporal.io), 满足 BR-111「纯开源约束」; RGS 拒绝理由「不绑闭源事务协调器」失实
    - 决策建议: 若自研路径已投入 > 50% OLU, 维持自研 + 立 ADR; 若尚未投入, 重新评估 Temporal 的开发成本节约
@@ -221,7 +223,7 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 
 ### 5.3 长期处理 (P2, 接受偏离)
 
-6. **OpenResty 取代 Envoy** 不需处理, 与参考设计偏差合理, ADR-0044 已显式记录
+1. **OpenResty 取代 Envoy** 不需处理, 与参考设计偏差合理, ADR-0044 已显式记录
 
 ---
 
@@ -289,6 +291,3 @@ REQ-005 选 Valkey、TS-001 选 Redis, 但两个文档都没互引对方的决�
 | 0.3 | 2026-09-15 JST | worker (ULYS-55 agent) | **ADR-0060 候选已立**：在 §4.3 增加「ADR-0060 候选已立，待审批」标注（含 §1-§6 摘要 + 与 ADR-0059 同构处置声明 + ULYS-56 无依赖可并行声明）。ADR-0060 正文 178 行落地 `docs/08-架构决策记录/RGS-ADR-0060_事件总线偏离参考设计_NATS取代Kafka.md`，覆盖 ULYS-55 验收 1/2/3/4 全部 4 项。下游 7 处补注（REQ-005 §3/§4 + TS-001 §3.6.1/§5.1/修订历史 + REQ-031 + SPEC-CROSS-003 + TST-S5）由 P1 工作项跟进，待具名人类审批通过后执行 |
 
 > **下次评审**: 随 ULYS-54 处置决议同步更新 (取消 / 修订 / 关闭) / ULYS-55+ULYS-56 子任务完成后追加 v0.3
-
-
-

@@ -80,6 +80,7 @@
 | **critical path 覆盖率** | 50-60% | **> 95%** | 100% |
 
 **critical path 定义**:
+
 - 5 域 OCC 冲突 + 事务
 - cluster-ops PFAU 阶段机
 - shared-platform outbox relay + producer/consumer
@@ -113,11 +114,13 @@
 ### 3.2 P1:shared-platform 100% + cluster-ops 90%(2 天)
 
 **理由**:
+
 - shared-platform 是 5 域 + cluster-ops 的依赖底座
 - 4,059 行代码,缺 0 集成测试,src-ut 66
 - 涵盖:channel/client/consumer/producer + outbox + rbac + retry + tracing
 
 **任务清单**:
+
 - [ ] shared-platform/src/outbox.rs 加 5-8 集成测试(用 pg_test)
 - [ ] shared-platform/src/producer.rs 加 3-5 集成测试
 - [ ] shared-platform/src/consumer.rs 加 3-5 集成测试
@@ -140,6 +143,7 @@
 ### 3.3 P2:5 域 + rgs-testkit 90%(3 天)
 
 **5 域核心 path**:
+
 - player-service:注册 / 登录 / 角色 / OCC 冲突
 - economy-service:扣减 / 发放 / Saga / 退款
 - match-service:房间 / 撮合 / tick 20Hz
@@ -147,6 +151,7 @@
 - admin-service:RBAC / 审计 / 公告
 
 **任务清单**(每域):
+
 - [ ] player:10-15 unit + 5-8 integration
 - [ ] economy:15-20 unit + 8-10 integration
 - [ ] match:8-10 unit + 4-6 integration

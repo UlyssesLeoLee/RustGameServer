@@ -1,7 +1,9 @@
 # RGS-TST-PEERREVIEW-2026-08-28-feedback-to-agents.md
 
 # 角色：交叉核实 2026-08-28 06:50 JST「交叉审核报告」（`docs/00-基准与治理/peer-review-2026-08-28.md`，架构师 agent 代签）覆盖的两侧材料：(a) 被审的 09 工具集三份测试设计书（commit `6383921`）+ 08 GM 后台 ST/UT 测试设计书（commit `9403ac2`）本身；(b) peer-review 报告自身对这些文档的核对结论
+
 # 生成：主对话（Sonnet 5）2026-08-28，逐条对照实际源码（`crates/rgs-certgen/src/main.rs`、`crates/gm-backend/src/lib.rs`）与详细设计源文档（`RGS-BAS-003`/`RGS-DTL-003`/`RGS-DTL-040`）、测试设计书原文重新计数校验
+
 # 使用方式：接手 agent 逐条核实/处置后，在对应条目下追加「已处理」段落，注明 commit + 验证证据，不要删除原问题描述（沿用 `RGS-SPEC-26Batch-REVIEW-2026-08-26-feedback-to-agents.md` 同款约定）
 
 ---
@@ -57,9 +59,11 @@
   - `RGS-TST-UT-09_工具集_单元测试设计书.md` TST-UT-09-B003（第 156 行）："**自定义 CN**" | 测试目标："CA CN 字段正确"。
 
 - **实证**：`crates/rgs-certgen/src/main.rs:82`：
+
   ```rust
   params.distinguished_name.push(DnType::CommonName, "RustGameServer Dev CA");
   ```
+
   实际硬编码字符串是 `"RustGameServer Dev CA"`，与 IT-09-B002 断言的 `"RGS Dev CA"` **不同**。且 `Cli`（第 28~47 行）只暴露 `output` / `domains` / `validity_days` 三个字段（对应第 30、34、45 行），没有任何控制 CA CommonName 的 CLI 参数——CN 是 `generate_ca()` 内部硬编码值，不存在"自定义"路径。UT-09-B003 描述的"自定义 CN"场景在当前源码下无法触发。
 
 - **性质判断**：这两条如果照设计书原样实现，第一条会在实现当天就断言失败（字符串不匹配），第二条测的是一个源码中不存在的功能分支——不是"待补"而是**面向不存在的行为写的用例**，根因相同（CN 是硬编码值，不是可配置项）。

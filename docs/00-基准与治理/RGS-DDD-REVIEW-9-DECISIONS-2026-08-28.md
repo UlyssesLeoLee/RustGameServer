@@ -30,6 +30,7 @@
 ## 2. 实装证据详细
 
 ### 决议 1 — OPEN-QA v0.4
+
 - **实装**: `docs/00-基准与治理/RGS-OPEN-QA-2026-08-27-k3s-deploy_v0.4.md` (24,000+ bytes)
 - **Q2**: 8 域 Lead 具名 + 采纳
 - **Q4**: DTL-040 根因诊断新证据 (commit 43a2e08 F1 处置)
@@ -38,6 +39,7 @@
 - **commit**: `ae32266` (merge docs/ddd-review)
 
 ### 决议 2 — 8 域 Lead 12 角色
+
 - **实装**: 8 域 + 4 共享 = 12 角色
   - 8 域 Lead: player / economy / match / social / admin / cluster-ops / gm-backend / rgs-certgen
   - 4 共享: SRE / Platform / QA / PM
@@ -46,6 +48,7 @@
 - **commit**: `12437ca` (8 域 Lead 具名) + `be27937` (代签补全)
 
 ### 决议 3 — cluster-ops 终方案 A'
+
 - **A' 实装**: `git rm tests-disabled/ut_state_machine.rs` (commit `3e8d9ca`)
 - **新位置**: 26 fn 完全覆盖在 `crates/cluster-ops/src/realm_lifecycle/`
 - **P3 follow-up 3 文件** (推后到 9 月底 W10):
@@ -54,6 +57,7 @@
   - `crates/gm-backend/src/` 业务 5 endpoint 真实 handler
 
 ### 决议 4 — S4 Phase 2 step 1
+
 - **实装**: `crates/gm-backend/build.rs` + `src/lib.rs` + `tests/it_admin_grpc_client.rs`
   - tonic-build 编译 gm.proto + admin.proto + common.proto
   - `AdminGrpcClient` (try_connect lazy + health_check 500ms timeout)
@@ -64,6 +68,7 @@
 - **commit**: `11a230a` (实装) + `38097e8` (设计)
 
 ### 决议 5 — S4 Phase 2 step 2
+
 - **实装**:
   - `crates/admin-service/proto/admin/v1/admin.proto` 加 4 RPC (BanAccount / GrantCompensation / SetMaintenance / QueryAuditLog) + 字段 (per gm.proto v0.3 对齐)
   - `crates/admin-service/src/gm_handlers.rs` (新文件, 280+ 行, 4 handler + GmHandlerState 全局 + OnceLock 注入)
@@ -76,6 +81,7 @@
 - **commit**: `1da9388`
 
 ### 决议 6 — TBD-08-06 工具决策 D
+
 - **实装**: 双工具并存
   - 7 域 IT: `wiremock 0.6`
   - 8 域 IT: `axum-test 16`
@@ -83,6 +89,7 @@
 - **5 域统一时机**: 7 域 (player/economy/match/social/admin) 现仍用 InMemory mock, 待观察统一时机
 
 ### 决议 7 — W2 跨域 IT 5 类链路
+
 - **设计**: 5 类链路 (cluster-ops ↔ 5 域 / cluster-ops ↔ admin / gm-backend → admin → player / gm-backend → admin → economy / cluster-ops ↔ gm-backend)
 - **实装**:
   - 链路 A 简化版: `crates/cluster-ops/tests/it_cross_domain_admin_health.rs` 1/1 PASS
@@ -91,6 +98,7 @@
 - **commit**: `86d27e5`
 
 ### 决议 8 — W4 S5 §3 真 NATS e2e
+
 - **实装**: `crates/gm-backend/tests/it_outbox_nats_e2e.rs` (3,317 bytes)
   - 3/3 真链路 PASS (k3s nats-0 port-forward 14222)
   - nats_connect_succeeds (server_info.max_payload > 0)
@@ -103,6 +111,7 @@
 - **commit**: `a39af02`
 
 ### 决议 9 — AI 审计提示词集成 CI
+
 - **实装**: `docs/00-基准与治理/AI-AUDIT-PROMPT-Mavis-2026-08-28.md` (9,489 bytes)
   - 9 维度: 决策追踪 / 代码治理 / 测试设计 / 文档治理 / 跑测 / 覆盖 / 集成 / 部署 / 异常处理
   - 10 重点核查项
@@ -149,17 +158,20 @@
 ## 5. 风险登记 (实装阶段发现)
 
 ### P0 (阻塞) — 0
+
 - ⏳ W1/W2/W3 worker 模式不可靠已规避 (我直接实装)
 - ⏳ 4 worktree 待清理 (W5 收尾)
 - ⏳ 9 决议待 Ulysses 拍板 (DDD Review 启动)
 
 ### P1 (重要) — 4
+
 - ⏳ mTLS to admin-service 决策待定 (per BAS-003 §2.1)
 - ⏳ JWT propagation gRPC metadata 待 Step 3+
 - ⏳ Circuit breaker 5 次失败 → 30s 断开待 Step 3+
 - ⏳ Chaos test admin-service 503 → gm-backend 503 降级待 Step 3+
 
 ### P2 (中等) — 5
+
 - ⏳ 3 文件 P3 follow-up (cluster-ops 旧债)
 - ⏳ 4/7 真 NATS 链路 (lease 过期 / retry / 并发 / 持久化)
 - ⏳ RACI 矩阵 8 域 + 4 共享
@@ -167,6 +179,7 @@
 - ⏳ AI 审计提示词集成 CI
 
 ### P3 (低) — 4
+
 - ⏳ OPEN-QA 模板固定化
 - ⏳ gm-backend 业务 5 endpoint 真实 handler (per W7)
 - ⏳ 链路 B/C/D 完整实装 (gm-backend → admin → 5 域)
@@ -188,6 +201,7 @@
 **决策留痕**:per Ulysses 2026-08-26 04:30 JST "决策即留痕"原则 + 2026-08-26 08:40 JST "代签默认开"原则,本文档 v0.2 修订由 Mavis (接手 agent per DEC-008) 直接实装,后续 DDD Review 终审时一起拍板。
 
 **9 月 WBS 影响**(基于 6-9 暂缓决议):
+
 - W6 (9 月初): BAS 章节级追溯 35 份 → IT 文档(决策 6 推迟项合并到此)
 - W7 (9 月中): gm-backend 业务实装 + 5 域 axum-test 工具切 + 链路 B/C/D 补(决策 6+7 合并)
 - W8 (9 月末): PH-1 OTel 全链路 + 4/7 NATS 链路(决策 8 合并)
@@ -196,6 +210,7 @@
 - W11 (10 月底): AI 审计 CI 集成(决策 9)
 
 **6-9 决策开销**:
+
 - Token 实装:0(暂缓 = 不实装)
 - 新增文档:本文档 §7 v0.2(1 处编辑,无新文件)
 - 新增 commit:0(§7 跟随本文档下一次 DDD Review 终审时一并入 v0.3 commit)
@@ -221,6 +236,7 @@
 3. **决议 2 → W6 RACI**:8 域 Lead 12 角色 + RACI 矩阵是 W6 (9 月初) 启动硬条件。
 
 **Step 3+ 范围**(per 决议 4+5 后续 4 P1 项):
+
 - mTLS to admin-service 决策(BAS-003 §2.1 待定)
 - JWT propagation gRPC metadata
 - Circuit breaker 5 次失败 → 30s 断开
@@ -231,6 +247,7 @@
 **决策留痕**:per Ulysses 2026-08-26 04:30 JST "决策即留痕"原则 + 2026-08-26 08:40 JST "代签默认开"原则,本文档 v0.3 修订由 Mavis (接手 agent per DEC-008) 直接实装,所有 9 决议表已 ✅/⏸ 双状态定稿。
 
 **1-5 决策开销**:
+
 - Token 实装:0(已实装,只是拍板接受)
 - 新增文档:本文档 §8 v0.3(1 处编辑,无新文件)
 - 新增 commit:0(本文档 §8 跟随下一次 DDD Review 终审 commit 一并入库)
@@ -240,12 +257,14 @@
 ## 6. 下一步 (W5 收尾 → 9 月 W6+)
 
 ### W5 收尾 (Decision 3 worktree 推进)
+
 - 清理 4 worktree (s4-phase2-step2 / w2-cross-domain / w4-s5-nats / ddd-review)
 - 清理 3 review worktree (decision-1/2/3 本身)
 - main HEAD 标注 `dba953b` 为 DDD Review v1 base
 - tag `v0.4-ddd-review-2026-08-28`
 
 ### 9 月 WBS (Ulysses 拍板后启动)
+
 - **W6** (9 月初): BAS 章节级追溯 35 份 → IT 文档 (80-120M tokens)
 - **W7** (9 月中): gm-backend 5 GM RPC 业务实装 (60-100M tokens)
 - **W8** (9 月末): PH-1 OTel 全链路 sqlx-tracing sample 10-20% (50-80M tokens)
