@@ -1,13 +1,13 @@
 # 详细设计书（詳細設計書 / Detailed Design Document）
 
-**WebSocket 网络网关：握手与 HTTP 路径校验・zsyz 帧粘包/半包流式解码・FrameRouter trait 抽象与默认实现・错误处理与重连・与 TCP 路径对比 详细设计**
+**WebSocket 网络网关：握手与 HTTP 路径校验・[游戏A] 帧粘包/半包流式解码・FrameRouter trait 抽象与默认实现・错误处理与重连・与 TCP 路径对比 详细设计**
 
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-DTL-027（**WSG**；与 `docs/04-客户端与SDK/RGS-DTL-027_详细设计书.md` 客户端资源分发**同号不同主题**；冲突处置见 §11 追溯性及 ULYS-87 收口） |
 | 版本 | 0.1 |
 | 父文档 | RGS-BAS-006 网络安全 基本设计书 §3 边界防护（RGS-BAS-006 §3.3 协议边界纳入 WebSocket 路径的传输层安全基线） |
-| 上游依据 | `crates/network-gateway/src/ws.rs`（364 行）；`crates/network-gateway/src/codec.rs`（398 行；Frame + FrameError + FrameRouter trait）；`crates/network-gateway/src/tcp.rs`（267 行；同包对比路径）；`crates/network-gateway/tests/ws_smoke.rs`（397 行；6 集成用例）；zsyz_client_h5 `SmartSocket.connect`（ws(s)://host:port/websocket，binary frame） |
+| 上游依据 | `crates/network-gateway/src/ws.rs`（364 行）；`crates/network-gateway/src/codec.rs`（398 行；Frame + FrameError + FrameRouter trait）；`crates/network-gateway/src/tcp.rs`（267 行；同包对比路径）；`crates/network-gateway/tests/ws_smoke.rs`（397 行；6 集成用例）；[游戏A]_client_h5 `SmartSocket.connect`（ws(s)://host:port/websocket，binary frame） |
 | 关联文档 | RGS-DTL-006（网络安全 详细设计书；§2 NetworkPolicy 基线、§7A 未信任输入解析安全）；RGS-DTL-003（运维与 GM 后台管控 详细设计书；告警链路复用）；RGS-DTL-038（核心传输防丢包强化 详细设计书；QUIC 演进路径互斥参考）；RGS-IMPL-001 §1.3 实施门禁（G-CODE-01〜07）；RGS-SPEC-CROSS-002（gRPC/Proto 风格指南） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』详细设计工程 + RGS-IMPL-001 工程边界 |
 | 制定日 | 2026-09-19 |
@@ -105,7 +105,7 @@
 | 术语 | 含义 | 代码定位 |
 |---|---|---|
 | WS | WebSocket（RFC 6455）；本文档语境特指服务端实现 | `crates/network-gateway/src/ws.rs` |
-| 帧 / Frame | zsyz 自研二进制协议帧；wire 格式 `[4B length u32 BE][2B cmd u16 BE][payload TLV]` | `codec.rs::Frame`（line 76-138） |
+| 帧 / Frame | [游戏A] 自研二进制协议帧；wire 格式 `[4B length u32 BE][2B cmd u16 BE][payload TLV]` | `codec.rs::Frame`（line 76-138） |
 | cmd | u16 大端命令号；范围 0-65535 | `Frame::cmd` |
 | payload | TLV 字段流（不含 6B header）；最大 1 MiB | `Frame::payload` |
 | MAX_FRAME | 单帧（含 cmd + payload）上限；1 MiB | `codec.rs::const MAX_FRAME`（line 40） |
@@ -114,7 +114,7 @@
 | RouteTable | 1351 条 codegen 路由表 + 9 条 Phase 1.5 demo（per W14 调整为 6 条 TSV-真实存在条目） | `router.rs::RouteTable`（line 43） |
 | RouteTableFrameRouter | `FrameRouter` 默认实现；包 `Arc<RouteTable> + Arc<GatewayStats>`，转交 `tcp::dispatch` | `ws.rs::tests::RouteTableRouter`（line 327-340；同形态在 `tests/ws_smoke.rs` 与 main.rs） |
 | GatewayStats | 原子计数器：`total_received` / `total_forwarded` / `total_failed` / `total_route_miss` / `active_connections` | `stats.rs::GatewayStats`（line 17-95） |
-| 粘包 / 半包 | 多个 zsyz 帧打包在一个 WS Binary message 内（粘）；或单个 zsyz 帧横跨多个 WS Binary message（半） | `ws.rs:241-281` 帧循环；`codec.rs::Frame::decode` 流式接口 |
+| 粘包 / 半包 | 多个 [游戏A] 帧打包在一个 WS Binary message 内（粘）；或单个 [游戏A] 帧横跨多个 WS Binary message（半） | `ws.rs:241-281` 帧循环；`codec.rs::Frame::decode` 流式接口 |
 | handshake | WebSocket Upgrade 握手；HTTP/1.1 101 Switching Protocols | `ws.rs::accept_ws_with_path`（line 160-213） |
 | Ping / Pong | WS 控制帧（opcode 0x9/0xA）；当前实现：自动 Pong 客户端 Ping，自身不发 Ping | `ws.rs:289-298` |
 | Close | WS 控制帧（opcode 0x8）；收到后 echo Close 退出 session | `ws.rs:283-288` |
@@ -143,7 +143,7 @@
 |---|---|---|
 | OBJ-WSG-001 | WS 路径与 TCP 路径**共享** dispatcher 抽象（`FrameRouter` trait），以便 Phase 2 接入 5 域 gRPC 时仅替换实现，`ws.rs`/`tcp.rs` 不动 | `codec.rs:179-181` trait 定义；`ws.rs:84-87` 构造函数接收 `Arc<dyn FrameRouter>` |
 | OBJ-WSG-002 | 客户端 SmartSocket binary-only 协议：服务端**仅**接收 `Message::Binary`，其它 opcode（Text/Frame）忽略 | `ws.rs:241-307` match arms；`tests/ws_smoke.rs` 5 用例覆盖 |
-| OBJ-WSG-003 | 帧处理流式（粘包/半包）：单 WS Binary message 可含**多个** zsyz 帧（粘）；单 zsyz 帧可横跨**多个** WS Binary message（半） | `ws.rs:241-282` 循环 decode + `codec.rs::Frame::decode` 返回 `Ok(None)` 表半包 |
+| OBJ-WSG-003 | 帧处理流式（粘包/半包）：单 WS Binary message 可含**多个** [游戏A] 帧（粘）；单 [游戏A] 帧可横跨**多个** WS Binary message（半） | `ws.rs:241-282` 循环 decode + `codec.rs::Frame::decode` 返回 `Ok(None)` 表半包 |
 | OBJ-WSG-004 | 路径校验：HTTP request path 必须等于配置 `WS_PATH`（默认 `/websocket`）；不匹配 → 404 + close | `ws.rs:160-213` `accept_ws_with_path` + `PathCheck::on_request`；`tests/ws_smoke.rs::ws_wrong_path_returns_404_http` |
 | OBJ-WSG-005 | 协议错误防御：`FrameError::LengthOverflow`（>1 MiB）、`TruncatedField`/`UnknownTlvType`/`InvalidUtf8`（wire 畸形）→ 立即 drop session + 关闭 | `ws.rs:260-274` match 错误分支 + `ws.rs:276-281` 缓冲上限守卫 |
 | OBJ-WSG-006 | 资源计数：`active_connections` 接受时 inc、退出时 dec（无论何种退出路径）；`received/failed` 按帧级别计数 | `ws.rs:106/111` accept 前后；`ws.rs:248/262/270` 帧级别；`stats.rs::GatewayStats` |
@@ -155,7 +155,7 @@
 | 约束编号 | 约束 | 来源 |
 |---|---|---|
 | CON-WSG-001 | 仅 binary frame（opcode 0x2）；Text/Ping（自动 Pong）/Pong/Close/Frame；Text 忽略 | `ws.rs:299-302` |
-| CON-WSG-002 | 默认监听 `0.0.0.0:8000`（对齐 zsyz_server `web_conn.erl` 8000）；路径 `/websocket` | `ws.rs:41/44` `DEFAULT_WS_ADDR` / `WS_PATH` |
+| CON-WSG-002 | 默认监听 `0.0.0.0:8000`（对齐 [游戏A]_server `web_conn.erl` 8000）；路径 `/websocket` | `ws.rs:41/44` `DEFAULT_WS_ADDR` / `WS_PATH` |
 | CON-WSG-003 | 单 WS 会话缓冲上限 `MAX_FRAME_BYTES = 1024 * 1024`（1 MiB）；超过 → drop session | `ws.rs:47/277-281` |
 | CON-WSG-004 | 默认并发连接上限 256（`max_connections`）；0 = 无上限 | `ws.rs:67` `WsConfig::default_local()` |
 | CON-WSG-005 | Rust edition 2024（per workspace）、Rust 1.98 stable 目标（per RGS-IMPL-001 Q-108）；`tokio-tungstenite = "0.24"`（per `Cargo.toml` line 49） | RGS-IMPL-001 §3 Q-108；`Cargo.toml` |
@@ -189,7 +189,7 @@
 │                          RGS 网络平面                                 │
 │                                                                       │
 │  ┌──────────────────────────┐        ┌────────────────────────────┐ │
-│  │   zsyz_client_h5 (H5)    │        │  其它客户端 (移动 / PC /    │ │
+│  │   [游戏A]_client_h5 (H5)    │        │  其它客户端 (移动 / PC /    │ │
 │  │  SmartSocket.connect     │        │   第三方 SDK 适配)         │ │
 │  │  ws://host:8000/         │        │                            │ │
 │  │  websocket (binary)      │        │                            │ │

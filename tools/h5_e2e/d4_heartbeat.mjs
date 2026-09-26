@@ -18,7 +18,7 @@ import { WebSocket } from 'ws';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildHeartbeatFrame, parseHeartbeatReply } from './zsyz_protocol.js';
+import { buildHeartbeatFrame, parseHeartbeatReply } from './[游戏A]_protocol.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WS_URL = process.env.WS_URL || 'ws://127.0.0.1:18000/websocket';

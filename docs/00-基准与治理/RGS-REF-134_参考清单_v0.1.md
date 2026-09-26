@@ -23,7 +23,7 @@ RGS 实际参考的"两款商用服务器"是 **① [游戏A]（[游戏A]_server
 
 ## 1. [游戏A] ([游戏A]_server) 参考亮点清单
 
-**参考对象**: 第三方 MMORPG "[游戏A]" 服务端源码，437 个 `.erl` / `.hrl`（per `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\docs\README.md` L30），1351 条 RPC 已成功提取 1351/1394（97.0%，per 借鉴分析 .md §0）。
+**参考对象**: 第三方 MMORPG "[游戏A]" 服务端源码，437 个 `.erl` / `.hrl`（per `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\README.md` L30），1351 条 RPC 已成功提取 1351/1394（97.0%，per 借鉴分析 .md §0）。
 **关联证据**: `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` + `RGS-FLASH-OVERLAP-ANALYSIS-2026-09-04_v0.2.md` + `RGS-REQ-2026-09-04_v0.2.md` + `RGS-DDD-v0.2-addendum-协议号映射.md` + `RGS-DDD-v0.2-addendum-业务逻辑逆推.md` + `RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.3.md` + `RGS-DDD-2026-09-04-GAP-AUDIT_v0.3.md`。
 
 ### 1.1 协议层亮点（5 条可取之处 + 1 条反例 per 借鉴分析 doc §4）

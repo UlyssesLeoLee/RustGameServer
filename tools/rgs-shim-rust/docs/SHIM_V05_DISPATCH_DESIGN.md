@@ -30,7 +30,7 @@
 5 worker 各自 worktree (`D:/rgs-shim-w1...w5`), branch `w<N>/shim`, baseline b3d4a55. 1-2 周并行 detached.
 
 **业务 handler 落地方式** (5 worker 各自):
-1. 读 E 盘 zsyz erlang proto_*.erl + mod/*.erl
+1. 读 E 盘 [游戏A] erlang proto_*.erl + mod/*.erl
 2. 在 `handlers.rs` 写 `handle_<cmd>` 函数, 调 `crates/<domain>-service` gRPC (经 rgs-proxy 8084)
 3. 字节级对齐 erlang (4B BE len + 2B cmd + payload, per `GameTcpClient.h` + `smartsocket.lua`)
 4. `registry.rs` 把 `stub-XXX` 替换为新 handler
@@ -61,7 +61,7 @@
 | 24000-24999 | admin-service | 50065 | w5 负责, 福利/活动 |
 | 30000-30100 | admin-service | 50065 | w5 负责, 礼包 |
 
-(具体 cmd 分配 per `tools/rgs-shim-rust/docs/H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` §3)
+(具体 cmd 分配 per `tools/rgs-shim-rust/docs/H5_GAMEA_CLIENT_MIGRATION_MATRIX.md` §3)
 
 ### 3.3 dispatch table Rust 伪代码
 
@@ -123,7 +123,7 @@ async fn dispatch_player(cmd: u16, payload: &[u8]) -> Result<Vec<u8>, DispatchEr
 | 4. stub fallback 兼容 | 未注册 cmd 走 stub 0 数据 | 0.5 天 | Mavis 主会话 |
 | 5. integration test | shim v0.5 vs 5 worker 业务 handler, Node.js 字节级 100% | 1-2 天 | Mavis 主会话 + 5 worker 协助 |
 | 6. shim v0.5 commit + push | 5 worker merge + dispatch table + 5 client + stub | 0.5 天 | Mavis 主会话 |
-| 7. e2e UAT (Phase 6) | zsyz H5 真机接入, 8 步战斗流/任务流/邮件流 | 3-5 天 | Mavis 主会话 |
+| 7. e2e UAT (Phase 6) | [游戏A] H5 真机接入, 8 步战斗流/任务流/邮件流 | 3-5 天 | Mavis 主会话 |
 | 8. perf 调优 (Phase 7) | shim tokio + 5 域 sqlx pool, 目标 < erlang p99 50ms | 2-3 天 | Mavis 主会话 |
 
 ### 3.6 风险 + 缓解
@@ -141,7 +141,7 @@ async fn dispatch_player(cmd: u16, payload: &[u8]) -> Result<Vec<u8>, DispatchEr
 1. **5 worker 监控** (5-30 min 一次, 看 commit progress, 1-2 周后 100% cmd done)
 2. **postgres migration apply** (主会话负责, 已 kick off detached 跑, 5 worker 跑时 sqlx auto-apply 也行)
 3. **shim v0.5 dispatch table 实施** (5 worker 完成后, Mavis 1-2 天实现)
-4. **Phase 6 UAT 自动化** (zsyz H5 binary build 1-2h, Cocos Creator 2.3.2 装)
+4. **Phase 6 UAT 自动化** ([游戏A] H5 binary build 1-2h, Cocos Creator 2.3.2 装)
 5. **AGENTS.md §8 持续加派生约束** (本轮 Phase 4 派工 + shim v0.5 + Phase 6 UAT 教训)
 6. **ghcr.io visibility 拍板** (per 9/9 19:15 JST report, read 403, Ulysses 拍板 private + read:packages PAT 或 public)
 

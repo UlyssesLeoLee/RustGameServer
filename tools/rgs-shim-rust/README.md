@@ -1,17 +1,17 @@
 # rgs-shim-rust (v0.5)
 
-zsyz 闪烁之光 SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rust 重写版**。
+[游戏A] [游戏A] SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rust 重写版**。
 
 ## 1. 背景
 
-闪烁之光客户端 (Cocos2d-js) 通过 SmartSocket 协议 (big-endian 4-byte len + 2-byte cmd + payload)
-连接 Erlang 后端 (zsyz_server), 协议定义见:
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_client_core\...\thirdparty\Libnetwork\GameTcpClient.h`
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\proto\proto_101.erl`
+[游戏A]客户端 (Cocos2d-js) 通过 SmartSocket 协议 (big-endian 4-byte len + 2-byte cmd + payload)
+连接 Erlang 后端 ([游戏A]_server), 协议定义见:
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_client_core\...\thirdparty\Libnetwork\GameTcpClient.h`
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\proto\proto_101.erl`
 - 991 pack defs / 514 unique cmd (10101-23911)
 
 **目标** (per 9/9 11:31 JST Ulysses 战略意图):
-> "闪烁之光前端本身就是用来验证 rgs 功能的, 所以不需要多余的为此设置 mock,
+> "[游戏A]前端本身就是用来验证 rgs 功能的, 所以不需要多余的为此设置 mock,
 > 目的是让 rgs 完全取代 erlang 版本"
 
 **因此**: 不用 rgs-flash-mock 21 RPC stub, 必须真实 RGS 5+3 域 gRPC 替代 Erlang。
@@ -32,7 +32,7 @@ zsyz 闪烁之光 SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rus
 
 ```
 ┌──────────────┐   SmartSocket (BE)    ┌──────────────┐    HTTP/JSON    ┌──────────────┐
-│  闪烁之光     │ ───────────────────▶ │  rgs-shim     │ ──────────────▶ │  rgs-proxy   │
+│  [游戏A]     │ ───────────────────▶ │  rgs-shim     │ ──────────────▶ │  rgs-proxy   │
 │  Cocos2d-js  │   9001/TCP            │  Rust+tokio   │   8084/HTTP     │  Node.js     │
 │  (Erlang 二进制)  │  4B len + 2B cmd    │  v0.3.0       │                 │  gRPC bridge │
 └──────────────┘   + payload           └──────────────┘                 └──────┬───────┘
@@ -48,7 +48,7 @@ zsyz 闪烁之光 SmartSocket (Erlang binary) → RGS gRPC shim, **生产级 Rus
 ## 4. 当前支持 cmd (v0.5: 766/766)
 
 **dispatch table 实施完成** (per commit 076bebf, 2026-09-13):
-- **accept cmd**: 766/766 (100%) — 全量闪烁之光客户端 RPC
+- **accept cmd**: 766/766 (100%) — 全量[游戏A]客户端 RPC
 - **real handler**: 766 域分派 (player/economy/match/social/admin/card/leaderboard)
 - **5 worker merge**: w1-w5 业务级 handler 全并入主分支
 
@@ -104,8 +104,8 @@ node shim-bench.js
 ### 6.2 Playwright UAT (端到端)
 ```bash
 cd D:\playwright-test
-npx playwright test zsyz-rgs-login.spec.ts --reporter=line
-# 1 passed (11.1s) — 真实 zsyz 风格登录 + RGS 5 域联动卡片
+npx playwright test [游戏A]-rgs-login.spec.ts --reporter=line
+# 1 passed (11.1s) — 真实 [游戏A] 风格登录 + RGS 5 域联动卡片
 ```
 
 ## 7. 关键设计决策
@@ -157,7 +157,7 @@ pub async fn healthcheck_all(&self) -> Vec<(String, bool)> {
 - w4 social 域: 93 cmd real handler (mail/leaderboard/guild/friend)
 - w5 admin 域: 192 cmd real handler (GM/welfare/activity/gift)
 
-**业务覆盖率**: 766/766 (100%) — 全量闪烁之光 RPC 业务覆盖完成
+**业务覆盖率**: 766/766 (100%) — 全量[游戏A] RPC 业务覆盖完成
 
 ## 9. 文件清单
 

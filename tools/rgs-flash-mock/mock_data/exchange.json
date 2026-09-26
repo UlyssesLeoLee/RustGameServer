@@ -15,7 +15,7 @@
     "partial_count": 6,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\exchange\\exchange_rpc.erl (3.1KB, handle/3 6 cmds 13401-13419) + exchange.erl (26.5KB, gen_server) + exchange_artifact.erl (6.9KB) + exchange_gift.erl (5.2KB) + exchange_lib.erl (3.8KB)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\exchange\\exchange_rpc.erl (3.1KB, handle/3 6 cmds 13401-13419) + exchange.erl (26.5KB, gen_server) + exchange_artifact.erl (6.9KB) + exchange_gift.erl (5.2KB) + exchange_lib.erl (3.8KB)",
     "rgs_translation": "economy-service ExchangeService trait + ExchangeRepository (sqlx PgExchangeRepo) + exchange_data:get_by_eid/1 Master 1:1 + role_gain:do 扣除积分 + 神秘商店 is_mystery 1 RPC 抽象 (避免 6 变体重复模式, per 借鉴分析 .md §4 #5 反例)",
     "rgs_file_ref": "DDD v0.2 addendum §4.5 + 协议号映射 §2.3 L141 (exchange → EconomyService.ExchangeService, per REQ §2 #25) + exchange_rpc.erl L15-91 (handle/3 6 函数 + 容错匹配)",
     "known_gaps": [
@@ -46,7 +46,7 @@
         "type": 1,
         "buy_count_list": []
       },
-      "rgs_partial_reason": "RGS ExchangeService.GetExchangeDayBuyCount 走 exchange:buy_num_list/2 (per exchange_rpc.erl L15-22), 闪烁之光 走 ets 实时查询, RGS 缺 ExchangeBuyCount Repository, v0.2 sprint 实装",
+      "rgs_partial_reason": "RGS ExchangeService.GetExchangeDayBuyCount 走 exchange:buy_num_list/2 (per exchange_rpc.erl L15-22), [游戏A] 走 ets 实时查询, RGS 缺 ExchangeBuyCount Repository, v0.2 sprint 实装",
       "biz_flow_ref": "exchange_rpc.erl L15-22 (handle/3 13401) + exchange:buy_num_list/2 + var:get_var(?var_day_exchange_half)"
     },
     "13402": {

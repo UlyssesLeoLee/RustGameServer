@@ -13,7 +13,7 @@
     "partial_count": 3,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\login\\conn_login_rpc.erl (9.7KB, handle/3 + check_can_login/3, TCP 握手层)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\login\\conn_login_rpc.erl (9.7KB, handle/3 + check_can_login/3, TCP 握手层)",
     "rgs_translation": "tools/rgs-conn-login-backend/ 新独立 connector service (per DDD v0.1 §3.9 + addendum §4.9), 1 conn 1 conn_session, 5min 过期 ets 模式, RGS 用 Arc<DashMap<Uuid, ConnSession>>",
     "rgs_file_ref": "DDD v0.2 addendum §4.9 L636-652 + common.proto::PlayerId L113-118 (跨服 ID 模式, 需 v0.2 sprint 评估加 server_id 字段 per §11.1)",
     "known_gaps": [
@@ -79,7 +79,7 @@
         "msg": "ok",
         "time_echo": "client_time_passed_through"
       },
-      "rgs_partial_reason": "闪烁之光 实现是 echo time (per L74-75 极简), RGS 需扩为完整 token 校验 + heartbeat session 更新, v0.2 实装",
+      "rgs_partial_reason": "[游戏A] 实现是 echo time (per L74-75 极简), RGS 需扩为完整 token 校验 + heartbeat session 更新, v0.2 实装",
       "biz_flow_ref": "conn_login_rpc.erl L74-75"
     },
     "1199": {

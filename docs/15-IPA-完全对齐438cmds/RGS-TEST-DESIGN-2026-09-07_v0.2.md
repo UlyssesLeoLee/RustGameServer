@@ -72,7 +72,7 @@ per 2026-09-05 06:43 JST 拍板 (depth=opt3) + 2026-09-07 12:30 JST 拍板 (8 �
 | 层级 | 域 | module 数量 | 累计 |
 |---|---|---:|---:|
 | **核心 5 域 (RGS 基础)** | player / economy / match / social / admin | 5 × 3 = 15 | 15 |
-| **NEW 8 域扩展 (per 9/6 闪烁之光兼容)** | scene / battle / network / account + sub8 (8 子系统) | 4 + 8 = 12 | 27 |
+| **NEW 8 域扩展 (per 9/6 [游戏A]兼容)** | scene / battle / network / account + sub8 (8 子系统) | 4 + 8 = 12 | 27 |
 | **batch 域 (per 9/1 batch 4 件套 + 9/2 v0.1 FREEZE)** | rgs-batch-console + rgs-batch-backend | 6 | 33 |
 | **平台层** | shared-platform / cluster-ops / gm-backend / function-plane | 4 × 3 = 12 | 45 |
 | **跨域抽象 module** | saga / outbox / mTLS / RBAC / audit / replay / event-bus | 6 | 51 |
@@ -81,7 +81,7 @@ per 2026-09-05 06:43 JST 拍板 (depth=opt3) + 2026-09-07 12:30 JST 拍板 (8 �
 | **总计** | 13 域 | **60 module** | 60 |
 
 **60 module 维护说明** (v0.1 → v0.2 不变 module 总数,变更内部结构):
-- v0.1 写 "42 module + 18 跨域抽象 = 60 module" (per 闪烁之光 42 modules 兼容)
+- v0.1 写 "42 module + 18 跨域抽象 = 60 module" (per [游戏A] 42 modules 兼容)
 - v0.2 重构为 13 域 × 60 module (5 域 + 8 域扩展 + batch + 平台 + 跨域 + 工具 + plugin)
 - 用例数量维持 ~876 (HP/EC/BV/EX 4 类 × 60 module 平均 15 用例 = 900, 减 module 差异)
 - 8 域扩展 (12 module) 替代 v0.1 的 sub8 占位
@@ -99,12 +99,12 @@ per 2026-09-05 06:43 JST 拍板 (depth=opt3) + 2026-09-07 12:30 JST 拍板 (8 �
 
 ## 3. 业务路径用例模板 (HAPPY PATH, 6-8/module)
 
-每个 module 6-8 用例模板 (per 闪烁之光 5 layer + RGS 13 layer 映射):
+每个 module 6-8 用例模板 (per [游戏A] 5 layer + RGS 13 layer 映射):
 
 ```yaml
 # 模板: 1 module 1 RPC 1 用例
 - module: {module_name}              # e.g. "card.combat" / "batch.cron"
-  protocol_id: {20000-29999}         # 闪烁之光协议号 (per 协议号映射 addendum §5)
+  protocol_id: {20000-29999}         # [游戏A]协议号 (per 协议号映射 addendum §5)
   rgs_rpc: {RGS gRPC method}         # e.g. "CombatService.PrepareCombat" / "BatchService.RunCron"
   rgs_backend: {svc-name:port}       # e.g. "match-service:50053" / "rgs-batch-backend:8790"
 
@@ -151,7 +151,7 @@ per 8/27 11:06 JST 错误码 REDACTED filter + 9/4 REQ/BDD 文档错误码映射
     - input: "服务端内部错"  → code: 500   (INTERNAL)
 ```
 
-**通用错误码 (per 闪烁之光 proto_common + 9/4 错误码映射 addendum)**:
+**通用错误码 (per [游戏A] proto_common + 9/4 错误码映射 addendum)**:
 - 0: OK
 - 1001-1099: 参数 / 校验错
 - 1100-1199: 鉴权 / 权限
@@ -435,7 +435,7 @@ per 8/27 55.26 fail-closed 精神 + 8/27 11:06 JST 凭据硬 ban:
 - `regression-test-exception.sh` (v0.1 设计书新增, 异常路径)
 - **`regression-test-9-domain-mtls.sh`** (v0.2 新增, per 9/6 d270ab9 9 域 mTLS 端到端 v3)
 - **`regression-test-batch-domain.sh`** (v0.2 新增, per 9/1 batch 域 6 module × 15 用例 = 90 用例)
-- **`regression-test-8-domain-extension.sh`** (v0.2 新增, per 9/6 闪烁之光 8 域扩展)
+- **`regression-test-8-domain-extension.sh`** (v0.2 新增, per 9/6 [游戏A] 8 域扩展)
 - **`regression-test-admin-coc.sh`** (v0.2 新增, per 9/5 admin-coc Phase B 7 项 + coc_policy 决策树 3 场景)
 
 ### 8.3 k3s 部署 (per RGS-PLUGIN-APP-ARCH-2026-09-05 v0.1 §2.3 复用 gm-backend + 9/1 envoy 独立 deployment 偏好)

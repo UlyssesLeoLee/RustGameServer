@@ -1,5 +1,5 @@
 // proto-test.js — erlang→rgs 迁移测试
-// 模拟 zsyz_client (per zsyz_server/src/proto/proto_*.erl) 发真实 SmartSocket 帧
+// 模拟 [游戏A]_client (per [游戏A]_server/src/proto/proto_*.erl) 发真实 SmartSocket 帧
 // 验证 rgs-shim-rust 返回的响应跟 Erlang server 格式一致
 // per 2026-09-09 14:51 JST Ulysses 拍板: "前端表现和erlang版本一致的情况下，后端换成rgs"
 
@@ -9,7 +9,7 @@ const HOST = process.argv[2] || '127.0.0.1';
 const PORT = parseInt(process.argv[3] || '9001', 10);
 
 // ============================================================================
-// 协议定义 (per zsyz_server/src/proto/proto_101.erl + proto_102.erl + proto_110.erl)
+// 协议定义 (per [游戏A]_server/src/proto/proto_101.erl + proto_102.erl + proto_110.erl)
 // ============================================================================
 
 // 字符串: | len:u32 BE | bytes (无 null 终止)
@@ -77,7 +77,7 @@ function sendFrame(cmd, payload) {
 }
 
 // ============================================================================
-// 测试用例 — 真实 zsyz_client 字段顺序 (per proto_mate.js + proto_*.erl)
+// 测试用例 — 真实 [游戏A]_client 字段顺序 (per proto_mate.js + proto_*.erl)
 // ============================================================================
 
 const tests = [];
@@ -85,7 +85,7 @@ const results = [];
 
 function test(name, fn) { tests.push({ name, fn }); }
 
-// T1: 10101 register — 真实 zsyz_client 字段 (sex:u8 + name:str + career:i16 + playform:str)
+// T1: 10101 register — 真实 [游戏A]_client 字段 (sex:u8 + name:str + career:i16 + playform:str)
 test('10101 register (per proto_101.erl)', async () => {
   const sex = 1;
   const name = 'TestHero';
@@ -171,7 +171,7 @@ test('10200 map_enter (per proto_102.erl, full 5-field srv)', async () => {
   };
 });
 
-// T5: 10400 heartbeat (shim-internal RGS 5 域 HealthCheck, 不是真 zsyz cmd)
+// T5: 10400 heartbeat (shim-internal RGS 5 域 HealthCheck, 不是真 [游戏A] cmd)
 test('10400 heartbeat (shim-internal, 5 域 RGS HealthCheck)', async () => {
   const r = await sendFrame(10400, Buffer.alloc(0));
   let off = 0;
@@ -239,7 +239,7 @@ test('并发 50 register (压测)', async () => {
 });
 
 // T10: 完整登录流程 (10101 → 10102 → 10200)
-test('完整登录流程 10101 → 10102 → 10200 (模拟 zsyz_client 启动)', async () => {
+test('完整登录流程 10101 → 10102 → 10200 (模拟 [游戏A]_client 启动)', async () => {
   // 10101 register
   const p1 = Buffer.concat([Buffer.from([1]), packString('FlowHero'), Buffer.from([0, 1]), packString('android')]);
   const r1 = await sendFrame(10101, p1);
@@ -270,7 +270,7 @@ test('完整登录流程 10101 → 10102 → 10200 (模拟 zsyz_client 启动)',
 
 // ============================================================================
 // 战斗场景 cmd 测试 (v0.3.2, per 2026-09-09 15:10 JST Ulysses 拍板 "重测直到战斗场景")
-// 来源: zsyz_server/src/proto/proto_102.erl + proto_103.erl
+// 来源: [游戏A]_server/src/proto/proto_102.erl + proto_103.erl
 // ============================================================================
 
 // T11: 10300 ping (空 payload)
@@ -419,8 +419,8 @@ test('战斗场景完整流 (从登录到主城地图移动看其他玩家, 8 �
 // ============================================================================
 async function main() {
   console.log(`proto-test target: ${HOST}:${PORT}`);
-  console.log(`测试协议版本: zsyz_server/src/proto/proto_101.erl + proto_102.erl + proto_110.erl`);
-  console.log(`模拟客户端: zsyz_client (per proto_mate.js 字段顺序)`);
+  console.log(`测试协议版本: [游戏A]_server/src/proto/proto_101.erl + proto_102.erl + proto_110.erl`);
+  console.log(`模拟客户端: [游戏A]_client (per proto_mate.js 字段顺序)`);
   console.log(`shim 行为: rgs-shim-rust v0.3.1 (2026-09-09 14:55 JST)`);
   console.log('');
   console.log('='.repeat(80));
@@ -444,7 +444,7 @@ async function main() {
   console.log(`合计: ${pass}/${tests.length} passed, ${fail} failed`);
   console.log('');
   console.log('迁移结论 (v0.3.2, per 2026-09-09 15:10 JST 拍板 "重测直到战斗场景"):');
-  console.log('  真实 zsyz_client cmd 10 个: 10101 / 10102 / 10103 / 10200 / 10215 / 10300 / 10301 / 10302 / 10309 / 10315');
+  console.log('  真实 [游戏A]_client cmd 10 个: 10101 / 10102 / 10103 / 10200 / 10215 / 10300 / 10301 / 10302 / 10309 / 10315');
   console.log('  shim-internal RGS 测试 cmd 2 个: 10400 / 11001');
   console.log('  业务覆盖率 1.9% (10/514 real cmd) — 战斗场景 6 cmd 全过');
   console.log('  1-2 周 4 worker 扩到 80%+ (per 9/9 13:45 JST 拍板 A)');

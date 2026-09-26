@@ -7,7 +7,7 @@
 | 文档编号 | RGS-BAS-027 |
 | 版本 | 0.1 |
 | 父文档 | RGS-REQ-027 需求定义书（ULYS-27 Phase 2 协议网关双路径：TCP 二进制 + WebSocket）；本设计书**落实** Phase 2 落地而**不新建**独立 ARC |
-| 上游依据 | RGS-REQ-027（协议网关双路径需求，ULYS-27）；RGS-REQ-001 §5.2 IF-001（客户端 ⇔ 网关南北向协议）；RGS-REQ-010 第 7 章 ARC-022（零信任内部网络与纵深防御体系）；ULYS-2.1 P0 任务（闪烁之光 zsyz 客户端 SmartSocket 1:1 协议对齐）；ULYS-2.2 W33（WebSocket 传输层 + FrameRouter trait 抽象） |
+| 上游依据 | RGS-REQ-027（协议网关双路径需求，ULYS-27）；RGS-REQ-001 §5.2 IF-001（客户端 ⇔ 网关南北向协议）；RGS-REQ-010 第 7 章 ARC-022（零信任内部网络与纵深防御体系）；ULYS-2.1 P0 任务（[游戏A] [游戏A] 客户端 SmartSocket 1:1 协议对齐）；ULYS-2.2 W33（WebSocket 传输层 + FrameRouter trait 抽象） |
 | 关联文档 | RGS-BAS-001 §3.3（网络区域设计，南北向 QUIC / HTTPS）；RGS-BAS-006（网络安全基本设计书，含 ARC-022 mTLS/NetworkPolicy）；RGS-BAS-010（设计模式与核心算法总纲，含编解码模式抽象）；RGS-BAS-022（弹性容量规划与超大规模并发架构，含背压与连接上限）；RGS-BAS-038（核心传输防丢包强化与周边协议选型，**功能域并列**——本设计书负责"WebSocket 传输层落地"，RGS-BAS-038 负责"QUIC Datagram 路径 FEC 增强"，二者通过 RGS-BAS-001 §3.3 网络区域串接） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-09-19 |
@@ -30,7 +30,7 @@
 | 角色 | 姓名 | 审批日 | 备注 |
 |---|---|---|---|
 | 制定（起草） | 架构师 | 2026-09-19 | — |
-| 评审（技术） |  |  | 确认 §4 架构总览中 `Arc<dyn FrameRouter>` 抽象与 TCP / WebSocket 双路径的边界划分；确认 §6 WebSocket 传输层握手 HTTP path 校验（404 软失败）与既有 zsyz_client_h5 SmartSocket 客户端 1:1 兼容 |
+| 评审（技术） |  |  | 确认 §4 架构总览中 `Arc<dyn FrameRouter>` 抽象与 TCP / WebSocket 双路径的边界划分；确认 §6 WebSocket 传输层握手 HTTP path 校验（404 软失败）与既有 [游戏A]_client_h5 SmartSocket 客户端 1:1 兼容 |
 | 评审（性能） |  |  | 确认 §6.5 缓冲区上限（`MAX_FRAME_BYTES = 1 MiB`）+ WsConfig.max_connections=256 默认值与 RGS-BAS-022 弹性容量规划（NFR-PE-014 网关 HPA 依连接数扩缩 + NFR-PE-006 带宽预算 8KB/s 均值 / 20KB/s 峰值）一致 |
 | 评审（安全） |  |  | 确认 §7.2 与 RGS-BAS-006 §7A（认证后滥用与崩溃防护）不冲突：WebSocket 路径默认 ON 但仅 `0.0.0.0:8000/websocket` 单路径，不引入绕过 ARC-022 既有 mTLS / NetworkPolicy 的通道（mTLS / wss:// 列为 TBD-NET-W01） |
 | 审批（负责人） |  |  | 本文档基准化；含 ULYS-27 Phase 2 子问题的设计层展开、对 FrameRouter 抽象与 WebSocket 传输层现状的确认 |
@@ -52,12 +52,12 @@
 
 # 1. 前言
 
-本文档是 RGS-REQ-027（协议网关双路径需求，ULYS-27 Phase 2）的系统级基本设计展开。该需求的核心是：在 `crates/network-gateway` 既有 TCP 二进制路径之上**新增** WebSocket 传输层，并抽象出 `FrameRouter` trait 让两条路径共用同一份 dispatcher，从而对齐闪烁之光（zsyz）H5 客户端 `SmartSocket.connect` 默认走 WebSocket 的事实（`ws(s)://host:port/websocket`，binary frame）。
+本文档是 RGS-REQ-027（协议网关双路径需求，ULYS-27 Phase 2）的系统级基本设计展开。该需求的核心是：在 `crates/network-gateway` 既有 TCP 二进制路径之上**新增** WebSocket 传输层，并抽象出 `FrameRouter` trait 让两条路径共用同一份 dispatcher，从而对齐[游戏A]（[游戏A]）H5 客户端 `SmartSocket.connect` 默认走 WebSocket 的事实（`ws(s)://host:port/websocket`，binary frame）。
 
 ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265` merge + `6c3f440e` PR #40 已合并至 `main`），本文档将该落地的设计落到 §4（架构总览）/ §5（TCP 路径参考）/ §6（WebSocket 传输层详细设计）/ §7（与既有架构的整合）四处：
 
 - §4 给出 `Arc<dyn FrameRouter>` 抽象、TCP 与 WebSocket 双路径的边界划分、与既有 RGS-BAS-001 §3.3 网络区域设计的关系；
-- §5 给出 TCP 二进制路径的现状确认（与 zsyz 客户端 SmartSocket 1:1 协议对齐、`tcp::dispatch` 路由决策、默认 OFF 仅 Phase 1 内部测试用）；
+- §5 给出 TCP 二进制路径的现状确认（与 [游戏A] 客户端 SmartSocket 1:1 协议对齐、`tcp::dispatch` 路由决策、默认 OFF 仅 Phase 1 内部测试用）；
 - §6 给出 WebSocket 传输层的完整设计（握手 HTTP path 校验 / 帧循环 / 关闭协议 / 心跳 / 缓冲区上限）；
 - §7 给出与 RGS-BAS-001 §3.3（南北向网络区域）、RGS-BAS-006（ARC-022 mTLS / NetworkPolicy）、RGS-BAS-038（FEC 增强正交）、RGS-BAS-010（设计模式）的整合关系。
 
@@ -71,8 +71,8 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 |---|---|
 | FrameRouter | ULYS-2.2 W33 引入的 trait 抽象（`codec.rs`），作为 TCP 与 WebSocket 两条路径共用 dispatcher 的契约；异步签名 `fn handle(&self, frame: Frame) -> Pin<Box<dyn Future<Output = Bytes> + Send + '_>>`，对象安全（满足 `Arc<dyn FrameRouter>` 要求），要求实现者 `Send + Sync` |
 | RouteTableFrameRouter | FrameRouter 的默认实现（`main.rs` 内 + `ws.rs` 测试用），包装 `Arc<RouteTable> + Arc<GatewayStats>`，内部走 `tcp::dispatch(frame, &routes, &stats)` 的同步路径，外层用 `Box::pin(async move { resp })` 包成 ready future |
-| 闪烁之光（zsyz） | 既有 Erlang 实现的游戏服务端，对应客户端为 `zsyz_client_h5`（H5 / Web 客户端），其 `SmartSocket.connect` 默认走 `ws(s)://host:port/websocket` 路径并以 binary frame 通信 |
-| zsyz wire 帧格式 | `[4B length u32 BE][2B cmd u16 BE][payload TLV]`（per `codec.rs`），与 zsyz_client_h5 `assets/Scripts/sys/game-core-js-min.js` 中 SmartSocket `unpackBuffer` 1:1 对齐；length 字段 = `payload 字节数 + 2`（含 cmd 字段自身 2 字节），length 字段自身占 4B 不算入 length 值 |
+| [游戏A]（[游戏A]） | 既有 Erlang 实现的游戏服务端，对应客户端为 `[游戏A]_client_h5`（H5 / Web 客户端），其 `SmartSocket.connect` 默认走 `ws(s)://host:port/websocket` 路径并以 binary frame 通信 |
+| [游戏A] wire 帧格式 | `[4B length u32 BE][2B cmd u16 BE][payload TLV]`（per `codec.rs`），与 [游戏A]_client_h5 `assets/Scripts/sys/game-core-js-min.js` 中 SmartSocket `unpackBuffer` 1:1 对齐；length 字段 = `payload 字节数 + 2`（含 cmd 字段自身 2 字节），length 字段自身占 4B 不算入 length 值 |
 | TLV | Type-Length-Value 递归编码（`tlv.rs`），共 9 种类型字段（per `FrameError::UnknownTlvType` 范围 1..=9）；payload 内仅含 TLV 字段，不含其他结构 |
 | MAX_FRAME | 单帧 payload + cmd 上限，`1024 * 1024`（1 MiB），超过返回 `FrameError::LengthOverflow`（per `codec.rs`） |
 | MAX_FRAME_BYTES | WebSocket 帧循环中的缓冲区上限，`1024 * 1024`（1 MiB），与 MAX_FRAME 对齐；超出时 drop session 防单边无限增长（per `ws.rs::handle_session`） |
@@ -96,7 +96,7 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 
 | 目标 | 描述 | 父需求 |
 |---|---|---|
-| G-NET-W01 | 在 `crates/network-gateway` 既有 TCP 二进制路径之上**新增** WebSocket 传输层，且与 zsyz_client_h5 客户端 SmartSocket 1:1 兼容（默认路径 `/websocket`，binary frame，与既有 TCP 路径复用同一份 `Arc<dyn FrameRouter>` 抽象） | ULYS-27 Phase 2 任务 brief |
+| G-NET-W01 | 在 `crates/network-gateway` 既有 TCP 二进制路径之上**新增** WebSocket 传输层，且与 [游戏A]_client_h5 客户端 SmartSocket 1:1 兼容（默认路径 `/websocket`，binary frame，与既有 TCP 路径复用同一份 `Arc<dyn FrameRouter>` 抽象） | ULYS-27 Phase 2 任务 brief |
 | G-NET-W02 | TCP 与 WebSocket 双路径**必须**可同时运行（默认 WS 开、TCP 默认 OFF 显式 `RGS_NETWORK_GATEWAY_TCP_ADDR` 才开，per `bin/main.rs` 改动） | ULYS-2.2 W33 |
 | G-NET-W03 | `Arc<dyn FrameRouter>` 抽象**必须**满足对象安全（`Pin<Box<dyn Future>>` + `Send + Sync`），允许 Phase 2 接 5 域 gRPC client 时换实现，ws.rs / tcp.rs 都不动 | ULYS-2.2 W33 + Phase 2 演进 |
 | G-NET-W04 | WebSocket 传输层**不得**阻塞 reactor：单 session 内 `router.handle(frame).await` 是 sync ready future 包装，但通过 `tokio::task::spawn_blocking` offload 避免阻塞（per `codec.rs` FrameRouter 注释） | RGS-BAS-022 NFR-PE-014 |
@@ -110,8 +110,8 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 | 不绕过 ARC-022 既有 mTLS / NetworkPolicy | RGS-BAS-006 §3/§4 / §7A | §6.6 mTLS / wss:// 列为 TBD-NET-W01、§7.2 整合 |
 | 不引入新 ARC | RGS-REQ-027 任务 brief（"不新建独立 ARC"） | §1 范围声明、§7 整合 |
 | 不反转 ARC-013 背压约束 | RGS-BAS-001 §3.3 末段 | §6.5 缓冲区上限、§7.3 整合 |
-| WebSocket 路径默认 ON（对齐 zsyz 客户端默认走 WS） | ULYS-2.2 任务 brief + `bin/main.rs` §W32 fix | §4.2 双路径并发、§6.1 默认配置 |
-| TCP 路径默认 OFF（仅 Phase 1 内部测试用） | ULYS-2.2 任务 brief（"zsyz_client_h5 默认走 WS，老 TCP 仅 Phase 1 内部测试用"） | §4.2 双路径并发、§5.1 默认配置 |
+| WebSocket 路径默认 ON（对齐 [游戏A] 客户端默认走 WS） | ULYS-2.2 任务 brief + `bin/main.rs` §W32 fix | §4.2 双路径并发、§6.1 默认配置 |
+| TCP 路径默认 OFF（仅 Phase 1 内部测试用） | ULYS-2.2 任务 brief（"[游戏A]_client_h5 默认走 WS，老 TCP 仅 Phase 1 内部测试用"） | §4.2 双路径并发、§5.1 默认配置 |
 | 新增功能须含本功能日志设计（debug/release 区分） | RGS-BAS-006 v0.4 总要求 / RGS-IMPL-001 §1.3 | §4.3、§5.4、§6.7 各功能段附"本功能日志设计" |
 
 ## 3.3 本功能日志设计（本节覆盖 §3 设计目标与约束的运行时观察点）
@@ -139,7 +139,7 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 ```mermaid
 flowchart LR
     subgraph Client["客户端"]
-        CApp["zsyz_client_h5<br/>H5 / Web 客户端<br/>SmartSocket"]
+        CApp["[游戏A]_client_h5<br/>H5 / Web 客户端<br/>SmartSocket"]
         CLegacy["旧 TCP 客户端<br/>(Phase 1 内部测试)"]
     end
 
@@ -183,7 +183,7 @@ flowchart LR
 ```
 
 **关键边界**（per ULYS-27 Phase 2 + ULYS-2.2 W33）：
-- **WebSocket 路径默认 ON**（per zsyz_client_h5 客户端默认走 WS），TCP 路径**默认 OFF** 显式 `RGS_NETWORK_GATEWAY_TCP_ADDR` 才开
+- **WebSocket 路径默认 ON**（per [游戏A]_client_h5 客户端默认走 WS），TCP 路径**默认 OFF** 显式 `RGS_NETWORK_GATEWAY_TCP_ADDR` 才开
 - **FrameRouter 是双路径共用 dispatcher**——TCP 路径绕过 trait 直接调 `tcp::dispatch`（sync）；WS 路径通过 `Arc<dyn FrameRouter>` 异步签名调（trait 方法）
 - **默认实现 `RouteTableFrameRouter` 走 sync 路径**（RouteTable 是 sync），用 `Box::pin(async move { resp })` 包成 ready future；Phase 2 接 5 域 gRPC client 时换实现，ws.rs / tcp.rs 都不动
 
@@ -242,7 +242,7 @@ flowchart TB
 |---|---|
 | 监听地址 | 默认 `0.0.0.0:9000`（per `bin/main.rs::TCP_BINARY_ADDR`），可通过 `RGS_NETWORK_GATEWAY_TCP_ADDR` env 覆盖；任务 brief 原值 `127.0.0.1:7001`（per `tcp.rs::DEFAULT_TCP_ADDR`）作为代码常量保留 |
 | 默认开关 | **OFF**（per ULYS-2.2 任务 brief + `bin/main.rs`：仅当 `RGS_NETWORK_GATEWAY_TCP_ADDR` env 显式设才起） |
-| 帧格式 | zsyz wire `[4B length u32 BE][2B cmd u16 BE][payload TLV]`（per `codec.rs`，与 zsyz_client_h5 SmartSocket 1:1 对齐） |
+| 帧格式 | [游戏A] wire `[4B length u32 BE][2B cmd u16 BE][payload TLV]`（per `codec.rs`，与 [游戏A]_client_h5 SmartSocket 1:1 对齐） |
 | dispatcher | **不**走 `Arc<dyn FrameRouter>`，直接调 `tcp::dispatch(frame, &routes, &stats)` 同步路径（per `tcp.rs::handle_conn`） |
 | 响应帧 | `[length u32][cmd u16][payload]`，payload 内部 `[4B rcode u32 BE][...业务 bytes...]`：rcode=0 命中路由，业务数据为 `target_service.target_method` UTF-8；rcode=404 未注册 cmd |
 | 错误处理 | `FrameError` → `build_error_frame(&e)` 回包 + 关闭 socket；其他 IO 错误 → warn 继续 |
@@ -287,7 +287,7 @@ flowchart TB
 
 # 6. WebSocket 传输层设计
 
-> 本节落实 ULYS-27 Phase 2 任务 brief：路径 `/websocket`，端口 8000（对齐原 zsyz_server `web_conn.erl` 8000），帧格式复用 `codec::Frame::decode/encode`，业务 dispatcher 走 `Arc<dyn FrameRouter>`。
+> 本节落实 ULYS-27 Phase 2 任务 brief：路径 `/websocket`，端口 8000（对齐原 [游戏A]_server `web_conn.erl` 8000），帧格式复用 `codec::Frame::decode/encode`，业务 dispatcher 走 `Arc<dyn FrameRouter>`。
 
 ## 6.1 WebSocket 启动配置（per `ws.rs::WsConfig`）
 
@@ -392,7 +392,7 @@ flowchart LR
 >   - Ingress
 >   ingress:
 >   - from:
->     - namespaceSelector: {}      # 集群内任意 namespace（zsyz_client_h5 / other internal clients）
+>     - namespaceSelector: {}      # 集群内任意 namespace（[游戏A]_client_h5 / other internal clients）
 >     - podSelector: {}            # 同 namespace 内其他 pod
 >     ports:
 >     - protocol: TCP
@@ -419,8 +419,8 @@ flowchart LR
 | `ulys27.ws.handshake_complete` | WS handshake 完成（HTTP path 校验通过 + `accept_async` 完成） | 稳态 100/s / 峰值 1000/s | release 必出（`debug!` 编译期常驻） | 含`peer`；约 200B/条 |
 | `ulys27.ws.handshake_failed` | WS handshake 失败（`WsError`） | 异常态 0.1-10/s | release 必出（`warn!` §6.2 强制全采样） | 含`peer`/`error_kind`；约 280B/条 |
 | `ulys27.ws.path_mismatch` | **关键**：HTTP path 不匹配（软失败，不计入 error） | 异常态 0.1-5/s | release 必出（`warn!` §6.2 强制全采样） | 含`peer`/`expected`/`actual`；约 280B/条 |
-| `ulys27.ws.frame_received` | 收到 1 个 zsyz frame（`Frame::decode` 成功） | 稳态 1000/s / 峰值 10000/s | release 必出（`info!` 编译期常驻，但高频路径按 RGS-BAS-006 v0.4 §4.4 评估采样） | 含`cmd`/`payload_bytes`；约 220B/条 |
-| `ulys27.ws.frame_dispatched` | zsyz frame 通过 `router.handle` 完成 | 稳态 1000/s / 峰值 10000/s | release 必出（`info!` 编译期常驻） | 含`cmd`/`rcode`/`dispatch_latency_us`；约 240B/条 |
+| `ulys27.ws.frame_received` | 收到 1 个 [游戏A] frame（`Frame::decode` 成功） | 稳态 1000/s / 峰值 10000/s | release 必出（`info!` 编译期常驻，但高频路径按 RGS-BAS-006 v0.4 §4.4 评估采样） | 含`cmd`/`payload_bytes`；约 220B/条 |
+| `ulys27.ws.frame_dispatched` | [游戏A] frame 通过 `router.handle` 完成 | 稳态 1000/s / 峰值 10000/s | release 必出（`info!` 编译期常驻） | 含`cmd`/`rcode`/`dispatch_latency_us`；约 240B/条 |
 | `ulys27.ws.frame_protocol_error` | **关键**：`FrameError` 协议错误（LengthOverflow / TruncatedField / UnknownTlvType / InvalidUtf8） | 异常态 0.1-10/s | release 必出（`warn!` §6.2 强制全采样） | 含`peer`/`error_kind`/`cmd`（如有）；约 320B/条 |
 | `ulys27.ws.buf_overflow_drop` | **关键**：WS 帧循环缓冲区 > `MAX_FRAME_BYTES`（1 MiB）→ drop session | 极低（应被拒） | release 必出（`warn!` §6.2 强制全采样） | 含`peer`/`buf_len`/`max`；约 280B/条 |
 | `ulys27.ws.close_received` | 客户端主动 `Message::Close` | 稳态 10/s / 峰值 100/s | release 必出（`info!` 编译期常驻） | 含`peer`/`close_frame`；约 240B/条 |
@@ -456,7 +456,7 @@ flowchart LR
 | mTLS / TLS 1.3 | QUIC 内建 TLS 1.3（UDP/7000），gRPC mTLS（东西向） | **当前 WebSocket 明文**（per §6.6 TBD-NET-W01，Phase 2 接 rustls） | 当前 WebSocket 仅内网 / Phase 1 内部测试用；生产部署须通过 rustls 集成 wss://，与 ARC-022 不冲突 |
 | NetworkPolicy 默认拒绝 | RGS-BAS-006 §4 NetworkPolicy 基线模板 | 不变更 | WebSocket 路径仅新增 1 个出/入站方向（TCP/8000），仍走 network-gateway 服务端口，不绕过 NetworkPolicy |
 | 速率限制（认证后滥用） | RGS-BAS-006 §7A.2 多层速率限制（连接/账号/IP 三层） | 不变更 | WebSocket 单 session 受 `WsConfig.max_connections=256` 默认上限约束（per §6.5），与速率限制的"带宽限额"维度互补 |
-| 输入校验 | NFR-SE-006 既有分层校验 + ARC-013 背压 | **新增** HTTP path 校验（per §6.2） + zsyz wire 格式校验（per `FrameError`） | WebSocket 路径的输入校验与既有分层校验正交（HTTP path 在握手阶段，wire 格式在帧循环） |
+| 输入校验 | NFR-SE-006 既有分层校验 + ARC-013 背压 | **新增** HTTP path 校验（per §6.2） + [游戏A] wire 格式校验（per `FrameError`） | WebSocket 路径的输入校验与既有分层校验正交（HTTP path 在握手阶段，wire 格式在帧循环） |
 | QUIC 地址验证 | RGS-BAS-006 §7A 内 Retry 机制 | 不适用（WebSocket 是 TCP/8000，非 QUIC） | WebSocket 地址验证在 TLS 握手层（Phase 2 接 rustls 后） |
 | 崩溃循环退避 | RGS-BAS-006 §7A 末段 | 不变更 | WebSocket listener 失败按 `bin/main.rs` W32 fix 模式 → binary 退出 → k8s restart（与既有崩溃循环退避机制正交） |
 | W32 fix（tokio::join!） | 不在 RGS-BAS-006 范围 | **新增** W32 fix 模式（per `bin/main.rs`）：`tokio::join!` 等 admin+WS 两个长跑 task，web_conn/zone stub 立即返 Ok 不影响 | 旧 binary 是 W7 Phase 1.5 stub：`tokio::select!` 4 task 选最先 return → CrashLoopBackOff 74 次（41h）；W32 fix 用 `join!` 解决，与 ARC-022 崩溃循环退避机制正交 |
@@ -475,7 +475,7 @@ flowchart LR
 
 | 整合点 | 既有 BAS-010 设计 | 本文档扩展 | 不冲突性论证 |
 |---|---|---|---|
-| 编解码模式 | BAS-010 编解码模式章节（含 zsyz wire 编解码抽象） | `codec.rs` Frame 是该模式的具体实例化（per ULYS-2.1 P0 任务落实） | 复用既有抽象，不新增 |
+| 编解码模式 | BAS-010 编解码模式章节（含 [游戏A] wire 编解码抽象） | `codec.rs` Frame 是该模式的具体实例化（per ULYS-2.1 P0 任务落实） | 复用既有抽象，不新增 |
 | Pipeline/Middleware Chain 模式 | BAS-010 §3.4 Pipeline/Middleware Chain | `FrameRouter` trait 是该模式的应用层 dispatcher 实例化 | 复用既有抽象，不新增 |
 | Strategy 模式 | BAS-010 §3.x Strategy（行为模式） | `Arc<dyn FrameRouter>` 通过 trait object 实现 Strategy（默认 `RouteTableFrameRouter` / Phase 2 gRPC client 实现的运行时切换） | 复用既有抽象，不新增 |
 | TLV 递归编码 | 不在 BAS-010 范围 | `tlv.rs` 9 种类型字段（per `FrameError::UnknownTlvType` 范围 1..=9） | tlv.rs 是具体实现，不抽象到 BAS-010 |
@@ -553,7 +553,7 @@ flowchart LR
 | 排除项 | 理由 |
 |---|---|
 | Rust 代码 / SQL migration / Helm/K8s 生产制品 | 违反 RGS-IMPL-001 §1.3（G-CODE-01〜07 未通过） |
-| 整体改用 WebSocket 替代 QUIC | ULYS-27 Phase 2 任务 brief 明确"zsyz_client_h5 默认走 WS"但 QUIC 是核心游戏逻辑主路径（per RGS-BAS-001 §3.3 / RGS-BAS-038 §6.2 L1），二者并存不替代 |
+| 整体改用 WebSocket 替代 QUIC | ULYS-27 Phase 2 任务 brief 明确"[游戏A]_client_h5 默认走 WS"但 QUIC 是核心游戏逻辑主路径（per RGS-BAS-001 §3.3 / RGS-BAS-038 §6.2 L1），二者并存不替代 |
 | 整体改用 KCP 替代 QUIC | 已被 RGS-REQ-038 §4 否决 |
 | 跨 ARC-003 Stream 路径的 WebSocket 扩展 | 违反 ARC-003 Stream 路径承载必达事件的设计 |
 | 引入新传输协议（gRPC-Web / WebTransport 等） | ULYS-27 Phase 2 任务 brief 明确"WebSocket"，不引入新协议 |

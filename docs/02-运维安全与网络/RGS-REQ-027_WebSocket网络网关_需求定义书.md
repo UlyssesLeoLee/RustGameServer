@@ -19,7 +19,7 @@
 
 | 版本 | 修订日 | 修订者 | 审批者 | 修订内容 | 影响需求ID |
 |---|---|---|---|---|---|
-| 0.1 | 2026-09-19 | 架构师 | — | 初版制定。背景：ULYS-27（WebSocket 网络网关）实现代码（`crates/network-gateway/src/ws.rs`，W33 + ULYS-27 Phase 2 共 364 LOC，commit `aca54464` 已合并 PR #40）已落地，Phase 1.5 骨架与 Phase 2 业务 dispatch 均跑通 zsyz_client_h5 E2E，但需求文档侧长期未单独立项，仅在 RGS-REQ-038 §7 周边协议矩阵「WebSocket 行」以合并行形式登记。本文将其升级为独立需求定义书，新增 ARC-048（WebSocket网络网关域），与 ARC-003（QUIC 双路径）/ARC-006（网络安全）/ARC-018（功能挂载）/ARC-047（FEC 增强层）并列。判定：保持现有 `tokio-tungstenite` + 自研二进制帧的实现路径不变；mTLS（wss://）、Origin/Subprotocol 校验、ping/pong 业务心跳、连接 backpressure 计数列为 Phase 2 已落地能力；跨域 saga 推送、流式任务进度（per RGS-REQ-015 F-28 推迟到 v0.2）列为 TBD-NG-001/002。 | 全部 |
+| 0.1 | 2026-09-19 | 架构师 | — | 初版制定。背景：ULYS-27（WebSocket 网络网关）实现代码（`crates/network-gateway/src/ws.rs`，W33 + ULYS-27 Phase 2 共 364 LOC，commit `aca54464` 已合并 PR #40）已落地，Phase 1.5 骨架与 Phase 2 业务 dispatch 均跑通 [游戏A]_client_h5 E2E，但需求文档侧长期未单独立项，仅在 RGS-REQ-038 §7 周边协议矩阵「WebSocket 行」以合并行形式登记。本文将其升级为独立需求定义书，新增 ARC-048（WebSocket网络网关域），与 ARC-003（QUIC 双路径）/ARC-006（网络安全）/ARC-018（功能挂载）/ARC-047（FEC 增强层）并列。判定：保持现有 `tokio-tungstenite` + 自研二进制帧的实现路径不变；mTLS（wss://）、Origin/Subprotocol 校验、ping/pong 业务心跳、连接 backpressure 计数列为 Phase 2 已落地能力；跨域 saga 推送、流式任务进度（per RGS-REQ-015 F-28 推迟到 v0.2）列为 TBD-NG-001/002。 | 全部 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -59,11 +59,11 @@ RGS-REQ-038 §7 FR-NET-007 把客户端⇔网关（实时）的协议选型记�
 | 术语 | 定义 |
 |---|---|
 | WS（WebSocket） | RFC 6455 定义的浏览器/H5/小游戏通用全双工协议，握手为 HTTP Upgrade，传输为 binary/text frame |
-| Frame | `codec::Frame`，wire 格式 `[4B length u32 BE][2B cmd u16 BE][payload TLV]`，与 zsyz_client_h5 SmartSocket 1:1 对齐 |
+| Frame | `codec::Frame`，wire 格式 `[4B length u32 BE][2B cmd u16 BE][payload TLV]`，与 [游戏A]_client_h5 SmartSocket 1:1 对齐 |
 | FrameRouter | `codec::FrameRouter` trait（per ULYS-2.2 W33），让 TCP (`tcp.rs`) 与 WebSocket (`ws.rs`) 共享同一份 dispatcher |
 | WSS | WebSocket over TLS，等价于"HTTP/2 的 HTTPS 用于 WS"，握手阶段走 TLS，路径与 plain WS 一致 |
 | WS_PATH | 网络网关常量 `/websocket`，客户端写死（per `crates/network-gateway/src/ws.rs:44`） |
-| DEFAULT_WS_ADDR | 网络网关默认监听地址 `0.0.0.0:8000`（per `crates/network-gateway/src/ws.rs:41`），对齐 zsyz_server `web_conn.erl` |
+| DEFAULT_WS_ADDR | 网络网关默认监听地址 `0.0.0.0:8000`（per `crates/network-gateway/src/ws.rs:41`），对齐 [游戏A]_server `web_conn.erl` |
 | Backpressure | `WsConfig::max_connections` 限制并发握手数（默认 256），超出后 accept 排队而非无限堆 |
 | Arc-003 既有QUIC双路径 | RGS-REQ-001 §10.4：QUIC Stream（可靠，必达事件 IF-001-2）+ QUIC Datagram（不可靠，高频状态 IF-001-1） |
 
@@ -100,7 +100,7 @@ RGS-REQ-038 §7 FR-NET-007 把客户端⇔网关（实时）的协议选型记�
 | FR-NG-007 | WS 会话**必须**正确响应 Ping frame（自动回 Pong，per `ws.rs:289-295`），收到 Close frame **必须** echo Close 回客户端再退出（per `ws.rs:283-288`）；收到 Text frame **必须** debug-log 后忽略（per `ws.rs:299-302`，任务 brief 仅要求 binary frame） |
 | FR-NG-008 | 业务层心跳**应当**走业务 cmd（当前为 cmd=1199，per `ws.rs:18`），**不得**阻塞 RFC 6455 Ping/Pong 帧处理（Phase 2 §6.3 与 NFR-NG-005 联立校验） |
 | FR-NG-009 | 连接级 backpressure **必须**由 `WsConfig::max_connections` 控制（per `ws.rs:55-69`，默认 256），达到上限**必须**走 accept 排队而非无限 spawn；0 表示无上限（仅在受控环境使用，生产**不得**置 0） |
-| FR-NG-010 | WS 启动**必须**接受配置化绑定（`WsConfig { bind_addr, path, max_connections }`，per `ws.rs:50-69`），`bind_addr` 默认 `0.0.0.0:8000`（per `ws.rs:41`），允许环境变量覆盖但**不得**改 `WS_PATH` 字面量（与 zsyz_client_h5 SDK 写死一致） |
+| FR-NG-010 | WS 启动**必须**接受配置化绑定（`WsConfig { bind_addr, path, max_connections }`，per `ws.rs:50-69`），`bind_addr` 默认 `0.0.0.0:8000`（per `ws.rs:41`），允许环境变量覆盖但**不得**改 `WS_PATH` 字面量（与 [游戏A]_client_h5 SDK 写死一致） |
 
 ## 6. 非功能需求
 
@@ -109,7 +109,7 @@ RGS-REQ-038 §7 FR-NET-007 把客户端⇔网关（实时）的协议选型记�
 | NFR-NG-001 | WS 握手 p99 延迟**必须** `<50ms`（本地 loopback 基准）；不允许因握手逻辑（路径校验 + accept_hdr_async）退化到 100ms+ 区间 |
 | NFR-NG-002 | 单帧解码（`Frame::decode` + 业务 dispatch + 回包写）p99 延迟**必须** `<10ms`（per NFR-PE-004 输入→ACK p99<100ms 既有预算，WS 仅占其中 10% 上限） |
 | NFR-NG-003 | mTLS（`wss://`）**必须**支持且**必须**复用 `rgs-certgen`（per RGS-REQ-038 §11 RSK-NET-001）颁发的服务端证书链，握手阶段 `ServerName` SNI 与证书 SAN 校验**不得**关闭；Phase 2 接 rustls（per `ws.rs:16` 缺口登记），deadline 见 TBD-NG-003 |
-| NFR-NG-004 | Origin / `Sec-WebSocket-Protocol` 校验**应当**在 Phase 2 启用（per `ws.rs:15` 缺口登记），允许 Origin 白名单配置（默认拒绝跨源）；`Sec-WebSocket-Protocol` 协商**应当**支持 `zsyz.v1` 子协议以匹配 zsyz_client_h5 SDK 默认请求 |
+| NFR-NG-004 | Origin / `Sec-WebSocket-Protocol` 校验**应当**在 Phase 2 启用（per `ws.rs:15` 缺口登记），允许 Origin 白名单配置（默认拒绝跨源）；`Sec-WebSocket-Protocol` 协商**应当**支持 `[游戏A].v1` 子协议以匹配 [游戏A]_client_h5 SDK 默认请求 |
 | NFR-NG-005 | 连接活性可观测性**必须**双轨：(a) 业务 cmd=1199 心跳（per FR-NG-008），(b) RFC 6455 Ping/Pong 帧率（per FR-NG-007）；任一缺失均**不得**作为上线门槛，但**必须**在 Prometheus 暴露 `ws_active_connections`、`ws_handshakes_total`、`ws_sessions_dropped_total`（per `crates/network-gateway/src/stats.rs`） |
 | NFR-NG-006 | WS 路径**不得**引入新出/入站方向（与 RGS-BAS-006 §4 NetworkPolicy 默认拒绝一致），端口 8000 仍由 NetworkPolicy `allow-network-gateway` Ingress 规则管控，**不**变更策略 ID |
 
@@ -122,7 +122,7 @@ RGS-REQ-038 §7 FR-NET-007 把客户端⇔网关（实时）的协议选型记�
 | 否决方案1 | 客户端直接接 QUIC Datagram + WebTransport over HTTP/3。否决理由：浏览器侧 WebTransport 仍处实验阶段（Chromium 97+ 默认开启但 Firefox/Safari 仍需 flags），NAT 穿透与中间盒识别为"未知 UDP"丢包率高于 WS；SDK 接入成本上升 5-10 倍。详见 §4 第 1-2 点 |
 | 否决方案2 | 客户端接 WebTransport + 在网关侧重启一条 QUIC Stream 透传。否决理由：违反 ARC-003 的"Stream 路径仅用于网关⇔服务"分工，引入跨边界协议转换的额外延迟（实测 +5-15ms p50），且 `rgs-certgen` 与 `rustls` 现有链路无法直接复用 |
 | 候选实现 | ①当前已落地的 `tokio-tungstenite` 0.24 + 自研 `PathCheck` Callback（per `ws.rs:170-190`），无 `RustlsAcceptor` 依赖用于 plain ws；Phase 2 接 rustls 加 `wss://` 路径。两者均经 ARC-014 判定，`tokio-tungstenite` 已在 W33 引入 |
-| 不变更范围 | ARC-003 QUIC 双路径**不变更**；TCP `tcp.rs` dispatcher **不变更**；`codec::Frame::decode/encode` wire 格式**不变更**；客户端 SDK（zsyz_client_h5）路径字面量**不变更**；ARC-047 FEC 增强层**不变更** |
+| 不变更范围 | ARC-003 QUIC 双路径**不变更**；TCP `tcp.rs` dispatcher **不变更**；`codec::Frame::decode/encode` wire 格式**不变更**；客户端 SDK（[游戏A]_client_h5）路径字面量**不变更**；ARC-047 FEC 增强层**不变更** |
 
 ## 8. 与既有 RGS-REQ-038 §7 周边协议矩阵的关系
 
@@ -148,7 +148,7 @@ RGS-REQ-038 §7 FR-NET-007 当前登记为：
 | ID | 验收标准 |
 |---|---|
 | AC-NG-001 | 路径校验：HTTP GET `/` / `/api/foo` 等非 `/websocket` 路径返回 404，**不**触发 WS 握手；`/websocket` 路径触发完整握手并进入帧循环（per FR-NG-001/002、`ws_smoke.rs` 已覆盖） |
-| AC-NG-002 | 二进制帧 roundtrip：客户端发 `Message::Binary(frame_bytes)`，网关通过 `Frame::decode` → `RouteTableFrameRouter.handle` → `Frame::encode` 回 `Message::Binary(resp_bytes)`，cmd 与 payload 字段按 wire 格式 1:1 对齐 zsyz_client_h5 SmartSocket |
+| AC-NG-002 | 二进制帧 roundtrip：客户端发 `Message::Binary(frame_bytes)`，网关通过 `Frame::decode` → `RouteTableFrameRouter.handle` → `Frame::encode` 回 `Message::Binary(resp_bytes)`，cmd 与 payload 字段按 wire 格式 1:1 对齐 [游戏A]_client_h5 SmartSocket |
 | AC-NG-003 | 粘包/半包：单 WS message 含多个 frame 时全部解出（per FR-NG-003 + `ws.rs:245-275` 循环 decode），半包时等下个 WS message 继续 decode |
 | AC-NG-004 | 帧长度溢出：`length > MAX_FRAME (1 MiB)` → `Message::Close(None)` + `stats.inc_failed()`，**不**回 5xx、**不**回部分 frame |
 | AC-NG-005 | 并发握手：256 并发 WS 握手在 `WsConfig { max_connections: 256 }` 下全部成功；257 并发时第 257 个进入 accept 排队（不丢弃、不 panic），握手排队 p99 < 200ms |

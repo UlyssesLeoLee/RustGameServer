@@ -14,7 +14,7 @@
     "not_implemented_count": 1,
     "not_applicable_count": 0,
     "audit_finding": "social 域 GuildService gRPC 4/6 handler 未 wire (per RGS-DDD-GAP-AUDIT v0.3 §3.4 D1 P1),leave_guild 3 步写裸 await 无事务 (A1 P1)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild\\guild.erl (10KB, gen_server + ets 缓存 + 50-100ms 随机 loop)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\guild\\guild.erl (10KB, gen_server + ets 缓存 + 50-100ms 随机 loop)",
     "rgs_translation": "social-service GuildService trait + sqlx PgGuildRepository + DashMap<i64, mpsc::Sender> pid 路由 + 50ms tokio::time::interval",
     "rgs_file_ref": "crates/social-service/src/service.rs:36KB + repository.rs:17KB + entity.rs:8.3KB"
   },

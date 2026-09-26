@@ -14,7 +14,7 @@
     "not_implemented_count": 4,
     "not_applicable_count": 0,
     "audit_finding": "player 域 0/4 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 AvatarService 实体 + avatar_frames Master + avatar_frame_bonuses Master + avatar_frame_activations Transaction + DB 三分类 schema, W15 落地",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\avatar\\avatar_rpc.erl (1.4KB, handle/3 4 cmds 21500/21501/21503/21504) + avatar.erl (16.6KB, 16 exports: init/login/frames/use/activate/add/check/del/init_frame/make_avatar/set_timer/sync/update/log + gm_activate/2)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\avatar\\avatar_rpc.erl (1.4KB, handle/3 4 cmds 21500/21501/21503/21504) + avatar.erl (16.6KB, 16 exports: init/login/frames/use/activate/add/check/del/init_frame/make_avatar/set_timer/sync/update/log + gm_activate/2)",
     "rgs_translation": "PlayerService.AvatarService (新), 1 player 1 tokio actor task, AvatarFrameRepository (sqlx) + AvatarFrameBonusRepository + AvatarFrameActivationRepository, mpsc::Sender<AvatarCommand>, 14s timer 翻译 (avatar.erl set_timer/1, per L addendum 推测 L33 4 周期 14s = 14*1000ms 定时器超时检测)",
     "rgs_file_ref": "DDD v0.2 addendum §5.28 L984-993 (协议号映射 4 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §6.5 typed struct 字段 (avatar.erl 进程字典 → RoleState.m_avatar: MAvatar 字段)",
     "known_gaps": [

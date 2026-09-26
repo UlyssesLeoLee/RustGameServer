@@ -14,7 +14,7 @@
     "not_implemented_count": 4,
     "not_applicable_count": 0,
     "audit_finding": "social 域 GuildSkillService gRPC 0/4 wire (per audit v0.3 §3.4), 30 新 module 阶段, 待 W11 补, 业务最简单 (4 cmds)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild_skill\\guild_skill.erl (14.8KB gen_server + ets 缓存) + guild_skill_rpc.erl (1.3KB handle/3 4 RPC)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\guild_skill\\guild_skill.erl (14.8KB gen_server + ets 缓存) + guild_skill_rpc.erl (1.3KB handle/3 4 RPC)",
     "rgs_translation": "social-service GuildSkillService (新) + sqlx PgGuildSkillRepository + Career enum (5 careers) + SkillGroup enum (4 groups) + guild_skill:info/activate/outline 3 业务函数 1:1 翻译",
     "rgs_file_ref": "RGS-DDD v0.2 addendum §5.29 1:1 映射 + §6.2 30 新 module #17 落地 W11",
     "known_gaps": [

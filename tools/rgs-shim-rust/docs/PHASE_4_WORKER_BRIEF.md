@@ -24,8 +24,8 @@ Start-Process D:\RustGameServer\target\shim-w<N>\release\rgs-shim.exe
 ## 2. 任务协议 (per worker)
 
 ### 2.1 cmd 来源
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_client_h5\temp\quick-scripts\src\assets\Scripts\net\proto_mate.js` (H5 客户端字段顺序)
-- `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\proto\proto_<N>.erl` (Erlang 服务端字段定义, 43 文件)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_client_h5\temp\quick-scripts\src\assets\Scripts\net\proto_mate.js` (H5 客户端字段顺序)
+- `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\proto\proto_<N>.erl` (Erlang 服务端字段定义, 43 文件)
 - `D:\RustGameServer\tools\rgs-shim-rust\src\handlers.rs` (现有 10 real handler 作参考)
 
 ### 2.2 实现流程
@@ -148,8 +148,8 @@ expect(r.payload).toMatch(...);  // 字段检查
 
 | 缺 | 状态 | 备注 |
 |----|------|------|
-| 10400/11001 真 zsyz cmd | 不是真 zsyz cmd, 是 shim-internal | 10400=quest_list, 11001=partner_list per Erlang |
+| 10400/11001 真 [游戏A] cmd | 不是真 [游戏A] cmd, 是 shim-internal | 10400=quest_list, 11001=partner_list per Erlang |
 | 758 cmd stub | 756/758 已 stub, 2 跟 real 重叠 (10400/11001) | 后续 worker 扩时跳过 |
-| H5 binary 缺 | 需 Cocos Creator 2.3.2 build (1-2h) | 阻塞 zsyz_client 真实渲染测试 |
+| H5 binary 缺 | 需 Cocos Creator 2.3.2 build (1-2h) | 阻塞 [游戏A]_client 真实渲染测试 |
 
 代签: Mavis 默认代签 Ulysses (per 8/27 三次强化 + 9/8 15:19 第 6/7 次强化)

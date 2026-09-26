@@ -42,11 +42,11 @@
 
 ### 0.3 关键发现 (执行前必读, per 8/26 JST 缺标比错标)
 
-1. **6 Partial 全部 Partial 状态, 0 PASS**: RGS backend 7 域已实装相关 service, 但 闪烁之光 协议层字段映射待 v0.2+ sprint 详细 1:1 验证 (per protocol mapping addendum §3 抽样 10 个 .erl)。这是 W2 Phase 2 的 gap matrix 验证**预期结果**, 不代表 RGS 业务缺失。
-2. **125 cmds 抽样 1:1 映射, 32 cmds 描述空待 v0.2 sprint 详细化**: per api_module_summary.txt 闪烁之光 5 域 描述空 cmds, 推测功能 + 标 "(描述空,推测)"。
+1. **6 Partial 全部 Partial 状态, 0 PASS**: RGS backend 7 域已实装相关 service, 但 [游戏A] 协议层字段映射待 v0.2+ sprint 详细 1:1 验证 (per protocol mapping addendum §3 抽样 10 个 .erl)。这是 W2 Phase 2 的 gap matrix 验证**预期结果**, 不代表 RGS 业务缺失。
+2. **125 cmds 抽样 1:1 映射, 32 cmds 描述空待 v0.2 sprint 详细化**: per api_module_summary.txt [游戏A] 5 域 描述空 cmds, 推测功能 + 标 "(描述空,推测)"。
 3. **2 NotImplemented 命中** (per 12-大类-RPC-清单 §15.7): guild 13573 红点 + market 23516 批量价格查询, RGS 缺对应接口, 需 v0.2+ sprint 补。
 4. **A1 P1 反模式 1 处** (per audit v0.3 §3.4): guild 13514 leave_guild 3 步写裸 await 无事务, RGS 需补 transaction 包装。
-5. **RGS proto 命名约定统一** (per protocol mapping addendum §4.3): snake_case 协议描述 → PascalCase RPC, 7 域 service 路由, 闪烁之光 i18n msg 字符串 → RGS ErrorCode enum 转换。
+5. **RGS proto 命名约定统一** (per protocol mapping addendum §4.3): snake_case 协议描述 → PascalCase RPC, 7 域 service 路由, [游戏A] i18n msg 字符串 → RGS ErrorCode enum 转换。
 6. **DB 三分类横展** (per 9/1 18:30 JST): 6 Partial 业务全显式 Master/Transaction/Work 三分类 (combat/arena/role → Master, market/guild → Transaction, misc → Master + Work)。
 7. **envoy 独立 deployment 偏好保留** (per 9/1 13:03/13:05 JST): rgs-flash-mock 仍走独立 deployment + ClusterIP service 模式 (per 设计 doc §5.6)。
 8. **跨工具链决策前 grep ✅** (per AGENTS.md §2.3 L3): actix-web 4 + tonic 0.12 + sqlx 0.8 + rustls + tracing 都在 workspace 依赖内 (per Cargo.toml), 无新依赖引入。
@@ -58,7 +58,7 @@
 本报告是 W2 启动 worker-1 (per 9/4 17:39-17:44 JST W2 启动 option A + 派工模式 option B) 的交付物, 验证 6 Partial module (combat / guild / arena / role / market / misc) 在 RGS 5 域 + card + gm-backend 7 域 backend 的 gap matrix 覆盖率。
 
 **核心方法**: 
-- 抽样 read 闪烁之光 6 文件 (combat.erl 56.8KB + guild.erl 10KB + arena.erl 27.7KB + role.erl 33.1KB + market.erl 4.4KB + misc.erl 19KB), 1:1 逆推到 RGS Rust 设计
+- 抽样 read [游戏A] 6 文件 (combat.erl 56.8KB + guild.erl 10KB + arena.erl 27.7KB + role.erl 33.1KB + market.erl 4.4KB + misc.erl 19KB), 1:1 逆推到 RGS Rust 设计
 - 抽取 6 Partial 全部 157 cmds (per api_module_summary.txt + protocol mapping addendum §5), 1:1 映射到 RGS 7 域 service
 - 写 6 mock.json data file (51.2KB 总), 含 _module_meta + rpcs dict + mock_response schema, 供 v0.2 sprint 接 gRPC client 时复用
 - append 12-大类-RPC-清单.md §15 8 段 (40.5KB 总), 含 125 cmds gap matrix row + 已知缺口 + 统计表
@@ -142,11 +142,11 @@
 
 ---
 
-## 4. 6 Partial 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 4. 6 Partial 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 4.1 combat (43 cmds, 20000-20063) — match CombatService + PveService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 20001 | 准备 | `PrepareCombat(combat_type, combat_map)` | 🟡 Partial | match v2 CreateMatch 入口 |
 | 20005 | 战斗播放完了 | `FinishCombatPlay()` | 🟡 Partial | match v2 in_play → in_end 转移 |
@@ -174,7 +174,7 @@
 
 ### 4.2 guild (29 cmds, 13500-13574) — social GuildService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 13500 | 创建联盟 | `CreateGuild(name, sign, apply_type, apply_lev)` | 🟡 Partial | social GuildService::create_guild |
 | 13501 | 获取联盟列表 | `ListGuilds(page, flag, num, name)` | 🟡 Partial | social GuildService::list_guilds |
@@ -209,7 +209,7 @@
 
 ### 4.3 arena (26 cmds, 20200-20281) — match ArenaService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 20200 | 个人信息(主赛) | `GetArenaState(arena_type=Main)` | 🟡 Partial | match v2 ArenaService 入口 |
 | 20201 | 挑战列表(主赛) | `ListChallengeTargets(arena_type=Main)` | 🟡 Partial | match v2 6 变体抽取 (主赛) |
@@ -231,7 +231,7 @@
 
 ### 4.4 role (21 cmds, 10300-10399) — player PlayerService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 10300 | 客户端完成基础资源加载 | `CompleteResourceLoading()` | 🟡 Partial | player PlayerService::resource_loaded |
 | 10301 | 角色基本信息 | `GetPlayerBasicInfo()` | 🟡 Partial | player PlayerService::get_player |
@@ -250,7 +250,7 @@
 
 ### 4.5 market (19 cmds, 23500-23520) — economy MarketService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 23500-23502 | 金币仙市 (3 cmds) | `GetGoldMarketCategory/Buy/Sell` | 🟡 Partial | economy MarketService::gold_* |
 | 23504 | 摆摊上架 | `ListOnStall(package_type, item_id, num, percent, cell_id)` | 🟡 Partial | economy MarketService::list (摊位 cell 模式) |
@@ -262,7 +262,7 @@
 
 ### 4.6 misc (19 cmds, 10900-10999 + 16800-16801) — admin AdminService
 
-| 闪烁之光 cmd | 闪烁之光 RPC | RGS RPC | gap 状态 | RGS 业务映射 |
+| [游戏A] cmd | [游戏A] RPC | RGS RPC | gap 状态 | RGS 业务映射 |
 |---:|---|---|---|---|
 | 10900-10902 | GM 封号/禁言/踢人 | `BanAccount/MutePlayer/KickPlayer` | 🟡 Partial | admin AdminService::gm_* (RBAC) |
 | 10922-10925 | 活动状态 (4 cmds) | `GetAllActivitiesStatus/GetActivityStatus/GetPersonal*` | 🟡 Partial | admin + batch batch_backend cross |
@@ -285,7 +285,7 @@
 4. **guild 1 NotImplemented (13573 红点)**: RGS 缺红点 push_delivery 模式, 需 v0.2+ sprint 补
 5. **market 1 NotImplemented (23516 批量价格)**: RGS 缺批量价格查询接口, 需 v0.2+ sprint 补
 6. **market_gold.erl (52KB) + market_silver.erl (122KB) 未抽样** (per v0.2-1 §10.1): 总 174KB 业务逻辑未逆推, 待 v0.2 sprint 抽样补全
-7. **闪烁之光 协议 schema push 7 域未实装** (per audit v0.3 §7.2 P2 backlog): 框架原则 #4, 跟 RGS-SPEC-CROSS-002 v0.2 升版联动
+7. **[游戏A] 协议 schema push 7 域未实装** (per audit v0.3 §7.2 P2 backlog): 框架原则 #4, 跟 RGS-SPEC-CROSS-002 v0.2 升版联动
 8. **跨服 srv_id 字符串**: RGS 缺显式 server_id 字段 (per protocol mapping addendum §3.2.3), 待 v0.2 sprint 评估是否加
 
 ### 5.2 反模式命中 (per audit v0.3 + protocol mapping addendum)
@@ -390,7 +390,7 @@ cargo check 2>&1 | Select-Object -Last 5
 | 风险 | 严重度 | 缓解 |
 |---|---|---|
 | 6 Partial 业务跨域 (combat + arena 都走 match) | P1 | 已拆 6 独立 handler, 不引入新域 |
-| 闪烁之光 协议 schema push 未实装 | P2 (per audit v0.3 §7.2) | 跟 RGS-SPEC-CROSS-002 v0.2 升版联动, mock stub 模式不阻塞 |
+| [游戏A] 协议 schema push 未实装 | P2 (per audit v0.3 §7.2) | 跟 RGS-SPEC-CROSS-002 v0.2 升版联动, mock stub 模式不阻塞 |
 | 业务层 12 大类 90% RGS TCG 不适用 (per handoff v0.1 §1) | P1 | mock N-A 状态 + gap matrix 报告, 不假装覆盖 |
 | mock 单点故障影响 RGS backend 验证 | P2 | mTLS fail-closed + health/ready endpoint + k3s 1 replica + 监控 alert (per 设计 doc §7) |
 | env value 凭据泄露 (per 8/27 11:06 JST 硬 ban) | P1 | REDACTED filter + 0 env value 出现 + 凭据走 env var 不打印 |
@@ -409,17 +409,17 @@ cargo check 2>&1 | Select-Object -Last 5
 
 ### 9.2 v0.2+ 详细化 (per protocol mapping addendum §3.3 + §5.1-§5.8)
 
-- 抽样 read 闪烁之光 10+ 关键 .erl (proto_200/110/135/206/235/133/108/168/11/101) 验证 协议 schema
-- 闪烁之光 实际 pack/unpack tuple 字段顺序验证 (per §3.2.1 通用 wire 格式)
-- 闪烁之光 i18n msg 字符串 → RGS ErrorCode enum 转换规则 (per §3.2.2)
+- 抽样 read [游戏A] 10+ 关键 .erl (proto_200/110/135/206/235/133/108/168/11/101) 验证 协议 schema
+- [游戏A] 实际 pack/unpack tuple 字段顺序验证 (per §3.2.1 通用 wire 格式)
+- [游戏A] i18n msg 字符串 → RGS ErrorCode enum 转换规则 (per §3.2.2)
 - 跨服 srv_id 字符串 → RGS PlayerId.server_id 字段 (per §3.2.3) 评估是否加
 
 ### 9.3 长期 (W4-W25, per 设计 doc §1.2 + §6.4)
 
 - 渐进式补完 18-20 long tail (guild_shipping/guild_dun/guild_skill/formation/say/map/vip/convert/exchange/avatar/charge/honor/power_gift/lev_gift/login_days/checkin/feat/days_rank) = 218 cmds
 - 总 25 sprint / 50 周 / 2-3M tokens / 30 新 module 业务完善
-- gRPC server front (兼容 闪烁之光 现代客户端)
-- WebSocket 适配 (兼容老 闪烁之光 Flash socket 客户端)
+- gRPC server front (兼容 [游戏A] 现代客户端)
+- WebSocket 适配 (兼容老 [游戏A] Flash socket 客户端)
 - SQLite 持久化 gap matrix + Prometheus metrics
 - 性能 baseline 测试 (跟 Erlang server 同 client P50/P95/P99 对比, 待 Phase C 后)
 
@@ -456,7 +456,7 @@ cargo check 2>&1 | Select-Object -Last 5
 
 - §5 已知缺口 5 段 (报告/框架/数据/业务/治理) 全部显式列出
 - 32 cmds 描述空标 "(推测)" 不假装覆盖
-- 闪烁之光 6 .erl 抽样已知 (combat/role/guild/arena/market + partner 估), 但 market_gold/market_silver 174KB 未抽样明示
+- [游戏A] 6 .erl 抽样已知 (combat/role/guild/arena/market + partner 估), 但 market_gold/market_silver 174KB 未抽样明示
 - 2 NotImplemented 命中 (guild 13573 + market 23516) 显式标注
 
 ---

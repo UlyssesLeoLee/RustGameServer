@@ -11,16 +11,16 @@
 //!    web_conn/zone stub 立即返 Ok 不影响 (join! 等全部完成, 但 admin+WS 永不返)
 //! 2. ADMIN_GRPC_ADDR 改 0.0.0.0:50090 (pod 内部 127.0.0.1 也能用, 但
 //!    接受外部 svc 流量 + 跟 yaml env RGS_NETWORK_GATEWAY_ADMIN_GRPC_ADDR 对齐)
-//! 3. WS 路径默认 ON @ 0.0.0.0:8000 (per ULYS-2.2 任务 B, 对齐 zsyz_server web_conn.erl)
+//! 3. WS 路径默认 ON @ 0.0.0.0:8000 (per ULYS-2.2 任务 B, 对齐 [游戏A]_server web_conn.erl)
 //! 4. TCP 路径默认 OFF (per ULYS-2.2: 仅当 RGS_NETWORK_GATEWAY_TCP_ADDR 显式设才起)
 //! 5. 加 tracing 阶段 marker (W32 fix: 改 select! → join!, 0ms exit 修)
 //!
 //! ## ULYS-2.2 (W33) WS 路径分流
-//! - 默认 on: 0.0.0.0:8000 路径 /websocket (per zsyz_client_h5 SmartSocket.connect)
+//! - 默认 on: 0.0.0.0:8000 路径 /websocket (per [游戏A]_client_h5 SmartSocket.connect)
 //! - WS 业务 dispatcher 走 `Arc<dyn FrameRouter>` 抽象 (per codec.rs), 默认
 //!   `RouteTableFrameRouter` 包 `RouteTable + GatewayStats` (沿用 tcp::dispatch)
 //! - TCP 路径保留 (走老 sync dispatch), 但默认 OFF, 显式设 env 才开
-//!   (理由: zsyz_client_h5 默认走 WS, 老 TCP 仅 Phase 1 内部测试用)
+//!   (理由: [游戏A]_client_h5 默认走 WS, 老 TCP 仅 Phase 1 内部测试用)
 //!
 //! 不动: 5 域 / batch / battle / scene / cluster_ops / 8 子系统 / 平台 / 工具
 //!       (per W32 任务 brief "不动" §).
@@ -50,7 +50,7 @@ use tracing::{info, warn};
 /// 跟 yaml env `RGS_NETWORK_GATEWAY_ADMIN_GRPC_ADDR=0.0.0.0:50090` 对齐
 pub const ADMIN_GRPC_ADDR: &str = "0.0.0.0:50090";
 
-/// WS 监听地址 (per ULYS-2.2: 对齐 zsyz_server web_conn.erl:8000)
+/// WS 监听地址 (per ULYS-2.2: 对齐 [游戏A]_server web_conn.erl:8000)
 /// 跟 yaml env `RGS_NETWORK_GATEWAY_WS_ADDR` 对齐
 pub const WS_DEFAULT_ADDR: &str = "0.0.0.0:8000";
 

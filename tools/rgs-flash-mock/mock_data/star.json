@@ -14,7 +14,7 @@
     "not_implemented_count": 20,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.6 L605-630), RGS player-service StarService 当前 0 实装,需 v0.2+ sprint 补; 业务含 星命套装/羁绊/命格/升星/突破/星命塔/占卜 7 大类; star.erl 14KB + star_tower.erl 11KB + star_natal.erl 14KB + star_divination.erl 9KB 总 50KB+ 业务逻辑; 跨域依赖 combat (战斗 FSM 星命塔) + card (伙伴羁绊) + leaderboard (塔排行) + economy (占卜奖励)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\star\\star_rpc.erl (5.3KB, 20 cmds 11300-11333) + star.erl (14.3KB, 星命主逻辑) + star_tower.erl (11.3KB, 星命塔) + star_tower_mgr.erl (6KB, 塔管理 ets) + star_natal.erl (14.6KB, 命格装备/升星/突破) + star_divination.erl (9.9KB, 占卜)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\star\\star_rpc.erl (5.3KB, 20 cmds 11300-11333) + star.erl (14.3KB, 星命主逻辑) + star_tower.erl (11.3KB, 星命塔) + star_tower_mgr.erl (6KB, 塔管理 ets) + star_natal.erl (14.6KB, 命格装备/升星/突破) + star_divination.erl (9.9KB, 占卜)",
     "rgs_translation": "player-service StarService trait + PgStarConfigRepository (Master 星命配置) + PlayerStarRepository (Transaction 玩家星命数据 m_star record 20+ 字段) + StarTowerRepository (Transaction 塔通关记录) + StarReplayRepository (Transaction 录像) + DashMap<i32, StarSet> 羁绊 + match v2 CreateMatch 战斗 FSM 星命塔 + card 域 PartnerService 羁绊伙伴 + leaderboard redis sorted set 塔排行 + economy outbox 占卜奖励",
     "rgs_file_ref": "crates/player-service/src/star_service.rs (待 v0.2 sprint 新建) + crates/card-service/src/partner_service.rs (羁绊伙伴) + crates/match-service/src/star_tower.rs (待 v0.2 sprint 新建, 战斗 FSM 扩展) + crates/leaderboard-service/src/redis_set.rs (塔排行) + crates/economy-service/src/saga_orchestrator.rs (占卜奖励)",
     "known_gaps": [

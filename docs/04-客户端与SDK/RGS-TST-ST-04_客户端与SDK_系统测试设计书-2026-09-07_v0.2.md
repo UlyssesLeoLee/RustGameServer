@@ -256,7 +256,7 @@ TL-6/TL-7/TL-8 层级，验证客户端 SDK 三引擎一致性与资源分发端
 
 ## 3.6 ST 特定增量: 8 域扩展 (scene/battle/network/account/sub8) + 9 域 mTLS 业务级 (v0.2 新增)
 
-per 9/6 闪烁之光 8 域扩展 (NEW 8 域) + 9/6 d270ab9 9 域 mTLS 业务级 11 步 v3:
+per 9/6 [游戏A] 8 域扩展 (NEW 8 域) + 9/6 d270ab9 9 域 mTLS 业务级 11 步 v3:
 
 | 用例 ID | 试验级别 | 场景 | 测试目的 | evidence |
 | --- | --- | --- | --- | --- |

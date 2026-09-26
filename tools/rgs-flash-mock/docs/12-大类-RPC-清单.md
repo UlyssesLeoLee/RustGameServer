@@ -1,6 +1,6 @@
 # 12 大类 RPC 清单 (v0.1 抽样 22 RPC, 待 v0.2+ 渐进式补完 1351)
 
-> **来源**: 闪烁之光 借鉴分析 .md §0-§2 (12 大类 1351 RPC, 跨盘 `E:\BaiduNetdiskDownload\闪烁之光\server分析\分析产出\API清单-*.tsv`)
+> **来源**: [游戏A] 借鉴分析 .md §0-§2 (12 大类 1351 RPC, 跨盘 `E:\[跨盘-某发行商目录]\[游戏A]\server分析\分析产出\API清单-*.tsv`)
 > **v0.1**: 12 大类抽样 22 RPC, 1-2 RPC per 类别
 > **v0.2+**: 渐进式补完 1351 (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.1 §1.2)
 
@@ -22,7 +22,7 @@
 | 201 | GetPlayerProfile | player-service:50051 GetPlayerProfile | Partial | RGS v2 已实装, 部分字段缺 |
 | 202 | UpgradeSkill | card-service:50061 CardInstance.level | Partial | 类比"卡组养成", 不完全对应 |
 
-**总评**: 198 RPC, ~5% Partial, 95% 待 v0.2+ 补 (跟 闪烁之光 角色养成有结构差异)
+**总评**: 198 RPC, ~5% Partial, 95% 待 v0.2+ 补 (跟 [游戏A] 角色养成有结构差异)
 
 ## 3. 战斗 PVE (241 RPC, 抽样 2)
 
@@ -85,7 +85,7 @@
 | 901 | Recharge | economy-service:50052 (pay 模块缺) | NotImplemented | RGS 抽卡/开包不同, 需重新设计 |
 | 902 | QueryRechargeHistory | economy-service:50052 (缺) | NotImplemented | 同上 |
 
-**总评**: 43 RPC, RGS TCG 抽卡/开包 跟 闪烁之光 商城/召唤抽卡 不同, 业务模型重设计
+**总评**: 43 RPC, RGS TCG 抽卡/开包 跟 [游戏A] 商城/召唤抽卡 不同, 业务模型重设计
 
 ## 10. 排行榜/图鉴 (10 RPC, 抽样 1)
 
@@ -148,7 +148,7 @@
 | 10101 | CreatePlayer | player-service:50051 CreatePlayer | Partial | ?MAX_ROLE_NUM=1 单角色策略跟 RGS 多角色冲突, v0.2 协调 |
 | 10102 | LoginRole | player-service:50051 LoginRole | Partial | role:start/5 + role_query:pid/2 1:1 翻译, ?minu_ms(3) 延时停止策略待协调 |
 | 10103 | Reconnect | player-service:50051 Reconnect | Partial | role_reconnect + role_login 路径已实装, combat_pid 检测待 v0.2 协调 |
-| 10300 | CompleteResourceLoading | player-service:50051 CompleteResourceLoading | Partial | 闪烁之光 简单 flag 设置, RGS 缺 resource_loaded 状态 |
+| 10300 | CompleteResourceLoading | player-service:50051 CompleteResourceLoading | Partial | [游戏A] 简单 flag 设置, RGS 缺 resource_loaded 状态 |
 | 10301 | DeviceRegister | player-service:50051 DeviceRegister | Partial | RGS 缺 account_devices Master 表, v0.2 sprint 评估新建 |
 | 10302 | ForgotPassword | player-service:50051 + social-service:50054 (mail) ForgotPassword | Partial | RGS 缺完整 forgot_password 流程, 待跟 social mail 域整合 |
 
@@ -171,7 +171,7 @@
 | RPC code | RPC name | RGS backend | v0.2 status | 备注 |
 |---|---|---|---|---|
 | 1110 | AccountLogin | cluster_ops:50060 (新) + player-service:50051 AccountLogin | Partial | RGS 0 cluster_ops 域 service, 需 v0.2 新建 connector service (per addendum §4.9 派生约束) |
-| 1198 | VerifyToken | cluster_ops:50060 (新) VerifyToken | Partial | 闪烁之光 echo time 极简, RGS 需扩为完整 token 校验 |
+| 1198 | VerifyToken | cluster_ops:50060 (新) VerifyToken | Partial | [游戏A] echo time 极简, RGS 需扩为完整 token 校验 |
 | 1199 | CloseConnection | cluster_ops:50060 (新) CloseConnection | Partial | RGS 连接层 0 实现, v0.2 跟 cluster_ops 域整合 |
 
 **总评**: 3 cmds, 0 Pass / 3 Partial / 0 NotImplemented / 0 N-A, 整体覆盖率 100% (Partial 待 v0.2-3/4)
@@ -218,7 +218,7 @@
 
 **注**: 6 Partial 整体覆盖率 100% (5 Pass + 16 Partial, 全部模块覆盖, 待 v0.2-3/4 把 16 Partial 转 Pass)
 
-### W2-2.8 6 Partial 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+### W2-2.8 6 Partial 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 | # | 协议号 | 模块 | 1:1 gap 状态 | 业务核心 | RGS 翻译 |
 |---|---|---|---|---|---|
@@ -237,7 +237,7 @@
 - rank.erl L1-64 全 64 行读完, 4 函数 (list/1 + idx/2,3 + rank/2,3 + my_rank/2 + get_partners_in_rank/2) 完整
 - group_control_rpc.erl L1-100 读 100 行, handle/3 2 RPC + get_group_control_reward/2 + has_reward/3 + do_receive/3 完整覆盖
 - activity.erl L1-80 读 80 行, box/1 + reward/2 + zero_flush/1 + five_flush/1 4 函数完整
-- rank.erl 4 函数覆盖 v0.1 §10 已通过, 但 5 cmds 协议号 (12900-12904) 实际 erl mapping 推测, 闪烁之光 协议号分段.md L51 提到协议号 129 = rank 模块, 5 cmds 数量跟 rank_rpc.erl 1.1KB 一致
+- rank.erl 4 函数覆盖 v0.1 §10 已通过, 但 5 cmds 协议号 (12900-12904) 实际 erl mapping 推测, [游戏A] 协议号分段.md L51 提到协议号 129 = rank 模块, 5 cmds 数量跟 rank_rpc.erl 1.1KB 一致
 
 ### W2-2.9 v0.2 worker-2 跟 v0.1 + v0.3 设计文档一致性 (per 9/4 17:39 JST 派生约束)
 
@@ -275,7 +275,7 @@
 
 ### 15.1 combat (43 cmds, 20000-20063) → match CombatService + PveService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\combat\combat.erl` (56.8KB, gen_fsm 9 状态机: in_init/in_load_map/in_drama/in_select_buff/in_ready/in_round_begin_play/in_action/in_play/in_end, per §2.1 L91-117)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\combat\combat.erl` (56.8KB, gen_fsm 9 状态机: in_init/in_load_map/in_drama/in_select_buff/in_ready/in_round_begin_play/in_action/in_play/in_end, per §2.1 L91-117)
 > **RGS 翻译**: matchmaker_v2.rs SessionStatus 8 态 enum + GameSession struct + EventBus broadcast per match_id + 跨域 ReplayClient mTLS fail-closed
 > **gap 整体**: 🟡 Partial (43/43)
 
@@ -307,7 +307,7 @@
 
 ### 15.2 guild (29 cmds, 13500-13574) → social GuildService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\guild\guild.erl` (10KB, gen_server + ets guild_list/guild_pids 缓存 + 50-100ms 随机 loop, per §2.3 L198-249)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\guild\guild.erl` (10KB, gen_server + ets guild_list/guild_pids 缓存 + 50-100ms 随机 loop, per §2.3 L198-249)
 > **RGS 翻译**: social-service GuildService trait (4/6 handler 未 wire per audit v0.3 §3.4 D1 P1) + sqlx PgGuildRepository + DashMap<i64, mpsc::Sender> 进程路由
 > **gap 整体**: 🟡 Partial (28/29) + ❌ NotImplemented (1/29, 13573 红点)
 > **A1 P1 反模式**: leave_guild 3 步写裸 await 无事务 (per audit v0.3 §3.4)
@@ -347,10 +347,10 @@
 
 ### 15.3 arena (26 cmds, 20200-20281) → match ArenaService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\arena\arena.erl` (27.7KB, 非 gen_server, 走 role:redirect/3 + sys_conn:pack_send/2, 5 push 函数 + 6 变体挑战列表, per §2.4 L257-274)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\arena\arena.erl` (27.7KB, 非 gen_server, 走 role:redirect/3 + sys_conn:pack_send/2, 5 push 函数 + 6 变体挑战列表, per §2.4 L257-274)
 > **RGS 翻译**: match-service ArenaService trait (20 增量 RPC per DDD §3.3 L321-343) + 5 push 函数 via mpsc::Sender + 6 变体抽取为 `arena_type enum {Main, Champion, SundayChampion}` 避免 6 重复 RPC
 > **gap 整体**: 🟡 Partial (26/26)
-> **反例规避**: 闪烁之光 6 do_match_ 分支 (主赛/冠军赛/周日冠军赛 × first/refresh) 翻译时 RGS 应抽取为 1 个 RPC + arena_type enum, 避免照抄 6 变体重复模式 (per 借鉴分析 .md §4 #5 反例)
+> **反例规避**: [游戏A] 6 do_match_ 分支 (主赛/冠军赛/周日冠军赛 × first/refresh) 翻译时 RGS 应抽取为 1 个 RPC + arena_type enum, 避免照抄 6 变体重复模式 (per 借鉴分析 .md §4 #5 反例)
 
 | cmd | RPC 名称 (中) | RGS backend | RGS RPC | gap | mock_data ref |
 |---:|---|---|---|---|---|
@@ -385,7 +385,7 @@
 
 ### 15.4 role (21 cmds, 10300-10399) → player PlayerService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\role\role.erl` (33.1KB, gen_server + 进程字典 + 延时 3 min 关闭, per §2.2 L148-190)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\role\role.erl` (33.1KB, gen_server + 进程字典 + 延时 3 min 关闭, per §2.2 L148-190)
 > **RGS 翻译**: player-service PlayerService trait (11 业务方法) + PlayerRepository (sqlx) + PlayerSessionRepository + DeckRepository (v2 桶 11 增量, per DTL-038 §4.3), 1 player_id 1 tokio actor task
 > **gap 整体**: 🟡 Partial (21/21)
 > **A1 反模式规避**: RGS 当前 0 命中 Arc<Mutex<RoleData>> (per audit v0.3 §3.1), 已走 sqlx + DB 模式, 不需要进程字典
@@ -416,7 +416,7 @@
 
 ### 15.5 market (19 cmds, 23500-23520) → economy MarketService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\market\market.erl` (4.4KB, 金币仙市 + 铜钱仙市 + 摊位 cell 模式, per §3.2.8 L294-302)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\market\market.erl` (4.4KB, 金币仙市 + 铜钱仙市 + 摊位 cell 模式, per §3.2.8 L294-302)
 > **source 已知缺口**: market_gold.erl (52KB) + market_silver.erl (122KB) 未抽样 (per v0.2-1 §10.1 缺标比错标)
 > **RGS 翻译**: economy-service MarketService trait (19 增量 RPC per DDD §3.5 L454-477) + PgMarketRepository (摊位 cell 模式扩展) + trade_saga 跨域 saga 触发
 > **gap 整体**: 🟡 Partial (18/19) + ❌ NotImplemented (1/19, 23516 批量价格查询)
@@ -446,7 +446,7 @@
 
 ### 15.6 misc (19 cmds, 10900-10999 + 16800-16801) → admin AdminService
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\misc\misc.erl` (19KB, 角色进程 + 系统级通知 + 客户端错误上报)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\misc\misc.erl` (19KB, 角色进程 + 系统级通知 + 客户端错误上报)
 > **RGS 翻译**: admin-service AdminService trait + GmHandler (RBAC) + gm-backend (actix-web) + batch-backend (task_templates Master) + push_delivery NATS
 > **gap 整体**: 🟡 Partial (19/19)
 > **跨协议号段**: 16800/16801 跨协议号段 (per protocol mapping §5.8 L675), vip/misc 提示,需特别处理
@@ -486,7 +486,7 @@
 | **总** | **worker-1 6 Partial** | **157** | **125** | **0** | **125** | **2** | **0** | **99.2%** |
 
 **注**: 125 cmds 抽样 1:1 映射 (per api_module_summary.txt + RGS-DDD-v0.2-addendum-协议号映射 §5), 32 cmds 描述空待 v0.2 sprint 详细化抽样 .erl 补全。
-**关键发现**: 6 Partial 全部 Partial 状态, 0 PASS, 因为 RGS backend 已实装但 闪烁之光 协议层字段映射待 v0.2+ sprint 详细 1:1 验证 (per protocol mapping addendum §3 抽样 10 个 .erl)。
+**关键发现**: 6 Partial 全部 Partial 状态, 0 PASS, 因为 RGS backend 已实装但 [游戏A] 协议层字段映射待 v0.2+ sprint 详细 1:1 验证 (per protocol mapping addendum §3 抽样 10 个 .erl)。
 **已知缺口**: 
 - combat 24 cmds 描述空 (推测战斗重连/奖励/准备扩展)
 - guild 13573 红点 NotImplemented (RGS 缺红点 push_delivery 模式)
@@ -695,7 +695,7 @@
 - 6 cmds 描述空 (per §16.8.1)
 - 3 域路由简报错配 (per §16.8.1)
 - 1 协议号错配 (per §16.8.1)
-- 2 闪烁之光反模式 (per worker-5): days_rank 3 版本 + say 弹幕模块
+- 2 [游戏A]反模式 (per worker-5): days_rank 3 版本 + say 弹幕模块
 - 7 框架缺口 (per §16.8.2)
 - 4 数据缺口 (per §16.8.3)
 - 5 业务缺口 (per §16.8.4)

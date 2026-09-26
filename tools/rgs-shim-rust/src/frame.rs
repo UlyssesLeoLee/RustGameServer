@@ -1,4 +1,4 @@
-// SmartSocket binary frame parser/builder (per zsyz_client_core/.../GameTcpClient.h)
+// SmartSocket binary frame parser/builder (per [游戏A]_client_core/.../GameTcpClient.h)
 // All integers big-endian (network byte order)
 // Frame: | len:32 BE | cmd:16 BE | payload |
 //   len = 2 + payload.len  (cmd 2 bytes + payload)

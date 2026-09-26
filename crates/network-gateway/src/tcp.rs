@@ -2,12 +2,12 @@
 //!
 //! ## 范围
 //! - TCP listener 127.0.0.1:7001 (per task brief)
-//! - 帧格式: 与 zsyz_client_h5 客户端 SmartSocket 1:1 对齐 — `[4B length u32 BE][2B cmd u16 BE][payload TLV]`
+//! - 帧格式: 与 [游戏A]_client_h5 客户端 SmartSocket 1:1 对齐 — `[4B length u32 BE][2B cmd u16 BE][payload TLV]`
 //!   (见 `codec.rs`).
 //! - 收到客户端帧 → 路由到 gRPC method (per `router.rs`) → 返回响应帧.
 //!
 //! ## 响应帧约定
-//! 服务端响应也是 zsyz wire 格式: `[length u32][cmd u16][payload]`.
+//! 服务端响应也是 [游戏A] wire 格式: `[length u32][cmd u16][payload]`.
 //! payload 内部约定: `[4B rcode u32 BE][...业务数据...]`.
 //! 路由命中 → rcode=0, 业务数据为 `target_service.target_method` UTF-8 字符串.
 //! 未注册 cmd → rcode=404, 业务数据为 `"unknown code <cmd>"` 字符串.

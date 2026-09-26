@@ -129,7 +129,7 @@ CREATE TYPE saga_state AS ENUM (
 | NATS 持久化 + 重启恢复 | JetStream persistent stream, ack explicit, 重启自动恢复未 ack 消息 |
 | 补偿事务链太长 (e.g. 工会战 5 跨域) | 单域 1s 超时, 跨域总 5s 超时, 超时强制 complete + DLQ |
 | 5 域 nats-subscriber 部署 | 5 域 deployment 旁路加 nats-subscriber sidecar 或独立 deployment, 共享 postgres |
-| Phase 6 UAT 阻塞 Phase 5 验证 | UAT 用 zsyz H5 真机接入 (需 Cocos Creator 2.3.2 build 1-2h) |
+| Phase 6 UAT 阻塞 Phase 5 验证 | UAT 用 [游戏A] H5 真机接入 (需 Cocos Creator 2.3.2 build 1-2h) |
 
 ## 7. 后续 (Mavis 自驱)
 

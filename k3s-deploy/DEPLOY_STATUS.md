@@ -9,7 +9,7 @@
 
 ### 1.1 k3s 5 域 cc13 部署 (v0.2 修复)
 ```
-zsyz_client (E 盘 H5, 待 Cocos Creator 2.3.2 build)
+[游戏A]_client (E 盘 H5, 待 Cocos Creator 2.3.2 build)
     ↓ SmartSocket TCP 9001
 rgs-shim-rust v0.3.2 (Windows pid 38980, commit 0dd4828)
     ↓ HTTP/JSON 8084

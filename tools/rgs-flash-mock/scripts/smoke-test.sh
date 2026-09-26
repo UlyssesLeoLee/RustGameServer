@@ -61,7 +61,7 @@ for rpc in "${CORE_RPCS[@]}"; do
     || true
 done
 
-# 3.2 8 域扩展 NEW (per 9/6 闪烁之光 8 域兼容, a5235eb / 95e67a6 / 1134cfd / 57edbeb / b6b19b7 / 1dd9afc)
+# 3.2 8 域扩展 NEW (per 9/6 [游戏A] 8 域兼容, a5235eb / 95e67a6 / 1134cfd / 57edbeb / b6b19b7 / 1dd9afc)
 echo ""
 echo "  3.2 8 域扩展 NEW"
 declare -a EXT8_RPCS=(

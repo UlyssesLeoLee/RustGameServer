@@ -44,7 +44,7 @@
 - **L15** 跨工具链 native binary 必 file ELF (W1 颠覆性发现) ✅
 - **L16** 主会话统一 commit 拍板顺序 (W23 6 merge) ✅
 - **L17** InMemory 5 域 → PgRepository 7 域扩展 (W27 DDL 18 表) ✅
-- **L18** 闪烁之光 113+43 RPC 补全 (W14 1351 codegen) ✅
+- **L18** [游戏A] 113+43 RPC 补全 (W14 1351 codegen) ✅
 - **L19** mTLS 业务级 = saga 触达 (W18 8 步 PASS) ✅
 - **L20** ca.crt 0 字节空文件陷阱 (W19 主会话修) ✅
 - **L21** 跨工具链 gRPC Code 解析判据 (W18 客户端模拟器) ✅

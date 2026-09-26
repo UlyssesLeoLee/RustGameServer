@@ -1,4 +1,4 @@
-# RGS-BASIC-[游戏D]-[游戏D]_CBT3-INSPIRED v0.1 — 基本设计
+# RGS-BASIC-[游戏D]-[游戏D]_[CBTn]-INSPIRED v0.1 — 基本设计
 
 **创建日期**: 2026-09-17 JST
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手

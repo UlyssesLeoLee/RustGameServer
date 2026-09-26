@@ -10,7 +10,7 @@
 //! 走 mock InMemoryReplayRepository + InMemoryBackend, 不依赖真 PG / 文件系统
 //! (per WF-1-55.32 fail-closed 策略, mock 即可验证业务路径)
 //!
-//! 参考 9/4 MD §0 闪烁之光录像回放"点赞/收集"社交层 (借鉴不照搬)
+//! 参考 9/4 MD §0 [游戏A]录像回放"点赞/收集"社交层 (借鉴不照搬)
 
 use std::sync::Arc;
 

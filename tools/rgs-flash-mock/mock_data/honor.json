@@ -14,7 +14,7 @@
     "not_implemented_count": 3,
     "not_applicable_count": 0,
     "audit_finding": "player 域 0/3 wire (per DDD v0.1 §2.3 30 新 module 表), RGS 缺 HonorService 实体 + honors Master + honor_activations Transaction, W16 落地",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\honor\\honor_rpc.erl (1.3KB, handle/3 3 cmds 23300/23301/23303) + honor.erl (15.5KB, 推测 ~12 exports, 跟 avatar.erl 结构相似)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\honor\\honor_rpc.erl (1.3KB, handle/3 3 cmds 23300/23301/23303) + honor.erl (15.5KB, 推测 ~12 exports, 跟 avatar.erl 结构相似)",
     "rgs_translation": "PlayerService.HonorService (新), 1 player 1 tokio actor task, HonorRepository (sqlx) + HonorActivationRepository, mpsc::Sender<HonorCommand>, 模式跟 AvatarService 1:1 复用 (per avatar.erl L 结构推测)",
     "rgs_file_ref": "DDD v0.2 addendum §5.35 L1059-1067 (协议号映射 3 cmds 1:1) + 业务逻辑逆推 v0.2 addendum §6.5 typed struct 字段 (honor.erl 进程字典 → RoleState.m_honor 字段)",
     "known_gaps": [

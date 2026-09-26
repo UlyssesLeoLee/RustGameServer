@@ -14,7 +14,7 @@
     "not_implemented_count": 17,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.9 L681-703), RGS match-service AdventureService 当前 0 实装,需 v0.2+ sprint 补; 业务含 房间探索 + 事件操作 + 掠夺反击 3 大类; adventure_action.erl 34KB + adventure_plunder.erl 24KB + adventure.erl 36KB + adventure_mgr.erl 6KB 总 100KB+ 业务逻辑待 1:1 逆推; 跨域依赖 combat (事件战斗) + partner (card 域伙伴状态) + player (资产兑换)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\adventure\\adventure_rpc.erl (4.3KB, 16 明确 cmds + 1 描述空) + adventure.erl (36.9KB, 冒险主逻辑) + adventure_mgr.erl (6.8KB, 房间/状态管理) + adventure_action.erl (34.1KB, 事件操作 do_evt) + adventure_plunder.erl (24.8KB, 掠夺 + 反击)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\adventure\\adventure_rpc.erl (4.3KB, 16 明确 cmds + 1 描述空) + adventure.erl (36.9KB, 冒险主逻辑) + adventure_mgr.erl (6.8KB, 房间/状态管理) + adventure_action.erl (34.1KB, 事件操作 do_evt) + adventure_plunder.erl (24.8KB, 掠夺 + 反击)",
     "rgs_translation": "match-service AdventureService trait + PgAdventureRoomRepository (Master 房间配置) + PlayerAdventureProgressRepository (Transaction 玩家进度) + AdventureEventLogRepository (Transaction 事件流水) + PlunderLogRepository (Transaction 掠夺日志) + DashMap<i64, PlunderSession> 反击 session + match v2 CreateMatch 战斗 FSM + card 域 PartnerService 伙伴状态 + economy outbox 资产兑换 + drop_lib:drop_notice (per adventure_rpc.erl L101)",
     "rgs_file_ref": "crates/match-service/src/adventure_service.rs (待 v0.2 sprint 新建) + crates/card-service/src/partner_service.rs (partner 状态) + crates/economy-service/src/saga_orchestrator.rs (资产兑换 20611) + crates/drop-lib/ (待 v0.2 sprint 新建 drop notice 模式)",
     "known_gaps": [

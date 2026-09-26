@@ -68,7 +68,7 @@ impl RpcCategory {
         }
     }
 
-    pub fn total_rpc_in_zsyz(&self) -> u32 {
+    pub fn total_rpc_in_[游戏A](&self) -> u32 {
         match self {
             RpcCategory::Scene => 148,
             RpcCategory::Role => 198,
@@ -103,7 +103,7 @@ pub struct RpcRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryReport {
     pub category: String,
-    pub zsyz_total: u32,
+    pub [游戏A]_total: u32,
     pub mock_sampled: u32,
     pub pass: u32,
     pub partial: u32,
@@ -116,7 +116,7 @@ pub struct CategoryReport {
 pub struct CoverageReport {
     pub service: String,
     pub version: String,
-    pub zsyz_total: u32,
+    pub [游戏A]_total: u32,
     pub mock_sampled: u32,
     pub pass: u32,
     pub partial: u32,
@@ -252,11 +252,11 @@ impl GapMatrix {
     }
 
     pub fn report(&self) -> CoverageReport {
-        let zsyz_total: u32 = [
+        let [游戏A]_total: u32 = [
             RpcCategory::Scene, RpcCategory::Role, RpcCategory::Combat, RpcCategory::Pvp,
             RpcCategory::Guild, RpcCategory::Econ, RpcCategory::Social, RpcCategory::Event,
             RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Card, RpcCategory::Misc,
-        ].iter().map(|c| c.total_rpc_in_zsyz()).sum();
+        ].iter().map(|c| c.total_rpc_in_[游戏A]()).sum();
 
         let by_category: Vec<CategoryReport> = {
             let mut cats: Vec<RpcCategory> = vec![
@@ -272,10 +272,10 @@ impl GapMatrix {
                 let partial = rpcs_in_cat.iter().filter(|r| r.status == RpcStatus::Partial).count() as u32;
                 let na = rpcs_in_cat.iter().filter(|r| r.status == RpcStatus::NotApplicable).count() as u32;
                 let ni = rpcs_in_cat.iter().filter(|r| r.status == RpcStatus::NotImplemented).count() as u32;
-                let coverage = if cat.total_rpc_in_zsyz() == 0 { 0.0 } else { (sampled as f64 / cat.total_rpc_in_zsyz() as f64) * 100.0 };
+                let coverage = if cat.total_rpc_in_[游戏A]() == 0 { 0.0 } else { (sampled as f64 / cat.total_rpc_in_[游戏A]() as f64) * 100.0 };
                 CategoryReport {
                     category: cat.as_str().to_string(),
-                    zsyz_total: cat.total_rpc_in_zsyz(),
+                    [游戏A]_total: cat.total_rpc_in_[游戏A](),
                     mock_sampled: sampled,
                     pass, partial, not_applicable: na, not_implemented: ni,
                     coverage_pct: (coverage * 100.0).round() / 100.0,
@@ -291,12 +291,12 @@ impl GapMatrix {
         let partial = self.count_by_status(RpcStatus::Partial);
         let na = self.count_by_status(RpcStatus::NotApplicable);
         let ni = self.count_by_status(RpcStatus::NotImplemented);
-        let coverage = (mock_sampled as f64 / zsyz_total as f64) * 100.0;
+        let coverage = (mock_sampled as f64 / [游戏A]_total as f64) * 100.0;
 
         CoverageReport {
             service: "rgs-flash-mock".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            zsyz_total,
+            [游戏A]_total,
             mock_sampled,
             pass, partial, not_applicable: na, not_implemented: ni,
             overall_coverage_pct: (coverage * 100.0).round() / 100.0,
@@ -313,7 +313,7 @@ mod tests {
     //! Coverage:
     //!   - RpcStatus::as_str() — 4 状态映射
     //!   - RpcCategory::as_str() — 13 类别名称
-    //!   - RpcCategory::total_rpc_in_zsyz() — 闪烁之光原版 RPC 总数
+    //!   - RpcCategory::total_rpc_in_[游戏A]() — [游戏A]原版 RPC 总数
     //!   - GapMatrix::new() — 22 RPC stub 注册正确
     //!   - GapMatrix::count_by_status() — 各状态计数
     //!   - GapMatrix::record_call() — 调用计数累加
@@ -375,34 +375,34 @@ mod tests {
     }
 
     #[test]
-    fn rpc_category_total_rpc_in_zsyz_matches_design() {
+    fn rpc_category_total_rpc_in_[游戏A]_matches_design() {
         // 13 类别 RPC 总数 (per design §3 表, v0.3 加 card=80)
-        assert_eq!(RpcCategory::Scene.total_rpc_in_zsyz(), 148);
-        assert_eq!(RpcCategory::Role.total_rpc_in_zsyz(), 198);
-        assert_eq!(RpcCategory::Combat.total_rpc_in_zsyz(), 241);
-        assert_eq!(RpcCategory::Pvp.total_rpc_in_zsyz(), 151);
-        assert_eq!(RpcCategory::Guild.total_rpc_in_zsyz(), 97);
-        assert_eq!(RpcCategory::Econ.total_rpc_in_zsyz(), 90);
-        assert_eq!(RpcCategory::Social.total_rpc_in_zsyz(), 123);
-        assert_eq!(RpcCategory::Event.total_rpc_in_zsyz(), 184);
-        assert_eq!(RpcCategory::Pay.total_rpc_in_zsyz(), 43);
-        assert_eq!(RpcCategory::Rank.total_rpc_in_zsyz(), 10);
-        assert_eq!(RpcCategory::Gm.total_rpc_in_zsyz(), 37);
-        assert_eq!(RpcCategory::Card.total_rpc_in_zsyz(), 80);
-        assert_eq!(RpcCategory::Misc.total_rpc_in_zsyz(), 29);
+        assert_eq!(RpcCategory::Scene.total_rpc_in_[游戏A](), 148);
+        assert_eq!(RpcCategory::Role.total_rpc_in_[游戏A](), 198);
+        assert_eq!(RpcCategory::Combat.total_rpc_in_[游戏A](), 241);
+        assert_eq!(RpcCategory::Pvp.total_rpc_in_[游戏A](), 151);
+        assert_eq!(RpcCategory::Guild.total_rpc_in_[游戏A](), 97);
+        assert_eq!(RpcCategory::Econ.total_rpc_in_[游戏A](), 90);
+        assert_eq!(RpcCategory::Social.total_rpc_in_[游戏A](), 123);
+        assert_eq!(RpcCategory::Event.total_rpc_in_[游戏A](), 184);
+        assert_eq!(RpcCategory::Pay.total_rpc_in_[游戏A](), 43);
+        assert_eq!(RpcCategory::Rank.total_rpc_in_[游戏A](), 10);
+        assert_eq!(RpcCategory::Gm.total_rpc_in_[游戏A](), 37);
+        assert_eq!(RpcCategory::Card.total_rpc_in_[游戏A](), 80);
+        assert_eq!(RpcCategory::Misc.total_rpc_in_[游戏A](), 29);
     }
 
     #[test]
-    fn rpc_category_total_sum_matches_zsyz_full_count() {
-        // 闪烁之光原版 RPC 总和 (148+198+241+151+97+90+123+184+43+10+37+80+29 = 1431)
+    fn rpc_category_total_sum_matches_[游戏A]_full_count() {
+        // [游戏A]原版 RPC 总和 (148+198+241+151+97+90+123+184+43+10+37+80+29 = 1431)
         let cats = [
             RpcCategory::Scene, RpcCategory::Role, RpcCategory::Combat, RpcCategory::Pvp,
             RpcCategory::Guild, RpcCategory::Econ, RpcCategory::Social, RpcCategory::Event,
             RpcCategory::Pay, RpcCategory::Rank, RpcCategory::Gm, RpcCategory::Card,
             RpcCategory::Misc,
         ];
-        let sum: u32 = cats.iter().map(|c| c.total_rpc_in_zsyz()).sum();
-        assert_eq!(sum, 1431, "闪烁之光 RPC 总数必须等于 1431 (12 + card v0.3)");
+        let sum: u32 = cats.iter().map(|c| c.total_rpc_in_[游戏A]()).sum();
+        assert_eq!(sum, 1431, "[游戏A] RPC 总数必须等于 1431 (12 + card v0.3)");
     }
 
     // ---- GapMatrix construction ----
@@ -509,7 +509,7 @@ mod tests {
         let m = GapMatrix::new();
         let r = m.report();
         assert_eq!(r.service, "rgs-flash-mock");
-        assert_eq!(r.zsyz_total, 1431, "闪烁之光原版 RPC 总数");
+        assert_eq!(r.[游戏A]_total, 1431, "[游戏A]原版 RPC 总数");
         assert_eq!(r.mock_sampled, 22);
         // pass + partial + n-a + not-implemented 必须 == mock_sampled
         assert_eq!(r.pass + r.partial + r.not_applicable + r.not_implemented, r.mock_sampled);

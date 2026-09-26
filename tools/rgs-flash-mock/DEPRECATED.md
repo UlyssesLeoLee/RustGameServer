@@ -2,7 +2,7 @@
 
 **历史**: 2026-09-09 15:10 JST Mavis 标记 — 旧 mock 项目 21 RPC stub 是假数据,
 跟 Ulysses 9/9 11:31 JST "前端表现和erlang版本一致的情况下,后端换成rgs" 战略冲突,
-已迁移至 rgs-shim-rust v0.3.1 (真 RGS 5 域 gRPC, 字节级 zsyz_server 协议兼容).
+已迁移至 rgs-shim-rust v0.3.1 (真 RGS 5 域 gRPC, 字节级 [游戏A]_server 协议兼容).
 
 **当前状态 (重要)**:
 
@@ -11,7 +11,7 @@
 服务于 RGS-TEST-DESIGN v0.2 §10 DoD 整体回归测试.
 
 **与 rgs-shim-rust 的关系**:
-- `rgs-shim-rust` (D:/RustGameServer/tools/rgs-shim-rust/) — 真 RGS 5 域 gRPC 字节级 zsyz_server 兼容
+- `rgs-shim-rust` (D:/RustGameServer/tools/rgs-shim-rust/) — 真 RGS 5 域 gRPC 字节级 [游戏A]_server 兼容
 - `rgs-flash-mock` (D:/RustGameServer/tools/rgs-flash-mock/) — verification harness + 7 域 mTLS stub
   (与上游域服务 mTLS 业务级连通, 但 stub 不真打 5 域业务逻辑)
 

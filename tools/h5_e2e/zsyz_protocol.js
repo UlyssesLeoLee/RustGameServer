@@ -1,8 +1,8 @@
-// tools/h5_e2e/zsyz_protocol.js
+// tools/h5_e2e/[游戏A]_protocol.js
 //
-// Pure-JS reference implementation of the zsyz_client_h5 binary wire protocol,
+// Pure-JS reference implementation of the [游戏A]_client_h5 binary wire protocol,
 // 1:1 with `assets/Scripts/sys/game-core-js-min.js` SmartSocket +
-// `assets/Scripts/net/proto_mate.js` + zsyz_server `protocol:pack` (Erlang).
+// `assets/Scripts/net/proto_mate.js` + [游戏A]_server `protocol:pack` (Erlang).
 //
 // Used by:
 //   - tools/h5_e2e/mock_server.mjs  (decode incoming frame, encode reply)
@@ -320,7 +320,7 @@ if (typeof module !== 'undefined' && module.exports) {
   };
 }
 if (typeof globalThis !== 'undefined') {
-  globalThis.ZSYZ = {
+  globalThis.GAMEA = {
     encodeFrame,
     decodeFrames,
     packFields,

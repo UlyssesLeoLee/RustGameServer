@@ -3,7 +3,7 @@
 //! ## 范围
 //! - 起 1 个 0 端口 WS listener (OS 分配, 路径 /websocket)
 //! - 客户端用 tokio-tungstenite 作 client (同 crate 作 client 跟 server 配对自测)
-//! - 发 zsyz 帧 `[4B length u32 BE][2B cmd u16 BE][payload]`
+//! - 发 [游戏A] 帧 `[4B length u32 BE][2B cmd u16 BE][payload]`
 //! - 验证响应 (response 也应是 frame, payload 内部 `[4B rcode u32 BE][body]`)
 //!
 //! ## FrameRouter 默认实现 (跟 main.rs 同源)

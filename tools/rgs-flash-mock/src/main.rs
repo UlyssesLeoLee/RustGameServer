@@ -1,4 +1,4 @@
-// rgs-flash-mock v0.3 — 闪烁之光 mock gateway / verification harness
+// rgs-flash-mock v0.3 — [游戏A] mock gateway / verification harness
 // per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3
 // per 9/10 14:35 JST Ulysses 拍板 (推荐) Mavis 起骨架 (1-2h PoC)
 // v0.2 升级: 接 5 域 mTLS 业务级 gRPC client (per 9/11 派工)
@@ -55,7 +55,7 @@ async fn root() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({
         "service": "rgs-flash-mock",
         "version": MOCK_VERSION,
-        "description": "RGS 闪烁之光 mock gateway / verification harness (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3)",
+        "description": "RGS [游戏A] mock gateway / verification harness (per RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3)",
         "endpoints": {
             "GET /": "this help",
             "GET /health": "liveness probe",

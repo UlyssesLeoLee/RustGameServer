@@ -14,7 +14,7 @@
     "not_implemented_count": 12,
     "not_applicable_count": 0,
     "audit_finding": "30 新 module 之一 (per RGS-DDD-v0.2-addendum-协议号映射 §5.13 L769-786), RGS match-service EndlessService 当前 0 实装,需 v0.2+ sprint 补; 协议号 239 是 re-claimed 段 (per addendum §2.2 L117 endless re-claimed 239, 早 213 已被其它 module 用); 业务含 通关奖励 + 派出/雇佣伙伴 + 可选 BUFF 3 大类,跨域依赖 combat (战斗 FSM) + partner (card 域) + player (跨服) + leaderboard (排行)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\endless\\endless_rpc.erl (2.4KB, 12 cmds 23900-23911) + endless.erl (31.6KB, 无尽试炼完整业务) + endless_mgr.erl (3.6KB, mgr ets) + endless_employ.erl (7.8KB, 派出/雇佣伙伴子模块)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\endless\\endless_rpc.erl (2.4KB, 12 cmds 23900-23911) + endless.erl (31.6KB, 无尽试炼完整业务) + endless_mgr.erl (3.6KB, mgr ets) + endless_employ.erl (7.8KB, 派出/雇佣伙伴子模块)",
     "rgs_translation": "match-service EndlessService trait + PgEndlessConfigRepository (Master 关卡配置) + PlayerEndlessProgressRepository (Transaction 玩家进度) + EndlessRewardRepository (Work 24h TTL 奖励) + EndlessPartnerHireRepository (Work 跨服雇佣 24h) + match v2 CreateMatch 战斗 FSM + card 域 PartnerService 跨域 + leaderboard redis sorted set 排行 + economy outbox 奖励 saga",
     "rgs_file_ref": "crates/match-service/src/endless_service.rs (待 v0.2 sprint 新建) + crates/card-service/src/partner_service.rs (partner 域) + crates/leaderboard-service/src/redis_set.rs (排行) + crates/economy-service/src/saga_orchestrator.rs (奖励)",
     "known_gaps": [

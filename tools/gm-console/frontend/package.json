@@ -2,7 +2,7 @@
   "name": "rgs-gm-console",
   "version": "0.1.0",
   "private": true,
-  "description": "RGS GM 后台前端 (per RGS 8 域 gm-backend, 9 页面 + SSE, 2026-09-01 ROPE_CS 移植)",
+  "description": "RGS GM 后台前端 (per RGS 8 域 gm-backend, 9 页面 + SSE, 2026-09-01 [游戏C]_src 移植)",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

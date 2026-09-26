@@ -2987,7 +2987,7 @@ mod tests {
     #[test]
     fn validate_character_name_allows_cjk() {
         // 中文名应通过
-        assert!(validate_character_name("闪烁之光").is_ok());
+        assert!(validate_character_name("[游戏A]").is_ok());
         assert!(validate_character_name("Hello World").is_ok());
         assert!(validate_character_name("user-123").is_ok());
     }
