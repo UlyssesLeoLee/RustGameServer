@@ -63,6 +63,7 @@
 `rgs-asset-download` 是客户端 SDK 新增 crate，实现断点续传与可恢复下载的**全部客户端侧逻辑**。它与既有 `rgs-asset-update`（Manifest/Delta/Rollout 编排）、`rgs-version`（协议版本协商）同级别，作为 SDK 三大模块之一。
 
 **核心职责**：
+
 - 接收来自 `rgs-asset-update` 的"需下载文件清单"，调度下载
 - 通过 HTTP Range/HEAD 协议与 `DistributionBackend` 交互
 - 在客户端本地维护断点状态机与断点记录
@@ -70,6 +71,7 @@
 - 失败/异常情况下提供降级路径（回退为全量 GET / 取消分片 / 触发 Resuming 校验）
 
 **非职责**（由既有模块负责）：
+
 - Manifest 拉取 / 签名校验 / 灰度判定（`rgs-asset-update`）
 - 协议版本协商（`rgs-version`）
 - 业务侧应用决策（何时触发下载、何时拒绝使用，应用层负责）

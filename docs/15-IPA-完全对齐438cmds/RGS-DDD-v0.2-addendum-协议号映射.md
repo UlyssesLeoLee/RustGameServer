@@ -78,6 +78,7 @@ user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把
 ### 1.3 范围
 
 **In-Scope (本 v0.2 addendum)**:
+
 - 438 cmds 完整 1:1 映射主表 (§5, per api_module_summary.txt L47-568 顺序)
 - [游戏A] 协议 schema 抽样 10 个 (per §3, 验证 pack/unpack tuple 字段)
 - RGS 7 域 proto 命名 + service 路由 (per §4, 沿用 v0.1 §7.4)
@@ -87,6 +88,7 @@ user 9/4 17:11 JST 拍板 "frontend compat 正确设计", 要求本 addendum 把
 - 代签栏 (per §12, 8/27 JST 三次强化)
 
 **Out-of-Scope (addendum 范围外)**:
+
 - [游戏A] 自研 TCP/Flash socket 协议 (per DDD v0.1 §11.1 已知缺口, v0.2 升级) — 本 addendum 仅 cmd → RGS gRPC 命名映射
 - [游戏A] 实际 proto 风格 wire 适配 (per DDD v0.1 §0.3) — 待 v0.2 worker 实证 (本 addendum 仅抽样 read schema)
 - [游戏A] .erl 源码逐条翻译 (per REQ v0.1 §1.3 范围外) — 本 addendum 仅 cmd 编号 → RGS RPC 命名 + 7 域路由

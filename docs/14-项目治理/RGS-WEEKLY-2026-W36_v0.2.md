@@ -56,6 +56,7 @@
 **总计**: 9 commit, +1270 / -51 行, 4 worker 30 min 全部完工
 
 **4 merge commit 到 main** (--no-ff, ort strategy 0 conflict):
+
 - `6420138 docs(rgs-bas): merge docs/2026-09-02-flow-1` (worker-1: BAS-015 + BAS-014)
 - `5cac41f docs(rgs-bas): merge docs/2026-09-02-flow-2` (worker-2: BAS-018 + BAS-020)
 - `2ec868a docs(rgs-bas): merge docs/2026-09-02-flow-3` (worker-3: BAS-016 + BAS-024)
@@ -84,6 +85,7 @@
 | 9/2 截至 14:25 JST (W36) | **0** (本次为规格化工作,非 hotfix) | 🟢 大幅下降 |
 
 **B1 pre-commit hook + B2 L-CANDIDATES + B4 test-evidence 归档 已于 9/1 末落地** (per commit `dcc80bc chore(workspace): B 类派生约束落地`):
+
 - B1: pre-commit hook 拒收空 commit + 不规范 commit 标题 (per 9/2 D3 .gitmessage 模板延伸)
 - B2: 派生约束 L1-L14 冻结 6 个月 (至 2027-03-02 JST), 新约束进 L-CANDIDATES 候选清单
 - B4: test-evidence 归档清理 (`docs/00-基准与治理/.test-evidence/` 整理)

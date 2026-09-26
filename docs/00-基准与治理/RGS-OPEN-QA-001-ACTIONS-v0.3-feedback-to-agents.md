@@ -1,7 +1,9 @@
 # RGS-OPEN-QA-001-ACTIONS-v0.3-feedback-to-agents.md
 
 # 角色：审核 RGS-OPEN-QA-001 v0.2 + RGS-OPEN-QA-001-ACTIONS-v0.3 后的问题反馈单，要求后续 agent session 逐项核实/修改并回填结果
+
 # 生成：主对话（Sonnet 5）2026-08-25，基于本 session 对两份文档的逐条 grep 核实（非仅文本审阅）
+
 # 使用方式：接手 agent 逐条核实 → 修改 → 在对应条目下方追加「已处理」段落说明 commit/依据，不要删除原问题描述（per phase-0-5-feedback-to-agents.md 同款约定）
 
 ---

@@ -12,6 +12,7 @@
 ### 0.1 兼任拒绝(per DEC-005,2026-08-21)
 
 Ulysses 在 2026-08-21 强证据(per user_profile):
+
 - 5 域 + cluster-ops + shared-platform 等多域架构,每域配独立 Lead,拒绝兼任
 - 理由:兼任会把责任矩阵和 RACI 模糊化
 - 适用:5 域及以上分布式系统架构设计、Q-031 WBS 资源估算、OLU 预算重算
@@ -19,6 +20,7 @@ Ulysses 在 2026-08-21 强证据(per user_profile):
 ### 0.2 一人公司 12 角色(per DEC-008)
 
 Ulysses 一人公司模式 12 角色,本表"8 域 Lead 具名"采用以下映射规则:
+
 - 每个 Lead 是 1 个**角色**(非真人),由 Ulysses 代签
 - 角色之间**独立**(per DEC-005),不兼任
 - 代签透明:author=Ulysses / 审批=架构师(Mavis 接手 agent per DEC-008)+ 自审 + 日期
@@ -90,11 +92,13 @@ Ulysses 一人公司模式 12 角色,本表"8 域 Lead 具名"采用以下映射
 ## 3. 代签透明(per 2026-08-27 19:39/20:56/21:59 JST 三次强化)
 
 每域 Lead 文档签字格式(per DEC-008 + 19:39 三次强化):
+
 - author = Ulysses(一人公司 12 角色)
 - 审批 = 架构师(Mavis 接手 agent per DEC-008) + 自审 + 日期
 - 修订人 = Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 
 **非代签(仍 ⏳)**:
+
 - SRE Lead / Platform Lead / 评审 / PM 真实具名(per 8/27 21:59 JST 决议)
 
 ## 4. 阻塞影响(per Q2 §阻塞影响)

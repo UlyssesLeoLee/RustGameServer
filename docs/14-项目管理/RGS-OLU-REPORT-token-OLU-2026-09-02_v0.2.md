@@ -4,6 +4,7 @@
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
 > **状态**: 🟡 v0.2 草案 (per WBS v0.2 §2.5 桶 11 E5/E6 + §3 拍板 2/4)
 > **关联**:
+>
 > - 旧 OLU v0.1: `docs/14-项目管理/RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md` (commit `7acd24f`, 8/27 JST 部署阶段)
 > - WBS v0.2: `docs/00-基准与治理/RGS-PLAN-WBS-token-bucket-v0.2.md` (commit `84edf26`)
 > - BATCH-PLAN v0.2: `docs/12-工作流/RGS-BATCH-PLAN-2026-09-01_v0.2.md` (commit `2125727`, 含 §10 12 GAP + 270M token 预算)
@@ -19,6 +20,7 @@
 - **E6 OLU 跨 5+1 域重算** — WBS v0.2 拍板 4: 5 域 Lead 196-468M + 中间 222M Mavis 协调, 6 域总预算
 
 **v0.1 → v0.2 增量**:
+
 - v0.1 (commit `7acd24f`, 8/27 JST) = 部署阶段 OLU, 1 周实测
 - v0.2 (本版) = 6 域全栈 token-OLU 框架, 含 5 业务域 + batch 域 + 平台层 + 工具组 + 文档/部署/协调
 
@@ -114,6 +116,7 @@ OLU_token(域) = Σ[L4_任务.tokens] + 协调余量(20%)
 | **RGS 全栈总预算** | **~750M-1110M** | **~21.7M 已落地** | — |
 
 **对照 WBS v0.2 §3 拍板 4**: 7 桶 690M 上限 (per 9/1 22:25 JST 估), 5 域 196-468M 下限, 中间 222M Mavis 协调
+
 - 实际已落地 21.7M (per 9/2 00:50 JST) < 690M 上限 = 668M 余量 ✅
 - 实际 21.7M 接近 196-468M 下限 = 估时偏保守, 业务实装多在 8/31 fix 阶段已落地, 9/1-9/2 worker 仅做收口/扩写/验证
 

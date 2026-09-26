@@ -42,6 +42,7 @@
 | **8/29 全天 5 次** | | | | **父 session 接手 ~1MB 部分进展** |
 
 **关键教训** (per session memory 更新):
+
 - 1 worker 模式 5/9 成功 (56% 成功率)
 - 失职模式 100% 复现: net::ERR_CONNECTION_RESET / HTTP2_PING_FAILED / CLOSED
 - 失职与**任务时长 / 复杂度**强相关(>30 分钟任务失职率 67%)

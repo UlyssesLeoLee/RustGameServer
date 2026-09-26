@@ -20,6 +20,7 @@
 ## 模式识别
 
 per 历史 session memory:
+
 - **2026-08-26 `bg_84795173`**: W26 桶 2a gm 业务实装, Connection error (net::ERR_CONNECTION_RESET)
 - **2026-08-27 `bg_2f56eddd`**: 桶 1 BAS 偏差闭合, 0-diff
 - **本次 8/28 `bg_31536a24` / `bg_e9391915` / `bg_44af4858`**: 3 worker 同时 Connection error

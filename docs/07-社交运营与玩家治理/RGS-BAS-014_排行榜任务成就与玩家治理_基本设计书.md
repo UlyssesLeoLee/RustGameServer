@@ -61,8 +61,6 @@
 
 ---
 
-
-
 # 2. 処理フロー（处理流程 / Processing Flow）
 
 > 落实 RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板)
@@ -207,6 +205,7 @@ sequenceDiagram
 | 作弊检测 (per §6.3 域约束) | `rank.governance.cheat_detected` `error!` 强制全采样 | 触发即记录 | 不允许静默 (合规审计要求) |
 
 ---
+
 # 3. 排行榜：派生视图组件设计
 
 ## 3.1 组件划分
@@ -293,6 +292,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `rank.leaderboard.debug.lag_timeseries` | `last_update_lag_ms` 完整时序 dump（用于滞后根因分析） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 四铁律 + §4.4 释放必出宏清单）：
+
 - `rank.leaderboard.score_changed_published` / `view_updated` / `dead_letter_received` 是**生产关键事件**（玩家可见的派生视图行为）—— release 必出 + §6.2 强制全采样，不挂 `#[cfg]`
 - `rank.leaderboard.lag_breach` 是**警告信号**（NFR-GSM-002 SLA 违反）—— release 必出 + `warn!` 强制全采样
 - `rank.leaderboard.query_served` 高频（500/s 峰值），强制全采样会撑爆日志通道—— 按 1% 采样率，但 §6.2 强制全采样的"安全审计事件"清单（认证失败／越权访问／敏感操作）不受此限
@@ -350,6 +350,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `rank.quest.debug.reward_request_payload` | FR-EC-003 请求完整 payload（用于奖励发放链路追溯） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 800B-1.5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `rank.quest.reward_granted` / `reward_grant_failed` 是**奖励发放生产关键事件**—— release 必出 + §6.2 强制全采样，**不**挂 `#[cfg]`
 - `rank.quest.illegal_transition_rejected` 是**状态机纪律违反信号**—— release 必出 + `warn!` 强制全采样，便于发现配置错误或外挂
 - `rank.quest.condition_evaluated` 高频（200/s 峰值）—— 按 5% 采样率（高于 §3.6 `query_served` 的 1%，因表达式求值是任务/成就核心路径）
@@ -408,6 +409,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `rank.mail.debug.attachment_spec_dump` | `attachments` 完整规格 dump（FR-EC-003 调用 payload） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 800B-1.5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `rank.mail.sent` / `attachments_claimed` / `batch_completed` 是**邮件生产关键事件**（运营/玩家补偿/赛季奖励）—— release 必出 + §6.2 强制全采样，**不**挂 `#[cfg]`
 - `rank.mail.batch_failed` / `partition_archived_failed` 是**生产异常信号**—— release 必出 + `error!` 强制全采样
 - `rank.mail.read_marked` 高频（50/s 峰值），但业务价值低（仅已读状态变更）—— 按 5% 采样率
@@ -495,6 +497,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `rank.blocklist.debug.relationship_graph` | 玩家黑名单关系图 dump（用于关系网络分析） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `rank.governance.ban_issued` / `mute_issued` / `cheat_detected` 是**合规审计 + 反作弊生产关键事件**—— release 必出 + §6.2 强制全采样 + `error!` 级别（合规要求 production 完整可见，**不**挂 `#[cfg]`，**不**允许采样降级）
 - `rank.report.submitted` / `reputation_updated` / `audit_recorded` 是**举报治理信号**—— release 必出 + §6.2 强制全采样，便于运营周报聚合
 - `rank.governance.appeal_received` / `appeal_resolved` 是**合规审计关键事件**—— release 必出 + 强制全采样，便于法务追溯
@@ -557,6 +560,7 @@ RankingViewUpdater消费RankingScoreChanged失败（如缓存基础设施瞬时�
 | `rank.season.debug.player_segment_derivation` | 单玩家段位推算明细（旧分数→映射规则→新段位的逐步推导） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `rank.season.*` 全部 release 必出—— 赛季结算属跨域原子操作 + 资产发放，所有环节必须 production 完整可见（per BAS-004 v0.3 §6.2），**不**挂 `#[cfg]`
 - `rank.season.partial_settlement_detected` 是**FR-GSM-040 阻断级信号**（"部分玩家已按新赛季结算、部分仍按旧赛季"中间态）—— release 必出 + `error!` 强制全采样
 - `rank.season.inflight_match_orphan` 是**FR-GSM-044 阻断级信号**（未匹配任何归属规则）—— release 必出 + `error!` 强制全采样

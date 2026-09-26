@@ -24,6 +24,7 @@
 ## 2. 测试范围
 
 **覆盖范围**：
+
 - 工程 67：集成测试规约书
 - 工程 68：集成测试环境构建（staging cluster + 5 独立 DB）
 - 工程 69：内部集成（5 域内部跨服务调用）
@@ -35,6 +36,7 @@
 - 工程 75：回归试验（regression 全套）
 
 **工具链**：
+
 - testcontainers-rs（DB / Redis / Kafka 容器化）
 - tonic-test（gRPC client/server mock）
 - reqwest（HTTP/REST client）

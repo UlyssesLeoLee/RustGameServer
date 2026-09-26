@@ -14,11 +14,13 @@
 ## 0. 触发与背景
 
 **SRE Lead 拍板悬空** (per 9/3 11:58 JST L-CAND-004 候选机制 1M token 阈值, 当前 R1 token 累计 1.86M 已超阈值):
+
 - 9/2 17:32 JST 启动预热走"选项 1" (Mavis-side)
 - 9/3 08:00 JST 12h+ 悬空
 - 9/3 12:36 JST Ulysses 拍板 main-pioneer-sre: **Mavis 跳过 SRE 拍板, 主会话推阶段 A 4 步**
 
 **9/3 12:37 JST 现场状态变化**:
+
 - Windows 端 `kubectl get nodes` 失败: 127.0.0.1:52551 拒绝连接
 - WSL 内部 `kubectl get nodes` 可达: ulyssespc Ready 2d4h v1.36.3+k3s1
 - **结论**: k3s 集群本身健康, Windows 端 → WSL 端口转发失效, 走 WSL 路径
@@ -54,10 +56,12 @@ ulyssespc   Ready    control-plane   2d4h   v1.36.3+k3s1
 ### 1.3 A3 prometheus ReplicaSet 修复 ✅ (核心)
 
 **根因 (per RGS-PHASE-C-PREP §1 阶段 A3)**: 2 个 prometheus pod 抢同一 PVC lock
+
 - `prometheus-585fc54cfb-dr4dw` 1/1 Running 47h (旧)
 - `prometheus-84c47f7669-qnf4q` 0/1 CrashLoopBackOff 557 restarts (新, lock 抢不到)
 
 **修复步骤**:
+
 ```bash
 wsl -e bash -c "kubectl scale deploy prometheus -n rust-game-server --replicas=0"  # 退出旧 pod
 wsl -e bash -c "kubectl delete pod -n rust-game-server prometheus-84c47f7669-qnf4q"  # 删 CrashLoop pod
@@ -68,15 +72,18 @@ wsl -e bash -c "kubectl get pods -n rust-game-server -l app.kubernetes.io/name=p
 ```
 
 **修复后** (12:38 JST):
+
 ```
 NAME                          READY   STATUS    RESTARTS   AGE
 prometheus-84c47f7669-b87vq   1/1     Running   0          22s
 ```
+
 ✅ **新 pod 1/1 Running 0 restarts, 0 CrashLoopBackOff**
 
 ### 1.4 A4 HPA / minReplicas 检查 ✅
 
 5 域 svc HPA 全部健康:
+
 | HPA | MIN | MAX | REPLICAS | 资源 |
 |---|---|---|---|---|
 | admin-service-hpa | 1 | 2 | 1 | cpu 2%/70% |
@@ -90,10 +97,12 @@ prometheus-84c47f7669-b87vq   1/1     Running   0          22s
 ## 2. 阶段 A 完成 → 阶段 B 解锁
 
 per RGS-PHASE-C-KICKOFF v0.1 §2 + RGS-PHASE-C-PREP v0.1 §1:
+
 - ✅ 阶段 A 全 4 步完成 = 阶段 B (5 域 certs 导出 + mTLS 业务级) 解锁
 - 阶段 B 仍需 SRE Lead 拍板触发 (per RGS-PHASE-C-KICKOFF §3.1 4 选 1 拍板项) 或 Mavis 跳过拍板继续推 (per 9/3 12:36 JST 拍板 main-pioneer-sre)
 
 **阶段 B 8 步 (per RGS-PHASE-C-PREP §1)**:
+
 1. k8s secret 导出 (5 域 + CA)
 2. mTLS 证书本地化 (per 8/27 ST 导出 SOP)
 3. grpcurl 安装到 admin pod

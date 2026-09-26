@@ -23,6 +23,7 @@
 **触发**：Ulysses 2026-09-05 12:08 JST 拍板"6 域 → 8 域 + 1 网关"扩展（per `D:\sszgC\phase0-worker-report.md` §1.1 7 域 crate 完整 + §6.7 RACI v1.3 升版缺标），承接 Phase 0 W5 worker 完结（battle-service 250 RPC scaffold + 74 UT + 44 真实 RPC + 6+9 反例数据驱动）。
 
 **来源**：
+
 - W5 worker 9/5 Phase 0 派工 250 RPC scaffold（PVP 6 变体 + PVE + 9 holiday_* 活动 + 战斗录像 + 段位赛 + 锦标赛 + 英雄殿堂 + 友谊赛）
 - 6 个 PVP 变体 (ranked/casual/cross-server/championship/hero-hall/friendly) → 1 套 PvPService + PvpMode 枚举 + PvpConfig HashMap 数据驱动
 - 9 个 holiday_* 活动 (春节/元宵/端午/中秋/圣诞/周年庆/夏日祭/万圣节/感恩节) → 1 套 HolidayActivityService + activity_id 路由
@@ -44,6 +45,7 @@
 | **签字单元** | **6 × 8 = 48** | 每格 1 个责任字母 R/A/C/I（per RGS-ADR-0055 v0.1 §4 RACI 定义） |
 
 **RACI 字母**：
+
 - **R**（Responsible）：执行者，对结果负直接责任
 - **A**（Accountable）：最终责任者，1 项任务只能有 1 个 A
 - **C**（Consulted）：双向咨询，需主动征求 + 记录意见
@@ -60,9 +62,10 @@
 | 3. 战斗结算（battle.battle_settle v0.1 + 奖励发放）| **A** | C | I | **A** | C | I | **A** | I |
 | 4. 战斗录像（battle.battle_replay v0.1 + 录像存储）| **A** | C | C | **A** | C | C | I | C |
 | 5. 段位赛（battle.ranked_season v0.1 + 段位结算）| **A** | C | C | C | **A** | I | C | I |
-| 6. 9 holiday_* 活动（battle.holiday_* v0.1 + activity_id 路由）| **A** | C | I | C | C | I | C | I |
+| 6. 9 holiday_*活动（battle.holiday_* v0.1 + activity_id 路由）| **A** | C | I | C | C | I | C | I |
 
 **矩阵解读**：
+
 - battle 域 Lead 在 6 任务中 6 次 A（战斗全任务域 Lead 主责）
 - 架构师 C 全部（横向咨询），但不直接 A（避免 battle 域 Lead 与架构师兼任）
 - SRE 在 PVP 匹配 + 战斗执行 + 战斗录像 + 段位赛 4 个任务 C（基础设施相关 + 防作弊 + 录像存储）
@@ -121,7 +124,7 @@
 - [ ] **跨域仲裁流程**：battle 域 Lead 与 economy 域 Lead 在涉及双方 A 角色任务（战斗结算奖励发放）时的最终决策权？需 RGS-OPEN-QA-001-ACTIONS-v0.3 后续子任务明确
 - [ ] **battle × network-gateway 协议码段分配**：协议码 10401-10500 段归属需 E2.5 拍板（per W6 worker 报告）
 - [ ] **battle × scene 联调场景**：副本内战斗触发条件 + 状态同步（per W4 + W5 worker 报告联调, Phase 3 估 1-2 SRE·d）
-- [ ] **9 holiday_* 活动业务规则**：6+9 反例数据驱动 15 → 3 套, 但 activity_id 路由表需 battle Lead 业务确认 (per W5 报告 9 holiday_*)
+- [ ] __9 holiday__ 活动业务规则_*：6+9 反例数据驱动 15 → 3 套, 但 activity_id 路由表需 battle Lead 业务确认 (per W5 报告 9 holiday_*)
 - [ ] **电子签字基础设施**：8 域 Lead 真实签字基础设施（GPG / SSH 签名 / 内部 CRM）尚未搭建，目前以"代签 + DDD Review 阶段补签"过渡
 
 ---

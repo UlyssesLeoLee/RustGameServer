@@ -47,6 +47,7 @@
 4. **message 格式** — 至少 1 个 `A->>B` / `A-->>B` / `A->B` 等 message 行
 
 **未覆盖** (per 8/26 JST 缺标比错标):
+
 - 语义层: `A->>B` 中 A/B 是否在 actor/participant 列表中 (mermaid 不会报这个错,会显示 unknown)
 - 嵌套块类型组合 (如 `alt` 嵌套 `loop`) 的合法性
 - mermaid 关键字大小写敏感性 (mermaid 10.x 接受 `SequenceDiagram` 大写,但 v11+ 强制小写)
@@ -97,6 +98,7 @@ node verify-seq.js
 ## 5. DDD Review L0 检查清单第 7 项 "mermaid 语法" 状态
 
 > per RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §4:
+>
 > - [x] **mermaid 语法**: 本地 mermaid-cli 渲染验证通过
 >   - **状态**: ⚠️ 9 篇块结构 + 必要元素验证 PASS, 完整渲染验证 (mermaid-cli) 留 DDD Review 二审阶段
 >   - **兜底**: per RGS-BAS-FLOW-STANDARD §3.1 GitHub 渲染备选 (DDD Review 二审阶段必查)
@@ -120,5 +122,5 @@ node verify-seq.js
 - **8/27 JST 三次强化代签**: 19:39 / 20:56 / 21:59 JST, Mavis 默认代签 Ulysses
 - **8/26 JST 派生约束**: 缺标比错标安全
 - **9/2 15:02 JST Ulysses 拍板 (A+A 補 1+2+5+6 缺口)**: 本报告为缺口 2 交付物
-- **@mermaid-js/parser 1.2.1**: https://github.com/mermaid-js/mermaid/tree/develop/packages/parser (sequenceDiagram 不在该版本支持范围, 这是 mermaid 11.x 路线图 TODO)
+- **@mermaid-js/parser 1.2.1**: <https://github.com/mermaid-js/mermaid/tree/develop/packages/parser> (sequenceDiagram 不在该版本支持范围, 这是 mermaid 11.x 路线图 TODO)
 - **9/2 10:18 JST 拍板 L1-L14 冻结**: 本报告不引入新派生约束, 仅作为缺口补全交付物

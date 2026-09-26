@@ -110,6 +110,7 @@ flowchart LR
 | `gov.governance_loop.debug.unlanded_edge_diff` | 未落地边的来源-目标详细 diff（含原始文本片段） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `gov.governance_loop.debug.closure_path_dump` 在大规模 workspace 下可能 8KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `gov.governance_loop.ci_closure_signal` 是**生产事件**，**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于 CI Dashboard 按 `run_id` 维度回溯
 
@@ -139,6 +140,7 @@ flowchart LR
 | `gov.id_registry.debug.mermaid_text_dump` | 附件C §7 表格的 mermaid 文本化 dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.id_registry.debug.registration_diff` 在长编号范围（如 `FR-SEC-001〜042`）修订时可能 2KB+ —— release 完全剔除
 - `gov.id_registry.unregistered_segment_detected` 是**阻断级**信号（per §4 表"未注册域名段"阻断项）—— release 必出，不挂 `#[cfg]`
 
@@ -170,6 +172,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.problem_mapping.debug.domain_id_classification` | 域内ID 分类详情（哪些属于 TBD 域、哪些属于 RSK 域） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.problem_mapping.broken_reference` 是**阻断级**信号（per §4 表"未登记TBD/未登记风险"阻断项）—— release 必出，不挂 `#[cfg]`
 - `gov.problem_mapping.debug.dual_table_diff` 涉及全部主编号的 diff 输出，在大型项目下可能 3KB+ —— release 完全剔除
 
@@ -200,6 +203,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.olu.debug.sre_workload_raw` | SRE 实际值班件数/应对时长的原始统计（校准数据源） | 4 次/年 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.olu.debug.sre_workload_raw` **可能含 SRE 姓名/工时数据**—— release 完全剔除，仅 debug build 留存原始数据用于追溯
 - `gov.olu.total_budget_initialized` 是**重大治理事件**（如 ISS-032 决议）—— release 必出 + 强制全采样，便于 OLU 历年变更审计
 
@@ -266,6 +270,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.olu.debug.calibration_evidence_raw` | 校准数据源（SRE 实测小时数）的原始 CSV 片段 | 4 次/年 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 3-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.olu.balance_warning` 是**预警级**信号—— release 必出 + 强制全采样，便于 SRE 提前介入
 - `gov.olu.allocation_rejected.*` 均为**阻断级**（per ARC-014）—— release 必出，不挂 `#[cfg]`
 - `gov.olu.debug.calibration_evidence_raw` 涉及 SRE 个人工时—— release 完全剔除
@@ -310,6 +315,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.olu.debug.balance_history_timeseries` | OLU 余额历史时序（用于追溯超支周期） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.olu.overspend_detected` 与 `gov.olu.recovery_failed` 均为**生产事件**—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `gov.olu.balance_restored` 标记从超支到恢复的临界点，**不**可 debug-only —— release 必出便于治理审计
 - `gov.olu.debug.balance_history_timeseries` 在长期项目下可能 3KB+ —— release 完全剔除
@@ -338,6 +344,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.olu.ledger.debug.weekly_diff_full` | 周更前后完整 diff（含已删除行/已修订字段） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 3-8KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.olu.ledger.weekly_update_missed` 是**流程合规信号**—— release 必出 + 强制全采样，便于 SRE Lead 监督 GOV-OLU-001 执行情况
 - `gov.olu.ledger.debug.full_ledger_dump` 在大型项目下可能 10KB+ —— release 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产通道
 
@@ -379,6 +386,7 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.ci.debug.full_workflow_log` | GitHub Actions 工作流完整 log（含每步 stdout/stderr） | ~12 次/日 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-50KB/条（release 剔除，避免 RUST_LOG=debug 误开时撑爆通道） |
 
 **debug-only 守护要点**（落实用户偏好：CI 机械校验详细日志 debug-only）：
+
 - `gov.ci.check_failed` 是**阻断级**信号—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `gov.ci.debug.*` 全部守护 `#[cfg(debug_assertions)]`——CI 详细日志（哪条规则失败/原始输出）在 release build 完全剔除，仅 debug build 留存用于 CI 失败排查
 - `gov.ci.debug.full_workflow_log` 在大型 monorepo 下可能 50KB+ —— release 完全剔除
@@ -425,6 +433,7 @@ flowchart LR
 | `gov.plugin.debug.epoch_validation_trace` | epoch 校验全链路 trace（从插件调用到 EC 接收的逐跳） | 每次插件调用 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实用户偏好：CI 机械校验详细日志 debug-only）：
+
 - `gov.plugin.permanent_fact_marker_violation` 是**治理事件**（CI 失败）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `gov.plugin.direct_db_access_blocked` 是**安全事件**—— release 必出 + `error!` 强制全采样
 - `gov.plugin.debug.static_check_failure_detail` 在大型代码库下可能 3KB+ —— release 完全剔除
@@ -482,6 +491,7 @@ sequenceDiagram
 | `gov.data_deletion.debug.affected_rows_detail` | 每步物理删除/哈希化的行数与字段名（不含明文） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.data_deletion.*` 全部 release 必出（隐私合规审计需要完整链路）—— 涉及个人信息的治理事件必须 production 可见
 - `gov.data_deletion.unexpected_target_db` 是**阻断级**信号—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `gov.data_deletion.id_replaced` **不**记录明文 `player_id` —— 脱敏字段值按 BAS-004 v0.3 §5.1 规则
@@ -535,6 +545,7 @@ sequenceDiagram
 | `gov.data_export.debug.link_audit_trail` | 链接全生命周期审计 trail（生成/访问/到期） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.data_export.*` 全部 release 必出（隐私合规审计需要完整链路 + 链接生命周期可追溯）—— 不挂 `#[cfg]`
 - `gov.data_export.scope_mismatch_detected` 是**阻断级**信号（上线前检查失败）—— release 必出 + `error!` 强制全采样
 - `gov.data_export.link_accessed` 中的 IP 地址按 BAS-004 v0.3 §5.1 脱敏为网段（末段掩码），**不**记录明文 IP
@@ -570,6 +581,7 @@ sequenceDiagram
 | `gov.config_dispatch.debug.consistency_check_evidence` | 一致性检查的输入参数与逐项校验结果 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.config_dispatch.*` 治理事件（版本发布/切换/回滚）全部 release 必出 + 强制全采样——配置变更属重大治理信号，必须 production 可见
 - `gov.config_dispatch.consistency_check_failed` / `rolled_back` / `partial_apply` 是**异常信号**—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
 - `gov.config_dispatch.debug.content_diff` 在大型配置表下可能 5KB+ —— release 完全剔除，避免 RUST_LOG=debug 误开时泄漏配置内容
@@ -600,6 +612,7 @@ sequenceDiagram
 | `gov.economic_plugin.debug.local_state_snapshot` | 节点本地状态快照（用于诊断"是否被误用为计算源"） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.economic_plugin.judgment_completed` 是**资产结算关键事件**（每次永久事实事务均产生）—— release 必出 + 强制全采样，便于 SRE 按 `plugin_id` 维度聚合
 - `gov.economic_plugin.local_state_access_denied` 与 `gov.economic_plugin.dual_judgment_detected` 是**资产安全事件**—— release 必出 + `error!` 强制全采样
 - `gov.economic_plugin.debug.transaction_timing` 在高频永久事实事务下产生频次较高—— release 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产通道
@@ -632,6 +645,7 @@ RGS-REQ-006 NFR-MNT-004原条文"回滚时限p99<3秒"将两类性质不同的�
 | `gov.mount_rollback.debug.rollback_step_durations` | 阶段② 镜像回退每步耗时（镜像拉取/容器启动/readinessProbe） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 800B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `gov.mount_rollback.*` 全部 release 必出（生产事件治理信号）—— 不挂 `#[cfg]`
 - `gov.mount_rollback.traffic_divert_failed` / `readiness_probe_failed` / `partial_verification_rejected` 是**异常信号**—— release 必出 + `error!`/`warn!` 强制全采样
 - `gov.mount_rollback.both_phases_verified` 是"两阶段均完成"的合规审计点—— release 必出 + 强制全采样，便于 §5.5 判定原则事后追溯
@@ -673,6 +687,7 @@ RGS-REQ-006 NFR-MNT-004原条文"回滚时限p99<3秒"将两类性质不同的�
 | `gov.doc_health_check.debug.full_link_graph` | `docs/` 完整链接图 dump（用于死链定位） | 4-5 次/月 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实用户偏好：CI 机械校验详细日志 debug-only + 文档健康检查 release 必出）：
+
 - `gov.doc_checklist.*` 与 `gov.doc_health_check.*` 全部治理事件 release 必出（per 用户偏好"治理事件 → release 必出"）—— 不挂 `#[cfg]`
 - `gov.doc_health_check.weekly` 是**低频周级事件**—— release 必出 + 强制全采样，便于 SRE 周报聚合
 - `gov.doc_health_check.dead_link_detected` / `version_mismatch` 是**警告信号**—— release 必出 + `warn!` 强制全采样

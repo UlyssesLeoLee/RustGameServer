@@ -33,6 +33,7 @@
 ### 1.1 用户画像
 
 **Ulysses**（per 用户档案 / DEC-008 一人公司）：
+
 - 角色：1 人 12 角色（架构师 / 5 域 Lead / SRE / DBA / 安全 / shared-platform / saga 召集人 / PM / ...）
 - 工作流：WBS v0.7→v0.8（commit `87a6472`）已含 145 L4 任务，DDD Review 阶段需逐项审 11 P0/P1/P2 commit
 - 环境：Windows 11 + WSL2 Ubuntu + k3s + Rust + node 22
@@ -67,6 +68,7 @@
 > **以便** 不切工具就能批 1 份 SPEC
 
 **验收标准**：
+
 - [ ] 11 commit 表格显示（branch / head hash / message / DDD Review 签字状态）
 - [ ] 5 份 per-domain RACI v1.0 签字栏显示（per RGS-RACI-{域}-V1 §4）
 - [ ] 单页加载 < 2s
@@ -78,6 +80,7 @@
 > **以便** 部署后立即验证
 
 **验收标准**：
+
 - [ ] 显示 5 域 pod（player / economy / match / social / admin）
 - [ ] 显示 pod phase（Running / Pending / Failed）
 - [ ] 显示 restart count
@@ -90,6 +93,7 @@
 > **以便** commit 前确认无新 FAIL/WARN
 
 **验收标准**：
+
 - [ ] 显示当前 1 FAIL + 1 WARN（per RGS-DOCS-HEALTH-2026-08-26）
 - [ ] 显示 FAIL/WARN 详情
 - [ ] 显示上次 check 时间
@@ -101,6 +105,7 @@
 > **以便** 评估 5 域 Lead 实际执行进度
 
 **验收标准**：
+
 - [ ] 8 份 IMPL-PLAN 表格（文件 / 状态 / owner / 任务簇完成度）
 - [ ] 联动 WBS v0.8 §2A.2.55.续3
 
@@ -111,6 +116,7 @@
 > **以便** 决定哪些先 merge
 
 **验收标准**：
+
 - [ ] 41 个 worktree 表格
 - [ ] 标注 P0/P1/P2 / v0.2 / 待 merge
 - [ ] head commit 显示

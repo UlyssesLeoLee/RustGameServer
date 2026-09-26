@@ -369,6 +369,7 @@ per RGS-DEC-008 一人公司治理基线（Ulysses = 12 类角色实际签，无
 | 12 | 项目负责人（PM）| **Ulysses** | **2026-08-24** | ✅ P0 / 8K token 估算（per RGS-OPEN-QA-001-ACTIONS-v0.3 §4 WF-1-55.38）；范围、风险接受、资源（social 域 Lead 独立编制）和本 DTL-043 落地的实施授权 |
 
 **接受代价**（per DEC-008 + Q-D-01 已知风险）：
+
 - PH-1 第三方网关 mock/stub 接入风险：mock 网关与真实网关行为差异（PH-2 接入真实 SDK 时需补回归测试）——由 DTL-019 v0.2 §8 后续计划承担。
 - `message_recipients` 字段随 DTL-019 v0.2 升版的同步风险：失败重试字段（`failure_count` / `last_failure_at` / `last_failure_reason`）若 DTL-019 v0.2 调整重试策略（如邮件 5 次重试），本 DDL 字段可能需扩 `failure_count` 类型（SMALLINT → INT）——由 Q-G-01 升版 checklist 引用同步机制承担。
 - 4 渠道 mock 网关集成测试覆盖不完整风险：PH-1 仅能覆盖 mock 路径，真实网关（APNs/FCM/SMTP/SMS）路径需 PH-2 接入后补混沌测试。

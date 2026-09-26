@@ -4,6 +4,7 @@
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
 > **升版**: 2026-09-05 12:30 JST v1.3 (per 9/5 12:08 JST 拍板, 8 域扩展 + 派生约束 L15-L18)
 > **依据**:
+>
 > - AGENTS.md v0.4 §7 batch 域派生约束 (commit `30c7bae`)
 > - AGENTS.md v0.6.12 §8.x L15-L18 派生约束 (per 9/5 12:08 JST 拍板)
 > - AGENTS.md v0.6.12 §9.7 8 域扩展全景
@@ -118,6 +119,7 @@ batch 域是 6 域扩展中的**第 6 域** (per AGENTS.md v0.4 §7 + DEC-008),*
 **GAP-11 闭合确认**: batch 域 Lead RACI 同步 = v1.1 → v0.2 升版, 5 域 Lead 全部签字 ✅ (per 6 worktree 派工 9/1-9/2 23:57 JST 6 merge commit 落地).
 
 **WBS v0.2 §2.5 桶 11 节奏**:
+
 - W1 (9/2-9/8): 基础框架 + namespace 隔离 (GAP-12)
 - W2 (9/9-9/15): Master 5 表 + 5 gRPC client + worker pool (GAP-4 + GAP-7 + GAP-9)
 - W3 (9/16-9/22): 调度 + 审计 (GAP-3)

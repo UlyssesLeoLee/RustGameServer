@@ -40,6 +40,7 @@
 **方法**：GET
 **Query 参数**：无
 **响应 200**：
+
 ```json
 {
   "rgs_batch_console_version": "0.1.0",
@@ -48,6 +49,7 @@
   "generated_at": "2026-09-01T18:00:00+09:00"
 }
 ```
+
 **实现**：`tools/rgs-batch-console/server.js` `routeHealth(req, res)`
 **错误码**：500（backend 不可达 + hint: "per rgs-web §健康检查降级模式"）
 
@@ -55,6 +57,7 @@
 
 **方法**：GET
 **响应 200**：
+
 ```json
 {
   "console": "0.1.0",
@@ -68,6 +71,7 @@
 
 **方法**：POST
 **Body**：
+
 ```json
 {
   "player_ids": ["p001", "p002", "..."],
@@ -75,7 +79,9 @@
   "reason": "Q3 运营活动发奖"  // 必填, ≥ 20 字符 (per F-19 / audit)
 }
 ```
+
 **响应 202**：
+
 ```json
 {
   "task_id": "uuid",
@@ -85,6 +91,7 @@
   "created_at": "..."
 }
 ```
+
 **实现**：`routeGmGrant(req, res)` → 转发 `POST http://rgs-batch-backend:8790/api/v1/tasks`
 **错误码**：400（参数错）/ 500（backend 错）
 
@@ -92,6 +99,7 @@
 
 **方法**：POST
 **Body**：
+
 ```json
 {
   "name": "夜间结算",
@@ -101,22 +109,27 @@
   "enabled": true
 }
 ```
+
 **响应 201**：
+
 ```json
 { "schedule_id": "uuid", "task_id": "uuid", "next_run_at": "..." }
 ```
+
 **实现**：`routeScheduleCreate(req, res)` → 转发 `POST http://rgs-batch-backend:8790/api/v1/schedules`
 
 #### 1.1.5 GET /api/batch/tasks
 
 **方法**：GET
 **Query 参数**：
+
 - `status` (optional, enum: pending/running/completed/failed/partial/all, default all)
 - `task_type` (optional)
 - `limit` (default 50, max 200)
 - `offset` (default 0)
 - `since` (optional ISO 8601)
 **响应 200**：
+
 ```json
 {
   "tasks": [
@@ -126,12 +139,14 @@
   "generated_at": "..."
 }
 ```
+
 **实现**：转发 `GET http://rgs-batch-backend:8790/api/v1/tasks`
 
 #### 1.1.6 GET /api/batch/tasks/{id}/progress
 
 **方法**：GET
 **响应 200**：
+
 ```json
 {
   "exec_id": "uuid",
@@ -144,6 +159,7 @@
   "updated_at": "..."
 }
 ```
+
 **实现**：转发 `GET http://rgs-batch-backend:8790/api/v1/tasks/{id}/progress`
 **错误码**：404（task 不存在）/ 500
 
@@ -151,6 +167,7 @@
 
 **方法**：POST
 **Body**：
+
 ```json
 {
   "source": "player/50051",  // 'player/50051' / 'file:/var/log/...' / 'kubectl:player-service'
@@ -159,16 +176,20 @@
   "output": "postgres"  // 'postgres' / 'csv' / 'rgs-web-embed'
 }
 ```
+
 **响应 202**：
+
 ```json
 { "task_id": "uuid", "log_task_id": "uuid", "status": "pending" }
 ```
+
 **实现**：转发 `POST http://rgs-batch-backend:8790/api/v1/log-tasks`
 
 #### 1.1.8 POST /api/batch/data-migration
 
 **方法**：POST
 **Body**：
+
 ```json
 {
   "source": "postgres://5 域 player_characters",
@@ -179,22 +200,27 @@
   "reason": "Q3 玩家数据归档"  // 必填, ≥ 20 字符
 }
 ```
+
 **响应 202**：
+
 ```json
 { "task_id": "uuid", "migration_id": "uuid", "rollback_sql": "...", "status": "pending" }
 ```
+
 **实现**：转发 `POST http://rgs-batch-backend:8790/api/v1/migration-tasks`
 
 #### 1.1.9 GET /api/batch/audit
 
 **方法**：GET
 **Query 参数**：
+
 - `task_id` (optional)
 - `player_id` (optional, 通过 sub_task.target_id 反查)
 - `action` (optional, enum)
 - `since` (optional ISO 8601)
 - `limit` (default 50, max 200)
 **响应 200**：
+
 ```json
 {
   "events": [
@@ -204,6 +230,7 @@
   "generated_at": "..."
 }
 ```
+
 **实现**：转发 `GET http://rgs-batch-backend:8790/api/v1/audit`
 **重要**：`params_hash` 永不解密（per 8/27 11:06 JST 硬 ban + NFR-30）
 
@@ -211,10 +238,12 @@
 
 **方法**：GET
 **Query 参数**：
+
 - `exec_id` (optional)
 - `resolved` (optional, default false)
 - `limit` (default 50)
 **响应 200**：
+
 ```json
 {
   "events": [
@@ -224,15 +253,18 @@
   "generated_at": "..."
 }
 ```
+
 **实现**：转发 `GET http://rgs-batch-backend:8790/api/v1/dlq`
 
 #### 1.1.11 POST /api/batch/dlq/{id}/retry
 
 **方法**：POST
 **响应 200**：
+
 ```json
 { "dlq_id": "uuid", "status": "requeued", "new_sub_id": "uuid" }
 ```
+
 **实现**：转发 `POST http://rgs-batch-backend:8790/api/v1/dlq/{id}/retry`
 
 ### 1.2 rgs-batch-backend API (26 endpoint)
@@ -243,6 +275,7 @@
 
 **方法**：POST
 **Body**：
+
 ```json
 {
   "task_type": "gm_grant",  // 'gm_grant' / 'log_process' / 'data_migration' / 'aggregation'
@@ -251,7 +284,9 @@
   "trace_id": "..."  // 可选, 不传则生成
 }
 ```
+
 **响应 202**：
+
 ```json
 {
   "task_id": "uuid",
@@ -261,8 +296,10 @@
   "created_at": "..."
 }
 ```
+
 **实现**：`src/api/task_def.rs` `create_task`
 **关键逻辑**：
+
 1. 验证 task_type 合法
 2. 写 task_def M-1 (status=pending)
 3. 写 task_execution T-1 (exec_id, params_snapshot, trace_id)
@@ -283,6 +320,7 @@
 
 **方法**：GET
 **响应 200**：
+
 ```json
 {
   "task_id": "uuid",
@@ -298,15 +336,18 @@
   "trace_id": "..."
 }
 ```
+
 **实现**：`src/api/task_execution.rs` `get_task`，sqlx 读 task_def M-1 + task_execution T-1 + task_progress W-1
 
 #### 1.2.4 GET /api/v1/tasks/{id}/sub-tasks
 
 **方法**：GET
 **Query 参数**：
+
 - `status` (optional)
 - `limit` (default 100, max 1000)
 **响应 200**：
+
 ```json
 {
   "sub_tasks": [
@@ -315,6 +356,7 @@
   "total": 100
 }
 ```
+
 **实现**：`src/api/sub_task.rs` `list_sub_tasks`，sqlx 读 sub_task T-2
 
 #### 1.2.5 GET /api/v1/tasks/{id}/progress
@@ -327,11 +369,14 @@
 
 **方法**：POST
 **响应 200**：
+
 ```json
 { "task_id": "uuid", "status": "cancelling" }
 ```
+
 **实现**：`src/api/task_execution.rs` `cancel_task`
 **关键逻辑**：
+
 1. 写 task_def.status = 'cancelling'
 2. worker 池每 30s 检查 status → 停止新 sub_task
 3. 已执行的 sub_task 不撤销（per F-21 限制）
@@ -348,6 +393,7 @@
 
 **实现**：`src/api/schedule.rs`
 **关键逻辑**：
+
 - cron: tokio-cron-scheduler 调度
 - interval: tokio::time::interval
 - oneshot: tokio::time::sleep_until(at)
@@ -370,6 +416,7 @@
 **响应 202**：见 §1.1.7
 **实现**：`src/api/log_task.rs` `create_log_task`
 **关键逻辑**：
+
 1. 拉取 log 源（5 域 gRPC interceptor / 文件 glob / kubectl logs）
 2. 写 task_def M-1 (type=log_process)
 3. 写 task_execution T-1
@@ -384,6 +431,7 @@
 **响应 202**：见 §1.1.8
 **实现**：`src/api/migration.rs` `create_migration`
 **关键逻辑**：
+
 1. before snapshot（写 data_migration T-6, before_snapshot JSONB）
 2. 生成 rollback SQL（基于 before snapshot, per F-24）
 3. dry_run=true → 仅生成 rollback，不执行
@@ -406,6 +454,7 @@
 
 **实现**：`src/api/dlq.rs`
 **关键逻辑**：
+
 - retry: 写 dlq_event.resolved_at + 重新入队
 - resolve: 写 dlq_event.resolved_at + audit_event T-3 (action=dlq_resolve)
 
@@ -413,6 +462,7 @@
 
 **方法**：GET
 **响应 200**：
+
 ```json
 {
   "pools": [
@@ -420,6 +470,7 @@
   ]
 }
 ```
+
 **实现**：`src/api/dlq.rs`（或单独 src/api/worker_pool.rs）
 
 #### 1.2.14 CRUD /api/v1/data-sources (3 endpoint)
@@ -435,6 +486,7 @@
 
 **方法**：GET
 **响应 200**：
+
 ```json
 {
   "rgs_batch_backend_version": "0.1.0",
@@ -446,6 +498,7 @@
   "generated_at": "..."
 }
 ```
+
 **实现**：`src/api/health.rs`
 
 #### 1.2.16 GET /metrics (Prometheus scrape)
@@ -453,6 +506,7 @@
 **方法**：GET
 **响应 200**：`text/plain` Prometheus 格式
 **关键指标**：
+
 - `rgs_batch_active_tasks`
 - `rgs_batch_subtasks_total{status="completed|failed|dlq"}`
 - `rgs_batch_dlq_size`
@@ -974,7 +1028,7 @@ kubectl port-forward svc/rgs-batch-envoy 8789:8443 -n rust-game-server
 | 3 | batch_work.* | 不备份 (session-bound, 任务结束清理) | - | - |
 | 4 | batch_transaction_archive.* | k8s PVC snapshot | weekly | 永久 |
 | 5 | rgs-batch-console/data/*.jsonl | hostPath + tar.gz | weekly | 30 天 |
-| 6 | certs/*.crt, *.key | 加密备份到 1Password | weekly | 永久 |
+| 6 | certs/*.crt,*.key | 加密备份到 1Password | weekly | 永久 |
 | 7 | k8s manifests (70-78) | git 跟踪 (per 5 域实践) | on commit | 永久 |
 
 ### 4.4 运维工具脚本
@@ -1160,7 +1214,7 @@ fn filter_recursive(v: &mut serde_json::Value, banned: &[&str]) {
 | 5 | ST-05: mTLS 业务级 | grpcurl --cert --key | 5 域 gRPC mTLS 双向认证 |
 | 6 | ST-06: 数据迁移 + rollback | psql + curl | 迁移执行 + rollback SQL 验证 |
 | 7 | ST-07: 审计永久保留 | psql + curl | audit_event 不被自动清理 |
-| 8 | ST-08: envoy 边缘代理 | curl https://localhost:8443 | 8443 HTTPS + mTLS termination |
+| 8 | ST-08: envoy 边缘代理 | curl <https://localhost:8443> | 8443 HTTPS + mTLS termination |
 | 9 | ST-09: 127.0.0.1 only | curl 0.0.0.0:8789 | 0.0.0.0 拒绝（envoy 边缘代理）|
 | 10 | ST-10: env value 永不出现在日志 | kubectl logs + grep | kubectl logs 无 password / key / token 字符串 |
 
@@ -1194,6 +1248,7 @@ fn filter_recursive(v: &mut serde_json::Value, banned: &[&str]) {
 ### 8.2 与上游规范关系 (5 不破坏 + 4 复用 + 3 引用)
 
 **(5 不破坏)**：
+
 - 不破坏 5 域架构: rgs-batch-backend 作为 gRPC 客户端调用 5 域, 不修改 5 域代码
 - 不破坏 rgs-web: rgs-batch-console 独立 Node 项目, 不嵌入 rgs-web
 - 不破坏 shared-platform: 复用现有 crate, 不修改 shared-platform 代码
@@ -1201,12 +1256,14 @@ fn filter_recursive(v: &mut serde_json::Value, banned: &[&str]) {
 - 不破坏 gm-backend: rgs-batch-console 跟 gm-console 形态不同, 但都是 envoy 独立 deployment
 
 **(4 复用)**：
+
 - rgs-web 母规范 5 份: 0 依赖 + 127.0.0.1 only + 30s 轮询 + JSON 响应
 - rgs-web OLU-WEB 4 份: data/ 目录 + lockfile + token-estimate + ai-ledger.jsonl
 - gm-backend 范式: actix-web + mTLS + 8443 HTTPS APIGW
 - 5 域 ST 业务级 mTLS 实践 (commit 401ac5c): 证书 + 双向认证 + 8/27 ST 导出 SOP
 
 **(3 引用)**：
+
 - shared-platform 20 模块: outbox + tracing + span_helpers + retry + dlq + grpc_tracing + rbac + tls + ...
 - 5 域 gRPC client: player / economy / match / social / admin 50051-50055
 - saga-runtime 独立 Pod (per RGS-BAS-100 v0.1, v0.2 集成)

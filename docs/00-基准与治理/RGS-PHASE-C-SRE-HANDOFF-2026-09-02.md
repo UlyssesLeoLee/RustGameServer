@@ -25,32 +25,43 @@
 ### 阶段 A: k3s 节点注册恢复 (per OPEN-QA v0.3 §7.1, 阻塞根源)
 
 - [ ] **A.1** SSH 登录 WSL 节点
+
   ```bash
   # Mavis 边界外, 由 SRE 执行
   wsl -d Ubuntu-22.04
   ```
+
 - [ ] **A.2** 检查 k3s 状态
+
   ```bash
   systemctl status k3s
   sudo kubectl get nodes
   ```
+
 - [ ] **A.3** 恢复 ulyssespc 节点注册
   - 检查 `/etc/rancher/k3s/k3s.yaml` 配置
   - 检查 token: `sudo cat /var/lib/rancher/k3s/server/node-token`
   - 在 ulyssespc 节点重跑 agent 注册:
+
     ```bash
     # ulyssespc 节点上
     curl -sfL https://get.k3s.io | K3S_URL=https://<server-ip>:6443 K3S_TOKEN=<node-token> sh -
     ```
+
 - [ ] **A.4** 验证节点状态
+
   ```bash
   sudo kubectl get nodes  # ulyssespc 应为 Ready
   ```
+
 - [ ] **A.5** 检查 5 域 binary
+
   ```bash
   sudo kubectl get pods -A | grep -E 'player|economy|match|social|admin'
   ```
+
 - [ ] **A.6** 验证 PostgreSQL 池
+
   ```bash
   sudo kubectl get pods -A | grep -E 'postgres|pg-pool'
   PGPASSWORD=rgs_admin psql -h <pg-host> -p 5544 -U rgs_admin -d rgs_main -c "SELECT 1"
@@ -59,12 +70,15 @@
 ### 阶段 B: 5 域 gRPC 业务级 mTLS 部署 (per Phase C 5/5 桶)
 
 - [ ] **B.1** 5 域 cert 重新签发 (per WBS v0.4.10 + BA-W1-4 rgs-certgen)
+
   ```bash
   # Mavis 边界外, 由 SRE 执行
   cd /opt/rgs/certs
   ./rgs-certgen.sh --domain all --modes mtls-business  # 业务级 mTLS
   ```
+
 - [ ] **B.2** 5 域 binary 重启 (应用新 cert)
+
   ```bash
   sudo kubectl rollout restart deployment player-service -n rgs
   sudo kubectl rollout restart deployment economy-service -n rgs
@@ -72,22 +86,30 @@
   sudo kubectl rollout restart deployment social-service -n rgs
   sudo kubectl rollout restart deployment admin-service -n rgs
   ```
+
 - [ ] **B.3** 验证 5 域 mTLS 业务级 ST
+
   ```bash
   # 跑 5 域 ST 业务级场景 (per BATCH-PLAN v0.2 §10)
   ./rgs-st-business-mtls.sh --domain all --verify-st-pass
   ```
+
 - [ ] **B.4** 检查 Prometheus + Grafana
+
   ```bash
   curl http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job == "rgs-batch-backend")'
   curl http://grafana:3000/api/dashboards/rgs
   ```
+
 - [ ] **B.5** 检查 rgs-web 8788
+
   ```bash
   curl http://rgs-web:8788/api/v1/health
   curl http://rgs-web:8788/api/v1/version
   ```
+
 - [ ] **B.6** 检查 rgs-batch-backend 8789
+
   ```bash
   curl http://rgs-batch-backend:8789/api/v1/health
   curl http://rgs-batch-backend:8789/api/v1/version
@@ -96,21 +118,27 @@
 ### 阶段 C: cargo test 22 测试函数实际跑 (per TEST-RUN-PLAN v0.1)
 
 - [ ] **C.1** 11 UT 单独跑 (Phase C 不依赖, 可立即跑)
+
   ```bash
   cd /opt/rgs/tools/rgs-batch-backend
   Start-Process cargo -ArgumentList @('test','--lib','exponential_backoff','endpoint_json_schema','--no-fail-fast') -RedirectStandardOutput 'cargo-test-ut-2026-09-02.log' -RedirectStandardError 'cargo-test-ut-2026-09-02.err' -PassThru
   # 60s 后看 log 0 error = 状态正确 (L1 派生约束)
   ```
+
   **预期结果**: 11/11 PASS
 - [ ] **C.2** 11 E2E 完整跑 (Phase C 部署完成后)
+
   ```bash
   Start-Process cargo -ArgumentList @('test','--test','integration_tests','e2e_','--no-fail-fast') -RedirectStandardOutput 'cargo-test-e2e-2026-09-02.log' -RedirectStandardError 'cargo-test-e2e-2026-09-02.err' -PassThru
   ```
+
   **预期结果**: 11/11 PASS
 - [ ] **C.3** 22 测试函数全跑
+
   ```bash
   Start-Process cargo -ArgumentList @('test','--tests','--no-fail-fast') -RedirectStandardOutput 'cargo-test-all-2026-09-02.log' -RedirectStandardError 'cargo-test-all-2026-09-02.err' -PassThru
   ```
+
   **预期结果**: 22/22 PASS
 - [ ] **C.4** commit 模板 (per TEST-RUN-PLAN v0.1 §4)
   - 11 UT PASS: `test(batch-backend): UT 实际跑 11/11 PASS (per BA-W3-10 9/2 验证 cargo test --lib), 派生约束 L1 1 worker 1 crate`

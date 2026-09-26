@@ -90,10 +90,10 @@ sequenceDiagram
 | `opsa.debug.action_gate_rule_eval` | L0 Action Gate 4 规则逐项判定明细（含每条规则的 input + verdict） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 字段规范）：
+
 - `opsa.debug.llm_full_prompt` **必须** `#[cfg(debug_assertions)]` 守护，release build 完全剔除——LLM prompt 包含运营活动配置/玩家 PII/Quarantine 池策略等敏感信息，`RUST_LOG=debug` 误开会泄漏，**不可** release 必出
 - `opsa.debug.decision_reasoning_steps` 决策推理步骤属高敏感（运营策略内部逻辑），release 必出仅含 `decision_outcome` 字段（合规审计最小化），推理细节 `debug-only`
 - `opsa.action_gate.signature.failed` / `opsa.action_gate.whitelist.rejected` / `opsa.core.credit.failed` 属**阻断级信号**（per ARC-055 + ARC-054 治理完整性），**必须** `error!` 强制全采样，**绝不**走 `#[cfg]` 剔除，确保 SRE 即时介入告警链
 - `opsa.llm.inference.completed` **必须**含 `cost_usd` 字段（成本核算，per NFR-AGT-003 降级链路），属 release 必出成本监控关键
 - 治理事件强清单（强制 release 必出，per BAS-004 v0.3 §6.2 强制全采样白名单"治理关键事件"）：`action_gate.signature.failed` / `action_gate.whitelist.rejected` / `action_gate.audit.recorded` / `core.credit.executed` / `core.credit.failed` / `ops.activity.launched` / `ops.reward.granted` / `ops.announcement.published` / `cs.sla.response_timeout` / `cs.sla.degradation.triggered` 共 10 类治理关键信号必须 production 可见
 - 资金链路不可抵赖清单（`opsa.core.credit.*` + `opsa.ops.reward.granted`）属资产对账核心，release 必出 + 强制全采样 + 不可降级
-

@@ -47,6 +47,7 @@
 ## 卡牌 8 桶 1 桶缺 service 实装
 
 桶 9 / 桶 14 缺 service.rs 实装, 但已落档:
+
 - 4 文件 +127KB (桶 9 实体 + 状态机 + 仓库 + migration)
 - 8 文件 +21KB (桶 14 i18n-service skeleton)
 - 6 commit + 5 merge 已 merge main (v0.18 v0.22 范围)

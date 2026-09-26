@@ -4,6 +4,7 @@
 > **创建者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
 > **状态**: 🟢 v0.4.5 跟踪表 (E3 W1-W6 37/40 L4 任务落地 + E4 草案 + E8 12/12 GAP 落地, 解除 blocked)
 > **关联**:
+>
 > - v0.1: `RGS-PLAN-WBS-token-bucket-v0.1.md` (commit `3e3a8e4`)
 > - v0.2: `RGS-PLAN-WBS-token-bucket-v0.2.md` (commit `84edf26`)
 > - v0.3: `RGS-PLAN-WBS-token-bucket-v0.3.md` (commit `ddb28b71`)
@@ -22,6 +23,7 @@
 - 9/2 01:50-02:15 JST E3 W1 全 6 任务 commit 落 main (af84884 + 2a44836)
 
 **v0.3 → v0.4 增量**:
+
 - v0.3 = 跟踪表, 32 commit 落地状态 + 阻塞项转交
 - v0.4 = E3 W1 6 任务落地 + E4 草案 + E8 GAP 子任务 + **解除 blocked**
 
@@ -58,11 +60,13 @@
 | E3 W2-W6 小计 | **40 L4 任务 → 37/40 已落** (3 项依赖外部) | 39 commit + 4 hotfix = 43 commit | ✅ 37/40 |
 
 **外部依赖 (3 项 WBS 0/5)**:
+
 - W2 BA-W2-X task_buffer 持久化: 等 Phase C 5 域 mTLS 落地 (SRE 介入, WSL k3s ulyssespc 节点注册未恢复)
 - W3 BA-W3-12 E2E 真实 sqlx + 5 域: 同上 (k3s 不可达)
 - W4 BA-W4-N 灰度锁 / W6 BA-W6-N 跨域事件真实发送: 同上 (gRPC health check 5 域 binary 需 k3s 部署)
 
 **9/2 08:14 JST git 实证** (per L13 派生约束 自指字段全 deferred):
+
 - main HEAD: `e0ed477` (实时, 跑 `git log main --oneline -1`)
 - ahead of WBS v0.2 (84edf26): **88 commit** (实时 `git rev-list --count 84edf26..main`, 创建时实测数; 修正 v0.4.4 跟踪表"39 commit"误算)
 - ahead of origin/main: 138 commit (`git rev-list --count origin/main..main`)
@@ -150,6 +154,7 @@
 ### 4.1 PH-3 评审启动源 (v0.4.9 hotfix 新增, 2026-09-02 10:14 JST)
 
 4 DRAFT partitioned SQL (`c2acf02` commit) 实施后进入 PH-3 评审窗口, 评审启动材料:
+
 - **文档**: `docs/00-基准与治理/RGS-DB-PARTITIONED-DRAFT-REVIEW-CHECKLIST-2026-09-02.md` v0.1.1
 - **启动 commit**: `999ff5d` (v0.1) + `24ce59c` (v0.1.1 §1.1 已签方背景)
 - **评审方**: 5 域 Lead (admin/economy × 2/match) 已派工签字 (per RACI v0.2 §3 + 6 worktree 跑通 9/1-9/2 23:57 JST) + SRE + DBA (2 角色待 Phase C 介入 / 评审启动待指派)
@@ -160,12 +165,14 @@
 ## 5. 解除 blocked 决策 (per 2026-09-02 02:20 JST)
 
 **原 blocked 原因 (per 2026-09-02 00:42 JST)**:
+
 1. Phase C 桶 9 (0/5) — SRE 介入
 2. Phase E3 (38 L4 任务) — 后续会话
 3. Phase E4 (k3s 资源) — SRE 协调
 4. Phase E8 (12 GAP) — W1 启动
 
 **解除动作 (per 本会话)**:
+
 - ✅ E3 W1 6 任务落地 (commit af84884 + 2a44836) — W1 全部完成
 - ✅ E3 W2-W6 37/40 L4 任务落地 (commit 1e3d528 系 + a932d95 + b7c100a + 5568a68 系 + 0e2dc91 + d5468c6 + 15ff16f + eb116f6 + ea4c874 等 40 commit, 详见 §1.1) — W2-W6 实际跑完
 - 🟡 E4 草案落地 (本版 §3) — 待 SRE 拍板

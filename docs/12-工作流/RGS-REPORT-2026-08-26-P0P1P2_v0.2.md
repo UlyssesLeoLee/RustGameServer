@@ -19,6 +19,7 @@
 本报告汇总 2026-08-26 04:00 JST 起的"26 + 17 份 DTL SPEC v0.2 升版 + 代签新规则 + P0/P1 8 commit + P2 3 commit"全部工作，作为 Ulysses DDD Review 阶段的统一入口。
 
 **本次新增（P0/P1 + P2 阶段）**：
+
 - **P0/P1**: 8 个新 worktree + 8 个新 commit（CROSS-008/010/011、DEC-Q003、6 域 IMPL-PLAN、ADR-0055+RACI-001、WBS v0.4）
 - **P2**: 3 个新 worktree + 3 个新 commit（WBS v0.7→v0.8、5 域 Lead RACI v1.0、CROSS 二次校正报告）
 
@@ -38,6 +39,7 @@
 | wbs/WF-1-55.76 | `48d002c` | WBS v0.3 → v0.4 升版 | 1 + marker |
 
 **P0/P1 接管 commit 教训**：8 个 worker 全部 "lost" 终态，实际起草了文件但没 commit。**Mavis 接管**:
+
 - WT-69/71/76：直接 `git add` + commit（路径无中文 quoting 问题）
 - WT-74：8 份 IMPL-PLAN 含中文路径（断点续传 / 服务器全生命周期），普通 `git add` 失败，**plumbing 路径**（`git hash-object -w --stdin` + `git update-index --cacheinfo`）绕过
 - WT-75：worker 起草了 RACI-001 313 行（自报"ADR-0055 已存在，仅新建 RACI-001"，符合 4 保留派生约束"不覆盖已合并文件"）
@@ -55,11 +57,13 @@
 **P2 起草模式**：吸取 P0/P1 教训，**不再用后台 worker**（lost 风险），Mavis 直接在 3 个 worktree 顺序起草 + commit。
 
 **P2 5 域 Lead RACI v1.0 关键设计**：
+
 - 每域 6 任务 × 7 治理角色 = 42 签字单元（vs RGS-RACI-001 v0.1 通用 160 单元）
 - 责任到人映射（per DEC-008 一人公司 12 角色）
 - 5 域 Lead 联合签字栏（架构师列可由 Mavis 代签，5 域 Lead 列必须由 Ulysses 在 DDD Review 阶段本人签）
 
 **P2 CROSS 二次校正报告关键设计**：
+
 - 4 类触发场景（域内错误 / 跨域争议 / 治理补充 / RACI 修正）
 - 5 份 CROSS SPEC 各自预期校正点 + 责任 Lead + 校正实施规划
 - 校正实施优先级 P0/P1/P2
@@ -121,9 +125,11 @@
 本报告关联的所有产出文件（11 commit + 27 v0.2 + 3 反馈单 + 1 总报告）:
 
 ### 6.1 17 份 v0.2 SPEC（已 commit 在 17 个独立 worktree）
+
 - RGS-SPEC-DTL-025 ~ 044, 100, 101, 102（17 份，per WBS §2A.2.55.续1 + 续2）
 
 ### 6.2 8 份 P0/P1 commit
+
 - SPEC-CROSS-008 v0.1 (commit `6c4c1eb`)
 - SPEC-CROSS-009 v0.2 (commit `e66e1ad`)
 - SPEC-CROSS-010 v0.2 (commit `7a00dec`)
@@ -134,6 +140,7 @@
 - WBS v0.4 (commit `48d002c`)
 
 ### 6.3 3 份 P2 commit
+
 - WBS v0.8 (commit `87a6472`)
 - 5 域 Lead RACI v1.0 (commit `c096166`, 5 份 per-domain)
 - CROSS 二次校正报告 v0.1 (commit `206c09e`)

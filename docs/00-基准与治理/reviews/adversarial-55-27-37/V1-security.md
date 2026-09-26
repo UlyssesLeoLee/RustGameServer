@@ -48,6 +48,7 @@
 
 - **文件**: `crates/economy-service/tests/fail_closed_start.rs:50-57` (其他 5 域同)
 - **现状**:
+
   ```rust
   assert!(
       combined.contains("fail")
@@ -58,6 +59,7 @@
       "..."
   );
   ```
+
 - **V1 安全视角影响**:
   - 即使 mTLS 防线被改回静默降级, 218 + fail-closed test 全过
   - 当前 main.rs 顺序为 DB pool init → mTLS load → tonic serve; 在无 DB 环境下, test 失败点实际落在 DB connect 阶段, **mTLS check 路径没被任何 test 实际触发**
@@ -164,6 +166,7 @@ cargo clippy --workspace --all-targets --manifest-path D:/rev-010-V1/Cargo.toml
 **修复整体安全质量**: 11 修复中 10 ✅ + 1 ⚠️ HIGH (HI-3 fail-closed test 缺陷) + 2 ⚠️ MEDIUM (ME-1 consumer DLQ / ME-2 PgTestDb 未被使用)
 
 **最大 3 个遗留风险**:
+
 1. **fail-closed test assertion 缺陷** (REV-010-V1-HI-1) — 6 域全中招, mTLS 防线没真锚定, 需修 (建议方案 A: mTLS check 前置)
 2. consumer.rs:130 静默吞错 (ME-1) — 56.x 推
 3. PgTestDatabase fixture 未被 6 域使用 (ME-2) — 56.x 推

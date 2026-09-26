@@ -147,11 +147,13 @@ sequenceDiagram
 | `mtls.debug.ja4_fingerprint_compare` | JA4 指纹对比（与历史正常握手 JA4 指纹库对照，检测 client cert 冒用） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3）：
+
 - `mtls.debug.handshake_full_envelope` 含密钥派生参数——**严格** `#[cfg(debug_assertions)]` 守护，release 完全剔除防止密钥派生信息泄漏到生产日志通道
 - `mtls.debug.cert_chain_dump` 3-5KB/条——release build 剔除避免 RUST_LOG=debug 误开时撑爆日志通道
 - `mtls.cert.revoked` 是**安全应急事件**（per NFR-SE-001 证书吊销响应要求）——release 必出 + 强制全采样，便于安全审计按 `cert_serial` 检索受影响连接
 
 **与 BAS-003 §4.5 RuntimeControlService log 章节的边界**：
+
 - 本节覆盖**控制平面 mTLS 链路**（gm-backend ↔ admin-service 双向认证）
 - BAS-003 §4.5 覆盖**控制通道命令下发**（admin → RuntimeControlService 内部进程内调用，**不**经 mTLS 链路，是 Unix domain socket 或 in-process queue）
 - 两类事件按 `target` 命名空间区分：`target: "rgs.mtls"`（本节） vs `target: "rgs.runtime.control"`（§4.5）
@@ -166,6 +168,7 @@ sequenceDiagram
 > **v0.2 修订说明（2026-09-01）**: 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，all_35 + compile_plus_runtime），新增 §7 决策落地的运行时事件日志设计 9 事件（5 列详尽版，字段前缀 `mtls.*`，debug-only 守护要点段 + 与 BAS-003 §4.5 边界说明 + 与 §3 AdminService 事件串联说明）。commit 沿用 `BAS-003 v0.3` + `BAS-004 v0.3` 引用格式。
 
 > **v0.3 修订说明（2026-09-02）**: 落实「処理フロー」段四要素标准 (per 2026-09-02 13:59 JST Ulysses 拍板, RGS-BAS-FLOW-STANDARD-2026-09-02 v0.1 §1 子文档豁免段, 主会话打头阵判断): 新增 §3.1 処理フロー（简化版 / Simplified Flow）段, 1 段精简流程说明 (mermaid sequenceDiagram, 5 actor: gm-backend / admin-service / Vault / 5 域 / OTel-Prometheus) + 1 张异常/补偿/验证合并表 (8 行: 握手失败 / 证书即将过期 / 证书被吊销 / Vault 不可达 / 反向重连 / 握手完成验证 / 5 域走 JWT-only 验证 / trace_id 串联验证), 覆盖 gm-backend → admin-service mTLS 双向认证 + 5 域走 JWT-only 备选路径 + 异常通路三个路径; trace_id 贯穿全链路 (per BAS-004 v0.3 §4.4); 与 §7 决策落地的运行时事件日志设计 9 事件 互为详细化引用; 与 BAS-019 §1.1 范式一致 (commit `d52eaad`); 与 BAS-031 §6.5 同期补全 (commit 25cd934). 代签三行齐全 (per 8/27 19:39/20:56/21:59 JST 三次强化):
+>
 > - 修订人: Mavis (接手 agent per DEC-008)
 > - 审批: 架构师 (Mavis 接手 agent per DEC-008)
 > - 修订日: 2026-09-02

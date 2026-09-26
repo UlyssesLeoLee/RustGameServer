@@ -165,6 +165,7 @@ classDiagram
 | `gm.mute_chat.debug.expires_at_raw` | 原始 ISO 8601 字符串（解析前后对照） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `request_id`／`raw`／`parsed_unix_ts` | 偶发 | <5µs |
 
 **debug-only 守护要点**（落实 RGS-BAS-004 §4.3）：
+
 - `gm.kick_session.debug.dispatch_timing` 测量的是"调度延迟"，不涉及昂贵计算，但**仍**守护——避免 release 误开 RUST_LOG=debug 时产生高频日志淹没生产通道
 - `gm.mute_chat.debug.expires_at_raw` 中的 `parsed_unix_ts` 由独立 `let` 绑定，**不**在 `debug!` 宏参数内调用解析函数（防止 release 下解析函数被宏参数求值时跳过——尽管本例中不致命，但遵循 §4.3 规则 #4）
 
@@ -198,6 +199,7 @@ classDiagram
 | `gm.scene_restart.debug.entity_snapshot` | 重启前场景实体数快照（用于事后复盘影响范围） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `ticket_id`／`entity_count`／`character_ids`（数组，小于 50） | 极低 | <20µs |
 
 **debug-only 守护要点**：
+
 - `gm.scene_metrics.query.served` 是高频事件（GM 后台轮询 1-5 req/s），**必须** `#[cfg(debug_assertions)]` 守护——release profile 即便允许 RUST_LOG=debug 开启，这一条也必须剔除，避免淹没生产日志通道
 - `gm.scene_restart.debug.entity_snapshot` 中的 `character_ids` 数组在 50 实体以内，若场景超过此规模则需截断 + `truncated=true` 标记
 
@@ -273,6 +275,7 @@ classDiagram
 | `gm.query_health.debug.individual_service_state` | 每个服务的 `ready`/`queue_depth`/`db_pool_usage` 详细值 | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `request_id`／`service_name`／`ready`／`queue_depth`／`db_pool_usage` | 同上 | <20µs |
 
 **debug-only 守护要点**：
+
 - `gm.query_online.served` / `gm.query_audit.served` 是高频事件（GM 后台轮询 1-5 req/s），**必须** `#[cfg(debug_assertions)]` 守护
 - `gm.query_audit.bulk_export_attempt` 是**安全告警**，因此用 `warn!` 而**不**用 `debug!`——它需要 release 可见，用于检测审计数据外泄企图
 
@@ -331,10 +334,12 @@ classDiagram
 | `rt.control.debug.command_actor_lookup_chain` | scene_id → actor 句柄查找路径（经过 actor 表/反向索引/广播查询） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `command`／`scene_id`／`lookup_path`／`lookup_us` | 同 §3 | <10µs |
 
 **debug-only 守护要点**：
+
 - `rt.control.command.dequeued` 频率与 GM 指令触发频次正相关（典型 1-10 req/s 全集群），**必须** `#[cfg(debug_assertions)]` 守护——仅 `enqueued`/`executed` 是 release 必出，dequeued 是中间状态细节
 - `rt.control.debug.queue_high_watermark_sample` 是**心跳式**采样（12/min），即使在 debug build 下也不应淹没日志通道——5s 间隔 + `target: "rgs.runtime.control"` 命名空间允许 GM 后端按 target 过滤采样频率
 
 **性能预算合计**（单条命令峰值路径）：
+
 - 必出 (`info!`/`warn!`/`error!`)：`enqueued` + `executed` ≈ 20µs
 - debug-only（debug build 累计）：`dequeued` + `lookup_chain` + `queue_sample` ≈ 20µs
 - 总和：40µs，**远低于** §3.2 中场景重启端到端 SLA（典型 30s 软上限），**不**影响 ARC-013 背压
@@ -420,6 +425,7 @@ flowchart LR
 | `alert.debug.webhook_request_envelope` | Webhook 请求的完整 envelope（含签名头） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `event_id`／`headers`／`body_size_bytes` | 取决于告警触发 | <10µs |
 
 **debug-only 守护要点**：
+
 - `alert.debug.rule_evaluation_trace` 是**评估侧**高频事件（每条规则每秒评估一次），即便在 debug build 下也只用于性能分析——通过 `target: "rgs.alert.eval"` 命名空间隔离，运维侧可按 target 过滤
 - `alert.debug.webhook_request_envelope` 含签名头，**仅** debug-only 守护以避免签名材料泄漏到生产日志（即使 Webhook 目标是内网，仍按"缺标比错标安全"原则严格处理）
 
@@ -447,6 +453,7 @@ flowchart LR
 | `audit.write.debug.full_payload` | 完整操作 payload（含 `operator_id`/`target_entity_ids`/`reason` 等） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `audit_id`／`payload_json` | 与 GM 指令频次一致 | <20µs |
 
 **关键设计纪律**（与 §9 限流 + §6 告警的协同）：
+
 - `audit.write.failed` **必须** 触发告警（接入 §6 告警规则），且 NFR-OPS-001 要求的"控制平面告警 p99 时延"在审计失败场景下**升级**为 P0（数据合规事件）
 - `audit.write.skipped_audit_only` 是**最严重**的事件：意味着 GM 指令**和**审计**同时**失败，按 NFR-SE-010"不可篡改、不可丢失"原则**禁止**降级通过——必须**回滚业务事务**
 
@@ -487,6 +494,7 @@ flowchart LR
 | `rbac.debug.role_matrix_lookup` | 角色矩阵查找的详细路径（多角色匹配时的决策链） | `debug!`（`#[cfg(debug_assertions)]` 守护） | **debug-only** | `request_id`／`method`／`roles_evaluated`／`matched_at_index` | 高频 | <10µs |
 
 **debug-only 守护要点**：
+
 - `rbac.check.allowed` 是**高频**事件（每个 GM 调用都过 RBAC），**必须** `#[cfg(debug_assertions)]` 守护——仅 `denied`/`violation`/`confirmed` release 必出
 - `rbac.debug.role_matrix_lookup` 用于排查"为什么这个角色没匹配上"——开发/CI 阶段高频使用，生产几乎不需要
 

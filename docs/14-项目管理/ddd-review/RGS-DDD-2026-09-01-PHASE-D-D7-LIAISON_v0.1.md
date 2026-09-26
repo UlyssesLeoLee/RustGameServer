@@ -7,6 +7,7 @@
 > **作者**: 架构师(Mavis 接手 agent per DEC-008, 代签 Ulysses per 8/27 19:39/20:56/21:59 JST 三次强化)
 > **范围**: 5 业务域 Lead (player / economy / match / social / admin) 跟 gm-backend Lead 联调协调
 > **关联**:
+>
 > - WBS v0.2 commit 84edf26 (桶 10 Phase D D7)
 > - `RGS-DDD-2026-09-01-PT-WORKERS_5平台+3工具+8派工_v0.1.md` §7.2 P1
 > - `RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md` Q8/Q9/Q11 收尾

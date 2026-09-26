@@ -6,6 +6,7 @@
 > **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 > **触发**: 2026-09-03 12:36 JST 拍板 3-options-together (per ask_user): C1 派生约束 (v0.1 冻结期) 评估 6 跳过项 v0.2 实施工作量 + RACI v1.2 草案 + IMPL-PLAN-BATCH-001 起草要点
 > **依据**:
+>
 > - `RGS-BATCH-V0.1-FREEZE-2026-09-02_v0.1.md` (commit `06b3091`, C1 派生约束冻结公告)
 > - `RGS-BATCH-REQUIREMENTS-2026-09-01_v0.1.md` (commit `fd122f6`, 12 GAP 列表)
 > - `RGS-BATCH-BASIC-DESIGN-2026-09-01_v0.1.md` (commit `e366ff8`)
@@ -28,6 +29,7 @@
 ### 0.2 触发 (per 9/3 12:36 JST 拍板 3-options-together)
 
 9/3 12:36 JST Ulysses 拍板: **C1 派生约束冻结期评估 6 跳过项 v0.2 实施工作量**, 评估结果纳入:
+
 1. §1 12 GAP 中 6 跳过项的 v0.2 token 预算
 2. §2 RACI v1.2 (5→6 域 batch 扩展) 草案
 3. §3 IMPL-PLAN-BATCH-001 v0.1 起草要点

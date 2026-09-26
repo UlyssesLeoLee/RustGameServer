@@ -46,6 +46,7 @@
 | 标题层级 | 与既有 §6.x / §9.x 同级 (## 二级标题) |
 
 **位置参考** (per BAS-001 v0.2):
+
 ```
 §1 引言
 §2 适用范围
@@ -65,6 +66,7 @@
 ### 3.1 要素 1: 主流程图 (mermaid sequenceDiagram)
 
 **强制要求**:
+
 - 使用 `mermaid sequenceDiagram` 语法
 - 至少 5 个 actor (例: Client / Gateway / Domain Service / DB / External Dep)
 - 展示主路径 (happy path), 标注同步/异步/超时
@@ -73,6 +75,7 @@
 - 标注 Saga 步骤 (如涉及, per RGS-BAS-100 v0.1)
 
 **mermaid 渲染验证**:
+
 ```bash
 # 主会话 / worker 提交前用 mermaid-cli 验证
 npx -y @mermaid-js/mermaid-cli -i flow.mmd -o flow.png
@@ -131,6 +134,7 @@ npx -y @mermaid-js/mermaid-cli -i flow.mmd -o flow.png
 - [ ] **缺标比错标**: 不确定的部分显式列"已知缺口"清单 (per 8/26 JST 派生约束)
 
 **不达标反例** (DDD Review L0 必返工):
+
 - ❌ 仅有 mermaid 没有 3 张表
 - ❌ 异常表 < 3 行 / 决策表 < 2 行 / 验证表 < 2 行
 - ❌ 段名不是"処理フロー"

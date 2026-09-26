@@ -136,6 +136,7 @@ RGS-BAS-022 v0.2 已规定"弹性容量规划"的 T0~T3 容量分级与跨分片
 **职责**：定义业务域枚举，编译期防越界。
 
 **关键 API**：
+
 - `enum Domain { Player, Economy, Match, Social }` — 4 个变体，**不**含 Admin/ClusterOps
 - `Domain::as_str() -> &'static str` — 域小写名（用于 subject / env key）
 - `Domain::env_max_inflight() -> &'static str` — 返回 env key（`PLAYER_MAX_INFLIGHT` 等）
@@ -148,6 +149,7 @@ RGS-BAS-022 v0.2 已规定"弹性容量规划"的 T0~T3 容量分级与跨分片
 **职责**：从 env 读取全部配置。
 
 **关键 API**：
+
 - `OverflowConfig::from_env() -> Result<Self, ConfigError>` — 一次性解析
 - `OverflowConfig::hard_cap(d: Domain) -> u32` — 硬上限
 - `OverflowConfig::soft_cap(d: Domain) -> u32` — 软阈值 = `ceil(hard × soft_ratio)`
@@ -161,6 +163,7 @@ RGS-BAS-022 v0.2 已规定"弹性容量规划"的 T0~T3 容量分级与跨分片
 **职责**：双阈值 CAS 限流 + RAII permit 释放。
 
 **关键 API**：
+
 - `OverflowLimiter::new(domain, cfg) -> Self` — 构造（hard_cap=0 → 不启用）
 - `OverflowLimiter::try_acquire() -> (AcquireOutcome, Option<InFlightGuard>)` — 同步获取
 - `OverflowLimiter::in_flight() -> u32` — 当前 in-flight
@@ -169,6 +172,7 @@ RGS-BAS-022 v0.2 已规定"弹性容量规划"的 T0~T3 容量分级与跨分片
 - `struct InFlightGuard` — RAII guard，drop 时自动减计数
 
 **关键算法**（**修复过的 race bug**）：
+
 ```rust
 // 不用 fetch_update 乐观重试（1000 并发下 in_flight 突破 hard）
 // 用 compare_exchange + 不重试：CAS 失败直接 Rejected
@@ -185,6 +189,7 @@ match counter.compare_exchange(current, current + 1, AcqRel, Acquire) {
 **职责**：NATS JetStream 后端 + 内存后端（dev/test）。
 
 **关键 API**：
+
 - `trait QueueBackend: Send + Sync { async fn enqueue(...) -> Result<AckToken, QueueError> }`
 - `NatsJsQueueBackend::connect(cfg) -> Result<Self, QueueError>` — 启动时 `get_or_create_stream`
 - `NatsJsQueueBackend::subject_for(domain) -> String` — `rgs.<domain>.overflow.v1`
@@ -192,6 +197,7 @@ match counter.compare_exchange(current, current + 1, AcqRel, Acquire) {
 - `struct AckToken { domain, sequence, enqueued_at }` — 入队后返回
 
 **关键设计**：
+
 - 复用 `shared_platform::messaging::build_messaging_client`（**不**自己引独立 NATS）
 - 复用 `SubjectBuilder::domain_event(domain, "overflow", 1)`
 - stream filter = `rgs.*.overflow.v1`（一个 stream 覆盖 4 域）
@@ -202,6 +208,7 @@ match counter.compare_exchange(current, current + 1, AcqRel, Acquire) {
 **职责**：邮件 sink + 日志 fallback + 窗口去重。
 
 **关键 API**：
+
 - `trait AlertSink: Send + Sync { async fn send(&self, to: &str, event: &AlertEvent) -> Result<(), AlertError> }`
 - `SmtpAlertSink::new(cfg: &SmtpConfig) -> Result<Self, AlertError>` — lettre transport
 - `LogOnlySink` — 永远不抛错，落 `tracing::warn!`
@@ -218,6 +225,7 @@ match counter.compare_exchange(current, current + 1, AcqRel, Acquire) {
 **职责**：编排 limiter / queue / alerter，给业务 `OverflowGuard::check` 单点入口。
 
 **关键 API**：
+
 - `OverflowGuard::new(domain, cfg, limiter, queue, alerter, pod, service) -> Self`
 - `OverflowGuard::check(op, request_id, business_json) -> OverflowDecision` — **业务主调用入口**
 - `OverflowDecision { status: OverflowStatus, ack_token: Option<AckToken>, guard: Option<InFlightGuard> }`
@@ -300,6 +308,7 @@ OverflowGuard::check
 完整 env 表见 RGS-REQ-025-ADD2 附录 A。
 
 关键设计：
+
 - 缺密码（`SMTP_PASSWORD=""`）是合法降级，不是 error
 - 硬上限 = 0（`<DOMAIN>_MAX_INFLIGHT=0`）是合法"不启用"，不是 error
 - 软阈值在 (0, 1] 区间外 → ConfigError
@@ -333,6 +342,7 @@ OverflowGuard::check
 ## 6.3 helm values
 
 每个业务域 `values.yaml` 加 `overflow` 段：
+
 ```yaml
 overflow:
   maxInflight: <N>      # 0 = 不启用；> 0 = 硬上限
@@ -372,6 +382,7 @@ overflow:
 ## 8.1 单元测试（30 个，位于 `crates/rgs-overflow-alert/src/<module>.rs`）
 
 每个模块 ≥ 1 happy + ≥ 1 降级路径：
+
 - `domain`: 5 个测试（as_str / env_max_inflight / from_str round_trip / case_insensitive / 拒绝 admin+cluster_ops / ALL 4 域）
 - `config`: 5 个测试（defaults / 拒绝 invalid_soft_ratio / soft_cap_scales / hard_cap_zero_disables / smtp_password_empty）
 - `limiter`: 3 个测试（disabled_when_hard_cap_zero / pass_below_soft_then_queued_then_rejected / release_restores_permits）
@@ -390,6 +401,7 @@ overflow:
 ## 8.3 4 域挂点测试
 
 每域 `service.rs` 内 mock limiter + mock queue + mock sink，验证：
+
 - 软上限内 → handler 正常返回
 - 超软上限 → handler 返回 enqueue ack
 - 超硬上限 → handler 返回 ResourceExhausted + 调用 alert sink ≥ 1 次

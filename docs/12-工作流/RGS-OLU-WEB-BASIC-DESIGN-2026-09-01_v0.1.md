@@ -409,7 +409,7 @@ interface IntegrationsResp {
 
 - **不破坏母规范**：rgs-web v0.3 已有 10 页面 + 6 API + k3s 代理全部保留
 - **新增内容**：11 号 page-gantt + 9 API endpoint + 5 数据文件
-- **API 路径空间**：/api/token/* / /api/ai/* / /api/git/integrations/* 三个命名空间，不与母规范 6 个 endpoint 冲突
+- **API 路径空间**：/api/token/*/ /api/ai/* / /api/git/integrations/* 三个命名空间，不与母规范 6 个 endpoint 冲突
 - **前端样式**：沿用 rgs-web 母规范 v0.3 CSS 变量（`--bg / --panel / --green / --red / --blue / --orange / --purple / --cyan / --yellow`），新增 1 个 `--pink` for saga
 
 ---
@@ -473,11 +473,13 @@ interface IntegrationsResp {
 > **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 BASIC-DESIGN 各章节：
 
 **1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+
 - §1 架构新增 `/api/webhook/*` 2 endpoint（`/api/webhook/github` + `/api/webhook/gitlab`）
 - §4 关键流程新增 §4.7 webhook inbound 处理流程：HMAC-SHA256 验签 + UNIQUE(provider, delivery_id) 重放保护 + 事务
 - §5.2 API Response Schema 新增 §5.2.6 / §5.2.7 webhook API 范式
 
 **2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+
 - §2 选型 11 决策（原 10 决策 + cloudflared + webhook 验签 + 备份 batch）
 - §2.1 不选 13 方案（v0.1 9 不选 + node:sqlite / sql.js / ngrok / rgs-web 监听 0.0.0.0 4 v0.2 不选）
 - §3.1 模块 lib/sqlite.js + lib/cloudflared.js + lib/backup-batch.js + lib/webhook-verifier.js
@@ -487,15 +489,18 @@ interface IntegrationsResp {
 - §5.1 SQLite 6 表 schema（tasks / ai_ledger / git_ledger / github_issues / gitlab_issues / webhook_events / nfr_op_010_snapshots）
 
 **3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+
 - §3.1 lib/cloudflared.js
 - §4.6 cloudflared 启动流程（启动时 spawn + 公网 URL 解析 + 优雅关闭）
 
 **4. webhook 验签 + 重放保护**（per F-32/F-33 + §1.10/§1.11）
+
 - §3.1 lib/webhook-verifier.js（HMAC-SHA256 + 等值比较）
 - §4.5 异常流程（HMAC 失败 / 重放 / WAL checkpoint 失败）
 - §4.7 webhook inbound 处理流程（验签 + UNIQUE 约束 + 事务）
 
 **5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+
 - §3.1 lib/backup-batch.js
 - §4.8 备份 batch 流程
 - §5.1 schema nfr_op_010_snapshots 表

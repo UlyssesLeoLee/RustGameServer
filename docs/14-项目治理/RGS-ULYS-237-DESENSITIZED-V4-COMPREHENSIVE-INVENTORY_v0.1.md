@@ -1,6 +1,7 @@
 # RGS-ULYS-237 — v0.4 全面脱敏 inventory (per D-Boy 2026-09-25 23:51 JST「闪烁之光和无限大网易雷火逆水寒都要脱敏，类似的都要全面脱敏」)
 
 > **目的**: 在 v0.1 / v0.2 / v0.3 已落地的代号化基础上, 做第四轮 sweep:
+>
 > 1. 把 v0.2 **守护掉的测试 fixture** 也用同字节数占位字符替换 (`"闪烁之光"` → `"中文测试"`)
 > 2. 把 v0.2 / v0.3 漏掉的 **`zsyz_*` 拼音别名 / `shanshuo` / `SHANSHUO` / `Ananta` / `CBT3` / `Drmk.*` / `网易雷火` / `逆水寒` / `BaiduNetdiskDownload`** 在工程文件 + 工具链 + 治理文档中**全文本替换**
 > 3. **AGENTS.md** 也走全文本替换 (v0.2 守护了 AGENTS.md, v0.4 解禁)
@@ -8,6 +9,7 @@
 > **范围**: `origin/dev` (含 v0.3 已 merge) → 本 turn 新分支 `agent/minimaxm3/ulys-237-v4` → main / dev 后续 merge 由 D-Boy 拍板
 >
 > **编码约定 (沿用 v0.1)**:
+>
 > - 第三方真名 → `[游戏X]` 形式代号
 > - 真名拼音别名 / 路径别名 → 保留但加 `[别名]` 角标 (audit trail) 或静默替换 (工程文件)
 > - 测试 fixture 字符串 → 用**同字节数 (12 字节) 同字符集 (中文 4 字)** 的占位字符串 `"中文测试"` 替换
@@ -122,8 +124,9 @@
 | fixture 字符串改动 | 3 处 (`tlv.rs` + `golden_vectors.rs` + `service.rs`) |
 | Rust 逻辑改动 | **0 行** (全部注释 / fixture / Markdown) |
 | v0.4-amend 增量 (`agent/minimaxm3/ulys-237-v4` HEAD):
-  - **amend-1**: uppercase `ZSYZ` JS namespace 替换 (`tools/h5_e2e/*.js/*.mjs/*.html` 4 文件 / 11 处) + `H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` `git mv` + 3 跨链改写
-  - **amend-2**: `ROPE` / `ROPE_CS` / `E:/ROPE_CS` 全文本替换 (`docs/04-客户端与SDK/RGS-BAS-008` 1 文件 + `docs/12-工作流/*` 7 文件 + `tools/gm-console/frontend/package.json` 1 文件 = 9 文件 / ~51 处) | 14 文件 (4+1 + 8+1 = 13 内容改 + 1 重命名) |
+
+- **amend-1**: uppercase `ZSYZ` JS namespace 替换 (`tools/h5_e2e/*.js/*.mjs/*.html` 4 文件 / 11 处) + `H5_ZSYZ_CLIENT_MIGRATION_MATRIX.md` `git mv` + 3 跨链改写
+- **amend-2**: `ROPE` / `ROPE_CS` / `E:/ROPE_CS` 全文本替换 (`docs/04-客户端与SDK/RGS-BAS-008` 1 文件 + `docs/12-工作流/*` 7 文件 + `tools/gm-console/frontend/package.json` 1 文件 = 9 文件 / ~51 处) | 14 文件 (4+1 + 8+1 = 13 内容改 + 1 重命名) |
 
 ---
 
@@ -132,6 +135,7 @@
 ### 5.1 测试 fixture 改动风险
 
 `crates/network-gateway/src/tlv.rs:627-632`:
+
 ```rust
 // v0.2 (守护)
 pack_str(&mut buf, "闪烁之光");
@@ -143,10 +147,12 @@ pack_str(&mut buf, "中文测试");      // 4 字 12 字节, 同字节数
 assert_eq!(s, "中文测试");
 assert!(r.is_empty());
 ```
+
 **风险**: 无。`pack_str` / `unpack_str` 只看字节数 + UTF-8 字节序列; `"闪烁之光"` 和 `"中文测试"` 都是 12 字节 UTF-8 中文 roundtrip。
 **后续验证**: `cargo test -p network-gateway` 应全绿。
 
 `crates/network-gateway/tests/golden_vectors.rs:317-325`:
+
 ```rust
 // v0.2 (守护)
 assert_eq!(len, 12, "闪烁之光 UTF-8 = 12 字节");
@@ -156,10 +162,12 @@ assert_eq!(d.get("s").unwrap().as_str().unwrap(), "闪烁之光");
 assert_eq!(len, 12, "中文测试 UTF-8 = 12 字节");
 assert_eq!(d.get("s").unwrap().as_str().unwrap(), "中文测试");
 ```
+
 **风险**: 无。字节断言 `12` 不变 (同字节数); 字符串内容比对应一致。
 **后续验证**: `cargo test -p network-gateway --test golden_vectors` 应全绿。
 
 `crates/player-service/src/service.rs:2990`:
+
 ```rust
 // v0.2 (守护)
 assert!(validate_character_name("闪烁之光").is_ok());
@@ -167,6 +175,7 @@ assert!(validate_character_name("闪烁之光").is_ok());
 // v0.4
 assert!(validate_character_name("中文测试").is_ok());
 ```
+
 **风险**: 无。`validate_character_name` 检查 CJK 字符是否合法; `"中文测试"` 不在 forbidden keyword list, 通过。
 **后续验证**: `cargo test -p player-service` 应全绿。
 
@@ -205,6 +214,7 @@ assert!(validate_character_name("中文测试").is_ok());
 ### 6.2 fixture 字符串"同字节数占位"决策
 
 D-Boy「全面脱敏」触发 v0.4 突破 v0.2 守护, 把测试 fixture 中真名替换为同字节数占位字符 `"中文测试"`。此决策的风险与权衡:
+
 - **优势**: 工程文件 + 测试 fixture 全清真名, 不挂 cargo test
 - **代价**: 占位字符 `"中文测试"` 无 IP 含义, 仅作为"4 字中文 UTF-8 roundtrip"的 wire 测试
 - **如 D-Boy 后续希望进一步脱敏**: 可用 ASCII-only 4 字符 (e.g. `"ABCD"`, 4 字节) + 字节断言 `len == 4`, 但会改变 wire format 测试的字符集覆盖度

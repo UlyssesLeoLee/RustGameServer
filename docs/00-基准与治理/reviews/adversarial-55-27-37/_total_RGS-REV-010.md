@@ -130,12 +130,14 @@
 **V5 仲裁**: **V1+V3 共识正确, V2 错降级**
 
 **理由**:
+
 - V2 验证"修复落地 + 测试通过", 但没验证"test 本身是否真验证 invariant"
 - V2 PASS verdict 是平面 4 verifier 模式的典型失败 — 单维度 pass 易, 多维度对抗才暴露盲点
 - V3 抓出的 fail-closed test assertion 太宽是真问题 (V4 独立确认)
 - V5 收口: V2 模式应该被取代为 V5 模式 (3 轮递进对抗)
 
 **给 V2 verifier 的反馈 (未来轮次避免)**:
+
 - 验证 test 必须看 assertion 内部表达式, 而非"test 通过"作为充分条件
 - 验证 invariant 是否真被 anchor (V2 报告里 7 状态 + 6 reservation 路径覆盖, 但没看 test 内部)
 - 验证 test 是否过度宽松 (例如 `contains("DB")` 永远满足)
@@ -165,15 +167,18 @@
 ### 修 fail-closed test 缺陷方案 (V5 收口推荐)
 
 **方案 1 (V4 推荐)**: 6 域 main.rs 重构, mTLS check 前置到 DB pool init 之前
+
 - 估时: 0.5d (6 域统一重构)
 - AC: 6 域启动顺序变成 `mTLS check → DB pool init → tonic serve`
 - test 用 `RGS_TLS_DIR=不存在` + `valid DATABASE_URL` 真正测 mTLS 失败
 
 **方案 2**: 拆 fail-closed test 为 2 个 (mTLS-specific + DB-specific)
+
 - 估时: 0.2d (改 test + 调整 assertion)
 - AC: 6 域 × 2 test = 12 个 fail-closed test
 
 **方案 3 (临时)**: 改名 `db_or_tls_fail_closed` + 加 mTLS-specific test
+
 - 估时: 0.1d
 - AC: 实际覆盖范围命名清晰
 
@@ -184,9 +189,11 @@
 ## 7. 修复优先级
 
 ### Merge-blocker (必先修才能 push 22 commit)
+
 1. **HIGH-1 fail-closed test 缺陷**: 6 域 main.rs 重构 OR test 拆分 — 0.5d
 
 ### 56.x 推 (不阻塞当前 push)
+
 - **MEDIUM-1 consumer.rs:130 静默吞错** (V36 已知) — 0.1d
 - **W31 PgTestDatabase fixture 6 域实际使用** — 0.5d × 6 = 3d
 - **2 轮对抗性审查 (REV-010 5 verifier)** — 已完成 ✅
@@ -195,6 +202,7 @@
 - **V2 验证方法学改进** (未来轮次避免 V2 错降级) — 流程改造
 
 ### 完成判定 (merge 准入)
+
 1. HIGH-1 fail-closed test 缺陷修复 ✅
 2. cargo test --workspace 244+ passed / 0 failed (含 PG 集成 2 个)
 3. cargo clippy --workspace 0 error 0 warning (含 rgs-certgen)
@@ -234,17 +242,20 @@
 ## 10. V5 给 root session 的可操作建议
 
 ### 立即 (push 前)
+
 1. **修 HIGH-1 fail-closed test 缺陷** (0.5d) — 方案 1 推荐
 2. 修完跑 `cargo test --workspace` 确认 244+ passed
 3. commit + push 22 commit (含 V1/V2/V3/V4/V5 报告作为审查记录)
 
 ### 56.x 启动后
+
 1. 启 Docker Desktop, 跑 PgTestDatabase fixture 真实验证 (1d)
 2. 6 域 `tests/pg_integration_*.rs` 实际使用 fixture (3d)
 3. MEDIUM-1 consumer.rs:130 静默吞错 (0.1d)
 4. 2 轮对抗审查再次 (per RGS-REV-010 经验, 1d)
 
 ### V5 给 PM 报告 (可选)
+
 1. 写 `docs/00-管理类/RGS-PM-009_WF-1-55 收尾报告 v0.1.md` (类比 RGS-PM-008 v0.1)
 2. 列出 11 修复 commit + 验收清单 + 遗留项 (1 HIGH + 1 MEDIUM + 6 域 PG 集成)
 3. 推导工程 56 (代码审查工程) 启动建议

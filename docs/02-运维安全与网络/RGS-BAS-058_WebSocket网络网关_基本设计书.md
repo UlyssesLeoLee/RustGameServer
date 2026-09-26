@@ -379,6 +379,7 @@ pub use stats::GatewayStats;
 **整合点**：WS 路径是 ARC-003 的**辅助降级路径**，不替代 QUIC Datagram/Stream。
 
 **触发场景**（per REQ-058 §1.3）：
+
 - 浏览器/H5 客户端：WS 是唯一可达路径
 - QUIC 协商失败：WS 降级
 - 企业代理 / 4G 弱网：WS 降级
@@ -392,10 +393,12 @@ pub use stats::GatewayStats;
 **整合点**：WS 路径与 TCP 路径共享同一 mTLS + NetworkPolicy 基线。
 
 **Phase 1.0 现状**（per §10 TBD-WSG-001）：
+
 - WS TLS 由反向代理终结（per RGS-BAS-006 §3.3）
 - 不在 `ws.rs` 内做 mTLS 完整化（避免重复 ARC-022 基线）
 
 **Phase 1.5 升版**（per §10 TBD-WSG-001）：
+
 - `native-tls` / `rustls` 终结 WS TLS
 - 与 QUIC mTLS 共享证书管理
 
@@ -406,10 +409,12 @@ pub use stats::GatewayStats;
 **整合点**：WS 帧 buffer 累积由 `GatewayStats` + `ws.rs` frame loop 处理。
 
 **Phase 1.0 现状**：
+
 - 单 WS 连接 buffer 上限：64KB（per REQ-058 §9.1 NFR-WSG-002）
 - 超限返 1009 Message Too Big Close
 
 **Phase 1.5 升版**（per §10 TBD-WSG-008）：
+
 - server 端 buffer 累积超过阈值时主动发 1008 Policy Violation Close
 
 ## 7.4 与 BAS-010（设计模式总纲）的关系
@@ -417,11 +422,13 @@ pub use stats::GatewayStats;
 **整合点**：FrameRouter trait 抽象遵循 BAS-010 trait 抽象模式。
 
 **trait 约束**（per `codec.rs:179`）：
+
 - `Send + Sync`（多 worker 并发）
 - `async_trait`（非阻塞 reactor）
 - 唯一方法 `route_frame(&self, frame: Frame) -> Result<RouteDecision>`
 
 **§7.4.1 默认实现 vs 业务实现**：
+
 - 默认 `CountingRouter`（`codec.rs:197`）：用于测试 + 统计
 - 业务 `RouteTableRouter`（`ws.rs:332`）：生产环境，注入 `Arc<RouteTable>`
 
@@ -620,6 +627,7 @@ Client                  ws.rs (server)           codec.rs
 ## 12.3 不重写
 
 本文档不重写以下既有文档的结构性选择：
+
 - ARC-003（QUIC 双路径，RGS-REQ-001 §10.4）— WS 作为降级路径
 - ARC-022（零信任内部网络，RGS-REQ-010 §7）— WS 复用 mTLS / NetworkPolicy 基线
 - ARC-013（背压与限流，RGS-BAS-013）— WS 帧反压由 `GatewayStats` + `ws.rs` frame loop 处理
@@ -632,6 +640,7 @@ Client                  ws.rs (server)           codec.rs
 ## 12.4 编号冲突归档（per ULYS-87）
 
 本文档采用 RGS-BAS-058 编号；以下历史编号冲突已由 ULYS-87 / ULYS-85 协同处置：
+
 - RGS-BAS-027（客户端资源分发与热更新）— 保留不动
 - RGS-BAS-058（本文档，WebSocket 网络网关）— 新启用
 - RGS-DTL-027（WebSocket 网络网关 详细设计书）— 已存在，本文档 §11 引用其 §11 追溯性

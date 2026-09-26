@@ -131,6 +131,7 @@ RGS-INC-001 v0.2 §23 插入的 **Phase 0.5 硬阻塞**：5 业务域 gRPC 互�
 > 校准输入：现状 `cargo build --release` binary size + 9-crate `cargo test --workspace` 测试负载 + 06-rust-198-build.log 实测记录。
 >
 > 列说明：
+>
 > - **player / economy / match / social / admin** = 5 业务域 Lead 决策权
 > - **cluster-ops** = SRE 决策权（per ADR-0052 PFAU Active-Active 单独考虑）
 

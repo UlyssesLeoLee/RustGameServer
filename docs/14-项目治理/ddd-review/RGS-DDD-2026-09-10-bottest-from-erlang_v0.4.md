@@ -249,10 +249,12 @@ crates/rgs-testkit/src/
 ### 5.4 落地 3 步路径 (per Mavis 自驱原则 9/8 15:29 JST 第 7 次强化)
 
 **Step 1: 设计文档** (本文档, v0.1) — 1 commit (本 commit)
+
 - Mavis 自审 1 次后停手 (per §3.x DDD Review 二审流程)
 - 等 Ulysses 二审
 
 **Step 2: 派 worker 实施 P0 6 条** (二审通过后, Mavis 自驱)
+
 - 5 worker 并发 (M1-M3 / M4-M5 / M6-M11 / M2 DefaultBotAi 5 域 / 集成测试 + e2e 验证)
 - worktree: `D:/rgs-bottest-<scope>` 5 个
 - per-worker `CARGO_TARGET_DIR=target-r1-bottest-<scope>`
@@ -260,6 +262,7 @@ crates/rgs-testkit/src/
 - DoD: `cargo check -p rgs-testkit --tests` 1 次拿 status, 不 polling
 
 **Step 3: 落地到 5 域** (派工完成后, 主会话 merge + 5 域集成测试)
+
 - 5 域 bot 模式在 `crates/<domain>-service/tests/bots/` (per worker 5 域)
 - `scripts/bot-driver.ps1` (主入口, 跨 5 域启动)
 - `tools/rgs-flash-mock/scripts/bot-smoke.sh` (per 9/4 17:47 JST "测试脚本归入 mock 项目" 守门, 备选)
@@ -283,6 +286,7 @@ crates/rgs-testkit/src/
 | **守门 #14 v2** Mavis 长期代签, 真人到位后追溯签字 | ✅ | per 9/5 10:43 JST 拍板 D, 9/8 15:19 JST 第 6 次强化 |
 
 **L-CAND 入档计划** (per 9/3 12:36 JST L12.3):
+
 - `L-CAND-010`: "rgs-testkit bot 框架 12 条迁移项 + 5 worker 派工 + per-worker CARGO_TARGET_DIR" (本 DDD Review v0.1 二审通过后入档)
 
 ---
@@ -412,6 +416,7 @@ crates/rgs-testkit/src/
 6. **评审后 (12/3 JST)**: 落 AGENTS.md v0.6.14 升版 commit + L-CANDIDATES.md v0.7 升版 commit + DDD Review v0.5 季度评审实施 commit
 
 **SRE 介入建议 (等 Ulysses 拍板, k3s baseline 恢复路径)**:
+
 - 修 HPA minReplicas=2 风暴 (删 HPA 或 scale 0 + 等资源回收)
 - 装 metrics-server (k3s metrics-server 单独 deployment, 让 HPA 正确 compute)
 - 推 gm-backend 镜像 (0.1.0-gm-backend → ghcr.io, 替代 0.1.0-cc13 假阳性)

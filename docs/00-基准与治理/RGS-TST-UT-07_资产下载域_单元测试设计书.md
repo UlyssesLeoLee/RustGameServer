@@ -12,7 +12,7 @@
 | 编制日期 | 2026-08-28 |
 | 关联源代码 | `crates/rgs-asset-download/src/**/*.rs` + `crates/rgs-asset-download/tests/{ut_*,it_*,chaos_*,security_*,load_*}.rs` |
 | 关联基本设计 | RGS-BAS-009, RGS-BAS-022, RGS-BAS-027, RGS-BAS-036 |
-| 关联测试代码 | ✅ 13 个 test 文件(5 ut_ + 6 it_ + 1 chaos + 1 security + 1 load) |
+| 关联测试代码 | ✅ 13 个 test 文件(5 ut_+ 6 it_ + 1 chaos + 1 security + 1 load) |
 
 ---
 
@@ -104,7 +104,7 @@
 | TST-UT-07-G??? | M-2064.6 §3.2 | asset_download/tests/chaos_* | ✅ |
 | TST-UT-07-H??? | REQ-007 §3.4 (安全) | asset_download/tests/security_no_pii | ✅ |
 
-**总计**:5 ut_ + 6 it_minio + 3 it_cloudflare + 2 chaos + 1 security = 17 test 文件
+**总计**:5 ut_+ 6 it_minio + 3 it_cloudflare + 2 chaos + 1 security = 17 test 文件
 
 ## 4. 通过判定标准
 

@@ -94,7 +94,7 @@
 |---|---|
 | 关联文档 | 5-DOMAIN-DTL-REVIEW-REPORT.md §1.7 §A.7.4（第 96 行）+ RGS-SPEC-CROSS-007 §1 5 域 RBAC 角色矩阵 + DTL-031 §7.2 PERMISSION_DENIED 错误 |
 | 现状 | DTL-031 §7.2 PERMISSION_DENIED 含"RBAC/审批依据不足"但未指定 5 域资源名；DTL-016 §2.2 引"工单处理执行权收口于既有 AdminService"但未列资源枚举 |
-| 疑问 | (1) RBAC 资源粒度：<br>  - 行级（每玩家档案）？<br>  - 域级（player.* / economy.*）？<br>  - 动作级（player.read / player.write / player.audit）？<br>(2) GM / SRE / PM / 业务方的角色枚举在哪里定义（admin 域 DTL-031 §7 还是单独一份 RGS-RBAC-001）？<br>(3) 与 OPA / Casbin 集成是否在 PH-2 之后？ |
+| 疑问 | (1) RBAC 资源粒度：<br>  - 行级（每玩家档案）？<br>  - 域级（player.*/ economy.*）？<br>  - 动作级（player.read / player.write / player.audit）？<br>(2) GM / SRE / PM / 业务方的角色枚举在哪里定义（admin 域 DTL-031 §7 还是单独一份 RGS-RBAC-001）？<br>(3) 与 OPA / Casbin 集成是否在 PH-2 之后？ |
 | 期望答复 | 资源粒度 + 角色枚举文档 ID + 与 OPA 时序 |
 | 答复栏 | 🟢 **⚠️v0.2修正**：初版答复"新建 RGS-RBAC-001"是重复造轮子——本题"关联文档"字段本身已引用 `RGS-SPEC-CROSS-007_5域RBAC角色矩阵_v0.1.md`，该文档**已经存在**（骨架状态，§4"待 NO-GO 解除后填充"，与 CROSS-001 同一批建的占位文档，同样卡在 NO-GO/G-CODE-06/G-CODE-03 三个激活条件）,且其 §4 章节就叫"权限粒度规范（resource/action/scope）"——正是本题要答的问题,不需要另建文档。(1) 采用**动作级**（`player.read`/`player.write`/`player.audit`）为基础粒度，域级（`player.*`）作为聚合别名；**不做行级**（行级约束放业务逻辑层，塞进 RBAC 资源模型会导致枚举爆炸）——此结论填入 CROSS-007 §4，不是新文档。(2) 角色枚举**填入 CROSS-007**（不塞进 DTL-031 §7，也不新建 RGS-RBAC-001）：CROSS-007 §1"业务角色清单"+§2"admin域RBAC角色定义"+§3"5域→admin域角色映射矩阵"章节已经预留好位置。(3) 与 OPA/Casbin 集成 **PH-2 之后**：PH-1 先用枚举 + 中间件校验实现 fail-closed（phase-0-5 已验证过）。**激活条件已满足**（与 Q-D-03 共用同一份 `RGS-DEC-NOGO-001` 核实结论）。下游动作：填充 CROSS-007 v0.2。 |
 

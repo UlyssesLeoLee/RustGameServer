@@ -7,6 +7,7 @@
 > **状态**: 🟡 OPEN(Q1/Q3/Q4/Q5/Q6 已决策/已执行;**Q2 已出 8 域 Lead 具名草案待终审**;**Q7 已出 cluster-ops 终方案决策草案 + 3 子决策待终审**;详见各条 + §4 修订历史)
 > **范围**: 2026-08-27 12:43 JST 部署完成 + 16:30 JST 后续 P0/P1/P2 收尾,9 个 DDD Review blocker / 决策项
 > **关联**:
+>
 > - 部署报告:`docs/deploy/.run-logs/2026-08-27-deploy-all/DEPLOY-REPORT.md` (6664 字节)
 > - 代签签字记录:`docs/00-基准与治理/RGS-EXEC-2026-08-27-DEPLOY-SIGN.md`(commit `5419b0c` 落 `00-基础与管理/`,per Q1 决议已 merge 回 `00-基准与治理/`)
 > - OLU 报告:`docs/14-项目管理/RGS-OLU-REPORT-2026-08-27_dev-k3s-deploy_v0.1.md` (commit `2ab798e`)
@@ -28,6 +29,7 @@
 ### Q1. 🔴 路径 byte-level 偏差(P0 阻塞)
 
 **问题描述**:
+
 - git 实际追踪目录: `docs/00-基准与治理/`(8 字节 UTF-8 字符)
 - 任务规范名 + F3 commit 落点: `docs/00-基础与管理/`
 - 6 字节 / 18 字节路径差异 = 33% 不同
@@ -40,9 +42,11 @@
   - `RGS-EXEC-2026-08-27-DEPLOY-SIGN.md` 在 `00-基础与管理/`(本次新增)
 
 **决策项**:
+
 - [x] 保留哪个目录 / 都保留 / 合并重命名 / 不动 → **保留 `00-基准与治理/`,其余合并进去**
 
 **决议**(2026-08-27,Ulysses per DEC-008 代签):
+
 - `docs/README.md` 总索引第 11 行硬编码 `00-基准与治理/` 为基准分区入口,下辖 RGS-REQ/BAS/DTL/REV/HANDOFF 等 31 个文件;`00-基础与管理/` 只有本次新增的 2 个文件,系 commit `5419b0c` 建目录时误输入(治理→管理)
 - 额外发现第三个近似目录 `00-基本与治理/`(仅含 `reviews/phase-0-5-citation-sweep/` 2 份引用扫雷报告),同属命名漂移,一并处理
 - **已执行**:`git mv` 合并 3 处误落文件回 `00-基准与治理/`(本 commit),未新建分区
@@ -51,6 +55,7 @@
 **负责**:Ulysses 决策 + 架构师执行 git mv
 
 **阻塞影响**:
+
 - ~~后续 DDD Review / DTL 修订 / 新增 RGS 文档时,不知道往哪个目录写~~ 已解除:统一写 `00-基准与治理/`
 - ~~路径不统一会让 git blame / git log --follow 出现两条历史线~~ 已解除(git mv 保留 rename 历史)
 
@@ -59,12 +64,14 @@
 ### Q2. 🔴 5 域 Lead 实际具名状态(per DEC-005 兼任拒绝原则,P0)
 
 **问题描述**:
+
 - per 2026-08-21 Ulysses 强证据:5 域 + cluster-ops + shared-platform 等多域架构,每域配独立 Lead,拒绝兼任
 - 当前状态(per OLU 报告 §7.2 + RACI 5 份 v1.1 文档):**仍是 Ulysses 兼任代签**(per DEC-008 一人公司 12 角色)
 - RACI 文档位置:`docs/14-项目管理/RGS-RACI-{PLAYER,ECONOMY,MATCH,SOCIAL,ADMIN}-V1_*.md` 5 份,每份 v1.1
 - 实际签字人:**目前是 5 份 RACI 的"架构师(Mavis 接手 agent per DEC-008)"代签**,不是真实 5 个 Lead 实际签字
 
 **决策项**:
+
 - [x] 5 域 Lead 是否本次部署前必须实际具名? → **dev 阶段不阻塞,生产部署前必须**
 - [x] 如果暂不具名,生产部署前必须具名的 deadline? → **挂在生产部署 checklist 的必过 gate 项,不设独立日期**
 - [x] RACI 文档 v1.1 是否升级到 v1.2,加入"实际具名 + 代签范围"声明? → **是,待 5 域 Lead 具名或下次 RACI 修订窗口时一并做**
@@ -72,6 +79,7 @@
 **决议**(2026-08-27,Ulysses per DEC-008 代签):dev k3s 部署阶段兼任代签可接受,但生产部署 gate 前必须 5 域 Lead 实际具名,列为硬性 checklist 项(而非软性 deadline);RACI v1.2 升级与具名同批次做,不单独立即执行(避免为空壳字段折腾文档版本)
 
 **v0.3 追加决议**(2026-08-28 09:30 JST,Mavis 接手 agent per DEC-008 代签):
+
 - 8 域 Lead 角色映射草案已落档:`docs/00-基准与治理/RGS-LEAD-NAMING-8-域-2026-08-28.md`
 - 8 域(5 域 + cluster-ops + gm-backend + 工具集)各自独立角色,共享支持 4 角色(SRE/Platform/QA/PM) + 架构师 = 12 角色 (per DEC-008 一人公司 12 角色)
 - 一人公司 12 角色 ↔ 8 域 Lead 数量合理(8 域 + 4 共享 = 12)
@@ -80,6 +88,7 @@
 - 关闭条件:8 域 Lead 实际具名 + RACI v1.2 升级 + OLU §6.5 重算 → Q2 可关闭
 
 **v0.4 终审决议**(✅ Ulysses 真实追认,per `RGS-DECISION-CORRECTION-2026-08-28-12-21-JST.md` §1,确认时间 2026-08-28 12:21 JST — 原文声称的"10:33 JST Ulysses 一审"溯源不实,已更正):
+
 - ✅ **采纳** 8 域 + 4 共享 = 12 角色映射(per Ulysses 决策)
 - 8 域 Lead 角色具名(per DEC-008 一人公司 12 角色):
   - **player-service**:玩家域 Lead(per DTL-015)
@@ -97,6 +106,7 @@
 **负责**:Ulysses 决策 + 5 域 Lead(未来 5 个真人)
 
 **阻塞影响**:
+
 - OLU 报告 §6.5 评估"人·天中位 21 略超 NFR-OP-010 上限 20"——**5 域 Lead 兼任导致 5 域维护工作量叠加,无法独立分配**
 - per 2026-08-21 Ulysses 反馈"兼任会把责任矩阵和 RACI 模糊化"——当前形态符合风险
 
@@ -105,12 +115,14 @@
 ### Q3. 🟠 NFR-OP-010 人·天轨 21 略超 20(P1 决策)
 
 **问题描述**:
+
 - per OLU 报告 §6.5(commit `2ab798e`):本次 dev k3s 部署 token 轨 0.7-1.45M tokens(conservative)/ 1.95-3.68M(aggressive),**远低于** NFR-OP-010 上限 20M/周
 - 但人·天轨中位 21,**略超** 20 上限(超 5%)
 - 5 域 + cluster-ops + gm-backend 维护成本在 dev k3s 稳定后每周仍需 ~21 人·天
 - 决策来源:per 2026-08-21 Ulysses 反馈"AI 协作下人·天失去精度,改 token"
 
 **决策项**:
+
 - [ ] 是按 OLU 报告 §6.5 建议"申请额外 SRE 编制"(2 SRE → 3-4 SRE)
 - [ ] 还是"调整 NFR-OP-010 上限"(20 → 25-30 人·天/周)
 - [x] 还是"接受超 5% 风险,留作 follow-up" → **采纳**
@@ -121,6 +133,7 @@
 **负责**:SRE Lead + PM Lead 联合决策(per RGS-PM-005 工数管理 §3 修订流程)
 
 **阻塞影响**:
+
 - 5 域 Lead 具名(Q2)前,本决策必须先做(因为 Q2 决定是否分摊到 5 域 Lead)
 - 申请额外 SRE 编制涉及预算,需 Ulysses + 财务联合
 
@@ -129,6 +142,7 @@
 ### Q4. 🟠 0.1.2-cluster-ops 镜像资产保留 vs 不能用(P1 决策)
 
 **问题描述**:
+
 - 0.1.2-cluster-ops 镜像已 push ghcr.io(commit `b703f30` + `1165858` + `5bf6ae3` 链),200 OK, 23 layers
 - apply 失败:`DB migrations failed: internal error: migration 1 was previously applied but has been modified`
 - 根因:0.1.2 镜像是从最新 source 重新编译,migration 1 SQL 与 0.1.0 build 时跑的 hash 不匹配
@@ -136,17 +150,20 @@
 - live 状态:3 副本 1/1 Running(0.1.0 image + tcpSocket probe)
 
 **决策项**:
+
 - [ ] 0.1.2 镜像资产如何处置?保留为资产(DONE, 已 push)/ 删除(per ghcr.io API) / 标 deprecated?
 - [ ] 真正修复路径:源码层让 0.1.2 镜像用 0.1.0 migration 文件 build / sqlx 跳过已应用 migration / 重写 migration 1 内容?
 - [ ] probe 何时改回 grpc_health_probe?(待 0.1.2 修复后)
 
 **根因复核**(2026-08-27,架构师 per DEC-008 代签,**仍 OPEN,未决策,未执行任何镜像构建/推送**):
+
 - 原文档"0.1.2 镜像从最新 source 重新编译"这句话不准确。实际链路(git 实证):`b703f30`(17:54)新建 `build-cluster-ops-0.1.2.yml`,设计上**不跑 cargo build**,而是从 base image `COPY --from` 复用二进制(commit 注释原话:"避免 LF 迁移内容与 DB CRLF hash 冲突"——说明作者当时已知有 CRLF/LF 风险);`1165858`(17:55)因 `0.1.0-cluster-ops` tag 在 ghcr.io 不存在,把 base image 改成通用 tag `0.1.0`;`5bf6ae3`(17:57)据此部署 0.1.2
 - 关键新证据:`73fbd7f` 回滚时用的是 `0.1.0-cluster-ops` 这个 tag(而非 `0.1.0`),且回滚后 3 副本正常 Running——说明当前真正能通过 migration 校验的是 `0.1.0-cluster-ops`,而 0.1.2 构建用的 base 是**另一个** tag(`0.1.0`),二者是否字节等价未经验证
 - 环境层面确认存在真实 CRLF/LF 差异风险源:本机 git 系统级配置 `core.autocrlf=true`(Git for Windows 默认),本仓库 `.git/config` 局部覆盖为 `false`——即任何在没有这条局部覆盖的环境(例如另一台机器 clone、或某次 CI/本地构建未继承该覆盖)签出 `crates/cluster-ops/migrations/*.sql` 都可能得到 CRLF 内容,而 git blob 本身是纯 LF(已用 `git show HEAD:...` 核实);sqlx 的 migration checksum 是按文件字节算的,CRLF/LF 差一个字节就会导致 hash 不匹配
 - **结论**:根因大概率是"哪次构建的签出环境决定了 CRLF/LF、进而决定了 sqlx checksum",而不是简单的"用了新 source"。真正修复前需要先确认:(a) 当前活着的 `0.1.0-cluster-ops` 镜像里的二进制具体来自哪次构建/哪个签出环境,(b) `0.1.0` 通用 tag 与 `0.1.0-cluster-ops` 是否字节相同。这两点未查清前,**不建议**基于现有任何 workflow 重新 build/push,以免再次产生 hash 不匹配
 
 **决策项**:
+
 - [ ] 0.1.2 镜像资产如何处置?→ **建议标 deprecated + 附上面根因复核说明,不建议删除**(占用空间可忽略,删除 ghcr.io 包不可逆)
 - [ ] 真正修复路径:待上面 (a)(b) 两点查清后再定,不要在不确定 base image 溯源前重新编译
 - [ ] probe 何时改回 grpc_health_probe?(待镜像根因修复后)
@@ -154,6 +171,7 @@
 **负责**:cluster-ops 域 Lead(待具名, per Q2) + SRE Lead 联合
 
 **阻塞影响**:
+
 - 当前 dev 跑的是 dev 妥协态(tcpSocket + 0.1.0-cluster-ops),生产前必须修复
 - 0.1.2 镜像在 ghcr.io 占空间,需要明确处置(建议:标 deprecated,不删除)
 
@@ -162,11 +180,13 @@
 ### Q5. 🟡 5 域 outbox relay 切到 NATS(P2 follow-up)
 
 **问题描述**:
+
 - per F1 NATS 已部署:`nats-0 1/1 Running`,4222 端口监听
 - 5 域 service 启动时 `outbox relay DISABLED — NATS connect failed: DNS error`(因为 NATS pod 起来前 5 域已启动)
 - 5 域下次重启才会重新连 NATS,本会话没动(避免无关变更)
 
 **决策项**:
+
 - [x] 何时触发 5 域 `kubectl rollout restart`(player / economy / match / social / admin)? → **立即,串行执行**
 - [x] 是否需要先在 staging 验证 NATS 持久化 + outbox relay 流? → **不需要**(dev 环境,NATS 已跑通,风险低)
 - [ ] outbox relay DISABLED fallback 模式下累积的 outbox rows 何时清?→ 待重启后评估累积量再定
@@ -174,6 +194,7 @@
 **决议**(2026-08-27,Ulysses per DEC-008 代签):执行前核实前提 —— `svc/nats` ClusterIP 4222 端口与 5 域 manifest 里配置的 `nats://nats:4222` 一致(排除配置错配的可能);`nats-0` 实际只运行 153 分钟,而 5 域 pod 已运行 13-23 小时,player-service 日志确认 `outbox relay DISABLED — NATS connect failed: DNS error` 至今未恢复 —— 确认是启动顺序竞态,不是配置问题,可以安全重启。
 
 **执行记录(2026-08-27,已做,发现新阻塞,🔴 未解决)**:
+
 - 5 域已串行 `kubectl rollout restart`(player→economy→match→social→admin),全部 rollout 成功,新 pod 均 1/1 Running
 - 重启后错误从 `DNS error: failed to lookup address information` 变成 `IO error: Connection refused (os error 111)`——说明 DNS/服务发现已正常,但连接被拒绝
 - 根因排查:`kubectl get networkpolicy -n rust-game-server` 显示只有 `allow-dns-and-api` / `default-deny-all` / `postgres-ingress` 三条,**没有 `nats-ingress`**——即 `docs/deploy/01-k8s-manifests/30-nats-networkpolicy.yaml` 从未被实际 apply 过,`default-deny-all`(podSelector 为空,Ingress+Egress 全拒绝)正在生效
@@ -184,6 +205,7 @@
 **负责**:5 域 Lead 联合 + SRE Lead 协调
 
 **阻塞影响**:
+
 - 当前 5 域业务功能正常,outbox relay 暂未启用不阻塞业务
 - 但 outbox 表会累积事件,需要尽快切到 NATS
 
@@ -192,6 +214,7 @@
 ### Q6. 🟡 GM 后台代签溯源边界(P2 治理)
 
 **问题描述**:
+
 - per 2026-08-26 08:40 JST Ulysses 反转规则:"今后所有 RGS-* 文档允许代签"
 - per 2026-08-27 19:39 JST Ulysses 强化:"Mavis 接手默认代签 Ulysses 无需再问"
 - per 2026-08-27 20:56 JST + 21:59 JST Ulysses 第三/第四次强化
@@ -199,6 +222,7 @@
 - gm-backend 后续 endpoint 实现(per F8 gm-backend 集成测试 follow-up)还需要 gRPC client 调用 admin-service,需要更多代签
 
 **决策项**:
+
 - [x] GM 后台相关后续工作的代签边界(谁来签/什么范围/是否需要 DDD Review 补审)? → **文档/部署/配置类可代签;跨域调用的业务逻辑首次上线需 DDD Review**
 - [x] gm-backend 5 个 endpoint stub 实装时,谁来签? → **同上边界,stub→真实逻辑属于"业务逻辑首次上线",需过一次 DDD Review 才能代签合入**
 
@@ -207,6 +231,7 @@
 **负责**:Ulysses 决策 + GM 后台域 Lead(待具名, per Q2)
 
 **阻塞影响**:
+
 - F8 gm-backend 集成测试(per FOLLOW-UP-PLAN P3 长线)需要先确定代签边界
 
 ---
@@ -214,6 +239,7 @@
 ### Q7. 🟡 cluster-ops/tests-disabled/ 4 ut_*.rs 旧债处置 + TBD-08-NN/TBD-09-NN 排期(P2 治理,2026-08-28 追加)
 
 **问题描述**:
+
 - per 2026-08-28 08:40 JST Ulysses "实施ut" 指令 + ut 实施批次,发现 2 类遗留:
   1. **cluster-ops/tests-disabled/ 4 ut_*.rs 旧债**(ut_feature_adapter / ut_olu / ut_saga / ut_state_machine)
      - 来源:commit `30a8842` (2026-08-27 08:00 JST) RGS-INC-002 v0.1 复盘,saga 编译死锁临时禁用
@@ -224,15 +250,18 @@
      - TBD-09-01 已关闭(本轮实装 17 黑盒),剩 TBD-09-02~04 + TBD-09-08(per UT-09 v0.2)
 
 **决策项**:
+
 - [ ] cluster-ops/tests-disabled/ 处置方案(迁回 tests/ / 移到 git 历史 / 保留 + 文档化) → **临时方案 C(保留 + 文档化)**,待 DDD Review 阶段决策
 - [ ] TBD-08-NN + TBD-09-NN 排期(v0.2 / v0.3 / 长期) → **待 8 域 Lead 联合排期**
 
 **决议**(2026-08-28,Mavis 接手 agent per DEC-008 代签临时方案):
+
 - 临时采用方案 C(保留 + `OLD-DEBT.md` 文档化),不动 Cargo.toml,保持 `cargo build --tests -p cluster-ops` 0 error
 - 跟踪到本 OPEN-QA Q7,DDD Review 阶段由 Ulysses + cluster-ops 域 Lead(per Q2 待具名)+ SRE Lead 联合决策 A/B/C 终方案
 - TBD-08/09 排期依赖域 Lead 具名 + 8 域 Lead 联合协调,本轮仅关闭 TBD-09-01
 
 **v0.3 追加决议**(2026-08-28 09:30 JST,Mavis 接手 agent per DEC-008 代签):
+
 - TBD-08-01/02/04/05/07 + UT-08 模块 D 字段级 v0.2 已实装(per commit `ec0f11a`)
 - TBD-08-03 (admin-service gRPC client) 暂留 v0.3,v0.2 用 AuditStore trait 抽象 + InMemory 实现
 - TBD-08-06 (axum-test vs wiremock 工具决策) 草案已落档 `RGS-TST-08-06-axum-test-vs-wiremock-工具决策.md`,方案 D (双工具并存) 短期推荐
@@ -243,10 +272,12 @@
 **负责**:cluster-ops 域 Lead(待具名 per Q2)+ Ulysses 决策
 
 **阻塞影响**:
+
 - 方案 C 保留不删,0 阻塞,只是新增接手 agent 需先读 OLD-DEBT.md 才会知道 tests-disabled/ 不在 cargo test 范围
 - TBD-08/09 排期延后会拖慢 v0.2 实装节奏
 
 **关联 commit**:
+
 - `b4df2ed` UT-09 rgs-certgen 17 黑盒实装 + 7 域 example + mock-registry
 - `3e8d9ca` 6 域独立 UT 文档 + evidence + 旧债决策
 - `b87f1b3` 核对报告 + test-evidence.ps1 v4

@@ -53,6 +53,7 @@ Ulysses 2026-09-04 17:11 JST 拍板 "**frontend compat 正确设计**" (per ask_
 ### 1.3 范围 (per ask_user option A 第 3 项 + BDD v0.1 §1.3)
 
 **In-Scope**:
+
 - [游戏A] client 协议分析 (自研 TCP / Flash socket / PHP 假节点, per 跨盘 4 文件)
 - 适配层架构 (gRPC transcoder / JSON-RPC proxy / WebSocket / Flash socket 兼容 4 选项对比)
 - 协议号 → RGS proto 1:1 路由表 (per v0.2-2 worker 438 cmds 完整映射, 路由到 RGS 7 域)
@@ -61,6 +62,7 @@ Ulysses 2026-09-04 17:11 JST 拍板 "**frontend compat 正确设计**" (per ask_
 - 性能 + 部署 + 测试 4 段 (ASCII 架构图 + 部署拓扑 + E2E 测试方案)
 
 **Out-of-Scope**:
+
 - [游戏A] client 源码改造 (per audit v0.3 §1.2 + 借鉴分析 决策, 不动 client, 适配层适配 client)
 - 8 域 gRPC proto 升版 (per BDD v0.1 §5.8 + FLASH-OVERLAP v0.2 11 维度 keep RGS, 不动)
 - [游戏A] Erlang server 替换 (per 9/4 16:45 JST "完全对齐" 拍板, mock 验证 RGS backend 不变)
@@ -99,6 +101,7 @@ Ulysses 2026-09-04 17:11 JST 拍板 "**frontend compat 正确设计**" (per ask_
 | **L5** | 玩法模块 | `partner.erl` / `combat.erl` / `market.erl` (per 协议栈.md L5) | domain logic + repository.rs (sqlx 0.8) |
 
 **关键观察** (per 协议栈.md §协议路由示例 + mapping.erl):
+
 - `Caller` 决定走哪个进程处理: `connector` (未登录) → `object` (玩家进程内, 已登录)
 - 协议号 = `Cmd` 16 bit 整数, 范围 `100-65500`, 模块号 = `trunc(Cmd / 100)` 范围 `1-655` (per mapping.erl:22-37)
 - `NeedAuth: true` 表示已登录才能调用, 适配层需要做 session 校验
@@ -118,6 +121,7 @@ Ulysses 2026-09-04 17:11 JST 拍板 "**frontend compat 正确设计**" (per ask_
 - TCP 包头 4 字节 = 包长度 (per 协议栈.md L1: `{packet, 4}`)
 
 **数据包示例 (per 协议栈.md §协议路由示例, "11002 升级伙伴")**:
+
 ```
 Client → [Len=8][Cmd=11002][Body=u16 partnerId]
 Server → [Len=N][Cmd=11002][Body=struct UpgradeResult]
@@ -173,7 +177,7 @@ Server → [Len=N][Cmd=11002][Body=struct UpgradeResult]
 | 238 | `guild_shipping_rpc` | 联盟远航 | social | `StartShipping` + `ClaimShipping` |
 | 239 | `endless_rpc` | 无尽试炼 | match | `JoinEndless` + `SubmitScore` |
 
-**完整 39 段** 见 `src/mapping.erl:40-83`, 本表抽样 36 段 (跳过 12 test only + 15 holiday 复制变体 per BDD v0.1 §7.6 反模式 + 9+6 holiday_* / arena_* 复制)。
+**完整 39 段** 见 `src/mapping.erl:40-83`, 本表抽样 36 段 (跳过 12 test only + 15 holiday 复制变体 per BDD v0.1 §7.6 反模式 + 9+6 holiday_*/ arena_* 复制)。
 
 ### 2.4 客户端链路 (per network-topology.html §接入面 + 协议栈.md §0)
 
@@ -196,6 +200,7 @@ DB (mnesia / mysql) (L7)
 ```
 
 **测试 client** (per `tester/src/test.erl:39-78`):
+
 - `t(N, M, Mod, SrvId, Host, Port, Time)`: 启动 N~M 个 bot, 每个 bot 间隔 Time ms
 - 端口示例: `local_1:9001` / `dev_1:9001` / `dev_2:9002` / `dev_3:9003` (per `test.erl:62-68`)
 - 协议走真实 TCP 自定义二进制 (per `tester/src/tester.erl` + `tester_ai_base.erl` + `tester_ai_quest.erl`)
@@ -218,6 +223,7 @@ cfg(zone) ->
 ```
 
 **关键观察**:
+
 - `sup_acceptor + sys_listener` 是 zone 节点核心 (per `services.erl:54`), center 也有 (per `services.erl:38`)
 - 玩家 TCP 直连 zone 节点 (per network-topology.html §接入面), 不经 center
 - 中心服宕机: 区服独立运行 (per network-topology.html §为什么不是纯星型 故障域行)
@@ -309,6 +315,7 @@ cfg(zone) ->
 ### 4.1 候选 1 (优选): gRPC transcoder (per 借鉴分析 §0 + 9/4 17:11 JST 拍板)
 
 **架构**:
+
 ```
 [游戏A] client (TCP 自研)
    ▼
@@ -323,6 +330,7 @@ RGS 8 域 backend (mTLS 业务级)
 ```
 
 **技术栈** (per rgs-batch-backend 模式 + BDD v0.1 §5):
+
 | 组件 | 选型 | 理由 |
 |---|---|---|
 | **TCP listener** | tokio 1.x + `TcpListener` (per BDD v0.1 §5.2) | 跟 rgs-flash-mock 一致, 适配 [游戏A] 自研 TCP |
@@ -337,18 +345,21 @@ RGS 8 域 backend (mTLS 业务级)
 | **port** | 0.0.0.0:8780 (next sequential after rgs-flash-mock 8791) | k3s service NodePort 暴露 |
 
 **优势**:
+
 - 性能最佳: 端到端 P99 ≤ 200µs (适配层 50µs + RGS 50µs + 网络 100µs, per BDD v0.1 §8.2)
 - 1:1 仿真 [游戏A] wire format, 0 协议改造
 - 跟 8 域 gRPC proto + shared-platform 完全一致
 - 业务透传, 不擅自改业务 (per BDD v0.1 §7.3)
 
 **劣势**:
+
 - 需要写 [游戏A] proto_xxx.erl 的 Rust port (per 协议栈.md L2, 39 个 protocol segments)
 - [游戏A] protocol 升级时 (e.g. holiday_* 新增), 适配层要同步 (per BDD v0.1 §7.4 keep RGS 静态生成)
 
 ### 4.2 候选 2: JSON-RPC proxy (备选)
 
 **架构**:
+
 ```
 [游戏A] client (TCP 自研)
    ▼
@@ -364,10 +375,12 @@ RGS 8 域 backend (mTLS)
 ```
 
 **优势**:
+
 - 业务方可以用 curl / Postman 调试 (JSON 友好)
 - envoy 自带 transcoder, 适配层开发量小
 
 **劣势**:
+
 - [游戏A] client 是 TCP 二进制, 强制走 JSON 增加 2 次转换 (TCP→JSON→gRPC)
 - envoy transcoder 性能比手写 pack/unpack 慢 ~3x
 - 不支持 [游戏A] chunked frame + 16 bit Cmd 路由, 需 hack
@@ -377,6 +390,7 @@ RGS 8 域 backend (mTLS)
 ### 4.3 候选 3: WebSocket 适配 (备选)
 
 **架构**:
+
 ```
 H5 客户端 (浏览器 / 小程序)
    ▼
@@ -389,10 +403,12 @@ RGS 8 域 backend (mTLS)
 ```
 
 **优势**:
+
 - H5 客户端 (浏览器 / 小程序) 友好, 走 ws 标准
 - 双协议支持 (binary + JSON), 浏览器可降级到 JSON
 
 **劣势**:
+
 - 不支持 [游戏A] AS3 / Lua / Unity 旧客户端 (per 协议栈.md §0 客户端入口)
 - ws 握手 + frame 切分额外开销 ~50µs
 
@@ -401,6 +417,7 @@ RGS 8 域 backend (mTLS)
 ### 4.4 候选 4: Flash socket 兼容 (备选)
 
 **架构**:
+
 ```
 AS3 XMLSocket 旧客户端
    ▼
@@ -414,10 +431,12 @@ RGS 8 域 backend (mTLS)
 ```
 
 **优势**:
+
 - 兼容 [游戏A] AS3 XMLSocket 旧客户端 (per 协议栈.md §0 客户端入口)
 - 业务方零改造
 
 **劣势**:
+
 - AS3 XMLSocket 已被主流浏览器弃用 (Chrome 84+ 2020 起, Firefox 2020 起)
 - 维护成本高, 9/4 17:11 JST 拍板 "frontend compat 正确设计" → 优先现代客户端 (Lua / Unity / H5)
 
@@ -428,10 +447,12 @@ RGS 8 域 backend (mTLS)
 **v0.2 推荐**: **候选 1 (gRPC transcoder) 单一 listener `:8780`**, 走 [游戏A] 自研 TCP, 1:1 仿真 wire format。
 
 **v0.3+ 可选扩展** (per 业务方需求):
+
 - H5 客户端 → 候选 3 WebSocket listener `:8781`
 - AS3 历史包袱 → 候选 4 XMLSocket listener `:8782`
 
 **推荐依据**:
+
 - 性能: 候选 1 端到端 P99 ≤ 200µs, 候选 2/3/4 均 ≥ 300µs
 - 维护: 候选 1 单一 listener, 候选 2/3/4 多 listener 增加运维成本
 - 业务: 候选 1 业务透传, 候选 2 强制 JSON 改协议
@@ -444,6 +465,7 @@ RGS 8 域 backend (mTLS)
 ### 5.1 路由表设计 (per BDD v0.1 §3.2 + mapping.erl:40-83)
 
 **路由表结构** (Rust 静态 HashMap, 编译期生成):
+
 ```rust
 // tools/rgs-frontend-compat/src/routing.rs
 pub struct RouteEntry {
@@ -514,11 +536,13 @@ pub enum Caller {
 ### 5.3 N-A 状态处理 (per BDD v0.1 §10.4 TCG vs MMORPG 90% N-A)
 
 **N-A 业务** ([游戏A] MMORPG, RGS TCG 不适用):
+
 - `proto_102 map_rpc` (地图 / 场景移动) → N-A, TCG 无地图
 - `proto_111 drama_rpc` (剧情) → N-A, TCG 无剧情
 - `proto_168 misc_rpc` (MMORPG 提示信息) → 部分 N-A
 
 **N-A 处理策略** (per 适配层设计):
+
 ```rust
 fn handle_na_route(cmd: u16) -> RgsResponse {
     warn!("N-A: cmd={} not applicable for TCG, returning Unimplemented", cmd);
@@ -549,12 +573,14 @@ fn handle_unknown_cmd(cmd: u16) -> RgsResponse {
 ### 6.1 业务透传 vs 业务代理 (per BDD v0.1 §7.3 + audit v0.3 §1.2 #1)
 
 **业务透传** (per BDD v0.1 §7.3 Hybrid-2 + 9/4 17:11 JST 拍板):
+
 - 适配层**不**重写业务逻辑
 - [游戏A] `Cmd + Body` 1:1 转发到 RGS proto Request (per §5 路由表)
 - RGS 域 backend 负责业务实现 (per BDD v0.1 §4.2 L5 玩法模块)
 - 业务层 90% N-A 接受 (per BDD v0.1 §10.4), 走 `tonic::Code::Unimplemented` (per §5.3)
 
 **业务代理** (备选, 评估中):
+
 - 适配层**重写**业务逻辑, e.g. [游戏A] `map_rpc.MovePlayer` → RGS `match.v1.SubmitMove` (TCG 走对局动作)
 - 优势: 业务层 N-A 可被代理绕过
 - 劣势: 适配层变成"业务中心", 维护成本随功能数量线性增长 (per BDD v0.1 §7.6 反例 A1)
@@ -617,6 +643,7 @@ impl CompatAdapter for TcgCompatAdapter {
 ### 6.4 业务层 N-A 评估 (per BDD v0.1 §10.4 + handoff v0.1 §1)
 
 **N-A 业务** (per BDD v0.1 §10.4 + mapping.erl:40-83):
+
 - 场景/移动 (148 cmds) → TCG 无场景, 全部 N-A
 - 角色养成部分 (e.g. MMORPG 装备系统 80 cmds) → TCG 走卡牌养成, 部分 N-A
 - 战斗 (241 cmds) → TCG 走对战, 大部分 pass-through, 部分 N-A
@@ -625,6 +652,7 @@ impl CompatAdapter for TcgCompatAdapter {
 - GM (37 cmds) → TCG 走 admin + gm-backend, 大部分 pass-through
 
 **决策** (per 9/4 17:11 JST 拍板 + 业务透传优先):
+
 - v0.2 走业务透传 + N-A 返 `Unimplemented`
 - v0.3+ 抽样 5-10 个 N-A 业务 (e.g. 场景移动 → 对局动作), 评估 TCG 业务代理可行性
 - 业务代理需 9/4 16:45 JST "完全对齐" 拍板扩展 (per ask_user option C), 不在 v0.2 范围
@@ -636,22 +664,26 @@ impl CompatAdapter for TcgCompatAdapter {
 ### 7.1 mTLS 业务级 (per BDD v0.1 §9.1 + shared-platform::tls)
 
 **强约束** (per BDD v0.1 §9.1 + RGS-REV-007):
+
 - 适配层 → 8 域 backend 全走 mTLS 双向证书 (per `shared-platform/src/lib.rs:42` `pub mod tls`)
 - 证书生成: rgs-certgen (per `Cargo.toml:13`)
 - 加载: `load_client_tls` + `load_server_tls_config` (per lib.rs:82-83)
 - **fail-closed**: 证书验证失败 → 拒绝连接, 不降级到 insecure
 
 **适配层 cert 复用**:
+
 - 适配层作为 gRPC client 复用 5 域 certs (per L-CAND-006 兜底, cert 内容永不入 commit)
 - 适配层作为 TCP server 走 0.0.0.0:8780, 不强制 mTLS ([游戏A] client 是 TCP 自研, 走 mTLS 需 client 改造, 不在 v0.2 范围)
 
 ### 7.2 [游戏A] cookie 不用 (per 协议栈.md §0 客户端入口)
 
 **[游戏A] session 机制** (per 协议栈.md §协议路由示例):
+
 - `connector_mgr:handle` 检查 session, 玩家进程内 `role:rpc` 携带 session_id
 - 旧客户端可能用 cookie 持久化 (per 协议栈.md §0 估计, 未直接看)
 
 **RGS 决策**: **不用 cookie**, 改 mTLS + token 注入:
+
 ```rust
 // 适配层 session token 注入
 fn inject_session_token<T>(&self, request: &mut T) -> Result<(), CompatError>
@@ -667,12 +699,14 @@ where T: prost::Message {
 ### 7.3 凭据管理 (per BDD v0.1 §9.2 + 8/27 11:06 JST 硬 ban)
 
 **强约束** (per AGENTS.md §1.2 + 8/27 JST hard ban + BDD v0.1 §9.2):
+
 - **禁止打印 env 值**: `Get-ChildItem env: | Format-Table` / `echo $VAR` / `$env:X expand` 等所有可能泄露 secret 的操作**禁止**
 - **只可 invoke**: `$env:VAR` 引用后直接 pipe (如 `$env:DB_PASSWORD | wsl -e bash -c '...'`), 或传给程序参数
 - **凭据走 env var**: DB 密码 / 证书路径 / 第三方 API key 全部走 env var, 不入 commit
 - **REDACTED filter**: 日志中出现 secret, 用 REDACTED 替换
 
 **适配层 env vars** (per BDD v0.1 §9.2 + DETAILED §5.1 模式):
+
 | env var | 用途 | 必填 |
 |---|---|---|
 | `FRONTEND_COMPAT_BIND_ADDR` | TCP 监听地址 (default `0.0.0.0:8780`) | ❌ |
@@ -695,11 +729,13 @@ where T: prost::Message {
 ### 7.4 证书管理 (per BDD v0.1 §9.3 + L-CAND-006 派生约束)
 
 **强约束** (per L-CAND-006 EXCEPTION-PATH v0.1, 9/1 12:36 JST 升正式):
+
 - **cert 内容永不入 commit**: 证书文件 + 私钥文件不能 git add
 - **fingerprint 比对验证**: 部署前用 `openssl x509 -fingerprint -sha256` 比对
 - **9/1 12:36 JST EXCEPTION-PATH**: 紧急情况可临时入 commit, 但 24h 内迁移到 k8s secret + 修订历史写明
 
 **适配层 cert 部署**:
+
 - 复用 rgs-flash-mock 5 域 certs (per L-CAND-006 兜底)
 - k3s Secret 挂载到 `/etc/rgs-frontend-compat/certs/`
 - env var `FRONTEND_COMPAT_TLS_CA_CERT=/etc/rgs-frontend-compat/certs/ca.pem`
@@ -707,10 +743,12 @@ where T: prost::Message {
 ### 7.5 RBAC + 审计 (per BDD v0.1 §9.4 + §9.5)
 
 **RBAC** (per `shared-platform/src/lib.rs:38` `pub mod rbac`):
+
 - 适配层透传 player token → 8 域 backend, 由 8 域做 RBAC 校验
 - 适配层不做 RBAC 决策 (无业务), 避免重复 + 一致性
 
 **审计** (per admin::audit_log + gm-backend 配套):
+
 - 适配层 emit `audit_event` (per BDD v0.1 §9.5) for 每条 transcoded RPC
 - 字段: `cmd` + `peer_addr` + `rgs_method` + `latency_ms` + `status` + `request_id`
 - 通过 NATS 异步发 admin 域 audit_log 表 (per BDD v0.1 §4.4 Outbox)
@@ -734,6 +772,7 @@ where T: prost::Message {
 | **P99 总** | ~2ms (gen_server 排队 + GC) | ~50µs | 100µs (saga 开销) | ~200µs |
 
 **vs [游戏A] 优势**:
+
 - **P50**: 1.5ms → 70µs = **21x** 优势 (per BDD v0.1 §8.1 #1 [游戏A] 500µs P50)
 - **P99**: 2ms → 200µs = **10x** 优势 (per BDD v0.1 §8.1 #2 [游戏A] 1ms P99)
 - **端到端 RGS** 优势主要来自 tokio + tonic 静态生成 + gRPC mTLS vs gen_server + Erlang term
@@ -842,6 +881,7 @@ docs/deploy/01-k8s-manifests/
 ```
 
 **envoy 边缘** (per 9/1 13:05 JST 偏好 + BDD v0.1 §6.1):
+
 - 独立 deployment, 不引入 istio sidecar
 - 监听 TCP :8780 + 转发 mTLS 到 适配层 :8780 (ClusterIP)
 - 业务 svc 通过 `svc://rgs-frontend-compat:8780` 引用
@@ -923,12 +963,14 @@ async fn test_e2e_login_unauth() {
 ### 10.4 [游戏A] client + RGS backend 端到端 (per 10.1 L2 + 借鉴分析 §4 #4)
 
 **测试场景**:
+
 1. 启动 适配层 + 8 域 backend (k3s namespace `rust-game-server-test`)
 2. 启动 [游戏A] tester 真实 client (per `tester/src/test.erl:39-78` + `tester_ai_base.erl` + `tester_ai_quest.erl`)
 3. 跑 12 大类抽样 22 RPC (per FLASH-MOCK v0.3 §3)
 4. 验证每条 RPC 适配层 → 8 域 → 业务结果
 
 **12 大类抽样** (per FLASH-MOCK v0.3 §3 + 适配层 §5.2):
+
 | 类别 | [游戏A] RPC | RGS 域 | 适配层 验证 |
 |---|---|---|---|
 | 场景/移动 | `MovePlayer(10201)` | (N-A) | 适配层返 Unimplemented |
@@ -955,6 +997,7 @@ async fn test_e2e_login_unauth() {
 | 抽卡 | `GetRecruitHistory(23203)` | card | 适配层 → card-service GetRecruitHistory |
 
 **22 RPC 预期** (per FLASH-MOCK v0.3 §3 + 适配层 §5.2):
+
 - ✅ PASS: 19 RPC (业务透传到 8 域 backend 跑通)
 - 🟡 PARTIAL: 1 RPC (e.g. 场景移动 N-A 返 Unimplemented)
 - ❌ N-A: 1 RPC (e.g. 场景移动)
@@ -1065,6 +1108,7 @@ async fn test_e2e_login_unauth() {
 ### 12.4 附录: 关键引用一览 (跨文档 + 跨盘 file:line 实证)
 
 **[游戏A] 跨盘 4 文件** (per AGENTS.md §1.1 可独立 Read 验证):
+
 - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\network-topology.html` (23KB, Hub-and-Spoke + Peer-to-Peer 拓扑, 3 链路)
 - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\docs\architecture\协议栈.md` (4.1KB, L1-L5 5 层协议栈 + 协议格式)
 - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\services.erl` (12.2KB, center/zone 节点配置 line 33-56)
@@ -1073,6 +1117,7 @@ async fn test_e2e_login_unauth() {
 - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\tester\src\tester.erl` (17KB, 真实 client 入口)
 
 **RGS 跨文档 3 件套** (per commit `80bcd3b`):
+
 - `D:\RustGameServer\docs\15-IPA-完全对齐438cmds\RGS-REQ-2026-09-04_v0.1.md` (61.4KB)
 - `D:\RustGameServer\docs\15-IPA-完全对齐438cmds\RGS-BDD-2026-09-04_v0.1.md` (49.5KB, 本 addendum 基线)
 - `D:\RustGameServer\docs\15-IPA-完全对齐438cmds\RGS-DDD-2026-09-04_v0.1.md` (94KB)
@@ -1080,18 +1125,21 @@ async fn test_e2e_login_unauth() {
 - `D:\RustGameServer\AGENTS.md` (32KB, 仓库级强约束, per 8/21 / 8/26 / 8/27 / 9/1 JST 派生)
 
 **关键 commit SHA** (per git log --oneline 实证):
+
 - `80bcd3b` (3 件套 v0.1 baseline, BDD v0.1 + REQ v0.1 + DDD v0.1)
 - `49eb51a` (FLASH-MOCK v0.3 已落 main, 4 阶段路线图)
 - `2e3d9ee` (FLASH-OVERLAP v0.2, 11 维度 keep RGS)
 - `bb9f977` (GAP-AUDIT v0.3, 5 域 + card 架构保留)
 
 **关键 user 拍板 (per 9/4 JST 决策链)**:
+
 - 9/4 16:47 JST: "首先补全需求文档, 基本设计文档, 详细设计文档, 内容根据[游戏A]代码逆推" → 3 件套 v0.1
 - 9/4 16:14 JST: "完整 1351 mock (long-term)" → FLASH-MOCK v0.3 4 阶段
 - 9/4 16:45 JST: "完全对齐" → 推翻 handoff v0.1 "不做逐条移植" 决策
 - 9/4 17:11 JST: "frontend compat 正确设计" → 本 addendum v0.2
 
 **派生约束守护** (per AGENTS.md §1-§7 + 8/21 / 8/26 / 8/27 / 9/1 JST 强化):
+
 - L1/L1.1/L1.2 (per D2 拍板) N/A: 本 addendum 0 Rust 改动
 - L11 (PT 派工 cargo build dir lock 防御) N/A: 0 cargo 跑
 - L12 (PT 派工临时 log 不入 commit) N/A: 1 worker 派工, 主会话统一 1 commit
