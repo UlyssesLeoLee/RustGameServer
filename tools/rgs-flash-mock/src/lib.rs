@@ -10,6 +10,47 @@
 //   - card proto + leaderboard proto compile (build.rs)
 //   - GrpcClients 扩 2 字段: card + leaderboard
 //   - status_report 扩 2 行: 7 域 status
+//
+// ## module_switch 接入 (per ULYS-190 §4.4 stage4, 2026-09-26 11:55 JST)
+//
+// RGS 的 mock_switch L1+L2 已 ship via PR 配套 commit `28a3c025` on dev
+// (per ULYS-190 §4.3 brief). 本 v0.3 升级补 L3 module_switch:
+//
+// 5 plugin × 12 module (per handlers.rs 12 pub mod 一一映射 + 5 域 SRS):
+//   - player    : role / scene / friend
+//   - economy   : econ / pay / event
+//   - match     : combat / pvp
+//   - social    : guild / rank
+//   - admin     : gm / card
+//
+// 跨项目範式对齐 (per G-MS-04):
+//   - IM1.0 PR #24: 5 plugin × 28 module
+//   - CATs PR #18: 4 plugin × 13 module
+//   - Star PR #151: 7 plugin × 7 module
+//   - RGS stage4 (本 commit): 5 plugin × 12 module
+//
+// 跨语言 dispatch 用法 (per G-MS-BRIEF-S44-01 RGS 推广):
+//
+// ```python
+// import subprocess, json
+// subprocess.run([
+//     "python", "tools/rgs-flash-mock/scripts/_lib_mock_switch_rgs.py",
+//     "--aci-config", "tools/rgs-flash-mock/.aci.json",
+//     "read-plugins",
+// ], check=True)
+// ```
+//
+// 12 module 默认全 enabled, mode=offline. 跨项目累计当前:
+//
+// | 项目     | plugin | module | merged | commit |
+// |----------|--------|--------|--------|--------|
+// | IM1.0    | 5      | 28     | YES    | 96a2e28 on dev (PR #24) |
+// | CATs     | 4      | 13     | YES    | 9b97d6b on main (PR #18) |
+// | Star     | 7      | 7      | YES    | 55cf3794 on dev (PR #151) |
+// | RGS      | 5      | 12     | (本 commit 跟踪) | (squash merge commit) |
+//
+// Rust native `_lib_mock_switch.rs` (替换 Python subprocess) 跨 session 续做
+// (per G-MS-BRIEF-S44-01 推广).
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
