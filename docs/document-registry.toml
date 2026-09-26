@@ -550,3 +550,19 @@ allow_reference = true
 path = "docs/07-社交运营与玩家治理/RGS-DTL-054_社交扩展域_详细设计书.md"
 version = "0.1"
 note = "ULYS-1 代码先行扩展域补全；social_extra_db 7 表物理 DDL + 邮件附件领取 EC 事务边界（含幂等防双领 RSK-SOC-001）；相关：RGS-REQ-047 / RGS-BAS-047"
+
+# ----------------------------------------------------------------------------
+# RGS rgs-flash-mock module_switch 12 module 落地与 CI 验证 (ULYS-240 ARC 扩展) — 1 份
+# per ULYS-190 §4.4 Stage 1 (PR #51 commit `41932076` on dev, 2026-09-26 12:22 JST merge)
+# 命名遵循 ARC 系列; status=planned (待具名批准); allow_reference=true
+# 实施门禁由 RGS-IMPL-001 §1.3 独立控制, 与 planned 状态不冲突
+# ----------------------------------------------------------------------------
+[[planned_document]]
+id = "RGS-IMPL-051"
+title = "RGS rgs-flash-mock module_switch 12 module 落地与 CI 验证 实施规格书"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/14-项目治理/RGS-IMPL-051_RGS_rgs-flash-mock_module_switch_12_module_落地与CI验证_实施规格书.md"
+version = "0.1"
+note = "ULYS-240 ARC 扩展；per ULYS-190 §4.4 Stage 1 (PR #51 commit `41932076` 2026-09-26 12:22 JST merge)；5 plugin × 12 module 全填 (player(3) + economy(3) + match(2) + social(2) + admin(2)) + Python helper (5 CLI subcommand) + 18 unittest + regression report + design v0.4 升版；统一 8 节模板（规则/单元/契约/可观测性/安全/测试/DoD/Gate 证据）；相关：RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.4 §3.1 + §4.4 / RGS-IMPL-001 §1.3 / RGS-IMPL-002 / ULYS-190 §4.4 / ULYS-240"

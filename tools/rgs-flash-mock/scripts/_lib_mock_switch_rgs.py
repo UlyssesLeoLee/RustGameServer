@@ -11,6 +11,15 @@ Per ULYS-190 §4.4 stage4 (cross-project pattern G-MS-04):
 CLI subcommands:
 - is-enabled / get-mode / trace / validate-compat: 既有 4 个, 跟 Star / IM1.0 範式一致
 - read-plugins (NEW): 输出 plugin x module 树 JSON, 跨 Python invocation tests 必用
+
+CLI exit-code norm (跨项目範式: Star / IM1.0 / CATs 全部 exit 0 on success):
+- is-enabled      : exit 0 = enabled=true, exit 1 = enabled=false
+- get-mode        : always exit 0
+- trace           : always exit 0
+- validate-compat : exit 0 = ACI_COMPAT=OK, exit 1 = ACI_COMPAT=FAIL
+- read-plugins    : always exit 0 (read-only data dump; 错误通过 argparse / Python 异常, 退出码 2)
+
+Per ULYS-240 §3.1.4 + README §"CLI exit-code norm" 显式记录 read-plugins 永远 exit 0 on success.
 """
 
 import argparse

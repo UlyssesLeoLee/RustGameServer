@@ -1,6 +1,6 @@
 # rgs-flash-mock
 
-RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3`).
+RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.4`).
 
 > ⚠️ **此目录与 `DEPRECATED.md` 早期标记不同**——DEPRECATED.md 描述的是 2026-09-09
 > `rgs-shim-rust` 战略切换前的旧 21 RPC stub mock;自 v0.1 起 (`c5c40062`)
@@ -16,6 +16,7 @@ RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-20
 | gRPC clients | tonic 0.12 + rustls/ring, **7 域 mTLS 业务级** (player / economy / match / social / admin + card + leaderboard) |
 | RPC stub | 22 RPC 假数据 + 1 RPC (`1201 GetPlayerCollection` v0.3 新增) |
 | Gap matrix | `src/gap_matrix.rs` — `RpcStatus` 4 态 / `RpcCategory` 13 类 / 22 RPC stub |
+| mock_switch reader | `scripts/_lib_mock_switch_rgs.py` — L1 cluster + L2 plugin + L3 module_switch (5 plugin × 12 module per ULYS-190 §4.4 Stage 1) |
 | 测试脚本 | `scripts/ut.sh` / `it.sh` / `st.sh` + 9 个 regression-test-*.sh + `regression-test-all.sh` orchestrator |
 | fixture | `mock_data/` 48 个 JSON, W2 12 Partial + W3 30 + 8 域扩展 6 + batch 域 6 + 4 NEW 域 mTLS |
 
@@ -26,6 +27,49 @@ RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-20
 - 凭据永不打印 (8/27 11:06 JST hard ban)
 - 代签规则 (8/27 19:39 / 20:56 / 21:59 JST 三次强化)
 - 测试脚本+数据归入 mock 项目 (9/4 17:47 JST user 偏好, "以备回归测试")
+
+## mock_switch reader CLI (`_lib_mock_switch_rgs.py`, per ULYS-190 §4.4 Stage 1)
+
+L1 cluster + L2 plugin + L3 module_switch 跨语言 dispatch helper, 跨项目範式对齐 IM1.0 / CATs / Star.
+
+```bash
+cd tools/rgs-flash-mock
+
+# L1 cluster 启停 (exit 0 = enabled=true, exit 1 = enabled=false)
+python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json is-enabled
+
+# L1 cluster mode (always exit 0)
+python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json get-mode
+
+# 真拼接 trace_format (always exit 0; 输出 ~94 chars per G-MS-BRIEF-S44-02)
+python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json trace
+
+# L1 cluster ↔ .aci.json compat (exit 0 = OK, exit 1 = FAIL)
+python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json validate-compat
+
+# L3 plugin × module 树 JSON dump (always exit 0; read-only data dump)
+python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json read-plugins
+```
+
+### CLI exit-code norm (跨项目範式: Star / IM1.0 / CATs 全部 exit 0 on success)
+
+| Subcommand | exit 0 | exit 1+ |
+|---|---|---|
+| `is-enabled` | cluster `enabled=true` | cluster `enabled=false` |
+| `get-mode` | always 0 | — |
+| `trace` | always 0 | — |
+| `validate-compat` | `ACI_COMPAT=OK` (cluster ↔ aci versions match) | `ACI_COMPAT=FAIL` |
+| `read-plugins` | always 0 (read-only dump; 错误通过 JSON `error` 字段返回) | — |
+
+> **read-plugins 特殊**: read-only data dump, 永远 exit 0 (success); 文件不存在抛 `FileNotFoundError`, JSON 解析失败抛 `json.JSONDecodeError`, argparse 错误退出码 2. 跨项目範式对齐: Star / IM1.0 / CATs read-plugins 全部 exit 0 on success.
+
+### 12 module 真拼接 trace 输出实测 (per `.mock-cluster.json` + `.aci.json`)
+
+```
+cluster.enabled=true,mode=offline,plugins=[player(3m),economy(3m),match(2m),social(2m),admin(2m)]=12/12 modules
+```
+
+trace 长度 ~94 chars (per G-MS-08 ~80 字阈值, **超 14 字**, 跨项目 batch 截断跨 session 续做 per G-MS-BRIEF-S44-02).
 
 ## 快速跑一遍回归
 
@@ -71,9 +115,11 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 - `docs/V0.2-IMPLEMENTATION-REPORT.md` / `V0.3-IMPLEMENTATION-REPORT.md` — 实施报告
 - `docs/12-大类-RPC-清单.md` — 60 module gap matrix (含 §16 W3 + §17 v0.3 升版)
 - `docs/W2-PHASE-2-*` / `docs/W3-PHASE-3-*` — Worker 1..5 报告 (W2 2 报告 + 1 handoff + W3 5 报告)
+- `docs/regression-report-stage1-module-switch-2026-09-26.md` — ULYS-190 §4.4 Stage 1 regression report (per ULYS-240)
 - `../../docs/06-测试与质量保障/RGS-TST-UT-06_*.md` / `RGS-TST-IT-06_*.md` / `RGS-TST-ST-06_*.md`
 - `../../docs/14-项目治理/RGS-DDD-2026-09-04-FLASH-MOCK-W3_v0.1.md` — DDD Review
+- `../../docs/14-项目治理/RGS-FLASH-MOCK-DESIGN-2026-09-04_v0.4.md` — 设计书 (本 README 引用基线, per ULYS-240 §3.1 + §4.3 + §4.4)
 
 ---
 
-**v0.3 升版**: Mavis 接手 agent (per DEC-008), 代签 Ulysses (8/27 19:39/20:56/21:59 JST 三次强化).
+**v0.4 升版**: Mavis 接手 agent (per DEC-008), 代签 Ulysses (8/27 19:39/20:56/21:59 JST 三次强化). per ULYS-190 §4.4 Stage 1 (PR #51 commit `41932076`) + ULYS-240 §3.1 module_switch 落地收口 + 缺口闭环.
