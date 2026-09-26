@@ -146,35 +146,55 @@
     "scripts/_lib_validate.py (风格参考)"
   ],
   "plugins": {
-    "player": {
-      "plugin_id": "player",
-      "enabled": true,
-      "default_mode": "offline",
-      "modules": {}
+      "player": {
+        "plugin_id": "player",
+        "enabled": true,
+        "default_mode": "offline",
+        "modules": {
+          "role": {"module_id": "role", "enabled": true, "mode": "offline"},
+          "scene": {"module_id": "scene", "enabled": true, "mode": "offline"},
+          "friend": {"module_id": "friend", "enabled": true, "mode": "offline"}
+        }
+      },
+      "economy": {
+        "plugin_id": "economy",
+        "enabled": true,
+        "default_mode": "offline",
+        "modules": {
+          "econ": {"module_id": "econ", "enabled": true, "mode": "offline"},
+          "pay": {"module_id": "pay", "enabled": true, "mode": "offline"},
+          "event": {"module_id": "event", "enabled": true, "mode": "offline"}
+        }
+      },
+      "match": {
+        "plugin_id": "match",
+        "enabled": true,
+        "default_mode": "offline",
+        "modules": {
+          "combat": {"module_id": "combat", "enabled": true, "mode": "offline"},
+          "pvp": {"module_id": "pvp", "enabled": true, "mode": "offline"}
+        }
+      },
+      "social": {
+        "plugin_id": "social",
+        "enabled": true,
+        "default_mode": "offline",
+        "modules": {
+          "guild": {"module_id": "guild", "enabled": true, "mode": "offline"},
+          "rank": {"module_id": "rank", "enabled": true, "mode": "offline"}
+        }
+      },
+      "admin": {
+        "plugin_id": "admin",
+        "enabled": true,
+        "default_mode": "offline",
+        "modules": {
+          "gm": {"module_id": "gm", "enabled": true, "mode": "offline"},
+          "card": {"module_id": "card", "enabled": true, "mode": "offline"}
+        }
+      }
     },
-    "economy": {
-      "plugin_id": "economy",
-      "enabled": true,
-      "default_mode": "offline",
-      "modules": {}
-    },
-    "match": {
-      "plugin_id": "match",
-      "enabled": true,
-      "default_mode": "offline",
-      "modules": {}
-    },
-    "social": {
-      "plugin_id": "social",
-      "enabled": true,
-      "default_mode": "offline",
-      "modules": {}
-    },
-    "admin": {
-      "plugin_id": "admin",
-      "enabled": true,
-      "default_mode": "offline",
-      "modules": {}
-    }
+    "module_count_total": 12,
+    "module_count_enabled": 12,
+    "module_switch_stage": "stage1 (§4.4 per ULYS-190 cross-project pattern G-MS-04)"
   }
-}
