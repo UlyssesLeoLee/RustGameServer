@@ -1,8 +1,8 @@
-# RGS-TST-S5: outbox NATS 真实链路 IT 设计书
+# RGS-TST-S5: outbox NATS 真实链路 IT 设计书 (per ADR-0060 NATS JetStream 偏离)
 
 > **目的**:验证 5 域 + cluster-ops + gm-backend outbox 表 → NATS JetStream 端到端链路
 > **作者**:Mavis(接手 agent per DEC-008,2026-08-28 13:35 JST)
-> **关联**:Q5 OPEN-QA(per 2026-08-27 决议)+ S5 立项
+> **关联**:Q5 OPEN-QA(per 2026-08-27 决议)+ S5 立项 + RGS-ADR-0060 事件总线偏离参考设计 (2026-09-18 JST Accepted；偏离参考设计 Apache Kafka 已正式归档)
 > **状态**:🟡 OPEN — 设计书 + mock 集成测试先行,等 Ulysses 部署 NATS 真实链路后跑
 
 ---

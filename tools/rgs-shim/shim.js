@@ -225,5 +225,5 @@ server.listen(SHIM_PORT, '0.0.0.0', () => {
   console.log(`[shim] RGS SmartSocket shim v${SHIM_VERSION} listening on 0.0.0.0:${SHIM_PORT}`);
   console.log(`[shim] RGS proxy: ${RGS_PROXY}`);
   console.log(`[shim] Registered cmds: ${Object.keys(CMD_REGISTRY).join(', ')}`);
-  console.log(`[shim] Total: ${Object.keys(CMD_REGISTRY).length} cmds (514 unique in zsyz_server, ${514 - Object.keys(CMD_REGISTRY).length} TODO)`);
+  console.log(`[shim] Total: ${Object.keys(CMD_REGISTRY).length} cmds (514 unique in [游戏A]_server, ${514 - Object.keys(CMD_REGISTRY).length} TODO)`);
 });

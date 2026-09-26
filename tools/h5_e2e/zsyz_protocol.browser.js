@@ -1,10 +1,10 @@
-// tools/h5_e2e/zsyz_protocol.browser.js
+// tools/h5_e2e/[游戏A]_protocol.browser.js
 //
-// Browser-friendly version of zsyz_protocol.js. Same semantics, but uses
+// Browser-friendly version of [游戏A]_protocol.js. Same semantics, but uses
 // Uint8Array + DataView (browser-native) instead of Buffer (Node-only).
 // Loaded by smart_socket_test.html via <script src=>.
 //
-// Reference (same as Node version): zsyz_client_h5 SmartSocket in
+// Reference (same as Node version): [游戏A]_client_h5 SmartSocket in
 // assets/Scripts/sys/game-core-js-min.js.
 //
 // Per issue ULYS-6 (任务 D).
@@ -218,7 +218,7 @@
     }
   }
 
-  root.ZSYZ = {
+  root.GAMEA = {
     encodeFrame,
     decodeOneFrame,
     packFields,

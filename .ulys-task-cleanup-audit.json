@@ -1,0 +1,62 @@
+[
+  {
+    "dir": "ulys-237-4424eeee70bf",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0d799-058b-7791-a9fe-bf5a3c94f70a",
+      "task_id": "01a0d802-42a2-724c-af07-4424eeee70bf",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T10:03:15.3429416Z"
+    }
+  },
+  {
+    "dir": "ulys-237-7df05c405861",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0d799-058b-7791-a9fe-bf5a3c94f70a",
+      "task_id": "01a0d7fc-4c8f-775b-b0b9-7df05c405861",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T10:00:23.2401704Z"
+    }
+  },
+  {
+    "dir": "ulys-237-4e099605f7ca",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0d799-058b-7791-a9fe-bf5a3c94f70a",
+      "task_id": "01a0d7a2-ceeb-748f-a596-4e099605f7ca",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T08:28:36.2490265Z"
+    }
+  },
+  {
+    "dir": "ulys-237-6896b0b5adad",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0d799-058b-7791-a9fe-bf5a3c94f70a",
+      "task_id": "01a0d79d-6bed-7a7e-ac35-6896b0b5adad",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T08:11:54.9608269Z"
+    }
+  },
+  {
+    "dir": "ulys-237-bba0de2c1b3c",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0d799-058b-7791-a9fe-bf5a3c94f70a",
+      "task_id": "01a0d799-059d-7b0f-a103-bba0de2c1b3c",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T08:07:54.6980056Z"
+    }
+  },
+  {
+    "dir": "ulys-141-43ad168e860e",
+    "meta": {
+      "kind": "issue",
+      "issue_id": "01a0be2c-f32e-7738-8c68-191a0a616608",
+      "task_id": "01a0d7bb-db80-78d7-8b08-43ad168e860e",
+      "workspace_id": "d83598db-3bfe-4386-b86d-ca266aa77e9f",
+      "completed_at": "2026-09-25T09:40:44.7252448Z"
+    }
+  }
+]

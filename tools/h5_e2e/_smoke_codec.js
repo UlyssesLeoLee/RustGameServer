@@ -1,11 +1,11 @@
-// tools/h5_e2e/_smoke_codec.js — quick round-trip test for zsyz_protocol.js
+// tools/h5_e2e/_smoke_codec.js — quick round-trip test for [游戏A]_protocol.js
 'use strict';
 
 const {
   encodeFrame, decodeFrames, packFields, unpackFields,
   buildHeartbeatFrame, parseHeartbeatReply, buildLoginReply,
   CMD_HEARTBEAT, CMD_LOGIN,
-} = require('./zsyz_protocol.js');
+} = require('./[游戏A]_protocol.js');
 
 function hex(b) {
   return Buffer.from(b).toString('hex').match(/.{1,2}/g).join(' ');

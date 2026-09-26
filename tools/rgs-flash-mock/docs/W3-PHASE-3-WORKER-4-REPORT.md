@@ -54,13 +54,13 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 ---
 
-## 1. 6 module 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 1. 6 module 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 1.1 sns (协议号 133, 16 cmds, 13300-13334) — social SnsService (新)
 
 **业务核心**: 好友全流程 (per addendum §5.10 + sns_rpc.erl L14-126) — 好友列表 / 申请 / 同意 / 批量 / 删除 / 申请列表 / 清空 / 查找 / 体力赠送 / 推存 / 黑名单 / 一键同意
 
-| RPC code | 业务 | 闪烁之光 实现 (per sns_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per sns_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 13300 | 获取好友信息 | handle/3 (L14-18) + m_friend record + var:get_var 5 点刷新计数 | SocialService.GetFriendList, m_friend 23 字段 friend_tmp 1:1 翻译 + push_delivery 5 点 cron 刷新 | NotImplemented | RGS 0 SnsService wire (audit v0.3 §3.4 D10) |
 | 13303 | 增加好友请求 | handle/3 (L21-27) + friend:req_add/2 跨服请求 | SocialService.SendFriendRequest, 跨服 srv_id 字段 + saga 模式 | NotImplemented | 跨服 friend request 跟 cluster_ops 域协调 |
@@ -95,7 +95,7 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 **业务核心**: 联盟远航 (per addendum §5.15 + guild_shipping_rpc.erl L14-119) — 信息 / 订单 / 起航 / 秒掉 / 购买付费 / 互助列表 / 互助加速 / 资助 / 领奖 / 求助 / 刷新
 
-| RPC code | 业务 | 闪烁之光 实现 (per guild_shipping_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per guild_shipping_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 23800 | 联盟远航信息 | handle/3 (L14-16) + guild_shipping:info/1 4 字段 | SocialService.GetShippingInfo, orders[] + buy_order_times + is_assist + 跨域 cron | NotImplemented | RGS 0 GuildShippingService wire |
 | 23801 | 查看订单信息 | handle/3 (L19-26) + guild_shipping:order_detail/2 | SocialService.ListShippingOrders, 1:1 翻译 | NotImplemented | order_detail 内部实现待 v0.2 W11 详抽 |
@@ -128,7 +128,7 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 **业务核心**: 联盟副本 (per addendum §5.16 + guild_dun_rpc.erl L17-95) — 信息 / 宝箱列表 / 领取宝箱 / 加 buff / 挑战 / 买次数信息 / 买次数 / 扫荡 / 联盟伤害榜 / 个人伤害榜
 
-| RPC code | 业务 | 闪烁之光 实现 (per guild_dun_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per guild_dun_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 21300 | 请求联盟副本信息 | handle/3 (L17-19) + guild_dun_lib:get_info/1 走 push 模式 | MatchService+SocialService GetGuildDungeonInfo, 跨 social guild_id 验证 + ets m_boss/m_chapter/m_box 1:1 翻译 | NotImplemented | RGS 0 GuildDunService wire |
 | 21303 | 请求联盟副本宝箱 | handle/3 (L22-24) + guild_dun_lib:get_box_info/1 | MatchService+SocialService ListGuildDungeonChests, BoxState {unclaimed/claimed} 状态机 | NotImplemented | RGS 0 box_state enum |
@@ -160,7 +160,7 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 **业务核心**: 联盟技能 (per addendum §5.29 + guild_skill_rpc.erl L17-42) — 信息 / 激活 / 更新分组 ID / 概要 (红点)
 
-| RPC code | 业务 | 闪烁之光 实现 (per guild_skill_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per guild_skill_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 23700 | 联盟技能信息 | handle/3 (L17-23) + guild_skill:info/2 + career 参数过滤 | SocialService GetGuildSkillInfo, Career enum (5 careers) 1:1 翻译 | NotImplemented | RGS 0 GuildSkillService wire |
 | 23701 | 激活指定职业的联盟技能 | handle/3 (L26-33) + guild_skill:activate/2 + Opt 字段 career 默认 0 | SocialService+PlayerService ActivateGuildSkill, 跨域 player 验证 career 字段 | NotImplemented | RGS 缺 activate 业务 |
@@ -181,7 +181,7 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 **业务核心**: 阵法 (per addendum §5.19 + formation_rpc.erl L15-68) — 信息 / 更换 / 伙伴上下阵交换 / 阵法道具 / 功能阵法信息 / 设置功能阵法
 
-| RPC code | 业务 | 闪烁之光 实现 (per formation_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per formation_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 11200 | 请求自身阵法 | handle/3 (L15-17) + formation_lib:get_info/1 走 push 模式 | PlayerService GetMyFormation, 9 阵位 enum 1:1 翻译 (vs RGS TCG 5 阵位协调) | NotImplemented | RGS 0 FormationService wire (audit v0.3 §3.2) |
 | 11201 | 更换自身阵法 | handle/3 (L20-28) + formation_lib:use_formation/2 + partner_lib:ref_partner_stronger + sys_conn:pack_send(11007, {[]}) + role_misc:calc_power 4 步 | PlayerService+CardService ChangeFormation, 跨域 card 战力重算 + push_delivery NATS 11007 推 partner_stronger | NotImplemented | 跨域 card + 4 步流程 + push_delivery 协调 |
@@ -205,7 +205,7 @@ W3 启动 = 30 新 module 抽样, 1 sprint / 200-300K tokens。worker-4 负责 s
 
 **业务核心**: 任务 (per addendum §5.32 + quest_rpc.erl L25-57) — 任务面板 / 接受 / 放弃 / 提交
 
-| RPC code | 业务 | 闪烁之光 实现 (per quest_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per quest_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 10400 | 请求任务面板信息 | handle/3 (L25-27) + quest:list/1 返回所有任务 | PlayerService GetQuestPanel, 9 quest_type enum (main/branch/daily/weekly/activity/...) + 4 状态 enum (unaccepted/accepted/completed/submitted) | NotImplemented | RGS 0 QuestService wire (audit v0.3 §3.2) |
 | 10402 | 接受任务 | handle/3 (L30-36) + quest:accept/2 + quest_prog_init 初始化进度 | PlayerService AcceptQuest, 跨域 trigger 域事件订阅 + quest_progress 初始化 | NotImplemented | RGS 缺 trigger 域协调 |

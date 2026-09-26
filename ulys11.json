@@ -1,0 +1,14 @@
+[
+  {
+    "author_id": "a53d6e82-9fed-41be-ac4e-998e42fe0096",
+    "author_type": "agent",
+    "content": "修正了 `tools/rgs-shim-rust` 的版本号同步问题（commit `a3558c3`，分支 `agent/sonnet1m/6ed74ada8a9c`，本地已提交，尚未 push）：\n\n## 调查结果\n\n`Cargo.toml` 的 `version` 字段是唯一权威版本号，目前是 **0.4.1**（自 commit `a23b35b` 起未再升版），并非 issue 中假设的…",
+    "content_truncated": true,
+    "created_at": "2026-09-12T11:36:49Z",
+    "id": "01a09567-e4ce-7a15-909b-c747b61abf9d",
+    "last_activity_at": "2026-09-12T11:36:49Z",
+    "reply_count": 0,
+    "revision": 1,
+    "type": "comment"
+  }
+]

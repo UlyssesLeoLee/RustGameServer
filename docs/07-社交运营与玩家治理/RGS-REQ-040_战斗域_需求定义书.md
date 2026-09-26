@@ -49,7 +49,7 @@
 
 ## 1.1 背景
 
-`crates/battle-service/` 是 RGS（RustGameServer）7 域扩展（per 路线图 §3 W5 + 9/4 MD §2 + 8/21 JST 5 域 → 9/1 JST batch 域 → 9/5 JST battle 域）下独立拆分的战斗微服务。其设计**借鉴**《闪烁之光》（AFK Arena 类）放置卡牌战斗的多变体形态，但**反对**闪烁之光的"一活动一模块"反例（per 9/4 MD §4）。
+`crates/battle-service/` 是 RGS（RustGameServer）7 域扩展（per 路线图 §3 W5 + 9/4 MD §2 + 8/21 JST 5 域 → 9/1 JST batch 域 → 9/5 JST battle 域）下独立拆分的战斗微服务。其设计**借鉴**《[游戏A]》（AFK Arena 类）放置卡牌战斗的多变体形态，但**反对**[游戏A]的"一活动一模块"反例（per 9/4 MD §4）。
 
 本域覆盖 12 个 gRPC service、241 个 RPC（含 12 个 HealthCheck）；其中 30 RPC 为真实业务逻辑（核心战斗生命周期 / 数据驱动框架 / 业务校验），220 RPC 为 Unimplemented stub（Phase 3 业务实装）。
 
@@ -147,7 +147,7 @@
 
 # 5. 功能需求：PVP 变体群（PvPService, 30 RPC）
 
-**反例原则**：闪烁之光 6 个 PVP 变体不重复 6 套代码（per 9/4 MD §4），1 个 PvPService + PvPConfig 覆盖全部 6 个变体。
+**反例原则**：[游戏A] 6 个 PVP 变体不重复 6 套代码（per 9/4 MD §4），1 个 PvPService + PvPConfig 覆盖全部 6 个变体。
 
 | ID | 需求 |
 |---|---|
@@ -234,7 +234,7 @@
 | 项目 | 内容 |
 |---|---|
 | **决定** | 6 个 PVP 变体不重复 6 套代码，由 1 个 `PvPService` + `PvPConfig`（ranked / casual / cross-server / arena / tournament / custom）覆盖；9 个 holiday_* 活动不重复 9 套代码，由 1 个 `HolidayActivityService` + `ActivityConfig`（bid:93031/...）覆盖；其他类似多变体形态（无尽塔 / 远征 / 节日活动）同理 |
-| **理由** | per 9/4 MD §4 + 路线图 §0.3 闪烁之光"一活动一模块"反例明确识别：每新建一个变体即新建一套代码，会导致战斗域在 1 年内产生 100+ service 的不可维护状态。**这是本域最重要的反例原则** |
+| **理由** | per 9/4 MD §4 + 路线图 §0.3 [游戏A]"一活动一模块"反例明确识别：每新建一个变体即新建一套代码，会导致战斗域在 1 年内产生 100+ service 的不可维护状态。**这是本域最重要的反例原则** |
 | **数据驱动配置的承载机制** | ①PVP 变体 / 节日活动等高度可配置项**应当**作为 RGS-REQ-009 插件体系下的"特性开关 + 配置数据"承载（per ARC-021）；②**不**使用沙箱脚本（战斗逻辑属强实时性，沙箱性能不可接受）；③**不**新建独立 service |
 | **新增变体的标准流程** | ①策划 / 数值提交 PvPConfig / ActivityConfig 数据 ②经 ARC-021 既有插件注册通道上线 ③无须代码改动，无须重启服务 |
 | **否决方案** | "为每个变体新建独立 service / crate"——直接违反 ARC-018（功能挂载评审） + 9/4 MD §4 反例原则，已否决 |
@@ -262,7 +262,7 @@
 | TBD-BAT-001 | 跨服 PVP 的具体延迟目标值（NFR-BAT-002 当前引用既有值，需在 DTL-047 §5 算法详细设计中给出实测建议） | DTL-047 §5 |
 | TBD-BAT-002 | 断线重连的最大允许时长（NFR-BAT-004 当前为"分钟"量级，需策划与运营确认） | PH-2〜PH-6 |
 | TBD-BAT-003 | 公会战最大参战人数（NFR-BAT-005 当前为"配置可调"，需策划确认上限） | PH-2 |
-| RSK-BAT-001 | 若 Phase 3 实装阶段绕过 ARC-046 数据驱动原则、为每个变体新建 service，会重演闪烁之光"一活动一模块"反例。缓解：代码评审须核对多变体形态的实现是否复用同一 service + Config | 持续跟踪 |
+| RSK-BAT-001 | 若 Phase 3 实装阶段绕过 ARC-046 数据驱动原则、为每个变体新建 service，会重演[游戏A]"一活动一模块"反例。缓解：代码评审须核对多变体形态的实现是否复用同一 service + Config | 持续跟踪 |
 | RSK-BAT-002 | 战斗场景退出 / 中止的幂等性须 DTL-047 详细设计阶段重点验证（防止断线重连 + 战斗结算 + 中止三路并发产生双发奖励） | DTL-047 §5 |
 
 ---

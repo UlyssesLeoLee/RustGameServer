@@ -34,7 +34,7 @@
 
 ### §2.2 输出
 
-- 事件主题命名空间（`rgs.events.<domain>.<aggregate>.<action>.<version>`，如 `rgs.events.economy.wallet.committed.v1`）
+- 事件主题命名空间（`rgs.events.<domain>.<aggregate>.<action>.<version>`，如 `rgs.events.economy.wallet.committed.v1`）— **基于 NATS JetStream subject 路由，per RGS-ADR-0060 (2026-09-18 Accepted)**
 - 事件 payload 模板（CloudEvents 1.0 兼容）
 - 事件 schema 版本管理（major.minor 语义化）
 - 事件订阅者注册表（per DTL-031 §3 event_producer_registry）

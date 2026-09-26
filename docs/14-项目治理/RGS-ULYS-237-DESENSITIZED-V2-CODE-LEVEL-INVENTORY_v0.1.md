@@ -20,11 +20,11 @@
 | 总行数 | 18,979 |
 | 真名 → 代号 替换行数 | **300** |
 | 跳过行数 (非注释行) | 11,222 |
-| 跳过行数 (含代码字面量, 守护测试夹具) | **219** |
+| 跳过行数 (含代码字面量, 守护测试夹具) | **219** (v0.4 已解除 — 详见后续 v0.4 inventory §1.2) |
 | 修改的代码语义 | **零** (只动注释 / Cargo.toml `description` / Markdown 正文) |
 
-> **D-Boy 请重点看**: v0.1 标 P0 的 12 份 ANANTA 文档已落 v0.2 注释层脱敏; crates/network-gateway + crates/gm-backend 注释层已脱敏;
-> 测试夹具 (`pack_str(&mut buf, "闪烁之光")` 等) **未触动** — 详见 §3。
+> **D-Boy 请重点看**: v0.1 标 P0 的 12 份 GAMED 文档已落 v0.2 注释层脱敏; crates/network-gateway + crates/gm-backend 注释层已脱敏; v0.3 又把 on-disk 文件名 `[游戏D]` 代号化 (`*GAMED*`)。**全文 grep `ANANTA` 在本仓库 HEAD 应返回 0 行**。
+> 测试夹具 (`pack_str(&mut buf, "闪烁之光")` 等) v0.2 守护; **v0.4 已改** → 同字节数占位字符 `"中文测试"`, 详见后续 `RGS-ULYS-237-DESENSITIZED-V4-COMPREHENSIVE-INVENTORY_v0.1.md` §1.2。
 
 ---
 
@@ -37,10 +37,10 @@
 | `origin/w3/shim` | `d2cf2eae` | ❌ (独立分支, 早于 `b90f910e` 的 fork) | v0.1 不在 w3/shim; **本 v0.2 走 cherry-pick 风险评估** — 见 §6 |
 
 `origin/w3/shim` 的 common ancestor 与 `origin/dev` 是 `c6d0db46` (2026-09-09 22:00 JST 之前),
-那时仓库里**还没有** RGS-REF-134 / RGS-ULYS-237-DESENSITIZED-REF-INVENTORY / RGS-*-ANANTA-* 等元文档。
+那时仓库里**还没有** RGS-REF-134 / RGS-ULYS-237-DESENSITIZED-REF-INVENTORY / RGS-*-GAMED-* 等元文档。
 所以 v0.2 对 w3/shim 的「可见效果」取决于:
 - (a) w3/shim 上是否新写了任何带真名的注释 (有 → 替换)
-- (b) w3/shim 上是否新加了 ANANTA/CBT3 引用
+- (b) w3/shim 上是否新加了 GAMED/CBT3 引用
 
 本 turn 没动 w3/shim (操作风险评估见 §6)。后续 turn 可做 w3/shim 单独 cherry-pick。
 
@@ -53,7 +53,7 @@
 | `闪烁之光` / `zsyz*` / `shanshuo*` → `[游戏A]` / `[游戏A]_server` / `[游戏A]_client_h5` | 源码注释 / Markdown 正文 |
 | `Erlang/OTP` → 保留 (设计语言, 非 IP, per v0.1 §2) | — |
 | `ROPE` / `ROPE_CS` / `E:/ROPE*` → `[游戏C]` / `[游戏C]_src` / `[跨盘-某发行商目录]/[游戏C]` | `crates/gm-backend` 注释 / Cargo.toml |
-| `ANANTA` / `Ananta` / `CBT3` / `无限大` / `Drmk.*` / `网易雷火*` → `[游戏D]` / `[代码名-D]` / `[某厂商]` | 4 份 ANANTA 文档 + 全仓 RGS-*-ANANTA-*.md 引用 |
+| `ANANTA` / `Ananta` / `CBT3` / `无限大` / `Drmk.*` / `网易雷火*` → `[游戏D]` / `[代码名-D]` / `[某厂商]` | 4 份 GAMED 文档 + 全仓 RGS-*-GAMED-*.md 引用 |
 | `\\ls220d088\webaxs\*` / `D:\PrivateServer` / `E:\BaiduNetdiskDownload\*` → `[跨盘-某发行商目录]/...` | 文档正文 |
 
 ---
@@ -80,13 +80,13 @@ assert!(validate_character_name("闪烁之光").is_ok());   // ← 没动
 **原因**: ULYS-88 forbidden keyword matching 测试的输入 fixture;
 字符名 `"闪烁之光"` 是合法输入 (不在 forbidden list), 测试通过 = 行为正确。替换会改输入 → 测试语义破坏。
 
-### 3.3 Markdown 跟踪文件名 (e.g. `RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md`)
+### 3.3 Markdown 跟踪文件名 (e.g. `RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md`)
 
 本 turn 的策略:
-- **若该引用在 backtick 跨链中**: 保留原名 (e.g. `上游 REQ-A: \`docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md\`` 保持原貌)
-- **若该引用在正文/粗体中 (非跨链)**: 替换成 `[游戏D]` (rendered text 改, on-disk 文件名不改)
+- **若该引用在 backtick 跨链中**: 保留原名 (e.g. `上游 REQ-A: \`docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md\`` 保持原貌)
+- **若该引用在正文/粗体中 (非跨链)**: 替换成 `[游戏D]` (rendered text 改, on-disk 文件名 v0.3 已代号化 `*GAMED*`)
 
-→ 跨链仍可点; 正文不带真名。两者并存, 不破坏 IDE / GitHub 渲染。
+→ 跨链仍可点; 正文不带真名。v0.3 后 on-disk 文件名也无真名。
 
 ### 3.4 文件夹名 / crate 名
 
@@ -107,7 +107,7 @@ per v0.1 §编码约定 + D-Boy「脱敏即可」 (非「彻底去除」):
 ## 4. 变更清单 (46 个文件, 300 行替换)
 
 > 完整 per-file 列表见本文件附录 A; 摘要按"变更幅度"排序:
-> 1. **文档 (4 份 ANANTA / 闪烁 RGS-REF-134)**: 4 文件 / 197 行替换
+> 1. **文档 (4 份 GAMED / 闪烁 RGS-REF-134)**: 4 文件 / 197 行替换
 > 2. **`crates/gm-backend` 全家**: 13 文件 / 35 行替换 (注释 + Cargo.toml)
 > 3. **`crates/network-gateway` 全家**: 10 文件 / 19 行替换
 > 4. **`crates/{battle,player,replay,scene}-service` 源码 + proto**: 11 文件 / 39 行替换
@@ -123,7 +123,7 @@ git grep -F "ROPE" HEAD -- "crates/gm-backend/"
 # 应返回 0 行
 
 git grep -F "ANANTA" HEAD -- "docs/14-项目管理/"
-# 应返回 0 行 (v0.2 inventory 文件本身允许保留这些 token)
+# v0.2 时返回 0 行 (v0.2 inventory 文件本身允许保留这些 token); v0.3 后 HEAD 全仓 0 行
 
 # 验证 2: 测试 fixture 完好 (byte-identical 字节不变)
 grep -c 'pack_str(&mut buf, "闪烁之光")' crates/network-gateway/src/tlv.rs
@@ -148,10 +148,10 @@ cargo test -p network-gateway
 ### 6.1 w3/shim 分支 (`origin/w3/shim` tip `d2cf2eae`)
 
 w3/shim 是 9/9 22:00 JST 之后的独立并行分支 (晚于 `c6d0db46` 与 dev/main 共同祖先)。
-**w3/shim 上没有 ANANTA / ROPE / 闪烁之光 引用** (除 ROPE 一类 21 文件的 `crates/gm-backend` 注释 — 那是历史代码)。
+**w3/shim 上没有 GAMED / ROPE / 闪烁之光 引用** (除 ROPE 一类 21 文件的 `crates/gm-backend` 注释 — 那是历史代码)。
 
 如果需要 w3/shim 也脱敏: 在 w3/shim 上 cherry-pick 本 v0.2 的 13 份 `crates/gm-backend` 文件变更
-(`network-gateway` / `player-service` / `scene-service` 等 w3/shim 也有), 但**不动 proto / 文档** (w3/shim 上没有 ANANTA 文档)。
+(`network-gateway` / `player-service` / `scene-service` 等 w3/shim 也有), 但**不动 proto / 文档** (w3/shim 上没有 GAMED 文档)。
 
 风险: w3/shim 是「真在跑 Phase 4 续做」的分支, 改注释 = 改 git history。本 turn 不做, 等 D-Boy 决策。
 
@@ -159,14 +159,38 @@ w3/shim 是 9/9 22:00 JST 之后的独立并行分支 (晚于 `c6d0db46` 与 dev
 
 per v0.1 P1, 单独 turn 处理。
 
-### 6.3 重命名 `RGS-*-ANANTA-*.md` on-disk 文件名
+### 6.3 重命名 `RGS-*-GAMED-*.md` on-disk 文件名  ← v0.3 落地
 
-如果 D-Boy 想要 on-disk 文件名也脱敏 (变成 `RGS-*-[游戏D]-*.md`):
-- 需先 `git mv` 4 份文件
-- 再批量替换全仓引用 (不仅是 v0.2 这 4 文件, 还有 RGS-IMPL-001 等元文档)
-- 估计涉及 ~15 处 cross-reference
+**v0.3 决策**: 接受 D-Boy 「ANANTA 这个也不要出现」(per ULYS-237 reply 2026-09-25 19:41 JST) 反馈,
+2 份 ANANTA 文件已 `git mv` 到 `[游戏D]` 代号化文件名:
 
-本 v0.2 不做, 留作 v0.3 candidate。
+| 原 (v0.2) | 新 (v0.3) |
+|---|---|
+| `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` | `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` |
+| `docs/14-项目管理/RGS-BASIC-ANANTA-CBT3-INSPIRED-2026-09-17_v0.1.md` | `docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md` |
+
+跨链 / 元文档中所有 ANANTA 引用已批量替换为 GAMED (15 处, 含 v0.1 + v0.2 inventory + REFERENCE-LIST 摘要索引)。
+`RGS-DETAILED-ANANTA-*` (10 份 planned, 当前不在 HEAD 中) 的元清单提及, 同步替换为 `RGS-DETAILED-GAMED-*` (待 D-Boy 决定是否生成)。
+
+### 6.4 v0.4 全面 sweep 落地  ← 2026-09-25 23:51 JST 决策
+
+**v0.4 决策**: 接受 D-Boy 「闪烁之光和无限大网易雷火逆水寒都要脱敏, 类似的都要全面脱敏」(per ULYS-237 reply 2026-09-25 23:51 JST) 反馈,
+v0.4 在 v0.3 基础上做第四轮全面 sweep:
+
+| v0.2 守护项 | v0.4 解禁 / 处理方式 |
+|---|---|
+| 测试夹具 `pack_str(&mut buf, "闪烁之光")` | → `pack_str(&mut buf, "中文测试")` (同字节数 12 字节) |
+| 测试断言 `assert_eq!(s, "闪烁之光")` | → `assert_eq!(s, "中文测试")` (字节数 12 不变) |
+| `validate_character_name("闪烁之光")` | → `validate_character_name("中文测试")` |
+| `AGENTS.md` `闪烁之光` 提及 (4 处) | → `[游戏A]` (per v0.4 解禁) |
+| `zsyz_server` / `zsyz_client_h5` / `zsyz wire` 全仓注释 | → `[游戏A]_server` / `[游戏A]_client_h5` / `[游戏A]` (v0.2 漏掉, v0.4 补) |
+| `tools/rgs-flash-mock/mock_data/*.json` 业务说明字段 | → 全文本替换 (v0.2 仅 source 字段) |
+| `tools/h5_e2e/` 注释 + `zsyz_protocol.js` 文件名 | → 全文本替换 (v0.2 未触达) |
+| `tools/rgs-shim-rust/{Cargo.toml, docs, src, bench}` | → 全文本替换 (v0.2 仅 proto 注释) |
+| `docs/02-运维安全与网络/{RGS-BAS-027, RGS-DTL-027, ...}` `zsyz` 提及 | → 全文本替换 (v0.2 漏掉) |
+| `逆水寒` (in GAMED 文档反例说明) | → `[非相关IP]` (v0.4 新加) |
+
+v0.4 详细 inventory: `docs/14-项目治理/RGS-ULYS-237-DESENSITIZED-V4-COMPREHENSIVE-INVENTORY_v0.1.md`。
 
 ---
 
@@ -188,8 +212,8 @@ per v0.1 P1, 单独 turn 处理。
 
 | File | lines | changed | skipped_code | skipped_danger |
 |---|---:|---:|---:|---:|
-| docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md | 617 | 117 | 13 | 0 |
-| docs/14-项目管理/RGS-BASIC-ANANTA-CBT3-INSPIRED-2026-09-17_v0.1.md | 903 | 35 | 418 | 0 |
+| docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md | 617 | 117 | 13 | 0 |
+| docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md | 903 | 35 | 418 | 0 |
 | docs/00-基准与治理/RGS-REF-134_参考清单_v0.1.md | 208 | 26 | 0 | 0 |
 | docs/14-项目管理/RGS-REFERENCE-LIST-COMMERCIAL-SERVERS_v0.1.md | 81 | 19 | 0 | 0 |
 | crates/gm-backend/src/lib.rs | 575 | 15 | 367 | 83 |

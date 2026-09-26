@@ -1,3 +1,7 @@
 [toolchain]
-channel = "1.98"
+# 2026-09-05 升级 1.98 → 1.98.1 (per https://blog.rust-lang.org/2026/09/03/Rust-1.98.1/)
+# 1.98.1 修复 vtable 生成 miscompilation (issue 161441): 1.98.0 在某些情况下会
+# 在 trait object vtable 中错误地用 null pointer 替代 function pointer, 产生 UB.
+# 安全必修升级, 改动是 patch 兼容.
+channel = "1.98.1"
 profile = "default"

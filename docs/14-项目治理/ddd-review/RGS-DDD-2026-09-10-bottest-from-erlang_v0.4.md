@@ -7,7 +7,7 @@
 | 创建日期 | 2026-09-10 JST |
 | 创建者 | 架构师(Mavis 接手 agent per DEC-008) |
 | 类型 | DDD Review 二审材料 (per DDD-REVIEW-TEMPLATE-v0.2) |
-| 关联 | commit `32cff91` (基线) / `3131cd0` (v0.1) / `16a4b19` (v0.2) / `8979e3c` (v0.3 Phase B 落地 merge) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / 闪烁之光 erlang 服务端 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\*`) / AGENTS.md v0.6.13 |
+| 关联 | commit `32cff91` (基线) / `3131cd0` (v0.1) / `16a4b19` (v0.2) / `8979e3c` (v0.3 Phase B 落地 merge) / rgs-testkit 强约束段 (`crates/rgs-testkit/src/lib.rs:16-44`) / [游戏A] erlang 服务端 (`E:\gamea-src-winrar\[游戏A]_server\tester\src\*`) / AGENTS.md v0.6.13 |
 | 基线 commit | `32cff91` (fix(deploy): 5 postgres manifest PLACEHOLDER 替换, per 9/10 WipeCluster 重建) |
 | 当前 commit | `d381cd0` (fix(testkit) wave 4 L1.1 验证修复, 9/10 19:23 JST wave 4 全部 merge + L1.1 73 passed) |
 | 范围 | 跨域(全 5 域 + 工具) — 借鉴 erlang tester 30 条优点, 设计 RGS bot 框架 + 5 域 BotAi 派生 + 9/10 15:14-15:30 JST WipeCluster 重建 k3s 拉起 5 域尝试 + 9/10 17:30-18:24 JST wave 3 mTLS 真实接入 + 9/10 19:00-19:23 JST wave 4 真实 RPC 接入 |
@@ -20,7 +20,7 @@
 
 - **时间窗**: 2026-09-10 10:45 JST ~ 12:50 JST (≈ 2 小时调研 + 起草)
 - **操作者**: Mavis 接手 (主会话, 调研 erlang tester 6 个源文件 + RGS 测试现状对比 + 12 条迁移建议)
-- **触发**: 2026-09-10 10:41 JST Ulysses 问询"闪烁之光服务器有测试用例或者脚本吗" → 主会话定位 `E:\shanshuo-src-winrar\zsyz_server` (Erlang 闪烁之光服务端) → 读取 6 个测试源文件 → 提炼 30 条优点 → 对比 RGS 现状 (PG 真集成 / chaos / mTLS / e2e-smoke 已远超 erlang, 但缺应用层 bot 压测) → 12 条迁移建议
+- **触发**: 2026-09-10 10:41 JST Ulysses 问询"[游戏A]服务器有测试用例或者脚本吗" → 主会话定位 `E:\gamea-src-winrar\[游戏A]_server` (Erlang [游戏A]服务端) → 读取 6 个测试源文件 → 提炼 30 条优点 → 对比 RGS 现状 (PG 真集成 / chaos / mTLS / e2e-smoke 已远超 erlang, 但缺应用层 bot 压测) → 12 条迁移建议
 - **风格**: 主会话打头阵读 erlang 源码 + 看 RGS 现状 (per AGENTS.md §2.3 L4) → 出一份设计/计划文档 → 后续派 worker 实施 P0 6 条
 - **拍板 (per 9/1 14:58 JST + 9/8 16:08 JST 守门, ask_user 推荐项 2026-09-10 12:45 JST)**:
   1. 起草 DDD Review 文档 + 落 commit (不立即派 worker, 文档先走二审)
@@ -52,17 +52,17 @@
 | RGS main HEAD | `32cff91` | `git log -1` |
 | rgs-testkit 强约束段 | `crates/rgs-testkit/src/lib.rs:16-44` | Read |
 | e2e-smoke.ps1 12 probe baseline | `scripts/e2e-smoke.ps1:14-22` | Read |
-| erlang tester 源码 6 个 | `E:\shanshuo-src-winrar\zsyz_server\tester\src\*` | Read |
+| erlang tester 源码 6 个 | `E:\gamea-src-winrar\[游戏A]_server\tester\src\*` | Read |
 | AGENTS.md L1-L14 派生约束 | `AGENTS.md` | Read (项目 instructions) |
 | L-CANDIDATES 候选清单 | `docs/14-项目治理/L-CANDIDATES.md` | 后续登记新 L-CAND-010 |
 | DDD Review 模板 | `docs/14-项目治理/DDD-REVIEW-TEMPLATE-v0.2.md` | Read (v0.2 二审流程) |
-| 闪烁之光 RGS 借鉴 handoff | `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04` (L18 段) | 已存在 |
+| [游戏A] RGS 借鉴 handoff | `docs/deploy/RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04` (L18 段) | 已存在 |
 
 ---
 
 ## 3. 主题 1: Erlang tester 30 条优点全景 (per 6 个源文件)
 
-### 3.1 源码清单 (`E:\shanshuo-src-winrar\zsyz_server\tester\src\`)
+### 3.1 源码清单 (`E:\gamea-src-winrar\[游戏A]_server\tester\src\`)
 
 | 文件 | 大小 | 角色 |
 |---|---|---|
@@ -430,7 +430,7 @@ crates/rgs-testkit/src/
 | # | 缺口 | 影响 | 跟踪 |
 |---|---|---|---|
 | **G1** | erlang tester 6 个 .erl 是 GBK 编码, 部分中文注释乱码 | 阅读体验差, 不影响功能理解 (已 Read 全部) | N/A |
-| **G2** | erlang tester 依赖 zsyz_server 主源码 (`test_rpc.erl` 引用 `combat.hrl / guild.hrl` 等) | 派工实施时 RGS 侧无对应 .hrl, 需 Rust 重写而非移植 | Phase B 派工需明确 |
+| **G2** | erlang tester 依赖 [游戏A]_server 主源码 (`test_rpc.erl` 引用 `combat.hrl / guild.hrl` 等) | 派工实施时 RGS 侧无对应 .hrl, 需 Rust 重写而非移植 | Phase B 派工需明确 |
 | **G3** | erlang tester 协议号 (10101/10399/20001/...) 与 RGS proto RPC 不一一对应 | 12 条迁移项需在 RGS proto 重新映射, 不是字面翻译 | Phase B 派工时 worker-1 列出 RGS proto RPC 清单 |
 | **G4** | erlang tester 的 quest_data 遍历在 RGS 无直接对等 | M12 quest 派生模式需要 RGS quest 域数据, 当前 RGS 无独立 quest 域 | Phase B worker-5 调研 RGS quest 实现, 如缺则降级到 "5 域 + skill 模拟" |
 | **G5** | v0.1 文档未跑 L1 (cargo check) | 文档无代码改动, L1 N/A | Phase B 派工时跑 |

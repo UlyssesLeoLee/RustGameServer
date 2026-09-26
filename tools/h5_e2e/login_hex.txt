@@ -6,7 +6,7 @@
 # client_recv: 2026-09-14T02:30:32.521Z  (t+6ms)
 # rtt_ms:      1
 #
-# === golden vector (zsyz_client_h5 SmartSocket 1:1) ===
+# === golden vector ([游戏A]_client_h5 SmartSocket 1:1) ===
 # client send: [4B length u32 BE][2B cmd=1110 u16 BE][payload: array<{string, string}>]
 # expected reply: [4B length u32 BE][2B cmd=1110 u16 BE][payload: [4B rcode u32 BE][body]]
 #   rcode=0 → 5-domain gRPC chain (Phase 1.5+)

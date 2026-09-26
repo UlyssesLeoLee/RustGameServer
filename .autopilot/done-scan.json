@@ -1,0 +1,1539 @@
+{
+  "scanned_at": "2026-09-25T23:31:52Z",
+  "total": 219,
+  "issues": [
+    {
+      "id": "01a0cb85-85bb-762d-9de7-e15a181042a5",
+      "identifier": "ULYS-192",
+      "title": "Multica 附件卡片疑似客户端不显示/无法下载（服务端存储已验证正常）",
+      "last_activity_at": "2026-09-25T15:13:55.637285Z",
+      "description_first_300": "附件卡片服务端存储正常，但疑似客户端不显示/无法下载。\n\n**范围**：工作区 Ulysses（`d83598db-3bfe-4386-b86d-ca266aa77e9f`）／会话 `12a0fc11-a541-489d-a1af-8cedd1b177e3`／任务 `task-9d56a2010fec`。\n\n**已验证的事实**：\n- 本会话内累计上传的 18 个独立附件 ID（原记\"15 个\"漏计问题组 64/65/66，问题组已于 2026-09-25 补验，三者 SHA-256 一致），逐一用 `multica attachment download <id>` 下载回本地校验，**全部"
+    },
+    {
+      "id": "01a0cb97-4ca6-7c7d-8ee1-ea9d9418e6f9",
+      "identifier": "ULYS-206",
+      "title": "PI-6 JSON Delta 协议 (star-dto) — REDESIGN",
+      "last_activity_at": "2026-09-25T15:13:43.745346Z",
+      "description_first_300": "# PI-6 JSON Delta 协议 (star-dto) — REDESIGN\n\n> **REDESIGN of ULYS-183 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 与父 issue ULYS-175 (SRS-PI-BORROW-001) 配套。\n\n## 1. Scope (per SRS-PI-BORROW-001 §1.3 + §4 FR-27 + §7)\n\nJSON Delta 协议（7 ops）落 `crates/star-dto/src/delta.rs`（新）：\n\n| Op | 用途 |\n|---|---|\n| ret"
+    },
+    {
+      "id": "01a0be2c-2f17-78f1-b01e-956ea699666c",
+      "identifier": "ULYS-138",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-25T14:53:02.308164Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0bd93-c2a9-7838-a2b8-82a2369073e2",
+      "identifier": "ULYS-123",
+      "title": "GitGit MinioVault::get_at_version 真接 minIO server-side versioning (升 rust-s3 支持 versionId + sidecar ",
+      "last_activity_at": "2026-09-25T14:50:03.323756Z",
+      "description_first_300": "## 背景\n\nGitGit V0 credential vault versioning 实现 (per ADR-0022, commit 在 9/16) 留下了 1 个 known gap (per `docs/reports/2026-09-16-vault-versioning/gitgit-vault-versioning-commit.md §3.4`):\n\n> ### 3.4 已知 gap (V0 deferred)\n>\n> - `get_at_version` 对 `version != latest` 返回 `Ok(None)` (metadata 完整, bytes 还原 d"
+    },
+    {
+      "id": "01a0d16d-b655-735f-b721-a882d92d7d82",
+      "identifier": "ULYS-230",
+      "title": "ULYS-218.3 [P1-F] REST endpoint /v1/worktrees/start-from-picker + /external-worktrees",
+      "last_activity_at": "2026-09-25T14:49:05.585584Z",
+      "description_first_300": "# ULYS-218.3 — REST endpoint `/v1/worktrees/start-from-picker` + `/v1/worktrees/external-import`\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> 兄弟 issue: [ULYS-218 (ULYS-158.5)](https://app.multica.ai/issue/01a0cdb8-dc9a-7a3e-bc39-2477a"
+    },
+    {
+      "id": "01a0be71-8bc2-7e11-845c-ab11cf096d99",
+      "identifier": "ULYS-155",
+      "title": "[CATs/M2] 多媒体 6 服务(切片 E)",
+      "last_activity_at": "2026-09-25T14:47:51.980728Z",
+      "description_first_300": "# 切片 E: 多媒体 6 服务（M2 范畴 / 本批不做）\n\n**Slice**: E — 多媒体 6 服务\n**优先级**: 🟡 M2（per OFCAT 需求定义书 v1.1 §3.2 后续迭代）\n\n## 不在本批子代理范围\n\ningestion / asr / ocr / subtitle / office-converter / render-writer 6 个服务全部 stub，仅 /healthz。\n按 V1.1-PLAN §2.3 不做边界，这 6 个服务留 M2 范畴，本批不派工。\n\n## 引用\n\n- 父: ULYS-125\n- 审计: §4.5\n- V1.1-PLAN: "
+    },
+    {
+      "id": "01a0b7b2-fd50-7037-b43a-8f648bb0e2d6",
+      "identifier": "ULYS-94",
+      "title": "ULYS-91: 恢复 WSL Postgres + k3s + 跑 12 DB fixture 集成测试 + e2e-smoke 12 探针",
+      "last_activity_at": "2026-09-25T10:08:37.115633Z",
+      "description_first_300": "## 上下文\n\nULYS-81 全量回归发现两类基础设施级阻断项, 本地工作区已验证代码正确, 但需要外部环境才能跑完整:\n\n1. **WSL Postgres 冷启动**: ULYS-51 9/16 同样的 WSL Ubuntu Stopped 问题, `sqlx::testing` 的 12 个 fixture 集成测试 (`player_fixture_inserts_and_reads_back_in_real_pg` × 2 / `match_fixture_*` × 2 / `admin_fixture_*` × 2 / `social_fixture_*` × 2 / `outb"
+    },
+    {
+      "id": "01a0d315-ae7d-7eb2-abba-f74cf1e858c9",
+      "identifier": "ULYS-235",
+      "title": "hook需求",
+      "last_activity_at": "2026-09-25T10:07:16.289719Z",
+      "description_first_300": "我需要有hooks功能，可以和skills合并成同一个导航里不同标签页，这个可以叫高级设置。给我需求文档、基本设计、详细设计"
+    },
+    {
+      "id": "01a0be2c-f32e-7738-8c68-191a0a616608",
+      "identifier": "ULYS-141",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-25T09:57:18.499945Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0bf7a-8164-7b54-887a-fa7f4ae8dc67",
+      "identifier": "ULYS-172",
+      "title": "ULYS-104.17 [P3] Multi-Provider Identity Validation GitHub/Linear/Jira/GitLab (FR-ORCA-042)",
+      "last_activity_at": "2026-09-25T09:53:48.230808Z",
+      "description_first_300": "# ULYS-104.17 (ULYS-172) — GitHub / Linear / Jira / GitLab Multi-Provider Identity Validation\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§15**(Orca 借鉴点 14，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 551-563 行)全部 **1 个 ID**：\n\n| ID |"
+    },
+    {
+      "id": "01a0cb88-511b-769f-92fc-65a996701723",
+      "identifier": "ULYS-195",
+      "title": "ULYS-177.4 [P1] External Worktree Import 平行 git worktree 兼容 (FR-ORCA-011)",
+      "last_activity_at": "2026-09-25T08:11:56.12725Z",
+      "description_first_300": "# ULYS-177.4 (ULYS-XXX) — External Worktree Import（平行 git worktree 兼容）(FR-ORCA-011)\n\n> 与父 issue ULYS-177 (ULYS-158.1) 配套，从那里继承 path C 自决 + crate `worktree-shared-dir/` 实装基线。\n\n## 1. Scope\n\n落地 **ULYS-158 §3 FR-ORCA-011**（spec 行 234-242）\"平行 git worktree 兼容\"，对应 ULYS-158 description §3.3 的 `external_work"
+    },
+    {
+      "id": "01a0cb97-6e7e-7d88-96e3-442bc2b3340a",
+      "identifier": "ULYS-207",
+      "title": "PI-9 Steering / Follow-up / QueueMode (domain-agent) — REDESIGN",
+      "last_activity_at": "2026-09-25T07:26:56.53866Z",
+      "description_first_300": "# PI-9 Steering / Follow-up / QueueMode (domain-agent) — REDESIGN\n\n> **REDESIGN of ULYS-186 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 与父 issue ULYS-175 (SRS-PI-BORROW-001) 配套。\n\n## 1. Scope (per SRS-PI-BORROW-001 §1.3 + §4 FR-30)\n\nSteering / Follow-up / QueueMode 3 个钩子，落 `crates/domain-agent/src/q"
+    },
+    {
+      "id": "01a0be1b-9e48-7b7a-be34-60db495569f5",
+      "identifier": "ULYS-125",
+      "title": "功能点罗列",
+      "last_activity_at": "2026-09-25T06:31:23.639661Z",
+      "description_first_300": "分头调查，给出当前版本app支持哪些功能设计，哪些在计划内没开发完，没开发完的派子代理并行开发"
+    },
+    {
+      "id": "01a0be71-6c35-75b0-8684-fd71870ca757",
+      "identifier": "ULYS-154",
+      "title": "[CATs/M2] 客户端 UI 深度功能(切片 D)",
+      "last_activity_at": "2026-09-25T05:56:08.333811Z",
+      "description_first_300": "# 切片 D: 客户端 UI 深度功能（M2 范畴 / 本批不做）\n\n**Slice**: D — 客户端 UI 补完\n**目标**: `apps/cats-client/src/routes/*.svelte`\n**优先级**: 🟡 M2（依赖切片 B 完成后才有 backend API）\n\n## 不在本批子代理范围\n\n本切片等切片 B（4 核心服务）落地后，backend API 稳定后再启动。\n\n## 待办（仅作记录，不派工）\n\n- `TranslatePage.svelte` — 真实翻译段落编辑 + 写回 + 标签保护 UI\n- 新页 `GlossaryPage.svelte` — "
+    },
+    {
+      "id": "01a0be6f-3d76-7792-b8e2-89869adf4eea",
+      "identifier": "ULYS-153",
+      "title": "[CATs] 实现 report-service 聚合查询 + audit-service 真实 Kafka consumer",
+      "last_activity_at": "2026-09-25T05:56:05.068489Z",
+      "description_first_300": "# 切片 C: report-service + audit-service 真实 Kafka consumer\n\n**Slice**: C — 辅助 2 服务\n**目标 crate**: `crates/report-service/` + `crates/audit-service/`\n**基线**: `agent/minimaxm3/d11b0bce579f`\n\n## 切片 C-1: report-service\n\n### 任务范围\n\n报表聚合查询（基于 audit-service 表 + 各服务表 JOIN）：\n\n- `GET /v1/reports/usage?from=&to=` "
+    },
+    {
+      "id": "01a0be6f-1877-77c2-b3d2-2a44d9ac1f30",
+      "identifier": "ULYS-152",
+      "title": "[CATs] 实现 file-service + notification-service (4+3 endpoints)",
+      "last_activity_at": "2026-09-25T05:56:03.466991Z",
+      "description_first_300": "# 切片 B-3 + B-4: file-service + notification-service\n\n**Slice**: B-3 + B-4 合并 — 后端核心 4 服务中的 2 个\n**目标 crate**: `crates/file-service/` + `crates/notification-service/`\n**基线**: `agent/minimaxm3/d11b0bce579f`\n\n## 切片 B-3: file-service\n\n### 任务范围\n\n文件上传/下载/元数据管理：\n\n- `POST /v1/files` — multipart upload，存到本地磁盘"
+    },
+    {
+      "id": "01a0be6e-ee5b-7bfa-a1d6-6804fa421ea0",
+      "identifier": "ULYS-151",
+      "title": "[CATs] 实现 task-service 业务 + SSE 进度推送",
+      "last_activity_at": "2026-09-25T05:55:58.391203Z",
+      "description_first_300": "# 切片 B-2: task-service 业务 + SSE 进度推送\n\n**Slice**: B-2 — 后端核心 4 服务\n**目标 crate**: `crates/task-service/`\n**基线**: `agent/minimaxm3/d11b0bce579f` (HEAD)\n\n## 任务范围\n\ntask-service 缺失业务 endpoint + SSE 进度推送：\n\n- `POST /v1/tasks` — 创建翻译任务（dispatch 到 translation-core）\n- `GET /v1/tasks` — 列出任务（分页 + 按 project_id 过滤"
+    },
+    {
+      "id": "01a0be6d-ba06-78fd-b2a3-e92aaadbd700",
+      "identifier": "ULYS-150",
+      "title": "[CATs] 实现 project-service 业务 5 endpoint (CRUD)",
+      "last_activity_at": "2026-09-25T05:55:56.65067Z",
+      "description_first_300": "# 切片 B-1: project-service 业务实现\n\n**Slice**: B-1 — 后端核心 4 服务\n**目标 crate**: `crates/project-service/`\n**基线**: `agent/minimaxm3/ce1e3b.../d11b0bce579f` (HEAD)\n\n## 任务范围\n\n把 project-service 从 `/healthz` 占位扩展到完整 CRUD：\n- `POST /v1/projects` — 创建项目\n- `GET /v1/projects` — 列出项目（分页 + 过滤 by workspace_id）\n- `GET /"
+    },
+    {
+      "id": "01a0be4d-4eb4-7220-a153-bc2ac625bff2",
+      "identifier": "ULYS-149",
+      "title": "[CATs] 实现 cats-bff 业务 8 endpoint",
+      "last_activity_at": "2026-09-25T05:55:55.056033Z",
+      "description_first_300": "# CATs 功能点现状审计 v1.0\n\n| 项目 | 内容 |\n|---|---|\n| 文档编号 | CATs-FEATURE-AUDIT-v1.0 |\n| 日期 | 2026-09-20 |\n| 作者 | Mavis（架构师 Lead 代签 per DEC-008） |\n| 触发 | ULYS-125 功能点罗列（parent 委托调查） |\n| 审计基线 | `agent/minimaxm3/ce1e3d60f6b2` @ 28f0afb（ULYS-110 Vercel 部署套件） |\n| 引用 | V1.1-PLAN.md §0.3 §2 + BACKEND_STATUS_v0.1 +"
+    },
+    {
+      "id": "01a0d16d-a66d-798e-b456-aa6f5deddbfc",
+      "identifier": "ULYS-229",
+      "title": "ULYS-218.2 [P1-F] CLI multica worktree start-from-picker 命令",
+      "last_activity_at": "2026-09-25T05:34:40.258513Z",
+      "description_first_300": "# ULYS-218.2 — CLI `multica worktree start-from-picker` 命令\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> 兄弟 issue: [ULYS-218 (ULYS-158.5)](https://app.multica.ai/issue/01a0cdb8-dc9a-7a3e-bc39-2477a3ae9c7d) (backend scope 100% shipped i"
+    },
+    {
+      "id": "01a0be2b-d70d-71e6-bdef-559661462cf3",
+      "identifier": "ULYS-137",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-25T03:34:37.076542Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0bdf5-ee17-7df4-a82b-accb518a05f3",
+      "identifier": "ULYS-124",
+      "title": "CLI",
+      "last_activity_at": "2026-09-25T01:50:25.670865Z",
+      "description_first_300": "完善Star CLI的各项设计，补充完善的符合日本IpA标准的文档，首先制作需求文档"
+    },
+    {
+      "id": "01a0ccd0-19f0-784e-9fee-a5ab4c1d70c4",
+      "identifier": "ULYS-208",
+      "title": "gm-backend 8081 health probe server 静默死亡 (tokio::spawn + bind 失败日志误报) — 修复 e2e-smoke 12/12 剩余项",
+      "last_activity_at": "2026-09-25T01:25:47.444017Z",
+      "description_first_300": "## 上下文 (来自 ULYS-188 收口报告, 2026-09-23 14:01 JST)\n\nULYS-188 收口实测确认 gm-backend `gm-backend-healthz` + `gm-backend-readyz` 恒定 FAIL **不是 host→pod 网络层故障**,而是 gm-backend 二进制自身的 bug:`tokio::spawn` 起的 health probe task 静默死亡,日志仍写 \"health probe listening on 0.0.0.0:8081\",但 `/proc/<pid>/net/tcp` 里 8081 没有 LISTE"
+    },
+    {
+      "id": "01a0be2b-83bf-7868-97cc-b6bd981ebf5e",
+      "identifier": "ULYS-136",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-25T00:02:49.466302Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0bd24-394a-7af5-bd0d-37e6f8496dc3",
+      "identifier": "ULYS-113",
+      "title": "分支合并",
+      "last_activity_at": "2026-09-25T00:02:16.813266Z",
+      "description_first_300": "所有项目派出子代理审查是否存在先进分支，存在则引入dev分支并同步到本地"
+    },
+    {
+      "id": "01a0d16d-7d11-743c-9b4f-c4d38f99326b",
+      "identifier": "ULYS-228",
+      "title": "ULYS-218.1 [P1-F] FR-ORCA-009/011 frontend UI bundle (Start-from Picker modal + sidebar hidden workt",
+      "last_activity_at": "2026-09-24T23:35:32.432886Z",
+      "description_first_300": "# ULYS-218.1 — FR-ORCA-009 + FR-ORCA-011 frontend UI bundle\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> 兄弟 issue: [ULYS-218 (ULYS-158.5)](https://app.multica.ai/issue/01a0cdb8-dc9a-7a3e-bc39-2477a3ae9c7d) (backend scope 100% shipped "
+    },
+    {
+      "id": "01a0d308-362c-7dad-978e-43652429b1d4",
+      "identifier": "ULYS-234",
+      "title": "ULYS-203.A CredentialManager::revoke() 同步 DB credential.status (Bug 修复)",
+      "last_activity_at": "2026-09-24T12:43:08.108797Z",
+      "description_first_300": "# ULYS-203.A — `CredentialManager::revoke()` 同步 DB `credential.status`\n\n> 与父 issue **ULYS-203** (`01a0cb96-da0f-7c7a-b3d3-ec0c1c48f9a5`) 配套,从那里继承 v1.0 §14 scope。\n> 本 sub-issue 由 ULYS-203 worker 在 2026-09-24 03:16 UTC 评论 `01a0d169-...` 提议,D-Boy 在评论 `01a0d304-...` 回复 \"A\" 拍板建单。\n\n## 1. Scope（仅 1 项，与 §14"
+    },
+    {
+      "id": "01a0cb88-3efc-77bf-ac00-28b7489c39e2",
+      "identifier": "ULYS-194",
+      "title": "ULYS-177.3 [P1] Start-from Picker 4 选 1 UI (FR-ORCA-009)",
+      "last_activity_at": "2026-09-24T11:44:57.236846Z",
+      "description_first_300": "# ULYS-177.3 (ULYS-XXX) — Start-from Picker 4 选 1 UI (FR-ORCA-009)\n\n> 与父 issue ULYS-177 (ULYS-158.1) 配套，从那里继承 path C 自决 + crate `worktree-shared-dir/` 实装基线。\n\n## 1. Scope\n\n落地 **ULYS-158 §3 FR-ORCA-009**（spec 行 226-228）\"Start-from Picker（4 选 1）\"，对应 ULYS-158 description §3.3 的 `start_from_picker` 模块。\n\n"
+    },
+    {
+      "id": "01a0d2f2-e0bb-7dd5-a49f-e08ad4d6485f",
+      "identifier": "ULYS-233",
+      "title": "ULYS-191.4 (ULYS-191 §4.3.2) — CATs 集成最小可交付 + aci-emitter git dep",
+      "last_activity_at": "2026-09-24T11:02:33.544154Z",
+      "description_first_300": "# ULYS-191.4 — §4.3.2 CATs 集成 (接 cats-mock) — Stage 3 第 5 笔\n\n> **父 issue**: ULYS-191 (Stage 3 §4.3 跨项目适配, 5 项目)\n> **前一笔**: ULYS-191.5 (ULYS-227) — IM1.0 集成 ✅ SHIPPED 2026-09-24 12:04 JST (PR #22 merged)\n> **前置依赖**: ULYS-191.1 (ULYS-224) — aci-emitter v0.1.0 ✅ SHIPPED\n> **本笔定位**: §4.3.2 CATs 集成 — 接 `"
+    },
+    {
+      "id": "01a0d16e-a78d-78cd-9e44-9be224e7b0ec",
+      "identifier": "ULYS-232",
+      "title": "ULYS-200.5 [P1-E] Integration & QA Validation (terminal-stack end-to-end)",
+      "last_activity_at": "2026-09-24T04:22:57.76267Z",
+      "description_first_300": "# ULYS-200.5 — P1-E Integration & QA Validation\n#\n> **Sub-issue of [ULYS-200](https://app.multica.ai/issue/01a0cb96-62f4-733f-b3c2-2bdc49280cb7)** (P2 Terminal Splits + Scrollback MVP v0, done).\n# > 与父 issue ULYS-104 继承, 已 ship P1-A/B/C/D (PR #92 #96 #106 #98 #108) 全 done.\n\n## 1. Scope\n\n完成 P1-A/B/C/"
+    },
+    {
+      "id": "01a0d16b-ab32-75de-9566-98f19545ad9f",
+      "identifier": "ULYS-227",
+      "title": "ULYS-191.5 (ULYS-191 §4.3.3) — IM1.0 集成最小可交付 + aci-emitter git dep",
+      "last_activity_at": "2026-09-24T04:04:38.901151Z",
+      "description_first_300": "# ULYS-191.5 — §4.3.3 IM1.0 集成 (接 im-testkit, 最成熟框架) — Stage 3 第 4 笔\n\n> **父 issue**: ULYS-191 (Stage 3 §4.3 跨项目适配, 5 项目)\n> **前一笔**: ULYS-191.3 (ULYS-226) — RGS 集成 ✅ SHIPPED 2026-09-24 11:18 JST (PR #47 merged)\n> **前置依赖**: ULYS-191.1 (ULYS-224) — aci-emitter v0.1.0 ✅ SHIPPED\n> **本笔定位**: §4.3.3 IM1.0 "
+    },
+    {
+      "id": "01a0cdb8-dc9a-7a3e-bc39-2477a3ae9c7d",
+      "identifier": "ULYS-218",
+      "title": "ULYS-158.5 [P1] FR-ORCA-009/010/011 bundle (Start-from Picker + Branch 命名 + 外部 git worktree 导入)",
+      "last_activity_at": "2026-09-24T03:20:53.743176Z",
+      "description_first_300": "# ULYS-158.5 — FR-ORCA-009 + FR-ORCA-010 + FR-ORCA-011 bundle (Start-from Picker + Branch 命名 + 外部 git worktree 导入)\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> Stage: 2 (parent assignee = minimaxm3, per 2026-09-23 JST 启动)\n> 父父: [ULYS-"
+    },
+    {
+      "id": "01a0ce2d-fc57-732f-bb41-064f7969722e",
+      "identifier": "ULYS-222",
+      "title": "ULYS-200.3 [P1-C] WebSocket Protocol Layer for Terminal Stack",
+      "last_activity_at": "2026-09-24T01:09:43.793795Z",
+      "description_first_300": "# ULYS-200.3 — P1-C WebSocket Protocol Layer for Terminal Stack\n\n> **Sub-issue of [ULYS-200](https://app.multica.ai/issue/01a0cb96-62f4-733f-b3c2-2bdc49280cb7)** (P2 Terminal Splits + Scrollback MVP v0, done).\n\n## 1. Scope\n\n实现 server 端 WebSocket 协议层，接收前端 xterm.js / `@xterm/addon-fit` 请求并推送 scrollbac"
+    },
+    {
+      "id": "01a0cdb8-cbc9-70b8-99b2-683ec9df5d3a",
+      "identifier": "ULYS-217",
+      "title": "ULYS-158.4 [P0] FR-ORCA-008 worktree_create_async 真实 orchestrator",
+      "last_activity_at": "2026-09-24T00:56:35.187036Z",
+      "description_first_300": "# ULYS-158.4 — FR-ORCA-008 worktree_create_async 真实 orchestrator\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> Stage: 2 (parent assignee = minimaxm3, per 2026-09-23 JST 启动)\n> 父父: [ULYS-104 Orca 借鉴点分解](https://app.multica.ai/issue/01a0b"
+    },
+    {
+      "id": "01a0c6f7-c799-740e-8f39-a88b7d055080",
+      "identifier": "ULYS-179",
+      "title": "PI-2 StopReason + Usage 五元组 + ThinkingLevel (domain-llm)",
+      "last_activity_at": "2026-09-24T00:52:21.488109Z",
+      "description_first_300": "PI-2 已在本期 ULYS-175 实装落档 (per SRS-PI-BORROW-001 §1.3 + §4 FR-7~12 + §7 AC-3, 1 周估). 落地 `StopReason` 7 值 enum (Stop/Length/ToolUse/Error/Aborted/ContentFilter/Other, #[non_exhaustive]) + `Usage` 5 元组 (input/output/cache_read/cache_write/cost_usd) + `ThinkingLevel` 6 值 enum (Off/Minimal/Low/Medium/High"
+    },
+    {
+      "id": "01a0bf6f-6288-7801-a629-afc8669836f1",
+      "identifier": "ULYS-159",
+      "title": "ULYS-104.4 [P0-B 评估期] ProcessSupervisor 子 crate 评估 (ADR-0046 候选草案)",
+      "last_activity_at": "2026-09-24T00:16:17.174885Z",
+      "description_first_300": "# ULYS-104.4 (ULYS-159) — ProcessSupervisor 子 crate 评估期\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. 任务范围：**仅评估，不实装**\n\n本 sub-issue **不是 Orca spec 的 ID 落地** —— v1.0 spec §0..§20 + 附录 B/C 都没有 ProcessSupervisor 子 crate 评估的对应条目。本 issue 是 ULYS-104 v0.3 评审期（9/12"
+    },
+    {
+      "id": "01a0cb88-2c92-7ecb-85c8-d295d3c8a458",
+      "identifier": "ULYS-193",
+      "title": "ULYS-177.2 [P1] Worktree Create 异步化 + Provisioning 过渡态 (FR-ORCA-008)",
+      "last_activity_at": "2026-09-24T00:12:33.815011Z",
+      "description_first_300": "# ULYS-177.2 (ULYS-XXX) — Worktree Create 异步化 + Provisioning 态 (FR-ORCA-008)\n\n> 与父 issue ULYS-177 (ULYS-158.1) 配套，从那里继承 path C 自决 + crate `worktree-shared-dir/` / `worktree-service/` 实装基线。\n\n## 1. Scope\n\n落地 **ULYS-158 §3 FR-ORCA-008**（spec 行 218-224）\"Create 异步 + 进度可见\"，对应 ULYS-158 description §3.3 的 `"
+    },
+    {
+      "id": "01a0cdb8-7bb5-7a5a-9b5e-2d3fc299faff",
+      "identifier": "ULYS-215",
+      "title": "ULYS-158.2 [P0] FR-ORCA-007 #1 PerUserSource 真实文件读实装",
+      "last_activity_at": "2026-09-24T00:12:28.438532Z",
+      "description_first_300": "# ULYS-158.2 — FR-ORCA-007 #1 PerUserSource 真实文件读实装\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> Stage: 2 (parent assignee = minimaxm3, per 2026-09-23 JST 启动)\n> 父父: [ULYS-104 Orca 借鉴点分解](https://app.multica.ai/issue/01a0b920-28d5-7dc8"
+    },
+    {
+      "id": "01a0d066-25b1-7cf0-8bb4-852dca02c478",
+      "identifier": "ULYS-226",
+      "title": "ULYS-191.3 (ULYS-191 §4.3.1) — RGS 集成最小可交付 + aci-emitter git dep",
+      "last_activity_at": "2026-09-24T02:18:28.674588Z",
+      "description_first_300": "# ULYS-191.3 — §4.3.1 RGS 集成 (跨项目 smoke 第 1 个) — Stage 3 第 3 笔\n\n> **父 issue**: ULYS-191 (Stage 3 §4.3 跨项目适配, 5 项目)\n> **前一笔**: ULYS-191.2 (ULYS-225) — IDE1.0 Stage 3.0 最小骨架 ✅ SHIPPED 2026-09-24 04:43 JST (PR #2 merged)\n> **前置依赖**: ULYS-191.1 (ULYS-224) — aci-emitter v0.1.0 ✅ SHIPPED 2026-09-23 22:55 "
+    },
+    {
+      "id": "01a0cb96-ff3d-7aa5-b209-159e4187434b",
+      "identifier": "ULYS-204",
+      "title": "PI-3 AgentLoopBoundary trait + StreamFn no-throw (domain-agent) — REDESIGN",
+      "last_activity_at": "2026-09-23T23:17:29.360972Z",
+      "description_first_300": "# PI-3 AgentLoopBoundary trait + StreamFn no-throw (domain-agent) — REDESIGN\n\n> **REDESIGN of ULYS-180 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 与父 issue ULYS-175 (SRS-PI-BORROW-001, `01a0c65f-eb02-7902-b2c1-15d38de0c5d3`) 配套。\n\n## 1. Scope (per SRS-PI-BORROW-001 §1.3 + §4 FR-13~18 + §7 AC-4)\n\n落地 "
+    },
+    {
+      "id": "01a0cdb8-c29b-70fc-8907-685d8c3502b2",
+      "identifier": "ULYS-216",
+      "title": "ULYS-158.3 [P0] FR-ORCA-007 #2 WorkspaceSource 真实 PG 读实装",
+      "last_activity_at": "2026-09-23T23:11:29.809323Z",
+      "description_first_300": "# ULYS-158.3 — FR-ORCA-007 #2 WorkspaceSource 真实 PG 读实装\n\n> 父 issue: [ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> Stage: 2 (parent assignee = minimaxm3, per 2026-09-23 JST 启动)\n> 父父: [ULYS-104 Orca 借鉴点分解](https://app.multica.ai/issue/01a0b920-28d5-"
+    },
+    {
+      "id": "01a0c6f8-e30e-7a0e-a344-a72f65ba0348",
+      "identifier": "ULYS-187",
+      "title": "PI-10 ADR-0028 Extension hook event surface (docs/architecture)",
+      "last_activity_at": "2026-09-23T23:08:40.506682Z",
+      "description_first_300": "PI-10 子 issue (per SRS-PI-BORROW-001 §1.3 + §4 PI-10, 1 周估, ADR-only 不实装). Extension hook event surface (156 个 event 列表) 作为 ADR-0028 落档 (per `docs/adr/0028-pi-event-surface.md`). 来源 `pi-coding-agent/src/core/events/`. ADR 摘要: event kind, payload schema, 触发时机, 消费方建议. 不写实装代码, 仅规范. Stage 1 跟 PI-1/PI-2 "
+    },
+    {
+      "id": "01a0cb97-263e-7207-aff2-112cc8acba95",
+      "identifier": "ULYS-205",
+      "title": "PI-4 Tool trait 重写 5 方法 (domain-tool) — REDESIGN",
+      "last_activity_at": "2026-09-23T23:08:55.782437Z",
+      "description_first_300": "# PI-4 Tool trait 重写 5 方法 (domain-tool) — REDESIGN\n\n> **REDESIGN of ULYS-182 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 与父 issue ULYS-175 (SRS-PI-BORROW-001) 配套。\n\n## 1. Scope (per SRS-PI-BORROW-001 §1.3 + §4 FR-19~23 + §7 AC-5)\n\n重写 `crates/domain-tool/src/traits.rs`（新 + 重写 stub）。\n\n**`Tool` trait 5"
+    },
+    {
+      "id": "01a0ce2d-e979-71ed-946f-d409b06cc36b",
+      "identifier": "ULYS-221",
+      "title": "ULYS-200.2 [P1-B] Restart Recovery Algorithm for Scrollback",
+      "last_activity_at": "2026-09-23T23:04:34.95433Z",
+      "description_first_300": "# ULYS-200.2 — P1-B Restart Recovery Algorithm for Scrollback\n\n> **Sub-issue of [ULYS-200](https://app.multica.ai/issue/01a0cb96-62f4-733f-b3c2-2bdc49280cb7)** (P2 Terminal Splits + Scrollback MVP v0, done).\n\n## 1. Scope\n\n实现 scrollback restart recovery 算法：进程重启后，根据 `cli_session_id` 拉回历史 scrollback 行（"
+    },
+    {
+      "id": "01a0ce2e-0dbb-721d-ae1d-2b5ffea6d65f",
+      "identifier": "ULYS-223",
+      "title": "ULYS-200.4 [P1-D] Frontend Terminal Splits + xterm.js addon",
+      "last_activity_at": "2026-09-23T23:24:07.432915Z",
+      "description_first_300": "# ULYS-200.4 — P1-D Frontend Terminal Splits + xterm.js addon\n\n> **Sub-issue of [ULYS-200](https://app.multica.ai/issue/01a0cb96-62f4-733f-b3c2-2bdc49280cb7)** (P2 Terminal Splits + Scrollback MVP v0, done).\n\n## 1. Scope\n\nFrontend UI 层：实现 Terminal Splits (横/竖切分多 pane + drag-resize) + xterm.js addon "
+    },
+    {
+      "id": "01a0bf75-2a6f-7098-9c38-0eaff0512a04",
+      "identifier": "ULYS-167",
+      "title": "ULYS-104.12 [P2] Design Mode 浏览器元素 → Agent Prompt (FR-ORCA-032)",
+      "last_activity_at": "2026-09-23T22:45:44.491497Z",
+      "description_first_300": "# ULYS-104.12 (ULYS-167) — Design Mode（浏览器元素 → Agent Prompt）\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§9**(Orca 借鉴点 8，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 430-442 行)全部 **1 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|---|--"
+    },
+    {
+      "id": "01a0cfaf-a814-7eb6-b023-8c089e43d95c",
+      "identifier": "ULYS-225",
+      "title": "ULYS-191.2 (ULYS-191 §4.2.2/§4.2.3) — IDE1.0 最小骨架 + cli_smoke.sh",
+      "last_activity_at": "2026-09-23T22:26:18.128983Z",
+      "description_first_300": "# ULYS-191.2 — §4.2.2 + §4.2.3 IDE1.0 最小骨架 (Stage 3 第 2 笔)\n\n> **父 issue**: ULYS-191 (Stage 3 §4.2 IDE1.0 mock + Rust emitter)\n> **前一笔**: ULYS-191.1 (ULYS-224) — aci-emitter v0.1.0 SHIPPED to main + CI 9/9 green (2026-09-23)\n> **本笔定位**: §4.2 IDE1.0 集成 — 最小可用骨架 (per Stage 3 报告 D-Boy 拍板 **方案 A 最小骨架** v"
+    },
+    {
+      "id": "01a0c65f-eb02-7902-b2c1-15d38de0c5d3",
+      "identifier": "ULYS-175",
+      "title": "分析Pi",
+      "last_activity_at": "2026-09-23T19:35:02.368737Z",
+      "description_first_300": "分析[https://github.com/earendil-works/pi](https://github.com/earendil-works/pi)看看有什么可以借鉴的，以及早期可以依赖它sdk，后期自己开发的亮点，弥补进我的agent功能"
+    },
+    {
+      "id": "01a0bf74-1535-7366-957a-fbddbe9cee74",
+      "identifier": "ULYS-165",
+      "title": "ULYS-104.9 [P2] Annotate AI Diff (FR-ORCA-031)",
+      "last_activity_at": "2026-09-23T19:22:05.087717Z",
+      "description_first_300": "# ULYS-104.9 (ULYS-165) — Annotate AI Diff\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§11**(Orca 借鉴点 10，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 475-487 行)全部 **1 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|---|---|\n| FR-ORCA-035"
+    },
+    {
+      "id": "01a0ce6c-acbf-7d66-8ed9-2bfd0e7e032f",
+      "identifier": "ULYS-224",
+      "title": "ULYS-191.1 (ULYS-191 §4.2.1) — 独立 Rust aci-emitter crate (ACI 跨项目 emitter helper)",
+      "last_activity_at": "2026-09-23T14:41:55.106899Z",
+      "description_first_300": "# ULYS-191.1 — §4.2.1 独立 Rust `aci-emitter` crate\n\n> **父 issue**: ULYS-191 (ULYS-191) [ACI接口] (status=done for Stage 1, in_progress for Stage 2/3)\n> **第 N 笔 brief**: 1 (Stage 3 第 1 笔, §4.2.1 Rust emitter helper crate)\n> **状态**: 🟡 Draft v0.1 (per D-Boy 2026-09-23 JST 22:30 拍板优先 §4.2.1)\n> **作者**: Ulys"
+    },
+    {
+      "id": "01a0c6f7-f0c5-7c9a-a318-533cc9fedf6b",
+      "identifier": "ULYS-181",
+      "title": "PI-5 AgentPolicy::policy_hooks 接入 (domain-agent)",
+      "last_activity_at": "2026-09-23T14:40:56.212927Z",
+      "description_first_300": "PI-5 子 issue (per SRS-PI-BORROW-001 §1.3 + §4 FR-24~26 + §7 AC-6, 2 周估). `AgentPolicy` 加 `policy_hooks: PolicyHooks` 字段 (per pi-agent-core/src/types.ts:66-128, 322-337), 含 `before_tool_call: Vec<Box<dyn PolicyHook>>` + `after_tool_call: Vec<Box<dyn PolicyHook>>`. `AgentLoopBoundary::before_tool_call"
+    },
+    {
+      "id": "01a0c6f8-a261-75b3-ba3d-fbbc94040ba4",
+      "identifier": "ULYS-184",
+      "title": "PI-7 Compaction 算法 (star-taskqueue)",
+      "last_activity_at": "2026-09-23T13:46:04.311126Z",
+      "description_first_300": "PI-7 子 issue (per SRS-PI-BORROW-001 §1.3 + §4 FR-28, 2 周估). Compaction 算法 + read_files / modified_files tracking, 落 `crates/star-taskqueue/src/compaction.rs` (新) (per pi-coding-agent/src/core/compaction/compaction.ts 36 KB). 历史消息压缩: read_files + modified_files tracking, 保留最近 N 轮 + summary. 跟现有 SQLit"
+    },
+    {
+      "id": "01a0cb7d-236d-70b0-aaa2-6c8977b1fbb1",
+      "identifier": "ULYS-191",
+      "title": "ACI接口",
+      "last_activity_at": "2026-09-23T13:06:55.834383Z",
+      "description_first_300": "所有项目的Mock项目要具备ACI接口，有效输出提示词型断言，方便大模型判断问题"
+    },
+    {
+      "id": "01a0cd4d-e36f-77cc-a43d-3da59f0a6bfe",
+      "identifier": "ULYS-210",
+      "title": "修改内容截图",
+      "last_activity_at": "2026-09-23T12:58:13.306429Z",
+      "description_first_300": "总结最近的github提交内容，15天内的修改点汇总给我"
+    },
+    {
+      "id": "01a0cd6c-9df6-7742-b0fe-df67f7015438",
+      "identifier": "ULYS-214",
+      "title": "A4 完善：Agent Session v2 前端 Restart chip UI + use-restart hook",
+      "last_activity_at": "2026-09-23T12:55:38.717595Z",
+      "description_first_300": "A4 完善 — Agent Session v2 前端 Restart chip UI\n\n背景：\n- commit 1e3ac6e8 backend 落地 restart_available 字段 + RestartAvailable 事件\n- 前端 0 commit 渲染 chip\n\n产出物：\n- frontend/src/components/agent/RestartChip.tsx\n- frontend/src/components/agent/SessionCard.tsx 集成 chip\n- frontend/src/lib/hooks/use-restart.ts（订阅 Rest"
+    },
+    {
+      "id": "01a0cd6c-9808-75db-9d31-ba34b45b54c8",
+      "identifier": "ULYS-213",
+      "title": "B4 完善：Jev 真 API key 接入 + 中文 100 条 dry-run + 1k traffic threshold 校准",
+      "last_activity_at": "2026-09-23T12:55:37.580153Z",
+      "description_first_300": "B4 完善 — Jev 真 API key 接入 + 100 条 dry-run\n\n背景：\n- commit 03cc3d4c Cerebellum Credential 全栈落地\n- commit body 末尾「已知缺口」4 项全留 P1：\n  - 中文 100 条 dry-run 跨 session 续做\n  - 1k 真实 traffic threshold 校准跨 session 续做\n  - 真 Jev API key 接入守门 #25 跨 session 续做\n  - TS vitest 受限 EX-05 实证\n\n产出物：\n- crates/domain-llm/src/prov"
+    },
+    {
+      "id": "01a0cd6c-846c-7781-82b6-1f55bffb8e7b",
+      "identifier": "ULYS-212",
+      "title": "A9 完善：真实 OS spawn 适配（Linux setsid+cgroup / macOS setpgid / Windows Job Object + kill）",
+      "last_activity_at": "2026-09-23T12:55:36.392137Z",
+      "description_first_300": "A9 完善 — 真实 OS spawn 适配\n\n背景：\n- commit 46a5b193 落地 cli_session_lock + supervisor + graceful_shutdown + health_self_test\n- systemd cgroup 文档已 commit\n- 第 8 节 P1 followup 显式列了 3 项：真实 OS spawn、子进程 SIGTERM/SIGKILL、systemd-run CI 压测\n- 当前 graceful_shutdown.kill_process 还是 stub\n\n产出物：\n- crates/domain-local-run"
+    },
+    {
+      "id": "01a0cd6c-7070-789d-a24e-0a0a961bb779",
+      "identifier": "ULYS-211",
+      "title": "A5 完善：FR-ORCA-035 前端 diff 标注 UI",
+      "last_activity_at": "2026-09-23T12:55:32.612474Z",
+      "description_first_300": "A5 完善 — FR-ORCA-035 前端 diff 标注 UI\n\n背景：\n- 后端 crates/agent-bridge/src/annotate.rs 已在 commit 29bff3fc / 6d492fd1 落地，30 单测全过\n- FR-ORCA-035 spec 要求「用户在 diff 上 drop comment → structured feedback 回 agent」\n- 目前后端到 prompt 的管道只完成了一半——前端 UI 缺位，用户根本无法在 diff 上加 comment\n\n产出物：\n- frontend/src/components/DiffAnnotat"
+    },
+    {
+      "id": "01a0ce2d-d51b-7154-bbf8-6ae6ba9d0a20",
+      "identifier": "ULYS-220",
+      "title": "ULYS-200.1 [P1-A] Persistence Layer for Scrollback + Splits (SQLite WAL)",
+      "last_activity_at": "2026-09-23T12:31:35.726423Z",
+      "description_first_300": "# ULYS-200.1 — P1-A Persistence Layer for Scrollback + Splits\n\n> **Sub-issue of [ULYS-200](https://app.multica.ai/issue/01a0cb96-62f4-733f-b3c2-2bdc49280cb7)** (P2 Terminal Splits + Scrollback MVP v0, done).\n\n## 1. Scope\n\n把 ULYS-200 MVP v0 数据层 (`ScrollbackBuffer` + `SplitTree` 内存 + JSON) 升级为 **SQLit"
+    },
+    {
+      "id": "01a0cd1f-c68c-7d92-a1d1-4b90fbc5bee8",
+      "identifier": "ULYS-209",
+      "title": "ULYS-156.1 [P0-A 续] process_supervisor + graceful_shutdown + health_self_test + PID lock + crash-loo",
+      "last_activity_at": "2026-09-23T12:31:32.765197Z",
+      "description_first_300": "# ULYS-156.1 (P0-A 续) — process_supervisor + graceful_shutdown + health_self_test + PID lock + crash-loop + cgroup doc\n\n> **续子 issue** of ULYS-156 (`01a0bf6b-486c-71b8-9bf4-92bde909c7f8`) — P0-A 路线 v0.1 MVP 切片已 merged 到 dev (PR #76 @ `7fb92d59`)。\n>\n> 父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73"
+    },
+    {
+      "id": "01a0cdc9-6a9f-7159-b43a-35bc5066f1fe",
+      "identifier": "ULYS-219",
+      "title": "ULYS-210 (ULYS-156 P1 — Linux/macOS) — 真实 setsid session leader + 跨进程 kill (Unix 部分)",
+      "last_activity_at": "2026-09-23T12:17:38.257595Z",
+      "description_first_300": "# ULYS-210 (ULYS-156 P1 — Linux/macOS 部分) — 真实 setsid session leader + 跨进程 kill\n\n> **续 P1 followup** of ULYS-156 (`01a0bf6b-486c-71b8-9bf4-92bde909c7f8`) — PR #83 §8 列出 \"真实 OS spawn 适配 (Linux setsid + Windows Job Object)\"。\n>\n> 本 issue **仅限 Linux/macOS** (Unix 部分)。Windows Job Object 单独 issue (预计 ULYS"
+    },
+    {
+      "id": "01a0bf6e-fca2-790a-a795-2e5296d1ae80",
+      "identifier": "ULYS-157",
+      "title": "ULYS-104.2 [P0-C] AI Vault 对话历史搜索 (FR-ORCA-019..024)",
+      "last_activity_at": "2026-09-23T11:17:07.602741Z",
+      "description_first_300": "# ULYS-104.2 (ULYS-157) — AI Vault 对话历史搜索\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§5**(Orca 借鉴点 4，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 309-356 行)全部 **6 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|---|---|\n| FR-ORCA-019 | "
+    },
+    {
+      "id": "01a0bf73-e3a4-75d8-8bc4-ef389948e440",
+      "identifier": "ULYS-164",
+      "title": "ULYS-104.10 [P2] Terminal Splits + Scrollback Survives Restart",
+      "last_activity_at": "2026-09-23T11:05:13.849861Z",
+      "description_first_300": "# ULYS-104.9 (ULYS-164) — Terminal Splits + Scrollback Survives Restart\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§12**(Orca 借鉴点 11，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 489-515 行)中部分 ID：\n\n| ID | 类型 | 标题 | spec 行 | 本 sub-iss"
+    },
+    {
+      "id": "01a0bf6f-3a37-7abc-bf52-c5283219091d",
+      "identifier": "ULYS-158",
+      "title": "ULYS-104.3 [P0-D] Worktree 共享目录 3 机制 (FR-ORCA-005..011, 核心 FR-ORCA-007)",
+      "last_activity_at": "2026-09-23T10:57:15.796067Z",
+      "description_first_300": "# ULYS-104.3 (ULYS-158) — Worktree 共享目录 3 机制\r\n\r\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\r\n\r\n## 1. Scope\r\n\r\n落地 **§3**(Orca 借鉴点 2，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 179-243 行)全部 **7 个 ID**：\r\n\r\n| ID | 类型 | 标题 | spec 行 |\r\n|---|---|---|---|\r\n| F"
+    },
+    {
+      "id": "01a0cb96-62f4-733f-b3c2-2bdc49280cb7",
+      "identifier": "ULYS-200",
+      "title": "ULYS-104.10 [P2] Terminal Splits + Scrollback Survives Restart (FR-ORCA-036 + 039) — REDESIGN",
+      "last_activity_at": "2026-09-24T10:24:09.833344Z",
+      "description_first_300": "# ULYS-104.10 [P2] Terminal Splits + Scrollback Survives Restart (FR-ORCA-036 + 039) — REDESIGN\n\n> **REDESIGN of ULYS-164 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 终端栈选型 ✅ 已拍板 = 候选 B（per 2026-09-22 JST 决策 + ULYS-164 §8）。\n\n## 1. Scope\n\n落地 **§12**（Orca 借鉴点 11，doc 文件 `docs/ecosystem-survey/orca-desi"
+    },
+    {
+      "id": "01a0bf73-614c-7a9a-945e-fcc2eb615469",
+      "identifier": "ULYS-163",
+      "title": "ULYS-104.8 [P2] Notifications + Unread Bolded",
+      "last_activity_at": "2026-09-23T10:27:35.779425Z",
+      "description_first_300": "# ULYS-104.8 (ULYS-163) — Notifications + Unread Bolded\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§13**(Orca 借鉴点 12，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 517-535 行)全部 **2 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|---|---|\n"
+    },
+    {
+      "id": "01a0bf70-e679-7dca-9f9f-6ad6d9208d73",
+      "identifier": "ULYS-162",
+      "title": "ULYS-104.7 [P1-C] 统一 agent + worktree status store (FR-ORCA-018 + NFR-ORCA-003..004)",
+      "last_activity_at": "2026-09-23T10:16:32.837763Z",
+      "description_first_300": "# ULYS-104.7 (ULYS-162) — 统一 agent + worktree status store\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§4** 中 state 一致性部分(Orca 借鉴点 3，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 244-307 行)**3 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|-"
+    },
+    {
+      "id": "01a0bf70-aac6-7a4a-9226-c7ff02cb4438",
+      "identifier": "ULYS-161",
+      "title": "ULYS-104.6 [P1-B] Agent Session v2 加 terminal_id + OSC 解析 + Restart chip (FR-ORCA-012)",
+      "last_activity_at": "2026-09-23T10:16:30.095251Z",
+      "description_first_300": "# ULYS-104.6 (ULYS-161) — Agent Session v2 加 `terminal_id` + OSC 解析 + Restart chip\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§4**(Orca 借鉴点 3，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 244-307 行)中部分 ID：\n\n| ID | 类型 | 标题 | spec 行 | "
+    },
+    {
+      "id": "01a0c675-61ba-762c-aa03-0c17f362daa5",
+      "identifier": "ULYS-177",
+      "title": "ULYS-158.1 (ULYS-177) [P0] 本仓库适配 per-workspace multica-config/config.json + worktree_shared_director",
+      "last_activity_at": "2026-09-23T09:56:42.676195Z",
+      "description_first_300": "# ULYS-158 Worktree 共享目录 — 路径 C 拍板，3 机制实现 (2026-09-22 JST)\n\n> **范围改写**（per D-Boy 9/22 路径 C）：原\"CLI v0.x → v1.0 schema 升版\"已废，改为**本仓库适配 per-workspace multica-config/config.json**。\n>\n> 父 issue：[ULYS-158 Worktree 共享目录 3 机制](https://app.multica.ai/issue/01a0bf6f-3a37-7abc-bf52-c5283219091d)\n> 父父：[ULYS-104"
+    },
+    {
+      "id": "01a0bf6b-486c-71b8-9bf4-92bde909c7f8",
+      "identifier": "ULYS-156",
+      "title": "ULYS-104.1 [P0-A] 升级/重启保持 Agent 会话 (FR-ORCA-001..004 + NFR-ORCA-001..002)",
+      "last_activity_at": "2026-09-23T10:22:11.09585Z",
+      "description_first_300": "# ULYS-104.1 (ULYS-156) — 升级/重启保持 Agent 会话\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套,从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§2**(Orca 借鉴点 1,doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 92-176 行)全部 **6 个 ID**:\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|---|---|\n| FR-ORCA-001 | "
+    },
+    {
+      "id": "01a0bf70-85fd-7c57-84fb-de463db0056f",
+      "identifier": "ULYS-160",
+      "title": "ULYS-104.5 [P1-A] Orca CLI --json 全覆盖 + Skill Registry (FR-ORCA-029..030)",
+      "last_activity_at": "2026-09-23T09:49:52.495456Z",
+      "description_first_300": "# ULYS-104.5 (ULYS-160) — Orca CLI `--json` 全覆盖 + Skill Registry\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§10**(Orca 借鉴点 9，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 444-473 行)全部 **2 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|---|-"
+    },
+    {
+      "id": "01a0c6f8-b866-7a76-ad19-131ecbde71af",
+      "identifier": "ULYS-185",
+      "title": "PI-8 ContextEdit + Fork with parent.at (domain-worktree)",
+      "last_activity_at": "2026-09-23T08:04:38.41664Z",
+      "description_first_300": "PI-8 子 issue (per SRS-PI-BORROW-001 §1.3 + §4 FR-29, 2 周估). ContextEdit (omit/replace) + Fork with `parent.at`, 落 `crates/domain-worktree/src/edit.rs` (新) (per pi-durable/src/types.ts:21-33, 36-49). parent.at 落新字段, 不改 14 状态机 (per SRS §8 缺口 #8). Stage 4 跟 PI-6 并行. 守门: #1 v15 + #11 + #13 + #14 v4."
+    },
+    {
+      "id": "01a0cb96-8bd6-7da8-8390-9921e9752366",
+      "identifier": "ULYS-201",
+      "title": "ULYS-104.9 [P2] Annotate AI Diff (FR-ORCA-035) — REDESIGN",
+      "last_activity_at": "2026-09-23T07:33:51.303909Z",
+      "description_first_300": "# ULYS-104.9 [P2] Annotate AI Diff (FR-ORCA-035) — REDESIGN\n\n> **REDESIGN of ULYS-165 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> 与终端栈选型 ✅ 候选 B 弱相关（独立轨道，仅共用 canvas crate 渲染管线）。\n\n## 1. Scope\n\n落地 **§11**（Orca 借鉴点 10，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 475-487 行）全部 **1 个 ID**：\n\n| ID"
+    },
+    {
+      "id": "01a0cb96-1504-7ee4-b28d-81e7a4e50d70",
+      "identifier": "ULYS-198",
+      "title": "ULYS-104.7 [P1-C] 统一 agent + worktree status store (FR-ORCA-018 + NFR-003/004) — REDESIGN",
+      "last_activity_at": "2026-09-23T06:15:11.422464Z",
+      "description_first_300": "# ULYS-104.7 [P1-C] 统一 agent + worktree status store (FR-ORCA-018 + NFR-ORCA-003/004) — REDESIGN\n\n> **REDESIGN of ULYS-162 (cancelled 2026-09-23 JST per D-Boy \"已删除的worktree无法推进的任务就移动到已取消\" 委托)**。\n\n## 1. Scope\n\n落地 **§4** 中 state 一致性部分（Orca 借鉴点 3，行 244-307）**3 个 ID**：\n\n| ID | 类型 | 标题 | spec 行 |\n|---|--"
+    },
+    {
+      "id": "01a0c8fa-abf8-7bd1-8113-2ff0cd9b2149",
+      "identifier": "ULYS-188",
+      "title": "gm-backend httpGet 探针 host→pod 网络不可达 (e2e-smoke 上限锁定 10/12) + failureThreshold manifest drift",
+      "last_activity_at": "2026-09-23T05:50:17.915099Z",
+      "description_first_300": "## 症状\n\n`gm-backend` pod 内进程本身健康（日志显示已 bind 8081/8443，mTLS 校验通过），但节点侧（kubelet 探针 / e2e-smoke 脚本）对该 pod IP 发起的 `httpGet` 一律 `connection refused` / `http=000000`，其他 pod（postgres、nats 等）在同一 cni0 网桥上正常可达。这是 host→pod 网络层故障，不是应用代码或证书问题（已被 09-21 Sonnet 实测证伪 TLS 理论，09-21/09-22 MinimaxM3 自审各自独立复现）。\n\n## 影响\n\n`s"
+    },
+    {
+      "id": "01a0bf75-0a8b-7886-aee7-7b3ac874aa15",
+      "identifier": "ULYS-166",
+      "title": "ULYS-104.11 [P2] OSC 52 + Kitty Keyboard Protocol (依赖 ULYS-104.10 + .6)",
+      "last_activity_at": "2026-09-23T05:48:28.977556Z",
+      "description_first_300": "# ULYS-104.11 (ULYS-166) — OSC 52 + Kitty Keyboard Protocol\n\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§12**(Orca 借鉴点 11，doc 文件 `docs/ecosystem-survey/orca-design-survey.md` 第 489-515 行)中部分 ID：\n\n| ID | 类型 | 标题 | spec 行 | 本 sub-issue 范围 |\n|---"
+    },
+    {
+      "id": "01a0cb95-cb17-704a-b286-03a376006434",
+      "identifier": "ULYS-196",
+      "title": "ULYS-104.5 [P1-A] Orca CLI --json 全覆盖 + Skill Registry (FR-ORCA-033/034) — REDESIGN",
+      "last_activity_at": "2026-09-23T04:55:54.646416Z",
+      "description_first_300": "# ULYS-104.5 [P1-A] Orca CLI `--json` 全覆盖 + Skill Registry (FR-ORCA-033/034) — REDESIGN\n\n> **REDESIGN of ULYS-160 (cancelled 2026-09-23 JST per D-Boy \"已删除的worktree无法推进的任务就移动到已取消\" 委托)**。\n> 与父 issue ULYS-104 (`01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d`) 配套，从那里继承 v1.0 spec。\n\n## 1. Scope\n\n落地 **§10**(Orca 借鉴点"
+    },
+    {
+      "id": "01a0cb95-eeaa-7e1f-96e7-3138cb172fc7",
+      "identifier": "ULYS-197",
+      "title": "ULYS-104.6 [P1-B] Agent Session v2 + terminal_id + Restart chip (FR-ORCA-012/014) — REDESIGN",
+      "last_activity_at": "2026-09-23T01:42:44.458951Z",
+      "description_first_300": "# ULYS-104.6 [P1-B] Agent Session v2 + terminal_id + OSC 解析 + Restart chip (FR-ORCA-012/014) — REDESIGN\n\n> **REDESIGN of ULYS-161 (cancelled 2026-09-23 JST per D-Boy \"已删除的worktree无法推进的任务就移动到已取消\" 委托)**。\n> 与父 issue ULYS-104 配套。\n\n## 1. Scope\n\n落地 **§4** 中部分 ID（Orca 借鉴点 3，doc 文件 `docs/ecosystem-survey/or"
+    },
+    {
+      "id": "01a0cb96-3bd9-7b10-a7a5-310b0af985b8",
+      "identifier": "ULYS-199",
+      "title": "ULYS-104.8 [P2] Notifications + Unread Bolded (FR-ORCA-040/041) — REDESIGN (PR #74 cherry-pick)",
+      "last_activity_at": "2026-09-23T00:57:45.678466Z",
+      "description_first_300": "# ULYS-104.8 [P2] Notifications + Unread Bolded (FR-ORCA-040/041) — REDESIGN with PR #74 cherry-pick\n\n> **REDESIGN of ULYS-163 (cancelled 2026-09-23 JST per D-Boy 委托)**。\n> **关键**：原 PR #74 (`origin/agent/minimaxm3/ulys-163` @ `2c913680`) 含已 ship 代码 `feat(ULYS-163): land FR-ORCA-040 + FR-ORCA-041 back"
+    },
+    {
+      "id": "01a0be20-14fe-7eb0-9fab-741c140b9c23",
+      "identifier": "ULYS-134",
+      "title": "参考清单",
+      "last_activity_at": "2026-09-22T15:05:44.29549Z",
+      "description_first_300": "给出两款商用服务器参考了哪些亮点的清单"
+    },
+    {
+      "id": "01a0c66a-7f60-7435-bfca-98757844d18b",
+      "identifier": "ULYS-176",
+      "title": "编译启动",
+      "last_activity_at": "2026-09-22T07:05:47.649826Z",
+      "description_first_300": "编译启动最新版dev分支，截图3个界面"
+    },
+    {
+      "id": "01a0c1f1-7573-7bdf-b7c8-50050bc465e6",
+      "identifier": "ULYS-174",
+      "title": "依赖安全审计：漏洞与过时版本清单",
+      "last_activity_at": "2026-09-21T15:28:15.527071Z",
+      "description_first_300": "1. Run dependency audit tools on the project (npm audit, go vuln check, etc.)\n2. Identify any packages with known security vulnerabilities\n3. List outdated packages that are more than 2 major versions behind\n4. For each finding, note the severity, affected package, and recommended fix\n5. Post a summ"
+    },
+    {
+      "id": "01a0be1d-b2b1-741f-89d0-7254aa397b3c",
+      "identifier": "ULYS-133",
+      "title": "前端app",
+      "last_activity_at": "2026-09-21T15:28:14.127127Z",
+      "description_first_300": "制作desktop版的app"
+    },
+    {
+      "id": "01a0be2c-7156-7831-b481-58f46a82bdd3",
+      "identifier": "ULYS-139",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-21T15:28:12.797261Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0be2a-e86a-7e6a-bdca-13e616f887ab",
+      "identifier": "ULYS-135",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-21T15:28:11.268372Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0be2c-b38d-7166-a5da-31c7a2dfcaae",
+      "identifier": "ULYS-140",
+      "title": "回归测试",
+      "last_activity_at": "2026-09-21T10:24:52.472884Z",
+      "description_first_300": "完善mock项目UT、IT、ST各流程测试的脚本并进行整体的回归测试"
+    },
+    {
+      "id": "01a0be49-086c-7de3-927c-7e4fe2a3c871",
+      "identifier": "ULYS-145",
+      "title": "C-4 IdentityService::authenticate + Access Token",
+      "last_activity_at": "2026-09-21T06:29:38.906466Z",
+      "description_first_300": "依据 DetailedDesign §3。username/password 验证 + Access Token 短期 (15min) + revoke list state, 集成测试。"
+    },
+    {
+      "id": "01a0b920-28d5-7dc8-93c2-9cbc73ba9c4d",
+      "identifier": "ULYS-104",
+      "title": "分析可以借鉴的点",
+      "last_activity_at": "2026-09-22T00:40:01.749922Z",
+      "description_first_300": "分析这个产品，拆解其中优秀设计制作成需求文档，包括但不限于优秀的升级保持会话的机制[https://github.com/stablyai/orca](https://github.com/stablyai/orca)"
+    },
+    {
+      "id": "01a0be49-e951-7cc7-83bd-d55691a6e8dc",
+      "identifier": "ULYS-148",
+      "title": "C-8 ConversationService::create_dm + members",
+      "last_activity_at": "2026-09-20T22:58:44.354736Z",
+      "description_first_300": "依据 SRS §13 IM-CONV-001。DM/Group/Channel 五类会话创建 + dm_pairs 唯一性 + add/remove member, 集成测试覆盖 dup dm + leave race。"
+    },
+    {
+      "id": "01a0be1c-496d-7f0f-9bf3-a3261cb035c1",
+      "identifier": "ULYS-126",
+      "title": "功能罗列",
+      "last_activity_at": "2026-09-20T16:45:49.498466Z",
+      "description_first_300": "分头调查，给出当前版本app支持哪些功能设计，哪些在计划内没开发完，没开发完的派子代理并行开发"
+    },
+    {
+      "id": "01a0be49-5132-74af-8881-9b7848ab1f0f",
+      "identifier": "ULYS-146",
+      "title": "C-5 IdentityService::refresh (rotation)",
+      "last_activity_at": "2026-09-20T16:45:11.402828Z",
+      "description_first_300": "依据 IM-ID-003 Refresh Token Rotation。refresh_token_hash 校验 + 旧 token 失效 + 新 refresh 签发, 集成测试覆盖 reuse 攻击。"
+    },
+    {
+      "id": "01a0be48-c1e6-72ca-be79-c84e516978e2",
+      "identifier": "ULYS-144",
+      "title": "C-3 IdentityService::register + JWT issue",
+      "last_activity_at": "2026-09-20T15:56:11.385292Z",
+      "description_first_300": "依据 SRS §11 IM-ID-001~005 + DetailedDesign §3。实装 password hash (argon2) + JWT RS256 access token 签发 + DeviceSession 创建, 集成测试覆盖 happy path + dup username + weak password。"
+    },
+    {
+      "id": "01a0be48-5618-789d-9fa5-dd07aa5df5c3",
+      "identifier": "ULYS-143",
+      "title": "D-2 tracing_init::init() 真实化",
+      "last_activity_at": "2026-09-20T15:56:06.370193Z",
+      "description_first_300": "依据 aux-09 日志 Cookbook + ImplementationSpec §7。crates/im-common/src/tracing_init.rs 当前仅占位, 实装 JSON formatter + EnvFilter 加载 + OTel exporter stub, 单测覆盖。"
+    },
+    {
+      "id": "01a0be1d-3340-7974-aa78-c6709783d799",
+      "identifier": "ULYS-132",
+      "title": "BD-STAR-CLI-001 — 总冊基本設計書 v0.1 (5 view 跨域汇总 + 6 子能力架构 + 28 命令 schema 索引)",
+      "last_activity_at": "2026-09-20T15:53:37.270282Z",
+      "description_first_300": "BD-STAR-CLI-001 子任务描述 (总冊 BD, Stage 2 阻塞)\n\n## 上位要件\n[`docs/requirements/SRS-STAR-CLI-001.md`] v0.1 (commit 92e8db02) 全文\n\n## 本 BD 覆盖范围 (Stage 2 聚合, Stage 1 完成后唤醒)\n- **总冊基本設計書 v0.1**: 5 view 跨域汇总 + 6 子能力架构 + 28 命令 schema 索引\n- 模板参考: `docs/design/BD-STAR-CANVAS-GAME-001.md` v0.1 (总冊+专题 BD 模式) + `docs/des"
+    },
+    {
+      "id": "01a0be1d-0d24-7101-9529-0ed660b8aa20",
+      "identifier": "ULYS-131",
+      "title": "BD-STAR-CLI-005 — CL-6 Universal Submit 12 步状态机 + SubmitResult schema 基本設計",
+      "last_activity_at": "2026-09-20T15:50:10.335035Z",
+      "description_first_300": "BD-STAR-CLI-005 子任务描述 (CL-6 专题)\n\n## 上位要件\n[`docs/requirements/SRS-STAR-CLI-001.md`] v0.1 §4 CL-6 (FR-34 ~ FR-35) + §7 AC-6 + §8 #2 缺口\n\n## 本 BD 覆盖范围 (与平行 BD 不重叠)\n- **CL-6 Universal Submit 12 步状态机** (FR-34): `star submit` 跑全 12 步流程\n  - 步 1-4 真实 (Phase D.2):\n    1. 检查 Task (读 `STAR-CURRENT-TASK.json`)\n "
+    },
+    {
+      "id": "01a0be1c-e74a-7275-adc9-58a7145730ce",
+      "identifier": "ULYS-130",
+      "title": "BD-STAR-CLI-004 — CL-4+CL-5 错误模型 + Capability Discovery + Agent 自省子命令 基本設計",
+      "last_activity_at": "2026-09-20T15:43:38.38389Z",
+      "description_first_300": "BD-STAR-CLI-004 子任务描述 (CL-4 + CL-5 专题)\n\n## 上位要件\n[`docs/requirements/SRS-STAR-CLI-001.md`] v0.1 §4 CL-4 (FR-32) + CL-5 (FR-33) + §5 NFR-5 可观测 + §7 AC-4/AC-5/AC-11\n\n## 本 BD 覆盖范围 (与平行 BD 不重叠)\n- **CL-4 错误模型** (FR-32): 6 字段 Error schema (`error` / `recoverable` / `suggested_actions` / `message` / `trace_"
+    },
+    {
+      "id": "01a0be1c-c21c-73cb-bf5a-ec8076858e20",
+      "identifier": "ULYS-128",
+      "title": "BD-STAR-CLI-003 — CL-2 11 扩展命令 + Universal Submit 暴露 5 步 基本設計",
+      "last_activity_at": "2026-09-20T15:19:58.441266Z",
+      "description_first_300": "BD-STAR-CLI-003 子任务描述 (CL-2 专题)\n\n## 上位要件\n[`docs/requirements/SRS-STAR-CLI-001.md`] v0.1 §4 CL-2 (FR-18 ~ FR-28) + §7 AC-2\n\n## 本 BD 覆盖范围 (与平行 BD 不重叠)\n- **CL-2 11 扩展命令** (FR-18 ~ FR-28):\n  - Universal Submit 暴露 5 步 (P0 必交付, per P1-H 修复 2026-08-27):\n    - FR-18 `star diff HEAD~1` — 暴露 Submit 步 4\n    - "
+    },
+    {
+      "id": "01a0be1c-90aa-71e5-83ad-b9741a3ad003",
+      "identifier": "ULYS-127",
+      "title": "BD-STAR-CLI-002 — CL-1+CL-3 MVP 17 核心命令 + 通用 flags + 子命令结构 基本設計",
+      "last_activity_at": "2026-09-20T15:27:57.938546Z",
+      "description_first_300": "BD-STAR-CLI-002 子任务描述 (CL-1 + CL-3 专题)\n\n## 上位要件\n[`docs/requirements/SRS-STAR-CLI-001.md`] v0.1 (commit 92e8db02) §3.2 + §4 CL-1/CL-3 + §5 NFR-1/6 + §7 AC-1/2/3/7/8\n\n## 本 BD 覆盖范围 (与平行 BD 不重叠)\n- **CL-1 MVP 17 核心命令** (FR-1 ~ FR-17): 8 业务域 (project/issue×3/task/context/code×3/workspace×2/worktree×3/mr×2"
+    },
+    {
+      "id": "01a0be49-9b56-7b93-a7c2-e7fa6c5919f2",
+      "identifier": "ULYS-147",
+      "title": "C-6 IdentityService::link (Guest→正式)",
+      "last_activity_at": "2026-09-20T13:28:43.092398Z",
+      "description_first_300": "依据 IM-ID-005 Account Linking。Guest upgrade + Account Merge 冲突检测, 集成测试。"
+    },
+    {
+      "id": "01a0be47-f01f-7507-b1f6-9ea9a2262356",
+      "identifier": "ULYS-142",
+      "title": "D-1 AppConfig::load() 真实化",
+      "last_activity_at": "2026-09-20T13:29:06.52479Z",
+      "description_first_300": "依据 ImplementationSpec §5 + aux-12 配置项规格 46 项。crates/im-common/src/config.rs 当前仅占位, 实装 env + toml + secret 三层合并 + validation + 错误聚合, 单测覆盖。"
+    },
+    {
+      "id": "01a0b89b-3990-7e25-bda1-ed52cf2c06fc",
+      "identifier": "ULYS-98",
+      "title": "对标cursor的功能要都在极简版有自己的方案",
+      "last_activity_at": "2026-09-20T11:51:09.908404Z",
+      "description_first_300": "对标cursor的功能要都在极简版有自己的方案"
+    },
+    {
+      "id": "01a0bd73-c3b0-731d-a05d-81292bd557e0",
+      "identifier": "ULYS-120",
+      "title": "ULYS-98-W4 Star Cursor 极简版 — Agent 模式 + 收口 (RFC/Spec/Evidence, Codex 可选切)",
+      "last_activity_at": "2026-09-20T15:52:03.515375Z",
+      "description_first_300": "ULYS-98 子任务 W4 (2026-10-12~10/18): Agent 沙箱 + tool calling + Agent mode + RFC/Spec/Evidence\n\n依赖: W3 Chat + Composer + W2 completion + W1 frontend\n\nagent 切换选项 (per D-Boy 批准): W4 可切 Codex (守门 #22 + Codex multi-step task 适配); 切换前需先确认 W3 已 commit\n\n6 sub-task:\n4.1 Agent 沙箱 + tool calling (4 tools: read_f"
+    },
+    {
+      "id": "01a0bd73-bc68-7d40-91ef-cf61cb8a123e",
+      "identifier": "ULYS-119",
+      "title": "ULYS-98-W3 Star Cursor 极简版 — Chat 完整对话 + Composer 多文件编辑",
+      "last_activity_at": "2026-09-20T11:15:11.624102Z",
+      "description_first_300": "ULYS-98 子任务 W3 (2026-10-5~10/11): Chat 持久化 + SSE 流式 + Composer 多文件 diff + RAG\n\n依赖: W2 (LLM provider 已接入)\n\n6 sub-task:\n3.1 Chat session 持久化 (chat_sessions / chat_messages 表 schema)\n3.2 Chat stream RPC SSE (GET /v1/chat/stream)\n3.3 frontend Chat 接 SSE (useChatStream.ts EventSource hook)\n3.4 Composer 多"
+    },
+    {
+      "id": "01a0bd93-b2a5-7133-994e-5bdd28105c53",
+      "identifier": "ULYS-122",
+      "title": "IM1.0 C-6 link_account UPDATE SQL 实装 (repo trait 新方法 + pg.rs impl + 集成测试 3 case)",
+      "last_activity_at": "2026-09-20T10:46:22.475312Z",
+      "description_first_300": "## 背景\n\nIM1.0 PoC-01 双终端 DM 关键路径唯一缺口。\n当前 `crates/im-core/src/identity/service.rs:247` 直接返 `InternalError`:\n\n```rust\n// 2. 绑定(MVP:不实现自动 merge,直接更新 user 记录)\n// 实现:UPDATE users SET external_identity = $1 WHERE id = $2\n// 留待 SQL 实现,目前返回未实现\nErr(AppError::Internal(anyhow::anyhow!(\n    \"link_account UPDATE "
+    },
+    {
+      "id": "01a0bd93-a45b-7943-999b-a10a722ffcf9",
+      "identifier": "ULYS-121",
+      "title": "IM1.0 D-1 AppConfig::load 实装 (figment + dotenvy + 27 env vars + 10 K3s Secret + 9 environments.setti",
+      "last_activity_at": "2026-09-20T10:18:12.532405Z",
+      "description_first_300": "## 背景\n\nIM1.0 MVP 12 周关键路径 (per `docs/138-dev-plan.md v1.13.0`)。当前 `crates/im-common/src/config.rs` 仍 stub:\n\n```\n//! DEPRECATED stub - moved to dedicated PR\n//! 暂时仅占位,见 lib.rs 注释\n```\n\nworktree `wt/lane-config-wireup` 已存在 (off `main HEAD 62079bc`, 当前 HEAD `d83275a`), 但无实装 commit, 等子任务开。\n\n## 范围\n\n### 1."
+    },
+    {
+      "id": "01a0bd73-b289-747d-bc35-f496fb177ff7",
+      "identifier": "ULYS-118",
+      "title": "ULYS-98-W2 Star Cursor 极简版 — AI 代码补全 + Cmd-K inline (anthropic/openai provider)",
+      "last_activity_at": "2026-09-20T09:17:10.153657Z",
+      "description_first_300": "ULYS-98 子任务 W2 (2026-09-28~10/4): 接入真 LLM provider + inline completion + Cmd-K + metering\n\n依赖: W1 (LlmProvider trait 扩展已定义, bff chat RPC stub 已存在)\n\n5 sub-task:\n2.1 domain-llm 真实 LLM provider 接入 (anthropic.rs + openai.rs + registry.rs)\n2.2 AI 补全 RPC (crates/bff/src/routes/completion.rs POST /v1/compl"
+    },
+    {
+      "id": "01a0bd73-a6b1-7deb-a93c-bda50248efa8",
+      "identifier": "ULYS-117",
+      "title": "ULYS-98-W1 Star Cursor 极简版 — 基础设施 (monaco + chat RPC + LlmProvider trait)",
+      "last_activity_at": "2026-09-20T19:32:09.659966Z",
+      "description_first_300": "ULYS-98 子任务 W1 (2026-09-21~9/27): Star 仓基础设施搭建\n\n父任务: ULYS-98\nBrief 落档: docs/briefs/ulys-98-star-cursor-min-v1.md (commit 1e0493bd)\nWorktree: /d/Star/.worktrees/wt-cursor-min-v1 (branch agent/cursor-min/wt-cursor-min-v1)\n派工模型: 单 agent 串行 W1~W4\n\n5 sub-task:\n1.1 frontend 接入 monaco editor (frontend/comp"
+    },
+    {
+      "id": "01a0b6cd-80ca-78c2-99c4-adcdef9f93c6",
+      "identifier": "ULYS-81",
+      "title": "编译",
+      "last_activity_at": "2026-09-20T05:42:43.487014Z",
+      "description_first_300": "所有先进分支合并进dev，确保正常启动k3s版"
+    },
+    {
+      "id": "01a0bbcc-33ae-7d58-8272-b80ca4bf4374",
+      "identifier": "ULYS-105",
+      "title": "未实现的设计汇总",
+      "last_activity_at": "2026-09-20T10:31:36.216568Z",
+      "description_first_300": "汇总未实现的设计和需求，完善文档，开子任务并行推进开发和测试"
+    },
+    {
+      "id": "01a0bcfe-f6fa-7351-b5f8-852f09f088fa",
+      "identifier": "ULYS-112",
+      "title": "ULYS-AGG 全仓未完成汇总 + 5 批子代理派工",
+      "last_activity_at": "2026-09-20T05:42:36.743926Z",
+      "description_first_300": "# Ulysses 全仓未完成汇总 + 子代理派工 (AGENT-CREATED)\n\n> 创建时间: 2026-09-20 12:55 JST\n> 触发: 用户要求\"汇总所有项目中的未完成内容，创建任务并派出子代理执行\"\n> 作者: Hermes Agent (MinimaxM3, c557dae5)\n\n## 盘点范围\n\nMultica workspace ULYS 共 **111 issues**：93 done / 14 in_review / 3 in_progress / 1 cancelled。\n\n**未完成 (in_review + in_progress) = 17 个**，全部"
+    },
+    {
+      "id": "01a0b8d4-baf3-7b8c-a7be-2b31f88509d8",
+      "identifier": "ULYS-103",
+      "title": "P2-#5: 跨域事件族清单补全 (ULYS-56 ADR-0061 P2)",
+      "last_activity_at": "2026-09-20T05:29:44.68913Z",
+      "description_first_300": "P2-#5: 跨域事件族清单补全 (ULYS-56 ADR-0061 P2 工程方案)\n\n## 背景\n\nRGS-ADR-0061 v0.3 §6 P2-#5 已立候选工程方案 (`docs/00-基准与治理/ULYS-56-follow-up-drafts/09_跨域事件族清单补全.md`, 148 行), 待 ADR-0061 具名人类审批通过 (DEC-008 闸门) 后正式启动。\n\n**目标**: 6 域 outbox 已捕获的事件族清单补全 + 新域 onboarding 时的事件族登记流程, 解决「不在事务内写 outbox 表的 DB 变更不会被传播」的覆盖范围盲区 (per AD"
+    },
+    {
+      "id": "01a0b7f5-f35a-7c7d-8dde-630bb128b928",
+      "identifier": "ULYS-95",
+      "title": "admin-service migration 0005 跨库外键 realm_lifecycle_run 导致 migrations 无法在空白 DB apply (3 集成测试 + k3s Pod",
+      "last_activity_at": "2026-09-20T05:29:14.096883Z",
+      "description_first_300": "## 症状\n\n`admin-service` 的 migration 无法在空白 DB 上 apply, 两处独立复现同一个错误:\n\n1. **集成测试** (`cargo test -p admin-service --test integration_admin_basic`, `DATABASE_URL` 指向可用 PG):\n\n```\npanicked at sqlx-core-0.8.6/src/testing/mod.rs:261:14:\nfailed to apply migrations: ExecuteMigration(Database(PgDatabaseError {\n "
+    },
+    {
+      "id": "01a0bbe7-90cf-7847-b35f-55529813b98d",
+      "identifier": "ULYS-111",
+      "title": "修复 e2e-smoke 剩余 5 FAIL: cluster-ops / gm-backend / grafana / economy readiness 镜像与 manifest 残留",
+      "last_activity_at": "2026-09-20T05:29:12.348029Z",
+      "description_first_300": "## 背景\n\nULYS-96 (cni0 linkdown / 宿主机→Pod 网段不通 / e2e-smoke 0/12) 的核心故障已修复,本 issue body §\"顺带需要清理的残留\"中明列的 **4 项非阻塞项**现仍 fail e2e-smoke 探针,把它们从 ULYS-96 scope 拆出来独立跟踪,免得 ULYS-96 卡在 12/12 不闭环。\n\n实测窗口(2026-09-20 03:49 JST,WSL uptime 3 min 后):cni0 `state UP` `LOWER_UP`,veth 出现,e2e-smoke **7/12 PASS**,4 域 gRPC"
+    },
+    {
+      "id": "01a0b7a8-d97f-7efc-9644-67a84b8265b9",
+      "identifier": "ULYS-87",
+      "title": "P0: 修复RGS-DTL-038文档ID冲突 - 核心传输防丢包主题 RGS-BAS-038+DTL-038+SPEC-DTL-038 → RGS-BAS-056+DTL-056+SPEC-DTL-",
+      "last_activity_at": "2026-09-20T05:31:06.415029Z",
+      "description_first_300": "P0: 修复RGS-DTL-038文档ID冲突\n\n**问题描述**:\nPR #41合并后，存在多个文档声称RGS-DTL-038编号，导致ID冲突：\n1. docs/00-基准与治理/RGS-DTL-038_卡牌游戏适配_详细设计书.md (原有)\n2. docs/02-运维安全与网络/RGS-DTL-038_核心传输防丢包强化_详细设计书.md (新）\n3. 可能还有其他冲突\n\n**影响范围**:\n- 文档登记册 (document-registry.toml)\n- 所有引用这两个文档的其他文档\n- 交叉引用链接\n\n**解决方案**:\n1. 保留卡牌游戏为 RGS-DTL-038（原编号）\n"
+    },
+    {
+      "id": "01a0b7a9-22da-7bb8-92d5-0bdbbfba47e0",
+      "identifier": "ULYS-88",
+      "title": "P1: 补充RGS-BAS-038协议选型矩阵 - 添加WebSocket",
+      "last_activity_at": "2026-09-20T05:31:13.41436Z",
+      "description_first_300": "P1: 补充RGS-BAS-038协议选型矩阵 - 添加WebSocket行\n\n**目的**: 更新RGS-BAS-038 §6周边协议选型矩阵，补充WebSocket已实现的信息\n\n**现状**: \n- RGS-BAS-038 v0.1已存在，但仅涉及QUIC + FEC编解码\n- WebSocket网络网关(ULYS-27)已实现，但未在BAS-038协议矩阵中反映\n\n**需更新位置**:\n- docs/02-运维安全与网络/RGS-BAS-038_核心传输防丢包强化与周边协议选型_基本设计书.md\n- §6 周边协议选型矩阵\n\n**补充内容**:\n| 功能 | 协议 | 可靠性 | 实时"
+    },
+    {
+      "id": "01a0bd2d-4cb5-7dc3-ae1d-2209c7b5995c",
+      "identifier": "ULYS-115",
+      "title": "ULYS-85.1 创建 RGS-BAS-058 WebSocket网络网关基本设计书 (父会话直做)",
+      "last_activity_at": "2026-09-20T05:11:42.177103Z",
+      "description_first_300": "# 批 1 + 批 2 子任务派工 briefs (POST-实读校正, 2026-09-20 13:20 JST)\n\n> 创建时间: 2026-09-20 13:20 JST\n> 父任务: ULYS-112 (汇总跟踪) + ULYS-84/85/87 (已校正编号)\n> 作者: Hermes Agent (c557dae5, minimaxm3)\n\n## 关键校正 (per `D:/RustGameServer` 实读)\n\n| 校正项 | brief 原说 | 实读后 |\n|---|---|---|\n| ULYS-84 编号 | REQ-027 | → **REQ-028** (027 被"
+    },
+    {
+      "id": "01a0bd2d-459e-7a41-8e3c-81f0a88d8d8f",
+      "identifier": "ULYS-114",
+      "title": "ULYS-84.1 创建 RGS-REQ-058 WebSocket网络网关需求定义书 (父会话直做)",
+      "last_activity_at": "2026-09-20T05:11:38.979619Z",
+      "description_first_300": "# 批 1 + 批 2 子任务派工 briefs (POST-实读校正, 2026-09-20 13:20 JST)\n\n> 创建时间: 2026-09-20 13:20 JST\n> 父任务: ULYS-112 (汇总跟踪) + ULYS-84/85/87 (已校正编号)\n> 作者: Hermes Agent (c557dae5, minimaxm3)\n\n## 关键校正 (per `D:/RustGameServer` 实读)\n\n| 校正项 | brief 原说 | 实读后 |\n|---|---|---|\n| ULYS-84 编号 | REQ-027 | → **REQ-028** (027 被"
+    },
+    {
+      "id": "01a0bd2d-53b8-77cf-a13f-c4b772bf10dd",
+      "identifier": "ULYS-116",
+      "title": "ULYS-87.1 RGS-DTL-038 + BAS-038 + SPEC-DTL-038 核心传输防丢包主题 → DTL-056+BAS-056+SPEC-DTL-056 重命名 (父会话直做)",
+      "last_activity_at": "2026-09-20T05:11:36.45931Z",
+      "description_first_300": "# 批 1 + 批 2 子任务派工 briefs (POST-实读校正, 2026-09-20 13:20 JST)\n\n> 创建时间: 2026-09-20 13:20 JST\n> 父任务: ULYS-112 (汇总跟踪) + ULYS-84/85/87 (已校正编号)\n> 作者: Hermes Agent (c557dae5, minimaxm3)\n\n## 关键校正 (per `D:/RustGameServer` 实读)\n\n| 校正项 | brief 原说 | 实读后 |\n|---|---|---|\n| ULYS-84 编号 | REQ-027 | → **REQ-028** (027 被"
+    },
+    {
+      "id": "01a0b7a8-9d16-7a75-8eeb-aa6b46105db5",
+      "identifier": "ULYS-86",
+      "title": "P0: 创建RGS-DTL-027 WebSocket网络网关详细设计书",
+      "last_activity_at": "2026-09-20T04:56:23.604882Z",
+      "description_first_300": "RGS-DTL-027: WebSocket网络网关 详细设计书\n\n按照IPA标准创建WebSocket网络网关的详细设计书。\n\n**输入**:\n- ws.rs实现细节（TLS/非TLS路径、帧处理、错误恢复）\n- codec.rs中FrameRouter trait实现\n- tcp.rs作为对比参考\n- 现有E2E测试(ws_smoke.rs, regression-2026-09-19)\n\n**交付**:\n- docs/02-运维安全与网络/RGS-DTL-027_WebSocket网络网关_详细设计书.md\n\n**主要章节**:\n1. 前言 - RGS-BAS-027实现展开\n2. 术语"
+    },
+    {
+      "id": "01a0b7b2-e70c-734d-bb36-e83f6af38a20",
+      "identifier": "ULYS-93",
+      "title": "ULYS-90: 修 network-gateway integration_phase15_demo wire format 与新 tcp.rs 不兼容",
+      "last_activity_at": "2026-09-20T04:56:14.065719Z",
+      "description_first_300": "## 上下文\n\nULYS-81 全量回归发现 `crates/network-gateway/tests/integration_phase15_demo.rs` 的 3 个测试挂死, 根因是 Phase 1.5 旧测试的 wire format 与 ULYS-27 重写后的 `tcp.rs::handle_conn` 不兼容。\n\n- 旧测试 (`integration_phase15_demo.rs:82` `send_recv_frame`) 写 `[code u32 BE][len u32 BE][payload]`, 读 header 8 字节 (4+4)\n- 新实现 (`crates"
+    },
+    {
+      "id": "01a0b7b2-d8f7-780f-b6e4-a1c98060894a",
+      "identifier": "ULYS-92",
+      "title": "ULYS-89: 修 economy-service activity_progress 幂等键失效 (W41 加固回归 C)",
+      "last_activity_at": "2026-09-20T04:56:09.498099Z",
+      "description_first_300": "## 上下文\n\nULYS-81 全量回归发现 W41 加固 (`36281fa`) 引入的真业务回归。`crates/economy-service/src/shop_service_tests.rs:1044` `activity_progress_increments_and_unlocks_tier` 第二次调用同一 `idempotency_key=\"prog-1\"` 应返回 `Error::IdempotencyConflict`, 实际返回 `Ok(ActivityProgressOutput { new_progress: 20, ... })` —— 幂等键完全没生效, 进度累"
+    },
+    {
+      "id": "01a0b7b2-cce5-7a53-8185-666feb855365",
+      "identifier": "ULYS-91",
+      "title": "ULYS-88: 修 player-service validate_character_name 禁词匹配 bug (W41 加固回归 B2)",
+      "last_activity_at": "2026-09-20T04:56:05.579433Z",
+      "description_first_300": "## 上下文\n\nULYS-81 全量回归发现 W41 加固 (`f27a1804`) 引入的真业务回归。`crates/player-service/src/service.rs:1141-1153` 的 `validate_character_name` 禁词匹配逻辑只覆盖了两种边界:\n\n```rust\nif lower == *f || lower.contains(&format!(\"{} \", f)) || lower.contains(&format!(\" {}\", f)) {\n```\n\n即完全等于 OR \"f \" 空格后 OR \" f\" 空格前。结果「cool-admin」中的「-"
+    },
+    {
+      "id": "01a0b7b2-c1ca-7247-a411-f205dee55722",
+      "identifier": "ULYS-90",
+      "title": "ULYS-87: 修 player-service rename_character 顺序 bug (W41 加固回归 B1)",
+      "last_activity_at": "2026-09-20T04:56:00.380738Z",
+      "description_first_300": "## 上下文\n\nULYS-81 全量回归发现 W41 加固 (`f27a1804`) 引入的真业务回归。`crates/player-service/src/service.rs:851-880` 的 `rename_character` 实现顺序错了:先 `find_by_name(new_name)` 查重, 再 `find_by_id(character_id)` 取 character。这意味着把 character A 的名字改成 A 自己的当前名字(`new_name == character.name`), 第一步查重直接命中自己 → 返回 `Error::NicknameTak"
+    },
+    {
+      "id": "01a0b7a8-68dc-7a76-88eb-1c7f6ae4c606",
+      "identifier": "ULYS-85",
+      "title": "P0: 创建RGS-BAS-058 WebSocket网络网关基本设计书 (原 BAS-027 已被客户端资源分发与热更新占; BAS-058 链一致 free)",
+      "last_activity_at": "2026-09-20T05:31:11.29345Z",
+      "description_first_300": "RGS-BAS-027: WebSocket网络网关 基本设计书\n\n按照IPA标准创建WebSocket网络网关的基本设计书。\n\n**输入**:\n- network-gateway lib.rs代码注释\n- FrameRouter trait设计（codec.rs）\n- TCP/WebSocket双路径架构\n\n**交付**:\n- docs/02-运维安全与网络/RGS-BAS-027_WebSocket网络网关_基本设计书.md\n\n**主要章节**:\n1. 前言 - ULYS-27 Phase 2交付说明\n2. 术语约定\n3. 设计目标与约束\n4. 架构总览 - FrameRouter抽象、T"
+    },
+    {
+      "id": "01a0b7a8-304a-7353-aec7-6805360e5d56",
+      "identifier": "ULYS-84",
+      "title": "P0: 创建RGS-REQ-058 WebSocket网络网关需求定义书 (原 REQ-027 已被 App集群自动化部署脚本占; REQ-028 已被 反作弊+风控规则DSL 占; 058 三层链一",
+      "last_activity_at": "2026-09-20T05:31:08.699985Z",
+      "description_first_300": "RGS-REQ-027: WebSocket网络网关 需求定义书\n\n按照IPA标准创建WebSocket网络网关的需求定义书。\n\n**输入**:\n- ULYS-27实现代码 (crates/network-gateway/src/ws.rs)\n- 改进路线图 (9/4版) Phase 1/2规划\n- E2E测试结果 (regression-2026-09-19)\n\n**交付**:\n- docs/02-运维安全与网络/RGS-REQ-027_WebSocket网络网关_需求定义书.md\n- 包含: FR-NG-001~010 (功能需求) + NFR-NG-001~005 (非功能) + AC-"
+    },
+    {
+      "id": "01a0bbd1-aaee-7a4a-bb25-9db4aafac58a",
+      "identifier": "ULYS-109",
+      "title": "ULYS-105.4 P3-D.6 阶段 2 业务 + ARG 续做 — 派子代理跨 worktree 并行",
+      "last_activity_at": "2026-09-20T01:43:42.945128Z",
+      "description_first_300": "# ULYS-105.4 P3-D.6 阶段 2 业务 + ARG 续做 — 派子代理跨 worktree 并行\n\n> **Parent**: [ULYS-105](https://multica.example/issue/ULYS-105)\n> **Trigger**: per [STAR-ULYS-105-AGGREGATE-001.md](../reports/STAR-ULYS-105-AGGREGATE-001.md) §6 子任务 4 + §3.1 派生 #1-#6 + #10-#13 + 守门 #9 v19 子代理派工模式\n> **Authority**: Ulysses (一"
+    },
+    {
+      "id": "01a0bbd1-8a7b-77ee-a32a-6cf22e46e1c2",
+      "identifier": "ULYS-108",
+      "title": "ULYS-105.3 续做项切真 — 跨 session 续做项挑 1-2 项切真",
+      "last_activity_at": "2026-09-20T01:47:48.806765Z",
+      "description_first_300": "# ULYS-105.3 续做项切真 — 跨 session 续做项挑 1-2 项切真\n\n> **Parent**: [ULYS-105](https://multica.example/issue/ULYS-105)\n> **Trigger**: per [STAR-ULYS-105-AGGREGATE-001.md](../reports/STAR-ULYS-105-AGGREGATE-001.md) §6 子任务 3 + §3.4 跨 session 续做项 + §5 决策 #3 推荐 B (挑 1-2 项切真, per 9/4 13:43 JST 排序原则)\n> **Authority"
+    },
+    {
+      "id": "01a0bbd1-6d61-76f9-92b9-cb224bb28372",
+      "identifier": "ULYS-107",
+      "title": "ULYS-105.2 已知缺口回归 — OPT-A4 18 缺口 + WBS v1.04 §15 阻塞逐项 review",
+      "last_activity_at": "2026-09-20T01:45:13.069787Z",
+      "description_first_300": "# ULYS-105.2 已知缺口回归 — OPT-A4 18 缺口 + WBS v1.04 §15 阻塞逐项 review\n\n> **Parent**: [ULYS-105](https://multica.example/issue/ULYS-105)\n> **Trigger**: per [STAR-ULYS-105-AGGREGATE-001.md](../reports/STAR-ULYS-105-AGGREGATE-001.md) §6 子任务 2 + §3.1 派生 #14/#15/#16 + §3.2 in-flight Multica issues 17 项 + 守门 #11"
+    },
+    {
+      "id": "01a0bbd1-55b6-772b-bfd9-b40e1fc0e557",
+      "identifier": "ULYS-106",
+      "title": "ULYS-105.1 docs-fixup — STAR-P3-WBS-001 §15 + UNIMPL-WBS v0.1 + OPT-WBS v0.1 同步修正",
+      "last_activity_at": "2026-09-20T01:43:35.258973Z",
+      "description_first_300": "# ULYS-105.1 docs-fixup — STAR-P3-WBS-001 §15 + UNIMPL-WBS v0.1 + OPT-WBS v0.1 同步修正\n\n> **Parent**: [ULYS-105](https://multica.example/issue/ULYS-105)\n> **Trigger**: per [STAR-ULYS-105-AGGREGATE-001.md](../reports/STAR-ULYS-105-AGGREGATE-001.md) §6 子任务 1 + §3.3 已过期 doc 引用 + 9/20 07:30 JST ULYS-105 描述"
+    },
+    {
+      "id": "01a0b8d4-9e60-7315-a42c-67c1964e0cf7",
+      "identifier": "ULYS-101",
+      "title": "P2-#3: Poison Event DLQ 处理流程 (ULYS-56 ADR-0061 P2)",
+      "last_activity_at": "2026-09-20T00:24:07.848925Z",
+      "description_first_300": "P2-#3: Poison Event DLQ 处理流程 (ULYS-56 ADR-0061 P2 工程方案)\n\n## 背景\n\nRGS-ADR-0061 v0.3 §6 P2-#3 已立候选工程方案 (`docs/00-基准与治理/ULYS-56-follow-up-drafts/07_PoisonEvent_DLQ草案.md`, 140 行), 待 ADR-0061 具名人类审批通过 (DEC-008 闸门) 后正式启动。\n\n**当前缺口** (`crates/shared-platform/src/outbox.rs`): 4 状态机 `Failed` 状态仅 `last_error` 字"
+    },
+    {
+      "id": "01a0b8d4-6a80-7e2b-9b7d-4f26a45b5f6e",
+      "identifier": "ULYS-100",
+      "title": "P2-#2: Outbox 监控指标落地 (ULYS-56 ADR-0061 P2)",
+      "last_activity_at": "2026-09-20T00:03:53.625593Z",
+      "description_first_300": "P2-#2: Outbox 监控指标落地 (ULYS-56 ADR-0061 P2 工程方案)\n\n## 背景\n\nRGS-ADR-0061 v0.3 §6 P2-#2 已立候选工程方案 (`docs/00-基准与治理/ULYS-56-follow-up-drafts/06_Outbox监控指标草案.md`, 129 行), 待 ADR-0061 具名人类审批通过 (DEC-008 闸门) 后正式启动。\n\n**候选指标依据**: `crates/shared-platform/src/outbox.rs` 4 状态机 (Pending / InFlight / Sent / Failed + `l"
+    },
+    {
+      "id": "01a0b7f6-948e-7509-92c7-290acbfc6c3a",
+      "identifier": "ULYS-96",
+      "title": "k3s: cni0 linkdown 导致宿主机到 Pod 网段不通, e2e-smoke 12 探针 0/12",
+      "last_activity_at": "2026-09-19T23:02:31.306622Z",
+      "description_first_300": "## 症状\n\n`scripts/e2e-smoke.ps1` 12 探针 **0 pass / 12 fail** (2026-09-19 13:21 JST):\n\n```\n❌ player-service-grpc   FAIL  ip=10.42.0.8   port=50051 http=000000\n❌ economy-service-grpc  FAIL  ip=10.42.0.253 port=50052 http=000000\n❌ match-service-grpc    FAIL  ip=10.42.0.4   port=50053 http=000000\n❌ social-"
+    },
+    {
+      "id": "01a0b8d4-ad4c-74e5-b595-31968785c66d",
+      "identifier": "ULYS-102",
+      "title": "P2-#4: Outbox Schema Evolution 流程 (ULYS-56 ADR-0061 P2)",
+      "last_activity_at": "2026-09-19T12:56:14.990544Z",
+      "description_first_300": "P2-#4: Outbox Schema Evolution 流程 (ULYS-56 ADR-0061 P2 工程方案)\n\n## 背景\n\nRGS-ADR-0061 v0.3 §6 P2-#4 已立候选工程方案 (`docs/00-基准与治理/ULYS-56-follow-up-drafts/08_Outbox_SchemaEvolution草案.md`, 110 行), 待 ADR-0061 具名人类审批通过 (DEC-008 闸门) 后正式启动。\n\n**目标**: 6 域 outbox 表 schema 演进 (新增列 / 修改列 / 新增 aggregate_type) 的标准化流程, 避"
+    },
+    {
+      "id": "01a0b891-0f97-79b3-96da-10f377e85e36",
+      "identifier": "ULYS-97",
+      "title": "ULYS-94 followup: player-service lib 2 测试 + economy-service lib 1 测试 代码回归 (rename_character_*, activ",
+      "last_activity_at": "2026-09-19T12:42:08.386189Z",
+      "description_first_300": "## 背景\n\nULYS-94 在 Step 2 重跑 12 个 DB fixture 集成测试时, 顺带跑 `--lib` 暴露 3 个 **代码级**回归 (与 WSL/PG/k3s 基础设施无关, 与 ULYS-95 跨库外键 / ULYS-96 cni0 linkdown 是独立缺陷):\n\n| 测试 | crate | 期望 | 实际 |\n|---|---|---|---|\n| `service::tests::rename_character_unchanged_name_noop` | player-service | `Ok(())` (同名 noop) | `Err(Nickna"
+    },
+    {
+      "id": "01a0b7a4-b220-78b3-a8fb-a4a0d14fdefb",
+      "identifier": "ULYS-83",
+      "title": "ULYS-83: cargo audit + outdated audit for RGS workspace + Admin-services",
+      "last_activity_at": "2026-09-19T10:18:07.215706Z",
+      "description_first_300": "1. Run dependency audit tools on the project (npm audit, go vuln check, etc.)\n2. Identify any packages with known security vulnerabilities\n3. List outdated packages that are more than 2 major versions behind\n4. For each finding, note the severity, affected package, and recommended fix\n5. Post a summ"
+    },
+    {
+      "id": "01a0b89e-e6f5-72a1-8bef-d86768e6a6d5",
+      "identifier": "ULYS-99",
+      "title": "启动最新版dev分支的k3s版本",
+      "last_activity_at": "2026-09-19T12:30:26.215239Z",
+      "description_first_300": "启动最新版dev分支的k3s版本"
+    },
+    {
+      "id": "01a0b7a9-a9e7-7ee6-b8a7-c0e8f5af0235",
+      "identifier": "ULYS-89",
+      "title": "P1: 跟踪并推进ULYS-56 P2工程方案 - 等待P0审批",
+      "last_activity_at": "2026-09-19T09:02:59.670296Z",
+      "description_first_300": "P1: 推进ULYS-56 P2阶段工程方案 - 等待P0审批后启动\n\n**当前状态**: ULYS-56已完成ADR-0061 v0.3，但有4个P2工程方案草案等待P0具名人类审批\n\n**P2项目清单** (4项，位置: docs/00-基准与治理/ULYS-56-follow-up-drafts/):\n\n1. **P2-#1**: Outbox监控指标草案 (06_Outbox监控指标草案.md)\n   - 主导: SRE Lead\n   - 实施: 架构师 + SRE\n   - 预计: 2-3周\n\n2. **P2-#2**: Poison Event DLQ处理流程 (07_Poiso"
+    },
+    {
+      "id": "01a0a4d8-6669-77ee-bbb1-758e19e69244",
+      "identifier": "ULYS-57",
+      "title": "制作Worktree页面各级文档",
+      "last_activity_at": "2026-09-19T06:59:20.957198Z",
+      "description_first_300": "你是一名资深软件架构师、产品经理、Git 工程专家、图数据库架构师、AI Agent 系统设计师以及企业级 UI/UX 架构师。\n\n你的任务是针对一个“面向 AI 并行开发场景的 Worktree 无限画布管理模块”，依次生成：\n\n1. 需求文档\n2. 基本设计\n3. 详细设计\n\n必须按照这个顺序生成，后一阶段必须继承前一阶段的结论，不允许重新定义核心概念，不允许出现术语漂移、架构冲突、功能遗漏。\n\n本模块将集成到一个类似 Multica 的 AI 原生软件中，用于帮助人类管理大量 AI Agent 并行产生的 Git Worktree。\n\n本模块不是传统 Git GUI，也不是单纯的 Git"
+    },
+    {
+      "id": "01a0b7a4-9c1b-702f-b149-ad3721553484",
+      "identifier": "ULYS-82",
+      "title": "ULYS-82 项目变化汇总与IPA文档更新分析",
+      "last_activity_at": "2026-09-19T06:51:22.24156Z",
+      "description_first_300": "汇总项目变化，按照日本IPA标准更新相关文档，如遇不符合，以需求文档为准，进行补充优化，如有必要则创建相关任务\n\n---\n*Autopilot run triggered at 2026-09-19 12:10 Asia/Tokyo. After starting work, rename this issue to accurately reflect what you are doing.*"
+    },
+    {
+      "id": "01a0b15b-2829-73e0-8562-48305e4a9e2d",
+      "identifier": "ULYS-79",
+      "title": "INC-08 Trace ID 格式三套冲突 (UUID/ULID/W3C → W3C TraceContext 唯一)",
+      "last_activity_at": "2026-09-18T19:03:02.468031Z",
+      "description_first_300": "INC-08 Trace ID 格式三套冲突 — DD-05 v1.2 §12.8 Recommended 项。Stage 2 残件，与 INC-07 并行启动。\n\n## 上下文\n\nDD-05 v1.2 §12.8 列 INC-08 为 Recommended：\n- DD-02 使用 session_id UUID 格式（v4）\n- DD-04b 使用 ULID 格式（`01H...` Crockford Base32）\n- DD-04 使用 W3C TraceContext 标准（`traceparent: 00-<trace-id>-<span-id>-<flags>`）\n\n三种格式在跨进"
+    },
+    {
+      "id": "01a0b15b-198f-7caf-a4ba-f86d543e9ed0",
+      "identifier": "ULYS-78",
+      "title": "INC-07 Error 体系三套并存 (DD-01/02/04 → IFD-001 v1.1 统一 namespace)",
+      "last_activity_at": "2026-09-18T19:03:00.863665Z",
+      "description_first_300": "INC-07 Error 体系三套并存 — DD-05 v1.2 §12.8 Recommended 项。Stage 2 残件，与 INC-08 并行启动。\n\n## 上下文\n\nDD-05 v1.2 §12.8 列 INC-07 为 Recommended（不阻断 Stage 2 close，但是剩余项之一）：\n- DD-01 使用 ERR-CB-XXX 命名空间（Command Bus 専用）\n- DD-02 使用 ERR-SM/TM/BE-XXX 命名空间（Session / Transaction / Buffer 専用）\n- IFD-001 v1.1 §6.2 定义统一 namespac"
+    },
+    {
+      "id": "01a0b15b-0a7e-7e84-96d2-79a535312e95",
+      "identifier": "ULYS-77",
+      "title": "DD-12 運用設計書 (デプロイ / 監視 / 障害対応 / RTO/RPO / SLA)",
+      "last_activity_at": "2026-09-18T19:02:59.367073Z",
+      "description_first_300": "DD-12 運用設計書 — Stage 3 新增子任务。DD-05 v1.2 §10.4.3 与 §12.9 已规划本任务，与 DD-10/11 并行启动。\n\n## 上下文\n\nStage 1 全部 8 个 DD 已通过验收。Stage 2 评级：実質承認。\n\nDD-05 v1.2 全文：`agent/minimaxm3/ulys-42` worktree @ commit `f681a94` (1,171 行)。\nStage 1 输入文档在 `inputs/`：AD-001 v1.1 / IFD-001 v1.1 / NFR-001 v1.1 / REQ-001 v1.1 / SD-001 v"
+    },
+    {
+      "id": "01a0b15a-fb70-7098-a12b-4df53de212dc",
+      "identifier": "ULYS-76",
+      "title": "DD-11 テスト設計書 (UT/IT/ST/PT/SecT 5 層 + CI 統合)",
+      "last_activity_at": "2026-09-18T19:02:54.66324Z",
+      "description_first_300": "DD-11 テスト設計書 — Stage 3 新增子任务。DD-05 v1.2 §10.4.3 与 §12.9 已规划本任务，与 DD-10/12 并行启动。\n\n## 上下文\n\nStage 1 全部 8 个 DD 已通过验收。Stage 2 评级：実質承認。\n\nDD-05 v1.2 全文：`agent/minimaxm3/ulys-42` worktree @ commit `f681a94` (1,171 行)。\nStage 1 输入文档在 `inputs/`：AD-001 v1.1 / IFD-001 v1.1 / NFR-001 v1.1 / REQ-001 v1.1 / SD-001 "
+    },
+    {
+      "id": "01a0b15a-ec9a-750d-8cfb-716234d77d24",
+      "identifier": "ULYS-75",
+      "title": "DD-10 実装計画書 (Rust crate 分解 / Cargo workspace / MVP-1..4)",
+      "last_activity_at": "2026-09-18T19:02:57.614271Z",
+      "description_first_300": "DD-10 実装計画書 — Stage 3 新增子任务。DD-05 v1.2 §10.4.3 与 §12.9 已规划本任务，与 DD-06/11/12 并行启动。\n\n## 上下文\n\nStage 1 全部 8 个 DD 已通过验收（DD-01..04 + 04b + DD-06..09）。Stage 2 评级：実質承認。Stage 3 现需把已批准的设计下沉到実装層级。\n\nDD-05 v1.2 全文：`agent/minimaxm3/ulys-42` worktree @ commit `f681a94` (1,171 行, 含 §12 v1.2 差分评估)。\nStage 1 输入文档在 `in"
+    },
+    {
+      "id": "01a0a08a-f81f-79b9-a78c-68da63c4bf42",
+      "identifier": "ULYS-44",
+      "title": "CATs: task-service SSE 进度推送端点未实现 + auth-service e2e 轮询断言隐患",
+      "last_activity_at": "2026-09-18T15:17:15.662527Z",
+      "description_first_300": "CATs 仓库（`main` 分支，检查基于 checkout `agent/sonnet/2509360488ca`）中存在两个独立但形状相似的问题：一是设计文档已承诺、但代码从未落地的 SSE 端点；二是 `auth-service` 已落地代码中一处用轮询 sleep 伪装\"等待异步产出\"的断言隐患。二者都属于\"异步产出与断言/契约未真正串联\"的范畴，故合并记录，建议拆分为两个独立子任务分别处理。\n\n## 问题一：`task-service` 的 SSE 进度推送端点未实现\n\n### 背景\n\n`doc/03-详细设计/接口设计/CATs_接口设计书_v2.0.md:301` 已明确定义契"
+    },
+    {
+      "id": "01a0a2e8-ff6b-713e-b494-dacfcdaae114",
+      "identifier": "ULYS-54",
+      "title": "调查缓存使用redis而非Valkey的原因",
+      "last_activity_at": "2026-09-18T15:18:22.77712Z",
+      "description_first_300": "从技术选型文档到设计到实际部署一系列流程中，找到没有按要求选用valkey的原因。并横向展开找和我这份设计有出入的点：Rust 全开源分布式游戏服务器开发提示词 v2\n\n1. WHAT — 目标\n\n设计并实现一套生产级、完全开源、免费、可私有部署、Rust 优先的分布式游戏服务器基础设施。\n\n目标：\n\n *支持 MMO / 多人在线游戏。*\n 支持高并发连接、房间、场景、玩家实体和实时战斗。\n *采用 Database Ownership / Database-per-Bounded-Context。*\n 实时游戏 Runtime 与业务微服务分离。\n *避免跨数据库 2PC。*\n 保证 DB"
+    },
+    {
+      "id": "01a0a2fc-f587-7ae3-9ba3-5e8845d46dd5",
+      "identifier": "ULYS-56",
+      "title": "ULYS-54.B: CDC / Outbox 偏离正式化 — 立 ADR-0061 把自研 Outbox 取代 Debezium CDC 归档",
+      "last_activity_at": "2026-09-18T15:16:45.970105Z",
+      "description_first_300": "子任务 B：CDC / Outbox 偏离正式化 — 立 ADR-0061 把「自研 Outbox 取代 Debezium CDC」正式归档（拆分自 ULYS-54 横向扫描 §4.4）\n\n## 背景\n\n`docs/00-基准与治理/ULYS-54-RGS-INV-001_缓存选型与设计偏离调查报告_v0.1.md` §4.4 已记录 CDC / Outbox 偏离：参考设计 §16-18 明确写 `PostgreSQL WAL → Debezium → Kafka`（Outbox 模式 + Debezium CDC → Kafka），但 RGS 实际走自研 Outbox 路径——`crate"
+    },
+    {
+      "id": "01a0a2fc-e4d0-7cd2-86cb-c114fdd41bf3",
+      "identifier": "ULYS-55",
+      "title": "ULYS-54.A: 事件总线偏离正式化 — 立 ADR-0060 把 NATS JetStream vs Kafka 偏离归档",
+      "last_activity_at": "2026-09-18T19:02:49.658074Z",
+      "description_first_300": "子任务 A：事件总线偏离正式化 — 立 ADR-0060 把 NATS JetStream vs Kafka 的偏离正式归档（拆分自 ULYS-54 横向扫描 §4.3）\n\n## 背景\n\n`docs/00-基准与治理/ULYS-54-RGS-INV-001_缓存选型与设计偏离调查报告_v0.1.md` §4.3 已记录事件总线偏离：参考设计 §2 + §11 明确写 `Apache Kafka`，但 RGS 实际选用 NATS JetStream 2.10+（per RGS-TS-001 §3.6.1，自 v0.7 2026-08-24 起状态升「已决策:NATS JetStream」）。偏离"
+    },
+    {
+      "id": "01a0a9d9-1d93-70a5-9b34-24bb1ab7db9c",
+      "identifier": "ULYS-62",
+      "title": "ULYS-57.5 测试 + NFR + 自审修正 (T4.1-T4.8)",
+      "last_activity_at": "2026-09-18T13:26:46.827718Z",
+      "description_first_300": "# ULYS-57.5 — 测试 + NFR + 自审修正 (T4.1-T4.8)\n\n> **AI Worktree Graph Canvas** 子任务 5/5 — 验证层 (测试实证 + NFR benchmark + Critical 自审修正)\n>\n> - **Parent**: ULYS-57 — `01a0a4d8-6669-77ee-bbb1-758e19e69244`\n> - **触发**: 2026-09-16 10:48 JST 评论者发令\n> - **依赖**: ULYS-57.1 + ULYS-57.2 + ULYS-57.3 + ULYS-57.4 (4 子任务全部完"
+    },
+    {
+      "id": "01a0a9d9-0df2-70f9-be5c-203468781d07",
+      "identifier": "ULYS-60",
+      "title": "ULYS-57.3 5 engine (T8-T12)",
+      "last_activity_at": "2026-09-18T13:26:43.867454Z",
+      "description_first_300": "# ULYS-57.3 — 5 engine (T8-T12)\n\n> **AI Worktree Graph Canvas** 子任务 3/5 — 引擎层 (action-engine + event-bus + layout-engine + query-engine + canvas-renderer)\n>\n> - **Parent**: ULYS-57 — `01a0a4d8-6669-77ee-bbb1-758e19e69244`\n> - **触发**: 2026-09-16 10:48 JST 评论者发令\n> - **依赖**: ULYS-57.1 (T1+T2) + ULYS-57"
+    },
+    {
+      "id": "01a0a264-10bf-7ded-9f9d-99f29ede7389",
+      "identifier": "ULYS-52",
+      "title": "治理仓库，智能合并",
+      "last_activity_at": "2026-09-18T13:26:40.425006Z",
+      "description_first_300": "先进分支合并到dev和main\n\n\n|                     |                                                |\n| ------------------- | ---------------------------------------------- |\n| 143 个本地 worktree 分支 | 大量已远落后 main (数百到上千 commit), 历史 plan residue 残留 |"
+    },
+    {
+      "id": "01a0a094-897c-7eab-a0e6-b0d497c4a857",
+      "identifier": "ULYS-45",
+      "title": "子任务A: task-service SSE 进度推送端点从 0 到 1 实现",
+      "last_activity_at": "2026-09-18T13:26:38.292981Z",
+      "description_first_300": "子任务 A：`task-service` SSE 进度推送端点从 0 到 1 实现（拆分自 ULYS-44）\n\n## 背景\n\n`doc/03-详细设计/接口设计/CATs_接口设计书_v2.0.md:301` 已定义契约：\n\n| Method | Path | 说明 | 认证 | 幂等性 |\n|---|---|---|---|---|\n| GET | `/v1/tasks/{id}/events`（SSE） | 任务进度实时推送 | Bearer | 是（只读流） |\n\n`cats-bff/README.md:15` 概述提到\"聚合多服务调用、鉴权透传、SSE 进度推送\"；`doc/_buil"
+    },
+    {
+      "id": "01a09dcf-f6b8-78e5-83f6-3d362d98c264",
+      "identifier": "ULYS-42",
+      "title": "DD-05 詳細設計書 統合自己審査報告 (Cross-Review)",
+      "last_activity_at": "2026-09-18T02:09:41.666805Z",
+      "description_first_300": "Stage 1 全部完成后启动：对四份详细设计书（DD-01 ～ DD-04）做集成层自我审查（Cross-Review）。\n\n## 输入\n\n- DD-01_Microkernel_Core詳細設計書.md\n- DD-02_Session_Transaction_Buffer_Engine詳細設計書.md\n- DD-03_Plugin_Extension詳細設計書.md\n- DD-04_Internal_API_詳細設計書.md (+ 04b)\n- REQ-001（要件定義書）\n- NFR-001（非機能要件定義書）\n- AD-001（基本設計書）\n- SD-001（安全性設計書）\n- IFD"
+    },
+    {
+      "id": "01a0b1a3-34be-7c2e-8078-74884ca07a9d",
+      "identifier": "ULYS-80",
+      "title": "解决mr冲突",
+      "last_activity_at": "2026-09-18T01:04:42.538351Z",
+      "description_first_300": "[https://github.com/UlyssesLeoLee/Star/pull/53](https://github.com/UlyssesLeoLee/Star/pull/53)和[https://github.com/UlyssesLeoLee/Star/pull/54](https://github.com/UlyssesLeoLee/Star/pull/54)的mr冲突智能取舍解决一下"
+    },
+    {
+      "id": "01a0bbd5-7df5-72e6-91be-013332c95bba",
+      "identifier": "ULYS-110",
+      "title": "部署",
+      "last_activity_at": "2026-09-20T22:36:16.916596Z",
+      "description_first_300": "把服务器部署到vercel"
+    },
+    {
+      "id": "01a0ac85-ab49-7de5-a574-6d4178e68861",
+      "identifier": "ULYS-63",
+      "title": "Dev",
+      "last_activity_at": "2026-09-18T00:42:16.743425Z",
+      "description_first_300": "智能合并所有先进内容到main，然后开dev分支"
+    },
+    {
+      "id": "01a0a1f2-94d4-7095-8bee-ae138aca727a",
+      "identifier": "ULYS-47",
+      "title": "当前完成闭环启动",
+      "last_activity_at": "2026-09-18T00:41:59.323789Z",
+      "description_first_300": "我要去见投资人，你帮我把这个项目规划一下，合并先进分支到main，开设dev分支，并确保dev是最新的可完整启动的k3s版本，并更新readme，让它更加适合投资人评估"
+    },
+    {
+      "id": "01a0a21b-154c-783f-be9a-be889b29e0fe",
+      "identifier": "ULYS-48",
+      "title": "完成审核任务",
+      "last_activity_at": "2026-09-18T00:40:11.043585Z",
+      "description_first_300": "目前积累的待审核任务全推进到完成"
+    },
+    {
+      "id": "01a0a9d9-16fe-7761-96fa-22ba61cc04a1",
+      "identifier": "ULYS-61",
+      "title": "ULYS-57.4 BFF + Frontend (T13-T14)",
+      "last_activity_at": "2026-09-18T00:32:53.753596Z",
+      "description_first_300": "# ULYS-57.4 — BFF + Frontend (T13-T14)\n\n> **AI Worktree Graph Canvas** 子任务 4/5 — 集成层 (BFF module + Frontend 30 TS files)\n>\n> - **Parent**: ULYS-57 — `01a0a4d8-6669-77ee-bbb1-758e19e69244`\n> - **触发**: 2026-09-16 10:48 JST 评论者发令\n> - **依赖**: ULYS-57.1 (T1+T2) + ULYS-57.2 (T3-T7) + ULYS-57.3 (T8-T12)\n> "
+    },
+    {
+      "id": "01a0b154-0f02-75fe-86c0-b57fd32db552",
+      "identifier": "ULYS-74",
+      "title": "导航与标签页",
+      "last_activity_at": "2026-09-17T22:10:46.224074Z",
+      "description_first_300": "导航与标签页参考jira的做法，可高度自定义，导航为树形结构，各个标签页可以展开导航后显示，点击标签页会打开一个类似windows explorer的标签页，可点叉关闭，点不同的就增加，点相同就切换到已开的标签页，整体UX设计完善到位"
+    },
+    {
+      "id": "01a0aed6-cb27-79ae-a5ca-c7a2e367af98",
+      "identifier": "ULYS-69",
+      "title": "DD-06 TUI 層詳細設計書 (FR-009 + FR-010)",
+      "last_activity_at": "2026-09-17T15:18:47.020885Z",
+      "description_first_300": "DD-06 TUI 層 詳細設計書 — DD-05 v1.1 推进路径 C 新增 Stage 1 子任务 1/4。\n\n## 上下文\n\nFR-009 (4 つの実行モード Standalone IDE Mode) + FR-010 (Vim 編集モデル) 完全无 DD 设计。AD-001 §4.1 TUI 構成 + §4.2 TUI ライフサイクル 已确定框架，需详细设计书下沉到实现层。\n\nDD-05 v1.1 §3.1 FR 覆盖矩阵 + §10.4.2 Stage 3 任务分解已列本子任务为 DD-06。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §10.4."
+    },
+    {
+      "id": "01a09dcf-e84b-7846-80df-ae8256d1094f",
+      "identifier": "ULYS-41",
+      "title": "DD-04 内部 API + 横断关切詳細設計書",
+      "last_activity_at": "2026-09-17T15:18:44.155255Z",
+      "description_first_300": "基于已批准的基本设计书 (AD-001) 与安全性设计书 (SD-001) 制作跨切面（Cross-Cutting）详细设计书，并整合内部 API 详细规范。\n\n## 设计对象\n\n以下横切关注点与内部 API 规范：\n\n1. **Internal API Contract** — Core 与 Plugin 之间、Core 内部模块之间的所有内部 API（IF-CMD-001 等的内部实现层）\n2. **Error 体系** — 统一错误码、Error 类型层次、跨模块传播\n3. **Logging / Tracing** — 统一日志格式、Trace ID / Span、Correlatio"
+    },
+    {
+      "id": "01a09dcf-dad7-7bd8-9937-8b3815fbe75f",
+      "identifier": "ULYS-40",
+      "title": "DD-03 Plugin / Extension 詳細設計書 (Manager / Loader / Sandbox / Hot Swap)",
+      "last_activity_at": "2026-09-17T15:18:42.595936Z",
+      "description_first_300": "基于已批准的基本设计书 (AD-001) 与安全性设计书 (SD-001) 制作 Plugin / Extension 子系统的详细设计书。\n\n## 设计对象\n\nPlugin 子系统涵盖（基本设计 4.x 已确定）：\n\n1. **Plugin Manager** — 插件注册/启停/版本/依赖管理\n2. **Plugin Loader** — 动态加载（动态库 / WASM / 独立进程）与生命周期\n3. **Plugin Sandbox** — 隔离执行（权限 / 资源限制 / 系统调用白名单）\n4. **Plugin Hot Swap** — 热插拔（不中断会话的升级/降级）\n5. **C"
+    },
+    {
+      "id": "01a09dcf-cc33-748b-8d03-9e32aa47789c",
+      "identifier": "ULYS-39",
+      "title": "DD-02 Session / Transaction / Buffer Engine 詳細設計書",
+      "last_activity_at": "2026-09-17T15:18:40.923431Z",
+      "description_first_300": "基于已批准的基本设计书 (AD-001) 制作 Session / Transaction / Buffer Engine 子系统的详细设计书。\n\n## 设计对象\n\n以下三个运行时/状态管理组件（基本设计 4.x 已确定）：\n\n1. **Session Manager** — 会话管理：会话生命周期、上下文、隔离、恢复\n2. **Transaction Manager** — 事务管理：跨插件/跨能力的事务边界、回滚、补偿\n3. **Buffer Engine** — 缓冲引擎：文本/数据缓冲、Undo/Redo、协作编辑、持久化\n\n## 上位设计\n\n- ULYS-37 / REQ-001 /"
+    },
+    {
+      "id": "01a09dcf-be01-70e2-9209-32f591e64f06",
+      "identifier": "ULYS-38",
+      "title": "DD-01 Microkernel Core 詳細設計書 (Command Bus / Event Bus / Capability Registry)",
+      "last_activity_at": "2026-09-17T15:18:39.429314Z",
+      "description_first_300": "基于已批准的基本设计书 (AD-001) 制作 Microkernel Core 子系统的详细设计书。\n\n## 设计对象\n\n以下三个核心总线/注册中心（基本设计 4.x 已确定）：\n\n1. **Command Bus** — 命令总线：所有 Command 的统一入口/分发/执行编排\n2. **Event Bus** — 事件总线：解耦的发布/订阅，含主题/分区/顺序保证\n3. **Capability Registry** — 能力注册中心：插件能力的注册/发现/版本管理\n\n## 上位设计\n\n- ULYS-37 / REQ-001 / AD-001（基本設計書）\n- 要件定义书附件：`01a"
+    },
+    {
+      "id": "01a0aef3-f624-7391-a21c-a4f18952f200",
+      "identifier": "ULYS-73",
+      "title": "DD-04b Traceability 表重写 (v2, ULYS-68 残件)",
+      "last_activity_at": "2026-09-17T13:39:16.343098Z",
+      "description_first_300": "## 上下文\n\nULYS-68 (DD-04/04b v2 Traceability 重写 + 6 phantom IF ID 修正) 的失败 run 已恢复:DD-04 已 cherry-pick 到 `agent/minimaxm3/ulys-68-recovery` (commit `eae227d`,+153/-123),DD-04b **未触及** —— 这是本 sub-issue 的范围。\n\n## DD-04b 残件清单 (ULYS-68 期初范围,本次单独 dispatch)\n\nDD-04b v1 (1,734 行) 当前仍残留以下错误 (DD-05 v1.1 §2.2 (C)("
+    },
+    {
+      "id": "01a0aed7-0c69-7ae0-aa8a-6ebde1b8a5a0",
+      "identifier": "ULYS-72",
+      "title": "DD-09 Local Compute パイプライン詳細設計書 (FR-013 Level 0-4)",
+      "last_activity_at": "2026-09-17T13:39:14.162481Z",
+      "description_first_300": "DD-09 Local Compute パイプライン 詳細設計書 — DD-05 v1.1 推进路径 C 新增 Stage 1 子任务 4/4。\n\n## 上下文\n\nFR-013 Local Compute パイプライン（5 阶段 Level 0..4）完全无 DD 设计。\n\nDD-05 v1.1 §3.1 FR 覆盖矩阵 + §10.4.2 Stage 3 任务分解已列本子任务为 DD-09。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §10.4.2 (DD-09 行)。\n上游依赖：ULYS-37v2 会补 REQ-001 FR-013 子项展开（**先等 UL"
+    },
+    {
+      "id": "01a0aed6-e445-72a5-9876-d7f75eb1cf35",
+      "identifier": "ULYS-71",
+      "title": "DD-08 Context Compiler 詳細設計書 (FR-012)",
+      "last_activity_at": "2026-09-17T13:39:11.935228Z",
+      "description_first_300": "DD-08 Context Compiler 詳細設計書 — DD-05 v1.1 推进路径 C 新增 Stage 1 子任务 3/4。\n\n## 上下文\n\nFR-012 Context Compiler 完全无 DD 设计。NFR-P-030 Context 压缩 < 2s 性能目标无对应实现。\n\nDD-05 v1.1 §3.1 FR 覆盖矩阵 + §10.4.2 Stage 3 任务分解已列本子任务为 DD-08。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §10.4.2 (DD-08 行)。\n上游依赖：ULYS-37v2 会补 REQ-001 FR-012 "
+    },
+    {
+      "id": "01a0aed6-d779-7953-8a6e-08c59d598f8e",
+      "identifier": "ULYS-70",
+      "title": "DD-07 検索エンジン詳細設計書 (FR-011 3 層)",
+      "last_activity_at": "2026-09-17T13:39:09.264391Z",
+      "description_first_300": "DD-07 検索エンジン 詳細設計書 — DD-05 v1.1 推进路径 C 新增 Stage 1 子任务 2/4。\n\n## 上下文\n\nFR-011 検索エンジン 3 層（Text / Structural / Semantic）完全无 DD 设计。DD-04 §7.8 IF-IDX-001 仅有占位，无具体实现。\n\nDD-05 v1.1 §3.1 FR 覆盖矩阵 + §10.4.2 Stage 3 任务分解已列本子任务为 DD-07。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §10.4.2 (DD-07 行)。\n上游依赖：ULYS-37v2 会补 REQ-0"
+    },
+    {
+      "id": "01a0aed6-be44-7686-a160-b0a5174b657b",
+      "identifier": "ULYS-68",
+      "title": "DD-04/04b v2 Traceability 表重写 + 6 处 phantom IF ID 修正",
+      "last_activity_at": "2026-09-17T13:39:07.819945Z",
+      "description_first_300": "DD-05 v1.1 推进路径 A 下游侧（最重）：DD-04 + DD-04b Traceability 表重写 + 6 个 phantom IF ID 修正。\n\n## 上下文\n\nDD-04 + DD-04b 是 Stage 2 最大的未修复项：\n- **阻断 1 (IF ID 命名不一致)**：DD-04 引用 6 个 IFD-001 中不存在的 IF（IF-PLG/BUF/AUTH/FS/IDX/SCH-001）。\n- **阻断 2 (Traceability 表 100% 失效)**：DD-04 §1.2 / §3.4..15 / §4.3..8 / §5 / §9..15 引用 AD"
+    },
+    {
+      "id": "01a0aed6-8989-7a84-ad62-b11413b6053b",
+      "identifier": "ULYS-67",
+      "title": "DD-03 v1.2 Worker IPC 协议确定 (关闭 QA-DD03-002)",
+      "last_activity_at": "2026-09-17T13:39:05.67549Z",
+      "description_first_300": "DD-05 v1.1 推进路径 A 下游侧：DD-03 关闭 QA-DD03-002 IPC Protocol TBD。\n\n## 上下文\n\nDD-03 v1.1 §3 Runtime A/B 加载机制候选分析已添加（+220 行），但 Worker IPC 协议细节仍是 TBD：MOD-PL-001 §6.2 与 IF-PLG-001 的 Protocol Lead 栏空缺。这是 QA-DD03-002。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §11.1.5 INC 恶化说明 + §11.1.4 Runtime A/B 加载机制分析已合格。\n原 DD-03 "
+    },
+    {
+      "id": "01a0aed6-7eda-7a08-bd93-4fbd706a0431",
+      "identifier": "ULYS-66",
+      "title": "DD-02 v1.2 删除 4 处 phantom NFR ID (INC-02 修复)",
+      "last_activity_at": "2026-09-17T13:39:02.330414Z",
+      "description_first_300": "DD-05 v1.1 推进路径 A 下游侧：DD-02 删除 4 处 Phantom NFR ID 引用。\n\n## 上下文\n\nDD-02 v1.1 §13 Traceability Matrix 是 DD-05 v1.1 期间唯一显著的修正（+119 行），但 §13.4 横断关切表中**新增**了 4 处引用 NFR-001 中不存在的 ID（INC-02 恶化）。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §11.1.5。\n原 DD-02 v1.1：worktree `agent/minimaxm3/ulys-39` 当前 commit `fc37346` "
+    },
+    {
+      "id": "01a0aed6-6de0-78a3-912e-e77b6dded4fb",
+      "identifier": "ULYS-65",
+      "title": "DD-01 v2 NFR ID 体系修正 (8 处 phantom → 真实 ID)",
+      "last_activity_at": "2026-09-17T13:38:58.925981Z",
+      "description_first_300": "DD-05 v1.1 推进路径 A 下游侧：DD-01 NFR ID 体系修正。\n\n## 上下文\n\nDD-05 v1.1 §2.2 (A) 提出 DD-01 Traceability 表引用 8 个 NFR ID 与 NFR-001 实际命名不一致（DD-01 用 `NFR-XXX` 三位序号，NFR-001 用 `NFR-X-XXX` 单字母分类）。INC-01 阻塞。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1 §2.2 (A) 与 §11.1.3。\n原 DD-01：worktree `agent/minimaxm3/ulys-38` 历史 inputs/ 或"
+    },
+    {
+      "id": "01a0aed6-6343-79fe-a54e-afcb17716c75",
+      "identifier": "ULYS-64",
+      "title": "ULYS-37 v2 上游文档修订 (AD/IFD/NFR/REQ/SD v1.1)",
+      "last_activity_at": "2026-09-17T13:38:57.022059Z",
+      "description_first_300": "DD-05 v1.1 推进路径 A 上游侧：对 5 份上游文档做修订，解除 DD-04/04b 阻塞。\n\n## 上下文\n\nDD-05 (ULYS-42) v1.1 推荐推进路径 A+C。本任务覆盖路径 A 上游侧。\n\n完整报告：`DD-05_詳細設計書_統合自己審査報告.md` v1.1（worktree `agent/minimaxm3/ulys-42`，commit `eac6f89`，1,027 行）。\n关键问题汇总在 §2.2 (A)(B)(E) 与 §3.1/§3.2/§11.1。\n\n输入在 `inputs/`：AD-001 / IFD-001 / NFR-001 / REQ-001"
+    },
+    {
+      "id": "01a0a9d9-0812-718f-a85d-0060a2be7e82",
+      "identifier": "ULYS-59",
+      "title": "ULYS-57.2 业务核心 5 crate (T3-T7)",
+      "last_activity_at": "2026-09-17T06:34:50.334534Z",
+      "description_first_300": "# ULYS-57.2 — 业务核心 5 crate (T3-T7)\n\n> **AI Worktree Graph Canvas** 子任务 2/5 — 业务层 (worktree-service + risk-engine + health-engine + agent-bridge + relationship-engine)\n>\n> - **Parent**: ULYS-57 (制作 Worktree 页面各级文档) — `01a0a4d8-6669-77ee-bbb1-758e19e69244`\n> - **触发**: 2026-09-16 10:48 JST 评论者发令 \"可以开子任"
+    },
+    {
+      "id": "01a0a24f-f9f7-7533-8ff5-cdfb5ecd2c65",
+      "identifier": "ULYS-51",
+      "title": "验证K3S",
+      "last_activity_at": "2026-09-17T00:20:30.702588Z",
+      "description_first_300": "实际启动WSL + k3s 环境"
+    },
+    {
+      "id": "01a09aac-575f-7a5e-af30-ddd40f104ae6",
+      "identifier": "ULYS-32",
+      "title": "API接口设计补充",
+      "last_activity_at": "2026-09-17T00:20:29.250444Z",
+      "description_first_300": "作为一个agent软件，我需要更加丰富的可交互api，确保整个软件可以在langgraph这个架构层面极端自由可操控，这样才符合它AI Agent的定位，补充各级设计文档"
+    },
+    {
+      "id": "01a09a89-cdf2-72c2-9ab7-397dc78089ae",
+      "identifier": "ULYS-31",
+      "title": "美漫3渲2UI界面美化",
+      "last_activity_at": "2026-09-17T00:20:27.796794Z",
+      "description_first_300": "进一步彻底美化UI，彻底实现3渲2风格，适当加入真3D按钮等元素，丰富3渲2漫画气氛，融入一些赛璐璐式charisma结合色彩心理学，让用户产生依赖和崇拜的感受"
+    },
+    {
+      "id": "01a097b6-beee-711a-a9c8-4b96f5557c69",
+      "identifier": "ULYS-27",
+      "title": "Phase 2: network-gateway WebSocket 与 5 域 gRPC 完整接入",
+      "last_activity_at": "2026-09-17T00:20:26.391545Z",
+      "description_first_300": "# Phase 2 — network-gateway 与 5 域 gRPC 完整接入\n\n## 来源与目的\n\n本卡承接 ULYS-2（`01a092ae-2faa-799b-b07e-ae6a9b80c166`）Phase 1 收口说明中的下一步。根据评论 `01a09389-d109-7bca-9bb9-16a7369483fb`，Phase 2 独立建卡，不继续扩展已完成 Phase 1 的 ULYS-2。\n\n目标是让 Rust `network-gateway` 的 WebSocket 传输、协议路由和 5 域 gRPC 业务调用形成可直接运行的完整链路。\n\n## 范围\n\n1. 统一 W"
+    },
+    {
+      "id": "01a09609-7d54-715d-bd37-b6bf7a807f4f",
+      "identifier": "ULYS-25",
+      "title": "【Star】优化test-design.md - 测试设计规范化",
+      "last_activity_at": "2026-09-17T00:20:24.750252Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的test-design.md和uat-design.md进行测试设计规范化：\n\n## 应用Skills\n\n### ipa-test-design\n- 整理测试范围（In Scope/Out of Scope）\n- 定义测试观点（Test Perspective，TP-XXX）\n- 按测试层级组织（UT/IT/ST/UAT）\n- 建立Requirement→Design→Test Perspective的追踪\n- 明确测试策略和覆盖范围\n- 输出Traceability Matrix\n- 标记测试前提冲突为【测试前提不整合】\n\n## 优化依据\n\n- 测试设计需要"
+    },
+    {
+      "id": "01a09609-76b3-7aa9-814f-b931d7d0e0be",
+      "identifier": "ULYS-24",
+      "title": "【Star】优化frontend-design.md - 画面设计规范化",
+      "last_activity_at": "2026-09-17T00:20:22.968929Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的frontend-design.md和相关设计文档进行画面设计规范化：\n\n## 应用Skills\n\n### ipa-screen-design\n- 审查画面设计的完整性\n- 为主要Screen赋予唯一ID（Screen-XXX）\n- 明确Display Layout、Controls、Input Validation\n- 定义Screen Navigation Flow\n- 标记权限控制和业务规则\n- 输出Screen Migration表和Item Definition表\n- 建立Requirement→Screen→Test的追踪\n\n## 优化依据\n\n- "
+    },
+    {
+      "id": "01a09609-65cd-7aef-9b28-54c709e7e576",
+      "identifier": "ULYS-23",
+      "title": "【Star】优化API设计 - 接口规范化",
+      "last_activity_at": "2026-09-17T00:20:21.380574Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的api-design.md和external-design.md进行接口规范化：\n\n## 应用Skills\n\n### ipa-interface-design\n- 审查API定义的完整性和规范性\n- 为每个接口赋予唯一ID（IF/API-XXX）\n- 明确Source、Destination、Direction、Protocol\n- 完善Request/Response Schema定义\n- 定义Error Handling、Timeout、Retry、Idempotency策略\n- 补全Authentication和Authorization要求\n- 审查超"
+    },
+    {
+      "id": "01a09608-a61e-73f1-b957-328cd217a33d",
+      "identifier": "ULYS-19",
+      "title": "【RustGameServer】优化AGENTS.md - 代理设计规范化",
+      "last_activity_at": "2026-09-17T00:20:11.257737Z",
+      "description_first_300": "## 优化范围\n\n根据AGENTS.md内容，应用以下IPA skills进行规范化：\n\n## 应用Skills\n\n### 1. ipa-interface-design\n- 为每个Agent定义标准的接口契约\n- 明确Input/Output Schema\n- 定义Error Handling和Timeout策略\n- 使用IF/API ID标识\n\n### 2. ipa-nonfunctional-requirements\n- 定义各Agent的性能需求（响应时间、资源消耗等）\n- 明确可用性和扩展性需求\n- 标记为NFR-XXX\n\n## 优化依据\n\n- Agent定义需要更强的结构化规范\n-"
+    },
+    {
+      "id": "01a09608-02e6-7697-9a75-9af6217c607d",
+      "identifier": "ULYS-17",
+      "title": "【Star】按IPA标准优化项目文档体系",
+      "last_activity_at": "2026-09-17T00:20:09.63641Z",
+      "description_first_300": "## 概述\n\n对Star项目进行全方位的IPA标准文档优化，覆盖需求、设计、测试全生命周期。\n\n## 适用IPA Skills\n\n- ipa-database-design：数据库设计文档完善（data-design.md）\n- ipa-interface-design：接口设计规范化（api-design.md, external-design.md）\n- ipa-screen-design：UI/画面设计完善（frontend-design.md）\n- ipa-nonfunctional-requirements：性能/可用性需求明确化\n- ipa-security-design：安全设计"
+    },
+    {
+      "id": "01a09607-fa1a-7133-a3bd-f493a4ea9f6e",
+      "identifier": "ULYS-16",
+      "title": "【RustGameServer】按IPA标准优化项目文档",
+      "last_activity_at": "2026-09-17T00:20:08.22104Z",
+      "description_first_300": "## 概述\n\n对RustGameServer项目的文档进行综合优化，按照IPA共通框架标准进行结构化改进。\n\n## 适用IPA Skills\n\n- ipa-interface-design：API/接口定义规范化\n- ipa-database-design：数据库设计文档完善\n- ipa-nonfunctional-requirements：非功能需求明确化\n- ipa-security-design：安全设计细化\n\n## 待优化文档\n\n1. README.md - 项目概述和使用指南\n2. AGENTS.md - Agent配置和说明\n3. docs/README.md - 文档导航\n4. "
+    },
+    {
+      "id": "01a09557-af48-790b-af56-b58b9dba7351",
+      "identifier": "ULYS-15",
+      "title": "agent无限画布功能强化",
+      "last_activity_at": "2026-09-17T00:20:06.695867Z",
+      "description_first_300": "无限画布功能除了miro的功能点，还要具备n8n那种工作流的功能，并且可以把一套工作流按照标签的模式纳入一个任务卡，在backlog里出现，并且允许拖拽进冲刺，在面板管理，改变标签后，任务卡爷随之改变，消失或者增加，这一系列的功能要妥善设计，我需要需求文档"
+    },
+    {
+      "id": "01a0945a-4b07-77c5-a7a7-9dd86947add1",
+      "identifier": "ULYS-14",
+      "title": "SRS-MULTICA-UX-001 v0.2：修订 B1/B2 + R1~R6",
+      "last_activity_at": "2026-09-17T00:20:05.215271Z",
+      "description_first_300": "承接 ULYS-12 上对 `docs/requirements/SRS-MULTICA-UX-001.md` v0.1 的审核结论，产出 v0.2。\n\n**依赖**：本 issue 处于 stage 2，需等 stage 1 的「v37 幂等口径核定」子任务落地后，由 ULYS-12 的 assignee 将本 issue 从 backlog 提升为 todo。请勿在 stage 1 交付前开工。\n\n## 必改（阻塞项）\n\n- **B1**：删掉 AC-2 与 FR-5~7 的「新建 SRS-MULTICA-IDEMPOTENCY-001」路径，改用 stage 1 子任务给出的替换文本。同"
+    },
+    {
+      "id": "01a093e9-b3cc-71f2-bbec-ecc2d961282e",
+      "identifier": "ULYS-12",
+      "title": "补充Multica功能",
+      "last_activity_at": "2026-09-17T00:20:03.802728Z",
+      "description_first_300": "确保有效汲取Multica优点，界面整洁，减少认知负荷。制定优化计划文档的spec"
+    },
+    {
+      "id": "01a09397-ef09-75b4-b55c-7b090e4ca3a1",
+      "identifier": "ULYS-8",
+      "title": "docs: rgs-flash-mock v0.3 & rgs-shim-rust v0.5 文档同步与不合理设计识别",
+      "last_activity_at": "2026-09-17T00:20:02.359121Z",
+      "description_first_300": "汇总项目变化，按照日本IPA标准更新相关文档，如遇不符合，以需求文档为准，进行补充优化，如有必要则创建相关任务\n\n---\n*Autopilot run triggered at 2026-09-12 12:10 Asia/Tokyo. After starting work, rename this issue to accurately reflect what you are doing.*"
+    },
+    {
+      "id": "01a090a2-a1ca-71b2-9f8d-0da4f4082993",
+      "identifier": "ULYS-1",
+      "title": "查找是否有没有实施的设计，以及是否存在没有推进到详细设计的需求或者基本设计",
+      "last_activity_at": "2026-09-17T00:20:00.864903Z",
+      "description_first_300": ""
+    },
+    {
+      "id": "01a0a9d8-f72c-7def-bc29-9ee848362828",
+      "identifier": "ULYS-58",
+      "title": "ULYS-57.1 graph-core + git 基础 2 crate (T1-T2)",
+      "last_activity_at": "2026-09-17T06:34:43.627481Z",
+      "description_first_300": "# ULYS-57.1 — graph-core + git 基础 2 crate (T1-T2)\n\n> **AI Worktree Graph Canvas** 子任务 1/5 — 基础层 (graph-core + git-adapter + git-observer)\n>\n> - **Parent**: ULYS-57 (制作 Worktree 页面各级文档) — `01a0a4d8-6669-77ee-bbb1-758e19e69244`\n> - **触发**: 2026-09-16 10:48 JST 评论者发令 \"可以开子任务推进开发并且制作各级测试设计书了\"\n> - **关联设计"
+    },
+    {
+      "id": "01a0a094-a3f5-7029-a616-2a5a812c6a47",
+      "identifier": "ULYS-46",
+      "title": "子任务B: auth-service e2e 测试去 sleep 轮询化",
+      "last_activity_at": "2026-09-16T22:42:40.562617Z",
+      "description_first_300": "子任务 B：`auth-service` e2e 测试去 sleep 轮询化（拆分自 ULYS-44）\n\n## 背景\n\n`crates/auth-service/src/handlers.rs:48-56` 的代码注释显示，团队评估过用 `actix_rt::spawn` 异步写审计日志，但发现\"`actix_rt::spawn` 在 `init_service` 中不被驱动\"，因此改为同步 `await`，注释原文：\"同步保证 e2e 立即可见（避免 actix_rt::spawn 在 init_service 中不被驱动）\"。生产路径当前是安全的（同步写入），但测试代码里仍保留了一套\"假装"
+    },
+    {
+      "id": "01a09d36-f7e3-72a4-85ee-07f0925a8f27",
+      "identifier": "ULYS-37",
+      "title": "创建全套日本IPA标准文档",
+      "last_activity_at": "2026-09-17T12:43:02.201067Z",
+      "description_first_300": "!file[纯 Rust AI Native CLI Development Kernel 需求规格书｜最终审核完整版.md](https://multica.ai/api/attachments/01a09d36-8221-72b2-ae2b-4dce939b9676/download)\n\n根据附件创建需求文档，然后自审，然后创建基本设计，然后自审"
+    },
+    {
+      "id": "01a0a244-3591-7ada-adaa-fa092e2e2bf2",
+      "identifier": "ULYS-50",
+      "title": "搜索功能改造",
+      "last_activity_at": "2026-09-16T06:38:19.67375Z",
+      "description_first_300": "搜索应该是搜索任务而不是功能模块，功能模块的查询只有在自定义导航栏时才需要弹窗出现"
+    },
+    {
+      "id": "01a0a243-a3c6-76f8-8ead-15a1226988f0",
+      "identifier": "ULYS-49",
+      "title": "看板改造功能反应到main",
+      "last_activity_at": "2026-09-16T05:13:53.129728Z",
+      "description_first_300": "我之前要求的工作流要符合日式开发150个流程并且排版布局是独特的上下3栏，左侧待办和较细的已取消列没有反应到最新版本。"
+    },
+    {
+      "id": "01a0a2af-5d78-7ec8-98ea-5b2ece6844fb",
+      "identifier": "ULYS-53",
+      "title": "聊天栏",
+      "last_activity_at": "2026-09-15T01:52:39.951065Z",
+      "description_first_300": "底部聊天栏和它附带的聊天记录窗口等功能没有实现，你可以参考我的assetslake项目在这方面的设计"
+    },
+    {
+      "id": "01a09609-8a0b-7928-aaba-26be68107a0c",
+      "identifier": "ULYS-26",
+      "title": "【Star】优化security-design.md - 安全设计规范化",
+      "last_activity_at": "2026-09-14T22:52:41.015274Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的security-design.md进行安全设计规范化：\n\n## 应用Skills\n\n### ipa-security-design\n- 梳理系统的实际攻击面\n- 明确Authentication、Authorization、RBAC/ABAC设计\n- 定义Session/Token、Secret、Encryption策略\n- 规范Input Validation、Injection、XSS、CSRF防护\n- 定义Rate Limit和Security Audit要求\n- 标记安全缺陷和确认需要为【安全确认必要】\n\n## 优化依据\n\n- 安全设计需要建立在真实"
+    },
+    {
+      "id": "01a09398-1683-733a-9c4b-34a826bbc40e",
+      "identifier": "ULYS-9",
+      "title": "RustGameServer 全仓库依赖漏洞与过时版本审计报告",
+      "last_activity_at": "2026-09-14T22:52:39.926677Z",
+      "description_first_300": "1. Run dependency audit tools on the project (npm audit, go vuln check, etc.)\n2. Identify any packages with known security vulnerabilities\n3. List outdated packages that are more than 2 major versions behind\n4. For each finding, note the severity, affected package, and recommended fix\n5. Post a summ"
+    },
+    {
+      "id": "01a09609-54a9-7ec4-b974-566e113fd2ce",
+      "identifier": "ULYS-22",
+      "title": "【Star】优化data-design.md - 数据库设计规范化",
+      "last_activity_at": "2026-09-14T22:52:38.796577Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的data-design.md进行IPA数据库设计规范化：\n\n## 应用Skills\n\n### ipa-database-design\n- 审查ER图和表定义的完整性\n- 为主要Entity和Table赋予唯一ID\n- 补全Column定义（Data Type、Length、Null、Default、Constraint）\n- 明确PK、FK、Unique、Index设计\n- 定义审计字段和数据生命周期\n- 根据访问模式审查索引设计的有效性\n- 输出Table Definition和CRUD Matrix\n\n## 优化依据\n\n- 数据库设计需要结构化的表定义和追"
+    },
+    {
+      "id": "01a09608-9b01-72ba-8d2c-f35ad793f4f0",
+      "identifier": "ULYS-18",
+      "title": "【RustGameServer】优化README.md - 接口和非功能需求规范化",
+      "last_activity_at": "2026-09-14T22:52:37.482101Z",
+      "description_first_300": "## 优化范围\n\n根据README.md内容，应用以下IPA skills进行规范化：\n\n## 应用Skills\n\n### 1. ipa-interface-design\n- 梳理项目对外暴露的接口（API、端口、协议等）\n- 使用IF/API ID标识\n- 明确Protocol、Endpoint、Method、Authentication等要素\n- 构建接口清单表\n\n### 2. ipa-nonfunctional-requirements\n- 提取或补全性能指标（响应时间、吞吐量等）\n- 定义可用性和可靠性需求（SLA、RTO、RPO）\n- 标记为NFR-XXX编号\n- 建立NFR→设计措"
+    },
+    {
+      "id": "01a09608-b3d4-752d-b382-cf9064f58838",
+      "identifier": "ULYS-20",
+      "title": "【RustGameServer】优化部署文档 - 运维规范化",
+      "last_activity_at": "2026-09-14T22:52:36.405403Z",
+      "description_first_300": "## 优化范围\n\n对docker/Dockerfile.README.md和k3s-deploy/DEPLOY_STATUS.md进行规范化：\n\n## 应用Skills\n\n### 1. ipa-nonfunctional-requirements\n- 补全部署的非功能需求（RTO、RPO、监控、日志）\n- 定义可用性要求（容错、恢复策略）\n- 明确扩展性和性能指标\n\n### 2. ipa-security-design\n- 明确部署中的安全要求\n- 环境变量、密钥管理规范\n- 访问控制和审计\n\n## 优化依据\n\n- 部署文档缺少结构化的需求定义\n- 安全要求不明确，应补充\n- 需要与运维体系建"
+    },
+    {
+      "id": "01a09927-ee2f-7539-8613-99ccd04a1513",
+      "identifier": "ULYS-29",
+      "title": "同一任务要允许有多个agent同时负责，并且确保通过langgraph有效内部合作，对抗式推进等逻辑套装要准备好，应对不同任务类型，包括开发，自审，交叉审核，美术制作等，需求文档和基本设计做出来",
+      "last_activity_at": "2026-09-14T22:52:35.298804Z",
+      "description_first_300": ""
+    },
+    {
+      "id": "01a099d4-1f43-7039-859d-95484e08e4a4",
+      "identifier": "ULYS-30",
+      "title": "全新模板模式",
+      "last_activity_at": "2026-09-14T22:52:34.259411Z",
+      "description_first_300": "我希望待办是一列，作废是一列，并且作废这一列较细，只有待办的一半，它俩放在最前面，后面的流程，按照最详细的日本IPA标准，吗，每一个环节一列，并且在下方1/3大小的位置放置一个审核栏一个完成栏。这样的构造更加适合严格的瀑布式软件开发，给这套工作流模板命名为瀑布式开发，所有工作流放在右上角菜单的工作流入口里面管理，并且允许用户自己移动增加删除，用户的改动会同步反应到其他界面，整体都是一体的。并且支持多人同时操作，排他回滚设计要完善。从需求文档到基本设计到详细设计都开子任务处理完。"
+    },
+    {
+      "id": "01a09de4-d298-7478-9bf7-93afbbc065ac",
+      "identifier": "ULYS-43",
+      "title": "依赖安全与过时包审计",
+      "last_activity_at": "2026-09-14T22:52:33.162077Z",
+      "description_first_300": "1. Run dependency audit tools on the project (npm audit, go vuln check, etc.)\n2. Identify any packages with known security vulnerabilities\n3. List outdated packages that are more than 2 major versions behind\n4. For each finding, note the severity, affected package, and recommended fix\n5. Post a summ"
+    },
+    {
+      "id": "01a09609-4a58-794b-8074-db1dd3bcb7e8",
+      "identifier": "ULYS-21",
+      "title": "【Star】优化requirements.md - 非功能需求规范化",
+      "last_activity_at": "2026-09-14T11:19:15.555128Z",
+      "description_first_300": "## 优化范围\n\n对Star项目的requirements.md进行IPA标准规范化：\n\n## 应用Skills\n\n### ipa-nonfunctional-requirements\n- 从requirements.md中提取所有非功能需求\n- 为每个需求赋予唯一ID（NFR-PERF-XXX, NFR-AVAIL-XXX等）\n- 明确量化指标和验收方法\n- 建立NFR→设计措施→验证方法的追踪表\n- 标记未知指标为【TBD】\n\n## 优化依据\n\n- 需求文档中的性能、可用性、安全等指标需要结构化\n- NFR与下游设计文档的追踪关系需要明确\n- 不可验证的需求表述（如\"高性能\"）需要转换为可"
+    },
+    {
+      "id": "01a09abc-1aff-7812-8fff-8402260cc10e",
+      "identifier": "ULYS-33",
+      "title": "基于 BD-CANVAS-WORKFLOW-001 v1.0.3 制作 DD-CANVAS-WORKFLOW-001 详细设计书",
+      "last_activity_at": "2026-09-14T02:48:54.511781Z",
+      "description_first_300": "## 基线复核（本次重开前的核实）\n\n上一轮阻塞原因：checkout 分支 `agent/gpt5-6luna/ulys-33` 未包含 commit `3045dba3`（BD v1.0.3 + SRS v1.1），且该 commit 当时\"存在于本地对象库但不是当前分支祖先\"。\n\n已核实：`3045dba3` **已推送到远端**，是 `origin/agent/sonnet/ulys-28` 的祖先提交（`git merge-base --is-ancestor 3045dba3 origin/agent/sonnet/ulys-28` → true）。该远端分支上的 `docs/de"
+    },
+    {
+      "id": "01a09abc-cb76-7414-a6c7-70a8ef50a39e",
+      "identifier": "ULYS-36",
+      "title": "[详细设计] 瀑布式开发工作流模板实现详细设计",
+      "last_activity_at": "2026-09-14T00:15:18.594948Z",
+      "description_first_300": "本子任务属于 ULYS-30「全新模板模式」，负责在需求与基本设计子任务完成后形成详细设计交付物。\n\n范围：\n- 将模板管理、看板投影、顶栏入口、多人协作、排他锁、版本冲突和回滚细化到模块、类型、方法、状态转换、持久化和测试用例级别。\n- 给出前端组件/状态管理/API 适配的接口、输入校验、并发时序、幂等性、错误码和日志/审计字段。\n- 为需求→基本设计→详细设计→实现/测试建立逐项追踪关系。\n\n交付要求：\n- 先阅读前两级设计交付物及当前仓库代码，遵循现有技术栈与接口契约；缺少证据的内容须标为假设或已知缺口。\n- 新增或原地更新一份详细设计文档，包含模块结构、类型/数据字典、处理流程、并发"
+    },
+    {
+      "id": "01a09abc-b5d5-7b1a-89ab-b8bf7a50203c",
+      "identifier": "ULYS-35",
+      "title": "[基本设计] 瀑布式开发工作流模板外部设计",
+      "last_activity_at": "2026-09-13T23:20:49.765838Z",
+      "description_first_300": "本子任务属于 ULYS-30「全新模板模式」，负责在需求子任务完成后形成基本设计交付物。\n\n范围：\n- 根据已确认的需求设计「瀑布式开发」模板的画面/导航、模板数据模型、工作流与看板投影、同步事件、权限和并发控制的外部行为。\n- 明确 Todo/作废前置列、IPA 阶段列、下方审核/完成区域及用户可编辑边界。\n- 设计排他锁、乐观版本检查、冲突提示、历史版本和回滚的状态转换与失败处理。\n\n交付要求：\n- 先阅读需求子任务交付物及当前仓库实现，保持与现有契约兼容；不编造未由文件、代码或 issue 证实的历史。\n- 新增或原地更新一份基本设计文档，包含画面迁移/项目、数据实体与约束、API/事件"
+    },
+    {
+      "id": "01a09abc-a59b-7f21-8940-42306f276080",
+      "identifier": "ULYS-34",
+      "title": "[需求定义] 瀑布式开发工作流模板需求与验收",
+      "last_activity_at": "2026-09-13T23:20:47.474559Z",
+      "description_first_300": "本子任务属于 ULYS-30「全新模板模式」，负责把父任务中的用户目标整理成可追踪的需求定义交付物。\n\n范围：\n- 定义「瀑布式开发」工作流模板的 Todo、作废、各日本 IPA 软件开发阶段、审核、完成的结构与不可违反的顺序/尺寸规则。\n- 定义右上角工作流入口、模板增删改移、跨界面同步、多人并发编辑、排他锁、版本冲突和回滚的功能/非功能需求。\n- 为需求、基本设计、详细设计和实现建立可验证的验收条件与追踪矩阵。\n\n交付要求：\n- 先检查当前仓库已有的 requirements/basic/detail 文档和前端实现，避免重复定义或凭空声称历史事实。\n- 新增或原地更新一份需求定义文档，按"
+    },
+    {
+      "id": "01a092ae-2faa-799b-b07e-ae6a9b80c166",
+      "identifier": "ULYS-2",
+      "title": "ULYS-2: zsyz_client_h5 前端与 RGS network-gateway 完美对接",
+      "last_activity_at": "2026-09-13T11:41:49.421288Z",
+      "description_first_300": "# ULYS-2 — 闪烁之光 H5 前端 (zsyz_client_h5) 与 RGS 网络层完美对接\n\n> 来源会话: 2026-09-12 chat. 来源任务: 用户原文「开多个任务并行处理,确保可以和 E:\\\\BaiduNetdiskDownload\\\\闪烁之光\\\\server分析\\\\zsyz_client_h5 前端完美对接」.\n> 授权: 2026-09-12 用户回复\"授权\"确认 4+1 任务方案, 同意创建 ULYS-2 + sub-issue, 先开 A+E 两路并行.\n\n## 1. 一句话目标\n\n让 `zsyz_client_h5` (Cocos Creator H5) "
+    },
+    {
+      "id": "01a0983b-4b01-711c-91fe-6e9c23a0880f",
+      "identifier": "ULYS-28",
+      "title": "基于 SRS-CANVAS-WORKFLOW-001 v1.1 制作 BD-CANVAS-WORKFLOW-001 基本设计书",
+      "last_activity_at": "2026-09-13T09:02:50.64941Z",
+      "description_first_300": "## 目标\n\n基于 `docs/requirements/SRS-CANVAS-WORKFLOW-001.md` **v1.1**（54 项 FR、34 用户故事，覆盖 W1-W13 基线 + W14 默认工作流模板库 + W15 LangGraph 智能控制/底部聊天栏）制作对应的基本设计书 `docs/design/BD-CANVAS-WORKFLOW-001.md`，需符合日本 IPA 共通框架基本设计书标准。\n\n## 前置：确认输入版本正确\n\n- v1.1 只在分支 `agent/sonnet/ulys-15`（commit `2e7249b` 新增 W14/W15 + `cdff2a"
+    },
+    {
+      "id": "01a0945a-2863-7b34-adf3-f3b5c22f7db8",
+      "identifier": "ULYS-13",
+      "title": "SRS-UX-001 B1：v37 幂等口径核定与 dispatcher 整合决策",
+      "last_activity_at": "2026-09-13T08:37:52.767611Z",
+      "description_first_300": "承接 ULYS-12 上对 `docs/requirements/SRS-MULTICA-UX-001.md` 的审核阻塞项 B1。\n\n**本 issue 已连续三次因基础设施原因失败（MiniMax 配额 429 / 传输断流 / idle watchdog），无任何产出。三次失败中有两次在同一个 provider 上，与任务内容无关。** 现改派给你重跑。\n\n## 前置事实\n\nULYS-14 已交付 SRS v0.2（分支 `agent/sonnet/ulys-14`，commit `2b864c3`），B2 与 R1~R6 均已闭环，并已被独立复核。v0.2 **没有**编造 B1 的结"
+    },
+    {
+      "id": "01a0939c-0846-7356-8362-11e3a30ed295",
+      "identifier": "ULYS-10",
+      "title": "docs: 合并 docs/00-基准与治理 与 docs/00-基準与治理 目录结构",
+      "last_activity_at": "2026-09-13T06:23:56.427494Z",
+      "description_first_300": "## 问题\n\n存在两个近似目录名导致文档分散：\n- docs/00-基准与治理/ (Chinese 基准) — 主目录，含大量 RGS-REQ/RGS-BAS/RGS-DTL 文档\n- docs/00-基準与治理/ (Japanese 基準) — 包含仅 1 个文件：RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.3.md\n\n## 根本原因\n\n目录名称中文字不一致（基**准** vs 基**準**），可能来自：\n1. 初始化时中日文混用\n2. 重构过程中字符转换错误\n3. IPA 标准化过程中的文件迁移遗留\n\n## 影响范围\n\n- 文档索引/查找困难\n- 读者可能误认为"
+    },
+    {
+      "id": "01a0939c-5561-70ef-8d15-6c0f2ba89a34",
+      "identifier": "ULYS-11",
+      "title": "docs: rgs-shim-rust 版本号同步 (v0.3.0 → v0.5 / v0.3.1 悬空)",
+      "last_activity_at": "2026-09-13T06:23:49.813176Z",
+      "description_first_300": "## 问题\n\nrgs-shim-rust 文档中版本号不一致：\n- README.md 第 1 行: `# rgs-shim-rust (v0.3.0)`\n- ERLANG_TO_RGS_MIGRATION.md: 引用 `rgs-shim-rust v0.3.1`\n- git log 最新: `commit 076bebf: feat(rgs-shim): v0.5 dispatch table 实施`\n\n## 根本原因\n\n1. README.md 创建时刻为 v0.3.0（2026-09-09 14:30 JST 自述）\n2. 后续迭代升级到 v0.5，但 README.md 未同步\n3."
+    },
+    {
+      "id": "01a092af-91bb-790e-9acf-a51f00faa04c",
+      "identifier": "ULYS-5",
+      "title": "ULYS-2.3 (任务 C): cmd → gRPC 路由表 (proto_*.erl 反向 + dispatcher)",
+      "last_activity_at": "2026-09-12T02:52:39.656564Z",
+      "description_first_300": "# ULYS-2.3 — 任务 C: cmd → gRPC 路由表 (P1, 依赖 ULYS-2.1)\n\n> 父 issue: ULYS-2 (`01a092ae-2faa-799b-b07e-ae6a9b80c166`)\n\n## 目标\n把 zsyz 二进制 cmd 空间 (u16, 1351 条) 映射到 RGS 5 域 gRPC service, 含 1 个 `proto_*.erl` 反向解析器 + 1 个 dispatcher + 1 个 `cmd_table.toml` 配置覆盖机制.\n\n## 子任务\n\n### C1: proto_*.erl → cmd-table.json 解析器"
+    },
+    {
+      "id": "01a092af-a49c-7558-8fb5-c4ea7f80e7d8",
+      "identifier": "ULYS-6",
+      "title": "ULYS-2.4 (任务 D): E2E 对接 (puppeteer + H5 跑通登录握手)",
+      "last_activity_at": "2026-09-12T01:45:34.866628Z",
+      "description_first_300": "# ULYS-2.4 — 任务 D: E2E 对接 (P1, 依赖 ULYS-2.1 + 2.2 + 2.3)\n\n> 父 issue: ULYS-2 (`01a092ae-2faa-799b-b07e-ae6a9b80c166`)\n\n## 目标\n让 zsyz_client_h5 (Cocos Creator H5) 浏览器内运行, 走通到 RGS network-gateway 的 cmd=1199 心跳 + cmd=1110 登录握手, 抓到双向 binary frame 截图作为完美对接的物证.\n\n## 子任务\n\n### D1: 启动 network-gateway (WS 8000)\n`"
+    },
+    {
+      "id": "01a092af-71e6-70ed-b9aa-a2251db935ab",
+      "identifier": "ULYS-4",
+      "title": "ULYS-2.2 (任务 B): WebSocket 传输层 + 路径 /websocket",
+      "last_activity_at": "2026-09-12T00:47:19.00072Z",
+      "description_first_300": "# ULYS-2.2 — 任务 B: WebSocket 传输层 + 路径 /websocket (P1, 依赖 ULYS-2.1)\n\n> 父 issue: ULYS-2 (`01a092ae-2faa-799b-b07e-ae6a9b80c166`)\n\n## 目标\n在 `crates/network-gateway` 内接入 WebSocket 传输层, 路径 `/websocket`, 端口默认 8000 (对齐原 zsyz_server `web_conn.erl` 8000).\n\n## 输入\n- ULYS-2.1 已完成的 `Frame::decode/encode` (作用于 `By"
+    },
+    {
+      "id": "01a092af-4e20-7ee8-acc0-9964e055ee8d",
+      "identifier": "ULYS-3",
+      "title": "ULYS-2.1 (任务 A): 协议编解码 + 黄金向量",
+      "last_activity_at": "2026-09-11T23:54:02.378534Z",
+      "description_first_300": "# ULYS-2.1 — 任务 A: 协议编解码 + 黄金向量 (P0)\n\n> 父 issue: ULYS-2 (`01a092ae-2faa-799b-b07e-ae6a9b80c166`)\n\n## 目标\n把 `crates/network-gateway/src/codec.rs` 从占位 stub 改为与 zsyz 真实二进制协议 1:1 对齐的实现, 并用黄金向量锁定行为.\n\n## 当前 stub (必须替换)\n- 路径: `D:\\RustGameServer\\crates\\network-gateway\\src\\codec.rs`\n- 帧头: `[4B code u32 BE][4B"
+    },
+    {
+      "id": "01a092af-c607-730d-9cc7-532ebeaa7cfb",
+      "identifier": "ULYS-7",
+      "title": "ULYS-2.5 (任务 E): RGS-AI-HANDOFF-DOWNSTREAM §2.3 文档同步",
+      "last_activity_at": "2026-09-11T23:54:00.965306Z",
+      "description_first_300": "# ULYS-2.5 — 任务 E: 文档同步 (P0, 同步开)\n\n> 父 issue: ULYS-2 (`01a092ae-2faa-799b-b07e-ae6a9b80c166`)\n\n## 目标\n在 `D:\\RustGameServer\\docs\\00-基准与治理\\RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` §2.2 之后, 追加 §2.3 \"网络层完美对接执行路线图\" 章节, 引用本 issue (ULYS-2) 与 5 条 sub-issue, 把\"完美对接\"作为闪烁之光源码分析的下一阶段目标落地为可见的执行规划.\n\n## 编辑"
+    }
+  ]
+}

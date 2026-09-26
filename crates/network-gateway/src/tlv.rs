@@ -625,9 +625,9 @@ mod tests {
     #[test]
     fn str_roundtrip_chinese() {
         let mut buf = Vec::new();
-        pack_str(&mut buf, "闪烁之光");
+        pack_str(&mut buf, "[游戏A]");
         let (s, r) = unpack_str(&buf).unwrap();
-        assert_eq!(s, "闪烁之光");
+        assert_eq!(s, "[游戏A]");
         assert!(r.is_empty());
     }
 

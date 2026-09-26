@@ -63,7 +63,7 @@ pub trait AuditLogRepository: Send + Sync {
     async fn list_by_actor(&self, actor_id: Uuid, limit: i64) -> Result<Vec<AuditLogEntry>>;
     /// 取最近一条（用于 hash 链续接）
     async fn latest(&self) -> Result<Option<AuditLogEntry>>;
-    /// 取最近 N 条（无 actor 过滤, 按 created_at DESC, per RGS-SHANSHUO-GAME v0.2 修 QueryAuditLog 返 0 bug 9/9 12:35 JST）
+    /// 取最近 N 条（无 actor 过滤, 按 created_at DESC, per RGS-GAMEA-GAME v0.2 修 QueryAuditLog 返 0 bug 9/9 12:35 JST）
     async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>>;
     /// 55.13 原子 append：read latest (FOR UPDATE) + insert + 提交由调用方事务管理。
     /// 实现层在事务内串行化 latest 读取，保证 hash 链 read-then-append 不出现

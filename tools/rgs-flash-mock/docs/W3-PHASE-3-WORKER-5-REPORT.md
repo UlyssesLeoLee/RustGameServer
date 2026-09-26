@@ -44,7 +44,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 - 6 module 实际 .erl 抽样 6 文件 (partner_rpc.erl 13.9KB + holiday_rpc.erl 3.5KB + say_rpc.erl 3.9KB + map_rpc.erl 2.2KB + vip_rpc.erl 1.2KB + days_rank_rpc.erl 1.2KB) handle/3 全部完整读, 但 partner_rpc.erl 41 cmds 11070-11084 16 cmds 仅 file:line 标注, handle/3 完整签名待 v0.2 sprint 详细验证
 - partner.erl (31KB, 7 业务函数) + days_rank_mgr.erl (27.6KB) + month_card.erl (16.4KB) + say.erl (21.6KB) + say_frame.erl (16KB) + map.erl (32.7KB) 6 大 .erl 未抽样 read, 业务实现仅根据 protocol 41-14 RPC + handle/3 完整签名 推测
-- 闪烁之光 反模式 1 处 (per 借鉴分析 .md §4 #5): days_rank 22701/22703/22704 V1/V2/V3 三种版本, RGS 应整合为 1 List + 1 GetInfo + 1 Claim 3 RPC, 避免照抄 3 变体重复模式
+- [游戏A] 反模式 1 处 (per 借鉴分析 .md §4 #5): days_rank 22701/22703/22704 V1/V2/V3 三种版本, RGS 应整合为 1 List + 1 GetInfo + 1 Claim 3 RPC, 避免照抄 3 变体重复模式
 - RGS 6 域 (player/card/social/leaderboard/economy/batch) 已知 service 路由 + 端口:
   - player-service:50051 (PlayerService)
   - card-service:50061 (CardService, 含 PartnerService / RecruitService)
@@ -58,13 +58,13 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 ---
 
-## 1. 6 module 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 1. 6 module 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 1.1 partner (协议号 110, 41 cmds) — card (主, PartnerService) + player (PlayerService, 资产/外观/阵法联动)
 
-**业务核心**: 闪烁之光 核心养成系统, 41 cmds, 涵盖升级/突破/合成/分解/兑换/精炼/穿戴/神器/宝石/评论/点赞/分享/助阵 8 大类业务 (per addendum §3 业务流)
+**业务核心**: [游戏A] 核心养成系统, 41 cmds, 涵盖升级/突破/合成/分解/兑换/精炼/穿戴/神器/宝石/评论/点赞/分享/助阵 8 大类业务 (per addendum §3 业务流)
 
-| RPC code | 业务 | 闪烁之光 实现 (per partner_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per partner_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 11000 | 请求全部英雄信息 | handle/3 L14-16 push_all_partner | PartnerService.GetAllPartners, sort_type enum 1:1 | Partial |
 | 11003 | 英雄升级 | handle/3 L19-26 partner_lev_up + role:send_buff_begin | PartnerService.UpgradePartner, role_gain:do/2 扣道具 + lev_up | Partial |
@@ -121,7 +121,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 **业务核心**: 活动管理 + 边玩边下 + 手机绑定 + 抽奖 4 子模块 13 RPC (per addendum §5.12 + holiday_rpc.erl handle/3 L12-123)
 
-| RPC code | 业务 | 闪烁之光 实现 (per holiday_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per holiday_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 16601 | 所有活动 | handle/3 L12-17 holiday:type_all + game_lib:is_ios_verify | BatchService.HolidayService.ListAllActivities, iOS 拦截 RGS N/A | NotImplemented |
 | 16602 | 所有活动未领取奖励 | handle/3 L20-26 holiday:can_get_reward | BatchService.HolidayService.ListUnclaimedRewards | NotImplemented |
@@ -152,7 +152,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 **业务核心**: 聊天 (聊天框/头像框/私聊/语音/弹幕/频道/艾特) 6 子模块 14 RPC (per addendum §5.11 + say_rpc.erl handle/3 L12-129)
 
-| RPC code | 业务 | 闪烁之光 实现 (per say_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per say_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 12700 | 聊天框列表 | handle/3 L12-14 say_frame:info | SocialService.SayService.ListChatFrames, used + frames[] 1:1 | NotImplemented |
 | 12701 | 使用聊天框 | handle/3 L17-25 say_frame:use + notice:alert | SocialService.SayService.UseChatFrame, base_id 1:1 | NotImplemented |
@@ -180,9 +180,9 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 ### 1.4 map (协议号 102, 6 cmds) — player (MapService 全部 N-A for TCG)
 
-**业务核心**: 闪烁之光 open world 地图 + AOI 网格 + 移动同步, RGS TCG 无地图概念, 6 RPC 全部 N-A (per REQ §2 #23 + handoff v0.1 §2.2 家园系统 N-A 决策)
+**业务核心**: [游戏A] open world 地图 + AOI 网格 + 移动同步, RGS TCG 无地图概念, 6 RPC 全部 N-A (per REQ §2 #23 + handoff v0.1 §2.2 家园系统 N-A 决策)
 
-| RPC code | 业务 | 闪烁之光 实现 (per map_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per map_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 10200 | 操作地图单位 | handle/3 L13-30 unit_action:action 6 步模式 | PlayerService.MapService.OperateMapUnit, RGS N/A 跳过 | NotApplicable |
 | 10201 | 请求进入指定地图 | handle/3 L32-40 注释掉, 推测 map:role_enter | PlayerService.MapService.EnterMap, RGS N/A | NotApplicable |
@@ -203,7 +203,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 
 **业务核心**: VIP/充值 (VIP 等级/月卡/累充/等级奖励) 6 RPC (per addendum §5.24 + vip_rpc.erl handle/3 L12-46)
 
-| RPC code | 业务 | 闪烁之光 实现 (per vip_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per vip_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 16700 | 获取充值信息 | handle/3 L12-13 charge:cli_info | EconomyService.VipService.GetChargeInfo, total + first + three_day 字段 | NotImplemented |
 | 16705 | 推送月卡信息 | handle/3 L16-18 month_card:push | EconomyService.VipService.PushMonthlyCardInfo, type enum (1=普通/2=至尊/3=永久) | NotImplemented |
@@ -212,7 +212,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 | 16712 | 累充奖励信息 | handle/3 L35-37 vip:push2 | EconomyService.VipService.GetAccumulatedChargeRewards, 跨域 batch 累充活动 | NotImplemented |
 | 16713 | 领取累充奖励 | handle/3 L40-46 vip:tired_charge | EconomyService.VipService.ClaimAccumulatedChargeReward, List 剩余累充档位 | NotImplemented |
 
-**RGS backend 路由**: economy-service:50052 (主, 6 RPC 全走) + batch-backend:8790 (16712 跨域累充活动) + player-service:50051 (16711/16713 跨域发奖) + payment-gateway (N/A web-only per 9/1 13:05 JST, 闪烁之光 走第三方支付 RGS TCG 重设计)
+**RGS backend 路由**: economy-service:50052 (主, 6 RPC 全走) + batch-backend:8790 (16712 跨域累充活动) + player-service:50051 (16711/16713 跨域发奖) + payment-gateway (N/A web-only per 9/1 13:05 JST, [游戏A] 走第三方支付 RGS TCG 重设计)
 
 **FSM 状态机**: 无 FSM, 走 vip.erl 角色 record 内嵌 + charge:cli_info → RGS economy 域 VipService + sqlx PgVipRepository + 3 表 (vip_levels Master + month_card_subscriptions Transaction + accumulated_charge_rewards Master)
 
@@ -221,13 +221,13 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 - **Transaction**: `month_card_subscriptions` (player_id + type + start_at + expire_at + daily_claimed)
 - **Work**: `player_vip_states` (player_id + vip_lev + vip_exp + next_lev_exp + last_charged_at)
 
-**业务模型重设计 (per 12-大类-RPC-清单 §9 决策)**: 闪烁之光 商城/召唤抽卡 跟 RGS TCG 抽卡/开包 不同, VIP 充值模型需重新设计, v0.2 sprint 评估
+**业务模型重设计 (per 12-大类-RPC-清单 §9 决策)**: [游戏A] 商城/召唤抽卡 跟 RGS TCG 抽卡/开包 不同, VIP 充值模型需重新设计, v0.2 sprint 评估
 
 ### 1.6 days_rank (协议号 227, 4 cmds) — leaderboard (主, DaysRankService) + player + batch
 
-**业务核心**: 7 天排行 (七日活跃排行/活动排行) 4 RPC, 闪烁之光 反模式 V1/V2/V3 三种版本 (per addendum §5.30 + days_rank_rpc.erl handle/3 L17-41)
+**业务核心**: 7 天排行 (七日活跃排行/活动排行) 4 RPC, [游戏A] 反模式 V1/V2/V3 三种版本 (per addendum §5.30 + days_rank_rpc.erl handle/3 L17-41)
 
-| RPC code | 业务 | 闪烁之光 实现 (per days_rank_rpc.erl) | RGS 翻译 | gap 状态 |
+| RPC code | 业务 | [游戏A] 实现 (per days_rank_rpc.erl) | RGS 翻译 | gap 状态 |
 |---|---|---|---|---|
 | 22700 | 进行中列表 | handle/3 L17-19 days_rank_mgr:list | LeaderboardService.DaysRankService.ListActiveDailyRanks, active_ranks[] | NotImplemented |
 | 22701 | 排行榜信息 V1 拉模式 | handle/3 L22-27 days_rank_mgr:rank_info | LeaderboardService.DaysRankService.GetDailyRankInfo, 4 元组 {Id, ET, Idx, Acc} | NotImplemented |
@@ -243,7 +243,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 - **Transaction**: `days_rank_rewards` (player_id + rank_id + my_index + my_score + claimed_at)
 - **Work**: `days_rank_active_lists` (player_id + rank_id + 7 天过期)
 
-**反模式 1 处 (per 借鉴分析 .md §4 #5 + handoff v0.1 §2.1.3 L-CAND-010 候选)**: 22701/22703/22704 V1/V2/V3 三种版本是 闪烁之光 反模式, RGS 应整合为 1 ListActiveDailyRanks + 1 GetDailyRankInfo (拉) + 1 ClaimDailyRankReward (领奖) 3 RPC, 避免照抄 3 变体重复模式
+**反模式 1 处 (per 借鉴分析 .md §4 #5 + handoff v0.1 §2.1.3 L-CAND-010 候选)**: 22701/22703/22704 V1/V2/V3 三种版本是 [游戏A] 反模式, RGS 应整合为 1 ListActiveDailyRanks + 1 GetDailyRankInfo (拉) + 1 ClaimDailyRankReward (领奖) 3 RPC, 避免照抄 3 变体重复模式
 
 ---
 
@@ -260,7 +260,7 @@ worker-5 负责 6 module (partner / holiday / say / map / vip / days_rank), 跨 
 | **总** | **worker-5 6 module** | **6 协议号** | **84** | **0** | **41** | **37** | **6** | **100%** | **5 RGS 域 + 1 跨域联动** |
 
 **注**: 84 cmds 抽样 1:1 映射 (per api_module_summary.txt + RGS-DDD-v0.2-addendum-协议号映射 §5), 0 描述空 (W2 worker-1/2 已遇到 32 描述空, W3 worker-5 抽样 6 module 0 描述空)。
-**关键发现**: 6 module 整体覆盖率 100% (41 Partial + 37 NotImplemented + 6 N-A, 全部模块覆盖), 但 闪烁之光 业务实现 反模式 2 处 (per 借鉴分析 .md §4 #5):
+**关键发现**: 6 module 整体覆盖率 100% (41 Partial + 37 NotImplemented + 6 N-A, 全部模块覆盖), 但 [游戏A] 业务实现 反模式 2 处 (per 借鉴分析 .md §4 #5):
 - days_rank 22701/22703/22704 V1/V2/V3 三种版本 → RGS 应整合为 3 RPC (1 List + 1 GetInfo + 1 Claim)
 - say 弹幕模块 (12730/12731/12732) 3 RPC → RGS WebSocket 模式 (per batch GAP-2 v0.2 评估) + 1 RPC 整合 (EnterDanmaku + SendDanmaku 合并)
 

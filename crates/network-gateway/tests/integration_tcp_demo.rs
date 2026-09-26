@@ -1,14 +1,14 @@
-//! 集成测试: TCP 接 zsyz 真实 wire 协议 → 路由到 5 域 demo service
+//! 集成测试: TCP 接 [游戏A] 真实 wire 协议 → 路由到 5 域 demo service
 //!
 //! ## 范围 (per ULYS-2.1 P0 + 9/4 改进路线图 Phase 1 协议网关)
 //! - 起 1 个 0 端口 TCP listener (OS 分配)
-//! - 客户端发 zsyz 帧 `[4B length u32 BE][2B cmd u16 BE][payload]`
-//! - 服务端 dispatch 到路由表, 返回 zsyz 帧, payload 内部: `[4B rcode u32 BE][...业务 bytes...]`
+//! - 客户端发 [游戏A] 帧 `[4B length u32 BE][2B cmd u16 BE][payload]`
+//! - 服务端 dispatch 到路由表, 返回 [游戏A] 帧, payload 内部: `[4B rcode u32 BE][...业务 bytes...]`
 //! - 验证 rcode=0 + payload 内容 + stats 计数
 //!
 //! ## 与旧版差异 (per ULYS-2.1)
 //! - 旧: `[4B code u32][4B length u32][payload]` (stub, 与客户端 1:1 不一致)
-//! - 新: `[4B length u32 BE][2B cmd u16 BE][payload]` (zsyz_client_h5 SmartSocket 真实协议)
+//! - 新: `[4B length u32 BE][2B cmd u16 BE][payload]` ([游戏A]_client_h5 SmartSocket 真实协议)
 //! - 旧 cmd 字段名 `code: u32` → 新 `cmd: u16`
 //! - 旧响应 `[4B rcode][4B length][payload]` → 新响应直接是 frame payload, 内部 `[4B rcode][body]`
 //!
@@ -99,7 +99,7 @@ async fn tcp_serve_client_roundtrip() {
     });
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    // 客户端发 zsyz 帧: cmd=10101, payload="hello" (5B)
+    // 客户端发 [游戏A] 帧: cmd=10101, payload="hello" (5B)
     // wire: [4B length=2+5=7][2B cmd=0x2775][5B payload="hello"]
     let mut client = TcpStream::connect(&addr).await.expect("connect ok");
     let req_frame = Frame {

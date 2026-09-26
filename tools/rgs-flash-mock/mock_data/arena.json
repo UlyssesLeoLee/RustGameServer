@@ -14,7 +14,7 @@
     "not_implemented_count": 0,
     "not_applicable_count": 0,
     "audit_finding": "match v2 ArenaService 20 增量 RPC 抽 26 cmds 1:1, 但 RGS 应避免照抄 6 变体重复模式 (per RGS-FLASH-MOCK v0.1 §3 反例,主赛/冠军赛/周日冠军赛 × first/refresh 6 do_match_ 分支)",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\arena\\arena.erl (27.7KB, 非 gen_server, 走 role:redirect/3 + sys_conn:pack_send/2, 5 push 函数 + 6 变体挑战列表)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\arena\\arena.erl (27.7KB, 非 gen_server, 走 role:redirect/3 + sys_conn:pack_send/2, 5 push 函数 + 6 变体挑战列表)",
     "rgs_translation": "match-service ArenaService trait + 5 push 函数 via mpsc::Sender (event_sender 模式) + 6 变体抽取为 arena_type enum {Main, Champion, SundayChampion} 避免 6 重复 RPC",
     "rgs_file_ref": "crates/match-service/src/matchmaker_v2.rs:67KB (新增 arena 子模块, per DDD §3.3 L321-343)"
   },

@@ -13,7 +13,7 @@
     "partial_count": 0,
     "not_implemented_count": 14,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\say\\say_rpc.erl (3.9KB, handle/3 14 cmds 12700-12768, 含 say_frame/say_private/say_mgr/say_voice/say_subtitle/say 6 子模块) + say.erl (21.6KB, speak/translate/read_mention 业务函数) + say_mgr.erl (5.5KB, info(del_private_offline_msg) 消息队列) + say_frame.erl (16KB, info/use/activate 聊天框/头像框) + say_private.erl (6.3KB, say/1 私聊) + say_voice.erl (3.8KB, add/find 语音) + say_subtitle.erl (9KB, enter/leave/send 弹幕) + notice (RGS N/A, 内部使用)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\say\\say_rpc.erl (3.9KB, handle/3 14 cmds 12700-12768, 含 say_frame/say_private/say_mgr/say_voice/say_subtitle/say 6 子模块) + say.erl (21.6KB, speak/translate/read_mention 业务函数) + say_mgr.erl (5.5KB, info(del_private_offline_msg) 消息队列) + say_frame.erl (16KB, info/use/activate 聊天框/头像框) + say_private.erl (6.3KB, say/1 私聊) + say_voice.erl (3.8KB, add/find 语音) + say_subtitle.erl (9KB, enter/leave/send 弹幕) + notice (RGS N/A, 内部使用)",
     "rgs_translation": "say_mgr 消息队列 ets + role_say_list 进程字典 → RGS social 域 SayService + sqlx PgChatMessageRepository + NATS push_delivery (per Q7 决策 + 9/1 NFR-32 mTLS 业务级) + 3 表 (chat_messages Transaction + chat_frames Master + chat_offline_messages Work), 14 RPC 全部新, RGS SayService 待 v0.2 sprint 实装, 敏感词 keyword:filter 跟 admin 域整合 (per 9/1 batch 域 NFR-29 audit 永久保留)",
     "rgs_file_ref": "DDD v0.2 addendum §5.11 L728-746 (say 14 cmds) + say_rpc.erl L12-129 handle/3 14 cmds + say.erl 21.6KB 业务核心",
     "known_gaps": [

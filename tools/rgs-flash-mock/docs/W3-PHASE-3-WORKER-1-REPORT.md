@@ -57,7 +57,7 @@
 本报告是 W3 启动 worker-1 (per 9/4 18:03 JST W3 启动 option C + 派工模式选项 B) 的交付物, 验证 player 域 6 module (avatar / honor / login_days / checkin / feat / charge) 在 RGS 3 域 backend (player / batch / economy) 的 gap matrix 覆盖率。
 
 **核心方法**:
-- 抽样 read 闪烁之光 6 文件 (avatar_rpc.erl 1.4KB + honor_rpc.erl 1.3KB + charge_rpc.erl 1.0KB + feat_rpc.erl 894B + checkin_rpc.erl 1.1KB + login_days_rpc.erl 910B), 1:1 逆推到 RGS Rust 设计
+- 抽样 read [游戏A] 6 文件 (avatar_rpc.erl 1.4KB + honor_rpc.erl 1.3KB + charge_rpc.erl 1.0KB + feat_rpc.erl 894B + checkin_rpc.erl 1.1KB + login_days_rpc.erl 910B), 1:1 逆推到 RGS Rust 设计
 - 抽取 6 module 全部 16 cmds (per addendum §5.28/§5.35/§5.36/§5.40/§5.41/§5.42), 1:1 映射到 RGS 3 域 service
 - 写 6 mock.json data file (29.7 KB 总), 含 _module_meta + rpcs dict + mock_response schema + known_gaps + rgs_partial_reason + biz_flow_ref, 供 v0.2+ sprint 接 gRPC client 时复用
 - 写本报告 12 段, 概要 6 module 业务 gap + 已知缺口 + token 消耗
@@ -131,11 +131,11 @@
 
 ---
 
-## 4. 6 module 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 4. 6 module 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 4.1 avatar (4 cmds, 21500-21504) — player AvatarService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\avatar\avatar_rpc.erl` (1.4KB, handle/3 4 cmds) + `avatar.erl` (16.6KB, 16 exports: init/login/frames/use/activate/add/check/del/init_frame/make_avatar/set_timer/sync/update/log + gm_activate/2)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\avatar\avatar_rpc.erl` (1.4KB, handle/3 4 cmds) + `avatar.erl` (16.6KB, 16 exports: init/login/frames/use/activate/add/check/del/init_frame/make_avatar/set_timer/sync/update/log + gm_activate/2)
 > **RGS 翻译**: player-service:50051 PlayerService.AvatarService (新), 1 player 1 tokio actor task + AvatarFrameRepository + AvatarFrameBonusRepository + AvatarFrameActivationRepository
 > **gap 整体**: ❌ NotImplemented (4/4)
 
@@ -172,7 +172,7 @@
 
 ### 4.2 honor (3 cmds, 23300-23303) — player HonorService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\honor\honor_rpc.erl` (1.3KB, handle/3 3 cmds) + `honor.erl` (15.5KB, 推测 ~12 exports, 跟 avatar.erl 结构相似)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\honor\honor_rpc.erl` (1.3KB, handle/3 3 cmds) + `honor.erl` (15.5KB, 推测 ~12 exports, 跟 avatar.erl 结构相似)
 > **RGS 翻译**: player-service:50051 PlayerService.HonorService (新), 1 player 1 tokio actor task + HonorRepository + HonorActivationRepository, 跟 AvatarService 模式 1:1 复用
 > **gap 整体**: ❌ NotImplemented (3/3)
 
@@ -206,7 +206,7 @@
 
 ### 4.3 charge (3 cmds, 21000-21005) — economy ChargeService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\charge\charge_rpc.erl` (1.0KB, handle/3 3 cmds) + `charge.erl` (13.1KB) + `charge_lib.erl` (2.5KB) + `charge_mgr.erl` (5.0KB) + `charge_misc.erl` (13.8KB) + `charge_mltest_return.erl` (3.9KB) + `charge_ver.erl` (548B) 共 39.9KB
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\charge\charge_rpc.erl` (1.0KB, handle/3 3 cmds) + `charge.erl` (13.1KB) + `charge_lib.erl` (2.5KB) + `charge_mgr.erl` (5.0KB) + `charge_misc.erl` (13.8KB) + `charge_mltest_return.erl` (3.9KB) + `charge_ver.erl` (548B) 共 39.9KB
 > **RGS 翻译**: economy-service:50052 ChargeService (新), 1 player 1 tokio actor task + ChargePackageRepository + FirstChargeRewardRepository + ChargeRecordRepository + ThreeDayRebateRepository
 > **gap 整体**: ❌ NotImplemented (3/3)
 
@@ -238,11 +238,11 @@
 - RGS 0/3 wire ChargeService RPC (per DDD v0.1 §2.3 + addendum §5.36, 全部 ❌ NotImplemented), W14 落地
 - charge.erl + 6 个关联 .erl 共 39.9KB 未完整抽样 (per 抽样方法 §3.2), 业务流/支付回调/三方网关/对账/退款/补发 80% 推测 (per addendum §10.1 已知缺口)
 - 第三方支付渠道 (微信 / 支付宝 / Apple Pay / Google Pay) 跟 charge_mltest_return 整合细节待 v0.2+ sprint 实证
-- 1 charge 协议号 210 vs 166 (per addendum §2.2): 闪烁之光 pay.erl 协议号段未启用, 实际 charge=210, v0.2 协调
+- 1 charge 协议号 210 vs 166 (per addendum §2.2): [游戏A] pay.erl 协议号段未启用, 实际 charge=210, v0.2 协调
 
 ### 4.4 feat (2 cmds, 16400-16402) — batch FeatService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\feat\feat_rpc.erl` (894B, handle/3 2 cmds) + `feat.erl` (11.4KB, 推测 ~10 exports)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\feat\feat_rpc.erl` (894B, handle/3 2 cmds) + `feat.erl` (11.4KB, 推测 ~10 exports)
 > **RGS 翻译**: batch-backend:8790 FeatService (新), 1 player 1 tokio actor task + FeatRepository + PlayerFeatProgressRepository + PlayerFeatCompletionRepository
 > **gap 整体**: ❌ NotImplemented (2/2)
 
@@ -273,7 +273,7 @@
 
 ### 4.5 checkin (2 cmds, 14100-14101) — batch CheckinService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\holiday_checkin\checkin_rpc.erl` (1.1KB, handle/3 2 cmds) + `checkin.erl` (9.4KB, 推测 ~6 exports)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\holiday_checkin\checkin_rpc.erl` (1.1KB, handle/3 2 cmds) + `checkin.erl` (9.4KB, 推测 ~6 exports)
 > **RGS 翻译**: batch-backend:8790 CheckinService (新), 1 player 1 tokio actor task + CheckinRepository + PlayerCheckinProgressRepository, 跟 activity W2-2.6 模式 1:1 复用
 > **gap 整体**: ❌ NotImplemented (2/2)
 
@@ -305,7 +305,7 @@
 
 ### 4.6 login_days (2 cmds, 21100-21101) — batch LoginDaysService (新)
 
-> **来源**: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\holiday_login_days\login_days_rpc.erl` (910B, handle/3 2 cmds) + `login_days.erl` (7.0KB, 推测 ~8 exports)
+> **来源**: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\holiday_login_days\login_days_rpc.erl` (910B, handle/3 2 cmds) + `login_days.erl` (7.0KB, 推测 ~8 exports)
 > **RGS 翻译**: batch-backend:8790 LoginDaysService (新), 1 player 1 tokio actor task + LoginDaysRepository + PlayerLoginDaysProgressRepository, 跟 activity W2-2.6 模式 1:1 复用
 > **gap 整体**: ❌ NotImplemented (2/2)
 

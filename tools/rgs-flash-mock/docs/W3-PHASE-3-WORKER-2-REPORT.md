@@ -57,13 +57,13 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 ---
 
-## 1. 6 economy 业务 gap 1:1 列表 (per 闪烁之光 协议号)
+## 1. 6 economy 业务 gap 1:1 列表 (per [游戏A] 协议号)
 
 ### 1.1 item (协议号 105, 10 cmds) — player (主)
 
 **业务核心**: 物品/背包 (per item_rpc.erl + addendum §3.1)
 
-| RPC code | 业务 | 闪烁之光 实现 (per item_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per item_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 10500 | 获取背包物品 | handle/3 (L22-24) + item_lib:to_cli_items3 CliItems 转换 | PlayerService.GetBagItems, 1:1 翻译 SQL | Partial | item_lib:to_cli_items3 待 v0.2 实装 |
 | 10501 | 获取装备背包物品 | handle/3 (L27-29) + p_eqm + month_card:package_vol/1 | PlayerService.GetEquipmentBagItems, 1:1 + 月卡加成 | Partial | month_card 域整合待 v0.2 协调 |
@@ -89,7 +89,7 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 **业务核心**: 邮件 (per mail_rpc.erl + addendum §3.1)
 
-| RPC code | 业务 | 闪烁之光 实现 (per mail_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per mail_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 10800 | 分页读取邮件列表 | handle/3 (L18-23) + role#m_mail 列表 + notice_below:send(mail) 红点 | SocialService.ListMails, 1:1 + push_delivery NATS | Partial | push_delivery 集成 (per Q7), v0.2 sprint |
 | 10801 | 提取单个邮件的附件 | handle/3 (L26-33) + recv_rewards/2 (L82-98) + role_gain:do 跨域 | SocialService.ClaimMailAttachment, 跨域 gain | Partial | RGS 缺 server_id 字段 (per §11.1), v0.2 |
@@ -111,7 +111,7 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 **业务核心**: 兑换商店 (per exchange_rpc.erl + exchange.erl 26.5KB)
 
-| RPC code | 业务 | 闪烁之光 实现 (per exchange_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per exchange_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 13401 | 兑换商店商品当天已购买次数 | handle/3 (L15-22) + exchange:buy_num_list/2 + var:get_var(?var_day_exchange_half) | EconomyService.GetExchangeDayBuyCount, 1:1 | Partial | RGS 缺 ExchangeBuyCount Repo, v0.2 sprint |
 | 13402 | 兑换 | handle/3 (L25-39) + exchange_data:get_by_eid/1 + exchange:buy/3 + exchange:get_ext/2 钩子 | EconomyService.Exchange, 跨域 gain | Partial | RGS 缺 exchange_data Master + 跨域事务, v0.2 |
@@ -133,7 +133,7 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 **业务核心**: 资产兑换/神格许愿 (per convert_rpc.erl + convert.erl 7.9KB)
 
-| RPC code | 业务 | 闪烁之光 实现 (per convert_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per convert_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 23600 | 资产兑换 | handle/3 (L16-22) + convert:convert_assets/3 | EconomyService.ConvertAssets, 跨域 gain | Partial | RGS 缺 convert_assets 业务, v0.2 sprint |
 | 23601 | 神格许愿状态 | handle/3 (L25-27) + convert:push_info/1 (主动 push, return ok) | EconomyService.PushWishStatus, push 模式 | Partial | RGS 缺 push_info + push_delivery NATS, v0.2 |
@@ -154,7 +154,7 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 **业务核心**: 等级好礼 (per lev_gift_rpc.erl + lev_gift.erl 10.4KB)
 
-| RPC code | 业务 | 闪烁之光 实现 (per lev_gift_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per lev_gift_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 21200 | 等级好礼信息 | handle/3 (L17-23) + lev_gift:gifts_info/1 (含 _ 异常 case) | EconomyService.GetLevGiftInfo, 1:1 | Partial | RGS 缺 LevGift Master, v0.2 sprint |
 | 21202 | 获取状态 | handle/3 (L26-28) + lev_gift:get_label_status/1 | EconomyService.GetLevGiftStatus, 1:1 | Partial | RGS 缺 status enum, v0.2 sprint |
@@ -174,7 +174,7 @@ worker-2 负责 6 economy module (item / mail / exchange / convert / lev_gift / 
 
 **业务核心**: 战力礼包 (per power_gift_rpc.erl + power_gift.erl 4.9KB)
 
-| RPC code | 业务 | 闪烁之光 实现 (per power_gift_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
+| RPC code | 业务 | [游戏A] 实现 (per power_gift_rpc.erl) | RGS 翻译 | gap 状态 | 已知缺口 |
 |---|---|---|---|---|---|
 | 23400 | 战力礼包信息 | handle/3 (L17-23) + power_gift:gifts_info/1 | BatchService.GetPowerGiftInfo, 1:1 (走 task_templates) | Partial | RGS 缺 PowerGift Master, v0.2 sprint |
 | 23402 | 获取状态 | handle/3 (L25-27) + power_gift:get_label_status/1 | BatchService.GetPowerGiftStatus, 1:1 | Partial | RGS 缺 status enum, v0.2 sprint |
@@ -336,7 +336,7 @@ Get-ChildItem mock_data\{item,mail,exchange,convert,lev_gift,power_gift}.json | 
 ### 5.3 数据缺口
 
 - **RGS 5 域 ST 业务 mTLS cert 导出 SOP** (per 8/27 ST 导出 + L-CAND-006 兜底) — 6 economy mock 跨域调用需 cert 复用
-- **闪烁之光 性能 baseline** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 后
+- **[游戏A] 性能 baseline** — mock 跑通后, 跟 Erlang server 同 client P50/P95/P99 对比, 待 9 月 Phase C 后
 - **30 新 module 完整 .erl 抽样** (per Phase 3 拍板) — 本 worker 仅 6/30 module 抽样, 剩余 24 module 待 W3 后续 worker 派工 (boss, dungeon_fight, adventure, stronger, holiday, holiday_login_days, holiday_checkin, days_rank, notice, mail_2, guild_shipping, guild_dun, charge, vip, sns, say, formation, star, drama, quest, map, partner, honor, avatar)
 
 ### 5.4 业务缺口

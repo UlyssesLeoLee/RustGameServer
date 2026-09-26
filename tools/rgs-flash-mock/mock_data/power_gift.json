@@ -16,7 +16,7 @@
     "partial_count": 3,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_power_gift\\power_gift_rpc.erl (1.1KB, handle/3 3 cmds 23400-23403) + power_gift.erl (4.9KB, gifts_info/1 + get_label_status/1 + gain/2)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\holiday_power_gift\\power_gift_rpc.erl (1.1KB, handle/3 3 cmds 23400-23403) + power_gift.erl (4.9KB, gifts_info/1 + get_label_status/1 + gain/2)",
     "rgs_translation": "batch-service PowerGiftService trait (per 协议号映射 §2.3 L162 holiday_checkin.erl → BatchService.PowerGiftService) + batch 域 task_templates 战力阈值 Master + 跨域 economy gain 模式 (1:1 翻译 per DDD §3.5)",
     "rgs_file_ref": "DDD v0.2 addendum §4 + 协议号映射 §2.3 L162-163 (holiday_checkin.erl/holiday_power_gift.erl → BatchService/EconomyService) + power_gift_rpc.erl L17-35 (handle/3 3 函数 + 容错匹配)",
     "known_gaps": [

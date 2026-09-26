@@ -14,7 +14,7 @@
     "not_implemented_count": 11,
     "not_applicable_count": 0,
     "audit_finding": "social 域 GuildShippingService gRPC 0/11 wire (per audit v0.3 §3.4), 30 新 module 阶段, 待 W11 补, 跨域 saga 跨 social + match + economy + player",
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\guild_shipping\\guild_shipping.erl (57.8KB 业务核心) + guild_shipping_rpc.erl (3.9KB handle/3 11 RPC) + guild_shipping_mgr.erl (6.7KB ets + cron) + proto_238.erl (16.9KB pack/unpack)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\guild_shipping\\guild_shipping.erl (57.8KB 业务核心) + guild_shipping_rpc.erl (3.9KB handle/3 11 RPC) + guild_shipping_mgr.erl (6.7KB ets + cron) + proto_238.erl (16.9KB pack/unpack)",
     "rgs_translation": "social-service GuildShippingService (新) + sqlx PgGuildShippingRepository + 跨域 saga OrderSaga (下单→起航→完成→领奖) + cron tick 加速远航 + NATS push 互助加速 + 跨 batch 域 active-active 跨服订单分发",
     "rgs_file_ref": "RGS-DDD v0.2 addendum §5.15 1:1 映射 + §6.2 30 新 module #6 落地 W11",
     "known_gaps": [

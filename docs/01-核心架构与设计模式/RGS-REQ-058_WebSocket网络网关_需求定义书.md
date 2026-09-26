@@ -135,7 +135,7 @@ cargo test -p network-gateway --test integration_phase15_demo       → 5 passed
 - **QUIC 路径需求**：见 RGS-REQ-001 §10.4（ARC-003）；本文档不重复
 - **TCP 路径需求**：见 RGS-REQ-001 §5.2 IF-001〜IF-008；本文档不重复
 - **协议层消息语义**：业务层 gRPC service / method 路由决策由 `RouteTable` 处理；WS 仅作为传输层
-- **客户端 SDK**：浏览器端 SmartSocket (`zsyz_client_h5`) 不在本文档范围；本文档约束 server-side 实现
+- **客户端 SDK**：浏览器端 SmartSocket (`[游戏A]_client_h5`) 不在本文档范围；本文档约束 server-side 实现
 
 ---
 

@@ -15,7 +15,7 @@
     "partial_count": 4,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\holiday_lev_gift\\lev_gift_rpc.erl (1.3KB, handle/3 4 cmds 21200-21204) + lev_gift.erl (10.4KB, gifts_info/1 + get_label_status/1 + gain/2 + buy/2)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\holiday_lev_gift\\lev_gift_rpc.erl (1.3KB, handle/3 4 cmds 21200-21204) + lev_gift.erl (10.4KB, gifts_info/1 + get_label_status/1 + gain/2 + buy/2)",
     "rgs_translation": "economy-service LevGiftService trait + LevGiftRepository (sqlx PgLevGiftRepo) + lev_gift:gifts_info/1 Master 1:1 + get_label_status/1 status enum + gain/2 领取 + buy/2 购买 (跨域 player + economy, per addendum §4)",
     "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L155 (adventure.erl → BatchService.LevGiftService, per REQ §2 #32 — 实际 holiday_lev_gift.erl → EconomyService, per §2.3 L164 跨域协调) + lev_gift_rpc.erl L17-46 (handle/3 4 函数 + 容错匹配)",
     "known_gaps": [

@@ -15,7 +15,7 @@
     "partial_count": 6,
     "not_implemented_count": 0,
     "not_applicable_count": 0,
-    "source": "E:\\BaiduNetdiskDownload\\闪烁之光\\server分析\\zsyz_server\\src\\mod\\mail\\mail_rpc.erl (5.1KB, handle/3 6 cmds 10800-10810) + mail.erl (21.8KB, gen_server) + feedback.erl (3.2KB, GM 反馈子模块)",
+    "source": "E:\\[跨盘-某发行商目录]\\[游戏A]\\server分析\\[游戏A]_server\\src\\mod\\mail\\mail_rpc.erl (5.1KB, handle/3 6 cmds 10800-10810) + mail.erl (21.8KB, gen_server) + feedback.erl (3.2KB, GM 反馈子模块)",
     "rgs_translation": "social-service MailService trait + MailRepository (sqlx PgMailRepo) + role#m_mail 列表 → m_mail Master/Transaction 表 + role_gain:do 邮件附件 1:1 + log:save(log_mail) 永久保留 (per 8/27 NFR-29)",
     "rgs_file_ref": "DDD v0.2 addendum §3.1 + 协议号映射 §2.3 L131 (mail → SocialService.MailService, per REQ §2 #24) + mail_rpc.erl L18-77 (handle/3 6 函数 + 容错匹配)",
     "known_gaps": [

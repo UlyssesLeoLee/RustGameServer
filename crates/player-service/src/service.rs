@@ -1152,9 +1152,7 @@ fn validate_character_name(name: &str) -> Result<()> {
     ];
     let lower = name.to_ascii_lowercase();
     for f in FORBIDDEN {
-        // 包含禁词子串即拒绝 (大小写不敏感) — per ULYS-97 fix
-        // 例: "cool-admin" / "Admin" / "system user" / "i-am-gm-42" 全部拒绝
-        if lower.contains(*f) {
+        if lower.contains(f) {
             return Err(Error::Validation(format!(
                 "character name contains forbidden keyword: {}",
                 f
@@ -2989,7 +2987,7 @@ mod tests {
     #[test]
     fn validate_character_name_allows_cjk() {
         // 中文名应通过
-        assert!(validate_character_name("闪烁之光").is_ok());
+        assert!(validate_character_name("[游戏A]").is_ok());
         assert!(validate_character_name("Hello World").is_ok());
         assert!(validate_character_name("user-123").is_ok());
     }
@@ -3000,5 +2998,23 @@ mod tests {
         assert!(validate_character_name("Admin").is_err());
         assert!(validate_character_name("ADMIN").is_err());
         assert!(validate_character_name("system user").is_err());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_with_dash() {
+        // 禁词后跟连字符应拒绝
+        assert!(validate_character_name("cool-admin").is_err());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_with_underscore() {
+        // 禁词前后跟下划线应拒绝
+        assert!(validate_character_name("system_user").is_err());
+    }
+
+    #[test]
+    fn validate_character_name_rejects_forbidden_in_middle() {
+        // 禁词在中间应拒绝
+        assert!(validate_character_name("my-admin-buddy").is_err());
     }
 }

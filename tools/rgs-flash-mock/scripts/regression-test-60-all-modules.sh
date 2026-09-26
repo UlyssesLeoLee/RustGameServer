@@ -42,7 +42,7 @@ declare -A MODULE_CATEGORIES=(
   [match]="MATCHMAKING-V2 SPECTATOR REPLAY"
   [social]="GUILD PARTY CHAT"
   [admin]="AUDIT-LOG RBAC GM-HANDLER"
-  # 8 域扩展 12 module (per 9/6 闪烁之光 8 域兼容)
+  # 8 域扩展 12 module (per 9/6 [游戏A] 8 域兼容)
   [scene_ext]="SCENE-148 COMBAT-PREVIEW PVP-ARENA"
   [battle_ext]="BATTLE-250 RAID-TEAM BOSS-WORLD"
   [network_ext]="GATEWAY LB HEALTH"
@@ -81,7 +81,7 @@ fi
 # 3. ~966 用例验证 (per 用例明细 v0.2 §4)
 echo
 echo "[3/3] ~966 用例验证 (per 用例明细 v0.2 §4 汇总) ..."
-echo "  ✅ 42 闪烁之光 module 业务路径 + 错误码 + 边界 + 异常: ~588 用例"
+echo "  ✅ 42 [游戏A] module 业务路径 + 错误码 + 边界 + 异常: ~588 用例"
 echo "  ✅ 18 跨域抽象 module (4 类): ~270 用例"
 echo "  ✅ batch 域 6 module (NEW): 90 用例"
 echo "  ✅ 跨域 saga 专项: 6 用例 (SAGA-001~006)"

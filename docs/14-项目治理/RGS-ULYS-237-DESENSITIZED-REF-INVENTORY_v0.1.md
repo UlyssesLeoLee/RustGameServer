@@ -155,23 +155,23 @@
 
 ### 4.3 命中范围
 
-- `[游戏D]` **39 次**(`docs/14-项目管理/RGS-BASIC-ANANTA-CBT3-INSPIRED-2026-09-17_v0.1.md` [别名])
-- `[CBTn]` [别名] **79 次**(`docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` [别名])
+- `[游戏D]` **39 次**(`docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md` [别名])
+- `[CBTn]` [别名] **79 次**(`docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` [别名])
 
 ### 4.4 落地证据
 
-- `docs/14-项目管理/RGS-REFERENCE-ANANTA-CBT3-PRIVATE-SERVER_v0.1.md` [别名](**617 行**)
+- `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` [别名](**617 行**)
   - 整文件都是 `[游戏D]` / `[CBTn]` [别名] / 某厂商名 [别名] / `Drmk` [别名] / `PrivateServer` [别名] 命名
   - L572 提 `[游戏A]-client` = 某客户端引擎主客户端 [别名](L595 有修正说明,L572 那个 `[游戏A]` 引用其实是另一个 MMORPG 项目,与本需求无关)
   - L595 提到 `[跨盘-shanshuo-src-winrar]`(2.38 GB / `[游戏A]` 全套)是另一个 MMORPG 项目
-- `docs/14-项目管理/RGS-BASIC-ANANTA-CBT3-INSPIRED-2026-09-17_v0.1.md` [别名](**~800 行**)
+- `docs/14-项目管理/RGS-BASIC-GAMED-INSPIRED-2026-09-17_v0.1.md` [别名](**~800 行**)
   - 10 项 REQ-001..010 + 文件名级逆向引用
   - L776 提 `[跨盘-PrivateServer]` 作为 `[游戏D]` 源码位置
 - `docs/14-项目管理/RGS-PM-ULYS-1-GAP-ANALYSIS_v0.1.md`(`[CBTn]` 出现 9 次)
 
 ### 4.5 配套 DTL-001..010(10 份详细设计)
 
-`docs/14-项目管理/RGS-DETAILED-ANANTA-{001-rgs-proto-dump, 002-rgs-config-loader, 003-handler-partial-pattern, 004-rgs-protocol-builds, 005-rgs-debug, 006-db-known-issues, 007-data-driven-gameplay, 008-start-rgs-stack, 009-saga-runtime-multi-server, 010-mlua-config}_v0.1.md` [别名]
+`docs/14-项目管理/RGS-DETAILED-GAMED-{001-rgs-proto-dump, 002-rgs-config-loader, 003-handler-partial-pattern, 004-rgs-protocol-builds, 005-rgs-debug, 006-db-known-issues, 007-data-driven-gameplay, 008-start-rgs-stack, 009-saga-runtime-multi-server, 010-mlua-config}_v0.1.md` [别名]
 
 ### 4.6 处置策略(P0 — D-Boy 拍板前待确认)
 
@@ -184,7 +184,7 @@
 - 不修改 §4.4 / §4.5 提到的 12 份文件本身(per D-Boy "脱敏即可")
 - 本清单 `RGS-ULYS-237-DESENSITIZED-REF-INVENTORY_v0.1.md` 已经把所有真名 / 拼音 / 路径别名通过 `[别名]` 角标标明
 - 后续 turn 可选执行:
-  - P0 — 整批删除 / 改写 `docs/14-项目管理/RGS-{REFERENCE, BASIC, DETAILED}-ANANTA-*.md` [别名](12 份)
+  - P0 — 整批删除 / 改写 `docs/14-项目管理/RGS-{REFERENCE, BASIC, DETAILED}-GAMED-*.md` [别名](2 份实际 + 10 份 planned; on-disk 改名于 v0.3 落地)
   - 备选 P0 — 移到 `D:\\某用户笔记\\` 不入仓,本仓库零痕迹
 
 ---

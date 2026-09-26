@@ -4,7 +4,7 @@
 # 规范：RGS-IMPL-005 §3 + RGS-OPS-001 §3.2 Dockerfile 模板
 
 # ==================== 通用 builder ====================
-FROM rust:1.98-slim AS chef
+FROM rust:1.98.1-slim AS chef
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config libssl-dev ca-certificates protobuf-compiler && \
@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 # ==================== runtime base（distroless cc） ====================
 # per W45-h 9/9 06:00 JST 诊断: cc-debian12 glibc 2.36 跟 binary 链 GLIBC_2.38 不匹配
-# 改 cc-debian13 (glibc 2.38) 匹配 rust:1.98-slim builder
+# 改 cc-debian13 (glibc 2.38) 匹配 rust:1.98.1-slim builder
 FROM gcr.io/distroless/cc-debian13:nonroot AS runtime-base
 WORKDIR /app
 COPY --from=builder /app/target/release/ /app/bin/
@@ -43,7 +43,7 @@ COPY --from=health-probe /bin/grpc_health_probe /bin/grpc_health_probe
 USER nonroot:nonroot
 
 # ==================== dev target ====================
-FROM rust:1.98-slim AS dev
+FROM rust:1.98.1-slim AS dev
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config libssl-dev ca-certificates git protobuf-compiler && \

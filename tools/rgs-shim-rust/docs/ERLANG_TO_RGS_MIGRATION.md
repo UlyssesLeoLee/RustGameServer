@@ -1,6 +1,6 @@
 # rgs-shim-rust v0.5: erlang → rgs 迁移报告
 
-**核心**: 把 zsyz_client (Cocos2d-js 闪烁之光 H5) 通过 SmartSocket TCP 协议连过来的请求, 翻译成 RGS 5+2 域 gRPC 调用. **前端不变, 后端从 zsyz_server (Erlang) 切到 rgs-shim-rust (Rust + tokio) → rgs-proxy (Node.js) → RGS 7 binary (50061-50065 + card + leaderboard)**.
+**核心**: 把 [游戏A]_client (Cocos2d-js [游戏A] H5) 通过 SmartSocket TCP 协议连过来的请求, 翻译成 RGS 5+2 域 gRPC 调用. **前端不变, 后端从 [游戏A]_server (Erlang) 切到 rgs-shim-rust (Rust + tokio) → rgs-proxy (Node.js) → RGS 7 binary (50061-50065 + card + leaderboard)**.
 
 per 2026-09-09 14:51 JST Ulysses 拍板: "前端表现和 erlang 版本一致的情况下, 后端换成 rgs"  
 per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker 合并完成)
@@ -13,7 +13,7 @@ per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker
 
 ```
 ┌──────────────┐  SmartSocket (BE)   ┌──────────────┐
-│  zsyz_client │ ──────────────────── │ zsyz_server  │
+│  [游戏A]_client │ ──────────────────── │ [游戏A]_server  │
 │  (Cocos2d-js)│  4B len + 2B cmd     │ (Erlang/OTP) │
 │  H5/Android  │  + payload           │ 43 proto_*.erl│
 │              │  port ???            │ 991 pack defs│
@@ -25,20 +25,20 @@ per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker
 
 ```
 ┌──────────────┐  SmartSocket (BE)   ┌──────────────┐  HTTP/JSON   ┌──────────┐  gRPC     ┌─────────┐
-│  zsyz_client │ ──────────────────── │ rgs-shim     │ ──────────── │ rgs-proxy│ ──────────│ RGS 5+3 │
+│  [游戏A]_client │ ──────────────────── │ rgs-shim     │ ──────────── │ rgs-proxy│ ──────────│ RGS 5+3 │
 │  (前端不变)  │  4B len + 2B cmd     │ (Rust+tokio) │   8084       │ (Node.js)│  50061-65 │ 域 binary│
 │              │  + payload           │ v0.3.1       │              │ gRPC桥   │           │          │
 │              │  port 9001           │ 6 cmd        │              │          │           │          │
 └──────────────┘                      └──────────────┘              └──────────┘           └─────────┘
 ```
 
-**关键**: zsyz_client 端的代码 **一行不改**, 协议字节级一致, 只换后端.
+**关键**: [游戏A]_client 端的代码 **一行不改**, 协议字节级一致, 只换后端.
 
 ---
 
-## 2. cmd 映射表 (per zsyz_server/src/proto/*.erl)
+## 2. cmd 映射表 (per [游戏A]_server/src/proto/*.erl)
 
-| shim cmd | zsyz cmd | zsyz 文件 | cli 字段 (Erlang pack) | srv 字段 (Erlang pack) | shim handler | RGS 调用 | 状态 |
+| shim cmd | [游戏A] cmd | [游戏A] 文件 | cli 字段 (Erlang pack) | srv 字段 (Erlang pack) | shim handler | RGS 调用 | 状态 |
 |----------|----------|-----------|------------------------|------------------------|--------------|----------|------|
 | 10101 | 10101 | proto_101.erl | `{sex:u8, name:str, career:i16, playform:str}` | `{code:u8, msg:str, rid:u32, srv_id:str, name:str, reg_time:u32}` | handle_register | player.GetPlayer | ✅ |
 | 10102 | 10102 | proto_101.erl | `{rid:u32, srv_id:str}` | `{code:u8, msg:str, timestamp:u32, world_lev:u16}` | handle_enter_server | (无, server ready) | ✅ |
@@ -47,8 +47,8 @@ per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker
 | 10400 | (shim-internal) | n/a | (empty) | `{code:u8, msg:str, ok_count:u8, total:u8}` | handle_heartbeat | 5 域 HealthCheck 并发 | ⚠️ |
 | 11001 | (shim-internal) | n/a | (empty) | `{code:u8, msg:str, count:u8, [name:str, level:u8]}` | handle_role_list | player.ListPlayers | ⚠️ |
 
-**真实 zsyz cmd**: 4 个 (10101/10102/10103/10200) = 0.8% (4/514 unique cmd)
-**shim-internal RGS 测试 cmd**: 2 个 (10400/11001) — 不是 zsyz_client 真 cmd, 是给 RGS 监控用
+**真实 [游戏A] cmd**: 4 个 (10101/10102/10103/10200) = 0.8% (4/514 unique cmd)
+**shim-internal RGS 测试 cmd**: 2 个 (10400/11001) — 不是 [游戏A]_client 真 cmd, 是给 RGS 监控用
 **业务覆盖率**: 4/514 = 0.8% (per OLU 实际可上线需求), 1-2 周 4 worker 扩 (per 9/9 13:45 JST 拍板 A)
 
 ---
@@ -57,7 +57,7 @@ per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker
 
 ### 3.1 测试方法
 
-模拟 zsyz_client 客户端 (`D:\RustGameServer\tools\rgs-shim-rust\bench\proto-test.js`):
+模拟 [游戏A]_client 客户端 (`D:\RustGameServer\tools\rgs-shim-rust\bench\proto-test.js`):
 - 按 `proto_101.erl` / `proto_102.erl` 字段顺序构造 SmartSocket 帧
 - 通过 TCP 9001 发送到 rgs-shim
 - 解析 shim 返回的 SmartSocket 响应, 验证字段顺序 + 类型 + 长度
@@ -83,7 +83,7 @@ per 2026-09-13 JST 完成: v0.5 全量实施, 766/766 cmd 业务覆盖 (5 worker
      {"cmd":20000,"payload_len":0}
 [✅] 并发 50 register (压测)
      {"total":50,"success":50,"dt_ms":74,"rps":"675.7"}
-[✅] 完整登录流程 10101 → 10102 → 10200 (模拟 zsyz_client 启动)
+[✅] 完整登录流程 10101 → 10102 → 10200 (模拟 [游戏A]_client 启动)
      {"r1":{"cmd":10101},"r2":{"cmd":10102},"r3":{"cmd":10200},"rid":"0x76696120"}
 ```
 
@@ -142,7 +142,7 @@ out.write_u32(id);                       // 回显 id
 out.write_u32(now_unix());               // time
 ```
 
-**修复原因**: 真实 zsyz_client 解析 10200 srv 会按 Erlang 协议读 5 字段, v0.3.0 缺 3 字段会卡在 protocol:string 上 (string len = 0x00000000 + msg 后续乱码).
+**修复原因**: 真实 [游戏A]_client 解析 10200 srv 会按 Erlang 协议读 5 字段, v0.3.0 缺 3 字段会卡在 protocol:string 上 (string len = 0x00000000 + msg 后续乱码).
 
 ### 4.2 shim-internal cmd 标记
 
@@ -151,18 +151,18 @@ out.write_u32(now_unix());               // time
 pub struct CmdEntry {
     pub handler: AsyncHandler,
     pub name: &'static str,
-    pub source: &'static str,  // "zsyz" = 真 zsyz_client cmd; "shim" = shim-internal RGS 测试
+    pub source: &'static str,  // "[游戏A]" = 真 [游戏A]_client cmd; "shim" = shim-internal RGS 测试
 }
 
-map.insert(10101, CmdEntry { ..., source: "zsyz" });
-map.insert(10102, CmdEntry { ..., source: "zsyz" });
-map.insert(10103, CmdEntry { ..., source: "zsyz" });
-map.insert(10200, CmdEntry { ..., source: "zsyz" });
-map.insert(10400, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 zsyz 真 cmd
-map.insert(11001, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 zsyz 真 cmd
+map.insert(10101, CmdEntry { ..., source: "[游戏A]" });
+map.insert(10102, CmdEntry { ..., source: "[游戏A]" });
+map.insert(10103, CmdEntry { ..., source: "[游戏A]" });
+map.insert(10200, CmdEntry { ..., source: "[游戏A]" });
+map.insert(10400, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 [游戏A] 真 cmd
+map.insert(11001, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 [游戏A] 真 cmd
 ```
 
-**注意**: Erlang 10400 = quest_list (per proto_104.erl), 11001 = partner_list (per proto_110.erl). 我用作 RGS heartbeat/role_list 跟原 zsyz 协议冲突, 不能给真实 zsyz_client 用 — 已标记 source="shim".
+**注意**: Erlang 10400 = quest_list (per proto_104.erl), 11001 = partner_list (per proto_110.erl). 我用作 RGS heartbeat/role_list 跟原 [游戏A] 协议冲突, 不能给真实 [游戏A]_client 用 — 已标记 source="shim".
 
 ---
 
@@ -173,14 +173,14 @@ map.insert(11001, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 zsyz 真 
 ```
 [Windows / Linux]
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  zsyz_client 客户端 (Android/iOS/H5)                                     │
+│  [游戏A]_client 客户端 (Android/iOS/H5)                                     │
 │  不修改 — 仍用 SmartSocket TCP 协议                                      │
 └───────────────────────────────────┬─────────────────────────────────────┘
                                     │ TCP 9001
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  rgs-shim-rust v0.3.1 (Rust + tokio + async/await)                        │
-│  - 6 cmd 路由 (4 zsyz + 2 shim)                                          │
+│  - 6 cmd 路由 (4 [游戏A] + 2 shim)                                          │
 │  - 字节级 SmartSocket 帧解析/构造 (BE)                                    │
 │  - 5 域并发 HealthCheck (3ms)                                            │
 │  - 生产级: tracing + connection pool + Arc<Mutex<WriteHalf>> 共享 writer │
@@ -209,7 +209,7 @@ map.insert(11001, CmdEntry { ..., source: "shim" });  // ⚠️ 不是 zsyz 真 
 ### 5.2 真实调用链 (e.g. 10101 register)
 
 ```
-zsyz_client                rgs-shim-rust             rgs-proxy          RGS player          postgres
+[游戏A]_client                rgs-shim-rust             rgs-proxy          RGS player          postgres
     │                           │                        │                   │                  │
     │── SmartSocket 10101 ────▶│                        │                   │                  │
     │   [sex:u8, name:str,      │                        │                   │                  │
@@ -271,7 +271,7 @@ zsyz_client                rgs-shim-rust             rgs-proxy          RGS play
 
 ### 7.3 待澄清 (Ulysses 二审)
 
-- Q1 10400/11001 占用 zsyz cmd 编号, 后续扩 cmd 时若 4 worker 需用这 2 个, 需先迁移 RGS heartbeat/role_list 到其他 cmd (建议 99001/99002 等 shim-internal 范围)
+- Q1 10400/11001 占用 [游戏A] cmd 编号, 后续扩 cmd 时若 4 worker 需用这 2 个, 需先迁移 RGS heartbeat/role_list 到其他 cmd (建议 99001/99002 等 shim-internal 范围)
 - Q2 10200 完整 5 字段响应已就位, 10101/10102/10103 同样 100% 跟 Erlang 一致, 无格式 gap
 
 ---
@@ -302,7 +302,7 @@ Start-Process D:\RustGameServer\target\shim-rust\release\rgs-shim.exe
 cd D:\RustGameServer\tools\rgs-shim-rust\bench
 node proto-test.js
 # 合计: 10/10 passed, 0 failed
-# 真实 zsyz_client cmd 4 个: 10101 / 10102 / 10103 / 10200
+# 真实 [游戏A]_client cmd 4 个: 10101 / 10102 / 10103 / 10200
 # shim-internal RGS 测试 cmd 2 个: 10400 / 11001
 ```
 

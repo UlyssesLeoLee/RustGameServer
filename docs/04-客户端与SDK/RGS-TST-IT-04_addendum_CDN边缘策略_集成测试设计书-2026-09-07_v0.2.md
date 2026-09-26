@@ -20,7 +20,7 @@
 | 版本 | 修订日 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-19 | 架构师 | 初版制定 |
-| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 8 域扩展（per 9/6 闪烁之光兼容 a5235eb/95e67a6/1134cfd/57edbeb/b6b19b7/1dd9afc/3c79bca/42df673）② 9 域 mTLS 业务级（per 9/6 d270ab9 11 步 v3 + d15a0bb 3 NEW 域 k8s yaml）③ envoy 独立 deployment（per 9/1 13:03/13:05 JST 决策）④ 派生约束守护 L15-L23（per 9/6 6c6839e cutover） |
+| **0.2** | 2026-09-07 | 架构师（Mavis 接手代签 per DEC-008） | 8 维度增量升版：① 8 域扩展（per 9/6 [游戏A]兼容 a5235eb/95e67a6/1134cfd/57edbeb/b6b19b7/1dd9afc/3c79bca/42df673）② 9 域 mTLS 业务级（per 9/6 d270ab9 11 步 v3 + d15a0bb 3 NEW 域 k8s yaml）③ envoy 独立 deployment（per 9/1 13:03/13:05 JST 决策）④ 派生约束守护 L15-L23（per 9/6 6c6839e cutover） |
 
 ## 审批栏
 
@@ -66,7 +66,7 @@
 | TST-IT-04-C008 | [TL-2] | 跨 region 一致性 | — | — |
 | TST-IT-04-C009 | [TL-2] | 已批准源站回源失败降级至上一稳定版 | — | — |
 | TST-IT-04-C010 | [TL-2] | ARC-045-1/2 后端抽象层及 BOM/许可证/ADR 启用门禁 | — | — |
-| **TST-IT-04-C011** | **[TL-4/E2E]** | **8 域 asset bundle 边缘命中（per 9/6 闪烁之光兼容）** | scene 场景 bundle / battle 战斗 bundle / network 协议包 / account 账号资源 / sub8 8 子系统 各自命中 | 13 域 × 1000 资源 = 13000 样本 |
+| **TST-IT-04-C011** | **[TL-4/E2E]** | **8 域 asset bundle 边缘命中（per 9/6 [游戏A]兼容）** | scene 场景 bundle / battle 战斗 bundle / network 协议包 / account 账号资源 / sub8 8 子系统 各自命中 | 13 域 × 1000 资源 = 13000 样本 |
 | **TST-IT-04-C012** | **[TL-4/E2E]** | **9 域 mTLS 业务级 CDN 边缘命中（per 9/6 d270ab9）** | mTLS 客户端模拟器 v3 走完 11 步，CDN 边缘命中 + 回源全部走 mTLS 通道 | 11 步客户端模拟器 v3 |
 | **TST-IT-04-C013** | **[TL-4/E2E]** | **3 NEW 域 k8s yaml 落档 + mTLS 业务级（per 9/6 d15a0bb）** | scene / battle / account 三个新域的 k8s yaml + mTLS cert 导入 + CDN 边缘命中 | 3 NEW 域 yaml + 3 mTLS cert |
 | **TST-IT-04-C014** | **[TL-4]** | **9 域 mTLS cert 轮换（per L-CAND-006）** | 9 域 cert 轮换后 CDN 边缘命中保持，0 中断 | 9 域 × 30 天 cert |

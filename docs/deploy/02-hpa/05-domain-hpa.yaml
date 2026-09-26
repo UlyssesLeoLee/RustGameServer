@@ -1,0 +1,71 @@
+# 5 域 HorizontalPodAutoscaler (HPA) 留档
+# 实际由 Ulysses 主对话 2026-08-27 08:30 JST 在 k3s apply,本文件仅作
+# 文档留档(per W2 worker commit ab8f39c 修订历史中的承诺)。
+#
+# 应用方法(per 5 域各 sed 替换 <svc>):
+#   for svc in player-service economy-service match-service social-service admin-service; do
+#     sed "s|<svc>|$svc|g" docs/deploy/02-hpa/05-domain-hpa.yaml | \
+#       k3s kubectl apply -n rust-game-server -f -
+#   done
+#
+# 现状(2026-08-27 11:05 JST `kubectl get hpa -n rust-game-server`):
+#   NAME                  REFERENCE                    TARGETS                       MINPODS   MAXPODS   REPLICAS   AGE
+#   admin-service-hpa     Deployment/admin-service     cpu: 0%/70%, memory: 0%/75%   2         8         2          165m
+#   economy-service-hpa   Deployment/economy-service   cpu: 0%/70%, memory: 0%/75%   2         8         2          165m
+#   match-service-hpa     Deployment/match-service     cpu: 0%/70%, memory: 0%/75%   2         8         2          165m
+#   player-service-hpa    Deployment/player-service    cpu: 0%/70%, memory: 0%/75%   2         8         2          165m
+#   social-service-hpa    Deployment/social-service    cpu: 0%/70%, memory: 0%/75%   2         8         2          165m
+#
+# 已知偏差(per docs/deploy/01-k8s-manifests/README.md:46-51 占位 spec):
+#   - 当前 5 HPA 一律 min=2 max=8,但 README 占位 spec 是 per-domain(player 2/8, economy 2/6,
+#     match 3/12, social 2/6, admin 1/2)。本文件用实际 deployed 2/8 留档(per 主对话决策),
+#     后续 per-domain 校准由 5 域 Lead + SRE 联合压测后调整(per RGS-ENV-CALIB-001 v0.1)。
+#   - cluster-ops 域 **禁 HPA**(per ADR-0052 Active-Active 固定 3 副本 + topologySpreadConstraints
+#     跨节点;HPA 弹性扩缩会破坏 all-reachable 假设)。如果主对话未来需要 cluster-ops HPA,
+#     需先在 RGS-ADR-0052 升版中明确解除禁 HPA 约束。
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: <svc>-hpa
+  namespace: rust-game-server
+  labels:
+    app.kubernetes.io/part-of: rust-game-server
+    app.kubernetes.io/component: domain-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: <svc>
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+      selectPolicy: Max

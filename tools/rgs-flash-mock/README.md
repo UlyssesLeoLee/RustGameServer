@@ -1,6 +1,6 @@
 # rgs-flash-mock
 
-RGS 闪烁之光 mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3`).
+RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3`).
 
 > ⚠️ **此目录与 `DEPRECATED.md` 早期标记不同**——DEPRECATED.md 描述的是 2026-09-09
 > `rgs-shim-rust` 战略切换前的旧 21 RPC stub mock;自 v0.1 起 (`c5c40062`)

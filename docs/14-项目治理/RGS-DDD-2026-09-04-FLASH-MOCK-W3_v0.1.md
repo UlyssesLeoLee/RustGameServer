@@ -7,7 +7,7 @@
 > **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
 > **依据**: 9/4 18:03 JST Ulysses 拍板 W3 启动 option C (per 14:58 JST 拍板规则: mock 12 Partial + 30 新 module 全部抽样, per FLASH-MOCK v0.3 §1.2 Phase 3 拍板范围, ~360 cmds / 1-1.5M tokens / 5-10 sprint) + 9/4 19:28 JST Ulysses "mavis 拍板" (委托 Mavis 决策下一轮) + fdba686 commit (W3 启动 5 worker 整合 37 files / 4858 ins) + 17:47 JST user 偏好 "测试脚本+数据归入 mock 项目以备回归测试"
 > **配套**: `tools/rgs-flash-mock/mock_data/{30 新 module}.json` (per fdba686 commit) + `tools/rgs-flash-mock/docs/{5 W3-PHASE-3-WORKER-{1-5}-REPORT, 12-大类-RPC-清单 §16}.md` + `tools/rgs-flash-mock/scripts/regression-test-{12-partial, 30-new-module}.sh` + 6 v0.2 治理文档 (per 96e6b3c 3 v0.2 addendum)
-> **作用域**: rgs-flash-mock Phase 3 启动, 30 新 module 抽样 (per 闪烁之光 42 modules × 438 cmds), 跨 7 RGS 域 (player / match / social / card / batch / economy / leaderboard)
+> **作用域**: rgs-flash-mock Phase 3 启动, 30 新 module 抽样 (per [游戏A] 42 modules × 438 cmds), 跨 7 RGS 域 (player / match / social / card / batch / economy / leaderboard)
 > **状态**: ⏳ Mavis 自审停手 → ⏳ 待 Ulysses 二审 (per 9/2 B3 派生约束 v0.2 流程) → ✅ / 🟡 / ❌
 
 ---
@@ -54,7 +54,7 @@ W3 启动 = 完整 100% mock 覆盖率 = 12 Partial (W2 done) + 30 新 module �
 - **A1 P1 反模式 1 处 (W2 12 Partial 阶段遗留)**: guild 13514 leave_guild 裸 await 无事务
 - **conn_login 缺 RGS 独立 connector service** (新 cluster_ops 域待 v0.2 评估, per worker-2 报告)
 - **跨服 server_id 字段 RGS 缺** (per v0.2-2 §11.1)
-- **2 闪烁之光 反模式** (per worker-5 + 借鉴分析 .md §4 #5): days_rank 22701/22703/22704 V1/V2/V3 三版本 + say 弹幕模块 3 RPC → RGS 应整合
+- **2 [游戏A] 反模式** (per worker-5 + 借鉴分析 .md §4 #5): days_rank 22701/22703/22704 V1/V2/V3 三版本 + say 弹幕模块 3 RPC → RGS 应整合
 - **7 框架缺口** (per 12-大类 §16.8.2): match v2 FSM CHAPTER/STAR_TOWER / economy outbox+saga / leaderboard redis sorted set / 跨服分桶 5 桶 / drop_lib 共享库 / protocol mapping 错配 / per-entity actor 0/7 域
 - **4 数据缺口** (per 12-大类 §16.8.3): DB schema v0.2 78 表 / drop_tables 公开 / player_id + server_id / i18n msg → ErrorCode enum
 - **5 业务缺口** (per 12-大类 §16.8.4): 5 域 Lead 决策 / DramaService 5 步 saga / AdventureService 4 状态模式 / StarTower 录像分享 / BossService 跨域扣费
@@ -64,7 +64,7 @@ W3 启动 = 完整 100% mock 覆盖率 = 12 Partial (W2 done) + 30 新 module �
 
 ## 1. W3 启动设计 (per FLASH-MOCK v0.3 §1.2 Phase 3 拍板)
 
-### 1.1 30 新 module 列表 (per 闪烁之光 42 modules × 438 cmds)
+### 1.1 30 新 module 列表 (per [游戏A] 42 modules × 438 cmds)
 
 | # | Module | 协议号段 | 跨 RGS 域 | RGS service 归属 | 1:1 映射来源 |
 |---:|---|---:|---|---|---|
@@ -99,7 +99,7 @@ W3 启动 = 完整 100% mock 覆盖率 = 12 Partial (W2 done) + 30 新 module �
 | 29 | vip | 167 | economy (主) + batch + player | economy VipService | addendum §5.24 |
 | 30 | days_rank | 227 | leaderboard (主) + player + batch | leaderboard DaysRankService | addendum §5.30 (反模式 V1/V2/V3) |
 
-### 1.2 30 module 1:1 协议号映射 (per 闪烁之光 api_module_summary.txt)
+### 1.2 30 module 1:1 协议号映射 (per [游戏A] api_module_summary.txt)
 
 - **总 cmds**: 260 (0 PASS / 41 Partial / 213 NotImplemented / 6 NotApplicable)
 - **总 mock.json**: 30 file / ~230KB (估 7-12KB each, 总 7-12KB × 30 = 210-360KB)
@@ -267,16 +267,16 @@ match v2 战斗 FSM (per audit v0.3 §1.2 #1 决策保留 DB-as-state, 不引入
 
 ### 5.3 conn_login 独立 connector service (新 cluster_ops 域, per worker-2 报告 §11.2)
 
-- **触发**: conn_login 6 cmds (闪烁之光 协议号 11, 3 cmds per worker-2 报告) 跨 server_id 二元组, RGS 当前 player_id 仅有 string id, 缺显式 server_id 字段
+- **触发**: conn_login 6 cmds ([游戏A] 协议号 11, 3 cmds per worker-2 报告) 跨 server_id 二元组, RGS 当前 player_id 仅有 string id, 缺显式 server_id 字段
 - **范围**: 新增 cluster_ops 域 (第 8 域) + conn_login connector service
   - 跨 server_id 二元组: (player_id, server_id) 复合主键
-  - 闪烁之光 conn_login 业务: 连接/握手/心跳/踢出/重连
+  - [游戏A] conn_login 业务: 连接/握手/心跳/踢出/重连
   - v0.2 sprint 评估 (1 sprint / 100-200K tokens)
 - **优先级**: P1 (W4 启动)
 
 ### 5.4 跨服 server_id 字段 (per v0.2-2 §11.1 + worker-2 §3.3 + worker-3 §8.4)
 
-- **触发**: 闪烁之光 协议层使用跨服 server_id 二元组, RGS 当前 player_id 缺 server_id 字段
+- **触发**: [游戏A] 协议层使用跨服 server_id 二元组, RGS 当前 player_id 缺 server_id 字段
 - **范围**: player-service / player_id → (player_id, server_id) 复合主键
   - 跨 5 域 (player / match / social / economy / batch)
   - v0.2 sprint 协调 (1 sprint / 100-200K tokens)

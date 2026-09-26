@@ -1,0 +1,7 @@
+FROM gcr.io/distroless/cc-debian12:nonroot
+WORKDIR /app
+COPY admin-service /app/bin/admin-service
+USER nonroot:nonroot
+EXPOSE 50055 8080 9464
+ENV RUST_LOG=info
+ENTRYPOINT ["/app/bin/admin-service"]

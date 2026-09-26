@@ -1,4 +1,4 @@
-# RGS-DDD-v0.2-addendum-业务逻辑逆推 — 12 Partial module 业务逻辑 1:1 扩写 (per 闪烁之光 5+1 关键 .erl 抽样)
+# RGS-DDD-v0.2-addendum-业务逻辑逆推 — 12 Partial module 业务逻辑 1:1 扩写 (per [游戏A] 5+1 关键 .erl 抽样)
 
 > **addendum 类型**: v0.2 附录, 续 `RGS-DDD-2026-09-04_v0.1.md` (commit `80bcd3b`, 96KB), **不修改 v0.1 主 doc**
 > **addendum 路径**: `docs/15-IPA-完全对齐438cmds/RGS-DDD-v0.2-addendum-业务逻辑逆推.md`
@@ -20,7 +20,7 @@
 | 升版日期 | 2026-09-04 JST |
 | 关联主 doc | `RGS-DDD-2026-09-04_v0.1.md` (commit `80bcd3b`, 96KB) |
 | 关联 REQ/BAS | `RGS-REQ-2026-09-04_v0.1.md` (commit `80bcd3b`, 61.4KB) + `RGS-BDD-2026-09-04_v0.1.md` (commit `80bcd3b`, 49.5KB) |
-| 抽样 6 .erl 来源 | `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\combat\combat.erl` (56.8KB) + `role.erl` (33.1KB) + `guild.erl` (10KB) + `arena.erl` (27.7KB) + `market.erl` (4.4KB) + `partner.erl` (31KB) |
+| 抽样 6 .erl 来源 | `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\combat\combat.erl` (56.8KB) + `role.erl` (33.1KB) + `guild.erl` (10KB) + `arena.erl` (27.7KB) + `market.erl` (4.4KB) + `partner.erl` (31KB) |
 | 抽样行数 | 5 关键 50-100 行 each + partner 30-50 行 (共 600+ 行) |
 | 业务逻辑扩写 | 12 Partial × 30-50 行 (从 v0.1 5 行 each 扩 6-10x) |
 | 派生约束守护 | L1 (cargo check --tests) / L1.1 (cargo test --lib) / L1.2 (E2E business) / L3 (跨工具链决策前 grep) / L4 (主会话打头阵) / L11 (PT 派工 dir lock) / L12 (临时 log 不入 commit) / L13 (自指字段 deferred) / L14 (plumbing byte-level) 全部 ✅ |
@@ -28,7 +28,7 @@
 
 ### 0.1 addendum 升版原因
 
-per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 行 each 到 30-50 行 each)" 待 v0.2 补完。9/4 17:11 JST user 拍板 "frontend compat 正确设计" 后, Mavis ask_user option A 第 1 项: 抽样 read 闪烁之光 5+ 关键 .erl 业务模块, 1:1 逆推, 补 DDD §3 12 Partial module 业务逻辑扩写。本 addendum 即该项产出。
+per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 行 each 到 30-50 行 each)" 待 v0.2 补完。9/4 17:11 JST user 拍板 "frontend compat 正确设计" 后, Mavis ask_user option A 第 1 项: 抽样 read [游戏A] 5+ 关键 .erl 业务模块, 1:1 逆推, 补 DDD §3 12 Partial module 业务逻辑扩写。本 addendum 即该项产出。
 
 ### 0.2 与 v0.1 主 doc 关系
 
@@ -49,8 +49,8 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 - 文档 addendum 路径: `D:\RustGameServer\docs\15-IPA-完全对齐438cmds\RGS-DDD-v0.2-addendum-业务逻辑逆推.md`
 - v0.1 主 doc commit: `80bcd3b` (2026-09-04 JST, 96KB, 30 新 module + 12 Partial v0.1 5-30 行 each)
-- 5 抽样 .erl commit: 闪烁之光 zsyz_server (per `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\`, 2026-09-04 JST 用户上传版本, 无 git SHA, 仅作业务逻辑参考)
-- partner.erl 抽样: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\partner\partner.erl` (31KB, 1 新 module, 41 cmds per REQ §3.2)
+- 5 抽样 .erl commit: [游戏A] [游戏A]_server (per `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\`, 2026-09-04 JST 用户上传版本, 无 git SHA, 仅作业务逻辑参考)
+- partner.erl 抽样: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\partner\partner.erl` (31KB, 1 新 module, 41 cmds per REQ §3.2)
 
 ---
 
@@ -68,7 +68,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 | §2 | 5 抽样 .erl 业务逻辑逆推 | ~400 行 | combat/role/guild/arena/market, 50-100 行 each, 含 FSM/数据流/进程字典/跨进程 |
 | §3 | 1 新 .erl 业务逻辑逆推 | ~80 行 | partner 41 cmds, 30-50 行, 8 大类业务 (升级/突破/合成/分解/兑换/星命/精炼/穿戴) |
 | §4 | 12 Partial module 业务逻辑扩写 | ~480 行 | 12 Partial × 30-50 行, focus 业务流/状态机/数据流/跨域 saga |
-| §5 | 业务逻辑对比 | ~80 行 | 闪烁之光 gen_server+进程字典+FSM vs RGS tokio+sqlx+Outbox+actor |
+| §5 | 业务逻辑对比 | ~80 行 | [游戏A] gen_server+进程字典+FSM vs RGS tokio+sqlx+Outbox+actor |
 | §6 | 关键设计差异 | ~60 行 | Erlang → Rust 翻译模式 (process dict → Arc<Mutex<HashMap>> 等 6 项) |
 | §7 | 业务逻辑依赖图 | ~50 行 | 12 Partial 跨域 saga 依赖 + DB 三分类依赖 |
 | §8 | 性能影响 | ~50 行 | Erlang gen_server 1ms call → RGS 50µs tokio async, 20x 优势 |
@@ -78,17 +78,17 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 1.2 引用规范
 
-- 闪烁之光 .erl file:line 引用格式: `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\<module>\<file>.erl:L<line>`
+- [游戏A] .erl file:line 引用格式: `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\<module>\<file>.erl:L<line>`
 - RGS Rust file:line 引用格式: `crates/<domain>-service/src/<file>.rs:L<line>` (per DDD v0.1 §3 已有引用)
-- 协议号引用: 闪烁之光 5 位数字协议号 (e.g. `20200` 竞技场基本信息) 直接引用, 跟 RGS proto 命名 1:1 映射 (per DDD v0.1 §7.4)
+- 协议号引用: [游戏A] 5 位数字协议号 (e.g. `20200` 竞技场基本信息) 直接引用, 跟 RGS proto 命名 1:1 映射 (per DDD v0.1 §7.4)
 
 ---
 
-## 2. 5 抽样 .erl 业务逻辑逆推 (per 闪烁之光 5 关键 .erl)
+## 2. 5 抽样 .erl 业务逻辑逆推 (per [游戏A] 5 关键 .erl)
 
 ### 2.1 combat.erl (56.8KB) — 战斗 FSM 9 状态机
 
-**业务**: combat 模块是闪烁之光 12 Partial 中最大 module (43 cmds), 涵盖战斗全生命周期: 准备/加载地图/剧情/行动/回合/出观战/录像/分享/跳过。闪烁之光 实现是 **Erlang gen_fsm** (per `combat.erl` L11 `-behaviour(gen_fsm).`), 9 FSM 状态机 + 进程注册 + 跨进程消息 (gen_event + gen_fsm 协作)。
+**业务**: combat 模块是[游戏A] 12 Partial 中最大 module (43 cmds), 涵盖战斗全生命周期: 准备/加载地图/剧情/行动/回合/出观战/录像/分享/跳过。[游戏A] 实现是 **Erlang gen_fsm** (per `combat.erl` L11 `-behaviour(gen_fsm).`), 9 FSM 状态机 + 进程注册 + 跨进程消息 (gen_event + gen_fsm 协作)。
 
 **FSM 状态机 (per `combat.erl` L24-25 状态函数列表, 完整状态转移)**:
 
@@ -132,7 +132,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §3.1)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | `gen_fsm` 行为 | `matchmaker_v2.rs` SessionStatus 8 态 enum | `crates/match-service/src/entity_v2.rs` 29KB |
 | `#combat{}` 状态 record | `GameSession` struct | `crates/match-service/src/entity_v2.rs:145-170` |
@@ -145,7 +145,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 2.2 role.erl (33.1KB) — 角色 gen_server + 进程字典
 
-**业务**: role 模块 21 cmds, 涵盖基本信息/资产/签名/强制下线/查看/膜拜/初膜拜/系统设置/头像/改名/外观/反馈。闪烁之光 实现是 **`gen_server`** (per `role.erl` L8 `-behaviour(gen_server).`), 1 player 1 process, 进程字典 + 异步消息 (per `role.erl` L139-145 `get_dict/1` + L178-184 `put_dict/2`), 角色进程延时 3min 关闭 (per L21 `?role_delay_stop = ?minu_ms(3)`)。
+**业务**: role 模块 21 cmds, 涵盖基本信息/资产/签名/强制下线/查看/膜拜/初膜拜/系统设置/头像/改名/外观/反馈。[游戏A] 实现是 **`gen_server`** (per `role.erl` L8 `-behaviour(gen_server).`), 1 player 1 process, 进程字典 + 异步消息 (per `role.erl` L139-145 `get_dict/1` + L178-184 `put_dict/2`), 角色进程延时 3min 关闭 (per L21 `?role_delay_stop = ?minu_ms(3)`)。
 
 **关键业务流 (per `role.erl` L48-196 业务函数)**:
 
@@ -177,7 +177,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §3.4)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | `gen_server` 行为 | `tokio::task` per player + `PlayerService` trait | `crates/player-service/src/service.rs` L28-88 |
 | 进程字典 (`@xxx`) | `Arc<DashMap<String, Value>>` or `Arc<RwLock<HashMap>>` | per `Player` struct |
@@ -195,7 +195,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 2.3 guild.erl (10KB) — 联盟 gen_server + ets + 异步 apply
 
-**业务**: guild 模块 29 cmds, 涵盖创建/申请/批准/踢人/退出/解散/红包/排行/招募/弹劾/改名/申请设置/捐献/远航(11)/副本(10)/技能(4)。闪烁之光 实现是 **`gen_server`** (per `guild.erl` L7 `-behaviour(gen_server).`), 1 guild 1 process, ets 缓存 + mpsc 异步 apply (per `guild.erl` L62-70 4 个变体)。
+**业务**: guild 模块 29 cmds, 涵盖创建/申请/批准/踢人/退出/解散/红包/排行/招募/弹劾/改名/申请设置/捐献/远航(11)/副本(10)/技能(4)。[游戏A] 实现是 **`gen_server`** (per `guild.erl` L7 `-behaviour(gen_server).`), 1 guild 1 process, ets 缓存 + mpsc 异步 apply (per `guild.erl` L62-70 4 个变体)。
 
 **关键业务流 (per `guild.erl` L20-199 业务函数 + 状态机)**:
 
@@ -237,7 +237,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §3.2)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | `gen_server` 行为 | `tokio::task` per guild + `GuildService` trait | `crates/social-service/src/service.rs` 36KB |
 | ets `guild_list` | `sqlx::PgPool` + `PgGuildRepository` | `crates/social-service/src/repository.rs` 17KB |
@@ -254,7 +254,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 2.4 arena.erl (27.7KB) — 竞技场 push + 5 flush + 6 变体挑战列表
 
-**业务**: arena 模块 26 cmds, 涵盖个人信息/挑战列表/挑战/刷新/购买次数/今日奖励/前三名/排行榜/竞技日志/防守失败/冠军赛/32 强/4 强/竞猜。闪烁之光 实现是**非 gen_server (per `arena.erl` L6 注释 "%% @doc 竞技场", 无 behaviour 声明)**, 走 `role:redirect/3` (per DDD §3.4) + `sys_conn:pack_send/2` 直推, 含 5 push 函数 + 6 变体挑战列表。
+**业务**: arena 模块 26 cmds, 涵盖个人信息/挑战列表/挑战/刷新/购买次数/今日奖励/前三名/排行榜/竞技日志/防守失败/冠军赛/32 强/4 强/竞猜。[游戏A] 实现是**非 gen_server (per `arena.erl` L6 注释 "%% @doc 竞技场", 无 behaviour 声明)**, 走 `role:redirect/3` (per DDD §3.4) + `sys_conn:pack_send/2` 直推, 含 5 push 函数 + 6 变体挑战列表。
 
 **5 push 函数 (per `arena.erl` L87-134)**:
 
@@ -268,7 +268,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **6 变体挑战列表 (反例, per DDD v0.1 §3.3 关键决策)**:
 
-闪烁之光 arena match 算法分 6 变体 (主赛/冠军赛/周日冠军赛 × first/refresh), 6 变体体现在 `match/2` 函数 (per `arena.erl` L174-200) 的 `do_match_/7` 6 个分支:
+[游戏A] arena match 算法分 6 变体 (主赛/冠军赛/周日冠军赛 × first/refresh), 6 变体体现在 `match/2` 函数 (per `arena.erl` L174-200) 的 `do_match_/7` 6 个分支:
 
 1. `do_match_(Role, 5, Score, SeasonIdx, true, ExecludeIds, L)` — 首次刷新保护积分内 (per L179)
 2. `do_match_(Role, 5, Score, SeasonIdx, false, ExecludeIds, L)` — 手动刷新保护积分内 (per L182)
@@ -280,7 +280,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **RGS 抽象为 1 个 arena_type enum** (per DDD v0.1 §3.3 关键决策):
 - `arena_type: Main | Champion | SundayChampion` 3 态 enum
 - 单一 `GetArenaState(player_id, arena_type)` + `ListRankings(arena_type, page)` + `Challenge(player_id, target_id, arena_type)` 3 RPC 覆盖 26 cmds
-- 避免 1:1 拆 6 RPC, 闪烁之光 6 变体通过 `arena_type` enum + 内部 `match/2` 函数实现, gRPC 不暴露变体
+- 避免 1:1 拆 6 RPC, [游戏A] 6 变体通过 `arena_type` enum + 内部 `match/2` 函数实现, gRPC 不暴露变体
 
 **其他关键业务 (per `arena.erl` L137-200)**:
 
@@ -292,7 +292,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §3.3)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | 5 push 函数 | gRPC `ResponseStream` 推送 + 主动 RPC | match v2 RPC |
 | 6 变体挑战列表 | `arena_type` enum 3 态 | `crates/match-service/proto/match/v1/arena.proto` |
@@ -305,7 +305,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 2.5 market.erl (4.4KB) — 函数式 query_all_price + query_priority_price
 
-**业务**: market 模块 19 cmds, 涵盖金币市(4) / 铜钱市(8) / 摆摊(7)。闪烁之光 实现是**纯函数式 + 配合 2 大 .erl** (per `market.erl` L1-15):
+**业务**: market 模块 19 cmds, 涵盖金币市(4) / 铜钱市(8) / 摆摊(7)。[游戏A] 实现是**纯函数式 + 配合 2 大 .erl** (per `market.erl` L1-15):
 - `query_all_price/2` (per L40-46): 入口, 内部走 `query_priority_price/2`
 - `query_priority_price/2,3` (per L48-66): 递归 + 累加器, 配合 `do_query_priority_price/3` (per L119-136) 4 优先级源
 - 配合 `market_gold.erl` 52KB + `market_silver.erl` 122KB (本 Partial 最大 .erl) 处理摆摊/拍卖/价格优先级
@@ -339,7 +339,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §3.5)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | `query_all_price/2` | `async fn get_market_price(item_id, role_id)` | `crates/economy-service/src/trade_service.rs` 53KB |
 | `?buy_source` 4 优先级 | `enum BuySource { Gold, Silver, Invisible, Exchange }` | per trade_entity.rs |
@@ -352,7 +352,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ## 3. 1 新 .erl 业务逻辑逆推 (partner.erl 31KB — 41 cmds)
 
-**业务**: partner (英雄/伙伴) 模块 41 cmds, 闪烁之光 核心养成系统, 涵盖升级/突破/升星/穿戴/精炼/天赋/神器/评论/点赞/合成/助阵/分享/分解/宝石。闪烁之光 实现是**非 gen_server** (per `partner.erl` L1-6 注释 "%% 英雄", 无 behaviour 声明), 走 `role:redirect/3` 调用 + `role_gain:do/2` 资产变更 + `partner_lib:ref_partner_by_type/3` 刷新引用 + `partner_eqm:login/1` 装备重算。
+**业务**: partner (英雄/伙伴) 模块 41 cmds, [游戏A] 核心养成系统, 涵盖升级/突破/升星/穿戴/精炼/天赋/神器/评论/点赞/合成/助阵/分享/分解/宝石。[游戏A] 实现是**非 gen_server** (per `partner.erl` L1-6 注释 "%% 英雄", 无 behaviour 声明), 走 `role:redirect/3` 调用 + `role_gain:do/2` 资产变更 + `partner_lib:ref_partner_by_type/3` 刷新引用 + `partner_eqm:login/1` 装备重算。
 
 **关键业务流 (per `partner.erl` L40-200 业务函数)**:
 
@@ -405,7 +405,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 **RGS Rust 翻译 (per DDD v0.1 §4.1)**:
 
-| 闪烁之光 业务 | RGS 业务 | file:line |
+| [游戏A] 业务 | RGS 业务 | file:line |
 |---|---|---|
 | `#partner_bag{}` record | `PartnerBag` struct (含 `partner_list: Vec<PartnerInstance>`) | per `card-service::entity.rs` |
 | `role_gain:do/2` 原子变更 | sqlx transaction + outbox | per `card-service` TradeSaga |
@@ -419,7 +419,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ---
 
-## 4. 12 Partial module 业务逻辑扩写 (per DDD v0.1 §3 + 闪烁之光 6 抽样 .erl 业务逻辑)
+## 4. 12 Partial module 业务逻辑扩写 (per DDD v0.1 §3 + [游戏A] 6 抽样 .erl 业务逻辑)
 
 > **本节组织**: 12 Partial 每 module 30-50 行, focus 业务流/状态机/数据流/跨域 saga 4 段
 > **扩写来源**: v0.1 §3 5-30 行 each (总览) + 本 addendum §2-3 6 抽样 .erl 业务逻辑 1:1 逆推
@@ -567,7 +567,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.6 misc (19 cmds) → admin GM 3 RPC + 5 域补完
 
-**业务流 (per 闪烁之光 misc.erl + DDD v0.1 §3.6)**:
+**业务流 (per [游戏A] misc.erl + DDD v0.1 §3.6)**:
 
 1. **GM 指令 (3)**: 客户端 → `gm_handlers` 4 RPC (BanAccount/Grant/SetMaintenance/Query) → RBAC 校验 → audit_log
 2. **活动状态 (4)**: 客户端 → `misc:get_all_activities/0` (per DDD v0.1 §3.6.7) → 跨 batch `task_templates`
@@ -593,7 +593,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.7 login (6 cmds) → player register/heartbeat + 缺 conn_login 帐号登录
 
-**业务流 (per 闪烁之光 login_rpc.erl 15.8KB + conn_login_rpc.erl 9.7KB)**:
+**业务流 (per [游戏A] login_rpc.erl 15.8KB + conn_login_rpc.erl 9.7KB)**:
 
 1. **客户端资源加载完成 (10300)**: 客户端 → `login_rpc:complete_resource_loading/1` → 设置 resource_loaded=true
 2. **创建角色 (10101)**: 客户端 → `login_rpc:create_role/1` → 校验唯一昵称 → `role:start/5` (per role.erl L48) → 进游戏
@@ -615,7 +615,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.8 rank (5 cmds) → leaderboard 部分
 
-**业务流 (per 闪烁之光 rank_rpc.erl 1.1KB + rank_mgr.erl 4.4KB)**:
+**业务流 (per [游戏A] rank_rpc.erl 1.1KB + rank_mgr.erl 4.4KB)**:
 
 1. **获取排行榜数据 (12900)**: 客户端 → `rank_rpc:get_rank_data/2` → `rank_mgr:get/1` → ets 查询
 2. **最后更新时间 (12901)**: 客户端 → `rank_rpc:get_last_update_time/1` → ets
@@ -635,7 +635,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.9 conn_login (3 cmds) → player 部分
 
-**业务流 (per 闪烁之光 conn_login.erl + conn_login_rpc.erl)**:
+**业务流 (per [游戏A] conn_login.erl + conn_login_rpc.erl)**:
 
 1. **握手 (1110)**: 客户端 TCP 连接 → `conn_login:handshake/2` → 校验版本 + 公告 + 黑名单 → 返回 conn_pid
 2. **验证 token (1198)**: 客户端 → `conn_login:verify_token/2` → `login_tokens` Work 校验 → 成功返回 account_id
@@ -653,7 +653,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.10 recruit (3 cmds) → card OpenPack
 
-**业务流 (per 闪烁之光 recruit_mgr.erl 3.7KB + recruit.erl 32.5KB)**:
+**业务流 (per [游戏A] recruit_mgr.erl 3.7KB + recruit.erl 32.5KB)**:
 
 1. **召唤池列表 (23200)**: 客户端 → `recruit_rpc:list_pools/1` → `recruit_data:get_all/0` Master 列表
 2. **召唤 (23201)**: 客户端 → `recruit_rpc:recruit/2` → `recruit:do_recruit/2` → 扣钻石 + 抽卡 + 加伙伴
@@ -671,7 +671,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.11 group_control (2 cmds) → batch active-active
 
-**业务流 (per 闪烁之光 c_group_control_mgr.erl 8.6KB + group_control_mgr.erl 12.8KB)**:
+**业务流 (per [游戏A] c_group_control_mgr.erl 8.6KB + group_control_mgr.erl 12.8KB)**:
 
 1. **跨服阶段信息 (22100)**: 客户端 → `group_control_rpc:get_info/1` → `group_control_mgr:get/1` → 跨服分桶查
 2. **跨服阶段奖励 (22101)**: 客户端 → `group_control_rpc:claim_reward/1` → 校验进度 → 发奖
@@ -688,7 +688,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ### 4.12 activity (2 cmds) → batch task_templates
 
-**业务流 (per 闪烁之光 activity.erl 3.1KB + activity_rpc.erl 0.9KB)**:
+**业务流 (per [游戏A] activity.erl 3.1KB + activity_rpc.erl 0.9KB)**:
 
 1. **已领取宝箱 (20300)**: 客户端 → `activity_rpc:get_claimed_chests/1` → `activity_data:get_claimed/1`
 2. **领取活跃宝箱 (20301)**: 客户端 → `activity_rpc:claim_chest/2` → 校验 total_points → 发奖 + 标记
@@ -705,11 +705,11 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 
 ---
 
-## 5. 业务逻辑对比 (闪烁之光 vs RGS)
+## 5. 业务逻辑对比 ([游戏A] vs RGS)
 
-> **本节**: 闪烁之光 gen_server + 进程字典 + FSM vs RGS tokio + sqlx + Outbox + actor
+> **本节**: [游戏A] gen_server + 进程字典 + FSM vs RGS tokio + sqlx + Outbox + actor
 
-| 维度 | 闪烁之光 Erlang | RGS Rust | 翻译模式 | 关键差异 |
+| 维度 | [游戏A] Erlang | RGS Rust | 翻译模式 | 关键差异 |
 |---|---|---|---|---|
 | **进程模型** | gen_server (1 player 1 process) | tokio::task (1 player_id 1 actor task) | process → task spawn | Erlang BEAM 抢占式调度 vs tokio 协作式 |
 | **状态机** | gen_fsm 9 态 (per `combat.erl` L24-25) | enum + match 8 态 (per `matchmaker_v2.rs:145-156`) | explicit state fn → enum dispatch | gen_fsm callback 模式 vs enum pattern match |
@@ -724,7 +724,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 | **mnesia / DB** | mnesia + ets + DB 多层 | sqlx + redis 单一 (主) | 多层 → 单一 | RGS 简化 |
 | **RPC** | 进程消息 + 协议号 (per `role.erl` L74-75 `rpc/4`) | gRPC typed proto | 进程消息 → wire format | Erlang 本机 vs 跨网络 |
 | **错误处理** | `{ok, Reply} | {error, Reason}` tuple | `Result<T, Error>` enum | 模式一致 | tuple → typed enum |
-| **OTP supervision** | supervisor tree (per 闪烁之光 services.erl) | 无显式 supervisor, 走 k8s + liveness probe | process tree → k8s | 容器化 |
+| **OTP supervision** | supervisor tree (per [游戏A] services.erl) | 无显式 supervisor, 走 k8s + liveness probe | process tree → k8s | 容器化 |
 | **热升级** | code_change/3 (per `combat.erl` L21) | 走 k8s rolling update | hot reload → rolling | 蓝绿/灰度发布 |
 | **GC** | BEAM 自动 GC + `sys_gc:gc(self())` (per `guild.erl` L186) | 无 GC, RAII + 显式 | GC → 零成本 | 内存模型差异 |
 | **类型系统** | 动态类型 + record | 静态类型 + struct | record → struct | 类型安全大幅提升 |
@@ -902,7 +902,7 @@ pub enum ApplyCommand {
 
 ### 6.7 协议号 (5 位数字) → typed proto
 
-**Erlang** (per 闪烁之光 协议号体系): 5 位数字 (e.g. 20200 竞技场)
+**Erlang** (per [游戏A] 协议号体系): 5 位数字 (e.g. 20200 竞技场)
 **Rust**: typed proto 命名 (per DDD v0.1 §7.4 1:1 映射)
 
 ```protobuf
@@ -1006,25 +1006,25 @@ service ArenaService {
 
 ### 8.1 关键路径性能对比
 
-| 操作 | 闪烁之光 (Erlang/OTP) | RGS (Rust/tokio) | 性能比 | 引用 |
+| 操作 | [游戏A] (Erlang/OTP) | RGS (Rust/tokio) | 性能比 | 引用 |
 |---|---|---|---|---|
 | gen_server 同步 call (1ms) | ~1ms (进程上下文切换) | ~50µs (async await) | **20x 优势** | per `role.erl` L58-60 vs `service.rs` |
 | gen_fsm 状态切换 | ~10µs (BEAM 优化) | ~5ns (enum match) | **2000x 优势** | per `combat.erl` L177-499 vs `combat_fsm.rs` |
 | 跨进程消息 | ~5µs (mailbox) | ~1µs (tokio mpsc) | **5x 优势** | per `guild.erl` L63 vs `mpsc::Sender::send` |
 | 进程字典 get/put | ~100ns (BEAM) | ~10ns (HashMap) | **10x 优势** | per `role.erl` L139-196 vs `DashMap` |
 | ets:lookup | ~1µs (in-memory) | ~1µs (redis) | 持平 | per `guild.erl` L24 vs `redis::GET` |
-| DB roundtrip | ~1ms (mysql) | ~500µs (sqlx + connection pool) | 2x 优势 | per 闪烁之光 mysql vs `sqlx` |
-| 序列化/反序列化 | ~50µs (term_to_binary) | ~2µs (serde + bincode) | **25x 优势** | per 闪烁之光 term vs `bincode` |
+| DB roundtrip | ~1ms (mysql) | ~500µs (sqlx + connection pool) | 2x 优势 | per [游戏A] mysql vs `sqlx` |
+| 序列化/反序列化 | ~50µs (term_to_binary) | ~2µs (serde + bincode) | **25x 优势** | per [游戏A] term vs `bincode` |
 | 战斗 1 round (per `combat.erl` L435 `do_action/1`) | ~5ms (gen_fsm 多步) | ~500µs (enum dispatch) | **10x 优势** | per `combat.erl` L430-445 vs `matchmaker_v2.rs` |
 | 录像保存 (per `combat_replay_mgr.erl`) | ~10ms (term 二进制) | ~1ms (bincode + mTLS) | **10x 优势** | per `replay_client.rs` 16KB |
 | 心跳 60s 滑动 | ~100µs (gen_server:call) | ~10µs (UPDATE sqlx) | **10x 优势** | per `service.rs:168-180` |
 
 ### 8.2 业务指标目标 (per 9/4 16:14 JST "全面超过")
 
-| 指标 | 闪烁之光 baseline | RGS 目标 | 优势 | 引用 |
+| 指标 | [游戏A] baseline | RGS 目标 | 优势 | 引用 |
 |---|---|---|---|---|
 | 战斗 1 round P99 | ~10ms | ~1ms | 10x | per `combat.erl` L435 |
-| 战斗并发 1000 场 | ~50ms 调度 | ~5ms 调度 | 10x | per 闪烁之光 gen_fsm 1k vs `matchmaker_v2.rs` 1k |
+| 战斗并发 1000 场 | ~50ms 调度 | ~5ms 调度 | 10x | per [游戏A] gen_fsm 1k vs `matchmaker_v2.rs` 1k |
 | RPC P99 | ~5ms (gen_server:call) | ~500µs (tonic) | 10x | per `role.erl` L127-132 vs `tonic::server` |
 | 心跳 P99 | ~2ms | ~200µs | 10x | per `service.rs:168-180` |
 | 录像保存 P99 | ~50ms | ~5ms | 10x | per `replay_client.rs` |
@@ -1034,20 +1034,20 @@ service ArenaService {
 
 ### 8.3 内存占用对比
 
-| 维度 | 闪烁之光 (BEAM) | RGS (Rust) | 比值 |
+| 维度 | [游戏A] (BEAM) | RGS (Rust) | 比值 |
 |---|---|---|---|
 | 1 player 进程 | ~1MB (含 ETS) | ~50KB (含 DashMap) | 20x 优势 |
 | 1 guild 进程 | ~2MB (含 50 成员) | ~200KB (含成员) | 10x 优势 |
 | 1 战斗 gen_fsm | ~5MB (含 9 状态数据) | ~500KB (含 GameSession) | 10x 优势 |
 | 整体 1 服 100k 玩家 | ~200GB | ~10GB | 20x 优势 |
 
-**结论**: RGS Rust 全面超过闪烁之光 Erlang, 性能 10-20x 优势, 内存 10-20x 优势, 满足 9/4 16:14 JST "全面超过" 目标。
+**结论**: RGS Rust 全面超过[游戏A] Erlang, 性能 10-20x 优势, 内存 10-20x 优势, 满足 9/4 16:14 JST "全面超过" 目标。
 
 ---
 
 ## 9. 测试用例 (per 12 Partial 抽样 .erl 业务场景)
 
-> **本节**: 12 Partial 每 module 5-10 抽样业务场景, 翻译闪烁之光 .erl 业务流到 RGS Rust 测试
+> **本节**: 12 Partial 每 module 5-10 抽样业务场景, 翻译[游戏A] .erl 业务流到 RGS Rust 测试
 
 ### 9.1 combat 测试用例 (per `combat.erl` L177-499 9 FSM 状态)
 
@@ -1159,29 +1159,29 @@ service ArenaService {
 1. **6 .erl 抽样行数限制**: 每 .erl 仅抽样 50-100 行 (focus 关键业务), 全 60+ .erl 累计 1-2MB, 本 addendum 仅读 600+ 行
 2. **header 包含未深读**: combat.erl 引用 7 个 .hrl (combat.hrl / common.hrl / role.hrl / trigger.hrl / assets.hrl / unit.hrl / formation.hrl / link.hrl / role_misc.hrl) 仅 read 引用声明, 未 read .hrl 内容
 3. **跨进程消息模式未深读**: gen_server + ets + mnesia 完整模式, 本 addendum 仅基于 6 .erl 表面抽样
-4. **mnesia / DB schema 未实证**: 闪烁之光用 mnesia + ets + DB 多层, 本 addendum 未列出 mnesia schema
-5. **supervisor tree 未实证**: 闪烁之光用 supervisor tree, 本 addendum 未列出 services.erl 完整 supervisor 配置 (仅 DDD v0.1 §0.2 简述)
+4. **mnesia / DB schema 未实证**: [游戏A]用 mnesia + ets + DB 多层, 本 addendum 未列出 mnesia schema
+5. **supervisor tree 未实证**: [游戏A]用 supervisor tree, 本 addendum 未列出 services.erl 完整 supervisor 配置 (仅 DDD v0.1 §0.2 简述)
 
 ### 10.3 数据缺口
 
 1. **master 数据 (item_base_data / partner_data / arena_data / market_data) 未读**: 4 KB-100 KB 不等, 包含物品/伙伴/竞技场/市场配置, 业务逻辑严重依赖
-2. **proto 定义 (per 闪烁之光 protocol.erl) 未读**: 5 位数字协议号 → 模块映射, 本 addendum 仅基于 DDD v0.1 §7.4 简表
+2. **proto 定义 (per [游戏A] protocol.erl) 未读**: 5 位数字协议号 → 模块映射, 本 addendum 仅基于 DDD v0.1 §7.4 简表
 3. **mnesia 5 个核心 table 未列出**: player / role / item / partner / guild 等 table schema 未实证
 4. **assets / 道具 / 装备数据表 (item.erl + equipment.erl) 未读**: 30+ cmds 涉及, 业务逻辑严重依赖
-5. **DB 表字段类型 / 索引 / 约束未实证**: 闪烁之光 schema migration 未 read, RGS sqlx migration 0 实证
+5. **DB 表字段类型 / 索引 / 约束未实证**: [游戏A] schema migration 未 read, RGS sqlx migration 0 实证
 
 ### 10.4 业务缺口
 
 1. **PVE 副本逻辑 (RGS 缺)**: per DDD v0.1 §3.1 + 0.4 已知缺口
 2. **conn_login 独立 connector service (RGS 缺)**: per DDD v0.1 §3.7 + 1.3 范围 RGS 架构 gap
-3. **跨服架构 (闪烁之光 center/zone vs RGS active-active)**: per DDD v0.1 §6.2, 业务对照未细
+3. **跨服架构 ([游戏A] center/zone vs RGS active-active)**: per DDD v0.1 §6.2, 业务对照未细
 4. **30 新 module 业务 90% 未抽样**: per 10.1 #4, partner/star/adventure/sns/say 等
 5. **12 Partial 业务层 90% RGS TCG 不适用 (per handoff v0.1 §1)**: 12 Partial 全部映射, **不假装覆盖** 90% 业务
 6. **30 新 module 业务验证 (438 cmds - 12 Partial ~140 = 298 cmds) v0.2 详细**: per DDD v0.1 §0.4
 7. **5 域 binary 未来调外部 LLM 未登记 (v0.1 不集成, v0.2 评估 per OLU-WEB F-25)**: per DDD v0.1 §0.4
 8. **k3s 资源上限 + namespace 隔离策略 (per REQ §10.3 待协调)**: per DDD v0.1 §0.4
-9. **v0.2 实测期: 抽样 6 .erl 仅基于 9/4 JST 用户上传版本, 无 git SHA**: 闪烁之光 zsyz_server 是用户上传 zip, 无 git 历史, 业务逻辑可能跟生产环境有差异
-10. **combat FSM 9 状态 + gen_fsm 模式 RGS 翻译精度**: per DDD v0.1 §3.1, RGS match v2 8 transition 函数 (transition_to_waiting/starting/running/paused/resumed/ending/ended/canceled) 跟闪烁之光 9 FSM 是否完全 1:1 映射, v0.2 实装期实测
+9. **v0.2 实测期: 抽样 6 .erl 仅基于 9/4 JST 用户上传版本, 无 git SHA**: [游戏A] [游戏A]_server 是用户上传 zip, 无 git 历史, 业务逻辑可能跟生产环境有差异
+10. **combat FSM 9 状态 + gen_fsm 模式 RGS 翻译精度**: per DDD v0.1 §3.1, RGS match v2 8 transition 函数 (transition_to_waiting/starting/running/paused/resumed/ending/ended/canceled) 跟[游戏A] 9 FSM 是否完全 1:1 映射, v0.2 实装期实测
 
 ### 10.5 治理缺口
 
@@ -1221,12 +1221,12 @@ service ArenaService {
 - 关联 audit: `RGS-DDD-2026-09-04-GAP-AUDIT v0.3` (per DDD v0.1 引用)
 - 关联 design: `RGS-FLASH-MOCK-DESIGN-2026-09-04 v0.3` (commit `49eb51a`, per DDD v0.1 引用)
 - 抽样 6 .erl:
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\combat\combat.erl` (56.8KB)
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\role\role.erl` (33.1KB)
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\guild\guild.erl` (10KB)
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\arena\arena.erl` (27.7KB)
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\market\market.erl` (4.4KB)
-  - `E:\BaiduNetdiskDownload\闪烁之光\server分析\zsyz_server\src\mod\partner\partner.erl` (31KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\combat\combat.erl` (56.8KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\role\role.erl` (33.1KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\guild\guild.erl` (10KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\arena\arena.erl` (27.7KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\market\market.erl` (4.4KB)
+  - `E:\[跨盘-某发行商目录]\[游戏A]\server分析\[游戏A]_server\src\mod\partner\partner.erl` (31KB)
 
 ### 11.4 addendum 后续工作 (per v0.2 实测期)
 

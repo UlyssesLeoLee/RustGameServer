@@ -1,8 +1,8 @@
 // tools/h5_e2e/mock_server.mjs
 //
 // Stand-in for the Rust network-gateway WebSocket endpoint while ULYS-2.1 / 2.2 /
-// 2.3 are still `todo`. Speaks the exact zsyz binary protocol that
-// zsyz_client_h5 (Cocos Creator H5) expects on `ws://host:<port>/websocket`.
+// 2.3 are still `todo`. Speaks the exact [游戏A] binary protocol that
+// [游戏A]_client_h5 (Cocos Creator H5) expects on `ws://host:<port>/websocket`.
 //
 // Handlers:
 //   cmd=1199 (heartbeat, empty payload) → reply [cmd=1199][u32 time]
@@ -10,7 +10,7 @@
 //                                                       roles:array<{name:str}>,
 //                                                       least_career:u8]
 //   default                             → reply with same cmd, empty payload
-//                                         (zsyz_server `unknown_command` analog)
+//                                         ([游戏A]_server `unknown_command` analog)
 //
 // Run:
 //   node tools/h5_e2e/mock_server.mjs
@@ -22,7 +22,7 @@
 // ULYS-2.2 lands in network-gateway, point everything at its chosen port.
 //
 // Env:
-//   PORT      = WS port       (default 18000; set 8000 to match zsyz_server's
+//   PORT      = WS port       (default 18000; set 8000 to match [游戏A]_server's
 //                              web_conn.erl 8000 once that port is free)
 //   LOG_FRAMES=1              (default) — log every frame; set to 0 to silence
 //
@@ -38,7 +38,7 @@ import {
   buildLoginReply,
   CMD_HEARTBEAT,
   CMD_LOGIN,
-} from './zsyz_protocol.js';
+} from './[游戏A]_protocol.js';
 
 const PORT = Number(process.env.PORT || 18000);
 const LOG_FRAMES = process.env.LOG_FRAMES !== '0';
@@ -94,7 +94,7 @@ wss.on('connection', (ws, req) => {
           });
           log(`  ${remote} → login reply (stub)`);
         } else {
-          // unknown: same cmd, empty payload (zsyz_server `unknown_command` analog)
+          // unknown: same cmd, empty payload ([游戏A]_server `unknown_command` analog)
           reply = encodeFrame(f.cmd, Buffer.alloc(0));
           log(`  ${remote} → unknown cmd=${f.cmd} reply (empty)`);
         }
@@ -118,7 +118,7 @@ wss.on('connection', (ws, req) => {
 });
 
 wss.on('listening', () => {
-  console.log(`[mock] zsyz mock server listening on ws://${HOST}:${PORT}/websocket`);
+  console.log(`[mock] [游戏A] mock server listening on ws://${HOST}:${PORT}/websocket`);
   console.log(`[mock] handlers: cmd=${CMD_HEARTBEAT} heartbeat (→ u32 timestamp), cmd=${CMD_LOGIN} login (→ stub OK)`);
   console.log(`[mock] all other cmds: echo same cmd, empty payload`);
   console.log(`[mock] ready for E2E (D3 puppeteer) and D4 raw-hex heartbeat test`);

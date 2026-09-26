@@ -11,7 +11,7 @@
 
 | 维度 | v0.1 用例数 | v0.2 增量 | v0.2 累计 | 引用 |
 |---|---:|---:|---:|---|
-| 42 闪烁之光 module (HP/EC/BV/EX) | ~588 | +0 (维持 v0.1) | ~588 | f7e78eb §1 |
+| 42 [游戏A] module (HP/EC/BV/EX) | ~588 | +0 (维持 v0.1) | ~588 | f7e78eb §1 |
 | 18 跨域抽象 module (5 域 + 平台层 + function-plane) | ~270 | +0 (维持 v0.1) | ~270 | f7e78eb §2 |
 | **batch 域 6 module (per 9/1 batch 4 件套)** | 0 | **+90 (6 × 15)** | 90 | fd122f6 / e70ed71 |
 | 跨域 saga 专项 | 5 | +1 (SAGA-003 admin-coc) | 6 | ae9702d §X |
@@ -42,11 +42,11 @@ BATCH-{nnn}                  batch 域 (NEW, 6 module × 15 用例 = 90 用例)
 - `DLQ` — batch.dlq dead-letter 队列 (BATCH-005)
 - `CONN` — batch.connector 5 域 gRPC mTLS 业务级 (BATCH-006)
 
-## 1. 42 闪烁之光 module (per 协议号映射 addendum §5, 维持 v0.1)
+## 1. 42 [游戏A] module (per 协议号映射 addendum §5, 维持 v0.1)
 
-> **v0.2 状态**: 维持 v0.1 §1.1~§1.42 全部 42 module + ~588 用例, 标记 8 域扩展映射 (per 9/6 闪烁之光 8 域兼容):
+> **v0.2 状态**: 维持 v0.1 §1.1~§1.42 全部 42 module + ~588 用例, 标记 8 域扩展映射 (per 9/6 [游戏A] 8 域兼容):
 
-| 8 域扩展 module | 闪烁之光原 module | v0.2 映射 |
+| 8 域扩展 module | [游戏A]原 module | v0.2 映射 |
 |---|---|---|
 | `scene` (148 RPC, per 9/6 57edbeb) | §1.9 ADVENTURE + §1.18 DUNGEON + §1.20 LOGIN | 场景/移动混合 |
 | `battle` (250 RPC, per 9/6 b6b19b7) | §1.1 COMBAT + §1.13 ENDLESS + §1.14 BOSS + §1.16 GUILD_DUN | 战斗/PVE 扩展 |
@@ -366,7 +366,7 @@ BATCH-{nnn}                  batch 域 (NEW, 6 module × 15 用例 = 90 用例)
 
 | 类别 | v0.1 | v0.2 增量 | v0.2 累计 |
 |---|---:|---:|---:|
-| 42 闪烁之光 module 业务路径 + 错误码 + 边界 + 异常 | ~588 | 0 (维持) | ~588 |
+| 42 [游戏A] module 业务路径 + 错误码 + 边界 + 异常 | ~588 | 0 (维持) | ~588 |
 | 18 跨域抽象 module (4 类) | ~270 | 0 (维持) | ~270 |
 | **batch 域 6 module (NEW)** | 0 | **+90** | 90 |
 | 跨域 saga 专项 | 5 | +1 (SAGA-003) | 6 |

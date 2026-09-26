@@ -5,8 +5,8 @@
 > **审批**: 架构师(Mavis 接手 agent per DEC-008) — 待 Ulysses 二审
 > **修订人**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 > **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
-> **依据**: DDD-REVIEW-TEMPLATE-v0.2 + B3 派生约束 (Ulysses 二审必到, Mavis 不可代签) + 用户 9/4 15:01 JST ask_user 拍板 "6 域全量差距审计 (推荐)" + 闪烁之光借鉴 handoff v0.1 (commit 待落) §0-1 设计哲学
-> **配套**: `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` v0.1 (Claude Code 前一会话起草) + AGENTS.md v0.6.11 §7 batch 域派生约束 + RGS-DDD-PRE-AUDIT-2026-09-03 v0.2 (DDD Review 二审范式)
+> **依据**: DDD-REVIEW-TEMPLATE-v0.2 + B3 派生约束 (Ulysses 二审必到, Mavis 不可代签) + 用户 9/4 15:01 JST ask_user 拍板 "6 域全量差距审计 (推荐)" + [游戏A]借鉴 handoff v0.1 (commit 待落) §0-1 设计哲学
+> **配套**: `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` v0.1 (Claude Code 前一会话起草) + AGENTS.md v0.6.11 §7 batch 域派生约束 + RGS-DDD-PRE-AUDIT-2026-09-03 v0.2 (DDD Review 二审范式)
 > **作用域**: 6 域 = player / economy / match / social / admin / batch + **card-service 第 7 域独立 crate (worker 实证确认)**, 跨域 saga / 9 原则 / 6 反模式 + 18 衍生反模式
 > **状态**: ⏳ 待 Mavis 自审 → 🟡 Mavis 自审停手 → ⏳ 待 Ulysses 二审 → ✅ **二审通过 (per 9/4 15:15 JST ask_user 拍板 option A)**, 状态机结束
 
@@ -20,7 +20,7 @@
 |---|---|---|
 | **用户拍板** | "6 域全量差距审计 (推荐)" (per 9/4 15:01 JST ask_user 4 选 1) | ✅ |
 | **参考框架** | 9 原则 + 6 反模式 (用户 9/4 14:30 JST 贴的 system prompt, Erlang/OTP → Rust 设计哲学) | ✅ |
-| **框架出处** | 闪烁之光借鉴 handoff v0.1 9/4 12:32 JST 起草 (Claude Code 前一会话, "架构可取之处落地动作") | ✅ |
+| **框架出处** | [游戏A]借鉴 handoff v0.1 9/4 12:32 JST 起草 (Claude Code 前一会话, "架构可取之处落地动作") | ✅ |
 | **关联 prompt** | 9/4 14:50 JST user 修正 "这个是rgs项目不是physis" → 工作目录 = D:\RustGameServer (非 Physis 物理引擎) | ✅ |
 | **框架定位** | 设计参考,非项目规范 — 落地动作需 RGS 实际架构裁剪 (DB-as-state vs per-entity actor 选型) | ✅ |
 
@@ -45,7 +45,7 @@
 | **6 域 service 入口** | 5 crates (5 域) + 1 tool (batch) + 1 crate (card 待澄清) | Cargo.toml workspace | ✅ |
 | **rgs-batch-backend** | 单 123KB main.rs (per `Get-ChildItem`) | `tools/rgs-batch-backend/src/main.rs` | ✅ |
 | **framework 9 原则** | 全 9 原则 + 6 反模式 (用户 prompt) | 用户 9/4 14:30 JST 贴 | ✅ |
-| **闪烁之光 RPC 数** | 1351 / 1394 (成功提取) | handoff v0.1 §0 | ✅ |
+| **[游戏A] RPC 数** | 1351 / 1394 (成功提取) | handoff v0.1 §0 | ✅ |
 | **RGS 现有 proto RPC 数** | 69 / 12 proto (per handoff v0.1 §0) | `crates/*/proto/*/v1/*.proto` | ✅ |
 
 ### 0.4 已知缺口 (本报告 v0.1 vs 终稿, per 8/26 JST 缺标比错标)
@@ -440,7 +440,7 @@
 - DB 三分类横展 (per 9/1 18:30 JST 派生决策, AGENTS.md §7.2 #2)
 - 5 域 gRPC client 显式分桶 (`enum GrpcDomain`)
 - audit_event T-3 永久保留 (per NFR-29 + AGENTS.md §7.2 #10)
-- task_template version 字段 (GAP-7 灰度版本, 跟闪烁之光 9+6 复制模式相反)
+- task_template version 字段 (GAP-7 灰度版本, 跟[游戏A] 9+6 复制模式相反)
 - task_timeout_secs GAP-9 任务超时 kill (5min)
 - env value 硬 ban + REDACTED filter (per 8/27 11:06 JST + DETAILED §5.1)
 
@@ -676,7 +676,7 @@
 ### 6.2 8/27 11:06 JST 凭据硬 ban 守护 (per AGENTS.md §1.2 + 用户偏好)
 
 - ✅ **无 env value 打印** (无 `Get-ChildItem env:` 表格, 无 `echo $VAR`, 无 `$env:X expand`, 无 `cat .env`)
-- ✅ **凭据走 env var** (per `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-闪烁之光借鉴优化.md` v0.1 §1 引用, **不在本报告展开**)
+- ✅ **凭据走 env var** (per `RGS-AI-HANDOFF-DOWNSTREAM-2026-09-04-[游戏A]借鉴优化.md` v0.1 §1 引用, **不在本报告展开**)
 - ✅ **batch 域 REDACTED filter 引用** (per main.rs:34-44 注释, **不打印实际凭据**)
 - ✅ **8/27 11:06 JST 强证据引用** (per AGENTS.md §1.2 + 用户 9/4 15:01 JST 任务上下文)
 
@@ -698,7 +698,7 @@
 
 - **L12.1 临时 log 不入 commit**: 本报告 v0.1 0 临时文件, 主会话不写
 - **L12.2 5 worker 并发 3 选项**: 本报告 4 worker 写不 commit (选项 B), 主会话统一 1 commit (待 worker 全部回来后)
-- **L12.3 候选清单入档**: L-CAND-010 候选 (per 闪烁之光借鉴 handoff v0.1 §2.1.3, 数据驱动框架禁复制变体), 12/2 季度评审
+- **L12.3 候选清单入档**: L-CAND-010 候选 (per [游戏A]借鉴 handoff v0.1 §2.1.3, 数据驱动框架禁复制变体), 12/2 季度评审
 
 ---
 
@@ -767,7 +767,7 @@
 
 | # | 任务 | 域 | 关联 | 估算 |
 |---|---|---|---|---|
-| P3-1 | L-CAND-010 候选 (per 闪烁之光借鉴 handoff v0.1 §2.1.3): 数据驱动框架禁复制变体 | 7 域 + 治理 | 12/2 季度评审, L-CAND-009 同批 | 0 (候选登记) |
+| P3-1 | L-CAND-010 候选 (per [游戏A]借鉴 handoff v0.1 §2.1.3): 数据驱动框架禁复制变体 | 7 域 + 治理 | 12/2 季度评审, L-CAND-009 同批 | 0 (候选登记) |
 | P3-2 | 框架原则 #1 per-entity actor 评估 ADR (TCG 品类是否需要 per-player actor for high-frequency ops) | match + 5 域 | 框架原则 #1, 已知架构差异 | 5d |
 | P3-3 | admin AuditLogTamper → DataLoss 错误码细化 + 0006 audit_log_partitioned 实装 (3 年 NFR-SE-010) | admin | worker P3, §3.5 | 5d |
 | P3-4 | admin PFAU 业务实施 + LCM Repository + cleanup cron | admin | worker P3, §3.5 | 5d |
@@ -805,7 +805,7 @@
 ### 8.2 框架对照缺口
 
 - **框架原则 #1 (per-entity actor) 不适用 RGS 现状**: 已在 §1.2 #1 写明 "架构性差异 ≠ 反模式", §3.1-3.6 6/6 域 0 命中, **v0.2 升版无需修复**, 但需 ADR 写明决策
-- **框架原则 #4 (协议 schema push) 全 6 域未实装**: 客户端版本碎片化场景是否真需要? 闪烁之光 12 类客户端 vs RGS 6 域服务端, **客户端是 TCG 玩家客户端, 不是 MMORPG 多端**, 风险低, P2 backlog
+- **框架原则 #4 (协议 schema push) 全 6 域未实装**: 客户端版本碎片化场景是否真需要? [游戏A] 12 类客户端 vs RGS 6 域服务端, **客户端是 TCG 玩家客户端, 不是 MMORPG 多端**, 风险低, P2 backlog
 - **框架原则 #9 (登录准备链声明式) 全 6 域未实装**: cluster-ops::realm_lifecycle 已有 `enum State` (8 状态, per entity), 但不是 ReadyStep enum, 抽象价值待评估, P2 backlog
 - **框架原则 #3 (split_by_srv 桶化 join_all) 6 域未实装显式抽象**: batch 域 `enum GrpcDomain` 是手写桶化变体, 但调用是 single RPC, 非桶化 join_all; matchmaker_v2 跨域 replay 是 fire-and-forget 单次; 框架 #3 价值待评估, P3 backlog
 
