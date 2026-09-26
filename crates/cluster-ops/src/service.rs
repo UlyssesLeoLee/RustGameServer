@@ -542,11 +542,7 @@ mod tests {
         assert_eq!(svc2.list_active_nodes().await.unwrap().len(), 2);
 
         // 把 2 节点 last_heartbeat 推到 120s 前, 然后用 60s 阈值扫
-        for n in repo
-            .list_healthy()
-            .await
-            .unwrap()
-        {
+        for n in repo.list_healthy().await.unwrap() {
             let mut n = n;
             n.last_heartbeat_at = Utc::now() - chrono::Duration::seconds(120);
             repo.save(&n).await.unwrap();

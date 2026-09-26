@@ -66,17 +66,15 @@ const ANALYTICS_V1_2_SUBJECTS: &[(&str, &str, u32)] = &[
 /// 来**显式暴露**这个 onboarding 必修项, 而不是静默吞掉.
 #[test]
 fn dry_run_step_1_2_3_subject_registration_and_naming() {
-    for (idx, (domain, event_type, version)) in ANALYTICS_V1_2_SUBJECTS
-        .iter()
-        .enumerate()
-        .skip(1)
+    for (idx, (domain, event_type, version)) in ANALYTICS_V1_2_SUBJECTS.iter().enumerate().skip(1)
     // skip(1) 跳过占位条目
     {
         let subject = SubjectBuilder::domain_event(domain, event_type, *version);
         assert_eq!(
             subject,
             format!("rgs.{}.{}.v{}", domain, event_type, version),
-            "条目 #{} (skip 0): SubjectBuilder 输出格式与预期不一致", idx
+            "条目 #{} (skip 0): SubjectBuilder 输出格式与预期不一致",
+            idx
         );
 
         // **白名单约束**: 真实 `parse()` 在 6 域白名单内才返回 `SubjectDomain::Domain`.
@@ -123,7 +121,11 @@ fn dry_run_step_3_subject_canonical_form() {
             parts.len()
         );
         assert_eq!(parts[0], "rgs", "subject `{}` 第 1 段必须 `rgs`", expected);
-        assert_eq!(parts[1], "analytics", "subject `{}` 第 2 段必须 `analytics`", expected);
+        assert_eq!(
+            parts[1], "analytics",
+            "subject `{}` 第 2 段必须 `analytics`",
+            expected
+        );
         let version_str = parts[parts.len() - 1];
         assert!(
             version_str.starts_with('v'),
@@ -134,7 +136,12 @@ fn dry_run_step_3_subject_canonical_form() {
         let version: u32 = version_str[1..]
             .parse()
             .unwrap_or_else(|_| panic!("subject `{}` 末段应为数字 v<n>", expected));
-        assert!(version >= 1, "subject `{}` version 必须 ≥1, 实际 = {}", expected, version);
+        assert!(
+            version >= 1,
+            "subject `{}` version 必须 ≥1, 实际 = {}",
+            expected,
+            version
+        );
 
         // SubjectBuilder round-trip: 必须能反推回完全相同的字符串
         // 用 parts[1] (domain) + parts[2..len-1].join(".") (event_type) + version
@@ -188,10 +195,7 @@ async fn dry_run_step_4_append_and_list_pending() {
     // 注: InMemoryOutboxRepository::list_pending 内部立刻 mark in_flight + lease,
     // 返回的 entry.status = InFlight (per shared-platform/src/outbox.rs L387-419 实现).
     // 这是 relay 持锁的语义 — Pending 是 list_pending 之前的瞬时态, 调用方看不到.
-    let pending = repo
-        .list_pending(10)
-        .await
-        .expect("list_pending 应成功");
+    let pending = repo.list_pending(10).await.expect("list_pending 应成功");
     assert_eq!(
         pending.len(),
         canonical_subjects.len(),
@@ -210,9 +214,14 @@ async fn dry_run_step_4_append_and_list_pending() {
             entry.status,
             OutboxStatus::InFlight,
             "新域 `{}` 经 list_pending 后状态应为 InFlight (relay 持锁), 实际 = {:?}",
-            subject, entry.status
+            subject,
+            entry.status
         );
-        assert_eq!(entry.retry_count, 0, "新域 `{}` retry_count 应为 0", subject);
+        assert_eq!(
+            entry.retry_count, 0,
+            "新域 `{}` retry_count 应为 0",
+            subject
+        );
         assert!(
             entry.lease_until.is_some(),
             "新域 `{}` 经 list_pending 应有 lease_until (relay 持锁期)",
@@ -221,7 +230,10 @@ async fn dry_run_step_4_append_and_list_pending() {
     }
 
     // 注意: 二次 list_pending 应返回空 (因为已经 mark in_flight, lease 未过期)
-    let pending_2nd = repo.list_pending(10).await.expect("2nd list_pending 应成功");
+    let pending_2nd = repo
+        .list_pending(10)
+        .await
+        .expect("2nd list_pending 应成功");
     assert!(
         pending_2nd.is_empty(),
         "新域 onboarding dry-run: 第一次 list_pending 已 mark in_flight, 2nd 应为空 (lease 未过期)"
@@ -284,7 +296,10 @@ async fn dry_run_step_5_relay_tick_success_path() {
 
     // 校验: 所有 3 条状态应为 Sent
     // 再次 list_pending: 应为空 (Sent 不在候选)
-    let post_sent_pending = repo.list_pending(10).await.expect("post-sent list_pending 失败");
+    let post_sent_pending = repo
+        .list_pending(10)
+        .await
+        .expect("post-sent list_pending 失败");
     assert!(
         post_sent_pending.is_empty(),
         "新域 onboarding dry-run 步骤 5: mark_sent 后 list_pending 应为空, 实际 {} 条",
@@ -305,7 +320,9 @@ async fn dry_run_step_5_relay_tick_success_path() {
 async fn dry_run_step_6_retry_then_dlq_path() {
     let pool = lazy_pool();
     // 用 100ms lease (而非默认 30s), 加速 dry-run 时间
-    let repo = Arc::new(InMemoryOutboxRepository::with_lease(Duration::from_millis(100)));
+    let repo = Arc::new(InMemoryOutboxRepository::with_lease(Duration::from_millis(
+        100,
+    )));
 
     let subject = "rgs.analytics.telemetry.collected.v1";
     let entry = OutboxEntry::new(
@@ -338,7 +355,10 @@ async fn dry_run_step_6_retry_then_dlq_path() {
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     // 第 2 轮: lease 过期 → list_pending 应能重新拿到
-    let batch_2 = repo.list_pending(10).await.expect("list_pending #2 (post-lease) 失败");
+    let batch_2 = repo
+        .list_pending(10)
+        .await
+        .expect("list_pending #2 (post-lease) 失败");
     assert_eq!(
         batch_2.len(),
         1,
@@ -379,7 +399,9 @@ async fn dry_run_step_6_retry_then_dlq_path() {
 #[tokio::test]
 async fn dry_run_step_7_concurrent_relay_safety() {
     let pool = lazy_pool();
-    let repo = Arc::new(InMemoryOutboxRepository::with_lease(Duration::from_secs(30)));
+    let repo = Arc::new(InMemoryOutboxRepository::with_lease(Duration::from_secs(
+        30,
+    )));
 
     // 提交 5 条新域事件
     for i in 0..5 {
@@ -409,7 +431,10 @@ async fn dry_run_step_7_concurrent_relay_safety() {
     }
 
     // relay-B 再次 list: Sent 不在候选, 应仍为空
-    let relay_b_post = repo.list_pending(10).await.expect("relay-B post-sent list 失败");
+    let relay_b_post = repo
+        .list_pending(10)
+        .await
+        .expect("relay-B post-sent list 失败");
     assert!(
         relay_b_post.is_empty(),
         "relay-B post-sent list 应为空 (Sent 不在候选), 实际 {} 条",
@@ -438,7 +463,11 @@ async fn dry_run_total_acceptance_seven_step_checklist() {
 
     // 步骤 4 产物: 5 条 analytics 域事件 (per 09a §C 命名约定)
     let analytics_events = [
-        ("telemetry.collected", 1, r#"{"phase":"ingest","count":100}"#),
+        (
+            "telemetry.collected",
+            1,
+            r#"{"phase":"ingest","count":100}"#,
+        ),
         ("telemetry.batched", 1, r#"{"batch_size":50}"#),
         ("metric.aggregated", 1, r#"{"window":"5m","p99":42}"#),
         ("metric.aggregated", 2, r#"{"window":"5m","p99":41}"#), // 版本演进
@@ -455,11 +484,7 @@ async fn dry_run_total_acceptance_seven_step_checklist() {
             subject
         );
 
-        let entry = OutboxEntry::new(
-            subject.clone(),
-            payload.to_string(),
-            Uuid::new_v4(),
-        );
+        let entry = OutboxEntry::new(subject.clone(), payload.to_string(), Uuid::new_v4());
         all_ids.push((subject.clone(), entry.id));
         repo.append(&entry, &pool)
             .await
@@ -480,7 +505,9 @@ async fn dry_run_total_acceptance_seven_step_checklist() {
         Uuid::new_v4(),
     );
     let poison_id = poison.id;
-    repo.append(&poison, &pool).await.expect("poison append 失败");
+    repo.append(&poison, &pool)
+        .await
+        .expect("poison append 失败");
 
     let tick_2 = repo.list_pending(10).await.expect("tick #2 list 失败");
     assert_eq!(tick_2.len(), 1, "tick #2 应见 1 条 poison");

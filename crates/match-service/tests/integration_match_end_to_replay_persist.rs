@@ -20,9 +20,7 @@ use std::time::Duration;
 
 use match_service::entity_v2::{GameMode, Move, MoveType, SessionPlayer};
 use match_service::matchmaker_v2::MatchmakerServiceV2;
-use match_service::replay_client::{
-    ReplayClientTrait, SaveReplayOutcome, SaveReplayRequest,
-};
+use match_service::replay_client::{ReplayClientTrait, SaveReplayOutcome, SaveReplayRequest};
 use match_service::repository_v2::{
     GameSessionRepository, InMemoryGameSessionRepository, InMemoryMatchmakingTicketRepository,
     InMemoryMoveRepository,
@@ -75,9 +73,7 @@ impl ReplayClientTrait for FailingThenOkMock {
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             );
-            return Err(tonic::Status::unavailable(
-                "replay-service transient error",
-            ));
+            return Err(tonic::Status::unavailable("replay-service transient error"));
         }
         // 成功
         Ok(SaveReplayOutcome {
@@ -137,12 +133,8 @@ fn make_player(id: &str) -> SessionPlayer {
 
 async fn make_running_session(sessions: &Arc<InMemoryGameSessionRepository>) -> Uuid {
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Casual,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Casual, make_player("p1"), 2, 2);
     session.match_id = match_id;
     session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
@@ -153,10 +145,7 @@ async fn make_running_session(sessions: &Arc<InMemoryGameSessionRepository>) -> 
     match_id
 }
 
-async fn submit_surrender(
-    svc: &MatchmakerServiceV2,
-    match_id: Uuid,
-) {
+async fn submit_surrender(svc: &MatchmakerServiceV2, match_id: Uuid) {
     let mv = Move {
         move_id: Uuid::new_v4(),
         match_id,

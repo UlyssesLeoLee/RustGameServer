@@ -47,7 +47,11 @@ fn f001_six_domains_six_phases_via_olu_client() {
     assert_eq!(sent.len(), 6, "InMemoryOluClient 应记录 6 次 send");
     for (i, (domain, phase)) in mappings.iter().enumerate() {
         assert_eq!(sent[i].team, *domain, "team 字段应等于调用方域");
-        assert_eq!(sent[i].phase, phase.as_str(), "phase 字段应等于 OluPhase::as_str");
+        assert_eq!(
+            sent[i].phase,
+            phase.as_str(),
+            "phase 字段应等于 OluPhase::as_str"
+        );
         assert_eq!(sent[i].token_budget, phase.default_olu_budget());
     }
 }

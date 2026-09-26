@@ -25,7 +25,13 @@ pub struct BanRecord {
 }
 
 impl BanRecord {
-    pub fn new(gm_id: &str, player_id: &str, reason: &str, scope: BanScope, duration_secs: i64) -> Self {
+    pub fn new(
+        gm_id: &str,
+        player_id: &str,
+        reason: &str,
+        scope: BanScope,
+        duration_secs: i64,
+    ) -> Self {
         let now = Utc::now().timestamp_millis();
         Self {
             ban_id: Uuid::new_v4(),

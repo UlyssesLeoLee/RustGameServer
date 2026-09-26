@@ -68,15 +68,15 @@ impl From<Error> for tonic::Status {
             Error::Database(_) | Error::Internal(_) | Error::Unavailable(_) => {
                 tonic::Status::new(Code::Internal, e.to_string())
             }
-            Error::NotFound { .. }
-            | Error::SceneNotExist(_)
-            | Error::UnitNotFound(_) => tonic::Status::new(Code::NotFound, e.to_string()),
+            Error::NotFound { .. } | Error::SceneNotExist(_) | Error::UnitNotFound(_) => {
+                tonic::Status::new(Code::NotFound, e.to_string())
+            }
             Error::Validation(_) | Error::PositionOutOfBounds(_, _) => {
                 tonic::Status::new(Code::InvalidArgument, e.to_string())
             }
-            Error::Conflict(_)
-            | Error::AlreadyInScene(_)
-            | Error::QuestAlreadyAccepted(_) => tonic::Status::new(Code::AlreadyExists, e.to_string()),
+            Error::Conflict(_) | Error::AlreadyInScene(_) | Error::QuestAlreadyAccepted(_) => {
+                tonic::Status::new(Code::AlreadyExists, e.to_string())
+            }
             Error::Unauthorized(_) => tonic::Status::new(Code::Unauthenticated, e.to_string()),
             Error::Forbidden(_) | Error::MoveRejected(_) | Error::PartnerNotOwned(_) => {
                 tonic::Status::new(Code::PermissionDenied, e.to_string())

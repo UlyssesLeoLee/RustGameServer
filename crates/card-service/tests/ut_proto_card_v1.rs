@@ -7,8 +7,8 @@
 //! 4. test_card_series_pack_size
 //! 5. test_open_pack_response_transaction_id
 
-use card_service::proto::v1::*;
 use card_service::common::v1 as common;
+use card_service::proto::v1::*;
 
 #[test]
 fn test_card_basic_fields() {
@@ -49,7 +49,10 @@ fn test_card_stats() {
 fn test_drop_table_version() {
     let dt = DropTable {
         version: 1,
-        snapshot_at: Some(common::Timestamp { seconds: 1700000000, nanos: 0 }),
+        snapshot_at: Some(common::Timestamp {
+            seconds: 1700000000,
+            nanos: 0,
+        }),
         entries: vec![],
     };
     assert_eq!(dt.version, 1);

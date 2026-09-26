@@ -248,13 +248,30 @@ mod tests {
     #[test]
     fn error_display_messages_contain_expected_substrings() {
         // 验证 thiserror #[error("...")] 派生消息含变体名/字段
-        assert!(Error::Validation("x".to_string()).to_string().contains("validation error"));
-        assert!(Error::Conflict("x".to_string()).to_string().contains("conflict"));
-        assert!(Error::Unauthorized("x".to_string()).to_string().contains("unauthorized"));
-        assert!(Error::Forbidden("x".to_string()).to_string().contains("forbidden"));
-        assert!(Error::Unavailable("x".to_string()).to_string().contains("unavailable"));
+        assert!(Error::Validation("x".to_string())
+            .to_string()
+            .contains("validation error"));
+        assert!(Error::Conflict("x".to_string())
+            .to_string()
+            .contains("conflict"));
+        assert!(Error::Unauthorized("x".to_string())
+            .to_string()
+            .contains("unauthorized"));
+        assert!(Error::Forbidden("x".to_string())
+            .to_string()
+            .contains("forbidden"));
+        assert!(Error::Unavailable("x".to_string())
+            .to_string()
+            .contains("unavailable"));
         assert!(Error::SessionExpired.to_string().contains("expired"));
-        assert!(Error::AlreadyLoggedIn.to_string().contains("already logged in"));
-        assert!(Error::NotFound { entity: "Deck", id: "abc".to_string() }.to_string().contains("Deck"));
+        assert!(Error::AlreadyLoggedIn
+            .to_string()
+            .contains("already logged in"));
+        assert!(Error::NotFound {
+            entity: "Deck",
+            id: "abc".to_string()
+        }
+        .to_string()
+        .contains("Deck"));
     }
 }

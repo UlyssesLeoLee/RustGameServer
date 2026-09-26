@@ -27,13 +27,22 @@ async fn bot_match_ai_act_list_contains_arena_and_boss() {
     let ai = MatchBotAi::new();
     let acts = ai.act_list();
     assert!(acts.contains(&ActKind::Init), "act_list 应含 Init");
-    assert!(acts.contains(&ActKind::Heartbeat), "act_list 应含 Heartbeat");
+    assert!(
+        acts.contains(&ActKind::Heartbeat),
+        "act_list 应含 Heartbeat"
+    );
     assert!(
         acts.contains(&ActKind::RandProto(50)),
         "act_list 应含 RandProto(50) 5% 协议随机化"
     );
-    assert!(acts.contains(&ActKind::Arena), "act_list 应含 Arena (erlang C6 竞技场)");
-    assert!(acts.contains(&ActKind::Boss), "act_list 应含 Boss (erlang C6 世界 Boss)");
+    assert!(
+        acts.contains(&ActKind::Arena),
+        "act_list 应含 Arena (erlang C6 竞技场)"
+    );
+    assert!(
+        acts.contains(&ActKind::Boss),
+        "act_list 应含 Boss (erlang C6 世界 Boss)"
+    );
 }
 
 #[tokio::test]
@@ -41,7 +50,9 @@ async fn bot_match_handle_all_acts_ok() {
     let ai = MatchBotAi::new();
     let bot = Bot::new("bot-match-002", "match", BotStats::new());
     for act in ai.act_list() {
-        ai.handle(&bot, act).await.expect("match handle all acts ok");
+        ai.handle(&bot, act)
+            .await
+            .expect("match handle all acts ok");
     }
 }
 
@@ -84,7 +95,10 @@ async fn bot_match_real_grpc_client_init() {
         "默认 skip verify tonic Channel 应建立"
     );
     assert_eq!(grpc.endpoint(), DEFAULT_MATCH_ENDPOINT);
-    assert!(grpc.skip_verify(), "默认 skip_verify=true (k3s cert 未导出 fallback)");
+    assert!(
+        grpc.skip_verify(),
+        "默认 skip_verify=true (k3s cert 未导出 fallback)"
+    );
 
     // init 不 panic, 真实 EnqueueMatchmaking 待 SRE 介入
     ai.init(&bot).await.expect("init with real gRPC framework");
@@ -119,7 +133,10 @@ async fn bot_match_real_grpc_client_custom_endpoint() {
     let bot = Bot::new("bot-match-mtls-002", "match", BotStats::new());
 
     assert_eq!(ai.grpc().endpoint(), "https://match-staging:50053");
-    assert!(!ai.grpc().skip_verify(), "skip_verify=false (待 SRE 介入后切真 mTLS)");
+    assert!(
+        !ai.grpc().skip_verify(),
+        "skip_verify=false (待 SRE 介入后切真 mTLS)"
+    );
     assert!(
         ai.grpc().channel().is_some(),
         "自定义 endpoint + skip_verify=false Channel 应建立"
@@ -193,5 +210,8 @@ async fn bot_match_real_rpc_custom_endpoint_returns_ok() {
 
     // 真实 RPC 调用预期失败, 走 Ok(()) 容忍
     let result = ai.enqueue_matchmaking(&bot).await;
-    assert!(result.is_ok(), "自定义 endpoint enqueue_matchmaking 应返 Ok(())");
+    assert!(
+        result.is_ok(),
+        "自定义 endpoint enqueue_matchmaking 应返 Ok(())"
+    );
 }

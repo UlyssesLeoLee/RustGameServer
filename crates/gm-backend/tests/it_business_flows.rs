@@ -11,16 +11,15 @@
 //! 全部用 actix-web::test 框架 + register_routes 全 15+ 端点 (降级 InMemory).
 
 use actix_web::{test, web, App};
-use gm_backend::{
-    issue_jwt, register_routes, AppState, GmConfig, LoginRequest,
-};
+use gm_backend::{issue_jwt, register_routes, AppState, GmConfig, LoginRequest};
 
 // ============================================================================
 // helpers
 // ============================================================================
 
 fn test_state() -> AppState {
-    let config = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
+    let config =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
     AppState::new(config)
 }
 
@@ -214,7 +213,9 @@ async fn it_ticket_full_lifecycle() {
     assert_eq!(create_body["ticket"]["status"], "open");
 
     // 2) list — 1 条
-    let list_req = test::TestRequest::get().uri("/gm/support/tickets").to_request();
+    let list_req = test::TestRequest::get()
+        .uri("/gm/support/tickets")
+        .to_request();
     let list_resp = test::call_service(&app, list_req).await;
     let list_body: serde_json::Value = test::read_body_json(list_resp).await;
     assert_eq!(list_body["tickets"].as_array().unwrap().len(), 1);
@@ -277,7 +278,8 @@ async fn it_ticket_status_invalid_returns_400() {
 #[actix_web::test]
 async fn it_jwt_middleware_missing_token_returns_401() {
     // 构造一个 require_jwt=true 的 AppState
-    let mut cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
+    let mut cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
     cfg.require_jwt = true;
     cfg.jwt_secret = "test-secret-xyz".to_string();
     let state = AppState::new(cfg);
@@ -308,7 +310,8 @@ async fn it_jwt_middleware_missing_token_returns_401() {
 
 #[actix_web::test]
 async fn it_jwt_middleware_invalid_token_returns_401() {
-    let mut cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
+    let mut cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
     cfg.require_jwt = true;
     cfg.jwt_secret = "test-secret-xyz".to_string();
     let state = AppState::new(cfg);
@@ -339,7 +342,8 @@ async fn it_jwt_middleware_invalid_token_returns_401() {
 
 #[actix_web::test]
 async fn it_jwt_middleware_valid_token_passes_through() {
-    let mut cfg = GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
+    let mut cfg =
+        GmConfig::for_test("127.0.0.1:0", "127.0.0.1:0", "http://127.0.0.1:50055").unwrap();
     cfg.require_jwt = true;
     cfg.jwt_secret = "test-secret-xyz".to_string();
     let state = AppState::new(cfg);
@@ -365,7 +369,10 @@ async fn it_jwt_middleware_valid_token_passes_through() {
         }))
         .to_request();
     let resp = test::call_service(&app, req).await;
-    assert!(resp.status().is_success(), "valid token 必须通过 JWT middleware");
+    assert!(
+        resp.status().is_success(),
+        "valid token 必须通过 JWT middleware"
+    );
 }
 
 // ============================================================================
@@ -440,7 +447,10 @@ async fn it_broadcast_writes_to_audit_store() {
     assert!(resp.status().is_success());
     let body: serde_json::Value = test::read_body_json(resp).await;
     assert_eq!(body["status"], "sent");
-    assert_eq!(body["broadcast"]["message"], "Server maintenance at 03:00 UTC");
+    assert_eq!(
+        body["broadcast"]["message"],
+        "Server maintenance at 03:00 UTC"
+    );
 
     // 2) list_broadcasts — 现在从 audit_store 反查 action=="broadcast" 的条目
     //    (per WBS v0.2 桶 10 Phase D D6 修复) — broadcast 端点已写 audit
@@ -449,7 +459,9 @@ async fn it_broadcast_writes_to_audit_store() {
     let list_resp = test::call_service(&app, list_req).await;
     assert!(list_resp.status().is_success());
     let list_body: serde_json::Value = test::read_body_json(list_resp).await;
-    let arr = list_body["broadcasts"].as_array().expect("broadcasts array");
+    let arr = list_body["broadcasts"]
+        .as_array()
+        .expect("broadcasts array");
     assert_eq!(arr.len(), 1, "D6 修复后 list_broadcasts 应返 1 条");
     assert_eq!(arr[0]["message"], "Server maintenance at 03:00 UTC");
 }
@@ -474,7 +486,9 @@ async fn it_list_broadcasts_empty_state() {
     let list_resp = test::call_service(&app, list_req).await;
     assert!(list_resp.status().is_success());
     let list_body: serde_json::Value = test::read_body_json(list_resp).await;
-    let arr = list_body["broadcasts"].as_array().expect("broadcasts array");
+    let arr = list_body["broadcasts"]
+        .as_array()
+        .expect("broadcasts array");
     assert_eq!(arr.len(), 0, "无 broadcast 时 list_broadcasts 返 0 条");
 }
 
@@ -499,11 +513,16 @@ async fn it_server_start_stop_state_transitions() {
     let servers = list_body["servers"].as_array().expect("servers");
     assert_eq!(servers.len(), 5);
     // 找 social-1 (初始 stopped)
-    let social1 = servers.iter().find(|s| s["id"] == "social-1").expect("social-1");
+    let social1 = servers
+        .iter()
+        .find(|s| s["id"] == "social-1")
+        .expect("social-1");
     assert_eq!(social1["status"], "stopped");
 
     // 2) start social-1
-    let start_req = test::TestRequest::post().uri("/gm/servers/social-1/start").to_request();
+    let start_req = test::TestRequest::post()
+        .uri("/gm/servers/social-1/start")
+        .to_request();
     let start_resp = test::call_service(&app, start_req).await;
     let start_body: serde_json::Value = test::read_body_json(start_resp).await;
     assert_eq!(start_body["status"], "started");
@@ -511,7 +530,9 @@ async fn it_server_start_stop_state_transitions() {
     assert!(start_body["server"]["online_players"].as_u64().unwrap() >= 50);
 
     // 3) stop social-1
-    let stop_req = test::TestRequest::post().uri("/gm/servers/social-1/stop").to_request();
+    let stop_req = test::TestRequest::post()
+        .uri("/gm/servers/social-1/stop")
+        .to_request();
     let stop_resp = test::call_service(&app, stop_req).await;
     let stop_body: serde_json::Value = test::read_body_json(stop_resp).await;
     assert_eq!(stop_body["status"], "stopped");
@@ -519,7 +540,9 @@ async fn it_server_start_stop_state_transitions() {
     assert_eq!(stop_body["server"]["online_players"], 0);
 
     // 4) start 不存在的 server
-    let bad_req = test::TestRequest::post().uri("/gm/servers/nonexistent/start").to_request();
+    let bad_req = test::TestRequest::post()
+        .uri("/gm/servers/nonexistent/start")
+        .to_request();
     let bad_resp = test::call_service(&app, bad_req).await;
     assert_eq!(bad_resp.status().as_u16(), 404, "未知 server 必须 404");
 }

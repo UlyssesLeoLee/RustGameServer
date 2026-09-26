@@ -192,14 +192,18 @@ impl I18nServiceImpl {
 impl I18nService for I18nServiceImpl {
     async fn get_text(&self, key: &str, locale: Locale) -> Result<GetTextResult> {
         if key.trim().is_empty() {
-            return Err(crate::Error::Validation("key must not be empty".to_string()));
+            return Err(crate::Error::Validation(
+                "key must not be empty".to_string(),
+            ));
         }
         self.resolve_text(key, locale).await
     }
 
     async fn get_texts(&self, keys: Vec<String>, locale: Locale) -> Result<GetTextsResult> {
         if keys.is_empty() {
-            return Err(crate::Error::Validation("keys must not be empty".to_string()));
+            return Err(crate::Error::Validation(
+                "keys must not be empty".to_string(),
+            ));
         }
         // 批量内循环 resolve_text, 单 key 失败时跳过(返回空 text + fallback_used=true)
         // 业务选择: 批量接口不强失败(per DTL-038 §4.1 客户端初始化常用)
@@ -299,8 +303,7 @@ pub mod grpc_service {
         {
             let req = request.into_inner();
             let key = req.key.clone();
-            let locale = locale_from_proto(req.locale)
-                .map_err(Into::<tonic::Status>::into)?;
+            let locale = locale_from_proto(req.locale).map_err(Into::<tonic::Status>::into)?;
             let result = self
                 .impl_
                 .get_text(&key, locale)
@@ -321,8 +324,7 @@ pub mod grpc_service {
         {
             let req = request.into_inner();
             let keys = req.keys.clone();
-            let locale = locale_from_proto(req.locale)
-                .map_err(Into::<tonic::Status>::into)?;
+            let locale = locale_from_proto(req.locale).map_err(Into::<tonic::Status>::into)?;
             let result = self
                 .impl_
                 .get_texts(keys, locale)
@@ -376,13 +378,11 @@ mod tests {
     use crate::repository::InMemoryI18nRepository;
 
     fn make_service() -> I18nServiceImpl {
-        let repo = Arc::new(
-            InMemoryI18nRepository::new().with_texts(vec![
-                I18nText::new("k1".to_string(), Locale::ZhCn, "你好".to_string()),
-                I18nText::new("k1".to_string(), Locale::EnUs, "hello".to_string()),
-                I18nText::new("k2".to_string(), Locale::EnUs, "world".to_string()),
-            ]),
-        );
+        let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![
+            I18nText::new("k1".to_string(), Locale::ZhCn, "你好".to_string()),
+            I18nText::new("k1".to_string(), Locale::EnUs, "hello".to_string()),
+            I18nText::new("k2".to_string(), Locale::EnUs, "world".to_string()),
+        ]));
         I18nServiceImpl::new(repo)
     }
 
@@ -464,9 +464,11 @@ mod tests {
     /// 7. 缓存命中 (测试缓存层)
     #[tokio::test]
     async fn cache_hit_avoids_repo_call() {
-        let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![
-            I18nText::new("cached_k".to_string(), Locale::EnUs, "cached_text".to_string()),
-        ]));
+        let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![I18nText::new(
+            "cached_k".to_string(),
+            Locale::EnUs,
+            "cached_text".to_string(),
+        )]));
         let svc = I18nServiceImpl::new(repo.clone() as Arc<dyn I18nRepository>);
 
         // 第一次: DB 拉取, 应缓存
@@ -489,9 +491,11 @@ mod tests {
     /// 8. 缓存过期(用极短 TTL 验证)
     #[tokio::test]
     async fn cache_ttl_expiry() {
-        let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![
-            I18nText::new("ttl_k".to_string(), Locale::EnUs, "v1".to_string()),
-        ]));
+        let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![I18nText::new(
+            "ttl_k".to_string(),
+            Locale::EnUs,
+            "v1".to_string(),
+        )]));
         let svc = I18nServiceImpl::with_cache_ttl(
             repo.clone() as Arc<dyn I18nRepository>,
             Duration::from_millis(50),

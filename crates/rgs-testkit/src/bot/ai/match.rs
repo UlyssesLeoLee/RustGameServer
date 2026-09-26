@@ -327,10 +327,7 @@ impl MatchBotAi {
     ///
     /// k3s baseline 0/12 阶段预期失败 (connection refused), 走 `tracing::warn!` + `Ok(())` 容忍.
     /// SRE 介入 k3s baseline 恢复后, 走真实业务级 ST.
-    pub async fn enqueue_matchmaking(
-        &self,
-        bot: &Bot,
-    ) -> anyhow::Result<()> {
+    pub async fn enqueue_matchmaking(&self, bot: &Bot) -> anyhow::Result<()> {
         let mut client = match self.match_service_client() {
             Some(c) => c,
             None => {
@@ -353,11 +350,8 @@ impl MatchBotAi {
             deck_ref: None, // CardRef 留空
         });
 
-        match tokio::time::timeout(
-            Duration::from_secs(2),
-            client.enqueue_matchmaking(request),
-        )
-        .await
+        match tokio::time::timeout(Duration::from_secs(2), client.enqueue_matchmaking(request))
+            .await
         {
             Ok(Ok(resp)) => {
                 debug!(
@@ -388,10 +382,7 @@ impl MatchBotAi {
     /// 真实 RPC: 走 `MatchServiceClient::create_match` (per match.proto §4.2, Boss 房间)
     ///
     /// 同 enqueue_matchmaking 模式, 2s timeout + 失败容忍.
-    pub async fn create_match(
-        &self,
-        bot: &Bot,
-    ) -> anyhow::Result<()> {
+    pub async fn create_match(&self, bot: &Bot) -> anyhow::Result<()> {
         let mut client = match self.match_service_client() {
             Some(c) => c,
             None => {
@@ -414,12 +405,7 @@ impl MatchBotAi {
             ai_difficulty: 1,
         });
 
-        match tokio::time::timeout(
-            Duration::from_secs(2),
-            client.create_match(request),
-        )
-        .await
-        {
+        match tokio::time::timeout(Duration::from_secs(2), client.create_match(request)).await {
             Ok(Ok(resp)) => {
                 debug!(
                     bot_id = bot.id(),
@@ -450,7 +436,10 @@ impl MatchBotAi {
 #[async_trait]
 impl BotAi for MatchBotAi {
     async fn init(&self, bot: &Bot) -> anyhow::Result<()> {
-        debug!(bot_id = bot.id(), "MatchBotAi::init (wave 4 real RPC call enqueue_matchmaking)");
+        debug!(
+            bot_id = bot.id(),
+            "MatchBotAi::init (wave 4 real RPC call enqueue_matchmaking)"
+        );
         if self.grpc.channel().is_none() {
             warn!(
                 bot_id = bot.id(),

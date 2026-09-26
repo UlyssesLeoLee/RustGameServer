@@ -120,11 +120,7 @@ pub trait ReplayDomainService: Send + Sync {
     /// 3. owner check: uploader == player_id 否则 NotAuthorized
     /// 4. 删对象 (best-effort) + 删元数据
     /// 返回: true = 删除成功, false = replay 不存在
-    async fn delete_replay_by_owner(
-        &self,
-        replay_id: Uuid,
-        player_id: Uuid,
-    ) -> Result<bool>;
+    async fn delete_replay_by_owner(&self, replay_id: Uuid, player_id: Uuid) -> Result<bool>;
 
     /// 10. LikeReplay (L18-8): 幂等点赞, 返回操作后的点赞总数
     /// 业务流:
@@ -233,7 +229,9 @@ impl ReplayDomainService for ReplayServiceImpl {
             return Err(Error::Validation("player_a must not be empty".to_string()));
         }
         if match_id.is_nil() {
-            return Err(Error::Validation("match_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "match_id must not be nil UUID".to_string(),
+            ));
         }
         if mode == ReplayMode::Unspecified {
             return Err(Error::Validation("mode must be specified".to_string()));
@@ -280,14 +278,12 @@ impl ReplayDomainService for ReplayServiceImpl {
             .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
 
         // 2. 拉数据
-        let data = self
-            .storage
-            .get(&meta.object_key)
-            .await?
-            .ok_or_else(|| Error::Storage(format!(
+        let data = self.storage.get(&meta.object_key).await?.ok_or_else(|| {
+            Error::Storage(format!(
                 "object missing for replay {}: {}",
                 replay_id, meta.object_key
-            )))?;
+            ))
+        })?;
 
         Ok(Replay::new(meta, data.to_vec()))
     }
@@ -328,49 +324,43 @@ impl ReplayDomainService for ReplayServiceImpl {
         let total_size = meta.object_size.max(0) as u64;
         let chunk_index_start = (start_offset / chunk_size as u64) as u32;
 
-        let stream = stream::unfold(
-            (chunk_index_start, start_offset),
-            move |(idx, offset)| {
-                let storage = storage.clone();
-                let object_key = object_key.clone();
-                async move {
-                    if offset >= total_size {
-                        return None;
-                    }
-                    // 读一段 (从 offset 开始, chunk_size bytes)
-                    let read_len = std::cmp::min(chunk_size as u64, total_size - offset) as usize;
-                    let data = match storage.get(&object_key).await {
-                        Ok(Some(d)) => d,
-                        Ok(None) => {
-                            return Some((
-                                Err(Error::Storage(format!(
-                                    "object missing: {}",
-                                    object_key
-                                ))),
-                                (idx, offset + chunk_size as u64),
-                            ));
-                        }
-                        Err(e) => {
-                            return Some((
-                                Err(Error::StreamFailed(format!(
-                                    "read failed at offset {}: {}",
-                                    offset, e
-                                ))),
-                                (idx, offset + chunk_size as u64),
-                            ));
-                        }
-                    };
-                    // 截取 [offset, offset+read_len)
-                    let start = offset as usize;
-                    let end = (offset + read_len as u64) as usize;
-                    let payload = data.slice(start..end).to_vec();
-                    let new_offset = offset + read_len as u64;
-                    let is_last = new_offset >= total_size;
-                    let chunk = ReplayChunk::new(replay_id, offset, payload, is_last, idx);
-                    Some((Ok(chunk), (idx + 1, new_offset)))
+        let stream = stream::unfold((chunk_index_start, start_offset), move |(idx, offset)| {
+            let storage = storage.clone();
+            let object_key = object_key.clone();
+            async move {
+                if offset >= total_size {
+                    return None;
                 }
-            },
-        );
+                // 读一段 (从 offset 开始, chunk_size bytes)
+                let read_len = std::cmp::min(chunk_size as u64, total_size - offset) as usize;
+                let data = match storage.get(&object_key).await {
+                    Ok(Some(d)) => d,
+                    Ok(None) => {
+                        return Some((
+                            Err(Error::Storage(format!("object missing: {}", object_key))),
+                            (idx, offset + chunk_size as u64),
+                        ));
+                    }
+                    Err(e) => {
+                        return Some((
+                            Err(Error::StreamFailed(format!(
+                                "read failed at offset {}: {}",
+                                offset, e
+                            ))),
+                            (idx, offset + chunk_size as u64),
+                        ));
+                    }
+                };
+                // 截取 [offset, offset+read_len)
+                let start = offset as usize;
+                let end = (offset + read_len as u64) as usize;
+                let payload = data.slice(start..end).to_vec();
+                let new_offset = offset + read_len as u64;
+                let is_last = new_offset >= total_size;
+                let chunk = ReplayChunk::new(replay_id, offset, payload, is_last, idx);
+                Some((Ok(chunk), (idx + 1, new_offset)))
+            }
+        });
 
         Ok(Box::new(Box::pin(stream)))
     }
@@ -428,7 +418,9 @@ impl ReplayDomainService for ReplayServiceImpl {
     async fn get_replay_info(&self, replay_id: Uuid) -> Result<ReplayInfo> {
         // 1. 校验
         if replay_id.is_nil() {
-            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "replay_id must not be nil UUID".to_string(),
+            ));
         }
         // 2. 拉元数据
         let meta = self
@@ -447,17 +439,17 @@ impl ReplayDomainService for ReplayServiceImpl {
         Ok(ReplayInfo::from_meta(&meta, like_count, collect_count))
     }
 
-    async fn delete_replay_by_owner(
-        &self,
-        replay_id: Uuid,
-        player_id: Uuid,
-    ) -> Result<bool> {
+    async fn delete_replay_by_owner(&self, replay_id: Uuid, player_id: Uuid) -> Result<bool> {
         // 1. 校验
         if replay_id.is_nil() {
-            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "replay_id must not be nil UUID".to_string(),
+            ));
         }
         if player_id.is_nil() {
-            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "player_id must not be nil UUID".to_string(),
+            ));
         }
         // 2. 查元数据
         let meta = self.repo.find_by_id(replay_id).await?;
@@ -487,10 +479,14 @@ impl ReplayDomainService for ReplayServiceImpl {
     async fn like_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32> {
         // 1. 校验
         if replay_id.is_nil() {
-            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "replay_id must not be nil UUID".to_string(),
+            ));
         }
         if player_id.is_nil() {
-            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "player_id must not be nil UUID".to_string(),
+            ));
         }
         // 2. 校验 replay 存在
         self.repo
@@ -507,10 +503,14 @@ impl ReplayDomainService for ReplayServiceImpl {
     async fn unlike_replay(&self, replay_id: Uuid, player_id: Uuid) -> Result<u32> {
         // 1. 校验
         if replay_id.is_nil() {
-            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "replay_id must not be nil UUID".to_string(),
+            ));
         }
         if player_id.is_nil() {
-            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "player_id must not be nil UUID".to_string(),
+            ));
         }
         // 2. 校验 replay 存在
         self.repo
@@ -535,13 +535,19 @@ impl ReplayDomainService for ReplayServiceImpl {
     ) -> Result<(bool, u32)> {
         // 1. 校验
         if replay_id.is_nil() {
-            return Err(Error::Validation("replay_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "replay_id must not be nil UUID".to_string(),
+            ));
         }
         if player_id.is_nil() {
-            return Err(Error::Validation("player_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "player_id must not be nil UUID".to_string(),
+            ));
         }
         if collection_id.is_nil() {
-            return Err(Error::Validation("collection_id must not be nil UUID".to_string()));
+            return Err(Error::Validation(
+                "collection_id must not be nil UUID".to_string(),
+            ));
         }
         // 2. 校验 replay 存在
         self.repo
@@ -581,7 +587,10 @@ pub mod grpc_service {
             x if x == replay_proto::ReplayMode::Casual as i32 => Ok(ReplayMode::Casual),
             x if x == replay_proto::ReplayMode::Room as i32 => Ok(ReplayMode::Room),
             x if x == replay_proto::ReplayMode::PveAi as i32 => Ok(ReplayMode::PveAi),
-            _ => Err(Error::Validation(format!("unknown ReplayMode enum value: {}", v))),
+            _ => Err(Error::Validation(format!(
+                "unknown ReplayMode enum value: {}",
+                v
+            ))),
         }
     }
 
@@ -618,9 +627,8 @@ pub mod grpc_service {
     }
 
     fn parse_uuid(s: &str, field: &str) -> Result<Uuid> {
-        Uuid::parse_str(s).map_err(|_| {
-            Error::Validation(format!("invalid UUID for {}: '{}'", field, s))
-        })
+        Uuid::parse_str(s)
+            .map_err(|_| Error::Validation(format!("invalid UUID for {}: '{}'", field, s)))
     }
 
     fn parse_page(req: &Option<common_proto::PageRequest>) -> PageRequest {
@@ -758,8 +766,9 @@ pub mod grpc_service {
             }))
         }
 
-        type StreamReplayStream =
-            std::pin::Pin<Box<dyn Stream<Item = std::result::Result<replay_proto::ReplayChunk, Status>> + Send>>;
+        type StreamReplayStream = std::pin::Pin<
+            Box<dyn Stream<Item = std::result::Result<replay_proto::ReplayChunk, Status>> + Send>,
+        >;
 
         async fn stream_replay(
             &self,
@@ -830,7 +839,9 @@ pub mod grpc_service {
                 .delete_replay_by_owner(replay_id, player_id)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            Ok(Response::new(replay_proto::DeleteReplayResponse { success }))
+            Ok(Response::new(replay_proto::DeleteReplayResponse {
+                success,
+            }))
         }
 
         async fn like_replay(

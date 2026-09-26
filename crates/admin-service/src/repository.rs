@@ -325,7 +325,7 @@ impl AuditLogRepository for PgAuditLogRepository {
             // 有锚点: 第 n 条的 hash 是窗口第一 entry 的 prev_anchor
             let anchor = entries_desc[n].hash.clone();
             entries_desc.truncate(n); // 保留前 n 条 (窗口)
-            entries_desc.reverse();   // 倒序成 ASC
+            entries_desc.reverse(); // 倒序成 ASC
             Ok(verify_chain_ascending(&entries_desc, &anchor))
         } else {
             // 不足 n+1 条, 锚点为 "0"*64 (即 chain 起点)
@@ -447,13 +447,7 @@ impl AuditLogRepository for InMemoryAuditLogRepository {
     }
 
     async fn list_latest(&self, limit: i64) -> Result<Vec<AuditLogEntry>> {
-        let mut v: Vec<AuditLogEntry> = self
-            .inner
-            .lock()
-            .unwrap()
-            .values()
-            .cloned()
-            .collect();
+        let mut v: Vec<AuditLogEntry> = self.inner.lock().unwrap().values().cloned().collect();
         v.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         v.truncate(limit as usize);
         Ok(v)
@@ -610,10 +604,7 @@ pub enum StartupVerifyOutcome {
 /// - 默认扫最近 1000 条 (n = 1000), 配合 24h 时间窗可后续做
 /// - 真实篡改 → `TamperDetected` (caller 决定 fail-closed, 本函数不直接 exit)
 /// - infra 失败 → `InfraError` (caller 决定 warning + 继续)
-pub async fn run_startup_verify(
-    repo: &dyn AuditLogRepository,
-    n: usize,
-) -> StartupVerifyOutcome {
+pub async fn run_startup_verify(repo: &dyn AuditLogRepository, n: usize) -> StartupVerifyOutcome {
     match repo.verify_recent(n).await {
         Ok(report) if report.is_ok() => StartupVerifyOutcome::Verified(report),
         Ok(report) => {
@@ -681,16 +672,9 @@ mod tests {
     #[tokio::test]
     async fn in_memory_list_active_excludes_disabled() {
         let repo = InMemoryAdminUserRepository::new();
-        let mut u_active = AdminUser::new(
-            "a".to_string(),
-            "h".to_string(),
-            AdminRole::SuperAdmin,
-        );
-        let mut u_disabled = AdminUser::new(
-            "d".to_string(),
-            "h".to_string(),
-            AdminRole::DomainAdmin,
-        );
+        let mut u_active = AdminUser::new("a".to_string(), "h".to_string(), AdminRole::SuperAdmin);
+        let mut u_disabled =
+            AdminUser::new("d".to_string(), "h".to_string(), AdminRole::DomainAdmin);
         u_disabled.disabled_at = Some(Utc::now());
         let _ = u_active;
         repo.save(&u_active).await.unwrap();
@@ -1064,7 +1048,10 @@ mod tests {
         let report = verify_chain_ascending(&[e], &"0".repeat(64));
         assert!(report.is_ok());
         assert_eq!(report.checked, 1);
-        assert_eq!(report.first_prev_hash.as_deref(), Some("0".repeat(64).as_str()));
+        assert_eq!(
+            report.first_prev_hash.as_deref(),
+            Some("0".repeat(64).as_str())
+        );
     }
 
     /// verify_chain_ascending 直接调用: 单条 entry + 锚点不匹配 → 立即 broken
@@ -1193,11 +1180,7 @@ mod tests {
             async fn latest(&self) -> Result<Option<AuditLogEntry>> {
                 Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
             }
-            async fn list_by_actor(
-                &self,
-                _actor: Uuid,
-                _limit: i64,
-            ) -> Result<Vec<AuditLogEntry>> {
+            async fn list_by_actor(&self, _actor: Uuid, _limit: i64) -> Result<Vec<AuditLogEntry>> {
                 Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
             }
             async fn list_latest(&self, _limit: i64) -> Result<Vec<AuditLogEntry>> {
@@ -1211,7 +1194,9 @@ mod tests {
                 Err(crate::Error::Internal(anyhow::anyhow!("not implemented")))
             }
             async fn verify_recent(&self, _n: usize) -> Result<VerifyReport> {
-                Err(crate::Error::Internal(anyhow::anyhow!("db connection lost")))
+                Err(crate::Error::Internal(anyhow::anyhow!(
+                    "db connection lost"
+                )))
             }
         }
         let fake = AlwaysErrRepo;
@@ -1257,7 +1242,9 @@ mod tests {
             _ => panic!(),
         };
         let _ = match tamper {
-            StartupVerifyOutcome::TamperDetected { report, reason } => (report.broken_at_index, reason),
+            StartupVerifyOutcome::TamperDetected { report, reason } => {
+                (report.broken_at_index, reason)
+            }
             _ => panic!(),
         };
         let _ = match infra {

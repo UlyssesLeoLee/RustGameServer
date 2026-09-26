@@ -5,8 +5,8 @@
 //! 2. test_deck_with_slots
 //! 3. test_deck_slot_count_range
 
-use player_service::proto::v1::*;
 use player_service::common::v1 as common;
+use player_service::proto::v1::*;
 
 #[test]
 fn test_player_profile_with_currencies() {
@@ -19,8 +19,14 @@ fn test_player_profile_with_currencies() {
         total_wins: 65,
         collection_count: 50,
         currencies: vec![
-            Currency { code: "GOLD".to_string(), amount: 1000 },
-            Currency { code: "GEM".to_string(), amount: 50 },
+            Currency {
+                code: "GOLD".to_string(),
+                amount: 1000,
+            },
+            Currency {
+                code: "GEM".to_string(),
+                amount: 50,
+            },
         ],
         preferred_locale: "zh-CN".to_string(),
     };
@@ -42,12 +48,24 @@ fn test_deck_with_slots() {
         name: "MyDeck".to_string(),
         mode: common::GameMode::Ranked as i32,
         slots: vec![
-            DeckSlot { card_id: "c1".to_string(), count: 3 },
-            DeckSlot { card_id: "c2".to_string(), count: 2 },
+            DeckSlot {
+                card_id: "c1".to_string(),
+                count: 3,
+            },
+            DeckSlot {
+                card_id: "c2".to_string(),
+                count: 2,
+            },
         ],
         status: common::Status::Ok as i32,
-        created_at: Some(common::Timestamp { seconds: 1700000000, nanos: 0 }),
-        updated_at: Some(common::Timestamp { seconds: 1700000100, nanos: 0 }),
+        created_at: Some(common::Timestamp {
+            seconds: 1700000000,
+            nanos: 0,
+        }),
+        updated_at: Some(common::Timestamp {
+            seconds: 1700000100,
+            nanos: 0,
+        }),
         is_public: true,
         share_code: "abc-123".to_string(),
         like_count: 42,

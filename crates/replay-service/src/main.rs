@@ -18,8 +18,8 @@
 use anyhow::Context;
 use std::env;
 use std::sync::Arc;
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt;
+use tracing_subscriber::EnvFilter;
 
 use shared_platform::tls::load_server_tls_config;
 use shared_platform::tracing_init::init_otel_exporter_optional;
@@ -44,20 +44,17 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // OTLP exporter 条件初始化 (per WBS WF-1-55.45 §3.3, 默认禁用)
-    let _otel_guard = init_otel_exporter_optional(
-        "replay-service",
-        env!("CARGO_PKG_VERSION"),
-        "dev",
-    );
+    let _otel_guard =
+        init_otel_exporter_optional("replay-service", env!("CARGO_PKG_VERSION"), "dev");
 
     let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:50058".to_string())
         .parse()
         .context("invalid GRPC_ADDR")?;
-    let database_url = env::var("DATABASE_URL")
-        .context("DATABASE_URL env required (per ARC-008 replay_db)")?;
-    let storage_root = env::var("RGS_REPLAY_STORAGE_DIR")
-        .unwrap_or_else(|_| "/var/lib/rgs/replays".to_string());
+    let database_url =
+        env::var("DATABASE_URL").context("DATABASE_URL env required (per ARC-008 replay_db)")?;
+    let storage_root =
+        env::var("RGS_REPLAY_STORAGE_DIR").unwrap_or_else(|_| "/var/lib/rgs/replays".to_string());
 
     tracing::info!(
         target: "replay-service",

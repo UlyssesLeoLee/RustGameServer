@@ -381,9 +381,13 @@ mod tests {
     #[tokio::test]
     async fn in_memory_guild_find_by_name() {
         let repo = InMemoryGuildRepository::new();
-        repo.save(&Guild::new("alpha".to_string(), "".to_string(), Uuid::new_v4()))
-            .await
-            .unwrap();
+        repo.save(&Guild::new(
+            "alpha".to_string(),
+            "".to_string(),
+            Uuid::new_v4(),
+        ))
+        .await
+        .unwrap();
         let found = repo.find_by_name("alpha").await.unwrap();
         assert!(found.is_some());
         assert!(repo.find_by_name("nonexistent").await.unwrap().is_none());

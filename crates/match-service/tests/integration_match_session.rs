@@ -31,9 +31,7 @@ use tonic::Request;
 
 fn make_player_proto(id: &str) -> common_proto::PlayerId {
     common_proto::PlayerId {
-        player_id: Some(common_proto::EntityId {
-            id: id.to_string(),
-        }),
+        player_id: Some(common_proto::EntityId { id: id.to_string() }),
         display_name: format!("P-{}", id),
         rank_score: 1500,
         level: 10,
@@ -427,10 +425,7 @@ async fn enqueue_helper(
     player: common_proto::PlayerId,
     mode: GameModeV2,
 ) -> EnqueueResult {
-    let sp = SessionPlayer::new(
-        player.player_id.unwrap().id,
-        player.display_name,
-    )
-    .with_rank(player.rank_score, player.level);
+    let sp = SessionPlayer::new(player.player_id.unwrap().id, player.display_name)
+        .with_rank(player.rank_score, player.level);
     v2.enqueue_matchmaking(sp, mode, 0, 0).await.unwrap()
 }

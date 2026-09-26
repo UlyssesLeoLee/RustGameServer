@@ -143,7 +143,13 @@ async fn test_catalog_list_pagination_and_filter() {
     // 1. 全列表, page=1 size=3
     let filter = card_service::repository::CardFilter::default();
     let (items, total, has_next) = svc
-        .list_cards(&filter, PageRequest { page: 1, page_size: 3 })
+        .list_cards(
+            &filter,
+            PageRequest {
+                page: 1,
+                page_size: 3,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total, 5);
@@ -152,7 +158,13 @@ async fn test_catalog_list_pagination_and_filter() {
 
     // 2. page=2 size=3
     let (items, total, has_next) = svc
-        .list_cards(&filter, PageRequest { page: 2, page_size: 3 })
+        .list_cards(
+            &filter,
+            PageRequest {
+                page: 2,
+                page_size: 3,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total, 5);
@@ -251,24 +263,23 @@ async fn test_collection_read_with_filter() {
     // owner 收藏 3 张 (跨 rarity)
     let inst1 = CardInstance::new("c_common".to_string(), owner, CardInstanceSource::Pack);
     let inst2 = CardInstance::new("c_rare".to_string(), owner, CardInstanceSource::Reward);
-    let inst3 = CardInstance::new(
-        "c_legendary".to_string(),
-        owner,
-        CardInstanceSource::Pack,
-    );
+    let inst3 = CardInstance::new("c_legendary".to_string(), owner, CardInstanceSource::Pack);
     instances
         .add_many(&[inst1.clone(), inst2.clone(), inst3.clone()])
         .await
         .unwrap();
 
     // other 收藏 1 张
-    let other_inst =
-        CardInstance::new("c_common".to_string(), other, CardInstanceSource::Pack);
+    let other_inst = CardInstance::new("c_common".to_string(), other, CardInstanceSource::Pack);
     instances.add_many(&[other_inst]).await.unwrap();
 
     // 1. owner 全列表
     let (items, total) = svc
-        .get_player_collection(owner, &CardInstanceFilter::default(), PageRequest::default())
+        .get_player_collection(
+            owner,
+            &CardInstanceFilter::default(),
+            PageRequest::default(),
+        )
         .await
         .unwrap();
     assert_eq!(total, 3);
@@ -300,7 +311,11 @@ async fn test_collection_read_with_filter() {
 
     // 4. other 只看到自己的 1 张
     let (items, total) = svc
-        .get_player_collection(other, &CardInstanceFilter::default(), PageRequest::default())
+        .get_player_collection(
+            other,
+            &CardInstanceFilter::default(),
+            PageRequest::default(),
+        )
         .await
         .unwrap();
     assert_eq!(total, 1);
@@ -410,10 +425,7 @@ async fn test_open_pack_repeated_100_times_distribution() {
     let mut counts = std::collections::HashMap::new();
     let n = 100u32;
     for _ in 0..n {
-        let r = svc
-            .open_pack(owner, "series_dist", 1, None)
-            .await
-            .unwrap();
+        let r = svc.open_pack(owner, "series_dist", 1, None).await.unwrap();
         for inst in &r.instances {
             *counts.entry(inst.card_id.clone()).or_insert(0u32) += 1;
         }
@@ -495,10 +507,7 @@ async fn test_remove_card_instance() {
     let res = svc
         .remove_card_from_collection(inst3.instance_id, owner, "test".to_string(), None)
         .await;
-    assert!(matches!(
-        res,
-        Err(card_service::Error::Conflict(_))
-    ));
+    assert!(matches!(res, Err(card_service::Error::Conflict(_))));
 
     // 6. inst2 仍存在, 可正常删除
     let removed = svc

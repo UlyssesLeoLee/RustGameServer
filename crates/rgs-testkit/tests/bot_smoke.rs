@@ -12,10 +12,10 @@
 //! 用 `#[tokio::test]` (不是 `#[pg_test]`, bot 框架本身无 DB 交互).
 
 use rgs_testkit::bot::ai::player::PlayerBotAi;
+use rgs_testkit::bot::gm::{GmClient, GmResponse};
+use rgs_testkit::bot::stats::BotStats;
 use rgs_testkit::bot::supervisor::BotSupervisor;
 use rgs_testkit::bot::{ActKind, Bot, BotAi, BotCore};
-use rgs_testkit::bot::stats::BotStats;
-use rgs_testkit::bot::gm::{GmClient, GmResponse};
 use std::time::Duration;
 
 #[tokio::test]

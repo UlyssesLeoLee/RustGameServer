@@ -86,7 +86,8 @@ fn cluster_ops_v1_2_subjects_parse_compliant() {
         assert!(
             parts[1].contains('_'),
             "cluster_ops 域 subject {} 第 2 段必须含下划线 (cluster_ops 唯一约定), 实际为 {}",
-            subject, parts[1],
+            subject,
+            parts[1],
         );
     }
 }

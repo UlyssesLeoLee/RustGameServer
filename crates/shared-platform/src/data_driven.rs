@@ -12,8 +12,8 @@
 //!
 //! 共享给 `pvp-full-service` (151 RPC) + `activity-service` (184 RPC)
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// PVP 模式枚举 (6-12 变体, per 9/4 MD §2 + proto_202~proto_207)
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -189,10 +189,7 @@ impl Default for HolidayConfig {
             ("halloween", "万圣节"),
             ("anniv", "周年庆"),
         ] {
-            activities.insert(
-                id.to_string(),
-                HolidayActivity::new(id, name),
-            );
+            activities.insert(id.to_string(), HolidayActivity::new(id, name));
         }
         Self { activities }
     }

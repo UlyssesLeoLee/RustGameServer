@@ -54,21 +54,14 @@ fn bootstrap() -> (
     Arc<MockTradeClient>,
 ) {
     let led = Arc::new(InMemoryTransactionLedgerRepository::new());
-    let acc = Arc::new(
-        InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
-    );
+    let acc = Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()));
     let trades = Arc::new(InMemoryTradeRepository::new());
     let card = Arc::new(MockCardClient::new());
     let trade = Arc::new(MockTradeClient::new());
     (acc, led, trades, card, trade)
 }
 
-async fn fund(
-    acc: &InMemoryAccountRepository,
-    player: Uuid,
-    currency: Currency,
-    amount: i64,
-) {
+async fn fund(acc: &InMemoryAccountRepository, player: Uuid, currency: Currency, amount: i64) {
     let mut a = economy_service::entity::Account::new(player, currency);
     a.credit(amount);
     acc.save(&a).await.unwrap();
@@ -140,7 +133,7 @@ async fn chaos_openpack_step1_failure() {
             series_id: "series-001".to_string(),
             pack_count: 1,
             pack_size: 1,
-            price: 100, // 比 0 余额大
+            price: 100,       // 比 0 余额大
             currency_type: 1, // Gold
             idempotency_key: "k-chaos-op-s1".to_string(),
         })
@@ -195,13 +188,20 @@ async fn chaos_openpack_step2_failure() {
     // step 2 (generate_drop_result) mock fail_next 短路, counter 不增; step 3 0 次
     // 注: MockCardClient 在 fail_next 时立即返 Err, 不 increment 计数器
     assert_eq!(card.add_count(), 0, "add_card not called after step 2 fail");
-    assert_eq!(card.remove_count(), 0, "remove not called (no compensation path triggered)");
+    assert_eq!(
+        card.remove_count(),
+        0,
+        "remove not called (no compensation path triggered)"
+    );
 
     // ledger: spend 1 + refund 1 (compensate step 1)
     let spend = led.find_by_idempotency_key("k-chaos-op-s2").await.unwrap();
     assert!(spend.is_some(), "spend entry exists (step 1 committed)");
     assert_eq!(spend.unwrap().amount, -200, "spend 2 packs * 100");
-    let refund = led.find_by_idempotency_key("refund-k-chaos-op-s2").await.unwrap();
+    let refund = led
+        .find_by_idempotency_key("refund-k-chaos-op-s2")
+        .await
+        .unwrap();
     assert!(refund.is_some(), "refund entry exists (compensate step 1)");
     assert_eq!(refund.unwrap().amount, 200, "refund 200 = spend amount");
 }
@@ -266,7 +266,10 @@ async fn chaos_openpack_step3_failure() {
     let spend = led.find_by_idempotency_key("k-chaos-op-s3").await.unwrap();
     assert!(spend.is_some());
     assert_eq!(spend.unwrap().amount, -100);
-    let refund = led.find_by_idempotency_key("refund-k-chaos-op-s3").await.unwrap();
+    let refund = led
+        .find_by_idempotency_key("refund-k-chaos-op-s3")
+        .await
+        .unwrap();
     assert!(refund.is_some(), "refund exists");
     assert_eq!(refund.unwrap().amount, 100);
 }
@@ -444,7 +447,11 @@ async fn chaos_execute_auction_step1_failure() {
     assert_balance_conservation(&acc, winner, Currency::Gold, 1000, 1000).await;
     // mock 调用计数: fail_next 短路, 计数器不增 (MockTradeClient 行为)
     // 重点验证后续 step 都没执行 (因为 saga 已在 step 1 失败短路)
-    assert_eq!(trade.finalize_count(), 0, "finalize mock short-circuited with fail_next (counter not incremented)");
+    assert_eq!(
+        trade.finalize_count(),
+        0,
+        "finalize mock short-circuited with fail_next (counter not incremented)"
+    );
     assert_eq!(trade.transfer_count(), 0, "transfer not called");
     assert_eq!(card.remove_count(), 0, "remove not called");
     assert_eq!(card.add_count(), 0, "add not called");
@@ -578,15 +585,33 @@ async fn chaos_cross_saga_balance_conservation() {
     assert_eq!(card.remove_count(), 0, "no compensation removes");
 
     // ledger: 3 spend (2 成功 + 1 失败) + 1 refund (失败那次)
-    let s1 = led.find_by_idempotency_key("k-cross-1").await.unwrap().unwrap();
-    let s2 = led.find_by_idempotency_key("k-cross-2").await.unwrap().unwrap();
-    let s3 = led.find_by_idempotency_key("k-cross-3").await.unwrap().unwrap();
-    let r2_refund = led.find_by_idempotency_key("refund-k-cross-2").await.unwrap().unwrap();
+    let s1 = led
+        .find_by_idempotency_key("k-cross-1")
+        .await
+        .unwrap()
+        .unwrap();
+    let s2 = led
+        .find_by_idempotency_key("k-cross-2")
+        .await
+        .unwrap()
+        .unwrap();
+    let s3 = led
+        .find_by_idempotency_key("k-cross-3")
+        .await
+        .unwrap()
+        .unwrap();
+    let r2_refund = led
+        .find_by_idempotency_key("refund-k-cross-2")
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(s1.amount, -100);
     assert_eq!(s2.amount, -100);
     assert_eq!(s3.amount, -100);
     assert_eq!(r2_refund.amount, 100);
     // 净额: 3 * -100 + 100 = -200 = 1000 - 800 ✓
-    let net: i64 = vec![s1.amount, s2.amount, s3.amount, r2_refund.amount].iter().sum();
+    let net: i64 = vec![s1.amount, s2.amount, s3.amount, r2_refund.amount]
+        .iter()
+        .sum();
     assert_eq!(net, -200, "net ledger change = -200 = balance delta");
 }

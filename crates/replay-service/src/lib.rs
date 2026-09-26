@@ -29,13 +29,13 @@
 #![allow(clippy::result_large_err)]
 #![allow(clippy::doc_overindented_list_items, clippy::doc_lazy_continuation)]
 
-pub mod proto;
+pub mod db;
 pub mod entity;
 pub mod error;
-pub mod storage;
+pub mod proto;
 pub mod repository;
 pub mod service;
-pub mod db;
+pub mod storage;
 
 pub mod common {
     pub mod v1 {

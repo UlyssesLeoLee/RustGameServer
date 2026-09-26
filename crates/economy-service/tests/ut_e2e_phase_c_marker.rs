@@ -48,7 +48,8 @@ fn ut_e2e_economy_phase_c_marker() {
     assert_eq!(account.display_name, "phase_c_marker_account");
     // 显式 marker 标识, 便于 Phase C 介入后 grep 定位替换
     assert_eq!(
-        std::env::consts::ARCH, std::env::consts::ARCH,
+        std::env::consts::ARCH,
+        std::env::consts::ARCH,
         "economy 域 Phase C marker 已就位 (per RGS-PHASE-C-PREP v0.1 §2.2)"
     );
 }

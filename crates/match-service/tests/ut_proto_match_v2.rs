@@ -2,16 +2,21 @@
 //!
 //! 1 UT (简化版, 验证 match v2 字段):
 
-use match_service::proto::v1::*;
 use match_service::common::v1 as common;
+use match_service::proto::v1::*;
 
 #[test]
 fn test_match_v2_fields() {
     // Match v2 扩展: mode / players / board_snapshot_ref / turn_index
     let m = Match {
-        id: Some(common::EntityId { id: "match_001".to_string() }),
+        id: Some(common::EntityId {
+            id: "match_001".to_string(),
+        }),
         status: common::Status::Ok as i32,
-        created_at: Some(common::Timestamp { seconds: 1700000000, nanos: 0 }),
+        created_at: Some(common::Timestamp {
+            seconds: 1700000000,
+            nanos: 0,
+        }),
         display_name: "Match1".to_string(),
         mode: common::GameMode::Ranked as i32,
         players: vec![],

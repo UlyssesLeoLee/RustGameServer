@@ -10,7 +10,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::trade_entity::{Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus};
+use crate::trade_entity::{
+    Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus,
+};
 use crate::Result;
 
 /// Auction Repository trait
@@ -182,11 +184,10 @@ impl TradeRepository for PgTradeRepository {
                 (rows, total as u64)
             }
             AuctionFilter::Closed => {
-                let total: i64 = sqlx::query_scalar(
-                    "SELECT COUNT(*) FROM auctions WHERE status IN (2, 3, 4)",
-                )
-                .fetch_one(&self.pool)
-                .await?;
+                let total: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM auctions WHERE status IN (2, 3, 4)")
+                        .fetch_one(&self.pool)
+                        .await?;
                 let rows = sqlx::query(
                     "SELECT auction_id, seller_id, card_id, card_instance_id, min_price, currency_type, \
                             highest_bid, highest_bidder, status, started_at, ends_at, closed_at, \
@@ -393,7 +394,10 @@ impl InMemoryTradeRepository {
 #[async_trait]
 impl TradeRepository for InMemoryTradeRepository {
     async fn save_auction(&self, a: &Auction) -> Result<Auction> {
-        self.auctions.lock().unwrap().insert(a.auction_id, a.clone());
+        self.auctions
+            .lock()
+            .unwrap()
+            .insert(a.auction_id, a.clone());
         Ok(a.clone())
     }
 
@@ -428,8 +432,11 @@ impl TradeRepository for InMemoryTradeRepository {
         let start = (page.saturating_sub(1) as usize) * page_size as usize;
         let mut sorted = all;
         sorted.sort_by(|a, b| b.started_at.cmp(&a.started_at));
-        let page_items: Vec<Auction> =
-            sorted.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<Auction> = sorted
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -451,8 +458,11 @@ impl TradeRepository for InMemoryTradeRepository {
         let start = (page.saturating_sub(1) as usize) * page_size as usize;
         let mut sorted = all;
         sorted.sort_by(|a, b| b.started_at.cmp(&a.started_at));
-        let page_items: Vec<Auction> =
-            sorted.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items: Vec<Auction> = sorted
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -548,7 +558,10 @@ mod tests {
         let repo = InMemoryTradeRepository::new();
         repo.save_auction(&make_auction("s1", 50)).await.unwrap();
         repo.save_auction(&make_auction("s2", 200)).await.unwrap();
-        let (list, total) = repo.list_auctions(AuctionFilter::Active, 1, 10).await.unwrap();
+        let (list, total) = repo
+            .list_auctions(AuctionFilter::Active, 1, 10)
+            .await
+            .unwrap();
         assert_eq!(total, 2);
         assert_eq!(list.len(), 2);
     }
@@ -560,21 +573,17 @@ mod tests {
         a.highest_bid = 150;
         a.highest_bidder = "bob".to_string();
         repo.save_auction(&a).await.unwrap();
-        repo.save_auction(&make_auction("charlie", 200)).await.unwrap();
-
-        // alice 视角: 看到自己作为卖家的
-        let (alice_list, alice_total) = repo
-            .list_auctions_by_player("alice", 1, 10)
+        repo.save_auction(&make_auction("charlie", 200))
             .await
             .unwrap();
+
+        // alice 视角: 看到自己作为卖家的
+        let (alice_list, alice_total) = repo.list_auctions_by_player("alice", 1, 10).await.unwrap();
         assert_eq!(alice_total, 1);
         assert_eq!(alice_list[0].seller_id, "alice");
 
         // bob 视角: 看到自己作为出价者的
-        let (bob_list, bob_total) = repo
-            .list_auctions_by_player("bob", 1, 10)
-            .await
-            .unwrap();
+        let (bob_list, bob_total) = repo.list_auctions_by_player("bob", 1, 10).await.unwrap();
         assert_eq!(bob_total, 1);
         assert_eq!(bob_list[0].highest_bidder, "bob");
     }

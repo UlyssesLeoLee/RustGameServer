@@ -50,7 +50,14 @@ pub struct PlayerPvpState {
 
 impl PlayerPvpState {
     pub fn new(player_id: Uuid, mode: PvpMode) -> Self {
-        Self { player_id, mode, score: 1000, daily_used: 0, wins: 0, losses: 0 }
+        Self {
+            player_id,
+            mode,
+            score: 1000,
+            daily_used: 0,
+            wins: 0,
+            losses: 0,
+        }
     }
 
     pub fn apply_result(&mut self, won: bool, mode_cfg: &PvpModeConfig) {
@@ -107,8 +114,13 @@ impl Tier {
         }
     }
     pub const ALL: [Tier; 7] = [
-        Tier::Bronze, Tier::Silver, Tier::Gold, Tier::Platinum,
-        Tier::Diamond, Tier::Master, Tier::Grandmaster,
+        Tier::Bronze,
+        Tier::Silver,
+        Tier::Gold,
+        Tier::Platinum,
+        Tier::Diamond,
+        Tier::Master,
+        Tier::Grandmaster,
     ];
 
     /// 根据分数定位 tier (1 套规则, 7 段位共用)
@@ -308,7 +320,13 @@ mod tests {
         let mut prev_max = -1;
         for t in Tier::ALL.iter() {
             let (lo, hi) = t.score_range();
-            assert!(lo > prev_max, "tier {:?} lo={} should be > prev_max={}", t, lo, prev_max);
+            assert!(
+                lo > prev_max,
+                "tier {:?} lo={} should be > prev_max={}",
+                t,
+                lo,
+                prev_max
+            );
             assert!(hi >= lo);
             prev_max = hi;
         }

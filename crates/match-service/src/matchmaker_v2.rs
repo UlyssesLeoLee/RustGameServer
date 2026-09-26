@@ -37,9 +37,7 @@ use crate::entity_v2::{
 };
 use crate::error::Error;
 use crate::replay_client::{ReplayClientTrait, SaveReplayRequest};
-use crate::repository_v2::{
-    GameSessionRepository, MatchmakingTicketRepository, MoveRepository,
-};
+use crate::repository_v2::{GameSessionRepository, MatchmakingTicketRepository, MoveRepository};
 use crate::Result;
 
 // ============================================================================
@@ -55,10 +53,7 @@ pub enum MatchEvent {
         board_snapshot: String,
     },
     /// move 已应用
-    MoveApplied {
-        occurred_at_ms: i64,
-        mv: Move,
-    },
+    MoveApplied { occurred_at_ms: i64, mv: Move },
     /// 回合切换
     TurnChanged {
         occurred_at_ms: i64,
@@ -386,8 +381,9 @@ impl MatchmakerServiceV2 {
         match opponent_ticket {
             Some(opp) => {
                 // 3) 撮合成功: 创建 session
-                let opponent = SessionPlayer::new(opp.player_id.clone(), format!("P-{}", opp.player_id))
-                    .with_deck(opp.deck_card_id.clone(), opp.deck_instance_id.clone());
+                let opponent =
+                    SessionPlayer::new(opp.player_id.clone(), format!("P-{}", opp.player_id))
+                        .with_deck(opp.deck_card_id.clone(), opp.deck_instance_id.clone());
 
                 let mut session = GameSession::new(mode, player.clone(), 2, 2);
                 session.add_player(opponent.clone()).map_err(|e| {
@@ -425,10 +421,7 @@ impl MatchmakerServiceV2 {
                         MatchEvent::TurnChanged {
                             occurred_at_ms: now_ms,
                             new_turn_index: 0,
-                            new_player_id: session
-                                .current_player_id
-                                .clone()
-                                .unwrap_or_default(),
+                            new_player_id: session.current_player_id.clone().unwrap_or_default(),
                         },
                     )
                     .await;
@@ -450,14 +443,14 @@ impl MatchmakerServiceV2 {
     // ========================================================================
 
     pub async fn cancel_matchmaking(&self, ticket_id: Uuid, player_id: &str) -> Result<bool> {
-        let mut ticket = self
-            .tickets
-            .find_by_id(ticket_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "MatchmakingTicket",
-                id: ticket_id.to_string(),
-            })?;
+        let mut ticket =
+            self.tickets
+                .find_by_id(ticket_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "MatchmakingTicket",
+                    id: ticket_id.to_string(),
+                })?;
         // 桶 9 gRPC CancelMatchmakingRequest 无 player_id 字段, 透传 "" 跳过所有权校验
         // 非空时仍做所有权校验 (供 IT/UT 直接调用场景)
         if !player_id.is_empty() && ticket.player_id != player_id {
@@ -479,10 +472,7 @@ impl MatchmakerServiceV2 {
     // 3. GetMatchmakingStatus (per §4.2)
     // ========================================================================
 
-    pub async fn get_matchmaking_status(
-        &self,
-        ticket_id: Uuid,
-    ) -> Result<MatchmakingStatus> {
+    pub async fn get_matchmaking_status(&self, ticket_id: Uuid) -> Result<MatchmakingStatus> {
         let ticket = self
             .tickets
             .find_by_id(ticket_id)
@@ -553,9 +543,9 @@ impl MatchmakerServiceV2 {
         session.room_password_hash = room_password.map(|p| format!("hash:{}", p));
         session.ai_difficulty = ai_difficulty;
         if matches!(mode, GameMode::Room) {
-            session.transition_to_waiting().map_err(|e| {
-                Error::Internal(anyhow::anyhow!("transition_to_waiting: {}", e))
-            })?;
+            session
+                .transition_to_waiting()
+                .map_err(|e| Error::Internal(anyhow::anyhow!("transition_to_waiting: {}", e)))?;
         } else {
             // 非 ROOM: 直接走 Creating → Starting (假设对手已经在 ticket 撮合中)
             // 这里简化为保持 Creating, 等 JoinMatch / 撮合来推进
@@ -581,14 +571,14 @@ impl MatchmakerServiceV2 {
         room_code: Option<String>,
         room_password: Option<String>,
     ) -> Result<JoinMatchResult> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
 
         // 校验
         if session.is_full() {
@@ -597,7 +587,11 @@ impl MatchmakerServiceV2 {
             });
         }
         // 已加入检查 (放在状态检查之前, 让"已加入"优先于"已开赛"返回 Conflict)
-        if session.players.iter().any(|p| p.player_id == player.player_id) {
+        if session
+            .players
+            .iter()
+            .any(|p| p.player_id == player.player_id)
+        {
             return Err(Error::Conflict(format!(
                 "player {} already in session",
                 player.player_id
@@ -606,7 +600,10 @@ impl MatchmakerServiceV2 {
         if !session.status.is_terminal() == false || session.status == SessionStatus::Ended {
             return Err(Error::MatchAlreadyStarted(match_id.to_string()));
         }
-        if !matches!(session.status, SessionStatus::Creating | SessionStatus::Waiting) {
+        if !matches!(
+            session.status,
+            SessionStatus::Creating | SessionStatus::Waiting
+        ) {
             return Err(Error::MatchAlreadyStarted(match_id.to_string()));
         }
         // 房间密码校验
@@ -631,15 +628,15 @@ impl MatchmakerServiceV2 {
         // 已加入检查: 已上移到上方 (status 检查前) 以让"已加入"优先于"已开赛"返回 Conflict
 
         let player_clone = player.clone();
-        session.add_player(player).map_err(|e| {
-            Error::Internal(anyhow::anyhow!("add_player: {}", e))
-        })?;
+        session
+            .add_player(player)
+            .map_err(|e| Error::Internal(anyhow::anyhow!("add_player: {}", e)))?;
 
         // 玩家到齐 → 自动 Starting
         if session.is_ready_to_start() {
-            session.transition_to_starting().map_err(|e| {
-                Error::Internal(anyhow::anyhow!("transition_to_starting: {}", e))
-            })?;
+            session
+                .transition_to_starting()
+                .map_err(|e| Error::Internal(anyhow::anyhow!("transition_to_starting: {}", e)))?;
         }
         session = self.sessions.save(&session).await?;
 
@@ -671,14 +668,14 @@ impl MatchmakerServiceV2 {
         player_id: &str,
         surrender: bool,
     ) -> Result<LeaveMatchResult> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
 
         // 已在终态: 返回
         if session.status.is_terminal() {
@@ -696,9 +693,9 @@ impl MatchmakerServiceV2 {
             });
         }
 
-        let removed = session.remove_player(player_id, surrender).map_err(|e| {
-            Error::Internal(anyhow::anyhow!("remove_player: {}", e))
-        })?;
+        let removed = session
+            .remove_player(player_id, surrender)
+            .map_err(|e| Error::Internal(anyhow::anyhow!("remove_player: {}", e)))?;
         if !removed {
             return Err(Error::NotInMatch {
                 player_id: player_id.to_string(),
@@ -728,7 +725,9 @@ impl MatchmakerServiceV2 {
             if session.active_player_count() == 0 {
                 session
                     .transition_to_canceled("all_disconnected".to_string())
-                    .map_err(|e| Error::Internal(anyhow::anyhow!("transition_to_canceled: {}", e)))?;
+                    .map_err(|e| {
+                        Error::Internal(anyhow::anyhow!("transition_to_canceled: {}", e))
+                    })?;
                 "all_disconnected".to_string()
             } else {
                 "disconnect".to_string()
@@ -778,7 +777,11 @@ impl MatchmakerServiceV2 {
     // 7. GetMatchState (per §4.2)
     // ========================================================================
 
-    pub async fn get_match_state(&self, match_id: Uuid, _player: &SessionPlayer) -> Result<MatchState> {
+    pub async fn get_match_state(
+        &self,
+        match_id: Uuid,
+        _player: &SessionPlayer,
+    ) -> Result<MatchState> {
         let session = self
             .sessions
             .find_by_id(match_id)
@@ -788,9 +791,8 @@ impl MatchmakerServiceV2 {
                 id: match_id.to_string(),
             })?;
 
-        let board_json = serde_json::to_string(&session.board).map_err(|e| {
-            Error::Internal(anyhow::anyhow!("serialize board: {}", e))
-        })?;
+        let board_json = serde_json::to_string(&session.board)
+            .map_err(|e| Error::Internal(anyhow::anyhow!("serialize board: {}", e)))?;
         let deadline = session.next_turn_deadline_ms;
 
         Ok(MatchState {
@@ -811,14 +813,14 @@ impl MatchmakerServiceV2 {
         turn_index: u32,
         mv: Move,
     ) -> Result<SubmitMoveResult> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
 
         // 校验
         if session.status != SessionStatus::Running {
@@ -910,9 +912,9 @@ impl MatchmakerServiceV2 {
         if matches!(move_record.move_type, MoveType::EndTurn) {
             // 结束回合 → 切换玩家
             let deadline_ms = chrono::Utc::now().timestamp_millis() + 60_000;
-            session.advance_turn(Some(deadline_ms)).map_err(|e| {
-                Error::Internal(anyhow::anyhow!("advance_turn: {}", e))
-            })?;
+            session
+                .advance_turn(Some(deadline_ms))
+                .map_err(|e| Error::Internal(anyhow::anyhow!("advance_turn: {}", e)))?;
         }
         move_record = self.moves.save(&move_record).await?;
         session = self.sessions.save(&session).await?;
@@ -973,9 +975,8 @@ impl MatchmakerServiceV2 {
 
         if full_snapshot_first {
             // 推一条 SNAPSHOT 事件 (per §4.2 MatchEvent.SNAPSHOT)
-            let board_json = serde_json::to_string(&session.board).map_err(|e| {
-                Error::Internal(anyhow::anyhow!("serialize board: {}", e))
-            })?;
+            let board_json = serde_json::to_string(&session.board)
+                .map_err(|e| Error::Internal(anyhow::anyhow!("serialize board: {}", e)))?;
             let now_ms = chrono::Utc::now().timestamp_millis();
             let snapshot = MatchEvent::Snapshot {
                 occurred_at_ms: now_ms,
@@ -995,48 +996,48 @@ impl MatchmakerServiceV2 {
 
     /// 强制暂停 (per §5.5 强制踢出 / GM 暂停)
     pub async fn pause_session(&self, match_id: Uuid) -> Result<()> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
-        session.transition_to_paused().map_err(|e| {
-            Error::Internal(anyhow::anyhow!("transition_to_paused: {}", e))
-        })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
+        session
+            .transition_to_paused()
+            .map_err(|e| Error::Internal(anyhow::anyhow!("transition_to_paused: {}", e)))?;
         self.sessions.save(&session).await?;
         Ok(())
     }
 
     /// 恢复 (per §5.2 PAUSED → RUNNING)
     pub async fn resume_session(&self, match_id: Uuid) -> Result<()> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
-        session.transition_to_resumed().map_err(|e| {
-            Error::Internal(anyhow::anyhow!("transition_to_resumed: {}", e))
-        })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
+        session
+            .transition_to_resumed()
+            .map_err(|e| Error::Internal(anyhow::anyhow!("transition_to_resumed: {}", e)))?;
         self.sessions.save(&session).await?;
         Ok(())
     }
 
     /// turn 超时自动判负 (per §5.3 累计 3 次 OR §5.4 60s+)
     pub async fn timeout_turn(&self, match_id: Uuid) -> Result<()> {
-        let mut session = self
-            .sessions
-            .find_by_id(match_id)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "GameSession",
-                id: match_id.to_string(),
-            })?;
+        let mut session =
+            self.sessions
+                .find_by_id(match_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "GameSession",
+                    id: match_id.to_string(),
+                })?;
         if session.status != SessionStatus::Running {
             return Ok(());
         }
@@ -1074,9 +1075,9 @@ impl MatchmakerServiceV2 {
         } else {
             // 强制切到下一回合
             let deadline_ms = chrono::Utc::now().timestamp_millis() + 60_000;
-            session.advance_turn(Some(deadline_ms)).map_err(|e| {
-                Error::Internal(anyhow::anyhow!("advance_turn: {}", e))
-            })?;
+            session
+                .advance_turn(Some(deadline_ms))
+                .map_err(|e| Error::Internal(anyhow::anyhow!("advance_turn: {}", e)))?;
             session = self.sessions.save(&session).await?;
             let now_ms = chrono::Utc::now().timestamp_millis();
             self.event_bus
@@ -1204,10 +1205,7 @@ mod tests {
             .unwrap();
         match r2 {
             EnqueueResult::Matched { match_id, .. } => {
-                let s = svc
-                    .event_bus
-                    .subscribe(match_id)
-                    .await;
+                let s = svc.event_bus.subscribe(match_id).await;
                 drop(s);
             }
             _ => panic!("expected Matched"),
@@ -1321,7 +1319,10 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(r.room_code, Some("ROOM1".to_string()));
-        let s = svc.get_match_state(r.match_id, &make_player("host")).await.unwrap();
+        let s = svc
+            .get_match_state(r.match_id, &make_player("host"))
+            .await
+            .unwrap();
         assert_eq!(s.session.status, SessionStatus::Waiting);
     }
 
@@ -1376,15 +1377,7 @@ mod tests {
     async fn create_match_room_no_code_rejected() {
         let svc = make_service();
         let err = svc
-            .create_match(
-                make_player("host"),
-                GameMode::Room,
-                None,
-                None,
-                4,
-                2,
-                0,
-            )
+            .create_match(make_player("host"), GameMode::Room, None, None, 4, 2, 0)
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -1431,7 +1424,12 @@ mod tests {
             .await
             .unwrap();
         let err = svc
-            .join_match(r.match_id, make_player("p2"), None, Some("wrong".to_string()))
+            .join_match(
+                r.match_id,
+                make_player("p2"),
+                None,
+                Some("wrong".to_string()),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));
@@ -1513,25 +1511,12 @@ mod tests {
             .await
             .unwrap();
         // 强制 status=Running (从 Starting 进 Running, 否则 leave_match surrender 失败)
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         svc.sessions.save(&s).await.unwrap();
-        let leave = svc
-            .leave_match(r.match_id, "p2", true)
-            .await
-            .unwrap();
+        let leave = svc.leave_match(r.match_id, "p2", true).await.unwrap();
         assert_eq!(leave.match_result, "surrender");
-        let s_after = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_after = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert!(s_after.status == SessionStatus::Ended || s_after.status == SessionStatus::Ending);
         let _ = s; // suppress unused
     }
@@ -1555,18 +1540,16 @@ mod tests {
             .await
             .unwrap();
         // 不够 3 人, 不进 Running
-        let leave = svc
-            .leave_match(r.match_id, "p2", false)
-            .await
-            .unwrap();
+        let leave = svc.leave_match(r.match_id, "p2", false).await.unwrap();
         assert_eq!(leave.match_result, "disconnect");
-        let s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
-        assert!(s.players.iter().find(|p| p.player_id == "p2").unwrap().disconnected);
+        let s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
+        assert!(
+            s.players
+                .iter()
+                .find(|p| p.player_id == "p2")
+                .unwrap()
+                .disconnected
+        );
         assert!(!s.status.is_terminal());
     }
 
@@ -1589,22 +1572,11 @@ mod tests {
             .await
             .unwrap();
         // 都断线
-        let _ = svc
-            .leave_match(r.match_id, "host", false)
-            .await
-            .unwrap();
-        let leave2 = svc
-            .leave_match(r.match_id, "p2", false)
-            .await
-            .unwrap();
+        let _ = svc.leave_match(r.match_id, "host", false).await.unwrap();
+        let leave2 = svc.leave_match(r.match_id, "p2", false).await.unwrap();
         // 第二次: 已无活跃玩家 → all_disconnected
         assert!(leave2.match_result == "all_disconnected" || leave2.match_result == "disconnect");
-        let s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         // 终止态 (Ended 或 Canceled)
         assert!(s.status.is_terminal());
     }
@@ -1650,12 +1622,7 @@ mod tests {
             .await
             .unwrap();
         // 状态可能 Starting, 强制推到 Running
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         // 简化: 把 status 改成 Running (仅测试, 实际由状态机推进)
         // 注: 这里不调用 transition, 直接通过 Repository save 强制写入
         // 实际测试应使用 start_match 之类的辅助
@@ -1664,7 +1631,13 @@ mod tests {
         s.current_player_id = Some("host".to_string());
         svc.sessions.save(&s).await.unwrap();
 
-        let mv = Move::new(r.match_id, "host".to_string(), 99, MoveType::PlayCard, "{}".to_string());
+        let mv = Move::new(
+            r.match_id,
+            "host".to_string(),
+            99,
+            MoveType::PlayCard,
+            "{}".to_string(),
+        );
         let err = svc
             .submit_move(r.match_id, &make_player("host"), 99, mv)
             .await
@@ -1690,17 +1663,18 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         svc.sessions.save(&s).await.unwrap();
 
-        let mv = Move::new(r.match_id, "p2".to_string(), 0, MoveType::PlayCard, "{}".to_string());
+        let mv = Move::new(
+            r.match_id,
+            "p2".to_string(),
+            0,
+            MoveType::PlayCard,
+            "{}".to_string(),
+        );
         let err = svc
             .submit_move(r.match_id, &make_player("p2"), 0, mv)
             .await
@@ -1726,17 +1700,18 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         svc.sessions.save(&s).await.unwrap();
 
-        let mv = Move::new(r.match_id, "host".to_string(), 0, MoveType::EndTurn, "{}".to_string());
+        let mv = Move::new(
+            r.match_id,
+            "host".to_string(),
+            0,
+            MoveType::EndTurn,
+            "{}".to_string(),
+        );
         let res = svc
             .submit_move(r.match_id, &make_player("host"), 0, mv)
             .await
@@ -1744,12 +1719,7 @@ mod tests {
         assert!(res.accepted);
         assert_eq!(res.new_turn_index, 1);
 
-        let s_after = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_after = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_after.current_player_id, Some("p2".to_string()));
     }
 
@@ -1771,28 +1741,24 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         svc.sessions.save(&s).await.unwrap();
 
-        let mv = Move::new(r.match_id, "host".to_string(), 0, MoveType::Surrender, "{}".to_string());
+        let mv = Move::new(
+            r.match_id,
+            "host".to_string(),
+            0,
+            MoveType::Surrender,
+            "{}".to_string(),
+        );
         let res = svc
             .submit_move(r.match_id, &make_player("host"), 0, mv)
             .await
             .unwrap();
         assert!(res.accepted);
-        let s_after = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_after = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_after.status, SessionStatus::Ended);
         assert_eq!(s_after.winner_id, Some("p2".to_string()));
         assert_eq!(s_after.end_reason, Some("surrender".to_string()));
@@ -1818,7 +1784,13 @@ mod tests {
             .unwrap();
         // 状态是 Starting (min_players=2 已到齐)
         // 不强制 Running, 直接 submit 应被拒
-        let mv = Move::new(r.match_id, "host".to_string(), 0, MoveType::PlayCard, "{}".to_string());
+        let mv = Move::new(
+            r.match_id,
+            "host".to_string(),
+            0,
+            MoveType::PlayCard,
+            "{}".to_string(),
+        );
         // 如果状态已经是 Starting/Running, 也会因为 current_player_id=None 拒
         let err = svc
             .submit_move(r.match_id, &make_player("host"), 0, mv)
@@ -1845,31 +1817,16 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         svc.sessions.save(&s).await.unwrap();
 
         svc.pause_session(r.match_id).await.unwrap();
-        let s_paused = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_paused = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_paused.status, SessionStatus::Paused);
 
         svc.resume_session(r.match_id).await.unwrap();
-        let s_resumed = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_resumed = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_resumed.status, SessionStatus::Running);
     }
 
@@ -1891,12 +1848,7 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         svc.sessions.save(&s).await.unwrap();
@@ -1905,12 +1857,7 @@ mod tests {
         svc.timeout_turn(r.match_id).await.unwrap();
         svc.timeout_turn(r.match_id).await.unwrap();
         svc.timeout_turn(r.match_id).await.unwrap();
-        let s_after = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_after = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_after.status, SessionStatus::Ended);
         assert_eq!(s_after.end_reason, Some("timeout".to_string()));
         assert_eq!(s_after.winner_id, Some("p2".to_string()));
@@ -1934,24 +1881,14 @@ mod tests {
         svc.join_match(r.match_id, make_player("p2"), None, None)
             .await
             .unwrap();
-        let mut s = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         s.turn_index = 0;
         svc.sessions.save(&s).await.unwrap();
 
         svc.timeout_turn(r.match_id).await.unwrap();
-        let s_after = svc
-            .sessions
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let s_after = svc.sessions.find_by_id(r.match_id).await.unwrap().unwrap();
         assert_eq!(s_after.status, SessionStatus::Running);
         assert_eq!(s_after.turn_index, 1);
         assert_eq!(s_after.timeout_count, 1); // 累计 1 次, 切换玩家后不清零 (per §5.3)

@@ -126,8 +126,8 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
                     // ULYS-100：成功 publish + observe event_age（created_at → now）
                     // 注：mark_sent 内部把 sent_at=now()，但我们此刻只有 created_at。
                     // 端到端延迟 = Utc::now() - created_at（足够精确，差 < 1ms）
-                    let age_secs = (chrono::Utc::now() - entry.created_at).num_milliseconds() as f64
-                        / 1000.0;
+                    let age_secs =
+                        (chrono::Utc::now() - entry.created_at).num_milliseconds() as f64 / 1000.0;
                     metrics().record_outbox_publish(self.service(), &agg, "success");
                     metrics().observe_outbox_event_age(self.service(), &agg, age_secs);
                 }
@@ -172,10 +172,8 @@ impl<R: OutboxRepository + 'static> OutboxRelay<R> {
         }
 
         // ULYS-100：tick 周期耗时 observe（包含 list_pending + 所有 publish + mark_sent/_failed）
-        metrics().observe_outbox_poll_cycle_duration(
-            self.service(),
-            tick_start.elapsed().as_secs_f64(),
-        );
+        metrics()
+            .observe_outbox_poll_cycle_duration(self.service(), tick_start.elapsed().as_secs_f64());
 
         Ok(stats)
     }

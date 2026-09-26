@@ -60,14 +60,18 @@ async fn it_alice_aggregated_across_three_boards() {
     .await
     .unwrap();
     // get_player_rank(weekly) → ranked 查不到 (无 season), casual 在, collection 周期不匹配
-    let (ranked_w, casual_w, coll_w) =
-        s.get_player_rank(alice, LeaderboardPeriod::Weekly).await.unwrap();
+    let (ranked_w, casual_w, coll_w) = s
+        .get_player_rank(alice, LeaderboardPeriod::Weekly)
+        .await
+        .unwrap();
     assert!(ranked_w.is_none());
     assert!(casual_w.is_some());
     assert!(coll_w.is_none());
     // get_player_rank(alltime) → ranked 查不到, casual 周期不匹配, collection 在
-    let (ranked_a, casual_a, coll_a) =
-        s.get_player_rank(alice, LeaderboardPeriod::AllTime).await.unwrap();
+    let (ranked_a, casual_a, coll_a) = s
+        .get_player_rank(alice, LeaderboardPeriod::AllTime)
+        .await
+        .unwrap();
     assert!(ranked_a.is_none());
     assert!(casual_a.is_none());
     assert!(coll_a.is_some());
@@ -95,12 +99,7 @@ async fn it_ranked_seasonal_pagination_no_overlap() {
     let mut seen = std::collections::HashSet::new();
     for page in 1..=3 {
         let (entries, total, has_next) = s
-            .get_ranked_leaderboard(
-                LeaderboardPeriod::Seasonal,
-                "s2026".to_string(),
-                page,
-                10,
-            )
+            .get_ranked_leaderboard(LeaderboardPeriod::Seasonal, "s2026".to_string(), page, 10)
             .await
             .unwrap();
         assert_eq!(total, 30);

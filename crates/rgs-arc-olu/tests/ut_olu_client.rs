@@ -71,8 +71,14 @@ fn e005_in_memory_budget_limit_rejects_overlimit() {
     let resp = client.send(big);
     assert!(!resp.accepted);
     let reason = resp.reason.unwrap_or_default();
-    assert!(reason.contains("exceeds limit"), "reason should mention limit");
-    assert!(reason.contains("1000000"), "reason should include the limit value");
+    assert!(
+        reason.contains("exceeds limit"),
+        "reason should mention limit"
+    );
+    assert!(
+        reason.contains("1000000"),
+        "reason should include the limit value"
+    );
 }
 
 /// E006: OluResponse accept/reject 构造正确性
@@ -94,9 +100,18 @@ fn e007_request_for_phase_factory_fills_defaults() {
     assert_eq!(r.phase, "split");
     assert_eq!(r.realm_id, "r-Z");
     assert_eq!(r.team, "match");
-    assert!(!r.request_id.is_empty(), "request_id should be auto-generated");
-    assert!(!r.operator_id.is_empty(), "operator_id should be auto-generated");
-    assert!(!r.trace_id.is_empty(), "trace_id should be derived from realm_id");
+    assert!(
+        !r.request_id.is_empty(),
+        "request_id should be auto-generated"
+    );
+    assert!(
+        !r.operator_id.is_empty(),
+        "operator_id should be auto-generated"
+    );
+    assert!(
+        !r.trace_id.is_empty(),
+        "trace_id should be derived from realm_id"
+    );
     assert_eq!(
         r.token_budget,
         OluPhase::Split.default_olu_budget(),

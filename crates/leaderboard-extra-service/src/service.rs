@@ -68,7 +68,9 @@ impl LeaderboardExtraServiceImpl {
 
     pub async fn get_card_detail(&self, card_id: u32) -> Result<CardDetail> {
         let db = self.card_db.read().await;
-        db.get(&card_id).cloned().ok_or_else(|| Error::CardNotFound(card_id.to_string()))
+        db.get(&card_id)
+            .cloned()
+            .ok_or_else(|| Error::CardNotFound(card_id.to_string()))
     }
 
     pub async fn get_collection_progress(&self, player_id: Uuid) -> (u32, u32, f32) {
@@ -76,7 +78,11 @@ impl LeaderboardExtraServiceImpl {
         let col = self.collections.read().await;
         let total = db.len() as u32;
         let unlocked = col.get(&player_id).map(|m| m.len() as u32).unwrap_or(0);
-        let pct = if total == 0 { 0.0 } else { (unlocked as f32) / (total as f32) * 100.0 };
+        let pct = if total == 0 {
+            0.0
+        } else {
+            (unlocked as f32) / (total as f32) * 100.0
+        };
         (total, unlocked, pct)
     }
 
@@ -104,7 +110,9 @@ impl LeaderboardExtraServiceImpl {
 }
 
 impl Default for LeaderboardExtraServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -112,7 +120,13 @@ mod tests {
     use super::*;
 
     fn detail(id: u32) -> CardDetail {
-        CardDetail { card_id: id, name: format!("Card{}", id), rarity: Rarity::Common, description: "x".into(), max_count: 99 }
+        CardDetail {
+            card_id: id,
+            name: format!("Card{}", id),
+            rarity: Rarity::Common,
+            description: "x".into(),
+            max_count: 99,
+        }
     }
 
     #[tokio::test]
@@ -182,7 +196,14 @@ mod tests {
     #[tokio::test]
     async fn server_rank_top_n() {
         let svc = LeaderboardExtraServiceImpl::new();
-        let rows: Vec<RankRow> = (0..5).map(|i| RankRow { rank: i, player_id: format!("p{}", i), display_name: format!("d{}", i), score: 1000 - i as i64 }).collect();
+        let rows: Vec<RankRow> = (0..5)
+            .map(|i| RankRow {
+                rank: i,
+                player_id: format!("p{}", i),
+                display_name: format!("d{}", i),
+                score: 1000 - i as i64,
+            })
+            .collect();
         svc.seed_rank(1, rows).await;
         let r = svc.get_server_rank(1, 3).await;
         assert_eq!(r.len(), 3);
@@ -215,9 +236,30 @@ mod tests {
     #[tokio::test]
     async fn get_rarity_count_filters_correctly() {
         let svc = LeaderboardExtraServiceImpl::new();
-        svc.seed_card(CardDetail { card_id: 1, name: "C1".into(), rarity: Rarity::Common, description: "x".into(), max_count: 99 }).await;
-        svc.seed_card(CardDetail { card_id: 2, name: "L1".into(), rarity: Rarity::Legendary, description: "x".into(), max_count: 99 }).await;
-        svc.seed_card(CardDetail { card_id: 3, name: "L2".into(), rarity: Rarity::Legendary, description: "x".into(), max_count: 99 }).await;
+        svc.seed_card(CardDetail {
+            card_id: 1,
+            name: "C1".into(),
+            rarity: Rarity::Common,
+            description: "x".into(),
+            max_count: 99,
+        })
+        .await;
+        svc.seed_card(CardDetail {
+            card_id: 2,
+            name: "L1".into(),
+            rarity: Rarity::Legendary,
+            description: "x".into(),
+            max_count: 99,
+        })
+        .await;
+        svc.seed_card(CardDetail {
+            card_id: 3,
+            name: "L2".into(),
+            rarity: Rarity::Legendary,
+            description: "x".into(),
+            max_count: 99,
+        })
+        .await;
         let p = Uuid::new_v4();
         svc.unlock_card(p, 1, 1).await.unwrap();
         svc.unlock_card(p, 2, 1).await.unwrap();

@@ -198,17 +198,18 @@ mod tests {
             .await
             .unwrap();
         let mut buf = vec![0u8; 8192];
-        let n = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            stream.read(&mut buf),
-        )
-        .await
-        .expect("timeout")
-        .expect("read");
+        let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+            .await
+            .expect("timeout")
+            .expect("read");
         let resp = String::from_utf8_lossy(&buf[..n]).to_string();
         assert!(resp.starts_with("HTTP/1.1 200"), "got: {}", resp);
         assert!(resp.contains("Content-Type: text/plain"));
-        assert!(resp.contains("rgs_"), "metrics body missing rgs_*: {}", resp);
+        assert!(
+            resp.contains("rgs_"),
+            "metrics body missing rgs_*: {}",
+            resp
+        );
 
         // 客户端 GET /healthz
         let mut stream = tokio::net::TcpStream::connect(bound).await.unwrap();
@@ -216,13 +217,10 @@ mod tests {
             .write_all(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n")
             .await
             .unwrap();
-        let n = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            stream.read(&mut buf),
-        )
-        .await
-        .expect("timeout")
-        .expect("read");
+        let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+            .await
+            .expect("timeout")
+            .expect("read");
         let resp = String::from_utf8_lossy(&buf[..n]).to_string();
         assert!(resp.starts_with("HTTP/1.1 200"), "got: {}", resp);
         assert!(resp.contains("ok"), "healthz body: {}", resp);
@@ -233,13 +231,10 @@ mod tests {
             .write_all(b"GET /unknown HTTP/1.1\r\nHost: localhost\r\n\r\n")
             .await
             .unwrap();
-        let n = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            stream.read(&mut buf),
-        )
-        .await
-        .expect("timeout")
-        .expect("read");
+        let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+            .await
+            .expect("timeout")
+            .expect("read");
         let resp = String::from_utf8_lossy(&buf[..n]).to_string();
         assert!(resp.starts_with("HTTP/1.1 404"), "got: {}", resp);
 

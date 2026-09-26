@@ -21,7 +21,14 @@ fn cmp_v(a: &str, b: &str) -> std::cmp::Ordering {
     fn parse(s: &str) -> Vec<u32> {
         let t = s.strip_prefix(['v', 'V']).unwrap_or(s);
         t.split('.')
-            .map(|p| p.split('-').next().unwrap_or(p).split('+').next().unwrap_or(p))
+            .map(|p| {
+                p.split('-')
+                    .next()
+                    .unwrap_or(p)
+                    .split('+')
+                    .next()
+                    .unwrap_or(p)
+            })
             .map(|p| p.parse::<u32>().unwrap_or(0))
             .collect()
     }
@@ -55,7 +62,7 @@ proptest! {
     /// Invariant I-2: pre-release / build suffix and leading `v` do not
     /// affect the ordering for equivalent tuple, matching the
     /// `parse_version_tuple` contract.
-    /// 
+    ///
     /// Note: pre-release `v1.2.3-rc.1` should be Less than `v1.2.3` per
     /// SemVer 2.0.0 §11. Build suffix + leading `v` should be Equal.
     /// 9/7 14:00 JST 调优: 区分 pre-release (Less) 和 build (Equal) 期望.

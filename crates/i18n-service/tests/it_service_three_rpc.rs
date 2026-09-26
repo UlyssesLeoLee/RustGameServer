@@ -15,15 +15,33 @@ use std::sync::Arc;
 
 /// 构造带 seed 数据的 InMemory service (per IT 通用 fixture)
 async fn make_service_with_seeds() -> I18nServiceImpl {
-    let repo = Arc::new(
-        InMemoryI18nRepository::new().with_texts(vec![
-            I18nText::new("card.shanghai.welcome".to_string(), Locale::ZhCn, "欢迎来到上海".to_string()),
-            I18nText::new("card.shanghai.welcome".to_string(), Locale::EnUs, "Welcome to Shanghai".to_string()),
-            I18nText::new("card.shanghai.welcome".to_string(), Locale::JaJp, "上海へようこそ".to_string()),
-            I18nText::new("card.peking.info".to_string(), Locale::ZhCn, "北京信息".to_string()),
-            I18nText::new("card.peking.info".to_string(), Locale::EnUs, "Peking Info".to_string()),
-        ]),
-    );
+    let repo = Arc::new(InMemoryI18nRepository::new().with_texts(vec![
+        I18nText::new(
+            "card.shanghai.welcome".to_string(),
+            Locale::ZhCn,
+            "欢迎来到上海".to_string(),
+        ),
+        I18nText::new(
+            "card.shanghai.welcome".to_string(),
+            Locale::EnUs,
+            "Welcome to Shanghai".to_string(),
+        ),
+        I18nText::new(
+            "card.shanghai.welcome".to_string(),
+            Locale::JaJp,
+            "上海へようこそ".to_string(),
+        ),
+        I18nText::new(
+            "card.peking.info".to_string(),
+            Locale::ZhCn,
+            "北京信息".to_string(),
+        ),
+        I18nText::new(
+            "card.peking.info".to_string(),
+            Locale::EnUs,
+            "Peking Info".to_string(),
+        ),
+    ]));
     I18nServiceImpl::new(repo as Arc<dyn I18nRepository>)
 }
 

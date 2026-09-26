@@ -37,10 +37,7 @@ pub async fn get_server_stats(state: web::Data<AppState>) -> HttpResponse {
     HttpResponse::Ok().json(ServerStats { total, running })
 }
 
-pub async fn start_server(
-    state: web::Data<AppState>,
-    path: web::Path<String>,
-) -> HttpResponse {
+pub async fn start_server(state: web::Data<AppState>, path: web::Path<String>) -> HttpResponse {
     let id = path.into_inner();
     let mut servers = state.servers.lock().unwrap();
     let server = match servers.iter_mut().find(|s| s.id == id) {
@@ -53,10 +50,7 @@ pub async fn start_server(
     HttpResponse::Ok().json(json!({"status": "started", "server": server.clone()}))
 }
 
-pub async fn stop_server(
-    state: web::Data<AppState>,
-    path: web::Path<String>,
-) -> HttpResponse {
+pub async fn stop_server(state: web::Data<AppState>, path: web::Path<String>) -> HttpResponse {
     let id = path.into_inner();
     let mut servers = state.servers.lock().unwrap();
     let server = match servers.iter_mut().find(|s| s.id == id) {

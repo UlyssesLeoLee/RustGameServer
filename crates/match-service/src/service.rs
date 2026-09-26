@@ -253,8 +253,7 @@ pub mod conv {
             .as_ref()
             .map(|e| e.id.clone())
             .unwrap_or_default();
-        let sp = SessionPlayer::new(pid, p.display_name.clone())
-            .with_rank(p.rank_score, p.level);
+        let sp = SessionPlayer::new(pid, p.display_name.clone()).with_rank(p.rank_score, p.level);
         // 注: common.v1.PlayerId 不含 deck_ref 字段 (per proto 定义)
         // deck_ref 在 EnqueueMatchmakingRequest / SubmitMoveRequest 等 message 上独立携带
         sp
@@ -291,7 +290,13 @@ pub mod conv {
             .as_ref()
             .and_then(|p| p.player_id.as_ref().map(|e| e.id.clone()))
             .unwrap_or_default();
-        let mut em = EntityMove::new(match_id, player_id, turn_index, move_type, m.payload_json.clone());
+        let mut em = EntityMove::new(
+            match_id,
+            player_id,
+            turn_index,
+            move_type,
+            m.payload_json.clone(),
+        );
         em.accepted = m.accepted;
         em.result_json = if m.result_json.is_empty() {
             None
@@ -337,17 +342,16 @@ pub mod conv {
     pub fn session_to_match_proto(s: &GameSession) -> crate::proto::v1::Match {
         use crate::common::v1 as common_proto;
         let status_i = match s.status {
-            SessionStatus::Creating => 2,    // STATUS_PENDING
-            SessionStatus::Waiting => 2,     // STATUS_PENDING
-            SessionStatus::Starting => 2,    // STATUS_PENDING
-            SessionStatus::Running => 1,     // STATUS_OK
-            SessionStatus::Paused => 2,      // STATUS_PENDING
-            SessionStatus::Ending => 2,      // STATUS_PENDING
-            SessionStatus::Ended => 1,       // STATUS_OK
-            SessionStatus::Canceled => 4,    // STATUS_CANCELLED
+            SessionStatus::Creating => 2, // STATUS_PENDING
+            SessionStatus::Waiting => 2,  // STATUS_PENDING
+            SessionStatus::Starting => 2, // STATUS_PENDING
+            SessionStatus::Running => 1,  // STATUS_OK
+            SessionStatus::Paused => 2,   // STATUS_PENDING
+            SessionStatus::Ending => 2,   // STATUS_PENDING
+            SessionStatus::Ended => 1,    // STATUS_OK
+            SessionStatus::Canceled => 4, // STATUS_CANCELLED
         };
-        let players: Vec<common_proto::PlayerId> =
-            s.players.iter().map(player_to_proto).collect();
+        let players: Vec<common_proto::PlayerId> = s.players.iter().map(player_to_proto).collect();
         crate::proto::v1::Match {
             id: Some(common_proto::EntityId {
                 id: s.match_id.to_string(),
@@ -392,12 +396,12 @@ pub mod conv {
             E::Snapshot { board_snapshot, .. } => {
                 crate::proto::v1::match_event::Payload::BoardSnapshot(board_snapshot.clone())
             }
-            E::MoveApplied { mv, .. } => crate::proto::v1::match_event::Payload::Move(
-                move_to_proto(mv),
-            ),
-            E::TurnChanged {
-                new_turn_index, ..
-            } => crate::proto::v1::match_event::Payload::NewTurnIndex(*new_turn_index),
+            E::MoveApplied { mv, .. } => {
+                crate::proto::v1::match_event::Payload::Move(move_to_proto(mv))
+            }
+            E::TurnChanged { new_turn_index, .. } => {
+                crate::proto::v1::match_event::Payload::NewTurnIndex(*new_turn_index)
+            }
             E::PlayerJoined { player, .. } => {
                 crate::proto::v1::match_event::Payload::Player(player_to_proto(player))
             }
@@ -438,8 +442,7 @@ pub mod conv {
     }
 
     pub fn parse_uuid(s: &str) -> Result<Uuid> {
-        Uuid::parse_str(s)
-            .map_err(|_| Error::Validation(format!("invalid uuid: {}", s)))
+        Uuid::parse_str(s).map_err(|_| Error::Validation(format!("invalid uuid: {}", s)))
     }
 
     pub fn ok_status(s: &str) -> Result<Uuid> {
@@ -469,22 +472,52 @@ mod conv_tests {
     #[test]
     fn game_mode_roundtrip_all_known_values() {
         // 1-4 已知值: Ranked/Casual/Room/PveAi
-        assert_eq!(conv::game_mode_from_proto(1), crate::entity_v2::GameMode::Ranked);
-        assert_eq!(conv::game_mode_from_proto(2), crate::entity_v2::GameMode::Casual);
-        assert_eq!(conv::game_mode_from_proto(3), crate::entity_v2::GameMode::Room);
-        assert_eq!(conv::game_mode_from_proto(4), crate::entity_v2::GameMode::PveAi);
+        assert_eq!(
+            conv::game_mode_from_proto(1),
+            crate::entity_v2::GameMode::Ranked
+        );
+        assert_eq!(
+            conv::game_mode_from_proto(2),
+            crate::entity_v2::GameMode::Casual
+        );
+        assert_eq!(
+            conv::game_mode_from_proto(3),
+            crate::entity_v2::GameMode::Room
+        );
+        assert_eq!(
+            conv::game_mode_from_proto(4),
+            crate::entity_v2::GameMode::PveAi
+        );
         // 0 / 5+ → Unspecified
-        assert_eq!(conv::game_mode_from_proto(0), crate::entity_v2::GameMode::Unspecified);
-        assert_eq!(conv::game_mode_from_proto(99), crate::entity_v2::GameMode::Unspecified);
+        assert_eq!(
+            conv::game_mode_from_proto(0),
+            crate::entity_v2::GameMode::Unspecified
+        );
+        assert_eq!(
+            conv::game_mode_from_proto(99),
+            crate::entity_v2::GameMode::Unspecified
+        );
     }
 
     #[test]
     fn game_mode_to_proto_is_identity_for_known() {
         // 已知的 GameMode 转回 proto 数字 (枚举 discriminant 稳定)
-        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Ranked), 1);
-        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Casual), 2);
-        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::Room), 3);
-        assert_eq!(conv::game_mode_to_proto(crate::entity_v2::GameMode::PveAi), 4);
+        assert_eq!(
+            conv::game_mode_to_proto(crate::entity_v2::GameMode::Ranked),
+            1
+        );
+        assert_eq!(
+            conv::game_mode_to_proto(crate::entity_v2::GameMode::Casual),
+            2
+        );
+        assert_eq!(
+            conv::game_mode_to_proto(crate::entity_v2::GameMode::Room),
+            3
+        );
+        assert_eq!(
+            conv::game_mode_to_proto(crate::entity_v2::GameMode::PveAi),
+            4
+        );
     }
 
     // ==================== parse_uuid ====================
@@ -493,10 +526,7 @@ mod conv_tests {
     fn parse_uuid_valid_and_invalid() {
         // 有效 UUID 字符串
         let u = conv::parse_uuid("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        assert_eq!(
-            u.to_string(),
-            "550e8400-e29b-41d4-a716-446655440000"
-        );
+        assert_eq!(u.to_string(), "550e8400-e29b-41d4-a716-446655440000");
         // 无效 → Validation 错
         let err = conv::parse_uuid("not-a-uuid").unwrap_err();
         match err {
@@ -559,7 +589,9 @@ mod conv_tests {
             let proto = crate::proto::v1::Move {
                 move_id: String::new(),
                 player: Some(common_proto::PlayerId {
-                    player_id: Some(common_proto::EntityId { id: "p".to_string() }),
+                    player_id: Some(common_proto::EntityId {
+                        id: "p".to_string(),
+                    }),
                     display_name: String::new(),
                     rank_score: 0,
                     level: 0,
@@ -571,7 +603,11 @@ mod conv_tests {
                 accepted: false,
             };
             let m = conv::move_from_proto(uuid::Uuid::new_v4(), 1, &proto);
-            assert_eq!(&m.move_type, expected, "type {} → expected {:?}", i, expected);
+            assert_eq!(
+                &m.move_type, expected,
+                "type {} → expected {:?}",
+                i, expected
+            );
 
             // 反向: move_to_proto
             let back = conv::move_to_proto(&m);
@@ -581,7 +617,9 @@ mod conv_tests {
         let proto_unspec = crate::proto::v1::Move {
             move_id: String::new(),
             player: Some(common_proto::PlayerId {
-                player_id: Some(common_proto::EntityId { id: "p".to_string() }),
+                player_id: Some(common_proto::EntityId {
+                    id: "p".to_string(),
+                }),
                 display_name: String::new(),
                 rank_score: 0,
                 level: 0,
@@ -789,7 +827,8 @@ pub mod grpc_service {
         async fn enqueue_matchmaking(
             &self,
             request: Request<match_proto::EnqueueMatchmakingRequest>,
-        ) -> std::result::Result<Response<match_proto::EnqueueMatchmakingResponse>, Status> {
+        ) -> std::result::Result<Response<match_proto::EnqueueMatchmakingResponse>, Status>
+        {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
             let player = req
@@ -806,12 +845,7 @@ pub mod grpc_service {
                 "enqueue_matchmaking"
             );
             let result = v2
-                .enqueue_matchmaking(
-                    session_player,
-                    mode,
-                    req.rank_score_min,
-                    req.rank_score_max,
-                )
+                .enqueue_matchmaking(session_player, mode, req.rank_score_min, req.rank_score_max)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
             let resp = match result {
@@ -840,8 +874,8 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<match_proto::CancelMatchmakingResponse>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let ticket_id = conv::parse_uuid(&req.ticket_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let ticket_id =
+                conv::parse_uuid(&req.ticket_id).map_err(Into::<tonic::Status>::into)?;
             tracing::debug!(
                 service = "match-service",
                 method = "CancelMatchmaking",
@@ -855,17 +889,20 @@ pub mod grpc_service {
                 .cancel_matchmaking(ticket_id, "")
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            Ok(Response::new(match_proto::CancelMatchmakingResponse { cancelled }))
+            Ok(Response::new(match_proto::CancelMatchmakingResponse {
+                cancelled,
+            }))
         }
 
         async fn get_matchmaking_status(
             &self,
             request: Request<match_proto::GetMatchmakingStatusRequest>,
-        ) -> std::result::Result<Response<match_proto::GetMatchmakingStatusResponse>, Status> {
+        ) -> std::result::Result<Response<match_proto::GetMatchmakingStatusResponse>, Status>
+        {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let ticket_id = conv::parse_uuid(&req.ticket_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let ticket_id =
+                conv::parse_uuid(&req.ticket_id).map_err(Into::<tonic::Status>::into)?;
             let status = v2
                 .get_matchmaking_status(ticket_id)
                 .await
@@ -933,8 +970,7 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<match_proto::JoinMatchResponse>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let match_id = conv::parse_uuid(&req.match_id).map_err(Into::<tonic::Status>::into)?;
             let player = req
                 .player
                 .as_ref()
@@ -973,8 +1009,7 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<match_proto::LeaveMatchResponse>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let match_id = conv::parse_uuid(&req.match_id).map_err(Into::<tonic::Status>::into)?;
             let player = req
                 .player
                 .as_ref()
@@ -1008,8 +1043,7 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<match_proto::GetMatchStateResponse>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let match_id = conv::parse_uuid(&req.match_id).map_err(Into::<tonic::Status>::into)?;
             let player = req
                 .player
                 .as_ref()
@@ -1039,8 +1073,7 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<match_proto::SubmitMoveResponse>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let match_id = conv::parse_uuid(&req.match_id).map_err(Into::<tonic::Status>::into)?;
             let player = req
                 .player
                 .as_ref()
@@ -1077,8 +1110,7 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<Self::SubscribeMatchStream>, Status> {
             let v2 = self.impl_.v2().map_err(Into::<tonic::Status>::into)?;
             let req = request.into_inner();
-            let match_id = conv::parse_uuid(&req.match_id)
-                .map_err(Into::<tonic::Status>::into)?;
+            let match_id = conv::parse_uuid(&req.match_id).map_err(Into::<tonic::Status>::into)?;
             let player = req
                 .player
                 .as_ref()
@@ -1143,9 +1175,7 @@ mod tests {
 
     fn make_player(id: &str) -> crate::common::v1::PlayerId {
         crate::common::v1::PlayerId {
-            player_id: Some(crate::common::v1::EntityId {
-                id: id.to_string(),
-            }),
+            player_id: Some(crate::common::v1::EntityId { id: id.to_string() }),
             display_name: format!("P-{}", id),
             rank_score: 1500,
             level: 10,
@@ -1279,12 +1309,7 @@ mod tests {
         let (_s, v2) = svc_v2();
         let player = make_player("p1");
         let r = v2
-            .enqueue_matchmaking(
-                conv::player_from_proto(&player),
-                GameModeV2::Casual,
-                0,
-                0,
-            )
+            .enqueue_matchmaking(conv::player_from_proto(&player), GameModeV2::Casual, 0, 0)
             .await
             .unwrap();
         let ticket_id = match r {
@@ -1300,12 +1325,7 @@ mod tests {
         let (_s, v2) = svc_v2();
         let player = make_player("p1");
         let r = v2
-            .enqueue_matchmaking(
-                conv::player_from_proto(&player),
-                GameModeV2::Casual,
-                0,
-                0,
-            )
+            .enqueue_matchmaking(conv::player_from_proto(&player), GameModeV2::Casual, 0, 0)
             .await
             .unwrap();
         let ticket_id = match r {
@@ -1322,12 +1342,7 @@ mod tests {
         let (_s, v2) = svc_v2();
         let player = make_player("p1");
         let r = v2
-            .enqueue_matchmaking(
-                conv::player_from_proto(&player),
-                GameModeV2::Casual,
-                0,
-                0,
-            )
+            .enqueue_matchmaking(conv::player_from_proto(&player), GameModeV2::Casual, 0, 0)
             .await
             .unwrap();
         let ticket_id = match r {
@@ -1341,10 +1356,7 @@ mod tests {
     #[tokio::test]
     async fn get_matchmaking_status_validation_not_found() {
         let (_s, v2) = svc_v2();
-        let err = v2
-            .get_matchmaking_status(Uuid::new_v4())
-            .await
-            .unwrap_err();
+        let err = v2.get_matchmaking_status(Uuid::new_v4()).await.unwrap_err();
         assert!(matches!(err, Error::NotFound { .. }));
     }
 
@@ -1462,12 +1474,7 @@ mod tests {
             .await
             .unwrap();
         // 强制 status=Running (否则 leave_match 的 transition_to_ending 要求 Running/Paused)
-        let mut s = v2
-            .sessions()
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = v2.sessions().find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         v2.sessions().save(&s).await.unwrap();
         let l = v2.leave_match(r.match_id, "p2", true).await.unwrap();
@@ -1554,12 +1561,7 @@ mod tests {
             .await
             .unwrap();
         // 强制 status=Running
-        let mut s = v2
-            .sessions()
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = v2.sessions().find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         v2.sessions().save(&s).await.unwrap();
@@ -1598,12 +1600,7 @@ mod tests {
         v2.join_match(r.match_id, conv::player_from_proto(&p2), None, None)
             .await
             .unwrap();
-        let mut s = v2
-            .sessions()
-            .find_by_id(r.match_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let mut s = v2.sessions().find_by_id(r.match_id).await.unwrap().unwrap();
         s.status = SessionStatus::Running;
         s.current_player_id = Some("host".to_string());
         v2.sessions().save(&s).await.unwrap();
