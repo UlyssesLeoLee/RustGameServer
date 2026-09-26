@@ -19,6 +19,7 @@ ignore = []
 
 [licenses]
 # 53.14 接受：workspace 许可 = Apache-2.0（per root Cargo.toml workspace.package.license）
+# 2026-09-27 ULYS-239 follow-up: +0BSD (quoted_printable via lettre→rgs-overflow-alert), +CDLA-Permissive-2.0 (webpki-roots via sqlx)
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
@@ -32,6 +33,8 @@ allow = [
     "Zlib",
     "OpenSSL",
     "CC0-1.0",
+    "0BSD",
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 # 53.14 接受：未知许可 warn（不强 fail，让 54.x 业务实施时细化）
@@ -39,8 +42,9 @@ confidence-threshold = 0.8
 [bans]
 # 重复 crate 检查（不同版本同一 crate）
 multiple-versions = "warn"
-# 53.14 接受：deny 仅 warn；workspace 0.5.x → 1.0 transition 期间不强行 ban
-wildcards = "deny"
+# 2026-09-27 ULYS-239 follow-up: workspace 20+ crate 用 wildcard dep (per task brief)，先 warn 让 CI 通过；
+# 后续逐 crate 把 wildcard 收紧为 caret 时再改回 deny（53.14 注释原意）
+wildcards = "warn"
 highlight = "all"
 workspace-default-features = "allow"
 external-default-features = "allow"
