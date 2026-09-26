@@ -58,13 +58,13 @@
 
 ### review 3 worktree (待清理)
 
-5. `D:/RustGameServer-worktrees/review-decision-1` (branch: `review/decision-1`, commit 409c27a)
+1. `D:/RustGameServer-worktrees/review-decision-1` (branch: `review/decision-1`, commit 409c27a)
 2. `D:/RustGameServer-worktrees/review-decision-2` (branch: `review/decision-2`, commit 623be3b)
 3. `D:/RustGameServer-worktrees/review-decision-3` (branch: `review/decision-3`, commit 本次)
 
 ### 旧 5 worktree (已存在,未合并)
 
-8. `D:/RustGameServer-worktrees/fix-drill-compile` (branch: `fix/cluster-ops-drill-compile`)
+1. `D:/RustGameServer-worktrees/fix-drill-compile` (branch: `fix/cluster-ops-drill-compile`)
 2. `D:/RustGameServer-worktrees/M1` (branch: `wbs/M1`)
 3. `D:/RustGameServer-worktrees/M2` (branch: `wbs/M2`)
 4. `D:/RustGameServer-worktrees/M3` (branch: `wbs/M3`)

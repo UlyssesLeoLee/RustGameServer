@@ -1285,14 +1285,14 @@ fn filter_recursive(v: &mut serde_json::Value, banned: &[&str]) {
 | 角色 | 签字 | 日期 |
 |---|---|---|
 | 架构师 | 架构师 (**Mavis 接手 agent per DEC-008**) | 2026-09-01 |
-| batch 域 Lead | _待 DDD Review 阶段补签_ | — |
-| 5 域 Lead (player / economy / match / social / admin) | _待 DDD Review 阶段补签_ | — |
-| shared-platform Lead | _待 DDD Review 阶段补签_ | — |
-| cluster-ops Lead | _待 DDD Review 阶段补签_ | — |
-| SRE Lead | _待 DDD Review 阶段补签_ | — |
-| DBA | _待 DDD Review 阶段补签_ | — |
-| 安全 | _待 DDD Review 阶段补签_ | — |
-| PM | _待 DDD Review 阶段补签_ | — |
+| batch 域 Lead | *待 DDD Review 阶段补签* | — |
+| 5 域 Lead (player / economy / match / social / admin) | *待 DDD Review 阶段补签* | — |
+| shared-platform Lead | *待 DDD Review 阶段补签* | — |
+| cluster-ops Lead | *待 DDD Review 阶段补签* | — |
+| SRE Lead | *待 DDD Review 阶段补签* | — |
+| DBA | *待 DDD Review 阶段补签* | — |
+| 安全 | *待 DDD Review 阶段补签* | — |
+| PM | *待 DDD Review 阶段补签* | — |
 
 ---
 

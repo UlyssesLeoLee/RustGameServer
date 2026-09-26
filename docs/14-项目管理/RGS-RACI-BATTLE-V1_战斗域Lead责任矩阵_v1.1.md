@@ -109,8 +109,8 @@
 | scene 域 Lead（Ulysses per DEC-008, 待 E2.5 拍板）| ⏳ | — | scene 域 Lead 同意 battle 域副本内战斗走 scene.DungeonEnter |
 | network-gateway Lead（Ulysses per DEC-008, 待 E2.5 拍板）| ⏳ | — | network-gateway Lead 同意 battle 域 TCP 帧路由 (协议码 10401-10500 段) |
 | battle 域 Lead（Ulysses per DEC-008, 待 E2.5 拍板）| ⏳ | — | battle 域 Lead 同意 6 任务 RACI 矩阵 + 跨域协调 |
-| saga 召集人（Ulysses per DEC-008）| _待 DDD Review 阶段补签_ | — | per RGS-IMPL-100 saga 域召集人 |
-| 架构师（Ulysses per DEC-008）| _代签：架构师（Mavis 接手 agent per DEC-008）_ | 2026-09-05 12:30 JST | per 2026-08-26 08:40 JST 代签已允许 |
+| saga 召集人（Ulysses per DEC-008）| *待 DDD Review 阶段补签* | — | per RGS-IMPL-100 saga 域召集人 |
+| 架构师（Ulysses per DEC-008）| *代签：架构师（Mavis 接手 agent per DEC-008）* | 2026-09-05 12:30 JST | per 2026-08-26 08:40 JST 代签已允许 |
 
 **注**：v1.1 在一人公司模式下，8 域 Lead 都是 Ulysses 担任；DDD Review 阶段由 Ulysses 在每个域分别签字（一签字 = 该域决策正式生效）。**代签不允许用于"代签他人"**——架构师列可由 Mavis 代签 per 2026-08-26 08:40 JST 新规则，但 8 域 Lead 列必须由 Ulysses 本人（per DDD Review SOP）。
 
@@ -124,7 +124,7 @@
 - [ ] **跨域仲裁流程**：battle 域 Lead 与 economy 域 Lead 在涉及双方 A 角色任务（战斗结算奖励发放）时的最终决策权？需 RGS-OPEN-QA-001-ACTIONS-v0.3 后续子任务明确
 - [ ] **battle × network-gateway 协议码段分配**：协议码 10401-10500 段归属需 E2.5 拍板（per W6 worker 报告）
 - [ ] **battle × scene 联调场景**：副本内战斗触发条件 + 状态同步（per W4 + W5 worker 报告联调, Phase 3 估 1-2 SRE·d）
-- [ ] __9 holiday__ 活动业务规则_*：6+9 反例数据驱动 15 → 3 套, 但 activity_id 路由表需 battle Lead 业务确认 (per W5 报告 9 holiday_*)
+- [ ] **9 holiday** 活动业务规则_*：6+9 反例数据驱动 15 → 3 套, 但 activity_id 路由表需 battle Lead 业务确认 (per W5 报告 9 holiday_*)
 - [ ] **电子签字基础设施**：8 域 Lead 真实签字基础设施（GPG / SSH 签名 / 内部 CRM）尚未搭建，目前以"代签 + DDD Review 阶段补签"过渡
 
 ---

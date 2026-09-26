@@ -419,11 +419,11 @@ interface IntegrationsResp {
 | 角色 | 签字 | 日期 |
 |---|---|---|
 | 架构师 | 架构师（**Mavis 接手 agent per DEC-008**）| 2026-09-01 |
-| 5 域 Lead | _待 DDD Review 阶段补签_ | — |
-| shared-platform Lead | _待 DDD Review 阶段补签_ | — |
-| cluster-ops Lead | _待 DDD Review 阶段补签_ | — |
-| SRE Lead | _待 DDD Review 阶段补签_ | — |
-| PM | _待 DDD Review 阶段补签_ | — |
+| 5 域 Lead | *待 DDD Review 阶段补签* | — |
+| shared-platform Lead | *待 DDD Review 阶段补签* | — |
+| cluster-ops Lead | *待 DDD Review 阶段补签* | — |
+| SRE Lead | *待 DDD Review 阶段补签* | — |
+| PM | *待 DDD Review 阶段补签* | — |
 
 ---
 
