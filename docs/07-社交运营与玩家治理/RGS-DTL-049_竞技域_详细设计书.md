@@ -93,7 +93,7 @@ CREATE INDEX idx_seasons_status_window
 CREATE TABLE player_ranks (
     player_id          UUID NOT NULL,
     season_id          VARCHAR(64) NOT NULL,
-    current_rank       SMALLINT NOT NULL DEFAULT 0,  -- 0=青铜 1=白银 ... 7=[顶级段位]
+    current_rank       SMALLINT NOT NULL DEFAULT 0,  -- 0=青铜 1=白银 ... 7=王者
     current_score      INTEGER NOT NULL DEFAULT 0,
     rank_protected     BOOLEAN NOT NULL DEFAULT FALSE,
     version            INTEGER NOT NULL DEFAULT 0,  -- OCC
@@ -231,14 +231,14 @@ fn build_update_rank_request_id(player_id: PlayerId, season_id: SeasonId, battle
 fn inherit_rank(prev_season_id: SeasonId, new_season_id: SeasonId, player_id: PlayerId) -> Result<PlayerRank, PvpError> {
     let prev_rank = load_player_rank(player_id, prev_season_id)?;
     // 继承规则 (per SeasonConfig.inherit_rules):
-    //   - [顶级段位] → 大师 1
-    //   - [次顶级段位] → 钻石 1
+    //   - 王者 → 大师 1
+    //   - 半步王者 → 钻石 1
     //   - 大师 → 铂金 1
     //   - 钻石 → 黄金 1
     //   - 黄金及以下 → 维持原段位
     let inherited_rank = match prev_rank.current_rank {
-        7 => 5,  // [顶级段位] → 大师 1
-        6 => 4,  // [次顶级段位] → 钻石 1
+        7 => 5,  // 王者 → 大师 1
+        6 => 4,  // 半步王者 → 钻石 1
         5 => 3,  // 大师 → 铂金 1
         4 => 2,  // 钻石 → 黄金 1
         _ => prev_rank.current_rank,  // 黄金及以下维持

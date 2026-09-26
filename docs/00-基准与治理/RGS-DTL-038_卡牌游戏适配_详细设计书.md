@@ -61,7 +61,7 @@
 
 ## 1.3 不在本文范围
 
-- 具体卡牌游戏规则 ([游戏E] / [游戏F] / [游戏G] 等) — 业务层 game-logic
+- 具体卡牌游戏规则 (炉石 / MTG / 影之诗 等) — 业务层 game-logic
 - 客户端 SDK 内部实现 — 跨域 SDK 团队
 - 运营活动 / 赛季 — 运营层
 
@@ -110,7 +110,7 @@
 
 session 是卡牌游戏的核心抽象, 跨 3 类游戏都适用:
 - **TCG/CCG**: turn-based, 复杂效果链
-- **休闲卡牌**: turn-based 或 实时 ([游戏J]), 固定规则
+- **休闲卡牌**: turn-based 或 实时 (UNO), 固定规则
 - **集换式**: 同 TCG
 
 session 不绑定具体游戏规则, 只承载:
@@ -260,7 +260,7 @@ enum CardType {
   CARD_TYPE_CREATURE = 1;   // 生物
   CARD_TYPE_SPELL = 2;      // 法术
   CARD_TYPE_EQUIPMENT = 3;  // 装备
-  CARD_TYPE_LAND = 4;       // 地 ([游戏F])
+  CARD_TYPE_LAND = 4;       // 地 (MTG)
   CARD_TYPE_TRAP = 5;       // 陷阱 (YGO)
   CARD_TYPE_HERO = 6;       // 英雄
 }
