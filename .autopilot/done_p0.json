@@ -1,0 +1,608 @@
+{
+  "has_more": true,
+  "issues": [
+    {
+      "identifier": "ULYS-178",
+      "last_activity_at": "2026-09-26T21:21:55.040375Z",
+      "status": "done",
+      "title": "PI-1 AgentStreamEvent 12 事件协议 (domain-llm)"
+    },
+    {
+      "identifier": "ULYS-238",
+      "last_activity_at": "2026-09-26T13:35:52.608424Z",
+      "status": "done",
+      "title": "项目变化汇总 + REQ 一致性核对 (per ULYS-237 v0.6 脱敏收敛)"
+    },
+    {
+      "identifier": "ULYS-190",
+      "last_activity_at": "2026-09-26T12:28:24.197428Z",
+      "status": "done",
+      "title": "Mock开关"
+    },
+    {
+      "identifier": "ULYS-240",
+      "last_activity_at": "2026-09-26T12:23:23.484487Z",
+      "status": "done",
+      "title": "ULYS-190 §4.4 module_switch Stage 1 RGS-side 落地收口 + 缺口闭环 (per ULYS-238 后续)"
+    },
+    {
+      "identifier": "ULYS-237",
+      "last_activity_at": "2026-09-26T01:56:57.505234Z",
+      "status": "done",
+      "title": "不要提及参考"
+    },
+    {
+      "identifier": "ULYS-202",
+      "last_activity_at": "2026-09-26T00:37:59.69564Z",
+      "status": "done",
+      "title": "ULYS-104.13 [P2] OMP Session Resume argv 注入 (FR-ORCA-025..027) — DESIGN REFERENCE ONLY"
+    },
+    {
+      "identifier": "ULYS-231",
+      "last_activity_at": "2026-09-25T23:54:33.396848Z",
+      "status": "done",
+      "title": "ULYS-218.4 [P1-F] RealExternalWorktreeImport 桥接到 worktree-service::scan_external_worktrees"
+    },
+    {
+      "identifier": "ULYS-203",
+      "last_activity_at": "2026-09-25T23:54:06.269763Z",
+      "status": "done",
+      "title": "ULYS-104.16 [P3] Account Switcher + Usage Tracking (FR-ORCA-042) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-236",
+      "last_activity_at": "2026-09-25T23:43:20.857672Z",
+      "status": "done",
+      "title": "ULYS-191.6 (ULYS-191 §4.3.4) — Ada 集成最小可交付 + aci-emitter git dep"
+    },
+    {
+      "identifier": "ULYS-192",
+      "last_activity_at": "2026-09-25T15:13:55.637285Z",
+      "status": "done",
+      "title": "Multica 附件卡片疑似客户端不显示/无法下载（服务端存储已验证正常）"
+    },
+    {
+      "identifier": "ULYS-206",
+      "last_activity_at": "2026-09-25T15:13:43.745346Z",
+      "status": "done",
+      "title": "PI-6 JSON Delta 协议 (star-dto) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-138",
+      "last_activity_at": "2026-09-25T14:53:02.308164Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-123",
+      "last_activity_at": "2026-09-25T14:50:03.323756Z",
+      "status": "done",
+      "title": "GitGit MinioVault::get_at_version 真接 minIO server-side versioning (升 rust-s3 支持 versionId + sidecar 加 version_id 字段 + e2e 测试)"
+    },
+    {
+      "identifier": "ULYS-230",
+      "last_activity_at": "2026-09-25T14:49:05.585584Z",
+      "status": "done",
+      "title": "ULYS-218.3 [P1-F] REST endpoint /v1/worktrees/start-from-picker + /external-worktrees"
+    },
+    {
+      "identifier": "ULYS-155",
+      "last_activity_at": "2026-09-25T14:47:51.980728Z",
+      "status": "done",
+      "title": "[CATs/M2] 多媒体 6 服务(切片 E)"
+    },
+    {
+      "identifier": "ULYS-94",
+      "last_activity_at": "2026-09-25T10:08:37.115633Z",
+      "status": "done",
+      "title": "ULYS-91: 恢复 WSL Postgres + k3s + 跑 12 DB fixture 集成测试 + e2e-smoke 12 探针"
+    },
+    {
+      "identifier": "ULYS-235",
+      "last_activity_at": "2026-09-25T10:07:16.289719Z",
+      "status": "done",
+      "title": "hook需求"
+    },
+    {
+      "identifier": "ULYS-141",
+      "last_activity_at": "2026-09-25T09:57:18.499945Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-172",
+      "last_activity_at": "2026-09-25T09:53:48.230808Z",
+      "status": "done",
+      "title": "ULYS-104.17 [P3] Multi-Provider Identity Validation GitHub/Linear/Jira/GitLab (FR-ORCA-042)"
+    },
+    {
+      "identifier": "ULYS-195",
+      "last_activity_at": "2026-09-25T08:11:56.12725Z",
+      "status": "done",
+      "title": "ULYS-177.4 [P1] External Worktree Import 平行 git worktree 兼容 (FR-ORCA-011)"
+    },
+    {
+      "identifier": "ULYS-207",
+      "last_activity_at": "2026-09-25T07:26:56.53866Z",
+      "status": "done",
+      "title": "PI-9 Steering / Follow-up / QueueMode (domain-agent) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-125",
+      "last_activity_at": "2026-09-25T06:31:23.639661Z",
+      "status": "done",
+      "title": "功能点罗列"
+    },
+    {
+      "identifier": "ULYS-154",
+      "last_activity_at": "2026-09-25T05:56:08.333811Z",
+      "status": "done",
+      "title": "[CATs/M2] 客户端 UI 深度功能(切片 D)"
+    },
+    {
+      "identifier": "ULYS-153",
+      "last_activity_at": "2026-09-25T05:56:05.068489Z",
+      "status": "done",
+      "title": "[CATs] 实现 report-service 聚合查询 + audit-service 真实 Kafka consumer"
+    },
+    {
+      "identifier": "ULYS-152",
+      "last_activity_at": "2026-09-25T05:56:03.466991Z",
+      "status": "done",
+      "title": "[CATs] 实现 file-service + notification-service (4+3 endpoints)"
+    },
+    {
+      "identifier": "ULYS-151",
+      "last_activity_at": "2026-09-25T05:55:58.391203Z",
+      "status": "done",
+      "title": "[CATs] 实现 task-service 业务 + SSE 进度推送"
+    },
+    {
+      "identifier": "ULYS-150",
+      "last_activity_at": "2026-09-25T05:55:56.65067Z",
+      "status": "done",
+      "title": "[CATs] 实现 project-service 业务 5 endpoint (CRUD)"
+    },
+    {
+      "identifier": "ULYS-149",
+      "last_activity_at": "2026-09-25T05:55:55.056033Z",
+      "status": "done",
+      "title": "[CATs] 实现 cats-bff 业务 8 endpoint"
+    },
+    {
+      "identifier": "ULYS-229",
+      "last_activity_at": "2026-09-25T05:34:40.258513Z",
+      "status": "done",
+      "title": "ULYS-218.2 [P1-F] CLI multica worktree start-from-picker 命令"
+    },
+    {
+      "identifier": "ULYS-137",
+      "last_activity_at": "2026-09-25T03:34:37.076542Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-124",
+      "last_activity_at": "2026-09-25T01:50:25.670865Z",
+      "status": "done",
+      "title": "CLI"
+    },
+    {
+      "identifier": "ULYS-208",
+      "last_activity_at": "2026-09-25T01:25:47.444017Z",
+      "status": "done",
+      "title": "gm-backend 8081 health probe server 静默死亡 (tokio::spawn + bind 失败日志误报) — 修复 e2e-smoke 12/12 剩余项"
+    },
+    {
+      "identifier": "ULYS-136",
+      "last_activity_at": "2026-09-25T00:02:49.466302Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-113",
+      "last_activity_at": "2026-09-25T00:02:16.813266Z",
+      "status": "done",
+      "title": "分支合并"
+    },
+    {
+      "identifier": "ULYS-228",
+      "last_activity_at": "2026-09-24T23:35:32.432886Z",
+      "status": "done",
+      "title": "ULYS-218.1 [P1-F] FR-ORCA-009/011 frontend UI bundle (Start-from Picker modal + sidebar hidden worktrees card)"
+    },
+    {
+      "identifier": "ULYS-234",
+      "last_activity_at": "2026-09-24T12:43:08.108797Z",
+      "status": "done",
+      "title": "ULYS-203.A CredentialManager::revoke() 同步 DB credential.status (Bug 修复)"
+    },
+    {
+      "identifier": "ULYS-194",
+      "last_activity_at": "2026-09-24T11:44:57.236846Z",
+      "status": "done",
+      "title": "ULYS-177.3 [P1] Start-from Picker 4 选 1 UI (FR-ORCA-009)"
+    },
+    {
+      "identifier": "ULYS-233",
+      "last_activity_at": "2026-09-24T11:02:33.544154Z",
+      "status": "done",
+      "title": "ULYS-191.4 (ULYS-191 §4.3.2) — CATs 集成最小可交付 + aci-emitter git dep"
+    },
+    {
+      "identifier": "ULYS-232",
+      "last_activity_at": "2026-09-24T04:22:57.76267Z",
+      "status": "done",
+      "title": "ULYS-200.5 [P1-E] Integration \u0026 QA Validation (terminal-stack end-to-end)"
+    },
+    {
+      "identifier": "ULYS-227",
+      "last_activity_at": "2026-09-24T04:04:38.901151Z",
+      "status": "done",
+      "title": "ULYS-191.5 (ULYS-191 §4.3.3) — IM1.0 集成最小可交付 + aci-emitter git dep"
+    },
+    {
+      "identifier": "ULYS-218",
+      "last_activity_at": "2026-09-24T03:20:53.743176Z",
+      "status": "done",
+      "title": "ULYS-158.5 [P1] FR-ORCA-009/010/011 bundle (Start-from Picker + Branch 命名 + 外部 git worktree 导入)"
+    },
+    {
+      "identifier": "ULYS-222",
+      "last_activity_at": "2026-09-24T01:09:43.793795Z",
+      "status": "done",
+      "title": "ULYS-200.3 [P1-C] WebSocket Protocol Layer for Terminal Stack"
+    },
+    {
+      "identifier": "ULYS-217",
+      "last_activity_at": "2026-09-24T00:56:35.187036Z",
+      "status": "done",
+      "title": "ULYS-158.4 [P0] FR-ORCA-008 worktree_create_async 真实 orchestrator"
+    },
+    {
+      "identifier": "ULYS-179",
+      "last_activity_at": "2026-09-24T00:52:21.488109Z",
+      "status": "done",
+      "title": "PI-2 StopReason + Usage 五元组 + ThinkingLevel (domain-llm)"
+    },
+    {
+      "identifier": "ULYS-159",
+      "last_activity_at": "2026-09-24T00:16:17.174885Z",
+      "status": "done",
+      "title": "ULYS-104.4 [P0-B 评估期] ProcessSupervisor 子 crate 评估 (ADR-0046 候选草案)"
+    },
+    {
+      "identifier": "ULYS-193",
+      "last_activity_at": "2026-09-24T00:12:33.815011Z",
+      "status": "done",
+      "title": "ULYS-177.2 [P1] Worktree Create 异步化 + Provisioning 过渡态 (FR-ORCA-008)"
+    },
+    {
+      "identifier": "ULYS-215",
+      "last_activity_at": "2026-09-24T00:12:28.438532Z",
+      "status": "done",
+      "title": "ULYS-158.2 [P0] FR-ORCA-007 #1 PerUserSource 真实文件读实装"
+    },
+    {
+      "identifier": "ULYS-226",
+      "last_activity_at": "2026-09-24T02:18:28.674588Z",
+      "status": "done",
+      "title": "ULYS-191.3 (ULYS-191 §4.3.1) — RGS 集成最小可交付 + aci-emitter git dep"
+    },
+    {
+      "identifier": "ULYS-204",
+      "last_activity_at": "2026-09-23T23:17:29.360972Z",
+      "status": "done",
+      "title": "PI-3 AgentLoopBoundary trait + StreamFn no-throw (domain-agent) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-216",
+      "last_activity_at": "2026-09-23T23:11:29.809323Z",
+      "status": "done",
+      "title": "ULYS-158.3 [P0] FR-ORCA-007 #2 WorkspaceSource 真实 PG 读实装"
+    },
+    {
+      "identifier": "ULYS-187",
+      "last_activity_at": "2026-09-23T23:08:40.506682Z",
+      "status": "done",
+      "title": "PI-10 ADR-0028 Extension hook event surface (docs/architecture)"
+    },
+    {
+      "identifier": "ULYS-205",
+      "last_activity_at": "2026-09-23T23:08:55.782437Z",
+      "status": "done",
+      "title": "PI-4 Tool trait 重写 5 方法 (domain-tool) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-221",
+      "last_activity_at": "2026-09-23T23:04:34.95433Z",
+      "status": "done",
+      "title": "ULYS-200.2 [P1-B] Restart Recovery Algorithm for Scrollback"
+    },
+    {
+      "identifier": "ULYS-223",
+      "last_activity_at": "2026-09-23T23:24:07.432915Z",
+      "status": "done",
+      "title": "ULYS-200.4 [P1-D] Frontend Terminal Splits + xterm.js addon"
+    },
+    {
+      "identifier": "ULYS-167",
+      "last_activity_at": "2026-09-23T22:45:44.491497Z",
+      "status": "done",
+      "title": "ULYS-104.12 [P2] Design Mode 浏览器元素 → Agent Prompt (FR-ORCA-032)"
+    },
+    {
+      "identifier": "ULYS-225",
+      "last_activity_at": "2026-09-23T22:26:18.128983Z",
+      "status": "done",
+      "title": "ULYS-191.2 (ULYS-191 §4.2.2/§4.2.3) — IDE1.0 最小骨架 + cli_smoke.sh"
+    },
+    {
+      "identifier": "ULYS-175",
+      "last_activity_at": "2026-09-23T19:35:02.368737Z",
+      "status": "done",
+      "title": "分析Pi"
+    },
+    {
+      "identifier": "ULYS-165",
+      "last_activity_at": "2026-09-23T19:22:05.087717Z",
+      "status": "done",
+      "title": "ULYS-104.9 [P2] Annotate AI Diff (FR-ORCA-031)"
+    },
+    {
+      "identifier": "ULYS-224",
+      "last_activity_at": "2026-09-23T14:41:55.106899Z",
+      "status": "done",
+      "title": "ULYS-191.1 (ULYS-191 §4.2.1) — 独立 Rust aci-emitter crate (ACI 跨项目 emitter helper)"
+    },
+    {
+      "identifier": "ULYS-181",
+      "last_activity_at": "2026-09-23T14:40:56.212927Z",
+      "status": "done",
+      "title": "PI-5 AgentPolicy::policy_hooks 接入 (domain-agent)"
+    },
+    {
+      "identifier": "ULYS-184",
+      "last_activity_at": "2026-09-23T13:46:04.311126Z",
+      "status": "done",
+      "title": "PI-7 Compaction 算法 (star-taskqueue)"
+    },
+    {
+      "identifier": "ULYS-191",
+      "last_activity_at": "2026-09-23T13:06:55.834383Z",
+      "status": "done",
+      "title": "ACI接口"
+    },
+    {
+      "identifier": "ULYS-210",
+      "last_activity_at": "2026-09-23T12:58:13.306429Z",
+      "status": "done",
+      "title": "修改内容截图"
+    },
+    {
+      "identifier": "ULYS-214",
+      "last_activity_at": "2026-09-23T12:55:38.717595Z",
+      "status": "done",
+      "title": "A4 完善：Agent Session v2 前端 Restart chip UI + use-restart hook"
+    },
+    {
+      "identifier": "ULYS-213",
+      "last_activity_at": "2026-09-23T12:55:37.580153Z",
+      "status": "done",
+      "title": "B4 完善：Jev 真 API key 接入 + 中文 100 条 dry-run + 1k traffic threshold 校准"
+    },
+    {
+      "identifier": "ULYS-212",
+      "last_activity_at": "2026-09-23T12:55:36.392137Z",
+      "status": "done",
+      "title": "A9 完善：真实 OS spawn 适配（Linux setsid+cgroup / macOS setpgid / Windows Job Object + kill）"
+    },
+    {
+      "identifier": "ULYS-211",
+      "last_activity_at": "2026-09-23T12:55:32.612474Z",
+      "status": "done",
+      "title": "A5 完善：FR-ORCA-035 前端 diff 标注 UI"
+    },
+    {
+      "identifier": "ULYS-220",
+      "last_activity_at": "2026-09-23T12:31:35.726423Z",
+      "status": "done",
+      "title": "ULYS-200.1 [P1-A] Persistence Layer for Scrollback + Splits (SQLite WAL)"
+    },
+    {
+      "identifier": "ULYS-209",
+      "last_activity_at": "2026-09-23T12:31:32.765197Z",
+      "status": "done",
+      "title": "ULYS-156.1 [P0-A 续] process_supervisor + graceful_shutdown + health_self_test + PID lock + crash-loop + cgroup doc"
+    },
+    {
+      "identifier": "ULYS-219",
+      "last_activity_at": "2026-09-23T12:17:38.257595Z",
+      "status": "done",
+      "title": "ULYS-210 (ULYS-156 P1 — Linux/macOS) — 真实 setsid session leader + 跨进程 kill (Unix 部分)"
+    },
+    {
+      "identifier": "ULYS-157",
+      "last_activity_at": "2026-09-23T11:17:07.602741Z",
+      "status": "done",
+      "title": "ULYS-104.2 [P0-C] AI Vault 对话历史搜索 (FR-ORCA-019..024)"
+    },
+    {
+      "identifier": "ULYS-164",
+      "last_activity_at": "2026-09-23T11:05:13.849861Z",
+      "status": "done",
+      "title": "ULYS-104.10 [P2] Terminal Splits + Scrollback Survives Restart"
+    },
+    {
+      "identifier": "ULYS-158",
+      "last_activity_at": "2026-09-23T10:57:15.796067Z",
+      "status": "done",
+      "title": "ULYS-104.3 [P0-D] Worktree 共享目录 3 机制 (FR-ORCA-005..011, 核心 FR-ORCA-007)"
+    },
+    {
+      "identifier": "ULYS-200",
+      "last_activity_at": "2026-09-24T10:24:09.833344Z",
+      "status": "done",
+      "title": "ULYS-104.10 [P2] Terminal Splits + Scrollback Survives Restart (FR-ORCA-036 + 039) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-163",
+      "last_activity_at": "2026-09-23T10:27:35.779425Z",
+      "status": "done",
+      "title": "ULYS-104.8 [P2] Notifications + Unread Bolded"
+    },
+    {
+      "identifier": "ULYS-162",
+      "last_activity_at": "2026-09-23T10:16:32.837763Z",
+      "status": "done",
+      "title": "ULYS-104.7 [P1-C] 统一 agent + worktree status store (FR-ORCA-018 + NFR-ORCA-003..004)"
+    },
+    {
+      "identifier": "ULYS-161",
+      "last_activity_at": "2026-09-23T10:16:30.095251Z",
+      "status": "done",
+      "title": "ULYS-104.6 [P1-B] Agent Session v2 加 terminal_id + OSC 解析 + Restart chip (FR-ORCA-012)"
+    },
+    {
+      "identifier": "ULYS-177",
+      "last_activity_at": "2026-09-23T09:56:42.676195Z",
+      "status": "done",
+      "title": "ULYS-158.1 (ULYS-177) [P0] 本仓库适配 per-workspace multica-config/config.json + worktree_shared_directories 字段（路径 C）"
+    },
+    {
+      "identifier": "ULYS-156",
+      "last_activity_at": "2026-09-23T10:22:11.09585Z",
+      "status": "done",
+      "title": "ULYS-104.1 [P0-A] 升级/重启保持 Agent 会话 (FR-ORCA-001..004 + NFR-ORCA-001..002)"
+    },
+    {
+      "identifier": "ULYS-160",
+      "last_activity_at": "2026-09-23T09:49:52.495456Z",
+      "status": "done",
+      "title": "ULYS-104.5 [P1-A] Orca CLI --json 全覆盖 + Skill Registry (FR-ORCA-029..030)"
+    },
+    {
+      "identifier": "ULYS-185",
+      "last_activity_at": "2026-09-23T08:04:38.41664Z",
+      "status": "done",
+      "title": "PI-8 ContextEdit + Fork with parent.at (domain-worktree)"
+    },
+    {
+      "identifier": "ULYS-201",
+      "last_activity_at": "2026-09-23T07:33:51.303909Z",
+      "status": "done",
+      "title": "ULYS-104.9 [P2] Annotate AI Diff (FR-ORCA-035) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-198",
+      "last_activity_at": "2026-09-23T06:15:11.422464Z",
+      "status": "done",
+      "title": "ULYS-104.7 [P1-C] 统一 agent + worktree status store (FR-ORCA-018 + NFR-003/004) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-188",
+      "last_activity_at": "2026-09-23T05:50:17.915099Z",
+      "status": "done",
+      "title": "gm-backend httpGet 探针 host→pod 网络不可达 (e2e-smoke 上限锁定 10/12) + failureThreshold manifest drift"
+    },
+    {
+      "identifier": "ULYS-166",
+      "last_activity_at": "2026-09-23T05:48:28.977556Z",
+      "status": "done",
+      "title": "ULYS-104.11 [P2] OSC 52 + Kitty Keyboard Protocol (依赖 ULYS-104.10 + .6)"
+    },
+    {
+      "identifier": "ULYS-196",
+      "last_activity_at": "2026-09-23T04:55:54.646416Z",
+      "status": "done",
+      "title": "ULYS-104.5 [P1-A] Orca CLI --json 全覆盖 + Skill Registry (FR-ORCA-033/034) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-197",
+      "last_activity_at": "2026-09-23T01:42:44.458951Z",
+      "status": "done",
+      "title": "ULYS-104.6 [P1-B] Agent Session v2 + terminal_id + Restart chip (FR-ORCA-012/014) — REDESIGN"
+    },
+    {
+      "identifier": "ULYS-199",
+      "last_activity_at": "2026-09-23T00:57:45.678466Z",
+      "status": "done",
+      "title": "ULYS-104.8 [P2] Notifications + Unread Bolded (FR-ORCA-040/041) — REDESIGN (PR #74 cherry-pick)"
+    },
+    {
+      "identifier": "ULYS-134",
+      "last_activity_at": "2026-09-22T15:05:44.29549Z",
+      "status": "done",
+      "title": "参考清单"
+    },
+    {
+      "identifier": "ULYS-176",
+      "last_activity_at": "2026-09-22T07:05:47.649826Z",
+      "status": "done",
+      "title": "编译启动"
+    },
+    {
+      "identifier": "ULYS-174",
+      "last_activity_at": "2026-09-21T15:28:15.527071Z",
+      "status": "done",
+      "title": "依赖安全审计：漏洞与过时版本清单"
+    },
+    {
+      "identifier": "ULYS-133",
+      "last_activity_at": "2026-09-21T15:28:14.127127Z",
+      "status": "done",
+      "title": "前端app"
+    },
+    {
+      "identifier": "ULYS-139",
+      "last_activity_at": "2026-09-21T15:28:12.797261Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-135",
+      "last_activity_at": "2026-09-21T15:28:11.268372Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-140",
+      "last_activity_at": "2026-09-21T10:24:52.472884Z",
+      "status": "done",
+      "title": "回归测试"
+    },
+    {
+      "identifier": "ULYS-145",
+      "last_activity_at": "2026-09-21T06:29:38.906466Z",
+      "status": "done",
+      "title": "C-4 IdentityService::authenticate + Access Token"
+    },
+    {
+      "identifier": "ULYS-104",
+      "last_activity_at": "2026-09-22T00:40:01.749922Z",
+      "status": "done",
+      "title": "分析可以借鉴的点"
+    },
+    {
+      "identifier": "ULYS-148",
+      "last_activity_at": "2026-09-20T22:58:44.354736Z",
+      "status": "done",
+      "title": "C-8 ConversationService::create_dm + members"
+    },
+    {
+      "identifier": "ULYS-126",
+      "last_activity_at": "2026-09-20T16:45:49.498466Z",
+      "status": "done",
+      "title": "功能罗列"
+    },
+    {
+      "identifier": "ULYS-146",
+      "last_activity_at": "2026-09-20T16:45:11.402828Z",
+      "status": "done",
+      "title": "C-5 IdentityService::refresh (rotation)"
+    }
+  ],
+  "limit": 100,
+  "offset": 0,
+  "total": 228
+}
