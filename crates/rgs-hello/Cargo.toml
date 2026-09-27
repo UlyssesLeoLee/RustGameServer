@@ -3,6 +3,8 @@ name = "rgs-hello"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+description = "Hello world binary scaffold (per WBS v0.3 §2A.5 WF-1-53.14 / rgs-auto-merge SMOKE placeholder)"
 
 [dependencies]
 
