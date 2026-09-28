@@ -1,0 +1,13 @@
+warning[license-not-encountered]: license was not encountered
+   ┌─ D:\RustGameServer\deny.toml:34:6
+   │
+34 │     "OpenSSL",
+   │      ━━━━━━━ unmatched license allowance
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ D:\RustGameServer\deny.toml:30:6
+   │
+30 │     "Unicode-DFS-2016",
+   │      ━━━━━━━━━━━━━━━━ unmatched license allowance
+
+ licenses ok: 0 errors, 2 warnings, 575 notes
