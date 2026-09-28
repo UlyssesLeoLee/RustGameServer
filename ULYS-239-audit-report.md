@@ -1,4 +1,6 @@
-# ULYS-239 依赖审计报告 (2026-09-27 JST)
+# ULYS-239 依赖审计报告（2026-09-27 JST 历史快照）
+
+> 当前有效复核结果见 [ULYS-239-audit-report-2026-09-28.md](ULYS-239-audit-report-2026-09-28.md)。下方保留原快照供追溯；当前漏洞统计和行动项以复核版为准。
 
 工具链：`cargo audit 0.21`（RustSec advisory-db 3157b0e258782691，1244 条目）+ `cargo deny 0.16` + `cargo outdated --root-deps-only`（workspace 维度受 libsqlite3-sys 冲突阻断，回退到 workspace-root + `cargo update --dry-run` 隐含清单）。Lockfile：`Cargo.lock`，671 packages / 32 workspace path crates。
 
