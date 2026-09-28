@@ -1,5 +1,7 @@
 # ULYS-239 依赖审计报告 (2026-09-27 JST)
 
+> 2026-09-28 CVSS 口径复核结果见 [ULYS-239-audit-report-2026-09-28.md](ULYS-239-audit-report-2026-09-28.md)。本报告 §1 严重度为启发式分层（C5/H12/M9/L1），复核版仅采用 advisory 自带 CVSS 分级（未评分项不猜级）；两者口径不同（复核版基于 protobuf 修复后的 26 条）。行动项以复核版为准。
+
 工具链：`cargo audit 0.21`（RustSec advisory-db 3157b0e258782691，1244 条目）+ `cargo deny 0.16` + `cargo outdated --root-deps-only`（workspace 维度受 libsqlite3-sys 冲突阻断，回退到 workspace-root + `cargo update --dry-run` 隐含清单）。Lockfile：`Cargo.lock`，671 packages / 32 workspace path crates。
 
 > **2026-09-28 订正记录**：针对复核意见（2026-09-27 11:26 JST）逐项修正——① §1 严重度计数（`RUSTSEC-2026-0098` 被重复计入 wasmtime HIGH 与 rustls-webpki HIGH，已去重；实际为 wasmtime HIGH 7 / MEDIUM 7，非各 8）；② §1 P0-1 把 `rustls-webpki 0.102.8` 错误归因给 sqlx，已订正为 `async-nats 0.42`；③ §2 版本落后阈值统一为任务 brief 要求的 ">2 段"（原稿混入恰好 2 段及以下的候选，并把候选总数误写成 33，实际 32）；④ 补齐 npm 审计范围到全部 7 个 manifest（原稿只查了根 `package.json`）。修正细节见各节内 "订正" 标注。
@@ -10,7 +12,7 @@
 > |---|---|---|
 > | `package.json`（根） | `glob ^13.0.6`（构建期） | 0 vulnerabilities |
 > | `tools/h5_e2e/package.json` | `ws ^8.21.3` | 0 vulnerabilities |
-> | `tools/gm-console/frontend/package.json` | 7 runtime（react/axios/chart.js 等）+ 5 dev（vite/typescript 等） | **2 vulnerabilities**：`esbuild` moderate（≤0.24.2，经 vite dev-server 拉入）+ `vite` high（≤6.4.2）；均为 dev 工具链，非生产运行时依赖；修复需 `vite` 5→8（跨 3 段 breaking），未在本轮落地 |
+> | `tools/gm-console/frontend/package.json` | 7 runtime（react/axios/chart.js 等）+ 5 dev（vite/typescript 等） | **2 vulnerabilities**：`esbuild` moderate（≤0.24.2，经 vite dev-server 拉入）+ `vite` high（≤6.4.2）；均为 dev 工具链，非生产运行时依赖；修复：`vite` 约束升至 `^6.4.3`（官方 advisory 修复版本，连带 esbuild 0.25.12；隔离副本实测 npm audit 为 0，见复核版），无需 npm audit 自动建议的 5→8，未在本轮落地 |
 > | `tools/rgs-batch-console/package.json` | 无依赖声明 | N/A |
 > | `tools/rgs-shim/package.json` | 无依赖声明 | N/A |
 > | `tools/rgs-web/package.json` | 无依赖声明 | N/A |

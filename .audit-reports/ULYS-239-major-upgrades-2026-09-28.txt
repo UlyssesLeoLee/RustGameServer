@@ -1,0 +1,31 @@
+ULYS-239 major-gap candidates — 2026-09-28 JST
+
+Method:
+- cargo outdated 0.19.0 --workspace --format json failed on a libsqlite3-sys links conflict.
+- cargo update --dry-run --verbose completed without changing Cargo.lock and showed available-version candidates.
+- Strict filter: more than two stable semver majors; for 0.x packages, report minor release-series gap separately because those changes may be breaking.
+- This is a filtered candidate summary, not a complete transitive inventory.
+
+Stable semver major distance > 2:
+- wasmtime 19.0.2 -> 49.0.1 (+30 majors; Critical/High advisories; Windows fuel-exhaustion compatibility pin).
+
+0.x minor release-series distance > 2:
+- actix-web-lab 0.24.3 -> 0.28.0 (+4 series; age-only; h2 is a separate indirect finding)
+- async-nats 0.42.0 -> 0.50.0 (+8 series; associated with rustls-webpki finding)
+- bcrypt 0.16.0 -> 0.19.3 (+3 series; age-only)
+- criterion 0.5.1 -> 0.8.2 (+3 series; dev/bench; age-only)
+- opentelemetry 0.24.0 -> 0.33.0 (+9 series; age-only)
+- opentelemetry-otlp 0.17.0 -> 0.33.0 (+16 series; age-only)
+- opentelemetry_sdk 0.24.1 -> 0.33.0 (+9 series; age-only)
+- opentelemetry-semantic-conventions 0.16.0 -> 0.33.0 (+17 series; age-only)
+- rusqlite 0.32.1 -> 0.40.2 (+8 series; age-only; one side of resolver conflict)
+- testcontainers 0.23.3 -> 0.28.0 (+5 series; dev/test; tokio-tar path)
+- testcontainers-modules 0.11.6 -> 0.15.0 (+4 series; dev/test)
+- tokio-tungstenite 0.24.0 -> 0.30.0 (+6 series; age-only)
+- tracing-opentelemetry 0.25.0 -> 0.34.0 (+9 series; age-only)
+
+Other notable migration:
+- serial_test 0.5.1 -> 4.0.1 (pre-1.0 to 4.x; breaking migration, not comparable to ordinary 0.x series gap; dev/test).
+
+Excluded at exactly two or fewer:
+- tonic 0.12 -> 0.14; jsonwebtoken 9 -> 11; rand 0.8 -> 0.10; mockall 0.13 -> 0.15; rustler 0.36 -> 0.38.
