@@ -1,0 +1,608 @@
+{
+  "has_more": true,
+  "issues": [
+    {
+      "identifier": "ULYS-144",
+      "last_activity_at": "2026-09-20T15:56:11.385292Z",
+      "status": "done",
+      "title": "C-3 IdentityService::register + JWT issue"
+    },
+    {
+      "identifier": "ULYS-143",
+      "last_activity_at": "2026-09-20T15:56:06.370193Z",
+      "status": "done",
+      "title": "D-2 tracing_init::init() 真实化"
+    },
+    {
+      "identifier": "ULYS-132",
+      "last_activity_at": "2026-09-20T15:53:37.270282Z",
+      "status": "done",
+      "title": "BD-STAR-CLI-001 — 总冊基本設計書 v0.1 (5 view 跨域汇总 + 6 子能力架构 + 28 命令 schema 索引)"
+    },
+    {
+      "identifier": "ULYS-131",
+      "last_activity_at": "2026-09-20T15:50:10.335035Z",
+      "status": "done",
+      "title": "BD-STAR-CLI-005 — CL-6 Universal Submit 12 步状态机 + SubmitResult schema 基本設計"
+    },
+    {
+      "identifier": "ULYS-130",
+      "last_activity_at": "2026-09-20T15:43:38.38389Z",
+      "status": "done",
+      "title": "BD-STAR-CLI-004 — CL-4+CL-5 错误模型 + Capability Discovery + Agent 自省子命令 基本設計"
+    },
+    {
+      "identifier": "ULYS-128",
+      "last_activity_at": "2026-09-20T15:19:58.441266Z",
+      "status": "done",
+      "title": "BD-STAR-CLI-003 — CL-2 11 扩展命令 + Universal Submit 暴露 5 步 基本設計"
+    },
+    {
+      "identifier": "ULYS-127",
+      "last_activity_at": "2026-09-20T15:27:57.938546Z",
+      "status": "done",
+      "title": "BD-STAR-CLI-002 — CL-1+CL-3 MVP 17 核心命令 + 通用 flags + 子命令结构 基本設計"
+    },
+    {
+      "identifier": "ULYS-147",
+      "last_activity_at": "2026-09-20T13:28:43.092398Z",
+      "status": "done",
+      "title": "C-6 IdentityService::link (Guest→正式)"
+    },
+    {
+      "identifier": "ULYS-142",
+      "last_activity_at": "2026-09-20T13:29:06.52479Z",
+      "status": "done",
+      "title": "D-1 AppConfig::load() 真实化"
+    },
+    {
+      "identifier": "ULYS-98",
+      "last_activity_at": "2026-09-20T11:51:09.908404Z",
+      "status": "done",
+      "title": "对标cursor的功能要都在极简版有自己的方案"
+    },
+    {
+      "identifier": "ULYS-120",
+      "last_activity_at": "2026-09-20T15:52:03.515375Z",
+      "status": "done",
+      "title": "ULYS-98-W4 Star Cursor 极简版 — Agent 模式 + 收口 (RFC/Spec/Evidence, Codex 可选切)"
+    },
+    {
+      "identifier": "ULYS-119",
+      "last_activity_at": "2026-09-20T11:15:11.624102Z",
+      "status": "done",
+      "title": "ULYS-98-W3 Star Cursor 极简版 — Chat 完整对话 + Composer 多文件编辑"
+    },
+    {
+      "identifier": "ULYS-122",
+      "last_activity_at": "2026-09-20T10:46:22.475312Z",
+      "status": "done",
+      "title": "IM1.0 C-6 link_account UPDATE SQL 实装 (repo trait 新方法 + pg.rs impl + 集成测试 3 case)"
+    },
+    {
+      "identifier": "ULYS-121",
+      "last_activity_at": "2026-09-20T10:18:12.532405Z",
+      "status": "done",
+      "title": "IM1.0 D-1 AppConfig::load 实装 (figment + dotenvy + 27 env vars + 10 K3s Secret + 9 environments.settings) + main.rs wire-up (PgPool + 4 Service + AppState 注入)"
+    },
+    {
+      "identifier": "ULYS-118",
+      "last_activity_at": "2026-09-20T09:17:10.153657Z",
+      "status": "done",
+      "title": "ULYS-98-W2 Star Cursor 极简版 — AI 代码补全 + Cmd-K inline (anthropic/openai provider)"
+    },
+    {
+      "identifier": "ULYS-117",
+      "last_activity_at": "2026-09-20T19:32:09.659966Z",
+      "status": "done",
+      "title": "ULYS-98-W1 Star Cursor 极简版 — 基础设施 (monaco + chat RPC + LlmProvider trait)"
+    },
+    {
+      "identifier": "ULYS-81",
+      "last_activity_at": "2026-09-20T05:42:43.487014Z",
+      "status": "done",
+      "title": "编译"
+    },
+    {
+      "identifier": "ULYS-105",
+      "last_activity_at": "2026-09-20T10:31:36.216568Z",
+      "status": "done",
+      "title": "未实现的设计汇总"
+    },
+    {
+      "identifier": "ULYS-112",
+      "last_activity_at": "2026-09-20T05:42:36.743926Z",
+      "status": "done",
+      "title": "ULYS-AGG 全仓未完成汇总 + 5 批子代理派工"
+    },
+    {
+      "identifier": "ULYS-103",
+      "last_activity_at": "2026-09-20T05:29:44.68913Z",
+      "status": "done",
+      "title": "P2-#5: 跨域事件族清单补全 (ULYS-56 ADR-0061 P2)"
+    },
+    {
+      "identifier": "ULYS-95",
+      "last_activity_at": "2026-09-20T05:29:14.096883Z",
+      "status": "done",
+      "title": "admin-service migration 0005 跨库外键 realm_lifecycle_run 导致 migrations 无法在空白 DB apply (3 集成测试 + k3s Pod CrashLoop)"
+    },
+    {
+      "identifier": "ULYS-111",
+      "last_activity_at": "2026-09-20T05:29:12.348029Z",
+      "status": "done",
+      "title": "修复 e2e-smoke 剩余 5 FAIL: cluster-ops / gm-backend / grafana / economy readiness 镜像与 manifest 残留"
+    },
+    {
+      "identifier": "ULYS-87",
+      "last_activity_at": "2026-09-20T05:31:06.415029Z",
+      "status": "done",
+      "title": "P0: 修复RGS-DTL-038文档ID冲突 - 核心传输防丢包主题 RGS-BAS-038+DTL-038+SPEC-DTL-038 → RGS-BAS-056+DTL-056+SPEC-DTL-056 (DTL-045/046/055-060 全 free, 056 三层链一致, per 实测 2026-09-20 13:25 JST)"
+    },
+    {
+      "identifier": "ULYS-88",
+      "last_activity_at": "2026-09-20T05:31:13.41436Z",
+      "status": "done",
+      "title": "P1: 补充RGS-BAS-038协议选型矩阵 - 添加WebSocket"
+    },
+    {
+      "identifier": "ULYS-115",
+      "last_activity_at": "2026-09-20T05:11:42.177103Z",
+      "status": "done",
+      "title": "ULYS-85.1 创建 RGS-BAS-058 WebSocket网络网关基本设计书 (父会话直做)"
+    },
+    {
+      "identifier": "ULYS-114",
+      "last_activity_at": "2026-09-20T05:11:38.979619Z",
+      "status": "done",
+      "title": "ULYS-84.1 创建 RGS-REQ-058 WebSocket网络网关需求定义书 (父会话直做)"
+    },
+    {
+      "identifier": "ULYS-116",
+      "last_activity_at": "2026-09-20T05:11:36.45931Z",
+      "status": "done",
+      "title": "ULYS-87.1 RGS-DTL-038 + BAS-038 + SPEC-DTL-038 核心传输防丢包主题 → DTL-056+BAS-056+SPEC-DTL-056 重命名 (父会话直做)"
+    },
+    {
+      "identifier": "ULYS-86",
+      "last_activity_at": "2026-09-20T04:56:23.604882Z",
+      "status": "done",
+      "title": "P0: 创建RGS-DTL-027 WebSocket网络网关详细设计书"
+    },
+    {
+      "identifier": "ULYS-93",
+      "last_activity_at": "2026-09-20T04:56:14.065719Z",
+      "status": "done",
+      "title": "ULYS-90: 修 network-gateway integration_phase15_demo wire format 与新 tcp.rs 不兼容"
+    },
+    {
+      "identifier": "ULYS-92",
+      "last_activity_at": "2026-09-20T04:56:09.498099Z",
+      "status": "done",
+      "title": "ULYS-89: 修 economy-service activity_progress 幂等键失效 (W41 加固回归 C)"
+    },
+    {
+      "identifier": "ULYS-91",
+      "last_activity_at": "2026-09-20T04:56:05.579433Z",
+      "status": "done",
+      "title": "ULYS-88: 修 player-service validate_character_name 禁词匹配 bug (W41 加固回归 B2)"
+    },
+    {
+      "identifier": "ULYS-90",
+      "last_activity_at": "2026-09-20T04:56:00.380738Z",
+      "status": "done",
+      "title": "ULYS-87: 修 player-service rename_character 顺序 bug (W41 加固回归 B1)"
+    },
+    {
+      "identifier": "ULYS-85",
+      "last_activity_at": "2026-09-20T05:31:11.29345Z",
+      "status": "done",
+      "title": "P0: 创建RGS-BAS-058 WebSocket网络网关基本设计书 (原 BAS-027 已被客户端资源分发与热更新占; BAS-058 链一致 free)"
+    },
+    {
+      "identifier": "ULYS-84",
+      "last_activity_at": "2026-09-20T05:31:08.699985Z",
+      "status": "done",
+      "title": "P0: 创建RGS-REQ-058 WebSocket网络网关需求定义书 (原 REQ-027 已被 App集群自动化部署脚本占; REQ-028 已被 反作弊+风控规则DSL 占; 058 三层链一致 free)"
+    },
+    {
+      "identifier": "ULYS-109",
+      "last_activity_at": "2026-09-20T01:43:42.945128Z",
+      "status": "done",
+      "title": "ULYS-105.4 P3-D.6 阶段 2 业务 + ARG 续做 — 派子代理跨 worktree 并行"
+    },
+    {
+      "identifier": "ULYS-108",
+      "last_activity_at": "2026-09-20T01:47:48.806765Z",
+      "status": "done",
+      "title": "ULYS-105.3 续做项切真 — 跨 session 续做项挑 1-2 项切真"
+    },
+    {
+      "identifier": "ULYS-107",
+      "last_activity_at": "2026-09-20T01:45:13.069787Z",
+      "status": "done",
+      "title": "ULYS-105.2 已知缺口回归 — OPT-A4 18 缺口 + WBS v1.04 §15 阻塞逐项 review"
+    },
+    {
+      "identifier": "ULYS-106",
+      "last_activity_at": "2026-09-20T01:43:35.258973Z",
+      "status": "done",
+      "title": "ULYS-105.1 docs-fixup — STAR-P3-WBS-001 §15 + UNIMPL-WBS v0.1 + OPT-WBS v0.1 同步修正"
+    },
+    {
+      "identifier": "ULYS-101",
+      "last_activity_at": "2026-09-20T00:24:07.848925Z",
+      "status": "done",
+      "title": "P2-#3: Poison Event DLQ 处理流程 (ULYS-56 ADR-0061 P2)"
+    },
+    {
+      "identifier": "ULYS-100",
+      "last_activity_at": "2026-09-20T00:03:53.625593Z",
+      "status": "done",
+      "title": "P2-#2: Outbox 监控指标落地 (ULYS-56 ADR-0061 P2)"
+    },
+    {
+      "identifier": "ULYS-96",
+      "last_activity_at": "2026-09-19T23:02:31.306622Z",
+      "status": "done",
+      "title": "k3s: cni0 linkdown 导致宿主机到 Pod 网段不通, e2e-smoke 12 探针 0/12"
+    },
+    {
+      "identifier": "ULYS-102",
+      "last_activity_at": "2026-09-19T12:56:14.990544Z",
+      "status": "done",
+      "title": "P2-#4: Outbox Schema Evolution 流程 (ULYS-56 ADR-0061 P2)"
+    },
+    {
+      "identifier": "ULYS-97",
+      "last_activity_at": "2026-09-19T12:42:08.386189Z",
+      "status": "done",
+      "title": "ULYS-94 followup: player-service lib 2 测试 + economy-service lib 1 测试 代码回归 (rename_character_*, activity_progress_*)"
+    },
+    {
+      "identifier": "ULYS-83",
+      "last_activity_at": "2026-09-19T10:18:07.215706Z",
+      "status": "done",
+      "title": "ULYS-83: cargo audit + outdated audit for RGS workspace + Admin-services"
+    },
+    {
+      "identifier": "ULYS-99",
+      "last_activity_at": "2026-09-19T12:30:26.215239Z",
+      "status": "done",
+      "title": "启动最新版dev分支的k3s版本"
+    },
+    {
+      "identifier": "ULYS-89",
+      "last_activity_at": "2026-09-19T09:02:59.670296Z",
+      "status": "done",
+      "title": "P1: 跟踪并推进ULYS-56 P2工程方案 - 等待P0审批"
+    },
+    {
+      "identifier": "ULYS-57",
+      "last_activity_at": "2026-09-19T06:59:20.957198Z",
+      "status": "done",
+      "title": "制作Worktree页面各级文档"
+    },
+    {
+      "identifier": "ULYS-82",
+      "last_activity_at": "2026-09-19T06:51:22.24156Z",
+      "status": "done",
+      "title": "ULYS-82 项目变化汇总与IPA文档更新分析"
+    },
+    {
+      "identifier": "ULYS-79",
+      "last_activity_at": "2026-09-18T19:03:02.468031Z",
+      "status": "done",
+      "title": "INC-08 Trace ID 格式三套冲突 (UUID/ULID/W3C → W3C TraceContext 唯一)"
+    },
+    {
+      "identifier": "ULYS-78",
+      "last_activity_at": "2026-09-18T19:03:00.863665Z",
+      "status": "done",
+      "title": "INC-07 Error 体系三套并存 (DD-01/02/04 → IFD-001 v1.1 统一 namespace)"
+    },
+    {
+      "identifier": "ULYS-77",
+      "last_activity_at": "2026-09-18T19:02:59.367073Z",
+      "status": "done",
+      "title": "DD-12 運用設計書 (デプロイ / 監視 / 障害対応 / RTO/RPO / SLA)"
+    },
+    {
+      "identifier": "ULYS-76",
+      "last_activity_at": "2026-09-18T19:02:54.66324Z",
+      "status": "done",
+      "title": "DD-11 テスト設計書 (UT/IT/ST/PT/SecT 5 層 + CI 統合)"
+    },
+    {
+      "identifier": "ULYS-75",
+      "last_activity_at": "2026-09-18T19:02:57.614271Z",
+      "status": "done",
+      "title": "DD-10 実装計画書 (Rust crate 分解 / Cargo workspace / MVP-1..4)"
+    },
+    {
+      "identifier": "ULYS-44",
+      "last_activity_at": "2026-09-18T15:17:15.662527Z",
+      "status": "done",
+      "title": "CATs: task-service SSE 进度推送端点未实现 + auth-service e2e 轮询断言隐患"
+    },
+    {
+      "identifier": "ULYS-54",
+      "last_activity_at": "2026-09-18T15:18:22.77712Z",
+      "status": "done",
+      "title": "调查缓存使用redis而非Valkey的原因"
+    },
+    {
+      "identifier": "ULYS-56",
+      "last_activity_at": "2026-09-18T15:16:45.970105Z",
+      "status": "done",
+      "title": "ULYS-54.B: CDC / Outbox 偏离正式化 — 立 ADR-0061 把自研 Outbox 取代 Debezium CDC 归档"
+    },
+    {
+      "identifier": "ULYS-55",
+      "last_activity_at": "2026-09-18T19:02:49.658074Z",
+      "status": "done",
+      "title": "ULYS-54.A: 事件总线偏离正式化 — 立 ADR-0060 把 NATS JetStream vs Kafka 偏离归档"
+    },
+    {
+      "identifier": "ULYS-62",
+      "last_activity_at": "2026-09-18T13:26:46.827718Z",
+      "status": "done",
+      "title": "ULYS-57.5 测试 + NFR + 自审修正 (T4.1-T4.8)"
+    },
+    {
+      "identifier": "ULYS-60",
+      "last_activity_at": "2026-09-18T13:26:43.867454Z",
+      "status": "done",
+      "title": "ULYS-57.3 5 engine (T8-T12)"
+    },
+    {
+      "identifier": "ULYS-52",
+      "last_activity_at": "2026-09-18T13:26:40.425006Z",
+      "status": "done",
+      "title": "治理仓库，智能合并"
+    },
+    {
+      "identifier": "ULYS-45",
+      "last_activity_at": "2026-09-18T13:26:38.292981Z",
+      "status": "done",
+      "title": "子任务A: task-service SSE 进度推送端点从 0 到 1 实现"
+    },
+    {
+      "identifier": "ULYS-42",
+      "last_activity_at": "2026-09-18T02:09:41.666805Z",
+      "status": "done",
+      "title": "DD-05 詳細設計書 統合自己審査報告 (Cross-Review)"
+    },
+    {
+      "identifier": "ULYS-80",
+      "last_activity_at": "2026-09-18T01:04:42.538351Z",
+      "status": "done",
+      "title": "解决mr冲突"
+    },
+    {
+      "identifier": "ULYS-110",
+      "last_activity_at": "2026-09-20T22:36:16.916596Z",
+      "status": "done",
+      "title": "部署"
+    },
+    {
+      "identifier": "ULYS-63",
+      "last_activity_at": "2026-09-18T00:42:16.743425Z",
+      "status": "done",
+      "title": "Dev"
+    },
+    {
+      "identifier": "ULYS-47",
+      "last_activity_at": "2026-09-18T00:41:59.323789Z",
+      "status": "done",
+      "title": "当前完成闭环启动"
+    },
+    {
+      "identifier": "ULYS-48",
+      "last_activity_at": "2026-09-18T00:40:11.043585Z",
+      "status": "done",
+      "title": "完成审核任务"
+    },
+    {
+      "identifier": "ULYS-61",
+      "last_activity_at": "2026-09-18T00:32:53.753596Z",
+      "status": "done",
+      "title": "ULYS-57.4 BFF + Frontend (T13-T14)"
+    },
+    {
+      "identifier": "ULYS-74",
+      "last_activity_at": "2026-09-17T22:10:46.224074Z",
+      "status": "done",
+      "title": "导航与标签页"
+    },
+    {
+      "identifier": "ULYS-69",
+      "last_activity_at": "2026-09-17T15:18:47.020885Z",
+      "status": "done",
+      "title": "DD-06 TUI 層詳細設計書 (FR-009 + FR-010)"
+    },
+    {
+      "identifier": "ULYS-41",
+      "last_activity_at": "2026-09-17T15:18:44.155255Z",
+      "status": "done",
+      "title": "DD-04 内部 API + 横断关切詳細設計書"
+    },
+    {
+      "identifier": "ULYS-40",
+      "last_activity_at": "2026-09-17T15:18:42.595936Z",
+      "status": "done",
+      "title": "DD-03 Plugin / Extension 詳細設計書 (Manager / Loader / Sandbox / Hot Swap)"
+    },
+    {
+      "identifier": "ULYS-39",
+      "last_activity_at": "2026-09-17T15:18:40.923431Z",
+      "status": "done",
+      "title": "DD-02 Session / Transaction / Buffer Engine 詳細設計書"
+    },
+    {
+      "identifier": "ULYS-38",
+      "last_activity_at": "2026-09-17T15:18:39.429314Z",
+      "status": "done",
+      "title": "DD-01 Microkernel Core 詳細設計書 (Command Bus / Event Bus / Capability Registry)"
+    },
+    {
+      "identifier": "ULYS-73",
+      "last_activity_at": "2026-09-17T13:39:16.343098Z",
+      "status": "done",
+      "title": "DD-04b Traceability 表重写 (v2, ULYS-68 残件)"
+    },
+    {
+      "identifier": "ULYS-72",
+      "last_activity_at": "2026-09-17T13:39:14.162481Z",
+      "status": "done",
+      "title": "DD-09 Local Compute パイプライン詳細設計書 (FR-013 Level 0-4)"
+    },
+    {
+      "identifier": "ULYS-71",
+      "last_activity_at": "2026-09-17T13:39:11.935228Z",
+      "status": "done",
+      "title": "DD-08 Context Compiler 詳細設計書 (FR-012)"
+    },
+    {
+      "identifier": "ULYS-70",
+      "last_activity_at": "2026-09-17T13:39:09.264391Z",
+      "status": "done",
+      "title": "DD-07 検索エンジン詳細設計書 (FR-011 3 層)"
+    },
+    {
+      "identifier": "ULYS-68",
+      "last_activity_at": "2026-09-17T13:39:07.819945Z",
+      "status": "done",
+      "title": "DD-04/04b v2 Traceability 表重写 + 6 处 phantom IF ID 修正"
+    },
+    {
+      "identifier": "ULYS-67",
+      "last_activity_at": "2026-09-17T13:39:05.67549Z",
+      "status": "done",
+      "title": "DD-03 v1.2 Worker IPC 协议确定 (关闭 QA-DD03-002)"
+    },
+    {
+      "identifier": "ULYS-66",
+      "last_activity_at": "2026-09-17T13:39:02.330414Z",
+      "status": "done",
+      "title": "DD-02 v1.2 删除 4 处 phantom NFR ID (INC-02 修复)"
+    },
+    {
+      "identifier": "ULYS-65",
+      "last_activity_at": "2026-09-17T13:38:58.925981Z",
+      "status": "done",
+      "title": "DD-01 v2 NFR ID 体系修正 (8 处 phantom → 真实 ID)"
+    },
+    {
+      "identifier": "ULYS-64",
+      "last_activity_at": "2026-09-17T13:38:57.022059Z",
+      "status": "done",
+      "title": "ULYS-37 v2 上游文档修订 (AD/IFD/NFR/REQ/SD v1.1)"
+    },
+    {
+      "identifier": "ULYS-59",
+      "last_activity_at": "2026-09-17T06:34:50.334534Z",
+      "status": "done",
+      "title": "ULYS-57.2 业务核心 5 crate (T3-T7)"
+    },
+    {
+      "identifier": "ULYS-51",
+      "last_activity_at": "2026-09-17T00:20:30.702588Z",
+      "status": "done",
+      "title": "验证K3S"
+    },
+    {
+      "identifier": "ULYS-32",
+      "last_activity_at": "2026-09-17T00:20:29.250444Z",
+      "status": "done",
+      "title": "API接口设计补充"
+    },
+    {
+      "identifier": "ULYS-31",
+      "last_activity_at": "2026-09-17T00:20:27.796794Z",
+      "status": "done",
+      "title": "美漫3渲2UI界面美化"
+    },
+    {
+      "identifier": "ULYS-27",
+      "last_activity_at": "2026-09-17T00:20:26.391545Z",
+      "status": "done",
+      "title": "Phase 2: network-gateway WebSocket 与 5 域 gRPC 完整接入"
+    },
+    {
+      "identifier": "ULYS-25",
+      "last_activity_at": "2026-09-17T00:20:24.750252Z",
+      "status": "done",
+      "title": "【Star】优化test-design.md - 测试设计规范化"
+    },
+    {
+      "identifier": "ULYS-24",
+      "last_activity_at": "2026-09-17T00:20:22.968929Z",
+      "status": "done",
+      "title": "【Star】优化frontend-design.md - 画面设计规范化"
+    },
+    {
+      "identifier": "ULYS-23",
+      "last_activity_at": "2026-09-17T00:20:21.380574Z",
+      "status": "done",
+      "title": "【Star】优化API设计 - 接口规范化"
+    },
+    {
+      "identifier": "ULYS-19",
+      "last_activity_at": "2026-09-17T00:20:11.257737Z",
+      "status": "done",
+      "title": "【RustGameServer】优化AGENTS.md - 代理设计规范化"
+    },
+    {
+      "identifier": "ULYS-17",
+      "last_activity_at": "2026-09-17T00:20:09.63641Z",
+      "status": "done",
+      "title": "【Star】按IPA标准优化项目文档体系"
+    },
+    {
+      "identifier": "ULYS-16",
+      "last_activity_at": "2026-09-17T00:20:08.22104Z",
+      "status": "done",
+      "title": "【RustGameServer】按IPA标准优化项目文档"
+    },
+    {
+      "identifier": "ULYS-15",
+      "last_activity_at": "2026-09-17T00:20:06.695867Z",
+      "status": "done",
+      "title": "agent无限画布功能强化"
+    },
+    {
+      "identifier": "ULYS-14",
+      "last_activity_at": "2026-09-17T00:20:05.215271Z",
+      "status": "done",
+      "title": "SRS-MULTICA-UX-001 v0.2：修订 B1/B2 + R1~R6"
+    },
+    {
+      "identifier": "ULYS-12",
+      "last_activity_at": "2026-09-17T00:20:03.802728Z",
+      "status": "done",
+      "title": "补充Multica功能"
+    },
+    {
+      "identifier": "ULYS-8",
+      "last_activity_at": "2026-09-17T00:20:02.359121Z",
+      "status": "done",
+      "title": "docs: rgs-flash-mock v0.3 \u0026 rgs-shim-rust v0.5 文档同步与不合理设计识别"
+    },
+    {
+      "identifier": "ULYS-1",
+      "last_activity_at": "2026-09-17T00:20:00.864903Z",
+      "status": "done",
+      "title": "查找是否有没有实施的设计，以及是否存在没有推进到详细设计的需求或者基本设计"
+    },
+    {
+      "identifier": "ULYS-58",
+      "last_activity_at": "2026-09-17T06:34:43.627481Z",
+      "status": "done",
+      "title": "ULYS-57.1 graph-core + git 基础 2 crate (T1-T2)"
+    }
+  ],
+  "limit": 100,
+  "offset": 100,
+  "total": 228
+}
