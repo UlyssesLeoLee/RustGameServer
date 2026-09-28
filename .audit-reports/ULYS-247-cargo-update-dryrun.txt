@@ -1,0 +1,3 @@
+     Locking 0 packages to latest compatible versions
+note: pass `--verbose` to see 86 unchanged dependencies behind latest
+warning: not updating lockfile due to dry run
