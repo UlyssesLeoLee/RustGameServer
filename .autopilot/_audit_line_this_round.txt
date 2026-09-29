@@ -1,1 +1,1 @@
-2026-09-29T15:33:00Z | ALL | n/a | NO_MERGE_NO_COMMENT | 0 in window since 2026-09-29T15:30:11Z; 3/8 agent/* ref match SOP regex all IS_ANCESTOR of origin/dev=c42748b9; 5 FAIL_REGEX | trigger_run_id=01a0edc9-aae0-722b-865d-3e4fd28066c6
+[2026-09-29T16:20:30Z] round_start trigger_run=01a0edf2-cdcc-773a-9d4a-b5e669ff8d2d last_run_at=2026-09-29T16:15:07Z
