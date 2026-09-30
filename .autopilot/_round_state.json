@@ -11,12 +11,12 @@
     "agent/minimaxm3/ulys-239@7edbec7fe3bca4575c910ff7f58f6824578560cb FAIL_REGEX rev-list=0\t0",
     "agent/sonnet/ULYS-239-fix@f47c9e530e65c6ca122f1efb7e2284c2b35b9fdd FAIL_REGEX rev-list=0\t0"
   ],
-  "dev_tip_local": "2e54725660e2099dec48bb4ad953f9125599e777",
-  "origin_dev": "2e54725660e2099dec48bb4ad953f9125599e777",
+  "dev_tip_local": "6873efb16d3a50060d7d40a88a3a6b14d866181b",
+  "origin_dev": "6873efb16d3a50060d7d40a88a3a6b14d866181b",
   "ahead_behind": "0\t0",
-  "now_iso": "2026-09-29T11:32:59Z",
-  "last_run_at": "2026-09-29T11:30:11Z",
-  "trigger_run_id": "01a0eced-f00d-75f6-a058-5a1963e5c476",
+  "now_iso": "2026-09-30T05:07:38Z",
+  "last_run_at": "2026-09-30T05:00:17Z",
+  "trigger_run_id": "01a0f0af-55a3-7e46-9750-e76a5435b932",
   "autopilot_id": "82acf028-29f3-4bfc-b288-885df575c3df",
   "decision": "NO_MERGE_NO_COMMENT",
   "reason": "0 RGS done in window; all 3 regex-matching agent branches already ancestors of origin/dev"
