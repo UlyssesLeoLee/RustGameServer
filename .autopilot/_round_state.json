@@ -1,23 +1,23 @@
 {
   "matches": [
-    "agent/minimaxm3/ULYS-239@ba58dedb1e86e26f68f70dcd9a67d4ff83227725 is_ancestor=True rev-list=0\t0",
-    "agent/minimaxm3/ULYS-240@880ed37c2135c3ca224cfc83e5fd67104956f495 is_ancestor=True rev-list=0\t0",
-    "agent/opus/ULYS-239@8ce14044be4540da9d9655718efcc46ffb73a672 is_ancestor=True rev-list=0\t0"
+    "agent/minimaxm3/ULYS-239@ba58dedb1e86e26f68f70dcd9a67d4ff83227725 is_ancestor=True rev-list=173\t0",
+    "agent/minimaxm3/ULYS-240@880ed37c2135c3ca224cfc83e5fd67104956f495 is_ancestor=True rev-list=227\t0",
+    "agent/opus/ULYS-239@8ce14044be4540da9d9655718efcc46ffb73a672 is_ancestor=True rev-list=117\t0"
   ],
   "fails": [
-    "agent/minimaxm3/ulys-190@28a3c025e8032a2bc7bfb54ed9e2f9500671e851 FAIL_REGEX rev-list=0\t0",
-    "agent/minimaxm3/ulys-190-s4-4@1b91c302809d20cf4044331bad43e813c68aacfc FAIL_REGEX rev-list=0\t0",
-    "agent/minimaxm3/ulys-237@dfc534ea38373c0088712e4b0e6f77d5fc4445e1 FAIL_REGEX rev-list=0\t0",
-    "agent/minimaxm3/ulys-239@7edbec7fe3bca4575c910ff7f58f6824578560cb FAIL_REGEX rev-list=0\t0",
-    "agent/sonnet/ULYS-239-fix@f47c9e530e65c6ca122f1efb7e2284c2b35b9fdd FAIL_REGEX rev-list=0\t0"
+    "agent/minimaxm3/ulys-190@28a3c025e803 FAIL_REGEX rev-list=N/A",
+    "agent/minimaxm3/ulys-190-s4-4@1b91c302809d FAIL_REGEX rev-list=N/A",
+    "agent/minimaxm3/ulys-237@dfc534ea3837 FAIL_REGEX rev-list=N/A",
+    "agent/minimaxm3/ulys-239@7edbec7fe3bc FAIL_REGEX rev-list=N/A",
+    "agent/sonnet/ULYS-239-fix@f47c9e530e65 FAIL_REGEX rev-list=N/A"
   ],
-  "dev_tip_local": "6873efb16d3a50060d7d40a88a3a6b14d866181b",
-  "origin_dev": "6873efb16d3a50060d7d40a88a3a6b14d866181b",
+  "dev_tip_local": "c9fc95ea25434769ae495f212ac1ea19f71beac1",
+  "origin_dev": "c9fc95ea25434769ae495f212ac1ea19f71beac1",
   "ahead_behind": "0\t0",
-  "now_iso": "2026-09-30T05:07:38Z",
-  "last_run_at": "2026-09-30T05:00:17Z",
-  "trigger_run_id": "01a0f0af-55a3-7e46-9750-e76a5435b932",
+  "now_iso": "2026-09-30T05:18:36Z",
+  "last_run_at": "2026-09-30T05:15:06Z",
+  "trigger_run_id": "01a0f0bc-e6a0-7078-9c37-554f873b8b89",
   "autopilot_id": "82acf028-29f3-4bfc-b288-885df575c3df",
   "decision": "NO_MERGE_NO_COMMENT",
-  "reason": "0 RGS done in window; all 3 regex-matching agent branches already ancestors of origin/dev"
+  "reason": "0 RGS done in window since 2026-09-30T05:15:06Z; all 3 regex-matching agent branches already ancestors of origin/dev"
 }
