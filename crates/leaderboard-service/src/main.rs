@@ -32,11 +32,8 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // OTLP exporter 条件初始化 (per WBS WF-1-55.45 §3.3, 默认禁用)
-    let _otel_guard = init_otel_exporter_optional(
-        "leaderboard-service",
-        env!("CARGO_PKG_VERSION"),
-        "dev",
-    );
+    let _otel_guard =
+        init_otel_exporter_optional("leaderboard-service", env!("CARGO_PKG_VERSION"), "dev");
 
     let addr: std::net::SocketAddr = env::var("GRPC_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:50057".to_string())

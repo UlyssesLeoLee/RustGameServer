@@ -25,9 +25,7 @@ use replay_service::proto::v1::replay_service_server::ReplayServiceServer;
 use replay_service::service::grpc_service::ReplayGrpcService;
 use replay_service::service::ReplayServiceImpl;
 use replay_service::storage::InMemoryBackend;
-use replay_service::{
-    InMemoryReplayRepository, ReplayRepository, StorageBackend,
-};
+use replay_service::{InMemoryReplayRepository, ReplayRepository, StorageBackend};
 use tokio::net::TcpListener;
 use tonic::transport::Server;
 use uuid::Uuid;
@@ -101,16 +99,10 @@ async fn it_match_service_calls_real_replay_service() {
 
     // 4) 构造一个 Running session + 触发 Surrender via submit_move
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Ranked,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Ranked, make_player("p1"), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session.current_player_id = Some("p1".to_string());
@@ -178,16 +170,10 @@ async fn it_save_replay_failure_does_not_break_session_end() {
 
     // 构造 session + 触发 surrender
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Casual,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Casual, make_player("p1"), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session.current_player_id = Some("p1".to_string());

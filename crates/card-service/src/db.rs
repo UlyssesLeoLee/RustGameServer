@@ -72,10 +72,7 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         env::remove_var("SQLX_TRACING_SAMPLE_RATIO");
         let ratio = sqlx_tracing_sample_ratio();
-        assert!(
-            (ratio - 0.10).abs() < 1e-9,
-            "默认 10% 采样率 (Q-M-03 答复)"
-        );
+        assert!((ratio - 0.10).abs() < 1e-9, "默认 10% 采样率 (Q-M-03 答复)");
     }
 
     /// 55.45 AC2: 合法范围 [0.0, 1.0] 接受

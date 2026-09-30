@@ -11,11 +11,7 @@ fn main() -> Result<()> {
         "proto/card/v1/card.proto",
         "../shared-platform/proto/common/v1/common.proto",
     ];
-    let includes: &[&str] = &[
-        "proto",
-        "../shared-platform/proto",
-        "../card-service/proto",
-    ];
+    let includes: &[&str] = &["proto", "../shared-platform/proto", "../card-service/proto"];
     tonic_build::configure()
         .build_server(true)
         .build_client(true)

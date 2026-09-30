@@ -152,10 +152,7 @@ impl CardServiceImpl {
     }
 
     // ----- gRPC OpenPack 用: 透传 repository -----
-    pub async fn find_instances_by_ids(
-        &self,
-        instance_ids: &[Uuid],
-    ) -> Result<Vec<CardInstance>> {
+    pub async fn find_instances_by_ids(&self, instance_ids: &[Uuid]) -> Result<Vec<CardInstance>> {
         let mut out = Vec::with_capacity(instance_ids.len());
         for id in instance_ids {
             if let Some(i) = self.instances.find_by_id(*id).await? {
@@ -185,7 +182,10 @@ impl CardServiceImpl {
             use std::hash::{Hash, Hasher};
             drop_table.version.hash(&mut hasher);
             i.hash(&mut hasher);
-            Utc::now().timestamp_nanos_opt().unwrap_or(0).hash(&mut hasher);
+            Utc::now()
+                .timestamp_nanos_opt()
+                .unwrap_or(0)
+                .hash(&mut hasher);
             let r = (hasher.finish() as f64) / (u64::MAX as f64);
             let mut acc = 0.0_f64;
             let mut picked: Option<&crate::entity::DropEntry> = None;
@@ -292,10 +292,9 @@ impl CardService for CardServiceImpl {
             .ok_or_else(|| Error::CardNotFound(card_id.to_string()))?;
         let instance = CardInstance::new(card_id.to_string(), owner_id, source);
         let saved = self.instances.add_many(&[instance.clone()]).await?;
-        let saved_inst = saved
-            .into_iter()
-            .next()
-            .ok_or_else(|| Error::Internal(anyhow::anyhow!("add_card_to_collection: empty result")))?;
+        let saved_inst = saved.into_iter().next().ok_or_else(|| {
+            Error::Internal(anyhow::anyhow!("add_card_to_collection: empty result"))
+        })?;
         tracing::info!(
             target: "card-service",
             instance_id = %saved_inst.instance_id,
@@ -584,7 +583,12 @@ pub mod grpc_service {
         }
     }
 
-    fn page_to_proto(_page: u32, _page_size: u32, total: i64, has_next: bool) -> common_proto::PageResponse {
+    fn page_to_proto(
+        _page: u32,
+        _page_size: u32,
+        total: i64,
+        has_next: bool,
+    ) -> common_proto::PageResponse {
         common_proto::PageResponse {
             total: total.max(0) as u32,
             has_next,
@@ -593,9 +597,7 @@ pub mod grpc_service {
     }
 
     /// 从 proto `Option<PageRequest>` 提取 (page, page_size), 默认 1/20
-    fn extract_page(
-        page_opt: &Option<common_proto::PageRequest>,
-    ) -> (u32, u32) {
+    fn extract_page(page_opt: &Option<common_proto::PageRequest>) -> (u32, u32) {
         match page_opt {
             Some(p) => (
                 if p.page == 0 { 1 } else { p.page },
@@ -661,7 +663,8 @@ pub mod grpc_service {
                 } else {
                     filter.type_filter
                 },
-                rarity_filter: if filter.rarity_filter == Some(crate::entity::CardRarity::Unspecified)
+                rarity_filter: if filter.rarity_filter
+                    == Some(crate::entity::CardRarity::Unspecified)
                 {
                     None
                 } else {
@@ -681,7 +684,12 @@ pub mod grpc_service {
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(card_proto::ListCardsResponse {
                 cards: items.iter().map(card_to_proto).collect(),
-                page: Some(page_to_proto(page_req.page, page_req.page_size, total, has_next)),
+                page: Some(page_to_proto(
+                    page_req.page,
+                    page_req.page_size,
+                    total,
+                    has_next,
+                )),
             }))
         }
 
@@ -723,14 +731,20 @@ pub mod grpc_service {
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(card_proto::ListCardSeriesResponse {
                 series: items.iter().map(card_series_to_proto).collect(),
-                page: Some(page_to_proto(page_req.page, page_req.page_size, total, has_next)),
+                page: Some(page_to_proto(
+                    page_req.page,
+                    page_req.page_size,
+                    total,
+                    has_next,
+                )),
             }))
         }
 
         async fn get_player_collection(
             &self,
             request: Request<card_proto::GetPlayerCollectionRequest>,
-        ) -> std::result::Result<Response<card_proto::GetPlayerCollectionResponse>, Status> {
+        ) -> std::result::Result<Response<card_proto::GetPlayerCollectionResponse>, Status>
+        {
             let req = request.get_ref();
             let owner_id_str = req
                 .player
@@ -773,8 +787,10 @@ pub mod grpc_service {
                 .find_by_ids(&card_ids)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let master_map: std::collections::HashMap<String, crate::entity::Card> =
-                masters.into_iter().map(|c| (c.card_id.clone(), c)).collect();
+            let master_map: std::collections::HashMap<String, crate::entity::Card> = masters
+                .into_iter()
+                .map(|c| (c.card_id.clone(), c))
+                .collect();
             for i in &items {
                 if let Some(c) = master_map.get(&i.card_id) {
                     *by_rarity_map
@@ -784,7 +800,12 @@ pub mod grpc_service {
             }
             Ok(Response::new(card_proto::GetPlayerCollectionResponse {
                 instances: items.iter().map(card_instance_to_proto).collect(),
-                page: Some(page_to_proto(page_req.page, page_req.page_size, total, false)),
+                page: Some(page_to_proto(
+                    page_req.page,
+                    page_req.page_size,
+                    total,
+                    false,
+                )),
                 total_count: total.max(0) as u32,
                 by_rarity: by_rarity_map,
             }))
@@ -793,7 +814,8 @@ pub mod grpc_service {
         async fn add_card_to_collection(
             &self,
             request: Request<card_proto::AddCardToCollectionRequest>,
-        ) -> std::result::Result<Response<card_proto::AddCardToCollectionResponse>, Status> {
+        ) -> std::result::Result<Response<card_proto::AddCardToCollectionResponse>, Status>
+        {
             let req = request.get_ref();
             let owner_id_str = req
                 .player
@@ -826,8 +848,9 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<card_proto::RemoveCardFromCollectionResponse>, Status>
         {
             let req = request.get_ref();
-            let instance_id = Uuid::parse_str(&req.instance_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.instance_id)))?;
+            let instance_id = Uuid::parse_str(&req.instance_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.instance_id))
+            })?;
             let owner_id_str = req
                 .player
                 .as_ref()
@@ -846,7 +869,9 @@ pub mod grpc_service {
                 .remove_card_from_collection(instance_id, owner_id, req.reason.clone(), saga_id)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            Ok(Response::new(card_proto::RemoveCardFromCollectionResponse { removed }))
+            Ok(Response::new(
+                card_proto::RemoveCardFromCollectionResponse { removed },
+            ))
         }
 
         async fn open_pack(
@@ -893,7 +918,11 @@ pub mod grpc_service {
                 entries,
             };
             Ok(Response::new(card_proto::OpenPackResponse {
-                instances: result.instances.iter().map(card_instance_to_proto).collect(),
+                instances: result
+                    .instances
+                    .iter()
+                    .map(card_instance_to_proto)
+                    .collect(),
                 drop_table: Some(drop_table_proto),
                 transaction_id: result.transaction_id,
             }))
@@ -975,7 +1004,10 @@ mod tests {
     #[tokio::test]
     async fn get_card_found_and_not_found() {
         let (svc, cards, _, _) = make_service();
-        cards.create(&sample_card("card_001", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_001", CardRarity::Common))
+            .await
+            .unwrap();
         let found = svc.get_card("card_001").await.unwrap();
         assert_eq!(found.card_id, "card_001");
         let not_found = svc.get_card("card_999").await;
@@ -992,16 +1024,31 @@ mod tests {
     #[tokio::test]
     async fn list_cards_with_filter_and_pagination() {
         let (svc, cards, _, _) = make_service();
-        cards.create(&sample_card("card_001", CardRarity::Common)).await.unwrap();
-        cards.create(&sample_card("card_002", CardRarity::Rare)).await.unwrap();
-        cards.create(&sample_card("card_003", CardRarity::Legendary)).await.unwrap();
+        cards
+            .create(&sample_card("card_001", CardRarity::Common))
+            .await
+            .unwrap();
+        cards
+            .create(&sample_card("card_002", CardRarity::Rare))
+            .await
+            .unwrap();
+        cards
+            .create(&sample_card("card_003", CardRarity::Legendary))
+            .await
+            .unwrap();
         // filter Common only
         let filter = CardFilter {
             rarity_filter: Some(CardRarity::Common),
             ..Default::default()
         };
         let (items, total, _) = svc
-            .list_cards(&filter, PageRequest { page: 1, page_size: 10 })
+            .list_cards(
+                &filter,
+                PageRequest {
+                    page: 1,
+                    page_size: 10,
+                },
+            )
             .await
             .unwrap();
         assert_eq!(total, 1);
@@ -1012,7 +1059,10 @@ mod tests {
         let (items_p1, total_p1, has_next_p1) = svc
             .list_cards(
                 &CardFilter::default(),
-                PageRequest { page: 1, page_size: 2 },
+                PageRequest {
+                    page: 1,
+                    page_size: 2,
+                },
             )
             .await
             .unwrap();
@@ -1024,7 +1074,10 @@ mod tests {
         let (items_p2, _, has_next_p2) = svc
             .list_cards(
                 &CardFilter::default(),
-                PageRequest { page: 2, page_size: 2 },
+                PageRequest {
+                    page: 2,
+                    page_size: 2,
+                },
             )
             .await
             .unwrap();
@@ -1066,7 +1119,10 @@ mod tests {
     #[tokio::test]
     async fn get_player_collection_with_filter() {
         let (svc, cards, series, instances) = make_service();
-        cards.create(&sample_card("card_common", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_common", CardRarity::Common))
+            .await
+            .unwrap();
         let mut c_legendary = sample_card("card_legendary", CardRarity::Legendary);
         c_legendary.series_id = "series_001".to_string();
         cards.create(&c_legendary).await.unwrap();
@@ -1080,8 +1136,7 @@ mod tests {
             owner,
             CardInstanceSource::Pack,
         );
-        let i_other =
-            CardInstance::new("card_common".to_string(), other, CardInstanceSource::Pack);
+        let i_other = CardInstance::new("card_common".to_string(), other, CardInstanceSource::Pack);
         instances.add_many(&[i1, i2, i_other]).await.unwrap();
 
         let (items, total) = svc
@@ -1113,12 +1168,7 @@ mod tests {
         let (svc, _, _, _) = make_service();
         let owner = Uuid::new_v4();
         let res = svc
-            .add_card_to_collection(
-                owner,
-                "card_nonexistent",
-                CardInstanceSource::GmGrant,
-                None,
-            )
+            .add_card_to_collection(owner, "card_nonexistent", CardInstanceSource::GmGrant, None)
             .await;
         assert!(matches!(res, Err(Error::CardNotFound(_))));
     }
@@ -1126,7 +1176,10 @@ mod tests {
     #[tokio::test]
     async fn add_card_to_collection_creates_instance() {
         let (svc, cards, _, _) = make_service();
-        cards.create(&sample_card("card_001", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_001", CardRarity::Common))
+            .await
+            .unwrap();
         let owner = Uuid::new_v4();
         let (instance_id, instance) = svc
             .add_card_to_collection(owner, "card_001", CardInstanceSource::Pack, None)
@@ -1141,7 +1194,10 @@ mod tests {
     #[tokio::test]
     async fn remove_card_from_collection_forbidden_when_not_owner() {
         let (svc, cards, _, instances) = make_service();
-        cards.create(&sample_card("card_001", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_001", CardRarity::Common))
+            .await
+            .unwrap();
         let real_owner = Uuid::new_v4();
         let other = Uuid::new_v4();
         let inst = CardInstance::new("card_001".to_string(), real_owner, CardInstanceSource::Pack);
@@ -1155,10 +1211,12 @@ mod tests {
     #[tokio::test]
     async fn remove_card_from_collection_locked_conflict() {
         let (svc, cards, _, instances) = make_service();
-        cards.create(&sample_card("card_001", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_001", CardRarity::Common))
+            .await
+            .unwrap();
         let owner = Uuid::new_v4();
-        let mut inst =
-            CardInstance::new("card_001".to_string(), owner, CardInstanceSource::Pack);
+        let mut inst = CardInstance::new("card_001".to_string(), owner, CardInstanceSource::Pack);
         inst.locked = true;
         instances.add_many(&[inst.clone()]).await.unwrap();
         let res = svc
@@ -1170,15 +1228,39 @@ mod tests {
     #[tokio::test]
     async fn open_pack_returns_drop_table_snapshot() {
         let (svc, cards, series, _) = make_service();
-        cards.create(&sample_card("card_common", CardRarity::Common)).await.unwrap();
-        cards.create(&sample_card("card_rare", CardRarity::Rare)).await.unwrap();
-        cards.create(&sample_card("card_legendary", CardRarity::Legendary)).await.unwrap();
+        cards
+            .create(&sample_card("card_common", CardRarity::Common))
+            .await
+            .unwrap();
+        cards
+            .create(&sample_card("card_rare", CardRarity::Rare))
+            .await
+            .unwrap();
+        cards
+            .create(&sample_card("card_legendary", CardRarity::Legendary))
+            .await
+            .unwrap();
         // 用 count=1 的 drop_table (每个 entry 出 1 张), 验证 pack_size * pack_count 实例数
         let mut s = CardSeries::new("series_snap".to_string(), "Snap".to_string(), 5);
         s.drop_table = DropTable::new(vec![
-            DropEntry { rarity: CardRarity::Common, count: 1, probability: 0.7, card_id: Some("card_common".to_string()) },
-            DropEntry { rarity: CardRarity::Rare, count: 1, probability: 0.25, card_id: Some("card_rare".to_string()) },
-            DropEntry { rarity: CardRarity::Legendary, count: 1, probability: 0.05, card_id: Some("card_legendary".to_string()) },
+            DropEntry {
+                rarity: CardRarity::Common,
+                count: 1,
+                probability: 0.7,
+                card_id: Some("card_common".to_string()),
+            },
+            DropEntry {
+                rarity: CardRarity::Rare,
+                count: 1,
+                probability: 0.25,
+                card_id: Some("card_rare".to_string()),
+            },
+            DropEntry {
+                rarity: CardRarity::Legendary,
+                count: 1,
+                probability: 0.05,
+                card_id: Some("card_legendary".to_string()),
+            },
         ]);
         series.upsert(&s).await.unwrap();
         let owner = Uuid::new_v4();
@@ -1222,7 +1304,10 @@ mod tests {
     #[tokio::test]
     async fn open_pack_rejects_zero_pack_count() {
         let (svc, cards, series, _) = make_service();
-        cards.create(&sample_card("card_common", CardRarity::Common)).await.unwrap();
+        cards
+            .create(&sample_card("card_common", CardRarity::Common))
+            .await
+            .unwrap();
         series.upsert(&packable_series("series_001")).await.unwrap();
         let owner = Uuid::new_v4();
         let res = svc.open_pack(owner, "series_001", 0, None).await;
@@ -1243,9 +1328,24 @@ mod tests {
         }
         let mut s = CardSeries::new("series_dist".to_string(), "Dist".to_string(), 5);
         s.drop_table = DropTable::new(vec![
-            DropEntry { rarity: CardRarity::Common, count: 1, probability: 0.7, card_id: Some("c1".to_string()) },
-            DropEntry { rarity: CardRarity::Rare, count: 1, probability: 0.25, card_id: Some("c2".to_string()) },
-            DropEntry { rarity: CardRarity::Legendary, count: 1, probability: 0.05, card_id: Some("c3".to_string()) },
+            DropEntry {
+                rarity: CardRarity::Common,
+                count: 1,
+                probability: 0.7,
+                card_id: Some("c1".to_string()),
+            },
+            DropEntry {
+                rarity: CardRarity::Rare,
+                count: 1,
+                probability: 0.25,
+                card_id: Some("c2".to_string()),
+            },
+            DropEntry {
+                rarity: CardRarity::Legendary,
+                count: 1,
+                probability: 0.05,
+                card_id: Some("c3".to_string()),
+            },
         ]);
         series.upsert(&s).await.unwrap();
         let owner = Uuid::new_v4();

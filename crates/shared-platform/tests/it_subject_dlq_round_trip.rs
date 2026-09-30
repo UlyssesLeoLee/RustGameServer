@@ -64,7 +64,11 @@ fn it_subject_dlq_serde_preserves_naming() {
     assert_eq!(decoded.original_subject, dlq);
     assert_eq!(decoded.decode_payload(), b"player-payload");
     // JSON 中应包含 rgs.dlq 前缀
-    assert!(json.contains("rgs.dlq."), "JSON 应含 DLQ 命名空间: {}", json);
+    assert!(
+        json.contains("rgs.dlq."),
+        "JSON 应含 DLQ 命名空间: {}",
+        json
+    );
 }
 
 /// 场景 3: domain event + json_logging span 协同

@@ -64,14 +64,14 @@ pub use trade_saga_clients::{
 
 // v3 增量 re-exports (per 9/4 MD Phase 2)
 pub use shop_entity::{
-    InMemoryEconomyV3Repository, MysteryShop, ShopItemEntity, ShopRecord,
     ActivityPlayerState, ActivityTemplateEntity, ActivityType, FlashSaleItemEntity,
-    FundPlayerState, GrowthFund, LootTable, MonthlyCardState, PrivilegeItemEntity,
-    RechargeOrder, SummonPoolEntity, SummonResultEntity,
+    FundPlayerState, GrowthFund, InMemoryEconomyV3Repository, LootTable, MonthlyCardState,
+    MysteryShop, PrivilegeItemEntity, RechargeOrder, ShopItemEntity, ShopRecord, SummonPoolEntity,
+    SummonResultEntity,
 };
 pub use shop_service::{
-    ShopServiceImpl, ShopService, RechargeService, SummonService, FlashSaleService,
-    FundService, ActivityService,
+    ActivityService, FlashSaleService, FundService, RechargeService, ShopService, ShopServiceImpl,
+    SummonService,
 };
 
 pub mod proto;

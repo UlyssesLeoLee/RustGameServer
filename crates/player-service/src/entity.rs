@@ -468,7 +468,12 @@ mod tests {
 
     #[test]
     fn game_mode_roundtrip() {
-        for m in [GameMode::Ranked, GameMode::Casual, GameMode::Room, GameMode::Ai] {
+        for m in [
+            GameMode::Ranked,
+            GameMode::Casual,
+            GameMode::Room,
+            GameMode::Ai,
+        ] {
             assert_eq!(GameMode::from_i32(m.as_i32()), Some(m));
         }
         assert_eq!(GameMode::from_i32(99), None);

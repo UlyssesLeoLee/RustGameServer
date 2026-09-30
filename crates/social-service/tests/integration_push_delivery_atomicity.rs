@@ -22,8 +22,8 @@ use std::time::Duration;
 
 use social_service::push_delivery::{
     sanitize_push_content, DeliveryResultCode, DispatchOutcome, DispatcherConfig,
-    InMemoryNatsPublisher, InMemoryPushDlqRepository, NatsPushDispatcher, PUSH_DELIVERY_SUBJECT,
-    PUSH_DLQ_SUBJECT, PushDeliveryRequest, PushDeliveryResult, PushDispatcher, PushDlqRepository,
+    InMemoryNatsPublisher, InMemoryPushDlqRepository, NatsPushDispatcher, PushDeliveryRequest,
+    PushDeliveryResult, PushDispatcher, PushDlqRepository, PUSH_DELIVERY_SUBJECT, PUSH_DLQ_SUBJECT,
 };
 
 // ============================================================================
@@ -261,8 +261,11 @@ async fn push_delivery_atomicity_partial_failure_retryable_then_full_success() {
     // 第 1 轮已成功的 3 个 attempts 不应增加 (idempotent skip)
     let snap2_intermediate = dispatcher.snapshot();
     let _ = snap2_intermediate; // 仅为 snapshot 复用检查
-    // total_attempts = 5 (第1轮) + 2 (重试) = 7
-    assert_eq!(dispatcher.total_attempts, 7, "总尝试次数 = 5 (R1) + 2 (R2 重试) = 7");
+                                // total_attempts = 5 (第1轮) + 2 (重试) = 7
+    assert_eq!(
+        dispatcher.total_attempts, 7,
+        "总尝试次数 = 5 (R1) + 2 (R2 重试) = 7"
+    );
 
     // 验证 DeliveryResultCode roundtrip: 已 Delivered 的 code 0 可正常转回
     let result = PushDeliveryResult {
@@ -469,11 +472,17 @@ async fn push_dispatcher_e2e_retry_exhausted_routes_to_dlq_table_and_subject() {
 
     let outcome = dispatcher.dispatch(&req_q7("acc-exhausted")).await;
     match &outcome {
-        DispatchOutcome::DeadLettered { attempts, last_error } => {
+        DispatchOutcome::DeadLettered {
+            attempts,
+            last_error,
+        } => {
             assert_eq!(*attempts, 3);
             assert!(last_error.contains("always_fail"));
         }
-        other => panic!("retry 耗尽期望 DeadLettered{{attempts: 3, ..}}, got {:?}", other),
+        other => panic!(
+            "retry 耗尽期望 DeadLettered{{attempts: 3, ..}}, got {:?}",
+            other
+        ),
     }
     // 0 条到 social.push.delivery (publish 一直失败)
     assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 0);

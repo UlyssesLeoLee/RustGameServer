@@ -153,8 +153,7 @@ mod tests {
     #[test]
     fn database_to_internal() {
         // 用 anyhow::Error 模拟 Database 内部错误路径(避免依赖具体 sqlx::Error 变体)
-        let s: tonic::Status =
-            Error::Internal(anyhow::anyhow!("simulated db failure")).into();
+        let s: tonic::Status = Error::Internal(anyhow::anyhow!("simulated db failure")).into();
         assert_eq!(s.code(), Code::Internal);
     }
 

@@ -44,7 +44,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use tokio::sync::OnceCell;
-use tonic::transport::{Channel, ClientTlsConfig, Endpoint, Identity, Certificate};
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
 use tracing::{debug, warn};
 
 use crate::bot::act::ActKind;
@@ -406,9 +406,9 @@ impl BotAi for SocialBotAi {
     async fn init(&self, bot: &Bot) -> anyhow::Result<()> {
         let channel = self.build_channel().await?;
         // OnceCell::set 失败 = 重复 init, 立即报错 (防误用)
-        self.channel.set(channel).map_err(|_| {
-            anyhow::anyhow!("SocialBotAi channel already initialized (重复 init)")
-        })?;
+        self.channel
+            .set(channel)
+            .map_err(|_| anyhow::anyhow!("SocialBotAi channel already initialized (重复 init)"))?;
 
         debug!(
             bot_id = bot.id(),
@@ -435,7 +435,11 @@ impl BotAi for SocialBotAi {
     }
 
     async fn handle(&self, bot: &Bot, act: ActKind) -> anyhow::Result<()> {
-        debug!(bot_id = bot.id(), ?act, "SocialBotAi::handle (wave 4 真实 RPC)");
+        debug!(
+            bot_id = bot.id(),
+            ?act,
+            "SocialBotAi::handle (wave 4 真实 RPC)"
+        );
         match act {
             ActKind::Guild => {
                 // 真实调用 social.v1.SocialServiceClient::get_guild(EntityId { id: bot.id() })
@@ -608,11 +612,17 @@ mod tests {
         // k3s baseline 0/12 阶段无 svc 监听, connect 立即 RST, 走降级
         let ai = SocialBotAi::default();
         let bot = dummy_bot();
-        ai.init(&bot).await.expect("init (含 wave 4 真实 health_check)");
+        ai.init(&bot)
+            .await
+            .expect("init (含 wave 4 真实 health_check)");
 
         // 显式调 health_check, 应返 Ok(()) (k3s 不可达预期)
         let r = ai.rpc_health_check().await;
-        assert!(r.is_ok(), "rpc_health_check 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "rpc_health_check 应返 Ok(()) 走降级模式, 实际: {:?}",
+            r
+        );
     }
 
     #[tokio::test]
@@ -623,7 +633,11 @@ mod tests {
         ai.init(&bot).await.expect("init");
 
         let r = ai.rpc_get_guild(&bot).await;
-        assert!(r.is_ok(), "rpc_get_guild 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "rpc_get_guild 应返 Ok(()) 走降级模式, 实际: {:?}",
+            r
+        );
     }
 
     #[tokio::test]
@@ -631,7 +645,11 @@ mod tests {
         // 未 init 直接调 health_check → 返 Ok(()) 防御, 不 panic
         let ai = SocialBotAi::default();
         let r = ai.rpc_health_check().await;
-        assert!(r.is_ok(), "未 init 调 health_check 应返 Ok(()) 防御, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "未 init 调 health_check 应返 Ok(()) 防御, 实际: {:?}",
+            r
+        );
     }
 
     #[tokio::test]
@@ -642,7 +660,11 @@ mod tests {
         let bot = dummy_bot();
         ai.init(&bot).await.expect("init");
         let r = ai.handle(&bot, ActKind::Guild).await;
-        assert!(r.is_ok(), "handle(Guild) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "handle(Guild) 应返 Ok(()) 走降级模式, 实际: {:?}",
+            r
+        );
     }
 
     #[tokio::test]
@@ -652,7 +674,11 @@ mod tests {
         let bot = dummy_bot();
         ai.init(&bot).await.expect("init");
         let r = ai.handle(&bot, ActKind::Heartbeat).await;
-        assert!(r.is_ok(), "handle(Heartbeat) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "handle(Heartbeat) 应返 Ok(()) 走降级模式, 实际: {:?}",
+            r
+        );
     }
 
     #[tokio::test]
@@ -662,6 +688,10 @@ mod tests {
         let bot = dummy_bot();
         ai.init(&bot).await.expect("init");
         let r = ai.handle(&bot, ActKind::Partner).await;
-        assert!(r.is_ok(), "handle(Partner) 应返 Ok(()) 走降级模式, 实际: {:?}", r);
+        assert!(
+            r.is_ok(),
+            "handle(Partner) 应返 Ok(()) 走降级模式, 实际: {:?}",
+            r
+        );
     }
 }

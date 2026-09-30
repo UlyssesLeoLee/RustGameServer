@@ -38,7 +38,9 @@ pub async fn grant_item(
     if body.amount <= 0 || body.amount > i32::MAX as i64 {
         return HttpResponse::BadRequest().json(json!({"error": "invalid_amount"}));
     }
-    let admin = extract_claims(&req).map(|c: Claims| c.sub).unwrap_or_else(|| "unknown".to_string());
+    let admin = extract_claims(&req)
+        .map(|c: Claims| c.sub)
+        .unwrap_or_else(|| "unknown".to_string());
     let id = NEXT_GRANT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let entry = GrantEntry {
         id,

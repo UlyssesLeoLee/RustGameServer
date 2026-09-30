@@ -209,7 +209,12 @@ impl LeaderboardRepository for PgLeaderboardRepository {
     async fn upsert(&self, entity: &LeaderboardEntry) -> Result<(LeaderboardEntry, bool)> {
         // 计算 upsert 前的 rank (用于判断 rank_changed)
         let old_rank = self
-            .rank_of(entity.player_id, entity.leaderboard_type, entity.period, &entity.season_id)
+            .rank_of(
+                entity.player_id,
+                entity.leaderboard_type,
+                entity.period,
+                &entity.season_id,
+            )
             .await?;
 
         sqlx::query(
@@ -236,7 +241,12 @@ impl LeaderboardRepository for PgLeaderboardRepository {
         .await?;
 
         let new_rank = self
-            .rank_of(entity.player_id, entity.leaderboard_type, entity.period, &entity.season_id)
+            .rank_of(
+                entity.player_id,
+                entity.leaderboard_type,
+                entity.period,
+                &entity.season_id,
+            )
             .await?;
 
         let rank_changed = match (old_rank, new_rank) {
@@ -377,7 +387,12 @@ impl LeaderboardRepository for InMemoryLeaderboardRepository {
 
     async fn upsert(&self, entity: &LeaderboardEntry) -> Result<(LeaderboardEntry, bool)> {
         let old_rank = self
-            .rank_of(entity.player_id, entity.leaderboard_type, entity.period, &entity.season_id)
+            .rank_of(
+                entity.player_id,
+                entity.leaderboard_type,
+                entity.period,
+                &entity.season_id,
+            )
             .await?;
         // 临界区: 移除旧 + 插入新 (原子, 不跨 await)
         {
@@ -392,7 +407,12 @@ impl LeaderboardRepository for InMemoryLeaderboardRepository {
             guard.insert(entity.id, entity.clone());
         }
         let new_rank = self
-            .rank_of(entity.player_id, entity.leaderboard_type, entity.period, &entity.season_id)
+            .rank_of(
+                entity.player_id,
+                entity.leaderboard_type,
+                entity.period,
+                &entity.season_id,
+            )
             .await?;
         let rank_changed = match (old_rank, new_rank) {
             (Some(o), Some(n)) => o != n,
@@ -486,7 +506,12 @@ mod tests {
     async fn in_memory_pagination() {
         let repo = InMemoryLeaderboardRepository::new();
         for s in 0..5 {
-            let e = entry(LeaderboardType::Collection, LeaderboardPeriod::AllTime, "", s * 10);
+            let e = entry(
+                LeaderboardType::Collection,
+                LeaderboardPeriod::AllTime,
+                "",
+                s * 10,
+            );
             repo.upsert(&e).await.unwrap();
         }
         let (page1, total) = repo

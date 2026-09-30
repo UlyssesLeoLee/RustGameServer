@@ -266,7 +266,8 @@ pub fn unpack_str(buf: &[u8]) -> Result<(&str, &[u8]), TlvError> {
             available: buf.len().saturating_sub(2),
         });
     }
-    let s = std::str::from_utf8(&buf[2..2 + len]).map_err(|_| TlvError::InvalidUtf8 { offset: 2 })?;
+    let s =
+        std::str::from_utf8(&buf[2..2 + len]).map_err(|_| TlvError::InvalidUtf8 { offset: 2 })?;
     Ok((s, &buf[2 + len..]))
 }
 
@@ -307,57 +308,45 @@ pub fn unpack_bytes(buf: &[u8]) -> Result<(Vec<u8>, &[u8]), TlvError> {
 pub fn pack_value(out: &mut Vec<u8>, schema: &FieldSchema, value: &Value) -> Result<(), TlvError> {
     match schema.ty {
         FieldType::I8 => {
-            let n = value
-                .as_i64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::I8,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_i64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::I8,
+                actual: value.clone(),
+            })?;
             pack_int8(out, n as i8);
         }
         FieldType::U8 => {
-            let n = value
-                .as_u64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::U8,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_u64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::U8,
+                actual: value.clone(),
+            })?;
             pack_uint8(out, n as u8);
         }
         FieldType::I16 => {
-            let n = value
-                .as_i64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::I16,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_i64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::I16,
+                actual: value.clone(),
+            })?;
             pack_int16(out, n as i16);
         }
         FieldType::U16 => {
-            let n = value
-                .as_u64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::U16,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_u64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::U16,
+                actual: value.clone(),
+            })?;
             pack_uint16(out, n as u16);
         }
         FieldType::I32 => {
-            let n = value
-                .as_i64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::I32,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_i64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::I32,
+                actual: value.clone(),
+            })?;
             pack_int32(out, n as i32);
         }
         FieldType::U32 => {
-            let n = value
-                .as_u64()
-                .ok_or_else(|| TlvError::TypeMismatch {
-                    expected: FieldType::U32,
-                    actual: value.clone(),
-                })?;
+            let n = value.as_u64().ok_or_else(|| TlvError::TypeMismatch {
+                expected: FieldType::U32,
+                actual: value.clone(),
+            })?;
             pack_uint32(out, n as u32);
         }
         FieldType::Str => {
@@ -373,9 +362,7 @@ pub fn pack_value(out: &mut Vec<u8>, schema: &FieldSchema, value: &Value) -> Res
             let raw: Vec<u8> = if let Some(s) = value.as_str() {
                 s.as_bytes().to_vec()
             } else if let Some(arr) = value.as_array() {
-                arr.iter()
-                    .map(|v| v.as_u64().unwrap_or(0) as u8)
-                    .collect()
+                arr.iter().map(|v| v.as_u64().unwrap_or(0) as u8).collect()
             } else {
                 return Err(TlvError::TypeMismatch {
                     expected: FieldType::Bytes,
@@ -466,10 +453,12 @@ pub fn pack_fields(
     values: &HashMap<String, Value>,
 ) -> Result<(), TlvError> {
     for field in schema {
-        let v = values.get(&field.name).ok_or_else(|| TlvError::TypeMismatch {
-            expected: field.ty,
-            actual: Value::Null,
-        })?;
+        let v = values
+            .get(&field.name)
+            .ok_or_else(|| TlvError::TypeMismatch {
+                expected: field.ty,
+                actual: Value::Null,
+            })?;
         pack_value(out, field, v)?;
     }
     Ok(())
@@ -570,7 +559,10 @@ mod tests {
     use serde_json::json;
 
     fn map(pairs: &[(&str, Value)]) -> HashMap<String, Value> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.clone()))
+            .collect()
     }
 
     #[test]

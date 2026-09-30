@@ -262,9 +262,18 @@ mod tests {
         // 全部条目 OCC 通过 → Committed
         let db = MockOccDb::new();
         let proposal = vec![
-            ProposedEntry { entry_id: "ok-1".to_string(), version: 1 },
-            ProposedEntry { entry_id: "ok-2".to_string(), version: 1 },
-            ProposedEntry { entry_id: "ok-3".to_string(), version: 1 },
+            ProposedEntry {
+                entry_id: "ok-1".to_string(),
+                version: 1,
+            },
+            ProposedEntry {
+                entry_id: "ok-2".to_string(),
+                version: 1,
+            },
+            ProposedEntry {
+                entry_id: "ok-3".to_string(),
+                version: 1,
+            },
         ];
         let result = commit_proposed_match(&proposal, "match-1", &db);
         match result {
@@ -282,13 +291,25 @@ mod tests {
         // 第 2 条 conflict → 回滚第 1 条
         let db = MockOccDb::new();
         let proposal = vec![
-            ProposedEntry { entry_id: "ok-1".to_string(), version: 1 },
-            ProposedEntry { entry_id: "conflict-2".to_string(), version: 1 },
-            ProposedEntry { entry_id: "ok-3".to_string(), version: 1 },
+            ProposedEntry {
+                entry_id: "ok-1".to_string(),
+                version: 1,
+            },
+            ProposedEntry {
+                entry_id: "conflict-2".to_string(),
+                version: 1,
+            },
+            ProposedEntry {
+                entry_id: "ok-3".to_string(),
+                version: 1,
+            },
         ];
         let result = commit_proposed_match(&proposal, "match-1", &db);
         match result {
-            CommitResult::ConcurrentlyMatched { losing_entry, succeeded } => {
+            CommitResult::ConcurrentlyMatched {
+                losing_entry,
+                succeeded,
+            } => {
                 assert_eq!(losing_entry, "conflict-2");
                 assert_eq!(succeeded, vec!["ok-1".to_string()]);
                 assert_eq!(db.updated(), 1);
@@ -303,13 +324,26 @@ mod tests {
         // DB 错误也走回滚路径 (per DTL-026 §5 "失败时 rollback 已成功条目")
         let db = MockOccDb::new();
         let proposal = vec![
-            ProposedEntry { entry_id: "ok-1".to_string(), version: 1 },
-            ProposedEntry { entry_id: "err-2".to_string(), version: 1 },
+            ProposedEntry {
+                entry_id: "ok-1".to_string(),
+                version: 1,
+            },
+            ProposedEntry {
+                entry_id: "err-2".to_string(),
+                version: 1,
+            },
         ];
         let result = commit_proposed_match(&proposal, "match-1", &db);
         match result {
-            CommitResult::ConcurrentlyMatched { losing_entry, succeeded } => {
-                assert!(losing_entry.starts_with("db_error:"), "got {}", losing_entry);
+            CommitResult::ConcurrentlyMatched {
+                losing_entry,
+                succeeded,
+            } => {
+                assert!(
+                    losing_entry.starts_with("db_error:"),
+                    "got {}",
+                    losing_entry
+                );
                 assert_eq!(succeeded, vec!["ok-1".to_string()]);
                 assert_eq!(db.rollbacks(), 1);
             }

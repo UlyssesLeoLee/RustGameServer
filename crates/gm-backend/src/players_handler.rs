@@ -52,17 +52,20 @@ pub struct PlayerStatsResponse {
 fn generate_mock_players(count: usize) -> Vec<PlayerEntry> {
     let mut rng = rand::thread_rng();
     let statuses = ["online", "offline", "banned"];
-    (0..count).map(|i| {
-        let status = statuses[rng.gen_range(0..statuses.len())];
-        PlayerEntry {
-            id: format!("player-{:06}", 100000 + i),
-            display_name: format!("Player_{:04}", i),
-            status: status.to_string(),
-            level: rng.gen_range(1..80),
-            total_spent: rng.gen_range(0.0..5000.0),
-            last_login: (Utc::now() - chrono::Duration::seconds(rng.gen_range(0..86400 * 30))).to_rfc3339(),
-        }
-    }).collect()
+    (0..count)
+        .map(|i| {
+            let status = statuses[rng.gen_range(0..statuses.len())];
+            PlayerEntry {
+                id: format!("player-{:06}", 100000 + i),
+                display_name: format!("Player_{:04}", i),
+                status: status.to_string(),
+                level: rng.gen_range(1..80),
+                total_spent: rng.gen_range(0.0..5000.0),
+                last_login: (Utc::now() - chrono::Duration::seconds(rng.gen_range(0..86400 * 30)))
+                    .to_rfc3339(),
+            }
+        })
+        .collect()
 }
 
 pub async fn list_players(
@@ -79,15 +82,26 @@ pub async fn list_players(
     let filtered: Vec<_> = all
         .into_iter()
         .filter(|p| {
-            (search.is_empty() || p.display_name.to_lowercase().contains(&search) || p.id.contains(&search))
+            (search.is_empty()
+                || p.display_name.to_lowercase().contains(&search)
+                || p.id.contains(&search))
                 && (status_filter.is_empty() || p.status == status_filter)
         })
         .collect();
     let total = filtered.len() as u32;
     let start = ((page - 1) * page_size) as usize;
-    let players: Vec<_> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+    let players: Vec<_> = filtered
+        .into_iter()
+        .skip(start)
+        .take(page_size as usize)
+        .collect();
 
-    HttpResponse::Ok().json(PlayersResponse { players, total, page, page_size })
+    HttpResponse::Ok().json(PlayersResponse {
+        players,
+        total,
+        page,
+        page_size,
+    })
 }
 
 pub async fn get_player_stats(_state: web::Data<AppState>) -> HttpResponse {
@@ -99,6 +113,11 @@ pub async fn get_player_stats(_state: web::Data<AppState>) -> HttpResponse {
     let avg_level = all.iter().map(|p| p.level).sum::<u32>() as f32 / total as f32;
     let high_value = all.iter().filter(|p| p.total_spent > 1000.0).count() as u32;
     HttpResponse::Ok().json(PlayerStatsResponse {
-        total, online, offline, banned, average_level: avg_level, high_value,
+        total,
+        online,
+        offline,
+        banned,
+        average_level: avg_level,
+        high_value,
     })
 }

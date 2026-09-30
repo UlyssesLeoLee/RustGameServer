@@ -54,7 +54,10 @@ async fn guild_lifecycle_create_join_promote_dissolve_rejoin_fail() {
         .expect("create_guild 必须成功");
     assert_eq!(guild.name, "Knights of Lifecycle");
     assert_eq!(guild.leader_id, leader_id);
-    assert_eq!(guild.member_count, 1, "create 后 leader 自动入会, member_count=1");
+    assert_eq!(
+        guild.member_count, 1,
+        "create 后 leader 自动入会, member_count=1"
+    );
     assert_eq!(guild.level, 1);
 
     // leader 应有对应的 GuildMember 记录, 角色=Leader
@@ -62,7 +65,11 @@ async fn guild_lifecycle_create_join_promote_dissolve_rejoin_fail() {
         .find_by_player(leader_id)
         .await
         .expect("leader member records query");
-    assert_eq!(leader_member_records.len(), 1, "leader 自动生成 1 条 member 记录");
+    assert_eq!(
+        leader_member_records.len(),
+        1,
+        "leader 自动生成 1 条 member 记录"
+    );
     assert_eq!(leader_member_records[0].role, GuildRole::Leader);
     assert_eq!(leader_member_records[0].guild_id, guild.id);
 
@@ -154,7 +161,13 @@ async fn guild_lifecycle_create_join_promote_dissolve_rejoin_fail() {
         .await
         .expect_err("dissolve 后 join 必须 NotFound");
     assert!(
-        matches!(rejoin_err, Error::NotFound { entity: "Guild", .. }),
+        matches!(
+            rejoin_err,
+            Error::NotFound {
+                entity: "Guild",
+                ..
+            }
+        ),
         "期望 NotFound {{ entity: Guild, .. }}, got {:?}",
         rejoin_err
     );
@@ -198,7 +211,10 @@ async fn guild_lifecycle_dissolve_clears_officer_records() {
     );
     // guild 列表 (按 leader) 也应空
     let leader_guilds = guild_repo.list_by_leader(leader_id).await.unwrap();
-    assert!(leader_guilds.is_empty(), "dissolve 后 leader 不再拥有任何 guild");
+    assert!(
+        leader_guilds.is_empty(),
+        "dissolve 后 leader 不再拥有任何 guild"
+    );
 }
 
 /// 额外覆盖: leader 的 member 记录 GuildMember 字段在 dissolve 前一致性
@@ -247,7 +263,11 @@ async fn leave_guild_normal_member_does_not_dissolve() {
     svc.join_guild(guild.id, player_a).await.unwrap();
     svc.join_guild(guild.id, player_b).await.unwrap();
     assert_eq!(
-        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        svc.find_guild_by_id(guild.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .member_count,
         3
     );
 
@@ -296,7 +316,11 @@ async fn leave_guild_leader_transfers_to_oldest_remaining() {
     let _new_member = svc.join_guild(guild.id, player_new).await.unwrap();
 
     assert_eq!(
-        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        svc.find_guild_by_id(guild.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .member_count,
         4
     );
 
@@ -411,7 +435,11 @@ async fn leave_guild_cascading_leadership_transfer_keeps_guild_intact() {
     let player_c = Uuid::new_v4();
     svc.join_guild(guild.id, player_c).await.unwrap();
     assert_eq!(
-        svc.find_guild_by_id(guild.id).await.unwrap().unwrap().member_count,
+        svc.find_guild_by_id(guild.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .member_count,
         4
     );
 

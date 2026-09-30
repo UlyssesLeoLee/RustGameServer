@@ -87,7 +87,10 @@ impl GuildServiceImpl {
         capacity: u32,
     ) -> Result<Guild> {
         if capacity == 0 || capacity > 200 {
-            return Err(Error::InvalidRequest(format!("capacity {} out of range", capacity)));
+            return Err(Error::InvalidRequest(format!(
+                "capacity {} out of range",
+                capacity
+            )));
         }
         let mut guilds = self.guilds.write().await;
         if guilds.values().any(|g| g.name == name) {
@@ -104,13 +107,18 @@ impl GuildServiceImpl {
         };
         guilds.insert(g.guild_id, g.clone());
         let mut members = self.members.write().await;
-        members.insert(g.guild_id, vec![GuildMember::new(leader_id, "leader", GuildRole::Leader)]);
+        members.insert(
+            g.guild_id,
+            vec![GuildMember::new(leader_id, "leader", GuildRole::Leader)],
+        );
         Ok(g)
     }
 
     pub async fn disband_guild(&self, guild_id: Uuid, leader_id: Uuid) -> Result<()> {
         let mut guilds = self.guilds.write().await;
-        let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id != leader_id {
             return Err(Error::PermissionDenied("only leader can disband".into()));
         }
@@ -121,38 +129,63 @@ impl GuildServiceImpl {
 
     pub async fn get_guild_info(&self, guild_id: Uuid) -> Result<Guild> {
         let guilds = self.guilds.read().await;
-        guilds.get(&guild_id).cloned().ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))
+        guilds
+            .get(&guild_id)
+            .cloned()
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))
     }
 
     pub async fn update_notice(&self, guild_id: Uuid, leader_id: Uuid, notice: &str) -> Result<()> {
         let mut guilds = self.guilds.write().await;
-        let g = guilds.get_mut(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id != leader_id {
-            return Err(Error::PermissionDenied("only leader can update notice".into()));
+            return Err(Error::PermissionDenied(
+                "only leader can update notice".into(),
+            ));
         }
         g.notice = notice.to_string();
         Ok(())
     }
 
-    pub async fn get_member_list(&self, guild_id: Uuid, page: u32, page_size: u32) -> Result<Vec<GuildMember>> {
+    pub async fn get_member_list(
+        &self,
+        guild_id: Uuid,
+        page: u32,
+        page_size: u32,
+    ) -> Result<Vec<GuildMember>> {
         let members = self.members.read().await;
         let list = members.get(&guild_id).cloned().unwrap_or_default();
         if !self.guilds.read().await.contains_key(&guild_id) {
             return Err(Error::GuildNotFound(guild_id.to_string()));
         }
         let start = page as usize * page_size as usize;
-        Ok(list.into_iter().skip(start).take(page_size as usize).collect())
+        Ok(list
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect())
     }
 
-    pub async fn kick_member(&self, guild_id: Uuid, leader_id: Uuid, target_id: Uuid) -> Result<()> {
+    pub async fn kick_member(
+        &self,
+        guild_id: Uuid,
+        leader_id: Uuid,
+        target_id: Uuid,
+    ) -> Result<()> {
         let guilds = self.guilds.read().await;
-        let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id != leader_id {
             return Err(Error::PermissionDenied("only leader can kick".into()));
         }
         drop(guilds);
         let mut members = self.members.write().await;
-        let m = members.get_mut(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let m = members
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         let before = m.len();
         m.retain(|x| x.player_id != target_id);
         if m.len() == before {
@@ -161,29 +194,48 @@ impl GuildServiceImpl {
         Ok(())
     }
 
-    pub async fn promote_member(&self, guild_id: Uuid, leader_id: Uuid, target_id: Uuid, new_role: i32) -> Result<()> {
+    pub async fn promote_member(
+        &self,
+        guild_id: Uuid,
+        leader_id: Uuid,
+        target_id: Uuid,
+        new_role: i32,
+    ) -> Result<()> {
         let guilds = self.guilds.read().await;
-        let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id != leader_id {
             return Err(Error::PermissionDenied("only leader can promote".into()));
         }
         drop(guilds);
         let mut members = self.members.write().await;
-        let m = members.get_mut(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
-        let mem = m.iter_mut().find(|m| m.player_id == target_id).ok_or_else(|| Error::MemberNotFound(target_id.to_string()))?;
+        let m = members
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let mem = m
+            .iter_mut()
+            .find(|m| m.player_id == target_id)
+            .ok_or_else(|| Error::MemberNotFound(target_id.to_string()))?;
         mem.role = GuildRole::from_i32(new_role);
         Ok(())
     }
 
     pub async fn leave_guild(&self, guild_id: Uuid, player_id: Uuid) -> Result<()> {
         let guilds = self.guilds.read().await;
-        let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id == player_id {
-            return Err(Error::InvalidRequest("leader must disband not leave".into()));
+            return Err(Error::InvalidRequest(
+                "leader must disband not leave".into(),
+            ));
         }
         drop(guilds);
         let mut members = self.members.write().await;
-        let m = members.get_mut(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let m = members
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         let before = m.len();
         m.retain(|x| x.player_id != player_id);
         if m.len() == before {
@@ -195,7 +247,10 @@ impl GuildServiceImpl {
     pub async fn apply_to_guild(&self, guild_id: Uuid, player_id: Uuid) -> Result<()> {
         let _ = self.get_guild_info(guild_id).await?;
         let mut apps = self.apps.write().await;
-        if apps.get(&guild_id).map_or(false, |v| v.iter().any(|a| a.applicant_id == player_id && a.status == ApplicationStatus::Pending)) {
+        if apps.get(&guild_id).map_or(false, |v| {
+            v.iter()
+                .any(|a| a.applicant_id == player_id && a.status == ApplicationStatus::Pending)
+        }) {
             return Err(Error::AlreadyInGuild("pending application".into()));
         }
         apps.entry(guild_id).or_default().push(GuildApplication {
@@ -207,10 +262,17 @@ impl GuildServiceImpl {
         Ok(())
     }
 
-    pub async fn approve_application(&self, guild_id: Uuid, leader_id: Uuid, applicant_id: Uuid) -> Result<()> {
+    pub async fn approve_application(
+        &self,
+        guild_id: Uuid,
+        leader_id: Uuid,
+        applicant_id: Uuid,
+    ) -> Result<()> {
         let capacity = {
             let guilds = self.guilds.read().await;
-            let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+            let g = guilds
+                .get(&guild_id)
+                .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
             if g.leader_id != leader_id {
                 return Err(Error::PermissionDenied("only leader can approve".into()));
             }
@@ -218,8 +280,11 @@ impl GuildServiceImpl {
         };
         {
             let mut apps = self.apps.write().await;
-            let a = apps.get_mut(&guild_id).ok_or_else(|| Error::InvalidRequest("no applications".into()))?
-                .iter_mut().find(|a| a.applicant_id == applicant_id && a.status == ApplicationStatus::Pending)
+            let a = apps
+                .get_mut(&guild_id)
+                .ok_or_else(|| Error::InvalidRequest("no applications".into()))?
+                .iter_mut()
+                .find(|a| a.applicant_id == applicant_id && a.status == ApplicationStatus::Pending)
                 .ok_or_else(|| Error::InvalidRequest("no pending application".into()))?;
             a.status = ApplicationStatus::Approved;
         }
@@ -232,26 +297,45 @@ impl GuildServiceImpl {
         Ok(())
     }
 
-    pub async fn reject_application(&self, guild_id: Uuid, leader_id: Uuid, applicant_id: Uuid) -> Result<()> {
+    pub async fn reject_application(
+        &self,
+        guild_id: Uuid,
+        leader_id: Uuid,
+        applicant_id: Uuid,
+    ) -> Result<()> {
         let guilds = self.guilds.read().await;
-        let g = guilds.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let g = guilds
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if g.leader_id != leader_id {
             return Err(Error::PermissionDenied("only leader can reject".into()));
         }
         drop(guilds);
         let mut apps = self.apps.write().await;
-        let a = apps.get_mut(&guild_id).ok_or_else(|| Error::InvalidRequest("no applications".into()))?
-            .iter_mut().find(|a| a.applicant_id == applicant_id && a.status == ApplicationStatus::Pending)
+        let a = apps
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::InvalidRequest("no applications".into()))?
+            .iter_mut()
+            .find(|a| a.applicant_id == applicant_id && a.status == ApplicationStatus::Pending)
             .ok_or_else(|| Error::InvalidRequest("no pending application".into()))?;
         a.status = ApplicationStatus::Rejected;
         Ok(())
     }
 
-    pub async fn donate(&self, guild_id: Uuid, player_id: Uuid, _resource_type: u32, amount: u32) -> Result<u32> {
+    pub async fn donate(
+        &self,
+        guild_id: Uuid,
+        player_id: Uuid,
+        _resource_type: u32,
+        amount: u32,
+    ) -> Result<u32> {
         let _ = self.get_guild_info(guild_id).await?;
         let mut members = self.members.write().await;
-        let m = members.get_mut(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?
-            .iter_mut().find(|m| m.player_id == player_id)
+        let m = members
+            .get_mut(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?
+            .iter_mut()
+            .find(|m| m.player_id == player_id)
             .ok_or_else(|| Error::MemberNotFound(player_id.to_string()))?;
         m.add_contribution(amount);
         Ok(m.contribution)
@@ -277,17 +361,34 @@ impl GuildServiceImpl {
         }
     }
 
-    pub async fn get_guild_dungeon_info(&self, guild_id: Uuid, dungeon_id: &str) -> Result<(String, String, i32, i32, i32)> {
+    pub async fn get_guild_dungeon_info(
+        &self,
+        guild_id: Uuid,
+        dungeon_id: &str,
+    ) -> Result<(String, String, i32, i32, i32)> {
         let _ = self.get_guild_info(guild_id).await?;
         let cfg = Self::dungeon_config(dungeon_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown dungeon {}", dungeon_id)))?;
-        Ok((dungeon_id.to_string(), cfg.0.to_string(), cfg.1, cfg.2, cfg.3))
+        Ok((
+            dungeon_id.to_string(),
+            cfg.0.to_string(),
+            cfg.1,
+            cfg.2,
+            cfg.3,
+        ))
     }
 
-    pub async fn start_guild_dungeon(&self, guild_id: Uuid, dungeon_id: &str, leader_id: Uuid) -> Result<(String, i64, i32, i32)> {
+    pub async fn start_guild_dungeon(
+        &self,
+        guild_id: Uuid,
+        dungeon_id: &str,
+        leader_id: Uuid,
+    ) -> Result<(String, i64, i32, i32)> {
         let g = self.get_guild_info(guild_id).await?;
         if g.leader_id != leader_id {
-            return Err(Error::PermissionDenied("only leader can start dungeon".into()));
+            return Err(Error::PermissionDenied(
+                "only leader can start dungeon".into(),
+            ));
         }
         let cfg = Self::dungeon_config(dungeon_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown dungeon {}", dungeon_id)))?;
@@ -305,10 +406,16 @@ impl GuildServiceImpl {
         Ok((dungeon_id.to_string(), now, cfg.2, cfg.3))
     }
 
-    pub async fn report_guild_dungeon_progress(&self, guild_id: Uuid, dungeon_id: &str, boss_hp_remaining: i32) -> Result<(i32, bool, i64)> {
+    pub async fn report_guild_dungeon_progress(
+        &self,
+        guild_id: Uuid,
+        dungeon_id: &str,
+        boss_hp_remaining: i32,
+    ) -> Result<(i32, bool, i64)> {
         let _ = self.get_guild_info(guild_id).await?;
         let mut dungeons = self.dungeons.write().await;
-        let s = dungeons.get_mut(&(guild_id, dungeon_id.to_string()))
+        let s = dungeons
+            .get_mut(&(guild_id, dungeon_id.to_string()))
             .ok_or_else(|| Error::InvalidRequest("dungeon not started".into()))?;
         s.boss_hp_remaining = boss_hp_remaining.max(0);
         if boss_hp_remaining <= 0 {
@@ -318,12 +425,18 @@ impl GuildServiceImpl {
         Ok((s.boss_hp_remaining, s.defeated, now))
     }
 
-    pub async fn claim_guild_dungeon_reward(&self, guild_id: Uuid, dungeon_id: &str, player_id: Uuid) -> Result<(i32, i32, i32, bool)> {
+    pub async fn claim_guild_dungeon_reward(
+        &self,
+        guild_id: Uuid,
+        dungeon_id: &str,
+        player_id: Uuid,
+    ) -> Result<(i32, i32, i32, bool)> {
         let _ = self.get_guild_info(guild_id).await?;
         let cfg = Self::dungeon_config(dungeon_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown dungeon {}", dungeon_id)))?;
         let mut dungeons = self.dungeons.write().await;
-        let s = dungeons.get_mut(&(guild_id, dungeon_id.to_string()))
+        let s = dungeons
+            .get_mut(&(guild_id, dungeon_id.to_string()))
             .ok_or_else(|| Error::InvalidRequest("dungeon not started".into()))?;
         if !s.defeated {
             return Err(Error::InvalidRequest("dungeon not defeated".into()));
@@ -350,35 +463,59 @@ impl GuildServiceImpl {
         }
     }
 
-    pub async fn get_guild_skills(&self, guild_id: Uuid) -> Result<Vec<(String, String, i32, i32, i32, i32)>> {
+    pub async fn get_guild_skills(
+        &self,
+        guild_id: Uuid,
+    ) -> Result<Vec<(String, String, i32, i32, i32, i32)>> {
         let _ = self.get_guild_info(guild_id).await?;
         let dons = self.skill_dons.read().await;
         let mut out = Vec::new();
-        for (skill_id, cfg) in [("s_attack", Self::skill_config("s_attack").unwrap()),
-                               ("s_defense", Self::skill_config("s_defense").unwrap()),
-                               ("s_luck", Self::skill_config("s_luck").unwrap())] {
-            let level = dons.get(&(guild_id, skill_id.to_string())).map(|s| s.level).unwrap_or(0);
+        for (skill_id, cfg) in [
+            ("s_attack", Self::skill_config("s_attack").unwrap()),
+            ("s_defense", Self::skill_config("s_defense").unwrap()),
+            ("s_luck", Self::skill_config("s_luck").unwrap()),
+        ] {
+            let level = dons
+                .get(&(guild_id, skill_id.to_string()))
+                .map(|s| s.level)
+                .unwrap_or(0);
             let cost_gold = cfg.2 + level * cfg.2;
             let cost_contrib = cfg.3 + level * cfg.3;
-            out.push((skill_id.to_string(), cfg.0.to_string(), level, cfg.1, cost_gold, cost_contrib));
+            out.push((
+                skill_id.to_string(),
+                cfg.0.to_string(),
+                level,
+                cfg.1,
+                cost_gold,
+                cost_contrib,
+            ));
         }
         Ok(out)
     }
 
-    pub async fn upgrade_guild_skill(&self, guild_id: Uuid, skill_id: &str, leader_id: Uuid) -> Result<(String, i32, i32, i32)> {
+    pub async fn upgrade_guild_skill(
+        &self,
+        guild_id: Uuid,
+        skill_id: &str,
+        leader_id: Uuid,
+    ) -> Result<(String, i32, i32, i32)> {
         let g = self.get_guild_info(guild_id).await?;
         if g.leader_id != leader_id {
-            return Err(Error::PermissionDenied("only leader can upgrade skill".into()));
+            return Err(Error::PermissionDenied(
+                "only leader can upgrade skill".into(),
+            ));
         }
         let cfg = Self::skill_config(skill_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown skill {}", skill_id)))?;
         let mut dons = self.skill_dons.write().await;
-        let entry = dons.entry((guild_id, skill_id.to_string())).or_insert(GuildSkillDonState {
-            level: 0,
-            total_donated: 0,
-            last_donated_ms: 0,
-            bonus_claimed_by: Vec::new(),
-        });
+        let entry = dons
+            .entry((guild_id, skill_id.to_string()))
+            .or_insert(GuildSkillDonState {
+                level: 0,
+                total_donated: 0,
+                last_donated_ms: 0,
+                bonus_claimed_by: Vec::new(),
+            });
         if entry.level >= cfg.1 {
             return Err(Error::InvalidRequest("skill already max level".into()));
         }
@@ -389,7 +526,13 @@ impl GuildServiceImpl {
         Ok((skill_id.to_string(), new_level, cost_gold, cost_contrib))
     }
 
-    pub async fn donate_to_guild_skill(&self, guild_id: Uuid, skill_id: &str, amount: i32, player_id: Uuid) -> Result<(String, i32, i32)> {
+    pub async fn donate_to_guild_skill(
+        &self,
+        guild_id: Uuid,
+        skill_id: &str,
+        amount: i32,
+        player_id: Uuid,
+    ) -> Result<(String, i32, i32)> {
         let _ = self.get_guild_info(guild_id).await?;
         if amount <= 0 {
             return Err(Error::InvalidRequest("amount must be positive".into()));
@@ -398,17 +541,21 @@ impl GuildServiceImpl {
             .ok_or_else(|| Error::InvalidRequest(format!("unknown skill {}", skill_id)))?;
         // player must be a member
         let members = self.members.read().await;
-        let mlist = members.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let mlist = members
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if !mlist.iter().any(|m| m.player_id == player_id) {
             return Err(Error::MemberNotFound(player_id.to_string()));
         }
         let mut dons = self.skill_dons.write().await;
-        let entry = dons.entry((guild_id, skill_id.to_string())).or_insert(GuildSkillDonState {
-            level: 0,
-            total_donated: 0,
-            last_donated_ms: 0,
-            bonus_claimed_by: Vec::new(),
-        });
+        let entry = dons
+            .entry((guild_id, skill_id.to_string()))
+            .or_insert(GuildSkillDonState {
+                level: 0,
+                total_donated: 0,
+                last_donated_ms: 0,
+                bonus_claimed_by: Vec::new(),
+            });
         entry.total_donated = entry.total_donated.saturating_add(amount);
         entry.level = (entry.total_donated / 1000).min(10);
         entry.last_donated_ms = chrono::Utc::now().timestamp_millis();
@@ -417,12 +564,18 @@ impl GuildServiceImpl {
         Ok((skill_id.to_string(), new_level, total))
     }
 
-    pub async fn claim_guild_skill_bonus(&self, guild_id: Uuid, skill_id: &str, player_id: Uuid) -> Result<(i32, i32, bool)> {
+    pub async fn claim_guild_skill_bonus(
+        &self,
+        guild_id: Uuid,
+        skill_id: &str,
+        player_id: Uuid,
+    ) -> Result<(i32, i32, bool)> {
         let _ = self.get_guild_info(guild_id).await?;
         let cfg = Self::skill_config(skill_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown skill {}", skill_id)))?;
         let mut dons = self.skill_dons.write().await;
-        let s = dons.get_mut(&(guild_id, skill_id.to_string()))
+        let s = dons
+            .get_mut(&(guild_id, skill_id.to_string()))
             .ok_or_else(|| Error::InvalidRequest("skill has no donations yet".into()))?;
         if s.level < 1 {
             return Err(Error::InvalidRequest("skill not leveled".into()));
@@ -449,18 +602,27 @@ impl GuildServiceImpl {
 
     pub async fn get_shipping_routes(&self) -> Vec<(String, String, i32, i32, i32)> {
         let mut out = Vec::new();
-        for (id, cfg) in [("r_near", Self::route_config("r_near").unwrap()),
-                          ("r_mid", Self::route_config("r_mid").unwrap()),
-                          ("r_far", Self::route_config("r_far").unwrap())] {
+        for (id, cfg) in [
+            ("r_near", Self::route_config("r_near").unwrap()),
+            ("r_mid", Self::route_config("r_mid").unwrap()),
+            ("r_far", Self::route_config("r_far").unwrap()),
+        ] {
             out.push((id.to_string(), cfg.0.to_string(), cfg.1, cfg.2, cfg.3));
         }
         out
     }
 
-    pub async fn start_shipping(&self, guild_id: Uuid, route_id: &str, leader_id: Uuid) -> Result<(String, i64, i32)> {
+    pub async fn start_shipping(
+        &self,
+        guild_id: Uuid,
+        route_id: &str,
+        leader_id: Uuid,
+    ) -> Result<(String, i64, i32)> {
         let g = self.get_guild_info(guild_id).await?;
         if g.leader_id != leader_id {
-            return Err(Error::PermissionDenied("only leader can start shipping".into()));
+            return Err(Error::PermissionDenied(
+                "only leader can start shipping".into(),
+            ));
         }
         let cfg = Self::route_config(route_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown route {}", route_id)))?;
@@ -479,13 +641,21 @@ impl GuildServiceImpl {
         Ok((ship_id, arrival_ms, cfg.2))
     }
 
-    pub async fn claim_shipping_reward(&self, guild_id: Uuid, ship_id: &str, player_id: Uuid) -> Result<(i32, i32, bool)> {
+    pub async fn claim_shipping_reward(
+        &self,
+        guild_id: Uuid,
+        ship_id: &str,
+        player_id: Uuid,
+    ) -> Result<(i32, i32, bool)> {
         let _ = self.get_guild_info(guild_id).await?;
         let mut shippings = self.shippings.write().await;
-        let s = shippings.get_mut(&(guild_id, ship_id.to_string()))
+        let s = shippings
+            .get_mut(&(guild_id, ship_id.to_string()))
             .ok_or_else(|| Error::InvalidRequest("ship not found".into()))?;
         if s.claimed_by.contains(&player_id) {
-            return Err(Error::AlreadyInGuild("shipping reward already claimed".into()));
+            return Err(Error::AlreadyInGuild(
+                "shipping reward already claimed".into(),
+            ));
         }
         s.claimed_by.push(player_id);
         let reward = s.reward_gold / (s.claimed_by.len() as i32).max(1);
@@ -493,13 +663,24 @@ impl GuildServiceImpl {
         Ok((reward, item_count, true))
     }
 
-    pub async fn list_shipping_history(&self, guild_id: Uuid, top_n: u32) -> Result<Vec<(String, String, i32, i64)>> {
+    pub async fn list_shipping_history(
+        &self,
+        guild_id: Uuid,
+        top_n: u32,
+    ) -> Result<Vec<(String, String, i32, i64)>> {
         let _ = self.get_guild_info(guild_id).await?;
         let shippings = self.shippings.read().await;
         let mut rows: Vec<(String, String, i32, i64)> = shippings
             .iter()
             .filter(|((g, _), _)| *g == guild_id)
-            .map(|((_, ship_id), s)| (ship_id.clone(), s.route_id.clone(), s.reward_gold, s.arrived_at_ms))
+            .map(|((_, ship_id), s)| {
+                (
+                    ship_id.clone(),
+                    s.route_id.clone(),
+                    s.reward_gold,
+                    s.arrived_at_ms,
+                )
+            })
             .collect();
         rows.sort_by(|a, b| b.3.cmp(&a.3));
         Ok(rows.into_iter().take(top_n as usize).collect())
@@ -510,23 +691,53 @@ impl GuildServiceImpl {
     fn war_schedule() -> Vec<(String, String, i64, i32, &'static str)> {
         let now = chrono::Utc::now().timestamp_millis();
         vec![
-            ("w_001".to_string(), "黎明之战".to_string(), now + 3_600_000, 8, "scheduled"),
-            ("w_002".to_string(), "黄昏之战".to_string(), now + 7_200_000, 16, "scheduled"),
-            ("w_003".to_string(), "永夜之战".to_string(), now + 86_400_000, 32, "scheduled"),
+            (
+                "w_001".to_string(),
+                "黎明之战".to_string(),
+                now + 3_600_000,
+                8,
+                "scheduled",
+            ),
+            (
+                "w_002".to_string(),
+                "黄昏之战".to_string(),
+                now + 7_200_000,
+                16,
+                "scheduled",
+            ),
+            (
+                "w_003".to_string(),
+                "永夜之战".to_string(),
+                now + 86_400_000,
+                32,
+                "scheduled",
+            ),
         ]
     }
 
     pub async fn get_guild_war_schedule(&self) -> Vec<(String, String, i64, i32, String)> {
-        Self::war_schedule().into_iter().map(|(a, b, c, d, e)| (a, b, c, d, e.to_string())).collect()
+        Self::war_schedule()
+            .into_iter()
+            .map(|(a, b, c, d, e)| (a, b, c, d, e.to_string()))
+            .collect()
     }
 
-    pub async fn join_guild_war(&self, guild_id: Uuid, war_id: &str, player_id: Uuid) -> Result<(String, i32, i64)> {
+    pub async fn join_guild_war(
+        &self,
+        guild_id: Uuid,
+        war_id: &str,
+        player_id: Uuid,
+    ) -> Result<(String, i32, i64)> {
         let _ = self.get_guild_info(guild_id).await?;
         let schedule = Self::war_schedule();
-        let war = schedule.iter().find(|(wid, _, _, _, _)| wid == war_id)
+        let war = schedule
+            .iter()
+            .find(|(wid, _, _, _, _)| wid == war_id)
             .ok_or_else(|| Error::InvalidRequest(format!("unknown war {}", war_id)))?;
         let members = self.members.read().await;
-        let mlist = members.get(&guild_id).ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
+        let mlist = members
+            .get(&guild_id)
+            .ok_or_else(|| Error::GuildNotFound(guild_id.to_string()))?;
         if !mlist.iter().any(|m| m.player_id == player_id) {
             return Err(Error::MemberNotFound(player_id.to_string()));
         }
@@ -538,44 +749,68 @@ impl GuildServiceImpl {
         Ok((team_id, team_size, joined_at_ms))
     }
 
-    pub async fn report_guild_war_result(&self, war_id: &str, winner_guild_id: &str) -> Result<(bool, String, String, i64)> {
+    pub async fn report_guild_war_result(
+        &self,
+        war_id: &str,
+        winner_guild_id: &str,
+    ) -> Result<(bool, String, String, i64)> {
         let schedule = Self::war_schedule();
         if !schedule.iter().any(|(wid, _, _, _, _)| wid == war_id) {
             return Err(Error::InvalidRequest(format!("unknown war {}", war_id)));
         }
         let now = chrono::Utc::now().timestamp_millis();
         let mut results = self.war_results.write().await;
-        let prev_score = results.get(war_id).map(|s| s.scores.get(winner_guild_id).copied().unwrap_or(0)).unwrap_or(0);
-        let entry = results.entry(war_id.to_string()).or_insert_with(|| GuildWarResultState {
-            winner_guild_id: winner_guild_id.to_string(),
-            ended_at_ms: now,
-            scores: HashMap::new(),
-        });
+        let prev_score = results
+            .get(war_id)
+            .map(|s| s.scores.get(winner_guild_id).copied().unwrap_or(0))
+            .unwrap_or(0);
+        let entry = results
+            .entry(war_id.to_string())
+            .or_insert_with(|| GuildWarResultState {
+                winner_guild_id: winner_guild_id.to_string(),
+                ended_at_ms: now,
+                scores: HashMap::new(),
+            });
         entry.winner_guild_id = winner_guild_id.to_string();
         entry.ended_at_ms = now;
-        entry.scores.insert(winner_guild_id.to_string(), prev_score + 1);
+        entry
+            .scores
+            .insert(winner_guild_id.to_string(), prev_score + 1);
         Ok((true, war_id.to_string(), winner_guild_id.to_string(), now))
     }
 
-    pub async fn get_guild_war_leaderboard(&self, war_id: &str, top_n: u32) -> Result<Vec<(i32, String, String, i32)>> {
+    pub async fn get_guild_war_leaderboard(
+        &self,
+        war_id: &str,
+        top_n: u32,
+    ) -> Result<Vec<(i32, String, String, i32)>> {
         let schedule = Self::war_schedule();
         if !schedule.iter().any(|(wid, _, _, _, _)| wid == war_id) {
             return Err(Error::InvalidRequest(format!("unknown war {}", war_id)));
         }
         let results = self.war_results.read().await;
         let mut rows: Vec<(String, String, i32)> = match results.get(war_id) {
-            Some(s) => s.scores.iter().map(|(g, sc)| (g.clone(), g.clone(), *sc)).collect(),
+            Some(s) => s
+                .scores
+                .iter()
+                .map(|(g, sc)| (g.clone(), g.clone(), *sc))
+                .collect(),
             None => Vec::new(),
         };
         rows.sort_by(|a, b| b.2.cmp(&a.2));
-        Ok(rows.into_iter().take(top_n as usize).enumerate()
+        Ok(rows
+            .into_iter()
+            .take(top_n as usize)
+            .enumerate()
             .map(|(i, (_, g, sc))| ((i + 1) as i32, g.clone(), g.clone(), sc))
             .collect())
     }
 }
 
 impl Default for GuildServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -588,7 +823,10 @@ mod tests {
     async fn create_guild_default() {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
-        let g = svc.create_guild(leader, "Test", "notice", 50).await.unwrap();
+        let g = svc
+            .create_guild(leader, "Test", "notice", 50)
+            .await
+            .unwrap();
         assert_eq!(g.name, "Test");
         assert_eq!(g.leader_id, leader);
     }
@@ -652,8 +890,15 @@ mod tests {
         let leader = Uuid::new_v4();
         let other = Uuid::new_v4();
         let g = svc.create_guild(leader, "T", "", 50).await.unwrap();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(other, "x", GuildRole::Member));
-        svc.promote_member(g.guild_id, leader, other, 2).await.unwrap();
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(other, "x", GuildRole::Member));
+        svc.promote_member(g.guild_id, leader, other, 2)
+            .await
+            .unwrap();
         let list = svc.get_member_list(g.guild_id, 0, 10).await.unwrap();
         let m = list.iter().find(|m| m.player_id == other).unwrap();
         assert_eq!(m.role, GuildRole::ViceLeader);
@@ -665,7 +910,12 @@ mod tests {
         let leader = Uuid::new_v4();
         let other = Uuid::new_v4();
         let g = svc.create_guild(leader, "T", "", 50).await.unwrap();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(other, "x", GuildRole::Member));
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(other, "x", GuildRole::Member));
         svc.leave_guild(g.guild_id, other).await.unwrap();
     }
 
@@ -685,7 +935,9 @@ mod tests {
         let applicant = Uuid::new_v4();
         let g = svc.create_guild(leader, "T", "", 50).await.unwrap();
         svc.apply_to_guild(g.guild_id, applicant).await.unwrap();
-        svc.approve_application(g.guild_id, leader, applicant).await.unwrap();
+        svc.approve_application(g.guild_id, leader, applicant)
+            .await
+            .unwrap();
         let list = svc.get_member_list(g.guild_id, 0, 10).await.unwrap();
         assert_eq!(list.len(), 2);
     }
@@ -697,7 +949,9 @@ mod tests {
         let applicant = Uuid::new_v4();
         let g = svc.create_guild(leader, "T", "", 50).await.unwrap();
         svc.apply_to_guild(g.guild_id, applicant).await.unwrap();
-        svc.reject_application(g.guild_id, leader, applicant).await.unwrap();
+        svc.reject_application(g.guild_id, leader, applicant)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -716,8 +970,18 @@ mod tests {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
         let g = svc.create_guild(leader, "T", "", 50).await.unwrap();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(a, "a", GuildRole::Member));
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(b, "b", GuildRole::Member));
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(a, "a", GuildRole::Member));
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(b, "b", GuildRole::Member));
         svc.donate(g.guild_id, leader, 1, 50).await.unwrap();
         svc.donate(g.guild_id, a, 1, 200).await.unwrap();
         svc.donate(g.guild_id, b, 1, 100).await.unwrap();
@@ -735,7 +999,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        let r = svc.get_guild_dungeon_info(g.guild_id, "d_amber").await.unwrap();
+        let r = svc
+            .get_guild_dungeon_info(g.guild_id, "d_amber")
+            .await
+            .unwrap();
         assert_eq!(r.0, "d_amber");
         assert_eq!(r.2, 1); // difficulty
         assert!(r.3 > 0); // boss_hp
@@ -755,9 +1022,15 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        let (_id, _ts, boss_hp, _dur) = svc.start_guild_dungeon(g.guild_id, "d_amber", leader).await.unwrap();
+        let (_id, _ts, boss_hp, _dur) = svc
+            .start_guild_dungeon(g.guild_id, "d_amber", leader)
+            .await
+            .unwrap();
         assert!(boss_hp > 0);
-        let (hp, defeated, _ts) = svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 0).await.unwrap();
+        let (hp, defeated, _ts) = svc
+            .report_guild_dungeon_progress(g.guild_id, "d_amber", 0)
+            .await
+            .unwrap();
         assert_eq!(hp, 0);
         assert!(defeated);
     }
@@ -777,7 +1050,9 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        let r = svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 100).await;
+        let r = svc
+            .report_guild_dungeon_progress(g.guild_id, "d_amber", 100)
+            .await;
         assert!(r.is_err());
     }
 
@@ -786,11 +1061,23 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        svc.start_guild_dungeon(g.guild_id, "d_amber", leader).await.unwrap();
-        svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 0).await.unwrap();
+        svc.start_guild_dungeon(g.guild_id, "d_amber", leader)
+            .await
+            .unwrap();
+        svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 0)
+            .await
+            .unwrap();
         let player = Uuid::new_v4();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(player, "p", GuildRole::Member));
-        let (gold, _exp, _ic, claimed) = svc.claim_guild_dungeon_reward(g.guild_id, "d_amber", player).await.unwrap();
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(player, "p", GuildRole::Member));
+        let (gold, _exp, _ic, claimed) = svc
+            .claim_guild_dungeon_reward(g.guild_id, "d_amber", player)
+            .await
+            .unwrap();
         assert!(claimed);
         assert!(gold > 0);
     }
@@ -800,10 +1087,19 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        svc.start_guild_dungeon(g.guild_id, "d_amber", leader).await.unwrap();
+        svc.start_guild_dungeon(g.guild_id, "d_amber", leader)
+            .await
+            .unwrap();
         let player = Uuid::new_v4();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(player, "p", GuildRole::Member));
-        let r = svc.claim_guild_dungeon_reward(g.guild_id, "d_amber", player).await;
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(player, "p", GuildRole::Member));
+        let r = svc
+            .claim_guild_dungeon_reward(g.guild_id, "d_amber", player)
+            .await;
         assert!(r.is_err());
     }
 
@@ -812,12 +1108,25 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "D", "", 50).await.unwrap();
-        svc.start_guild_dungeon(g.guild_id, "d_amber", leader).await.unwrap();
-        svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 0).await.unwrap();
+        svc.start_guild_dungeon(g.guild_id, "d_amber", leader)
+            .await
+            .unwrap();
+        svc.report_guild_dungeon_progress(g.guild_id, "d_amber", 0)
+            .await
+            .unwrap();
         let player = Uuid::new_v4();
-        svc.members.write().await.get_mut(&g.guild_id).unwrap().push(GuildMember::new(player, "p", GuildRole::Member));
-        svc.claim_guild_dungeon_reward(g.guild_id, "d_amber", player).await.unwrap();
-        let r = svc.claim_guild_dungeon_reward(g.guild_id, "d_amber", player).await;
+        svc.members
+            .write()
+            .await
+            .get_mut(&g.guild_id)
+            .unwrap()
+            .push(GuildMember::new(player, "p", GuildRole::Member));
+        svc.claim_guild_dungeon_reward(g.guild_id, "d_amber", player)
+            .await
+            .unwrap();
+        let r = svc
+            .claim_guild_dungeon_reward(g.guild_id, "d_amber", player)
+            .await;
         assert!(r.is_err());
     }
 
@@ -837,7 +1146,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        let (_id, lv, _g, _c) = svc.upgrade_guild_skill(g.guild_id, "s_attack", leader).await.unwrap();
+        let (_id, lv, _g, _c) = svc
+            .upgrade_guild_skill(g.guild_id, "s_attack", leader)
+            .await
+            .unwrap();
         assert_eq!(lv, 1);
     }
 
@@ -865,7 +1177,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        let (_id, lv, total) = svc.donate_to_guild_skill(g.guild_id, "s_attack", 2500, leader).await.unwrap();
+        let (_id, lv, total) = svc
+            .donate_to_guild_skill(g.guild_id, "s_attack", 2500, leader)
+            .await
+            .unwrap();
         assert_eq!(total, 2500);
         assert_eq!(lv, 2);
     }
@@ -876,7 +1191,9 @@ mod tests {
         let leader = Uuid::new_v4();
         let outsider = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        let r = svc.donate_to_guild_skill(g.guild_id, "s_attack", 100, outsider).await;
+        let r = svc
+            .donate_to_guild_skill(g.guild_id, "s_attack", 100, outsider)
+            .await;
         assert!(matches!(r, Err(Error::MemberNotFound(_))));
     }
 
@@ -885,7 +1202,9 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        let r = svc.donate_to_guild_skill(g.guild_id, "s_attack", 0, leader).await;
+        let r = svc
+            .donate_to_guild_skill(g.guild_id, "s_attack", 0, leader)
+            .await;
         assert!(r.is_err());
     }
 
@@ -894,8 +1213,13 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        svc.upgrade_guild_skill(g.guild_id, "s_attack", leader).await.unwrap();
-        let (gold, _exp, claimed) = svc.claim_guild_skill_bonus(g.guild_id, "s_attack", leader).await.unwrap();
+        svc.upgrade_guild_skill(g.guild_id, "s_attack", leader)
+            .await
+            .unwrap();
+        let (gold, _exp, claimed) = svc
+            .claim_guild_skill_bonus(g.guild_id, "s_attack", leader)
+            .await
+            .unwrap();
         assert!(claimed);
         assert!(gold > 0);
     }
@@ -905,7 +1229,9 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        let r = svc.claim_guild_skill_bonus(g.guild_id, "s_attack", leader).await;
+        let r = svc
+            .claim_guild_skill_bonus(g.guild_id, "s_attack", leader)
+            .await;
         assert!(r.is_err());
     }
 
@@ -914,9 +1240,15 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "S", "", 50).await.unwrap();
-        svc.upgrade_guild_skill(g.guild_id, "s_attack", leader).await.unwrap();
-        svc.claim_guild_skill_bonus(g.guild_id, "s_attack", leader).await.unwrap();
-        let r = svc.claim_guild_skill_bonus(g.guild_id, "s_attack", leader).await;
+        svc.upgrade_guild_skill(g.guild_id, "s_attack", leader)
+            .await
+            .unwrap();
+        svc.claim_guild_skill_bonus(g.guild_id, "s_attack", leader)
+            .await
+            .unwrap();
+        let r = svc
+            .claim_guild_skill_bonus(g.guild_id, "s_attack", leader)
+            .await;
         assert!(r.is_err());
     }
 
@@ -933,7 +1265,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "SH", "", 50).await.unwrap();
-        let (ship_id, arrival, _dur) = svc.start_shipping(g.guild_id, "r_near", leader).await.unwrap();
+        let (ship_id, arrival, _dur) = svc
+            .start_shipping(g.guild_id, "r_near", leader)
+            .await
+            .unwrap();
         assert!(ship_id.starts_with("ship-"));
         assert!(arrival > chrono::Utc::now().timestamp_millis());
     }
@@ -953,8 +1288,14 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "SH", "", 50).await.unwrap();
-        let (ship_id, _, _) = svc.start_shipping(g.guild_id, "r_near", leader).await.unwrap();
-        let (gold, _ic, claimed) = svc.claim_shipping_reward(g.guild_id, &ship_id, leader).await.unwrap();
+        let (ship_id, _, _) = svc
+            .start_shipping(g.guild_id, "r_near", leader)
+            .await
+            .unwrap();
+        let (gold, _ic, claimed) = svc
+            .claim_shipping_reward(g.guild_id, &ship_id, leader)
+            .await
+            .unwrap();
         assert!(claimed);
         assert!(gold > 0);
     }
@@ -964,7 +1305,9 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "SH", "", 50).await.unwrap();
-        let r = svc.claim_shipping_reward(g.guild_id, "ship-bogus", leader).await;
+        let r = svc
+            .claim_shipping_reward(g.guild_id, "ship-bogus", leader)
+            .await;
         assert!(r.is_err());
     }
 
@@ -973,8 +1316,14 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "SH", "", 50).await.unwrap();
-        let (s1, _, _) = svc.start_shipping(g.guild_id, "r_near", leader).await.unwrap();
-        let (s2, _, _) = svc.start_shipping(g.guild_id, "r_mid", leader).await.unwrap();
+        let (s1, _, _) = svc
+            .start_shipping(g.guild_id, "r_near", leader)
+            .await
+            .unwrap();
+        let (s2, _, _) = svc
+            .start_shipping(g.guild_id, "r_mid", leader)
+            .await
+            .unwrap();
         let rows = svc.list_shipping_history(g.guild_id, 5).await.unwrap();
         assert_eq!(rows.len(), 2);
         let ids: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
@@ -995,7 +1344,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "W", "", 50).await.unwrap();
-        let (team_id, size, _ts) = svc.join_guild_war(g.guild_id, "w_001", leader).await.unwrap();
+        let (team_id, size, _ts) = svc
+            .join_guild_war(g.guild_id, "w_001", leader)
+            .await
+            .unwrap();
         assert!(team_id.contains("w_001"));
         assert_eq!(size, 1);
     }
@@ -1024,7 +1376,10 @@ mod tests {
         let svc = GuildServiceImpl::new();
         let leader = Uuid::new_v4();
         let g = svc.create_guild(leader, "W", "", 50).await.unwrap();
-        let (ok, war_id, winner, _ts) = svc.report_guild_war_result("w_001", &g.guild_id.to_string()).await.unwrap();
+        let (ok, war_id, winner, _ts) = svc
+            .report_guild_war_result("w_001", &g.guild_id.to_string())
+            .await
+            .unwrap();
         assert!(ok);
         assert_eq!(war_id, "w_001");
         assert_eq!(winner, g.guild_id.to_string());
@@ -1044,8 +1399,12 @@ mod tests {
         let leader2 = Uuid::new_v4();
         let g1 = svc.create_guild(leader1, "A", "", 50).await.unwrap();
         let g2 = svc.create_guild(leader2, "B", "", 50).await.unwrap();
-        svc.report_guild_war_result("w_001", &g1.guild_id.to_string()).await.unwrap();
-        svc.report_guild_war_result("w_001", &g2.guild_id.to_string()).await.unwrap();
+        svc.report_guild_war_result("w_001", &g1.guild_id.to_string())
+            .await
+            .unwrap();
+        svc.report_guild_war_result("w_001", &g2.guild_id.to_string())
+            .await
+            .unwrap();
         let rows = svc.get_guild_war_leaderboard("w_001", 5).await.unwrap();
         assert_eq!(rows.len(), 2);
     }

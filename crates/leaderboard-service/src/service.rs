@@ -63,7 +63,11 @@ pub trait LeaderboardDomainService: Send + Sync {
         &self,
         player_id: Uuid,
         period: LeaderboardPeriod,
-    ) -> Result<(Option<LeaderboardEntry>, Option<LeaderboardEntry>, Option<LeaderboardEntry>)>;
+    ) -> Result<(
+        Option<LeaderboardEntry>,
+        Option<LeaderboardEntry>,
+        Option<LeaderboardEntry>,
+    )>;
 
     /// 内部入榜写
     async fn add_entry(
@@ -174,7 +178,11 @@ impl LeaderboardDomainService for LeaderboardServiceImpl {
         &self,
         player_id: Uuid,
         period: LeaderboardPeriod,
-    ) -> Result<(Option<LeaderboardEntry>, Option<LeaderboardEntry>, Option<LeaderboardEntry>)> {
+    ) -> Result<(
+        Option<LeaderboardEntry>,
+        Option<LeaderboardEntry>,
+        Option<LeaderboardEntry>,
+    )> {
         // ranked 拿不到合理 season_id 时跳过 ranked (per FR-007 玩家在榜位置
         // 返回 3 类; ranked 必须有 season_id, 缺省时该字段为 None, 不报错)
         let ranked = self
@@ -209,7 +217,9 @@ impl LeaderboardDomainService for LeaderboardServiceImpl {
             Self::validate_ranked_season(&season_id)?;
         }
         if display_name.is_empty() {
-            return Err(Error::Validation("display_name must not be empty".to_string()));
+            return Err(Error::Validation(
+                "display_name must not be empty".to_string(),
+            ));
         }
         let entry = LeaderboardEntry::new(
             leaderboard_type,
@@ -250,18 +260,12 @@ pub mod grpc_service {
 
     fn parse_period(p: i32) -> Result<LeaderboardPeriod> {
         match p {
-            x if x == lb_proto::LeaderboardPeriod::Weekly as i32 => {
-                Ok(LeaderboardPeriod::Weekly)
-            }
-            x if x == lb_proto::LeaderboardPeriod::Monthly as i32 => {
-                Ok(LeaderboardPeriod::Monthly)
-            }
+            x if x == lb_proto::LeaderboardPeriod::Weekly as i32 => Ok(LeaderboardPeriod::Weekly),
+            x if x == lb_proto::LeaderboardPeriod::Monthly as i32 => Ok(LeaderboardPeriod::Monthly),
             x if x == lb_proto::LeaderboardPeriod::Seasonal as i32 => {
                 Ok(LeaderboardPeriod::Seasonal)
             }
-            x if x == lb_proto::LeaderboardPeriod::AllTime as i32 => {
-                Ok(LeaderboardPeriod::AllTime)
-            }
+            x if x == lb_proto::LeaderboardPeriod::AllTime as i32 => Ok(LeaderboardPeriod::AllTime),
             _ => Err(Error::InvalidLeaderboardSpec(format!(
                 "unknown period enum value: {}",
                 p
@@ -345,7 +349,11 @@ pub mod grpc_service {
                 page: Some(common_proto::PageResponse {
                     total,
                     has_next,
-                    next_cursor: if has_next { format!("{}", page + 1) } else { String::new() },
+                    next_cursor: if has_next {
+                        format!("{}", page + 1)
+                    } else {
+                        String::new()
+                    },
                 }),
                 period: period_to_proto(period),
                 season_id,
@@ -373,7 +381,11 @@ pub mod grpc_service {
                 page: Some(common_proto::PageResponse {
                     total,
                     has_next,
-                    next_cursor: if has_next { format!("{}", page + 1) } else { String::new() },
+                    next_cursor: if has_next {
+                        format!("{}", page + 1)
+                    } else {
+                        String::new()
+                    },
                 }),
                 period: period_to_proto(period),
             }))
@@ -382,7 +394,8 @@ pub mod grpc_service {
         async fn get_collection_leaderboard(
             &self,
             request: Request<lb_proto::GetCollectionLeaderboardRequest>,
-        ) -> std::result::Result<Response<lb_proto::GetCollectionLeaderboardResponse>, Status> {
+        ) -> std::result::Result<Response<lb_proto::GetCollectionLeaderboardResponse>, Status>
+        {
             let req = request.get_ref();
             let period = parse_period(req.period)?;
             let (page, page_size) = req
@@ -400,7 +413,11 @@ pub mod grpc_service {
                 page: Some(common_proto::PageResponse {
                     total,
                     has_next,
-                    next_cursor: if has_next { format!("{}", page + 1) } else { String::new() },
+                    next_cursor: if has_next {
+                        format!("{}", page + 1)
+                    } else {
+                        String::new()
+                    },
                 }),
                 period: period_to_proto(period),
             }))
@@ -412,8 +429,9 @@ pub mod grpc_service {
         ) -> std::result::Result<Response<lb_proto::GetPlayerRankResponse>, Status> {
             let req = request.get_ref();
             let period = parse_period(req.period)?;
-            let player_id = Uuid::parse_str(&req.player_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.player_id)))?;
+            let player_id = Uuid::parse_str(&req.player_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.player_id))
+            })?;
             let (ranked, casual, collection) = self
                 .impl_
                 .get_player_rank(player_id, period)
@@ -447,8 +465,9 @@ pub mod grpc_service {
                 }
             };
             let period = parse_period(req.period)?;
-            let player_id = Uuid::parse_str(&req.player_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid uuid: {}", req.player_id)))?;
+            let player_id = Uuid::parse_str(&req.player_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid uuid: {}", req.player_id))
+            })?;
             let (entry, rank_changed) = self
                 .impl_
                 .add_entry(
@@ -561,7 +580,10 @@ mod tests {
         .await
         .unwrap();
 
-        let (ranked, casual, collection) = s.get_player_rank(p, LeaderboardPeriod::Weekly).await.unwrap();
+        let (ranked, casual, collection) = s
+            .get_player_rank(p, LeaderboardPeriod::Weekly)
+            .await
+            .unwrap();
         // ranked 必须有 season_id 才能入榜; 这里未入 ranked, casual+collection 已入
         assert!(ranked.is_none());
         assert!(casual.is_some());
@@ -569,7 +591,10 @@ mod tests {
         // collection 的 period 是 AllTime, 与 Weekly 不同, 该查为 None
         assert!(collection.is_none());
 
-        let (_, casual2, _) = s.get_player_rank(p, LeaderboardPeriod::AllTime).await.unwrap();
+        let (_, casual2, _) = s
+            .get_player_rank(p, LeaderboardPeriod::AllTime)
+            .await
+            .unwrap();
         assert!(casual2.is_none()); // casual 是 Weekly, AllTime 查不到
     }
 }

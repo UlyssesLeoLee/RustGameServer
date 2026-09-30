@@ -34,9 +34,7 @@ fn make_service() -> (
     Arc<InMemoryDeckRepository>,
 ) {
     let players = Arc::new(InMemoryPlayerRepository::new());
-    let sessions = Arc::new(
-        player_service::repository::InMemoryPlayerSessionRepository::new(),
-    );
+    let sessions = Arc::new(player_service::repository::InMemoryPlayerSessionRepository::new());
     let decks = Arc::new(InMemoryDeckRepository::new());
     let characters = Arc::new(player_service::repository::InMemoryCharacterRepository::new());
     let svc = PlayerServiceImpl::new_without_character(
@@ -121,10 +119,7 @@ async fn test_full_lifecycle_create_update_share_pull_delete() {
     ));
     // 拉取已删除 deck 应 NotFound
     let err = svc.get_deck(deck_id).await.unwrap_err();
-    assert!(matches!(
-        err,
-        player_service::error::Error::NotFound { .. }
-    ));
+    assert!(matches!(err, player_service::error::Error::NotFound { .. }));
 }
 
 #[tokio::test]
@@ -214,10 +209,7 @@ async fn test_share_deck_unpublic_clears_share_code() {
 
     // 取消后 get_shared_deck 该 code 返 NotFound
     let err = svc.get_shared_deck(code1.clone()).await.unwrap_err();
-    assert!(matches!(
-        err,
-        player_service::error::Error::NotFound { .. }
-    ));
+    assert!(matches!(err, player_service::error::Error::NotFound { .. }));
 
     // 重新公开 → 应生成新 code (与 code1 不同)
     let reshared = svc.share_deck(deck_id, player.id, true).await.unwrap();
@@ -241,10 +233,7 @@ async fn test_validation_errors_empty_name_and_invalid_mode() {
 
     // 超长 name (>64) 必返 Validation
     let long_name = "x".repeat(65);
-    let err = svc
-        .create_deck(player.id, long_name, 1)
-        .await
-        .unwrap_err();
+    let err = svc.create_deck(player.id, long_name, 1).await.unwrap_err();
     assert!(matches!(err, player_service::error::Error::Validation(_)));
 
     // 无效 mode 必返 Validation
@@ -259,8 +248,5 @@ async fn test_validation_errors_empty_name_and_invalid_mode() {
         .create_deck(Uuid::new_v4(), "deck".to_string(), 1)
         .await
         .unwrap_err();
-    assert!(matches!(
-        err,
-        player_service::error::Error::NotFound { .. }
-    ));
+    assert!(matches!(err, player_service::error::Error::NotFound { .. }));
 }

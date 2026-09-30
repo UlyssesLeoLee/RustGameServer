@@ -17,7 +17,12 @@ use card_service::service::{CardService, CardServiceImpl};
 use std::sync::Arc;
 use uuid::Uuid;
 
-fn make_service() -> (CardServiceImpl, Arc<InMemoryCardRepository>, Arc<InMemoryCardSeriesRepository>, Arc<InMemoryCardInstanceRepository>) {
+fn make_service() -> (
+    CardServiceImpl,
+    Arc<InMemoryCardRepository>,
+    Arc<InMemoryCardSeriesRepository>,
+    Arc<InMemoryCardInstanceRepository>,
+) {
     let cards: Arc<InMemoryCardRepository> = Arc::new(InMemoryCardRepository::new());
     let series: Arc<InMemoryCardSeriesRepository> = Arc::new(InMemoryCardSeriesRepository::new());
     let instances: Arc<InMemoryCardInstanceRepository> = Arc::new(
@@ -34,12 +39,29 @@ fn make_service() -> (CardServiceImpl, Arc<InMemoryCardRepository>, Arc<InMemory
 #[tokio::test]
 async fn test_card_drop_table_snapshot_full_lifecycle() {
     let (svc, cards, series, _) = make_service();
-    cards.create(&Card::new("c1".into(), "s1".into(), "Fire".into(), CardType::Creature, CardRarity::Legendary)).await.unwrap();
+    cards
+        .create(&Card::new(
+            "c1".into(),
+            "s1".into(),
+            "Fire".into(),
+            CardType::Creature,
+            CardRarity::Legendary,
+        ))
+        .await
+        .unwrap();
     let mut s = CardSeries::new("s1".into(), "Starter".into(), 3);
-    s.drop_table = DropTable::new(vec![DropEntry { rarity: CardRarity::Legendary, count: 1, probability: 1.0, card_id: Some("c1".into()) }]);
+    s.drop_table = DropTable::new(vec![DropEntry {
+        rarity: CardRarity::Legendary,
+        count: 1,
+        probability: 1.0,
+        card_id: Some("c1".into()),
+    }]);
     series.upsert(&s).await.unwrap();
     let owner = Uuid::new_v4();
-    let r = svc.open_pack(owner, "s1", 1, Some("saga-1".into())).await.unwrap();
+    let r = svc
+        .open_pack(owner, "s1", 1, Some("saga-1".into()))
+        .await
+        .unwrap();
     assert_eq!(r.instances.len(), 3);
     assert_eq!(r.drop_table.entries.len(), 1);
     assert_eq!(r.transaction_id, "saga-1");
@@ -48,16 +70,38 @@ async fn test_card_drop_table_snapshot_full_lifecycle() {
 #[tokio::test]
 async fn test_open_pack_then_collect_then_remove() {
     let (svc, cards, _, instances) = make_service();
-    cards.create(&Card::new("c1".into(), "s1".into(), "x".into(), CardType::Creature, CardRarity::Common)).await.unwrap();
+    cards
+        .create(&Card::new(
+            "c1".into(),
+            "s1".into(),
+            "x".into(),
+            CardType::Creature,
+            CardRarity::Common,
+        ))
+        .await
+        .unwrap();
     let owner = Uuid::new_v4();
-    let (iid, inst) = svc.add_card_to_collection(owner, "c1", CardInstanceSource::Reward, None).await.unwrap();
+    let (iid, inst) = svc
+        .add_card_to_collection(owner, "c1", CardInstanceSource::Reward, None)
+        .await
+        .unwrap();
     assert_eq!(inst.card_id, "c1");
     let count = instances.count_by_owner(owner).await.unwrap();
     assert_eq!(count, 1);
-    let (items, total) = svc.get_player_collection(owner, &CardInstanceFilter::default(), PageRequest::default()).await.unwrap();
+    let (items, total) = svc
+        .get_player_collection(
+            owner,
+            &CardInstanceFilter::default(),
+            PageRequest::default(),
+        )
+        .await
+        .unwrap();
     assert_eq!(total, 1);
     assert_eq!(items[0].instance_id, iid);
-    assert!(svc.remove_card_from_collection(iid, owner, "trade".into(), None).await.unwrap());
+    assert!(svc
+        .remove_card_from_collection(iid, owner, "trade".into(), None)
+        .await
+        .unwrap());
     assert_eq!(instances.count_by_owner(owner).await.unwrap(), 0);
 }
 
@@ -67,12 +111,22 @@ async fn test_card_description_i18n_key_pattern() {
     // key 形如 "card.{card_id}.description" 是与 i18n-service 约定的命名约定
     // (实际跨域通过 gRPC GetText, 此处模拟契约一致性)
     let (svc, cards, _, _) = make_service();
-    let mut c = Card::new("fire_dragon".into(), "s1".into(), "Fire Dragon".into(), CardType::Creature, CardRarity::Legendary);
-    c.description_i18n.insert("en_us".into(), "A dragon of fire".into());
+    let mut c = Card::new(
+        "fire_dragon".into(),
+        "s1".into(),
+        "Fire Dragon".into(),
+        CardType::Creature,
+        CardRarity::Legendary,
+    );
+    c.description_i18n
+        .insert("en_us".into(), "A dragon of fire".into());
     c.description_i18n.insert("zh_cn".into(), "火龙".into());
     cards.create(&c).await.unwrap();
     let fetched = svc.get_card("fire_dragon").await.unwrap();
-    assert_eq!(fetched.description_i18n.get("en_us").unwrap(), "A dragon of fire");
+    assert_eq!(
+        fetched.description_i18n.get("en_us").unwrap(),
+        "A dragon of fire"
+    );
     assert_eq!(fetched.description_i18n.get("zh_cn").unwrap(), "火龙");
     // 跨域 key 命名应一致 (e.g. "card.fire_dragon.description")
     let key = format!("card.{}.description", "fire_dragon");

@@ -212,7 +212,14 @@ mod tests {
     #[test]
     fn parse_all_five_business_domains() {
         // 5 业务域 + cluster_ops 都应解析为 Domain
-        for d in &["player", "economy", "match", "social", "admin", "cluster_ops"] {
+        for d in &[
+            "player",
+            "economy",
+            "match",
+            "social",
+            "admin",
+            "cluster_ops",
+        ] {
             let subj = format!("rgs.{}.some_event.v1", d);
             let (parsed_domain, _) = parse(&subj).unwrap();
             assert_eq!(
@@ -256,25 +263,49 @@ mod tests {
     #[test]
     fn aggregate_type_of_extracts_domain_event_type() {
         // 域事件: rgs.<domain>.<event_type>.<version> → "<domain>.<event_type>"
-        assert_eq!(aggregate_type_of("rgs.economy.transfer.v1"), "economy.transfer");
-        assert_eq!(aggregate_type_of("rgs.player.registered.v1"), "player.registered");
-        assert_eq!(aggregate_type_of("rgs.match.matchmake.v1"), "match.matchmake");
-        assert_eq!(aggregate_type_of("rgs.social.friend_added.v1"), "social.friend_added");
-        assert_eq!(aggregate_type_of("rgs.admin.lcm_started.v1"), "admin.lcm_started");
-        assert_eq!(aggregate_type_of("rgs.cluster_ops.health_check.v1"), "cluster_ops.health_check");
+        assert_eq!(
+            aggregate_type_of("rgs.economy.transfer.v1"),
+            "economy.transfer"
+        );
+        assert_eq!(
+            aggregate_type_of("rgs.player.registered.v1"),
+            "player.registered"
+        );
+        assert_eq!(
+            aggregate_type_of("rgs.match.matchmake.v1"),
+            "match.matchmake"
+        );
+        assert_eq!(
+            aggregate_type_of("rgs.social.friend_added.v1"),
+            "social.friend_added"
+        );
+        assert_eq!(
+            aggregate_type_of("rgs.admin.lcm_started.v1"),
+            "admin.lcm_started"
+        );
+        assert_eq!(
+            aggregate_type_of("rgs.cluster_ops.health_check.v1"),
+            "cluster_ops.health_check"
+        );
     }
 
     #[test]
     fn aggregate_type_of_extracts_saga_event() {
         // Saga: rgs.saga.<saga_type>.<event> → "saga.<saga_type>"
-        assert_eq!(aggregate_type_of("rgs.saga.transfer.step_completed"), "saga.transfer");
+        assert_eq!(
+            aggregate_type_of("rgs.saga.transfer.step_completed"),
+            "saga.transfer"
+        );
         assert_eq!(aggregate_type_of("rgs.saga.cancel.reverted"), "saga.cancel");
     }
 
     #[test]
     fn aggregate_type_of_extracts_cem_event() {
         // CEM: rgs.cem.<event_type> → "cem.<event_type>"
-        assert_eq!(aggregate_type_of("rgs.cem.feature_flag_updated"), "cem.feature_flag_updated");
+        assert_eq!(
+            aggregate_type_of("rgs.cem.feature_flag_updated"),
+            "cem.feature_flag_updated"
+        );
     }
 
     #[test]
@@ -294,7 +325,10 @@ mod tests {
     #[test]
     fn aggregate_type_of_unknown_prefix_falls_back() {
         // 非已知域前缀: 兜底为 "<other>.<event>"
-        assert_eq!(aggregate_type_of("rgs.unknown_namespace.event.v1"), "unknown_namespace.event");
+        assert_eq!(
+            aggregate_type_of("rgs.unknown_namespace.event.v1"),
+            "unknown_namespace.event"
+        );
     }
 }
 

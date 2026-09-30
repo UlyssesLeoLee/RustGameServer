@@ -38,7 +38,9 @@ use economy_service::repository::{
     AccountRepository, InMemoryAccountRepository, InMemoryTransactionLedgerRepository,
     TransactionLedgerRepository,
 };
-use shared_platform::outbox::{InMemoryOutboxRepository, OutboxEntry, OutboxRepository, OutboxStatus};
+use shared_platform::outbox::{
+    InMemoryOutboxRepository, OutboxEntry, OutboxRepository, OutboxStatus,
+};
 
 use sqlx::postgres::PgPoolOptions;
 
@@ -189,9 +191,7 @@ fn bootstrap_business() -> (
     Arc<InMemoryOutboxRepository>,
 ) {
     let led = Arc::new(InMemoryTransactionLedgerRepository::new());
-    let acc = Arc::new(
-        InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
-    );
+    let acc = Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()));
     let outbox = Arc::new(InMemoryOutboxRepository::new());
     (acc, led, outbox)
 }
@@ -574,19 +574,11 @@ fn outbox_subject_v1_2_candidate_naming_all_compliant() {
 
     let mut seen = std::collections::HashSet::new();
     for subject in V1_2_CANDIDATE_SUBJECTS {
-        assert!(
-            seen.insert(*subject),
-            "v1.2 候选 subject 重复: {}",
-            subject
-        );
+        assert!(seen.insert(*subject), "v1.2 候选 subject 重复: {}", subject);
 
         // 同上命名合规检查
         let parts: Vec<&str> = subject.split('.').collect();
-        assert!(
-            parts.len() >= 4,
-            "subject 至少 4 段: {}",
-            subject
-        );
+        assert!(parts.len() >= 4, "subject 至少 4 段: {}", subject);
         assert_eq!(parts[0], "rgs", "第 1 段必须是 'rgs': {}", subject);
         assert!(
             matches!(
@@ -666,10 +658,8 @@ async fn outbox_subject_e2e_lifecycle_v1_2_candidate() {
     assert_eq!(pending.len(), 3, "v1.2 候选 subject 3 条都应能入 outbox");
 
     // 所有 subject 字符串原样保留 (rename 不会发生)
-    let subjects_in_repo: std::collections::HashSet<String> = pending
-        .iter()
-        .map(|e| e.subject.clone())
-        .collect();
+    let subjects_in_repo: std::collections::HashSet<String> =
+        pending.iter().map(|e| e.subject.clone()).collect();
     for expected in &sample_subjects {
         assert!(
             subjects_in_repo.contains(*expected),

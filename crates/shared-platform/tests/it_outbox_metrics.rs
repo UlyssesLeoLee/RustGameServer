@@ -30,11 +30,25 @@ use uuid::Uuid;
 #[test]
 fn it_outbox_metrics_service_label_for_all_six_domains() {
     let m = metrics();
-    for service in ["admin", "economy", "match", "player", "social", "cluster_ops"] {
+    for service in [
+        "admin",
+        "economy",
+        "match",
+        "player",
+        "social",
+        "cluster_ops",
+    ] {
         m.set_outbox_pending(service, &format!("{}.some_event", service), 7);
     }
     let text = encode_to_text().unwrap();
-    for service in ["admin", "economy", "match", "player", "social", "cluster_ops"] {
+    for service in [
+        "admin",
+        "economy",
+        "match",
+        "player",
+        "social",
+        "cluster_ops",
+    ] {
         assert!(
             text.contains(&format!("service=\"{}\"", service)),
             "metrics 应含 service={} 标签, got: {}",
@@ -48,13 +62,19 @@ fn it_outbox_metrics_service_label_for_all_six_domains() {
 /// (per 06_草案 §1.1 aggregate_type 维度)
 #[test]
 fn it_outbox_metrics_aggregate_type_from_subject() {
-    assert_eq!(aggregate_type_of("rgs.economy.transfer.v1"), "economy.transfer");
+    assert_eq!(
+        aggregate_type_of("rgs.economy.transfer.v1"),
+        "economy.transfer"
+    );
     assert_eq!(
         aggregate_type_of("rgs.player.registered.v1"),
         "player.registered"
     );
     assert_eq!(aggregate_type_of("rgs.saga.transfer.done"), "saga.transfer");
-    assert_eq!(aggregate_type_of("rgs.cem.feature_flag"), "cem.feature_flag");
+    assert_eq!(
+        aggregate_type_of("rgs.cem.feature_flag"),
+        "cem.feature_flag"
+    );
     assert_eq!(aggregate_type_of("rgs.dlq.rgs.x.y.v1"), "dlq");
 }
 
@@ -155,8 +175,9 @@ fn it_outbox_metrics_all_five_gauges_exposed() {
 /// (per outbox.rs 4 状态机; 验证指标 + 状态机集成可工作)
 #[tokio::test]
 async fn it_outbox_repository_state_machine_for_metrics() {
-    let repo: Arc<InMemoryOutboxRepository> =
-        Arc::new(InMemoryOutboxRepository::with_lease(Duration::from_secs(3600)));
+    let repo: Arc<InMemoryOutboxRepository> = Arc::new(InMemoryOutboxRepository::with_lease(
+        Duration::from_secs(3600),
+    ));
     let pool: sqlx::PgPool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(1)
         .connect_lazy("postgres://localhost/nonexistent")
@@ -214,7 +235,14 @@ fn it_outbox_relay_service_name_required_at_compile_time() {
     fn _assert_service_names_compile(svc: &'static str) -> &'static str {
         svc
     }
-    for svc in ["admin", "economy", "match", "player", "social", "cluster_ops"] {
+    for svc in [
+        "admin",
+        "economy",
+        "match",
+        "player",
+        "social",
+        "cluster_ops",
+    ] {
         let _ = _assert_service_names_compile(svc);
     }
 }

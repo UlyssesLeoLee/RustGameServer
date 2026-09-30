@@ -262,12 +262,7 @@ mod tests {
         let d0 = retry_backoff(&status, 0, &cfg).expect("retryable");
         let d1 = retry_backoff(&status, 1, &cfg).expect("retryable");
         // 1 的 base 是 0 的 2x, 1 必须 > 0 (含 jitter 边界, 至少 1.6x)
-        assert!(
-            d1 >= d0,
-            "attempt 1 ({:?}) 必须 ≥ attempt 0 ({:?})",
-            d1,
-            d0
-        );
+        assert!(d1 >= d0, "attempt 1 ({:?}) 必须 ≥ attempt 0 ({:?})", d1, d0);
     }
 
     #[tokio::test]

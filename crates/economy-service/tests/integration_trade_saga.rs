@@ -48,21 +48,14 @@ fn bootstrap() -> (
     Arc<MockTradeClient>,
 ) {
     let led = Arc::new(InMemoryTransactionLedgerRepository::new());
-    let acc = Arc::new(
-        InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()),
-    );
+    let acc = Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led.inner.clone()));
     let trades = Arc::new(InMemoryTradeRepository::new());
     let card = Arc::new(MockCardClient::new());
     let trade = Arc::new(MockTradeClient::new());
     (acc, led, trades, card, trade)
 }
 
-async fn fund(
-    acc: &InMemoryAccountRepository,
-    player: Uuid,
-    currency: Currency,
-    amount: i64,
-) {
+async fn fund(acc: &InMemoryAccountRepository, player: Uuid, currency: Currency, amount: i64) {
     let mut a = economy_service::entity::Account::new(player, currency);
     a.credit(amount);
     acc.save(&a).await.unwrap();
@@ -180,7 +173,10 @@ async fn it_bid_auction_saga_end_to_end() {
         ends_at_unix - chrono::Utc::now().timestamp(),
     );
     let auction = trades.save_auction(&auction).await.unwrap();
-    assert_eq!(auction.status, economy_service::trade_entity::AuctionStatus::Active);
+    assert_eq!(
+        auction.status,
+        economy_service::trade_entity::AuctionStatus::Active
+    );
 
     // 构造 BidAuctionSaga (含 ExecuteAuctionSaga, 用于拍卖到期时触发)
     let exec_saga = Arc::new(ExecuteAuctionSaga::new(
@@ -251,14 +247,21 @@ async fn it_bid_auction_saga_end_to_end() {
         .unwrap();
     assert_eq!(a.highest_bid, 300);
     assert_eq!(a.highest_bidder, bidder2.to_string());
-    assert_eq!(a.status, economy_service::trade_entity::AuctionStatus::Active);
+    assert_eq!(
+        a.status,
+        economy_service::trade_entity::AuctionStatus::Active
+    );
 
     // mock 客户端验证
     assert_eq!(trade.lock_count(), 2, "lock_auction called twice");
     assert_eq!(trade.finalize_count(), 0, "no auction finalized yet");
     assert_eq!(trade.transfer_count(), 0, "no currency transferred");
     assert_eq!(card.add_count(), 0, "no cards added (auction not ended)");
-    assert_eq!(card.remove_count(), 0, "no cards removed (auction not ended)");
+    assert_eq!(
+        card.remove_count(),
+        0,
+        "no cards removed (auction not ended)"
+    );
 
     // ledger 验证: 2 spend + 1 refund = 3 条 (用 idempotency_key 找)
     let bid1 = led
@@ -321,7 +324,7 @@ async fn it_execute_auction_saga_end_to_end() {
             card_instance_id,
             final_price: 1000,
             currency_type: 1, // Gold
-            tax_bps: 500,      // 5%
+            tax_bps: 500,     // 5%
         })
         .await
         .expect("ExecuteAuction saga should succeed");
@@ -329,15 +332,26 @@ async fn it_execute_auction_saga_end_to_end() {
     // 业务输出
     assert_ne!(out.saga_id, Uuid::nil());
     assert_eq!(out.tax_collected, 50, "tax = 1000 * 500 / 10000 = 50");
-    assert_eq!(out.amount_transferred, 950, "seller_amount = 1000 - 50 = 950");
+    assert_eq!(
+        out.amount_transferred, 950,
+        "seller_amount = 1000 - 50 = 950"
+    );
     assert_ne!(out.new_card_instance_id, Uuid::nil());
 
     // 5 步全调 (含 1 个 add_transaction_log 二次调用, 因 tax > 0)
     assert_eq!(trade.finalize_count(), 1, "finalize_auction called once");
     assert_eq!(trade.transfer_count(), 1, "transfer_currency called once");
-    assert_eq!(card.remove_count(), 1, "remove_card_from_collection called once");
+    assert_eq!(
+        card.remove_count(),
+        1,
+        "remove_card_from_collection called once"
+    );
     assert_eq!(card.add_count(), 1, "add_card_to_collection called once");
-    assert_eq!(trade.log_count(), 2, "add_transaction_log called twice (seller + tax)");
+    assert_eq!(
+        trade.log_count(),
+        2,
+        "add_transaction_log called twice (seller + tax)"
+    );
 
     // finalize 记录
     let finalized = trade.finalized_auctions();
@@ -347,7 +361,11 @@ async fn it_execute_auction_saga_end_to_end() {
     assert_eq!(finalized[0].2, 1000);
 
     // 移除的 instance 验证 (mock CardClient 暴露 added/removed 计数)
-    assert_eq!(card.remove_count(), 1, "remove_card_from_collection called once");
+    assert_eq!(
+        card.remove_count(),
+        1,
+        "remove_card_from_collection called once"
+    );
     let removed = card.removed_instances();
     assert_eq!(removed.len(), 1);
     assert_eq!(removed[0].0, card_instance_id);
@@ -361,9 +379,6 @@ async fn it_execute_auction_saga_end_to_end() {
     // ledger: ExecuteAuction 不写 ledger (mock transfer/log 不写), 应为 0 条 (fund 不走 ledger)
     // 注: 真实业务里 transfer_currency 应在 economy-service 内写 ledger, 当前 mock 仅记录
     // 此处只验证 fund 没写 ledger
-    let entries = led
-        .find_by_idempotency_key("fund-not-used")
-        .await
-        .unwrap();
+    let entries = led.find_by_idempotency_key("fund-not-used").await.unwrap();
     assert!(entries.is_none(), "no entries with this key");
 }

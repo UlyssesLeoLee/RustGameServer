@@ -68,7 +68,7 @@ async fn main() -> anyhow::Result<()> {
                 .app_data(web::Data::new(health_state.clone()))
                 .configure(register_health_routes)
         };
-// ULYS-208 (2026-09-23 JST): fail-loud on 8081 health probe.
+        // ULYS-208 (2026-09-23 JST): fail-loud on 8081 health probe.
         // dev HEAD (pre-fix) 在 bind() 前后有两个 bug:
         //   (a) `tracing::info!("health probe listening on {}")` 在 bind() 前打印,
         //       bind 失败时也是这条假阳性日志("listening" 但实际没监听);
@@ -116,7 +116,10 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(target: "gm-backend", "GM APIGW listening on http://{}", http_addr);
 
     HttpServer::new(move || {
-        let jwt_mw = gm_backend::JwtAuth { require: require_jwt, secret: jwt_secret.clone() };
+        let jwt_mw = gm_backend::JwtAuth {
+            require: require_jwt,
+            secret: jwt_secret.clone(),
+        };
         App::new()
             .app_data(web::Data::new(state.clone()))
             .app_data(web::JsonConfig::default().limit(64 * 1024 * 1024)) // 64 MB (canvas image_base64)

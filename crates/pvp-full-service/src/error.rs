@@ -36,7 +36,9 @@ impl From<Error> for tonic::Status {
         match e {
             Error::UnknownMode(_) => tonic::Status::new(Code::InvalidArgument, e.to_string()),
             Error::UnknownTier(_) => tonic::Status::new(Code::InvalidArgument, e.to_string()),
-            Error::DailyLimitReached(_) => tonic::Status::new(Code::ResourceExhausted, e.to_string()),
+            Error::DailyLimitReached(_) => {
+                tonic::Status::new(Code::ResourceExhausted, e.to_string())
+            }
             Error::PlayerNotFound(_) => tonic::Status::new(Code::NotFound, e.to_string()),
             Error::MatchNotFound(_) => tonic::Status::new(Code::NotFound, e.to_string()),
             Error::SeasonNotFound(_) => tonic::Status::new(Code::NotFound, e.to_string()),

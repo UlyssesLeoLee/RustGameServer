@@ -104,10 +104,7 @@ async fn bot_social_real_grpc_client_init() {
         "init 后 Channel 应已就绪 (connect_lazy 不阻塞, Cell 写入)"
     );
     // 内部 Channel 引用必须存在
-    assert!(
-        ai.channel().is_some(),
-        "channel() 必须返 Some(&Channel)"
-    );
+    assert!(ai.channel().is_some(), "channel() 必须返 Some(&Channel)");
     // 凭据未配置 (skip-verify 模式)
     assert!(!ai.mtls_configured(), "默认无 mTLS 凭据");
     assert_eq!(ai.endpoint(), "https://127.0.0.1:50054");
@@ -205,5 +202,7 @@ async fn bot_social_real_rpc_full_lifecycle_with_real_rpc_calls() {
 
     // stop 阶段
     bot.stop().await;
-    assert!(stats.offline().contains(&"bot-social-wave4-003".to_string()));
+    assert!(stats
+        .offline()
+        .contains(&"bot-social-wave4-003".to_string()));
 }

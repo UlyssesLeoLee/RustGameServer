@@ -22,14 +22,26 @@ fn replay_mode_default_ttl() {
 
 #[test]
 fn replay_meta_validate_rejects_nil_match_id() {
-    let m = ReplayMeta::new(Uuid::nil(), "p".into(), None, ReplayMode::Casual, "k".into());
+    let m = ReplayMeta::new(
+        Uuid::nil(),
+        "p".into(),
+        None,
+        ReplayMode::Casual,
+        "k".into(),
+    );
     assert!(m.validate().is_err());
 }
 
 #[test]
 fn replay_meta_with_custom_ttl_overrides_default() {
-    let m = ReplayMeta::new(Uuid::new_v4(), "p".into(), None, ReplayMode::Ranked, "k".into())
-        .with_custom_ttl(3600);
+    let m = ReplayMeta::new(
+        Uuid::new_v4(),
+        "p".into(),
+        None,
+        ReplayMode::Ranked,
+        "k".into(),
+    )
+    .with_custom_ttl(3600);
     let diff = (m.expires_at - m.created_at).num_seconds();
     assert_eq!(diff, 3600);
     // 覆写后不再受 Ranked 90d 影响
@@ -38,7 +50,13 @@ fn replay_meta_with_custom_ttl_overrides_default() {
 
 #[test]
 fn replay_meta_is_expired_boundary() {
-    let mut m = ReplayMeta::new(Uuid::new_v4(), "p".into(), None, ReplayMode::Casual, "k".into());
+    let mut m = ReplayMeta::new(
+        Uuid::new_v4(),
+        "p".into(),
+        None,
+        ReplayMode::Casual,
+        "k".into(),
+    );
     assert!(!m.is_expired());
     m.expires_at = Utc::now() - chrono::Duration::seconds(1);
     assert!(m.is_expired());
@@ -46,7 +64,13 @@ fn replay_meta_is_expired_boundary() {
 
 #[test]
 fn replay_factory_sets_object_size() {
-    let m = ReplayMeta::new(Uuid::new_v4(), "p".into(), None, ReplayMode::Casual, "k".into());
+    let m = ReplayMeta::new(
+        Uuid::new_v4(),
+        "p".into(),
+        None,
+        ReplayMode::Casual,
+        "k".into(),
+    );
     let r = Replay::new(m, vec![1, 2, 3, 4, 5]);
     assert_eq!(r.meta.object_size, 5);
     assert_eq!(r.data, vec![1, 2, 3, 4, 5]);

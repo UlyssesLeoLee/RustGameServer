@@ -81,12 +81,7 @@ async fn test_register_creates_24h_session() {
 
     // 注入一个 24h 有效的 session (模拟"刚注册完成"的状态)
     let now = chrono::Utc::now();
-    let session = inject_session(
-        &sessions,
-        player_id,
-        now + chrono::Duration::hours(24),
-    )
-    .await;
+    let session = inject_session(&sessions, player_id, now + chrono::Duration::hours(24)).await;
 
     // 旁证: session 默认 24h 过期, 未到期
     assert!(!session.is_expired(), "新建 24h session 必未到期");
@@ -115,12 +110,7 @@ async fn test_heartbeat_slides_expiry_multiple_times() {
 
     // 注入 session
     let now = chrono::Utc::now();
-    let session = inject_session(
-        &sessions,
-        player.id,
-        now + chrono::Duration::hours(24),
-    )
-    .await;
+    let session = inject_session(&sessions, player.id, now + chrono::Duration::hours(24)).await;
     let original_expiry = session.expires_at;
     let session_id = session.id;
 
@@ -194,18 +184,8 @@ async fn test_delete_expired_cleans_up_only_expired() {
     let now = chrono::Utc::now();
 
     // 注入: 1 个过期 (1 小时前) + 1 个未来 (1 小时后)
-    let expired = inject_session(
-        &sessions,
-        player_id,
-        now - chrono::Duration::hours(1),
-    )
-    .await;
-    let valid = inject_session(
-        &sessions,
-        player_id,
-        now + chrono::Duration::hours(1),
-    )
-    .await;
+    let expired = inject_session(&sessions, player_id, now - chrono::Duration::hours(1)).await;
+    let valid = inject_session(&sessions, player_id, now + chrono::Duration::hours(1)).await;
 
     // 旁证: 起始 2 个
     let all = sessions.list_by_player(player_id).await.unwrap();

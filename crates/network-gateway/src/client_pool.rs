@@ -110,7 +110,9 @@ impl GrpcClientPool {
         };
 
         info!(target = target.service_short(), host = %host, port = port, "building mTLS channel");
-        build_channel(&cfg).await.map_err(|e| ClientPoolError::Channel(e.to_string()))
+        build_channel(&cfg)
+            .await
+            .map_err(|e| ClientPoolError::Channel(e.to_string()))
     }
 
     pub fn config_summary(&self) -> Vec<(GrpcTarget, &'static str)> {
@@ -119,9 +121,15 @@ impl GrpcClientPool {
             (GrpcTarget::Economy, "mTLS-ready"),
             (GrpcTarget::Admin, "mTLS-ready"),
             (GrpcTarget::ClusterOps, "mTLS-ready"),
-            (GrpcTarget::Scene, "NotDeployed (W4 scaffold, 5 worktree merge 后实装)"),
+            (
+                GrpcTarget::Scene,
+                "NotDeployed (W4 scaffold, 5 worktree merge 后实装)",
+            ),
             (GrpcTarget::Battle, "NotDeployed (W5 scaffold)"),
-            (GrpcTarget::Batch, "NotDeployed (per 9/1 REQ fd122f6 v0.1, IMPL 未启)"),
+            (
+                GrpcTarget::Batch,
+                "NotDeployed (per 9/1 REQ fd122f6 v0.1, IMPL 未启)",
+            ),
         ]
     }
 }
@@ -169,7 +177,10 @@ mod tests {
     #[test]
     fn default_endpoints_seven_distinct_ports() {
         let host = "test.local";
-        let ports: std::collections::HashSet<_> = GrpcTarget::ALL.iter().map(|t| t.default_endpoint(host).1).collect();
+        let ports: std::collections::HashSet<_> = GrpcTarget::ALL
+            .iter()
+            .map(|t| t.default_endpoint(host).1)
+            .collect();
         assert_eq!(ports.len(), 7);
     }
 
@@ -183,7 +194,10 @@ mod tests {
     #[test]
     fn pool_new_three_new_domains_return_not_deployed() {
         let mut pool = GrpcClientPool::new("D:/sszgC/certs", "test.local");
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         for t in [GrpcTarget::Scene, GrpcTarget::Battle, GrpcTarget::Batch] {
             let err = rt.block_on(pool.get_channel(t)).unwrap_err();
             assert!(matches!(err, ClientPoolError::NotDeployed(_)));
@@ -204,9 +218,19 @@ mod tests {
         let cfg = pool.config_summary();
         assert_eq!(cfg.len(), 7, "7 域 = 7 行 (4 mTLS + 3 NEW 域占位)");
         let mtls_count = cfg.iter().filter(|(_, s)| s.contains("mTLS")).count();
-        assert!(mtls_count >= 4, "应至少 4 域 mTLS-ready, got {}", mtls_count);
-        let not_deployed_count = cfg.iter().filter(|(_, s)| s.contains("NotDeployed")).count();
-        assert_eq!(not_deployed_count, 3, "3 NEW 域 (scene/battle/batch) 走 NotDeployed");
+        assert!(
+            mtls_count >= 4,
+            "应至少 4 域 mTLS-ready, got {}",
+            mtls_count
+        );
+        let not_deployed_count = cfg
+            .iter()
+            .filter(|(_, s)| s.contains("NotDeployed"))
+            .count();
+        assert_eq!(
+            not_deployed_count, 3,
+            "3 NEW 域 (scene/battle/batch) 走 NotDeployed"
+        );
     }
 
     #[tokio::test]
@@ -225,7 +249,12 @@ mod tests {
     #[tokio::test]
     async fn w15_four_mtls_domains_try_real_channel_build() {
         let mut pool = GrpcClientPool::new("D:/nonexistent/certs", "test.local");
-        for t in [GrpcTarget::Player, GrpcTarget::Economy, GrpcTarget::Admin, GrpcTarget::ClusterOps] {
+        for t in [
+            GrpcTarget::Player,
+            GrpcTarget::Economy,
+            GrpcTarget::Admin,
+            GrpcTarget::ClusterOps,
+        ] {
             let result = pool.get_channel(t).await;
             // 不应返 NotDeployed (这些是 mTLS-ready 域)
             if let Err(ClientPoolError::NotDeployed(_)) = result {
@@ -270,7 +299,7 @@ mod tests {
         assert_eq!(r.target, GrpcTarget::Scene);
         assert_eq!(r.method, "EnterScene");
         assert_eq!(r.rcode, 0); // stub 行为; 真实调用 client_pool 返 NotDeployed
-        // 真实路径: client_pool 返 NotDeployed
+                                // 真实路径: client_pool 返 NotDeployed
         let mut pool = GrpcClientPool::new("D:/sszgC/certs", "test.local");
         let err = pool.get_channel(GrpcTarget::Scene).await.unwrap_err();
         assert!(matches!(err, ClientPoolError::NotDeployed(_)));
@@ -316,7 +345,10 @@ mod tests {
     #[tokio::test]
     async fn w15_shared_client_pool_via_arc_mutex() {
         use std::sync::Arc;
-        let pool = Arc::new(Mutex::new(GrpcClientPool::new("D:/sszgC/certs", "player-service")));
+        let pool = Arc::new(Mutex::new(GrpcClientPool::new(
+            "D:/sszgC/certs",
+            "player-service",
+        )));
         let pool_clone = Arc::clone(&pool);
         let handle = tokio::spawn(async move {
             let mut guard = pool_clone.lock().await;

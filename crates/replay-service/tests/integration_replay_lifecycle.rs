@@ -116,7 +116,13 @@ async fn test_list_replays_by_player_with_pagination() {
         ..Default::default()
     };
     let (p1, total1, has_next1) = svc
-        .list_replays(&filter, PageRequest { page: 1, page_size: 4 })
+        .list_replays(
+            &filter,
+            PageRequest {
+                page: 1,
+                page_size: 4,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total1, 10);
@@ -125,7 +131,13 @@ async fn test_list_replays_by_player_with_pagination() {
     assert!(p1.iter().all(|m| m.player_a == "alice"));
 
     let (p2, total2, has_next2) = svc
-        .list_replays(&filter, PageRequest { page: 2, page_size: 4 })
+        .list_replays(
+            &filter,
+            PageRequest {
+                page: 2,
+                page_size: 4,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total2, 10);
@@ -133,7 +145,13 @@ async fn test_list_replays_by_player_with_pagination() {
     assert!(has_next2);
 
     let (p3, total3, has_next3) = svc
-        .list_replays(&filter, PageRequest { page: 3, page_size: 4 })
+        .list_replays(
+            &filter,
+            PageRequest {
+                page: 3,
+                page_size: 4,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(total3, 10);
@@ -149,12 +167,17 @@ async fn test_list_replays_by_player_with_pagination() {
     let (items, total, _) = svc
         .list_replays(
             &filter_combined,
-            PageRequest { page: 1, page_size: 20 },
+            PageRequest {
+                page: 1,
+                page_size: 20,
+            },
         )
         .await
         .unwrap();
     assert_eq!(total, 10);
-    assert!(items.iter().all(|m| m.player_a == "alice" && m.mode == ReplayMode::Ranked));
+    assert!(items
+        .iter()
+        .all(|m| m.player_a == "alice" && m.mode == ReplayMode::Ranked));
 }
 
 // ============================================================================
@@ -273,8 +296,14 @@ async fn test_expired_replays_are_cleaned_up() {
     // 清理前: 4 个元数据 + 4 个对象
     assert_eq!(
         svc.list_replays(
-            &ReplayFilter { include_expired: true, ..Default::default() },
-            PageRequest { page: 1, page_size: 20 }
+            &ReplayFilter {
+                include_expired: true,
+                ..Default::default()
+            },
+            PageRequest {
+                page: 1,
+                page_size: 20
+            }
         )
         .await
         .unwrap()
@@ -293,8 +322,14 @@ async fn test_expired_replays_are_cleaned_up() {
     // 清理后: 1 个元数据 + 1 个对象
     let (items, total, _) = svc
         .list_replays(
-            &ReplayFilter { include_expired: true, ..Default::default() },
-            PageRequest { page: 1, page_size: 20 },
+            &ReplayFilter {
+                include_expired: true,
+                ..Default::default()
+            },
+            PageRequest {
+                page: 1,
+                page_size: 20,
+            },
         )
         .await
         .unwrap();
@@ -302,7 +337,11 @@ async fn test_expired_replays_are_cleaned_up() {
     assert_eq!(items[0].replay_id, active.replay_id);
 
     for k in &expired_keys {
-        assert!(!storage.exists(k).await.unwrap(), "expired object should be deleted: {}", k);
+        assert!(
+            !storage.exists(k).await.unwrap(),
+            "expired object should be deleted: {}",
+            k
+        );
     }
     // active 仍存在
     assert!(storage.exists(&active.object_key).await.unwrap());

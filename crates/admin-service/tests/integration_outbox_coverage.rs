@@ -95,7 +95,8 @@ fn admin_v1_2_subjects_parse_compliant() {
         assert!(
             last.starts_with('v'),
             "admin 域 subject {} 最后一段必须以 v 开头, 实际 = {}",
-            subject, last,
+            subject,
+            last,
         );
     }
 }

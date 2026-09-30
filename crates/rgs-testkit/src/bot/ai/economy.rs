@@ -80,7 +80,10 @@ impl std::fmt::Debug for EconomyBotAi {
         f.debug_struct("EconomyBotAi")
             .field("endpoint", &self.endpoint)
             .field("server_name", &self.server_name)
-            .field("client", &"<Arc<Mutex<Option<EconomyServiceClient<Channel>>>>>")
+            .field(
+                "client",
+                &"<Arc<Mutex<Option<EconomyServiceClient<Channel>>>>>",
+            )
             .finish()
     }
 }
@@ -191,12 +194,7 @@ impl EconomyBotAi {
             };
             let request = Request::new(entity_id);
 
-            match tokio::time::timeout(
-                Duration::from_secs(2),
-                client.get_account(request),
-            )
-            .await
-            {
+            match tokio::time::timeout(Duration::from_secs(2), client.get_account(request)).await {
                 Ok(Ok(_account)) => {
                     debug!(
                         bot_id = bot.id(),
@@ -257,7 +255,10 @@ impl BotAi for EconomyBotAi {
             // (per DDD Review v0.3.2 §7.3 L1.2: "init 调 get_account 真实 RPC, 失败时 tracing::warn! + Ok(())")
             self.call_get_account(bot).await?;
         } else {
-            debug!(bot_id = bot.id(), "EconomyBotAi::init stub 模式 (无 endpoint)");
+            debug!(
+                bot_id = bot.id(),
+                "EconomyBotAi::init stub 模式 (无 endpoint)"
+            );
         }
         Ok(())
     }
@@ -306,7 +307,11 @@ impl BotAi for EconomyBotAi {
             }
             // 未识别 act: 不 panic, 记 debug + 返 Ok (PoC 宽容, 跟 admin 域对齐 per L14 守门)
             other => {
-                debug!(bot_id = bot.id(), ?other, "EconomyBotAi::handle unknown act, skip");
+                debug!(
+                    bot_id = bot.id(),
+                    ?other,
+                    "EconomyBotAi::handle unknown act, skip"
+                );
                 Ok(())
             }
         }

@@ -24,15 +24,11 @@
 use std::sync::Arc;
 
 use economy_service::entity::Currency;
-use economy_service::repository::{
-    InMemoryAccountRepository, InMemoryTransactionLedgerRepository,
-};
+use economy_service::repository::{InMemoryAccountRepository, InMemoryTransactionLedgerRepository};
 use economy_service::trade_entity::{AuctionFilter, AuctionStatus, PrivateTradeStatus};
 use economy_service::trade_repository::InMemoryTradeRepository;
 use economy_service::trade_service::{ExecuteTradeServiceImpl, TradeService, TradeServiceImpl};
-use economy_service::{
-    AccountRepository, TradeRepository, TransactionLedgerRepository,
-};
+use economy_service::{AccountRepository, TradeRepository, TransactionLedgerRepository};
 use uuid::Uuid;
 
 // ============================================================================
@@ -47,9 +43,8 @@ fn bootstrap_trade_service() -> (
     Arc<InMemoryTransactionLedgerRepository>,
 ) {
     let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-    let acc_repo = Arc::new(
-        InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
-    );
+    let acc_repo =
+        Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
     let trade_repo = Arc::new(InMemoryTradeRepository::new());
     let trade_svc = Arc::new(TradeServiceImpl::new(
         trade_repo.clone() as Arc<dyn TradeRepository>,
@@ -57,12 +52,17 @@ fn bootstrap_trade_service() -> (
         led_repo.clone() as Arc<dyn TransactionLedgerRepository>,
     ));
     let exec_svc = Arc::new(ExecuteTradeServiceImpl::new(
-        trade_repo.clone() as Arc<dyn TradeRepository>,
+        trade_repo.clone() as Arc<dyn TradeRepository>
     ));
     (trade_svc, exec_svc, acc_repo, led_repo)
 }
 
-async fn fund(acc_repo: &InMemoryAccountRepository, player_id: Uuid, currency: Currency, amount: i64) {
+async fn fund(
+    acc_repo: &InMemoryAccountRepository,
+    player_id: Uuid,
+    currency: Currency,
+    amount: i64,
+) {
     let mut acc = economy_service::entity::Account::new(player_id, currency);
     acc.credit(amount);
     acc_repo.save(&acc).await.unwrap();
@@ -189,23 +189,14 @@ async fn it_bid_auction() {
 
     // ledger 验证: 2 笔 spend + 1 笔 refund 都写入
     // 用 idempotency_key 查 (pub fn find_by_idempotency_key)
-    let bid1 = led_repo
-        .find_by_idempotency_key("k-bid-1")
-        .await
-        .unwrap();
+    let bid1 = led_repo.find_by_idempotency_key("k-bid-1").await.unwrap();
     assert!(bid1.is_some(), "bid1 ledger entry should exist");
-    let bid2 = led_repo
-        .find_by_idempotency_key("k-bid-2")
-        .await
-        .unwrap();
+    let bid2 = led_repo.find_by_idempotency_key("k-bid-2").await.unwrap();
     assert!(bid2.is_some(), "bid2 ledger entry should exist");
     // bid1 退款: 退款 key 格式 "refund-<auction_id>-<old_bidder>"
     // 旧最高出价者是 bidder1
     let refund_key = format!("refund-{}-{}", auction.auction_id, bidder1);
-    let refund_entry = led_repo
-        .find_by_idempotency_key(&refund_key)
-        .await
-        .unwrap();
+    let refund_entry = led_repo.find_by_idempotency_key(&refund_key).await.unwrap();
     assert!(refund_entry.is_some(), "refund ledger entry should exist");
     assert_eq!(refund_entry.unwrap().amount, 200); // 退款 200
 }
@@ -263,10 +254,7 @@ async fn it_bid_then_auto_sold() {
     assert_eq!(r1.auction.status, AuctionStatus::Active);
     assert_eq!(r1.auction.highest_bid, 200);
     // ledger 写入 1 条 spend
-    let e1 = led_repo
-        .find_by_idempotency_key("k-bid-1")
-        .await
-        .unwrap();
+    let e1 = led_repo.find_by_idempotency_key("k-bid-1").await.unwrap();
     assert!(e1.is_some(), "first bid ledger entry should exist");
 
     // 模拟 cron 触发的 finalization: 通过 cancel 触发 Closed 状态 (替代不可靠的 auto-sold race)
@@ -388,7 +376,7 @@ async fn it_private_trade_propose_cancel() {
             100, // proposer 给 counterparty 100 金币
             Some(1),
             Some("inst-A".to_string()), // proposer 给卡牌
-            200, // counterparty 给 proposer 200 金币
+            200,                        // counterparty 给 proposer 200 金币
             Some(1),
             Some("inst-B".to_string()), // counterparty 给卡牌
         )
@@ -400,7 +388,10 @@ async fn it_private_trade_propose_cancel() {
     assert_eq!(trade.proposer_currency_amount, 100);
     assert_eq!(trade.counterparty_currency_amount, 200);
     assert_eq!(trade.proposer_card_instance_id.as_deref(), Some("inst-A"));
-    assert_eq!(trade.counterparty_card_instance_id.as_deref(), Some("inst-B"));
+    assert_eq!(
+        trade.counterparty_card_instance_id.as_deref(),
+        Some("inst-B")
+    );
 
     // 2. 第三方不能 cancel
     let err = exec_svc

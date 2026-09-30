@@ -254,7 +254,11 @@ mod tests {
     fn olu_phase_all_six_have_positive_budget() {
         // 6 阶段均 > 0 (per cluster-ops olu_reporter test 派生约束)
         for p in OluPhase::ALL {
-            assert!(p.default_olu_budget() > 0, "{:?} OLU default must be > 0", p);
+            assert!(
+                p.default_olu_budget() > 0,
+                "{:?} OLU default must be > 0",
+                p
+            );
             assert!(!p.as_str().is_empty(), "{:?} as_str must be non-empty", p);
         }
     }
@@ -262,14 +266,23 @@ mod tests {
     #[test]
     fn olu_phase_sub_feature_mapping_seven() {
         // 7 个 SubFeature 阶段 (含 merge_rollback) → 6 阶段 OLU
-        assert_eq!(OluPhase::from_sub_feature("new_realm"), Some(OluPhase::NewRealm));
+        assert_eq!(
+            OluPhase::from_sub_feature("new_realm"),
+            Some(OluPhase::NewRealm)
+        );
         assert_eq!(OluPhase::from_sub_feature("scale"), Some(OluPhase::Scale));
         assert_eq!(OluPhase::from_sub_feature("split"), Some(OluPhase::Split));
         assert_eq!(OluPhase::from_sub_feature("merge"), Some(OluPhase::Merge));
         // merge_rollback 映射到 merge 阶段（per SPEC §4 7 个 SubFeature）
-        assert_eq!(OluPhase::from_sub_feature("merge_rollback"), Some(OluPhase::Merge));
+        assert_eq!(
+            OluPhase::from_sub_feature("merge_rollback"),
+            Some(OluPhase::Merge)
+        );
         assert_eq!(OluPhase::from_sub_feature("retire"), Some(OluPhase::Retire));
-        assert_eq!(OluPhase::from_sub_feature("archive"), Some(OluPhase::Archive));
+        assert_eq!(
+            OluPhase::from_sub_feature("archive"),
+            Some(OluPhase::Archive)
+        );
         assert!(OluPhase::from_sub_feature("unknown_phase").is_none());
     }
 

@@ -24,8 +24,8 @@ pub mod lcm;
 pub use error::{Error, Result};
 pub use repository::{
     run_startup_verify, AdminUserRepository, AuditLogRepository, InMemoryAdminUserRepository,
-    InMemoryAuditLogRepository, PgAdminUserRepository, PgAuditLogRepository,
-    StartupVerifyOutcome, VerifyReport,
+    InMemoryAuditLogRepository, PgAdminUserRepository, PgAuditLogRepository, StartupVerifyOutcome,
+    VerifyReport,
 };
 
 pub mod proto;

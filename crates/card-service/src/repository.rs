@@ -97,11 +97,7 @@ pub trait CardRepository: Send + Sync {
     /// 按 card_id 查询
     async fn find_by_id(&self, card_id: &str) -> Result<Option<Card>>;
     /// 分页 + 过滤列出
-    async fn list(
-        &self,
-        filter: &CardFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<Card>>;
+    async fn list(&self, filter: &CardFilter, page_req: PageRequest) -> Result<Page<Card>>;
     /// 批量预加载 (按 card_id 列表, 用于 OpenPack 后按抽到的 card_id 一次拉 master)
     async fn find_by_ids(&self, card_ids: &[String]) -> Result<Vec<Card>>;
     /// 创建卡牌 (运营配置入口, 桶 14 后续实装 admin 入口时调用)
@@ -227,10 +223,7 @@ fn jsonb_to_drop_table(v: serde_json::Value) -> Result<DropTable> {
         return Ok(DropTable::new(Vec::new()));
     }
     let version = v.get("version").and_then(|x| x.as_u64()).unwrap_or(1) as u32;
-    let snapshot_at_str = v
-        .get("snapshot_at")
-        .and_then(|x| x.as_str())
-        .unwrap_or("");
+    let snapshot_at_str = v.get("snapshot_at").and_then(|x| x.as_str()).unwrap_or("");
     let snapshot_at = if snapshot_at_str.is_empty() {
         Utc::now()
     } else {
@@ -242,22 +235,13 @@ fn jsonb_to_drop_table(v: serde_json::Value) -> Result<DropTable> {
         .get("entries")
         .cloned()
         .unwrap_or(serde_json::Value::Array(Vec::new()));
-    let entries_arr = entries_val
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let entries_arr = entries_val.as_array().cloned().unwrap_or_default();
     let mut entries = Vec::with_capacity(entries_arr.len());
     for e in entries_arr {
         let rarity_int = e.get("rarity").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
         let count = e.get("count").and_then(|x| x.as_u64()).unwrap_or(0) as u32;
-        let probability = e
-            .get("probability")
-            .and_then(|x| x.as_f64())
-            .unwrap_or(0.0);
-        let card_id = e
-            .get("card_id")
-            .and_then(|x| x.as_str())
-            .map(String::from);
+        let probability = e.get("probability").and_then(|x| x.as_f64()).unwrap_or(0.0);
+        let card_id = e.get("card_id").and_then(|x| x.as_str()).map(String::from);
         entries.push(DropEntry {
             rarity: CardRarity::from_i32(rarity_int),
             count,
@@ -325,11 +309,7 @@ impl CardRepository for PgCardRepository {
         }
     }
 
-    async fn list(
-        &self,
-        filter: &CardFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<Card>> {
+    async fn list(&self, filter: &CardFilter, page_req: PageRequest) -> Result<Page<Card>> {
         let offset = ((page_req.page.saturating_sub(1)) * page_req.page_size) as i64;
         let limit = page_req.page_size as i64;
 
@@ -714,12 +694,10 @@ impl CardInstanceRepository for PgCardInstanceRepository {
     }
 
     async fn count_by_owner(&self, owner_id: Uuid) -> Result<u64> {
-        let n: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM card_instances WHERE owner_id = $1",
-        )
-        .bind(owner_id.to_string())
-        .fetch_one(&self.pool)
-        .await?;
+        let n: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM card_instances WHERE owner_id = $1")
+            .bind(owner_id.to_string())
+            .fetch_one(&self.pool)
+            .await?;
         Ok(n.max(0) as u64)
     }
 }
@@ -752,11 +730,7 @@ impl CardRepository for InMemoryCardRepository {
         Ok(self.inner.lock().unwrap().get(card_id).cloned())
     }
 
-    async fn list(
-        &self,
-        filter: &CardFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<Card>> {
+    async fn list(&self, filter: &CardFilter, page_req: PageRequest) -> Result<Page<Card>> {
         let guard = self.inner.lock().unwrap();
         let mut all: Vec<Card> = guard
             .values()
@@ -930,8 +904,10 @@ impl CardInstanceRepository for InMemoryCardInstanceRepository {
             let card_ids: Vec<String> = candidates.iter().map(|i| i.card_id.clone()).collect();
             // 一次拉 master
             let masters = self.cards.find_by_ids(&card_ids).await?;
-            let master_map: HashMap<String, Card> =
-                masters.into_iter().map(|c| (c.card_id.clone(), c)).collect();
+            let master_map: HashMap<String, Card> = masters
+                .into_iter()
+                .map(|c| (c.card_id.clone(), c))
+                .collect();
             let target_rarity = filter.rarity_filter;
             let target_series = filter.series_id_filter.clone();
             candidates.retain(|i| {
@@ -1062,13 +1038,19 @@ mod tests {
         let owner = Uuid::new_v4();
         let inst1 = CardInstance::new("card_001".to_string(), owner, CardInstanceSource::Pack);
         let inst2 = CardInstance::new("card_001".to_string(), owner, CardInstanceSource::Reward);
-        repo.add_many(&[inst1.clone(), inst2.clone()]).await.unwrap();
+        repo.add_many(&[inst1.clone(), inst2.clone()])
+            .await
+            .unwrap();
 
         let count = repo.count_by_owner(owner).await.unwrap();
         assert_eq!(count, 2);
 
         let page = repo
-            .list_by_owner(owner, &CardInstanceFilter::default(), PageRequest::default())
+            .list_by_owner(
+                owner,
+                &CardInstanceFilter::default(),
+                PageRequest::default(),
+            )
             .await
             .unwrap();
         assert_eq!(page.items.len(), 2);
@@ -1092,7 +1074,11 @@ mod tests {
         let owner = Uuid::new_v4();
         repo.add_many(&[
             CardInstance::new("card_common".to_string(), owner, CardInstanceSource::Pack),
-            CardInstance::new("card_legendary".to_string(), owner, CardInstanceSource::Pack),
+            CardInstance::new(
+                "card_legendary".to_string(),
+                owner,
+                CardInstanceSource::Pack,
+            ),
         ])
         .await
         .unwrap();

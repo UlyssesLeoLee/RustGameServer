@@ -21,7 +21,11 @@ use replay_service::repository::{InMemoryReplayRepository, ReplayRepository};
 use replay_service::service::{LikesMap, ReplayDomainService, ReplayServiceImpl};
 use replay_service::storage::{InMemoryBackend, StorageBackend};
 
-fn make_svc() -> (ReplayServiceImpl, Arc<InMemoryReplayRepository>, Arc<InMemoryBackend>) {
+fn make_svc() -> (
+    ReplayServiceImpl,
+    Arc<InMemoryReplayRepository>,
+    Arc<InMemoryBackend>,
+) {
     let repo: Arc<InMemoryReplayRepository> = Arc::new(InMemoryReplayRepository::new());
     let storage: Arc<InMemoryBackend> = Arc::new(InMemoryBackend::new());
     let svc = ReplayServiceImpl::new(
@@ -31,10 +35,7 @@ fn make_svc() -> (ReplayServiceImpl, Arc<InMemoryReplayRepository>, Arc<InMemory
     (svc, repo, storage)
 }
 
-async fn save_one_replay(
-    svc: &ReplayServiceImpl,
-    player_id_str: &str,
-) -> uuid::Uuid {
+async fn save_one_replay(svc: &ReplayServiceImpl, player_id_str: &str) -> uuid::Uuid {
     let meta = svc
         .save_replay(
             Uuid::new_v4(),
@@ -238,10 +239,7 @@ async fn like_replay_validates_nil_inputs() {
         .await
         .unwrap_err();
     assert!(matches!(err1, Error::Validation(_)));
-    let err2 = svc
-        .like_replay(replay_id, Uuid::nil())
-        .await
-        .unwrap_err();
+    let err2 = svc.like_replay(replay_id, Uuid::nil()).await.unwrap_err();
     assert!(matches!(err2, Error::Validation(_)));
 }
 
@@ -385,10 +383,7 @@ async fn with_social_storage_shares_state() {
     let p1 = Uuid::new_v4();
     let p2 = Uuid::new_v4();
     let c1 = Uuid::new_v4();
-    preset_likes.insert(
-        replay_id,
-        vec![p1, p2].into_iter().collect(),
-    );
+    preset_likes.insert(replay_id, vec![p1, p2].into_iter().collect());
     preset_colls.insert(replay_id, vec![c1].into_iter().collect());
 
     let likes = Arc::new(tokio::sync::RwLock::new(preset_likes));

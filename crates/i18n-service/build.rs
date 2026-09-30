@@ -9,11 +9,7 @@ fn main() -> Result<()> {
         "proto/i18n/v1/i18n.proto",
         "../shared-platform/proto/common/v1/common.proto",
     ];
-    let includes: &[&str] = &[
-        "proto",
-        "../shared-platform/proto",
-        "../i18n-service/proto",
-    ];
+    let includes: &[&str] = &["proto", "../shared-platform/proto", "../i18n-service/proto"];
     tonic_build::configure()
         .build_server(true)
         .build_client(true)

@@ -42,11 +42,31 @@ const DEMO_CODES: &[u32] = &[
 
 /// 6 demo 路由对应 (code, name, svc, method) 元组
 const DEMO_ROUTES: &[(u32, &str, &str, &str)] = &[
-    (10101, "create_character", "player.v1.PlayerService", "CreateCharacter"),
+    (
+        10101,
+        "create_character",
+        "player.v1.PlayerService",
+        "CreateCharacter",
+    ),
     (10201, "enter_scene", "scene.v1.SceneService", "EnterScene"),
-    (20001, "battle_prepare", "battle.v1.BattleService", "BattlePrepare"),
-    (20002, "round_start", "battle.v1.BattleService", "RoundStart"),
-    (11000, "get_partner_data", "player.v1.PlayerService", "GetPartnerData"),
+    (
+        20001,
+        "battle_prepare",
+        "battle.v1.BattleService",
+        "BattlePrepare",
+    ),
+    (
+        20002,
+        "round_start",
+        "battle.v1.BattleService",
+        "RoundStart",
+    ),
+    (
+        11000,
+        "get_partner_data",
+        "player.v1.PlayerService",
+        "GetPartnerData",
+    ),
     (
         25000,
         "push_base_info",
@@ -67,11 +87,8 @@ async fn spawn_test_server() -> (String, tokio::task::JoinHandle<()>) {
     drop(listener); // 释放端口给 serve
     let addr_s = addr.to_string();
     let handle = tokio::spawn(async move {
-        let _ = tokio::time::timeout(
-            Duration::from_secs(5),
-            tcp::serve(&addr_s, routes, stats),
-        )
-        .await;
+        let _ =
+            tokio::time::timeout(Duration::from_secs(5), tcp::serve(&addr_s, routes, stats)).await;
     });
     // 等 server 起来
     tokio::time::sleep(Duration::from_millis(50)).await;

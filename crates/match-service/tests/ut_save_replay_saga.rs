@@ -121,16 +121,9 @@ async fn make_ended_session(mode: GameMode) -> (MatchmakerServiceV2, Uuid, Arc<M
 
     // 手工构造一个 Ended session
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        mode,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session = match_service::entity_v2::GameSession::new(mode, make_player("p1"), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2 ok");
+    session.add_player(make_player("p2")).expect("add p2 ok");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session
@@ -139,10 +132,7 @@ async fn make_ended_session(mode: GameMode) -> (MatchmakerServiceV2, Uuid, Arc<M
     session.transition_to_ended().expect("ended");
 
     // 把 session 持久化
-    svc.sessions()
-        .save(&session)
-        .await
-        .expect("save session");
+    svc.sessions().save(&session).await.expect("save session");
 
     let svc_owned = Arc::try_unwrap(svc).ok().expect("svc unique");
     (svc_owned, match_id, mock)
@@ -166,15 +156,9 @@ async fn trigger_save_replay_skips_when_no_replay_client() {
     );
 
     // 构造 Ended session (走完整状态机 Creating → Starting → Running → Ending → Ended)
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Casual,
-        make_player("p1"),
-        2,
-        2,
-    );
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Casual, make_player("p1"), 2, 2);
+    session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session
@@ -250,16 +234,10 @@ async fn trigger_save_replay_surrender_via_submit_move() {
 
     // 构造一个 Running 状态 session
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Ranked,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Ranked, make_player("p1"), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session.current_player_id = Some("p1".to_string());
@@ -322,16 +300,10 @@ async fn trigger_save_replay_timeout_3_strikes() {
 
     // 构造 Running 状态 session
     let match_id = Uuid::new_v4();
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Casual,
-        make_player("p1"),
-        2,
-        2,
-    );
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Casual, make_player("p1"), 2, 2);
     session.match_id = match_id;
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    session.add_player(make_player("p2")).expect("add p2");
     session.transition_to_starting().expect("starting");
     session.transition_to_running().expect("running");
     session.current_player_id = Some("p1".to_string());
@@ -376,15 +348,9 @@ async fn trigger_save_replay_skips_for_canceled() {
         client,
     ));
 
-    let mut session = match_service::entity_v2::GameSession::new(
-        GameMode::Room,
-        make_player("p1"),
-        4,
-        2,
-    );
-    session
-        .add_player(make_player("p2"))
-        .expect("add p2");
+    let mut session =
+        match_service::entity_v2::GameSession::new(GameMode::Room, make_player("p1"), 4, 2);
+    session.add_player(make_player("p2")).expect("add p2");
     // 跳过 Ending, 直接 cancel
     session
         .transition_to_canceled("all_disconnected".to_string())

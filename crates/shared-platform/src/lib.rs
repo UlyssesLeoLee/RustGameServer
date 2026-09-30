@@ -29,7 +29,6 @@ pub mod data_driven;
 pub mod dlq;
 pub mod grpc_tracing;
 pub mod json_logging;
-pub mod proto;
 pub mod messaging;
 pub mod metrics;
 pub mod metrics_endpoint;
@@ -37,6 +36,7 @@ pub mod outbox;
 pub mod outbox_metrics_reporter;
 pub mod outbox_relay;
 pub mod producer;
+pub mod proto;
 pub mod rbac;
 pub mod retry;
 pub mod span_helpers;
@@ -54,9 +54,7 @@ pub use consumer::{
     deserialize_envelope, nak_with_delay, process_with_retry, ConsumerConfig, ConsumerError,
     ConsumerHandler, DeserializedMessage,
 };
-pub use data_driven::{
-    HolidayActivity, HolidayConfig, PvpConfig, PvpMode, PvpModeConfig,
-};
+pub use data_driven::{HolidayActivity, HolidayConfig, PvpConfig, PvpMode, PvpModeConfig};
 pub use dlq::DlqEntry;
 pub use grpc_tracing::{
     client_interceptor, client_interceptor_layer, extract_trace_id, server_interceptor,

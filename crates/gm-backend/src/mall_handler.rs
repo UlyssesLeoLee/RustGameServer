@@ -80,22 +80,30 @@ pub async fn update_mall_item(
         Some(i) => i,
         None => return HttpResponse::NotFound().json(json!({"error": "not_found"})),
     };
-    if let Some(name) = &body.name { item.name = name.clone(); }
-    if let Some(price) = body.price { item.price = price; }
-    if let Some(category) = &body.category { item.category = Some(category.clone()); }
-    if let Some(enabled) = body.enabled { item.enabled = enabled; }
+    if let Some(name) = &body.name {
+        item.name = name.clone();
+    }
+    if let Some(price) = body.price {
+        item.price = price;
+    }
+    if let Some(category) = &body.category {
+        item.category = Some(category.clone());
+    }
+    if let Some(enabled) = body.enabled {
+        item.enabled = enabled;
+    }
     HttpResponse::Ok().json(json!({"status": "updated", "item": item.clone()}))
 }
 
-pub async fn delete_mall_item(
-    state: web::Data<AppState>,
-    path: web::Path<u64>,
-) -> HttpResponse {
+pub async fn delete_mall_item(state: web::Data<AppState>, path: web::Path<u64>) -> HttpResponse {
     let id = path.into_inner();
     let mut items = state.mall_items.lock().unwrap();
     let pos = items.iter().position(|i| i.id == id);
     match pos {
-        Some(p) => { items.remove(p); HttpResponse::Ok().json(json!({"status": "deleted"})) }
+        Some(p) => {
+            items.remove(p);
+            HttpResponse::Ok().json(json!({"status": "deleted"}))
+        }
         None => HttpResponse::NotFound().json(json!({"error": "not_found"})),
     }
 }

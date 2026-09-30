@@ -112,7 +112,10 @@ fn row_to_game_session(row: sqlx::postgres::PgRow) -> Result<GameSession> {
         crate::Error::Internal(anyhow::anyhow!("failed to deserialize board: {}", e))
     })?;
     let pending_moves: Vec<Move> = serde_json::from_value(pending_moves_json).map_err(|e| {
-        crate::Error::Internal(anyhow::anyhow!("failed to deserialize pending_moves: {}", e))
+        crate::Error::Internal(anyhow::anyhow!(
+            "failed to deserialize pending_moves: {}",
+            e
+        ))
     })?;
 
     Ok(GameSession {
@@ -654,7 +657,10 @@ impl MoveRepository for InMemoryMoveRepository {
         Ok(v)
     }
     async fn save(&self, entity: &Move) -> Result<Move> {
-        self.inner.lock().unwrap().insert(entity.move_id, entity.clone());
+        self.inner
+            .lock()
+            .unwrap()
+            .insert(entity.move_id, entity.clone());
         Ok(entity.clone())
     }
     async fn delete_by_id(&self, id: Uuid) -> Result<bool> {
@@ -801,7 +807,10 @@ mod tests {
         repo.save(&s1).await.unwrap();
         repo.save(&s2).await.unwrap();
 
-        let running = repo.list_by_status(SessionStatus::Running, 10).await.unwrap();
+        let running = repo
+            .list_by_status(SessionStatus::Running, 10)
+            .await
+            .unwrap();
         assert_eq!(running.len(), 1);
         assert_eq!(running[0].match_id, s2.match_id);
     }
@@ -834,8 +843,20 @@ mod tests {
     async fn in_memory_move_save_and_list() {
         let repo = InMemoryMoveRepository::new();
         let match_id = Uuid::new_v4();
-        let m1 = Move::new(match_id, "p1".to_string(), 0, MoveType::PlayCard, "{}".to_string());
-        let m2 = Move::new(match_id, "p1".to_string(), 0, MoveType::EndTurn, "{}".to_string());
+        let m1 = Move::new(
+            match_id,
+            "p1".to_string(),
+            0,
+            MoveType::PlayCard,
+            "{}".to_string(),
+        );
+        let m2 = Move::new(
+            match_id,
+            "p1".to_string(),
+            0,
+            MoveType::EndTurn,
+            "{}".to_string(),
+        );
         repo.save(&m1).await.unwrap();
         repo.save(&m2).await.unwrap();
 

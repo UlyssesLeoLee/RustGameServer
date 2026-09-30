@@ -52,10 +52,7 @@ fn main() -> Result<()> {
         "proto/gateway/v1/gateway.proto",
         "../shared-platform/proto/common/v1/common.proto",
     ];
-    let includes: &[&str] = &[
-        "proto",
-        "../shared-platform/proto",
-    ];
+    let includes: &[&str] = &["proto", "../shared-platform/proto"];
     for p in protos {
         println!("cargo:rerun-if-changed={}", p);
     }
@@ -199,10 +196,26 @@ fn unique_codes(entries: &[(u32, String, String)]) -> usize {
 fn override_route(code: u32) -> Option<(&'static str, &'static str, &'static str)> {
     match code {
         // 4 真实存在 W7 demo code:
-        10101 => Some(("player.v1.PlayerService", "CreateCharacter", "http://127.0.0.1:50051")),
-        10201 => Some(("scene.v1.SceneService", "EnterScene", "http://127.0.0.1:50053")),
-        20001 => Some(("battle.v1.BattleService", "BattlePrepare", "http://127.0.0.1:50054")),
-        20002 => Some(("battle.v1.BattleService", "RoundStart", "http://127.0.0.1:50054")),
+        10101 => Some((
+            "player.v1.PlayerService",
+            "CreateCharacter",
+            "http://127.0.0.1:50051",
+        )),
+        10201 => Some((
+            "scene.v1.SceneService",
+            "EnterScene",
+            "http://127.0.0.1:50053",
+        )),
+        20001 => Some((
+            "battle.v1.BattleService",
+            "BattlePrepare",
+            "http://127.0.0.1:50054",
+        )),
+        20002 => Some((
+            "battle.v1.BattleService",
+            "RoundStart",
+            "http://127.0.0.1:50054",
+        )),
         // 2 额外加的 (per W14 10 核心路由验证):
         11000 => Some((
             "player.v1.PlayerService",
@@ -326,7 +339,9 @@ fn render_generated_rs(entries: &[(u32, String, String)]) -> String {
     out.push_str("//\n");
     out.push_str("// 元组: (code, name, target_service, target_method, target_addr)\n");
     out.push_str("// - 9 demo 路由覆写 (per W7 PHASE1_5_DEMO_ROUTES): 真实 service.method\n");
-    out.push_str("// - 其余 1342 条: 默认 service + Method_<code> 占位 (Phase 2 接 7 域真实 .proto)\n");
+    out.push_str(
+        "// - 其余 1342 条: 默认 service + Method_<code> 占位 (Phase 2 接 7 域真实 .proto)\n",
+    );
     out.push_str("\n");
     out.push_str("/// 1351 条 codegen 路由表 (per W14 task + 9/4 改进路线图.md Phase 1)\n");
     out.push_str("pub const GENERATED_ROUTES: &[(u32, &str, &str, &str, &str)] = &[\n");

@@ -549,27 +549,17 @@ mod tests {
             .await
             .unwrap();
         // 查找 leader 自己的 member id
-        let members = s
-            .members
-            .find_by_player(leader)
-            .await
-            .unwrap();
+        let members = s.members.find_by_player(leader).await.unwrap();
         assert_eq!(members.len(), 1);
         let leader_member_id = members[0].id;
-        let err = s
-            .promote_to_officer(leader_member_id)
-            .await
-            .unwrap_err();
+        let err = s.promote_to_officer(leader_member_id).await.unwrap_err();
         assert!(matches!(err, Error::InsufficientPermission { .. }));
     }
 
     #[tokio::test]
     async fn promote_to_officer_rejects_nonexistent_member() {
         let s = svc();
-        let err = s
-            .promote_to_officer(Uuid::new_v4())
-            .await
-            .unwrap_err();
+        let err = s.promote_to_officer(Uuid::new_v4()).await.unwrap_err();
         assert!(matches!(err, Error::NotFound { .. }));
     }
 
@@ -583,10 +573,7 @@ mod tests {
     #[tokio::test]
     async fn find_guild_by_id_returns_none_for_missing() {
         let s = svc();
-        let g = s
-            .find_guild_by_id(Uuid::new_v4())
-            .await
-            .unwrap();
+        let g = s.find_guild_by_id(Uuid::new_v4()).await.unwrap();
         assert!(g.is_none());
     }
 
@@ -614,11 +601,7 @@ mod tests {
         let after = s.find_guild_by_id(g.id).await.unwrap().unwrap();
         assert_eq!(after.member_count, 1);
         // player 不再是该 guild 成员
-        let player_remaining = s
-            .members
-            .find_by_player(player)
-            .await
-            .unwrap();
+        let player_remaining = s.members.find_by_player(player).await.unwrap();
         assert!(
             player_remaining.is_empty(),
             "leave 后 player 不应再有 member 记录"
@@ -658,11 +641,7 @@ mod tests {
             "leader 退出后应转移给 joined_at 最早的剩余成员"
         );
         // 验证 player_earliest 的 role 是 Leader
-        let earliest_records = s
-            .members
-            .find_by_player(player_earliest)
-            .await
-            .unwrap();
+        let earliest_records = s.members.find_by_player(player_earliest).await.unwrap();
         assert_eq!(earliest_records.len(), 1);
         assert_eq!(earliest_records[0].role, GuildRole::Leader);
         // 确认 other member 角色没被误改

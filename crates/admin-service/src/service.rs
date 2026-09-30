@@ -504,12 +504,7 @@ mod tests {
     async fn create_admin_rejects_empty_username() {
         let s = svc();
         let err = s
-            .create_admin(
-                "".to_string(),
-                "h".to_string(),
-                AdminRole::SuperAdmin,
-                None,
-            )
+            .create_admin("".to_string(), "h".to_string(), AdminRole::SuperAdmin, None)
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -520,12 +515,7 @@ mod tests {
     async fn create_admin_rejects_empty_password_hash() {
         let s = svc();
         let err = s
-            .create_admin(
-                "u".to_string(),
-                "".to_string(),
-                AdminRole::SuperAdmin,
-                None,
-            )
+            .create_admin("u".to_string(), "".to_string(), AdminRole::SuperAdmin, None)
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -586,7 +576,8 @@ mod tests {
         super_admin.domain_scope = None;
         let mut domain_admin = AdminUser::new("da".into(), "h".into(), AdminRole::DomainAdmin);
         domain_admin.domain_scope = Some("player".into());
-        let mut domain_admin_other = AdminUser::new("dao".into(), "h".into(), AdminRole::DomainAdmin);
+        let mut domain_admin_other =
+            AdminUser::new("dao".into(), "h".into(), AdminRole::DomainAdmin);
         domain_admin_other.domain_scope = Some("economy".into());
         let auditor = AdminUser::new("a".into(), "h".into(), AdminRole::Auditor);
         let support = AdminUser::new("s".into(), "h".into(), AdminRole::Support);
@@ -664,8 +655,8 @@ mod tests {
 
 #[cfg(test)]
 mod proptests {
-    use super::*;
     use super::tests::svc;
+    use super::*;
     use proptest::prelude::*;
     use proptest::test_runner::TestCaseError;
 

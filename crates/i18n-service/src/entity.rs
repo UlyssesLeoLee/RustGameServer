@@ -113,7 +113,11 @@ mod tests {
             assert_eq!(Locale::from_str(l.as_str()), Some(l));
         }
         assert_eq!(Locale::from_str("bogus"), None);
-        assert_eq!(Locale::from_str("zh-CN"), None, "must be lowercase_underscore");
+        assert_eq!(
+            Locale::from_str("zh-CN"),
+            None,
+            "must be lowercase_underscore"
+        );
     }
 
     #[test]

@@ -121,11 +121,17 @@ async fn tcp_serve_client_roundtrip() {
             Err(_) => break, // 1s timeout, 视作收完
         }
     }
-    assert!(buf.len() >= PROTOCOL_HEADER_LEN + 4, "至少 6+4=10 字节响应, got {}", buf.len());
+    assert!(
+        buf.len() >= PROTOCOL_HEADER_LEN + 4,
+        "至少 6+4=10 字节响应, got {}",
+        buf.len()
+    );
 
     // 解析响应 frame
     let mut resp_buf = BytesMut::from(&buf[..]);
-    let resp_frame = Frame::decode(&mut resp_buf).unwrap().expect("响应帧解析成功");
+    let resp_frame = Frame::decode(&mut resp_buf)
+        .unwrap()
+        .expect("响应帧解析成功");
     assert_eq!(resp_frame.cmd, 10101, "响应 cmd 应回声");
 
     let payload = &resp_frame.payload;
@@ -189,7 +195,9 @@ async fn tcp_serve_route_miss_increments_stat() {
         }
     }
     let mut resp_buf = BytesMut::from(&buf[..]);
-    let resp_frame = Frame::decode(&mut resp_buf).unwrap().expect("响应帧解析成功");
+    let resp_frame = Frame::decode(&mut resp_buf)
+        .unwrap()
+        .expect("响应帧解析成功");
     let payload = &resp_frame.payload;
     let rcode = u32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
     assert_eq!(rcode, 404, "未注册 cmd 应返回 404");

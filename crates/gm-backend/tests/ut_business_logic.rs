@@ -15,7 +15,7 @@
 use gm_backend::{
     business_handler::{parse_audit_type, ALLOWED_MAINTENANCE_SCOPES},
     canvas_handler::ALLOWED_ANCHORS,
-    AuditLogEntry, AuditStore, InMemoryAuditStore, GmConfig,
+    AuditLogEntry, AuditStore, GmConfig, InMemoryAuditStore,
 };
 
 // ============================================================================
@@ -87,9 +87,15 @@ fn allowed_anchors_contain_nine_grid_positions() {
     let anchors = ALLOWED_ANCHORS;
     assert_eq!(anchors.len(), 9, "ALLOWED_ANCHORS 必须 = 9 (3x3 网格)");
     let expected = [
-        "top_left", "top_center", "top_right",
-        "center_left", "center", "center_right",
-        "bottom_left", "bottom_center", "bottom_right",
+        "top_left",
+        "top_center",
+        "top_right",
+        "center_left",
+        "center",
+        "center_right",
+        "bottom_left",
+        "bottom_center",
+        "bottom_right",
     ];
     for e in expected {
         assert!(anchors.contains(&e), "缺少 anchor: {e}");
@@ -194,7 +200,10 @@ fn claims_serialize_roundtrip() {
 #[test]
 fn gm_config_for_test_disables_admin_grpc() {
     let cfg = GmConfig::for_test("127.0.0.1:8443", "127.0.0.1:8081", "http://admin:50055").unwrap();
-    assert!(cfg.disable_admin_grpc, "for_test 必须 disable_admin_grpc=true");
+    assert!(
+        cfg.disable_admin_grpc,
+        "for_test 必须 disable_admin_grpc=true"
+    );
     assert!(!cfg.require_jwt, "for_test 默认 require_jwt=false");
     assert_eq!(cfg.jwt_secret, "test-secret");
     assert_eq!(cfg.http_addr.port(), 8443);

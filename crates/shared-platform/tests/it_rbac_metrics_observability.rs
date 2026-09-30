@@ -5,10 +5,12 @@
 //! 2. it_span_helper_nested_with_actor_and_saga
 //! 3. it_rbac_enforce_then_metrics_record
 
-use shared_platform::metrics::{metrics, encode_to_text};
-use shared_platform::rbac::{enforce, Authorizer, CheckResult, SimpleAuthorizer, Subject, SubjectType, Role};
-use shared_platform::span_helpers::{saga_orchestrator_span, service_call_span, repository_span};
 use shared_platform::json_logging::with_actor;
+use shared_platform::metrics::{encode_to_text, metrics};
+use shared_platform::rbac::{
+    enforce, Authorizer, CheckResult, Role, SimpleAuthorizer, Subject, SubjectType,
+};
+use shared_platform::span_helpers::{repository_span, saga_orchestrator_span, service_call_span};
 use uuid::Uuid;
 
 /// 场景 1: RBAC 检查应能用 actor_id 维度被 metrics 观测

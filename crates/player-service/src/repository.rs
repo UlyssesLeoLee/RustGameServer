@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
 
-use crate::entity::{Deck, DeckSlot, DeckStatus, Player, PlayerSession, PlayerStatus, Character};
+use crate::entity::{Character, Deck, DeckSlot, DeckStatus, Player, PlayerSession, PlayerStatus};
 use crate::Result;
 
 /// 分页请求（per common.proto PageRequest）
@@ -90,11 +90,7 @@ pub trait DeckRepository: Send + Sync {
     /// 按 id 删除
     async fn delete_by_id(&self, id: Uuid) -> Result<bool>;
     /// 按 owner_id 分页查询
-    async fn list_by_owner(
-        &self,
-        owner_id: Uuid,
-        req: PageRequest,
-    ) -> Result<Page<Deck>>;
+    async fn list_by_owner(&self, owner_id: Uuid, req: PageRequest) -> Result<Page<Deck>>;
     /// 按 share_code 查询（用于 GetSharedDeck；要求 is_public=true）
     async fn find_by_share_code(&self, share_code: &str) -> Result<Option<Deck>>;
 }
@@ -457,7 +453,10 @@ fn slots_to_jsonb(slots: &[DeckSlot]) -> Result<serde_json::Value> {
 /// slots 列 (JSONB) 反序列化: serde_json::Value → Vec<DeckSlot>
 fn jsonb_to_slots(value: serde_json::Value) -> Result<Vec<DeckSlot>> {
     serde_json::from_value(value).map_err(|e| {
-        crate::Error::Internal(anyhow::anyhow!("deserialize slots from JSONB failed: {}", e))
+        crate::Error::Internal(anyhow::anyhow!(
+            "deserialize slots from JSONB failed: {}",
+            e
+        ))
     })
 }
 
@@ -584,11 +583,7 @@ impl DeckRepository for PgDeckRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    async fn list_by_owner(
-        &self,
-        owner_id: Uuid,
-        req: PageRequest,
-    ) -> Result<Page<Deck>> {
+    async fn list_by_owner(&self, owner_id: Uuid, req: PageRequest) -> Result<Page<Deck>> {
         let offset = ((req.page.saturating_sub(1)) * req.page_size) as i64;
         let limit = req.page_size as i64;
 
@@ -676,11 +671,7 @@ impl DeckRepository for InMemoryDeckRepository {
         Ok(self.inner.lock().unwrap().remove(&id).is_some())
     }
 
-    async fn list_by_owner(
-        &self,
-        owner_id: Uuid,
-        req: PageRequest,
-    ) -> Result<Page<Deck>> {
+    async fn list_by_owner(&self, owner_id: Uuid, req: PageRequest) -> Result<Page<Deck>> {
         let guard = self.inner.lock().unwrap();
         let mut all: Vec<Deck> = guard
             .values()
@@ -1024,14 +1015,22 @@ mod tests {
         private.share_code = Some("secret-code".to_string());
         private.is_public = false;
         repo.create(&private).await.unwrap();
-        assert!(repo.find_by_share_code("secret-code").await.unwrap().is_none());
+        assert!(repo
+            .find_by_share_code("secret-code")
+            .await
+            .unwrap()
+            .is_none());
 
         // 公开 deck 可查
         let mut public = Deck::new(owner, "public".to_string(), 1);
         public.share_code = Some("public-code".to_string());
         public.is_public = true;
         repo.create(&public).await.unwrap();
-        let found = repo.find_by_share_code("public-code").await.unwrap().unwrap();
+        let found = repo
+            .find_by_share_code("public-code")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(found.id, public.id);
         assert!(found.is_public);
     }
@@ -1087,7 +1086,11 @@ mod tests {
         let found = repo.find_by_account_id(account).await.unwrap().unwrap();
         assert_eq!(found.id, c.id);
         // 不存在 account 返回 None
-        assert!(repo.find_by_account_id(Uuid::new_v4()).await.unwrap().is_none());
+        assert!(repo
+            .find_by_account_id(Uuid::new_v4())
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]

@@ -66,11 +66,7 @@ pub trait ReplayRepository: Send + Sync {
     async fn delete(&self, replay_id: Uuid) -> Result<bool>;
 
     /// 按过滤 + 分页列出
-    async fn list(
-        &self,
-        filter: &ReplayFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<ReplayMeta>>;
+    async fn list(&self, filter: &ReplayFilter, page_req: PageRequest) -> Result<Page<ReplayMeta>>;
 
     /// 清理已过期元数据 (返回删除数量, 用于 cron job)
     /// 业务约束: 仅删除 expires_at < now() 的元数据
@@ -158,11 +154,7 @@ impl ReplayRepository for PgReplayRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    async fn list(
-        &self,
-        filter: &ReplayFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<ReplayMeta>> {
+    async fn list(&self, filter: &ReplayFilter, page_req: PageRequest) -> Result<Page<ReplayMeta>> {
         let offset = ((page_req.page.saturating_sub(1)) * page_req.page_size) as i64;
         let limit = page_req.page_size as i64;
 
@@ -260,11 +252,7 @@ impl ReplayRepository for InMemoryReplayRepository {
         Ok(self.inner.lock().unwrap().remove(&replay_id).is_some())
     }
 
-    async fn list(
-        &self,
-        filter: &ReplayFilter,
-        page_req: PageRequest,
-    ) -> Result<Page<ReplayMeta>> {
+    async fn list(&self, filter: &ReplayFilter, page_req: PageRequest) -> Result<Page<ReplayMeta>> {
         let guard = self.inner.lock().unwrap();
         let mut items: Vec<ReplayMeta> = guard
             .values()
@@ -357,15 +345,27 @@ mod tests {
     #[tokio::test]
     async fn in_memory_list_filter_by_player_a() {
         let repo = InMemoryReplayRepository::new();
-        repo.insert(&sample_meta("p-a", ReplayMode::Ranked)).await.unwrap();
-        repo.insert(&sample_meta("p-a", ReplayMode::Casual)).await.unwrap();
-        repo.insert(&sample_meta("p-b", ReplayMode::Ranked)).await.unwrap();
+        repo.insert(&sample_meta("p-a", ReplayMode::Ranked))
+            .await
+            .unwrap();
+        repo.insert(&sample_meta("p-a", ReplayMode::Casual))
+            .await
+            .unwrap();
+        repo.insert(&sample_meta("p-b", ReplayMode::Ranked))
+            .await
+            .unwrap();
         let filter = ReplayFilter {
             player_a_filter: Some("p-a".to_string()),
             ..Default::default()
         };
         let page = repo
-            .list(&filter, PageRequest { page: 1, page_size: 20 })
+            .list(
+                &filter,
+                PageRequest {
+                    page: 1,
+                    page_size: 20,
+                },
+            )
             .await
             .unwrap();
         assert_eq!(page.total, 2);
@@ -375,14 +375,24 @@ mod tests {
     #[tokio::test]
     async fn in_memory_list_filter_by_mode() {
         let repo = InMemoryReplayRepository::new();
-        repo.insert(&sample_meta("p-a", ReplayMode::Ranked)).await.unwrap();
-        repo.insert(&sample_meta("p-b", ReplayMode::Casual)).await.unwrap();
+        repo.insert(&sample_meta("p-a", ReplayMode::Ranked))
+            .await
+            .unwrap();
+        repo.insert(&sample_meta("p-b", ReplayMode::Casual))
+            .await
+            .unwrap();
         let filter = ReplayFilter {
             mode_filter: Some(ReplayMode::Ranked),
             ..Default::default()
         };
         let page = repo
-            .list(&filter, PageRequest { page: 1, page_size: 20 })
+            .list(
+                &filter,
+                PageRequest {
+                    page: 1,
+                    page_size: 20,
+                },
+            )
             .await
             .unwrap();
         assert_eq!(page.total, 1);
@@ -393,12 +403,17 @@ mod tests {
     async fn in_memory_list_pagination() {
         let repo = InMemoryReplayRepository::new();
         for _ in 0..25 {
-            repo.insert(&sample_meta("p", ReplayMode::Casual)).await.unwrap();
+            repo.insert(&sample_meta("p", ReplayMode::Casual))
+                .await
+                .unwrap();
         }
         let page1 = repo
             .list(
                 &ReplayFilter::default(),
-                PageRequest { page: 1, page_size: 10 },
+                PageRequest {
+                    page: 1,
+                    page_size: 10,
+                },
             )
             .await
             .unwrap();
@@ -408,7 +423,10 @@ mod tests {
         let page3 = repo
             .list(
                 &ReplayFilter::default(),
-                PageRequest { page: 3, page_size: 10 },
+                PageRequest {
+                    page: 3,
+                    page_size: 10,
+                },
             )
             .await
             .unwrap();

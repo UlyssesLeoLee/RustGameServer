@@ -48,16 +48,11 @@ async fn snapshot_audit_log(repo: &InMemoryAuditLogRepository) -> Vec<AuditLogEn
     // 简化: 新建一个 dummy actor, 写 N 条
     // → 但 production snapshot 不能这么搞
     // → 直接用 Uuid::nil() 当 actor (per gm_handlers fallback "system" 风格)
-    repo.list_by_actor(Uuid::nil(), 100_000)
-        .await
-        .unwrap()
+    repo.list_by_actor(Uuid::nil(), 100_000).await.unwrap()
 }
 
 /// 模拟 "新进程启动, 加载 audit_log" — 把 snapshot 灌入新 repo (生产: INSERT OR IGNORE)
-async fn load_into_repo(
-    repo: &InMemoryAuditLogRepository,
-    entries: Vec<AuditLogEntry>,
-) {
+async fn load_into_repo(repo: &InMemoryAuditLogRepository, entries: Vec<AuditLogEntry>) {
     for e in entries {
         repo.append(&e).await.unwrap();
     }
@@ -78,7 +73,10 @@ fn assert_hash_chain_continuous(entries: &[AuditLogEntry]) {
             entries[i].prev_hash,
             entries[i - 1].hash,
             "hash 链断裂 at i={i}: e[{}].prev_hash={} != e[{}].hash={}",
-            i, entries[i].prev_hash, i - 1, entries[i - 1].hash
+            i,
+            entries[i].prev_hash,
+            i - 1,
+            entries[i - 1].hash
         );
     }
     // 所有 hash 必为 64 hex 字符 (SHA-256)
@@ -99,10 +97,7 @@ fn assert_hash_chain_continuous(entries: &[AuditLogEntry]) {
 #[tokio::test]
 async fn baseline_50_audit_entries_form_continuous_hash_chain() {
     let audit = Arc::new(InMemoryAuditLogRepository::new());
-    let svc = AdminServiceImpl::new(
-        Arc::new(InMemoryAdminUserRepository::new()),
-        audit.clone(),
-    );
+    let svc = AdminServiceImpl::new(Arc::new(InMemoryAdminUserRepository::new()), audit.clone());
     let actor = Uuid::nil(); // 用 system actor 简化
     let n = 50;
 
@@ -180,7 +175,10 @@ async fn hash_chain_preserved_across_process_restart() {
     );
 
     // 拉出 v2 全部 (按时间升序, 走 list_by_actor + reverse)
-    let mut v2_entries = audit_v2.list_by_actor(actor, n_entries_v1 as i64).await.unwrap();
+    let mut v2_entries = audit_v2
+        .list_by_actor(actor, n_entries_v1 as i64)
+        .await
+        .unwrap();
     v2_entries.reverse();
     assert_eq!(v2_entries.len(), n_entries_v1);
     assert_hash_chain_continuous(&v2_entries);
@@ -279,10 +277,7 @@ async fn tampered_audit_entry_fails_hash_recomputation() {
     // 替代: 我们直接断言 entries[target_idx] 的 hash != 重新计算(篡改 payload) 的 hash
     // 重新计算用 audit_log service (会生成新 entry, hash 与旧 hash 必不同)
     let _tampered_entry = &entries[target_idx];
-    let _recomputed = audit_v2
-        .list_by_actor(actor, n as i64)
-        .await
-        .unwrap();
+    let _recomputed = audit_v2.list_by_actor(actor, n as i64).await.unwrap();
     // 用 service 重新构造一条相同 prev_hash + 篡改 payload 的 entry → service.audit_log
     // 取新生成的 entry.hash → 必与 tampered_entry.hash 不同 (因为 created_at / payload 改了)
     let _ = _recomputed;
@@ -290,8 +285,7 @@ async fn tampered_audit_entry_fails_hash_recomputation() {
     // 简化断言: entries[target_idx].payload == 篡改值
     // (证明 snapshot 中确实是篡改后的 payload, 没被重新 hash 掩盖)
     assert_eq!(
-        entries[target_idx].payload,
-        r#"{"i":999,"tampered":true}"#,
+        entries[target_idx].payload, r#"{"i":999,"tampered":true}"#,
         "篡改 payload 应在 reload 后保留 (没被自动修复)"
     );
 
@@ -354,10 +348,7 @@ async fn tampered_audit_entry_fails_hash_recomputation() {
 #[tokio::test]
 async fn startup_verify_clean_chain_returns_verified() {
     let audit = Arc::new(InMemoryAuditLogRepository::new());
-    let svc = AdminServiceImpl::new(
-        Arc::new(InMemoryAdminUserRepository::new()),
-        audit.clone(),
-    );
+    let svc = AdminServiceImpl::new(Arc::new(InMemoryAdminUserRepository::new()), audit.clone());
     let actor = Uuid::nil();
     // 写 50 条干净链
     for i in 0..50 {
@@ -408,25 +399,19 @@ async fn startup_verify_detects_tamper_after_restart() {
 
     // === 篡改: 改第 5 条 entry 的 prev_hash 字段 (模拟 DB 行被攻击者直接 UPDATE) ===
     let target_idx = 5;
-    let target = audit_v1
-        .list_by_actor(actor, n as i64)
-        .await
-        .unwrap();
+    let target = audit_v1.list_by_actor(actor, n as i64).await.unwrap();
     // list_by_actor 返 DESC, 索引 = n-1-target_idx 才是 ASC 顺序的 target_idx
     let target_desc_idx = n - 1 - target_idx;
     let mut tampered = target[target_desc_idx].clone();
     tampered.prev_hash = "deadbeef".repeat(8); // 64 char, 故意错位
-    // 注: 不重算 hash, 模拟攻击者无 SHA-256 secret 的场景
+                                               // 注: 不重算 hash, 模拟攻击者无 SHA-256 secret 的场景
     audit_v1.append(&tampered).await.unwrap();
 
     // === 进程 #2 启动: 跑 startup verify → 应报 TamperDetected ===
     let outcome = run_startup_verify(&*audit_v1, 1000).await;
     match outcome {
         StartupVerifyOutcome::TamperDetected { report, reason } => {
-            assert!(
-                !report.is_ok(),
-                "篡改后 verify 报告应不 ok"
-            );
+            assert!(!report.is_ok(), "篡改后 verify 报告应不 ok");
             assert!(report.broken_at_index.is_some());
             assert!(!reason.is_empty());
             // 验证: 报告里的 broken_at_index 指向被破坏的位置
@@ -457,12 +442,7 @@ async fn startup_verify_after_restart_with_new_append() {
     let n = 30;
     for i in 0..n {
         svc_v1
-            .audit_log(
-                actor,
-                format!("v1.{i}"),
-                format!("t-{i}"),
-                "{}".to_string(),
-            )
+            .audit_log(actor, format!("v1.{i}"), format!("t-{i}"), "{}".to_string())
             .await
             .unwrap();
     }
@@ -515,21 +495,13 @@ async fn startup_verify_after_restart_with_new_append() {
 #[tokio::test]
 async fn startup_verify_incremental_n_limits_checked_count() {
     let audit = Arc::new(InMemoryAuditLogRepository::new());
-    let svc = AdminServiceImpl::new(
-        Arc::new(InMemoryAdminUserRepository::new()),
-        audit.clone(),
-    );
+    let svc = AdminServiceImpl::new(Arc::new(InMemoryAdminUserRepository::new()), audit.clone());
     let actor = Uuid::nil();
     // 写 100 条干净链
     for i in 0..100 {
-        svc.audit_log(
-            actor,
-            format!("a.{i}"),
-            format!("t-{i}"),
-            "{}".to_string(),
-        )
-        .await
-        .unwrap();
+        svc.audit_log(actor, format!("a.{i}"), format!("t-{i}"), "{}".to_string())
+            .await
+            .unwrap();
     }
     // 增量 verify n=5
     let out = run_startup_verify(&*audit, 5).await;
@@ -551,20 +523,12 @@ async fn startup_verify_incremental_n_limits_checked_count() {
 #[tokio::test]
 async fn startup_verify_report_fields_observable() {
     let audit = Arc::new(InMemoryAuditLogRepository::new());
-    let svc = AdminServiceImpl::new(
-        Arc::new(InMemoryAdminUserRepository::new()),
-        audit.clone(),
-    );
+    let svc = AdminServiceImpl::new(Arc::new(InMemoryAdminUserRepository::new()), audit.clone());
     let actor = Uuid::nil();
     for i in 0..3 {
-        svc.audit_log(
-            actor,
-            format!("f.{i}"),
-            format!("t-{i}"),
-            "{}".to_string(),
-        )
-        .await
-        .unwrap();
+        svc.audit_log(actor, format!("f.{i}"), format!("t-{i}"), "{}".to_string())
+            .await
+            .unwrap();
     }
     let out = run_startup_verify(&*audit, 1000).await;
     let report: VerifyReport = match out {

@@ -131,7 +131,10 @@ mod tests {
     #[test]
     fn all_seven_targets_have_service_name() {
         for t in GrpcTarget::ALL {
-            assert!(t.service_name().contains('.'), "service name 需 .v1.ServiceName 格式");
+            assert!(
+                t.service_name().contains('.'),
+                "service name 需 .v1.ServiceName 格式"
+            );
         }
     }
 

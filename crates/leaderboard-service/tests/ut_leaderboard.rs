@@ -123,8 +123,10 @@ async fn get_player_rank_returns_three_entries() {
     .unwrap();
 
     // ranked 没入 (需要 season_id), casual/collection 已入
-    let (ranked, casual, collection) =
-        s.get_player_rank(p, LeaderboardPeriod::Weekly).await.unwrap();
+    let (ranked, casual, collection) = s
+        .get_player_rank(p, LeaderboardPeriod::Weekly)
+        .await
+        .unwrap();
     assert!(ranked.is_none());
     assert!(casual.is_some());
     assert_eq!(casual.as_ref().unwrap().score, 5);
@@ -132,8 +134,10 @@ async fn get_player_rank_returns_three_entries() {
     assert!(collection.is_none());
 
     // AllTime 查: ranked 缺 season 没入, casual 是 Weekly 没入, collection 应在
-    let (ranked2, casual2, collection2) =
-        s.get_player_rank(p, LeaderboardPeriod::AllTime).await.unwrap();
+    let (ranked2, casual2, collection2) = s
+        .get_player_rank(p, LeaderboardPeriod::AllTime)
+        .await
+        .unwrap();
     assert!(ranked2.is_none());
     assert!(casual2.is_none());
     assert!(collection2.is_some());

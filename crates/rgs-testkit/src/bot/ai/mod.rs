@@ -12,8 +12,8 @@
 
 pub mod admin;
 pub mod economy;
-pub mod player;
 pub mod r#match;
+pub mod player;
 pub mod social;
 
 use async_trait::async_trait;

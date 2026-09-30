@@ -45,66 +45,67 @@ pub mod common {
     }
 }
 
-use pb_player_proto::v1::{
-    player_service_client::PlayerServiceClient, AntiAddictionCheckRequest,
-    AntiAddictionCheckResponse, AvatarList, CharacterAssets, CharacterInfo, CharacterProfile,
-    CreateCharacterRequest, CreateCharacterResponse, CreateDeckRequest, Deck,
-    DeleteDeckRequest, DeleteDeckResponse, EnterBackgroundRequest, EnterBackgroundResponse,
-    ForceDisconnectRequest, ForceDisconnectResponse, GetAvatarListRequest, GetCharacterAssetsRequest,
-    GetCharacterInfoRequest, GetCharacterProfileRequest, GetPlayerProfileRequest, GetSharedDeckRequest,
-    GuestModeTimeoutRequest, GuestModeTimeoutResponse, HeartbeatRequest, HeartbeatResponse,
-    ListDecksRequest, ListDecksResponse, Player, RenameCharacterRequest, RenameCharacterResponse,
-    ServerTimeInfo, SetAvatarRequest, SetAvatarResponse, ShareDeckRequest, ShareDeckResponse,
-    UpdatePlayerProfileRequest, UpdatePlayerProfileResponse, GetServerTimeRequest,
-    GetDeckRequest, UpdateDeckRequest, HeartbeatRequest as _, // avoid unused
-};
 use common::v1 as common_pb;
 use pb_player_proto::v1::{
-    AntiAddictionCheckRequest as _,
-    AvatarList as _,
-    CharacterAssets as _,
-    CharacterInfo as _,
-    CharacterProfile as _,
-    CreateCharacterRequest as _,
-    CreateCharacterResponse as _,
-    CreateDeckRequest as _,
-    Deck as _,
-    DeleteDeckRequest as _,
-    DeleteDeckResponse as _,
-    EnterBackgroundRequest as _,
-    EnterBackgroundResponse as _,
-    ForceDisconnectRequest as _,
-    ForceDisconnectResponse as _,
-    GetAvatarListRequest as _,
-    GetCharacterAssetsRequest as _,
-    GetCharacterInfoRequest as _,
-    GetCharacterProfileRequest as _,
-    GetDeckRequest as _,
-    GetPlayerProfileRequest as _,
-    GetServerTimeRequest as _,
-    GetSharedDeckRequest as _,
-    GuestModeTimeoutRequest as _,
-    GuestModeTimeoutResponse as _,
-    HeartbeatRequest as _,
-    HeartbeatResponse as _,
-    ListDecksRequest as _,
-    ListDecksResponse as _,
-    LoginCharacterRequest as _,
-    LoginCharacterResponse as _,
-    Player as _,
-    ReconnectCharacterRequest as _,
-    ReconnectCharacterResponse as _,
-    RenameCharacterRequest as _,
-    RenameCharacterResponse as _,
-    ServerTimeInfo as _,
-    SetAvatarRequest as _,
-    SetAvatarResponse as _,
-    ShareDeckRequest as _,
-    ShareDeckResponse as _,
-    UpdateDeckRequest as _,
-    UpdateDeckResponse as _,
-    UpdatePlayerProfileRequest as _,
-    UpdatePlayerProfileResponse as _,
+    player_service_client::PlayerServiceClient,
+    AntiAddictionCheckRequest,
+    AntiAddictionCheckResponse,
+    AvatarList,
+    CharacterAssets,
+    CharacterInfo,
+    CharacterProfile,
+    CreateCharacterRequest,
+    CreateCharacterResponse,
+    CreateDeckRequest,
+    Deck,
+    DeleteDeckRequest,
+    DeleteDeckResponse,
+    EnterBackgroundRequest,
+    EnterBackgroundResponse,
+    ForceDisconnectRequest,
+    ForceDisconnectResponse,
+    GetAvatarListRequest,
+    GetCharacterAssetsRequest,
+    GetCharacterInfoRequest,
+    GetCharacterProfileRequest,
+    GetDeckRequest,
+    GetPlayerProfileRequest,
+    GetServerTimeRequest,
+    GetSharedDeckRequest,
+    GuestModeTimeoutRequest,
+    GuestModeTimeoutResponse,
+    HeartbeatRequest,
+    HeartbeatRequest as _, // avoid unused
+    HeartbeatResponse,
+    ListDecksRequest,
+    ListDecksResponse,
+    Player,
+    RenameCharacterRequest,
+    RenameCharacterResponse,
+    ServerTimeInfo,
+    SetAvatarRequest,
+    SetAvatarResponse,
+    ShareDeckRequest,
+    ShareDeckResponse,
+    UpdateDeckRequest,
+    UpdatePlayerProfileRequest,
+    UpdatePlayerProfileResponse,
+};
+use pb_player_proto::v1::{
+    AntiAddictionCheckRequest as _, AvatarList as _, CharacterAssets as _, CharacterInfo as _,
+    CharacterProfile as _, CreateCharacterRequest as _, CreateCharacterResponse as _,
+    CreateDeckRequest as _, Deck as _, DeleteDeckRequest as _, DeleteDeckResponse as _,
+    EnterBackgroundRequest as _, EnterBackgroundResponse as _, ForceDisconnectRequest as _,
+    ForceDisconnectResponse as _, GetAvatarListRequest as _, GetCharacterAssetsRequest as _,
+    GetCharacterInfoRequest as _, GetCharacterProfileRequest as _, GetDeckRequest as _,
+    GetPlayerProfileRequest as _, GetServerTimeRequest as _, GetSharedDeckRequest as _,
+    GuestModeTimeoutRequest as _, GuestModeTimeoutResponse as _, HeartbeatRequest as _,
+    HeartbeatResponse as _, ListDecksRequest as _, ListDecksResponse as _,
+    LoginCharacterRequest as _, LoginCharacterResponse as _, Player as _,
+    ReconnectCharacterRequest as _, ReconnectCharacterResponse as _, RenameCharacterRequest as _,
+    RenameCharacterResponse as _, ServerTimeInfo as _, SetAvatarRequest as _,
+    SetAvatarResponse as _, ShareDeckRequest as _, ShareDeckResponse as _, UpdateDeckRequest as _,
+    UpdateDeckResponse as _, UpdatePlayerProfileRequest as _, UpdatePlayerProfileResponse as _,
 };
 
 // ============================================================================
@@ -218,13 +219,33 @@ fn install_crypto_provider() {
 fn json_to_create_character(v: &JsonValue) -> CreateCharacterRequest {
     let mut r = CreateCharacterRequest::default();
     if let Some(o) = v.as_object() {
-        r.request_id = o.get("requestId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.account_id = o.get("accountId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.character_name = o.get("characterName").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.request_id = o
+            .get("requestId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.account_id = o
+            .get("accountId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.character_name = o
+            .get("characterName")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
         r.class_id = o.get("classId").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
         r.faction_id = o.get("factionId").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
-        r.device_id = o.get("deviceId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.client_ip = o.get("clientIp").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.device_id = o
+            .get("deviceId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.client_ip = o
+            .get("clientIp")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
     }
     r
 }
@@ -244,18 +265,38 @@ fn json_to_login_character(v: &JsonValue) -> pb_player_proto::v1::LoginCharacter
     use pb_player_proto::v1::LoginCharacterRequest;
     let mut r = LoginCharacterRequest::default();
     if let Some(o) = v.as_object() {
-        r.request_id = o.get("requestId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.account_id = o.get("accountId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.character_id = o.get("characterId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.device_id = o.get("deviceId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.client_ip = o.get("clientIp").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.request_id = o
+            .get("requestId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.account_id = o
+            .get("accountId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.character_id = o
+            .get("characterId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.device_id = o
+            .get("deviceId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.client_ip = o
+            .get("clientIp")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
     }
     r
 }
 
 fn login_character_to_json(r: &pb_player_proto::v1::LoginCharacterResponse) -> JsonValue {
     use pb_player_proto::v1::LoginCharacterResponse;
-    let _ = LoginCharacterResponse::default();  // keep import
+    let _ = LoginCharacterResponse::default(); // keep import
     serde_json::json!({
         "loggedIn": r.logged_in,
         "sessionId": r.session_id,
@@ -266,7 +307,11 @@ fn login_character_to_json(r: &pb_player_proto::v1::LoginCharacterResponse) -> J
 fn json_to_get_server_time(v: &JsonValue) -> GetServerTimeRequest {
     let mut r = GetServerTimeRequest::default();
     if let Some(o) = v.as_object() {
-        r.request_id = o.get("requestId").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.request_id = o
+            .get("requestId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
     }
     r
 }
@@ -282,10 +327,25 @@ fn server_time_to_json(r: &ServerTimeInfo) -> JsonValue {
 fn json_to_heartbeat(v: &JsonValue) -> HeartbeatRequest {
     let mut r = HeartbeatRequest::default();
     if let Some(o) = v.as_object() {
-        r.request_id = o.get("requestId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.session_id = o.get("sessionId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.character_id = o.get("characterId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.client_time_unix = o.get("clientTimeUnix").and_then(|x| x.as_i64()).unwrap_or(0);
+        r.request_id = o
+            .get("requestId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.session_id = o
+            .get("sessionId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.character_id = o
+            .get("characterId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.client_time_unix = o
+            .get("clientTimeUnix")
+            .and_then(|x| x.as_i64())
+            .unwrap_or(0);
     }
     r
 }
@@ -301,8 +361,16 @@ fn heartbeat_to_json(r: &HeartbeatResponse) -> JsonValue {
 fn json_to_get_character_profile(v: &JsonValue) -> GetCharacterProfileRequest {
     let mut r = GetCharacterProfileRequest::default();
     if let Some(o) = v.as_object() {
-        r.request_id = o.get("requestId").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        r.character_id = o.get("characterId").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.request_id = o
+            .get("requestId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        r.character_id = o
+            .get("characterId")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
     }
     r
 }
@@ -327,7 +395,11 @@ fn character_profile_to_json(r: &CharacterProfile) -> JsonValue {
 fn json_to_healthcheck(v: &JsonValue) -> common_pb::HealthCheckRequest {
     let mut r = common_pb::HealthCheckRequest::default();
     if let Some(o) = v.as_object() {
-        r.service = o.get("service").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        r.service = o
+            .get("service")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
     }
     r
 }
@@ -369,8 +441,13 @@ fn tonic_to_response<T: Serialize>(r: Result<tonic::Response<T>, tonic::Status>)
                 _ => "unknown",
             };
             tracing::warn!(target: "rgs_grpc_bridge", "backend error: code={} message={}", code, status.message());
-            HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-                .json(ErrorBody { code: code.to_string(), message: status.message().to_string() })
+            HttpResponse::build(
+                actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+            )
+            .json(ErrorBody {
+                code: code.to_string(),
+                message: status.message().to_string(),
+            })
         }
     }
 }
@@ -394,7 +471,7 @@ fn http_code_for_grpc(code: tonic::Code) -> u16 {
         Unavailable => 503,
         DataLoss => 500,
         Unauthenticated => 401,
-        _ => 500,  // fallback for Aborted (10) and any future codes
+        _ => 500, // fallback for Aborted (10) and any future codes
     }
 }
 
@@ -439,7 +516,12 @@ async fn health_check_handler(
     let req = json_to_healthcheck(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.health_check(tonic::Request::new(req)).await;
     // Convert to generic JSON via helper (HealthCheckResponse has Status enum)
@@ -447,8 +529,13 @@ async fn health_check_handler(
         Ok(r) => HttpResponse::Ok().json(healthcheck_to_json(&r.into_inner())),
         Err(status) => {
             tracing::warn!(target: "rgs_grpc_bridge", "HealthCheck backend error: code={} message={}", status.code(), status.message());
-            HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-                .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+            HttpResponse::build(
+                actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+            )
+            .json(ErrorBody {
+                code: format!("{:?}", status.code()).to_lowercase(),
+                message: status.message().to_string(),
+            })
         }
     }
 }
@@ -460,15 +547,25 @@ async fn create_character_handler(
     let req = json_to_create_character(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.create_character(tonic::Request::new(req)).await;
     match resp {
         Ok(r) => HttpResponse::Ok().json(create_character_to_json(&r.into_inner())),
         Err(status) => {
             tracing::warn!(target: "rgs_grpc_bridge", "CreateCharacter error: code={} message={}", status.code(), status.message());
-            HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-                .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+            HttpResponse::build(
+                actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+            )
+            .json(ErrorBody {
+                code: format!("{:?}", status.code()).to_lowercase(),
+                message: status.message().to_string(),
+            })
         }
     }
 }
@@ -480,13 +577,23 @@ async fn get_server_time_handler(
     let req = json_to_get_server_time(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.get_server_time(tonic::Request::new(req)).await;
     match resp {
         Ok(r) => HttpResponse::Ok().json(server_time_to_json(&r.into_inner())),
-        Err(status) => HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-            .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+        Err(status) => HttpResponse::build(
+            actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+        )
+        .json(ErrorBody {
+            code: format!("{:?}", status.code()).to_lowercase(),
+            message: status.message().to_string(),
+        }),
     }
 }
 
@@ -497,13 +604,23 @@ async fn heartbeat_handler(
     let req = json_to_heartbeat(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.heartbeat(tonic::Request::new(req)).await;
     match resp {
         Ok(r) => HttpResponse::Ok().json(heartbeat_to_json(&r.into_inner())),
-        Err(status) => HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-            .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+        Err(status) => HttpResponse::build(
+            actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+        )
+        .json(ErrorBody {
+            code: format!("{:?}", status.code()).to_lowercase(),
+            message: status.message().to_string(),
+        }),
     }
 }
 
@@ -514,13 +631,23 @@ async fn login_character_handler(
     let req = json_to_login_character(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.login_character(tonic::Request::new(req)).await;
     match resp {
         Ok(r) => HttpResponse::Ok().json(login_character_to_json(&r.into_inner())),
-        Err(status) => HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-            .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+        Err(status) => HttpResponse::build(
+            actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+        )
+        .json(ErrorBody {
+            code: format!("{:?}", status.code()).to_lowercase(),
+            message: status.message().to_string(),
+        }),
     }
 }
 
@@ -531,13 +658,23 @@ async fn get_character_profile_handler(
     let req = json_to_get_character_profile(&body);
     let mut c = match backend.get().await {
         Ok(c) => c,
-        Err(e) => return HttpResponse::ServiceUnavailable().json(ErrorBody { code: "unavailable".into(), message: e.message().into() }),
+        Err(e) => {
+            return HttpResponse::ServiceUnavailable().json(ErrorBody {
+                code: "unavailable".into(),
+                message: e.message().into(),
+            })
+        }
     };
     let resp = c.get_character_profile(tonic::Request::new(req)).await;
     match resp {
         Ok(r) => HttpResponse::Ok().json(character_profile_to_json(&r.into_inner())),
-        Err(status) => HttpResponse::build(actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap())
-            .json(ErrorBody { code: format!("{:?}", status.code()).to_lowercase(), message: status.message().to_string() })
+        Err(status) => HttpResponse::build(
+            actix_web::http::StatusCode::from_u16(http_code_for_grpc(status.code())).unwrap(),
+        )
+        .json(ErrorBody {
+            code: format!("{:?}", status.code()).to_lowercase(),
+            message: status.message().to_string(),
+        }),
     }
 }
 
@@ -550,7 +687,10 @@ async fn not_implemented_handler(req: HttpRequest) -> impl Responder {
     tracing::warn!(target: "rgs_grpc_bridge", "unhandled method: {}", path);
     HttpResponse::NotFound().json(ErrorBody {
         code: "not_found".into(),
-        message: format!("method {} not implemented in v0.1 (only 17/25 PlayerService methods exposed)", path),
+        message: format!(
+            "method {} not implemented in v0.1 (only 17/25 PlayerService methods exposed)",
+            path
+        ),
     })
 }
 
@@ -583,43 +723,125 @@ async fn main() -> anyhow::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(backend_data.clone())
-            .app_data(web::JsonConfig::default().limit(1024 * 1024))  // 1 MB
+            .app_data(web::JsonConfig::default().limit(1024 * 1024)) // 1 MB
             .wrap(middleware::Logger::default())
-            .wrap(middleware::DefaultHeaders::new()
-                .add(("Access-Control-Allow-Origin", "*"))
-                .add(("Access-Control-Allow-Methods", "GET, POST, OPTIONS"))
-                .add(("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Grpc-Web, X-User-Agent"))
-                .add(("Access-Control-Max-Age", "3600"))
+            .wrap(
+                middleware::DefaultHeaders::new()
+                    .add(("Access-Control-Allow-Origin", "*"))
+                    .add(("Access-Control-Allow-Methods", "GET, POST, OPTIONS"))
+                    .add((
+                        "Access-Control-Allow-Headers",
+                        "Content-Type, Authorization, Accept, X-Grpc-Web, X-User-Agent",
+                    ))
+                    .add(("Access-Control-Max-Age", "3600")),
             )
             .route("/", web::get().to(root_handler))
             .route("/health", web::get().to(health_handler))
-            .route("/player.v1.PlayerService/HealthCheck", web::post().to(health_check_handler))
-            .route("/player.v1.PlayerService/CreateCharacter", web::post().to(create_character_handler))
-            .route("/player.v1.PlayerService/LoginCharacter", web::post().to(login_character_handler))
-            .route("/player.v1.PlayerService/ReconnectCharacter", web::post().to(login_character_handler))  // placeholder, same as login
-            .route("/player.v1.PlayerService/GetCharacterProfile", web::post().to(get_character_profile_handler))
-            .route("/player.v1.PlayerService/GetServerTime", web::post().to(get_server_time_handler))
-            .route("/player.v1.PlayerService/Heartbeat", web::post().to(heartbeat_handler))
-            .route("/player.v1.PlayerService/GetCharacterAssets", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GetCharacterInfo", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/RenameCharacter", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GuestModeTimeout", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/AntiAddictionCheck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/ForceDisconnect", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/EnterBackground", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GetAvatarList", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/SetAvatar", web::post().to(not_implemented_handler))
+            .route(
+                "/player.v1.PlayerService/HealthCheck",
+                web::post().to(health_check_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/CreateCharacter",
+                web::post().to(create_character_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/LoginCharacter",
+                web::post().to(login_character_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/ReconnectCharacter",
+                web::post().to(login_character_handler),
+            ) // placeholder, same as login
+            .route(
+                "/player.v1.PlayerService/GetCharacterProfile",
+                web::post().to(get_character_profile_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetServerTime",
+                web::post().to(get_server_time_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/Heartbeat",
+                web::post().to(heartbeat_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetCharacterAssets",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetCharacterInfo",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/RenameCharacter",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GuestModeTimeout",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/AntiAddictionCheck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/ForceDisconnect",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/EnterBackground",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetAvatarList",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/SetAvatar",
+                web::post().to(not_implemented_handler),
+            )
             // deck + others
-            .route("/player.v1.PlayerService/GetPlayer", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GetPlayerProfile", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/UpdatePlayerProfile", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/CreateDeck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GetDeck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/UpdateDeck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/DeleteDeck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/ListDecks", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/ShareDeck", web::post().to(not_implemented_handler))
-            .route("/player.v1.PlayerService/GetSharedDeck", web::post().to(not_implemented_handler))
+            .route(
+                "/player.v1.PlayerService/GetPlayer",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetPlayerProfile",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/UpdatePlayerProfile",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/CreateDeck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetDeck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/UpdateDeck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/DeleteDeck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/ListDecks",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/ShareDeck",
+                web::post().to(not_implemented_handler),
+            )
+            .route(
+                "/player.v1.PlayerService/GetSharedDeck",
+                web::post().to(not_implemented_handler),
+            )
             // CORS preflight (fallback)
             .route("/{tail:.*}", web::route().to(not_implemented_handler))
     })

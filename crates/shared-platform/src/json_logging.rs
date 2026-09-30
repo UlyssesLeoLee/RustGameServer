@@ -199,7 +199,11 @@ mod tests {
         let r1 = init_json_logging("info");
         let r2 = init_json_logging("info");
         // r2 必须 Ok (OnceLock guard)
-        assert!(r2.is_ok(), "第二次 init_json_logging 必须 Ok, 实际: {:?}", r2);
+        assert!(
+            r2.is_ok(),
+            "第二次 init_json_logging 必须 Ok, 实际: {:?}",
+            r2
+        );
         // r1 可能 Ok 也可能 Err (取决于 test runner 顺序), 不强制
         let _ = r1;
     }

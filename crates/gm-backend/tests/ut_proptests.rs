@@ -9,9 +9,8 @@
 //! proptest 是同步框架, 对 async list_entries 用 tokio runtime 包一层.
 
 use gm_backend::{
-    business_handler::parse_audit_type,
-    canvas_handler::ALLOWED_ANCHORS,
-    AuditLogEntry, AuditStore, InMemoryAuditStore,
+    business_handler::parse_audit_type, canvas_handler::ALLOWED_ANCHORS, AuditLogEntry, AuditStore,
+    InMemoryAuditStore,
 };
 use proptest::prelude::*;
 

@@ -19,8 +19,8 @@ pub mod service;
 pub use error::{Error, Result};
 pub use push_delivery::{
     DispatchOutcome, DispatcherConfig, InMemoryNatsPublisher, InMemoryPushDlqRepository,
-    NatsPushDispatcher, PUSH_DELIVERY_SUBJECT, PUSH_DLQ_SUBJECT, PushDispatcher,
-    PushDispatcherError, PushDlqEntry, PushDlqRepository, PushNatsPublisher,
+    NatsPushDispatcher, PushDispatcher, PushDispatcherError, PushDlqEntry, PushDlqRepository,
+    PushNatsPublisher, PUSH_DELIVERY_SUBJECT, PUSH_DLQ_SUBJECT,
 };
 pub use repository::{
     GuildMemberRepository, GuildRepository, InMemoryGuildMemberRepository, InMemoryGuildRepository,

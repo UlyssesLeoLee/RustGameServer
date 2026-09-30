@@ -114,11 +114,7 @@ pub trait TradeClient: Send + Sync {
     ///
     /// 业务: 把 auction.status 临时标记为 Locked, 返回旧 highest_bid / highest_bidder
     /// 失败: auction 不存在 / 已 sold / 已 cancelled
-    async fn lock_auction(
-        &self,
-        auction_id: Uuid,
-        saga_id: Uuid,
-    ) -> Result<AuctionLockState>;
+    async fn lock_auction(&self, auction_id: Uuid, saga_id: Uuid) -> Result<AuctionLockState>;
 
     /// §6.3 ExecuteAuction step 1: 终结拍卖 (finalize, 标 sold)
     ///
@@ -278,10 +274,7 @@ impl CardClient for MockCardClient {
         if let Some(reason) = st.fail_next.take() {
             return Err(Error::Validation(reason));
         }
-        let instance_id = st
-            .next_add_instance_id
-            .take()
-            .unwrap_or_else(Uuid::new_v4);
+        let instance_id = st.next_add_instance_id.take().unwrap_or_else(Uuid::new_v4);
         st.add_count += 1;
         st.added_instances
             .push((instance_id, owner_id, card_id.to_string(), source));
@@ -331,8 +324,8 @@ struct MockTradeClientState {
     pub log_count: u32,
     pub locked_auctions: Vec<Uuid>,
     pub finalized_auctions: Vec<(Uuid, Uuid, i64)>, // (auction_id, winner_id, final_price)
-    pub transferred: Vec<(Uuid, Uuid, i64)>, // (from, to, amount)
-    pub logged: Vec<(Uuid, i64)>, // (player_id, amount)
+    pub transferred: Vec<(Uuid, Uuid, i64)>,        // (from, to, amount)
+    pub logged: Vec<(Uuid, i64)>,                   // (player_id, amount)
     pub fail_next: Option<String>,
 }
 
@@ -344,10 +337,7 @@ impl MockTradeClient {
         }
     }
 
-    pub fn with_trade_service(
-        mut self,
-        svc: Arc<crate::trade_service::TradeServiceImpl>,
-    ) -> Self {
+    pub fn with_trade_service(mut self, svc: Arc<crate::trade_service::TradeServiceImpl>) -> Self {
         self.trade_service = Some(svc);
         self
     }
@@ -380,11 +370,7 @@ impl MockTradeClient {
 
 #[async_trait]
 impl TradeClient for MockTradeClient {
-    async fn lock_auction(
-        &self,
-        auction_id: Uuid,
-        _saga_id: Uuid,
-    ) -> Result<AuctionLockState> {
+    async fn lock_auction(&self, auction_id: Uuid, _saga_id: Uuid) -> Result<AuctionLockState> {
         let mut st = self.inner.lock().unwrap();
         if let Some(reason) = st.fail_next.take() {
             return Err(Error::Validation(reason));
@@ -418,7 +404,8 @@ impl TradeClient for MockTradeClient {
             return Err(Error::Validation(reason));
         }
         st.finalize_count += 1;
-        st.finalized_auctions.push((auction_id, winner_id, final_price));
+        st.finalized_auctions
+            .push((auction_id, winner_id, final_price));
         // 真实业务: 调 trade_service 标记 sold (mock 仅记录)
         if let Some(svc) = &self.trade_service {
             // 业务层 finalize: trade_service 直接写 auction.status = Sold

@@ -20,9 +20,7 @@ use std::sync::Arc;
 
 use crate::entity::{MapUnit, Position, Scene, SceneInstance, SpaceInfo};
 use crate::error::Error;
-use crate::repository::{
-    MapUnitRepository, SceneInstanceRepository, SpaceRepository,
-};
+use crate::repository::{MapUnitRepository, SceneInstanceRepository, SpaceRepository};
 use crate::Result;
 
 use async_trait::async_trait;
@@ -61,12 +59,7 @@ pub trait SceneService: Send + Sync {
     ) -> Result<bool>;
 
     /// 移动确认 (RPC: MoveConfirm)
-    async fn move_confirm(
-        &self,
-        player_id: Uuid,
-        x: i32,
-        y: i32,
-    ) -> Result<bool>;
+    async fn move_confirm(&self, player_id: Uuid, x: i32, y: i32) -> Result<bool>;
 
     /// 移动事件流 (RPC: MoveEventStream)
     async fn move_event_stream(
@@ -86,13 +79,7 @@ pub trait SceneService: Send + Sync {
     ) -> Result<(i32, String)>;
 
     /// 单位生成 (RPC: UnitSpawn)
-    async fn unit_spawn(
-        &self,
-        scene_id: &str,
-        base_id: i32,
-        x: i32,
-        y: i32,
-    ) -> Result<MapUnit>;
+    async fn unit_spawn(&self, scene_id: &str, base_id: i32, x: i32, y: i32) -> Result<MapUnit>;
 
     /// 单位销毁 (RPC: UnitDespawn)
     async fn unit_despawn(&self, unit_id: Uuid) -> Result<bool>;
@@ -142,33 +129,16 @@ pub trait SceneService: Send + Sync {
     ) -> Result<i32>;
 
     /// 进入副本 (RPC: EnterInstance)
-    async fn instance_enter(
-        &self,
-        player_id: Uuid,
-        instance_id: &str,
-    ) -> Result<String>;
+    async fn instance_enter(&self, player_id: Uuid, instance_id: &str) -> Result<String>;
 
     /// 离开副本 (RPC: LeaveInstance)
-    async fn instance_leave(
-        &self,
-        player_id: Uuid,
-        instance_id: &str,
-    ) -> Result<bool>;
+    async fn instance_leave(&self, player_id: Uuid, instance_id: &str) -> Result<bool>;
 
     /// 副本状态 (RPC: GetInstanceState) - stub
-    async fn instance_state(
-        &self,
-        player_id: Uuid,
-        instance_id: &str,
-    ) -> Result<i32>;
+    async fn instance_state(&self, player_id: Uuid, instance_id: &str) -> Result<i32>;
 
     /// 添加 buff (RPC: AddBuff)
-    async fn add_buff(
-        &self,
-        target_id: Uuid,
-        buff_id: &str,
-        duration_ms: i32,
-    ) -> Result<bool>;
+    async fn add_buff(&self, target_id: Uuid, buff_id: &str, duration_ms: i32) -> Result<bool>;
 
     /// 移除 buff (RPC: RemoveBuff)
     async fn remove_buff(&self, target_id: Uuid, buff_id: &str) -> Result<bool>;
@@ -180,17 +150,15 @@ pub trait SceneService: Send + Sync {
     async fn update_sign(&self, player_id: Uuid, sign: String) -> Result<()>;
 
     /// 设置空间背景 (RPC: SetSpaceBackground)
-    async fn set_space_background(
-        &self,
-        player_id: Uuid,
-        background_id: &str,
-    ) -> Result<()>;
+    async fn set_space_background(&self, player_id: Uuid, background_id: &str) -> Result<()>;
 
     // ===== 128 stub 方法 (Unimplemented) =====
 
     /// 健康检查
     async fn health_check(&self) -> Result<bool> {
-        Err(Error::Unavailable("health_check: not yet wired".to_string()))
+        Err(Error::Unavailable(
+            "health_check: not yet wired".to_string(),
+        ))
     }
 
     async fn get_scene_info(&self, _scene_id: &str) -> Result<Scene> {
@@ -200,7 +168,9 @@ pub trait SceneService: Send + Sync {
         Err(Error::Unavailable("notify_scene_ready: stub".to_string()))
     }
     async fn list_available_scenes(&self, _player_id: Uuid) -> Result<Vec<Scene>> {
-        Err(Error::Unavailable("list_available_scenes: stub".to_string()))
+        Err(Error::Unavailable(
+            "list_available_scenes: stub".to_string(),
+        ))
     }
     async fn switch_scene_server(&self, _player_id: Uuid, _target_node_id: i64) -> Result<Uuid> {
         Err(Error::Unavailable("switch_scene_server: stub".to_string()))
@@ -212,7 +182,9 @@ pub trait SceneService: Send + Sync {
         Err(Error::Unavailable("reserve_scene_slot: stub".to_string()))
     }
     async fn get_scene_load_progress(&self, _player_id: Uuid) -> Result<i32> {
-        Err(Error::Unavailable("get_scene_load_progress: stub".to_string()))
+        Err(Error::Unavailable(
+            "get_scene_load_progress: stub".to_string(),
+        ))
     }
     async fn move_cancel(&self, _player_id: Uuid, _instance_id: Uuid) -> Result<bool> {
         Err(Error::Unavailable("move_cancel: stub".to_string()))
@@ -255,7 +227,9 @@ pub trait SceneService: Send + Sync {
         _x: i32,
         _y: i32,
     ) -> Result<Position> {
-        Err(Error::Unavailable("get_coordinate_transform: stub".to_string()))
+        Err(Error::Unavailable(
+            "get_coordinate_transform: stub".to_string(),
+        ))
     }
     async fn teleport(
         &self,
@@ -287,20 +261,10 @@ pub trait SceneService: Send + Sync {
     ) -> Result<i32> {
         Err(Error::Unavailable("batch_move: stub".to_string()))
     }
-    async fn validate_path(
-        &self,
-        _instance_id: Uuid,
-        _path: Vec<Position>,
-    ) -> Result<bool> {
+    async fn validate_path(&self, _instance_id: Uuid, _path: Vec<Position>) -> Result<bool> {
         Err(Error::Unavailable("validate_path: stub".to_string()))
     }
-    async fn unit_update(
-        &self,
-        _unit_id: Uuid,
-        _status: i32,
-        _x: i32,
-        _y: i32,
-    ) -> Result<bool> {
+    async fn unit_update(&self, _unit_id: Uuid, _status: i32, _x: i32, _y: i32) -> Result<bool> {
         Err(Error::Unavailable("unit_update: stub".to_string()))
     }
     async fn npc_list(&self, _scene_id: &str) -> Result<Vec<MapUnit>> {
@@ -318,12 +282,7 @@ pub trait SceneService: Send + Sync {
     async fn unit_update_event(&self, _unit: MapUnit) -> Result<bool> {
         Err(Error::Unavailable("unit_update_event: stub".to_string()))
     }
-    async fn unit_act(
-        &self,
-        _unit_id: Uuid,
-        _act_type: i32,
-        _num: i32,
-    ) -> Result<bool> {
+    async fn unit_act(&self, _unit_id: Uuid, _act_type: i32, _num: i32) -> Result<bool> {
         Err(Error::Unavailable("unit_act: stub".to_string()))
     }
     async fn unit_info(&self, _unit_id: Uuid) -> Result<MapUnit> {
@@ -332,11 +291,7 @@ pub trait SceneService: Send + Sync {
     async fn get_unit_by_id(&self, _unit_id: Uuid) -> Result<MapUnit> {
         Err(Error::Unavailable("get_unit_by_id: stub".to_string()))
     }
-    async fn list_units_by_type(
-        &self,
-        _scene_id: &str,
-        _unit_type: &str,
-    ) -> Result<Vec<MapUnit>> {
+    async fn list_units_by_type(&self, _scene_id: &str, _unit_type: &str) -> Result<Vec<MapUnit>> {
         Err(Error::Unavailable("list_units_by_type: stub".to_string()))
     }
     async fn batch_spawn_units(
@@ -377,7 +332,9 @@ pub trait SceneService: Send + Sync {
         Err(Error::Unavailable("get_avatar_list: stub".to_string()))
     }
     async fn get_avatar_frame_list(&self, _player_id: Uuid) -> Result<Vec<i32>> {
-        Err(Error::Unavailable("get_avatar_frame_list: stub".to_string()))
+        Err(Error::Unavailable(
+            "get_avatar_frame_list: stub".to_string(),
+        ))
     }
     async fn set_avatar(&self, _player_id: Uuid, _avatar_id: i32) -> Result<bool> {
         Err(Error::Unavailable("set_avatar: stub".to_string()))
@@ -487,7 +444,9 @@ pub trait SceneService: Send + Sync {
         _quest_id: &str,
         _delta: i32,
     ) -> Result<i32> {
-        Err(Error::Unavailable("update_quest_progress: stub".to_string()))
+        Err(Error::Unavailable(
+            "update_quest_progress: stub".to_string(),
+        ))
     }
     async fn get_quest_detail(&self, _player_id: Uuid, _quest_id: &str) -> Result<String> {
         Err(Error::Unavailable("get_quest_detail: stub".to_string()))
@@ -495,19 +454,15 @@ pub trait SceneService: Send + Sync {
     async fn get_daily_quests(&self, _player_id: Uuid) -> Result<Vec<String>> {
         Err(Error::Unavailable("get_daily_quests: stub".to_string()))
     }
-    async fn claim_daily_quest_reward(
-        &self,
-        _player_id: Uuid,
-        _quest_id: &str,
-    ) -> Result<bool> {
-        Err(Error::Unavailable("claim_daily_quest_reward: stub".to_string()))
+    async fn claim_daily_quest_reward(&self, _player_id: Uuid, _quest_id: &str) -> Result<bool> {
+        Err(Error::Unavailable(
+            "claim_daily_quest_reward: stub".to_string(),
+        ))
     }
-    async fn get_scene_quest_progress(
-        &self,
-        _player_id: Uuid,
-        _scene_id: &str,
-    ) -> Result<i32> {
-        Err(Error::Unavailable("get_scene_quest_progress: stub".to_string()))
+    async fn get_scene_quest_progress(&self, _player_id: Uuid, _scene_id: &str) -> Result<i32> {
+        Err(Error::Unavailable(
+            "get_scene_quest_progress: stub".to_string(),
+        ))
     }
     async fn get_main_task_list(&self, _player_id: Uuid) -> Result<Vec<String>> {
         Err(Error::Unavailable("get_main_task_list: stub".to_string()))
@@ -532,11 +487,7 @@ pub trait SceneService: Send + Sync {
     async fn get_partner_lineup(&self, _player_id: Uuid) -> Result<Vec<Uuid>> {
         Err(Error::Unavailable("get_partner_lineup: stub".to_string()))
     }
-    async fn set_partner_lineup(
-        &self,
-        _player_id: Uuid,
-        _partner_ids: Vec<Uuid>,
-    ) -> Result<bool> {
+    async fn set_partner_lineup(&self, _player_id: Uuid, _partner_ids: Vec<Uuid>) -> Result<bool> {
         Err(Error::Unavailable("set_partner_lineup: stub".to_string()))
     }
     async fn get_partner_buffs(&self, _player_id: Uuid) -> Result<Vec<String>> {
@@ -556,11 +507,7 @@ pub trait SceneService: Send + Sync {
     async fn drama_end(&self, _player_id: Uuid, _drama_id: &str) -> Result<bool> {
         Err(Error::Unavailable("drama_end: stub".to_string()))
     }
-    async fn get_drama_progress(
-        &self,
-        _player_id: Uuid,
-        _drama_id: &str,
-    ) -> Result<i32> {
+    async fn get_drama_progress(&self, _player_id: Uuid, _drama_id: &str) -> Result<i32> {
         Err(Error::Unavailable("get_drama_progress: stub".to_string()))
     }
     async fn replay_drama(&self, _player_id: Uuid, _drama_id: &str) -> Result<bool> {
@@ -627,36 +574,26 @@ pub trait SceneService: Send + Sync {
     async fn get_instance_detail(&self, _instance_id: &str) -> Result<String> {
         Err(Error::Unavailable("get_instance_detail: stub".to_string()))
     }
-    async fn match_instance(
-        &self,
-        _player_id: Uuid,
-        _instance_id: &str,
-    ) -> Result<String> {
+    async fn match_instance(&self, _player_id: Uuid, _instance_id: &str) -> Result<String> {
         Err(Error::Unavailable("match_instance: stub".to_string()))
     }
-    async fn cancel_match_instance(
-        &self,
-        _player_id: Uuid,
-        _ticket: &str,
-    ) -> Result<bool> {
-        Err(Error::Unavailable("cancel_match_instance: stub".to_string()))
+    async fn cancel_match_instance(&self, _player_id: Uuid, _ticket: &str) -> Result<bool> {
+        Err(Error::Unavailable(
+            "cancel_match_instance: stub".to_string(),
+        ))
     }
     async fn get_instance_ranking(&self, _instance_id: &str) -> Result<Vec<String>> {
         Err(Error::Unavailable("get_instance_ranking: stub".to_string()))
     }
-    async fn claim_instance_reward(
-        &self,
-        _player_id: Uuid,
-        _instance_id: &str,
-    ) -> Result<bool> {
-        Err(Error::Unavailable("claim_instance_reward: stub".to_string()))
+    async fn claim_instance_reward(&self, _player_id: Uuid, _instance_id: &str) -> Result<bool> {
+        Err(Error::Unavailable(
+            "claim_instance_reward: stub".to_string(),
+        ))
     }
-    async fn get_instance_progress(
-        &self,
-        _player_id: Uuid,
-        _instance_id: &str,
-    ) -> Result<i32> {
-        Err(Error::Unavailable("get_instance_progress: stub".to_string()))
+    async fn get_instance_progress(&self, _player_id: Uuid, _instance_id: &str) -> Result<i32> {
+        Err(Error::Unavailable(
+            "get_instance_progress: stub".to_string(),
+        ))
     }
     async fn sweep_instance(
         &self,
@@ -675,7 +612,9 @@ pub trait SceneService: Send + Sync {
         _instance_id: &str,
         _enable: bool,
     ) -> Result<bool> {
-        Err(Error::Unavailable("set_instance_auto_battle: stub".to_string()))
+        Err(Error::Unavailable(
+            "set_instance_auto_battle: stub".to_string(),
+        ))
     }
     async fn get_instance_history(&self, _player_id: Uuid) -> Result<Vec<String>> {
         Err(Error::Unavailable("get_instance_history: stub".to_string()))
@@ -683,11 +622,7 @@ pub trait SceneService: Send + Sync {
     async fn get_buff_list(&self, _target_id: Uuid) -> Result<Vec<String>> {
         Err(Error::Unavailable("get_buff_list: stub".to_string()))
     }
-    async fn get_buff_detail(
-        &self,
-        _target_id: Uuid,
-        _buff_id: &str,
-    ) -> Result<String> {
+    async fn get_buff_detail(&self, _target_id: Uuid, _buff_id: &str) -> Result<String> {
         Err(Error::Unavailable("get_buff_detail: stub".to_string()))
     }
     async fn update_buff(
@@ -700,7 +635,9 @@ pub trait SceneService: Send + Sync {
         Err(Error::Unavailable("update_buff: stub".to_string()))
     }
     async fn get_out_of_battle_buffs(&self, _player_id: Uuid) -> Result<Vec<String>> {
-        Err(Error::Unavailable("get_out_of_battle_buffs: stub".to_string()))
+        Err(Error::Unavailable(
+            "get_out_of_battle_buffs: stub".to_string(),
+        ))
     }
     async fn clear_buffs(&self, _target_id: Uuid) -> Result<i32> {
         Err(Error::Unavailable("clear_buffs: stub".to_string()))
@@ -712,7 +649,9 @@ pub trait SceneService: Send + Sync {
         Err(Error::Unavailable("get_space_info: stub".to_string()))
     }
     async fn get_space_background_list(&self, _player_id: Uuid) -> Result<Vec<String>> {
-        Err(Error::Unavailable("get_space_background_list: stub".to_string()))
+        Err(Error::Unavailable(
+            "get_space_background_list: stub".to_string(),
+        ))
     }
     async fn get_sign(&self, _player_id: Uuid) -> Result<String> {
         Err(Error::Unavailable("get_sign: stub".to_string()))
@@ -823,14 +762,14 @@ impl SceneService for SceneServiceImpl {
         Ok((1, "ok".to_string()))
     }
 
-    async fn unit_spawn(
-        &self,
-        scene_id: &str,
-        base_id: i32,
-        x: i32,
-        y: i32,
-    ) -> Result<MapUnit> {
-        let unit = MapUnit::new(scene_id.to_string(), base_id, format!("unit-{}", base_id), x, y);
+    async fn unit_spawn(&self, scene_id: &str, base_id: i32, x: i32, y: i32) -> Result<MapUnit> {
+        let unit = MapUnit::new(
+            scene_id.to_string(),
+            base_id,
+            format!("unit-{}", base_id),
+            x,
+            y,
+        );
         self.units.create(&unit).await?;
         Ok(unit)
     }
@@ -919,11 +858,7 @@ impl SceneService for SceneServiceImpl {
         Ok(target_level)
     }
 
-    async fn instance_enter(
-        &self,
-        _player_id: Uuid,
-        instance_id: &str,
-    ) -> Result<String> {
+    async fn instance_enter(&self, _player_id: Uuid, instance_id: &str) -> Result<String> {
         if instance_id.is_empty() {
             return Err(Error::Validation(
                 "instance_id must not be empty".to_string(),
@@ -933,29 +868,16 @@ impl SceneService for SceneServiceImpl {
         Ok(Uuid::new_v4().to_string())
     }
 
-    async fn instance_leave(
-        &self,
-        _player_id: Uuid,
-        _instance_id: &str,
-    ) -> Result<bool> {
+    async fn instance_leave(&self, _player_id: Uuid, _instance_id: &str) -> Result<bool> {
         Ok(true)
     }
 
-    async fn instance_state(
-        &self,
-        _player_id: Uuid,
-        _instance_id: &str,
-    ) -> Result<i32> {
+    async fn instance_state(&self, _player_id: Uuid, _instance_id: &str) -> Result<i32> {
         // 0=idle 1=in_progress 2=completed
         Ok(0)
     }
 
-    async fn add_buff(
-        &self,
-        _target_id: Uuid,
-        buff_id: &str,
-        duration_ms: i32,
-    ) -> Result<bool> {
+    async fn add_buff(&self, _target_id: Uuid, buff_id: &str, duration_ms: i32) -> Result<bool> {
         if buff_id.is_empty() {
             return Err(Error::Validation("buff_id must not be empty".to_string()));
         }
@@ -1091,7 +1013,9 @@ impl SceneService for SceneServiceImpl {
             ));
         }
         if reason.is_empty() {
-            return Err(Error::Validation("teleport reason must not be empty".to_string()));
+            return Err(Error::Validation(
+                "teleport reason must not be empty".to_string(),
+            ));
         }
         Ok(true)
     }
@@ -1182,7 +1106,10 @@ mod tests {
         let inst = svc.enter_scene(player, "scene-main", 0, 0).await.unwrap();
         let from = Position::new(0, 0, 0);
         let to = Position::new(100, 200, 1);
-        let ts = svc.move_event_stream(player, inst.id, from, to).await.unwrap();
+        let ts = svc
+            .move_event_stream(player, inst.id, from, to)
+            .await
+            .unwrap();
         assert!(ts > 0);
     }
 
@@ -1222,10 +1149,7 @@ mod tests {
     #[tokio::test]
     async fn quest_accept_validates_non_empty() {
         let svc = make_service().await;
-        let err = svc
-            .quest_accept(Uuid::new_v4(), "")
-            .await
-            .unwrap_err();
+        let err = svc.quest_accept(Uuid::new_v4(), "").await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1239,10 +1163,7 @@ mod tests {
     #[tokio::test]
     async fn quest_complete_validates_non_empty() {
         let svc = make_service().await;
-        let err = svc
-            .quest_complete(Uuid::new_v4(), "")
-            .await
-            .unwrap_err();
+        let err = svc.quest_complete(Uuid::new_v4(), "").await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1274,10 +1195,7 @@ mod tests {
     #[tokio::test]
     async fn drama_play_validates_non_empty() {
         let svc = make_service().await;
-        let err = svc
-            .drama_play(Uuid::new_v4(), "")
-            .await
-            .unwrap_err();
+        let err = svc.drama_play(Uuid::new_v4(), "").await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1298,10 +1216,7 @@ mod tests {
     #[tokio::test]
     async fn array_set_validates_non_empty() {
         let svc = make_service().await;
-        let err = svc
-            .array_set(Uuid::new_v4(), "", 0)
-            .await
-            .unwrap_err();
+        let err = svc.array_set(Uuid::new_v4(), "", 0).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1318,30 +1233,21 @@ mod tests {
     #[tokio::test]
     async fn array_upgrade_accepted() {
         let svc = make_service().await;
-        let lvl = svc
-            .array_upgrade(Uuid::new_v4(), "a-1", 5)
-            .await
-            .unwrap();
+        let lvl = svc.array_upgrade(Uuid::new_v4(), "a-1", 5).await.unwrap();
         assert_eq!(lvl, 5);
     }
 
     #[tokio::test]
     async fn instance_enter_validates_non_empty() {
         let svc = make_service().await;
-        let err = svc
-            .instance_enter(Uuid::new_v4(), "")
-            .await
-            .unwrap_err();
+        let err = svc.instance_enter(Uuid::new_v4(), "").await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
     #[tokio::test]
     async fn instance_enter_returns_ticket() {
         let svc = make_service().await;
-        let ticket = svc
-            .instance_enter(Uuid::new_v4(), "inst-1")
-            .await
-            .unwrap();
+        let ticket = svc.instance_enter(Uuid::new_v4(), "inst-1").await.unwrap();
         assert!(!ticket.is_empty());
     }
 
@@ -1355,40 +1261,28 @@ mod tests {
     #[tokio::test]
     async fn add_buff_validates_buff_id() {
         let svc = make_service().await;
-        let err = svc
-            .add_buff(Uuid::new_v4(), "", 1000)
-            .await
-            .unwrap_err();
+        let err = svc.add_buff(Uuid::new_v4(), "", 1000).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
     #[tokio::test]
     async fn add_buff_validates_duration() {
         let svc = make_service().await;
-        let err = svc
-            .add_buff(Uuid::new_v4(), "b-1", 0)
-            .await
-            .unwrap_err();
+        let err = svc.add_buff(Uuid::new_v4(), "b-1", 0).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
     #[tokio::test]
     async fn add_buff_accepted() {
         let svc = make_service().await;
-        let ok = svc
-            .add_buff(Uuid::new_v4(), "b-1", 1000)
-            .await
-            .unwrap();
+        let ok = svc.add_buff(Uuid::new_v4(), "b-1", 1000).await.unwrap();
         assert!(ok);
     }
 
     #[tokio::test]
     async fn remove_buff_validates_buff_id() {
         let svc = make_service().await;
-        let err = svc
-            .remove_buff(Uuid::new_v4(), "")
-            .await
-            .unwrap_err();
+        let err = svc.remove_buff(Uuid::new_v4(), "").await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1420,10 +1314,7 @@ mod tests {
             .await
             .unwrap();
         // 间接验证: 第二次更新 + 查 (in-memory 不暴露 get, 通过 validation 反推)
-        let err = svc
-            .update_sign(player, "a".repeat(60))
-            .await
-            .unwrap_err();
+        let err = svc.update_sign(player, "a".repeat(60)).await.unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
     }
 
@@ -1460,7 +1351,10 @@ mod tests {
         let svc = make_service().await;
         let inst_id = Uuid::new_v4();
         let unit_id = Uuid::new_v4();
-        let ok = svc.unit_move_stream(inst_id, unit_id, 10, 20).await.unwrap();
+        let ok = svc
+            .unit_move_stream(inst_id, unit_id, 10, 20)
+            .await
+            .unwrap();
         assert!(ok);
     }
 

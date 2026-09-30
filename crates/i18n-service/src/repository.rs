@@ -202,18 +202,17 @@ impl I18nRepository for InMemoryI18nRepository {
 
     async fn list_languages(&self) -> Result<Vec<LanguageInfo>> {
         let g = self.languages.lock().unwrap();
-        let mut v: Vec<LanguageInfo> = g
-            .values()
-            .filter(|l| l.enabled)
-            .cloned()
-            .collect();
+        let mut v: Vec<LanguageInfo> = g.values().filter(|l| l.enabled).cloned().collect();
         v.sort_by(|a, b| a.locale.as_str().cmp(b.locale.as_str()));
         Ok(v)
     }
 
     async fn upsert_text(&self, text: &I18nText) -> Result<()> {
         let mut g = self.texts.lock().unwrap();
-        g.insert(format!("{}::{}", text.key, text.locale.as_str()), text.clone());
+        g.insert(
+            format!("{}::{}", text.key, text.locale.as_str()),
+            text.clone(),
+        );
         Ok(())
     }
 }
@@ -242,11 +241,10 @@ mod tests {
 
     #[tokio::test]
     async fn in_memory_find_texts_by_key_returns_all_locales() {
-        let repo = InMemoryI18nRepository::new()
-            .with_texts(vec![
-                I18nText::new("k2".to_string(), Locale::EnUs, "hello".to_string()),
-                I18nText::new("k2".to_string(), Locale::ZhCn, "你好".to_string()),
-            ]);
+        let repo = InMemoryI18nRepository::new().with_texts(vec![
+            I18nText::new("k2".to_string(), Locale::EnUs, "hello".to_string()),
+            I18nText::new("k2".to_string(), Locale::ZhCn, "你好".to_string()),
+        ]);
         let m = repo.find_texts_by_key("k2").await.unwrap();
         assert_eq!(m.len(), 2);
         assert_eq!(m.get("en_us").unwrap().text, "hello");

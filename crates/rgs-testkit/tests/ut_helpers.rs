@@ -90,7 +90,11 @@ fn saga_unique_id_across_many_calls() {
     let mut ids = HashSet::new();
     for _ in 0..1000 {
         let s = fixture::saga("transfer");
-        assert!(ids.insert(s.saga_id.clone()), "duplicate saga id: {}", s.saga_id);
+        assert!(
+            ids.insert(s.saga_id.clone()),
+            "duplicate saga id: {}",
+            s.saga_id
+        );
     }
     assert_eq!(ids.len(), 1000);
 }

@@ -43,9 +43,8 @@ async fn main() -> anyhow::Result<()> {
     let units: Arc<dyn MapUnitRepository> = Arc::new(InMemoryMapUnitRepository::new());
     let spaces: Arc<dyn SpaceRepository> = Arc::new(InMemorySpaceRepository::new());
 
-    let service_impl: Arc<dyn SceneService> = Arc::new(SceneServiceImpl::new(
-        instances, units, spaces,
-    ));
+    let service_impl: Arc<dyn SceneService> =
+        Arc::new(SceneServiceImpl::new(instances, units, spaces));
     let grpc = SceneGrpcService::new(service_impl);
 
     // grpc.health.v1.Health 服务 (k3s exec 探针 + mTLS, per RGS-OPS-101)

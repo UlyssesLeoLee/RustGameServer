@@ -120,8 +120,14 @@ mod tests {
         let mut cfg = WebConnConfig::default_local();
         cfg.cookie = b"super_secret_123".to_vec();
         let s = format!("{}", cfg);
-        assert!(!s.contains("super_secret"), "Display must redact cookie value");
-        assert!(s.contains("REDACTED"), "Display should mark cookie as redacted");
+        assert!(
+            !s.contains("super_secret"),
+            "Display must redact cookie value"
+        );
+        assert!(
+            s.contains("REDACTED"),
+            "Display should mark cookie as redacted"
+        );
     }
 
     #[test]

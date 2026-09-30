@@ -323,24 +323,16 @@ pub mod grpc_service {
                 impl_.accounts_for_v3(),
                 impl_.ledger_for_v3(),
             ));
-            Self {
-                impl_,
-                trade,
-                shop,
-            }
+            Self { impl_, trade, shop }
         }
     }
 
     /// 内部: EconomyServiceImpl 的 accounts/ledger 暴露 (per v3 子模块需要)
     impl EconomyServiceImpl {
-        pub fn accounts_for_v3(
-            &self,
-        ) -> Arc<dyn crate::repository::AccountRepository> {
+        pub fn accounts_for_v3(&self) -> Arc<dyn crate::repository::AccountRepository> {
             self.accounts.clone()
         }
-        pub fn ledger_for_v3(
-            &self,
-        ) -> Arc<dyn crate::repository::TransactionLedgerRepository> {
+        pub fn ledger_for_v3(&self) -> Arc<dyn crate::repository::TransactionLedgerRepository> {
             self.ledger.clone()
         }
     }
@@ -514,7 +506,11 @@ pub mod grpc_service {
                 .list_auctions(filter, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::ListAuctionResponse {
                 auctions: list.iter().map(auction_to_proto).collect(),
@@ -537,7 +533,11 @@ pub mod grpc_service {
                 .get_trade_history(req.player_id, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::GetTradeHistoryResponse {
                 trades: list.iter().map(auction_to_proto).collect(),
@@ -569,7 +569,13 @@ pub mod grpc_service {
             let req = request.into_inner();
             let out = self
                 .shop
-                .shop_buy(req.player_id, req.shop_id, req.item_id, req.quantity, req.idempotency_key)
+                .shop_buy(
+                    req.player_id,
+                    req.shop_id,
+                    req.item_id,
+                    req.quantity,
+                    req.idempotency_key,
+                )
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(economy_proto::ShopBuyResponse {
@@ -597,7 +603,11 @@ pub mod grpc_service {
                 .shop_record(req.player_id, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::ShopRecordResponse {
                 entries: list
@@ -666,13 +676,15 @@ pub mod grpc_service {
         async fn mystery_shop_refresh(
             &self,
             _request: Request<economy_proto::MysteryShopRefreshRequest>,
-        ) -> std::result::Result<Response<economy_proto::MysteryShopRefreshResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MysteryShopRefreshResponse>, Status>
+        {
             Err(Status::unimplemented("mystery_shop_refresh"))
         }
         async fn mystery_shop_unlock(
             &self,
             _request: Request<economy_proto::MysteryShopUnlockRequest>,
-        ) -> std::result::Result<Response<economy_proto::MysteryShopUnlockResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MysteryShopUnlockResponse>, Status>
+        {
             Err(Status::unimplemented("mystery_shop_unlock"))
         }
         async fn exchange_list(
@@ -711,7 +723,13 @@ pub mod grpc_service {
             let req = request.into_inner();
             let out = self
                 .shop
-                .exchange_do(req.player_id, req.exchange_id, req.item_id, req.quantity, req.idempotency_key)
+                .exchange_do(
+                    req.player_id,
+                    req.exchange_id,
+                    req.item_id,
+                    req.quantity,
+                    req.idempotency_key,
+                )
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(economy_proto::ExchangeDoResponse {
@@ -731,7 +749,11 @@ pub mod grpc_service {
                 .exchange_record(req.player_id, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::ExchangeRecordResponse {
                 entries: list
@@ -782,10 +804,19 @@ pub mod grpc_service {
             let page_req = req.page.unwrap_or_default();
             let (items, points, total) = self
                 .shop
-                .point_shop_list(req.player_id, req.point_type, page_req.page, page_req.page_size)
+                .point_shop_list(
+                    req.player_id,
+                    req.point_type,
+                    page_req.page,
+                    page_req.page_size,
+                )
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::PointShopListResponse {
                 items: items
@@ -818,7 +849,13 @@ pub mod grpc_service {
             let req = request.into_inner();
             let out = self
                 .shop
-                .point_shop_buy(req.player_id, req.point_type, req.item_id, req.quantity, req.idempotency_key)
+                .point_shop_buy(
+                    req.player_id,
+                    req.point_type,
+                    req.item_id,
+                    req.quantity,
+                    req.idempotency_key,
+                )
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(economy_proto::PointShopBuyResponse {
@@ -891,7 +928,12 @@ pub mod grpc_service {
             let req = request.into_inner();
             let out = self
                 .shop
-                .loot_roll(req.player_id, req.loot_table_id, req.roll_count, req.idempotency_key)
+                .loot_roll(
+                    req.player_id,
+                    req.loot_table_id,
+                    req.roll_count,
+                    req.idempotency_key,
+                )
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
             Ok(Response::new(economy_proto::LootRollResponse {
@@ -951,13 +993,15 @@ pub mod grpc_service {
         async fn recharge_order_query(
             &self,
             _request: Request<economy_proto::RechargeOrderQueryRequest>,
-        ) -> std::result::Result<Response<economy_proto::RechargeOrderQueryResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderQueryResponse>, Status>
+        {
             Err(Status::unimplemented("recharge_order_query"))
         }
         async fn recharge_order_finish(
             &self,
             _request: Request<economy_proto::RechargeOrderFinishRequest>,
-        ) -> std::result::Result<Response<economy_proto::RechargeOrderFinishResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderFinishResponse>, Status>
+        {
             Err(Status::unimplemented("recharge_order_finish"))
         }
         async fn monthly_card_info(
@@ -969,7 +1013,8 @@ pub mod grpc_service {
         async fn monthly_card_claim(
             &self,
             _request: Request<economy_proto::MonthlyCardClaimRequest>,
-        ) -> std::result::Result<Response<economy_proto::MonthlyCardClaimResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MonthlyCardClaimResponse>, Status>
+        {
             Err(Status::unimplemented("monthly_card_claim"))
         }
         async fn monthly_card_buy(
@@ -981,19 +1026,22 @@ pub mod grpc_service {
         async fn first_recharge_list(
             &self,
             _request: Request<economy_proto::FirstRechargeListRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeListResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_list"))
         }
         async fn first_recharge_claim(
             &self,
             _request: Request<economy_proto::FirstRechargeClaimRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeClaimResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeClaimResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_claim"))
         }
         async fn first_recharge_status(
             &self,
             _request: Request<economy_proto::FirstRechargeStatusRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeStatusResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeStatusResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_status"))
         }
         async fn power_pack_list(
@@ -1043,7 +1091,8 @@ pub mod grpc_service {
         async fn summon_single_pull(
             &self,
             _request: Request<economy_proto::SummonSinglePullRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonSinglePullResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonSinglePullResponse>, Status>
+        {
             Err(Status::unimplemented("summon_single_pull"))
         }
         async fn summon_ten_pull(
@@ -1067,7 +1116,8 @@ pub mod grpc_service {
         async fn summon_share_reward(
             &self,
             _request: Request<economy_proto::SummonShareRewardRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonShareRewardResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonShareRewardResponse>, Status>
+        {
             Err(Status::unimplemented("summon_share_reward"))
         }
         async fn summon_record(
@@ -1091,7 +1141,8 @@ pub mod grpc_service {
         async fn summon_featured_draw(
             &self,
             _request: Request<economy_proto::SummonFeaturedDrawRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonFeaturedDrawResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonFeaturedDrawResponse>, Status>
+        {
             Err(Status::unimplemented("summon_featured_draw"))
         }
         async fn summon_reset_pity(
@@ -1109,13 +1160,15 @@ pub mod grpc_service {
         async fn summon_banner_list(
             &self,
             _request: Request<economy_proto::SummonBannerListRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonBannerListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonBannerListResponse>, Status>
+        {
             Err(Status::unimplemented("summon_banner_list"))
         }
         async fn summon_guaranteed_info(
             &self,
             _request: Request<economy_proto::SummonGuaranteedInfoRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonGuaranteedInfoResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonGuaranteedInfoResponse>, Status>
+        {
             Err(Status::unimplemented("summon_guaranteed_info"))
         }
 
@@ -1123,7 +1176,8 @@ pub mod grpc_service {
         async fn auction_my_listings(
             &self,
             _request: Request<economy_proto::AuctionMyListingsRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionMyListingsResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionMyListingsResponse>, Status>
+        {
             Err(Status::unimplemented("auction_my_listings"))
         }
         async fn auction_search(
@@ -1159,13 +1213,15 @@ pub mod grpc_service {
         async fn auction_saved_search(
             &self,
             _request: Request<economy_proto::AuctionSavedSearchRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionSavedSearchResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionSavedSearchResponse>, Status>
+        {
             Err(Status::unimplemented("auction_saved_search"))
         }
         async fn auction_watch_list(
             &self,
             _request: Request<economy_proto::AuctionWatchListRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionWatchListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionWatchListResponse>, Status>
+        {
             Err(Status::unimplemented("auction_watch_list"))
         }
         async fn auction_watch(
@@ -1203,7 +1259,8 @@ pub mod grpc_service {
         async fn flash_sale_countdown(
             &self,
             _request: Request<economy_proto::FlashSaleCountdownRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleCountdownResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleCountdownResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_countdown"))
         }
         async fn flash_sale_record(
@@ -1215,7 +1272,8 @@ pub mod grpc_service {
         async fn flash_sale_subscribe(
             &self,
             _request: Request<economy_proto::FlashSaleSubscribeRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleSubscribeResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleSubscribeResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_subscribe"))
         }
         async fn flash_sale_hot(
@@ -1227,7 +1285,8 @@ pub mod grpc_service {
         async fn flash_sale_recommend(
             &self,
             _request: Request<economy_proto::FlashSaleRecommendRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleRecommendResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleRecommendResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_recommend"))
         }
         async fn flash_sale_stock(
@@ -1277,7 +1336,8 @@ pub mod grpc_service {
         async fn privilege_activate(
             &self,
             _request: Request<economy_proto::PrivilegeActivateRequest>,
-        ) -> std::result::Result<Response<economy_proto::PrivilegeActivateResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::PrivilegeActivateResponse>, Status>
+        {
             Err(Status::unimplemented("privilege_activate"))
         }
         async fn privilege_buy(
@@ -1301,7 +1361,8 @@ pub mod grpc_service {
         async fn privilege_rewards(
             &self,
             _request: Request<economy_proto::PrivilegeRewardsRequest>,
-        ) -> std::result::Result<Response<economy_proto::PrivilegeRewardsResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::PrivilegeRewardsResponse>, Status>
+        {
             Err(Status::unimplemented("privilege_rewards"))
         }
 
@@ -1322,19 +1383,22 @@ pub mod grpc_service {
         async fn activity_template(
             &self,
             _request: Request<economy_proto::ActivityTemplateRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivityTemplateResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivityTemplateResponse>, Status>
+        {
             Err(Status::unimplemented("activity_template"))
         }
         async fn activity_progress(
             &self,
             _request: Request<economy_proto::ActivityProgressRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivityProgressResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivityProgressResponse>, Status>
+        {
             Err(Status::unimplemented("activity_progress"))
         }
         async fn activity_subscribe(
             &self,
             _request: Request<economy_proto::ActivitySubscribeRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivitySubscribeResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivitySubscribeResponse>, Status>
+        {
             Err(Status::unimplemented("activity_subscribe"))
         }
     }

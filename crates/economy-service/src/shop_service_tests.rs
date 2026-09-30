@@ -11,8 +11,8 @@ mod tests {
         TransactionLedgerRepository,
     };
     use crate::shop_entity::{
-        InMemoryEconomyV3Repository, LootEntry, LootTable, MysteryShop, MysteryShopState,
-        ExchangeShop, ShopItemEntity, PlayerPoints, GiftCode, ActivityTemplateEntity, ActivityType,
+        ActivityTemplateEntity, ActivityType, ExchangeShop, GiftCode, InMemoryEconomyV3Repository,
+        LootEntry, LootTable, MysteryShop, MysteryShopState, PlayerPoints, ShopItemEntity,
     };
     use crate::shop_service::{ShopService, ShopServiceImpl};
     use chrono::{Duration, Utc};
@@ -124,12 +124,24 @@ mod tests {
             },
         );
         // 第一次购买
-        svc.shop_buy(player_id_str.clone(), 1, "potion".to_string(), 1, "same-key".to_string())
-            .await
-            .unwrap();
+        svc.shop_buy(
+            player_id_str.clone(),
+            1,
+            "potion".to_string(),
+            1,
+            "same-key".to_string(),
+        )
+        .await
+        .unwrap();
         // 第二次相同 idempotency_key 应该 conflict
         let err = svc
-            .shop_buy(player_id_str, 1, "potion".to_string(), 1, "same-key".to_string())
+            .shop_buy(
+                player_id_str,
+                1,
+                "potion".to_string(),
+                1,
+                "same-key".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, crate::Error::IdempotencyConflict(_)));
@@ -189,9 +201,15 @@ mod tests {
             },
         );
         // 买 1 个成功
-        svc.shop_buy(player_id_str.clone(), 1, "limited".to_string(), 1, "k1".to_string())
-            .await
-            .unwrap();
+        svc.shop_buy(
+            player_id_str.clone(),
+            1,
+            "limited".to_string(),
+            1,
+            "k1".to_string(),
+        )
+        .await
+        .unwrap();
         // 买第 2 个失败
         let err = svc
             .shop_buy(player_id_str, 1, "limited".to_string(), 1, "k2".to_string())
@@ -204,7 +222,13 @@ mod tests {
     async fn shop_buy_quantity_zero_rejected() {
         let (svc, _acc_repo, _led_repo, _v3_repo) = make_ctx();
         let err = svc
-            .shop_buy(Uuid::new_v4().to_string(), 1, "x".to_string(), 0, "k".to_string())
+            .shop_buy(
+                Uuid::new_v4().to_string(),
+                1,
+                "x".to_string(),
+                0,
+                "k".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, crate::Error::Validation(_)));
@@ -247,8 +271,12 @@ mod tests {
                 tag: "".to_string(),
             },
         );
-        svc.shop_buy(p1.to_string(), 1, "x".to_string(), 1, "a".to_string()).await.unwrap();
-        svc.shop_buy(p2.to_string(), 1, "x".to_string(), 1, "b".to_string()).await.unwrap();
+        svc.shop_buy(p1.to_string(), 1, "x".to_string(), 1, "a".to_string())
+            .await
+            .unwrap();
+        svc.shop_buy(p2.to_string(), 1, "x".to_string(), 1, "b".to_string())
+            .await
+            .unwrap();
         let (p1_records, p1_total) = svc.shop_record(p1.to_string(), 0, 20).await.unwrap();
         assert_eq!(p1_total, 1);
         assert_eq!(p1_records.len(), 1);
@@ -379,13 +407,22 @@ mod tests {
             },
         );
         let out = svc
-            .exchange_do(player_id.clone(), 100, "fragment".to_string(), 2, "k1".to_string())
+            .exchange_do(
+                player_id.clone(),
+                100,
+                "fragment".to_string(),
+                2,
+                "k1".to_string(),
+            )
             .await
             .unwrap();
         assert!(out.success);
         assert_eq!(out.cost_points, 100);
         let repo = v3_repo.lock().await;
-        assert_eq!(repo.player_points.get(&(player_id, 1)).unwrap().balance, 100);
+        assert_eq!(
+            repo.player_points.get(&(player_id, 1)).unwrap().balance,
+            100
+        );
     }
 
     #[tokio::test]
@@ -430,7 +467,13 @@ mod tests {
     async fn exchange_do_shop_not_found() {
         let (svc, _acc_repo, _led_repo, _v3_repo) = make_ctx();
         let err = svc
-            .exchange_do(Uuid::new_v4().to_string(), 999, "x".to_string(), 1, "k".to_string())
+            .exchange_do(
+                Uuid::new_v4().to_string(),
+                999,
+                "x".to_string(),
+                1,
+                "k".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, crate::Error::NotFound { .. }));
@@ -506,7 +549,13 @@ mod tests {
             },
         );
         let out = svc
-            .point_shop_buy(player_id.clone(), 1, "ps-item".to_string(), 1, "k1".to_string())
+            .point_shop_buy(
+                player_id.clone(),
+                1,
+                "ps-item".to_string(),
+                1,
+                "k1".to_string(),
+            )
             .await
             .unwrap();
         assert!(out.success);
@@ -556,10 +605,7 @@ mod tests {
                 }],
             },
         );
-        let (items, _points, _total) = svc
-            .point_shop_list(player_id, 1, 0, 20)
-            .await
-            .unwrap();
+        let (items, _points, _total) = svc.point_shop_list(player_id, 1, 0, 20).await.unwrap();
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].item_id, "a");
     }
@@ -596,7 +642,10 @@ mod tests {
         assert!(out.error_msg.is_empty());
         let repo = v3_repo.lock().await;
         assert_eq!(
-            repo.gift_codes.get(&("ABCD1234".to_string(), 1)).unwrap().current_uses,
+            repo.gift_codes
+                .get(&("ABCD1234".to_string(), 1))
+                .unwrap()
+                .current_uses,
             1
         );
         assert_eq!(repo.gift_redemptions.len(), 1);
@@ -620,12 +669,7 @@ mod tests {
             },
         );
         let out = svc
-            .gift_code_redeem(
-                player_id,
-                "EXPIRED".to_string(),
-                1,
-                "k1".to_string(),
-            )
+            .gift_code_redeem(player_id, "EXPIRED".to_string(), 1, "k1".to_string())
             .await
             .unwrap();
         assert!(!out.success);
@@ -675,23 +719,13 @@ mod tests {
             },
         );
         let out1 = svc
-            .gift_code_redeem(
-                player_id.clone(),
-                "ONCE".to_string(),
-                1,
-                "k1".to_string(),
-            )
+            .gift_code_redeem(player_id.clone(), "ONCE".to_string(), 1, "k1".to_string())
             .await
             .unwrap();
         assert!(out1.success);
         // 模拟同 key (用不同 idempotency_key 但 same player 仍应失败)
         let out2 = svc
-            .gift_code_redeem(
-                player_id,
-                "ONCE".to_string(),
-                1,
-                "k2".to_string(),
-            )
+            .gift_code_redeem(player_id, "ONCE".to_string(), 1, "k2".to_string())
             .await
             .unwrap();
         assert!(!out2.success);
@@ -785,10 +819,7 @@ mod tests {
             .unwrap();
         assert_eq!(out.rolled_item_ids.len(), 1000);
         // 至少应该出现 common
-        assert!(out
-            .rolled_item_ids
-            .iter()
-            .any(|i| i == "common"));
+        assert!(out.rolled_item_ids.iter().any(|i| i == "common"));
     }
 
     #[tokio::test]
@@ -950,8 +981,11 @@ mod tests {
 
     // ==================== W41 增广度: 9 holiday_* 种子模板 + ActivityService impl ====================
 
+    use crate::shop_entity::{
+        nine_holiday_seed_templates, ActivityRewardTier, HOLIDAY_TEMPLATE_IDS,
+        HOLIDAY_TEMPLATE_NAMES,
+    };
     use crate::shop_service::ActivityService;
-    use crate::shop_entity::{nine_holiday_seed_templates, HOLIDAY_TEMPLATE_IDS, HOLIDAY_TEMPLATE_NAMES, ActivityRewardTier};
 
     #[test]
     fn nine_holiday_seed_templates_returns_9_variants() {
@@ -1073,7 +1107,13 @@ mod tests {
 
         // 幂等: 同一 idempotency_key 第二次失败
         let err = svc
-            .activity_progress(player_id, 1001, 10, "test".to_string(), "prog-1".to_string())
+            .activity_progress(
+                player_id,
+                1001,
+                10,
+                "test".to_string(),
+                "prog-1".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, crate::Error::IdempotencyConflict(_)));
@@ -1129,7 +1169,12 @@ mod tests {
         v3_repo.lock().await.seed_9_holiday_templates();
         let player_id = Uuid::new_v4().to_string();
         let out = svc
-            .activity_subscribe(player_id.clone(), 1001, 1 /* push */, "sub-1".to_string())
+            .activity_subscribe(
+                player_id.clone(),
+                1001,
+                1, /* push */
+                "sub-1".to_string(),
+            )
             .await
             .unwrap();
         assert!(out.subscribed);

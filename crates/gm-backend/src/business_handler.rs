@@ -8,7 +8,10 @@ use serde_json::json;
 use std::time::Duration;
 
 use crate::{
-    admin::v1::{AuditType, BanAccountRequest, GrantCompensationRequest, QueryAuditLogRequest, SetMaintenanceRequest},
+    admin::v1::{
+        AuditType, BanAccountRequest, GrantCompensationRequest, QueryAuditLogRequest,
+        SetMaintenanceRequest,
+    },
     AppState, AuditLogEntry, ServiceHealthEntry,
 };
 
@@ -96,14 +99,23 @@ pub async fn health_view(
     state: web::Data<AppState>,
     q: web::Query<HealthViewQuery>,
 ) -> HttpResponse {
-    let request_id = q.request_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let request_id = q
+        .request_id
+        .clone()
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now_ms = Utc::now().timestamp_millis();
     let ready = match state.admin_grpc.as_ref() {
         Some(client) => {
             match tokio::time::timeout(Duration::from_millis(500), client.health_check()).await {
                 Ok(Ok(())) => true,
-                Ok(Err(e)) => { tracing::warn!("admin-service health_check failed: {e}"); false }
-                Err(_) => { tracing::warn!("admin-service health_check timeout"); false }
+                Ok(Err(e)) => {
+                    tracing::warn!("admin-service health_check failed: {e}");
+                    false
+                }
+                Err(_) => {
+                    tracing::warn!("admin-service health_check timeout");
+                    false
+                }
             }
         }
         None => true,
@@ -192,9 +204,15 @@ pub async fn grant_compensation(
     state: web::Data<AppState>,
     body: web::Json<CompensationRequestBody>,
 ) -> HttpResponse {
-    if body.account_id.trim().is_empty() { return bad_request("missing_account_id", ""); }
-    if body.reason.trim().is_empty() { return bad_request("missing_reason", ""); }
-    if body.amount <= 0 { return bad_request("invalid_amount", "amount must be > 0"); }
+    if body.account_id.trim().is_empty() {
+        return bad_request("missing_account_id", "");
+    }
+    if body.reason.trim().is_empty() {
+        return bad_request("missing_reason", "");
+    }
+    if body.amount <= 0 {
+        return bad_request("invalid_amount", "amount must be > 0");
+    }
     if body.currency.len() < 3 || body.currency.len() > 4 {
         return bad_request("invalid_currency", "currency length must be 3 or 4");
     }
@@ -226,8 +244,14 @@ pub async fn grant_compensation(
         target_id: body.account_id.clone(),
         occurred_at_ms: Utc::now().timestamp_millis(),
     });
-    let cards_granted = admin_grpc_result.as_ref().map(|r| r.cards_granted).unwrap_or(body.card_ids.len() as u32);
-    let packs_granted = admin_grpc_result.as_ref().map(|r| r.packs_granted).unwrap_or(body.pack_ids.len() as u32);
+    let cards_granted = admin_grpc_result
+        .as_ref()
+        .map(|r| r.cards_granted)
+        .unwrap_or(body.card_ids.len() as u32);
+    let packs_granted = admin_grpc_result
+        .as_ref()
+        .map(|r| r.packs_granted)
+        .unwrap_or(body.pack_ids.len() as u32);
     HttpResponse::Accepted().json(json!({
         "status": "queued",
         "op": "compensation",
@@ -272,13 +296,26 @@ pub async fn set_maintenance(
                 ttl_seconds: body.ttl_seconds,
                 mode_flags: body.mode_flags,
             };
-            match tokio::time::timeout(Duration::from_millis(500), client.set_maintenance(req)).await {
+            match tokio::time::timeout(Duration::from_millis(500), client.set_maintenance(req))
+                .await
+            {
                 Ok(Ok(resp)) => (
-                    match resp.propagation_status { 1 => "PROPAGATING", 2 => "CONVERGED", _ => "PROPAGATING" }.to_string(),
+                    match resp.propagation_status {
+                        1 => "PROPAGATING",
+                        2 => "CONVERGED",
+                        _ => "PROPAGATING",
+                    }
+                    .to_string(),
                     resp.applied_mode_flags,
                 ),
-                Ok(Err(e)) => { tracing::warn!("set_maintenance failed: {e}"); ("PROPAGATING".to_string(), body.mode_flags) }
-                Err(_) => { tracing::warn!("set_maintenance timeout"); ("PROPAGATING".to_string(), body.mode_flags) }
+                Ok(Err(e)) => {
+                    tracing::warn!("set_maintenance failed: {e}");
+                    ("PROPAGATING".to_string(), body.mode_flags)
+                }
+                Err(_) => {
+                    tracing::warn!("set_maintenance timeout");
+                    ("PROPAGATING".to_string(), body.mode_flags)
+                }
             }
         }
         None => ("PROPAGATING".to_string(), body.mode_flags),
@@ -312,39 +349,60 @@ pub async fn query_audit(
     q: web::Query<QueryAuditLogQuery>,
 ) -> HttpResponse {
     let request_id = uuid::Uuid::new_v4().to_string();
-    let limit = q.limit.unwrap_or(DEFAULT_AUDIT_LIMIT).clamp(1, MAX_AUDIT_LIMIT);
+    let limit = q
+        .limit
+        .unwrap_or(DEFAULT_AUDIT_LIMIT)
+        .clamp(1, MAX_AUDIT_LIMIT);
     let cursor = q.cursor.clone().unwrap_or_default();
     let filter_admin = q.filter_admin.clone().unwrap_or_default();
     let filter_action = q.filter_action.clone().unwrap_or_default();
-    let audit_type = q.audit_type.as_deref().and_then(parse_audit_type).unwrap_or(AuditType::All as i32);
+    let audit_type = q
+        .audit_type
+        .as_deref()
+        .and_then(parse_audit_type)
+        .unwrap_or(AuditType::All as i32);
 
-    let admin_entries: Option<Vec<crate::admin::v1::AuditLogEntry>> = match state.admin_grpc.as_ref() {
-        Some(client) => {
-            let req = QueryAuditLogRequest {
-                request_id: request_id.clone(),
-                limit: limit as i32,
-                cursor: cursor.clone(),
-                filter_admin: filter_admin.clone(),
-                filter_action: filter_action.clone(),
-                audit_type,
-            };
-            match tokio::time::timeout(Duration::from_millis(500), client.query_audit_log(req)).await {
-                Ok(Ok(resp)) => Some(resp.entries),
-                Ok(Err(e)) => { tracing::warn!("query_audit_log failed: {e}"); None }
-                Err(_) => { tracing::warn!("query_audit_log timeout"); None }
+    let admin_entries: Option<Vec<crate::admin::v1::AuditLogEntry>> =
+        match state.admin_grpc.as_ref() {
+            Some(client) => {
+                let req = QueryAuditLogRequest {
+                    request_id: request_id.clone(),
+                    limit: limit as i32,
+                    cursor: cursor.clone(),
+                    filter_admin: filter_admin.clone(),
+                    filter_action: filter_action.clone(),
+                    audit_type,
+                };
+                match tokio::time::timeout(Duration::from_millis(500), client.query_audit_log(req))
+                    .await
+                {
+                    Ok(Ok(resp)) => Some(resp.entries),
+                    Ok(Err(e)) => {
+                        tracing::warn!("query_audit_log failed: {e}");
+                        None
+                    }
+                    Err(_) => {
+                        tracing::warn!("query_audit_log timeout");
+                        None
+                    }
+                }
             }
-        }
-        None => None,
-    };
+            None => None,
+        };
 
     if let Some(entries) = admin_entries {
-        let out: Vec<_> = entries.into_iter().map(|e| json!({
-            "log_id": e.log_id,
-            "admin_id": e.admin_id,
-            "action": e.action,
-            "target_id": e.target_id,
-            "occurred_at_ms": e.occurred_at_ms,
-        })).collect();
+        let out: Vec<_> = entries
+            .into_iter()
+            .map(|e| {
+                json!({
+                    "log_id": e.log_id,
+                    "admin_id": e.admin_id,
+                    "action": e.action,
+                    "target_id": e.target_id,
+                    "occurred_at_ms": e.occurred_at_ms,
+                })
+            })
+            .collect();
         return HttpResponse::Ok().json(json!({
             "request_id": request_id,
             "entries": out,
@@ -355,13 +413,18 @@ pub async fn query_audit(
 
     // 降级 InMemory
     let entries = state.audit_store.list_entries(limit).await;
-    let out: Vec<_> = entries.into_iter().map(|e| json!({
-        "log_id": e.log_id,
-        "admin_id": e.admin_id,
-        "action": e.action,
-        "target_id": e.target_id,
-        "occurred_at_ms": e.occurred_at_ms,
-    })).collect();
+    let out: Vec<_> = entries
+        .into_iter()
+        .map(|e| {
+            json!({
+                "log_id": e.log_id,
+                "admin_id": e.admin_id,
+                "action": e.action,
+                "target_id": e.target_id,
+                "occurred_at_ms": e.occurred_at_ms,
+            })
+        })
+        .collect();
     HttpResponse::Ok().json(json!({
         "request_id": request_id,
         "entries": out,

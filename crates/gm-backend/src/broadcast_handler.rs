@@ -87,12 +87,10 @@ pub async fn list_broadcasts(state: web::Data<AppState>) -> HttpResponse {
 // SSE 实时事件流 (per [游戏C]_src /gm/events)
 // ============================================================================
 
-pub async fn sse_events(
-    state: web::Data<AppState>,
-    req: HttpRequest,
-) -> HttpResponse {
+pub async fn sse_events(state: web::Data<AppState>, req: HttpRequest) -> HttpResponse {
     // 手动验证 token (因为 SSE 不走 JWT middleware scope)
-    let token = req.query_string()
+    let token = req
+        .query_string()
         .split('&')
         .find_map(|kv| kv.strip_prefix("token=").map(|s| s.to_string()))
         .or_else(|| {

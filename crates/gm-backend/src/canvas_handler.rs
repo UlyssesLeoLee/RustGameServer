@@ -27,16 +27,25 @@ pub struct CanvasCommandRequest {
 }
 
 pub const ALLOWED_ANCHORS: &[&str] = &[
-    "top_left", "top_center", "top_right",
-    "center_left", "center", "center_right",
-    "bottom_left", "bottom_center", "bottom_right",
+    "top_left",
+    "top_center",
+    "top_right",
+    "center_left",
+    "center",
+    "center_right",
+    "bottom_left",
+    "bottom_center",
+    "bottom_right",
 ];
 
 pub async fn list_anchors(_state: web::Data<AppState>) -> HttpResponse {
-    let anchors: Vec<AnchorOption> = ALLOWED_ANCHORS.iter().map(|a| AnchorOption {
-        value: a.to_string(),
-        label: a.replace('_', " "),
-    }).collect();
+    let anchors: Vec<AnchorOption> = ALLOWED_ANCHORS
+        .iter()
+        .map(|a| AnchorOption {
+            value: a.to_string(),
+            label: a.replace('_', " "),
+        })
+        .collect();
     HttpResponse::Ok().json(json!({"anchors": anchors}))
 }
 
@@ -56,10 +65,12 @@ pub async fn send_canvas_command(
     // 校验 base64 长度 (简单 sanity check)
     if let Some(b64) = &body.image_base64 {
         if b64.len() > 10 * 1024 * 1024 {
-            return HttpResponse::BadRequest().json(json!({"error": "image_too_large", "max_bytes": 10485760}));
+            return HttpResponse::BadRequest()
+                .json(json!({"error": "image_too_large", "max_bytes": 10485760}));
         }
         // 验证可解析
-        let _ = base64::engine::general_purpose::STANDARD.decode(b64)
+        let _ = base64::engine::general_purpose::STANDARD
+            .decode(b64)
             .map_err(|_| actix_web::error::ErrorBadRequest("invalid_base64"));
     }
     // mock 转发成功

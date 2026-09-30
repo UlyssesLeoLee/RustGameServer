@@ -112,9 +112,7 @@ async fn evaluate_coc_policy(
 ) -> CocPolicyOutput {
     let host = WasmHost::new().expect("host");
     let meta = new_meta(module_version, Some(wasm_bytes.to_vec()));
-    host.register_module(&meta)
-        .await
-        .expect("register_module");
+    host.register_module(&meta).await.expect("register_module");
 
     // Encode input → (a, b) for the WAT module.
     let amount_i32 = input.amount.clamp(i32::MIN as i64, i32::MAX as i64) as i32;
@@ -181,7 +179,11 @@ async fn ut_coc_policy_basic_allow() {
 
     let out = evaluate_coc_policy(&wasm, "v0.1.0", &input).await;
 
-    assert_eq!(out.decision, CocDecision::Allow, "low amount + non-blacklist = Allow");
+    assert_eq!(
+        out.decision,
+        CocDecision::Allow,
+        "low amount + non-blacklist = Allow"
+    );
     assert_eq!(out.reason, "low_amount_normal_target");
     assert_eq!(out.module_version, "v0.1.0");
     assert_eq!(
@@ -300,7 +302,10 @@ async fn ut_coc_policy_params_hash_correctness() {
     let mut e = a.clone();
     e.target_blacklisted = true;
     let h5 = e.params_hash();
-    assert_ne!(h1, h5, "different target_blacklisted → different params_hash");
+    assert_ne!(
+        h1, h5,
+        "different target_blacklisted → different params_hash"
+    );
 
     // 5.6 Different trace_id → different hash.
     let mut f = a.clone();

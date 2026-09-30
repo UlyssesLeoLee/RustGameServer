@@ -27,7 +27,9 @@ pub fn seed_reports(state: &AppState) {
         for d in 0..14 {
             let date = Utc::now() - chrono::Duration::days(d);
             let value: f64 = match kind {
-                "revenue" => 10000.0 + (d as f64 * 200.0) + rand::thread_rng().gen_range(-500.0..500.0),
+                "revenue" => {
+                    10000.0 + (d as f64 * 200.0) + rand::thread_rng().gen_range(-500.0..500.0)
+                }
                 "dau" => 5000.0 + rand::thread_rng().gen_range(-300.0..300.0),
                 "conversion" => 0.05 + rand::thread_rng().gen_range(-0.01..0.01),
                 "churn" => 0.02 + rand::thread_rng().gen_range(-0.005..0.005),

@@ -147,14 +147,22 @@ mod tests {
         // 每条都有 svc + method
         let rt = RouteTable::new();
         for entry in rt.list() {
-            assert!(!entry.target_service.is_empty(), "code {} 缺 service", entry.code);
+            assert!(
+                !entry.target_service.is_empty(),
+                "code {} 缺 service",
+                entry.code
+            );
             assert!(
                 entry.target_service.contains('.'),
                 "code {} service 应为 'pkg.Service' 形式: {}",
                 entry.code,
                 entry.target_service
             );
-            assert!(!entry.target_method.is_empty(), "code {} 缺 method", entry.code);
+            assert!(
+                !entry.target_method.is_empty(),
+                "code {} 缺 method",
+                entry.code
+            );
             assert!(
                 !entry.target_addr.is_empty() && entry.target_addr.starts_with("http"),
                 "code {} addr 错: {}",
@@ -283,7 +291,11 @@ mod tests {
     fn phase15_demo_compat_has_six_routes() {
         // W7 兼容: with_phase15_demo() 返回 6 条 demo (W14 调整: 9 → 6, 仅 TSV 真实存在的)
         let rt = RouteTable::with_phase15_demo();
-        assert_eq!(rt.len(), 6, "W14 6 demo 路由兼容 (W7 9 中 5 个 code 在 TSV 不存在)");
+        assert_eq!(
+            rt.len(),
+            6,
+            "W14 6 demo 路由兼容 (W7 9 中 5 个 code 在 TSV 不存在)"
+        );
     }
 
     #[test]
@@ -293,7 +305,13 @@ mod tests {
         let domains: std::collections::HashSet<_> = rt
             .list()
             .iter()
-            .map(|e| e.target_service.split('.').next().unwrap_or("?").to_string())
+            .map(|e| {
+                e.target_service
+                    .split('.')
+                    .next()
+                    .unwrap_or("?")
+                    .to_string()
+            })
             .collect();
         assert!(domains.contains("player"));
         assert!(domains.contains("scene"));

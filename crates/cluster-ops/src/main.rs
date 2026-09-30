@@ -110,7 +110,8 @@ async fn main() -> anyhow::Result<()> {
     {
         Ok((nats_client, js_ctx)) => {
             let producer = Arc::new(Producer::new(js_ctx, ProducerConfig::default()));
-            let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default(), "cluster_ops");
+            let relay =
+                OutboxRelay::new(outbox_repo, producer, RelayConfig::default(), "cluster_ops");
             tokio::spawn(async move {
                 // 保持 NATS Client 存活（async_nats::Client 内部共享 Arc，但需 owner 存在以维持连接）
                 let _nats_keepalive = nats_client;

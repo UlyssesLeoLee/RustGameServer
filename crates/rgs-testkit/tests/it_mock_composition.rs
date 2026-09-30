@@ -114,7 +114,10 @@ async fn tonic_grpc_mock_plus_inmemory_nats_compose() {
     let mut grpc = TonicGrpcMock::new().await;
     let body = br#"{"session_epoch":"e1","player_id":"p-compose"}"#;
     grpc.expect("POST", "/player.v1.PlayerService/Login", 200, body);
-    assert!(grpc.url().starts_with("http://"), "mock server must expose http url");
+    assert!(
+        grpc.url().starts_with("http://"),
+        "mock server must expose http url"
+    );
 
     // gRPC mock 起来后, 业务层会 publish 一条 NATS 事件
     let nats = InMemoryNatsMock::new();
@@ -160,7 +163,8 @@ fn pg_test_db_database_url_env_name_is_stable() {
     // 防 fixture env var 名与 sqlx 默认脱节 (强约束, 改名前需先改 sqlx::test 注入路径)
     assert_eq!(pg_test_db::DATABASE_URL_ENV, "DATABASE_URL");
     assert_eq!(
-        pg_test_db::DEFAULT_POOL_SIZE, 8,
+        pg_test_db::DEFAULT_POOL_SIZE,
+        8,
         "default pool size must be tuned for CI single-process 6 域 tests"
     );
 }
@@ -233,8 +237,7 @@ fn fixture_builder_chained_serde_cross_crate_shape() {
         serde_json::to_value(&a).unwrap(),
     ]);
     let arr_str = serde_json::to_string(&arr).expect("serialize array");
-    let parsed: serde_json::Value =
-        serde_json::from_str(&arr_str).expect("deserialize array");
+    let parsed: serde_json::Value = serde_json::from_str(&arr_str).expect("deserialize array");
     let items = parsed.as_array().expect("must be array");
     assert_eq!(items.len(), 3);
     assert_eq!(items[0]["status"], "Completed");

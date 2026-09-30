@@ -156,17 +156,29 @@ mod tests {
 
     #[test]
     fn add_2_3_equals_5() {
-        assert_eq!(add(2, 3), 5, "add(2, 3) = 5 (per test_add.erl test_add_2_3)");
+        assert_eq!(
+            add(2, 3),
+            5,
+            "add(2, 3) = 5 (per test_add.erl test_add_2_3)"
+        );
     }
 
     #[test]
     fn add_100_200_equals_300() {
-        assert_eq!(add(100, 200), 300, "add(100, 200) = 300 (per test_add.erl test_add_100_200)");
+        assert_eq!(
+            add(100, 200),
+            300,
+            "add(100, 200) = 300 (per test_add.erl test_add_100_200)"
+        );
     }
 
     #[test]
     fn add_negative_5_plus_5_equals_0() {
-        assert_eq!(add(-5, 5), 0, "add(-5, 5) = 0 (per test_add.erl test_add_negative)");
+        assert_eq!(
+            add(-5, 5),
+            0,
+            "add(-5, 5) = 0 (per test_add.erl test_add_negative)"
+        );
     }
 
     #[test]
@@ -252,6 +264,9 @@ mod tests {
     fn version_format_consistent() {
         // 验证 NIF 版本号格式 (NIF 2.15 = Erlang 26, per ADR-007 §Decision Option A)
         let (_, _, nif_ver) = version();
-        assert!(nif_ver.starts_with("nif_version_2_"), "NIF version 应 nif_version_2_<minor>");
+        assert!(
+            nif_ver.starts_with("nif_version_2_"),
+            "NIF version 应 nif_version_2_<minor>"
+        );
     }
 }

@@ -589,7 +589,7 @@ pub struct SavedSearch {
 /// 模式参考 trade_service.rs / trade_entity.rs / trade_repository.rs
 #[derive(Debug, Default)]
 pub struct InMemoryEconomyV3Repository {
-    pub shop_items: HashMap<(i32, String), ShopItemEntity>,  // (shop_id, item_id) → item
+    pub shop_items: HashMap<(i32, String), ShopItemEntity>, // (shop_id, item_id) → item
     pub shop_records: Vec<ShopRecord>,
     pub shop_refresh_states: HashMap<(String, i32), ShopRefreshState>, // (player, shop)
 
@@ -692,15 +692,42 @@ impl InMemoryEconomyV3Repository {
 /// 9 个 holiday_* 种子模板生成 (per 2026-09-05 Phase 2 economy 9 活动运营)
 pub fn nine_holiday_seed_templates(now: DateTime<Utc>) -> Vec<(i32, ActivityTemplateEntity)> {
     vec![
-        (1001, make_holiday_template(1001, "Spring Festival",  ActivityType::Holiday,     now, 14, 1)),
-        (1002, make_holiday_template(1002, "Summer Carnival",   ActivityType::Holiday,     now, 30, 5)),
-        (1003, make_holiday_template(1003, "Halloween",         ActivityType::Holiday,     now,  7, 9)),
-        (1004, make_holiday_template(1004, "Christmas",         ActivityType::Holiday,     now, 14, 11)),
-        (1005, make_holiday_template(1005, "New Year",          ActivityType::Holiday,     now,  7, 0)),
-        (1006, make_holiday_template(1006, "Anniversary",       ActivityType::Holiday,     now, 14, 6)),
-        (1007, make_holiday_template(1007, "Mid-Autumn",        ActivityType::Holiday,     now,  7, 8)),
-        (1008, make_holiday_template(1008, "Valentine",         ActivityType::Holiday,     now,  7, 1)),
-        (1009, make_holiday_template(1009, "Thanksgiving",      ActivityType::Holiday,     now,  7, 10)),
+        (
+            1001,
+            make_holiday_template(1001, "Spring Festival", ActivityType::Holiday, now, 14, 1),
+        ),
+        (
+            1002,
+            make_holiday_template(1002, "Summer Carnival", ActivityType::Holiday, now, 30, 5),
+        ),
+        (
+            1003,
+            make_holiday_template(1003, "Halloween", ActivityType::Holiday, now, 7, 9),
+        ),
+        (
+            1004,
+            make_holiday_template(1004, "Christmas", ActivityType::Holiday, now, 14, 11),
+        ),
+        (
+            1005,
+            make_holiday_template(1005, "New Year", ActivityType::Holiday, now, 7, 0),
+        ),
+        (
+            1006,
+            make_holiday_template(1006, "Anniversary", ActivityType::Holiday, now, 14, 6),
+        ),
+        (
+            1007,
+            make_holiday_template(1007, "Mid-Autumn", ActivityType::Holiday, now, 7, 8),
+        ),
+        (
+            1008,
+            make_holiday_template(1008, "Valentine", ActivityType::Holiday, now, 7, 1),
+        ),
+        (
+            1009,
+            make_holiday_template(1009, "Thanksgiving", ActivityType::Holiday, now, 7, 10),
+        ),
     ]
 }
 

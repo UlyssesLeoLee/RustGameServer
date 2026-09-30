@@ -47,14 +47,18 @@ impl ReplayExtraServiceImpl {
 
     pub async fn get_replay(&self, replay_id: Uuid) -> Result<ReplayRecord> {
         let mut replays = self.replays.write().await;
-        let r = replays.get_mut(&replay_id).ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        let r = replays
+            .get_mut(&replay_id)
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
         r.add_view();
         Ok(r.clone())
     }
 
     pub async fn delete_replay(&self, replay_id: Uuid, player_id: &str) -> Result<()> {
         let mut replays = self.replays.write().await;
-        let r = replays.get(&replay_id).ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        let r = replays
+            .get(&replay_id)
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
         if r.player_id != player_id {
             return Err(Error::NotAuthorized("not owner".into()));
         }
@@ -62,9 +66,16 @@ impl ReplayExtraServiceImpl {
         Ok(())
     }
 
-    pub async fn share_replay(&self, replay_id: Uuid, player_id: &str, _channel: &str) -> Result<String> {
+    pub async fn share_replay(
+        &self,
+        replay_id: Uuid,
+        player_id: &str,
+        _channel: &str,
+    ) -> Result<String> {
         let replays = self.replays.read().await;
-        let r = replays.get(&replay_id).ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
+        let r = replays
+            .get(&replay_id)
+            .ok_or_else(|| Error::ReplayNotFound(replay_id.to_string()))?;
         if r.player_id != player_id {
             return Err(Error::NotAuthorized("not owner".into()));
         }
@@ -76,7 +87,10 @@ impl ReplayExtraServiceImpl {
 
     pub async fn get_shared_replay(&self, share_url: &str) -> Result<(ReplayRecord, u32)> {
         let shares = self.shares.read().await;
-        let rid = shares.get(share_url).copied().ok_or_else(|| Error::ReplayNotFound(share_url.into()))?;
+        let rid = shares
+            .get(share_url)
+            .copied()
+            .ok_or_else(|| Error::ReplayNotFound(share_url.into()))?;
         drop(shares);
         let r = self.get_replay(rid).await?;
         let vc = r.view_count;
@@ -100,12 +114,20 @@ impl ReplayExtraServiceImpl {
 
     pub async fn get_video(&self, video_id: Uuid) -> Result<VideoRecord> {
         let mut videos = self.videos.write().await;
-        let v = videos.get_mut(&video_id).ok_or_else(|| Error::VideoNotFound(video_id.to_string()))?;
+        let v = videos
+            .get_mut(&video_id)
+            .ok_or_else(|| Error::VideoNotFound(video_id.to_string()))?;
         v.view_count = v.view_count.saturating_add(1);
         Ok(v.clone())
     }
 
-    pub async fn post_comment(&self, target_id: &str, player_id: &str, content: &str, target_type: u32) -> Result<Comment> {
+    pub async fn post_comment(
+        &self,
+        target_id: &str,
+        player_id: &str,
+        content: &str,
+        target_type: u32,
+    ) -> Result<Comment> {
         if content.is_empty() {
             return Err(Error::InvalidRequest("empty content".into()));
         }
@@ -117,21 +139,37 @@ impl ReplayExtraServiceImpl {
             posted_at: chrono::Utc::now(),
         };
         let key = c.target_id.clone();
-        self.comments.write().await.entry(key).or_default().push(c.clone());
+        self.comments
+            .write()
+            .await
+            .entry(key)
+            .or_default()
+            .push(c.clone());
         Ok(c)
     }
 
-    pub async fn get_comments(&self, target_id: &str, target_type: u32, page: u32, page_size: u32) -> Vec<Comment> {
+    pub async fn get_comments(
+        &self,
+        target_id: &str,
+        target_type: u32,
+        page: u32,
+        page_size: u32,
+    ) -> Vec<Comment> {
         let key = format!("{}:{}", target_type, target_id);
         let comments = self.comments.read().await;
         let all = comments.get(&key).cloned().unwrap_or_default();
         let start = page as usize * page_size as usize;
-        all.into_iter().skip(start).take(page_size as usize).collect()
+        all.into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect()
     }
 }
 
 impl Default for ReplayExtraServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

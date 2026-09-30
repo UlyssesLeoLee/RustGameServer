@@ -32,7 +32,9 @@
 //! - 无需 DATABASE_URL (InMemory 路径)
 
 use player_service::entity::PlayerProfile;
-use player_service::repository::{DeckRepository, InMemoryDeckRepository, InMemoryPlayerRepository};
+use player_service::repository::{
+    DeckRepository, InMemoryDeckRepository, InMemoryPlayerRepository,
+};
 use player_service::service::{PlayerService, PlayerServiceImpl};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -54,9 +56,7 @@ fn assert_wins_leq_total(p: &PlayerProfile) {
 /// (本 IT 不需要 session/deck, 但 PlayerServiceImpl::new 必须 4 参, 用空 repo 占位)
 fn make_service() -> (PlayerServiceImpl, Arc<InMemoryPlayerRepository>) {
     let players = Arc::new(InMemoryPlayerRepository::new());
-    let sessions = Arc::new(
-        player_service::repository::InMemoryPlayerSessionRepository::new(),
-    );
+    let sessions = Arc::new(player_service::repository::InMemoryPlayerSessionRepository::new());
     let decks = Arc::new(InMemoryDeckRepository::new());
     let svc = PlayerServiceImpl::new_without_character(
         players.clone() as Arc<dyn player_service::repository::PlayerRepository>,
@@ -152,13 +152,7 @@ async fn test_wins_leq_total_invariant_through_chain() {
     let pid = owner.id;
 
     // 链 5 步: total_matches 0→10→25→50→100, total_wins 0→6→15→30→58
-    let chain = [
-        (0u32, 0u32),
-        (10, 6),
-        (25, 15),
-        (50, 30),
-        (100, 58),
-    ];
+    let chain = [(0u32, 0u32), (10, 6), (25, 15), (50, 30), (100, 58)];
     for (i, (matches, wins)) in chain.iter().enumerate() {
         let p = PlayerProfile {
             player_id: pid,
@@ -208,7 +202,9 @@ async fn test_profile_chain_accumulates_wins_only_when_matches_grow() {
     // 链: 10 场, 7 胜 (3 负). 每次 +1/+1 (胜) 或 +1/+0 (负)
     let mut matches = 0u32;
     let mut wins = 0u32;
-    let outcomes = [true, true, false, true, false, true, true, false, true, true];
+    let outcomes = [
+        true, true, false, true, false, true, true, false, true, true,
+    ];
     for (i, won) in outcomes.iter().enumerate() {
         matches += 1;
         if *won {

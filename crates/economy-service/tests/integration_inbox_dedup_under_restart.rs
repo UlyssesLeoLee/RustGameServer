@@ -155,7 +155,10 @@ async fn inbox_dedup_simulated_process_restart() {
     let h2 = DedupedHandler::new(idem_key, inbox_arc.clone(), counter.clone());
     // replay 同 cmd_id 3 次
     let p1 = h2.dispatch(cmd_id, r#"{"attempt":4}"#).await;
-    assert!(!p1, "phase2 replay 1: must be dedup-skipped (state from phase1)");
+    assert!(
+        !p1,
+        "phase2 replay 1: must be dedup-skipped (state from phase1)"
+    );
     let p2 = h2.dispatch(cmd_id, r#"{"attempt":5}"#).await;
     assert!(!p2, "phase2 replay 2: must be dedup-skipped");
     let p3 = h2.dispatch(cmd_id, r#"{"attempt":6}"#).await;
@@ -205,7 +208,10 @@ async fn inbox_dedup_distinct_handlers_independent() {
         if i == 0 {
             assert!(r_a && r_b, "first dispatch to each must execute");
         } else {
-            assert!(!r_a && !r_b, "replays must be dedup-skipped for each handler");
+            assert!(
+                !r_a && !r_b,
+                "replays must be dedup-skipped for each handler"
+            );
         }
     }
 

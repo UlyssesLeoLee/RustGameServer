@@ -15,7 +15,10 @@ fn h001_hello_runs_in_arbitrary_cwd() {
         .current_dir(tmp.path())
         .output()
         .expect("spawn rgs-hello");
-    assert!(output.status.success(), "rgs-hello should exit 0 in temp cwd");
+    assert!(
+        output.status.success(),
+        "rgs-hello should exit 0 in temp cwd"
+    );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("RGS Rust"), "stdout: {}", stdout);
 }
@@ -29,8 +32,16 @@ fn h002_hello_stdout_single_line_with_newline() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     // println! 会在结尾加 \n
-    assert!(stdout.ends_with('\n'), "stdout should end with \\n: {:?}", stdout);
+    assert!(
+        stdout.ends_with('\n'),
+        "stdout should end with \\n: {:?}",
+        stdout
+    );
     // 只应该有一个 \n
     let newline_count = stdout.matches('\n').count();
-    assert_eq!(newline_count, 1, "stdout should be exactly 1 line, got {} newlines", newline_count);
+    assert_eq!(
+        newline_count, 1,
+        "stdout should be exactly 1 line, got {} newlines",
+        newline_count
+    );
 }

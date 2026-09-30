@@ -97,9 +97,18 @@ fn i003_repeated_runs_different_keys_idempotent_files() {
         pem_runs.push(pem);
     }
     // 三次密钥 PEM 都不相同 (rcgen 每次生成新 EC/RSA 密钥)
-    assert_ne!(pem_runs[0], pem_runs[1], "key.pem should differ between runs");
-    assert_ne!(pem_runs[1], pem_runs[2], "key.pem should differ between runs");
-    assert_ne!(pem_runs[0], pem_runs[2], "key.pem should differ between runs");
+    assert_ne!(
+        pem_runs[0], pem_runs[1],
+        "key.pem should differ between runs"
+    );
+    assert_ne!(
+        pem_runs[1], pem_runs[2],
+        "key.pem should differ between runs"
+    );
+    assert_ne!(
+        pem_runs[0], pem_runs[2],
+        "key.pem should differ between runs"
+    );
 }
 
 /// I004: openSSL x509 解析 ca.crt.pem 验证 subject CN = "RustGameServer Dev CA"
@@ -179,9 +188,10 @@ fn i005_openssl_server_cert_issuer_matches_ca() {
     fn extract_cn(s: &str) -> Option<String> {
         // 形如: subject=CN = RustGameServer Dev CA
         let s = s.trim();
-        s.split("CN")
-            .nth(1)
-            .map(|x| x.trim_start_matches(|c: char| c == '=' || c.is_whitespace()).to_string())
+        s.split("CN").nth(1).map(|x| {
+            x.trim_start_matches(|c: char| c == '=' || c.is_whitespace())
+                .to_string()
+        })
     }
     let issuer_cn = extract_cn(&issuer_str);
     let subject_cn = extract_cn(&subject_str);

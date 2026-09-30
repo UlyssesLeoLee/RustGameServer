@@ -88,8 +88,7 @@ impl FailingAuditLogRepository {
 impl AuditLogRepository for FailingAuditLogRepository {
     async fn append(&self, entry: &AuditLogEntry) -> Result<AuditLogEntry> {
         let n = self.call_count.fetch_add(1, Ordering::SeqCst) + 1;
-        let should_fail = n == self.fail_after
-            || self.fail_next.swap(false, Ordering::SeqCst);
+        let should_fail = n == self.fail_after || self.fail_next.swap(false, Ordering::SeqCst);
         if should_fail {
             // 模拟写前故障 (per RGS-REV-008 V2 fault injection)
             return Err(Error::Internal(anyhow::anyhow!(
@@ -120,10 +119,7 @@ impl AuditLogRepository for FailingAuditLogRepository {
         // IT 不走 PG 事务路径, 退化到普通 append
         self.append(entry).await
     }
-    async fn verify_recent(
-        &self,
-        n: usize,
-    ) -> admin_service::Result<admin_service::VerifyReport> {
+    async fn verify_recent(&self, n: usize) -> admin_service::Result<admin_service::VerifyReport> {
         // 透传到 inner (chaos 测试场景不验证链, 只验证 append 行为)
         self.inner.verify_recent(n).await
     }
@@ -167,7 +163,12 @@ async fn execute_two_step_gm_command(
 ) -> Result<CompensateResult> {
     // 步骤 1: 写 audit_log (受 FailingAuditLogRepository 控制)
     let entry = svc
-        .audit_log(actor_id, action.to_string(), target.to_string(), payload.to_string())
+        .audit_log(
+            actor_id,
+            action.to_string(),
+            target.to_string(),
+            payload.to_string(),
+        )
         .await?;
 
     // 步骤 2: 外部副作用 (模拟跨域 RPC: 玩家域 / 经济域)
@@ -202,7 +203,7 @@ async fn execute_two_step_gm_command(
         // 注意: 不能物理删除 audit entry, 改写 compensation 记录
         // 这里 svc.audit_log 用同样的 actor_id + action 标记补偿
         let _ = entry; // suppress unused warning
-        // 业务级补偿: 写 compensation audit
+                       // 业务级补偿: 写 compensation audit
         let comp_payload = format!(
             r#"{{"compensation_for":"{}","target":"{}","reason":"{}"}}"#,
             action, target, reason
@@ -243,11 +244,7 @@ async fn audit_append_failure_rolls_back_entire_gm_command() {
     let svc = AdminServiceImpl::new(users, audit.clone());
 
     // 准备一个 admin actor
-    let admin = AdminUser::new(
-        "root".to_string(),
-        "h".to_string(),
-        AdminRole::SuperAdmin,
-    );
+    let admin = AdminUser::new("root".to_string(), "h".to_string(), AdminRole::SuperAdmin);
     let actor_id = admin.id;
     let mut external = ExternalState::default();
 
@@ -263,7 +260,10 @@ async fn audit_append_failure_rolls_back_entire_gm_command() {
     .await;
 
     // 关键断言 1: 整条 GM 指令返 Err (步骤 1 失败透传)
-    assert!(result.is_err(), "audit append 失败应让上层感知, got {result:?}");
+    assert!(
+        result.is_err(),
+        "audit append 失败应让上层感知, got {result:?}"
+    );
 
     // 关键断言 2: 步骤 2 (外部副作用) **未发生** → 被禁号玩家列表为空
     assert!(
@@ -304,11 +304,7 @@ async fn external_side_effect_failure_triggers_compensation() {
     let users = Arc::new(InMemoryAdminUserRepository::new());
     let svc = AdminServiceImpl::new(users, audit.clone());
 
-    let admin = AdminUser::new(
-        "root".to_string(),
-        "h".to_string(),
-        AdminRole::SuperAdmin,
-    );
+    let admin = AdminUser::new("root".to_string(), "h".to_string(), AdminRole::SuperAdmin);
     let actor_id = admin.id;
     let mut external = ExternalState::default();
 
@@ -374,11 +370,7 @@ async fn happy_path_no_failure_audit_chain_and_state_correct() {
     let users = Arc::new(InMemoryAdminUserRepository::new());
     let svc = AdminServiceImpl::new(users, audit.clone());
 
-    let admin = AdminUser::new(
-        "root".to_string(),
-        "h".to_string(),
-        AdminRole::SuperAdmin,
-    );
+    let admin = AdminUser::new("root".to_string(), "h".to_string(), AdminRole::SuperAdmin);
     let actor_id = admin.id;
     let mut external = ExternalState::default();
 
@@ -484,20 +476,17 @@ async fn chaos_random_failure_positions_all_rolled_back() {
             r#"{"reason":"chaos"}"#.to_string()
         };
 
-        let result = execute_two_step_gm_command(
-            &svc,
-            actor_id,
-            action,
-            &target,
-            &payload,
-            &mut external,
-        )
-        .await;
+        let result =
+            execute_two_step_gm_command(&svc, actor_id, action, &target, &payload, &mut external)
+                .await;
 
         match (failure_mode, action) {
             (0, _) => {
                 // 步骤 1 失败 → 必返 Err
-                assert!(result.is_err(), "cmd {i} 步骤 1 失败应返 Err, got {result:?}");
+                assert!(
+                    result.is_err(),
+                    "cmd {i} 步骤 1 失败应返 Err, got {result:?}"
+                );
                 // 外部状态无变化
             }
             (1, "economy.grant") => {

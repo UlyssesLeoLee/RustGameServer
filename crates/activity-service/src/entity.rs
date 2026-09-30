@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub use shared_platform::data_driven::{HolidayActivity, HolidayConfig, PvpMode, PvpConfig};
+pub use shared_platform::data_driven::{HolidayActivity, HolidayConfig, PvpConfig, PvpMode};
 
 /// 玩家签到状态
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

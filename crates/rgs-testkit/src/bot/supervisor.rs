@@ -42,7 +42,11 @@ impl BotSupervisor {
     /// - `max`        白名单上限 (硬约束 ≤ [`Self::MAX_BOTS`])
     /// - `stagger_ms` 错峰间隔 (毫秒)
     pub fn new(max: usize, stagger_ms: u64) -> Self {
-        let effective_max = if max > Self::MAX_BOTS { Self::MAX_BOTS } else { max };
+        let effective_max = if max > Self::MAX_BOTS {
+            Self::MAX_BOTS
+        } else {
+            max
+        };
         if max > Self::MAX_BOTS {
             warn!(
                 requested = max,
@@ -68,7 +72,11 @@ impl BotSupervisor {
     /// - 任一 bot `start()` 失败 → 立即返回 Err (后续 bot 不再 spawn)
     pub async fn spawn_with_stagger(&mut self) -> Result<()> {
         let total = self.max;
-        info!(total, stagger_ms = self.stagger_ms, "spawn_with_stagger begin");
+        info!(
+            total,
+            stagger_ms = self.stagger_ms,
+            "spawn_with_stagger begin"
+        );
 
         for i in 0..total {
             let id = format!("bot-{:04}", i);

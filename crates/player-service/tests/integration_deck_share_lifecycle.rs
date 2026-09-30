@@ -81,7 +81,10 @@ async fn test_full_share_lifecycle_5_steps() {
 
     // 3) 另一 player (viewer) 通过 share_code 拉取 — 跨玩家访问必须成功
     let pulled_by_viewer = svc.get_shared_deck(share_code.clone()).await.unwrap();
-    assert_eq!(pulled_by_viewer.id, deck_id, "viewer 拉到的 deck id 必须匹配");
+    assert_eq!(
+        pulled_by_viewer.id, deck_id,
+        "viewer 拉到的 deck id 必须匹配"
+    );
     assert_eq!(pulled_by_viewer.owner_id, owner.id, "deck owner 必须保留");
     assert!(pulled_by_viewer.is_public);
     assert_eq!(

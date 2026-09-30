@@ -7,11 +7,11 @@
 //! 4. ttl_cache_basic_put_get
 //! 5. ttl_cache_expires_after_ttl (短 TTL 验证)
 
-use std::sync::Arc;
-use std::time::Duration;
 use i18n_service::entity::{I18nText, Locale};
 use i18n_service::repository::{I18nRepository, InMemoryI18nRepository};
 use i18n_service::service::TtlCache;
+use std::sync::Arc;
+use std::time::Duration;
 
 #[test]
 fn locale_str_enum_roundtrip() {

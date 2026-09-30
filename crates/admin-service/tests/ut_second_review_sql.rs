@@ -73,12 +73,10 @@ fn ut_second_review_table_exists() {
          (per RGS-INC-001 v0.3 §X.5 schema 草案)"
     );
     // PRIMARY KEY review_id UUID (字段对齐用 split_whitespace 规范化空格)
-    let has_pk = sql
-        .lines()
-        .any(|line| {
-            let normalized: Vec<&str> = line.split_whitespace().collect();
-            normalized.starts_with(&["review_id", "UUID", "PRIMARY", "KEY"])
-        });
+    let has_pk = sql.lines().any(|line| {
+        let normalized: Vec<&str> = line.split_whitespace().collect();
+        normalized.starts_with(&["review_id", "UUID", "PRIMARY", "KEY"])
+    });
     assert!(
         has_pk,
         "0007_second_review.sql 缺 PRIMARY KEY review_id UUID \

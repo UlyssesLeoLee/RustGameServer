@@ -31,11 +31,7 @@ async fn it_add_entry_then_query_casual() {
     let p1 = Uuid::new_v4();
     let p2 = Uuid::new_v4();
     let p3 = Uuid::new_v4();
-    for (p, score, wins, losses) in [
-        (p1, 100, 10, 5),
-        (p2, 200, 20, 3),
-        (p3, 50, 5, 10),
-    ] {
+    for (p, score, wins, losses) in [(p1, 100, 10, 5), (p2, 200, 20, 3), (p3, 50, 5, 10)] {
         s.add_entry(
             LeaderboardType::Casual,
             LeaderboardPeriod::Weekly,
@@ -205,8 +201,10 @@ async fn it_player_rank_aggregates_three_boards() {
     }
 
     // GetPlayerRank 不能跨 (type, period) 拉 ranked, 这里直接验证 casual + collection
-    let (ranked, casual, collection) =
-        s.get_player_rank(p, LeaderboardPeriod::Weekly).await.unwrap();
+    let (ranked, casual, collection) = s
+        .get_player_rank(p, LeaderboardPeriod::Weekly)
+        .await
+        .unwrap();
     // ranked: 服务端用空 season_id 查不到, 返回 None
     assert!(ranked.is_none());
     // casual: alice 应在
@@ -218,8 +216,10 @@ async fn it_player_rank_aggregates_three_boards() {
     assert!(collection.is_none());
 
     // 查 AllTime: ranked/casual 都查不到, collection 应在
-    let (ranked2, casual2, collection2) =
-        s.get_player_rank(p, LeaderboardPeriod::AllTime).await.unwrap();
+    let (ranked2, casual2, collection2) = s
+        .get_player_rank(p, LeaderboardPeriod::AllTime)
+        .await
+        .unwrap();
     assert!(ranked2.is_none());
     assert!(casual2.is_none());
     assert!(collection2.is_some());

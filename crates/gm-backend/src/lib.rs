@@ -67,34 +67,45 @@ pub mod business_handler;
 
 // 补全 4 端点 + SSE handler (per [游戏C]_src 移植)
 pub mod auth_handler;
-pub mod players_handler;
 pub mod broadcast_handler;
 pub mod canvas_handler;
-pub mod servers_handler;
-pub mod mall_handler;
 pub mod items_handler;
-pub mod support_handler;
+pub mod mall_handler;
+pub mod players_handler;
 pub mod reports_handler;
+pub mod servers_handler;
 pub mod summary_handler;
+pub mod support_handler;
 
 pub mod test_helpers;
 
 // re-export
+pub use auth_handler::{login, AdminRecord, LoginRequest, LoginResponse};
+pub use broadcast_handler::{
+    broadcast, list_broadcasts, sse_events, BroadcastEntry, BroadcastRequest,
+};
 pub use business_handler::{
     ban_account, grant_compensation, health_view, query_audit, set_maintenance,
     BanAccountRequestBody, CompensationRequestBody as GrantCompensationRequestBody,
     HealthViewQuery, MaintenanceRequestBody as SetMaintenanceRequestBody, QueryAuditLogQuery,
 };
-pub use auth_handler::{login, LoginRequest, LoginResponse, AdminRecord};
-pub use players_handler::{list_players, get_player_stats, PlayersQuery, PlayersResponse, PlayerStatsResponse};
-pub use broadcast_handler::{broadcast, list_broadcasts, BroadcastRequest, BroadcastEntry, sse_events};
-pub use canvas_handler::{list_anchors, send_canvas_command, CanvasCommandRequest, AnchorOption};
-pub use servers_handler::{list_servers, get_server_stats, start_server, stop_server, metrics, ServerEntry, ServerStats};
-pub use mall_handler::{list_mall_items, create_mall_item, update_mall_item, delete_mall_item, MallItem};
-pub use items_handler::{grant_item, list_grants, GrantRequest, GrantEntry};
-pub use support_handler::{create_ticket, list_tickets, update_ticket_status, TicketEntry, CreateTicketRequest, UpdateTicketStatusRequest};
+pub use canvas_handler::{list_anchors, send_canvas_command, AnchorOption, CanvasCommandRequest};
+pub use items_handler::{grant_item, list_grants, GrantEntry, GrantRequest};
+pub use mall_handler::{
+    create_mall_item, delete_mall_item, list_mall_items, update_mall_item, MallItem,
+};
+pub use players_handler::{
+    get_player_stats, list_players, PlayerStatsResponse, PlayersQuery, PlayersResponse,
+};
 pub use reports_handler::{list_reports, ReportEntry};
+pub use servers_handler::{
+    get_server_stats, list_servers, metrics, start_server, stop_server, ServerEntry, ServerStats,
+};
 pub use summary_handler::summary;
+pub use support_handler::{
+    create_ticket, list_tickets, update_ticket_status, CreateTicketRequest, TicketEntry,
+    UpdateTicketStatusRequest,
+};
 
 // ============================================================================
 // 配置
@@ -172,12 +183,18 @@ pub struct InMemoryAuditStore {
 }
 
 impl InMemoryAuditStore {
-    pub fn new() -> Self { Self::default() }
-    pub fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn append(&self, entry: AuditLogEntry) {
+        self.entries.lock().unwrap().push(entry);
+    }
 }
 
 impl AuditStore for InMemoryAuditStore {
-    fn append(&self, entry: AuditLogEntry) { self.entries.lock().unwrap().push(entry); }
+    fn append(&self, entry: AuditLogEntry) {
+        self.entries.lock().unwrap().push(entry);
+    }
     fn list_entries(
         &self,
         limit: usize,
@@ -241,11 +258,46 @@ impl AppState {
         let tickets = Arc::new(std::sync::Mutex::new(Vec::<TicketEntry>::new()));
         let reports = Arc::new(std::sync::Mutex::new(Vec::<ReportEntry>::new()));
         let servers = Arc::new(std::sync::Mutex::new(vec![
-            ServerEntry { id: "player-1".into(), name: "Player Shard 1".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 1284, last_updated: Some(Utc::now().to_rfc3339()) },
-            ServerEntry { id: "player-2".into(), name: "Player Shard 2".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 982, last_updated: Some(Utc::now().to_rfc3339()) },
-            ServerEntry { id: "match-1".into(), name: "Match Service 1".into(), region: Some("us-west-2".into()), status: "running".into(), online_players: 421, last_updated: Some(Utc::now().to_rfc3339()) },
-            ServerEntry { id: "social-1".into(), name: "Social Shard 1".into(), region: Some("eu-central-1".into()), status: "stopped".into(), online_players: 0, last_updated: Some(Utc::now().to_rfc3339()) },
-            ServerEntry { id: "economy-1".into(), name: "Economy Shard 1".into(), region: Some("ap-east-1".into()), status: "running".into(), online_players: 0, last_updated: Some(Utc::now().to_rfc3339()) },
+            ServerEntry {
+                id: "player-1".into(),
+                name: "Player Shard 1".into(),
+                region: Some("ap-east-1".into()),
+                status: "running".into(),
+                online_players: 1284,
+                last_updated: Some(Utc::now().to_rfc3339()),
+            },
+            ServerEntry {
+                id: "player-2".into(),
+                name: "Player Shard 2".into(),
+                region: Some("ap-east-1".into()),
+                status: "running".into(),
+                online_players: 982,
+                last_updated: Some(Utc::now().to_rfc3339()),
+            },
+            ServerEntry {
+                id: "match-1".into(),
+                name: "Match Service 1".into(),
+                region: Some("us-west-2".into()),
+                status: "running".into(),
+                online_players: 421,
+                last_updated: Some(Utc::now().to_rfc3339()),
+            },
+            ServerEntry {
+                id: "social-1".into(),
+                name: "Social Shard 1".into(),
+                region: Some("eu-central-1".into()),
+                status: "stopped".into(),
+                online_players: 0,
+                last_updated: Some(Utc::now().to_rfc3339()),
+            },
+            ServerEntry {
+                id: "economy-1".into(),
+                name: "Economy Shard 1".into(),
+                region: Some("ap-east-1".into()),
+                status: "running".into(),
+                online_players: 0,
+                last_updated: Some(Utc::now().to_rfc3339()),
+            },
         ]));
         Self {
             config,
@@ -301,10 +353,17 @@ impl AdminGrpcClient {
 
     pub async fn health_check(&self) -> Result<()> {
         use crate::common::v1::HealthCheckRequest;
-        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN");
+        }
         let mut client = self.client.clone();
-        let req = HealthCheckRequest { service: "gm-backend".to_string() };
-        let result = client.health_check(req).await.context("admin-service health_check RPC failed");
+        let req = HealthCheckRequest {
+            service: "gm-backend".to_string(),
+        };
+        let result = client
+            .health_check(req)
+            .await
+            .context("admin-service health_check RPC failed");
         match &result {
             Ok(_) => self.breaker.record_success(),
             Err(_) => self.breaker.record_failure(),
@@ -317,10 +376,18 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::BanAccountRequest,
     ) -> Result<crate::admin::v1::BanAccountResponse> {
-        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN");
+        }
         let mut client = self.client.clone();
-        let result = client.ban_account(req).await.context("admin-service ban_account RPC failed");
-        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
+        let result = client
+            .ban_account(req)
+            .await
+            .context("admin-service ban_account RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
         Ok(result?.into_inner())
     }
 
@@ -328,10 +395,18 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::GrantCompensationRequest,
     ) -> Result<crate::admin::v1::GrantCompensationResponse> {
-        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN");
+        }
         let mut client = self.client.clone();
-        let result = client.grant_compensation(req).await.context("admin-service grant_compensation RPC failed");
-        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
+        let result = client
+            .grant_compensation(req)
+            .await
+            .context("admin-service grant_compensation RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
         Ok(result?.into_inner())
     }
 
@@ -339,10 +414,18 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::SetMaintenanceRequest,
     ) -> Result<crate::admin::v1::SetMaintenanceResponse> {
-        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN");
+        }
         let mut client = self.client.clone();
-        let result = client.set_maintenance(req).await.context("admin-service set_maintenance RPC failed");
-        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
+        let result = client
+            .set_maintenance(req)
+            .await
+            .context("admin-service set_maintenance RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
         Ok(result?.into_inner())
     }
 
@@ -350,10 +433,18 @@ impl AdminGrpcClient {
         &self,
         req: crate::admin::v1::QueryAuditLogRequest,
     ) -> Result<crate::admin::v1::QueryAuditLogResponse> {
-        if !self.breaker.try_acquire() { anyhow::bail!("circuit breaker OPEN"); }
+        if !self.breaker.try_acquire() {
+            anyhow::bail!("circuit breaker OPEN");
+        }
         let mut client = self.client.clone();
-        let result = client.query_audit_log(req).await.context("admin-service query_audit_log RPC failed");
-        match &result { Ok(_) => self.breaker.record_success(), Err(_) => self.breaker.record_failure() }
+        let result = client
+            .query_audit_log(req)
+            .await
+            .context("admin-service query_audit_log RPC failed");
+        match &result {
+            Ok(_) => self.breaker.record_success(),
+            Err(_) => self.breaker.record_failure(),
+        }
         Ok(result?.into_inner())
     }
 }
@@ -393,15 +484,27 @@ pub struct Claims {
 
 pub fn issue_jwt(secret: &str, sub: &str, roles: Vec<String>, ttl_seconds: i64) -> Result<String> {
     let exp = (Utc::now().timestamp() + ttl_seconds) as usize;
-    let claims = Claims { sub: sub.to_string(), exp, roles };
-    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
-        .context("encode jwt")
+    let claims = Claims {
+        sub: sub.to_string(),
+        exp,
+        roles,
+    };
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+    .context("encode jwt")
 }
 
 pub fn verify_jwt(secret: &str, token: &str) -> Result<Claims> {
     let validation = Validation::default();
-    let data = decode::<Claims>(token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
-        .context("decode jwt")?;
+    let data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )
+    .context("decode jwt")?;
     Ok(data.claims)
 }
 
@@ -489,15 +592,15 @@ where
                     Err(e) => {
                         tracing::debug!("jwt verify failed: {e}");
                         let (req_parts, _payload) = req.into_parts();
-                        let resp = HttpResponse::Unauthorized()
-                            .json(json!({"error": "invalid_token"}));
+                        let resp =
+                            HttpResponse::Unauthorized().json(json!({"error": "invalid_token"}));
                         Ok(ServiceResponse::new(req_parts, resp).map_into_right_body())
                     }
                 },
                 None => {
                     let (req_parts, _payload) = req.into_parts();
-                    let resp = HttpResponse::Unauthorized()
-                        .json(json!({"error": "missing_bearer_token"}));
+                    let resp =
+                        HttpResponse::Unauthorized().json(json!({"error": "missing_bearer_token"}));
                     Ok(ServiceResponse::new(req_parts, resp).map_into_right_body())
                 }
             }
@@ -553,7 +656,10 @@ pub fn register_routes(cfg: &mut web::ServiceConfig) {
                     .route("/items/grants", web::get().to(list_grants))
                     .route("/support", web::post().to(create_ticket))
                     .route("/support/tickets", web::get().to(list_tickets))
-                    .route("/support/tickets/{id}", web::patch().to(update_ticket_status))
+                    .route(
+                        "/support/tickets/{id}",
+                        web::patch().to(update_ticket_status),
+                    )
                     .route("/reports", web::get().to(list_reports))
                     // 1 聚合 (Dashboard 数据源)
                     .route("/summary", web::get().to(summary))
@@ -569,6 +675,12 @@ pub fn register_health_routes(cfg: &mut web::ServiceConfig) {
         .route("/readyz", web::get().to(readyz));
 }
 
-async fn ping() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ok"})) }
-async fn healthz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "healthy"})) }
-async fn readyz() -> HttpResponse { HttpResponse::Ok().json(json!({"status": "ready"})) }
+async fn ping() -> HttpResponse {
+    HttpResponse::Ok().json(json!({"status": "ok"}))
+}
+async fn healthz() -> HttpResponse {
+    HttpResponse::Ok().json(json!({"status": "healthy"}))
+}
+async fn readyz() -> HttpResponse {
+    HttpResponse::Ok().json(json!({"status": "ready"}))
+}

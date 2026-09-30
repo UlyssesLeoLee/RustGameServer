@@ -31,11 +31,11 @@ pub mod common {
     }
 }
 
+pub mod db;
 pub mod entity;
 pub mod error;
 pub mod repository;
 pub mod service;
-pub mod db;
 
 pub use error::{Error, Result};
 pub use repository::{

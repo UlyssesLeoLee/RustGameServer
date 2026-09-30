@@ -454,7 +454,11 @@ impl GameSession {
     }
 
     /// RUNNING → ENDING (胜负判定 / 投降 / 超时)
-    pub fn transition_to_ending(&mut self, winner: Option<String>, reason: String) -> Result<(), &'static str> {
+    pub fn transition_to_ending(
+        &mut self,
+        winner: Option<String>,
+        reason: String,
+    ) -> Result<(), &'static str> {
         if !matches!(self.status, SessionStatus::Running | SessionStatus::Paused) {
             return Err("transition_to_ending: must be Running or Paused");
         }
@@ -513,7 +517,10 @@ impl GameSession {
 
     /// 玩家加入 (CREATING / WAITING 状态)
     pub fn add_player(&mut self, player: SessionPlayer) -> Result<(), &'static str> {
-        if !matches!(self.status, SessionStatus::Creating | SessionStatus::Waiting) {
+        if !matches!(
+            self.status,
+            SessionStatus::Creating | SessionStatus::Waiting
+        ) {
             return Err("add_player: must be Creating or Waiting");
         }
         if self.players.len() >= self.max_players as usize {
@@ -528,7 +535,11 @@ impl GameSession {
     }
 
     /// 玩家离开 / 投降 (RUNNING / PAUSED)
-    pub fn remove_player(&mut self, player_id: &str, surrender: bool) -> Result<bool, &'static str> {
+    pub fn remove_player(
+        &mut self,
+        player_id: &str,
+        surrender: bool,
+    ) -> Result<bool, &'static str> {
         if let Some(idx) = self.players.iter().position(|p| p.player_id == player_id) {
             self.players[idx].surrendered = surrender;
             // 简化: 标记 disconnected = true 即可, 不真删 (保留回放)
@@ -582,7 +593,13 @@ pub struct Move {
 }
 
 impl Move {
-    pub fn new(match_id: Uuid, player_id: String, turn_index: u32, move_type: MoveType, payload_json: String) -> Self {
+    pub fn new(
+        match_id: Uuid,
+        player_id: String,
+        turn_index: u32,
+        move_type: MoveType,
+        payload_json: String,
+    ) -> Self {
         Self {
             move_id: Uuid::new_v4(),
             match_id,
@@ -799,14 +816,26 @@ mod tests {
         s.transition_to_running().unwrap();
         let removed = s.remove_player("p2", false).unwrap();
         assert!(removed);
-        assert!(s.players.iter().find(|p| p.player_id == "p2").unwrap().disconnected);
+        assert!(
+            s.players
+                .iter()
+                .find(|p| p.player_id == "p2")
+                .unwrap()
+                .disconnected
+        );
     }
 
     #[test]
     fn session_remove_player_surrender() {
         let mut s = make_session(2);
         s.remove_player("p1", true).unwrap();
-        assert!(s.players.iter().find(|p| p.player_id == "p1").unwrap().surrendered);
+        assert!(
+            s.players
+                .iter()
+                .find(|p| p.player_id == "p1")
+                .unwrap()
+                .surrendered
+        );
     }
 
     #[test]
@@ -818,22 +847,35 @@ mod tests {
 
     #[test]
     fn move_creation_default_accepted() {
-        let m = Move::new(Uuid::new_v4(), "p1".to_string(), 1, MoveType::EndTurn, "{}".to_string());
+        let m = Move::new(
+            Uuid::new_v4(),
+            "p1".to_string(),
+            1,
+            MoveType::EndTurn,
+            "{}".to_string(),
+        );
         assert!(m.accepted);
         assert!(m.reject_reason.is_none());
     }
 
     #[test]
     fn move_rejected_with_reason() {
-        let m = Move::new(Uuid::new_v4(), "p1".to_string(), 1, MoveType::PlayCard, "{}".to_string())
-            .rejected("invalid_state".to_string());
+        let m = Move::new(
+            Uuid::new_v4(),
+            "p1".to_string(),
+            1,
+            MoveType::PlayCard,
+            "{}".to_string(),
+        )
+        .rejected("invalid_state".to_string());
         assert!(!m.accepted);
         assert_eq!(m.reject_reason, Some("invalid_state".to_string()));
     }
 
     #[test]
     fn ticket_lifecycle() {
-        let mut t = MatchmakingTicket::new("p1".to_string(), GameMode::Ranked, 1000, 2000, None, None);
+        let mut t =
+            MatchmakingTicket::new("p1".to_string(), GameMode::Ranked, 1000, 2000, None, None);
         assert_eq!(t.status, 1);
         let match_id = Uuid::new_v4();
         t.matched(match_id);

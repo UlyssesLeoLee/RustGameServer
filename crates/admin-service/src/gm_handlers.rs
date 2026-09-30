@@ -125,18 +125,19 @@ fn coc_policy_decide_or_default_allow(
     meta.memory_mib = 64;
 
     // WasmHost::invoke_coc_policy_sync 是 sync (per wasm_host.rs)
-    host.invoke_coc_policy_sync(&meta, &input).unwrap_or_else(|e| {
-        tracing::warn!(
-            "admin-service coc_policy_decide WasmHost error: {e}, fallback Allow (POC)"
-        );
-        CocPolicyOutput {
-            decision: CocDecision::Allow,
-            reason: format!("coc_policy_error_fallback_allow: {e}"),
-            module_version: "error".to_string(),
-            module_hash: "0".repeat(64),
-            params_hash: input.params_hash(),
-        }
-    })
+    host.invoke_coc_policy_sync(&meta, &input)
+        .unwrap_or_else(|e| {
+            tracing::warn!(
+                "admin-service coc_policy_decide WasmHost error: {e}, fallback Allow (POC)"
+            );
+            CocPolicyOutput {
+                decision: CocDecision::Allow,
+                reason: format!("coc_policy_error_fallback_allow: {e}"),
+                module_version: "error".to_string(),
+                module_hash: "0".repeat(64),
+                params_hash: input.params_hash(),
+            }
+        })
 }
 
 static STATE: OnceLock<GmHandlerState> = OnceLock::new();
@@ -521,10 +522,7 @@ pub async fn query_audit_log(
         req.limit as usize
     };
 
-    let entries: Vec<DbAuditLogEntry> = match state()
-        .audit_log
-        .list_latest(limit as i64 + 1)
-        .await
+    let entries: Vec<DbAuditLogEntry> = match state().audit_log.list_latest(limit as i64 + 1).await
     {
         Ok(v) => v,
         Err(_) => in_memory_latest(limit),
@@ -631,9 +629,7 @@ pub fn require_coc_role(admin: &AdminUser, action: &str) -> Result<(), Error> {
 /// 不降级到 "system" — 这是 Q1 关键修复点 (per v0.2 §Q1).
 ///
 /// Returns `Result<AdminUser, tonic::Status>`.
-pub async fn extract_admin_user_from_jwt<T>(
-    request: &Request<T>,
-) -> Result<AdminUser, Status> {
+pub async fn extract_admin_user_from_jwt<T>(request: &Request<T>) -> Result<AdminUser, Status> {
     let auth_value = request
         .metadata()
         .get("authorization")
@@ -664,9 +660,8 @@ pub async fn extract_admin_user_from_jwt<T>(
     };
 
     // sub 必须是 UUID (admin.id 类型约束)
-    let admin_id = Uuid::parse_str(&claims.sub).map_err(|_| {
-        Status::unauthenticated(format!("invalid sub in jwt: {}", claims.sub))
-    })?;
+    let admin_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| Status::unauthenticated(format!("invalid sub in jwt: {}", claims.sub)))?;
 
     // 查 AdminUser; 不存在视为 unauthenticated
     let admin = state()
@@ -1154,7 +1149,10 @@ mod tests {
     fn test_coc_decision_serde_snake_case() {
         let cases = [
             (CocDecision::Allow, "\"allow\""),
-            (CocDecision::RequireSecondReview, "\"require_second_review\""),
+            (
+                CocDecision::RequireSecondReview,
+                "\"require_second_review\"",
+            ),
             (CocDecision::Deny, "\"deny\""),
         ];
         for (decision, expected_json) in cases {
@@ -1167,4 +1165,3 @@ mod tests {
         }
     }
 }
-

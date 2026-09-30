@@ -82,19 +82,36 @@ async fn it_chunk_plan_then_reassemble_matches_hash() {
 async fn it_state_machine_pause_resume_completed_lifecycle() {
     let mut sm = DownloadStateMachine::new();
     // 1) Idle → Resolving → Downloading → Paused
-    assert_eq!(sm.apply(StateEvent::ResolveStart).unwrap(), DownloadState::Resolving);
-    assert_eq!(sm.apply(StateEvent::ResolveSuccess).unwrap(), DownloadState::Downloading);
+    assert_eq!(
+        sm.apply(StateEvent::ResolveStart).unwrap(),
+        DownloadState::Resolving
+    );
+    assert_eq!(
+        sm.apply(StateEvent::ResolveSuccess).unwrap(),
+        DownloadState::Downloading
+    );
     assert_eq!(sm.apply(StateEvent::Pause).unwrap(), DownloadState::Paused);
     assert!(sm.is_terminal(), "Paused 是准终态");
     assert!(sm.cancel_flag().load(std::sync::atomic::Ordering::SeqCst));
     // 2) Paused → Resume → Downloading (cancel_flag 重置)
-    assert_eq!(sm.apply(StateEvent::Resume).unwrap(), DownloadState::Downloading);
+    assert_eq!(
+        sm.apply(StateEvent::Resume).unwrap(),
+        DownloadState::Downloading
+    );
     assert!(!sm.cancel_flag().load(std::sync::atomic::Ordering::SeqCst));
     // 3) Downloading → Complete
-    assert_eq!(sm.apply(StateEvent::Complete).unwrap(), DownloadState::Completed);
+    assert_eq!(
+        sm.apply(StateEvent::Complete).unwrap(),
+        DownloadState::Completed
+    );
     assert!(sm.is_terminal());
     // 4) Completed 拒绝所有事件
-    for ev in [StateEvent::ResolveStart, StateEvent::Pause, StateEvent::Cancel, StateEvent::Retry] {
+    for ev in [
+        StateEvent::ResolveStart,
+        StateEvent::Pause,
+        StateEvent::Cancel,
+        StateEvent::Retry,
+    ] {
         assert!(sm.apply(ev).is_err(), "Completed should reject {ev:?}");
     }
     // 5) ResumeToken 7 天 TTL 不变式

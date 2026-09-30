@@ -7,8 +7,8 @@
 //! 4. test_replay_chunk_is_last
 //! 5. test_replay_list_page_response
 
-use replay_service::proto::v1::*;
 use replay_service::common::v1 as common;
+use replay_service::proto::v1::*;
 
 #[test]
 fn test_replay_meta_basic_fields() {
@@ -21,8 +21,14 @@ fn test_replay_meta_basic_fields() {
         object_key: "replays/2026/08/rp-1.dat".to_string(),
         object_size: 1024,
         duration_secs: 600,
-        created_at: Some(common::Timestamp { seconds: 1700000000, nanos: 0 }),
-        expires_at: Some(common::Timestamp { seconds: 1702592000, nanos: 0 }),
+        created_at: Some(common::Timestamp {
+            seconds: 1700000000,
+            nanos: 0,
+        }),
+        expires_at: Some(common::Timestamp {
+            seconds: 1702592000,
+            nanos: 0,
+        }),
     };
     assert_eq!(m.replay_id, "11111111-1111-1111-1111-111111111111");
     assert_eq!(m.player_a, "player-a-uuid");

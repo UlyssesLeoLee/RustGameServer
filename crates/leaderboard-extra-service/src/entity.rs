@@ -35,7 +35,12 @@ pub struct CardEntry {
 
 impl CardEntry {
     pub fn new(card_id: u32, rarity: Rarity) -> Self {
-        Self { card_id, count: 0, is_new: true, rarity }
+        Self {
+            card_id,
+            count: 0,
+            is_new: true,
+            rarity,
+        }
     }
 
     pub fn add(&mut self, by: u32) -> bool {
