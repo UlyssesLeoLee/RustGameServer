@@ -11,13 +11,13 @@
     "agent/minimaxm3/ulys-239@7edbec7fe3bc FAIL_REGEX rev-list=N/A",
     "agent/sonnet/ULYS-239-fix@f47c9e530e65 FAIL_REGEX rev-list=N/A"
   ],
-  "dev_tip_local": "c9fc95ea25434769ae495f212ac1ea19f71beac1",
-  "origin_dev": "c9fc95ea25434769ae495f212ac1ea19f71beac1",
+  "dev_tip_local": "52005793417f8a983c1818e60ab0b58f80eb1372",
+  "origin_dev": "52005793417f8a983c1818e60ab0b58f80eb1372",
   "ahead_behind": "0\t0",
-  "now_iso": "2026-09-30T05:18:36Z",
-  "last_run_at": "2026-09-30T05:15:06Z",
-  "trigger_run_id": "01a0f0bc-e6a0-7078-9c37-554f873b8b89",
+  "now_iso": "2026-09-30T05:54:09Z",
+  "last_run_at": "2026-09-30T05:45:07Z",
+  "trigger_run_id": "01a0f0d8-6248-7907-9606-639f195baa08",
   "autopilot_id": "82acf028-29f3-4bfc-b288-885df575c3df",
   "decision": "NO_MERGE_NO_COMMENT",
-  "reason": "0 RGS done in window since 2026-09-30T05:15:06Z; all 3 regex-matching agent branches already ancestors of origin/dev"
+  "reason": "0 RGS done in window since 2026-09-30T05:45:07Z; all 3 regex-matching agent branches already ancestors of origin/dev; multica CLI OOM-crashed — fell back to cached authoritative sources"
 }
