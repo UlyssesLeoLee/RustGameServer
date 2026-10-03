@@ -832,6 +832,7 @@ class FileEmitter:
         self.resolved_calls = 0
         self.unresolved_calls = 0
         self.cross_crate = 0
+        self.workspace_targets = 0
         self.ext_crates: dict = {}
 
     # -- node plumbing ----------------------------------------------------
@@ -1367,8 +1368,11 @@ class FileEmitter:
             if decl is None:
                 nd = self.ext_node(fqn)
             else:
-                if fqn.split("::")[0] in self.idx.crates:
-                    self.cross_crate += 1
+                target_crate = fqn.split("::")[0]
+                if target_crate in self.idx.crates:
+                    self.workspace_targets += 1
+                    if target_crate != self.fi.crate_fqn:
+                        self.cross_crate += 1
                 if ntype == "function":
                     nd = self.node_for("function", fqn, {
                         "kind": self.idx.kinds.get(fqn, "function"), "decl": decl,
@@ -1424,7 +1428,9 @@ class FileEmitter:
                                    {"kind": self.idx.kinds.get(fqn, ntype), "decl": decl})
                 rel = "USES"
             if fqn.split("::")[0] in self.idx.crates:
-                self.cross_crate += 1
+                self.workspace_targets += 1
+                if fqn.split("::")[0] != self.fi.crate_fqn:
+                    self.cross_crate += 1
             self.add_edge(rel, it.node.var, nd.var, {"via": fqn})
             self.resolved_calls += 1
             return
@@ -1494,6 +1500,7 @@ class FileEmitter:
             "edges": len(self.edges),
             "calls_resolved": self.resolved_calls,
             "calls_unresolved": self.unresolved_calls,
+            "workspace_targets": self.workspace_targets,
             "cross_crate_edges": self.cross_crate,
             "external": len(self.ext_crates),
             "lines": self.fi.lines,
@@ -1660,6 +1667,7 @@ def main() -> int:
         "edges": sum(s["edges"] for s in stats),
         "calls_resolved": sum(s["calls_resolved"] for s in stats),
         "calls_unresolved": sum(s["calls_unresolved"] for s in stats),
+        "workspace_targets": sum(s["workspace_targets"] for s in stats),
         "cross_crate_edges": sum(s["cross_crate_edges"] for s in stats),
     }
     if args.json:
