@@ -31,7 +31,7 @@ Every line of it is a Rust comment, so the compiler and `cargo doc` ignore it.
 ## Run it
 
 ```bash
-# record what the code looks like *before* any header exists
+# record what the code looks like, with any generated header excluded
 python verify_headers.py --write-baseline .baseline.json
 
 python cypher_header.py                      # write headers for all 511 tracked .rs files
@@ -41,6 +41,11 @@ python cypher_header.py --only economy       # only paths containing "economy"
 python verify_headers.py --baseline .baseline.json   # rule 1-6 over every header
 python cross_check_calls.py                          # every CALLS claim vs the code
 ```
+
+The baseline hashes the *code*, header excluded, so it can be taken whether or
+not a header is currently present and the check does not depend on the order you
+run the commands in. Re-running the generator only rewrites the files whose
+manifest no longer matches their code — the usual result is far fewer than 511.
 
 All three scripts are stdlib-only Python 3 (tested on 3.13) and take no
 dependencies. `.baseline.json` is a throwaway artefact; regenerate it whenever

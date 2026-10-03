@@ -254,6 +254,36 @@ def git(root: str, *args: str) -> bytes:
     return proc.stdout if proc.returncode == 0 else b""
 
 
+def strip_header_bytes(data: bytes) -> bytes:
+    """The file's code with any generated header removed.
+
+    The baseline must describe the *code*, not the current file layout: hashing
+    whole files makes the check depend on whether a header happens to be present
+    when the baseline is taken.
+    """
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:]
+    b, e = BEGIN.encode(), END.encode()
+    while data.startswith(b):
+        after = data[len(b):]
+        if after.startswith(b"\r\n"):
+            after = after[2:]
+        elif after.startswith(b"\n"):
+            after = after[1:]
+        else:
+            break
+        idx = after.find(e)
+        if idx == -1:
+            break
+        tail = after[idx + len(e):]
+        if tail.startswith(b"\r\n"):
+            tail = tail[2:]
+        elif tail.startswith(b"\n"):
+            tail = tail[1:]
+        data = tail
+    return data
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=os.path.abspath(
@@ -281,10 +311,12 @@ def main() -> int:
         for r in rels:
             p = os.path.join(root, r.replace("/", os.sep))
             if os.path.exists(p):
-                out[r] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+                with open(p, "rb") as fh:
+                    out[r] = hashlib.sha256(strip_header_bytes(fh.read())).hexdigest()
         with open(args.write_baseline, "w", encoding="utf-8") as fh:
             json.dump(out, fh, indent=0)
-        print(f"baseline written for {len(out)} files -> {args.write_baseline}")
+        print(f"baseline (code only, headers excluded) written for {len(out)} files"
+              f" -> {args.write_baseline}")
         return 0
 
     baseline = {}
