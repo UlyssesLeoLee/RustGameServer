@@ -2,7 +2,9 @@
 
 [package]
 name = "rgs-shim"
-version = "0.5"
+# 2026-10-03 订正: 原为 "0.5" (两段, 非法 semver), cargo 直接拒绝解析本 manifest,
+# 导致该 crate 从未被构建过 (Cargo.lock 无 rgs-shim 条目). 补足第三段.
+version = "0.5.0"
 edition = "2021"
 description = "[游戏A] SmartSocket (Erlang binary) → RGS gRPC shim — production-grade Rust rewrite (per 9/9 14:20 JST Ulysses 拍板, 完整对接 RGS + 100% 正常 + 性能更优 + 无移植隐患; v0.5: 766/766 cmd dispatch table 实施, 5 worker 合并完成)"
 
