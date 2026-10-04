@@ -1,1957 +1,4373 @@
-//! economy-service 商店 + 抽卡 + 限时 + 充值 + 基金/特权 + 活动 Service
-//!
-//! v3 增量 (per [游戏A]借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC).
-//!
-//! 设计要点:
-//! - 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 活动运营 → 1 套 ActivityService + 配置
-//!   不写 9 套 holiday_request/_response, 用 1 套通用 ActivityTemplate + 1 套 player state
-//!   业务逻辑在 trait + impl 共享, 配置从 ActivityTemplate 加载
-//! - 抽卡复用 TCG 抽卡 (OpenPack) 模式, 单套 + pity 计数
-//! - 限时/FlashSale 倒计时 + 库存 + 玩家购买上限
-//! - 充值/首充/月卡/基金走 EconomyServiceImpl 已有的 apply_atomic_with_reservation 模式
-//! - 真实业务逻辑: 至少 30 RPC 含真实逻辑 (含抽卡 / 拍卖行 / 限时 / 充值 / 月卡 / 基金 / 活动)
-//! - 其余 60+ RPC stub Unimplemented (待 Phase 2 follow-up)
-
-use crate::entity::{Currency, TransactionKind, TransactionLedger, TransactionStatus};
-use crate::error::Error;
-use crate::repository::{AccountRepository, TransactionLedgerRepository};
-use crate::shop_entity::*;
-use crate::Result;
-
-use async_trait::async_trait;
-use chrono::Utc;
-use std::sync::Arc;
-use uuid::Uuid;
-
-// ============================================================================
-// 商店类 (20 RPC) Service trait
-// ============================================================================
-
-#[async_trait]
-pub trait ShopService: Send + Sync {
-    // 通用商店 (4)
-    async fn shop_list(
-        &self,
-        player_id: String,
-        shop_id: i32,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)>;
-
-    async fn shop_buy(
-        &self,
-        player_id: String,
-        shop_id: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<ShopBuyOutput>;
-
-    async fn shop_refresh(
-        &self,
-        player_id: String,
-        shop_id: i32,
-        use_currency: bool,
-    ) -> Result<ShopRefreshOutput>;
-
-    async fn shop_record(
-        &self,
-        player_id: String,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<ShopRecord>, u64)>;
-
-    // 神秘商店 (4)
-    async fn mystery_shop_list(
-        &self,
-        player_id: String,
-        mystery_shop_id: i32,
-    ) -> Result<MysteryShopListOutput>;
-
-    async fn mystery_shop_buy(
-        &self,
-        player_id: String,
-        mystery_shop_id: i32,
-        item_id: String,
-        idempotency_key: String,
-    ) -> Result<MysteryShopBuyOutput>;
-
-    async fn mystery_shop_refresh(
-        &self,
-        player_id: String,
-        mystery_shop_id: i32,
-    ) -> Result<MysteryShopRefreshOutput>;
-
-    async fn mystery_shop_unlock(
-        &self,
-        player_id: String,
-        mystery_shop_id: i32,
-    ) -> Result<MysteryShopUnlockOutput>;
-
-    // 兑换 (3)
-    async fn exchange_list(
-        &self,
-        player_id: String,
-        exchange_id: i32,
-    ) -> Result<(Vec<ShopItemEntity>, i64)>;
-
-    async fn exchange_do(
-        &self,
-        player_id: String,
-        exchange_id: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<ExchangeDoOutput>;
-
-    async fn exchange_record(
-        &self,
-        player_id: String,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<ShopRecord>, u64)>;
-
-    // 神格许愿 (3)
-    async fn wish_list(
-        &self,
-        player_id: String,
-        pool_id: i32,
-    ) -> Result<WishListOutput>;
-
-    async fn wish_draw(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        count: i32,
-        idempotency_key: String,
-    ) -> Result<WishDrawOutput>;
-
-    async fn wish_reward(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        reward_tier: i32,
-    ) -> Result<WishRewardOutput>;
-
-    // 积分商城 (2)
-    async fn point_shop_list(
-        &self,
-        player_id: String,
-        point_type: i32,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<ShopItemEntity>, i64, u64)>;
-
-    async fn point_shop_buy(
-        &self,
-        player_id: String,
-        point_type: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<PointShopBuyOutput>;
-
-    // 礼包码 (2)
-    async fn gift_code_redeem(
-        &self,
-        player_id: String,
-        code: String,
-        server_id: i32,
-        idempotency_key: String,
-    ) -> Result<GiftCodeRedeemOutput>;
-
-    async fn gift_code_query(
-        &self,
-        player_id: String,
-        code: String,
-        server_id: i32,
-    ) -> Result<GiftCodeQueryOutput>;
-
-    // 战利品 (2)
-    async fn loot_roll(
-        &self,
-        player_id: String,
-        loot_table_id: i32,
-        roll_count: i32,
-        idempotency_key: String,
-    ) -> Result<LootRollOutput>;
-
-    async fn loot_claim(
-        &self,
-        player_id: String,
-        loot_table_id: i32,
-        batch_id: Uuid,
-    ) -> Result<LootClaimOutput>;
-}
-
-// 输出结构 (商店类 20 RPC)
-#[derive(Debug, Clone)]
-pub struct ShopBuyOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-    pub remaining_stock: i32,
-    pub remaining_player_limit: i32,
-}
-#[derive(Debug, Clone)]
-pub struct ShopRefreshOutput {
-    pub new_items: Vec<ShopItemEntity>,
-    pub refreshed_at: chrono::DateTime<Utc>,
-    pub cost_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct MysteryShopListOutput {
-    pub items: Vec<ShopItemEntity>,
-    pub refresh_count: i32,
-    pub refreshed_at: chrono::DateTime<Utc>,
-    pub unlock_level: i32,
-}
-#[derive(Debug, Clone)]
-pub struct MysteryShopBuyOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-    pub remaining_refresh_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct MysteryShopRefreshOutput {
-    pub new_items: Vec<ShopItemEntity>,
-    pub refresh_count: i32,
-    pub cost_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct MysteryShopUnlockOutput {
-    pub unlocked: bool,
-    pub unlocked_at: chrono::DateTime<Utc>,
-    pub cost_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct ExchangeDoOutput {
-    pub success: bool,
-    pub cost_points: i64,
-    pub remaining_player_limit: i32,
-}
-#[derive(Debug, Clone)]
-pub struct WishListOutput {
-    pub pool_items: Vec<ShopItemEntity>,
-    pub free_count: i32,
-    pub next_free_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct WishDrawOutput {
-    pub drawn_item_ids: Vec<String>,
-    pub four_star_count: i32,
-    pub five_star_count: i32,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-}
-#[derive(Debug, Clone)]
-pub struct WishRewardOutput {
-    pub claimed: bool,
-    pub cost_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct PointShopBuyOutput {
-    pub success: bool,
-    pub cost_points: i64,
-    pub remaining_points: i64,
-}
-#[derive(Debug, Clone)]
-pub struct GiftCodeRedeemOutput {
-    pub success: bool,
-    pub error_msg: String,
-    pub rewards: Vec<ShopItemEntity>,
-}
-#[derive(Debug, Clone)]
-pub struct GiftCodeQueryOutput {
-    pub exists: bool,
-    pub code: String,
-    pub reward_template: String,
-    pub valid_from: Option<chrono::DateTime<Utc>>,
-    pub valid_to: Option<chrono::DateTime<Utc>>,
-    pub max_uses: i32,
-    pub current_uses: i32,
-}
-#[derive(Debug, Clone)]
-pub struct LootRollOutput {
-    pub rolled_item_ids: Vec<String>,
-    pub rare_count: i32,
-    pub epic_count: i32,
-    pub legendary_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct LootClaimOutput {
-    pub success: bool,
-    pub items: Vec<ShopItemEntity>,
-}
-
-// ============================================================================
-// 充值类 (15 RPC) Service trait
-// ============================================================================
-
-#[async_trait]
-pub trait RechargeService: Send + Sync {
-    // 充值 (4)
-    async fn recharge_list(
-        &self,
-        player_id: String,
-        channel: i32,
-    ) -> Result<(Vec<RechargeTierEntity>, bool, i32)>;
-
-    async fn recharge_do(
-        &self,
-        player_id: String,
-        tier_id: i32,
-        channel: i32,
-        idempotency_key: String,
-    ) -> Result<RechargeOrder>;
-
-    async fn recharge_order_query(
-        &self,
-        player_id: String,
-        order_id: Uuid,
-    ) -> Result<RechargeOrder>;
-
-    async fn recharge_order_finish(
-        &self,
-        player_id: String,
-        order_id: Uuid,
-        channel_receipt: String,
-        idempotency_key: String,
-    ) -> Result<RechargeOrderFinishOutput>;
-
-    // 月卡 (3)
-    async fn monthly_card_info(&self, player_id: String) -> Result<MonthlyCardInfoOutput>;
-
-    async fn monthly_card_claim(
-        &self,
-        player_id: String,
-        day_index: i32,
-        idempotency_key: String,
-    ) -> Result<MonthlyCardClaimOutput>;
-
-    async fn monthly_card_buy(
-        &self,
-        player_id: String,
-        monthly_card_id: i32,
-        channel: i32,
-        idempotency_key: String,
-    ) -> Result<MonthlyCardBuyOutput>;
-
-    // 首充 (3)
-    async fn first_recharge_list(&self, player_id: String) -> Result<FirstRechargeListOutput>;
-
-    async fn first_recharge_claim(
-        &self,
-        player_id: String,
-        tier_id: i32,
-        idempotency_key: String,
-    ) -> Result<FirstRechargeClaimOutput>;
-
-    async fn first_recharge_status(&self, player_id: String) -> Result<FirstRechargeStatusOutput>;
-
-    // 战力 (2)
-    async fn power_pack_list(&self, player_id: String) -> Result<PowerPackListOutput>;
-
-    async fn power_pack_buy(
-        &self,
-        player_id: String,
-        pack_id: i32,
-        idempotency_key: String,
-    ) -> Result<PowerPackBuyOutput>;
-
-    // 基金 (3)
-    async fn growth_fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>;
-
-    async fn growth_fund_buy(
-        &self,
-        player_id: String,
-        fund_id: i32,
-        idempotency_key: String,
-    ) -> Result<GrowthFundBuyOutput>;
-
-    async fn growth_fund_claim(
-        &self,
-        player_id: String,
-        fund_id: i32,
-        level: i32,
-        idempotency_key: String,
-    ) -> Result<GrowthFundClaimOutput>;
-}
-
-#[derive(Debug, Clone)]
-pub struct RechargeOrderFinishOutput {
-    pub success: bool,
-    pub currency_amount: i64,
-    pub bonus_amount: i64,
-    pub first_bonus_amount: i64,
-    pub total_credit: i64,
-}
-#[derive(Debug, Clone)]
-pub struct MonthlyCardInfoOutput {
-    pub owned: bool,
-    pub activated_at: Option<chrono::DateTime<Utc>>,
-    pub expires_at: Option<chrono::DateTime<Utc>>,
-    pub daily_reward: i32,
-    pub daily_currency: i64,
-    pub days_claimed: i32,
-    pub total_days: i32,
-}
-#[derive(Debug, Clone)]
-pub struct MonthlyCardClaimOutput {
-    pub success: bool,
-    pub currency_amount: i64,
-    pub remaining_days: i32,
-    pub next_claim_at: Option<chrono::DateTime<Utc>>,
-}
-#[derive(Debug, Clone)]
-pub struct MonthlyCardBuyOutput {
-    pub success: bool,
-    pub order_id: Uuid,
-    pub cost_cents: i64,
-    pub activated_at: chrono::DateTime<Utc>,
-    pub expires_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct FirstRechargeListOutput {
-    pub tiers: Vec<RechargeTierEntity>,
-    pub claimed_count: i32,
-    pub total_count: i32,
-    pub total_bonus: i64,
-}
-#[derive(Debug, Clone)]
-pub struct FirstRechargeClaimOutput {
-    pub success: bool,
-    pub bonus_amount: i64,
-    pub remaining_tiers: i32,
-}
-#[derive(Debug, Clone)]
-pub struct FirstRechargeStatusOutput {
-    pub any_recharged: bool,
-    pub total_recharged_tiers: i32,
-    pub total_spent_cents: i64,
-    pub claimed_tier_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct PowerPackListOutput {
-    pub packs: Vec<ShopItemEntity>,
-    pub current_power_rank: i32,
-    pub next_reward_power: i32,
-}
-#[derive(Debug, Clone)]
-pub struct PowerPackBuyOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub new_power_rank: i32,
-}
-#[derive(Debug, Clone)]
-pub struct GrowthFundListOutput {
-    pub tiers: Vec<FundTierEntity>,
-    pub max_level: i32,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-    pub owned: bool,
-    pub expires_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct GrowthFundBuyOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub activated_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct GrowthFundClaimOutput {
-    pub success: bool,
-    pub reward_amount: i64,
-    pub reward_currency: i32,
-    pub next_claim_level: i32,
-}
-
-// ============================================================================
-// 抽卡类 (15 RPC) Service trait - 复用 TCG 抽卡模式
-// ============================================================================
-
-#[async_trait]
-pub trait SummonService: Send + Sync {
-    async fn summon_list(&self, player_id: String) -> Result<(Vec<SummonPoolEntity>, i32, i32)>;
-
-    async fn summon_info(
-        &self,
-        player_id: String,
-        pool_id: i32,
-    ) -> Result<SummonInfoOutput>;
-
-    /// 单抽 (per TCG OpenPack 单包模式)
-    async fn summon_single_pull(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonPullOutput>;
-
-    /// 十连 (per TCG OpenPack 多包模式, 至少 1 个 4 星保底)
-    async fn summon_ten_pull(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonTenPullOutput>;
-
-    async fn summon_free(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonFreeOutput>;
-
-    async fn summon_pity(&self, player_id: String, pool_id: i32) -> Result<SummonPityOutput>;
-
-    async fn summon_share_reward(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        share_target: i32,
-        idempotency_key: String,
-    ) -> Result<SummonShareRewardOutput>;
-
-    async fn summon_record(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<SummonResultEntity>, u64)>;
-
-    async fn summon_box_list(
-        &self,
-        player_id: String,
-        box_id: i32,
-    ) -> Result<SummonBoxListOutput>;
-
-    async fn summon_box_unlock(
-        &self,
-        player_id: String,
-        box_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonBoxUnlockOutput>;
-
-    async fn summon_featured_draw(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        featured_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonPullOutput>;
-
-    async fn summon_reset_pity(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonResetPityOutput>;
-
-    async fn summon_exchange(
-        &self,
-        player_id: String,
-        pool_id: i32,
-        from_item_id: i32,
-        to_item_id: i32,
-        idempotency_key: String,
-    ) -> Result<SummonExchangeOutput>;
-
-    async fn summon_banner_list(
-        &self,
-        player_id: String,
-    ) -> Result<SummonBannerListOutput>;
-
-    async fn summon_guaranteed_info(
-        &self,
-        player_id: String,
-        pool_id: i32,
-    ) -> Result<SummonGuaranteedInfoOutput>;
-}
-
-#[derive(Debug, Clone)]
-pub struct SummonInfoOutput {
-    pub pool: SummonPoolEntity,
-    pub player_pity_count: i32,
-    pub player_four_star_count: i32,
-    pub player_five_star_count: i32,
-    pub free_remaining: i32,
-    pub next_free_at: chrono::DateTime<Utc>,
-    pub total_pulls: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonPullOutput {
-    pub result: SummonResultEntity,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonTenPullOutput {
-    pub results: Vec<SummonResultEntity>,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-    pub rarity_4_count: i32,
-    pub rarity_5_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonFreeOutput {
-    pub result: SummonResultEntity,
-    pub available: bool,
-    pub next_free_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct SummonPityOutput {
-    pub current_count: i32,
-    pub pity_threshold: i32,
-    pub guaranteed_remaining: i32,
-    pub next_featured_pity: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonShareRewardOutput {
-    pub success: bool,
-    pub reward_amount: i64,
-    pub remaining_shares: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonBoxListOutput {
-    pub box_items: Vec<ShopItemEntity>,
-    pub unlock_progress: i32,
-    pub unlock_required: i32,
-    pub unlocked: bool,
-}
-#[derive(Debug, Clone)]
-pub struct SummonBoxUnlockOutput {
-    pub success: bool,
-    pub rewards: Vec<ShopItemEntity>,
-    pub remaining_boxes: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonResetPityOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub new_pity_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct SummonExchangeOutput {
-    pub success: bool,
-    pub shards_remaining: i32,
-    pub cost_currency: i32,
-    pub cost_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct SummonBannerListOutput {
-    pub featured: Vec<SummonPoolEntity>,
-    pub standard: Vec<SummonPoolEntity>,
-    pub event: Vec<SummonPoolEntity>,
-}
-#[derive(Debug, Clone)]
-pub struct SummonGuaranteedInfoOutput {
-    pub guaranteed_active: bool,
-    pub guaranteed_type: i32,
-    pub guaranteed_remaining: i32,
-    pub featured_id: String,
-}
-
-// ============================================================================
-// 限时/FlashSale (10 RPC) Service trait
-// ============================================================================
-
-#[async_trait]
-pub trait FlashSaleService: Send + Sync {
-    async fn flash_sale_list(
-        &self,
-        player_id: String,
-        category: i32,
-    ) -> Result<(Vec<FlashSaleItemEntity>, chrono::DateTime<Utc>)>;
-
-    async fn flash_sale_info(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-    ) -> Result<FlashSaleInfoOutput>;
-
-    async fn flash_sale_buy(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<FlashSaleBuyOutput>;
-
-    async fn flash_sale_countdown(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-    ) -> Result<FlashSaleCountdownOutput>;
-
-    async fn flash_sale_record(
-        &self,
-        player_id: String,
-        page: u32,
-        page_size: u32,
-    ) -> Result<(Vec<FlashSaleRecordEntity>, u64)>;
-
-    async fn flash_sale_subscribe(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-        notify_before_secs: i32,
-        idempotency_key: String,
-    ) -> Result<FlashSaleSubscribeOutput>;
-
-    async fn flash_sale_hot(
-        &self,
-        player_id: String,
-        top_n: i32,
-    ) -> Result<(Vec<FlashSaleItemEntity>, i64)>;
-
-    async fn flash_sale_recommend(
-        &self,
-        player_id: String,
-        count: i32,
-    ) -> Result<(Vec<FlashSaleItemEntity>, String)>;
-
-    async fn flash_sale_stock(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-    ) -> Result<FlashSaleStockOutput>;
-
-    async fn flash_sale_claim(
-        &self,
-        player_id: String,
-        flash_sale_id: i32,
-        idempotency_key: String,
-    ) -> Result<FlashSaleClaimOutput>;
-}
-
-#[derive(Debug, Clone)]
-pub struct FlashSaleInfoOutput {
-    pub item: FlashSaleItemEntity,
-    pub player_bought_count: i32,
-    pub player_limit: i32,
-    pub remaining_secs: i64,
-}
-#[derive(Debug, Clone)]
-pub struct FlashSaleBuyOutput {
-    pub success: bool,
-    pub cost_amount: i64,
-    pub cost_currency: i32,
-    pub remaining_stock: i32,
-    pub player_remaining_limit: i32,
-}
-#[derive(Debug, Clone)]
-pub struct FlashSaleCountdownOutput {
-    pub remaining_secs: i64,
-    pub ends_at: chrono::DateTime<Utc>,
-    pub sold: i32,
-    pub stock: i32,
-}
-#[derive(Debug, Clone)]
-pub struct FlashSaleSubscribeOutput {
-    pub subscribed: bool,
-    pub subscribe_id: Uuid,
-    pub notify_before_secs: i32,
-}
-#[derive(Debug, Clone)]
-pub struct FlashSaleStockOutput {
-    pub stock: i32,
-    pub sold: i32,
-    pub remaining_secs: i64,
-}
-#[derive(Debug, Clone)]
-pub struct FlashSaleClaimOutput {
-    pub claimed: bool,
-    pub reward_amount: i64,
-    pub reward_currency: i32,
-    pub remaining_claims: i32,
-}
-
-// ============================================================================
-// 基金/特权 (10 RPC) Service trait
-// ============================================================================
-
-#[async_trait]
-pub trait FundService: Send + Sync {
-    async fn fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>;
-
-    async fn fund_buy(
-        &self,
-        player_id: String,
-        fund_id: i32,
-        idempotency_key: String,
-    ) -> Result<GrowthFundBuyOutput>;
-
-    async fn fund_claim(
-        &self,
-        player_id: String,
-        fund_id: i32,
-        level: i32,
-        idempotency_key: String,
-    ) -> Result<GrowthFundClaimOutput>;
-
-    async fn fund_status(
-        &self,
-        player_id: String,
-        fund_id: i32,
-    ) -> Result<FundStatusOutput>;
-
-    async fn fund_progress(
-        &self,
-        player_id: String,
-        fund_id: i32,
-    ) -> Result<FundProgressOutput>;
-
-    // 特权 (5)
-    async fn privilege_list(&self, player_id: String) -> Result<PrivilegeListOutput>;
-
-    async fn privilege_activate(
-        &self,
-        player_id: String,
-        privilege_id: i32,
-        idempotency_key: String,
-    ) -> Result<PrivilegeActivateOutput>;
-
-    async fn privilege_buy(
-        &self,
-        player_id: String,
-        privilege_id: i32,
-        channel: i32,
-        idempotency_key: String,
-    ) -> Result<PrivilegeBuyOutput>;
-
-    async fn privilege_daily(
-        &self,
-        player_id: String,
-        privilege_id: i32,
-        idempotency_key: String,
-    ) -> Result<PrivilegeDailyOutput>;
-
-    async fn privilege_rewards(
-        &self,
-        player_id: String,
-        privilege_id: i32,
-    ) -> Result<PrivilegeRewardsOutput>;
-}
-
-#[derive(Debug, Clone)]
-pub struct FundStatusOutput {
-    pub owned: bool,
-    pub current_level: i32,
-    pub max_level: i32,
-    pub claimed_count: i32,
-    pub total_claimed: i32,
-    pub expires_at: Option<chrono::DateTime<Utc>>,
-}
-#[derive(Debug, Clone)]
-pub struct FundProgressOutput {
-    pub current_level: i32,
-    pub current_xp: i32,
-    pub xp_to_next: i32,
-    pub unclaimed_amount: i64,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeListOutput {
-    pub items: Vec<PrivilegeListItem>,
-    pub player_active_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeListItem {
-    pub item: PrivilegeItemEntity,
-    pub owned: bool,
-    pub expires_at: Option<chrono::DateTime<Utc>>,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeActivateOutput {
-    pub success: bool,
-    pub activated_at: chrono::DateTime<Utc>,
-    pub expires_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeBuyOutput {
-    pub success: bool,
-    pub order_id: Uuid,
-    pub cost_cents: i64,
-    pub activated_at: chrono::DateTime<Utc>,
-    pub expires_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeDailyOutput {
-    pub claimed: bool,
-    pub reward_amount: i64,
-    pub reward_currency: i32,
-    pub next_claim_at: chrono::DateTime<Utc>,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeRewardsOutput {
-    pub entries: Vec<PrivilegeRewardEntryOut>,
-}
-#[derive(Debug, Clone)]
-pub struct PrivilegeRewardEntryOut {
-    pub day: i32,
-    pub claimed: bool,
-    pub reward_amount: i64,
-    pub reward_currency: i32,
-    pub available: bool,
-}
-
-// ============================================================================
-// 活动 (5 RPC) Service trait - 数据驱动核心
-// ============================================================================
-
-/// 活动 Service trait (per 9/4 MD §4 反例: 1 套而非 9 套 holiday_*)
-#[async_trait]
-pub trait ActivityService: Send + Sync {
-    /// 列出所有可见活动 (用模板 + 玩家状态合并)
-    async fn activity_list(
-        &self,
-        player_id: String,
-        page: u32,
-        page_size: u32,
-        active_only: bool,
-    ) -> Result<ActivityListOutput>;
-
-    /// 领取活动奖励 tier
-    async fn activity_claim(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        tier: i32,
-        idempotency_key: String,
-    ) -> Result<ActivityClaimOutput>;
-
-    /// 查询活动详情 + 玩家进度
-    async fn activity_template(
-        &self,
-        player_id: String,
-        activity_id: i32,
-    ) -> Result<ActivityTemplateOutput>;
-
-    /// 进度增量上报
-    async fn activity_progress(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        progress_delta: i32,
-        source: String,
-        idempotency_key: String,
-    ) -> Result<ActivityProgressOutput>;
-
-    /// 订阅活动通知
-    async fn activity_subscribe(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        notify_channel: i32,
-        idempotency_key: String,
-    ) -> Result<ActivitySubscribeOutput>;
-
-    // =========================================================================
-    // W41 增广度: 3 个数据驱动 helper method
-    // 用模板 + ActivityType 索引提供 9 holiday_* 运营数据访问
-    // 不暴露新 gRPC RPC, 仅作为 ActivityService trait 内部 helper
-    // =========================================================================
-
-    /// 按 ActivityType 过滤活动 (page/page_size 分页)
-    /// 配合 9 holiday_* 模板使用: activity_get_by_type(player, Holiday, 0, 10) → 9 个 holiday
-    async fn activity_get_by_type(
-        &self,
-        player_id: String,
-        activity_type: i32,
-        page: u32,
-        page_size: u32,
-    ) -> Result<ActivityListOutput>;
-
-    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
-    async fn activity_count_unclaimed_tiers(
-        &self,
-        player_id: String,
-        activity_id: i32,
-    ) -> Result<i32>;
-
-    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
-    /// activity_type == Holiday + enabled + now in [starts_at, ends_at]
-    async fn activity_get_active_holiday_count(
-        &self,
-        player_id: String,
-    ) -> Result<i32>;
-}
-
-#[derive(Debug, Clone)]
-pub struct ActivityListOutput {
-    pub templates: Vec<ActivityTemplateEntity>,
-    pub total: i32,
-    pub active_count: i32,
-}
-#[derive(Debug, Clone)]
-pub struct ActivityClaimOutput {
-    pub success: bool,
-    pub reward_amount: i64,
-    pub reward_currency: i32,
-    pub remaining_tiers: i32,
-    pub error_msg: String,
-}
-#[derive(Debug, Clone)]
-pub struct ActivityTemplateOutput {
-    pub template: ActivityTemplateEntity,
-    pub player_progress: i32,
-    pub claimed_tiers: Vec<i32>,
-    pub subscribed: bool,
-}
-#[derive(Debug, Clone)]
-pub struct ActivityProgressOutput {
-    pub new_progress: i32,
-    pub tier_unlocked: bool,
-    pub new_unlocked_tier: i32,
-}
-#[derive(Debug, Clone)]
-pub struct ActivitySubscribeOutput {
-    pub subscribed: bool,
-    pub notify_channel: i32,
-    pub subscriber_count: i32,
-}
-
-// ============================================================================
-// ShopServiceImpl - 真实业务实现 (含抽卡 / 限时 / 充值 / 兑换 / 活动 / 基金)
-// ============================================================================
-
-pub struct ShopServiceImpl {
-    pub repo: Arc<tokio::sync::Mutex<InMemoryEconomyV3Repository>>,
-    pub accounts: Arc<dyn AccountRepository>,
-    pub ledger: Arc<dyn TransactionLedgerRepository>,
-}
-
-impl ShopServiceImpl {
-    pub fn new(
-        repo: Arc<tokio::sync::Mutex<InMemoryEconomyV3Repository>>,
-        accounts: Arc<dyn AccountRepository>,
-        ledger: Arc<dyn TransactionLedgerRepository>,
-    ) -> Self {
-        Self {
-            repo,
-            accounts,
-            ledger,
-        }
-    }
-
-    /// 货币类型转换
-    fn parse_currency(currency: i32) -> Result<Currency> {
-        match currency {
-            1 => Ok(Currency::Gold),
-            2 => Ok(Currency::Diamond),
-            3 => Ok(Currency::Token),
-            _ => Err(Error::Validation(format!("unknown currency: {}", currency))),
-        }
-    }
-
-    /// 内部 helper: 扣货币 + 写账目
-    async fn debit(
-        &self,
-        player_id: &str,
-        amount: i64,
-        currency: i32,
-        idempotency_key: &str,
-        memo: &str,
-    ) -> Result<()> {
-        if amount <= 0 {
-            return Ok(());
-        }
-        let currency_e = Self::parse_currency(currency)?;
-        let player_uuid = Uuid::parse_str(player_id).map_err(|_| {
-            Error::Validation(format!("invalid player uuid: {}", player_id))
-        })?;
-        let account = self
-            .accounts
-            .find_by_player_and_currency(player_uuid, currency_e)
-            .await?
-            .ok_or_else(|| Error::NotFound {
-                entity: "Account",
-                id: format!("{}-{:?}", player_id, currency_e),
-            })?;
-        let mut updated = account.clone();
-        if !updated.try_debit(amount) {
-            return Err(Error::InsufficientFunds {
-                account_id: account.id.to_string(),
-                balance: account.balance,
-                required: amount,
-            });
-        }
-        let mut entry = TransactionLedger::new(
-            updated.id,
-            -amount,
-            currency_e,
-            TransactionKind::Spend,
-            idempotency_key.to_string(),
-        );
-        entry.status = TransactionStatus::Confirmed;
-        entry.memo = Some(memo.to_string());
-        self.accounts.apply_atomic(&updated, &entry).await?;
-        Ok(())
-    }
-}
-
-// 商店类 20 RPC 实现 - 至少 8 个真实业务逻辑 (ShopList/ShopBuy/ShopRefresh/MysteryShopList/ExchangeDo/WishDraw/GiftCodeRedeem/LootRoll)
-#[async_trait]
-impl ShopService for ShopServiceImpl {
-    async fn shop_list(
-        &self,
-        _player_id: String,
-        _shop_id: i32,
-        _page: u32,
-        _page_size: u32,
-    ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)> {
-        // TODO: 真实实现
-        Err(Error::Unimplemented("shop_list".to_string()))
-    }
-
-    async fn shop_buy(
-        &self,
-        player_id: String,
-        shop_id: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<ShopBuyOutput> {
-        // 真实逻辑: 扣货币 + 写账目 + 扣库存
-        if quantity <= 0 {
-            return Err(Error::Validation("quantity must be > 0".to_string()));
-        }
-        let repo = self.repo.lock().await;
-        let key = (shop_id, item_id.clone());
-        let item = repo.shop_items.get(&key).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "ShopItem",
-                id: format!("{}-{}", shop_id, item_id),
-            }
-        })?;
-        if item.stock >= 0 && item.stock < quantity {
-            return Err(Error::Conflict(format!("stock {} < {}", item.stock, quantity)));
-        }
-        // 幂等: 用 ledger idempotency_key
-        if self
-            .ledger
-            .find_by_idempotency_key(&idempotency_key)
-            .await?
-            .is_some()
-        {
-            return Err(Error::IdempotencyConflict(idempotency_key));
-        }
-        let cost = item.price_amount * quantity as i64;
-        drop(repo);
-        self.debit(&player_id, cost, item.price_currency, &idempotency_key, "shop_buy").await?;
-        let mut repo = self.repo.lock().await;
-        let entry = ShopRecord {
-            record_id: Uuid::new_v4(),
-            player_id: player_id.clone(),
-            shop_id,
-            item_id: item_id.clone(),
-            quantity,
-            cost_amount: cost,
-            cost_currency: item.price_currency,
-            bought_at: Utc::now(),
-        };
-        repo.shop_records.push(entry);
-        let new_stock = if item.stock < 0 { -1 } else { item.stock - quantity };
-        let new_item = ShopItemEntity {
-            stock: new_stock,
-            ..item.clone()
-        };
-        repo.shop_items.insert(key, new_item);
-        Ok(ShopBuyOutput {
-            success: true,
-            cost_amount: cost,
-            cost_currency: item.price_currency,
-            remaining_stock: new_stock,
-            remaining_player_limit: 0, // TODO: per-player limit tracking
-        })
-    }
-
-    async fn shop_refresh(
-        &self,
-        _player_id: String,
-        _shop_id: i32,
-        _use_currency: bool,
-    ) -> Result<ShopRefreshOutput> {
-        Err(Error::Unimplemented("shop_refresh".to_string()))
-    }
-
-    async fn shop_record(
-        &self,
-        player_id: String,
-        _page: u32,
-        _page_size: u32,
-    ) -> Result<(Vec<ShopRecord>, u64)> {
-        let repo = self.repo.lock().await;
-        let filtered: Vec<ShopRecord> = repo
-            .shop_records
-            .iter()
-            .filter(|r| r.player_id == player_id)
-            .cloned()
-            .collect();
-        let total = filtered.len() as u64;
-        Ok((filtered, total))
-    }
-
-    async fn mystery_shop_list(
-        &self,
-        player_id: String,
-        mystery_shop_id: i32,
-    ) -> Result<MysteryShopListOutput> {
-        let repo = self.repo.lock().await;
-        let shop = repo.mystery_shops.get(&mystery_shop_id).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "MysteryShop",
-                id: mystery_shop_id.to_string(),
-            }
-        })?;
-        let state = repo
-            .mystery_states
-            .get(&(player_id.clone(), mystery_shop_id))
-            .cloned()
-            .ok_or_else(|| Error::NotFound {
-                entity: "MysteryShopState",
-                id: format!("{}-{}", player_id, mystery_shop_id),
-            })?;
-        if !state.unlocked {
-            return Err(Error::Forbidden("mystery shop not unlocked".to_string()));
-        }
-        Ok(MysteryShopListOutput {
-            items: state.current_items.clone(),
-            refresh_count: state.refresh_count,
-            refreshed_at: state.refreshed_at,
-            unlock_level: shop.unlock_level,
-        })
-    }
-
-    async fn mystery_shop_buy(
-        &self,
-        _player_id: String,
-        _mystery_shop_id: i32,
-        _item_id: String,
-        _idempotency_key: String,
-    ) -> Result<MysteryShopBuyOutput> {
-        Err(Error::Unimplemented("mystery_shop_buy".to_string()))
-    }
-
-    async fn mystery_shop_refresh(
-        &self,
-        _player_id: String,
-        _mystery_shop_id: i32,
-    ) -> Result<MysteryShopRefreshOutput> {
-        Err(Error::Unimplemented("mystery_shop_refresh".to_string()))
-    }
-
-    async fn mystery_shop_unlock(
-        &self,
-        _player_id: String,
-        _mystery_shop_id: i32,
-    ) -> Result<MysteryShopUnlockOutput> {
-        Err(Error::Unimplemented("mystery_shop_unlock".to_string()))
-    }
-
-    async fn exchange_list(
-        &self,
-        player_id: String,
-        exchange_id: i32,
-    ) -> Result<(Vec<ShopItemEntity>, i64)> {
-        let repo = self.repo.lock().await;
-        let shop = repo.exchange_shops.get(&exchange_id).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "ExchangeShop",
-                id: exchange_id.to_string(),
-            }
-        })?;
-        let points = repo
-            .player_points
-            .get(&(player_id, shop.cost_currency))
-            .map(|p| p.balance)
-            .unwrap_or(0);
-        Ok((shop.items, points))
-    }
-
-    async fn exchange_do(
-        &self,
-        player_id: String,
-        exchange_id: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<ExchangeDoOutput> {
-        // 真实逻辑: 扣积分 + 写账目
-        if quantity <= 0 {
-            return Err(Error::Validation("quantity must be > 0".to_string()));
-        }
-        let mut repo = self.repo.lock().await;
-        let shop = repo.exchange_shops.get(&exchange_id).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "ExchangeShop",
-                id: exchange_id.to_string(),
-            }
-        })?;
-        let item = shop
-            .items
-            .iter()
-            .find(|i| i.item_id == item_id)
-            .cloned()
-            .ok_or_else(|| Error::NotFound {
-                entity: "ShopItem",
-                id: item_id.clone(),
-            })?;
-        let cost = item.price_amount * quantity as i64;
-        let points = repo
-            .player_points
-            .entry((player_id.clone(), shop.cost_currency))
-            .or_insert(PlayerPoints {
-                player_id: player_id.clone(),
-                point_type: shop.cost_currency,
-                balance: 0,
-            });
-        if points.balance < cost {
-            return Err(Error::InsufficientFunds {
-                account_id: format!("{}-points-{}", player_id, shop.cost_currency),
-                balance: points.balance,
-                required: cost,
-            });
-        }
-        points.balance -= cost;
-        repo.shop_records.push(ShopRecord {
-            record_id: Uuid::new_v4(),
-            player_id: player_id.clone(),
-            shop_id: exchange_id,
-            item_id: item_id.clone(),
-            quantity,
-            cost_amount: cost,
-            cost_currency: shop.cost_currency,
-            bought_at: Utc::now(),
-        });
-        let _ = idempotency_key; // TODO: idempotency persistence
-        Ok(ExchangeDoOutput {
-            success: true,
-            cost_points: cost,
-            remaining_player_limit: 0,
-        })
-    }
-
-    async fn exchange_record(
-        &self,
-        player_id: String,
-        _page: u32,
-        _page_size: u32,
-    ) -> Result<(Vec<ShopRecord>, u64)> {
-        let repo = self.repo.lock().await;
-        let filtered: Vec<ShopRecord> = repo
-            .shop_records
-            .iter()
-            .filter(|r| r.player_id == player_id)
-            .cloned()
-            .collect();
-        let total = filtered.len() as u64;
-        Ok((filtered, total))
-    }
-
-    async fn wish_list(
-        &self,
-        _player_id: String,
-        _pool_id: i32,
-    ) -> Result<WishListOutput> {
-        Err(Error::Unimplemented("wish_list".to_string()))
-    }
-
-    async fn wish_draw(
-        &self,
-        _player_id: String,
-        _pool_id: i32,
-        _count: i32,
-        _idempotency_key: String,
-    ) -> Result<WishDrawOutput> {
-        Err(Error::Unimplemented("wish_draw".to_string()))
-    }
-
-    async fn wish_reward(
-        &self,
-        _player_id: String,
-        _pool_id: i32,
-        _reward_tier: i32,
-    ) -> Result<WishRewardOutput> {
-        Err(Error::Unimplemented("wish_reward".to_string()))
-    }
-
-    async fn point_shop_list(
-        &self,
-        player_id: String,
-        point_type: i32,
-        _page: u32,
-        _page_size: u32,
-    ) -> Result<(Vec<ShopItemEntity>, i64, u64)> {
-        let repo = self.repo.lock().await;
-        let points = repo
-            .player_points
-            .get(&(player_id.clone(), point_type))
-            .map(|p| p.balance)
-            .unwrap_or(0);
-        // 找使用此 point_type 的所有 exchange shop 的 items
-        let items: Vec<ShopItemEntity> = repo
-            .exchange_shops
-            .values()
-            .filter(|s| s.cost_currency == point_type)
-            .flat_map(|s| s.items.clone())
-            .collect();
-        let total = items.len() as u64;
-        Ok((items, points, total))
-    }
-
-    async fn point_shop_buy(
-        &self,
-        player_id: String,
-        point_type: i32,
-        item_id: String,
-        quantity: i32,
-        idempotency_key: String,
-    ) -> Result<PointShopBuyOutput> {
-        if quantity <= 0 {
-            return Err(Error::Validation("quantity must be > 0".to_string()));
-        }
-        // 复用 exchange_do 模式
-        let exchange_id = {
-            let repo = self.repo.lock().await;
-            repo.exchange_shops
-                .values()
-                .find(|s| s.cost_currency == point_type && s.items.iter().any(|i| i.item_id == item_id))
-                .map(|s| s.exchange_id)
-                .ok_or_else(|| Error::NotFound {
-                    entity: "PointShopItem",
-                    id: format!("{}-{}", point_type, item_id),
-                })?
-        };
-        let out = self
-            .exchange_do(player_id.clone(), exchange_id, item_id, quantity, idempotency_key)
-            .await?;
-        let repo = self.repo.lock().await;
-        let remaining = repo
-            .player_points
-            .get(&(player_id, point_type))
-            .map(|p| p.balance)
-            .unwrap_or(0);
-        Ok(PointShopBuyOutput {
-            success: out.success,
-            cost_points: out.cost_points,
-            remaining_points: remaining,
-        })
-    }
-
-    async fn gift_code_redeem(
-        &self,
-        player_id: String,
-        code: String,
-        server_id: i32,
-        idempotency_key: String,
-    ) -> Result<GiftCodeRedeemOutput> {
-        // 真实逻辑: 校验码 + 检查使用次数 + 检查玩家重复
-        let mut repo = self.repo.lock().await;
-        let key = (code.clone(), server_id);
-        let gift = repo.gift_codes.get(&key).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "GiftCode",
-                id: format!("{}-{}", code, server_id),
-            }
-        })?;
-        let now = Utc::now();
-        if now < gift.valid_from || now > gift.valid_to {
-            return Ok(GiftCodeRedeemOutput {
-                success: false,
-                error_msg: "expired".to_string(),
-                rewards: vec![],
-            });
-        }
-        if gift.current_uses >= gift.max_uses {
-            return Ok(GiftCodeRedeemOutput {
-                success: false,
-                error_msg: "max_uses_reached".to_string(),
-                rewards: vec![],
-            });
-        }
-        if repo
-            .gift_redemptions
-            .iter()
-            .any(|r| r.code == code && r.server_id == server_id && r.player_id == player_id)
-        {
-            return Ok(GiftCodeRedeemOutput {
-                success: false,
-                error_msg: "already_used".to_string(),
-                rewards: vec![],
-            });
-        }
-        // 幂等
-        if self
-            .ledger
-            .find_by_idempotency_key(&idempotency_key)
-            .await?
-            .is_some()
-        {
-            return Err(Error::IdempotencyConflict(idempotency_key));
-        }
-        repo.gift_redemptions.push(GiftCodeRedemption {
-            code: code.clone(),
-            player_id: player_id.clone(),
-            server_id,
-            redeemed_at: now,
-        });
-        if let Some(g) = repo.gift_codes.get_mut(&key) {
-            g.current_uses += 1;
-        }
-        Ok(GiftCodeRedeemOutput {
-            success: true,
-            error_msg: "".to_string(),
-            rewards: vec![], // 真实发放走 game-mail module, 留空
-        })
-    }
-
-    async fn gift_code_query(
-        &self,
-        _player_id: String,
-        code: String,
-        server_id: i32,
-    ) -> Result<GiftCodeQueryOutput> {
-        let repo = self.repo.lock().await;
-        let key = (code.clone(), server_id);
-        match repo.gift_codes.get(&key) {
-            Some(g) => Ok(GiftCodeQueryOutput {
-                exists: true,
-                code: g.code.clone(),
-                reward_template: g.reward_template.clone(),
-                valid_from: Some(g.valid_from),
-                valid_to: Some(g.valid_to),
-                max_uses: g.max_uses,
-                current_uses: g.current_uses,
-            }),
-            None => Ok(GiftCodeQueryOutput {
-                exists: false,
-                code,
-                reward_template: "".to_string(),
-                valid_from: None,
-                valid_to: None,
-                max_uses: 0,
-                current_uses: 0,
-            }),
-        }
-    }
-
-    async fn loot_roll(
-        &self,
-        player_id: String,
-        loot_table_id: i32,
-        roll_count: i32,
-        _idempotency_key: String,
-    ) -> Result<LootRollOutput> {
-        // 真实逻辑: 加权随机抽取
-        if roll_count <= 0 {
-            return Err(Error::Validation("roll_count must be > 0".to_string()));
-        }
-        let mut repo = self.repo.lock().await;
-        let table = repo.loot_tables.get(&loot_table_id).cloned().ok_or_else(|| {
-            Error::NotFound {
-                entity: "LootTable",
-                id: loot_table_id.to_string(),
-            }
-        })?;
-        if table.entries.is_empty() {
-            return Err(Error::Validation("empty loot table".to_string()));
-        }
-        let total_weight: i32 = table.entries.iter().map(|e| e.weight).sum();
-        let mut rolled = Vec::with_capacity(roll_count as usize);
-        let mut rare = 0;
-        let mut epic = 0;
-        let mut legendary = 0;
-        // 简单 LCG RNG (测试用, 不引入 rand)
-        let mut seed: u64 = {
-            let bytes = player_id.as_bytes();
-            let mut h: u64 = 0xcbf29ce484222325;
-            for b in bytes {
-                h = h.wrapping_mul(0x100000001b3) ^ (*b as u64);
-            }
-            h
-        };
-        for _ in 0..roll_count {
-            // next() LCG
-            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-            let pick = (seed >> 33) as i32 % total_weight;
-            let mut acc = 0;
-            let mut chosen = &table.entries[0];
-            for e in &table.entries {
-                acc += e.weight;
-                if pick < acc {
-                    chosen = e;
-                    break;
-                }
-            }
-            rolled.push(chosen.item_id.clone());
-            if chosen.rarity >= 3 {
-                rare += 1;
-            }
-            if chosen.rarity >= 4 {
-                epic += 1;
-            }
-            if chosen.rarity >= 5 {
-                legendary += 1;
-            }
-        }
-        let batch = LootBatch {
-            batch_id: Uuid::new_v4(),
-            player_id: player_id.clone(),
-            loot_table_id,
-            rolled_items: rolled.clone(),
-            claimed: false,
-            rolled_at: Utc::now(),
-        };
-        repo.loot_batches.insert(batch.batch_id, batch);
-        Ok(LootRollOutput {
-            rolled_item_ids: rolled,
-            rare_count: rare,
-            epic_count: epic,
-            legendary_count: legendary,
-        })
-    }
-
-    async fn loot_claim(
-        &self,
-        _player_id: String,
-        _loot_table_id: i32,
-        batch_id: Uuid,
-    ) -> Result<LootClaimOutput> {
-        let mut repo = self.repo.lock().await;
-        let batch = repo.loot_batches.get_mut(&batch_id).ok_or_else(|| {
-            Error::NotFound {
-                entity: "LootBatch",
-                id: batch_id.to_string(),
-            }
-        })?;
-        if batch.claimed {
-            return Err(Error::Conflict("already claimed".to_string()));
-        }
-        batch.claimed = true;
-        Ok(LootClaimOutput {
-            success: true,
-            items: vec![], // 真实发放走 inventory module
-        })
-    }
-}
-
-// ============================================================================
-// 活动 (8 RPC) impl ActivityService for ShopServiceImpl — W41 增广度
-// 数据驱动: 9 holiday_* 活动 → 1 套 ActivityService + ActivityType + 模板 (per 9/4 MD §4)
-// ============================================================================
-
-#[async_trait]
-impl ActivityService for ShopServiceImpl {
-    /// 列出所有可见活动 (用模板 + 玩家状态合并)
-    async fn activity_list(
-        &self,
-        _player_id: String,
-        page: u32,
-        page_size: u32,
-        active_only: bool,
-    ) -> Result<ActivityListOutput> {
-        let repo = self.repo.lock().await;
-        let now = Utc::now();
-        let page_size = if page_size == 0 { 20 } else { page_size };
-        let mut templates: Vec<ActivityTemplateEntity> = repo
-            .activity_templates
-            .values()
-            .filter(|t| {
-                t.enabled && (!active_only || (now >= t.starts_at && now <= t.ends_at))
-            })
-            .cloned()
-            .collect();
-        templates.sort_by_key(|t| t.activity_id);
-        let total = templates.len() as i32;
-        let active_count = templates.len() as i32;
-        let start = (page as usize).saturating_mul(page_size as usize);
-        let end = (start + page_size as usize).min(templates.len());
-        let slice = if start < templates.len() {
-            templates[start..end].to_vec()
-        } else {
-            vec![]
-        };
-        Ok(ActivityListOutput {
-            templates: slice,
-            total,
-            active_count,
-        })
-    }
-
-    /// 领取活动奖励 tier
-    async fn activity_claim(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        tier: i32,
-        idempotency_key: String,
-    ) -> Result<ActivityClaimOutput> {
-        // 幂等: 用 ledger idempotency_key
-        if self
-            .ledger
-            .find_by_idempotency_key(&idempotency_key)
-            .await?
-            .is_some()
-        {
-            return Err(Error::IdempotencyConflict(idempotency_key));
-        }
-        let mut repo = self.repo.lock().await;
-        // 校验活动存在 (template 仅用作存在性校验, 业务字段用 tiers)
-        if !repo.activity_templates.contains_key(&activity_id) {
-            return Err(Error::NotFound {
-                entity: "ActivityTemplate",
-                id: activity_id.to_string(),
-            });
-        }
-        let tiers = repo
-            .activity_reward_tiers
-            .get(&activity_id)
-            .cloned()
-            .unwrap_or_default();
-        let target = tiers
-            .iter()
-            .find(|t| t.tier == tier)
-            .cloned()
-            .ok_or_else(|| Error::NotFound {
-                entity: "ActivityRewardTier",
-                id: format!("{}-{}", activity_id, tier),
-            })?;
-        let state = repo
-            .activity_player_states
-            .entry((player_id.clone(), activity_id))
-            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
-        if state.progress < target.progress_required {
-            return Err(Error::Validation(format!(
-                "progress {} < required {}",
-                state.progress, target.progress_required
-            )));
-        }
-        if state.claimed_tiers.contains(&tier) {
-            return Ok(ActivityClaimOutput {
-                success: false,
-                reward_amount: 0,
-                reward_currency: 0,
-                remaining_tiers: state.claimed_tiers.len() as i32,
-                error_msg: "tier_already_claimed".to_string(),
-            });
-        }
-        state.claimed_tiers.push(tier);
-        let remaining = tiers.len() as i32 - state.claimed_tiers.len() as i32;
-        Ok(ActivityClaimOutput {
-            success: true,
-            reward_amount: target.reward_amount,
-            reward_currency: target.reward_currency,
-            remaining_tiers: remaining,
-            error_msg: String::new(),
-        })
-    }
-
-    /// 查询活动详情 + 玩家进度
-    async fn activity_template(
-        &self,
-        player_id: String,
-        activity_id: i32,
-    ) -> Result<ActivityTemplateOutput> {
-        let repo = self.repo.lock().await;
-        let template = repo
-            .activity_templates
-            .get(&activity_id)
-            .cloned()
-            .ok_or_else(|| Error::NotFound {
-                entity: "ActivityTemplate",
-                id: activity_id.to_string(),
-            })?;
-        let state = repo
-            .activity_player_states
-            .get(&(player_id, activity_id))
-            .cloned()
-            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
-        Ok(ActivityTemplateOutput {
-            template,
-            player_progress: state.progress,
-            claimed_tiers: state.claimed_tiers,
-            subscribed: state.subscribed,
-        })
-    }
-
-    /// 进度增量上报 (per idempotency_key 幂等)
-    async fn activity_progress(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        progress_delta: i32,
-        source: String,
-        idempotency_key: String,
-    ) -> Result<ActivityProgressOutput> {
-        if progress_delta < 0 {
-            return Err(Error::Validation("progress_delta must be >= 0".to_string()));
-        }
-        // 幂等检查 (ULYS-97 fix): 用 v3 repo 内的 activity_idempotency_keys,
-        // 而非 ledger — ledger 表 schema 要求 account_id NOT NULL REFERENCES accounts,
-        // 但 activity_progress 是玩家级别操作, 不绑特定账户.
-        let mut repo = self.repo.lock().await;
-        if repo.activity_idempotency_keys.contains(&idempotency_key) {
-            return Err(Error::IdempotencyConflict(idempotency_key));
-        }
-        let template = repo
-            .activity_templates
-            .get(&activity_id)
-            .cloned()
-            .ok_or_else(|| Error::NotFound {
-                entity: "ActivityTemplate",
-                id: activity_id.to_string(),
-            })?;
-        let tiers = repo
-            .activity_reward_tiers
-            .get(&activity_id)
-            .cloned()
-            .unwrap_or_default();
-        let state = repo
-            .activity_player_states
-            .entry((player_id.clone(), activity_id))
-            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
-        let _ = source; // 预留: source 走 audit log, W42 接入
-        state.progress = (state.progress + progress_delta).min(template.max_progress);
-        let new_progress = state.progress;
-        let unlocked = tiers
-            .iter()
-            .find(|t| t.progress_required == state.progress && !state.claimed_tiers.contains(&t.tier))
-            .cloned();
-        let new_unlocked_tier = unlocked.as_ref().map(|t| t.tier).unwrap_or(0);
-        let tier_unlocked = unlocked.is_some();
-        // 提交成功后写入 idempotency key (per ULYS-97 fix: 此前只查不写导致重复请求累计进度)
-        // 先 drop state 的 mutable borrow, 再插入 key, 避免 borrow checker 冲突.
-        let _ = state;
-        repo.activity_idempotency_keys.insert(idempotency_key);
-        Ok(ActivityProgressOutput {
-            new_progress,
-            tier_unlocked,
-            new_unlocked_tier,
-        })
-    }
-
-    /// 订阅活动通知
-    async fn activity_subscribe(
-        &self,
-        player_id: String,
-        activity_id: i32,
-        notify_channel: i32,
-        idempotency_key: String,
-    ) -> Result<ActivitySubscribeOutput> {
-        if self
-            .ledger
-            .find_by_idempotency_key(&idempotency_key)
-            .await?
-            .is_some()
-        {
-            return Err(Error::IdempotencyConflict(idempotency_key));
-        }
-        let mut repo = self.repo.lock().await;
-        if !repo.activity_templates.contains_key(&activity_id) {
-            return Err(Error::NotFound {
-                entity: "ActivityTemplate",
-                id: activity_id.to_string(),
-            });
-        }
-        let state = repo
-            .activity_player_states
-            .entry((player_id.clone(), activity_id))
-            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
-        state.subscribed = true;
-        state.notify_channel = notify_channel;
-        let subscriber_count = repo
-            .activity_player_states
-            .values()
-            .filter(|s| s.activity_id == activity_id && s.subscribed)
-            .count() as i32;
-        Ok(ActivitySubscribeOutput {
-            subscribed: true,
-            notify_channel,
-            subscriber_count,
-        })
-    }
-
-    // ===== W41 增广度: 3 个数据驱动 helper =====
-
-    /// 按 ActivityType 过滤活动 (page/page_size 分页)
-    async fn activity_get_by_type(
-        &self,
-        _player_id: String,
-        activity_type: i32,
-        page: u32,
-        page_size: u32,
-    ) -> Result<ActivityListOutput> {
-        let repo = self.repo.lock().await;
-        let target = ActivityType::from_i32(activity_type);
-        let page_size = if page_size == 0 { 20 } else { page_size };
-        let mut templates: Vec<ActivityTemplateEntity> = repo
-            .activity_templates
-            .values()
-            .filter(|t| t.activity_type == target)
-            .cloned()
-            .collect();
-        templates.sort_by_key(|t| t.activity_id);
-        let total = templates.len() as i32;
-        let active_count = templates.len() as i32;
-        let start = (page as usize).saturating_mul(page_size as usize);
-        let end = (start + page_size as usize).min(templates.len());
-        let slice = if start < templates.len() {
-            templates[start..end].to_vec()
-        } else {
-            vec![]
-        };
-        Ok(ActivityListOutput {
-            templates: slice,
-            total,
-            active_count,
-        })
-    }
-
-    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
-    async fn activity_count_unclaimed_tiers(
-        &self,
-        player_id: String,
-        activity_id: i32,
-    ) -> Result<i32> {
-        let repo = self.repo.lock().await;
-        let tiers = repo
-            .activity_reward_tiers
-            .get(&activity_id)
-            .cloned()
-            .unwrap_or_default();
-        let state = repo
-            .activity_player_states
-            .get(&(player_id, activity_id))
-            .cloned()
-            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
-        let unlocked: i32 = tiers
-            .iter()
-            .filter(|t| state.progress >= t.progress_required)
-            .map(|t| if state.claimed_tiers.contains(&t.tier) { 0 } else { 1 })
-            .sum();
-        Ok(unlocked)
-    }
-
-    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
-    async fn activity_get_active_holiday_count(
-        &self,
-        _player_id: String,
-    ) -> Result<i32> {
-        let repo = self.repo.lock().await;
-        let now = Utc::now();
-        let count = repo
-            .activity_templates
-            .values()
-            .filter(|t| {
-                t.activity_type == ActivityType::Holiday
-                    && t.enabled
-                    && now >= t.starts_at
-                    && now <= t.ends_at
-            })
-            .count() as i32;
-        Ok(count)
-    }
-}
+// ==== BEGIN CYPHER HEADER (generated by tools/cypher-header-gen; do not edit) ====
+// ```cypher
+// CREATE
+//   (n1:File {name: "shop_service.rs", type: "file", path: "crates/economy-service/src/shop_service.rs", crate: "economy-service", module_path: "economy_service::shop_service", kind: "src", lines: 3914}),
+//   (n2:Class {name: "ShopService", type: "class", fqn: "economy_service::shop_service::ShopService", kind: "trait", visibility: "private", line: 61}),
+//   (n3:Class {name: "ShopBuyOutput", type: "class", fqn: "economy_service::shop_service::ShopBuyOutput", kind: "struct", visibility: "private", line: 377}),
+//   (n4:Class {name: "ShopRefreshOutput", type: "class", fqn: "economy_service::shop_service::ShopRefreshOutput", kind: "struct", visibility: "private", line: 393}),
+//   (n5:Class {name: "MysteryShopListOutput", type: "class", fqn: "economy_service::shop_service::MysteryShopListOutput", kind: "struct", visibility: "private", line: 405}),
+//   (n6:Class {name: "MysteryShopBuyOutput", type: "class", fqn: "economy_service::shop_service::MysteryShopBuyOutput", kind: "struct", visibility: "private", line: 419}),
+//   (n7:Class {name: "MysteryShopRefreshOutput", type: "class", fqn: "economy_service::shop_service::MysteryShopRefreshOutput", kind: "struct", visibility: "private", line: 433}),
+//   (n8:Class {name: "MysteryShopUnlockOutput", type: "class", fqn: "economy_service::shop_service::MysteryShopUnlockOutput", kind: "struct", visibility: "private", line: 445}),
+//   (n9:Class {name: "ExchangeDoOutput", type: "class", fqn: "economy_service::shop_service::ExchangeDoOutput", kind: "struct", visibility: "private", line: 457}),
+//   (n10:Class {name: "WishListOutput", type: "class", fqn: "economy_service::shop_service::WishListOutput", kind: "struct", visibility: "private", line: 469}),
+//   (n11:Class {name: "WishDrawOutput", type: "class", fqn: "economy_service::shop_service::WishDrawOutput", kind: "struct", visibility: "private", line: 481}),
+//   (n12:Class {name: "WishRewardOutput", type: "class", fqn: "economy_service::shop_service::WishRewardOutput", kind: "struct", visibility: "private", line: 497}),
+//   (n13:Class {name: "PointShopBuyOutput", type: "class", fqn: "economy_service::shop_service::PointShopBuyOutput", kind: "struct", visibility: "private", line: 507}),
+//   (n14:Class {name: "GiftCodeRedeemOutput", type: "class", fqn: "economy_service::shop_service::GiftCodeRedeemOutput", kind: "struct", visibility: "private", line: 519}),
+//   (n15:Class {name: "GiftCodeQueryOutput", type: "class", fqn: "economy_service::shop_service::GiftCodeQueryOutput", kind: "struct", visibility: "private", line: 531}),
+//   (n16:Class {name: "LootRollOutput", type: "class", fqn: "economy_service::shop_service::LootRollOutput", kind: "struct", visibility: "private", line: 551}),
+//   (n17:Class {name: "LootClaimOutput", type: "class", fqn: "economy_service::shop_service::LootClaimOutput", kind: "struct", visibility: "private", line: 565}),
+//   (n18:Class {name: "RechargeService", type: "class", fqn: "economy_service::shop_service::RechargeService", kind: "trait", visibility: "private", line: 585}),
+//   (n19:Class {name: "RechargeOrderFinishOutput", type: "class", fqn: "economy_service::shop_service::RechargeOrderFinishOutput", kind: "struct", visibility: "private", line: 765}),
+//   (n20:Class {name: "MonthlyCardInfoOutput", type: "class", fqn: "economy_service::shop_service::MonthlyCardInfoOutput", kind: "struct", visibility: "private", line: 781}),
+//   (n21:Class {name: "MonthlyCardClaimOutput", type: "class", fqn: "economy_service::shop_service::MonthlyCardClaimOutput", kind: "struct", visibility: "private", line: 801}),
+//   (n22:Class {name: "MonthlyCardBuyOutput", type: "class", fqn: "economy_service::shop_service::MonthlyCardBuyOutput", kind: "struct", visibility: "private", line: 815}),
+//   (n23:Class {name: "FirstRechargeListOutput", type: "class", fqn: "economy_service::shop_service::FirstRechargeListOutput", kind: "struct", visibility: "private", line: 831}),
+//   (n24:Class {name: "FirstRechargeClaimOutput", type: "class", fqn: "economy_service::shop_service::FirstRechargeClaimOutput", kind: "struct", visibility: "private", line: 845}),
+//   (n25:Class {name: "FirstRechargeStatusOutput", type: "class", fqn: "economy_service::shop_service::FirstRechargeStatusOutput", kind: "struct", visibility: "private", line: 857}),
+//   (n26:Class {name: "PowerPackListOutput", type: "class", fqn: "economy_service::shop_service::PowerPackListOutput", kind: "struct", visibility: "private", line: 871}),
+//   (n27:Class {name: "PowerPackBuyOutput", type: "class", fqn: "economy_service::shop_service::PowerPackBuyOutput", kind: "struct", visibility: "private", line: 883}),
+//   (n28:Class {name: "GrowthFundListOutput", type: "class", fqn: "economy_service::shop_service::GrowthFundListOutput", kind: "struct", visibility: "private", line: 895}),
+//   (n29:Class {name: "GrowthFundBuyOutput", type: "class", fqn: "economy_service::shop_service::GrowthFundBuyOutput", kind: "struct", visibility: "private", line: 913}),
+//   (n30:Class {name: "GrowthFundClaimOutput", type: "class", fqn: "economy_service::shop_service::GrowthFundClaimOutput", kind: "struct", visibility: "private", line: 925}),
+//   (n31:Class {name: "SummonService", type: "class", fqn: "economy_service::shop_service::SummonService", kind: "trait", visibility: "private", line: 949}),
+//   (n32:Class {name: "SummonInfoOutput", type: "class", fqn: "economy_service::shop_service::SummonInfoOutput", kind: "struct", visibility: "private", line: 1149}),
+//   (n33:Class {name: "SummonPullOutput", type: "class", fqn: "economy_service::shop_service::SummonPullOutput", kind: "struct", visibility: "private", line: 1169}),
+//   (n34:Class {name: "SummonTenPullOutput", type: "class", fqn: "economy_service::shop_service::SummonTenPullOutput", kind: "struct", visibility: "private", line: 1181}),
+//   (n35:Class {name: "SummonFreeOutput", type: "class", fqn: "economy_service::shop_service::SummonFreeOutput", kind: "struct", visibility: "private", line: 1197}),
+//   (n36:Class {name: "SummonPityOutput", type: "class", fqn: "economy_service::shop_service::SummonPityOutput", kind: "struct", visibility: "private", line: 1209}),
+//   (n37:Class {name: "SummonShareRewardOutput", type: "class", fqn: "economy_service::shop_service::SummonShareRewardOutput", kind: "struct", visibility: "private", line: 1223}),
+//   (n38:Class {name: "SummonBoxListOutput", type: "class", fqn: "economy_service::shop_service::SummonBoxListOutput", kind: "struct", visibility: "private", line: 1235}),
+//   (n39:Class {name: "SummonBoxUnlockOutput", type: "class", fqn: "economy_service::shop_service::SummonBoxUnlockOutput", kind: "struct", visibility: "private", line: 1249}),
+//   (n40:Class {name: "SummonResetPityOutput", type: "class", fqn: "economy_service::shop_service::SummonResetPityOutput", kind: "struct", visibility: "private", line: 1261}),
+//   (n41:Class {name: "SummonExchangeOutput", type: "class", fqn: "economy_service::shop_service::SummonExchangeOutput", kind: "struct", visibility: "private", line: 1273}),
+//   (n42:Class {name: "SummonBannerListOutput", type: "class", fqn: "economy_service::shop_service::SummonBannerListOutput", kind: "struct", visibility: "private", line: 1287}),
+//   (n43:Class {name: "SummonGuaranteedInfoOutput", type: "class", fqn: "economy_service::shop_service::SummonGuaranteedInfoOutput", kind: "struct", visibility: "private", line: 1299}),
+//   (n44:Class {name: "FlashSaleService", type: "class", fqn: "economy_service::shop_service::FlashSaleService", kind: "trait", visibility: "private", line: 1323}),
+//   (n45:Class {name: "FlashSaleInfoOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleInfoOutput", kind: "struct", visibility: "private", line: 1461}),
+//   (n46:Class {name: "FlashSaleBuyOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleBuyOutput", kind: "struct", visibility: "private", line: 1475}),
+//   (n47:Class {name: "FlashSaleCountdownOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleCountdownOutput", kind: "struct", visibility: "private", line: 1491}),
+//   (n48:Class {name: "FlashSaleSubscribeOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleSubscribeOutput", kind: "struct", visibility: "private", line: 1505}),
+//   (n49:Class {name: "FlashSaleStockOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleStockOutput", kind: "struct", visibility: "private", line: 1517}),
+//   (n50:Class {name: "FlashSaleClaimOutput", type: "class", fqn: "economy_service::shop_service::FlashSaleClaimOutput", kind: "struct", visibility: "private", line: 1529}),
+//   (n51:Class {name: "FundService", type: "class", fqn: "economy_service::shop_service::FundService", kind: "trait", visibility: "private", line: 1553}),
+//   (n52:Class {name: "FundStatusOutput", type: "class", fqn: "economy_service::shop_service::FundStatusOutput", kind: "struct", visibility: "private", line: 1679}),
+//   (n53:Class {name: "FundProgressOutput", type: "class", fqn: "economy_service::shop_service::FundProgressOutput", kind: "struct", visibility: "private", line: 1697}),
+//   (n54:Class {name: "PrivilegeListOutput", type: "class", fqn: "economy_service::shop_service::PrivilegeListOutput", kind: "struct", visibility: "private", line: 1711}),
+//   (n55:Class {name: "PrivilegeListItem", type: "class", fqn: "economy_service::shop_service::PrivilegeListItem", kind: "struct", visibility: "private", line: 1721}),
+//   (n56:Class {name: "PrivilegeActivateOutput", type: "class", fqn: "economy_service::shop_service::PrivilegeActivateOutput", kind: "struct", visibility: "private", line: 1733}),
+//   (n57:Class {name: "PrivilegeBuyOutput", type: "class", fqn: "economy_service::shop_service::PrivilegeBuyOutput", kind: "struct", visibility: "private", line: 1745}),
+//   (n58:Class {name: "PrivilegeDailyOutput", type: "class", fqn: "economy_service::shop_service::PrivilegeDailyOutput", kind: "struct", visibility: "private", line: 1761}),
+//   (n59:Class {name: "PrivilegeRewardsOutput", type: "class", fqn: "economy_service::shop_service::PrivilegeRewardsOutput", kind: "struct", visibility: "private", line: 1775}),
+//   (n60:Class {name: "PrivilegeRewardEntryOut", type: "class", fqn: "economy_service::shop_service::PrivilegeRewardEntryOut", kind: "struct", visibility: "private", line: 1783}),
+//   (n61:Class {name: "ActivityService", type: "class", fqn: "economy_service::shop_service::ActivityService", kind: "trait", visibility: "private", line: 1811}),
+//   (n62:Class {name: "ActivityListOutput", type: "class", fqn: "economy_service::shop_service::ActivityListOutput", kind: "struct", visibility: "private", line: 1965}),
+//   (n63:Class {name: "ActivityClaimOutput", type: "class", fqn: "economy_service::shop_service::ActivityClaimOutput", kind: "struct", visibility: "private", line: 1977}),
+//   (n64:Class {name: "ActivityTemplateOutput", type: "class", fqn: "economy_service::shop_service::ActivityTemplateOutput", kind: "struct", visibility: "private", line: 1993}),
+//   (n65:Class {name: "ActivityProgressOutput", type: "class", fqn: "economy_service::shop_service::ActivityProgressOutput", kind: "struct", visibility: "private", line: 2007}),
+//   (n66:Class {name: "ActivitySubscribeOutput", type: "class", fqn: "economy_service::shop_service::ActivitySubscribeOutput", kind: "struct", visibility: "private", line: 2019}),
+//   (n67:Class {name: "ShopServiceImpl", type: "class", fqn: "economy_service::shop_service::ShopServiceImpl", kind: "struct", visibility: "private", line: 2039, implements: "economy_service::shop_service::ActivityService, economy_service::shop_service::ShopService"}),
+//   (n68:Function {name: "shop_list", type: "function", fqn: "economy_service::shop_service::ShopService::shop_list", kind: "trait_method", visibility: "private", signature: "fn shop_list( &self, player_id: String, shop_id: i32, page: u32, page_size: u32, ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)>", line: 65}),
+//   (n69:Function {name: "shop_buy", type: "function", fqn: "economy_service::shop_service::ShopService::shop_buy", kind: "trait_method", visibility: "private", signature: "fn shop_buy( &self, player_id: String, shop_id: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<ShopBuyOutput>", line: 81}),
+//   (n70:Function {name: "shop_refresh", type: "function", fqn: "economy_service::shop_service::ShopService::shop_refresh", kind: "trait_method", visibility: "private", signature: "fn shop_refresh( &self, player_id: String, shop_id: i32, use_currency: bool, ) -> Result<ShopRefreshOutput>", line: 99}),
+//   (n71:Function {name: "shop_record", type: "function", fqn: "economy_service::shop_service::ShopService::shop_record", kind: "trait_method", visibility: "private", signature: "fn shop_record( &self, player_id: String, page: u32, page_size: u32, ) -> Result<(Vec<ShopRecord>, u64)>", line: 113}),
+//   (n72:Function {name: "mystery_shop_list", type: "function", fqn: "economy_service::shop_service::ShopService::mystery_shop_list", kind: "trait_method", visibility: "private", signature: "fn mystery_shop_list( &self, player_id: String, mystery_shop_id: i32, ) -> Result<MysteryShopListOutput>", line: 129}),
+//   (n73:Function {name: "mystery_shop_buy", type: "function", fqn: "economy_service::shop_service::ShopService::mystery_shop_buy", kind: "trait_method", visibility: "private", signature: "fn mystery_shop_buy( &self, player_id: String, mystery_shop_id: i32, item_id: String, idempotency_key: String, ) -> Result<MysteryShopBuyOutput>", line: 141}),
+//   (n74:Function {name: "mystery_shop_refresh", type: "function", fqn: "economy_service::shop_service::ShopService::mystery_shop_refresh", kind: "trait_method", visibility: "private", signature: "fn mystery_shop_refresh( &self, player_id: String, mystery_shop_id: i32, ) -> Result<MysteryShopRefreshOutput>", line: 157}),
+//   (n75:Function {name: "mystery_shop_unlock", type: "function", fqn: "economy_service::shop_service::ShopService::mystery_shop_unlock", kind: "trait_method", visibility: "private", signature: "fn mystery_shop_unlock( &self, player_id: String, mystery_shop_id: i32, ) -> Result<MysteryShopUnlockOutput>", line: 169}),
+//   (n76:Function {name: "exchange_list", type: "function", fqn: "economy_service::shop_service::ShopService::exchange_list", kind: "trait_method", visibility: "private", signature: "fn exchange_list( &self, player_id: String, exchange_id: i32, ) -> Result<(Vec<ShopItemEntity>, i64)>", line: 183}),
+//   (n77:Function {name: "exchange_do", type: "function", fqn: "economy_service::shop_service::ShopService::exchange_do", kind: "trait_method", visibility: "private", signature: "fn exchange_do( &self, player_id: String, exchange_id: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<ExchangeDoOutput>", line: 195}),
+//   (n78:Function {name: "exchange_record", type: "function", fqn: "economy_service::shop_service::ShopService::exchange_record", kind: "trait_method", visibility: "private", signature: "fn exchange_record( &self, player_id: String, page: u32, page_size: u32, ) -> Result<(Vec<ShopRecord>, u64)>", line: 213}),
+//   (n79:Function {name: "wish_list", type: "function", fqn: "economy_service::shop_service::ShopService::wish_list", kind: "trait_method", visibility: "private", signature: "fn wish_list( &self, player_id: String, pool_id: i32, ) -> Result<WishListOutput>", line: 229}),
+//   (n80:Function {name: "wish_draw", type: "function", fqn: "economy_service::shop_service::ShopService::wish_draw", kind: "trait_method", visibility: "private", signature: "fn wish_draw( &self, player_id: String, pool_id: i32, count: i32, idempotency_key: String, ) -> Result<WishDrawOutput>", line: 241}),
+//   (n81:Function {name: "wish_reward", type: "function", fqn: "economy_service::shop_service::ShopService::wish_reward", kind: "trait_method", visibility: "private", signature: "fn wish_reward( &self, player_id: String, pool_id: i32, reward_tier: i32, ) -> Result<WishRewardOutput>", line: 257}),
+//   (n82:Function {name: "point_shop_list", type: "function", fqn: "economy_service::shop_service::ShopService::point_shop_list", kind: "trait_method", visibility: "private", signature: "fn point_shop_list( &self, player_id: String, point_type: i32, page: u32, page_size: u32, ) -> Result<(Vec<ShopItemEntity>, i64, u64)>", line: 273}),
+//   (n83:Function {name: "point_shop_buy", type: "function", fqn: "economy_service::shop_service::ShopService::point_shop_buy", kind: "trait_method", visibility: "private", signature: "fn point_shop_buy( &self, player_id: String, point_type: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<PointShopBuyOutput>", line: 289}),
+//   (n84:Function {name: "gift_code_redeem", type: "function", fqn: "economy_service::shop_service::ShopService::gift_code_redeem", kind: "trait_method", visibility: "private", signature: "fn gift_code_redeem( &self, player_id: String, code: String, server_id: i32, idempotency_key: String, ) -> Result<GiftCodeRedeemOutput>", line: 309}),
+//   (n85:Function {name: "gift_code_query", type: "function", fqn: "economy_service::shop_service::ShopService::gift_code_query", kind: "trait_method", visibility: "private", signature: "fn gift_code_query( &self, player_id: String, code: String, server_id: i32, ) -> Result<GiftCodeQueryOutput>", line: 325}),
+//   (n86:Function {name: "loot_roll", type: "function", fqn: "economy_service::shop_service::ShopService::loot_roll", kind: "trait_method", visibility: "private", signature: "fn loot_roll( &self, player_id: String, loot_table_id: i32, roll_count: i32, idempotency_key: String, ) -> Result<LootRollOutput>", line: 341}),
+//   (n87:Function {name: "loot_claim", type: "function", fqn: "economy_service::shop_service::ShopService::loot_claim", kind: "trait_method", visibility: "private", signature: "fn loot_claim( &self, player_id: String, loot_table_id: i32, batch_id: Uuid, ) -> Result<LootClaimOutput>", line: 357}),
+//   (n88:Function {name: "recharge_list", type: "function", fqn: "economy_service::shop_service::RechargeService::recharge_list", kind: "trait_method", visibility: "private", signature: "fn recharge_list( &self, player_id: String, channel: i32, ) -> Result<(Vec<RechargeTierEntity>, bool, i32)>", line: 589}),
+//   (n89:Function {name: "recharge_do", type: "function", fqn: "economy_service::shop_service::RechargeService::recharge_do", kind: "trait_method", visibility: "private", signature: "fn recharge_do( &self, player_id: String, tier_id: i32, channel: i32, idempotency_key: String, ) -> Result<RechargeOrder>", line: 601}),
+//   (n90:Function {name: "recharge_order_query", type: "function", fqn: "economy_service::shop_service::RechargeService::recharge_order_query", kind: "trait_method", visibility: "private", signature: "fn recharge_order_query( &self, player_id: String, order_id: Uuid, ) -> Result<RechargeOrder>", line: 617}),
+//   (n91:Function {name: "recharge_order_finish", type: "function", fqn: "economy_service::shop_service::RechargeService::recharge_order_finish", kind: "trait_method", visibility: "private", signature: "fn recharge_order_finish( &self, player_id: String, order_id: Uuid, channel_receipt: String, idempotency_key: String, ) -> Result<RechargeOrderFinishOutput>", line: 629}),
+//   (n92:Function {name: "monthly_card_info", type: "function", fqn: "economy_service::shop_service::RechargeService::monthly_card_info", kind: "trait_method", visibility: "private", signature: "fn monthly_card_info(&self, player_id: String) -> Result<MonthlyCardInfoOutput>", line: 647}),
+//   (n93:Function {name: "monthly_card_claim", type: "function", fqn: "economy_service::shop_service::RechargeService::monthly_card_claim", kind: "trait_method", visibility: "private", signature: "fn monthly_card_claim( &self, player_id: String, day_index: i32, idempotency_key: String, ) -> Result<MonthlyCardClaimOutput>", line: 651}),
+//   (n94:Function {name: "monthly_card_buy", type: "function", fqn: "economy_service::shop_service::RechargeService::monthly_card_buy", kind: "trait_method", visibility: "private", signature: "fn monthly_card_buy( &self, player_id: String, monthly_card_id: i32, channel: i32, idempotency_key: String, ) -> Result<MonthlyCardBuyOutput>", line: 665}),
+//   (n95:Function {name: "first_recharge_list", type: "function", fqn: "economy_service::shop_service::RechargeService::first_recharge_list", kind: "trait_method", visibility: "private", signature: "fn first_recharge_list(&self, player_id: String) -> Result<FirstRechargeListOutput>", line: 683}),
+//   (n96:Function {name: "first_recharge_claim", type: "function", fqn: "economy_service::shop_service::RechargeService::first_recharge_claim", kind: "trait_method", visibility: "private", signature: "fn first_recharge_claim( &self, player_id: String, tier_id: i32, idempotency_key: String, ) -> Result<FirstRechargeClaimOutput>", line: 687}),
+//   (n97:Function {name: "first_recharge_status", type: "function", fqn: "economy_service::shop_service::RechargeService::first_recharge_status", kind: "trait_method", visibility: "private", signature: "fn first_recharge_status(&self, player_id: String) -> Result<FirstRechargeStatusOutput>", line: 701}),
+//   (n98:Function {name: "power_pack_list", type: "function", fqn: "economy_service::shop_service::RechargeService::power_pack_list", kind: "trait_method", visibility: "private", signature: "fn power_pack_list(&self, player_id: String) -> Result<PowerPackListOutput>", line: 707}),
+//   (n99:Function {name: "power_pack_buy", type: "function", fqn: "economy_service::shop_service::RechargeService::power_pack_buy", kind: "trait_method", visibility: "private", signature: "fn power_pack_buy( &self, player_id: String, pack_id: i32, idempotency_key: String, ) -> Result<PowerPackBuyOutput>", line: 711}),
+//   (n100:Function {name: "growth_fund_list", type: "function", fqn: "economy_service::shop_service::RechargeService::growth_fund_list", kind: "trait_method", visibility: "private", signature: "fn growth_fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>", line: 727}),
+//   (n101:Function {name: "growth_fund_buy", type: "function", fqn: "economy_service::shop_service::RechargeService::growth_fund_buy", kind: "trait_method", visibility: "private", signature: "fn growth_fund_buy( &self, player_id: String, fund_id: i32, idempotency_key: String, ) -> Result<GrowthFundBuyOutput>", line: 731}),
+//   (n102:Function {name: "growth_fund_claim", type: "function", fqn: "economy_service::shop_service::RechargeService::growth_fund_claim", kind: "trait_method", visibility: "private", signature: "fn growth_fund_claim( &self, player_id: String, fund_id: i32, level: i32, idempotency_key: String, ) -> Result<GrowthFundClaimOutput>", line: 745}),
+//   (n103:Function {name: "summon_list", type: "function", fqn: "economy_service::shop_service::SummonService::summon_list", kind: "trait_method", visibility: "private", signature: "fn summon_list(&self, player_id: String) -> Result<(Vec<SummonPoolEntity>, i32, i32)>", line: 951}),
+//   (n104:Function {name: "summon_info", type: "function", fqn: "economy_service::shop_service::SummonService::summon_info", kind: "trait_method", visibility: "private", signature: "fn summon_info( &self, player_id: String, pool_id: i32, ) -> Result<SummonInfoOutput>", line: 955}),
+//   (n105:Function {name: "summon_single_pull", type: "function", fqn: "economy_service::shop_service::SummonService::summon_single_pull", kind: "trait_method", visibility: "private", signature: "fn summon_single_pull( &self, player_id: String, pool_id: i32, idempotency_key: String, ) -> Result<SummonPullOutput>", line: 969}),
+//   (n106:Function {name: "summon_ten_pull", type: "function", fqn: "economy_service::shop_service::SummonService::summon_ten_pull", kind: "trait_method", visibility: "private", signature: "fn summon_ten_pull( &self, player_id: String, pool_id: i32, idempotency_key: String, ) -> Result<SummonTenPullOutput>", line: 985}),
+//   (n107:Function {name: "summon_free", type: "function", fqn: "economy_service::shop_service::SummonService::summon_free", kind: "trait_method", visibility: "private", signature: "fn summon_free( &self, player_id: String, pool_id: i32, idempotency_key: String, ) -> Result<SummonFreeOutput>", line: 999}),
+//   (n108:Function {name: "summon_pity", type: "function", fqn: "economy_service::shop_service::SummonService::summon_pity", kind: "trait_method", visibility: "private", signature: "fn summon_pity(&self, player_id: String, pool_id: i32) -> Result<SummonPityOutput>", line: 1013}),
+//   (n109:Function {name: "summon_share_reward", type: "function", fqn: "economy_service::shop_service::SummonService::summon_share_reward", kind: "trait_method", visibility: "private", signature: "fn summon_share_reward( &self, player_id: String, pool_id: i32, share_target: i32, idempotency_key: String, ) -> Result<SummonShareRewardOutput>", line: 1017}),
+//   (n110:Function {name: "summon_record", type: "function", fqn: "economy_service::shop_service::SummonService::summon_record", kind: "trait_method", visibility: "private", signature: "fn summon_record( &self, player_id: String, pool_id: i32, page: u32, page_size: u32, ) -> Result<(Vec<SummonResultEntity>, u64)>", line: 1033}),
+//   (n111:Function {name: "summon_box_list", type: "function", fqn: "economy_service::shop_service::SummonService::summon_box_list", kind: "trait_method", visibility: "private", signature: "fn summon_box_list( &self, player_id: String, box_id: i32, ) -> Result<SummonBoxListOutput>", line: 1049}),
+//   (n112:Function {name: "summon_box_unlock", type: "function", fqn: "economy_service::shop_service::SummonService::summon_box_unlock", kind: "trait_method", visibility: "private", signature: "fn summon_box_unlock( &self, player_id: String, box_id: i32, idempotency_key: String, ) -> Result<SummonBoxUnlockOutput>", line: 1061}),
+//   (n113:Function {name: "summon_featured_draw", type: "function", fqn: "economy_service::shop_service::SummonService::summon_featured_draw", kind: "trait_method", visibility: "private", signature: "fn summon_featured_draw( &self, player_id: String, pool_id: i32, featured_id: i32, idempotency_key: String, ) -> Result<SummonPullOutput>", line: 1075}),
+//   (n114:Function {name: "summon_reset_pity", type: "function", fqn: "economy_service::shop_service::SummonService::summon_reset_pity", kind: "trait_method", visibility: "private", signature: "fn summon_reset_pity( &self, player_id: String, pool_id: i32, idempotency_key: String, ) -> Result<SummonResetPityOutput>", line: 1091}),
+//   (n115:Function {name: "summon_exchange", type: "function", fqn: "economy_service::shop_service::SummonService::summon_exchange", kind: "trait_method", visibility: "private", signature: "fn summon_exchange( &self, player_id: String, pool_id: i32, from_item_id: i32, to_item_id: i32, idempotency_key: String, ) -> Result<SummonExchangeOutput>", line: 1105}),
+//   (n116:Function {name: "summon_banner_list", type: "function", fqn: "economy_service::shop_service::SummonService::summon_banner_list", kind: "trait_method", visibility: "private", signature: "fn summon_banner_list( &self, player_id: String, ) -> Result<SummonBannerListOutput>", line: 1123}),
+//   (n117:Function {name: "summon_guaranteed_info", type: "function", fqn: "economy_service::shop_service::SummonService::summon_guaranteed_info", kind: "trait_method", visibility: "private", signature: "fn summon_guaranteed_info( &self, player_id: String, pool_id: i32, ) -> Result<SummonGuaranteedInfoOutput>", line: 1133}),
+//   (n118:Function {name: "flash_sale_list", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_list", kind: "trait_method", visibility: "private", signature: "fn flash_sale_list( &self, player_id: String, category: i32, ) -> Result<(Vec<FlashSaleItemEntity>, chrono::DateTime<Utc>)>", line: 1325}),
+//   (n119:Function {name: "flash_sale_info", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_info", kind: "trait_method", visibility: "private", signature: "fn flash_sale_info( &self, player_id: String, flash_sale_id: i32, ) -> Result<FlashSaleInfoOutput>", line: 1337}),
+//   (n120:Function {name: "flash_sale_buy", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_buy", kind: "trait_method", visibility: "private", signature: "fn flash_sale_buy( &self, player_id: String, flash_sale_id: i32, quantity: i32, idempotency_key: String, ) -> Result<FlashSaleBuyOutput>", line: 1349}),
+//   (n121:Function {name: "flash_sale_countdown", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_countdown", kind: "trait_method", visibility: "private", signature: "fn flash_sale_countdown( &self, player_id: String, flash_sale_id: i32, ) -> Result<FlashSaleCountdownOutput>", line: 1365}),
+//   (n122:Function {name: "flash_sale_record", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_record", kind: "trait_method", visibility: "private", signature: "fn flash_sale_record( &self, player_id: String, page: u32, page_size: u32, ) -> Result<(Vec<FlashSaleRecordEntity>, u64)>", line: 1377}),
+//   (n123:Function {name: "flash_sale_subscribe", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_subscribe", kind: "trait_method", visibility: "private", signature: "fn flash_sale_subscribe( &self, player_id: String, flash_sale_id: i32, notify_before_secs: i32, idempotency_key: String, ) -> Result<FlashSaleSubscribeOutput>", line: 1391}),
+//   (n124:Function {name: "flash_sale_hot", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_hot", kind: "trait_method", visibility: "private", signature: "fn flash_sale_hot( &self, player_id: String, top_n: i32, ) -> Result<(Vec<FlashSaleItemEntity>, i64)>", line: 1407}),
+//   (n125:Function {name: "flash_sale_recommend", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_recommend", kind: "trait_method", visibility: "private", signature: "fn flash_sale_recommend( &self, player_id: String, count: i32, ) -> Result<(Vec<FlashSaleItemEntity>, String)>", line: 1419}),
+//   (n126:Function {name: "flash_sale_stock", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_stock", kind: "trait_method", visibility: "private", signature: "fn flash_sale_stock( &self, player_id: String, flash_sale_id: i32, ) -> Result<FlashSaleStockOutput>", line: 1431}),
+//   (n127:Function {name: "flash_sale_claim", type: "function", fqn: "economy_service::shop_service::FlashSaleService::flash_sale_claim", kind: "trait_method", visibility: "private", signature: "fn flash_sale_claim( &self, player_id: String, flash_sale_id: i32, idempotency_key: String, ) -> Result<FlashSaleClaimOutput>", line: 1443}),
+//   (n128:Function {name: "fund_list", type: "function", fqn: "economy_service::shop_service::FundService::fund_list", kind: "trait_method", visibility: "private", signature: "fn fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>", line: 1555}),
+//   (n129:Function {name: "fund_buy", type: "function", fqn: "economy_service::shop_service::FundService::fund_buy", kind: "trait_method", visibility: "private", signature: "fn fund_buy( &self, player_id: String, fund_id: i32, idempotency_key: String, ) -> Result<GrowthFundBuyOutput>", line: 1559}),
+//   (n130:Function {name: "fund_claim", type: "function", fqn: "economy_service::shop_service::FundService::fund_claim", kind: "trait_method", visibility: "private", signature: "fn fund_claim( &self, player_id: String, fund_id: i32, level: i32, idempotency_key: String, ) -> Result<GrowthFundClaimOutput>", line: 1573}),
+//   (n131:Function {name: "fund_status", type: "function", fqn: "economy_service::shop_service::FundService::fund_status", kind: "trait_method", visibility: "private", signature: "fn fund_status( &self, player_id: String, fund_id: i32, ) -> Result<FundStatusOutput>", line: 1589}),
+//   (n132:Function {name: "fund_progress", type: "function", fqn: "economy_service::shop_service::FundService::fund_progress", kind: "trait_method", visibility: "private", signature: "fn fund_progress( &self, player_id: String, fund_id: i32, ) -> Result<FundProgressOutput>", line: 1601}),
+//   (n133:Function {name: "privilege_list", type: "function", fqn: "economy_service::shop_service::FundService::privilege_list", kind: "trait_method", visibility: "private", signature: "fn privilege_list(&self, player_id: String) -> Result<PrivilegeListOutput>", line: 1615}),
+//   (n134:Function {name: "privilege_activate", type: "function", fqn: "economy_service::shop_service::FundService::privilege_activate", kind: "trait_method", visibility: "private", signature: "fn privilege_activate( &self, player_id: String, privilege_id: i32, idempotency_key: String, ) -> Result<PrivilegeActivateOutput>", line: 1619}),
+//   (n135:Function {name: "privilege_buy", type: "function", fqn: "economy_service::shop_service::FundService::privilege_buy", kind: "trait_method", visibility: "private", signature: "fn privilege_buy( &self, player_id: String, privilege_id: i32, channel: i32, idempotency_key: String, ) -> Result<PrivilegeBuyOutput>", line: 1633}),
+//   (n136:Function {name: "privilege_daily", type: "function", fqn: "economy_service::shop_service::FundService::privilege_daily", kind: "trait_method", visibility: "private", signature: "fn privilege_daily( &self, player_id: String, privilege_id: i32, idempotency_key: String, ) -> Result<PrivilegeDailyOutput>", line: 1649}),
+//   (n137:Function {name: "privilege_rewards", type: "function", fqn: "economy_service::shop_service::FundService::privilege_rewards", kind: "trait_method", visibility: "private", signature: "fn privilege_rewards( &self, player_id: String, privilege_id: i32, ) -> Result<PrivilegeRewardsOutput>", line: 1663}),
+//   (n138:Function {name: "activity_list", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_list", kind: "trait_method", visibility: "private", signature: "fn activity_list( &self, player_id: String, page: u32, page_size: u32, active_only: bool, ) -> Result<ActivityListOutput>", line: 1815}),
+//   (n139:Function {name: "activity_claim", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_claim", kind: "trait_method", visibility: "private", signature: "fn activity_claim( &self, player_id: String, activity_id: i32, tier: i32, idempotency_key: String, ) -> Result<ActivityClaimOutput>", line: 1833}),
+//   (n140:Function {name: "activity_template", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_template", kind: "trait_method", visibility: "private", signature: "fn activity_template( &self, player_id: String, activity_id: i32, ) -> Result<ActivityTemplateOutput>", line: 1851}),
+//   (n141:Function {name: "activity_progress", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_progress", kind: "trait_method", visibility: "private", signature: "fn activity_progress( &self, player_id: String, activity_id: i32, progress_delta: i32, source: String, idempotency_key: String, ) -> Result<ActivityProgressOutput>", line: 1865}),
+//   (n142:Function {name: "activity_subscribe", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_subscribe", kind: "trait_method", visibility: "private", signature: "fn activity_subscribe( &self, player_id: String, activity_id: i32, notify_channel: i32, idempotency_key: String, ) -> Result<ActivitySubscribeOutput>", line: 1885}),
+//   (n143:Function {name: "activity_get_by_type", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_get_by_type", kind: "trait_method", visibility: "private", signature: "fn activity_get_by_type( &self, player_id: String, activity_type: i32, page: u32, page_size: u32, ) -> Result<ActivityListOutput>", line: 1917}),
+//   (n144:Function {name: "activity_count_unclaimed_tiers", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_count_unclaimed_tiers", kind: "trait_method", visibility: "private", signature: "fn activity_count_unclaimed_tiers( &self, player_id: String, activity_id: i32, ) -> Result<i32>", line: 1935}),
+//   (n145:Function {name: "activity_get_active_holiday_count", type: "function", fqn: "economy_service::shop_service::ActivityService::activity_get_active_holiday_count", kind: "trait_method", visibility: "private", signature: "fn activity_get_active_holiday_count( &self, player_id: String, ) -> Result<i32>", line: 1951}),
+//   (n146:Function {name: "new", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::new", kind: "method", visibility: "private", signature: "fn new( repo: Arc<tokio::sync::Mutex<InMemoryEconomyV3Repository>>, accounts: Arc<dyn AccountRepository>, ledger: Arc<dyn TransactionLedgerRepository>, ) -> Self", line: 2053}),
+//   (n147:Function {name: "parse_currency", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::parse_currency", kind: "method", visibility: "private", signature: "fn parse_currency(currency: i32) -> Result<Currency>", line: 2079}),
+//   (n148:Function {name: "debit", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::debit", kind: "method", visibility: "private", signature: "fn debit( &self, player_id: &str, amount: i64, currency: i32, idempotency_key: &str, memo: &str, ) -> Result<()>", line: 2099}),
+//   (n149:Function {name: "shop_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::shop_list", kind: "method", visibility: "private", signature: "fn shop_list( &self, _player_id: String, _shop_id: i32, _page: u32, _page_size: u32, ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)>", line: 2195}),
+//   (n150:Function {name: "shop_buy", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::shop_buy", kind: "method", visibility: "private", signature: "fn shop_buy( &self, player_id: String, shop_id: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<ShopBuyOutput>", line: 2217}),
+//   (n151:Function {name: "shop_refresh", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::shop_refresh", kind: "method", visibility: "private", signature: "fn shop_refresh( &self, _player_id: String, _shop_id: i32, _use_currency: bool, ) -> Result<ShopRefreshOutput>", line: 2341}),
+//   (n152:Function {name: "shop_record", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::shop_record", kind: "method", visibility: "private", signature: "fn shop_record( &self, player_id: String, _page: u32, _page_size: u32, ) -> Result<(Vec<ShopRecord>, u64)>", line: 2359}),
+//   (n153:Function {name: "mystery_shop_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::mystery_shop_list", kind: "method", visibility: "private", signature: "fn mystery_shop_list( &self, player_id: String, mystery_shop_id: i32, ) -> Result<MysteryShopListOutput>", line: 2393}),
+//   (n154:Function {name: "mystery_shop_buy", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::mystery_shop_buy", kind: "method", visibility: "private", signature: "fn mystery_shop_buy( &self, _player_id: String, _mystery_shop_id: i32, _item_id: String, _idempotency_key: String, ) -> Result<MysteryShopBuyOutput>", line: 2455}),
+//   (n155:Function {name: "mystery_shop_refresh", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::mystery_shop_refresh", kind: "method", visibility: "private", signature: "fn mystery_shop_refresh( &self, _player_id: String, _mystery_shop_id: i32, ) -> Result<MysteryShopRefreshOutput>", line: 2475}),
+//   (n156:Function {name: "mystery_shop_unlock", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::mystery_shop_unlock", kind: "method", visibility: "private", signature: "fn mystery_shop_unlock( &self, _player_id: String, _mystery_shop_id: i32, ) -> Result<MysteryShopUnlockOutput>", line: 2491}),
+//   (n157:Function {name: "exchange_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::exchange_list", kind: "method", visibility: "private", signature: "fn exchange_list( &self, player_id: String, exchange_id: i32, ) -> Result<(Vec<ShopItemEntity>, i64)>", line: 2507}),
+//   (n158:Function {name: "exchange_do", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::exchange_do", kind: "method", visibility: "private", signature: "fn exchange_do( &self, player_id: String, exchange_id: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<ExchangeDoOutput>", line: 2547}),
+//   (n159:Function {name: "exchange_record", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::exchange_record", kind: "method", visibility: "private", signature: "fn exchange_record( &self, player_id: String, _page: u32, _page_size: u32, ) -> Result<(Vec<ShopRecord>, u64)>", line: 2673}),
+//   (n160:Function {name: "wish_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::wish_list", kind: "method", visibility: "private", signature: "fn wish_list( &self, _player_id: String, _pool_id: i32, ) -> Result<WishListOutput>", line: 2707}),
+//   (n161:Function {name: "wish_draw", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::wish_draw", kind: "method", visibility: "private", signature: "fn wish_draw( &self, _player_id: String, _pool_id: i32, _count: i32, _idempotency_key: String, ) -> Result<WishDrawOutput>", line: 2723}),
+//   (n162:Function {name: "wish_reward", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::wish_reward", kind: "method", visibility: "private", signature: "fn wish_reward( &self, _player_id: String, _pool_id: i32, _reward_tier: i32, ) -> Result<WishRewardOutput>", line: 2743}),
+//   (n163:Function {name: "point_shop_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::point_shop_list", kind: "method", visibility: "private", signature: "fn point_shop_list( &self, player_id: String, point_type: i32, _page: u32, _page_size: u32, ) -> Result<(Vec<ShopItemEntity>, i64, u64)>", line: 2761}),
+//   (n164:Function {name: "point_shop_buy", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::point_shop_buy", kind: "method", visibility: "private", signature: "fn point_shop_buy( &self, player_id: String, point_type: i32, item_id: String, quantity: i32, idempotency_key: String, ) -> Result<PointShopBuyOutput>", line: 2809}),
+//   (n165:Function {name: "gift_code_redeem", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::gift_code_redeem", kind: "method", visibility: "private", signature: "fn gift_code_redeem( &self, player_id: String, code: String, server_id: i32, idempotency_key: String, ) -> Result<GiftCodeRedeemOutput>", line: 2887}),
+//   (n166:Function {name: "gift_code_query", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::gift_code_query", kind: "method", visibility: "private", signature: "fn gift_code_query( &self, _player_id: String, code: String, server_id: i32, ) -> Result<GiftCodeQueryOutput>", line: 3021}),
+//   (n167:Function {name: "loot_roll", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::loot_roll", kind: "method", visibility: "private", signature: "fn loot_roll( &self, player_id: String, loot_table_id: i32, roll_count: i32, _idempotency_key: String, ) -> Result<LootRollOutput>", line: 3081}),
+//   (n168:Function {name: "loot_claim", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::loot_claim", kind: "method", visibility: "private", signature: "fn loot_claim( &self, _player_id: String, _loot_table_id: i32, batch_id: Uuid, ) -> Result<LootClaimOutput>", line: 3233}),
+//   (n169:Function {name: "activity_list", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_list", kind: "method", visibility: "private", signature: "fn activity_list( &self, _player_id: String, page: u32, page_size: u32, active_only: bool, ) -> Result<ActivityListOutput>", line: 3297}),
+//   (n170:Function {name: "activity_claim", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_claim", kind: "method", visibility: "private", signature: "fn activity_claim( &self, player_id: String, activity_id: i32, tier: i32, idempotency_key: String, ) -> Result<ActivityClaimOutput>", line: 3369}),
+//   (n171:Function {name: "activity_template", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_template", kind: "method", visibility: "private", signature: "fn activity_template( &self, player_id: String, activity_id: i32, ) -> Result<ActivityTemplateOutput>", line: 3505}),
+//   (n172:Function {name: "activity_progress", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_progress", kind: "method", visibility: "private", signature: "fn activity_progress( &self, player_id: String, activity_id: i32, progress_delta: i32, source: String, idempotency_key: String, ) -> Result<ActivityProgressOutput>", line: 3561}),
+//   (n173:Function {name: "activity_subscribe", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_subscribe", kind: "method", visibility: "private", signature: "fn activity_subscribe( &self, player_id: String, activity_id: i32, notify_channel: i32, idempotency_key: String, ) -> Result<ActivitySubscribeOutput>", line: 3673}),
+//   (n174:Function {name: "activity_get_by_type", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_get_by_type", kind: "method", visibility: "private", signature: "fn activity_get_by_type( &self, _player_id: String, activity_type: i32, page: u32, page_size: u32, ) -> Result<ActivityListOutput>", line: 3759}),
+//   (n175:Function {name: "activity_count_unclaimed_tiers", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_count_unclaimed_tiers", kind: "method", visibility: "private", signature: "fn activity_count_unclaimed_tiers( &self, player_id: String, activity_id: i32, ) -> Result<i32>", line: 3827}),
+//   (n176:Function {name: "activity_get_active_holiday_count", type: "function", fqn: "economy_service::shop_service::ShopServiceImpl::activity_get_active_holiday_count", kind: "method", visibility: "private", signature: "fn activity_get_active_holiday_count( &self, _player_id: String, ) -> Result<i32>", line: 3877});
+// MERGE (x1:Class {name: "AccountRepository", type: "class"}) ON CREATE SET x1.kind = "trait", x1.decl = "crates/economy-service/src/repository.rs", x1.fqn = "economy_service::repository::AccountRepository";
+// MERGE (x2:Module {name: "std", type: "module"}) ON CREATE SET x2.fqn = "std", x2.kind = "external_crate", x2.imports = "std::sync::Arc, std::vec::Vec::with_capacity, std::string::String::new";
+// MERGE (x3:Class {name: "Currency", type: "class"}) ON CREATE SET x3.kind = "enum", x3.decl = "crates/economy-service/src/entity.rs", x3.fqn = "economy_service::entity::Currency";
+// MERGE (x4:Class {name: "Error", type: "class"}) ON CREATE SET x4.kind = "enum", x4.decl = "crates/economy-service/src/error.rs", x4.fqn = "economy_service::error::Error";
+// MERGE (x5:Module {name: "economy_service", type: "module"}) ON CREATE SET x5.fqn = "economy_service", x5.kind = "external_crate", x5.imports = "economy_service::Result";
+// MERGE (x6:Class {name: "TransactionKind", type: "class"}) ON CREATE SET x6.kind = "enum", x6.decl = "crates/economy-service/src/entity.rs", x6.fqn = "economy_service::entity::TransactionKind";
+// MERGE (x7:Class {name: "TransactionLedger", type: "class"}) ON CREATE SET x7.kind = "struct", x7.decl = "crates/economy-service/src/entity.rs", x7.fqn = "economy_service::entity::TransactionLedger";
+// MERGE (x8:Class {name: "TransactionLedgerRepository", type: "class"}) ON CREATE SET x8.kind = "trait", x8.decl = "crates/economy-service/src/repository.rs", x8.fqn = "economy_service::repository::TransactionLedgerRepository";
+// MERGE (x9:Class {name: "TransactionStatus", type: "class"}) ON CREATE SET x9.kind = "enum", x9.decl = "crates/economy-service/src/entity.rs", x9.fqn = "economy_service::entity::TransactionStatus";
+// MERGE (x10:Module {name: "chrono", type: "module"}) ON CREATE SET x10.fqn = "chrono", x10.kind = "external_crate", x10.imports = "chrono::Utc, chrono::Utc::now";
+// MERGE (x11:Module {name: "uuid", type: "module"}) ON CREATE SET x11.fqn = "uuid", x11.kind = "external_crate", x11.imports = "uuid::Uuid, uuid::Uuid::parse_str, uuid::Uuid::new_v4";
+// MERGE (x12:Module {name: "async_trait", type: "module"}) ON CREATE SET x12.fqn = "async_trait", x12.kind = "external_crate", x12.imports = "async_trait::async_trait";
+// MERGE (x13:Module {name: "core", type: "module"}) ON CREATE SET x13.fqn = "core", x13.kind = "external_crate", x13.imports = "core::result::Result, core::option::Option";
+// MERGE (x14:Function {name: "new", type: "function"}) ON CREATE SET x14.kind = "function", x14.decl = "crates/economy-service/src/entity.rs", x14.fqn = "economy_service::entity::TransactionLedger::new";
+// MERGE (x15:Class {name: "ActivityPlayerState", type: "class"}) ON CREATE SET x15.kind = "struct", x15.decl = "crates/economy-service/src/shop_entity.rs", x15.fqn = "economy_service::shop_entity::ActivityPlayerState";
+// MERGE (x16:Class {name: "ActivityType", type: "class"}) ON CREATE SET x16.kind = "enum", x16.decl = "crates/economy-service/src/shop_entity.rs", x16.fqn = "economy_service::shop_entity::ActivityType";
+// CREATE
+//   (n1)-[:CONTAINS]->(n2),
+//   (n1)-[:CONTAINS]->(n3),
+//   (n1)-[:CONTAINS]->(n4),
+//   (n1)-[:CONTAINS]->(n5),
+//   (n1)-[:CONTAINS]->(n6),
+//   (n1)-[:CONTAINS]->(n7),
+//   (n1)-[:CONTAINS]->(n8),
+//   (n1)-[:CONTAINS]->(n9),
+//   (n1)-[:CONTAINS]->(n10),
+//   (n1)-[:CONTAINS]->(n11),
+//   (n1)-[:CONTAINS]->(n12),
+//   (n1)-[:CONTAINS]->(n13),
+//   (n1)-[:CONTAINS]->(n14),
+//   (n1)-[:CONTAINS]->(n15),
+//   (n1)-[:CONTAINS]->(n16),
+//   (n1)-[:CONTAINS]->(n17),
+//   (n1)-[:CONTAINS]->(n18),
+//   (n1)-[:CONTAINS]->(n19),
+//   (n1)-[:CONTAINS]->(n20),
+//   (n1)-[:CONTAINS]->(n21),
+//   (n1)-[:CONTAINS]->(n22),
+//   (n1)-[:CONTAINS]->(n23),
+//   (n1)-[:CONTAINS]->(n24),
+//   (n1)-[:CONTAINS]->(n25),
+//   (n1)-[:CONTAINS]->(n26),
+//   (n1)-[:CONTAINS]->(n27),
+//   (n1)-[:CONTAINS]->(n28),
+//   (n1)-[:CONTAINS]->(n29),
+//   (n1)-[:CONTAINS]->(n30),
+//   (n1)-[:CONTAINS]->(n31),
+//   (n1)-[:CONTAINS]->(n32),
+//   (n1)-[:CONTAINS]->(n33),
+//   (n1)-[:CONTAINS]->(n34),
+//   (n1)-[:CONTAINS]->(n35),
+//   (n1)-[:CONTAINS]->(n36),
+//   (n1)-[:CONTAINS]->(n37),
+//   (n1)-[:CONTAINS]->(n38),
+//   (n1)-[:CONTAINS]->(n39),
+//   (n1)-[:CONTAINS]->(n40),
+//   (n1)-[:CONTAINS]->(n41),
+//   (n1)-[:CONTAINS]->(n42),
+//   (n1)-[:CONTAINS]->(n43),
+//   (n1)-[:CONTAINS]->(n44),
+//   (n1)-[:CONTAINS]->(n45),
+//   (n1)-[:CONTAINS]->(n46),
+//   (n1)-[:CONTAINS]->(n47),
+//   (n1)-[:CONTAINS]->(n48),
+//   (n1)-[:CONTAINS]->(n49),
+//   (n1)-[:CONTAINS]->(n50),
+//   (n1)-[:CONTAINS]->(n51),
+//   (n1)-[:CONTAINS]->(n52),
+//   (n1)-[:CONTAINS]->(n53),
+//   (n1)-[:CONTAINS]->(n54),
+//   (n1)-[:CONTAINS]->(n55),
+//   (n1)-[:CONTAINS]->(n56),
+//   (n1)-[:CONTAINS]->(n57),
+//   (n1)-[:CONTAINS]->(n58),
+//   (n1)-[:CONTAINS]->(n59),
+//   (n1)-[:CONTAINS]->(n60),
+//   (n1)-[:CONTAINS]->(n61),
+//   (n1)-[:CONTAINS]->(n62),
+//   (n1)-[:CONTAINS]->(n63),
+//   (n1)-[:CONTAINS]->(n64),
+//   (n1)-[:CONTAINS]->(n65),
+//   (n1)-[:CONTAINS]->(n66),
+//   (n1)-[:CONTAINS]->(n67),
+//   (n2)-[:HAS_METHOD]->(n68),
+//   (n2)-[:HAS_METHOD]->(n69),
+//   (n2)-[:HAS_METHOD]->(n70),
+//   (n2)-[:HAS_METHOD]->(n71),
+//   (n2)-[:HAS_METHOD]->(n72),
+//   (n2)-[:HAS_METHOD]->(n73),
+//   (n2)-[:HAS_METHOD]->(n74),
+//   (n2)-[:HAS_METHOD]->(n75),
+//   (n2)-[:HAS_METHOD]->(n76),
+//   (n2)-[:HAS_METHOD]->(n77),
+//   (n2)-[:HAS_METHOD]->(n78),
+//   (n2)-[:HAS_METHOD]->(n79),
+//   (n2)-[:HAS_METHOD]->(n80),
+//   (n2)-[:HAS_METHOD]->(n81),
+//   (n2)-[:HAS_METHOD]->(n82),
+//   (n2)-[:HAS_METHOD]->(n83),
+//   (n2)-[:HAS_METHOD]->(n84),
+//   (n2)-[:HAS_METHOD]->(n85),
+//   (n2)-[:HAS_METHOD]->(n86),
+//   (n2)-[:HAS_METHOD]->(n87),
+//   (n18)-[:HAS_METHOD]->(n88),
+//   (n18)-[:HAS_METHOD]->(n89),
+//   (n18)-[:HAS_METHOD]->(n90),
+//   (n18)-[:HAS_METHOD]->(n91),
+//   (n18)-[:HAS_METHOD]->(n92),
+//   (n18)-[:HAS_METHOD]->(n93),
+//   (n18)-[:HAS_METHOD]->(n94),
+//   (n18)-[:HAS_METHOD]->(n95),
+//   (n18)-[:HAS_METHOD]->(n96),
+//   (n18)-[:HAS_METHOD]->(n97),
+//   (n18)-[:HAS_METHOD]->(n98),
+//   (n18)-[:HAS_METHOD]->(n99),
+//   (n18)-[:HAS_METHOD]->(n100),
+//   (n18)-[:HAS_METHOD]->(n101),
+//   (n18)-[:HAS_METHOD]->(n102),
+//   (n31)-[:HAS_METHOD]->(n103),
+//   (n31)-[:HAS_METHOD]->(n104),
+//   (n31)-[:HAS_METHOD]->(n105),
+//   (n31)-[:HAS_METHOD]->(n106),
+//   (n31)-[:HAS_METHOD]->(n107),
+//   (n31)-[:HAS_METHOD]->(n108),
+//   (n31)-[:HAS_METHOD]->(n109),
+//   (n31)-[:HAS_METHOD]->(n110),
+//   (n31)-[:HAS_METHOD]->(n111),
+//   (n31)-[:HAS_METHOD]->(n112),
+//   (n31)-[:HAS_METHOD]->(n113),
+//   (n31)-[:HAS_METHOD]->(n114),
+//   (n31)-[:HAS_METHOD]->(n115),
+//   (n31)-[:HAS_METHOD]->(n116),
+//   (n31)-[:HAS_METHOD]->(n117),
+//   (n44)-[:HAS_METHOD]->(n118),
+//   (n44)-[:HAS_METHOD]->(n119),
+//   (n44)-[:HAS_METHOD]->(n120),
+//   (n44)-[:HAS_METHOD]->(n121),
+//   (n44)-[:HAS_METHOD]->(n122),
+//   (n44)-[:HAS_METHOD]->(n123),
+//   (n44)-[:HAS_METHOD]->(n124),
+//   (n44)-[:HAS_METHOD]->(n125),
+//   (n44)-[:HAS_METHOD]->(n126),
+//   (n44)-[:HAS_METHOD]->(n127),
+//   (n51)-[:HAS_METHOD]->(n128),
+//   (n51)-[:HAS_METHOD]->(n129),
+//   (n51)-[:HAS_METHOD]->(n130),
+//   (n51)-[:HAS_METHOD]->(n131),
+//   (n51)-[:HAS_METHOD]->(n132),
+//   (n51)-[:HAS_METHOD]->(n133),
+//   (n51)-[:HAS_METHOD]->(n134),
+//   (n51)-[:HAS_METHOD]->(n135),
+//   (n51)-[:HAS_METHOD]->(n136),
+//   (n51)-[:HAS_METHOD]->(n137),
+//   (n61)-[:HAS_METHOD]->(n138),
+//   (n61)-[:HAS_METHOD]->(n139),
+//   (n61)-[:HAS_METHOD]->(n140),
+//   (n61)-[:HAS_METHOD]->(n141),
+//   (n61)-[:HAS_METHOD]->(n142),
+//   (n61)-[:HAS_METHOD]->(n143),
+//   (n61)-[:HAS_METHOD]->(n144),
+//   (n61)-[:HAS_METHOD]->(n145),
+//   (n67)-[:HAS_METHOD]->(n146),
+//   (n67)-[:HAS_METHOD]->(n147),
+//   (n67)-[:HAS_METHOD]->(n148),
+//   (n67)-[:HAS_METHOD]->(n149),
+//   (n67)-[:HAS_METHOD]->(n150),
+//   (n67)-[:HAS_METHOD]->(n151),
+//   (n67)-[:HAS_METHOD]->(n152),
+//   (n67)-[:HAS_METHOD]->(n153),
+//   (n67)-[:HAS_METHOD]->(n154),
+//   (n67)-[:HAS_METHOD]->(n155),
+//   (n67)-[:HAS_METHOD]->(n156),
+//   (n67)-[:HAS_METHOD]->(n157),
+//   (n67)-[:HAS_METHOD]->(n158),
+//   (n67)-[:HAS_METHOD]->(n159),
+//   (n67)-[:HAS_METHOD]->(n160),
+//   (n67)-[:HAS_METHOD]->(n161),
+//   (n67)-[:HAS_METHOD]->(n162),
+//   (n67)-[:HAS_METHOD]->(n163),
+//   (n67)-[:HAS_METHOD]->(n164),
+//   (n67)-[:HAS_METHOD]->(n165),
+//   (n67)-[:HAS_METHOD]->(n166),
+//   (n67)-[:HAS_METHOD]->(n167),
+//   (n67)-[:HAS_METHOD]->(n168),
+//   (n67)-[:HAS_METHOD]->(n169),
+//   (n67)-[:HAS_METHOD]->(n170),
+//   (n67)-[:HAS_METHOD]->(n171),
+//   (n67)-[:HAS_METHOD]->(n172),
+//   (n67)-[:HAS_METHOD]->(n173),
+//   (n67)-[:HAS_METHOD]->(n174),
+//   (n67)-[:HAS_METHOD]->(n175),
+//   (n67)-[:HAS_METHOD]->(n176),
+//   (n1)-[:USES, import: "economy_service::repository::AccountRepository"]->(x1),
+//   (n1)-[:USES, import: "std::sync::Arc"]->(x2),
+//   (n1)-[:USES, import: "economy_service::entity::Currency"]->(x3),
+//   (n1)-[:USES, import: "economy_service::error::Error"]->(x4),
+//   (n1)-[:USES, import: "economy_service::Result"]->(x5),
+//   (n1)-[:USES, import: "economy_service::entity::TransactionKind"]->(x6),
+//   (n1)-[:USES, import: "economy_service::entity::TransactionLedger"]->(x7),
+//   (n1)-[:USES, import: "economy_service::repository::TransactionLedgerRepository"]->(x8),
+//   (n1)-[:USES, import: "economy_service::entity::TransactionStatus"]->(x9),
+//   (n1)-[:USES, import: "chrono::Utc"]->(x10),
+//   (n1)-[:USES, import: "uuid::Uuid"]->(x11),
+//   (n1)-[:USES, import: "async_trait::async_trait"]->(x12),
+//   (n147)-[:USES, via: "core::result::Result"]->(x13),
+//   (n147)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n148)-[:USES, via: "core::result::Result"]->(x13),
+//   (n148)-[:USES, via: "uuid::Uuid::parse_str"]->(x11),
+//   (n148)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n148)-[:CALLS, via: "economy_service::entity::TransactionLedger::new"]->(x14),
+//   (n148)-[:USES, via: "core::option::Option"]->(x13),
+//   (n149)-[:USES, via: "core::result::Result"]->(x13),
+//   (n149)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n150)-[:USES, via: "core::result::Result"]->(x13),
+//   (n150)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n150)-[:USES, via: "uuid::Uuid::new_v4"]->(x11),
+//   (n150)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n151)-[:USES, via: "core::result::Result"]->(x13),
+//   (n151)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n152)-[:USES, via: "core::result::Result"]->(x13),
+//   (n153)-[:USES, via: "core::result::Result"]->(x13),
+//   (n153)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n154)-[:USES, via: "core::result::Result"]->(x13),
+//   (n154)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n155)-[:USES, via: "core::result::Result"]->(x13),
+//   (n155)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n156)-[:USES, via: "core::result::Result"]->(x13),
+//   (n156)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n157)-[:USES, via: "core::result::Result"]->(x13),
+//   (n158)-[:USES, via: "core::result::Result"]->(x13),
+//   (n158)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n158)-[:USES, via: "uuid::Uuid::new_v4"]->(x11),
+//   (n158)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n159)-[:USES, via: "core::result::Result"]->(x13),
+//   (n160)-[:USES, via: "core::result::Result"]->(x13),
+//   (n160)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n161)-[:USES, via: "core::result::Result"]->(x13),
+//   (n161)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n162)-[:USES, via: "core::result::Result"]->(x13),
+//   (n162)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n163)-[:USES, via: "core::result::Result"]->(x13),
+//   (n164)-[:USES, via: "core::result::Result"]->(x13),
+//   (n164)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n165)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n165)-[:USES, via: "core::result::Result"]->(x13),
+//   (n165)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n165)-[:USES, via: "core::option::Option"]->(x13),
+//   (n166)-[:USES, via: "core::option::Option"]->(x13),
+//   (n166)-[:USES, via: "core::result::Result"]->(x13),
+//   (n167)-[:USES, via: "core::result::Result"]->(x13),
+//   (n167)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n167)-[:USES, via: "std::vec::Vec::with_capacity"]->(x2),
+//   (n167)-[:USES, via: "uuid::Uuid::new_v4"]->(x11),
+//   (n167)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n168)-[:USES, via: "core::result::Result"]->(x13),
+//   (n168)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n169)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n169)-[:USES, via: "core::result::Result"]->(x13),
+//   (n170)-[:USES, via: "core::result::Result"]->(x13),
+//   (n170)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n170)-[:USES, via: "economy_service::shop_entity::ActivityPlayerState"]->(x15),
+//   (n170)-[:USES, via: "std::string::String::new"]->(x2),
+//   (n171)-[:USES, via: "economy_service::shop_entity::ActivityPlayerState"]->(x15),
+//   (n171)-[:USES, via: "std::string::String::new"]->(x2),
+//   (n171)-[:USES, via: "core::result::Result"]->(x13),
+//   (n172)-[:USES, via: "core::result::Result"]->(x13),
+//   (n172)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n172)-[:USES, via: "economy_service::shop_entity::ActivityPlayerState"]->(x15),
+//   (n173)-[:USES, via: "core::result::Result"]->(x13),
+//   (n173)-[:USES, via: "economy_service::error::Error"]->(x4),
+//   (n173)-[:USES, via: "economy_service::shop_entity::ActivityPlayerState"]->(x15),
+//   (n174)-[:USES, via: "economy_service::shop_entity::ActivityType"]->(x16),
+//   (n174)-[:USES, via: "core::result::Result"]->(x13),
+//   (n175)-[:USES, via: "economy_service::shop_entity::ActivityPlayerState"]->(x15),
+//   (n175)-[:USES, via: "std::string::String::new"]->(x2),
+//   (n175)-[:USES, via: "core::result::Result"]->(x13),
+//   (n176)-[:USES, via: "chrono::Utc::now"]->(x10),
+//   (n176)-[:USES, via: "core::result::Result"]->(x13);
+// ```
+// ==== END CYPHER HEADER ====
+//! economy-service 商店 + 抽卡 + 限时 + 充值 + 基金/特权 + 活动 Service
+
+//!
+
+//! v3 增量 (per [游戏A]借鉴路线图 2026-09-05 Phase 2, economy + 商城 90 RPC).
+
+//!
+
+//! 设计要点:
+
+//! - 数据驱动反例 (per 9/4 MD §4): 9 个 holiday_* 活动运营 → 1 套 ActivityService + 配置
+
+//!   不写 9 套 holiday_request/_response, 用 1 套通用 ActivityTemplate + 1 套 player state
+
+//!   业务逻辑在 trait + impl 共享, 配置从 ActivityTemplate 加载
+
+//! - 抽卡复用 TCG 抽卡 (OpenPack) 模式, 单套 + pity 计数
+
+//! - 限时/FlashSale 倒计时 + 库存 + 玩家购买上限
+
+//! - 充值/首充/月卡/基金走 EconomyServiceImpl 已有的 apply_atomic_with_reservation 模式
+
+//! - 真实业务逻辑: 至少 30 RPC 含真实逻辑 (含抽卡 / 拍卖行 / 限时 / 充值 / 月卡 / 基金 / 活动)
+
+//! - 其余 60+ RPC stub Unimplemented (待 Phase 2 follow-up)
+
+
+
+use crate::entity::{Currency, TransactionKind, TransactionLedger, TransactionStatus};
+
+use crate::error::Error;
+
+use crate::repository::{AccountRepository, TransactionLedgerRepository};
+
+use crate::shop_entity::*;
+
+use crate::Result;
+
+
+
+use async_trait::async_trait;
+
+use chrono::Utc;
+
+use std::sync::Arc;
+
+use uuid::Uuid;
+
+
+
+// ============================================================================
+
+// 商店类 (20 RPC) Service trait
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+pub trait ShopService: Send + Sync {
+
+    // 通用商店 (4)
+
+    async fn shop_list(
+
+        &self,
+
+        player_id: String,
+
+        shop_id: i32,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)>;
+
+
+
+    async fn shop_buy(
+
+        &self,
+
+        player_id: String,
+
+        shop_id: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ShopBuyOutput>;
+
+
+
+    async fn shop_refresh(
+
+        &self,
+
+        player_id: String,
+
+        shop_id: i32,
+
+        use_currency: bool,
+
+    ) -> Result<ShopRefreshOutput>;
+
+
+
+    async fn shop_record(
+
+        &self,
+
+        player_id: String,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<ShopRecord>, u64)>;
+
+
+
+    // 神秘商店 (4)
+
+    async fn mystery_shop_list(
+
+        &self,
+
+        player_id: String,
+
+        mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopListOutput>;
+
+
+
+    async fn mystery_shop_buy(
+
+        &self,
+
+        player_id: String,
+
+        mystery_shop_id: i32,
+
+        item_id: String,
+
+        idempotency_key: String,
+
+    ) -> Result<MysteryShopBuyOutput>;
+
+
+
+    async fn mystery_shop_refresh(
+
+        &self,
+
+        player_id: String,
+
+        mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopRefreshOutput>;
+
+
+
+    async fn mystery_shop_unlock(
+
+        &self,
+
+        player_id: String,
+
+        mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopUnlockOutput>;
+
+
+
+    // 兑换 (3)
+
+    async fn exchange_list(
+
+        &self,
+
+        player_id: String,
+
+        exchange_id: i32,
+
+    ) -> Result<(Vec<ShopItemEntity>, i64)>;
+
+
+
+    async fn exchange_do(
+
+        &self,
+
+        player_id: String,
+
+        exchange_id: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ExchangeDoOutput>;
+
+
+
+    async fn exchange_record(
+
+        &self,
+
+        player_id: String,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<ShopRecord>, u64)>;
+
+
+
+    // 神格许愿 (3)
+
+    async fn wish_list(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+    ) -> Result<WishListOutput>;
+
+
+
+    async fn wish_draw(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        count: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<WishDrawOutput>;
+
+
+
+    async fn wish_reward(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        reward_tier: i32,
+
+    ) -> Result<WishRewardOutput>;
+
+
+
+    // 积分商城 (2)
+
+    async fn point_shop_list(
+
+        &self,
+
+        player_id: String,
+
+        point_type: i32,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<ShopItemEntity>, i64, u64)>;
+
+
+
+    async fn point_shop_buy(
+
+        &self,
+
+        player_id: String,
+
+        point_type: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PointShopBuyOutput>;
+
+
+
+    // 礼包码 (2)
+
+    async fn gift_code_redeem(
+
+        &self,
+
+        player_id: String,
+
+        code: String,
+
+        server_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GiftCodeRedeemOutput>;
+
+
+
+    async fn gift_code_query(
+
+        &self,
+
+        player_id: String,
+
+        code: String,
+
+        server_id: i32,
+
+    ) -> Result<GiftCodeQueryOutput>;
+
+
+
+    // 战利品 (2)
+
+    async fn loot_roll(
+
+        &self,
+
+        player_id: String,
+
+        loot_table_id: i32,
+
+        roll_count: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<LootRollOutput>;
+
+
+
+    async fn loot_claim(
+
+        &self,
+
+        player_id: String,
+
+        loot_table_id: i32,
+
+        batch_id: Uuid,
+
+    ) -> Result<LootClaimOutput>;
+
+}
+
+
+
+// 输出结构 (商店类 20 RPC)
+
+#[derive(Debug, Clone)]
+
+pub struct ShopBuyOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+    pub remaining_stock: i32,
+
+    pub remaining_player_limit: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ShopRefreshOutput {
+
+    pub new_items: Vec<ShopItemEntity>,
+
+    pub refreshed_at: chrono::DateTime<Utc>,
+
+    pub cost_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MysteryShopListOutput {
+
+    pub items: Vec<ShopItemEntity>,
+
+    pub refresh_count: i32,
+
+    pub refreshed_at: chrono::DateTime<Utc>,
+
+    pub unlock_level: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MysteryShopBuyOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+    pub remaining_refresh_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MysteryShopRefreshOutput {
+
+    pub new_items: Vec<ShopItemEntity>,
+
+    pub refresh_count: i32,
+
+    pub cost_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MysteryShopUnlockOutput {
+
+    pub unlocked: bool,
+
+    pub unlocked_at: chrono::DateTime<Utc>,
+
+    pub cost_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ExchangeDoOutput {
+
+    pub success: bool,
+
+    pub cost_points: i64,
+
+    pub remaining_player_limit: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct WishListOutput {
+
+    pub pool_items: Vec<ShopItemEntity>,
+
+    pub free_count: i32,
+
+    pub next_free_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct WishDrawOutput {
+
+    pub drawn_item_ids: Vec<String>,
+
+    pub four_star_count: i32,
+
+    pub five_star_count: i32,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct WishRewardOutput {
+
+    pub claimed: bool,
+
+    pub cost_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PointShopBuyOutput {
+
+    pub success: bool,
+
+    pub cost_points: i64,
+
+    pub remaining_points: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct GiftCodeRedeemOutput {
+
+    pub success: bool,
+
+    pub error_msg: String,
+
+    pub rewards: Vec<ShopItemEntity>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct GiftCodeQueryOutput {
+
+    pub exists: bool,
+
+    pub code: String,
+
+    pub reward_template: String,
+
+    pub valid_from: Option<chrono::DateTime<Utc>>,
+
+    pub valid_to: Option<chrono::DateTime<Utc>>,
+
+    pub max_uses: i32,
+
+    pub current_uses: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct LootRollOutput {
+
+    pub rolled_item_ids: Vec<String>,
+
+    pub rare_count: i32,
+
+    pub epic_count: i32,
+
+    pub legendary_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct LootClaimOutput {
+
+    pub success: bool,
+
+    pub items: Vec<ShopItemEntity>,
+
+}
+
+
+
+// ============================================================================
+
+// 充值类 (15 RPC) Service trait
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+pub trait RechargeService: Send + Sync {
+
+    // 充值 (4)
+
+    async fn recharge_list(
+
+        &self,
+
+        player_id: String,
+
+        channel: i32,
+
+    ) -> Result<(Vec<RechargeTierEntity>, bool, i32)>;
+
+
+
+    async fn recharge_do(
+
+        &self,
+
+        player_id: String,
+
+        tier_id: i32,
+
+        channel: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<RechargeOrder>;
+
+
+
+    async fn recharge_order_query(
+
+        &self,
+
+        player_id: String,
+
+        order_id: Uuid,
+
+    ) -> Result<RechargeOrder>;
+
+
+
+    async fn recharge_order_finish(
+
+        &self,
+
+        player_id: String,
+
+        order_id: Uuid,
+
+        channel_receipt: String,
+
+        idempotency_key: String,
+
+    ) -> Result<RechargeOrderFinishOutput>;
+
+
+
+    // 月卡 (3)
+
+    async fn monthly_card_info(&self, player_id: String) -> Result<MonthlyCardInfoOutput>;
+
+
+
+    async fn monthly_card_claim(
+
+        &self,
+
+        player_id: String,
+
+        day_index: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<MonthlyCardClaimOutput>;
+
+
+
+    async fn monthly_card_buy(
+
+        &self,
+
+        player_id: String,
+
+        monthly_card_id: i32,
+
+        channel: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<MonthlyCardBuyOutput>;
+
+
+
+    // 首充 (3)
+
+    async fn first_recharge_list(&self, player_id: String) -> Result<FirstRechargeListOutput>;
+
+
+
+    async fn first_recharge_claim(
+
+        &self,
+
+        player_id: String,
+
+        tier_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<FirstRechargeClaimOutput>;
+
+
+
+    async fn first_recharge_status(&self, player_id: String) -> Result<FirstRechargeStatusOutput>;
+
+
+
+    // 战力 (2)
+
+    async fn power_pack_list(&self, player_id: String) -> Result<PowerPackListOutput>;
+
+
+
+    async fn power_pack_buy(
+
+        &self,
+
+        player_id: String,
+
+        pack_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PowerPackBuyOutput>;
+
+
+
+    // 基金 (3)
+
+    async fn growth_fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>;
+
+
+
+    async fn growth_fund_buy(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GrowthFundBuyOutput>;
+
+
+
+    async fn growth_fund_claim(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+        level: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GrowthFundClaimOutput>;
+
+}
+
+
+
+#[derive(Debug, Clone)]
+
+pub struct RechargeOrderFinishOutput {
+
+    pub success: bool,
+
+    pub currency_amount: i64,
+
+    pub bonus_amount: i64,
+
+    pub first_bonus_amount: i64,
+
+    pub total_credit: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MonthlyCardInfoOutput {
+
+    pub owned: bool,
+
+    pub activated_at: Option<chrono::DateTime<Utc>>,
+
+    pub expires_at: Option<chrono::DateTime<Utc>>,
+
+    pub daily_reward: i32,
+
+    pub daily_currency: i64,
+
+    pub days_claimed: i32,
+
+    pub total_days: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MonthlyCardClaimOutput {
+
+    pub success: bool,
+
+    pub currency_amount: i64,
+
+    pub remaining_days: i32,
+
+    pub next_claim_at: Option<chrono::DateTime<Utc>>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct MonthlyCardBuyOutput {
+
+    pub success: bool,
+
+    pub order_id: Uuid,
+
+    pub cost_cents: i64,
+
+    pub activated_at: chrono::DateTime<Utc>,
+
+    pub expires_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FirstRechargeListOutput {
+
+    pub tiers: Vec<RechargeTierEntity>,
+
+    pub claimed_count: i32,
+
+    pub total_count: i32,
+
+    pub total_bonus: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FirstRechargeClaimOutput {
+
+    pub success: bool,
+
+    pub bonus_amount: i64,
+
+    pub remaining_tiers: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FirstRechargeStatusOutput {
+
+    pub any_recharged: bool,
+
+    pub total_recharged_tiers: i32,
+
+    pub total_spent_cents: i64,
+
+    pub claimed_tier_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PowerPackListOutput {
+
+    pub packs: Vec<ShopItemEntity>,
+
+    pub current_power_rank: i32,
+
+    pub next_reward_power: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PowerPackBuyOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub new_power_rank: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct GrowthFundListOutput {
+
+    pub tiers: Vec<FundTierEntity>,
+
+    pub max_level: i32,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+    pub owned: bool,
+
+    pub expires_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct GrowthFundBuyOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub activated_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct GrowthFundClaimOutput {
+
+    pub success: bool,
+
+    pub reward_amount: i64,
+
+    pub reward_currency: i32,
+
+    pub next_claim_level: i32,
+
+}
+
+
+
+// ============================================================================
+
+// 抽卡类 (15 RPC) Service trait - 复用 TCG 抽卡模式
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+pub trait SummonService: Send + Sync {
+
+    async fn summon_list(&self, player_id: String) -> Result<(Vec<SummonPoolEntity>, i32, i32)>;
+
+
+
+    async fn summon_info(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+    ) -> Result<SummonInfoOutput>;
+
+
+
+    /// 单抽 (per TCG OpenPack 单包模式)
+
+    async fn summon_single_pull(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonPullOutput>;
+
+
+
+    /// 十连 (per TCG OpenPack 多包模式, 至少 1 个 4 星保底)
+
+    async fn summon_ten_pull(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonTenPullOutput>;
+
+
+
+    async fn summon_free(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonFreeOutput>;
+
+
+
+    async fn summon_pity(&self, player_id: String, pool_id: i32) -> Result<SummonPityOutput>;
+
+
+
+    async fn summon_share_reward(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        share_target: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonShareRewardOutput>;
+
+
+
+    async fn summon_record(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<SummonResultEntity>, u64)>;
+
+
+
+    async fn summon_box_list(
+
+        &self,
+
+        player_id: String,
+
+        box_id: i32,
+
+    ) -> Result<SummonBoxListOutput>;
+
+
+
+    async fn summon_box_unlock(
+
+        &self,
+
+        player_id: String,
+
+        box_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonBoxUnlockOutput>;
+
+
+
+    async fn summon_featured_draw(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        featured_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonPullOutput>;
+
+
+
+    async fn summon_reset_pity(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonResetPityOutput>;
+
+
+
+    async fn summon_exchange(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+        from_item_id: i32,
+
+        to_item_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<SummonExchangeOutput>;
+
+
+
+    async fn summon_banner_list(
+
+        &self,
+
+        player_id: String,
+
+    ) -> Result<SummonBannerListOutput>;
+
+
+
+    async fn summon_guaranteed_info(
+
+        &self,
+
+        player_id: String,
+
+        pool_id: i32,
+
+    ) -> Result<SummonGuaranteedInfoOutput>;
+
+}
+
+
+
+#[derive(Debug, Clone)]
+
+pub struct SummonInfoOutput {
+
+    pub pool: SummonPoolEntity,
+
+    pub player_pity_count: i32,
+
+    pub player_four_star_count: i32,
+
+    pub player_five_star_count: i32,
+
+    pub free_remaining: i32,
+
+    pub next_free_at: chrono::DateTime<Utc>,
+
+    pub total_pulls: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonPullOutput {
+
+    pub result: SummonResultEntity,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonTenPullOutput {
+
+    pub results: Vec<SummonResultEntity>,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+    pub rarity_4_count: i32,
+
+    pub rarity_5_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonFreeOutput {
+
+    pub result: SummonResultEntity,
+
+    pub available: bool,
+
+    pub next_free_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonPityOutput {
+
+    pub current_count: i32,
+
+    pub pity_threshold: i32,
+
+    pub guaranteed_remaining: i32,
+
+    pub next_featured_pity: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonShareRewardOutput {
+
+    pub success: bool,
+
+    pub reward_amount: i64,
+
+    pub remaining_shares: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonBoxListOutput {
+
+    pub box_items: Vec<ShopItemEntity>,
+
+    pub unlock_progress: i32,
+
+    pub unlock_required: i32,
+
+    pub unlocked: bool,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonBoxUnlockOutput {
+
+    pub success: bool,
+
+    pub rewards: Vec<ShopItemEntity>,
+
+    pub remaining_boxes: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonResetPityOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub new_pity_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonExchangeOutput {
+
+    pub success: bool,
+
+    pub shards_remaining: i32,
+
+    pub cost_currency: i32,
+
+    pub cost_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonBannerListOutput {
+
+    pub featured: Vec<SummonPoolEntity>,
+
+    pub standard: Vec<SummonPoolEntity>,
+
+    pub event: Vec<SummonPoolEntity>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct SummonGuaranteedInfoOutput {
+
+    pub guaranteed_active: bool,
+
+    pub guaranteed_type: i32,
+
+    pub guaranteed_remaining: i32,
+
+    pub featured_id: String,
+
+}
+
+
+
+// ============================================================================
+
+// 限时/FlashSale (10 RPC) Service trait
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+pub trait FlashSaleService: Send + Sync {
+
+    async fn flash_sale_list(
+
+        &self,
+
+        player_id: String,
+
+        category: i32,
+
+    ) -> Result<(Vec<FlashSaleItemEntity>, chrono::DateTime<Utc>)>;
+
+
+
+    async fn flash_sale_info(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+    ) -> Result<FlashSaleInfoOutput>;
+
+
+
+    async fn flash_sale_buy(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<FlashSaleBuyOutput>;
+
+
+
+    async fn flash_sale_countdown(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+    ) -> Result<FlashSaleCountdownOutput>;
+
+
+
+    async fn flash_sale_record(
+
+        &self,
+
+        player_id: String,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<(Vec<FlashSaleRecordEntity>, u64)>;
+
+
+
+    async fn flash_sale_subscribe(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+        notify_before_secs: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<FlashSaleSubscribeOutput>;
+
+
+
+    async fn flash_sale_hot(
+
+        &self,
+
+        player_id: String,
+
+        top_n: i32,
+
+    ) -> Result<(Vec<FlashSaleItemEntity>, i64)>;
+
+
+
+    async fn flash_sale_recommend(
+
+        &self,
+
+        player_id: String,
+
+        count: i32,
+
+    ) -> Result<(Vec<FlashSaleItemEntity>, String)>;
+
+
+
+    async fn flash_sale_stock(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+    ) -> Result<FlashSaleStockOutput>;
+
+
+
+    async fn flash_sale_claim(
+
+        &self,
+
+        player_id: String,
+
+        flash_sale_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<FlashSaleClaimOutput>;
+
+}
+
+
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleInfoOutput {
+
+    pub item: FlashSaleItemEntity,
+
+    pub player_bought_count: i32,
+
+    pub player_limit: i32,
+
+    pub remaining_secs: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleBuyOutput {
+
+    pub success: bool,
+
+    pub cost_amount: i64,
+
+    pub cost_currency: i32,
+
+    pub remaining_stock: i32,
+
+    pub player_remaining_limit: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleCountdownOutput {
+
+    pub remaining_secs: i64,
+
+    pub ends_at: chrono::DateTime<Utc>,
+
+    pub sold: i32,
+
+    pub stock: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleSubscribeOutput {
+
+    pub subscribed: bool,
+
+    pub subscribe_id: Uuid,
+
+    pub notify_before_secs: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleStockOutput {
+
+    pub stock: i32,
+
+    pub sold: i32,
+
+    pub remaining_secs: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FlashSaleClaimOutput {
+
+    pub claimed: bool,
+
+    pub reward_amount: i64,
+
+    pub reward_currency: i32,
+
+    pub remaining_claims: i32,
+
+}
+
+
+
+// ============================================================================
+
+// 基金/特权 (10 RPC) Service trait
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+pub trait FundService: Send + Sync {
+
+    async fn fund_list(&self, player_id: String, fund_id: i32) -> Result<GrowthFundListOutput>;
+
+
+
+    async fn fund_buy(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GrowthFundBuyOutput>;
+
+
+
+    async fn fund_claim(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+        level: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GrowthFundClaimOutput>;
+
+
+
+    async fn fund_status(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+    ) -> Result<FundStatusOutput>;
+
+
+
+    async fn fund_progress(
+
+        &self,
+
+        player_id: String,
+
+        fund_id: i32,
+
+    ) -> Result<FundProgressOutput>;
+
+
+
+    // 特权 (5)
+
+    async fn privilege_list(&self, player_id: String) -> Result<PrivilegeListOutput>;
+
+
+
+    async fn privilege_activate(
+
+        &self,
+
+        player_id: String,
+
+        privilege_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PrivilegeActivateOutput>;
+
+
+
+    async fn privilege_buy(
+
+        &self,
+
+        player_id: String,
+
+        privilege_id: i32,
+
+        channel: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PrivilegeBuyOutput>;
+
+
+
+    async fn privilege_daily(
+
+        &self,
+
+        player_id: String,
+
+        privilege_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PrivilegeDailyOutput>;
+
+
+
+    async fn privilege_rewards(
+
+        &self,
+
+        player_id: String,
+
+        privilege_id: i32,
+
+    ) -> Result<PrivilegeRewardsOutput>;
+
+}
+
+
+
+#[derive(Debug, Clone)]
+
+pub struct FundStatusOutput {
+
+    pub owned: bool,
+
+    pub current_level: i32,
+
+    pub max_level: i32,
+
+    pub claimed_count: i32,
+
+    pub total_claimed: i32,
+
+    pub expires_at: Option<chrono::DateTime<Utc>>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct FundProgressOutput {
+
+    pub current_level: i32,
+
+    pub current_xp: i32,
+
+    pub xp_to_next: i32,
+
+    pub unclaimed_amount: i64,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeListOutput {
+
+    pub items: Vec<PrivilegeListItem>,
+
+    pub player_active_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeListItem {
+
+    pub item: PrivilegeItemEntity,
+
+    pub owned: bool,
+
+    pub expires_at: Option<chrono::DateTime<Utc>>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeActivateOutput {
+
+    pub success: bool,
+
+    pub activated_at: chrono::DateTime<Utc>,
+
+    pub expires_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeBuyOutput {
+
+    pub success: bool,
+
+    pub order_id: Uuid,
+
+    pub cost_cents: i64,
+
+    pub activated_at: chrono::DateTime<Utc>,
+
+    pub expires_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeDailyOutput {
+
+    pub claimed: bool,
+
+    pub reward_amount: i64,
+
+    pub reward_currency: i32,
+
+    pub next_claim_at: chrono::DateTime<Utc>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeRewardsOutput {
+
+    pub entries: Vec<PrivilegeRewardEntryOut>,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct PrivilegeRewardEntryOut {
+
+    pub day: i32,
+
+    pub claimed: bool,
+
+    pub reward_amount: i64,
+
+    pub reward_currency: i32,
+
+    pub available: bool,
+
+}
+
+
+
+// ============================================================================
+
+// 活动 (5 RPC) Service trait - 数据驱动核心
+
+// ============================================================================
+
+
+
+/// 活动 Service trait (per 9/4 MD §4 反例: 1 套而非 9 套 holiday_*)
+
+#[async_trait]
+
+pub trait ActivityService: Send + Sync {
+
+    /// 列出所有可见活动 (用模板 + 玩家状态合并)
+
+    async fn activity_list(
+
+        &self,
+
+        player_id: String,
+
+        page: u32,
+
+        page_size: u32,
+
+        active_only: bool,
+
+    ) -> Result<ActivityListOutput>;
+
+
+
+    /// 领取活动奖励 tier
+
+    async fn activity_claim(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        tier: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivityClaimOutput>;
+
+
+
+    /// 查询活动详情 + 玩家进度
+
+    async fn activity_template(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+    ) -> Result<ActivityTemplateOutput>;
+
+
+
+    /// 进度增量上报
+
+    async fn activity_progress(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        progress_delta: i32,
+
+        source: String,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivityProgressOutput>;
+
+
+
+    /// 订阅活动通知
+
+    async fn activity_subscribe(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        notify_channel: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivitySubscribeOutput>;
+
+
+
+    // =========================================================================
+
+    // W41 增广度: 3 个数据驱动 helper method
+
+    // 用模板 + ActivityType 索引提供 9 holiday_* 运营数据访问
+
+    // 不暴露新 gRPC RPC, 仅作为 ActivityService trait 内部 helper
+
+    // =========================================================================
+
+
+
+    /// 按 ActivityType 过滤活动 (page/page_size 分页)
+
+    /// 配合 9 holiday_* 模板使用: activity_get_by_type(player, Holiday, 0, 10) → 9 个 holiday
+
+    async fn activity_get_by_type(
+
+        &self,
+
+        player_id: String,
+
+        activity_type: i32,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<ActivityListOutput>;
+
+
+
+    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
+
+    async fn activity_count_unclaimed_tiers(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+    ) -> Result<i32>;
+
+
+
+    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
+
+    /// activity_type == Holiday + enabled + now in [starts_at, ends_at]
+
+    async fn activity_get_active_holiday_count(
+
+        &self,
+
+        player_id: String,
+
+    ) -> Result<i32>;
+
+}
+
+
+
+#[derive(Debug, Clone)]
+
+pub struct ActivityListOutput {
+
+    pub templates: Vec<ActivityTemplateEntity>,
+
+    pub total: i32,
+
+    pub active_count: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ActivityClaimOutput {
+
+    pub success: bool,
+
+    pub reward_amount: i64,
+
+    pub reward_currency: i32,
+
+    pub remaining_tiers: i32,
+
+    pub error_msg: String,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ActivityTemplateOutput {
+
+    pub template: ActivityTemplateEntity,
+
+    pub player_progress: i32,
+
+    pub claimed_tiers: Vec<i32>,
+
+    pub subscribed: bool,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ActivityProgressOutput {
+
+    pub new_progress: i32,
+
+    pub tier_unlocked: bool,
+
+    pub new_unlocked_tier: i32,
+
+}
+
+#[derive(Debug, Clone)]
+
+pub struct ActivitySubscribeOutput {
+
+    pub subscribed: bool,
+
+    pub notify_channel: i32,
+
+    pub subscriber_count: i32,
+
+}
+
+
+
+// ============================================================================
+
+// ShopServiceImpl - 真实业务实现 (含抽卡 / 限时 / 充值 / 兑换 / 活动 / 基金)
+
+// ============================================================================
+
+
+
+pub struct ShopServiceImpl {
+
+    pub repo: Arc<tokio::sync::Mutex<InMemoryEconomyV3Repository>>,
+
+    pub accounts: Arc<dyn AccountRepository>,
+
+    pub ledger: Arc<dyn TransactionLedgerRepository>,
+
+}
+
+
+
+impl ShopServiceImpl {
+
+    pub fn new(
+
+        repo: Arc<tokio::sync::Mutex<InMemoryEconomyV3Repository>>,
+
+        accounts: Arc<dyn AccountRepository>,
+
+        ledger: Arc<dyn TransactionLedgerRepository>,
+
+    ) -> Self {
+
+        Self {
+
+            repo,
+
+            accounts,
+
+            ledger,
+
+        }
+
+    }
+
+
+
+    /// 货币类型转换
+
+    fn parse_currency(currency: i32) -> Result<Currency> {
+
+        match currency {
+
+            1 => Ok(Currency::Gold),
+
+            2 => Ok(Currency::Diamond),
+
+            3 => Ok(Currency::Token),
+
+            _ => Err(Error::Validation(format!("unknown currency: {}", currency))),
+
+        }
+
+    }
+
+
+
+    /// 内部 helper: 扣货币 + 写账目
+
+    async fn debit(
+
+        &self,
+
+        player_id: &str,
+
+        amount: i64,
+
+        currency: i32,
+
+        idempotency_key: &str,
+
+        memo: &str,
+
+    ) -> Result<()> {
+
+        if amount <= 0 {
+
+            return Ok(());
+
+        }
+
+        let currency_e = Self::parse_currency(currency)?;
+
+        let player_uuid = Uuid::parse_str(player_id).map_err(|_| {
+
+            Error::Validation(format!("invalid player uuid: {}", player_id))
+
+        })?;
+
+        let account = self
+
+            .accounts
+
+            .find_by_player_and_currency(player_uuid, currency_e)
+
+            .await?
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "Account",
+
+                id: format!("{}-{:?}", player_id, currency_e),
+
+            })?;
+
+        let mut updated = account.clone();
+
+        if !updated.try_debit(amount) {
+
+            return Err(Error::InsufficientFunds {
+
+                account_id: account.id.to_string(),
+
+                balance: account.balance,
+
+                required: amount,
+
+            });
+
+        }
+
+        let mut entry = TransactionLedger::new(
+
+            updated.id,
+
+            -amount,
+
+            currency_e,
+
+            TransactionKind::Spend,
+
+            idempotency_key.to_string(),
+
+        );
+
+        entry.status = TransactionStatus::Confirmed;
+
+        entry.memo = Some(memo.to_string());
+
+        self.accounts.apply_atomic(&updated, &entry).await?;
+
+        Ok(())
+
+    }
+
+}
+
+
+
+// 商店类 20 RPC 实现 - 至少 8 个真实业务逻辑 (ShopList/ShopBuy/ShopRefresh/MysteryShopList/ExchangeDo/WishDraw/GiftCodeRedeem/LootRoll)
+
+#[async_trait]
+
+impl ShopService for ShopServiceImpl {
+
+    async fn shop_list(
+
+        &self,
+
+        _player_id: String,
+
+        _shop_id: i32,
+
+        _page: u32,
+
+        _page_size: u32,
+
+    ) -> Result<(Vec<ShopItemEntity>, ShopRefreshState, u64)> {
+
+        // TODO: 真实实现
+
+        Err(Error::Unimplemented("shop_list".to_string()))
+
+    }
+
+
+
+    async fn shop_buy(
+
+        &self,
+
+        player_id: String,
+
+        shop_id: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ShopBuyOutput> {
+
+        // 真实逻辑: 扣货币 + 写账目 + 扣库存
+
+        if quantity <= 0 {
+
+            return Err(Error::Validation("quantity must be > 0".to_string()));
+
+        }
+
+        let repo = self.repo.lock().await;
+
+        let key = (shop_id, item_id.clone());
+
+        let item = repo.shop_items.get(&key).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "ShopItem",
+
+                id: format!("{}-{}", shop_id, item_id),
+
+            }
+
+        })?;
+
+        if item.stock >= 0 && item.stock < quantity {
+
+            return Err(Error::Conflict(format!("stock {} < {}", item.stock, quantity)));
+
+        }
+
+        // 幂等: 用 ledger idempotency_key
+
+        if self
+
+            .ledger
+
+            .find_by_idempotency_key(&idempotency_key)
+
+            .await?
+
+            .is_some()
+
+        {
+
+            return Err(Error::IdempotencyConflict(idempotency_key));
+
+        }
+
+        let cost = item.price_amount * quantity as i64;
+
+        drop(repo);
+
+        self.debit(&player_id, cost, item.price_currency, &idempotency_key, "shop_buy").await?;
+
+        let mut repo = self.repo.lock().await;
+
+        let entry = ShopRecord {
+
+            record_id: Uuid::new_v4(),
+
+            player_id: player_id.clone(),
+
+            shop_id,
+
+            item_id: item_id.clone(),
+
+            quantity,
+
+            cost_amount: cost,
+
+            cost_currency: item.price_currency,
+
+            bought_at: Utc::now(),
+
+        };
+
+        repo.shop_records.push(entry);
+
+        let new_stock = if item.stock < 0 { -1 } else { item.stock - quantity };
+
+        let new_item = ShopItemEntity {
+
+            stock: new_stock,
+
+            ..item.clone()
+
+        };
+
+        repo.shop_items.insert(key, new_item);
+
+        Ok(ShopBuyOutput {
+
+            success: true,
+
+            cost_amount: cost,
+
+            cost_currency: item.price_currency,
+
+            remaining_stock: new_stock,
+
+            remaining_player_limit: 0, // TODO: per-player limit tracking
+
+        })
+
+    }
+
+
+
+    async fn shop_refresh(
+
+        &self,
+
+        _player_id: String,
+
+        _shop_id: i32,
+
+        _use_currency: bool,
+
+    ) -> Result<ShopRefreshOutput> {
+
+        Err(Error::Unimplemented("shop_refresh".to_string()))
+
+    }
+
+
+
+    async fn shop_record(
+
+        &self,
+
+        player_id: String,
+
+        _page: u32,
+
+        _page_size: u32,
+
+    ) -> Result<(Vec<ShopRecord>, u64)> {
+
+        let repo = self.repo.lock().await;
+
+        let filtered: Vec<ShopRecord> = repo
+
+            .shop_records
+
+            .iter()
+
+            .filter(|r| r.player_id == player_id)
+
+            .cloned()
+
+            .collect();
+
+        let total = filtered.len() as u64;
+
+        Ok((filtered, total))
+
+    }
+
+
+
+    async fn mystery_shop_list(
+
+        &self,
+
+        player_id: String,
+
+        mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopListOutput> {
+
+        let repo = self.repo.lock().await;
+
+        let shop = repo.mystery_shops.get(&mystery_shop_id).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "MysteryShop",
+
+                id: mystery_shop_id.to_string(),
+
+            }
+
+        })?;
+
+        let state = repo
+
+            .mystery_states
+
+            .get(&(player_id.clone(), mystery_shop_id))
+
+            .cloned()
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "MysteryShopState",
+
+                id: format!("{}-{}", player_id, mystery_shop_id),
+
+            })?;
+
+        if !state.unlocked {
+
+            return Err(Error::Forbidden("mystery shop not unlocked".to_string()));
+
+        }
+
+        Ok(MysteryShopListOutput {
+
+            items: state.current_items.clone(),
+
+            refresh_count: state.refresh_count,
+
+            refreshed_at: state.refreshed_at,
+
+            unlock_level: shop.unlock_level,
+
+        })
+
+    }
+
+
+
+    async fn mystery_shop_buy(
+
+        &self,
+
+        _player_id: String,
+
+        _mystery_shop_id: i32,
+
+        _item_id: String,
+
+        _idempotency_key: String,
+
+    ) -> Result<MysteryShopBuyOutput> {
+
+        Err(Error::Unimplemented("mystery_shop_buy".to_string()))
+
+    }
+
+
+
+    async fn mystery_shop_refresh(
+
+        &self,
+
+        _player_id: String,
+
+        _mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopRefreshOutput> {
+
+        Err(Error::Unimplemented("mystery_shop_refresh".to_string()))
+
+    }
+
+
+
+    async fn mystery_shop_unlock(
+
+        &self,
+
+        _player_id: String,
+
+        _mystery_shop_id: i32,
+
+    ) -> Result<MysteryShopUnlockOutput> {
+
+        Err(Error::Unimplemented("mystery_shop_unlock".to_string()))
+
+    }
+
+
+
+    async fn exchange_list(
+
+        &self,
+
+        player_id: String,
+
+        exchange_id: i32,
+
+    ) -> Result<(Vec<ShopItemEntity>, i64)> {
+
+        let repo = self.repo.lock().await;
+
+        let shop = repo.exchange_shops.get(&exchange_id).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "ExchangeShop",
+
+                id: exchange_id.to_string(),
+
+            }
+
+        })?;
+
+        let points = repo
+
+            .player_points
+
+            .get(&(player_id, shop.cost_currency))
+
+            .map(|p| p.balance)
+
+            .unwrap_or(0);
+
+        Ok((shop.items, points))
+
+    }
+
+
+
+    async fn exchange_do(
+
+        &self,
+
+        player_id: String,
+
+        exchange_id: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ExchangeDoOutput> {
+
+        // 真实逻辑: 扣积分 + 写账目
+
+        if quantity <= 0 {
+
+            return Err(Error::Validation("quantity must be > 0".to_string()));
+
+        }
+
+        let mut repo = self.repo.lock().await;
+
+        let shop = repo.exchange_shops.get(&exchange_id).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "ExchangeShop",
+
+                id: exchange_id.to_string(),
+
+            }
+
+        })?;
+
+        let item = shop
+
+            .items
+
+            .iter()
+
+            .find(|i| i.item_id == item_id)
+
+            .cloned()
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "ShopItem",
+
+                id: item_id.clone(),
+
+            })?;
+
+        let cost = item.price_amount * quantity as i64;
+
+        let points = repo
+
+            .player_points
+
+            .entry((player_id.clone(), shop.cost_currency))
+
+            .or_insert(PlayerPoints {
+
+                player_id: player_id.clone(),
+
+                point_type: shop.cost_currency,
+
+                balance: 0,
+
+            });
+
+        if points.balance < cost {
+
+            return Err(Error::InsufficientFunds {
+
+                account_id: format!("{}-points-{}", player_id, shop.cost_currency),
+
+                balance: points.balance,
+
+                required: cost,
+
+            });
+
+        }
+
+        points.balance -= cost;
+
+        repo.shop_records.push(ShopRecord {
+
+            record_id: Uuid::new_v4(),
+
+            player_id: player_id.clone(),
+
+            shop_id: exchange_id,
+
+            item_id: item_id.clone(),
+
+            quantity,
+
+            cost_amount: cost,
+
+            cost_currency: shop.cost_currency,
+
+            bought_at: Utc::now(),
+
+        });
+
+        let _ = idempotency_key; // TODO: idempotency persistence
+
+        Ok(ExchangeDoOutput {
+
+            success: true,
+
+            cost_points: cost,
+
+            remaining_player_limit: 0,
+
+        })
+
+    }
+
+
+
+    async fn exchange_record(
+
+        &self,
+
+        player_id: String,
+
+        _page: u32,
+
+        _page_size: u32,
+
+    ) -> Result<(Vec<ShopRecord>, u64)> {
+
+        let repo = self.repo.lock().await;
+
+        let filtered: Vec<ShopRecord> = repo
+
+            .shop_records
+
+            .iter()
+
+            .filter(|r| r.player_id == player_id)
+
+            .cloned()
+
+            .collect();
+
+        let total = filtered.len() as u64;
+
+        Ok((filtered, total))
+
+    }
+
+
+
+    async fn wish_list(
+
+        &self,
+
+        _player_id: String,
+
+        _pool_id: i32,
+
+    ) -> Result<WishListOutput> {
+
+        Err(Error::Unimplemented("wish_list".to_string()))
+
+    }
+
+
+
+    async fn wish_draw(
+
+        &self,
+
+        _player_id: String,
+
+        _pool_id: i32,
+
+        _count: i32,
+
+        _idempotency_key: String,
+
+    ) -> Result<WishDrawOutput> {
+
+        Err(Error::Unimplemented("wish_draw".to_string()))
+
+    }
+
+
+
+    async fn wish_reward(
+
+        &self,
+
+        _player_id: String,
+
+        _pool_id: i32,
+
+        _reward_tier: i32,
+
+    ) -> Result<WishRewardOutput> {
+
+        Err(Error::Unimplemented("wish_reward".to_string()))
+
+    }
+
+
+
+    async fn point_shop_list(
+
+        &self,
+
+        player_id: String,
+
+        point_type: i32,
+
+        _page: u32,
+
+        _page_size: u32,
+
+    ) -> Result<(Vec<ShopItemEntity>, i64, u64)> {
+
+        let repo = self.repo.lock().await;
+
+        let points = repo
+
+            .player_points
+
+            .get(&(player_id.clone(), point_type))
+
+            .map(|p| p.balance)
+
+            .unwrap_or(0);
+
+        // 找使用此 point_type 的所有 exchange shop 的 items
+
+        let items: Vec<ShopItemEntity> = repo
+
+            .exchange_shops
+
+            .values()
+
+            .filter(|s| s.cost_currency == point_type)
+
+            .flat_map(|s| s.items.clone())
+
+            .collect();
+
+        let total = items.len() as u64;
+
+        Ok((items, points, total))
+
+    }
+
+
+
+    async fn point_shop_buy(
+
+        &self,
+
+        player_id: String,
+
+        point_type: i32,
+
+        item_id: String,
+
+        quantity: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<PointShopBuyOutput> {
+
+        if quantity <= 0 {
+
+            return Err(Error::Validation("quantity must be > 0".to_string()));
+
+        }
+
+        // 复用 exchange_do 模式
+
+        let exchange_id = {
+
+            let repo = self.repo.lock().await;
+
+            repo.exchange_shops
+
+                .values()
+
+                .find(|s| s.cost_currency == point_type && s.items.iter().any(|i| i.item_id == item_id))
+
+                .map(|s| s.exchange_id)
+
+                .ok_or_else(|| Error::NotFound {
+
+                    entity: "PointShopItem",
+
+                    id: format!("{}-{}", point_type, item_id),
+
+                })?
+
+        };
+
+        let out = self
+
+            .exchange_do(player_id.clone(), exchange_id, item_id, quantity, idempotency_key)
+
+            .await?;
+
+        let repo = self.repo.lock().await;
+
+        let remaining = repo
+
+            .player_points
+
+            .get(&(player_id, point_type))
+
+            .map(|p| p.balance)
+
+            .unwrap_or(0);
+
+        Ok(PointShopBuyOutput {
+
+            success: out.success,
+
+            cost_points: out.cost_points,
+
+            remaining_points: remaining,
+
+        })
+
+    }
+
+
+
+    async fn gift_code_redeem(
+
+        &self,
+
+        player_id: String,
+
+        code: String,
+
+        server_id: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<GiftCodeRedeemOutput> {
+
+        // 真实逻辑: 校验码 + 检查使用次数 + 检查玩家重复
+
+        let mut repo = self.repo.lock().await;
+
+        let key = (code.clone(), server_id);
+
+        let gift = repo.gift_codes.get(&key).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "GiftCode",
+
+                id: format!("{}-{}", code, server_id),
+
+            }
+
+        })?;
+
+        let now = Utc::now();
+
+        if now < gift.valid_from || now > gift.valid_to {
+
+            return Ok(GiftCodeRedeemOutput {
+
+                success: false,
+
+                error_msg: "expired".to_string(),
+
+                rewards: vec![],
+
+            });
+
+        }
+
+        if gift.current_uses >= gift.max_uses {
+
+            return Ok(GiftCodeRedeemOutput {
+
+                success: false,
+
+                error_msg: "max_uses_reached".to_string(),
+
+                rewards: vec![],
+
+            });
+
+        }
+
+        if repo
+
+            .gift_redemptions
+
+            .iter()
+
+            .any(|r| r.code == code && r.server_id == server_id && r.player_id == player_id)
+
+        {
+
+            return Ok(GiftCodeRedeemOutput {
+
+                success: false,
+
+                error_msg: "already_used".to_string(),
+
+                rewards: vec![],
+
+            });
+
+        }
+
+        // 幂等
+
+        if self
+
+            .ledger
+
+            .find_by_idempotency_key(&idempotency_key)
+
+            .await?
+
+            .is_some()
+
+        {
+
+            return Err(Error::IdempotencyConflict(idempotency_key));
+
+        }
+
+        repo.gift_redemptions.push(GiftCodeRedemption {
+
+            code: code.clone(),
+
+            player_id: player_id.clone(),
+
+            server_id,
+
+            redeemed_at: now,
+
+        });
+
+        if let Some(g) = repo.gift_codes.get_mut(&key) {
+
+            g.current_uses += 1;
+
+        }
+
+        Ok(GiftCodeRedeemOutput {
+
+            success: true,
+
+            error_msg: "".to_string(),
+
+            rewards: vec![], // 真实发放走 game-mail module, 留空
+
+        })
+
+    }
+
+
+
+    async fn gift_code_query(
+
+        &self,
+
+        _player_id: String,
+
+        code: String,
+
+        server_id: i32,
+
+    ) -> Result<GiftCodeQueryOutput> {
+
+        let repo = self.repo.lock().await;
+
+        let key = (code.clone(), server_id);
+
+        match repo.gift_codes.get(&key) {
+
+            Some(g) => Ok(GiftCodeQueryOutput {
+
+                exists: true,
+
+                code: g.code.clone(),
+
+                reward_template: g.reward_template.clone(),
+
+                valid_from: Some(g.valid_from),
+
+                valid_to: Some(g.valid_to),
+
+                max_uses: g.max_uses,
+
+                current_uses: g.current_uses,
+
+            }),
+
+            None => Ok(GiftCodeQueryOutput {
+
+                exists: false,
+
+                code,
+
+                reward_template: "".to_string(),
+
+                valid_from: None,
+
+                valid_to: None,
+
+                max_uses: 0,
+
+                current_uses: 0,
+
+            }),
+
+        }
+
+    }
+
+
+
+    async fn loot_roll(
+
+        &self,
+
+        player_id: String,
+
+        loot_table_id: i32,
+
+        roll_count: i32,
+
+        _idempotency_key: String,
+
+    ) -> Result<LootRollOutput> {
+
+        // 真实逻辑: 加权随机抽取
+
+        if roll_count <= 0 {
+
+            return Err(Error::Validation("roll_count must be > 0".to_string()));
+
+        }
+
+        let mut repo = self.repo.lock().await;
+
+        let table = repo.loot_tables.get(&loot_table_id).cloned().ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "LootTable",
+
+                id: loot_table_id.to_string(),
+
+            }
+
+        })?;
+
+        if table.entries.is_empty() {
+
+            return Err(Error::Validation("empty loot table".to_string()));
+
+        }
+
+        let total_weight: i32 = table.entries.iter().map(|e| e.weight).sum();
+
+        let mut rolled = Vec::with_capacity(roll_count as usize);
+
+        let mut rare = 0;
+
+        let mut epic = 0;
+
+        let mut legendary = 0;
+
+        // 简单 LCG RNG (测试用, 不引入 rand)
+
+        let mut seed: u64 = {
+
+            let bytes = player_id.as_bytes();
+
+            let mut h: u64 = 0xcbf29ce484222325;
+
+            for b in bytes {
+
+                h = h.wrapping_mul(0x100000001b3) ^ (*b as u64);
+
+            }
+
+            h
+
+        };
+
+        for _ in 0..roll_count {
+
+            // next() LCG
+
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+
+            let pick = (seed >> 33) as i32 % total_weight;
+
+            let mut acc = 0;
+
+            let mut chosen = &table.entries[0];
+
+            for e in &table.entries {
+
+                acc += e.weight;
+
+                if pick < acc {
+
+                    chosen = e;
+
+                    break;
+
+                }
+
+            }
+
+            rolled.push(chosen.item_id.clone());
+
+            if chosen.rarity >= 3 {
+
+                rare += 1;
+
+            }
+
+            if chosen.rarity >= 4 {
+
+                epic += 1;
+
+            }
+
+            if chosen.rarity >= 5 {
+
+                legendary += 1;
+
+            }
+
+        }
+
+        let batch = LootBatch {
+
+            batch_id: Uuid::new_v4(),
+
+            player_id: player_id.clone(),
+
+            loot_table_id,
+
+            rolled_items: rolled.clone(),
+
+            claimed: false,
+
+            rolled_at: Utc::now(),
+
+        };
+
+        repo.loot_batches.insert(batch.batch_id, batch);
+
+        Ok(LootRollOutput {
+
+            rolled_item_ids: rolled,
+
+            rare_count: rare,
+
+            epic_count: epic,
+
+            legendary_count: legendary,
+
+        })
+
+    }
+
+
+
+    async fn loot_claim(
+
+        &self,
+
+        _player_id: String,
+
+        _loot_table_id: i32,
+
+        batch_id: Uuid,
+
+    ) -> Result<LootClaimOutput> {
+
+        let mut repo = self.repo.lock().await;
+
+        let batch = repo.loot_batches.get_mut(&batch_id).ok_or_else(|| {
+
+            Error::NotFound {
+
+                entity: "LootBatch",
+
+                id: batch_id.to_string(),
+
+            }
+
+        })?;
+
+        if batch.claimed {
+
+            return Err(Error::Conflict("already claimed".to_string()));
+
+        }
+
+        batch.claimed = true;
+
+        Ok(LootClaimOutput {
+
+            success: true,
+
+            items: vec![], // 真实发放走 inventory module
+
+        })
+
+    }
+
+}
+
+
+
+// ============================================================================
+
+// 活动 (8 RPC) impl ActivityService for ShopServiceImpl — W41 增广度
+
+// 数据驱动: 9 holiday_* 活动 → 1 套 ActivityService + ActivityType + 模板 (per 9/4 MD §4)
+
+// ============================================================================
+
+
+
+#[async_trait]
+
+impl ActivityService for ShopServiceImpl {
+
+    /// 列出所有可见活动 (用模板 + 玩家状态合并)
+
+    async fn activity_list(
+
+        &self,
+
+        _player_id: String,
+
+        page: u32,
+
+        page_size: u32,
+
+        active_only: bool,
+
+    ) -> Result<ActivityListOutput> {
+
+        let repo = self.repo.lock().await;
+
+        let now = Utc::now();
+
+        let page_size = if page_size == 0 { 20 } else { page_size };
+
+        let mut templates: Vec<ActivityTemplateEntity> = repo
+
+            .activity_templates
+
+            .values()
+
+            .filter(|t| {
+
+                t.enabled && (!active_only || (now >= t.starts_at && now <= t.ends_at))
+
+            })
+
+            .cloned()
+
+            .collect();
+
+        templates.sort_by_key(|t| t.activity_id);
+
+        let total = templates.len() as i32;
+
+        let active_count = templates.len() as i32;
+
+        let start = (page as usize).saturating_mul(page_size as usize);
+
+        let end = (start + page_size as usize).min(templates.len());
+
+        let slice = if start < templates.len() {
+
+            templates[start..end].to_vec()
+
+        } else {
+
+            vec![]
+
+        };
+
+        Ok(ActivityListOutput {
+
+            templates: slice,
+
+            total,
+
+            active_count,
+
+        })
+
+    }
+
+
+
+    /// 领取活动奖励 tier
+
+    async fn activity_claim(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        tier: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivityClaimOutput> {
+
+        // 幂等: 用 ledger idempotency_key
+
+        if self
+
+            .ledger
+
+            .find_by_idempotency_key(&idempotency_key)
+
+            .await?
+
+            .is_some()
+
+        {
+
+            return Err(Error::IdempotencyConflict(idempotency_key));
+
+        }
+
+        let mut repo = self.repo.lock().await;
+
+        // 校验活动存在 (template 仅用作存在性校验, 业务字段用 tiers)
+
+        if !repo.activity_templates.contains_key(&activity_id) {
+
+            return Err(Error::NotFound {
+
+                entity: "ActivityTemplate",
+
+                id: activity_id.to_string(),
+
+            });
+
+        }
+
+        let tiers = repo
+
+            .activity_reward_tiers
+
+            .get(&activity_id)
+
+            .cloned()
+
+            .unwrap_or_default();
+
+        let target = tiers
+
+            .iter()
+
+            .find(|t| t.tier == tier)
+
+            .cloned()
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "ActivityRewardTier",
+
+                id: format!("{}-{}", activity_id, tier),
+
+            })?;
+
+        let state = repo
+
+            .activity_player_states
+
+            .entry((player_id.clone(), activity_id))
+
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+
+        if state.progress < target.progress_required {
+
+            return Err(Error::Validation(format!(
+
+                "progress {} < required {}",
+
+                state.progress, target.progress_required
+
+            )));
+
+        }
+
+        if state.claimed_tiers.contains(&tier) {
+
+            return Ok(ActivityClaimOutput {
+
+                success: false,
+
+                reward_amount: 0,
+
+                reward_currency: 0,
+
+                remaining_tiers: state.claimed_tiers.len() as i32,
+
+                error_msg: "tier_already_claimed".to_string(),
+
+            });
+
+        }
+
+        state.claimed_tiers.push(tier);
+
+        let remaining = tiers.len() as i32 - state.claimed_tiers.len() as i32;
+
+        Ok(ActivityClaimOutput {
+
+            success: true,
+
+            reward_amount: target.reward_amount,
+
+            reward_currency: target.reward_currency,
+
+            remaining_tiers: remaining,
+
+            error_msg: String::new(),
+
+        })
+
+    }
+
+
+
+    /// 查询活动详情 + 玩家进度
+
+    async fn activity_template(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+    ) -> Result<ActivityTemplateOutput> {
+
+        let repo = self.repo.lock().await;
+
+        let template = repo
+
+            .activity_templates
+
+            .get(&activity_id)
+
+            .cloned()
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "ActivityTemplate",
+
+                id: activity_id.to_string(),
+
+            })?;
+
+        let state = repo
+
+            .activity_player_states
+
+            .get(&(player_id, activity_id))
+
+            .cloned()
+
+            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
+
+        Ok(ActivityTemplateOutput {
+
+            template,
+
+            player_progress: state.progress,
+
+            claimed_tiers: state.claimed_tiers,
+
+            subscribed: state.subscribed,
+
+        })
+
+    }
+
+
+
+    /// 进度增量上报 (per idempotency_key 幂等)
+
+    async fn activity_progress(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        progress_delta: i32,
+
+        source: String,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivityProgressOutput> {
+
+        if progress_delta < 0 {
+
+            return Err(Error::Validation("progress_delta must be >= 0".to_string()));
+
+        }
+
+        // 幂等检查 (ULYS-97 fix): 用 v3 repo 内的 activity_idempotency_keys,
+
+        // 而非 ledger — ledger 表 schema 要求 account_id NOT NULL REFERENCES accounts,
+
+        // 但 activity_progress 是玩家级别操作, 不绑特定账户.
+
+        let mut repo = self.repo.lock().await;
+
+        if repo.activity_idempotency_keys.contains(&idempotency_key) {
+
+            return Err(Error::IdempotencyConflict(idempotency_key));
+
+        }
+
+        let template = repo
+
+            .activity_templates
+
+            .get(&activity_id)
+
+            .cloned()
+
+            .ok_or_else(|| Error::NotFound {
+
+                entity: "ActivityTemplate",
+
+                id: activity_id.to_string(),
+
+            })?;
+
+        let tiers = repo
+
+            .activity_reward_tiers
+
+            .get(&activity_id)
+
+            .cloned()
+
+            .unwrap_or_default();
+
+        let state = repo
+
+            .activity_player_states
+
+            .entry((player_id.clone(), activity_id))
+
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+
+        let _ = source; // 预留: source 走 audit log, W42 接入
+
+        state.progress = (state.progress + progress_delta).min(template.max_progress);
+
+        let new_progress = state.progress;
+
+        let unlocked = tiers
+
+            .iter()
+
+            .find(|t| t.progress_required == state.progress && !state.claimed_tiers.contains(&t.tier))
+
+            .cloned();
+
+        let new_unlocked_tier = unlocked.as_ref().map(|t| t.tier).unwrap_or(0);
+
+        let tier_unlocked = unlocked.is_some();
+
+        // 提交成功后写入 idempotency key (per ULYS-97 fix: 此前只查不写导致重复请求累计进度)
+
+        // 先 drop state 的 mutable borrow, 再插入 key, 避免 borrow checker 冲突.
+
+        let _ = state;
+
+        repo.activity_idempotency_keys.insert(idempotency_key);
+
+        Ok(ActivityProgressOutput {
+
+            new_progress,
+
+            tier_unlocked,
+
+            new_unlocked_tier,
+
+        })
+
+    }
+
+
+
+    /// 订阅活动通知
+
+    async fn activity_subscribe(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+        notify_channel: i32,
+
+        idempotency_key: String,
+
+    ) -> Result<ActivitySubscribeOutput> {
+
+        if self
+
+            .ledger
+
+            .find_by_idempotency_key(&idempotency_key)
+
+            .await?
+
+            .is_some()
+
+        {
+
+            return Err(Error::IdempotencyConflict(idempotency_key));
+
+        }
+
+        let mut repo = self.repo.lock().await;
+
+        if !repo.activity_templates.contains_key(&activity_id) {
+
+            return Err(Error::NotFound {
+
+                entity: "ActivityTemplate",
+
+                id: activity_id.to_string(),
+
+            });
+
+        }
+
+        let state = repo
+
+            .activity_player_states
+
+            .entry((player_id.clone(), activity_id))
+
+            .or_insert_with(|| ActivityPlayerState::new(player_id.clone(), activity_id));
+
+        state.subscribed = true;
+
+        state.notify_channel = notify_channel;
+
+        let subscriber_count = repo
+
+            .activity_player_states
+
+            .values()
+
+            .filter(|s| s.activity_id == activity_id && s.subscribed)
+
+            .count() as i32;
+
+        Ok(ActivitySubscribeOutput {
+
+            subscribed: true,
+
+            notify_channel,
+
+            subscriber_count,
+
+        })
+
+    }
+
+
+
+    // ===== W41 增广度: 3 个数据驱动 helper =====
+
+
+
+    /// 按 ActivityType 过滤活动 (page/page_size 分页)
+
+    async fn activity_get_by_type(
+
+        &self,
+
+        _player_id: String,
+
+        activity_type: i32,
+
+        page: u32,
+
+        page_size: u32,
+
+    ) -> Result<ActivityListOutput> {
+
+        let repo = self.repo.lock().await;
+
+        let target = ActivityType::from_i32(activity_type);
+
+        let page_size = if page_size == 0 { 20 } else { page_size };
+
+        let mut templates: Vec<ActivityTemplateEntity> = repo
+
+            .activity_templates
+
+            .values()
+
+            .filter(|t| t.activity_type == target)
+
+            .cloned()
+
+            .collect();
+
+        templates.sort_by_key(|t| t.activity_id);
+
+        let total = templates.len() as i32;
+
+        let active_count = templates.len() as i32;
+
+        let start = (page as usize).saturating_mul(page_size as usize);
+
+        let end = (start + page_size as usize).min(templates.len());
+
+        let slice = if start < templates.len() {
+
+            templates[start..end].to_vec()
+
+        } else {
+
+            vec![]
+
+        };
+
+        Ok(ActivityListOutput {
+
+            templates: slice,
+
+            total,
+
+            active_count,
+
+        })
+
+    }
+
+
+
+    /// 统计某活动的可领取 tier 数 (tier_unlocked - claimed_tiers)
+
+    async fn activity_count_unclaimed_tiers(
+
+        &self,
+
+        player_id: String,
+
+        activity_id: i32,
+
+    ) -> Result<i32> {
+
+        let repo = self.repo.lock().await;
+
+        let tiers = repo
+
+            .activity_reward_tiers
+
+            .get(&activity_id)
+
+            .cloned()
+
+            .unwrap_or_default();
+
+        let state = repo
+
+            .activity_player_states
+
+            .get(&(player_id, activity_id))
+
+            .cloned()
+
+            .unwrap_or_else(|| ActivityPlayerState::new(String::new(), activity_id));
+
+        let unlocked: i32 = tiers
+
+            .iter()
+
+            .filter(|t| state.progress >= t.progress_required)
+
+            .map(|t| if state.claimed_tiers.contains(&t.tier) { 0 } else { 1 })
+
+            .sum();
+
+        Ok(unlocked)
+
+    }
+
+
+
+    /// 统计玩家可见的活跃 holiday 活动数 (W41 用于 UI 角标)
+
+    async fn activity_get_active_holiday_count(
+
+        &self,
+
+        _player_id: String,
+
+    ) -> Result<i32> {
+
+        let repo = self.repo.lock().await;
+
+        let now = Utc::now();
+
+        let count = repo
+
+            .activity_templates
+
+            .values()
+
+            .filter(|t| {
+
+                t.activity_type == ActivityType::Holiday
+
+                    && t.enabled
+
+                    && now >= t.starts_at
+
+                    && now <= t.ends_at
+
+            })
+
+            .count() as i32;
+
+        Ok(count)
+
+    }
+
+}
+
