@@ -92,6 +92,7 @@ flowchart TB
 | `topo.node.debug.probe_latency` | K8s readiness/liveness 探针响应延迟（μs 级） | 稳态 N_node × 24/min | **debug-only**（`#[cfg(debug_assertions)]` 守护，高频路径性能敏感） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.az.heartbeat` 在多可用区集群下稳态 60/min，**高频路径**——release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `topo.node.debug.probe_latency` 在百节点集群下稳态 2400/min，**性能敏感**——K8s 探针周期 ~5s，**禁止**在 release build 输出影响业务时延
 - `topo.node.online` / `topo.node.offline.graceful` 均为 `info!` 级别（release 必出，per §4.8.3.2 二维矩阵 `info!` 行常驻），便于 SRE 按 `region` + `az` 维度聚合节点容量趋势
@@ -120,6 +121,7 @@ flowchart TB
 | `topo.fault.debug.failover_decision_trace` | 故障切换决策 trace（含候选目标列表、评分、健康度历史） | 与 `topo.fault.failover.started` 同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-8KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.fault.debug.probe_result_dump` 探针响应体可能含节点诊断信息（堆栈片段、连接状态）——**release build 完全剔除**，避免诊断信息泄露
 - `topo.fault.debug.failover_decision_trace` 含切换决策全量上下文，**性能敏感 + 安全敏感**——release build 完全剔除，仅故障复盘时按需 dump
 - `topo.fault.detected` / `topo.fault.failover.completed` 均为 `info!` 级别（release 必出），便于 SRE 按 `fault_id` 维度关联"检测→切换→恢复"完整链路
@@ -146,6 +148,7 @@ flowchart TB
 | `topo.region.gate.debug.olu_breakdown` | OLU 预算分解明细（各域 token 占用清单） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，**预算明细属内部财务信息**） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.region.gate.debug.request_payload_dump` 申领 payload 可能含业务敏感信息（产品代号、营收预测、上市时间）——**release build 完全剔除**，避免内部业务信息泄露
 - `topo.region.gate.olu_exceeded` 是 `error!` 级别（release 必出 + 强制全采样），便于架构师在年度评审中追溯"哪些决策点曾触发 OLU 超限"——是 NFR-OP-010 预算硬约束的合规证据
 - `topo.region.gate.evaluated` / `topo.region.gate.passed` / `topo.region.gate.adr_submitted` 均为 `info!` 级别（release 必出），便于合规审计按 `requester` + `decision` 维度聚合
@@ -189,6 +192,7 @@ flowchart TB
 | `topo.analytics.debug.consume_batch_timing` | 消费批次微秒级时序（拉取/反序列化/脱敏/写入分阶段耗时） | 稳态 1K/s | **debug-only**（`#[cfg(debug_assertions)]` 守护，**高频路径性能敏感**） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.analytics.debug.raw_event_dump` 原始事件**含 PII 风险**（脱敏前的邮箱/手机号/IP/聊天内容）——**release build 完全剔除**，且**禁止**在生产环境通过 RUST_LOG=debug 误开，避免 §3.3 脱敏规则被绕过
 - `topo.analytics.debug.consume_batch_timing` 在 10K/s 峰值下输出 10K × 300B = 3MB/s，**高频路径性能敏感**——release build 完全剔除，仅性能调优时按需 dump
 - `topo.analytics.lag.detected` / `topo.analytics.backlog.accumulated` 是 `warn!` 级别（release 必出 + 强制全采样），是 NFR-INF-006 数据延迟 SLA 的**唯一监控源**——若缺失则 SLA 监控失效
@@ -221,6 +225,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 | `topo.analytics.debug.pause_reason_tree` | 暂停决策树 dump（重试次数/健康度/上游状态全量） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.analytics.debug.retry_history` 事件重试堆栈可能含业务上下文（玩家 ID / 场景 ID）——**release build 完全剔除**，避免 RUST_LOG=debug 误开时业务上下文泄露
 - `topo.analytics.consume.failed` / `topo.analytics.cursor.lost` 是 `error!` 级别（release 必出 + 强制全采样）——**强制全采样**确保任何一次失败都有完整审计链，便于 SLA 复盘
 - `topo.analytics.consume.paused` 是 `warn!` 级别（release 必出 + 强制全采样）——**关键 SLA 事件**，暂停期间所有下游报表的实时性受影响，必须 100% 留痕
@@ -255,6 +260,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 | `topo.redact.debug.config_diff` | 脱敏规则版本 diff（前后规则对比） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.redact.debug.pii_match_dump` **高敏字段**——即使脱敏后 hash 也可能反推 PII 内容，**release build 完全剔除**，避免脱敏规则审计过程本身成为 PII 泄露路径
 - `topo.redact.sampling.violated` 是 `error!` 级别（release 必出 + 强制全采样）——**P0 级合规告警**，触发后须立即启动 FR-INF-014 合规处置流程（暂停事件类型接入 → 修复规则 → 全量重放脱敏）
 - `topo.redact.config.added` / `topo.redact.config.removed` / `topo.redact.config.modified` 均为 release 必出 + 强制全采样（合规审计事件）——**禁止**降级为采样，便于审计员按 `event_type` 维度追溯完整规则变更历史
@@ -262,6 +268,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 ### 3.4 资源隔离的强制手段（NFR-INF-003落地）
 
 `AnalyticsStore`与运维可观测性存储**不共享**同一计算/存储实例（ARC-035既定物理隔离），并在以下层面进一步强制隔离，防止"物理隔离"仅停留在部署层面而在网络/连接层被绕过：
+
 - 网络层：`AnalyticsStore`与可观测性存储位于不同的NetworkPolicy分组（复用RGS-REQ-010零信任NetworkPolicy机制），运维查询组件无权限连接`AnalyticsStore`，反之亦然
 - 连接配额：`AnalyticsQueryUI`对`AnalyticsStore`的并发查询数与单查询超时时间设硬性上限（具体数值详细设计确定），防止某次大范围扫描查询耗尽存储实例资源影响其他分析用户
 - 监控：`AnalyticsStore`资源使用率纳入RGS-BAS-004黄金指标监控，独立于可观测性存储的监控视图，避免告警噪音混淆两套系统的运维责任边界
@@ -283,6 +290,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 | `topo.policy.debug.resource_sampler` | 资源使用率详细采样（每核 CPU/每查询延迟/IO 队列深度） | 稳态 1/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.policy.debug.connection_log_full` **高频路径 + 安全敏感**（查询语句可能含业务表名 / 过滤条件）——**release build 完全剔除**，避免 RUST_LOG=debug 误开时业务 SQL 泄露
 - `topo.policy.isolation.breach.detected` 是 `error!` 级别（release 必出 + 强制全采样）——**P1 级安全事件**，隔离破坏意味着 NFR-INF-003 资源隔离 SLA 失效，须立即启动 §3.4 隔离恢复流程
 - `topo.policy.networkpolicy.hit` 在 5K/s 峰值下输出 1.4MB/s——**采样策略可调但不允许完全关闭**（NFR-INF-003 合规要求），仅在事故期间可临时降级
@@ -318,6 +326,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 | `topo.rbac.debug.cross_domain_role_map` | 跨域角色映射表 dump（含 gm/ops/analytics 三套角色定义差异） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，**RBAC 内部数据结构——禁止在 release 记录**） | 约 2-8KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.rbac.debug.cross_domain_role_map` 跨域角色映射表是 **RBAC 内部安全敏感数据**——若泄露，攻击者可识别"哪些 GM 后台角色可绕过分析管线权限"——**release build 完全剔除**
 - `topo.rbac.cross_domain.detected` 是 `error!` 级别（release 必出 + 强制全采样）——**RSK-INF-002 防控失效事件**，触发后须立即启动权限重新评审流程
 - `topo.rbac.access.granted` 虽频率高（1K/s 峰值），但**禁止降为 0 采样**——RSK-INF-002 合规要求所有访问授权必须留痕；可通过 `trace_sample_ratio` 临时降级但须有 SRE 审批记录
@@ -359,6 +368,7 @@ AnalyticsEventConsumer消费失败（分析存储写入异常/脱敏处理异常
 | `topo.checklist.debug.run_payload_dump` | 清单执行 payload dump（每项检查的输入/输出全量） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，**可能含配置敏感信息**） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `topo.checklist.debug.run_payload_dump` 清单执行 payload 可能含配置敏感信息（DB endpoint、备份介质位置、跨区域部署元数据）——**release build 完全剔除**
 - `topo.checklist.log_section_completeness.verified` 是 AC-LOG-007 验收的合规证据（每功能 BAS 文档须含本功能 log 设计章节）——**禁止降级为采样**，确保 DDD Review / OPEN-QA 阶段可按 `run_id` 维度追溯"哪些 BAS 文档在升级时未通过 log 章节存在性校验"
 - `topo.checklist.pre_launch.failed` / `topo.checklist.code_review.failed` 是 `error!`/`warn!` 级别（release 必出 + 强制全采样）——**阻断性合规事件**，触发后阻止 PR 合并或部署上线

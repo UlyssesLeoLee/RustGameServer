@@ -54,6 +54,7 @@ KUBECONFIG=/etc/rancher/k3s/k3s.yaml /usr/local/bin/k3s kubectl get ns
 ## 修复后
 
 预计可看到:
+
 - nodes: `ulyssespc` 1 个节点 Ready
 - pods: 5 域 deployment (player / economy / match / social / admin) + infra (traefik 已 disable)
 - ns: default / kube-system / kube-public / rgs(可能已建)

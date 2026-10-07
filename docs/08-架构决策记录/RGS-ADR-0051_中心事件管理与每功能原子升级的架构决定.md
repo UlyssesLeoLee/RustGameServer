@@ -37,6 +37,7 @@ RGS-REQ-031已定义ARC-051"集群运营中心（COC）+ 中心事件管理（CE
 6. **DB侧约束 = 仅Outbox分发、FF应用、版本快照三类协同职责**。**不**跨库、**不**持有长事务、**不**承担业务逻辑（沿用RGS-ADR-0022业务逻辑不入库）
 
 **永久事实声明**：
+
 - 管理员可见的集群运营控制台是本系统的**一等公民**——它的存在不是"可选的可视化增强"，而是"集群运营的可信源"（single source of truth），与ARC-017可观测性基础设施同等地位
 - PFAU进行中实例的元数据**必须**持久化于`admin_db`（COC UI仅是视图层，UI自身可被回滚而不影响实例可见性）
 - 事件总线**必须**为CEM提供`coc.event_registry_changed`事件（FR-API-010），CEM订阅此事件实时更新注册表，**不得**要求CEM轮询
@@ -82,18 +83,21 @@ RGS-REQ-031已定义ARC-051"集群运营中心（COC）+ 中心事件管理（CE
 ## 4. 结果与代价（Consequences）
 
 **获得**：
+
 - 管理员获得统一的集群运营面——"功能矩阵首页+事件流+灰度面板+回滚面板"四件套，使"上线/下线/热插拔/回滚"四类操作在COC UI中可见、可控、可追溯
 - 事件流获得中心治理面——事件注册表、Schema目录、订阅关系、消费者健康、死信、可重放历史六部分，使"事件无中心治理面"的旧问题得到根治
 - 升级获得原子性可视——PFAU的"声明→灰度→确认→完成"四步状态机使"一个功能从版本A升级到版本B"在管理员看来是一个不可分割的、有开始时间与完成时间的操作
 - 既有ARC-018/021/042/019四块方针不再各自独立——它们被Feature这棵统一树收束，避免升级粒度混乱
 
 **付出**：
+
 - 新增一个gRPC服务（ClusterOpsService）——需独立维护、版本管理、可观测性接入
 - 新增若干`admin_db`表（`feature_registry`/`feature_version_history`/`event_schema_registry`/`event_producer_registry`/`pfa_run_state`等）——增加`admin_db`的存储与维护成本，但避免了新建独立DB
 - COC UI的UX设计复杂度——需在"统一操作面"与"避免SRE倾向通过COC UI执行所有操作"之间平衡（见RSK-COC-003）
 - 各App的事件Publisher SDK须增加"未注册事件类型fail-fast"实现（FR-CEM-002）——增加少量实现成本
 
 **遗留**：
+
 - TBD-COC-001：无限画布前端选型待定（复用VIZ既有选型还是独立选型）
 - TBD-COC-002：PFAU的"补丁型Feature"是否需要"金丝雀测试"作为强制门禁，待PH-7前评估
 - RSK-COC-001：CI校验脚本`scripts/check-cem-coverage.sh`需新增，定期扫描Publisher调用点比对`event_registry`

@@ -88,6 +88,7 @@ flowchart TB
 | `plugin.runtime.debug.watch_subscription_latency` | 启动时 `WATCH` 订阅建立耗时（微秒级） | 启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `plugin.runtime.debug.boundary_dag_dump` 大型集群下可能 20KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `plugin.runtime.boot.completed` / `plugin.runtime.shutdown.completed` 均为 `info!` 级别（release 必出，§4.8.3.2 二维矩阵 `info!` 行常驻），便于 SRE 按 `node_id` + `bounded_context` 维度聚合
 
@@ -145,6 +146,7 @@ erDiagram
 | `plugin.registry.debug.occ_retry_backoff_trace` | OCC 冲突后的指数退避各次重试时间戳与间隔 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.registry.audit_appended` 包含 `operator_id`（GM/运营操作者 ID），**不**进入 BAS-004 v0.3 §5.1 脱敏黑名单（`*token*` / `*password*` / `*secret*`），可安全 release 必出 + 留作审计
 - `plugin.registry.audit_immutable_violation` 是**安全事件**——release 必出 + §6.2 强制全采样，便于安全审计链路完整追溯
 
@@ -174,6 +176,7 @@ erDiagram
 | `plugin.feature_flag.debug.tick_consistency_proof` | 同一处理周期内路由表前/后一致性证明（hash before/after） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.feature_flag.dispatch.miss` **不**是错误（是禁用后的预期副作用），但仍 release 必出——便于 SRE 识别"是否有人仍在请求已禁用的 plugin_id"以排查客户端缓存或文档未更新
 - `plugin.feature_flag.version.rollout.activated` 是**生产事件**——release 必出 + §6.2 强制全采样，便于事后审计与告警关联
 - `plugin.feature_flag.tick_switch.applied` 在 §4.2 描述的"一次切换仅产生一条事件"是 BAS-001 §4.8.3.2 二维矩阵 `info!` 行常驻的典型应用——SRE 仪表盘可按 `plugin_id` 维度聚合，无需逐 tick 输出
@@ -210,6 +213,7 @@ erDiagram
 | `plugin.sandbox.debug.epoch_injection_path` | session_epoch 注入路径 dump（从会话上下文到脚本调用的完整链路） | 经济活动触发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.sandbox.execution.started` / `plugin.sandbox.execution.completed` 是**高频**事件（典型 10-100/s 集群）—— release 必出但 §4.8.3.2 `info!` 行常驻 + §6.2 强制全采样是 §5 沙箱脚本"全部执行可追溯"硬约束的体现
 - `plugin.sandbox.economic.epoch_spoofing_blocked` 是**安全事件**—— release 必出 + §6.2 强制全采样，**不**可 debug-only（生产告警链路必须完整）
 - `plugin.sandbox.debug.execution_step_trace` 高频逐步 trace，release 完全剔除避免生产通道淹没
@@ -266,6 +270,7 @@ sequenceDiagram
 | `plugin.lifecycle.debug.tick_boundary_window_dump` | tick 边界前后路由表 hash 对照（验证 §4.1 "同一处理周期内一致"承诺） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.lifecycle.state_transition.applied` 与 §3.3 `plugin.registry.audit_appended` 互补——前者记录"状态变更已生效"，后者记录"审计已留痕"；两者均 release 必出
 - `plugin.lifecycle.remove.completed` 包含 `archived_data_ref`（数据归档引用）—— **不**含明文玩家数据，**不**进入 BAS-004 v0.3 §5.1 脱敏黑名单，可安全 release 必出 + 留作审计
 - `plugin.lifecycle.remove.failed.orphan_tables` 是**验收失败事件**——release 必出 + §6.2 强制全采样（验收标准 AC-PLG-004 必须被检测到）
@@ -305,6 +310,7 @@ sequenceDiagram
 | `plugin.sync.debug.consistency_check_inputs` | 一致性检查的输入参数 dump（版本 hash / 校验和 / 节点列表） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.sync.economic.single_point_decision.applied` 是**经济判定收口事件**—— release 必出 + §6.2 强制全采样，与 §5.1 `plugin.sandbox.economic.permanent_fact_routed` 互补（前者证明"由 EC 判定"，后者证明"经 EC 路由"）
 - `plugin.sync.economic.local_state_denied_as_authority` 是**安全事件**—— release 必出 + §6.2 强制全采样，**不**可 debug-only（生产告警链路必须完整），用于审计"经济类插件曾被尝试绕过单点判定"
 - `plugin.sync.distribution.consistency_check_failed` 与 `plugin.sync.distribution.rolled_back` 是**生产事故**—— release 必出 + §6.2 强制全采样，便于事后审计
@@ -338,6 +344,7 @@ sequenceDiagram
 | `plugin.rollback.debug.rollback_decision_tree` | 回滚决策树 dump（输入：reason → 决策：版本回退/紧急禁用/双重回退） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.rollback.feature_flag.executed` / `plugin.rollback.emergency_disable.executed` 是**生产事故事件**—— release 必出 + §6.2 强制全采样，便于事后复盘 + 告警链路完整
 - `plugin.rollback.drill.executed` 用于验证 AC-PLG-003（版本回滚演练验收标准）—— release 必出便于追溯演练历史，**不**是 debug-only
 - `plugin.rollback.debug.pre_rollback_state_snapshot` 可能含 plugin handler 的运行时状态，release 完全剔除避免生产通道敏感数据泄漏
@@ -372,6 +379,7 @@ sequenceDiagram
 | `plugin.fault.debug.panic_backtrace` | panic 完整 backtrace（仅 debug 时记录，便于本地复现） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.fault.panic_caught` / `plugin.fault.sandbox_exception_isolated` 是**故障事件**—— release 必出 + §6.2 强制全采样，便于 SRE 仪表盘按 `plugin_id` 维度聚合（**不**可 debug-only，否则生产告警链路断裂）
 - `plugin.fault.exponential_backoff.escalated_to_human` 是**人介入触发事件**—— release 必出 + §6.2 强制全采样，便于追溯"何时进入人工介入 / 哪个团队处理"
 - `plugin.fault.host_actor_health_intact` 是 AC-PLG-002 验收证据—— release 必出 + §6.2 强制全采样，确保故障注入测试下"宿主不崩溃"承诺可被审计
@@ -405,6 +413,7 @@ sequenceDiagram
 | `plugin.standardized_checklist.debug.coverage_audit_timing` | CI 阶段全文档 log 章节覆盖率审计耗时（毫秒级） | CI 每次构建 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `plugin.standardized_checklist.*` 系列是**CI 元检查项**—— release 必出 + §6.2 强制全采样，确保 log 规范合规性可被持续追踪（**不**是 debug-only，否则生产环境无法审计 CI 历史）
 - `plugin.standardized_checklist.release_required_macro_no_cfg` 与 §4.4 规则 #4（debug-only 宏守护）形成对偶—— release 必出宏**不得**被 `#[cfg]` 守护，否则 release 下日志完全消失
 

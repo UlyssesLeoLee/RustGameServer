@@ -201,6 +201,7 @@ RGS-BAS-001§1.1已明文划定基本设计的边界："本文档**不包含**�
 | `pat.cons.debug.outbox_payload_dump` | 完整事件 envelope（`payload` + `headers` + `trace_id`） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-2KB/条（payload 大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.cons.debug.occ_version_chain` 在长版本链下可能 1KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `pat.cons.cond_write.affected_one` 高频成功路径走 debug-only，release 仅留受影响的 0 异常路径，便于 SRE 按 `table`/`operation` 维度定位超发/对账失败
 
@@ -269,6 +270,7 @@ RGS-BAS-001§1.1已明文划定基本设计的边界："本文档**不包含**�
 | `pat.resilience.debug.cb_internals` | 断路器内部状态（失败计数/半开探测结果/最近失败时间戳） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 300-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.resilience.debug.cb_internals` 含失败计数+最近失败时间戳，仅 debug 守护避免 RUST_LOG=debug 误开时泄漏下游细节
 - `pat.resilience.cb.*` 系列 release 必出，§4.8.3.2 二维矩阵 `info!`/`warn!`/`error!` 行常驻，便于 SRE 按 `cb_name` 维度聚合断路器健康度
 
@@ -322,6 +324,7 @@ RGS-BAS-001§1.1已明文划定基本设计的边界："本文档**不包含**�
 | `pat.lifecycle.debug.snapshot_full_payload` | Memento 完整快照 payload | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.lifecycle.debug.actor_state_dump` 在复杂 Actor 下可能 5KB+ —— release 完全剔除，避免 RUST_LOG=debug 误开时撑爆日志通道
 - `pat.lifecycle.state_machine.illegal_transition_blocked` 是**正确性事件**（结构上不应发生），必须 `error!` 强制全采样便于复盘（per §3.3 "State Machine 统一原则"）
 
@@ -391,6 +394,7 @@ RGS-BAS-001§1.1已明文划定基本设计的边界："本文档**不包含**�
 | `pat.comms.debug.saga_state_dump` | Saga 中间状态完整 dump（per G-004 顺序边界内每步骤状态） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.comms.debug.command_payload_dump` **可能含敏感参数**（GM 指令如踢人/封号含 `player_id`）—— 仅 debug-only 守护避免 RUST_LOG=debug 误开时泄漏
 - `pat.comms.pipeline.bypass_attempted` 是**安全合规 violation**（FR-PPL-022 禁止旁路），必须 `error!` 强制全采样供审计
 - `pat.comms.saga.step_failed` 失败步必须 `error!` 强制全采样，便于 NFR-OP-008 排查 SLA 保障
@@ -465,6 +469,7 @@ RGS-BAS-022已谨慎声明"分片路由完全复用RGS-BAS-020§3、不触碰G-0
 | `pat.data.debug.rule_expr_evaluation_trace` | 规则表达式求值 trace（每子表达式求值结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.data.debug.view_snapshot_full` 在大视图下可能 50KB+ —— release 完全剔除，避免 RUST_LOG=debug 误开时撑爆日志通道
 - `pat.data.rule_expr.evaluation_failed` 是**逻辑正确性事件**（per §3.5 "条件表达式引擎"与 ARC-016 纯参数配置化的区别：表达式引入注入/性能失控风险），必须 `error!` 强制全采样
 
@@ -526,6 +531,7 @@ flowchart LR
 | `pat.sec.debug.vault_raw_ciphertext_dump` | Vault 原始密文 dump（**仅** debug 守护，绝不入 release） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 100B-2KB/条（release 剔除，零泄漏风险） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + ARC-020）：
+
 - `pat.sec.debug.vault_raw_ciphertext_dump` **绝不入 release**——含密文虽非明文但仍为敏感数据载体，且**不**应因 RUST_LOG=debug 误开时泄漏
 - `pat.sec.append_only.update_attempted` 是**合规 violation**（per ARC-020 + §5 反模式 "日志先明文记录……" 同类禁止），必须 `error!` 强制全采样供安全审计
 - `pat.sec.vault.accessed` 强制全采样是审计的硬要求（per §3.6 "Vault 与脱敏 Masking 区别" 的强约束），与可观测性采样策略不同
@@ -558,6 +564,7 @@ flowchart LR
 | `pat.obs.debug.full_observation_context` | 完整可观测上下文 dump（trace 全链路 + 当前指标快照 + 日志条目） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-10KB/条（链路深度决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.obs.debug.full_observation_context` 在长调用链下可能 10KB+ —— release 完全剔除，避免 RUST_LOG=debug 误开时撑爆日志通道
 - `pat.obs.reconcile.*` 自身核对任务的执行**也**应产生 Golden Signals（per §3.7 与 Golden Signals 配合使用要求），不在本表重复登记，由 §3.7 Golden Signals 子项统一覆盖
 
@@ -607,6 +614,7 @@ flowchart LR
 | `pat.sync.debug.history_buffer_slot_dump` | G-002 Ring Buffer 槽位完整 dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.sync.client_prediction.applied_locally` 频率 1000+/s 极高，**必须**走 debug-only 守护避免 release 撑爆日志通道
 - `pat.sync.aoi.priority.starvation_prevented` 是**正确性事件**（per §5 反模式 "AOI 优先级纯距离/重要度排序无老化因子" 既定避免的 Starvation），`info!` 强制全采样便于调权重时回归验证
 - `pat.sync.star_topology.relay_delivered` 是**算法性能基准**（per §3.8 "服务器权威中继"核心 + ARC-002 + NFR-SE-001 性能监控需要），release 必出
@@ -656,6 +664,7 @@ flowchart LR
 | `pat.olu.debug.switch_state_full` | 开关状态完整 dump（含当前基线+增量+台账累计） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §3.9 核心设计纪律）：
+
 - `pat.ai_gate.gate2_range_truncated` **不应**发生（per §3.9 "截断会把明显错误静默变成看似合理"）—— 但**若**发生，必须 `error!` 强制全采样（与 "直接拒绝" 视为同等级 violation），便于立即修复
 - `pat.ai_gate.gate1_enum_denied` / `gate3_self_declined_risk` / `bypass_attempted` 是 §3.9 三条核心设计纪律（闸门部署于消费者侧/单向无反馈/写权限锁定优先于闸门）的**违反事件**，必须 `error!` 强制全采样供安全审计
 - `pat.olu.switch_toggled` 是**治理事件**（直接影响预算台账实际占用），release 必出便于审计"开关开启/关闭"动作
@@ -687,6 +696,7 @@ flowchart LR
 | `pat.g001.debug.jitter_value_dump` | 抖动具体数值（per G-001 "抖动是必要的"） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g001.retry_exhausted` 必须 `error!` 强制全采样，是 §3.1 OCC 模式 + §5 反模式 "OCC 冲突立即重试或固定间隔重试" 既定避免的关键事件
 - `pat.g001.retry_scheduled` release 必出（per NFR-PE-008 退避策略本身是**算法性能基准**），SRE 可按 `aggregate_id` 维度聚合热点
 
@@ -710,6 +720,7 @@ flowchart LR
 | `pat.g002.window_exceeded` | Lag Compensation 回溯查询超出 500ms 窗口（per G-002 容量固定） | 偶发（高延迟发射） | release 必出（`warn!` 编译期常驻，per BAS-004 v0.3 §4.2） | 含 `shooter_id`/`target_id`/`requested_lookback_ms`/`buffer_capacity_ms`；约 280B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g002.history_slot_written` / `slot_overwritten` 频率极高（20Hz × 实体数），**必须**走 debug-only 守护避免 release 撑爆日志通道
 - `pat.g002.window_exceeded` 是**算法能力边界事件**（G-002 Ring Buffer 容量固定决定该边界），`warn!` 强制全采样便于 SRE 评估是否需要扩大窗口（涉及内存取舍）
 
@@ -733,6 +744,7 @@ flowchart LR
 | `pat.g003.debug.priority_calculation_trace` | 三因子分解+总分计算 trace（per G-003 评分公式，distance/importance/age_ticks 各自得分） | 偶发（调优） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 300-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g003.aging_applied` 是 §5 反模式既定的"正确性事件"（避免 Starvation），`info!` 强制全采样供调权重时回归验证
 - `pat.g003.debug.priority_calculation_trace` 频率较高（AOI 内每实体每 tick），**必须**走 debug-only 守护避免 release 撑爆日志通道
 
@@ -757,6 +769,7 @@ flowchart LR
 | `pat.g004.partition_out_of_order_detected` | 同一 partition_key 内顺序违反（**不应**发生，per ARC-010） | 极低（违反约束） | release 必出（`error!` 强制全采样，per BAS-004 v0.3 §6.2） | 含 `partition_key`/`expected_seq`/`actual_seq`；约 280B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g004.partition_assigned` 频率高（与 Outbox 入队量同量级），**必须**走 debug-only 守护
 - `pat.g004.partition_out_of_order_detected` 是 ARC-010 "顺序边界与 partition_key" 既定约束的**违反事件**，必须 `error!` 强制全采样供排查
 
@@ -796,6 +809,7 @@ flowchart LR
 | `pat.g006.ph7_activated` | PH-7 场景分片实际启用（per G-006 "PH-7 启动前经 ARC-014 判定基准复核"） | 极低（一次性阶段切换） | release 必出（`info!` 编译期常驻，per BAS-004 v0.3 §4.2） | 含 `activation_at`/`algorithm_variant`/`node_count`；约 240B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g006.candidate_evaluated` 在 PH-7 未启用前为预案/调研状态，**不**应在 release 必出，避免与 §3.5 模式日志混淆
 - `pat.g006.ph7_activated` 是 FR-RT-011 关键阶段切换事件，release 必出供归档/审计
 
@@ -819,6 +833,7 @@ flowchart LR
 | `pat.g007.wall_clock_fallback_triggered` | 墙钟兜底超时触发（per G-007 "次要兜底"，**说明**步数限制被绕过） | 极低 | release 必出（`error!` 强制全采样，per BAS-004 v0.3 §6.2） | 含 `plugin_id`/`elapsed_ms`/`step_count`/`reason`；约 280B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g007.step_count_incremented` 频率极高，**必须**走 debug-only 守护避免 release 撑爆日志通道
 - `pat.g007.wall_clock_fallback_triggered` 是 §5 反模式既定的"步数限制有效性依赖外部环境" violation，必须 `error!` 强制全采样
 
@@ -844,6 +859,7 @@ flowchart LR
 | `pat.g008.quorum_timeout_with_majority` | Quorum 超时且多数未确认（**说明**控制平面失效，per NFR-OPS-006 重大告警） | 极低 | release 必出（`error!` 强制全采样，per BAS-004 v0.3 §6.2） | 含 `acked_count`/`unacked_count`/`failure_reason`；约 280B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g008.ack_received` 频率较高，**必须**走 debug-only 守护
 - `pat.g008.quorum_timeout_with_majority` 是 NFR-OPS-006 既定的"控制平面故障"事件，必须 `error!` 强制全采样，与"少数未确认"区分（后者仅 `warn!`）
 
@@ -867,6 +883,7 @@ flowchart LR
 | `pat.g009.fallback_to_authoritative` | 缓存未命中触发 fallback（per G-009 "避免两套并行索引"） | 偶发 | release 必出（`warn!` 强制全采样） | 含 `target_id`/`fallback_latency_ms`；约 220B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g009.location_cache_hit` 频率较高（GM 指令调用频次），**必须**走 debug-only 守护
 - `pat.g009.fallback_to_authoritative` 是 §3.4 "GM 后台踢的人和实际在线的人对不上" 既定避免的"两套并行索引"问题信号，`warn!` 强制全采样
 
@@ -928,6 +945,7 @@ flowchart LR
 | `pat.g012.test_reproduction_triggered` | 失败后使用种子复现测试 | 偶发 | release 必出（`info!` 强制全采样） | 含 `test_suite`/`reused_seed_value`/`reproduction_result`；约 280B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.g012.test_trace_generated` 仅测试期产生，**不**应在生产 release 必出
 - `pat.g012.test_seed_recorded` 强制 release 必出（per G-012 强制约束），即便 release build 也须保留以支持 CI 失败后回溯
 
@@ -1063,6 +1081,7 @@ flowchart LR
 | `pat.checklist.debug.full_checklist_dump` | 完整检查清单明细 dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.checklist.item_evaluated` 频率随 CI 评审频次而定，**不**应在 release 必出（属 CI 期操作）
 - `pat.checklist.antipattern_matched` 是 §5 反模式表 + RSK-PAT-001 既定的"归纳失真/重蹈覆辙"告警事件，`error!` 强制全采样供 DDD Review
 
@@ -1110,6 +1129,7 @@ flowchart LR
 | `pat.revision.debug.proposal_full_diff` | 完整修订 diff dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-10KB/条（diff 大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pat.revision.drift_detected` 是 RSK-PAT-001 既定的"归纳失真/跨文档引用失效"事件，必须 `error!` 强制全采样供 DDD Review 与 ARC-025 治理
 - `pat.revision.debug.proposal_full_diff` 含完整修订内容，**仅** debug 守护避免 RUST_LOG=debug 误开时泄漏敏感字段
 

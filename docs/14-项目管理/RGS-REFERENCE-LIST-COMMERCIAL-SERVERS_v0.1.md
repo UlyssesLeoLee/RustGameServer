@@ -3,6 +3,7 @@
 **创建日期**: 2026-09-20 JST
 **创建者**: Ulysses(一人公司 12 角色 per DEC-008) — Mavis 接手
 **依据**:
+
 - 上游 REQ-A: `docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md` (Mavis 2026-09-17 创建)
 - 上游 REQ-B: `tools/rgs-shim-rust/docs/ERLANG_TO_RGS_MIGRATION.md` + `H5_GAMEA_CLIENT_MIGRATION_MATRIX.md` + `SHIM_V05_DISPATCH_DESIGN.md` (Mavis 2026-09-09 创建)
 **作用域**: RGS 已参考的两款商用服务器各自亮点汇总
@@ -77,4 +78,3 @@
 | 待评估 | REQ-[游戏D]-009 (saga-runtime multi-server) + REQ-[游戏D]-010 (mlua) | 待评估 | 后续 sprint |
 
 **[游戏D] 总工作量**: ~37 人日 / 3 sprint（不含待评估）
-

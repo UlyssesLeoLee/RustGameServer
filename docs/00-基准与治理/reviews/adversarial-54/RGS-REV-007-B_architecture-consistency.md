@@ -29,6 +29,7 @@
 | common | `common.v1.EntityId/Status/ErrorCode/PageRequest/PageResponse/HealthCheck*` | — | — | — | — | OK |
 
 **观察**：
+
 - 6 域 entity proto 字段顺序、类型、命名 100% 一致（`id` / `status` / `created_at` / `display_name`）
 - 6 域 service trait 全部 100% 一致（`HealthCheck + GetXxx(EntityId) -> Xxx`）
 - **无 `saga.proto`** —— 任务描述提及"经济域 `saga.proto`"，但仓库中 **不存在** `economy-service/proto/economy/v1/saga.proto`。Saga gRPC API 完全没有 proto 契约（RGS-IMPL-002 v0.1 §4 建议 saga 应有独立 proto 包以跨域通信）
@@ -48,6 +49,7 @@
 | cluster_ops | `0.0.0.0:50056` (`cluster-ops/src/main.rs:29`) | 50056 (`client.rs:37`) | `PLACEHOLDER_CLUSTER-OPS_GRPC_PORT` | `PLACEHOLDER_CLUSTER_OPS_GRPC_PORT` | 无 | 50056 (L96) | **不一致**（占位符阻塞） |
 
 **关键观察**：
+
 - **二进制代码层**：6 域 `main.rs` + `client.rs::ServiceId` 100% 一致（50051-50056 完全对齐）
 - **RGS-PM-008 完工报告**（2026-08-22，100% 对齐 50051-50056）
 - **部署 artifacts 层**（helm chart values.yaml + k8s manifest）：**6/6 全 PLACEHOLDER**
@@ -72,6 +74,7 @@
 | shared-platform / 跨域 RPC | RGS-SPEC-CROSS-002 | 6 域 client builder | `crates/shared-platform/src/client.rs:60-81`（仅 `build_service_channel` 框架） | **10%** | **C5 关键缺口**：6 域 **Cargo.toml 全部未声明 shared-platform 依赖**，调用方 `cargo build` 阶段直接失败 |
 
 **DTL 引用密度统计**：
+
 - 6 域 `0001_init.sql` 文件头都有 DTL 引用注释（DTL-018/015/016/026/019/020）✓
 - `0002_saga_init.sql` 引用 DTL-100 ✓
 - **但实施层与 DTL 字段级需求匹配度仅 20-95%**（Saga 20% / cluster_ops 50% / admin 80% / shared-platform CEM 15%）
@@ -465,6 +468,7 @@ CREATE INDEX idx_inbox_processed_at ON inbox (processed_at);
 **总预计工时：50.7 人·天**（基于人·天；按 Ulysses 的 token-OLU 框架：1 人·天 ≈ 100K-300K tokens，约 5M-15M tokens 总投入）
 
 **强烈建议**：
+
 1. C5（shared-platform 依赖补全）必须**最先修**——它是 H3 / M1 的前置
 2. C3（Saga 物理 DB 错位）必须**第二个修**——它影响 DTL-100 全部 §3 §4 §5 §6 §7 章节
 3. C1（cluster_ops proto 补全）必须**第三个修**——它是 ARC-051 全部控制面 API 的基础
@@ -475,11 +479,13 @@ CREATE INDEX idx_inbox_processed_at ON inbox (processed_at);
 <签名>：<占位 — 待 5 域 Lead 联合签批>
 
 **审核范围声明**：
+
 - 本报告仅审核**架构层**一致性（proto / migration / Cargo 依赖 / port / DTL 引用 / helm chart）
 - 未涉及：Rust 代码风格、测试覆盖率、安全审计（per RGS-SEC-100）、性能压测
 - 未涉及：5 域业务逻辑（service.rs / repository.rs 实现细节）
 
 **审核方法声明**：
+
 - 全部基于 commit `2486aef` 仓库快照
 - 所有发现均通过文件读取 + grep 验证（无推断）
 - 6 域 `0001_init.sql` + `0002_saga_init.sql` 100% 完整阅读
@@ -494,12 +500,14 @@ CREATE INDEX idx_inbox_processed_at ON inbox (processed_at);
 - economy-service/src/{saga.rs, reservation.rs, inbox.rs} 100% 完整阅读
 
 **审核局限性**：
+
 - 未跑 `cargo build` / `cargo test` 实际编译验证（任务要求"不修改项目代码"）
 - DTL-018/015/016/026/019/020 §3 完整字段需求未逐一比对（仅查表头 + 主键 + INDEX + FK 关键字段）
 - shared-platform 22 个文件（lib.rs 78 行 + 21 个 module）未逐文件审完，仅 lib.rs / subject.rs / client.rs 完整阅读
 - `crates/cluster-ops/src/{repository.rs, service.rs, grpc_service.rs, etc}` 业务实现未审
 
 **未涵盖项（需要后续审核）**：
+
 - RGS-SEC-100 §7 mTLS 实施完整性（应在 55.x 单独 audit）
 - RGS-IMPL-002 v0.1 §3 工具链对齐（rust 1.98 / sqlx 0.8 / tonic 0.12 版本一致性）——本次只确认了 workspace 依赖版本一致
 - 6 域实际 unit test / integration test 覆盖率

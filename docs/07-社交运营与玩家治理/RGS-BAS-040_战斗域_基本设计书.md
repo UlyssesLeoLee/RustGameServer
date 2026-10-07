@@ -167,6 +167,7 @@ RGS-REQ-040 给出了战斗域的 12 类 service × 250 RPC（含 12 HealthCheck
 | SnapshotPublisher | 战斗状态差分快照（复用 ARC-002） | `PublishSnapshot` |
 
 **状态机**（per RGS-REQ-040 §2 术语 `BattlePhase`）：
+
 ```
 Init → Preparation → Combat → Settlement → End
                             ↑↓
@@ -185,6 +186,7 @@ Init → Preparation → Combat → Settlement → End
 | MatchOutcomePublisher | 战斗结果发布至 GSM（排行榜） | `PublishOutcome` |
 
 **配置驱动关键点**（ARC-046）：
+
 - `PvPConfig.pvp_mode` 字段决定 VariantHandler 选路
 - 新增变体仅需：① 提交 PvPConfig 数据 ② 经 ARC-021 上线，**无**须代码改动
 
@@ -531,6 +533,7 @@ activity_configs:
 # 9. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - 战斗域 12 个 service 的组件划分、子组件职责与接口边界
 - 战斗状态机、PVP 变体分发、节日活动分发的核心时序
 - PvPConfig / ActivityConfig 数据驱动 Schema 的逻辑层
@@ -540,6 +543,7 @@ activity_configs:
 **审计发现（per ULYS-1 9/4 MD §2）**：战斗域为代码先行扩展域，crate `battle-service` 已实装 2,875 LOC、12 service、250 RPC（含 12 HealthCheck），30 RPC 为真实业务逻辑、220 RPC 为 Unimplemented stub，文档全部缺失。本文档作为补全的中间层（BAS），其上层 RGS-REQ-040 已先行制定，下层 RGS-DTL-047 同步制定。
 
 本版本明确不覆盖、留待后续：
+
 - Rust trait / SQL DDL / Helm 模板 — 属 RGS-DTL-047 详细设计职责
 - 战斗客户端预测算法 — 属 ARC-002 既有同步层职责，本域不重复
 - 战斗录像的回放与分享 — 属 replay-extra-service 范畴

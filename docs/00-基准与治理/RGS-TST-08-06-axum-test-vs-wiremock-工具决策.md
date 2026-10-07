@@ -36,18 +36,21 @@
 ## 2. 推荐路径
 
 ### 阶段 1(v0.2 当前):方案 D(双工具并存)
+
 - gm-backend 8 域用 axum-test 16(已实装,优势明显)
 - 7 域用 wiremock 0.6(历史稳定)
 - **现状**:已完成,无需变更
 - 接受理由:8 域是新增(2026-08-27),gm-backend 自带 axum Router,axum-test 是 in-process 最佳实践
 
 ### 阶段 2(v0.3 中期):方案 A 试点
+
 - 选 1 个 5 域(推荐 player-service)做 axum-test 试点
 - 对比 wiremock 跑测时间 + 稳定性
 - 若收益明显,扩展到其余 4 域 + cluster-ops + admin
 - 关键迁移难点:5 域 outbox 异步 + 跨域 RPC 链(可能保留 wiremock 给特定场景)
 
 ### 阶段 3(v1.0 长期):统一 axum-test
+
 - 全部 8 域用 axum-test
 - wiremock 仅用于第三方 HTTP(S3 / 外部 API)mock
 

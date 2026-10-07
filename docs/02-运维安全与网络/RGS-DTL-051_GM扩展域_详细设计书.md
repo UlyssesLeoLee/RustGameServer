@@ -361,6 +361,7 @@ gm_extra_db 共 5 张表，以本文档为唯一权威。
 # 7. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - gm_extra_db 5 张表的物理 DDL（含 audit_log_index 月度分区）
 - 批量补偿 EC 事务边界（per FR-GOV-001）
 - 批量进度查询 + 断点续传（per FR-GMX-003）
@@ -369,6 +370,7 @@ gm_extra_db 共 5 张表，以本文档为唯一权威。
 - 6 项对接点
 
 本版本明确不覆盖、留待后续：
+
 - 单玩家 GM 操作 — 属 gm-backend 既有
 - RBAC 权限矩阵 — 属 RGS-BAS-003 既有
 - OLU 预算台账 — 属 ARC-026 既有

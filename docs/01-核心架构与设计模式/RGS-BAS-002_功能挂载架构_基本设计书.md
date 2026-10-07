@@ -123,6 +123,7 @@ flowchart TB
 | `mnt.mount.debug.dependency_graph_snapshot` | Cargo workspace `Cargo.lock` 解析后的依赖图快照 | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（依赖图大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `mnt.mount.debug.dependency_graph_snapshot` 在大型 workspace 下可能 20KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.mount.*` 系列均为 `info!` 级别（release 必出，§4.8.3.2 二维矩阵 `info!` 行常驻），便于 SRE 按 `context` 维度聚合
 
@@ -153,6 +154,7 @@ flowchart TB
 | `mnt.mount_point.debug.dns_resolution_check` | 挂载点引用既有 Service 时，DNS 解析耗时（微秒级）与结果 | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.mount_point.debug.values_yaml_redacted` **可能含 Secret 引用**（虽不写明文），但**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏
 - `mnt.mount_point.debug.dns_resolution_check` 用于挂载首次触达既有 Service 的延迟基线测量，release 完全剔除
 
@@ -193,6 +195,7 @@ flowchart LR
 | `mnt.flow.debug.gate_evaluation_timing` | 阶段准入判定（cargo build、契约测试等）的微秒级耗时 | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.flow.debug.stage_artifact_dumps` 在大 workspace 下可能 50KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.flow.stage_failed.*` 系列均为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），不挂 `#[cfg]`，确保 release 下告警链路完整
 
@@ -227,6 +230,7 @@ flowchart LR
 | `mnt.artifact.debug.canary_traffic_split` | 灰度发布期间各版本流量分桶详情（5%/25%/50%/100% 切换点） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.artifact.gate_rejected` 包含 `reason` 字段（如具体的契约测试失败 diff），`reason` **不**进入 BAS-004 v0.3 §5.1 脱敏黑名单（`*token*`/`*password*`/`*secret*`），可安全 release 必出
 - `mnt.artifact.rollback_executed` 是**生产事件**，**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于事后审计与告警关联
 
@@ -259,6 +263,7 @@ flowchart LR
 | `mnt.sdk.debug.consumer_dependency_graph` | 引用方 App 依赖图快照（按 SDK 版本分桶） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.sdk.debug.semantic_diff_payload` 可能含 30KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.sdk.consumer_upgrade_skipped` 反映"业务App 自主决策不升级"——release 必出（**不** debug-only），便于 SRE 在 Grafana 上识别"过老的 SDK 版本占比"
 - 横切能力**不**产生独立 `service.name`（§3.3 设计点），所有本节事件埋入**调用方App**的 resource attributes 下（`sdk_name` 字段为业务扩展字段，per BAS-004 v0.3 §4.3.2）
@@ -303,6 +308,7 @@ services/
 | `mnt.scaffold.debug.proto_layout_dump` | `proto/rgs/<context>/v1/` 完整文件清单与每个 proto 头部摘要 | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.scaffold.violation.*` 系列为 `warn!` 级别（§4.8.3.2 二维矩阵 `warn!` 行 release 常驻），便于 SRE 在 Grafana 上按 `violation_kind` 维度聚合
 - `mnt.scaffold.migration_owner_rejected` 是**安全事件**（非 owner 尝试修改 DB），§4.8.3.2 二维矩阵 `warn!` 行 release 常驻，**不**可降级为 debug-only
 
@@ -339,6 +345,7 @@ services/
 | `mnt.cicd.debug.helm_render_full_yaml` | Helm 模板渲染完整 YAML（与 `values.yaml` 覆盖合并后） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.cicd.debug.helm_render_full_yaml` 在大型 chart 下可能 30KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.cicd.pipeline_stage_failed` 包含 `error_summary` 字段（如具体的 clippy lint 名称）—— **不**进入 BAS-004 v0.3 §5.1 脱敏黑名单（`*token*`/`*password*`/`*secret*`），可安全 release 必出
 - `mnt.cicd.proto_contract_violation` 是**架构破坏性变更拦截**——release 必出 + §6.2 强制全采样，便于团队在 PR 评审时关联到具体的 ARC-015 Expand-Contract 阶段
@@ -371,6 +378,7 @@ services/
 | `mnt.deploy.debug.hpa_metric_history` | HPA 评估窗口内的指标历史（CPU/连接数/队列深度逐次采样） | <10/d | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.deploy.hpa_scaling_event` 是 release 必出 + §6.2 强制全采样的**业务关键事件**——SRE 必须能在 Grafana 上按 `context` + 时间窗口聚合
 - `mnt.deploy.hpa_min_replicas_violation` 是**启动风暴预警**（与 BAS-001 §历史经验 HPA 强启动风暴同类）——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 P0 告警链路捕获
 
@@ -407,6 +415,7 @@ deploy/helm/<context>-service/
 | `mnt.helm.debug.rendered_resource_yaml` | 渲染后的 K8s 资源完整 YAML（`helm template` 输出） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.helm.debug.rendered_resource_yaml` 在大型 chart 下可能 30KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.helm.fork_detected` 是**架构违规事件**——release 必出 + §6.2 强制全采样，便于架构师在审计时按 `context` 维度聚合
 
@@ -435,6 +444,7 @@ deploy/helm/<context>-service/
 | `mnt.netpol.debug.connection_attempt_envelope` | 被拒绝的 TCP 连接的完整 envelope（源 IP、目标 IP、端口、SNI） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.netpol.deny_hit.attempted_cross_db_access` 是**P0 安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE/Security 团队即时审计
 - `mnt.netpol.debug.connection_attempt_envelope` 含**网络五元组**，**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏 Pod IP/端口拓扑
 - `mnt.netpol.default_deny_active` 是**安全基线心跳**——按 §6.2 强制全采样白名单，确保 SRE 能在 1 分钟内识别"NetworkPolicy 被旁路"的灾难情形
@@ -480,6 +490,7 @@ sequenceDiagram
 | `mnt.db.debug.role_grant_acl_dump` | `GRANT` 语句的完整 ACL dump | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.db.secret_written` **绝不**包含连接串密码明文——`secret_name` 已足够用于审计追踪，**禁止**加入 `secret_value` 字段
 - `mnt.db.role_escalation_attempt_blocked` 是**P0 安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.db.debug.role_grant_acl_dump` 包含完整的 `GRANT` 语句——**仅** debug-only 守护，避免 RUST_LOG=debug 误开时泄漏权限拓扑
@@ -511,6 +522,7 @@ sequenceDiagram
 | `mnt.db.isolation.debug.backup_window_drift` | 备份窗口与 NFR-AV-004 主+同步备用方案的偏差 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.db.isolation.role_privilege_violation` 是**安全事件**（超限权限）——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE/Security 团队即时审计
 - `mnt.db.isolation.backup_retention_violation` 是**合规事件**——release 必出，便于合规审计时按 `context` 维度聚合
 - `mnt.db.isolation.debug.privilege_acl_full_dump` 包含完整 `GRANT`/`REVOKE` 语句——**仅** debug-only 守护，避免 RUST_LOG=debug 误开时泄漏权限拓扑
@@ -545,6 +557,7 @@ sequenceDiagram
 | `mnt.grpc.debug.tls_handshake_full_chain` | mTLS 握手的完整证书链 + SAN/CA 详情 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（**不**含私钥，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.grpc.mtls_handshake_failed` 是**安全事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE 识别证书过期/SAN 配置错
 - `mnt.grpc.debug.tls_handshake_full_chain` 包含完整证书链——**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏证书细节（含 CA 拓扑）
 - `mnt.grpc.idempotency_hit` 是正常业务事件——release 必出（**不**降级为 debug-only），便于 SRE 监控重试率
@@ -578,6 +591,7 @@ sequenceDiagram
 | `mnt.gw.debug.full_request_envelope` | 客户端 HTTP 请求完整 envelope（含 headers/body，含 `Authorization` token 头部） | 高频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（**必须**对 `Authorization` 头做 §5.1 脱敏，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.gw.auth_failed` 是**安全事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE/Security 团队识别暴力破解/会话劫持企图
 - `mnt.gw.debug.full_request_envelope` 包含 `Authorization` token 头部——**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏会话凭证（per BAS-004 v0.3 §5.1 `*token*`/`*authorization*` 脱敏黑名单）
 - `mnt.gw.rate_limit_hit` 反映**限流背压生效**——release 必出（**不**降级为 debug-only），便于 SRE 监控客户端异常流量
@@ -612,6 +626,7 @@ sequenceDiagram
 | `mnt.event.debug.message_envelope_dump` | 事件完整 envelope（含 payload + headers + `trace_id`） | 高频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-2KB/条（payload 决定，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.event.sync_rpc_usage_blocked` 是**架构违规事件**（违反 ARC-010 禁止用途）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.event.schema_compatibility_violation` 是**破坏性变更事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.event.debug.message_envelope_dump` 包含事件 payload——**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏业务敏感数据（如玩家消息内容），release 完全剔除
@@ -645,6 +660,7 @@ sequenceDiagram
 | `mnt.otel.debug.resource_attributes_full` | OTel resource attributes 完整 dump（含所有 SDK 自动 + 业务扩展） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300-500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.otel.scaffold_injection_failed` 是**阻塞性事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，触发 P0 告警链路（NFR-MNT-005 "上线当日即可见" 是强约束）
 - `mnt.otel.debug.span_attribute_dump` 可能含 2KB+——release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `mnt.otel.log_structured_fields_validated` 是**埋点合规校验**——release 必出（**不**降级为 debug-only），便于 SRE 监控埋点完整性
@@ -669,6 +685,7 @@ sequenceDiagram
 | `mnt.dashboard.debug.dashboard_panel_layout` | Dashboard 完整 panel 布局 dump | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（panel 数量决定，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.dashboard.golden_metrics_missing` 是**NFR-MNT-005 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，触发 P0 告警
 - `mnt.dashboard.observability_gap_detected` 是**观测空窗期事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.dashboard.debug.dashboard_panel_layout` 在大 Dashboard 下可能 5KB+——release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
@@ -709,6 +726,7 @@ sequenceDiagram
 | `mnt.mount_record.debug.traced_chain_dump` | 完整追溯链 dump（context → FR → 设计章节 → 挂载记录） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.mount_record.untraced` 是**追溯性断链事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.mount_record.field_missing` 是**阶段 11 准入失败事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.mount_record.matrix_update_failed` 是**追溯性矩阵更新失败事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
@@ -732,6 +750,7 @@ Mount Record随PR提交至`services/<context>-service/README.md`，并将摘要�
 | `mnt.mount_record.debug.full_archive_diff` | Mount Record 与追溯链各节点的完整 diff | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.mount_record.chain_broken` 是**追溯性断链 P0 事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.mount_record.archive_location_drift` 是**架构违规事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样
 
@@ -772,6 +791,7 @@ flowchart LR
 | `mnt.decom.debug.consumer_dependency_graph` | 消费者依赖图完整 dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（消费者数量决定，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.decom.db_dropped` 是**合规事件**——`info!` 级别，release 常驻 + §6.2 强制全采样，便于合规审计时按 `context` 维度聚合
 - `mnt.decom.db_drop_blocked` 是**合规拦截事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.decom.debug.consumer_dependency_graph` 在大型拓扑下可能 5KB+——release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
@@ -801,6 +821,7 @@ flowchart LR
 | `mnt.decom.debug.archive_payload_metadata` | 归档数据的元数据 dump（**不**含数据本体） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.decom.consumer_acknowledgement_missing` 是**退场阻塞事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE 识别"沉默消费者"
 - `mnt.decom.rollback_requested_during_freeze` 是**退场撤回事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于团队追溯"为什么这次退场没走完"
 - `mnt.decom.debug.archive_payload_metadata` 包含**归档元数据**——**仅** debug-only 守护以避免 RUST_LOG=debug 误开时泄漏归档范围细节
@@ -842,6 +863,7 @@ flowchart LR
 | `mnt.checklist.debug_full_checklist_dump` | 完整 Mount Checklist dump（含每项的详细检查结果） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.checklist.log_section_completeness_failed` 是**AC-LOG-007 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.checklist.sensitive_field_scan_violation` 是**脱敏违规事件**（**严重**安全/合规事件）——`error!` 级别，release 常驻 + §6.2 强制全采样
 
@@ -867,6 +889,7 @@ flowchart LR
 | `mnt.decom_checklist.debug_full_decom_checklist_dump` | 完整 Decommission Checklist dump | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `mnt.decom_checklist.remaining_traffic_detected` 是**退场残留流量 P0 事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.decom_checklist.consumer_dependency_remaining` 是**消费者依赖残留事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `mnt.decom_checklist.retention_period_remaining` 是**合规拦截事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样

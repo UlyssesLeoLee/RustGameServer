@@ -106,6 +106,7 @@ flowchart TB
 | `sdk.arch.debug.dependency_graph_snapshot` | 客户端SDK `Cargo.lock` 解析后的依赖图快照（含 FFI 生成的 C#/C++ binding 头文件路径） | 每次SDK启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（依赖图大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.arch.debug.dependency_graph_snapshot` 在大型 SDK workspace 下可能 20KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `sdk.arch.fallback_activated` 反映客户端网络环境劣化——release 必出（**不** debug-only），便于 SRE 按 `from_transport` 维度聚合，识别"QUIC 在某区域客户端失效率"
 - 客户端SDK涉及跨语言边界（C# / C++ / GDScript），**`device_id`/`ip_address` 等设备标识符字段必须经 BAS-004 v0.3 §5.1 脱敏**（如 `device_id_hash` 为 SHA-256 后 16 字节 hex 截断），本表 `sdk.arch.*` 系列已统一使用 `_hash` 后缀
@@ -160,6 +161,7 @@ rgs-client-core/
 | `sdk.codec.debug.bench_full_report` | `cargo bench` 完整结果（含全部 message_kind 的 min/median/p99） | CI 阶段 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-30KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.codec.debug.encode_payload_dump` / `decode_payload_dump` 走**高频路径**（每 tick 一次），release 必须完全剔除（防止 RUST_LOG=debug 误开时撑爆日志通道 + 客户端 CPU/内存被打爆）
 - `sdk.codec.*latency_threshold_exceeded` 系列是**生产告警事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于 NFR-SDK-002 性能门禁在 Grafana 上按 `message_kind` + `platform` 维度聚合
 - 客户端SDK的 `client_version` / `platform` / `engine_version` / `device_id_hash` 字段是排查客户端问题的必备上下文（**客户端SDK特殊考虑**），所有本节 release 必出事件均携带
@@ -198,6 +200,7 @@ rgs-client-core/
 | `sdk.ffi.debug.parameter_validation_details` | 导出函数入口全部参数的详细校验过程（针对复杂指针/切片参数） | 每次调用（高频） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 200B-1KB/条（参数数量决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.ffi.debug.parameter_validation_details` 走**高频路径**（每次 FFI 调用一次），release 必须完全剔除，防止客户端性能损耗
 - `sdk.ffi.panic_caught` 携带 `panic_message_hash` 而非明文 panic message——避免 panic message 中潜在的密码/token/路径信息泄漏（per BAS-004 v0.3 §5.1 脱敏黑名单 `*token*`/`*password*`/`*secret*`），同时保留可聚合的稳定 hash 用于跨客户端/版本关联
 - `sdk.ffi.memory_misuse_detected` 是**安全事件**——release 必出 + §6.2 强制全采样，便于审计追溯（"谁在什么时候尝试 free 错内存"）
@@ -226,6 +229,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | `sdk.gen.debug.cbindgen_config_dump` | cbindgen 配置文件 `cbindgen.toml` 完整内容 | 每次构建 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.gen.debug.full_generated_files_dump` 可能 100KB+（多平台 × 多 binding）——release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `sdk.gen.binding_drift_detected` 反映"手写 wrapper 与生成产物不一致"——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于在 PR 评审时拦截（防止"偷偷改 SDK API 但忘改 wrapper"类问题）
 - `sdk.gen.toolchain_unavailable` 是**构建阻塞事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，触发 P1 告警
@@ -261,6 +265,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | `sdk.bevy.debug.system_timing_per_tick` | 每个 tick 各 system 耗时（微秒级） | 每 tick 一次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（system 数量决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.bevy.predicted_transform_synced` 走**最高频路径**（每 tick 一次，60-120 Hz）——release 必须完全剔除，否则在生产环境 RUST_LOG=debug 误开时客户端 CPU 会被打爆（**客户端SDK特殊考虑**：高频 API 调用 → debug-only）
 - `sdk.bevy.snapshot_received` 频率次高（20-60 Hz）但**业务关键**（客户端表现直接依赖快照频率）——release 必出 + §6.2 强制全采样（不同于 §3.1 编解码的"超阈值告警"，这里是"全部快照都计"）
 - `sdk.bevy.cross_thread_violation` 是**架构错误**——`error!` 级别，release 常驻 + §6.2 强制全采样，触发 P1 告警
@@ -299,6 +304,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | `sdk.unity.debug.marshalling_timing_per_callback` | 每次回调封送的微秒级耗时 | 高频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.unity.marshalled_to_main_thread` 走**高频路径**（每次 SDK 回调一次，可能 60-120 Hz）——release 必须完全剔除（**客户端SDK特殊考虑**：高频 API 调用 → debug-only）
 - `sdk.unity.cross_thread_violation` 是**P0 事件**（可能直接导致 Unity 主线程崩溃 / 进程挂掉）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `sdk.unity.native_library_load_failed` 是**部署阻塞事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE 按 `platform` 维度聚合（"iOS 包缺 dylib"类问题）
@@ -338,6 +344,7 @@ C头文件与C#/C++绑定代码**倾向于**通过工具（如`cbindgen`生成C�
 | `sdk.ue.debug.async_task_queue_state` | UE 任务系统队列状态（`ENamedThreads::GameThread` 队列深度） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.ue.async_task_dispatched` / `delegate_broadcast` 走**高频路径**（每次 SDK 回调一次，可能 60-120 Hz）——release 必须完全剔除（**客户端SDK特殊考虑**：高频 API 调用 → debug-only）
 - `sdk.ue.game_thread_violation` 是**P0 事件**（可能直接导致 UE 游戏线程崩溃 / Editor crash）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `sdk.ue.module_load_failed` 是**部署阻塞事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 SRE 按 `platform` 维度聚合
@@ -382,6 +389,7 @@ sequenceDiagram
 | `sdk.version.debug.handshake_payload_dump` | SessionHandshake 请求/响应完整 payload dump（含 feature flag 位图） | 每次会话 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（payload 大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.version.handshake_rejected_outdated` 是**业务关键事件 + 客户端升级提示触发器**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于按 `client_sdk_version` + `platform` 维度聚合"哪些旧版本客户端还在线上"
 - `sdk.version.*` 整体频率低（每次会话 1 次），**但**信息密度高（包含协议版本兼容性信息），故 release 必出，无 debug-only 守护需求（除 payload dump 外）
 - 协议版本事件不涉及高频路径，故**无**性能损耗考虑
@@ -418,6 +426,7 @@ sequenceDiagram
 | `sdk.test.debug.field_level_diff` | 三引擎输出字段级 diff（按 expected_field/actual_field 列） | 典型 1/CI run | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（diff 数量决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.test.regression_run_failed` 是**NFR-SDK-001 违反事件**（三引擎表现不一致 = 某引擎适配层有 bug）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `sdk.test.ffi_crash_test_failed` 是**FR-SDK-020 违反事件**（畸形输入导致崩溃，客户端会受此影响）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - 回归测试不涉及高频路径（典型 1/CI run），故**无**性能损耗考虑；debug-only 仅用于完整 diff/trace dump（避免 RUST_LOG=debug 误开时撑爆日志通道）
@@ -460,6 +469,7 @@ sequenceDiagram
 | `sdk.checklist.debug.client_sdk_inventory_dump` | 客户端SDK 全部发布产物清单 dump（各平台 .dll/.dylib/.so、Unity .unitypackage、UE .uplugin、版本号、构建 hash） | 典型 1/release | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（平台数量决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sdk.checklist.log_section_completeness_failed` 是**AC-LOG-007 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `sdk.checklist.sensitive_field_scan_violation` 是**脱敏违规事件**（**严重**安全/合规事件）——`error!` 级别，release 常驻 + §6.2 强制全采样；客户端SDK特殊考虑：`device_id` 明文在 release 必出字段中是典型违规（应使用 `device_id_hash`）
 - `sdk.checklist.debug_only_macro_missing_cfg_detected` 是**AC-LOG-006 违反事件**（debug-only 宏在 release build 未被剔除，客户端会承担不必要的性能损耗）——`error!` 级别，release 常驻 + §6.2 强制全采样

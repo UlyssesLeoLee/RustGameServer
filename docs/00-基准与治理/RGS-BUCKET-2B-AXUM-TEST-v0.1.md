@@ -79,6 +79,7 @@ RGS-PLAN-WBS-token-bucket-v0.3 §2.2.2:
 ### 3.3 决策依赖
 
 W31 启动需 Ulysses 拍板:
+
 - 5 域是否加 axum HTTP 入口(架构变更)
 - 5 域 IT 用 axum-test 还是 tonic-test(工具选型)
 - W31 token 预算 50-80M 是否批准(per WBS §2.2.2 桶 2b 20M 不够)

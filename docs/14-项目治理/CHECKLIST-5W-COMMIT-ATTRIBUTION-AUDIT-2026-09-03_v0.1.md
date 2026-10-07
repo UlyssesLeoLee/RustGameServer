@@ -33,6 +33,7 @@
 ## 2. 根因 (per 8/31 PT 派工 8 worker 教训同症复发)
 
 5 worker 并发 `git add` 时，**互相捕获其他 worker 的 untracked 文件**：
+
 1. social worker 11:08:18 JST 抢先 `git add docs/14-项目治理/CHECKLIST-social-PROD-READY-2026-09-03_v0.1.md` (假设只 add social)
 2. 但 `git status` 列出 5 域 untracked 文件，social worker 用 `git add <file>` 精确只 add social，但 commit 触发时如有其他 worker 已 staged 文件，**commit 把所有 staged 文件一起带走**
 3. 实际路径: economy worker 11:08:18 JST `git add CHECKLIST-economy-...`，social worker 11:08:18 JST `git add CHECKLIST-social-...` + commit → 7f6a9d5 含 2 文件 (economy + social)
@@ -40,6 +41,7 @@
 5. match 11:08:56 JST 单独 commit → f0fe990 含 1 文件 (match 独占)
 
 **5 worker 派工 design flaw**：
+
 - ❌ 5 worker 共享主仓库 + 各自 `git add` + 各自 `git commit` → 互相捕获 untracked 文件
 - ❌ 5 worker 用 `git add .` (全 add) → 必定捕获所有 untracked
 - ❌ 5 worker 用 `git add <file>` 精确 add → 但 git commit 时如其他 worker 已 staged 文件，一起被带走
@@ -48,6 +50,7 @@
 ## 3. 教训 (L12 派生约束应补案例)
 
 **5 worker 派工共享主仓库时, 应 per-file `git add <file>` 不 `git add .`**:
+
 - 但即使 per-file add 仍可能被 race condition 捕获
 - 真正解决: 5 worker 用独立 worktree (per 8/31 W37 5 域独立 Lead 模式 ut/player / ut/economy / ut/match / ut/social / ut/admin), 各 worktree commit 后主会话 merge
 - 或 1 worker 串行 5 域, 失去"5 worker 并行"形式
@@ -56,6 +59,7 @@
 **跟 8/31 PT 派工 8 worker 25 min 派工基线同症**: 8/31 8 worker 报告 "目录根污染临时文件"（per L12 派生约束），但当时是临时 log 污染，不是 untracked .md 跨域被收。本次是 L12 派生约束没防住 untracked .md 跨域。
 
 **AGENTS.md §6.3 PT 派工简报模板应补**：
+
 ```markdown
 ## 5 worker 派工约束 (per 9/3 11:08 JST race condition 教训)
 - 5 worker 共享主仓库时, **不推荐** 各自 git add + git commit
@@ -69,6 +73,7 @@
 ## 4. 不修历史 (per 8/27 JST 禁回溯叙事 + 8/26 JST 缺标比错标)
 
 **bc82700 / 7f6a9d5 / f0fe990 三 commit 标题与 content 不匹配**:
+
 - 严格意义是 scope 错位
 - 但 git 历史可读（commit message 仍描述实际工作）
 - 不 amend / rebase / filter-branch (跟 8/27 JST "禁回溯叙事" 派生约束冲突)
@@ -76,6 +81,7 @@
 - git grep / git log --follow 仍可定位每个域文件 (per 8/27 派生约束 "引用必须 git 实证")
 
 **5 域文件本身** (内容正确)：
+
 - `docs/14-项目治理/CHECKLIST-player-PROD-READY-2026-09-03_v0.1.md` 17,508 bytes
 - `docs/14-项目治理/CHECKLIST-economy-PROD-READY-2026-09-03_v0.1.md` 18,944 bytes
 - `docs/14-项目治理/CHECKLIST-match-PROD-READY-2026-09-03_v0.1.md` 14,041 bytes

@@ -32,11 +32,13 @@
 ## 1. 文档目的
 
 本表是 **WBS L4 任务实时进度**的集中视图：
+
 - **数据源**：所有 L4 任务 worktree 根目录的 `.wbs-task-marker` JSON 文件
 - **更新机制**：`wbs_task_progress.ps1 -L4Id <id> -Status {start|progress|done|blocked} [-Progress N]`
 - **视图刷新**：`wbs_list.ps1 -Summary` 自动汇总各 stage 状态
 
 **为什么单独一张表（不直接读 .wbs-task-marker）**：
+
 1. 人类 review / PM 签字用（不直接进 worktree 看 JSON）
 2. 跨 worktree 状态汇总（避免每个 worktree 单独看）
 3. 历史 archive（marker 可能在 worktree 删除后丢失，但本表保留历史）
@@ -120,6 +122,7 @@ pending → in_progress (start) → done (done)
 **场景**：agent 会话中断（断电 / 网络断开 / 进程 kill）后重启
 
 **恢复步骤**：
+
 1. 列出现有 worktree：`git worktree list`
 2. 找未完成 worktree 的 `.wbs-task-marker`
 3. 读 marker 知道当前 status / progress
@@ -127,6 +130,7 @@ pending → in_progress (start) → done (done)
 5. 完成时调 `wbs_task_progress.ps1 -L4Id <id> -Status done`
 
 **marker 损坏或丢失的恢复**：
+
 - 重新创建 marker：手工编辑 JSON 写最小字段
 - 重新调 `wbs_task_progress.ps1 -Status start` 重建时间戳
 
@@ -222,6 +226,7 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 ```
 
 **反模式（明令禁止）**：
+
 - ❌ **log 只有 "已完成" 文字描述** —— 无 commit hash / 无测试输出 = 视为未完成
 - ❌ **log 引用"已合并到 main"作为完成判据** —— 合并 ≠ 任务完成（per 反馈单 Issue 4）
 - ❌ **log 把 4 份 B-CODE 当成 11 份** —— 实际是 7 G-CODE + 4 B-CODE = 11 份（per ACTIONS-v0.3 C-03 修正）
@@ -233,6 +238,7 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 ## §A 已知缺口（per RGS-DOCS-HEALTH-2026-08-26 §0~§4 治理基线，v0.9 升版时新增）
 
 ### §A.1 DTL v0.2 升版进度
+
 - **目标**：DTL-021~025/32~40/100~102 全部 15 个 DTL ID 的详细设计 + 实现规格 v0.2 升版（per Ulysses 17:04 JST "开子代理和 worktree 推进" 指令）
 - **当前状态（v0.10 sync 修正）**：清单已过期。8 份目标 DTL 全部已 ≥v0.2（DTL-022/DTL-025 达 v0.3，SPEC-DTL-034/036/DTL-023/038/039/040 达 v0.2）。**0 份需要补升**。详见 [`docs/12-工作流/RGS-REPORT-2026-08-26-WF-1-A-08-DTL-Status-Check_v0.1.md`](RGS-REPORT-2026-08-26-WF-1-A-08-DTL-Status-Check_v0.1.md)（commit `24ee55e`，git 实证三重：最新 commit + 头表 `| 版本 |` 字段 + 修订历史 v0.2/v0.3 行）
 - **原未升清单（已过期，WBS-001 v0.11 升版时可删）**：
@@ -248,6 +254,7 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 - **GBK 编码约束（保留）**：不可用 PowerShell `Get-Content -Encoding UTF8` 破坏 GBK 编码；如需写 GBK 文件，须用 `python -c "open(f, 'wb').write(text.encode('gbk'))"` 写入（但本清单的 8 份都不是 GBK）
 
 ### §A.2 PG 18.6 装入（per Ulysses 2026-08-26 16:58/16:59 JST 硬约束）
+
 - **硬约束**：rust 1.98.0 ✅ verified（`rustc 1.98.0 (88d9e12ae 2026-08-18)`），PostgreSQL 18.6 ✅ verified（`18.6 (Debian 18.6-1.pgdg13+2)`）
 - **SOP 文档**：`docs/12-工作流/RGS-PG18-INSTALL-SOP-2026-08-26.md` v0.2 已 commit（commit `8997f37`）
 - **当前状态（✅ 2026-08-26 21:01 JST 实测解锁）**：Ulysses 21:00 JST 确认 PG 18.6 在 k3s 里跑通；**实测就位**（per WSL Ubuntu 21:01-21:02 JST k3s kubectl exec）：
@@ -265,6 +272,7 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
 - **回退方案**：**无**——Ulysses 16:59 明确"装不到 18.6 跟我协商"，禁止擅自降级到 18.0/18.1/18.2 或 sqlite/InMemory（已不再适用，18.6 装入解锁）
 
 ### §A.3 5 域 gRPC 启 + DDD Review 反馈闭环
+
 - **目标**：5 域（player/economy/match/social/admin）+ saga + cluster-ops 共 7 binary 启 + 跨域 gRPC 互通 + 5 域 Lead DDD Review 真实签字
 - **当前状态（✅ 2026-08-26 21:01 JST 部分解锁——6 binary 跑通，DDD Review 签字待）**：
   - **6 binary 全 Running**（per WSL Ubuntu 21:01 JST k3s kubectl get pods）：
@@ -284,4 +292,3 @@ git diff docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md
   - 5 域 Lead DDD Review 真实签字（v1.1 RACI §3 占位补实）
   - RGS-TEST-STRATEGY phase 2 推进（integration test 套件）
   - RGS-DEC-Q003 §7 12 角色签字（per OPEN-QA-001 v0.2 Q-M-01）
-

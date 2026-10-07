@@ -17,6 +17,7 @@ Ulysses 2026-09-02 10:18 JST 明确指令"批评一下这个项目, 看看怎么
 Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md / 401 .rs / 19 crate / 117,450 md 行 vs 82,915 rs 行) 输出批评, 经 ask_user Q&A 拍板 (A+B+C+D 全选 / 6 域不缩 / 跟踪文档冻结归档), 形成本 v0.1 文档。
 
 **依据**:
+
 - `git status` ahead of origin/main 193 commit
 - `git log --oneline | Select-String "hotfix"` 60+ 条 (9/1 当日)
 - `Get-ChildItem crates -Recurse -Filter "*.rs"` 401 个 / 82,915 行
@@ -51,6 +52,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ### 2.1 治理派压倒实现派 — 文档密度爆炸
 
 **症状**:
+
 - 行数比 1.42:1 (md 行数 117,450 > rs 行数 82,915)
 - 单文档失控: RGS-BAS-037 (运维安全生命周期) 265 KB / RGS-BAS-036 (客户端断点续传) 218 KB / RGS-BAS-010 (分布式算法) 141 KB / RGS-BAS-011 (智能体架构) 146 KB — 任何一篇都是小型书的体量
 - 9/1 batch 域一天 4 件套 165 KB 落地 (REQ 39 KB + BASIC 37 KB + DETAILED 49 KB + PLAN 43 KB), 速度比实现快 10 倍
@@ -61,6 +63,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ### 2.2 hotfix 文化失控 — 60+ hotfix 形成"自我审计死循环"
 
 **症状**:
+
 - 9/1 一天 60+ hotfix commit, STATUS-SNAPSHOT 从 v0.6.10 升到 v0.6.39 (30 次)
 - hotfix 内容大量是"老数字改实时 git log 表达式" (`e517cfa` v0.6.32 / `bce33cb` v0.6.29 / `49944d1` v0.6.30 / `39eded5` v0.6.23)
 - L13 终极守护 = "自指字段 deferred 实时查询" — 这条规则本身就是承认"文档自我指涉维护"已变成项目正式工作流
@@ -71,6 +74,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ### 2.3 AI 自指悖论 — AI 写、AI 审、AI 修
 
 **症状**:
+
 - 代签完全反转: 所有 RGS-* 文档作者栏 = Ulysses / 审批 = 架构师(Mavis 接手 agent per DEC-008) / 修订人 = Ulysses—Mavis 接手 (per 8/27 19:39/20:56/21:59 三次强化 + 8/26 08:40 反转)
 - 派生约束 L1-L14 全是 Mavis 自己立的"不要重复犯 X 错"清单 — L11/L12/L14 都是 8-9 月 Mavis 自己做错的教训
 - DDD Review 一审 = Mavis (架构师): 既是写者又是审者, 结构性偏差
@@ -81,6 +85,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ### 2.4 工作区卫生 — 派生约束 L12 防不住自己
 
 **症状**:
+
 - `git status` 显示 untracked: `target-bucket-8-phase-b/` / `target-bucket-8-w1-player/` (桶 8 worktree 残留)
 - `.worktrees/` + `.worker-tmp/` 仍在主目录 (per L12 派生约束明确"临时 log 不入 commit", 但目录本身没清理)
 - `.test-evidence/2026-08-28-*-v1/v2/v3`: 同一个测试 3 个版本 log 全在仓里 (cargo-test-admin-service-v1/v2/v3 各一份), 是"审计过度 + 不清理"的双向问题
@@ -91,6 +96,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ### 2.5 完成定义 (DoD) 偏轻 — 治理指标 ≠ 业务完成
 
 **症状**:
+
 - 当前 DoD = `cargo check --tests 0 error` (per AGENTS.md §2.1) — 编译过 ≠ 业务跑通
 - 5 域 ST 业务级 mTLS (commit `401ac5c`) 刚完成; E2E 22 测试函数刚写完 (`82671df` TEST-RUN-PLAN v0.1) — 实际跑通要等 Phase C SRE 介入
 - batch 域 commit `82671df` 自己承认 E2E 要 Phase C 介入才能跑: L1 cargo test 限时 60s, E2E 都没真跑过
@@ -103,6 +109,7 @@ Mavis 接手后基于 git 实证数据(commit ahead 193 / 60+ hotfix / 982 .md /
 ## 3. 改善方案 (4 类, 16 条, 拍板结果)
 
 > **拍板结果总览** (per Q&A, 2026-09-02 10:18 JST):
+>
 > - **B 类流程自审 (B1-B4)**: 全部 4 条进入 1 周 sprint
 > - **C 类业务重排 (C1-C4)**: 3 条采纳 (C1/C2/C3), C4 不采纳 (6 域不缩)
 > - **D 类 DoD 升级 (D1-D4)**: 全部 4 条进入 sprint

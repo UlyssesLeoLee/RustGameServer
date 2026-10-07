@@ -14,17 +14,20 @@
 ## 0. 背景与触发
 
 **L-CAND-006 候选清单 (per L-CANDIDATES v0.2 §1, commit `ee3c7e7`)**:
+
 - **类型**: 安全类
 - **内容**: k8s secret 导出硬 ban, cert 内容不入 commit
 - **现状 (9/3 08:00 JST)**: 当前 SOP 是 `kubectl get secret <domain>-tls -o yaml > certs/<domain>-tls.yaml`, **cert 内容进入 certs/ 目录, 风险进入 commit**
 - **触发解冻**: 12/2 Q4 季度评审
 
 **9/3 08:00 JST 风险**:
+
 - SRE Lead 拍板悬空 (W37 D2 9/9 JST 阶段 A 全 4 步, 已 8h+ 悬空)
 - 阶段 B (5 域 certs 导出) 即将启动, 但 SRE 拍板悬空期间 cert 导出若用旧 SOP = 违反 8/27 11:06 JST 凭据硬 ban 精神
 - 即使 SRE 介入, 9/3-9/9 期间任何"提前 cert 准备"动作都涉及凭据导出
 
 **9/3 08:26 JST 拍板 (per ask_user l-cand-006-path = now)**:
+
 - Ulysses 选**立即走例外路径** (9/3 单独 commit + AGENTS.md §8 例外段)
 - 不等 12/2 Q4 季度评审, 凭据泄露 = 安全类 = 立即生效 (per AGENTS.md §8 例外条款)
 
@@ -53,6 +56,7 @@ openssl x509 -in certs/<domain>-tls.yaml -noout -dates | tee -a certs/MANIFEST.t
 ```
 
 **MANIFEST.toml 示例**:
+
 ```toml
 # certs/MANIFEST.toml (5 域 + 1 CA = 6 行/域)
 [player]
@@ -71,6 +75,7 @@ not_after = "Sep  3 08:00:00 2027 GMT"
 ### 1.3 第 3 步: cert 内容不入 commit 强制
 
 **双重防御**:
+
 1. `certs/*.yaml` 在 .gitignore (per L12 派生约束)
 2. `scripts/pre-commit-tmp-check.ps1` pre-commit 钩子拦截 (per 9/3 07:31 JST 拍板)
 

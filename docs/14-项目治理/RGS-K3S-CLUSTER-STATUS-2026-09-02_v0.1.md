@@ -119,12 +119,14 @@ $ curl -s -m 5 -k https://127.0.0.1:18443/healthz
 ## 4. 主会话打头阵 vs 派 worker 复制 (per §2.3 L4)
 
 **主会话打头阵** (1 跳 HTTP 部分, 已落):
+
 - ✅ k3s 节点 + namespace pod + endpoints 检查 (kubectl get 系列)
 - ✅ gm-backend 8081 HTTP /healthz 探活 (curl)
 - ✅ prometheus CrashLoop 根因定位 (kubectl describe + kubectl logs)
 - ✅ 完整摸底报告 (本文档 + RGS-PHASE-C-PREP §3)
 
 **派 worker 复制** (per §2.3 L4, 等 SRE 介入后):
+
 - worker-1: 5 域 gRPC 50051-50055 health probe (per B4-B8 步骤, 需 grpcurl)
 - worker-2: 22 测试函数真跑 (per C1-C8 步骤)
 - worker-3: mTLS 业务级 1+2 跳 (per C4-C5 步骤)

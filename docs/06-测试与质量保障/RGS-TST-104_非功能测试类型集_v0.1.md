@@ -24,10 +24,12 @@
 ## 2. 测试范围
 
 **覆盖范围**：
+
 - 工程 80：性能测试（latency / throughput / resource utilization）
 - 工程 82：压力测试（极限负载 / 长时间稳定性）
 
 **NFR 目标**（per RGS-REQ-001 §12）：
+
 - p99 latency < 50ms（read）/ 100ms（write）
 - 100k CCU 同在线
 - 5xx 错误率 < 0.1%
@@ -35,6 +37,7 @@
 - 7x24 持续运行（hypercare 阶段 ≥ 168h）
 
 **工具链**：
+
 - k6（HTTP/gRPC load gen）
 - criterion.rs（micro-bench）
 - tokio-console（async 调优）

@@ -17,6 +17,7 @@
 任务范围 ec43377..2fe68b4 仅含 3 commit（55.18/55.23/55.24）。工程 55 P0+收尾的 12 个 commit 实际跨度为 4201281^..2fe68b4（含 merge 共 14 个 commit,去 merge 12 个 P0 commit）,本次审核以此为准。
 
 12 commit 列表（去 merge）:
+
 - 4201281 55.1 AC3 economy 资金事务原子化（OCC + apply_atomic）
 - 10bd5b1 55.15 5 域 + cluster-ops main.rs InMemory -> Pg 接线
 - c14abac 55.16 client_interceptor trace_id 从 Span 提取
@@ -289,12 +290,15 @@
 ## 6. LOW Issues
 
 ### LC-1. 测试代码使用 unwrap() 较多
+
 - 影响: LOW;建议 clippy 加 #![cfg_attr(test, allow(clippy::unwrap_used))]
 
 ### LC-2. SHA-256 hash 链无全局 sequence 字段
+
 - 影响: LOW;当前 schema 防御足够;加 seq BIGSERIAL 列是过度设计
 
 ### LC-3. AdminServiceImpl audit_log fallback 路径无 tracing 日志
+
 - 影响: LOW;调试时不便
 - 修复: if self.pool.is_none() { tracing::debug!(target: admin-service, audit_log using non-atomic fallback (pool=None)); }
 
@@ -407,6 +411,7 @@
 签名: verify-C / 2026-08-22 / D:\RustGameServer\docs\00-基准与治理\reviews\adversarial-55\verify-C_security-saga.md
 
 审核方法:
+
 - 静态代码 review:12 commit diff 全部审过(5.7MB 文本)
 - 关键文件全文阅读:entity.rs / repository.rs / service.rs / saga.rs / saga_orchestrator.rs / reservation.rs / outbox.rs / outbox_relay.rs / tls.rs / rbac.rs / channel.rs / grpc_tracing.rs / generate_dev_passwords.ps1 / 6 个 main.rs / 6 个 outbox migration / admin audit_log migrations
 - 横向交叉:5 域 main.rs 模板一致性 + 6 域 outbox migration 一致性
@@ -415,6 +420,7 @@
 - git ls-files 验证无 tracked 秘密文件
 
 未验证项:
+
 - 未跑 dynamic fuzzing / property-based test(建议 proptest 覆盖 saga execute 状态机)
 - 未连真 PG 实例跑 sqlx::test 验证 Pg 路径(特别是 CC-1/CC-4 的真实事务行为)
 - 未连真 NATS 实例验证 relay failover 行为
@@ -422,6 +428,7 @@
 - 未审 cluster-ops main.rs(55.21+22 仅覆盖 5 域,cluster-ops 接线状态待确认)
 
 待 follow-up:
+
 - 若 CC-2 修复后,验证多副本同时 recovery 是否产生重复补偿(需要 saga-level 抢占锁)
 - 验证 tonic 0.12 -> 0.13 升级时 client_auth_optional 默认是否变化
 - 长期:考虑将 shared-platform 的 MIGRATION_TEMPLATE 改为 CI 可检查的 reference migration(避免模板与实际 migration 分叉,CC-3 根因)

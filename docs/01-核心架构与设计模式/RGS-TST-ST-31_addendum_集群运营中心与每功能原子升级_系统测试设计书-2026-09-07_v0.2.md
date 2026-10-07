@@ -82,6 +82,7 @@ per 2026-09-07 12:35 JST 拍板 (scope=opt4 全部 v0.2 综合 8 维度), 本 ad
 | 8 | **cutover 收口** | §7 仅 "30 分钟回滚" | §7 增 13 commit 推远端 + 派生约束 L15-L23 落地 (per 9/6 6c6839e cutover 收口) | 6c6839e / add4238 |
 
 **ST 特定增量** (per W5 任务简报, 跟 IT-31 addendum 一样):
+
 - **9/5 plugin 集群 + app 集群架构**: per 61cf306 RGS plugin 集群 + app 集群架构 v0.1 §3.4 + cluster-ops APP_DEPLOYMENT 抽象
 - **app 集群独立更新**: per RGS-PLUGIN-APP-ARCH-2026-09-05 v0.1 §3.4 + cluster-ops APP_DEPLOYMENT 抽象
 - **9 域 mTLS 业务级 11 步 v3**: per 9/6 d270ab9, §3.15 EX-ST-MTLS-9D-001 11 步 E2E 模拟器

@@ -34,6 +34,7 @@
 - **问题**：5 域 binary 全部硬编码 `Arc::new(InMemoryXxxRepository::new())`，`DATABASE_URL` 环境变量被 `env::var("DATABASE_URL").context("DATABASE_URL env required")?` 校验但**从未**用于构造 `PgPool`；`db::pool_from_env` 在 player/main.rs:44 被调用后结果被丢弃，`PgPlayerRepository` 等从未 wired。
 - **影响**：**生产部署**只要走这条 main 路径，所有玩家 / 账户 / 对局 / 公会 / 审计日志 全部活在进程内存；服务重启 / OOM / k8s 滚动更新 → 数据全丢。`pg_repository.rs` 一行都没被生产调用。
 - **修复建议**：
+
   ```rust
   // main.rs
   let pool = db::pool_from_env().await.context("DB pool init")?;
@@ -48,6 +49,7 @@
 - **位置**：`crates/shared-platform/src/grpc_tracing.rs:54-67`（`client_interceptor`）
 - **类别**：业务逻辑 / 观测
 - **问题**：
+
   ```rust
   pub fn client_interceptor(request: Request<()>) -> Result<Request<()>, Status> {
       let span = Span::current();
@@ -58,6 +60,7 @@
       ...
   }
   ```
+
   每条 gRPC 出栈请求都会**新**生成 trace_id / span_id，**完全切断**上下游 trace 关联。注释自承认是"占位"。生产里 trace 父链是断的，OTel 后端无法做跨服务调用追踪。
 - **影响**：跨域调用排障全靠日志，OTel 全链路 0 价值；SLO / 错误归因 / 延迟分布全部失真。
 - **修复建议**：用 `tracing_opentelemetry::OpenTelemetrySpanExt` 拿当前 Span 的 OTel context（`span.context().trace_id()` / `span_id()`），或用 `tracing::Span::current().record` 直接桥接。
@@ -69,6 +72,7 @@
 - **位置**：`crates/economy-service/src/service.rs:73-114`（credit）、`116-162`（debit）、`174-188`（freeze_account）
 - **类别**：业务逻辑
 - **问题**：
+
   ```rust
   // credit
   account.credit(amount);
@@ -78,6 +82,7 @@
   self.ledger.save(&entry).await?;  // step 2：非原子
   Ok(entry)
   ```
+
   `update_with_version` 与 `ledger.save` 是**两个独立 SQL**。若 step1 成功 step2 失败（网络抖动 / DB 临时故障 / OOM）：
   - credit: 余额已加但账目漏记 → 凭空生钱
   - debit: 余额已减但账目漏记 → 钱被销毁
@@ -92,6 +97,7 @@
 - **位置**：`crates/economy-service/src/saga_orchestrator.rs:144-193`（`ReserveHandler::execute` / `compensate`、`ConfirmHandler::execute` / `compensate`）
 - **类别**：业务逻辑
 - **问题**：
+
   ```rust
   async fn execute(&self, saga: &mut Saga) -> Result<()> {
       if let Some(step) = saga.current() {
@@ -104,6 +110,7 @@
       Ok(())
   }
   ```
+
   `Reservation::new` 构造完直接 drop；`ConfirmHandler` 只打 log；`compensate` 全 no-op。Orchestrator 框架在跑，但**实际业务等于零**。
 - **影响**：转账 / 商城 / 每日奖励 三个 saga type 全部跑通也只更新 `sagas` 表，不动账户、不动预留表、不发 outbox 消息。"saga 完成"≠"业务完成"。
 - **修复建议**：handler 必须 `self.reservations.save(&r).await?` + 调 `update_with_version` 扣减可用余额；或把 ReserveHandler 通过 `Arc<dyn ReservationRepository>` 注入。
@@ -115,6 +122,7 @@
 - **位置**：`crates/admin-service/src/service.rs:119-132`（`audit_log`）、`crates/admin-service/src/repository.rs:202-210`（`PgAuditLogRepository::latest`）
 - **类别**：并发安全
 - **问题**：
+
   ```rust
   async fn audit_log(...) -> Result<AuditLogEntry> {
       let prev = self.audit.latest().await?;                  // 读
@@ -123,6 +131,7 @@
       self.audit.append(&entry).await?;                      // 写
   }
   ```
+
   这是典型的 check-then-act 竞态。两个并发 audit 调用都读到 `prev_hash=H_n`，都生成 `H_{n+1}`，两条 entry 的 `prev_hash` 都是 `H_n`。**DB 层 `audit_log` 表对 `prev_hash` 无 UNIQUE 约束**（migration 只对 `hash` 加 UNIQUE），所以两条都能写入。Hash 链分叉 → 篡改检测算法永远察觉不到部分篡改。
 - **影响**：管理员后台可绕过审计。SEC-100 §7 hash 链抗篡改承诺破功。
 - **修复建议**：
@@ -137,6 +146,7 @@
 - **位置**：`crates/shared-platform/src/rbac.rs:131-194`（`SimpleAuthorizer::new` + `check`）
 - **类别**：安全 / API 设计
 - **问题**：
+
   ```rust
   role_permissions.insert(Role::DomainAdmin, vec!["*:*"]);  // 与 SuperAdmin 同权
 
@@ -157,15 +167,18 @@
       }
   }
   ```
+
   攻击面：管理员只填 `Role::DomainAdmin` 而**漏填** `domain_scope`（DB schema 允许 NULL：migration `admin-service/0001_init.sql:10`），`Subject` 构造时 `domain_scope: None` → 通过 `*:*` 拿到全域 SuperAdmin 权限。同 `rbac.rs:227-244` 的 `player_admin()` 测试用例明确依赖 `Some("player")`，缺该字段的负面用例不存在。
 - **影响**：单点权限提升，绕过 DTL-019 §3.1 + DEC-005 五域边界。
 - **修复建议**：
+
   ```rust
   // 把 "DomainAdmin 但无 scope" 显式 deny
   if matches!(role, Role::DomainAdmin) && subject.domain_scope.is_none() {
       return CheckResult::deny_if("domain_admin requires domain_scope");
   }
   ```
+
   外加测试 `domain_admin_without_scope_denied()`。
 
 ---
@@ -185,6 +198,7 @@
 - **位置**：`crates/economy-service/src/repository.rs:285-302`
 - **类别**：错误处理
 - **问题**：
+
   ```rust
   match guard.get(&account.id) {
       Some(existing) if existing.version == account.version => { ... }
@@ -192,6 +206,7 @@
       None => Ok(account.clone()),   // 不存在 = 假装成功
   }
   ```
+
   Pg 版本 `rows_affected() == 0` 正确返错。InMemory 版本让测试假阳性：所有"用 InMemory 测试通过"不代表 Pg 也会通过。
 - **影响**：InMemory 测过、Pg 部署炸。生产事故难复现。
 - **修复建议**：`None => Err(crate::Error::NotFound { entity: "Account", id: account.id.to_string() })`。
@@ -212,11 +227,13 @@
 - **位置**：`crates/shared-platform/src/metrics.rs:122-124`
 - **类别**：错误处理
 - **问题**：
+
   ```rust
   pub fn metrics() -> &'static Metrics {
       METRICS.get_or_init(|| Metrics::new().expect("metrics init"))
   }
   ```
+
   任意一个 `register_*_with_registry!` 失败（重复注册 / 资源耗尽 / OOM）→ `panic!` 进程崩。`/metrics` scrape 是 SRE 救命的，不能让监控系统拖死业务。
 - **影响**：第一次 `record_http_request` 调用 panic；测试套件共享全局 → 跨测 `register_counter_vec_with_registry!` 重复注册会 panic 整个 cargo test 进程。
 - **修复建议**：返回 `Result<&'static Metrics, MetricsError>`，调用方决策；或用 `OnceLock<Option<Metrics>>` + 内部 `eprintln!` 降级。
@@ -245,11 +262,13 @@
 - **位置**：`crates/economy-service/src/saga_orchestrator.rs:35-36`
 - **类别**：API 设计 / 业务逻辑
 - **问题**：
+
   ```rust
   /// Reservation 仓储（保留供后续 step handler 内部使用；54.8 编排器自身不直接访问）
   #[allow(dead_code)]
   reservations: Arc<dyn ReservationRepository>,
   ```
+
   注释自承"54.8 编排器自身不直接访问"，但 `new()` 强制要求传 `Arc<dyn ReservationRepository>`（行 42-44）。这迫使 `economy-service/src/main.rs` 必须实例化一个毫无用处的 reservation repo。**这是 C4 的姐妹问题**：要么真用（注入到 handler），要么删字段 + 删构造函数参数。
 - **影响**：API 表面失真；55.x review 时易被误判"已经接好"而漏看。
 - **修复建议**：
@@ -261,11 +280,13 @@
 - **位置**：`crates/player-service/src/service.rs:70-84`（`register`）
 - **类别**：并发安全
 - **问题**：
+
   ```rust
   if self.players.find_by_name(&name).await?.is_some() { return Err(NicknameTaken); }
   let player = Player::new(name);
   self.players.save(&player).await?;   // DB unique violation 兜不住
   ```
+
   两个并发同昵称请求都通过 find_by_name，都尝试 INSERT。Pg 版本会因 `name UNIQUE` 触发 unique_violation 但被 `?` 透传成 `Error::Database(_)`，不是 `Error::NicknameTaken`，客户端拿到 `gRPC Internal` 而不是 `AlreadyExists`。
 - **影响**：客户端体验是"内部错误"而非"昵称已占用"，但更糟是**未处理时可能暴露 SQL 错误细节**。
 - **修复建议**：在 service 层 match `sqlx::Error::Database(e)` if `e.is_unique_violation()` → 翻译成 `NicknameTaken`；或在 repo `save` 内置 upsert 错误码翻译。
@@ -310,12 +331,14 @@
 
 - **位置**：`crates/rgs-certgen/src/main.rs:64-67`
 - **问题**：
+
   ```rust
   for domain in &cli.domains {
       let _ = generate_server_cert(&cli.output, domain, &ca_cert, &ca_key, cli.validity_days)?;
       println!("[rgs-certgen] 服务证书已生成: {}.crt.pem", domain);
   }
   ```
+
   `generate_server_cert` 内部 `fs::write` 失败 → `?` 上抛外层 `main`；但**这条** `let _ = ...` 屏蔽了返回值路径——外层 `?` 拿不到内部 err。注释自承"53.11 占位 self-signed"。
 - **修复建议**：去掉 `let _ =`；私钥文件加 0600 权限（`std::os::unix::fs::PermissionsExt`）。
 
@@ -405,6 +428,7 @@
 <范围>：86 .rs + 10 .toml + 7 .sql + 7 .proto
 
 **核心结论**：
+
 1. 工程 53+54 的**框架/抽象**层（trait / service / repository / gRPC skeleton / migrations）已经搭起来，命名、模块切分、错误模型大体符合 DTL-015/016/018/019/020/026/100 的契约。
 2. 但**实化**层大面积空壳：
    - 6 域 main.rs 全部走 InMemory（Pg 代码写好但没接）
@@ -416,16 +440,19 @@
 3. 这些不是性能/风格问题，是**功能正确性**问题；如果按当前 binary 部署到 staging，1) 服务重启数据全丢；2) 转账业务实际不扣款；3) 审计日志并发后被分叉；4) 域管理员误填即可拿全权；5) OTel 看板全空。
 
 **建议执行顺序**：
+
 1. **55.x 必修**：C1 + C2 + C3 + C5 + C6 + H1 + H2 + H6 + H8（10 个，工时 ~5.5 人·天），覆盖最致命的功能正确性 + 安全 + 观测问题。
 2. **55.x 可选 / 56.x 必修**：C4 + H3 + H4 + H5 + H7（5 个，工时 ~3.5 人·天），覆盖业务实现完整度 + 全局状态。
 3. **57.x+ 改进**：M + L（17 个，工时 ~4 人·天），覆盖代码质量 + 测试完整性。
 
 **未审计但建议关注**：
+
 - 6 域 proto 全部只有 `HealthCheck + GetXxx` 两个 RPC，55.x 需扩展 `List / Create / Update / Delete` 全套；当前 service 层的 `register / credit / debit / create_match` 等都未暴露给 gRPC client，**等于不可用**。
 - `cluster_ops/src/lib.rs` 未读；建议补审 55.x 上线前。
 - `rgs-hello` crate 未审（应为 hello-world 模板，可豁免）。
 - `scripts/` 目录未审（部署 / 迁移脚本可能含独立风险）。
 
 **审计环境说明**：
+
 - 由于 verifier 角色限定，本次审计**仅审核 + 报告**，未修改任何项目代码；落盘路径 `D:\RustGameServer\docs\00-基准与治理\reviews\adversarial-54\RGS-REV-007-A_code-review.md`。
 - 6 域 `db.rs` 未逐个深读（与各自 `repository.rs` 重复面较多）；如有需要 55.x 重新启动审计。

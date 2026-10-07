@@ -124,6 +124,7 @@ let custom = FixtureBuilder::new(fixture::player())
 **入口**:`scripts/regression-smoke.sh` (per 本轮新增,见 scripts/ 目录)
 
 **用途**:本机或 CI 触发后,按顺序跑:
+
 1. 7 域 example (`cargo run --example domain_*_demo -p rgs-testkit`)
 2. 5 域 + cluster-ops + gm-backend `cargo test`
 3. 工具集 rgs-certgen 黑盒 test (本轮新增)

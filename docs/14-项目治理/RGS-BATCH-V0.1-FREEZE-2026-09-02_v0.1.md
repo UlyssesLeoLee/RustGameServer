@@ -16,6 +16,7 @@
 **9/1 batch 域一天 4 件套 165 KB 落地** (REQ 39 KB + BASIC 37 KB + DETAILED 49 KB + PLAN 43 KB), 速度比实现快 10 倍. 截至 9/2 10:18 JST, `tools/rgs-batch-backend` 还在 W2-W6 串行 commit (`faf40a8` L14 → `ea4c874` GAP-10 fix), **文档和实现进度严重错位**.
 
 **集中火力决策 (per 9/2 10:18 JST 拍板 C1)**:
+
 - 5 域业务 (player / economy / match / social / admin) 跨域 saga + 业务 mTLS 是真业务里程碑
 - batch 域是 6 域扩展 (per 9/1 18:00 JST Ulysses 决策), 但实现节奏可以等 Phase C 触发
 - v0.1 文档已落地, 4 件套冻结不再升 v0.2, 避免文档治理派压倒实现派

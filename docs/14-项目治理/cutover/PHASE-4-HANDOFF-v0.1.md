@@ -117,6 +117,7 @@ author=Ulysses / 审批=架构师(Mavis 接手 agent per DEC-008)+自审+日期 
 ## 8. 后续 session 续接指令
 
 下一个 session 打开时:
+
 1. 读本 marker §1 + 配对 D:\sszgC\RGS-READY-FOR-SSZG-CUTOVER.md §1 rgs 侧 ready 项
 2. 确认 SRE Lead 已接 9 域 mTLS 端到端真验 (W26 v2) + 3 NEW 域 k3s 真部署 (W24 v2) + 数据迁移真迁 (W27 v2)
 3. rgs 侧无后续 worker 派工, 全部切交给 SRE Lead

@@ -46,6 +46,7 @@
 RGS (RustGameServer) 当前已交付 8 域微服务 + gm-backend + 工具集, 累计 447+ UT/IT 跑测通过. 8 域架构是**通用游戏服务器骨架**, 不绑定具体游戏类型.
 
 首个具体适配目标 = **卡牌游戏**, 包含 3 个子类:
+
 - **TCG / CCG** (Trading Card Game / Collectible Card Game, 例: 炉石传说 / MTG Arena / 影之诗 / 百闻牌)
 - **休闲卡牌** (例: 斗地主 / 桥牌 / UNO / 三国杀)
 - **集换式卡牌** (例: PTCG / Duel Links, 强调卡牌收藏与交易)
@@ -55,6 +56,7 @@ RGS (RustGameServer) 当前已交付 8 域微服务 + gm-backend + 工具集, �
 ## 1.2 范围
 
 **In-Scope (本次适配必须覆盖)**:
+
 - 8 域 proto 兼容性 (player / match / social / economy / admin / gm / shared / cluster-ops)
 - 卡牌游戏 4 大核心域: 玩家 + 卡组 + 对战 + 卡牌数据
 - 通用 session / turn / move 抽象 (抽象层, 不绑定具体游戏规则)
@@ -68,6 +70,7 @@ RGS (RustGameServer) 当前已交付 8 域微服务 + gm-backend + 工具集, �
 - GM 工具覆盖 (封号 / 补偿 / 维护 / 审计)
 
 **Out-of-Scope (本次不适配)**:
+
 - 具体游戏规则引擎 (炉石 / MTG / 影之诗 等具体卡牌效果执行) — 留给各游戏方在 game-logic 业务层实现
 - 客户端 UI / 美术 / 音频
 - 卡牌数值平衡 / 抽卡概率
@@ -123,6 +126,7 @@ RGS (RustGameServer) 当前已交付 8 域微服务 + gm-backend + 工具集, �
 ## BR-001 多模式对战
 
 RGS 应支持至少 4 种对战模式:
+
 - **天梯 (Ranked)**: 段位匹配, 影响积分, 强制回放记录
 - **休闲 (Casual)**: 快速匹配, 不影响积分
 - **房间 (Room)**: 自建 / 加入, 可配置规则
@@ -133,6 +137,7 @@ RGS 应支持至少 4 种对战模式:
 ## BR-002 卡组管理
 
 玩家应能:
+
 - 创建 / 删除 / 重命名卡组 (上限 N 个, 初始 N=10, 未来可调)
 - 编辑卡组内容 (拖拽 / 替换 / 排序)
 - 校验卡组合法性 (per 规则引擎, 留给业务层)
@@ -189,6 +194,7 @@ RGS 应支持至少 4 种对战模式:
 ## BR-008 GM 工具覆盖
 
 gm-backend 5 endpoint 必须支持:
+
 - **封号**: 玩家级 / 设备级, 包含对战中踢出
 - **补偿**: 货币 / 卡牌 / 卡包, 按账号 / 全服 / 活动
 - **维护**: 卡牌游戏专属维护模式 (天梯冻结 / 交易冻结)
@@ -199,6 +205,7 @@ gm-backend 5 endpoint 必须支持:
 ## BR-009 多语言
 
 卡牌游戏文本 (卡牌描述 / UI / 公告) 必须支持多语言:
+
 - zh-CN / en-US (基础)
 - ja-JP / ko-KR (扩展, 视市场)
 - 文案存储独立于代码 (i18n key → value)
@@ -217,12 +224,14 @@ gm-backend 5 endpoint 必须支持:
 - **新增**: 卡牌游戏资料 (段位 / 收藏数 / 战绩)
 
 **RPC** (player-service v2 新增):
+
 - `GetPlayerProfile` — 获取玩家卡牌资料
 - `UpdatePlayerProfile` — 更新资料
 
 ## FR-002 卡组管理
 
 **RPC** (player-service v2 新增, **或** card-service v1 新域):
+
 - `CreateDeck` — 创建空卡组
 - `GetDeck` — 读取卡组
 - `UpdateDeck` — 编辑卡组 (增删改卡)
@@ -236,6 +245,7 @@ gm-backend 5 endpoint 必须支持:
 ## FR-003 卡牌数据
 
 **RPC** (新 card-service v1, 静态 + 慢变数据):
+
 - `GetCard` — 单卡数据
 - `ListCards` — 卡牌列表 (分页 / 过滤 by type/rarity/series)
 - `GetCardSeries` — 卡包 / 系列元数据
@@ -243,6 +253,7 @@ gm-backend 5 endpoint 必须支持:
 - `AddCardToCollection` — 入库 (仅服务端内部 / 抽卡结果)
 
 **实体**:
+
 - `Card` (id, name_i18n, cost, type, rarity, series_id, effect_ref)
 - `CardSeries` (id, name, pack_size, drop_table, price)
 - `CardInstance` (instance_id, owner_id, card_id, acquired_at, source, level, attrs)
@@ -250,6 +261,7 @@ gm-backend 5 endpoint 必须支持:
 ## FR-004 对战 session
 
 **RPC** (match-service v2 新增):
+
 - `CreateMatch` — 创建对战 (per 模式 / 规则)
 - `JoinMatch` — 加入
 - `LeaveMatch` — 离开 / 投降
@@ -258,6 +270,7 @@ gm-backend 5 endpoint 必须支持:
 - `SubscribeMatch` — 流式订阅对战事件 (per 现有 event-sourcing / outbox)
 
 **实体**:
+
 - `GameSession` (id, mode, players, state, turn_index, deadline_ms)
 - `Move` (move_id, session_id, player_id, type, payload, result, occurred_at)
 - `Board` (session_id, snapshot_json, version) — 战牌快照
@@ -265,12 +278,14 @@ gm-backend 5 endpoint 必须支持:
 ## FR-005 匹配
 
 **RPC** (match-service v2 新增, per 现有 matchmaker.rs):
+
 - `EnqueueMatchmaking` — 入队
 - `CancelMatchmaking` — 取消
 - `GetMatchmakingStatus` — 查询
 - `MatchFound` — 客户端订阅
 
 **规则**:
+
 - 天梯: ELO / TrueSkill, 段位匹配
 - 休闲: 随机 / 等级匹配
 - 房间: 邀请码 / 房主邀请
@@ -279,6 +294,7 @@ gm-backend 5 endpoint 必须支持:
 ## FR-006 货币 / 经济
 
 **RPC** (economy-service v2 新增):
+
 - `GetAccount` (已有) — 读取玩家账户
 - `AddCurrency` (内部 / saga) — 加货币
 - `DebitCurrency` (内部 / saga) — 扣货币
@@ -290,6 +306,7 @@ gm-backend 5 endpoint 必须支持:
 ## FR-007 排行榜
 
 **RPC** (新 leaderboard-service, **或** 复用 match-service 排行榜子模块):
+
 - `GetRankedLeaderboard` — 天梯榜
 - `GetCasualLeaderboard` — 休闲榜
 - `GetCollectionLeaderboard` — 集换价值榜
@@ -298,18 +315,21 @@ gm-backend 5 endpoint 必须支持:
 ## FR-008 战斗回放
 
 **RPC** (新 replay-service, **或** 复用 cluster-ops 对象存储):
+
 - `SaveReplay` — 内部调用, 对战结束时入库
 - `GetReplay` — 拉取回放
 - `ListReplays` — 列出玩家回放
 - `StreamReplay` — 流式播放 (events over gRPC stream)
 
 **存储**:
+
 - 热数据: 30 天 (PostgreSQL + S3-兼容)
 - 冷数据: 30 天后归档 (per cluster-ops archive_policy)
 
 ## FR-009 卡牌交易 (集换式)
 
 **RPC** (新 trade-service, **或** economy-service v2):
+
 - `ListAuction` — 公开拍卖列表
 - `CreateAuction` — 上架
 - `BidAuction` — 出价
@@ -320,6 +340,7 @@ gm-backend 5 endpoint 必须支持:
 ## FR-010 GM 工具
 
 per gm.proto v0.3 (已有), 5 endpoint 覆盖:
+
 - `BanAccount` — 含对战踢出 (新增强制参数 force_disconnect_session)
 - `GrantCompensation` — 含卡牌 / 卡包发放
 - `SetMaintenance` — 含天梯冻结 / 交易冻结 (新增 mode_flags)
@@ -330,6 +351,7 @@ per gm.proto v0.3 (已有), 5 endpoint 覆盖:
 ## FR-011 i18n
 
 **RPC** (新 i18n-service, **或** 复用 shared-platform config):
+
 - `GetText` — 单 key 拉取
 - `GetTexts` — 批量拉取
 - `ListLanguages` — 列出支持语言
@@ -394,6 +416,7 @@ per gm.proto v0.3 (已有), 5 endpoint 覆盖:
 ## SR-001 抽卡概率公开
 
 集换式卡牌游戏的部分地区 (中国 / 日本) 法律要求公开抽卡概率. RGS 应:
+
 - 抽卡结果包含概率快照 (drop_table_snapshot)
 - GM 工具可审计
 
@@ -428,6 +451,7 @@ per gm.proto v0.3 (已有), 5 endpoint 覆盖:
 ## CR-001 8 域 proto 兼容
 
 新需求不破坏现有 8 域的 proto v1 兼容:
+
 - player.proto v2 (FR-001) — 新增 RPC, 不改老 RPC
 - match.proto v2 (FR-004, FR-005) — 新增 RPC, 老 GetMatch / HealthCheck 保留
 - economy.proto v2 (FR-006) — 扩展, 老 GetAccount 保留

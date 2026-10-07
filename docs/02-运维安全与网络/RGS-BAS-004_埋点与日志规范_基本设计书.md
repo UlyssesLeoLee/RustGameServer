@@ -125,7 +125,6 @@ flowchart TB
 | `rgs_gm_command_total` | 计数器 | `command`／`result` | — |
 | `rgs_webhook_delivery_duration_ms` | 直方图 | `event_type` | 对应NFR-OPS-002告警推送时延目标 |
 
-
 ## 3.4 Outbox 专属指标（落实 ULYS-100 P2-#2 + RGS-ADR-0061 §6 P2-#2）
 
 > **ULYS-100 P2-#2 (2026-09-19 JST)**: 6 域 outbox 4 状态机 (Pending/InFlight/Sent/Failed + lease_until) 落地 Prometheus 监控指标。
@@ -145,11 +144,13 @@ flowchart TB
 | `rgs_outbox_oldest_pending_created_at_seconds` | 仪表 | `service` | 最旧 Pending 行 created_at unix 秒 |
 
 **派生 recording rules** (`docker/observability/prometheus-rules/rgs-outbox-alerts.yaml`):
+
 - `rgs_outbox_publish_success_rate_5m{service, aggregate_type}` = success / total
 - `rgs_outbox_publish_failure_rate_5m` = 1 - success_rate
 - `rgs_outbox_oldest_pending_age_seconds` = time() - oldest_pending_created_at_seconds
 
 **7 类告警规则** (per 06_草案 §2):
+
 1. `OutboxPendingBacklog` warning (>1000/5min)
 2. `OutboxFailedAccumulating` critical (>0/1min)
 3. `OutboxLeaseExpiringSoon` warning (>25s/1min)
@@ -159,11 +160,13 @@ flowchart TB
 7. `OutboxPollCycleSlow` warning (p99>5s/5min)
 
 **部署架构**:
+
 - 6 域服务各自 `main.rs` 启动 `bind_metrics_server(METRICS_PORT)` 暴露 `/metrics` + `OutboxMetricsReporter` 周期 15s SQL 聚合更新 gauge
 - Prometheus scrape `rgs-services` job (`docker/observability/prometheus.yml`)
 - Grafana dashboard `rgs-outbox-overview.json` (12 panel)
 
 **联动工单** (per ADR-0061 §6):
+
 - P2-#3 (DLQ, ULYS-101) 依赖 `rgs_outbox_failed_count` gauge 作为 DLQ 触发信号
 - P2-#4 (Schema Evolution, ULYS-102) 后续为 `aggregate_type` 增加独立 schema 列, 当前从 `subject` 推断
 
@@ -195,11 +198,13 @@ flowchart TB
 | `ERROR` | `error!` | ✅ 必进 | ✅ 必进（编译期常驻） | ✅ 输出 | ✅ 输出，**必须**同时触发§6.2强制全量采集 | 需要人工关注的失败（未被正确处理的异常、下游依赖不可用导致的请求失败） |
 
 **编译期与运行时的关系**：
+
 - **编译期**决定该级别的调用代码是否存在于二进制中：`trace!`/`debug!` 在 release build 完全被 `#[cfg(debug_assertions)]` 剔除，无任何运行时开销；`info!`/`warn!`/`error!` 编译期常驻，运行时按 Profile 配置过滤。
 - **运行时 Profile** 仅对**已编译进二进制**的级别生效。release build 中 `trace!`/`debug!` 不存在，运行时无法通过 `RUST_LOG=trace,debug` 开启。
 - **Profile 默认值**：`debug` Profile（开发/CI 预发布）默认输出全部已编译级别；`release` Profile（生产/灰度）默认仅输出 `INFO`/`WARN`/`ERROR`。故障排查时可临时通过 `RUST_LOG=info,my_crate::module=debug` 提升指定模块的级别——**前提是该模块在 release build 中已有 `debug!` 调用未被剔除**，因此"打算在 release 故障排查时可能需要"的 `debug!` 也必须保留（见§4.4 第二条规则）。
 
 **约定**：
+
 - `info!`/`warn!`/`error!` **不得** 包裹在 `#[cfg(debug_assertions)]` 内——这些是生产可见日志，去掉会导致 release 失明。
 - `trace!`/`debug!` **必须** 由 `#[cfg(debug_assertions)]` 守护（直接守护宏调用本身，不是包裹大段代码块；细节见 §4.4）。
 
@@ -332,6 +337,7 @@ flowchart TB
 | RGS-BAS-002§9.1的关系 | 本节是RGS-BAS-002§9.1"标准埋点（脚手架自动生成）"表格的**字段级细化**，两者描述同一套脚手架产出物，未产生新的独立机制 |
 
 **业务代码使用约束**：
+
 - 仅使用脚手架预生成的 `debug!`/`trace!`/`info!`/`warn!`/`error!` 模板片段；
 - **不得**手写 `#[cfg(debug_assertions)] debug!(...)` —— 脚手架预生成的片段已自动包含守护属性，手写易遗漏或写错位置（§4.3 规则 #1）；
 - IDE 通过自定义 snippet 仅暴露带正确守护属性的调用宏，避免误用。
@@ -414,8 +420,6 @@ error!(target: "module_path", error = %err, "error context");
 | AC-LOG-005（负载试验下存储/索引成本不突破运维负荷上限） | §3高基数注记（防止指标基数爆炸）＋§6.1采样率配置（成本可控的第一道调节手段）＋§9 CI检查防止规范劣化导致埋点膨胀 | §3、§6.1 |
 | **AC-LOG-006（debug-only 宏在 release build 完全剔除，零运行时开销）** | §4.2 二维矩阵（编译期模式 × 运行时 Profile）+ §4.3 四条铁律（守护宏直接放在 `#[cfg(debug_assertions)]` 下、不得包外层 `if`）+ §9 CI 第 5 项静态检查 | §4.2、§4.3、§9 |
 | **AC-LOG-007（每功能 BAS 文档须含本功能 log 设计章节）** | §4.4 release 必出宏清单（每个功能 BAS 文档 §X.Y 须显式声明对应清单）+ §11.1 检查项第 8 条（每功能 log 章节存在性）+ §11.1 检查项第 9 条（release 必出事件 grep 验证） | §4.4、§11.1、§12 |
-
-
 
 ---
 

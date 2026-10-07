@@ -37,10 +37,12 @@
 | 12 | `dba953b` | merge | S5 §3 真 NATS e2e (commit 8) |
 
 **D1+D2 review worktree 2 commit (未 merge)**:
+
 - `409c27a` DDD Review Meeting 启动会 (Decision 1)
 - `623be3b` 9 决策草案实装状态 (Decision 2)
 
 **D3 review worktree 1 commit (本 worktree)**:
+
 - 本次 (Decision 3 收尾)
 
 ---
@@ -48,23 +50,27 @@
 ## 3. worktree 清理清单
 
 ### 已 merge 4 worktree (待清理)
+
 1. `D:/RustGameServer-worktrees/s4-phase2-step2` (branch: `it/s4-phase2-step2`, commit 1da9388)
 2. `D:/RustGameServer-worktrees/w2-cross-domain` (branch: `it/w2-cross-domain`, commit 86d27e5)
 3. `D:/RustGameServer-worktrees/w4-s5-nats` (branch: `it/w4-s5-nats`, commit a39af02)
 4. `D:/RustGameServer-worktrees/ddd-review` (branch: `docs/ddd-review`, commit 678549a)
 
 ### review 3 worktree (待清理)
-5. `D:/RustGameServer-worktrees/review-decision-1` (branch: `review/decision-1`, commit 409c27a)
-6. `D:/RustGameServer-worktrees/review-decision-2` (branch: `review/decision-2`, commit 623be3b)
-7. `D:/RustGameServer-worktrees/review-decision-3` (branch: `review/decision-3`, commit 本次)
+
+1. `D:/RustGameServer-worktrees/review-decision-1` (branch: `review/decision-1`, commit 409c27a)
+2. `D:/RustGameServer-worktrees/review-decision-2` (branch: `review/decision-2`, commit 623be3b)
+3. `D:/RustGameServer-worktrees/review-decision-3` (branch: `review/decision-3`, commit 本次)
 
 ### 旧 5 worktree (已存在,未合并)
-8. `D:/RustGameServer-worktrees/fix-drill-compile` (branch: `fix/cluster-ops-drill-compile`)
-9. `D:/RustGameServer-worktrees/M1` (branch: `wbs/M1`)
-10. `D:/RustGameServer-worktrees/M2` (branch: `wbs/M2`)
-11. `D:/RustGameServer-worktrees/M3` (branch: `wbs/M3`)
+
+1. `D:/RustGameServer-worktrees/fix-drill-compile` (branch: `fix/cluster-ops-drill-compile`)
+2. `D:/RustGameServer-worktrees/M1` (branch: `wbs/M1`)
+3. `D:/RustGameServer-worktrees/M2` (branch: `wbs/M2`)
+4. `D:/RustGameServer-worktrees/M3` (branch: `wbs/M3`)
 
 **清理命令** (执行时需谨慎):
+
 ```bash
 git worktree remove D:/RustGameServer-worktrees/s4-phase2-step2
 git worktree remove D:/RustGameServer-worktrees/w2-cross-domain
@@ -90,16 +96,19 @@ git push origin v0.4-ddd-review-2026-08-28
 ## 5. v1 → v2 路线 (W6-W11 9-10 月)
 
 ### v2 (10 月初) 9 月底
+
 - W6 9 月初: BAS 章节级追溯 35 份 → IT 文档 (80-120M tokens)
 - W7 9 月中: gm-backend 5 GM RPC 业务实装 (60-100M tokens)
 - W8 9 月末: PH-1 OTel 全链路 sqlx-tracing sample 10-20% (50-80M tokens)
 
 ### v3 (11 月初) 10 月
+
 - W9 10 月初: mTLS to admin-service 决策实装
 - W10 10 月中: cluster-ops 3 文件 P3 follow-up
 - W11 10 月底: AI 审计 CI 集成
 
 ### v4 (12 月初) 11 月
+
 - DDD Review v2 启动 (per 9 月 W6-W11 决议)
 
 ---
@@ -121,12 +130,14 @@ git push origin v0.4-ddd-review-2026-08-28
 ## 7. 已知缺口 (v1 后续)
 
 ### P1 (10 月实装)
+
 - mTLS to admin-service 决策待定 (per BAS-003 §2.1)
 - JWT propagation gRPC metadata
 - Circuit breaker 5 次失败 → 30s 断开
 - Chaos test admin-service 503
 
 ### P2 (11-12 月实装)
+
 - BAS 章节级追溯 35 份
 - gm-backend 业务 5 endpoint
 - 5 域 IT 工具统一
@@ -134,6 +145,7 @@ git push origin v0.4-ddd-review-2026-08-28
 - 4/7 真 NATS 链路
 
 ### P3 (后续)
+
 - OPEN-QA 模板固定化
 - RACI 矩阵 8 域 + 4 共享
 - 链路 B/C/D 完整实装

@@ -27,6 +27,7 @@
 
 - **文件**: `crates/economy-service/tests/fail_closed_start.rs:50-57` (其他 5 域同)
 - **现状**:
+
   ```rust
   assert!(
       combined.contains("fail")
@@ -37,6 +38,7 @@
       "..."
   );
   ```
+
 - **证据**:
   - `combined.contains("economy-service")` 永远 true (binary 启动后 tracing::info banner 输出 binary 名)
   - `combined.contains("DB")` 任何 DB 连接失败日志都满足 (本测试就是用 `127.0.0.1:1` 触发 DB 失败, 走的就是 DB 失败路径)

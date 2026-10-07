@@ -22,6 +22,7 @@
 本文件为 **WBS v0.2 桶 8 Phase B 业务 P1 backlog 实装** 中 **w3 match 域协调任务** 的产物。
 
 match 域在本轮 P1 backlog (桶 8) **无代码实装任务**:
+
 - 1 worker 1 域原则下, w3 match 不动 `crates/match-service` 代码
 - 1 commit "docs(match): 业务实装观察 + 联调确认" 落 main, **无代码改动**
 - 落档 match 域现状 review + 5 域 Lead 联调 0 任务确认 + 后续桶 9 责任划分
@@ -54,6 +55,7 @@ match 域在本轮 P1 backlog (桶 8) **无代码实装任务**:
 | 状态 | ✅ cargo check PASS |
 
 **已有 IT 文件** (per `crates/match-service/tests/`):
+
 - `integration_match_basic.rs`
 - `integration_match_session.rs`
 - `integration_match_session_to_replay.rs`
@@ -115,6 +117,7 @@ match 域在本轮 P1 backlog (桶 8) **无代码实装任务**:
 | Q11 | NATS 部署范围核查 | 平台层 (跨域) | ❌ 无 |
 
 **match 域 0 P1 任务确认**:
+
 - Q1-Q7 业务实装: match 域 0 任务
 - Q8/Q9/Q11 平台层诊断: match 域 0 任务
 - Q10 mTLS 业务级 ST: match 域责任 = **st-13 跑 (后续桶 9)**, 不属桶 8
@@ -174,6 +177,7 @@ match 域在本轮 P1 backlog (桶 8) **无代码实装任务**:
 ### 4.1 桶 9 Phase C 触发条件
 
 per WBS v0.2 §2.3:
+
 - `kubectl get nodes` 看到 `ulyssespc` Ready
 - WSL 单节点 k3s 节点注册失败未恢复 (per OPEN-QA v0.3 §7.1 ⏳ 阻塞项)
 
@@ -196,11 +200,13 @@ per DDD Review §10.2 + OPEN-QA v0.2 Q10:
 - ⏳ st-13 脚本未写 (留桶 9)
 
 **match 域 st-13 范围** (待桶 9 启动时由 mTLS worker 确认):
+
 - 1) 双向 TLS 握手 (match-svc <-> match-svc self-call 或 match-svc <-> gm-backend)
-- 2) match session 创建/结束端到端 (per `integration_match_session_to_replay.rs` 7 IT 同等)
-- 3) matchmaker tolerance window 端到端 (per `integration_matchmaker_tolerance_window.rs` 同等)
+- 1) match session 创建/结束端到端 (per `integration_match_session_to_replay.rs` 7 IT 同等)
+- 1) matchmaker tolerance window 端到端 (per `integration_matchmaker_tolerance_window.rs` 同等)
 
 **mTLS 工具链** (per OPEN-QA v0.2 §2):
+
 - 工具 = grpcurl (not curl, not k3s kubectl exec)
 - 证书 = 5 域 mTLS 业务级 (per 8/27 ST 导出 SOP)
 - target = svc://match-service:50053 (ClusterIP)
@@ -208,6 +214,7 @@ per DDD Review §10.2 + OPEN-QA v0.2 Q10:
 ### 4.4 桶 11 Phase E batch 域 match 域责任
 
 per WBS v0.2 §2.5:
+
 - match 域与 batch 域无直接业务耦合 (per BATCH REQ §0 + DETAILED §6.2 5 不破坏)
 - match 域仅在 batch 域需要 match 数据批量整理时 (v0.2 评估 GAP-1~12) 参与协调
 - 当前 batch 域 v0.1 = 6 周落地, match 域不阻塞
@@ -219,6 +226,7 @@ per WBS v0.2 §2.5:
 ### 5.1 matchmaker_v2.rs 67KB 拆分 (P2 follow-up)
 
 per DDD Review §10.3 P2 follow-up:
+
 - 现状: `crates/match-service/src/matchmaker_v2.rs` 67005 字节 = 65.4 KB
 - 复杂度: matchmaker 业务核心, 涉及 matchmaker 算法 / 评分 / tolerance window / session 调度
 - 后续: WBS v0.2+ 桶留 match 域内部技术债清理, **不属 P1 backlog**
@@ -227,6 +235,7 @@ per DDD Review §10.3 P2 follow-up:
 ### 5.2 match 域跟 replay-runtime 集成 (P2 follow-up)
 
 per `crates/match-service/src/replay_client.rs` 16174 字节:
+
 - 现状: replay_client.rs 16 KB, 跟 replay-runtime 集成
 - 后续: 桶 2c 链路 C 实装 (per v0.1 §7.4 落档) 待 W29/W30 续, match 域负责业务调用
 - 当前: 已有 IT `it_save_replay_saga.rs` 验证基础集成, 业务级 ST 留桶 9
@@ -234,6 +243,7 @@ per `crates/match-service/src/replay_client.rs` 16174 字节:
 ### 5.3 match 域 matchmaker_v2 跟 matchmaker (v1) 关系
 
 per `crates/match-service/src/matchmaker.rs` 11210 字节:
+
 - 现状: matchmaker.rs (v1) 11 KB + matchmaker_v2.rs 67 KB, 双版本并存
 - 后续: v1 → v2 迁移路径待 match 域 Lead 决策, 不属 P1 backlog
 

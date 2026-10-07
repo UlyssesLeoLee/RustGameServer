@@ -281,11 +281,13 @@ favorite_configs:
 # 9. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - 录像扩展域 1 service 的组件划分、接口契约、核心时序
 - ARC-051 复用原则的落实
 - 与既有 4 项基础设施的复用边界
 
 本版本明确不覆盖、留待后续：
+
 - Rust trait / SQL DDL — 属 RGS-DTL-050 详细设计职责
 - 录像文件存储后端选型 — 属 replay-service 既有 TBD 决定
 - TBD-RPL-001 — 留待 PH-2 评审

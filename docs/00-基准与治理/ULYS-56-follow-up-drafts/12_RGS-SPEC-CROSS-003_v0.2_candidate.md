@@ -13,6 +13,7 @@
 ## §0. v0.1 → v0.2 升版路径
 
 v0.1 §6 激活条件：
+
 1. **G-CODE-06**: Rust 1.98 + cargo build + cargo test 实际跑过全绿
 2. **G-CODE-03**: 5 独立 DB 拓扑图实际画过
 3. NO-GO 完全解除
@@ -117,6 +118,7 @@ v0.1 §6 激活条件：
 | cluster_ops | 3 条 (node.joined/left, shard.rebalanced) | 0 条 unique (待域 owner 落地) |
 
 **v0.2 candidate 总数**:
+
 - 设计可达: **22 条**（命名合规可生产构造，per `SubjectBuilder::domain_event`）
 - 实测已发布: **9 条 unique**（per `09a` §A.1）
 - 差距: **13 条待域 owner 落地**（域 owner 满载后可达 22 条完整覆盖）

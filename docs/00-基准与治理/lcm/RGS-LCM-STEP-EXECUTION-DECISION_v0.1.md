@@ -6,6 +6,7 @@
 > **审批**: admin Lead (per 5 域独立 Lead 原则, AGENTS.md §3)
 > **作用域**: admin-service 域 (admin_db)
 > **关联 commit**:
+>
 > - 上游: WBS v0.2 (commit `84edf26`)
 > - 决策源: BAS-001 v0.2 §6.6.2 + §9.2 (commit `eb1e15d`)
 > - 下游 (待主会话 A6 合并): BAS-001 v0.3 §3.3 W-XX 行 (本决策为依据)
@@ -77,6 +78,7 @@ realm_lifecycle_run (1 条)  →  LCM run, 1 个 phase
 ```
 
 例: `new_realm` phase 包含 6 step:
+
 1. provision (新建 k8s 资源)
 2. configure (应用 configmap / secret)
 3. smoke_test (curl health endpoint)

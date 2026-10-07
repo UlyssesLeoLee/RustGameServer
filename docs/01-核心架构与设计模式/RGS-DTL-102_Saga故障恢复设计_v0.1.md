@@ -157,6 +157,7 @@ sequenceDiagram
 **关键设计点**：
 
 1. **新 Pod 启动时扫描 in-flight Saga**：
+
    ```sql
    SELECT * FROM saga_instance
    WHERE state IN ('RUNNING', 'WAITING', 'RETRYING', 'COMPENSATING')
@@ -219,11 +220,13 @@ graph TB
 **OCC 多副本设计**：
 
 1. **Fence Token 序列**：
+
    ```sql
    CREATE SEQUENCE saga_fence_token_seq START 1 INCREMENT 1;
    ```
 
 2. **抢占（Pod A 启动 / 发现 in-flight Saga）**：
+
    ```sql
    BEGIN;
    -- 抢占
@@ -239,6 +242,7 @@ graph TB
    ```
 
 3. **续约（每 30s 一次）**：
+
    ```sql
    UPDATE saga_instance
    SET fence_token = nextval('saga_fence_token_seq'),
@@ -248,6 +252,7 @@ graph TB
    ```
 
 4. **写入校验（任何 Saga step 写入）**：
+
    ```sql
    -- 写入 saga_step
    UPDATE saga_step

@@ -155,4 +155,3 @@ graph TD
 | **AC-AGS-003**（REQ-035 原验收） | 仿真或模型服务不可用时，实时游戏循环和账本路径继续按确定性逻辑运行，受影响 Agent 明确降级。 | FR-AGS-001～004、NFR-AGS-003 | §1.6 `gameplay.anomaly.model.unavailable` + `gameplay.anomaly.degradation.activated` |
 | **AC-AGS-LOG-001**（v0.3 新增） | debug-only 宏在 release build 完全剔除，零运行时开销（跨 §1.1-§1.6 共 17+ 个 debug-only 字段 + 守护要点段落多点验证）。 | BAS-004 v0.3 §4.3 / §4.4 | §1.1-§1.6 + 守护要点 |
 | **AC-AGS-LOG-002**（v0.3 新增） | BAS-035 作为每功能 BAS 文档须含本功能 log 设计章节，跨 §1 新增 1 个"本功能日志设计"小节 + 6 张 5 列详尽版表格 + debug-only 守护要点段落多点验证。 | BAS-001 v1.5 §4.8.3.4 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 | §1 本功能日志设计 |
-

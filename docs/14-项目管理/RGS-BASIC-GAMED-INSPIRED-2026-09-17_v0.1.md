@@ -117,6 +117,7 @@
 | `rgs-debug` | Rust | `axum`（HTTP server） + `askama`（HTML 模板） | 新增独立二进制 |
 
 **与现有栈差异**：
+
 - rgs-web 用 Node.js（不需要 HTTP framework）
 - gm-backend 用 actix-web 4（不需要再加 axum）
 - **新增 axum 引入新依赖**，需要评估是否复用 actix-web 风格（见 §11.3）
@@ -360,6 +361,7 @@ jobs:
 ### 4.1 REQ-[游戏D]-002: rgs-config-loader（业务配置 JSON）
 
 **架构**：
+
 ```
 configs/                         # 仓库根
 ├── items.json                   # Master 物品表
@@ -379,12 +381,14 @@ crates/rgs-config-loader/
 ```
 
 **关键设计**：
+
 - 启动时 lazy load 所有 Master JSON 到 `DashMap<u32, Arc<ItemConfig>>`
 - 提供 `ConfigRegistry::get_item(id) -> Option<Arc<ItemConfig>>`
 - **不改 DB**：Transaction 表（订单、邮件、审计）保留 Postgres
 - **不改 Work**：session / 临时状态保留 Redis/内存
 
 **关联 6 域迁移清单**：
+
 | 域 | 当前 DB Master 表 | 改 JSON 后 |
 |---|---|---|
 | player | `player_master_item` | `configs/items.json` |
@@ -399,6 +403,7 @@ crates/rgs-config-loader/
 ### 4.2 REQ-[游戏D]-005: rgs-debug
 
 **架构**：
+
 ```
 crates/rgs-debug/
 ├── src/
@@ -410,6 +415,7 @@ crates/rgs-debug/
 ```
 
 **关键设计**：
+
 - 默认监听 `127.0.0.1:7878`（区别 rgs-web 8788 / gm-console 8080）
 - `config.debug.enabled = false` 默认关闭
 - 内嵌 `debug-panel.html`（跟 [游戏D] `DebugPanel/index.html` 同款）
@@ -420,6 +426,7 @@ crates/rgs-debug/
   - `GET /api/queue-stats` —— 队列长度
 
 **配套 rgs-testkit 集成**：
+
 - 测试场景自动启用 `DebugServer::start_for_test()`
 - 测试代码通过 JSON API 验证状态
 
@@ -432,6 +439,7 @@ crates/rgs-debug/
 ### 5.1 REQ-[游戏D]-003: Rust trait 多文件实现规范化
 
 **关键规则**（文档化）：
+
 ```rust
 // crates/player-service/src/handler/mod.rs
 pub trait PlayerHandler {
@@ -455,6 +463,7 @@ impl PlayerHandler for PlayerService { /* profile */ }
 ### 5.2 REQ-[游戏D]-006: DB migration KNOWN_ISSUES 段
 
 **格式约定**：
+
 ```sql
 -- migrations/0001_init_player.sql
 -- KNOWN_ISSUES:
@@ -469,6 +478,7 @@ CREATE TABLE player.profile (...);
 ### 5.3 REQ-[游戏D]-007: 玩法层纯数据驱动模式
 
 **核心约束**：
+
 - 玩法核心逻辑控制在 5-10 KB（参考 [游戏D] `WebTraversal.cs` 3 KB）
 - 所有数值 / ID / 阈值在 `configs/match/*.json`
 - 配合 REQ-002 共用 `rgs-config-loader`
@@ -504,6 +514,7 @@ CREATE TABLE player.profile (...);
 ### 6.1 REQ-[游戏D]-009: saga-runtime 单 binary 多 server
 
 **待评估项**：
+
 - saga-runtime 当前是否已经支持多 server？
 - K8s 部署模型下"单 binary 多 server" vs "多 svc 拆"取舍
 
@@ -512,6 +523,7 @@ CREATE TABLE player.profile (...);
 ### 6.2 REQ-[游戏D]-010: Lua via mlua 跨语言脚本
 
 **待评估项**：
+
 - `mlua` crate 维护活跃度（最近 commit 时间）
 - 与现有 rgs-config-loader (REQ-002) 集成方式
 - 是否需要 Lua sandbox 隔离
@@ -545,6 +557,7 @@ CREATE TABLE player.profile (...);
 | batch | `task_template_master` | Postgres | `configs/batch_tasks.json` |
 
 **判断标准**（什么 Master 表走 JSON）：
+
 1. ✅ 走 JSON：只读参考、变更频率低、配置驱动
 2. ❌ 保留 DB：业务事务关键（currency / permission）、需要强一致
 
@@ -665,6 +678,7 @@ impl DebugApi {
 ### 8.5 内部契约（不改外部）
 
 本项目**不修改** RGS 现有公开 API：
+
 - 6 域 gRPC 公开接口（player.proto / economy.proto 等）不变
 - gm-backend HTTP API 不变
 - rgs-web 前端 API 不变
@@ -726,6 +740,7 @@ ConfigRegistry::get_item(id) → O(1) 读
 ### 10.1 K8s 部署（沿用现有）
 
 新增 4 个 deployment（如果需要）：
+
 - `rgs-proto-dump` (CronJob，跑 diff)
 - `rgs-protocol-builds` (ConfigMap 挂载 builds/ 目录)
 - `rgs-config-loader` (initContainer 预加载 JSON)

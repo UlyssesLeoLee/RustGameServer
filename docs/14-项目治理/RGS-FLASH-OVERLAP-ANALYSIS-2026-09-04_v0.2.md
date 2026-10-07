@@ -19,6 +19,7 @@
 > **"仅API对齐, 有可取之处的可以酌情优化, 没有可取之处或者较差则保留rgs设计"**
 
 **决策边界**:
+
 - ✅ **API 维度 only** — 协议层 (proto 命名 / 错误码 / 分页 / 流控), 不动业务逻辑
 - ✅ **酌情优化** — [游戏A] 借鉴分析 doc §4 5 条可取之处 + §2 12 大类中可类比项, 逐条 adopt/keep/hybrid 决策
 - ✅ **较差则保留 RGS** — RGS 现状优或相当的部分不引入 [游戏A] 反模式
@@ -215,16 +216,19 @@
 ### 6.1 Hybrid-1: admin 域 audit_log 增 `log_title` 字段 (借鉴 [游戏A] §4 #1)
 
 **[游戏A] 做法**: 一条 `#rpc{code, log_title, req, reply}` 记录同时驱动协议 + 按命令的运维审计标题, "写一次、用两处"
+
 - `code` = RPC 协议码
 - `log_title` = 运维审计标题 (e.g. "封禁玩家")
 - `req/reply` = 协议消息
 
 **RGS 现状**:
+
 - admin 域 `audit_log` 表有 `action` 字段 (per migrations/0001_init.sql, e.g. "ban_account")
 - 缺 `log_title` 字段 (运维可读标题, e.g. "封禁玩家")
 - gm.proto v0.4 增 5 字段 0 破坏, 0 breaking change
 
 **Hybrid 落地** (admin + gm-backend 同改, per DEC-038-07 字段对齐):
+
 1. admin `migrations/0007_audit_log_title.sql`: 增 `log_title TEXT` (nullable, 旧记录留空, 0 破坏)
 2. admin `entity.rs:AuditLogEntry`: 增 `pub log_title: Option<String>`
 3. gm.proto v0.5: 4 GM RPC Request 增 `string log_title = N` (per gm.proto v0.4 模式追加)
@@ -236,16 +240,19 @@
 ### 6.2 Hybrid-2: 保留 RGS batch 域 `enum GrpcDomain` 5 域桶化 (跨服思路变体)
 
 **[游戏A] 做法**: center/zone 分片 (center 承载跨服玩法)
+
 - 多 zone 认领一个 center (`env.cfg` `center_node` 配置)
 - center 节点承载跨服玩法 (竞技场跨服/公会战/合服)
 - Erlang distributed protocol (net_kernel + cluster_srv/cli)
 
 **RGS 现状**:
+
 - 6 域 + card 域 (7 个二进制), 各自独立 k8s Deployment
 - batch 域 `enum GrpcDomain { Player, Economy, Match, Social, Admin }` (per batch/main.rs:132) 5 域桶化调用
 - 6 域 service 都是 active-active 模式 (per ADR-0052 PFAU), 不引入 center 节点
 
 **Hybrid 落地** (保留 RGS active-active + 借用 center 思路):
+
 1. **保留**: batch 域 `enum GrpcDomain` 5 域桶化 (已落地, 不需改)
 2. **不引入 center 节点**: active-active 跟 center 思路不同, RGS 分布式更可扩展
 3. **可选 Hybrid-3** (per §6.3): 评估 rgs-testkit bot 压测工具, 借鉴 `tester*.erl` 真实协议压测
@@ -255,15 +262,18 @@
 ### 6.3 Hybrid-3: 评估 rgs-testkit 加 bot 压测工具 (借鉴 [游戏A] `tester*.erl`)
 
 **[游戏A] 做法**: 随包自带 bot 测试器 (`tester*.erl`), 用真实协议自动跑测的压测/回归工具直接放进代码库
+
 - 不是简单的 unit test, 是 end-to-end bot 跑真实 gRPC/TCP 协议
 - 压测场景: 同时 N 个 bot 在线 1h, 测 latency/throughput/内存
 
 **RGS 现状**:
+
 - `rgs-testkit` crate 已有 (NoOp mock + 测用 InMemory repo + chaos test, per audit v0.3 §6.2 描述)
 - 缺真实协议 bot 压测工具 (没有 `rgs-bot` 或 `rgs-loadtest` crate)
 - 9/3 R1 业务冲刺 565 tests + 15 mTLS mock + 5 域 E2E Phase C marker, 性能数据未跑
 
 **Hybrid 评估** (per 1-3 周 backlog):
+
 1. **新建 `rgs-loadtest` crate** (per P3 backlog, 估 3-5d):
    - bot 模拟玩家: connect mTLS + login + heartbeat + 1-3 RPC 循环
    - 压测场景: N=10/100/1000/10000 bot, 跑 1h, 测 P50/P95/P99 latency + 5xx 错误率

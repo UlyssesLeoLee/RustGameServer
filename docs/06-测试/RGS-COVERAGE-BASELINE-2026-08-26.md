@@ -25,6 +25,7 @@
 | **Branch coverage** | **未测**（需 `--branch` flag；本次因 incremental cache + 冷编译耗时未启用，列入 v0.2 P0 增量补做） |
 
 > 与 v0.1 §1.1 估计对比：
+>
 > - Line 60-69% vs 估 40-55%：**实际比估计高**（lib-only 数据比估的 "全量含 bin" 更聚焦可测代码）
 > - Function 59% vs 估 60-70%：**吻合**（略低 1-10pp）
 > - Branch 未知 vs 未知：本次仍未出数字，保留 v0.1 的 "未知" 标记

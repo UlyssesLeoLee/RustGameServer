@@ -53,6 +53,7 @@
 # 1. 前言
 
 本文档是 RGS-BAS-056 §4〜§6 的物理/接口级详细设计，**仅**落实 ARC-047（FEC over QUIC Datagram 路径）的工程实现，不涉及：
+
 - ARC-003 Stream 路径（由 RGS-DTL-006 §4 网络协议栈设计承担，本文不改其实现）；
 - 周边协议（账号/支付/GM/资源分发/实时语音/位置）的协议字段（已在 RGS-BAS-056 §6 选型矩阵中固化）；
 - 反作弊 / 限流等业务侧策略（由 RGS-DTL-025 承担）。
@@ -131,6 +132,7 @@ pub trait FecEncoder {
 ```
 
 > **算法选择**：本设计**默认采用单包级 XOR parity**（RGS-BAS-056 §5.2 候选①）。理由：
+>
 > - 解码延迟与分组大小无关（或近似常数），满足 NFR-NET-001（≤ 50ms tick 周期）；
 > - 无第三方依赖，规避 RSK-NET-001（新兴 crate 不可控）；
 > - 25% 冗余度（K=8, M=2）在 ARC-003 既有 2% 丢包率实测下可保证 > 99.99% 投递成功率（per RGS-REQ-038 §7 NFR-NET-004）。
@@ -284,6 +286,7 @@ CREATE TABLE player_db.outbox_datagram_fec (
 ## 6.1 判定结论：**新建** rgs-fec crate
 
 理由：
+
 1. RGS-IMPL-001 §2 Q-102 禁止泛化 `rgs-common`；
 2. FEC 是单一职责（编码/解码/校验/帧格式），不与现有任何 crate 重叠；
 3. 同时被 `network-gateway`、`rgs-session-state`、`player-service/session_state.rs` 三处使用，符合"至少两个已冻结边界"门槛；

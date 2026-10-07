@@ -106,11 +106,13 @@
 | **合计** | **WF-1-55.27 ~ 55.37** | **11** | **~6d** |
 
 **关键依赖**:
+
 - WF-1-55.31 (PgTestDatabase fixture) 是 WF-1-55.27 (CR-1) + WF-1-55.29 (HI-2-stub) 的前置（否则无法写真 DB 集成）
 - WF-1-55.32 (fail-closed 启动 test) 需 6 域 binary 都装上 assert_cmd 支持
 - 建议工程 55 收尾前 2 周完成全部 P0 + 启动 P1
 
 **完成判定** (merge 准入):
+
 - 11 项全部完成
 - 4+ verifier 2 轮对抗性审查通过
 - `cargo test --workspace` 含 `#[sqlx::test]` 真 DB 集成全过

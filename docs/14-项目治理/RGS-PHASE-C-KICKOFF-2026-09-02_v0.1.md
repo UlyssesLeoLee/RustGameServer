@@ -28,6 +28,7 @@
 ## 1. 阶段 A 4 步派工 (W37 D2 = 2026-09-09 JST)
 
 > **SRE 派工原则** (per 8/21 JST 拒绝兼任基线 + 9/1 14:15 JST PT 派工基线):
+>
 > - SRE Lead 独立派工, Mavis 不可代签 SRE 派生决策
 > - 阶段 A 4 步全在 SRE 范围 (per RGS-PHASE-C-PREP §1)
 > - Mavis 责任: 写启动公告 + 监控阶段 A 完成 + 阶段 B/C 准备
@@ -51,12 +52,14 @@
 - **任务**: 修复 prometheus-84c47f7669-qnf4q CrashLoopBackOff (per RGS-PHASE-C-PREP §1 + RGS-K3S-CLUSTER-STATUS §3.5)
 - **根因** (已定位): 2 ReplicaSet 都 desired=1 (`prometheus-585fc54cfb` 1/1/1 + `prometheus-84c47f7669` 1/1/0), 部署滚动中断
 - **修复命令**:
+
   ```bash
   kubectl scale deploy prometheus --replicas=0 -n rust-game-server
   kubectl delete pod prometheus-84c47f7669-qnf4q -n rust-game-server
   kubectl delete pod prometheus-84c47f7669 -n rust-game-server  # 删 RS
   kubectl scale deploy prometheus --replicas=1 -n rust-game-server
   ```
+
 - **期望**: prometheus 1/1 Running, 0 CrashLoopBackOff, lock DB directory 错误消失
 - **风险**: PVC 锁竞争 / 数据丢失 (建议先 backup PVC `kubectl get pvc -n rust-game-server prometheus-data -o yaml > backup.yaml`)
 - **DoD**: 1 commit 落地 + prometheus `/-/ready` 200 OK

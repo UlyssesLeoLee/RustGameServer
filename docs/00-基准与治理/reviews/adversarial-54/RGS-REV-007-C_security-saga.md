@@ -52,6 +52,7 @@
   }
   format!("{:016x}", h)
   ```
+
 - **问题**：
   1. FNV-1a 64-bit 摘要空间仅 2^64，**生日攻击 ~2^32 次计算即可找到碰撞**（普通笔记本数小时可生成 5 字节碰撞）。
   2. 非加密学哈希不满足 RGS-SEC-100 §7 "密码学 hash 链" 要求；GDPR / 等保 2.0 / SOC2 CC7.1 均要求不可篡改审计（cryptographic non-repudiation）。
@@ -91,6 +92,7 @@
       hex::encode(hasher.finalize())
   }
   ```
+
 - **附加修复**：必须**在事务内**读 `latest()` + `append()`（见 H3），否则 hash 链本身在并发下断裂。
 - **测试**：加 `collision_resistance_test`（构造 1000 随机输入，验证 hash 全不同）。
 - **依赖变更**：`Cargo.toml` 加 `sha2 = "0.10"` + `hex = "0.4"`。
@@ -114,6 +116,7 @@
       ...
   }
   ```
+
 - **攻击 / 故障场景**：
   - 部署 2 副本 outbox_relay（k3s Deployment replicas=2）→ 两个进程同时 `list_pending` 拉到相同 entry → 同一 `command_id` 被 publish 到 NATS 两次 → consumer 端若未严格去重则双倍执行（Saga 重复扣款）。
   - K8s rolling restart 期间短暂双活也会触发。
@@ -135,6 +138,7 @@
       Ok(rows.into_iter().map(row_to_entry).collect())
   }
   ```
+
   注意：单纯 `SKIP LOCKED` 仍可能在 publish 成功后 mark_sent 之前崩溃导致重复；推荐引入 `in_flight` 状态或 lease 机制。
 - **阻塞阶段**：55.x 强阻塞（k3s 多副本部署即触发）。
 
@@ -153,6 +157,7 @@
       Ok(())
   }
   ```
+
 - **问题**：trait 签名 `async fn append(&self, entry: &OutboxEntry)` 不接受 `&mut PgTransaction`，调用方**无法**在业务写 DB 同事务内追加 outbox 记录。文档却承诺 "业务写 DB + 写 outbox 表必须在同一事务"（`outbox.rs:6-7`）。如果调用方先 `pool.begin()` 写业务表，再 `outbox.append()` 用 pool 直连，**两个操作分属不同事务**，业务 commit 后 outbox 可能因 DB 故障丢失。
 - **攻击 / 故障场景**：
   - economy 转账业务 commit（账户已扣款）→ outbox INSERT 因网络抖动失败 → 转账完成但消息未发出 → consumer 永远不知道要扣 B 账户 → 钱凭空消失。
@@ -190,6 +195,7 @@
       Ok(entry)
   }
   ```
+
 - **问题**：
   1. `latest()` 和 `append()` 不在同一事务，无 `SELECT ... FOR UPDATE`。
   2. 两个并发 `audit_log()` 调用可能都看到同一 `prev_hash` → 两条新 entry 的 `prev_hash` 相同 → 链分叉 → hash 校验路径失败（虽然 admin-service 目前**没有 hash 链验证函数**——见下文 §11）。
@@ -207,6 +213,7 @@
       Ok(entry)
   }
   ```
+
   （即使升级到 SHA-256，此 race 仍让 hash 链断裂。）
 
 ### H4. mTLS `ServerTlsConfig::client_auth_required(true)` 在审计代码中未出现
@@ -237,6 +244,7 @@
   pub fn new(command_id: Uuid, handler: String, result: String) -> Self { ... }
   // 无 handler 格式校验、无白名单
   ```
+
 - **问题**：
   1. `handler` 字段类型是 `String`，由调用方传。理论上一个被攻陷的 service 可以用任意 `handler` 名字 `append` 到 inbox，**抢注别的业务 handler 的幂等键组合**。
   2. 实际上 `handler` 是应用层 namespace（"saga.transfer"），但代码未强制。
@@ -252,6 +260,7 @@
          return Err(InboxError::Duplicate(command_id, handler));
      }
      ```
+
 - **影响**：当前 6 域均无外部攻击面（handler 来自内部），但**纵深防御**缺失。
 
 ### H6. Saga 状态机 `Aborted` 变体定义但无任何转移路径
@@ -267,6 +276,7 @@
   // saga.rs:198-232 仅有 start() / complete() / compensate() / fail()
   // Aborted 没有对应方法！
   ```
+
 - **问题**：
   1. DB CHECK 约束接受 `aborted`（`0002_saga_init.sql:12`），Rust 枚举有 `Aborted` 变体，但**没有任何代码路径能把状态设为 Aborted**。
   2. `parse_saga_status` 把 "aborted" 映射到 `Aborted`（line 312）→ 读到 DB 里的 aborted 行能解析成功 → 但代码内**没有方法**把状态写入 Aborted。死状态。
@@ -288,6 +298,7 @@
   // saga_orchestrator.rs:78
   saga.current_mut().unwrap().mark_running();
   ```
+
 - **问题**：`saga.current_mut()` 返回 `Option<&mut SagaStep>`，但 orchestrator 假设 `current_step` 永远在 `[0, steps.len())` 范围内。如果 `current_step` 因部分写库（崩溃恢复场景下数据 corruption）变成 `steps.len()`，`unwrap()` 直接 **panic**，整个进程崩溃。
 - **修复建议**：
 
@@ -308,6 +319,7 @@
       self.execute(&mut saga).await    // ← 直接调 execute，无状态检查
   }
   ```
+
 - **问题**：`execute()` 检查 `saga.status != Pending` 则 return Err（line 55-60），但**从 Compensating/Completed/Failed 状态调用 resume 都被静默拒绝**。崩溃恢复的语义应该是：从任何非终态（Running/Compensating）续跑，从终态（Completed/Failed）拒绝。**目前没有 "Running 续跑" 的入口**——因为 `execute()` 只接受 Pending。
 - **修复建议**：拆分为 `execute_pending` 与 `resume_in_progress`，后者检查 `status ∈ {Running, Compensating}`。
 
@@ -327,6 +339,7 @@
       return Err(Error::InvalidCredentials(username));
   }
   ```
+
 - **问题**：
   1. API 契约模糊：调用方传的是 "已 hash 的密码" 还是 "明文密码"？`entity.rs:33` 注释 "密码哈希（argon2id）" 暗示是 hash。
   2. 字符串等值比较不是**常数时间**——`!=` 在第一个不同字节就 short-circuit return true，理论上可侧信道。但实际攻击者需先拿到数据库的 hash 值，且 admin 登录频率低，**实际风险低**，归为 MEDIUM。
@@ -417,7 +430,7 @@
 | 状态转移是否完备 | **N** | `Aborted` 是死状态（见 H6） |
 | 非法转移检测 | **N** | `complete()`/`fail()`/`compensate()`/`start()` 均为 `pub`（`saga.rs:199/208/215/227`），无前置状态检查。`start()` 可在 `Compensating` 状态被调用并把状态改回 `Running` |
 | 幂等保证 | **部分 Y** | `sagas.command_id` 有 UNIQUE INDEX（`0002_saga_init.sql:21`），但 `find_by_command_id` 仅用于查询，不强制业务方先 check 再 execute；inbox 也有 UNIQUE（`0002_saga_init.sql:49`），但 `append` 用 `ON CONFLICT DO NOTHING` 静默吞冲突（见 H5） |
-| 补偿顺序合理性 | **N** | `Saga::compensate` 反向遍历已 Completed step 标记（`saga.rs:215-224`），**不调用 handler.compensate()**。实际反向逻辑在 `SagaOrchestrator::compensate`（`saga_orchestrator.rs:106-127`），但顺序遍历的是 `saga.steps.iter().rev().filter(|s| s.status == Completed)`——已与 `saga.compensate()` 重复执行 |
+| 补偿顺序合理性 | **N** | `Saga::compensate` 反向遍历已 Completed step 标记（`saga.rs:215-224`），**不调用 handler.compensate()**。实际反向逻辑在 `SagaOrchestrator::compensate`（`saga_orchestrator.rs:106-127`），但顺序遍历的是 `saga.steps.iter().rev().filter(|s| s.status == Completed)`——已与`saga.compensate()` 重复执行 |
 | resume 入口 | **N** | `resume()` 无前置状态检查（见 M2） |
 | 并发安全 | **N** | `save()` 用 `INSERT ... ON CONFLICT (id) DO UPDATE`（`saga.rs:371-378`），无 `SELECT ... FOR UPDATE`，两个 orchestrator 同时 resume 同一 saga 会丢失更新 |
 
@@ -542,6 +555,7 @@ async fn save(&self, entity: &Saga) -> Result<Saga> {
 <签名>：⟪adversarial-54/security-saga-001@2026-08-22⟫
 
 **审核范围独立判断**：
+
 - 本审计仅基于 commit `2486aef` 静态阅读源码 + git 历史，**未执行动态 fuzzing / 渗透测试**。
 - 6 域 repository.rs 的 SQL 注入风险通过 `grep "format!\(.*SELECT|FROM|WHERE"` 全仓 0 匹配 + 逐个 `sqlx::query().bind()` 模式确认 = **0 注入点**。`cluster-ops/repository.rs:302` 的 `format!("{}|{}", key, scope_value)` 仅用于构造应用层 key（参数化绑定），不拼接到 SQL。
 - mTLS 实化（54.9）当前为"演示结构"，**生产部署前必须实化 `ServerTlsConfig::client_auth_required(true)`**（H4）。
@@ -550,6 +564,7 @@ async fn save(&self, entity: &Saga) -> Result<Saga> {
 - Saga 状态机 + Outbox 抢占 + audit_log 竞争是 **HIGH 三大并发陷阱**，建议合并到 55.x 单一 saga-security hardening milestone。
 
 **未验证项**（环境受限）：
+
 - 各域 migrations 实际在 PG 18.6 的执行结果（仅审计了 SQL 文件，未跑 migration）。
 - NFR-OP-010（2 SRE ≤ 20 人·天/周）下 8.1 人·天的修复量会触发资源冲突（per RGS-PM-008），需与 SRE Lead 协调——**审计员不裁决资源分配**。
 - 生产 k8s Secret 注入路径（per RGS-SEC-100 §7）当前依赖 .env，**非理想**，但属于运维层而非代码层。

@@ -46,6 +46,7 @@
 | 3 | **派生约束守护 L15-L23** | §3 最小可复现实验未含派生约束 | §3 增 §派生约束守护段，列出 L15-L23 落地状态 | 6c6839e / add4238 |
 
 **已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+
 - 5 NEW 域（scene/battle/network/account/sub8）真实 SDK bundle 集成需 ST Phase C 验证
 - 9 域 mTLS 业务级 11 步 v3 模拟器与跨域 Range 协议字节级一致性待切流验证
 - 商业 CDN 边缘 Range 命中实测待 PH-7

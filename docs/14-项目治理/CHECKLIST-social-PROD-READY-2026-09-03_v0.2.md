@@ -67,6 +67,7 @@ v0.1 (9/3 11:06 JST) 落档 9-10 项 checklist, 但当时 v0.1 §1 表格仅 4/1
 > **v0.2 业务回填统计**: 10 项中 9 项有新证据/状态变化, 3 项 🟡→✅ (#2/#3/#5), 3 项 ✅→✅ (#1/#7/#9), 3 项 🟡→🟡 (#4/#6/#8), 1 项 🟡→🟡 (#10); v0.2 当前 = 7 ✅ / 3 🟡 (v0.1 = 4 ✅ / 6 🟡, social 域 9/2 18:30 JST 4 ✅ 状态, v0.2 升 3 项)。
 
 **关联决策引用** (per RGS-OPEN-QA-2026-08-31 v0.2 §4.2 social 域 Q5-Q7 拍板):
+
 - **Q5 guild capacity 50 vs 64**: 代码现状 50 为准, 不擅自改 64, 转 social Lead 业务确认 → 对应 #9 Schema 迁移 "Q5 决策" 注释
 - **Q6 leave_guild**: PH-6 社交域下一轮实现, leadership 转移规则 = 加入时间最早剩余成员, 离开后 `player.profile.guild_id` 置空 → 对应 #4 E2E 跨域 saga 真实交易
 - **Q7 push_delivery dispatcher**: 走 NATS (不新增 FCM/APNs 直连), retry 复用 economy outbox+saga 模式, 需要 DLQ → 对应 #6 告警 "NATS DLQ" 注释
@@ -191,6 +192,7 @@ v0.1 (9/3 11:06 JST) 落档 9-10 项 checklist, 但当时 v0.1 §1 表格仅 4/1
 ### 3.4 业务里程碑判定公式 (per RGS-CRITIQUE-IMPROVEMENT v0.2 §4.8 + AGENTS.md §9.4)
 
 **social 域生产可用 milestone 公式 (v0.2 升版)**:
+
 ```
 10 项 checklist 全 ✅ = social 域生产可用 ✅
 = #1 L1.1 UT ✅ + #2 L1.2 mTLS IT ✅ (mock 路径, 真跑待 W37 D5) + #3-#4 L1.2 E2E + #5-#10 治理运维
@@ -198,6 +200,7 @@ v0.1 (9/3 11:06 JST) 落档 9-10 项 checklist, 但当时 v0.1 §1 表格仅 4/1
 ```
 
 **R1 业务冲刺 R3 阶段 (本档对应) 公式 (v0.2 升版)**:
+
 ```
 6 域 × 独立 checklist 文档 v0.2 升版 (player / economy / match / social / admin)
 + §1 9-10 项表格 (含 mock 路径 + 编译期锚定) + §2 状态更新 (per 9/3 12:46 JST R1 业务回填 9 项)

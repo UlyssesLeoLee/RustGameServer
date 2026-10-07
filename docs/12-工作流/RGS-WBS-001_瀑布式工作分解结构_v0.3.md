@@ -10,6 +10,7 @@
 | 保密级别 | 内部限定（Internal Use Only）|
 
 > **核心约束**：
+>
 > - **L1 阶段**：8 PH（per RGS-PLAN-001 v0.8 §3.1 14-18 周重排）
 > - **L2 域**：5 域 + foundation + cluster-ops + shared-platform = 8 域簇
 > - **L3 任务簇**：每域每 PH 8 个任务簇（API Spec / 业务逻辑 / DB migration / UT / IT / ST / Helm chart / observability）
@@ -45,8 +46,6 @@
 
 ---
 
-
-
 ## §2 附录 A: WF-1 实施阶段 L4 任务清单（per 用户决策 2026-08-21 "实施阶段细分要足够细"）
 
 > **拆分标准**（per RGS-WBS-001 v0.3 §6.2 + 用户决策 2026-08-21）：每个 L4 任务 = 1 人/agent 最小可拆分单位，≤ 2 人·天 或 ≤ 500K tokens / ≤ 3 前置 / ≤ 5 验收 / ≤ 3 步回滚。
@@ -59,7 +58,6 @@
 - **每个 L4 任务 = 1 个独立 worktree 分支**，可单独执行
 
 ### §2A.2 6 工程 × L4 任务分解
-
 
 #### §2A.2.53 工程 53 — 开发环境构建（15 L4 任务 / 17.5 人·天 / 3950K tokens）
 
@@ -81,7 +79,6 @@
 | WF-1-53.14 | cargo-deny + cargo-audit 配置（许可 + 漏洞检查） | Platform | 0.5 | 100K | WF-1-53.13 | Rust 工具链 / Cargo workspace | 删 / 除 等 19 步 | `wbs/WF-1-53.14` | ⬜ 未启动 |
 | WF-1-53.15 | devcontainer.json（VS Code Remote Container） | Platform | 0.5 | 100K | WF-1-53.14 | Rust 工具链 / docker-compose | 删 / 除 等 17 步 | `wbs/WF-1-53.15` | ⬜ 未启动 |
 
-
 #### §2A.2.54 工程 54 — 编码实现（15 L4 任务 / 23.0 人·天 / 5750K tokens）
 
 | L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
@@ -102,7 +99,6 @@
 | WF-1-54.14 | Prometheus metrics 暴露（每个域 /metrics 端点） | Platform | 1.5 | 400K | WF-1-54.13 | OTel 注入 / Prometheus 库 | g / i 等 10 步 | `wbs/WF-1-54.14` | ⬜ 未启动 |
 | WF-1-54.15 | tracing 日志 + 结构化输出（JSON + 上下文） | Platform | 1.0 | 200K | WF-1-54.14 | OTel 注入 | g / i 等 10 步 | `wbs/WF-1-54.15` | ⬜ 未启动 |
 
-
 #### §2A.2.55 工程 55 — 静态分析（10 L4 任务 / 7.1 人·天 / 1550K tokens）
 
 | L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
@@ -118,13 +114,13 @@
 | WF-1-55.9 | dependency 锁定（cargo update --locked CI 检查） | Platform | 0.5 | 100K | WF-1-55.8 | crate 骨架 | 关 / 闭 等 11 步 | `wbs/WF-1-55.9` | ⬜ 未启动 |
 | WF-1-55.10 | code coverage 报告（cargo-llvm-cov + codecov.io 上传） | Platform | 1.0 | 250K | WF-1-55.9 | CI workflow 1 / testkit | 关 / 闭 等 13 步 | `wbs/WF-1-55.10` | ⬜ 未启动 |
 
-
 #### §2A.2.55B 工程 55 收尾 — RGS-REV-009 修复（11 L4 任务 / ~6 人·天 / ~1.2M tokens）
 
 > **来源**: RGS-REV-009 WF-1-55.26 5 commit 3 轮对抗性审查（5 verifier 子代理 + V4 仲裁）。
 > **基线 commit**: 1b30878..cc888b5（5 commit 标 `no-merge-pending-wf-1-55-27` tag，**NO MERGE**）。
 > **共识矩阵**: 13 issue (3 CRITICAL / 3 HIGH / 4 MEDIUM / 3 LOW)，V1+V2+V4+V5 共识，反驳 V3 CONDITIONAL PASS。
 > **关键 CRITICAL**:
+>
 > - CR-1: CC-4 修复打偏靶 — `apply_atomic_with_reservation` 死代码（0 生产调用），`saga_orchestrator.rs:248-289` 未触及
 > - CR-2: CC-3 outbox migration 静默失效 — 6 域 CHECK 写在 `CREATE TABLE IF NOT EXISTS` 块内，55.17 已部署环境无效
 > - CR-3: 5 commit 自我标榜 PASS 但 209 test 全过只覆盖死代码/InMemory repo/stub handler（"test pass ≠ correct"）
@@ -147,7 +143,6 @@
 | WF-1-55.35 | ME-2/3: admin migration 注释改 0003 + clippy 1.98 弃用 lint 名升级 | Platform | 0.1 | 10K | 工程基础 | admin 注释 + clippy 脚本一致 | revert | `wbs/WF-1-55.35` | ⬜ 未启动 |
 | WF-1-55.36 | ME-4 + LO-1/2/3: 静默吞错 + doctest 密度 + pre-existing 收尾（含 rgs-certgen 3 clippy err） | Platform | 0.5 | 100K | 工程基础 | L259 改 `if let Err` tracing、doctest 增强、rgs-certgen 3 err 修 | revert 各 | `wbs/WF-1-55.36` | ⬜ 未启动 |
 | WF-1-55.37 | LO-4: V1 CC-4-COMPENSATION-CRASH 补偿半途崩溃 → 资金丢失（55.12 引入） | economy | 1.0 | 200K | WF-1-55.27 | 调换 handler.compensate + saga.save 顺序 + reconciliation cron | revert saga_orchestrator.rs + cron 删 | `wbs/WF-1-55.37` | ⬜ 未启动 |
-
 
 #### §2A.2.55.续1 工程 55 续 — 17 份未升版 DTL 的 SPEC v0.2 起草（17 L4 任务 / 5.1 人·天 / 850K tokens）
 
@@ -180,6 +175,7 @@
 **小计**: 17 L4 / 5.1 人·天 / 850K tokens (平均每 L4 0.3 人·天 / 50K tokens,符合 v0.3 §6.2 ≤ 2 人·天 / ≤ 500K tokens 拆分标准)
 **关键依赖**: 无;每 L4 独立,无前置依赖。
 **完成判定**(merge 准入):
+
 1. 17 份 SPEC v0.2 头表 0.2 + §A 4 小节齐全
 2. check-docs-consistency.sh 1 FAIL(DEC-NOGO-001) + 1 WARN(5 ADR 待审批)状态不变,未引入新问题
 3. 不可代签 17 份修订历史'审批者'列 = 真实责任署名(per 代签新规则)
@@ -204,12 +200,14 @@
 
 **小计**: 8 L4 / 4.5 人·天 / 1.1M tokens (平均每 L4 0.56 人·天 / 137K tokens,符合 v0.3 §6.2 ≤ 2 人·天 / ≤ 500K tokens 拆分标准)
 **关键依赖**:
+
 - WF-1-55.69 / 70 / 71 / 72 相互独立(4 份 CROSS 平行)
 - WF-1-55.73 依赖 WF-1-55.71(CROSS-010 事件 Schema 是 DEC-Q003 跨 DB Saga 事件总线基础)
 - WF-1-55.74 依赖 17 份 v0.2 SPEC 合并后(WF-1-55.69~73 完成后批量)
 - WF-1-55.75 依赖 WF-1-55.74(IMPL-PLAN 含 RACI 矩阵元素)
 - WF-1-55.76 是所有 P0/P1 任务的"汇总升版",最后做
 **完成判定**(merge 准入):
+
 1. 8 份新产出(CROSS-008~011 + DEC-Q003 + 6 域 IMPL-PLAN + ADR-0055 + WBS v0.8)按规范 4 列表头 + 修订历史 v0.X 行齐全
 2. check-docs-consistency.sh 1 FAIL + 1 WARN 状态不变,未引入新问题
 3. 不可代签 8 份修订历史'审批者'列 = 真实责任署名(per 代签新规则)
@@ -218,12 +216,12 @@
 **小计**: 11 L4 / ~6.1 人·天 / ~1.2M tokens
 **关键依赖**: WF-1-55.31 (PgTestDatabase) 是 WF-1-55.27/28/29 真 DB 集成测试的前置
 **完成判定** (merge 准入):
+
 1. P0 全部完成（WF-1-55.27/28/29）
 2. 2 轮对抗性审查通过（4+ verifier + 仲裁轮）
 3. `cargo test --workspace` 含 `#[sqlx::test]` 真 DB 集成全过
 4. `cargo clippy --workspace --all-targets -D warnings` 0 error
 5. 解锁 `no-merge-pending-wf-1-55-27` tag + 重新发起 WF-1-55.26 走完整合并流程
-
 
 #### §2A.2.56 工程 56 — 代码审查（10 L4 任务 / 3.6 人·天 / 660K tokens）
 
@@ -240,7 +238,6 @@
 | WF-1-56.9 | 审查记录归档（GitHub PR 评论 + 决议） | Ulysses | 0.3 | 50K | WF-1-56.8 | PR 模板 / GitHub 仓库 | 无 /   等 8 步 | `wbs/WF-1-56.9` | ⬜ 未启动 |
 | WF-1-56.10 | merge 后自动关闭关联 Issue（per WBS L4 任务） | Ulysses | 0.5 | 100K | WF-1-56.9 | branch protection / GitHub Actions | 关 / 闭 等 11 步 | `wbs/WF-1-56.10` | ⬜ 未启动 |
 
-
 #### §2A.2.57 工程 57 — 构建（10 L4 任务 / 7.8 人·天 / 1750K tokens）
 
 | L4 # | 任务描述 | owner | 人·天 | token/周 | 前置 | 验收项 | 回滚路径 | worktree 分支 | 进度 |
@@ -255,7 +252,6 @@
 | WF-1-57.8 | 镜像签名（cosign keyless） | Platform | 1.0 | 250K | WF-1-57.7 | buildx 多架构 / SBOM 生成 | 删 / 除 等 12 步 | `wbs/WF-1-57.8` | ⬜ 未启动 |
 | WF-1-57.9 | 本地 build 验证（cargo build --release + docker build） | Platform | 0.5 | 100K | WF-1-57.8 | release 配置 / buildx 多架构 | 无 /   等 8 步 | `wbs/WF-1-57.9` | ⬜ 未启动 |
 | WF-1-57.10 | 构建产物归档（GitHub Releases + registry） | Platform | 0.5 | 100K | WF-1-57.9 | buildx 多架构 / CI workflow 1 | 删 / 除 等 19 步 | `wbs/WF-1-57.10` | ⬜ 未启动 |
-
 
 #### §2A.2.58 工程 58 — CI（12 L4 任务 / 10.5 人·天 / 2300K tokens）
 
@@ -312,6 +308,7 @@
 > **修复说明（per check-cross-references.py 审计 2026-08-21）**：原版章节号（3.2/3.4/4/6 子节）与 RGS-SPEC-000 实际章节（1 规格化规则 / 2 统一实现契约 / 2.1~2.4 子节 / 3 规格模板 / 4 详细设计映射 / 5 统一 DoD）对齐修正。RGS-IMPL-001 中"2.1"实为第 2 章（实际只有 2.2 子节）；RGS-SPEC-000 中 3.2/3.4 等子节不存在，已映射到 2.1/2.2。
 
 > **owner 归口规则（per §2A.6.7-§2A.6.10 补全 2026-08-21）**：
+>
 > - **5 业务域 DTL**（DTL-018 player / DTL-015/016 economy / DTL-026 match / DTL-019/020 social / DTL-031 admin）→ 5 域 Lead 各自负责
 > - **跨域 DTL-021~025**（5 份）+ **shared-platform DTL-032~040**（9 份，共 14 份）→ **Platform 域 Lead 负责冻结**（per §2A.6.7 §2.1）
 > - **横向规范 RGS-SPEC-CROSS-001~007**（7 份）→ 各主题 owner（Platform 主导 6/7，cluster-ops 主导 1/7），per §2A.6.10
@@ -736,6 +733,7 @@
 > | 签字 | 域 Lead / 架构 | PH-0.5 联合评审 |
 >
 > **维护方式**：
+>
 > 1. **编辑**：`docs/12-工作流/RGS-WBS-001_L4任务占位清单_v0.1.md`（5 域 Lead 各自编辑自己的域行；可用 Excel / VS Code 多列编辑）
 > 2. **重生成**：`python scripts/build_wbs_v02.py`（保持结构一致；如已补全的行被覆盖，需手动合并）
 > 3. **PH-0.5 签字**：5 域 Lead + SRE + 架构 + PM 按域签字
@@ -834,22 +832,21 @@
 
 | # | 角色 | 姓名 | 签字 | 日期 | 结论 |
 |---|---|---|---|---|---|
-| 1 | 架构师（foundation + 监督）| __________ | __________ | ____-__-__ | ☐ L1-L3 框架接受 / ☐ 修订 |
-| 2 | Player 域 Lead（独立）| __________ | __________ | ____-__-__ | ☐ PH-1 L4 模板接受 |
-| 3 | Economy 域 Lead（独立 + Q-003 二次确认）| __________ | __________ | ____-__-__ | ☐ PH-1 L4 模板接受 |
-| 4 | Match 域 Lead（独立）| __________ | __________ | ____-__-__ | ☐ 框架接受 / ☐ 补 PH-1 L4 |
-| 5 | Social 域 Lead（独立）| __________ | __________ | ____-__-__ | ☐ 框架接受 / ☐ 补 PH-1 L4 |
-| 6 | Admin 域 Lead（独立，不兼任 SRE）| __________ | __________ | ____-__-__ | ☐ 框架接受 / ☐ 补 PH-1 L4 |
-| 7 | cluster-ops 域 Lead（独立）| __________ | __________ | ____-__-__ | ☐ 框架接受 / ☐ 补 PH-1 L4 |
-| 8 | Platform Engineer（shared-platform）| __________ | __________ | ____-__-__ | ☐ 框架接受 |
-| 9 | SRE Lead（监督 OLU）| __________ | __________ | ____-__-__ | ☐ OLU 双轨估算一致 |
-| 10 | PM | __________ | __________ | ____-__-__ | ☐ 资源决策接受 / ☐ 偏差 > 30% 升 v0.2 |
+| 1 | 架构师（foundation + 监督）| __________ | __________ | ____-**-** | ☐ L1-L3 框架接受 / ☐ 修订 |
+| 2 | Player 域 Lead（独立）| __________ | __________ | ____-**-** | ☐ PH-1 L4 模板接受 |
+| 3 | Economy 域 Lead（独立 + Q-003 二次确认）| __________ | __________ | ____-**-** | ☐ PH-1 L4 模板接受 |
+| 4 | Match 域 Lead（独立）| __________ | __________ | ____-**-** | ☐ 框架接受 / ☐ 补 PH-1 L4 |
+| 5 | Social 域 Lead（独立）| __________ | __________ | ____-**-** | ☐ 框架接受 / ☐ 补 PH-1 L4 |
+| 6 | Admin 域 Lead（独立，不兼任 SRE）| __________ | __________ | ____-**-** | ☐ 框架接受 / ☐ 补 PH-1 L4 |
+| 7 | cluster-ops 域 Lead（独立）| __________ | __________ | ____-**-** | ☐ 框架接受 / ☐ 补 PH-1 L4 |
+| 8 | Platform Engineer（shared-platform）| __________ | __________ | ____-**-** | ☐ 框架接受 |
+| 9 | SRE Lead（监督 OLU）| __________ | __________ | ____-**-** | ☐ OLU 双轨估算一致 |
+| 10 | PM | __________ | __________ | ____-**-** | ☐ 资源决策接受 / ☐ 偏差 > 30% 升 v0.2 |
 
 ---
 
 > **本 WBS 与 RGS-PLAN-001 v0.8 §3.1 PH 表 / RGS-TS-001 v0.6 §6.2 双轨制 / RGS-ENV-CALIB-001 校准模板 三方一致**。
 > **5 域 Lead L4 任务清单补全由各 Lead 在 PH-0.5 前出**。
-
 
 ## §11 跨任务依赖图（DAG，v0.3 新增）
 
@@ -912,6 +909,7 @@ WF-0 (需求)
 ```
 
 跨会话恢复：
+
 ```bash
 # 列出所有进行中的 L4 任务
 ./scripts/list_wbs_tasks.sh --status in_progress

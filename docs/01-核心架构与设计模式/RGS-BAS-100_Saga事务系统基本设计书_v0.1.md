@@ -179,6 +179,7 @@ graph TB
 | `saga.component.debug.bridge_invocation_latency` | 跨组件桥接调用耗时（微秒级，如 Game Gateway → Command Layer） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `saga.component.saga_runtime.boot_failed` 是**阻断级**信号（启动失败即整个 Pod 不可用）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `saga.component.command_layer.audit_link_dropped` 是**安全事件**（OperationPolicy 决策路径断开即失去"避免误升 Saga"防护）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
 - `saga.component.debug.architecture_dag_dump` 在多节点集群下 3KB+ —— release 完全剔除，避免 `RUST_LOG=debug` 误开时撑爆生产日志通道
@@ -261,6 +262,7 @@ graph LR
 | `saga.classification.debug.policy_rule_match_details` | OperationPolicy 规则匹配详情（含各候选规则评分） | 极少（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300-800B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + BAS-009 v0.7 §6.1 治理事件必出模式）：
+
 - `saga.classification.authority_boundary_violation` 是**安全事件**（越权尝试）—— release 必出 + `error!` 强制全采样 + §6.2 白名单，不挂 `#[cfg]`
 - `saga.classification.l4_to_l3_false_escalation.detected` 是**配置缺陷信号**（OperationPolicy 配错导致性能事故）—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.classification.debug.decision_tree_trace` 包含 5 决策点完整 trace，~1KB —— release 完全剔除
@@ -314,6 +316,7 @@ graph LR
 | `saga.authority.debug.fencing_token_sequence_dump` | Fencing Token 序列完整 dump（用于集群协调回溯） | 极少（故障定位） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + NFR-OP-008 24×365 排查 SLA）：
+
 - `saga.authority.ownership_violation.cross_domain_write` 是**阻断级安全事件**（数据一致性事故，per `Service owns its transaction` 原则）—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.authority.saga_store_write_unauthorized` 是**集群协调安全事件**（破坏 Fencing Token 语义会导致 Saga 状态不一致）—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.authority.fencing_token_stale.write_rejected` 是**集群协调信号**（Leader 切换场景，是 Saga 恢复的预期事件之一）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`，便于 SRE 24×365 排查（per NFR-OP-008）
@@ -421,6 +424,7 @@ steps:
 | `saga.runtime.debug.saga_definition_dump` | Saga 定义 DSL 完整 dump（YAML/JSON 完整结构） | 启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + FR-100 强约束 + NFR-OP-008 24×365 排查 + RGS-BAS-009 v0.7 §6.1 治理事件必出模式）：
+
 - `saga.runtime.instance.started`／`completed`／`failed` 是**生产关键事件**（玩家可见的 Saga 行为）—— release 必出 + §6.2 强制全采样，不挂 `#[cfg]`
 - `saga.runtime.compensation.failed` 是**NFR-OP-008 24×365 排查信号**（补偿失败需人工介入）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `saga.runtime.dlq.received` 是**治理事件**（per RGS-BAS-009 v0.7 §6.1）—— release 必出 + `warn!` 强制全采样 + §6.2 白名单
@@ -488,6 +492,7 @@ steps:
 | `saga.mq.debug.raft_log_dump` | NATS Raft log dump（含选举投票、append entries） | 极少（集群诊断） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + FR-105 幂等 + RGS-BAS-009 v0.7 §6.1 治理事件必出模式）：
+
 - `saga.mq.delivery.exhausted` 是**DLQ 触发信号**—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.mq.dlq.received` 是**治理事件**（per RGS-BAS-009 v0.7 §6.1）—— release 必出 + `warn!` 强制全采样 + §6.2 白名单
 - `saga.mq.raft.leadership_changed` 是**集群协调信号**（NATS Raft 切换是 Saga 短时不可用的根因之一，NFR-OP-008 24×365 排查需要）—— release 必出 + `warn!` 强制全采样
@@ -577,6 +582,7 @@ graph TB
 | `saga.layer.debug.l2_conflict_resolution_trace` | L2 Local-First 冲突解决 trace（含 merge 算法步骤） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + FR-106 Outbox）：
+
 - `saga.layer.compensation_rollback_signal_sent` 是**玩家可见行为**（客户端需要展示"事务回滚"提示）—— release 必出 + §6.2 强制全采样，不挂 `#[cfg]`
 - `saga.layer.l2_preference.conflict_detected` 是**配置缺陷信号**（Local-First 冲突率上升意味着配置或网络问题）—— release 必出 + `warn!` 强制全采样
 - `saga.layer.l5_saga_terminal_event_published` 是**Saga 终态信号**（玩家可见）—— release 必出 + §6.2 强制全采样
@@ -631,6 +637,7 @@ graph TB
 | `saga.service.debug.gateway_mtls_session_dump` | Gateway mTLS 会话完整 dump（含证书链） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 + FR-100~106 + RGS-BAS-009 v0.7 §6.1）：
+
 - `saga.service.command.failed` 是**FR-100 强约束事件**（Command 失败触发 Saga 状态机迁移）—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.service.outbox.publish_failed` 是**Outbox 模式关键事件**（per FR-106，Outbox publish 失败意味着 Saga 协调卡死）—— release 必出 + `error!` 强制全采样
 - `saga.service.saga_store.write_deadline_exceeded` 是**NFR-OP-008 24×365 排查信号**（saga_store 写入超时通常是 DB pool 满载）—— release 必出 + `error!` 强制全采样
@@ -685,6 +692,7 @@ graph TB
 | `saga.deploy.debug.hpa_metrics_dump` | HPA 指标完整 dump（CPU / memory / lag 时序） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-OP-008 24×365 排查 + ADR-0052 Active-Active）：
+
 - `saga.deploy.pod.restarted` 是**NFR-OP-008 24×365 排查信号**（Pod 反复重启通常意味着 OOM / 资源不足 / 健康检查配置错）—— release 必出 + `error!` 强制全采样
 - `saga.deploy.minimal_profile.spofrisk_detected` 是**配置缺陷信号**（Minimal profile 部署到生产即 SPOF）—— release 必出 + `error!` 强制全采样 + §6.2 白名单
 - `saga.deploy.resource.threshold_breach` 是**SLA 违反预警**（资源阈值突破 → 可能 OOM）—— release 必出 + `warn!` 强制全采样

@@ -12,6 +12,7 @@
 | 引用源 | `crates/rgs-asset-download/migrations/0001_resume_token_index.sql` |
 
 > **重要异构说明**：
+>
 > - 本域是 RGS 仓库**唯一**用 SQLite 而非 PostgreSQL 的库
 > - 无 PII 字段（FR-CDN-064）：`player_id` / `device_id` / `email` / `ip` / `mac` 全部 NOT in schema
 > - 应用启动时 `SqliteResumeTokenStore::new` 自动跑 `CREATE TABLE IF NOT EXISTS` 建表（不依赖 migration runner）

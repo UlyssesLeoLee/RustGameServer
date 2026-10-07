@@ -65,7 +65,7 @@ $ rustup component list --installed
 ### §1.3 工作空间依赖工具
 
 ```bash
-$ cargo install --list | grep -E 'cargo-deny|cargo-audit|cargo-llvm-cov|sqlx-cli|tonic-build'
+cargo install --list | grep -E 'cargo-deny|cargo-audit|cargo-llvm-cov|sqlx-cli|tonic-build'
 ```
 
 - [ ] **1.3.1** `cargo-deny` 安装（依赖审计）
@@ -102,7 +102,7 @@ $ psql -h <host> -p 5432 -U <user> -c "SELECT version();"
 ### §2.3 5 DB 划分验证（per ARC-008）
 
 ```bash
-$ psql -h <host> -U <user> -c "\l" | grep -E 'player_db|economy_db|match_db|social_db|admin_db'
+psql -h <host> -U <user> -c "\l" | grep -E 'player_db|economy_db|match_db|social_db|admin_db'
 ```
 
 - [ ] **2.3.1** `player_db` 存在
@@ -174,7 +174,7 @@ $ kubectl get nodes -o json | jq '.items[].status.conditions[] | select(.type=="
 ### §3.3 核心组件
 
 ```bash
-$ kubectl -n kube-system get pods | grep -E 'coredns|traefik|local-path|metrics-server'
+kubectl -n kube-system get pods | grep -E 'coredns|traefik|local-path|metrics-server'
 ```
 
 - [ ] **3.3.1** CoreDNS 运行
@@ -272,7 +272,7 @@ $ cargo audit
 ### §5.1 Rust 1.98 + sqlx 编译期
 
 ```bash
-$ DATABASE_URL=postgres://localhost/test_db cargo check --features sqlx/runtime-tokio-rustls
+DATABASE_URL=postgres://localhost/test_db cargo check --features sqlx/runtime-tokio-rustls
 ```
 
 - [ ] **5.1.1** sqlx 编译期类型检查通过
@@ -281,7 +281,7 @@ $ DATABASE_URL=postgres://localhost/test_db cargo check --features sqlx/runtime-
 ### §5.2 tonic gRPC + tracing
 
 ```bash
-$ cargo check --features rgs-coc/grpc,rgs-coc/observability
+cargo check --features rgs-coc/grpc,rgs-coc/observability
 ```
 
 - [ ] **5.2.1** tonic 编译通过
@@ -308,6 +308,7 @@ $ buildctl build ... -f Dockerfile.rgs
 > **DBA → SRE → 5 域 Lead（player → economy → match → social → admin）→ 架构师 → Economy 域 Lead（Q-003 二次确认）→ Platform → QA → PM**
 >
 > **v0.2 所有者背书机制**（per RGS-PLAN-001 v0.8 §3.4.4 + RGS-EXEC-001 v0.3 §8，user decision 2026-08-21 折中方案 C）：
+>
 > - **2 项 Ulysses 实际签**（架构师 / PM 角色）
 > - **10 项所有者背书 + 待具名责任人**（DBA / SRE / 5 域 Lead / Platform / QA / Q-003 二次 具名责任人位）
 > - **风险声明**：所有者背书**不替代具名责任人签字**；NO-GO 仍由 7 G-CODE 全部 Closed 解除

@@ -71,6 +71,7 @@
 ### 1.1 第 10 项特别说明 (per Q2 决策)
 
 Q2 决策 (per RGS-OPEN-QA-2026-08-31 v0.2 §4.1 + AGENTS.md §4.1):
+
 - **增量 verify** (最近 1000 条 / 24h), **非全表**
 - 真实篡改 fail-closed
 - infra 失败 warning + 继续
@@ -186,11 +187,13 @@ Q2 决策 (per RGS-OPEN-QA-2026-08-31 v0.2 §4.1 + AGENTS.md §4.1):
 ### 4.2 8/27 11:06 JST 凭据硬 ban
 
 **强约束 (per 8/27 11:06 JST Ulysses 决策 + AGENTS.md §1.2)**:
+
 - ❌ 禁止把任何环境变量内容打印到对话/终端/log
 - ❌ 禁止 `Get-ChildItem env:` 表格 / `echo $VAR` / `$env:X expand` / `cat .env` 等所有可能泄露 secret 的操作
 - ✅ 仅可 `$env:VAR` 引用后直接 pipe 或传给程序参数
 
 **本 checklist 落地**:
+
 - ✅ 文档无 env value 痕迹 (k8s secret 仅提"导出 SOP", 不实际打印 cert 内容)
 - ✅ admin-service-tls secret 仅引用 commit, 不打印内容
 - ✅ L-CAND-006 例外段 (per 9/3 07:31 JST 拍板) 走 certs/ gitignored, cert 内容永不入 commit
@@ -198,16 +201,19 @@ Q2 决策 (per RGS-OPEN-QA-2026-08-31 v0.2 §4.1 + AGENTS.md §4.1):
 ### 4.3 L12 临时 log 不入 commit
 
 **强约束 (per AGENTS.md v0.6.9 §2.6 L12)**:
+
 - ❌ 临时 log / .txt / .tmp_search* 不入 commit
 - ✅ pre-commit hook 兜底 (per 9/3 07:31 JST L-CAND-006 落地清单 5/8, commit `4d23f09`)
 
 **本 checklist 落地**:
+
 - ✅ 本 commit 0 临时文件
 - ✅ 临时 commit-msg 草稿不入 commit (直接 git commit -m + heredoc)
 
 ### 4.4 9/3 07:31 JST L-CAND-006 例外段
 
 **例外触发** (per RGS-CRITIQUE v0.2 §1 + AGENTS.md v0.6.9 §8 L-CAND-006 例外段):
+
 - L-CAND-006 (k8s secret 导出硬 ban, 安全类, 候选清单 commit `ee3c7e7`) 在 SRE Lead 拍板悬空期间生效
 - 生效范围: 阶段 B (5 域 certs 导出) 走新 SOP, 不等 R4 季度评审
 - 新 SOP:

@@ -46,6 +46,7 @@
 | 19 | **Canvas** | 自定义仪表盘 |
 
 [游戏C]_src 技术栈：
+
 - 前端：React 18 + Vite 5 + chart.js 4 + react-chartjs-2 + react-router 7
 - 后端：Flask + protobuf + WebSocket（control plane）
 - 数据库：SQLite（控制平面）+ PostgreSQL（业务平面）
@@ -143,12 +144,14 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 ### 5.1 零依赖 vs React 重写
 
 **v0.2 选零依赖**:
+
 - npm install 实测 2 分钟+(Windows 网络)
 - node 22 自带 http + fetch 足够
 - 30s 轮询(非 WS)满足 DDD Review 阶段需求
 - 一人公司不需要复杂 state management
 
 **v1.0 再换 React**:
+
 - 5 域 + cluster-ops 真实接入后,需要 WebSocket + 实时数据
 - React + chart.js 才能上 dashboard
 - 部署到 k3s,与 5 域 pod 一起 scale
@@ -162,6 +165,7 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 ### 5.3 RBAC / Login
 
 **不做**(一人公司 per DEC-008):
+
 - 监听 127.0.0.1 only(不暴露 0.0.0.0)
 - 无 cookie / session
 - 无 CSRF
@@ -217,12 +221,14 @@ RGS v0.2-gm 用 **zero-deps node + 原生 HTML + CSS 变量** 实现,**10 核心
 | / (Dashboard) | ✅ 31068 bytes HTML |
 
 **当前 Dashboard 显示**:
+
 - 4 stat 卡片(5 域 IMPL-PLAN / 11 P0/P1/P2 / 45 worktree / 1 FAIL+1 WARN)
 - 5 域 IMPL-PLAN 进度条(8 份, 按 KB 大小)
 - 文档健康基线
 - 11 P0/P1/P2 commit 表
 
 **Servers / Players / Live Console 切换**:
+
 - Servers: 经 k3s 代理,需 K3S_TOKEN
 - Players: mock 数据(WSL 阻塞),等 v0.3 接入
 - Live Console: setInterval 模拟日志,等 v0.3 接 WebSocket

@@ -24,6 +24,7 @@
 ## 关键决策点
 
 ### 1. 单 worker 模式 vs 多 worker 并行
+
 - 8/29 15:30 3 worker 并行 → 全部 connection error 失职
 - 8/29 17:00 2 worker 并行 → 全部 ERR_HTTP2_PING_FAILED 失职
 - 8/29 17:30 1 worker (桶 10) → **成功,无失职**
@@ -31,6 +32,7 @@
 **结论**:**Mavis 桌面 runtime 在多 worker 并行时频繁 connection error,单 worker 单桶 必选**。后续 W34+ 继续单 worker 单桶推进。
 
 ### 2. worker vs 父 session 自做
+
 - 桶 8 proto 实装 (19 UT) — 父 session 自做成功,节省 1 worker 风险
 - 桶 10 card catalog — 1 worker 成功 (v0.20)
 - 桶 9 + 桶 14 — 父 session 部分接手,完整业务实装推 W34+
@@ -40,6 +42,7 @@
 ## 推 W34+ 详细路径
 
 ### W34 桶 9 补完 (估 15-20M)
+
 - service.rs 9 RPC handler 实装 (EnqueueMatchmaking / CancelMatchmaking / GetMatchmakingStatus / CreateMatch / JoinMatch / LeaveMatch / GetMatchState / SubmitMove / SubscribeMatch)
 - MatchServiceImpl 加 matchmaker_v2: Arc<MatchmakerServiceV2> 字段
 - main.rs 改用新构造函数
@@ -50,6 +53,7 @@
 - commit + merge + push + tag v0.21+
 
 ### W35 桶 14 补完 (估 15-25M)
+
 - economy.proto v2: 5 RPC (CreateAuction / BidAuction / CancelAuction / ListAuction / GetTradeHistory)
 - economy-service TradeRepository trait + Pg + InMemory 实现
 - TradeService 5 RPC handler + saga 编排 (per DTL-038 §6.2 + §6.3)
@@ -59,6 +63,7 @@
 - commit + merge + push + tag v0.22+
 
 ### W36 桶 13 replay (估 15M)
+
 - 新建 replay-service crate (per DEC-038-03 cluster-ops 对象存储)
 - 4 RPC: SaveReplay / GetReplay / ListReplays / StreamReplay
 - 12+ UT + 4 IT
@@ -66,9 +71,11 @@
 - commit + merge + push + tag v0.23+
 
 ### 累计 W34+ 估 45-60M tokens
+
 - 余额 31M (含本次 W25-W32 + 卡牌 5 桶完成 77M 已用)
 
 ### 选项 A 砍桶 (节省 8-15M)
+
 - 砍 桶 13 replay — 留待 v2 版本再做 (业务优先级 P2, 不影响卡牌 3 类游戏基础闭环)
 - 累计 W34+ 估 30-45M tokens
 

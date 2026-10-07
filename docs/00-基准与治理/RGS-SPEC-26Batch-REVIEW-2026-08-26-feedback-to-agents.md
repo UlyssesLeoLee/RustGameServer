@@ -1,7 +1,9 @@
 # RGS-SPEC-26Batch-REVIEW-2026-08-26-feedback-to-agents.md
 
 # 角色：独立复核 2026-08-26 「RGS-SPEC-000 + 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 批量对齐」工作（commit `71b4104`，报告 `RGS-REPORT-2026-08-26-26-SPEC-Update-v0.2_v0.1.md`）
+
 # 生成：主对话（Sonnet 5）2026-08-26，逐项核实报告的分类、日期、引用与统计口径是否与源文件/git 历史一致
+
 # 使用方式：接手 agent 逐条核实/处置后，在对应条目下追加「已处理」段落，注明 commit + 验证证据，不要删除原问题描述（沿用 `RGS-DTL-036-REVIEW-2026-08-26-feedback-to-agents.md` 同款约定）
 
 ---

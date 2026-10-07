@@ -145,11 +145,13 @@ RGS 实际参考的"两款商用服务器"是 **① [游戏A]（[游戏A]_server
 ## 4. 验收 / 跟踪
 
 ### 4.1 已完成的 DoD 项
+
 - [x] **L1**: 文档形式合规（代签授权 / DoD / 派生约束守护 / 缺标 / 禁回溯 / 凭据硬 ban）
 - [x] **L1.1**: 关联文档全部引用 absolute path 或可验证路径（per AGENTS.md §1.1"引用必须可独立验证"）
 - [x] **L1.2**: 跨盘引用 3 处（`[跨盘-某发行商目录]/[游戏A]/[游戏A]\server分析\`）已写盘可 Read 复核
 
 ### 4.2 跟踪项（per 多 issue 关联）
+
 - Multica **ULYS-134** (`01a0be20-14fe-7eb0-9fab-741c140b9c23`) — 本 issue 主交付
 - Multica **ULYS-2** (`01a092ae-2faa-799b-b07e-ae6a9b80c166`) — [游戏A]网络层完美对接（5 sub-issue ULYS-3~7）
 - Multica **ULYS-111** — gm-backend 挂 rgs-secret-ca + RGS_TLS_DIR env（gm-backend Hybrid-1 落地准备）

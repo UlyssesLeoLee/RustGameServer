@@ -116,6 +116,7 @@
 | `arc047.debug.design_criteria_dump` | 本文档 §5/§6 关键决策表全量 dump（RS 码选择判据 / 冗余度决策表 / 协议选型矩阵） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 RGS-BAS-006 v0.4 §4.4 / RGS-IMPL-001 §1.3）：
+
 - `arc047.fec.budget_breach` / `arc047.fec.decode_overrun` / `arc047.fec.reconnect_regression` / `arc047.protocol.matrix_violation` 必须 `error!` 级别（per RGS-BAS-006 v0.4 §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `arc047.debug.design_criteria_dump` 含完整决策表（可能 8KB+）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 
@@ -161,6 +162,7 @@ flowchart LR
 ```
 
 **关键边界**（per RGS-REQ-038 §4/§5/§9）：
+
 - **ARC-047 仅作用于 Datagram 路径**——不触及 Stream 路径，不引入 ARQ，不引入跨 Stream 队头阻塞
 - **FEC 解码失败 = 静默丢弃**，不重传、不阻塞后续帧（per FR-NET-001 末尾"不得触发任何形式的重传或阻塞后续帧"）
 - **Stream 路径承载必达事件**（FR-NET-006），由 QUIC 多路 Stream 原生避免队头阻塞
@@ -269,6 +271,7 @@ RGS-REQ-038 §5 FR-NET-002 已硬性否决"KCP 默认块式 Reed-Solomon"。本�
 ## 5.6 候选实现判定流程（落实 FR-NET-004 / TBD-NET-001）
 
 判定流程（顺序执行，任一步未通过即**不采纳**）：
+
 1. **首选自研单包级 XOR parity**（满足 FR-NET-002，无第三方依赖，采纳）
 2. **次选自研 RS(n, k>1)**（须经 ARC-014 中间件导入判定通过）
 3. **末选第三方 crate（含 `fastnet`）**：除 ARC-014 外，须额外过 RSK-NET-001 复核（单一维护者 / 低下载量 / 性能声明未独立验证）

@@ -42,6 +42,7 @@
 | 4 | **派生约束守护 L15-L23** | §4 通过判定未含派生约束 | §4 增 §派生约束守护段，列出 L15-L23 落地状态 | 6c6839e / add4238 |
 
 **已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+
 - 5 NEW 域（scene/battle/network/account/sub8）真实 DSL 推送 + coc 联调需 ST Phase C 验证
 - coc_policy 决策树 3 场景覆盖（per gm_handlers.rs L79-129）需 admin 域 Lead 二审
 - DSL 灰度 5s 切流 + NATS 延迟/乱序 fence_epoch 拒旧版 待 PH-7 验证

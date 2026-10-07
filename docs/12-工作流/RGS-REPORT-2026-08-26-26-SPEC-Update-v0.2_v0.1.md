@@ -174,6 +174,7 @@ docs/13-实现规格/RGS-SPEC-000_详细设计规格化总表.md  ← v0.1/v0.2 
 **报告字数**:约 4500 字 / 27 文件影响 / 0 行实质删除
 
 **生成 commit**:
+
 - `71b4104` (2026-08-26 06:59 JST, Mavis): `chore: update RGS-SPEC-000_详细设计规格化总表.md` —— 26 份 RGS-SPEC-DTL-NNN v0.1→v0.2 + RGS-SPEC-000 v0.3 + 本报告 28 文件一起 commit
 - `4c88ae0` (2026-08-26 07:25 JST, Mavis): `docs: RGS-SPEC-26Batch-REVIEW-2026-08-26 feedback 单` —— 独立复核 71b4104 后定位 7 项问题(P1/P2a/P2b/P3~P7)+ 1 项非阻断卫生项,建议 Ulysses 签字前处置
 - v0.1 报告原稿里"未 commit"表述已过时,实际已在 71b4104 落地;v0.2 校正于本修订更新

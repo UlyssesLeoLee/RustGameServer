@@ -76,6 +76,7 @@
 ## 2. 逐项 DTL 差距分析（22 项）
 
 > 严重度分级：
+>
 > - **CRITICAL**：影响 PH-1 启动（如 G-CODE gates 阻塞）
 > - **HIGH**：影响 PH-2 主要功能
 > - **MEDIUM**：影响 PH-2 周边功能
@@ -404,31 +405,31 @@ TC-ID 命名约定：`TC-{DTL-NNN}-{SUBSYSTEM}-{NNN}`（符合项目既有规范
 
 ### 5.2 优先级 P1（HIGH — PH-1 完成后启动）
 
-5. **DTL-018 第三方 IdP**（Apple/Google/Steam OAuth）：launch 前置；WT-C 31 TC 已就绪
-6. **DTL-026 Glicko-2 评分公式**：`glicko2_update()` + 波动率迭代；WT-C 37 TC 已就绪
-7. **DTL-013 大厅 + 频道路由 + 私聊**：与 DTL-019 / DTL-039 协同
-8. **DTL-014 GSM 玩家治理**（举报/黑名单/赛季）：与 WT-B leaderboard-extra 协同
-9. **DTL-025 反作弊 DSL**：与 DTL-005 沙箱脚本引擎协同
-10. **DTL-031 §11.2 证据矩阵**：120s/300s 参数验证
-11. **DTL-042 服务器全生命周期 6 阶段**：分服 6 步 / 合服 5 步 Saga
-12. **DTL-009 治理闭环 CI 校验**：CR-005 待审批（per RGS-REQ-013 §6）
+1. **DTL-018 第三方 IdP**（Apple/Google/Steam OAuth）：launch 前置；WT-C 31 TC 已就绪
+2. **DTL-026 Glicko-2 评分公式**：`glicko2_update()` + 波动率迭代；WT-C 37 TC 已就绪
+3. **DTL-013 大厅 + 频道路由 + 私聊**：与 DTL-019 / DTL-039 协同
+4. **DTL-014 GSM 玩家治理**（举报/黑名单/赛季）：与 WT-B leaderboard-extra 协同
+5. **DTL-025 反作弊 DSL**：与 DTL-005 沙箱脚本引擎协同
+6. **DTL-031 §11.2 证据矩阵**：120s/300s 参数验证
+7. **DTL-042 服务器全生命周期 6 阶段**：分服 6 步 / 合服 5 步 Saga
+8. **DTL-009 治理闭环 CI 校验**：CR-005 待审批（per RGS-REQ-013 §6）
 
 ### 5.3 优先级 P2（MEDIUM — PH-2 启动后）
 
-13. DTL-019 APNs/FCM SDK + 兑换码生成算法
-14. DTL-020 平台收据 SDK（App Store / GooglePlay）
-15. DTL-022 弹性预留 + T3 多区域（TBD-CAP-001/002 校准）
-16. DTL-023 请求处理链完整串联
-17. DTL-024 集群部署 DAG Schema 校验 + CI 绑定
+ 1. DTL-019 APNs/FCM SDK + 兑换码生成算法
+ 2. DTL-020 平台收据 SDK（App Store / GooglePlay）
+ 3. DTL-022 弹性预留 + T3 多区域（TBD-CAP-001/002 校准）
+ 4. DTL-023 请求处理链完整串联
+ 5. DTL-024 集群部署 DAG Schema 校验 + CI 绑定
 
 ### 5.4 优先级 P3（LOW — PH-3+）
 
-18. DTL-005 插件宿主（Rhai vs Wasmtime 评估）
-19. DTL-008 Unity/UE FFI 胶水代码
-20. DTL-011 / DTL-032-035 智能层 + Agent（设计正确状态）
-21. DTL-017 AnalyticsStore 选型（TBD-INF-002）
-22. DTL-021 GM 后台拓扑画布（TBD-VIZ-001/002）
-23. **DTL-038-防丢包 + SPEC**：WT-A 已新增 DTL/BAS，SPEC 留待 BAS+DTL 评审通过
+ 1. DTL-005 插件宿主（Rhai vs Wasmtime 评估）
+ 2. DTL-008 Unity/UE FFI 胶水代码
+ 3. DTL-011 / DTL-032-035 智能层 + Agent（设计正确状态）
+ 4. DTL-017 AnalyticsStore 选型（TBD-INF-002）
+ 5. DTL-021 GM 后台拓扑画布（TBD-VIZ-001/002）
+ 6. **DTL-038-防丢包 + SPEC**：WT-A 已新增 DTL/BAS，SPEC 留待 BAS+DTL 评审通过
 
 ---
 
@@ -525,6 +526,7 @@ done
 - **未写一行 Rust 代码 / SQL migration / Helm 制品**（per RGS-IMPL-001 §1.3）
 
 **下一步（per 优先级 §5）**：
+
 1. 等待 G-CODE 具名批准 → 启动 PH-1 编码
 2. 优先级 P1 项目的代码实施按 §5.2 顺序
 3. BAS-038 + DTL-038-防丢包 的 SPEC 在评审通过后补充

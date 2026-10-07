@@ -137,6 +137,7 @@ RGS-REQ-038 §7 FR-NET-007 当前登记为：
 - 两条路径经 `Arc<dyn FrameRouter>` 在网络网关内合流，**对外**只暴露 WebSocket 一个端口（8000/8001-wss），**对内**接同一份 `RouteTable` + 5 域 gRPC client（per RGS-BAS-038 §4.2 FEC adapter 调用点结构）。
 
 登记动作（本文档批准后须同步完成）：
+
 1. 在 RGS-REQ-001 §10.4 增加 ARC-048 登记行；
 2. 在 RGS-REQ-001 §14.2 增加 TBD-NG-001/002/003 登记行；
 3. 在附件D §3 增加 ADR-0048 登记行；

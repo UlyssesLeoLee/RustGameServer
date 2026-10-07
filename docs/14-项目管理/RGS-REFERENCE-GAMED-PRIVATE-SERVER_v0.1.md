@@ -85,13 +85,13 @@
 | 其他 15 个 | 11 MB | 时装/格斗精灵/跳跃/UI 等 |
 | **总计** | **~195 MB** | |
 
-**关键引用**：`CONFIGDUMP_V5_IMPORT.md` —— *"Runtime item bootstrap now reads the imported `ConsumableConfig.json` directly"*（直接 JSON 反序列化进内存，**不走 ORM**）。
+**关键引用**：`CONFIGDUMP_V5_IMPORT.md` —— _"Runtime item bootstrap now reads the imported `ConsumableConfig.json` directly"_（直接 JSON 反序列化进内存，**不走 ORM**）。
 
 ### 2.3 V5 配置哲学 = 缺标比错标
 
 `CONFIGDUMP_V5_IMPORT.md`：
-> *"The imported dump reports serialization issues in some source tables; V5 preserves them as dumped instead of inventing replacement records."*
-> *"Imported JSON tables: 1512"*
+> _"The imported dump reports serialization issues in some source tables; V5 preserves them as dumped instead of inventing replacement records."_
+> _"Imported JSON tables: 1512"_
 
 跟 RGS 守门 #1 的"缺标比错标安全"是同款哲学 —— **源数据有什么就用什么，不擅自补 record**。
 
@@ -184,6 +184,7 @@ internal static uint FeiSuoBuff => Settings.PersistentGrappleBuffId;
 **标题**: 客户端 binary → schema 反向同步（proto-dump crate）
 
 **描述**: 新增 `crates/rgs-proto-dump/`，从编译后的客户端 binary dump RPC method 表，跟 `crates/rgs-protocol/` 的 `.proto` 自动 diff：
+
 - 客户端发了服务端没声明的 ID → 警告
 - 服务端声明了客户端没发的 ID → 警告
 - 自动生成"客户端未实现 invoke → ack 而不是 drop"的兼容层（参考 [游戏D] `frame.Mode == 0x08` 处理）
@@ -193,6 +194,7 @@ internal static uint FeiSuoBuff => Settings.PersistentGrappleBuffId;
 **关联**: §2.1 协议 schema 反向驱动
 
 **落地**:
+
 1. 新建 `crates/rgs-proto-dump/Cargo.toml`
 2. 实现 binary parser（按 method id 表格式 dump）
 3. 实现 `.proto` diff 工具
@@ -212,6 +214,7 @@ internal static uint FeiSuoBuff => Settings.PersistentGrappleBuffId;
 **关联**: §2.2 195 MB Config 直接 JSON 读 + 守门 9/1 18:30 "DB 三分类横展"
 
 **落地**:
+
 1. 新增 `crates/rgs-config-loader/`，统一加载 `configs/items.json` / `configs/skills.json` / `configs/buffs.json` 等
 2. Master 表（物品、技能、buff、载具、武器）改 JSON 存储
 3. Transaction 表（订单、邮件、审计）**保留** Postgres，**不**改 JSON
@@ -233,6 +236,7 @@ internal static uint FeiSuoBuff => Settings.PersistentGrappleBuffId;
 **关联**: §2.4 partial class 按业务域拆 12 文件
 
 **落地**:
+
 1. 在 `docs/03-数据决策与交易/` 或 `docs/13-实施经验/` 下新建 `RGS-HANDLER-PARTIAL-PATTERN_v0.1.md`
 2. 写明"业务域按业务子域拆 impl 文件"的规则
 3. 举 player 域的 4-5 个 impl 文件示例
@@ -251,6 +255,7 @@ internal static uint FeiSuoBuff => Settings.PersistentGrappleBuffId;
 **关联**: §2.8 Build version 维度的协议兼容目录
 
 **落地**:
+
 ```
 crates/rgs-protocol/
 ├── builds/
@@ -263,6 +268,7 @@ crates/rgs-protocol/
 │       └── ...
 └── current -> builds/v2  # symlink 指向当前 build
 ```
+
 1. 新增 `crates/rgs-protocol/builds/` 目录结构
 2. 配套 REQ-[游戏D]-001 自动检测"客户端发了不属于 current 的 RPC"
 3. CI 集成：自动生成 current symlink
@@ -274,6 +280,7 @@ crates/rgs-protocol/
 **标题**: 内嵌 HTTP debug server + DebugPanel crate
 
 **描述**: 新增 `crates/rgs-debug/`，类似 [游戏D] 的 `DebugApiServer` 设计：
+
 - 内嵌 `assets/debug-panel.html`（类似 `assets/rgs-web/` 静态资源）
 - 监听 127.0.0.1:port（不外泄）
 - `config.Debug.Enabled` 开关
@@ -284,6 +291,7 @@ crates/rgs-protocol/
 **关联**: §2.7 DebugApiServer + 内嵌 DebugPanel
 
 **落地**:
+
 1. 新建 `crates/rgs-debug/Cargo.toml`
 2. 实现 HttpListener（127.0.0.1 only）
 3. 内嵌 `assets/debug-panel.html`（embedded resource）
@@ -305,6 +313,7 @@ crates/rgs-protocol/
 **关联**: §2.3 V5 配置哲学 + 守门 #1 缺标比错标
 
 **落地**:
+
 1. 每个 `migrations/*.sql` 末尾加注释 `KNOWN_ISSUES:` 段
 2. 列出"这个 migration 故意没改 X，原因 Y"
 3. 配合 DDD Review 二审流程检查 KNOWN_ISSUES 段
@@ -322,6 +331,7 @@ crates/rgs-protocol/
 **关联**: §2.6 玩法层纯数据驱动
 
 **落地**:
+
 1. match 域 / 战斗相关业务先 review
 2. 把"数值/ID/阈值"全部抽到 `configs/match/*.json`
 3. 核心逻辑控制在 5-10 KB
@@ -340,6 +350,7 @@ crates/rgs-protocol/
 **关联**: §2.5 + §2.7 + [游戏D] `Run-All.ps1`
 
 **落地**:
+
 1. 新建 `scripts/start-rgs-stack.ps1`
 2. 13 步流程：
    1. admin 提升
@@ -385,6 +396,7 @@ crates/rgs-protocol/
 **关联**: §2.6 玩法层纯数据驱动
 
 **落地**:
+
 1. `crates/rgs-config-loader/` 集成 `mlua`
 2. 支持 `.lua` 配置文件（与 `.toml` 并存）
 3. 配合 REQ-[游戏D]-002 / REQ-[游戏D]-007
@@ -569,6 +581,7 @@ crates/rgs-protocol/
 ## 附录 A: [游戏D] 顶层 19 模块总览
 
 **客户端 8 个**：
+
 - `[游戏A]_client` —— Cocos2d-x 主客户端
 - `[游戏A]_client_android` —— Android 原生壳
 - `[游戏A]_client_h5` + `[游戏A]_client_core_h5` —— H5 端
@@ -576,6 +589,7 @@ crates/rgs-protocol/
 - `[游戏A]_client_mod` + `[游戏A]_client_mod_core` —— 客户端 mod 系统
 
 **服务端 5 个**：
+
 - `[游戏A]_server` —— 主服务入口
 - `zsyk_server_core` —— 服务端核心引擎
 - `[游戏A]_server_core_data` —— 数据层
@@ -583,13 +597,16 @@ crates/rgs-protocol/
 - `[游戏A]_server_mod` —— 服务端 mod
 
 **Web 端 2 个**：
+
 - `[游戏A]_web` —— 玩家/官网 web
 - `[游戏A]_srv_web` —— 服务端管理 web
 
 **工具 3 个**：
+
 - `[游戏A]_tools` + `[游戏A]_tools_core` + `[游戏A]_tools_mod`
 
 **注册/账号 1 个**：
+
 - `[游戏A]_register`
 
 > **修正说明**：原 9/16 21:42 JST 第一次扫描时将本项目误判为「某 IP 续作 + C#」，实际核实为：[游戏D][游戏D]_[CBTn] 本地服务端，**Cocos2d-x + Erlang** 客户端、**.NET 8 + C#** 服务端。原文 `E:\[游戏A]-src-winrar`（2.38 GB / [游戏A] 全套）是另一个 MMORPG 项目，与本需求文档无关。

@@ -34,11 +34,13 @@
 5 域 + cluster-ops × 2 fallback = 6 个 CRITICAL 静默降级路径。
 
 - 影响：
+
 1. **生产风险**：k8s Secret 挂载失败、cert-manager 配错、PEM 路径拼错 → 服务在生产**静默运行 insecure gRPC**。55.18 的 fail-closed 防线被 main.rs 整个绕开。**违反 CH4 + DEC-015 P1 审计建议**。
 2. **数据丢失**：NATS 故障时 outbox 行持续累积（无 alert 集成、无 retry 周期、仅 warn log），需要人工 recovery。**违反 CH1 事务性消息 at-least-once 承诺**。
 3. **观察性差**：仅靠 `tracing::warn!` 而非 `tracing::error!` + metric（如 `mTLS_bypassed_total` 已在 55.18 设计但本 fallback 不调它），sre 团队无法监控。
 
 - 修复建议：
+
 1. 删除 fallback，**强制 fail-closed**：cert 加载失败 → `std::process::exit(1)`（与 55.15 改 DB pool 失败同模式）。NATS 失败也 exit(1) 或退避重试 + metric。
 2. 若必须保留 dev fallback，强制读取 `RGS_ALLOW_INSECURE=true` env（编译时常量不可），并在生产 deployment 显式不注入。
 3. 把 `mTLS_bypassed_total` 在 5 域 main.rs 静默降级时也调 +1（与 55.18 `build_insecure_channel` 同语义），并通过 `/metrics` 暴露。
@@ -72,12 +74,14 @@ async fn append_atomic(
 `let _ = latest_row;` **完全丢弃 SELECT 结果**，没有任何校验。
 
 - 影响：
+
 1. 任何调用方（除 service.rs:142-170 路径外）传一个 prev_hash 错误的 `entry` 进来，**INSERT 仍然成功**。hash 链会**分叉**，但代码不报警。
 2. `service.rs:147-163` 的 PG 路径已经自己先 SELECT 取 prev_hash 再 INSERT — 等于 1 个事务 2 次 SELECT，浪费 I/O。
 3. 注释 调用方已知 prev_hash 把校验责任推给所有调用方 — 任何新 caller 引入就可能引入 hash 链完整性漏洞。
 4. 触发器 `audit_log_no_update` 只防 UPDATE/DELETE，**不防 INSERT 错 prev_hash**。
 
 - 修复建议：
+
 1. **把 SELECT 留在 service.rs**，删除 PgAuditLogRepository.append_atomic 的 SELECT（仅做 INSERT）。
 2. **或**：append_atomic 内部做 `assert_eq!(entry.prev_hash, latest_row.hash)`，错就 panic / 返回 Err。
 3. 加测试：传 wrong prev_hash 必须返 Err。
@@ -91,6 +95,7 @@ async fn append_atomic(
 - 问题：service.rs 的 audit_log 方法在 PG 路径和 InMemory 路径都做 取 latest → 算 prev_hash → 构造 entry，逻辑完全一致。
 
 - 影响：
+
 1. PG 路径下 `append_atomic` 又做了一次 SELECT（见 AC-2），2 次 SELECT 1 次 INSERT。
 2. InMemory 路径调 `append`（旧 trait 方法），PG 路径调 `append_atomic`（新方法），接口分叉。
 3. 两条路径若以后 bug 修复只修一边，分叉更严重。
@@ -117,11 +122,13 @@ if !account.try_debit(self.amount) {
 `let _ = ...` 完全吞掉 `delete_by_id` 的 Result。
 
 - 影响：
+
 1. 测试 `reserve_handler_rejects_insufficient_funds` 验证 `reservations.len() == 0`，但生产 PG 实现下若 delete 因 FK / 锁 / 网络抖动失败，reservation 行**永久留存**。
 2. reservation 表上无 TTL 清理任务（grep `WHERE status=...` 无 cron 类 job），孤儿累积**无上限**。
 3. 同一个 Saga 重试时 `list_by_saga` 仍能找到孤儿 reservation，导致 `compensate()` 找错对象。
 
 - 修复建议：
+
 1. 至少 `tracing::warn!` 留审计日志。
 2. 加 retry 1-2 次（指数退避）。
 3. 加 migration 周期 job（先 mark 后 delete）。
@@ -137,8 +144,10 @@ if !account.try_debit(self.amount) {
 - 类别: 错误处理 / panic 风险
 - 问题: saga.current() 在第 84 行已验证返回 Some, 但 current_mut() 在第 95/100/110 仍 unwrap().
 - 影响:
+
 1. 任何 current() / current_mut() 的内部状态被外部代码改后(如并发 resume), unwrap panic, 整个 orchestrator task 死掉, saga 永远卡在 Running 状态.
 2. 多副本崩溃恢复(55.23 saga_resume_loop 调 orch.resume)若两个 resume 同时跑同一 saga, 竞争导致 current_mut() 错位 -> panic.
+
 - 修复建议: `let cur = saga.current_mut().ok_or_else(|| Error::Validation(...))?;` 把 Option 显式传 Err.
 
 ---
@@ -160,6 +169,7 @@ if !account.try_debit(self.amount) {
 - 问题: 6 域 SQL migration 的 `status VARCHAR(16) NOT NULL DEFAULT 'pending'` 完全没有 `CHECK (status IN ('pending','in_flight','sent','failed'))`. 而 `crates/shared-platform/src/outbox.rs:471-484` 的 `MIGRATION_TEMPLATE` 常量**有** CHECK 约束.
 - 影响: 6 域实际跑的是无 CHECK 版本, 未来若有人手 UPDATE 把 status 设成 PROCESSING(笔误), DB 不会拦截, relay 永远找不到该行 -> 静默丢消息.
 - 修复建议: 6 域补 `0003_outbox_status_check.sql`:
+
 ```sql
 ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
     CHECK (status IN ('pending','in_flight','sent','failed'));
@@ -193,8 +203,10 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 - 类别: 资源管理 / 进程生命周期
 - 问题: 无限 loop 永远不退出; 没有 tokio::select! 监听 SIGTERM / CancellationToken; DB 连接池耗尽时仍持续重试.
 - 影响:
+
 1. **k8s graceful shutdown timeout 默认 30s**, saga recover 任务不响应 SIGTERM -> 主进程退出被 SIGKILL, spawn 任务未完成当前 resume() 调用 -> 资源泄漏.
 2. DB 长时间不可用时, list_running 持续返 Err 写 warn log(每 30s 一行) -> 日志风暴.
+
 - 修复建议: 用 tokio::select! 监听 SIGTERM + 加指数退避 + AtomicBool 健康检查.
 
 ---
@@ -352,6 +364,7 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 ### 7.1 fail-closed 防线在 main.rs 端全失守(AC-1 + AH-7 + AM-11 联合)
 
 工程 55 的 fail-closed 防线由 3 层组成:
+
 1. **L1**: 55.18 `RpcChannelConfig::default().require_tls = true`(OK)
 2. **L2**: 55.18 `build_insecure_channel` 显式 + 计数(OK)
 3. **L3**: 55.21 5 域 main.rs **强制 mTLS 加载 + 失败 exit**(**缺失**, 用 warn + 降级代替)
@@ -381,11 +394,13 @@ ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status
 
 **审核范围声明**: 本报告仅基于 commit 2fe68b4 仓库快照 + git diff 10bd5b1^..2fe68b4 静态阅读源码 + grep 关键模式 (unwrap / expect / panic / TODO / FIXME / unsafe / #![allow]).
 **审核方法**:
+
 1. `git log --stat` 看 13 commits 文件清单
 2. `git show` 完整 diff 11 个 L4 任务
 3. read 关键文件: saga_orchestrator.rs / outbox.rs / outbox_relay.rs / channel.rs / tls.rs / client.rs / rbac.rs / entity.rs / service.rs (admin) / main.rs x 6
 4. grep 验证代码风格 (unwrap/expect/panic/unsafe/allow)
 **未验证项**:
+
 - 未跑 `cargo test` (CI 验)
 - 未跑 `cargo clippy`
 - 未跑 integration test 连真 PG / NATS

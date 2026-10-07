@@ -16,16 +16,19 @@
 **触发**: per 2026-09-02 16:10 JST 拍板 C3 (RGS-CRITIQUE-IMPROVEMENT v0.1.1 §3.3) + 9/2 18:30 JST v0.2 反馈 (RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.2 §3.3 + §4) + RGS-DEVPLAN-2026-09-02 v0.1 §7 R3 阶段任务 (5 域生产可用 milestone 业务冲刺)。
 
 **目的**:
+
 1. 把 RGS-CRITIQUE-IMPROVEMENT v0.2 §4.5 social 域 9 项 checklist **独立成档**, 便于 social Lead 单独追踪 + 状态更新 (避免在主文档长篇治理反思里搜)
 2. 作为 **social 域生产可用 milestone** 客观度量 (取代 v0.1.1 老指标"派生约束 L1-L14 100% 闭环")
 3. 5 域 × 独立 checklist 文档 (player / economy / match / social / admin) + batch (冻结) 6 文档系列 = §4 总览 60 项基准, 本文档是 social 域独立档
 4. 9/3 08:00 JST R1 业务冲刺现状 → 9/8-14 W37 实战 → 9/15-19 W38 衔接 = 状态更新主线
 
 **本档 vs 主文档关系**:
+
 - 主文档 `RGS-CRITIQUE-IMPROVEMENT-2026-09-02_v0.2.md` §4.5 = 治理反思视角的 social 域 checklist
 - 本档 `CHECKLIST-social-PROD-READY-2026-09-03_v0.1.md` = social Lead 业务冲刺视角的 checklist, 状态可独立更新, 9/2 拍板 + W37 实战 + W38 衔接
 
 **R1 业务冲刺 R3 阶段任务对应** (per RGS-DEVPLAN-2026-09-02 v0.1 §7):
+
 - R1 (UT + IT 8 套件冻结) → 已落地 (commit `c52805b` admin/r2-fix 565/565 passed)
 - R2 (5 域 main 二轮修复) → 已落地 (per commit `6bc55ec` admin verify_recent_n 修复, 等 5 域全过)
 - **R3 (5 域生产可用 checklist 落地) = 本档**
@@ -54,6 +57,7 @@
 **social 域 9/10 闭环** = social 域生产可用 ✅ (per v0.2 §4.5 判定)
 
 **关联决策引用** (per RGS-OPEN-QA-2026-08-31 v0.2 §4.2 social 域 Q5-Q7 拍板):
+
 - **Q5 guild capacity 50 vs 64**: 代码现状 50 为准, 不擅自改 64, 转 social Lead 业务确认 → 对应 #9 Schema 迁移 "Q5 决策" 注释
 - **Q6 leave_guild**: PH-6 社交域下一轮实现, leadership 转移规则 = 加入时间最早剩余成员, 离开后 `player.profile.guild_id` 置空 → 对应 #4 E2E 跨域 saga 真实交易
 - **Q7 push_delivery dispatcher**: 走 NATS (不新增 FCM/APNs 直连), retry 复用 economy outbox+saga 模式, 需要 DLQ → 对应 #6 告警 "NATS DLQ" 注释
@@ -135,6 +139,7 @@
 ### 3.4 业务里程碑判定公式 (per RGS-CRITIQUE-IMPROVEMENT v0.2 §4.8 + AGENTS.md §9.4)
 
 **social 域生产可用 milestone 公式**:
+
 ```
 10 项 checklist 全 ✅ = social 域生产可用 ✅
 = #1 L1.1 UT + #2 L1.2 mTLS IT + #3-#4 L1.2 E2E + #5-#10 治理运维
@@ -142,6 +147,7 @@
 ```
 
 **R1 业务冲刺 R3 阶段 (本档对应) 公式**:
+
 ```
 6 域 × 独立 checklist 文档 (player / economy / match / social / admin + batch 冻结)
 + §1 9-10 项表格 + §2 状态更新 + §3 DoD 配套 + §4 派生约束守护 + §5 已知缺口 + §6 修订历史

@@ -18,6 +18,7 @@
 **触发**：Ulysses 2026-08-26 12:15 JST 指令"RGS 需要一个网页端的后台"(per WBS v0.8 WF-1-55.77 commit 87a6472 后)。
 
 **现状**：
+
 - RGS 5 域 + cluster-ops + shared-platform = 纯 Rust gRPC 后端(无 HTTP)
 - WBS v0.4 §2A.2.55.续1 11 份 IMPL-PLAN(v0.1 已落地)无 Web UI 配套
 - k3s API server 6443 端口可用(curl /healthz = 401 验证)
@@ -194,6 +195,6 @@ node D:/RustGameServer/tools/rgs-web/server-no-deps.js
 ### A.4 引用链与证据
 
 - 当前运行:`node D:/RustGameServer/tools/rgs-web/server-no-deps.js` on 127.0.0.1:8788(PID 4956)
-- 验证:Invoke-WebRequest http://127.0.0.1:8788/api/health → 200 OK
+- 验证:Invoke-WebRequest <http://127.0.0.1:8788/api/health> → 200 OK
 - WBS v0.8 + 11 P0/P1/P2 commit 全部纳入 dashboard
 - 修订历史代签新规则 per 2026-08-26 08:40 JST(C:\Users\leon19\.minimax\memory\user.md "文档代签规则反转")

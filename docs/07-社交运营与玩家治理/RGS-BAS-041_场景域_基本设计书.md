@@ -150,6 +150,7 @@ RGS-REQ-041 给出了场景域 1 service × 148 RPC 的业务需求，本文是�
 | SceneUnloadPolicy | 卸载策略（无玩家 + 无持久任务时卸载） | `ShouldUnload` |
 
 **状态机**（per ARC-001 复用）：
+
 ```
 Init → Loading → Running → Persisting → Unloading → End
                           ↑↓
@@ -390,6 +391,7 @@ scene_configs:
 # 9. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - 场景域 1 service 的组件划分、子组件职责与接口边界
 - 玩家进入场景、实体变更 → AOI 广播、触发器触发的核心时序
 - SceneConfig 数据驱动 Schema 的逻辑层
@@ -397,6 +399,7 @@ scene_configs:
 - ARC-049 反例原则的落实机制
 
 本版本明确不覆盖、留待后续：
+
 - Rust trait / SQL DDL / Helm 模板 — 属 RGS-DTL-048 详细设计职责
 - 客户端地图渲染 / LOD — 属客户端范畴
 - 场景编辑器（SceneConfig 编写工具）— 属独立工具，本域不重复

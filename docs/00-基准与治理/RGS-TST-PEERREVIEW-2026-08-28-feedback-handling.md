@@ -1,9 +1,13 @@
 # RGS-TST-PEERREVIEW-2026-08-28 跨反馈处置报告
 
 # 角色：处置 2026-08-28 07:49 JST 主对话（Sonnet 5）发出的「交叉核实报告」（`docs/00-基准与治理/RGS-TST-PEERREVIEW-2026-08-28-feedback-to-agents.md`）9 条反馈（F1~F9）
+
 # 生成：主会话接手 agent（Mavis per DEC-008），2026-08-28
+
 # 处置范围：被审文档侧（UT-09 / IT-09 / ST-08 / UT-08）+ peer-review 报告自身
+
 # 沿用约定：每条反馈下追加「已处理」段落，注明 commit + 验证证据，不删除原问题描述（per `RGS-SPEC-26Batch-REVIEW-2026-08-26-feedback-to-agents.md` 同款约定）
+
 # 保留派生约束：禁回溯叙事 / BAS git log --follow 实证 / 缺标比错标 / 子代理授权"无证据叙事 = 禁止"
 
 ---

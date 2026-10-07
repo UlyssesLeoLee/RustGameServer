@@ -194,6 +194,7 @@ sequenceDiagram
 | `push.component.sanitizer.debug.regex_match_trace` | 禁止模式正则的匹配细节（哪条规则命中 + 字符偏移） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `push.component.sanitizer.debug.payload_dump` **必须** `#[cfg(debug_assertions)]` 守护——推送 payload 可能含 PII（运营填错的真实玩家昵称/邮箱前缀），release 误开 `RUST_LOG=debug` 时**不能**让其泄密通道
 - `push.component.sanitizer.rejected` 是**安全事件**——release 必出 + §6.2 强制全采样，便于安全审计识别"是否有运营误配模板注入 PII"
 - `push.component.sanitizer.rejected` 的字段最小集**严格不**含 PII payload 原文（仅记录模板 ID + 模式类别 + 字符偏移），规避"日志自身变成 PII 泄漏源"的反模式
@@ -233,6 +234,7 @@ sequenceDiagram
 | `push.dispatch.debug.outbox_payload_dump` | outbox 事件 payload dump（含 `event_id` / `aggregate_id` / `partition_key`） | 业务触发同频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `push.dispatch.debug.gateway_response_body` **必须** `#[cfg(debug_assertions)]` 守护——APNs/FCM 响应体可能含设备级 PII（设备 ID/用户标识），release 误开 RUST_LOG=debug 时**不能**泄漏
 - `push.dispatch.debug.outbox_payload_dump` 同样**必须**守护——outbox payload 包含**全部**业务字段（含推送正文/玩家 ID），隐私风险极高
 - `push.dispatch.failed.*` / `push.dispatch.retry_*` / `push.dispatch.dlq_routed` 走 BAS-004 v0.3 §6.2 强制全采样白名单（错误路径）——这是运营 SRE 排查"为什么玩家没收到推送"的核心证据链，**不能**采样丢弃
@@ -293,6 +295,7 @@ sequenceDiagram
 | `push.redemption.code.debug.code_entropy_dump` | 单个 `RedemptionCode` 的明文 dump（用于生成期一次性熵值验证，**绝不**进入 release） | 批量生成期间逐条 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 50-100B/条（release 剔除，单码本身已是高熵随机字符串） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `push.redemption.code.debug.code_entropy_dump` **必须** `#[cfg(debug_assertions)]` 守护——单码明文**绝对不能**进入 release 日志通道（一旦 release 误开 RUST_LOG=debug，运营/SRE 可读到全部明文码，即合规事故）。该字段**仅**用于生成期一次性熵值验证（开发/CI 阶段）
 - `push.redemption.code.created` 的字段最小集**严格不**含 `code` 原文（仅含 `code_hash` 截断 hash）——这是与 §2.1.1 `push.component.sanitizer.rejected` 同源的"PII 防控"设计纪律：审计留痕用 hash 关联即可，明文码的访问通过业务路径核销
 - `push.redemption.batch.preview_confirmed` / `push.redemption.batch.generation_started` / `push.redemption.batch.revoked` 全部走 §6.2 强制全采样（高危操作 / 合规审计）——这是"事后追溯'谁在何时生成了哪些批次'、'谁在何时作废了哪些批次'"的唯一证据链，**不能**采样丢弃
@@ -337,6 +340,7 @@ sequenceDiagram
 | `push.redemption.debug.rate_limit_bucket_state` | 账号级 / IP 级速率限制桶的当前状态（令牌数/补充速率） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `push.redemption.debug.request_envelope` **必须** `#[cfg(debug_assertions)]` 守护——核销请求体含 `code` 明文 + `account_id`，release 误开 RUST_LOG=debug 时**不能**泄漏（与 §2.1.1 / §3.1 `push.redemption.code.debug.code_entropy_dump` 同源 PII 防控纪律）
 - `push.redemption.used_count_conditional_update_succeeded` / `push.redemption.used_count_conditional_update_failed` / `push.redemption.reward_granted` / `push.redemption.reward_grant_failed` 走 BAS-004 v0.3 §6.2 强制全采样白名单（高危操作 / 错误路径 / 合规审计）——这是"事后追溯'某个码是否被超发'、'某个玩家是否在何时获得了某奖励'"的核心证据链，**不能**采样丢弃
 - `push.redemption.idempotent_replay` 虽**不**视为错误，但 release 必出 + 100% 采样——便于安全审计识别"是否有客户端在重放核销请求探测幂等性"，与 NFR-OPT-003 / NFR-SEC-008 落地纪律一致

@@ -54,6 +54,7 @@
 ### 1.2 用户画像（per user_profile DEC-008）
 
 **Ulysses**（一人公司 12 角色 per DEC-008）：
+
 - 角色：1 人 12 角色（架构师 / 5 域 Lead / SRE / DBA / 安全 / shared-platform / saga 召集人 / PM / ...）
 - 工作流：WBS v0.3 145 L4 任务 + 5 域 IMPL-PLAN v0.2 + RACI v1.1
 - 环境：Windows 11 + WSL2 Ubuntu + k3s + Rust + node 22
@@ -94,6 +95,7 @@
 > **以便于** 1 个页面内看完 145 L4 任务的进度 + token + AI 协作情况，不切工具
 
 **验收标准**：
+
 - [ ] 新增 `page-gantt`，nav 增加"📊 Gantt"按钮
 - [ ] 页面内 4 个选项卡：Gantt（时间线甘特图）/ Tasks（WBS 145 L4 列表）/ **Token（token 消耗图表，**本文档主线**）** / AI（AI 协作 ledger）
 - [ ] 4 选项卡共用 task_id 选中态，点 Gantt 条 → 切到 Tasks 卡 → 切到 Token 卡，token 详情同步
@@ -106,6 +108,7 @@
 > **以便于** 快速判断哪个任务 / 哪个域超预算
 
 **验收标准**：
+
 - [ ] 145 L4 任务每条都有 budget_tokens 字段（per RGS-TS-001 v0.7 §6.2.2.1 自动推算：人·天 × 100K-300K tokens）
 - [ ] actual_tokens 字段从 ledger 读（per §6.1 数据源 DR-2）
 - [ ] 图表：水平双柱图（bar chart），左柱 budget，右柱 actual，超预算 actual 标红
@@ -119,6 +122,7 @@
 > **以便于** 不离开页面就能追溯
 
 **验收标准**：
+
 - [ ] Gantt 任务条 onClick → 切到 Token 选项卡，自动选中该任务
 - [ ] Token 选项卡 task 行 onClick → 弹窗显示：budget / actual / percent / 来源会话（mvs_xxxx）/ 子代理 / commit hash
 - [ ] 弹窗"查看源文件"按钮 → 跳转到 `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.X.md` 对应行（锚点）
@@ -131,6 +135,7 @@
 > **以便于** 跨平台看 token 实际消耗
 
 **验收标准**：
+
 - [ ] `GET /api/git/integrations` 返回当前配置的 GitHub / GitLab 仓库 + 鉴权状态（env var 不暴露值，per 2026-08-27 11:06 JST env value 硬 ban）
 - [ ] `GET /api/git/issues?repo=xxx&labels=token-budget` 拉取 issue 列表（含编号 / 标题 / 状态 / 标签 / 创建时间）
 - [ ] Token 选项卡每条 L4 任务行有"🔗 GitHub"按钮，点击后弹窗显示关联 issue 列表 + 当前 task 的 token 实际消耗（v0.1 写回 issue 评论，bot 身份："rgs-oludash-bot"）
@@ -143,6 +148,7 @@
 > **以便于** 不手工登记 token
 
 **验收标准**：
+
 - [ ] Mavis runtime 集成：每次 `session finish` 事件触发 `rgs-oludash-hook`（mavis 自定义 hook），把 session_id / agent_name / task_id / token_in / token_out / started_at / finished_at 追加到 `data/ai-ledger.jsonl`
 - [ ] rgs-web 30s 轮询 `/api/token/ai-ledger` → 仪表盘 AI 选项卡显示
 - [ ] 估算方法（v0.1）：token = message_count × 5K tokens/条（per RGS-OLU-REPORT-2026-08-27 v0.1 §3.2 公式，标注 "estimated"）
@@ -155,6 +161,7 @@
 > **以便于** 不超 NFR-OP-010 硬约束
 
 **验收标准**：
+
 - [ ] 顶部固定条：本周 tokens = 实时聚合（来自 ai-ledger.jsonl + git-ledger.jsonl）
 - [ ] 比例 ≤ 70% 绿 / 70-90% 黄 / > 90% 红
 - [ ] 红态触发 mavis cron `nfr-op-010-watchdog` 自检 + 通知（"本周 NFR-OP-010 超 90%，请暂停 AI 协作或申请额外 SRE 编制"）
@@ -167,6 +174,7 @@
 > **以便于** 评估 5 域 Lead 实际 OLU
 
 **验收标准**：
+
 - [ ] 仪表盘按域堆叠图（stacked bar）：横轴 = 域，纵轴 = tokens
 - [ ] 每域颜色对应 rgs-web 现有颜色方案（player = blue / economy = green / match = orange / social = purple / admin = red / shared-platform = cyan / cluster-ops = yellow）
 - [ ] 鼠标 hover 显示该域任务数 / done 数 / token 合计 / percent_used 95% 分位数
@@ -432,6 +440,7 @@
 > **v0.1 主体不追溯改写**（per user_profile "保留派生约束" + 2026-08-26 04:30 JST 强约束）。v0.2 增量 = 5 大块：
 
 **1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+
 - F-17 / F-19 升 P0：rgs-web 通过 cloudflared tunnel 收 webhook
 - IR-5 / IR-6 升深联动：`POST /api/webhook/github` + `POST /api/webhook/gitlab`
 - 解析 event: `issues.opened` / `issues.labeled`(label=token-budget) / `issues.closed` / `pull_request.merged`
@@ -439,6 +448,7 @@
 - F-29 废弃（v0.1 推迟 → v0.2 已落地）
 
 **2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+
 - DR-2 ~ DR-6 全部从 jsonl/json 文件**升版为 SQLite**（`data/olu.db`）
 - 6 表 schema：`tasks` / `ai_ledger` / `git_ledger` / `github_issues` / `gitlab_issues` / `webhook_events` / `nfr_op_010_snapshots`
 - WAL 模式 + busy_timeout=5000ms + FK 约束
@@ -448,11 +458,13 @@
 - §7.1 新增派生约束：better-sqlite3 编译失败 fail-fast，不静默降级 JSON
 
 **3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+
 - §7.2 新增：rgs-web 启动时 `child_process.spawn('cloudflared', ['tunnel', '--url', 'http://127.0.0.1:8788'])`（outbound，不破 127.0.0.1 only 硬约束）
 - §3.1 新增 lib/cloudflared.js
 - cloudflared 二进制需 Ulysses 手动装（per "Never auto-install software" 硬约束，rgs-web 启动时给明确错误）
 
 **4. webhook 验签 + 重放保护**（per F-32/F-33 + §1.10/§1.11）
+
 - GitHub: `X-Hub-Signature-256` HMAC-SHA256 + `GITHUB_WEBHOOK_SECRET` env var
 - GitLab: `X-Gitlab-Token` 等值比较 + `GITLAB_WEBHOOK_TOKEN` env var
 - 重放：`UNIQUE(provider, delivery_id) ON CONFLICT IGNORE` 返 200 不重处理
@@ -460,11 +472,13 @@
 - §5.1 凭据管理增 GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_TOKEN（env value 永不出现在响应 / 日志）
 
 **5. 备份 batch + 清理**（per ask_user "详细的记录备份清理 batch"）
+
 - 每日 0:00 JST `VACUUM INTO 'data/backups/olu-YYYY-MM-DD.db'` + `sha256sum` 校验
 - 清理 > 90 天的备份（per NFR-32）
 - §3.1 新增 lib/backup-batch.js + lib/sqlite.js
 
 **新增 NFR（NFR-29 ~ NFR-33）**：
+
 - NFR-29 webhook 验签 + 重放保护
 - NFR-30 cloudflared tunnel 启动延迟 ≤ 5s
 - NFR-31 SQLite 单 database < 200MB
@@ -472,6 +486,7 @@
 - NFR-33 webhook 端点响应 < 200ms
 
 **新增风险（R-12 ~ R-16）**：
+
 - R-12 better-sqlite3 native binding 编译失败 → fail-fast
 - R-13 cloudflared 二进制未装 → 顶部条黄态
 - R-14 cloudflared tunnel 公开 URL 泄露 → webhook secret + 重放保护
@@ -481,6 +496,7 @@
 **v0.1 风险 R-7 已缓解**：127.0.0.1 only 与 webhook 冲突 → cloudflared tunnel 解冲突
 
 **已知缺口**（v0.2 新增）：
+
 - cloudflared 二进制需 Ulysses 手动装
 - GITHUB_WEBHOOK_SECRET + GITLAB_WEBHOOK_TOKEN 注入路径未确认
 - better-sqlite3 Windows 编译风险（Ulysses 接受 npm install 2 分钟+ 成本）
@@ -489,6 +505,7 @@
 - v0.2 6 NFR 实测基线未建立（v0.2 落地后第 1 周做基线）
 
 **派生决策引用**：
+
 - per 2026-09-01 14:58 JST 拍板决策必须用选项
 - per 2026-09-01 16:30 JST 4 个 ask_user 决策
 - per 2026-09-01 16:41 JST 2 个 follow-up 决策（webhook + sqlite runtime）

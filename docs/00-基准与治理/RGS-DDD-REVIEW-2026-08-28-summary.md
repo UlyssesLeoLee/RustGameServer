@@ -10,6 +10,7 @@
 main HEAD: **`38097e8`** — 已 push origin
 
 **已完成 8 commits** (since 2026-08-28 12:00 JST):
+
 | commit | 标题 |
 |---|---|
 | `c14d49b` | S4 Phase 1 gm.proto 编译实装 |
@@ -46,21 +47,25 @@ main HEAD: **`38097e8`** — 已 push origin
 ## 3. 跑测 (G3 + G4 + gm-backend)
 
 ### G3 跑测 (workspace, commit `2b3ad09`)
+
 - **81/81 targets PASS, 0 fail**
 - 663/663 test cases PASS, 37 ignored (Cloudflare PH-5 opt-in)
 - evidence: `docs/00-基准与治理/.test-evidence/g3-g4-20260828-070349/`
 
 ### G4 覆盖率 (commit `2b3ad09`)
+
 - **Workspace line coverage: 75.9%** (8829/11639 行)
 - **14/14 域 ≥ 60%** (rgs-hello 空 stub 0% 除外)
 - TOP: rgs-arc-olu 100% / rgs-certgen 95.5% / rgs-testkit 93% / gm-backend 91.2%
 - MIN: match-service 62.2%
 
 ### gm-backend (commit `11a230a`)
+
 - **49/49 PASS, 0 fail** (上轮 36 + 13 含 6 IT)
 - 含 JWT/audit/outbox NATS mock/admin gRPC/5 endpoint
 
 ### 9 域累计
+
 - **324/324 PASS** (workspace 整合, 含 gm-backend 49)
 
 ---
@@ -68,15 +73,18 @@ main HEAD: **`38097e8`** — 已 push origin
 ## 4. 文档 (18 份 TST + 19 份 IT + 35 份 BAS)
 
 ### TST 文档 (18 份)
+
 - **RGS-TST-00~09 UT** (10 份): 9 域 UT + UT-00 总览
 - **RGS-TST-00~09 IT** (9 份): 9 域 IT + IT-00 v0.2
 - **44/44 BAS 引用 100%** (commit `c6dc816`)
 
 ### BAS 文档 (35 份)
+
 - 全 9 域 + cluster-ops + gm-backend 覆盖
 - 7 域 BAS × TST 双向引用
 
 ### 治理文档
+
 - OPEN-QA v0.3 (Q2/Q4/Q7 推进)
 - 9 决策草案 + 跨反馈 9 条处置
 - 代签审核 17/18 PASS
@@ -90,19 +98,23 @@ main HEAD: **`38097e8`** — 已 push origin
 ## 5. 下一步 (per WBS)
 
 ### 即时 (W5)
+
 - ⏳ 4 worktree W1/W2/W3 worker 启动后无 commit — Ulysses 决策:是否让我直接实装?
 - ⏳ W4 (本 worktree) commit DDD Review checklist + summary
 - ⏳ merge 4 branch → main, 重测 81/81 + 49/49
 
 ### 9 月初 (W6)
+
 - BAS 章节级追溯 35 份 → IT 文档 (80-120M tokens)
 - 1 文件/周 × 7 周
 
 ### 9 月中 (W7)
+
 - gm-backend 5 GM RPC 业务实装 (BanAccount/Compensation/Maintenance/AuditLog)
 - 端到端跑通 5 域 + gm-backend (60-100M tokens)
 
 ### 9 月末 (W8)
+
 - PH-1 OTel 全链路 sqlx-tracing sample 10-20%
 - 5 域 + gm-backend + cluster-ops + shared-platform + NATS (50-80M tokens)
 

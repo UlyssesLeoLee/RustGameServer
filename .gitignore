@@ -178,3 +178,7 @@ target-w*/**
 # 跟 workspace Cargo.lock 重复, 兜底防未清理污染 git status
 /Cargo.lock
 
+
+# Local log dumps from gh run view / cargo test stdout (per 2026-09-26 ULYS-237 v0.6 收尾)
+# Per .gitignore! L12 派生约束: _archive/ 仍按既定规则禁入,本规则只屏蔽根目录 working 流日志
+*.log

@@ -11,7 +11,7 @@
 
 | 阻塞 | 描述 | 需 Ulysses 行动 | 估修复时间 |
 |---|---|---|---|
-| **BLOCK-DEPLOY-001** | GHCR_PAT scope 不足 (push 返 `permission_denied: The token provided does not match expected scopes`) | 重新生成 PAT: https://github.com/settings/tokens → Generate new token (classic) → 勾 **write:packages** + **read:packages** → 设置 90 天 expiration → 提供新 token (以 $env:GHCR_PAT 形式 invoke, 不打印) | 5 分钟 |
+| **BLOCK-DEPLOY-001** | GHCR_PAT scope 不足 (push 返 `permission_denied: The token provided does not match expected scopes`) | 重新生成 PAT: <https://github.com/settings/tokens> → Generate new token (classic) → 勾 **write:packages** + **read:packages** → 设置 90 天 expiration → 提供新 token (以 $env:GHCR_PAT 形式 invoke, 不打印) | 5 分钟 |
 | **BLOCK-DEPLOY-002** | WSL sudo 无密码 (chmod 644 /etc/rancher/k3s/k3s.yaml 卡死) | 改 /etc/sudoers 或运行 `sudo -i` 进 root 后 chmod, 或 `chmod -R a+r /etc/rancher/k3s/` (WLS 1 模式) | 5 分钟 |
 | **BLOCK-DEPLOY-003** | 14 镜像 build 估 1.5+ 小时 (workspace Dockerfile build 全部 + multi-arch) | 拆分 4-6 批, 每批 ≤ 30 分钟 (1 worker 单桶), 用 buildx cache 复用 ghcr.io 已缓存层 (per handoff §5.2) | 1.5 小时 (分 4-5 worker) |
 
@@ -32,11 +32,13 @@
 ## 下次会话推进路径
 
 ### Step 0:Ulysses 介入 (5 分钟)
+
 1. 重新生成 GHCR_PAT (勾 write:packages + read:packages + 90 天)
 2. 提供新 token: `$env:GHCR_PAT = 'ghp_...'` (PowerShell 环境变量, 不打印)
 3. WSL 改 sudo 配置或手动 chmod /etc/rancher/k3s/k3s.yaml
 
 ### Step 1:验证 GHCR_PAT (5 分钟)
+
 ```bash
 echo $GHCR_PAT | docker login ghcr.io -u UlyssesLeoLee --password-stdin
 docker pull alpine:3.19  # 验证基础网络
@@ -46,6 +48,7 @@ docker push ghcr.io/ulyssesleolee/rustgameserver:pipeline-test-$(date +%Y%m%d)
 ```
 
 ### Step 2:14 镜像 build + push 拆分 (1.5-2 小时, 4-5 worker)
+
 - **批次 1** (估 30 分钟): player-service, economy-service, match-service (3 核心域)
 - **批次 2** (估 30 分钟): social-service, admin-service, cluster-ops (3 业务域)
 - **批次 3** (估 30 分钟): gm-backend, card-service, leaderboard-service (3 卡牌域)
@@ -53,6 +56,7 @@ docker push ghcr.io/ulyssesleolee/rustgameserver:pipeline-test-$(date +%Y%m%d)
 - 每批 1 worker 单桶, 任务限 ≤ 30 分钟, 100% 成功模式
 
 ### Step 3:K8s manifest apply + verify (15 分钟)
+
 ```bash
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 kubectl apply -f docs/deploy/01-k8s-manifests/
@@ -61,6 +65,7 @@ kubectl get pods -n rust-game-server
 ```
 
 ### Step 4:B-CODE 4 项重测 (30 分钟)
+
 - B-CODE-01: OTel + Prom + Grafana 3 套 K3s 部署 (验证 Pod Running 3/3)
 - B-CODE-02: player gRPC HealthCheck (验证 mTLS + Health 探针)
 - B-CODE-03: login → session_epoch → player_db 落库

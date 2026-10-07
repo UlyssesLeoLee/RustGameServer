@@ -131,12 +131,14 @@ Completed (t=110ms, completed_at = now)
 ### §B.2.3 期望 DB 状态
 
 **`economy_db.accounts` 表**：
+
 ```sql
 SELECT id, gold_balance FROM accounts WHERE id = '<player_uuid>';
 -- 期望: gold_balance = 900 (1000 - 100)
 ```
 
 **`economy_db.transaction_ledger` 表**：
+
 ```sql
 SELECT kind, amount, status FROM transaction_ledger
 WHERE saga_id = '<saga_uuid>';
@@ -144,6 +146,7 @@ WHERE saga_id = '<saga_uuid>';
 ```
 
 **`economy_db.sagas` 表**：
+
 ```sql
 SELECT status, current_step, completed_at IS NOT NULL AS done
 FROM sagas WHERE command_id = '<cmd_uuid>';
@@ -151,24 +154,28 @@ FROM sagas WHERE command_id = '<cmd_uuid>';
 ```
 
 **`economy_db.reservations` 表**：
+
 ```sql
 SELECT status FROM reservations WHERE saga_id = '<saga_uuid>';
 -- 期望: 1 条 status='confirmed'
 ```
 
 **`economy_db.inbox` 表**：
+
 ```sql
 SELECT handler, status FROM inbox WHERE command_id = '<cmd_uuid>';
 -- 期望: 至少 5 条（每 step handler），status='processed'
 ```
 
 **`match_db.player_inventory` 表**：
+
 ```sql
 SELECT * FROM player_inventory WHERE player_id = '<player_uuid>' AND item_id = 'sword_001';
 -- 期望: 1 条, quantity=1
 ```
 
 **`social_db.notifications` 表**：
+
 ```sql
 SELECT * FROM notifications WHERE player_id = '<player_uuid>' ORDER BY created_at DESC LIMIT 1;
 -- 期望: 1 条, type='item_received', content 含 'sword_001'
@@ -227,6 +234,7 @@ PGPASSWORD=economy psql -h postgres.rust-game-server.svc.cluster.local -U econom
 
 - 正常启动购买 saga（同 §B.2.1）
 - **故障注入**：match 域 Pod 在 step 2 执行期间手动 `kubectl exec` 注入 DB 写错误：
+
   ```bash
   kubectl exec -n rust-game-server match-service-0 -- \
     sh -c "iptables -A OUTPUT -d postgres.match-db.svc.cluster.local -j DROP"
@@ -254,6 +262,7 @@ Failed (t=1.2s, completed_at = now)
 ### §B.3.3 期望 DB 状态
 
 **`economy_db.sagas` 表**：
+
 ```sql
 SELECT status, current_step, steps FROM sagas WHERE command_id = '<cmd_uuid>';
 -- 期望:
@@ -266,12 +275,14 @@ SELECT status, current_step, steps FROM sagas WHERE command_id = '<cmd_uuid>';
 ```
 
 **`economy_db.accounts` 表**：
+
 ```sql
 SELECT gold_balance FROM accounts WHERE id = '<player_uuid>';
 -- 期望: gold_balance = 1000 (补偿恢复原始余额)
 ```
 
 **`economy_db.transaction_ledger` 表**：
+
 ```sql
 SELECT kind, amount, status FROM transaction_ledger WHERE saga_id = '<saga_uuid>';
 -- 期望:
@@ -280,12 +291,14 @@ SELECT kind, amount, status FROM transaction_ledger WHERE saga_id = '<saga_uuid>
 ```
 
 **`economy_db.reservations` 表**：
+
 ```sql
 SELECT status FROM reservations WHERE saga_id = '<saga_uuid>';
 -- 期望: status='compensated'
 ```
 
 **`match_db.player_inventory` 表**：
+
 ```sql
 SELECT count(*) FROM player_inventory WHERE player_id = '<player_uuid>' AND item_id = 'sword_001';
 -- 期望: 0 (没发放成功)
@@ -381,6 +394,7 @@ Failed (t=30.5s, completed_at = now)
 ### §B.4.3 期望 DB 状态
 
 **`economy_db.sagas` 表**：
+
 ```sql
 SELECT status, current_step,
        steps->2->>'error' AS step2_error,
@@ -394,12 +408,14 @@ FROM sagas WHERE command_id = '<cmd_uuid>';
 ```
 
 **`economy_db.reservations` 表**：
+
 ```sql
 SELECT status FROM reservations WHERE saga_id = '<saga_uuid>';
 -- 期望: status='compensated' (补偿释放)
 ```
 
 **`economy_db.accounts` 表**：
+
 ```sql
 SELECT gold_balance FROM accounts WHERE id = '<player_uuid>';
 -- 期望: 1000 (补偿恢复)
@@ -468,6 +484,7 @@ kubectl rollout restart deployment/match-service -n rust-game-server
 
 - 阈值常量：`REVIEW_THRESHOLD = 10000`（per RGS-IMPL-100 §3.4，配置在 economy-service env）
 - 发起 15000 gold 购买：
+
   ```bash
   grpcurl -insecure -d '{
     "player_id": "<uuid>",
@@ -497,18 +514,21 @@ Completed (t=15min+500ms)
 ### §B.5.3 期望 DB 状态
 
 **`economy_db.sagas` 表**（审批前）：
+
 ```sql
 SELECT status, current_step FROM sagas WHERE command_id = '<cmd_uuid>';
 -- 期望: status='pending_review'（PendingReview 新状态，per RGS-IMPL-100 §3.4）
 ```
 
 **`admin_db.review_queue` 表**：
+
 ```sql
 SELECT * FROM review_queue WHERE saga_id = '<saga_uuid>';
 -- 期望: 1 条, status='pending', amount=15000, currency='gold', reason='amount_exceeds_threshold'
 ```
 
 **`admin_db.audit_log` 表**：
+
 ```sql
 SELECT * FROM audit_log WHERE saga_id = '<saga_uuid>' ORDER BY created_at;
 -- 期望:
@@ -517,6 +537,7 @@ SELECT * FROM audit_log WHERE saga_id = '<saga_uuid>' ORDER BY created_at;
 ```
 
 **`economy_db.reservations` 表**（审批通过后）：
+
 ```sql
 SELECT status FROM reservations WHERE saga_id = '<saga_uuid>';
 -- 期望: status='confirmed'（最终转 confirm）
@@ -627,24 +648,28 @@ Completed (saga_id = A)
 ### §B.6.3 期望 DB 状态
 
 **`economy_db.sagas` 表**：
+
 ```sql
 SELECT count(*), array_agg(id) FROM sagas WHERE command_id = '<cmd_uuid>';
 -- 期望: count=1 (UNIQUE 约束生效), array=[saga_id_A]
 ```
 
 **`economy_db.inbox` 表**：
+
 ```sql
 SELECT handler, count(*) FROM inbox WHERE command_id = '<cmd_uuid>' GROUP BY handler;
 -- 期望: 至少 1 个 handler 有 1 条记录（去重生效，第二次的 `ON CONFLICT DO NOTHING`）
 ```
 
 **`economy_db.accounts` 表**：
+
 ```sql
 SELECT gold_balance FROM accounts WHERE id = '<player_uuid>';
 -- 期望: 900 (1000 - 100)，**不** 800（不重复扣款）
 ```
 
 **`match_db.player_inventory` 表**：
+
 ```sql
 SELECT count(*) FROM player_inventory WHERE player_id = '<player_uuid>' AND item_id = 'sword_001';
 -- 期望: 1 (不重复发放)
@@ -747,6 +772,7 @@ Failed (t=125s, completed_at = now)
 ### §B.7.3 期望 DB 状态
 
 **`admin_db.pfau_state` 表**：
+
 ```sql
 SELECT * FROM pfau_state WHERE target = 'match-service' ORDER BY created_at DESC LIMIT 1;
 -- 期望:
@@ -755,6 +781,7 @@ SELECT * FROM pfau_state WHERE target = 'match-service' ORDER BY created_at DESC
 ```
 
 **`economy_db.sagas` 表**：
+
 ```sql
 SELECT status, current_step,
        steps->2->>'error' AS step2_error
@@ -766,12 +793,14 @@ FROM sagas WHERE command_id = '<cmd_uuid>';
 ```
 
 **`economy_db.accounts` 表**：
+
 ```sql
 SELECT gold_balance FROM accounts WHERE id = '<player_uuid>';
 -- 期望: 1000 (补偿恢复)
 ```
 
 **`match_db.pfau_kubernetes_pod_state`（admin 域观测）**：
+
 ```sql
 SELECT pod_name, status, last_ack_at FROM pod_state
 WHERE target = 'match-service' AND pod_name = 'match-service-1';

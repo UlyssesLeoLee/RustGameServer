@@ -94,6 +94,7 @@ flowchart TB
 | `test.topology.debug.otel_pipeline_latency_matrix` | 测试指标端到端延迟矩阵（被测 → Collector → Dashboard 渲染） | 启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.topology.debug.component_dependency_graph` 大型测试基础设施（含 §3 模拟客户端数千实例 + §5 k6 runner）下可能 10KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `test.topology.all_components_ready` / `test.topology.shutdown.completed` 均为 `info!` 级别（release 必出，§4.8.3.2 二维矩阵 `info!` 行常驻），便于 SRE 按 `component_set` 维度聚合
 - `test.topology.pressure_metrics.misclassified` 是**配置错事件**——`error!` 级别，release 常驻 + §6.2 强制全采样，避免将施压端瓶颈误判为被测系统瓶颈
@@ -144,6 +145,7 @@ services/load-mock-client/         # 独立于游戏客户端,复用核心SDK
 | `test.mock_client.debug.fleet_memory_snapshot` | 单进程 N 个模拟连接实例的内存占用快照（验证 §3.2 "可预测资源"承诺） | 启动 1 次 + 扩缩 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.mock_client.debug.simulated_packet_capture` 包含明文包体，**仅** debug-only，release 完全剔除——即便生产环境 RUST_LOG=debug 误开也不会泄露模拟客户端流量（流量本身即生产复刻，故须严格守护）
 - `test.mock_client.pressure.health.degraded` 是**施压端亚健康事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，是 §3.2 "施压端与被测系统指标区分"原则的运行时保障
 - `test.mock_client.protocol.drift_detected` 是**AC-TST-001 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（验收标准 AC-TST-001 必须被检测到）
@@ -184,6 +186,7 @@ services/load-mock-client/         # 独立于游戏客户端,复用核心SDK
 | `test.ext_mock.debug.webhook_payload_dump` | Webhook 回调完整 payload dump（敏感字段已脱敏） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.ext_mock.payment.webhook.signature.invalid` 是**安全审计事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样，便于复现"伪造签名" 攻击路径
 - `test.ext_mock.network_policy.production_route_attempt` 是**严重配置错事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（违反 §4.2 边界，触发即告警）
 - `test.ext_mock.debug.webhook_payload_dump` 涉及回调明文 body，**仅** debug-only，release 完全剔除（即便生产误开 RUST_LOG=debug 也不泄露测试回调内容）
@@ -241,6 +244,7 @@ k6原生指标（如`http_req_duration`）通过`lib/metrics-adapter.js`转换�
 | `test.k6.debug.k6_internal_metrics_dump` | k6 内部指标（如 VU 数 / iteration 进度 / dropped_iterations）完整 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.k6.seed.prng.diverged` 是**NFR-TST-004 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（PH-4 / PH-8 比对失败必须可检测）
 - `test.k6.coordination.k6_mock_client.sync_lost` 是**联合施压失效事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（§5.4 联合施压对 PH-4 / PH-8 完整覆盖是硬约束）
 - `test.k6.debug.per_request_latency_histogram_raw` 高频 dump，release 完全剔除避免生产通道淹没
@@ -298,6 +302,7 @@ UAT测试用例所需的前置数据（测试账号、初始道具/货币状态�
 | `test.uat.debug.fixture_state_dump` | 测试夹具（fixture）当前完整状态 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（fixture 复杂度决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.uat.spec.flaky.retry_triggered` / `test.uat.spec.flaky.retry_exhausted` 是**质量红线事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样（flaky 是测试基础设施的慢性病，必须早暴露早治理）
 - `test.uat.boundary_violation.non_test_target_hit` 是**X-001 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（边界违反触发即告警）
 - `test.uat.data.setup.failed` 是**NFR-TST-004 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（不可复现的 UAT 等同于无 UAT）
@@ -338,6 +343,7 @@ UAT测试用例所需的前置数据（测试账号、初始道具/货币状态�
 | `test.ref_gm_console.debug.method_call_envelope_dump` | 全部 `AdminService` 方法调用的完整 gRPC envelope dump（请求 / 响应 metadata 全字段） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.ref_gm_console.credential.cross_env_access_attempt` 是**严重安全事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（FR-TST-042 凭证隔离是测试基础设施的硬底线，触发即告警）
 - `test.ref_gm_console.banner.missing` 是**合规事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（FR-TST-041 标识缺失会误导测试人员误以为生产环境）
 - `test.ref_gm_console.credential.used` 含 `credential_id` 已 hash 字段——**不**进入 BAS-004 v0.3 §5.1 脱敏黑名单（`*token*` / `*password*` / `*secret*`），可安全 release 必出 + 留作审计
@@ -377,6 +383,7 @@ UAT测试用例所需的前置数据（测试账号、初始道具/货币状态�
 | `test.ci.debug.test_count_by_suite_dump` | 各测试套件用例数 dump（per `crates/*-service/tests/`） | 启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.ci.main_pipeline.threshold_breached` 是**QA-006 时限违反事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样（主干 CI 超 15 分钟直接影响开发反馈环）
 - `test.ci.runner.quota.contention_detected` 是**资源调度违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（违反 §8 runner 配额隔离原则，长耗时任务拖慢主干反馈）
 - `test.ci.coverage.low_threshold_breached` 是**覆盖率红线事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样
@@ -414,6 +421,7 @@ UAT测试用例所需的前置数据（测试账号、初始道具/货币状态�
 | `test.checklist.debug_full_checklist_dump` | 完整测试基础设施变更检查清单 dump（含 11 项每项的详细检查结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（清单复杂度决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `test.checklist.log_section_completeness_failed` 是**AC-TST-007 违反事件**——`error!` 级别，release 常驻 + §6.2 强制全采样（每功能 BAS 文档须含本功能 log 设计章节，违反即拦截挂载准入）
 - `test.checklist.sensitive_field_scan_violation` 是**脱敏违规事件**（**严重**安全 / 合规事件）——`error!` 级别，release 常驻 + §6.2 强制全采样
 - `test.checklist.flaky_threshold_breached` 是**质量红线事件**——`warn!` 级别，release 常驻 + §6.2 强制全采样（flaky 积累是测试基础设施的慢性病，必须在挂载准入阶段早治理）
