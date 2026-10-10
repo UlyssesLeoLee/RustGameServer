@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-009 |
-| 版本 | 0.7 |
+| 版本 | 0.8 |
 | 父文档 | RGS-REQ-013 需求定义书 第4章（ARC-025／ARC-026）、第5章（横切需求） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -23,6 +23,7 @@
 | 0.5 | 2026-08-17 | 架构师 | **补齐设计缺口**（详细设计阶段前的完备性核对发现）：新增§5.5挂载回滚时限的拆分设计——FR-GOV-040已在需求侧将回滚SLA拆为"流量回退"（p99<10秒）与"版本回滚"（另计）两项独立目标，但基本设计正文此前完全没有对应的实现落位，只在追溯性表带过 | FR-GOV-040 |
 | 0.6 | 2026-08-17 | 架构师 | **新增§5.2.1数据导出编排设计**（同步RGS-REQ-013 v0.3，FR-GOV-015〜017）：复用§5.2删除编排同一状态机/工作流实现，仅参数化目标动作（去标识化→聚合读取），导出范围与删除范围共享同一份个人数据归属表清单；临时存储默认自托管对象存储，限时访问链接到期自动回收 | §5.2.1新增 |
 | 0.7 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1／§2.2／§2.3／§3.1／§3.2／§3.3／§3.4／§4／§5.1／§5.2／§5.2.1／§5.3／§5.4／§5.5／§6.1 全部 15 个功能章节加"本功能日志设计"5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），字段名前缀统一为 `gov.*` 区别于其他域；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-025 治理闭环 + ARC-026 OLU 预算 + §4 CI 机械校验 + §5 横切需求（FR-GOV-001〜040）的"ID 登记/OLU 申领/OLU 回收/CI 检查/插件白名单/数据删除编排/数据导出编排/配置分发/经济插件单点判定/挂载回滚"全链路；显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，§6.2 强制全采样）与 `trace!`/`debug!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；治理事件（CI 检查失败/ADR 登记/TBD 登记/OLU 余额预警）→ release 必出，CI 机械校验的"哪条规则失败/原始输出"等详细日志 → debug-only；§6.1 检查清单新增 log 章节上线检查项；§7 追溯性新增 AC-GOV-006（debug-only 宏 release 完全剔除）与 AC-GOV-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §2.1／§2.2／§2.3／§3.1／§3.2／§3.3／§3.4／§4／§5.1／§5.2／§5.2.1／§5.3／§5.4／§5.5／§6.1／§7 |
+| 0.8 | 2026-10-10 | Haiku 智能体 | **新增 Cypher 结构化清单系统设计**（commit a61cba78，全量部署 511 个 Rust 文件）：新建详细设计文档 RGS-DTL-010_Cypher结构化清单_详细设计书.md，文档化代码结构静态分析框架作为 §4 CI 机械校验框架的新维度（代码侧结构验证）；补充 CI 检查项表新行"Cypher 清单生成与验证"，新增 7 个治理事件（gov.ci.cypher_* 前缀）至 §4.1 日志设计；Cypher 系统的六项验证规则与双层验证器（verify_headers.py + cross_check_calls.py）对标 RGS-BAS-009 §4 既有治理事件定义（阻断级/警告级），已验证覆盖 1,004 CALLS 与 4,013 跨文件声明目标；与现有文档 CI 框架并列，建议在代码侧流水线建立后（RGS-BAS-002 §4.2）统一纳入代码+文档综合校验链 | §4、§4.1 新增，RGS-DTL-010 新增 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -358,8 +359,18 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | **未登记领域验收标准** | 提取全部`AC-<域>-nnn`，核对附件C§8 | 阻断（对应GOV-AC-004） | 未实现，TBD-PAT-002待办 |
 | **跨文档章节引用失效** | 提取形如`RGS-BAS-00n§x.y`的引用，核对目标文档存在该章节号 | 警告（章节重编号时易误报，人工复核） | 未实现，TBD-PAT-002待办 |
 | **OLU台账余额为负** | 解析**附件D§5**台账，合计申领超出总预算时失败 | 阻断（对应ARC-026） | 未实现，TBD-PAT-002待办（当前台账已知超支，见ISS-032，先实现检查会立即变红，待ISS-032决议后再启用） |
+| **Cypher清单生成与验证** | 运行`cypher_header.py`生成all 511 Rust文件的结构化清单，并用`verify_headers.py`（6项规则）+ `cross_check_calls.py`（CALLS边跨检）进行验证；详见RGS-DTL-010 | 阻断（代码结构一致性，对应ARC-025） | **已实现**（commit a61cba78，部署完成，511/511文件验证通过，1004/1004 CALLS确认，4013/4013跨文件声明确认） |
 
-**归属**：该CI检查纳入GitHub Actions（`.github/workflows/docs-consistency.yml`），触发范围限定`docs/**`路径变更，与未来RGS-BAS-002§4.2代码侧CI/CD流水线**并列独立**（当前仓库尚无Rust代码，暂不存在"既有流水线"可供并入；待代码侧流水线建立后，本工作流**应当**合并入其lint阶段而非长期独立存在，同GOV-OLU-003"不新建独立流水线"精神，此处是阶段性例外而非最终形态）。文档类检查仅在`docs/`路径发生变更时触发。**表中4/8项检查已用GitHub Actions实现**（处置TBD-PAT-002/ISS-073部分范围），其余4项因需要更复杂的跨表解析（域名段范围比对、章节号存在性核实、OLU台账数值解析）留待后续迭代，且OLU检查须等ISS-032决议后再启用（否则CI会因既有已知超支立即持续报红，失去信号意义）。
+**归属**：该CI检查由两个独立系统构成：
+1. **文档一致性验证**（`.github/workflows/docs-consistency.yml`）：触发范围限定`docs/**`路径变更，覆盖ARC序列/ADR登记/TBD登记/风险登记/README死链共5项（已实现），与未来RGS-BAS-002§4.2代码侧CI/CD流水线并列独立
+2. **代码结构验证**（`tools/cypher-header-gen/`）：触发范围`crates/**`Rust源文件变更，生成与验证Cypher清单，详见RGS-DTL-010
+
+表中**9项检查**（8个文档检查 + 1个代码结构检查）的实现状态：
+- **5+1=6项已实现**：文档侧4项（ARC/ADR/TBD/风险/README）+ 代码侧1项（Cypher清单）已用自动工具实现并部署
+- **3项待实现**：文档侧3项（域名段范围、AC登记、跨文档章节引用）因需复杂的跨表解析，留待TBD-PAT-002迭代
+- **1项条件启用**：OLU台账检查须等ISS-032决议后再启用（当前已知超支，先启用会持续报红失去信号意义）
+
+代码侧与文档侧检查建议在RGS-BAS-002§4.2代码侧流水线建立后统一纳入综合校验链，避免长期维持两个独立流水线（GOV-OLU-003精神）。
 
 ### 4 本功能日志设计
 
@@ -374,15 +385,21 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.ci.check_disabled` | 检查项被显式禁用（如 OLU 余额检查在 ISS-032 决议前禁用） | 极低 | release 必出（100% 强制全采样） | 含`check_id`／`disable_reason`；约 200B/条 |
 | `gov.ci.check_implemented` | 新增一项检查项实现（处置 TBD-PAT-002 之一） | 极低 | release 必出（100% 强制全采样） | 含`check_id`／`implementation_ref`；约 220B/条 |
 | `gov.ci.workflow_integrated` | 独立工作流合并入代码侧 CI/CD 流水线（RGS-BAS-002 §4.2） | 一次性 | release 必出（100% 强制全采样） | 含`old_workflow`／`new_pipeline_stage`；约 250B/条 |
+| `gov.ci.cypher_generation_started` | Cypher 清单生成任务启动（`crates/**/*.rs` 变更触发） | 每 push ~1 次 | release 必出（100% 强制全采样） | 含`commit_sha`／`file_count`；约 180B/条 |
+| `gov.ci.cypher_generation_completed` | Cypher 清单生成完成，统计变更文件数与不变文件数 | 每 push ~1 次 | release 必出（100% 强制全采样） | 含`files_changed`／`files_unchanged`／`duration_ms`；约 250B/条 |
+| `gov.ci.cypher_verification_passed` | 六项验证规则（FIDELITY/COVERAGE/VOCABULARY/REFERENTIAL/EXECUTABLE/COMMENTED）+ CALLS 跨检全部通过 | 每 push ~1 次 | release 必出（100% 强制全采样） | 含`verified_files`／`rules_passed`／`coverage_pct`；约 280B/条 |
+| `gov.ci.cypher_verification_failed` | Cypher 验证失败（某项规则不通过、悬空引用、语法错误等） | 偶发 | release 必出（100% 强制全采样，阻断级事件 error! 级别） | 含`failed_rule`／`offending_file`／`error_detail`；约 350B/条 |
+| `gov.ci.cypher_coverage_summary` | Cypher 清单覆盖统计：N 个声明节点、M 条关系边、K 个外部引用 | 每 push ~1 次 | release 必出（100% 强制全采样） | 含`nodes_count`／`edges_count`／`external_refs`／`workspace_cross_refs`；约 300B/条 |
 | `gov.ci.debug.check_raw_output` | 单项检查的原始输出（grep/diff/正则匹配结果全文） | ~96 次/日 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-10KB/条（CI 内部 dump，release 剔除，零运行时开销） |
 | `gov.ci.debug.failure_diff` | 失败项的完整 diff（原始文本与期望文本对照） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 | `gov.ci.debug.full_workflow_log` | GitHub Actions 工作流完整 log（含每步 stdout/stderr） | ~12 次/日 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-50KB/条（release 剔除，避免 RUST_LOG=debug 误开时撑爆通道） |
 
 **debug-only 守护要点**（落实用户偏好：CI 机械校验详细日志 debug-only）：
 - `gov.ci.check_failed` 是**阻断级**信号—— release 必出 + 强制全采样，不挂 `#[cfg]`
+- `gov.ci.cypher_verification_failed` 是**阻断级**信号—— release 必出 + error! 级别强制全采样，不挂 `#[cfg]`
 - `gov.ci.debug.*` 全部守护 `#[cfg(debug_assertions)]`——CI 详细日志（哪条规则失败/原始输出）在 release build 完全剔除，仅 debug build 留存用于 CI 失败排查
 - `gov.ci.debug.full_workflow_log` 在大型 monorepo 下可能 50KB+ —— release 完全剔除
-- 治理事件清单（强制 release 必出）：`gov.ci.run_started`／`gov.ci.run_completed`／`gov.ci.check_passed`／`gov.ci.check_failed`／`gov.ci.check_disabled`／`gov.ci.check_implemented`／`gov.ci.workflow_integrated` —— 这 7 个事件是治理信号，必须在 production 可见，不能因 debug 守护而失明
+- 治理事件清单（强制 release 必出）：`gov.ci.run_started`／`gov.ci.run_completed`／`gov.ci.check_passed`／`gov.ci.check_failed`／`gov.ci.check_disabled`／`gov.ci.check_implemented`／`gov.ci.workflow_integrated`／`gov.ci.cypher_generation_started`／`gov.ci.cypher_generation_completed`／`gov.ci.cypher_verification_passed`／`gov.ci.cypher_verification_failed`／`gov.ci.cypher_coverage_summary` —— 这 12 个事件（文档 7 个 + Cypher 5 个）是治理信号，必须在 production 可见，不能因 debug 守护而失明
 - 文档健康检查（per 用户偏好 release 必出）也属本节治理事件范围，详见 §6.1 检查清单相关 log 事件
 
 ---
