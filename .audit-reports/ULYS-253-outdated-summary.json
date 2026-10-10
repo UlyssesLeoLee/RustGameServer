@@ -1,0 +1,36 @@
+{
+  "major_behind": [
+    {
+      "crate": "jsonwebtoken",
+      "current": "9.3.1",
+      "available": "11.1.0",
+      "behind_majors": 2
+    },
+    {
+      "crate": "serial_test",
+      "current": "0.5.1",
+      "available": "4.0.1",
+      "behind_majors": 4
+    },
+    {
+      "crate": "wasmtime",
+      "current": "19.0.2",
+      "available": "49.0.2",
+      "behind_majors": 30
+    }
+  ],
+  "one_major_behind": [
+    {
+      "crate": "ctor",
+      "current": "0.2.9",
+      "available": "1.0.13",
+      "behind_majors": 1
+    },
+    {
+      "crate": "thiserror",
+      "current": "1.0.69",
+      "available": "2.0.21",
+      "behind_majors": 1
+    }
+  ]
+}
