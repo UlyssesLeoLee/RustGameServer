@@ -1,0 +1,46 @@
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-rt-worker' (24808) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (25796) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (24808) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (25796) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (24808) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (34768) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (24808) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (25796) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
+
+thread 'tokio-rt-worker' (24808) panicked at crates\economy-service\src\trade_repository.rs:67:29:
+called `Result::unwrap()` on an `Err` value: ColumnDecode { index: "\"status\"", source: "mismatched types; Rust type `i32` (as SQL type `INT4`) is not compatible with SQL type `INT2`" }
