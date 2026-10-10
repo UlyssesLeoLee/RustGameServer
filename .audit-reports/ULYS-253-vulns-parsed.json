@@ -1,0 +1,330 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "RUSTSEC-2026-0258",
+      "package": "h2",
+      "version": "0.3.27",
+      "title": "h2 unbounded empty DATA frames",
+      "severity": null,
+      "solution": "Upgrade to >=0.4.16",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2023-0071",
+      "package": "rsa",
+      "version": "0.9.10",
+      "title": "Marvin Attack: potential key recovery through timing sidechannels",
+      "severity": "5.9",
+      "solution": "No fixed upgrade is available!",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0049",
+      "package": "rustls-webpki",
+      "version": "0.102.8",
+      "title": "CRLs not considered authoritative by Distribution Point due to faulty matching logic",
+      "severity": null,
+      "solution": "Upgrade to >=0.103.10",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0098",
+      "package": "rustls-webpki",
+      "version": "0.102.8",
+      "title": "Name constraints for URI names were incorrectly accepted",
+      "severity": null,
+      "solution": "Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0099",
+      "package": "rustls-webpki",
+      "version": "0.102.8",
+      "title": "Name constraints were accepted for certificates asserting a wildcard name",
+      "severity": null,
+      "solution": "Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0104",
+      "package": "rustls-webpki",
+      "version": "0.102.8",
+      "title": "Reachable panic in certificate revocation list parsing",
+      "severity": null,
+      "solution": "Upgrade to >=0.103.13, <0.104.0-alpha.1 OR >=0.104.0-alpha.7",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2025-0111",
+      "package": "tokio-tar",
+      "version": "0.3.1",
+      "title": "`tokio-tar` parses PAX extended headers incorrectly, allows file smuggling",
+      "severity": null,
+      "solution": "No fixed upgrade is available!",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2024-0438",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Wasmtime doesn't fully sandbox all the Windows device filenames",
+      "severity": null,
+      "solution": "Upgrade to >=24.0.2, <25.0.0 OR >=25.0.3, <26.0.0 OR >=26.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2024-0439",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Race condition could lead to WebAssembly control-flow integrity and type safety violations",
+      "severity": "2.9",
+      "solution": "Upgrade to >=21.0.2, <22.0.0 OR >=22.0.1, <23.0.0 OR >=23.0.3, <24.0.0 OR >=24.0.1, <25.0.0 OR >=25.0.2",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2025-0046",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Host panic with `fd_renumber` WASIp1 function",
+      "severity": "3.3",
+      "solution": "Upgrade to >=34.0.2 OR >=33.0.2, <34.0.0 OR >=24.0.4, <25.0.0",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2025-0118",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Unsound API access to a WebAssembly shared linear memory",
+      "severity": "1.8",
+      "solution": "Upgrade to >=38.0.4 OR >=37.0.3, <38.0.0 OR >=36.0.3, <37.0.0 OR >=24.0.5, <25.0.0",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0020",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Guest-controlled resource exhaustion in WASI implementations",
+      "severity": "6.9",
+      "solution": "Upgrade to >=24.0.6, <25.0.0 OR >=36.0.6, <37.0.0 OR >=40.0.4, <41.0.0 OR >=41.0.4",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0021",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Panic adding excessive fields to a `wasi:http/types.fields` instance",
+      "severity": "6.9",
+      "solution": "Upgrade to >=24.0.6, <25.0.0 OR >=36.0.6, <37.0.0 OR >=40.0.4, <41.0.0 OR >=41.0.4",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0085",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Panic when lifting `flags` component value",
+      "severity": "5.6",
+      "solution": "Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0086",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Host data leakage with 64-bit tables and Winch",
+      "severity": "2.3",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0087",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Wasmtime segfault or unused out-of-sandbox load with `f64x2.splat` operator on Cranelift x86-64",
+      "severity": "4.1",
+      "solution": "Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0088",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Data leakage between pooling allocator instances",
+      "severity": "2.3",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0089",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Host panic when Winch compiler executes `table.fill`",
+      "severity": "5.9",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0091",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Out-of-bounds write or crash when transcoding component model strings",
+      "severity": "6.1",
+      "solution": "Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0092",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Panic when transcoding misaligned component model UTF-16 strings",
+      "severity": "5.9",
+      "solution": "Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0093",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Heap OOB read in component model UTF-16 to latin1+utf16 string transcoding",
+      "severity": "6.9",
+      "solution": "Upgrade to >=24.0.7, <25.0.0 OR >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0094",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Improperly masked return value from `table.grow` with Winch compiler backend",
+      "severity": "6.1",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0095",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Wasmtime with Winch compiler backend may allow a sandbox-escaping memory access",
+      "severity": "9",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0096",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Miscompiled guest heap access enables sandbox escape on aarch64 Cranelift",
+      "severity": "9",
+      "solution": "Upgrade to >=36.0.7, <37.0.0 OR >=42.0.2, <43.0.0 OR >=43.0.1",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0222",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Stores can mix up type indices between engines",
+      "severity": "3.8",
+      "solution": "Upgrade to >=24.0.12, <25.0.0 OR >=36.0.13, <37.0.0 OR >=46.0.2, <47.0.0 OR >=47.0.3",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0269",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Filesystem sandbox escape when paths or symlinks contain trailing slashes",
+      "severity": "8.8",
+      "solution": "Upgrade to >=24.0.13, <25.0.0 OR >=36.0.14, <37.0.0 OR >=46.0.3, <47.0.0 OR >=47.0.4",
+      "warning": null
+    },
+    {
+      "id": "RUSTSEC-2026-0316",
+      "package": "wasmtime",
+      "version": "19.0.2",
+      "title": "Dynamic record lifting can allocate beyond the hostcall fuel limit",
+      "severity": "1",
+      "solution": "Upgrade to >=36.0.16, <37.0.0 OR >=48.0.3, <49.0.0 OR >=49.0.1",
+      "warning": null
+    }
+  ],
+  "warnings": [
+    {
+      "id": "RUSTSEC-2025-0012",
+      "package": "backoff",
+      "version": "0.4.0",
+      "title": "`backoff` is unmaintained.",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2025-0141",
+      "package": "bincode",
+      "version": "1.3.3",
+      "title": "Bincode is unmaintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2025-0057",
+      "package": "fxhash",
+      "version": "0.2.1",
+      "title": "fxhash - no longer maintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2024-0384",
+      "package": "instant",
+      "version": "0.1.13",
+      "title": "`instant` is unmaintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2020-0168",
+      "package": "mach",
+      "version": "0.3.2",
+      "title": "mach is unmaintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2024-0436",
+      "package": "paste",
+      "version": "1.0.15",
+      "title": "paste - no longer maintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2025-0134",
+      "package": "rustls-pemfile",
+      "version": "2.2.0",
+      "title": "rustls-pemfile is unmaintained",
+      "severity": null,
+      "solution": null,
+      "warning": "unmaintained"
+    },
+    {
+      "id": "RUSTSEC-2024-0442",
+      "package": "wasmtime-jit-debug",
+      "version": "19.0.2",
+      "title": "Dump Undefined Memory by `JitDumpFile`",
+      "severity": null,
+      "solution": null,
+      "warning": "unsound"
+    },
+    {
+      "id": "YANKED",
+      "package": "yoke-derive",
+      "version": "0.8.3",
+      "title": "Crate was yanked from registry",
+      "severity": null,
+      "solution": "Update to 0.8.4 (cargo update dry-run shows available)",
+      "warning": "yanked"
+    }
+  ]
+}

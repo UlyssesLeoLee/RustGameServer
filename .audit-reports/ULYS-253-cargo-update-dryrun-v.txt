@@ -1,0 +1,79 @@
+    Updating crates.io index
+     Locking 44 packages to latest compatible versions
+    Updating actix-server v2.9.7 -> v2.9.8
+   Unchanged actix-web-lab v0.24.3 (available: v0.29.5)
+    Updating arbitrary v1.4.2 -> v1.5.0
+   Unchanged async-nats v0.42.0 (available: v0.50.0)
+   Unchanged base64 v0.22.1 (available: v0.23.1)
+   Unchanged bcrypt v0.16.0 (available: v0.19.3)
+    Updating bit-set v0.8.0 -> v0.11.1
+    Updating bit-vec v0.8.0 -> v0.10.1
+      Adding borsh v1.8.1
+      Adding borsh-derive v1.8.1
+    Updating cc v1.5.1 -> v1.7.0
+   Unchanged criterion v0.5.1 (available: v0.8.2)
+   Unchanged ctor v0.2.9 (available: v1.0.13)
+    Updating either v1.18.0 -> v1.19.0
+   Unchanged generic-array v0.14.7 (available: v0.14.9)
+    Updating h2 v0.4.19 -> v0.4.20
+    Updating hyper v1.11.1 -> v1.12.0
+    Updating impl-more v0.3.8 -> v0.3.10
+    Updating inventory v0.3.24 -> v0.3.25
+    Updating jiff v0.2.37 -> v0.2.38
+    Updating jiff-static v0.2.37 -> v0.2.38
+    Updating jiff-tzdb v0.1.8 -> v0.1.9
+   Unchanged jsonwebtoken v9.3.1 (available: v11.1.0)
+    Updating lazy_static v1.5.0 -> v1.5.1
+    Updating libc v0.2.189 -> v0.2.190
+    Updating mio v1.2.3 -> v1.2.4
+   Unchanged mockall v0.13.1 (available: v0.15.0)
+   Unchanged opentelemetry v0.24.0 (available: v0.33.1)
+   Unchanged opentelemetry-otlp v0.17.0 (available: v0.33.1)
+   Unchanged opentelemetry-semantic-conventions v0.16.0 (available: v0.33.1)
+   Unchanged opentelemetry_sdk v0.24.1 (available: v0.33.1)
+    Updating powerfmt v0.2.0 -> v0.2.1
+      Adding proc-macro-crate v3.5.0
+    Updating proptest v1.11.0 -> v1.12.0
+   Unchanged prost v0.13.5 (available: v0.14.4)
+    Updating quinn-proto v0.11.18 -> v0.11.19
+    Updating quinn-udp v0.5.15 -> v0.5.16
+   Unchanged rand v0.8.8 (available: v0.10.3)
+    Updating rand_xorshift v0.4.0 -> v0.5.0
+   Unchanged rcgen v0.13.2 (available: v0.14.10)
+   Unchanged reqwest v0.12.28 (available: v0.13.5)
+   Unchanged rusqlite v0.32.1 (available: v0.40.2)
+   Unchanged rustler v0.36.2 (available: v0.38.0)
+    Updating serde_json v1.0.151 -> v1.0.152
+   Unchanged serial_test v0.5.1 (available: v4.0.1)
+   Unchanged sha2 v0.10.9 (available: v0.11.0)
+    Updating smallvec v1.16.2 -> v1.16.3
+   Unchanged sqlx v0.8.6 (available: v0.9.0)
+    Updating syn v3.0.6 -> v3.0.7
+   Unchanged testcontainers v0.23.3 (available: v0.28.0)
+   Unchanged testcontainers-modules v0.11.6 (available: v0.15.0)
+   Unchanged thiserror v1.0.69 (available: v2.0.21)
+    Updating tokio v1.53.1 -> v1.53.2
+   Unchanged tokio-tungstenite v0.24.0 (available: v0.30.0)
+    Updating tokio-util v0.7.19 -> v0.7.20
+      Adding toml_datetime v1.1.2+spec-1.1.0
+      Adding toml_edit v0.25.17+spec-1.1.0
+      Adding toml_parser v1.1.5+spec-1.1.0
+   Unchanged tonic v0.12.3 (available: v0.14.6)
+   Unchanged tonic-build v0.12.3 (available: v0.14.6)
+   Unchanged tonic-health v0.12.3 (available: v0.14.6)
+   Unchanged tracing-opentelemetry v0.25.0 (available: v0.34.0)
+    Updating uuid v1.26.1 -> v1.28.0
+    Updating want v0.3.1 -> v0.3.2
+    Updating wasm-encoder v0.259.0 -> v0.261.0
+    Updating wasmparser v0.259.0 -> v0.261.0
+   Unchanged wasmtime v19.0.2 (available: v49.0.2)
+    Updating wast v259.0.0 -> v261.0.0
+    Updating wat v1.259.0 -> v1.261.0
+      Adding winnow v1.0.4
+    Updating yoke-derive v0.8.3 -> v0.8.4
+    Updating zerocopy v0.8.59 -> v0.8.62
+    Updating zerocopy-derive v0.8.59 -> v0.8.62
+    Updating zeroize v1.9.0 -> v1.9.1
+    Updating zstd-sys v2.1.0+zstd.1.5.7 -> v2.1.1+zstd.1.5.7
+note: to see how you depend on a package, run `cargo tree --invert <dep>@<ver>`
+warning: not updating lockfile due to dry run

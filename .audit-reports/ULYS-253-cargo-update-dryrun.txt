@@ -1,0 +1,48 @@
+    Updating crates.io index
+     Locking 44 packages to latest compatible versions
+    Updating actix-server v2.9.7 -> v2.9.8
+    Updating arbitrary v1.4.2 -> v1.5.0
+    Updating bit-set v0.8.0 -> v0.11.1
+    Updating bit-vec v0.8.0 -> v0.10.1
+      Adding borsh v1.8.1
+      Adding borsh-derive v1.8.1
+    Updating cc v1.5.1 -> v1.7.0
+    Updating either v1.18.0 -> v1.19.0
+    Updating h2 v0.4.19 -> v0.4.20
+    Updating hyper v1.11.1 -> v1.12.0
+    Updating impl-more v0.3.8 -> v0.3.10
+    Updating inventory v0.3.24 -> v0.3.25
+    Updating jiff v0.2.37 -> v0.2.38
+    Updating jiff-static v0.2.37 -> v0.2.38
+    Updating jiff-tzdb v0.1.8 -> v0.1.9
+    Updating lazy_static v1.5.0 -> v1.5.1
+    Updating libc v0.2.189 -> v0.2.190
+    Updating mio v1.2.3 -> v1.2.4
+    Updating powerfmt v0.2.0 -> v0.2.1
+      Adding proc-macro-crate v3.5.0
+    Updating proptest v1.11.0 -> v1.12.0
+    Updating quinn-proto v0.11.18 -> v0.11.19
+    Updating quinn-udp v0.5.15 -> v0.5.16
+    Updating rand_xorshift v0.4.0 -> v0.5.0
+    Updating serde_json v1.0.151 -> v1.0.152
+    Updating smallvec v1.16.2 -> v1.16.3
+    Updating syn v3.0.6 -> v3.0.7
+    Updating tokio v1.53.1 -> v1.53.2
+    Updating tokio-util v0.7.19 -> v0.7.20
+      Adding toml_datetime v1.1.2+spec-1.1.0
+      Adding toml_edit v0.25.17+spec-1.1.0
+      Adding toml_parser v1.1.5+spec-1.1.0
+    Updating uuid v1.26.1 -> v1.28.0
+    Updating want v0.3.1 -> v0.3.2
+    Updating wasm-encoder v0.259.0 -> v0.261.0
+    Updating wasmparser v0.259.0 -> v0.261.0
+    Updating wast v259.0.0 -> v261.0.0
+    Updating wat v1.259.0 -> v1.261.0
+      Adding winnow v1.0.4
+    Updating yoke-derive v0.8.3 -> v0.8.4
+    Updating zerocopy v0.8.59 -> v0.8.62
+    Updating zerocopy-derive v0.8.59 -> v0.8.62
+    Updating zeroize v1.9.0 -> v1.9.1
+    Updating zstd-sys v2.1.0+zstd.1.5.7 -> v2.1.1+zstd.1.5.7
+note: pass `--verbose` to see 31 unchanged dependencies behind latest
+warning: not updating lockfile due to dry run
