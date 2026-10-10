@@ -286,6 +286,16 @@ owner = "架构负责人"
 allow_reference = true
 
 [[planned_document]]
+id = "RGS-IPA-SUMMARY-2026-10-11"
+title = "IPA 标准化总结报告（PH-2 P0-01a DB 拓扑澄清 + 4 份基准文档升版路线图）"
+status = "planned"
+owner = "架构师（兼）"
+allow_reference = true
+path = "docs/15-IPA-DB表设计书/00-IPA标准化总结报告.md"
+version = "0.1"
+note = "per ULYS-248 PH-2 实施（ULYS 2026-10-10 22:43 JST「按照建议继续」授权）；基于 [17-不合理设计识别与优化建议 v0.1](docs/15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) + [16-IPA 标准化检查清单 v0.1](docs/15-IPA-DB表设计书/16-IPA标准化检查清单.md) + .env.example + crates/*/migrations/*.sql 实证；关联：RGS-BAS-007 v0.4 §0.2 + RGS-INC-002 v0.1 §0.1 + RGS-IMPL-002 v0.1 §5"
+
+[[planned_document]]
 id = "RGS-TST-001"
 title = "试验计划书"
 status = "planned"
