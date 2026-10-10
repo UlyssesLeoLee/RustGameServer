@@ -1,0 +1,4 @@
+error: not found: Couldn't load Cargo.lock
+Caused by:
+  -> I/O operation failed: I/O operation failed: entity not found
+  -> I/O operation failed: entity not found
