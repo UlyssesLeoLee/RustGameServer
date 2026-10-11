@@ -5,7 +5,6 @@
 #   2) code-structure-validation（Cypher 头校验 + 跨文件 CALLS 审计，ULYS-254）
 #   3) docs-ci（markdownlint + lychee 文档链接检查）
 #   4) verify-docs-ci（3 脚本必跑：verify_docs.py + check-cross-references.py + check-docs-consistency.sh）
-#   5) docker-build（仅 main push，build/push 镜像到 ghcr.io）
 # 规范：RGS-BAS-002 §4.2（CI/CD 流水线骨架）+ RGS-BAS-009 §4（CI 机械校验设计，含 Cypher）
 #
 # 设计要点（per ULYS-254 §4 工作范围）：
@@ -20,10 +19,12 @@
 #   组成"required status check"集合，per ULYS-254 §2 检查门禁；分支保护设置由仓库
 #   Settings → Branches → Branch protection rules 启用对应的 required checks，
 #   本文件不直接修改 GH Settings。
-# - 五阶段间的依赖：rust-ci 必须先过（编译/测试不过则 Cypher 检查无意义，代码都不一定能跑）；
+# - 各阶段间的依赖：rust-ci 必须先过（编译/测试不过则 Cypher 检查无意义，代码都不一定能跑）；
 #   code-structure-validation 依赖 rust-ci 是因为某些 cypher 检查可能复用 cargo 产物；
 #   docs/verify-docs 阶段不依赖 rust 编译（纯静态），可以与 code-structure-validation 并行；
-#   docker-build 仅在 main push 触发 + 依赖 rust-ci 通过。
+#   被调用的 docs-ci.yml / verify-docs-ci.yml / code-structure-validation.yml 均声明了 workflow_call 触发。
+#   docker-build 不纳入本入口：它需要 packages:write 与仓库 secrets，且已有自身的 push/tag 触发，
+#   由 docker-build.yml 自身（内部 uses rust-ci.yml）独立承担。
 # - 所有 stage 发出 gov.ci.* 事件，per RGS-BAS-009 §4 本功能日志设计。
 
 name: ci-unified
@@ -64,13 +65,6 @@ jobs:
     name: 阶段4 verify-docs-ci（3 脚本必跑）
     needs: rust-ci-stage
     uses: ./.github/workflows/verify-docs-ci.yml
-
-  # ----- 阶段 5：docker-build（仅 main push）-----
-  docker-build-stage:
-    name: 阶段5 docker-build（ghcr.io push）
-    needs: [rust-ci-stage, code-structure-stage, docs-ci-stage, verify-docs-ci-stage]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/docker-build.yml
 
   # ----- 收口：统一汇总状态 -----
   unified-summary:

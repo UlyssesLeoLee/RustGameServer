@@ -71,9 +71,9 @@ Cypher 结构化清单系统是 RGS 项目的**代码结构静态分析框架**�
 | 指标 | 数值 |
 |---|---|
 | 已部署 Rust 文件数 | 511 |
-| 清单项目数（节点） | 4,000+ 个声明（函数、类型、模块、常量） |
-| 依赖关系数（边） | 1,000+ 个函数调用，4,000+ 个跨文件引用 |
-| 验证通过率 | 100% (511/511 文件通过全部 6 项规则) |
+| 清单项目数（节点） | 15,274 个节点（8,980 个声明：函数、类型、模块、常量；含外部 crate 模块节点） |
+| 依赖关系数（边） | 30,929 条边；其中被 cross_check_calls.py 审计的 CALLS 1,004 条、跨文件声明引用 4,013 处 |
+| 验证通过率 | 100%（511/511 文件；规则 1 FIDELITY 需生成前 baseline，于生成时执行；规则 2-6 于每次 CI 执行） |
 | 验证覆盖率 | 1,004/1,004 CALLS 验证，4,013/4,013 跨文件声明目标确认 |
 
 ### 2.3 关键特性
@@ -314,7 +314,7 @@ Cypher 清单通过两个**代码完全独立**的验证器交叉检查，降低
 |---|---|---|---|
 | **Baseline** | verify_headers.py --write-baseline | .baseline.json | 建立代码指纹 |
 | **生成** | cypher_header.py | 511 个 .rs 文件 + header | 产生清单 |
-| **验证 A** | verify_headers.py --baseline .baseline.json | 6 项规则报告 | 逻辑验证 |
+| **验证 A** | verify_headers.py --baseline .baseline.json | 6 项规则报告（不带 --baseline 时规则 1 跳过，仅报告其余 5 项） | 逻辑验证 |
 | **验证 B** | cross_check_calls.py | CALLS 边逐一确认 | 语义验证 |
 | **决议** | 两个验证器全部通过 | ✓ 清单可信 | 提交/发布 |
 
@@ -349,33 +349,40 @@ Cypher 系统的 CI 机械校验事件（新增至 RGS-BAS-009 §4.1 表格）�
 
 | 事件名 | 触发条件 | 频率 | 采样 | 成本 |
 |---|---|---|---|---|
-| `gov.ci.cypher_generation_started` | 清单生成任务启动 | 每 push | release 必出 | ~200B |
-| `gov.ci.cypher_generation_completed` | 生成完成（N 文件变更，M 文件不变） | 每 push | release 必出 | ~300B |
-| `gov.ci.cypher_verification_passed` | 6 项验证规则 + CALLS 跨检全部通过 | 每 push | release 必出 | ~250B |
-| `gov.ci.cypher_verification_failed` | 任一验证规则失败 | 偶发 | release 必出 (error!) | ~400B |
-| `gov.ci.cypher_coverage_summary` | 覆盖统计：N 个节点，M 个边，K 个外部引用 | 每 push | release 必出 | ~350B |
+| `gov.ci.cypher_run_started` | `code-structure-validation.yml` 启动 | 每次触发 | release 必出 | ~220B |
+| `gov.ci.cypher_check_started` | 单项检查开始（`check_id` ∈ {cypher_header_sync, verify_headers, cross_check_calls}） | 每次触发 × 3 | release 必出 | ~200B |
+| `gov.ci.cypher_check_passed` | 单项检查通过 | 每次触发 × 3 | release 必出 | ~220B |
+| `gov.ci.cypher_check_failed` | 单项检查失败（manifest 不同步 / 规则失败 / CALLS 声明不在函数体中） | 偶发 | release 必出 (error!) | ~300B |
+| `gov.ci.cypher_run_completed` | 工作流结束，汇总 passed/failed 数与 job 状态 | 每次触发 | release 必出 | ~260B |
+
+事件名与字段以 RGS-BAS-009 v0.8 §4 为准；`check_kind` 区分 code_structure（cypher_header_sync / verify_headers）与 calls_audit（cross_check_calls）。
 
 ### 7.3 与 GitHub Actions 集成
 
-Cypher 系统作为 CI/CD pipeline 的一部分（建议位置）：
+Cypher 系统作为代码侧 CI/CD 流水线的「结构校验阶段」，由 `.github/workflows/code-structure-validation.yml` 实现，并经 `.github/workflows/ci-unified.yml` 通过 `workflow_call` 收口：
 
 ```
-GitHub Push
+GitHub Push / PR (main)
     ↓
-[doc-consistency.yml]  (existing)
-  ├─ ARC 序列核验
-  ├─ 需求可追溯性
-  └─ ...
-    ↓
-[code-structure-validation.yml]  (建议新增)
-  ├─ python verify_headers.py --baseline .baseline.json
-  ├─ python cross_check_calls.py
-  └─ report gov.ci.cypher_* events
+[ci-unified.yml]
+  ├─ 阶段1 rust-ci.yml
+  │    ↓（以下三阶段均 needs 阶段1，彼此并行）
+  ├─ 阶段2 code-structure-validation.yml
+  │    ├─ python cypher_header.py --check --json   → summary.changed 必须为 0
+  │    ├─ python verify_headers.py                 → 规则 2-6
+  │    ├─ python cross_check_calls.py              → CALLS / 跨文件声明审计
+  │    └─ gov.ci.cypher_* 事件写入 .ci-logs/cypher/，作为 artifact 上传
+  ├─ 阶段3 docs-ci.yml
+  └─ 阶段4 verify-docs-ci.yml
     ↓
 [merge decision]
 ```
 
-若验证失败，PR 阻断（与 docs-consistency 同级别的 required status check）。
+注意事项：
+
+- `cypher_header.py --check` 自身恒返回 0，只在 JSON `summary.changed` 中报告需改写的文件数，判定在 workflow 中进行。不得省略 `--check` 运行，否则会直接改写全部 `.rs` 文件。
+- CI 中不具备生成前的代码 baseline，因此规则 1 FIDELITY 不在 CI 执行；该规则在本地重新生成清单时按 §6.4 流程执行。
+- 若任一检查失败，PR 阻断（作为 required status check，需在仓库分支保护设置中启用，workflow 本身不修改仓库设置）。
 
 ---
 

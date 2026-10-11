@@ -11,6 +11,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:  # 由 ci-unified.yml 收口调用（ULYS-254）
 
 # 53.5 单平台起步；58.7 跨平台扩展
 
