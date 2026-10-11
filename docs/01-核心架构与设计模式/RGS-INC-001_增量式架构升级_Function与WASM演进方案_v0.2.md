@@ -3,11 +3,11 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-INC-001 |
-| 版本 | v0.3（v0.2 + admin COC §X 集成设计增补） |
-| 修订 | v0.2 / 2026-08-23 / 架构师 / **勘误**：① §1.4 / §1.5 / §2 现状基线与 K3s 实际部署状态对齐（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/08-measure-env-setup.log`）② §23 插入 Phase 0.5「5 业务域 K3s 部署基线」硬阻塞（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/07-no-go-checklist_business_v0.1.md`）<br/>v0.3 / 2026-09-04 / 架构师(Mavis 接手 agent per DEC-008) / **精准升版**：① §5 WASM-CAND-003 `admin.audit.policy` 升 P2 → P0（per Ulysses 2026-09-04 20:03 JST 拍板 + admin 域 Lead RACI 拍板待补签）② 新增 §X《admin COC WASM 集成设计》(9 段: 集成点 file:line / 决策 schema / 集成设计 / Registry SHA-256 / second_review 表 / 7 条护栏 / 反例 / admin 域 Lead 拍板栏 / 已知缺口) ③ X.9 显式列 8 类已知缺口（per 8/26 JST 缺标比错标） ④ 其他 §0-§4 / §6-§27 全文**未**做一致性同步（按精准升版拍板，v0.2 → v0.3 增量升版，非整版替换） |
+| 版本 | v0.3.1（v0.3 + PH-2 P0-01a「5 业务域核心 DB」术语同步；v0.3 = v0.2 + admin COC §X 集成设计增补） |
+| 修订 | v0.2 / 2026-08-23 / 架构师 / **勘误**：① §1.4 / §1.5 / §2 现状基线与 K3s 实际部署状态对齐（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/08-measure-env-setup.log`）② §23 插入 Phase 0.5「5 业务域 K3s 部署基线」硬阻塞（per `docs/deploy/09-deploy-dev-k3s.log` + `docs/deploy/07-no-go-checklist_business_v0.1.md`）<br/>v0.3 / 2026-09-04 / 架构师(Mavis 接手 agent per DEC-008) / **精准升版**：① §5 WASM-CAND-003 `admin.audit.policy` 升 P2 → P0（per Ulysses 2026-09-04 20:03 JST 拍板 + admin 域 Lead RACI 拍板待补签）② 新增 §X《admin COC WASM 集成设计》(9 段: 集成点 file:line / 决策 schema / 集成设计 / Registry SHA-256 / second_review 表 / 7 条护栏 / 反例 / admin 域 Lead 拍板栏 / 已知缺口) ③ X.9 显式列 8 类已知缺口（per 8/26 JST 缺标比错标） ④ 其他 §0-§4 / §6-§27 全文**未**做一致性同步（按精准升版拍板，v0.2 → v0.3 增量升版，非整版替换）<br/>v0.3 内 v0.3.1 / 2026-10-11 / 架构师(MinimaxM3 接手 agent per DEC-008) / **PH-2 P0-01a sync**：① L10/L572/L582/L1834 「5 独立 DB」→「5 业务域核心 DB」+ 加限定词引用 RGS-BAS-007 v0.4 §0.2 + 00-IPA标准化总结报告 §1.2（消除 ARC-008 5 独立 DB 表述歧义；完整物理拓扑 11 PG + 1 SQLite = 12 库）② 全文其它 ARC-008 引用保持原则叙述，不动 |
 | 制定日 | 2026-08-23（v0.2 制定日；v0.3 升版日 2026-09-04 JST）|
 | 制定者 | 架构师（草案，待 5 域 Lead + SRE + 安全联合评审） |
-| 对应架构方针 | ARC-014（中间件导入判定基准）、ARC-021（故障隔离）、ARC-026（OLU 预算 / NFR-OP-010）、ARC-005（session_epoch Single-Writer）、ARC-007（运行时不直访业务 DB）、ARC-008（5 独立 DB 限界上下文） |
+| 对应架构方针 | ARC-014（中间件导入判定基准）、ARC-021（故障隔离）、ARC-026（OLU 预算 / NFR-OP-010）、ARC-005（session_epoch Single-Writer）、ARC-007（运行时不直访业务 DB）、ARC-008（5 业务域核心 DB 限界上下文；完整物理拓扑为 11 PG + 1 SQLite = 12 库，per RGS-BAS-007 v0.4 §0.2 + 00-IPA标准化总结报告 §1.2）|
 | 关联 ADR | ADR-0008（中间件导入判定基准）、ADR-0020（拒绝动态链接库加载，**显式记录 WASM 为未来升级路径**——本方案兑现该 ADR 留口）、ADR-0025（OLU 预算） |
 | 关联 TS | RGS-TS-001 §3.7（沙箱脚本引擎——当前为 Rhai 1.x，**未**选 WASM；本方案不动 Rhai，仅在 Rhai 承载能力之外另开 WASM 通道） |
 | 决策期限 | PH-4（per ADR-0008 §3 附件 D 登记规则） |
@@ -569,7 +569,7 @@ K3s Cluster
 | 命名空间 | `rgs-system`（manifest 留口） | `rgs-function`（**新增**） |
 | 入口协议 | gRPC mTLS | gRPC（Function Gateway） + HTTP（Function Gateway webhook） |
 | 启动责任 | Deployment（K3s 调度） | KEDA（事件驱动）+ Idle GC（0→1→0 模式） |
-| 数据访问 | 直接 5 域 DB（per ARC-008） | **仅**经 Domain API / Outbox / gRPC（不直连 SQL） |
+| 数据访问 | 直接 5 业务域核心 DB（per ARC-008；完整物理拓扑 11 PG + 1 SQLite per RGS-BAS-007 v0.4 §0.2） | **仅**经 Domain API / Outbox / gRPC（不直连 SQL） |
 | 副本策略 | min≥1 Always-On（HPA） | min=0 (Type D) / min=1 (Type C) |
 | mTLS | 强制（55.26 fail-closed） | 强制（同 shared_platform::tls） |
 | 观测 | OTel + Prometheus 已就绪 | 复用 OTel + Prometheus（**不**新建设独立栈） |
@@ -579,7 +579,7 @@ K3s Cluster
 
 - 不改 ARC-005（session_epoch 校验仍由 player 域完成，Function 不得伪造）
 - 不改 ARC-007（runtime 不直访 DB，Function 也不允许直访 DB）
-- 不改 ARC-008（Function Plane 不直接连接 5 域 DB；只通过 Domain API / Outbox）
+- 不改 ARC-008（Function Plane 不直接连接 5 业务域核心 DB；只通过 Domain API / Outbox；完整物理拓扑 11 PG + 1 SQLite per RGS-BAS-007 v0.4 §0.2）
 - 不改 ARC-001（场景 Actor 不迁移——意味着 Function 不能承担 Realtime Runtime 内部状态）
 - 不改 ADR-0015（Saga 单一调解者；Function Step 仍由 economy 域 Saga 编排器调度，**不**创建第二套）
 - 不动 NATS JetStream 既有 topic 命名规范（`rgs.<domain>.<event>`）；新增 Function subject 前缀 `rgs.fn.*` 不与既有冲突
@@ -1831,7 +1831,7 @@ Phase 2 (Contract)
 | ARC-005 session_epoch Single-Writer | §3 / §6 / §27 SLS-REQ-003 | 遵循（**Function 不得伪造**） |
 | ARC-006 ACK in persistence | §3 / §14 | 遵循 |
 | ARC-007 运行时⇔业务服务边界 | §3 / §6 / §19 / §27 DB-REQ-001 | 遵循 |
-| ARC-008 5 独立 DB | §3 / §19 / §27 SLS-REQ-003 | 遵循 |
+| ARC-008 5 业务域核心 DB（完整物理拓扑 11 PG + 1 SQLite = 12 库 per RGS-BAS-007 v0.4 §0.2） | §3 / §19 / §27 SLS-REQ-003 | 遵循 |
 | ARC-014 中间件导入判定基准 | §11 / §26 ADR-0055/56/57/58/59/60/61/62/63/64/65/66 | 遵循（**新组件必须先 ADR**） |
 | ARC-021 故障隔离 | §17 / §40 Bulkhead | 遵循 |
 | ARC-026 OLU 预算 | §11.3 / §25 / 附录 A.4 | 遵循 |
