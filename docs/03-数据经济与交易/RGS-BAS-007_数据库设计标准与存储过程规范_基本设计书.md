@@ -5,12 +5,13 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-007 |
-| 版本 | 0.3 |
+| 版本 | **0.4** |
 | 父文档 | RGS-REQ-011 需求定义书 第7章（ARC-023） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
 | 制定者 | 架构师 |
 | 保密级别 | 内部限定（Internal Use Only） |
+| 修订日（最新） | 2026-10-11（PH-2 P0-01a 修复：新增 §0.2 DB 拓扑澄清） |
 
 ## 修订历史（改訂履歴 / Revision History）
 
@@ -19,6 +20,7 @@
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-011 ARC-023展开为命名规范表、索引/分区设计标准、迁移流程设计、备份恢复标准、存储过程例外评审流程 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | 追溯性表补齐AC-DBS-001〜004验收标准与设计章节的映射（此前追溯性表仅覆盖ARC/FR/NFR，遗漏AC条目） | §10 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§1.1/§2.1/§3.1/§4.1/§5.1/§5.2/§6.1/§7.1/§8.1/§9.1 全部 10 个 ## L2 功能段加"本功能日志设计" 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），字段名前缀 `db.*` 区别于既有 `mnt.*`/`gm.*`/`sec.*` 命名空间；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-023 数据库设计域全部阶段（命名审计 / 索引创建 / 分区维护 / 迁移执行 / 备份恢复 / 存储过程例外评审 / 连接池监控 / 标准化检查）；**数据库域特殊强制**：SQL 慢查询/执行失败/迁移/Schema 变更/死锁/连接池耗尽 → `error!`/`warn!` 强制全采样（release 必出，§6.2 强制全量采集范围），`db.sql.slow_query`/`db.migration.failed`/`db.pool.exhausted`/`db.partition.detached` 均为强制全采样白名单；debug-only 字段（`#[cfg(debug_assertions)]` 守护，release build 完全剔除零运行时开销）含 `db.sql.debug.bind_values_dump`/`db.sql.debug.execution_plan_dump`/`db.migration.debug.sql_redacted_dump`；§9.1 检查清单新增 3 条 log 章节上线检查项；§10 追溯性新增 AC-DBS-006（debug-only 宏 release 完全剔除）与 AC-DBS-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §1.1/§2.1/§3.1/§4.1/§5.1/§5.2/§6.1/§7.1/§8.1/§9.1/§10 |
+| **0.4** | **2026-10-11** | **本轮 agent（per ULYS-248，ULYS 2026-10-10 22:43 JST「按照建议继续」授权）** | **PH-2 P0-01a 修复（DB 拓扑澄清）：新增 §0.2「DB 拓扑澄清」明示 RGS 仓库物理拓扑为「11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库」，消歧义既有引用中"5 独立 DB 原则"叙述（原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)，指 5 业务域核心 DB，后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 库陆续加入，命名未更新是历史遗留，**不构成设计错误**）；不影响 §1~§10 既有规范内容（命名 / 索引 / 分区 / 迁移 / 备份 / 存储过程 / 连接池 / 标准化检查 / 追溯性）。引用 [00-IPA 标准化总结报告](../15-IPA-DB表设计书/00-IPA标准化总结报告.md) §1.2 + §4.1 + [RGS-INC-002 §0.1](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md)（v0.1 内 v0.2 修订；保留 `_v0.1.md` 文件名）+ [RGS-IMPL-002 v0.1 §5](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) + [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md)** |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -41,7 +43,74 @@
 7. [存储过程例外评审流程](#7-存储过程例外评审流程)
 8. [连接池标准](#8-连接池标准)
 9. [标准化检查清单](#9-标准化检查清单)
-10. [追溯性（ARC-023 → 本设计书章节）](#10-追溯性arc-023-本设计书章节)
+| 10. [追溯性（ARC-023 → 本设计书章节）](#10-追溯性arc-023-本设计书章节) |
+
+---
+
+# 0. 总览
+
+## 0.1 文档定位
+
+（v0.3 之前未单设此节，§0 内容并入 §1 前言。v0.4 起为配合 PH-2 P0-01a 修复独立成节，便于后续版本演进时锚点稳定。）
+
+本文档是 RGS 仓库 **数据库设计域的最高基准文档**，下接：
+
+- 各限界上下文分域 RGS-DTL 物理 DDL 章节（**编写标准**——每章节须标注遵循本文档，偏离须走 ADR）
+- IPA DB 表设计书（[docs/15-IPA-DB表设计书/](../15-IPA-DB表设计书/)）的命名 / 类型 / 分区 / 索引标准化对照基准
+- Phase 0.5 启动计划的 DB 拓扑描述（per [RGS-INC-002 §0.1](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md) v0.1 内 v0.2 修订）
+- PG 编码规范的 DB 拓扑锚点（per [RGS-IMPL-002 v0.1 §5](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md)）
+
+## 0.2 DB 拓扑澄清（v0.4 新增，per PH-2 P0-01a 修复）
+
+RGS 仓库 **物理数据库拓扑**（per `crates/*/migrations/*.sql`（12 个 migrations 目录）+ `.env.example`（仅列 6 个 PG）实证 2026-10-11 JST）：
+
+| 数据库 | 限界上下文 | 物理库 | 表数 | 备注 |
+|---|---|---|---|---|
+| Player 域 | player-service | `player_db`（PostgreSQL）| 5 | players / player_sessions / player_characters / player_inventory / decks |
+| Economy 域 | economy-service | `economy_db`（PostgreSQL）| 7 | 含 saga / 拍卖 / 私下交易 |
+| Match 域 | match-service | `match_db`（PostgreSQL）| 6 | matches / game_sessions / moves / 票 / 订阅 |
+| Social 域 | social-service | `social_db`（PostgreSQL）| 2 | guilds / guild_members |
+| Admin 域 | admin-service | `admin_db`（PostgreSQL）| 3+6 | admin_users / audit_log + **LCM 6 表共置**（per FR-LCM-001）|
+| ClusterOps 域 | cluster-ops | `cluster_ops_db`（PostgreSQL）| 11 | cluster_nodes / feature_flags + saga_store 9 表 |
+| Card 域 | card-service | `card_db`（PostgreSQL）| 3 | cards / card_series / card_instances |
+| I18n 域 | i18n-service | `i18n_db`（PostgreSQL）| 2 | i18n_texts / i18n_languages |
+| Leaderboard 域 | leaderboard-service | `leaderboard_db`（PostgreSQL）| 1 | leaderboard_entries |
+| Replay 域 | replay-service | `replay_db`（PostgreSQL）| 1 | replays |
+| Battle 域 | battle-service | `battle_db`（PostgreSQL）| 3 | battle_master / battle_transaction / battle_work（migration 占位已定义，服务尚未接 PgPool）|
+| Asset Download | rgs-asset-download | `downloads.sqlite`（**SQLite，异构**）| 1 | resume_tokens |
+
+**物理拓扑汇总**：**11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库**。
+
+### 0.2.1 与既有「5 独立 DB 原则」叙述的关系
+
+- **「5 独立 DB 原则」原始出处**：[RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)（"`5 独立 PG 18.6 DB`"），指 **5 业务域核心 DB**（player / economy / match / social / admin）
+- **历史遗留**：后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 个库陆续加入，但「5 独立 DB」叙述**未同步更新**
+- **v0.4 起规范叙述**：以「**11 独立 PG + 1 SQLite**」为基准；既有「5 独立 DB」叙述视为「5 业务域核心 DB 原则」（限指 player / economy / match / social / admin 五库）
+- **不构成设计错误**：本节仅澄清命名歧义，不追溯改写历史引用；既有引用 `5 独立 DB` 之处一律按本节上下文理解为「5 业务域核心 DB」
+
+### 0.2.2 LCM 6 表共置 admin_db
+
+per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) 确认：
+
+- LCM（`realm_lifecycle_run` / `new_realm_plan` / `split_plan` / `merge_conflict_rule_set_v2` / `retire_plan` / `archive_policy`）共置 admin_db 是 **FR-LCM-001 明确设计选择**，**非**违反「5 业务域核心 DB」或「11 独立 PG」原则
+- 业务理由：LCM 由 admin 域 SRE 操作，admin_db 已承担 `audit_log`（双层审计），共置便于 LCM 操作与审计追踪在同一事务上下文
+- 技术理由：6 表规模小（10 万级以下），独立成库成本（运维 / 备份 / 连接池 / OLU）大于收益
+- 派生约束：LCM 6 表**不**绕过 `audit_log`（per FR-LCM-002），所有阶段变更都先写 `audit_log` 再写 6 表
+
+### 0.2.3 跨域引用与一致性约束
+
+跨 DB 弱引用原则 per [RGS-SPEC-CROSS-005 v0.1 §2](../13-实现规格/RGS-SPEC-CROSS-005_数据库命名约定_v0.1.md) + [15-跨域引用与一致性约束](../15-IPA-DB表设计书/15-跨域引用与一致性约束.md)：**跨 DB 禁用物化 FK**，以 `outbox` 模式（per [13-Outbox 跨域模板](../15-IPA-DB表设计书/13-Outbox跨域模板.md)）实现最终一致性。
+
+### 0.2.4 上游 / 下游引用清单
+
+| 引用方 | 引用内容 | 应更新为 |
+|---|---|---|
+| [RGS-WBS-001 v0.3](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) L4 WF-1-53.10 | "`5 独立 PG 18.6 DB`" | 「5 业务域核心 DB + 6 扩展 DB + 1 SQLite = 12 物理库」（v0.4 起） |
+| [RGS-INC-002](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md) §0.1（v0.1 内 v0.2 修订）| （已澄清）| ✅ 已对齐 |
+| [RGS-IMPL-002 v0.1](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) §5 G-CODE-03 | （已纠正为「11 独立 PG + 1 SQLite 拓扑图」）| ✅ 已对齐 |
+| [RGS-SPEC-CROSS-005 v0.1](../13-实现规格/RGS-SPEC-CROSS-005_数据库命名约定_v0.1.md) §0 + §2 | "ARC-008 5 独立 DB 原则" 引用 | 待 v0.2 升版时同步更新（PH-2 评审阶段）|
+| [RGS-DB-BAS-001 v0.3](../00-基准与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.3.md) §9.5 | "P0-01 修复" 引用 | 待 v0.4 升版时同步更新（PH-2 评审阶段）|
+| `crates/cluster-ops/migrations/0020_lcm_tables.sql:3` 注释 | "per ARC-008 5 独立 DB 原则" | 待 ADR 登记后修改为 "per FR-LCM-001，ARC-008「5 业务域核心 DB」已扩展为 11 独立 PG + 1 SQLite"（PH-2 评审阶段）。**注意**：cluster-ops 通过 `sqlx::migrate!` 执行该 migration，校验和覆盖注释行，已应用环境中修改注释会导致启动时 checksum 不一致；故**不得改原文件**，仅在本文档勘误 |
 
 ---
 
