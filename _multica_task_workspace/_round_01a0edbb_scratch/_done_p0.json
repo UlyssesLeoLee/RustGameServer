@@ -1,1 +1,0 @@
-invalid --sort "last_activity_at"; valid values: position, title, created_at, start_date, due_date, priority, or property:<name-or-id> for a custom property
