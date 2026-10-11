@@ -1,1 +1,1 @@
-trigger_run_id=01a0ffbd-8631-788f-a6e2-ea3ba0406322 2026-10-10T22:58:43Z PH-2-ROUTE-3P-SYNC | files=SPEC-CROSS-005_v0.1.md+DB-BAS-001_v0.3.md+0020_lcm_tables.sql | branch=agent/minimaxm3/ulys-248 | scope=§5.3-prev-reply（待同步引用列表） | 授权=ULYS 2026-10-10 22:43 JST「按照建议继续」x2nd
+01a0ffbd-8631-788f-a6e2-ea3ba0406322 | minimaxm3 | ULYS-248 | 推进到完成 | INC-001 v0.3.1 P0-01a sync (L10/L572/L582/L1834 ARC-008 5 独立 DB→5 业务域核心 DB) + housekeeping push | 2026-10-11T09:30:00Z
