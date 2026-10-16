@@ -36,7 +36,6 @@ RGS-INC-001 v0.2 §23 插入的 **Phase 0.5 硬阻塞**：5 业务域 gRPC 互�
 | **DB 拓扑**（per [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + `.env.example` + `crates/*/migrations/*.sql` 实证）| **11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库**：player_db / economy_db / match_db / social_db / admin_db / cluster_ops_db / card_db / i18n_db / leaderboard_db / replay_db / battle_db / `downloads.sqlite` | `.env.example` 6 条 `*_DB_NAME` + `crates/{card,i18n,leaderboard,replay,battle}-service/migrations/` + `crates/rgs-asset-download/` |
 
 > **重要**：Phase 0.5 §1 关键产物 (1)~(5) 仅涉及 **K3s 部署单元（Pod 维度）**，**不**调整 DB 拓扑——DB 拓扑已在既有 `crates/*/migrations/*.sql` 中实证落地。LCM 6 表共置 admin_db 属于 FR-LCM-001 明确设计选择（per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md#p0-01blcm-6-表共置-admindb-fr-lcm-001-设计选择非-violation)），非 ARC-008 violation。
-
 > **历史溯源**：「5 独立 DB 原则」原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)（"`5 独立 PG 18.6 DB`"），指 5 业务域核心 DB（player / economy / match / social / admin）；后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 库陆续加入，命名未更新是历史遗留，**不构成设计错误**——v0.2 起统一以"11 独立 PG + 1 SQLite"为拓扑基准叙述。
 
 ---
