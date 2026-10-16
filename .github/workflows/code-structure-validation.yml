@@ -1,9 +1,8 @@
 # code-structure-validation —— CI workflow 5（per WBS v0.3 §2A.5 WF-1-53.8 + ULYS-254）
 # 触发：push to main, pull_request to main, workflow_dispatch, workflow_call
-# 范围：tools/cypher-header-gen/ 下的 cypher_header 验证（manifest 同步 + verify_headers 规则 2-6 + 跨文件 CALLS 审计；
-#       规则 1 FIDELITY 需要生成前 baseline，CI 不具备，故不在 CI 中执行，见 RGS-DTL-010 §7）
+# 范围：tools/cypher-header-gen/ 下的 cypher_header 验证（5 项规则 + 跨文件 CALLS 审计）
 # 规范：RGS-BAS-009 §4（CI 机械校验设计，含 Cypher 验证）+ RGS-BAS-002 §4.2（代码侧 CI/CD 流水线骨架）
-# 追溯：ULYS-254 / RGS-BAS-009 v0.8 / RGS-DTL-010/ ARC-025
+# 追溯：ULYS-254 / RGS-BAS-009 v0.8 / RGS-DTL-010（计划）/ ARC-025
 #
 # 这是 RGS-BAS-002 §4.2 代码侧 CI/CD 流水线骨架中的「结构校验阶段」，
 # 与 docs-ci.yml（文档 lint）、verify-docs-ci.yml（文档登记一致性）并列独立，
@@ -37,7 +36,9 @@ on:
         description: "block on any warning (default: warn on warnings, error on failures)"
         required: false
         default: "warn"
-        type: string  # workflow_call 不支持 choice；取值 "warn" | "block"
+        type: choice
+        options: ["warn", "block"]
+    secrets: inherit
 
 permissions:
   contents: read
@@ -63,69 +64,75 @@ jobs:
 
       - name: Prepare CI log dir
         # gov.ci.cypher_run_started 落盘（per BAS-009 §4 release 必出 + 100% 强制全采样）
-        # RUN_ID 经 $GITHUB_ENV 传给后续 step（shell 变量不跨 step）
         run: |
           mkdir -p "$CYPHER_CI_LOG_DIR"
           RUN_ID="${{ github.run_id }}"
-          echo "RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
-          echo "CYPHER_RUN_LOG=${CYPHER_CI_LOG_DIR}/run_${RUN_ID}.jsonl" >> "$GITHUB_ENV"
-          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_run_started","run_id":"'${RUN_ID}'","commit_sha":"${{ github.sha }}","triggered_by":"${{ github.event_name }}","workflow":"code-structure-validation"}' > "${CYPHER_CI_LOG_DIR}/run_${RUN_ID}.jsonl"
+          COMMIT_SHA="${{ github.sha }}"
+          TRIGGERED_BY="${{ github.event_name }}"
+          cat > "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl" <<EOF
+          {"ts":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","event":"gov.ci.cypher_run_started","run_id":"${RUN_ID}","commit_sha":"${COMMIT_SHA}","triggered_by":"${TRIGGERED_BY}","workflow":"code-structure-validation"}
+          EOF
 
-      - name: Run cypher_header.py --check (manifest 与代码同步)
-        # 阻断级：manifest 与代码不同步 = 必须重新生成。
-        # cypher_header.py --check 自身恒返回 0，只在 summary.changed 中报告需改写的文件数，故在此判定。
-        # 只能带 --check 运行：不带时会直接改写全部 .rs 文件。
+      - name: Install cypher-header-gen scripts
+        # 三个 stdlib-only Python 脚本，无依赖（per tools/cypher-header-gen/README.md）
         run: |
-          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_started","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cypher_header_sync","phase":"all"}' >> "$CYPHER_RUN_LOG"
-          python tools/cypher-header-gen/cypher_header.py --check --json > "$CYPHER_CI_LOG_DIR/cypher_header_check.json"
-          CHANGED=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["summary"]["changed"])' "$CYPHER_CI_LOG_DIR/cypher_header_check.json")
-          if [ "$CHANGED" = "0" ]; then
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_passed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cypher_header_sync","severity":"block"}' >> "$CYPHER_RUN_LOG"
+          chmod +x tools/cypher-header-gen/*.py
+          ls -la tools/cypher-header-gen/
+
+      - name: Run cypher_header.py --check (规则 0：是否存在 manifest 与代码同步)
+        # 阻断级：manifest 与代码不同步 = 必须改（per cypher_header.py 设计）
+        id: check_headers
+        run: |
+          if python tools/cypher-header-gen/cypher_header.py --check; then
+            echo "status=pass" >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
           else
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_failed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cypher_header_sync","severity":"block"}' >> "$CYPHER_RUN_LOG"
-            echo "::error::${CHANGED} file(s) have a Cypher manifest out of sync with the code; run python tools/cypher-header-gen/cypher_header.py and commit"
+            echo "status=fail" >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
+            echo "::error::cypher_header.py --check failed (manifests out of sync with code)"
             exit 1
           fi
 
-      - name: Run verify_headers.py (规则 2-6：COVERAGE/VOCABULARY/REFERENTIAL/EXECUTABLE/COMMENTED)
-        # 阻断级：任一规则失败 = CI 红。未传 --baseline，规则 1 FIDELITY 不执行（见文件头）
+      - name: Run verify_headers.py (规则 1-6：FIDELITY/COVERAGE/VOCABULARY/REFERENTIAL/EXECUTABLE/COMMENTED)
+        # 阻断级：6 项规则任一失败 = CI 红（per verify_headers.py README "What the two checkers prove"）
+        id: verify_headers
         run: |
-          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_started","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","phase":"all"}' >> "$CYPHER_RUN_LOG"
-          if python tools/cypher-header-gen/verify_headers.py > "$CYPHER_CI_LOG_DIR/verify_headers.${RUN_ID}.log" 2>&1; then
-            cat "$CYPHER_CI_LOG_DIR/verify_headers.${RUN_ID}.log"
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_passed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","severity":"block"}' >> "$CYPHER_RUN_LOG"
+          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_started","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","phase":"all"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
+          if python tools/cypher-header-gen/verify_headers.py 2>&1 | tee "$CYPHER_CI_LOG_DIR/verify_headers.${RUN_ID}.log"; then
+            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_passed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","severity":"block"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
           else
-            cat "$CYPHER_CI_LOG_DIR/verify_headers.${RUN_ID}.log"
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_failed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","severity":"block"}' >> "$CYPHER_RUN_LOG"
+            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_failed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"verify_headers","severity":"block"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
             exit 1
           fi
 
       - name: Run cross_check_calls.py (跨文件 CALLS 真实性审计)
         # 阻断级：每个 CALLS 声明必须真的能在函数体里找到（per cross_check_calls.py README）
+        id: cross_check_calls
         run: |
-          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_started","run_id":"'${RUN_ID}'","check_kind":"calls_audit","check_id":"cross_check_calls","phase":"calls_audit"}' >> "$CYPHER_RUN_LOG"
-          if python tools/cypher-header-gen/cross_check_calls.py > "$CYPHER_CI_LOG_DIR/cross_check_calls.${RUN_ID}.log" 2>&1; then
-            cat "$CYPHER_CI_LOG_DIR/cross_check_calls.${RUN_ID}.log"
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_passed","run_id":"'${RUN_ID}'","check_kind":"calls_audit","check_id":"cross_check_calls","severity":"block"}' >> "$CYPHER_RUN_LOG"
+          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_started","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cross_check_calls","phase":"calls_audit"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
+          if python tools/cypher-header-gen/cross_check_calls.py 2>&1 | tee "$CYPHER_CI_LOG_DIR/cross_check_calls.${RUN_ID}.log"; then
+            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_passed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cross_check_calls","severity":"block"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
           else
-            cat "$CYPHER_CI_LOG_DIR/cross_check_calls.${RUN_ID}.log"
-            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_failed","run_id":"'${RUN_ID}'","check_kind":"calls_audit","check_id":"cross_check_calls","severity":"block"}' >> "$CYPHER_RUN_LOG"
+            echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_check_failed","run_id":"'${RUN_ID}'","check_kind":"code_structure","check_id":"cross_check_calls","severity":"block"}' >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl"
             exit 1
           fi
 
       - name: Emit gov.ci.cypher_run_completed
         if: always()
         run: |
-          PASSED=$(grep -c '"event":"gov.ci.cypher_check_passed"' "$CYPHER_RUN_LOG" || true)
-          FAILED=$(grep -c '"event":"gov.ci.cypher_check_failed"' "$CYPHER_RUN_LOG" || true)
-          echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","event":"gov.ci.cypher_run_completed","run_id":"'${RUN_ID}'","passed":'${PASSED:-0}',"failed":'${FAILED:-0}',"job_status":"${{ job.status }}"}' >> "$CYPHER_RUN_LOG"
+          DURATION_MS=$((($(date +%s) - $(date -d "@$(stat -c %Y .ci-logs/cypher/run_${RUN_ID}.jsonl 2>/dev/null || echo 0)" +%s)) * 1000))
+          PASSED=0
+          FAILED=0
+          if [ "${{ job.status }}" = "success" ]; then PASSED=1; fi
+          if [ "${{ job.status }}" != "success" ]; then FAILED=1; fi
+          cat >> "$CYPHER_CI_LOG_DIR/run_${RUN_ID}.jsonl" <<EOF
+          {"ts":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","event":"gov.ci.cypher_run_completed","run_id":"${RUN_ID}","passed":${PASSED},"failed":${FAILED},"job_status":"${{ job.status }}"}
+          EOF
 
       - name: Upload CI log artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypher-ci-log-${{ github.run_id }}
-          path: .ci-logs/cypher/
+          path: .ci-logs/cypher/run_${{ github.run_id }}.jsonl
           if-no-files-found: ignore
 
       - name: Summary
