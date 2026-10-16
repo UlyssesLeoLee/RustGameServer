@@ -231,6 +231,7 @@ fn handle_settlement_failure(
 ```
 
 **关键边界条件说明**：
+
 - 补偿成功但整体仍失败时，`state`刻意**不**迁移到任何终态（保持`Accepted`），这是RGS-BAS-015§4原文"状态保持Accepted供重试或转人工处理"的直接翻译，不得误实现为迁移到`Cancelled`等终态，否则会破坏"仍可重试"的语义。
 - `CompensationFailed`一旦进入，本文档明确其为**单向**门——只有GM人工核实操作（不属于本文档范围，走既有`AdminService`）能将其迁出，`TradeSettlementSaga`自身不包含任何自动脱离`CompensationFailed`的路径，这是"禁止该笔trade_id相关资产在人工核实前被其他操作占用"约束在状态机层面的落实。
 

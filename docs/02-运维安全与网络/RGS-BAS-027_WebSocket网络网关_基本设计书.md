@@ -127,6 +127,7 @@ ULYS-27 Phase 2 的代码工作已经落地（commit `aca54464` feat + `35f6d265
 | `ulys27.debug.design_criteria_dump` | 本文档 §4/§6 关键决策表全量 dump（FrameRouter 抽象契约表 / 握手校验策略表 / 帧循环错误处理表） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-8KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 RGS-BAS-006 v0.4 §4.4 / RGS-IMPL-001 §1.3）：
+
 - `ulys27.gateway.dual_path_started` / `ulys27.gateway.dual_path_exit_error` / `ulys27.gateway.frame_router_swapped` 必须 `error!` 级别（per RGS-BAS-006 v0.4 §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `ulys27.debug.design_criteria_dump` 含完整决策表（可能 8KB+）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 
@@ -183,6 +184,7 @@ flowchart LR
 ```
 
 **关键边界**（per ULYS-27 Phase 2 + ULYS-2.2 W33）：
+
 - **WebSocket 路径默认 ON**（per [游戏A]_client_h5 客户端默认走 WS），TCP 路径**默认 OFF** 显式 `RGS_NETWORK_GATEWAY_TCP_ADDR` 才开
 - **FrameRouter 是双路径共用 dispatcher**——TCP 路径绕过 trait 直接调 `tcp::dispatch`（sync）；WS 路径通过 `Arc<dyn FrameRouter>` 异步签名调（trait 方法）
 - **默认实现 `RouteTableFrameRouter` 走 sync 路径**（RouteTable 是 sync），用 `Box::pin(async move { resp })` 包成 ready future；Phase 2 接 5 域 gRPC client 时换实现，ws.rs / tcp.rs 都不动
@@ -312,6 +314,7 @@ flowchart LR
 ```
 
 **关键设计决策**：
+
 - **握手阶段校验**——使用 `accept_hdr_async` + `Callback` 在 handshake 阶段检查 path，避免接受 upgrade 后再 close 的协议层撕裂
 - **路径不匹配 → 404 软失败**——`warn!` 记录但不计入 error 统计（per `ws.rs::handle_conn::HttpReject::NotFound` 分支），因为这是客户端配置错误而非服务端故障
 - **tungstenite 0.24 Callback 签名限制**——`on_request(self, &Request, Response) -> Result<Response, ErrorResponse>`，无法在 callback 里直接返回 4xx；采用"接受 upgrade 后立即 close"的方式实现 404 语义（per RFC 6455 §4.4，客户端会看到 close frame）
@@ -344,6 +347,7 @@ flowchart LR
 ```
 
 **关键设计决策**：
+
 - **粘包 / 半包处理**——`BytesMut` 累积 + 循环 `Frame::decode`：可能一个 WS message 含多个 frame（粘包），也可能半个（半包），`Ok(None)` 表示缓冲不够继续读
 - **`LengthOverflow` → drop session**——避免恶意客户端用超大 length 撑爆内存（per `codec.rs::MAX_FRAME` 1 MiB 上限）
 - **其他协议错误 → drop session**——`TruncatedField` / `UnknownTlvType` / `InvalidUtf8` 都是 wire 格式畸形，一律 drop session 防滥用
@@ -359,6 +363,7 @@ flowchart LR
 | 服务端 socket 错误（`read` / `write` 错误） | `warn!` + return（不显式 close，由 tungstenite 清理） | `ws.rs::handle_session` 开头 + 写错误分支 |
 
 **关键设计决策**：
+
 - **客户端主动关闭时 echo Close frame**——遵循 RFC 6455 §5.5.1 关闭协议双向确认语义
 - **服务端关闭时用 `Close(None)`**——不携带 reason（避免泄漏内部错误细节给客户端，per ARC-022 最小信息披露原则）
 - **socket 错误不显式 close**——tungstenite 会在 stream 销毁时自动清理，重复发送 Close frame 可能导致 protocol violation
@@ -433,6 +438,7 @@ flowchart LR
 | `ulys27.ws.debug.path_check_decision_tree` | HTTP path 校验决策树 dump（含每步分支依据） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `ulys27.ws.path_mismatch` / `ulys27.ws.frame_protocol_error` / `ulys27.ws.buf_overflow_drop` 必须 `warn!` 级别 release 必出 + 强制全采样，不挂 `#[cfg]`，确保告警链路完整（per RGS-BAS-006 §6.2 强制全采样白名单精神）
 - `ulys27.ws.frame_received` 在 10000/s 峰值下 220B/条 = 2.2MB/s，**不得**增加字段，须先评估采样率（per RGS-BAS-006 v0.4 §4.4 高频路径采样原则）
 - **所有 `*.debug.*` 事件**：release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道

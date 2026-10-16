@@ -14,6 +14,7 @@
 ## 0. 触发与背景
 
 Ulysses 2026-09-02 16:10 JST 拍板"全做 4 候选" (D4 周报 v0.3 + Phase C 准备 + 5 域 ST mTLS 1 跳 + D1 E2E 抢跑), 摸底发现:
+
 - ✅ k3s 集群可达 (ulyssespc Ready 31h v1.36.3+k3s1)
 - ✅ 5 域 svc + gm-backend endpoints OK
 - ✅ gm-backend 8081/healthz HTTP 探活通过

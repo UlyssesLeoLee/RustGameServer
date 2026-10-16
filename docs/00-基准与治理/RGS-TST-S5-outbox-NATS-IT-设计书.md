@@ -73,6 +73,7 @@
 ## 3. 真实 NATS 链路测试(等 Ulysses 部署后)
 
 当 k3s NATS 真链路通后,新增:
+
 - `crates/economy-service/tests/it_outbox_nats_e2e.rs` (真 PG + 真 NATS)
 - `crates/player-service/tests/it_outbox_nats_e2e.rs`
 - `crates/match-service/tests/it_outbox_nats_e2e.rs`
@@ -80,6 +81,7 @@
 - `crates/admin-service/tests/it_outbox_nats_e2e.rs`
 
 每个 e2e:
+
 - `rgs_testkit::pg_test` 真实 outbox 表
 - `async_nats::Client::connect("nats://nats:4222")` 真实 NATS
 - 验证 subject 收到 payload + outbox.status=sent

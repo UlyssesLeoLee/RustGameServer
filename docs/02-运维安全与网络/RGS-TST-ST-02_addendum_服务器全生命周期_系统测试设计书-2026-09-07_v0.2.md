@@ -47,6 +47,7 @@
 | 4 | **batch 域 6 module 跨域 (per 9/1 batch v0.1)** | §2 缺 batch 域 lifecycle | §2 增 L024~L026：batch 域 6 module 跨域 server lifecycle | fd122f6/e70ed71/e366ff8/62027c9/eb1e15d |
 
 **已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+
 - 5 NEW 域（scene/battle/network/account/sub8）+ batch 域 server lifecycle 真实跨域集成需 ST Phase C 验证
 - 9 域 mTLS cert 轮换 + server lifecycle 0 中断实测待 k3s 集群可达
 - batch 域 6 module 跨域 server lifecycle 待 NATS 部署就绪

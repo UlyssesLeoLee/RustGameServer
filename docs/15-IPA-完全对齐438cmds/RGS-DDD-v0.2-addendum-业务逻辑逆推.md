@@ -278,6 +278,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 6. `do_match_(Role, Idx, Score, SeasonIdx, false, [ExcludeIds...], L)` — 手动刷新 + exclude (per L189-190)
 
 **RGS 抽象为 1 个 arena_type enum** (per DDD v0.1 §3.3 关键决策):
+
 - `arena_type: Main | Champion | SundayChampion` 3 态 enum
 - 单一 `GetArenaState(player_id, arena_type)` + `ListRankings(arena_type, page)` + `Challenge(player_id, target_id, arena_type)` 3 RPC 覆盖 26 cmds
 - 避免 1:1 拆 6 RPC, [游戏A] 6 变体通过 `arena_type` enum + 内部 `match/2` 函数实现, gRPC 不暴露变体
@@ -306,6 +307,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 ### 2.5 market.erl (4.4KB) — 函数式 query_all_price + query_priority_price
 
 **业务**: market 模块 19 cmds, 涵盖金币市(4) / 铜钱市(8) / 摆摊(7)。[游戏A] 实现是**纯函数式 + 配合 2 大 .erl** (per `market.erl` L1-15):
+
 - `query_all_price/2` (per L40-46): 入口, 内部走 `query_priority_price/2`
 - `query_priority_price/2,3` (per L48-66): 递归 + 累加器, 配合 `do_query_priority_price/3` (per L119-136) 4 优先级源
 - 配合 `market_gold.erl` 52KB + `market_silver.erl` 122KB (本 Partial 最大 .erl) 处理摆摊/拍卖/价格优先级
@@ -313,11 +315,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **优先级查询 (per `market.erl` L29 + L69-117)**:
 
 优先级源 (per L29 `?buy_source`):
+
 ```erlang
 -define(buy_source, [market_gold, market_silver, market_gold_invisible, market_gold_exchange]).
 ```
 
 4 个优先级源 (per `get_buy_source/3` L86-117):
+
 1. `market_gold` — 金币市 (走 `market_gold_data:get(BaseId)` per L89)
 2. `market_silver` — 铜钱市 (走 `market_silver_data:get(BaseId)` per L96)
 3. `market_gold_invisible` — 隐形价 (走 `market_gold_data:get_invisible_price(BaseId)` per L103)
@@ -333,6 +337,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 6. → 失败累计?ERR 日志 (per L64 `"获取市场价格失败[Id:~w][source:~w]"`)
 
 **关键设计**:
+
 - **无状态函数**: `market.erl` 本身是 stateless, 状态在 `market_gold.erl` / `market_silver.erl` ets + mnesia + DB
 - **优先级链**: 1 个物品有多个 market 时, 优先级源决定查询顺序, 第一个 ok 返回
 - **失败容错**: 单 item 查询失败不中断全部, 仅累积?ERR 日志 + false
@@ -397,6 +402,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
    - `to_partner_info_p/1` — 客户端格式转换
 
 **关键设计模式**:
+
 - **角色 record 携带 partner_bag**: `#role{partner_bag = #partner_bag{...}}` 内嵌 (per L60, L62, L168)
 - **资产变更统一走 `role_gain:do/2`**: 不直接扣加, 保证事务性 (per L95, L117, L142, L176)
 - **外观激活 `role_looks:activate/2`**: 添加伙伴同时激活外观 (per L120, L145)
@@ -440,15 +446,18 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 9. **in_end**: 800ms 延时 (per L458 `Timeout = util:if_true(combat_util:need_enter_combat(Combat), 800, 1)`) → combat_end 收尾
 
 **状态机 (9 态, per `combat.erl` L24-25 状态函数列表)**:
+
 - `in_init` → `in_load_map` → `in_drama` (optional) → `in_ready` → `in_round_begin_play` → `in_action` → `in_play` (loop) → `in_select_buff` (optional) → `in_end` (per L193-194 注释)
 - 异常: 任何状态 timeout → next_round_begin 或 combat_end
 
 **数据流 (per `combat.erl` L42-48 include 7 个 .hrl)**:
+
 - 输入: `#combat{}` record (attack_list / defend_list / combat_roles / on_combat_begin / ext_args / type / wave)
 - 状态字段: round_countdown / end_time / combat_drama / combat_result / is_pause / is_combat_end / min_play_time
 - 输出: `proto_lib:pack/2` 6 个协议号 (12741 / 20002 / 20223 / 12766 / 20200 / 20201)
 
 **跨域 saga (per DDD v0.1 §5.2 12 Partial 跨域)**:
+
 - combat → match v2 (主战场) + player (debuff / 经验) + economy (掉落) + card (收集触发) + social (观战 share)
 - 录像: `combat_replay_mgr.erl` 13KB → RGS `ReplayClient` mTLS fail-closed (per `crates/match-service/src/replay_client.rs` 16KB)
 - 战斗结束奖励: `combat_end.erl` 12KB → RGS 5 步 saga: 完成战斗 → 算奖励 → 发邮件 → 更新 profile → 保存录像
@@ -468,11 +477,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 1 guild 1 gen_server process, 无显式 FSM, 通过 `process_flag(trap_exit, true)` 监控退出 (per L101)
 
 **数据流 (per `guild.erl` L99-117 init/1)**:
+
 - 进程字典: `guild_loop_idx` (loop 计数器) + `guild_say_list` (10 条聊天) + `guild_pids` ets (gid → pid 路由)
 - 持久化: `sync_cache(G, true/false)` → `ets:insert(guild_list, G)` + 异步 `spawn(fun() -> guild_mgr:save(State) end)` (per L185) 落盘
 - 循环: `Sync >= 2` 每 3 次 loop 落盘 (per L183-187) + `update_power` 算战力 (per L177-179)
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - guild → social (主) + player (清除 profile.guild_id, per Q6 决策) + match (赛季清理) + card (清除 guild_buff) + economy (捐献)
 - leave_guild: 3 步写 + publish `GuildLeft` event → outbox (per audit v0.3 §3.4 A4 P1)
 
@@ -496,11 +507,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 无 FSM, 走 `role:redirect/3` + `arena_mgr` / `arena_champion_mgr` 全局 ets + 客户端 push
 
 **数据流 (per `arena.erl` L48-49 `#m_arena{}` record)**:
+
 - 角色 record 携带: `m_arena = #m_arena{can_combat_num / had_combat_num / buy_combat_num / ref_list / ref_time / cont_win / day_reward / ref_num / buff_id}`
 - 全局 ets: arena_state (赛季信息 season_idx/season_start_time/season_end_time) + arena_role (玩家段位 score/rank)
 - 推送: `sys_conn:pack_send(20200, ...)` 直推 4 个协议号 (20200/20201/20208/20223)
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - arena → match v2 (战斗 pid 创建) + player (加 score / 更新 profile) + economy (钻石消耗 buy_combat_num) + social (排行榜)
 - 6 变体抽象为 1 个 `arena_type` enum (Main/Champion/SundayChampion 3 态, per DDD v0.1 §3.3 关键决策)
 
@@ -522,11 +535,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 1 player 1 gen_server process, 无显式 FSM, 通过 `?role_delay_stop = ?minu_ms(3)` 延时 3min 关闭 (per L21-22)
 
 **数据流 (per `role.erl` L139-196 进程字典模式)**:
+
 - 进程字典: `@is_role_process` (per L140) / `@role_id` (per L155) / `@role_account` (per L157) / `conn_pid` (per `combat.erl` L199) / `combat_pid` / `combat_watch_pid` / `role_say_list` / `role_skill_cd` / `role_loop_idx`
 - 角色 record: `#role{id / account / lev / vip_lev / face / m_arena / m_formation / m_assets / m_equip / partner_bag / ...}` 30+ 字段
 - 持久化: `role_lib:save/1` 定时 + 即时 + outbox
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - role → player (主) + social (guild_id 引用) + match (combat_pid 引用) + economy (m_assets 引用) + card (partner_bag 引用)
 - heartbeat 滑动 session: `tokio::time::interval(60s)` + DB UPDATE
 - 改名 (rename): 1 RPC 同步 + 跨 social (guild 改名广播) + 跨 match (录像 name 修正)
@@ -556,11 +571,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 无 FSM, 走函数式查询 + 状态在 `market_gold.erl` / `market_silver.erl` ets
 
 **数据流 (per `market.erl` L29 + L40-136)**:
+
 - 优先级源: `[market_gold, market_silver, market_gold_invisible, market_gold_exchange]` 4 源
 - 物品表: `market_gold_data` (主数据) + `market_silver_data` (摆摊数据) + `item_base_data` (物品基础)
 - 持久化: `market_gold.erl` 走 mnesia + ets + DB, `market_silver.erl` 走 ets + DB
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - market → economy (主) + player (扣/加资产) + social (铜钱市玩家间交易)
 - TradeSaga 4 步: 校验 → 扣 buyer → 加 seller → publish event
 - 优先级查询 4 源决定 1 个物品的最终市场价
@@ -583,11 +600,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 无 FSM, 走 `role:redirect` + 跨域 RPC
 
 **数据流**:
+
 - 实体: `AdminUser` + `AuditLogEntry` (per DDD v0.1 §3.6)
 - 推送: `notices` Master 列表 + `activity_statuses` Master
 - 持久化: audit_log 5 层 hash 链 (per audit v0.3 §3.5)
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - misc → admin (主) + 5 域 (跨域 RPC) + batch (活动状态)
 - GM 指令: handler 入口补 RBAC + audit_log (per Q1 决策)
 
@@ -605,11 +624,13 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 1 account 1 conn_session (短时), 走 `conn_session` ets 5 min 过期
 
 **数据流**:
+
 - 实体: `Account` + `LoginToken` + `ConnSession` + `Player` + `PlayerSession` (per DDD v0.1 §3.7.6)
 - 凭据: `password_hash` + `salt` (argon2id) + 2FA (per 8/27 11:06 JST env value 硬 ban)
 - 持久化: `accounts` Master + `login_tokens` Work + `player_sessions` Work
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - login → player (主) + conn_login (新) + auth (新)
 - 缺 conn_login 独立 connector service (per DDD v0.1 §3.7 + 1.3 范围 RGS 架构 gap)
 
@@ -626,10 +647,12 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 无 FSM, 走 ets 实时查询
 
 **数据流**:
+
 - 实体: `LeaderboardEntry { rank_id, player_id, score, rank, last_update }`
 - 持久化: redis sorted set + DB 异步落盘 (per `crates/leaderboard` 假设域)
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - rank → leaderboard (主) + player (profile) + match (ranked score) + social (guild rank)
 - 5 cmds 1:1 映射, 不细拆 (per DDD v0.1 §3.8 简化策略)
 
@@ -644,10 +667,12 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 1 conn 1 conn_session (per DDD v0.1 §3.9.5), 5 min 过期
 
 **数据流**:
+
 - 实体: `ConnSession { id, conn_pid, ip, device_id, handshake_at, expires_at }`
 - 持久化: in-memory 5min, 复用 `login_tokens` Work
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - conn_login → player (新 connector service) + login (token 校验)
 - 部署: `tools/rgs-conn-login-backend/` (per rgs-batch-backend 模式)
 
@@ -662,10 +687,12 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 无 FSM, 走 `recruit_mgr` ets + DB
 
 **数据流**:
+
 - 实体: `RecruitPool { id, name, drop_table_id, price, status, version }` + `RecruitShareReward { player_id, pool_id, claimed_at }`
 - 持久化: 复用 `card-service::cards` + `drop_tables` (per DEC-038-06 强制公开)
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - recruit → card (OpenPack, per DTL-100 Q-003) + player (扣钻石 + 加伙伴)
 - 3 cmds 复用 `OpenPack` saga 3 步: 扣费 → 抽卡 → 落盘
 
@@ -679,10 +706,12 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 走 batch 域 active-active saga 触发 (per DDD v0.1 §3.11 + audit v0.3 §3.6)
 
 **数据流**:
+
 - 实体: `GroupControlStage { id, server_ids, stage, reward_jsonb, status, triggered_at, completed_at }`
 - 持久化: `group_control_stages` Master + `group_control_rewards` Transaction
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - group_control → batch (active-active 跨服) + player (发奖) + social (联盟跨服)
 - 跨服分桶: `enum GrpcDomain 5 桶` (per audit v0.3 §3.6)
 
@@ -696,10 +725,12 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 **状态机**: 走 batch 域 task_templates (per DDD v0.1 §3.12)
 
 **数据流**:
+
 - 实体: `ActivityChest { id, activity_points, reward_jsonb, claimed: bool }` + `PlayerActivityProgress { player_id, total_points, day, chest_claimed_ids }`
 - 持久化: `activity_chests` Master + `player_activity_progress` Transaction
 
 **跨域 saga (per DDD v0.1 §5.2)**:
+
 - activity → batch (主) + player (发奖) + economy (奖励扣/加)
 - 2 cmds 简单模板化, 走 batch task + instance table
 
@@ -730,6 +761,7 @@ per v0.1 §0.4 "已知缺口" 中"12 Partial module 业务逻辑扩写 (从 5 �
 | **类型系统** | 动态类型 + record | 静态类型 + struct | record → struct | 类型安全大幅提升 |
 
 **关键性能差异 (per 9/4 16:14 JST "全面超过" 目标)**:
+
 - gen_server 同步 call: ~1ms (进程上下文切换 + mailbox) vs tokio async call: ~50µs → **20x 优势**
 - gen_fsm 状态切换: ~10µs (BEAM 优化) vs enum match: ~5ns → **2000x 优势**
 - ets 查找: ~1µs (in-memory) vs sqlx 索引: ~50µs (DB roundtrip) → 50x 劣势 (但 RGS 走 redis ~1µs 持平)
@@ -968,6 +1000,7 @@ service ArenaService {
 ```
 
 **依赖边** (per DDD v0.1 §5.2 12 Partial 跨域 saga):
+
 - conn_login → login (token)
 - login → role (create)
 - role → combat (combat_pid 引用)
@@ -1130,6 +1163,7 @@ service ArenaService {
 ### 9.7-9.12 misc/login/rank/conn_login/recruit/group_control/activity 测试用例
 
 **杂项 7 Partial 每 module 3-5 抽样业务场景, 跟 v0.1 §3.6-3.12 + 业务逻辑 1:1**:
+
 - misc (19 cmds): GM 4 RPC + 活动状态 4 + 通知 3 + 微信 2 + 通用 2 + 合服 1 + 版本 1 + 战斗外 buff 1 + 错误 1 + 媒体卡 1
 - login (6 cmds): create_role/login_role/reconnect/device_register/forgot_password/complete_resource_loading
 - rank (5 cmds): get_rank_data/get_last_update_time/get_guild_rank/get_partner_rank/get_my_rank

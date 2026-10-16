@@ -105,6 +105,7 @@ flowchart LR
 | `match.comp.debug.partition_assignment_dump` | 跨分片事件订阅器 partition 分配详情（broker/leader/replica） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.comp.debug.tick_envelope` 高频热路径（每 tick 一次）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.comp.matchmaker_worker.tick_started` 与 `tick_completed` 是**生产事件**（算法性能基准），**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于 SRE 按 `mode` 维度对比各模式 tick 时延
 
@@ -159,6 +160,7 @@ flowchart LR
 | `match.db.debug.rating_table_sample` | MatchRating 表当前样本行（character_id + rating_value，**仅含 character_id hash，不含明文**） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 100B-500B/条（release 剔除；character_id 走 BAS-004 v0.3 §5.1 hash 脱敏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.db.debug.index_scan_rows` 高频热路径（每 tick 一次）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.db.index_queue_entry.miss_detected` 是**生产事故事件**，**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于 SRE 立即介入索引重建
 
@@ -178,6 +180,7 @@ flowchart LR
 | `match.queue.debug.match_rating_full_row` | MatchRating 单行全字段 dump（含 `rating_deviation` 等可选字段） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-400B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.queue.debug.composite_rating_components` 高频热路径（每入队一条）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.queue.entry.enqueued` 是**生产事件**（核心业务），**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于 SRE 按 `mode` 维度统计入队速率与队伍规模分布
 
@@ -217,6 +220,7 @@ flowchart TD
 | `match.radius.debug.tolerance_function_eval` | `f(waiting_seconds)` 每次求值的输入/输出/分段标识 | 稳态 5/s、峰值 100/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.radius.debug.score_calculation_steps` 是匹配域**最关键的高频热路径**（每撮合一次，N 个候选对手逐一评分）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道；这是**匹配域特殊考虑 #3** 的核心约束：评分计算必须 debug-only，不可 release 必出
 - `match.radius.match_found` 是**生产核心事件**（匹配成功 → 强制全采样）—— release 必出 + §6.2 强制全采样，便于 SRE 按 `mode` 维度统计撮合成功率与 `rating_gap` 分布
 
@@ -252,6 +256,7 @@ flowchart TD
 | `match.quality.debug.party_size_breakdown` | 撮合时各队伍规模分布明细（5人队伍/4人队伍/3人队伍/2人队伍/单排 各占比） | 稳态 30/s、峰值 2000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.quality.debug.raw_wait_seconds_distribution` 高频热路径 + 体积大 —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.quality.metric_recorded` 是**生产事件**（摘要完整性是后续运营分析前提），**不**可 debug-only —— release 必出 + §6.2 强制全采样
 
@@ -269,6 +274,7 @@ flowchart TD
 | `match.party.debug.position_assignment_dump` | 撮合时各位置分配详情（玩家 ↔ 位置 映射表） | 稳态 30/s、峰值 2000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 400B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.party.debug.member_rating_list` 高频热路径（每入队一条）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.party.backfill_position_filled` 是**生产核心事件**（队伍组建/角色分配），**不**可 debug-only —— release 必出 + §6.2 强制全采样，便于 SRE 按 `mode` 维度统计补齐成功率
 
@@ -322,6 +328,7 @@ sequenceDiagram
 | `match.shard.debug.partition_load_snapshot` | 撮合时各分片实时负载快照（CPU/内存/对局数，用于选服路由决策复盘） | 稳态 5/s、峰值 200/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.shard.occ_validation.failed` 是**匹配域特殊考虑 #6** 的核心事件 —— release 必出 + `warn!` 强制全采样，是 SRE 排查"同一玩家被重复撮合"问题的**唯一**生产证据
 - `match.shard.debug.occ_version_chain` 在长版本链下可能 1KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 
@@ -341,6 +348,7 @@ sequenceDiagram
 | `match.config.debug.full_config_snapshot` | 完整 `shard_scope` 配置 dump（含每个 mode 的当前配置 + 灰度比例） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.config.explicit_declaration_check.failed` 是**配置纪律事件**（避免遗漏评审直接放开跨分片），**不**可 debug-only —— release 必出 + §6.2 强制全采样
 - `match.config.debug.full_config_snapshot` 体积大（1-3KB）—— release build 完全剔除
 
@@ -379,6 +387,7 @@ sequenceDiagram
 | `match.rating.debug.rating_deviation_evolution` | Glicko-2 类算法的 `rating_deviation` 演化（每步 RD 衰减） | 稳态 30/s、峰值 1000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-800B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.rating.debug.algorithm_iteration_trace` 是**匹配域特殊考虑 #3** 的核心守护对象 —— 评分算法内部迭代每结算一次都跑，release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `match.rating.settlement.persisted` 是**生产核心事件**（业务结算完整性），**不**可 debug-only —— release 必出 + §6.2 强制全采样
 
@@ -400,6 +409,7 @@ sequenceDiagram
 | `match.gsm.debug.event_envelope` | `MatchRatingChanged` 完整事件 envelope（含 partition_key / headers / trace_id） | 稳态 30/s、峰值 1000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.gsm.unidirectional_violation.detected` 是**ARC-044 决定二的现场证据** —— release 必出 + §6.2 强制全采样，**不**可 debug-only（违反单向性的事件必须可追溯）
 - `match.gsm.debug.event_envelope` 高频热路径 —— release build 完全剔除
 
@@ -425,6 +435,7 @@ sequenceDiagram
 | `match.lossstreak.debug.offset_function_evaluation` | 偏移函数 `g(consecutive_losses)` 每次求值的输入/输出/收敛判定 | 稳态 5/s、峰值 200/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.lossstreak.invariant_violation.offset_written_to_rating` 是**业务不变量保护事件** —— release 必出 + `error!` 强制全采样，**不**可 debug-only（"不写回 rating_value" 是不变量，违反必须可追溯）
 - `match.lossstreak.debug.candidate_effective_ratings` 高频热路径 —— release build 完全剔除
 
@@ -458,6 +469,7 @@ sequenceDiagram
 | `match.abandon.debug.exit_reason_breakdown` | 放弃原因分类明细（玩家主动/网络断线/客户端崩溃等） | 稳态 5/s、峰值 200/s | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 300B/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.abandon.waiting_time_bucket` 是**匹配域特殊考虑 #5 运营 KPI** —— release 必出 + §6.2 强制全采样，便于运营按 `mode` 维度对比各模式放弃等待时长分布
 - `match.abandon.debug.exit_reason_breakdown` 高频热路径 —— release build 完全剔除
 
@@ -500,6 +512,7 @@ sequenceDiagram
 | `match.confirm.debug.rollback_path_dump` | 完整回退路径 dump（各参与条目状态机迁移） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.confirm.participant_timeout` 是**匹配域特殊考虑 #1 超时事件** —— release 必出 + §6.2 强制全采样（运营断网率监控必需）
 - `match.confirm.invariant_violation.enqueued_at_reset` 是**业务不变量保护事件** —— release 必出 + `error!` 强制全采样，**不**可 debug-only（违反"不清零"约束必须可追溯）
 
@@ -537,6 +550,7 @@ sequenceDiagram
 | `match.backfill.debug.participant_record_diff` | `MATCH_PARTICIPANT` 新增记录前后 diff（用于复盘回填准确性） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.backfill.found.match_participant_updated` 是**核心业务事件**（per AC-MM-006）—— release 必出 + §6.2 强制全采样，**不**可 debug-only（MATCH_PARTICIPANT 完整性是验证回填机制正确性的关键）
 - `match.backfill.invariant_violation.duplicate_participant` 是**业务不变量保护事件** —— release 必出 + `error!` 强制全采样
 
@@ -558,6 +572,7 @@ sequenceDiagram
 | `match.signal.debug.event_partitioning_decision` | 事件 partition 路由决策（按 match_ref hash / character_id 路由） | 稳态 30/s、峰值 2000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `match.signal.party_structure.published` 是**数据可消费性保障事件** —— release 必出 + §6.2 强制全采样，便于 ANT 域启用消费时按 `event_id` 维度回溯事件源
 - `match.signal.party_structure.payload_incomplete` 是**FR-MM-044 强约束事件** —— release 必出 + `warn!` 强制全采样，**不**可 debug-only（载荷完整性是 ANT 域消费前提）
 - `match.signal.debug.party_member_list` 高频热路径 + 体积大 —— release build 完全剔除

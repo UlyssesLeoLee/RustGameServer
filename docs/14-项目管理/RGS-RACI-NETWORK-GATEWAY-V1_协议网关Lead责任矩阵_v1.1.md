@@ -23,6 +23,7 @@
 **触发**：Ulysses 2026-09-05 12:08 JST 拍板"6 域 → 8 域 + 1 网关"扩展（per `D:\sszgC\phase0-worker-report.md` §1.1 7 域 crate 完整 + §1.3 协议网关端到端跑通 + §6.7 RACI v1.3 升版缺标），承接 Phase 0 W6 worker 完结（network-gateway NEW crate TCP demo + 4 IT + 26 UT + 1 真实 RPC）。
 
 **来源**：
+
 - W6 worker 9/5 Phase 0 派工 TCP demo（127.0.0.1:7001 监听 + 帧格式 [4B code][4B length][payload] 大端 + 协议码 10101 → player-service.CreateCharacter 路由演示）
 - 4 个 IT (含真实 tokio TcpListener + TcpStream roundtrip)
 - EPMD / dist / codec / router 4 stub 留 Phase 1 完整 8 SRE·d 推进
@@ -46,6 +47,7 @@
 | **签字单元** | **6 × 8 = 48** | 每格 1 个责任字母 R/A/C/I（per RGS-ADR-0055 v0.1 §4 RACI 定义） |
 
 **RACI 字母**：
+
 - **R**（Responsible）：执行者，对结果负责任
 - **A**（Accountable）：最终责任者，1 项任务只能有 1 个 A
 - **C**（Consulted）：双向咨询，需主动征求 + 记录意见
@@ -65,6 +67,7 @@
 | 6. mTLS termination（network.mtls_termination v0.1 + 证书轮换）| **A** | C | **A** | I | **A** | C | I | I |
 
 **矩阵解读**：
+
 - network-gateway Lead 在 6 任务中 6 次 A（网关全任务域 Lead 主责）
 - 架构师 C 全部（横向咨询），但不直接 A（避免 network-gateway Lead 与架构师兼任）
 - SRE 在 EPMD + dist + mTLS 3 个任务 A（基础设施 + 跨节点 + 证书相关）

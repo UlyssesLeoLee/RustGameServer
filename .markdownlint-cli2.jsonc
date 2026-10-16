@@ -1,6 +1,10 @@
 {
-  "default": true,
-  "MD013": false,
-  "MD033": false,
-  "MD041": false
+  "globs": [
+    "docs/**/*.md",
+    "#docs/_archive/**",
+    "#docs/**/.test-evidence/**",
+    "#docs/**/.history-rewrite-*/**",
+    "#docs/deploy/**",
+    "#docs/superpowers/plans/**"
+  ]
 }

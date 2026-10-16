@@ -330,6 +330,7 @@ gm_handlers.rs::ban_account  (line 79)
 ```
 
 **关键原则**：
+
 - **WASM 只做 advice**，真正写库仍走 Rust 现有路径（`gm_handlers.rs:113-120` SHA-256 链）
 - **handler 入口 + RBAC + audit 链 100% 不动**（与 OPEN-QA v0.2 §Q1 一致）
 - **决策结果必落 audit_log**，4 字段：`decision` / `module_version` / `module_hash` / `params_hash`
@@ -364,6 +365,7 @@ pub enum CocDecision {
 ```
 
 **三态语义锁定**：
+
 - **Allow** = 走 Rust 现有 audit_log 落库路径
 - **RequireSecondReview** = 写 `second_review` 表 + NATS `rgs.ad.review.requested` 异步通知 SuperAdmin（**不**立即执行操作）
 - **Deny** = 写 audit_log（decision=denied） + 返 `tonic::Status::permission_denied`（**不**写 `second_review`，**不**执行操作）
@@ -401,12 +403,14 @@ CREATE TABLE function_registry (
 ```
 
 **注册流程**（admin 域 Lead + SuperAdmin 联合）：
+
 1. SuperAdmin 上传 .wasm module（`gm-backend` 走 RBAC `function.upload` 入口）
 2. 计算 `module_sha256 = SHA-256(.wasm bytes)`
 3. 写 `function_registry` 表 + `audit_log`（action=function.upload, payload=module_sha256）
 4. 加载时 `WasmHost.load()` 校验 `module.hash == function_registry.module_sha256`，**不一致直接 fail-closed + 告警**
 
 **回滚流程**：
+
 1. SuperAdmin 触发 `function.rollback`（RBAC 强制 `function.rollback` 角色）
 2. 更新 `function_registry.status = 'rollback'`，`prev_version` 指向目标版本
 3. WasmHost pool 自动 reload（秒级生效，**不**重启 svc）
@@ -1322,6 +1326,7 @@ function_total_duration = scheduling + runtime_init + app_init + dep_init + exec
 ### 22.1 PoC 范围（最小风险、最易验证）
 
 **PoC-1（最低风险）**：`rgs-hello` + `rgs-certgen` 改造为 Function
+
 - 已有 `SVC-CG-001` / `SVC-HL-001` 单一职责
 - 风险最低（无外部依赖 / 无业务影响）
 - 验证目标：Function Plane 全链路（Registry / Gateway / WASM 或 Container / 观测 / Rollback）
@@ -1329,6 +1334,7 @@ function_total_duration = scheduling + runtime_init + app_init + dep_init + exec
 - 周期：2 周
 
 **PoC-2（业务验证）**：`achievement.calculate`（FN-CAND-001）
+
 - 真实业务路径
 - 验证：Saga Step + Function 集成（per §14）
 - 验证：Tier 3 NATS trigger + backpressure
@@ -1336,6 +1342,7 @@ function_total_duration = scheduling + runtime_init + app_init + dep_init + exec
 - 周期：3 周
 
 **PoC-3（弹性验证）**：`notification.send`（FN-CAND-002）+ `rgs-hello.smoke` 流量模拟
+
 - 验证 Scale-to-Zero（0→1→0）
 - 验证 KEDA 集成
 - 周期：2 周
@@ -1440,6 +1447,7 @@ Phase 2 (Contract)
 | `<FUNC_ID>.canary_pct` | 0 | canary 比例 |
 
 **实现位置**：
+
 - 全局：K8s ConfigMap `rgs-function-config`（per namespace `rgs-function`）
 - per-function：Registry 表字段
 - Function Gateway 启动时加载 + 5s SIGHUP 重载
@@ -1857,6 +1865,7 @@ Phase 2 (Contract)
 > **本文档结尾**。请 5 域 Lead + SRE + 安全 + DBA + 项目负责人联合评审。**未通过评审前不得进入 Phase 1 Benchmark**。
 >
 > 评审 checklist：
+>
 > - [ ] 现状基线 §1-§3 与代码一致
 > - [ ] Q1-Q5 答案接受
 > - [ ] §11 拒绝 Knative / OpenFaaS 同意

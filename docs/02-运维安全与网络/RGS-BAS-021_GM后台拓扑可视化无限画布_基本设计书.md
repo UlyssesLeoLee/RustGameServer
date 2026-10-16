@@ -106,6 +106,7 @@ flowchart TB
 | `viz.component.debug.full_component_config` | 完整组件配置 dump（包含全部数据源连接串、缓存键前缀、视图引擎规则全集） | 启动期 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-3KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.component.debug.full_component_config` 在含敏感连接串的情况下**必须** `#[cfg(debug_assertions)]` 守护，避开发布到 release 后误开 RUST_LOG=debug 泄漏基础设施拓扑
 - `viz.component.subsystem_unhealthy` 是 NFR-OPS-006 故障隔离落地事件，**不得**降级为 `warn!` — 必须 `error!` + §6.2 强制全采样，确保 SRE 告警链路完整
 
@@ -135,6 +136,7 @@ flowchart TB
 | `viz.query.debug.sql_explain_plan` | 完整 SQL EXPLAIN PLAN dump（用于慢查询事后分析） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.query.pan_zoom_cache_served` 在高频平移/缩放下可达 10000/s — 必须 `#[cfg(debug_assertions)]` 守护，release 剔除避免日志通道淹没（与 NFR-VIZ-003"避免高频交互放大后端负载"同源精神：日志通道也是后端负载）
 - `viz.query.production_path_violation` **不得**降级为 `warn!` — 必须 `error!` + §6.2 强制全采样，命中即触发 NFR-OPS-006 故障隔离流程
 
@@ -166,6 +168,7 @@ flowchart TB
 | `viz.granularity.debug.transition_animation_frames` | 平滑过渡动画的逐帧状态（用于前端性能调优） | 切换期 30-60 帧/次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/帧（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.granularity.debug.node_position_snapshot` 节点数大时 2KB+ — 必须 `#[cfg(debug_assertions)]` 守护，release 完全剔除
 - `viz.granularity.anchor_node_missing` 属 RSK-VIZ-001 风险落地，**不得**降级为 `debug!` — 必须 `error!` + §6.2 强制全采样，确保 SRE 告警链路完整
 
@@ -195,6 +198,7 @@ flowchart TB
 | `viz.edge.debug.gate_node_visual_props` | 闸门图标节点的完整视觉属性 dump（颜色/尺寸/位置） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.edge.control_flow_rendered` / `viz.edge.data_flow_rendered` 在 1000/s 峰值下若 release 必出会撑爆日志通道 — 必须 `#[cfg(debug_assertions)]` 守护，仅业务关键事件（`langgraph_submission_recognized` / `gate_annotation_applied` / `gate_annotation_missing`）release 必出
 - `viz.edge.gate_annotation_missing` 属 FR-VIZ-012 强约束违反 — 必须 `error!` + §6.2 强制全采样，不得降级为 `warn!`
 
@@ -218,6 +222,7 @@ flowchart TB
 | `viz.state.debug.recent_alert_correlation_lookup` | 画布异常判定与既有告警系统告警事件 ID 关联查询的过程（用于事后复盘） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.state.overlay_refresh_tick` 周期任务 0.2/s 看似低频，但日累计 ~17000 条 — 仍必须 `#[cfg(debug_assertions)]` 守护，避免 release 必出时无业务价值的周期心跳淹没日志通道
 - `viz.state.threshold_mismatch_detected` / `viz.state.front_end_direct_metric_access_blocked` 属 §4.2 末段明文禁止的违规行为 — 必须 `error!` + §6.2 强制全采样，不得降级为 `warn!` 或 `info!`
 
@@ -251,6 +256,7 @@ flowchart TB
 | `viz.langgraph.debug.node_color_assignment_table` | 每个节点的 L4/L0/L1 颜色域分配表（用于审计节点分类是否正确） | 子图展开时 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.langgraph.color_domain_applied` 节点级事件，子图节点多时可达数百次 — 必须 `#[cfg(debug_assertions)]` 守护，release 仅留颜色域缺失告警（业务关键事件）
 - `viz.langgraph.gate_node_omitted` 属 FR-VIZ-012 强约束违反 — 必须 `error!` + §6.2 强制全采样，与 §4.1 `gate_annotation_missing` 同类违规统一处理
 
@@ -274,6 +280,7 @@ flowchart TB
 | `viz.version.debug.snapshot_full_payload` | `CACHE` 快照的完整内容（节点+边+版本号+生成时间，事后追溯用） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-50KB/条（拓扑规模决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.version.debug.snapshot_full_payload` 在大型集群快照可达 50KB — 必须 `#[cfg(debug_assertions)]` 守护，release 完全剔除，避免事后追溯按需 dump 时撑爆日志通道
 - `viz.version.canvas_stale_detected` 属 RSK-VIZ-002 风险落地 — 必须 `error!` + §6.2 强制全采样，命中即触发 SRE 即时响应（避免"画布说安全但实际已变更"的信任问题）
 
@@ -313,6 +320,7 @@ flowchart TB
 | `viz.view.debug.preset_full_dump` | 单个 `ViewPreset` 完整配置 dump（所有字段，用于配置审计） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.view.node_filter_evaluated` / `viz.view.edge_filter_evaluated` / `viz.view.color_rule_applied` 视口渲染时 1-10/s/条 — 必须 `#[cfg(debug_assertions)]` 守护，release 仅留配置加载/解析/热更新/RBAC 过滤等业务关键事件
 - `viz.view.core_code_modification_detected` 属 NFR-VIZ-004 强约束违反 — 必须 `error!` + §6.2 强制全采样，不得降级为 `warn!`
 
@@ -346,6 +354,7 @@ flowchart TB
 | `viz.view.debug.view_metadata_dump` | 单个初始视图的完整元数据 dump（含节点/边过滤条件全部字段，用于配置复盘） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.view.color_by_error_rate_applied` / `viz.view.color_by_feature_domain_applied` 视口渲染时 1-5/s/条 — 必须 `#[cfg(debug_assertions)]` 守护，release 仅留视图打开/关闭/权限拒绝等业务关键事件
 - `viz.view.security_boundary_illegal_path_highlighted` 属安全事件（违反 NetworkPolicy 的真实路径）— 必须 `error!` + §6.2 强制全采样，不得降级为 `warn!`
 
@@ -383,6 +392,7 @@ flowchart TB
 | `viz.preference.debug.full_preference_payload` | 完整 `UserViewPreference` payload（节点/边过滤条件全部字段、用户标识、时间戳） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.preference.loaded` / `viz.preference.applied` / `viz.preference.fallback_to_preset` 画布打开视图时高频触发 — 必须 `#[cfg(debug_assertions)]` 守护，release 仅留保存/更新/删除/违规事件（业务关键）
 - `viz.preference.rbac_escalation_blocked` 属 NFR-VIZ-005 强约束违反（§6.3 末段明文禁止"借由个人偏好绕过角色可见性"）— 必须 `error!` + §6.2 强制全采样，命中即触发安全告警流程
 
@@ -419,6 +429,7 @@ flowchart TB
 | `viz.canvas.debug.frontend_state_snapshot` | 画布前端完整状态快照（节点坐标/视口位置/缩放级别/选区/搜索历史） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `viz.canvas.node_drag` / `viz.canvas.zoom_pan` 用户操作可达 100/s 峰值（典型重画布下拖拽 + 缩放同时进行），若 release 必出单用户即可撑爆日志通道 — 必须 `#[cfg(debug_assertions)]` 守护，release 完全剔除零运行时开销
 - `viz.canvas.websocket_heartbeat` 心跳 1-5/s/会话 × N 用户累计可达数十/s — 同样必须 `#[cfg(debug_assertions)]` 守护，仅 `disconnected` 等异常事件 release 必出
 - `viz.canvas.topology_exported` / `viz.canvas.topology_shared` 属"用户操作 + 审计"双重关注 — 必须 `info!` + §6.2 强制全采样，导出/分享的拓扑图涉及节点/边/版本等敏感运维信息

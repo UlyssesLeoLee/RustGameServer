@@ -1,6 +1,7 @@
 # V4 对抗仲裁报告 (WF-1-55.26 5 commit)
 
 ## 元数据
+
 - 审查范围: 1b30878..cc888b5 (5 commit)
 - 审查轮次: 第 2 轮 (对抗轮)
 - 审查者: V4 (adversarial verifier)
@@ -29,6 +30,7 @@
 ### 1.1 CC-4 死代码 — 确认 V1+V2 CRITICAL，**反驳 V3 降级为 M-1**
 
 **我的 grep 结果** (D:/adversarial-55-26-V4 全仓):
+
 ```
 crates/economy-service/src/service.rs:86:  pub async fn apply_atomic_with_reservation(...)  [定义]
 crates/economy-service/src/service.rs:487: .apply_atomic_with_reservation(...)               [test]
@@ -36,7 +38,9 @@ crates/economy-service/src/service.rs:536: .apply_atomic_with_reservation(...)  
 crates/economy-service/src/service.rs:580: .apply_atomic_with_reservation(...)               [test]
 crates/economy-service/src/service.rs:660: .apply_atomic_with_reservation(...)               [test]
 ```
+
 **0 生产调用**。生产路径 `ReserveHandler::execute` (saga_orchestrator.rs:248-289) **未使用**该 helper，直接 inline：
+
 - L253: `self.reservations.save(&r).await?;` (reservation 落库)
 - L259: `let _ = self.reservations.delete_by_id(r.id).await;` (静默吞错)
 - L277: `self.accounts.apply_atomic(&account, &entry).await?;` (**OCC 失败无 cleanup**)
@@ -56,6 +60,7 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 **V2 描述**：`CREATE TABLE IF NOT EXISTS outbox (...)` 块内追加 `CONSTRAINT chk_outbox_status CHECK (...)`。已部署环境（55.17 已跑过 migration）`outbox` 表已存在，整个 CREATE 块被 sqlx 静默跳过 → CHECK 永不生效。
 
 **我的独立验证** (diff 1b30878):
+
 ```
 --- a/crates/economy-service/migrations/0003_outbox.sql
 @@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS outbox (
@@ -67,9 +72,11 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 +    CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))
  );
 ```
+
 **6 域全中招**（admin/cluster-ops/economy/match/player/social）。所有 6 个文件 diff 模式完全相同。
 
 **CC-3 在 55.17 commit (`55af339`)** 已经把 `outbox` 表 CREATE 出来并跑过。生产环境现在的 `outbox` 表:
+
 - 已有 (id, subject, payload, command_id, saga_id, status, retry_count, last_error, lease_until, created_at, sent_at) 列
 - **无 CHECK 约束**
 - 任何 status 字符串都可写入（"draft", "PENDING", "" 等）
@@ -90,12 +97,14 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 **V3 原话**: "当前所有裸 `apply_atomic` 调用前**未**先 `reservations.save(...)`,所以没有 dangling reservation 风险(实际安全) → 56.x 给裸 `apply_atomic` 加 `#[deprecated]`"
 
 **V4 反驳**:
+
 - V3 看的是 `service.rs:208/256` (credit/debit) 的 `apply_atomic`, 那里**确实**没 reservation 写入
 - 但 V3 漏看了 `saga_orchestrator.rs:277` 的 `apply_atomic` — 之前 L253 已经 `reservations.save(&r).await?`
 - V3 用"全 5 处 apply_atomic 都没 reservation" 来论证"无 dangling 风险"是**错误归纳**。生产路径 (saga_orchestrator.rs) 是真实 reservation + 真实 apply_atomic + 真实 dangling 风险
 - V3 把"helper 不在生产路径用"当成了"未来代码可能误用" — 但实际是**当前代码已经在用 reservation + apply_atomic** 的**dangerous 组合**
 
 **V3 CONDITIONAL PASS 的论证**:
+
 - 5 commit 通过编译 OK
 - 所有 209 unit test + 9 integration + 2 doc test = 220 passed OK
 - release build 成功 OK
@@ -105,6 +114,7 @@ V3 看的是 service.rs 的 credit/debit (L208, L256) — 那里确实没有 res
 ### 2.2 V3 "CONDITIONAL PASS" 是否成立?
 
 **结论: 不成立**。3 个反驳点:
+
 1. **CC-4 真未修** (V4 §1.1 独立验证), V3 把它降为 M-1 是错判
 2. **CC-3 migration 静默失效** (V4 §1.2 独立验证), V3 完全没看 SQL 语义
 3. **mTLS server 端 counter 死代码** (V1 HIGH + V3 HIGH-2 共识), V3 自己也说"未来监控"但仍给 CONDITIONAL PASS — 自相矛盾
@@ -118,6 +128,7 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 ### 3.1 [V4-NEW-001] `load_server_tls_config` 失败路径 0 integration test — V4 升级为 HIGH
 
 **证据**:
+
 - 6 域 main.rs 全部把 `load_server_tls_config` 失败路径从 "warn + None" (55.21+22 静默降级) 改成 `.context()?` 上抛退 1 (0240d4f)
 - 这是**整个工程最关键的安全防线之一** (verify-A AL-1 / verify-C §4.1)
 - 全仓 grep 0 test 模拟 "PEM 不存在 → 启动退 1" 场景
@@ -127,6 +138,7 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 ### 3.2 [V4-NEW-002] 5 commit 跨 commit 集成时序
 
 **时序**:
+
 - 06:34:20 `1b30878` CC-3 CHECK
 - 06:36:43 `a950b46` CC-4 helper
 - 06:37:33 `0240d4f` AC-1 mTLS fail-closed
@@ -134,6 +146,7 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 - 06:40:28 `cc888b5` DC-1 resume tests
 
 **f9bf84f → 0240d4f cross-impact 风险**: f9bf84f 修 json_logging doctest (移除 `fn main()` 包裹, 保留 `no_run`)。0240d4f 在 6 域 main.rs 引入 `init_json_logging` 启动时调用 + `.context()?` 退 1。
+
 - **时序上 f9bf84f 在 0240d4f 之后**, 即 mTLS 改动先, housekeeping 后
 - 两者**无直接冲突**: json_logging 只动 doctest 注释, 不动运行时代码
 - 但 `no_run` 标记意味着 doctest 只编译不执行 — 6 域 main.rs 启动时调 `init_json_logging` 真的能跑通, 没被 doctest 验证
@@ -153,6 +166,7 @@ V3 的"集成视角"确实有价值 (6 域一致性矩阵 + 真实 cargo test �
 ### 3.4 [V4-NEW-004] f9bf84f housekeeping 副作用
 
 `f9bf84f` diff 仅 5 行: 移除 `fn main() { ... }` 包裹。**无副作用**:
+
 - 0 `#[ignore]` 添加/删除
 - 0 `#[cfg(...)]` 改动
 - 0 测试删除
@@ -200,17 +214,17 @@ V4 仲裁: 这是 **fail-closed 原则正确**的体现, 不是 bug。V2 评级 
 
 ### Merge-with-follow-up (HIGH, 56.x 必修但可合并)
 
-4. **mTLS server 端 counter 公共读出**: 在 shared-platform 加 `pub fn server_mtls_bypassed_total() -> u64` + 6 域 main.rs 改调; 或本次 PR 加 6 个 unit test 验证 `MTLS_BYPASSED_TOTAL.fetch_add(1, ...)` 行为
-5. **fail-closed 启动 integration test**: 加 `assert_cmd::Command` 测试, 启动 binary 缺 cert dir, 断言非 0 退出码 + stderr 含 "mTLS config load failed"
-6. **DC-1 terminal state coverage**: 加 `resume_completed_saga_returns_validation_err` / `resume_failed_saga_returns_validation_err` / `resume_aborted_saga_returns_validation_err` 3 个 test
+1. **mTLS server 端 counter 公共读出**: 在 shared-platform 加 `pub fn server_mtls_bypassed_total() -> u64` + 6 域 main.rs 改调; 或本次 PR 加 6 个 unit test 验证 `MTLS_BYPASSED_TOTAL.fetch_add(1, ...)` 行为
+2. **fail-closed 启动 integration test**: 加 `assert_cmd::Command` 测试, 启动 binary 缺 cert dir, 断言非 0 退出码 + stderr 含 "mTLS config load failed"
+3. **DC-1 terminal state coverage**: 加 `resume_completed_saga_returns_validation_err` / `resume_failed_saga_returns_validation_err` / `resume_aborted_saga_returns_validation_err` 3 个 test
 
 ### Defer to 56.x
 
-7. admin `0003_outbox.sql` 注释修正 (`0002_outbox` -> `0003_outbox`)
-8. clippy 验证脚本 `-A pedantic` -> `-A clippy::pedantic` 升级
-9. rgs-certgen 3 个 pre-existing clippy error (let-binding unit / 2x &PathBuf)
-10. ReserveHandler L259 `let _ = self.reservations.delete_by_id(r.id).await;` 静默吞错改 `tracing::warn!`
-11. 55.x pre-existing issues (HC-5 outbox lease 30s / HC-7 reservation ON CONFLICT / MC-3 reservation GC)
+1. admin `0003_outbox.sql` 注释修正 (`0002_outbox` -> `0003_outbox`)
+2. clippy 验证脚本 `-A pedantic` -> `-A clippy::pedantic` 升级
+3. rgs-certgen 3 个 pre-existing clippy error (let-binding unit / 2x &PathBuf)
+4. ReserveHandler L259 `let _ = self.reservations.delete_by_id(r.id).await;` 静默吞错改 `tracing::warn!`
+5. 55.x pre-existing issues (HC-5 outbox lease 30s / HC-7 reservation ON CONFLICT / MC-3 reservation GC)
 
 ---
 
@@ -231,6 +245,7 @@ V1 给 NO MERGE, V3 给 CONDITIONAL PASS, 仲裁如下:
 | fail-closed 启动 | 未列 | 未列 | LOW | **HIGH** (V4 升级) |
 
 **2 个独立 CRITICAL 互相独立、互不掩盖**:
+
 - CRITICAL §1: CC-4 资金幻影 (V1+V2+V4 共识, V3 错)
 - CRITICAL §2: CC-3 migration 静默失效 (V2+V4 共识, V1+V3 漏)
 
@@ -271,10 +286,12 @@ V1 给 NO MERGE, V3 给 CONDITIONAL PASS, 仲裁如下:
 ## 8. V4 自评
 
 **我可能错的地方**:
+
 - CC-3 migration 评级 CRITICAL 假设 55.17 已经在生产环境跑过; 但如果实际项目还**未部署**到任何 prod, 仅在 CI / dev 跑, 那 CC-3 migration 在 fresh DB 部署时仍有效, 应降为 MEDIUM。但 RGS-REV-008 §3 描述"55.17 已部署", 故假设成立。
 - "209 -> 220" 数量差异我归因为 V1/V2 跑 `--lib` vs V3 跑 `--workspace`, 但 V1 报告里 109 注脚说"含编译 ~120s"暗示跑的是 `cargo test --workspace`, 与 209 数字对不上。可能是 V1 跑 `cargo test` 抓 main bin + lib + integration 但漏算 shared-platform integration 的 9 个。**不影响主要结论**。
 
 **我没覆盖的视角**:
+
 - 性能回归 (5 commit 是否引入 size/throughput 退化): V3 跑了 `cargo build --release` 成功, 但**没**跑 perf benchmark。55.26 没承诺 perf, 不在范围。
 - 6 域 shared-platform cross-crate 依赖方向: 未审查 Cargo.toml 是否被改 (V3 结论: 5 commit 未改 Cargo.toml)。
 - binary 启动 config 注入路径: `RGS_ALLOW_INSECURE_GRPC` / `RGS_TLS_DIR` 之外的环境变量 (e.g. `RUST_LOG`) 是否被 5 commit 影响: 未查, 但 5 commit 范围明确未改 env 解析除 RGS_ALLOW_INSECURE_GRPC 之外的东西, 概率低。

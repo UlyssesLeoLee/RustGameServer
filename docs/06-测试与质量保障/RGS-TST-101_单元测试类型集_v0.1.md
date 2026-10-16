@@ -24,12 +24,14 @@
 ## 2. 测试范围
 
 **覆盖范围**：
+
 - 工程 60：单体测试规约书作成（test plan + test case + assertion 设计）
 - 工程 62：单体测试实施（cargo test --workspace + 覆盖率报告）
 - 工程 63：不具合修正（Bug 流程：复现 → 根因 → 修复 → regression test）
 - 工程 64：再试验（retest，按 Bug 修复后的回归验证）
 
 **测试类型**：
+
 - 业务逻辑 UT（域内纯函数 + state machine）
 - 序列化/反序列化 UT（Proto / JSON / DB row）
 - Saga step UT（per-step state transition）
@@ -37,6 +39,7 @@
 - 边界条件 UT（empty / max / overflow / null）
 
 **Rust 工具链**：
+
 - cargo test（内置）
 - cargo-llvm-cov（覆盖率）
 - mockall（mock 框架）

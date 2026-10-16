@@ -726,6 +726,7 @@ deploy/
 ### 13.9 Gate 状态声明
 
 本文档 §11.1 6 条 Gate 全部仍为"待 Gate 批准"状态（per `RGS-IMPL-001 §6`）：
+
 - G-CODE-02 / Q-025：DD Review 待签署
 - G-CODE-03 / ADR-0052：Active-Active / all-reachable 待目标拓扑核验 + 故障注入计划
 - G-CODE-04 / Q-003：跨 DB Saga 待架构 + DBA + 经济 Lead 具名批准
@@ -734,4 +735,3 @@ deploy/
 - G-CODE-07：`rgs-testkit` 职责 + OLU 待 QA/SRE 签署
 
 本测试设计为 §11.2 各项"最低要求"配套 TC 设计，**不**解除任何 Gate；§11.1 的 Gate 仍为实施授权的前置条件。
-

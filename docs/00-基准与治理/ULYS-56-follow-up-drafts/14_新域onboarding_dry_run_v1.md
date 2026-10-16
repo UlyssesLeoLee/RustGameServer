@@ -7,6 +7,7 @@
 > **ULYS-103 worker**: agent c557dae5-42e4-4d60-bf27-36eeddbf67bb (2026-09-19 JST)
 >
 > **关联产物**:
+>
 > - 测试文件: `crates/shared-platform/tests/it_dry_run_new_domain_onboarding.rs` (7 测试, 全绿)
 > - 模板: `10_outbox_migration_template_v1.sql` (ULYS-103 acceptance #2 步骤 2)
 > - 模板: `11_outbox_relay_bootstrap_pattern.md` (ULYS-103 acceptance #2 步骤 3)
@@ -35,6 +36,7 @@
 | 事件族候选数 | 5 条 (代表性 telemetry pipeline: collected → batched → aggregated → published + 1 版本演进 v2) |
 
 **dry-run 假设**:
+
 - RGS-REQ-NNN 需求定义书 (步骤 1) 已审批 (不在 dry-run 范围)
 - 监控指标接入 (步骤 6) 需 Prometheus exporter 端到端, 不在 dry-run 范围
 - 步骤 2/3 的产物 (migration / main.rs) 是模板, 不真建新域 crate; dry-run 用 `InMemoryOutboxRepository` 在 shared-platform 层做端到端验证
@@ -54,10 +56,12 @@
 **产物**: 复制 `10_outbox_migration_template_v1.sql` 到 `crates/<new-domain>/migrations/0001_outbox.sql`.
 
 **dry-run 验证**:
+
 - ✅ Schema 与 6 域现有 `0003_outbox.sql` 一致 (per shared-platform/src/outbox.rs::MIGRATION_TEMPLATE, 55.17 升级: status 加 in_flight + lease_until 列)
 - ✅ 反模式注记已包含 (per RGS-REV-009 CR-2 / WF-1-55.28): 创建后**立即追加** `0002_outbox_check_idempotent.sql` 兼容已部署环境
 
 **InMemory 端到端验证** (per `it_dry_run_step_4_append_and_list_pending`):
+
 - ✅ 新域 entry 可被 InMemoryOutboxRepository 接受 (append 成功)
 - ✅ list_pending 行为与 6 域实测一致 (mark in_flight + lease_until + 返回 InFlight 状态)
 
@@ -66,6 +70,7 @@
 **产物**: 复制 `11_outbox_relay_bootstrap_pattern.md` §2 公共片段到 `crates/<new-domain>/src/main.rs`.
 
 **dry-run 验证**:
+
 - ✅ 6 域实测一致性: 模板与 6 域 main.rs (admin / cluster-ops / economy / match / player / social) 完全一致的公共片段
 - ⚠️ **NATS 连接不在 dry-run 范围**: 真实 relay 启动需 NATS JetStream Client + PG Pool + Producer, 端到端需 NATS 服务, 超出单元测试能力. dry-run 跳过 `OutboxRelay::run()` 实际启动, 直接用 `InMemoryOutboxRepository` 模拟 relay 状态机.
 
@@ -86,6 +91,7 @@
 **关键发现** (dry-run 暴露的真实 onboarding 约束):
 
 > ⚠️ **`analytics` 不在 `subject.rs::parse()` 的 6 域白名单内**. 真实新域 onboarding 必须**显式扩展白名单** (per 09a §D 步骤 4 + ADR-0015 §5 草案):
+>
 > ```rust
 > // subject.rs L78 修改:
 > "player" | "economy" | "match" | "social" | "admin" | "cluster_ops" | "analytics" => {
@@ -137,12 +143,14 @@ test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 **产物**: DLQ 表 `crates/<new-domain>/migrations/0006_outbox_dlq.sql` (per `07_PoisonEvent_DLQ草案.md` §2.2).
 
 **dry-run 验证** (per `it_dry_run_step_6_retry_then_dlq_path`):
+
 - ✅ `mark_failed` → retry_count+1, status 保持 InFlight, lease_until 保持
 - ✅ lease 过期后 `list_pending` 回收 in_flight 行 (relay 崩溃接管语义)
 - ✅ `mark_giveup` → status=Failed (DLQ 入口)
 - ✅ Failed 行不再被 `list_pending` 返回 (DLQ 入口与 relay 轮询隔离)
 
 **DLQ 端到端测试** (per `it_dry_run_total_acceptance_seven_step_checklist` 步骤 7 路径):
+
 - 1 条 poison event: append → list_pending → mark_failed → lease 过期 → list_pending → mark_failed → mark_giveup
 - 终态: 5 条 Sent + 1 条 Failed/DLQ, list_pending 应为空 ✅
 

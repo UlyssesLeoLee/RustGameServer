@@ -1,6 +1,7 @@
 # V1 安全审查报告 (WF-1-55.26 5 commit)
 
 ## 元数据
+
 - 审查范围: 1b30878..cc888b5 (5 commit)
 - 审查维度: Security
 - 审查者: V1 (verifier)
@@ -11,6 +12,7 @@
 ## CRITICAL (1 个)
 
 ### [CC-4-FIX-IN-WRONG-FN] CC-4 资金幻影修复未落在生产代码路径 — 修补了死代码
+
 - 文件: crates/economy-service/src/saga_orchestrator.rs:248-289 (ReserveHandler.execute, 真实生产路径)
 - 关联文件: crates/economy-service/src/service.rs:86-160 (apply_atomic_with_reservation, 仅被 4 个测试调用)
 - 证据:
@@ -30,6 +32,7 @@
 ## HIGH (2 个)
 
 ### [AC-1-METRIC-DEAD] server 端 MTLS_BYPASSED_TOTAL 是无 getter 的死 counter
+
 - 文件: 6 域 main.rs:38/39/46/38/38/38 (`static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);`)
 - 证据:
   - 6 域每个 main.rs 独立定义同名 static AtomicU64，但**没有 pub fn getter 暴露给 metrics 层**。
@@ -43,6 +46,7 @@
   - 长期：每域 emit `tracing::warn!` 同时追加 `tracing::warn!(counter.inc())` 到 OTel metrics，避免依赖 log 抓取。
 
 ### [DC-1-TEST-NO-DOUBLE-COMP] 缺生产 handler 的"防双补偿"回归测试
+
 - 文件: crates/economy-service/src/saga_orchestrator.rs:935-1004 (DC-1.3 测试用自定义 CompensateRecorder)
 - 证据:
   - DC-1.3 测试用 `struct CompensateRecorder` + `FailingHandler`，**没有使用真实 ReserveHandler/ConfirmHandler**。
@@ -55,6 +59,7 @@
 ## MEDIUM (2 个)
 
 ### [CC-4-COMPENSATION-CRASH] 补偿半途崩溃 → 资金丢失路径（pre-existing，55.12 引入，55.26 未触及）
+
 - 文件: crates/economy-service/src/saga_orchestrator.rs:141-166 (compete 函数)
 - 证据:
   - compete() 流程：L146-152 收集 Completed 步骤 → L154 `saga.compensate()`（把 Completed 标 Compensated，DB 持久化 L155）→ L157-161 调 `handler.compensate(saga, resource_id)`。
@@ -68,6 +73,7 @@
   - 短期：至少在 handler.compensate 失败时不要 mark saga 为 Failed（让 saga 留 Compensating 状态等下次 resume）。
 
 ### [AC-1-WHITESPACE-PARSE] RGS_ALLOW_INSECURE_GRPC 解析未 trim 前后空白
+
 - 文件: 6 域 main.rs（约 119-120 行）`env::var("RGS_ALLOW_INSECURE_GRPC").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))`
 - 证据:
   - `v == "1"` 严格匹配，不 trim。若运维误操作 `RGS_ALLOW_INSECURE_GRPC=" 1"` (前置空格) 或 `RGS_ALLOW_INSECURE_GRPC="1\n"` (k8s ConfigMap 换行)，`v == "1"` 为 false → fail-closed。
@@ -80,15 +86,18 @@
 ## LOW (3 个)
 
 ### [HC-5-STILL-OPEN] RGS-REV-008 verify-C HC-5 outbox lease 30s 硬编码未处理
+
 - 文件: crates/shared-platform/src/outbox.rs:301 `INTERVAL '30 seconds'`
 - 证据: 与 55.17 引入的硬编码 30s 一样。55.26 不在 5 commit 范围，列出仅作 cross-reference。
 - 影响: LOW — 跨区延迟 / relay 慢处理时 30s 容易过期，触发重复消费（被 `command_id` 幂等保护，但有性能损耗）。
 
 ### [HC-7-STILL-OPEN] RGS-REV-008 verify-C HC-7 Reservation::save ON CONFLICT 只更新 status
+
 - 文件: 待 grep（55.26 不在范围）
 - 影响: LOW — Reservation 除 status 外其它字段更新不生效，可能造成审计不准确。
 
 ### [MC-3-STILL-OPEN] RGS-REV-008 verify-C MC-3 Reservation 无 5 分钟过期清理
+
 - 文件: 待 grep（55.26 不在范围）
 - 影响: LOW — orphan reservation 长期堆积，storage 增长。
 
@@ -104,6 +113,7 @@
 ## 验证结果
 
 ### cargo test --workspace --lib
+
 - **总测试数**: 209 (18+16+42+16+24+0+78+15)
 - **通过**: 209 / **失败**: 0 / **忽略**: 0
 - **耗时**: 含编译 ~120s, 测试本体 <2s
@@ -111,6 +121,7 @@
 - 测试 log: D:/RustGameServer/docs/00-基本与基准/reviews/adversarial-55-26/cargo-test.log
 
 ### cargo clippy --workspace --all-targets -- -D warnings
+
 - **结果**: build **失败**（3 errors, 全部在 rgs-certgen）
 - 失败位置: crates/rgs-certgen/src/main.rs:74/100（`&PathBuf` 应为 `&Path`）+ 1 个 let-binding unit value
 - **pre-existing**: 55.24 housekeeping worker 漏修，per 55.26 PR doc 明示"rgs-certgen 3 个错误仍在 55.x 范围外, 56.x 处理"
@@ -119,12 +130,14 @@
 - clippy 排除 log: D:/RustGameServer/docs/00-基本与基准/reviews/adversarial-55-26/cargo-clippy-excl-certgen.log
 
 ### 实际跑过的命令（按顺序）
+
 1. `git -C D:/RustGameServer worktree add D:/adversarial-55-26-V1 HEAD`
 2. `cargo test --workspace --lib --manifest-path D:/adversarial-55-26-V1/Cargo.toml` (CARGO_TARGET_DIR=D:/target-adversarial-V1)
 3. `cargo clippy --workspace --all-targets --manifest-path D:/adversarial-55-26-V1/Cargo.toml -- -D warnings` (失败：rgs-certgen)
 4. `cargo clippy --workspace --all-targets --manifest-path D:/adversarial-55-26-V1/Cargo.toml --exclude rgs-certgen -- -D warnings` (0 warning)
 
 ## 结论
+
 - **是否可合并**: **否** — CRITICAL-1 (CC-4 资金幻影未真修复) 必须先修
 - **最大 3 个风险**:
   1. **CC-4 修复在错误函数** — 修补死代码、生产路径未触动；声称通过 209 个 test 但资金安全 invariant 实际未验证；下次 OCC 冲突就是资金凭空生成事件
@@ -132,6 +145,7 @@
   3. **DC-1 缺防双补偿测试** — 真实 ReserveHandler.compensate 在崩溃恢复场景下"被调用 N 次"的可能性未被测试锚定；下一次重构可能引入双倍退款
 
 ## 推荐修复顺序（最小阻断 PR）
+
 1. **必须**：把 service.rs:86-160 的 `apply_atomic_with_reservation` 整合到 saga_orchestrator.rs:248 ReserveHandler.execute，让 OCC 失败也走 delete_by_id 清理路径；或加 `match self.accounts.apply_atomic(...).await { Ok ... Err(e) => { reservations.delete_by_id(r.id).await; return Err(e); } }`
 2. **必须**：用真实 ReserveHandler/ConfirmHandler 重写 DC-1.3 测试，覆盖"已 Compensated 步骤不被再次补偿"分支
 3. **建议**：在 shared-platform 加 server 端 `mtls_bypassed_total()` getter；或短期内把 6 域 static 改成 `tracing::warn!(counter.inc())` 走 OTel metrics

@@ -97,6 +97,7 @@
 | 9/2 截至 16:10 JST (W36) | **0** | 🟢 大降 | 规格化工作, 非 hotfix |
 
 **B1 pre-commit hook + B2 L-CANDIDATES + B4 test-evidence 归档 已立** (per `dcc80bc`):
+
 - B1: pre-commit hook 拒收空 commit + 不规范 commit 标题 (per D3 .gitmessage 模板延伸)
 - B2: 派生约束 L1-L14 冻结 6 个月 (至 2027-03-02 JST), 新约束进 L-CANDIDATES 候选清单
 - B4: test-evidence 归档清理 (`docs/00-基准与治理/.test-evidence/2026-08-28-*-v1/v2/v3` 1.18 MB 移 archive, 7 目录 git clean)

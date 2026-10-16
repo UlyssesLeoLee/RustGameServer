@@ -83,6 +83,7 @@
 | `anticheat.signal.debug.raw_validation_dump` | 既有校验原始判定结果完整 dump（per §2.1 表中 4 类校验的内部状态） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + §5.1）：
+
 - `anticheat.signal.debug.raw_validation_dump` 在大场景下可能 2KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `anticheat.signal.raised.*` 全系列为 `error!` 级别（**非** `warn!`），因命中即代表作弊事实成立，触发即合规审计必须保留——满足反作弊域"作弊检测命中强制全采样 + 完整证据链"硬要求
 - 设备指纹/IP/地理位置 release 必出，但**值已脱敏**（哈希化/末段掩码/粗粒度区域）——per RGS-BAS-004 v0.3 §5.1 末段掩码规则
@@ -126,6 +127,7 @@ sequenceDiagram
 | `anticheat.outbox.debug.event_envelope_dump` | 完整事件 envelope（`payload` + `headers` + `trace_id`） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4）：
+
 - `anticheat.outbox.debug.event_envelope_dump` 在大 payload 下可能 2KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `anticheat.consumer.signal_lost` 是 **FR-ANT-003 既定"信号丢失可接受"边界**的运行时观察点——`warn!` 而非 `error!`，因丢失本身在设计容忍范围内，但**必须** release 必出供 SRE 监控丢失率（反作弊系统漏报追踪）
 - `anticheat.consumer.failed.exhausted` / `anticheat.consumer.failed.consumer_down` 触发即代表反作弊信号链全断——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 P0 告警链路立即捕获
@@ -182,6 +184,7 @@ sequenceDiagram
 | `anticheat.table.debug.schema_dump` | 3 张表完整 schema dump（含约束、索引、分区键） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4）：
+
 - `anticheat.table.anticheat_case.debug.full_row_dump` 在聚合大量信号时可能 1KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `anticheat.table.anticheat_case.status_transition` 是**案件生命周期合规审计的关键事件**——必须 release 必出 + §6.2 强制全采样，便于事后还原"谁在何时把案件从 A 状态推到 B 状态"
 - `anticheat.table.case_signal_link.bidirectional_query` 是**反作弊系统误报/漏报排查的核心抓手**——release 必出便于 SRE 按 `case_id` 维度快速定位"该案件由哪些信号聚合而成"
@@ -212,6 +215,7 @@ sequenceDiagram
 | `anticheat.index.debug.ddl_dump` | 3 张表完整 DDL dump（含约束/索引/分区键） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4）：
+
 - `anticheat.index.*_used` 系列为高频查询路径的索引命中事件——debug-only 守护，release 完全剔除，避免 RUST_LOG=info 时撑爆生产日志通道
 - `anticheat.partition.monthly.detached` 是 **NFR-ANT-003 既定 3 年保留期的物理执行点**——release 必出 + §6.2 强制全采样，确保合规审计可还原"何时清理了哪个分区的数据"
 - `anticheat.index.debug.execution_plan_dump` 在复杂查询下可能 3KB+ —— release build 完全剔除
@@ -237,6 +241,7 @@ sequenceDiagram
 | `anticheat.report.debug.full_report_payload` | 完整 `PlayerReport` payload dump（含举报内容/上下文引用） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，举报内容可能含敏感信息） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + §5.1）：
+
 - `anticheat.report.debug.full_report_payload` 举报内容可能含玩家对其他玩家的描述/聊天记录引用——`#[cfg(debug_assertions)]` 守护，release 完全剔除，避免隐私泄漏
 - `anticheat.report.reporter_reputation_weight_applied` 是**举报权重可追溯的关键事件**——release 必出 + §6.2 强制全采样，便于合规审计"这条信号最终生效权重是多少、由哪个举报者贡献"
 - `anticheat.report.conversion_failed` 触发即代表举报-信号链断裂——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 P0 告警链路立即捕获
@@ -271,6 +276,7 @@ sequenceDiagram
 | `anticheat.aggregation.debug.full_window_dump` | 聚合窗口内全部相关信号完整 dump（含 `raw_value`/`threshold_value`/`context_ref`） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，敏感数据） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + §5.1）：
+
 - `anticheat.aggregation.case_lookup_executed` / `anticheat.aggregation.threshold_evaluated` 是聚合逻辑的高频内部观察点——debug-only 守护，release 完全剔除，避免 RUST_LOG=info 时撑爆生产日志通道
 - `anticheat.aggregation.threshold_met.case_created` 是**案件生命周期的起点事件**——release 必出 + §6.2 强制全采样，确保合规审计可还原"案件何时因何信号阈值触发而建立"
 - `anticheat.aggregation.debug.full_window_dump` 可能含 5KB+ 完整证据链（per §6.2 反作弊域"完整证据链"硬要求）——release 完全剔除，仅在合规调查时手动开启
@@ -301,6 +307,7 @@ sequenceDiagram
 | `anticheat.rule.debug.signal_severity_breakdown` | 全部信号严重度分级明细 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4）：
+
 - `anticheat.rule.weight_coefficients_applied` / `anticheat.rule.signal_severity_classified` 是简单规则的内部参数——debug-only 守护，release 完全剔除，避免 RUST_LOG=info 时撑爆生产日志通道
 - `anticheat.rule.confidence_calculated` 是**置信度合规审计的关键事件**——release 必出 + §6.2 强制全采样，确保事后可还原"该案件的 confidence_score 是按什么公式由哪些信号加权得出"
 - `anticheat.rule.debug.formula_dump` 在加权公式复杂时可能 1KB+ —— release build 完全剔除
@@ -346,6 +353,7 @@ sequenceDiagram
 | `anticheat.fusion.debug.node_internals` | 节点内部状态（特征提取/历史基线比较/置信度计算中间值） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，**反作弊域特殊考虑：行为分析模型推理 debug-only 高频守护**） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + §5.1 + **反作弊域特殊考虑：行为分析模型推理 debug-only 高频守护**）：
+
 - `anticheat.fusion.debug.*` 系列**严禁** release 必出——行为分析模型推理是**高频 + 性能敏感**路径，prompt/中间输出/raw response/节点内部状态全部 debug-only 守护，release 完全剔除避免：
   1. 撑爆生产日志通道（节点中间输出在多节点图下可能 50KB+）
   2. 隐私泄漏（LLM 可能回填/重新引入 PII）
@@ -407,6 +415,7 @@ sequenceDiagram
 | `anticheat.review.debug.gm_session_context` | GM 会话上下文（GM IP/会话 ID/操作时间窗） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + **反作弊域特殊考虑：玩家封禁合规审计硬要求**）：
+
 - `anticheat.review.audit_log_write_failed` 是**关键设计纪律**——审计写失败触发 P0 告警 + **禁止降级通过**（per RGS-BAS-003 §7 + §5.1 时序图末段），`error!` 级别 + §6.2 强制全采样，便于 P0 告警链路立即捕获
 - `anticheat.review.ban_applied` / `anticheat.review.mute_applied` / `anticheat.review.warn_issued` 玩家封禁/禁言/警告为**合规审计硬要求**——必须 release 必出 + §6.2 强制全采样，确保事后能回放"哪笔案件触发了哪笔封禁/禁言/警告"
 - `anticheat.review.unauthorized_disposition_attempt.blocked` 是**AC-ANT-003 处置权收口验证**的运行时事件——`error!` 级别，release 常驻 + §6.2 强制全采样
@@ -435,6 +444,7 @@ sequenceDiagram
 | `anticheat.notification.debug.full_template_render` | 通知模板完整渲染 dump（含所有占位符填充结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，**严禁** release 必出以防泄漏被举报者信息） | 约 200B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + **反作弊域特殊考虑：举报处理合规审计 + 隐私边界硬要求**）：
+
 - `anticheat.notification.debug.full_template_render` **严禁** release 必出——模板渲染 dump 可能意外含被举报者信息（即使代码层已脱敏，渲染结果仍可能残留），release 完全剔除避免隐私泄漏
 - `anticheat.notification.privacy_violation_blocked` 是**§5.2 末段隐私边界的运行时兜底**——`error!` 级别，release 常驻 + §6.2 强制全采样，便于 P0 告警链路立即捕获任何"试图把被举报者信息塞进举报者通知"的异常路径
 - `anticheat.notification.reporter_notified` / `anticheat.notification.privacy_boundary_enforced` 是**举报处理合规审计硬要求**——必须 release 必出 + §6.2 强制全采样，确保事后能回放"哪笔举报收到了什么通知、是否通过隐私边界"
@@ -467,6 +477,7 @@ sequenceDiagram
 | `anticheat.reversal.debug.full_chain_dump` | "处置→撤销"完整审计链 dump（per §5.3 末段"审计链条保持完整历史"硬约束） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 + §4.4 + **反作弊域特殊考虑：玩家解封合规审计硬要求 + 审计链完整性硬要求**）：
+
 - `anticheat.reversal.audit_log_write_failed` 是**关键设计纪律**——审计写失败触发 P0 告警 + **禁止降级通过**，同 §5.1，`error!` 级别 + §6.2 强制全采样
 - `anticheat.reversal.original_record_preserved` 是**§5.3 末段"审计链条保持处置→撤销完整历史"硬约束的运行时验证**——release 必出 + §6.2 强制全采样，确保事后能验证"原处置记录未被修改/删除"
 - `anticheat.reversal.ban_lifted` / `anticheat.reversal.mute_lifted` / `anticheat.reversal.signal_flagged_false_positive` 为**玩家解封合规审计 + 反作弊系统误报率统计**的硬要求——必须 release 必出 + §6.2 强制全采样

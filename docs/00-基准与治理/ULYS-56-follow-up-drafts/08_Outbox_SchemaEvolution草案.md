@@ -13,6 +13,7 @@
 **当前**: 6 域 outbox 表通过逐次 `0XXX_outbox*.sql` migration 演进 (per `crates/admin-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` 模式)。
 
 **缺口**:
+
 1. 无显式 schema 演进流程文档（migration 是隐式约定）
 2. 无回滚策略（如何撤销破坏性 schema 变更）
 3. 无兼容性策略（旧 outbox 行 schema 与新 schema 不匹配时如何处理）
@@ -25,11 +26,13 @@
 ### 2.1 Expand-Contract 模式 (per ARC-015 已采纳)
 
 **Expand 阶段**:
+
 1. 新增列（向后兼容, 旧代码不感知）
 2. 部署：先迁移 schema, 再部署新代码（读旧列 + 写新列）
 3. 验证：新列数据正确填充
 
 **Contract 阶段**:
+
 1. 移除旧列（破坏性, 但确认无代码再读旧列后再执行）
 2. 部署：先部署不再读旧列的代码, 再迁移 schema 移除旧列
 3. 验证：旧列引用检查无残留

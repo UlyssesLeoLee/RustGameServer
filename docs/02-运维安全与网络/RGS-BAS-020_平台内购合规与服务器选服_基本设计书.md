@@ -224,6 +224,7 @@ sequenceDiagram
 | `pay.component.health_degraded` | 组件依赖（DB pool / 平台 HTTP 客户端）健康度降级，触发熔断（per RGS-BAS-010 §3.2 Circuit Breaker 模式） | 极低（依赖故障时） | release 必出（`warn!` 强制全采样） | 含 `component` / `dependency` / `degradation_mode`；约 240B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §4.8.3.2 二维矩阵）：
+
 - `pay.component.adapter_selected` 是高频事件（按每笔收据触发），**必须** `#[cfg(debug_assertions)]` 守护——release profile 即便允许 RUST_LOG=debug 开启，这一条也必须剔除（per BAS-001 v1.5 §4.8.3.1 采样策略列定义）
 - `pay.component.config_loaded` 中的 `key_fingerprint` 是 SHA-256 截断（8 字节 hex），**不**可逆推出原始密钥，符合 BAS-004 v0.3 §5.1 凭据类黑名单规则
 - `pay.component.config_load_failed` 的 `key_kind` 字段仅写枚举值（`shared_secret` / `public_key`），**不**写文件路径或错误堆栈中的路径片段
@@ -261,6 +262,7 @@ sequenceDiagram
 | `pay.receipt.debug.receipt_envelope_dump` | 完整客户端提交收据 envelope（**不**含 JWS 解码内容，仅 envelope 结构） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + 平台内购域特殊考虑）：
+
 - `pay.receipt.debug.platform_response_dump` 中若包含 `receipt_creation_date_ms` 等非敏感元数据仍可记录，但若包含 `original_transaction_id` 等与 PII 关联字段须以**字段脱敏**形式记录（`original_transaction_id` 仅保留前 4 字节，per BAS-004 v0.3 §5.1 自定义脱敏规则）
 - **支付凭证/卡号/PayPal 账号 → 禁止记录**（per BAS-004 v0.3 §5.1 `*card*` / `*paypal*` / `*credential*` 黑名单自动丢弃）；本节所有 `pay.receipt.*` 字段集已规避，仅在 `debug.*` 守护项中允许记录 envelope 结构，**不**记录原始收据明文
 - `pay.receipt.verify.failed.invalid_signature` 是**反欺诈信号**，需 release 必出以供风控系统按 `account_id` 维度聚合（per NFR-PLT-001 合规追溯）
@@ -296,6 +298,7 @@ sequenceDiagram
 | `pay.receipt.retry.debug.pending_record_dump` | `PendingReceiptVerification` 单条完整记录（除 `raw_receipt` 字段外） | 偶发（事故复盘） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 400B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RSK-PLT-001 不可逆追溯诉求）：
+
 - `pay.receipt.retry.*` 全部走 release 必出，**不**允许降级为 `debug!`——这是合规审计的硬要求（per NFR-PLT-001：内购订单全生命周期可追溯；SRE 按 `pending_id` 维度聚合可定位"已扣款但未发放"的事件）
 - `pay.receipt.retry.exhausted` 是 SRE 关注的最高优先级事件，建议告警通道直接路由（per NFR-OP-008 排查 SLA）
 - `pay.receipt.retry.scheduler_overrun` 是队列健康度指标——若持续 overrun 说明 DB 端或调度策略有问题（per RGS-BAS-010 §3.5 HPA 调度背压同类）
@@ -327,6 +330,7 @@ sequenceDiagram
 | `pay.payment_order.debug.full_envelope` | `PaymentOrder` 完整字段集（含 `refund_status` 当前值，但**不**含 `raw_receipt` 等敏感字段） | 偶发（事故复盘） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pay.payment_order.environment_validated` 走 debug-only 是有意为之——成功路径若 release 必出会因开服/活动瞬时高 QPS 撑爆日志通道（per BAS-001 v1.5 §4.8.3.1 频率估算原则）
 - `pay.payment_order.environment_mismatch` 走 `error!` 强制全采样——这是反欺诈关键信号，风控系统需按 `account_id` 维度聚合（per NFR-PLT-001）
 - `pay.payment_order.debug.full_envelope` **不**含 `raw_receipt`（原始收据明文在 BAS-004 v0.3 §5.1 黑名单中），仅记录结构化字段集
@@ -360,6 +364,7 @@ sequenceDiagram
 | `pay.refund.status_transition` | `refund_status` 状态机迁移（per FR-PLT-003；同 §2.4 `pay.payment_order.refund_status_transition` 同步） | 极低 | release 必出（`info!` 强制全采样） | 含 `payment_order_id` / `from_state` / `to_state`；约 220B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + 平台内购域特殊考虑）：
+
 - `pay.refund.debug.webhook_payload_dump` **必须**实现层做字段过滤——`unified_receipt` / `original_transaction_id` / `notification_type` 等可记，但**禁止**记录任何 `*card*` / `*paypal*` / `*account_number*` 等黑名单字段（per BAS-004 v0.3 §5.1）
 - `pay.refund.clawback.mode_selected` 走 debug-only 是有意为之——TBD-PLT-001 在详设阶段才会确定，detail 设计前 release 不应记录具体模式（避免被外部参考实现误解为已定案）
 - `pay.refund.clawback.completed` 中的 `clawed_back_amount` 是**业务结果**（不涉及 PII），release 必出以供财务对账
@@ -390,6 +395,7 @@ sequenceDiagram
 | `pay.realm.router.debug.rule_resolution` | 选服规则解析细节（白名单命中/优先级匹配/最终选用服的决策路径） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 280B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pay.realm.directory.list_served` 的稳态 1/s 是按 DAU 摊销的估算，开服瞬时可达 50/s；release 必出确保 SRE 可在活动期间按 `account_id` 维度分析玩家拉取模式
 - `pay.realm.directory.debug.cache_lookup` 高频事件必须 `#[cfg(debug_assertions)]` 守护——release 误开 RUST_LOG=debug 会撑爆日志通道（per BAS-001 v1.5 §4.8.3.1）
 
@@ -421,6 +427,7 @@ sequenceDiagram
 | `pay.realm.route.debug.realm_hint_compare` | 客户端 hint `realm_id` 与服务端查询的 `primary_realm_id` 一致性对照 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 240B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pay.realm.route.player_choice` 的 `server_validated` 字段是布尔值，**不**依赖客户端声明（per ARC-005 服务器权威原则）；若客户端提交的 `chosen_realm_id` 与服务端可分配列表不一致，应记录 `server_validated=false` 并改走"客户端 hint 与服务器决策不一致"分支——本字段是反作弊关键
 - `pay.realm.route.rbac_denied` 中的 `compliance_status` 仅写枚举值（`active` / `minor_restricted` / `banned`），**不**写具体封禁原因（per BAS-004 v0.3 §5.1）
 - `pay.realm.route.debug.realm_hint_compare` 是反作弊诊断信号，仅 debug 守护——release 下若玩家主服被恶意修改客户端 hint 试探，此项也**不**应暴露给普通 SRE（需 OTel RBAC 控制访问，per RGS-BAS-003 §6.3 告警事件分级）
@@ -448,6 +455,7 @@ sequenceDiagram
 | `pay.realm.isolation.debug.key_construction` | `(account_id, realm_id)` 主键构造细节（含 SQL bind 顺序、sharding key 选择） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 280B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §3.3 ARC-005 服务器权威原则）：
+
 - `pay.realm.isolation.mismatch_detected` 是**安全告警**，必须 release 必出 + 强制全采样（per BAS-004 v0.3 §6.2）；不应被 `#[cfg(debug_assertions)]` 守护——一旦被守护，攻击事件将无法在生产环境被检测
 - `pay.realm.isolation.account_data_scope_check` / `character_data_scope_check` 高频成功路径走 debug-only，**有意**不在 release 暴露成功路径——这些是归属键正确性的内部断言，非业务事件
 - `pay.realm.isolation.cross_realm_attempt_blocked` 应同时触发 OTel 告警（per RGS-BAS-003 §6.3），SRE 通道与安全审计通道均应可见
@@ -484,6 +492,7 @@ sequenceDiagram
 | `pay.merge.rule.debug.draft_diff` | 草稿与已锁定版本的完整字段差异对照（用于事故复盘） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-PLT-021 运营追溯诉求）：
+
 - `pay.merge.rule.*` 全部走 release 必出，**不**允许降级为 `debug!`——这是合服作业合规追溯的硬要求（per FR-PLT-021：合服作业必须留痕；NFR-PLT-001：合服结果可追溯）
 - `pay.merge.rule.modified_after_lock` 走 `warn!` 强制全采样——若此事件在生产环境出现，意味着有人在"执行人员临时决定"边缘试探，是 FR-PLT-021 明确禁止的情形（per §4.1）
 - `pay.merge.rule.debug.draft_diff` 仅在事故复盘时使用，release 完全剔除——避免给执行人员提供"先演练锁定再修改"的违规路径的可见性
@@ -518,6 +527,7 @@ sequenceDiagram
 | `pay.merge.job.debug.conflict_resolution_log` | 冲突解决规则的逐项应用记录（同名角色 / 重复道具 / 货币累加的实际结果） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（冲突项数决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-PLT-021 合服合规诉求）：
+
 - `pay.merge.job.skipped_drill_attempt` / `pay.merge.job.modified_rule_after_drill` 是**反违规告警**，必须 release 必出 + 强制全采样；这些事件应路由至安全审计通道（per RGS-BAS-003 §6.3 告警事件分级）
 - `pay.merge.job.asset_consistency_check_failed` 是 SRE 关注最高优先级事件之一，建议直接 PagerDuty 告警（per NFR-OP-008 排查 SLA）
 - `pay.merge.job.debug.entity_distribution` 在合服后可能数 MB（按所有业务表分组）——release 完全剔除避免撑爆日志通道；SRE 若需此信息应直接查询 PostgreSQL 副本（per RGS-BAS-001 §3.5 缓存不得作为仲裁者原则）
@@ -552,6 +562,7 @@ sequenceDiagram
 | `pay.checklist.pre_launch.debug.full_state_dump` | 完整检查状态快照（含每项的详细证据摘要） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（8 项决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `pay.checklist.pre_launch.*` 全部 release 必出，**不**降级——这是上线前合规留痕的硬要求（per FR-PLT-005 + §5.1 注：上线前合规审计）
 - `pay.checklist.pre_launch.release_blocked` 应同时触发 PagerDuty 告警（per NFR-OP-008 排查 SLA），确保运营/合规及时介入
 
@@ -574,6 +585,7 @@ sequenceDiagram
 | `pay.checklist.code_review.debug.violation_evidence` | 违规项的完整证据（代码片段、上下文行、控制流） | 偶发（事故复盘） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（代码片段长度决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-PLT-021 反违规诉求）：
+
 - `pay.checklist.code_review.violation.detected` 必须 release 必出 + 强制全采样——这是**反违规信号**而非普通业务事件（per RGS-BAS-003 §6.3 告警事件分级），release 下被 `#[cfg]` 守护会失去防御能力
 - `pay.checklist.code_review.merge_blocked` 应路由至 SRE + 合规双通道（per NFR-PLT-001 合规追溯 + NFR-OP-008 排查 SLA）
 - `pay.checklist.code_review.debug.violation_evidence` 仅供事故复盘使用，release 完全剔除——避免给违反者提供"如何绕开"的可见性（per FR-PLT-021 + §5.2 静态检查定位）

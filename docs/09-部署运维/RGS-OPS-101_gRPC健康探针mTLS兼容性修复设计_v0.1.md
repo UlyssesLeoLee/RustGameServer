@@ -38,11 +38,13 @@ Phase 0.5 部署验证阶段，`player-service`（及其余 5 域服务）Pod �
 
 1. **Health 服务从未注册**。全仓库 `grep -rn "tonic_health\|HealthServer\|health_reporter"` 命中为 0——6 个服务的 `main.rs` 都只 `add_service(<业务 Service>)`，从未 `add_service(<grpc.health.v1.Health>)`。任何针对 Health 服务的 RPC 都会收到 `UNIMPLEMENTED`。
 2. **k8s 原生 `grpc:` 探针无法出示客户端证书**。6 份 manifest（`01~06-*.yaml`）均使用：
+
    ```yaml
    livenessProbe:
      grpc:
        port: 50051
    ```
+
    kubelet 内建 gRPC 探针（stable since 1.27）在 PodSpec 层面**没有 TLS/客户端证书配置项**，探测请求恒为明文。而 `main.rs` 通过 `shared_platform::tls::load_server_tls_config` 强制 `client_ca_root`，tonic 0.12 默认 `client_auth_optional = false`——服务端在 TLS 握手阶段即拒绝无证书连接。探针连接因此在握手层被拒绝/挂起，而非在应用层收到 RPC 错误，表现为超时而非快速失败。
 
 ### 1.2 需求

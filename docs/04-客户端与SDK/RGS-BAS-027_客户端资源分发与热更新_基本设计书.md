@@ -120,6 +120,7 @@
 | `cdn.diff.latency_exceed_nfr` | 差异计算延迟超过 NFR-CDN-001 阈值（默认 500ms） | 极低 | release 必出（`warn!` 强制全采样，per BAS-004 v0.3 §6.2） | 含 `latency_ms`／`entry_count`／`instance_id`；约 220B/条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cdn.diff.comparison_detail` 频率为 `cdn.diff.computed` 的 O(n) 倍（n=文件数），**必须** `#[cfg(debug_assertions)]` 守护以避免 release build 撑爆生产日志通道
 - `cdn.diff.p99_latency` 即使在 release 也需常驻（**算法性能基准**，NFR-CDN-001 监控硬要求），不允许走 debug-only
 

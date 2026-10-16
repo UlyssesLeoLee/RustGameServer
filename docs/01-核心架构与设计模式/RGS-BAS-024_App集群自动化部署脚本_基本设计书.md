@@ -276,6 +276,7 @@ environment_overrides:
 | `deploy.manifest.debug.parsed_object_dump` | 解析后的结构化对象 dump（含每 App 完整字段） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 3-30KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `deploy.manifest.debug.raw_yaml_dump` 在大型清单（23 个 App 估算）下可达 30KB+ —— `#[cfg(debug_assertions)]` 守护避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `deploy.manifest.*_error` 系列**绝不写明文 secrets**（per BAS-004 v0.3 §5.1 脱敏黑名单）：`environment_overrides` 段虽不直接含连接串，但**禁止**在 error 字段中回显原始 YAML 片段以免泄露后续追加的 secret 字段
 - `deploy.manifest.environment_override_applied` 是 §9 审计联动的关键源（**配置变更** → 状态表 + 审计留痕），必须 release 必出
@@ -301,6 +302,7 @@ environment_overrides:
 | `deploy.graph.debug.adjacency_list_dump` | 邻接表逐行 dump（用于可视化复盘） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `deploy.graph.debug.full_dag_dump` 邻接表逐行打印在高 App 数（23 个）+ 高边数场景下可能 10KB+ —— `#[cfg(debug_assertions)]` 守护避免 release 误开 RUST_LOG=debug 时淹没生产日志
 - `deploy.graph.node_registered` / `edge_inserted` 是**每 App/每边一条**的细粒度事件，在大型清单下累积字节数显著（23 个 App + ~30 条边 ≈ 12KB/部署），但仍 release 必出 —— **配置拓扑**的完整可观测是 RSK-DEP-001 防护的关键（清单被遗漏时通过节点注册事件缺失立即可见）
 - `deploy.graph.construction_failed` 必须 `error!` 强制全采样（per FR-DEP-002 + NFR-OP-008 排查 SLA），含 `trace_id` 便于跨服务追踪
@@ -328,6 +330,7 @@ environment_overrides:
 | `deploy.validate.debug.closure_dump` | `depends_on` 传递闭包 dump（每 App 完整闭包） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `deploy.validate.cycle_detected` 报告**完整环路径**（`[TRD, EVT, TRD]`）以便 SRE 一眼定位循环依赖，但禁止在路径中夹带 secrets —— `depends_on` 字段本身无 secret，但**禁止**未来扩展为带凭据依赖时回显
 - `deploy.validate.failed` 是 RSK-DEP-001（新增域 App 时集群清单遗漏）的**关键审计事件**——与 §7 强制联动 CI 校验形成双层防护（CI 拦截 + 运行时拦截），必须 `error!` 强制全采样
 - `deploy.validate.debug.closure_dump` 传递闭包在高 App 数下可能 5KB+ —— `#[cfg(debug_assertions)]` 守护避免 release 误开 RUST_LOG=debug 时撑爆日志
@@ -351,6 +354,7 @@ environment_overrides:
 | `deploy.topology.debug.kahn_progress_trace` | Kahn 入度更新逐事件 trace（每 pop/push 一次） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `deploy.topology.level_summary` 是**性能基准**的源头（per NFR-DEP-003 + §9A 估算依据 "App 总数 / 依赖图层级数估算"）—— 必须在 release profile 输出用于 PH-4 实测校准，**不**走 `debug!` 守护
 - `deploy.topology.sink_detected` 是**拓扑完整性审计**事件（per §3.2 校验"理论保证" + 此处运行时兜底），用于发现配置中可能的"孤儿分支"（如某域 App 注册了但无任何 App 依赖之，可能为退场未清理）
 - `deploy.topology.kahn_queue_exhausted` 是**防御性 error 事件**（理论上 §3.2 校验已拦截环，Kahn 耗尽说明存在并发清单修改或校验漏过）—— 必须 `error!` 强制全采样 + 含 `remaining_apps[]` 用于人工定位
@@ -404,6 +408,7 @@ for level in topological_levels:
 | `deploy.app.debug.helm_release_output` | Helm Release 调用完整 stdout/stderr（含底层 pod event / describe 输出） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-50KB/条（kubectl output 决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + ARC-018 既有部署机制边界）：
+
 - `deploy.app.debug.helm_release_output` 在 Helm Release 失败时 kubectl describe 输出可达 50KB+ —— `#[cfg(debug_assertions)]` 守护避免 RUST_LOG=debug 误开时撑爆生产日志通道（这是用户特别注明的"部署详细日志 kubectl exec 输出 → debug-only"要求）
 - `deploy.run.*` 全系列 release 必出（`info!`/`warn!`/`error!`）—— **部署任务执行**是 §9 审计联动（`cluster_deploy_state_change` 事件类型）的核心源头，per §6.2 强制全采样白名单
 - `deploy.app.state_transition` 累积字节数显著（23 App × 5-6 状态 = ~120 条/部署 × 260B ≈ 31KB/部署），但仍 release 必出 —— **完整状态轨迹**是事后复盘 RSK-DEP-001/002 唯一可信来源
@@ -435,6 +440,7 @@ for level in topological_levels:
 | `deploy.app.debug.helm_diff_dump` | Helm `helm diff` 插件完整输出（per §6.1 dry-run） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-20KB/条（manifest 大小决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + ARC-018 既有机制边界）：
+
 - `deploy.app.debug.helm_diff_dump` 在大型 manifest 下可达 20KB+ —— `#[cfg(debug_assertions)]` 守护避免 release 误开 RUST_LOG=debug 时撑爆生产日志
 - `deploy.app.health_check_*` 系列是**部署任务执行关键事件**（per §4.1 `deploy.app.state_transition` RUNNING→SUCCEEDED 判定依据），per §6.2 强制全采样
 - `deploy.idem.app_skipped_succeeded` 是**幂等性证明**的审计依据（per §5 主条款 "重复调用本身也是幂等的，跳过只是为了缩短续跑时长"），必须 release 必出供 SRE 验证"为何该 App 在本 run 中未触发实际部署"
@@ -465,6 +471,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.dry_run.debug.per_resource_diff` | 逐 resource 级别 diff dump（Deployment / Service / ConfigMap 等） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-100KB/条（resource 数决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + ARC-018 既有部署机制边界）：
+
 - `deploy.dry_run.debug.full_diff_output` / `deploy.dry_run.debug.per_resource_diff` 累计可达 100KB+ —— `#[cfg(debug_assertions)]` 守护避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `deploy.dry_run.phase_skipped` 是**dry-run 边界审计**的关键事件（防止 dry-run 模式被错误地升级为实际部署），必须 release 必出供合规审计（per §6.1 "不产生任何实际部署副作用" 强约束）
 - `deploy.dry_run.drift_detected` 是**配置漂移审计**的源头（per §3.2 校验"通过"后，运行时发现 actual 与 target 不一致——可能是 chart 渲染后实际值与期望差异），走 `warn!` 强制全采样供 SRE 排查 Helm value 覆盖 / K8s 实际资源漂移
@@ -501,6 +508,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.rollback.debug.pre_rollback_revision_dump` | 回滚前每 App 当前 revision 列表 dump（per §6.2 "取该run中状态为SUCCEEDED的App列表"） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + 用户特别注明的"部署详细日志 kubectl exec 输出 → debug-only"）：
+
 - `deploy.rollback.debug.helm_rollback_output` 在回滚 K8s 资源更新详情时 kubectl describe 输出可达 100KB+ —— `#[cfg(debug_assertions)]` 守护避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `deploy.rollback.*` 全系列 release 必出（`info!`/`warn!`/`error!`）—— **回滚作为部署任务执行的特殊形态**，per §6.2 强制全采样白名单 + §9 审计联动 + 用户特别注明"启动/暂停/恢复/回滚 → release 必出 + 强制全采样"
 - `deploy.rollback.app_rollback_skipped` 是**回滚顺序强制**的审计依据（per §6.2 "回滚顺序刻意与部署顺序相反" 强约束），用于 SRE 排查"为何某 App 未回滚"——可能是上游依赖链已断，需先处理
@@ -533,6 +541,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.ci.debug.domain_registry_dump` | 域注册表完整 dump（每域 code + description） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RSK-DEP-001 防护）：
+
 - `deploy.ci.debug.full_manifest_dump` 在大型清单（23 个 App 估算）下可达 30KB+ —— `#[cfg(debug_assertions)]` 守护避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `deploy.ci.missing_app_detected` 是 **RSK-DEP-001 防护的关键审计事件**——与 §3.2.1 `deploy.validate.failed` 形成**双层防护**（CI 阶段拦截 + 运行时拦截），必须 `error!` 强制全采样
 - `deploy.ci.check_passed` 虽高频（10-100/h）但 release 必出 —— **完整审计轨迹**是事后复盘"为何某 PR 通过了 CI 但运行时仍失败"的唯一可信来源（可能 CI 与运行时环境差异 / 域注册表不同步）
@@ -571,6 +580,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.cli.debug.subcommand_trace` | 子命令逐阶段 trace（参数解析→配置加载→清单读取→§3 构建→§3.2 校验） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 0.5-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 脱敏黑名单 + §10 选型建议）：
+
 - `deploy.cli.debug.full_args_dump` 中的 `--registry-credentials` / `--vault-token` 等敏感参数**必须**在 CLI 解析阶段以独立 `let` 绑定（per BAS-004 v0.3 §4.3 规则 #4），**绝不**进入 `debug!` 宏参数—— 避免 release build 误开 RUST_LOG=debug 时凭据泄露
 - `deploy.cli.subcommand_invoked` / `completed` 是**部署任务执行**的关键入口/出口节点（per §6.2 强制全采样白名单 + 用户特别注明的"部署任务执行 → release 必出"），必须 release 必出
 - `deploy.cli.local_invocation` 是**本地 vs CI 边界审计**的依据（per §10 "CLI工具不直接持有CI平台的凭据/触发权限"）—— 本地调用不走 CI 平台权限模型，必须 release 必出供合规审计
@@ -602,6 +612,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.ha.debug.pg_connection_dump` | 完整 PostgreSQL 连接串 dump（用于复盘连接问题） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护；**绝不**含明文密码） | 约 0.2-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 脱敏黑名单 + RGS-BAS-003 §7 + ARC-020 + §5 反模式）：
+
 - `deploy.audit.debug.audit_record_dump` 中的 `payload` 字段**可能含触发者 token**（per §9 "每条状态迁移记录...触发者"）—— 必须在 dump 前通过独立 `redact_audit_payload()` 函数过滤（per §5.1 黑名单 + ARC-020 + §5 反模式"日志先明文记录…" 同类禁止）
 - `deploy.ha.debug.pg_connection_dump` **绝不**含明文密码 —— 通过独立 `redact_pg_endpoint()` 函数将 `password=<...>` 部分过滤为 `password=***`，per §5.1 脱敏 + ARC-020 + §5 反模式
 - `deploy.audit.audit_write_failed` 是 **P0 告警事件**（per RGS-BAS-003 §7.1 "审计写失败触发 P0 告警 + 禁止降级通过"），必须 `error!` 强制全采样 + 含 `trace_id` 便于跨服务追踪 —— **绝不**降级通过（per RGS-BAS-003 §7.1 同类纪律）
@@ -649,6 +660,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.duration.debug.historical_distribution` | 历史 P50/P99 分布 dump（用于 §9A 估算漂移分析） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（历史样本数决定，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-DEP-003 + §9A 估算纪律 + NFR-PE-008 性能监控）：
+
 - `deploy.duration.run_completed` / `deploy.duration.level_elapsed_ms` / `deploy.duration.app_elapsed_ms` 是 **NFR-PE-008 性能监控的源头数据** —— **必须** release 必出（`info!` 强制全采样），不进入 `debug!` 守护
 - `deploy.duration.p99_exceeded` 是 **NFR-OP-008 SLA 保障**的告警事件（per §9A "P99 不超过 20 分钟"），必须 `error!` 强制全采样 + 含 `stuck_level` 便于定位超时发生在哪一层
 - `deploy.duration.disaster_recovery_excluded` 是**避免误统计审计**的强约束（per §9A "局限声明" —— RSK-DEP-002 灾备重建耗时须单独测算不得混合统计），必须 release 必出供 SRE 区分"应用部署时长" vs "灾备恢复时长"
@@ -683,6 +695,7 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 | `deploy.tooling.debug.pipeline_parameter_dump` | Pipeline 触发参数完整 dump（含所有 --flag） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护；**绝不**含明文 secret） | 约 0.5-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 脱敏黑名单 + §10 选型建议 + ARC-020 + §5 反模式）：
+
 - `deploy.tooling.debug.ci_platform_binding_dump` / `deploy.tooling.debug.pipeline_parameter_dump` 中的 `api_token` / `pipeline_secret` / `vault_token` 等敏感字段**必须**在 dump 前通过独立 `redact_ci_binding()` / `redact_pipeline_params()` 函数过滤（per §5.1 黑名单 + ARC-020 + §5 反模式"日志先明文记录…" 同类禁止），将 `token=<...>` 部分过滤为 `token=***`
 - `deploy.tooling.ci_pipeline_invocation_triggered` 的 `parameterized_args_hash` 字段使用 SHA256 摘要**而非**明文 args（per §5.1 脱敏 + §8.1 `deploy.cli.subcommand_invoked` 同类纪律），既保留"本次触发使用了哪些参数"的审计能力，又避免明文回显
 - `deploy.tooling.tbd_dep_001_status_updated` 是**选型决议审计**的源头（per §10 "TBD-DEP-001状态标记为'部分决议'" + 用户决策轨迹），用于追溯"Rust CLI + CI Pipeline"选型何时落地
@@ -743,4 +756,3 @@ Dry-run模式执行§3的构建与校验、§3.3的拓扑排序，输出：各�
 - **§6.2 强制全采样的"灰度/金丝雀发布"具体事件名未单列** —— 灰度发布在本文档未独立成章（per §10 选型建议 "CLI生成参数化的Pipeline触发请求"），实际灰度策略在 ARC-018 挂载脚手架的 chart values 中实现；待 ARC-018 灰度发布细节明确后，在 §8.1 `deploy.cli.subcommand_invoked` 字段中追加 `rollout_strategy` 子字段（per BAS-004 v0.3 §4.3.2 业务扩展字段规范），建议在 PH-4 实测阶段补齐
 - **灾备重建（DR）场景的 run 日志未单列** —— RSK-DEP-002 灾备重建基础设施恢复的日志字段未在本文档展开（per §9A "局限声明"），需 PH-4 灾备演练时根据实测补充
 - **§10.1 选型落地的"完全决议"状态未触发** —— 当前 TBD-DEP-001 状态为"部分决议"（per §10 主条款），具体 CI 平台绑定细节待实施阶段技术评审，`deploy.tooling.tbd_dep_001_status_updated` 事件待完全决议时触发
-

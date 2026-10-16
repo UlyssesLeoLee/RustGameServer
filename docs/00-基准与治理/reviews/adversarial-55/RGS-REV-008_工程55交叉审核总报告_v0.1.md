@@ -17,6 +17,7 @@
 | **D** | testing + integration | **11** (1C/3H/5M/2L) | ~4d | [verify-D_testing-integration.md](./verify-D_testing-integration.md) |
 
 **汇总**：
+
 - **Issues 总数（含重叠）**：70（10C/20H/26M/14L）
 - **去重独立 issues**（按 file:line 主键）：~35
 - **总估时**：~74d（与 A 报告实际工时比 token-OLU 估时 ~1-1.5 token-工作日）
@@ -37,6 +38,7 @@
 | (B/C 共 4) | 多 | 5 域 + cluster-ops main.rs dev fallback 静默降级（与 AC-1 同一根因）| 未修 | 生产 |
 
 **去重后 4 个独立 CRITICAL 待修**：
+
 1. **AC-1/CC-x** fail-closed 防线 6 域失守
 2. **CC-3** outbox migration CHECK 约束
 3. **CC-4** apply_atomic OCC 失败补偿 + reservation 清理
@@ -68,34 +70,40 @@
 ## 4. 关键交叉发现（4 报告一致确认）
 
 ### 4.1 fail-closed 防线失守（最大安全漏洞）
+
 - 55.18 加 `RpcChannelConfig.require_tls = true` 默认 + `mtls_bypassed_total` 计数器
 - 55.21+22 在 6 域 main.rs 全部用 `match load_server_tls_config { Ok → Some, Err → warn + None }` 模式
 - 后果：k8s 配错 cert 路径 → 6 域**全部静默走 insecure gRPC** + 计数器只 client 端可见，server 端不感知
 - 修复建议：5 域 main.rs 改为 `Err → process::exit(1)` fail-fast（dev 用 `rgs-testkit` mock cert）
 
 ### 4.2 SagaOrchestrator::execute 三状态
+
 - 原实现强校验 `status == Pending`
 - 55.23 30s 崩溃恢复轮询 `list_running(100)` 找的全是 `Running`/`Compensating` → 全部被拒
 - **已修**：execute 现在接受 Pending/Running/Compensating（commit `9d8ed26`）
 
 ### 4.3 audit_log 死代码
+
 - 55.13 升级 SHA-256 + 事务化 + UNIQUE(prev_hash) + append_atomic trait
 - admin main.rs 调 `AdminServiceImpl::new(users, audit)` 而非 `.with_pool(pool)` → 走 InMemory fallback
 - **已修**：admin main.rs 调 with_pool（commit `9d8ed26`）
 - 仍缺：`verify_chain()` 函数本身**不存在**，即使升级到 SHA-256 也没独立验证器
 
 ### 4.4 apply_atomic OCC 失败补偿
+
 - 55.1 修复 credit/debit 多步非原子
 - 但 OCC 失败时 service.debit 直接返 Error，account 已改 ledger 未写 → 状态不一致
 - reservation save 失败 / apply_atomic 失败 → reservation 留在 DB 无清理（dangling）
 
 ### 4.5 admin migrations 0002 冲突
+
 - 55.13 加 `0002_audit_prev_hash_unique.sql`
 - 55.17 加 `0002_outbox.sql`（应该是 `0003_outbox.sql`）
 - sqlx::migrate! 0.8.6 编译期 reject 重复版本号
 - **已修**：重命名为 `0002_audit.sql` + `0003_outbox.sql`（commit `9d8ed26`）
 
 ### 4.6 范围口径校正
+
 - 4 报告都指出任务原范围 `ec43377..2fe68b4 = 3 commit` 笔误
 - 实际范围 `10bd5b1..2fe68b4 = 13 commit`（55.15 → 55.21+22）
 - 这是流程问题，建议 WBS 任务书模板加"自动 git rev-list 范围校验"
@@ -121,17 +129,21 @@
 ## 6. 决策建议
 
 ### 6.1 立即修（55.26 单一 milestone）
+
 - AC-1 fail-closed 6 域失守 — `match Err → exit(1)` 模式
 - DC-1 SagaOrchestrator::resume 缺测试 — 加 4 个 test 覆盖 Pending→Running 转移 + Running step 重入
 
 ### 6.2 55.27
+
 - CC-3 outbox CHECK 约束
 - CC-4 apply_atomic OCC 失败补偿
 
 ### 6.3 56.x
+
 - 14 HIGH 剩余 + 26 MEDIUM + 14 LOW
 
 ### 6.4 长期
+
 - 范围口径模板化（WBS 任务书 + verifier brief 都用 `git rev-list --count` 自校）
 
 ---

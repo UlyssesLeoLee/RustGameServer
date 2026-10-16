@@ -78,6 +78,7 @@ stateDiagram-v2
 | `hall.lobby.debug.actor_state_machine_trace` | 单个大厅 Actor 状态机全迁移轨迹（鉴权→大厅→战斗→大厅→登出） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.lobby.scene_entered` / `hall.lobby.scene_exited.*` / `hall.lobby.session_logout` 均为 `info!` 级别（§4.2 二维矩阵 `info!` 行 release 常驻），不挂 `#[cfg]`，确保 SRE 可按 `character_id` + `scene_id` 维度聚合大厅→战斗转化率
 - `hall.lobby.actor_supervisor.restart` 是 `error!` 级别（§4.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全量采集），**不**挂 `#[cfg]`，与 BAS-010 §4 G-013 指数退避纪律联动
 - `hall.lobby.debug.aoi_snapshot` 在大型公会战期间可能 1-5KB × 0.1/s —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
@@ -111,6 +112,7 @@ stateDiagram-v2
 | `hall.presence.debug.cache_full_scan` | FR-PL-006 在线状态缓存全量扫描 dump（用于隐私审计/合规检查） | 极低（按需/合规抽检） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-50KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.team.*` / `hall.presence.filtered_published` 均为 `info!` 级别（§4.2 二维矩阵 `info!` 行 release 常驻），便于 SRE 按 `team_id` / `character_id` 维度聚合组队转化率
 - `hall.plugin.activity_lookup` 是 `info!` 级别，**不**挂 `#[cfg]`，确保活动开启/关闭期间插件可观测性完整
 - `hall.team.debug.member_list_full_dump` 在 6 人队伍 dump 是 ~500B，在 50 人公会是 ~2KB —— release build 完全剔除，避免生产日志中频繁出现完整成员列表
@@ -146,6 +148,7 @@ stateDiagram-v2
 | `hall.presence.debug.visibility_decision_trace` | 单个目标条目的可见性判定轨迹（关系数据查询耗时 / 好友匹配 / 公会匹配） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.presence.visibility_denied` 在稳态 1000/s 全量打可能 220KB/s —— `info!` 级别（§4.2 二维矩阵 `info!` 行 release 常驻），**不**挂 `#[cfg]`，按 §6.2 强制全采样（不按普通 info 走采样率），便于 SRE 按 `requester_id` 维度聚合一玩家尝试查看多少陌生玩家
 - `hall.presence.field_stripped.*` 是**关键安全事件** —— `error!` 级别，release 常驻 + §6.2 强制全采样，确保 NFR-LBY-005 违规事件不被遗漏
 - `hall.presence.debug.full_entry_dump` 可能含被剔除的 `current_scene_id` 精确位置信息 —— release build 完全剔除，避免生产日志中泄漏精确位置
@@ -182,6 +185,7 @@ stateDiagram-v2
 | `hall.chat.debug.field_validation_trace` | `ChatMessage` 字段级校验完整轨迹（含被剔除字段的原始值） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.chat.message_received` 在世界频道洪峰期间 500/s × 250B = 125KB/s —— `info!` 级别，release 常驻 + §6.2 强制全采样（属业务关键事件，per §4.4 必出清单），不挂 `#[cfg]`
 - `hall.chat.whisper_built` / `hall.chat.group_built.*` 私聊/群聊建立必出（per 任务特殊考虑），`info!` 级别 release 常驻
 - `hall.chat.debug.message_text_dump` 是**性能 + 隐私双重敏感字段** —— release build 完全剔除，避免每条聊天全文进入生产日志（既避免撑爆通道，也避免敏感聊天内容被运营/审计人员误读，且满足最小必要原则 per NFR-SE-012）
@@ -220,6 +224,7 @@ flowchart LR
 | `hall.chat.route.debug.fanout_target_list` | 扇出目标的完整 `character_id` 列表（用于合规审计"扇出范围是否正确"） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-10KB/条（依赖频道规模，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.chat.route.fanout` / `hall.chat.route.whisper_delivered` 均为 `info!` 级别，release 常驻 + §6.2 强制全采样（业务关键事件 + 私聊建立必出），便于 SRE 按 `channel` + `message_id` 维度聚合频道活跃度
 - `hall.chat.route.backpressure_rejected` 是**降级路径事件** —— `warn!` 级别，§6.2 强制全采样，**不**挂 `#[cfg]`，确保洪峰期间背压告警链路完整
 - `hall.chat.route.whisper_broadcast_attempt_blocked` 是**关键安全事件** —— `error!` 级别，§6.2 强制全采样，独立验证 FR-LBY-011 私聊隔离纪律
@@ -246,6 +251,7 @@ GD服务在处理任意`ChatMessage`前，查询该`character_id`的禁言状态
 | `hall.chat.mute.debug.fallback_decision_trace` | 禁言查询失败时的 fail_closed/fail_open 决策轨迹 | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.chat.mute.rejected` 是**安全审计事件**（per §6.2 强制全量采集范围）—— `warn!` 级别，release 常驻 + §6.2 强制全采样，**不**挂 `#[cfg]`，确保 GM 封禁操作链可追溯
 - `hall.chat.mute.state_query_failed` 是**错误事件** —— `error!` 级别，§6.2 强制全采样，与 fail_closed/fail_open 决策联动
 - `hall.chat.mute.debug.admin_state_full_dump` 含 GM `operator_id` 和封禁原因 —— release build 完全剔除，避免生产日志中频繁出现封禁管理操作明细
@@ -289,6 +295,7 @@ GD服务在处理任意`ChatMessage`前，查询该`character_id`的禁言状态
 | `hall.chat.abuse.debug.banned_word_match_trace` | 违禁词匹配的完整轨迹（命中的词条 ID + 文本位置 + 上下文） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除，**核心是避免违禁词内容进入生产日志**） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.chat.abuse.repeat_detected` / `hall.chat.abuse.banned_word_detected` 是**关键安全/审计事件** —— `warn!` 级别（命中属异常但已被系统正确处理），§6.2 强制全采样，**不**挂 `#[cfg]`，确保 GM 申诉/封禁操作链可追溯
 - `hall.chat.abuse.banned_word_detected` 的 `rule_id` 字段**只**记违禁词条目 ID，**不**记词内容本身（避免敏感词表内容进入生产可观测栈）
 - `hall.chat.abuse.detection_disabled.fallback` 是**降级路径** —— `error!` 级别，§6.2 强制全采样，确保检测失效时告警链路完整
@@ -344,6 +351,7 @@ erDiagram
 | `hall.catalog.debug.tick_boundary_atomicity_trace` | tick 边界原子切换的完整轨迹（旧版本值/新版本值/切换耗时/参与的节点） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.catalog.status_changed.*` / `hall.catalog.tick_boundary_switch.completed` 是**业务关键事件** —— `info!` 级别，release 常驻，**不**挂 `#[cfg]`，便于 SRE 按 `product_id` + `tick_boundary_at` 维度追踪商品上下架时间线
 - `hall.catalog.daily_limit_exceeded` 是**限购拒绝审计事件** —— `warn!` 级别，§6.2 强制全采样，便于事后追溯"是否某个账号被恶意刷单"
 - `hall.catalog.debug.full_catalog_dump` 含 `entitlement_content` JSON 明文（可能含敏感权益信息）—— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏商品目录完整结构
@@ -399,6 +407,7 @@ sequenceDiagram
 | `hall.purchase.debug.payment_callback_payload` | IF-006 支付回调的完整 payload dump（含 `signature`/`amount`/`currency` 等字段，**不含卡号/token**） | 极低（按需/事故取证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.purchase.workflow_started` / `hall.purchase.payment_result.success` / `hall.purchase.entitlement_granted` 是**业务关键事件** —— `info!` 级别，release 常驻，**不**挂 `#[cfg]`，便于 SRE 按 `request_id` 维度追踪全链路 + GM 申诉取证
 - `hall.purchase.payment_result.failed` / `hall.purchase.compensated` 是**降级路径事件** —— `warn!`/`error!` 级别，§6.2 强制全采样，确保 NFR-LBY-003（购买/活动奖励一致性，总量差分为 0）兜底审计链完整
 - `hall.purchase.debug.payment_callback_payload` **不得**含 `*card*`/`*cvv*`/`*token*`/`*password*` 字段（按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**，避免开发者在 debug dump 中误带敏感支付凭证）
@@ -446,6 +455,7 @@ sequenceDiagram
 | `hall.activity.debug.lifecycle_state_trace` | 活动生命周期状态切换完整轨迹（开启/灰度/全量/结束 各节点的判定结果 + 耗时） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.activity.reward.request_received` / `hall.activity.reward.granted` / `hall.activity.lifecycle.*` 全部**强制全采样**（per 任务特殊考虑 + §6.2）—— `info!` 级别，release 常驻 + §6.2 强制全采样，**不**挂 `#[cfg]`，便于 SRE/GRE 团队按 `activity_id` + `plugin_id` 维度追踪活动全生命周期
 - `hall.activity.reward.idempotent_hit` 是**关键审计事件** —— `info!` 级别，§6.2 强制全采样，便于"玩家重复领取但仅成功一次"的可观测（per AC-LBY-005）
 - `hall.activity.reward.request_failed` 是**降级/错误事件** —— `error!` 级别，§6.2 强制全采样
@@ -473,6 +483,7 @@ sequenceDiagram
 | `hall.activity.economic.debug.cross_node_consistency_trace` | 跨节点 `is_economic` 一致性检查的完整轨迹 | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（依赖节点数，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.activity.economic.local_decision_blocked` 是**关键安全/审计事件** —— `error!` 级别，§6.2 强制全采样，**不**挂 `#[cfg]`，独立验证 FR-LBY-053"经济类判定权收归 EC 单点"纪律
 - `hall.activity.economic.consistency_violation` 是**关键安全事件** —— `error!` 级别，§6.2 强制全采样，触发 P0 告警链路
 - `hall.activity.economic.debug.is_economic_full_dump` 含全部插件的 `is_economic` 标记 —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏插件经济分类全貌
@@ -505,6 +516,7 @@ sequenceDiagram
 | `hall.checklist.debug.full_evaluation_dump` | 标准化检查清单完整评估报告 dump（含每项的原始检查输出/中间状态/失败堆栈） | 1/CI 每次构建 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-20KB/条（依赖检查项数 + 失败堆栈，release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `hall.checklist.passed` 是**业务关键事件** —— `info!` 级别，release 常驻，**不**挂 `#[cfg]`，便于 SRE 按 `bas_id` 维度聚合"哪些 BAS 文档通过上线检查"
 - `hall.checklist.failed.*` 是**关键失败/安全审计事件** —— `error!` 级别，§6.2 强制全采样，确保 ARC-029 核心验证项/FR-LBY-011/FR-LBY-053 等设计纪律在 CI 阶段可被自动校验
 - `hall.checklist.debug.full_evaluation_dump` 含失败堆栈与详细检查输出 —— release build 完全剔除，避免生产 CI 日志中频繁出现完整失败明细

@@ -42,6 +42,7 @@
 | 4 | **派生约束守护 L15-L23** | §4 通过判定未含派生约束 | §4 增 §派生约束守护段，列出 L15-L23 落地状态（per 9/6 6c6839e cutover） | 6c6839e / add4238 / PHASE-0-TO-4-FINAL.md |
 
 **已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+
 - k3s 集群实际可达性待 ST Phase C 验证（per Q8 决策）
 - 商业 CDN 候选清单（Cloudflare/AWS CloudFront/Fastly）尚未落地
 - 边缘节点命中真实 100 万级流量回归待 PH-7 阶段

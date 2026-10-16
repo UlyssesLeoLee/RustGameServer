@@ -24,7 +24,6 @@
 
 ---
 
-
 ---
 
 ## §3 RACI 矩阵 (NEW, v0.2 升版增量, per RGS-LEAD-RACI-001 v1.1 §3)
@@ -49,6 +48,7 @@
 ### §A.1 LCM 域 跨域协调依赖
 
 本 LCM 域 IMPL-PLAN 涉及跨域 gRPC 调用（player → economy/match/social/admin + saga）需 5 域 binary 全部启 + 跨域联调通过才能完整验证。当前阻塞：
+
 - PostgreSQL 18.6 未装（per Ulysses 16:58/16:59 硬约束，等装入）
 - 5 域 binary 编译完成但启需 DATABASE_URL（per `RGS-GM-V0.3-DEPLOY-SOP-2026-08-26.md` v0.1）
 - 跨域联调 IT 测试（per RGS-TEST-STRATEGY 4 阶段 phase 2，等 PG 装完）
@@ -56,6 +56,7 @@
 ### §A.2 实时审计跟踪
 
 本 LCM 域 IMPL-PLAN 涉及 GM 操作 / RBAC 权限变更 / 跨域事件触发等操作需实时审计跟踪。依赖:
+
 - ARC-018/021/042/051 4 治理角色（per RGS-ADR-0055 v0.1 §4）
 - audit log 落库（per DTL-031 事件总线 + audit_log 表）
 - 实时审计 dashboard（per rgs-web GM 后台 §3.5）
@@ -65,6 +66,7 @@
 ### §A.3 一人公司 12 角色 RACI 全覆盖
 
 本 LCM 域 IMPL-PLAN v0.2 §3 RACI 矩阵仅含 6 治理角色（Arch/BE Lead/SRE Lead/DBA/PM/PO），缺:
+
 - FE Lead（前后端边界，本域为后端无 FE）
 - QA Lead（per RGS-TEST-STRATEGY 4 阶段）
 - SEC（per RGS-REV-008 mTLS fail-closed）
@@ -311,6 +313,7 @@ use rgs_economy_service::shared::{TransactionScope, OperationPolicy, AuthorityBo
 | **合计** | — | **5.74M（19.1-57.4）** | PH-3~6 | W7-W16 |
 
 **对照 NFR-OP-010（1 SRE ≤ 1 人·周 ≈ 1M tokens）**：
+
 - Admin 域 Lead 兼 = 0.5 SRE（1 人公司分摊 50% SRE 容量）
 - 单 SRE 半容量上限 0.5 人·周 = ~500K tokens / 周
 - 5.74M tokens / 500K = **11.5 周**净工作时间

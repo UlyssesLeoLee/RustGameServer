@@ -90,6 +90,7 @@
 | **card (第 7 域)** | ✅ worker `bg_d6d6e3f8` | ✅ 6/9 ✅ / 1/9 🟡 / 2/9 ❌ | ✅ 1/6 (A5 P0) | ✅ | 🟡 |
 
 **总评** (per 4 worker + 主会话完整证据):
+
 - **7 域 (含 card 第 7 域) 全员审计完成** (per L12.2 选项 B 写不 commit 模式, 0 race condition)
 - **6 反模式总命中 14 处** (P0: 1 / P1: 4 / P2: 5 / P3: 4, 见 §5)
 - **9 原则总得分**: 7 域 × 9 = 63 cells, 27 ✅ / 20 🟡 / 16 ❌ (43% ✅ + 32% 🟡 + 25% ❌)
@@ -140,6 +141,7 @@
 ### 3.1 player-service (主会话 ✅)
 
 **文件清单** (8 文件 / 152KB):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `lib.rs` | 1.2KB | 模块导出 (entity/error/repository/service/proto/db) |
@@ -152,12 +154,14 @@
 | `db.rs` | 4KB | PgPool + migrations |
 
 **架构模式** (per §1.2 关键结论 #1):
+
 - tonic gRPC server (port 50051) + PgRepository (sqlx 0.8) + PgOutboxRepository (per shared-platform) + OutboxRelay (per shared-platform)
 - PlayerServiceImpl 持有 `Arc<dyn PlayerRepository>` + `Arc<dyn PlayerSessionRepository>` + `Arc<dyn DeckRepository>`
 - **无 per-player actor**: 每个 gRPC handler = 1 次 request/response 调, 直接 `repository.find_xxx().await?` → mutate → `repository.save().await?`
 - **DB 是状态真源** (vs in-memory actor state)
 
 **9 原则对照**:
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 1 player 1 task + mpsc | ❌ 不适用 (架构差异) | mpsc 0 命中, `tokio::spawn` 1 处 (OutboxRelay, main.rs:105) |
@@ -171,11 +175,13 @@
 | 9 | 登录准备链声明式 | ❌ 未实装 | `register` 是手写 3 步 (validate name length → check unique → save), 无 ReadyChain 抽象 |
 
 **6 反模式命中** (player 域):
+
 - A1 `Arc<Mutex<`: 0 处 (player 域 src/ 0 命中, ✅ 良好)
 - A2 `String` 状态: entity.rs 内 0 命中 (status 是 enum, ✅ 良好)
 - A3-A6: 0 命中
 
 **域特色**:
+
 - v2 桶 11 增量: DeckRepository (per DTL-038 §4.3 卡牌 v2)
 - validate_deck_slots 占位: service.rs:136, 30-60 张 / 同卡 ≤2 / 稀有度上限 (规则引擎待实装)
 - gRPC GetPlayer: service.rs:111 `find_by_id` 绕开 trait
@@ -183,6 +189,7 @@
 ### 3.2 match-service (主会话 ✅ 含 v2)
 
 **文件清单** (12 文件 / 220KB):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `lib.rs` | 3KB | 模块导出 |
@@ -200,6 +207,7 @@
 | `db.rs` | 3KB | PgPool + migrations |
 
 **架构模式**:
+
 - v1 (MatchService) + v2 (MatchmakerServiceV2) 双架构共存
 - MatchmakerServiceV2 持有 sessions/moves/tickets (Arc<dyn Repository>) + EventBus + Option<replay_client>
 - EventBus = `Arc<AsyncMutex<HashMap<Uuid, broadcast::Sender<MatchEvent>>>>` (per match_id 1 channel) — **框架原则 #6 事件总线变体**
@@ -207,6 +215,7 @@
 - ReplayClient mTLS fail-closed (main.rs:241-278) — **框架原则 #3 远端路由变体**
 
 **9 原则对照**:
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 1 player 1 task + mpsc | ❌ 不适用 | mpsc 0 命中, `tokio::spawn` 4 处 (main.rs:153 OutboxRelay, matchmaker_v2.rs:293/295 SaveReplay fire-and-forget, service.rs:685) |
@@ -220,11 +229,13 @@
 | 9 | 登录准备链声明式 | ❌ 未实装 | CreateMatch → JoinMatch 链 是手写 9 RPC, 无 ReadyChain 抽象 |
 
 **6 反模式命中** (match 域):
+
 - A1 `Arc<Mutex<`: matchmaker_v2.rs:111 `Arc<AsyncMutex<HashMap<Uuid, EventSender>>>` — **🚨 A1 命中, 但用途是 EventBus map, 不是 RoleData**, **严重度 P2** (需明确, AsyncMutex 是 tokio 锁, 不是 std Mutex)
 - A2 `String` 状态: matchmaker_v2.rs:81 `end_reason: String` (在 MatchEvent::MatchEnded 变体字段, 非状态字段) — **A2 0 命中** (status 是 SessionStatus enum)
 - A3-A6: 0 命中
 
 **域特色**:
+
 - v1+v2 双架构 (演化中, v1 待 deprecated)
 - 8 transition 函数: transition_to_waiting/starting/running/paused/resumed/ending/ended/canceled (per RGS-DTL-038 §5.2)
 - SaveReplay 跨域 (W36 2026-08-30 接入, fire-and-forget 模式)
@@ -233,6 +244,7 @@
 ### 3.3 economy-service (worker `bg_4378bf62` ✅)
 
 **文件清单** (16 文件 / 432KB, **最复杂域**):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `saga_orchestrator.rs` | **79KB** (1450+ 行) | Saga 编排 (per RGS-DTL-100 Q-003, 严格双层 saga) |
@@ -264,6 +276,7 @@
 - **✅ 崩溃恢复 30s 周期** (main.rs:130-159 `SAGA_RECOVER_BATCH=100`) + 2 处 `tokio::spawn` (崩溃恢复 + OutboxRelay)
 
 **9 原则对照** (per worker §2):
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 1 player 1 task + mpsc | ❌ 不适用 | **零 mpsc/broadcast/watch 命中**; 2 `tokio::spawn` 都是后台轮询(崩溃恢复 + outbox), 非 per-entity |
@@ -277,6 +290,7 @@
 | 9 | 登录准备链声明式 | ❌ | main.rs:62-252 启动顺序是手工线性代码, 无 ReadyChain 抽象 |
 
 **6 反模式命中清单** (per worker §3):
+
 - A1 `Arc<Mutex<` 6 处 + 1 测试: 全部 InMemory test repository + Mock client (saga.rs:429, reservation.rs:271, inbox.rs:145, repository.rs:335/470, trade_repository.rs:380, trade_saga_clients.rs:191/322); **生产 PgRepository 无此模式** ✅
 - A2 `String` 状态: **0 命中** (5 处 enum↔str 映射都是持久化往返, 反向解析, 非 String 状态字段)
 - A3 `tokio::spawn(sqlx)`: **0 命中** ✅
@@ -285,6 +299,7 @@
 - A6 `HashMap<u*,*>` 派发: **0 命中** ✅
 
 **域特色 backlog** (per worker §4-5):
+
 - **P1**: CardGrpcClient 3 RPC 实装 + trade_saga 串行改 try_join_all 并发 + saga 显式 TRANSITION_TABLE
 - **P2**: DTL-100 saga 与业务层 saga 合并 + 热冷分层 (Auction active/cache) + DbWriter 批量 INSERT + NATS outbox 限流背压 + ReadyChain 抽象
 - **P3**: per-player actor (原则 #1) + 时间穿越查询 + InMemory Arc<Mutex 改 RwLock + timer wheel 延迟去抖 (Auction 过期/reservation 过期/saga 长期未动)
@@ -292,6 +307,7 @@
 ### 3.4 social-service (worker `bg_cdee2192` ✅)
 
 **文件清单** (8 文件 src + 4 migration + 6 IT + 1 build.rs = 19 文件):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `service.rs` | **36KB** | **SocialService trait 6 方法 + impl + gRPC bridge (只接 2 handler 落 wire)** |
@@ -318,6 +334,7 @@
 - **Q6 决策**: `service.rs:251-272` 同步实现 (无 async worker), leader 离开 joined_at ASC 最早剩余成员升 leader, ✅ 转移规则 + 最后一人解散, ❌ 跨域 player.profile.guild_id 置空 仅 log marker (per §3 反模式 4)
 
 **9 原则对照** (per worker 报告 §2):
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 分层架构 (handler→service→repository) | ✅ | main.rs:81-83 wire Repository → service.rs:46-49 注入 Arc<dyn> → repository.rs:17-33 trait 抽象 |
@@ -331,6 +348,7 @@
 | 9 | 域独立 DB | ✅ | lib.rs:8 "独立 social_db per ARC-008", migrations/0001_init.sql 全部 social 域表 |
 
 **6 反模式命中清单** (per worker §3):
+
 - A1 (用户反模式, 派生为 `不显式 DB 事务` ⚠️ HIGH): service.rs:241-275 leave_guild 3 步写无事务 (3 处)
 - A2 (用户反模式, 派生为 `metrics exporter 占位未实装` ⚠️ MED): main.rs:30-34 注释明确 "本 PR 仅做 fail-closed 防线本身", OTLP exporter 默认 disabled
 - A3 (用户反模式, 派生为 `rate-limit/circuit-breaker/bulkhead 缺失` ⚠️ MED): 全 src 0 命中
@@ -339,6 +357,7 @@
 - A6 (用户反模式, 派生为 `migration 0004 DRAFT 已 commit 未 apply` ⚠️ HIGH)
 
 **域特色 backlog** (per worker §4-5):
+
 - **P1** (1 周): leave/dissolve/join guild 显式事务 + push_delivery 生产 wire-up (PgPushDlqRepository + AsyncNatsPushPublisher + main.rs 启动) + migration 0004 DRAFT 评审 apply + leave_guild 跨域事件 publish (DTL-038 §7.2 缺口)
 - **P2** (1-3 周): gRPC handler 4 method wire + OTLP 实装 + Prometheus mTLS_bypassed_total 暴露 + PgRepository 改 sqlx::query! 宏 + 5 张 Work 表 cleanup job
 - **P3** (季度): OutboxRelay 与 PushDispatcher 整合评估 + push_delivery rate-limit + social Lead RACI v1.1→v1.2 (per AGENTS.md §7.3 batch 缺口同构) + proptest 扩展到 push_delivery
@@ -346,6 +365,7 @@
 ### 3.5 admin-service (worker `bg_8c63def2` ✅)
 
 **文件清单** (11 Rust 源文件 / ~170KB + 6 migration):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `repository.rs` | **51KB** | Pg/InMemory 双实现 + verify_recent + run_startup_verify + **FOR UPDATE 锁 latest 行 (per 55.13 AC5=CC1)** |
@@ -373,6 +393,7 @@
 - **✅ LCM Work 表** (lcm/schema.rs): LcmStepStatus 5 态 (Pending/InProgress/Succeeded/Failed/Skipped) + LcmStepExecution 12 字段 + UNIQUE(run_id, step_seq) + 24h 保留
 
 **9 原则对照** (per worker §2):
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 域分离 / 独立 DB | ✅ | lib.rs:8 独立 admin_db, db.rs:24-29 DATABASE_URL, 5 域独立 Lead |
@@ -386,6 +407,7 @@
 | 9 | 优雅停机 | ❌ 缺失 | main.rs `tonic::Server::serve(addr).await` 无 shutdown_signal, grep 0 命中 |
 
 **6 反模式命中清单** (per worker §3, 注 worker 用 AP1-AP6 编号):
+
 - AP1 God Service: ✅ 避免 (AdminServiceImpl 5 方法 + gRPC bridge 8 RPC, 职责单一)
 - **AP2 InMemory fallback 生产路径: ❌ P1 命中** (gm_handlers.rs:46,57,117,174,234,311)
 - **AP3 进程全局 OnceLock: ❌ P2 命中** (gm_handlers.rs:62)
@@ -394,6 +416,7 @@
 - **AP6 错误类型吞噬: ⚠️ 局部** (AuditLogTamper → Internal, 应 DataLoss)
 
 **域特色 backlog** (per worker §5):
+
 - **P1** (1 周): 删 InMemory fallback (AP2 SEC-100 违规) + GM RPC 幂等键 request_id UNIQUE + query_audit_log 限 Auditor/SuperAdmin (RBAC 4/4) + InMemory fallback Prometheus counter
 - **P2** (1-3 周): Trace ID 传播 + 优雅停机 (ctrl_c + 30s drain) + GM 通过 outbox 发领域事件 (AdminCmdExecuted) + 替换 OnceLock 为 tonic State + GENESIS_HASH 常量化 + rate limiting per-actor 100 RPM
 - **P3** (季度): AuditLogTamper → DataLoss 错误码细化 + 0006 audit_log_partitioned 实装 (3 年保留 NFR-SE-010) + PFAU 业务实施 + LCM Repository + cleanup cron + 跨域 saga 集成评估 (admin 是否作为协调方)
@@ -401,6 +424,7 @@
 ### 3.6 batch-service (主会话 ✅ 已知)
 
 **架构差异** (per AGENTS.md §7.1):
+
 - **单 123KB main.rs** (vs 5 域多文件)
 - 独立 cargo workspace `[workspace]` (per Cargo.toml, 不在主 workspace)
 - Rust + actix-web 4 + tokio + tonic 0.12 gRPC client + sqlx **0.7** (vs 5 域 sqlx 0.8) + mTLS 业务级
@@ -409,6 +433,7 @@
 - env 凭据走 env var, **永不打印** (per 8/27 11:06 JST 硬 ban + REDACTED filter, per main.rs:34-44 + DETAILED §5.1)
 
 **main.rs head 已读** (L1-150):
+
 - 5 域 gRPC clients (player/economy/match/social/admin) — **`enum GrpcDomain` (L132) 是手写桶化** ✅ (框架原则 #3 split_by_srv 变体)
 - DB 三分类 (per 9/1 18:30 JST 横展):
   - Master: `task_templates` (L62 TaskTemplate, M-2)
@@ -419,6 +444,7 @@
 - `task_timeout_secs: u64 = 300` (GAP-9 任务超时 kill, 5min 默认) — 框架原则 #6 部分
 
 **9 原则对照**:
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 1 player 1 task + mpsc | ❌ 不适用 | batch 域非 per-entity, 是 batch task pool |
@@ -432,11 +458,13 @@
 | 9 | 登录准备链声明式 | 🟡 部分 | `TaskTemplate` 是 master 模板 + version 字段 (GAP-7), 模板版本化 = 部分 ready 链 |
 
 **6 反模式命中** (batch 域):
+
 - A1 `Arc<Mutex<`: 0 处 (单 main.rs 文件, 用 tokio Mutex 替代)
 - A2 `String` 状态: **🚨 1 处, `state: String` in BatchTask struct (L82), 应改 enum, P1 必修**
 - A3-A6: 0 命中
 
 **域特色**:
+
 - DB 三分类横展 (per 9/1 18:30 JST 派生决策, AGENTS.md §7.2 #2)
 - 5 域 gRPC client 显式分桶 (`enum GrpcDomain`)
 - audit_event T-3 永久保留 (per NFR-29 + AGENTS.md §7.2 #10)
@@ -449,6 +477,7 @@
 **🚨 域边界结论 (P0 主会话决策)**: card-service 是**第 7 域独立 crate,新卡牌游戏域微服务** (catalog + collection + 抽卡), **非 player 域子模块 / 非 match 域配套 / 非 batch 域相关 / 非历史遗留**。
 
 **域边界证据 (per worker §1)**:
+
 - `crates/card-service/Cargo.toml:2-9` package description 明确写"**卡牌游戏新域微服务 (per RGS-DTL-038 §4.4 — catalog + collection + 抽卡, 域职责: DEC-038-01 选 A 卡组归 player, card-service 仅承担 catalog + collection)**"
 - `crates/player-service/src/lib.rs` `grep card` → **0 命中** (player 不 import card)
 - `crates/match-service/Cargo.toml` `grep card-service` → **0 命中** (match 不依赖 card)
@@ -457,6 +486,7 @@
 - player 域 `repository.rs:81-100` `pub trait DeckRepository` (per DTL-038 §4.3) **独立**卡组业务 (出战牌组, 30-60 张, 同卡 ≤2), card 域 `entity.rs:459-497` `CardInstance` 玩家**拥有**的卡 (收藏品, 不限数量, 带等级/锁定/交易) — **职责严格分离, 不重复**
 
 **文件清单** (7 src 文件 / ~122KB + build.rs + proto/ + migrations/ + 4 tests):
+
 | 文件 | 大小 | 职责 |
 |---|---|---|
 | `service.rs` | **49KB** (1280+ 行) | 9 RPC + gRPC 桥接 + 7 转换 helper + 10 UT |
@@ -482,6 +512,7 @@
 - **✅ OpenPack 抽卡概率公开强制** (per DEC-038-06): DropTable snapshot 随 OpenPackResponse 返回, 业务层不允许"抽卡后篡改概率"
 
 **9 原则对照** (per worker §3, 跟主会话 6 域对齐但维度不同 — worker 用 P1-P9 域设计原则):
+
 | # | 原则 | verdict | 实证 |
 |---|---|---|---|
 | 1 | 域独立 (D1) | ✅ | Cargo.toml:18 + main.rs:47 0.0.0.0:50061 + migrations/0001_init.sql 独立 card_db |
@@ -495,6 +526,7 @@
 | 9 | 测试分层 (D9) | ✅ | 27 tests (UT + proto + business + error + db + IT + lifecycle) |
 
 **6 反模式命中清单** (per worker §4, worker 用 A1-A6 域反模式):
+
 - A1 God Service: 🟡 体积偏大 (49KB) 但未超阈值
 - A2 跨域直接调 DB: ✅ 无 (migrations/0001_init.sql:42-43 明确 "不物化 FK")
 - A3 业务逻辑写在 main: ✅ main.rs 只做 DI/启动
@@ -503,9 +535,10 @@
 - A6 无 i18n/可观测性: 🟡 i18n HashMap 占位, 字段已预留
 
 **域特色 backlog** (per worker §6):
+
 - **P0**: OpenPack saga step 2 economy 扣货币实装 gRPC client call + DLQ 兜底 (per DTL-038 §6.1 + WBS 桶 14) + OpenPack saga 补偿 + outbox (per D5 原则)
 - **P1**: outbox + DLQ 全域实装 (leaderboard 消费依赖) + service.rs 49KB 拆 grpc_bridge.rs 子模块 + **AGENTS.md v0.7 升版 7 域 + §7 card 域派生约束** + i18n 实装 (桶 14)
-- **P2**: OTLP exporter 启用 (PH-1 评估) + OpenPack 规则引擎 (RARITY_*_SLOT_*) + 保底逻辑 (UNHIT_SLOT_*) + 随机源 rand crate
+- **P2**: OTLP exporter 启用 (PH-1 评估) + OpenPack 规则引擎 (RARITY_**SLOT**) + 保底逻辑 (UNHIT_SLOT_*) + 随机源 rand crate
 
 ---
 
@@ -527,6 +560,7 @@
 | **#9** 登录准备链声明式 | ❌ 手写 3 步 | ❌ 手写 9 RPC | ❌ 手写 main.rs:62-252 | ❌ 手写 4 handler (2 wire) | ❌ 缺优雅停机 | 🟡 TaskTemplate version | 🟡 saga TODO (桶 14) |
 
 **域总分** (满分 9 ✅):
+
 - player: **3 ✅ / 4 🟡 / 2 ❌** (= 10/27, 37%)
 - match: **4 ✅ / 3 🟡 / 2 ❌** (= 11/27, 41%)
 - economy: **1 ✅ / 3 🟡 / 5 ❌** (= 5/27, 19%, 跨域/批量/FMS 弱)
@@ -537,6 +571,7 @@
 - **总 7 域**: 25 ✅ / 19 🟡 / 19 ❌ (= 69/189, 37%)
 
 **总评 (v0.2 完整数据)**:
+
 - 7/7 域**不实装 per-entity actor** (原则 #1), 统一走 DB-as-state 架构 (RGS 有意识选择, 非反模式) ✅
 - 7/7 域**满足协议号 O(1) 派发** (原则 #8), 0 处 A6 反模式 (HashMap<u*,*>) ✅
 - 6/7 域**满足 DB 写盘** (原则 #5) 走 shared-platform::outbox 变体, **card 域 0 命中** 是 P1 缺口
@@ -635,7 +670,8 @@
 | **D17 缺 rate-limit / circuit-breaker / bulkhead (social+admin)** | 全文 0 命中 | grep `circuit.?breaker\|throttle\|rate.?limit\|bulkhead` 全 0 | **P2** | 6 域无并发/流量保护, NATS 击穿风险 |
 | **D18 query_audit_log 缺 RBAC (admin)** | 1 处 | `gm_handlers.rs:253-309` 无 RBAC | **P1** | 4 handler 中唯一未做 RBAC, 应限 Auditor/SuperAdmin |
 
-**v0.2 反模式总评**: 
+**v0.2 反模式总评**:
+
 - **A1**: 1 P2 + 6 P3 (经济 InMemory test) + 0 P1
 - **A2**: 1 P1 (batch `state: String`)
 - **A3**: 0 命中 ✅

@@ -13,6 +13,7 @@
 **当前** (`crates/shared-platform/src/outbox.rs`): 4 状态机 `Failed` 状态仅 `last_error` 字段记录错误信息, **无 DLQ 表 / 重试策略 / 告警阈值**。
 
 **缺口**:
+
 1. 无独立 `outbox_dlq` 表承载 Poison event (永久失败的 outbox 行)
 2. 无重试次数上限（当前可无限次 InFlight → Pending 循环）
 3. 无告警阈值与人工介入流程（与监控指标草案 §06 P2-#2 联动）

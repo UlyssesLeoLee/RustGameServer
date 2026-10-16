@@ -46,6 +46,7 @@
 - **当前 HEAD**: aa9a491 (本次 Phase B 落地)
 - **工作分支**: main (Phase B 工作在 main 上, 不开 worktree, per L4 跨工具链主会话打头阵 + L12.2 选项 2 worker 写文件不 commit, 主会话统一 1 commit)
 - **本次 commit 链**:
+
   ```
   aa9a491 feat(admin-coc): Phase B #1+#2+#3+#4 admin COC WASM 集成落地 (本次)
     6c2a786 docs(inc-001): v0.3 admin COC 升 P0 + §X 集成设计 (9/4 23:05 JST)
@@ -314,11 +315,11 @@ compute(a, b) -> i32       ;; a=amount, b=blacklist_flag
 
 ### 9.2 Phase B #1 (主会话 gm_handlers 集成) 已知缺口
 
-7. **admin-service/main.rs WasmHost 实例化未实现** (per main.rs 启动流程): GmHandlerState.coc_policy = None 走 fallback Allow, Phase 1+ 加 with_coc_policy 注入
-8. **target_blacklisted 字段 = false 占位** (per coc_policy_decide_or_default_allow 调用): 真实黑名单查询需 §X.3 host_query_db 白名单 + ApprovedDomainQuery 注册
-9. **trace_id 空字符串占位** (per CocPolicyInput 构造): 真实 trace_id 需从 tonic metadata 抽, per §3.3 透传
-10. **gm_handlers.rs 集成点 UT 缺失** (POC 跳过): worker 1 测 CocPolicyInput/Output 数据结构, worker 2 测 SQL schema, gm_handlers.rs coc_policy_decide_or_default_allow 决策流 UT 未写
-11. **WasmHost::invoke_coc_policy_sync mock 与 WAT 真调并存**: 当前 WasmHost 内 mock 决策 (action_hash mod 3), 未来 WAT 真调 (per worker 1 写的 compute export) 需切换
+1. **admin-service/main.rs WasmHost 实例化未实现** (per main.rs 启动流程): GmHandlerState.coc_policy = None 走 fallback Allow, Phase 1+ 加 with_coc_policy 注入
+2. **target_blacklisted 字段 = false 占位** (per coc_policy_decide_or_default_allow 调用): 真实黑名单查询需 §X.3 host_query_db 白名单 + ApprovedDomainQuery 注册
+3. **trace_id 空字符串占位** (per CocPolicyInput 构造): 真实 trace_id 需从 tonic metadata 抽, per §3.3 透传
+4. **gm_handlers.rs 集成点 UT 缺失** (POC 跳过): worker 1 测 CocPolicyInput/Output 数据结构, worker 2 测 SQL schema, gm_handlers.rs coc_policy_decide_or_default_allow 决策流 UT 未写
+5. **WasmHost::invoke_coc_policy_sync mock 与 WAT 真调并存**: 当前 WasmHost 内 mock 决策 (action_hash mod 3), 未来 WAT 真调 (per worker 1 写的 compute export) 需切换
 
 ---
 

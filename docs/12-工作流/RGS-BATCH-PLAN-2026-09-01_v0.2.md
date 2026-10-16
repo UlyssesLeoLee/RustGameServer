@@ -149,7 +149,7 @@
 | BA-W1-3 | 9 个 k8s manifests（70-78：console / backend / envoy deployment + service + configmap + secret example + networkpolicy, per DETAILED §3.1-§3.6）| 架构师 | 2.0 | 300K | BA-W1-1, BA-W1-2 | kubectl apply 全过 + 3 pod 1/1 Running | revert | `wbs/BA-W1-3` |
 | BA-W1-4 | 5 域 ST 证书导出（per 8/27 ST 实践 commit 401ac5c）+ rgs-batch 自己证书生成（per crates/rgs-certgen batch）| 架构师 | 1.5 | 250K | 无 | certs/ 5 域 + rgs-batch 8 文件齐 | revert | `wbs/BA-W1-4` |
 | BA-W1-5 | PostgreSQL 3 schema 创建 + 19 migration（batch_master / batch_transaction / batch_work / batch_transaction_archive, per DETAILED §2.1）| 架构师 | 2.0 | 300K | 无 | `sqlx migrate run` 19 文件全过 + 16 张表齐 | revert | `wbs/BA-W1-5` |
-| BA-W1-6 | envoy 独立 deployment 配置（per 9/1 13:03/13:05 JST 偏好, file_system HTTP filter + mTLS termination, per DETAILED §3.4）| 架构师 | 1.0 | 200K | BA-W1-3 | 2 replicas Running + curl https://localhost:8443 200 OK | revert | `wbs/BA-W1-6` |
+| BA-W1-6 | envoy 独立 deployment 配置（per 9/1 13:03/13:05 JST 偏好, file_system HTTP filter + mTLS termination, per DETAILED §3.4）| 架构师 | 1.0 | 200K | BA-W1-3 | 2 replicas Running + curl <https://localhost:8443> 200 OK | revert | `wbs/BA-W1-6` |
 
 ### 3.2 W2 任务（7 任务 / ~12 人·天 / ~2100K tokens）
 
@@ -221,6 +221,7 @@
 | **合计** | **38** | **54.0** | **9650K (9.65M)** | **4400K-15600K (4.4M-15.6M)** |
 
 > **NFR-OP-010 双轨校验**（per RGS-TS-001 v0.7 §6.2.4 + RGS-OLU-REPORT-2026-08-27 v0.1 §6）：
+>
 > - 人·天轨：54 人·天 / 6 周 = 9 人·天/周 ≤ 20 ✓ 绿
 > - token 轨：9.65M / 6 周 = 1.6M tokens/周 ≤ 20M ✓ 绿
 > - 留足余量（v0.6 算法下界 4.4M / 6 周 = 733K tokens/周 = 3.7% NFR 上限）
@@ -240,6 +241,7 @@
 | 5 | 反向代理 | envoy 独立 deployment | per 2026-09-01 13:03 / 13:05 JST 偏好 |
 
 **不选 5 项**（per BASIC §2.3）：
+
 - ❌ Express / Koa / Fastify（npm 依赖，违反 0 依赖约束）
 - ❌ React / Vue / Svelte（vanilla JS 够用）
 - ❌ chart.js / d3（SVG 手写足够）
@@ -349,11 +351,13 @@
 > per RGS-WT-001 §11.3 跨会话恢复 + AGENTS.md §2.4 L4 主会话打头阵。
 
 **W1-W6 任务中断恢复**：
+
 1. `git worktree list` 查 BA-W*-* worktree 状态
 2. 读 `.wbs-task-marker` 找当前 status
 3. 继续推进，调 `wbs_task_progress.ps1 -Status progress -Progress N` 同步
 
 **6 周主会话打头阵原则**（per AGENTS.md §2.4 L4）：
+
 - W1-W6 全部 38 任务主会话自执行，**不**派 worker（per AGENTS.md §2.4 L4 + R-12）
 - 单任务执行超过 60s 仍无进展，回退到 WBS 状态 = blocked + 上报 Ulysses
 - 关键决策点 6 次 ask_user（per 9/1 14:58 JST + R-11）
@@ -523,7 +527,6 @@ kubectl port-forward svc/rgs-batch-envoy 8789:8443 -n rust-game-server
 | **PLAN v0.1** | **`docs/12-工作流/RGS-BATCH-PLAN-2026-09-01_v0.1.md`** | **本文 (待 commit)** | **~600** | **~30 KB** | **总览 + 实施计划 (When + Who)** |
 
 **总规模**：4 文档 / ~2700 行 / ~157 KB / 38 L4 任务 / 6 周落地 / 9.65M tokens 估算。
-
 
 ---
 

@@ -144,6 +144,7 @@ cargo test -p network-gateway --test integration_phase15_demo       → 5 passed
 ## 4.1 WS Upgrade 握手
 
 **FR-WSG-001**（per `ws.rs:107-113` accept_hdr_async 实现）：服务器必须响应 RFC 6455 §1.3 规定的 HTTP Upgrade 握手请求，关键头部：
+
 - `Upgrade: websocket`
 - `Connection: Upgrade`
 - `Sec-WebSocket-Key` / `Sec-WebSocket-Accept`（RFC 6455 §1.3 算法）
@@ -156,6 +157,7 @@ cargo test -p network-gateway --test integration_phase15_demo       → 5 passed
 **FR-WSG-002**（per `ws.rs` PathCheck Callback）：仅 `/websocket` 路径放行；其他路径返 404 HTTP（非 WS Close）。
 
 边界：
+
 - 路径严格匹配 `/websocket`，前缀匹配（如 `/websocket/`）由 §10 TBD-WSG-004 决定
 - 大小写敏感（per RFC 6455 §3 对 URI 的处理）
 - Query string 在 Phase 1.0 阶段忽略
@@ -175,6 +177,7 @@ cargo test -p network-gateway --test integration_phase15_demo       → 5 passed
 ## 5.1 Frame 编解码
 
 **FR-WSG-004**（per `codec.rs::Frame::decode`）：必须支持 RFC 6455 §5 规定的所有 opcode：
+
 - `0x0` Continuation
 - `0x1` Text
 - `0x2` Binary
@@ -199,6 +202,7 @@ Payload 长度字段必须支持 7-bit / 16-bit / 64-bit 三种格式（per RFC 
 ## 5.3 错误处理
 
 **FR-WSG-006**（per `codec.rs::FrameError`）：Frame 解码错误必须区分：
+
 - `ProtocolError`：opcode 非法 / length 字段不一致（per RFC 6455 violation）
 - `IoError`：底层 socket read/write 失败
 - `Capacity`：单帧 payload 超限（per §9 NFR-WSG-002）
@@ -222,6 +226,7 @@ pub trait FrameRouter: Send + Sync {
 ```
 
 **关键约束**：
+
 - trait 必须 Send + Sync（per WS 路径多 worker 并发）
 - 必须 async（不阻塞 tokio reactor）
 - 路由决策与 TCP 路径等价（共享 `RouteTable::new()` 1351 路由）
@@ -299,6 +304,7 @@ pub trait FrameRouter: Send + Sync {
 ## 9.3 可观测性
 
 **NFR-WSG-008**（per `stats::GatewayStats`）：必须暴露 metrics：
+
 - `ws_active_connections`（Gauge）
 - `ws_frames_in_total` / `ws_frames_out_total`（Counter）
 - `ws_frame_decode_errors_total`（Counter，按 error type label）
@@ -372,6 +378,7 @@ pub trait FrameRouter: Send + Sync {
 ## 12.3 不重写
 
 本文档不重写以下既有文档的结构性选择：
+
 - ARC-003（QUIC 双路径，RGS-REQ-001 §10.4）— WS 作为降级路径
 - ARC-022（零信任内部网络，RGS-REQ-010 §7）— WS 复用 mTLS / NetworkPolicy 基线
 - ARC-013（背压与限流，RGS-BAS-013）— WS 帧反压由 `GatewayStats` + `ws.rs` frame loop 处理
@@ -381,6 +388,7 @@ pub trait FrameRouter: Send + Sync {
 ## 12.4 编号冲突归档（per ULYS-87）
 
 本文档采用 RGS-REQ-058 编号；以下历史编号冲突已由 ULYS-87 / ULYS-84 协同处置：
+
 - RGS-REQ-027（App 集群自动化部署脚本）— 保留不动
 - RGS-REQ-028（反作弊 / 风控规则 DSL）— 保留不动
 - RGS-REQ-058（本文档，WebSocket 网络网关）— 新启用

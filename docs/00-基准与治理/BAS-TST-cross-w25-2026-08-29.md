@@ -23,6 +23,7 @@
 
 **总计 6 域 238+ PASS / 2 IT fail (P3 环境问题,非代码回归)**。
 2 个 P3 fail 详情:
+
 1. `crates/economy-service/tests/integration_outbox.rs::outbox_check_constraint_is_idempotent` — `PG 15432 不可达` (WSL/Windows 环境差异)
 2. `crates/cluster-ops/tests/it_cross_domain_admin_health.rs::cluster_ops_health_endpoint_self_check` — `k3s pod 不可达` (WSL-only 约束,Windows 端无法跑)
 
@@ -43,6 +44,7 @@
 ## 1. §1 总览(35 BAS × 10 列)
 
 > **一致性列取值**:
+>
 > - **通过** = BAS 章节要求 100% 被 W25 跑测覆盖且 PASS
 > - **部分** = 章节有覆盖但有偏差(P1/P2)
 > - **未覆盖** = BAS 章节无对应测试(P2)
@@ -76,7 +78,7 @@
 | RGS-BAS-024 | App集群自动化部署脚本 (cluster-manifest) | cluster (部署) | (无业务代码测试) | — | 未跑 | 未覆盖 | §3 依赖图 / §4 编排状态机 / §9A 部署时长基准无 IT | P2 | 设计文档,部署脚本独立于 Rust 代码测试体系 |
 | RGS-BAS-025 | 反作弊与作弊治理体系 | gm + player | gm | it_ban_real_link_e2e | PASS | 部分 | §2 检测信号采集 / §3 案件聚合 / §4 信号融合 无独立 UT | P2 | 仅 ban 链路间接覆盖,反作弊本身待 PH-3 |
 | RGS-BAS-026 | 匹配系统 (跨分片) | match | match | ut_matchmaker.rs | PASS | 通过 | 无 | — | §4 容差函数 (5 UT) + §5 跨分片 OCC (3 UT) + §4.1.1 n 占位 (1 UT) = 9/9 PASS |
-| RGS-BAS-027 | 客户端资源分发与热更新 | rgs-asset-download (新域) | rgs-asset-download | ut_state_machine / ut_resume_token_store / ut_range_client / ut_integrity_gate / ut_chunk_orchestrator + it_minio_* / it_cloudflare_* / chaos_* | PASS | 通过 | 无 | — | ut_state_machine 19+ 状态转移 + it_minio_resume + chaos_responses 全 PASS (per W3 既有实装) |
+| RGS-BAS-027 | 客户端资源分发与热更新 | rgs-asset-download (新域) | rgs-asset-download | ut_state_machine / ut_resume_token_store / ut_range_client / ut_integrity_gate / ut_chunk_orchestrator + it_minio_*/ it_cloudflare_* / chaos_* | PASS | 通过 | 无 | — | ut_state_machine 19+ 状态转移 + it_minio_resume + chaos_responses 全 PASS (per W3 既有实装) |
 | RGS-BAS-031 | 集群运营中心与每功能原子升级 (addendum) | cluster + admin | cluster + admin | cluster-ops/tests + admin-service/tests/integration_admin_basic | PASS | 部分 | §3 admin_db 新增 schema / §4 PFAU 状态机 / §5 CEM 探针 无 E2E | P2 | §6 API 契约字段级定义由 admin 域 4 RPC 验证;PFAU 由 cluster-ops ut_state_machine 间接 |
 | RGS-BAS-032 | SRE运维Agent与客服Agent | (智能层未实装) | (决议 6-9 暂缓) | — | 未跑 | 未覆盖 | §1 前言 / §2 整体架构 / 后续章节无代码 | P2 | 决议 6-9 暂缓,智能层尚未实装代码 |
 | RGS-BAS-033 | Agent平台底座与通用运行时 | (智能层未实装) | (决议 6-9 暂缓) | — | 未跑 | 未覆盖 | 同 BAS-032 | P2 | 决议 6-9 暂缓 |
@@ -87,6 +89,7 @@
 | RGS-BAS-100 | Saga 事务系统 (v0.1) | economy + cluster | economy + cluster | economy-service/tests/integration_reservation + cluster-ops/src/realm_lifecycle/tests/ut_saga | PASS | 部分 | §3 跨服务长流程 Saga / §4 幂等性 / §5 反向补偿部分验 | P2 | saga_orchestrator::ReserveHandler + ConfirmHandler + 失败 cleanup 端到端 PASS |
 
 **总览**:35 份 BAS 中:
+
 - **5 份通过** (BAS-003 / BAS-007 / BAS-012 / BAS-026 / BAS-027 / BAS-036 / BAS-037):7 份实装率 100% 章节被 W25 跑测覆盖
 - **1 份环境 FAIL 但设计通过** (BAS-017):P3 环境问题
 - **29 份部分通过/未覆盖**:其中 5 份未覆盖 (BAS-008 / BAS-009 / BAS-024 / BAS-032~035),24 份部分通过
@@ -632,6 +635,7 @@
 | 部分覆盖 (核心章节有验,边缘章节无) | **22 份** | BAS-001/002/004/005/006/010/011/013/014/015/016/018/019/020/021/022/023/025/031/100 |
 
 **完全未覆盖 6 份**的处置:
+
 - **RGS-BAS-008 客户端引擎适配层**:客户端 0 域,无 WSL 跑测。决议:留待 PH-2 (per RGS-BAS-008 §9 回归测试基础设施)
 - **RGS-BAS-009 体系治理与横切**:治理类设计,无业务代码绑定。4/8 CI 校验在 GitHub Actions 已实现,业务域无 W25 跑测覆盖。决议:不需业务测试
 - **RGS-BAS-024 App集群自动化部署**:cluster-manifest 部署脚本独立于 Rust 测试体系。决议:不需 Rust 测试
@@ -834,6 +838,7 @@
 | BAS-100 | — | — | — | ✓ | — | — | ✓ | — | — | — | — | — |
 
 **图例**:
+
 - `✓` = 有覆盖(章节部分)
 - `✓✓` = 完全覆盖(核心设计 100% 验)
 - `✓P3` = 覆盖但 P3 环境 fail
@@ -853,6 +858,7 @@
 ---
 
 > **本报告数据来源**:
+>
 > - BAS 文档:`docs/{00-基准与治理,01-核心架构与设计模式,02-运维安全与网络,03-数据经济与交易,04-客户端与SDK,05-智能体与Agent,06-测试与质量保障,07-社交运营与玩家治理}/RGS-BAS-*.md` (35 份)
 > - W25 跑测 log:`D:\RustGameServer-worktrees\w25-step3-integration\` 主 worktree,HEAD `f399b66`
 > - W17-W23 merge commits:`bf1274c` / `20c3066` / `b9553eb` / `cf879e2` / `41ed307` / `422ec2b` / `f399b66`

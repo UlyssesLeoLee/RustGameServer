@@ -21,7 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-21 | 架构师 | — | 初版制定。落实 RGS-REQ-037 全部 FR-LCM-001~085 与 NFR-LCM-001~008；扩 RGS-BAS-020 §4 为 6 阶段全生命周期统一视图；扩 RGS-BAS-022 §3.3 为开新服 SOP；定义 `RealmLifecycleService` 组件（依附既有 `ClusterOpsService` 限界上下文，扩 ARC-051 Feature 类型为 `realm_lifecycle`）；定义 `SplitPlan` / `MergeConflictRuleSet` v2（含未结算抽奖/未领取邮件/工会申请扩展）/ `RetirePlan` / `ArchivePolicy` Schema；定义分服 `realm_lifecycle::split` 操作与合服 `realm_lifecycle::merge` 操作的 Saga 编排时序；落实 6 阶段端到端不变量 | 全部 |
 | 0.2 | 2026-08-21 | Ulysses(一人公司 12 角色兼任 per DEC-008) | Ulysses(同) | 具名人类审批完成(per RGS-WBS-001 §17 集体签字声明):一人公司兼任体制下,Ulysses 在本表审批栏各角色中具名签字,完整 12 角色兼任清单见 RGS-WBS-001 §17。审批栏细化角色意见与 DEC-008 兼任对应关系见 RGS-REQ-004 §3.10。**升 v0.2**: 文档从 v0.1 草案转为 v0.2 具名审批版,生产基线化仍需 G-CODE-06 实测通过(per RGS-WF-001) | 全部 |
-| 0.3 | 2026-09-01 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各 BAS 文档功能章节加 log 设计且区分 debug/release 级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个 BAS / 详尽版 5 列表 / 派 worker 并行 / BAS-004 同步升级）：§2.1（限界上下文归属 AD 扩展决策）／§2.2（组件图 6 阶段操作器 + ClusterOpsService PFAU）/§2.3（责任矩阵边界）/§3.1（6 阶段状态机迁移）/§3.2（端到端不变量 FR-LCM-001~006 资产不丢不重 + 可演练 + 可审计）/§4.1（6 阶段操作器内部组件 NewRealm / Scale / Split / Merge / Retire / Archive）/§4.2（持久化 Schema 6 张表 DDL 部署）/§5.1（开新服触发流程 Capacity Gate / Ops Planned / Architecture Decision）/§5.2（开新服资源评估模板）/§5.3（开新服演练剧本模板）/§6.1（节点级扩缩容 HPA + 主动迁移）/§6.2（整服级扩缩容复用 §5 开新服 SOP）/§6.3（DB 层扩缩容复用 RGS-BAS-007 §4 分区设计）/§7.1（分服流程总览 Saga 模式）/§7.2（分服玩家分流策略 forced / opt_in / hybrid）/§7.3（分服跨服关系保持 friend / guild / private_message / mail）/§7.4（分服演练剧本模板）/§8.1（合服与既有 BAS-020 §4 关系纵向延伸）/§8.2（合服冲突规则扩展 pending_lottery / unclaimed_mail / frozen_cross_guild_apply 三类）/§8.3（合服回退窗口 N 天内可回退）/§8.4（合服前冻结 5 类进行中事务）/§9.1（退场流程只读维护模式 + 二次激活窗口期）/§9.2（退场玩家迁出引导 4 渠道）/§9.3（退场后查询通道 cs_agent / sre / legal 三角色 RBAC）/§10.1（归档分级存储热归档 3 年 + 冷归档 10 年）/§10.2（归档启动流程冷热分层 + N+2 副本）/§10.3（合规删除通路 GDPR 被遗忘权 NFR-SE-010 例外）/§11.1（Feature 类型 `realm_lifecycle` 第 5 类扩展）/§11.2（6 阶段 Feature 子类 7 种 Feature ID 模式）/§11.3（PFAU 状态机复用 paused / retrying / rolling_back / aborted）/§12.1（分服 Saga 时序 6 步骤 + 反向步骤补偿）/§12.2（合服 Saga 时序 N→1 合并反向步骤即 `merge_rollback` Feature）/§12.3（Saga 步骤幂等性 request_id 唯一 + 重试不重复 + 回退不丢）/§13.1（OLU 预算 NFR-LCM-007 纳入 ARC-026 核算）/§13.2（可观测性指标 10 个 lcm_* 指标）/§14.1（上线前检查清单 17 项 + log 章节上线检查 4 项 CI 验证事件）/§14.2（代码评审检查清单 11 项 + log 章节代码评审 4 项静态扫描事件）共 37 个 "本功能日志设计" 小节全部新增；每节均含 5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），显式区分 `info!`／`warn!`／`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`／`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；字段名前缀 `lifecycle.*`（区别于 BAS-002 `mnt.*` ／ BAS-003 `ops.*` ／ BAS-016 `cs.*` ／ BAS-018 `auth.*` ／ BAS-020 `pay.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.6.1／§4.6.2 保持拼写一致（FR-LOG-013）；**服务器全生命周期管理域特殊考虑**（6 阶段状态机迁移 + Saga 编排 + 多方仲裁三重强约束）—— ①服务器创建／启动／停止／销毁 → release 必出 + 强制全采样（FR-LCM-001 资产不丢不重 + FR-LCM-002 可审计强约束）；②服务器迁移／重建（合服 N→1 + 分服 1→N）→ release 必出 + 强制全采样 + Saga 反向步骤可回退（FR-LCM-053/064）；③健康检查／故障检测 → release 必出（FR-LCM-001 强约束）；④资源配额／限流触发 → `warn!` 强制全采样（NFR-LCM-007 OLU 预算门禁 + RSK-LCM-006 高密度期间 OLU 击穿）；⑤详细监控指标（CPU／内存／网络）→ release 必出（与 §13.2 lcm_* 指标配套）；⑥内部状态变更（操作器内部状态机迁移／PFAU 状态机 paused / retrying）→ debug-only 守护（高频内部事件，release 完全剔除）；⑦生命周期异常／超时（演练失败／Saga 步骤失败／超时未激活）→ `error!` 强制全采样；§14.1 上线前检查清单新增 log 章节上线检查项（log_chapter_present + release_required_grep_passed + debug_only_compliant + release_required_macro_no_cfg 共 4 项 CI 验证事件）；§14.2 代码评审检查清单新增 log 章节代码评审检查项（realm_lifecycle_release_macro / realm_lifecycle_debug_only_guard / realm_lifecycle_saga_step_emit / realm_lifecycle_audit_chain_complete 共 4 项静态扫描事件）；§15 追溯性新增 AC-LCM-LOG-001（debug-only 宏 release 完全剔除）与 AC-LCM-LOG-002（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4（commit 32d9eb6）／ BAS-003 v0.3 §13（commit 75a001c）／ BAS-004 v0.3 §12（commit 47e26b0+0ee6262）／ BAS-016 v0.4 §5（commit 5cdfddc）／ BAS-018 v0.4 §6（commit 9641509）／ BAS-020 v0.4 §6（commit 7dafefb）形成统一规范 | §2.1~§2.3、§3.1~§3.2、§4.1~§4.2、§5.1~§5.3、§6.1~§6.3、§7.1~§7.4、§8.1~§8.4、§9.1~§9.3、§10.1~§10.3、§11.1~§11.3、§12.1~§12.3、§13.1~§13.2、§14.1~§14.2、§15 |
+| 0.3 | 2026-09-01 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"各 BAS 文档功能章节加 log 设计且区分 debug/release 级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个 BAS / 详尽版 5 列表 / 派 worker 并行 / BAS-004 同步升级）：§2.1（限界上下文归属 AD 扩展决策）／§2.2（组件图 6 阶段操作器 + ClusterOpsService PFAU）/§2.3（责任矩阵边界）/§3.1（6 阶段状态机迁移）/§3.2（端到端不变量 FR-LCM-001~006 资产不丢不重 + 可演练 + 可审计）/§4.1（6 阶段操作器内部组件 NewRealm / Scale / Split / Merge / Retire / Archive）/§4.2（持久化 Schema 6 张表 DDL 部署）/§5.1（开新服触发流程 Capacity Gate / Ops Planned / Architecture Decision）/§5.2（开新服资源评估模板）/§5.3（开新服演练剧本模板）/§6.1（节点级扩缩容 HPA + 主动迁移）/§6.2（整服级扩缩容复用 §5 开新服 SOP）/§6.3（DB 层扩缩容复用 RGS-BAS-007 §4 分区设计）/§7.1（分服流程总览 Saga 模式）/§7.2（分服玩家分流策略 forced / opt_in / hybrid）/§7.3（分服跨服关系保持 friend / guild / private_message / mail）/§7.4（分服演练剧本模板）/§8.1（合服与既有 BAS-020 §4 关系纵向延伸）/§8.2（合服冲突规则扩展 pending_lottery / unclaimed_mail / frozen_cross_guild_apply 三类）/§8.3（合服回退窗口 N 天内可回退）/§8.4（合服前冻结 5 类进行中事务）/§9.1（退场流程只读维护模式 + 二次激活窗口期）/§9.2（退场玩家迁出引导 4 渠道）/§9.3（退场后查询通道 cs_agent / sre / legal 三角色 RBAC）/§10.1（归档分级存储热归档 3 年 + 冷归档 10 年）/§10.2（归档启动流程冷热分层 + N+2 副本）/§10.3（合规删除通路 GDPR 被遗忘权 NFR-SE-010 例外）/§11.1（Feature 类型 `realm_lifecycle` 第 5 类扩展）/§11.2（6 阶段 Feature 子类 7 种 Feature ID 模式）/§11.3（PFAU 状态机复用 paused / retrying / rolling_back / aborted）/§12.1（分服 Saga 时序 6 步骤 + 反向步骤补偿）/§12.2（合服 Saga 时序 N→1 合并反向步骤即 `merge_rollback` Feature）/§12.3（Saga 步骤幂等性 request_id 唯一 + 重试不重复 + 回退不丢）/§13.1（OLU 预算 NFR-LCM-007 纳入 ARC-026 核算）/§13.2（可观测性指标 10 个 lcm_*指标）/§14.1（上线前检查清单 17 项 + log 章节上线检查 4 项 CI 验证事件）/§14.2（代码评审检查清单 11 项 + log 章节代码评审 4 项静态扫描事件）共 37 个 "本功能日志设计" 小节全部新增；每节均含 5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），显式区分 `info!`／`warn!`／`error!`（release 必出，编译期常驻，per BAS-004 v0.3 §6.2 强制全采样白名单）与 `debug!`／`trace!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；字段名前缀 `lifecycle.*`（区别于 BAS-002 `mnt.*` ／ BAS-003 `ops.*` ／ BAS-016 `cs.*` ／ BAS-018 `auth.*` ／ BAS-020 `pay.*`），命名严格 snake_case 与 BAS-004 v0.3 §4.6.1／§4.6.2 保持拼写一致（FR-LOG-013）；**服务器全生命周期管理域特殊考虑**（6 阶段状态机迁移 + Saga 编排 + 多方仲裁三重强约束）—— ①服务器创建／启动／停止／销毁 → release 必出 + 强制全采样（FR-LCM-001 资产不丢不重 + FR-LCM-002 可审计强约束）；②服务器迁移／重建（合服 N→1 + 分服 1→N）→ release 必出 + 强制全采样 + Saga 反向步骤可回退（FR-LCM-053/064）；③健康检查／故障检测 → release 必出（FR-LCM-001 强约束）；④资源配额／限流触发 → `warn!` 强制全采样（NFR-LCM-007 OLU 预算门禁 + RSK-LCM-006 高密度期间 OLU 击穿）；⑤详细监控指标（CPU／内存／网络）→ release 必出（与 §13.2 lcm_* 指标配套）；⑥内部状态变更（操作器内部状态机迁移／PFAU 状态机 paused / retrying）→ debug-only 守护（高频内部事件，release 完全剔除）；⑦生命周期异常／超时（演练失败／Saga 步骤失败／超时未激活）→ `error!` 强制全采样；§14.1 上线前检查清单新增 log 章节上线检查项（log_chapter_present + release_required_grep_passed + debug_only_compliant + release_required_macro_no_cfg 共 4 项 CI 验证事件）；§14.2 代码评审检查清单新增 log 章节代码评审检查项（realm_lifecycle_release_macro / realm_lifecycle_debug_only_guard / realm_lifecycle_saga_step_emit / realm_lifecycle_audit_chain_complete 共 4 项静态扫描事件）；§15 追溯性新增 AC-LCM-LOG-001（debug-only 宏 release 完全剔除）与 AC-LCM-LOG-002（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4（commit 32d9eb6）／ BAS-003 v0.3 §13（commit 75a001c）／ BAS-004 v0.3 §12（commit 47e26b0+0ee6262）／ BAS-016 v0.4 §5（commit 5cdfddc）／ BAS-018 v0.4 §6（commit 9641509）／ BAS-020 v0.4 §6（commit 7dafefb）形成统一规范 | §2.1~§2.3、§3.1~§3.2、§4.1~§4.2、§5.1~§5.3、§6.1~§6.3、§7.1~§7.4、§8.1~§8.4、§9.1~§9.3、§10.1~§10.3、§11.1~§11.3、§12.1~§12.3、§13.1~§13.2、§14.1~§14.2、§15 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -63,6 +63,7 @@
 本文档落实 RGS-REQ-037（服务器全生命周期管理 需求定义书）全部 6 阶段（开新服 / 扩缩容 / 分服 / 合服 / 退场 / 归档）的功能与非功能需求，扩 RGS-BAS-020 §4 与 RGS-BAS-022 §3.3 既有的合服/分服 + 分片新增/下线设计为统一的端到端生命周期视图，并定义 `RealmLifecycleService` 组件（依附既有 `ClusterOpsService` 限界上下文，扩 ARC-051 Feature 类型为 `realm_lifecycle`）。
 
 **核心原则（继承 RGS-REQ-037 §1.2 既定）**：
+
 - **不新建独立限界上下文**——`RealmLifecycleService` 归 AD 限界上下文扩展，与 `ClusterOpsService` 同库同部署
 - **不重发明挂载/退场判定**——ARC-018 既定判定是技术底座，LCM 复用为"新分片接入"与"分片下线"的技术判定
 - **不分发新 GM 控制台**——所有阶段变更经既有 `AdminService`（ARC-019）统一入口
@@ -98,6 +99,7 @@
 | `lifecycle.bounded_context.debug.pfau_feature_type_resolution` | `realm_lifecycle` Feature 类型解析细节（ARC-051 Feature Registry 查找路径） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 280B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `lifecycle.bounded_context.independent_endpoint.detected` 是**架构守门员信号**（FR-LCM-004 门禁）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.bounded_context.admin_bypass.attempted` 是**安全告警**（per RGS-BAS-003 §6.3 告警事件分级）—— release 必出 + `error!` 强制全采样，触发 OTel 告警通道
 - `lifecycle.bounded_context.debug.bridge_invocation_latency` 高频事件必须 `#[cfg(debug_assertions)]` 守护——release 误开 RUST_LOG=debug 会撑爆日志通道（per BAS-001 v1.5 §4.8.3.1）
@@ -185,6 +187,7 @@
 | `lifecycle.component.debug.pfau_feature_id_pattern_match` | Feature ID 模式匹配细节（`rgs.realm_lifecycle.{new_realm\|scale\|split\|merge\|merge_rollback\|retire\|archive}`） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 240B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - 6 个 `*_operator.instantiated` 是**部署验证关键事件**（CI 灰度时按此确认所有操作器到位）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.component.pfau_feature_register_failed` 是**阻断级**信号（Feature 注册失败即整个阶段变更能力不可用）—— release 必出 + `error!` 强制全采样
 - `lifecycle.component.debug.operator_state_machine_dump` 在大型 PFAU 状态下可能 5KB+ —— release 完全剔除
@@ -220,6 +223,7 @@
 | `lifecycle.responsibility.debug.routing_table_full_dump` | `RealmDirectoryService` 路由表全量 dump（含所有 realm 的 status） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-002 跨阶段可审计 + FR-LCM-004 跨阶段门禁一致）：
+
 - `lifecycle.responsibility.realm_lifecycle_service.out_of_scope.detected` 是**架构守门员信号**（责任矩阵边界违规）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.responsibility.business_db.write_coordinated` 涉及跨 DB 写入的 Saga 编排（FR-LCM-005 强约束）—— release 必出 + 强制全采样
 - `lifecycle.responsibility.customer_service.unauthorized_access_blocked` 是**安全告警**（per RGS-BAS-003 §6.3）—— release 必出 + `warn!` 强制全采样
@@ -261,6 +265,7 @@ stateDiagram-v2
 | `lifecycle.state.realm.debug.transition_guard_evaluation` | 状态迁移守卫条件求值细节（含每条 guard 的通过 / 失败） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001~003 强约束）：
+
 - `lifecycle.state.realm.transition.committed` 是**生命周期核心事件**（FR-LCM-002 可审计强约束）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.state.realm.transition.rejected.invalid` 是**FSM 守门员信号**（违反 §3.1 mermaid 状态图）—— release 必出 + `error!` 强制全采样
 - `lifecycle.state.realm.archived.terminal` 是**不可逆事件**（一旦归档只能走合规删除通路 §10.3）—— release 必出 + 强制全采样，便于法务审计
@@ -298,6 +303,7 @@ stateDiagram-v2
 | `lifecycle.invariant.debug.notice_delivery_status` | 玩家告知任务的实际投递状态（per `account_id` 维度的成功 / 失败） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单 + FR-LCM-001~006 6 大不变量强约束）：
+
 - `lifecycle.invariant.asset_consistency.violated` 是**FR-LCM-001 阻断级告警**（资产不丢不重是合规 + 玩家信任底线）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.invariant.drill_required.bypassed` 是**FR-LCM-003 阻断级告警**（演练门禁被绕过意味生产数据风险）—— release 必出 + `error!` 强制全采样
 - `lifecycle.invariant.player_notice.deadline_violated` 是**FR-LCM-006 告警**（玩家信任底线，< 7 天告知触发玩家投诉 / 法务风险）—— release 必出 + `warn!` 强制全采样
@@ -336,6 +342,7 @@ stateDiagram-v2
 | `lifecycle.operator.internal_error` | 操作器内部异常（代码缺陷 / 依赖不可用） | 极少 | release 必出（`error!` 强制全采样） | 含 `operator_id` / `operator_kind` / `error` / `trace_id` / `recoverable`（布尔）；约 320B／条 |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `lifecycle.operator.method_invocation_trace` 是**高频内部事件**（操作器内部每方法调用都会触发）—— release 误开 RUST_LOG=debug 会撑爆日志通道，必须 `#[cfg(debug_assertions)]` 守护
 - 6 个 `*_operator.*_completed` 是**功能事件**（FR-LCM-052/062/073 + RSK-LCM-005 强约束）—— release 必出 + 强制全采样
 - `lifecycle.operator.internal_error` 是**代码缺陷信号**—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
@@ -482,6 +489,7 @@ CREATE TABLE archive_policy (
 | `lifecycle.schema.debug.index_plan_dump` | 索引使用情况 EXPLAIN dump（用于索引命中率排查） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单 + RGS-BAS-010 §7.1 跨文档同步）：
+
 - `lifecycle.schema.merge_conflict_rule_set_v2.modified_after_lock` 是**异常流程可观测信号**（§8.2 明确禁止）—— release 必出 + `warn!` 强制全采样
 - `lifecycle.schema.<table>.ddl_apply_failed` 是**schema 阻断级告警**（DDL 失败意味新阶段变更能力不可用）—— release 必出 + `error!` 强制全采样
 - `lifecycle.schema.cross_table_field_sync_applied` 是**跨文档同步阻断级**（RGS-BAS-010 §7.1 双向同步检查）—— release 必出 + 强制全采样
@@ -547,6 +555,7 @@ CREATE TABLE archive_policy (
 | `lifecycle.new_realm.debug.gray_progression_simulation` | 灰度推进的模拟推演 dump（per `audience_size` 维度的速率预估） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001/002/003/006/010 强约束 + NFR-LCM-007 OLU 预算门禁）：
+
 - `lifecycle.new_realm.drill_run.failed` 是**FR-LCM-003 阻断级告警**（演练门禁强制，未通过不允许切到 `executing`）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.new_realm.three_party_signature.missing` 是**NFR-LCM-007 告警**（OLU 预算门禁强制三方签字）—— release 必出 + `warn!` 强制全采样
 - `lifecycle.new_realm.completed` 是**不可逆事件**（开新服完成后即对玩家可见）—— release 必出 + 强制全采样
@@ -587,6 +596,7 @@ CREATE TABLE archive_policy (
 | `lifecycle.new_realm.evaluation.debug.evaluator_reasoning_trace` | 评估者的决策推理 trace（每项评估为何选这个值） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-LCM-007 OLU 预算门禁 + FR-LCM-006 ≥ 7 天预告）：
+
 - 6 个 `evaluation.*.completed` 是**评估质量门禁**（NFR-LCM-007 强约束）—— release 必出 + 强制全采样，便于追溯"哪个评估者评估了哪个字段"
 - `lifecycle.new_realm.evaluation.capacity_exceeded` 是**运营告警**（容量不足需申请额外资源）—— release 必出 + `warn!` 强制全采样
 - `lifecycle.new_realm.evaluation.full_resource_dump` 大型 plan 下可能 5KB+ —— release 完全剔除
@@ -655,6 +665,7 @@ spec:
 | `lifecycle.new_realm.drill.debug.playbook_yaml_dump` | `NewRealmDrillPlaybook` 完整 YAML dump（含全部步骤 + pass_criteria） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-10KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-003 可演练）：
+
 - `lifecycle.new_realm.drill.step.failed` 是**FR-LCM-003 阻断级告警**—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.new_realm.drill.consistency_check.failed` 是**FR-LCM-001 阻断级告警**—— release 必出 + `error!` 强制全采样
 - `lifecycle.new_realm.drill.debug.playbook_yaml_dump` 大型 playbook 下可能 10KB+ —— release 完全剔除
@@ -710,6 +721,7 @@ spec:
 | `lifecycle.scale.debug.actor_migration_lifecycle` | Actor 迁移生命周期 dump（含每 Actor 的 from / to / 状态切换） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-043/044 缩容 + NFR-LCM-008 服务可用性）：
+
 - `lifecycle.scale.idle_verification.failed` 是**FR-LCM-044 阻断级告警**（缩容前置条件失败意味玩家会话被中断）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.scale.actor_migration.completed` 是**FR-LCM-001 强约束**（场景 Actor 迁出 = 玩家场景迁移，资产不丢不重底线）—— release 必出 + 强制全采样
 - `lifecycle.scale.debug.candidate_node_full_dump` 大型集群下可能 5KB+ —— release 完全剔除
@@ -732,6 +744,7 @@ spec:
 | `lifecycle.scale.realm.debug.sop_inheritance_validation` | 整服级 SOP 复用校验（与开新服 SOP 字段对齐检查） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-LCM-007 OLU 预算 + RSK-LCM-006 OLU 击穿防护）：
+
 - `lifecycle.scale.realm.olu_budget.exceeded` 是**RSK-LCM-006 告警**（OLU 击穿触发团队级运营告警）—— release 必出 + `warn!` 强制全采样
 - 整服级扩缩容详细步骤（资源评估 / 演练 / 正式执行 / 灰度开放等）**全部**走 §5.1~§5.3 的 `lifecycle.new_realm.*` 事件，本节仅补充整服级触发识别 + OLU 预算维度
 
@@ -758,6 +771,7 @@ DB 层扩缩容**复用** RGS-BAS-007 §4 既定分区设计，**不**为 LCM �
 | `lifecycle.scale.db.debug.partition_topology_dump` | DB 分区拓扑 dump（含所有分区的 shard 分布） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-042 不改写分区策略 + NFR-LCM-007 OLU 预算）：
+
 - `lifecycle.scale.db.backfill.failed` 是**阻断级告警**（DB 回填失败意味数据迁移不完整）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.scale.db.partition_strategy.modified` 是**FR-LCM-042 阻断级告警**（明确禁止为 LCM 改写分区策略）—— release 必出 + `error!` 强制全采样
 - `lifecycle.scale.db.debug.partition_topology_dump` 大型 DB 下可能 5KB+ —— release 完全剔除
@@ -826,6 +840,7 @@ DB 层扩缩容**复用** RGS-BAS-007 §4 既定分区设计，**不**为 LCM �
 | `lifecycle.split.debug.player_distribution_dump` | 玩家分流详情 dump（per `account_id` 维度分配到哪个 target_realm_id） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-003 可演练 + FR-LCM-053 Saga 编排 + FR-LCM-085 归档查询通道回退）：
+
 - `lifecycle.split.saga_step.failed` 是**FR-LCM-053 阻断级告警**—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.split.drill_run.failed` 是**FR-LCM-001 + FR-LCM-003 双重阻断**—— release 必出 + `error!` 强制全采样
 - `lifecycle.split.source_realm_retired` 和 `lifecycle.split.completed` 是**不可逆事件**（分服完成 = 旧服退场 + 新服激活）—— release 必出 + 强制全采样
@@ -857,6 +872,7 @@ DB 层扩缩容**复用** RGS-BAS-007 §4 既定分区设计，**不**为 LCM �
 | `lifecycle.split.routing.debug.hybrid_rule_evaluation` | hybrid 规则求值细节（核心玩家识别算法的判定路径） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-051 玩家分流强约束）：
+
 - `lifecycle.split.routing.opt_in.choice_received` 是**玩家决策可追溯事件**（GDPR / 法务审计需要）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.split.routing.distribution_imbalance.detected` 是**运营告警**（分布不均衡需运营调整）—— release 必出 + `warn!` 强制全采样
 - `account_id` 在所有 release 事件中**哈希化**（per BAS-004 v0.3 §5.1），**不**记录明文
@@ -890,6 +906,7 @@ DB 层扩缩容**复用** RGS-BAS-007 §4 既定分区设计，**不**为 LCM �
 | `lifecycle.split.relation.debug.guild_split_topology` | 工会拆分拓扑 dump（含每工会的成员分布） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-052 跨服关系保持）：
+
 - 4 个 `relation.*.migrated` / `marked` / `fully_migrated` / `split_cross_realm` 是**FR-LCM-052 强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 3 个 `relation.*.failed` / `broken` / `assets_mismatch` 是**FR-LCM-052 阻断级告警**—— release 必出 + `error!` 强制全采样
 - `lifecycle.split.relation.debug.guild_split_topology` 大型工会（数千成员）下可能 5KB+ —— release 完全剔除
@@ -953,6 +970,7 @@ spec:
 | `lifecycle.split.drill.debug.pre_post_state_diff` | 演练前后状态 diff dump（含玩家分布 / 好友关系 / 工会 / 邮件） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-10KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-003 可演练 + FR-LCM-053 Saga 编排）：
+
 - `lifecycle.split.drill.compensation.failed` 是**FR-LCM-053 阻断级告警**（Saga 补偿失败意味分服中途崩溃无法回退）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.split.drill.failed` 是**FR-LCM-003 阻断级告警**（演练未通过不允许正式执行）—— release 必出 + `error!` 强制全采样
 - `lifecycle.split.drill.debug.pre_post_state_diff` 大型分服（数万玩家）下可能 10KB+ —— release 完全剔除
@@ -987,6 +1005,7 @@ spec:
 | `lifecycle.merge.debug.bas020_reuse_call_trace` | 与 RGS-BAS-020 §4 复用调用的 trace（含每步的调用路径） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-002 可审计 + FR-LCM-003 可演练 + RGS-BAS-010 §7.1 跨文档同步）：
+
 - 5 个 `bas020_step*` 是**合服五步流程的强约束事件**（FR-PLT-021 + FR-LCM-003 双重约束）—— release 必出 + 强制全采样
 - `lifecycle.merge.bas020_reuse_broken.detected` 是**架构守门员信号**（跨文档同步破坏）—— release 必出 + `error!` 强制全采样
 - `lifecycle.merge.completed` 是**不可逆事件**（合服完成 = 被合并服退场 + 目标服数据合并）—— release 必出 + 强制全采样
@@ -1022,6 +1041,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.merge.conflict.debug.compensation_logic_dump` | 规则应用失败的补偿逻辑 dump（`cancel_and_compensate` / `refund_attachable` 的补偿路径） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-062 合服冲突规则 + FR-PLT-021 评审 + §8.2 不得临时调整）：
+
 - 3 个 `conflict.<rule>.applied` 是**FR-LCM-062 强约束事件**（合服是不可逆操作）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.merge.conflict.rule_set.modified_after_lock` 是**异常流程可观测信号**（§8.2 明确禁止）—— release 必出 + `warn!` 强制全采样
 - `lifecycle.merge.conflict.application.failed` 是**FR-LCM-062 阻断级告警**（规则应用失败触发反向步骤）—— release 必出 + `error!` 强制全采样
@@ -1052,6 +1072,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.merge.rollback_window.debug.saga_reversal_step_trace` | `merge_rollback` Saga 反向步骤的逐条 trace | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-064 合服可回退 + FR-LCM-085 归档查询通道）：
+
 - `lifecycle.merge.rollback_window.merge_rollback.triggered` 是**回退事件**（合服通常是运营重大决策）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.merge.rollback_window.outside_attempt.detected` 是**FR-LCM-064 阻断级告警**（窗口期外回退破坏运营决策纪律）—— release 必出 + `error!` 强制全采样
 - `lifecycle.merge.rollback_window.<=3days.warning` 是**运营提醒**（窗口期即将到期时提前告警）—— release 必出 + `warn!` 强制全采样
@@ -1059,6 +1080,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 ## 8.4 合服与冻结（FR-LCM-061 落地）
 
 合服前**必须**冻结以下进行中事务：
+
 - 玩家间交易（RGS-REQ-018 既定）
 - 未结算抽奖 / 转盘
 - 未领取邮件（特别是带附件的）
@@ -1087,6 +1109,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.merge.freeze.debug.transaction_inventory_dump` | 冻结时点各事务的存量清单 dump（含每类事务的 pending 状态） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-061 合服前冻结 + NFR-LCM-008 服务可用性）：
+
 - 5 个 `freeze.<kind>.frozen` 是**FR-LCM-061 强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.merge.freeze.all_completed` 是**FR-LCM-061 关键事件**（5 类全部冻结 = 合服前置条件齐备）—— release 必出 + 强制全采样
 - `lifecycle.merge.freeze.new_attempt.rejected` 是**FR-LCM-061 防护**（维护模式阻断新事务）—— release 必出 + `warn!` 强制全采样
@@ -1157,6 +1180,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.retire.debug.reactivation_countdown` | 二次激活窗口期倒计时 dump | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 240B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-003 可演练 + FR-LCM-006 玩家最小告知 + FR-LCM-071 退场 + FR-LCM-072 资产保留 + FR-LCM-073 查询通道 + FR-LCM-075 二次激活）：
+
 - `lifecycle.retire.drill_run.failed` 是**FR-LCM-003 阻断级告警**—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.retire.realm_directory.status_retired` 和 `lifecycle.retire.runtime_node.drained` 和 `lifecycle.retire.completed` 是**不可逆事件**（退场一旦完成 = 不可逆路径）—— release 必出 + 强制全采样
 - `lifecycle.retire.reactivation.window_expired` 是**FR-LCM-075 告警**（二次激活窗口期过期触发架构评审）—— release 必出 + `warn!` 强制全采样
@@ -1189,6 +1213,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.retire.migration.debug.player_response_breakdown` | 玩家响应详情 dump（per `account_id` 维度的迁出选择） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-006 玩家最小告知 ≥ 7 天 + FR-LCM-071 退场引导）：
+
 - 4 个 `migration.<channel>.dispatched` / `linked` 是**FR-LCM-006 + FR-LCM-071 双重强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.retire.migration.delivery.low_reach_rate` 是**运营告警**（触达率过低意味着玩家不知情 = 法务风险）—— release 必出 + `warn!` 强制全采样
 - `account_id` 在 release 事件中**哈希化**（per BAS-004 v0.3 §5.1）
@@ -1218,6 +1243,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.retire.query_channel.debug.audit_chain_link_dump` | 双层审计链关联 dump（客服查 + 法务监控的关联细节） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 PII 脱敏 + FR-LCM-073 退场后查询通道 + NFR-LCM-006 归档查询性能 + NFR-OP-005 24×365 稳定性）：
+
 - `lifecycle.retire.query_channel.accessed` 是**合规审计关键事件**（FR-LCM-073 强制留痕）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.retire.query_channel.unauthorized_access.detected` 是**安全告警**（per RGS-BAS-003 §6.3）—— release 必出 + `error!` 强制全采样
 - `lifecycle.retire.query_channel.bulk_export.detected` 是**数据窃取防护**（per RGS-BAS-003 §6.3）—— release 必出 + `warn!` 强制全采样
@@ -1257,6 +1283,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.archive.tiering.debug.upload_progress` | 冷归档上传进度 dump（含每 chunk 的上传进度） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-LCM-005 数据保留期 + RSK-LCM-005 N+2 副本 + GDPR / 个保法合规）：
+
 - `lifecycle.archive.tiering.replica.failed` 是**RSK-LCM-005 阻断级告警**（副本数 < N+2 = 数据可靠性不达标）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `lifecycle.archive.tiering.hot.completed` 和 `lifecycle.archive.tiering.cold.completed` 是**不可逆事件**（归档一旦完成 = 终态）—— release 必出 + 强制全采样
 - `lifecycle.archive.tiering.retention_period.warning` 是**合规提醒**（保留期到期前 30 天预警）—— release 必出 + `warn!` 强制全采样
@@ -1311,6 +1338,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.archive.flow.debug.cold_restore_chain` | 冷归档还原通路 chain dump（含从对象存储到查询实例的完整链路） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-002 可审计 + NFR-LCM-005 数据保留期 + FR-LCM-085 跨服合并回溯 + RSK-LCM-005 N+2 副本 + NFR-LCM-006 归档查询性能）：
+
 - 6 个 `flow.<stage>.completed` 是**归档流程强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.archive.flow.cold_restore.failed` 是**合规阻断级告警**（冷归档还原失败 = 监管 / 法务无法查询历史）—— release 必出 + `error!` 强制全采样
 - `lifecycle.archive.flow.trigger_conditions.unmet` 是**运营告警**（归档条件未满足意味着流程异常）—— release 必出 + `warn!` 强制全采样
@@ -1349,6 +1377,7 @@ RGS-BAS-020 §4.1 既有 `MergeConflictRuleSet` 字段扩为 v2（§4.2 `merge_c
 | `lifecycle.archive.compliance_delete.debug.anonymization_chain_trace` | 跨服合并回溯匿名化的逐条 trace | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 PII 脱敏 + FR-LCM-084 合规删除 + NFR-SE-010 例外通路 + GDPR / 个保法合规）：
+
 - 12 个 `compliance_delete.*` 是**合规审计硬要求事件**（GDPR / 个保法强约束）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.archive.compliance_delete.execution.completed` 是**不可逆事件**（删除一旦完成 = 玩家数据永久移除）—— release 必出 + 强制全采样
 - `lifecycle.archive.compliance_delete.legal.cert_archived` 是**合规凭证**（FR-LCM-084 强约束，用于监管复核）—— release 必出 + 强制全采样
@@ -1381,6 +1410,7 @@ RGS-BAS-031 §1.1 既有 4 类 Feature（`bounded_context` / `plugin` / `patch` 
 | `lifecycle.feature_type.debug.feature_id_pattern_match` | Feature ID 模式匹配细节（`rgs.realm_lifecycle.{new_realm\|scale\|split\|merge\|merge_rollback\|retire\|archive}.<...>`） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 280B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RGS-BAS-031 §1.1 Feature 类型扩展 + ARC-038 + ARC-051）：
+
 - `lifecycle.feature_type.realm_lifecycle.registered` 是**RGS-BAS-031 §1.1 治理信号**（第 5 类 Feature 扩展）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 3 个 `registration_failed` / `duplicate_registration.detected` / `type_resolution_failed` 是**RGS-BAS-031 阻断级告警**—— release 必出 + `error!` 强制全采样
 - `lifecycle.feature_type.debug.registry_full_dump` 大型 Feature Registry 下可能 5KB+ —— release 完全剔除
@@ -1413,6 +1443,7 @@ RGS-BAS-031 §1.1 既有 4 类 Feature（`bounded_context` / `plugin` / `patch` 
 | `lifecycle.feature_subtype.debug.subtype_registry_dump` | 7 个 Feature 子类注册表 dump（含每子类的 operator 绑定） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §11.2 7 个 Feature 子类 + RGS-BAS-031 §1.1）：
+
 - 7 个 `feature_subtype.<subtype>.registered` 是**RGS-BAS-031 §1.1 治理信号**（第 5 类 Feature 扩展的子类注册）—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 3 个 `pattern_mismatch.detected` / `operator_not_found` / `registration_failed` 是**RGS-BAS-031 阻断级告警**—— release 必出 + `error!` 强制全采样
 - 7 个 `feature_subtype.<subtype>.dispatched` 是**业务事件**（每个阶段变更 run 都会触发）—— release 必出 + 强制全采样
@@ -1447,6 +1478,7 @@ RGS-BAS-031 §1.1 既有 4 类 Feature（`bounded_context` / `plugin` / `patch` 
 | `lifecycle.pfau.debug.canary_metrics_detail` | canary 阶段指标明细（CPU / 内存 / 网络 / 错误率） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RGS-DTL-031 §4.2 PFAU 状态机 + FR-LCM-002 可审计 + FR-LCM-053 Saga 编排 + FR-LCM-064 合服回退）：
+
 - 9 个 PFAU 状态转移事件（`transitioned` / `paused.retry` / `paused.rollback` / `paused.aborted` / `canary_*` / `observing.*` / `completed`）是**PFAU 状态机核心事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.pfau.transition.rejected.invalid` 是**PFAU 守门员信号**（违反 RGS-DTL-031 §4.2 既定状态机）—— release 必出 + `error!` 强制全采样
 - `lifecycle.pfau.paused.rollback.triggered` 是**FR-LCM-053 + FR-LCM-064 强约束事件**（Saga 反向步骤触发）—— release 必出 + 强制全采样
@@ -1522,6 +1554,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.saga.split.debug.compensation_path_full_dump` | 分服 Saga 反向步骤补偿路径完整 dump（含每步的 SQL + 数据变更） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-053 Saga 编排 + §12.3 幂等性）：
+
 - 12 个 `lifecycle.saga.split.*` 是**FR-LCM-053 强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.saga.split.step.<n>.failed` / `compensation.failed` / `consistency_check.failed` / `idempotency.violation.detected` 是**FR-LCM-053 / FR-LCM-001 / 幂等性阻断级告警**—— release 必出 + `error!` 强制全采样
 - `lifecycle.saga.split.completed` 是**不可逆事件**（分服 Saga commit 全部 = 资产迁移完成）—— release 必出 + 强制全采样
@@ -1553,6 +1586,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.saga.merge.debug.merge_rollback_chain_dump` | `merge_rollback` 完整链路 dump（含反向步骤的 SQL + 数据变更） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-LCM-001 资产不丢不重 + FR-LCM-053 Saga 编排 + FR-LCM-064 合服可回退 + §12.3 幂等性）：
+
 - 12 个 `lifecycle.saga.merge.*` 是**FR-LCM-053 强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 5 个 `step.<n>.failed` / `compensation.failed` / `consistency_check.failed` / `idempotency.violation.detected` / `compensation.failed` 是**FR-LCM-053 / FR-LCM-001 / FR-LCM-064 / 幂等性阻断级告警**—— release 必出 + `error!` 强制全采样
 - `lifecycle.saga.merge.completed` 是**不可逆事件**（合服 Saga commit 全部 = 资产合并完成）—— release 必出 + 强制全采样
@@ -1583,6 +1617,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.saga.idempotency.debug.compensation_traversal` | Saga 反向步骤遍历 trace（含每 `request_id` 的反向步骤路径） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + RGS-DTL-031 §3.1 幂等记录设计 + FR-LCM-053 Saga 编排 + §12.3 幂等性）：
+
 - 9 个 `lifecycle.saga.idempotency.*` 是**§12.3 幂等性强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.saga.idempotency.compensation.missed.detected` 是**FR-LCM-053 阻断级告警**（反向步骤遗漏 = 资产迁移不完整）—— release 必出 + `error!` 强制全采样
 - `lifecycle.saga.idempotency.index.dropped` 是**异常流程可观测信号**（索引删除是异常路径）—— release 必出 + `warn!` 强制全采样
@@ -1623,6 +1658,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.olu.debug.team_allocation_detail` | 团队分配详情 dump（含每团队每任务的 OLU 占比） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-LCM-007 OLU 预算 + RSK-LCM-006 高密度期间 OLU 击穿 + ARC-026 OLU 核算）：
+
 - 6 个 `olu.<phase>.estimation.registered` 和 `olu.budget.consumed` 是**NFR-LCM-007 强约束事件**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 3 个 `olu.budget.exceeded` / `high_density.detected` / `serial_scheduling.enforced` 是**RSK-LCM-006 告警**—— release 必出 + `warn!` 强制全采样
 - `lifecycle.olu.debug.team_allocation_detail` 大型团队下可能 3KB+ —— release 完全剔除
@@ -1661,6 +1697,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.observability.debug.grafana_query_trace` | Grafana 查询 trace（含 dashboard 渲染时的查询路径） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §13.2 10 个 `lcm_*` 指标 + RGS-BAS-004 埋点体系 + RGS-BAS-003 §6.3 告警事件分级 + NFR-LCM-006 归档查询性能 + RSK-LCM-006 OLU 击穿防护）：
+
 - 10 个 `observability.metrics.<name>.registered` 是**§13.2 治理信号**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `lifecycle.observability.metrics.sample_emitted` **建议**通过 Prometheus pull 而非应用 push 减少日志量——但 pull 失败时仍需 release 必出，便于 SRE 排查抓取失败
 - 4 个 `scrape_failed` / `anomaly.detected` / `alert.<alert_id>.triggered` 是**§13.2 告警**—— release 必出 + `warn!` 强制全采样
@@ -1716,6 +1753,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.pre_launch.checklist_execution_detail` | 17 项门禁逐项执行的详细 trace（含每项的输入 / 输出） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单 + FR-LCM-001~085 + AC-LCM-001~010 + AC-LCM-LOG-001/002 + BAS-005 v0.3 §10.2 CI 验证事件）：
+
 - 17 个 `pre_launch.checklist.<item>.passed` 是**§14.1 治理信号**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 17 个 `pre_launch.checklist.<item>.failed` 是**§14.1 上线阻断级告警**—— release 必出 + `error!` 强制全采样
 - 4 个 `log_chapter.presence_verified` / `release_required_grep.passed` / `debug_only.compliant` / `release_required_macro.no_cfg` 是**AC-LCM-LOG-001 + AC-LCM-LOG-002 强约束 CI 验证事件**（per BAS-005 v0.3 §10.2）—— release 必出 + 100% 强制全采样
@@ -1759,6 +1797,7 @@ RealmLifecycleService.SplitOperator    ClusterOpsService    player_db    social_
 | `lifecycle.code_review.debug.review_thread_dump` | 代码评审 thread dump（含每条评审意见 / 回复） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2 强制全采样白名单 + FR-LCM-002 可审计 + FR-LCM-004 跨阶段门禁一致 + FR-LCM-053 Saga 编排 + §12.3 幂等性 + AC-LCM-LOG-001 + AC-LCM-LOG-002）：
+
 - 15 个 `code_review.checklist.<item>.passed` 是**§14.2 治理信号**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - 15 个 `code_review.checklist.<item>.failed` 是**§14.2 PR 合入阻断级告警**—— release 必出 + `error!` 强制全采样
 - 4 个 `static_scan.<scan_id>.violation.detected` 是**AC-LCM-LOG-001 + FR-LCM-002 + FR-LCM-053 阻断级告警**—— release 必出 + `error!` 强制全采样

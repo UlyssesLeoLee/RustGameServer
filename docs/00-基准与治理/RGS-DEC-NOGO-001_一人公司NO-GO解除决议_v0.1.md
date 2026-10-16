@@ -39,6 +39,7 @@
 | 12 | 项目负责人(PM) | **Ulysses** | **2026-08-24** | ✅ 范围、风险接受、资源(含 5 域独立 Lead 编制)和**进入 Phase 0.5 实施授权** |
 
 **接受代价**(per DEC-008):Q-003 跨域事务"1 人自审自批"已知风险,由流程化补偿(per `RGS-PLAN-001 v0.8 §3.4.5`):
+
 - CI 强约束(4 workflow 必须全过)
 - 自动化测试 ≥ 80%
 - 自我 PR review(checklist 化)
@@ -72,6 +73,7 @@
 | **B-CODE-04** | 任意 gRPC client→service→DB 1 个 trace_id 串联 | 🔴 | Step 3 + Step 6 → `b4-cross-domain-trace.log` |
 
 **4 B-CODE 解除 SOP**:
+
 1. Phase 0.5 Step 1-5 全部跑通
 2. Step 6 端到端 smoke test 4 份实测 log 全部生成
 3. 4 B-CODE 状态 🔴 → 🟡 → 🟢 逐项关闭

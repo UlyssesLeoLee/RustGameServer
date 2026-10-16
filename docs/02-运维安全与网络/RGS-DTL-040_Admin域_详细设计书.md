@@ -57,7 +57,6 @@ control_plane_peer: cluster-ops-service
 - [ ] `cluster_operator/cluster_admin` 与既有 RBAC 的最终矩阵。
 - [ ] COC UI 写操作、DLQ replay 和 PFAU 演练验收证据。
 
-
 ---
 
 ## 修订历史（改訂履歴 / Revision History）

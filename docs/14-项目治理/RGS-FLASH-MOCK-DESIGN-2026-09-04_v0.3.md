@@ -162,6 +162,7 @@ gap_matrix.record_response(rpc_code, status, latency)
 
 **v0.1 抽样 RPC 总数**: 22 (12 类别 + 10 额外, 1-2 per 类别)
 **v0.1 预期覆盖率**:
+
 - ✅ PASS (RGS 已支持): 5 类别 (战斗/PVP/经济/排行榜/GM) ≈ 9 RPC
 - 🟡 PARTIAL (RGS 部分支持): 5 类别 (养成/公会/社交/活动/付费) ≈ 9 RPC
 - ❌ N-A (RGS 品类不适用): 1 类别 (场景) ≈ 2 RPC

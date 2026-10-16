@@ -34,9 +34,11 @@
 | `c2acf02` | `crates/match-service/migrations/0041_moves_partitioned.sql` (107 行, T-04 / P1-07, 1 年保留, PH-3) | 同上 + 评审启动材料 v0.1 | 等 SRE + DBA + match Lead 评审签字 | 同上, 评审通过转 v1.0 + PH-3 |
 
 **已 prune 元数据 1 项** (本轮 git worktree remove --force 已成功 + worktree prune 元数据已清, 物理目录残留 — L12 派生约束只要求临时文件不入 commit, 不要求 working tree 清空):
+
 - `.worktrees/feat-auto-20260901-3e13c819/crates/rgs-asset-download/Z:\definitely-not-existing\store/` (L12 临时文件, 物理目录在 feat-auto 老 worktree 内, mavis-trash ban + CLI 安全策略 ban 永久删除, 不入 commit 即可)
 
 **主 worktree .worktrees/ 内部 5 项老临时文件** (v0.6.16 hotfix 新增, 2026-09-02 09:42 JST, per `Get-ChildItem .worktrees` 实测):
+
 - `.worktrees/feat-auto-20260901-3e13c819/` (物理目录残留, 9/2 08:25 JST, 9/2 8:25 git worktree remove 触发时间吻合)
 - `.worktrees/bas-list.txt` (8/29 03:48 JST, 3961 byte, 上游 AI 留下的 bas 列表, L12 临时文件)
 - `.worktrees/给AI通知-2026-08-29-08-11.md` (8/30 20:56 JST, 4451 byte, 上游 AI 通知 1)
@@ -45,6 +47,7 @@
 - **L12 派生约束**: 5 项均不入 commit 即可, mavis-trash ban + CLI 安全策略 ban 永久删除, 保留在主 worktree 不影响 git 状态, 等外部工具清理。
 
 **docs/ 空目录残留 1 项** (v0.6.17 hotfix 新增, 2026-09-02 09:46 JST, per `Get-ChildItem docs/ddd-review` 实测):
+
 - `docs/ddd-review/` (空目录, 8/31 16:30 JST 创建, 0 file 0 commit, bd0884f 实际 commit 进 `docs/14-项目管理/ddd-review/`, 该空目录是 9/1 worktree 切换时残留)
 - **L11 派生约束**: docs 空目录不影响 git 状态 (git status 不报, 因为空目录不被 track), 不入 commit 即可, 等外部工具清理。
 
@@ -202,6 +205,7 @@
 ## 5. 阻塞项 + 转交清单
 
 ### 5.1 🔒 Phase C 桶 9 (SRE 真身介入)
+
 - **阻塞**: WSL k3s `ulyssespc` 节点注册未恢复 (per OPEN-QA v0.3 §7.1)
 - **Mavis 边界 (per OPEN-QA v0.3 §7.5)**: 不应做卸载 k3s / 重 apply manifest / 修证书 / 改 yaml, 等 SRE 介入
 - **影响 commit**: 0/5 ST 业务级 mTLS 落地
@@ -217,15 +221,18 @@
 | cargo test --tests 实际跑 (22 测试函数 11 UT + 11 E2E) | L1 派生约束 cargo check 60s 限时, 实际跑待 Phase C | k3s ulyssespc + 5 域 mTLS + PG 池 → cargo test 跑通 |
 
 ### 5.2 📋 E3 W2-W6 (后续会话 WT 派工)
+
 - **范围**: 32 L4 任务 (W2 Master 5 表 + 5 gRPC client + worker pool + retry/DLQ + /api/v1/tasks 6 endpoint / W3 Transaction 3 表 + Work 2 表 + cron 调度 + audit + 11 UT / W4 log-tasks + migration + templates + dlq + data-sources + 7 页面 / W5 集成 + 端到端 + 凭据 + OLU / W6 系统测试 + 监控 + 故障恢复 + DDD Review)
 - **依据**: per 2026-09-02 00:28 JST Ulysses 拍板 3 全 A (E3/E4 → 后续会话)
 
 ### 5.3 📋 E4 k3s 资源上限 + namespace 隔离
+
 - **草案**: WBS v0.4 §3 (3 namespace + 资源上限 + HPA 启用阈值)
 - **待**: SRE 拍板资源上限值 / namespace 隔离 vs 单 namespace / HPA 启用阈值 / storage class
 - **依据**: per BATCH REQ §10.3
 
 ### 5.4 📋 E8 12 GAP (24 人·天, 跟 W2-W6 推进)
+
 - **细化**: WBS v0.4 §4 (GAP-1 跨 batch DAG / GAP-2 WebSocket / GAP-3 流式 / GAP-4 mavis cron 告警 / GAP-5 任务优先级 / GAP-6 AI 协助 SQL / GAP-7 rgs-web 深联动 / GAP-8 任务模板版本化 / GAP-9 Rollback SQL 验证 / GAP-10 任务超时 kill / GAP-11 跨域 saga 触发 / GAP-12 batch 域 Lead RACI 同步)
 - **节奏**: W1 (本周) → W6 末落地
 

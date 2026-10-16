@@ -24,18 +24,21 @@
 ## 2. 测试范围
 
 **覆盖范围**：
+
 - 工程 77：系统测试规约书
 - 工程 78：功能测试（feature-level E2E）
 - 工程 79：场景测试（multi-player 真实游戏场景：登录→匹配→对战→结算→升级）
 - 工程 84：障害测试（chaos engineering：节点宕机 / DB 抖动 / 网络分区）
 
 **测试场景**：
+
 - 单域功能（player 登录 / economy 交易 / match 撮合 / social 聊天 / admin COC）
 - 跨域场景（Q-003 Saga 完整交易流）
 - 集群场景（cluster-ops Active-Active 3 副本 + all-reachable PFAU）
 - 故障注入（kill 节点 / 切网络 / 慢 DB / OOM）
 
 **工具链**：
+
 - 真实集群（k3s 3 节点）
 - chaos-mesh（故障注入）
 - locust / k6（流量生成）

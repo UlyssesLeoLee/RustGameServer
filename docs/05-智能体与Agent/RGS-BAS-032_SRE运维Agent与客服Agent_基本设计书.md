@@ -21,7 +21,7 @@
 |---|---|---|---|---|---|
 | 0.1 | 2026-08-20 | 架构师 | — | 初版制定。落实 RGS-REQ-032 全部 BR-AGT-001~005 / FR-OPSA-001~010 / FR-CSA-001~008 / NFR-AGT-001~003 + AC-AGT-001~004；包含双 Agent 体系（ADR-0029 L0~L4 确定性分层 + ADR-0053 双 Agent 体系 + ADR-0054 平台运行时）架构定位；PFAU 灰度全自动值守（Quarantine 池状态机）+ 掉单与资产争议自动对账（Outbox + 客服工单集成）。 | RGS-REQ-032 v0.1 |
 | 0.2 | 2026-08-25 | 架构师 | — | **同步 REQ 升版**：父文档 RGS-REQ-032 v0.1 → v0.2（per `RGS-DOCS-HEALTH-2026-08-25` 接手 agent 2026-08-25 调查 / 用户 2026-08-25 22:35 JST 指令"依照最新版需求文档更新基本设计文档"）。**正文功能层无变化**——REQ v0.2 修订内容为"将 ARC-053 固化为正式需求标题与可追溯约束；不改变既有 L0 受控执行边界"，BAS 体系（双 Agent + L0 Action Gate + Quarantine 池 + 客服工单集成）已落实该约束。**审批栏状态**：本 v0.2 升版**仅为草案**（per DEC-008 治理基线 + `RGS-DOCS-HEALTH-2026-08-25` §0 第 4 行"治理状态,非文档缺陷,agent 不可代签"），未填写 12 角色签字栏——签字动作需 Ulysses 本人在场执行（per ADR-0053 §4 已留出空签字栏）。 | RGS-REQ-032 v0.2 |
-| 0.3 | 2026-09-01 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"每功能 BAS 文档含本功能 log 设计且区分 debug/release 级"总要求（per Ulysses 2026-09-01 15:52 JST 决策 4 拍板选项）：§2.1.1（SRE Agent PFAU 升级自动守卫与 Quarantine 隔离流）+ §3.1.1（客服 Agent 资产争议与掉单对账状态机）共 2 个 ## L2 功能段加"本功能日志设计"5 列详尽版（字段名 / 触发条件 / 频率估算 / 采样策略 / 脱敏与成本），形式按 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-022 v0.3 样板（commit 0d2cd04）。**SRE/客服 Agent 域特殊考虑**：① SRE 事件检测/告警/恢复 → release 必出 + 强制全采样（FR-OPSA-* 强约束）② 客服工单接入/对账/补偿 → release 必出 + 强制全采样（FR-CSA-* 强约束）③ Agent 模型推理（含 LLM token/耗时/cost_usd）→ release 必出（成本监控关键，per NFR-AGT-003 降级链路）④ Agent 内部决策（推理打分/候选 intent）/ 工单原文 dump → debug-only，release build 完全剔除（#[cfg(debug_assertions)] 守护，避免 `RUST_LOG=debug` 误开时泄漏 PII/集群配置）⑤ Agent 误判/超时/降级/L0 闸门拒绝 → `error!` 强制全采样，**不**挂 `#[cfg]`。字段名前缀统一 `sre.*`（与 BAS-022 `cap.*` / BAS-003 `ops.*` / BAS-016 `cs.*` 区分，snake_case 严格 per BAS-004 v0.3 §4.6.1/§4.6.2 拼写一致 FR-LOG-013）。 | RGS-REQ-032 v0.2 |
+| 0.3 | 2026-09-01 | 架构师(Mavis 接手 agent per DEC-008) | 架构师(Mavis 接手 agent per DEC-008) | 落实"每功能 BAS 文档含本功能 log 设计且区分 debug/release 级"总要求（per Ulysses 2026-09-01 15:52 JST 决策 4 拍板选项）：§2.1.1（SRE Agent PFAU 升级自动守卫与 Quarantine 隔离流）+ §3.1.1（客服 Agent 资产争议与掉单对账状态机）共 2 个 ## L2 功能段加"本功能日志设计"5 列详尽版（字段名 / 触发条件 / 频率估算 / 采样策略 / 脱敏与成本），形式按 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-022 v0.3 样板（commit 0d2cd04）。**SRE/客服 Agent 域特殊考虑**：① SRE 事件检测/告警/恢复 → release 必出 + 强制全采样（FR-OPSA-*强约束）② 客服工单接入/对账/补偿 → release 必出 + 强制全采样（FR-CSA-* 强约束）③ Agent 模型推理（含 LLM token/耗时/cost_usd）→ release 必出（成本监控关键，per NFR-AGT-003 降级链路）④ Agent 内部决策（推理打分/候选 intent）/ 工单原文 dump → debug-only，release build 完全剔除（#[cfg(debug_assertions)] 守护，避免 `RUST_LOG=debug` 误开时泄漏 PII/集群配置）⑤ Agent 误判/超时/降级/L0 闸门拒绝 → `error!` 强制全采样，**不**挂 `#[cfg]`。字段名前缀统一 `sre.*`（与 BAS-022 `cap.*` / BAS-003 `ops.*` / BAS-016 `cs.*` 区分，snake_case 严格 per BAS-004 v0.3 §4.6.1/§4.6.2 拼写一致 FR-LOG-013）。 | RGS-REQ-032 v0.2 |
 
 > **签字状态说明**：本 BAS-032 v0.2 升版**未签字**。对照样本 BAS-026 / BAS-036 / BAS-037 的 v0.2 升版是"12 角色签字完毕 + G-CODE-06 通过"模式；本 v0.2 因 per ARC-053 待具名人类审批（per `RGS-DOCS-HEALTH-2026-08-25 §4` 反馈单 issue #13 跟踪）尚未完成，故只做版本对齐。**Mavis 不代签**（per DEC-008）。本 v0.3 升版（仅追加"本功能日志设计"小节，**不**触及 v0.2 待签字的内容层）由 Mavis 接手代签（per 2026-08-27 19:39/20:56/21:59 JST 三次强化授权）。
 
@@ -30,7 +30,9 @@
 ## 1. 架构定位与设计原则（ARC-053）
 
 ### 1.1 架构分层与双闸门模型
+
 系统严格遵守 **ADR-0029（L0~L4 确定性分级）** 与 **ADR-0053** 原则：
+
 - **感知侧（Ingestion）**：Agent 通过只读 API、Kafka 事件流镜像感知集群与业务状态。
 - **思考侧（Cognition）**：基于 LangGraph 状态图与专门微调的 Small Language Model 进行逻辑编排与多步推演。
 - **执行侧（Actuation）**：Agent 绝不拥有直接写 DB 或直连游戏服的权限。所有操作统一转化为结构化 `ActionIntent`，送交 **L0 确定性动作执行闸门（Action Gate）**。
@@ -54,6 +56,7 @@
 ## 2. SRE 运维 Agent 工作流设计
 
 ### 2.1 PFAU 升级自动守卫与 Quarantine 隔离流
+
 ```mermaid
 stateDiagram-v2
     [*] --> IngestMetrics: 接收灰度批次开始事件
@@ -96,6 +99,7 @@ stateDiagram-v2
 | `sre.pfau.trace.metric_sample_timing` | 每个健康检查 tick 的指标采样延迟明细（per metric_source OTel/OTLP/Prom 延迟分布） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 四铁律）：
+
 - `sre.pfau.gate_check.*` 全系列是治理关键事件（per BAS-004 v0.3 §6.2 强制全采样白名单"闸门决策事件"），任何 L0 闸门拒绝（含白名单/配额/签名/审计入库）都必须 production 可见，便于 SRE 复盘拒因；**不**挂 `#[cfg]`
 - `sre.pfau.gate_check.rejected.audit` 是**阻断级信号**（审计入库失败 = 任何 ActionIntent 都不应放行）—— 必须 `error!` 强制全采样，**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sre.pfau.llm.inference.completed` 必含 `cost_usd` 字段（成本核算），属 release 必出成本监控关键事件
@@ -108,6 +112,7 @@ stateDiagram-v2
 ## 3. 客服 Agent 工作流设计
 
 ### 3.1 资产争议与掉单对账状态机
+
 1. **意图萃取**：提取工单中的 `PlayerId`、`OrderId`、`TransactionTime`、`ItemTemplateId`。
 2. **对账对齐**：
    - 步骤 A：查询三方支付渠道回调表（确认资金已入账）。
@@ -149,6 +154,7 @@ stateDiagram-v2
 | `sre.cs.debug.recon_query_plan` | 三方对账查询计划 dump（per 步骤 A / B 的查询语句 / 索引命中情况） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3 四铁律 + §5.1 PII 双重约束）：
+
 - `sre.cs.compensation.gate_check.rejected.audit` / `sre.cs.compensation.failed.unexpected` / `sre.cs.llm.misjudgment.detected` 必须 `error!` 强制全采样（per §4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sre.cs.llm.inference.completed` 必含 `cost_usd` 字段（成本核算），属 release 必出成本监控关键事件
 - `sre.cs.debug.ticket_payload_dump` 含 PII 重度（玩家工单原文 / 邮箱 / 联系方式可能含敏感信息）—— release build 完全剔除，避免 `RUST_LOG=debug` 误开时泄漏

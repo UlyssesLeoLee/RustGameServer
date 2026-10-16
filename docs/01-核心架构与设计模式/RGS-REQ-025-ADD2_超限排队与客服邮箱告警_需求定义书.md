@@ -196,7 +196,7 @@ RGS 既有的 5 域业务服务在容量规划上仅回答了"如何分片 / 跨
 - 真实密码通过 k8s Secret 注入到 Pod 环境变量（**不**入 git 提交历史）
 - helm `secret.yaml` 模板用占位 key `rgs-smtp-password`，真实值由运维注入
 
-## 5.10 FR-OFLOW-010：客服邮箱默认 hanakagumi@gmail.com
+## 5.10 FR-OFLOW-010：客服邮箱默认 <hanakagumi@gmail.com>
 
 - `SUPPORT_EMAIL` env 默认值 = `hanakagumi@gmail.com`
 - 可由 `SUPPORT_EMAIL` 覆盖（运营可换企业邮箱）
@@ -258,7 +258,7 @@ ARC-050 仅作用于 4 个业务域（player / economy / match / social）。adm
 - [ ] 4 域服务（player / economy / match / social）`cargo build` 通过
 - [ ] admin-service / cluster-ops 0 改动（`git diff` 验证）
 - [ ] workspace 依赖含 `async-nats = 0.42` + `lettre = 0.11 (tokio1-rustls-tls)`
-- [ ] `.env.example` 含 SUPPORT_EMAIL / SMTP_* / NATS_OVERFLOW_* / 4 域 MAX_INFLIGHT（per §5.10）
+- [ ] `.env.example` 含 SUPPORT_EMAIL / SMTP_*/ NATS_OVERFLOW_* / 4 域 MAX_INFLIGHT（per §5.10）
 - [ ] helm 4 域 values 各加 `overflow` 段；configmap 加 SUPPORT_EMAIL 等 4 个 env；secret 模板加 SMTP_PASSWORD 引用
 - [ ] `crates/rgs-overflow-alert/README.md` + `RISKS.md` 完成
 - [ ] 互引文档 3 份 addendum 全部 git 实证

@@ -175,7 +175,7 @@
 
 | 测试 ID | 对应需求 | 字段/映射 | 用例类型 | 测试目标 |
 |---|---|---|---|---|
-| TST-UT-08-A001 | 无上游设计依据,实现阶段新增 | http_addr=0.0.0.0:8443, health_addr=0.0.0.0:8081, admin_grpc_endpoint="https://admin-service:50055", jwt_secret="dev-only-do-not-use-in-prod" | N | env 缺失时 from_env 返回默认值 |
+| TST-UT-08-A001 | 无上游设计依据,实现阶段新增 | http_addr=0.0.0.0:8443, health_addr=0.0.0.0:8081, admin_grpc_endpoint="<https://admin-service:50055>", jwt_secret="dev-only-do-not-use-in-prod" | N | env 缺失时 from_env 返回默认值 |
 | TST-UT-08-A002 | 无上游设计依据,实现阶段新增 | http_addr, health_addr, admin_grpc_endpoint, jwt_secret 4 字段 | N | 显式 set_var 后 from_env 读到覆盖值 |
 | TST-UT-08-A003 | 无上游设计依据,实现阶段新增 | http_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HTTP_ADDR" |
 | TST-UT-08-A004 | 无上游设计依据,实现阶段新增 | health_addr 解析失败 | A | 返回 anyhow::Error，msg 含 "invalid GM_HEALTH_ADDR" |
@@ -279,6 +279,7 @@
 | 覆盖率 | cargo-llvm-cov | 后续 | TBD |
 
 **已知 bug**：
+
 - 本机 CI 暂未集成 gm-backend 5 域 PG fixture（per 6763baa 5 域已集成，gm-backend 暂不需要 DB）
 - DDD Review 阶段需补覆盖率门槛
 
@@ -312,6 +313,7 @@
 | TBD-08-08 | 5 域 Lead 实际具名状态（per OPEN-QA Q2）：gm-backend 域 Lead 仍未具名 | P1 | DDD Review 阶段需 Ulysses 决策 |
 
 **保留派生约束**（per 2026-08-26 04:30 JST）：
+
 - 禁"per X 历史形态"等回溯叙事
 - 引用 BAS 必须 git log -p --follow 实证
 - 缺标比错标安全

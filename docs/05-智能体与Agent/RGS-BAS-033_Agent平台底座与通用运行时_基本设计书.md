@@ -88,6 +88,7 @@ graph TB
 | `agent.platform.debug.signature_chain_dump` | 签名验签链路 dump（从 Tool Sandbox 到 Action Gate 全链路） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除，避免密钥片段泄漏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + ADR-0029 L0 单向阀硬约束）：
+
 - `agent.action_gate.bypass.detected` 是**架构完整性阻断级信号**（违反 ARC-054 "不可穿透单向阀"硬约束）—— release 必出 + `error!` 强制全采样，触发 P0 告警通道
 - `agent.action_gate.signature.failed` ／ `whitelist.rejected` 是**安全防护信号**（ADR-0029 L0 防幻觉平台基准）—— release 必出 + `error!` 强制全采样
 - `agent.injection.stream.lag_detected` ／ `stream.disconnected` 是**生产可观测性信号**（per BAS-004 §4.4 release 必出宏清单"业务关键事件"）—— release 必出 + 强制全采样
@@ -107,7 +108,6 @@ graph TB
     - 部署在 Rust 服务边界，作为不可穿透的安全单向阀。
 4. **向量存储选型状态**：
     - 长期记忆的向量存储尚未选定；`pgvector` 与 `Milvus` 均为候选，登记为 **TBD-MEM-001**。在附件 D 登记、许可/OLU/容量评估及具名人类审批完成前，不得作为已决技术选型或生产依赖。
-
 
 ### 2.1 本功能日志设计
 
@@ -159,6 +159,7 @@ graph TB
 | `agent.supervisor.debug.langgraph_state_machine_dump` | LangGraph 状态机当前完整状态 dump（含全部变量 + 节点历史） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 脱敏规则 + ARC-054 平台层硬约束 + ADR-0029 L0~L4 防幻觉基准）：
+
 - `agent.tool_sandbox.sandbox.escaped_detected` 是**安全阻断级信号**（违反 ARC-054 Tool Sandbox 不可越界硬约束）—— release 必出 + `error!` 强制全采样，触发 P0 告警
 - `agent.l0_action_gate.audit.chain_verification_failed` 是**完整性阻断级信号**（per ADR-0029 L0 防幻觉平台基准 + RGS-BAS-009 v0.7 治理事件必出模式，疑似审计链被篡改）—— release 必出 + `error!` 强制全采样，触发 P0 告警
 - `agent.platform.exception.unhandled` 是**平台稳定性阻断级信号**（per BAS-004 v0.3 §6.2 强制全量采集范围）—— release 必出 + `error!` 强制全采样

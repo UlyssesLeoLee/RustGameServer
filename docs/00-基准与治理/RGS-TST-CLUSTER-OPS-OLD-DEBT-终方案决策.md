@@ -32,17 +32,20 @@
 ### 方案 A(完全迁移)
 
 **工作量拆解**:
+
 - `ut_state_machine.rs`:20 fn,6 阶段状态机全部转移 + 非法转移 + 终态唯一性。最有迁移价值
 - `ut_feature_adapter.rs`:20 fn,PFAU 7 阶段 feature registry,字段级 + 转移表测试,价值高
 - `ut_olu.rs`:TBD fn,OLU 度量(per Open-QA Q3 OLU 略超 NFR-OP-010),需重新审视
 - `ut_saga.rs`:TBD fn,saga 编排(per 2672d2d SagaOrchestrator),源码已重构,**断言可能失效**
 
 **风险**:
+
 - SagaOrchestrator 内部重构后,旧断言大概率已失效
 - 需要逐条 review 旧测试是否仍代表正确行为
 - 4 文件 ~2h,可能修断言还要 1-2h
 
 **收益**:
+
 - 6 阶段状态机有 UT 字段级覆盖
 - PFAU 7 阶段字段级有 UT
 - OLU 度量有 UT(对齐 Q3 NFR-OP-010 决策)
@@ -50,11 +53,13 @@
 ### 方案 A'(拆分,推荐)
 
 **只迁 `ut_state_machine.rs`** — 单文件 20 fn,价值最高,风险最低:
+
 - 6 阶段状态机是 DTL-042 §4 核心,字段级断言明确
 - 与 `src/realm_lifecycle/tests/ut_state_machine.rs`(已迁,26 fn)内容高度重复,**可能直接复用**
 - 工作量 30 分钟,风险 0
 
 **其余 3 文件保留**:
+
 - `ut_feature_adapter.rs` 价值高但 PFAU 已间接覆盖(per 0b8ab81 + 6a913f3)
 - `ut_olu.rs` 需重新评估,放 P3 follow-up
 - `ut_saga.rs` 断言可能失效,放 P3 follow-up(需 DDD Review 阶段重写)
@@ -64,6 +69,7 @@
 `git rm tests-disabled/ut_*.rs` 后,文件可由 `30a8842` git history 找回。
 
 **风险**:
+
 - 0 风险(无代码变化)
 - 0 收益(清理冗余,无新测试覆盖)
 
@@ -74,10 +80,12 @@
 **当前状态**(`OLD-DEBT.md` 已落档)。
 
 **风险**:
+
 - 新接手 agent 可能误以为在跑(实际被 Cargo.toml 排除)
 - 仓库冗余 ~20 fn 旧测试代码
 
 **收益**:
+
 - 0 风险(已 gitignore 等价排除)
 - 旧测试代码可作为重构历史参考
 
@@ -86,6 +94,7 @@
 ### 阶段 1(DDD Review 阶段前,2026-08-28 09:30 JST 立即):**方案 A'**
 
 执行步骤:
+
 1. 读 `tests-disabled/ut_state_machine.rs` 旧代码
 2. 对比 `src/realm_lifecycle/tests/ut_state_machine.rs` 新代码(已迁,26 fn)
 3. 若内容重复度高,**删除** `tests-disabled/ut_state_machine.rs`

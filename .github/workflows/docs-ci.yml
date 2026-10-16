@@ -36,12 +36,22 @@ jobs:
         run: npm install -g markdownlint-cli2
 
       - name: Run markdownlint
-        # 53.5 起步：仅检查 docs/ 目录（排除 deploy 目录里的笔记/草稿）
-        # config 见仓库根 .markdownlint-cli2.jsonc（markdownlint-cli2 --config 只接受文件路径，不接受内联 JSON）
+        # 53.5 起步：仅检查 docs/ 目录（排除 deploy / 归档 / 测试证据目录里的笔记 / 草稿）
+        # 2026-09-26 (per ULYS-237 v0.6 收尾):
+        #   - 加 --config .markdownlint.jsonc 让 CI 真正读仓库自带配置
+        #     (之前漏了 --config，CI 跑的是 markdownlint 默认规则，导致 53703 条 MD060 +
+        #     33716 条 MD013 满屏假警报，PR #49 误判红)
+        #   - 加 --fix-on-find false（默认就是 false，这里显式以防干扰）
+        #   - 用 # 前缀做 negated globs（per markdownlint-cli2 v0.23.x Windows-safe 语法）
         run: |
           markdownlint-cli2 \
+            --config .markdownlint.jsonc \
             "docs/**/*.md" \
-            "#docs/deploy/README.md"
+            "#docs/_archive/**" \
+            "#docs/**/.test-evidence/**" \
+            "#docs/**/.history-rewrite-*/**" \
+            "#docs/deploy/**" \
+            "#docs/superpowers/plans/**"
 
   lychee:
     name: lychee link check on ubuntu-latest

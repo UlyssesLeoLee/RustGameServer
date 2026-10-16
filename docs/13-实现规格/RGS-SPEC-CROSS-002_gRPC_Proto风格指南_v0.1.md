@@ -28,7 +28,7 @@
 ### §2.1 输入
 
 - 5 域 DTL §3 实现契约
-- gRPC 官方风格指南（https://google.github.io/styleguide/grpc/）
+- gRPC 官方风格指南（<https://google.github.io/styleguide/grpc/）>
 - Buf Schema Registry（BSR）约束
 - tonic + prost 工具链
 

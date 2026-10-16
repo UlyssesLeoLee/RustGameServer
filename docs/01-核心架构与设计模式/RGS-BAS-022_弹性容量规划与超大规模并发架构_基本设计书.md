@@ -95,6 +95,7 @@ flowchart TB
 | `cap.topology.debug.assessment_criteria_detail` | FR-INF-004 多区域评估的逐项判定明细 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.topology.debug.decision_score_breakdown` / `cap.topology.debug.assessment_criteria_detail` 在演进窗口下可能 5KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `cap.topology.multi_region_assessment_failed` 必须 `error!` 级别（per §4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.topology.*` 不含敏感字段（容量指标属运维可观测范围，非 PII），IP 字段如出现须走 BAS-004 v0.3 §5.1 末段掩码
@@ -127,6 +128,7 @@ flowchart TB
 | `cap.component.debug.rollout_manifest` | 滚动清单完整 dump（per-instance target 状态 + 实际状态） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.component.rollout_failed` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.component.debug.dependency_graph` 在大集群（千级 Pod）下可能 8KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `cap.component.*` 不含凭证类字段（运维可观测范围），但 `reuse_target` 引用既有服务名时须按 BAS-004 v0.3 §5.1 黑名单过滤（避免误写入含 `*token*`/`*password*` 的服务实例名）
@@ -161,6 +163,7 @@ flowchart TB
 | `cap.scale.trace.candidate_filter_chain` | 调度器候选节点过滤链每步过滤掉的节点计数（追踪最终落点决策的中间过程） | 调度期高频 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.scale.scene_instance.split_attempt` / `cap.scale.method_violation` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.scale.debug.scheduler_score_breakdown` 在大规模集群下可能 5KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `cap.scale.hpa.triggered` / `cap.scale.keda.scaler_triggered` 是核心运维事件，**必须** 100% 强制全采样（per BAS-004 v0.3 §6.2），不允许走采样率配置
@@ -190,6 +193,7 @@ flowchart TB
 | `cap.shard_route.debug.directory_snapshot` | `RealmDirectoryService` 内部全量分片状态快照（含每分片的连接数/排队深度/最近健康度） | 偶发（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-8KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.shard_route.routing_decided` 是高频路径（登录期间 10000/s），日志字节数必须严控（220B/条 × 10000/s = 2.2MB/s 峰值），**不得**增加字段；任何扩展字段须先评估
 - `cap.shard_route.debug.directory_snapshot` 在大规模多分片（千级分片）下可能 8KB+ —— release build 完全剔除
 - `player_id` 明文允许（per BAS-004 v0.3 §5.1），无脱敏需求；分片 ID 是内部标识符亦无需脱敏
@@ -223,6 +227,7 @@ flowchart TB
 | `cap.cross_shard.debug.judgement_decision_tree` | 跨分片能力判定的决策树全量路径 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.cross_shard.disallowed_violation` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.cross_shard.identity.global_resolved` 含账号信息——`account_id` 须按 BAS-004 v0.3 §5.1 哈希化（不可逆），避免明文账号标识出现在日志
 - `cap.cross_shard.debug.per_shard_aggregation_detail` 在大规模多分片下可能 5KB+ —— release build 完全剔除
@@ -258,6 +263,7 @@ flowchart TB
 | `cap.shard_lifecycle.debug.drill_assertion_detail` | 演练环境验证的逐项断言结果明细 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.shard_lifecycle.unmount_skipped` / `cap.shard_lifecycle.flow_divergence_detected` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.shard_lifecycle.debug.entity_migration_timing` 在百万级玩家时即使单条 200B 也可能 80MB —— release build 完全剔除
 - `affected_player_count` 是统计数字不涉及个人标识，`player_id` 等敏感字段不出现此表
@@ -291,6 +297,7 @@ flowchart TB
 | `cap.reservation.debug.scheduler_score_breakdown` | 场景调度器打分函数完整明细（per-node 候选得分） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.reservation.exhausted` 必须 `warn!` 级别（per §4.8.3.2 `warn!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.reservation.readiness_gate_toggled` 是高频路径（活动期 0.5/s × 多个 target kind 叠加可能 5/s），日志字节数必须严控（320B/条）
 - `operator_id` 是运维人员标识符，按 BAS-004 v0.3 §5.1 哈希化（不可逆），不在日志中明文出现
@@ -323,6 +330,7 @@ flowchart TB
 | `cap.warmup.trace.scheduler_decision_chain` | 预热调度器决策链每步判定（提前量检查/事件匹配/目标副本数计算） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200-500B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.warmup.ticket_failed` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.warmup.debug.prediction_model_output` 在多 target kind 叠加下可能 3KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `operator_id` 按 BAS-004 v0.3 §5.1 哈希化（不可逆），不在 release 必出字段中明文出现
@@ -359,6 +367,7 @@ flowchart TB
 | `cap.plugin_shard.debug.target_shards_diff` | target_shards 集合变更的详细 diff（旧/新/增/减分片清单） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.plugin_shard.state_consistency_violation` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.plugin_shard.debug.per_shard_state_dump` 在大规模多分片下可能 5KB+ —— release build 完全剔除
 - `operator_id` 按 BAS-004 v0.3 §5.1 哈希化（不可逆）
@@ -385,6 +394,7 @@ RGS-BAS-005§5既有的插件状态跨节点同步机制，在T2+规模下**必�
 | `cap.sync.trace.protocol_handshake_detail` | 同步协议握手完整明细（per-step 状态机迁移） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.sync.t2plus_enabled_without_validation` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.sync.debug.candidate_node_selection` 在大规模集群下可能 3KB+ —— release build 完全剔除
 - `cap.sync.latency_measured` 测量时含 IP/节点名——`node_id` 是内部标识符无脱敏需求；如出现 IP 字段须按 BAS-004 v0.3 §5.1 末段掩码
@@ -416,6 +426,7 @@ RGS-BAS-005§5既有的插件状态跨节点同步机制，在T2+规模下**必�
 | `cap.checklist.transition.debug.evidence_dump` | 检查项通过证据的完整 dump（如监控数据快照/评审纪要） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-5KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.checklist.transition.advanced_without_pass` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.checklist.transition.debug.evidence_dump` 在多监控数据源叠加下可能 5KB+ —— release build 完全剔除
 
@@ -444,6 +455,7 @@ RGS-BAS-005§5既有的插件状态跨节点同步机制，在T2+规模下**必�
 | `cap.checklist.launch.debug.load_test_raw_data` | 负载试验原始数据 dump（per-second 指标快照） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 5-20KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.checklist.launch.cross_shard_violation_found` / `cap.checklist.launch.degradation_triggered_in_test` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.checklist.launch.debug.load_test_raw_data` 在长时间负载试验下可能 20KB+ —— release build 完全剔除
 - `affected_code_path` 是代码路径标识符（非源码内容），无 PII 风险
@@ -471,6 +483,7 @@ RGS-BAS-005§5既有的插件状态跨节点同步机制，在T2+规模下**必�
 | `cap.checklist.review.debug.diff_evaluation_detail` | 代码 diff 的逐行检查结果明细 | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `cap.checklist.review.scene_runtime_split_attempt_found` / `cap.checklist.review.cross_shard_capability_misjudged` 必须 `error!` 级别（per §4.8.3.2 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `cap.checklist.review.debug.diff_evaluation_detail` 在大 PR（千行 diff）下可能 10KB+ —— release build 完全剔除
 - `reviewer_id` 按 BAS-004 v0.3 §5.1 哈希化（不可逆）

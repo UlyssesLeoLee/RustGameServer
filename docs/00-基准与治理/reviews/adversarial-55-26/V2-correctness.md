@@ -1,6 +1,7 @@
 # V2 正确性审查报告 (WF-1-55.26 5 commit)
 
 ## 元数据
+
 - 审查范围: `1b30878..cc888b5` (5 commit)
 - 审查维度: Correctness (资金一致性 / Saga 崩溃恢复 / 事务边界 / 状态机正确性)
 - 审查者: V2 (verifier sub-agent, branch session)
@@ -13,6 +14,7 @@
 ## CRITICAL (2)
 
 ### [CC-4-DEAD-001] `apply_atomic_with_reservation` 是死代码 — CC-4 修复未触及生产路径
+
 - **文件**: `crates/economy-service/src/service.rs:86-160` (修复目标) vs `crates/economy-service/src/saga_orchestrator.rs:248-289` (生产路径)
 - **证据**:
   - 修复后的 helper `apply_atomic_with_reservation` 在 service.rs:86 起,签名 `pub async fn apply_atomic_with_reservation(&self, account: &Account, ...)`。
@@ -35,6 +37,7 @@
   - **写真实 PG integration test** 用 `PgAccountRepository` 注入 OCC 失败,验证生产路径。
 
 ### [CC-3-MIGRATION-001] CHECK 约束在已部署环境上**永不生效** — `CREATE TABLE IF NOT EXISTS` 静默跳过
+
 - **文件**: 6 域 outbox migration (admin/cluster-ops/economy/match/player/social 各自 migrations/0002|0003_outbox.sql)
 - **证据**:
   - 完整 diff 显示 CC-3 把 CHECK 约束**写在同一个** `CREATE TABLE IF NOT EXISTS outbox (...)` 块内 (例 economy-service/migrations/0003_outbox.sql:19)。
@@ -54,6 +57,7 @@
 ## HIGH (2)
 
 ### [CC-4-TEST-001] 2 个新 test 仅覆盖 helper 路径,未覆盖生产 `ReserveHandler::execute`
+
 - **文件**: `crates/economy-service/src/service.rs:551-702` (2 新 test)
 - **证据**:
   - `apply_atomic_with_reservation_insufficient_funds_cleans_reservation` (L551) 和 `apply_atomic_with_reservation_occ_conflict_cleans_reservation` (L623) 都**直接调** `svc.apply_atomic_with_reservation(...)`。
@@ -66,6 +70,7 @@
   - 写 end-to-end test: `saga = make_transfer_saga; env.orch.execute(&mut saga).await` 触发真实 `ReserveHandler::execute` → 在 test 内手 bump `env.accounts` 中 account.version → 触发 apply_atomic OCC 失败 → 验证 (a) saga 终态 Failed, (b) reservation 表里该 saga 无 dangling 行,(c) 账户余额未减。
 
 ### [DC-1-REGRESSION-001] `resume_compensating_saga_triggers_compensation` 用了 stub handler,**未覆盖 55.12 真实 bug**
+
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:935-1004`
 - **证据**:
   - test 自定义 `CompensateRecorder` (L938-954),其 `compensate` 仅设置 flag,没有真实退款或清理逻辑。
@@ -82,8 +87,10 @@
 ## MEDIUM (3)
 
 ### [M-CC-4-SWALLOW-001] `ReserveHandler::execute` L259 `let _ = ... .delete_by_id(r.id).await` 静默吞错
+
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:259`
 - **证据**:
+
   ```rust
   if !account.try_debit(self.amount) {
       // 清理 dangling reservation
@@ -91,12 +98,14 @@
       return Err(Error::InsufficientFunds { ... });
   }
   ```
+
   - `delete_by_id` 返回 `Result<bool>` (reservation.rs:97, 208-210),吞掉 `Err` 等于吞掉 DB 故障,reservation 永远 dangling 而无任何告警。
   - 与 helper (service.rs:110-118) 的新写法 `if let Err(cleanup_err) = ... { tracing::warn!(...) }` **不一致**。
 - **影响**:
-  - 任务说明里提示的"`reservations.delete_by_id().ok() 用 .ok() 吞错是否合理"问题:**其实没用到 `.ok()`**,但用了等价的 `let _ = ... .await` 模式,效果相同。
+  - 任务说明里提示的"`reservations.delete_by_id().ok() 用 .ok() 吞错是否合理"问题:**其实没用到`.ok()`**,但用了等价的`let _ = ... .await` 模式,效果相同。
   - DB 暂时不可用时,reservation 永久 dangling,且无 observability 出口。
 - **建议修复**:
+
   ```rust
   if let Err(cleanup_err) = self.reservations.delete_by_id(r.id).await {
       tracing::warn!(
@@ -109,6 +118,7 @@
   ```
 
 ### [M-AC-1-DEAD-001] `MTLS_BYPASSED_TOTAL` 6 处定义 0 处读 — 写完不暴露
+
 - **文件**: 6 域 main.rs 各 1 个 `static MTLS_BYPASSED_TOTAL: AtomicU64 = AtomicU64::new(0);` (例 admin-service/src/main.rs:38),配 `fetch_add(1, Ordering::Relaxed)` (admin L127)
 - **证据**:
   - `grep -r "MTLS_BYPASSED_TOTAL" crates/` 显示 18 处(6 定义 + 6 fetch_add + 6 doc 引用),**0 个 `load`/`read`/Prometheus exporter scrape**。
@@ -122,6 +132,7 @@
   - 同步检查 shared-platform 的 client 端同名 static 是否真正被 read。
 
 ### [M-CC-3-LEGACY-001] CHECK 字符串与 `OutboxStatus::as_str` 列表漂移风险 — 当前一致,但无编译期强约束
+
 - **文件**: 6 域 outbox migration CHECK 子句;`crates/shared-platform/src/outbox.rs:67-74` 的 `as_str()` 是 single source of truth
 - **证据**:
   - 当前 enum 4 个值 (`Pending/InFlight/Sent/Failed`) → 字符串 ("pending/in_flight/sent/failed") 与 6 域 CHECK 子句**完全匹配**(已人工核对 outbox.rs:67-74 与 6 域 migration)。
@@ -136,11 +147,14 @@
 ## LOW (3)
 
 ### [L-AC-1-PARSE-001] `RGS_ALLOW_INSECURE_GRPC` 解析方式 6 域一致但解析结果有"全 0 = 强制"风险
+
 - **文件**: 6 域 main.rs L113-115 区域 (例 admin L119-120)
+
   ```rust
   let allow_insecure = env::var("RGS_ALLOW_INSECURE_GRPC")
       .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
   ```
+
 - **证据**:
   - 6 域使用相同的 `is_ok_and` 闭包解析 — **一致**(无 dead store / 无重复定义)。✓
   - 行为:不设/空/"0"/"false"/任意其他值 → `allow_insecure = false` → 强制 mTLS。✓
@@ -150,6 +164,7 @@
 - **建议修复**: 无,可选加单元 test 覆盖 "0"/"false"/"YES"/""/缺省 5 种 case。
 
 ### [L-DC-1-COVERAGE-001] DC-1 4 个 test 未覆盖 `Completed` / `Failed` / `Aborted` 终态的 resume 行为
+
 - **文件**: `crates/economy-service/src/saga_orchestrator.rs:856-1018`
 - **证据**:
   - 4 个 test 覆盖 `Pending`/`Running`/`Compensating`/`NotFound` 共 4 个 resume 入口。
@@ -160,6 +175,7 @@
 - **建议修复**: 加 2 个 test `resume_completed_saga_returns_validation_err` / `resume_failed_saga_returns_validation_err`,作为回归。
 
 ### [L-HOUSEKEEPING-001] json_logging doctest 修复正确,但 `no_run` 意味着永远不跑该 doctest
+
 - **文件**: `crates/shared-platform/src/json_logging.rs:11-13`
 - **证据**:
   - 删 `fn main() { ... }` 包裹(从 5 行变 1 行),保留 `no_run` 标记。✓

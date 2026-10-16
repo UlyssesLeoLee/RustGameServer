@@ -19,7 +19,7 @@
 | main HEAD | `ebb6ba5` | chore(agents): AGENTS.md v0.6.8 升版 (9/2 18:41 JST) |
 | origin/main HEAD | `55dce67` | docs(AGENTS): v0.3 纳入 L9/L11/L12 (9/1 16:00 JST) |
 | main 领先 origin/main | **234 commit** (v0.1 提交后 +1) | 本地未推送 |
-| 非 main 本地分支 | **15** | ut/* 5 + fix/* 4 + st/* 1 + feat/* 4 + claude/* 1 |
+| 非 main 本地分支 | **15** | ut/*5 + fix/* 4 + st/*1 + feat/* 4 + claude/* 1 |
 
 ### 0.2 智能合并结论: 0 待合并
 
@@ -61,6 +61,7 @@
 - **应急降级 (token 触发)**: SRE 拍板悬空 = token 累计 0.5M 内必须出拍板, 超 1M token 走"选项 C 推迟后续阶段"
 
 **不采用方案 (v0.2 时间版, 已废止)**:
+
 - ❌ 选项 1 (立即推送): SRE 拍板悬空中, 无业务里程碑背书
 - ❌ 选项 3 (分批推送): 增加 push 摩擦, 中间窗口 origin/main 不可读全
 - ❌ **日历周锚点 (W37 D7 = 9/14 JST)**: AI 协作场景下 token 比日历准, 不等日期 (per 9/3 07:34 JST 拍板)

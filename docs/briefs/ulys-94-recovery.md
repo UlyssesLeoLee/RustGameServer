@@ -10,12 +10,14 @@
 ## 上下文
 
 ULYS-81 全量回归发现两类基础设施级阻断项:
+
 1. WSL Postgres 冷启动 (历史 9/16 同样问题)
 2. WSL k3s 集群启动
 
 ULYS-94 任务范围: 验证 Step 1+2+3 全过。
 
 **前序状态 (2026-09-20 14:30 JST 实测)**:
+
 - WSL Ubuntu: 运行中 (1 day+ uptime)
 - postgresql: `active`
 - k3s: `activating` (需 step 3 验证是否已就绪)
@@ -32,6 +34,7 @@ wsl -d Ubuntu -e bash -c 'uptime; systemctl is-active postgresql k3s; sudo -u po
 预期: uptime > 1 day; postgresql `active`; k3s `active` 或 `activating`(秒级就绪); PG SELECT 返回 1。
 
 **若 postgresql/k3s 仍是 inactive**: 启动之:
+
 ```bash
 wsl -d Ubuntu -e bash -c 'sudo systemctl start postgresql; sudo systemctl start k3s'
 ```
@@ -51,6 +54,7 @@ cargo test -p admin-service    --test integration_admin_basic    --no-fail-fast 
 
 **共享 cargo target dir 缓存污染预防** (per memory, ULYS-100 incident):
 开工前先实测一次 cargo, 若 rustc 报 method takes X args but Y supplied + defined here metrics.rs:NNN + on-disk line ≠ NNN → 必为共享缓存污染, 立即:
+
 ```bash
 rm -f /e/DevCache/cargo/target/debug/deps/libshared_platform-*.{rlib,rmeta}
 rm -rf /e/DevCache/cargo/target/debug/incremental/shared_platform-*
@@ -78,6 +82,7 @@ pwsh -File D:/RustGameServer/scripts/e2e-smoke.ps1 -Json
 ## 输出 (本 issue 收口时贴的 comment)
 
 格式 (per ULYS-94 brief 原 spec):
+
 ```markdown
 ## ULYS-94 完成报告 (<JST 时间>)
 

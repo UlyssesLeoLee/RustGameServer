@@ -87,6 +87,7 @@ const K3S_CA = process.env.K3S_CA_PATH || '';
 ```
 
 **响应字段**:
+
 - `status`: 固定 'ok'
 - `k3s`: K3S_API 值
 - `time`: ISO 8601 UTC
@@ -124,12 +125,14 @@ const K3S_CA = process.env.K3S_CA_PATH || '';
 ```
 
 **关键点**:
+
 - `git worktree list --porcelain` 拿 45 worktree 路径
 - 过滤 `RGS-IMPL-PLAN-*.md`
 - 正则 `\| 状态\s*\|\s*([^|]+)` 解析 markdown table 行
 - `Set` 去重(同一文件可能在多个 worktree,取首个)
 
 **性能**:
+
 - execSync 1 次: ~60ms
 - 45 worktree × fs.readdirSync: ~5ms
 - 8 个 readFileSync: ~15ms
@@ -137,6 +140,7 @@ const K3S_CA = process.env.K3S_CA_PATH || '';
 - 总: ~80-90ms
 
 **失败模式**:
+
 - git worktree list 失败 → 500
 - fs.existsSync false → 跳过(用 `continue`)
 - 文件 lock 或权限拒绝 → catch 不到(throw 500)
@@ -159,6 +163,7 @@ const K3S_CA = process.env.K3S_CA_PATH || '';
 ```
 
 **关键点**:
+
 - parse `worktree /path\nHEAD sha\nbranch refs/heads/...` 三行
 - 短路 `slice(1).join(' ')` 处理路径含空格
 - `substring(0, 7)` 取短 hash
@@ -203,6 +208,7 @@ const K3S_CA = process.env.K3S_CA_PATH || '';
 ```
 
 **关键点**:
+
 - `--all`:所有 branch(包括 worktree)
 - `--grep="saga"`:过滤 saga 相关 commit
 - `--date=iso`:ISO 格式(给 saga-trace 用)
@@ -235,6 +241,7 @@ function proxyK3s(req, res) {
 ```
 
 **关键点**:
+
 - `req.url.replace(/^\/api\/k8s/, '')`:剥掉 /api/k8s 前缀
 - `headers = { ...req.headers }`:浅拷贝(避免改原对象)
 - `delete headers['host']`:k3s 不认 Windows 端 host
@@ -289,6 +296,7 @@ server.listen(PORT, '127.0.0.1', () => {
 ```
 
 **关键**:
+
 - `'127.0.0.1'`:只监听 localhost,无 0.0.0.0
 - console.log 4 行:启动消息 + k3s + token 状态 + PID
 

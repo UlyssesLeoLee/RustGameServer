@@ -25,6 +25,7 @@
 ### 轮 2: 交叉对抗仲裁（V4）
 
 V4 读 V1/V2/V3 三份报告后：
+
 - **独立验证** V1+V2 CRITICAL 共识（CC-4 死代码 + CC-3 migration 无效）
 - **反驳 V3 CONDITIONAL PASS**：V3 M-1 评级（CC-4 降级）的论据"5 处裸 apply_atomic 都无 reservation" 错看了 `saga_orchestrator.rs:253/277` 的真实 reservation + apply_atomic 组合
 - **升级 V3 L-2 fail-closed 启动 test** 从 LOW → HIGH：0 integration test 锚定整个工程最关键安全防线
@@ -34,6 +35,7 @@ V4 读 V1/V2/V3 三份报告后：
 ### 轮 3: 综合收口（V5 本报告）
 
 V5 任务：
+
 1. 独立验证 V1-V4 关键发现
 2. 整合共识矩阵（哪些 4/4 / 3/4 / 2/4 / 1/4 共识）
 3. 仲裁 V1-V4 之间矛盾（仅 V3 vs V1+V2+V4 评级矛盾）
@@ -41,6 +43,7 @@ V5 任务：
 5. 给 root session 可操作建议
 
 **V5 独立验证结果**：
+
 - `cargo test --workspace --lib` (worktree V5): **209/209 passed** (18+16+42+16+24+0+78+15) — 与 V1+V2+V4 一致
 - `cargo clippy --workspace --all-targets -- -D warnings -A clippy::pedantic -A clippy::nursery -A clippy::cargo --exclude rgs-certgen`: **0 warning** — 与 V1+V3+V4 一致
 - `git grep "apply_atomic_with_reservation"`: 1 定义 + 4 test + 2 doc, **0 生产调用**（service.rs:487/536/580/660）— V1+V2+V4 共识确认
@@ -109,6 +112,7 @@ V5 任务：
 **共识**: V1 + V2 + V4 (V3 错降为 M-1)
 
 **证据链**（V5 独立 grep 确认）:
+
 ```
 crates/economy-service/src/service.rs:86  [定义]   pub async fn apply_atomic_with_reservation(...)
 crates/economy-service/src/service.rs:487 [test]   .apply_atomic_with_reservation(...)
@@ -121,6 +125,7 @@ crates/economy-service/src/service.rs:660 [test]   .apply_atomic_with_reservatio
 CC-4 fix commit (a950b46) `--stat`: **1 file changed, +190/-6**（仅 `crates/economy-service/src/service.rs`），**未触及** `saga_orchestrator.rs`（生产路径）。
 
 **生产路径**（`saga_orchestrator.rs:248-289` ReserveHandler::execute）:
+
 - L253: `self.reservations.save(&r).await?;` ← reservation 落库
 - L277: `self.accounts.apply_atomic(&account, &entry).await?;` ← OCC 失败时 `?` 直接传播，**reservation 留 dangling**
 
@@ -130,6 +135,7 @@ OCC 失败 → step 标 Failed → 触发 compete() → `ReserveHandler.compensa
 **影响**: 资金安全 P0。任何 OCC 冲突（高并发转账 / 跨副本竞争）稳定触发。
 
 **修复方向**:
+
 - (A 推荐) L277 改为 `match self.accounts.apply_atomic(...).await { Ok => Ok, Err(e) => { self.reservations.delete_by_id(r.id).await.ok(); tracing::warn!(...); Err(e) } }`
 - (B) 把 helper 内化到 ReserveHandler，删除死代码
 - 同步修 `ConfirmHandler::execute` (L369-394) 同样 OCC 模式
@@ -140,6 +146,7 @@ OCC 失败 → step 标 Failed → 触发 compete() → `ReserveHandler.compensa
 **共识**: V2 + V4（V1/V3 漏）
 
 **证据链**（V5 独立 diff 确认）:
+
 ```
 diff --git a/crates/economy-service/migrations/0003_outbox.sql
 @@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS outbox (
@@ -151,9 +158,11 @@ diff --git a/crates/economy-service/migrations/0003_outbox.sql
 +    CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))
  );
 ```
+
 6 域全中招（admin/cluster-ops/economy/match/player/social 模式相同）。
 
 **关键 git log 证据**:
+
 ```
 55af339  [wbs] WF-1-55.17: outbox SKIP LOCKED + ... (per RGS-REV-007)
 1b30878  [wbs] WF-1-55.26: 6 域 outbox migration CHECK 约束 (per RGS-REV-008 CC-3)
@@ -164,6 +173,7 @@ diff --git a/crates/economy-service/migrations/0003_outbox.sql
 **影响**: 数据完整性 silent-fail。RGS-REV-008 verify-C §4.3 标的"CHECK 防 status 漂移"在 6 域生产环境**完全不存在**。仅 fresh DB 部署（CI / 新建环境）有效。
 
 **修复方向**:
+
 - 选项 A（推荐）: 6 域各加 `0004_outbox_check_constraint.sql`（或对应递增序号），内容 `ALTER TABLE outbox ADD CONSTRAINT chk_outbox_status CHECK (status IN ('pending', 'in_flight', 'sent', 'failed'))`
 - 选项 B: 在 1b30878 文件内追加 `DO $$ BEGIN ALTER TABLE outbox ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;` 幂等块
 - PG 不支持 `ADD CONSTRAINT IF NOT EXISTS`（7.1+ 仍不支持），需 DO 块
@@ -187,11 +197,13 @@ V4 提出 5 项解释，V5 整合并补充：
 5. **0 真 DB 集成** — 全 InMemory 跑通 209 test，但 sqlx 行为 / 事务边界 / OCC 0 row 路径 0 验证。
 
 **根因**（V5 补充）: 测试体系存在"**测试自身完备 ≠ 代码生产正确**" 的反模式：
+
 - helper 单元 test 100% 覆盖 helper 自身，但 helper 是死代码 → 测试通过给的是"零价值安全感"
 - 集成 test 用 InMemory repo，无法模拟 PG 真实行为 → 集成层 test 形同虚设
 - 端到端 test 0 个 → 无"业务路径 0 → 1 → N 步"全链路覆盖
 
 **教训**（V5 整合）:
+
 - **测试覆盖对象必须是生产调用点**，不是修复目标
 - **真 DB 集成测试**是 P0 资金安全 invariant 的唯一可信验证手段
 - **silent-fail migration** 是 PG 类工程的常见盲区，`CREATE TABLE IF NOT EXISTS` 内追加 CHECK 在已部署环境无效
@@ -208,10 +220,10 @@ V4 提出 5 项解释，V5 整合并补充：
 
 ### 5.2 Merge-with-follow-up（HIGH 推 WF-1-55.30+ 中期）
 
-4. **HI-1**: shared-platform 加 `pub fn server_mtls_bypassed_total() -> u64` getter（与 client 端对称）
-5. **HI-2-pg**: rgs-testkit 加 `PgTestDatabase` fixture（防止 "209 test pass ≠ correct" 假象复发）
-6. **HI-3**: 6 域 fail-closed 启动 integration test（assert_cmd）
-7. **HI-D**: DC-1 补 3 个终态 test（Completed/Failed/Aborted）
+1. **HI-1**: shared-platform 加 `pub fn server_mtls_bypassed_total() -> u64` getter（与 client 端对称）
+2. **HI-2-pg**: rgs-testkit 加 `PgTestDatabase` fixture（防止 "209 test pass ≠ correct" 假象复发）
+3. **HI-3**: 6 域 fail-closed 启动 integration test（assert_cmd）
+4. **HI-D**: DC-1 补 3 个终态 test（Completed/Failed/Aborted）
 
 ### 5.3 Defer to WF-1-55.34+（非阻断）
 
@@ -232,6 +244,7 @@ V4 提出 5 项解释，V5 整合并补充：
 - 与 V1+V2+V4 共识，**反驳 V3 CONDITIONAL PASS**
 
 **V3 评级错判根因**（V5 仲裁）:
+
 - V3 "集成视角" 重视 cargo test 数量（220 全过），但**漏看 209 test 测的对象是死代码 + stub handler + InMemory repo**
 - V3 M-1 论据"5 处裸 apply_atomic 都无 reservation" 错看生产路径，实际 `saga_orchestrator.rs:253/277` 是真实的 reservation + apply_atomic 组合
 - V3 漏看 1b30878 SQL diff，CC-3 migration 静默失效是 silent-fail 性质

@@ -22,6 +22,7 @@
 **触发**：Ulysses 2026-08-26 09:27 JST 指令"开子代理和 worktree 完成剩余工作到 P2"，承接 P0/P1 8 commit 已落地后的下一步（per RGS-DOCS-HEALTH-2026-08-26 §2 P2 拆分）。
 
 **来源**：
+
 - RGS-RACI-001 v0.1 提供 5 域 × 8 阶段 × 4 治理角色 = 160 单元的横向通用矩阵
 - RGS-ADR-0055 v0.1 提供 5 域独立 Lead 兼任禁止的治理基线
 - **缺**：每个域 Lead 在 6 治理任务（API Spec / 业务逻辑 / DB migration / UT / IT / ST / Helm chart / observability）上的实际签字栏 + 责任到人映射 = 5 份 per-domain RACI v1.0
@@ -39,6 +40,7 @@
 | **签字单元** | **6 × 7 = 42** | 每格 1 个责任字母 R/A/C/I（per RGS-ADR-0055 v0.1 §4 RACI 定义） |
 
 **RACI 字母**：
+
 - **R**（Responsible）：执行者，对结果负直接责任
 - **A**（Accountable）：最终责任者，1 项任务只能有 1 个 A
 - **C**（Consulted）：双向咨询，需主动征求 + 记录意见
@@ -58,6 +60,7 @@
 | 6. 退款流程（refund_pending） | **A** | C | I | C | C | I | C |
 
 **矩阵解读**：
+
 - 经济域 Lead 在 6 任务中 5 次 A（注册 / 登录 / 角色 / OCC 冲突），1 次 R（资产扣减 + 道具发放）
 - 架构师 C 全部（横向咨询），但不直接 A（避免 player 域 Lead 与架构师兼任）
 - SRE 仅在 session_epoch OCC 与登录相关时 C（基础设施相关）

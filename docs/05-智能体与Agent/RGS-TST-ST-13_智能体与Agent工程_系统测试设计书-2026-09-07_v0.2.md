@@ -47,6 +47,7 @@
 | 5 | **派生约束守护 L15-L23** | §1 通过判定未含派生约束 | §派生约束守护 段增 L15-L23 全部 | 6c6839e / add4238 |
 
 **已知缺口（per 缺标比错标安全, per 8/26 JST）**:
+
 - AI Function Pool 6 用例 (per RGS-INC-001 v0.2 §15) 需 LLM 协作接口联调验证
 - 9/5 plugin 集群架构 4 阶段用例 WBS v0.1 5-10 task 落地待 W25 验证
 - 5 NEW 域（scene/battle/network/account/sub8）+ batch 域 agent 联动 真实跨域集成需 ST Phase C 验证

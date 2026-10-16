@@ -36,6 +36,7 @@
 **V4 仲裁**: **V3 正确, V2 错降级**
 
 **理由**:
+
 - V2 focus 正确性（资金一致性 / Saga / 状态机 / reservation 生命周期），没看 test 的 assertion 严格性
 - V3 focus 集成+测试，深入分析 6 域 fail-closed test 文件的 assertion 表达式，发现:
   - `combined.contains("economy-service")` 永远 true (binary 启动 banner)
@@ -144,14 +145,17 @@
   - ⏳ PG 集成 test 真实运行 (需 Docker Desktop) — 推到 56.x
 
 **当前 22 commit (含 11 修复 + 11 merge)**: **NO MERGE** (1 HIGH 待修)
+
 - 修 fail-closed test 缺陷 → 22 commit 可 push
 
 ## 6. 修复优先级
 
 ### Merge-blocker (必先修才能 push)
+
 1. **HIGH-1 fail-closed test 缺陷**: 方案 1 (6 域 main.rs 重构, mTLS check 前置到 DB 之前) — 估时 0.5d
 
 ### 56.x 推 (不阻塞当前 push)
+
 - MEDIUM-1 consumer.rs:130 静默吞错 — 0.1d
 - W31 PgTestDatabase fixture 6 域实际使用 — 0.5d × 6 = 3d
 - 2 轮对抗性审查 (V5 后续 V4 → V5) — 已完成 ✅

@@ -68,6 +68,7 @@ psql -h 127.0.0.1 -U player -d player_db -c "SELECT version();" 2>&1 | head -3
 ```
 
 **输出示例**:
+
 ```
 PostgreSQL 18.6 (Ubuntu 18.6-...) on x86_64-pc-linux-gnu ...
 ```
@@ -102,6 +103,7 @@ ss -tln | grep 4222
 ## 2. Ulysses 完成后,告诉 Mavis "PG ready"
 
 Mavis 收到通知后会:
+
 1. 自动验证 5 DB created
 2. 启动 5 域 + cluster-ops binary(后台 6 个进程)
 3. 等待 6 个 gRPC port listen(50051-50056)
@@ -123,6 +125,7 @@ Mavis 收到通知后会:
 | cluster-ops | `0.0.0.0:50056` | `postgres://cluster_ops_user:ulysses_local@postgres:5432/cluster_ops_db` | 同上 |
 
 **关键修正**（v0.1 sync 19:49 JST 实证）：
+
 - v0.1 §1.1/§3 写的 `rgs_dev` 密码 + `player`/`economy`/... 短 user 是**错的**——k3s secret 实际存的是 `ulysses_local` + `{domain}_user`
 - v0.1 §3 写 `cluster-ops 共用 admin_db` 是**错的**——k3s 已建独立 `cluster_ops_db`
 - v0.1 §3 写 `RGS_ALLOW_INSECURE_GRPC=1` 是**错的**——manifest 实际是 `0`（mTLS 严格模式）

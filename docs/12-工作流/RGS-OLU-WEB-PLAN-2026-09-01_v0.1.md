@@ -59,6 +59,7 @@
 **总工作量估算**：~4 周（per REQUIREMENTS §7.3 时间约束）
 
 **token 估算**（per RGS-TS-001 v0.7 §6.2.2.1）：
+
 - 1 人·周 ≈ 1M tokens
 - 4 周 ≈ 4M tokens（per v0.5 算法） / 5.6-13.4M tokens（per v0.6 双轨制）
 - 待 RGS-ENV-CALIB-001 校准
@@ -154,6 +155,7 @@
 | **合计** | **21** | **22.0** | **4400K** | **2200K-6600K** |
 
 > **NFR-OP-010 双轨校验**（per RGS-TS-001 v0.7 §6.2.4 + RGS-OLU-REPORT-2026-08-27 v0.1 §6）：
+>
 > - 人·天轨：22 人·天 / 4 周 = 5.5 人·天/周 ≤ 20 ✓ 绿
 > - token 轨：4.4M / 4 周 = 1.1M tokens/周 ≤ 20M ✓ 绿
 > - 留足余量（v0.6 算法下界 2.2M / 4 周 = 550K tokens/周 = 2.75% NFR 上限）
@@ -183,6 +185,7 @@
 > per RGS-WT-001 §11.3 跨会话恢复 + AGENTS.md §2.4 L4 主会话打头阵。
 
 **W1 任务中断恢复**：
+
 1. `git worktree list` 查 OL-W1-* worktree 状态
 2. 读 `.wbs-task-marker` 找当前 status
 3. 继续推进，调 `wbs_task_progress.ps1 -Status progress -Progress N` 同步
@@ -190,6 +193,7 @@
 **W2-W4 任务中断恢复**：同 W1
 
 **4 周主会话打头阵原则**（per AGENTS.md §2.4 L4）：
+
 - W1-W4 全部 21 任务主会话自执行，**不**派 worker（per AGENTS.md §2.4 L4 + L5）
 - 单任务执行超过 60s 仍无进展，回退到 WBS 状态 = blocked + 上报 Ulysses
 
@@ -311,36 +315,43 @@ node tools/rgs-web/server.js
 > **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 PLAN 各章节：
 
 **1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+
 - §3.1 决策（webhook 端点 + 验签 + 重放保护）
 - §4.2 OL-W2-7（webhook 端点）
 - §4.3 OL-W3-6（E2E 实测）
 
 **2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+
 - §3.1 决策（数据存储 + SQLite 6 表 + 备份 batch）
 - §4.1 OL-W1-2（sqlite.js）
 - §4.4 OL-W4-5（backup-batch.js）
 - §4.5 总工作量重新核算
 
 **3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+
 - §3.1 决策（webhook 端点 cloudflared）
 - §4.3 OL-W3-4（cloudflared.js）
 - §7.1 启动 SOP（装 cloudflared）
 
 **4. webhook 验签 + 重放保护**（per F-32/F-33）
+
 - §4.1 OL-W1-6（webhook-verifier.js）
 - §4.2 OL-W2-7（webhook 端点）
 
 **5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+
 - §4.4 OL-W4-5（backup-batch.js）
 - §7.1 启动 SOP（cron 配置）
 
 **v0.2 总工作量**（per §4.5 重新核算）：
+
 - 26 L4 任务（v0.1 21 + v0.2 增 5：sqlite.js / webhook-verifier.js / webhook 端点 / cloudflared.js / E2E / backup-batch.js）
 - 25.5 人·天（v0.1 22 + v0.2 增 3.5）
 - 5.1M tokens（v0.1 4.4M + v0.2 增 0.7M）
 - NFR-OP-010 双轨校验：人·天轨 6.4/周（绿 ≤ 20）+ token 轨 1.3M/周（绿 ≤ 20M）
 
 **v0.2 风险**（per §5 重新核算，11 → 16）：
+
 - R-12 better-sqlite3 native binding 编译失败
 - R-13 cloudflared 二进制未装
 - R-14 cloudflared tunnel 公开 URL 泄露

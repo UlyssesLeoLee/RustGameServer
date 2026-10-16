@@ -369,6 +369,7 @@ social_extra_db 共 7 张表，以本文档为唯一权威。
 # 7. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - social_extra_db 7 张表的物理 DDL
 - 邮件附件领取 EC 事务边界（含幂等防双领，RSK-SOC-001）
 - 好友点赞（扩展走既有 social-service）
@@ -377,6 +378,7 @@ social_extra_db 共 7 张表，以本文档为唯一权威。
 - 5 项对接点
 
 本版本明确不覆盖、留待后续：
+
 - 好友关系核心 — 属 social-service 既有
 - 频道聊天核心 — 属 RGS-DTL-013 §3 既有
 - TBD-SOC-001（邮件保留期）— 留待 PH-2 评审

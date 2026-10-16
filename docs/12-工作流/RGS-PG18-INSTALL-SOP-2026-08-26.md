@@ -14,6 +14,7 @@
 ## 0. 背景
 
 **per RGS-TS-001 §5 + ARC-008 5 域分 DB 原则**:PG 18 是 RGS 唯一支持的生产数据库。
+
 - 5 域(player/economy/match/social/admin)+ cluster-ops 各自独立 DB
 - 5 域 + cluster-ops + shared-platform 用 `RGS_INMEMORY=1` fallback **仅 dev/CI 试用**(per RGS-GM-V0.3-DEPLOY-SOP)
 - **生产必须真 PG 18**
@@ -92,6 +93,7 @@ done
 ```
 
 **输出示例**:
+
 ```
 --- player_db ---
  current_database | current_user |                                        version
@@ -106,6 +108,7 @@ done
 ## 2. 完成后告诉 Mavis "PG 18 ready"
 
 Mavis 收到通知后会:
+
 1. 验证 5 DB + 5 user
 2. 设置 WSL2 端口转发(127.0.0.1:5432 → Windows 127.0.0.1:5432,如需)
 3. **启动 6 个 binary**(5 域 + cluster-ops,后台进程)
@@ -174,6 +177,7 @@ Get-NetTCPConnection -LocalPort 50051,50052,50053,50054,50055,50056 -State Liste
 ## 5. 故障排查
 
 ### 5.1 PG 装不上
+
 ```bash
 # 看错误
 sudo apt-get install -y postgresql-18 2>&1 | tail -20
@@ -184,6 +188,7 @@ sudo apt-get update && sudo apt-get install --reinstall -y postgresql-18
 ```
 
 ### 5.2 PG 起不来
+
 ```bash
 # 看 status
 sudo pg_lsclusters
@@ -193,6 +198,7 @@ sudo tail -50 /var/log/postgresql/postgresql-18-main.log
 ```
 
 ### 5.3 5 域 binary 起不来
+
 ```powershell
 # 看 log
 Get-Content D:\tmp\player-service.err
@@ -201,6 +207,7 @@ Get-Content D:\tmp\player-service.log -Tail 20
 ```
 
 ### 5.4 rgs-web 5 域调用失败
+
 ```powershell
 # 看 rgs-web /api/k3s 或新加 /api/grpc/player/health
 $body = Invoke-WebRequest 'http://127.0.0.1:8788/api/grpc/player/health' -UseBasicParsing
@@ -232,7 +239,6 @@ $body.Content
 - per RGS-GM-V0.3-DEPLOY-SOP-2026-08-26 v0.1
 - 修订历史代签新规则 per 2026-08-26 08:40 JST
 
-
 ## 6. 硬约束(per Ulysses 16:59 JST)
 
 - **rust 1.98.0** 必须(rustc --version 验证:`1.98.0`)
@@ -244,4 +250,3 @@ $body.Content
 - **cargo 1.98.0**:`E:\DevCache\cargo\bin\cargo.exe = 1.98.0 ✅`
 - **sqlx 0.8.6**:PG 18.6 兼容 ✅(JSONB / UUID / TIMESTAMPTZ / GIN 全支持)
 - **5 域 migration 验证**:player-service/0001_init.sql 用 UUID + TIMESTAMPTZ + CHECK,PG 18.6 兼容 ✅
-

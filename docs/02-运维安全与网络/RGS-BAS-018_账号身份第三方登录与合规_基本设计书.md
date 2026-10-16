@@ -220,6 +220,7 @@ sequenceDiagram
 | `auth.component.debug.startup_dependency_dump` | 启动期各依赖（IdP endpoint / Vault endpoint / 数据库连接）解析结果 | 启动期 1 次/组件 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-2KB/条（release 剔除，避免启动日志含 endpoint 明细泄漏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `auth.component.debug.startup_dependency_dump` 可能含 IdP 回调 endpoint 明细 —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏 IdP 集成拓扑
 - `auth.component.*` 系列均为 `info!`/`warn!`/`error!` 级别（release 必出，§4.8.3.2 二维矩阵常驻），便于 SRE 按 `component` 维度聚合
 
@@ -251,10 +252,9 @@ sequenceDiagram
 | `auth.link.debug.index_usage_dump` | 索引命中率 dump（`(idp_type, idp_subject_id)` vs `(account_id)`） | 1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.link.debug.row_count_snapshot` 频率 1/h 看似低，但 5 域总和可能堆量 —— release build 完全剔除以保证零运行时开销
 - `auth.link.unique_index_conflict` 包含 `existing_account_id_hash`（不暴露明文 `account_id`，哈希化便于合规审计定位而不泄漏玩家标识）—— release 必出但已脱敏
-
-
 
 ### 2.3 解绑前置校验（FR-IDN-005落地）
 
@@ -274,10 +274,9 @@ sequenceDiagram
 | `auth.identity.unbind.debug.full_link_state` | 解绑前 `AccountIdentityLink` 全表行 dump（用于复现"剩余方式数=0"边界场景） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（依赖绑定数量，release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.identity.unbind.race_detected` 是 **AC-IDN-LOG-003 强制全采样白名单**（账号身份域安全/合规字段无遗漏）—— `error!` 级别，release 常驻
 - `auth.identity.unbind.debug.full_link_state` 可能含玩家全部 IdP 绑定关系 —— release build 完全剔除，避免 RUST_LOG=debug 误开时通过单点日志泄漏账号拓扑
-
-
 
 ### 2.4 绑定/解绑审计留痕字段（FR-IDN-007）
 
@@ -316,11 +315,10 @@ sequenceDiagram
 | `auth.identity.audit_log.debug.full_payload` | 审计日志条目完整 dump（含 client_context 明细，**仅** debug-only 守护） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.identity.audit_log.write_failed` 是 **AC-IDN-LOG-003 强制全采样白名单**（账号身份域安全/合规字段无遗漏）—— `error!` 级别，release 常驻，便于触发 P0 告警
 - `auth.identity.audit_log.debug.full_payload` 可能含 `client_context` 中 IP 明文 —— release build 完全剔除，**严禁**出现在生产日志中
 - `auth.identity.client_context.*` 系列包含 IP/设备指纹变更，**不**写入明文，按 BAS-004 v0.3 §5.1 末段掩码 / 哈希化处理
-
-
 
 ---
 
@@ -355,10 +353,9 @@ sequenceDiagram
 | `auth.identity.bind.conflict.debug.existing_link_state` | 冲突时既有 `AccountIdentityLink` 记录 dump（**仅** debug-only 守护） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-1KB/条（release 剔除，避免 RUST_LOG=debug 误开时泄漏既有绑定拓扑） |
 
 **debug-only 守护要点**：
+
 - `auth.identity.bind.rejected.conflict.spike` 是 **AC-IDN-LOG-003 强制全采样白名单**（账号身份域安全/合规字段无遗漏）—— `warn!` 级别，release 常驻
 - `auth.identity.bind.conflict.debug.existing_link_state` 可能反向暴露"哪些账号持有该第三方身份"——release build 完全剔除，**严禁**在生产日志中复现
-
-
 
 ## 3.2 IdP不可用时的降级（RSK-IDN-002落地）
 
@@ -396,11 +393,10 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 | `auth.login.debug.idp_response_dump` | IdP 验证响应 body 完整 dump（**仅** debug-only 守护） | 0.1/s | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.login.failed.no_alternative` 是 **AC-IDN-LOG-003 强制全采样白名单**（账号身份域安全/合规字段无遗漏）—— `error!` 级别，release 常驻，便于 SRE 公告判定
 - `auth.login.debug.request_body_dump` 务必配合 SDK 内置黑名单（`idp_token`/`authorization` 等）确认 release build 不会输出——release build 完全剔除是最后兜底
 - `auth.login.*` 系列均不写明文 IP（`client_ip_subnet` 已末段掩码）/ 不写明文 `account_id`（全部 `_hash` 化），但 `idp_subject_id_hash` 与 `session_epoch` 仍属必要关联字段，**不**进入 BAS-004 v0.3 §5.1 黑名单
-
-
 
 ---
 
@@ -437,10 +433,9 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 | `auth.compliance.debug.judgment_input_dump` | 判定输入参数 dump（含 `ComplianceProfile` 字段快照） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.compliance.judgment.business_service_bypass_attempt` 是 **AC-IDN-LOG-003 强制全采样白名单**（账号身份域安全/合规字段无遗漏）—— `error!` 级别，release 常驻，触发 P1 告警提示架构师介入
 - `auth.compliance.judgment.completed` 稳态 100/s + 峰值 1000/s 频率较高，但因属合规链路核心节点，仍 release 必出（不可降采样，否则合规审计失效）
-
-
 
 ## 4.2 实名认证信息的独立访问权限（FR-IDN-013落地）
 
@@ -472,11 +467,10 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 | `auth.compliance.debug.vault.access_justification_dump` | 访问申请理由的完整 payload（含附件） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.compliance.vault.*` 系列全部 release 必出（除 debug-only 外）—— **AC-IDN-LOG-003 强制全采样白名单**核心条目（合规最高优先级）
 - `auth.compliance.vault.access.denied` 与 `auth.compliance.vault.access.frequency_exceeded` 是**安全/合规关键告警**—— `error!` 级别，release 常驻 + P1 告警链路
 - `auth.compliance.debug.vault.encrypted_payload_dump` 是**账号身份域**最敏感的 debug-only 字段—— release build 完全剔除是**最后兜底**，CI 静态扫描（BAS-004 v0.3 §9 第 3 项）必须检测其 release 必出版本不存在
-
-
 
 ## 4.3 未成年人保护限制触发/解除留痕（FR-IDN-014落地）
 
@@ -512,11 +506,10 @@ IdPTokenVerifier向IdP发起验证请求超时/IdP返回5xx（区别于"令牌�
 | `auth.compliance.minor.debug.audit_log_full_payload` | 审计日志条目完整 payload dump | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 500B-1KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `auth.compliance.minor.restriction.triggered` / `auth.compliance.minor.restriction.lifted` 是 **AC-IDN-LOG-003 强制全采样白名单**核心条目（合规最高优先级）—— `info!` 级别（业务事件而非异常），release 常驻
 - `auth.compliance.minor.business_service_query_skip` 是 **FR-IDN-014 合规绕过告警**—— `error!` 级别，release 常驻 + P1 告警，提示架构师介入调查
 - 全部 `auth.compliance.minor.*` 字段均**不**包含玩家明文标识（统一 `_hash`），与 §4.2 Vault 访问的合规审计域共同形成"防沉迷+实名"完整留痕链
-
-
 
 ---
 

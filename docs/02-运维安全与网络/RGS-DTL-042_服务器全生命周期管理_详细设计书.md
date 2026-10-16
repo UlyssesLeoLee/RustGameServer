@@ -63,6 +63,7 @@
 `rgs-realm-lifecycle` 是 AD 限界上下文内的新增子模块（**不**新建独立 crate，**不**新建独立限界上下文，**不**新建独立 DB），与 `ClusterOpsService` 同处 `rgs-cluster-ops` crate 内，扩 ARC-051 Feature 类型为新增 `realm_lifecycle` 类。
 
 **核心职责**：
+
 - 6 阶段操作器（开新服 / 扩缩容 / 分服 / 合服 / 退场 / 归档）的业务逻辑实现
 - `NewRealmPlan` / `SplitPlan` / `MergeConflictRuleSet` v2 / `RetirePlan` / `ArchivePolicy` 的评估与持久化
 - 跨 DB 写入的 Saga 编排（分服 6 步 / 合服 5 步 / 退场 4 步 / 归档 3 步）
@@ -70,6 +71,7 @@
 - OLU 预算上报（向 `rgs-arc-olu` crate 上报阶段变更消耗的 OLU）
 
 **非职责**（由既有模块负责）：
+
 - RBAC / 审计 / 限流（既有 `AdminService`）
 - PFAU 状态机推进（既有 `ClusterOpsService`）
 - Feature 注册 / 灰度控制（既有 `ClusterOpsService`）
@@ -820,6 +822,7 @@ impl SagaStep for ConsistencyCheckStep {
 ## 6.4 合服 5 步 Saga
 
 合服 Saga 步骤（扩 RGS-BAS-020 §4 既有流程）：
+
 1. **FreezeAllSourceRealmsStep**：冻结所有被合并服
 2. **ApplyMergeConflictRulesStep**：应用 `MergeConflictRuleSet` v2 规则（角色名 / 唯一道具 / 货币 / 未结算抽奖 / 未领取邮件 / 工会申请）
 3. **MergePlayerDataStep**：合并 player_db 数据

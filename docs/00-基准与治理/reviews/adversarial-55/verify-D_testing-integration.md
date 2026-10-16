@@ -14,6 +14,7 @@
 （55.21+22, 55.23, 55.24 — 即收尾 3 个），但任务列出 12 L4 项覆盖 55.P0 全集 + 收尾 + housekeeping。
 本审核覆盖 12 L4 项的 testing + integration 角度（commit 范围 = `10bd5b1..2fe68b4`
 含 2 个 merge commit，共 13 commit）：
+
 - 55.15 (10bd5b1), 55.15 merge (e1b12c6)
 - 55.16 (c14abac), 55.16 merge (18ec710)
 - 55.14 (68822d2), 55.20 (0c8539d), 55.13 (44253af)
@@ -73,6 +74,7 @@
 ### 3.2 跨域 main.rs shared-platform import 一致性
 
 所有 6 域 + cluster-ops main.rs 共享完全相同的 5 行 import：
+
 ```rust
 use shared_platform::messaging::{build_messaging_client, MessagingConfig};
 use shared_platform::outbox::PgOutboxRepository;
@@ -80,6 +82,7 @@ use shared_platform::outbox_relay::{OutboxRelay, RelayConfig};
 use shared_platform::producer::{Producer, ProducerConfig};
 use shared_platform::tls::load_server_tls_config;
 ```
+
 **6 域 + cluster-ops = 7/7 完全一致** ✓
 
 ### 3.3 OutboxRelay 泛型实例化
@@ -88,6 +91,7 @@ use shared_platform::tls::load_server_tls_config;
 let outbox_repo: Arc<PgOutboxRepository> = Arc::new(PgOutboxRepository::new(pool.clone()));
 let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
 ```
+
 所有 6 域 + cluster-ops main.rs 都按相同模式实例化 ✓ — 编译通过（cargo build 0 error）。
 
 ### 3.4 mTLS cert 路径跨域共享
@@ -103,6 +107,7 @@ let relay = OutboxRelay::new(outbox_repo, producer, RelayConfig::default());
 // crates/economy-service/src/lib.rs
 pub mod saga_orchestrator;
 ```
+
 **SagaOrchestrator 是 economy-service 内部模块，其他 5 域不可见** ✓ — 这与 DTL-100 §3
 "经济域独占 Saga 编排" 设计一致，无跨域耦合。
 
@@ -114,10 +119,12 @@ pub mod saga_orchestrator;
 
 任务怀疑 "55.23 + 55.21+22 都改 economy main.rs — git 3-way merge 后是否完整"。
 **实际不是 merge commit**，是顺序追加：
+
 - 10bd5b1 (55.15) → 9556d3a (55.23) → ecb4c1d (55.24) → 2fe68b4 (55.21+22)
 - 每个 commit 在 first-parent 链上 linear，无 conflict resolution
 
 **economy main.rs 现状包含 3 段完整接线**：
+
 - ✓ 55.23: SagaOrchestrator + ReserveHandler/ConfirmHandler (line 85-102) + 30s 崩溃恢复轮询 (line 104-136)
 - ✓ 55.22: PgOutboxRepository + OutboxRelay::run() (line 140-169) + dev NATS fallback
 - ✓ 55.21: mTLS load_server_tls_config + tonic tls_config (line 174-201) + dev PEM fallback
@@ -133,6 +140,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 ### 4.3 旧 InMemory 测试回归
 
 `cargo test --workspace --lib` 全过：
+
 - admin-service: 18 passed
 - cluster-ops: 16 passed
 - economy-service: 36 passed
@@ -172,12 +180,14 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 
 - **位置**: `crates/economy-service/src/saga_orchestrator.rs:150`
 - **问题**:
+
   ```rust
   pub async fn resume(&self, saga_id: Uuid) -> Result<()> {
       let mut saga = self.sagas.find_by_id(saga_id).await?...
       self.execute(&mut saga).await
   }
   ```
+
   8 个 #[tokio::test] 全部覆盖 `execute()`，但**`resume()` 是 55.23 economy main.rs 30s 崩溃恢复后台任务的核心调用**（main.rs:115 `orch.resume(id).await`），无任何 unit test。
 - **影响**:
   - 回归风险：若未来改 resume 签名/语义，编译过但线上崩溃恢复路径会静默失败
@@ -216,9 +226,11 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 ### DH-2. OutboxRelay::run() 无 integration test
 
 - **位置**: `crates/shared-platform/src/outbox_relay.rs:110`
+
   ```rust
   pub async fn run(self: Arc<Self>) { /* 无限循环 + 间隔 + tick */ }
   ```
+
 - **问题**:
   3 个 outbox_relay test 全部测 `tick()` 或 `RelayConfig`：
   - `relay_config_default`
@@ -259,16 +271,19 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 ### DM-1. credit / debit 边界无直接 unit test
 
 - **位置**: `crates/economy-service/src/service.rs:94, 141, 184`
+
   ```rust
   if amount <= 0 {
       return Err(Error::Validation("amount must be > 0".to_string()));
   }
   ```
+
 - **问题**:
   只有 `apply_atomic_with_reservation_rejects_non_positive_amount`（service.rs:494）测了 helper，**public `credit(amount=0)` / `credit(amount=-1)` / `debit(amount=0)` / `debit(amount=-1)` 无测试**。
 - **影响**:
   - gRPC handler 走 EconomyService::credit 路径，amount=0 客户端绕过 apply_atomic_with_reservation 直接打 credit 会怎样？已校验，但无 test 证据
 - **修复建议**:
+
   ```rust
   #[tokio::test]
   async fn credit_rejects_zero_amount() {
@@ -327,6 +342,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 ### DM-5. SagaOrchestrator 30s 轮询 race 条件
 
 - **位置**: `crates/economy-service/src/main.rs:104-136`
+
   ```rust
   tokio::spawn(async move {
       loop {
@@ -339,6 +355,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
       }
   });
   ```
+
 - **问题**:
   多副本 economy 部署时，每个副本都起 30s 轮询 → 同一 saga 被并发 resume。`resume()` 调用 `execute()`，execute 内 mark_running/save 已有 OCC（per `entity.rs`），**但 race window 在 list_running 与 resume 之间**（TOCTOU）。
 - **影响**:
@@ -364,12 +381,14 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 ### DL-2. 55.18 mTLS 注释 vs 代码一致性
 
 - **位置**: `crates/shared-platform/src/tls.rs:86, 113`
+
   ```rust
   // tls.rs:86
   /// `client_auth_optional = false`，即 **强制要求客户端出示证书**
   // tls.rs:113
   // tonic 0.12: 不调用 client_auth_optional(true) 即保持 required (default)
   ```
+
 - **结论**: **注释与代码一致** ✓ — `tonic::transport::ServerTlsConfig` 默认 `client_auth_optional=false`，代码正确依赖 default
 
 ### DL-3. 55.17 outbox in_flight 状态机
@@ -439,6 +458,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 | outbox 巨大 payload | (无 test) | ✗ — LOW |
 
 **未验证项**:
+
 - 未跑真 PG / 真 NATS 集成测试（无 CI 接入）
 - 未用 proptest 随机化测试
 - 未测 5 域 main.rs 二进制实际启动（受本地无 docker-compose 限制）
@@ -455,6 +475,7 @@ Cargo.lock 自动同步 6 个 `"shared-platform"` 引用 ✓
 <范围>: 工程 55 P0+收尾 12 L4 commit (testing + integration 角度)
 
 **总结**:
+
 - 测试通过率 100%（214/214）✓
 - 跨域集成一致性 100%（Cargo.toml + main.rs imports）✓
 - 关键缺口 1 个 CRITICAL (resume) + 3 个 HIGH (mTLS PEM / run() / chain verify) + 5 个 MEDIUM

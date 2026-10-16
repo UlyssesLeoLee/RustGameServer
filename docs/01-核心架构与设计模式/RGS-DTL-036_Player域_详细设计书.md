@@ -50,6 +50,7 @@ Player 是五域中第一条业务纵向切片，但其依赖必须从集群 man
 **字段级契约引用**：**§3 表格方法名 / 事件名均为占位，需在 DDD Review 阶段与 BAS-001 §6.3.1 PlayerService、REQ-001 §FR-PL-001〜006 业务规则逐条对账后重写**。本次 v1.4 升版仅澄清"§3 表格与父文档现状**未对齐**"——这是 v1.4 的已知缺口，**不是 v1.4 已经与父文档对齐**。字段级契约（gRPC 请求/响应字段、事件 payload 字段、错误枚举、兼容窗口）最终遵循 **BAS-001 §6（外部接口设计，含 §6.3 gRPC 方法与字段级设计）**。Player 域字段级 IDL 的具体落地（DTL 物理层）在 `crates/contracts/player.proto` + DDD Review 阶段产出，本文档保持契约骨架不展开字段——避免与 BAS-001 §6 重复定义、也避免在证据不足时细化（ARC-014）。
 
 **§3 已知缺口**（DDD Review 阶段必查项）：
+
 - gRPC 方法名与 BAS-001 §6.3.1 PlayerService 现有方法名对账（当前是 `GetPlayer`/`CreatePlayer`/`UpdatePlayerState`，父 BAS 是 `Authenticate`/`SelectCharacter`/`GetCharacterList`，**两者不一致**）
 - 与 REQ-001 §FR-PL-004（玩家永久状态读写，PH-1 ◎）、FR-PL-005（封禁/制裁）、FR-PL-006（在线状态）三条业务规则对账（**当前 §3 未覆盖**，见 §8 评审（业务）栏备注）
 - `session_epoch` 必填规则的具体强制落点（中间件/拦截层）待 DDD Review 阶段确定，本版本不预设实现文件路径
@@ -97,5 +98,3 @@ Player 是五域中第一条业务纵向切片，但其依赖必须从集群 man
 | 审批（负责人） | — | — | Player 域契约骨架的基准化 |
 
 > 本文档经审批后仅作为 Player 域实施（PH-1）的契约输入。物理 DDL、字段级 IDL、容量参数、契约测试夹具仍按 §6 待补齐项在 DDD Review 阶段产出。
-
-

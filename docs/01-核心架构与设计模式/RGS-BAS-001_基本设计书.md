@@ -955,7 +955,7 @@ erDiagram
 > | player-service | `crates/player-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
 > | social-service | `crates/social-service/migrations/0003_outbox.sql` + `0004_outbox_check_idempotent.sql` |
 >
-> 表结构仅 `aggregate_type` 取值不同（admin.* / cluster_ops.* / economy.* / match.* / player.* / social.*），与 §5.4.1 `ECONOMY_OUTBOX` 范例一致。`shared_platform` 是库 crate，不持有独立 outbox 表（per RGS-ADR-0061 §1.3.1）。
+> 表结构仅 `aggregate_type` 取值不同（admin.*/ cluster_ops.* / economy.*/ match.* / player.*/ social.*），与 §5.4.1 `ECONOMY_OUTBOX` 范例一致。`shared_platform` 是库 crate，不持有独立 outbox 表（per RGS-ADR-0061 §1.3.1）。
 
 ---
 
@@ -991,6 +991,7 @@ erDiagram
 | `api.auth_failed` | 鉴权失败（token 无效、签名错误、过期） | <1/s | release 必出（安全审计，§6.2 强制全采样） | 字段已脱敏（`*token*` 黑名单自动丢弃，不记录 token 值）; 64B/条 |
 
 **总成本估算**（典型 1k req/s 混合读写流量）：
+
 - release 必出累计：~120B/条 × 1k/s = 120 KB/s 稳态（4.3 GB/h）
 - debug-only 在 release build 完全剔除，不产生成本
 - 故障排查时可临时通过 `RUST_LOG=info,my_crate::module=debug` 提升指定模块的级别（**前提是该模块在 release build 中已有 `debug!` 调用未被剔除**，因此"打算在 release 故障排查时可能需要"的 `debug!` 也必须保留）
@@ -1226,6 +1227,7 @@ flowchart TD
 | 基础设施错误（DB/缓存/事件不可用） | `error!`（必须触发 §6.2 强制全采集） | 连接池超时回调 / outbox 死信 | `error.code`、`error.classification`=`infra`、`infra.kind`（postgres/nats/redis）、`infra.endpoint`、`retry_count`、`next_retry_at` | release 必出 + §6.2 强制全采样 + span 关联 | 字段已脱敏; ~150B/条; 失败时叠加事件 trace |
 
 **反模式**（§9.1 落实 §9.2"基础设施错误不得伪装为业务错误"原则的日志侧保障）：
+
 - ❌ 业务方法 catch 基础设施错误 → 写 `info!` + 返回 `result_code=BZ-001`：违反 §9.2 原则，且会让运维误判为"业务正常 + 偶发业务拒绝"
 - ✅ 业务方法 catch 基础设施错误 → 写 `error!` + `error.classification=infra` + 返回 gRPC status `UNAVAILABLE`（让客户端走重试/降级）
 
@@ -1256,6 +1258,7 @@ flowchart TD
 | `error.handling_decision` | 监督者出口 / 错误分类器 | 1:1 与系统/基础设施错误 | release 必出 | 枚举 `retry` / `supervisor_restart` / `dlq` / `circuit_break`; 16B/条 |
 
 **`error.client_visible=false` 强制规则**（落实 NFR-SE-012 + §5 脱敏）：
+
 - 系统错误（panic / 逻辑缺陷）：`error.client_visible=false`，response 仅返回 `INTERNAL_ERROR` + 业务 `result_code=ARC-nnn`（不暴露 panic message / backtrace）
 - 基础设施错误：`error.client_visible=false`，response 返回 `UNAVAILABLE` + 业务 `result_code=ARC-nnn`（不暴露 DB endpoint / 连接串 / 内部地址）
 - 业务错误：`error.client_visible=true`（按 §6.1 错误表达原则，response 透传业务 `result_code`）

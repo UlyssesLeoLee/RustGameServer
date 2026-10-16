@@ -17,6 +17,7 @@
 
 RGS-CRITIQUE-IMPROVEMENT-2026-09-02 v0.2 §4.4 列出了 match 域 9-10 项生产可用 checklist,
 但该节嵌套在 CRITIQUE 主文档内, 不利于:
+
 - match 域 Lead 单独跟踪 ✅/🟡 状态
 - match 域 Phase C 阶段 A/B/C/D 派工时直接引用
 - match 域 E2E 真跑 (W37 D6-W38 D2) 准备时单独打印 / 复核

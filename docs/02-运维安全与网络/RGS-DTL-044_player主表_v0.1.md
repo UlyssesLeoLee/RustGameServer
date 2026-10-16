@@ -399,6 +399,7 @@ CREATE TABLE IF NOT EXISTS player_inventory (
 # 4. 索引规划
 
 > **索引原则**（per RGS-DTL-002 §3 + DTL-036 §5 Expand-Contract）：
+>
 > 1. **每个表至少 2 个索引**（含 PK + 1 个以上二级索引）
 > 2. **FK 必加索引**（避免 ON DELETE CASCADE 性能塌方）
 > 3. **高频查询字段必加索引**（按 5W1H: Who/What/When/Where/Why/How 维度）
@@ -530,6 +531,7 @@ SELECT * FROM player_characters WHERE char_class = 'warrior' AND level > 50;
 # 6. 签字栏（per DEC-008 12 角色 RACI）
 
 > **RACI 原则**（per RGS-DEC-008 一人公司派生 + RGS-DEC-005 5 域独立 Lead）：
+>
 > - **R（执行）**：AI worker（per DEC-008 派生）/ player 域 Lead（Ulysses 兼任 per 一人公司）
 > - **A（责任）**：player 域 Lead（Ulysses）
 > - **C（咨询）**：economy/match/social/admin 4 域 Lead（跨域影响） + DBA + 安全

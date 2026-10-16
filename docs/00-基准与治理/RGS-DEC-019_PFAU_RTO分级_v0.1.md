@@ -87,16 +87,19 @@ R1_total = T_observe + T_timeout + T_broadcast + T_ack + T_human
 ### 3.2 各路径典型场景
 
 **L1 < 5min**（自动化可恢复）：
+
 - 单域 Pod 重启（k8s liveness probe + restart policy）
 - 单 DB 短暂连接断开（sqlx 内置重试 + 5s 内重连）
 - 单域 gRPC 瞬时错误（tonic 重试机制）
 
 **L2 < 10min**（半自动恢复）：
+
 - 单域多 Pod 同时失败（需 SRE 远程诊断 + 重启）
 - 单域 DB 长时间不可达（需切流量 + 重启 + 验证）
 - 单域 Saga 单步超时（saga orchestrator 自动补偿 + SRE 监控）
 
 **L3 < 15min**（PFAU 跨域联动）：
+
 - 跨 2 域同时故障（如 player + economy 同时挂）
 - 跨域 Saga 中断且补偿失败（需人工恢复 saga 状态）
 - 集群级别故障（cluster-ops 主备切换失败 + 5 域重新接入）
@@ -147,9 +150,9 @@ R1_total = T_observe + T_timeout + T_broadcast + T_ack + T_human
 将 DTL-031 §4.3 的"300 秒观察窗口和 120 秒超时均为**待验证规划参数**，不是已承诺的 p99/SLA"修改为：
 
 > 300 秒观察窗口、120 秒超时、100 秒广播、80 秒 ack、180 秒人工缓冲为 **PFAU 跨域联动 RTO 分级方案下的 L3 路径规划参数**（per RGS-DEC-019 v0.1）。
-> 
+>
 > **L3 路径 RTO < 15min**（95% 承诺），由 §2.1 公式 780s ≈ 13min 给出端到端最坏情况估计。
-> 
+>
 > **L1 路径 RTO < 5min**（NFR-AV 99.9% 范围，仅自动化可恢复）；**L2 路径 RTO < 10min**（99% 承诺，半自动恢复）。
 
 ### 5.2 不修改的部分

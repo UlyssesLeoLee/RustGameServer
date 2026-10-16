@@ -81,6 +81,7 @@ per 2026-09-05 06:43 JST 拍板 (depth=opt3) + 2026-09-07 12:30 JST 拍板 (8 �
 | **总计** | 13 域 | **60 module** | 60 |
 
 **60 module 维护说明** (v0.1 → v0.2 不变 module 总数,变更内部结构):
+
 - v0.1 写 "42 module + 18 跨域抽象 = 60 module" (per [游戏A] 42 modules 兼容)
 - v0.2 重构为 13 域 × 60 module (5 域 + 8 域扩展 + batch + 平台 + 跨域 + 工具 + plugin)
 - 用例数量维持 ~876 (HP/EC/BV/EX 4 类 × 60 module 平均 15 用例 = 900, 减 module 差异)
@@ -129,6 +130,7 @@ per 2026-09-05 06:43 JST 拍板 (depth=opt3) + 2026-09-07 12:30 JST 拍板 (8 �
 ```
 
 **v0.2 增补**:
+
 - batch 域 module 改用 rgs-batch-backend:8790 (per 9/1 AGENTS.md §7.1 batch 域母规范)
 - 8 域扩展 (scene / battle / network / account / sub8) 路由见 §7 表
 
@@ -152,6 +154,7 @@ per 8/27 11:06 JST 错误码 REDACTED filter + 9/4 REQ/BDD 文档错误码映射
 ```
 
 **通用错误码 (per [游戏A] proto_common + 9/4 错误码映射 addendum)**:
+
 - 0: OK
 - 1001-1099: 参数 / 校验错
 - 1100-1199: 鉴权 / 权限
@@ -162,6 +165,7 @@ per 8/27 11:06 JST 错误码 REDACTED filter + 9/4 REQ/BDD 文档错误码映射
 - 9000-9099: 上游依赖故障
 
 **v0.2 增补 (per 9/5 admin-coc Phase B)**:
+
 - 新增 coc_policy 决策树 3 场景错误码 (per gm_handlers.rs L79-129 + 3695f3b coc_policy UT)
   - 1101 PERM_DENIED_COC: COC 策略拒绝
   - 1102 PERM_DENIED_TENANT: 多租户越权
@@ -202,6 +206,7 @@ per 8/27 55.26 fail-closed 精神 + 8/27 11:06 JST 凭据硬 ban:
 ```
 
 **v0.2 增补 (per 9/6 d270ab9 9 域 mTLS 端到端 v3 11 步)**:
+
 - 新增 EX-MTLS-9DOMAIN-001: 9 域 mTLS 业务级 11 步客户端模拟器
   - 步骤 1-3: player → economy → match gRPC mTLS 握手 + 业务调用
   - 步骤 4-6: social → admin → batch gRPC mTLS 握手 + 业务调用
@@ -454,6 +459,7 @@ per 8/27 55.26 fail-closed 精神 + 8/27 11:06 JST 凭据硬 ban:
 - tracing capture (验证 REDACTED filter)
 
 **v0.2 增补**:
+
 - 8 域扩展 gRPC client pool (scene / battle / network / account / sub8)
 - batch 域 gRPC client (rgs-batch-backend:8790, per 9/1 batch 域母规范)
 - 9 域 mTLS 业务级 client (per 9/6 d270ab9)

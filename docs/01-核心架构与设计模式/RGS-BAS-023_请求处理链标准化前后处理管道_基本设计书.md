@@ -99,6 +99,7 @@ flowchart LR
 | `pipe.debug.mermaid_structure_snapshot` | 当前服务的管道结构图渲染快照（与 §2.1 mermaid 对照，验证脚手架生成与设计一致） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.3）：
+
 - `pipe.preprocess.stage_entered` / `pipe.preprocess.stage_exited` / `pipe.postprocess.stage_entered` / `pipe.postprocess.stage_exited` 是**入口/出口审计**——release 必出 + §6.2 强制全采样，便于 NFR-OP-008 "一次排查 15 分钟以内" SLA 保障（缺这些日志无法定位"卡在哪个阶段"）
 - `pipe.debug.stage_intermediate_state` 含 `account_id` 等敏感字段——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏到生产日志通道
 - `pipe.debug.interceptor_chain_dump` 与 `pipe.debug.mermaid_structure_snapshot` 是**脚手架生成对照**——验证 §6.1 脚手架生成物与 §2.1 设计一致，但**不**进入生产运行
@@ -136,6 +137,7 @@ flowchart LR
 | `pipe.debug.component_version_dump` | 复用组件版本清单（FR-GW-002/NFR-SEC-008/FR-EC-003/BAS-008/BAS-004/BAS-003 各自的版本） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.reuse.component_unavailable` 是**降级触发**——`error!` 级别（**非** `warn!`），release 必出 + §6.2 强制全采样，便于 SRE 立即识别"既有组件级联故障"
 - `pipe.reuse.fallback_engaged` 是**降级已生效**——`warn!` 级别，release 必出 + §6.2 强制全采样（区别于"组件已恢复"与"组件持续不可用"两个状态）
 
@@ -170,6 +172,7 @@ flowchart LR
 | `pipe.debug.context_full_snapshot` | `RequestContext` 全字段完整 dump | 业务请求 1:1 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-3KB/条（release 剔除），含 `account_id` 等敏感字段也**仅** debug 出现 |
 
 **debug-only 守护要点**：
+
 - `pipe.context.authenticated_false` 是**鉴权失败的入口事件**——release 必出 + §6.2 强制全采样（安全审计需求），便于追溯"哪些 token/账号在尝试"以及"是否在暴力破解"
 - `pipe.context.field_written_outside_designated_stage` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），便于在早期发现"业务逻辑绕过鉴权直接写 `account_id`"等违规
 - `pipe.debug.context_full_snapshot` 含 `account_id` 等敏感字段——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏到生产日志通道
@@ -204,6 +207,7 @@ flowchart LR
 | `pipe.debug.validation_rule_dump` | 校验规则定义 dump（每条规则的 pattern/expected_range/enum_set） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.validation.failed.range` 中 `attempted_value_kind` **不**含实际值（避免泄漏原始输入，攻击者可能利用值差异反推规则细节）——`expected_range` 是允许的范围描述（如 `"0-100"`），便于客户端开发调试
 - `pipe.validation.cross_context_db_query_attempted` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），便于在 CI 阶段或运行期立即发现"校验阶段违规前移"
 - `pipe.debug.validation_request_payload` **不**含字段值，**仅**含 schema/字节数——但仍守护以避免 RUST_LOG=debug 误开时泄漏请求结构
@@ -235,6 +239,7 @@ flowchart LR
 | `pipe.debug.desensitize_rule_coverage_report` | 脱敏规则覆盖率报告（哪些字段被命中/哪些字段未触发脱敏） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.serialize.response_emitted` 含 `response_size_bytes` 但**不**含响应体内容——避免 RUST_LOG=info 误开时泄漏业务数据
 - `pipe.desensitize.misuse_detected` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），便于在运行期立即发现"脱敏数据被错用作响应体"（会导致客户端收到脱敏后的错误数据）
 - `pipe.debug.serialized_response_body` 含完整响应体——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏到生产日志通道（响应体可能含玩家敏感数据）
@@ -268,6 +273,7 @@ flowchart LR
 | `pipe.debug.audit_full_record` | 审计记录完整 dump（含操作前后状态 diff） | 仅高危/确定请求路径方法 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 1-10KB/条（release 剔除），含操作前后状态等敏感数据 |
 
 **debug-only 守护要点**：
+
 - `pipe.audit.write.failed` 是**P0 安全/合规事件**——`error!` 级别（**非** `warn!`），release 必出 + §6.2 强制全采样，便于 SRE/P0 告警链路立即捕获（沿用 BAS-003 v0.3 §7.1 关键设计纪律）
 - `pipe.audit.write.degrade_attempt_detected` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），与 `pipe.audit.write.failed` 一样触发 P0 告警
 - `pipe.audit.decision.misroute` 是**实现反模式检测**——`error!` 级别，便于在运行期或 CI 阶段发现"业务方法绕过集中判定自行调用审计接口"
@@ -307,6 +313,7 @@ flowchart LR
 | `pipe.debug.field_errors_detail` | `field_errors` 全字段级错误 dump（每条字段错误的 rule_kind/expected_value/attempted_kind） | 校验失败 1:1 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-2KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.error_response.internal_error` 永远 `client_visible=false`——`message` 字段**不得**暴露 panic message / DB endpoint / 内部地址（沿用 BAS-001 v1.5 §9.2.1 `error.client_visible=false` 强制规则）
 - `pipe.error_response.message_redaction_violation` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），便于在运行期立即发现"错误描述含敏感信息"（可能攻击者利用错误信息差反推系统状态）
 - `pipe.error_response.trace_id_included` 是**客户端关联检索的入口事件**——release 必出 + §6.2 强制全采样，便于客户端上报问题与 GM 检索链路
@@ -345,6 +352,7 @@ flowchart LR
 | `pipe.debug.idl_protocol_ast_dump` | IDL 协议 AST dump（用于验证脚手架生成与 IDL 一致） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.scaffold.error_response_type_redefined` 是**实现反模式检测**——`error!` 级别（**非** `warn!`），便于 CI 阶段或运行期立即发现"开发者重新定义统一错误响应类型"（会导致 §5 "三引擎客户端 SDK 基于此统一结构实现通用错误处理逻辑" 失效）
 - `pipe.scaffold.pipeline_default_config_mismatch` 是**脚手架生成质量门**——`error!` 级别（**非** `warn!`），CI 阶段失败即阻断发布，避免"脚手架生成了但与设计不一致"
 - `pipe.debug.scaffold_generated_files` **不**含文件内容，**仅**含路径 + 字节数——但仍守护以避免 RUST_LOG=debug 误开时泄漏生成文件结构
@@ -379,6 +387,7 @@ flowchart LR
 | `pipe.debug.customize_thresholds_full` | 定制阈值完整清单 dump（每方法每阶段的阈值参数） | 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.customize.out_of_scope_change.detected` / `pipe.customize.ratelimit_disabled_attempt` / `pipe.customize.audit_disabled_attempt` / `pipe.customize.desensitize_disabled_attempt` / `pipe.customize.auth_disabled_attempt` 均为**实现反模式检测**——`error!` 级别（**非** `warn!`），CI 阶段失败即阻断发布，沿用 §7.2 "代码评审检查清单" 的检测路径
 - `pipe.debug.customize_diff_vs_scaffold` 含完整 diff——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏代码差异（可能含业务逻辑关键路径）
 
@@ -412,6 +421,7 @@ flowchart LR
 | `pipe.debug.migration_progress_report` | 迁移进度报告（按服务维度的阶段接入度） | 周期性（如每月） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.migration.partial_state_detected` 是**§6.3 强约束检测**——`error!` 级别（**非** `warn!`），便于在运行期或 CI 阶段立即发现"半迁移状态"（介于新旧之间、难以判定实际行为的中间态）
 - `pipe.migration.rollback_executed` 是**应急事件**——`warn!` 级别（**非** `error!`，属可恢复应急），release 必出 + §6.2 强制全采样，便于 SRE 追溯回滚影响面
 - `pipe.debug.legacy_pipeline_diff` 含完整代码 diff——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏业务逻辑
@@ -445,6 +455,7 @@ flowchart LR
 | `pipe.debug.boundary_violation_stack_trace` | 边界违规的完整调用栈 dump | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.dep_boundary.auth_no_biz_db_query` / `pipe.dep_boundary.ratelimit_no_biz_db_query` / `pipe.dep_boundary.validation_no_cross_context_query` / `pipe.dep_boundary.idempotency_no_io` 是**§6.4 边界约束验证**——release 必出 + §6.2 强制全采样，便于运行期持续验证边界未被破坏
 - `pipe.dep_boundary.violation.*` 是**§6.4 边界违规检测**——`error!` 级别（**非** `warn!`），CI 阶段失败即阻断发布，运行期触发即告警
 - `pipe.debug.preprocess_static_dep_graph` 含完整依赖图（可能含内部服务名/库名）——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏内部架构
@@ -477,6 +488,7 @@ flowchart LR
 | `pipe.debug.checklist_full_evidence` | 检查清单完整证据 dump（每项的扫描器输出/详细 diff） | 部署期 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除） | 约 5-50KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.checklist.bypass_static_check.detected` 是**CI 阻断级事件**——`error!` 级别（**非** `warn!`），CI 阶段失败即阻断发布
 - `pipe.checklist.overhead_threshold.exceeded` 是**性能门事件**——`error!` 级别（**非** `warn!`），CI 阶段失败即阻断发布
 - `pipe.debug.checklist_full_evidence` 含完整证据——必须 `#[cfg(debug_assertions)]` 守护，避免在生产构建时携带大量证据数据
@@ -502,6 +514,7 @@ flowchart LR
 | `pipe.debug.review_comment_thread` | PR 评审评论线程 dump（每条评论的作者/时间/内容） | 部署期 0.1/h | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-30KB/条（release 剔除） |
 
 **debug-only 守护要点**：
+
 - `pipe.review.out_of_scope_change.detected` / `pipe.review.disable_stage_attempt.detected` 是**PR 阻断级事件**——`error!` 级别（**非** `warn!`），CI/评审阶段失败即阻断合并
 - `pipe.debug.review_diff_full` 含完整 PR diff（可能含业务逻辑关键路径）——必须 `#[cfg(debug_assertions)]` 守护，**严禁**让 RUST_LOG=debug 误开时泄漏代码差异
 

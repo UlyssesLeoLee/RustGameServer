@@ -39,6 +39,7 @@
 `origin/w3/shim` 的 common ancestor 与 `origin/dev` 是 `c6d0db46` (2026-09-09 22:00 JST 之前),
 那时仓库里**还没有** RGS-REF-134 / RGS-ULYS-237-DESENSITIZED-REF-INVENTORY / RGS-*-GAMED-* 等元文档。
 所以 v0.2 对 w3/shim 的「可见效果」取决于:
+
 - (a) w3/shim 上是否新写了任何带真名的注释 (有 → 替换)
 - (b) w3/shim 上是否新加了 GAMED/CBT3 引用
 
@@ -83,6 +84,7 @@ assert!(validate_character_name("闪烁之光").is_ok());   // ← 没动
 ### 3.3 Markdown 跟踪文件名 (e.g. `RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md`)
 
 本 turn 的策略:
+
 - **若该引用在 backtick 跨链中**: 保留原名 (e.g. `上游 REQ-A: \`docs/14-项目管理/RGS-REFERENCE-GAMED-PRIVATE-SERVER_v0.1.md\`` 保持原貌)
 - **若该引用在正文/粗体中 (非跨链)**: 替换成 `[游戏D]` (rendered text 改, on-disk 文件名 v0.3 已代号化 `*GAMED*`)
 
@@ -107,6 +109,7 @@ per v0.1 §编码约定 + D-Boy「脱敏即可」 (非「彻底去除」):
 ## 4. 变更清单 (46 个文件, 300 行替换)
 
 > 完整 per-file 列表见本文件附录 A; 摘要按"变更幅度"排序:
+>
 > 1. **文档 (4 份 GAMED / 闪烁 RGS-REF-134)**: 4 文件 / 197 行替换
 > 2. **`crates/gm-backend` 全家**: 13 文件 / 35 行替换 (注释 + Cargo.toml)
 > 3. **`crates/network-gateway` 全家**: 10 文件 / 19 行替换

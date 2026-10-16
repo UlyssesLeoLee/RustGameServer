@@ -56,7 +56,6 @@ health: [/healthz, /readyz]
 - [ ] 沙箱白名单 API 与规则版本 fencing。
 - [ ] Social 集成测试和故障注入矩阵。
 
-
 ---
 
 ## 修订历史（改訂履歴 / Revision History）

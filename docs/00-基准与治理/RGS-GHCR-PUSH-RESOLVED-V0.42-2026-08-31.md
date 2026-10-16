@@ -43,7 +43,7 @@ kubectl -n rust-game-server rollout status deploy/player-service --timeout=5m
 - `docs/00-基准与治理/RGS-GHCR-NEW-PIPELINE-CONFIG-BLOCKED-2026-08-30.md`(v0.40)
 - `.github/workflows/build-prod-0.1.0.yml`(commit bfb16b0 修复)
 - GHCR 镜像: `ghcr.io/ulyssesleolee/rustgameserver:0.1.0` / `:latest`,digest `sha256:24da076e3e6d2ebb58a9d129e307bcedd0c161040fff4c0f052ecb534374fddf`
-- 成功 run: https://github.com/UlyssesLeoLee/RustGameServer/actions/runs/33337236838
+- 成功 run: <https://github.com/UlyssesLeoLee/RustGameServer/actions/runs/33337236838>
 
 ## 修订历史
 

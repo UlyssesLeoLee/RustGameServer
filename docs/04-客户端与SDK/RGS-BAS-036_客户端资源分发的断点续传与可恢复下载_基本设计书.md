@@ -61,6 +61,7 @@
 本文档落实 RGS-REQ-036（断点续传与可恢复下载 需求定义书）全部功能与非功能需求，扩 RGS-BAS-027 §6.1 `DistributionBackend` 接口契约为新增 Range 支持要求，并定义客户端 SDK `asset_download` 模块（与既有 `asset_update` / `version` 同级）的断点状态机、本地断点记录 Schema、并发分片下载与恢复时序。
 
 **核心原则（继承 RGS-REQ-036 §1.2 既定）**：
+
 - **服务端完全无状态**——断点信息 100% 在客户端本地，分发后端仅响应标准 HTTP Range
 - **断点续传与增量补丁正交**——前者管"如何把字节下完"，后者管"下哪些字节"
 - **完整性校验不可绕过**——NFR-CDN-002 仍是硬约束，分块到达不破坏整文件校验语义
@@ -100,6 +101,7 @@ RGS-BAS-027 §6.1 既有 `DistributionBackend` 最小契约仅含 `put / get_url
 | `resume.backend.debug.abstraction_dag_dump` | 抽象层依赖图 dump（`DistributionBackend` ↔ 既有 `put`／`get_url`／`exists`） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `resume.backend.contract_audit_failed` 是**门禁阻断级**信号（NFR-CDN-114 候选后端不通过即不得生产）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.backend.abstraction_drift_detected` 是**抽象不变性违反**（§2.1 强约束，HTTP 协议层能力**不**下沉到 trait）—— release 必出 + `error!` 强制全采样
 - `resume.backend.range_contract_applied` ／ `head_contract_applied` 是**NFR-CDN-114 门禁通过信号**—— release 必出 + 强制全采样，便于 SRE 审计后端合规历史
@@ -136,6 +138,7 @@ RGS-BAS-027 §6.1 既有 `DistributionBackend` 最小契约仅含 `put / get_url
 | `resume.backend.audit.debug.gate_override_justification` | 门禁 override 的完整理由 dump（per §12.1 应急路径） | 极少（应急） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1）：
+
 - `resume.backend.audit.gate_blocked` 是**门禁阻断级**信号（候选不合规即不得生产，NFR-CDN-114）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.backend.audit.gate_relaxed` 是**例外审批事件**（**需 dual sign 留痕**）—— release 必出 + `warn!` 强制全采样，便于合规审计
 - `resume.backend.audit.recommendation_registered` 是**设计追溯硬要求**（ARC-025 ADR 记录）—— release 必出 + 强制全采样
@@ -192,6 +195,7 @@ RGS-BAS-027 §6.1 既有 `DistributionBackend` 最小契约仅含 `put / get_url
 | `resume.component.debug.lifecycle_call_graph` | 各组件生命周期调用图（init / hook / shutdown 顺序） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `resume.component.*.boot_completed` 是**SDK 启动就绪信号**—— release 必出 + 强制全采样，便于 SRE 在 SDK 启动失败时按 `component` 维度定位
 - `resume.component.heartbeat.tick` 是**生产事件**（per BAS-004 §4.4 release 必出宏清单"业务关键事件"）—— release 必出 + 强制全采样，便于 SRE 按 `node_id` 维度聚合存活率
 - `resume.component.bridge.invocation` 频率高（每次状态机推进都触发），仅研发复盘需要—— release 完全剔除
@@ -228,6 +232,7 @@ RGS-BAS-027 §6.1 既有 `DistributionBackend` 最小契约仅含 `put / get_url
 | `resume.component.boundary.debug.violation_call_stack` | 责任越界检测时的完整调用栈 dump（per BAS-004 v0.3 §4.3 关联 ID 预先 let 绑定） | 极少（代码缺陷） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除，**可能含文件路径**） | 约 500B-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束）：
+
 - `resume.component.boundary.violation_detected` ／ `duplicate_entrypoint` ／ `atomic_write_bypassed` ／ `integrity_gate_bypass_attempted` 全部是**阻断级**信号（PR 合并阻断 / 部署阻断）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.component.boundary.integrity_gate_bypass_attempted` 是**安全关键事件**（NFR-CDN-002 不可绕过硬约束）—— release 必出 + `error!` 强制全采样
 - `resume.component.boundary.atomic_write_enforced` 是**FR-CDN-061 原子写强制约束**自检—— release 必出 + 强制全采样
@@ -265,6 +270,7 @@ RGS-BAS-027 §6.1 既有 `DistributionBackend` 最小契约仅含 `put / get_url
 | `resume.state.definition.terminal_invariant_asserted` | 终态不可逆不变性自检（per §4.1 + §4.3 转移合法性） | 偶发（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `resume.state.machine.boot_completed` 是**状态机就绪信号**—— release 必出 + 强制全采样，便于 SRE 在 SDK 启动失败时定位状态机问题
 - `resume.state.terminal.entered` 是**下载生命周期终结信号**（`Completed` = 成功 + `Canceled` = 玩家放弃）—— release 必出 + 强制全采样，便于运营按 `terminal_state` 维度分析放弃率
 - `resume.state.terminal_exited.blocked` 是**状态机不变量违反**（per §4.1 终态定义）—— release 必出 + `error!` 强制全采样
@@ -308,6 +314,7 @@ stateDiagram-v2
 | `resume.state.transition.debug.mermaid_dump` | 状态机 mermaid 图 dump（per §4.2） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §6.2）：
+
 - `resume.state.transition.executed` 是**业务关键事件**（per BAS-004 §4.4 release 必出宏清单）—— release 必出 + 强制全采样，**不**挂 `#[cfg]`
 - `resume.state.transition.to_completed` 是**FR-CDN-012 完整性关键事件**—— release 必出 + 强制全采样，便于运营按 `token_id` 维度追踪完成率
 - `resume.state.transition.to_failed` 是**异常但已处理**事件（per §10.1 异常分类 + BAS-004 §4.4 release 必出宏清单）—— release 必出 + `error!` 强制全采样
@@ -355,6 +362,7 @@ stateDiagram-v2
 | `resume.state.transition.validity.debug.rejection_decision_path` | 拒绝判定的完整决策路径 dump（含每条拒绝条件的真值） | 极少（CI 测试） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-083 强约束）：
+
 - `resume.state.transition.validity.illegal_rejected` 是**状态机不变量违反**（per FR-CDN-052 强约束）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.state.transition.validity.paused_cancel_inflight_skipped` 是**FR-CDN-083 强制约束违反**（暂停时**必须**取消在飞请求）—— release 必出 + `error!` 强制全采样
 - `resume.state.transition.validity.matrix_loaded` 是**合法性表就绪信号**—— release 必出 + 强制全采样，便于 SDK 启动失败时定位
@@ -388,6 +396,7 @@ stateDiagram-v2
 | `resume.store.debug.sqlite_pragmas_dump` | SQLite PRAGMA 配置 dump（WAL / synchronous / cache_size） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束）：
+
 - `resume.store.path_resolution_failed` 是**阻断级**信号（无存储路径即无法断点续传，FR-CDN-062 强约束）—— release 必出 + `error!` 强制全采样
 - `resume.store.location_initialized` 是**存储就绪信号**（per BAS-004 §4.4 release 必出宏清单"业务关键事件"）—— release 必出 + 强制全采样
 - `resume.store.migration_applied` 是**schema 演进事件**（per FR-CDN-060 字段演进可追溯）—— release 必出 + 强制全采样
@@ -434,6 +443,7 @@ stateDiagram-v2
 | `resume.store.schema.debug.field_access_pattern` | 字段访问模式 dump（哪些字段被读 / 写频率） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束 + FR-CDN-064 强约束）：
+
 - `resume.store.schema.pii_field_write_attempt` 是**FR-CDN-064 PII 强约束违反**（断点记录**禁止** PII）—— release 必出 + `error!` 强制全采样，**绝不**记录 PII 明文内容
 - `resume.store.schema.pii_static_scan_failed` 是**合规审计关键事件**（per FR-CDN-064 + §12.2 PR 合并阻断）—— release 必出 + `error!` 强制全采样
 - `resume.store.schema.field_written` 频率高（每次 chunk 完成都触发），仅研发复盘需要—— release 完全剔除
@@ -471,6 +481,7 @@ stateDiagram-v2
 | `resume.store.lru.debug.record_age_histogram` | 记录年龄分布直方图 dump | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-CDN-113 容量约束 + **资源使用详情走 debug-only**）：
+
 - `resume.store.lru.threshold_critical` 是**阻断级**信号（容量超 95% 即无写入空间，新断点无法保存，FR-CDN-062 强约束）—— release 必出 + `error!` 强制全采样
 - `resume.store.lru.threshold_warn` 是**容量风险预警**—— release 必出 + `warn!` 强制全采样，便于 SRE 在到达 95% 前介入
 - `resume.store.lru.token_expired_evicted` 是**FR-CDN-063 过期判定**联动事件—— release 必出 + 强制全采样
@@ -503,6 +514,7 @@ stateDiagram-v2
 | `resume.store.write.debug.json_rename_step_dump` | JSON write-after-rename 步骤 dump（per §5.4 原子写约定） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-061 强约束 + RSK-CDN-201 风险）：
+
 - `resume.store.write.atomic_pair_order_violated` 是**原子写顺序违反**（per §5.4 + FR-CDN-061 强约束）—— release 必出 + `error!` 强制全采样，**不**挂 `#[cfg]`
 - `resume.store.write.batch_write_attempted` 是**RSK-CDN-201 风险违反**（per §5.4 不允许批量写）—— release 必出 + `error!` 强制全采样
 - `resume.store.write.lost_progress_detected` 是**崩溃恢复场景**（per §5.4 风险描述）—— release 必出 + `warn!` 强制全采样，便于运营按 `crash_kind` 维度统计
@@ -542,6 +554,7 @@ stateDiagram-v2
 | `resume.http.response.debug.head_metadata_full` | HEAD 完整元数据 dump（含 Server / Date / Cache-Control 等次要头） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-040/041/042/044 强约束）：
+
 - `resume.http.response.head_contract_violated` ／ `content_length_mismatch` ／ `etag_weak_rejected` 全部是**门禁阻断级**信号（FR-CDN-040/042/044 强约束）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.http.response.if_range_mismatch_200` 是**全量重传触发信号**（per §11.2 `asset_download_etag_mismatch_total` 指标）—— release 必出 + `warn!` 强制全采样
 - `resume.http.response.range_416_received` 是**异常但已处理**事件（触发全量重传，per §10.1）—— release 必出 + `warn!` 强制全采样
@@ -577,6 +590,7 @@ stateDiagram-v2
 | `resume.http.request.debug.range_construction_trace` | Range 头构造 trace（含 chunk 切片逻辑 / 边界处理） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-040 / FR-CDN-074 强约束）：
+
 - `resume.http.request.missing_required_header` ／ `if_range_used_last_modified` 是**阻断级**信号（违反 §6.2 必含头 / FR-CDN-074 强约束）—— release 必出 + `error!` 强制全采样
 - `resume.http.request.range_format_invalid` 是**异常但已处理**事件（违反 RFC 7233）—— release 必出 + `warn!` 强制全采样
 - `resume.http.request.resume_token_inconsistent_with_manifest` 是**完整性异常**（可能 Manifest 被篡改 / FR-CDN-013 联动）—— release 必出 + `warn!` 强制全采样
@@ -628,6 +642,7 @@ Client                                DistributionBackend
 | `resume.sequence.first_download.debug.step_latency_breakdown` | 首次下载时序步骤耗时 dump（per BAS-004 v0.3 §4.3 关联 ID 预先 let 绑定） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除，频率高且为成功路径） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + 客户端资源分发断点续传域特殊考虑）：
+
 - `resume.sequence.first_download.session_started` ／ `session_completed` 是**下载会话生命周期事件**（per 客户端资源分发断点续传域特殊考虑：下载会话建立/完成 release 必出）—— release 必出 + 强制全采样
 - `resume.sequence.first_download.chunk_received` ／ `chunk_persisted_to_disk` 是**资源下载 + 落盘事件**（per §11.2 资源下载计数 + FR-CDN-061 原子写）—— release 必出 + 强制全采样
 - `resume.sequence.first_download.integrity_check_passed` 是**FR-CDN-012 完整性关键事件**—— release 必出 + 强制全采样
@@ -683,6 +698,7 @@ Client                                DistributionBackend
 | `resume.sequence.resume.debug.gray_bucket_recompute` | 灰度分桶重算 dump（per §5.1 BAS-027 一致性哈希） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-041/063/070~072 强约束）：
+
 - `resume.sequence.resume.session_started` 是**续传会话建立事件**（per 客户端资源分发断点续传域特殊考虑：续传 release 必出）—— release 必出 + 强制全采样
 - `resume.sequence.resume.manifest_signature_failed` 是**安全关键事件**（FR-CDN-013 强约束，攻击/分发后端被劫持时触发）—— release 必出 + `error!` 强制全采样
 - `resume.sequence.resume.gray_rolled_back_detected` 是**运营动作信号**（GM 灰度回滚导致断点失效）—— release 必出 + `warn!` 强制全采样，便于运营按 `rollout_id` 维度分析影响面
@@ -736,6 +752,7 @@ Client                                DistributionBackend
 | `resume.sequence.pause_resume.debug.drain_timeline` | drain 已发送响应的时间线 dump | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-083 强约束 + 客户端资源分发断点续传域特殊考虑）：
+
 - `resume.sequence.pause_resume.in_flight_cancelled` 是**FR-CDN-083 强约束合规证据**—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `resume.sequence.pause_resume.pause_window_violated` 是**FR-CDN-083 违反**（暂停期间不应有 Range 请求）—— release 必出 + `error!` 强制全采样
 - `resume.sequence.pause_resume.crash_recovery_applied` 是**客户端崩溃恢复事件**（per 客户端资源分发断点续传域特殊考虑：客户端崩溃 release 必出 + 强制全采样，含 `client_version` / `device_id_hash` 脱敏）—— release 必出 + `warn!` 强制全采样
@@ -785,6 +802,7 @@ Client                                DistributionBackend   AdminService
 | `resume.sequence.gray_rollback.debug.manifest_diff_summary` | 新旧 Manifest diff 摘要 dump | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-072 / FR-CDN-115 强约束）：
+
 - `resume.sequence.gray_rollback.gray_status_mismatch_detected` 是**运营动作触发的断点失效**（per §11.2 `asset_download_resume_failure_total`）—— release 必出 + `warn!` 强制全采样
 - `resume.sequence.gray_rollback.full_download_restarted` 是**FR-CDN-115 关键事件**（不再续传新版本内容）—— release 必出 + 强制全采样
 - `resume.sequence.gray_rollback.audit_impact` 是**运营审计关键事件**（便于按 `rollout_id` 维度分析回滚影响面）—— release 必出 + 强制全采样
@@ -831,6 +849,7 @@ Client (Downloading 末态)
 | `resume.sequence.integrity.debug.integrity_gate_call_graph` | `IntegrityGate` 调用图 dump（含每个 chunk 写入后的调用点） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-012 / NFR-CDN-002 强约束 + 资源使用详情走 debug-only）：
+
 - `resume.sequence.integrity.check_passed` 是**FR-CDN-012 关键完整性事件**—— release 必出 + 强制全采样，**不**挂 `#[cfg]`
 - `resume.sequence.integrity.check_failed` 是**安全关键事件**（攻击 / 网络损坏 / 后端被劫持时触发）—— release 必出 + `error!` 强制全采样
 - `resume.sequence.integrity.bypass_attempted` 是**NFR-CDN-002 不可绕过违反**（per BAS-027 §4.3 `cdn.bypass.*` 模式）—— release 必出 + `error!` 强制全采样
@@ -865,6 +884,7 @@ Client (Downloading 末态)
 | `resume.chunk.strategy.debug.bucket_assignment` | 分片区间分配 dump（per §8.2 `chunks: Vec<ChunkRange>`） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-080/081/082 强约束 + **资源使用详情走 debug-only**）：
+
 - `resume.chunk.strategy.config_loaded` 是**FR-CDN-081 并发数可配关键事件**—— release 必出 + 强制全采样
 - `resume.chunk.strategy.concurrency_adjusted` 是**自适应调整事件**（per §8.1 + FR-CDN-081）—— release 必出 + 强制全采样
 - `resume.chunk.strategy.weak_network_detected` 是**弱网降级事件**（per §10.2 降级路径）—— release 必出 + `warn!` 强制全采样
@@ -919,6 +939,7 @@ impl ChunkOrchestrator {
 | `resume.chunk.orchestrator.debug.adaptive_decision_trace` | 自适应决策 trace（含 5s 吞吐滑动窗口） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-2KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-080/082 强约束 + **资源下载失败/重试 warn! 强制全采样** + **资源使用详情走 debug-only**）：
+
 - `resume.chunk.orchestrator.failed_chunk_queued` 是**资源下载失败/重试事件**（per 客户端资源分发断点续传域特殊考虑）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
 - `resume.chunk.orchestrator.exhausted_to_failed` 是**`ChunkOrchestrator` 自身故障**（per §10.2 降级路径）—— release 必出 + `error!` 强制全采样
 - `resume.chunk.orchestrator.chunk_completed` 频率高（每次 chunk 完成都触发），是 §11.2 指标关联事件—— release 必出 + 强制全采样
@@ -966,6 +987,7 @@ async fn handle_pause(&self) {
 | `resume.chunk.cancel.debug.cancel_request_inspection` | 单个取消请求的 HTTP 客户端内部状态 dump | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-083 强约束 + §12.2 代码评审检查清单 grep 验证）：
+
 - `resume.chunk.cancel.cancel_failed` 是**FR-CDN-083 违反**（per §12.2 grep `cancel_request` / `abort_request` 验证）—— release 必出 + `error!` 强制全采样
 - `resume.chunk.cancel.drain_timeout` 是**§8.3 1s 超时**触发—— release 必出 + `warn!` 强制全采样
 - `resume.chunk.cancel.on_pause_called` 是**FR-CDN-083 入口**—— release 必出 + 强制全采样
@@ -1018,6 +1040,7 @@ async fn preallocate_file(path: &Path, total_size: u64) -> Result<()> {
 | `resume.chunk.prealloc.debug.platform_branch_dump` | 平台分支选择 dump（`#[cfg(unix)]` / `#[cfg(windows)]`，per §8.4 平台特定预分配） | 启动 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-084 强约束 + 客户端崩溃/网络中断 release 必出 + **资源使用详情走 debug-only**）：
+
 - `resume.chunk.prealloc.preallocation_completed` 是**FR-CDN-084 关键事件**—— release 必出 + 强制全采样
 - `resume.chunk.prealloc.disk_full_detected` 是**§10.1 异常处理关键事件**（`last_error: "disk_full"` 不自动重试）—— release 必出 + `error!` 强制全采样
 - `resume.chunk.prealloc.windows_sparse_skipped` 是**已知技术债**（per §8.4 备注 Windows API 留待详细设计阶段）—— release 必出 + `warn!` 强制全采样，便于追踪技术债清算
@@ -1058,6 +1081,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.cdn.edge.debug.edge_node_topology` | 边缘节点拓扑 dump（per RSK-CDN-203 边缘命中率分析） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护，**资源使用详情走 debug-only**） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + FR-CDN-030 / FR-CDN-073 / RSK-CDN-203 强约束 + **资源使用详情走 debug-only**）：
+
 - `resume.cdn.edge.throttled` 是**FR-CDN-073 限流事件**（攻击 / 突发流量）—— release 必出 + `warn!` 强制全采样
 - `resume.cdn.edge.cache_unsupported_detected` 是**门禁阻断级**信号（候选 CDN 不支持 Range 缓存键即不得生产，per §9.1 备注）—— release 必出 + `error!` 强制全采样
 - `resume.cdn.edge.range_cache_hit` / `range_cache_miss` 是**RSK-CDN-203 边缘 Range 命中行为关键事件**—— release 必出 + 强制全采样
@@ -1095,6 +1119,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.cdn.origin.debug.source_health_history` | 源站健康历史 dump（per §9.2 + NFR-OP-005 24×365） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护，**资源使用详情走 debug-only**） | 约 1-5KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束 + FR-CDN-032 / FR-CDN-041 / FR-CDN-115 / NFR-OP-005 强约束 + **资源使用详情走 debug-only**）：
+
 - `resume.cdn.origin.source_unavailable_503` 是**源站不可用阻断级**信号（per NFR-OP-005 24×365）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.cdn.origin.fallback_to_previous_stable` 是**FR-CDN-032 强约束事件**—— release 必出 + `warn!` 强制全采样
 - `resume.cdn.origin.fallback_invalidated_resume_token` 是**FR-CDN-115 关键事件**（不再续传陈旧内容）—— release 必出 + `warn!` 强制全采样
@@ -1140,6 +1165,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.failure.debug.retry_backoff_sequence` | 重试退避序列 dump（per §10.1 指数退避） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §10.1 10 类异常 + **资源下载失败/重试 warn! 强制全采样** + 安全关键事件 error! 强制全采样）：
+
 - `resume.failure.integrity_check_failed` ／ `manifest_signature_failed` 是**安全关键事件**（攻击 / 后端被劫持时触发）—— release 必出 + `error!` 强制全采样
 - `resume.failure.network_transient` / `range_416_out_of_bounds` / `range_200_etag_changed` / `gray_rolled_back` / `token_expired` / `cdn_throttled` 全部是**资源下载失败/重试**事件（per 客户端资源分发断点续传域特殊考虑）—— release 必出 + `warn!` 强制全采样，不挂 `#[cfg]`
 - `resume.failure.disk_full` 是**不可重试**关键事件（per §10.1 + 不自动重试）—— release 必出 + `error!` 强制全采样
@@ -1174,6 +1200,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.fallback.debug.async_computation_progress` | 后台异步 hash 计算进度 dump（per §10.2） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B-500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §10.2 4 种降级 + **资源下载失败/重试 warn! 强制全采样** + **资源使用详情走 debug-only**）：
+
 - `resume.fallback.range_persistent_failure_to_full_get` / `concurrent_to_single_stream` 是**资源下载失败/重试**事件（per 客户端资源分发断点续传域特殊考虑）—— release 必出 + `warn!` 强制全采样
 - `resume.fallback.orchestrator_failure_to_failed` 是**`ChunkOrchestrator` 自身故障**（per §10.2 不自动恢复）—— release 必出 + `error!` 强制全采样
 - `resume.fallback.fallback_recovered` / `fallback_audit` 是**治理事件**—— release 必出 + 强制全采样
@@ -1213,6 +1240,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.nfr.debug.lru_pressure_simulation` | LRU 容量压力测试 dump（per §11.1 + §5.3 + NFR-CDN-113） | 极低（CI 验证） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-CDN-110~114 强约束 + NFR-OP-008 排查 SLA + **资源使用详情走 debug-only**）：
+
 - `resume.nfr.recovery_latency_violated` 是**NFR-CDN-110 违反**（per NFR-OP-008 排查 SLA 保障）—— release 必出 + `warn!` 强制全采样
 - `resume.nfr.backend_range_gate_failed` 是**NFR-CDN-114 门禁阻断级**信号（候选不合规即不得生产）—— release 必出 + `error!` 强制全采样
 - `resume.nfr.total_download_deterioration_measured` 是**NFR-CDN-112 关键事件**（per TBD-CDN-203 实测）—— release 必出 + 强制全采样
@@ -1257,6 +1285,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.observability.debug.label_value_distribution` | 指标 label 值分布 dump（per §11.2 + 高基数防护） | 极低（SRE 排查） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B-1KB／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + NFR-OP-008 排查 SLA + **资源使用详情走 debug-only**）：
+
 - `resume.observability.metric_emitted` 频率高（每秒数百次）且为成功路径，**资源使用详情走 debug-only**—— release 完全剔除
 - `resume.observability.metric_emission_failed` / `partial_returned` 是**避免静默丢指标**信号（per RGS-BAS-027 §6.4 同类模式）—— release 必出 + `warn!` 强制全采样
 - `resume.observability.metric_alert_fired` 是**NFR-OP-005 告警联动事件**—— release 必出 + `warn!` 强制全采样
@@ -1311,6 +1340,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.prelaunch.debug.grep_pattern_dump` | CI 静态扫描使用的 grep 模式 dump（含 BAS-004 §4.4 释放必出宏清单） | 极低 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + BAS-005 v0.3 §10.2 + BAS-009 v0.7 §6.1 模式 + 客户端资源分发断点续传域特殊考虑）：
+
 - `resume.prelaunch.checklist.item_failed` 是**上线门禁信号**—— release 必出 + 强制全采样，便于运维审计上线历史
 - `resume.prelaunch.cdn_edge_range_cache.validated` 是**RSK-CDN-203 边缘 Range 缓存门禁**—— release 必出 + 强制全采样
 - `resume.prelaunch.pii_scan_empty.validated` 是**FR-CDN-064 PII 强约束验证**—— release 必出 + 强制全采样
@@ -1353,6 +1383,7 @@ RGS-REQ-030-ADD1 已定义 CDN 边缘缓存键：`{channel}/{version}/{region}/{
 | `resume.review.debug.pii_pattern_match_dump` | PII 模式匹配 dump（哪些代码位置匹配 `player_id` / `device_id` / `ip` 正则） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release 完全剔除，**不**记录明文 PII） | 约 500B／条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4 + §5.1 双重约束 + BAS-005 v0.3 §10.2 + BAS-009 v0.7 §6.1 模式 + FR-CDN-064 / FR-CDN-083 / NFR-CDN-002 强约束）：
+
 - `resume.review.abstraction_drift.detected` / `state_machine.illegal_transition` / `in_flight_cancel.missing` / `integrity_bypass.detected` / `range_contract.breach` / `pii_field.detected` / `gray_rollback_skipped` 全部是**阻断级**信号（PR 合并阻断）—— release 必出 + `error!` 强制全采样，不挂 `#[cfg]`
 - `resume.review.integrity_bypass.detected` 是**NFR-CDN-002 不可绕过违反**（per BAS-027 §4.3 `cdn.bypass.*` 模式）—— release 必出 + `error!` 强制全采样
 - `resume.review.pii_field.detected` 是**FR-CDN-064 PII 强约束违反**—— release 必出 + `error!` 强制全采样

@@ -99,6 +99,7 @@ flowchart TB
 | `sec.layer.debug.layer_policy_dump` | 6 层各层当前生效的规则 dump（用于事后复盘"为什么某层未拦截"） | 极低（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 3-8KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.layer.hit` / `sec.layer.penetration_detected` / `sec.layer.all_layers_bypassed` 均为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.layer.debug.attack_chain_full_trace` 在攻击期间 100/s 全量 dump 可能 500KB/s —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - IP 地址**全部**走 BAS-004 v0.3 §5.1 末段掩码脱敏（`203.0.113.0/24`），不允许明文 IP 出现在 release 必出字段
@@ -131,6 +132,7 @@ flowchart TB
 | `sec.boundary.debug.geoip_lookup_timing` | 边界防护地理 IP 库查询耗时（毫秒级） | 稳态 1/s / 峰值 1000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 150B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.boundary.ddos_detected` 在 DDoS 攻击期间可能 1000/s —— 全部 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），不挂 `#[cfg]`，确保告警链路完整
 - `sec.boundary.debug.attack_payload_dump` 在攻击期间 1-10KB × 0.1/s 是低频但单条大 —— release build 完全剔除，避免 RUST_LOG=debug 误开时攻击 payload 进入日志通道
 - `*token*` / `*password*` / `*credential*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**，不依赖开发者主动脱敏（如攻击 payload 中带`Authorization: Bearer xxx`，xxx 部分被黑名单拦截，仅记录"已拦截字段名"）
@@ -165,6 +167,7 @@ flowchart TB
 | `sec.networkpolicy.debug.connection_flow_trace` | Pod 间连接的完整流路径（network namespace / iptables chain / policy match 过程） | 稳态 100/s / 峰值 1000/s | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.networkpolicy.allowed` 在稳态 1000/s 全量打可能 250KB/s —— `info!` 级别（§4.8.3.2 二维矩阵 `info!` 行 release 常驻），允许 `#[cfg]` 之外的常驻，但**属于安全审计事件**故按 §6.2 强制全采样（不按普通 info 走采样率）
 - `sec.networkpolicy.denied.*` / `sec.networkpolicy.violation.*` 是**关键安全事件** —— `error!` 级别，release 常驻 + §6.2 强制全采样，**不**挂 `#[cfg]`
 - `sec.networkpolicy.debug.full_policy_dump` 含完整 iptables 规则（可能 5KB+）—— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏网络拓扑
@@ -197,6 +200,7 @@ flowchart TB
 | `sec.networkpolicy.debug.policy_diff_snapshot` | 与上周扫描对比的 policy 差异快照 | 1/周 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.networkpolicy.audit_violation_found` / `sec.networkpolicy.ci_check_failed.*` 是**关键安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.networkpolicy.debug.full_audit_report` 含完整集群网络拓扑（10-50KB）—— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏网络拓扑给非授权人员
 - `*token*` / `*password*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**
@@ -229,6 +233,7 @@ flowchart TB
 | `sec.cert.debug.rotation_timing` | 轮换各阶段耗时（签发 / 推送 / 重载） | 每 90 天 1 次 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.cert.expired` / `sec.cert.rotation_failed` / `sec.cert.handshake_failed` 是**关键安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`
 - `sec.cert.debug.cert_chain_dump` 含完整证书信息 —— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏证书指纹供攻击者仿造
 - `*token*` / `*password*` / `*credential*` / `*key*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**（证书私钥绝不能进入日志）
@@ -270,6 +275,7 @@ sequenceDiagram
 | `sec.secret.debug.consumer_migration_progress` | 消费者迁移进度（每 5s 采样已迁移/总数） | 轮换期间 12/min | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 200B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.secret.unauthorized_read_attempt` / `sec.secret.rotation_failed` 是**关键安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `*token*` / `*password*` / `*credential*` / `*secret_value*` / `*api_key*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃** —— SDK 层在写入 OTLP 之前即替换为 `[REDACTED]`，**不依赖**开发者主动脱敏
 - `sec.secret.debug.secret_metadata_redacted` 虽**不**含明文，但仍可能含 Secret 名称（与 K8s Secret 名一致，可用于推断敏感资源）—— release build 完全剔除，避免 RUST_LOG=debug 误开时泄漏 Secret 拓扑
@@ -310,6 +316,7 @@ sequenceDiagram
 | `sec.supply.debug.vuln_advisory_full_text` | 完整漏洞公告原文 dump（用于事后复盘 0day） | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.supply.vuln_sla_breach` / `sec.supply.provenance_verification_failed` / `sec.supply.image_admission_rejected` 是**极严重安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.supply.debug.full_sbom_dump` 在大 workspace 下 200KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `*token*` / `*password*` / `*credential*` / `*signing_key*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**（签名私钥绝不能进入日志）
@@ -355,6 +362,7 @@ flowchart LR
 | `sec.incident.debug.alert_payload_dump` | 告警推送的完整 payload（便于事后复盘告警内容） | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.incident.*` 全系列（除 debug 字段）均为 `info!` / `warn!` / `error!` 级别（§4.8.3.2 二维矩阵 release 常驻），**不**挂 `#[cfg]` —— 安全事件响应是合规审计的核心证据链，**禁止**任何环节降级
 - `sec.incident.debug.full_anomaly_context` 可能含账户完整操作历史（10-20KB）—— release build 完全剔除，避免 RUST_LOG=debug 误开时敏感操作历史进入生产日志
 - `*token*` / `*password*` / `*credential*` / `*session_token*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃** —— 凭证类绝不能进入日志（即使是 `revoke_credential` 事件的"已吊销凭证"也不允许含明文）
@@ -398,6 +406,7 @@ flowchart LR
 | `sec.parse.debug.fuzz_corpus_snapshot` | 模糊测试语料库快照（用于复现 crash） | 每 fuzz 周期 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-5MB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.parse.fuzz_panic` 是**极严重安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.parse.lint_violation.*` 是**关键安全事件** —— `error!` 级别，release 常驻 + §6.2 强制全采样，CI 构建应直接失败
 - `sec.parse.debug.fuzz_corpus_snapshot` 可能 1-5MB（语料库）—— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
@@ -437,6 +446,7 @@ flowchart TB
 | `sec.ratelimit.debug.window_state_dump` | 账号 + 类别 + 当前计数的完整窗口状态 dump | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.ratelimit.account_rejected` / `sec.ratelimit.ip_rejected` 是**关键安全事件** —— `warn!` 级别（§4.8.3.2 二维矩阵 `warn!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`
 - `sec.ratelimit.debug.redis_lookup_timing` 在峰值 1000/s 全部 150B ≈ 150KB/s —— release build 完全剔除
 - IP 全部走末段掩码脱敏（`203.0.113.0/24`），不允许明文 IP 出现在 release 必出字段
@@ -468,6 +478,7 @@ flowchart TB
 | `sec.quota.debug.scene_actor_resource_state` | 场景 Actor 内存配额计数完整状态（用于调优上限） | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.quota.exceeded.*` 是**关键安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.quota.verified.*` 在峰值 5000/s 全量打可能 1.4MB/s —— `info!` 级别 release 常驻，但**属安全审计事件**故按 §6.2 强制全采样（不按普通 info 走采样率）
 - `*token*` / `*currency_token*` / `*item_id*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**（`item_id` 视情况，部分可能含敏感道具 ID）
@@ -494,6 +505,7 @@ flowchart TB
 | `sec.quic.debug.retry_token_inspect` | Retry token 完整 dump（仅 hash 后内容，per FR-SEC-053） | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 300B/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.quic.connection_ddos_pattern_detected` / `sec.quic.handshake_failed` / `sec.quic.retry_failed` 是**关键/极严重安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`
 - `sec.quic.retry_sent` 在峰值 10000/s 全量打可能 2.5MB/s —— `info!` 级别 release 常驻，但**属安全审计事件**故按 §6.2 强制全采样
 - IP 全部走末段掩码脱敏（`203.0.113.0/24`），不允许明文 IP 出现在 release 必出字段
@@ -522,6 +534,7 @@ flowchart TB
 | `sec.crash.debug.oom_memory_state` | OOM 时的内存使用状态 dump（含 RSS / VSZ / 各 arena 占用） | 极少（按需） | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 1-3KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.crash.suspected_malicious_input` / `sec.crash.crashloopbackoff_pod_evicted` 是**极严重/严重安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`
 - `sec.crash.debug.crash_stack_dump` 含完整 panic 堆栈（含源码路径 / 行号，**非**敏感信息）—— release build 完全剔除仅出于容量考虑（避免 RUST_LOG=debug 误开时大量崩溃堆栈进入生产日志）
 - `*token*` / `*password*` / `*credential*` 字段名按 BAS-004 v0.3 §5.1 黑名单**自动丢弃**（崩溃堆栈中可能含敏感字段值，如 HTTP 头 / 请求体）
@@ -571,6 +584,7 @@ flowchart TB
 | `sec.checklist.debug.full_checklist_dump` | 完整 16 项检查清单 dump（含每项的详细判定结果） | 极低（每新服务一次） | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-15KB/条（release 剔除，零运行时开销） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
+
 - `sec.checklist.item_failed` 是**关键安全事件** —— `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + §6.2 强制全采样），**不**挂 `#[cfg]`，确保 release 下告警链路完整
 - `sec.checklist.all_passed` 是**准入通过事件** —— `info!` 级别，release 常驻 + §6.2 强制全采样（安全审计事件），便于 SRE 追踪"何时何服务获准上线"
 - `sec.checklist.debug.full_checklist_dump` 5-15KB —— release build 完全剔除，避免 RUST_LOG=debug 误开时大量检查详情进入生产日志

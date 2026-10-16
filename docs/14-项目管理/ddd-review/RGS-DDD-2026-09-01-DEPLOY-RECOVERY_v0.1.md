@@ -3,6 +3,7 @@
 > **创建日期**: 2026-09-01 10:00 JST
 > **创建者**: Mavis 接手代签 Ulysses per DEC-008
 > **关联**:
+>
 > - 4 阶段终极汇总: `RGS-DDD-2026-08-31-FINAL-UT-IT-ST-FIX_5域完整测试+业务实现_v0.1.md` (commit a4209cb)
 > - 部署级更新: `RGS-OPEN-QA-2026-08-31-test-summary_v0.3.md` (commit cb442b9)
 > - HANDOFF: `RGS-AI-HANDOFF-DOWNSTREAM-2026-08-31.md` (commit 8da6695)
@@ -97,11 +98,13 @@
 
 - **教训**: 9/1 部署恢复发现 4 个 SRE 漏 apply (postgres Deployment + postgres SA + 多个 secret)
 - **强约束**: **sre-deploy-restore.sh 必须加 apply 后 audit step**:
+
   ```bash
   # 期望存在的资源 (kustomize build 后)
   EXPECTED_DEPLOY=$(kubectl get deployment -n rust-game-server -o name 2>/dev/null | sort)
   # ... 比对 EXPECTED_DEPLOY, 缺则告警 + exit 1
   ```
+
 - **依据**: 9/1 09:10-09:25 JST 5 轮诊断, 每轮一个漏
 - **5 域 Lead 影响**: 0 (纯 SRE 流程)
 

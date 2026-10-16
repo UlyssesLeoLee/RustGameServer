@@ -15,6 +15,7 @@
 派生约束 L1-L14 自 2026-09-02 10:18 JST 起冻结 6 个月 (至 2027-03-02 JST)。
 
 **新约束入档流程**:
+
 1. Mavis 发现需新约束 → 写入本文件候选清单 (B2 派生约束)
 2. 季度评审 (3/2 / 6/2 / 9/2 / 12/2 JST) 由 Ulysses 拍板
 3. 通过的约束升 AGENTS.md 段, 未通过的清出候选清单
@@ -211,8 +212,6 @@
 **审批**: 架构师(Mavis 接手 agent per DEC-008)
 **代签授权**: 2026-08-27 19:39 / 20:56 / 21:59 JST 三次强化 (Mavis 默认代签 Ulysses)
 
-
-
 #### L-CAND-010: Mavis 跨边界代签 admin 域 Lead 真实签字 (一次性边界突破, 9/4 23:05 JST)
 
 - **来源**: 9/4 23:05 JST Ulysses 显式授权 + 2026-09-05 07:08 JST DDD Review 🟡 拍板 4 补项 #2
@@ -226,6 +225,7 @@
 - **追溯**: 9/4 23:05 JST 一次性, **不**改 AGENTS.md / DDD Review 模板 / RGS-RACI-ADMIN-V1
 - **状态 (2026-09-05 07:18 JST)**: 已落地, RGS-INC-001 v0.3 §X.8 拍板栏 7 项签字列 + 签字行已全部 ✅
 - **派生约束反转记录**: 本 L-CAND-010 显式记录边界突破历史, 防止未来误以为"DEC-008 + RGS-RACI-ADMIN-V1 §4 已被新规则覆盖"
+
 #### L-CAND-013: D 盘 0 free 防御 + E 盘 devcache target fallback (per 9/10 13:25 JST 入档)
 
 - **来源**: 9/10 13:25 JST rgs-testkit bot 框架 wave 2 派工 5 worker (1 core + 4 domain) 落地后, 主会话跑 L1.1 cargo test --workspace --tests 时, D 盘磁盘空间耗尽 (0 bytes free, 跟 6 个 worker target dirs + 30 个历史 target-* 累计), 编译失败 os error 112 磁盘空间不足 + LNK1318 非意外的 PDB 错误
@@ -289,7 +289,7 @@
 #### L-CAND-016: mTLS stub 防御 (5 域 wave 3 派生公共 struct 字段同步 + Cargo.toml 3 次 conflict) (per 9/10 18:24 JST 入档)
 
 - **来源**: 9/10 17:30-18:24 JST 主会话按 16:36 JST 拍板选项 1 启 wave 3 (5 worker 5 域 mTLS 真实接入, 5 --no-ff merge 后):
-  1. **Cargo.toml 3 次 conflict**: 5 worker 都加 	onic = { workspace = true } 行 (per L-CAND-014 模式, 类似 wave 2 mod.rs 4-way conflict), 主会话手修 3 次
+  1. **Cargo.toml 3 次 conflict**: 5 worker 都加  onic = { workspace = true } 行 (per L-CAND-014 模式, 类似 wave 2 mod.rs 4-way conflict), 主会话手修 3 次
   2. **MtlsConfig skip_verify 字段 5 处缺失**: wave 3 admin worker (commit 9788404) 在 gm.rs MtlsConfig 加 skip_verify: bool 字段 (M4 升级), 但 social + match worker 在测试中用旧 4 字段 MtlsConfig 初始化, 编译失败 E0063 × 5 处 (3 在 social.rs unit test + 1 在 bot_social_smoke.rs + 1 在 bot_match_smoke.rs), 主会话手修 1 次
   3. **公共 struct 字段同步问题**: 5 worker 跨域派生共享 MtlsConfig struct, admin 域加字段没通知其他 4 域, 编译失败
 - **来源 commit**: 947c97 (economy) + 62f79f (player) +  37edf3 (match) + 9ef3e5 (social) + 9788404 (admin) + 5 merge (3338ed3 / db9c6b2 / 7a06f89 / 8c75a00 / 2a432bc) + 4157731 (MtlsConfig 兼容 fix) + DDD Review v0.3.2 (per 9/10 18:24 JST)
@@ -310,11 +310,11 @@
 #### L-CAND-017: rustls crypto provider + build.rs 路径 + RPC 测试防御 (per 9/10 19:23 JST 入档)
 
 - **来源**: 9/10 19:00-19:23 JST 主会话按 Ulysses 选选项 1 启 wave 4 (5 worker 5 域真实 RPC 接入, 5 --no-ff merge 后) cargo test 验证:
-  1. **rustls 0.23 crypto provider 缺失**: 27 test FAILED panic at 
+  1. **rustls 0.23 crypto provider 缺失**: 27 test FAILED panic at
 ustls-0.23.43/src/crypto/mod.rs:249:14 (CryptoProvider::install_default required)
-     - 根因: workspace 	onic = { features = ["transport", "tls", "tls-roots"] } 没带 rustls crypto provider (
+     - 根因: workspace  onic = { features = ["transport", "tls", "tls-roots"] } 没带 rustls crypto provider (
 ing / ws-lc-rs)
-     - 修复: workspace 加 
+     - 修复: workspace 加
 ustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] } + ctor = "0.2"; rgs-testkit lib.rs 加 #[ctor::ctor] lib 加载时自动 install rustls ring crypto provider
   2. **build.rs 路径错** (player / match / admin worker 各自 build.rs 用 ../../player-service/proto/..., 实际需 ../../crates/player-service/...):
      - 症状: protoc 报 "Could not make proto path relative: ../../player-service/proto/player/v1/player.proto: No such file or directory"
@@ -328,7 +328,7 @@ ustls = { version = "0.23", default-features = false, features = ["ring", "loggi
 - **类型**: 防御性约束 (rustls crypto + build.rs 路径 + RPC 测试设计)
 - **现状**: L1 cargo check 0 error 0.22s (wave 4); L1.1 cargo test 73 passed 0 failed 6.10s (60 wave 3 + 5 域 wave 4 unit + 8 wave 4 integration); workspace L1 0 error 5m 23s
 - **措施** (候选 L23 + L24 + L25 派生约束):
-  1. **L23 候选 (rustls crypto provider)**: 任何 crate 加 ClientTlsConfig (mTLS) 必在 [dependencies] 加 
+  1. **L23 候选 (rustls crypto provider)**: 任何 crate 加 ClientTlsConfig (mTLS) 必在 [dependencies] 加
 ustls workspace dep + lib 加载时 #[ctor::ctor] install_default(), 避免 27 test panic
   2. **L24 候选 (build.rs 路径)**: 5 worker 派生 build.rs 路径必须 verify cargo check 0 error, 简报明文"build.rs 路径必须用 ../../crates/<service>/proto/, 不要省略 crates/"
   3. **L25 候选 (RPC 测试设计)**: 5 worker 写真实 RPC 测试时, 断言用 rror.is_some() 不严格 ssert_eq!(r.error, "specific_string"), 因为 lazy channel + tonic infallible 行为依赖

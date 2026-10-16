@@ -34,9 +34,11 @@
 **方法**：GET
 
 **Query 参数**：
+
 - `week_start` (optional): ISO 8601 日期，默认本周一（Asia/Tokyo 时区）
 
 **响应 200**：
+
 ```json
 {
   "week_start": "2026-08-31T00:00:00+09:00",
@@ -65,12 +67,14 @@
 ```
 
 **错误码**：
+
 - 500: ai-ledger.jsonl 解析失败（`{ error, hint: "检查 data/ai-ledger.jsonl 是否被外部修改" }`）
 - 500: WBS L4 进度表读取失败（`{ error, hint: "per RGS-WT-001 §8.3.4 跨 worktree 锁冲突" }`）
 
 **实现位置**：`tools/rgs-web/server.js` `routeTokenSummary(req, res)`
 
 **实现要点**：
+
 - 读 `data/ai-ledger.jsonl`（filter 本周）+ 读 `data/git-ledger.jsonl`（filter 本周）
 - 读 `docs/12-工作流/RGS-WBS-001_L4任务进度表_v0.4.md` 解析 §3 汇总 + §4 详细行
 - 内存聚合：本周 / 今日 / 域级 / 任务级
@@ -82,10 +86,12 @@
 **方法**：GET
 
 **Query 参数**：
+
 - `domain` (optional): player/economy/match/social/admin/shared-platform/cluster-ops/saga/all
 - `status` (optional): pending/in_progress/done/blocked/all
 
 **响应 200**：
+
 ```json
 {
   "tasks": [
@@ -104,6 +110,7 @@
 **方法**：GET
 
 **响应 200**：
+
 ```json
 {
   "domains": [
@@ -118,6 +125,7 @@
 **方法**：GET
 
 **响应 200**：
+
 ```json
 {
   "week_start": "2026-08-31T00:00:00+09:00",
@@ -141,12 +149,14 @@
 **方法**：GET
 
 **Query 参数**：
+
 - `limit` (default 50, max 500)
 - `task_id` (optional)
 - `session_id` (optional)
 - `since` (optional ISO 8601)
 
 **响应 200**：
+
 ```json
 {
   "entries": [
@@ -162,11 +172,13 @@
 **方法**：GET
 
 **实现要点**：
+
 - `execSync('mavis session list --json')` 30s 缓存到内存
 - 拉取 `mavis session list` 真实 session 历史（per BASIC-DESIGN §3.2）
 - v0.1 替代 hook 未集成场景
 
 **响应 200**：
+
 ```json
 {
   "sessions": [
@@ -183,6 +195,7 @@
 **实现要点**：`execSync('mavis agent list --json')` 30s 缓存
 
 **响应 200**：
+
 ```json
 {
   "agents": [
@@ -200,12 +213,14 @@
 **方法**：GET
 
 **实现要点**：
+
 - 读 `process.env.GITHUB_TOKEN` / `GITLAB_TOKEN` 存在性检查（**不读值**）
 - 读 `process.env.GITHUB_REPO` / `GITLAB_PROJECT_ID`（仓库/项目标识，**非 secret**）
 - 调用 `https://api.github.com/rate_limit` 探测 GitHub 凭据 + 限流状态（可选）
 - 缓存 5 min
 
 **响应 200**：
+
 ```json
 {
   "github": {
@@ -228,6 +243,7 @@
 **方法**：GET
 
 **Query 参数**：
+
 - `provider` (default github, enum: github/gitlab)
 - `repo` (optional, override env GITHUB_REPO)
 - `labels` (default token-budget, 多标签逗号分隔)
@@ -237,6 +253,7 @@
 **方法 POST**：写回 issue 评论
 
 **POST body**：
+
 ```json
 {
   "issue_number": 123,
@@ -246,6 +263,7 @@
 ```
 
 **POST 响应 201**：
+
 ```json
 {
   "comment_id": 456789,
@@ -255,9 +273,11 @@
 ```
 
 **实现要点（POST）**：
+
 - 读 `process.env.GITHUB_TOKEN`（不打印）
 - 构造 POST `https://api.github.com/repos/<owner>/<repo>/issues/<n>/comments`
 - body 模板：
+
   ```
   🤖 rgs-oludash-bot
 
@@ -269,6 +289,7 @@
 
   Detail: http://127.0.0.1:8788/?page=gantt&task_id=WF-1-55.27&tab=token
   ```
+
 - headers: `Authorization: token ${GITHUB_TOKEN}` + `User-Agent: rgs-oludash/0.1`
 - 失败处理：401/403/404/429 分别返 4xx/5xx，**不**包含 token 值
 
@@ -289,6 +310,7 @@
 **权限**：0600（仅当前用户可读写，per user_profile 127.0.0.1 only + 一人公司本机工具）
 
 **滚动策略**：单文件 > 50MB（per NFR-24）自动滚动归档
+
 - 触发：rgs-web 启动时 + 30s 轮询时
 - 归档命名：`data/ai-ledger-YYYY-MM.jsonl`（按写入月归档）
 - 当前活跃文件：`data/ai-ledger.jsonl`（追加）
@@ -296,6 +318,7 @@
 **写并发**：`data/.lock` 原子锁（per BASIC-DESIGN §5.1.5）
 
 **v0.1 写入方**：
+
 1. mavis runtime hook（per mavis skill §hook management）
 2. rgs-web 后台降级：`mavis session list --json` 30s 轮询补历史
 
@@ -308,6 +331,7 @@
 **格式**：同 2.1.1
 
 **v0.1 写入方**：
+
 - rgs-web 后台 setInterval(30s)：`git log --since=上次轮询 --pretty=format:%H|%ct|%s` 扫新增 commit
 - 对每条 commit：`git -C <worktree> log -1 -- .wbs-task-marker` 读 task_id（worktree 路径从 `git worktree list --porcelain` 拿）
 
@@ -320,6 +344,7 @@
 **TTL**：10 min（per NFR-26 + GitHub rate limit 缓解）
 
 **v0.1 拉取源**：
+
 - `GET https://api.github.com/repos/<owner>/<repo>/issues?labels=token-budget&state=open&per_page=30`
 - headers: `Authorization: token ${GITHUB_TOKEN}`（env value 不打印）
 
@@ -336,6 +361,7 @@
 **格式**：空文件
 
 **原子锁机制**：
+
 - 锁获取：`fs.openSync('.lock', 'wx')`（O_EXCL 标志，原子创建）
 - 锁释放：`fs.closeSync(fd) + fs.unlinkSync('.lock')`
 - 锁失败：retry 3 次，指数退避 100ms / 200ms / 400ms
@@ -350,10 +376,12 @@
 **v0.1 字段扩展（不破坏现有格式）**：
 
 在 §4 表格每行末尾追加 2 列：
+
 - `人·天` (float, per RGS-WBS-001 v0.3 §2A)
 - `budget_tokens` (int, 推算 = 人·天 × 200K)
 
 **v0.1 推算 fallback**（per BASIC-DESIGN §5.2.1）：
+
 - 若 WBS 表格无 `人·天` 字段，按默认 1 人·天 × 200K = 200K tokens
 - 若 WBS 表格无 `budget_tokens` 字段，按 RGS-TS-001 v0.7 §6.2.2.1 中位数 200K/天推算
 - 推算值在 UI 上标 "estimated"（per NFR-27）
@@ -400,6 +428,7 @@ tools/rgs-web/
 **v0.1 集成位置**：`C:\Users\leo19\.minimax\agents\mavis\hooks\oludash-write-ledger.js`（per mavis skill §hook management）
 
 **hook 配置**（写入 mavis 配置文件）：
+
 ```json
 {
   "hooks": {
@@ -413,6 +442,7 @@ tools/rgs-web/
 ```
 
 **hook 实现要点**：
+
 - 读 mavis env vars
 - 调 mavis runtime API 拿 message count
 - 调 `node C:/path/to/tools/rgs-web/lib/lockfile.js append data/ai-ledger.jsonl <json>`
@@ -480,6 +510,7 @@ node tools/rgs-web/server.js
 | K3S_TOKEN (母规范) | env var | 内存 | 同 |
 
 **强制约束（per 2026-08-27 11:06 JST 硬 ban）**：
+
 - ❌ `Get-ChildItem env: | Format-Table`
 - ❌ `echo $GITHUB_TOKEN` / `cat .env`
 - ❌ 响应中包含 token 字段（即使部分脱敏）
@@ -626,12 +657,14 @@ node tools/rgs-web/server.js
 > **v0.1 主体不追溯改写**。v0.2 增量 = 5 大块，落地到 DETAILED-DESIGN 各章节：
 
 **1. GitHub/GitLab 浅联动 → 深联动 webhook inbound**（per ask_user 16:30 JST）
+
 - §1.10 `/api/webhook/github` 新增：HMAC-SHA256 验签 + UNIQUE(provider, delivery_id) 重放保护 + 事务
 - §1.11 `/api/webhook/gitlab` 新增：X-Gitlab-Token 等值比较（恒定时间防 timing attack）
 - 错误码：401 验签失败 / 400 缺必填头 / 500 SQLite 写失败
 - 性能 < 200ms（per NFR-33）
 
 **2. better-sqlite3 存储 + 备份清理 batch**（per ask_user 16:30/16:41 JST）
+
 - §2.1 SQLite 单文件 `data/olu.db` + 6 表 schema + PRAGMA (WAL / busy_timeout=5000 / synchronous=NORMAL / foreign_keys=ON)
 - §2.4 备份策略：cron / Windows 任务计划 / rgs-web 启动检查 3 选 1，默认 cron
 - §3.1 lib/sqlite.js + lib/backup-batch.js + data/olu.db + data/backups/olu-YYYY-MM-DD.db
@@ -639,22 +672,26 @@ node tools/rgs-web/server.js
 - §3.3 启动 SOP 加 `npm install better-sqlite3` + `cloudflared --version` + cron 配置
 
 **3. cloudflared tunnel 解 webhook + 127.0.0.1 only 冲突**（per ask_user 16:41 JST）
+
 - §3.1 lib/cloudflared.js
 - §3.3 启动 SOP 加 cloudflared 装 + 启动
 - §5.4 127.0.0.1 only 硬约束：cloudflared 是 outbound tunnel，不破硬约束
 
 **4. webhook 验签 + 重放保护**（per F-32/F-33）
+
 - §1.10/§1.11 详细签名
 - §3.1 lib/webhook-verifier.js
 - §5.1 凭据管理增 GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_TOKEN
 - §5.2 写并发：webhook 端点每条 webhook 1 事务（原子性）
 
 **5. 备份 batch**（per ask_user "详细的记录备份清理 batch"）
+
 - §2.4 备份策略（VACUUM INTO + sha256 + 90 天清理 + 写 nfr_op_010_snapshots 表）
 - §3.1 lib/backup-batch.js
 - §3.3 cron 启动 SOP
 
 **已知缺口**（v0.2 新增）：
+
 - cloudflared 二进制需 Ulysses 手动装
 - GITHUB_WEBHOOK_SECRET + GITLAB_WEBHOOK_TOKEN 注入路径
 - better-sqlite3 Windows 编译风险

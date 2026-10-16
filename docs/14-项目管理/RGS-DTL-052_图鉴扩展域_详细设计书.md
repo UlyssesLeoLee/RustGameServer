@@ -365,6 +365,7 @@ leaderboard_extra_db 共 7 张表，以本文档为唯一权威。
 # 7. 本文档的覆盖范围与后续计划
 
 本文档覆盖：
+
 - leaderboard_extra_db 7 张表的物理 DDL
 - 成就触发条件评估算法（CUMULATIVE / THRESHOLD）
 - 成就解锁幂等（防并发重复触发，RSK-LBX-001）
@@ -373,6 +374,7 @@ leaderboard_extra_db 共 7 张表，以本文档为唯一权威。
 - 4 项对接点
 
 本版本明确不覆盖、留待后续：
+
 - 排行榜核心 — 属 leaderboard-service 既有
 - 客户端 UI 渲染 — 客户端范畴
 - 触发源的具体协议 — 来自 battle / task / activity 等域

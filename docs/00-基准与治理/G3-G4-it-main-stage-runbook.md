@@ -9,6 +9,7 @@
 ## 0. 背景
 
 per Ulysses 2026-08-28 12:49 JST 纠正:**真 PG + Docker 在 k3s 集群里应该确保存在**。本机无 Docker daemon 也能跑,因为:
+
 - k3s dev 集群有 postgres statefulset(per `23-postgres-statefulset.yaml`)+ service `postgres:5432`
 - 5 域 + cluster-ops 内部用 service DNS 访问
 - cargo test 在 k3s pod 里跑,DATABASE_URL 走 service DNS 解析
@@ -37,6 +38,7 @@ kubectl get secret rgs-postgres-secret -n rgs-dev -o jsonpath='{.data.DATABASE_U
 ### 1.2 镜像
 
 `ghcr.io/ulyssesleolee/rustgameserver:0.1.0-gm-backend` 需包含:
+
 - cargo + rust toolchain
 - cargo-llvm-cov(per G4)
 - 完整 workspace 源码(/workspace)
@@ -87,6 +89,7 @@ kubectl cp rgs-dev/$TEST_POD:/workspace/evidence ./test-evidence-it-main-stage-$
 ### 3.1 G3: fixture 真实 PASS 数字
 
 看 `test-evidence-it-main-stage-*/cargo-test-workspace.log`:
+
 - 找 `test result: ok. N passed; M failed`
 - 期望:5 域 fixture 全部 PASS(原本 13 fail 应转 0 fail)
 - 若仍有 fail → 看 stderr,定位具体 fn 失败原因
@@ -94,6 +97,7 @@ kubectl cp rgs-dev/$TEST_POD:/workspace/evidence ./test-evidence-it-main-stage-$
 ### 3.2 G4: workspace 真实覆盖率
 
 看 `test-evidence-it-main-stage-*/coverage-summary.json`:
+
 ```json
 {
   "batch": "it-main-stage-20260828-130000",
@@ -106,6 +110,7 @@ kubectl cp rgs-dev/$TEST_POD:/workspace/evidence ./test-evidence-it-main-stage-$
 ```
 
 替换文档占位:
+
 - `it-readiness-check-2026-08-28.md` §2.5 覆盖率"~80%/100%" 改真实数字
 - `RGS-TST-08-06-axum-test-vs-wiremock-工具决策.md` §3 评估指标加真实值
 - `RGS-TBD-08-05` 文档同步

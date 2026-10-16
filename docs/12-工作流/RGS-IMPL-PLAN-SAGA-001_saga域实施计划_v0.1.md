@@ -22,7 +22,6 @@
 
 ---
 
-
 ---
 
 ## §3 RACI 矩阵 (NEW, v0.2 升版增量, per RGS-LEAD-RACI-001 v1.1 §3)
@@ -47,6 +46,7 @@
 ### §A.1 saga 域 跨域协调依赖
 
 本 saga 域 IMPL-PLAN 涉及跨域 gRPC 调用（player → economy/match/social/admin + saga）需 5 域 binary 全部启 + 跨域联调通过才能完整验证。当前阻塞：
+
 - PostgreSQL 18.6 未装（per Ulysses 16:58/16:59 硬约束，等装入）
 - 5 域 binary 编译完成但启需 DATABASE_URL（per `RGS-GM-V0.3-DEPLOY-SOP-2026-08-26.md` v0.1）
 - 跨域联调 IT 测试（per RGS-TEST-STRATEGY 4 阶段 phase 2，等 PG 装完）
@@ -54,6 +54,7 @@
 ### §A.2 实时审计跟踪
 
 本 saga 域 IMPL-PLAN 涉及 GM 操作 / RBAC 权限变更 / 跨域事件触发等操作需实时审计跟踪。依赖:
+
 - ARC-018/021/042/051 4 治理角色（per RGS-ADR-0055 v0.1 §4）
 - audit log 落库（per DTL-031 事件总线 + audit_log 表）
 - 实时审计 dashboard（per rgs-web GM 后台 §3.5）
@@ -63,6 +64,7 @@
 ### §A.3 一人公司 12 角色 RACI 全覆盖
 
 本 saga 域 IMPL-PLAN v0.2 §3 RACI 矩阵仅含 6 治理角色（Arch/BE Lead/SRE Lead/DBA/PM/PO），缺:
+
 - FE Lead（前后端边界，本域为后端无 FE）
 - QA Lead（per RGS-TEST-STRATEGY 4 阶段）
 - SEC（per RGS-REV-008 mTLS fail-closed）
@@ -86,6 +88,7 @@ saga 域是 RGS 5 域之上的**跨域 Saga 协调**核心域,职责覆盖:
 - **6 场景演练**——per RGS-REV-005 附件 B:1.0 单一事务 / 2.0 顺序 Saga / 3.0 并行 Saga / 4.0 嵌套 Saga / 5.0 跨域补偿 / 6.0 失败重试
 
 **域边界(per DTL-100 v0.2 §1.2 + DTL-101 v0.1 + DTL-102 v0.1)**:
+
 - ❌ **不**持有具体业务逻辑(归各业务域)
 - ❌ **不**实现 Saga reference 实现本身(归 economy 域 DTL-015 v0.2 §3.4,saga 域仅 reference)
 - ❌ **不**直接连业务 service DB(经 gRPC client + 业务域步骤注册)

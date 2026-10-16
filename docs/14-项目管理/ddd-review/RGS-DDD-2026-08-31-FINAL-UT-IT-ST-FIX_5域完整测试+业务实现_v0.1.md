@@ -60,6 +60,7 @@ cd93169 feat(st): 10 个 ST 场景
 ## 3. UT 阶段 (5 域)
 
 **3 阶段迭代**:
+
 - v1 (12:21 JST) 5 worker cargo test polling → 0 产出 ❌
 - v2 (12:50 JST) 禁 cargo → 4 域 38 errors ⚠️
 - v3 (13:34 JST) hotfix → 5 域 cargo check 全过 ✅
@@ -99,6 +100,7 @@ cd93169 feat(st): 10 个 ST 场景
 ## 5. ST 阶段 (10 场景, k3s 真实部署, 4h 预算)
 
 **5 轮迭代** (17:05-19:48 JST):
+
 - mock server binary (vs rgs-testkit 强约束) → 改 k3s
 - 5 worker k3s 派工 → 5 worker 0 产出
 - **主会话自写 10 脚本** (45 min) ✅
@@ -221,12 +223,14 @@ cd93169 feat(st): 10 个 ST 场景
 **main @ `4c32423` — 31 commits ahead of origin/main**
 
 建议 push 命令:
+
 ```bash
 cd D:/RustGameServer
 git push origin main
 ```
 
 推送后:
+
 - 4 fix branch 全部并入 main
 - 6 份 DDD/Open-QA/AGENTS 文档落 main
 - ST 阶段 10 场景 commit 落 main
@@ -249,6 +253,7 @@ git push origin main
 ## 13. 接力说明 (给 Ulysses 终审)
 
 本次 Mavis 8/31 12:09-22:55 JST 完整跑完 4 阶段:
+
 1. **UT** (5 域) — 6 commit, 307+ tests, 5/5 cargo check
 2. **IT** (5 域) — 5 commit, 59 新 IT, 5/5 cargo check
 3. **ST** (10 场景) — 2 commit, k3s 真实部署, 4 PASS / 6 FAIL (gm-backend HTTP 不响应)

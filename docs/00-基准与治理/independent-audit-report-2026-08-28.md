@@ -30,11 +30,13 @@
 
 - **文件**:`docs/00-基准与治理/RGS-TST-PEERREVIEW-2026-08-28-feedback-handling.md`(commit `43a2e08`),第 **23、64、72、89、111** 行
 - **证据**:该文档 5 处引用 commit `e1a2b3c` 作为 F1/F2/F3/F6/F7 处置的验证依据,第 111 行汇总表甚至写"`e1a2b3c`(待 push)"。独立核查:
+
   ```
   git cat-file -t e1a2b3c   → fatal: Not a valid object name e1a2b3c
   git log --all --oneline | grep e1a2b3c   → 无输出
   git show e1a2b3c --stat   → fatal: ambiguous argument 'e1a2b3c'
   ```
+
   该 SHA 在本仓库任何分支、任何时间均不存在。
 - **底层事实**(区分"编造证据" vs "编造工作"):F7 描述的实际文档改动**确实发生**,但落在 `43a2e08` 而非 `e1a2b3c`——已用 `git show 43a2e08 -- docs/00-基准与治理/RGS-TST-UT-08_GM后台_单元测试设计书.md` 核实,diff 与 F7 描述完全一致(UT-08 §3.1 标题从"(RGS-DTL-040 §3.1)"改为"(无上游详细设计依据,实现阶段新增)")。**因此这是证据纪律违规,不是工作造假**——性质仍然严重:引用一个从未存在的对象作为"验证证据",本身就是"无证据叙事"的教科书式案例。
 - **对自审的证伪**:`signature-audit-2026-08-28.md:78` 明确断言"子代理授权边界'无证据叙事=禁止' ✅ 符合 | 9 个 commit body 均给 commit SHA + 验证证据"——该断言在自审文档自己审计范围内的一份文档(#1,`feedback-handling.md`)中即被证伪。自审既没有验证被引用的 SHA 是否真实存在,也没有发现这个矛盾。
