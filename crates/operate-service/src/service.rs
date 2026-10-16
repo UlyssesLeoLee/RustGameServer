@@ -151,10 +151,46 @@ impl OperateServiceImpl {
         gifts.insert(3, GiftPack::new(3, "月卡", 2000, 2500, 1));
 
         let mut recharges = HashMap::new();
-        recharges.insert(1, RechargePackage { package_id: 1, name: "6元".into(), amount_cents: 600, bonus_cents: 0, currency_amount: 60 });
-        recharges.insert(2, RechargePackage { package_id: 2, name: "30元".into(), amount_cents: 3000, bonus_cents: 300, currency_amount: 300 });
-        recharges.insert(3, RechargePackage { package_id: 3, name: "98元".into(), amount_cents: 9800, bonus_cents: 1500, currency_amount: 980 });
-        recharges.insert(4, RechargePackage { package_id: 4, name: "328元".into(), amount_cents: 32800, bonus_cents: 6500, currency_amount: 3280 });
+        recharges.insert(
+            1,
+            RechargePackage {
+                package_id: 1,
+                name: "6元".into(),
+                amount_cents: 600,
+                bonus_cents: 0,
+                currency_amount: 60,
+            },
+        );
+        recharges.insert(
+            2,
+            RechargePackage {
+                package_id: 2,
+                name: "30元".into(),
+                amount_cents: 3000,
+                bonus_cents: 300,
+                currency_amount: 300,
+            },
+        );
+        recharges.insert(
+            3,
+            RechargePackage {
+                package_id: 3,
+                name: "98元".into(),
+                amount_cents: 9800,
+                bonus_cents: 1500,
+                currency_amount: 980,
+            },
+        );
+        recharges.insert(
+            4,
+            RechargePackage {
+                package_id: 4,
+                name: "328元".into(),
+                amount_cents: 32800,
+                bonus_cents: 6500,
+                currency_amount: 3280,
+            },
+        );
 
         Self {
             gifts: Arc::new(RwLock::new(gifts)),
@@ -171,7 +207,10 @@ impl OperateServiceImpl {
 
     pub async fn purchase_gift_pack(&self, player_id: &str, pack_id: u32) -> Result<Vec<Reward>> {
         let gifts = self.gifts.read().await;
-        let pack = gifts.get(&pack_id).cloned().ok_or_else(|| Error::GiftPackNotFound(pack_id.to_string()))?;
+        let pack = gifts
+            .get(&pack_id)
+            .cloned()
+            .ok_or_else(|| Error::GiftPackNotFound(pack_id.to_string()))?;
         drop(gifts);
         let mut count = self.purchase_count.write().await;
         let key = (player_id.to_string(), pack_id);
@@ -181,8 +220,14 @@ impl OperateServiceImpl {
         }
         count.insert(key, cur + 1);
         Ok(vec![
-            Reward { item_id: 1001, count: 10 },
-            Reward { item_id: 1002, count: 1 },
+            Reward {
+                item_id: 1001,
+                count: 10,
+            },
+            Reward {
+                item_id: 1002,
+                count: 1,
+            },
         ])
     }
 
@@ -190,12 +235,20 @@ impl OperateServiceImpl {
         self.recharges.read().await.values().cloned().collect()
     }
 
-    pub async fn complete_recharge(&self, player_id: &str, package_id: u32, receipt: &str) -> Result<u32> {
+    pub async fn complete_recharge(
+        &self,
+        player_id: &str,
+        package_id: u32,
+        receipt: &str,
+    ) -> Result<u32> {
         if receipt.is_empty() {
             return Err(Error::InvalidRequest("receipt required".into()));
         }
         let recharges = self.recharges.read().await;
-        let p = recharges.get(&package_id).cloned().ok_or_else(|| Error::RechargeNotFound(package_id.to_string()))?;
+        let p = recharges
+            .get(&package_id)
+            .cloned()
+            .ok_or_else(|| Error::RechargeNotFound(package_id.to_string()))?;
         drop(recharges);
         let mut bal = self.balance.write().await;
         let cur = bal.get(player_id).copied().unwrap_or(0);
@@ -204,7 +257,13 @@ impl OperateServiceImpl {
         Ok(new_bal)
     }
 
-    pub async fn schedule_push(&self, title: &str, content: &str, segment: u32, fire_at_ms: i64) -> Result<String> {
+    pub async fn schedule_push(
+        &self,
+        title: &str,
+        content: &str,
+        segment: u32,
+        fire_at_ms: i64,
+    ) -> Result<String> {
         if title.is_empty() || content.is_empty() {
             return Err(Error::InvalidRequest("title/content required".into()));
         }
@@ -216,7 +275,9 @@ impl OperateServiceImpl {
 
     pub async fn cancel_push(&self, push_id: &str) -> Result<()> {
         let mut pushes = self.pushes.write().await;
-        let p = pushes.get_mut(push_id).ok_or_else(|| Error::InvalidRequest("push not found".into()))?;
+        let p = pushes
+            .get_mut(push_id)
+            .ok_or_else(|| Error::InvalidRequest("push not found".into()))?;
         if p.fired {
             return Err(Error::InvalidRequest("already fired".into()));
         }
@@ -225,12 +286,19 @@ impl OperateServiceImpl {
     }
 
     pub async fn get_balance(&self, player_id: &str) -> u32 {
-        self.balance.read().await.get(player_id).copied().unwrap_or(0)
+        self.balance
+            .read()
+            .await
+            .get(player_id)
+            .copied()
+            .unwrap_or(0)
     }
 }
 
 impl Default for OperateServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -276,7 +344,10 @@ mod tests {
     #[tokio::test]
     async fn complete_recharge_adds_balance() {
         let svc = OperateServiceImpl::new();
-        let bal = svc.complete_recharge("p1", 4, "valid_receipt").await.unwrap();
+        let bal = svc
+            .complete_recharge("p1", 4, "valid_receipt")
+            .await
+            .unwrap();
         // 3280 + 650 bonus
         assert_eq!(bal, 9780);
     }

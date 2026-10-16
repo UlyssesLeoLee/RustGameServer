@@ -711,8 +711,8 @@
 
 use std::sync::Arc;
 
-use crate::service::scene_service::SceneService;
 use crate::common::v1::Timestamp;
+use crate::service::scene_service::SceneService;
 
 use async_trait::async_trait;
 use tonic::{Request, Response, Status};
@@ -782,7 +782,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let instance_id = uuid::Uuid::parse_str(&req.instance_id)
             .map_err(|e| Status::invalid_argument(format!("invalid instance_id: {}", e)))?;
         let left = self.inner.leave_scene(player_id, instance_id).await?;
-        Ok(Response::new(scene_proto::LeaveSceneResponse { left, duration_seconds: 0 }))
+        Ok(Response::new(scene_proto::LeaveSceneResponse {
+            left,
+            duration_seconds: 0,
+        }))
     }
 
     async fn list_scenes(
@@ -848,7 +851,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
         let confirmed = self.inner.move_confirm(player_id, req.x, req.y).await?;
-        Ok(Response::new(scene_proto::MoveConfirmResponse { confirmed, cost_ms: 50 }))
+        Ok(Response::new(scene_proto::MoveConfirmResponse {
+            confirmed,
+            cost_ms: 50,
+        }))
     }
 
     async fn move_event_stream(
@@ -863,7 +869,9 @@ impl SceneServiceTrait for SceneGrpcService {
         let from = req
             .from
             .ok_or_else(|| Status::invalid_argument("from is required"))?;
-        let to = req.to.ok_or_else(|| Status::invalid_argument("to is required"))?;
+        let to = req
+            .to
+            .ok_or_else(|| Status::invalid_argument("to is required"))?;
         let from_pos = crate::entity::Position::new(from.x, from.y, from.dir);
         let to_pos = crate::entity::Position::new(to.x, to.y, to.dir);
         let ts = self
@@ -943,7 +951,9 @@ impl SceneServiceTrait for SceneGrpcService {
                 looks: vec![],
             })
             .collect();
-        Ok(Response::new(scene_proto::UnitListResponse { units: resp_units }))
+        Ok(Response::new(scene_proto::UnitListResponse {
+            units: resp_units,
+        }))
     }
 
     async fn unit_speak(
@@ -965,7 +975,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
         let ok = self.inner.quest_accept(player_id, &req.quest_id).await?;
-        Ok(Response::new(scene_proto::AcceptQuestResponse { ok, status: 1 }))
+        Ok(Response::new(scene_proto::AcceptQuestResponse {
+            ok,
+            status: 1,
+        }))
     }
 
     async fn complete_quest(
@@ -976,7 +989,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
         let ok = self.inner.quest_complete(player_id, &req.quest_id).await?;
-        Ok(Response::new(scene_proto::CompleteQuestResponse { ok, status: 2 }))
+        Ok(Response::new(scene_proto::CompleteQuestResponse {
+            ok,
+            status: 2,
+        }))
     }
 
     async fn get_quest_panel(
@@ -1001,7 +1017,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let req = request.into_inner();
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
-        let partner_id = self.inner.partner_summon(player_id, req.summon_type).await?;
+        let partner_id = self
+            .inner
+            .partner_summon(player_id, req.summon_type)
+            .await?;
         Ok(Response::new(scene_proto::SummonPartnerResponse {
             partner: Some(scene_proto::PartnerInfo {
                 partner_id: partner_id.to_string(),
@@ -1048,7 +1067,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
         let ok = self.inner.drama_play(player_id, &req.drama_id).await?;
-        Ok(Response::new(scene_proto::PlayDramaResponse { ok, chapter: 1 }))
+        Ok(Response::new(scene_proto::PlayDramaResponse {
+            ok,
+            chapter: 1,
+        }))
     }
 
     async fn skip_drama(
@@ -1059,7 +1081,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
         let ok = self.inner.drama_skip(player_id, &req.drama_id).await?;
-        Ok(Response::new(scene_proto::SkipDramaResponse { ok, reward: 0 }))
+        Ok(Response::new(scene_proto::SkipDramaResponse {
+            ok,
+            reward: 0,
+        }))
     }
 
     async fn get_drama_list(
@@ -1083,7 +1108,10 @@ impl SceneServiceTrait for SceneGrpcService {
         let req = request.into_inner();
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
-        let ok = self.inner.array_set(player_id, &req.array_id, req.slot).await?;
+        let ok = self
+            .inner
+            .array_set(player_id, &req.array_id, req.slot)
+            .await?;
         Ok(Response::new(scene_proto::SetArrayResponse { ok }))
     }
 
@@ -1098,7 +1126,10 @@ impl SceneServiceTrait for SceneGrpcService {
             .inner
             .array_upgrade(player_id, &req.array_id, req.target_level)
             .await?;
-        Ok(Response::new(scene_proto::UpgradeArrayResponse { new_level, cost: 100 }))
+        Ok(Response::new(scene_proto::UpgradeArrayResponse {
+            new_level,
+            cost: 100,
+        }))
     }
 
     async fn enter_instance(
@@ -1108,8 +1139,14 @@ impl SceneServiceTrait for SceneGrpcService {
         let req = request.into_inner();
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
-        let ticket = self.inner.instance_enter(player_id, &req.instance_id).await?;
-        Ok(Response::new(scene_proto::EnterInstanceResponse { ok: true, ticket }))
+        let ticket = self
+            .inner
+            .instance_enter(player_id, &req.instance_id)
+            .await?;
+        Ok(Response::new(scene_proto::EnterInstanceResponse {
+            ok: true,
+            ticket,
+        }))
     }
 
     async fn leave_instance(
@@ -1119,8 +1156,14 @@ impl SceneServiceTrait for SceneGrpcService {
         let req = request.into_inner();
         let player_id = uuid::Uuid::parse_str(&req.player_id)
             .map_err(|e| Status::invalid_argument(format!("invalid player_id: {}", e)))?;
-        let ok = self.inner.instance_leave(player_id, &req.instance_id).await?;
-        Ok(Response::new(scene_proto::LeaveInstanceResponse { ok, reward: 0 }))
+        let ok = self
+            .inner
+            .instance_leave(player_id, &req.instance_id)
+            .await?;
+        Ok(Response::new(scene_proto::LeaveInstanceResponse {
+            ok,
+            reward: 0,
+        }))
     }
 
     async fn get_instance_state(
@@ -1200,7 +1243,9 @@ impl SceneServiceTrait for SceneGrpcService {
         self.inner
             .set_space_background(player_id, &req.background_id)
             .await?;
-        Ok(Response::new(scene_proto::SetSpaceBackgroundResponse { ok: true }))
+        Ok(Response::new(scene_proto::SetSpaceBackgroundResponse {
+            ok: true,
+        }))
     }
 
     // ============ Stub 方法 (Unimplemented) ============

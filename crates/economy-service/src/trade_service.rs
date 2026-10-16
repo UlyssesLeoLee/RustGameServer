@@ -674,7 +674,9 @@
 use crate::entity::{Currency, TransactionKind, TransactionLedger, TransactionStatus};
 use crate::error::Error;
 use crate::repository::{AccountRepository, TransactionLedgerRepository};
-use crate::trade_entity::{Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus};
+use crate::trade_entity::{
+    Auction, AuctionFilter, AuctionStatus, PrivateTrade, PrivateTradeStatus,
+};
 use crate::trade_repository::TradeRepository;
 use crate::Result;
 
@@ -712,11 +714,7 @@ pub trait TradeService: Send + Sync {
     ) -> Result<BidResult>;
 
     // 卖家撤单（含退还当前最高出价者）
-    async fn cancel_auction(
-        &self,
-        auction_id: Uuid,
-        seller_id: String,
-    ) -> Result<CancelResult>;
+    async fn cancel_auction(&self, auction_id: Uuid, seller_id: String) -> Result<CancelResult>;
 
     // 公开拍卖列表
     async fn list_auctions(
@@ -779,9 +777,9 @@ impl TradeServiceImpl {
     // 货币类型转换: common.proto CurrencyType (1/2/3) → economy Currency
     fn parse_currency(currency_type: i32) -> Result<Currency> {
         match currency_type {
-            1 => Ok(Currency::Gold),     // soft = gold
-            2 => Ok(Currency::Diamond),  // hard = diamond
-            3 => Ok(Currency::Token),    // card_value = token
+            1 => Ok(Currency::Gold),    // soft = gold
+            2 => Ok(Currency::Diamond), // hard = diamond
+            3 => Ok(Currency::Token),   // card_value = token
             _ => Err(Error::Validation(format!(
                 "unknown currency_type: {}",
                 currency_type
@@ -1024,11 +1022,7 @@ impl TradeService for TradeServiceImpl {
         })
     }
 
-    async fn cancel_auction(
-        &self,
-        auction_id: Uuid,
-        seller_id: String,
-    ) -> Result<CancelResult> {
+    async fn cancel_auction(&self, auction_id: Uuid, seller_id: String) -> Result<CancelResult> {
         // 1. 加载拍卖
         let mut auction = self
             .trades
@@ -1233,8 +1227,9 @@ pub mod grpc_service {
             request: Request<economy_proto::BidAuctionRequest>,
         ) -> std::result::Result<Response<economy_proto::BidAuctionResponse>, Status> {
             let req = request.into_inner();
-            let auction_id = Uuid::parse_str(&req.auction_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id)))?;
+            let auction_id = Uuid::parse_str(&req.auction_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id))
+            })?;
             let result = self
                 .impl_
                 .bid_auction(auction_id, req.bidder_id, req.amount, req.idempotency_key)
@@ -1255,8 +1250,9 @@ pub mod grpc_service {
             request: Request<economy_proto::CancelAuctionRequest>,
         ) -> std::result::Result<Response<economy_proto::CancelAuctionResponse>, Status> {
             let req = request.into_inner();
-            let auction_id = Uuid::parse_str(&req.auction_id)
-                .map_err(|_| Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id)))?;
+            let auction_id = Uuid::parse_str(&req.auction_id).map_err(|_| {
+                Status::invalid_argument(format!("invalid auction_id: {}", req.auction_id))
+            })?;
             let result = self
                 .impl_
                 .cancel_auction(auction_id, req.seller_id)
@@ -1281,7 +1277,11 @@ pub mod grpc_service {
                 .list_auctions(filter, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::ListAuctionResponse {
                 auctions: list.iter().map(auction_to_proto).collect(),
@@ -1304,7 +1304,11 @@ pub mod grpc_service {
                 .get_trade_history(req.player_id, page_req.page, page_req.page_size)
                 .await
                 .map_err(Into::<tonic::Status>::into)?;
-            let page_size = if page_req.page_size == 0 { 20 } else { page_req.page_size };
+            let page_size = if page_req.page_size == 0 {
+                20
+            } else {
+                page_req.page_size
+            };
             let has_next = (page_req.page as u64) * (page_size as u64) < total;
             Ok(Response::new(economy_proto::GetTradeHistoryResponse {
                 trades: list.iter().map(auction_to_proto).collect(),
@@ -1360,13 +1364,15 @@ pub mod grpc_service {
         async fn mystery_shop_refresh(
             &self,
             _request: Request<economy_proto::MysteryShopRefreshRequest>,
-        ) -> std::result::Result<Response<economy_proto::MysteryShopRefreshResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MysteryShopRefreshResponse>, Status>
+        {
             Err(Status::unimplemented("mystery_shop_refresh"))
         }
         async fn mystery_shop_unlock(
             &self,
             _request: Request<economy_proto::MysteryShopUnlockRequest>,
-        ) -> std::result::Result<Response<economy_proto::MysteryShopUnlockResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MysteryShopUnlockResponse>, Status>
+        {
             Err(Status::unimplemented("mystery_shop_unlock"))
         }
         async fn exchange_list(
@@ -1458,13 +1464,15 @@ pub mod grpc_service {
         async fn recharge_order_query(
             &self,
             _request: Request<economy_proto::RechargeOrderQueryRequest>,
-        ) -> std::result::Result<Response<economy_proto::RechargeOrderQueryResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderQueryResponse>, Status>
+        {
             Err(Status::unimplemented("recharge_order_query"))
         }
         async fn recharge_order_finish(
             &self,
             _request: Request<economy_proto::RechargeOrderFinishRequest>,
-        ) -> std::result::Result<Response<economy_proto::RechargeOrderFinishResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::RechargeOrderFinishResponse>, Status>
+        {
             Err(Status::unimplemented("recharge_order_finish"))
         }
         async fn monthly_card_info(
@@ -1476,7 +1484,8 @@ pub mod grpc_service {
         async fn monthly_card_claim(
             &self,
             _request: Request<economy_proto::MonthlyCardClaimRequest>,
-        ) -> std::result::Result<Response<economy_proto::MonthlyCardClaimResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::MonthlyCardClaimResponse>, Status>
+        {
             Err(Status::unimplemented("monthly_card_claim"))
         }
         async fn monthly_card_buy(
@@ -1488,19 +1497,22 @@ pub mod grpc_service {
         async fn first_recharge_list(
             &self,
             _request: Request<economy_proto::FirstRechargeListRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeListResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_list"))
         }
         async fn first_recharge_claim(
             &self,
             _request: Request<economy_proto::FirstRechargeClaimRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeClaimResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeClaimResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_claim"))
         }
         async fn first_recharge_status(
             &self,
             _request: Request<economy_proto::FirstRechargeStatusRequest>,
-        ) -> std::result::Result<Response<economy_proto::FirstRechargeStatusResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FirstRechargeStatusResponse>, Status>
+        {
             Err(Status::unimplemented("first_recharge_status"))
         }
         async fn power_pack_list(
@@ -1550,7 +1562,8 @@ pub mod grpc_service {
         async fn summon_single_pull(
             &self,
             _request: Request<economy_proto::SummonSinglePullRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonSinglePullResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonSinglePullResponse>, Status>
+        {
             Err(Status::unimplemented("summon_single_pull"))
         }
         async fn summon_ten_pull(
@@ -1574,7 +1587,8 @@ pub mod grpc_service {
         async fn summon_share_reward(
             &self,
             _request: Request<economy_proto::SummonShareRewardRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonShareRewardResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonShareRewardResponse>, Status>
+        {
             Err(Status::unimplemented("summon_share_reward"))
         }
         async fn summon_record(
@@ -1598,7 +1612,8 @@ pub mod grpc_service {
         async fn summon_featured_draw(
             &self,
             _request: Request<economy_proto::SummonFeaturedDrawRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonFeaturedDrawResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonFeaturedDrawResponse>, Status>
+        {
             Err(Status::unimplemented("summon_featured_draw"))
         }
         async fn summon_reset_pity(
@@ -1616,13 +1631,15 @@ pub mod grpc_service {
         async fn summon_banner_list(
             &self,
             _request: Request<economy_proto::SummonBannerListRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonBannerListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonBannerListResponse>, Status>
+        {
             Err(Status::unimplemented("summon_banner_list"))
         }
         async fn summon_guaranteed_info(
             &self,
             _request: Request<economy_proto::SummonGuaranteedInfoRequest>,
-        ) -> std::result::Result<Response<economy_proto::SummonGuaranteedInfoResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::SummonGuaranteedInfoResponse>, Status>
+        {
             Err(Status::unimplemented("summon_guaranteed_info"))
         }
 
@@ -1630,7 +1647,8 @@ pub mod grpc_service {
         async fn auction_my_listings(
             &self,
             _request: Request<economy_proto::AuctionMyListingsRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionMyListingsResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionMyListingsResponse>, Status>
+        {
             Err(Status::unimplemented("auction_my_listings"))
         }
         async fn auction_search(
@@ -1666,13 +1684,15 @@ pub mod grpc_service {
         async fn auction_saved_search(
             &self,
             _request: Request<economy_proto::AuctionSavedSearchRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionSavedSearchResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionSavedSearchResponse>, Status>
+        {
             Err(Status::unimplemented("auction_saved_search"))
         }
         async fn auction_watch_list(
             &self,
             _request: Request<economy_proto::AuctionWatchListRequest>,
-        ) -> std::result::Result<Response<economy_proto::AuctionWatchListResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::AuctionWatchListResponse>, Status>
+        {
             Err(Status::unimplemented("auction_watch_list"))
         }
         async fn auction_watch(
@@ -1710,7 +1730,8 @@ pub mod grpc_service {
         async fn flash_sale_countdown(
             &self,
             _request: Request<economy_proto::FlashSaleCountdownRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleCountdownResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleCountdownResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_countdown"))
         }
         async fn flash_sale_record(
@@ -1722,7 +1743,8 @@ pub mod grpc_service {
         async fn flash_sale_subscribe(
             &self,
             _request: Request<economy_proto::FlashSaleSubscribeRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleSubscribeResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleSubscribeResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_subscribe"))
         }
         async fn flash_sale_hot(
@@ -1734,7 +1756,8 @@ pub mod grpc_service {
         async fn flash_sale_recommend(
             &self,
             _request: Request<economy_proto::FlashSaleRecommendRequest>,
-        ) -> std::result::Result<Response<economy_proto::FlashSaleRecommendResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::FlashSaleRecommendResponse>, Status>
+        {
             Err(Status::unimplemented("flash_sale_recommend"))
         }
         async fn flash_sale_stock(
@@ -1784,7 +1807,8 @@ pub mod grpc_service {
         async fn privilege_activate(
             &self,
             _request: Request<economy_proto::PrivilegeActivateRequest>,
-        ) -> std::result::Result<Response<economy_proto::PrivilegeActivateResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::PrivilegeActivateResponse>, Status>
+        {
             Err(Status::unimplemented("privilege_activate"))
         }
         async fn privilege_buy(
@@ -1808,7 +1832,8 @@ pub mod grpc_service {
         async fn privilege_rewards(
             &self,
             _request: Request<economy_proto::PrivilegeRewardsRequest>,
-        ) -> std::result::Result<Response<economy_proto::PrivilegeRewardsResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::PrivilegeRewardsResponse>, Status>
+        {
             Err(Status::unimplemented("privilege_rewards"))
         }
 
@@ -1828,19 +1853,22 @@ pub mod grpc_service {
         async fn activity_template(
             &self,
             _request: Request<economy_proto::ActivityTemplateRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivityTemplateResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivityTemplateResponse>, Status>
+        {
             Err(Status::unimplemented("activity_template"))
         }
         async fn activity_progress(
             &self,
             _request: Request<economy_proto::ActivityProgressRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivityProgressResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivityProgressResponse>, Status>
+        {
             Err(Status::unimplemented("activity_progress"))
         }
         async fn activity_subscribe(
             &self,
             _request: Request<economy_proto::ActivitySubscribeRequest>,
-        ) -> std::result::Result<Response<economy_proto::ActivitySubscribeResponse>, Status> {
+        ) -> std::result::Result<Response<economy_proto::ActivitySubscribeResponse>, Status>
+        {
             Err(Status::unimplemented("activity_subscribe"))
         }
     }
@@ -1911,7 +1939,9 @@ impl ExecuteTradeServiceImpl {
                 id: trade_id.to_string(),
             })?;
         if trade.proposer_id != requester_id && trade.counterparty_id != requester_id {
-            return Err(Error::Forbidden("only trade parties can cancel".to_string()));
+            return Err(Error::Forbidden(
+                "only trade parties can cancel".to_string(),
+            ));
         }
         if trade.status != PrivateTradeStatus::Proposed {
             return Err(Error::Conflict(format!(
@@ -1935,9 +1965,7 @@ impl ExecuteTradeServiceImpl {
                 id: trade_id.to_string(),
             })?;
         if trade.counterparty_id != requester_id {
-            return Err(Error::Forbidden(
-                "only counterparty can accept".to_string(),
-            ));
+            return Err(Error::Forbidden("only counterparty can accept".to_string()));
         }
         if trade.status != PrivateTradeStatus::Proposed {
             return Err(Error::Conflict(format!(
@@ -1974,9 +2002,8 @@ mod tests {
         Arc<InMemoryTransactionLedgerRepository>,
     ) {
         let led_repo = Arc::new(InMemoryTransactionLedgerRepository::new());
-        let acc_repo = Arc::new(
-            InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()),
-        );
+        let acc_repo =
+            Arc::new(InMemoryAccountRepository::new().with_shared_ledger(led_repo.inner.clone()));
         let trade_repo = Arc::new(InMemoryTradeRepository::new());
         let svc = TradeServiceImpl::new(
             trade_repo as Arc<dyn TradeRepository>,
@@ -1986,7 +2013,12 @@ mod tests {
         (svc, acc_repo, led_repo)
     }
 
-    async fn fund(acc_repo: &InMemoryAccountRepository, player_id: Uuid, currency: Currency, amount: i64) {
+    async fn fund(
+        acc_repo: &InMemoryAccountRepository,
+        player_id: Uuid,
+        currency: Currency,
+        amount: i64,
+    ) {
         let mut acc = crate::entity::Account::new(player_id, currency);
         acc.credit(amount);
         acc_repo.save(&acc).await.unwrap();
@@ -2437,7 +2469,12 @@ mod tests {
             .unwrap();
         fund(&acc_repo, bidder, Currency::Gold, 500).await;
         let r = svc
-            .bid_auction(auction.auction_id, bidder.to_string(), 150, "k-bid-1".to_string())
+            .bid_auction(
+                auction.auction_id,
+                bidder.to_string(),
+                150,
+                "k-bid-1".to_string(),
+            )
             .await
             .unwrap();
         assert!(r.is_highest);
@@ -2471,7 +2508,12 @@ mod tests {
             .unwrap();
         fund(&acc_repo, bidder, Currency::Gold, 1000).await;
         let err = svc
-            .bid_auction(auction.auction_id, bidder.to_string(), 0, "k-zero".to_string())
+            .bid_auction(
+                auction.auction_id,
+                bidder.to_string(),
+                0,
+                "k-zero".to_string(),
+            )
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Validation(_)));
@@ -2546,10 +2588,7 @@ mod tests {
             .await
             .unwrap();
         // All filter: 应返回 3 条
-        let (_list_all, total_all) = svc
-            .list_auctions(AuctionFilter::All, 1, 10)
-            .await
-            .unwrap();
+        let (_list_all, total_all) = svc.list_auctions(AuctionFilter::All, 1, 10).await.unwrap();
         assert_eq!(total_all, 3);
         // Active filter: 应返回 2 条
         let (_list_active, total_active) = svc
@@ -2565,15 +2604,9 @@ mod tests {
         let (svc, _acc_repo, _led_repo) = make_service();
         let seller = Uuid::new_v4();
         // page_size > 100 应被截到 100 (impl 在 service.rs / trade_service.rs)
-        let (_list, _total) = svc
-            .list_auctions(AuctionFilter::All, 1, 500)
-            .await
-            .unwrap();
+        let (_list, _total) = svc.list_auctions(AuctionFilter::All, 1, 500).await.unwrap();
         // page_size=0 应 fallback 到 20
-        let (_list2, _total2) = svc
-            .list_auctions(AuctionFilter::All, 0, 0)
-            .await
-            .unwrap();
+        let (_list2, _total2) = svc.list_auctions(AuctionFilter::All, 0, 0).await.unwrap();
         // 验证不 panic, 返回值有效
         let _ = seller; // suppress unused
     }

@@ -165,10 +165,7 @@ mod tests {
         let client = MockSocialMtlsClient::new(cert);
         let err = client.handshake().await.unwrap_err();
         assert!(err.contains("invalid fingerprint length"));
-        assert!(matches!(
-            client.get_state().await,
-            HandshakeState::Error(_)
-        ));
+        assert!(matches!(client.get_state().await, HandshakeState::Error(_)));
     }
 
     #[tokio::test]
@@ -178,9 +175,6 @@ mod tests {
         let client = MockSocialMtlsClient::new(cert);
         let err = client.handshake().await.unwrap_err();
         assert!(err.contains("subject mismatch"));
-        assert!(matches!(
-            client.get_state().await,
-            HandshakeState::Error(_)
-        ));
+        assert!(matches!(client.get_state().await, HandshakeState::Error(_)));
     }
 }

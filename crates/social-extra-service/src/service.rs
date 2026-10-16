@@ -230,21 +230,38 @@ impl SocialExtraServiceImpl {
         let boxes = self.mailboxes.read().await;
         let all = boxes.get(&player_id).cloned().unwrap_or_default();
         let start = (page as usize).saturating_mul(page_size as usize);
-        all.into_iter().skip(start).take(page_size as usize).collect()
+        all.into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect()
     }
 
     pub async fn read_mail(&self, player_id: Uuid, mail_id: Uuid) -> Result<Mail> {
         let mut boxes = self.mailboxes.write().await;
-        let mails = boxes.get_mut(&player_id).ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
-        let m = mails.iter_mut().find(|m| m.mail_id == mail_id).ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
+        let mails = boxes
+            .get_mut(&player_id)
+            .ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
+        let m = mails
+            .iter_mut()
+            .find(|m| m.mail_id == mail_id)
+            .ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
         m.read = true;
         Ok(m.clone())
     }
 
-    pub async fn claim_mail_attachment(&self, player_id: Uuid, mail_id: Uuid) -> Result<Vec<Attachment>> {
+    pub async fn claim_mail_attachment(
+        &self,
+        player_id: Uuid,
+        mail_id: Uuid,
+    ) -> Result<Vec<Attachment>> {
         let mut boxes = self.mailboxes.write().await;
-        let mails = boxes.get_mut(&player_id).ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
-        let m = mails.iter_mut().find(|m| m.mail_id == mail_id).ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
+        let mails = boxes
+            .get_mut(&player_id)
+            .ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
+        let m = mails
+            .iter_mut()
+            .find(|m| m.mail_id == mail_id)
+            .ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
         if m.claimed {
             return Err(Error::InvalidRequest("already claimed".into()));
         }
@@ -254,7 +271,9 @@ impl SocialExtraServiceImpl {
 
     pub async fn delete_mail(&self, player_id: Uuid, mail_id: Uuid) -> Result<()> {
         let mut boxes = self.mailboxes.write().await;
-        let mails = boxes.get_mut(&player_id).ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
+        let mails = boxes
+            .get_mut(&player_id)
+            .ok_or_else(|| Error::MailNotFound(mail_id.to_string()))?;
         let before = mails.len();
         mails.retain(|m| m.mail_id != mail_id);
         if mails.len() == before {
@@ -308,12 +327,17 @@ impl SocialExtraServiceImpl {
 
     pub async fn get_home(&self, player_id: Uuid) -> Home {
         let homes = self.homes.read().await;
-        homes.get(&player_id).cloned().unwrap_or_else(|| Home::new(player_id))
+        homes
+            .get(&player_id)
+            .cloned()
+            .unwrap_or_else(|| Home::new(player_id))
     }
 
     pub async fn decorate_home(&self, player_id: Uuid, slot: u32, item_id: u32) -> Result<Home> {
         let mut homes = self.homes.write().await;
-        let h = homes.entry(player_id).or_insert_with(|| Home::new(player_id));
+        let h = homes
+            .entry(player_id)
+            .or_insert_with(|| Home::new(player_id));
         if !h.decorate(slot as usize, item_id) {
             return Err(Error::InvalidRequest(format!("slot {} invalid", slot)));
         }
@@ -329,7 +353,13 @@ impl SocialExtraServiceImpl {
 
     // ========== Chat ==========
 
-    pub async fn send_chat(&self, from: Uuid, to: Uuid, content: &str, channel: u32) -> Result<ChatMessage> {
+    pub async fn send_chat(
+        &self,
+        from: Uuid,
+        to: Uuid,
+        content: &str,
+        channel: u32,
+    ) -> Result<ChatMessage> {
         if content.is_empty() {
             return Err(Error::InvalidRequest("empty content".into()));
         }
@@ -343,21 +373,38 @@ impl SocialExtraServiceImpl {
         };
         let mut chats = self.chats.write().await;
         let key = if from < to { (from, to) } else { (to, from) };
-        chats.entry(key).or_insert_with(VecDeque::new).push_back(msg.clone());
+        chats
+            .entry(key)
+            .or_insert_with(VecDeque::new)
+            .push_back(msg.clone());
         Ok(msg)
     }
 
-    pub async fn get_chat_history(&self, player_id: Uuid, peer_id: Uuid, page: u32) -> Vec<ChatMessage> {
+    pub async fn get_chat_history(
+        &self,
+        player_id: Uuid,
+        peer_id: Uuid,
+        page: u32,
+    ) -> Vec<ChatMessage> {
         let chats = self.chats.read().await;
-        let key = if player_id < peer_id { (player_id, peer_id) } else { (peer_id, player_id) };
-        let all: Vec<ChatMessage> = chats.get(&key).map(|q| q.iter().cloned().collect()).unwrap_or_default();
+        let key = if player_id < peer_id {
+            (player_id, peer_id)
+        } else {
+            (peer_id, player_id)
+        };
+        let all: Vec<ChatMessage> = chats
+            .get(&key)
+            .map(|q| q.iter().cloned().collect())
+            .unwrap_or_default();
         let start = page as usize * 20;
         all.into_iter().skip(start).take(20).collect()
     }
 }
 
 impl Default for SocialExtraServiceImpl {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -368,7 +415,19 @@ mod tests {
     async fn send_and_read_mail() {
         let svc = SocialExtraServiceImpl::new();
         let p = Uuid::new_v4();
-        let m = svc.send_mail("sys", p, "Hi", "Body", vec![Attachment { item_id: 1, count: 1 }]).await.unwrap();
+        let m = svc
+            .send_mail(
+                "sys",
+                p,
+                "Hi",
+                "Body",
+                vec![Attachment {
+                    item_id: 1,
+                    count: 1,
+                }],
+            )
+            .await
+            .unwrap();
         let r = svc.read_mail(p, m.mail_id).await.unwrap();
         assert!(r.read);
     }
@@ -385,7 +444,19 @@ mod tests {
     async fn claim_mail_attachment() {
         let svc = SocialExtraServiceImpl::new();
         let p = Uuid::new_v4();
-        let m = svc.send_mail("sys", p, "T", "B", vec![Attachment { item_id: 1, count: 5 }]).await.unwrap();
+        let m = svc
+            .send_mail(
+                "sys",
+                p,
+                "T",
+                "B",
+                vec![Attachment {
+                    item_id: 1,
+                    count: 5,
+                }],
+            )
+            .await
+            .unwrap();
         let claimed = svc.claim_mail_attachment(p, m.mail_id).await.unwrap();
         assert_eq!(claimed.len(), 1);
     }
@@ -394,7 +465,19 @@ mod tests {
     async fn double_claim_fails() {
         let svc = SocialExtraServiceImpl::new();
         let p = Uuid::new_v4();
-        let m = svc.send_mail("sys", p, "T", "B", vec![Attachment { item_id: 1, count: 5 }]).await.unwrap();
+        let m = svc
+            .send_mail(
+                "sys",
+                p,
+                "T",
+                "B",
+                vec![Attachment {
+                    item_id: 1,
+                    count: 5,
+                }],
+            )
+            .await
+            .unwrap();
         svc.claim_mail_attachment(p, m.mail_id).await.unwrap();
         let r = svc.claim_mail_attachment(p, m.mail_id).await;
         assert!(r.is_err());

@@ -168,9 +168,9 @@ impl GatewayAdmin for GatewayAdminService {
         request: Request<gateway_proto_v1::RegisterRouteRequest>,
     ) -> Result<Response<gateway_proto_v1::RegisterRouteResponse>, Status> {
         let req = request.into_inner();
-        let entry = req.route.ok_or_else(|| {
-            Status::invalid_argument("route field is required")
-        })?;
+        let entry = req
+            .route
+            .ok_or_else(|| Status::invalid_argument("route field is required"))?;
         let resp = match self.routes.register(entry) {
             Ok(()) => gateway_proto_v1::RegisterRouteResponse {
                 success: true,
@@ -221,10 +221,8 @@ mod tests {
 
     #[tokio::test]
     async fn health_check_returns_ok() {
-        let svc = GatewayAdminService::new(
-            Arc::new(RouteTable::new()),
-            Arc::new(GatewayStats::new()),
-        );
+        let svc =
+            GatewayAdminService::new(Arc::new(RouteTable::new()), Arc::new(GatewayStats::new()));
         let resp = svc
             .health_check(Request::new(gateway_proto_v1::HealthCheckRequest {}))
             .await
@@ -236,10 +234,8 @@ mod tests {
 
     #[tokio::test]
     async fn list_routes_returns_default() {
-        let svc = GatewayAdminService::new(
-            Arc::new(RouteTable::new()),
-            Arc::new(GatewayStats::new()),
-        );
+        let svc =
+            GatewayAdminService::new(Arc::new(RouteTable::new()), Arc::new(GatewayStats::new()));
         let resp = svc
             .list_routes(Request::new(gateway_proto_v1::ListRoutesRequest {}))
             .await
@@ -251,10 +247,8 @@ mod tests {
 
     #[tokio::test]
     async fn register_route_adds_new() {
-        let svc = GatewayAdminService::new(
-            Arc::new(RouteTable::new()),
-            Arc::new(GatewayStats::new()),
-        );
+        let svc =
+            GatewayAdminService::new(Arc::new(RouteTable::new()), Arc::new(GatewayStats::new()));
         let entry = gateway_proto_v1::RouteEntry {
             code: 99999,
             name: "test".into(),
@@ -273,10 +267,8 @@ mod tests {
 
     #[tokio::test]
     async fn register_route_duplicate_fails() {
-        let svc = GatewayAdminService::new(
-            Arc::new(RouteTable::new()),
-            Arc::new(GatewayStats::new()),
-        );
+        let svc =
+            GatewayAdminService::new(Arc::new(RouteTable::new()), Arc::new(GatewayStats::new()));
         let entry = gateway_proto_v1::RouteEntry {
             code: 10101, // 已在默认表
             name: "dup".into(),
@@ -296,10 +288,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_stats_returns_zero_initially() {
-        let svc = GatewayAdminService::new(
-            Arc::new(RouteTable::new()),
-            Arc::new(GatewayStats::new()),
-        );
+        let svc =
+            GatewayAdminService::new(Arc::new(RouteTable::new()), Arc::new(GatewayStats::new()));
         let resp = svc
             .get_stats(Request::new(gateway_proto_v1::GetStatsRequest {}))
             .await

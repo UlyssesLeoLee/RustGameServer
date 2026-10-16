@@ -361,8 +361,8 @@ impl PlayerMtlsClient {
             .clone()
             .unwrap_or_else(|| "player-service".to_string());
 
-        let mut endpoint = Endpoint::from_shared(endpoint_str.to_string())?
-            .timeout(Duration::from_secs(5));
+        let mut endpoint =
+            Endpoint::from_shared(endpoint_str.to_string())?.timeout(Duration::from_secs(5));
 
         let tls = if config.skip_verify {
             // 降级模式: 仅设 SNI domain, 走 system CA
@@ -383,9 +383,8 @@ impl PlayerMtlsClient {
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("client_key_path not configured"))?;
 
-            let ca_pem = std::fs::read_to_string(ca_path).map_err(|e| {
-                anyhow::anyhow!("ca cert read failed (path=REDACTED, err={})", e)
-            })?;
+            let ca_pem = std::fs::read_to_string(ca_path)
+                .map_err(|e| anyhow::anyhow!("ca cert read failed (path=REDACTED, err={})", e))?;
             let client_pem = std::fs::read_to_string(client_cert_path).map_err(|e| {
                 anyhow::anyhow!("client cert read failed (path=REDACTED, err={})", e)
             })?;
@@ -615,7 +614,10 @@ impl BotAi for PlayerBotAi {
                 }
             }
         } else {
-            debug!(bot_id = bot.id(), "PlayerBotAi mTLS Channel: stub (k3s baseline 0/12)");
+            debug!(
+                bot_id = bot.id(),
+                "PlayerBotAi mTLS Channel: stub (k3s baseline 0/12)"
+            );
         }
 
         *self.client.lock().await = Some(m);
@@ -638,17 +640,16 @@ impl BotAi for PlayerBotAi {
                 // wave 4 升级: 真实 heartbeat RPC (per DDD Review v0.3.2 §7.3 L1.2)
                 debug!(
                     bot_id = bot.id(),
-                    has_real,
-                    "PlayerBotAi::handle Heartbeat (real RPC)"
+                    has_real, "PlayerBotAi::handle Heartbeat (real RPC)"
                 );
                 if has_real {
                     let outcome = {
                         let guard = self.client.lock().await;
                         match guard.as_ref() {
                             Some(c) => c.try_heartbeat().await,
-                            None => RpcCallOutcome::Unreachable(
-                                "client not initialized".to_string(),
-                            ),
+                            None => {
+                                RpcCallOutcome::Unreachable("client not initialized".to_string())
+                            }
                         }
                     };
                     match outcome {
@@ -680,9 +681,9 @@ impl BotAi for PlayerBotAi {
                         let guard = self.client.lock().await;
                         match guard.as_ref() {
                             Some(c) => c.try_get_player_profile().await,
-                            None => RpcCallOutcome::Unreachable(
-                                "client not initialized".to_string(),
-                            ),
+                            None => {
+                                RpcCallOutcome::Unreachable("client not initialized".to_string())
+                            }
                         }
                     };
                     match outcome {
@@ -702,7 +703,11 @@ impl BotAi for PlayerBotAi {
             }
             // 未识别 act: 不 panic, 记 debug + 返 Ok (PoC 宽容)
             other => {
-                debug!(bot_id = bot.id(), ?other, "PlayerBotAi::handle unknown act, skip");
+                debug!(
+                    bot_id = bot.id(),
+                    ?other,
+                    "PlayerBotAi::handle unknown act, skip"
+                );
                 Ok(())
             }
         }
@@ -725,7 +730,10 @@ mod tests {
         let bot = dummy_bot();
         // wave 4 升级: init 内部调一次真实 heartbeat, 预期 Unreachable (k3s 0/12) 但 Ok(())
         ai.init(&bot).await.expect("init");
-        assert!(ai.is_real().await, "skip_verify 模式应构造真实 lazy Channel");
+        assert!(
+            ai.is_real().await,
+            "skip_verify 模式应构造真实 lazy Channel"
+        );
     }
 
     #[tokio::test]
@@ -778,7 +786,9 @@ mod tests {
         let ai = PlayerBotAi::with_config(cfg);
         let bot = dummy_bot();
         // init 不 panic, channel 降级 stub
-        ai.init(&bot).await.expect("init should not panic on cert missing");
+        ai.init(&bot)
+            .await
+            .expect("init should not panic on cert missing");
         assert!(!ai.is_real().await, "cert 缺失应降级 stub, is_real = false");
     }
 
@@ -800,7 +810,9 @@ mod tests {
     async fn player_mtls_client_connect_no_endpoint_falls_back() {
         // 无 endpoint → build_channel 失败 → channel = None
         let cfg = PlayerMtlsConfig::default();
-        let m = PlayerMtlsClient::connect(cfg).await.expect("connect should not panic");
+        let m = PlayerMtlsClient::connect(cfg)
+            .await
+            .expect("connect should not panic");
         assert!(!m.is_real(), "无 endpoint 应降级 stub");
         assert!(m.channel().is_none());
     }

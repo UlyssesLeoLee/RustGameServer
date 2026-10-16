@@ -630,7 +630,9 @@ mod tests {
 
     #[test]
     fn push_delivery_result_contains_code() {
-        let r = PushDeliveryResult { result_code: DeliveryResultCode::Delivered };
+        let r = PushDeliveryResult {
+            result_code: DeliveryResultCode::Delivered,
+        };
         let json = serde_json::to_string(&r).unwrap();
         assert!(json.contains("result_code"));
         let back: PushDeliveryResult = serde_json::from_str(&json).unwrap();
@@ -671,7 +673,10 @@ mod tests {
         );
 
         let outcome = dispatcher.dispatch(&req_ok()).await;
-        assert!(matches!(outcome, DispatchOutcome::Delivered { attempts: 1 }));
+        assert!(matches!(
+            outcome,
+            DispatchOutcome::Delivered { attempts: 1 }
+        ));
         // 仅 1 条 message 到 social.push.delivery
         assert_eq!(nats.received_count(PUSH_DELIVERY_SUBJECT), 1);
         // 0 条 DLQ
