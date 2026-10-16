@@ -1,0 +1,176 @@
+{
+  "has_more": false,
+  "issues": [
+    {
+      "identifier": "ULYS-46",
+      "last_activity_at": "2026-09-16T22:42:40.562617Z",
+      "status": "done",
+      "title": "子任务B: auth-service e2e 测试去 sleep 轮询化"
+    },
+    {
+      "identifier": "ULYS-37",
+      "last_activity_at": "2026-09-17T12:43:02.201067Z",
+      "status": "done",
+      "title": "创建全套日本IPA标准文档"
+    },
+    {
+      "identifier": "ULYS-50",
+      "last_activity_at": "2026-09-16T06:38:19.67375Z",
+      "status": "done",
+      "title": "搜索功能改造"
+    },
+    {
+      "identifier": "ULYS-49",
+      "last_activity_at": "2026-09-16T05:13:53.129728Z",
+      "status": "done",
+      "title": "看板改造功能反应到main"
+    },
+    {
+      "identifier": "ULYS-53",
+      "last_activity_at": "2026-09-15T01:52:39.951065Z",
+      "status": "done",
+      "title": "聊天栏"
+    },
+    {
+      "identifier": "ULYS-26",
+      "last_activity_at": "2026-09-14T22:52:41.015274Z",
+      "status": "done",
+      "title": "【Star】优化security-design.md - 安全设计规范化"
+    },
+    {
+      "identifier": "ULYS-9",
+      "last_activity_at": "2026-09-14T22:52:39.926677Z",
+      "status": "done",
+      "title": "RustGameServer 全仓库依赖漏洞与过时版本审计报告"
+    },
+    {
+      "identifier": "ULYS-22",
+      "last_activity_at": "2026-09-14T22:52:38.796577Z",
+      "status": "done",
+      "title": "【Star】优化data-design.md - 数据库设计规范化"
+    },
+    {
+      "identifier": "ULYS-18",
+      "last_activity_at": "2026-09-14T22:52:37.482101Z",
+      "status": "done",
+      "title": "【RustGameServer】优化README.md - 接口和非功能需求规范化"
+    },
+    {
+      "identifier": "ULYS-20",
+      "last_activity_at": "2026-09-14T22:52:36.405403Z",
+      "status": "done",
+      "title": "【RustGameServer】优化部署文档 - 运维规范化"
+    },
+    {
+      "identifier": "ULYS-29",
+      "last_activity_at": "2026-09-14T22:52:35.298804Z",
+      "status": "done",
+      "title": "同一任务要允许有多个agent同时负责，并且确保通过langgraph有效内部合作，对抗式推进等逻辑套装要准备好，应对不同任务类型，包括开发，自审，交叉审核，美术制作等，需求文档和基本设计做出来"
+    },
+    {
+      "identifier": "ULYS-30",
+      "last_activity_at": "2026-09-14T22:52:34.259411Z",
+      "status": "done",
+      "title": "全新模板模式"
+    },
+    {
+      "identifier": "ULYS-43",
+      "last_activity_at": "2026-09-14T22:52:33.162077Z",
+      "status": "done",
+      "title": "依赖安全与过时包审计"
+    },
+    {
+      "identifier": "ULYS-21",
+      "last_activity_at": "2026-09-14T11:19:15.555128Z",
+      "status": "done",
+      "title": "【Star】优化requirements.md - 非功能需求规范化"
+    },
+    {
+      "identifier": "ULYS-33",
+      "last_activity_at": "2026-09-14T02:48:54.511781Z",
+      "status": "done",
+      "title": "基于 BD-CANVAS-WORKFLOW-001 v1.0.3 制作 DD-CANVAS-WORKFLOW-001 详细设计书"
+    },
+    {
+      "identifier": "ULYS-36",
+      "last_activity_at": "2026-09-14T00:15:18.594948Z",
+      "status": "done",
+      "title": "[详细设计] 瀑布式开发工作流模板实现详细设计"
+    },
+    {
+      "identifier": "ULYS-35",
+      "last_activity_at": "2026-09-13T23:20:49.765838Z",
+      "status": "done",
+      "title": "[基本设计] 瀑布式开发工作流模板外部设计"
+    },
+    {
+      "identifier": "ULYS-34",
+      "last_activity_at": "2026-09-13T23:20:47.474559Z",
+      "status": "done",
+      "title": "[需求定义] 瀑布式开发工作流模板需求与验收"
+    },
+    {
+      "identifier": "ULYS-2",
+      "last_activity_at": "2026-09-13T11:41:49.421288Z",
+      "status": "done",
+      "title": "ULYS-2: zsyz_client_h5 前端与 RGS network-gateway 完美对接"
+    },
+    {
+      "identifier": "ULYS-28",
+      "last_activity_at": "2026-09-13T09:02:50.64941Z",
+      "status": "done",
+      "title": "基于 SRS-CANVAS-WORKFLOW-001 v1.1 制作 BD-CANVAS-WORKFLOW-001 基本设计书"
+    },
+    {
+      "identifier": "ULYS-13",
+      "last_activity_at": "2026-09-13T08:37:52.767611Z",
+      "status": "done",
+      "title": "SRS-UX-001 B1：v37 幂等口径核定与 dispatcher 整合决策"
+    },
+    {
+      "identifier": "ULYS-10",
+      "last_activity_at": "2026-09-13T06:23:56.427494Z",
+      "status": "done",
+      "title": "docs: 合并 docs/00-基准与治理 与 docs/00-基準与治理 目录结构"
+    },
+    {
+      "identifier": "ULYS-11",
+      "last_activity_at": "2026-09-13T06:23:49.813176Z",
+      "status": "done",
+      "title": "docs: rgs-shim-rust 版本号同步 (v0.3.0 → v0.5 / v0.3.1 悬空)"
+    },
+    {
+      "identifier": "ULYS-5",
+      "last_activity_at": "2026-09-12T02:52:39.656564Z",
+      "status": "done",
+      "title": "ULYS-2.3 (任务 C): cmd → gRPC 路由表 (proto_*.erl 反向 + dispatcher)"
+    },
+    {
+      "identifier": "ULYS-6",
+      "last_activity_at": "2026-09-12T01:45:34.866628Z",
+      "status": "done",
+      "title": "ULYS-2.4 (任务 D): E2E 对接 (puppeteer + H5 跑通登录握手)"
+    },
+    {
+      "identifier": "ULYS-4",
+      "last_activity_at": "2026-09-12T00:47:19.00072Z",
+      "status": "done",
+      "title": "ULYS-2.2 (任务 B): WebSocket 传输层 + 路径 /websocket"
+    },
+    {
+      "identifier": "ULYS-3",
+      "last_activity_at": "2026-09-11T23:54:02.378534Z",
+      "status": "done",
+      "title": "ULYS-2.1 (任务 A): 协议编解码 + 黄金向量"
+    },
+    {
+      "identifier": "ULYS-7",
+      "last_activity_at": "2026-09-11T23:54:00.965306Z",
+      "status": "done",
+      "title": "ULYS-2.5 (任务 E): RGS-AI-HANDOFF-DOWNSTREAM §2.3 文档同步"
+    }
+  ],
+  "limit": 100,
+  "offset": 200,
+  "total": 228
+}
