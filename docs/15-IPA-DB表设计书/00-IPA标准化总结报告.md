@@ -30,7 +30,7 @@
 | **IPA 完全对齐 438 cmds** | 7 份 | `docs/15-IPA-完全对齐438cmds/`（per `RGS-BDD-2026-09-04_v0.2.md` / `RGS-DDD-2026-09-04_v0.2.md` 实证） |
 | **SQL migrations** | 34 文件 / 12 库 | `crates/*/migrations/*.sql`（11 PG 库 + 1 SQLite 库 = 12 库） |
 
-### 1.2 数据库拓扑（per `.env.example` + `crates/*/migrations/*.sql` 实证）
+### 1.2 数据库拓扑（per `crates/*/migrations/*.sql`（12 个 migrations 目录）+ `.env.example`（仅列 6 个 PG）实证）
 
 | 数据库 | 限界上下文 | 物理库 | 备注 |
 |---|---|---|---|
@@ -38,24 +38,25 @@
 | Economy 域 | economy-service | `economy_db` | 7 表（含 saga / 拍卖 / 私下交易） |
 | Match 域 | match-service | `match_db` | 6 表（matches / game_sessions / moves / 票 / 订阅） |
 | Social 域 | social-service | `social_db` | 2 表（guilds / guild_members） |
-| Admin 域 | admin-service | `admin_db` | 含 `audit_log` + **LCM 6 表共置**（per FR-LCM-001，per [17-不合理设计 P0-01b](17-不合理设计识别与优化建议.md#p0-01blcm-6-表共置-admin_db--fr-lcm-001-设计选择非-violation)） |
+| Admin 域 | admin-service | `admin_db` | 含 `audit_log` + **LCM 6 表共置**（per FR-LCM-001，per [17-不合理设计 P0-01b](17-不合理设计识别与优化建议.md#p0-01blcm-6-表共置-admindb-fr-lcm-001-设计选择非-violation)） |
 | ClusterOps 域 | cluster-ops | `cluster_ops_db` | 含 saga_store 9 表 + feature_flags + cluster_nodes |
 | Card 域 | card-service | `card_db` | 3 表（cards / card_series / card_instances） |
 | I18n 域 | i18n-service | `i18n_db` | 2 表（i18n_texts / i18n_languages） |
 | Leaderboard 域 | leaderboard-service | `leaderboard_db` | 1 表（leaderboard_entries） |
 | Replay 域 | replay-service | `replay_db` | 1 表（replays） |
+| Battle 域 | battle-service | `battle_db` | 3 表（battle_master / battle_transaction / battle_work；migration 占位已定义，服务尚未接 PgPool） |
 | Asset Download | rgs-asset-download | **`downloads.sqlite`** | 1 表（resume_tokens）— **异构 SQLite，非 PostgreSQL** |
 
-> **结论**：RGS 仓库物理部署 **10 独立 PostgreSQL DB + 1 SQLite 库 = 11 个独立数据库**（per `.env.example` + `crates/*/migrations/` 实证）。下文 §3 P0-01 重点处理既有"5 独立 DB 原则"叙述与该实证拓扑的表述歧义。
+> **结论**：RGS 仓库物理部署 **11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库**（per `crates/*/migrations/`（12 个 migrations 目录）+ `.env.example`（仅列 6 个 PG）实证）。下文 §3 P0-01 重点处理既有"5 独立 DB 原则"叙述与该实证拓扑的表述歧义。
 
 ### 1.3 部署拓扑 vs DB 拓扑的区分（PH-2 升版重点）
 
 | 维度 | 拓扑 |
 |---|---|
 | **K3s 部署单元**（per `RGS-INC-002 v0.1` §1.1） | 5 业务域 svc（player / economy / match / social / admin）+ cluster-ops + shared-platform + rgs-certgen + rgs-hello = 9 个 Pod 单元 |
-| **DB 拓扑**（per `.env.example` + `crates/*/migrations/` 实证） | 10 独立 PG DB + 1 SQLite 库 = 11 个独立数据库 |
+| **DB 拓扑**（per `crates/*/migrations/`（12 个 migrations 目录）+ `.env.example`（仅列 6 个 PG）实证） | 11 独立 PG DB + 1 SQLite 库 = 12 个独立数据库 |
 
-> **关键澄清（PH-2 升版处理）**：既有"5 独立 DB 原则"表述来源为 **RGS-WBS-001 v0.3 L4 WF-1-53.10**（"`5 独立 PG 18.6 DB`"），其原始意图指 **5 业务域核心 DB**（player / economy / match / social / admin），后续 cluster-ops / card / i18n / leaderboard / replay / downloads_sqlite 6 个库陆续加入。命名未更新是历史遗漏，不构成设计错误。
+> **关键澄清（PH-2 升版处理）**：既有"5 独立 DB 原则"表述来源为 **RGS-WBS-001 v0.3 L4 WF-1-53.10**（"`5 独立 PG 18.6 DB`"），其原始意图指 **5 业务域核心 DB**（player / economy / match / social / admin），后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 个库陆续加入。命名未更新是历史遗漏，不构成设计错误。
 
 ---
 
@@ -87,7 +88,7 @@
 
 | # | 项目 | 根因 | 影响 | 目标阶段 |
 |---|---|---|---|---|
-| **P0-01a** | ARC-008 "5 独立 DB 原则" 表述歧义 | 历史命名遗留（5 业务域核心 DB 后续扩展为 11 库但表述未更新）| DBA / SRE 误判拓扑（5 vs 11）；容量规划（CAP-001）按"5 库"评估不准确 | **PH-2 立即** |
+| **P0-01a** | ARC-008 "5 独立 DB 原则" 表述歧义 | 历史命名遗留（5 业务域核心 DB 后续扩展为 12 库但表述未更新）| DBA / SRE 误判拓扑（5 vs 12）；容量规划（CAP-001）按"5 库"评估不准确 | **PH-2 立即** |
 | **P0-01b** | ~~LCM 6 表共置 admin_db~~ | ~~非不合理设计（per FR-LCM-001）~~ | —— | ✅ 已确认设计选择 |
 | **P0-02** | `audit_log` 未按月分区 | `crates/admin-service/migrations/0001_init.sql:23-32` 无 `PARTITION BY RANGE`；RGS-BAS-007 §4 既定标准 | 3 年后单表 1.8 亿行；索引膨胀；备份成本线性增长 | **PH-2 实施** |
 | **P0-03** | `outbox` × 6 域未分区 | 5M/月/域 写入；未按周/月分区 | 数十亿/年增长；查询/清理性能劣化 | **PH-2 实施** |
@@ -95,11 +96,11 @@
 
 ### 3.2 P1 — 重要优化（10 项）
 
-per [17-不合理设计识别与优化建议 §3](17-不合理设计识别与优化建议.md#3-p1--重要优化) 详列（4 项跨域 FK 缺失 + 4 项冗余索引 + 2 项 CHECK 约束缺失 + 0 项其他 = 10 项），略。
+per [17-不合理设计识别与优化建议 §3](17-不合理设计识别与优化建议.md#3-p1-重要优化影响可维护性-性能-一致性) 详列（4 项跨域 FK 缺失 + 4 项冗余索引 + 2 项 CHECK 约束缺失 + 0 项其他 = 10 项），略。
 
 ### 3.3 P2 — 改进建议（5 项）
 
-per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优化建议.md#4-p2--改进建议) 详列（3 项冗余字段 / 缺字段 + 2 项应用层一致性 vs DB 强保证 错位 = 5 项），略。
+per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优化建议.md#4-p2-改进建议不影响主流程) 详列（3 项冗余字段 / 缺字段 + 2 项应用层一致性 vs DB 强保证 错位 = 5 项），略。
 
 ---
 
@@ -109,14 +110,14 @@ per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优
 
 | # | 文档 | 当前版本 | 升版目标 | 关键改动 |
 |---|---|---|---|---|
-| 1 | **RGS-BAS-007** 数据库设计标准与存储过程规范 | v0.3 | **v0.4** | 新增 §0.2「DB 拓扑澄清」：明示"10 独立 PG + 1 SQLite"为物理拓扑，更正既有引用中的"5 独立 DB"模糊叙述 |
-| 2 | **RGS-INC-002** Phase 0.5 启动计划 | v0.1 | **v0.1 内 v0.2 修订** | 区分"5 业务域 K3s 部署（5 svc）" vs "DB 拓扑（10 PG + 1 SQLite）"——新增 §0.1；保留 `_v0.1.md` 文件名（10 处既有引用安全）|
-| 3 | **RGS-IMPL-002** PG 编码规范 | v0.1（占位 NO-GO）| **v0.1**（修订 §5 激活条件） | 保持 NO-GO 状态；§5 「G-CODE-03 5 独立 DB 拓扑图」措辞改为"10 独立 PG + 1 SQLite 拓扑图"，避免 NO-GO 解除后再次踩同一陷阱 |
+| 1 | **RGS-BAS-007** 数据库设计标准与存储过程规范 | v0.3 | **v0.4** | 新增 §0.2「DB 拓扑澄清」：明示"11 独立 PG + 1 SQLite"为物理拓扑，更正既有引用中的"5 独立 DB"模糊叙述 |
+| 2 | **RGS-INC-002** Phase 0.5 启动计划 | v0.1 | **v0.1 内 v0.2 修订** | 区分"5 业务域 K3s 部署（5 svc）" vs "DB 拓扑（11 PG + 1 SQLite）"——新增 §0.1；保留 `_v0.1.md` 文件名（10 处既有引用安全）|
+| 3 | **RGS-IMPL-002** PG 编码规范 | v0.1（占位 NO-GO）| **v0.1**（修订 §5 激活条件） | 保持 NO-GO 状态；§5 「G-CODE-03 5 独立 DB 拓扑图」措辞改为"11 独立 PG + 1 SQLite 拓扑图"，避免 NO-GO 解除后再次踩同一陷阱 |
 | 4 | **ARC-008** 命名空间原则 | 无独立文件（per WBS-001 v0.3 §修复说明）| **命名空间更新**（非新建文件） | 在 [17-不合理设计识别 §P0-01a](17-不合理设计识别与优化建议.md#p0-01aarc-008-5-独立-db-原则-表述歧义per-rgs-db-bas-001-v02-95-解决) 已明示更新原则；本轮不动 ARC-008 命名空间（不在 RGS 仓库物理落地范围），通过上述 3 份基准文档间接消歧义 |
 
 ### 4.2 文档登记册更新
 
-- `docs/document-registry.toml` 新增 `RGS-IPA-SUMMARY-2026-10-11` 计划文档登记
+- `docs/document-registry.toml` 新增 `RGS-IPA-SUMMARY-001` 计划文档登记
 - `docs/15-IPA-DB表设计书/README.md` 文件夹结构加入本总结报告
 
 ### 4.3 实施状态（本轮）
@@ -145,7 +146,7 @@ per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优
 | 维度 | 收益 |
 |---|---|
 | **GDPR 审计通路** | `audit_log` 分区使 3 年保留期内的 GDPR 审计查询性能稳定（不随数据量线性劣化）|
-| **架构原则一致性** | "10 独立 PG + 1 SQLite" 拓扑表述与物理实证一致，消除 DBA / SRE 误判风险 |
+| **架构原则一致性** | "11 独立 PG + 1 SQLite" 拓扑表述与物理实证一致，消除 DBA / SRE 误判风险 |
 | **文档追溯性** | PH-2 升版 4 份基准文档 + 本总结报告 = 5 份新版本可追溯到具体 P0-01a 修复路径 |
 
 ### 5.3 可维护性收益
@@ -167,7 +168,7 @@ per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优
   - **RGS-INC-002 v0.1 内 v0.2 修订**（新增 §0.1 DB 拓扑澄清；保留 `_v0.1.md` 文件名）
   - **RGS-IMPL-002 v0.1**（§5 G-CODE-03 措辞纠正；保持 NO-GO）
   - **ARC-008 命名空间**（间接消歧义；不新建独立文件）
-- `docs/document-registry.toml` 新增 `RGS-IPA-SUMMARY-2026-10-11` 计划文档登记
+- `docs/document-registry.toml` 新增 `RGS-IPA-SUMMARY-001` 计划文档登记
 - `docs/15-IPA-DB表设计书/README.md` 文件夹结构加入本总结报告
 
 ### 6.2 PH-2 评审阶段（待 ULYS 二审）
@@ -179,7 +180,7 @@ per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优
 
 - 实测 PH-2 优化收益 vs §5.1 预期
 - `pg_stat_user_indexes` 扫描确认冗余索引移除候选
-- 容量规划文档（CAP-001）按 11 库（10 PG + 1 SQLite）重算
+- 容量规划文档（CAP-001）按 12 库（11 PG + 1 SQLite）重算
 
 ### 6.4 W36+ 卡牌完善阶段
 
@@ -188,7 +189,7 @@ per [17-不合理设计识别与优化建议 §4](17-不合理设计识别与优
 
 ### 6.5 持续改进
 
-- IPA 标准化检查清单每季度复核（per [16-IPA标准化检查清单 §6](16-IPA标准化检查清单.md#6-季度复核流程)）
+- IPA 标准化检查清单每季度复核（per [16-IPA标准化检查清单](16-IPA标准化检查清单.md)）
 - 不合理设计清单每半年复核（per [17-不合理设计识别 §0 适用范围](17-不合理设计识别与优化建议.md)）
 
 ---

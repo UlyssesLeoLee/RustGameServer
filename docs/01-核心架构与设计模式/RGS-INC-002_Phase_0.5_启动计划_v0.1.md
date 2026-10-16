@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | 文档 ID | RGS-INC-002 |
-| 版本 | **v0.2**（启动计划草案 + DB 拓扑澄清，per [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md)）|
+| 版本 | v0.1（启动计划草案；2026-10-11 v0.1 内修订：§0.1 DB 拓扑澄清，per [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md)）|
 | 关联 | RGS-INC-001 v0.2 §23 Phase 0.5 / `docs/deploy/07-no-go-checklist_business_v0.1.md` / `docs/deploy/01-k8s-manifests/_status.md` / `docs/deploy/09-deploy-dev-k3s.log` / [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) DB 拓扑澄清（v0.4 PH-2 P0-01a 修复）|
 | Owner | Ulysses（DEC-008 一人公司：5 域 Lead / SRE / DBA / Platform / QA / 业务方 / 架构师 全部兼任） |
 | 周期 | 2~3 周（per RGS-INC-001 v0.2 §23.1） |
@@ -33,10 +33,11 @@ RGS-INC-001 v0.2 §23 插入的 **Phase 0.5 硬阻塞**：5 业务域 gRPC 互�
 | 维度 | 拓扑 | 实证 |
 |---|---|---|
 | **K3s 部署单元**（本文档 §1 关键产物 5 Deployment + 5 Service）| 5 业务域 svc（player / economy / match / social / admin）+ cluster-ops + shared-platform + rgs-certgen + rgs-hello = 9 Pod 单元 | `docs/deploy/01-k8s-manifests/` + §1 表格 |
-| **DB 拓扑**（per [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + `.env.example` + `crates/*/migrations/*.sql` 实证）| **10 独立 PostgreSQL DB + 1 SQLite 库 = 11 个独立数据库**：player_db / economy_db / match_db / social_db / admin_db / cluster_ops_db / card_db / i18n_db / leaderboard_db / replay_db / `downloads.sqlite` | `.env.example` 6 条 `*_DB_NAME` + `crates/{card,i18n,leaderboard,replay}-service/migrations/` + `crates/rgs-asset-download/` |
+| **DB 拓扑**（per [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + `.env.example` + `crates/*/migrations/*.sql` 实证）| **11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库**：player_db / economy_db / match_db / social_db / admin_db / cluster_ops_db / card_db / i18n_db / leaderboard_db / replay_db / battle_db / `downloads.sqlite` | `.env.example` 6 条 `*_DB_NAME` + `crates/{card,i18n,leaderboard,replay,battle}-service/migrations/` + `crates/rgs-asset-download/` |
 
-> **重要**：Phase 0.5 §1 关键产物 (1)~(5) 仅涉及 **K3s 部署单元（Pod 维度）**，**不**调整 DB 拓扑——DB 拓扑已在既有 `crates/*/migrations/*.sql` 中实证落地。LCM 6 表共置 admin_db 属于 FR-LCM-001 明确设计选择（per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md#p0-01blcm-6-表共置-admin_db--fr-lcm-001-设计选择非-violation)），非 ARC-008 violation。
-> **历史溯源**：「5 独立 DB 原则」原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)（"`5 独立 PG 18.6 DB`"），指 5 业务域核心 DB（player / economy / match / social / admin）；后续 cluster-ops / card / i18n / leaderboard / replay / downloads_sqlite 6 库陆续加入，命名未更新是历史遗留，**不构成设计错误**——v0.2 起统一以"10 独立 PG + 1 SQLite"为拓扑基准叙述。
+> **重要**：Phase 0.5 §1 关键产物 (1)~(5) 仅涉及 **K3s 部署单元（Pod 维度）**，**不**调整 DB 拓扑——DB 拓扑已在既有 `crates/*/migrations/*.sql` 中实证落地。LCM 6 表共置 admin_db 属于 FR-LCM-001 明确设计选择（per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md#p0-01blcm-6-表共置-admindb-fr-lcm-001-设计选择非-violation)），非 ARC-008 violation。
+
+> **历史溯源**：「5 独立 DB 原则」原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)（"`5 独立 PG 18.6 DB`"），指 5 业务域核心 DB（player / economy / match / social / admin）；后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 库陆续加入，命名未更新是历史遗留，**不构成设计错误**——v0.2 起统一以"11 独立 PG + 1 SQLite"为拓扑基准叙述。
 
 ---
 
@@ -143,7 +144,6 @@ RGS-INC-001 v0.2 §23 插入的 **Phase 0.5 硬阻塞**：5 业务域 gRPC 互�
 > 校准输入：现状 `cargo build --release` binary size + 9-crate `cargo test --workspace` 测试负载 + 06-rust-198-build.log 实测记录。
 >
 > 列说明：
->
 > - **player / economy / match / social / admin** = 5 业务域 Lead 决策权
 > - **cluster-ops** = SRE 决策权（per ADR-0052 PFAU Active-Active 单独考虑）
 
@@ -246,7 +246,7 @@ Phase 0.5 全闭环后，必须**同时满足**以下 5 条才能进 RGS-INC-001
 | 版本 | 日期 | 修订者 | 修订内容 |
 |---|---|---|---|
 | 0.1 | 2026-08-23 | 架构师（Ulysses）| 初版启动计划草案：拆分 §23 Phase 0.5 6 关键产物 + 4 准入 + 6 步执行 + 19×7 决策矩阵（全部 TBD） + 工具链 + 文档义务 + 风险 + Phase 1 衔接 |
-| **0.2 修订**（**v0.1 内修订**，非升版）| **2026-10-11** | **本轮 agent（per ULYS-248，ULYS 2026-10-10 22:43 JST「按照建议继续」授权）** | **DB 拓扑澄清（PH-2 P0-01a 修复）：新增 §0.1 部署拓扑 vs DB 拓扑澄清；统一以"10 独立 PG + 1 SQLite"为基准叙述，消歧义既有"5 独立 DB 原则"；不影响 §1~§8 既有内容。引用 [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) + [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + [00-IPA 标准化总结报告](../15-IPA-DB表设计书/00-IPA标准化总结报告.md) §4.1（**v0.2 不独立成文件名，以 v0.1 内修订方式落地以避免破坏 10 处既有引用路径——per git mv 撤回后评审通过**）** |
+| **0.2 修订**（**v0.1 内修订**，非升版）| **2026-10-11** | **本轮 agent（per ULYS-248，ULYS 2026-10-10 22:43 JST「按照建议继续」授权）** | **DB 拓扑澄清（PH-2 P0-01a 修复）：新增 §0.1 部署拓扑 vs DB 拓扑澄清；统一以"11 独立 PG + 1 SQLite"为基准叙述，消歧义既有"5 独立 DB 原则"；不影响 §1~§8 既有内容。引用 [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) + [RGS-BAS-007 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + [00-IPA 标准化总结报告](../15-IPA-DB表设计书/00-IPA标准化总结报告.md) §4.1（**v0.2 不独立成文件名，以 v0.1 内修订方式落地以避免破坏 10 处既有引用路径——per git mv 撤回后评审通过**）** |
 
 ---
 

@@ -20,7 +20,7 @@
 | 0.1 | 2026-08-16 | 架构师 | 初版制定。将RGS-REQ-011 ARC-023展开为命名规范表、索引/分区设计标准、迁移流程设计、备份恢复标准、存储过程例外评审流程 | 全部 |
 | 0.2 | 2026-08-16 | 架构师 | 追溯性表补齐AC-DBS-001〜004验收标准与设计章节的映射（此前追溯性表仅覆盖ARC/FR/NFR，遗漏AC条目） | §10 |
 | 0.3 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§1.1/§2.1/§3.1/§4.1/§5.1/§5.2/§6.1/§7.1/§8.1/§9.1 全部 10 个 ## L2 功能段加"本功能日志设计" 5 列详尽版（字段名/触发条件/频率估算/采样策略/脱敏与成本），字段名前缀 `db.*` 区别于既有 `mnt.*`/`gm.*`/`sec.*` 命名空间；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-023 数据库设计域全部阶段（命名审计 / 索引创建 / 分区维护 / 迁移执行 / 备份恢复 / 存储过程例外评审 / 连接池监控 / 标准化检查）；**数据库域特殊强制**：SQL 慢查询/执行失败/迁移/Schema 变更/死锁/连接池耗尽 → `error!`/`warn!` 强制全采样（release 必出，§6.2 强制全量采集范围），`db.sql.slow_query`/`db.migration.failed`/`db.pool.exhausted`/`db.partition.detached` 均为强制全采样白名单；debug-only 字段（`#[cfg(debug_assertions)]` 守护，release build 完全剔除零运行时开销）含 `db.sql.debug.bind_values_dump`/`db.sql.debug.execution_plan_dump`/`db.migration.debug.sql_redacted_dump`；§9.1 检查清单新增 3 条 log 章节上线检查项；§10 追溯性新增 AC-DBS-006（debug-only 宏 release 完全剔除）与 AC-DBS-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §1.1/§2.1/§3.1/§4.1/§5.1/§5.2/§6.1/§7.1/§8.1/§9.1/§10 |
-| **0.4** | **2026-10-11** | **本轮 agent（per ULYS-248，ULYS 2026-10-10 22:43 JST「按照建议继续」授权）** | **PH-2 P0-01a 修复（DB 拓扑澄清）：新增 §0.2「DB 拓扑澄清」明示 RGS 仓库物理拓扑为「10 独立 PostgreSQL DB + 1 SQLite 库 = 11 个独立数据库」，消歧义既有引用中"5 独立 DB 原则"叙述（原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)，指 5 业务域核心 DB，后续 cluster-ops / card / i18n / leaderboard / replay / downloads_sqlite 6 库陆续加入，命名未更新是历史遗留，**不构成设计错误**）；不影响 §1~§10 既有规范内容（命名 / 索引 / 分区 / 迁移 / 备份 / 存储过程 / 连接池 / 标准化检查 / 追溯性）。引用 [00-IPA 标准化总结报告](../15-IPA-DB表设计书/00-IPA标准化总结报告.md) §1.2 + §4.1 + [RGS-INC-002 §0.1](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md)（v0.1 内 v0.2 修订；保留 `_v0.1.md` 文件名）+ [RGS-IMPL-002 v0.1 §5](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) + [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md)** |
+| **0.4** | **2026-10-11** | **本轮 agent（per ULYS-248，ULYS 2026-10-10 22:43 JST「按照建议继续」授权）** | **PH-2 P0-01a 修复（DB 拓扑澄清）：新增 §0.2「DB 拓扑澄清」明示 RGS 仓库物理拓扑为「11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库」，消歧义既有引用中"5 独立 DB 原则"叙述（原始出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)，指 5 业务域核心 DB，后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 库陆续加入，命名未更新是历史遗留，**不构成设计错误**）；不影响 §1~§10 既有规范内容（命名 / 索引 / 分区 / 迁移 / 备份 / 存储过程 / 连接池 / 标准化检查 / 追溯性）。引用 [00-IPA 标准化总结报告](../15-IPA-DB表设计书/00-IPA标准化总结报告.md) §1.2 + §4.1 + [RGS-INC-002 §0.1](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md)（v0.1 内 v0.2 修订；保留 `_v0.1.md` 文件名）+ [RGS-IMPL-002 v0.1 §5](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) + [17-不合理设计识别 §P0-01a](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md)** |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -62,7 +62,7 @@
 
 ## 0.2 DB 拓扑澄清（v0.4 新增，per PH-2 P0-01a 修复）
 
-RGS 仓库 **物理数据库拓扑**（per `.env.example` + `crates/*/migrations/*.sql` 实证 2026-10-11 JST）：
+RGS 仓库 **物理数据库拓扑**（per `crates/*/migrations/*.sql`（12 个 migrations 目录）+ `.env.example`（仅列 6 个 PG）实证 2026-10-11 JST）：
 
 | 数据库 | 限界上下文 | 物理库 | 表数 | 备注 |
 |---|---|---|---|---|
@@ -76,22 +76,23 @@ RGS 仓库 **物理数据库拓扑**（per `.env.example` + `crates/*/migrations
 | I18n 域 | i18n-service | `i18n_db`（PostgreSQL）| 2 | i18n_texts / i18n_languages |
 | Leaderboard 域 | leaderboard-service | `leaderboard_db`（PostgreSQL）| 1 | leaderboard_entries |
 | Replay 域 | replay-service | `replay_db`（PostgreSQL）| 1 | replays |
+| Battle 域 | battle-service | `battle_db`（PostgreSQL）| 3 | battle_master / battle_transaction / battle_work（migration 占位已定义，服务尚未接 PgPool）|
 | Asset Download | rgs-asset-download | `downloads.sqlite`（**SQLite，异构**）| 1 | resume_tokens |
 
-**物理拓扑汇总**：**10 独立 PostgreSQL DB + 1 SQLite 库 = 11 个独立数据库**。
+**物理拓扑汇总**：**11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库**。
 
 ### 0.2.1 与既有「5 独立 DB 原则」叙述的关系
 
 - **「5 独立 DB 原则」原始出处**：[RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)（"`5 独立 PG 18.6 DB`"），指 **5 业务域核心 DB**（player / economy / match / social / admin）
-- **历史遗留**：后续 cluster-ops / card / i18n / leaderboard / replay / downloads_sqlite 6 个库陆续加入，但「5 独立 DB」叙述**未同步更新**
-- **v0.4 起规范叙述**：以「**10 独立 PG + 1 SQLite**」为基准；既有「5 独立 DB」叙述视为「5 业务域核心 DB 原则」（限指 player / economy / match / social / admin 五库）
+- **历史遗留**：后续 cluster-ops / card / i18n / leaderboard / replay / battle / downloads_sqlite 7 个库陆续加入，但「5 独立 DB」叙述**未同步更新**
+- **v0.4 起规范叙述**：以「**11 独立 PG + 1 SQLite**」为基准；既有「5 独立 DB」叙述视为「5 业务域核心 DB 原则」（限指 player / economy / match / social / admin 五库）
 - **不构成设计错误**：本节仅澄清命名歧义，不追溯改写历史引用；既有引用 `5 独立 DB` 之处一律按本节上下文理解为「5 业务域核心 DB」
 
 ### 0.2.2 LCM 6 表共置 admin_db
 
 per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设计识别与优化建议.md) 确认：
 
-- LCM（`realm_lifecycle_run` / `new_realm_plan` / `split_plan` / `merge_conflict_rule_set_v2` / `retire_plan` / `archive_policy`）共置 admin_db 是 **FR-LCM-001 明确设计选择**，**非**违反「5 业务域核心 DB」或「10 独立 PG」原则
+- LCM（`realm_lifecycle_run` / `new_realm_plan` / `split_plan` / `merge_conflict_rule_set_v2` / `retire_plan` / `archive_policy`）共置 admin_db 是 **FR-LCM-001 明确设计选择**，**非**违反「5 业务域核心 DB」或「11 独立 PG」原则
 - 业务理由：LCM 由 admin 域 SRE 操作，admin_db 已承担 `audit_log`（双层审计），共置便于 LCM 操作与审计追踪在同一事务上下文
 - 技术理由：6 表规模小（10 万级以下），独立成库成本（运维 / 备份 / 连接池 / OLU）大于收益
 - 派生约束：LCM 6 表**不**绕过 `audit_log`（per FR-LCM-002），所有阶段变更都先写 `audit_log` 再写 6 表
@@ -104,12 +105,12 @@ per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设
 
 | 引用方 | 引用内容 | 应更新为 |
 |---|---|---|
-| [RGS-WBS-001 v0.3](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) L4 WF-1-53.10 | "`5 独立 PG 18.6 DB`" | 「5 业务域核心 DB + 5 扩展 DB + 1 SQLite = 11 物理库」（v0.4 起） |
+| [RGS-WBS-001 v0.3](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) L4 WF-1-53.10 | "`5 独立 PG 18.6 DB`" | 「5 业务域核心 DB + 6 扩展 DB + 1 SQLite = 12 物理库」（v0.4 起） |
 | [RGS-INC-002](../01-核心架构与设计模式/RGS-INC-002_Phase_0.5_启动计划_v0.1.md) §0.1（v0.1 内 v0.2 修订）| （已澄清）| ✅ 已对齐 |
-| [RGS-IMPL-002 v0.1](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) §5 G-CODE-03 | （已纠正为「10 独立 PG + 1 SQLite 拓扑图」）| ✅ 已对齐 |
+| [RGS-IMPL-002 v0.1](../13-实现规格/RGS-IMPL-002_PG_编码规范_v0.1.md) §5 G-CODE-03 | （已纠正为「11 独立 PG + 1 SQLite 拓扑图」）| ✅ 已对齐 |
 | [RGS-SPEC-CROSS-005 v0.1](../13-实现规格/RGS-SPEC-CROSS-005_数据库命名约定_v0.1.md) §0 + §2 | "ARC-008 5 独立 DB 原则" 引用 | 待 v0.2 升版时同步更新（PH-2 评审阶段）|
 | [RGS-DB-BAS-001 v0.3](../00-基准与治理/RGS-DB-BAS-001_数据库表设计三分类横展开基本设计书_v0.3.md) §9.5 | "P0-01 修复" 引用 | 待 v0.4 升版时同步更新（PH-2 评审阶段）|
-| `crates/cluster-ops/migrations/0020_lcm_tables.sql:3` 注释 | "per ARC-008 5 独立 DB 原则" | 待 ADR 登记后修改为 "per FR-LCM-001，ARC-008「5 业务域核心 DB」已扩展为 10 独立 PG + 1 SQLite"（PH-2 评审阶段）|
+| `crates/cluster-ops/migrations/0020_lcm_tables.sql:3` 注释 | "per ARC-008 5 独立 DB 原则" | 待 ADR 登记后修改为 "per FR-LCM-001，ARC-008「5 业务域核心 DB」已扩展为 11 独立 PG + 1 SQLite"（PH-2 评审阶段）。**注意**：cluster-ops 通过 `sqlx::migrate!` 执行该 migration，校验和覆盖注释行，已应用环境中修改注释会导致启动时 checksum 不一致；故**不得改原文件**，仅在本文档勘误 |
 
 ---
 
@@ -132,7 +133,6 @@ per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设
 | `db.standard.debug.amend_request_full_payload` | 修订申请的完整 payload（含敏感字段，**仅** debug-only 守护） | 1/月 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-3KB/条（release 剔除，避免误开 RUST_LOG=debug 泄漏） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.standard.debug.amend_request_full_payload` 可能含 ADR 全文 draft——release build 完全剔除，避免 RUST_LOG=debug 误开时未发布 ADR 草案泄漏
 - `db.standard.*` 系列均为 `info!` 级别（release 必出，§4.8.3.2 二维矩阵 `info!` 行常驻），便于 DBA 团队按 `dtl_doc_id` 维度追溯标准符合性
 
@@ -164,7 +164,6 @@ per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设
 | `db.naming.debug.violation_redacted_diff` | 违规位置的完整 diff（敏感字段已脱敏，**仅** debug-only 守护） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.naming.debug.table_column_dump` 在大型 workspace 下可能 20KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `db.naming.violation.detected` 全部为 `warn!` 级别（release 常驻，§4.8.3.2 二维矩阵 `warn!` 行常驻），便于 CI 门禁 + DBA 复盘
 
@@ -198,7 +197,6 @@ per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设
 | `db.index.debug.histogram_snapshot` | 索引列基数与选择性 histogram dump | 1/周 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 3-15KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.sql.debug.bind_values_dump` **含 PII 风险**——若 SQL 含 `player_id`/邮箱/Token，release build 必须完全剔除；该字段仅供开发/测试环境复现慢查询
 - `db.sql.slow_query` 与 `db.sql.execution.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：慢查询是 NFR-PE-008 性能预算达成与否的核心证据，缺失将无法事后追责；连接断开/约束冲突影响 NFR-AV-005 可用性，必须 100% 落盘
 - `db.index.*` 系列均为 `info!`/`warn!` 级别（release 常驻），便于 DBA 按 `table_name` 维度聚合
@@ -233,7 +231,6 @@ per [17-不合理设计识别 §P0-01b](../15-IPA-DB表设计书/17-不合理设
 | `db.partition.debug.partition_key_distribution` | 分区键分布 histogram dump（检查数据倾斜） | 1/周 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 10-50KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.partition.debug.partition_list_dump` 与 `db.partition.debug.partition_key_distribution` 在大型表（如 `operation_audit` 3 年 36 个分区）下可能 50KB+ —— release build 完全剔除，避免 RUST_LOG=debug 误开时撑爆生产日志通道
 - `db.partition.detached` 与 `db.partition.creation.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：分区误 `DETACH` 直接破坏 NFR-SE-010"仅追加"约束，影响 NFR-AV-005 数据可恢复性，必须 100% 留痕
 - `db.partition.creation.failed` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），挂 `error!` 立即触发告警链路
@@ -282,7 +279,6 @@ flowchart LR
 | `db.migration.debug.bind_values_dump` | 迁移中数据迁移语句的 bind values dump（用于复现失败） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 0.5-5KB/条（**含 PII 风险**——若含 `player_id` 等业务数据，release 必须剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.migration.debug.sql_redacted_dump` 与 `db.migration.debug.bind_values_dump` **含 PII/Schema 泄漏风险**——若迁移涉及业务数据回填（如旧版数据迁移到新结构），release build 必须完全剔除
 - `db.migration.failed` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：迁移失败若不立即告警，可能导致生产库长期处于"半迁移"状态，影响 NFR-AV-005 + NFR-SE-010
 - `db.migration.drift.detected` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），挂 `error!` 立即触发告警
@@ -315,7 +311,6 @@ flowchart TD
 | `db.expand_contract.debug.consumer_switch_audit_trail` | 各消费者切换的完整审计记录（含切换前后 diff） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 5-20KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.expand_contract.debug.dual_write_consistency_check` 与 `db.expand_contract.debug.consumer_switch_audit_trail` 在大表下可能 20KB+ —— release build 完全剔除
 - `db.expand_contract.contract.applied` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：Contract 阶段直接破坏 NFR-SE-010"仅追加"约束（删除旧列/表），若未正确判定全部消费者已切换，可能导致业务回滚/查询失败，必须 100% 留痕
 - `db.expand_contract.combined.violation` 为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），CI 拦截后立即告警
@@ -351,7 +346,6 @@ flowchart TD
 | `db.backup.debug.recovery_drill_timing_breakdown` | 恢复演练各阶段耗时分解 dump（用于定位瓶颈） | 1/季度 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-5KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.backup.debug.backup_metadata_dump` 与 `db.backup.debug.recovery_drill_timing_breakdown` **严禁**包含备份**数据内容**——若含 `player_id`/邮箱/Token 等业务数据，**不允许**走任何日志通道（既不 debug-only 也不 release）
 - `db.backup.scheduled.failed` 与 `db.backup.recovery.drill_rto_exceeded` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：备份失败意味着 NFR-AV-005 不可恢复性风险；RTO 超标直接影响 NFR-AV-004 合同义务
 - `db.backup.recovery.real_disaster_*` 全部为 `error!` 级别（§4.8.3.2 二维矩阵 `error!` 行 release 常驻 + 强制全采样），触发立即升级 SRE Lead + DBA
@@ -397,7 +391,6 @@ flowchart LR
 | `db.stored_procedure.debug.audit_diff_dump` | 审计发现与已登记例外的逐项 diff | 1/季度 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.stored_procedure.debug.request_full_payload` 含触发器/存储过程定义 SQL——release build 必须完全剔除，避免未审批 SQL 定义被误开 RUST_LOG=debug 时泄漏
 - `db.stored_procedure.unauthorized.detected` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：未登记的存储过程/触发器直接破坏 ARC-023"业务逻辑不入库"决定，影响 NFR-MA-002 可维护性，必须 100% 留痕并告警
 - `db.stored_procedure.exception.approved` 与 `db.stored_procedure.exception.adr_registered` 为 §7 例外白名单的"写入事件"——必须有完整留痕，否则无法对账 AC-DBS-004
@@ -431,7 +424,6 @@ flowchart LR
 | `db.pool.debug.deadlock_query_dump` | 死锁双方的 SQL 完整 dump（用于事后复盘） | 极少 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（**严禁生产日志泄漏**完整 SQL） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.pool.debug.connection_lifecycle_dump` 与 `db.pool.debug.deadlock_query_dump` **严禁含明文 connection string** 与**完整 SQL**（可能含 `player_id`/业务数据）——release build 必须完全剔除
 - `db.pool.exhausted.timeout` 与 `db.pool.connection.deadlock_detected` 为 **数据库域强制全采样白名单**（per 任务特殊约束 + BAS-004 v0.3 §6.2），原因：连接池耗尽/死锁是 P0 级可用性事件，缺失将无法事后复盘 NFR-AV-005 违反根因
 - `db.pool.acquired` 与 `db.pool.released` **不**在强制全采样白名单——原因：1000/s 频率下全采样 200KB/s × 86400s ≈ 17GB/日，超过 NFR-OP-002 成本约束（PH-1〜PH-3 阶段 100% 全采样，PH-4 后按 `trace_sample_ratio` 降级，**异常饱和度/死锁事件本身仍强制全采样**）
@@ -466,7 +458,6 @@ flowchart LR
 | `db.checklist.debug.violation_redacted_diff` | 违规位置的完整 diff（敏感字段已脱敏，**仅** debug-only 守护） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 2-10KB/条（release 剔除） |
 
 **debug-only 守护要点**（落实 BAS-004 v0.3 §4.4）：
-
 - `db.checklist.debug.full_audit_trail` 含评审员完整核对记录——release build 必须完全剔除，避免 RUST_LOG=debug 误开时审计记录泄漏
 - `db.checklist.violation.detected` 为 `warn!` 级别（§4.8.3.2 二维矩阵 `warn!` 行 release 常驻 + 强制全采样），CI 门禁 + DBA 复盘的核心信号
 - §9.1 检查清单的 6 条现有 checklist 项（命名/索引/分区/迁移/备份/存储过程）**全部对应** §1-§8 各自的 release 必出事件——任一项 fail 等价于对应 §X 的 `*.violation.detected`/`*.failed` 事件已发生，可按 `dtl_doc_id` 维度交叉验证

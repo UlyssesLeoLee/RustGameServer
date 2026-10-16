@@ -15,7 +15,7 @@
 
 ## 1. 文档目的
 
-本文件是 **5 业务域核心 DB**（player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db，per ARC-008 5 业务域核心 DB 原则）的**命名 / 字段类型 / 跨域约束**统一约定，per WBS v0.3 §2A.6.7 "补救❶ 跨 DTL 接口契约不一致"。**注**：RGS 仓库完整物理拓扑为「10 独立 PostgreSQL DB + 1 SQLite 库 = 11 个独立数据库」，per [RGS-BAS-007 v0.4 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + [00-IPA 标准化总结报告 §1.2](../15-IPA-DB表设计书/00-IPA标准化总结报告.md)；「ARC-008 5 独立 DB」源于 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)，指 5 业务域核心 DB，**不**指完整拓扑（2026-10-11 PH-2 P0-01a 修复同步）。
+本文件是 **5 业务域核心 DB**（player_db / economy_db / match_db / social_db / admin_db + cluster_ops_db，per ARC-008 5 业务域核心 DB 原则）的**命名 / 字段类型 / 跨域约束**统一约定，per WBS v0.3 §2A.6.7 "补救❶ 跨 DTL 接口契约不一致"。**注**：RGS 仓库完整物理拓扑为「11 独立 PostgreSQL DB + 1 SQLite 库 = 12 个独立数据库」，per [RGS-BAS-007 v0.4 §0.2](../03-数据经济与交易/RGS-BAS-007_数据库设计标准与存储过程规范_基本设计书.md) + [00-IPA 标准化总结报告 §1.2](../15-IPA-DB表设计书/00-IPA标准化总结报告.md)；「ARC-008 5 独立 DB」源于 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md)，指 5 业务域核心 DB，**不**指完整拓扑（2026-10-11 PH-2 P0-01a 修复同步）。
 
 **核心问题**：5 域 DB schema 独立建表 → 命名风格 / 字段类型 / 跨域 join 限制不统一。
 
@@ -29,7 +29,7 @@
 
 - 5 域 DTL §3 实现契约（DTL-015/016/018/019/020/026/031）
 - RGS-IMPL-002 PG 编码规范
-- ARC-008 **5 业务域核心 DB 原则**（**与团队规模无关，是架构原则**；完整物理拓扑为 10 PG + 1 SQLite，per RGS-BAS-007 v0.4 §0.2）
+- ARC-008 **5 业务域核心 DB 原则**（**与团队规模无关，是架构原则**；完整物理拓扑为 11 PG + 1 SQLite，per RGS-BAS-007 v0.4 §0.2）
 - PostgreSQL 18.6 + sqlx（per RGS-TS-001 v0.6 §5.1/§5.2）
 
 ### §2.2 输出
@@ -87,7 +87,7 @@
 🔴 → 🟢：
 
 1. **G-CODE-06** Rust 1.98 + cargo build + cargo test 实际跑过全绿
-2. **G-CODE-03** **10 独立 PG + 1 SQLite 拓扑图**实际画过（**包含本规范定义的 schema 命名示例**；per [RGS-IMPL-002 v0.1 §5](RGS-IMPL-002_PG_编码规范_v0.1.md) 2026-10-11 PH-2 P0-01a 修复同步；"5 业务域核心 DB" 是 ARC-008 原始出处 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) 的简称拓扑，**不**指完整物理拓扑）
+2. **G-CODE-03** **11 独立 PG + 1 SQLite 拓扑图**实际画过（**包含本规范定义的 schema 命名示例**；per [RGS-IMPL-002 v0.1 §5](RGS-IMPL-002_PG_编码规范_v0.1.md) 2026-10-11 PH-2 P0-01a 修复同步；"5 业务域核心 DB" 是 ARC-008 原始出处 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) 的简称拓扑，**不**指完整物理拓扑）
 3. NO-GO 完全解除
 
 满足后由 Ulysses 升 v0.2 填入实际 DB 命名 / 类型约定。

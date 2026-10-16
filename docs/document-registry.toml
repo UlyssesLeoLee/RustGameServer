@@ -286,7 +286,7 @@ owner = "架构负责人"
 allow_reference = true
 
 [[planned_document]]
-id = "RGS-IPA-SUMMARY-2026-10-11"
+id = "RGS-IPA-SUMMARY-001"
 title = "IPA 标准化总结报告（PH-2 P0-01a DB 拓扑澄清 + 4 份基准文档升版路线图）"
 status = "planned"
 owner = "架构师（兼）"
