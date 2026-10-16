@@ -1,0 +1,89 @@
+# ci-unified —— CI workflow 0（per ULYS-254 / RGS-BAS-002 §4.2 + RGS-BAS-009 §4）
+# 触发：push to main, pull_request, workflow_dispatch
+# 范围：作为代码侧 CI/CD 流水线的统一入口，依次串接
+#   1) rust-ci（fmt + clippy + test + llvm-cov，RGS-IMPL-001 §2.2）
+#   2) code-structure-validation（Cypher 头校验 + 跨文件 CALLS 审计，ULYS-254）
+#   3) docs-ci（markdownlint + lychee 文档链接检查）
+#   4) verify-docs-ci（3 脚本必跑：verify_docs.py + check-cross-references.py + check-docs-consistency.sh）
+# 规范：RGS-BAS-002 §4.2（CI/CD 流水线骨架）+ RGS-BAS-009 §4（CI 机械校验设计，含 Cypher）
+#
+# 设计要点（per ULYS-254 §4 工作范围）：
+# - 这是"统一 CI/CD 管道"的入口，但底层仍是各专项独立 workflow + workflow_call；
+#   原因：专项 workflow 在 rush 路径（专项触发）仍可独立跑（人工触发 + 早期反馈），
+#   不破坏已有的 docs-ci / verify-docs-ci / rust-ci 既有使用模式（per docker-build.yml
+#   "uses: ./.github/workflows/rust-ci.yml" 同款模式）。
+# - docs-consistency.yml 原本在 RGS-BAS-009 §4 0.2 设计中作为独立 workflow 提及，但
+#   该 workflow 实际从未创建——文档一致性检查功能由 verify-docs-ci.yml（3 脚本）+ docs-ci.yml
+#   （markdownlint + lychee）共同承担。本 workflow 将其全部纳入统一入口，无遗留独立 workflow。
+# - 四个检查阶段（rust-ci / code-structure-validation / docs-ci / verify-docs-ci）共同
+#   组成"required status check"集合，per ULYS-254 §2 检查门禁；分支保护设置由仓库
+#   Settings → Branches → Branch protection rules 启用对应的 required checks，
+#   本文件不直接修改 GH Settings。
+# - 各阶段间的依赖：rust-ci 必须先过（编译/测试不过则 Cypher 检查无意义，代码都不一定能跑）；
+#   code-structure-validation 依赖 rust-ci 是因为某些 cypher 检查可能复用 cargo 产物；
+#   docs/verify-docs 阶段不依赖 rust 编译（纯静态），可以与 code-structure-validation 并行；
+#   被调用的 docs-ci.yml / verify-docs-ci.yml / code-structure-validation.yml 均声明了 workflow_call 触发。
+#   docker-build 不纳入本入口：它需要 packages:write 与仓库 secrets，且已有自身的 push/tag 触发，
+#   由 docker-build.yml 自身（内部 uses rust-ci.yml）独立承担。
+# - 所有 stage 发出 gov.ci.* 事件，per RGS-BAS-009 §4 本功能日志设计。
+
+name: ci-unified
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ----- 阶段 1：rust-ci（编译/测试/覆盖率）-----
+  rust-ci-stage:
+    name: 阶段1 rust-ci（fmt + clippy + test + llvm-cov）
+    uses: ./.github/workflows/rust-ci.yml
+    # workflow_call 形式复用 rust-ci，per docker-build.yml 同款模式
+
+  # ----- 阶段 2：code-structure-validation（Cypher 头 + CALLS 审计，ULYS-254）-----
+  code-structure-stage:
+    name: 阶段2 code-structure-validation（Cypher 头 + 跨文件 CALLS 审计）
+    needs: rust-ci-stage
+    uses: ./.github/workflows/code-structure-validation.yml
+    with:
+      strict: block  # ULYS-254 §2：required status check，必须 block
+
+  # ----- 阶段 3：docs-ci（markdownlint + lychee）-----
+  docs-ci-stage:
+    name: 阶段3 docs-ci（markdownlint + lychee 链接检查）
+    needs: rust-ci-stage  # 不依赖 code-structure，可与阶段 2 并行（pure-static 文档）
+    uses: ./.github/workflows/docs-ci.yml
+
+  # ----- 阶段 4：verify-docs-ci（3 脚本必跑）-----
+  verify-docs-ci-stage:
+    name: 阶段4 verify-docs-ci（3 脚本必跑）
+    needs: rust-ci-stage
+    uses: ./.github/workflows/verify-docs-ci.yml
+
+  # ----- 收口：统一汇总状态 -----
+  unified-summary:
+    name: unified summary（所有阶段汇总）
+    needs: [rust-ci-stage, code-structure-stage, docs-ci-stage, verify-docs-ci-stage]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Summary
+        run: |
+          echo "## ci-unified summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 阶段 | workflow | result |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| 1. rust-ci | rust-ci.yml | ${{ needs.rust-ci-stage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 2. code-structure-validation | code-structure-validation.yml | ${{ needs.code-structure-stage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 3. docs-ci | docs-ci.yml | ${{ needs.docs-ci-stage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4. verify-docs-ci | verify-docs-ci.yml | ${{ needs.verify-docs-ci-stage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Per RGS-BAS-002 §4.2 + RGS-BAS-009 §4：四阶段共同组成 required status check。" >> $GITHUB_STEP_SUMMARY
+          echo "Per ULYS-254：code-structure-validation 与 docs-consistency/verify-docs-ci 并列同级门禁。" >> $GITHUB_STEP_SUMMARY

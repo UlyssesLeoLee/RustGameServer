@@ -5,7 +5,7 @@
 | 项目 | 内容 |
 |---|---|
 | 文档编号 | RGS-BAS-009 |
-| 版本 | 0.7 |
+| 版本 | 0.8 |
 | 父文档 | RGS-REQ-013 需求定义书 第4章（ARC-025／ARC-026）、第5章（横切需求） |
 | 依据标准 | IPA『共通フレーム 2013（SLCP-JCF2013）』基本设计工程 |
 | 制定日 | 2026-08-16 |
@@ -23,6 +23,7 @@
 | 0.5 | 2026-08-17 | 架构师 | **补齐设计缺口**（详细设计阶段前的完备性核对发现）：新增§5.5挂载回滚时限的拆分设计——FR-GOV-040已在需求侧将回滚SLA拆为"流量回退"（p99<10秒）与"版本回滚"（另计）两项独立目标，但基本设计正文此前完全没有对应的实现落位，只在追溯性表带过 | FR-GOV-040 |
 | 0.6 | 2026-08-17 | 架构师 | **新增§5.2.1数据导出编排设计**（同步RGS-REQ-013 v0.3，FR-GOV-015〜017）：复用§5.2删除编排同一状态机/工作流实现，仅参数化目标动作（去标识化→聚合读取），导出范围与删除范围共享同一份个人数据归属表清单；临时存储默认自托管对象存储，限时访问链接到期自动回收 | §5.2.1新增 |
 | 0.7 | 2026-09-01 | 架构师 (Mavis 接手 agent per DEC-008) | 落实"各BAS文档功能章节加log设计且区分debug/release级"总要求（per Ulysses 2026-09-01 15:52 JST 决策，4 拍板选项：全部 36 个BAS / 详尽版5列表 / 派worker并行 / BAS-004同步升级）：§2.1／§2.2／§2.3／§3.1／§3.2／§3.3／§3.4／§4／§5.1／§5.2／§5.2.1／§5.3／§5.4／§5.5／§6.1 全部 15 个功能章节加"本功能日志设计"5 列详尽版（字段名／触发条件／频率估算／采样策略／脱敏与成本），字段名前缀统一为 `gov.*` 区别于其他域；引用 BAS-001 v1.5 §4.8.3 模板（commit 32d9eb6）+ BAS-003 v0.3 样板（commit 75a001c）+ BAS-004 v0.3 §4.2 二维矩阵 + §4.3 字段 + §5.1 脱敏 + §6.2 强制全采样（commit 47e26b0/0ee6262）；覆盖 ARC-025 治理闭环 + ARC-026 OLU 预算 + §4 CI 机械校验 + §5 横切需求（FR-GOV-001〜040）的"ID 登记/OLU 申领/OLU 回收/CI 检查/插件白名单/数据删除编排/数据导出编排/配置分发/经济插件单点判定/挂载回滚"全链路；显式区分 `info!`/`warn!`/`error!`（release 必出，编译期常驻，§6.2 强制全采样）与 `trace!`/`debug!`（`#[cfg(debug_assertions)]` 守护，debug-only，release build 完全剔除零运行时开销）两类事件；治理事件（CI 检查失败/ADR 登记/TBD 登记/OLU 余额预警）→ release 必出，CI 机械校验的"哪条规则失败/原始输出"等详细日志 → debug-only；§6.1 检查清单新增 log 章节上线检查项；§7 追溯性新增 AC-GOV-006（debug-only 宏 release 完全剔除）与 AC-GOV-007（每功能 BAS 文档须含本功能 log 设计章节），与 BAS-001 v1.5 §4.8.3.4 / BAS-002 v0.4 §13 / BAS-003 v0.3 §13 / BAS-004 v0.3 §12 形成统一规范 | §2.1／§2.2／§2.3／§3.1／§3.2／§3.3／§3.4／§4／§5.1／§5.2／§5.2.1／§5.3／§5.4／§5.5／§6.1／§7 |
+| 0.8 | 2026-10-10 | 架构师 (Mavis 接手 agent per DEC-008) | 落实 ULYS-254 "集成 Cypher 代码结构验证到代码侧 CI/CD 流水线"：§4 本功能日志设计新增 `gov.ci.cypher_*` 5 个事件（`cypher_run_started`／`cypher_check_started`／`cypher_check_passed`／`cypher_check_failed`／`cypher_run_completed`），与原 `gov.ci.check_*`（文档侧 8 项检查）并行而非替代；治理事件清单由 7 个扩为 12 个（release 必出强制全采样，per BAS-004 v0.3 §6.2）；新增 `gov.ci.cypher_*` 子命名空间说明（`check_kind` 区分 code_structure vs calls_audit，`check_id` 区分 verify_headers vs cross_check_calls）；`gov.ci.workflow_integrated` 事件说明更新以反映本次 ULYS-254 实现路径——`.github/workflows/code-structure-validation.yml` 创建 + `.github/workflows/ci-unified.yml` 收口为统一入口；原 §4 v0.2 提及的独立 `docs-consistency.yml` 自始未实现，文档一致性由既有的 `docs-ci.yml` + `verify-docs-ci.yml` 承担，与新 workflow 一起并入 `ci-unified.yml`；ULYS-254 四项工作范围（流水线集成 / 检查门禁 / 日志规范化 / 流水线整合）已在 workflow 中实现；required status check 需另行在仓库分支保护设置中启用；verify_headers 规则 1 FIDELITY 因 CI 无生成前 baseline 不在 CI 执行（详见 RGS-DTL-010 §7.3） | §4 |
 
 ## 审批栏（承認欄 / Approval）
 
@@ -380,7 +381,12 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 | `gov.ci.check_failed` | 8 项检查中任一项失败（阻断级或警告级） | 偶发 | release 必出（100% 强制全采样，治理事件必出 per 用户偏好） | 含`run_id`／`check_kind`／`check_id`／`severity`（block/warn）；约 280B/条 |
 | `gov.ci.check_disabled` | 检查项被显式禁用（如 OLU 余额检查在 ISS-032 决议前禁用） | 极低 | release 必出（100% 强制全采样） | 含`check_id`／`disable_reason`；约 200B/条 |
 | `gov.ci.check_implemented` | 新增一项检查项实现（处置 TBD-PAT-002 之一） | 极低 | release 必出（100% 强制全采样） | 含`check_id`／`implementation_ref`；约 220B/条 |
-| `gov.ci.workflow_integrated` | 独立工作流合并入代码侧 CI/CD 流水线（RGS-BAS-002 §4.2） | 一次性 | release 必出（100% 强制全采样） | 含`old_workflow`／`new_pipeline_stage`；约 250B/条 |
+| `gov.ci.workflow_integrated` | 独立工作流合并入代码侧 CI/CD 流水线（RGS-BAS-002 §4.2）。ULYS-254 触发：`.github/workflows/code-structure-validation.yml` 创建 + `.github/workflows/ci-unified.yml` 收口；旧独立 workflow `docs-consistency.yml` 自始未实现，文档一致性由 `docs-ci.yml` + `verify-docs-ci.yml` 承担，与新 workflow 一起并入 `ci-unified.yml` 统一入口 | 一次性 | release 必出（100% 强制全采样） | 含`old_workflow`／`new_pipeline_stage`；约 250B/条 |
+| `gov.ci.cypher_run_started` | GitHub Actions 工作流 `code-structure-validation.yml` 启动（per ULYS-254，RGS-DTL-010 Cypher 详细设计） | ~12 次/日（crates/**/*.rs 路径变更触发 + ci-unified 必跑） | release 必出（100% 强制全采样） | 含`run_id`／`commit_sha`／`triggered_by`／`workflow`；约 220B/条 |
+| `gov.ci.cypher_check_started` | 单项 Cypher 检查开始（`check_kind` ∈ {code_structure, calls_audit}, `check_id` ∈ {cypher_header_sync, verify_headers, cross_check_calls}） | ~36 次/日（3 项 × 12 次） | release 必出（100% 强制全采样） | 含`run_id`／`check_kind`／`check_id`／`phase`；约 200B/条 |
+| `gov.ci.cypher_check_passed` | 单项 Cypher 检查通过（per ULYS-254 §2 检查门禁：`cypher_header.py --check` 清单同步 / `verify_headers.py` 规则 2-6 / `cross_check_calls.py` 跨文件 CALLS 审计） | ~36 次/日 | release 必出（100% 强制全采样，per BAS-004 v0.3 §6.2） | 含`run_id`／`check_kind`／`check_id`／`severity`=block；约 220B/条 |
+| `gov.ci.cypher_check_failed` | 单项 Cypher 检查失败（manifest 与代码不同步 / 头规则失败 / CALLS 声明不在函数体中） | 偶发（代码变动引入） | release 必出（100% 强制全采样，治理事件必出 per 用户偏好） | 含`run_id`／`check_kind`／`check_id`／`severity`=block；约 300B/条 |
+| `gov.ci.cypher_run_completed` | `code-structure-validation.yml` 执行结束（3 步：header check + verify_headers + cross_check_calls 汇总） | ~12 次/日 | release 必出（100% 强制全采样） | 含`run_id`／`passed`／`failed`／`job_status`；约 260B/条 |
 | `gov.ci.debug.check_raw_output` | 单项检查的原始输出（grep/diff/正则匹配结果全文） | ~96 次/日 | **debug-only**（`#[cfg(debug_assertions)]` 守护，release build 完全剔除） | 约 1-10KB/条（CI 内部 dump，release 剔除，零运行时开销） |
 | `gov.ci.debug.failure_diff` | 失败项的完整 diff（原始文本与期望文本对照） | 偶发 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 2-5KB/条（release 剔除） |
 | `gov.ci.debug.full_workflow_log` | GitHub Actions 工作流完整 log（含每步 stdout/stderr） | ~12 次/日 | **debug-only**（`#[cfg(debug_assertions)]` 守护） | 约 10-50KB/条（release 剔除，避免 RUST_LOG=debug 误开时撑爆通道） |
@@ -390,8 +396,9 @@ TBD／RSK／ISS三类参与治理闭环的ID，在附件D**新设的领域文档
 - `gov.ci.check_failed` 是**阻断级**信号—— release 必出 + 强制全采样，不挂 `#[cfg]`
 - `gov.ci.debug.*` 全部守护 `#[cfg(debug_assertions)]`——CI 详细日志（哪条规则失败/原始输出）在 release build 完全剔除，仅 debug build 留存用于 CI 失败排查
 - `gov.ci.debug.full_workflow_log` 在大型 monorepo 下可能 50KB+ —— release 完全剔除
-- 治理事件清单（强制 release 必出）：`gov.ci.run_started`／`gov.ci.run_completed`／`gov.ci.check_passed`／`gov.ci.check_failed`／`gov.ci.check_disabled`／`gov.ci.check_implemented`／`gov.ci.workflow_integrated` —— 这 7 个事件是治理信号，必须在 production 可见，不能因 debug 守护而失明
+- 治理事件清单（强制 release 必出）：`gov.ci.run_started`／`gov.ci.run_completed`／`gov.ci.check_passed`／`gov.ci.check_failed`／`gov.ci.check_disabled`／`gov.ci.check_implemented`／`gov.ci.workflow_integrated` 以及 ULYS-254 新增的 `gov.ci.cypher_run_started`／`gov.ci.cypher_check_started`／`gov.ci.cypher_check_passed`／`gov.ci.cypher_check_failed`／`gov.ci.cypher_run_completed` —— 这 12 个事件是治理信号，必须在 production 可见，不能因 debug 守护而失明
 - 文档健康检查（per 用户偏好 release 必出）也属本节治理事件范围，详见 §6.1 检查清单相关 log 事件
+- **Cypher 校验事件命名空间**（per ULYS-254 §3 日志规范化）：`gov.ci.cypher_*` 是 §4 内部子命名空间，专属于 `code-structure-validation.yml` 工作流；与 `gov.ci.check_*`（文档侧 8 项检查）并行而非替代。`check_kind` 字段区分 code_structure vs calls_audit，`check_id` 字段区分 cypher_header_sync / verify_headers / cross_check_calls，便于回归某次失败是哪个脚本报红
 
 ---
 

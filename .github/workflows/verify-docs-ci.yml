@@ -25,6 +25,7 @@ on:
       - ".gitattributes"
       - ".github/workflows/verify-docs-ci.yml"
   workflow_dispatch:
+  workflow_call:  # 由 ci-unified.yml 收口调用（ULYS-254）
 
 permissions:
   contents: read
