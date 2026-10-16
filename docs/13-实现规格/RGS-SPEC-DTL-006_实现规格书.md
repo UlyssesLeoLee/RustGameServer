@@ -127,7 +127,7 @@ RGS-IMPL-001 已固定 workspace、crate、协议、迁移、错误、Saga、CI�
 
 - 源 DTL 修订历史条目:见 RGS-DTL-006 §修订历史表
 - 父 BAS 升版条目:见对应父 RGS-BAS-NNN §修订历史表
-- 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表](../RGS-SPEC-000_详细设计规格化总表.md) + 本批 26 份 v0.2 调整说明(2026-08-26 当日 25 份 DTL 升版 + 1 份 DTL-036 双 hotfix 沉淀)
+- 同期 SPEC 调整总报告:[RGS-SPEC-000 详细设计规格化总表](RGS-SPEC-000_详细设计规格化总表.md) + 本批 26 份 v0.2 调整说明(2026-08-26 当日 25 份 DTL 升版 + 1 份 DTL-036 双 hotfix 沉淀)
 - 不可代签:本节"审批者"列已由 Ulysses 于 2026-08-26 完成字段级 DD Review 并签字(per RGS-REV-004),原占位状态见 git 历史
 
 > **本 v0.2 调整严格遵循**:① 不引入新设计 ② 不重写正文本 §1~§8 ③ 不动父 BAS / 上位 REQ ④ 不代签 ⑤ 缺标比错标更安全(per DTL-036 hotfix 复盘修式)。
