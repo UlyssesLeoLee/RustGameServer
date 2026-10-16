@@ -1,6 +1,6 @@
 -- cluster-ops migration 0020_lcm_tables（per WBS v0.3 L4 WF-1-2068 + RGS-DTL-042 §3 + RGS-SPEC-DTL-042 §3 第 5 条）
 -- 服务器全生命周期管理（rgs-realm-lifecycle 子模块，归 rgs-cluster-ops crate，per ARC-051 扩展）
--- 6 张新表 DDL，全部在既有 admin_db（per ARC-008 5 独立 DB 原则 + FR-LCM-001），**不**新建独立数据库
+-- 6 张新表 DDL，全部在既有 admin_db（per **FR-LCM-001** = 服务器全生命周期管理域归 admin 域 SRE + 双层审计；完整物理拓扑为 10 独立 PostgreSQL DB + 1 SQLite 库 = 11 库，per RGS-BAS-007 v0.4 §0.2 + 00-IPA标准化总结报告 §1.2；ARC-008 "5 独立 DB 原则" 出处为 [RGS-WBS-001 v0.3 L4 WF-1-53.10](../../../docs/12-工作流/RGS-WBS-001_瀑布式工作分解结构_v0.3.md) 指 **5 业务域核心 DB**，**不**指完整物理拓扑——2026-10-11 PH-2 P0-01a 修复同步注释），**不**新建独立数据库
 -- 范围：M-2068.1 ~ M-2068.4 (6 表 + 索引 + 月度分区)
 --
 -- ============================================================
