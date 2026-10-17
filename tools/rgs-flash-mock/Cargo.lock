@@ -3,6 +3,18 @@
 version = 4
 
 [[package]]
+name = "aci-emitter"
+version = "0.1.0"
+source = "git+https://github.com/UlyssesLeoLee/aci-emitter?rev=df28c56#df28c5646780afa8b84fe8c0b1831c392b76c869"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "actix-codec"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1524,6 +1536,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 name = "rgs-flash-mock"
 version = "0.1.0"
 dependencies = [
+ "aci-emitter",
  "actix-rt",
  "actix-web",
  "anyhow",
@@ -2199,6 +2212,18 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
+name = "uuid"
+version = "1.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
+dependencies = [
+ "getrandom 0.4.3",
+ "js-sys",
+ "serde_core",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "valuable"
