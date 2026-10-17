@@ -1034,45 +1034,8 @@ impl GrpcProbeResult {
     }
 }
 
-/// player HealthCheck
-async fn call_player_health(clients: &GrpcClients) -> GrpcProbeResult {
-    let mut result = GrpcProbeResult::new("player", "HealthCheck");
-    let Some(mut client) = clients.player.clone() else {
-        result.error = Some("player gRPC client not connected".to_string());
-        return result;
-    };
-    let req = Request::new(common::HealthCheckRequest {
-        service: "rgs-flash-mock".to_string(),
-    });
-    let start = Instant::now();
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(3),
-        client.health_check(req),
-    )
-    .await
-    {
-        Ok(Ok(resp)) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.success = true;
-            let inner = resp.into_inner();
-            result.response_summary = Some(serde_json::json!({
-                "status": inner.status,
-                "message": inner.message,
-            }));
-        }
-        Ok(Err(e)) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.error = Some(format!("gRPC error: {}", e));
-        }
-        Err(_) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.error = Some("timeout (3s)".to_string());
-        }
-    }
-    result
-}
-
-/// player GetPlayerProfile
+/// player GetPlayerProfile (真实业务 RPC；player HealthCheck 探针已移除,
+/// 见 handlers.rs 末尾「死代码清理」说明)
 async fn call_player_get_profile(clients: &GrpcClients, player_id: String) -> GrpcProbeResult {
     let mut result = GrpcProbeResult::new("player", "GetPlayerProfile");
     let Some(mut client) = clients.player.clone() else {
@@ -1449,45 +1412,8 @@ async fn call_card_get_player_collection(clients: &GrpcClients, player_id: Strin
     result
 }
 
-/// leaderboard HealthCheck (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02)
-async fn call_leaderboard_health(clients: &GrpcClients) -> GrpcProbeResult {
-    let mut result = GrpcProbeResult::new("leaderboard", "HealthCheck");
-    let Some(mut client) = clients.leaderboard.clone() else {
-        result.error = Some("leaderboard gRPC client not connected".to_string());
-        return result;
-    };
-    let req = Request::new(common::HealthCheckRequest {
-        service: "rgs-flash-mock".to_string(),
-    });
-    let start = Instant::now();
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(3),
-        client.health_check(req),
-    )
-    .await
-    {
-        Ok(Ok(resp)) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.success = true;
-            let inner = resp.into_inner();
-            result.response_summary = Some(serde_json::json!({
-                "status": inner.status,
-                "message": inner.message,
-            }));
-        }
-        Ok(Err(e)) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.error = Some(format!("gRPC error: {}", e));
-        }
-        Err(_) => {
-            result.latency_ms = start.elapsed().as_millis() as u64;
-            result.error = Some("timeout (3s)".to_string());
-        }
-    }
-    result
-}
-
-/// leaderboard GetRankedLeaderboard (v0.3 NEW, per RGS-DTL-038 §3 DEC-038-02)
+/// leaderboard GetRankedLeaderboard (真实业务 RPC；leaderboard HealthCheck 探针已移除,
+/// 见 handlers.rs 末尾「死代码清理」说明)
 async fn call_leaderboard_get_ranked(clients: &GrpcClients) -> GrpcProbeResult {
     let mut result = GrpcProbeResult::new("leaderboard", "GetRankedLeaderboard");
     let Some(mut client) = clients.leaderboard.clone() else {
