@@ -1,0 +1,121 @@
+# flash-mock-ci —— rgs-flash-mock 独立 crate 的 CI 覆盖
+# 背景：本 crate 有自己的 [workspace] 段（design §2.1，与 rgs-batch-backend 同模式），
+#       不在根 Cargo.toml members 内，因此 rust-ci.yml 的 `cargo clippy --workspace`
+#       不会覆盖它。ULYS-237 v0.4 脱敏（e547b406）把标识符 zsyz 替换成非法的
+#       [游戏A]，导致本 crate 自 2026-09-26 起编译失败（exit 101）却无人发现，
+#       直至 2026-10-17 手工排查才修掉。本 workflow 补上这块 CI 盲区。
+#
+# 触发：push to main, pull_request to main, workflow_dispatch, workflow_call
+# 范围：cargo check --tests + cargo test + Python mock_switch unittest
+#       + mock_switch CLI 5 子命令 exit-code 规范校验
+#
+# 依赖说明：
+# - aci-emitter 是 git 依赖，Cargo.lock 已锁 rev=df28c56，`--locked` 可复现
+# - tests/aci_integration.rs 3 个 IT 全为纯本地断言（只读 .aci.json + 字段校验），
+#   无网络 / 无 DB / 无 sleep，故不进 service container
+# - 该 crate 不在主 workspace，故 rust-ci 的 fmt/clippy 结果不覆盖它；
+#   本 workflow 自行跑 check --tests（等价于该 crate 的编译门禁）
+
+name: flash-mock-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/rgs-flash-mock/**"
+      - ".github/workflows/flash-mock-ci.yml"
+      - ".github/workflows/ci-unified.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/rgs-flash-mock/**"
+      - ".github/workflows/flash-mock-ci.yml"
+      - ".github/workflows/ci-unified.yml"
+  workflow_dispatch:
+  workflow_call:  # 由 ci-unified.yml 收口调用
+
+permissions:
+  contents: read
+
+jobs:
+  flash-mock:
+    name: flash-mock（check + test + python unittest + CLI 规范）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tools/rgs-flash-mock
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98.1
+      # 与根 rust-ci.yml 保持同版本；rust-toolchain.toml 亦 pin 1.98.1
+      # （1.98.0 修 vtable miscompilation issue 161441，必须 1.98.1）
+
+      - name: Install protoc (tonic-build 需要)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
+      - name: Install Python (for mock_switch unittest)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Show toolchain versions
+        run: |
+          rustc --version
+          cargo --version
+          python --version
+
+      - name: Cargo cache
+        uses: Swatinen/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: |
+            tools/rgs-flash-mock -> target
+
+      # 编译门禁。ULYS-237 脱敏事故就是这条红的（exit 101 / 7 个语法错误）。
+      - name: cargo check --tests (编译门禁)
+        run: cargo check --tests --locked
+
+      # 不加 --all-targets：那样会跳过 Doc-tests。本 crate 的 doc-test
+      # （aci_emitter_helper.rs:72 的 emit_smoke_assertion 示例）是真实断言，
+      # 实测 38 个用例 = 34 lib + 3 aci IT + 1 doc-test，全部通过。
+      # --locked：aci-emitter 是 git 依赖，锁 rev=df28c56 防漂移。
+      - name: cargo test (34 lib + 3 aci IT + 1 doc-test)
+        run: cargo test --locked
+
+      # mock_switch reader 的 18 个 unittest（ULYS-190 §4.4 Stage 1 的 5 plugin × 12 module）
+      - name: Python unittest (mock_switch 18 tests)
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      # README 的 CLI exit-code 规范：is-enabled 依 cluster.enabled 决定，
+      # 其余 4 个子命令恒 0。任一违反即红。
+      - name: mock_switch CLI exit-code 规范校验
+        run: |
+          set -euo pipefail
+          fail=0
+          for cmd in get-mode trace validate-compat read-plugins; do
+            if ! python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json "$cmd" >/dev/null; then
+              echo "::error::$cmd 应当 exit 0，实际非 0"
+              fail=1
+            fi
+          done
+          # is-enabled: exit 0 = enabled=true, exit 1 = enabled=false，两者都合法，
+          # 但必须是 0 或 1，不能是别的值
+          set +e
+          python scripts/_lib_mock_switch_rgs.py --aci-config .aci.json is-enabled >/dev/null
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+            echo "::error::is-enabled 应当 exit 0 或 1，实际 $rc"
+            fail=1
+          fi
+          exit "$fail"

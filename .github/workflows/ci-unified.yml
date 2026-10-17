@@ -65,6 +65,14 @@ jobs:
     needs: rust-ci-stage
     uses: ./.github/workflows/verify-docs-ci.yml
 
+  # ----- 阶段 6：flash-mock-ci（独立 crate 的编译/测试门禁）-----
+  # rgs-flash-mock 有自己的 [workspace] 段，不在根 members 内，rust-ci 的
+  # --workspace 覆盖不到它。ULYS-237 脱敏曾让它编译失败三周而 CI 全绿。
+  flash-mock-stage:
+    name: 阶段6 flash-mock-ci（独立 crate 编译 + 测试 + mock_switch）
+    needs: rust-ci-stage
+    uses: ./.github/workflows/flash-mock-ci.yml
+
   # ----- 阶段 5：docker-build（仅 main push）-----
   docker-build-stage:
     name: 阶段5 docker-build（ghcr.io push）
@@ -75,7 +83,7 @@ jobs:
   # ----- 收口：统一汇总状态 -----
   unified-summary:
     name: unified summary（所有阶段汇总）
-    needs: [rust-ci-stage, code-structure-stage, docs-ci-stage, verify-docs-ci-stage]
+    needs: [rust-ci-stage, code-structure-stage, docs-ci-stage, verify-docs-ci-stage, flash-mock-stage]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -90,6 +98,8 @@ jobs:
           echo "| 2. code-structure-validation | code-structure-validation.yml | ${{ needs.code-structure-stage.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 3. docs-ci | docs-ci.yml | ${{ needs.docs-ci-stage.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 4. verify-docs-ci | verify-docs-ci.yml | ${{ needs.verify-docs-ci-stage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 6. flash-mock-ci | flash-mock-ci.yml | ${{ needs.flash-mock-stage.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Per RGS-BAS-002 §4.2 + RGS-BAS-009 §4：四阶段共同组成 required status check。" >> $GITHUB_STEP_SUMMARY
+          echo "Per RGS-BAS-002 §4.2 + RGS-BAS-009 §4：五阶段共同组成 required status check。" >> $GITHUB_STEP_SUMMARY
           echo "Per ULYS-254：code-structure-validation 与 docs-consistency/verify-docs-ci 并列同级门禁。" >> $GITHUB_STEP_SUMMARY
+          echo "flash-mock-ci：rgs-flash-mock 为独立 workspace（不在根 members 内），rust-ci 的 --workspace 覆盖不到，故单列阶段。" >> $GITHUB_STEP_SUMMARY
