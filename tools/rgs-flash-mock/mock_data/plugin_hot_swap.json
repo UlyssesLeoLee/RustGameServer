@@ -1,0 +1,190 @@
+{
+  "module": "plugin-hot-swap",
+  "version": "0.1.0",
+  "description": "rgs-flash-mock plugin 集群 hot-swap 回归 fixture (per RGS-TEST-CASES-2026-09-07_v0.2 §3.2 L303-315; 缺口来源 README L107 「plugin 集群 — draw_card_probability PoC 仅 v0.1, 缺 hot-swap E2E 实战验证」)",
+  "source_refs": {
+    "test_cases_section": "docs/15-IPA-完全对齐438cmds/RGS-TEST-CASES-2026-09-07_v0.2.md §3.2 (L303-315)",
+    "readme_gap": "tools/rgs-flash-mock/README.md:107",
+    "helper_cli": "tools/rgs-flash-mock/scripts/_lib_mock_switch_rgs.py",
+    "aci_registry": "tools/rgs-flash-mock/.aci.json",
+    "cluster_registry": "tools/rgs-flash-mock/.mock-cluster.json",
+    "plugin_app_arch": "NOT-LOCATED-IN-TREE: 当前树中未定位到 RGS-PLUGIN-APP-ARCH-2026-09-05 同名文件 (docs/ 下仅 10 处引用, 无同名文件); 本 fixture 只按 TEST-CASES §3.2 的用例定义实现"
+  },
+  "semantics": {
+    "hot_swap_core": "切换瞬间在途的调用仍由旧版本完成, 新调用才走新版本 (config-binding 级可观测; 运行时级不可观测, 见 known_gaps)",
+    "observation_level": "config-binding",
+    "swap_unit": "module",
+    "swap_target_plugin": "admin",
+    "swap_target_module": "card",
+    "swap_target_note": "admin::card 即 draw_card_probability PoC 的 mock 宿主 (per regression-test-plugin-poc.sh L47 「function_id: card.draw_card_probability」)"
+  },
+  "scenarios": [
+    {
+      "scenario": "PLUGIN-001",
+      "name": "PoC 抽卡 hot-swap: admin::card 模块级热切换 (cluster/app 不重启)",
+      "executable": true,
+      "coverage": "config-binding",
+      "domains": {
+        "admin": "admin-plugin (aci plugins.admin)",
+        "card": "card-module (aci plugins.admin.modules.card) — draw_card_probability PoC 宿主",
+        "cluster": ".mock-cluster.json (cluster 级 enabled/mode 不受模块级切换影响)"
+      },
+      "expected": {
+        "pre_switch": {
+          "plugins_total": 5,
+          "plugins_enabled": 5,
+          "modules_total": 12,
+          "modules_enabled": 12
+        },
+        "cluster_enabled_flip": {
+          "enabled_true_exit": 0,
+          "enabled_false_exit": 1,
+          "restored_exit": 0,
+          "trace_enabled_true_token": "cluster.enabled=true",
+          "trace_enabled_false_token": "cluster.enabled=false"
+        },
+        "switch_off": {
+          "target_plugin": "admin",
+          "target_module": "card",
+          "modules_enabled_delta": -1,
+          "target_module_enabled": false,
+          "target_plugin_enabled": true,
+          "cluster_enabled": true
+        },
+        "switch_back": {
+          "modules_enabled_delta": 0,
+          "target_module_enabled": true
+        },
+        "rollback": {
+          "modules_total_delta": 0,
+          "modules_enabled_delta": 0,
+          "deep_equal_baseline": true,
+          "extra_module_removed": true
+        },
+        "in_flight": {
+          "binding_fields": ["plugin_enabled", "module_enabled", "mode"],
+          "in_flight_binding_kept": true,
+          "new_call_rebinds": true,
+          "mode_before": "offline",
+          "module_enabled_before": true,
+          "module_enabled_after": false
+        }
+      }
+    },
+    {
+      "scenario": "PLUGIN-006",
+      "name": "plugin Paused → app 走 native fallback (module 保留在 registry, enabled=false)",
+      "executable": true,
+      "coverage": "config-binding",
+      "domains": {
+        "admin": "admin-plugin (aci plugins.admin)",
+        "card": "card-module (aci plugins.admin.modules.card)",
+        "cluster": ".mock-cluster.json (cluster 级 enabled/mode/fallback_to_real 不受 plugin 级暂停影响)"
+      },
+      "expected": {
+        "paused": {
+          "target_plugin": "admin",
+          "target_module": "card",
+          "target_module_present_in_registry": true,
+          "target_module_enabled": false,
+          "target_plugin_enabled": true,
+          "plugins_enabled": 5,
+          "modules_enabled_delta": -1,
+          "cluster_enabled": true,
+          "cluster_mode_unchanged": true
+        }
+      }
+    },
+    {
+      "scenario": "PLUGIN-007",
+      "name": "各 app plugin 与 registry 一致性 (.aci.json ↔ .mock-cluster.json ↔ read-plugins)",
+      "executable": true,
+      "coverage": "config-binding",
+      "domains": {
+        "aci_registry": "tools/rgs-flash-mock/.aci.json (plugins[].modules[] + module_count_*)",
+        "cluster_registry": "tools/rgs-flash-mock/.mock-cluster.json (module_count_* + mock_switch_trace_format)",
+        "reader": "scripts/_lib_mock_switch_rgs.py read-plugins"
+      },
+      "expected": {
+        "plugins_total": 5,
+        "modules_total": 12,
+        "modules_enabled": 12,
+        "aci_module_count_total": 12,
+        "aci_module_count_enabled": 12,
+        "cluster_module_count_total": 12,
+        "cluster_module_count_enabled": 12,
+        "plugin_id_sets_equal": true,
+        "module_id_sets_equal": true,
+        "per_plugin_counts_match": true,
+        "trace_per_plugin_counts_match": true,
+        "trace_tail_counts_match": true
+      }
+    },
+    {
+      "scenario": "PLUGIN-002",
+      "name": "阶段 1 MVP: PG registry 持久化 + 9 域共享",
+      "executable": false,
+      "coverage": "not-observable-locally",
+      "domains": {
+        "registry": "PG (PostgreSQL) 持久化",
+        "apps": "9 域共享同一 registry"
+      },
+      "expected": {},
+      "known_gap": {
+        "asserted": false,
+        "reason": "本地 mock 层无 PG 实例、无 9 域 app runtime, 无法观测 registry 持久化与跨域共享",
+        "evidence": "scripts/_lib_mock_switch_rgs.py 只读本地 .aci.json / .mock-cluster.json (无任何 PG 客户端依赖)",
+        "closed_by": "需 function-plane + PG 集成环境 (per TEST-CASES §3.2 L307-308 「9/5 ARCH §4.2 阶段 1 MVP」)"
+      }
+    },
+    {
+      "scenario": "PLUGIN-003",
+      "name": "阶段 2: 每 app 独立更新 + 双 registry 模式",
+      "executable": false,
+      "coverage": "not-observable-locally",
+      "domains": {
+        "apps": "每 app 独立更新通道",
+        "registry": "双 registry 模式 (app-local + global)"
+      },
+      "expected": {},
+      "known_gap": {
+        "asserted": false,
+        "reason": "mock 层只有单一 .aci.json registry, 无 app-local/global 双 registry 结构, 也无 app 独立更新通道",
+        "evidence": "tools/rgs-flash-mock/.aci.json 根级只有 1 份 plugins 映射 (5 plugin × 12 module)",
+        "closed_by": "需 ARCH 阶段 2 的双 registry 数据结构落地后才有可观测对象 (per TEST-CASES §3.2 L309-310 「9/5 ARCH §4.3 阶段 2」)"
+      }
+    },
+    {
+      "scenario": "PLUGIN-004",
+      "name": "WASM 资源限 fuel cap fail-closed",
+      "executable": false,
+      "coverage": "not-observable-locally",
+      "domains": {
+        "runtime": "WASM runtime fuel cap (per PoC v0.1 fuel 10000000 per-call cap)"
+      },
+      "expected": {},
+      "known_gap": {
+        "asserted": false,
+        "reason": "无 WASM runtime 在本地运行, .aci.json / .mock-cluster.json 无 fuel 字段, 无法观测 fuel cap fail-closed",
+        "evidence": "tools/rgs-flash-mock/scripts/regression-test-plugin-poc.sh L51 仅 echo 出 fuel 数值, 无断言",
+        "closed_by": "需 function-plane WASM runtime 起服后按 fuel cap 注入用例"
+      }
+    },
+    {
+      "scenario": "PLUGIN-005",
+      "name": "WASM 内存限 memory_mib cap fail-closed",
+      "executable": false,
+      "coverage": "not-observable-locally",
+      "domains": {
+        "runtime": "WASM runtime memory_mib cap (per PoC v0.1 memory_mib 256 per-instance ceiling)"
+      },
+      "expected": {},
+      "known_gap": {
+        "asserted": false,
+        "reason": "无 WASM runtime 在本地运行, 配置无 memory_mib 字段, 无法观测 memory cap fail-closed",
+        "evidence": "tools/rgs-flash-mock/scripts/regression-test-plugin-poc.sh L52 仅 echo 出 memory_mib 数值, 无断言",
+        "closed_by": "需 function-plane WASM runtime 起服后按 memory_mib 注入用例"
+      }
+    }
+  ]
+}
