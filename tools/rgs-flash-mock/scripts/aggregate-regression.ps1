@@ -44,7 +44,17 @@ $EvidenceDir = Join-Path $EvidenceRoot $Batch
 $MockDataDir = Join-Path $RepoRoot "tools\rgs-flash-mock\mock_data\$Batch"
 $DocsDir = Join-Path $RepoRoot 'tools\rgs-flash-mock\docs'
 if (-not (Test-Path -LiteralPath $EvidenceDir)) { throw "evidence dir missing: $EvidenceDir" }
-# 批次说明 / 基线说明可从文件读入（markdown 片段），便于把批次结论作为数据归档
+# 批次说明 / 基线说明可从文件读入（markdown 片段），便于把批次结论作为数据归档。
+# 未显式指定时，默认取批次数据目录下的 notes.md / baseline.md
+#（裸跑 `aggregate-regression.ps1 -Batch <b>` 也能复现完整报告，不会丢章节）
+if ([string]::IsNullOrWhiteSpace($NotesFile)) {
+    $def = Join-Path $MockDataDir 'notes.md'
+    if (Test-Path -LiteralPath $def) { $NotesFile = $def }
+}
+if ([string]::IsNullOrWhiteSpace($BaselineFile)) {
+    $def = Join-Path $MockDataDir 'baseline.md'
+    if (Test-Path -LiteralPath $def) { $BaselineFile = $def }
+}
 if (-not [string]::IsNullOrWhiteSpace($NotesFile) -and (Test-Path -LiteralPath $NotesFile)) {
     $Notes = (Get-Content -LiteralPath $NotesFile -Raw -Encoding UTF8).Trim()
 }
