@@ -236,7 +236,7 @@ mod nif_bindings {
     use rustler::Encoder;
 
     rustler::init!(
-        b"rgs_nif\0",
+        "rgs_nif\0",
         [add, echo, bridge_route, version],
         load = on_load
     );
