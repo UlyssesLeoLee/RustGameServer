@@ -1,0 +1,44 @@
+{
+  "_module_meta": {
+    "module_name": "network_ext",
+    "module_name_zh": "网络扩展(8 域扩展)",
+    "source": "scripts/regression-test-8-domain-extension.sh L61-63",
+    "rpc_code_status": "placeholder: src/gap_matrix.rs 的 22 stub 与本组 RPC 不是同一集合, code 由本 lane 分配, 待 gap_matrix 同步补齐",
+    "total_cmds": 3,
+    "gap_status_overall": "Partial",
+    "request_field_type_legend": "32 = u32 占位, string = utf8 占位 (本 fixture 局部约定)",
+    "known_gaps": [
+      "src/gap_matrix.rs 无 network_ext 条目, rpc_code 8301-8303 为本 lane 占位, 待 gap_matrix 同步补齐",
+      "真实 network-gateway 未接入 k3s 真实域, 本 fixture 仅 mock (per README.md 已知缺口 #1)"
+    ]
+  },
+  "rpcs": {
+    "8301": {
+      "rpc_code": 8301,
+      "rpc_name": "RoutePacket",
+      "rpc_name_zh": "协议包路由",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["packet_id:32", "target:32"],
+      "mock_response": { "code": 0, "msg": "ok", "routed": true }
+    },
+    "8302": {
+      "rpc_code": 8302,
+      "rpc_name": "HealthCheck",
+      "rpc_name_zh": "健康检查",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["service_name:string"],
+      "mock_response": { "code": 0, "msg": "ok", "healthy": true }
+    },
+    "8303": {
+      "rpc_code": 8303,
+      "rpc_name": "LoadBalance",
+      "rpc_name_zh": "负载均衡",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["connection_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "backend": "mock-backend" }
+    }
+  }
+}

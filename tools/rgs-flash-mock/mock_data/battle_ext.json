@@ -1,0 +1,53 @@
+{
+  "_module_meta": {
+    "module_name": "battle_ext",
+    "module_name_zh": "战斗扩展(8 域扩展)",
+    "source": "scripts/regression-test-8-domain-extension.sh L56-59",
+    "rpc_code_status": "placeholder: src/gap_matrix.rs 的 22 stub 与本组 RPC 不是同一集合, code 由本 lane 分配, 待 gap_matrix 同步补齐",
+    "total_cmds": 4,
+    "gap_status_overall": "Partial",
+    "request_field_type_legend": "32 = u32 占位, string = utf8 占位 (本 fixture 局部约定)",
+    "known_gaps": [
+      "src/gap_matrix.rs 无 battle_ext 条目, rpc_code 8201-8204 为本 lane 占位, 待 gap_matrix 同步补齐",
+      "真实 battle-service 未接入 k3s 真实域, 本 fixture 仅 mock (per README.md 已知缺口 #1)"
+    ]
+  },
+  "rpcs": {
+    "8201": {
+      "rpc_code": 8201,
+      "rpc_name": "PrepareCombat",
+      "rpc_name_zh": "准备战斗",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32", "scene_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "battle_id": "mock-battle-0001" }
+    },
+    "8202": {
+      "rpc_code": 8202,
+      "rpc_name": "SubmitAction",
+      "rpc_name_zh": "提交战斗操作",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["battle_id:string", "action:32"],
+      "mock_response": { "code": 0, "msg": "ok", "accepted": true }
+    },
+    "8203": {
+      "rpc_code": 8203,
+      "rpc_name": "FinishCombatPlay",
+      "rpc_name_zh": "结束战斗演出",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["battle_id:string"],
+      "mock_response": { "code": 0, "msg": "ok", "finished": true }
+    },
+    "8204": {
+      "rpc_code": 8204,
+      "rpc_name": "GetCombatResult",
+      "rpc_name_zh": "获取战斗结果",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["battle_id:string"],
+      "mock_response": { "code": 0, "msg": "ok", "result": "mock", "score": 0 }
+    }
+  }
+}

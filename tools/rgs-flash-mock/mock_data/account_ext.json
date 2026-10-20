@@ -1,0 +1,44 @@
+{
+  "_module_meta": {
+    "module_name": "account_ext",
+    "module_name_zh": "账号扩展(8 域扩展)",
+    "source": "scripts/regression-test-8-domain-extension.sh L65-67",
+    "rpc_code_status": "placeholder: src/gap_matrix.rs 的 22 stub 与本组 RPC 不是同一集合, code 由本 lane 分配, 待 gap_matrix 同步补齐",
+    "total_cmds": 3,
+    "gap_status_overall": "Partial",
+    "request_field_type_legend": "32 = u32 占位, string = utf8 占位 (本 fixture 局部约定)",
+    "known_gaps": [
+      "src/gap_matrix.rs 无 account_ext 条目, rpc_code 8401-8403 为本 lane 占位, 待 gap_matrix 同步补齐",
+      "真实 player-service 未接入 k3s 真实域, 本 fixture 仅 mock (per README.md 已知缺口 #1)"
+    ]
+  },
+  "rpcs": {
+    "8401": {
+      "rpc_code": 8401,
+      "rpc_name": "CreateAccount",
+      "rpc_name_zh": "创建账号",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["account_id:string"],
+      "mock_response": { "code": 0, "msg": "ok", "created": true }
+    },
+    "8402": {
+      "rpc_code": 8402,
+      "rpc_name": "Login",
+      "rpc_name_zh": "登录",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["account_id:string"],
+      "mock_response": { "code": 0, "msg": "ok", "token": "mock-token" }
+    },
+    "8403": {
+      "rpc_code": 8403,
+      "rpc_name": "GetAccount",
+      "rpc_name_zh": "获取账号信息",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["account_id:string"],
+      "mock_response": { "code": 0, "msg": "ok", "account_id": "mock-account", "level": 1 }
+    }
+  }
+}
