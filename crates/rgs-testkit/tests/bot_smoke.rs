@@ -135,10 +135,25 @@ async fn bot_ai_player_handle_all_acts() {
 }
 
 #[tokio::test]
-async fn bot_gm_client_stub_returns_ok() {
+async fn bot_gm_client_issue_is_fail_closed_when_cluster_unreachable() {
+    // per 9788404f (wave 3, 2026-09-10): GmClient::issue() 刻意不真连
+    // admin-service (k3s baseline 0/12 阶段跳过真实 RPC, 等 SRE 介入),
+    // 恒返 Ok + ok:false。本用例守 fail-closed 契约: 不 panic + 带 error
+    // + 不静默吞 (per gm.rs issue() 文档)。
     let c = GmClient::new("https://admin-service:8443");
-    let r: GmResponse = c.issue("加经验 100").await.expect("gm stub ok");
-    assert!(r.ok);
+    let r: GmResponse = c.issue("加经验 100").await.expect("issue 不得 panic");
+    assert!(!r.ok, "集群不可达时 issue() 必须 fail-closed (ok=false)");
+    assert!(r.error.is_some(), "fail-closed 必须带 error, 不静默吞");
+}
+
+#[tokio::test]
+#[ignore = "缺口: issue() 真连 admin-service 返 ok=true 待 SRE 介入 / k3s 集群恢复后验证"]
+async fn bot_gm_client_issue_returns_ok_when_cluster_reachable() {
+    // 缺口用例 (以缺口命名): 集群可达时 issue() 应返 ok=true。
+    // 缺口关闭时本用例解除 #[ignore] 即可变绿, 防止能力缺口被遗忘。
+    let c = GmClient::new("https://admin-service:8443");
+    let r: GmResponse = c.issue("加经验 100").await.expect("issue ok");
+    assert!(r.ok, "集群可达时 issue() 应返 ok=true");
 }
 
 #[tokio::test]

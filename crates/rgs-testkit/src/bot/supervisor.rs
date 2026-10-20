@@ -185,8 +185,16 @@ impl BotSupervisor {
     }
 
     /// 停止所有 bot
+    ///
+    /// 停止后**保留** bot 实例在 registry 里: 掉线自愈
+    /// ([`BotSupervisor::relogin_offline`]) 要按 id 在 `self.bots` 里找到
+    /// bot 并重新 `start()`。若此处把 registry drain 掉, 自愈路径永远找不到
+    /// bot, `recovered` 恒为 0 —— 掉线自愈形同虚设。
+    ///
+    /// 在线数仍由 [`BotStats`] 决定 (`Bot::stop` 内部 `mark_offline`),
+    /// 所以保留实例不影响 `online_count()` 语义。
     pub async fn stop_all(&mut self) {
-        for bot in self.bots.drain(..) {
+        for bot in self.bots.iter() {
             bot.stop().await;
         }
     }
