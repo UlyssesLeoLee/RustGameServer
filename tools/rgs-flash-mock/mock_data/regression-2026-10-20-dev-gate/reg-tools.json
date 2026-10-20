@@ -42,5 +42,5 @@
   "elapsed_ms": 268800,
   "exit_code": 101,
   "raw_verdict": "FAIL",
-  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-tools-test.log"
+  "raw_log": "tools/rgs-flash-mock/logs/regression-2026-10-20-dev-gate/reg-tools-test.log"
 }

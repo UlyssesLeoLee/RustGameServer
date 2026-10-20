@@ -1,6 +1,6 @@
 # RGS 并行回归报告 — regression-2026-10-20-dev-gate
 
-生成时间: 2026-10-21 01:31:13 +09:00  ·  生成器: `tools/rgs-flash-mock/scripts/aggregate-regression.ps1`
+生成时间: 2026-10-21 01:35:09 +09:00  ·  生成器: `tools/rgs-flash-mock/scripts/aggregate-regression.ps1`
 
 ## 判定
 

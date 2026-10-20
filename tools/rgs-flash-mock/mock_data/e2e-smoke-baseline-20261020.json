@@ -1,0 +1,71 @@
+{
+  "total": 12,
+  "results": [
+    {
+      "Name": "player-service-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.106 port=50051 tcp-fail"
+    },
+    {
+      "Name": "economy-service-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.200 port=50052 tcp-fail"
+    },
+    {
+      "Name": "match-service-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.107 port=50053 tcp-fail"
+    },
+    {
+      "Name": "social-service-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.101 port=50054 tcp-fail"
+    },
+    {
+      "Name": "admin-service-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.104 port=50055 tcp-fail"
+    },
+    {
+      "Name": "cluster-ops-grpc",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.91 port=50056 tcp-fail"
+    },
+    {
+      "Name": "gm-backend-healthz",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.98 port=8081/healthz http=000000!=200"
+    },
+    {
+      "Name": "gm-backend-readyz",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.98 port=8081/readyz http=000000!=200"
+    },
+    {
+      "Name": "postgres",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.108 port=5432 tcp-fail"
+    },
+    {
+      "Name": "prometheus-healthy",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.99 port=9090/-/healthy http=000000!=200 body-mismatch"
+    },
+    {
+      "Name": "grafana-health",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.95 port=3000/api/health http=000000!=200 body-mismatch"
+    },
+    {
+      "Name": "nats-varz",
+      "Status": "FAIL",
+      "Detail": "ip=10.42.0.96 port=8222/varz http=000000!=200 body-mismatch"
+    }
+  ],
+  "namespace": "rust-game-server",
+  "expect_nats": 1,
+  "timestamp": "2026-10-20T20:16:10.7353478+09:00",
+  "pass": 0,
+  "skip": 0,
+  "fail": 12
+}

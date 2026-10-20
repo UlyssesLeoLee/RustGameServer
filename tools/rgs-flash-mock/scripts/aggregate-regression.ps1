@@ -36,7 +36,8 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSCommandPath)))
 }
 if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
-    $EvidenceRoot = Join-Path $RepoRoot 'logs'
+    # 证据落 mock 项目 logs/（per 2026-09-04 17:47 JST 测试脚本+数据归入 mock 项目）
+    $EvidenceRoot = Join-Path $RepoRoot 'tools\rgs-flash-mock\logs'
 }
 
 $EvidenceDir = Join-Path $EvidenceRoot $Batch
@@ -230,7 +231,7 @@ foreach ($l in $laneResults) {
         elapsed_ms    = $l.ElapsedMs
         exit_code     = $l.ExitCode
         raw_verdict   = $l.RawVerdict
-        raw_log       = "logs/$Batch/$($l.Lane)-$($l.Mode).log"
+        raw_log       = "tools/rgs-flash-mock/logs/$Batch/$($l.Lane)-$($l.Mode).log"
     }
     foreach ($k in ($l.ClassCounts.Keys | Sort-Object)) { $obj.failure_class[$k] = $l.ClassCounts[$k] }
     $out = Join-Path $MockDataDir "$($l.Lane).json"

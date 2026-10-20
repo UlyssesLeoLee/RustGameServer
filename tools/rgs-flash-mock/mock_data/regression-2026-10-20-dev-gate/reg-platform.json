@@ -17,5 +17,5 @@
   "elapsed_ms": 318000,
   "exit_code": 0,
   "raw_verdict": "PASS",
-  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-platform-test.log"
+  "raw_log": "tools/rgs-flash-mock/logs/regression-2026-10-20-dev-gate/reg-platform-test.log"
 }
