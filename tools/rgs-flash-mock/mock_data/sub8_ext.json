@@ -1,0 +1,89 @@
+{
+  "_module_meta": {
+    "module_name": "sub8_ext",
+    "module_name_zh": "sub8 扩展(8 域扩展)",
+    "source": "scripts/regression-test-8-domain-extension.sh L69-76",
+    "rpc_code_status": "placeholder: src/gap_matrix.rs 的 22 stub 与本组 RPC 不是同一集合, code 由本 lane 分配, 待 gap_matrix 同步补齐",
+    "total_cmds": 8,
+    "gap_status_overall": "Partial",
+    "request_field_type_legend": "32 = u32 占位, string = utf8 占位 (本 fixture 局部约定)",
+    "known_gaps": [
+      "src/gap_matrix.rs 无 sub8_ext 条目, rpc_code 8501-8508 为本 lane 占位, 待 gap_matrix 同步补齐",
+      "真实 sub8 未接入 k3s 真实域, 本 fixture 仅 mock (per README.md 已知缺口 #1)"
+    ]
+  },
+  "rpcs": {
+    "8501": {
+      "rpc_code": 8501,
+      "rpc_name": "LoginSub8",
+      "rpc_name_zh": "sub8 登录",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "logged_in": true }
+    },
+    "8502": {
+      "rpc_code": 8502,
+      "rpc_name": "LogoutSub8",
+      "rpc_name_zh": "sub8 登出",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "logged_in": false }
+    },
+    "8503": {
+      "rpc_code": 8503,
+      "rpc_name": "GetSub8Status",
+      "rpc_name_zh": "获取 sub8 状态",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "status": "idle" }
+    },
+    "8504": {
+      "rpc_code": 8504,
+      "rpc_name": "Sub8Heartbeat",
+      "rpc_name_zh": "sub8 心跳",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32", "tick:32"],
+      "mock_response": { "code": 0, "msg": "ok", "ack": true }
+    },
+    "8505": {
+      "rpc_code": 8505,
+      "rpc_name": "Sub8Config",
+      "rpc_name_zh": "sub8 配置读取",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "config_version": 1 }
+    },
+    "8506": {
+      "rpc_code": 8506,
+      "rpc_name": "Sub8Metrics",
+      "rpc_name_zh": "sub8 指标查询",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "metric_count": 0 }
+    },
+    "8507": {
+      "rpc_code": 8507,
+      "rpc_name": "Sub8Health",
+      "rpc_name_zh": "sub8 健康检查",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "healthy": true }
+    },
+    "8508": {
+      "rpc_code": 8508,
+      "rpc_name": "Sub8Update",
+      "rpc_name_zh": "sub8 更新",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32", "version:32"],
+      "mock_response": { "code": 0, "msg": "ok", "updated": true }
+    }
+  }
+}

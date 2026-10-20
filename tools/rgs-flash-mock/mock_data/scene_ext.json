@@ -1,0 +1,53 @@
+{
+  "_module_meta": {
+    "module_name": "scene_ext",
+    "module_name_zh": "场景扩展(8 域扩展)",
+    "source": "scripts/regression-test-8-domain-extension.sh L51-54",
+    "rpc_code_status": "placeholder: src/gap_matrix.rs 的 22 stub 与本组 RPC 不是同一集合, code 由本 lane 分配, 待 gap_matrix 同步补齐",
+    "total_cmds": 4,
+    "gap_status_overall": "Partial",
+    "request_field_type_legend": "32 = u32 占位, string = utf8 占位 (本 fixture 局部约定)",
+    "known_gaps": [
+      "src/gap_matrix.rs 无 scene_ext 条目, rpc_code 8101-8104 为本 lane 占位, 待 gap_matrix 同步补齐",
+      "真实 scene-service 未接入 k3s 真实域, 本 fixture 仅 mock (per README.md 已知缺口 #1)"
+    ]
+  },
+  "rpcs": {
+    "8101": {
+      "rpc_code": 8101,
+      "rpc_name": "GetCombatScene",
+      "rpc_name_zh": "获取战斗场景",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["scene_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "scene_id": 10001 }
+    },
+    "8102": {
+      "rpc_code": 8102,
+      "rpc_name": "SceneStateSync",
+      "rpc_name_zh": "场景状态同步",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32", "state:32"],
+      "mock_response": { "code": 0, "msg": "ok", "state": 1 }
+    },
+    "8103": {
+      "rpc_code": 8103,
+      "rpc_name": "MovePlayer",
+      "rpc_name_zh": "玩家移动",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["player_id:32", "target_x:32"],
+      "mock_response": { "code": 0, "msg": "ok", "moved": true }
+    },
+    "8104": {
+      "rpc_code": 8104,
+      "rpc_name": "GetScenePlayers",
+      "rpc_name_zh": "获取场景玩家列表",
+      "rgs_rpc": "TBD",
+      "gap_status": "Partial",
+      "request_fields": ["scene_id:32"],
+      "mock_response": { "code": 0, "msg": "ok", "player_count": 0 }
+    }
+  }
+}

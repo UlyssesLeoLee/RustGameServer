@@ -94,6 +94,7 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 | `scripts/regression-test-30-new-module.sh` | W3 启动 Phase 3 60 module + 9 域 mTLS + admin-coc §X |
 | `scripts/regression-test-9-domain-mtls.sh` | 9 域 mTLS 端到端 11 步客户端模拟器 v3 (per 9/6 d270ab9) |
 | `scripts/regression-test-8-domain-extension.sh` | 8 域扩展 (scene / battle / network / account / sub8) 22 RPC |
+| `scripts/regression-test-new-domain-fixture-coverage.sh` | 8 域扩展 5 fixture / 22 RPC 覆盖自检 (期望清单从 8 域脚本解析) |
 | `scripts/regression-test-batch-domain.sh` | batch 域 6 module × 15 用例 = 90 用例 |
 | `scripts/regression-test-plugin-poc.sh` | PLUGIN-001~007 plugin PoC WASM |
 | `scripts/regression-test-admin-coc.sh` | admin-coc §X 集成 3 场景 (1101/1102/1103) + 7 项 admin 域 Lead 真实签字 |
@@ -108,11 +109,13 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 4. **app 独立更新** — 缺 4 用例 (APP-DEPLOY-001~004) per 主设计书 v0.2 §7.4
 5. **ops UI** — 缺 6 用例 (OPS-UI-001~006) per 主设计书 v0.2 §7.4
 6. **9 域 mTLS fixture 100% 覆盖** — 4 NEW 域 (scene/battle/network/account) k8s yaml 9/6 已落档,
-   但 mock_data/ 暂未对应 4 个 fixture JSON
+   mock_data/ 对应 fixture JSON 已补 (5 个: scene_ext / battle_ext / network_ext / account_ext /
+   sub8_ext, per docs/gap-closure-new-domain-fixture-coverage.md); 9 域 mTLS 侧 100% 覆盖待验证
 
 ## 关联文档
 
 - `docs/V0.2-IMPLEMENTATION-REPORT.md` / `V0.3-IMPLEMENTATION-REPORT.md` — 实施报告
+- `docs/gap-closure-new-domain-fixture-coverage.md` — 新增域 fixture 覆盖缺口闭环 (5 fixture / 22 RPC + 覆盖自检脚本)
 - `docs/12-大类-RPC-清单.md` — 60 module gap matrix (含 §16 W3 + §17 v0.3 升版)
 - `docs/W2-PHASE-2-*` / `docs/W3-PHASE-3-*` — Worker 1..5 报告 (W2 2 报告 + 1 handoff + W3 5 报告)
 - `docs/regression-report-stage1-module-switch-2026-09-26.md` — ULYS-190 §4.4 Stage 1 regression report (per ULYS-240)
