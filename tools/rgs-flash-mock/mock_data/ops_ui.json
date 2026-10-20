@@ -1,0 +1,271 @@
+{
+  "module": "ops-ui",
+  "version": "0.2.0",
+  "description": "rgs-flash-mock ops 运维 UI 6 用例 fixture (OPS-UI-001~006)",
+  "case_source": "docs/15-IPA-完全对齐438cmds/RGS-TEST-CASES-2026-09-07_v0.2.md §3.4 (L327-338)",
+  "design_source": "docs/15-IPA-完全对齐438cmds/RGS-TEST-DESIGN-2026-09-07_v0.2.md §7.4 (L315-359)",
+  "gap_source": "tools/rgs-flash-mock/README.md:109",
+  "fixture_ownership": "tools/rgs-flash-mock/mock_data/ops_ui.json",
+  "scenarios": [
+    {
+      "scenario": "OPS-UI-001",
+      "name": "gm-backend /ops/functions/register RBAC 拦截",
+      "domains": {
+        "gm-backend": "ops-ui",
+        "card-service": "own-domain",
+        "economy-service": "cross-domain"
+      },
+      "expected": {
+        "own_domain_function": "card.draw_card_probability",
+        "own_domain_register_http_status": 200,
+        "own_domain_register_allowed": true,
+        "cross_domain_function": "economy.price_curve",
+        "cross_domain_register_http_status": 403,
+        "cross_domain_error_code": "PERM_DENIED",
+        "expected_source": "主设计书 §7.4 L318-326 原文判定条件"
+      },
+      "assertions": [
+        {
+          "field": "expected.own_domain_function",
+          "equals": "card.draw_card_probability"
+        },
+        {
+          "field": "expected.own_domain_register_http_status",
+          "equals": 200
+        },
+        {
+          "field": "expected.own_domain_register_allowed",
+          "equals": true
+        },
+        {
+          "field": "expected.cross_domain_function",
+          "equals": "economy.price_curve"
+        },
+        {
+          "field": "expected.cross_domain_register_http_status",
+          "equals": 403
+        },
+        {
+          "field": "expected.cross_domain_error_code",
+          "equals": "PERM_DENIED"
+        }
+      ]
+    },
+    {
+      "scenario": "OPS-UI-002",
+      "name": "admin-coc §X GM 命令 coc_policy 决策树",
+      "domains": {
+        "admin-service": "coc-policy"
+      },
+      "expected": {
+        "scenario_count": 3,
+        "scenario_ids": [
+          "1101",
+          "1102",
+          "1103"
+        ],
+        "error_codes": {
+          "1101": "PERM_DENIED_COC",
+          "1102": "PERM_DENIED_TENANT",
+          "1103": "PERM_DENIED_AUDIT"
+        },
+        "decision_count_passed": 7,
+        "gm_command": "issue_gm_command(ban_player, target_id=A)",
+        "evidence": [
+          "ae9702d",
+          "3695f3b"
+        ],
+        "expected_source": "主设计书 §7.4 L328-336 原文判定条件 (evidence: ae9702d / 3695f3b coc_policy UT)"
+      },
+      "assertions": [
+        {
+          "field": "expected.scenario_count",
+          "equals": 3
+        },
+        {
+          "field": "expected.scenario_ids",
+          "equals": [
+            "1101",
+            "1102",
+            "1103"
+          ]
+        },
+        {
+          "field": "expected.error_codes",
+          "equals": {
+            "1101": "PERM_DENIED_COC",
+            "1102": "PERM_DENIED_TENANT",
+            "1103": "PERM_DENIED_AUDIT"
+          }
+        },
+        {
+          "field": "expected.decision_count_passed",
+          "equals": 7
+        }
+      ]
+    },
+    {
+      "scenario": "OPS-UI-003",
+      "name": "ops UI env var 永不打印 (per 8/27 11:06 JST)",
+      "domains": {
+        "gm-backend": "ops-ui"
+      },
+      "expected": {
+        "displayed_env_names": [
+          "RGS_TLS_DIR",
+          "DB_PASSWORD"
+        ],
+        "log_redacted": true,
+        "screen_plaintext_count": 0,
+        "sample_env_reference": {
+          "RGS_TLS_DIR": "REDACTED",
+          "DB_PASSWORD": "REDACTED"
+        },
+        "expected_source": "主设计书 §7.4 L338-343 原文 (log 端 REDACTED 替换, 屏幕 0 明文)"
+      },
+      "assertions": [
+        {
+          "field": "expected.log_redacted",
+          "equals": true
+        },
+        {
+          "field": "expected.screen_plaintext_count",
+          "equals": 0
+        },
+        {
+          "field": "expected.sample_env_reference",
+          "equals": {
+            "RGS_TLS_DIR": "REDACTED",
+            "DB_PASSWORD": "REDACTED"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "OPS-UI-004",
+      "name": "ops UI REDACTED filter 触发",
+      "domains": {
+        "gm-backend": "ops-ui"
+      },
+      "expected": {
+        "trigger_endpoint": "/ops/apps/deploy",
+        "redaction_marker": "REDACTED",
+        "filter_applied": true,
+        "plaintext_leaked_count": 0,
+        "expected_source": "主设计书 §7.4 L345-350 原文 (REDACTED filter 替换生效, 不出现明文)"
+      },
+      "assertions": [
+        {
+          "field": "expected.trigger_endpoint",
+          "equals": "/ops/apps/deploy"
+        },
+        {
+          "field": "expected.redaction_marker",
+          "equals": "REDACTED"
+        },
+        {
+          "field": "expected.filter_applied",
+          "equals": true
+        },
+        {
+          "field": "expected.plaintext_leaked_count",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "scenario": "OPS-UI-005",
+      "name": "各域 Lead 越权 register 跨域 function → 403",
+      "domains": {
+        "gm-backend": "ops-ui",
+        "player-service": "cross-domain",
+        "economy-service": "cross-domain",
+        "batch-service": "cross-domain"
+      },
+      "expected": {
+        "attempts": [
+          {
+            "lead": "player",
+            "target": "economy.*",
+            "http_status": 403
+          },
+          {
+            "lead": "economy",
+            "target": "card.*",
+            "http_status": 403
+          },
+          {
+            "lead": "batch",
+            "target": "player.*",
+            "http_status": 403
+          }
+        ],
+        "cross_domain_register_success_count": 0,
+        "all_denied": true,
+        "expected_source": "主设计书 §7.4 L352-359 原文 (全部 403, 0 跨域 register 成功)"
+      },
+      "assertions": [
+        {
+          "field": "expected.attempts",
+          "equals": [
+            {
+              "lead": "player",
+              "target": "economy.*",
+              "http_status": 403
+            },
+            {
+              "lead": "economy",
+              "target": "card.*",
+              "http_status": 403
+            },
+            {
+              "lead": "batch",
+              "target": "player.*",
+              "http_status": 403
+            }
+          ]
+        },
+        {
+          "field": "expected.cross_domain_register_success_count",
+          "equals": 0
+        },
+        {
+          "field": "expected.all_denied",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "scenario": "OPS-UI-006",
+      "name": "rgs-batch-backend /ops/batch/cron RBAC 拦截",
+      "domains": {
+        "batch-service": "cron"
+      },
+      "expected": {
+        "target_endpoint": "/ops/batch/cron/register",
+        "http_status": 403,
+        "rbac_allowed": false,
+        "cron_register_denied": true,
+        "expected_source": "TEST-CASES §3.4 L336-337 仅给标题; 主设计书 §7.4 只列 001~005, 判定字段为本 lane 细化 (真实 gm-backend RBAC 本地不可验证)"
+      },
+      "assertions": [
+        {
+          "field": "expected.target_endpoint",
+          "equals": "/ops/batch/cron/register"
+        },
+        {
+          "field": "expected.http_status",
+          "equals": 403
+        },
+        {
+          "field": "expected.rbac_allowed",
+          "equals": false
+        },
+        {
+          "field": "expected.cron_register_denied",
+          "equals": true
+        }
+      ]
+    }
+  ]
+}

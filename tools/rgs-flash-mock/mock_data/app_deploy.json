@@ -1,0 +1,187 @@
+{
+  "module": "app-deploy",
+  "version": "0.2.0",
+  "description": "rgs-flash-mock app 独立更新 4 用例 fixture (APP-DEPLOY-001~004)",
+  "case_source": "docs/15-IPA-完全对齐438cmds/RGS-TEST-CASES-2026-09-07_v0.2.md §3.3 (L317-325)",
+  "design_source": "docs/15-IPA-完全对齐438cmds/RGS-TEST-DESIGN-2026-09-07_v0.2.md §7.3 (L290-312)",
+  "gap_source": "tools/rgs-flash-mock/README.md:108",
+  "fixture_ownership": "tools/rgs-flash-mock/mock_data/app_deploy.json",
+  "scenarios": [
+    {
+      "scenario": "APP-DEPLOY-001",
+      "name": "player-service v0.2 灰度发布 10% → 100%",
+      "domains": {
+        "player-service": "canary"
+      },
+      "expected": {
+        "pods_total": 4,
+        "rollout_pod_counts": [
+          1,
+          2,
+          4
+        ],
+        "target_version": "v0.2",
+        "latency_p99_ms_max": 100,
+        "error_rate_pct_max": 0.5,
+        "old_pods_still_serving": 3,
+        "traffic_switched_to_new_pod": 1,
+        "function_plane_call_ok": true,
+        "dual_registry_mode": true,
+        "rolling_update_no_interruption": true,
+        "expected_source": "主设计书 §7.3 L293-305 原文判定条件"
+      },
+      "assertions": [
+        {
+          "field": "expected.pods_total",
+          "equals": 4
+        },
+        {
+          "field": "expected.rollout_pod_counts",
+          "equals": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "field": "expected.target_version",
+          "equals": "v0.2"
+        },
+        {
+          "field": "expected.latency_p99_ms_max",
+          "equals": 100
+        },
+        {
+          "field": "expected.error_rate_pct_max",
+          "equals": 0.5
+        },
+        {
+          "field": "expected.old_pods_still_serving",
+          "equals": 3
+        },
+        {
+          "field": "expected.traffic_switched_to_new_pod",
+          "equals": 1
+        },
+        {
+          "field": "expected.function_plane_call_ok",
+          "equals": true
+        },
+        {
+          "field": "expected.dual_registry_mode",
+          "equals": true
+        },
+        {
+          "field": "expected.rolling_update_no_interruption",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "scenario": "APP-DEPLOY-002",
+      "name": "battle-service v0.2 灰度发布 (8 域扩展 NEW)",
+      "domains": {
+        "battle-service": "canary",
+        "match-service": "stable"
+      },
+      "expected": {
+        "pods_total": 4,
+        "rollout_pod_counts": [
+          1,
+          2,
+          4
+        ],
+        "target_version": "v0.2",
+        "business_interruption_count": 0,
+        "function_plane_8domain_ext_ok": true,
+        "expected_source": "主设计书 §7.3 L307-312 原文 (steps: 同 APP-DEPLOY-001)"
+      },
+      "assertions": [
+        {
+          "field": "expected.pods_total",
+          "equals": 4
+        },
+        {
+          "field": "expected.rollout_pod_counts",
+          "equals": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "field": "expected.target_version",
+          "equals": "v0.2"
+        },
+        {
+          "field": "expected.business_interruption_count",
+          "equals": 0
+        },
+        {
+          "field": "expected.function_plane_8domain_ext_ok",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "scenario": "APP-DEPLOY-003",
+      "name": "economy-service 跨域回滚",
+      "domains": {
+        "economy-service": "rollback",
+        "player-service": "stable"
+      },
+      "expected": {
+        "rollback_target_version": "previous",
+        "cross_domain_rollback": true,
+        "economy_service_serving_after_rollback": true,
+        "player_service_affected": false,
+        "expected_source": "TEST-CASES §3.3 L323 仅给标题 'economy-service 跨域回滚'; 主设计书 §7.3 只列 001/002, 判定字段为本 lane 细化"
+      },
+      "assertions": [
+        {
+          "field": "expected.rollback_target_version",
+          "equals": "previous"
+        },
+        {
+          "field": "expected.cross_domain_rollback",
+          "equals": true
+        },
+        {
+          "field": "expected.economy_service_serving_after_rollback",
+          "equals": true
+        },
+        {
+          "field": "expected.player_service_affected",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "scenario": "APP-DEPLOY-004",
+      "name": "k3s rolling update 不中断 function-plane",
+      "domains": {
+        "function-plane": "rolling-update"
+      },
+      "expected": {
+        "rolling_update_strategy": "RollingUpdate",
+        "max_unavailable": 0,
+        "function_plane_downtime_seconds": 0,
+        "expected_source": "TEST-CASES §3.3 L324 仅给标题; 主设计书 §7.3 只列 001/002, 判定字段为本 lane 细化 (真实 k3s 集群本地不可验证)"
+      },
+      "assertions": [
+        {
+          "field": "expected.rolling_update_strategy",
+          "equals": "RollingUpdate"
+        },
+        {
+          "field": "expected.max_unavailable",
+          "equals": 0
+        },
+        {
+          "field": "expected.function_plane_downtime_seconds",
+          "equals": 0
+        }
+      ]
+    }
+  ]
+}
