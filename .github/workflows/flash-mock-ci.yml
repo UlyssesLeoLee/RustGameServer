@@ -119,3 +119,45 @@ jobs:
             fail=1
           fi
           exit "$fail"
+
+      # ── 缺口闭环 gate (2026-10-21, per 4 lane 并行实装) ──
+      # 4 条 lane 把 README「已知缺口」6 条中的 mock 层部分变成**可证伪**脚本:
+      #   fixture 覆盖 / 跨域故事链+事件链 / plugin hot-swap / app 独立更新 + ops UI
+      # 这几条 gate 不依赖 k3s 集群 / 真实域服务, 因此作为常驻回归进本 workflow。
+      - name: bash 语法检查 (全部 mock 脚本)
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in scripts/*.sh; do
+            if ! bash -n "$f"; then
+              echo "::error::$f bash -n 失败"
+              fail=1
+            fi
+          done
+          exit "$fail"
+
+      - name: mock 缺口闭环回归 (fixture 覆盖 / plugin hot-swap / app+ops 用例)
+        run: |
+          set -euo pipefail
+          fail=0
+          for s in scripts/regression-test-new-domain-fixture-coverage.sh \
+                   scripts/regression-test-plugin-hot-swap.sh \
+                   scripts/regression-test-app-deploy-ops-ui.sh; do
+            if bash "$s"; then
+              echo "::notice::$s PASS"
+            else
+              echo "::error::$s FAIL"
+              fail=1
+            fi
+          done
+          # 8 域扩展脚本: cargo check 已由上面的编译门禁跑过, 这里显式跳过避免重复编译
+          if RGS_MOCK_SKIP_CARGO_CHECK=1 bash scripts/regression-test-8-domain-extension.sh; then
+            echo "::notice::scripts/regression-test-8-domain-extension.sh PASS"
+          else
+            echo "::error::scripts/regression-test-8-domain-extension.sh FAIL"
+            fail=1
+          fi
+          exit "$fail"
+
+      - name: 跨域故事链 + 跨域事件链回归 (5 域链 / 悬空事件 / 顺序错乱 / 域归属)
+        run: RGS_MOCK_SKIP_CARGO_CHECK=1 bash scripts/regression-test-cross-domain-event.sh

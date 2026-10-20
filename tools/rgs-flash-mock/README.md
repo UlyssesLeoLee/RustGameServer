@@ -17,8 +17,9 @@ RGS [游戏A] mock gateway / verification harness (per `RGS-FLASH-MOCK-DESIGN-20
 | RPC stub | 22 RPC 假数据 + 1 RPC (`1201 GetPlayerCollection` v0.3 新增) |
 | Gap matrix | `src/gap_matrix.rs` — `RpcStatus` 4 态 / `RpcCategory` 13 类 / 22 RPC stub |
 | mock_switch reader | `scripts/_lib_mock_switch_rgs.py` — L1 cluster + L2 plugin + L3 module_switch (5 plugin × 12 module per ULYS-190 §4.4 Stage 1) |
-| 测试脚本 | `scripts/ut.sh` / `it.sh` / `st.sh` + 9 个 regression-test-*.sh + `regression-test-all.sh` orchestrator |
-| fixture | `mock_data/` 48 个 JSON, W2 12 Partial + W3 30 + 8 域扩展 6 + batch 域 6 + 4 NEW 域 mTLS |
+| 测试脚本 | `scripts/ut.sh` / `it.sh` / `st.sh` + 12 个 regression-test-*.sh + `regression-test-all.sh` orchestrator |
+| fixture | `mock_data/` 56 个 JSON (W2 12 Partial + W3 30 + 8 域扩展 6 + batch 域 6 + 4 NEW 域 mTLS + 本轮新增 8: 5 新增域 + plugin hot-swap + app/ops 用例) |
+| 跨域故事链 | `src/saga_verify.rs` + `tests/saga_story_chain.rs` — 5 域 (player→economy→match→social→admin) 故事链 + 事件链一致性 (悬空 / 顺序 / 域归属) |
 
 ## 派生约束 (per AGENTS.md §2.1 + 8/27 三次强化 + 9/4 17:47)
 
@@ -95,6 +96,9 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 | `scripts/regression-test-9-domain-mtls.sh` | 9 域 mTLS 端到端 11 步客户端模拟器 v3 (per 9/6 d270ab9) |
 | `scripts/regression-test-8-domain-extension.sh` | 8 域扩展 (scene / battle / network / account / sub8) 22 RPC |
 | `scripts/regression-test-new-domain-fixture-coverage.sh` | 8 域扩展 5 fixture / 22 RPC 覆盖自检 (期望清单从 8 域脚本解析) |
+| `scripts/regression-test-cross-domain-event.sh` | 跨域故事链 + 事件链回归 (5 域链; 悬空事件 / 顺序错乱 / 域归属 断言) |
+| `scripts/regression-test-plugin-hot-swap.sh` | plugin 集群 hot-swap 71 条断言 (config-binding 级; 4 条 known gap 不计失败) |
+| `scripts/regression-test-app-deploy-ops-ui.sh` | app 独立更新 4 + ops UI 6 = 10 scenario / 56 断言 (含明文 secret 扫描) |
 | `scripts/regression-test-batch-domain.sh` | batch 域 6 module × 15 用例 = 90 用例 |
 | `scripts/regression-test-plugin-poc.sh` | PLUGIN-001~007 plugin PoC WASM |
 | `scripts/regression-test-admin-coc.sh` | admin-coc §X 集成 3 场景 (1101/1102/1103) + 7 项 admin 域 Lead 真实签字 |
@@ -103,11 +107,18 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 
 ## 已知缺口 (per RGS-DDD-2026-09-04-FLASH-MOCK-W3_v0.1 §3)
 
-1. **场景文档依赖** — `gap_matrix` 22 RPC stub 缺 E2E 故事链;ST 阶段需 per-case 接入 k3s 真实域
-2. **跨域事件链** — saga_abstract 3 module 仅 mock, 缺 e2e cross-domain event verification
-3. **plugin 集群** — draw_card_probability PoC 仅 v0.1, 缺 hot-swap E2E 实战验证
-4. **app 独立更新** — 缺 4 用例 (APP-DEPLOY-001~004) per 主设计书 v0.2 §7.4
-5. **ops UI** — 缺 6 用例 (OPS-UI-001~006) per 主设计书 v0.2 §7.4
+> 状态更新 (2026-10-21): 6 条缺口已按 mock 层 / 真实环境层分列。**mock 层**= 本仓可离线验证的部分,
+> 已闭环并有可证伪脚本; **真实环境层**= 需要 k3s 集群 / 真实域服务 / WASM runtime 才能验证, 仍缺。
+
+1. **场景文档依赖** — mock 层 E2E 故事链已补 (5 域链, per `docs/gap-closure-cross-domain-event-chain.md`);
+   ST 阶段 per-case 接入 k3s 真实域**仍缺**
+2. **跨域事件链** — mock 层事件链校验已补 (悬空事件 / 顺序错乱 / 域归属不符 各有独立断言);
+   saga_abstract 真实跨域事件验证 (需真实 NATS / 域服务) **仍缺**
+3. **plugin 集群** — config-binding 级 hot-swap 71 条断言已补 (per `docs/gap-closure-plugin-hot-swap.md`);
+   运行时级 in-flight 语义 (切换瞬间在途实例由旧版本完成) **仍缺**, 需 function-plane 起服后补测
+4. **app 独立更新** — 4 用例 (APP-DEPLOY-001~004) fixture + 断言已补 (per `docs/gap-closure-app-deploy-ops-ui.md`);
+   真实 k3s 灰度发布**仍缺**
+5. **ops UI** — 6 用例 (OPS-UI-001~006) fixture + 断言已补 (同上); 真实 gm-backend RBAC 拦截**仍缺**
 6. **9 域 mTLS fixture 100% 覆盖** — 4 NEW 域 (scene/battle/network/account) k8s yaml 9/6 已落档,
    mock_data/ 对应 fixture JSON 已补 (5 个: scene_ext / battle_ext / network_ext / account_ext /
    sub8_ext, per docs/gap-closure-new-domain-fixture-coverage.md); 9 域 mTLS 侧 100% 覆盖待验证
@@ -116,6 +127,9 @@ orchestrator 会依次跑 UT → IT (9 个回归脚本) → ST (mock server + RP
 
 - `docs/V0.2-IMPLEMENTATION-REPORT.md` / `V0.3-IMPLEMENTATION-REPORT.md` — 实施报告
 - `docs/gap-closure-new-domain-fixture-coverage.md` — 新增域 fixture 覆盖缺口闭环 (5 fixture / 22 RPC + 覆盖自检脚本)
+- `docs/gap-closure-cross-domain-event-chain.md` — 跨域故事链 + 跨域事件链闭环 (5 域链 + 3 类事件链缺陷断言)
+- `docs/gap-closure-plugin-hot-swap.md` — plugin hot-swap 闭环 (71 断言 + 4 known gap + in-flight 可观测性结论)
+- `docs/gap-closure-app-deploy-ops-ui.md` — app 独立更新 4 + ops UI 6 用例闭环 (10 scenario / 56 断言)
 - `docs/12-大类-RPC-清单.md` — 60 module gap matrix (含 §16 W3 + §17 v0.3 升版)
 - `docs/W2-PHASE-2-*` / `docs/W3-PHASE-3-*` — Worker 1..5 报告 (W2 2 报告 + 1 handoff + W3 5 报告)
 - `docs/regression-report-stage1-module-switch-2026-09-26.md` — ULYS-190 §4.4 Stage 1 regression report (per ULYS-240)
