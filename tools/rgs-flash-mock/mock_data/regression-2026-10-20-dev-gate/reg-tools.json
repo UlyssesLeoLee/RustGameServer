@@ -1,0 +1,46 @@
+{
+  "batch": "regression-2026-10-20-dev-gate",
+  "lane": "reg-tools",
+  "mode": "test",
+  "crates": [
+    "rgs-testkit",
+    "rgs-asset-download",
+    "rgs-overflow-alert"
+  ],
+  "counts": {
+    "passed": 388,
+    "failed": 4,
+    "ignored": 31
+  },
+  "failure_class": {
+    "env_database_url_missing": 2,
+    "env_docker_unavailable": 2
+  },
+  "failed_tests": [
+    {
+      "test": "init_test_db_returns_url",
+      "class": "env_docker_unavailable",
+      "detail": "thread 'init_test_db_returns_url' (68240) panicked at crates\\rgs-testkit\\tests\\fixture_extended_test.rs:177:54: | called `Result::unwrap()` on an `Err` value: failed to create a container: Error in the hyper legacy client: client error (Connect) | note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "pg_test_macro_re_export_works",
+      "class": "env_database_url_missing",
+      "detail": "thread 'pg_test_macro_re_export_works' (15060) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent) | note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "pg_test_db_smoke_connects_and_selects_one",
+      "class": "env_database_url_missing",
+      "detail": "thread 'pg_test_db_smoke_connects_and_selects_one' (73860) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent)"
+    },
+    {
+      "test": "fixture_init_test_db_returns_url",
+      "class": "env_docker_unavailable",
+      "detail": "thread 'fixture_init_test_db_returns_url' (34508) panicked at crates\\rgs-testkit\\tests\\self_test.rs:161:5: | assertion failed: url.is_ok() | failures:"
+    }
+  ],
+  "compile_errors": [],
+  "elapsed_ms": 268800,
+  "exit_code": 101,
+  "raw_verdict": "FAIL",
+  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-tools-test.log"
+}

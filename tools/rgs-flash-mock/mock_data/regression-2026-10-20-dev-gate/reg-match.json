@@ -1,0 +1,42 @@
+{
+  "batch": "regression-2026-10-20-dev-gate",
+  "lane": "reg-match",
+  "mode": "test",
+  "crates": [
+    "match-service",
+    "battle-service",
+    "pvp-full-service",
+    "replay-service",
+    "replay-extra-service"
+  ],
+  "counts": {
+    "passed": 408,
+    "failed": 3,
+    "ignored": 0
+  },
+  "failure_class": {
+    "env_database_url_missing": 3
+  },
+  "failed_tests": [
+    {
+      "test": "outbox_check_constraint_rejects_invalid_status",
+      "class": "env_database_url_missing",
+      "detail": "thread 'outbox_check_constraint_rejects_invalid_status' (47940) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent)"
+    },
+    {
+      "test": "match_fixture_builder_customizes_score_and_status",
+      "class": "env_database_url_missing",
+      "detail": "thread 'match_fixture_builder_customizes_score_and_status' (50380) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent)"
+    },
+    {
+      "test": "match_fixture_inserts_and_reads_back_in_real_pg",
+      "class": "env_database_url_missing",
+      "detail": "thread 'match_fixture_inserts_and_reads_back_in_real_pg' (62892) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent) | note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    }
+  ],
+  "compile_errors": [],
+  "elapsed_ms": 1381000,
+  "exit_code": 101,
+  "raw_verdict": "FAIL",
+  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-match-test.log"
+}

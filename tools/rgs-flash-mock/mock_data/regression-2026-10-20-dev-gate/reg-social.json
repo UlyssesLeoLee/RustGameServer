@@ -1,0 +1,41 @@
+{
+  "batch": "regression-2026-10-20-dev-gate",
+  "lane": "reg-social",
+  "mode": "test",
+  "crates": [
+    "social-service",
+    "social-extra-service",
+    "guild-service",
+    "gm-extra-service"
+  ],
+  "counts": {
+    "passed": 195,
+    "failed": 3,
+    "ignored": 0
+  },
+  "failure_class": {
+    "env_database_url_missing": 3
+  },
+  "failed_tests": [
+    {
+      "test": "social_fixture_creates_guild_in_real_pg",
+      "class": "env_database_url_missing",
+      "detail": "thread 'social_fixture_creates_guild_in_real_pg' (44996) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent)"
+    },
+    {
+      "test": "social_fixture_builder_customizes_message",
+      "class": "env_database_url_missing",
+      "detail": "thread 'social_fixture_builder_customizes_message' (20380) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent)"
+    },
+    {
+      "test": "outbox_check_constraint_rejects_invalid_status",
+      "class": "env_database_url_missing",
+      "detail": "thread 'outbox_check_constraint_rejects_invalid_status' (20412) panicked at E:\\DevCache\\cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\sqlx-postgres-0.8.6\\src\\testing\\mod.rs:96:44: | DATABASE_URL must be set: EnvVar(NotPresent) | note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    }
+  ],
+  "compile_errors": [],
+  "elapsed_ms": 1564510,
+  "exit_code": 101,
+  "raw_verdict": "FAIL",
+  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-social-test.log"
+}

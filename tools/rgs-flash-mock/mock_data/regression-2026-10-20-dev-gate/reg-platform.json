@@ -1,0 +1,21 @@
+{
+  "batch": "regression-2026-10-20-dev-gate",
+  "lane": "reg-platform",
+  "mode": "test",
+  "crates": [
+    "shared-platform",
+    "cluster-ops"
+  ],
+  "counts": {
+    "passed": 298,
+    "failed": 0,
+    "ignored": 0
+  },
+  "failure_class": {},
+  "failed_tests": [],
+  "compile_errors": [],
+  "elapsed_ms": 318000,
+  "exit_code": 0,
+  "raw_verdict": "PASS",
+  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-platform-test.log"
+}

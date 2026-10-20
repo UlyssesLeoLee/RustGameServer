@@ -1,0 +1,23 @@
+{
+  "batch": "regression-2026-10-20-dev-gate",
+  "lane": "reg-economy",
+  "mode": "test",
+  "crates": [
+    "economy-service",
+    "leaderboard-service",
+    "leaderboard-extra-service",
+    "operate-service"
+  ],
+  "counts": {
+    "passed": 273,
+    "failed": 0,
+    "ignored": 1
+  },
+  "failure_class": {},
+  "failed_tests": [],
+  "compile_errors": [],
+  "elapsed_ms": 2391765,
+  "exit_code": 0,
+  "raw_verdict": "PASS",
+  "raw_log": "logs/regression-2026-10-20-dev-gate/reg-economy-test.log"
+}
