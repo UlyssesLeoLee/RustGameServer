@@ -619,11 +619,14 @@ async fn w41_battle_round_start_complete_advances_to_action() {
     let svc = BattleEngineServiceImpl::new(state.clone());
 
     // Init -> Prepare -> RoundStart
-    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    // battle_init 生成随机 battle_id 并通过 BattleState 返回，必须用这个 id 调 battle_start，
+    // 否则 store 里查不到该 battle -> BattleNotFound（写法对齐本文件 battle_start_advances_turn）
+    let init = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let battle_id = init.into_inner().battle_id;
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
     let _ = svc
         .battle_start(Request::new(pb::BattleId {
-            battle_id: "x".to_string(),
+            battle_id: battle_id.clone(),
         }))
         .await
         .unwrap();
@@ -642,11 +645,14 @@ async fn w41_battle_next_wave_increments_wave_index() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    // battle_init 生成随机 battle_id 并通过 BattleState 返回，必须用这个 id 调 battle_start，
+    // 否则 store 里查不到该 battle -> BattleNotFound（写法对齐本文件 battle_start_advances_turn）
+    let init = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let battle_id = init.into_inner().battle_id;
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
     let _ = svc
         .battle_start(Request::new(pb::BattleId {
-            battle_id: "x".to_string(),
+            battle_id: battle_id.clone(),
         }))
         .await
         .unwrap();
@@ -715,11 +721,14 @@ async fn w41_battle_play_complete_transitions_to_end() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    // battle_init 生成随机 battle_id 并通过 BattleState 返回，必须用这个 id 调 battle_start，
+    // 否则 store 里查不到该 battle -> BattleNotFound（写法对齐本文件 battle_start_advances_turn）
+    let init = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let battle_id = init.into_inner().battle_id;
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
     let _ = svc
         .battle_start(Request::new(pb::BattleId {
-            battle_id: "x".to_string(),
+            battle_id: battle_id.clone(),
         }))
         .await
         .unwrap();
@@ -745,11 +754,14 @@ async fn w41_battle_skip_marks_defeat_outcome() {
     let state = Arc::new(BattleServiceImpl::new());
     let svc = BattleEngineServiceImpl::new(state.clone());
 
-    let _ = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    // battle_init 生成随机 battle_id 并通过 BattleState 返回，必须用这个 id 调 battle_start，
+    // 否则 store 里查不到该 battle -> BattleNotFound（写法对齐本文件 battle_start_advances_turn）
+    let init = svc.battle_init(Request::new(empty_req())).await.unwrap();
+    let battle_id = init.into_inner().battle_id;
     let _ = svc.battle_prepare(Request::new(empty_req())).await.unwrap();
     let _ = svc
         .battle_start(Request::new(pb::BattleId {
-            battle_id: "x".to_string(),
+            battle_id: battle_id.clone(),
         }))
         .await
         .unwrap();
