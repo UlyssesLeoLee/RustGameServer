@@ -21,7 +21,10 @@
 - [ ] L2 ≥ 8 个
 - [ ] L3 ≥ 6 个
 - [ ] L4 ≥ 4 个
+- [ ] 组件总数 ≥ 30 个 (= 12 + 8 + 6 + 4)
 - [ ] 每个组件都有 Component Spec
+- [ ] 任意 L1 组件可独立 Storybook 展示 (无业务依赖)
+- [ ] Storybook 故事覆盖 variant × size 笛卡尔积 + 全部 state
 
 ## D. 组件约束
 

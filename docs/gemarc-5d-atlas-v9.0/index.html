@@ -81,7 +81,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
   <p class="muted">一个面向设计-工程协作的 5 维方法论: D1 战略 / D2 信息架构 / D3 交互流程 / D4 视觉语言 / D5 工程交付。</p>
   <div class="path-meta">
     <span><strong>版本</strong>: v9.0</span>
-    <span><strong>语言</strong>: zh-CN (UI) · ja-JP (formal) · en-US (UI)</span>
+    <span><strong>语言</strong>: zh-CN (实际交付) · ja-JP / en-US <strong>未产出</strong></span>
     <span><strong>任务</strong>: DESIGN_ATLAS_ONLY</span>
     <span><strong>位置</strong>: <code>docs/gemarc-5d-atlas-v9.0/</code></span>
   </div>
@@ -295,6 +295,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 - UI 参考 = 空 (仅空白 <code>path: ""</code> + <code>url: ""</code>)
 - 合规 / 监管 / 不可逆决策 = 无任何外部证据
 - 所有"反向假设 / 反对者签字"为占位, 待真实项目替换
+
+<h3>Prompt 规格未完全落实 (2026-10-21 审核自查发现)
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;margin:12px 0;">
+<thead><tr style="text-align:left;border-bottom:1px solid var(--border);">
+<th style="padding:8px;">规格项</th><th style="padding:8px;">实际</th><th style="padding:8px;">判定</th></tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px;"><code>output.publish_dir: "dist"</code></td><td style="padding:8px;">未创建 <code>dist/</code></td><td style="padding:8px;">偏差 (低) — DESIGN_ATLAS_ONLY 无构建产物</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px;"><code>languages.formal_documents: "ja-JP"</code></td><td style="padding:8px;">全部文件实为 zh-CN</td><td style="padding:8px;">偏差 (中) — 无 ja-JP 正式版</td></tr>
+<tr><td style="padding:8px;"><code>languages.supported</code></td><td style="padding:8px;">仅 zh-CN 产出</td><td style="padding:8px;">偏差 (中) — ja-JP / en-US 未产出</td></tr>
+</tbody></table>
+
 
 </section>
 

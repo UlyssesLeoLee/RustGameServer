@@ -81,7 +81,8 @@ gemarc-5d-atlas-v9.0/
 - `index.html` 单文件可双击打开, 完全离线
 - 不依赖 npm 构建 (per `execution_environment.offline_core_required: true`)
 - 视觉风格自带 minimal dark theme, 减弱动效 (`prefers-reduced-motion`) 已支持
-- 所有 markdown 文件之间仅靠相对链接, 文件夹搬迁不会断链
+- 入口 `index.html` 内 23 个本地文件引用全部为**相对路径**, 文件夹搬迁不会断链 (实测 0 死链, 2026-10-21 审核)
+- 各 markdown 文件**之间无 markdown 链接** (相互以反引号裸路径引用), 因此不存在 md 断链; 唯一的链接图在 `index.html`
 
 ## 谁来修订
 
@@ -96,11 +97,12 @@ gemarc-5d-atlas-v9.0/
 
 | 版本 | 日期 | 摘要 | commit |
 |---|---|---|---|
-| v9.0 | 2026-10-21 | 初版: 5 维文档 + 5 模板 + 6 清单 + 1 假设性示例 + 入口 HTML | (待 commit) |
+| v9.0 | 2026-10-21 | 初版: 5 维文档 + 5 模板 + 6 清单 + 1 假设性示例 + 入口 HTML | `63b60104` |
+| v9.0.1 | 2026-10-21 | 审核批次: 修正附录 A 文件计数 (22→25)、补齐 §0 字段覆盖、显式记录 3 项 prompt 规格未落实项 | (见 §修订历史) |
 
 ## 下版本候选 (backlog)
 
-- [ ] 增加 D2 IA lint CI 实装模板 (perls / js / rs)
+- [ ] 增加 D2 IA lint CI 实装模板 (perl / js / rs)
 - [ ] 增加 D3 旅程 → mermaid 转换器
 - [ ] 增加 D4 token → Tailwind / CSS variable / iOS / Android 转换器
 - [ ] 增加 D5 ADR → 索引页面自动生成器
