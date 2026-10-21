@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universal 5D Design Atlas v9.0</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --surface: #1a1f26;
+  --surface-2: #232a33;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --border: #30363d;
+  --primary: #4493f8;
+  --accent: #d2a8ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #79c0ff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; line-height: 1.6; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+.container { max-width: 980px; margin: 0 auto; padding: 32px 24px 96px; }
+header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+h1 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1rem; margin: 24px 0 8px; color: var(--info); }
+p { margin: 8px 0; color: var(--text-muted); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: 0.75rem; margin-right: 4px; border: 1px solid var(--border); }
+.tag-d1 { color: var(--info); border-color: var(--info); }
+.tag-d2 { color: #a5d6ff; border-color: #58a6ff; }
+.tag-d3 { color: var(--accent); border-color: var(--accent); }
+.tag-d4 { color: #ffa657; border-color: #ffa657; }
+.tag-d5 { color: #7ee787; border-color: #56d364; }
+.tag-doc { color: #f0883e; border-color: #f0883e; }
+.tag-check { color: #3fb950; border-color: #3fb950; }
+.tag-tpl { color: #d2a8ff; border-color: #d2a8ff; }
+.tag-ex { color: #ff7b72; border-color: #ff7b72; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: border-color 0.15s; }
+.card:hover { border-color: var(--primary); }
+.card h4 { margin-top: 0; color: var(--text); }
+.card p { margin: 8px 0 12px; font-size: 0.9rem; }
+.card a.btn { display: inline-block; padding: 6px 12px; border: 1px solid var(--primary); border-radius: 6px; color: var(--primary); font-size: 0.85rem; }
+.card a.btn:hover { background: rgba(68, 147, 248, 0.1); text-decoration: none; }
+.muted { color: var(--text-muted); font-size: 0.9rem; }
+.banner { padding: 12px 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid var(--warning); background: rgba(210, 153, 34, 0.08); color: var(--text); font-size: 0.9rem; }
+.banner.info { border-left-color: var(--info); background: rgba(121, 192, 255, 0.08); }
+.banner.danger { border-left-color: var(--danger); background: rgba(248, 81, 73, 0.08); }
+.banner.success { border-left-color: var(--success); background: rgba(63, 185, 80, 0.08); }
+code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: var(--accent); }
+pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; }
+ol, ul { margin: 8px 0; padding-left: 20px; color: var(--text-muted); }
+li { margin: 4px 0; }
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; margin: 16px 0; }
+.toc ul { list-style: none; padding-left: 0; }
+.toc > ul > li { margin: 6px 0; }
+.toc ul ul { padding-left: 20px; margin: 4px 0; }
+.path-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; margin: 16px 0; }
+.path-meta span { color: var(--text-muted); }
+.path-meta strong { color: var(--text); font-weight: 600; }
+footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Universal 5D Design Atlas v9.0</h1>
+  <p class="muted">一个面向设计-工程协作的 5 维方法论: D1 战略 / D2 信息架构 / D3 交互流程 / D4 视觉语言 / D5 工程交付。</p>
+  <div class="path-meta">
+    <span><strong>版本</strong>: v9.0</span>
+    <span><strong>语言</strong>: zh-CN (UI) · ja-JP (formal) · en-US (UI)</span>
+    <span><strong>任务</strong>: DESIGN_ATLAS_ONLY</span>
+    <span><strong>位置</strong>: <code>docs/gemarc-5d-atlas-v9.0/</code></span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="目录">
+  <strong>目录</strong>
+  <ul>
+    <li><a href="#quick-start">快速开始</a></li>
+    <li><a href="#d-dimensions">5 维文档</a>
+      <ul>
+        <li><a href="atlas/D1-concept.md">D1 — Concept &amp; Strategy</a></li>
+        <li><a href="atlas/D2-information-architecture.md">D2 — Information Architecture</a></li>
+        <li><a href="atlas/D3-interaction.md">D3 — Interaction &amp; Flow</a></li>
+        <li><a href="atlas/D4-visual.md">D4 — Visual Language</a></li>
+        <li><a href="atlas/D5-engineering.md">D5 — Engineering &amp; Delivery</a></li>
+      </ul>
+    </li>
+    <li><a href="#templates">可复用模板</a> (5 个)</li>
+    <li><a href="#checklists">出口校验清单</a> (5 维 + 1 集成)</li>
+    <li><a href="#examples">示例: Arcade Control Panel (假设性)</a></li>
+    <li><a href="#qa">QA_FINAL.md</a></li>
+    <li><a href="#governance">治理与已知缺口</a></li>
+  </ul>
+</nav>
+
+<section id="quick-start">
+<h2>快速开始</h2>
+<p>5D Atlas 不是"另一种设计模板", 而是把"为什么 / 是什么 / 怎么用 / 长什么样 / 怎么上线"分成可分别校验的 5 维:</p>
+<ol>
+  <li><strong>D1</strong> — 先对齐"为什么做、给谁做、怎样算成功", 不对齐前不进 D2。</li>
+  <li><strong>D2</strong> — 把价值主张拆成可被找到/理解/信任的内容结构。</li>
+  <li><strong>D3</strong> — 把 IA 串成可验证的关键旅程与状态机, 不要只画 happy path。</li>
+  <li><strong>D4</strong> — 用 token + 组件库 + 栅格, 把旅程做成可看的页面。</li>
+  <li><strong>D5</strong> — 把页面做成可部署/可监控/可回滚/可演化的工程产品。</li>
+</ol>
+<p>每层都有 <strong>模板</strong> (照填) + <strong>出口判据</strong> (不达不往下走) + <strong>与其他层的接口</strong> (防止脱节)。</p>
+
+<div class="banner info">
+  <strong>如何使用</strong>: 项目启动时, 从 <a href="templates/D1-concept-brief.template.md">D1-concept-brief.template.md</a> 开始。填完跑 <a href="checklists/D1-checklist.md">D1-checklist.md</a>, 全部勾选才进 D2。
+</div>
+</section>
+
+<section id="d-dimensions">
+<h2>5 维文档</h2>
+
+<div class="card-grid">
+
+<a class="card" href="atlas/D1-concept.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-d1">D1</span> Concept &amp; Strategy</h4>
+  <p>战略简报、价值主张画布、Persona 切片、北极星 + 反指标、范围围栏、硬约束、反向假设。</p>
+  <span class="btn">阅读 D1 →</span>
+</a>
+
+<a class="card" href="atlas/D2-information-architecture.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-d2">D2</span> Information Architecture</h4>
+  <p>内容模型、分类法、站点地图、多入口、同义词表、检索 5 要素、IA 演化 lint。</p>
+  <span class="btn">阅读 D2 →</span>
+</a>
+
+<a class="card" href="atlas/D3-interaction.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-d3">D3</span> Interaction &amp; Flow</h4>
+  <p>关键旅程清单、旅程规格、状态机、表单设计、错误兜底、A11y 交互约束。</p>
+  <span class="btn">阅读 D3 →</span>
+</a>
+
+<a class="card" href="atlas/D4-visual.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-d4">D4</span> Visual Language</h4>
+  <p>设计令牌 (颜色/字体/间距/圆角/阴影/动效)、组件库、布局、图标与插画、响应式。</p>
+  <span class="btn">阅读 D4 →</span>
+</a>
+
+<a class="card" href="atlas/D5-engineering.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-d5">D5</span> Engineering &amp; Delivery</h4>
+  <p>技术栈 ADR、性能预算、可观测性三支柱、A11y 工程化、测试金字塔、发布策略、安全、域划分。</p>
+  <span class="btn">阅读 D5 →</span>
+</a>
+
+</div>
+</section>
+
+<section id="templates">
+<h2>可复用模板 (5 套)</h2>
+<p>每维度配一份可填的模板。复制 → 替换 <code>___</code> → 跑对应 checklist。</p>
+
+<div class="card-grid">
+
+<a class="card" href="templates/D1-concept-brief.template.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-tpl">TPL</span> D1-concept-brief</h4>
+  <p>战略简报模板: 客户侧 / 产品侧 / Persona / NSM / 范围 / 硬约束 / 反对者签字。</p>
+</a>
+
+<a class="card" href="templates/D2-ia-map.template.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-tpl">TPL</span> D2-ia-map</h4>
+  <p>信息架构地图模板: 内容模型 / 分类法 / 站点地图 / 同义词 / 检索 5 要素 / IA lint。</p>
+</a>
+
+<a class="card" href="templates/D3-flow-spec.template.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-tpl">TPL</span> D3-flow-spec</h4>
+  <p>流程规格模板: 触发 / 步骤 / 错误路径 / 撤销 / 数据 / 监控 / A11y / 状态机总览。</p>
+</a>
+
+<a class="card" href="templates/D4-component-spec.template.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-tpl">TPL</span> D4-component-spec</h4>
+  <p>组件规格模板: 用途 / 变体 / API / 视觉规则 / 行为 / A11y / 禁用组合 / Storybook。</p>
+</a>
+
+<a class="card" href="templates/D5-adr.template.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-tpl">TPL</span> D5-adr</h4>
+  <p>架构决策记录模板: 状态 / 上下文 / 选项 / 决策 / 后果 / 撤销条件 / 关联。</p>
+</a>
+
+</div>
+</section>
+
+<section id="checklists">
+<h2>出口校验清单 (5 维 + 1 集成)</h2>
+<p>每层跑对应清单, 全部勾选才能进下一层。集成清单查"D1→D5 接口一致性"。</p>
+
+<div class="card-grid">
+
+<a class="card" href="checklists/D1-checklist.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> D1 出口判据</h4>
+</a>
+
+<a class="card" href="checklists/D2-checklist.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> D2 出口判据</h4>
+</a>
+
+<a class="card" href="checklists/D3-checklist.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> D3 出口判据</h4>
+</a>
+
+<a class="card" href="checklists/D4-checklist.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> D4 出口判据</h4>
+</a>
+
+<a class="card" href="checklists/D5-checklist.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> D5 出口判据</h4>
+</a>
+
+<a class="card" href="checklists/cross-d-integration-check.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-check">CHK</span> 跨 5D 集成校验</h4>
+  <p>查 D1→D5 接口一致性: NSM ↔ 预算 / token ↔ CSS 变量 / 状态 ↔ chip 等。</p>
+</a>
+
+</div>
+</section>
+
+<section id="examples">
+<h2>示例: Arcade Control Panel (假设性)</h2>
+<div class="banner">
+  <strong>⚠️ 假设性示例</strong> — 数据无实证, 仅演示模板怎么填。借用了 governance 设置 <code>allow_hypothetical_demo_without_sources: true</code>。
+</div>
+<p>用模板实际填出 5D 规格, 让你看到"方法论 → 落地"的距离有多短。</p>
+
+<div class="card-grid">
+
+<a class="card" href="examples/hypothetical-product/01-concept.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-ex">EX</span> 01 — Concept Brief</h4>
+</a>
+
+<a class="card" href="examples/hypothetical-product/02-ia-map.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-ex">EX</span> 02 — IA Map</h4>
+</a>
+
+<a class="card" href="examples/hypothetical-product/03-flow-spec.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-ex">EX</span> 03 — Flow Spec</h4>
+</a>
+
+<a class="card" href="examples/hypothetical-product/04-component-specs.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-ex">EX</span> 04 — Component Specs</h4>
+</a>
+
+<a class="card" href="examples/hypothetical-product/05-engineering-summary.md" style="text-decoration:none;color:inherit;">
+  <h4><span class="tag tag-ex">EX</span> 05 — Engineering Summary</h4>
+</a>
+
+</div>
+<p><a href="examples/hypothetical-product/README.md" class="muted">查看示例 README 与已知缺口 →</a></p>
+</section>
+
+<section id="qa">
+<h2>QA &amp; 报告</h2>
+<ul>
+  <li><a href="QA_FINAL.md">QA_FINAL.md</a> — 最终 QA 报告, 含空 input 已知缺口 / 接受准则 / 验证清单。</li>
+</ul>
+</section>
+
+<section id="governance">
+<h2>治理与已知缺口</h2>
+
+<div class="banner danger">
+  <strong>input 完全为空字符串</strong> — 项目名/用户需求/目标仓库/local folders/需求文档/UI 参考 全部 <code>""</code> 或 <code>[]</code>。本 atlas 作为<strong>通用方法论</strong>交付, <strong>不可作为任何真实项目的设计直接落库</strong>。使用前必须用真实输入替换或绑定到具体项目。
+</div>
+
+<h3>本 atlas 的承诺
+- 方法论 / 模板 / 清单 / 集成校验 / 假设性示例
+- 完全离线可用, 单 HTML 入口, 不依赖 npm 构建
+- 与 visual-page / web-design 类需求解耦, 不绑定任何视觉品牌
+
+<h3>本 atlas <strong>不</strong>承诺
+- 任何具体项目的设计交付 (input 为空)
+- 真实数据 / 真实用户验证 (示例均为假设)
+- 凭据 / 监管 / 版权合规 (必须由使用方自查)
+
+<h3>已知缺口 (汇总, 详见 <a href="QA_FINAL.md">QA_FINAL.md</a>)
+- 项目名 = <code>auto</code> 未指定
+- 用户需求 = <code>[]</code>
+- 目标仓库 / 本地文件夹 / 参考仓库 = 空
+- UI 参考 = 空 (仅空白 <code>path: ""</code> + <code>url: ""</code>)
+- 合规 / 监管 / 不可逆决策 = 无任何外部证据
+- 所有"反向假设 / 反对者签字"为占位, 待真实项目替换
+
+</section>
+
+<hr>
+
+<footer>
+<p>5D Atlas v9.0 · 修订: Ulysses (Mavis 代签, per <code>AGENTS.md §0 + 守门 #14</code>) · 审批: 架构师 (Mavis 代签)</p>
+<p>本仓库上下文: RustGameServer (D:\RustGameServer) · <code>docs/gemarc-5d-atlas-v9.0/</code> · 与 RGS 治理不重叠</p>
+</footer>
+
+</div>
+</body>
+</html>
