@@ -9,6 +9,13 @@
 # 范围：cargo check --tests + cargo test + Python mock_switch unittest
 #       + mock_switch CLI 5 子命令 exit-code 规范校验
 #
+# 本地等价入口：tools/rgs-flash-mock/scripts/mock-ci-gate.sh
+#   把本 workflow 的 7 个 step 原样搬下来（含缺口闭环 4 脚本 + 跨域故事链），
+#   一次命令跑完并产出 PASS/FAIL 汇总，退出码 fail-closed。
+#   用法：cd tools/rgs-flash-mock && bash scripts/mock-ci-gate.sh
+#   （MOCK_GATE_JOBS=N 限流 cargo 并发——本机 RAM 常态 free < 2 GB，
+#     不限流会挤爆 rustc 出现 "can't find crate for std" 假失败。）
+#
 # 依赖说明：
 # - aci-emitter 是 git 依赖，Cargo.lock 已锁 rev=df28c56，`--locked` 可复现
 # - tests/aci_integration.rs 3 个 IT 全为纯本地断言（只读 .aci.json + 字段校验），
@@ -87,9 +94,11 @@ jobs:
 
       # 不加 --all-targets：那样会跳过 Doc-tests。本 crate 的 doc-test
       # （aci_emitter_helper.rs:72 的 emit_smoke_assertion 示例）是真实断言，
-      # 实测 38 个用例 = 34 lib + 3 aci IT + 1 doc-test，全部通过。
+      # 实测 49 个用例 = 38 lib + 3 aci IT + 7 saga IT + 1 doc-test，全部通过。
+      # （2026-10-21 本机实测订正：原注释写 "38 个 = 34 lib + 3 aci IT + 1 doc-test"，
+      #  漏算了 saga_verify.rs 落地后的 7 个跨域故事链 IT，实际 lib 已涨到 38。）
       # --locked：aci-emitter 是 git 依赖，锁 rev=df28c56 防漂移。
-      - name: cargo test (34 lib + 3 aci IT + 1 doc-test)
+      - name: cargo test (38 lib + 3 aci IT + 7 saga IT + 1 doc-test)
         run: cargo test --locked
 
       # mock_switch reader 的 18 个 unittest（ULYS-190 §4.4 Stage 1 的 5 plugin × 12 module）

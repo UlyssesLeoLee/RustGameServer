@@ -1,0 +1,1231 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "revision": "b6a998174582064b04e71b703ece723a972b70f2",
+    "honestyNotice": "需求由真实 crate / 真实调用点派生; 业务规则细节因源需求文档缺失标 GAP_SOURCE_DOCUMENT。"
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "intent": "activity-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 64",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0002",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "activity-service"
+    },
+    {
+      "id": "REQ-002",
+      "intent": "admin-service 提供 1 个 gRPC 服务 / 6 个方法, 持有 6 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "6 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 121",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0003",
+        "EV-0860",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "admin-service"
+    },
+    {
+      "id": "REQ-003",
+      "intent": "batch-service 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0004",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "batch-service"
+    },
+    {
+      "id": "REQ-004",
+      "intent": "battle-service 提供 12 个 gRPC 服务 / 250 个方法, 持有 3 张表",
+      "measurableAcceptance": [
+        "12 个 proto service 定义可解析 (证据含 fileLine)",
+        "3 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 33",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0005",
+        "EV-0870",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "battle-service"
+    },
+    {
+      "id": "REQ-005",
+      "intent": "card-service 提供 1 个 gRPC 服务 / 9 个方法, 持有 3 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "3 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 44",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0006",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "card-service"
+    },
+    {
+      "id": "REQ-006",
+      "intent": "cluster-ops 提供 1 个 gRPC 服务 / 3 个方法, 持有 11 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "11 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 203",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0007",
+        "EV-0862",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "cluster-ops"
+    },
+    {
+      "id": "REQ-007",
+      "intent": "economy-service 提供 1 个 gRPC 服务 / 92 个方法, 持有 10 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "10 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 156",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0008",
+        "EV-0854",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "economy-service"
+    },
+    {
+      "id": "REQ-008",
+      "intent": "function-plane 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 1",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0009",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "function-plane"
+    },
+    {
+      "id": "REQ-009",
+      "intent": "gm-backend 提供 1 个 gRPC 服务 / 5 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 5",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0010",
+        "EV-0868",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "gm-backend"
+    },
+    {
+      "id": "REQ-010",
+      "intent": "gm-extra-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 18",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0011",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "gm-extra-service"
+    },
+    {
+      "id": "REQ-011",
+      "intent": "guild-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 53",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0012",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "guild-service"
+    },
+    {
+      "id": "REQ-012",
+      "intent": "i18n-service 提供 1 个 gRPC 服务 / 4 个方法, 持有 2 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "2 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 20",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0013",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "i18n-service"
+    },
+    {
+      "id": "REQ-013",
+      "intent": "leaderboard-extra-service 提供 1 个 gRPC 服务 / 7 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 17",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0014",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "leaderboard-extra-service"
+    },
+    {
+      "id": "REQ-014",
+      "intent": "leaderboard-service 提供 1 个 gRPC 服务 / 6 个方法, 持有 1 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 15",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0015",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "leaderboard-service"
+    },
+    {
+      "id": "REQ-015",
+      "intent": "match-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 8 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "8 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 120",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0016",
+        "EV-0856",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "match-service"
+    },
+    {
+      "id": "REQ-016",
+      "intent": "network-gateway 提供 1 个 gRPC 服务 / 4 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 123",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0017",
+        "EV-0871",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "network-gateway"
+    },
+    {
+      "id": "REQ-017",
+      "intent": "operate-service 提供 1 个 gRPC 服务 / 7 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 18",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0018",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "operate-service"
+    },
+    {
+      "id": "REQ-018",
+      "intent": "player-service 提供 1 个 gRPC 服务 / 26 个方法, 持有 7 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "7 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 113",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0019",
+        "EV-0852",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "player-service"
+    },
+    {
+      "id": "REQ-019",
+      "intent": "pvp-full-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 65",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0020",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "pvp-full-service"
+    },
+    {
+      "id": "REQ-020",
+      "intent": "replay-extra-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 15",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0021",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "replay-extra-service"
+    },
+    {
+      "id": "REQ-021",
+      "intent": "replay-service 提供 1 个 gRPC 服务 / 9 个方法, 持有 1 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 36",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0022",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "replay-service"
+    },
+    {
+      "id": "REQ-022",
+      "intent": "rgs-arc-olu 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 10",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0023",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-arc-olu"
+    },
+    {
+      "id": "REQ-023",
+      "intent": "rgs-asset-download 提供 0 个 gRPC 服务 / 0 个方法, 持有 1 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 59",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0024",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-asset-download"
+    },
+    {
+      "id": "REQ-024",
+      "intent": "rgs-certgen 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0025",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-certgen"
+    },
+    {
+      "id": "REQ-025",
+      "intent": "rgs-hello 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0026",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-hello"
+    },
+    {
+      "id": "REQ-026",
+      "intent": "rgs-overflow-alert 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 30",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0027",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-overflow-alert"
+    },
+    {
+      "id": "REQ-027",
+      "intent": "rgs-testkit 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 84",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0028",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "rgs-testkit"
+    },
+    {
+      "id": "REQ-028",
+      "intent": "scene-service 提供 1 个 gRPC 服务 / 145 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 68",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0029",
+        "EV-0869",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "scene-service"
+    },
+    {
+      "id": "REQ-029",
+      "intent": "shared-platform 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 166",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0030",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "shared-platform"
+    },
+    {
+      "id": "REQ-030",
+      "intent": "social-extra-service 提供 1 个 gRPC 服务 / 15 个方法, 持有 0 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 21",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0031",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Designed",
+      "_crate": "social-extra-service"
+    },
+    {
+      "id": "REQ-031",
+      "intent": "social-service 提供 1 个 gRPC 服务 / 2 个方法, 持有 8 张表",
+      "measurableAcceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "8 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 73",
+        "k8s Deployment 已定义"
+      ],
+      "nonGoals": [
+        "不定义该服务的业务规则细节 (源需求文档缺失 → GAP_SOURCE_DOCUMENT)",
+        "不断言运行时行为已通过验证 (未执行真实流量)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0032",
+        "EV-0858",
+        "EV-0001"
+      ],
+      "affectedDimensions": [
+        "0D",
+        "2D",
+        "3D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "social-service"
+    },
+    {
+      "id": "REQ-032",
+      "intent": "gm-backend → admin-service 跨服务 gRPC 调用 (AdminServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/gm-backend/src/lib.rs:687"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0837"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "gm-backend",
+      "_callee": "admin-service",
+      "_edgeId": "E-001"
+    },
+    {
+      "id": "REQ-033",
+      "intent": "gm-backend → admin-service 跨服务 gRPC 调用 (AdminServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/gm-backend/src/lib.rs:698"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0838"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "gm-backend",
+      "_callee": "admin-service",
+      "_edgeId": "E-002"
+    },
+    {
+      "id": "REQ-034",
+      "intent": "match-service → replay-service 跨服务 gRPC 调用 (ReplayServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/match-service/src/replay_client.rs:295"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0839"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "match-service",
+      "_callee": "replay-service",
+      "_edgeId": "E-003"
+    },
+    {
+      "id": "REQ-035",
+      "intent": "match-service → replay-service 跨服务 gRPC 调用 (ReplayServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/match-service/src/replay_client.rs:338"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0840"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "match-service",
+      "_callee": "replay-service",
+      "_edgeId": "E-004"
+    },
+    {
+      "id": "REQ-036",
+      "intent": "rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:211"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0841"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "economy-service",
+      "_edgeId": "E-005"
+    },
+    {
+      "id": "REQ-037",
+      "intent": "rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:297"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0842"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "economy-service",
+      "_edgeId": "E-006"
+    },
+    {
+      "id": "REQ-038",
+      "intent": "rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:299"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0843"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "economy-service",
+      "_edgeId": "E-007"
+    },
+    {
+      "id": "REQ-039",
+      "intent": "rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:308"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0844"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "economy-service",
+      "_edgeId": "E-008"
+    },
+    {
+      "id": "REQ-040",
+      "intent": "rgs-testkit → match-service 跨服务 gRPC 调用 (MatchServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/match.rs:472"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0845"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "match-service",
+      "_edgeId": "E-009"
+    },
+    {
+      "id": "REQ-041",
+      "intent": "rgs-testkit → match-service 跨服务 gRPC 调用 (MatchServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/match.rs:473"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0846"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "match-service",
+      "_edgeId": "E-010"
+    },
+    {
+      "id": "REQ-042",
+      "intent": "rgs-testkit → player-service 跨服务 gRPC 调用 (PlayerServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/player.rs:447"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0847"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "player-service",
+      "_edgeId": "E-011"
+    },
+    {
+      "id": "REQ-043",
+      "intent": "rgs-testkit → player-service 跨服务 gRPC 调用 (PlayerServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/player.rs:484"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0848"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "player-service",
+      "_edgeId": "E-012"
+    },
+    {
+      "id": "REQ-044",
+      "intent": "rgs-testkit → social-service 跨服务 gRPC 调用 (SocialServiceClient, type-annotation)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/social.rs:459"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0849"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "social-service",
+      "_edgeId": "E-013"
+    },
+    {
+      "id": "REQ-045",
+      "intent": "rgs-testkit → social-service 跨服务 gRPC 调用 (SocialServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/social.rs:462"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0850"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "social-service",
+      "_edgeId": "E-014"
+    },
+    {
+      "id": "REQ-046",
+      "intent": "rgs-testkit → admin-service 跨服务 gRPC 调用 (AdminServiceClient, ctor)",
+      "measurableAcceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/gm.rs:537"
+      ],
+      "nonGoals": [
+        "不承诺该调用的端到端 SLA (无压测数据)"
+      ],
+      "provenance": "SourceCode",
+      "evidenceIds": [
+        "EV-0851"
+      ],
+      "affectedDimensions": [
+        "2D",
+        "3D",
+        "4D",
+        "5D"
+      ],
+      "linkedTestIds": [],
+      "status": "Implemented",
+      "_crate": "rgs-testkit",
+      "_callee": "admin-service",
+      "_edgeId": "E-015"
+    }
+  ]
+}

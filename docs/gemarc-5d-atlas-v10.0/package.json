@@ -1,0 +1,26 @@
+{
+  "name": "gemarc-5d-atlas-v10",
+  "version": "10.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Universal GemArc 5D Design Atlas v10.0 — offline single-file HTML design atlas (0D-5D + Konva prototype workbench) for RustGameServer",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test:unit": "vitest run --reporter=basic",
+    "test:e2e": "playwright test",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "dagre": "^0.8.5",
+    "graphology": "^0.25.4",
+    "konva": "^9.3.16",
+    "three": "^0.160.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/three": "^0.160.0",
+    "axe-core": "^4.10.2",
+    "esbuild": "^0.24.0",
+    "vitest": "^2.1.8"
+  }
+}

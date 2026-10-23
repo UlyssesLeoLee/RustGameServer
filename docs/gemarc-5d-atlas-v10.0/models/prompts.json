@@ -1,0 +1,1496 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "revision": "b6a998174582064b04e71b703ece723a972b70f2"
+  },
+  "prompts": [
+    {
+      "promptId": "PRM-001",
+      "version": "v1.0.0",
+      "objective": "实现 activity-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-001"
+      ],
+      "nodeEdgeIds": [
+        "N-095-svc-activity-service",
+        "N-001-api-ActivityService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "activity-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 64",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0002",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-002",
+      "version": "v1.0.0",
+      "objective": "实现 admin-service 提供 1 个 gRPC 服务 / 6 个方法, 持有 6 张表",
+      "requirementIds": [
+        "REQ-002"
+      ],
+      "nodeEdgeIds": [
+        "N-096-svc-admin-service",
+        "N-002-api-AdminService",
+        "N-034-tbl-admin-service-admin_users",
+        "N-035-tbl-admin-service-audit_log",
+        "N-036-tbl-admin-service-outbox",
+        "N-037-tbl-admin-service-lcm_step_execution",
+        "N-038-tbl-admin-service-audit_log_partitioned",
+        "N-039-tbl-admin-service-second_review"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "admin-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "6 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 121",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0003",
+        "EV-0860",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-003",
+      "version": "v1.0.0",
+      "objective": "实现 batch-service 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-003"
+      ],
+      "nodeEdgeIds": [
+        "N-097-svc-batch-service"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "batch-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0004",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-004",
+      "version": "v1.0.0",
+      "objective": "实现 battle-service 提供 12 个 gRPC 服务 / 250 个方法, 持有 3 张表",
+      "requirementIds": [
+        "REQ-004"
+      ],
+      "nodeEdgeIds": [
+        "N-098-svc-battle-service",
+        "N-003-api-BattleEngineService",
+        "N-004-api-PvPService",
+        "N-005-api-BossService",
+        "N-006-api-RoomService",
+        "N-007-api-InstanceService",
+        "N-008-api-EndlessTowerService",
+        "N-009-api-EscortService",
+        "N-010-api-HolyEquipService",
+        "N-011-api-GuildWarService",
+        "N-012-api-CrossServerService",
+        "N-013-api-ExpeditionService",
+        "N-014-api-HolidayActivityService",
+        "N-040-tbl-battle-service-battle_master",
+        "N-041-tbl-battle-service-battle_transaction",
+        "N-042-tbl-battle-service-battle_work"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "battle-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "12 个 proto service 定义可解析 (证据含 fileLine)",
+        "3 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 33",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0005",
+        "EV-0870",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-005",
+      "version": "v1.0.0",
+      "objective": "实现 card-service 提供 1 个 gRPC 服务 / 9 个方法, 持有 3 张表",
+      "requirementIds": [
+        "REQ-005"
+      ],
+      "nodeEdgeIds": [
+        "N-099-svc-card-service",
+        "N-015-api-CardService",
+        "N-043-tbl-card-service-cards",
+        "N-044-tbl-card-service-card_series",
+        "N-045-tbl-card-service-card_instances"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "card-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "3 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 44",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0006",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-006",
+      "version": "v1.0.0",
+      "objective": "实现 cluster-ops 提供 1 个 gRPC 服务 / 3 个方法, 持有 11 张表",
+      "requirementIds": [
+        "REQ-006"
+      ],
+      "nodeEdgeIds": [
+        "N-100-svc-cluster-ops",
+        "N-016-api-ClusterOpsService",
+        "N-046-tbl-cluster-ops-cluster_nodes",
+        "N-047-tbl-cluster-ops-feature_flags",
+        "N-048-tbl-cluster-ops-outbox",
+        "N-049-tbl-cluster-ops-realm_lifecycle_run",
+        "N-050-tbl-cluster-ops-new_realm_plan",
+        "N-051-tbl-cluster-ops-split_plan",
+        "N-052-tbl-cluster-ops-merge_conflict_rule_set_v2",
+        "N-053-tbl-cluster-ops-retire_plan",
+        "N-054-tbl-cluster-ops-archive_policy",
+        "N-055-tbl-cluster-ops-lcm_step_execution",
+        "N-056-tbl-cluster-ops-function_registry"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "cluster-ops 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "11 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 203",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0007",
+        "EV-0862",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-007",
+      "version": "v1.0.0",
+      "objective": "实现 economy-service 提供 1 个 gRPC 服务 / 92 个方法, 持有 10 张表",
+      "requirementIds": [
+        "REQ-007"
+      ],
+      "nodeEdgeIds": [
+        "N-101-svc-economy-service",
+        "N-017-api-EconomyService",
+        "N-057-tbl-economy-service-accounts",
+        "N-058-tbl-economy-service-transaction_ledger",
+        "N-059-tbl-economy-service-sagas",
+        "N-060-tbl-economy-service-reservations",
+        "N-061-tbl-economy-service-inbox",
+        "N-062-tbl-economy-service-outbox",
+        "N-063-tbl-economy-service-auctions",
+        "N-064-tbl-economy-service-private_trades",
+        "N-065-tbl-economy-service-transaction_ledger_partitioned",
+        "N-066-tbl-economy-service-sagas_partitioned"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "economy-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "10 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 156",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0008",
+        "EV-0854",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-008",
+      "version": "v1.0.0",
+      "objective": "实现 function-plane 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-008"
+      ],
+      "nodeEdgeIds": [
+        "N-102-svc-function-plane"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "function-plane 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 1",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0009",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-009",
+      "version": "v1.0.0",
+      "objective": "实现 gm-backend 提供 1 个 gRPC 服务 / 5 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-009"
+      ],
+      "nodeEdgeIds": [
+        "N-103-svc-gm-backend",
+        "N-018-api-GmBackend"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "gm-backend 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 5",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0010",
+        "EV-0868",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-010",
+      "version": "v1.0.0",
+      "objective": "实现 gm-extra-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-010"
+      ],
+      "nodeEdgeIds": [
+        "N-104-svc-gm-extra-service",
+        "N-019-api-GmExtraService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "gm-extra-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 18",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0011",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-011",
+      "version": "v1.0.0",
+      "objective": "实现 guild-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-011"
+      ],
+      "nodeEdgeIds": [
+        "N-105-svc-guild-service",
+        "N-020-api-GuildService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "guild-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 53",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0012",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-012",
+      "version": "v1.0.0",
+      "objective": "实现 i18n-service 提供 1 个 gRPC 服务 / 4 个方法, 持有 2 张表",
+      "requirementIds": [
+        "REQ-012"
+      ],
+      "nodeEdgeIds": [
+        "N-106-svc-i18n-service",
+        "N-021-api-I18nService",
+        "N-067-tbl-i18n-service-i18n_texts",
+        "N-068-tbl-i18n-service-i18n_languages"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "i18n-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "2 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 20",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0013",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-013",
+      "version": "v1.0.0",
+      "objective": "实现 leaderboard-extra-service 提供 1 个 gRPC 服务 / 7 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-013"
+      ],
+      "nodeEdgeIds": [
+        "N-107-svc-leaderboard-extra-service",
+        "N-022-api-LeaderboardExtraService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "leaderboard-extra-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 17",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0014",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-014",
+      "version": "v1.0.0",
+      "objective": "实现 leaderboard-service 提供 1 个 gRPC 服务 / 6 个方法, 持有 1 张表",
+      "requirementIds": [
+        "REQ-014"
+      ],
+      "nodeEdgeIds": [
+        "N-108-svc-leaderboard-service",
+        "N-023-api-LeaderboardService",
+        "N-069-tbl-leaderboard-service-leaderboard_entries"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "leaderboard-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 15",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0015",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-015",
+      "version": "v1.0.0",
+      "objective": "实现 match-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 8 张表",
+      "requirementIds": [
+        "REQ-015"
+      ],
+      "nodeEdgeIds": [
+        "N-109-svc-match-service",
+        "N-024-api-MatchService",
+        "N-070-tbl-match-service-matches",
+        "N-071-tbl-match-service-match_participants",
+        "N-072-tbl-match-service-outbox",
+        "N-073-tbl-match-service-game_sessions",
+        "N-074-tbl-match-service-moves",
+        "N-075-tbl-match-service-matchmaking_tickets",
+        "N-076-tbl-match-service-session_subscriptions",
+        "N-077-tbl-match-service-moves_partitioned"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "match-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "8 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 120",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0016",
+        "EV-0856",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-016",
+      "version": "v1.0.0",
+      "objective": "实现 network-gateway 提供 1 个 gRPC 服务 / 4 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-016"
+      ],
+      "nodeEdgeIds": [
+        "N-110-svc-network-gateway",
+        "N-025-api-GatewayAdmin"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "network-gateway 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 123",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0017",
+        "EV-0871",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-017",
+      "version": "v1.0.0",
+      "objective": "实现 operate-service 提供 1 个 gRPC 服务 / 7 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-017"
+      ],
+      "nodeEdgeIds": [
+        "N-111-svc-operate-service",
+        "N-026-api-OperateService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "operate-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 18",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0018",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-018",
+      "version": "v1.0.0",
+      "objective": "实现 player-service 提供 1 个 gRPC 服务 / 26 个方法, 持有 7 张表",
+      "requirementIds": [
+        "REQ-018"
+      ],
+      "nodeEdgeIds": [
+        "N-112-svc-player-service",
+        "N-027-api-PlayerService",
+        "N-078-tbl-player-service-players",
+        "N-079-tbl-player-service-player_sessions",
+        "N-080-tbl-player-service-outbox",
+        "N-081-tbl-player-service-player_characters",
+        "N-082-tbl-player-service-player_inventory",
+        "N-083-tbl-player-service-decks",
+        "N-084-tbl-player-service-characters"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "player-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "7 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 113",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0019",
+        "EV-0852",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-019",
+      "version": "v1.0.0",
+      "objective": "实现 pvp-full-service 提供 1 个 gRPC 服务 / 30 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-019"
+      ],
+      "nodeEdgeIds": [
+        "N-113-svc-pvp-full-service",
+        "N-028-api-PvpFullService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "pvp-full-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 65",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0020",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-020",
+      "version": "v1.0.0",
+      "objective": "实现 replay-extra-service 提供 1 个 gRPC 服务 / 10 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-020"
+      ],
+      "nodeEdgeIds": [
+        "N-114-svc-replay-extra-service",
+        "N-029-api-ReplayExtraService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "replay-extra-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 15",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0021",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-021",
+      "version": "v1.0.0",
+      "objective": "实现 replay-service 提供 1 个 gRPC 服务 / 9 个方法, 持有 1 张表",
+      "requirementIds": [
+        "REQ-021"
+      ],
+      "nodeEdgeIds": [
+        "N-115-svc-replay-service",
+        "N-030-api-ReplayService",
+        "N-085-tbl-replay-service-replays"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "replay-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 36",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0022",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-022",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-arc-olu 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-022"
+      ],
+      "nodeEdgeIds": [
+        "N-116-svc-rgs-arc-olu"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-arc-olu 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 10",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0023",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-023",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-asset-download 提供 0 个 gRPC 服务 / 0 个方法, 持有 1 张表",
+      "requirementIds": [
+        "REQ-023"
+      ],
+      "nodeEdgeIds": [
+        "N-117-svc-rgs-asset-download",
+        "N-086-tbl-rgs-asset-download-resume_tokens"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-asset-download 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "1 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 59",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0024",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-024",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-certgen 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-024"
+      ],
+      "nodeEdgeIds": [
+        "N-118-svc-rgs-certgen"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-certgen 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0025",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-025",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-hello 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-025"
+      ],
+      "nodeEdgeIds": [
+        "N-119-svc-rgs-hello"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-hello 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 0",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0026",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-026",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-overflow-alert 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-026"
+      ],
+      "nodeEdgeIds": [
+        "N-120-svc-rgs-overflow-alert"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-overflow-alert 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 30",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0027",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-027",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-027"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 84",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0028",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-028",
+      "version": "v1.0.0",
+      "objective": "实现 scene-service 提供 1 个 gRPC 服务 / 145 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-028"
+      ],
+      "nodeEdgeIds": [
+        "N-122-svc-scene-service",
+        "N-031-api-SceneService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "scene-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 68",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0029",
+        "EV-0869",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-029",
+      "version": "v1.0.0",
+      "objective": "实现 shared-platform 提供 0 个 gRPC 服务 / 0 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-029"
+      ],
+      "nodeEdgeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "shared-platform 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "0 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 166",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0030",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-030",
+      "version": "v1.0.0",
+      "objective": "实现 social-extra-service 提供 1 个 gRPC 服务 / 15 个方法, 持有 0 张表",
+      "requirementIds": [
+        "REQ-030"
+      ],
+      "nodeEdgeIds": [
+        "N-124-svc-social-extra-service",
+        "N-032-api-SocialExtraService"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "social-extra-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "0 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 21",
+        "⚠️ 无 k8s Deployment 证据 → 部署状态 Unknown"
+      ],
+      "evidenceIds": [
+        "EV-0031",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-031",
+      "version": "v1.0.0",
+      "objective": "实现 social-service 提供 1 个 gRPC 服务 / 2 个方法, 持有 8 张表",
+      "requirementIds": [
+        "REQ-031"
+      ],
+      "nodeEdgeIds": [
+        "N-125-svc-social-service",
+        "N-033-api-SocialService",
+        "N-087-tbl-social-service-guilds",
+        "N-088-tbl-social-service-guild_members",
+        "N-089-tbl-social-service-outbox",
+        "N-090-tbl-social-service-guild_invitations",
+        "N-091-tbl-social-service-guild_join_requests",
+        "N-092-tbl-social-service-guild_applications",
+        "N-093-tbl-social-service-friend_requests",
+        "N-094-tbl-social-service-private_messages"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "social-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "1 个 proto service 定义可解析 (证据含 fileLine)",
+        "8 张 CREATE TABLE 具备 PK/FK 解析结果",
+        "crate 内 #[test] 计数 = 73",
+        "k8s Deployment 已定义"
+      ],
+      "evidenceIds": [
+        "EV-0032",
+        "EV-0858",
+        "EV-0001"
+      ]
+    },
+    {
+      "promptId": "PRM-032",
+      "version": "v1.0.0",
+      "objective": "实现 gm-backend → admin-service 跨服务 gRPC 调用 (AdminServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-032"
+      ],
+      "nodeEdgeIds": [
+        "N-103-svc-gm-backend",
+        "N-018-api-GmBackend"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "gm-backend 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/gm-backend/src/lib.rs:687"
+      ],
+      "evidenceIds": [
+        "EV-0837"
+      ]
+    },
+    {
+      "promptId": "PRM-033",
+      "version": "v1.0.0",
+      "objective": "实现 gm-backend → admin-service 跨服务 gRPC 调用 (AdminServiceClient, ctor)",
+      "requirementIds": [
+        "REQ-033"
+      ],
+      "nodeEdgeIds": [
+        "N-103-svc-gm-backend",
+        "N-018-api-GmBackend"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "gm-backend 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/gm-backend/src/lib.rs:698"
+      ],
+      "evidenceIds": [
+        "EV-0838"
+      ]
+    },
+    {
+      "promptId": "PRM-034",
+      "version": "v1.0.0",
+      "objective": "实现 match-service → replay-service 跨服务 gRPC 调用 (ReplayServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-034"
+      ],
+      "nodeEdgeIds": [
+        "N-109-svc-match-service",
+        "N-024-api-MatchService",
+        "N-070-tbl-match-service-matches",
+        "N-071-tbl-match-service-match_participants",
+        "N-072-tbl-match-service-outbox",
+        "N-073-tbl-match-service-game_sessions",
+        "N-074-tbl-match-service-moves",
+        "N-075-tbl-match-service-matchmaking_tickets",
+        "N-076-tbl-match-service-session_subscriptions",
+        "N-077-tbl-match-service-moves_partitioned"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "match-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/match-service/src/replay_client.rs:295"
+      ],
+      "evidenceIds": [
+        "EV-0839"
+      ]
+    },
+    {
+      "promptId": "PRM-035",
+      "version": "v1.0.0",
+      "objective": "实现 match-service → replay-service 跨服务 gRPC 调用 (ReplayServiceClient, ctor)",
+      "requirementIds": [
+        "REQ-035"
+      ],
+      "nodeEdgeIds": [
+        "N-109-svc-match-service",
+        "N-024-api-MatchService",
+        "N-070-tbl-match-service-matches",
+        "N-071-tbl-match-service-match_participants",
+        "N-072-tbl-match-service-outbox",
+        "N-073-tbl-match-service-game_sessions",
+        "N-074-tbl-match-service-moves",
+        "N-075-tbl-match-service-matchmaking_tickets",
+        "N-076-tbl-match-service-session_subscriptions",
+        "N-077-tbl-match-service-moves_partitioned"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "match-service 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/match-service/src/replay_client.rs:338"
+      ],
+      "evidenceIds": [
+        "EV-0840"
+      ]
+    },
+    {
+      "promptId": "PRM-036",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-036"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:211"
+      ],
+      "evidenceIds": [
+        "EV-0841"
+      ]
+    },
+    {
+      "promptId": "PRM-037",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-037"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:297"
+      ],
+      "evidenceIds": [
+        "EV-0842"
+      ]
+    },
+    {
+      "promptId": "PRM-038",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, ctor)",
+      "requirementIds": [
+        "REQ-038"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:299"
+      ],
+      "evidenceIds": [
+        "EV-0843"
+      ]
+    },
+    {
+      "promptId": "PRM-039",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit → economy-service 跨服务 gRPC 调用 (EconomyServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-039"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/economy.rs:308"
+      ],
+      "evidenceIds": [
+        "EV-0844"
+      ]
+    },
+    {
+      "promptId": "PRM-040",
+      "version": "v1.0.0",
+      "objective": "实现 rgs-testkit → match-service 跨服务 gRPC 调用 (MatchServiceClient, type-annotation)",
+      "requirementIds": [
+        "REQ-040"
+      ],
+      "nodeEdgeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "caseIds": [],
+      "inputs": [
+        "目标服务的 proto 定义 (evidence: fileLine)",
+        "目标服务 migrations (evidence: fileLine)"
+      ],
+      "constraints": [
+        "仅使用仓库中已存在证据的路径; 不得引入未登记的新实体",
+        "凭据一律走环境变量, 永不打印 (per 守门 #5)",
+        "新表必须含 PK; 外键必须显式声明 REFERENCES"
+      ],
+      "outputs": [
+        "rgs-testkit 的实现变更",
+        "对应 UT/IT 用例"
+      ],
+      "acceptance": [
+        "源码存在真实调用点 crates/rgs-testkit/src/bot/ai/match.rs:472"
+      ],
+      "evidenceIds": [
+        "EV-0845"
+      ]
+    }
+  ]
+}

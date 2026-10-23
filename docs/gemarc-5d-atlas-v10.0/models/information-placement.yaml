@@ -1,0 +1,91 @@
+# 情報配置マトリクス (Information Placement Matrix)
+#
+# spec: requirements_and_information_architecture.source_of_truth
+#       "models/information-placement.yaml"
+#
+# 変更手順: 情報を移動・追加するたびに、本ファイル / ナビゲーションテスト / 設計決定を
+# 同時に更新する。複数ラウンドの競合追記は禁止 (spec change_control)。
+
+meta:
+  version: "10.0.0"
+  subject: "RustGameServer (RGS)"
+  source_of_truth: true
+  generated_by: "scripts/generate-meta-models.mjs"
+
+placement:
+  0D:
+    kind: gate
+    navigation_page: false
+    location: "ヘッダーゲート指示器 → モーダル"
+    content: "存在性マトリクス (Present / Absent / Unknown)"
+    prohibition: "独立ページを作らない / Unknown を Absent に畳まない / 装飾的アーキテクチャ図を作らない"
+
+  1D:
+    kind: page
+    navigation_page: true
+    location: "ヘッダー タブ「1D」"
+    content: "プロンプトの生成・編集・検証・コピー・エクスポート・版差分・証拠リンク"
+    actions: [generate, edit, validate, copy, export, diff, link_evidence]
+    prohibition: "図を描かない (1D はプロンプトである)"
+
+  2D:
+    kind: page
+    navigation_page: true
+    location: "ヘッダー タブ「2D」"
+    content: "全設計要素の無限キャンバス + 独立した専門図のレビュー単位"
+    canvas: [pan_zoom, minimap, search, layer, filter, focus, group, collapse, multiselect, undo_redo,
+             node_edge_port_independent_select, relation_and_requirement_trace]
+    diagrams: [UML_Class, UML_Component, UML_Package, UML_Sequence, UML_State, UML_Activity,
+               UML_Deployment, UML_UseCase, ER, DFD, BPMN, Security, Network, DataFlow]
+    prohibition: "全図種を Sequence として描画しない / 宝石で専門記号を描かない"
+
+  prototype:
+    kind: workspace
+    navigation_page: true
+    location: "ヘッダー タブ「Prototype」"
+    content: "複数タブのプロダクトプロトタイプ (独立ワークスペース)"
+    sub_tabs: [ページとスクリーン, ビジュアル編集, インタラクションプレビュー, 状態とCase, コンポーネントライブラリ, 設計とテスト]
+    prohibition: "第六次元ではない / 2D 無限キャンバスと同一視しない / 空メニューにしない"
+
+  3D:
+    kind: page
+    navigation_page: true
+    location: "ヘッダー タブ「3D」"
+    content: "意味的ビルディング / フロア / ルーム / ノード / エッジの 3D 空間グラフ"
+    views: [Overview, BirdEye, ExplodedFloor, RoomCutaway, Logical, Development, Deployment, Data, Process, Security, Operations, Dependency]
+    navigation: [OrbitYaw, OrbitPitch, Pan, Zoom, Focus, AxisGizmo, RoomSwitch, FloorSwitch, ResetCamera]
+    prohibition: "仮想空間を物理配備の事実として偽装しない / 宝石を 3D ノード以外に使わない"
+
+  4D:
+    kind: page
+    navigation_page: true
+    location: "ヘッダー タブ「4D」 + 下部タイムライン"
+    content: "同一 3D 上の論理時間 / イベント / 状態 / Case アニメーション"
+    controls: [Play, Pause, StepForward, StepBack, Seek, Speed, Reset, Snapshot, Replay, CaseSwitch]
+    prohibition: "描画 FPS が結果を決めない (Event Trace のみを再生)"
+
+  5D:
+    kind: page
+    navigation_page: true
+    location: "ヘッダー タブ「5D」 + 下部タイムライン"
+    content: "同じ動的 3D 上でモジュール無効化 / 規則変更 / 相互作用要素追加 / A-B 因果説明"
+    operations: [DisableNode, DisableEdge, BypassNode, ChangeGuard, ChangeTimeout, ChangeRetry,
+                 DelayMessage, InjectFault, AddInteractiveElement, RewireGraph]
+    modes: [Overlay3D, SplitSynchronized3D, BranchTimeline]
+    essential: [SharedPath, FirstDivergence, BranchA, BranchB, Propagation, Blocking, Feedback, Retry,
+                Recovery, Compensation, Convergence, OutcomeDiff, NoDifference]
+    prohibition:
+      - "事前計算の光跡を因果として偽装しない"
+      - "色を変えるだけで再計算しない"
+      - "装飾ノードを置いただけamente干渉成功と主張しない"
+      - "実験で正式な事実グラフを変更しない"
+
+view_independence:
+  note: "Logical / Development / Process / Deployment / Data / Security / Operations / Dependency の各 View は 1D-5D の表現次元とは独立して定義する。"
+  views: [Logical, Development, Process, Deployment, Data, Security, Operations, Dependency]
+
+trace_chain: "Requirement ↔ Prompt ↔ BD ↔ DD ↔ Screen/Node/Edge/Port ↔ API/DB/Event ↔ Case ↔ UT/IT/ST/UAT"
+
+immutable_ids:
+  note: "Requirement, Prompt, Node, Edge, Port, Diagram, Screen, Component, Action, Event, Rule, Case, Test はそれぞれ安定 ID を持ち、次元間で再採番しない。"
+  entities: [Requirement, Prompt, Node, Edge, Port, Diagram, Screen, Component, Action, Event, Rule, Case, Test]

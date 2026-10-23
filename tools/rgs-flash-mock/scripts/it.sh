@@ -20,6 +20,13 @@ set -uo pipefail
 # 切到 mock 项目根
 cd "$(dirname "$0")/.."
 
+# Python UTF-8 模式 (per 2026-10-21 实测订正):
+#   本机 locale 是 cp936(GBK) —— `locale.getpreferredencoding()` 返回 'gbk',
+#   而 mock_data/*.json 是 UTF-8 且含中文。python 的 open() 默认用 locale 编码,
+#   于是 58/59 个 fixture 直接 UnicodeDecodeError, 被本脚本判成 "JSON invalid"。
+#   这是**脚本对 locale 的隐性依赖**, 不是数据坏 —— 显式 encoding + UTF-8 模式双保险。
+export PYTHONUTF8=1
+
 echo "=== rgs-flash-mock IT (per ULYS-141 + RGS-TEST-DESIGN v0.2 §8) ==="
 echo "  mock 项目根: $(pwd)"
 echo
@@ -64,7 +71,7 @@ else
   FIXTURE_FILES=$(find "$FIXTURE_DIR" -maxdepth 1 -name "*.json" 2>/dev/null)
   TOTAL_FIXTURES=$(echo "$FIXTURE_FILES" | wc -l)
   for f in $FIXTURE_FILES; do
-    if python -c "import json,sys; json.load(open(sys.argv[1])); sys.exit(0)" "$f" 2>/dev/null; then
+    if python -c "import json,sys; json.load(open(sys.argv[1],encoding='utf-8')); sys.exit(0)" "$f" 2>/dev/null; then
       VALID_COUNT=$((VALID_COUNT + 1))
     else
       INVALID_COUNT=$((INVALID_COUNT + 1))
@@ -92,7 +99,7 @@ for f in sorted(os.listdir(mdir)):
     if not f.endswith('.json'):
         continue
     try:
-        data = json.load(open(os.path.join(mdir, f)))
+        data = json.load(open(os.path.join(mdir, f), encoding='utf-8'))
         # 兼容两种结构: {'rpcs': {...}} 或 {'scenarios': [...]}
         if 'rpcs' in data and isinstance(data['rpcs'], dict):
             total += len(data['rpcs'])
@@ -130,8 +137,15 @@ declare -a REGRESSION_SCRIPTS=(
 
 SCRIPT_PASSED=0
 SCRIPT_FAILED=0
+# 每次运行用独立临时目录 (per 2026-10-21 实测订正):
+#   固定名 /tmp/it_<script>.log 会让**并发**的两次回归互相覆盖日志 ——
+#   被取消的运行留下的孤儿进程会写同一批文件名, 汇总读到别人的失败内容
+#   (本机实测: 一次被取消的运行导致另一次汇总误报 "1 passed / 8 failed")。
+#   mktemp -d 保证每次运行的日志互不干扰。
+RUN_TMP=$(mktemp -d 2>/dev/null || echo "./.it-run-$$")
 for script in "${REGRESSION_SCRIPTS[@]}"; do
   script_path="scripts/$script"
+  script_log="$RUN_TMP/it_${script%.sh}.log"
   if [ ! -f "$script_path" ]; then
     echo "  ❌ $script 不存在"
     SCRIPT_FAILED=$((SCRIPT_FAILED + 1))
@@ -139,14 +153,14 @@ for script in "${REGRESSION_SCRIPTS[@]}"; do
   fi
   echo "  执行 $script ..."
   if CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-D:/RustGameServer/target/flash-mock-ulys141}" \
-     bash "$script_path" > /tmp/it_${script%.sh}.log 2>&1; then
+     bash "$script_path" > "$script_log" 2>&1; then
     echo "    ✅ $script PASS"
     SCRIPT_PASSED=$((SCRIPT_PASSED + 1))
   else
     SCRIPT_RC=$?
     echo "    ❌ $script FAIL (rc=$SCRIPT_RC)"
     # 仅打印尾部 5 行作为证据
-    tail -5 /tmp/it_${script%.sh}.log 2>/dev/null | sed 's/^/    /' || true
+    tail -5 "$script_log" 2>/dev/null | sed 's/^/    /' || true
     SCRIPT_FAILED=$((SCRIPT_FAILED + 1))
   fi
 done

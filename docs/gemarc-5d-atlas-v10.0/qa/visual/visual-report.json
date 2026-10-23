@@ -1,0 +1,199 @@
+{
+  "index": "file:///D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/index.html",
+  "at": "2026-10-23T00:14:56.521Z",
+  "viewports": [
+    {
+      "viewport": "desktop",
+      "dim": "1D",
+      "state": {
+        "dim": "1D",
+        "panelLen": 1245,
+        "sidebarLen": 12438,
+        "toolbarLen": 453,
+        "timelineHidden": true,
+        "status": "1D — 40 条 Prompt (由 models/prompts.json 派生)",
+        "inspectorLen": 93,
+        "hasCanvas": false,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-1D.png"
+    },
+    {
+      "viewport": "desktop",
+      "dim": "2D",
+      "state": {
+        "dim": "2D",
+        "panelLen": 144042,
+        "sidebarLen": 5582,
+        "toolbarLen": 1169,
+        "timelineHidden": true,
+        "status": "2D — 125 节点 / 15 实现边 / 1 推断边 / 710 端口 / 14 种工程图",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-2D.png"
+    },
+    {
+      "viewport": "desktop",
+      "dim": "3D",
+      "state": {
+        "dim": "3D",
+        "panelLen": 10525,
+        "sidebarLen": 3946,
+        "toolbarLen": 4003,
+        "timelineHidden": true,
+        "status": "3D — 125 ノード / 16 エッジ / 31 ルーム (論理投影)",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-3D.png"
+    },
+    {
+      "viewport": "desktop",
+      "dim": "4D",
+      "state": {
+        "dim": "4D",
+        "panelLen": 11119,
+        "sidebarLen": 5021,
+        "toolbarLen": 988,
+        "timelineHidden": false,
+        "status": "4D — CASE-001 実行完了: SUCCESS, 6 イベント",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-4D.png"
+    },
+    {
+      "viewport": "desktop",
+      "dim": "5D",
+      "state": {
+        "dim": "5D",
+        "panelLen": 13370,
+        "sidebarLen": 5320,
+        "toolbarLen": 630,
+        "timelineHidden": false,
+        "status": "5D — A/B 重算完了: NO_DIFFERENCE",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": true
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-5D.png"
+    },
+    {
+      "viewport": "desktop",
+      "dim": "Prototype",
+      "state": {
+        "dim": "Prototype",
+        "panelLen": 1655,
+        "sidebarLen": 1193,
+        "toolbarLen": 1412,
+        "timelineHidden": true,
+        "status": "Prototype — ページとスクリーン · 3 screens · origin=HypotheticalExperiment",
+        "inspectorLen": 93,
+        "hasCanvas": false,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\desktop-Prototype.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "1D",
+      "state": {
+        "dim": "1D",
+        "panelLen": 1245,
+        "sidebarLen": 12438,
+        "toolbarLen": 453,
+        "timelineHidden": true,
+        "status": "1D — 40 条 Prompt (由 models/prompts.json 派生)",
+        "inspectorLen": 93,
+        "hasCanvas": false,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-1D.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "2D",
+      "state": {
+        "dim": "2D",
+        "panelLen": 144041,
+        "sidebarLen": 5582,
+        "toolbarLen": 1169,
+        "timelineHidden": true,
+        "status": "2D — 125 节点 / 15 实现边 / 1 推断边 / 710 端口 / 14 种工程图",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-2D.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "3D",
+      "state": {
+        "dim": "3D",
+        "panelLen": 10229,
+        "sidebarLen": 3946,
+        "toolbarLen": 4003,
+        "timelineHidden": true,
+        "status": "3D — 125 ノード / 16 エッジ / 31 ルーム (論理投影)",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-3D.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "4D",
+      "state": {
+        "dim": "4D",
+        "panelLen": 10823,
+        "sidebarLen": 5021,
+        "toolbarLen": 988,
+        "timelineHidden": false,
+        "status": "4D — CASE-001 実行完了: SUCCESS, 6 イベント",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-4D.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "5D",
+      "state": {
+        "dim": "5D",
+        "panelLen": 13074,
+        "sidebarLen": 5320,
+        "toolbarLen": 630,
+        "timelineHidden": false,
+        "status": "5D — A/B 重算完了: NO_DIFFERENCE",
+        "inspectorLen": 93,
+        "hasCanvas": true,
+        "hasTable": true
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-5D.png"
+    },
+    {
+      "viewport": "narrow",
+      "dim": "Prototype",
+      "state": {
+        "dim": "Prototype",
+        "panelLen": 1655,
+        "sidebarLen": 1193,
+        "toolbarLen": 1412,
+        "timelineHidden": true,
+        "status": "Prototype — ページとスクリーン · 3 screens · origin=HypotheticalExperiment",
+        "inspectorLen": 93,
+        "hasCanvas": false,
+        "hasTable": false
+      },
+      "screenshot": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\qa\\visual\\narrow-Prototype.png"
+    }
+  ],
+  "errors": []
+}

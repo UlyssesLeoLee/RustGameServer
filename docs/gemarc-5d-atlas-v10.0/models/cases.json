@@ -1,0 +1,309 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "revision": "b6a998174582064b04e71b703ece723a972b70f2",
+    "honestyNotice": "Case 的参数取自仓库真实常量 (RetryConfig::default / CircuitBreaker); 标 HypotheticalExperiment 的 Case 明确为假设。"
+  },
+  "cases": [
+    {
+      "kind": "Normal",
+      "title": "economy 交易 saga 正常完成",
+      "origin": "DesignedSimulation",
+      "description": "沿 economy-service 真实 saga 步骤链执行, 每步成功则推进, 最终 confirm。无异常。",
+      "startNodeId": "N-101-svc-economy-service",
+      "precondition": "所有下游服务健康",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-101-svc-economy-service",
+          "action": "reserve",
+          "target": "N-101-svc-economy-service",
+          "expect": "reservation 建立"
+        },
+        {
+          "seq": 2,
+          "actor": "N-101-svc-economy-service",
+          "action": "confirm",
+          "target": "N-101-svc-economy-service",
+          "expect": "saga 终态 committed"
+        }
+      ],
+      "expectedOutcome": "SUCCESS — saga 提交, 无补偿",
+      "nodeIds": [
+        "N-101-svc-economy-service",
+        "N-123-svc-shared-platform"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-001"
+    },
+    {
+      "kind": "Compensation",
+      "title": "saga 中途失败 → 真实补偿链",
+      "origin": "DesignedSimulation",
+      "description": "第 2 步注入失败, 触发 SagaOrchestrator::compensate 逆序补偿。补偿使用真实 compensate 处理器, 不是简单倒放动画。",
+      "startNodeId": "N-101-svc-economy-service",
+      "precondition": "reserve 成功, confirm 失败",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-101-svc-economy-service",
+          "action": "reserve",
+          "target": "N-101-svc-economy-service",
+          "expect": "reservation 建立"
+        },
+        {
+          "seq": 2,
+          "actor": "N-101-svc-economy-service",
+          "action": "confirm",
+          "target": "N-101-svc-economy-service",
+          "expect": "注入失败 → Failed"
+        },
+        {
+          "seq": 3,
+          "actor": "N-101-svc-economy-service",
+          "action": "compensate",
+          "target": "N-101-svc-economy-service",
+          "expect": "reservation 释放 / 退款"
+        }
+      ],
+      "expectedOutcome": "COMPENSATED — 资源回滚, 与 chaos_trade_saga_compensation.rs 的测试意图一致",
+      "nodeIds": [
+        "N-101-svc-economy-service"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-002"
+    },
+    {
+      "kind": "Retry",
+      "title": "重试退避 (真实 RetryConfig)",
+      "origin": "DesignedSimulation",
+      "description": "按 shared-platform::retry::RetryConfig::default() 实参退避: max_retries=3, initial=100ms, multiplier=2, max=30000ms, jitter=±20%。仅 Unavailable/DeadlineExceeded/Aborted/ResourceExhausted 可重试。",
+      "startNodeId": "N-123-svc-shared-platform",
+      "precondition": "下游返回 Unavailable",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-123-svc-shared-platform",
+          "action": "call",
+          "expect": "Unavailable → is_retryable=true"
+        },
+        {
+          "seq": 2,
+          "actor": "N-123-svc-shared-platform",
+          "action": "backoff",
+          "expect": "等待 ~100ms"
+        },
+        {
+          "seq": 3,
+          "actor": "N-123-svc-shared-platform",
+          "action": "call",
+          "expect": "再次失败"
+        },
+        {
+          "seq": 4,
+          "actor": "N-123-svc-shared-platform",
+          "action": "backoff",
+          "expect": "等待 ~200ms"
+        }
+      ],
+      "expectedOutcome": "FAILURE — 达到 max_retries=3 后放弃 (退避上限 30000ms)",
+      "nodeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-003"
+    },
+    {
+      "kind": "Boundary",
+      "title": "退避达到 max_interval 上限",
+      "origin": "DesignedSimulation",
+      "description": "attempts 足够大时退避被截断到 30000ms。源码 backoff_duration 对 capped_ms 再叠加 ±20% jitter, 故上限为 30000 * 1.2 = 36000ms。",
+      "startNodeId": "N-123-svc-shared-platform",
+      "precondition": "持续失败",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-123-svc-shared-platform",
+          "action": "backoff",
+          "expect": "capped at 30000ms"
+        }
+      ],
+      "expectedOutcome": "FAILURE — 退避封顶, 不无限增长",
+      "nodeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-004"
+    },
+    {
+      "kind": "DuplicateDelivery",
+      "title": "Outbox 重复投递 (幂等约束)",
+      "origin": "DesignedSimulation",
+      "description": "同一 outbox 消息被重复投递, 由 *_outbox_check_idempotent.sql 的幂等约束拦截, 不产生重复副作用。",
+      "startNodeId": "N-123-svc-shared-platform",
+      "precondition": "relay 重复发送同一 event_id",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-123-svc-shared-platform",
+          "action": "relay",
+          "expect": "第 1 次投递成功"
+        },
+        {
+          "seq": 2,
+          "actor": "N-123-svc-shared-platform",
+          "action": "relay",
+          "expect": "幂等约束命中 → 跳过"
+        }
+      ],
+      "expectedOutcome": "SUCCESS — 无重复副作用 (幂等)",
+      "nodeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-005"
+    },
+    {
+      "kind": "FailurePropagation",
+      "title": "gm-backend → admin-service 熔断 (真实 CircuitBreaker)",
+      "origin": "DesignedSimulation",
+      "description": "gm-backend::AdminGrpcClient 的 CircuitBreaker 状态机: Closed → (连续 5 次失败) → Open (30000ms) → HalfOpen (仅 1 个 probe)。Open 期间 try_acquire 返回 false, 直接短路不再打下游。",
+      "startNodeId": "N-103-svc-gm-backend",
+      "precondition": "admin-service 持续不可用",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-103-svc-gm-backend",
+          "action": "call",
+          "target": "N-096-svc-admin-service",
+          "expect": "失败 1/5, 仍 Closed"
+        },
+        {
+          "seq": 2,
+          "actor": "N-103-svc-gm-backend",
+          "action": "call",
+          "target": "N-096-svc-admin-service",
+          "expect": "第 5 次失败 → Open"
+        },
+        {
+          "seq": 3,
+          "actor": "N-103-svc-gm-backend",
+          "action": "call",
+          "target": "N-096-svc-admin-service",
+          "expect": "Open 期间短路, 不打下游"
+        },
+        {
+          "seq": 4,
+          "actor": "N-103-svc-gm-backend",
+          "action": "probe",
+          "target": "N-096-svc-admin-service",
+          "expect": "等待 30000ms 后 HalfOpen, 仅 1 个 probe"
+        }
+      ],
+      "expectedOutcome": "FAILURE — 熔断生效, 防止 cascade failure",
+      "nodeIds": [
+        "N-103-svc-gm-backend",
+        "N-096-svc-admin-service"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-006"
+    },
+    {
+      "kind": "Recovery",
+      "title": "熔断后恢复 (HalfOpen probe 成功)",
+      "origin": "DesignedSimulation",
+      "description": "Open 超时后进入 HalfOpen, probe 成功则 record_success → Closed, consecutive_failures 归零。",
+      "startNodeId": "N-103-svc-gm-backend",
+      "precondition": "下游已恢复",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-103-svc-gm-backend",
+          "action": "probe",
+          "target": "N-096-svc-admin-service",
+          "expect": "HalfOpen probe 成功"
+        },
+        {
+          "seq": 2,
+          "actor": "N-103-svc-gm-backend",
+          "action": "record_success",
+          "expect": "Closed, 计数归零"
+        }
+      ],
+      "expectedOutcome": "SUCCESS — 熔断器复位",
+      "nodeIds": [
+        "N-103-svc-gm-backend",
+        "N-096-svc-admin-service"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-007"
+    },
+    {
+      "kind": "Timeout",
+      "title": "economy → card-service 超时 (仅设计意图, 无真实调用点)",
+      "origin": "HypotheticalExperiment",
+      "description": "⚠️ 该调用对在源码中**仅见于注释** (trade_saga_clients.rs), 无真实调用点, 因此本 Case 为 Hypothetical, 不得当作已实现行为。",
+      "startNodeId": "N-101-svc-economy-service",
+      "precondition": "card-service 响应超时",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-101-svc-economy-service",
+          "action": "call",
+          "target": "N-099-svc-card-service",
+          "expect": "DeadlineExceeded"
+        },
+        {
+          "seq": 2,
+          "actor": "N-101-svc-economy-service",
+          "action": "retry",
+          "expect": "按 max_retries=3 退避重试"
+        }
+      ],
+      "expectedOutcome": "FAILURE — 重试耗尽 (设计意图, 非实测)",
+      "nodeIds": [
+        "N-101-svc-economy-service",
+        "N-099-svc-card-service"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-008"
+    },
+    {
+      "kind": "Concurrent",
+      "title": "并发 saga 下的库存预留冲突",
+      "origin": "DesignedSimulation",
+      "description": "仓库内存在 integration_reservation_under_concurrent_saga.rs 测试, 表明并发预留冲突是被覆盖的场景。本 Case 为按该测试意图构造的模拟。",
+      "startNodeId": "N-101-svc-economy-service",
+      "precondition": "两个 saga 同时预留同一资源",
+      "steps": [
+        {
+          "seq": 1,
+          "actor": "N-101-svc-economy-service",
+          "action": "reserve",
+          "expect": "A 预留成功"
+        },
+        {
+          "seq": 2,
+          "actor": "N-101-svc-economy-service",
+          "action": "reserve",
+          "expect": "B 冲突 → 等待/失败"
+        }
+      ],
+      "expectedOutcome": "BLOCKED — 资源竞争被检出",
+      "nodeIds": [
+        "N-101-svc-economy-service"
+      ],
+      "edgeIds": [],
+      "evidenceIds": [],
+      "caseId": "CASE-009"
+    }
+  ]
+}

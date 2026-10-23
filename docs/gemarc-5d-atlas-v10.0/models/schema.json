@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/gemarc-5d-atlas/v10/schema.json",
+  "title": "Universal GemArc 5D Design Atlas — Canonical Engineering Model",
+  "description": "spec `canonical_engineering_model` の機械可読な定義。分割_models は個別に版管理する。",
+  "$defs": {
+    "ExistenceStatus": {
+      "enum": [
+        "Present",
+        "Absent",
+        "Unknown"
+      ]
+    },
+    "ImplementationStatus": {
+      "enum": [
+        "Implemented",
+        "Designed",
+        "Inferred",
+        "Absent"
+      ]
+    },
+    "EvidenceKind": {
+      "enum": [
+        "SourceCode",
+        "TestTrace",
+        "RuntimeLog",
+        "Document",
+        "PublicObservation",
+        "UserRequirement"
+      ]
+    },
+    "ScenarioOrigin": {
+      "enum": [
+        "ObservedReplay",
+        "DesignedSimulation",
+        "HypotheticalExperiment"
+      ]
+    },
+    "QAStatus": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_TESTED",
+        "DEGRADED",
+        "BLOCKED",
+        "FLAKY_UNRESOLVED"
+      ]
+    },
+    "Evidence": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "fileLine",
+        "path",
+        "startLine",
+        "endLine",
+        "revision",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^EV-\\d{4}$"
+        },
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "fileLine": {
+          "type": "string",
+          "description": "path:startLine-endLine"
+        },
+        "path": {
+          "type": "string"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "revision": {
+          "type": "string",
+          "description": "采集时的仓库 revision (短 SHA)"
+        },
+        "note": {
+          "type": "string"
+        },
+        "snippet": {
+          "type": "string"
+        }
+      }
+    },
+    "GraphNode": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "qualifiedName",
+        "role",
+        "domainId",
+        "parentId",
+        "portIds",
+        "properties",
+        "verification",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "qualifiedName": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "domainId": {
+          "type": "string",
+          "enum": [
+            "Core",
+            "Interaction",
+            "Data",
+            "Security",
+            "Intelligence",
+            "Infrastructure",
+            "External",
+            "Operations",
+            "Unknown"
+          ]
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "portIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "type": "object"
+        },
+        "verification": {
+          "$ref": "#/$defs/ImplementationStatus"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GraphEdge": {
+      "type": "object",
+      "required": [
+        "id",
+        "sourceId",
+        "targetId",
+        "type",
+        "directed",
+        "verification",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourcePortId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetPortId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string"
+        },
+        "directed": {
+          "type": "boolean"
+        },
+        "guardId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "properties": {
+          "type": "object"
+        },
+        "verification": {
+          "$ref": "#/$defs/ImplementationStatus"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Prompt": {
+      "type": "object",
+      "required": [
+        "promptId",
+        "version",
+        "objective",
+        "requirementIds",
+        "nodeEdgeIds",
+        "caseIds",
+        "inputs",
+        "constraints",
+        "outputs",
+        "acceptance",
+        "evidenceIds"
+      ],
+      "properties": {
+        "promptId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "objective": {
+          "type": "string"
+        },
+        "requirementIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nodeEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "caseIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inputs": {
+          "type": "array"
+        },
+        "constraints": {
+          "type": "array"
+        },
+        "outputs": {
+          "type": "array"
+        },
+        "acceptance": {
+          "type": "array"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "required": [
+        "caseId",
+        "kind",
+        "title",
+        "origin",
+        "description",
+        "startNodeId",
+        "steps",
+        "expectedOutcome",
+        "nodeIds",
+        "evidenceIds"
+      ],
+      "properties": {
+        "caseId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "Normal",
+            "Abnormal",
+            "Boundary",
+            "Concurrent",
+            "Delay",
+            "Timeout",
+            "DuplicateDelivery",
+            "OutOfOrder",
+            "FailurePropagation",
+            "Retry",
+            "Recovery",
+            "Compensation",
+            "ResourceContention",
+            "Combined"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/ScenarioOrigin"
+        },
+        "description": {
+          "type": "string"
+        },
+        "startNodeId": {
+          "type": "string"
+        },
+        "precondition": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "expectedOutcome": {
+          "type": "string"
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "edgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Intervention": {
+      "type": "object",
+      "required": [
+        "interventionId",
+        "kind",
+        "targetId",
+        "label",
+        "origin"
+      ],
+      "properties": {
+        "interventionId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "DisableNode",
+            "DisableEdge",
+            "BypassNode",
+            "ChangeGuard",
+            "ChangeTimeout",
+            "ChangeRetry",
+            "DelayMessage",
+            "InjectFault",
+            "AddInteractiveElement",
+            "RewireGraph"
+          ]
+        },
+        "targetId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {},
+        "payload": {
+          "type": "object"
+        },
+        "origin": {
+          "$ref": "#/$defs/ScenarioOrigin"
+        }
+      }
+    },
+    "SimulationEvent": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "caseId",
+        "logicalTime",
+        "sequence",
+        "previousState",
+        "nextState"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "logicalTime": {
+          "type": "integer"
+        },
+        "sequence": {
+          "type": "integer"
+        },
+        "sourceNodeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetNodeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "edgeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previousState": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nextState": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ruleId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/GraphNode"
+}

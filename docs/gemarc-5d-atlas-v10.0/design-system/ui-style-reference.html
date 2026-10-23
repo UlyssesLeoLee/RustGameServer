@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja-JP"><head><meta charset="utf-8"><title>UI Style Reference — GemArc 5D Atlas v10.0</title>
+<style>
+:root{--bg:#0B1220;--surface:#121D2E;--raised:#1C2A3D;--text:#E8EFF7;--text-2:#AAB9CB;--focus:#5AC7C3;--info:#82ADFA;--success:#74CA9D;--warn:#F0BA63;--fail:#F08886;--edge:#40536A;--r-sm:6px;--r-md:10px;--r-lg:14px}
+body{background:var(--bg);color:var(--text);font:400 14px/22px -apple-system,"Segoe UI","Noto Sans CJK JP",sans-serif;margin:0;padding:32px}
+h1{font-size:28px;line-height:36px;margin:0 0 8px}h2{font-size:20px;line-height:28px;margin:32px 0 12px}h3{font-size:16px;line-height:24px;margin:20px 0 8px;color:var(--text-2)}
+p{color:var(--text-2);margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.card{background:var(--surface);border:1px solid var(--edge);border-radius:10px;padding:12px}
+.swatch{height:44px;border-radius:8px;margin-bottom:6px}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid currentColor}
+.btn{height:36px;padding:0 14px;background:var(--raised);border:1px solid var(--edge);border-radius:6px;color:var(--text);cursor:pointer}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--edge)}
+th{color:var(--text-2);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+code{background:var(--raised);padding:1px 5px;border-radius:4px;font-size:12px}
+</style></head><body>
+<h1>UI Style Reference</h1>
+<p>GemArc 5D Design Atlas v10.0 — 審査参考のみ。公式テンプレート・公式認証ではない。</p>
+<h2>Color — Base</h2>
+<div class="grid">
+<div class="card"><div class="swatch" style="background:#0B1220"></div><code>background</code><br><code>#0B1220</code></div><div class="card"><div class="swatch" style="background:#121D2E"></div><code>surface</code><br><code>#121D2E</code></div><div class="card"><div class="swatch" style="background:#1C2A3D"></div><code>raised</code><br><code>#1C2A3D</code></div><div class="card"><div class="swatch" style="background:#5AC7C3"></div><code>focus</code><br><code>#5AC7C3</code></div><div class="card"><div class="swatch" style="background:#82ADFA"></div><code>information</code><br><code>#82ADFA</code></div><div class="card"><div class="swatch" style="background:#74CA9D"></div><code>success</code><br><code>#74CA9D</code></div><div class="card"><div class="swatch" style="background:#F0BA63"></div><code>warning</code><br><code>#F0BA63</code></div><div class="card"><div class="swatch" style="background:#F08886"></div><code>failure</code><br><code>#F08886</code></div>
+</div>
+<h2>Color — Domain (shape=roll, color=domain)</h2>
+<div class="grid">
+<div class="card"><div class="swatch" style="background:#4C83FF"></div><code>Core</code><br><code>#4C83FF</code></div><div class="card"><div class="swatch" style="background:#19AFA3"></div><code>Interaction</code><br><code>#19AFA3</code></div><div class="card"><div class="swatch" style="background:#32B67A"></div><code>Data</code><br><code>#32B67A</code></div><div class="card"><div class="swatch" style="background:#E8B34F"></div><code>Security</code><br><code>#E8B34F</code></div><div class="card"><div class="swatch" style="background:#A276E8"></div><code>Intelligence</code><br><code>#A276E8</code></div><div class="card"><div class="swatch" style="background:#8397B7"></div><code>Infrastructure</code><br><code>#8397B7</code></div><div class="card"><div class="swatch" style="background:#38A6D6"></div><code>External</code><br><code>#38A6D6</code></div><div class="card"><div class="swatch" style="background:#D87792"></div><code>Operations</code><br><code>#D87792</code></div><div class="card"><div class="swatch" style="background:#81909F"></div><code>Unknown</code><br><code>#81909F</code></div>
+</div>
+<h2>Status badge</h2>
+<p><span class="badge" style="color:var(--success)">Implemented</span>
+   <span class="badge" style="color:var(--info)">Designed</span>
+   <span class="badge" style="color:var(--warn)">Inferred</span>
+   <span class="badge" style="color:var(--text-2)">Unknown</span>
+   <span class="badge" style="color:var(--fail)">FAIL</span></p>
+<h2>Controls</h2>
+<p><button class="btn">Primary</button> <button class="btn">Secondary</button> <button class="btn">Ghost</button></p>
+<h2>Table</h2>
+<table><thead><tr><th>要素</th><th>値</th><th>備考</th></tr></thead>
+<tbody><tr><td>crate</td><td><code>player-service</code></td><td>データ層</td></tr>
+<tr><td>状態</td><td><code>Implemented</code></td><td>実使用点あり</td></tr>
+<tr><td>状態</td><td><code>Designed</code></td><td>interface 定義のみ</td></tr></tbody></table>
+</body></html>

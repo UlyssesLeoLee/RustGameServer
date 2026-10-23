@@ -1,0 +1,221 @@
+# ja-JP 章カバレッジ定義 (Chapter Coverage Manifest)
+#
+# 参照位置づけ: 日本の IPA 共通フレームワーク / 非機能要求グレード / 適用される
+# アーキテクチャ・UML・ER の実践を**審査の参考**として用いる。
+# 公式の固定テンプレートであることを意味せず、公式認証を一切取得していない。
+#
+# 対象システム: RustGameServer (RGS)
+# ソース Revision: b6a998174582 (branch: dev)
+# モデル採取日時: 2026-10-22T15:11:52.672Z
+# 证据件数: 885
+
+meta:
+  subject: RustGameServer (RGS)
+  revision: b6a998174582
+  branch: dev
+  captured_at: 2026-10-22T15:11:52.672Z
+  chapter_count: 18
+  review_reference_disclaimer: "審査参考のみ。公式テンプレート・公式認証ではない。"
+  generated_by: scripts/generate-formal-docs.mjs
+  all_chapters_from_real_model: true
+  tbd_policy: "未確定は TBD + 担当 + 受入計画で明示。SLA の捏造は禁止。"
+
+chapters:
+  - id: CH-01
+    file: docs/ja-JP/01-要件定義.md
+    title_ja: 要件定義
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-02
+    file: docs/ja-JP/02-業務要件.md
+    title_ja: 業務要件
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-03
+    file: docs/ja-JP/03-機能要件.md
+    title_ja: 機能要件
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-04
+    file: docs/ja-JP/04-非機能要件.md
+    title_ja: 非機能要件
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-05
+    file: docs/ja-JP/05-基本設計.md
+    title_ja: 基本設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-06
+    file: docs/ja-JP/06-詳細設計.md
+    title_ja: 詳細設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-07
+    file: docs/ja-JP/07-画面設計.md
+    title_ja: 画面設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-08
+    file: docs/ja-JP/08-画面遷移.md
+    title_ja: 画面遷移
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-09
+    file: docs/ja-JP/09-API設計.md
+    title_ja: API設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-10
+    file: docs/ja-JP/10-データモデル.md
+    title_ja: データモデル
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-11
+    file: docs/ja-JP/11-ER.md
+    title_ja: ER
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-12
+    file: docs/ja-JP/12-状態遷移.md
+    title_ja: 状態遷移
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-13
+    file: docs/ja-JP/13-シーケンス.md
+    title_ja: シーケンス
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-14
+    file: docs/ja-JP/14-セキュリティ.md
+    title_ja: セキュリティ
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-15
+    file: docs/ja-JP/15-運用設計.md
+    title_ja: 運用設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-16
+    file: docs/ja-JP/16-テスト設計.md
+    title_ja: テスト設計
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-17
+    file: docs/ja-JP/17-ケース一覧.md
+    title_ja: ケース一覧
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true
+  - id: CH-18
+    file: docs/ja-JP/18-追跡マトリクス.md
+    title_ja: 追跡マトリクス
+    review_reference: "IPA 共通フレームワーク / 非機能要求グレード (審査参考のみ・公式認証ではない)"
+    standard_version: "n/a - 適用章を限定して参照"
+    applicable_sections: "本チャプタが扱う範囲のみ"
+    tbd_conditions:
+      - "業務 SLA / 需求の受入条件が未確定の箇所は TBD として明示"
+    evidence_basis: "models/architecture.json @ b6a998174582, models/evidence.json (885 件)"
+    status: FINAL
+    tbd_open: true

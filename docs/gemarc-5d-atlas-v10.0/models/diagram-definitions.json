@@ -1,0 +1,225 @@
+{
+  "meta": {
+    "version": "10.0.0",
+    "generatedBy": "scripts/generate-meta-models.mjs",
+    "note": "各図種は独立レンダラを持ち、全図種を Sequence として描画してはならない。"
+  },
+  "diagramTypes": [
+    {
+      "diagramType": "UML_Class",
+      "renderer": "src/diagrams/uml-class.ts",
+      "symbols": [
+        "三区画 (名称/属性/操作)",
+        "可視性記号 (+ - # ~)",
+        "抽象クラスは斜体",
+        "関連: 多重度"
+      ],
+      "notes": "UML 2.x クラス図の区画構成と可視性記号を守る。宝石化しない。",
+      "semanticRequirements": "UML 2.x クラス図の区画構成と可視性記号を守る。宝石化しない。"
+    },
+    {
+      "diagramType": "UML_Component",
+      "renderer": "src/diagrams/uml-component.ts",
+      "symbols": [
+        "コンポーネント矩形",
+        "棒棒糖 (ロリポップ) インタフェース",
+        "装配関係"
+      ],
+      "notes": "UML 2.x コンポーネント図。",
+      "semanticRequirements": "UML 2.x コンポーネント図。"
+    },
+    {
+      "diagramType": "UML_Package",
+      "renderer": "src/diagrams/uml-package.ts",
+      "symbols": [
+        "折りたたみタブ付きパッケージ",
+        "パッケージ間依存"
+      ],
+      "notes": "UML 2.x パッケージ図。",
+      "semanticRequirements": "UML 2.x パッケージ図。"
+    },
+    {
+      "diagramType": "UML_Sequence",
+      "renderer": "src/diagrams/uml-sequence.ts",
+      "symbols": [
+        "生命線 (破線)",
+        "適���条 (activation bar)",
+        "alt / opt / loop / par 組み合わせ枠",
+        "同期/非同期メッセージ"
+      ],
+      "notes": "UML 2.x シーケンス図。alt/opt/loop/par の枠と guard を省略しない。",
+      "semanticRequirements": "UML 2.x シーケンス図。alt/opt/loop/par の枠と guard を省略しない。"
+    },
+    {
+      "diagramType": "UML_State",
+      "renderer": "src/diagrams/uml-state.ts",
+      "symbols": [
+        "角丸状態",
+        "初期状態 (黒点)",
+        "終端状態 (二重円)",
+        "遷移条件 guard"
+      ],
+      "notes": "UML 2.x 状態図。",
+      "semanticRequirements": "UML 2.x 状態図。"
+    },
+    {
+      "diagramType": "UML_Activity",
+      "renderer": "src/diagrams/uml-activity.ts",
+      "symbols": [
+        "角丸アクティビティ",
+        "菱形判断 (guard 付き)",
+        "開始/終了ノード",
+        "泳道"
+      ],
+      "notes": "UML 2.x アクティビティ図。",
+      "semanticRequirements": "UML 2.x アクティビティ図。"
+    },
+    {
+      "diagramType": "UML_Deployment",
+      "renderer": "src/diagrams/uml-deployment.ts",
+      "symbols": [
+        "ノード (3D 箱)",
+        "実行可能制品",
+        "通信路",
+        "配置矩形"
+      ],
+      "notes": "UML 2.x 配置図。",
+      "semanticRequirements": "UML 2.x 配置図。"
+    },
+    {
+      "diagramType": "UML_UseCase",
+      "renderer": "src/diagrams/uml-usecase.ts",
+      "symbols": [
+        "楕円ユースケース",
+        "アクタ (人型)",
+        "関連 (association)",
+        "include / extend"
+      ],
+      "notes": "UML 2.x ユースケース図。",
+      "semanticRequirements": "UML 2.x ユースケース図。"
+    },
+    {
+      "diagramType": "ER",
+      "renderer": "src/diagrams/er.ts",
+      "symbols": [
+        "エンティティ矩形",
+        "関係 (菱形)",
+        "多重度 (1 / 0..* / 1..*)",
+        "PK は下線",
+        "FK は破線"
+      ],
+      "notes": " Barker / Chen 表記の ER。PK/FK 表記は実 DDL から機械判定する。",
+      "semanticRequirements": " Barker / Chen 表記の ER。PK/FK 表記は実 DDL から機械判定する。"
+    },
+    {
+      "diagramType": "DFD",
+      "renderer": "src/diagrams/dfd.ts",
+      "symbols": [
+        "データフロー (開口矩形)",
+        "処理 (丸)",
+        "データストア (平行線)",
+        "外部エンティティ (矩形)"
+      ],
+      "notes": "DFD の記法。",
+      "semanticRequirements": "DFD の記法。"
+    },
+    {
+      "diagramType": "BPMN",
+      "renderer": "src/diagrams/bpmn.ts",
+      "symbols": [
+        "プール/レーン",
+        "イベント (円)",
+        "ゲートウェイ (菱形)",
+        "タスク (角丸矩形)",
+        "メッセージフロー"
+      ],
+      "notes": "BPMN 2.0 の記法。",
+      "semanticRequirements": "BPMN 2.0 の記法。"
+    },
+    {
+      "diagramType": "Security",
+      "renderer": "src/diagrams/security.ts",
+      "symbols": [
+        "信頼境界 (破線枠)",
+        "主体/客体",
+        "権限マトリクス"
+      ],
+      "notes": "セキュリティ境界の可視化。",
+      "semanticRequirements": "セキュリティ境界の可視化。"
+    },
+    {
+      "diagramType": "Network",
+      "renderer": "src/diagrams/network.ts",
+      "symbols": [
+        "デバイス",
+        "リンク",
+        "向き",
+        "ラベル"
+      ],
+      "notes": "ネットワーク構成。",
+      "semanticRequirements": "ネットワーク構成。"
+    },
+    {
+      "diagramType": "DataFlow",
+      "renderer": "src/diagrams/dataflow.ts",
+      "symbols": [
+        "データフロー (矢印)",
+        "変換ノード",
+        "ストア",
+        "境界"
+      ],
+      "notes": "データフロー図。",
+      "semanticRequirements": "データフロー図。"
+    }
+  ],
+  "interoperability": {
+    "exportFormats": [
+      "GraphModel JSON (versioned)",
+      "Workflow JSON (BPMN-compatible subset)"
+    ],
+    "adapters": [
+      {
+        "name": "React Flow",
+        "supported": [
+          "nodes",
+          "edges",
+          "ports",
+          "directed/undirected",
+          "subgraph"
+        ],
+        "semanticLoss": [
+          "UML 記号の厳密な表現",
+          "PK/FK 表記",
+          "多重度の制約検証"
+        ]
+      },
+      {
+        "name": "tldraw",
+        "supported": [
+          "nodes",
+          "edges",
+          "group",
+          "styles"
+        ],
+        "semanticLoss": [
+          "ガード/多重度",
+          "alt/opt/loop/par 枠",
+          "PK/FK"
+        ]
+      },
+      {
+        "name": "BPMN (bpmn-js)",
+        "supported": [
+          "pool/lane",
+          "task",
+          "gateway",
+          "sequence flow"
+        ],
+        "semanticLoss": [
+          "非 BPMN 図種 (UML/ER 等) は変換不可"
+        ]
+      }
+    ],
+    "aiPatchPolicy": "AI は受控 Patch (JSON Patch 限定) でのみ適用。无语义的 diff を直接適用しない。"
+  }
+}
