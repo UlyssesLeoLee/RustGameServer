@@ -25,7 +25,7 @@ tonic = { workspace = true }
 tonic-health = { workspace = true }
 prost = { workspace = true }
 # actix-web 4 HTTP server (浏览器 fetch 直接 POST JSON, bridge 内部编码到 protobuf)
-actix-web = "4"
+actix-web = { version = "4", default-features = false, features = ["macros", "compress-brotli", "compress-gzip", "compress-zstd", "cookies", "unicode", "compat", "ws"] }
 # rustls crypto provider (mTLS 模式需要; insecure 跳过)
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
 

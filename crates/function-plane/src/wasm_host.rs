@@ -294,7 +294,7 @@ impl WasmHost {
 
         match typed.call(&mut store, (a, b)) {
             Ok(v) => Ok(v as i64),
-            Err(e) => Err(classify_wasm_error(e, meta)),
+            Err(e) => Err(classify_wasm_error(e.into(), meta)),
         }
     }
 
@@ -434,16 +434,16 @@ impl ResourceLimiter for MemLimiter {
         _current: usize,
         desired: usize,
         _maximum: Option<usize>,
-    ) -> anyhow::Result<bool> {
+    ) -> std::result::Result<bool, wasmtime::Error> {
         Ok(desired <= self.memory_limit_bytes)
     }
 
     fn table_growing(
         &mut self,
-        _current: u32,
-        _desired: u32,
-        _maximum: Option<u32>,
-    ) -> anyhow::Result<bool> {
+        _current: usize,
+        _desired: usize,
+        _maximum: Option<usize>,
+    ) -> std::result::Result<bool, wasmtime::Error> {
         Ok(true)
     }
 }
