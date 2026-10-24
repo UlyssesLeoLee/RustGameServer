@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Universal GemArc 5D Design Atlas v10.0 — RustGameServer</title>
+<meta name="description" content="0D-5D 工程设计图集 + Konva 多标签原型工作区。所有事实可溯源至仓库 commit 与 file:line。">
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-region">跳到主内容</a>
+
+<div id="app" class="app" data-dimension="0D">
+
+  <!-- ── 顶栏 ─────────────────────────────────────────────────── -->
+  <header class="app-header" role="banner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">
+        <strong>GemArc 5D Atlas</strong>
+        <span class="brand-sub" id="subject-label">RustGameServer</span>
+      </span>
+    </div>
+
+    <div class="revision-chip" id="revision-chip" title="模型采集时的仓库 revision">
+      <span class="dot" aria-hidden="true"></span>
+      <code id="revision-text">—</code>
+      <span class="branch" id="branch-text">—</span>
+    </div>
+
+    <div class="global-search" role="search">
+      <label class="sr-only" for="global-search-input">全图搜索</label>
+      <input id="global-search-input" type="search" placeholder="搜索节点 / 边 / 需求 / 证据…"
+             autocomplete="off" spellcheck="false">
+      <kbd class="search-hint">/</kbd>
+    </div>
+
+    <nav class="dim-nav" role="tablist" aria-label="设计维度">
+      <button role="tab" class="dim-tab" data-dim="0D" aria-selected="true">0D</button>
+      <button role="tab" class="dim-tab" data-dim="1D" aria-selected="false">1D</button>
+      <button role="tab" class="dim-tab" data-dim="2D" aria-selected="false">2D</button>
+      <button role="tab" class="dim-tab" data-dim="3D" aria-selected="false">3D</button>
+      <button role="tab" class="dim-tab" data-dim="4D" aria-selected="false">4D</button>
+      <button role="tab" class="dim-tab" data-dim="5D" aria-selected="false">5D</button>
+      <button role="tab" class="dim-tab dim-tab--proto" data-dim="Prototype" aria-selected="false">Prototype</button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-toggle-left" data-drawer="left" title="目录抽屉" aria-label="目录抽屉" aria-expanded="false">☰</button>
+      <button class="icon-btn" id="btn-toggle-right" data-drawer="right" title="检查器抽屉" aria-label="检查器抽屉" aria-expanded="false">▤</button>
+      <button class="icon-btn" id="btn-import" title="导入 JSON 模型" aria-label="导入 JSON 模型">⤓</button>
+      <button class="icon-btn" id="btn-export" title="导出当前模型 JSON" aria-label="导出当前模型 JSON">⤒</button>
+      <button class="icon-btn" id="btn-theme" title="切换明暗主题" aria-label="切换明暗主题">◐</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- ── 左侧目录 ───────────────────────────────────────────── -->
+    <aside class="app-sidebar" id="app-sidebar" aria-label="目录">
+      <div class="sidebar-head">
+        <span class="sidebar-title" id="sidebar-title">0D 存在性</span>
+        <button class="icon-btn icon-btn--sm" id="btn-collapse-left" data-drawer="left" aria-label="折叠侧栏" title="折叠侧栏">⟨</button>
+      </div>
+      <div class="sidebar-scroll" id="sidebar-body"><!-- 由维度模块渲染 --></div>
+      <div class="sidebar-foot">
+        <div class="legend-title">图例</div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </aside>
+
+    <!-- ── 中央画布 ───────────────────────────────────────────── -->
+    <main class="app-main" id="main-region" tabindex="-1">
+      <div class="canvas-toolbar" id="canvas-toolbar"></div>
+      <div class="canvas-host" id="canvas-host">
+        <div class="dimension-panel" id="dimension-panel"><!-- 维度内容 --></div>
+      </div>
+      <div class="timeline" id="timeline" hidden aria-label="4D/5D 时间轴"></div>
+    </main>
+
+    <!-- ── 右侧检查器 ─────────────────────────────────────────── -->
+    <aside class="app-inspector" id="app-inspector" aria-label="检查器">
+      <div class="sidebar-head">
+        <span class="sidebar-title">检查器</span>
+        <button class="icon-btn icon-btn--sm" id="btn-collapse-right" data-drawer="right" aria-label="折叠检查器" title="折叠检查器">⟩</button>
+      </div>
+      <div class="inspector-scroll" id="inspector-body">
+        <p class="empty-hint">未选中对象。在画布、3D 场景或时间轴中选择 Node / Edge 后, 这里显示其真实属性与证据。</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ── 状态条 ───────────────────────────────────────────────── -->
+  <footer class="app-status" id="app-status" role="status" aria-live="polite">
+    <span id="status-text">初始化…</span>
+    <span class="status-spacer"></span>
+    <span id="status-right"></span>
+  </footer>
+</div>
+
+<!-- ── 模态层 ─────────────────────────────────────────────────── -->
+<div class="modal-root" id="modal-root" hidden></div>
+<div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
+<input type="file" id="file-input" accept="application/json,.json" hidden>
+
+<noscript>
+  <div style="padding:24px;color:#E8EFF7;background:#0B1220;font-family:sans-serif">
+    <h1 style="font-size:20px">需要 JavaScript</h1>
+    <p style="color:#AAB9CB">Universal GemArc 5D Design Atlas v10.0 是运行时的 0D-5D 交互图集, 全部维度在浏览器内实时计算 (画布布局 / 3D 场景 / 事件引擎 / 因果重算), 因此必须启用 JavaScript。</p>
+    <p style="color:#AAB9CB">可阅读的静态设计文档位于 <code>docs/ja-JP/</code>。</p>
+  </div>
+</noscript>
+
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>

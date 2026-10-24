@@ -26,6 +26,17 @@ set -uo pipefail
 # 切到 mock 项目根
 cd "$(dirname "$0")/.."
 
+# Python UTF-8 模式 (per 2026-10-21 实测订正):
+#   本机 locale=cp936(GBK), 而 mock_data/*.json 是 UTF-8 且含中文。
+#   python 的 open() 默认按 locale 解码 -> 58/59 个 fixture 判成 "JSON invalid"。
+#   这类隐性 locale 依赖会让"数据坏了"和"环境编码不对"长得一模一样, 必须显式打开。
+export PYTHONUTF8=1
+
+# 每次运行独立临时目录 (per 2026-10-21 实测订正):
+#   固定名 /tmp/regression-{ut,it,st}.log 会被并发运行互相覆盖 ——
+#   被取消的运行留下的孤儿进程写同一批文件名, 汇总读到别人的内容。
+RUN_TMP=$(mktemp -d 2>/dev/null || echo "./.regression-run-$$")
+
 LOG_DIR="logs"
 mkdir -p "$LOG_DIR"
 TS=$(date +%Y%m%d-%H%M)
@@ -54,7 +65,7 @@ ST_FAILED=0
 # 1. UT (L1 + L1.1) — 外部 1200s (20min) 限时, 防 zombie build 阻塞 orchestrator
 echo "[1/3] UT (per L1 + L1.1) ..."
 UT_START=$(date +%s)
-if timeout 1200 bash scripts/ut.sh > /tmp/regression-ut.log 2>&1; then
+if timeout 1200 bash scripts/ut.sh > "$RUN_TMP/regression-ut.log" 2>&1; then
   UT_ELAPSED=$(( $(date +%s) - UT_START ))
   UT_PASSED=1
   echo "  ✅ UT 全过 ($UT_ELAPSED s)"
@@ -62,7 +73,7 @@ else
   UT_ELAPSED=$(( $(date +%s) - UT_START ))
   UT_FAILED=1
   echo "  ❌ UT 失败 ($UT_ELAPSED s)"
-  tail -20 /tmp/regression-ut.log 2>/dev/null | sed 's/^/    /'
+  tail -20 "$RUN_TMP/regression-ut.log" 2>/dev/null | sed 's/^/    /'
 fi
 
 # 2. IT (cargo check + 60 module fixture + 9 个回归脚本)
@@ -70,7 +81,7 @@ fi
 echo
 echo "[2/3] IT (per L2 IT — fixture + 9 回归脚本) ..."
 IT_START=$(date +%s)
-if timeout 3600 bash scripts/it.sh > /tmp/regression-it.log 2>&1; then
+if timeout 3600 bash scripts/it.sh > "$RUN_TMP/regression-it.log" 2>&1; then
   IT_ELAPSED=$(( $(date +%s) - IT_START ))
   IT_PASSED=1
   echo "  ✅ IT 全过 ($IT_ELAPSED s)"
@@ -78,14 +89,14 @@ else
   IT_ELAPSED=$(( $(date +%s) - IT_START ))
   IT_FAILED=1
   echo "  ❌ IT 失败 ($IT_ELAPSED s)"
-  tail -20 /tmp/regression-it.log 2>/dev/null | sed 's/^/    /'
+  tail -20 "$RUN_TMP/regression-it.log" 2>/dev/null | sed 's/^/    /'
 fi
 
 # 3. ST (mock server 启动 + HTTP 探针 + RPC 抽样) — 外部 600s (10min) 限时
 echo
 echo "[3/3] ST (per L2 ST — mock server + /health + /ready + 21 RPC 抽样) ..."
 ST_START=$(date +%s)
-if timeout 600 bash scripts/st.sh > /tmp/regression-st.log 2>&1; then
+if timeout 600 bash scripts/st.sh > "$RUN_TMP/regression-st.log" 2>&1; then
   ST_ELAPSED=$(( $(date +%s) - ST_START ))
   ST_PASSED=1
   echo "  ✅ ST 全过 ($ST_ELAPSED s)"
@@ -93,7 +104,7 @@ else
   ST_ELAPSED=$(( $(date +%s) - ST_START ))
   ST_FAILED=1
   echo "  ❌ ST 失败 ($ST_ELAPSED s)"
-  tail -20 /tmp/regression-st.log 2>/dev/null | sed 's/^/    /'
+  tail -20 "$RUN_TMP/regression-st.log" 2>/dev/null | sed 's/^/    /'
 fi
 
 # 总览
@@ -131,13 +142,13 @@ echo "    L2 (mock ST):  $([ $ST_FAILED -eq 0 ] && echo "✅" || echo "❌") moc
   echo "ST: $([ $ST_FAILED -eq 0 ] && echo "PASS" || echo "FAIL")"
   echo ""
   echo "--- UT 输出 ---"
-  cat /tmp/regression-ut.log 2>/dev/null
+  cat "$RUN_TMP/regression-ut.log" 2>/dev/null
   echo ""
   echo "--- IT 输出 ---"
-  cat /tmp/regression-it.log 2>/dev/null
+  cat "$RUN_TMP/regression-it.log" 2>/dev/null
   echo ""
   echo "--- ST 输出 ---"
-  cat /tmp/regression-st.log 2>/dev/null
+  cat "$RUN_TMP/regression-st.log" 2>/dev/null
 } > "$LOG_FILE" 2>&1
 
 # 退出码

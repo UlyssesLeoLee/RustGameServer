@@ -39,7 +39,7 @@ echo "[2/7] 12 mock.json JSON valid 验证 (W2 12 Partial) ..."
 PARTIAL_LIST="combat guild arena role market misc login rank conn_login recruit group_control activity"
 valid_count=0
 for p in $PARTIAL_LIST; do
-  if python -c "import json; json.load(open('mock_data/${p}.json'))" 2>/dev/null; then
+  if python -c "import json; json.load(open('mock_data/${p}.json', encoding='utf-8'))" 2>/dev/null; then
     echo "  ✅ mock_data/${p}.json"
     valid_count=$((valid_count + 1))
   else
@@ -61,7 +61,7 @@ total=$(python -c "
 import json
 total = 0
 for p in ['combat','guild','arena','role','market','misc','login','rank','conn_login','recruit','group_control','activity']:
-    data = json.load(open(f'mock_data/{p}.json'))
+    data = json.load(open(f'mock_data/{p}.json', encoding='utf-8'))
     total += len(data.get('rpcs', []))
 print(total)
 ")

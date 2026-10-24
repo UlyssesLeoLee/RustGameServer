@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "name": "Visual Dictionary",
+    "version": "10.0.0",
+    "generatedBy": "scripts/generate-formal-docs.mjs"
+  },
+  "gemstoneRoles": {
+    "Actor": "放射円形",
+    "Input": "水滴カット",
+    "Processor": "六角柱",
+    "Decision": "双錐八面体",
+    "Storage": "階段矩形",
+    "Message": "オリーブ紡錘形",
+    "Interface": "三角結晶",
+    "Security": "盾形",
+    "Agent": "五角結晶",
+    "Composition": "王冠結晶",
+    "Output": "台形カット"
+  },
+  "exclusiveSemantics": {
+    "shape": "機能ロール",
+    "color": "業務ドメイン",
+    "facet": "ロール派生",
+    "ring": "実行状態",
+    "size": "証拠のある数量指標",
+    "edgeStyle": "工学的関係",
+    "animation": "イベント/時間",
+    "causalOverlay": "A/B 分岐または合流"
+  },
+  "diagramTypes": [
+    "UML_Class",
+    "UML_Component",
+    "UML_Package",
+    "UML_Sequence",
+    "UML_State",
+    "UML_Activity",
+    "UML_Deployment",
+    "UML_UseCase",
+    "ER",
+    "DFD",
+    "BPMN",
+    "Security",
+    "Network",
+    "DataFlow"
+  ],
+  "note": "宝石は 3D ノード専用。フィールド・连线・関係記号を宝石化しない。"
+}

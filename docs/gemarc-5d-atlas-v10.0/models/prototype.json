@@ -1,0 +1,246 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "origin": "HypotheticalExperiment",
+    "note": "⚠️ 本原型为**明确标记的示范**, 不是 RGS 真实界面。RGS 无对应 Web 前端源码 (gm-console 仅有 envoy 静态托管), 故原型用于演示 1D-5D ↔ DOM 的绑定机制, 不得当作已交付 UI。"
+  },
+  "screens": [
+    {
+      "id": "SCR-001",
+      "name": "机台总览",
+      "route": "/overview",
+      "componentIds": [
+        "CMP-001",
+        "CMP-002",
+        "CMP-003"
+      ],
+      "actionIds": [
+        "ACT-001",
+        "ACT-002"
+      ],
+      "states": {
+        "grid": "loading"
+      },
+      "variant": "desktop"
+    },
+    {
+      "id": "SCR-002",
+      "name": "故障详情",
+      "route": "/fault/:id",
+      "componentIds": [
+        "CMP-004",
+        "CMP-005"
+      ],
+      "actionIds": [
+        "ACT-003"
+      ],
+      "states": {
+        "panel": "open"
+      },
+      "variant": "desktop"
+    },
+    {
+      "id": "SCR-003",
+      "name": "班次对账",
+      "route": "/shift",
+      "componentIds": [
+        "CMP-006"
+      ],
+      "actionIds": [],
+      "states": {},
+      "variant": "mobile"
+    }
+  ],
+  "components": [
+    {
+      "id": "CMP-001",
+      "widget": "Card",
+      "x": 24,
+      "y": 24,
+      "w": 320,
+      "h": 160,
+      "props": {
+        "title": "在线机台"
+      },
+      "actionIds": []
+    },
+    {
+      "id": "CMP-002",
+      "widget": "Card",
+      "x": 368,
+      "y": 24,
+      "w": 320,
+      "h": 160,
+      "props": {
+        "title": "故障机台"
+      },
+      "actionIds": []
+    },
+    {
+      "id": "CMP-003",
+      "widget": "Table",
+      "x": 24,
+      "y": 208,
+      "w": 664,
+      "h": 240,
+      "props": {
+        "columns": [
+          "机台",
+          "状态",
+          "心跳"
+        ]
+      },
+      "actionIds": []
+    },
+    {
+      "id": "CMP-004",
+      "widget": "Drawer",
+      "x": 720,
+      "y": 24,
+      "w": 360,
+      "h": 420,
+      "props": {
+        "title": "故障详情"
+      },
+      "actionIds": []
+    },
+    {
+      "id": "CMP-005",
+      "widget": "Button",
+      "x": 760,
+      "y": 400,
+      "w": 120,
+      "h": 36,
+      "props": {
+        "label": "确认已处理"
+      },
+      "actionIds": [
+        "ACT-003"
+      ]
+    },
+    {
+      "id": "CMP-006",
+      "widget": "Table",
+      "x": 24,
+      "y": 24,
+      "w": 342,
+      "h": 300,
+      "props": {
+        "columns": [
+          "班次",
+          "营收"
+        ]
+      },
+      "actionIds": []
+    }
+  ],
+  "actions": [
+    {
+      "actionId": "ACT-001",
+      "kind": "Navigate",
+      "label": "打开机台",
+      "target": "SCR-002",
+      "payload": {
+        "screenId": "SCR-002"
+      }
+    },
+    {
+      "actionId": "ACT-002",
+      "kind": "Filter",
+      "label": "只看故障",
+      "payload": {
+        "field": "status",
+        "value": "fault"
+      }
+    },
+    {
+      "actionId": "ACT-003",
+      "kind": "SetState",
+      "label": "标记已处理",
+      "payload": {
+        "key": "panel",
+        "value": "closed"
+      }
+    }
+  ],
+  "fixtures": {
+    "SCR-001": {
+      "CMP-001": {
+        "value": 128
+      },
+      "CMP-002": {
+        "value": 3
+      },
+      "CMP-003": {
+        "rows": [
+          [
+            "A-01",
+            "online",
+            "2s"
+          ],
+          [
+            "A-02",
+            "fault",
+            "41s"
+          ],
+          [
+            "A-03",
+            "offline",
+            "12m"
+          ]
+        ]
+      }
+    },
+    "SCR-002": {
+      "CMP-004": {
+        "machine": "A-02",
+        "severity": "error",
+        "detectedAt": "2026-10-21T12:00:00Z"
+      }
+    },
+    "SCR-003": {
+      "CMP-006": {
+        "rows": [
+          [
+            "day",
+            1820
+          ],
+          [
+            "night",
+            990
+          ]
+        ]
+      }
+    }
+  },
+  "links": [
+    {
+      "screenId": "SCR-001",
+      "componentId": "CMP-003",
+      "requirementIds": [],
+      "nodeIds": [],
+      "caseIds": [
+        "CASE-001",
+        "CASE-002",
+        "CASE-003",
+        "CASE-004",
+        "CASE-005",
+        "CASE-006",
+        "CASE-007",
+        "CASE-008",
+        "CASE-009"
+      ],
+      "promptIds": []
+    },
+    {
+      "screenId": "SCR-002",
+      "componentId": "CMP-004",
+      "requirementIds": [],
+      "nodeIds": [],
+      "caseIds": [
+        "CASE-004"
+      ],
+      "promptIds": []
+    }
+  ]
+}

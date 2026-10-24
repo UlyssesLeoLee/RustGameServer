@@ -1,0 +1,1325 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--project=file-desktop",
+      "--reporter=json"
+    ],
+    "configFile": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\playwright.config.ts",
+    "rootDir": "D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "file-desktop",
+        "name": "file-desktop",
+        "testDir": "D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "file-narrow",
+        "name": "file-narrow",
+        "testDir": "D:/RustGameServer/docs/gemarc-5d-atlas-v10.0/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "file-desktop",
+        "testDir": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\tests\\e2e",
+        "snapshotDir": "D:\\RustGameServer\\docs\\gemarc-5d-atlas-v10.0\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "channel": "chrome",
+          "headless": true,
+          "trace": "off",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--allow-file-access-from-files",
+              "--enable-webgl",
+              "--use-gl=swiftshader"
+            ]
+          },
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "file-desktop"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "j01-core.spec.ts",
+      "file": "j01-core.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "file:// 便携单文件",
+          "file": "j01-core.spec.ts",
+          "line": 14,
+          "column": 6,
+          "specs": [
+            {
+              "title": "J01: 双击 index.html → 应用启动, 无致命错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 748,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:34.554Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfac866aab1867c9275b-2ddfcc16f01964cfd7fa",
+              "file": "j01-core.spec.ts",
+              "line": 15,
+              "column": 3
+            },
+            {
+              "title": "维度导航可用: 1D/2D/3D/4D/5D/Prototype 均可切换",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1817,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:35.727Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfac866aab1867c9275b-9d830151b56e971eb4e3",
+              "file": "j01-core.spec.ts",
+              "line": 32,
+              "column": 3
+            },
+            {
+              "title": "0D 存在性门禁: 是模态窗而非独立页面, 且显式标出 Unknown",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 858,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:37.562Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfac866aab1867c9275b-1d6b2049d6625905adef",
+              "file": "j01-core.spec.ts",
+              "line": 47,
+              "column": 3
+            },
+            {
+              "title": "证据可溯源: 节点检查器显示 fileLine 与 revision",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 762,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:38.435Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfac866aab1867c9275b-1705dd4a4662dc083997",
+              "file": "j01-core.spec.ts",
+              "line": 59,
+              "column": 3
+            },
+            {
+              "title": "离线自检: 页面加载期间零网络请求 (除 file:// 自身)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2148,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:39.207Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bfac866aab1867c9275b-0910f90f6f0158e41444",
+              "file": "j01-core.spec.ts",
+              "line": 68,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "j02-journeys.spec.ts",
+      "file": "j02-journeys.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "12 旅程 (spec quality_assurance.user_journeys)",
+          "file": "j02-journeys.spec.ts",
+          "line": 19,
+          "column": 6,
+          "specs": [
+            {
+              "title": "J01: index.html → 1D 選 Prompt → コピー/エクスポート",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1833,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:41.392Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-22d0eda1d480a615d452",
+              "file": "j02-journeys.spec.ts",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "J02: 2D 検索 → Node/Edge/Port 個別選択 → 追跡",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1933,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:43.239Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-0076588075528ae1d4a1",
+              "file": "j02-journeys.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "J03: 独立 UML/ER/時序図のフローティングウィンドウ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1430,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:45.183Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-e2af0433317702df35e7",
+              "file": "j02-journeys.spec.ts",
+              "line": 59,
+              "column": 3
+            },
+            {
+              "title": "J04: 3D 回転 → フロア/ルーム切替 → 復帰",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4851,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:46.625Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-2afaa20745f9029cf1b7",
+              "file": "j02-journeys.spec.ts",
+              "line": 68,
+              "column": 3
+            },
+            {
+              "title": "J05: 3D Edge 選択 → 検査器に証拠",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2385,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:51.489Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-d3eef3e510735771e5e3",
+              "file": "j02-journeys.spec.ts",
+              "line": 93,
+              "column": 3
+            },
+            {
+              "title": "J06: 4D Case 切替 → Play/Pause/Seek/Replay",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3333,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:53.884Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-61a2596a48399f103d97",
+              "file": "j02-journeys.spec.ts",
+              "line": 109,
+              "column": 3
+            },
+            {
+              "title": "J07: 5D 干渉なし → NO_DIFFERENCE (分岐を捏造しない)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1654,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:57.228Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-3c63a3629f19bc472b14",
+              "file": "j02-journeys.spec.ts",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "J08: 5D 干渉追加 → A/B 再計算",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2810,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:12:58.897Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-0d4cea91506ca59bc8e5",
+              "file": "j02-journeys.spec.ts",
+              "line": 139,
+              "column": 3
+            },
+            {
+              "title": "J09: Prototype 複数 Screen → 切替 → フォーム入力",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1859,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:01.716Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-50d284ec5563f95c1feb",
+              "file": "j02-journeys.spec.ts",
+              "line": 156,
+              "column": 3
+            },
+            {
+              "title": "J10: Konva 編集 → DOM プレビュー同期 → Undo/Redo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2329,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:03.585Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-53f3c7acf1f41c3d2512",
+              "file": "j02-journeys.spec.ts",
+              "line": 166,
+              "column": 3
+            },
+            {
+              "title": "J11: Prototype Action/Fixture → 状態と Case タブ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2512,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:05.923Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-0167365233e10eee4430",
+              "file": "j02-journeys.spec.ts",
+              "line": 178,
+              "column": 3
+            },
+            {
+              "title": "J12: Prototype → 1D/2D/3D/4D/5D への連結表示",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1853,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:08.451Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-8d5b12de2c0f0ce85db1",
+              "file": "j02-journeys.spec.ts",
+              "line": 190,
+              "column": 3
+            },
+            {
+              "title": "T12: 狭幅 (390/768) で横溢れが出ず、検査器が残る",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11587,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:10.317Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f0d7a46e3ca7a13d803-fe1eb708bc00328b8a41",
+              "file": "j02-journeys.spec.ts",
+              "line": 198,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "j03-regression.spec.ts",
+      "file": "j03-regression.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "対抗審査Finding の回帰防止",
+          "file": "j03-regression.spec.ts",
+          "line": 19,
+          "column": 6,
+          "specs": [
+            {
+              "title": "R1: SQL コメント内の CREATE TABLE を拾わない (幻影テーブル \"IF\" 0 件)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:21.931Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-657770c6f20ee6864246",
+              "file": "j03-regression.spec.ts",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "R2: Implemented 辺に use インポート/文字列リテラルが混ざっていない",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:21.947Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-d226a2dc7e7fba225ab3",
+              "file": "j03-regression.spec.ts",
+              "line": 33,
+              "column": 3
+            },
+            {
+              "title": "R3: 3D ラベルが 1 つも描画されない (LabelLayer 公開 API 欠落)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1688,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:21.968Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-44c12325ff25cd78676f",
+              "file": "j03-regression.spec.ts",
+              "line": 46,
+              "column": 3
+            },
+            {
+              "title": "R4: Prototype プレビューがクラッシュしない (tabs/items がオブジェクト配列)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2747,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:23.667Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-a9bfce8c87c8c978f3c4",
+              "file": "j03-regression.spec.ts",
+              "line": 57,
+              "column": 3
+            },
+            {
+              "title": "R5: 狭幅 (390px) で横溢れが出ず、検査器/目录のハンドルに到達できる",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1418,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:26.424Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-26cdfa8c8b669c98ac16",
+              "file": "j03-regression.spec.ts",
+              "line": 75,
+              "column": 3
+            },
+            {
+              "title": "R6: 2D の外殻リスナが累積しない (13 回往復 → 1 クリックで 1 回だけ)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8166,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:27.851Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-74303eb54284ae07d0e4",
+              "file": "j03-regression.spec.ts",
+              "line": 95,
+              "column": 3
+            },
+            {
+              "title": "R7: 5D は無干渉で NO_DIFFERENCE (偽分歧を作らない)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1712,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:36.026Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-53806c6bb21a7a5ef892",
+              "file": "j03-regression.spec.ts",
+              "line": 130,
+              "column": 3
+            },
+            {
+              "title": "R8: 5D の図増分が RewireGraph で「削除のみ」にならない",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2092,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:37.748Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2aea996c815be1f69534-0fc0b54ba4d6160a0364",
+              "file": "j03-regression.spec.ts",
+              "line": 136,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "j04-chain.spec.ts",
+      "file": "j04-chain.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "次元チェーン 1D→2D→3D→4D→5D",
+          "file": "j04-chain.spec.ts",
+          "line": 26,
+          "column": 6,
+          "specs": [
+            {
+              "title": "C0: 3D / 4D / 5D は同一の canvas 要素を共有する (同一 WebGL コンテキスト)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4316,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:39.873Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-603760dbc2428ba42bfe",
+              "file": "j04-chain.spec.ts",
+              "line": 28,
+              "column": 3
+            },
+            {
+              "title": "C1: 1D で Prompt を選ぶ → 2D がその范围を受け取る",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3084,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:44.205Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-744a919e010a79588744",
+              "file": "j04-chain.spec.ts",
+              "line": 46,
+              "column": 3
+            },
+            {
+              "title": "C2: 2D でノードを選ぶ → 3D がそのノードをフォーカスする",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4157,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:47.300Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-c6f229a5d4c644722125",
+              "file": "j04-chain.spec.ts",
+              "line": 63,
+              "column": 3
+            },
+            {
+              "title": "C3: 3D の焦点 → 4D が対象 Case を選び替える",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3933,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:51.470Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-dfd84396399a035527f5",
+              "file": "j04-chain.spec.ts",
+              "line": 82,
+              "column": 3
+            },
+            {
+              "title": "C4: 4D が Trace を公開 → 5D がそれを基準線として使う",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3185,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:55.415Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-7598f9a1ee6724712be4",
+              "file": "j04-chain.spec.ts",
+              "line": 102,
+              "column": 3
+            },
+            {
+              "title": "C5: 5D の Overlay / Split は受動的 badge ではなく実描画である",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3208,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:13:58.613Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-30f51f3cd6748fb225bf",
+              "file": "j04-chain.spec.ts",
+              "line": 118,
+              "column": 3
+            },
+            {
+              "title": "C6: 2D のデモツアーが起動し、Coach Mark が出る",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "file-desktop",
+                  "projectName": "file-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3273,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-23T00:14:01.837Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c0e421df2a28c33816b2-69d7dddadf3cda52f81c",
+              "file": "j04-chain.spec.ts",
+              "line": 131,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-23T00:12:32.764Z",
+    "duration": 93389.664,
+    "expected": 33,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

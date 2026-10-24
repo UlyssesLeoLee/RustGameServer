@@ -21,6 +21,10 @@ set -uo pipefail
 # 切到 mock 项目根
 cd "$(dirname "$0")/.."
 
+# Python UTF-8 模式 (per 2026-10-21 实测订正): 本机 locale=cp936(GBK),
+# mock_data/*.json 是 UTF-8 中文 -> 不开 UTF-8 模式会被判成 "JSON invalid"
+export PYTHONUTF8=1
+
 echo "=== rgs-flash-mock ST (per ULYS-141 + RGS-TEST-DESIGN v0.2 §1 L2) ==="
 echo "  mock 项目根: $(pwd)"
 echo

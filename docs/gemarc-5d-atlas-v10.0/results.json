@@ -1,0 +1,384 @@
+{
+  "generatedAt": "2026-10-23T00:16:43.234Z",
+  "subject": "RustGameServer (RGS)",
+  "revision": "b6a998174582",
+  "total": 53,
+  "pass": 53,
+  "fail": 0,
+  "partial": 0,
+  "notTested": 0,
+  "hardFail": 0,
+  "checks": [
+    {
+      "id": "ART-index.html",
+      "name": "必需产物 index.html",
+      "status": "PASS",
+      "detail": "1788402 bytes",
+      "evidence": "index.html"
+    },
+    {
+      "id": "ART-dist/index.html",
+      "name": "必需产物 dist/index.html",
+      "status": "PASS",
+      "detail": "1788402 bytes",
+      "evidence": "dist/index.html"
+    },
+    {
+      "id": "ART-src/main.ts",
+      "name": "必需产物 src/main.ts",
+      "status": "PASS",
+      "detail": "7469 bytes",
+      "evidence": "src/main.ts"
+    },
+    {
+      "id": "ART-src/styles.css",
+      "name": "必需产物 src/styles.css",
+      "status": "PASS",
+      "detail": "16403 bytes",
+      "evidence": "src/styles.css"
+    },
+    {
+      "id": "ART-src/index.template.html",
+      "name": "必需产物 src/index.template.html",
+      "status": "PASS",
+      "detail": "6529 bytes",
+      "evidence": "src/index.template.html"
+    },
+    {
+      "id": "ART-models/architecture.json",
+      "name": "必需产物 models/architecture.json",
+      "status": "PASS",
+      "detail": "500720 bytes",
+      "evidence": "models/architecture.json"
+    },
+    {
+      "id": "ART-models/evidence.json",
+      "name": "必需产物 models/evidence.json",
+      "status": "PASS",
+      "detail": "333261 bytes",
+      "evidence": "models/evidence.json"
+    },
+    {
+      "id": "ART-models/schema.json",
+      "name": "必需产物 models/schema.json",
+      "status": "PASS",
+      "detail": "9818 bytes",
+      "evidence": "models/schema.json"
+    },
+    {
+      "id": "ART-models/diagram-definitions.json",
+      "name": "必需产物 models/diagram-definitions.json",
+      "status": "PASS",
+      "detail": "6692 bytes",
+      "evidence": "models/diagram-definitions.json"
+    },
+    {
+      "id": "ART-models/information-placement.yaml",
+      "name": "必需产物 models/information-placement.yaml",
+      "status": "PASS",
+      "detail": "5022 bytes",
+      "evidence": "models/information-placement.yaml"
+    },
+    {
+      "id": "ART-models/prompts.json",
+      "name": "必需产物 models/prompts.json",
+      "status": "PASS",
+      "detail": "49394 bytes",
+      "evidence": "models/prompts.json"
+    },
+    {
+      "id": "ART-models/spatial.json",
+      "name": "必需产物 models/spatial.json",
+      "status": "PASS",
+      "detail": "15107 bytes",
+      "evidence": "models/spatial.json"
+    },
+    {
+      "id": "ART-models/cases.json",
+      "name": "必需产物 models/cases.json",
+      "status": "PASS",
+      "detail": "10424 bytes",
+      "evidence": "models/cases.json"
+    },
+    {
+      "id": "ART-models/causal-rules.json",
+      "name": "必需产物 models/causal-rules.json",
+      "status": "PASS",
+      "detail": "2445 bytes",
+      "evidence": "models/causal-rules.json"
+    },
+    {
+      "id": "ART-models/scenario-deltas.json",
+      "name": "必需产物 models/scenario-deltas.json",
+      "status": "PASS",
+      "detail": "7684 bytes",
+      "evidence": "models/scenario-deltas.json"
+    },
+    {
+      "id": "ART-models/prototype.json",
+      "name": "必需产物 models/prototype.json",
+      "status": "PASS",
+      "detail": "4465 bytes",
+      "evidence": "models/prototype.json"
+    },
+    {
+      "id": "ART-models/traceability.json",
+      "name": "必需产物 models/traceability.json",
+      "status": "PASS",
+      "detail": "44865 bytes",
+      "evidence": "models/traceability.json"
+    },
+    {
+      "id": "ART-models/requirements.json",
+      "name": "必需产物 models/requirements.json",
+      "status": "PASS",
+      "detail": "37503 bytes",
+      "evidence": "models/requirements.json"
+    },
+    {
+      "id": "ART-design-system/tokens.json",
+      "name": "必需产物 design-system/tokens.json",
+      "status": "PASS",
+      "detail": "2238 bytes",
+      "evidence": "design-system/tokens.json"
+    },
+    {
+      "id": "ART-design-system/visual-dictionary.json",
+      "name": "必需产物 design-system/visual-dictionary.json",
+      "status": "PASS",
+      "detail": "1202 bytes",
+      "evidence": "design-system/visual-dictionary.json"
+    },
+    {
+      "id": "ART-docs/ja-JP/CHAPTER_COVERAGE.yaml",
+      "name": "必需产物 docs/ja-JP/CHAPTER_COVERAGE.yaml",
+      "status": "PASS",
+      "detail": "11459 bytes",
+      "evidence": "docs/ja-JP/CHAPTER_COVERAGE.yaml"
+    },
+    {
+      "id": "ART-docs/AI_IMPLEMENTATION_HANDOFF.md",
+      "name": "必需产物 docs/AI_IMPLEMENTATION_HANDOFF.md",
+      "status": "PASS",
+      "detail": "110157 bytes",
+      "evidence": "docs/AI_IMPLEMENTATION_HANDOFF.md"
+    },
+    {
+      "id": "ART-QA_FINAL.md",
+      "name": "必需产物 QA_FINAL.md",
+      "status": "PASS",
+      "detail": "7164 字节, 有实质内容",
+      "evidence": null
+    },
+    {
+      "id": "ART-ADVERSARIAL_AUDIT.md",
+      "name": "必需产物 ADVERSARIAL_AUDIT.md",
+      "status": "PASS",
+      "detail": "9556 字节, 有实质内容",
+      "evidence": null
+    },
+    {
+      "id": "ART-BACKLOG.md",
+      "name": "必需产物 BACKLOG.md",
+      "status": "PASS",
+      "detail": "8494 字节, 有实质内容",
+      "evidence": null
+    },
+    {
+      "id": "ART-tests/e2e/",
+      "name": "必需产物 tests/e2e/",
+      "status": "PASS",
+      "detail": "目录存在",
+      "evidence": "tests/e2e/"
+    },
+    {
+      "id": "ART-tests/unit/",
+      "name": "必需产物 tests/unit/",
+      "status": "PASS",
+      "detail": "目录存在",
+      "evidence": "tests/unit/"
+    },
+    {
+      "id": "ART-TEST-COUNT",
+      "name": "测试目录内确有测试用例",
+      "status": "PASS",
+      "detail": "unit 断言 17 个 / e2e 用例 34 个",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无 fetch(",
+      "name": "离线门禁: 无 fetch(",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无 eval(",
+      "name": "离线门禁: 无 eval(",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无外部 script src",
+      "name": "离线门禁: 无外部 script src",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无 type=\"module\"",
+      "name": "离线门禁: 无 type=\"module\"",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无远程资源引用",
+      "name": "离线门禁: 无远程资源引用",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无 @import url(remote)",
+      "name": "离线门禁: 无 @import url(remote)",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "OFF-无动态 import()",
+      "name": "离线门禁: 无动态 import()",
+      "status": "PASS",
+      "detail": "未检出",
+      "evidence": null
+    },
+    {
+      "id": "SEC-CRED",
+      "name": "凭据硬编码扫描",
+      "status": "PASS",
+      "detail": "0 命中",
+      "evidence": null
+    },
+    {
+      "id": "MOD-EVID",
+      "name": "模型证据 ID 完整性",
+      "status": "PASS",
+      "detail": "全部证据 ID 可解析 (141 节点/边)",
+      "evidence": null
+    },
+    {
+      "id": "GATE-IMPL",
+      "name": "implementation_gate: Implemented 边经源码复核均为真实使用点",
+      "status": "PASS",
+      "detail": "15/15 条 Implemented 边全部经源码行复核 (非 use 导入 / 非字符串字面量)",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d0",
+      "name": "维度模块 d0.ts 已实现",
+      "status": "PASS",
+      "detail": "147 行, 导出 d0, id='0D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d1",
+      "name": "维度模块 d1.ts 已实现",
+      "status": "PASS",
+      "detail": "254 行, 导出 d1, id='1D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d2",
+      "name": "维度模块 d2.ts 已实现",
+      "status": "PASS",
+      "detail": "1508 行, 导出 d2, id='2D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d3",
+      "name": "维度模块 d3.ts 已实现",
+      "status": "PASS",
+      "detail": "273 行, 导出 d3, id='3D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d4",
+      "name": "维度模块 d4.ts 已实现",
+      "status": "PASS",
+      "detail": "301 行, 导出 d4, id='4D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-d5",
+      "name": "维度模块 d5.ts 已实现",
+      "status": "PASS",
+      "detail": "417 行, 导出 d5, id='5D', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "MOD-prototype",
+      "name": "维度模块 prototype.ts 已实现",
+      "status": "PASS",
+      "detail": "750 行, 导出 prototype, id='Prototype', mount 存在",
+      "evidence": null
+    },
+    {
+      "id": "DIA-COVER",
+      "name": "14 种专业图渲染器覆盖",
+      "status": "PASS",
+      "detail": "14/14 种: uml-class, uml-component, uml-package, uml-sequence, uml-state, uml-activity, uml-deployment, uml-usecase, er, dfd, bpmn, security, network, dataflow",
+      "evidence": null
+    },
+    {
+      "id": "BUND-SHA",
+      "name": "bundle-manifest SHA256 与实际产物一致",
+      "status": "PASS",
+      "detail": "sha256=c17b881f98c2e07e…",
+      "evidence": null
+    },
+    {
+      "id": "BUND-LIC",
+      "name": "第三方 license 清单与产物实际内容一致",
+      "status": "PASS",
+      "detail": "已核对并确认在产物中: three@0.160.1 MIT | konva@9.3.16 MIT | graphology@0.25.4 MIT",
+      "evidence": null
+    },
+    {
+      "id": "QA-UNIT",
+      "name": "单元测试 (vitest)",
+      "status": "PASS",
+      "detail": "17/17 passed, 0 failed (qa/test-results/vitest.json)",
+      "evidence": null
+    },
+    {
+      "id": "QA-E2E",
+      "name": "E2E (Playwright, file://)",
+      "status": "PASS",
+      "detail": "33 passed / 0 failed / 0 flaky",
+      "evidence": null
+    },
+    {
+      "id": "QA-VISUAL",
+      "name": "视觉验证 (6 次元 × 2 视口)",
+      "status": "PASS",
+      "detail": "12 张截图, 控制台错误 0 件",
+      "evidence": null
+    },
+    {
+      "id": "GIT-STATE",
+      "name": "git 状态 (未提交 / 未 push)",
+      "status": "PASS",
+      "detail": "branch=dev; 本目录未提交改动 1 项; 未 push | [观察] 目录外有 9 项他 workstream 的改动 (本作业未触碰, 非越界)",
+      "evidence": " M .github/workflows/flash-mock-ci.yml |  M tools/rgs-flash-mock/scripts/it.sh |  M tools/rgs-flash-mock/scripts/regression-test-12-partial.sh"
+    },
+    {
+      "id": "DOC-STATS",
+      "name": "README 统计块与模型一致",
+      "status": "PASS",
+      "detail": "31 crates / 710 RPC / 61 表 / 33 k8s Workload / 885 証拠レコード",
+      "evidence": null
+    }
+  ]
+}

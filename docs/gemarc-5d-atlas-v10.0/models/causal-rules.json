@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "revision": "b6a998174582064b04e71b703ece723a972b70f2"
+  },
+  "rules": [
+    {
+      "ruleId": "RULE-RETRY-001",
+      "name": "可重试错误分类",
+      "scopeNodeIds": [],
+      "when": "error.code ∈ {Unavailable, DeadlineExceeded, Aborted, ResourceExhausted}",
+      "then": "retry(attempt+1)",
+      "else": "fail_fast",
+      "retry": {
+        "max": 3,
+        "backoffMs": 100,
+        "multiplier": 2,
+        "maxMs": 30000,
+        "jitter": 0.2
+      },
+      "compensation": null,
+      "evidenceIds": [],
+      "origin": "ObservedReplay"
+    },
+    {
+      "ruleId": "RULE-RETRY-002",
+      "name": "退避封顶",
+      "scopeNodeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "when": "base_ms > max_interval",
+      "then": "backoff = max_interval (+jitter)",
+      "else": "backoff = initial * multiplier^attempt (+jitter)",
+      "timeoutMs": 30000,
+      "retry": {
+        "max": 3,
+        "backoffMs": 100
+      },
+      "compensation": null,
+      "evidenceIds": [],
+      "origin": "ObservedReplay"
+    },
+    {
+      "ruleId": "RULE-BREAKER-001",
+      "name": "熔断打开",
+      "scopeNodeIds": [
+        "N-103-svc-gm-backend"
+      ],
+      "when": "breaker_state == Closed && consecutive_failures >= 5",
+      "then": "breaker_state = Open; opened_at = now",
+      "else": "breaker_state unchanged",
+      "timeoutMs": 30000,
+      "compensation": null,
+      "evidenceIds": [],
+      "origin": "ObservedReplay"
+    },
+    {
+      "ruleId": "RULE-BREAKER-002",
+      "name": "熔断半开与复位",
+      "scopeNodeIds": [
+        "N-103-svc-gm-backend"
+      ],
+      "when": "breaker_state == Open && elapsed >= open_duration",
+      "then": "breaker_state = HalfOpen; 允许 1 个 probe",
+      "else": "breaker_state == HalfOpen → 拒绝后续并发 probe",
+      "timeoutMs": 30000,
+      "compensation": null,
+      "evidenceIds": [],
+      "origin": "ObservedReplay"
+    },
+    {
+      "ruleId": "RULE-SAGA-001",
+      "name": "Saga 失败触发补偿",
+      "scopeNodeIds": [
+        "N-101-svc-economy-service"
+      ],
+      "when": "state == Failed",
+      "then": "SagaOrchestrator::compensate 逆序执行各 handler 的 compensate",
+      "else": "continue next step",
+      "compensation": "compensation chain (真实 compensate 处理器, 非倒放动画)",
+      "evidenceIds": [],
+      "origin": "ObservedReplay"
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+/* styles.css — Universal GemArc 5D Design Atlas v10.0
+ * spec `html_design_system` — 令牌来自 src/core/tokens.ts, 此处只消费变量, 不写魔数色值。
+ */
+
+:root {
+  /* 由 build 时注入 (tokens.ts cssVariables()) */
+  --bg: #0B1220; --surface: #121D2E; --raised: #1C2A3D;
+  --text: #E8EFF7; --text-2: #AAB9CB; --focus: #5AC7C3;
+  --info: #82ADFA; --success: #74CA9D; --warn: #F0BA63; --fail: #F08886; --edge: #40536A;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --h-header: 60px; --w-left: 256px; --w-right: 360px;
+  --h-timeline: 136px; --h-control: 36px; --min-canvas: 480px;
+  --t-micro: 140ms; --t-std: 220ms; --t-spatial: 320ms;
+  --ease: ease-out;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.32);
+  --shadow-2: 0 4px 16px rgba(0,0,0,.36);
+  --shadow-3: 0 12px 40px rgba(0,0,0,.48);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans CJK SC",
+          "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  --mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="light"] {
+  --bg: #F5F7FA; --surface: #FFFFFF; --raised: #EEF2F7;
+  --text: #0E1726; --text-2: #4A5A70; --focus: #0E7C86;
+  --info: #1B62C4; --success: #1A7F4B; --warn: #9A6400; --fail: #B3261E; --edge: #B7C3D2;
+  --shadow-1: 0 1px 2px rgba(16,24,40,.06);
+  --shadow-2: 0 4px 16px rgba(16,24,40,.10);
+  --shadow-3: 0 12px 40px rgba(16,24,40,.16);
+}
+
+* { box-sizing: border-box; }
+
+/* hidden 属性必须真正隐藏。
+ * 坑: UA 样式表的 [hidden] { display: none } 优先级低于任何类选择器,
+ *      所以 .modal-root { display: grid } / .timeline { display: flex }
+ *      会把 hidden 元素重新显示出来 —— 实测导致全屏遮罩吞掉所有点击。
+ *      统一用 !important 兜底。 */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 400 14px/22px var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+code, kbd, pre { font-family: var(--mono); }
+button { font: inherit; color: inherit; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; left: -999px; top: 0; z-index: 999;
+  background: var(--focus); color: var(--bg); padding: 8px 16px; border-radius: 0 0 var(--r-sm) 0;
+}
+.skip-link:focus { left: 0; }
+
+:where(button, [tabindex], input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ── 布局骨架 ─────────────────────────────────────────────────── */
+.app {
+  display: grid;
+  /* 列を max-content に sizing させないこと。
+     auto 列はヘッダーの max-content (dim-nav 311 + actions 156 + chip 106 ...) に
+     引き寄せられ、390px ビューポートで **713px** まで MLE されて横スクロールが出る。
+     minmax(0, 1fr) で「親の幅を超えない」ことを強制する。 */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--h-header) 1fr 24px;
+  height: 100vh;
+  min-width: 0;
+}
+.app-body {
+  display: grid;
+  grid-template-columns: var(--w-left) minmax(var(--min-canvas), 1fr) var(--w-right);
+  min-height: 0;
+  min-width: 0;
+  transition: grid-template-columns var(--t-std) var(--ease);
+}
+/* 列の折りたたみは**広い画面だけ**に適用する。
+   狭い画面ではサイドバー/インスペクタは position:fixed の抽屉で、
+   3 列グリッドは 1 列(minmax(0,1fr)) のままにしておかないと
+   data-*-collapsed が書かれた瞬間に 1 列レイアウトが 3 列で上書きされる
+   (特異度 (0,2,1) > (0,0,1) の对抗審査指摘)。 */
+@media (min-width: 1024px) {
+  .app[data-left="collapsed"] .app-body { grid-template-columns: 0 minmax(var(--min-canvas), 1fr) var(--w-right); }
+  .app[data-right="collapsed"] .app-body { grid-template-columns: var(--w-left) minmax(var(--min-canvas), 1fr) 0; }
+  .app[data-left="collapsed"][data-right="collapsed"] .app-body { grid-template-columns: 0 minmax(var(--min-canvas), 1fr) 0; }
+}
+.app[data-left="collapsed"] #app-sidebar,
+.app[data-right="collapsed"] #app-inspector { overflow: hidden; }
+
+/* ── 顶栏 ─────────────────────────────────────────────────────── */
+.app-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--edge);
+  min-width: 0;          /* grid 子要素の min-content 拡大を止める */
+  overflow: hidden;
+}
+.brand { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.brand-mark {
+  width: 22px; height: 22px; border-radius: 5px;
+  background: conic-gradient(from 210deg, var(--dom-Core), var(--dom-Data), var(--dom-Interaction), var(--dom-Security), var(--dom-Core));
+  box-shadow: var(--shadow-1);
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text strong { font-size: 13px; letter-spacing: .01em; }
+.brand-sub { font-size: 11px; color: var(--text-2); }
+
+.revision-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--edge); border-radius: 999px;
+  background: var(--raised); font-size: 11px; color: var(--text-2); flex: 0 0 auto;
+}
+.revision-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.revision-chip code { color: var(--text); font-size: 11px; }
+.revision-chip .branch { opacity: .75; }
+
+.global-search { position: relative; flex: 1 1 auto; max-width: 420px; }
+.global-search input {
+  width: 100%; height: var(--h-control);
+  padding: 0 34px 0 10px;
+  background: var(--raised); color: var(--text);
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  font-size: 13px;
+}
+.global-search input::placeholder { color: var(--text-2); }
+.search-hint {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 10px; color: var(--text-2);
+  border: 1px solid var(--edge); border-radius: 4px; padding: 0 5px; pointer-events: none;
+}
+
+/* dim-nav は縮める必要があるので flex: 1 1 auto + min-width: 0。
+   0 0 auto だと max-content (7 タブ分) のまま Dumas して幅を押し広げる。 */
+.dim-nav { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.dim-tab {
+  height: var(--h-control); padding: 0 12px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--r-sm);
+  color: var(--text-2); cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: background var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
+}
+.dim-tab:hover { background: var(--raised); color: var(--text); }
+.dim-tab[aria-selected="true"] { background: var(--raised); color: var(--text); border-color: var(--focus); }
+.dim-tab--proto { margin-left: 6px; border-left: 1px solid var(--edge); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+.header-actions { display: flex; gap: 4px; flex: 0 0 auto; }
+.icon-btn {
+  width: var(--h-control); height: var(--h-control);
+  display: grid; place-items: center;
+  background: transparent; border: 1px solid var(--edge); border-radius: var(--r-sm);
+  cursor: pointer; color: var(--text-2); font-size: 14px;
+}
+.icon-btn:hover { background: var(--raised); color: var(--text); }
+.icon-btn--sm { width: 24px; height: 24px; font-size: 12px; }
+
+/* ── 侧栏 / 检查器 ────────────────────────────────────────────── */
+.app-sidebar, .app-inspector {
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--surface); border-right: 1px solid var(--edge);
+}
+.app-inspector { border-right: none; border-left: 1px solid var(--edge); }
+.sidebar-head {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 40px; padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--edge); flex: 0 0 auto;
+}
+.sidebar-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.sidebar-scroll, .inspector-scroll { flex: 1 1 auto; overflow: auto; padding: 8px; min-height: 0; }
+.sidebar-foot { flex: 0 0 auto; border-top: 1px solid var(--edge); padding: 8px 12px; }
+.legend-title { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--text-2); }
+.legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+
+.empty-hint { color: var(--text-2); font-size: 12px; padding: 8px; }
+
+/* ── 中央 ─────────────────────────────────────────────────────── */
+.app-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.canvas-toolbar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  min-height: 40px; padding: 4px 8px;
+  border-bottom: 1px solid var(--edge); background: var(--surface);
+}
+.canvas-host { flex: 1 1 auto; position: relative; overflow: hidden; min-height: 0; }
+.dimension-panel { position: absolute; inset: 0; overflow: auto; }
+
+.tool-btn {
+  height: 28px; padding: 0 10px; font-size: 12px;
+  background: var(--raised); border: 1px solid var(--edge); border-radius: var(--r-sm);
+  color: var(--text-2); cursor: pointer;
+}
+.tool-btn:hover { color: var(--text); }
+.tool-btn[aria-pressed="true"], .tool-btn.is-active { color: var(--text); border-color: var(--focus); background: var(--raised); }
+.tool-sep { width: 1px; height: 18px; background: var(--edge); margin: 0 4px; }
+.tool-label { font-size: 11px; color: var(--text-2); }
+
+/* ── 时间轴 ───────────────────────────────────────────────────── */
+.timeline {
+  flex: 0 0 auto; height: var(--h-timeline);
+  border-top: 1px solid var(--edge); background: var(--surface);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.timeline-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 4px 8px; border-bottom: 1px solid var(--edge);
+}
+.timeline-track { flex: 1 1 auto; overflow: auto; padding: 6px 8px; }
+.tl-event {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px; margin: 2px; border-radius: var(--r-sm);
+  background: var(--raised); border: 1px solid var(--edge);
+  font-size: 11px; font-family: var(--mono); cursor: pointer;
+}
+.tl-event[aria-current="true"] { border-color: var(--focus); }
+.tl-seq { color: var(--text-2); }
+.tl-kind { font-weight: 600; }
+
+/* ── 状态条 ───────────────────────────────────────────────────── */
+.app-status {
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  background: var(--surface); border-top: 1px solid var(--edge);
+  font-size: 11px; color: var(--text-2); font-family: var(--mono);
+}
+.status-spacer { flex: 1 1 auto; }
+
+/* ── 通用块 ───────────────────────────────────────────────────── */
+.panel {
+  background: var(--surface); border: 1px solid var(--edge);
+  border-radius: var(--r-md); padding: 12px; margin-bottom: 12px;
+}
+.panel h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.panel h4 { margin: 12px 0 6px; font-size: 12px; color: var(--text-2); font-weight: 600; }
+.kv { display: grid; grid-template-columns: 96px 1fr; gap: 4px 8px; font-size: 12px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; word-break: break-all; }
+.badge {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: .02em;
+  border: 1px solid currentColor;
+}
+.badge--Implemented { color: var(--success); }
+.badge--Designed { color: var(--info); }
+.badge--Inferred { color: var(--warn); }
+.badge--Absent { color: var(--text-2); }
+.badge--Present { color: var(--success); }
+.badge--Unknown { color: var(--text-2); }
+.badge--PASS { color: var(--success); }
+.badge--FAIL { color: var(--fail); }
+.badge--NOT_TESTED, .badge--DEGRADED { color: var(--warn); }
+.badge--BLOCKED { color: var(--fail); }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.data th, table.data td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+table.data th { color: var(--text-2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+table.data tbody tr:hover { background: var(--raised); }
+
+.search-hit { background: color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 2px; }
+
+/* ── 模态 / toast ─────────────────────────────────────────────── */
+.modal-root { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(4,8,14,.62); }
+.modal {
+  background: var(--surface); border: 1px solid var(--edge); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3); max-width: min(880px, 92vw); max-height: 84vh; overflow: auto;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--edge); }
+.modal-body { padding: 16px; }
+.toast-root { position: fixed; right: 16px; bottom: 36px; z-index: 1100; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--raised); border: 1px solid var(--edge); border-left: 3px solid var(--info);
+  border-radius: var(--r-sm); box-shadow: var(--shadow-2); padding: 8px 12px; font-size: 12px; max-width: 380px;
+}
+.toast--ok { border-left-color: var(--success); }
+.toast--warn { border-left-color: var(--warn); }
+.toast--err { border-left-color: var(--fail); }
+
+/* ── 响应式 (spec: 390/768 改抽屉) ────────────────────────────── */
+@media (max-width: 1023px) {
+  /* 1fr の最小値は min-content なので、minmax(0, 1fr) にして
+     内部の広 contents が列を押し広げないようにする。 */
+  .app-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
+  .app-sidebar, .app-inspector {
+    position: fixed; z-index: 900; top: var(--h-header); bottom: 24px;
+    width: min(320px, 86vw); box-shadow: var(--shadow-3);
+  }
+  #app-sidebar { left: 0; transform: translateX(-100%); transition: transform var(--t-std) var(--ease); }
+  #app-inspector { right: 0; transform: translateX(100%); transition: transform var(--t-std) var(--ease); }
+  .app[data-left="open"] #app-sidebar, .app[data-right="open"] #app-inspector { transform: translateX(0); }
+  .global-search { max-width: none; }
+  .dim-nav { overflow-x: auto; }
+}
+@media (max-width: 767px) {
+  /* 390px では revision chip(106) + 検索(46) + 操作ボタン群(156) が
+     维度タブの場所を食って坚实itates タブが押せない状態になる。
+     revision はステータスバー、検索は "/" ショートカットで参照できるため、
+     狭い画面では**隠す** (削除ではなく、置き場所を変えて残す)。 */
+  .brand-text, .revision-chip { display: none; }
+  .global-search { display: none; }
+  .app-header { gap: 6px; padding: 0 6px; }
+  .dim-nav { flex: 1 1 auto; }
+  .header-actions { gap: 2px; }
+  .icon-btn { width: 30px; height: 30px; }
+}
+
+/* ── Reduced Motion (spec accessibility) ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,346 @@
+{
+  "meta": {
+    "version": "10.0.0",
+    "generatedBy": "scripts/generate-meta-models.mjs",
+    "isolation": "すべての追加/遮蔽/変更は ScenarioGraphDelta に属する。正式な事実グラフは不変。実験の採用は設計変更提案を経由する。"
+  },
+  "customElementTemplates": [
+    {
+      "template": "Cache",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "request"
+      ],
+      "typedOutputPorts": [
+        "hit",
+        "miss"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Completed"
+      ],
+      "guardAst": "cache.contains(key)",
+      "eventHandlers": [
+        "onRequest"
+      ],
+      "errorRules": [
+        "onCapacityExceeded"
+      ],
+      "resourceLimits": {
+        "maxEntries": 10000
+      },
+      "terminationCondition": "single response"
+    },
+    {
+      "template": "Validator",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "payload"
+      ],
+      "typedOutputPorts": [
+        "valid",
+        "invalid"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Completed"
+      ],
+      "guardAst": "schema.valid(payload)",
+      "eventHandlers": [
+        "onPayload"
+      ],
+      "errorRules": [
+        "onSchemaViolation"
+      ],
+      "resourceLimits": {},
+      "terminationCondition": "single verdict"
+    },
+    {
+      "template": "Proxy",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "request"
+      ],
+      "typedOutputPorts": [
+        "response",
+        "error"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Waiting",
+        "Completed",
+        "Failed"
+      ],
+      "guardAst": "upstream.healthy",
+      "eventHandlers": [
+        "onRequest",
+        "onUpstreamError"
+      ],
+      "errorRules": [
+        "onTimeout"
+      ],
+      "resourceLimits": {
+        "timeoutMs": 5000
+      },
+      "terminationCondition": "single response"
+    },
+    {
+      "template": "MessageQueue",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "message"
+      ],
+      "typedOutputPorts": [
+        "ack",
+        "nack"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Waiting",
+        "Completed"
+      ],
+      "guardAst": "queue.hasCapacity",
+      "eventHandlers": [
+        "onMessage",
+        "onAck",
+        "onNack"
+      ],
+      "errorRules": [
+        "onPoisonMessage"
+      ],
+      "resourceLimits": {
+        "maxDepth": 1000
+      },
+      "terminationCondition": "ack or nack"
+    },
+    {
+      "template": "CircuitBreaker",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "call"
+      ],
+      "typedOutputPorts": [
+        "pass",
+        "shortCircuit"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Waiting",
+        "Completed",
+        "Failed",
+        "Recovered"
+      ],
+      "guardAst": "state != Open",
+      "eventHandlers": [
+        "onCall",
+        "onSuccess",
+        "onFailure"
+      ],
+      "errorRules": [
+        "onThreshold"
+      ],
+      "resourceLimits": {
+        "failureThreshold": 5,
+        "openDurationMs": 30000
+      },
+      "terminationCondition": "pass or shortCircuit"
+    },
+    {
+      "template": "FaultSource",
+      "kind": "Actor",
+      "typedInputPorts": [
+        "trigger"
+      ],
+      "typedOutputPorts": [
+        "fault"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Completed"
+      ],
+      "guardAst": "enabled",
+      "eventHandlers": [
+        "onTrigger"
+      ],
+      "errorRules": [],
+      "resourceLimits": {},
+      "terminationCondition": "single fault"
+    },
+    {
+      "template": "RetryHandler",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "call"
+      ],
+      "typedOutputPorts": [
+        "result",
+        "giveUp"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Waiting",
+        "Completed",
+        "Failed"
+      ],
+      "guardAst": "isRetryable(error.code)",
+      "eventHandlers": [
+        "onCall",
+        "onError"
+      ],
+      "errorRules": [
+        "onMaxRetries"
+      ],
+      "resourceLimits": {
+        "maxRetries": 3,
+        "initialIntervalMs": 100,
+        "multiplier": 2,
+        "maxIntervalMs": 30000,
+        "jitter": 0.2
+      },
+      "terminationCondition": "result or giveUp"
+    },
+    {
+      "template": "RecoveryHandler",
+      "kind": "Processor",
+      "typedInputPorts": [
+        "state"
+      ],
+      "typedOutputPorts": [
+        "recovered",
+        "stillFailed"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Waiting",
+        "Recovered",
+        "Failed"
+      ],
+      "guardAst": "probe.allowed",
+      "eventHandlers": [
+        "onProbe",
+        "onProbeSuccess",
+        "onProbeFailure"
+      ],
+      "errorRules": [
+        "onProbeFailure"
+      ],
+      "resourceLimits": {
+        "probeLimit": 1
+      },
+      "terminationCondition": "recovered or stillFailed"
+    },
+    {
+      "template": "ExternalStub",
+      "kind": "Interface",
+      "typedInputPorts": [
+        "request"
+      ],
+      "typedOutputPorts": [
+        "response"
+      ],
+      "stateMachine": [
+        "Idle",
+        "Running",
+        "Completed",
+        "Failed"
+      ],
+      "guardAst": "stub.available",
+      "eventHandlers": [
+        "onRequest"
+      ],
+      "errorRules": [
+        "onUnavailable"
+      ],
+      "resourceLimits": {},
+      "terminationCondition": "single response"
+    }
+  ],
+  "interventionCatalog": [
+    {
+      "kind": "DisableNode",
+      "targetKind": "Node",
+      "effect": "ノードを到達不能にする",
+      "graphEffect": "node disabled"
+    },
+    {
+      "kind": "DisableEdge",
+      "targetKind": "Edge",
+      "effect": "エッジを削除する",
+      "graphEffect": "edge removed"
+    },
+    {
+      "kind": "BypassNode",
+      "targetKind": "Node",
+      "effect": "ノードを迂回する",
+      "graphEffect": "edges rerouted"
+    },
+    {
+      "kind": "ChangeGuard",
+      "targetKind": "Rule",
+      "effect": "ガード式を差し替える",
+      "graphEffect": "rule override"
+    },
+    {
+      "kind": "ChangeTimeout",
+      "targetKind": "Rule",
+      "effect": "タイムアウトを変更する",
+      "graphEffect": "timing override"
+    },
+    {
+      "kind": "ChangeRetry",
+      "targetKind": "Rule",
+      "effect": "再試行回数を変更する",
+      "graphEffect": "timing override"
+    },
+    {
+      "kind": "DelayMessage",
+      "targetKind": "Node",
+      "effect": "メッセージ遅延を注入する",
+      "graphEffect": "timing override"
+    },
+    {
+      "kind": "InjectFault",
+      "targetKind": "Node",
+      "effect": "故障を強制する",
+      "graphEffect": "runtime fault (model only)"
+    },
+    {
+      "kind": "AddInteractiveElement",
+      "targetKind": "Node",
+      "effect": "A→B を A→X→B に真に改写する",
+      "graphEffect": "edge rewrite"
+    },
+    {
+      "kind": "RewireGraph",
+      "targetKind": "Edge",
+      "effect": "経路を差し替える",
+      "graphEffect": "edge rewrite"
+    }
+  ],
+  "validation": [
+    "PortTypes",
+    "Direction",
+    "Schema",
+    "Guard",
+    "EventReachability",
+    "CycleTermination",
+    "PermissionBoundary"
+  ],
+  "rewriteContract": "挿入ノードは A→B を本当に A→X→B に改写し、古い Edge の扱いを明示する。三次元方才 设置だけでは完了としない。",
+  "safetyLimits": {
+    "maxEvents": 5000,
+    "maxSteps": 2000,
+    "maxBranches": 8,
+    "maxIterations": 1000,
+    "maxMillis": 2000,
+    "maxMemoryMb": 64
+  }
+}

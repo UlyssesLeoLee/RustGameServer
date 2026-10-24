@@ -1,0 +1,749 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "handedness": "left",
+    "note": "楼层 = 业务域 (AGENTS.md §0 的 6 域 + 平台层 + 工具), 房间 = crate。semantics 全为 logical: 这些是逻辑投影, 不是物理机房拓扑。真实 k8s Deployment 仅在节点属性 deployment 中记录。"
+  },
+  "building": {
+    "id": "BLD-RGS",
+    "name": "RustGameServer (k3s / rust-game-server)",
+    "floors": [
+      {
+        "id": "FL-Core",
+        "name": "Core",
+        "y": 0
+      },
+      {
+        "id": "FL-Interaction",
+        "name": "Interaction",
+        "y": 26
+      },
+      {
+        "id": "FL-Data",
+        "name": "Data",
+        "y": 52
+      },
+      {
+        "id": "FL-Security",
+        "name": "Security",
+        "y": 78
+      },
+      {
+        "id": "FL-Infrastructure",
+        "name": "Infrastructure",
+        "y": 104
+      },
+      {
+        "id": "FL-External",
+        "name": "External",
+        "y": 130
+      },
+      {
+        "id": "FL-Operations",
+        "name": "Operations",
+        "y": 156
+      },
+      {
+        "id": "FL-Unknown",
+        "name": "Unknown",
+        "y": 182
+      }
+    ]
+  },
+  "rooms": [
+    {
+      "id": "ROOM-activity-service",
+      "name": "activity-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-095-svc-activity-service",
+        "N-001-api-ActivityService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0002",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-admin-service",
+      "name": "admin-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 22,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-096-svc-admin-service",
+        "N-002-api-AdminService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0003",
+        "EV-0860",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-batch-service",
+      "name": "batch-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 44,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-097-svc-batch-service"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0004",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-battle-service",
+      "name": "battle-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 66,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-098-svc-battle-service",
+        "N-003-api-BattleEngineService",
+        "N-004-api-PvPService",
+        "N-005-api-BossService",
+        "N-006-api-RoomService",
+        "N-007-api-InstanceService",
+        "N-008-api-EndlessTowerService",
+        "N-009-api-EscortService",
+        "N-010-api-HolyEquipService",
+        "N-011-api-GuildWarService",
+        "N-012-api-CrossServerService",
+        "N-013-api-ExpeditionService",
+        "N-014-api-HolidayActivityService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0005",
+        "EV-0870",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-card-service",
+      "name": "card-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 88,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-099-svc-card-service",
+        "N-015-api-CardService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0006",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-cluster-ops",
+      "name": "cluster-ops",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 110,
+        "y": -26,
+        "z": 0,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-100-svc-cluster-ops",
+        "N-016-api-ClusterOpsService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0007",
+        "EV-0862",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-economy-service",
+      "name": "economy-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-101-svc-economy-service",
+        "N-017-api-EconomyService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0008",
+        "EV-0854",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-function-plane",
+      "name": "function-plane",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 22,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-102-svc-function-plane"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0009",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-gm-backend",
+      "name": "gm-backend",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 44,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-103-svc-gm-backend",
+        "N-018-api-GmBackend"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0010",
+        "EV-0868",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-gm-extra-service",
+      "name": "gm-extra-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 66,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-104-svc-gm-extra-service",
+        "N-019-api-GmExtraService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0011",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-guild-service",
+      "name": "guild-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 88,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-105-svc-guild-service",
+        "N-020-api-GuildService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0012",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-i18n-service",
+      "name": "i18n-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 110,
+        "y": -26,
+        "z": 18,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-106-svc-i18n-service",
+        "N-021-api-I18nService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0013",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-leaderboard-extra-service",
+      "name": "leaderboard-extra-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-107-svc-leaderboard-extra-service",
+        "N-022-api-LeaderboardExtraService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0014",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-leaderboard-service",
+      "name": "leaderboard-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 22,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-108-svc-leaderboard-service",
+        "N-023-api-LeaderboardService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0015",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-match-service",
+      "name": "match-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 44,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-109-svc-match-service",
+        "N-024-api-MatchService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0016",
+        "EV-0856",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-network-gateway",
+      "name": "network-gateway",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 66,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-110-svc-network-gateway",
+        "N-025-api-GatewayAdmin"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0017",
+        "EV-0871",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-operate-service",
+      "name": "operate-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 88,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-111-svc-operate-service",
+        "N-026-api-OperateService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0018",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-player-service",
+      "name": "player-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 110,
+        "y": -26,
+        "z": 36,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-112-svc-player-service",
+        "N-027-api-PlayerService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0019",
+        "EV-0852",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-pvp-full-service",
+      "name": "pvp-full-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-113-svc-pvp-full-service",
+        "N-028-api-PvpFullService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0020",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-replay-extra-service",
+      "name": "replay-extra-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 22,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-114-svc-replay-extra-service",
+        "N-029-api-ReplayExtraService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0021",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-replay-service",
+      "name": "replay-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 44,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-115-svc-replay-service",
+        "N-030-api-ReplayService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0022",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-arc-olu",
+      "name": "rgs-arc-olu",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 66,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-116-svc-rgs-arc-olu"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0023",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-asset-download",
+      "name": "rgs-asset-download",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 88,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-117-svc-rgs-asset-download"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0024",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-certgen",
+      "name": "rgs-certgen",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 110,
+        "y": -26,
+        "z": 54,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-118-svc-rgs-certgen"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0025",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-hello",
+      "name": "rgs-hello",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-119-svc-rgs-hello"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0026",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-overflow-alert",
+      "name": "rgs-overflow-alert",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 22,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-120-svc-rgs-overflow-alert"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0027",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-rgs-testkit",
+      "name": "rgs-testkit",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 44,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-121-svc-rgs-testkit"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0028",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-scene-service",
+      "name": "scene-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 66,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-122-svc-scene-service",
+        "N-031-api-SceneService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0029",
+        "EV-0869",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-shared-platform",
+      "name": "shared-platform",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 88,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-123-svc-shared-platform"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0030",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-social-extra-service",
+      "name": "social-extra-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 110,
+        "y": -26,
+        "z": 72,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-124-svc-social-extra-service",
+        "N-032-api-SocialExtraService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0031",
+        "EV-0001"
+      ]
+    },
+    {
+      "id": "ROOM-social-service",
+      "name": "social-service",
+      "floorId": "FL-undefined",
+      "bounds": {
+        "x": 0,
+        "y": -26,
+        "z": 90,
+        "w": 18,
+        "h": 12,
+        "d": 14
+      },
+      "nodeIds": [
+        "N-125-svc-social-service",
+        "N-033-api-SocialService"
+      ],
+      "semantics": "logical",
+      "evidenceIds": [
+        "EV-0032",
+        "EV-0858",
+        "EV-0001"
+      ]
+    }
+  ]
+}

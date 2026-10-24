@@ -43,7 +43,7 @@ MTLS_NEW_LIST="scene battle network account"  # 4 NEW 域 mTLS k8s yaml (per 9/6
 total_valid=0
 total_target=$(echo "$PARTIAL_LIST_W2 $PARTIAL_LIST_W3 $EXT8_LIST $MTLS_NEW_LIST batch_cron batch_task_tpl batch_worker batch_audit batch_dlq batch_conn" | wc -w)
 for p in $PARTIAL_LIST_W2 $PARTIAL_LIST_W3; do
-  if python -c "import json; json.load(open('mock_data/${p}.json'))" 2>/dev/null; then
+  if python -c "import json; json.load(open('mock_data/${p}.json', encoding='utf-8'))" 2>/dev/null; then
     total_valid=$((total_valid + 1))
   else
     echo "  ❌ mock_data/${p}.json (JSON invalid)"
@@ -64,7 +64,7 @@ total = 0
 W2 = ['combat','guild','arena','role','market','misc','login','rank','conn_login','recruit','group_control','activity']
 W3 = ['avatar','honor','login_days','checkin','feat','charge','item','mail','exchange','convert','lev_gift','power_gift','boss','dungeon','endless','adventure','star','drama','sns','guild_shipping','guild_dun','guild_skill','formation','quest','partner','holiday','say','map','vip','days_rank']
 for p in W2 + W3:
-    data = json.load(open(f'mock_data/{p}.json'))
+    data = json.load(open(f'mock_data/{p}.json', encoding='utf-8'))
     total += len(data.get('rpcs', []))
 print(total)
 ")

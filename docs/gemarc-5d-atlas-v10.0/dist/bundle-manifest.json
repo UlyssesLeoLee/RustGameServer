@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "builtAt": "2026-10-23T00:11:53.084Z",
+  "production": true,
+  "entry": "index.html",
+  "dist": "dist/index.html",
+  "singleFile": true,
+  "offline": {
+    "runtimeNetworkRequests": 0,
+    "usesEsModuleImport": false,
+    "usesEval": false,
+    "usesRemoteCdn": false,
+    "note": "所有模型 JSON 与三方库在构建期内联; 运行时零 fetch / 零 import / 零 eval。"
+  },
+  "artifacts": [
+    {
+      "path": "index.html",
+      "bytes": 1788402,
+      "sha256": "c17b881f98c2e07ea93920c5c291ee030d4bacffb5c57b2871616df5ada99cb4"
+    },
+    {
+      "path": "dist/index.html",
+      "bytes": 1788402,
+      "sha256": "c17b881f98c2e07ea93920c5c291ee030d4bacffb5c57b2871616df5ada99cb4"
+    }
+  ],
+  "bundles": {
+    "js": {
+      "bytes": 1770944,
+      "sha256": "2473925e3b659d7ab07525e05e053bf4e60a44ecb9d0268d9a1b459d880cf8e6"
+    },
+    "css": {
+      "bytes": 10950,
+      "sha256": "eb02f253411b6ef6a3ea5508474c5d4868815383928693abd46dd10d59c8ae85"
+    }
+  },
+  "thirdParty": [
+    {
+      "name": "three",
+      "version": "0.160.1",
+      "license": "MIT",
+      "usage": "3D 场景渲染 (真实几何/材质/相机/拾取)"
+    },
+    {
+      "name": "konva",
+      "version": "9.3.16",
+      "license": "MIT",
+      "usage": "原型工作区 WYSIWYG 舞台 (开源核心, 非 Polotno 付费版)"
+    },
+    {
+      "name": "graphology",
+      "version": "0.25.4",
+      "license": "MIT",
+      "usage": "图模型底座 (Node/Edge/邻接)"
+    }
+  ],
+  "generatedFrom": {
+    "script": "scripts/build.mjs",
+    "source": "src/",
+    "models": "models/"
+  },
+  "note": "生成物与源码分离: index.html / dist/ 为构建产物, src/ 与 models/ 为可维护来源。"
+}
